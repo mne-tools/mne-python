@@ -28,7 +28,6 @@ import os
 import os.path as op
 
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 
 import nibabel as nib
@@ -203,30 +202,15 @@ del CT_data, T1
 #
 # .. note:: MNE represents data in the "head" space internally
 
-# load electrophysiology data
+# load electrophysiology data with channel locations
 raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
-
-# load electrode positions from file
-elec_df = pd.read_csv(op.join(misc_path, 'seeg', 'sample_seeg_electrodes.tsv'),
-                      sep='\t', header=0, index_col=None)
-ch_names = elec_df['name'].tolist()
-ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float)
+subj_trans = mne.read_trans(op.join(misc_path, 'seeg',
+                                    'sample_seeg_trans.fif'))
 
 # create symbolic link to share ``subjects_dir``
 seeg_subject_dir = op.join(subjects_dir, 'sample_seeg')
 if not op.exists(seeg_subject_dir):
     os.symlink(op.join(misc_path, 'seeg', 'sample_seeg'), seeg_subject_dir)
-
-# get fiducial points for our subject from the Talairach transform
-# the was computed during the Freesurfer recon-all
-lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
-    'sample_seeg', subjects_dir=subjects_dir)
-lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
-
-# create a montage in subject-specific brain space
-ch_pos = dict(zip(ch_names, ch_coords / 1000))  # mm -> m
-montage = mne.channels.make_dig_montage(
-    ch_pos, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
 
 ###############################################################################
 # Let's plot the electrode contact locations on the subject's brain.
@@ -234,12 +218,6 @@ montage = mne.channels.make_dig_montage(
 # load the subject's brain
 subject_brain = nib.load(
     op.join(misc_path, 'seeg', 'sample_seeg', 'mri', 'brain.mgz'))
-
-# get native to head trans
-subj_trans = mne.channels.compute_native_head_t(montage)
-
-# set new montage
-raw.set_montage(montage)
 
 # plot the alignment
 fig_kwargs = dict(size=(800, 600), bgcolor='w', scene=False)
@@ -309,8 +287,8 @@ del subject_brain, template_brain
 # the warped image.
 
 montage_warped, elec_image, warped_elec_image = mne.warp_montage_volume(
-    montage, CT_aligned, reg_affine, sdr_morph, subject_from='sample_seeg',
-    subjects_dir=subjects_dir, thresh=CT_thresh)
+    raw.get_montage(), CT_aligned, reg_affine, sdr_morph,
+    subject_from='sample_seeg', subjects_dir=subjects_dir, thresh=CT_thresh)
 
 fig, axes = plt.subplots(2, 1, figsize=(8, 8))
 nilearn.plotting.plot_glass_brain(elec_image, axes=axes[0], cmap='Dark2')
