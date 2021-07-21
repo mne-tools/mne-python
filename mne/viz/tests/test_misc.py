@@ -10,6 +10,7 @@
 import os.path as op
 
 import numpy as np
+from numpy.testing import assert_array_equal
 import pytest
 import matplotlib.pyplot as plt
 
@@ -256,6 +257,11 @@ def test_plot_chpi_snr():
     fig = plot_chpi_snr(result)
     assert len(fig.axes) == len(result) - 2
     assert len(fig.axes[0].lines) == len(result['freqs'])
+    assert len(fig.legends) == 1
+    texts = [entry.get_text() for entry in fig.legends[0].get_texts()]
+    assert len(texts) == len(result['freqs'])
+    freqs = [float(text.split()[0]) for text in texts]
+    assert_array_equal(freqs, result['freqs'])
     # test user-passed axes
     _, axs = plt.subplots(2, 3)
     _ = plot_chpi_snr(result, axes=axs.ravel())
