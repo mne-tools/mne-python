@@ -204,6 +204,11 @@ del CT_data, T1
 
 # load electrophysiology data with channel locations
 raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
+
+# MNE stores digitization montages in a coordinate frame called "head"
+# thus even though the channel positions were found in the reference frame of
+# Freesurfer surfaces when they were assigned to the ``raw`` object, they were
+# transformed to "head" so we need to have a transform to put them back
 subj_trans = mne.read_trans(op.join(misc_path, 'seeg',
                                     'sample_seeg_trans.fif'))
 
@@ -286,8 +291,13 @@ del subject_brain, template_brain
 # positions of all the voxels that had the contact's lookup number in
 # the warped image.
 
+# first we need our montage but it should be converted to "mri" coordinates
+montage = raw.get_montage()
+# ``subj_trans`` is "mri" to "head", we need "head" to "mri"
+montage.apply_trans(mne.transforms.invert_transform(subj_trans))
+
 montage_warped, elec_image, warped_elec_image = mne.warp_montage_volume(
-    raw.get_montage(), CT_aligned, reg_affine, sdr_morph,
+    montage, CT_aligned, reg_affine, sdr_morph,
     subject_from='sample_seeg', subjects_dir=subjects_dir, thresh=CT_thresh)
 
 fig, axes = plt.subplots(2, 1, figsize=(8, 8))
