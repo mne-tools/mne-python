@@ -1316,11 +1316,11 @@ class Coregistration(object):
             self._transformed_orig_dig_extra = \
                 apply_trans(self._head_mri_t, self._dig._extra_points)
             self._nearest_transformed_high_res_mri_idx_orig_hsp = \
-                self._nearest_calc.query(
-                    apply_trans(self._head_mri_t, self._dig._extra_points))[1]
+                self._nearest_calc.query(self._transformed_orig_dig_extra)[1]
             self._nearest_transformed_high_res_mri_idx_hpi = \
-                self._nearest_calc.query(
-                    apply_trans(self._head_mri_t, self._dig.hpi_points))[1]
+                self._nearest_calc.query(self._transformed_dig_hpi)[1]
+            self._nearest_transformed_high_res_mri_idx_eeg = \
+                self._nearest_calc.query(self._transformed_dig_eeg)[1]
             self._nearest_transformed_high_res_mri_idx_rpa = \
                 self._nearest_calc.query(
                     apply_trans(self._head_mri_t, self._dig.rpa))[1]
@@ -1330,9 +1330,6 @@ class Coregistration(object):
             self._nearest_transformed_high_res_mri_idx_lpa = \
                 self._nearest_calc.query(
                     apply_trans(self._head_mri_t, self._dig.lpa))[1]
-            self._nearest_transformed_high_res_mri_idx_eeg = \
-                self._nearest_calc.query(
-                    apply_trans(self._head_mri_t, self._dig.eeg_points))[1]
             self._mri_head_t = self._rot_trans.copy()
             self._mri_head_t[:3, 3] = np.array(tra)
         if tra_changed or sca is not None:
