@@ -13,6 +13,7 @@ MNE-dSPM inverse solutions.
 
 # %%
 
+import os.path as op
 import numpy as np
 
 import mne
@@ -32,12 +33,13 @@ print(__doc__)
 # compute the event-related coherence.
 
 data_path = sample.data_path()
-subjects_dir = data_path + '/subjects'
-fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
-fname_raw = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-fname_event = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+subjects_dir = op.join(data_path, 'subjects')
+sample_dir = op.join(data_path, 'MEG', 'sample')
+fname_inv = op.join(sample_dir, 'sample_audvis-meg-oct-6-meg-inv.fif')
+fname_raw = op.join(sample_dir, 'sample_audvis_filt-0-40_raw.fif')
+fname_event = op.join(sample_dir, 'sample_audvis_filt-0-40_raw-eve.fif')
 label_name_lh = 'Aud-lh'
-fname_label_lh = data_path + '/MEG/sample/labels/%s.label' % label_name_lh
+fname_label_lh = op.join(sample_dir, 'labels', f'{label_name_lh}.label')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
