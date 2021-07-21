@@ -2460,7 +2460,7 @@ class Brain(object):
             self._renderer.set_camera(**views_dicts[hemi][v])
 
     def add_text(self, x, y, text, name=None, color=None, opacity=1.0,
-                 row=None, col=None, font_size=None, justification=None):
+                 row=-1, col=-1, font_size=None, justification=None):
         """Add a text to the visualization.
 
         Parameters
@@ -2480,9 +2480,10 @@ class Brain(object):
         opacity : float
             Opacity of the text (default 1.0).
         row : int | None
-            Row index of which brain to use. Default all rows.
+            Row index of which brain to use. Default is the bottom row.
         col : int | None
-            Column index of which brain to use. Default all columns.
+            Column index of which brain to use. Default is the left-most
+            column.
         font_size : float | None
             The font size to use.
         justification : str | None
@@ -2658,8 +2659,8 @@ class Brain(object):
 
     @fill_doc
     def show_view(self, view=None, roll=None, distance=None,
-                  azimuth=None, elevation=None, focalpoint=None,
-                  row=None, col=None, hemi=None, align=True):
+                  row='deprecated', col='deprecated', hemi=None, align=True,
+                  azimuth=None, elevation=None, focalpoint=None):
         """Orient camera to display view.
 
         Parameters
@@ -2667,9 +2668,6 @@ class Brain(object):
         %(view)s
         %(roll)s
         %(distance)s
-        %(azimuth)s
-        %(elevation)s
-        %(focalpoint)s
         row : int | None
             The row to set. Default all rows.
         col : int | None
@@ -2681,6 +2679,9 @@ class Brain(object):
             directions (closest to MNI for the subject) rather than native MRI
             space. This helps when MRIs are not in standard orientation (e.g.,
             have large rotations).
+        %(azimuth)s
+        %(elevation)s
+        %(focalpoint)s
         """
         hemi = self._hemi if hemi is None else hemi
         if hemi == 'split':
@@ -2698,6 +2699,15 @@ class Brain(object):
             if elevation is None and 'elevation' in view:
                 elevation = view['elevation']
             view = None
+        if (row == 'deprecated' or col == 'deprecated') and \
+                len([_ for h in self._hemis for _ in self._iter_views(h)]) > 1:
+            warn('`row` and `col` default behavior is changing, in version '
+                 '0.25 the default behavior will be to apply `show_view` to '
+                 'all views', DeprecationWarning)
+        if row == 'deprecated':
+            row = None
+        if col == 'deprecated':
+            col = None
         view_params = dict(azimuth=azimuth, elevation=elevation, roll=roll,
                            distance=distance, focalpoint=focalpoint)
         if view is not None:  # view string takes precedence
