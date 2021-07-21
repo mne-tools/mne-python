@@ -203,7 +203,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     ``True``. This flag can be toggled by pressing 'd'.
     """
     from ..io.base import BaseRaw
-    from ._figure import _browse_figure
+    from mne.viz._browser import _get_browser
 
     info = raw.info.copy()
     sfreq = info['sfreq']
@@ -347,29 +347,34 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   scalebars_visible=show_scalebars,
                   window_title=title)
 
-    fig = _browse_figure(**params)
-    fig._update_picks()
+    params['backend'] = 'pyqtgraph'
 
-    # make channel selection dialog, if requested (doesn't work well in init)
-    if group_by in ('selection', 'position'):
-        fig._create_selection_fig()
+    fig = _get_browser(**params)
 
-    # update projector and data, and plot
-    fig._update_projector()
-    fig._update_trace_offsets()
-    fig._update_data()
-    fig._draw_traces()
+    if params['backend'] == 'matplotlib':
+        fig._update_picks()
 
-    # plot annotations (if any)
-    fig._setup_annotation_colors()
-    fig._draw_annotations()
+        # make channel selection dialog, if requested (doesn't work well in init)
+        if group_by in ('selection', 'position'):
+            fig._create_selection_fig()
 
-    # start with projectors dialog open, if requested
-    if show_options:
-        fig._toggle_proj_fig()
+        # update projector and data, and plot
+        fig._update_projector()
+        fig._update_trace_offsets()
+        fig._update_data()
+        fig._draw_traces()
 
-    plt_show(show, block=block)
-    return fig
+        # plot annotations (if any)
+        fig._setup_annotation_colors()
+        fig._draw_annotations()
+
+        # start with projectors dialog open, if requested
+        if show_options:
+            fig._toggle_proj_fig()
+
+        plt_show(show, block=block)
+
+    # return fig
 
 
 @verbose

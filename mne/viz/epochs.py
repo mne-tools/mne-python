@@ -748,7 +748,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     .. versionadded:: 0.10.0
     """
-    from ._figure import _browse_figure
+    from mne.viz._browser import _get_browser
 
     epochs.drop_bad()
     info = epochs.info.copy()
@@ -894,19 +894,25 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   scalebars_visible=False,
                   window_title=title,
                   xlabel='Epoch number')
-    fig = _browse_figure(**params)
-    fig._update_picks()
 
-    # make channel selection dialog, if requested (doesn't work well in init)
-    if group_by in ('selection', 'position'):
-        fig._create_selection_fig()
+    params['backend'] = 'pyqtgraph'
 
-    fig._update_projector()
-    fig._update_trace_offsets()
-    fig._update_data()
-    fig._draw_traces()
+    fig = _get_browser(**params)
 
-    plt_show(show, block=block)
+    if params['backend'] == 'matplotlib':
+        fig._update_picks()
+
+        # make channel selection dialog, if requested (doesn't work well in init)
+        if group_by in ('selection', 'position'):
+            fig._create_selection_fig()
+
+        fig._update_projector()
+        fig._update_trace_offsets()
+        fig._update_data()
+        fig._draw_traces()
+
+        plt_show(show, block=block)
+
     return fig
 
 

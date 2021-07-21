@@ -930,7 +930,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                   show_scrollbars, show_first_samp, time_format):
     """Plot the ICA components as a RawArray or EpochsArray."""
-    from ._figure import _browse_figure
+    from mne.viz._browser import _get_browser
     from .. import EpochsArray, BaseEpochs
     from ..io import RawArray, BaseRaw
 
@@ -1072,19 +1072,23 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                       epoch_color_bad=(1, 0, 0),
                       epoch_colors=None,
                       xlabel='Epoch number')
-    fig = _browse_figure(**params)
-    fig._update_picks()
+    params['backend'] = 'pyqtgraph'
 
-    # update data, and plot
-    fig._update_trace_offsets()
-    fig._update_data()
-    fig._draw_traces()
+    fig = _get_browser(**params)
 
-    # plot annotations (if any)
-    if is_raw:
-        fig._setup_annotation_colors()
-        fig._update_annotation_segments()
-        fig._draw_annotations()
+    if params['backend'] == 'matplotlib':
+        fig._update_picks()
 
-    plt_show(show, block=block)
+        # update data, and plot
+        fig._update_trace_offsets()
+        fig._update_data()
+        fig._draw_traces()
+
+        # plot annotations (if any)
+        if is_raw:
+            fig._setup_annotation_colors()
+            fig._update_annotation_segments()
+            fig._draw_annotations()
+
+        plt_show(show, block=block)
     return fig
