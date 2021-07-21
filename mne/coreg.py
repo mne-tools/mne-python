@@ -1293,7 +1293,7 @@ class Coregistration(object):
 
     def _update_params(self, rot=None, tra=None, sca=None):
         rot_changed = False
-        if self._rot_trans is None or rotation is not None:
+        if self._rot_trans is None or rot is not None:
             rot_changed = True
             self._last_rotation = self._rotation
             self._rotation = rot
