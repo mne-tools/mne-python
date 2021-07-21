@@ -2699,7 +2699,8 @@ class Brain(object):
                 elevation = view['elevation']
             view = None
         if (row == 'deprecated' or col == 'deprecated') and \
-                len([_ for h in self._hemis for _ in self._iter_views(h)]) > 1:
+                len(set([_ for h in self._hemis
+                         for _ in self._iter_views(h)])) > 1:
             warn('`row` and `col` default behavior is changing, in version '
                  '0.25 the default behavior will be to apply `show_view` to '
                  'all views', DeprecationWarning)
