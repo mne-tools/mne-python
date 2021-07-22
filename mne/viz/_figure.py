@@ -35,12 +35,12 @@ matplotlib.figure.Figure
 # Authors: Daniel McCloy <dan@mccloy.info>
 #
 # License: Simplified BSD
+import sys
 from copy import deepcopy
 from collections import OrderedDict
 from contextlib import contextmanager
 import datetime
 from functools import partial
-from itertools import cycle
 import platform
 import warnings
 
@@ -51,9 +51,9 @@ from mne.viz._browser import BrowserBase
 from .epochs import plot_epochs_image
 from .ica import (_create_properties_layout, _fast_plot_ica_properties,
                   _prepare_data_ica_properties)
-from .utils import (plt_show, plot_sensors, _setup_plot_projector, _events_off,
+from .utils import (plt_show, plot_sensors, _events_off,
                     _set_window_title, _merge_annotations, DraggableLine,
-                    _get_color_list, logger, _validate_if_list_of_axes,
+                    logger, _validate_if_list_of_axes,
                     _plot_psd, _prop_kw)
 from ..defaults import _handle_default
 from ..utils import set_config, _check_option, _check_sphere, Bunch
@@ -1350,13 +1350,13 @@ class MNEBrowseFigure(MNEFigure):
                                        va='baseline', color=segment_color)
                     self.mne.annotation_texts.append(text)
 
-
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # CHANNEL SELECTION GUI
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def _create_selection_fig(self):
         """Create channel selection dialog window."""
+
         from matplotlib.colors import to_rgb
         from matplotlib.widgets import RadioButtons
         from matplotlib.gridspec import GridSpec
@@ -2136,6 +2136,43 @@ def _browse_figure(inst, **kwargs):
         fig.mne.scrollbars_visible = True
         fig._toggle_scrollbars()
     return fig
+
+
+def _get_browser(inst, backend='matplotlib', **kwargs):
+    """Instantiate a new MNE browse-style figure."""
+    from .utils import _get_figsize_from_config
+    figsize = kwargs.pop('figsize', _get_figsize_from_config())
+
+    if backend == 'pyqtgraph':
+        try:
+            import pyqtgraph as pg
+            from prototypes.pyqtgraph_ptyp import PyQtGraphPtyp
+        except ModuleNotFoundError:
+            backend = 'matplotlib'
+        else:
+            pg.setConfigOption('enableExperimental', True)
+
+            app = pg.mkQApp()
+            browser = PyQtGraphPtyp(inst=inst, figsize=figsize, **kwargs)
+            browser.show()
+            sys.exit(app.exec())
+
+    if backend == 'matplotlib':
+        browser = _figure(inst=inst, toolbar=False,
+                          FigureClass=MNEBrowseFigure,
+                          figsize=figsize, **kwargs)
+        # initialize zen mode
+        # (can't do in __init__ due to get_position() calls)
+        browser.canvas.draw()
+        browser._update_zen_mode_offsets()
+        browser._resize(None)  # needed for MPL >=3.4
+        # if scrollbars are supposed to start hidden,
+        # set to True and then toggle
+        if not browser.mne.scrollbars_visible:
+            browser.mne.scrollbars_visible = True
+            browser._toggle_scrollbars()
+
+    return browser
 
 
 def _line_figure(inst, axes=None, picks=None, **kwargs):

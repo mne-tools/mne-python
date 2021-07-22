@@ -1,13 +1,10 @@
-import sys
 from abc import ABC
 from copy import deepcopy
 from itertools import cycle
 
 import numpy as np
 from mne.annotations import _sync_onset
-from mne.viz._figure import _figure, MNEBrowseFigure
-from mne.viz.utils import _get_color_list, _merge_annotations, \
-    _setup_plot_projector
+from mne.viz.utils import _get_color_list, _setup_plot_projector
 
 
 class BrowserParams:
@@ -304,37 +301,3 @@ class BrowserBase(ABC):
         """This is usually not necessary for the pyqtgraph-backend as
         the redraw of objects is often handled by pyqtgraph internally."""
         pass
-
-
-def _get_browser(inst, backend='matplotlib', **kwargs):
-    """Instantiate a new MNE browse-style figure."""
-    from .utils import _get_figsize_from_config
-    figsize = kwargs.pop('figsize', _get_figsize_from_config())
-
-    if backend == 'pyqtgraph':
-        try:
-            import pyqtgraph as pg
-            from prototypes.pyqtgraph_ptyp import PyQtGraphPtyp
-        except ModuleNotFoundError:
-            backend = 'matplotlib'
-        else:
-            pg.setConfigOption('enableExperimental', True)
-
-            app = pg.mkQApp()
-            browser = PyQtGraphPtyp(inst=inst, figsize=figsize, **kwargs)
-            browser.show()
-            sys.exit(app.exec())
-
-    if backend == 'matplotlib':
-        browser = _figure(inst=inst, toolbar=False, FigureClass=MNEBrowseFigure,
-                      figsize=figsize, **kwargs)
-        # initialize zen mode (can't do in __init__ due to get_position() calls)
-        browser.canvas.draw()
-        browser._update_zen_mode_offsets()
-        browser._resize(None)  # needed for MPL >=3.4
-        # if scrollbars are supposed to start hidden, set to True and then toggle
-        if not browser.mne.scrollbars_visible:
-            browser.mne.scrollbars_visible = True
-            browser._toggle_scrollbars()
-
-    return browser

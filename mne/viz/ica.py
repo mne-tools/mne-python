@@ -930,7 +930,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                   show_scrollbars, show_first_samp, time_format):
     """Plot the ICA components as a RawArray or EpochsArray."""
-    from mne.viz._browser import _get_browser
+    from ._figure import _get_browser
     from .. import EpochsArray, BaseEpochs
     from ..io import RawArray, BaseRaw
 
@@ -1072,11 +1072,11 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                       epoch_color_bad=(1, 0, 0),
                       epoch_colors=None,
                       xlabel='Epoch number')
-    params['backend'] = 'pyqtgraph'
+    params['browser_backend'] = 'matplotlib'
 
     fig = _get_browser(**params)
 
-    if params['backend'] == 'matplotlib':
+    if params['browser_backend'] == 'matplotlib':
         fig._update_picks()
 
         # update data, and plot

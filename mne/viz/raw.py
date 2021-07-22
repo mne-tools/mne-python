@@ -203,7 +203,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     ``True``. This flag can be toggled by pressing 'd'.
     """
     from ..io.base import BaseRaw
-    from mne.viz._browser import _get_browser
+    from ._figure import _get_browser
 
     info = raw.info.copy()
     sfreq = info['sfreq']
@@ -347,14 +347,15 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   scalebars_visible=show_scalebars,
                   window_title=title)
 
-    params['backend'] = 'pyqtgraph'
+    params['browser_backend'] = 'matplotlib'
 
     fig = _get_browser(**params)
 
-    if params['backend'] == 'matplotlib':
+    if params['browser_backend'] == 'matplotlib':
         fig._update_picks()
 
-        # make channel selection dialog, if requested (doesn't work well in init)
+        # make channel selection dialog,
+        # if requested (doesn't work well in init)
         if group_by in ('selection', 'position'):
             fig._create_selection_fig()
 
@@ -374,7 +375,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
         plt_show(show, block=block)
 
-    # return fig
+    return fig
 
 
 @verbose
