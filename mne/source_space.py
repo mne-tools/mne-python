@@ -1654,8 +1654,9 @@ def _make_discrete_source_space(pos, coord_frame='mri'):
     rr = np.array(pos['rr'], float)
     nn = np.array(pos['nn'], float)
     if not (rr.ndim == nn.ndim == 2 and nn.shape[0] == nn.shape[0] and
-            rr.shape[1] == nn.shape[1]):
-        raise RuntimeError('"rr" and "nn" must both be 2D arrays with '
+            rr.shape[1] == nn.shape[1] and np.isfinite(rr).all() and
+            np.isfinite(nn).all()):
+        raise RuntimeError('"rr" and "nn" must both be finite 2D arrays with '
                            'the same number of rows and 3 columns')
     npts = rr.shape[0]
     _normalize_vectors(nn)

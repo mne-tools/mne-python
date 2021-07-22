@@ -270,12 +270,16 @@ def test_discrete_source_space(tmpdir):
     _compare_source_spaces(src_c, src_c2)
 
     # now do MRI
-    pytest.raises(ValueError, setup_volume_source_space, 'sample',
-                  pos=pos_dict, mri=fname_mri)
+    with pytest.raises(ValueError, match='Cannot create interpolation'):
+        setup_volume_source_space('sample', pos=pos_dict, mri=fname_mri)
     assert repr(src_new).split('~')[0] == repr(src_c).split('~')[0]
     assert ' kB' in repr(src_new)
     assert src_new.kind == 'discrete'
     assert _get_src_type(src_new, None) == 'discrete'
+
+    with pytest.raises(RuntimeError, match='finite'):
+        setup_volume_source_space(
+            pos=dict(rr=[[0, 0, float('inf')]], nn=[[0, 1, 0]]))
 
 
 @requires_nibabel()
