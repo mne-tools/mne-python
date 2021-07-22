@@ -187,26 +187,30 @@ def _get_browser(inst, backend='matplotlib', **kwargs):
     from .utils import _get_figsize_from_config
     figsize = kwargs.pop('figsize', _get_figsize_from_config())
 
+    if backend == 'pyqtgraph':
+        try:
+            import pyqtgraph as pg
+            from prototypes.pyqtgraph_ptyp import PyQtGraphPtyp
+        except ModuleNotFoundError:
+            backend = 'matplotlib'
+        else:
+            pg.setConfigOption('enableExperimental', True)
+
+            app = pg.mkQApp()
+            browser = PyQtGraphPtyp(inst=inst, figsize=figsize, **kwargs)
+            browser.show()
+            sys.exit(app.exec())
+
     if backend == 'matplotlib':
-        fig = _figure(inst=inst, toolbar=False, FigureClass=MNEBrowseFigure,
+        browser = _figure(inst=inst, toolbar=False, FigureClass=MNEBrowseFigure,
                       figsize=figsize, **kwargs)
         # initialize zen mode (can't do in __init__ due to get_position() calls)
-        fig.canvas.draw()
-        fig._update_zen_mode_offsets()
-        fig._resize(None)  # needed for MPL >=3.4
+        browser.canvas.draw()
+        browser._update_zen_mode_offsets()
+        browser._resize(None)  # needed for MPL >=3.4
         # if scrollbars are supposed to start hidden, set to True and then toggle
-        if not fig.mne.scrollbars_visible:
-            fig.mne.scrollbars_visible = True
-            fig._toggle_scrollbars()
-    else:
-        import pyqtgraph as pg
-        from prototypes.pyqtgraph_ptyp import PyQtGraphPtyp
+        if not browser.mne.scrollbars_visible:
+            browser.mne.scrollbars_visible = True
+            browser._toggle_scrollbars()
 
-        pg.setConfigOption('enableExperimental', True)
-
-        app = pg.mkQApp()
-        fig = PyQtGraphPtyp(inst=inst, figsize=figsize, **kwargs)
-        fig.show()
-        sys.exit(app.exec())
-
-    return fig
+    return browser
