@@ -8,6 +8,9 @@ from mne.viz.utils import _get_color_list, _setup_plot_projector
 
 
 class BrowserParams:
+    """
+    Container object for 2D-Data-Browser parameters.
+    """
     def __init__(self, **kwargs):
         # default key to close window
         self.close_key = 'escape'
@@ -15,6 +18,10 @@ class BrowserParams:
 
 
 class BrowserBase(ABC):
+    """
+    A base class containing all backend-independent attributes and methods
+    for the 2D-Data-Browser.
+    """
     def __init__(self, **kwargs):
         from .. import BaseEpochs
         from ..io import BaseRaw
