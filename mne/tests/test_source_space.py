@@ -615,10 +615,11 @@ def test_source_space_exclusive_complete(src_volume_labels):
     for si, s in enumerate(src):
         assert_allclose(src_full[0]['rr'], s['rr'], atol=1e-6)
     # also check single_volume=True -- should be the same result
-    src_single = setup_volume_source_space(
-        src[0]['subject_his_id'], 7., 'aseg.mgz', bem=fname_bem,
-        volume_label=volume_labels, single_volume=True, add_interpolator=False,
-        subjects_dir=subjects_dir)
+    with pytest.warns(RuntimeWarning, match='Found no usable.*Left-vessel.*'):
+        src_single = setup_volume_source_space(
+            src[0]['subject_his_id'], 7., 'aseg.mgz', bem=fname_bem,
+            volume_label=volume_labels, single_volume=True,
+            add_interpolator=False, subjects_dir=subjects_dir)
     assert len(src_single) == 1
     assert 'Unknown+Left-Cerebral-White-Matter+Left-' in repr(src_single)
     assert_array_equal(src_full[0]['vertno'], src_single[0]['vertno'])

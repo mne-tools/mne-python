@@ -1773,6 +1773,10 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
             n_good = good.sum()
             logger.info('    Selected %d voxel%s from %s'
                         % (n_good, _pl(n_good), volume_label))
+            if n_good == 0:
+                warn('Found no usable vertices in volume label '
+                     f'{repr(volume_label)} (id={id_}) using a '
+                     f'{grid * 1000:0.1f} mm grid')
             # Update source info
             sp['inuse'][sp['vertno'][~good]] = False
             sp['vertno'] = sp['vertno'][good]
