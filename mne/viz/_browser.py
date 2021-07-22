@@ -191,6 +191,8 @@ class BrowserBase(ABC):
             color = self.mne.ch_colors[idx]
         self.mne.info['bads'] = bads
 
+        self._update_projector()
+
         return color, pick, marked_bad
 
     def _toggle_bad_epoch(self, xtime):

@@ -1575,7 +1575,6 @@ class MNEBrowseFigure(MNEFigure):
         for _idx in vscroll_idx:
             self.mne.ax_vscroll.patches[_idx].set_color(color)
         # redraw
-        self._update_projector()
         self._redraw()
 
     def _toggle_bad_epoch(self, event):
