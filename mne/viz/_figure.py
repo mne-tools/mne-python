@@ -46,8 +46,8 @@ import warnings
 
 import numpy as np
 from matplotlib.figure import Figure
+from mne.viz._browser import BrowserBase
 
-from ._browser import MNEDataBrowser
 from .epochs import plot_epochs_image
 from .ica import (_create_properties_layout, _fast_plot_ica_properties,
                   _prepare_data_ica_properties)
@@ -79,7 +79,7 @@ class MNEFigParams:
         vars(self).update(**kwargs)
 
 
-class MNEFigure(Figure, MNEDataBrowser):
+class MNEFigure(Figure, BrowserBase):
     """Base class for 2D figures & dialogs; wraps matplotlib.figure.Figure."""
 
     def __init__(self, **kwargs):
@@ -95,7 +95,7 @@ class MNEFigure(Figure, MNEDataBrowser):
 
         # ToDo: How would I do that with super()??
         Figure.__init__(self, figsize=figsize)
-        MNEDataBrowser.__init__(self, **kwargs)
+        BrowserBase.__init__(self, **kwargs)
 
     def _close(self, event):
         """Handle close events."""
@@ -1147,11 +1147,6 @@ class MNEBrowseFigure(MNEFigure):
         """Enable/disable draggable annotation edges."""
         self.mne.draggable_annotations = not self.mne.draggable_annotations
 
-    def _get_annotation_labels(self):
-        """Get the unique labels in the raw object and added in the UI."""
-        return sorted(set(self.mne.inst.annotations.description) |
-                      set(self.mne.new_annotation_labels))
-
     def _update_annotation_fig(self):
         """Draw or redraw the radio buttons and annotation labels."""
         from matplotlib.widgets import RadioButtons, CheckButtons
@@ -1277,28 +1272,6 @@ class MNEBrowseFigure(MNEFigure):
         # reset the text entry box's text
         self.mne.fig_annotation.label.set_text('BAD_')
 
-    def _setup_annotation_colors(self):
-        """Set up colors for annotations; init some annotation vars."""
-        segment_colors = getattr(self.mne, 'annotation_segment_colors', dict())
-        labels = self._get_annotation_labels()
-        colors, red = _get_color_list(annotations=True)
-        color_cycle = cycle(colors)
-        for key, color in segment_colors.items():
-            if color != red and key in labels:
-                next(color_cycle)
-        for idx, key in enumerate(labels):
-            if key in segment_colors:
-                continue
-            elif key.lower().startswith('bad') or \
-                    key.lower().startswith('edge'):
-                segment_colors[key] = red
-            else:
-                segment_colors[key] = next(color_cycle)
-        self.mne.annotation_segment_colors = segment_colors
-        # init a couple other annotation-related variables
-        self.mne.visible_annotations = {label: True for label in labels}
-        self.mne.show_hide_annotation_checkboxes = None
-
     def _select_annotation_span(self, vmin, vmax):
         """Handle annotation span selector."""
         onset = _sync_onset(self.mne.inst, vmin, True) - self.mne.first_time
@@ -1348,18 +1321,6 @@ class MNEBrowseFigure(MNEFigure):
         self._remove_annotation_hover_line()
         self.canvas.draw_idle()
 
-    def _clear_annotations(self):
-        """Clear all annotations from the figure."""
-        for annot in list(self.mne.annotations):
-            annot.remove()
-            self.mne.annotations.remove(annot)
-        for annot in list(self.mne.hscroll_annotations):
-            annot.remove()
-            self.mne.hscroll_annotations.remove(annot)
-        for text in list(self.mne.annotation_texts):
-            text.remove()
-            self.mne.annotation_texts.remove(text)
-
     def _draw_annotations(self):
         """Draw (or redraw) the annotation spans."""
         self._clear_annotations()
@@ -1389,17 +1350,6 @@ class MNEBrowseFigure(MNEFigure):
                                        va='baseline', color=segment_color)
                     self.mne.annotation_texts.append(text)
 
-    def _update_annotation_segments(self):
-        """Update the array of annotation start/end times."""
-        segments = list()
-        raw = self.mne.inst
-        if len(raw.annotations):
-            for idx, annot in enumerate(raw.annotations):
-                annot_start = _sync_onset(raw, annot['onset'])
-                annot_end = annot_start + max(annot['duration'],
-                                              1 / self.mne.info['sfreq'])
-                segments.append((annot_start, annot_end))
-        self.mne.annotation_segments = np.array(segments)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # CHANNEL SELECTION GUI
@@ -1622,32 +1572,10 @@ class MNEBrowseFigure(MNEFigure):
             self._update_projector()
             self._redraw()
 
-    def _update_projector(self):
-        """Update the data after projectors (or bads) have changed."""
-        inds = np.where(self.mne.projs_on)[0]  # doesn't include "active" projs
-        # copy projs from full list (self.mne.projs) to info object
-        self.mne.info['projs'] = [deepcopy(self.mne.projs[ix]) for ix in inds]
-        # compute the projection operator
-        proj, wh_chs = _setup_plot_projector(self.mne.info, self.mne.noise_cov,
-                                             True, self.mne.use_noise_cov)
-        self.mne.whitened_ch_names = list(wh_chs)
-        self.mne.projector = proj
-
     def _toggle_bad_channel(self, idx):
         """Mark/unmark bad channels; `idx` is index of *visible* channels."""
-        pick = self.mne.picks[idx]
-        ch_name = self.mne.ch_names[pick]
-        # add/remove from bads list
-        bads = self.mne.info['bads']
-        marked_bad = ch_name not in bads
-        if marked_bad:
-            bads.append(ch_name)
-            color = self.mne.ch_color_bad
-        else:
-            while ch_name in bads:  # to make sure duplicates are removed
-                bads.remove(ch_name)
-            color = self.mne.ch_colors[idx]
-        self.mne.info['bads'] = bads
+        color, pick, marked_bad = super()._toggle_bad_channel(idx)
+
         # update sensor color (if in selection mode)
         if self.mne.fig_selection is not None:
             self._update_bad_sensors(pick, marked_bad)
@@ -1661,15 +1589,7 @@ class MNEBrowseFigure(MNEFigure):
 
     def _toggle_bad_epoch(self, event):
         """Mark/unmark bad epochs."""
-        epoch_num = self._get_epoch_num_from_time(event.xdata)
-        epoch_ix = self.mne.inst.selection.tolist().index(epoch_num)
-        if epoch_num in self.mne.bad_epochs:
-            self.mne.bad_epochs.remove(epoch_num)
-            color = 'none'
-        else:
-            self.mne.bad_epochs.append(epoch_num)
-            self.mne.bad_epochs.sort()
-            color = self.mne.epoch_color_bad
+        epoch_ix, color = super()._toggle_bad_epoch(event.xdata)
         self.mne.ax_hscroll.patches[epoch_ix].set_color(color)
         self._redraw(update_data=False)
 
@@ -1883,96 +1803,6 @@ class MNEBrowseFigure(MNEFigure):
         self._redraw(annotations=True)
         if self.mne.fig_selection is not None:
             self.mne.fig_selection._style_radio_buttons_butterfly()
-
-    def _update_picks(self):
-        """Compute which channel indices to show."""
-        if self.mne.butterfly and self.mne.ch_selections is not None:
-            selections_dict = self._make_butterfly_selections_dict()
-            self.mne.picks = np.concatenate(tuple(selections_dict.values()))
-        elif self.mne.butterfly:
-            self.mne.picks = np.arange(self.mne.ch_names.shape[0])
-        else:
-            _slice = slice(self.mne.ch_start,
-                           self.mne.ch_start + self.mne.n_channels)
-            self.mne.picks = self.mne.ch_order[_slice]
-            self.mne.n_channels = len(self.mne.picks)
-
-    def _get_epoch_num_from_time(self, time):
-        epoch_nums = self.mne.inst.selection
-        return epoch_nums[np.searchsorted(self.mne.boundary_times[1:], time)]
-
-    def _load_data(self, start=None, stop=None):
-        """Retrieve the bit of data we need for plotting."""
-        if 'raw' in (self.mne.instance_type, self.mne.ica_type):
-            # Add additional sample to cover the case sfreq!=1000
-            # when the shown time-range wouldn't correspond to duration anymore
-            return self.mne.inst[:, start:stop + 2]
-        else:
-            # subtract one sample from tstart before searchsorted, to make sure
-            # we land on the left side of the boundary time (avoid precision
-            # errors)
-            ix = np.searchsorted(self.mne.boundary_times,
-                                 self.mne.t_start - self.mne.sampling_period)
-            item = slice(ix, ix + self.mne.n_epochs)
-            data = np.concatenate(self.mne.inst.get_data(item=item), axis=-1)
-            times = np.arange(len(self.mne.inst) * len(self.mne.inst.times)
-                              )[start:stop] / self.mne.info['sfreq']
-            return data, times
-
-    def _update_data(self):
-        """Update self.mne.data after user interaction."""
-        from ..filter import _overlap_add_filter, _filtfilt
-        # update time
-        start_sec = self.mne.t_start - self.mne.first_time
-        stop_sec = start_sec + self.mne.duration
-        if self.mne.is_epochs:
-            start, stop = np.round(np.array([start_sec, stop_sec])
-                                   * self.mne.info['sfreq']).astype(int)
-        else:
-            start, stop = self.mne.inst.time_as_index((start_sec, stop_sec))
-        # get the data
-        data, times = self._load_data(start, stop)
-        # apply projectors
-        if self.mne.projector is not None:
-            data = self.mne.projector @ data
-        # get only the channels we're displaying
-        picks = self.mne.picks
-        data = data[picks]
-        # remove DC
-        if self.mne.remove_dc:
-            data -= data.mean(axis=1, keepdims=True)
-        # filter (with same defaults as raw.filter())
-        if self.mne.filter_coefs is not None:
-            starts, stops = self.mne.filter_bounds
-            mask = (starts < stop) & (stops > start)
-            starts = np.maximum(starts[mask], start) - start
-            stops = np.minimum(stops[mask], stop) - start
-            for _start, _stop in zip(starts, stops):
-                _picks = np.where(np.in1d(picks, self.mne.picks_data))[0]
-                if len(_picks) == 0:
-                    break
-                this_data = data[_picks, _start:_stop]
-                if isinstance(self.mne.filter_coefs, np.ndarray):  # FIR
-                    this_data = _overlap_add_filter(
-                        this_data, self.mne.filter_coefs, copy=False)
-                else:  # IIR
-                    this_data = _filtfilt(
-                        this_data, self.mne.filter_coefs, None, 1, False)
-                data[_picks, _start:_stop] = this_data
-        # scale the data for display in a 1-vertical-axis-unit slot
-        this_names = self.mne.ch_names[picks]
-        this_types = self.mne.ch_types[picks]
-        stims = this_types == 'stim'
-        white = np.logical_and(np.in1d(this_names, self.mne.whitened_ch_names),
-                               np.in1d(this_names, self.mne.info['bads'],
-                                       invert=True))
-        norms = np.vectorize(self.mne.scalings.__getitem__)(this_types)
-        norms[stims] = data[stims].max(axis=-1)
-        norms[white] = self.mne.scalings['whitened']
-        norms[norms == 0] = 1
-        data /= 2 * norms[:, np.newaxis]
-        self.mne.data = data
-        self.mne.times = times
 
     def _update_trace_offsets(self):
         """Compute viewport height and adjust offsets."""

@@ -1,8 +1,13 @@
 import sys
 from abc import ABC
+from copy import deepcopy
+from itertools import cycle
 
 import numpy as np
+from mne.annotations import _sync_onset
 from mne.viz._figure import _figure, MNEBrowseFigure
+from mne.viz.utils import _get_color_list, _merge_annotations, \
+    _setup_plot_projector
 
 
 class BrowserParams:
@@ -92,21 +97,131 @@ class BrowserBase(ABC):
         self.mne.fig_selection = None
         self.mne.fig_annotation = None
 
-    @property
-    def data(self):
-        return self._data
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # ANNOTATIONS
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    @data.setter
-    def data(self, value):
-        self._data = value
+    def _get_annotation_labels(self):
+        """Get the unique labels in the raw object and added in the UI."""
+        return sorted(set(self.mne.inst.annotations.description) |
+                      set(self.mne.new_annotation_labels))
 
-    @property
-    def times(self):
-        return self._times
+    def _toggle_draggable_annotations(self):
+        """Enable/disable draggable annotation edges."""
+        self.mne.draggable_annotations = not self.mne.draggable_annotations
 
-    @times.setter
-    def times(self, value):
-        self._times = value
+    def _setup_annotation_colors(self):
+        """Set up colors for annotations; init some annotation vars."""
+        segment_colors = getattr(self.mne, 'annotation_segment_colors', dict())
+        labels = self._get_annotation_labels()
+        colors, red = _get_color_list(annotations=True)
+        color_cycle = cycle(colors)
+        for key, color in segment_colors.items():
+            if color != red and key in labels:
+                next(color_cycle)
+        for idx, key in enumerate(labels):
+            if key in segment_colors:
+                continue
+            elif key.lower().startswith('bad') or \
+                    key.lower().startswith('edge'):
+                segment_colors[key] = red
+            else:
+                segment_colors[key] = next(color_cycle)
+        self.mne.annotation_segment_colors = segment_colors
+        # init a couple other annotation-related variables
+        self.mne.visible_annotations = {label: True for label in labels}
+        self.mne.show_hide_annotation_checkboxes = None
+
+    def _clear_annotations(self):
+        """Clear all annotations from the figure."""
+        for annot in list(self.mne.annotations):
+            annot.remove()
+            self.mne.annotations.remove(annot)
+        for annot in list(self.mne.hscroll_annotations):
+            annot.remove()
+            self.mne.hscroll_annotations.remove(annot)
+        for text in list(self.mne.annotation_texts):
+            text.remove()
+            self.mne.annotation_texts.remove(text)
+
+    def _update_annotation_segments(self):
+        """Update the array of annotation start/end times."""
+        segments = list()
+        raw = self.mne.inst
+        if len(raw.annotations):
+            for idx, annot in enumerate(raw.annotations):
+                annot_start = _sync_onset(raw, annot['onset'])
+                annot_end = annot_start + max(annot['duration'],
+                                              1 / self.mne.info['sfreq'])
+                segments.append((annot_start, annot_end))
+        self.mne.annotation_segments = np.array(segments)
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # PROJECTOR & BADS
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    def _update_projector(self):
+        """Update the data after projectors (or bads) have changed."""
+        inds = np.where(self.mne.projs_on)[0]  # doesn't include "active" projs
+        # copy projs from full list (self.mne.projs) to info object
+        self.mne.info['projs'] = [deepcopy(self.mne.projs[ix]) for ix in inds]
+        # compute the projection operator
+        proj, wh_chs = _setup_plot_projector(self.mne.info, self.mne.noise_cov,
+                                             True, self.mne.use_noise_cov)
+        self.mne.whitened_ch_names = list(wh_chs)
+        self.mne.projector = proj
+
+    def _toggle_bad_channel(self, idx):
+        """Mark/unmark bad channels; `idx` is index of *visible* channels."""
+        pick = self.mne.picks[idx]
+        ch_name = self.mne.ch_names[pick]
+        # add/remove from bads list
+        bads = self.mne.info['bads']
+        marked_bad = ch_name not in bads
+        if marked_bad:
+            bads.append(ch_name)
+            color = self.mne.ch_color_bad
+        else:
+            while ch_name in bads:  # to make sure duplicates are removed
+                bads.remove(ch_name)
+            color = self.mne.ch_colors[idx]
+        self.mne.info['bads'] = bads
+
+        return color, pick, marked_bad
+
+    def _toggle_bad_epoch(self, xtime):
+        epoch_num = self._get_epoch_num_from_time(xtime)
+        epoch_ix = self.mne.inst.selection.tolist().index(epoch_num)
+        if epoch_num in self.mne.bad_epochs:
+            self.mne.bad_epochs.remove(epoch_num)
+            color = 'none'
+        else:
+            self.mne.bad_epochs.append(epoch_num)
+            self.mne.bad_epochs.sort()
+            color = self.mne.epoch_color_bad
+
+        return epoch_ix, color
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # DATA TRACES
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    def _update_picks(self):
+        """Compute which channel indices to show."""
+        if self.mne.butterfly and self.mne.ch_selections is not None:
+            selections_dict = self._make_butterfly_selections_dict()
+            self.mne.picks = np.concatenate(tuple(selections_dict.values()))
+        elif self.mne.butterfly:
+            self.mne.picks = np.arange(self.mne.ch_names.shape[0])
+        else:
+            _slice = slice(self.mne.ch_start,
+                           self.mne.ch_start + self.mne.n_channels)
+            self.mne.picks = self.mne.ch_order[_slice]
+            self.mne.n_channels = len(self.mne.picks)
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # MANAGE DATA
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def _load_data(self, start=None, stop=None):
         """Retrieve the bit of data we need for plotting."""
@@ -180,6 +295,15 @@ class BrowserBase(ABC):
         data /= 2 * norms[:, np.newaxis]
         self.mne.data = data
         self.mne.times = times
+
+    def _get_epoch_num_from_time(self, time):
+        epoch_nums = self.mne.inst.selection
+        return epoch_nums[np.searchsorted(self.mne.boundary_times[1:], time)]
+
+    def _redraw(self, **kwargs):
+        """This is usually not necessary for the pyqtgraph-backend as
+        the redraw of objects is often handled by pyqtgraph internally."""
+        pass
 
 
 def _get_browser(inst, backend='matplotlib', **kwargs):
