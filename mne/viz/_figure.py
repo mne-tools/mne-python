@@ -70,15 +70,6 @@ ANNOTATION_FIG_W = 5.0
 ANNOTATION_FIG_CHECKBOX_COLUMN_W = 0.5
 
 
-class MNEFigParams:
-    """Container object for MNE figure parameters."""
-
-    def __init__(self, **kwargs):
-        # default key to close window
-        self.close_key = 'escape'
-        vars(self).update(**kwargs)
-
-
 class MNEFigure(Figure, BrowserBase):
     """Base class for 2D figures & dialogs; wraps matplotlib.figure.Figure."""
 
