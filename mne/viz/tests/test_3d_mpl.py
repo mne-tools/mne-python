@@ -8,6 +8,7 @@
 # License: Simplified BSD
 
 import os.path as op
+import re
 
 import numpy as np
 import pytest
@@ -75,6 +76,14 @@ def test_plot_volume_source_estimates(mode, stype, init_t, want_t,
         with pytest.raises(FileNotFoundError, match='MRI file .* not found'):
             stc.plot(sample_src, subject='sample', subjects_dir=subjects_dir,
                      mode='stat_map', bg_img='junk.mgz')
+    use_ax = None
+    for ax in fig.axes:
+        if ax.get_xlabel().startswith('Time'):
+            use_ax = ax
+            break
+    assert use_ax is not None
+    label = use_ax.get_legend().get_texts()[0].get_text()
+    assert re.match('[0-9]*', label) is not None, label
 
 
 @pytest.mark.slowtest  # can be slow on OSX
