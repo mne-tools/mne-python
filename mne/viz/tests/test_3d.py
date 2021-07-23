@@ -853,6 +853,6 @@ def test_set_3d_backend_bad(monkeypatch, tmpdir):
         'mne.viz.backends.renderer.VALID_3D_BACKENDS', ('pyvistaqt',))
     # avoid using the config
     monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmpdir))
-    match = 'Could not load any valid 3D.*\npyvistaqt: cannot import.*'
+    match = 'Could not load any valid 3D.*\npyvistaqt: .*'
     with pytest.raises(RuntimeError, match=match):
         _get_renderer()
