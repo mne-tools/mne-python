@@ -566,9 +566,7 @@ def test_brain_time_viewer(renderer_interactive_pyvista, pixel_ratio,
     # (it keeps the window size and expands the 3D area when the interface
     # is toggled off)
     brain.toggle_interface(value=True)
-    with pytest.warns(DeprecationWarning,
-                      match='`row` and `col` default behavior is changing'):
-        brain.show_view(azimuth=180., elevation=90.)
+    brain.show_view(azimuth=180., elevation=90.)
     img = brain.screenshot(mode='rgb')
     want_shape = np.array([300 * pixel_ratio, 300 * pixel_ratio, 3])
     assert_allclose(img.shape, want_shape)
