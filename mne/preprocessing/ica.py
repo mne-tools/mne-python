@@ -503,7 +503,7 @@ class ICA(ContainsMixin):
                       rejection via :meth:`~mne.Epochs.drop_bad`.
 
             Valid keys are all channel types present in the data. Values must
-            by integers or floats.
+            be integers or floats.
 
             If ``None``, no PTP-based rejection will be performed. Example::
 
