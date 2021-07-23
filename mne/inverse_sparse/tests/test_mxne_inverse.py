@@ -82,9 +82,9 @@ def test_mxne_inverse_standard(forward):
 
     with pytest.deprecated_call(match="will be solved"):
         stc_prox = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                            depth=depth, maxit=300, tol=1e-8,
-                            active_set_size=10, weights=stc_dspm,
-                            weights_min=weights_min, solver='prox')
+                              depth=depth, maxit=300, tol=1e-8,
+                              active_set_size=10, weights=stc_dspm,
+                              weights_min=weights_min, solver='prox')
     with pytest.warns(None):  # CD
         stc_cd = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                             depth=depth, maxit=300, tol=1e-8,
