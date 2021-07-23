@@ -36,7 +36,8 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      set_3d_backend)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click
-from mne.utils import (requires_nibabel, traits_test,
+from mne.viz.backends.renderer import _get_renderer
+from mne.utils import (requires_nibabel, traits_test, check_version,
                        catch_logging, run_subprocess, modified_env)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
@@ -838,8 +839,20 @@ def test_renderer(renderer):
         run_subprocess(cmd)
 
 
-def test_set_3d_backend_bad():
+def test_set_3d_backend_bad(monkeypatch, tmpdir):
     """Test that the error emitted when a bad backend name is used."""
     match = "Allowed values are 'pyvistaqt', 'mayavi', and 'notebook'"
     with pytest.raises(ValueError, match=match):
         set_3d_backend('invalid')
+    # gh-9607
+    if check_version('pyvistaqt'):
+        monkeypatch.delattr('pyvistaqt.plotting.FileDialog')
+    monkeypatch.setattr(
+        'mne.viz.backends.renderer.MNE_3D_BACKEND', None)
+    monkeypatch.setattr(
+        'mne.viz.backends.renderer.VALID_3D_BACKENDS', ('pyvistaqt',))
+    # avoid using the config
+    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmpdir))
+    match = 'Could not load any valid 3D.*\npyvistaqt: cannot import.*'
+    with pytest.raises(RuntimeError, match=match):
+        _get_renderer()
