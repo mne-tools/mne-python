@@ -502,9 +502,8 @@ class ICA(ContainsMixin):
                       `~mne.io.Raw` data. For `~mne.Epochs`, perform PTP
                       rejection via :meth:`~mne.Epochs.drop_bad`.
 
-            Valid keys are ``'grad'``, ``'mag'``, ``'eeg'``, ``'seeg'``,
-            ``'dbs'``, ``'ecog'``, ``'eog'``, ``'ecg'``, ``'hbo'``, ``'hbr'``,
-            and ``'emg'``.
+            Valid keys are all channel types present in the data. Values must
+            by integers or floats.
 
             If ``None``, no PTP-based rejection will be performed. Example::
 
