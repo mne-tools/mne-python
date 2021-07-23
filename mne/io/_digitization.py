@@ -233,7 +233,7 @@ _cardinal_ident_mapping = {
 # This does something really similar to _read_dig_montage_fif but:
 #   - does not check coord_frame
 #   - does not do any operation that implies assumptions with the names
-def _get_data_as_dict_from_dig(dig):
+def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
     """Obtain coordinate data from a Dig.
 
     Parameters
@@ -259,7 +259,10 @@ def _get_data_as_dict_from_dig(dig):
         elif d['kind'] == FIFF.FIFFV_POINT_EXTRA:
             hsp.append(d['r'])
         elif d['kind'] == FIFF.FIFFV_POINT_EEG:
-            if d['ident'] != 0:  # ref channel
+            if exclude_ref_channel:
+                if d['ident'] != 0:  # ref channel
+                    dig_ch_pos_location.append(d['r'])
+            else:
                 dig_ch_pos_location.append(d['r'])
 
     dig_coord_frames = set([d['coord_frame'] for d in dig])

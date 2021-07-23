@@ -20,6 +20,7 @@ import numpy as np
 
 from .io import read_fiducials, write_fiducials, read_info
 from .io.constants import FIFF
+from .io._digitization import _get_data_as_dict_from_dig
 # keep get_mni_fiducials for backward compat (no burden to keep in this
 # namespace, too)
 from ._freesurfer import _read_mri_info, get_mni_fiducials  # noqa: F401
@@ -1284,12 +1285,91 @@ class Coregistration(object):
         self._eeg_weight = 1.
         self._hpi_weight = 1.
 
-        self._dig = _DigSource(info)
-        self._mri = _MRIHeadWithFiducialsModel(subjects_dir=subjects_dir,
-                                               subject=subject)
+        self._extra_points_filter = None
+        self._dig = _get_data_as_dict_from_dig(
+            dig=info['dig'],
+            exclude_ref_channel=False
+        )
+        # adjustments
+        self._dig['dig_ch_pos_location'] = \
+            np.array(self._dig['dig_ch_pos_location'])
+        self._dig['rpa'] = np.array([self._dig['rpa']])
+        self._dig['nasion'] = np.array([self._dig['nasion']])
+        self._dig['lpa'] = np.array([self._dig['lpa']])
+
+        self._setup_mri(subjects_dir=subjects_dir,
+                        subject=subject)
         self.reset()
         self._nearest_calc = _DistanceQuery(
             self._processed_high_res_mri_points * self._scale)
+
+    def _setup_mri(self, subjects_dir, subject):
+        # find high-res head model (if possible)
+        high_res_path = _find_head_bem(subject, subjects_dir, high_res=True)
+        low_res_path = _find_head_bem(subject, subjects_dir, high_res=False)
+        if high_res_path is None and low_res_path is None:
+            raise RuntimeError("No standard head model was "
+                               f"found for subject {subject}")
+        if high_res_path is not None:
+            self.bem_high_res = self._read_surface(high_res_path)
+        else:
+            self.bem_high_res = self._read_surface(low_res_path)
+        if low_res_path is None:
+            # This should be very rare!
+            warn('No low-resolution head found, decimating high resolution '
+                 'mesh (%d vertices): %s' % (len(self.bem_high_res.surf.rr),
+                                             high_res_path,))
+            # Create one from the high res one, which we know we have
+            rr, tris = decimate_surface(self.bem_high_res.surf.rr,
+                                        self.bem_high_res.surf.tris,
+                                        n_triangles=5120)
+            # directly set the attributes of bem_low_res
+            self.bem_low_res = complete_surface_info(dict(rr=rr, tris=tris),
+                                                     copy=False, verbose=False)
+        else:
+            self.bem_low_res = self._read_surface(low_res_path)
+
+        # Set MNI points
+        try:
+            fids = get_mni_fiducials(subject, subjects_dir)
+        except Exception:  # some problem, leave at origin
+            self.mni_points = None
+        else:
+            self.mni_points = np.array([f['r'] for f in fids], float)
+
+        # find fiducials file
+        fid_files = _find_fiducials_files(subject, subjects_dir)
+        fid_filename = fid_files[0].format(subjects_dir=subjects_dir,
+                                           subject=subject)
+        if fid_filename is None or not op.exists(fid_filename):
+            self.fid_points = self.mni_points
+        else:
+            self.fid_points = _fiducial_coords(*read_fiducials(fid_filename))
+
+        # does not seem to happen by itself ... so hard code it:
+        self._reset_fiducials()
+
+    def _read_surface(self, filename):
+        bem = dict()
+        if filename is not None and op.exists(filename):
+            if filename.endswith('.fif'):
+                bem = read_bem_surfaces(filename, verbose=False)[0]
+            else:
+                try:
+                    bem = read_surface(filename, return_dict=True)[2]
+                    bem['rr'] *= 1e-3
+                    complete_surface_info(bem, copy=False)
+                except Exception:
+                    raise ValueError(
+                        "Error loading surface from %s (see "
+                        "Terminal for details)." % filename)
+        return bem
+
+    def _reset_fiducials(self):  # noqa: D102
+        if self.fid_points is not None:
+            self.lpa = self.fid_points[0:1]
+            self.nasion = self.fid_points[1:2]
+            self.rpa = self.fid_points[2:3]
 
     def _update_params(self, rot=None, tra=None, sca=None):
         rot_changed = False
@@ -1307,13 +1387,14 @@ class Coregistration(object):
             self._head_mri_t[:3, 3] = \
                 -np.dot(self._head_mri_t[:3, :3], tra)
             self._transformed_dig_hpi = \
-                apply_trans(self._head_mri_t, self._dig.hpi_points)
+                apply_trans(self._head_mri_t, self._dig['hpi'])
             self._transformed_dig_eeg = \
-                apply_trans(self._head_mri_t, self._dig.eeg_points)
+                apply_trans(self._head_mri_t, self._dig['dig_ch_pos_location'])
             self._transformed_dig_extra = \
-                apply_trans(self._head_mri_t, self._dig.extra_points)
+                apply_trans(self._head_mri_t,
+                            self._filtered_extra_points)
             self._transformed_orig_dig_extra = \
-                apply_trans(self._head_mri_t, self._dig._extra_points)
+                apply_trans(self._head_mri_t, self._dig['hsp'])
             self._nearest_transformed_high_res_mri_idx_orig_hsp = \
                 self._nearest_calc.query(self._transformed_orig_dig_extra)[1]
             self._nearest_transformed_high_res_mri_idx_hpi = \
@@ -1322,13 +1403,13 @@ class Coregistration(object):
                 self._nearest_calc.query(self._transformed_dig_eeg)[1]
             self._nearest_transformed_high_res_mri_idx_rpa = \
                 self._nearest_calc.query(
-                    apply_trans(self._head_mri_t, self._dig.rpa))[1]
+                    apply_trans(self._head_mri_t, self._dig['rpa']))[1]
             self._nearest_transformed_high_res_mri_idx_nasion = \
                 self._nearest_calc.query(
-                    apply_trans(self._head_mri_t, self._dig.nasion))[1]
+                    apply_trans(self._head_mri_t, self._dig['nasion']))[1]
             self._nearest_transformed_high_res_mri_idx_lpa = \
                 self._nearest_calc.query(
-                    apply_trans(self._head_mri_t, self._dig.lpa))[1]
+                    apply_trans(self._head_mri_t, self._dig['lpa']))[1]
             self._mri_head_t = self._rot_trans.copy()
             self._mri_head_t[:3, 3] = np.array(tra)
         if tra_changed or sca is not None:
@@ -1383,6 +1464,13 @@ class Coregistration(object):
         self._update_params(sca=sca)
 
     @property
+    def _filtered_extra_points(self):
+        if self._extra_points_filter is None:
+            return self._dig['hsp']
+        else:
+            return self._dig['hsp'][self._extra_points_filter]
+
+    @property
     def _parameters(self):
         return np.concatenate((self._rotation, self._translation, self._scale))
 
@@ -1403,7 +1491,7 @@ class Coregistration(object):
     @property
     def _nearest_transformed_high_res_mri_idx_hsp(self):
         return self._nearest_calc.query(
-            apply_trans(self._head_mri_t, self._dig.extra_points))[1]
+            apply_trans(self._head_mri_t, self._filtered_extra_points))[1]
 
     @property
     def _has_hpi_data(self):
@@ -1417,15 +1505,15 @@ class Coregistration(object):
 
     @property
     def _has_lpa_data(self):
-        return (np.any(self._mri.lpa) and np.any(self._dig.lpa))
+        return (np.any(self.lpa) and np.any(self._dig['lpa']))
 
     @property
     def _has_nasion_data(self):
-        return (np.any(self._mri.nasion) and np.any(self._dig.nasion))
+        return (np.any(self.nasion) and np.any(self._dig.nasion))
 
     @property
     def _has_rpa_data(self):
-        return (np.any(self._mri.rpa) and np.any(self._dig.rpa))
+        return (np.any(self.rpa) and np.any(self._dig['rpa']))
 
     @property
     def _processed_high_res_mri_points(self):
@@ -1436,20 +1524,20 @@ class Coregistration(object):
         return self._get_processed_mri_points('low')
 
     def _get_processed_mri_points(self, res):
-        bem = self._mri.bem_low_res if res == 'low' else self._mri.bem_high_res
+        bem = self.bem_low_res if res == 'low' else self.bem_high_res
         if self._grow_hair:
-            if len(bem.surf.nn):
+            if len(bem['nn']):
                 scaled_hair_dist = (1e-3 * self._grow_hair /
                                     np.array(self._scale))
-                points = bem.surf.rr.copy()
+                points = bem['rr'].copy()
                 hair = points[:, 2] > points[:, 1]
-                points[hair] += bem.surf.nn[hair] * scaled_hair_dist
+                points[hair] += bem['nn'][hair] * scaled_hair_dist
                 return points
             else:
                 raise ValueError("Norms missing from bem, can't grow hair")
                 self._grow_hair = 0
         else:
-            return bem.surf.rr
+            return bem['rr']
 
     @property
     def _has_mri_data(self):
@@ -1483,8 +1571,10 @@ class Coregistration(object):
         self._nasion_weight = nasion_weight
         self._rpa_weight = rpa_weight
 
-        head_pts = np.vstack((self._dig.lpa, self._dig.nasion, self._dig.rpa))
-        mri_pts = np.vstack((self._mri.lpa, self._mri.nasion, self._mri.rpa))
+        head_pts = np.vstack((self._dig['lpa'],
+                              self._dig['nasion'],
+                              self._dig['rpa']))
+        mri_pts = np.vstack((self.lpa, self.nasion, self.rpa))
         weights = [lpa_weight, nasion_weight, rpa_weight]
         mri_pts *= self._scale  # not done in fit_matched_points
         x0 = self._parameters
@@ -1498,15 +1588,15 @@ class Coregistration(object):
         mri_pts = list()
         weights = list()
         if self._has_dig_data and self._hsp_weight > 0:  # should be true
-            head_pts.append(self._dig.extra_points)
+            head_pts.append(self._filtered_extra_points)
             mri_pts.append(self._processed_high_res_mri_points[
                 self._nearest_transformed_high_res_mri_idx_hsp])
             weights.append(np.full(len(head_pts[-1]), self._hsp_weight))
         for key in ('lpa', 'nasion', 'rpa'):
             if getattr(self, '_has_%s_data' % key):
-                head_pts.append(getattr(self._dig, key))
+                head_pts.append(self._dig[key])
                 if self._icp_fid_match == 'matched':
-                    mri_pts.append(getattr(self._mri, key))
+                    mri_pts.append(getattr(self, key))
                 else:
                     assert self._icp_fid_match == 'nearest'
                     mri_pts.append(self._processed_high_res_mri_points[
@@ -1517,12 +1607,12 @@ class Coregistration(object):
                 weights.append(np.full(len(mri_pts[-1]),
                                        getattr(self, '_%s_weight' % key)))
         if self._has_eeg_data and self._eeg_weight > 0:
-            head_pts.append(self._dig.eeg_points)
+            head_pts.append(self._dig['dig_ch_pos_location'])
             mri_pts.append(self._processed_high_res_mri_points[
                 self._nearest_transformed_high_res_mri_idx_eeg])
             weights.append(np.full(len(mri_pts[-1]), self._eeg_weight))
         if self._has_hpi_data and self._hpi_weight > 0:
-            head_pts.append(self._dig.hpi_points)
+            head_pts.append(self._dig['hpi'])
             mri_pts.append(self._processed_high_res_mri_points[
                 self._nearest_transformed_high_res_mri_idx_hpi])
             weights.append(np.full(len(mri_pts[-1]), self._hpi_weight))
@@ -1585,7 +1675,7 @@ class Coregistration(object):
         logger.info("Coregistration: Excluding %i head shape points with "
                     "distance >= %.3f m.", n_excluded, distance)
         # set the filter
-        self._dig.extra_points_filter = mask
+        self._extra_points_filter = mask
 
     def compute_dig_head_distances(self):
         """Compute Euclidean distance between the head-mri points."""
@@ -1626,184 +1716,4 @@ class Coregistration(object):
         self._last_rotation = self._rotation.copy()
         self._last_translation = self._translation.copy()
         self._last_scale = self._scale.copy()
-        self._dig.extra_points_filter = None
-
-
-class _DigSource(object):
-    def __init__(self, info):
-        self._info = info
-        self.extra_points_filter = None
-
-    @property
-    def n_omitted(self):
-        if self.extra_points_filter is None:
-            return 0
-        else:
-            return np.sum(self.extra_points_filter == False)  # noqa: E712
-
-    @property
-    def extra_points(self):
-        if self.extra_points_filter is None:
-            return self._extra_points
-        else:
-            return self._extra_points[self.extra_points_filter]
-
-    @property
-    def _extra_points(self):
-        if not self._info or not self._info['dig']:
-            return np.empty((0, 3))
-
-        points = np.array([d['r'] for d in self._info['dig']
-                           if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
-        points = np.empty((0, 3)) if len(points) == 0 else points
-        return points
-
-    @property
-    def hpi_points(self):
-        if not self._info or not self._info['dig']:
-            return np.zeros((0, 3))
-
-        out = [d['r'] for d in self._info['dig'] if
-               d['kind'] == FIFF.FIFFV_POINT_HPI and
-               d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
-        out = np.empty((0, 3)) if len(out) == 0 else np.array(out)
-        return out
-
-    @property
-    def eeg_points(self):
-        if not self._info or not self._info['dig']:
-            return np.empty((0, 3))
-
-        out = [d['r'] for d in self._info['dig'] if
-               d['kind'] == FIFF.FIFFV_POINT_EEG and
-               d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
-        out = np.empty((0, 3)) if len(out) == 0 else np.array(out)
-        return out
-
-    def _cardinal_point(self, ident):
-        """Coordinates for a cardinal point."""
-        if not self._info or not self._info['dig']:
-            return np.zeros((1, 3))
-
-        for d in self._info['dig']:
-            if d['kind'] == FIFF.FIFFV_POINT_CARDINAL and d['ident'] == ident:
-                return d['r'][None, :]
-        return np.zeros((1, 3))
-
-    @property
-    def nasion(self):
-        return self._cardinal_point(FIFF.FIFFV_POINT_NASION)
-
-    @property
-    def lpa(self):
-        return self._cardinal_point(FIFF.FIFFV_POINT_LPA)
-
-    @property
-    def rpa(self):
-        return self._cardinal_point(FIFF.FIFFV_POINT_RPA)
-
-
-class _Surf(object):
-    def __init__(self, rr=None, nn=None, tris=None):
-        self.rr = np.empty((0, 3)) if rr is None else rr
-        self.nn = np.empty((0, 3)) if nn is None else nn
-        self.tris = np.empty((0, 3)) if tris is None else tris
-
-
-class _SurfaceSource(object):
-    def __init__(self, filename=None):
-        if filename is not None and op.exists(filename):
-            if filename.endswith('.fif'):
-                bem = read_bem_surfaces(filename, verbose=False)[0]
-            else:
-                try:
-                    bem = read_surface(filename, return_dict=True)[2]
-                    bem['rr'] *= 1e-3
-                    complete_surface_info(bem, copy=False)
-                except Exception:
-                    raise ValueError(
-                        "Error loading surface from %s (see "
-                        "Terminal for details)." % filename)
-            self.surf = _Surf(rr=bem['rr'], tris=bem['tris'], nn=bem['nn'])
-        else:
-            self.surf = _Surf()
-
-
-class _FiducialsSource(object):
-    def __init__(self, filename=None):
-        self.filename = filename
-        self.mni_points = None
-
-    @property
-    def points(self):
-        if self.filename is None or not op.exists(self.filename):
-            return self.mni_points
-        try:
-            return _fiducial_coords(*read_fiducials(self.filename))
-        except Exception as err:
-            raise ValueError(
-                "Error reading fiducials from %s: %s (See terminal "
-                "for more information)" % (self.filename, str(err)),
-                "Error Reading Fiducials")
-
-
-class _MRIHeadWithFiducialsModel(object):
-    def __init__(self, subjects_dir, subject):
-        self.subjects_dir = subjects_dir
-        self.subject = subject
-        if not subjects_dir or not subject:
-            return
-
-        # find high-res head model (if possible)
-        high_res_path = _find_head_bem(subject, subjects_dir, high_res=True)
-        low_res_path = _find_head_bem(subject, subjects_dir, high_res=False)
-        if high_res_path is None and low_res_path is None:
-            raise RuntimeError("No standard head model was "
-                               f"found for subject {subject}")
-        if high_res_path is not None:
-            self.bem_high_res = _SurfaceSource(high_res_path)
-        else:
-            self.bem_high_res = _SurfaceSource(low_res_path)
-        if low_res_path is None:
-            # This should be very rare!
-            warn('No low-resolution head found, decimating high resolution '
-                 'mesh (%d vertices): %s' % (len(self.bem_high_res.surf.rr),
-                                             high_res_path,))
-            # Create one from the high res one, which we know we have
-            rr, tris = decimate_surface(self.bem_high_res.surf.rr,
-                                        self.bem_high_res.surf.tris,
-                                        n_triangles=5120)
-            surf = complete_surface_info(dict(rr=rr, tris=tris),
-                                         copy=False, verbose=False)
-            # directly set the attributes of bem_low_res
-            self.bem_low_res = _SurfaceSource()
-            self.bem_low_res.surf = _Surf(tris=surf['tris'], rr=surf['rr'],
-                                          nn=surf['nn'])
-        else:
-            self.bem_low_res = _SurfaceSource(low_res_path)
-
-        # Set MNI points
-        self.fid = _FiducialsSource()
-        try:
-            fids = get_mni_fiducials(subject, subjects_dir)
-        except Exception:  # some problem, leave at origin
-            self.fid.mni_points = None
-        else:
-            self.fid.mni_points = np.array([f['r'] for f in fids], float)
-
-        # find fiducials file
-        fid_files = _find_fiducials_files(subject, subjects_dir)
-        if len(fid_files) == 0:
-            self.fid.reset_traits(['file'])
-        else:
-            self.fid.file = fid_files[0].format(subjects_dir=subjects_dir,
-                                                subject=subject)
-
-        # does not seem to happen by itself ... so hard code it:
-        self.reset_fiducials()
-
-    def reset_fiducials(self):  # noqa: D102
-        if self.fid.points is not None:
-            self.lpa = self.fid.points[0:1]
-            self.nasion = self.fid.points[1:2]
-            self.rpa = self.fid.points[2:3]
+        self._extra_points_filter = None
