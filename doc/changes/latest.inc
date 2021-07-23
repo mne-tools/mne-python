@@ -168,3 +168,5 @@ API changes
 - In `mne.compute_source_morph`, the ``niter_affine`` and ``niter_sdr`` parameters have been replaced by ``niter`` and ``pipeline`` parameters for more consistent and finer-grained control of registration/warping steps and iteration (:gh:`9505` by `Alex Rockhill`_ and `Eric Larson`_)
 
 - Split :func:`mne.viz.Brain.show_view` argument ``view`` into ``azimuth``, ``elevation`` and ``focalpoint`` for clearer view setting and make the default for ``row`` and ``col`` apply to all rows and columns (:gh:`9596` by `Alex Rockhill`_)
+
+- Deprecate ``solver='prox'`` in :func:`mne.inverse_sparse.mixed_norm` in favor of ``solver='cd'`` and ``solver='bcd'`` as coordinate descent solvers consistently outperform proximal gradient descent (:gh:`9608` by `Pierre-Antoine Bannier`_)

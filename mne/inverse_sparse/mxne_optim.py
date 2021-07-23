@@ -9,7 +9,8 @@ from math import sqrt
 import numpy as np
 
 from .mxne_debiasing import compute_bias
-from ..utils import logger, verbose, sum_squared, warn, _get_blas_funcs
+from ..utils import (logger, verbose, sum_squared, warn, _get_blas_funcs,
+                     deprecated)
 from ..time_frequency._stft import stft_norm1, stft_norm2, stft, istft
 
 
@@ -42,6 +43,9 @@ def norm_l21(A, n_orient, copy=True):
     return np.sum(np.sqrt(groups_norm2(A, n_orient)))
 
 
+@deprecated(extra="Starting version v0.25, MxNE problems will be solved "
+                  "using exclusively (block) coordinate descent solvers. "
+                  "Prefer using solver=`bcd` or solver=`cd`.")
 def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
     """Proximity operator for l21 norm.
 
@@ -257,6 +261,9 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     return gap, p_obj, d_obj, R
 
 
+@deprecated(extra="Starting version v0.25, MxNE problems will be solved "
+                  "using exclusively (block) coordinate descent solvers. "
+                  "Prefer using solver=`bcd` or solver=`cd`.")
 @verbose
 def _mixed_norm_solver_prox(M, G, alpha, lipschitz_constant, maxit=200,
                             tol=1e-8, verbose=None, init=None, n_orient=1,
