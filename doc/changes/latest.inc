@@ -117,6 +117,8 @@ Enhancements
 
 - Add :meth:`mne.channels.DigMontage.apply_trans` to apply a transform directly to a montage (:gh:`9601` by `Alex Rockhill`_)
 
+- :meth:`mne.preprocessing.ICA.fit` now emits a warning if any of the ``start``, ``stop``, ``reject``, and ``flat`` parameters are passed when performing ICA on `~mne.Epochs`. These parameters only have an effect on `~mne.io.Raw` data and were previously silently ignored in the case of `~mne.Epochs` (:gh:`9605` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)

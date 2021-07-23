@@ -1044,7 +1044,7 @@ def test_ica_twice(method):
 
 @requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard", "infomax"])
-def test_fit_params(method, tmpdir):
+def test_fit_methods(method, tmpdir):
     """Test fit_params for ICA."""
     _skip_check_picard(method)
     fit_params = {}
@@ -1077,6 +1077,34 @@ def test_fit_params(method, tmpdir):
         ica = read_ica(output_fname)
 
         assert ica.fit_params == fit_params_after_instantiation
+
+
+@pytest.mark.parametrize(
+    ('param_name', 'param_val'),
+    (
+        ('start', 0),
+        ('stop', 500),
+        ('decim', 2),
+        ('reject', dict(eeg=500e-6)),
+        ('flat', dict(eeg=1e-6))
+    )
+)
+def test_fit_params_epochs_vs_raw(param_name, param_val):
+    """Check that we get a warning when passing parameters that get ignored."""
+    method = 'infomax'
+    n_components = 3
+    max_iter = 1
+
+    raw = read_raw_fif(raw_fname).pick_types(meg=False, eeg=True)
+    events = read_events(event_name)
+    epochs = Epochs(raw, events=events)
+    ica = ICA(n_components=n_components, max_iter=max_iter, method=method)
+
+    fit_params = {param_name: param_val}
+    
+    ica.fit(inst=raw, **fit_params)  # should not warn
+    with pytest.warns(RuntimeWarning, match='parameters.*will be ignored'):
+        ica.fit(inst=epochs, **fit_params)
 
 
 @requires_sklearn
