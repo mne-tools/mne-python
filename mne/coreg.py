@@ -1374,7 +1374,10 @@ class Coregistration(object):
             self.nasion = self.fid_points[1:2]
             self.rpa = self.fid_points[2:3]
 
-    def _update_params(self, rot=None, tra=None, sca=None):
+    def _update_params(self, rot=None, tra=None, sca=None,
+                       force_update_omitted=False):
+        if force_update_omitted:
+            tra = self._translation
         rot_changed = False
         if self._rot_trans is None or rot is not None:
             rot_changed = True
@@ -1679,6 +1682,7 @@ class Coregistration(object):
                     "distance >= %.3f m.", n_excluded, distance)
         # set the filter
         self._extra_points_filter = mask
+        self._update_params(force_update_omitted=True)
 
     def compute_dig_head_distances(self):
         """Compute Euclidean distance between the head-mri points."""
