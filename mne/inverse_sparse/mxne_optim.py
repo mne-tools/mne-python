@@ -43,7 +43,7 @@ def norm_l21(A, n_orient, copy=True):
     return np.sum(np.sqrt(groups_norm2(A, n_orient)))
 
 
-@deprecated(extra="Starting version v0.24, MxNE problems will be solved "
+@deprecated(extra="Starting version v0.25, MxNE problems will be solved "
                   "using exclusively (block) coordinate descent solvers. "
                   "Prefer using solver=`bcd` or solver=`cd`.")
 def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
@@ -261,7 +261,7 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     return gap, p_obj, d_obj, R
 
 
-@deprecated(extra="Starting version v0.24, MxNE problems will be solved "
+@deprecated(extra="Starting version v0.25, MxNE problems will be solved "
                   "using exclusively (block) coordinate descent solvers. "
                   "Prefer using solver=`bcd` or solver=`cd`.")
 @verbose
