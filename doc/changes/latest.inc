@@ -167,4 +167,4 @@ API changes
 
 - Split :func:`mne.viz.Brain.show_view` argument ``view`` into ``azimuth``, ``elevation`` and ``focalpoint`` for clearer view setting and make the default for ``row`` and ``col`` apply to all rows and columns (:gh:`9596` by `Alex Rockhill`_)
 
-- Deprecate ``solver='prox'`` in :func:`mne.inverse_sparse.mxne_inverse` in favor of ``solver='cd'`` and ``solver='bcd'`` as coordinate descent solvers consistently outperform proximal gradient descent (:gh:`9608` by `Pierre-Antoine Bannier`_)
+- Deprecate ``solver='prox'`` in :func:`mne.inverse_sparse.mixed_norm` in favor of ``solver='cd'`` and ``solver='bcd'`` as coordinate descent solvers consistently outperform proximal gradient descent (:gh:`9608` by `Pierre-Antoine Bannier`_)
