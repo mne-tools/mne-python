@@ -25,7 +25,9 @@ MNI space, or projection into a volume, see :ref:`tut-working-with-seeg`.
 #          Alex Rockhill <aprockhill@mailbox.org>
 #          Liberty Hamilton <libertyhamilton@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import os.path as op
 
@@ -45,7 +47,7 @@ sample_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(sample_path, 'subjects')
 
 
-###############################################################################
+# %%
 # Load in data and perform basic preprocessing
 # --------------------------------------------
 #
@@ -96,7 +98,7 @@ epochs.resample(200)  # Hz, will also load the data for us
 evoked = epochs.average()
 
 
-###############################################################################
+# %%
 # Explore the electrodes on a template brain
 # ------------------------------------------
 #
@@ -113,7 +115,7 @@ mne.viz.set_3d_view(fig, azimuth=az, elevation=el, focalpoint=focalpoint)
 
 xy, im = snapshot_brain_montage(fig, raw.info)
 
-###############################################################################
+# %%
 # Compute frequency features of the data
 # --------------------------------------
 #
@@ -125,7 +127,7 @@ gamma_power_t = evoked.copy().filter(30, 90).apply_hilbert(
     envelope=True).resample(sfreq)
 gamma_info = gamma_power_t.info
 
-###############################################################################
+# %%
 # Visualize the time-evolution of the gamma power on the brain
 # ------------------------------------------------------------
 #
@@ -156,7 +158,7 @@ for i, pos in enumerate(xy_pts):
     color = cmap(i / xy_pts.shape[0])
     ax.plot(x_line + x, gamma_power[i] + y, linewidth=0.5, color=color)
 
-###############################################################################
+# %%
 # We can project gamma power from the sensor data to the nearest locations on
 # the pial surface and visualize that:
 #

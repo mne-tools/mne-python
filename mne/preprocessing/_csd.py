@@ -9,7 +9,7 @@
 # Authors: Denis A. Engeman <denis.engemann@gmail.com>
 #          Alex Rockhill <aprockhill@mailbox.org>
 #
-# License: Relicensed under BSD (3-clause) and adapted with
+# License: Relicensed under BSD-3-Clause and adapted with
 #          permission from authors of original GPL code
 
 import numpy as np

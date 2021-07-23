@@ -2,7 +2,7 @@
 """Test exporting functions."""
 # Authors: MNE Developers
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from pathlib import Path
 import os.path as op

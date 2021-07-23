@@ -10,7 +10,9 @@ with cluster level permutation test.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import matplotlib.pyplot as plt
 
@@ -21,7 +23,7 @@ from mne.datasets import sample
 
 print(__doc__)
 
-###############################################################################
+# %%
 # Set parameters
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
@@ -36,7 +38,7 @@ events = mne.read_events(event_fname)
 channel = 'MEG 1332'  # include only this channel in analysis
 include = [channel]
 
-###############################################################################
+# %%
 # Read epochs for the channel of interest
 picks = mne.pick_types(raw.info, meg=False, eog=True, include=include,
                        exclude='bads')
@@ -54,7 +56,7 @@ condition2 = epochs2.get_data()  # as 3D matrix
 condition1 = condition1[:, 0, :]  # take only one channel to get a 2D array
 condition2 = condition2[:, 0, :]  # take only one channel to get a 2D array
 
-###############################################################################
+# %%
 # Compute statistic
 threshold = 6.0
 T_obs, clusters, cluster_p_values, H0 = \
@@ -62,7 +64,7 @@ T_obs, clusters, cluster_p_values, H0 = \
                              threshold=threshold, tail=1, n_jobs=1,
                              out_type='mask')
 
-###############################################################################
+# %%
 # Plot
 times = epochs1.times
 plt.close('all')

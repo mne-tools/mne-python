@@ -26,6 +26,7 @@ import warnings
 from datetime import datetime
 
 from ..defaults import _handle_default
+from ..fixes import _get_args
 from ..io import show_fiff, Info
 from ..io.constants import FIFF
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
@@ -814,8 +815,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
 
     Parameters
     ----------
-    info : instance of Info
-        Info structure containing the channel locations.
+    %(info_not_none)s
     kind : str
         Whether to plot the sensors as 3d, topomap or as an interactive
         sensor selection dialog. Available options 'topomap', '3d', 'select'.
@@ -1393,8 +1393,8 @@ class SelectFromCollection(object):
         self.ec[:, -1] = self.alpha_other
         self.lw = np.full(self.Npts, self.linewidth_other)
 
-        self.lasso = LassoSelector(ax, onselect=self.on_select,
-                                   lineprops=dict(color='red', linewidth=0.5))
+        line_kw = _prop_kw('line', dict(color='red', linewidth=0.5))
+        self.lasso = LassoSelector(ax, onselect=self.on_select, **line_kw)
         self.selection = list()
 
     def on_select(self, verts):
@@ -2359,3 +2359,11 @@ def _generate_default_filename(ext=".png"):
     now = datetime.now()
     dt_string = now.strftime("_%Y-%m-%d_%H-%M-%S")
     return "MNE" + dt_string + ext
+
+
+def _prop_kw(kind, val):
+    # Can be removed in when we depend on matplotlib 3.4.3+
+    # https://github.com/matplotlib/matplotlib/pull/20585
+    from matplotlib.widgets import SpanSelector
+    pre = '' if 'props' in _get_args(SpanSelector) else kind
+    return {pre + 'props': val}

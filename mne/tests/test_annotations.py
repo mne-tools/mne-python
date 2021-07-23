@@ -1,7 +1,7 @@
 # Authors: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #          Robert Luke <mail@robertluke.net>
 #
-# License: BSD 3 clause
+# License: BSD-3-Clause
 
 from collections import OrderedDict
 from datetime import datetime, timezone

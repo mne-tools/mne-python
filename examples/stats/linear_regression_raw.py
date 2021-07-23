@@ -19,7 +19,9 @@ considerations. Psychophysiology, 52(2), 169-189.
 """
 # Authors: Jona Sassenhagen <jona.sassenhagen@gmail.de>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import matplotlib.pyplot as plt
 

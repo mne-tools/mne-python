@@ -3,7 +3,7 @@
 #          Yousra Bekhti <yousra.bekhti@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from collections.abc import Iterable
 
@@ -138,8 +138,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
 
     Parameters
     ----------
-    info : instance of Info
-        The channel information to use for simulation.
+    %(info_not_none)s Used for simulation.
 
         .. versionchanged:: 0.18
            Support for :class:`mne.Info`.

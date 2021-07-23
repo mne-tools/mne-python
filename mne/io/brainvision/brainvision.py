@@ -8,7 +8,7 @@
 #          Okba Bekhelifi <okba.bekhelifi@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import configparser
 import os
@@ -387,6 +387,7 @@ def _aux_vhdr_info(vhdr_fname):
     return settings, cfg, cinfostr, info
 
 
+@fill_doc
 def _get_vhdr_info(vhdr_fname, eog, misc, scale):
     """Extract all the information from the header file.
 
@@ -408,8 +409,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
 
     Returns
     -------
-    info : Info
-        The measurement info.
+    %(info_not_none)s
     data_fname : str
         Path to the binary data file.
     fmt : str

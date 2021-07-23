@@ -2,7 +2,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 from shutil import copytree
@@ -270,12 +270,16 @@ def test_discrete_source_space(tmpdir):
     _compare_source_spaces(src_c, src_c2)
 
     # now do MRI
-    pytest.raises(ValueError, setup_volume_source_space, 'sample',
-                  pos=pos_dict, mri=fname_mri)
+    with pytest.raises(ValueError, match='Cannot create interpolation'):
+        setup_volume_source_space('sample', pos=pos_dict, mri=fname_mri)
     assert repr(src_new).split('~')[0] == repr(src_c).split('~')[0]
     assert ' kB' in repr(src_new)
     assert src_new.kind == 'discrete'
     assert _get_src_type(src_new, None) == 'discrete'
+
+    with pytest.raises(RuntimeError, match='finite'):
+        setup_volume_source_space(
+            pos=dict(rr=[[0, 0, float('inf')]], nn=[[0, 1, 0]]))
 
 
 @requires_nibabel()
@@ -611,10 +615,11 @@ def test_source_space_exclusive_complete(src_volume_labels):
     for si, s in enumerate(src):
         assert_allclose(src_full[0]['rr'], s['rr'], atol=1e-6)
     # also check single_volume=True -- should be the same result
-    src_single = setup_volume_source_space(
-        src[0]['subject_his_id'], 7., 'aseg.mgz', bem=fname_bem,
-        volume_label=volume_labels, single_volume=True, add_interpolator=False,
-        subjects_dir=subjects_dir)
+    with pytest.warns(RuntimeWarning, match='Found no usable.*Left-vessel.*'):
+        src_single = setup_volume_source_space(
+            src[0]['subject_his_id'], 7., 'aseg.mgz', bem=fname_bem,
+            volume_label=volume_labels, single_volume=True,
+            add_interpolator=False, subjects_dir=subjects_dir)
     assert len(src_single) == 1
     assert 'Unknown+Left-Cerebral-White-Matter+Left-' in repr(src_single)
     assert_array_equal(src_full[0]['vertno'], src_single[0]['vertno'])

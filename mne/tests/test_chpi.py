@@ -1,6 +1,6 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -17,7 +17,7 @@ from mne.io import (read_raw_fif, read_raw_artemis123, read_raw_ctf, read_info,
                     RawArray, read_raw_kit)
 from mne.io.constants import FIFF
 from mne.chpi import (compute_chpi_amplitudes, compute_chpi_locs,
-                      compute_head_pos, _setup_ext_proj,
+                      compute_chpi_snr, compute_head_pos, _setup_ext_proj,
                       _chpi_locs_to_times_dig, _compute_good_distances,
                       extract_chpi_locs_ctf, head_pos_to_trans_rot_t,
                       read_head_pos, write_head_pos, filter_chpi,
@@ -306,6 +306,22 @@ def test_calculate_chpi_positions_vv():
     raw.info['lowpass'] /= 2.
     with pytest.raises(RuntimeError, match='above the'):
         _calculate_chpi_positions(raw)
+
+
+@pytest.mark.slowtest
+def test_calculate_chpi_snr():
+    """Test cHPI SNR calculation."""
+    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
+    result = compute_chpi_snr(raw)
+    # make sure all the entries are there
+    keys = {f'{ch_type}_{key}' for ch_type in ('mag', 'grad') for key in
+            ('snr', 'power', 'resid')}
+    assert set(result) == keys.union({'times', 'freqs'})
+    # make sure the values are plausible, given the sample data file
+    assert result['mag_snr'].min() > 1
+    assert result['mag_snr'].max() < 40
+    assert result['grad_snr'].min() > 1
+    assert result['grad_snr'].max() < 40
 
 
 @testing.requires_testing_data

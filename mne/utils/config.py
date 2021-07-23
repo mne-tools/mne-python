@@ -2,7 +2,7 @@
 """The config functions."""
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import atexit
 from functools import partial
@@ -18,6 +18,7 @@ import re
 import numpy as np
 
 from .check import _validate_type, _check_pyqt5_version
+from .docs import fill_doc
 from ._logging import warn, logger
 
 
@@ -368,6 +369,7 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
     return subjects_dir
 
 
+@fill_doc
 def _get_stim_channel(stim_channel, info, raise_error=True):
     """Determine the appropriate stim_channel.
 
@@ -379,8 +381,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     ----------
     stim_channel : str | list of str | None
         The stim channel selected by the user.
-    info : instance of Info
-        An information structure containing information about the channels.
+    %(info_not_none)s
 
     Returns
     -------

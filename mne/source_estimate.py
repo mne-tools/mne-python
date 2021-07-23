@@ -3,7 +3,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Mads Jensen <mje.mads@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import contextlib
 import copy
@@ -1640,8 +1640,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         Parameters
         ----------
-        info : instance Info
-            The measurement info.
+        %(info_not_none)s
         fwd : instance of Forward
             The forward solution used to create the source estimate.
         cov : instance of Covariance

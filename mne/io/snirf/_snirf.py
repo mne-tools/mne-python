@@ -1,6 +1,6 @@
 # Authors: Robert Luke <mail@robertluke.net>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import re
 import numpy as np
@@ -365,7 +365,8 @@ class RawSNIRF(BaseRaw):
                     data = np.atleast_2d(np.array(
                         dat.get('/nirs/' + key + '/data')))
                     if data.size > 0:
-                        annot.append(data[:, 0], 1.0, key[4:])
+                        desc = dat.get('/nirs/' + key + '/name')[0]
+                        annot.append(data[:, 0], 1.0, desc.decode('UTF-8'))
             self.set_annotations(annot)
 
             # Reorder channels to match expected ordering in MNE

@@ -5,7 +5,7 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #          Joan Massich <mailsik@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import heapq
 from collections import Counter
@@ -266,8 +266,9 @@ def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
                 dig_ch_pos_location.append(d['r'])
 
     dig_coord_frames = set([d['coord_frame'] for d in dig])
-    assert len(dig_coord_frames) == 1, \
-        'Only single coordinate frame in dig is supported'  # XXX
+    if len(dig_coord_frames) != 1:
+        raise RuntimeError('Only single coordinate frame in dig is supported, '
+                           f'got {dig_coord_frames}')
 
     return Bunch(
         nasion=fids.get('nasion', None),

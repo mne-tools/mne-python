@@ -14,7 +14,9 @@ using dynamic statistical parametric mapping (dSPM) inverse operator.
 #         Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
 #         Samuel Deslauriers-Gauthier <sam.deslauriers@gmail.com>
 
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import os.path as op
 
@@ -66,7 +68,7 @@ event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
 # Take only a few events for speed
 events = events[:80]
 
-###############################################################################
+# %%
 # In order to simulate source time courses, labels of desired active regions
 # need to be specified for each of the 4 simulation conditions.
 # Make a dictionary that maps conditions to activation strengths within
@@ -105,7 +107,7 @@ label_names = sorted(set(activation[0]
                          for activation in activation_list))
 region_names = list(activations.keys())
 
-###############################################################################
+# %%
 # Create simulated source activity
 # --------------------------------
 #
@@ -125,7 +127,7 @@ def data_fun(times, latency, duration):
     return 1e-9 * sinusoid * gf
 
 
-###############################################################################
+# %%
 # Here, :class:`~mne.simulation.SourceSimulator` is used, which allows to
 # specify where (label), what (source_time_series), and when (events) event
 # type will occur.
@@ -172,7 +174,7 @@ for region_id, region_name in enumerate(region_names, 1):
 # SourceSimulator class.
 stc_data = source_simulator.get_stc()
 
-###############################################################################
+# %%
 # Simulate raw data
 # -----------------
 #
@@ -197,7 +199,7 @@ mne.simulation.add_ecg(raw_sim, random_state=0)
 # Plot original and simulated raw data.
 raw_sim.plot(title='Simulated raw data')
 
-###############################################################################
+# %%
 # Extract epochs and compute evoked responsses
 # --------------------------------------------
 #
@@ -211,7 +213,7 @@ evoked_vis_right = epochs['visual/right'].average()
 evoked_aud_left.plot(spatial_colors=True)
 evoked_vis_right.plot(spatial_colors=True)
 
-###############################################################################
+# %%
 # Reconstruct simulated source time courses using dSPM inverse operator
 # ---------------------------------------------------------------------
 #
@@ -232,7 +234,7 @@ stc_diff = stc_aud - stc_vis
 brain = stc_diff.plot(subjects_dir=subjects_dir, initial_time=0.1,
                       hemi='split', views=['lat', 'med'])
 
-###############################################################################
+# %%
 # References
 # ----------
 # .. footbibliography::

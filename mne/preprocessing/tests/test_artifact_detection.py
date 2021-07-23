@@ -1,6 +1,6 @@
 # Author: Adonay Nunes <adonay.s.nunes@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 
 import os.path as op

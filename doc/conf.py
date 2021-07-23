@@ -841,7 +841,7 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings(
         'ignore', message='.*mne-realtime.*', category=DeprecationWarning)
 
-    # Because we use np.set_printoptions in some tutorials, but we only
+    # In case we use np.set_printoptions in any tutorials, we only
     # want it to affect those:
     np.set_printoptions(**_np_print_defaults)
 
@@ -1013,7 +1013,7 @@ custom_redirects = {
 def make_redirects(app, exception):
     """Make HTML redirects."""
     # https://www.sphinx-doc.org/en/master/extdev/appapi.html
-    # Adapted from sphinxcontrib/redirects (BSD 2-clause)
+    # Adapted from sphinxcontrib/redirects (BSD-2-Clause)
     if not isinstance(app.builder, sphinx.builders.html.StandaloneHTMLBuilder):
         return
     logger = sphinx.util.logging.getLogger('mne')

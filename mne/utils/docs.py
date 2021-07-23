@@ -2,7 +2,7 @@
 """The documentation functions."""
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from copy import deepcopy
 import inspect
@@ -1355,9 +1355,24 @@ trans : str | dict | instance of Transform | None
        Support for 'fsaverage' argument.
 """ % (_trans_base,)
 docdict['subjects_dir'] = """
-subjects_dir : str | None
+subjects_dir : str | pathlib.Path | None
     The path to the FreeSurfer subjects reconstructions.
-    It corresponds to FreeSurfer environment variable ``SUBJECTS_DIR``.
+    If None, defaults to the ``SUBJECTS_DIR`` environment variable.
+"""
+_info_base = ('The :class:`mne.Info` object with information about the '
+              'sensors and methods of measurement.')
+docdict['info_not_none'] = f"""
+info : mne.Info
+    {_info_base}
+"""
+docdict['info'] = """
+info : mne.Info | None
+    {_info_base}
+"""
+docdict['info_str'] = """
+info : mne.Info | str
+    {_info_base} If ``str``, then it should be a filepath to a file with
+    measurement information (e.g. :class:`mne.io.Raw`).
 """
 docdict['subject'] = """
 subject : str
@@ -1374,6 +1389,14 @@ surface : str
     (the gray-white matter boundary).
 """
 
+
+# Freesurfer
+docdict["aseg"] = """
+aseg : str
+    The anatomical segmentation file. Default ``aparc+aseg``. This may
+    be any anatomical segmentation file in the mri subdirectory of the
+    Freesurfer subject directory.
+"""
 
 # Simulation
 docdict['interp'] = """
@@ -1631,6 +1654,33 @@ allow_duplicates : bool
 """
 
 # Brain plotting
+docdict["view"] = """
+view : str
+    The name of the view to show (e.g. "lateral"). Other arguments
+    take precedence and modify the camera starting from the ``view``.
+"""
+docdict["roll"] = """
+roll : float | None
+    The roll of the camera rendering the view in degrees.
+"""
+docdict["distance"] = """
+distance : float | None
+    The distance from the camera rendering the view to the focalpoint
+    in plot units (either m or mm).
+"""
+docdict["azimuth"] = """
+azimuth : float
+    The azimuthal angle of the camera rendering the view in degrees.
+"""
+docdict["elevation"] = """
+elevation : float
+    The The zenith angle of the camera rendering the view in degrees.
+"""
+docdict["focalpoint"] = """
+focalpoint : tuple, shape (3,) | None
+    The focal point of the camera rendering the view: (x, y, z) in
+    plot units (either m or mm).
+"""
 docdict["clim"] = """
 clim : str | dict
     Colorbar properties specification. If 'auto', set clim automatically
@@ -1667,6 +1717,10 @@ colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
     Name of colormap to use or a custom look up table. If array, must
     be (n x 3) or (n x 4) array for with RGB or RGBA values between
     0 and 255.
+"""
+docdict["smooth"] = """
+smooth : float in [0, 1)
+    The smoothing factor to be applied. Default 0 is no smoothing.
 """
 docdict["transparent"] = """
 transparent : bool | None

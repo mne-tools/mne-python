@@ -11,7 +11,9 @@ segmentation file.
 
 # Author: Alan Leggitt <alan.leggitt@ucsf.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import mne
 from mne import setup_source_space, setup_volume_source_space
@@ -24,7 +26,7 @@ subjects_dir = data_path + '/subjects'
 subject = 'sample'
 aseg_fname = subjects_dir + '/sample/mri/aseg.mgz'
 
-###############################################################################
+# %%
 # Setup the source spaces
 
 # setup a cortical surface source space and extract left hemisphere
@@ -41,7 +43,7 @@ lh_cereb = setup_volume_source_space(
 # Combine the source spaces
 src = surf + lh_cereb
 
-###############################################################################
+# %%
 # Plot the positions of each source space
 
 fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
@@ -51,7 +53,7 @@ mne.viz.set_3d_view(fig, azimuth=173.78, elevation=101.75,
                     distance=0.30, focalpoint=(-0.03, -0.01, 0.03))
 
 
-###############################################################################
+# %%
 # You can export source positions to a NIfTI file::
 #
 #     >>> nii_fname = 'mne_sample_lh-cerebellum-cortex.nii'

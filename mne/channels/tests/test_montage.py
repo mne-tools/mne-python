@@ -1,7 +1,7 @@
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from contextlib import nullcontext
 from itertools import chain
@@ -35,7 +35,7 @@ from mne.io.constants import FIFF
 from mne.io._digitization import (_format_dig_points,
                                   _get_fid_coords, _get_dig_eeg,
                                   _count_points_by_type)
-from mne.transforms import _ensure_trans, apply_trans
+from mne.transforms import _ensure_trans, apply_trans, invert_transform
 from mne.viz._3d import _fiducial_coords
 
 from mne.io.kit import read_mrk
@@ -105,7 +105,7 @@ def _get_dig_montage_pos(montage):
 
 
 def test_dig_montage_trans(tmpdir):
-    """Test getting a trans from montage."""
+    """Test getting a trans from and applying a trans to a montage."""
     nasion, lpa, rpa, *ch_pos = np.random.RandomState(0).randn(10, 3)
     ch_pos = {f'EEG{ii:3d}': pos for ii, pos in enumerate(ch_pos, 1)}
     montage = make_dig_montage(ch_pos, nasion=nasion, lpa=lpa, rpa=rpa,
@@ -115,6 +115,13 @@ def test_dig_montage_trans(tmpdir):
     # ensure that we can save and load it, too
     fname = tmpdir.join('temp-mon.fif')
     _check_roundtrip(montage, fname, 'mri')
+    # test applying a trans
+    position1 = montage.get_positions()
+    montage.apply_trans(trans)
+    assert montage.get_positions()['coord_frame'] == 'head'
+    montage.apply_trans(invert_transform(trans))
+    position2 = montage.get_positions()
+    assert str(position1) == str(position2)  # exactly equal
 
 
 def test_fiducials():

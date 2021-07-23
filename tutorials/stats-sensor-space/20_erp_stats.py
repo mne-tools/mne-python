@@ -13,6 +13,8 @@ The underlying data comes from :footcite:`DufauEtAl2015`; we contrast long vs.
 short words. TFCE is described in :footcite:`SmithNichols2009`.
 """
 
+# %%
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import ttest_ind
@@ -120,7 +122,7 @@ plt.colorbar(axes["Left"].images[-1], ax=list(axes.values()), shrink=.3,
 
 plt.show()
 
-###############################################################################
+# %%
 # References
 # ----------
 # .. footbibliography::

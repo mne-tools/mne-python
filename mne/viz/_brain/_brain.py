@@ -22,6 +22,7 @@ import numpy as np
 from collections import OrderedDict
 
 from .colormap import calculate_lut
+from ...defaults import DEFAULTS
 from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
 from .callback import (ShowView, TimeCallBack, SmartCallBack,
@@ -33,13 +34,13 @@ from .._3d import _process_clim, _handle_time, _check_views
 
 from ...externals.decorator import decorator
 from ...defaults import _handle_default
-from ..._freesurfer import vertex_to_mni, read_talxfm
-from ...surface import mesh_edges, _mesh_borders
+from ..._freesurfer import vertex_to_mni, read_talxfm, read_freesurfer_lut
+from ...surface import mesh_edges, _mesh_borders, _marching_cubes
 from ...source_space import SourceSpaces
 from ...transforms import apply_trans, invert_transform
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn,
-                      get_subjects_dir)
+                      get_subjects_dir, _check_fname)
 
 
 _ARROW_MOVE = 10  # degrees per press
@@ -343,6 +344,8 @@ class Brain(object):
        +---------------------------+--------------+---------------+
        | add_text                  | ✓            | ✓             |
        +---------------------------+--------------+---------------+
+       | add_volume_labels         |              | ✓             |
+       +---------------------------+--------------+---------------+
        | close                     | ✓            | ✓             |
        +---------------------------+--------------+---------------+
        | data                      | ✓            | ✓             |
@@ -385,7 +388,7 @@ class Brain(object):
        +---------------------------+--------------+---------------+
     """
 
-    def __init__(self, subject_id, hemi, surf, title=None,
+    def __init__(self, subject_id, hemi='both', surf='pial', title=None,
                  cortex="classic", alpha=1.0, size=800, background="black",
                  foreground=None, figure=None, subjects_dir=None,
                  views='auto', offset='auto', show_toolbar=False,
@@ -396,12 +399,13 @@ class Brain(object):
         from .._3d import _get_cmap
         from matplotlib.colors import colorConverter
 
-        _validate_type(hemi, str, 'hemi')
-        hemi = self._check_hemi(hemi, extras=('both', 'split'))
+        if hemi is None:
+            hemi = 'vol'
+        hemi = self._check_hemi(hemi, extras=('both', 'split', 'vol'))
         if hemi in ('both', 'split'):
             self._hemis = ('lh', 'rh')
         else:
-            assert hemi in ('lh', 'rh')
+            assert hemi in ('lh', 'rh', 'vol')
             self._hemis = (hemi, )
         self._view_layout = _check_option('view_layout', view_layout,
                                           ('vertical', 'horizontal'))
@@ -423,7 +427,7 @@ class Brain(object):
             foreground = colorConverter.to_rgb(foreground)
         self._fg_color = foreground
         views = _check_views(surf, views, hemi)
-        col_dict = dict(lh=1, rh=1, both=1, split=2)
+        col_dict = dict(lh=1, rh=1, both=1, split=2, vol=1)
         shape = (len(views), col_dict[hemi])
         if self._view_layout == 'horizontal':
             shape = shape[::-1]
@@ -498,10 +502,14 @@ class Brain(object):
         self.plotter = self._renderer.plotter
 
         self._setup_canonical_rotation()
-        for h in self._hemis:
+
+        # plot hemis
+        for h in ('lh', 'rh'):
+            if h not in self._hemis:
+                continue  # don't make surface if not chosen
             # Initialize a Surface object as the geometry
-            geo = _Surface(subject_id, h, surf, subjects_dir, offset,
-                           units=self._units, x_dir=self._rigid[0, :3])
+            geo = _Surface(self._subject_id, h, surf, self._subjects_dir,
+                           offset, units=self._units, x_dir=self._rigid[0, :3])
             # Load in the geometry and curvature
             geo.load_geometry()
             geo.load_curvature()
@@ -528,7 +536,7 @@ class Brain(object):
                     mesh._polydata._hemi = h
                 else:
                     actor = self._layered_meshes[h]._actor
-                    self._renderer.plotter.add_actor(actor)
+                    self._renderer.plotter.add_actor(actor, render=False)
                 if self.silhouette:
                     mesh = self._layered_meshes[h]
                     self._renderer._silhouette(
@@ -2017,22 +2025,18 @@ class Brain(object):
         self.update_lut(alpha=alpha)
 
     def _iter_views(self, hemi):
-        # which rows and columns each type of visual needs to be added to
+        """Iterate over rows and columns that need to be added to."""
+        hemi_dict = dict(lh=[0], rh=[0], vol=[0])
         if self._hemi == 'split':
-            hemi_dict = dict(lh=[0], rh=[1], vol=[0, 1])
-        else:
-            hemi_dict = dict(lh=[0], rh=[0], vol=[0])
+            hemi_dict.update(rh=[1], vol=[0, 1])
         for vi, view in enumerate(self._views):
+            view_dict = dict(lh=[vi], rh=[vi], vol=[vi])
             if self._hemi == 'split':
-                view_dict = dict(lh=[vi], rh=[vi], vol=[vi, vi])
-            else:
-                view_dict = dict(lh=[vi], rh=[vi], vol=[vi])
+                view_dict.update(vol=[vi, vi])
             if self._view_layout == 'vertical':
-                rows = view_dict  # views are rows
-                cols = hemi_dict  # hemis are columns
+                rows, cols = view_dict, hemi_dict  # views are rows, hemis cols
             else:
-                rows = hemi_dict  # hemis are rows
-                cols = view_dict  # views are columns
+                rows, cols = hemi_dict, view_dict  # hemis are rows, views cols
             for ri, ci in zip(rows[hemi], cols[hemi]):
                 yield ri, ci, view
 
@@ -2135,17 +2139,19 @@ class Brain(object):
             self._data[hemi]['grid_volume_pos'] = volume_pos
             self._data[hemi]['grid_volume_neg'] = volume_neg
         actor_pos, _ = self._renderer.plotter.add_actor(
-            volume_pos, reset_camera=False, name=None, culling=False)
+            volume_pos, reset_camera=False, name=None, culling=False,
+            render=False)
         if volume_neg is not None:
             actor_neg, _ = self._renderer.plotter.add_actor(
-                volume_neg, reset_camera=False, name=None, culling=False)
+                volume_neg, reset_camera=False, name=None, culling=False,
+                render=False)
         else:
             actor_neg = None
         grid_mesh = self._data[hemi]['grid_mesh']
         if grid_mesh is not None:
             _, prop = self._renderer.plotter.add_actor(
                 grid_mesh, reset_camera=False, name=None, culling=False,
-                pickable=False)
+                pickable=False, render=False)
             prop.SetColor(*self._brain_color[:3])
             prop.SetOpacity(surface_alpha)
             if silhouette_alpha > 0 and silhouette_linewidth > 0:
@@ -2310,6 +2316,90 @@ class Brain(object):
             self._labels[hemi].append(label)
         self._renderer._update()
 
+    @fill_doc
+    def add_volume_labels(self, aseg='aparc+aseg', labels=None, colors=None,
+                          alpha=0.5, smooth=0.9, legend=None):
+        """Add labels to the rendering from an anatomical segmentation.
+
+        Parameters
+        ----------
+        %(aseg)s
+        labels : list
+            Labeled regions of interest to plot. See
+            :func:`mne.get_montage_volume_labels`
+            for one way to determine regions of interest. Regions can also be
+            chosen from the :term:`FreeSurfer LUT`.
+        colors : list | matplotlib-style color | None
+            A list of anything matplotlib accepts: string, RGB, hex, etc.
+            (default :term:`FreeSurfer LUT` colors).
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
+        %(smooth)s
+        legend : bool | None | dict
+            Add a legend displaying the names of the ``labels``. Default (None)
+            is ``True`` if the number of ``labels`` is 10 or fewer.
+            Can also be a dict of ``kwargs`` to pass to
+            :meth:`pyvista.BasePlotter.add_legend`.
+
+        Notes
+        -----
+        .. versionadded:: 0.24
+        """
+        import nibabel as nib
+        from matplotlib.colors import colorConverter
+
+        # load anatomical segmentation image
+        if not aseg.endswith('aseg'):
+            raise RuntimeError(
+                f'`aseg` file path must end with "aseg", got {aseg}')
+        aseg = _check_fname(op.join(self._subjects_dir, self._subject_id,
+                                    'mri', aseg + '.mgz'),
+                            overwrite='read', must_exist=True)
+        aseg_fname = aseg
+        aseg = nib.load(aseg_fname)
+        aseg_data = np.asarray(aseg.dataobj)
+        vox_mri_t = aseg.header.get_vox2ras_tkr()
+        mult = 1e-3 if self._units == 'm' else 1
+        vox_mri_t[:3] *= mult
+        del aseg
+
+        # read freesurfer lookup table
+        lut, fs_colors = read_freesurfer_lut()
+        if labels is None:  # assign default ROI labels based on indices
+            lut_r = {v: k for k, v in lut.items()}
+            labels = [lut_r[idx] for idx in DEFAULTS['volume_label_indices']]
+
+        _validate_type(legend, (bool, None), 'legend')
+        if legend is None:
+            legend = len(labels) < 11
+
+        if colors is None:
+            colors = [fs_colors[label] / 255 for label in labels]
+        elif not isinstance(colors, (list, tuple)):
+            colors = [colors] * len(labels)  # make into list
+        colors = [colorConverter.to_rgba(color, alpha) for color in colors]
+        surfs = _marching_cubes(
+            aseg_data, [lut[label] for label in labels], smooth=smooth)
+        for label, color, (verts, triangles) in zip(labels, colors, surfs):
+            if len(verts) == 0:  # not in aseg vals
+                warn(f'Value {lut[label]} not found for label '
+                     f'{repr(label)} in: {aseg_fname}')
+                continue
+            verts = apply_trans(vox_mri_t, verts)
+            for h in self._hemis:
+                for ri, ci, v in self._iter_views(h):
+                    self._renderer.mesh(
+                        *verts.T, triangles=triangles, color=color,
+                        opacity=alpha, reset_camera=False, render=False)
+
+        if legend or isinstance(legend, dict):
+            # use empty kwargs for legend = True
+            legend = legend if isinstance(legend, dict) else dict()
+            self._renderer.plotter.add_legend(
+                list(zip(labels, colors)), **legend)
+
+        self._renderer._update()
+
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
                  scale_factor=1, color="white", alpha=1, name=None,
                  hemi=None, resolution=50):
@@ -2388,10 +2478,11 @@ class Brain(object):
             background color).
         opacity : float
             Opacity of the text (default 1.0).
-        row : int
-            Row index of which brain to use.
-        col : int
-            Column index of which brain to use.
+        row : int | None
+            Row index of which brain to use. Default is the bottom row.
+        col : int | None
+            Column index of which brain to use. Default is the left-most
+            column.
         font_size : float | None
             The font size to use.
         justification : str | None
@@ -2401,8 +2492,13 @@ class Brain(object):
         # are implemented
         # _check_option('name', name, [None])
 
-        self._renderer.text2d(x_window=x, y_window=y, text=text, color=color,
-                              size=font_size, justification=justification)
+        for h in self._hemis:
+            for ri, ci, v in self._iter_views(h):
+                if (row is None or row == ri) and (col is None or col == ci):
+                    self._renderer.subplot(ri, ci)
+                    self._renderer.text2d(x_window=x, y_window=y, text=text,
+                                          color=color, size=font_size,
+                                          justification=justification)
 
     def _configure_label_time_course(self):
         from ...label import read_labels_from_annot
@@ -2560,29 +2656,31 @@ class Brain(object):
         """Display the window."""
         self._renderer.show()
 
-    def show_view(self, view=None, roll=None, distance=None, row=0, col=0,
-                  hemi=None, align=True):
+    @fill_doc
+    def show_view(self, view=None, roll=None, distance=None,
+                  row='deprecated', col='deprecated', hemi=None, align=True,
+                  azimuth=None, elevation=None, focalpoint=None):
         """Orient camera to display view.
 
         Parameters
         ----------
-        view : str | dict
-            String view, or a dict with azimuth and elevation.
-        roll : float | None
-            The roll.
-        distance : float | None
-            The distance.
-        row : int
-            The row to set.
-        col : int
-            The column to set.
-        hemi : str
-            Which hemi to use for string lookup (when in "both" mode).
+        %(view)s
+        %(roll)s
+        %(distance)s
+        row : int | None
+            The row to set. Default all rows.
+        col : int | None
+            The column to set. Default all columns.
+        hemi : str | None
+            Which hemi to use for view lookup (when in "both" mode).
         align : bool
             If True, consider view arguments relative to canonical MRI
             directions (closest to MNI for the subject) rather than native MRI
             space. This helps when MRIs are not in standard orientation (e.g.,
             have large rotations).
+        %(azimuth)s
+        %(elevation)s
+        %(focalpoint)s
         """
         hemi = self._hemi if hemi is None else hemi
         if hemi == 'split':
@@ -2591,16 +2689,38 @@ class Brain(object):
                 hemi = 'rh'
             else:
                 hemi = 'lh'
-        if isinstance(view, str):
-            view = views_dicts[hemi].get(view)
-        view = view.copy()
-        if roll is not None:
-            view.update(roll=roll)
-        if distance is not None:
-            view.update(distance=distance)
-        self._renderer.subplot(row, col)
+        if isinstance(view, dict):  # deprecate at version 0.25
+            warn('`view` is a dict is deprecated, please use `azimuth` and '
+                 '`elevation` as arguments directly to `show_view`',
+                 DeprecationWarning)
+            if azimuth is None and 'azimuth' in view:
+                azimuth = view['azimuth']
+            if elevation is None and 'elevation' in view:
+                elevation = view['elevation']
+            view = None
+        if (row == 'deprecated' or col == 'deprecated') and \
+                len(set([_ for h in self._hemis
+                         for _ in self._iter_views(h)])) > 1:
+            warn('`row` and `col` default behavior is changing, in version '
+                 '0.25 the default behavior will be to apply `show_view` to '
+                 'all views', DeprecationWarning)
+        if row == 'deprecated':
+            row = None
+        if col == 'deprecated':
+            col = None
+        view_params = dict(azimuth=azimuth, elevation=elevation, roll=roll,
+                           distance=distance, focalpoint=focalpoint)
+        if view is not None:  # view string takes precedence
+            view_params = {param: val for param, val in view_params.items()
+                           if val is not None}  # no overwriting with None
+            view_params = dict(views_dicts[hemi].get(view), **view_params)
         xfm = self._rigid if align else None
-        self._renderer.set_camera(**view, reset_camera=False, rigid=xfm)
+        for h in self._hemis:
+            for ri, ci, v in self._iter_views(h):
+                if (row is None or row == ri) and (col is None or col == ci):
+                    self._renderer.subplot(ri, ci)
+                    self._renderer.set_camera(
+                        **view_params, reset_camera=False, rigid=xfm)
         self._renderer._update()
 
     def reset_view(self):
@@ -2947,7 +3067,7 @@ class Brain(object):
                 prop = glyph_actor.GetProperty()
                 prop.SetLineWidth(2.)
                 prop.SetOpacity(vector_alpha)
-                self._renderer.plotter.add_actor(glyph_actor)
+                self._renderer.plotter.add_actor(glyph_actor, render=False)
                 hemi_data['glyph_actor'].append(glyph_actor)
             else:
                 glyph_actor = hemi_data['glyph_actor'][count]

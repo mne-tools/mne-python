@@ -3,7 +3,7 @@
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 import numpy as np
@@ -15,7 +15,34 @@ from .transforms import (apply_trans, invert_transform, combine_transforms,
                          _ensure_trans, read_ras_mni_t, Transform)
 from .surface import read_surface
 from .utils import (verbose, _validate_type, _check_fname, _check_option,
-                    get_subjects_dir)
+                    get_subjects_dir, _require_version)
+
+
+def _check_subject_dir(subject, subjects_dir):
+    """Check that the Freesurfer subject directory is as expected."""
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    for img_name in ('T1', 'brain', 'aseg'):
+        if not op.isfile(op.join(subjects_dir, subject, 'mri',
+                                 f'{img_name}.mgz')):
+            raise ValueError('Freesurfer recon-all subject folder '
+                             'is incorrect or improperly formatted, '
+                             f'got {op.join(subjects_dir, subject)}')
+    return subjects_dir
+
+
+def _get_aseg(aseg, subject, subjects_dir):
+    """Check that the anatomical segmentation file exists and load it."""
+    _require_version('nibabel', 'load aseg', '2.1.0')
+    import nibabel as nib
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    if not aseg.endswith('aseg'):
+        raise RuntimeError(
+            f'`aseg` file path must end with "aseg", got {aseg}')
+    aseg = _check_fname(op.join(subjects_dir, subject, 'mri', aseg + '.mgz'),
+                        overwrite='read', must_exist=True)
+    aseg = nib.load(aseg)
+    aseg_data = np.array(aseg.dataobj)
+    return aseg, aseg_data
 
 
 def _import_nibabel(why='use MRI files'):

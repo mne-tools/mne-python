@@ -9,7 +9,9 @@ are displayed.
 """
 # Authors: Pierre Ablin <pierreablin@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 from time import time
 
@@ -20,7 +22,7 @@ from mne.datasets import sample
 
 print(__doc__)
 
-###############################################################################
+# %%
 # Read and preprocess the data. Preprocessing consists of:
 #
 # - MEG channel selection
@@ -36,7 +38,7 @@ reject = dict(mag=5e-12, grad=4000e-13)
 raw.filter(1, 30, fir_design='firwin')
 
 
-###############################################################################
+# %%
 # Define a function that runs ICA on the raw MEG data and plots the components
 
 
@@ -50,18 +52,18 @@ def run_ica(method, fit_params=None):
     ica.plot_components(title=title)
 
 
-###############################################################################
+# %%
 # FastICA
 run_ica('fastica')
 
-###############################################################################
+# %%
 # Picard
 run_ica('picard')
 
-###############################################################################
+# %%
 # Infomax
 run_ica('infomax')
 
-###############################################################################
+# %%
 # Extended Infomax
 run_ica('infomax', fit_params=dict(extended=True))

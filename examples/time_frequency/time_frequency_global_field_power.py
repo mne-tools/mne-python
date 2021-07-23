@@ -40,7 +40,9 @@ References
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 import os.path as op
 
 import numpy as np
@@ -51,7 +53,7 @@ from mne.datasets import somato
 from mne.baseline import rescale
 from mne.stats import bootstrap_confidence_interval
 
-###############################################################################
+# %%
 # Set parameters
 data_path = somato.data_path()
 subject = '01'
@@ -67,7 +69,7 @@ iter_freqs = [
     ('Gamma', 30, 45)
 ]
 
-###############################################################################
+# %%
 # We create average power time courses for each frequency band
 
 # set epoching parameters
@@ -104,7 +106,7 @@ for band, fmin, fmax in iter_freqs:
     del epochs
 del raw
 
-###############################################################################
+# %%
 # Now we can compute the Global Field Power
 # We can track the emergence of spatial patterns compared to baseline
 # for each frequency band, with a bootstrapped confidence interval.

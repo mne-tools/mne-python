@@ -17,7 +17,9 @@ References
 
 # Authors: Sheraz Khan <sheraz@khansheraz.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import numpy as np
 import mne
@@ -37,7 +39,7 @@ evoked = read_evokeds(fname, condition=condition, baseline=(None, 0))
 evoked_mag = evoked.copy().pick_types(meg='mag')
 evoked_grad = evoked.copy().pick_types(meg='grad')
 
-###############################################################################
+# %%
 # Plot magnetometer data as an arrowmap along with the topoplot at the time
 # of the maximum sensor space activity:
 max_time_idx = np.abs(evoked_mag.data).mean(axis=0).argmax()
@@ -50,13 +52,13 @@ plot_arrowmap(evoked_mag.data[:, max_time_idx], evoked_mag.info)
 # ``info_from`` and ``info_to`` parameters to interpolate from
 # gradiometer data to magnetometer data.
 
-###############################################################################
+# %%
 # Plot gradiometer data as an arrowmap along with the topoplot at the time
 # of the maximum sensor space activity:
 plot_arrowmap(evoked_grad.data[:, max_time_idx], info_from=evoked_grad.info,
               info_to=evoked_mag.info)
 
-###############################################################################
+# %%
 # Since Vectorview 102 system perform sparse spatial sampling of the magnetic
 # field, data from the Vectorview (info_from) can be projected to the high
 # density CTF 272 system (info_to) for visualization

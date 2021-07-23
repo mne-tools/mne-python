@@ -8,7 +8,9 @@ to a brain label.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -83,7 +85,7 @@ stc_evoked_label = stc_evoked.in_label(label)
 # Average over label (not caring to align polarities here)
 label_mean_evoked = np.mean(stc_evoked_label.data, axis=0)
 
-###############################################################################
+# %%
 # View activation time-series to illustrate the benefit of aligning/flipping
 
 times = 1e3 * stcs[0].times  # times in ms
@@ -98,7 +100,7 @@ plt.xlabel('time (ms)')
 plt.ylabel('dSPM value')
 plt.show()
 
-###############################################################################
+# %%
 # Viewing single trial dSPM and average dSPM for unflipped pooling over label
 # Compare to (1) Inverse (dSPM) then average, (2) Evoked then dSPM
 

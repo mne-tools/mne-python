@@ -1,6 +1,6 @@
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #         Victoria Peterson <victoriapeterson09@gmail.com>
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
@@ -27,9 +27,7 @@ class SSD(BaseEstimator, TransformerMixin):
 
     Parameters
     ----------
-    info : instance of mne.Info
-        The info object containing the channel and sampling information.
-        It must match the input data.
+    %(info_not_none)s Must match the input data.
     filt_params_signal : dict
         Filtering for the frequencies of interest.
     filt_params_noise : dict

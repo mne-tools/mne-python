@@ -13,7 +13,9 @@ source imaging, especially for deeper sources.
 """
 # Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import mne
 from mne.datasets import sample
@@ -56,7 +58,7 @@ inv_meg = mne.minimum_norm.make_inverse_operator(
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 
-###############################################################################
+# %%
 # EEGMEG
 # ------
 # Compute resolution matrices, localization error, and spatial deviations
@@ -70,7 +72,7 @@ sd_psf_emeg = resolution_metrics(rm_emeg, inv_emeg['src'],
                                  function='psf', metric='sd_ext')
 del rm_emeg
 
-###############################################################################
+# %%
 # MEG
 # ---
 # Do the same for MEG:
@@ -83,7 +85,7 @@ sd_psf_meg = resolution_metrics(rm_meg, inv_meg['src'],
                                 function='psf', metric='sd_ext')
 del rm_meg
 
-###############################################################################
+# %%
 # Visualization
 # -------------
 # Look at peak localisation error (PLE) across the whole cortex for PSF:
@@ -94,7 +96,7 @@ brain_ple_emeg = ple_psf_emeg.plot('sample', 'inflated', 'lh',
 
 brain_ple_emeg.add_text(0.1, 0.9, 'PLE PSF EMEG', 'title', font_size=16)
 
-###############################################################################
+# %%
 # For MEG only:
 
 brain_ple_meg = ple_psf_meg.plot('sample', 'inflated', 'lh',
@@ -103,7 +105,7 @@ brain_ple_meg = ple_psf_meg.plot('sample', 'inflated', 'lh',
 
 brain_ple_meg.add_text(0.1, 0.9, 'PLE PSF MEG', 'title', font_size=16)
 
-###############################################################################
+# %%
 # Subtract the two distributions and plot this difference:
 
 diff_ple = ple_psf_emeg - ple_psf_meg
@@ -115,7 +117,7 @@ brain_ple_diff = diff_ple.plot('sample', 'inflated', 'lh',
 
 brain_ple_diff.add_text(0.1, 0.9, 'PLE EMEG-MEG', 'title', font_size=16)
 
-###############################################################################
+# %%
 # These plots show that with respect to peak localization error, adding EEG to
 # MEG does not bring much benefit. Next let's visualise spatial deviation (SD)
 # across the whole cortex for PSF:
@@ -126,7 +128,7 @@ brain_sd_emeg = sd_psf_emeg.plot('sample', 'inflated', 'lh',
 
 brain_sd_emeg.add_text(0.1, 0.9, 'SD PSF EMEG', 'title', font_size=16)
 
-###############################################################################
+# %%
 # For MEG only:
 
 brain_sd_meg = sd_psf_meg.plot('sample', 'inflated', 'lh',
@@ -135,7 +137,7 @@ brain_sd_meg = sd_psf_meg.plot('sample', 'inflated', 'lh',
 
 brain_sd_meg.add_text(0.1, 0.9, 'SD PSF MEG', 'title', font_size=16)
 
-###############################################################################
+# %%
 # Subtract the two distributions and plot this difference:
 
 diff_sd = sd_psf_emeg - sd_psf_meg
@@ -147,7 +149,7 @@ brain_sd_diff = diff_sd.plot('sample', 'inflated', 'lh',
 
 brain_sd_diff.add_text(0.1, 0.9, 'SD EMEG-MEG', 'title', font_size=16)
 
-###############################################################################
+# %%
 # Adding EEG to MEG decreases the spatial extent of point-spread
 # functions (lower spatial deviation, blue colors), thus increasing
 # resolution, especially for deeper source locations.

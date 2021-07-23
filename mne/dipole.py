@@ -20,9 +20,10 @@ from .io.proj import make_projector, _needs_eeg_average_ref_proj
 from .bem import _fit_sphere
 from .evoked import _read_evoked, _aspect_rev, _write_evokeds
 from .fixes import pinvh
+from ._freesurfer import read_freesurfer_lut, _get_aseg
 from .transforms import _print_coord_trans, _coord_frame_name, apply_trans
 from .viz.evoked import _plot_evoked
-from ._freesurfer import head_to_mni
+from ._freesurfer import head_to_mni, head_to_mri
 from .forward._make_forward import (_get_trans, _setup_bem,
                                     _prep_meg_channels, _prep_eeg_channels)
 from .forward._compute_forward import (_compute_forwards_meeg,
@@ -273,7 +274,7 @@ class Dipole(object):
     @verbose
     def to_mni(self, subject, trans, subjects_dir=None,
                verbose=None):
-        """Convert dipole location from head coordinate system to MNI coordinates.
+        """Convert dipole location from head to MNI coordinates.
 
         Parameters
         ----------
@@ -290,6 +291,66 @@ class Dipole(object):
         mri_head_t, trans = _get_trans(trans)
         return head_to_mni(self.pos, subject, mri_head_t,
                            subjects_dir=subjects_dir, verbose=verbose)
+
+    @verbose
+    def to_mri(self, subject, trans, subjects_dir=None,
+               verbose=None):
+        """Convert dipole location from head to MNI coordinates.
+
+        Parameters
+        ----------
+        %(subject)s
+        %(trans_not_none)s
+        %(subjects_dir)s
+        %(verbose)s
+
+        Returns
+        -------
+        pos_mri : array, shape (n_pos, 3)
+            The Freesurfer surface RAS coordinates (in mm) of pos.
+        """
+        mri_head_t, trans = _get_trans(trans)
+        return head_to_mri(self.pos, subject, mri_head_t,
+                           subjects_dir=subjects_dir, verbose=verbose)
+
+    @verbose
+    def to_volume_labels(self, trans, subject='fsaverage', aseg='aparc+aseg',
+                         subjects_dir=None, verbose=None):
+        """Find an ROI in atlas for the dipole positions.
+
+        Parameters
+        ----------
+        %(trans)s
+        %(subject)s
+        %(aseg)s
+        %(subjects_dir)s
+        %(verbose)s
+
+        Returns
+        -------
+        labels : list
+            List of anatomical region names from anatomical segmentation atlas.
+
+        Notes
+        -----
+        .. versionadded:: 0.24
+        """
+        aseg_img, aseg_data = _get_aseg(aseg, subject, subjects_dir)
+        mri_vox_t = np.linalg.inv(aseg_img.header.get_vox2ras_tkr())
+
+        # Load freesurface atlas LUT
+        lut_inv = read_freesurfer_lut()[0]
+        lut = {v: k for k, v in lut_inv.items()}
+
+        # transform to voxel space from head space
+        pos = self.to_mri(subject, trans, subjects_dir=subjects_dir,
+                          verbose=verbose)
+        pos = apply_trans(mri_vox_t, pos)
+        pos = np.rint(pos).astype(int)
+
+        # Get voxel value and label from LUT
+        labels = [lut.get(aseg_data[tuple(coord)], 'Unknown') for coord in pos]
+        return labels
 
     def plot_amplitudes(self, color='k', show=True):
         """Plot the dipole amplitudes as a function of time.
@@ -375,8 +436,7 @@ class DipoleFixed(ShiftTimeMixin):
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
     data : array, shape (n_channels, n_times)
         The dipole data.
     times : array, shape (n_times,)

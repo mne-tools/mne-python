@@ -15,11 +15,13 @@ tutorials address each of these topics in greater detail.
 We begin by importing the necessary Python modules:
 """
 
+# %%
+
 import os
 import numpy as np
 import mne
 
-###############################################################################
+# %%
 # Loading data
 # ^^^^^^^^^^^^
 #
@@ -47,7 +49,7 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_filt-0-40_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 
-###############################################################################
+# %%
 # By default, `~mne.io.read_raw_fif` displays some information about the file
 # it's loading; for example, here it tells us that there are four "projection
 # items" in the file along with the recorded data; those are :term:`SSP
@@ -66,7 +68,7 @@ raw = mne.io.read_raw_fif(sample_data_raw_file)
 print(raw)
 print(raw.info)
 
-###############################################################################
+# %%
 # `~mne.io.Raw` objects also have several built-in plotting methods; here we
 # show the power spectral density (PSD) for each sensor type with
 # `~mne.io.Raw.plot_psd`, as well as a plot of the raw sensor traces with
@@ -78,7 +80,7 @@ print(raw.info)
 raw.plot_psd(fmax=50)
 raw.plot(duration=5, n_channels=30)
 
-###############################################################################
+# %%
 # Preprocessing
 # ^^^^^^^^^^^^^
 #
@@ -97,7 +99,7 @@ ica.fit(raw)
 ica.exclude = [1, 2]  # details on how we picked these are omitted here
 ica.plot_properties(raw, picks=ica.exclude)
 
-###############################################################################
+# %%
 # Once we're confident about which component(s) we want to remove, we pass them
 # as the ``exclude`` parameter and then apply the ICA to the raw signal. The
 # `~mne.preprocessing.ICA.apply` method requires the raw data to be loaded into
@@ -119,7 +121,7 @@ chan_idxs = [raw.ch_names.index(ch) for ch in chs]
 orig_raw.plot(order=chan_idxs, start=12, duration=4)
 raw.plot(order=chan_idxs, start=12, duration=4)
 
-###############################################################################
+# %%
 # .. _overview-tut-events-section:
 #
 # Detecting experimental events
@@ -140,7 +142,7 @@ raw.plot(order=chan_idxs, start=12, duration=4)
 events = mne.find_events(raw, stim_channel='STI 014')
 print(events[:5])  # show the first 5
 
-###############################################################################
+# %%
 # The resulting events array is an ordinary 3-column :class:`NumPy array
 # <numpy.ndarray>`, with sample number in the first column and integer event ID
 # in the last column; the middle column is usually ignored. Rather than keeping
@@ -169,7 +171,7 @@ print(events[:5])  # show the first 5
 event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
               'visual/right': 4, 'smiley': 5, 'buttonpress': 32}
 
-###############################################################################
+# %%
 # Event dictionaries like this one are used when extracting epochs from
 # continuous data; the ``/`` character in the dictionary keys allows pooling
 # across conditions by requesting partial condition descriptors (i.e.,
@@ -185,7 +187,7 @@ event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
 fig = mne.viz.plot_events(events, event_id=event_dict, sfreq=raw.info['sfreq'],
                           first_samp=raw.first_samp)
 
-###############################################################################
+# %%
 # For paradigms that are not event-related (e.g., analysis of resting-state
 # data), you can extract regularly spaced (possibly overlapping) spans of data
 # by creating events using `mne.make_fixed_length_events` and then proceeding
@@ -212,7 +214,7 @@ reject_criteria = dict(mag=4000e-15,     # 4000 fT
                        eeg=150e-6,       # 150 µV
                        eog=250e-6)       # 250 µV
 
-###############################################################################
+# %%
 # We'll also pass the event dictionary as the ``event_id`` parameter (so we can
 # work with easy-to-pool event labels instead of the integer event IDs), and
 # specify ``tmin`` and ``tmax`` (the time relative to each event at which to
@@ -225,7 +227,7 @@ reject_criteria = dict(mag=4000e-15,     # 4000 fT
 epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=-0.2, tmax=0.5,
                     reject=reject_criteria, preload=True)
 
-###############################################################################
+# %%
 # Next we'll pool across left/right stimulus presentations so we can compare
 # auditory versus visual responses. To avoid biasing our signals to the left or
 # right, we'll use `~mne.Epochs.equalize_event_counts` first to randomly sample
@@ -239,7 +241,7 @@ aud_epochs = epochs['auditory']
 vis_epochs = epochs['visual']
 del raw, epochs  # free up memory
 
-###############################################################################
+# %%
 # Like `~mne.io.Raw` objects, `~mne.Epochs` objects also have a number of
 # built-in plotting methods. One is `~mne.Epochs.plot_image`, which shows each
 # epoch as one row of an image map, with color representing signal magnitude;
@@ -276,7 +278,7 @@ power = mne.time_frequency.tfr_morlet(aud_epochs, n_cycles=2, return_itc=False,
                                       freqs=frequencies, decim=3)
 power.plot(['MEG 1332'])
 
-###############################################################################
+# %%
 # Estimating evoked responses
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -293,7 +295,7 @@ vis_evoked = vis_epochs.average()
 mne.viz.plot_compare_evokeds(dict(auditory=aud_evoked, visual=vis_evoked),
                              legend='upper left', show_sensors='upper right')
 
-###############################################################################
+# %%
 # We can also get a more detailed view of each `~mne.Evoked` object using other
 # plotting methods such as `~mne.Evoked.plot_joint` or
 # `~mne.Evoked.plot_topomap`. Here we'll examine just the EEG channels, and see

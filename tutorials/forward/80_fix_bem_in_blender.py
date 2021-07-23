@@ -23,7 +23,9 @@ Ezequiel Mikulan.
 #          Ezequiel Mikulan <e.mikulan@gmail.com>
 #          Manorama Kadwani <manorama.kadwani@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 # sphinx_gallery_thumbnail_path = '_static/blender_import_obj/blender_import_obj2.jpg'  # noqa
 
@@ -35,7 +37,7 @@ import mne
 data_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 bem_dir = op.join(subjects_dir, 'sample', 'bem', 'flash')
-###############################################################################
+# %%
 # Exporting surfaces to Blender
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -68,7 +70,7 @@ coords, faces = mne.read_surface(op.join(bem_dir, 'outer_skull.surf'))
 mne.write_surface(op.join(conv_dir, 'outer_skull.obj'), coords, faces,
                   overwrite=True)
 
-###############################################################################
+# %%
 # Editing in Blender
 # ^^^^^^^^^^^^^^^^^^
 #
@@ -123,7 +125,7 @@ coords[0] /= 1.1  # Move the first vertex back inside the skull
 mne.write_surface(op.join(conv_dir, 'inner_skull_fixed.obj'), coords, faces,
                   overwrite=True)
 
-###############################################################################
+# %%
 # Back in Python, you can read the fixed .obj files and save them as
 # FreeSurfer .surf files. For the :func:`mne.make_bem_model` function to find
 # them, they need to be saved using their original names in the ``surf``
@@ -146,7 +148,7 @@ shutil.copy(op.join(bem_dir, 'inner_skull.surf'),
 # mne.write_surface(op.join(bem_dir, 'inner_skull.surf'), coords, faces,
 #                   volume_info=vol_info, overwrite=True)
 
-###############################################################################
+# %%
 # Editing the head surfaces
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -172,7 +174,7 @@ head_dir = op.dirname(bem_dir)
 # mne.write_head_bem(op.join(head_dir, 'sample-head.fif'), coords, faces,
 #                    overwrite=True)
 
-###############################################################################
+# %%
 # High-resolution head
 # ~~~~~~~~~~~~~~~~~~~~
 #
@@ -205,7 +207,7 @@ coords, faces = mne.read_surface(op.join(conv_dir, 'sample-head.obj'))
 # mne.write_head_bem(op.join(head_dir, 'sample-head.fif'), coords, faces,
 #                    overwrite=True)
 
-###############################################################################
+# %%
 # That's it! You are ready to continue with your analysis pipeline (e.g.
 # running :func:`mne.make_bem_model`).
 #

@@ -23,8 +23,10 @@ Visualization
    mne_analyze_colormap
    plot_bem
    plot_brain_colorbar
+   plot_chpi_snr
    plot_connectivity_circle
    plot_cov
+   plot_channel_labels_circle
    plot_csd
    plot_dipole_amplitudes
    plot_dipole_locations

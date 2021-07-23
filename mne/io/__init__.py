@@ -3,7 +3,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from .open import fiff_open, show_fiff, _fiff_get_fid
 from .meas_info import (read_fiducials, write_fiducials, read_info, write_info,

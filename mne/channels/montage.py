@@ -24,7 +24,7 @@ from ..viz import plot_montage
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, Transform,
                           _verbose_frames, _fit_matched_points,
-                          _quat_to_affine)
+                          _quat_to_affine, _ensure_trans)
 from ..io._digitization import (_count_points_by_type,
                                 _get_dig_eeg, _make_dig_points, write_dig,
                                 _read_dig_fif, _format_dig_points,
@@ -348,6 +348,23 @@ class DigMontage(object):
             hpi=montage_bunch.hpi,
         )
         return positions
+
+    @verbose
+    def apply_trans(self, trans, verbose=None):
+        """Apply a transformation matrix to the montage.
+
+        Parameters
+        ----------
+        trans : instance of mne.transforms.Transform
+            The transformation matrix to be applied.
+        %(verbose)s
+        """
+        _validate_type(trans, Transform, 'trans')
+        coord_frame = self.get_positions()['coord_frame']
+        trans = _ensure_trans(trans, fro=coord_frame, to=trans['to'])
+        for d in self.dig:
+            d['r'] = apply_trans(trans, d['r'])
+            d['coord_frame'] = trans['to']
 
     @verbose
     def add_estimated_fiducials(self, subject, subjects_dir=None,
@@ -758,8 +775,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement info to update.
+    %(info_not_none)s
     %(montage)s
     %(match_case)s
     %(match_alias)s

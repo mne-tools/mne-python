@@ -5,7 +5,7 @@
 #          Susanna Aro <susanna.aro@aalto.fi>
 #          Roman Goj <roman.goj@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import numpy as np
 
 from ..channels import equalize_channels
@@ -41,8 +41,7 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
 
     Parameters
     ----------
-    info : instance of Info
-        Measurement info, e.g. ``epochs.info``.
+    %(info_not_none)s
     forward : instance of Forward
         Forward operator.
     csd : instance of CrossSpectralDensity

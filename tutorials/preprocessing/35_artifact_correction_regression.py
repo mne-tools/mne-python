@@ -34,6 +34,8 @@ Note that there are other corrections that are useful for this dataset that we
 will not apply here (see :ref:`tut-brainstorm-auditory` for more information).
 """
 
+# %%
+
 import os.path as op
 import numpy as np
 import mne
@@ -48,7 +50,7 @@ raw.info['bads'] = ['MLO52-4408', 'MRT51-4408', 'MLO42-4408', 'MLO43-4408']
 raw.filter(None, 40)
 decim = 12  # 2400 -> 200 Hz sample rate for epochs
 
-###############################################################################
+# %%
 # For this dataset and example we'll use just event type 1 (only the
 # "standard" trials) for simplicity. Event timing is adjusted by comparing the
 # trigger times on detected sound onsets on channel UADC001-4408.
@@ -63,7 +65,7 @@ assert len(onsets) == len(events)
 events[:, 0] = onsets
 epochs = mne.Epochs(raw, events, event_id=1, decim=decim, preload=True)
 
-###############################################################################
+# %%
 # Compute and apply EOG regression
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Next we'll compare the `~mne.Evoked` data (average across epochs) before and
@@ -76,13 +78,13 @@ epochs = mne.Epochs(raw, events, event_id=1, decim=decim, preload=True)
 # do regression
 _, betas = mne.preprocessing.regress_artifact(epochs.copy().subtract_evoked())
 
-###############################################################################
+# %%
 # We then use those coefficients to remove the EOG signal from the original
 # data:
 
 epochs_clean, _ = mne.preprocessing.regress_artifact(epochs, betas=betas)
 
-###############################################################################
+# %%
 # Visualize the effect on auditory epochs
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Now we can plot the auditory evoked response before and after regression:
@@ -106,7 +108,7 @@ mne.viz.tight_layout()
 # clean up
 del epochs, epochs_clean
 
-###############################################################################
+# %%
 # The effect is subtle in these evoked data, but you can see that a bump toward
 # the end of the window has had its amplitude decreased.
 #
@@ -138,7 +140,7 @@ fig = eog_epochs_clean.average(picks=plot_picks).plot(**evo_kwargs)
 fig.suptitle('EOG epochs, EOG regressed')
 mne.viz.tight_layout()
 
-###############################################################################
+# %%
 # Visualize the effect on raw data
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # We can also apply the regression directly to the raw data. To do this
@@ -162,7 +164,7 @@ raw.plot(**raw_kwargs)
 raw_clean, _ = mne.preprocessing.regress_artifact(raw, betas=betas)
 raw_clean.plot(**raw_kwargs)
 
-###############################################################################
+# %%
 # References
 # ^^^^^^^^^^
 # .. footbibliography::

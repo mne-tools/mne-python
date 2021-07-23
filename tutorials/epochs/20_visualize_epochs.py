@@ -13,6 +13,8 @@ We'll start by importing the modules we need, loading the continuous (raw)
 sample data, and cropping it to save memory:
 """
 
+# %%
+
 import os
 import mne
 
@@ -21,7 +23,7 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False).crop(tmax=120)
 
-###############################################################################
+# %%
 # To create the `~mne.Epochs` data structure, we'll extract the event
 # IDs stored in the :term:`stim channel`, map those integer event IDs to more
 # descriptive condition labels using an event dictionary, and pass those to the
@@ -36,7 +38,7 @@ epochs = mne.Epochs(raw, events, tmin=-0.2, tmax=0.5, event_id=event_dict,
                     preload=True)
 del raw
 
-###############################################################################
+# %%
 # Plotting ``Epochs`` as time series
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -71,14 +73,14 @@ catch_trials_and_buttonpresses = mne.pick_events(events, include=[5, 32])
 epochs['face'].plot(events=catch_trials_and_buttonpresses, event_id=event_dict,
                     event_color=dict(button='red', face='blue'))
 
-###############################################################################
+# %%
 # To see all sensors at once, we can use butterfly mode and group by selection:
 
 epochs['face'].plot(events=catch_trials_and_buttonpresses, event_id=event_dict,
                     event_color=dict(button='red', face='blue'),
                     group_by='selection', butterfly=True)
 
-###############################################################################
+# %%
 # Plotting projectors from an ``Epochs`` object
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -92,7 +94,7 @@ ecg_projs = mne.read_proj(ecg_proj_file)
 epochs.add_proj(ecg_projs)
 epochs.apply_proj()
 
-###############################################################################
+# %%
 # Just as we saw in the :ref:`tut-section-raw-plot-proj` section, we can plot
 # the projectors present in an `~mne.Epochs` object using the same
 # `~mne.Epochs.plot_projs_topomap` method. Since the original three
@@ -102,7 +104,7 @@ epochs.apply_proj()
 
 epochs.plot_projs_topomap(vlim='joint')
 
-###############################################################################
+# %%
 # Note that these field maps illustrate aspects of the signal that *have
 # already been removed* (because projectors in `~mne.io.Raw` data are
 # applied by default when epoching, and because we called
@@ -112,7 +114,7 @@ epochs.plot_projs_topomap(vlim='joint')
 
 print(all(proj['active'] for proj in epochs.info['projs']))
 
-###############################################################################
+# %%
 # Plotting sensor locations
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -123,7 +125,7 @@ print(all(proj['active'] for proj in epochs.info['projs']))
 epochs.plot_sensors(kind='3d', ch_type='all')
 epochs.plot_sensors(kind='topomap', ch_type='all')
 
-###############################################################################
+# %%
 # Plotting the power spectrum of ``Epochs``
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -133,7 +135,7 @@ epochs.plot_sensors(kind='topomap', ch_type='all')
 
 epochs['auditory'].plot_psd(picks='eeg')
 
-###############################################################################
+# %%
 # It is also possible to plot spectral estimates across sensors as a scalp
 # topography, using `~mne.Epochs.plot_psd_topomap`. The default parameters will
 # plot five frequency bands (δ, θ, α, β, γ), will compute power based on
@@ -141,7 +143,7 @@ epochs['auditory'].plot_psd(picks='eeg')
 
 epochs['visual/right'].plot_psd_topomap()
 
-###############################################################################
+# %%
 # Just like `~mne.Epochs.plot_projs_topomap`,
 # `~mne.Epochs.plot_psd_topomap` has a ``vlim='joint'`` option for fixing
 # the colorbar limits jointly across all subplots, to give a better sense of
@@ -155,7 +157,7 @@ bands = [(10, '10 Hz'), (15, '15 Hz'), (20, '20 Hz'), (10, 20, '10-20 Hz')]
 epochs['visual/right'].plot_psd_topomap(bands=bands, vlim='joint',
                                         ch_type='grad')
 
-###############################################################################
+# %%
 # If you prefer untransformed power estimates, you can pass ``dB=False``. It is
 # also possible to normalize the power estimates by dividing by the total power
 # across all frequencies, by passing ``normalize=True``. See the docstring of
@@ -187,7 +189,7 @@ epochs['visual/right'].plot_psd_topomap(bands=bands, vlim='joint',
 
 epochs['auditory'].plot_image(picks='mag', combine='mean')
 
-###############################################################################
+# %%
 # To plot image maps for individual sensors or a small group of sensors, use
 # the ``picks`` parameter. Passing ``combine=None`` (the default) will yield
 # separate plots for each sensor in ``picks``; passing ``combine='gfp'`` will
@@ -198,7 +200,7 @@ epochs['auditory'].plot_image(picks='mag', combine='mean')
 epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'])
 epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'], combine='gfp')
 
-###############################################################################
+# %%
 # To plot an image map for *all* sensors, use
 # `~mne.Epochs.plot_topo_image`, which is optimized for plotting a large
 # number of image maps simultaneously, and (in interactive sessions) allows you
@@ -226,7 +228,7 @@ for ch_type, title in dict(mag='Magnetometers', grad='Gradiometers').items():
     epochs['auditory/left'].plot_topo_image(layout=layout, fig_facecolor='w',
                                             font_color='k', title=title)
 
-###############################################################################
+# %%
 # To plot image maps for all EEG sensors, pass an EEG layout as the ``layout``
 # parameter of `~mne.Epochs.plot_topo_image`. Note also here the use of
 # the ``sigma`` parameter, which smooths each image map along the vertical
@@ -240,7 +242,7 @@ layout = mne.channels.find_layout(epochs.info, ch_type='eeg')
 epochs['auditory/left'].plot_topo_image(layout=layout, fig_facecolor='w',
                                         font_color='k', sigma=1)
 
-###############################################################################
+# %%
 # .. LINKS
 #
 # .. _spectral density: https://en.wikipedia.org/wiki/Spectral_density

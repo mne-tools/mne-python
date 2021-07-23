@@ -13,6 +13,8 @@ We begin as always by importing the necessary Python modules and loading some
 (to save memory on the documentation server):
 """
 
+# %%
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -24,7 +26,7 @@ sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 raw.crop(0, 60).load_data()  # use just 60 seconds of data, to save memory
 
-###############################################################################
+# %%
 # Background on filtering
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -58,7 +60,7 @@ mag_channels = mne.pick_types(raw.info, meg='mag')
 raw.plot(duration=60, order=mag_channels, proj=False,
          n_channels=len(mag_channels), remove_dc=False)
 
-###############################################################################
+# %%
 # A half-period of this slow drift appears to last around 10 seconds, so a full
 # period would be 20 seconds, i.e., :math:`\frac{1}{20} \mathrm{Hz}`. To be
 # sure those components are excluded, we want our highpass to be *higher* than
@@ -73,7 +75,7 @@ for cutoff in (0.1, 0.2):
     fig.suptitle('High-pass filtered at {} Hz'.format(cutoff), size='xx-large',
                  weight='bold')
 
-###############################################################################
+# %%
 # Looks like 0.1 Hz was not quite high enough to fully remove the slow drifts.
 # Notice that the text output summarizes the relevant characteristics of the
 # filter that was created. If you want to visualize the filter, you can pass
@@ -88,7 +90,7 @@ for cutoff in (0.1, 0.2):
 filter_params = mne.filter.create_filter(raw.get_data(), raw.info['sfreq'],
                                          l_freq=0.2, h_freq=None)
 
-###############################################################################
+# %%
 # Notice that the output is the same as when we applied this filter to the data
 # using :meth:`raw.filter() <mne.io.Raw.filter>`. You can now pass the filter
 # parameters (and the sampling frequency) to :func:`~mne.viz.plot_filter` to
@@ -96,7 +98,7 @@ filter_params = mne.filter.create_filter(raw.get_data(), raw.info['sfreq'],
 
 mne.viz.plot_filter(filter_params, raw.info['sfreq'], flim=(0.01, 5))
 
-###############################################################################
+# %%
 # .. _tut-section-line-noise:
 #
 # Power line noise
@@ -125,7 +127,7 @@ def add_arrows(axes):
 fig = raw.plot_psd(fmax=250, average=True)
 add_arrows(fig.axes[:2])
 
-###############################################################################
+# %%
 # It should be evident that MEG channels are more susceptible to this kind of
 # interference than EEG that is recorded in the magnetically shielded room.
 # Removing power-line noise can be done with a notch filter,
@@ -143,7 +145,7 @@ for title, data in zip(['Un', 'Notch '], [raw, raw_notch]):
     fig.suptitle('{}filtered'.format(title), size='xx-large', weight='bold')
     add_arrows(fig.axes[:2])
 
-###############################################################################
+# %%
 # :meth:`~mne.io.Raw.notch_filter` also has parameters to control the notch
 # width, transition bandwidth and other aspects of the filter. See the
 # docstring for details.
@@ -162,7 +164,7 @@ for title, data in zip(['Un', 'spectrum_fit '], [raw, raw_notch_fit]):
     fig.suptitle('{}filtered'.format(title), size='xx-large', weight='bold')
     add_arrows(fig.axes[:2])
 
-###############################################################################
+# %%
 # Resampling
 # ^^^^^^^^^^
 #
@@ -198,7 +200,7 @@ for data, title in zip([raw, raw_downsampled], ['Original', 'Downsampled']):
     fig.suptitle(title)
     plt.setp(fig.axes, xlim=(0, 300))
 
-###############################################################################
+# %%
 # Because resampling involves filtering, there are some pitfalls to resampling
 # at different points in the analysis stream:
 #
@@ -270,7 +272,7 @@ print('desired sampling frequency was {} Hz; decim factor of {} yielded an '
       'actual sampling frequency of {} Hz.'
       .format(desired_sfreq, decim, epochs.info['sfreq']))
 
-###############################################################################
+# %%
 # If for some reason you cannot follow the above-recommended best practices,
 # you should at the very least either:
 #

@@ -8,7 +8,9 @@ within a label.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import matplotlib.pyplot as plt
 
@@ -19,7 +21,7 @@ from mne.minimum_norm import read_inverse_operator, compute_source_psd
 
 print(__doc__)
 
-###############################################################################
+# %%
 # Set parameters
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
@@ -48,7 +50,7 @@ stc = compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
 
 stc.save('psd_dSPM')
 
-###############################################################################
+# %%
 # View PSD of sources in label
 plt.plot(stc.times, stc.data.T)
 plt.xlabel('Frequency (Hz)')

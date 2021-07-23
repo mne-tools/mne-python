@@ -19,6 +19,8 @@ the same name as the class but in small caps instead of camel cases.
 
 Let's start by loading data for a simple two-class problem:
 """
+
+# %%
 # sphinx_gallery_thumbnail_number = 6
 
 import numpy as np
@@ -62,7 +64,7 @@ del raw
 X = epochs.get_data()  # MEG signals: n_epochs, n_meg_channels, n_times
 y = epochs.events[:, 2]  # target: auditory left vs visual left
 
-###############################################################################
+# %%
 # Transformation classes
 # ======================
 #
@@ -120,7 +122,7 @@ scores = cross_val_multiscore(clf, X, y, cv=5, n_jobs=1)
 score = np.mean(scores, axis=0)
 print('Spatio-temporal: %0.1f%%' % (100 * score,))
 
-###############################################################################
+# %%
 # PSDEstimator
 # ^^^^^^^^^^^^
 # The :class:`mne.decoding.PSDEstimator`
@@ -199,7 +201,7 @@ clf_csp = make_pipeline(csp, LinearModel(LogisticRegression(solver='lbfgs')))
 scores = cross_val_multiscore(clf_csp, X, y, cv=5, n_jobs=1)
 print('CSP: %0.1f%%' % (100 * scores.mean(),))
 
-###############################################################################
+# %%
 # Source power comodulation (SPoC)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Source Power Comodulation (:class:`mne.decoding.SPoC`)
@@ -262,7 +264,7 @@ csp.fit(X, y)
 csp.plot_patterns(epochs.info)
 csp.plot_filters(epochs.info, scalings=1e-9)
 
-###############################################################################
+# %%
 # Decoding over time
 # ==================
 #
@@ -308,7 +310,7 @@ ax.legend()
 ax.axvline(.0, color='k', linestyle='-')
 ax.set_title('Sensor space decoding')
 
-###############################################################################
+# %%
 # You can retrieve the spatial filters and spatial patterns if you explicitly
 # use a LinearModel
 clf = make_pipeline(StandardScaler(),
@@ -323,7 +325,7 @@ joint_kwargs = dict(ts_args=dict(time_unit='s'),
 evoked_time_gen.plot_joint(times=np.arange(0., .500, .100), title='patterns',
                            **joint_kwargs)
 
-###############################################################################
+# %%
 # Temporal generalization
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -365,7 +367,7 @@ ax.legend()
 ax.axvline(.0, color='k', linestyle='-')
 ax.set_title('Decoding MEG sensors over time')
 
-###############################################################################
+# %%
 # Plot the full (generalization) matrix:
 
 fig, ax = plt.subplots(1, 1)
@@ -376,9 +378,10 @@ ax.set_ylabel('Training Time (s)')
 ax.set_title('Temporal generalization')
 ax.axvline(0, color='k')
 ax.axhline(0, color='k')
-plt.colorbar(im, ax=ax)
+cbar = plt.colorbar(im, ax=ax)
+cbar.set_label('AUC')
 
-###############################################################################
+# %%
 # Projecting sensor-space patterns to source space
 # ================================================
 # If you use a linear classifier (or regressor) for your data, you can also
@@ -394,12 +397,12 @@ inv = mne.minimum_norm.make_inverse_operator(
 stc = mne.minimum_norm.apply_inverse(evoked_time_gen, inv, 1. / 9., 'dSPM')
 del fwd, inv
 
-###############################################################################
+# %%
 # And this can be visualized using :meth:`stc.plot <mne.SourceEstimate.plot>`:
 brain = stc.plot(hemi='split', views=('lat', 'med'), initial_time=0.1,
                  subjects_dir=subjects_dir)
 
-###############################################################################
+# %%
 # Source-space decoding
 # =====================
 #

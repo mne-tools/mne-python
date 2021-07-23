@@ -9,7 +9,9 @@ between 7.5 Hz and 40 Hz.
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import matplotlib.pyplot as plt
 

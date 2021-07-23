@@ -15,14 +15,16 @@ Data are provided by Jean-Michel Badier from MEG center in Marseille, France.
 
 # Authors: Alex Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import os.path as op
 import numpy as np
 from mne.datasets import phantom_4dbti
 import mne
 
-###############################################################################
+# %%
 # Read data and compute a dipole fit at the peak of the evoked response
 
 data_path = phantom_4dbti.data_path()
@@ -50,7 +52,7 @@ for ii in range(4):
     pos[ii] = dip.pos[0]
     ori[ii] = dip.ori[0]
 
-###############################################################################
+# %%
 # Compute localisation errors
 
 
@@ -63,7 +65,7 @@ actual_pos = np.dot(actual_pos, [[0, 1, 0], [-1, 0, 0], [0, 0, 1]])
 errors = 1e3 * np.linalg.norm(actual_pos - pos, axis=1)
 print("errors (mm) : %s" % errors)
 
-###############################################################################
+# %%
 # Plot the dipoles in 3D
 actual_amp = np.ones(len(dip))  # misc amp to create Dipole instance
 actual_gof = np.ones(len(dip))  # misc GOF to create Dipole instance

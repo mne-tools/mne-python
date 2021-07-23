@@ -13,7 +13,9 @@ frequencies.
 """
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #         Victoria Peterson <victoriapeterson09@gmail.com>
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 
 import matplotlib.pyplot as plt
@@ -22,7 +24,7 @@ from mne import Epochs
 from mne.datasets.fieldtrip_cmc import data_path
 from mne.decoding import SSD
 
-###############################################################################
+# %%
 # Define parameters
 fname = data_path() + '/SubjectCMC.ds'
 
@@ -47,7 +49,7 @@ ssd = SSD(info=raw.info,
 ssd.fit(X=raw.get_data())
 
 
-###############################################################################
+# %%
 # Let's investigate spatial filter with max power ratio.
 # We will first inspect the topographies.
 # According to Nikulin et al. 2011 this is done by either inverting the filters
@@ -84,7 +86,7 @@ ax.axhline(1, linestyle='--')
 # was already quite good. However, when using few components only
 # the sorting might make a difference.
 
-###############################################################################
+# %%
 # Let's also look at the power spectrum of that source and compare it to
 # to the power spectrum of the source with lowest SNR.
 
@@ -103,7 +105,7 @@ ax.legend()
 # We can clearly see that the selected component enjoys an SNR that is
 # way above the average power spectrum.
 
-###############################################################################
+# %%
 # Epoched data
 # ------------
 # Although we suggest to use this method before epoching, there might be some
@@ -132,7 +134,7 @@ ssd_epochs.fit(X=epochs.get_data())
 pattern_epochs = mne.EvokedArray(data=ssd_epochs.patterns_[:4].T,
                                  info=ssd_epochs.info)
 pattern_epochs.plot_topomap(units=dict(mag='A.U.'), time_format='')
-###############################################################################
+# %%
 # References
 # ----------
 #

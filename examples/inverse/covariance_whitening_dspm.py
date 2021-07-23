@@ -24,8 +24,11 @@ fast machine it can take a couple of minutes to complete.
 """
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
+# %%
+
+import os.path as op
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -41,11 +44,12 @@ print(__doc__)
 # Get data
 
 data_path = spm_face.data_path()
-subjects_dir = data_path + '/subjects'
+subjects_dir = op.join(data_path, 'subjects')
 
-raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D.ds'
+raw_fname = op.join(data_path, 'MEG', 'spm',
+                    'SPM_CTF_MEG_example_faces{run}_3D.ds')
 
-raw = io.read_raw_ctf(raw_fname % 1)  # Take first run
+raw = io.read_raw_ctf(raw_fname.format(run=1))  # Take first run
 # To save time and memory for this demo, we'll just use the first
 # 2.5 minutes (all we need to get 30 total events) and heavily
 # resample 480->60 Hz (usually you wouldn't do either of these!)
@@ -65,7 +69,7 @@ snr = 3.0
 lambda2 = 1.0 / snr ** 2
 clim = dict(kind='value', lims=[0, 2.5, 5])
 
-###############################################################################
+# %%
 # Estimate covariances
 
 samples_epochs = 5, 15,
@@ -101,12 +105,14 @@ for n_train in samples_epochs:
 del epochs
 
 # Make forward
-trans = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_raw-trans.fif'
+trans = op.join(data_path, 'MEG', 'spm',
+                'SPM_CTF_MEG_example_faces1_3D_raw-trans.fif')
 # oct5 and add_dist are just for speed, not recommended in general!
 src = mne.setup_source_space(
-    'spm', spacing='oct5', subjects_dir=data_path + '/subjects',
+    'spm', spacing='oct5', subjects_dir=subjects_dir,
     add_dist=False)
-bem = data_path + '/subjects/spm/bem/spm-5120-5120-5120-bem-sol.fif'
+bem = op.join(data_path, 'subjects', 'spm', 'bem',
+              'spm-5120-5120-5120-bem-sol.fif')
 forward = mne.make_forward_solution(evokeds[0][0].info, trans, src, bem)
 del src
 for noise_covs_, evokeds_ in zip(noise_covs, evokeds):
@@ -176,7 +182,7 @@ for ni, (n_train, axes) in enumerate(zip(samples_epochs, (axes1, axes2))):
 
 fig.subplots_adjust(hspace=0.2, left=0.01, right=0.99, wspace=0.03)
 
-###############################################################################
+# %%
 # References
 # ----------
 # .. footbibliography::

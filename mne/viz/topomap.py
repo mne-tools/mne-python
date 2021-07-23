@@ -284,8 +284,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
     ----------
     projs : list of Projection
         The projections.
-    info : instance of Info
-        The info associated with the channels in the projectors.
+    %(info_not_none)s Must be associated with the channels in the projectors.
 
         .. versionchanged:: 0.20
             The positional argument ``layout`` was deprecated and replaced

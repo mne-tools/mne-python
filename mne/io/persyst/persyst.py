@@ -1,6 +1,6 @@
 # Authors: Adam Li <adam2392@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import os
 import os.path as op
 from collections import OrderedDict

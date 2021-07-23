@@ -6,7 +6,7 @@
 #          Mads Jensen <mje.mads@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from copy import deepcopy
 import numpy as np
@@ -40,7 +40,7 @@ from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
                        write_id, write_float, write_complex_float_matrix)
-from .io.base import TimeMixin, _check_maxshield
+from .io.base import TimeMixin, _check_maxshield, _get_ch_factors
 from .parallel import parallel_func
 
 _aspect_dict = {
@@ -88,8 +88,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     Attributes
     ----------
-    info : dict
-        Measurement info.
+    %(info_not_none)s
     ch_names : list of str
         List of channels' names.
     nave : int
@@ -159,12 +158,17 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._data = data
 
     @fill_doc
-    def get_data(self, picks=None):
+    def get_data(self, picks=None, units=None, tmin=None, tmax=None):
         """Get evoked data as 2D array.
 
         Parameters
         ----------
         %(picks_all)s
+        %(units)s
+        tmin : float | None
+            Start time of data to get in seconds.
+        tmax : float | None
+            End time of data to get in seconds.
 
         Returns
         -------
@@ -176,7 +180,15 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         .. versionadded:: 0.24
         """
         picks = _picks_to_idx(self.info, picks, "all", exclude=())
-        data = self.data[picks, :]
+
+        start, stop = self._handle_tmin_tmax(tmin, tmax)
+
+        data = self.data[picks, start:stop]
+
+        if units is not None:
+            ch_factors = _get_ch_factors(self, units, picks)
+            data *= ch_factors[:, np.newaxis]
+
         return data
 
     @verbose
@@ -837,9 +849,8 @@ class EvokedArray(Evoked):
     ----------
     data : array of shape (n_channels, n_times)
         The channels' evoked response. See notes for proper units of measure.
-    info : instance of Info
-        Info dictionary. Consider using ``create_info`` to populate
-        this structure.
+    %(info_not_none)s Consider using :func:`mne.create_info` to populate this
+        structure.
     tmin : float
         Start time before event. Defaults to 0.
     comment : str

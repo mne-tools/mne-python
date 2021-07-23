@@ -20,12 +20,14 @@ be translated to a template space such as ``fsaverage`` for group comparisons.
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
+# %%
+
+import os
 import os.path as op
 
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 
 import nibabel as nib
@@ -34,10 +36,6 @@ from dipy.align import resample
 
 import mne
 from mne.datasets import fetch_fsaverage
-
-print(__doc__)
-
-np.set_printoptions(suppress=True)  # suppress scientific notation
 
 # paths to mne datasets - sample sEEG and FreeSurfer's fsaverage subject
 # which is in MNI space
@@ -48,7 +46,7 @@ subjects_dir = op.join(sample_path, 'subjects')
 # use mne-python's fsaverage data
 fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 
-###############################################################################
+# %%
 # Freesurfer recon-all
 # ====================
 #
@@ -76,7 +74,7 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 #     :func:`mne_bids.write_anat` and pass ``deface=True``.
 
 
-###############################################################################
+# %%
 # Aligning the CT to the MR
 # =========================
 #
@@ -107,7 +105,7 @@ def plot_overlay(image, compare, title, thresh=None):
     fig.tight_layout()
 
 
-T1 = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_T1.mgz'))
+T1 = nib.load(op.join(misc_path, 'seeg', 'sample_seeg', 'mri', 'T1.mgz'))
 CT_orig = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_CT.mgz'))
 
 # resample to T1's definition of world coordinates
@@ -118,7 +116,7 @@ CT_resampled = resample(moving=np.asarray(CT_orig.dataobj),
 plot_overlay(T1, CT_resampled, 'Unaligned CT Overlaid on T1', thresh=0.95)
 del CT_resampled
 
-###############################################################################
+# %%
 # Now we need to align our CT image to the T1 image.
 #
 # We want this to be a rigid transformation (just rotation + translation),
@@ -140,7 +138,7 @@ CT_aligned = mne.transforms.apply_volume_registration(CT_orig, T1, reg_affine)
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 del CT_orig
 
-###############################################################################
+# %%
 # We can now see how the CT image looks properly aligned to the T1 image.
 #
 # .. note::
@@ -175,7 +173,7 @@ axes[2].set_title('CT aligned to MR')
 fig.tight_layout()
 del CT_data, T1
 
-###############################################################################
+# %%
 # Marking the Location of Each Electrode Contact
 # ==============================================
 #
@@ -197,42 +195,47 @@ del CT_data, T1
 #
 #     $ freeview $MISC_PATH/seeg/sample_seeg_T1.mgz \
 #           $MISC_PATH/seeg/sample_seeg_CT.mgz
-#
-# Now, we'll need the subject's brain segmented out from the rest of the T1
-# image from the freesurfer ``recon-all`` reconstruction. This is so that
-# we don't have extraneous data outside the brain affecting our warp to a
-# template brain.
-#
-# Let's plot the electrode contact locations on the subject's brain.
-
-# load electrode positions from file
-elec_df = pd.read_csv(op.join(misc_path, 'seeg', 'sample_seeg_electrodes.tsv'),
-                      sep='\t', header=0, index_col=None)
-ch_names = elec_df['name'].tolist()
-ch_coords = elec_df[['R', 'A', 'S']].to_numpy(dtype=float)
-
-# load the subject's brain
-subject_brain = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_brain.mgz'))
-
-# make brain surface from T1
-verts, triangles = mne.surface.marching_cubes(
-    np.asarray(subject_brain.dataobj), level=100)
-# transform from voxels to surface RAS
-verts = mne.transforms.apply_trans(
-    subject_brain.header.get_vox2ras_tkr(), verts) / 1000.  # to meters
-
-fig_kwargs = dict(size=(800, 600), bgcolor='w', scene=False)
-renderer = mne.viz.backends.renderer.create_3d_figure(**fig_kwargs)
-renderer.mesh(*verts.T, triangles=triangles, color='gray',
-              opacity=0.05, representation='surface')
-for ch_coord in ch_coords:
-    renderer.sphere(center=tuple(ch_coord / 1000.), color='y', scale=0.005)
-view_kwargs = dict(azimuth=60, elevation=100)
-mne.viz.set_3d_view(renderer.figure, focalpoint=(0, 0, 0), distance=0.3,
-                    **view_kwargs)
-renderer.show()
 
 ###############################################################################
+# Now, we'll make a montage with the channels that we've found in the
+# previous step.
+#
+# .. note:: MNE represents data in the "head" space internally
+
+# load electrophysiology data with channel locations
+raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
+
+# MNE stores digitization montages in a coordinate frame called "head"
+# thus even though the channel positions were found in the reference frame of
+# Freesurfer surfaces when they were assigned to the ``raw`` object, they were
+# transformed to "head" so we need to have a transform to put them back
+subj_trans = mne.read_trans(op.join(misc_path, 'seeg',
+                                    'sample_seeg_trans.fif'))
+
+# create symbolic link to share ``subjects_dir``
+seeg_subject_dir = op.join(subjects_dir, 'sample_seeg')
+if not op.exists(seeg_subject_dir):
+    os.symlink(op.join(misc_path, 'seeg', 'sample_seeg'), seeg_subject_dir)
+
+###############################################################################
+# Let's plot the electrode contact locations on the subject's brain.
+
+# load the subject's brain
+subject_brain = nib.load(
+    op.join(misc_path, 'seeg', 'sample_seeg', 'mri', 'brain.mgz'))
+
+# plot the alignment
+fig_kwargs = dict(size=(800, 600), bgcolor='w', scene=False)
+renderer = mne.viz.backends.renderer.create_3d_figure(**fig_kwargs)
+al_kwargs = dict(
+    show_axes=True, surfaces=dict(pial=0.2), coord_frame='mri',
+    subjects_dir=subjects_dir)
+fig = mne.viz.plot_alignment(raw.info, subj_trans, 'sample_seeg',
+                             fig=renderer.figure, **al_kwargs)
+view_kwargs = dict(azimuth=60, elevation=100, distance=0.3)
+mne.viz.set_3d_view(fig, **view_kwargs)
+
+# %%
 # Warping to a Common Atlas
 # =========================
 #
@@ -253,7 +256,7 @@ template_brain = nib.load(
 plot_overlay(template_brain, subject_brain,
              'Alignment with fsaverage before Affine Registration')
 
-###############################################################################
+# %%
 # Now, we'll register the affine of the subject's brain to the template brain.
 # This aligns the two brains, preparing the subject's brain to be warped
 # to the template.
@@ -275,7 +278,9 @@ subject_brain_sdr = mne.transforms.apply_volume_registration(
 plot_overlay(template_brain, subject_brain_sdr,
              'Alignment with fsaverage after SDR Registration')
 
-###############################################################################
+del subject_brain, template_brain
+
+# %%
 # Finally, we'll apply the registrations to the electrode contact coordinates.
 # The brain image is warped to the template but the goal was to warp the
 # positions of the electrode contacts. To do that, we'll make an image that is
@@ -286,48 +291,14 @@ plot_overlay(template_brain, subject_brain_sdr,
 # positions of all the voxels that had the contact's lookup number in
 # the warped image.
 
-# convert electrode positions from surface RAS to voxels
-ch_coords = mne.transforms.apply_trans(
-    np.linalg.inv(subject_brain.header.get_vox2ras_tkr()), ch_coords)
-# take channel coordinates and use the CT to transform them
-# into a 3D image where all the voxels over a threshold nearby
-# are labeled with an index
-CT_data = CT_aligned.get_fdata()
-thresh = np.quantile(CT_data, CT_thresh)
-elec_image = np.zeros(subject_brain.shape, dtype=int)
-for i, ch_coord in enumerate(ch_coords):
-    # this looks up to a voxel away, it may be marked imperfectly
-    volume = mne.voxel_neighbors(ch_coord, CT_data, thresh)
-    for voxel in volume:
-        if elec_image[voxel] != 0:
-            # some voxels ambiguous because the contacts are bridged on
-            # the CT so assign the voxel to the nearest contact location
-            dist_old = np.sqrt(
-                (ch_coords[elec_image[voxel] - 1] - voxel)**2).sum()
-            dist_new = np.sqrt((ch_coord - voxel)**2).sum()
-            if dist_new < dist_old:
-                elec_image[voxel] = i + 1
-        else:
-            elec_image[voxel] = i + 1
+# first we need our montage but it should be converted to "mri" coordinates
+montage = raw.get_montage()
+# ``subj_trans`` is "mri" to "head", we need "head" to "mri"
+montage.apply_trans(mne.transforms.invert_transform(subj_trans))
 
-# apply the mapping
-elec_image = nib.Nifti1Image(elec_image, subject_brain.affine)
-
-# ensure that each electrode contact was marked in at least one voxel
-assert set(np.arange(1, ch_coords.shape[0] + 1)).difference(
-    set(np.unique(elec_image.get_fdata()))) == set()
-
-del subject_brain, CT_aligned, CT_data  # not used anymore
-
-###############################################################################
-# Warp and plot the result.
-
-warped_elec_image = mne.transforms.apply_volume_registration(
-    elec_image, template_brain, reg_affine, sdr_morph, interpolation='nearest')
-
-# ensure that all the electrode contacts were warped to the template
-assert set(np.arange(1, ch_coords.shape[0] + 1)).difference(
-    set(np.unique(warped_elec_image.get_fdata()))) == set()
+montage_warped, elec_image, warped_elec_image = mne.warp_montage_volume(
+    montage, CT_aligned, reg_affine, sdr_morph,
+    subject_from='sample_seeg', subjects_dir=subjects_dir, thresh=CT_thresh)
 
 fig, axes = plt.subplots(2, 1, figsize=(8, 8))
 nilearn.plotting.plot_glass_brain(elec_image, axes=axes[0], cmap='Dark2')
@@ -337,18 +308,9 @@ nilearn.plotting.plot_glass_brain(warped_elec_image, axes=axes[1],
 fig.text(0.1, 0.25, 'fsaverage', rotation='vertical')
 fig.suptitle('Electrodes warped to fsaverage')
 
-# recover the electrode contact positions as the center of mass
-warped_elec_data = warped_elec_image.get_fdata()
-for val, ch_coord in enumerate(ch_coords, 1):
-    ch_coord[:] = np.array(
-        np.where(warped_elec_data == val), float).mean(axis=1)
+del CT_aligned
 
-# convert back to surface RAS but to the template surface RAS this time
-ch_coords = mne.transforms.apply_trans(
-    template_brain.header.get_vox2ras_tkr(), ch_coords)
-del template_brain
-
-###############################################################################
+# %%
 # We can now plot the result. You can compare this to the plot in
 # :ref:`tut-working-with-seeg` to see the difference between this morph, which
 # is more complex, and the less-complex, linear Talairach transformation.
@@ -358,35 +320,23 @@ del template_brain
 
 # sphinx_gallery_thumbnail_number = 8
 
-# load electrophysiology data
-raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
+# get native to head trans
+fsaverage_trans = mne.channels.compute_native_head_t(montage_warped)
 
-lpa, nasion, rpa = mne.coreg.get_mni_fiducials(
-    'fsaverage', subjects_dir=subjects_dir)
-lpa, nasion, rpa = lpa['r'], nasion['r'], rpa['r']
-
-# create a montage with our new points
-ch_pos = dict(zip(ch_names, ch_coords / 1000))  # mm -> m
-montage = mne.channels.make_dig_montage(
-    ch_pos, coord_frame='mri', nasion=nasion, lpa=lpa, rpa=rpa)
-raw.set_montage(montage)
-
-# get trans
-trans = mne.channels.compute_native_head_t(montage)
+# set new montage
+raw.set_montage(montage_warped)
 
 # plot the resulting alignment
 renderer = mne.viz.backends.renderer.create_3d_figure(**fig_kwargs)
-fig = mne.viz.plot_alignment(raw.info, trans, 'fsaverage',
-                             fig=renderer.figure,
-                             subjects_dir=subjects_dir, show_axes=True,
-                             surfaces=dict(pial=0.2, head=0.2))
-mne.viz.set_3d_view(fig, focalpoint=(0, 0, 0.05), distance=0.4, **view_kwargs)
+fig = mne.viz.plot_alignment(raw.info, fsaverage_trans, 'fsaverage',
+                             fig=renderer.figure, **al_kwargs)
+mne.viz.set_3d_view(fig, **view_kwargs)
 
-###############################################################################
+# %%
 # This pipeline was developed based on previous work
 # :footcite:`HamiltonEtAl2017`.
 
-###############################################################################
+# %%
 # References
 # ==========
 #

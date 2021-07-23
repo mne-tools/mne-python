@@ -11,7 +11,9 @@ averaging parameters and get epochs.
 """
 # Author: Jussi Nurminen (jnu@iki.fi)
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 
 import mne
@@ -23,21 +25,21 @@ fname_raw = os.path.join(multimodal.data_path(), 'multimodal_raw.fif')
 
 print(__doc__)
 
-###############################################################################
+# %%
 # Read raw file
 raw = mne.io.read_raw_fif(fname_raw)
 
-###############################################################################
+# %%
 # Check DACQ defined averaging categories and other info
 print(raw.acqparser)
 
-###############################################################################
+# %%
 # Extract epochs corresponding to a category
 cond = raw.acqparser.get_condition(raw, 'Auditory right')
 epochs = mne.Epochs(raw, **cond)
 epochs.average().plot_topo(background_color='w')
 
-###############################################################################
+# %%
 # Get epochs from all conditions, average
 evokeds = []
 for cat in raw.acqparser.categories:
@@ -52,7 +54,7 @@ for cat in raw.acqparser.categories:
 # fname_out = 'multimodal-ave.fif'
 # mne.write_evokeds(fname_out, evokeds)
 
-###############################################################################
+# %%
 # Make a new averaging category
 newcat = dict()
 newcat['comment'] = 'Visual lower left, longer epochs'

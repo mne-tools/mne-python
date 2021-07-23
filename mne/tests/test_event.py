@@ -2,7 +2,7 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import os.path as op
 import os
 
@@ -460,7 +460,7 @@ def test_make_fixed_length_events():
     # Make sure it gets used properly by compute_raw_covariance
     cov = compute_raw_covariance(raw, tstep=None)
     expected = np.cov(data[:, :21216])
-    np.testing.assert_allclose(cov['data'], expected, atol=1e-12)
+    assert_allclose(cov['data'], expected, atol=1e-12)
 
     # overlaps
     events = make_fixed_length_events(raw, 1, duration=1)

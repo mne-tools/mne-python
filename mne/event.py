@@ -5,14 +5,14 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Clement Moutard <clement.moutard@polytechnique.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 import numpy as np
 
 
 from .utils import (check_fname, logger, verbose, _get_stim_channel, warn,
-                    _validate_type, _check_option)
+                    _validate_type, _check_option, fill_doc)
 from .io.constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
@@ -961,6 +961,7 @@ def concatenate_events(events, first_samps, last_samps):
     return events_out
 
 
+@fill_doc
 class AcqParserFIF(object):
     """Parser for Elekta data acquisition settings.
 
@@ -972,8 +973,7 @@ class AcqParserFIF(object):
 
     Parameters
     ----------
-    info : Info
-        An instance of Info where the DACQ parameters will be taken from.
+    %(info_not_none)s This is where the DACQ parameters will be taken from.
 
     Attributes
     ----------

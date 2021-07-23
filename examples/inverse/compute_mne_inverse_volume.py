@@ -11,7 +11,9 @@ space and stores the solution in a nifti file for visualisation.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 from nilearn.plotting import plot_stat_map
 from nilearn.image import index_img

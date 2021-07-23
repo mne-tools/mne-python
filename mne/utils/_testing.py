@@ -2,7 +2,7 @@
 """Testing functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from contextlib import contextmanager
 from distutils.version import LooseVersion

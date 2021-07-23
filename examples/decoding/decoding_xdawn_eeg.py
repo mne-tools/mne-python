@@ -12,7 +12,9 @@ fed into a logistic regression.
 """
 # Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -33,7 +35,7 @@ print(__doc__)
 
 data_path = sample.data_path()
 
-###############################################################################
+# %%
 # Set parameters and read data
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
@@ -93,7 +95,7 @@ plt.yticks(tick_marks, target_names)
 fig.tight_layout()
 ax.set(ylabel='True label', xlabel='Predicted label')
 
-###############################################################################
+# %%
 # The ``patterns_`` attribute of a fitted Xdawn instance (here from the last
 # cross-validation fold) can be used for visualization.
 
@@ -112,7 +114,7 @@ for ii, cur_class in enumerate(sorted(event_id)):
     axes[ii, 0].set(ylabel=cur_class)
 fig.tight_layout(h_pad=1.0, w_pad=1.0, pad=0.1)
 
-###############################################################################
+# %%
 # References
 # ----------
 # .. footbibliography::

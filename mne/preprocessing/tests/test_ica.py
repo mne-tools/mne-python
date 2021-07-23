@@ -1,7 +1,7 @@
 # Author: Denis Engemann <denis.engemann@gmail.com>
 #         Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from contextlib import nullcontext
 from itertools import product
@@ -801,7 +801,8 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
     epochs_data = epochs.get_data().copy()
 
     with pytest.warns(RuntimeWarning, match='longer'):
-        idx, scores = ica.find_bads_ecg(raw, method='ctps', threshold='auto')
+        idx, scores = ica.find_bads_ecg(raw, method='ctps', threshold='auto',
+                                        start=0, stop=raw.times.size)
     assert_equal(len(scores), ica.n_components_)
     with pytest.warns(RuntimeWarning, match='longer'):
         idx, scores = ica.find_bads_ecg(raw, method='correlation',
@@ -812,7 +813,12 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
         idx, scores = ica.find_bads_eog(raw)
     assert_equal(len(scores), ica.n_components_)
 
-    idx, scores = ica.find_bads_ecg(epochs, method='ctps', threshold='auto')
+    with pytest.raises(ValueError, match='integer .* start and stop'):
+        idx, scores = ica.find_bads_ecg(epochs, start=0, stop=1000)
+
+    idx, scores = ica.find_bads_ecg(epochs, method='ctps', threshold='auto',
+                                    start=epochs.times[0],
+                                    stop=epochs.times[-1])
 
     assert_equal(len(scores), ica.n_components_)
     pytest.raises(ValueError, ica.find_bads_ecg, epochs.average(),
@@ -832,6 +838,9 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
 
     idx, scores = ica.find_bads_eog(evoked, ch_name='MEG 1441')
     assert_equal(len(scores), ica.n_components_)
+
+    with pytest.raises(ValueError, match='integer .* start and stop'):
+        idx, scores = ica.find_bads_ecg(evoked, start=0, stop=1000)
 
     idx, scores = ica.find_bads_ecg(evoked, method='correlation',
                                     threshold='auto')

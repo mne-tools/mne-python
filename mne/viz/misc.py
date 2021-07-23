@@ -34,7 +34,7 @@ from ..source_space import (read_source_spaces, SourceSpaces,
                             _check_mri, _ensure_src)
 from ..transforms import invert_transform, apply_trans, _frame_to_str
 from ..utils import (logger, verbose, warn, _check_option, get_subjects_dir,
-                     _mask_to_onsets_offsets, _pl, _on_missing)
+                     _mask_to_onsets_offsets, _pl, _on_missing, fill_doc)
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
 from .utils import (tight_layout, _get_color_list, _prepare_trellis, plt_show,
@@ -80,8 +80,7 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
     ----------
     cov : instance of Covariance
         The covariance matrix.
-    info : dict
-        Measurement info.
+    %(info_not_none)s
     exclude : list of str | str
         List of channels to exclude. If empty do not exclude any channel.
         If 'bads', exclude info['bads'].
@@ -1181,6 +1180,7 @@ def _handle_event_colors(color_dict, unique_events, event_id):
     return default_colors
 
 
+@fill_doc
 def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
              n_cols=None, show=True):
     """Plot CSD matrices.
@@ -1192,8 +1192,8 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
     ----------
     csd : instance of CrossSpectralDensity
         The CSD matrix to plot.
-    info : instance of Info | None
-        To split the figure by channel-type, provide the measurement info.
+    %(info)s
+        Used to split the figure by channel-type, if provided.
         By default, the CSD matrix is plotted as a whole.
     mode : 'csd' | 'coh'
         Whether to plot the cross-spectral density ('csd', the default), or
@@ -1308,3 +1308,80 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
 
     plt_show(show)
     return figs
+
+
+def plot_chpi_snr(snr_dict, axes=None):
+    """Plot time-varying SNR estimates of the HPI coils.
+
+    Parameters
+    ----------
+    snr_dict : dict
+        The dictionary returned by `~mne.chpi.compute_chpi_snr`. Must have keys
+        ``times``, ``freqs``, ``TYPE_snr``, ``TYPE_power``, and ``TYPE_resid``
+        (where ``TYPE`` can be ``mag`` or ``grad`` or both).
+    axes : None | list of matplotlib.axes.Axes
+        Figure axes in which to draw the SNR, power, and residual plots. The
+        number of axes should be 3× the number of MEG sensor types present in
+        ``snr_dict``. If ``None`` (the default), a new
+        `~matplotlib.figure.Figure` is created with the required number of
+        axes.
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        A figure with subplots for SNR, power, and residual variance,
+        separately for magnetometers and/or gradiometers (depending on what is
+        present in ``snr_dict``).
+
+    Notes
+    -----
+    If you supply a list of existing `~matplotlib.axes.Axes`, then the figure
+    legend will not be drawn automatically. If you still want it, running
+    ``fig.legend(loc='right', title='cHPI frequencies')`` will recreate it,
+    though you may also need to manually adjust the margin to make room for it
+    (e.g., using ``fig.subplots_adjust(right=0.8)``).
+
+    .. versionadded:: 0.24
+    """
+    import matplotlib.pyplot as plt
+
+    valid_keys = list(snr_dict)[2:]
+    titles = dict(snr='SNR', power='cHPI power', resid='Residual variance')
+    full_names = dict(mag='magnetometers', grad='gradiometers')
+    axes_was_none = axes is None
+    if axes_was_none:
+        fig, axes = plt.subplots(len(valid_keys), 1, sharex=True)
+    else:
+        fig = axes[0].get_figure()
+    if len(axes) != len(valid_keys):
+        raise ValueError(f'axes must be a list of {len(valid_keys)} axes, got '
+                         f'length {len(axes)} ({axes}).')
+    fig.set_size_inches(10, 10)
+    legend_labels_exist = False
+    for key, ax in zip(valid_keys, axes):
+        ch_type, kind = key.split('_')
+        scaling = 1 if kind == 'snr' else DEFAULTS['scalings'][ch_type]
+        plot_kwargs = dict(color='k') if kind == 'resid' else dict()
+        lines = ax.plot(snr_dict['times'], snr_dict[key] * scaling ** 2,
+                        **plot_kwargs)
+        # the freqs should be the same for all sensor types (and for SNR and
+        # power subplots), so we only need to label the lines on one axes
+        # (otherwise we get duplicate legend entries).
+        if not legend_labels_exist:
+            for line, freq in zip(lines, snr_dict['freqs']):
+                line.set_label(f'{freq} Hz')
+            legend_labels_exist = True
+        unit = DEFAULTS['units'][ch_type]
+        unit = f'({unit})' if '/' in unit else unit
+        set_kwargs = dict(title=f'{titles[kind]}, {full_names[ch_type]}',
+                          ylabel='dB' if kind == 'snr' else f'{unit}²')
+        if not axes_was_none:
+            set_kwargs.update(xlabel='Time (s)')
+        ax.set(**set_kwargs)
+    if axes_was_none:
+        ax.set(xlabel='Time (s)')
+        fig.align_ylabels()
+        fig.subplots_adjust(left=0.1, right=0.825, bottom=0.075, top=0.95,
+                            hspace=0.7)
+        fig.legend(loc='right', title='cHPI frequencies')
+    return fig

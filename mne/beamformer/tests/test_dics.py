@@ -1,7 +1,7 @@
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Britta Westner <britta.wstnr@gmail.com>
 #
-# License: BSD 3 clause
+# License: BSD-3-Clause
 
 import copy as cp
 import os.path as op

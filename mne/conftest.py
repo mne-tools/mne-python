@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from contextlib import contextmanager
 from distutils.version import LooseVersion
@@ -486,10 +486,11 @@ def src_volume_labels():
     """Create a 7mm source space with labels."""
     pytest.importorskip('nibabel')
     volume_labels = mne.get_volume_labels_from_aseg(fname_aseg)
-    src = mne.setup_volume_source_space(
-        'sample', 7., mri='aseg.mgz', volume_label=volume_labels,
-        add_interpolator=False, bem=fname_bem,
-        subjects_dir=subjects_dir)
+    with pytest.warns(RuntimeWarning, match='Found no usable.*Left-vessel.*'):
+        src = mne.setup_volume_source_space(
+            'sample', 7., mri='aseg.mgz', volume_label=volume_labels,
+            add_interpolator=False, bem=fname_bem,
+            subjects_dir=subjects_dir)
     lut, _ = mne.read_freesurfer_lut()
     assert len(volume_labels) == 46
     assert volume_labels[0] == 'Unknown'

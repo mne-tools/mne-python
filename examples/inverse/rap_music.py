@@ -9,7 +9,9 @@ Compute a Recursively Applied and Projected MUltiple Signal Classification
 
 # Author: Yousra Bekhti <yousra.bekhti@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import mne
 
@@ -52,7 +54,7 @@ evoked.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]),
 residual.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]),
               time_unit='s')
 
-###############################################################################
+# %%
 # References
 # ----------
 # .. footbibliography::

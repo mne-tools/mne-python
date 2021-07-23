@@ -1,6 +1,6 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
 import os.path as op
@@ -20,7 +20,7 @@ from mne import (read_dipole, read_forward_solution,
 from mne.dipole import get_phantom_dipoles, _BDIP_ERROR_KEYS
 from mne.simulation import simulate_evoked
 from mne.datasets import testing
-from mne.utils import requires_mne, run_subprocess
+from mne.utils import requires_mne, run_subprocess, requires_nibabel
 from mne.proj import make_eeg_average_ref_proj
 
 from mne.io import read_raw_fif, read_raw_ctf
@@ -101,6 +101,7 @@ def test_dipole_fitting_ctf():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
+@requires_nibabel()
 @requires_mne
 def test_dipole_fitting(tmpdir):
     """Test dipole fitting."""
@@ -150,6 +151,15 @@ def test_dipole_fitting(tmpdir):
     head_to_mni_dip_pos = head_to_mni(dip.pos, 'sample', fwd['mri_head_t'],
                                       subjects_dir=subjects_dir)
     assert_allclose(dip_mni_pos, head_to_mni_dip_pos, rtol=1e-3, atol=0)
+
+    # Test finding label for dip.pos in an aseg, also tests `to_mri`
+    target_labels = ['Left-Cerebral-Cortex', 'Unknown', 'Left-Cerebral-Cortex',
+                     'Right-Cerebral-Cortex', 'Left-Cerebral-Cortex',
+                     'Unknown', 'Unknown', 'Unknown',
+                     'Right-Cerebral-White-Matter', 'Right-Cerebral-Cortex']
+    labels = dip.to_volume_labels(fname_trans, subject='fsaverage',
+                                  aseg="aseg", subjects_dir=subjects_dir)
+    assert labels == target_labels
 
     # Sanity check: do our residuals have less power than orig data?
     data_rms = np.sqrt(np.sum(evoked.data ** 2, axis=0))

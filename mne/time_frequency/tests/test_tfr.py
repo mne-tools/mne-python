@@ -840,8 +840,7 @@ def test_averaging_epochsTFR():
             [np.mean, np.median, np.mean],
             ['mean', 'median', lambda x: np.mean(x, axis=0)]):
         avgpower = power.average(method=method)
-        np.testing.assert_array_equal(func(power.data, axis=0),
-                                      avgpower.data)
+        assert_array_equal(func(power.data, axis=0), avgpower.data)
     with pytest.raises(RuntimeError, match='You passed a function that '
                                            'resulted in data'):
         power.average(method=np.mean)

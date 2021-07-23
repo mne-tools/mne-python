@@ -3,7 +3,7 @@
 #         Denis Engemann <denis.engemann@gmail.com>
 #         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from copy import deepcopy
 from distutils.version import LooseVersion
@@ -194,7 +194,7 @@ def test_get_data():
     # EEG is already in V, so no conversion should take place
     d1 = epochs.get_data(picks="eeg", units=None)
     d2 = epochs.get_data(picks="eeg", units="V")
-    np.testing.assert_array_equal(d1, d2)
+    assert_array_equal(d1, d2)
 
     with pytest.raises(ValueError, match="is not a valid unit for eeg"):
         epochs.get_data(picks="eeg", units="")
@@ -208,14 +208,28 @@ def test_get_data():
 
     grad_idxs = np.array([i == "grad" for i in epochs.get_channel_types()])
     eeg_idxs = np.array([i == "eeg" for i in epochs.get_channel_types()])
-    np.testing.assert_allclose(
+    assert_array_equal(
         d3[:, grad_idxs, :],
         epochs.get_data("grad", item=[1, 2, 3]) * 1e13  # T/m to fT/cm
     )
-    np.testing.assert_allclose(
+    assert_array_equal(
         d3[:, eeg_idxs, :],
         epochs.get_data("eeg", item=[1, 2, 3])
     )
+
+    # Test tmin/tmax
+    data = epochs.get_data(tmin=0)
+    assert np.all(data.shape[-1] ==
+                  epochs._data.shape[-1] -
+                  np.nonzero(epochs.times == 0)[0])
+
+    assert epochs.get_data(tmin=0, tmax=0).size == 0
+
+    with pytest.raises(TypeError, match='tmin .* float, None'):
+        epochs.get_data(tmin=[1], tmax=1)
+
+    with pytest.raises(TypeError, match='tmax .* float, None'):
+        epochs.get_data(tmin=1, tmax=np.ones(5))
 
 
 def test_hierarchical():

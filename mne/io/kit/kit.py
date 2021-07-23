@@ -7,7 +7,7 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py.
 #          Joan Massich <mailsik@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from collections import defaultdict, OrderedDict
 from math import sin, cos
@@ -176,6 +176,7 @@ class RawKIT(BaseRaw):
 
         return stim_ch
 
+    @fill_doc
     def _set_stimchannels(self, info, stim, stim_code):
         """Specify how the trigger channel is synthesized from analog channels.
 
@@ -185,8 +186,7 @@ class RawKIT(BaseRaw):
 
         Parameters
         ----------
-        info : instance of MeasInfo
-            The measurement info.
+        %(info_not_none)s
         stim : list of int | '<' | '>'
             Can be submitted as list of trigger channels.
             If a list is not specified, the default triggers extracted from
@@ -488,8 +488,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
 
     Returns
     -------
-    info : instance of Info
-        An Info for the instance.
+    %(info_not_none)s
     sqd : dict
         A dict containing all the sqd parameter settings.
     """

@@ -4,7 +4,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
 import os.path as op
@@ -104,9 +104,10 @@ class Transform(dict):
         self['trans'] = trans
 
     def __repr__(self):  # noqa: D105
-        return ('<Transform | %s->%s>\n%s'
-                % (_coord_frame_name(self['from']),
-                   _coord_frame_name(self['to']), self['trans']))
+        with np.printoptions(suppress=True):  # suppress scientific notation
+            return ('<Transform | %s->%s>\n%s'
+                    % (_coord_frame_name(self['from']),
+                       _coord_frame_name(self['to']), self['trans']))
 
     def __eq__(self, other, rtol=0., atol=0.):
         """Check for equality.
@@ -1574,7 +1575,7 @@ def _validate_pipeline(pipeline):
         _check_option(name, step, _ORDERED_STEPS)
     ordered_pipeline = tuple(sorted(
         pipeline, key=lambda x: _ORDERED_STEPS.index(x)))
-    if pipeline != ordered_pipeline:
+    if tuple(pipeline) != ordered_pipeline:
         raise ValueError(
             f'Steps in pipeline are out of order, expected {ordered_pipeline} '
             f'but got {pipeline} instead')

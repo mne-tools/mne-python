@@ -10,7 +10,9 @@ are used which produces strong connectvitiy in the right occipital sensors.
 
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import mne
 from mne.connectivity import spectral_connectivity
@@ -19,7 +21,7 @@ from mne.viz import plot_sensors_connectivity
 
 print(__doc__)
 
-###############################################################################
+# %%
 # Set parameters
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'

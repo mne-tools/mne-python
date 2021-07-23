@@ -9,8 +9,11 @@ MNE-dSPM inverse solutions.
 """
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
+# %%
+
+import os.path as op
 import numpy as np
 
 import mne
@@ -21,7 +24,7 @@ from mne.connectivity import seed_target_indices, spectral_connectivity
 
 print(__doc__)
 
-###############################################################################
+# %%
 # Read the data
 # -------------
 #
@@ -30,12 +33,13 @@ print(__doc__)
 # compute the event-related coherence.
 
 data_path = sample.data_path()
-subjects_dir = data_path + '/subjects'
-fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
-fname_raw = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-fname_event = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+subjects_dir = op.join(data_path, 'subjects')
+sample_dir = op.join(data_path, 'MEG', 'sample')
+fname_inv = op.join(sample_dir, 'sample_audvis-meg-oct-6-meg-inv.fif')
+fname_raw = op.join(sample_dir, 'sample_audvis_filt-0-40_raw.fif')
+fname_event = op.join(sample_dir, 'sample_audvis_filt-0-40_raw-eve.fif')
 label_name_lh = 'Aud-lh'
-fname_label_lh = data_path + '/MEG/sample/labels/%s.label' % label_name_lh
+fname_label_lh = op.join(sample_dir, 'labels', f'{label_name_lh}.label')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
@@ -58,7 +62,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0),
                     reject=dict(mag=4e-12, grad=4000e-13, eog=150e-6))
 
-###############################################################################
+# %%
 # Choose channels for coherence estimation
 # ----------------------------------------
 #
@@ -84,7 +88,7 @@ seed_idx = np.searchsorted(stc.vertices[0], seed_vertno)  # index in orig stc
 n_sources = stc.data.shape[0]
 indices = seed_target_indices([seed_idx], np.arange(n_sources))
 
-###############################################################################
+# %%
 # Compute the inverse solution for each epoch. By using "return_generator=True"
 # stcs will be a generator object instead of a list. This allows us so to
 # compute the coherence without having to keep all source estimates in memory.
@@ -94,7 +98,7 @@ lambda2 = 1.0 / snr ** 2
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
                             pick_ori="normal", return_generator=True)
 
-###############################################################################
+# %%
 # Compute the coherence between sources
 # -------------------------------------
 #
@@ -120,7 +124,7 @@ print(freqs[0])
 print('Frequencies in Hz over which coherence was averaged for beta: ')
 print(freqs[1])
 
-###############################################################################
+# %%
 # Generate coherence sources and plot
 # -----------------------------------
 #

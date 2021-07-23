@@ -16,6 +16,8 @@ uses :mod:`nibabel` under the hood). We'll also use a special :mod:`Matplotlib
 readable on top of an MRI image.
 """
 
+# %%
+
 import os
 
 import numpy as np
@@ -27,7 +29,7 @@ import mne
 from mne.transforms import apply_trans
 from mne.io.constants import FIFF
 
-###############################################################################
+# %%
 # MRI coordinate frames
 # =====================
 #
@@ -45,7 +47,7 @@ t1_fname = os.path.join(subjects_dir, subject, 'mri', 'T1.mgz')
 t1 = nibabel.load(t1_fname)
 t1.orthoview()
 
-###############################################################################
+# %%
 # Notice that the axes in the
 # :meth:`~nibabel.spatialimages.SpatialImage.orthoview` figure are labeled
 # L-R, S-I, and P-A. These reflect the standard RAS (right-anterior-superior)
@@ -60,7 +62,7 @@ t1.orthoview()
 data = np.asarray(t1.dataobj)
 print(data.shape)
 
-###############################################################################
+# %%
 # These data are voxel intensity values. Here they are unsigned integers in the
 # range 0-255, though in general they can be floating point values. A value
 # ``data[i, j, k]`` at a given index triplet ``(i, j, k)`` corresponds to some
@@ -103,7 +105,7 @@ xyz_ras = apply_trans(t1.affine, vox)
 print('Our voxel has real-world coordinates {}, {}, {} (mm)'
       .format(*np.round(xyz_ras, 3)))
 
-###############################################################################
+# %%
 # If you have a point ``(x, y, z)`` in scanner-native RAS space and you want
 # the corresponding voxel number, you can get it using the inverse of the
 # affine. This involves some rounding, so it's possible to end up off by one
@@ -115,7 +117,7 @@ i_, j_, k_ = np.round(apply_trans(inv_affine, ras_coords_mm)).astype(int)
 print('Our real-world coordinates correspond to voxel ({}, {}, {})'
       .format(i_, j_, k_))
 
-###############################################################################
+# %%
 # Let's write a short function to visualize where our voxel lies in an
 # image, and annotate it in RAS space (rounded to the nearest millimeter):
 
@@ -159,7 +161,7 @@ def imshow_mri(data, img, vox, xyz, suptitle):
 
 imshow_mri(data, t1, vox, {'Scanner RAS': xyz_ras}, 'MRI slice')
 
-###############################################################################
+# %%
 # Notice that the axis scales (``i``, ``j``, and ``k``) are still in voxels
 # (ranging from 0-255); it's only the annotation text that we've translated
 # into real-world RAS in millimeters.
@@ -213,7 +215,7 @@ print(Torig)
 xyz_mri = apply_trans(Torig, vox)
 imshow_mri(data, t1, vox, dict(MRI=xyz_mri), 'MRI slice')
 
-###############################################################################
+# %%
 # Knowing these relationships and being mindful about transformations, we
 # can get from a point in any given space to any other space. Let's start out
 # by plotting the Nasion on a saggital MRI slice:
@@ -222,7 +224,7 @@ fiducials = mne.coreg.get_mni_fiducials(subject, subjects_dir=subjects_dir)
 nasion_mri = [d for d in fiducials if d['ident'] == FIFF.FIFFV_POINT_NASION][0]
 print(nasion_mri)  # note it's in Freesurfer MRI coords
 
-###############################################################################
+# %%
 # When we print the nasion, it displays as a ``DigPoint`` and shows its
 # coordinates in millimeters, but beware that the underlying data is
 # :ref:`actually stored in meters <units>`,
@@ -234,7 +236,7 @@ nasion_vox = np.round(
 imshow_mri(data, t1, nasion_vox, dict(MRI=nasion_mri),
            'Nasion estimated from MRI transform')
 
-###############################################################################
+# %%
 # We can also take the digitization point from the MEG data, which is in the
 # "head" coordinate frame.
 #
@@ -247,7 +249,7 @@ nasion_head = [d for d in info['dig'] if
                d['ident'] == FIFF.FIFFV_POINT_NASION][0]
 print(nasion_head)  # note it's in "head" coordinates
 
-###############################################################################
+# %%
 # .. sidebar:: Head coordinate frame
 #
 #      The head coordinate frame in MNE is the "Neuromag" head coordinate
@@ -282,7 +284,7 @@ nasion_dig_vox = np.round(
 imshow_mri(data, t1, nasion_dig_vox, dict(MRI=nasion_dig_mri),
            'Nasion transformed from digitization')
 
-###############################################################################
+# %%
 # Using FreeSurfer's surface reconstructions
 # ==========================================
 # An important part of what FreeSurfer does is provide cortical surface
@@ -298,7 +300,7 @@ print(f'rr_mm.shape == {rr_mm.shape}')
 print(f'tris.shape == {tris.shape}')
 print(f'rr_mm.max() = {rr_mm.max()}')  # just to show that we are in mm
 
-###############################################################################
+# %%
 # Let's actually plot it:
 
 renderer = mne.viz.backends.renderer.create_3d_figure(
@@ -311,7 +313,7 @@ mne.viz.set_3d_view(
     **view_kwargs)
 renderer.show()
 
-###############################################################################
+# %%
 # We can also plot the mesh on top of an MRI slice. The mesh surfaces are
 # defined in millimeters in the MRI (FreeSurfer surface RAS) coordinate frame,
 # so we can convert them to voxels by applying the inverse of the ``Torig``
@@ -327,7 +329,7 @@ fig.axes[0].tricontour(rr_vox[:, 2], rr_vox[:, 1], tris, rr_vox[:, 0],
                        levels=[vox[0]], colors='r', linewidths=1.0,
                        zorder=1)
 
-###############################################################################
+# %%
 # This is the method used by :func:`mne.viz.plot_bem` to show the BEM surfaces.
 #
 # Cortical alignment (spherical)
@@ -367,7 +369,7 @@ view_kwargs['focalpoint'] = (0., 0., 0.)
 mne.viz.set_3d_view(figure=renderer.figure, distance=1000, **view_kwargs)
 renderer.show()
 
-###############################################################################
+# %%
 # Let's look a bit more closely at the spherical alignment by overlaying the
 # two spherical meshes as wireframes and zooming way in (the purple points are
 # separated by about 1 mm):
@@ -386,7 +388,7 @@ for name, color in zip(fnames, colors):
 mne.viz.set_3d_view(figure=renderer.figure, distance=20, **view_kwargs)
 renderer.show()
 
-###############################################################################
+# %%
 # You can see that the fsaverage (purple) mesh is uniformly spaced, and the
 # mesh for subject "sample" (in cyan) has been deformed along the spherical
 # surface by
@@ -417,7 +419,7 @@ for tris, color in [(src[1]['tris'], cyan), (src[1]['use_tris'], blue)]:
 mne.viz.set_3d_view(figure=renderer.figure, distance=20, **view_kwargs)
 renderer.show()
 
-###############################################################################
+# %%
 # We can also then look at how these two meshes compare by plotting the
 # original, high-density mesh as well as our decimated mesh white surfaces.
 
@@ -434,7 +436,7 @@ mne.viz.set_3d_view(figure=renderer.figure, distance=400, **view_kwargs)
 renderer.show()
 
 
-###############################################################################
+# %%
 # .. warning::
 #    Some source space vertices can be removed during forward computation.
 #    See :ref:`tut-forward` for more information.
@@ -453,7 +455,7 @@ xyz = np.array([[-55, -10, 35]])
 brain.add_foci(xyz, hemi='lh', color='k')
 brain.show_view('lat')
 
-###############################################################################
+# %%
 # We can take this point and transform it to MNI space:
 
 mri_mni_trans = mne.read_talxfm(subject, subjects_dir)
@@ -461,7 +463,7 @@ print(mri_mni_trans)
 xyz_mni = apply_trans(mri_mni_trans, xyz / 1000.) * 1000.
 print(np.round(xyz_mni, 1))
 
-###############################################################################
+# %%
 # And because ``fsaverage`` is special in that it's already in MNI space
 # (its MRI-to-MNI transform is identity), it should land in the equivalent
 # anatomical location:

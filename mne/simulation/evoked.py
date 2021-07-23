@@ -2,7 +2,7 @@
 #          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import math
 
 import numpy as np
@@ -31,8 +31,7 @@ def simulate_evoked(fwd, stc, info, cov=None, nave=30, iir_filter=None,
         A forward solution.
     stc : SourceEstimate object
         The source time courses.
-    info : dict
-        Measurement info to generate the evoked.
+    %(info_not_none)s Used to generate the evoked.
     cov : Covariance object | None
         The noise covariance. If None, no noise is added.
     nave : int

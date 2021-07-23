@@ -2,7 +2,7 @@
 """inst.to_data_frame() helper functions."""
 # Authors: Daniel McCloy <dan@mccloy.info>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 

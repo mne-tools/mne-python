@@ -21,7 +21,9 @@ evolution of the spatial filters.
 # Author: Denis Engemann <denis.engemann@gmail.com>
 #         Jean-Remi King <jeanremi.king@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import numpy as np
 import matplotlib.pyplot as plt

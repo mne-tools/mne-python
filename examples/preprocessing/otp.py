@@ -8,7 +8,9 @@ on data with with sensor artifacts (flux jumps) and random noise.
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# %%
 
 import os.path as op
 import mne
@@ -20,7 +22,7 @@ from mne.io import read_raw_fif
 
 print(__doc__)
 
-###############################################################################
+# %%
 # Plot the phantom data, lowpassed to get rid of high-frequency artifacts.
 # We also crop to a single 10-second segment for speed.
 # Notice that there are two large flux jumps on channel 1522 that could
@@ -35,7 +37,7 @@ raw.crop(40., 50.).load_data()
 order = list(range(160, 170))
 raw.copy().filter(0., 40.).plot(order=order, n_channels=10)
 
-###############################################################################
+# %%
 # Now we can clean the data with OTP, lowpass, and plot. The flux jumps have
 # been suppressed alongside the random sensor noise.
 
@@ -44,7 +46,7 @@ raw_clean.filter(0., 40.)
 raw_clean.plot(order=order, n_channels=10)
 
 
-###############################################################################
+# %%
 # We can also look at the effect on single-trial phantom localization.
 # See the :ref:`tut-brainstorm-elekta-phantom`
 # for more information. Here we use a version that does single-trial
@@ -76,7 +78,7 @@ bias_clean = compute_bias(raw_clean)
 print('OTP bias: %0.1fmm (worst: %0.1fmm)'
       % (np.mean(bias_clean), np.max(bias_clean),))
 
-###############################################################################
+# %%
 # References
 # ----------
 # .. footbibliography::

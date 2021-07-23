@@ -10,14 +10,15 @@ For a comparison of fits between MNE-C and mne-python, see
 `this gist <https://gist.github.com/larsoner/ca55f791200fe1dc3dd2>`__.
 """
 
-from os import path as op
+# %%
+
+import os.path as op
 import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
 from mne.forward import make_forward_dipole
 from mne.evoked import combine_evoked
-from mne.label import find_pos_in_annot
 from mne.simulation import simulate_evoked
 
 from nilearn.plotting import plot_anat
@@ -32,7 +33,7 @@ fname_trans = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_raw-trans.fif')
 fname_surf_lh = op.join(subjects_dir, 'sample', 'surf', 'lh.white')
 
-###############################################################################
+# %%
 # Let's localize the N100m (using MEG only)
 evoked = mne.read_evokeds(fname_ave, condition='Right Auditory',
                           baseline=(None, 0))
@@ -46,24 +47,22 @@ dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
 # Plot the result in 3D brain with the MRI image.
 dip.plot_locations(fname_trans, 'sample', subjects_dir, mode='orthoview')
 
-###############################################################################
+# %%
 # Plot the result in 3D brain with the MRI image using Nilearn
 # In MRI coordinates and in MNI coordinates (template brain)
 
-trans = mne.read_trans(fname_trans)
 subject = 'sample'
-mni_pos = mne.head_to_mni(dip.pos, mri_head_t=trans,
-                          subject=subject, subjects_dir=subjects_dir)
+mni_pos = dip.to_mni(subject=subject, trans=fname_trans,
+                     subjects_dir=subjects_dir)
 
-mri_pos = mne.head_to_mri(dip.pos, mri_head_t=trans,
-                          subject=subject, subjects_dir=subjects_dir)
+mri_pos = dip.to_mri(subject=subject, trans=fname_trans,
+                     subjects_dir=subjects_dir)
 
-# In the meantime let's find an anatomical label for the best fitted dipole
-best_dip_id = dip.gof.argmax()
-best_dip_mri_pos = mri_pos[best_dip_id]
-label = find_pos_in_annot(best_dip_mri_pos, subject=subject,
-                          subjects_dir=subjects_dir,
-                          annot='aparc.a2009s+aseg')
+# Find an anatomical label for the best fitted dipole
+best_dip_idx = dip.gof.argmax()
+label = dip.to_volume_labels(fname_trans, subject=subject,
+                             subjects_dir=subjects_dir,
+                             aseg='aparc.a2009s+aseg')[best_dip_idx]
 
 # Draw dipole position on MRI scan and add anatomical label from parcellation
 t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
@@ -74,7 +73,7 @@ template = load_mni152_template()
 fig_template = plot_anat(template, cut_coords=mni_pos[0],
                          title='Dipole loc. (MNI Space)')
 
-###############################################################################
+# %%
 # Calculate and visualise magnetic field predicted by dipole with maximum GOF
 # and compare to the measured data, highlighting the ipsilateral (right) source
 fwd, stc = make_forward_dipole(dip, fname_bem, evoked.info, fname_trans)
@@ -109,7 +108,7 @@ fig.suptitle('Comparison of measured and predicted fields '
              'at {:.0f} ms'.format(best_time * 1000.), fontsize=16)
 fig.tight_layout()
 
-###############################################################################
+# %%
 # Estimate the time course of a single dipole with fixed position and
 # orientation (the one that maximized GOF) over the entire interval
 dip_fixed = mne.fit_dipole(evoked_full, fname_cov, fname_bem, fname_trans,

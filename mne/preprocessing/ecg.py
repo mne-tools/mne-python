@@ -2,12 +2,12 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
 from ..annotations import _annotations_starts_stops
-from ..utils import logger, verbose, sum_squared, warn
+from ..utils import logger, verbose, sum_squared, warn, int_like
 from ..filter import filter_data
 from ..epochs import Epochs, BaseEpochs
 from ..io.base import BaseRaw
@@ -191,7 +191,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
                     % raw.ch_names[idx_ecg])
         ecg = raw.get_data(picks=idx_ecg)
     else:
-        ecg = _make_ecg(raw, None, None)[0]
+        ecg, _ = _make_ecg(raw, start=None, stop=None)
     assert ecg.ndim == 2 and ecg.shape[0] == 1
     ecg = ecg[0]
     # Deal with filtering the same way we do in raw, i.e. filter each good
@@ -376,14 +376,38 @@ def _make_ecg(inst, start, stop, reject_by_annotation=False, verbose=None):
                 .format({'mag': 'Magnetometers',
                          'grad': 'Gradiometers'}[ch]))
     picks = pick_types(inst.info, meg=ch, eeg=False, ref_meg=False)
+
+    # Handle start/stop
+    msg = ('integer arguments for the start and stop parameters are '
+           'not supported for Epochs and Evoked objects. Please '
+           'consider using float arguments specifying start and stop '
+           'time in seconds.')
+    begin_param_name = 'tmin'
+    if isinstance(start, int_like):
+        if isinstance(inst, BaseRaw):
+            # Raw has start param, can just use int
+            begin_param_name = 'start'
+        else:
+            raise ValueError(msg)
+
+    end_param_name = 'tmax'
+    if isinstance(start, int_like):
+        if isinstance(inst, BaseRaw):
+            # Raw has stop param, can just use int
+            end_param_name = 'stop'
+        else:
+            raise ValueError(msg)
+
+    kwargs = {begin_param_name: start, end_param_name: stop}
+
     if isinstance(inst, BaseRaw):
         reject_by_annotation = 'omit' if reject_by_annotation else None
-        ecg, times = inst.get_data(picks, start, stop, reject_by_annotation,
-                                   True)
+        ecg, times = inst.get_data(picks, return_times=True, **kwargs,
+                                   reject_by_annotation=reject_by_annotation)
     elif isinstance(inst, BaseEpochs):
-        ecg = np.hstack(inst.copy().crop(start, stop).get_data())
+        ecg = np.hstack(inst.copy().get_data(picks, **kwargs))
         times = inst.times
     elif isinstance(inst, Evoked):
-        ecg = inst.data
+        ecg = inst.get_data(picks, **kwargs)
         times = inst.times
     return ecg.mean(0, keepdims=True), times
