@@ -30,6 +30,7 @@ backend = None
 
 
 def _reload_backend(backend_name):
+    backend_name = 'pyvistaqt' if backend_name == 'pyvista' else backend_name
     global backend
     backend = importlib.import_module(name=_backend_name_map[backend_name],
                                       package='mne.viz.backends')
@@ -57,6 +58,9 @@ def set_3d_backend(backend_name, verbose=None):
 
     Notes
     -----
+    To use PyVista, set `backend_name` to `pyvistaqt` but the value `pyvista`
+    is still supported for backward compatibility.
+
     This table shows the capabilities of each backend ("✓" for full support,
     and "-" for partial support):
 
