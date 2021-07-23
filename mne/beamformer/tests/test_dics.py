@@ -7,22 +7,24 @@ import copy as cp
 import os.path as op
 
 import pytest
-from numpy.testing import assert_array_equal, assert_allclose
+from numpy.testing import (assert_array_equal, assert_allclose,
+                           assert_array_less)
 import numpy as np
 
 import mne
-from mne.datasets import testing
 from mne.beamformer import (make_dics, apply_dics, apply_dics_epochs,
                             apply_dics_csd, read_beamformer, Beamformer)
 from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.beamformer._dics import _prepare_noise_csd
-from mne.time_frequency import csd_morlet
-from mne.utils import object_diff, requires_h5py, catch_logging
+from mne.beamformer.tests.test_lcmv import _assert_weight_norm
+from mne.datasets import testing
+from mne.io.constants import FIFF
 from mne.proj import compute_proj_evoked, make_projector
 from mne.surface import _compute_nearest
-from mne.beamformer.tests.test_lcmv import _assert_weight_norm
-from mne.time_frequency import CrossSpectralDensity
+from mne.time_frequency import CrossSpectralDensity, csd_morlet
 from mne.time_frequency.csd import _sym_mat_to_vector
+from mne.transforms import invert_transform, apply_trans
+from mne.utils import object_diff, requires_h5py, catch_logging
 
 data_path = testing.data_path(download=False)
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -615,13 +617,60 @@ def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
     if not use_cov:
         evoked.pick_types(meg='grad')
         noise_csd = None
-    loc = apply_dics(evoked, make_dics(
+    filters = make_dics(
         evoked.info, fwd, data_csd, reg, noise_csd, pick_ori=pick_ori,
-        weight_norm=weight_norm, depth=depth, real_filter=real_filter)).data
+        weight_norm=weight_norm, depth=depth, real_filter=real_filter)
+    loc = apply_dics(evoked, filters).data
     loc = np.linalg.norm(loc, axis=1) if pick_ori == 'vector' else np.abs(loc)
     # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100
     assert lower <= perc <= upper
+
+
+@pytest.mark.parametrize(
+    'weight_norm, lower, upper, lower_ori, upper_ori, real_filter', [
+        ('unit-noise-gain-invariant', 57, 58, 0.60, 0.61, False),
+        ('unit-noise-gain', 57, 58, 0.60, 0.61, False),
+        ('unit-noise-gain', 57, 58, 0.60, 0.61, True),
+        (None, 27, 28, 0.56, 0.57, False),
+    ])
+def test_orientation_max_power(bias_params_fixed, bias_params_free,
+                               weight_norm, lower, upper, lower_ori, upper_ori,
+                               real_filter):
+    """Test orientation selection for bias for max-power DICS."""
+    # we simulate data for the fixed orientation forward and beamform using
+    # the free orientation forward, and check the orientation match at the end
+    evoked, _, noise_cov, data_cov, want = bias_params_fixed
+    noise_csd = _cov_as_csd(noise_cov, evoked.info)
+    data_csd = _cov_as_csd(data_cov, evoked.info)
+    del data_cov, noise_cov
+    fwd = bias_params_free[1]
+    filters = make_dics(evoked.info, fwd, data_csd, 0.05, noise_csd,
+                        pick_ori='max-power', weight_norm=weight_norm,
+                        depth=None, real_filter=real_filter)
+    loc = np.abs(apply_dics(evoked, filters).data)
+    ori = filters['max_power_ori'][0]
+    assert ori.shape == (246, 3)
+    loc = np.abs(loc)
+    # Compute the percentage of sources for which there is no loc bias:
+    max_idx = np.argmax(loc, axis=0)
+    mask = want == max_idx  # ones that localized properly
+    perc = mask.mean() * 100
+    assert lower <= perc <= upper
+    # Compute the dot products of our forward normals and
+    # assert we get some hopefully reasonable agreement
+    assert fwd['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+    nn = np.concatenate(
+        [s['nn'][v] for s, v in zip(fwd['src'], filters['vertices'])])
+    nn = nn[want]
+    nn = apply_trans(invert_transform(fwd['mri_head_t']), nn, move=False)
+    assert_allclose(np.linalg.norm(nn, axis=1), 1, atol=1e-6)
+    assert_allclose(np.linalg.norm(ori, axis=1), 1, atol=1e-12)
+    dots = np.abs((nn[mask] * ori[mask]).sum(-1))
+    assert_array_less(dots, 1)
+    assert_array_less(0, dots)
+    got = np.mean(dots)
+    assert lower_ori < got < upper_ori
 
 
 @testing.requires_testing_data
