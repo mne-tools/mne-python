@@ -59,8 +59,8 @@ def set_3d_backend(backend_name, verbose=None):
 
     Notes
     -----
-    To use PyVista, set `backend_name` to `pyvistaqt` but the value `pyvista`
-    is still supported for backward compatibility.
+    To use PyVista, set ``backend_name`` to ``pyvistaqt`` but the value
+    ``pyvista`` is still supported for backward compatibility.
 
     This table shows the capabilities of each backend ("✓" for full support,
     and "-" for partial support):
