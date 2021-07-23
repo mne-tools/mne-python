@@ -304,9 +304,10 @@ def test_forward_mixed_source_space(tmpdir):
     # setup two volume source spaces
     label_names = get_volume_labels_from_aseg(fname_aseg)
     vol_labels = rng.choice(label_names, 2)
-    vol1 = setup_volume_source_space('sample', pos=20., mri=fname_aseg,
-                                     volume_label=vol_labels[0],
-                                     add_interpolator=False)
+    with pytest.warns(RuntimeWarning, match='Found no usable.*CC_Mid_Ant.*'):
+        vol1 = setup_volume_source_space('sample', pos=20., mri=fname_aseg,
+                                         volume_label=vol_labels[0],
+                                         add_interpolator=False)
     vol2 = setup_volume_source_space('sample', pos=20., mri=fname_aseg,
                                      volume_label=vol_labels[1],
                                      add_interpolator=False)
