@@ -14,7 +14,7 @@ import importlib
 
 from ._utils import VALID_3D_BACKENDS
 from ...utils import (logger, verbose, get_config, _check_option,
-                      _require_version, fill_doc)
+                      _require_version, fill_doc, _validate_type)
 
 MNE_3D_BACKEND = None
 MNE_3D_BACKEND_TESTING = False
@@ -30,8 +30,6 @@ backend = None
 
 
 def _reload_backend(backend_name):
-    # backward compat wrapper
-    backend_name = 'pyvistaqt' if backend_name == 'pyvista' else backend_name
     global backend
     backend = importlib.import_module(name=_backend_name_map[backend_name],
                                       package='mne.viz.backends')
@@ -114,6 +112,8 @@ def set_3d_backend(backend_name, verbose=None):
         MNE_3D_BACKEND
     except NameError:
         MNE_3D_BACKEND = backend_name
+    _validate_type(backend_name, str, 'backend_name')
+    backend_name = 'pyvistaqt' if backend_name == 'pyvista' else backend_name
     _check_option('backend_name', backend_name, VALID_3D_BACKENDS)
     if MNE_3D_BACKEND != backend_name:
         _reload_backend(backend_name)

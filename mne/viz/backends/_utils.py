@@ -14,7 +14,6 @@ from ...externals.decorator import decorator
 
 VALID_3D_BACKENDS = (
     'pyvistaqt',  # default 3d backend
-    'pyvista',  # for backward compatibility
     'mayavi',
     'notebook',
 )

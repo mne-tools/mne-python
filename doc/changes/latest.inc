@@ -161,7 +161,7 @@ Bugs
 
 - Fix bug in ::meth:`mne.preprocessing.ICA.find_bads_ecg` where passing ``start`` and ``stop`` lead to erroneous data windows depending on the combination of Raw, Epochs, Evoked, and the type (int, float, None) of ``start`` and ``stop`` (:gh:`9556` by `Stefan Appelhoff`_)
 
-- Fix bug in :func:`mne.viz.get_3d_backend` where there is a failure if the value returned is compared to ``pyvista`` (:gh:`9607` by `Guillaume Favelier`_)
+- Fix bug in :func:`mne.viz.set_3d_backend` and :func:`mne.viz.get_3d_backend` where the PyVistaQt-based backend was ambiguously named ``'pyvista'`` instead of ``'pyvistaqt'``; use :func:`set_3d_backend('pyvistaqt') <mne.viz.set_3d_backend>`` and expect ``'pyvistaqt'`` as the output of :func:`mne.viz.get_3d_backend` instead of ``'pyvista'``, and consider using ``get_3d_backend().startswith('pyvista')`` for example for backward-compatible conditionals (:gh:`9607` by `Guillaume Favelier`_)
 
 API changes
 ~~~~~~~~~~~

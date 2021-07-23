@@ -32,7 +32,8 @@ from mne.minimum_norm import apply_inverse
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
                      plot_alignment, plot_sensors_connectivity,
-                     plot_brain_colorbar, link_brains, mne_analyze_colormap)
+                     plot_brain_colorbar, link_brains, mne_analyze_colormap,
+                     set_3d_backend)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_nibabel, traits_test,
@@ -835,3 +836,10 @@ def test_renderer(renderer):
            'assert backend == %r, backend' % (backend,)]
     with modified_env(MNE_3D_BACKEND=backend):
         run_subprocess(cmd)
+
+
+def test_set_3d_backend_bad():
+    """Test that the error emitted when a bad backend name is used."""
+    match = "Allowed values are 'pyvistaqt', 'mayavi', and 'notebook'"
+    with pytest.raises(ValueError, match=match):
+        set_3d_backend('invalid')
