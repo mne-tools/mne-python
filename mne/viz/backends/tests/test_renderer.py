@@ -11,7 +11,7 @@ import pytest
 import numpy as np
 
 from mne.viz.backends.tests._utils import (skips_if_not_mayavi,
-                                           skips_if_not_pyvista)
+                                           skips_if_not_pyvistaqt)
 from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
 
 
@@ -26,7 +26,7 @@ def backend_mocker():
 
 @pytest.mark.parametrize('backend', [
     pytest.param('mayavi', marks=skips_if_not_mayavi),
-    pytest.param('pyvista', marks=skips_if_not_pyvista),
+    pytest.param('pyvistaqt', marks=skips_if_not_pyvistaqt),
     pytest.param('foo', marks=pytest.mark.xfail(raises=ValueError)),
 ])
 def test_backend_environment_setup(backend, backend_mocker, monkeypatch):

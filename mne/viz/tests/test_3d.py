@@ -727,7 +727,7 @@ def test_plot_sensors_connectivity(renderer):
         plot_sensors_connectivity(info=info, con=con[::2, ::2], picks=picks)
 
     fig = plot_sensors_connectivity(info=info, con=con, picks=picks)
-    if renderer._get_3d_backend() == 'pyvista':
+    if renderer._get_3d_backend() == 'pyvistaqt':
         title = list(fig.plotter.scalar_bars.values())[0].GetTitle()
     else:
         assert renderer._get_3d_backend() == 'mayavi'
@@ -816,7 +816,7 @@ def test_link_brains(renderer_interactive):
         clim='auto'
     )
     if renderer_interactive._get_3d_backend() == 'mayavi':
-        with pytest.raises(NotImplementedError, match='backend is pyvista'):
+        with pytest.raises(NotImplementedError, match='backend is pyvistaqt'):
             link_brains(brain)
     else:
         with pytest.raises(ValueError, match='is empty'):
