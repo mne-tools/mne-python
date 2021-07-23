@@ -1101,8 +1101,6 @@ def test_fit_params_epochs_vs_raw(param_name, param_val):
     ica = ICA(n_components=n_components, max_iter=max_iter, method=method)
 
     fit_params = {param_name: param_val}
-
-    ica.fit(inst=raw, **fit_params)  # should not warn
     with pytest.warns(RuntimeWarning, match='parameters.*will be ignored'):
         ica.fit(inst=epochs, **fit_params)
 
