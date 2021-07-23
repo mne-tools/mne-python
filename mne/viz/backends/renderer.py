@@ -136,7 +136,7 @@ def set_3d_backend(backend_name, verbose=None):
 
 
 @verbose
-def get_3d_backend(*, verbose=None):
+def get_3d_backend():
     """Return the backend currently used.
 
     Returns
@@ -148,7 +148,6 @@ def get_3d_backend(*, verbose=None):
         .. versionchanged:: 0.24
            The ``'pyvista'`` backend has been renamed ``'pyvistaqt'``, so
            ``'pyvista'`` is no longer returned by this function.
-    %(verbose)s
     """
     try:
         backend = _get_3d_backend()
