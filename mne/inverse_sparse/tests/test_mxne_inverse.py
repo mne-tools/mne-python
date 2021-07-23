@@ -80,10 +80,11 @@ def test_mxne_inverse_standard(forward):
     # MxNE tests
     alpha = 70  # spatial regularization parameter
 
-    stc_prox = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                          depth=depth, maxit=300, tol=1e-8,
-                          active_set_size=10, weights=stc_dspm,
-                          weights_min=weights_min, solver='prox')
+    with pytest.deprecated_call(match="will be solved"):
+        stc_prox = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
+                            depth=depth, maxit=300, tol=1e-8,
+                            active_set_size=10, weights=stc_dspm,
+                            weights_min=weights_min, solver='prox')
     with pytest.warns(None):  # CD
         stc_cd = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                             depth=depth, maxit=300, tol=1e-8,
