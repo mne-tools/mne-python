@@ -485,13 +485,13 @@ class ICA(ContainsMixin):
             the first sample and to the last sample, respectively.
 
             .. note:: These parameters only have an effect if ``inst`` is
-                      `~mne.Raw` data.
+                      `~mne.io.Raw` data.
         decim : int | None
             Increment for selecting only each n-th sampling point. If ``None``,
             all samples  between ``start`` and ``stop`` (inclusive) are used.
 
             .. note:: This parameter only has an effect if ``inst`` is
-                      `~mne.Raw` data.
+                      `~mne.io.Raw` data.
         reject, flat : dict | None
             Rejection parameters based on peak-to-peak amplitude (PTP)
             in the continuous data. Signal periods exceeding the thresholds
@@ -499,8 +499,8 @@ class ICA(ContainsMixin):
             removed before fitting the ICA.
 
             .. note:: These parameters only have an effect if ``inst`` is
-                      `~mne.Raw` data. For `~mne.Epochs`, perform PTP rejection
-                      via :meth:`~mne.Epochs.drop_bad`.
+                      `~mne.io.Raw` data. For `~mne.Epochs`, perform PTP
+                      rejection via :meth:`~mne.Epochs.drop_bad`.
 
             Valid keys are ``'grad'``, ``'mag'``, ``'eeg'``, ``'seeg'``,
             ``'dbs'``, ``'ecog'``, ``'eog'``, ``'ecg'``, ``'hbo'``, ``'hbr'``,
@@ -519,7 +519,7 @@ class ICA(ContainsMixin):
             Length of data chunks for artifact rejection in seconds.
 
             .. note:: This parameter only has an effect if ``inst`` is
-                      `~mne.Raw` data.
+                      `~mne.io.Raw` data.
         %(reject_by_annotation_raw)s
 
             .. versionadded:: 0.14.0
