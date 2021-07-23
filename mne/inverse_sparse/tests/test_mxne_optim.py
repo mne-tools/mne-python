@@ -47,7 +47,7 @@ def test_l21_mxne():
     M = np.dot(G, X)
 
     args = (M, G, alpha, 1000, 1e-8)
-    with pytest.warns(None):  # CD
+    with pytest.deprecated_call(match="will be solved"):  # CD
         X_hat_prox, active_set, _ = mixed_norm_solver(
             *args, active_set_size=None,
             debias=True, solver='prox')
@@ -68,7 +68,7 @@ def test_l21_mxne():
     assert_allclose(X_hat_prox, X_hat_bcd, rtol=1e-2)
     assert_allclose(X_hat_bcd, X_hat_cd, rtol=1e-2)
 
-    with pytest.warns(None):  # CD
+    with pytest.deprecated_call(match="will be solved"):  # CD
         X_hat_prox, active_set, _ = mixed_norm_solver(
             *args, active_set_size=2, debias=True, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 4])
@@ -83,7 +83,7 @@ def test_l21_mxne():
     assert_allclose(X_hat_bcd, X_hat_cd, rtol=1e-2)
     assert_allclose(X_hat_bcd, X_hat_prox, rtol=1e-2)
 
-    with pytest.warns(None):  # CD
+    with pytest.deprecated_call(match="will be solved"):  # CD
         X_hat_prox, active_set, _ = mixed_norm_solver(
             *args, active_set_size=2, debias=True, n_orient=2, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
@@ -104,7 +104,7 @@ def test_l21_mxne():
         X_hat_bcd, active_set, _ = mixed_norm_solver(
             *args, active_set_size=2, debias=True, n_orient=5, solver='bcd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
-    with pytest.warns(None):  # CD
+    with pytest.deprecated_call(match="will be solved"):  # CD
         X_hat_prox, active_set, _ = mixed_norm_solver(
             *args, active_set_size=2, debias=True, n_orient=5, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
@@ -282,14 +282,14 @@ def test_iterative_reweighted_mxne():
         X_hat_bcd, active_set, _ = iterative_mixed_norm_solver(
             M, G, alpha, 1, maxit=1000, tol=1e-8, active_set_size=None,
             debias=False, solver='bcd')
-    with pytest.warns(None):  # CD
+    with pytest.deprecated_call(match="will be solved"):  # CD
         X_hat_prox, active_set, _ = iterative_mixed_norm_solver(
             M, G, alpha, 1, maxit=1000, tol=1e-8, active_set_size=None,
             debias=False, solver='prox')
     assert_allclose(X_hat_bcd, X_hat_l21, rtol=1e-3)
     assert_allclose(X_hat_prox, X_hat_l21, rtol=1e-3)
 
-    with pytest.warns(None):  # CD
+    with pytest.deprecated_call(match="will be solved"):  # CD
         X_hat_prox, active_set, _ = iterative_mixed_norm_solver(
             M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=None,
             debias=True, solver='prox')
