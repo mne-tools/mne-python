@@ -30,6 +30,7 @@ backend = None
 
 
 def _reload_backend(backend_name):
+    # backward compat wrapper
     backend_name = 'pyvistaqt' if backend_name == 'pyvista' else backend_name
     global backend
     backend = importlib.import_module(name=_backend_name_map[backend_name],
