@@ -6,22 +6,17 @@
 # License: Simplified BSD
 
 import os
+import sys
 
 import pytest
 import numpy as np
 
+from mne.utils import run_subprocess
+from mne.viz import set_3d_backend, get_3d_backend
+from mne.viz.backends.renderer import _get_renderer
 from mne.viz.backends.tests._utils import (skips_if_not_mayavi,
                                            skips_if_not_pyvistaqt)
 from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
-
-
-@pytest.fixture
-def backend_mocker():
-    """Help to test set up 3d backend."""
-    from mne.viz.backends import renderer
-    del renderer.MNE_3D_BACKEND
-    yield
-    renderer.MNE_3D_BACKEND = None
 
 
 @pytest.mark.parametrize('backend', [
@@ -29,9 +24,11 @@ def backend_mocker():
     pytest.param('pyvistaqt', marks=skips_if_not_pyvistaqt),
     pytest.param('foo', marks=pytest.mark.xfail(raises=ValueError)),
 ])
-def test_backend_environment_setup(backend, backend_mocker, monkeypatch):
+def test_backend_environment_setup(backend, monkeypatch):
     """Test set up 3d backend based on env."""
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
+    monkeypatch.setattr(
+        'mne.viz.backends.renderer.MNE_3D_BACKEND', None)
     assert os.environ['MNE_3D_BACKEND'] == backend  # just double-check
 
     # reload the renderer to check if the 3d backend selection by
@@ -177,3 +174,34 @@ def test_get_3d_backend(renderer):
     orig_backend = renderer.MNE_3D_BACKEND
     assert renderer.get_3d_backend() == orig_backend
     assert renderer.get_3d_backend() == orig_backend
+
+
+def test_renderer(renderer, monkeypatch):
+    """Test that renderers are available on demand."""
+    backend = renderer.get_3d_backend()
+    cmd = [sys.executable, '-uc',
+           'import mne; mne.viz.create_3d_figure((800, 600)); '
+           'backend = mne.viz.get_3d_backend(); '
+           'assert backend == %r, backend' % (backend,)]
+    monkeypatch.setenv('MNE_3D_BACKEND', backend)
+    run_subprocess(cmd)
+
+
+def test_set_3d_backend_bad(monkeypatch, tmpdir):
+    """Test that the error emitted when a bad backend name is used."""
+    match = "Allowed values are 'pyvistaqt', 'mayavi', and 'notebook'"
+    with pytest.raises(ValueError, match=match):
+        set_3d_backend('invalid')
+
+    # gh-9607
+    def fail(x):
+        raise ModuleNotFoundError(x)
+    monkeypatch.setattr('mne.viz.backends.renderer._reload_backend', fail)
+    monkeypatch.setattr(
+        'mne.viz.backends.renderer.MNE_3D_BACKEND', None)
+    # avoid using the config
+    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmpdir))
+    match = 'Could not load any valid 3D.*\npyvistaqt: .*'
+    assert get_3d_backend() is None
+    with pytest.raises(RuntimeError, match=match):
+        _get_renderer()

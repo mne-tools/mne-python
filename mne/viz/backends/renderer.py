@@ -135,7 +135,6 @@ def set_3d_backend(backend_name, verbose=None):
     return old_backend_name
 
 
-@verbose
 def get_3d_backend():
     """Return the backend currently used.
 
@@ -171,6 +170,7 @@ def _get_3d_backend():
                     errors[name] = str(exc)
                 else:
                     MNE_3D_BACKEND = name
+                    print(MNE_3D_BACKEND)
                     break
             else:
                 raise RuntimeError(

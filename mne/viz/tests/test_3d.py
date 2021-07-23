@@ -32,13 +32,10 @@ from mne.minimum_norm import apply_inverse
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
                      plot_alignment, plot_sensors_connectivity,
-                     plot_brain_colorbar, link_brains, mne_analyze_colormap,
-                     set_3d_backend)
+                     plot_brain_colorbar, link_brains, mne_analyze_colormap)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click
-from mne.viz.backends.renderer import _get_renderer
-from mne.utils import (requires_nibabel, traits_test, check_version,
-                       catch_logging, run_subprocess, modified_env)
+from mne.utils import requires_nibabel, traits_test, catch_logging
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 from mne.bem import read_bem_solution, read_bem_surfaces
@@ -826,33 +823,3 @@ def test_link_brains(renderer_interactive):
         with pytest.raises(TypeError, match='type is Brain'):
             link_brains('foo')
         link_brains(brain, time=True, camera=True)
-
-
-def test_renderer(renderer):
-    """Test that renderers are available on demand."""
-    backend = renderer.get_3d_backend()
-    cmd = [sys.executable, '-uc',
-           'import mne; mne.viz.create_3d_figure((800, 600)); '
-           'backend = mne.viz.get_3d_backend(); '
-           'assert backend == %r, backend' % (backend,)]
-    with modified_env(MNE_3D_BACKEND=backend):
-        run_subprocess(cmd)
-
-
-def test_set_3d_backend_bad(monkeypatch, tmpdir):
-    """Test that the error emitted when a bad backend name is used."""
-    match = "Allowed values are 'pyvistaqt', 'mayavi', and 'notebook'"
-    with pytest.raises(ValueError, match=match):
-        set_3d_backend('invalid')
-    # gh-9607
-    if check_version('pyvistaqt'):
-        monkeypatch.delattr('pyvistaqt.plotting.FileDialog')
-    monkeypatch.setattr(
-        'mne.viz.backends.renderer.MNE_3D_BACKEND', None)
-    monkeypatch.setattr(
-        'mne.viz.backends.renderer.VALID_3D_BACKENDS', ('pyvistaqt',))
-    # avoid using the config
-    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmpdir))
-    match = 'Could not load any valid 3D.*\npyvistaqt: .*'
-    with pytest.raises(RuntimeError, match=match):
-        _get_renderer()
