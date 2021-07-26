@@ -1,9 +1,8 @@
 name: base
 channels:
-- conda-forge/label/vtk_dev
 - conda-forge
 dependencies:
-- python ==3.8
+- python >=3.8
 - pip
 - mesalib
 - ffmpeg
@@ -22,6 +21,6 @@ dependencies:
 - ipywidgets
 - ipyvtklink
 - jupyter_client !=6.1.5
-- mffpy>=0.5.7
+- mffpy >=0.5.7
 - pip:
   - mne
