@@ -277,7 +277,7 @@ def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
         hsp=np.array(hsp) if len(hsp) else None,
         hpi=np.array(hpi) if len(hpi) else None,
         elp=np.array(elp) if len(elp) else None,
-        dig_ch_pos_location=dig_ch_pos_location,
+        dig_ch_pos_location=np.array(dig_ch_pos_location),
         coord_frame=dig_coord_frames.pop(),
     )
 

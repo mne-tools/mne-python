@@ -1294,8 +1294,6 @@ class Coregistration(object):
             exclude_ref_channel=False
         )
         # adjustments
-        self._dig['dig_ch_pos_location'] = \
-            np.array(self._dig['dig_ch_pos_location'])
         self._dig['rpa'] = np.array([self._dig['rpa']])
         self._dig['nasion'] = np.array([self._dig['nasion']])
         self._dig['lpa'] = np.array([self._dig['lpa']])
