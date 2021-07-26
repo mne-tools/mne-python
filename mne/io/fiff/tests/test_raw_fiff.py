@@ -1786,3 +1786,17 @@ def test_corrupted(tmpdir):
     with pytest.warns(RuntimeWarning, match='.*tag directory.*corrupt.*'):
         raw_bad = read_raw_fif(bad_fname)
     assert_allclose(raw.get_data(), raw_bad.get_data())
+
+
+@testing.requires_testing_data
+def test_expand_user():
+    dir_sample = pathlib.Path('~/mne_data/MNE-testing-data/MEG/sample/')
+    fname_in = dir_sample / 'sample_audvis_trunc_raw.fif'
+    dir_out = dir_sample / 'tmp'
+    dir_out.expanduser().mkdir(exist_ok=True)
+    fname_out = dir_out / 'raw.fif'
+
+    raw = read_raw_fif(fname=fname_in, preload=True)
+    raw.save(fname=fname_out, overwrite=True)
+
+    shutil.rmtree(dir_out.expanduser())

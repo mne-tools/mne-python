@@ -1416,7 +1416,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         or all forms of SSS). It is recommended not to concatenate and
         then save raw files for this reason.
         """
-        fname = op.abspath(fname)
         endings = ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                    '_meg.fif', '_eeg.fif', '_ieeg.fif')
         endings += tuple([f'{e}.gz' for e in endings])
@@ -1448,7 +1447,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                              '"double", not "short"')
 
         # check for file existence
-        _check_fname(fname, overwrite)
+        fname = _check_fname(fname, overwrite)
 
         if proj:
             info = deepcopy(self.info)
