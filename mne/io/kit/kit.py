@@ -733,6 +733,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             # coregistration
             fid.seek(cor_dir['offset'])
             mrk = np.zeros((elp.shape[0] - 3, 3))
+            meg_done = [True] * 5
             for _ in range(cor_dir['count']):
                 done = np.fromfile(fid, INT32, 1)[0]
                 fid.seek(16 * KIT.DOUBLE +  # meg_to_mri
@@ -743,12 +744,17 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                     continue
                 assert marker_count >= len(mrk)
                 for mi in range(len(mrk)):
-                    mri_type, meg_type, mri_done, meg_done = \
+                    mri_type, meg_type, mri_done, this_meg_done = \
                         np.fromfile(fid, INT32, 4)
-                    assert meg_done
+                    meg_done[mi] = bool(this_meg_done)
                     fid.seek(3 * KIT.DOUBLE, SEEK_CUR)  # mri_pos
                     mrk[mi] = np.fromfile(fid, FLOAT64, 3)
                 fid.seek(256, SEEK_CUR)  # marker_file (char)
+            if not all(meg_done):
+                logger.info(f'Keeping {sum(meg_done)}/{len(meg_done)} HPI '
+                            'coils that were digitized')
+                elp = elp[[True] * 3 + meg_done]
+                mrk = mrk[meg_done]
             sqd.update(hsp=hsp, elp=elp, mrk=mrk)
 
     # precompute conversion factor for reading data
