@@ -299,6 +299,7 @@ def test_coregistration():
     coreg.fit_fiducials()
     assert not np.allclose(coreg._parameters, default_params)
     assert coreg._extra_points_filter is None
+    coreg.omit_hsp_points(distance=-1)
     coreg.omit_hsp_points(distance=5. / 1000)
     assert coreg._extra_points_filter is not None
     coreg.fit_icp()
