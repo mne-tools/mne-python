@@ -14,7 +14,7 @@ import importlib
 
 from ._utils import VALID_3D_BACKENDS
 from ...utils import (logger, verbose, get_config, _check_option,
-                      _require_version, fill_doc)
+                      _require_version, fill_doc, _validate_type)
 
 MNE_3D_BACKEND = None
 MNE_3D_BACKEND_TESTING = False
@@ -23,7 +23,7 @@ MNE_3D_BACKEND_INTERACTIVE = False
 
 _backend_name_map = dict(
     mayavi='._pysurfer_mayavi',
-    pyvista='._qt',
+    pyvistaqt='._qt',
     notebook='._notebook',
 )
 backend = None
@@ -37,8 +37,15 @@ def _reload_backend(backend_name):
 
 
 def _get_renderer(*args, **kwargs):
-    set_3d_backend(_get_3d_backend(), verbose=False)
+    _get_3d_backend()
     return backend._Renderer(*args, **kwargs)
+
+
+def _check_backend_name(backend_name):
+    _validate_type(backend_name, str, 'backend_name')
+    backend_name = 'pyvistaqt' if backend_name == 'pyvista' else backend_name
+    _check_option('backend_name', backend_name, VALID_3D_BACKENDS)
+    return backend_name
 
 
 @verbose
@@ -52,64 +59,72 @@ def set_3d_backend(backend_name, verbose=None):
     ----------
     backend_name : str
         The 3d backend to select. See Notes for the capabilities of each
-        backend.
+        backend (``'pyvistaqt'``, ``'notebook'``, and ``'mayavi'``).
+
+        .. versionchanged:: 0.24
+           The ``'pyvista'`` backend was renamed ``'pyvistaqt'``.
     %(verbose)s
+
+    Returns
+    -------
+    old_backend_name : str | None
+        The old backend that was in use.
 
     Notes
     -----
+    To use PyVista, set ``backend_name`` to ``pyvistaqt`` but the value
+    ``pyvista`` is still supported for backward compatibility.
+
     This table shows the capabilities of each backend ("✓" for full support,
     and "-" for partial support):
 
     .. table::
        :widths: auto
 
-       +--------------------------------------+--------+---------+----------+
-       | **3D function:**                     | mayavi | pyvista | notebook |
-       +======================================+========+=========+==========+
-       | :func:`plot_vector_source_estimates` | ✓      | ✓       | ✓        |
-       +--------------------------------------+--------+---------+----------+
-       | :func:`plot_source_estimates`        | ✓      | ✓       | ✓        |
-       +--------------------------------------+--------+---------+----------+
-       | :func:`plot_alignment`               | ✓      | ✓       | ✓        |
-       +--------------------------------------+--------+---------+----------+
-       | :func:`plot_sparse_source_estimates` | ✓      | ✓       | ✓        |
-       +--------------------------------------+--------+---------+----------+
-       | :func:`plot_evoked_field`            | ✓      | ✓       | ✓        |
-       +--------------------------------------+--------+---------+----------+
-       | :func:`plot_sensors_connectivity`    | ✓      | ✓       | ✓        |
-       +--------------------------------------+--------+---------+----------+
-       | :func:`snapshot_brain_montage`       | ✓      | ✓       | ✓        |
-       +--------------------------------------+--------+---------+----------+
-       | :func:`link_brains`                  |        | ✓       |          |
-       +--------------------------------------+--------+---------+----------+
-       +--------------------------------------+--------+---------+----------+
-       | **Feature:**                                                       |
-       +--------------------------------------+--------+---------+----------+
-       | Large data                           | ✓      | ✓       | ✓        |
-       +--------------------------------------+--------+---------+----------+
-       | Opacity/transparency                 | ✓      | ✓       | ✓        |
-       +--------------------------------------+--------+---------+----------+
-       | Support geometric glyph              | ✓      | ✓       | ✓        |
-       +--------------------------------------+--------+---------+----------+
-       | Smooth shading                       | ✓      | ✓       | ✓        |
-       +--------------------------------------+--------+---------+----------+
-       | Subplotting                          | ✓      | ✓       | ✓        |
-       +--------------------------------------+--------+---------+----------+
-       | Inline plot in Jupyter Notebook      | ✓      |         | ✓        |
-       +--------------------------------------+--------+---------+----------+
-       | Inline plot in JupyterLab            | ✓      |         | ✓        |
-       +--------------------------------------+--------+---------+----------+
-       | Inline plot in Google Colab          |        |         |          |
-       +--------------------------------------+--------+---------+----------+
-       | Toolbar                              |        | ✓       | ✓        |
-       +--------------------------------------+--------+---------+----------+
+       +--------------------------------------+--------+-----------+----------+
+       | **3D function:**                     | mayavi | pyvistaqt | notebook |
+       +======================================+========+===========+==========+
+       | :func:`plot_vector_source_estimates` | ✓      | ✓         | ✓        |
+       +--------------------------------------+--------+-----------+----------+
+       | :func:`plot_source_estimates`        | ✓      | ✓         | ✓        |
+       +--------------------------------------+--------+-----------+----------+
+       | :func:`plot_alignment`               | ✓      | ✓         | ✓        |
+       +--------------------------------------+--------+-----------+----------+
+       | :func:`plot_sparse_source_estimates` | ✓      | ✓         | ✓        |
+       +--------------------------------------+--------+-----------+----------+
+       | :func:`plot_evoked_field`            | ✓      | ✓         | ✓        |
+       +--------------------------------------+--------+-----------+----------+
+       | :func:`plot_sensors_connectivity`    | ✓      | ✓         | ✓        |
+       +--------------------------------------+--------+-----------+----------+
+       | :func:`snapshot_brain_montage`       | ✓      | ✓         | ✓        |
+       +--------------------------------------+--------+-----------+----------+
+       | :func:`link_brains`                  |        | ✓         |          |
+       +--------------------------------------+--------+-----------+----------+
+       +--------------------------------------+--------+-----------+----------+
+       | **Feature:**                                                         |
+       +--------------------------------------+--------+-----------+----------+
+       | Large data                           | ✓      | ✓         | ✓        |
+       +--------------------------------------+--------+-----------+----------+
+       | Opacity/transparency                 | ✓      | ✓         | ✓        |
+       +--------------------------------------+--------+-----------+----------+
+       | Support geometric glyph              | ✓      | ✓         | ✓        |
+       +--------------------------------------+--------+-----------+----------+
+       | Smooth shading                       | ✓      | ✓         | ✓        |
+       +--------------------------------------+--------+-----------+----------+
+       | Subplotting                          | ✓      | ✓         | ✓        |
+       +--------------------------------------+--------+-----------+----------+
+       | Inline plot in Jupyter Notebook      | ✓      |           | ✓        |
+       +--------------------------------------+--------+-----------+----------+
+       | Inline plot in JupyterLab            | ✓      |           | ✓        |
+       +--------------------------------------+--------+-----------+----------+
+       | Inline plot in Google Colab          |        |           |          |
+       +--------------------------------------+--------+-----------+----------+
+       | Toolbar                              |        | ✓         | ✓        |
+       +--------------------------------------+--------+-----------+----------+
     """
     global MNE_3D_BACKEND
-    try:
-        MNE_3D_BACKEND
-    except NameError:
-        MNE_3D_BACKEND = backend_name
-    _check_option('backend_name', backend_name, VALID_3D_BACKENDS)
+    old_backend_name = MNE_3D_BACKEND
+    backend_name = _check_backend_name(backend_name)
     if MNE_3D_BACKEND != backend_name:
         _reload_backend(backend_name)
         MNE_3D_BACKEND = backend_name
@@ -117,6 +132,7 @@ def set_3d_backend(backend_name, verbose=None):
     # Qt5 macOS 11 compatibility
     if sys.platform == 'darwin' and 'QT_MAC_WANTS_LAYER' not in os.environ:
         os.environ['QT_MAC_WANTS_LAYER'] = '1'
+    return old_backend_name
 
 
 def get_3d_backend():
@@ -127,11 +143,16 @@ def get_3d_backend():
     backend_used : str | None
         The 3d backend currently in use. If no backend is found,
         returns ``None``.
+
+        .. versionchanged:: 0.24
+           The ``'pyvista'`` backend has been renamed ``'pyvistaqt'``, so
+           ``'pyvista'`` is no longer returned by this function.
     """
     try:
         backend = _get_3d_backend()
-    except RuntimeError:
-        return None
+    except RuntimeError as exc:
+        backend = None
+        logger.info(str(exc))
     return backend
 
 
@@ -141,22 +162,24 @@ def _get_3d_backend():
     if MNE_3D_BACKEND is None:
         MNE_3D_BACKEND = get_config(key='MNE_3D_BACKEND', default=None)
         if MNE_3D_BACKEND is None:  # try them in order
+            errors = dict()
             for name in VALID_3D_BACKENDS:
                 try:
                     _reload_backend(name)
-                except ImportError:
-                    continue
+                except ImportError as exc:
+                    errors[name] = str(exc)
                 else:
                     MNE_3D_BACKEND = name
+                    print(MNE_3D_BACKEND)
                     break
             else:
-                raise RuntimeError(f'Could not load any valid 3D backend: '
-                                   f'{", ".join(VALID_3D_BACKENDS)}')
+                raise RuntimeError(
+                    'Could not load any valid 3D backend:\n' +
+                    "\n".join(f'{key}: {val}' for key, val in errors.items()))
         else:
-            _check_option('MNE_3D_BACKEND', MNE_3D_BACKEND, VALID_3D_BACKENDS)
+            MNE_3D_BACKEND = _check_backend_name(MNE_3D_BACKEND)
             _reload_backend(MNE_3D_BACKEND)
-    else:
-        _check_option('MNE_3D_BACKEND', MNE_3D_BACKEND, VALID_3D_BACKENDS)
+    MNE_3D_BACKEND = _check_backend_name(MNE_3D_BACKEND)
     return MNE_3D_BACKEND
 
 
@@ -169,18 +192,18 @@ def use_3d_backend(backend_name):
 
     Parameters
     ----------
-    backend_name : {'mayavi', 'pyvista', 'notebook'}
+    backend_name : {'mayavi', 'pyvistaqt', 'notebook'}
         The 3d backend to use in the context.
     """
-    old_backend = _get_3d_backend()
-    set_3d_backend(backend_name)
+    old_backend = set_3d_backend(backend_name)
     try:
         yield
     finally:
-        try:
-            set_3d_backend(old_backend)
-        except Exception:
-            pass
+        if old_backend is not None:
+            try:
+                set_3d_backend(old_backend)
+            except Exception:
+                pass
 
 
 @contextmanager

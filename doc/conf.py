@@ -346,7 +346,7 @@ else:
         mlab.close()
         scrapers += ('mayavi',)
         push_exception_handler(reraise_exceptions=True)
-    elif backend in ('notebook', 'pyvista'):
+    elif backend in ('notebook', 'pyvistaqt'):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             import pyvista

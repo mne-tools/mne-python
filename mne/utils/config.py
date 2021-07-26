@@ -559,7 +559,7 @@ def sys_info(fid=None, show_paths=False):
                 try:
                     from pyvistaqt import __version__
                 except Exception:
-                    pass
+                    extras += ['pyvistaqt not found']
                 else:
                     extras += [f'pyvistaqt={__version__}']
                 try:

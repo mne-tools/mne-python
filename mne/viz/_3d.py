@@ -1574,8 +1574,8 @@ def link_brains(brains, time=True, camera=False, colorbar=True,
         If True, link the vertices picked with the mouse. Defaults to False.
     """
     from .backends.renderer import _get_3d_backend
-    if _get_3d_backend() != 'pyvista':
-        raise NotImplementedError("Expected 3d backend is pyvista but"
+    if _get_3d_backend() != 'pyvistaqt':
+        raise NotImplementedError("Expected 3d backend is pyvistaqt but"
                                   " {} was given.".format(_get_3d_backend()))
     from ._brain import Brain, _LinkViewer
     if not isinstance(brains, Iterable):
@@ -1708,9 +1708,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
-    backend : 'auto' | 'mayavi' | 'pyvista' | 'matplotlib'
+    backend : 'auto' | 'mayavi' | 'pyvistaqt' | 'matplotlib'
         Which backend to use. If ``'auto'`` (default), tries to plot with
-        pyvista, but resorts to matplotlib if no 3d backend is available.
+        pyvistaqt, but resorts to matplotlib if no 3d backend is available.
 
         .. versionadded:: 0.15.0
     spacing : str
@@ -1756,7 +1756,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject)
     _check_option('backend', backend,
-                  ['auto', 'matplotlib', 'mayavi', 'pyvista', 'notebook'])
+                  ['auto', 'matplotlib', 'mayavi', 'pyvistaqt', 'notebook'])
     plot_mpl = backend == 'matplotlib'
     if not plot_mpl:
         if backend == 'auto':
@@ -1849,7 +1849,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     }
     if brain_kwargs is not None:
         kwargs.update(brain_kwargs)
-    if backend in ['pyvista', 'notebook']:
+    if backend in ['pyvistaqt', 'notebook']:
         kwargs["show"] = False
         kwargs["view_layout"] = view_layout
     else:
@@ -2448,7 +2448,7 @@ def _check_views(surf, views, hemi, stc=None, backend=None):
             _validate_type(stc, SourceEstimate, 'stc',
                            'SourceEstimate when a flatmap is used')
         if backend is not None:
-            if backend not in ('pyvista', 'notebook'):
+            if backend not in ('pyvistaqt', 'notebook'):
                 raise RuntimeError('The PyVista 3D backend must be used to '
                                    'plot a flatmap')
     if (views == ['flat']) ^ (surf == 'flat'):  # exactly only one of the two

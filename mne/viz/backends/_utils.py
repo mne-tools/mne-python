@@ -13,7 +13,7 @@ import collections.abc
 from ...externals.decorator import decorator
 
 VALID_3D_BACKENDS = (
-    'pyvista',  # default 3d backend
+    'pyvistaqt',  # default 3d backend
     'mayavi',
     'notebook',
 )
