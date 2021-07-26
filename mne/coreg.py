@@ -1384,6 +1384,8 @@ class Coregistration(object):
             self._rot_trans = rotation(*rot).T
         tra_changed = False
         if rot_changed or tra is not None:
+            if tra is None:
+                tra = self._translation
             tra_changed = True
             self._last_translation = self._translation
             self._translation = tra
@@ -1417,6 +1419,8 @@ class Coregistration(object):
             self._mri_head_t = self._rot_trans.copy()
             self._mri_head_t[:3, 3] = np.array(tra)
         if tra_changed or sca is not None:
+            if sca is None:
+                sca = self._scale
             sca = self._scale if sca is None else sca
             self._last_scale = self._scale
             self._scale = sca
@@ -1445,7 +1449,7 @@ class Coregistration(object):
         rot : array, shape (3,)
             The rotation parameter.
         """
-        self._update_params(rot=rot)
+        self._update_params(rot=np.array(rot))
 
     def set_translation(self, tra):
         """Set the translation parameter.
@@ -1455,7 +1459,7 @@ class Coregistration(object):
         tra : array, shape (3,)
             The translation parameter.
         """
-        self._update_params(tra=tra)
+        self._update_params(tra=np.array(tra))
 
     def set_scale(self, sca):
         """Set the scale parameter.
@@ -1465,7 +1469,7 @@ class Coregistration(object):
         sca : array, shape (3,)
             The scale parameter.
         """
-        self._update_params(sca=sca)
+        self._update_params(sca=np.array(sca))
 
     @property
     def _filtered_extra_points(self):

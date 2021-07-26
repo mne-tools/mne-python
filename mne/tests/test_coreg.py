@@ -292,6 +292,10 @@ def test_coregistration():
     coreg = Coregistration(info, subject=subject, subjects_dir=subjects_dir)
     assert np.allclose(coreg._last_parameters, coreg._parameters)
     default_params = list(coreg._default_parameters)
+    coreg.set_rotation(default_params[:3])
+    coreg.set_translation(default_params[3:6])
+    coreg.set_scale(default_params[6:9])
+    coreg.set_grow_hair(0.)
     coreg.fit_fiducials()
     assert not np.allclose(coreg._parameters, default_params)
     assert coreg._extra_points_filter is None
