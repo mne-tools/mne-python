@@ -283,7 +283,8 @@ def test_get_mni_fiducials():
 
 
 @testing.requires_testing_data
-def test_coregistration():
+@pytest.mark.parametrize('ref_scale', [[1., 1., 1.], [0.8, 1.1, 1.1]])
+def test_coregistration(ref_scale):
     """Test automated coregistration."""
     trans_fname = op.join(data_path, 'MEG', 'sample',
                           'sample_audvis_trunc-trans.fif')
@@ -291,7 +292,9 @@ def test_coregistration():
                         'tests', 'data', 'test_raw.fif')
     subject = 'sample'
     subjects_dir = os.path.join(data_path, 'subjects')
-    info = read_info(fname_raw)
+    info = read_info(fname_raw).copy()
+    for d in info['dig']:
+        d['r'] *= ref_scale
     trans = read_trans(trans_fname)
     coreg = Coregistration(info, subject=subject, subjects_dir=subjects_dir)
     assert np.allclose(coreg._last_parameters, coreg._parameters)
@@ -309,9 +312,10 @@ def test_coregistration():
     coreg.fit_icp()
     assert isinstance(coreg.trans, Transform)
     errs_icp = coreg.compute_dig_head_distances()
-    assert np.median(errs_icp * 1000) < 4
+    assert np.median(errs_icp * 1000) < 9
     assert np.rad2deg(_angle_between_quats(
         rot_to_quat(coreg.trans['trans'][:3, :3]),
         rot_to_quat(trans['trans'][:3, :3]))) < 9
+    assert_allclose(coreg._scale, ref_scale)
     coreg.reset()
     assert np.allclose(coreg._parameters, default_params)
