@@ -123,6 +123,8 @@ Enhancements
 
 - The coregistration GUI can now display the head surface even if there are topological defects. Previously, a low-resolution standard head unsuitable for individualized coregistration was displayed (:gh:`9614` by `Richard Höchenberger`_)
 
+- Add :meth:`mne.viz.Brain.add_head` to plot the head surface (:gh:`9617` by `Alex Rockhill`_)
+
 Bugs
 ~~~~
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)

@@ -35,7 +35,7 @@ from .._3d import _process_clim, _handle_time, _check_views
 from ...externals.decorator import decorator
 from ...defaults import _handle_default
 from ..._freesurfer import vertex_to_mni, read_talxfm, read_freesurfer_lut
-from ...surface import mesh_edges, _mesh_borders, _marching_cubes
+from ...surface import mesh_edges, _mesh_borders, _marching_cubes, read_surface
 from ...source_space import SourceSpaces
 from ...transforms import apply_trans, invert_transform
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
@@ -2314,6 +2314,41 @@ class Brain(object):
                 label._color = orig_color
                 label._line = line
             self._labels[hemi].append(label)
+        self._renderer._update()
+
+    @fill_doc
+    def add_head(self, color=None, alpha=0.5):
+        """Add labels to the rendering from an anatomical segmentation.
+
+        Parameters
+        ----------
+        color : matplotlib-style color | None
+            A list of anything matplotlib accepts: string, RGB, hex, etc.
+            (default: "gray").
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
+
+        Notes
+        -----
+        .. versionadded:: 0.24
+        """
+        from matplotlib.colors import colorConverter
+
+        # load seghead
+        seghead_fname = _check_fname(
+            op.join(self._subjects_dir, self._subject_id,
+                    'surf', 'lh.seghead'), overwrite='read', must_exist=True)
+        verts, triangles = read_surface(seghead_fname)
+        if color is None:
+            color = 'gray'
+        color = colorConverter.to_rgba(color, alpha)
+
+        for h in self._hemis:
+            for ri, ci, v in self._iter_views(h):
+                self._renderer.mesh(
+                    *verts.T, triangles=triangles, color=color,
+                    opacity=alpha, reset_camera=False, render=False)
+
         self._renderer._update()
 
     @fill_doc
