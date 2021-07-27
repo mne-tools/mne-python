@@ -32,7 +32,7 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _CheckInside)
 # keep get_mni_fiducials here just for easy backward compat
 from ._freesurfer import (_get_mri_info_data, _get_atlas_values,  # noqa: F401
-                          read_freesurfer_lut, get_mni_fiducials)
+                          read_freesurfer_lut, get_mni_fiducials, _check_mri)
 from .utils import (get_subjects_dir, check_fname, logger, verbose, fill_doc,
                     _ensure_int, check_version, _get_call_line, warn,
                     _check_fname, _check_path_like, _check_sphere,
@@ -1298,19 +1298,6 @@ def setup_source_space(subject, spacing='oct6', surface='white',
     # write out if requested, then return the data
     logger.info('You are now one step closer to computing the gain matrix')
     return src
-
-
-def _check_mri(mri, subject, subjects_dir):
-    _validate_type(mri, 'path-like', 'mri')
-    if not op.isfile(mri):
-        if subject is None:
-            raise FileNotFoundError(
-                'MRI file %r not found and no subject provided' % (mri,))
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        mri = op.join(subjects_dir, subject, 'mri', mri)
-        if not op.isfile(mri):
-            raise FileNotFoundError('MRI file %r not found' % (mri,))
-    return mri
 
 
 def _check_volume_labels(volume_label, mri, name='volume_label'):
