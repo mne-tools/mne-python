@@ -188,7 +188,9 @@ class SurfaceSource(HasTraits):
         """Read the file."""
         if op.exists(self.file):
             if self.file.endswith('.fif'):
-                bem = read_bem_surfaces(self.file, verbose=False)[0]
+                bem = read_bem_surfaces(
+                    self.file, on_defects='warn', verbose=False
+                    )[0]
             else:
                 try:
                     bem = read_surface(self.file, return_dict=True)[2]

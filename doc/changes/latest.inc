@@ -121,6 +121,8 @@ Enhancements
 
 - :func:`mne.viz.plot_alignment` now emits a warning (instead of aborting with an exception) if the surfaces contain topological defects (:gh:`9614` by `Richard Höchenberger`_)
 
+- The coregistration GUI can now display the head surface even if there are topological defects. Previously, a low-resolution head devoid of most facial features and hence unsuitable for coregistration was displayed (:gh:`9614` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)
