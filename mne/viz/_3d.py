@@ -731,7 +731,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                         logger.info('Using %s for head surface.'
                                     % (op.basename(fname),))
                         if op.splitext(fname)[-1] == '.fif':
-                            head_surf = read_bem_surfaces(fname)[0]
+                            head_surf = read_bem_surfaces(
+                                fname, on_defects='warn'
+                            )[0]
                         else:
                             head_surf = _read_mri_surface(fname)
                         break
