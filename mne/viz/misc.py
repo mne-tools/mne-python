@@ -24,14 +24,14 @@ import numpy as np
 
 from ..defaults import DEFAULTS
 from ..fixes import _get_img_fdata
+from .._freesurfer import _mri_orientation, _read_mri_info, _check_mri
 from ..rank import compute_rank
 from ..surface import read_surface
 from ..io.constants import FIFF
 from ..io.proj import make_projector
 from ..io.pick import (_DATA_CH_TYPES_SPLIT, pick_types, pick_info,
                        pick_channels)
-from ..source_space import (read_source_spaces, SourceSpaces,
-                            _check_mri, _ensure_src)
+from ..source_space import read_source_spaces, SourceSpaces, _ensure_src
 from ..transforms import invert_transform, apply_trans, _frame_to_str
 from ..utils import (logger, verbose, warn, _check_option, get_subjects_dir,
                      _mask_to_onsets_offsets, _pl, _on_missing, fill_doc)
@@ -309,7 +309,6 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     """Plot BEM contours on anatomical slices."""
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
-    from .._freesurfer import _mri_orientation, _read_mri_info
     # For ease of plotting, we will do everything in voxel coordinates.
     _check_option('orientation', orientation, ('coronal', 'axial', 'sagittal'))
 

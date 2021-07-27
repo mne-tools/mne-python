@@ -435,6 +435,19 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
     return mri_mni_t
 
 
+def _check_mri(mri, subject, subjects_dir):
+    _validate_type(mri, 'path-like', 'mri')
+    if not op.isfile(mri):
+        if subject is None:
+            raise FileNotFoundError(
+                'MRI file %r not found and no subject provided' % (mri,))
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        mri = op.join(subjects_dir, subject, 'mri', mri)
+        if not op.isfile(mri):
+            raise FileNotFoundError('MRI file %r not found' % (mri,))
+    return mri
+
+
 def _read_mri_info(path, units='m', return_img=False, use_nibabel=False):
     # This is equivalent but 100x slower, so only use nibabel if we need to
     # (later):
