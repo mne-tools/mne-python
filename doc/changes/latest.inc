@@ -119,7 +119,7 @@ Enhancements
 
 - :meth:`mne.preprocessing.ICA.fit` now emits a warning if any of the ``start``, ``stop``, ``reject``, and ``flat`` parameters are passed when performing ICA on `~mne.Epochs`. These parameters only have an effect on `~mne.io.Raw` data and were previously silently ignored in the case of `~mne.Epochs` (:gh:`9605` by `Richard Höchenberger`_)
 
-- :meth:`mne.viz.plot_alignment` now emits a warning (instead of aborting with an exception) if the surfaces contain topological defects (:gh:`9614` by `Richard Höchenberger`_)
+- :func:`mne.viz.plot_alignment` now emits a warning (instead of aborting with an exception) if the surfaces contain topological defects (:gh:`9614` by `Richard Höchenberger`_)
 
 Bugs
 ~~~~
