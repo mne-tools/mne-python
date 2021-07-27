@@ -259,10 +259,7 @@ def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
         elif d['kind'] == FIFF.FIFFV_POINT_EXTRA:
             hsp.append(d['r'])
         elif d['kind'] == FIFF.FIFFV_POINT_EEG:
-            if exclude_ref_channel:
-                if d['ident'] != 0:  # ref channel
-                    dig_ch_pos_location.append(d['r'])
-            else:
+            if d['ident'] != 0 or not exclude_ref_channel:
                 dig_ch_pos_location.append(d['r'])
 
     dig_coord_frames = set([d['coord_frame'] for d in dig])
