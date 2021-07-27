@@ -152,6 +152,7 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
             from mpl_toolkits.axes_grid1 import make_axes_locatable
             divider = make_axes_locatable(axes[0, k])
             cax = divider.append_axes("right", size="5.5%", pad=0.05)
+            cax.grid(False)  # avoid mpl warning about auto-removal
             plt.colorbar(im, cax=cax, format='%.0e')
 
     fig_cov.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)

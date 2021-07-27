@@ -55,6 +55,7 @@ def test_artemis_reader():
 
 
 @pytest.mark.timeout(60)
+@testing.requires_testing_data
 def test_dev_head_t():
     """Test dev_head_t computation for Artemis123."""
     # test a random selected point

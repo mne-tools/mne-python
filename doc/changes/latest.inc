@@ -137,6 +137,8 @@ Bugs
 
 - Fix bug with `mne.io.read_raw_fieldtrip` and `mne.read_epochs_fieldtrip` where channel positions were not set properly (:gh:`9447` by `Eric Larson`_)
 
+- Fix bug with :func:`mne.io.read_raw_kit` where omitting HPI coils could lead to an :exc:`python:AssertionError` on reading (:gh:`9612` by `Eric Larson`_)
+
 - Fix bug with `mne.preprocessing.nirs.optical_density` where protection against zero values was not guaranteed (:gh:`9522` by `Eric Larson`_)
 
 - :func:`mne.concatenate_raws` now raises an exception if ``raw.info['dev_head_t']`` differs between files. This behavior can be controlled using the new ``on_mismatch`` parameter (:gh:`9438` by `Richard Höchenberger`_)

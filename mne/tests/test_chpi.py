@@ -308,6 +308,7 @@ def test_calculate_chpi_positions_vv():
         _calculate_chpi_positions(raw)
 
 
+@testing.requires_testing_data
 @pytest.mark.slowtest
 def test_calculate_chpi_snr():
     """Test cHPI SNR calculation."""
