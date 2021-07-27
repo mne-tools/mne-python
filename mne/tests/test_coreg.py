@@ -12,7 +12,8 @@ from numpy.testing import (assert_array_almost_equal, assert_allclose,
 import mne
 from mne.datasets import testing
 from mne.transforms import (Transform, apply_trans, rotation, translation,
-                            scaling)
+                            scaling, read_trans, _angle_between_quats,
+                            rot_to_quat)
 from mne.coreg import (fit_matched_points, create_default_subject, scale_mri,
                        _is_mri_subject, scale_labels, scale_source_space,
                        coregister_fiducials, get_mni_fiducials, Coregistration)
@@ -284,11 +285,14 @@ def test_get_mni_fiducials():
 @testing.requires_testing_data
 def test_coregistration():
     """Test automated coregistration."""
+    trans_fname = op.join(data_path, 'MEG', 'sample',
+                          'sample_audvis_trunc-trans.fif')
     fname_raw = op.join(op.dirname(__file__), '..', 'io',
                         'tests', 'data', 'test_raw.fif')
     subject = 'sample'
     subjects_dir = os.path.join(data_path, 'subjects')
     info = read_info(fname_raw)
+    trans = read_trans(trans_fname)
     coreg = Coregistration(info, subject=subject, subjects_dir=subjects_dir)
     assert np.allclose(coreg._last_parameters, coreg._parameters)
     default_params = list(coreg._default_parameters)
@@ -306,5 +310,8 @@ def test_coregistration():
     assert isinstance(coreg.trans, Transform)
     errs_icp = coreg.compute_dig_head_distances()
     assert np.median(errs_icp * 1000) < 4
+    assert np.rad2deg(_angle_between_quats(
+        rot_to_quat(coreg.trans['trans'][:3, :3]),
+        rot_to_quat(trans['trans'][:3, :3]))) < 9
     coreg.reset()
     assert np.allclose(coreg._parameters, default_params)
