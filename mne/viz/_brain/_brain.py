@@ -2318,7 +2318,7 @@ class Brain(object):
 
     @fill_doc
     def add_head(self, color=None, alpha=0.5):
-        """Add labels to the rendering from an anatomical segmentation.
+        """Add a mesh to render the outer head surface.
 
         Parameters
         ----------
