@@ -622,7 +622,7 @@ class _BaseSourceEstimate(TimeMixin):
         %(verbose_meth)s
         """
         _validate_type(fname, 'path-like', 'fname')
-        fname = _check_fname(fname=fname)
+        fname = _check_fname(fname=fname, overwrite=True)
         if ftype != 'h5':
             raise ValueError('%s objects can only be written as HDF5 files.'
                              % (self.__class__.__name__,))
@@ -1595,7 +1595,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         %(verbose_meth)s
         """
         _validate_type(fname, 'path-like', 'fname')
-        fname = _check_fname(fname=fname)
+        fname = _check_fname(fname=fname, overwrite=True)
         _check_option('ftype', ftype, ['stc', 'w', 'h5'])
 
         lh_data = self.data[:len(self.lh_vertno)]
@@ -2084,7 +2084,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         """
         import nibabel as nib
         _validate_type(fname, 'path-like', 'fname')
-        fname = _check_fname(fname=fname)
+        fname = _check_fname(fname=fname, overwrite=True)
         img = self.as_volume(src, dest=dest, mri_resolution=mri_resolution,
                              format=format)
         nib.save(img, fname)
@@ -2187,7 +2187,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         %(verbose_meth)s
         """
         _validate_type(fname, 'path-like', 'fname')
-        fname = _check_fname(fname=fname)
+        fname = _check_fname(fname=fname, overwrite=True)
         _check_option('ftype', ftype, ['stc', 'w', 'h5'])
         if ftype != 'h5' and len(self.vertices) != 1:
             raise ValueError('Can only write to .stc or .w if a single volume '

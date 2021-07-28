@@ -2143,7 +2143,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                            '(max: %s) requested' % (start, stop, n_times_max))
 
     # Expand `~` if present
-    fname = _check_fname(fname=fname)
+    fname = _check_fname(fname=fname, overwrite=overwrite)
 
     base, ext = op.splitext(fname)
     if part_idx > 0:

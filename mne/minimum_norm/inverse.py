@@ -331,7 +331,7 @@ def write_inverse_operator(fname, inv, verbose=None):
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz',
                                             '_inv.fif', '_inv.fif.gz'))
-    fname = _check_fname(fname=fname)
+    fname = _check_fname(fname=fname, overwrite=True)
 
     _validate_type(inv, InverseOperator, 'inv')
 

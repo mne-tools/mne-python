@@ -153,7 +153,7 @@ class Covariance(dict):
         """
         check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz',
                                           '_cov.fif', '_cov.fif.gz'))
-        fname = _check_fname(fname=fname)
+        fname = _check_fname(fname=fname, overwrite=True)
         fid = start_file(fname)
 
         try:
