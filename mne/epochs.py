@@ -3118,7 +3118,8 @@ class EpochsFIF(BaseEpochs):
                 fname=fname, filetype='epochs',
                 endings=('-epo.fif', '-epo.fif.gz', '_epo.fif', '_epo.fif.gz')
             )
-            fname = _check_fname(fname=fname, must_exist=True)
+            fname = _check_fname(fname=fname, must_exist=True,
+                                 overwrite='read')
         elif not preload:
             raise ValueError('preload must be used with file-like objects')
 

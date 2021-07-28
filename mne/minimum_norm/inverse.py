@@ -113,7 +113,7 @@ def read_inverse_operator(fname, verbose=None):
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz',
                                             '_inv.fif', '_inv.fif.gz'))
-    fname = _check_fname(fname=fname, must_exist=True)
+    fname = _check_fname(fname=fname, must_exist=True, overwrite='read')
     #
     #   Open the file, create directory
     #

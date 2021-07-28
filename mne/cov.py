@@ -384,7 +384,7 @@ def read_cov(fname, verbose=None):
     """
     check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz',
                                       '_cov.fif', '_cov.fif.gz'))
-    fname = _check_fname(fname=fname, must_exist=True)
+    fname = _check_fname(fname=fname, must_exist=True, overwrite='read')
     f, tree = fiff_open(fname)[:2]
     with f as fid:
         return Covariance(**_read_cov(fid, tree, FIFF.FIFFV_MNE_NOISE_COV,

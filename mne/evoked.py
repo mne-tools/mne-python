@@ -127,7 +127,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  verbose=None):  # noqa: D102
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
-        fname = _check_fname(fname=fname, must_exist=True)
+        fname = _check_fname(fname=fname, must_exist=True, overwrite='read')
         self.info, self.nave, self._aspect_kind, self.comment, self.times, \
             self.data, self.baseline = _read_evoked(fname, condition, kind,
                                                     allow_maxshield)

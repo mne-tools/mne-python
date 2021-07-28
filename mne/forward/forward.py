@@ -421,7 +421,7 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz',
                                    '_fwd.fif', '_fwd.fif.gz'))
-    fname = _check_fname(fname=fname, must_exist=True)
+    fname = _check_fname(fname=fname, must_exist=True, overwrite='read')
     #   Open the file, create directory
     logger.info('Reading forward solution from %s...' % fname)
     f, tree, _ = fiff_open(fname)

@@ -250,7 +250,7 @@ def read_source_estimate(fname, subject=None):
     """  # noqa: E501
     fname_arg = fname
     _validate_type(fname, 'path-like', 'fname')
-    fname = _check_fname(fname=fname, must_exist=True)
+    fname = _check_fname(fname=fname, must_exist=True, overwrite='read')
 
     # make sure corresponding file(s) can be found
     ftype = None
