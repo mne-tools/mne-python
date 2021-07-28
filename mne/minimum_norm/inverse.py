@@ -41,7 +41,7 @@ from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc, _get_src_type
 from ..utils import (check_fname, logger, verbose, warn, _validate_type,
                      _check_compensation_grade, _check_option,
-                     _check_depth, _check_src_normal)
+                     _check_depth, _check_src_normal, _check_fname)
 
 
 INVERSE_METHODS = ('MNE', 'dSPM', 'sLORETA', 'eLORETA')
@@ -113,7 +113,7 @@ def read_inverse_operator(fname, verbose=None):
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz',
                                             '_inv.fif', '_inv.fif.gz'))
-
+    fname = _check_fname(fname=fname, must_exist=True)
     #
     #   Open the file, create directory
     #
@@ -331,6 +331,8 @@ def write_inverse_operator(fname, inv, verbose=None):
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz',
                                             '_inv.fif', '_inv.fif.gz'))
+    fname = _check_fname(fname=fname)
+
     _validate_type(inv, InverseOperator, 'inv')
 
     #

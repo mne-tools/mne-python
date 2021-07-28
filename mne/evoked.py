@@ -22,7 +22,7 @@ from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     fill_doc, _check_option, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_installed, _check_pandas_index_arguments,
                     _convert_times, _scale_dataframe_data, _check_time_format,
-                    _check_preload)
+                    _check_preload, _check_fname)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -127,6 +127,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  verbose=None):  # noqa: D102
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
+        fname = _check_fname(fname=fname, must_exist=must_exist)
         self.info, self.nave, self._aspect_kind, self.comment, self.times, \
             self.data, self.baseline = _read_evoked(fname, condition, kind,
                                                     allow_maxshield)
@@ -277,7 +278,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return self
 
     def save(self, fname):
-        """Save dataset to file.
+        """Save evoked data to a file.
+
+        .. note:: To write multiple conditions into a single file, use
+                  `mne.write_evokeds` instead.
 
         Parameters
         ----------
@@ -287,13 +291,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Notes
         -----
-        To write multiple conditions into a single file, use
-        `mne.write_evokeds`.
-
         .. versionchanged:: 0.23
             Information on baseline correction will be stored with the data,
             and will be restored when reading again via `mne.read_evokeds`.
         """
+        fname = _check_fname(fname=fname)
         write_evokeds(fname, self)
 
     def __repr__(self):  # noqa: D105
@@ -1397,6 +1399,7 @@ def _write_evokeds(fname, evoked, check=True, *, on_mismatch='raise'):
     if check:
         check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz',
                                       '_ave.fif', '_ave.fif.gz'))
+    fname = _check_fname(fname=fname)
 
     if not isinstance(evoked, list):
         evoked = [evoked]
