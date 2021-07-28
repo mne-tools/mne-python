@@ -386,7 +386,8 @@ class EpochsKIT(BaseEpochs):
         if isinstance(events, str):
             events = read_events(events)
 
-        input_fname = _check_fname(fname=input_fname, must_exist=True)
+        input_fname = _check_fname(fname=input_fname, must_exist=True,
+                                   overwrite='read')
         logger.info('Extracting KIT Parameters from %s...' % input_fname)
         self.info, kit_info = get_kit_info(
             input_fname, allow_unknown_format, standardize_names)
