@@ -9,13 +9,14 @@ import os.path as op
 import numpy as np
 from gzip import GzipFile
 
+from .bem import _bem_find_surface, read_bem_surfaces
 from .io.constants import FIFF
 from .io.meas_info import read_fiducials
 from .transforms import (apply_trans, invert_transform, combine_transforms,
                          _ensure_trans, read_ras_mni_t, Transform)
-from .surface import read_surface
+from .surface import read_surface, _read_mri_surface
 from .utils import (verbose, _validate_type, _check_fname, _check_option,
-                    get_subjects_dir, _require_version)
+                    get_subjects_dir, _require_version, logger)
 
 
 def _check_subject_dir(subject, subjects_dir):
@@ -436,15 +437,16 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
 
 
 def _check_mri(mri, subject, subjects_dir):
+    """Check whether an mri exists in the Freesurfer subject directory."""
     _validate_type(mri, 'path-like', 'mri')
     if not op.isfile(mri):
         if subject is None:
             raise FileNotFoundError(
-                'MRI file %r not found and no subject provided' % (mri,))
+                f'MRI file {mri} not found and no subject provided')
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         mri = op.join(subjects_dir, subject, 'mri', mri)
         if not op.isfile(mri):
-            raise FileNotFoundError('MRI file %r not found' % (mri,))
+            raise FileNotFoundError(f'MRI file {mri} not found')
     return mri
 
 
@@ -537,3 +539,62 @@ def _get_lut(fname=None):
     lut = {d[0]: np.array(lut[d[0]], dtype=d[1]) for d in dtype}
     assert len(lut['name']) > 0
     return lut
+
+
+def get_head_surface(surf, subject, subjects_dir, bem=None):
+    """Get a head surface from the Freesurfer subject directory.
+
+    Parameters
+    ----------
+    surf : str
+        The name of the surface 'auto', 'head', 'outer_skin', 'head-dense'
+        or 'seghead'.
+    %(subject)s
+    %(subjects_dir)s
+
+    Returns
+    -------
+    verts : ndarray
+        The surface vertices or None if ``surf='auto'`` and none is found.
+    triangles : ndarray
+        The vertex triangles or None if ``surf='auto'`` and none is found.
+
+    Notes
+    -----
+    .. versionadded: 0.24
+    """
+    _check_option(
+        'surf', surf, ('auto', 'head', 'outer_skin', 'head-dense', 'seghead'))
+    if surf in ('auto', 'head', 'outer_skin'):
+        if bem is not None:
+            try:
+                return _bem_find_surface(bem, 'head')
+            except RuntimeError:
+                logger.info('Could not find the surface for '
+                            'head in the provided BEM model, '
+                            'looking in the subject directory.')
+    if subject is None:
+        if surf == 'auto':
+            return
+        raise ValueError('To plot the head surface, the BEM/sphere'
+                         ' model must contain a head surface '
+                         'or "subject" must be provided (got '
+                         'None)')
+    subject_dir = op.join(
+        get_subjects_dir(subjects_dir, raise_error=True), subject)
+    if surf in ('head-dense', 'seghead'):
+        try_fnames = [op.join(subject_dir, 'bem', f'{subject}-head-dense.fif'),
+                      op.join(subject_dir, 'surf', 'lh.seghead')]
+    else:
+        try_fnames = [op.join(subject_dir, 'bem', 'outer_skin.surf'),
+                      op.join(subject_dir, 'bem', 'flash', 'outer_skin.surf'),
+                      op.join(subject_dir, 'bem', f'{subject}-head.fif')]
+    for fname in try_fnames:
+        if op.exists(fname):
+            logger.info(f'Using {op.basename(fname)} for head surface.')
+            if op.splitext(fname)[-1] == '.fif':
+                return read_bem_surfaces(fname, on_defects='warn')[0]
+            else:
+                return _read_mri_surface(fname)
+    raise IOError('No head surface found for subject '
+                  f'{subject} after trying:\n' + '\n'.join(try_fnames))

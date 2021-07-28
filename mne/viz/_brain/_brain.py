@@ -34,8 +34,9 @@ from .._3d import _process_clim, _handle_time, _check_views
 
 from ...externals.decorator import decorator
 from ...defaults import _handle_default
-from ..._freesurfer import vertex_to_mni, read_talxfm, read_freesurfer_lut
-from ...surface import mesh_edges, _mesh_borders, _marching_cubes, read_surface
+from ..._freesurfer import (vertex_to_mni, read_talxfm, read_freesurfer_lut,
+                            get_head_surface)
+from ...surface import mesh_edges, _mesh_borders, _marching_cubes
 from ...source_space import SourceSpaces
 from ...transforms import apply_trans, invert_transform
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
@@ -2317,11 +2318,14 @@ class Brain(object):
         self._renderer._update()
 
     @fill_doc
-    def add_head(self, color=None, alpha=0.5):
+    def add_head(self, dense=True, color=None, alpha=0.5):
         """Add a mesh to render the outer head surface.
 
         Parameters
         ----------
+        dense : bool
+            Whether to plot the dense head (``seghead``) or the less dense head
+            (``head``).
         color : matplotlib-style color | None
             A list of anything matplotlib accepts: string, RGB, hex, etc.
             (default: "gray").
@@ -2334,11 +2338,10 @@ class Brain(object):
         """
         from matplotlib.colors import colorConverter
 
-        # load seghead
-        seghead_fname = _check_fname(
-            op.join(self._subjects_dir, self._subject_id,
-                    'surf', 'lh.seghead'), overwrite='read', must_exist=True)
-        verts, triangles = read_surface(seghead_fname)
+        # load head
+        surf = get_head_surface('seghead' if dense else 'head',
+                                self._subject_id, self._subjects_dir)
+        verts, triangles = surf['rr'], surf['tris']
         if color is None:
             color = 'gray'
         color = colorConverter.to_rgba(color, alpha)
