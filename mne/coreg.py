@@ -29,7 +29,7 @@ from .source_space import (add_source_space_distances, read_source_spaces,  # no
                            write_source_spaces)
 from .surface import (read_surface, write_surface, _normalize_vectors,
                       complete_surface_info, decimate_surface,
-                      _DistanceQuery)
+                      _DistanceQuery, dig_mri_distances)
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          _read_fs_xfm, _write_fs_xfm, invert_transform,
@@ -1271,6 +1271,10 @@ class Coregistration(object):
     """
 
     def __init__(self, info, subject, subjects_dir):
+        self._info = info
+        self._subject = subject
+        self._subjects_dir = subjects_dir
+
         self._rot_trans = None
         self._default_parameters = \
             np.array([0., 0., 0., 0., 0., 0., 1., 1., 1.])
@@ -1290,7 +1294,7 @@ class Coregistration(object):
 
         self._extra_points_filter = None
         self._dig = _get_data_as_dict_from_dig(
-            dig=info['dig'],
+            dig=self._info['dig'],
             exclude_ref_channel=False
         )
         # adjustments
@@ -1298,11 +1302,16 @@ class Coregistration(object):
         self._dig['nasion'] = np.array([self._dig['nasion']])
         self._dig['lpa'] = np.array([self._dig['lpa']])
 
-        self._setup_mri(subjects_dir=subjects_dir,
-                        subject=subject)
+        self._setup_mri(subjects_dir=self._subjects_dir,
+                        subject=self._subject)
         self.reset()
         self._nearest_calc = _DistanceQuery(
             self._processed_high_res_mri_points * self._scale)
+        self._update_params(
+            rot=self._default_parameters[:3],
+            tra=self._default_parameters[3:6],
+            sca=self._default_parameters[6:9],
+        )
 
     def _setup_mri(self, subjects_dir, subject):
         # find high-res head model (if possible)
@@ -1563,7 +1572,9 @@ class Coregistration(object):
         hsp_points = self._transformed_orig_dig_extra
         return np.linalg.norm(mri_points - hsp_points, axis=-1)
 
-    def fit_fiducials(self, lpa_weight=1., nasion_weight=10., rpa_weight=1.):
+    @verbose
+    def fit_fiducials(self, lpa_weight=1., nasion_weight=10., rpa_weight=1.,
+                      verbose=None):
         """Find rotation and translation to fit all 3 fiducials.
 
         Parameters
@@ -1574,7 +1585,10 @@ class Coregistration(object):
             Relative weight for nasion. The default value is 10.
         rpa_weight : float
             Relative weight for RPA. The default value is 1.
+        %(verbose)s
         """
+        if verbose:
+            self._log_dig_mri_distance()
         self._lpa_weight = lpa_weight
         self._nasion_weight = nasion_weight
         self._rpa_weight = rpa_weight
@@ -1590,6 +1604,8 @@ class Coregistration(object):
         est = fit_matched_points(mri_pts, head_pts, x0=x0, out='params',
                                  weights=weights)
         self._update_params(est[:3], est[3:6])
+        if verbose:
+            self._log_dig_mri_distance()
 
     def _setup_icp(self):
         head_pts = list()
@@ -1630,8 +1646,16 @@ class Coregistration(object):
         mri_pts *= self._scale  # not done in fit_matched_points
         return head_pts, mri_pts, weights
 
+    def _log_dig_mri_distance(self):
+        errs_nearest = dig_mri_distances(self._info, self.trans, self._subject,
+                                         self._subjects_dir)
+        logger.info('Median distance from digitized points to head surface '
+                    'using nearest neighbor is %.3f mm' % np.median(
+                        errs_nearest * 1000))
+
+    @verbose
     def fit_icp(self, n_iterations=20, lpa_weight=1., nasion_weight=10.,
-                rpa_weight=1.):
+                rpa_weight=1., verbose=None):
         """Find MRI scaling, translation, and rotation to match HSP.
 
         Parameters
@@ -1644,7 +1668,10 @@ class Coregistration(object):
             Relative weight for nasion. The default value is 10.
         rpa_weight : float
             Relative weight for RPA. The default value is 1.
+        %(verbose)s
         """
+        if verbose:
+            self._log_dig_mri_distance()
         self._lpa_weight = lpa_weight
         self._nasion_weight = nasion_weight
         self._rpa_weight = rpa_weight
@@ -1663,6 +1690,8 @@ class Coregistration(object):
             if angle <= self._icp_angle and move <= self._icp_distance and \
                     all(scale <= self._icp_scale):
                 break
+        if verbose:
+            self._log_dig_mri_distance()
 
     def omit_hsp_points(self, distance):
         """Exclude head shape points that are far away from the MRI head.
