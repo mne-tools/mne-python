@@ -47,6 +47,7 @@ fig = mne.viz.plot_alignment(info, trans=coreg.trans, **plot_kwargs)
 mne.viz.set_3d_view(fig, **view_kwargs)
 
 coreg.omit_hsp_points(distance=5. / 1000)  # distance is in meters
+
 # Do final coreg fit
 coreg.fit_icp(n_iterations=20, nasion_weight=10., verbose=True)
 fig = mne.viz.plot_alignment(info, trans=coreg.trans, **plot_kwargs)
