@@ -1269,13 +1269,18 @@ class MNEBrowseFigure(MNEFigure):
         duration = vmax - vmin
         buttons = self.mne.fig_annotation.mne.radio_ax.buttons
         labels = [label.get_text() for label in buttons.labels]
-        active_idx = labels.index(buttons.value_selected)
-        _merge_annotations(onset, onset + duration, labels[active_idx],
-                           self.mne.inst.annotations)
-        # if adding a span with an annotation label that is hidden, show it
-        if not self.mne.visible_annotations[buttons.value_selected]:
-            self.mne.show_hide_annotation_checkboxes.set_active(active_idx)
-        self._redraw(update_data=False, annotations=True)
+        if buttons.value_selected is not None:
+            active_idx = labels.index(buttons.value_selected)
+            _merge_annotations(onset, onset + duration, labels[active_idx],
+                               self.mne.inst.annotations)
+            # if adding a span with an annotation label that is hidden, show it
+            if not self.mne.visible_annotations[buttons.value_selected]:
+                self.mne.show_hide_annotation_checkboxes.set_active(active_idx)
+            self._redraw(update_data=False, annotations=True)
+        else:
+            logger.warning('No annotation-label exists! '
+                           'Add one by typing the name and clicking '
+                           'on "Add new label" in the annotation-dialog.')
 
     def _remove_annotation_hover_line(self):
         """Remove annotation line from the plot and reactivate selector."""
