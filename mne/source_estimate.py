@@ -250,7 +250,11 @@ def read_source_estimate(fname, subject=None):
     """  # noqa: E501
     fname_arg = fname
     _validate_type(fname, 'path-like', 'fname')
-    fname = _check_fname(fname=fname, must_exist=True, overwrite='read')
+
+    # Expand `~` if present
+    # We're not using _check_fname() here due to the particularities involved
+    # in STC file handling (-lh, -rh suffix) executed below
+    fname = op.expanduser(fname)
 
     # make sure corresponding file(s) can be found
     ftype = None
