@@ -25,12 +25,6 @@ data_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 subject = 'sample'
 fname_raw = op.join(data_path, 'MEG', subject, subject + '_audvis_raw.fif')
-fname_fids = op.join(subjects_dir, subject, 'bem', subject + '-fiducials.fif')
-fname_trans = op.join(data_path, 'MEG', subject,
-                      subject + 'audvis_raw_auto-trans.fif')
-src = mne.read_source_spaces(op.join(subjects_dir, subject, 'bem',
-                                     'sample-oct-6-src.fif'))
-
 info = read_info(fname_raw)
 
 # Set up coreg model
