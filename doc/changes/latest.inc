@@ -123,7 +123,7 @@ Enhancements
 
 - The coregistration GUI can now display the head surface even if there are topological defects. Previously, a low-resolution standard head unsuitable for individualized coregistration was displayed (:gh:`9614` by `Richard Höchenberger`_)
 
-- Add :meth:`mne.viz.Brain.add_head` to plot the head surface (:gh:`9617` by `Alex Rockhill`_)
+- Add :meth:`mne.viz.Brain.add_head` to plot the head surface (:gh:`9618` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
