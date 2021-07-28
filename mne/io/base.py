@@ -1446,7 +1446,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             raise ValueError('Complex data must be saved as "single" or '
                              '"double", not "short"')
 
-        # check for file existence
+        # check for file existence and expand `~` if present
         fname = _check_fname(fname, overwrite)
 
         if proj:
@@ -2141,6 +2141,9 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
     if start >= stop or stop > n_times_max:
         raise RuntimeError('Cannot write raw file with no data: %s -> %s '
                            '(max: %s) requested' % (start, stop, n_times_max))
+
+    # Expand `~` if present
+    fname = _check_fname(fname=fname)
 
     base, ext = op.splitext(fname)
     if part_idx > 0:
