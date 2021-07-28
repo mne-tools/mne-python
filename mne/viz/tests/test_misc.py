@@ -249,6 +249,7 @@ def test_plot_csd():
     plot_csd(csd, mode='coh')  # Plot coherence
 
 
+@testing.requires_testing_data
 def test_plot_chpi_snr():
     """Test plotting cHPI SNRs."""
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')

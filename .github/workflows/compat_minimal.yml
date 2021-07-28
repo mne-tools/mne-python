@@ -27,7 +27,6 @@ jobs:
       MNE_FORCE_SERIAL: true
       MNE_LOGGING_LEVEL: 'warning'
       MNE_SKIP_NETWORK_TEST: 1
-      MNE_SKIP_TESTING_DATASET_TESTS: true
       OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       PYTHON_VERSION: '3.7'
@@ -55,6 +54,9 @@ jobs:
       - shell: bash -el {0}
         run: ./tools/get_testing_version.sh
         name: 'Get testing version'
+      - shell: bash -el {0}
+        run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
+        name: Run tests with no testing data
       - uses: actions/cache@v2
         with:
           key: ${{ env.TESTING_VERSION }}

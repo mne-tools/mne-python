@@ -2459,7 +2459,7 @@ docdict['compute_proj_eog'] = f"""%(create_eog_epochs)s {compute_proj_common}
 
 # BEM
 docdict['on_defects'] = """
-on_defects : str
+on_defects : 'raise' | 'warn'
     What to do if the surface is found to have topological defects. Can be
     ``'raise'`` (default) to raise an error, or ``'warn'`` to emit a warning.
     Note that a lot of computations in MNE-Python assume the surfaces to be

@@ -104,6 +104,7 @@ def test_egi_mff_pause(fname, skip_times, event_times):
         assert skip == skip_times[ii]
 
 
+@requires_testing_data
 @pytest.mark.parametrize('fname', [
     egi_pause_fname,
     egi_eprime_pause_fname,
