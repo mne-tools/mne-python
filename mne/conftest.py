@@ -330,6 +330,11 @@ def garbage_collect():
     gc.collect()
 
 
+@pytest.fixture(params=['matplotlib'])
+def browser_backend(request, garbage_collect):
+    return request.param
+
+
 @pytest.fixture(params=["mayavi", "pyvistaqt"])
 def renderer(request, garbage_collect):
     """Yield the 3D backends."""
