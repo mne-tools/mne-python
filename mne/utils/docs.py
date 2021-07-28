@@ -1322,7 +1322,7 @@ stcs : instance of SourceEstimate | list of instances of SourceEstimate
 
 # Forward
 docdict['on_missing_fwd'] = """
-on_missing : str
+on_missing : 'raise' | 'warn' | 'ignore'
     %s ``stc`` has vertices that are not in ``fwd``.
 """ % (_on_missing_base,)
 docdict['dig_kinds'] = """
@@ -1618,7 +1618,7 @@ on_header_missing : str
     .. versionadded:: 0.22
 """ % (_on_missing_base,)
 docdict['on_missing_events'] = """
-on_missing : str
+on_missing : 'raise' | 'warn' | 'ignore'
     %s event numbers from ``event_id`` are missing from ``events``.
     When numbers from ``events`` are missing from ``event_id`` they will be
     ignored and a warning emitted; consider using ``verbose='error'`` in
@@ -1627,13 +1627,13 @@ on_missing : str
     .. versionadded:: 0.21
 """ % (_on_missing_base,)
 docdict['on_missing_montage'] = """
-on_missing : str
+on_missing : 'raise' | 'warn' | 'ignore'
     %s channels have missing coordinates.
 
     .. versionadded:: 0.20.1
 """ % (_on_missing_base,)
 docdict['on_missing_ch_names'] = """
-on_missing : str
+on_missing : 'raise' | 'warn' | 'ignore'
     %s entries in ch_names are not present in the raw instance.
 
     .. versionadded:: 0.23.0
@@ -2306,7 +2306,7 @@ raw : Raw object
     An instance of `~mne.io.Raw`.
 """
 docdict['epochs_on_missing'] = """
-on_missing : str
+on_missing : 'raise' | 'warn' | 'ignore'
     What to do if one or several event ids are not found in the recording.
     Valid keys are 'raise' | 'warn' | 'ignore'
     Default is 'raise'. If on_missing is 'warn' it will proceed but
@@ -2452,10 +2452,10 @@ docdict['compute_proj_eog'] = f"""%(create_eog_epochs)s {compute_proj_common}
 """ % docdict
 
 # BEM
-docdict['on_defects'] = """
-on_defects : 'raise' | 'warn'
-    What to do if the surface is found to have topological defects. Can be
-    ``'raise'`` (default) to raise an error, or ``'warn'`` to emit a warning.
+docdict['on_defects'] = f"""
+on_defects : 'raise' | 'warn' | 'ignore'
+    What to do if the surface is found to have topological defects.
+    {_on_missing_base} one or more defects are found.
     Note that a lot of computations in MNE-Python assume the surfaces to be
     topologically correct, topological defects may still make other
     computations (e.g., ``mne.make_bem_model`` and ``mne.make_bem_solution``)

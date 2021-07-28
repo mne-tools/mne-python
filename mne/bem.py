@@ -269,6 +269,8 @@ def _check_complete_surface(surf, copy=False, incomplete='raise', extra=''):
                        ', '.join(str(f) for f in fewer), extra))
         if incomplete == 'raise':
             raise RuntimeError(msg)
+        elif incomplete == 'ignore':
+            pass
         else:
             warn(msg)
     return surf
