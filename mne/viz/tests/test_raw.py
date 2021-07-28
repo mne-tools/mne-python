@@ -2,7 +2,6 @@
 #
 # License: Simplified BSD
 
-import os.path as op
 import itertools
 
 import numpy as np
@@ -11,39 +10,16 @@ import pytest
 import matplotlib
 import matplotlib.pyplot as plt
 
-from mne import read_events, pick_types, Annotations, create_info
+from mne import pick_types, Annotations, create_info
 from mne.datasets import testing
 from mne.fixes import _close_event
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
 from mne.utils import _dt_to_stamp, _click_ch_name, get_config, set_config
+from mne.io import RawArray
+from mne.utils import _dt_to_stamp, _click_ch_name
 from mne.viz.utils import _fake_click
 from mne.annotations import _sync_onset
 from mne.viz import plot_raw, plot_sensors
-
-ctf_dir = op.join(testing.data_path(download=False), 'CTF')
-ctf_fname_continuous = op.join(ctf_dir, 'testdata_ctf.ds')
-
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-event_name = op.join(base_dir, 'test-eve.fif')
-cov_fname = op.join(base_dir, 'test-cov.fif')
-
-
-@pytest.fixture()
-def raw():
-    """Get raw data."""
-    raw = read_raw_fif(raw_fname, preload=True)
-    # Throws a warning about a changed unit.
-    with pytest.warns(RuntimeWarning, match='unit'):
-        raw.set_channel_types({raw.ch_names[0]: 'ias'})
-    raw.pick_channels(raw.ch_names[:9])
-    raw.info.normalize_proj()  # Fix projectors after subselection
-    return raw
-
-
-def _get_events():
-    """Get events."""
-    return read_events(event_name)
 
 
 def _annotation_helper(raw, events=False):
@@ -370,10 +346,9 @@ def test_plot_raw_keypresses(raw):
         fig.canvas.key_press_event(key)
 
 
-def test_plot_raw_traces(raw):
+def test_plot_raw_traces(raw, events):
     """Test plotting of raw data."""
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
-    events = _get_events()
     plt.close('all')  # ensure all are closed
     fig = raw.plot(events=events, order=[1, 7, 5, 2, 3], n_channels=3,
                    group_by='original')
@@ -492,10 +467,10 @@ def test_plot_raw_traces(raw):
 
 
 @testing.requires_testing_data
-def test_plot_raw_white():
+def test_plot_raw_white(raw_orig, noise_cov_io):
     """Test plotting whitened raw data."""
-    raw = read_raw_fif(raw_fname).crop(0, 1).load_data()
-    fig = raw.plot(noise_cov=cov_fname)
+    raw_orig.crop(0, 1)
+    fig = raw_orig.plot(noise_cov=noise_cov_io)
     # toggle whitening
     fig.canvas.key_press_event('w')
     fig.canvas.key_press_event('w')
@@ -503,9 +478,9 @@ def test_plot_raw_white():
 
 
 @testing.requires_testing_data
-def test_plot_ref_meg():
+def test_plot_ref_meg(raw_ctf):
     """Test plotting ref_meg."""
-    raw_ctf = read_raw_ctf(ctf_fname_continuous).crop(0, 1).load_data()
+    raw_ctf.crop(0, 1)
     raw_ctf.plot()
     plt.close('all')
     pytest.raises(ValueError, raw_ctf.plot, group_by='selection')
@@ -578,9 +553,9 @@ def test_plot_raw_filtered(filtorder, raw):
     RawArray(np.zeros((1, 100)), create_info(1, 20., 'stim')).plot(lowpass=5)
 
 
-def test_plot_raw_psd(raw):
+def test_plot_raw_psd(raw, raw_orig):
     """Test plotting of raw psds."""
-    raw_orig = raw.copy()
+    raw_unchanged = raw.copy()
     # normal mode
     fig = raw.plot_psd(average=False)
     fig.canvas.resize_event()
@@ -637,7 +612,7 @@ def test_plot_raw_psd(raw):
         assert title == 'Magnetometers', title
         assert unit in ylabel, ylabel
     # test reject_by_annotation
-    raw = raw_orig
+    raw = raw_unchanged
     raw.set_annotations(Annotations([1, 5], [3, 3], ['test', 'test']))
     raw.plot_psd(reject_by_annotation=True)
     raw.plot_psd(reject_by_annotation=False)
@@ -652,7 +627,7 @@ def test_plot_raw_psd(raw):
         raw.plot_psd(xscale='blah')
 
     # gh-5046
-    raw = read_raw_fif(raw_fname, preload=True).crop(0, 1)
+    raw = raw_orig.crop(0, 1)
     picks = pick_types(raw.info, meg=True)
     raw.plot_psd(picks=picks, average=False)
     raw.plot_psd(picks=picks, average=True)

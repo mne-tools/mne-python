@@ -17,11 +17,14 @@ import pytest
 import numpy as np
 
 import mne
+from mne import read_events
 from mne.datasets import testing
 from mne.fixes import has_numba
+from mne.io import read_raw_fif, read_raw_ctf
 from mne.stats import cluster_level
 from mne.utils import _pl, _assert_no_instances, numerics
 
+# data from sample-dataset
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
 fname_evoked = op.join(s_path, 'sample_audvis_trunc-ave.fif')
@@ -33,10 +36,17 @@ fname_bem = op.join(bem_path, 'sample-1280-bem.fif')
 fname_aseg = op.join(test_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
 subjects_dir = op.join(test_path, 'subjects')
 fname_src = op.join(bem_path, 'sample-oct-4-src.fif')
-subjects_dir = op.join(test_path, 'subjects')
-fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
 fname_trans = op.join(s_path, 'sample_audvis_trunc-trans.fif')
 
+# CTF-Dataset
+ctf_dir = op.join(test_path, 'CTF')
+fname_ctf_continuous = op.join(ctf_dir, 'testdata_ctf.ds')
+
+# data from mne.io.tests.data
+base_dir = op.join(op.dirname(__file__), 'io', 'tests', 'data')
+fname_raw_io = op.join(base_dir, 'test_raw.fif')
+fname_event_io = op.join(base_dir, 'test-eve.fif')
+fname_cov_io = op.join(base_dir, 'test-cov.fif')
 
 collect_ignore = ['export/_eeglab.py']
 
@@ -214,6 +224,36 @@ def check_gui_ci(ci_macos, azure_windows):
         pytest.skip('Skipping GUI tests on MacOS CIs and Azure Windows')
 
 
+@pytest.fixture(scope='function')
+def raw_orig():
+    """Get raw data."""
+    raw = read_raw_fif(fname_raw_io, preload=True)
+    return raw
+
+
+@pytest.fixture(scope='function')
+def raw():
+    raw = read_raw_fif(fname_raw_io, preload=True)
+    # Throws a warning about a changed unit.
+    with pytest.warns(RuntimeWarning, match='unit'):
+        raw.set_channel_types({raw.ch_names[0]: 'ias'})
+    raw.pick_channels(raw.ch_names[:9])
+    raw.info.normalize_proj()  # Fix projectors after subselection
+    return raw
+
+
+@pytest.fixture(scope='function')
+def raw_ctf():
+    raw_ctf = read_raw_ctf(fname_ctf_continuous, preload=True)
+    return raw_ctf
+
+
+@pytest.fixture(scope='function')
+def events():
+    """Get events."""
+    return read_events(fname_event_io)
+
+
 @pytest.fixture(scope='session', params=[testing._pytest_param()])
 def _evoked():
     # This one is session scoped, so be sure not to modify it (use evoked
@@ -235,6 +275,9 @@ def noise_cov():
     """Get a noise cov from the testing dataset."""
     return mne.read_cov(fname_cov)
 
+@pytest.fixture
+def noise_cov_io():
+    return mne.read_cov(fname_cov_io)
 
 @pytest.fixture(scope='function')
 def bias_params_free(evoked, noise_cov):
