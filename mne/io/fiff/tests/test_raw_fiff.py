@@ -1790,6 +1790,7 @@ def test_corrupted(tmpdir):
 
 @testing.requires_testing_data
 def test_expand_user():
+    """Test that we're expanding `~` before reading and writing."""
     dir_sample = pathlib.Path('~/mne_data/MNE-testing-data/MEG/sample/')
     fname_in = dir_sample / 'sample_audvis_trunc_raw.fif'
     dir_out = dir_sample / 'tmp'
