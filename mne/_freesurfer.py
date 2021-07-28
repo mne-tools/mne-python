@@ -59,6 +59,7 @@ def _import_nibabel(why='use MRI files'):
 
 def _reorient_image(img, axcodes='RAS'):
     """Reorient an image to a given orientation.
+
     Parameters
     ----------
     img : instance of SpatialImage
@@ -66,12 +67,14 @@ def _reorient_image(img, axcodes='RAS'):
     axcodes : tuple | str
         The axis codes specifying the orientation, e.g. "RAS".
         See :func:`nibabel.orientations.aff2axcodes`.
+
     Returns
     -------
     img_data : ndarray
         The reoriented image data.
     vox_ras_t : ndarray
         The new transform from the new voxels to surface RAS.
+
     Notes
     -----
     .. versionadded:: 0.24
@@ -92,10 +95,12 @@ def _reorient_image(img, axcodes='RAS'):
 
 def _mri_orientation(orientation):
     """Get MRI orientation information from an image.
+
     Parameters
     ----------
     orientation : str
         Orientation that you want. Can be "axial", "saggital", or "coronal".
+
     Returns
     -------
     axis : int
@@ -104,6 +109,7 @@ def _mri_orientation(orientation):
         The dimension of the x axis.
     y : int
         The dimension of the y axis.
+
     Notes
     -----
     .. versionadded:: 0.21
