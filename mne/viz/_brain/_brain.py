@@ -2583,8 +2583,9 @@ class Brain(object):
             Show only label borders. If int, specify the number of steps
             (away from the true border) along the cortical mesh to include
             as part of the border definition.
-        alpha : float in [0, 1]
-            Alpha level to control opacity.
+        alpha : float
+            Opacity of the head surface. Must be between 0 and 1 (inclusive).
+            Default is 0.5.
         hemi : str | None
             If None, it is assumed to belong to the hemipshere being
             shown. If two hemispheres are being shown, data must exist
