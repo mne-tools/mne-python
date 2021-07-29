@@ -16,14 +16,18 @@ Compared to a Jupyter notebook, `mne.Report` is easier to deploy (the HTML
 pages it generates are self-contained and do not require a running Python
 environment) but less flexible (you can't change code and re-run something
 directly within the browser). This tutorial covers the basics of building a
-`~mne.Report`. As usual we'll start by importing the modules we need:
+`~mne.Report`. As usual we'll start by importing the modules and data we need:
 """
 
 # %%
 
-import os
+import os.path as op
 import matplotlib.pyplot as plt
 import mne
+
+data_path = mne.datasets.sample.data_path(verbose=False)
+sample_dir = op.join(data_path, 'MEG', 'sample')
+subjects_dir = op.join(data_path, 'subjects')
 
 # %%
 # Before getting started with :class:`mne.Report`, make sure the files you want
@@ -77,9 +81,8 @@ import mne
 # about not being able to render MRI and ``trans`` files without knowing the
 # subject.
 
-path = mne.datasets.sample.data_path(verbose=False)
 report = mne.Report(verbose=True)
-report.parse_folder(path, pattern='*raw.fif', render_bem=False)
+report.parse_folder(data_path, pattern='*raw.fif', render_bem=False)
 report.save('report_basic.html', overwrite=True)
 
 # %%
@@ -94,7 +97,7 @@ report.save('report_basic.html', overwrite=True)
 
 pattern = 'sample_audvis_filt-0-40_raw.fif'
 report = mne.Report(raw_psd=True, projs=True, verbose=True)
-report.parse_folder(path, pattern=pattern, render_bem=False)
+report.parse_folder(data_path, pattern=pattern, render_bem=False)
 report.save('report_raw_psd.html', overwrite=True)
 
 # %%
@@ -103,11 +106,10 @@ report.save('report_raw_psd.html', overwrite=True)
 # containing an `~mne.Info` dictionary, from which the channel locations can be
 # read.
 
-info_fname = os.path.join(path, 'MEG', 'sample',
-                          'sample_audvis_filt-0-40_raw.fif')
+info_fname = op.join(sample_dir, 'sample_audvis_filt-0-40_raw.fif')
 pattern = 'sample_audvis_*proj.fif'
 report = mne.Report(info_fname=info_fname, verbose=True)
-report.parse_folder(path, pattern=pattern, render_bem=False)
+report.parse_folder(data_path, pattern=pattern, render_bem=False)
 report.save('report_proj.html', overwrite=True)
 
 # %%
@@ -118,9 +120,8 @@ report.save('report_proj.html', overwrite=True)
 # expensive, we'll also pass the ``mri_decim`` parameter for the benefit of our
 # documentation servers, and skip processing the :file:`.fif` files:
 
-subjects_dir = os.path.join(path, 'subjects')
 report = mne.Report(subject='sample', subjects_dir=subjects_dir, verbose=True)
-report.parse_folder(path, pattern='', mri_decim=25)
+report.parse_folder(data_path, pattern='', mri_decim=25)
 report.save('report_mri_bem.html', overwrite=True)
 
 # %%
@@ -131,7 +132,7 @@ report.save('report_mri_bem.html', overwrite=True)
 
 pattern = 'sample_audvis-no-filter-ave.fif'
 report = mne.Report(verbose=True)
-report.parse_folder(path, pattern=pattern, render_bem=False)
+report.parse_folder(data_path, pattern=pattern, render_bem=False)
 report.save('report_evoked.html', overwrite=True)
 
 # %%
@@ -151,7 +152,7 @@ report.save('report_evoked.html', overwrite=True)
 baseline = (None, 0)
 pattern = 'sample_audvis-no-filter-ave.fif'
 report = mne.Report(baseline=baseline, verbose=True)
-report.parse_folder(path, pattern=pattern, render_bem=False)
+report.parse_folder(data_path, pattern=pattern, render_bem=False)
 report.save('report_evoked_baseline.html', overwrite=True)
 
 # %%
@@ -160,10 +161,10 @@ report.save('report_evoked_baseline.html', overwrite=True)
 # This will display ERP/ERF plots for both the original and whitened
 # :class:`~mne.Evoked` objects, but scalp topomaps only for the original.
 
-cov_fname = os.path.join(path, 'MEG', 'sample', 'sample_audvis-cov.fif')
+cov_fname = op.join(sample_dir, 'sample_audvis-cov.fif')
 baseline = (None, 0)
 report = mne.Report(cov_fname=cov_fname, baseline=baseline, verbose=True)
-report.parse_folder(path, pattern=pattern, render_bem=False)
+report.parse_folder(data_path, pattern=pattern, render_bem=False)
 report.save('report_evoked_whitened.html', overwrite=True)
 
 # %%
@@ -175,9 +176,9 @@ report.save('report_evoked_whitened.html', overwrite=True)
 # information and should work):
 
 pattern = 'sample_audvis-cov.fif'
-info_fname = os.path.join(path, 'MEG', 'sample', 'sample_audvis-ave.fif')
+info_fname = op.join(sample_dir, 'sample_audvis-ave.fif')
 report = mne.Report(info_fname=info_fname, verbose=True)
-report.parse_folder(path, pattern=pattern, render_bem=False)
+report.parse_folder(data_path, pattern=pattern, render_bem=False)
 report.save('report_cov.html', overwrite=True)
 
 # %%
@@ -190,7 +191,7 @@ report.save('report_cov.html', overwrite=True)
 
 report = mne.Report(verbose=True)
 
-fname_raw = os.path.join(path, 'MEG', 'sample', 'sample_audvis_raw.fif')
+fname_raw = op.join(sample_dir, 'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(fname_raw, verbose=False).crop(tmax=60)
 events = mne.find_events(raw, stim_channel='STI 014')
 event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
@@ -227,7 +228,7 @@ figs = list()
 times = evoked_aud_left.times[::30]
 for t in times:
     figs.append(evoked_aud_left.plot_topomap(t, vmin=-300, vmax=300, res=100,
-                show=False))
+                                             show=False))
     plt.close(figs[-1])
 report.add_slider_to_section(figs, times, 'Evoked Response',
                              image_format='png')  # can also use 'svg'
@@ -245,7 +246,7 @@ report.save('report_slider.html', overwrite=True)
 report = mne.Report(info_fname=info_fname, subject='sample',
                     subjects_dir=subjects_dir, verbose=True)
 pattern = "sample_audvis_raw-trans.fif"
-report.parse_folder(path, pattern=pattern, render_bem=False)
+report.parse_folder(data_path, pattern=pattern, render_bem=False)
 report.save('report_coreg.html', overwrite=True)
 
 # %%
@@ -258,7 +259,7 @@ report.save('report_coreg.html', overwrite=True)
 # :meth:`mne.viz.Brain.screenshot` method to save the figs in a slider.
 
 report = mne.Report(verbose=True)
-fname_stc = os.path.join(path, 'MEG', 'sample', 'sample_audvis-meg')
+fname_stc = op.join(sample_dir, 'sample_audvis-meg')
 stc = mne.read_source_estimate(fname_stc, subject='sample')
 figs = list()
 kwargs = dict(subjects_dir=subjects_dir, initial_time=0.13,
