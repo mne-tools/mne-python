@@ -18,9 +18,10 @@ from mne.datasets import sample
 data_path = sample.data_path()
 
 # the raw file containing the channel location + types
-raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
+sample_dir = op.join(data_path, 'MEG', 'sample',)
+raw_fname = op.join(sample_dir, 'sample_audvis_raw.fif')
 # The paths to Freesurfer reconstructions
-subjects_dir = data_path + '/subjects'
+subjects_dir = op.join(data_path, 'subjects')
 subject = 'sample'
 
 # %%
@@ -75,7 +76,7 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 # alignment with the following code.
 
 # The transformation file obtained by coregistration
-trans = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
+trans = op.join(sample_dir, 'sample_audvis_raw-trans.fif')
 
 info = mne.io.read_info(raw_fname)
 # Here we look at the dense head, which isn't used for BEM computations but

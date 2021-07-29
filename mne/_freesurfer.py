@@ -57,44 +57,68 @@ def _import_nibabel(why='use MRI files'):
     return nib
 
 
-def _mri_orientation(img, orientation):
-    """Get MRI orientation information from an image.
+def _reorient_image(img, axcodes='RAS'):
+    """Reorient an image to a given orientation.
 
     Parameters
     ----------
     img : instance of SpatialImage
         The MRI image.
+    axcodes : tuple | str
+        The axis codes specifying the orientation, e.g. "RAS".
+        See :func:`nibabel.orientations.aff2axcodes`.
+
+    Returns
+    -------
+    img_data : ndarray
+        The reoriented image data.
+    vox_ras_t : ndarray
+        The new transform from the new voxels to surface RAS.
+
+    Notes
+    -----
+    .. versionadded:: 0.24
+    """
+    import nibabel as nib
+    orig_data = np.array(img.dataobj).astype(np.float32)
+    # reorient data to RAS
+    ornt = nib.orientations.axcodes2ornt(
+        nib.orientations.aff2axcodes(img.affine)).astype(int)
+    ras_ornt = nib.orientations.axcodes2ornt(axcodes)
+    ornt_trans = nib.orientations.ornt_transform(ornt, ras_ornt)
+    img_data = nib.orientations.apply_orientation(orig_data, ornt_trans)
+    orig_mgh = nib.MGHImage(orig_data, img.affine)
+    aff_trans = nib.orientations.inv_ornt_aff(ornt_trans, img.shape)
+    vox_ras_t = np.dot(orig_mgh.header.get_vox2ras_tkr(), aff_trans)
+    return img_data, vox_ras_t
+
+
+def _mri_orientation(orientation):
+    """Get MRI orientation information from an image.
+
+    Parameters
+    ----------
     orientation : str
         Orientation that you want. Can be "axial", "saggital", or "coronal".
 
     Returns
     -------
-    xyz : tuple, shape (3,)
-        The dimension indices for X, Y, and Z.
-    flips : tuple, shape (3,)
-        Whether each dimension requires a flip.
-    order : tuple, shape (3,)
-        The resulting order of the data if the given ``xyz`` and ``flips``
-        are used.
+    axis : int
+        The dimension of the axis to take slices over when plotting.
+    x : int
+        The dimension of the x axis.
+    y : int
+        The dimension of the y axis.
 
     Notes
     -----
     .. versionadded:: 0.21
+    .. versionchanged:: 0.24
     """
-    import nibabel as nib
-    _validate_type(img, nib.spatialimages.SpatialImage)
     _check_option('orientation', orientation, ('coronal', 'axial', 'sagittal'))
-    axcodes = ''.join(nib.orientations.aff2axcodes(img.affine))
-    flips = {o: (1 if o in axcodes else -1) for o in 'RAS'}
-    axcodes = axcodes.replace('L', 'R').replace('P', 'A').replace('I', 'S')
-    order = dict(
-        coronal=('R', 'S', 'A'),
-        axial=('R', 'A', 'S'),
-        sagittal=('A', 'S', 'R'),
-    )[orientation]
-    xyz = tuple(axcodes.index(c) for c in order)
-    flips = tuple(flips[c] for c in order)
-    return xyz, flips, order
+    axis = dict(coronal=1, axial=2, sagittal=0)[orientation]
+    x, y = sorted(set([0, 1, 2]).difference(set([axis])))
+    return axis, x, y
 
 
 def _get_mri_info_data(mri, data):

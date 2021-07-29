@@ -24,7 +24,7 @@ from . import read_evokeds, read_events, pick_types, read_cov
 from .io import read_raw, read_info
 from .io._read_raw import supported as extension_reader_map
 from .io.pick import _DATA_CH_TYPES_SPLIT
-from ._freesurfer import _mri_orientation
+from ._freesurfer import _reorient_image, _mri_orientation
 from .utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                     fill_doc, _check_option, _validate_type, _safe_input)
 from .viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
@@ -150,12 +150,9 @@ def _figs_to_mrislices(sl, n_jobs, **kwargs):
     parallel, p_fun, _ = parallel_func(_plot_mri_contours, use_jobs)
     outs = parallel(p_fun(slices=s, **kwargs)
                     for s in np.array_split(sl, use_jobs))
-    # deal with flip_z
-    flip_z = 1
     out = list()
     for o in outs:
-        o, flip_z = o
-        out.extend(o[::flip_z])
+        out.extend(o)
     return out
 
 
@@ -1875,8 +1872,9 @@ class Report(object):
         """Render one axis of bem contours (only PNG)."""
         import nibabel as nib
         nim = nib.load(mri_fname)
-        (_, _, z), _, _ = _mri_orientation(nim, orientation)
-        n_slices = nim.shape[z]
+        data = _reorient_image(nim)[0]
+        axis = _mri_orientation(orientation)[0]
+        n_slices = data.shape[axis]
 
         name = orientation
         html = []
