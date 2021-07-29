@@ -196,6 +196,8 @@ def test_brain_init(renderer_pyvistaqt, tmpdir, pixel_ratio, brain_gc):
         Brain(hemi=hemi, surf=surf, interaction='foo', **kwargs)
     with pytest.raises(FileNotFoundError, match=r'lh\.whatever'):
         Brain(subject_id, 'lh', 'whatever')
+    with pytest.raises(ValueError, match='`surf` cannot be seghead'):
+        Brain(hemi='lh', surf='seghead', **kwargs)
     Brain(subject_id, hemi=None, surf=None)  # test no surfaces
     renderer_pyvistaqt.backend._close_all()
 
@@ -312,6 +314,9 @@ def test_brain_init(renderer_pyvistaqt, tmpdir, pixel_ratio, brain_gc):
     # add foci
     brain.add_foci([0], coords_as_verts=True,
                    hemi=hemi, color='blue')
+
+    # add head
+    brain.add_head(color='red', alpha=0.1)
 
     # add volume labels
     brain.add_volume_labels(

@@ -21,7 +21,7 @@ import numpy as np
 
 from ..defaults import DEFAULTS
 from ..fixes import _crop_colorbar, _get_img_fdata, _get_args
-from .._freesurfer import _read_mri_info, _check_mri
+from .._freesurfer import _read_mri_info, _check_mri, _get_head_surface
 from ..io import _loc_to_coil_trans
 from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
@@ -41,8 +41,7 @@ from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      _ensure_int, _validate_type, _check_option)
 from .utils import (mne_analyze_colormap, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
-from ..bem import (ConductorModel, _bem_find_surface,
-                   read_bem_surfaces, _ensure_bem_surfaces)
+from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
 
 
 verbose_dec = verbose
@@ -681,65 +680,15 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     surfs = dict()
 
     # Head:
-    head = False
-    for s in surfaces:
-        if s in ('auto', 'head', 'outer_skin', 'head-dense', 'seghead'):
-            if head:
-                raise ValueError('Can only supply one head-like surface name')
-            surfaces.pop(surfaces.index(s))
-            head = True
-            head_surf = None
-            # Try the BEM if applicable
-            if s in ('auto', 'head', 'outer_skin'):
-                if bem is not None:
-                    head_missing = (
-                        'Could not find the surface for '
-                        'head in the provided BEM model, '
-                        'looking in the subject directory.')
-                    try:
-                        head_surf = _bem_find_surface(bem, 'head')
-                    except RuntimeError:
-                        logger.info(head_missing)
-            if head_surf is None:
-                if subject is None:
-                    if s == 'auto':
-                        # ignore
-                        continue
-                    raise ValueError('To plot the head surface, the BEM/sphere'
-                                     ' model must contain a head surface '
-                                     'or "subject" must be provided (got '
-                                     'None)')
-                subject_dir = op.join(
-                    get_subjects_dir(subjects_dir, raise_error=True), subject)
-                if s in ('head-dense', 'seghead'):
-                    try_fnames = [
-                        op.join(subject_dir, 'bem', '%s-head-dense.fif'
-                                % subject),
-                        op.join(subject_dir, 'surf', 'lh.seghead'),
-                    ]
-                else:
-                    try_fnames = [
-                        op.join(subject_dir, 'bem', 'outer_skin.surf'),
-                        op.join(subject_dir, 'bem', 'flash',
-                                'outer_skin.surf'),
-                        op.join(subject_dir, 'bem', '%s-head.fif'
-                                % subject),
-                    ]
-                for fname in try_fnames:
-                    if op.exists(fname):
-                        logger.info('Using %s for head surface.'
-                                    % (op.basename(fname),))
-                        if op.splitext(fname)[-1] == '.fif':
-                            head_surf = read_bem_surfaces(
-                                fname, on_defects='warn'
-                            )[0]
-                        else:
-                            head_surf = _read_mri_surface(fname)
-                        break
-                else:
-                    raise IOError('No head surface found for subject '
-                                  '%s after trying:\n%s'
-                                  % (subject, '\n'.join(try_fnames)))
+    heads = [s for s in surfaces if s in
+             ('auto', 'head', 'outer_skin', 'head-dense', 'seghead')]
+    if len(heads) > 1:
+        raise ValueError('Can only supply one head-like surface name, '
+                         f'got {heads}')
+    elif heads:
+        surfaces.pop(surfaces.index(heads[0]))
+        head_surf = _get_head_surface(heads[0], subject, subjects_dir, bem=bem)
+        if head_surf is not None:
             surfs['head'] = head_surf
 
     # Skull:
