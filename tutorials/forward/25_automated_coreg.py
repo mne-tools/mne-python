@@ -20,13 +20,18 @@ import os.path as op
 import mne
 from mne.coreg import Coregistration
 from mne.io import read_info
+from mne.datasets import fetch_fsaverage
+
 
 data_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 subject = 'sample'
+
+# use mne-python's fsaverage data
+fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
+
 fname_raw = op.join(data_path, 'MEG', subject, subject + '_audvis_raw.fif')
 info = read_info(fname_raw)
-
 plot_kwargs = dict(subject=subject, subjects_dir=subjects_dir,
                    surfaces=dict(head=0.4), dig=True, eeg=[],
                    meg=False, coord_frame='meg')
