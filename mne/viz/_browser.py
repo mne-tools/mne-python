@@ -1,10 +1,24 @@
+import importlib
+from contextlib import contextmanager
+
+import numpy as np
 from abc import ABC
 from copy import deepcopy
 from itertools import cycle
 
-import numpy as np
-from mne.annotations import _sync_onset
-from mne.viz.utils import _get_color_list, _setup_plot_projector
+from .backends._utils import VALID_2D_BACKENDS
+from .. import get_config
+from ..annotations import _sync_onset
+from ..utils import logger, verbose, _validate_type, _check_option
+from ..viz.utils import _get_color_list, _setup_plot_projector
+
+MNE_2D_BACKEND = None
+
+_backend_name_map = dict(
+    matplotlib='._figure',
+    pyvistaqt='._pyqtgraph'
+)
+backend = None
 
 
 class BrowserParams:
@@ -310,3 +324,161 @@ class BrowserBase(ABC):
         """This is usually not necessary for the pyqtgraph-backend as
         the redraw of objects is often handled by pyqtgraph internally."""
         pass
+
+
+def _reload_backend(backend_name):
+    global backend
+    backend = importlib.import_module(name=_backend_name_map[backend_name],
+                                      package='mne.viz')
+    logger.info(f'Using {backend_name} as 2d backend.\n')
+
+
+def _get_browser(inst, **kwargs):
+    """Instantiate a new MNE browse-style figure."""
+    from .utils import _get_figsize_from_config
+    figsize = kwargs.pop('figsize', _get_figsize_from_config())
+
+    _get_2d_backend()
+    browser = backend._init_browser(inst, figsize, **kwargs)
+
+    return browser
+
+
+def _check_2d_backend_name(backend_name):
+    _validate_type(backend_name, str, 'backend_name')
+    _check_option('backend_name', backend_name, VALID_2D_BACKENDS)
+    return backend_name
+
+
+@verbose
+def set_2d_backend(backend_name, verbose=None):
+    """Set the 2D backend for MNE.
+
+    The backend will be set as specified and operations will use
+    that backend.
+
+    Parameters
+    ----------
+    backend_name : str
+        The 2d backend to select. See Notes for the capabilities of each
+        backend (``'matplotlib'``, ``'pyqtgraph'``).
+
+    %(verbose)s
+
+    Returns
+    -------
+    old_backend_name : str | None
+        The old backend that was in use.
+
+    Notes
+    -----
+    This table shows the capabilities of each backend ("✓" for full support,
+    and "-" for partial support):
+
+    .. table::
+       :widths: auto
+
+       +--------------------------------------+------------+-----------+
+       | **2D function:**                     | matplotlib | pyqtgraph |
+       +======================================+============+===========+
+       | :func:`plot_raw`                     | ✓          | ✓         |
+       +--------------------------------------+------------+-----------+
+       | :func:`plot_epochs`                  | ✓          |           |
+       +--------------------------------------+------------+-----------+
+       | :func:`plot_ica_sources`             | ✓          |           |
+       +--------------------------------------+------------+-----------+
+       +--------------------------------------+------------+-----------+
+       | **Feature:**
+       +--------------------------------------+------------+-----------+
+       | Annotations                          | ✓          | ✓         |
+       +--------------------------------------+------------+-----------+
+       | Toggle Projections                   | ✓          |           |
+       +--------------------------------------+------------+-----------+
+       | Butterfly-Mode                       | ✓          |           |
+       +--------------------------------------+------------+-----------+
+       | Smooth Scrolling                     |            | ✓         |
+       +--------------------------------------+------------+-----------+
+       | OpenGl-Acceleration                  |            | ✓         |
+       +--------------------------------------+------------+-----------+
+       | Toolbar                              |            | ✓         |
+       +--------------------------------------+------------+-----------+
+       | Dark Mode                            |            |           |
+       +--------------------------------------+------------+-----------+
+    """
+    global MNE_2D_BACKEND
+    old_backend_name = MNE_2D_BACKEND
+    backend_name = _check_2d_backend_name(backend_name)
+    if MNE_2D_BACKEND != backend_name:
+        _reload_backend(backend_name)
+        MNE_2D_BACKEND = backend_name
+
+    return old_backend_name
+
+
+def _get_2d_backend():
+    global MNE_2D_BACKEND
+    if MNE_2D_BACKEND is None:
+        MNE_2D_BACKEND = get_config(key='MNE_2D_BACKEND', default=None)
+        if MNE_2D_BACKEND is None:  # try them in order
+            errors = dict()
+            for name in VALID_2D_BACKENDS:
+                try:
+                    _reload_backend(name)
+                except ImportError as exc:
+                    errors[name] = str(exc)
+                else:
+                    MNE_2D_BACKEND = name
+                    print(MNE_2D_BACKEND)
+                    break
+            else:
+                raise RuntimeError(
+                    'Could not load any valid 2D backend:\n' +
+                    "\n".join(
+                        f'{key}: {val}' for key, val in errors.items()))
+        else:
+            MNE_2D_BACKEND = _check_2d_backend_name(MNE_2D_BACKEND)
+            _reload_backend(MNE_2D_BACKEND)
+    MNE_2D_BACKEND = _check_2d_backend_name(MNE_2D_BACKEND)
+    return MNE_2D_BACKEND
+
+
+def get_2d_backend():
+    """Return the 2D backend currently used.
+
+    Returns
+    -------
+    backend_used : str | None
+        The 2d backend currently in use. If no backend is found,
+        returns ``None``.
+    """
+    try:
+        backend = _get_2d_backend()
+    except RuntimeError as exc:
+        backend = None
+        logger.info(str(exc))
+    return backend
+
+
+@contextmanager
+def use_2d_backend(backend_name):
+    """Create a 3d visualization context using the designated backend.
+
+    See :func:`mne.viz.set_3d_backend` for more details on the available
+    3d backends and their capabilities.
+
+    Parameters
+    ----------
+    backend_name : {'mayavi', 'pyvistaqt', 'notebook'}
+        The 3d backend to use in the context.
+    """
+    old_backend = set_2d_backend(backend_name)
+    try:
+        yield
+    finally:
+        if old_backend is not None:
+            try:
+                set_2d_backend(old_backend)
+            except Exception:
+                pass
+
+

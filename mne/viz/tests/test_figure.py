@@ -3,7 +3,8 @@
 # License: Simplified BSD
 
 import pytest
-from mne.viz._figure import _psd_figure, _get_browser
+from mne.viz._figure import _psd_figure
+from mne.viz._browser import _get_browser
 
 
 def test_browse_figure_constructor():

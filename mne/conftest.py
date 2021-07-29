@@ -275,9 +275,11 @@ def noise_cov():
     """Get a noise cov from the testing dataset."""
     return mne.read_cov(fname_cov)
 
+
 @pytest.fixture
 def noise_cov_io():
     return mne.read_cov(fname_cov_io)
+
 
 @pytest.fixture(scope='function')
 def bias_params_free(evoked, noise_cov):

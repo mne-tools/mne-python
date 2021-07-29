@@ -203,7 +203,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     ``True``. This flag can be toggled by pressing 'd'.
     """
     from ..io.base import BaseRaw
-    from ._figure import _get_browser
+    from ._browser import _get_browser, get_2d_backend
 
     info = raw.info.copy()
     sfreq = info['sfreq']
@@ -347,11 +347,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   scalebars_visible=show_scalebars,
                   window_title=title)
 
-    params['browser_backend'] = 'matplotlib'
-
     fig = _get_browser(**params)
 
-    if params['browser_backend'] == 'matplotlib':
+    if get_2d_backend() == 'matplotlib':
         fig._update_picks()
 
         # make channel selection dialog,
