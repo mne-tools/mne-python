@@ -2458,7 +2458,7 @@ on_defects : 'raise' | 'warn' | 'ignore'
     {_on_missing_base} one or more defects are found.
     Note that a lot of computations in MNE-Python assume the surfaces to be
     topologically correct, topological defects may still make other
-    computations (e.g., ``mne.make_bem_model`` and ``mne.make_bem_solution``)
+    computations (e.g., `mne.make_bem_model` and `mne.make_bem_solution`)
     fail irrespective of this parameter.
 """
 
