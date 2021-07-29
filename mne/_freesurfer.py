@@ -541,7 +541,8 @@ def _get_lut(fname=None):
     return lut
 
 
-def get_head_surface(surf, subject, subjects_dir, bem=None):
+@verbose
+def _get_head_surface(surf, subject, subjects_dir, bem=None, verbose=None):
     """Get a head surface from the Freesurfer subject directory.
 
     Parameters
@@ -551,13 +552,16 @@ def get_head_surface(surf, subject, subjects_dir, bem=None):
         or 'seghead'.
     %(subject)s
     %(subjects_dir)s
+    bem : mne.bem.ConductorModel | None
+        The conductor model that stores information about the head surface.
+    %(verbose)s
 
     Returns
     -------
-    verts : ndarray
-        The surface vertices or None if ``surf='auto'`` and none is found.
-    triangles : ndarray
-        The vertex triangles or None if ``surf='auto'`` and none is found.
+    head_surf : dict | None
+        A dictionary with keys 'rr', 'tris', 'ntri', 'use_tris', 'np'
+        and 'coord_frame' that store information for mesh plotting and other
+        useful information about the head surface.
 
     Notes
     -----

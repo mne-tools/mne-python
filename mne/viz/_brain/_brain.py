@@ -35,7 +35,7 @@ from .._3d import _process_clim, _handle_time, _check_views
 from ...externals.decorator import decorator
 from ...defaults import _handle_default
 from ..._freesurfer import (vertex_to_mni, read_talxfm, read_freesurfer_lut,
-                            get_head_surface)
+                            _get_head_surface)
 from ...surface import mesh_edges, _mesh_borders, _marching_cubes
 from ...source_space import SourceSpaces
 from ...transforms import apply_trans, invert_transform
@@ -2339,8 +2339,8 @@ class Brain(object):
         from matplotlib.colors import colorConverter
 
         # load head
-        surf = get_head_surface('seghead' if dense else 'head',
-                                self._subject_id, self._subjects_dir)
+        surf = _get_head_surface('seghead' if dense else 'head',
+                                 self._subject_id, self._subjects_dir)
         verts, triangles = surf['rr'], surf['tris']
         if color is None:
             color = 'gray'

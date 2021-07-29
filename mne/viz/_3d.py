@@ -21,7 +21,7 @@ import numpy as np
 
 from ..defaults import DEFAULTS
 from ..fixes import _crop_colorbar, _get_img_fdata, _get_args
-from .._freesurfer import _read_mri_info, _check_mri, get_head_surface
+from .._freesurfer import _read_mri_info, _check_mri, _get_head_surface
 from ..io import _loc_to_coil_trans
 from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
@@ -687,7 +687,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                          f'got {heads}')
     elif heads:
         surfaces.pop(surfaces.index(heads[0]))
-        head_surf = get_head_surface(heads[0], subject, subjects_dir, bem=bem)
+        head_surf = _get_head_surface(heads[0], subject, subjects_dir, bem=bem)
         if head_surf is not None:
             surfs['head'] = head_surf
 
