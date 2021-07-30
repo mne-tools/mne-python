@@ -44,9 +44,10 @@ import platform
 import warnings
 
 import numpy as np
+from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
-from mne.viz._browser import BrowserBase
 
+from ._browser import BrowserBase
 from .epochs import plot_epochs_image
 from .ica import (_create_properties_layout, _fast_plot_ica_properties,
                   _prepare_data_ica_properties)
@@ -69,13 +70,14 @@ ANNOTATION_FIG_W = 5.0
 ANNOTATION_FIG_CHECKBOX_COLUMN_W = 0.5
 
 
-class MNEFigure(Figure, BrowserBase):
+class MNEFigure(Figure):
     """Base class for 2D figures & dialogs; wraps matplotlib.figure.Figure."""
 
     def __init__(self, **kwargs):
         from matplotlib import rcParams
         # figsize is the only kwarg we pass to matplotlib Figure()
         figsize = kwargs.pop('figsize', None)
+        super().__init__(figsize=figsize)
         # things we'll almost always want
         defaults = dict(fgcolor=rcParams['axes.edgecolor'],
                         bgcolor=rcParams['axes.facecolor'])
@@ -83,9 +85,13 @@ class MNEFigure(Figure, BrowserBase):
             if key not in kwargs:
                 kwargs[key] = value
 
-        # ToDo: How would I do that with super()??
-        Figure.__init__(self, figsize=figsize)
-        BrowserBase.__init__(self, **kwargs)
+        # add param object if not already added (e.g. by BrowserBase)
+        if not hasattr(self, 'mne'):
+            from ._browser import BrowserParams
+            self.mne = BrowserParams(**kwargs)
+        else:
+            for key in [k for k in kwargs if not hasattr(self.mne, k)]:
+                setattr(self.mne, key, kwargs[key])
 
     def _close(self, event):
         """Handle close events."""
@@ -303,7 +309,7 @@ class MNESelectionFigure(MNEFigure):
         parent._update_highlighted_sensors()
 
 
-class MNEBrowseFigure(MNEFigure):
+class MNEBrowseFigure(BrowserBase, MNEFigure):
     """Interactive figure with scrollbars, for data browsing."""
 
     def __init__(self, inst, figsize, ica=None,
@@ -317,7 +323,13 @@ class MNEBrowseFigure(MNEFigure):
         from mpl_toolkits.axes_grid1.axes_size import Fixed
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 
-        super().__init__(figsize=figsize, inst=inst, ica=ica, **kwargs)
+        kwargs.update({'inst': inst,
+                       'figsize': figsize,
+                       'ica': ica,
+                       'xlabel': xlabel})
+
+        BrowserBase.__init__(self, **kwargs)
+        MNEFigure.__init__(self, **kwargs)
 
         # MAIN AXES: default sizes (inches)
         # XXX simpler with constrained_layout? (when it's no longer "beta")
@@ -2061,6 +2073,88 @@ class MNEBrowseFigure(MNEFigure):
                 self.draw_artist(artist)
         self.mne.vline_visible = visible
         self.canvas.draw_idle()
+
+    def _close_all(self):
+        plt.close('all')
+
+    # workaround: plt.close() doesn't spawn close_event on Agg backend
+    # (check MPL github issue #18609; scheduled to be fixed by MPL 3.4)
+    def _close_event(self, target=None):
+        """Force calling of the MPL figure close event."""
+        target = target or self
+        try:
+            target.canvas.close_event()
+        except ValueError:  # old mpl with Qt
+            pass  # pragma: no cover
+
+    def _get_n_windows(self):
+        return len(plt.get_fignums())
+
+    def _press_key(self, key, target=None):
+        target = target or self
+        target.canvas.key_press_event(key)
+
+    def _fake_click(self, point, target=None, ax=None,
+                    xform='ax', button=1, kind='press'):
+        """Fake a click at a relative point within axes."""
+        target = target or self
+        ax = ax or self.mne.ax_main
+        if xform == 'ax':
+            x, y = ax.transAxes.transform_point(point)
+        elif xform == 'data':
+            x, y = ax.transData.transform_point(point)
+        else:
+            assert xform == 'pix'
+            x, y = point
+        if kind == 'press':
+            func = partial(target.canvas.button_press_event, x=x, y=y,
+                           button=button)
+        elif kind == 'release':
+            func = partial(target.canvas.button_release_event, x=x, y=y,
+                           button=button)
+        elif kind == 'motion':
+            func = partial(target.canvas.motion_notify_event, x=x, y=y)
+        else:
+            raise RuntimeError(f'{kind} is no suitabl kind for _fake_click')
+
+        func(guiEvent=None)
+
+    def _click_ch_name(self, ch_index, button):
+        self.canvas.draw()
+        text = self.mne.ax_main.get_yticklabels()[ch_index]
+        bbox = text.get_window_extent()
+        x = bbox.intervalx.mean()
+        y = bbox.intervaly.mean()
+        self._fake_click((x, y), xform='pix', button=button)
+
+    def _test_childs(self, key, attr):
+        # Spawn and close child figs of raw.plot()
+        num_figs = len(plt.get_fignums())
+        assert getattr(self.mne, attr) is None
+        # spawn
+        self.canvas.key_press_event(key)
+        assert len(self.mne.child_figs) == 1
+        assert len(plt.get_fignums()) == num_figs + 1
+        child_fig = getattr(self.mne, attr)
+        assert child_fig is not None
+        # close via main window toggle
+        self.canvas.key_press_event(key)
+        self._close_event(child_fig)
+        assert len(self.mne.child_figs) == 0
+        assert len(plt.get_fignums()) == num_figs
+        assert getattr(self.mne, attr) is None
+        # spawn again
+        self.canvas.key_press_event(key)
+        assert len(self.mne.child_figs) == 1
+        assert len(plt.get_fignums()) == num_figs + 1
+        child_fig = getattr(self.mne, attr)
+        assert child_fig is not None
+        # close via child window
+        child_fig.canvas.key_press_event(child_fig.mne.close_key)
+        self._close_event(child_fig)
+        assert len(self.mne.child_figs) == 0
+        assert len(plt.get_fignums()) == num_figs
+        assert getattr(self.mne, attr) is None
 
 
 class MNELineFigure(MNEFigure):

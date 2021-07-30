@@ -325,6 +325,38 @@ class BrowserBase(ABC):
         the redraw of objects is often handled by pyqtgraph internally."""
         pass
 
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # INTERACTION
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    @abstractmethod
+    def _close_all(self):
+        pass
+
+    @abstractmethod
+    def _close_event(self, target):
+        pass
+
+    @abstractmethod
+    def _get_n_windows(self):
+        pass
+
+    @abstractmethod
+    def _press_key(self, key, target):
+        pass
+
+    @abstractmethod
+    def _fake_click(self, point, target, axis, xform, button, kind):
+        pass
+
+    @abstractmethod
+    def _click_ch_name(self, ch_index, button):
+        pass
+
+    @abstractmethod
+    def _test_childs(self, key, attr):
+        pass
+
 
 def _reload_backend(backend_name):
     global backend
