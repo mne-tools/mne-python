@@ -514,5 +514,3 @@ def use_browser_backend(backend_name):
                 set_browser_backend(old_backend)
             except Exception:
                 pass
-
-
