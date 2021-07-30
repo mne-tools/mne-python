@@ -6,7 +6,7 @@ import os.path as op
 import itertools
 
 import numpy as np
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 import pytest
 import matplotlib
 import matplotlib.pyplot as plt
@@ -15,7 +15,7 @@ from mne import read_events, pick_types, Annotations, create_info
 from mne.datasets import testing
 from mne.fixes import _close_event
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
-from mne.utils import _dt_to_stamp, _click_ch_name
+from mne.utils import _dt_to_stamp, _click_ch_name, get_config, set_config
 from mne.viz.utils import _fake_click
 from mne.annotations import _sync_onset
 from mne.viz import plot_raw, plot_sensors
@@ -727,6 +727,16 @@ def test_plot_sensors(raw):
     raw.info['dev_head_t'] = None  # like empty room
     with pytest.warns(RuntimeWarning, match='identity'):
         raw.plot_sensors()
+
+
+@pytest.mark.parametrize('cfg_value', (None, '0.1,0.1'))
+def test_min_window_size(raw, cfg_value):
+    old_cfg = get_config('MNE_BROWSE_RAW_SIZE')
+    set_config('MNE_BROWSE_RAW_SIZE', cfg_value)
+    fig = raw.plot()
+    # 8 × 8 inches is default minimum size
+    assert_array_equal(fig.get_size_inches(), (8, 8))
+    set_config('MNE_BROWSE_RAW_SIZE', old_cfg)
 
 
 def test_scalings_int():
