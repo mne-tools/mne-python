@@ -216,7 +216,6 @@ def test_scale_bar():
         y_lims = [y.min(), y.max()]
         bar_lims = bar.get_ydata()
         assert_allclose(y_lims, bar_lims, atol=1e-4)
-    plt.close('all')
 
 
 def test_plot_raw_selection(raw):
@@ -351,7 +350,6 @@ def test_plot_raw_child_figures(raw):
     # test resize of main window
     width, height = fig.canvas.manager.canvas.get_width_height()
     fig.canvas.manager.canvas.resize(width // 2, height // 2)
-    plt.close('all')
 
 
 def test_plot_raw_keypresses(raw):
