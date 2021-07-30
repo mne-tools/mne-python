@@ -1274,6 +1274,7 @@ class Coregistration(object):
         self._info = info
         self._subject = subject
         self._subjects_dir = subjects_dir
+        self._scale_mode = None
 
         self._rot_trans = None
         self._default_parameters = \
@@ -1438,6 +1439,21 @@ class Coregistration(object):
             self._transformed_high_res_mri_points = \
                 apply_trans(self._mri_trans,
                             self._processed_high_res_mri_points)
+
+    def set_scale_mode(self, scale_mode):
+        """Select how to fit the scale parameters.
+
+        Parameters
+        ----------
+        scale_mode : None | str
+            The scale mode can be 'uniform', '3-axis' or disabled.
+            Defaults to None.
+
+            * 'uniform': 1 scale factor is recovered.
+            * '3-axis': 3 scale factors are recovered.
+            * None: no unity scale factor is recovered.
+        """
+        self._scale_mode = scale_mode
 
     def set_grow_hair(self, value):
         """Compensate for hair on the digitizer head shape.
