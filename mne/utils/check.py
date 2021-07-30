@@ -562,8 +562,9 @@ def _check_depth(depth, kind='depth_mne'):
     return _handle_default(kind, depth)
 
 
-def _check_dict_keys(user_options, allowed_options,
-                     user_opt_name="Channel name(s)", validator_name="info"):
+def _check_dict_keys(mapping, valid_keys,
+                     key_description="Channel name(s)",
+                     valid_key_source="info"):
     """Check that the keys in dictionary are valid against a set list.
 
     Return the input dictionary if it is valid,
@@ -582,24 +583,19 @@ def _check_dict_keys(user_options, allowed_options,
         Description of the ``valid_keys`` source, e.g., "info dict" or
         "annotations in the data".
 
-    Raises
-    ------
-    ValueError
-        When the key of the dict is not one of the valid options.
-
     Returns
     -------
     mapping
         If all keys are valid the input dict is returned unmodified.
     """
-    missing = set(user_options) - set(allowed_options)
+    missing = set(mapping) - set(valid_keys)
     if len(missing):
         _is = 'are' if len(missing) > 1 else 'is'
         msg = (f'Invalid {key_description} {missing} {_is} not present in '
                f'{valid_key_source}')
         raise ValueError(msg)
 
-    return user_options
+    return mapping
 
 
 def _check_option(parameter, value, allowed_values, extra=''):

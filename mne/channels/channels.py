@@ -1208,8 +1208,8 @@ def rename_channels(info, mapping, allow_duplicates=False, verbose=None):
 
     # first check and assemble clean mappings of index and name
     if isinstance(mapping, dict):
-        _check_dict_keys(mapping, ch_names, user_opt_name="Channel name(s)",
-                         validator_name="info")
+        _check_dict_keys(mapping, ch_names, key_description="Channel name(s)",
+                         valid_key_source="info")
         new_names = [(ch_names.index(ch_name), new_name)
                      for ch_name, new_name in mapping.items()]
     elif callable(mapping):

@@ -1325,7 +1325,7 @@ def test_annotation_rename():
     assert len(np.where([d == "new name b" for d in a.description])[0]) == 0
 
     a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
-    with pytest.raises(ValueError, match="missing in data"):
+    with pytest.raises(ValueError, match="not present in data"):
         a.rename({"aaa": "does not exist"})
     with pytest.raises(ValueError, match="[' a']"):
         a.rename({" a": "does not exist"})
@@ -1363,7 +1363,7 @@ def test_annotation_duration_setting():
     a.set_durations(2)
     assert a.duration[0] == 2
 
-    with pytest.raises(ValueError, match="missing in data"):
+    with pytest.raises(ValueError, match="not present in data"):
         a.set_durations({"aaa": 2.2})
     with pytest.raises(TypeError, match=" got <class 'set'> instead"):
         a.set_durations({"aaa", 2.2})
