@@ -282,7 +282,8 @@ def test_nirx_15_2_short():
     assert raw.info['subject_info'] == dict(sex=1, first_name="MNE",
                                             middle_name="Test",
                                             last_name="Recording",
-                                            birthday=(2014, 8, 23))
+                                            birthday=(2014, 8, 23),
+                                            his_id="MNE_Test_Recording")
 
     # Test distance between optodes matches values from
     # nirsite https://github.com/mne-tools/mne-testing-data/pull/51
@@ -372,7 +373,9 @@ def test_nirx_15_3_short():
     assert raw.info['subject_info'] == dict(birthday=(2020, 8, 18),
                                             sex=0,
                                             first_name="testMontage\\0A"
-                                                       "TestMontage")
+                                                       "TestMontage",
+                                            his_id="testMontage\\0A"
+                                                   "TestMontage")
 
     # Test distance between optodes matches values from
     # https://github.com/mne-tools/mne-testing-data/pull/72
@@ -470,7 +473,8 @@ def test_nirx_15_2():
 
     # Test info import
     assert raw.info['subject_info'] == dict(sex=1, first_name="TestRecording",
-                                            birthday=(1989, 10, 2))
+                                            birthday=(1989, 10, 2),
+                                            his_id="TestRecording")
 
     # Test trigger events
     assert_array_equal(raw.annotations.description, ['4.0', '6.0', '2.0'])
@@ -523,7 +527,8 @@ def test_nirx_15_0():
     assert raw.info['subject_info'] == {'birthday': (2004, 10, 27),
                                         'first_name': 'NIRX',
                                         'last_name': 'Test',
-                                        'sex': FIFF.FIFFV_SUBJ_SEX_UNKNOWN}
+                                        'sex': FIFF.FIFFV_SUBJ_SEX_UNKNOWN,
+                                        'his_id': "NIRX_Test"}
 
     # Test trigger events
     assert_array_equal(raw.annotations.description, ['1.0', '2.0', '2.0'])
