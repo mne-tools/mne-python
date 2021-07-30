@@ -1075,7 +1075,7 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
 
     fig = _get_browser(**params)
 
-    if get_browser_backend():
+    if get_browser_backend() == 'matplotlib':
         fig._update_picks()
 
         # update data, and plot
