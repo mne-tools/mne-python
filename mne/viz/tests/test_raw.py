@@ -17,6 +17,7 @@ from mne.io import read_raw_fif, read_raw_ctf, RawArray
 from mne.utils import _dt_to_stamp, _click_ch_name, get_config, set_config
 from mne.io import RawArray
 from mne.utils import _dt_to_stamp, _click_ch_name
+from mne.viz._browser import get_browser_backend
 from mne.viz.utils import _fake_click
 from mne.annotations import _sync_onset
 from mne.viz import plot_raw, plot_sensors
@@ -25,6 +26,7 @@ from mne.viz import plot_raw, plot_sensors
 def _annotation_helper(raw, events=False):
     """Test interactive annotations."""
     # Some of our checks here require modern mpl to work properly
+    backend = get_browser_backend()
     n_anns = len(raw.annotations)
     plt.close('all')
 

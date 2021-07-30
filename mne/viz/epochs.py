@@ -748,7 +748,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     .. versionadded:: 0.10.0
     """
-    from ._browser import _get_browser, get_2d_backend
+    from ._browser import _get_browser, get_browser_backend
 
     epochs.drop_bad()
     info = epochs.info.copy()
@@ -897,7 +897,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     fig = _get_browser(**params)
 
-    if get_2d_backend() == 'matplotlib':
+    if get_browser_backend() == 'matplotlib':
         fig._update_picks()
 
         # make channel selection dialog,

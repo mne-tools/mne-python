@@ -2,21 +2,21 @@ import importlib
 from contextlib import contextmanager
 
 import numpy as np
-from abc import ABC
+from abc import ABC, abstractmethod
 from copy import deepcopy
 from itertools import cycle
 
-from .backends._utils import VALID_2D_BACKENDS
+from .backends._utils import VALID_BROWSER_BACKENDS
 from .. import get_config
 from ..annotations import _sync_onset
 from ..utils import logger, verbose, _validate_type, _check_option
 from ..viz.utils import _get_color_list, _setup_plot_projector
 
-MNE_2D_BACKEND = None
+MNE_BROWSER_BACKEND = None
 
 _backend_name_map = dict(
     matplotlib='._figure',
-    pyvistaqt='._pyqtgraph'
+    pyqtgraph='._pyqtgraph'
 )
 backend = None
 
@@ -338,21 +338,21 @@ def _get_browser(inst, **kwargs):
     from .utils import _get_figsize_from_config
     figsize = kwargs.pop('figsize', _get_figsize_from_config())
 
-    _get_2d_backend()
+    _get_browser_backend()
     browser = backend._init_browser(inst, figsize, **kwargs)
 
     return browser
 
 
-def _check_2d_backend_name(backend_name):
+def _check_browser_backend_name(backend_name):
     _validate_type(backend_name, str, 'backend_name')
-    _check_option('backend_name', backend_name, VALID_2D_BACKENDS)
+    _check_option('backend_name', backend_name, VALID_BROWSER_BACKENDS)
     return backend_name
 
 
 @verbose
-def set_2d_backend(backend_name, verbose=None):
-    """Set the 2D backend for MNE.
+def set_browser_backend(backend_name, verbose=None):
+    """Set the 2D-Browser backend for MNE.
 
     The backend will be set as specified and operations will use
     that backend.
@@ -360,8 +360,8 @@ def set_2d_backend(backend_name, verbose=None):
     Parameters
     ----------
     backend_name : str
-        The 2d backend to select. See Notes for the capabilities of each
-        backend (``'matplotlib'``, ``'pyqtgraph'``).
+        The 2d-browser backend to select. See Notes for the capabilities
+        of each backend (``'matplotlib'``, ``'pyqtgraph'``).
 
     %(verbose)s
 
@@ -379,7 +379,7 @@ def set_2d_backend(backend_name, verbose=None):
        :widths: auto
 
        +--------------------------------------+------------+-----------+
-       | **2D function:**                     | matplotlib | pyqtgraph |
+       | **2D-Browser function:**             | matplotlib | pyqtgraph |
        +======================================+============+===========+
        | :func:`plot_raw`                     | ✓          | ✓         |
        +--------------------------------------+------------+-----------+
@@ -405,30 +405,31 @@ def set_2d_backend(backend_name, verbose=None):
        | Dark Mode                            |            |           |
        +--------------------------------------+------------+-----------+
     """
-    global MNE_2D_BACKEND
-    old_backend_name = MNE_2D_BACKEND
-    backend_name = _check_2d_backend_name(backend_name)
-    if MNE_2D_BACKEND != backend_name:
+    global MNE_BROWSER_BACKEND
+    old_backend_name = MNE_BROWSER_BACKEND
+    backend_name = _check_browser_backend_name(backend_name)
+    if MNE_BROWSER_BACKEND != backend_name:
         _reload_backend(backend_name)
-        MNE_2D_BACKEND = backend_name
+        MNE_BROWSER_BACKEND = backend_name
 
     return old_backend_name
 
 
-def _get_2d_backend():
-    global MNE_2D_BACKEND
-    if MNE_2D_BACKEND is None:
-        MNE_2D_BACKEND = get_config(key='MNE_2D_BACKEND', default=None)
-        if MNE_2D_BACKEND is None:  # try them in order
+def _get_browser_backend():
+    global MNE_BROWSER_BACKEND
+    if MNE_BROWSER_BACKEND is None:
+        MNE_BROWSER_BACKEND = get_config(key='MNE_BROWSER_BACKEND',
+                                         default=None)
+        if MNE_BROWSER_BACKEND is None:  # try them in order
             errors = dict()
-            for name in VALID_2D_BACKENDS:
+            for name in VALID_BROWSER_BACKENDS:
                 try:
                     _reload_backend(name)
                 except ImportError as exc:
                     errors[name] = str(exc)
                 else:
-                    MNE_2D_BACKEND = name
-                    print(MNE_2D_BACKEND)
+                    MNE_BROWSER_BACKEND = name
+                    print(MNE_BROWSER_BACKEND)
                     break
             else:
                 raise RuntimeError(
@@ -436,23 +437,24 @@ def _get_2d_backend():
                     "\n".join(
                         f'{key}: {val}' for key, val in errors.items()))
         else:
-            MNE_2D_BACKEND = _check_2d_backend_name(MNE_2D_BACKEND)
-            _reload_backend(MNE_2D_BACKEND)
-    MNE_2D_BACKEND = _check_2d_backend_name(MNE_2D_BACKEND)
-    return MNE_2D_BACKEND
+            MNE_BROWSER_BACKEND = \
+                _check_browser_backend_name(MNE_BROWSER_BACKEND)
+            _reload_backend(MNE_BROWSER_BACKEND)
+    MNE_BROWSER_BACKEND = _check_browser_backend_name(MNE_BROWSER_BACKEND)
+    return MNE_BROWSER_BACKEND
 
 
-def get_2d_backend():
+def get_browser_backend():
     """Return the 2D backend currently used.
 
     Returns
     -------
     backend_used : str | None
-        The 2d backend currently in use. If no backend is found,
+        The 2D-Browser backend currently in use. If no backend is found,
         returns ``None``.
     """
     try:
-        backend = _get_2d_backend()
+        backend = _get_browser_backend()
     except RuntimeError as exc:
         backend = None
         logger.info(str(exc))
@@ -460,24 +462,24 @@ def get_2d_backend():
 
 
 @contextmanager
-def use_2d_backend(backend_name):
-    """Create a 3d visualization context using the designated backend.
+def use_browser_backend(backend_name):
+    """Create a 2D-Browser visualization context using the designated backend.
 
-    See :func:`mne.viz.set_3d_backend` for more details on the available
-    3d backends and their capabilities.
+    See :func:`mne.viz.set_browser_backend` for more details on the available
+    2D-Browser backends and their capabilities.
 
     Parameters
     ----------
-    backend_name : {'mayavi', 'pyvistaqt', 'notebook'}
-        The 3d backend to use in the context.
+    backend_name : {'matplotlib', 'pyqtgraph'}
+        The 2D-Browser backend to use in the context.
     """
-    old_backend = set_2d_backend(backend_name)
+    old_backend = set_browser_backend(backend_name)
     try:
         yield
     finally:
         if old_backend is not None:
             try:
-                set_2d_backend(old_backend)
+                set_browser_backend(old_backend)
             except Exception:
                 pass
 
