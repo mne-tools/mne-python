@@ -592,7 +592,8 @@ class Annotations(object):
         _validate_type(mapping, (int, float, dict))
 
         if isinstance(mapping, dict):
-            _check_dict_keys(mapping, self.description, valid_key_source="data",
+            _check_dict_keys(mapping, self.description,
+                             valid_key_source="data",
                              key_description="Annotation description(s)")
             for stim in mapping:
                 map_idx = [desc == stim for desc in self.description]
