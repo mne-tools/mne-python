@@ -757,6 +757,7 @@ def _set_montage_fnirs(info, montage):
         info['chs'][ch_idx]['loc'][6:9] = detector_pos
         midpoint = (source_pos + detector_pos) / 2
         info['chs'][ch_idx]['loc'][:3] = midpoint
+        info['chs'][ch_idx]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
     # Modify info['dig'] in place
     info['dig'] = montage.dig
