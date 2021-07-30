@@ -729,6 +729,7 @@ def test_plot_sensors(raw):
 
 @pytest.mark.parametrize('cfg_value', (None, '0.1,0.1'))
 def test_min_window_size(raw, cfg_value):
+    """Test minimum window plot size."""
     old_cfg = get_config('MNE_BROWSE_RAW_SIZE')
     set_config('MNE_BROWSE_RAW_SIZE', cfg_value)
     fig = raw.plot()
