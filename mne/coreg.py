@@ -1588,6 +1588,13 @@ class Coregistration(object):
         hsp_points = self._transformed_orig_dig_extra
         return np.linalg.norm(mri_points - hsp_points, axis=-1)
 
+    def _log_dig_mri_distance(self):
+        errs_nearest = dig_mri_distances(self._info, self.trans, self._subject,
+                                         self._subjects_dir)
+        logger.info('Median distance from digitized points to head surface '
+                    'using nearest neighbor is %.3f mm' % np.median(
+                        errs_nearest * 1000))
+
     @verbose
     def fit_fiducials(self, lpa_weight=1., nasion_weight=10., rpa_weight=1.,
                       verbose=None):
@@ -1605,6 +1612,12 @@ class Coregistration(object):
         """
         if verbose:
             self._log_dig_mri_distance()
+        if self._scale_mode is None:
+            n_scale_params = 0
+        elif self._scale_mode == 'uniform':
+            n_scale_params = 1
+        else:
+            n_scale_params = 3
         self._lpa_weight = lpa_weight
         self._nasion_weight = nasion_weight
         self._rpa_weight = rpa_weight
@@ -1614,16 +1627,22 @@ class Coregistration(object):
                               self._dig['rpa']))
         mri_pts = np.vstack((self.lpa, self.nasion, self.rpa))
         weights = [lpa_weight, nasion_weight, rpa_weight]
-        mri_pts *= self._scale  # not done in fit_matched_points
+
+        if n_scale_params == 0:
+            mri_pts *= self._scale  # not done in fit_matched_points
         x0 = self._parameters
-        x0 = x0[:6]
+        x0 = x0[:6 + n_scale_params]
         est = fit_matched_points(mri_pts, head_pts, x0=x0, out='params',
-                                 weights=weights)
-        self._update_params(est[:3], est[3:6])
+                                 scale=n_scale_params, weights=weights)
+        if n_scale_params == 0:
+            self._update_params(est[:3], est[3:6])
+        else:
+            est = np.concatenate([est, [est[-1]] * 2])
+            self._update_params(est[:3], est[3:6], est[6:9])
         if verbose:
             self._log_dig_mri_distance()
 
-    def _setup_icp(self):
+    def _setup_icp(self, n_scale_params):
         head_pts = list()
         mri_pts = list()
         weights = list()
@@ -1659,15 +1678,9 @@ class Coregistration(object):
         head_pts = np.concatenate(head_pts)
         mri_pts = np.concatenate(mri_pts)
         weights = np.concatenate(weights)
-        mri_pts *= self._scale  # not done in fit_matched_points
+        if n_scale_params == 0:
+            mri_pts *= self._scale  # not done in fit_matched_points
         return head_pts, mri_pts, weights
-
-    def _log_dig_mri_distance(self):
-        errs_nearest = dig_mri_distances(self._info, self.trans, self._subject,
-                                         self._subjects_dir)
-        logger.info('Median distance from digitized points to head surface '
-                    'using nearest neighbor is %.3f mm' % np.median(
-                        errs_nearest * 1000))
 
     @verbose
     def fit_icp(self, n_iterations=20, lpa_weight=1., nasion_weight=10.,
@@ -1688,20 +1701,32 @@ class Coregistration(object):
         """
         if verbose:
             self._log_dig_mri_distance()
+        if self._scale_mode is None:
+            n_scale_params = 0
+        elif self._scale_mode == 'uniform':
+            n_scale_params = 1
+        else:
+            n_scale_params = 3
         self._lpa_weight = lpa_weight
         self._nasion_weight = nasion_weight
         self._rpa_weight = rpa_weight
 
         # Initial guess (current state)
         est = self._parameters
-        est = est[:[6, 7, None, 9][0]]
+        est = est[:[6, 7, None, 9][n_scale_params]]
 
         # Do the fits, assigning and evaluating at each step
         for _ in range(n_iterations):
-            head_pts, mri_pts, weights = self._setup_icp()
-            est = fit_matched_points(mri_pts, head_pts,
+            head_pts, mri_pts, weights = self._setup_icp(n_scale_params)
+            est = fit_matched_points(mri_pts, head_pts, scale=n_scale_params,
                                      x0=est, out='params', weights=weights)
-            self._update_params(est[:3], est[3:6])
+            if n_scale_params == 0:
+                self._update_params(est[:3], est[3:6])
+            elif n_scale_params == 1:
+                est = np.array(list(est) + [est[-1]] * 2)
+                self._update_params(est[:3], est[3:6], est[6:9])
+            else:
+                self._update_params(est[:3], est[3:6], est[6:9])
             angle, move, scale = self._changes
             if angle <= self._icp_angle and move <= self._icp_distance and \
                     all(scale <= self._icp_scale):

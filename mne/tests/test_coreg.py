@@ -283,7 +283,12 @@ def test_get_mni_fiducials():
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('ref_scale', [[1., 1., 1.], [0.8, 1.1, 1.1]])
+@pytest.mark.parametrize('ref_scale', [
+    (None, [1., 1., 1.]),
+    ('uniform', [1., 1., 1.]),
+    ('3-axis', [1., 1., 1.]),
+    ('uniform', [0.8, 1., 1.]),
+    ('3-axis', [0.8, 0.8, 0.8])])
 def test_coregistration(ref_scale):
     """Test automated coregistration."""
     trans_fname = op.join(data_path, 'MEG', 'sample',
@@ -294,9 +299,10 @@ def test_coregistration(ref_scale):
     subjects_dir = os.path.join(data_path, 'subjects')
     info = read_info(fname_raw).copy()
     for d in info['dig']:
-        d['r'] *= ref_scale
+        d['r'] *= ref_scale[1]
     trans = read_trans(trans_fname)
     coreg = Coregistration(info, subject=subject, subjects_dir=subjects_dir)
+    coreg.set_scale_mode(ref_scale[0])
     assert np.allclose(coreg._last_parameters, coreg._parameters)
     default_params = list(coreg._default_parameters)
     coreg.set_rotation(default_params[:3])
@@ -312,10 +318,13 @@ def test_coregistration(ref_scale):
     coreg.fit_icp()
     assert isinstance(coreg.trans, Transform)
     errs_icp = coreg.compute_dig_head_distances()
-    assert np.median(errs_icp * 1000) < 9
+    assert np.median(errs_icp * 1000) < 10
     assert np.rad2deg(_angle_between_quats(
         rot_to_quat(coreg.trans['trans'][:3, :3]),
-        rot_to_quat(trans['trans'][:3, :3]))) < 9
-    assert_allclose(coreg._scale, ref_scale)
+        rot_to_quat(trans['trans'][:3, :3]))) < 12
+    if ref_scale[0] is None:
+        assert_allclose(coreg._scale, [1., 1., 1.])
+    else:
+        assert_allclose(coreg._scale, ref_scale[1], atol=0.1)
     coreg.reset()
     assert np.allclose(coreg._parameters, default_params)
