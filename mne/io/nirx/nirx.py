@@ -252,7 +252,7 @@ class RawNIRX(BaseRaw):
         if is_aurora:
             names = inf["subject"].split()
         else:
-            names = inf['name'].split()
+            names = inf['name'].replace('"', "").split()
         subject_info['his_id'] = "_".join(names)
         if len(names) > 0:
             subject_info['first_name'] = \
