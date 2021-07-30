@@ -2095,7 +2095,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         target.canvas.key_press_event(key)
 
     def fake_click(self, point, target=None, ax=None,
-                    xform='ax', button=1, kind='press'):
+                   xform='ax', button=1, kind='press'):
         """Fake a click at a relative point within axes."""
         target = target or self
         ax = ax or self.mne.ax_main

@@ -26,7 +26,6 @@ from mne.viz import plot_raw, plot_sensors
 def _annotation_helper(raw, events=False):
     """Test interactive annotations."""
     # Some of our checks here require modern mpl to work properly
-    backend = get_browser_backend()
     n_anns = len(raw.annotations)
     plt.close('all')
 
@@ -55,7 +54,7 @@ def _annotation_helper(raw, events=False):
     for ix in (-1, 0):
         xy = ann_fig.mne.radio_ax.buttons.circles[ix].center
         fig.fake_click(xy, target=ann_fig, ax=ann_fig.mne.radio_ax,
-                        xform='data')
+                       xform='data')
 
     # draw annotation
     fig.fake_click([1., 1.], xform='data', button=1, kind='press')
@@ -89,18 +88,18 @@ def _annotation_helper(raw, events=False):
     fig.canvas.key_press_event('p')  # turn draggable mode back on
     # modify annotation from end (duration 4 → 1.5)
     fig.fake_click([4.9, 1.], xform='data', button=None,
-                kind='motion')  # ease up to it
+                   kind='motion')  # ease up to it
     fig.fake_click([5., 1.], xform='data', button=1, kind='press')
     fig.fake_click([2.5, 1.], xform='data', button=1, kind='motion')
     fig.fake_click([2.5, 1.], xform='data', button=1,
-                kind='release')
+                   kind='release')
     assert raw.annotations.onset[n_anns] == onset
     assert_allclose(raw.annotations.duration[n_anns], 1.5)  # 4 → 1.5
     # modify annotation from beginning (duration 1.5 → 2.0)
     fig.fake_click([1., 1.], xform='data', button=1, kind='press')
     fig.fake_click([0.5, 1.], xform='data', button=1, kind='motion')
     fig.fake_click([0.5, 1.], xform='data', button=1,
-                kind='release')
+                   kind='release')
     assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
     assert_allclose(raw.annotations.duration[n_anns], 2.0)  # 1.5 → 2.0
     assert len(raw.annotations.onset) == n_anns + 1
