@@ -22,6 +22,7 @@ from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  setup_volume_source_space, read_forward_solution,
                  convert_forward_solution, MixedSourceEstimate)
 from mne.source_estimate import _BaseVolSourceEstimate
+from mne.forward import _create_meg_coils
 from mne.io import (read_raw_ctf, read_raw_bti, read_raw_kit, read_info,
                     read_raw_nirx)
 from mne.io._digitization import write_dig
@@ -37,6 +38,7 @@ from mne.viz.utils import _fake_click
 from mne.utils import requires_nibabel, traits_test, catch_logging
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
+from mne.transforms import Transform
 from mne.bem import read_bem_solution, read_bem_surfaces
 
 
@@ -178,6 +180,7 @@ def test_plot_alignment(tmpdir, renderer, mixed_fwd_cov_evoked):
 
     renderer.backend._close_all()
     evoked = read_evokeds(evoked_fname)[0]
+    info = evoked.info
     sample_src = read_source_spaces(src_fname)
     bti = read_raw_bti(pdf_fname, config_fname, hs_fname, convert=True,
                        preload=False).info
@@ -187,17 +190,17 @@ def test_plot_alignment(tmpdir, renderer, mixed_fwd_cov_evoked):
         BTi=bti,
         KIT=read_raw_kit(sqd_fname).info,
     )
-    for system, info in infos.items():
+    for system, this_info in infos.items():
         meg = ['helmet', 'sensors']
         if system == 'KIT':
             meg.append('ref')
-        fig = plot_alignment(info, read_trans(trans_fname), subject='sample',
-                             subjects_dir=subjects_dir, meg=meg)
+        fig = plot_alignment(
+            this_info, read_trans(trans_fname), subject='sample',
+            subjects_dir=subjects_dir, meg=meg)
         rend = renderer.backend._Renderer(fig=fig)
         rend.close()
     # KIT ref sensor coil def is defined
     renderer.backend._close_all()
-    info = infos['Neuromag']
     pytest.raises(TypeError, plot_alignment, 'foo', trans_fname,
                   subject='sample', subjects_dir=subjects_dir)
     pytest.raises(OSError, plot_alignment, info, trans_fname,
@@ -206,7 +209,7 @@ def test_plot_alignment(tmpdir, renderer, mixed_fwd_cov_evoked):
                   subject='fsaverage', subjects_dir=subjects_dir,
                   src=sample_src)
     sample_src.plot(subjects_dir=subjects_dir, head=True, skull=True,
-                    brain='white')
+                    brain='white', trans=trans_fname)
     # mixed source space
     mixed_src = mixed_fwd_cov_evoked[0]['src']
     assert mixed_src.kind == 'mixed'
@@ -217,8 +220,17 @@ def test_plot_alignment(tmpdir, renderer, mixed_fwd_cov_evoked):
     renderer.backend._close_all()
     # no-head version
     renderer.backend._close_all()
+    # trans required
+    with pytest.raises(ValueError, match='transformation matrix is required'):
+        plot_alignment(info, trans=None, src=src_fname)
+    with pytest.raises(ValueError, match='transformation matrix is required'):
+        plot_alignment(info, trans=None, coord_frame='mri')
+    with pytest.raises(ValueError, match='transformation matrix is required'):
+        plot_alignment(info, trans=None, mri_fiducials=True)
+    with pytest.raises(ValueError, match='transformation matrix is required'):
+        plot_alignment(info, trans=None, surfaces=['brain'])
     # all coord frames
-    plot_alignment(info)  # works: surfaces='auto' default
+    plot_alignment(info, trans=trans_fname)  # works: surfaces='auto' default
     for coord_frame in ('meg', 'head', 'mri'):
         fig = plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
                              coord_frame=coord_frame, trans=Path(trans_fname),
@@ -230,32 +242,40 @@ def test_plot_alignment(tmpdir, renderer, mixed_fwd_cov_evoked):
     evoked_eeg_ecog_seeg.info['projs'] = []  # "remove" avg proj
     evoked_eeg_ecog_seeg.set_channel_types({'EEG 001': 'ecog',
                                             'EEG 002': 'seeg'})
-    with pytest.warns(RuntimeWarning, match='Cannot plot MEG'):
-        with catch_logging() as log:
-            plot_alignment(evoked_eeg_ecog_seeg.info, subject='sample',
-                           trans=trans_fname, subjects_dir=subjects_dir,
-                           surfaces=['white', 'outer_skin', 'outer_skull'],
-                           meg=['helmet', 'sensors'],
-                           eeg=['original', 'projected'], ecog=True, seeg=True,
-                           verbose=True)
+    with catch_logging() as log:
+        plot_alignment(evoked_eeg_ecog_seeg.info, subject='sample',
+                       trans=trans_fname, subjects_dir=subjects_dir,
+                       surfaces=['white', 'outer_skin', 'outer_skull'],
+                       meg=['helmet', 'sensors'],
+                       eeg=['original', 'projected'], ecog=True, seeg=True,
+                       verbose=True)
     log = log.getvalue()
-    assert '1 ECoG location' in log
-    assert '1 sEEG location' in log
+    assert 'ecog: 1' in log
+    assert 'seeg: 1' in log
     renderer.backend._close_all()
 
-    sphere = make_sphere_model(info=evoked.info, r0='auto', head_radius='auto')
+    sphere = make_sphere_model(info=info, r0='auto', head_radius='auto')
     bem_sol = read_bem_solution(op.join(subjects_dir, 'sample', 'bem',
                                         'sample-1280-1280-1280-bem-sol.fif'))
     bem_surfs = read_bem_surfaces(op.join(subjects_dir, 'sample', 'bem',
                                           'sample-1280-1280-1280-bem.fif'))
     sample_src[0]['coord_frame'] = 4  # hack for coverage
-    plot_alignment(info, subject='sample', eeg='projected',
-                   meg='helmet', bem=sphere, dig=True,
+    plot_alignment(info, trans_fname, subject='sample',
+                   eeg='projected', meg='helmet', bem=sphere, dig=True,
                    surfaces=['brain', 'inner_skull', 'outer_skull',
                              'outer_skin'])
     plot_alignment(info, trans_fname, subject='sample', meg='helmet',
                    subjects_dir=subjects_dir, eeg='projected', bem=sphere,
                    surfaces=['head', 'brain'], src=sample_src)
+    # no trans okay, no mri surfaces
+    plot_alignment(info, bem=sphere, surfaces=['brain'])
+    with pytest.raises(ValueError, match='A head surface is required'):
+        plot_alignment(info, trans=trans_fname, subject='sample',
+                       subjects_dir=subjects_dir, eeg='projected',
+                       surfaces=[])
+    with pytest.raises(RuntimeError, match='No brain surface found'):
+        plot_alignment(info, trans=trans_fname, subject='foo',
+                       subjects_dir=subjects_dir, surfaces=['brain'])
     assert all(surf['coord_frame'] == FIFF.FIFFV_COORD_MRI
                for surf in bem_sol['surfs'])
     plot_alignment(info, trans_fname, subject='sample', meg=[],
@@ -279,15 +299,17 @@ def test_plot_alignment(tmpdir, renderer, mixed_fwd_cov_evoked):
         log = log.getvalue()
         assert 'not find the surface for head in the provided BEM model' in log
     # sphere model
-    sphere = make_sphere_model('auto', 'auto', evoked.info)
+    sphere = make_sphere_model('auto', 'auto', info)
     src = setup_volume_source_space(sphere=sphere)
-    plot_alignment(info, eeg='projected', meg='helmet', bem=sphere,
-                   src=src, dig=True, surfaces=['brain', 'inner_skull',
-                                                'outer_skull', 'outer_skin'])
-    sphere = make_sphere_model('auto', None, evoked.info)  # one layer
+    plot_alignment(
+        info, trans=Transform('head', 'mri'), eeg='projected',
+        meg='helmet', bem=sphere, src=src, dig=True,
+        surfaces=['brain', 'inner_skull', 'outer_skull', 'outer_skin'])
+    sphere = make_sphere_model('auto', None, info)  # one layer
     # if you ask for a brain surface with a 1-layer sphere model it's an error
     with pytest.raises(RuntimeError, match='Sphere model does not have'):
-        fig = plot_alignment(subject='sample', subjects_dir=subjects_dir,
+        fig = plot_alignment(trans=trans_fname, subject='sample',
+                             subjects_dir=subjects_dir,
                              surfaces=['brain'], bem=sphere)
     # but you can ask for a specific brain surface, and
     # no info is permitted
@@ -303,12 +325,13 @@ def test_plot_alignment(tmpdir, renderer, mixed_fwd_cov_evoked):
     info['dig'] = None
     info_cube['chs'][0]['coil_type'] = 9999
     with pytest.raises(RuntimeError, match='coil definition not found'):
-        plot_alignment(info_cube, meg='sensors', surfaces=())
+        _create_meg_coils([info_cube['chs'][0]], acc='normal')
     coil_def_fname = op.join(tempdir, 'temp')
     with open(coil_def_fname, 'w') as fid:
         fid.write(coil_3d)
     with use_coil_def(coil_def_fname):
-        plot_alignment(info_cube, meg='sensors', surfaces=(), dig=True)
+        plot_alignment(info_cube, trans=trans_fname, meg='sensors',
+                       surfaces=(), dig=True)
 
     # one layer bem with skull surfaces:
     with pytest.raises(RuntimeError, match='Sphere model does not.*boundary'):
@@ -354,29 +377,23 @@ def test_plot_alignment(tmpdir, renderer, mixed_fwd_cov_evoked):
     plot_alignment(subject='sample', subjects_dir=subjects_dir,
                    trans=trans_fname, fwd=fwd,
                    surfaces='white', coord_frame='head')
+    with pytest.raises(ValueError, match='transformation matrix is required'):
+        plot_alignment(info, trans=None, fwd=fwd)
     # surfaces as dict
     plot_alignment(subject='sample', coord_frame='head',
-                   subjects_dir=subjects_dir,
+                   trans=trans_fname, subjects_dir=subjects_dir,
                    surfaces={'white': 0.4, 'outer_skull': 0.6, 'head': None})
     # fNIRS (default is pairs)
     info = read_raw_nirx(nirx_fname).info
     with catch_logging() as log:
-        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True)
+        plot_alignment(info, trans=Transform('head', 'mri'),
+                       subject='fsaverage', surfaces=(), verbose=True)
     log = log.getvalue()
-    assert '26 fNIRS pairs' in log
-    assert '26 fNIRS locations' not in log
-    assert '26 fNIRS sources' not in log
-    assert '26 fNIRS detectors' not in log
+    assert 'fnirs_cw_amplitude: 26' in log
 
-    with catch_logging() as log:
-        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
-                       fnirs=['channels', 'sources', 'detectors'])
-    log = log.getvalue()
-    assert '26 fNIRS pairs' not in log
-    assert '26 fNIRS locations' in log
-    assert '26 fNIRS sources' in log
-    assert '26 fNIRS detectors' in log
-
+    plot_alignment(info, trans=Transform('head', 'mri'), subject='fsaverage',
+                   surfaces=(), verbose=True,
+                   fnirs=['channels', 'sources', 'detectors'])
     renderer.backend._close_all()
 
 
@@ -576,7 +593,8 @@ def test_snapshot_brain_montage(renderer):
     """Test snapshot brain montage."""
     info = read_info(evoked_fname)
     fig = plot_alignment(
-        info, trans=None, subject='sample', subjects_dir=subjects_dir)
+        info, trans=Transform('head', 'mri'), subject='sample',
+        subjects_dir=subjects_dir)
 
     xyz = np.vstack([ich['loc'][:3] for ich in info['chs']])
     ch_names = [ich['ch_name'] for ich in info['chs']]

@@ -22,7 +22,6 @@ import numpy as np
 from collections import OrderedDict
 
 from .colormap import calculate_lut
-from ...defaults import DEFAULTS
 from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
 from .callback import (ShowView, TimeCallBack, SmartCallBack,
@@ -31,18 +30,18 @@ from .callback import (ShowView, TimeCallBack, SmartCallBack,
 from ..utils import (_show_help_fig, _get_color_list, concatenate_images,
                      _generate_default_filename, _save_ndarray_img)
 from .._3d import _process_clim, _handle_time, _check_views
-
+from ...defaults import _handle_default, DEFAULTS
 from ...externals.decorator import decorator
-from ...defaults import _handle_default
 from ..._freesurfer import (vertex_to_mni, read_talxfm, read_freesurfer_lut,
-                            _get_head_surface, _coord_to_mri,
-                            get_mri_head_trans)
+                            _get_head_surface, _ch_pos_in_coord_frame,
+                            _get_skull_surface, _get_transforms_to_coord_frame)
 from ...io.pick import (pick_types, channel_type, _picks_to_idx,
-                        _FNIRS_CH_TYPES_SPLIT)
+                        _FNIRS_CH_TYPES_SPLIT, _MEG_CH_TYPES_SPLIT)
+from ...io.meas_info import Info
 from ...surface import (mesh_edges, _mesh_borders, _marching_cubes,
                         get_meg_helmet_surf, _project_onto_surface)
 from ...source_space import SourceSpaces
-from ...transforms import apply_trans, invert_transform
+from ...transforms import apply_trans, invert_transform, Transform, _get_trans
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn,
                       get_subjects_dir, _check_fname)
@@ -2348,6 +2347,43 @@ class Brain(object):
         surf = _get_head_surface('seghead' if dense else 'head',
                                  self._subject_id, self._subjects_dir)
         verts, triangles = surf['rr'], surf['tris']
+        verts *= 1e3 if self._units == 'mm' else 1
+        if color is None:
+            color = DEFAULTS['coreg']['head_color']
+        color = colorConverter.to_rgba(color, alpha)
+
+        for h in self._hemis:
+            for ri, ci, v in self._iter_views(h):
+                self._renderer.mesh(
+                    *verts.T, triangles=triangles, color=color,
+                    opacity=alpha, reset_camera=False, render=False)
+
+        self._renderer._update()
+
+    @fill_doc
+    def add_skull(self, outer=True, color=None, alpha=0.5):
+        """Add a mesh to render the skull surface.
+
+        Parameters
+        ----------
+        outer : bool
+            Adds the outer skull if ``True``, otherwise adds the inner skull.
+        color : matplotlib-style color | None
+            A list of anything matplotlib accepts: string, RGB, hex, etc.
+            (default: "gray").
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
+
+        Notes
+        -----
+        .. versionadded:: 0.24
+        """
+        from matplotlib.colors import colorConverter
+
+        surf = _get_skull_surface('outer' if outer else 'inner',
+                                  self._subject_id, self._subjects_dir)
+        verts, triangles = surf['rr'], surf['tris']
+        verts *= 1e3 if self._units == 'mm' else 1
         if color is None:
             color = 'gray'
         color = colorConverter.to_rgba(color, alpha)
@@ -2503,17 +2539,17 @@ class Brain(object):
             self._renderer.set_camera(**views_dicts[hemi][v])
 
     @verbose
-    def add_sensors(self, inst, picks=None, colors=None,
+    def add_sensors(self, inst, trans, picks=None, colors=None,
                     scales=None, alphas=None, meg_helmet=True,
-                    project_eeg=False, fnirs_pairs='gray',
-                    fnirs_sources='red', fnirs_detectors='brown',
-                    verbose=None):
+                    project_eeg=False, fnirs_pairs=None, fnirs_sources=None,
+                    fnirs_detectors=None, verbose=None):
         """Add mesh objects to represent sensor positions.
 
         Parameters
         ----------
-        inst : mne.io.Raw | mne.Epochs | mne.Evoked
-            The MNE object with sensor locations and data.
+        inst : mne.Info | mne.io.Raw | mne.Epochs | mne.Evoked
+            The MNE object with sensor locations.
+        %(trans_not_none)s
         %(picks_all)s
         colors : str | dict
             The color of the sensors. If dict, channel names or types can be
@@ -2522,7 +2558,8 @@ class Brain(object):
             can be colored with the key "meg_helmet".
         scales : float | dict
             The size of the sensors. If dict, channel names or types can be
-            keys with values for the size in mm. Default is all sensors 5 mm.
+            keys with values for the size in mm. If None, default scales will
+            be used.
         alphas : float | dict
             The opacity of the sensors or, if dict, each sensor by name or
             type. Default is all sensors 0.5 opacity. The MEG helmet
@@ -2535,13 +2572,13 @@ class Brain(object):
             EEG sensors are present in ``info``).
         fnirs_pairs : str | bool
             The color to plot fnirs pairs. If False, fnirs pairs will not
-            be plotted, if True, the color defaults to "gray".
+            be plotted. If None, the default color will be used.
         fnirs_sources : str | bool
             The color to plot fnirs sources. If False, fnirs sources will not
-            be plotted, if True, the color defaults to "red".
+            be plotted. If None, the default color will be used.
         fnirs_detectors : str | bool
             The color to plot the fnirs detectors. If False, fnirs detectors
-            will not be plotted, if True, the color defaults to "brown".
+            will not be plotted. If None, the default color will be used.
         %(verbose)s
 
         Notes
@@ -2549,74 +2586,104 @@ class Brain(object):
         .. versionadded:: 0.24
         """
         from matplotlib.colors import colorConverter
-        picks = _picks_to_idx(inst.info, picks, none='all', exclude=(),
+        if isinstance(inst, Info):
+            info = inst.copy()
+        else:
+            info = inst.info.copy()
+        picks = _picks_to_idx(info, picks, none='all', exclude=(),
                               allow_empty=False)
-        info = inst.info.copy().pick_channels(
-            [inst.ch_names[idx] for idx in picks])
-        if project_eeg and pick_types(info.copy(), eeg=True).size > 0:
+        info = info.pick_channels([inst.ch_names[idx] for idx in picks])
+        if trans is None:
+            warn('No `trans` provided, assuming identity head->mri transform')
+            trans = Transform('head', 'mri')
+        head_mri_t = _get_trans(trans, 'head', 'mri')[0]
+        # get transforms to "mri"window
+        to_cf_t = _get_transforms_to_coord_frame(
+            info, head_mri_t, coord_frame='mri', verbose=verbose)
+        try:
+            ch_pos, sources, detectors = _ch_pos_in_coord_frame(
+                info, to_cf_t, verbose=verbose)
+        except RuntimeError as err:
+            raise RuntimeError(
+                f'{err} You may want to use `picks=("meg", "eeg")` '
+                'to avoid sensors that should not be plotted for instance')
+        eeg_indices = pick_types(info, eeg=True)
+        if eeg_indices.size > 0 and project_eeg:
+            logger.info('Projecting sensors to the head surface')
             head_surf = _get_head_surface(
                 'seghead', self._subject_id, self._subjects_dir)
-        for idx in range(info['nchan']):
-            try:
-                ch_coord = _coord_to_mri(info, idx, self._subject_id,
-                                         self._subjects_dir, verbose=verbose)
-            except RuntimeError as e:
-                raise RuntimeError(
-                    f'{e} You may want to use `picks=("meg", "eeg")` '
-                    'to avoid sensors that should not be plotted for instance')
+            head_surf['rr'] = apply_trans(trans, head_surf['rr'] * 1000)
+            ch_coords = np.array([
+                ch_pos[info.ch_names[idx]] for idx in eeg_indices])
+            ch_coords = _project_onto_surface(ch_coords, head_surf)[0]
+            for idx, ch_coord in zip(eeg_indices, ch_coords):
+                ch_pos[info.ch_names[idx]] = ch_coord
+        if fnirs_sources is None:
+            fnirs_sources = DEFAULTS['coreg']['source_color']
+        if fnirs_detectors is None:
+            fnirs_detectors = DEFAULTS['coreg']['detector_color']
+        if fnirs_pairs is None:
+            fnirs_pairs = 'gray'
+        for ch_name, ch_coord in ch_pos.items():
             # assign plotting info
-            ch_name = info.ch_names[idx]
-            ch_type = channel_type(info, idx)
-            if ch_type == 'eeg' and project_eeg:
-                ch_coord = _project_onto_surface(ch_coord, head_surf)
+            ch_type = channel_type(info, info.ch_names.index(ch_name))
+            # for default picking
+            if ch_type in _FNIRS_CH_TYPES_SPLIT:
+                ch_type = 'fnirs'
+            elif ch_type in _MEG_CH_TYPES_SPLIT:
+                ch_type = 'meg'
             color = _assign_by_name_or_ch_type(colors, ch_name, ch_type)
             scale = _assign_by_name_or_ch_type(scales, ch_name, ch_type)
             alpha = _assign_by_name_or_ch_type(alphas, ch_name, ch_type)
-            color = colorConverter.to_rgba(
-                'y' if color is None else color,
-                0.5 if alpha is None else alpha)
-            scale = 5 if scale is None else scale
+            if color is None:
+                color = 'y'  # default
+                if ch_type + '_color' in DEFAULTS['coreg']:
+                    color = DEFAULTS['coreg'][ch_type + '_color']
+            if alpha is None:
+                alpha = 0.5
+            color = colorConverter.to_rgba(color, alpha)
+            if scale is None:
+                scale = 5  # default
+                if ch_type + '_scale' in DEFAULTS['coreg']:
+                    scale = DEFAULTS['coreg'][ch_type + '_scale'] * 1e3
             scale *= 1e-3 if self._units == 'm' else 1
             # plot sensors
-            self._renderer.sphere(
-                center=tuple(ch_coord), color=color, scale=scale)
-            if ch_type in _FNIRS_CH_TYPES_SPLIT:
-                sensor_ch_coord = _coord_to_mri(
-                    info, idx, self._subject_id, self._subjects_dir,
-                    sensor=True, verbose=verbose)
-                detector_ch_coord = _coord_to_mri(
-                    info, idx, self._subject_id, self._subjects_dir,
-                    detector=True, verbose=verbose)
-                if fnirs_pairs:
-                    color = colorConverter.to_rgba(
-                        'gray' if isinstance(fnirs_pairs, bool) else
-                        fnirs_pairs, alpha)
-                    self._renderer.tube(  # array of origin and dest points
-                        origin=sensor_ch_coord[np.newaxis],
-                        destination=detector_ch_coord[np.newaxis],
-                        color=color, radius=scale / 5)
-                if fnirs_sources:
-                    color = colorConverter.to_rgba(
-                        'red' if isinstance(fnirs_sources, bool) else
-                        fnirs_sources, alpha)
-                    self._renderer.sphere(center=tuple(sensor_ch_coord),
-                                          color=color, scale=scale)
-                if fnirs_detectors:
-                    color = colorConverter.to_rgba(
-                        'black' if isinstance(fnirs_detectors, bool) else
-                        fnirs_detectors, alpha)
-                    self._renderer.sphere(center=tuple(detector_ch_coord),
-                                          color=color, scale=scale)
+            if isinstance(ch_coord, tuple):  # is meg, plot coil
+                verts, triangles = ch_coord
+                self._renderer.surface(
+                    surface=dict(rr=verts * 1e3, tris=triangles),
+                    color=tuple(color[:3]), opacity=alpha,
+                    backface_culling=True)
+            else:
+                self._renderer.sphere(
+                    center=tuple(ch_coord * 1e3), color=color, scale=scale)
+            if ch_name in sources and fnirs_sources:
+                self._renderer.sphere(
+                    center=tuple(sources[ch_name] * 1e3),
+                    color=colorConverter.to_rgba(fnirs_sources, alpha),
+                    scale=scale)
+            if ch_name in detectors and fnirs_detectors:
+                self._renderer.sphere(
+                    center=tuple(detectors[ch_name] * 1e3),
+                    color=colorConverter.to_rgba(fnirs_detectors, alpha),
+                    scale=scale)
+            if ch_name in sources and ch_name in detectors and fnirs_pairs:
+                self._renderer.tube(  # array of origin and dest points
+                    origin=sources[ch_name][np.newaxis] * 1e3,
+                    destination=detectors[ch_name][np.newaxis] * 1e3,
+                    color=colorConverter.to_rgba(fnirs_pairs, alpha),
+                    radius=scale / 5)
 
         if meg_helmet and pick_types(info.copy(), meg=True).size > 0:
-            trans = get_mri_head_trans(self._subject_id, self._subjects_dir)
-            surf = get_meg_helmet_surf(info, trans)
-            verts, triangles = surf['rr'] * 1000, surf['tris']
+            surf = get_meg_helmet_surf(info, head_mri_t)
+            verts, triangles = surf['rr'] * 1e3, surf['tris']
             color = _assign_by_name_or_ch_type(colors, 'meg_helmet', 'meg')
-            color = 'b' if color is None else color
+            if color is None:
+                color = DEFAULTS['coreg']['helmet_color']
             alpha = _assign_by_name_or_ch_type(alphas, 'meg_helmet', 'meg')
-            alpha = 0.5 if alpha is None else alpha
-            self._renderer.mesh(*verts.T, triangles, color=color,
+            alpha = 0.25 if alpha is None else alpha
+            self._renderer.mesh(*verts.T, triangles,
+                                color=colorConverter.to_rgba(color, alpha),
                                 opacity=alpha, reset_camera=False,
                                 render=False)
 
@@ -3605,13 +3672,13 @@ class Brain(object):
 
 def _assign_by_name_or_ch_type(param, ch_name, ch_type):
     """Assign a parameter either by channel name or type."""
-    if not isinstance(param, dict):
+    if isinstance(param, dict):
+        if ch_name in param:  # channel name takes precedence
+            return param[ch_name]
+        elif ch_type in param:
+            return param[ch_type]
+    else:
         return param  # if not a dict, use same for all
-    if ch_name in param:  # channel name takes precedence
-        return param[ch_name]
-    elif ch_type in param:
-        return param[ch_type]
-    return
 
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):

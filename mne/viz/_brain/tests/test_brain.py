@@ -315,8 +315,9 @@ def test_brain_init(renderer_pyvistaqt, tmpdir, pixel_ratio, brain_gc):
     brain.add_foci([0], coords_as_verts=True,
                    hemi=hemi, color='blue')
 
-    # add head
+    # add head and skull
     brain.add_head(color='red', alpha=0.1)
+    brain.add_skull(outer=True, inner=True, color='green', alpha=0.1)
 
     # add volume labels
     brain.add_volume_labels(
@@ -324,12 +325,12 @@ def test_brain_init(renderer_pyvistaqt, tmpdir, pixel_ratio, brain_gc):
                              'Left-Amygdala'))
     # add sensors
     raw = read_raw_fif(fname_raw_testing)
-    brain.add_sensors(raw, picks=('meg', 'eeg'),
+    brain.add_sensors(raw, trans=fname_trans, picks=('meg', 'eeg'),
                       colors=dict(eeg='r', grad='b', mag='y'))
 
     raw.info['chs'][0]['coord_frame'] = 99
-    with pytest.raises(RuntimeError, match='coordinate frame must be'):
-        brain.add_sensors(raw)
+    with pytest.raises(RuntimeError, match='must be "meg", "head" or "mri"'):
+        brain.add_sensors(raw, trans=fname_trans)
 
     # add text
     brain.add_text(x=0, y=0, text='foo')

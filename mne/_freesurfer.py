@@ -10,10 +10,13 @@ import numpy as np
 from gzip import GzipFile
 
 from .bem import _bem_find_surface, read_bem_surfaces
+from .io import _loc_to_coil_trans
 from .io.constants import FIFF
 from .io.meas_info import read_fiducials
+from .io.pick import channel_type, _FNIRS_CH_TYPES_SPLIT, _MEG_CH_TYPES_SPLIT
 from .transforms import (apply_trans, invert_transform, combine_transforms,
-                         _ensure_trans, read_ras_mni_t, Transform)
+                         _ensure_trans, read_ras_mni_t, Transform, _get_trans,
+                         _frame_to_str)
 from .surface import read_surface, _read_mri_surface
 from .utils import (verbose, _validate_type, _check_fname, _check_option,
                     get_subjects_dir, _require_version, logger, warn)
@@ -28,7 +31,7 @@ def _check_subject_dir(subject, subjects_dir):
             raise ValueError('Freesurfer recon-all subject folder '
                              'is incorrect or improperly formatted, '
                              f'got {op.join(subjects_dir, subject)}')
-    return subjects_dir
+    return op.join(subjects_dir, subject)
 
 
 def _get_aseg(aseg, subject, subjects_dir):
@@ -402,7 +405,7 @@ def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
 
     For more details about the coordinate systems and transformations involved,
     see https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems and
-    :ref:`plot_source_alignment`.
+    :ref:`tut-source-alignment`.
     """
     # Eventually we might want to allow using the MNI Talairach with-skull
     # transformation rather than the standard brain-based MNI Talaranch
@@ -423,8 +426,12 @@ def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
 
 
 @verbose
-def get_mri_head_trans(subject, subjects_dir, verbose=None):
-    """Get the head to surface RAS transform using the Freesurfer recon.
+def estimate_head_mri_t(subject, subjects_dir=None, verbose=None):
+    """Estimate the head->mri transform.
+
+    A subject's fiducials can be estimated given a Freesurfer ``recon-all``
+    by transforming ``fsaverage`` fiducials using the inverse Talairach
+    transform, see :func:`mne.coreg.get_mni_fiducials`.
 
     Parameters
     ----------
@@ -434,47 +441,105 @@ def get_mri_head_trans(subject, subjects_dir, verbose=None):
 
     Returns
     -------
-    trans : mne.transforms.Transform
-        The "mri" (surface RAS) to "head" transform.
+    %(trans_not_none)s
     """
-    from .channels import make_dig_montage, compute_native_head_t
+    from .channels.montage import make_dig_montage, compute_native_head_t
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     lpa, nasion, rpa = get_mni_fiducials(subject, subjects_dir)
-    montage = make_dig_montage(
-        lpa=lpa['r'], nasion=nasion['r'], rpa=rpa['r'], coord_frame='mri')
-    trans = compute_native_head_t(montage)
-    return trans
+    montage = make_dig_montage(lpa=lpa['r'], nasion=nasion['r'], rpa=rpa['r'],
+                               coord_frame='mri')
+    return invert_transform(compute_native_head_t(montage))
 
 
 @verbose
-def _coord_to_mri(info, idx, subject, subjects_dir,
-                  sensor=False, detector=False, verbose=None):
-    """Transform a channel to the "mri"/surface RAS coordinate frame."""
-    assert sensor + detector < 2  # can't be both
-    type_slice = slice(0, 3)
-    if sensor:
-        type_slice = slice(3, 6)
-    if detector:
-        type_slice = slice(6, 9)
-    ch_coord = info['chs'][idx]['loc'][type_slice]
-    # coordinate frame/location info
-    coord_frame = info['chs'][idx]['coord_frame']
-    if coord_frame == FIFF.FIFFV_COORD_UNKNOWN:
-        if verbose is None or verbose or verbose == 'warn':
-            warn('Got coordinate frame "unknown", assuming '
-                 '"head" coordinates')
-        coord_frame = FIFF.FIFFV_COORD_HEAD
-    if coord_frame == FIFF.FIFFV_COORD_DEVICE:
-        ch_coord = apply_trans(info['dev_head_t']['trans'], ch_coord)
-        coord_frame = FIFF.FIFFV_COORD_HEAD  # now it's in head
-    if coord_frame == FIFF.FIFFV_COORD_HEAD:
-        trans = invert_transform(get_mri_head_trans(subject, subjects_dir))
-        ch_coord = apply_trans(trans['trans'], ch_coord) * 1000  # mm -> m
-        coord_frame = FIFF.FIFFV_COORD_MRI  # now in surface RAS
-    if coord_frame != FIFF.FIFFV_COORD_MRI:
-        raise RuntimeError(
-            '`inst` coordinate frame must be "meg", "head" or "mri", '
-            f'got {coord_frame} for {info.ch_names[idx]}')
-    return ch_coord
+def _get_transforms_to_coord_frame(info, trans, coord_frame='mri',
+                                   verbose=None):
+    """Get the transforms from one coordinate frame to others."""
+    head_mri_t = _get_trans(trans, 'head', 'mri')[0]
+    dev_head_t = _get_trans(info['dev_head_t'], 'meg', 'head')[0]
+    mri_dev_t = invert_transform(combine_transforms(
+        dev_head_t, head_mri_t, 'meg', 'mri'))
+    to_cf_t = dict(
+        meg=_ensure_trans([dev_head_t, mri_dev_t, Transform('meg', 'meg')],
+                          fro='meg', to=coord_frame),
+        head=_ensure_trans([dev_head_t, head_mri_t, Transform('head', 'head')],
+                           fro='head', to=coord_frame),
+        mri=_ensure_trans([head_mri_t, mri_dev_t, Transform('mri', 'mri')],
+                          fro='mri', to=coord_frame))
+    return to_cf_t
+
+
+@verbose
+def _ch_pos_in_coord_frame(info, to_cf_t, coord_frame='mri', warn_meg=True,
+                           verbose=None):
+    """Transform a channel location to "mri" (surface RAS)."""
+    from .forward import _create_meg_coils
+    from .viz._3d import _sensor_shape
+    _check_option('coord_frame', coord_frame, ('meg', 'head', 'mri'))
+    chs = dict(ch_pos=dict(), sources=dict(), detectors=dict())
+    unknown_chs = list()  # prepare for chs with unknown coordinate frame
+    type_counts = dict()
+    for idx in range(info['nchan']):
+        ch_type = channel_type(info, idx)
+        if ch_type in type_counts:
+            type_counts[ch_type] += 1
+        else:
+            type_counts[ch_type] = 1
+        type_slices = dict(ch_pos=slice(0, 3))
+        if ch_type in _FNIRS_CH_TYPES_SPLIT:
+            # add sensors and detectors too for fNIRS
+            type_slices.update(sources=slice(3, 6), detectors=slice(6, 9))
+        for type_name, type_slice in type_slices.items():
+            if ch_type in _MEG_CH_TYPES_SPLIT + ('ref_meg',):
+                coil_trans = _loc_to_coil_trans(info['chs'][idx]['loc'])
+                coil = _create_meg_coils([info['chs'][idx]], acc='normal')[0]
+                # store verts as ch_coord
+                ch_coord, triangles = _sensor_shape(coil)
+                ch_coord = apply_trans(coil_trans, ch_coord)
+                if len(ch_coord) == 0 and warn_meg:
+                    warn(f'MEG sensor {info.ch_names[idx]} not found. '
+                         'Cannot plot MEG location.')
+            else:
+                ch_coord = info['chs'][idx]['loc'][type_slice]
+            ch_coord_frame = info['chs'][idx]['coord_frame']
+            if ch_coord_frame not in (FIFF.FIFFV_COORD_UNKNOWN,
+                                      FIFF.FIFFV_COORD_DEVICE,
+                                      FIFF.FIFFV_COORD_HEAD,
+                                      FIFF.FIFFV_COORD_MRI):
+                raise RuntimeError(
+                    f'Channel {info.ch_names[idx]} has coordinate frame '
+                    f'{ch_coord_frame}, must be "meg", "head" or "mri".')
+            # set unknown as head first
+            if ch_coord_frame == FIFF.FIFFV_COORD_UNKNOWN:
+                unknown_chs.append(info.ch_names[idx])
+                ch_coord_frame = FIFF.FIFFV_COORD_HEAD
+            ch_coord = apply_trans(
+                to_cf_t[_frame_to_str[ch_coord_frame]], ch_coord)
+            if ch_type in _MEG_CH_TYPES_SPLIT + ('ref_meg',):
+                chs[type_name][info.ch_names[idx]] = (ch_coord, triangles)
+            else:
+                chs[type_name][info.ch_names[idx]] = ch_coord
+    if unknown_chs:
+        warn(f'Got coordinate frame "unknown" for {unknown_chs}, assuming '
+             '"head" coordinates.')
+    logger.info('Channel types::\t' + ', '.join(
+        [f'{ch_type}: {count}' for ch_type, count in type_counts.items()]))
+    return chs['ch_pos'], chs['sources'], chs['detectors']
+
+
+def _ensure_image_in_surface_RAS(image, subject, subjects_dir):
+    """Check if the image is in Freesurfer surface RAS space."""
+    import nibabel as nib
+    if not isinstance(image, nib.spatialimages.SpatialImage):
+        image = nib.load(image)
+    image = nib.MGHImage(image.dataobj.astype(np.float32), image.affine)
+    fs_img = nib.load(op.join(subjects_dir, subject, 'mri', 'brain.mgz'))
+    if not np.allclose(image.affine, fs_img.affine, atol=1e-6):
+        raise RuntimeError('The `image` is not aligned to Freesurfer '
+                           'surface RAS space. This space is required as '
+                           'it is the space where the anatomical '
+                           'segmentation and reconstructed surfaces are')
+    return image  # returns MGH image for header
 
 
 @verbose
@@ -687,3 +752,43 @@ def _get_head_surface(surf, subject, subjects_dir, bem=None, verbose=None):
                 return _read_mri_surface(fname)
     raise IOError('No head surface found for subject '
                   f'{subject} after trying:\n' + '\n'.join(try_fnames))
+
+
+@verbose
+def _get_skull_surface(surf, subject, subjects_dir, bem=None, verbose=None):
+    """Get a skull surface from the Freesurfer subject directory.
+
+    Parameters
+    ----------
+    surf : str
+        The name of the surface 'outer' or 'inner'.
+    %(subject)s
+    %(subjects_dir)s
+    bem : mne.bem.ConductorModel | None
+        The conductor model that stores information about the skull surface.
+    %(verbose)s
+
+    Returns
+    -------
+    skull_surf : dict | None
+        A dictionary with keys 'rr', 'tris', 'ntri', 'use_tris', 'np'
+        and 'coord_frame' that store information for mesh plotting and other
+        useful information about the head surface.
+
+    Notes
+    -----
+    .. versionadded: 0.24
+    """
+    if bem is not None:
+        try:
+            return _bem_find_surface(bem, surf + '_skull')
+        except RuntimeError:
+            logger.info('Could not find the surface for '
+                        'skull in the provided BEM model, '
+                        'looking in the subject directory.')
+    fname = op.join(get_subjects_dir(subjects_dir, raise_error=True),
+                    subject, 'bem', surf + '_skull.surf')
+    if not op.isfile(fname):
+        raise ValueError('Skull surface cannot be found, should be '
+                         f'located at {fname}')
+    return _read_mri_surface(fname)

@@ -42,7 +42,7 @@ Enhancements
 
 - Speed up reading of annotations in EDF+ files **by new contributor** |Jeroen Van Der Donckt|_
 
-- Add head to mri and mri to voxel space transform details to :ref:`plot_source_alignment` tutorial, by `Alex Rockhill`_
+- Add head to mri and mri to voxel space transform details to :ref:`tut-source-alignment` tutorial, by `Alex Rockhill`_
 
 - Improve memory efficiency of :func:`mne.concatenate_epochs` by `Eric Larson`_
 

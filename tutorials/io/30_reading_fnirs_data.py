@@ -218,7 +218,7 @@ raw = mne.io.RawArray(data, info, verbose=True)
 # (montages) from some vendors, and this is demonstrated below.
 # Some handy tutorials for understanding sensor locations, coordinate systems,
 # and how to store and view this information in MNE-Python are:
-# :ref:`tut-sensor-locations`, :ref:`plot_source_alignment`, and
+# :ref:`tut-sensor-locations`, :ref:`tut-source-alignment`, and
 # :ref:`ex-eeg-on-scalp`.
 #
 # Below is an example of how to load the optode positions for an Artinis
@@ -234,20 +234,19 @@ raw.set_montage(montage)
 # View the position of optodes in 2D to confirm the positions are correct.
 raw.plot_sensors()
 
-
 # %%
 # To validate the positions were loaded correctly it is also possible to view
 # the location of the sources (red), detectors (black), and channels (white
 # lines and orange dots) in a 3D representation.
 # The ficiduals are marked in blue, green and red.
-# See :ref:`plot_source_alignment` for more details.
+# See :ref:`tut-source-alignment` for more details.
 
 subjects_dir = op.join(mne.datasets.sample.data_path(), 'subjects')
 mne.datasets.fetch_fsaverage(subjects_dir=subjects_dir)
 
 brain = mne.viz.Brain('fsaverage', subjects_dir=subjects_dir,
                       alpha=0.5, cortex='low_contrast')
-brain.add_head(dense=False)
-brain.add_sensors(raw)
-brain.show_view(azimuth=90, elevation=90, distance=500,
-                focalpoint=(0., -10, 20))
+brain.add_head()
+brain.add_sensors(raw, trans='fsaverage')
+brain.enable_depth_peeling()
+brain.show_view(azimuth=90, elevation=90, distance=500)

@@ -129,11 +129,11 @@ Enhancements
 
 - The coregistration GUI can now display the head surface even if there are topological defects. Previously, a low-resolution standard head unsuitable for individualized coregistration was displayed (:gh:`9614` by `Richard Höchenberger`_)
 
-- Add :meth:`mne.viz.Brain.add_sensors` to plot sensor locations (:gh:`9580` by `Alex Rockhill`_)
-
 - Add :meth:`mne.viz.Brain.add_head` to plot the head surface (:gh:`9618` by `Alex Rockhill`_)
 
 - Add :func:`mne.channels.read_dig_localite` to read Localite electrode location files (:gh:`9658` by `Clemens Brunner`_)
+
+- Add :meth:`mne.viz.Brain.add_sensors` to plot sensor locations (:gh:`9580` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
@@ -188,6 +188,8 @@ Bugs
 - Fix bug in :func:`mne.viz.plot_compare_evokeds` where confidence bands were not drawn if only one condition was plotted (:gh:`9663` by `Daniel McCloy`_)
 
 - Fix bug where setting of a montage with fNIRS data got set to "unknown" coordinate frame when it should have been in "head" (:gh:`9630` by `Alex Rockhill`_)
+
+- Fix bug where "seeg", "ecog", "dbs" and "fnirs" data had coordinate frame unknown upon loading from a file when it should have been in "head" (:gh:`9580` by `Alex Rockhill`_)
 
 API changes
 ~~~~~~~~~~~
