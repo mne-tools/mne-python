@@ -330,31 +330,31 @@ class BrowserBase(ABC):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     @abstractmethod
-    def _close_all(self):
+    def close_all(self):
         pass
 
     @abstractmethod
-    def _close_event(self, target):
+    def close_event(self, target):
         pass
 
     @abstractmethod
-    def _get_n_windows(self):
+    def get_n_windows(self):
         pass
 
     @abstractmethod
-    def _press_key(self, key, target):
+    def press_key(self, key, target):
         pass
 
     @abstractmethod
-    def _fake_click(self, point, target, axis, xform, button, kind):
+    def fake_click(self, point, target, axis, xform, button, kind):
         pass
 
     @abstractmethod
-    def _click_ch_name(self, ch_index, button):
+    def click_ch_name(self, ch_index, button):
         pass
 
     @abstractmethod
-    def _test_childs(self, key, attr):
+    def test_childs(self, key, attr):
         pass
 
 

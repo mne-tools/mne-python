@@ -2074,12 +2074,12 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         self.mne.vline_visible = visible
         self.canvas.draw_idle()
 
-    def _close_all(self):
+    def close_all(self):
         plt.close('all')
 
     # workaround: plt.close() doesn't spawn close_event on Agg backend
     # (check MPL github issue #18609; scheduled to be fixed by MPL 3.4)
-    def _close_event(self, target=None):
+    def close_event(self, target=None):
         """Force calling of the MPL figure close event."""
         target = target or self
         try:
@@ -2087,14 +2087,14 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         except ValueError:  # old mpl with Qt
             pass  # pragma: no cover
 
-    def _get_n_windows(self):
+    def get_n_windows(self):
         return len(plt.get_fignums())
 
-    def _press_key(self, key, target=None):
+    def press_key(self, key, target=None):
         target = target or self
         target.canvas.key_press_event(key)
 
-    def _fake_click(self, point, target=None, ax=None,
+    def fake_click(self, point, target=None, ax=None,
                     xform='ax', button=1, kind='press'):
         """Fake a click at a relative point within axes."""
         target = target or self
@@ -2119,7 +2119,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
         func(guiEvent=None)
 
-    def _click_ch_name(self, ch_index, button):
+    def click_ch_name(self, ch_index, button):
         self.canvas.draw()
         text = self.mne.ax_main.get_yticklabels()[ch_index]
         bbox = text.get_window_extent()
@@ -2127,7 +2127,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         y = bbox.intervaly.mean()
         self._fake_click((x, y), xform='pix', button=button)
 
-    def _test_childs(self, key, attr):
+    def test_childs(self, key, attr):
         # Spawn and close child figs of raw.plot()
         num_figs = len(plt.get_fignums())
         assert getattr(self.mne, attr) is None

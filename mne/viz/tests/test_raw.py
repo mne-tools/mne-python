@@ -40,26 +40,27 @@ def _annotation_helper(raw, events=False):
     fig = raw.plot(events=events)
     assert len(plt.get_fignums()) == 1
     data_ax = fig.mne.ax_main
-    fig.canvas.key_press_event('a')  # annotation mode
-    assert len(plt.get_fignums()) == 2
+    fig.press_key('a')  # annotation mode
+    assert fig.get_n_windows() == 2
     # +3 from the scale bars
     n_scale = 3
     assert len(data_ax.texts) == n_anns + n_events + n_scale
     # modify description to create label "BAD test"
     ann_fig = fig.mne.fig_annotation
     for key in ['backspace'] + list(' test;'):  # semicolon is ignored
-        ann_fig.canvas.key_press_event(key)
+        fig.press_key(key, target=ann_fig)
     ann_fig.canvas.key_press_event('enter')
 
     # change annotation label
     for ix in (-1, 0):
         xy = ann_fig.mne.radio_ax.buttons.circles[ix].center
-        _fake_click(ann_fig, ann_fig.mne.radio_ax, xy, xform='data')
+        fig.fake_click(xy, target=ann_fig, ax=ann_fig.mne.radio_ax,
+                        xform='data')
 
     # draw annotation
-    _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
-    _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='motion')
-    _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='release')
+    fig.fake_click([1., 1.], xform='data', button=1, kind='press')
+    fig.fake_click([5., 1.], xform='data', button=1, kind='motion')
+    fig.fake_click([5., 1.], xform='data', button=1, kind='release')
     assert len(raw.annotations.onset) == n_anns + 1
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
@@ -70,35 +71,35 @@ def _annotation_helper(raw, events=False):
     assert_allclose(onset, want_onset)
     assert_allclose(raw.annotations.duration[n_anns], 4.)
     # test hover event
-    fig.canvas.key_press_event('p')  # first turn on draggable mode
+    fig.press_key('p')  # first turn on draggable mode
     assert fig.mne.draggable_annotations
     hover_kwargs = dict(xform='data', button=None, kind='motion')
-    _fake_click(fig, data_ax, [4.6, 1.], **hover_kwargs)  # well inside ann.
-    _fake_click(fig, data_ax, [4.9, 1.], **hover_kwargs)  # almost at edge
+    fig.fake_click([4.6, 1.], **hover_kwargs)  # well inside ann.
+    fig.fake_click([4.9, 1.], **hover_kwargs)  # almost at edge
     assert fig.mne.annotation_hover_line is not None
-    _fake_click(fig, data_ax, [5.5, 1.], **hover_kwargs)  # well outside ann.
+    fig.fake_click([5.5, 1.], **hover_kwargs)  # well outside ann.
     assert fig.mne.annotation_hover_line is None
     # more tests of hover line
-    _fake_click(fig, data_ax, [4.6, 1.], **hover_kwargs)  # well inside ann.
-    _fake_click(fig, data_ax, [4.9, 1.], **hover_kwargs)  # almost at edge
+    fig.fake_click([4.6, 1.], **hover_kwargs)  # well inside ann.
+    fig.fake_click([4.9, 1.], **hover_kwargs)  # almost at edge
     assert fig.mne.annotation_hover_line is not None
     fig.canvas.key_press_event('p')  # turn off draggable mode, then move a bit
-    _fake_click(fig, data_ax, [4.95, 1.], **hover_kwargs)
+    fig.fake_click([4.95, 1.], **hover_kwargs)
     assert fig.mne.annotation_hover_line is None
     fig.canvas.key_press_event('p')  # turn draggable mode back on
     # modify annotation from end (duration 4 → 1.5)
-    _fake_click(fig, data_ax, [4.9, 1.], xform='data', button=None,
+    fig.fake_click([4.9, 1.], xform='data', button=None,
                 kind='motion')  # ease up to it
-    _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='press')
-    _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1, kind='motion')
-    _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1,
+    fig.fake_click([5., 1.], xform='data', button=1, kind='press')
+    fig.fake_click([2.5, 1.], xform='data', button=1, kind='motion')
+    fig.fake_click([2.5, 1.], xform='data', button=1,
                 kind='release')
     assert raw.annotations.onset[n_anns] == onset
     assert_allclose(raw.annotations.duration[n_anns], 1.5)  # 4 → 1.5
     # modify annotation from beginning (duration 1.5 → 2.0)
-    _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
-    _fake_click(fig, data_ax, [0.5, 1.], xform='data', button=1, kind='motion')
-    _fake_click(fig, data_ax, [0.5, 1.], xform='data', button=1,
+    fig.fake_click([1., 1.], xform='data', button=1, kind='press')
+    fig.fake_click([0.5, 1.], xform='data', button=1, kind='motion')
+    fig.fake_click([0.5, 1.], xform='data', button=1,
                 kind='release')
     assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
     assert_allclose(raw.annotations.duration[n_anns], 2.0)  # 1.5 → 2.0
@@ -107,15 +108,15 @@ def _annotation_helper(raw, events=False):
     assert len(raw.annotations.description) == n_anns + 1
     assert raw.annotations.description[n_anns] == 'BAD test'
     assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
-    fig.canvas.key_press_event('shift+right')
+    fig.press_key('shift+right')
     assert len(fig.axes[0].texts) == n_scale
-    fig.canvas.key_press_event('shift+left')
+    fig.press_key('shift+left')
     assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
 
     # draw another annotation merging the two
-    _fake_click(fig, data_ax, [5.5, 1.], xform='data', button=1, kind='press')
-    _fake_click(fig, data_ax, [2., 1.], xform='data', button=1, kind='motion')
-    _fake_click(fig, data_ax, [2., 1.], xform='data', button=1, kind='release')
+    fig.fake_click([5.5, 1.], xform='data', button=1, kind='press')
+    fig.fake_click([2., 1.], xform='data', button=1, kind='motion')
+    fig.fake_click([2., 1.], xform='data', button=1, kind='release')
     # delete the annotation
     assert len(raw.annotations.onset) == n_anns + 1
     assert len(raw.annotations.duration) == n_anns + 1
@@ -124,18 +125,18 @@ def _annotation_helper(raw, events=False):
     assert_allclose(raw.annotations.duration[n_anns], 5.0)
     assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
     # Delete
-    _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3, kind='press')
+    fig.fake_click([1.5, 1.], xform='data', button=3, kind='press')
     # exit, re-enter, then exit a different way
-    fig.canvas.key_press_event('a')  # exit
-    fig.canvas.key_press_event('a')  # enter
-    fig.mne.fig_annotation.canvas.key_press_event('escape')  # exit again
+    fig.press_key('a')  # exit
+    fig.press_key('a')  # enter
+    fig.press_key('escape', target=fig.mne.fig_annotation)  # exit again
     assert len(raw.annotations.onset) == n_anns
     assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
-    fig.canvas.key_press_event('shift+right')
+    fig.press_key('shift+right')
     assert len(fig.axes[0].texts) == n_scale
-    fig.canvas.key_press_event('shift+left')
+    fig.press_key('shift+left')
     assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
-    plt.close('all')
+    fig.close_all()
 
 
 def _proj_status(ax):
