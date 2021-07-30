@@ -571,15 +571,16 @@ def _check_dict_keys(user_options, allowed_options,
 
     Parameters
     ----------
-    user_options : dict
-        The name of the parameter to check. This is used in the error message.
-    allowed_options : list
-        All possible valid key names.
-    user_opt_name : str
-        Meaningful name of the items stored in the input dictionary.
-    validator_name : str
-        Meaningful name of the values against which the keys are
-        validated against.
+    mapping : dict
+        The user-provided dict whose keys we want to check.
+    valid_keys : iterable
+        The valid keys.
+    key_description : str
+        Description of the keys in ``mapping``, e.g., "channel name(s)" or
+        "annotation(s)".
+    valid_key_source : str
+        Description of the ``valid_keys`` source, e.g., "info dict" or
+        "annotations in the data".
 
     Raises
     ------
@@ -588,13 +589,15 @@ def _check_dict_keys(user_options, allowed_options,
 
     Returns
     -------
-    user_dict
-        When the keys are deemed acceptable the dictionary is returned.
+    mapping
+        If all keys are valid the input dict is returned unmodified.
     """
     missing = set(user_options) - set(allowed_options)
     if len(missing):
-        raise ValueError(
-            f"{user_opt_name} missing in {validator_name}: {missing}")
+        _is = 'are' if len(missing) > 1 else 'is'
+        msg = (f'Invalid {key_description} {missing} {_is} not present in '
+               f'{valid_key_source}')
+        raise ValueError(msg)
 
     return user_options
 
