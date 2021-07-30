@@ -267,10 +267,7 @@ def _check_complete_surface(surf, copy=False, incomplete='raise', extra=''):
                'have fewer than three neighboring triangles [{}]{}'
                .format(_bem_surf_name[surf['id']], len(fewer), surf['ntri'],
                        ', '.join(str(f) for f in fewer), extra))
-        if incomplete == 'raise':
-            raise RuntimeError(msg)
-        else:
-            warn(msg)
+        _on_missing(on_missing=incomplete, msg=msg, name='on_defects')
     return surf
 
 
