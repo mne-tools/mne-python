@@ -1439,6 +1439,7 @@ class Coregistration(object):
             self._transformed_high_res_mri_points = \
                 apply_trans(self._mri_trans,
                             self._processed_high_res_mri_points)
+            self._update_nearest_calc()
 
     def set_scale_mode(self, scale_mode):
         """Select how to fit the scale parameters.
@@ -1495,6 +1496,13 @@ class Coregistration(object):
             The scale parameter.
         """
         self._update_params(sca=np.array(sca))
+
+    def _nearest_calc_default(self):
+        return _DistanceQuery(
+            self._processed_high_res_mri_points * self._scale)
+
+    def _update_nearest_calc(self):
+        self._nearest_calc = self._nearest_calc_default()
 
     @property
     def _filtered_extra_points(self):
