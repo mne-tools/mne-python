@@ -990,7 +990,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     elif sensors and mask is not None:
         idx = np.where(mask)[0]
         ax.plot(pos_x[idx], pos_y[idx], **mask_params)
-        idx = np.where(~mask)[0]
+        idx = np.where(mask)[0]
         _topomap_plot_sensors(pos_x[idx], pos_y[idx], sensors=sensors, ax=ax)
     elif not sensors and mask is not None:
         idx = np.where(mask)[0]
@@ -1691,10 +1691,10 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     # apply mask if requested
     if mask is not None:
         if ch_type == 'grad':
-            mask_ = (mask[np.ix_(picks[::2], time_idx)] |
-                     mask[np.ix_(picks[1::2], time_idx)])
+            mask_ = (mask[np.ix_(picks[::2], range(len(time_idx)))] |
+                     mask[np.ix_(picks[1::2], range(len(time_idx)))])
         else:  # mag, eeg, planar1, planar2
-            mask_ = mask[np.ix_(picks, time_idx)]
+            mask_ = mask[np.ix_(picks, range(len(time_idx)))]
     # set up colormap
     vlims = [_setup_vmin_vmax(data[:, i], vmin, vmax, norm=merge_channels)
              for i in range(n_times)]
