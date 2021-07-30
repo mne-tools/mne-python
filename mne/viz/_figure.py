@@ -2350,6 +2350,8 @@ def _browse_figure(inst, **kwargs):
     """Instantiate a new MNE browse-style figure."""
     from .utils import _get_figsize_from_config
     figsize = kwargs.pop('figsize', _get_figsize_from_config())
+    if figsize is None or np.any(np.array(figsize) < 8):
+        figsize = (8, 8)
     fig = _figure(inst=inst, toolbar=False, FigureClass=MNEBrowseFigure,
                   figsize=figsize, **kwargs)
     # initialize zen mode (can't do in __init__ due to get_position() calls)
