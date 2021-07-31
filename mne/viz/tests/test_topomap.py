@@ -676,3 +676,16 @@ def test_topomap_mask():
     mask = np.zeros([len(evoked.ch_names), len(times)], dtype=bool)
     mask[20, :] = True
     evoked.plot_topomap(times=times, time_unit='s', mask=mask)
+    mask[:20, :] = True
+    evoked.plot_topomap(times=times, time_unit='s', mask=mask)
+
+    evoked = read_evokeds(evoked_fname)[0]
+    evoked.pick('grad')
+    evoked.apply_baseline((None, 0))
+
+    times = (0.090, 0.110)
+    mask = np.zeros([len(evoked.ch_names), len(times)], dtype=bool)
+    mask[20, :] = True
+    evoked.plot_topomap(times=times, time_unit='s', mask=mask)
+    mask[:20, :] = True
+    evoked.plot_topomap(times=times, time_unit='s', mask=mask)
