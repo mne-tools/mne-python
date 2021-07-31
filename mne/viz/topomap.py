@@ -1691,8 +1691,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     # apply mask if requested
     if mask is not None:
         if ch_type == 'grad':
-            mask_ = (mask[np.ix_(picks[::2], range(len(time_idx)))] |
-                     mask[np.ix_(picks[1::2], range(len(time_idx)))])
+            mask_ = (
+                mask[np.ix_(picks[::2], range(len(time_idx)))].astype(bool) |
+                mask[np.ix_(picks[1::2], range(len(time_idx)))].astype(bool))
         else:  # mag, eeg, planar1, planar2
             mask_ = mask[np.ix_(picks, range(len(time_idx)))]
     # set up colormap
