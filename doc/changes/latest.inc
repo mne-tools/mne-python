@@ -173,7 +173,7 @@ Bugs
 
 - Fix bug in :func:`mne.viz.set_3d_backend` and :func:`mne.viz.get_3d_backend` where the PyVistaQt-based backend was ambiguously named ``'pyvista'`` instead of ``'pyvistaqt'``; use ``set_3d_backend('pyvistaqt')`` and expect ``'pyvistaqt'`` as the output of :func:`mne.viz.get_3d_backend` instead of ``'pyvista'``, and consider using ``get_3d_backend().startswith('pyvista')`` for example for backward-compatible conditionals (:gh:`9607` by `Guillaume Favelier`_)
 
-- Fix bug in :func:`mne.viz.plot_topomap` and :func:`mne.viz.plot_evoked_topomap` where the use of the argument `mask` would lead to an error (:gh:`9628` by **new contributor** |Mathieu Scheltienne|_)
+- Fix bug in :func:`mne.viz.plot_topomap` and :func:`mne.viz.plot_evoked_topomap` where the use of the argument ``mask`` would lead to an error (:gh:`9628` by **new contributor** |Mathieu Scheltienne|_)
 
 API changes
 ~~~~~~~~~~~
