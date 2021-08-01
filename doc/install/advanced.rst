@@ -114,9 +114,9 @@ installing new packages and managing environments; unlike Anaconda, Miniconda
 starts off with a minimal set of around 30 packages instead of Anaconda's
 hundreds. See the `installation instructions for Miniconda`_ for more info.
 
-It is also possible to use a system-level installation of Python (version 3.6
-or higher) and use ``pip`` to install MNE-Python and its dependencies, using
-the provided `requirements file`_:
+It is also possible to use a system-level installation of Python (version
+|min_python_version| or higher) and use ``pip`` to install MNE-Python and its
+dependencies, using the provided `requirements file`_:
 
 .. code-block:: console
 

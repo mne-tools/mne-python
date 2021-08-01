@@ -1,7 +1,9 @@
+.. include:: links.inc
+
 Quick start
 ===========
 
-MNE-Python requires Python version 3.7 or higher.
+MNE-Python requires Python version |min_python_version| or higher.
 For users already familiar with Python:
 
 - If you only need 2D plotting capabilities with MNE-Python (i.e., most EEG/ERP
