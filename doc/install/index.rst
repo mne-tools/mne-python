@@ -13,15 +13,17 @@ For users already familiar with Python:
 
       $ pip install mne  # dependencies are numpy, scipy, matplotlib
 
-- If you need MNE-Python's 3D plotting capabilities (e.g., plotting estimated
+- If you need MNE-Python's 3D rendering capabilities (e.g., plotting estimated
   source activity on a cortical surface) it is a good idea to install
-  MNE-Python into its own virtual environment. To do this with ``conda`` (this
-  will create a conda environment called ``mne``):
+  MNE-Python into its own virtual environment. To do this with
+  `conda <anaconda>`_ (this will create a new ``conda`` environment called
+  ``mne``):
 
   .. code-block:: console
 
-      $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
-      $ conda env update --file environment.yml
+      $ conda create --name mne --channel conda-forge mne
+      $ #                   ↑↑↑                       ↑↑↑
+      $ #             environment name            package name
 
   If you need to convert structural MRI scans into models of the scalp,
   inner/outer skull, and cortical surfaces you also need
