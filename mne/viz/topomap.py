@@ -990,7 +990,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     elif sensors and mask is not None:
         idx = np.where(mask)[0]
         ax.plot(pos_x[idx], pos_y[idx], **mask_params)
-        idx = np.where(mask)[0]
+        idx = np.where(~mask.astype(bool))[0]
         _topomap_plot_sensors(pos_x[idx], pos_y[idx], sensors=sensors, ax=ax)
     elif not sensors and mask is not None:
         idx = np.where(mask)[0]
