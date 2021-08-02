@@ -226,13 +226,14 @@ def check_gui_ci(ci_macos, azure_windows):
 
 @pytest.fixture(scope='function')
 def raw_orig():
-    """Get raw data."""
+    """Get raw data witout any change to it."""
     raw = read_raw_fif(fname_raw_io, preload=True)
     return raw
 
 
 @pytest.fixture(scope='function')
 def raw():
+    """Get raw data and pick channels to reduce load for testing."""
     raw = read_raw_fif(fname_raw_io, preload=True)
     # Throws a warning about a changed unit.
     with pytest.warns(RuntimeWarning, match='unit'):
@@ -244,6 +245,7 @@ def raw():
 
 @pytest.fixture(scope='function')
 def raw_ctf():
+    """Get ctf raw data."""
     raw_ctf = read_raw_ctf(fname_ctf_continuous, preload=True)
     return raw_ctf
 
@@ -278,6 +280,7 @@ def noise_cov():
 
 @pytest.fixture
 def noise_cov_io():
+    """Get noise-covariance (from mne.io.tests)."""
     return mne.read_cov(fname_cov_io)
 
 
@@ -334,6 +337,7 @@ def garbage_collect():
 
 @pytest.fixture(params=['matplotlib'])
 def browser_backend(request, garbage_collect):
+    """Parametrizes the name of the browser-backend."""
     return request.param
 
 

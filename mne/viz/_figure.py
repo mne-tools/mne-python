@@ -28,9 +28,8 @@ backend = None
 
 
 class BrowserParams:
-    """
-    Container object for 2D-Data-Browser parameters.
-    """
+    """Container object for 2D-Data-Browser parameters."""
+
     def __init__(self, **kwargs):
         # default key to close window
         self.close_key = 'escape'
@@ -39,9 +38,11 @@ class BrowserParams:
 
 class BrowserBase(ABC):
     """
-    A base class containing all backend-independent attributes and methods
-    for the 2D-Data-Browser.
+    A base class containing for the 2D-Data-Browser.
+
+    This class contains all backend-independent attributes and methods.
     """
+
     def __init__(self, **kwargs):
         from .. import BaseEpochs
         from ..io import BaseRaw
@@ -327,8 +328,7 @@ class BrowserBase(ABC):
         return epoch_nums[np.searchsorted(self.mne.boundary_times[1:], time)]
 
     def _redraw(self, **kwargs):
-        """This is usually not necessary for the pyqtgraph-backend as
-        the redraw of objects is often handled by pyqtgraph internally."""
+        """Redraws backend if necessary."""
         pass
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -451,7 +451,7 @@ def _init_browser_backend():
 
     # check if MNE_BROWSE_BACKEND is not None and valid or get it from config
     loaded_backend = MNE_BROWSE_BACKEND \
-                     or get_config(key='MNE_BROWSE_BACKEND', default=None)
+        or get_config(key='MNE_BROWSE_BACKEND', default=None)
     if loaded_backend is not None:
         set_browser_backend(loaded_backend)
         return MNE_BROWSE_BACKEND

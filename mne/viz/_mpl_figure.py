@@ -63,7 +63,7 @@ from mne.viz.ica import (_create_properties_layout,
                          _fast_plot_ica_properties)
 from mne.viz.utils import (_events_off, DraggableLine, plt_show, _prop_kw,
                            _merge_annotations, _set_window_title,
-                           _validate_if_list_of_axes, _fake_click)
+                           _validate_if_list_of_axes, _fake_click, _plot_psd)
 
 # CONSTANTS (inches)
 ANNOTATION_FIG_PAD = 0.1
@@ -1365,7 +1365,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _create_selection_fig(self):
         """Create channel selection dialog window."""
-
         from matplotlib.colors import to_rgb
         from matplotlib.widgets import RadioButtons
         from matplotlib.gridspec import GridSpec
@@ -2075,9 +2074,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 self.draw_artist(artist)
         self.mne.vline_visible = visible
         self.canvas.draw_idle()
-
-    def close_all(self):
-        plt.close('all')
 
     # workaround: plt.close() doesn't spawn close_event on Agg backend
     # (check MPL github issue #18609; scheduled to be fixed by MPL 3.4)

@@ -748,7 +748,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     .. versionadded:: 0.10.0
     """
-    from ._figure import get_browser_backend
     from ._figure import _get_browser
 
     epochs.drop_bad()

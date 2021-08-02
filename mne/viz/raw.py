@@ -203,7 +203,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     ``True``. This flag can be toggled by pressing 'd'.
     """
     from ..io.base import BaseRaw
-    from ._figure import get_browser_backend
     from ._figure import _get_browser
 
     info = raw.info.copy()
