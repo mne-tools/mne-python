@@ -509,7 +509,6 @@ def read_dig_dat(fname):
             raise ValueError(
                 "Error reading %s, line %s has unexpected number of entries:\n"
                 "%s" % (fname, i, line.rstrip()))
-        
         if len(items) == 5:
             num = items[1]
             if num == '67':
