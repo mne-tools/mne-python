@@ -60,11 +60,10 @@ if os.getenv('MNE_FULL_DATE', 'false').lower() != 'true':
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-# The short X.Y version.
-version = mne.__version__
 # The full version, including alpha/beta/rc tags.
-release = version
-
+release = mne.__version__
+# The short X.Y version.
+version = '.'.join(release.split('.')[:2])
 
 # -- General configuration ---------------------------------------------------
 
