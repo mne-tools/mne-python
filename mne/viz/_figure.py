@@ -16,10 +16,10 @@ import numpy as np
 from mne import verbose, get_config
 from mne.annotations import _sync_onset
 from mne.utils import logger, _validate_type, _check_option
-from mne.viz.backends._utils import VALID_BROWSER_BACKENDS
+from mne.viz.backends._utils import VALID_BROWSE_BACKENDS
 from mne.viz.utils import _get_color_list, _setup_plot_projector
 
-MNE_BROWSER_BACKEND = None
+MNE_BROWSE_BACKEND = None
 _backend_name_map = dict(
     matplotlib='._mpl_figure',
     pyqtgraph='._pyqtgraph'
@@ -384,7 +384,7 @@ def _get_browser(inst, **kwargs):
 
 def _check_browser_backend_name(backend_name):
     _validate_type(backend_name, str, 'backend_name')
-    _check_option('backend_name', backend_name, VALID_BROWSER_BACKENDS)
+    _check_option('backend_name', backend_name, VALID_BROWSE_BACKENDS)
     return backend_name
 
 
@@ -443,31 +443,31 @@ def set_browser_backend(backend_name, verbose=None):
        | Dark Mode                            |            |           |
        +--------------------------------------+------------+-----------+
     """
-    global MNE_BROWSER_BACKEND
-    old_backend_name = MNE_BROWSER_BACKEND
+    global MNE_BROWSE_BACKEND
+    old_backend_name = MNE_BROWSE_BACKEND
     backend_name = _check_browser_backend_name(backend_name)
-    if MNE_BROWSER_BACKEND != backend_name:
+    if MNE_BROWSE_BACKEND != backend_name:
         _reload_backend(backend_name)
-        MNE_BROWSER_BACKEND = backend_name
+        MNE_BROWSE_BACKEND = backend_name
 
     return old_backend_name
 
 
 def _get_browser_backend():
-    global MNE_BROWSER_BACKEND
-    if MNE_BROWSER_BACKEND is None:
-        MNE_BROWSER_BACKEND = get_config(key='MNE_BROWSER_BACKEND',
+    global MNE_BROWSE_BACKEND
+    if MNE_BROWSE_BACKEND is None:
+        MNE_BROWSE_BACKEND = get_config(key='MNE_BROWSE_BACKEND',
                                          default=None)
-        if MNE_BROWSER_BACKEND is None:  # try them in order
+        if MNE_BROWSE_BACKEND is None:  # try them in order
             errors = dict()
-            for name in VALID_BROWSER_BACKENDS:
+            for name in VALID_BROWSE_BACKENDS:
                 try:
                     _reload_backend(name)
                 except ImportError as exc:
                     errors[name] = str(exc)
                 else:
-                    MNE_BROWSER_BACKEND = name
-                    print(MNE_BROWSER_BACKEND)
+                    MNE_BROWSE_BACKEND = name
+                    print(MNE_BROWSE_BACKEND)
                     break
             else:
                 raise RuntimeError(
@@ -475,11 +475,11 @@ def _get_browser_backend():
                     "\n".join(
                         f'{key}: {val}' for key, val in errors.items()))
         else:
-            MNE_BROWSER_BACKEND = \
-                _check_browser_backend_name(MNE_BROWSER_BACKEND)
-            _reload_backend(MNE_BROWSER_BACKEND)
-    MNE_BROWSER_BACKEND = _check_browser_backend_name(MNE_BROWSER_BACKEND)
-    return MNE_BROWSER_BACKEND
+            MNE_BROWSE_BACKEND = \
+                _check_browser_backend_name(MNE_BROWSE_BACKEND)
+            _reload_backend(MNE_BROWSE_BACKEND)
+    MNE_BROWSE_BACKEND = _check_browser_backend_name(MNE_BROWSE_BACKEND)
+    return MNE_BROWSE_BACKEND
 
 
 def get_browser_backend():

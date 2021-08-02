@@ -12,7 +12,7 @@ import numpy as np
 import collections.abc
 from ...externals.decorator import decorator
 
-VALID_BROWSER_BACKENDS = (
+VALID_BROWSE_BACKENDS = (
     'matplotlib',
     'pyqtgraph'
 )
