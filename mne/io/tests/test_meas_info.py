@@ -317,6 +317,18 @@ def test_io_dig_points(tmpdir):
             read_polhemus_fastscan(dest, on_header_missing='warn')
 
 
+def test_io_coord_frame(tmpdir):
+    """Test round trip for coordinate frame."""
+    fname = tmpdir.join('test.fif')
+    for ch_type in ('eeg', 'seeg', 'ecog', 'dbs', 'hbo', 'hbr'):
+        info = create_info(
+            ch_names=['Test Ch'], sfreq=1000., ch_types=[ch_type])
+        info['chs'][0]['loc'][:3] = [0.05, 0.01, -0.03]
+        write_info(fname, info)
+        info2 = read_info(fname)
+        assert info2['chs'][0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+
+
 def test_make_dig_points():
     """Test application of Polhemus HSP to info."""
     extra_points = read_polhemus_fastscan(
