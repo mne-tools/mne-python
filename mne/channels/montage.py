@@ -536,8 +536,8 @@ def read_dig_dat(fname):
                 rpa = pos
             else:
                 ch_names.append(items[0])
-                poss.append(pos) 
-                
+                poss.append(pos)
+
     electrodes = _check_dupes_odict(ch_names, poss)
     return make_dig_montage(electrodes, nasion, lpa, rpa)
 
