@@ -563,8 +563,7 @@ def _check_depth(depth, kind='depth_mne'):
 
 
 def _check_dict_keys(mapping, valid_keys,
-                     key_description="Channel name(s)",
-                     valid_key_source="info"):
+                     key_description, valid_key_source):
     """Check that the keys in dictionary are valid against a set list.
 
     Return the input dictionary if it is valid,
