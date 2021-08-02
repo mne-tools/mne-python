@@ -1,4 +1,4 @@
-.. include:: links.inc
+.. include:: ../links.inc
 
 Quick start
 ===========
