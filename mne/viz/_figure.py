@@ -335,7 +335,7 @@ class BrowserBase(ABC):
     # INTERACTION
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     @abstractmethod
-    def _close_event(self, target):
+    def _close_event(self, fig):
         pass
 
     @abstractmethod
@@ -343,36 +343,35 @@ class BrowserBase(ABC):
         pass
 
     @abstractmethod
-    def _press_key(self, key, target):
+    def _fake_keypress(self, key, fig):
         pass
 
     @abstractmethod
-    def _fake_click(self, point, target, axis, xform, button, kind):
+    def _fake_click(self, point, fig, axis, xform, button, kind):
         pass
 
     @abstractmethod
     def _click_ch_name(self, ch_index, button):
         pass
 
-    @abstractmethod
-    def _test_childs(self, key, attr):
-        pass
 
-
-def _reload_backend(backend_name):
+def _load_backend(backend_name):
     global backend
     backend = importlib.import_module(name=_backend_name_map[backend_name],
                                       package='mne.viz')
-    logger.info(f'Using {backend_name} as 2d backend.\n')
+    logger.info(f'Using {backend_name} as 2d backend.')
 
 
-def _get_browser(inst, **kwargs):
+def _get_browser(**kwargs):
     """Instantiate a new MNE browse-style figure."""
     from .utils import _get_figsize_from_config
-    figsize = kwargs.pop('figsize', _get_figsize_from_config())
+    kwargs.setdefault('figsize', _get_figsize_from_config())
 
-    _get_browser_backend()
-    browser = backend._init_browser(inst, figsize, **kwargs)
+    # Initialize Browser-Backend
+    _init_browser_backend()
+
+    # Initialize Browser
+    browser = backend._init_browser(**kwargs)
 
     return browser
 
@@ -395,7 +394,6 @@ def set_browser_backend(backend_name, verbose=None):
     backend_name : str
         The 2d-browser backend to select. See Notes for the capabilities
         of each backend (``'matplotlib'``, ``'pyqtgraph'``).
-
     %(verbose)s
 
     Returns
@@ -431,7 +429,7 @@ def set_browser_backend(backend_name, verbose=None):
        +--------------------------------------+------------+-----------+
        | Smooth Scrolling                     |            | ✓         |
        +--------------------------------------+------------+-----------+
-       | OpenGl-Acceleration                  |            | ✓         |
+       | OpenGL-Acceleration                  |            | ✓         |
        +--------------------------------------+------------+-----------+
        | Toolbar                              |            | ✓         |
        +--------------------------------------+------------+-----------+
@@ -442,39 +440,38 @@ def set_browser_backend(backend_name, verbose=None):
     old_backend_name = MNE_BROWSE_BACKEND
     backend_name = _check_browser_backend_name(backend_name)
     if MNE_BROWSE_BACKEND != backend_name:
-        _reload_backend(backend_name)
+        _load_backend(backend_name)
         MNE_BROWSE_BACKEND = backend_name
 
     return old_backend_name
 
 
-def _get_browser_backend():
+def _init_browser_backend():
     global MNE_BROWSE_BACKEND
-    if MNE_BROWSE_BACKEND is None:
-        MNE_BROWSE_BACKEND = get_config(key='MNE_BROWSE_BACKEND',
-                                         default=None)
-        if MNE_BROWSE_BACKEND is None:  # try them in order
-            errors = dict()
-            for name in VALID_BROWSE_BACKENDS:
-                try:
-                    _reload_backend(name)
-                except ImportError as exc:
-                    errors[name] = str(exc)
-                else:
-                    MNE_BROWSE_BACKEND = name
-                    print(MNE_BROWSE_BACKEND)
-                    break
+
+    # check if MNE_BROWSE_BACKEND is not None and valid or get it from config
+    loaded_backend = MNE_BROWSE_BACKEND \
+                     or get_config(key='MNE_BROWSE_BACKEND', default=None)
+    if loaded_backend is not None:
+        set_browser_backend(loaded_backend)
+        return MNE_BROWSE_BACKEND
+    else:
+        errors = dict()
+        # Try import of valid browser-backends
+        for name in VALID_BROWSE_BACKENDS:
+            try:
+                _load_backend(name)
+            except ImportError as exc:
+                errors[name] = str(exc)
             else:
-                raise RuntimeError(
-                    'Could not load any valid 2D backend:\n' +
-                    "\n".join(
-                        f'{key}: {val}' for key, val in errors.items()))
+                MNE_BROWSE_BACKEND = name
+                break
         else:
-            MNE_BROWSE_BACKEND = \
-                _check_browser_backend_name(MNE_BROWSE_BACKEND)
-            _reload_backend(MNE_BROWSE_BACKEND)
-    MNE_BROWSE_BACKEND = _check_browser_backend_name(MNE_BROWSE_BACKEND)
-    return MNE_BROWSE_BACKEND
+            raise RuntimeError(
+                'Could not load any valid 2D backend:\n' +
+                '\n'.join(f'{key}: {val}' for key, val in errors.items()))
+
+        return MNE_BROWSE_BACKEND
 
 
 def get_browser_backend():
@@ -487,7 +484,7 @@ def get_browser_backend():
         returns ``None``.
     """
     try:
-        backend = _get_browser_backend()
+        backend = _init_browser_backend()
     except RuntimeError as exc:
         backend = None
         logger.info(str(exc))

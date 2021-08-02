@@ -13,8 +13,7 @@ import matplotlib.pyplot as plt
 from mne import pick_types, Annotations, create_info
 from mne.datasets import testing
 from mne.fixes import _close_event
-from mne.io import read_raw_fif, read_raw_ctf, RawArray
-from mne.utils import _dt_to_stamp, _click_ch_name, get_config, set_config
+from mne.utils import get_config, set_config
 from mne.io import RawArray
 from mne.utils import _dt_to_stamp, _click_ch_name
 from mne.viz.utils import _fake_click
@@ -38,7 +37,7 @@ def _annotation_helper(raw, events=False):
     fig = raw.plot(events=events)
     assert len(plt.get_fignums()) == 1
     data_ax = fig.mne.ax_main
-    fig._press_key('a')  # annotation mode
+    fig._fake_keypress('a')  # annotation mode
     assert fig._get_n_windows() == 2
     # +3 from the scale bars
     n_scale = 3
@@ -46,13 +45,13 @@ def _annotation_helper(raw, events=False):
     # modify description to create label "BAD test"
     ann_fig = fig.mne.fig_annotation
     for key in ['backspace'] + list(' test;'):  # semicolon is ignored
-        fig._press_key(key, target=ann_fig)
+        fig._fake_keypress(key, fig=ann_fig)
     ann_fig.canvas.key_press_event('enter')
 
     # change annotation label
     for ix in (-1, 0):
         xy = ann_fig.mne.radio_ax.buttons.circles[ix].center
-        fig._fake_click(xy, target=ann_fig, ax=ann_fig.mne.radio_ax,
+        fig._fake_click(xy, fig=ann_fig, ax=ann_fig.mne.radio_ax,
                         xform='data')
 
     # draw annotation
@@ -69,7 +68,7 @@ def _annotation_helper(raw, events=False):
     assert_allclose(onset, want_onset)
     assert_allclose(raw.annotations.duration[n_anns], 4.)
     # test hover event
-    fig._press_key('p')  # first turn on draggable mode
+    fig._fake_keypress('p')  # first turn on draggable mode
     assert fig.mne.draggable_annotations
     hover_kwargs = dict(xform='data', button=None, kind='motion')
     fig._fake_click([4.6, 1.], **hover_kwargs)  # well inside ann.
@@ -106,9 +105,9 @@ def _annotation_helper(raw, events=False):
     assert len(raw.annotations.description) == n_anns + 1
     assert raw.annotations.description[n_anns] == 'BAD test'
     assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
-    fig._press_key('shift+right')
+    fig._fake_keypress('shift+right')
     assert len(fig.axes[0].texts) == n_scale
-    fig._press_key('shift+left')
+    fig._fake_keypress('shift+left')
     assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
 
     # draw another annotation merging the two
@@ -125,14 +124,14 @@ def _annotation_helper(raw, events=False):
     # Delete
     fig._fake_click([1.5, 1.], xform='data', button=3, kind='press')
     # exit, re-enter, then exit a different way
-    fig._press_key('a')  # exit
-    fig._press_key('a')  # enter
-    fig._press_key('escape', target=fig.mne.fig_annotation)  # exit again
+    fig._fake_keypress('a')  # exit
+    fig._fake_keypress('a')  # enter
+    fig._fake_keypress('escape', fig=fig.mne.fig_annotation)  # exit again
     assert len(raw.annotations.onset) == n_anns
     assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
-    fig._press_key('shift+right')
+    fig._fake_keypress('shift+right')
     assert len(fig.axes[0].texts) == n_scale
-    fig._press_key('shift+left')
+    fig._fake_keypress('shift+left')
     assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
 
 

@@ -51,16 +51,19 @@ from matplotlib.figure import Figure
 from mne import set_config, channel_indices_by_type, pick_types
 from mne.annotations import _sync_onset
 from mne.defaults import _handle_default
-from mne.io.pick import _DATA_CH_TYPES_SPLIT, _DATA_CH_TYPES_ORDER_DEFAULT, \
-    _VALID_CHANNEL_TYPES, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
+from mne.io.pick import (_DATA_CH_TYPES_SPLIT, _DATA_CH_TYPES_ORDER_DEFAULT,
+                         _VALID_CHANNEL_TYPES, _picks_to_idx,
+                         _FNIRS_CH_TYPES_SPLIT)
 from mne.time_frequency import psd_welch, psd_multitaper
 from mne.utils import logger, _check_option, _check_sphere, Bunch
 from mne.viz import plot_sensors, plot_epochs_image
 from mne.viz._figure import BrowserBase
-from mne.viz.ica import _create_properties_layout, _prepare_data_ica_properties, \
-    _fast_plot_ica_properties
-from mne.viz.utils import _events_off, DraggableLine, plt_show, _prop_kw, \
-    _merge_annotations, _set_window_title, _validate_if_list_of_axes, _plot_psd
+from mne.viz.ica import (_create_properties_layout,
+                         _prepare_data_ica_properties,
+                         _fast_plot_ica_properties)
+from mne.viz.utils import (_events_off, DraggableLine, plt_show, _prop_kw,
+                           _merge_annotations, _set_window_title,
+                           _validate_if_list_of_axes, _fake_click)
 
 # CONSTANTS (inches)
 ANNOTATION_FIG_PAD = 0.1
@@ -2078,45 +2081,28 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     # workaround: plt.close() doesn't spawn close_event on Agg backend
     # (check MPL github issue #18609; scheduled to be fixed by MPL 3.4)
-    def _close_event(self, target=None):
+    def _close_event(self, fig=None):
         """Force calling of the MPL figure close event."""
-        target = target or self
+        fig = fig or self
         try:
-            target.canvas._close_event()
+            fig.canvas._close_event()
         except ValueError:  # old mpl with Qt
             pass  # pragma: no cover
 
     def _get_n_windows(self):
         return len(plt.get_fignums())
 
-    def _press_key(self, key, target=None):
-        target = target or self
-        target.canvas.key_press_event(key)
+    def _fake_keypress(self, key, fig=None):
+        fig = fig or self
+        fig.canvas.key_press_event(key)
 
-    def _fake_click(self, point, target=None, ax=None,
+    def _fake_click(self, point, fig=None, ax=None,
                     xform='ax', button=1, kind='press'):
         """Fake a click at a relative point within axes."""
-        target = target or self
+        fig = fig or self
         ax = ax or self.mne.ax_main
-        if xform == 'ax':
-            x, y = ax.transAxes.transform_point(point)
-        elif xform == 'data':
-            x, y = ax.transData.transform_point(point)
-        else:
-            assert xform == 'pix'
-            x, y = point
-        if kind == 'press':
-            func = partial(target.canvas.button_press_event, x=x, y=y,
-                           button=button)
-        elif kind == 'release':
-            func = partial(target.canvas.button_release_event, x=x, y=y,
-                           button=button)
-        elif kind == 'motion':
-            func = partial(target.canvas.motion_notify_event, x=x, y=y)
-        else:
-            raise RuntimeError(f'{kind} is no suitabl kind for _fake_click')
-
-        func(guiEvent=None)
+        _fake_click(fig=fig, ax=ax, point=point, xform=xform,
+                    button=button, kind=kind)
 
     def _click_ch_name(self, ch_index, button):
         self.canvas.draw()
@@ -2125,35 +2111,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         x = bbox.intervalx.mean()
         y = bbox.intervaly.mean()
         self._fake_click((x, y), xform='pix', button=button)
-
-    def _test_childs(self, key, attr):
-        # Spawn and close child figs of raw.plot()
-        num_figs = len(plt.get_fignums())
-        assert getattr(self.mne, attr) is None
-        # spawn
-        self.canvas.key_press_event(key)
-        assert len(self.mne.child_figs) == 1
-        assert len(plt.get_fignums()) == num_figs + 1
-        child_fig = getattr(self.mne, attr)
-        assert child_fig is not None
-        # close via main window toggle
-        self.canvas.key_press_event(key)
-        self._close_event(child_fig)
-        assert len(self.mne.child_figs) == 0
-        assert len(plt.get_fignums()) == num_figs
-        assert getattr(self.mne, attr) is None
-        # spawn again
-        self.canvas.key_press_event(key)
-        assert len(self.mne.child_figs) == 1
-        assert len(plt.get_fignums()) == num_figs + 1
-        child_fig = getattr(self.mne, attr)
-        assert child_fig is not None
-        # close via child window
-        child_fig.canvas.key_press_event(child_fig.mne.close_key)
-        self._close_event(child_fig)
-        assert len(self.mne.child_figs) == 0
-        assert len(plt.get_fignums()) == num_figs
-        assert getattr(self.mne, attr) is None
 
 
 class MNELineFigure(MNEFigure):
@@ -2372,10 +2329,10 @@ def _patched_canvas(fig):
         fig.canvas = old_canvas
 
 
-def _init_browser(inst, figsize, **kwargs):
-    browser = _browse_figure(inst=inst, toolbar=False,
+def _init_browser(**kwargs):
+    browser = _browse_figure(toolbar=False,
                              FigureClass=MNEBrowseFigure,
-                             figsize=figsize, **kwargs)
+                             **kwargs)
     # initialize zen mode
     # (can't do in __init__ due to get_position() calls)
     browser.canvas.draw()
