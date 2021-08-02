@@ -1387,11 +1387,10 @@ class Coregistration(object):
         if force_update_omitted:
             tra = self._translation
         rot_changed = False
-        if self._rot_trans is None or rot is not None:
+        if rot is not None:
             rot_changed = True
             self._last_rotation = self._rotation
             self._rotation = rot
-            self._rot_trans = rotation(*rot).T
         tra_changed = False
         if rot_changed or tra is not None:
             if tra is None:
@@ -1399,7 +1398,7 @@ class Coregistration(object):
             tra_changed = True
             self._last_translation = self._translation
             self._translation = tra
-            self._head_mri_t = self._rot_trans.copy()
+            self._head_mri_t = rotation(*self._rotation).T
             self._head_mri_t[:3, 3] = \
                 -np.dot(self._head_mri_t[:3, :3], tra)
             self._transformed_dig_hpi = \
@@ -1426,12 +1425,11 @@ class Coregistration(object):
             self._nearest_transformed_high_res_mri_idx_lpa = \
                 self._nearest_calc.query(
                     apply_trans(self._head_mri_t, self._dig['lpa']))[1]
-            self._mri_head_t = self._rot_trans.copy()
+            self._mri_head_t = rotation(*self._rotation)
             self._mri_head_t[:3, 3] = np.array(tra)
         if tra_changed or sca is not None:
             if sca is None:
                 sca = self._scale
-            sca = self._scale if sca is None else sca
             self._last_scale = self._scale
             self._scale = sca
             self._mri_trans = np.eye(4)
