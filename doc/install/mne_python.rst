@@ -128,21 +128,23 @@ GUI). This will install MNE-Python into the "base" conda environment, which
 should be active by default and should already have the necessary dependencies
 (``numpy``, ``scipy``, and ``matplotlib``).
 
-A second option is to install MNE-Python into its own conda environment
-(instead of installing into the "base" environment). This can be done via::
+A second option is to install MNE-Python into its own virtual environment
+(instead of installing into conda's "base" environment). This can be done via::
 
-    $ conda create --name new_environment_name --channel conda-forge mne
+    $ conda create --name new_environment_name python=3
+    $ conda activate new_environment_name
+    $ pip install mne
 
-This approach is a good choice if you want to use a separate conda environment
-for each project. This helps with reproducibility, since each project-specific
-environment will have a record of which versions of the various software
-packages are installed in it (accessible with ``conda list``).
+This approach is a good choice if you want to keep a separate virtual
+environment for each project. This helps with reproducibility, since each
+project-specific environment will have a record of which versions of the
+various software packages are installed in it (accessible with ``conda list``).
 
 3D plotting and source analysis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you need MNE-Python's 3D rendering capabilities (e.g., plotting estimated
-source activity on a cortical surface) it is a good idea to install
+source activity on a cortical surface) it is best to install
 MNE-Python into its own virtual environment, so that the extra dependencies
 needed for 3D plotting stay in sync (i.e., they only get updated to versions
 that are compatible with MNE-Python). See the detailed instructions below for
@@ -206,13 +208,13 @@ Installing to a headless server
     environment::
 
         $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
-        $ conda create --name mne --channel conda-forge --file server_environment.yml
+        $ conda create --name mne --file server_environment.yml
 
     With `mayavi`_:
     Installing `mayavi`_ requires a running `X server`_. If you are installing
     MNE-Python into a computer with no display connected to it, you can try
-    removing `mayavi`_ from the :file:`environment.yml` file before running
-    :samp:`conda create --name mne --channel conda-forge --file environment.yml`,
+    downloading the :file:`environment.yml` file and removing `mayavi`_ from it
+    before running :samp:`conda create --name mne --file environment.yml`, then
     activating the new environment, and then installing `mayavi`_ using `xvfb`_
     (e.g., :samp:`xvfb-run pip install mayavi`). Be sure to read Mayavi's
     instructions on `off-screen rendering`_ and `rendering with a virtual
