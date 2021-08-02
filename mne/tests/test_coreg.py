@@ -287,8 +287,8 @@ def test_get_mni_fiducials():
     (None, [1., 1., 1.]),
     ('uniform', [1., 1., 1.]),
     ('3-axis', [1., 1., 1.]),
-    ('uniform', [0.8, 1., 1.]),
-    ('3-axis', [0.8, 0.8, 0.8])])
+    ('uniform', [0.8, 0.8, 0.8]),
+    ('3-axis', [0.8, 1.2, 1.2])])
 def test_coregistration(ref_scale):
     """Test automated coregistration."""
     trans_fname = op.join(data_path, 'MEG', 'sample',
