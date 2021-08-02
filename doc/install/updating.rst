@@ -78,8 +78,13 @@ copies of all the packages instead of re-downloading them.
         grep "^>" | cut -d ' ' -f 2
 
 
+.. _installing_main:
+
 Installing the development version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. warning:: In between releases, function and class APIs can change without
+    warning.
 
 Sometimes, new features or bugfixes become available that are important to your
 research and you just can't wait for the next official release of MNE-Python to

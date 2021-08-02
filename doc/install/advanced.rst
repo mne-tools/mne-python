@@ -77,29 +77,14 @@ The notebook 3d backend requires PyVista to be installed along with other packag
 please follow :doc:`mne_python`.
 
 
-.. _installing_main:
-
 Using the development version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you want access to the latest features and bugfixes, you can easily switch
-from the stable version of MNE-Python to the current development version.
+See :ref:`installing_main` for how to do a one-time update to the latest
+development version of MNE-Python. If you plan to contribute to MNE-Python, or
+just prefer to use git rather than pip to make frequent updates, there are
+instructions for installing from a ``git clone`` in the :ref:`contributing`.
 
-.. warning:: In between releases, function and class APIs can change without
-             warning.
-
-For a one-time update to latest main, make sure you're in the conda
-environment where MNE-Python is installed (if you followed the default install
-instructions, this will be ``mne``), and use ``pip`` to upgrade:
-
-.. code-block:: console
-
-   $ conda activate name_of_my_mne_environment
-   $ pip install --upgrade --no-deps https://github.com/mne-tools/mne-python/archive/main.zip
-
-If you plan to contribute to MNE-Python, or just prefer to use git rather than
-pip to make frequent updates, there are instructions for installing from a
-``git clone`` in the :ref:`contributing`.
 
 .. _other-py-distros:
 
