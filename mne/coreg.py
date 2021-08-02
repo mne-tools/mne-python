@@ -1278,7 +1278,8 @@ class Coregistration(object):
 
         self._rot_trans = None
         self._default_parameters = \
-            np.array([0., 0., 0., 0., 0., 0., 1., 1., 1.])
+            np.array([0., 0., 0., 0., 0., 0., 1., 1., 1.],
+                     dtype=np.double)
 
         self._icp_iterations = 20
         self._icp_angle = 0.2
