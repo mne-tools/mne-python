@@ -16,27 +16,10 @@ Upgrading MNE-Python only
 
 If you wish to update MNE-Python only and leave other packages in their current
 state, you can usually safely do this with ``pip``, even if you originally
-installed via conda. First check to see how ``mne`` was installed. If you see
-"conda-forge" as the channel for ``mne``, then MNE-Python was most recently
-installed by ``conda`` and should be removed first before re-installing with
-``pip``:
+installed via conda. With the ``mne`` environment active, do:
 
 .. code-block:: console
 
-    $ conda list mne
-    # Name                    Version                   Build  Channel
-    mne                       0.22.0             pyhd8ed1ab_0    conda-forge
-    $ conda remove mne
-    $ pip install mne
-
-If instead the channel is listed as "pypi" then MNE-Python was last installed
-with ``pip`` so you can directly upgrade using ``pip``:
-
-.. code-block:: console
-
-    $ conda list mne
-    # Name                    Version                   Build  Channel
-    mne                       0.22.0                   pypi_0    pypi
     $ pip install -U mne
 
 
@@ -73,9 +56,7 @@ copies of all the packages instead of re-downloading them.
 
     .. code-block:: console
 
-        $ diff <(conda list -n mne | cut -d ' ' -f 1 | sort) \
-        <(conda list -n mne_old | cut -d ' ' -f 1 | sort) | \
-        grep "^>" | cut -d ' ' -f 2
+        $ diff <(conda list -n mne | cut -d ' ' -f 1 | sort) <(conda list -n mne_old | cut -d ' ' -f 1 | sort) | grep "^>" | cut -d ' ' -f 2
 
 
 .. _installing_main:
@@ -94,7 +75,3 @@ the *development version* of MNE-Python:
 .. code-block:: console
 
     $ pip install -U --no-deps https://github.com/mne-tools/mne-python/archive/main.zip
-
-As above, you should check first whether you last installed with ``pip`` or
-``conda``, and if it was conda, run ``conda remove mne`` first before upgrading
-via pip.
