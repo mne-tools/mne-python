@@ -505,7 +505,7 @@ def read_dig_dat(fname):
         items = line.split()
         if not items:
             continue
-        elif not (len(items) == 4 or len(items) == 5):
+        elif len(items) not in (4, 5):
             raise ValueError(
                 "Error reading %s, line %s has unexpected number of entries:\n"
                 "%s" % (fname, i, line.rstrip()))
