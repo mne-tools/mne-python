@@ -2085,9 +2085,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         except ValueError:  # old mpl with Qt
             pass  # pragma: no cover
 
-    def _get_n_windows(self):
-        return len(plt.get_fignums())
-
     def _fake_keypress(self, key, fig=None):
         fig = fig or self
         fig.canvas.key_press_event(key)
@@ -2144,6 +2141,14 @@ class MNELineFigure(MNEFigure):
         self.mne.fig_size_px = (new_width, new_height)
 
 
+def _close_all():
+    plt.close('all')
+
+
+def _get_n_figs():
+    return len(plt.get_fignums())
+
+
 def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     """Instantiate a new figure."""
     from matplotlib import rc_context
@@ -2156,24 +2161,6 @@ def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
         _set_window_title(fig, title)
     # add event callbacks
     fig._add_default_callbacks()
-    return fig
-
-
-def _browse_figure(**kwargs):
-    """Instantiate a new MNE browse-style figure."""
-    from .utils import _get_figsize_from_config
-    figsize = kwargs.pop('figsize', _get_figsize_from_config())
-    if figsize is None or np.any(np.array(figsize) < 8):
-        figsize = (8, 8)
-    fig = _figure(figsize=figsize, **kwargs)
-    # initialize zen mode (can't do in __init__ due to get_position() calls)
-    fig.canvas.draw()
-    fig._update_zen_mode_offsets()
-    fig._resize(None)  # needed for MPL >=3.4
-    # if scrollbars are supposed to start hidden, set to True and then toggle
-    if not fig.mne.scrollbars_visible:
-        fig.mne.scrollbars_visible = True
-        fig._toggle_scrollbars()
     return fig
 
 
@@ -2326,18 +2313,19 @@ def _patched_canvas(fig):
 
 
 def _init_browser(**kwargs):
-    browser = _browse_figure(toolbar=False,
-                             FigureClass=MNEBrowseFigure,
-                             **kwargs)
+    """Instantiate a new MNE browse-style figure."""
+    fig = _figure(toolbar=False, FigureClass=MNEBrowseFigure, **kwargs)
+
     # initialize zen mode
     # (can't do in __init__ due to get_position() calls)
-    browser.canvas.draw()
-    browser._update_zen_mode_offsets()
-    browser._resize(None)  # needed for MPL >=3.4
+    fig.canvas.draw()
+    fig._update_zen_mode_offsets()
+    fig._resize(None)  # needed for MPL >=3.4
+
     # if scrollbars are supposed to start hidden,
     # set to True and then toggle
-    if not browser.mne.scrollbars_visible:
-        browser.mne.scrollbars_visible = True
-        browser._toggle_scrollbars()
+    if not fig.mne.scrollbars_visible:
+        fig.mne.scrollbars_visible = True
+        fig._toggle_scrollbars()
 
-    return browser
+    return fig

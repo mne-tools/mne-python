@@ -339,10 +339,6 @@ class BrowserBase(ABC):
         pass
 
     @abstractmethod
-    def _get_n_windows(self):
-        pass
-
-    @abstractmethod
     def _fake_keypress(self, key, fig):
         pass
 
@@ -361,12 +357,15 @@ def _load_backend(backend_name):
                                       package='mne.viz')
     logger.info(f'Using {backend_name} as 2d backend.')
 
+    return backend
+
 
 def _get_browser(**kwargs):
     """Instantiate a new MNE browse-style figure."""
     from .utils import _get_figsize_from_config
-    kwargs.setdefault('figsize', _get_figsize_from_config())
-
+    figsize = kwargs.setdefault('figsize', _get_figsize_from_config())
+    if figsize is None or np.any(np.array(figsize) < 8):
+        kwargs['figsize'] = (8, 8)
     # Initialize Browser-Backend
     _init_browser_backend()
 
@@ -484,11 +483,11 @@ def get_browser_backend():
         returns ``None``.
     """
     try:
-        backend = _init_browser_backend()
+        backend_name = _init_browser_backend()
     except RuntimeError as exc:
-        backend = None
+        backend_name = None
         logger.info(str(exc))
-    return backend
+    return backend_name
 
 
 @contextmanager
@@ -505,7 +504,7 @@ def use_browser_backend(backend_name):
     """
     old_backend = set_browser_backend(backend_name)
     try:
-        yield
+        yield backend
     finally:
         if old_backend is not None:
             try:
