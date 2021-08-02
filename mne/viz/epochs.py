@@ -898,20 +898,19 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     fig = _get_browser(**params)
 
-    if get_browser_backend() == 'matplotlib':
-        fig._update_picks()
+    fig._update_picks()
 
-        # make channel selection dialog,
-        # if requested (doesn't work well in init)
-        if group_by in ('selection', 'position'):
-            fig._create_selection_fig()
+    # make channel selection dialog,
+    # if requested (doesn't work well in init)
+    if group_by in ('selection', 'position'):
+        fig._create_selection_fig()
 
-        fig._update_projector()
-        fig._update_trace_offsets()
-        fig._update_data()
-        fig._draw_traces()
+    fig._update_projector()
+    fig._update_trace_offsets()
+    fig._update_data()
+    fig._draw_traces()
 
-        plt_show(show, block=block)
+    plt_show(show, block=block)
 
     return fig
 

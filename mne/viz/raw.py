@@ -350,29 +350,28 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     fig = _get_browser(**params)
 
-    if get_browser_backend() == 'matplotlib':
-        fig._update_picks()
+    fig._update_picks()
 
-        # make channel selection dialog,
-        # if requested (doesn't work well in init)
-        if group_by in ('selection', 'position'):
-            fig._create_selection_fig()
+    # make channel selection dialog,
+    # if requested (doesn't work well in init)
+    if group_by in ('selection', 'position'):
+        fig._create_selection_fig()
 
-        # update projector and data, and plot
-        fig._update_projector()
-        fig._update_trace_offsets()
-        fig._update_data()
-        fig._draw_traces()
+    # update projector and data, and plot
+    fig._update_projector()
+    fig._update_trace_offsets()
+    fig._update_data()
+    fig._draw_traces()
 
-        # plot annotations (if any)
-        fig._setup_annotation_colors()
-        fig._draw_annotations()
+    # plot annotations (if any)
+    fig._setup_annotation_colors()
+    fig._draw_annotations()
 
-        # start with projectors dialog open, if requested
-        if show_options:
-            fig._toggle_proj_fig()
+    # start with projectors dialog open, if requested
+    if show_options:
+        fig._toggle_proj_fig()
 
-        plt_show(show, block=block)
+    plt_show(show, block=block)
 
     return fig
 

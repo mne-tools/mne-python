@@ -1076,19 +1076,18 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
 
     fig = _get_browser(**params)
 
-    if get_browser_backend() == 'matplotlib':
-        fig._update_picks()
+    fig._update_picks()
 
-        # update data, and plot
-        fig._update_trace_offsets()
-        fig._update_data()
-        fig._draw_traces()
+    # update data, and plot
+    fig._update_trace_offsets()
+    fig._update_data()
+    fig._draw_traces()
 
-        # plot annotations (if any)
-        if is_raw:
-            fig._setup_annotation_colors()
-            fig._update_annotation_segments()
-            fig._draw_annotations()
+    # plot annotations (if any)
+    if is_raw:
+        fig._setup_annotation_colors()
+        fig._update_annotation_segments()
+        fig._draw_annotations()
 
-        plt_show(show, block=block)
+    plt_show(show, block=block)
     return fig
