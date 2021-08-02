@@ -526,7 +526,7 @@ def read_dig_dat(fname):
         elif len(items) == 4:
             label = items[0]
             if label == 'Centroid':
-                continue  # centroid
+                continue
             pos = np.array([float(item) for item in items[1:]])
             if label == 'Nasion':
                 nasion = pos
