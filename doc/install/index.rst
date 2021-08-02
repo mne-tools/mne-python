@@ -33,9 +33,9 @@ For users already familiar with Python:
   inner/outer skull, and cortical surfaces you also need
   :doc:`FreeSurfer <freesurfer>`.
 
-The :ref:`install_python_and_mne_python` page has more detailed instructions
-for different operating systems (including instructions for installing Python
-if you don't already have it). The :ref:`advanced_setup` page has additional
+The :ref:`standard_instructions` page has detailed instructions for different
+operating systems, and there are instructions for :ref:`install-python`
+if you don't already have it. The :ref:`advanced_setup` page has additional
 tips and tricks for special situations (servers, notebooks, CUDA, installing
 the development version, etc). The :ref:`contributing` has additional
 installation instructions for (future) contributors to MNE-Python (e.g, extra
@@ -45,7 +45,8 @@ dependencies for running our tests and building our docs).
     :hidden:
 
     pre_install
+    install_python
     mne_python
-    freesurfer
     updating
+    freesurfer
     advanced
