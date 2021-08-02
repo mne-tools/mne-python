@@ -1362,10 +1362,8 @@ def test_montage_head_frame(ch_type):
     # gh-9446
     data = np.random.randn(2, 100)
     info = create_info(['a', 'b'], 512, ch_type)
-    coord_frame = getattr(
-        FIFF, f'FIFFV_COORD_{"HEAD" if ch_type == "eeg" else "UNKNOWN"}')
     for ch in info['chs']:
-        assert ch['coord_frame'] == coord_frame
+        assert ch['coord_frame'] == FIFF.FIFFV_COORD_HEAD
     raw = RawArray(data, info)
     ch_pos = dict(a=[-0.00250136, 0.04913788, 0.05047056],
                   b=[-0.00528394, 0.05066484, 0.05061559])
