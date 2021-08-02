@@ -55,7 +55,8 @@ from mne.io.pick import (_DATA_CH_TYPES_SPLIT, _DATA_CH_TYPES_ORDER_DEFAULT,
                          _VALID_CHANNEL_TYPES, _picks_to_idx,
                          _FNIRS_CH_TYPES_SPLIT)
 from mne.time_frequency import psd_welch, psd_multitaper
-from mne.utils import logger, _check_option, _check_sphere, Bunch
+from mne.utils import logger, _check_option, _check_sphere, Bunch, \
+    _click_ch_name
 from mne.viz import plot_sensors, plot_epochs_image
 from mne.viz._figure import BrowserBase
 from mne.viz.ica import (_create_properties_layout,
@@ -2097,13 +2098,12 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         _fake_click(fig=fig, ax=ax, point=point, xform=xform,
                     button=button, kind=kind)
 
+    def _fake_scroll(self, x, y, step, fig=None):
+        fig = fig or self
+        fig.canvas.scroll_event(x, y, step)
+
     def _click_ch_name(self, ch_index, button):
-        self.canvas.draw()
-        text = self.mne.ax_main.get_yticklabels()[ch_index]
-        bbox = text.get_window_extent()
-        x = bbox.intervalx.mean()
-        y = bbox.intervaly.mean()
-        self._fake_click((x, y), xform='pix', button=button)
+        _click_ch_name(self, ch_index, button)
 
 
 class MNELineFigure(MNEFigure):

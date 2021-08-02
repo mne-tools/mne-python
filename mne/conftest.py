@@ -25,6 +25,8 @@ from mne.stats import cluster_level
 from mne.utils import _pl, _assert_no_instances, numerics
 
 # data from sample-dataset
+from mne.viz._figure import use_browser_backend
+
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
 fname_evoked = op.join(s_path, 'sample_audvis_trunc-ave.fif')
@@ -336,9 +338,10 @@ def garbage_collect():
 
 
 @pytest.fixture(params=['matplotlib'])
-def browser_backend(request, garbage_collect):
+def browse_backend(request, garbage_collect):
     """Parametrizes the name of the browser-backend."""
-    return request.param
+    with use_browser_backend(request.param) as backend:
+        yield backend
 
 
 @pytest.fixture(params=["mayavi", "pyvistaqt"])
