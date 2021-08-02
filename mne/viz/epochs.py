@@ -748,7 +748,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     .. versionadded:: 0.10.0
     """
-    from ._browser import _get_browser, get_browser_backend
+    from ._figure import get_browser_backend
+    from ._figure import _get_browser
 
     epochs.drop_bad()
     info = epochs.info.copy()
@@ -980,7 +981,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig : instance of Figure
         Figure with frequency spectra of the data channels.
     """
-    from ._figure import _psd_figure
+    from ._mpl_figure import _psd_figure
 
     # generate figure
     # epochs always use multitaper, not Welch, so no need to allow "window"

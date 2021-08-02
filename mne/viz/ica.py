@@ -930,7 +930,8 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                   show_scrollbars, show_first_samp, time_format):
     """Plot the ICA components as a RawArray or EpochsArray."""
-    from ._browser import _get_browser, get_browser_backend
+    from ._figure import get_browser_backend
+    from ._figure import _get_browser
     from .. import EpochsArray, BaseEpochs
     from ..io import RawArray, BaseRaw
 
