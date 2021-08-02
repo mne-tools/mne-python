@@ -47,4 +47,5 @@ dependencies for running our tests and building our docs).
     pre_install
     mne_python
     freesurfer
+    updating
     advanced
