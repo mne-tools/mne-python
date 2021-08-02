@@ -237,13 +237,13 @@ def test_plot_raw_selection(raw, browse_backend):
     sel_fig._set_custom_selection()  # lasso empty → should do nothing
     sensor_ax = sel_fig.mne.sensor_ax
     # Lasso with 1 mag/grad sensor unit (upper left)
-    fig._fake_click((0, 1), sel_fig, 
+    fig._fake_click((0, 1), sel_fig,
                     sensor_ax, xform='ax')
-    fig._fake_click((0.65, 1), sel_fig, sensor_ax, 
+    fig._fake_click((0.65, 1), sel_fig, sensor_ax,
                     xform='ax', kind='motion')
-    fig._fake_click((0.65, 0.7), sel_fig, sensor_ax, 
+    fig._fake_click((0.65, 0.7), sel_fig, sensor_ax,
                     xform='ax', kind='motion')
-    fig._fake_click((0, 0.7), sel_fig, sensor_ax, 
+    fig._fake_click((0, 0.7), sel_fig, sensor_ax,
                     xform='ax', kind='release')
     want = ['MEG 0121', 'MEG 0122', 'MEG 0123']
     assert sorted(want) == sorted(sel_fig.lasso.selection)
@@ -283,7 +283,7 @@ def test_plot_raw_ssp_interaction(raw, browse_backend):
     assert _proj_status(ax) == [True, True, True]
     # toggle all off (button axes need both press and release)
     fig._fake_click((0.5, 0.5), ssp_fig, ssp_fig.mne.proj_all.ax)
-    fig._fake_click((0.5, 0.5), ssp_fig, 
+    fig._fake_click((0.5, 0.5), ssp_fig,
                     ssp_fig.mne.proj_all.ax, kind='release')
     assert _proj_status(ax) == [True, False, False]
     fig._fake_keypress('J')
@@ -373,7 +373,7 @@ def test_plot_raw_traces(raw, events, browse_backend):
     fig._fake_click((x, y), xform='data')
     assert label in fig.mne.info['bads']
     # click data to unmark bad
-    fig._fake_click((x, y), xform='data')  
+    fig._fake_click((x, y), xform='data')
     assert label not in fig.mne.info['bads']
     # click name to mark bad
     fig._click_ch_name(ch_index=0, button=1)
