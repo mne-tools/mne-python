@@ -226,7 +226,7 @@ def check_gui_ci(ci_macos, azure_windows):
 
 @pytest.fixture(scope='function')
 def raw_orig():
-    """Get raw data witout any change to it."""
+    """Get raw data without any change to it."""
     raw = read_raw_fif(fname_raw_io, preload=True)
     return raw
 
