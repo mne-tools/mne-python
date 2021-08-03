@@ -403,3 +403,5 @@
 .. _Pierre-Antoine Bannier: https://github.com/PABannier
 
 .. _Darin Erat Sleiter: https://github.com/dsleiter
+
+.. _Mathieu Scheltienne: https://github.com/mscheltienne
