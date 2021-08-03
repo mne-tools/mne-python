@@ -350,6 +350,10 @@ class BrowserBase(ABC):
     def _click_ch_name(self, ch_index, button):
         pass
 
+    @abstractmethod
+    def _resize_by_factor(self, factor):
+        pass
+
 
 def _load_backend(backend_name):
     global backend
@@ -381,6 +385,8 @@ def _check_browser_backend_name(backend_name):
     return backend_name
 
 
+# ToDo: This won't appear in documentation, has to be adjusted to the current
+#  state of the pyqtgraph backend.
 @verbose
 def set_browser_backend(backend_name, verbose=None):
     """Set the 2D-Browser backend for MNE.

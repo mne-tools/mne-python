@@ -232,14 +232,18 @@ def check_gui_ci(ci_macos, azure_windows):
 
 @pytest.fixture(scope='function')
 def raw_orig():
-    """Get raw data without any change to it."""
+    """Get raw data without any change to it from mne.io.tests.data."""
     raw = read_raw_fif(fname_raw_io, preload=True)
     return raw
 
 
 @pytest.fixture(scope='function')
 def raw():
-    """Get raw data and pick channels to reduce load for testing."""
+    """
+    Get raw data and pick channels to reduce load for testing.
+
+    (from mne.io.tests.data)
+    """
     raw = read_raw_fif(fname_raw_io, preload=True)
     # Throws a warning about a changed unit.
     with pytest.warns(RuntimeWarning, match='unit'):
@@ -251,14 +255,14 @@ def raw():
 
 @pytest.fixture(scope='function')
 def raw_ctf():
-    """Get ctf raw data."""
+    """Get ctf raw data from mne.io.tests.data."""
     raw_ctf = read_raw_ctf(fname_ctf_continuous, preload=True)
     return raw_ctf
 
 
 @pytest.fixture(scope='function')
 def events():
-    """Get events."""
+    """Get events from mne.io.tests.data."""
     return read_events(fname_event_io)
 
 
@@ -279,19 +283,23 @@ def _get_epochs(stop=5, meg=True, eeg=False, n_chan=20):
 
 @pytest.fixture()
 def epochs():
-    """Get minimal, pre-loaded epochs data suitable for most tests."""
+    """
+    Get minimal, pre-loaded epochs data suitable for most tests.
+
+    (from mne.io.tests.data)
+    """
     return _get_epochs().load_data()
 
 
 @pytest.fixture()
 def epochs_unloaded():
-    """Get minimal, unloaded epochs data."""
+    """Get minimal, unloaded epochs data from mne.io.tests.data."""
     return _get_epochs()
 
 
 @pytest.fixture()
 def epochs_full():
-    """Get full, preloaded epochs."""
+    """Get full, preloaded epochs from mne.io.tests.data."""
     return _get_epochs(None).load_data()
 
 
@@ -319,7 +327,7 @@ def noise_cov():
 
 @pytest.fixture
 def noise_cov_io():
-    """Get noise-covariance (from mne.io.tests)."""
+    """Get noise-covariance (from mne.io.tests.data)."""
     return mne.read_cov(fname_cov_io)
 
 

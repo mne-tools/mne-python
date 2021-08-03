@@ -2105,6 +2105,15 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
     def _click_ch_name(self, ch_index, button):
         _click_ch_name(self, ch_index, button)
 
+    def _resize_by_factor(self, factor=None):
+        size = self.canvas.manager.canvas.get_width_height()
+        if isinstance(factor, tuple):
+            size = int(size[0] * factor[0],
+                       size[1] * factor[1])
+        else:
+            size = [int(x * factor) for x in size]
+        self.canvas.manager.canvas.resize(*size)
+
 
 class MNELineFigure(MNEFigure):
     """Interactive figure for non-scrolling line plots."""

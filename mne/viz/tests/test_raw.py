@@ -37,6 +37,8 @@ def _annotation_helper(raw, browse_backend, events=False):
     assert browse_backend._get_n_figs() == 1
     data_ax = fig.mne.ax_main
     fig._fake_keypress('a')  # annotation mode
+    # ToDo: This will be different in pyqtgraph because it handles annotations
+    #  from the toolbar.
     assert browse_backend._get_n_figs() == 2
     # +3 from the scale bars
     n_scale = 3
@@ -181,6 +183,7 @@ def test_scale_bar(browse_backend):
     fig = raw.plot()
     ax = fig.mne.ax_main
     assert len(ax.texts) == 4  # empty vline-text + ch_type scale-bars
+    # ToDo: This might be solved differently in pyqtgraph.
     texts = tuple(t.get_text().strip() for t in ax.texts)
     wants = ('', '800.0 fT/cm', '2000.0 fT', '40.0 µV')
     assert texts == wants
@@ -200,6 +203,7 @@ def test_plot_raw_selection(raw, browse_backend):
     fig = raw.plot(group_by='selection', proj=False)
     assert browse_backend._get_n_figs() == 2
     sel_fig = fig.mne.fig_selection
+    # ToDo: These gui-elements might differ in pyqtgraph.
     buttons = sel_fig.mne.radio_ax.buttons
     assert sel_fig is not None
     # test changing selection with arrow keys
@@ -265,6 +269,7 @@ def test_plot_raw_ssp_interaction(raw, browse_backend):
     fig._fake_click((0.5, 0.5), ax=fig.mne.ax_proj)
     assert browse_backend._get_n_figs() == 2
     ssp_fig = fig.mne.fig_proj
+    # ToDo: These gui-elements might differ in pyqtgraph.
     t = ssp_fig.mne.proj_checkboxes.labels
     ax = ssp_fig.mne.proj_checkboxes.ax
     assert _proj_status(ax) == [True, True, True]
@@ -307,11 +312,12 @@ def test_plot_raw_child_figures(raw, browse_backend):
     # test child fig toggles
     _child_fig_helper(fig, '?', 'fig_help', browse_backend)
     _child_fig_helper(fig, 'j', 'fig_proj', browse_backend)
+    # ToDo: This figure won't be there with pyqtgraph.
     _child_fig_helper(fig, 'a', 'fig_annotation', browse_backend)
     assert len(fig.mne.child_figs) == 0  # make sure the helper cleaned up
     assert browse_backend._get_n_figs() == 1
     # test right-click → channel location popup
-    fig.canvas.draw()
+    fig._redraw()
     fig._click_ch_name(ch_index=2, button=3)
     assert len(fig.mne.child_figs) == 1
     assert browse_backend._get_n_figs() == 2
@@ -323,13 +329,12 @@ def test_plot_raw_child_figures(raw, browse_backend):
     trace_ix = fig.mne.ch_order.tolist().index(ix)  # get its plotting position
     assert len(fig.mne.child_figs) == 0
     assert browse_backend._get_n_figs() == 1
-    fig.canvas.draw()
+    fig._redraw()
     fig._click_ch_name(ch_index=trace_ix, button=3)  # should be no-op
     assert len(fig.mne.child_figs) == 0
     assert browse_backend._get_n_figs() == 1
     # test resize of main window
-    width, height = fig.canvas.manager.canvas.get_width_height()
-    fig.canvas.manager.canvas.resize(width // 2, height // 2)
+    fig._resize_by_factor(0.5)
 
 
 def test_plot_raw_keypresses(raw, browse_backend):
@@ -363,6 +368,7 @@ def test_plot_raw_traces(raw, events, browse_backend):
     x = fig.mne.traces[0].get_xdata()[5]
     y = fig.mne.traces[0].get_ydata()[5]
     data_ax = fig.mne.ax_main
+    #ToDo: The interaction with scrollbars will be different in pyqtgraph.
     hscroll = fig.mne.ax_hscroll
     vscroll = fig.mne.ax_vscroll
     # test marking bad channels
@@ -459,11 +465,11 @@ def test_plot_raw_traces(raw, events, browse_backend):
     with pytest.warns(None):  # sometimes projection
         raw.plot(group_by='position', order=np.arange(8))
     for fig_num in plt.get_fignums():
-        fig = plt.figure(fig_num)
-        if hasattr(fig, 'radio'):  # Get access to selection fig.
+        sel_fig = plt.figure(fig_num)
+        if hasattr(sel_fig, 'radio'):  # Get access to selection fig.
             break
     for key in ['down', 'up', 'escape']:
-        fig.canvas.key_press_event(key)
+        fig._fake_keypress(key, fig=sel_fig)
 
     raw._data[:] = np.nan
     # this should (at least) not die, the output should pretty clearly show
@@ -518,6 +524,7 @@ def test_plot_annotations(raw, browse_backend):
     assert len(fig.mne.annotations) == 1
     assert len(fig.mne.annotation_texts) == 1
     fig._fake_keypress('a')  # start annotation mode
+    # ToDo: This will be different in pyqtgraph (toolbar).
     checkboxes = fig.mne.show_hide_annotation_checkboxes
     checkboxes.set_active(0)
     assert len(fig.mne.annotations) == 0
@@ -536,6 +543,7 @@ def test_remove_annotations(raw, hide_which, browse_backend):
     assert len(raw.annotations) == 2
     fig = raw.plot()
     fig._fake_keypress('a')  # start annotation mode
+    # ToDo: This will be different in pyqtgraph (toolbar).
     checkboxes = fig.mne.show_hide_annotation_checkboxes
     for which in hide_which:
         checkboxes.set_active(which)
@@ -561,7 +569,7 @@ def test_plot_raw_filtered(filtorder, raw, browse_backend):
     RawArray(np.zeros((1, 100)), create_info(1, 20., 'stim')).plot(lowpass=5)
 
 
-def test_plot_raw_psd(raw, raw_orig, browse_backend):
+def test_plot_raw_psd(raw, raw_orig):
     """Test plotting of raw psds."""
     raw_unchanged = raw.copy()
     # normal mode
@@ -657,7 +665,7 @@ def test_plot_raw_psd(raw, raw_orig, browse_backend):
     plt.close('all')
 
 
-def test_plot_sensors(raw, browse_backend):
+def test_plot_sensors(raw):
     """Test plotting of sensor array."""
     plt.close('all')
     fig = raw.plot_sensors('3d')

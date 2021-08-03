@@ -33,6 +33,7 @@ def test_plot_epochs_basic(epochs, epochs_full, noise_cov_io, capsys,
     assert len(epochs.events) == 1
     epochs.info['lowpass'] = 10.  # allow heavy decim during plotting
     fig = epochs.plot(scalings=None, title='Epochs')
+    # ToDo: The ticks will be fetched differently with pyqtgraph.
     ticks = [x.get_text() for x in fig.mne.ax_main.get_xticklabels(minor=True)]
     assert ticks == ['2']
     browse_backend._close_all()
@@ -102,6 +103,7 @@ def test_plot_epochs_scale_bar(epochs, browse_backend):
     ax = fig.mne.ax_main
     # only empty vline-text, mag & grad in this instance
     assert len(ax.texts) == 3
+    # ToDo: The scale-bars might be accessed differently in pyqtgraph.
     texts = tuple(t.get_text().strip() for t in ax.texts)
     wants = ('', '800.0 fT/cm', '2000.0 fT')
     assert texts == wants
@@ -130,6 +132,7 @@ def test_plot_epochs_clicks(epochs, epochs_full, capsys,
     # need more than 1 epoch this time
     fig = epochs_full.plot(n_epochs=3)
     data_ax = fig.mne.ax_main
+    # ToDo: Tick-Labels will be accessed differently in pyqtgraph.
     first_ch = data_ax.get_yticklabels()[0].get_text()
     assert first_ch not in fig.mne.info['bads']
     _click_ch_name(fig, ch_index=0, button=1)  # click ch name to mark bad
@@ -369,11 +372,11 @@ def test_plot_epochs_ctf(raw_ctf, browse_backend):
             '+', '=', 'd', 'd', 'pageup', 'home', 'end', 'z', 'z', 's', 's',
             'f11', '?', 'h', 'j')
     for key in keys:
-        fig.canvas.key_press_event(key)
-    fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
-    fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
-    fig.canvas.resize_event()
-    fig.canvas.key_press_event('escape')  # close and drop epochs
+        fig._fake_keypress(key)
+    fig._fake_scroll(0.5, 0.5, -0.5)  # scroll down
+    fig._fake_scroll(0.5, 0.5, 0.5)  # scroll up
+    fig._resize_by_factor(1)
+    fig._fake_keypress('escape')  # close and drop epochs
 
 
 @pytest.mark.slowtest

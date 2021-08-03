@@ -223,6 +223,7 @@ def test_plot_ica_sources(raw_orig, browse_backend):
     # change which component is in ICA.exclude (click data trace to remove
     # current one; click name to add other one)
     fig._redraw()
+    # ToDo: This will be different methods in pyqtgraph
     x = fig.mne.traces[1].get_xdata()[5]
     y = fig.mne.traces[1].get_ydata()[5]
     fig._fake_click((x, y), xform='data')  # exclude = []
