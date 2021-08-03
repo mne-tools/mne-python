@@ -249,7 +249,6 @@ def test_set_eeg_reference_ch_type(ch_type):
     raw = RawArray(data, create_info(ch_names, 1000., ['ecog'] * 2
                                      + ['dbs'] * 2 + ['misc']))
     if ch_type == 'auto':
-
         ref_ch = ch_names[:2]
     else:
         ref_ch = raw.copy().pick(picks=ch_type).ch_names
@@ -257,9 +256,9 @@ def test_set_eeg_reference_ch_type(ch_type):
         reref, ref_data = set_eeg_reference(raw.copy(), ch_type=ch_type,
                                             verbose=True)
     if ch_type in ['auto', 'ecog']:
-        assert 'Applying a custom ECoG' in log.getvalue()
+        assert "Applying a custom ('ECoG',)" in log.getvalue()
     else:
-        assert 'Applying a custom DBS' in log.getvalue()
+        assert "Applying a custom ('DBS',)" in log.getvalue()
     assert reref.info['custom_ref_applied']  # gh-7350
     _test_reference(raw, reref, ref_data, ref_ch)
     with pytest.raises(ValueError, match='No channels supplied'):
