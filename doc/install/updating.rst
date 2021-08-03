@@ -56,7 +56,7 @@ copies of all the packages instead of re-downloading them.
 
     .. code-block:: console
 
-        $ diff <(conda list -n mne | cut -d ' ' -f 1 | sort) <(conda list -n mne_old | cut -d ' ' -f 1 | sort) | grep "^>" | cut -d ' ' -f 2
+        $ diff <(conda list -n mne | cut -d " " -f 1 | sort) <(conda list -n old_mne | cut -d " " -f 1 | sort) | grep "^>" | cut -d " " -f 2
 
 
 .. _installing_main:
