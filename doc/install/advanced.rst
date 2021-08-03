@@ -98,6 +98,9 @@ like Anaconda, Miniconda includes the ``conda`` command line tool for
 installing new packages and managing environments; unlike Anaconda, Miniconda
 starts off with a minimal set of around 30 packages instead of Anaconda's
 hundreds. See the `installation instructions for Miniconda`_ for more info.
+A similar alternative is `MiniForge`_, which uses the ``conda-forge`` channel
+as the default source for package installation (saving you the trouble of
+typing ``--channel conda-forge`` with each ``conda install`` command).
 
 It is also possible to use a system-level installation of Python (version
 |min_python_version| or higher) and use ``pip`` to install MNE-Python and its
