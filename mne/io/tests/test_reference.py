@@ -238,7 +238,7 @@ def test_set_eeg_reference():
         set_eeg_reference(raw, ['EEG 001'], True, True)
 
 
-@pytest.mark.parametrize('ch_type', ('auto', 'ecog', 'dbs'))
+@pytest.mark.parametrize('ch_type', ('auto', 'ecog', 'dbs', ['ecog', 'dbs']))
 def test_set_eeg_reference_ch_type(ch_type):
     """Test setting EEG reference for ECoG or DBS."""
     # gh-6454
@@ -255,10 +255,12 @@ def test_set_eeg_reference_ch_type(ch_type):
     with catch_logging() as log:
         reref, ref_data = set_eeg_reference(raw.copy(), ch_type=ch_type,
                                             verbose=True)
-    if ch_type in ['auto', 'ecog']:
+    if isinstance(ch_type, str) and ch_type in ['auto', 'ecog']:
         assert "Applying a custom ('ECoG',)" in log.getvalue()
-    else:
+    elif isinstance(ch_type, str) and ch_type in ['dbs']:
         assert "Applying a custom ('DBS',)" in log.getvalue()
+    elif isinstance(ch_type, list):
+        assert "Applying a custom ('ECoG', 'DBS')" in log.getvalue()
     assert reref.info['custom_ref_applied']  # gh-7350
     _test_reference(raw, reref, ref_data, ref_ch)
     with pytest.raises(ValueError, match='No channels supplied'):
