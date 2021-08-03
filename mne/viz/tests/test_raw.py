@@ -368,7 +368,7 @@ def test_plot_raw_traces(raw, events, browse_backend):
     x = fig.mne.traces[0].get_xdata()[5]
     y = fig.mne.traces[0].get_ydata()[5]
     data_ax = fig.mne.ax_main
-    #ToDo: The interaction with scrollbars will be different in pyqtgraph.
+    # ToDo: The interaction with scrollbars will be different in pyqtgraph.
     hscroll = fig.mne.ax_hscroll
     vscroll = fig.mne.ax_vscroll
     # test marking bad channels
