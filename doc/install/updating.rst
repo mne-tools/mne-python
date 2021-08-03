@@ -48,7 +48,7 @@ copies of all the packages instead of re-downloading them.
 
 .. note::
 
-    If you had installed extra packages into your old ``mne`` environment,
+    If you installed extra packages into your old ``mne`` environment,
     you'll need to repeat that process after re-creating the updated
     environment. Comparing the output of ``conda list --name old_mne`` versus
     ``conda list --name mne`` will show you what is missing from the new
@@ -61,8 +61,8 @@ copies of all the packages instead of re-downloading them.
 
 .. _installing_main:
 
-Installing the development version
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Upgrading to the development version
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. warning:: In between releases, function and class APIs can change without
     warning.
