@@ -239,10 +239,10 @@ def test_set_eeg_reference():
 
 
 @pytest.mark.parametrize('ch_type, msg',
-    [('auto', ('ECoG',)),
-     ('ecog', ('ECoG',)),
-     ('dbs', ('DBS',)),
-     (['ecog', 'dbs'], ('ECoG', 'DBS'))])
+                         [('auto', ('ECoG',)),
+                          ('ecog', ('ECoG',)),
+                          ('dbs', ('DBS',)),
+                          (['ecog', 'dbs'], ('ECoG', 'DBS'))])
 def test_set_eeg_reference_ch_type(ch_type, msg):
     """Test setting EEG reference for ECoG or DBS."""
     # gh-6454
