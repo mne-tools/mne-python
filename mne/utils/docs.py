@@ -856,7 +856,8 @@ projection : bool
     must be set to ``False`` (the default in this case).
 """
 docdict['set_eeg_reference_ch_type'] = """
-ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg' | 'dbs'
+ch_type : list of str | str
+    Valid channel types are 'auto', 'eeg', 'ecog', 'seeg', 'dbs'.
     The name of the channel type to apply the reference to. If 'auto',
     the first channel type of eeg, ecog, seeg or dbs that is found (in that
     order) will be selected.
