@@ -53,7 +53,8 @@ def _check_before_reference(inst, ref_from, ref_to, ch_type):
     _check_preload(inst, "Applying a reference")
 
     ch_type = _get_ch_type(inst, ch_type)
-    ch_dict = {ch_type: True, 'meg': False, 'ref_meg': False}
+    ch_dict = {**{type_: True for type_ in ch_type},
+               'meg': False, 'ref_meg': False}
     eeg_idx = pick_types(inst.info, **ch_dict)
 
     if ref_to is None:
@@ -336,9 +337,9 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
 
     inst = inst.copy() if copy else inst
     ch_type = _get_ch_type(inst, ch_type)
-    ch_dict = {ch_type: True, 'meg': False, 'ref_meg': False}
-    eeg_idx = pick_types(inst.info, **ch_dict)
-    ch_sel = [inst.ch_names[i] for i in eeg_idx]
+    ch_dict = {**{type_: True for type_ in ch_type},
+               'meg': False, 'ref_meg': False}
+    ch_sel = [inst.ch_names[i] for i in pick_types(inst.info, **ch_dict)]
 
     if ref_channels == 'REST':
         _validate_type(forward, Forward, 'forward when ref_channels="REST"')
@@ -352,22 +353,34 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     if ref_channels == []:
         logger.info('EEG data marked as already having the desired reference.')
     else:
-        logger.info('Applying a custom %s '
-                    'reference.' % DEFAULTS['titles'][ch_type])
+        logger.info(
+            'Applying a custom '
+            f"{tuple(DEFAULTS['titles'][type_] for type_ in ch_type)} "
+            'reference.')
 
     return _apply_reference(inst, ref_channels, ch_sel, forward,
                             ch_type=ch_type)
 
 
 def _get_ch_type(inst, ch_type):
-    _validate_type(ch_type, str, 'ch_type')
-    _check_option('ch_type', ch_type, ('auto', 'eeg', 'ecog', 'seeg', 'dbs'))
+    _validate_type(ch_type, (str, list, tuple), 'ch_type')
+    valid_ch_types = ('auto', 'eeg', 'ecog', 'seeg', 'dbs')
+    if isinstance(ch_type, str):
+        _check_option('ch_type', ch_type, valid_ch_types)
+        if ch_type != 'auto':
+            ch_type = [ch_type]
+    elif isinstance(ch_type, (list, tuple)):
+        for type_ in ch_type:
+            _validate_type(type_, str, 'ch_type')
+            _check_option('ch_type', type_, valid_ch_types[1:])
+        ch_type = list(ch_type)
+
     # if ch_type is 'auto', search through list to find first reasonable
     # reference-able channel type.
     if ch_type == 'auto':
         for type_ in ['eeg', 'ecog', 'seeg', 'dbs']:
             if type_ in inst:
-                ch_type = type_
+                ch_type = [type_]
                 logger.info('%s channel type selected for '
                             're-referencing' % DEFAULTS['titles'][type_])
                 break
