@@ -32,7 +32,5 @@ from .backends.renderer import (set_3d_backend, get_3d_backend, use_3d_backend,
                                 set_3d_view, set_3d_title, create_3d_figure,
                                 close_3d_figure, close_all_3d_figures,
                                 get_brain_class)
-from ._figure import (set_browser_backend, get_browser_backend,
-                      use_browser_backend)
 from . import backends
 from ._brain import Brain
