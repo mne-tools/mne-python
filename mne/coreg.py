@@ -1306,8 +1306,6 @@ class Coregistration(object):
         self._setup_mri(subjects_dir=self._subjects_dir,
                         subject=self._subject)
         self.reset()
-        self._nearest_calc = _DistanceQuery(
-            self._processed_high_res_mri_points * self._scale)
         self._update_params(
             rot=self._default_parameters[:3],
             tra=self._default_parameters[3:6],
@@ -1804,3 +1802,4 @@ class Coregistration(object):
         self._last_translation = self._translation.copy()
         self._last_scale = self._scale.copy()
         self._extra_points_filter = None
+        self._update_nearest_calc()

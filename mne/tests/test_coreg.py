@@ -302,7 +302,6 @@ def test_coregistration(ref_scale):
         d['r'] *= ref_scale[1]
     trans = read_trans(trans_fname)
     coreg = Coregistration(info, subject=subject, subjects_dir=subjects_dir)
-    coreg.set_scale_mode(ref_scale[0])
     assert np.allclose(coreg._last_parameters, coreg._parameters)
     default_params = list(coreg._default_parameters)
     coreg.set_rotation(default_params[:3])
@@ -310,6 +309,7 @@ def test_coregistration(ref_scale):
     coreg.set_scale(default_params[6:9])
     coreg.set_grow_hair(0.)
     coreg.fit_fiducials()
+    coreg.set_scale_mode(ref_scale[0])
     assert not np.allclose(coreg._parameters, default_params)
     assert coreg._extra_points_filter is None
     coreg.omit_hsp_points(distance=-1)
@@ -321,10 +321,10 @@ def test_coregistration(ref_scale):
     assert np.median(errs_icp * 1000) < 10
     assert np.rad2deg(_angle_between_quats(
         rot_to_quat(coreg.trans['trans'][:3, :3]),
-        rot_to_quat(trans['trans'][:3, :3]))) < 12
+        rot_to_quat(trans['trans'][:3, :3]))) < 13
     if ref_scale[0] is None:
         assert_allclose(coreg._scale, [1., 1., 1.])
     else:
-        assert_allclose(coreg._scale, ref_scale[1], atol=0.1)
+        assert_allclose(coreg._scale, ref_scale[1], atol=0.35)
     coreg.reset()
     assert np.allclose(coreg._parameters, default_params)
