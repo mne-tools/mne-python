@@ -1278,8 +1278,7 @@ class Coregistration(object):
 
         self._rot_trans = None
         self._default_parameters = \
-            np.array([0., 0., 0., 0., 0., 0., 1., 1., 1.],
-                     dtype=np.double)
+            np.array([0., 0., 0., 0., 0., 0., 1., 1., 1.])
 
         self._icp_iterations = 20
         self._icp_angle = 0.2
@@ -1411,6 +1410,21 @@ class Coregistration(object):
                             self._filtered_extra_points)
             self._transformed_orig_dig_extra = \
                 apply_trans(self._head_mri_t, self._dig['hsp'])
+            self._mri_head_t = rotation(*self._rotation)
+            self._mri_head_t[:3, 3] = np.array(tra)
+        if tra_changed or sca is not None:
+            if sca is None:
+                sca = self._scale
+            self._last_scale = self._scale
+            self._scale = sca
+            self._mri_trans = np.eye(4)
+            self._mri_trans[:, :3] *= sca
+            self._transformed_high_res_mri_points = \
+                apply_trans(self._mri_trans,
+                            self._processed_high_res_mri_points)
+            self._update_nearest_calc()
+
+        if tra_changed:
             self._nearest_transformed_high_res_mri_idx_orig_hsp = \
                 self._nearest_calc.query(self._transformed_orig_dig_extra)[1]
             self._nearest_transformed_high_res_mri_idx_hpi = \
@@ -1426,19 +1440,6 @@ class Coregistration(object):
             self._nearest_transformed_high_res_mri_idx_lpa = \
                 self._nearest_calc.query(
                     apply_trans(self._head_mri_t, self._dig['lpa']))[1]
-            self._mri_head_t = rotation(*self._rotation)
-            self._mri_head_t[:3, 3] = np.array(tra)
-        if tra_changed or sca is not None:
-            if sca is None:
-                sca = self._scale
-            self._last_scale = self._scale
-            self._scale = sca
-            self._mri_trans = np.eye(4)
-            self._mri_trans[:, :3] *= sca
-            self._transformed_high_res_mri_points = \
-                apply_trans(self._mri_trans,
-                            self._processed_high_res_mri_points)
-            self._update_nearest_calc()
 
     def set_scale_mode(self, scale_mode):
         """Select how to fit the scale parameters.
