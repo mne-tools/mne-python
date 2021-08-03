@@ -17,7 +17,8 @@ import pytest
 import numpy as np
 
 import mne
-from mne import read_events
+from mne import read_events, pick_types, Epochs
+from mne.channels import read_layout
 from mne.datasets import testing
 from mne.fixes import has_numba
 from mne.io import read_raw_fif, read_raw_ctf
@@ -49,6 +50,9 @@ base_dir = op.join(op.dirname(__file__), 'io', 'tests', 'data')
 fname_raw_io = op.join(base_dir, 'test_raw.fif')
 fname_event_io = op.join(base_dir, 'test-eve.fif')
 fname_cov_io = op.join(base_dir, 'test-cov.fif')
+fname_evoked_io = op.join(base_dir, 'test-ave.fif')
+event_id, tmin, tmax = 1, -0.1, 1.0
+vv_layout = read_layout('Vectorview-all')
 
 collect_ignore = ['export/_eeglab.py']
 
@@ -256,6 +260,39 @@ def raw_ctf():
 def events():
     """Get events."""
     return read_events(fname_event_io)
+
+
+def _get_epochs(stop=5, meg=True, eeg=False, n_chan=20):
+    """Get epochs."""
+    raw = read_raw_fif(fname_raw_io)
+    events = read_events(fname_event_io)
+    picks = pick_types(raw.info, meg=meg, eeg=eeg, stim=False,
+                       ecg=False, eog=False, exclude='bads')
+    # Use a subset of channels for plotting speed
+    picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
+    with pytest.warns(RuntimeWarning, match='projection'):
+        epochs = Epochs(raw, events[:stop], event_id, tmin, tmax, picks=picks,
+                        proj=False, preload=False)
+    epochs.info.normalize_proj()  # avoid warnings
+    return epochs
+
+
+@pytest.fixture()
+def epochs():
+    """Get minimal, pre-loaded epochs data suitable for most tests."""
+    return _get_epochs().load_data()
+
+
+@pytest.fixture()
+def epochs_unloaded():
+    """Get minimal, unloaded epochs data."""
+    return _get_epochs()
+
+
+@pytest.fixture()
+def epochs_full():
+    """Get full, preloaded epochs."""
+    return _get_epochs(None).load_data()
 
 
 @pytest.fixture(scope='session', params=[testing._pytest_param()])

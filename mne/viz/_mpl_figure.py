@@ -2082,7 +2082,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         """Force calling of the MPL figure close event."""
         fig = fig or self
         try:
-            fig.canvas._close_event()
+            fig.canvas.close_event()
         except ValueError:  # old mpl with Qt
             pass  # pragma: no cover
 

@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 
 from mne import pick_types, Annotations, create_info
 from mne.datasets import testing
-from mne.fixes import _close_event
 from mne.utils import get_config, set_config
 from mne.io import RawArray
 from mne.utils import _dt_to_stamp
@@ -152,7 +151,7 @@ def _child_fig_helper(fig, key, attr, browse_backend):
     assert child_fig is not None
     # close via main window toggle
     fig._fake_keypress(key)
-    _close_event(child_fig)
+    fig._close_event(child_fig)
     assert len(fig.mne.child_figs) == 0
     assert browse_backend._get_n_figs() == num_figs
     assert getattr(fig.mne, attr) is None
@@ -164,13 +163,13 @@ def _child_fig_helper(fig, key, attr, browse_backend):
     assert child_fig is not None
     # close via child window
     fig._fake_keypress(child_fig.mne.close_key, fig=child_fig)
-    _close_event(child_fig)
+    fig._close_event(child_fig)
     assert len(fig.mne.child_figs) == 0
     assert browse_backend._get_n_figs() == num_figs
     assert getattr(fig.mne, attr) is None
 
 
-def test_scale_bar():
+def test_scale_bar(browse_backend):
     """Test scale bar for raw."""
     sfreq = 1000.
     t = np.arange(10000) / sfreq
@@ -249,7 +248,7 @@ def test_plot_raw_selection(raw, browse_backend):
     assert sorted(want) == sorted(sel_fig.lasso.selection)
     # test joint closing of selection & data windows
     fig._fake_keypress(sel_fig.mne.close_key, fig=sel_fig)
-    _close_event(sel_fig)
+    fig._close_event(sel_fig)
     assert browse_backend._get_n_figs() == 0
 
 
@@ -317,7 +316,7 @@ def test_plot_raw_child_figures(raw, browse_backend):
     assert len(fig.mne.child_figs) == 1
     assert browse_backend._get_n_figs() == 2
     fig._fake_keypress('escape', fig=fig.mne.child_figs[0])
-    _close_event(fig.mne.child_figs[0])
+    fig._close_event(fig.mne.child_figs[0])
     assert browse_backend._get_n_figs() == 1
     # test right-click on non-data channel
     ix = raw.get_channel_types().index('ias')  # find the shielding channel
@@ -333,7 +332,7 @@ def test_plot_raw_child_figures(raw, browse_backend):
     fig.canvas.manager.canvas.resize(width // 2, height // 2)
 
 
-def test_plot_raw_keypresses(raw):
+def test_plot_raw_keypresses(raw, browse_backend):
     """Test keypress interactivity of plot_raw()."""
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     fig = raw.plot()
@@ -430,7 +429,9 @@ def test_plot_raw_traces(raw, events, browse_backend):
         fig = raw.plot(group_by=group_by, order=order)
         x = fig.get_axes()[0].lines[1].get_xdata()[10]
         y = fig.get_axes()[0].lines[1].get_ydata()[10]
-        fig._fake_click((x, y), xform='data')  # mark bad
+        # ToDo: Is this intentional?
+        #  (click in data-coordinates of data_ax from start of test)
+        fig._fake_click((x, y), ax=data_ax, xform='data')  # mark bad
         fig._fake_keypress('down')  # change selection
         fig._fake_click((0.5, 0.5), ax=fig.get_axes()[2])  # change channels
         sel_fig = plt.figure(1)
@@ -462,7 +463,7 @@ def test_plot_raw_traces(raw, events, browse_backend):
         if hasattr(fig, 'radio'):  # Get access to selection fig.
             break
     for key in ['down', 'up', 'escape']:
-        fig._fake_keypress(key)
+        fig.canvas.key_press_event(key)
 
     raw._data[:] = np.nan
     # this should (at least) not die, the output should pretty clearly show
@@ -527,7 +528,7 @@ def test_plot_annotations(raw, browse_backend):
 
 
 @pytest.mark.parametrize('hide_which', ([], [0], [1], [0, 1]))
-def test_remove_annotations(raw, hide_which):
+def test_remove_annotations(raw, hide_which, browse_backend):
     """Test that right-click doesn't remove hidden annotation spans."""
     ann = Annotations(onset=[2, 1], duration=[1, 3],
                       description=['foo', 'bar'])
@@ -543,7 +544,7 @@ def test_remove_annotations(raw, hide_which):
 
 
 @pytest.mark.parametrize('filtorder', (0, 2))  # FIR, IIR
-def test_plot_raw_filtered(filtorder, raw):
+def test_plot_raw_filtered(filtorder, raw, browse_backend):
     """Test filtering of raw plots."""
     with pytest.raises(ValueError, match='lowpass.*Nyquist'):
         raw.plot(lowpass=raw.info['sfreq'] / 2., filtorder=filtorder)
@@ -560,7 +561,7 @@ def test_plot_raw_filtered(filtorder, raw):
     RawArray(np.zeros((1, 100)), create_info(1, 20., 'stim')).plot(lowpass=5)
 
 
-def test_plot_raw_psd(raw, raw_orig):
+def test_plot_raw_psd(raw, raw_orig, browse_backend):
     """Test plotting of raw psds."""
     raw_unchanged = raw.copy()
     # normal mode
@@ -656,7 +657,7 @@ def test_plot_raw_psd(raw, raw_orig):
     plt.close('all')
 
 
-def test_plot_sensors(raw):
+def test_plot_sensors(raw, browse_backend):
     """Test plotting of sensor array."""
     plt.close('all')
     fig = raw.plot_sensors('3d')
@@ -710,7 +711,7 @@ def test_plot_sensors(raw):
 
 
 @pytest.mark.parametrize('cfg_value', (None, '0.1,0.1'))
-def test_min_window_size(raw, cfg_value):
+def test_min_window_size(raw, cfg_value, browse_backend):
     """Test minimum window plot size."""
     old_cfg = get_config('MNE_BROWSE_RAW_SIZE')
     set_config('MNE_BROWSE_RAW_SIZE', cfg_value)
@@ -720,14 +721,14 @@ def test_min_window_size(raw, cfg_value):
     set_config('MNE_BROWSE_RAW_SIZE', old_cfg)
 
 
-def test_scalings_int():
+def test_scalings_int(browse_backend):
     """Test that auto scalings access samples using integers."""
     raw = RawArray(np.zeros((1, 500)), create_info(1, 1000., 'eeg'))
     raw.plot(scalings='auto')
 
 
 @pytest.mark.parametrize('dur, n_dec', [(20, 1), (4.2, 2), (0.01, 4)])
-def test_clock_xticks(raw, dur, n_dec):
+def test_clock_xticks(raw, dur, n_dec, browse_backend):
     """Test if decimal seconds of xticks have appropriate length."""
     fig = raw.plot(duration=dur, time_format='clock')
     fig.canvas.draw()
