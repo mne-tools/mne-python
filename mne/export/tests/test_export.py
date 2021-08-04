@@ -15,7 +15,7 @@ from mne import read_epochs_eeglab, Epochs, read_evokeds, read_evokeds_mff
 from mne.datasets import testing
 from mne.export import export_evokeds, export_evokeds_mff
 from mne.io import read_raw_fif, read_raw_eeglab, read_raw_edf
-from mne.utils import (_check_eeglabio_installed, requires_version, 
+from mne.utils import (_check_eeglabio_installed, requires_version,
                        object_diff, _check_edflib_installed)
 from mne.tests.test_epochs import _get_data
 
@@ -47,10 +47,9 @@ def test_export_raw_eeglab(tmpdir):
     assert_allclose(raw.get_data(), raw_read.get_data())
 
 
-
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')
-def test_export_raw_eeglab(tmpdir):
+def test_export_raw_edf(tmpdir):
     """Test saving a Raw instance to EDF format."""
     fname = (Path(__file__).parent.parent.parent /
              "io" / "tests" / "data" / "test_raw.fif")
