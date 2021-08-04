@@ -9,7 +9,8 @@ import os.path as op
 
 import pytest
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_equal
+from numpy.testing import (assert_allclose, assert_array_almost_equal,
+                           assert_array_equal)
 
 from mne import read_epochs_eeglab, Epochs, read_evokeds, read_evokeds_mff
 from mne.datasets import testing

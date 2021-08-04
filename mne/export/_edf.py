@@ -79,7 +79,7 @@ def _export_raw(fname, raw):
         if hdl.setStartDateTime(year=meas_date.year, month=meas_date.month,
                                 day=meas_date.day, hour=meas_date.hour,
                                 minute=meas_date.minute,
-                                second=meas_date.second, 
+                                second=meas_date.second,
                                 subsecond=subsecond) != 0:  # noqa
             raise RuntimeError("setStartDateTime() returned an error")
     # if hdl.setAdministrationCode("1234567890") != 0:
@@ -126,8 +126,6 @@ def _export_raw(fname, raw):
             err = hdl.writeSamples(buf)
             if err != 0:  # noqa
                 raise RuntimeError(f"writeSamples() returned error: {err}")
-
-
 
     # write annotations
     if raw.annotations:
