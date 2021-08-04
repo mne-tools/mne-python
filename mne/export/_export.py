@@ -39,7 +39,8 @@ def export_raw(fname, raw, fmt='auto', verbose=None):
         from ._eeglab import _export_raw
         _export_raw(fname, raw)
     elif fmt == 'edf':
-        raise NotImplementedError('Export to EDF format not implemented.')
+        from ._edf import _export_raw
+        _export_raw(fname, raw)
     elif fmt == 'brainvision':
         raise NotImplementedError('Export to BrainVision not implemented.')
 

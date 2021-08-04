@@ -14,8 +14,9 @@ from numpy.testing import assert_allclose, assert_array_equal
 from mne import read_epochs_eeglab, Epochs, read_evokeds, read_evokeds_mff
 from mne.datasets import testing
 from mne.export import export_evokeds, export_evokeds_mff
-from mne.io import read_raw_fif, read_raw_eeglab
-from mne.utils import _check_eeglabio_installed, requires_version, object_diff
+from mne.io import read_raw_fif, read_raw_eeglab, read_raw_edf
+from mne.utils import (_check_eeglabio_installed, requires_version, 
+                       object_diff, _check_edflib_installed)
 from mne.tests.test_epochs import _get_data
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -42,6 +43,25 @@ def test_export_raw_eeglab(tmpdir):
     cart_coords = np.array([d['loc'][:3] for d in raw.info['chs']])  # just xyz
     cart_coords_read = np.array([d['loc'][:3] for d in raw_read.info['chs']])
     assert_allclose(cart_coords, cart_coords_read)
+    assert_allclose(raw.times, raw_read.times)
+    assert_allclose(raw.get_data(), raw_read.get_data())
+
+
+
+@pytest.mark.skipif(not _check_edflib_installed(strict=False),
+                    reason='edflib-python not installed')
+def test_export_raw_eeglab(tmpdir):
+    """Test saving a Raw instance to EDF format."""
+    fname = (Path(__file__).parent.parent.parent /
+             "io" / "tests" / "data" / "test_raw.fif")
+    raw = read_raw_fif(fname)
+    raw.load_data()
+    temp_fname = op.join(str(tmpdir), 'test.edf')
+    raw.export(temp_fname)
+    raw.drop_channels([ch for ch in ['epoc']
+                       if ch in raw.ch_names])
+    raw_read = read_raw_edf(temp_fname, preload=True)
+    assert raw.ch_names == raw_read.ch_names
     assert_allclose(raw.times, raw_read.times)
     assert_allclose(raw.get_data(), raw_read.get_data())
 
