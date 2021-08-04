@@ -283,13 +283,14 @@ def test_get_mni_fiducials():
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('scale_mode,ref_scale', [
-    (None, [1., 1., 1.]),
-    ('uniform', [1., 1., 1.]),
-    ('3-axis', [1., 1., 1.]),
-    ('uniform', [0.8, 0.8, 0.8]),
-    ('3-axis', [0.8, 1.2, 1.2])])
-def test_coregistration(scale_mode, ref_scale):
+@pytest.mark.parametrize('scale_mode,ref_scale,grow_hair', [
+    (None, [1., 1., 1.], 0.),
+    (None, [1., 1., 1.], 2.),
+    ('uniform', [1., 1., 1.], 0.),
+    ('3-axis', [1., 1., 1.], 0.),
+    ('uniform', [0.8, 0.8, 0.8], 0.),
+    ('3-axis', [0.8, 1.2, 1.2], 0.)])
+def test_coregistration(scale_mode, ref_scale, grow_hair):
     """Test automated coregistration."""
     trans_fname = op.join(data_path, 'MEG', 'sample',
                           'sample_audvis_trunc-trans.fif')
@@ -307,15 +308,15 @@ def test_coregistration(scale_mode, ref_scale):
     coreg.set_rotation(default_params[:3])
     coreg.set_translation(default_params[3:6])
     coreg.set_scale(default_params[6:9])
-    coreg.set_grow_hair(0.)
-    coreg.fit_fiducials()
+    coreg.set_grow_hair(grow_hair)
     coreg.set_scale_mode(scale_mode)
+    coreg.fit_fiducials(verbose=True)
     assert not np.allclose(coreg._parameters, default_params)
     assert coreg._extra_points_filter is None
     coreg.omit_hsp_points(distance=-1)
     coreg.omit_hsp_points(distance=5. / 1000)
     assert coreg._extra_points_filter is not None
-    coreg.fit_icp()
+    coreg.fit_icp(verbose=True)
     assert isinstance(coreg.trans, Transform)
     errs_icp = coreg.compute_dig_head_distances()
     assert np.median(errs_icp * 1000) < 10
