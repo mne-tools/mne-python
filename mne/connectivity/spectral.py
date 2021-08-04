@@ -18,7 +18,7 @@ from ..time_frequency.multitaper import (_mt_spectra, _compute_mt_params,
                                          _psd_from_mt, _csd_from_mt,
                                          _psd_from_mt_adaptive)
 from ..time_frequency.tfr import morlet, cwt
-from ..utils import logger, verbose, _time_mask, warn, _arange_div
+from ..utils import logger, verbose, _time_mask, warn, _arange_div, deprecated
 
 ########################################################################
 # Various connectivity estimators
@@ -556,6 +556,9 @@ def _check_estimators(method, mode):
     return con_method_types, n_methods, accumulate_psd, n_comp_args
 
 
+@deprecated(extra='Starting version v0.25, mne.connectivity sub-modules '
+                  'will be housed in `mne-connectivity`. Download it '
+                  'by running `pip install mne-connectivity`.')
 @verbose
 def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                           mode='multitaper', fmin=None, fmax=np.inf,
