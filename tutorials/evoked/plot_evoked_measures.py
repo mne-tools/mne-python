@@ -87,7 +87,7 @@ _, lh_lat, lh_amp = right_vis_evoked.get_peak(tmin=.07, tmax=.13,
 lh_microvolts = lh_amp * 1e6
 
 # Plot the evoked trace with a point for the peak
-fig, ax = plt.subplots(nrows=1, ncols=1)
+fig, ax = plt.subplots()
 fig = right_vis_evoked.plot(picks=chan, axes=ax,
                             titles=f'Visual/Right Peak at {chan}',
                             proj=True)
