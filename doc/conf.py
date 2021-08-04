@@ -840,6 +840,8 @@ def reset_warnings(gallery_conf, fname):
         'ignore', message="can't resolve package from", category=ImportWarning)
     warnings.filterwarnings(
         'ignore', message='.*mne-realtime.*', category=DeprecationWarning)
+    warnings.filterwarnings(
+        'ignore', message='.*mne-connectivity.*', category=DeprecationWarning)
 
     # In case we use np.set_printoptions in any tutorials, we only
     # want it to affect those:
