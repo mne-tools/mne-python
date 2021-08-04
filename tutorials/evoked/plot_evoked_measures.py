@@ -68,7 +68,7 @@ evokeds['visual/right'].plot_joint(title='Visual Right (EEG)',
 # filter the data with a cutoff of 20Hz or 30Hz. Here, we will do 20Hz. Note
 # that the Raw object of this sample dataset is lowpass filtered at 40Hz.
 
-# First we will xxtract the data from right trials in contralateral hemisphere
+# First we will extract the data from right trials in contralateral hemisphere
 
 # Define channel to use
 chan = 'EEG 054'
