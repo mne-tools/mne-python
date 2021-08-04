@@ -2553,7 +2553,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     src : dict
         The source space.
     stcs : instance of SourceEstimate or list of instances of SourceEstimate
-        The source estimates (up to 3).
+        The source estimates.
     colors : list
         List of colors.
     linewidth : int
@@ -2613,7 +2613,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     if colors is None:
         colors = _get_color_list()
 
-    linestyles = ['-', '--', ':']
+    linestyles = cycle(['-', '--', ':'])
+    linestyles = [next(linestyles) for _ in range(len(stcs))]
 
     # Show 3D
     lh_points = src[0]['rr']

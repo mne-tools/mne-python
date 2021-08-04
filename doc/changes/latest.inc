@@ -51,6 +51,8 @@ Enhancements
 
 - Add support for list of channel types for EEG/sEEG/ECoG/DBS referencing (:gh:`9637` **by new contributor** |Mathieu Scheltienne|_)
 
+- Add support for more than 3 source estimates in :func:`mne.viz.plot_sparse_source_estimates` (:gh:`????` **by new contributor** |Pierre-Antoine Bannier|_)
+
 - Speed up point decimation in :func:`mne.io.read_raw_kit` by vectorization and use of :class:`scipy.spatial.cKDTree` (:gh:`9568` by `Jean-Remi King`_ and `Eric Larson`_)
 
 - New function :func:`mne.chpi.get_chpi_info` to retrieve basic information about the cHPI system used when recording MEG data (:gh:`9369` by `Richard Höchenberger`_)
