@@ -5,7 +5,7 @@
 #          Eric Larson <larsoner@uw.edu>
 #          Mark Wronkiewicz <wronk@uw.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
@@ -475,10 +475,11 @@ def _do_prim_curr(rr, coils):
     del coils
     pc = np.empty((len(rr) * 3, n_coils))
     for start, stop in _rr_bounds(rr, chunk=1):
-        p = _bem_inf_fields(rr[start:stop], rmags, cosmags)
-        p *= ws
-        p.shape = (3 * (stop - start), -1)
-        pc[3 * start:3 * stop] = [bincount(bins, pp, bins[-1] + 1) for pp in p]
+        pp = _bem_inf_fields(rr[start:stop], rmags, cosmags)
+        pp *= ws
+        pp.shape = (3 * (stop - start), -1)
+        pc[3 * start:3 * stop] = [bincount(bins, this_pp, bins[-1] + 1)
+                                  for this_pp in pp]
     return pc
 
 

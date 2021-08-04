@@ -1,7 +1,7 @@
 # Author: Yousra Bekhti <yousra.bekhti@gmail.com>
 #         Mark Wronkiewicz <wronk@uw.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 
 import os.path as op
@@ -13,7 +13,6 @@ import pytest
 from mne import read_source_spaces
 from mne.datasets import testing
 from mne.simulation import simulate_sparse_stc, source_estimate_quantification
-from mne.utils import run_tests_if_main
 
 data_path = testing.data_path(download=False)
 src_fname = op.join(data_path, 'subjects', 'sample', 'bem',
@@ -45,6 +44,3 @@ def test_metrics():
     pytest.raises(ValueError, source_estimate_quantification, stc1, stc_bad)
     pytest.raises(ValueError, source_estimate_quantification, stc1, stc2,
                   metric='foo')
-
-
-run_tests_if_main()

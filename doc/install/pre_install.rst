@@ -1,32 +1,35 @@
 .. include:: ../links.inc
 
-Before you install
-==================
-
-.. contents::
-   :local:
-   :depth: 1
-
 Overview of the MNE tools suite
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+===============================
+
+MNE-Python is an open-source Python module for processing, analysis, and
+visualization of functional neuroimaging data (EEG, MEG, sEEG, ECoG, and
+fNIRS). There are several related or interoperable software packages that you
+may also want to install, depending on your analysis needs.
+
+Related software
+^^^^^^^^^^^^^^^^
 
 - MNE-C was the initial stage of this project,
   providing a set of interrelated command-line and GUI programs focused on
   computing cortically constrained Minimum Norm Estimates from MEG and EEG
   data. These tools were written in C by Matti Hämäläinen, and are
-  documented `here <MNE-C manual_>`_.
+  documented `here <MNE-C manual_>`_. See :ref:`install_mne_c` for installation
+  instructions.
 
-- :doc:`MNE-Python <../python_reference>` reimplements the functionality of
-  MNE-C, and extends considerably the analysis and visualization capabilities.
-  MNE-Python is collaboratively developed and has more than 200 contributors.
+- MNE-Python reimplements the functionality of MNE-C, extends considerably the
+  analysis and visualization capabilities, and adds support for additional data
+  types like functional near-infrared spectroscopy (fNIRS). MNE-Python is
+  collaboratively developed and has more than 200 contributors.
 
-- The :ref:`mne_matlab` provides a MATLAB interface to the .fif file
+- :ref:`MNE MATLAB <mne_matlab>` provides a MATLAB interface to the .fif file
   format and other MNE data structures, and provides example MATLAB
   implementations of some of the core analysis functionality of MNE-C. It is
   distributed alongside MNE-C, and can also be downloaded from the `MNE-MATLAB
   git repository`_.
 
-- :doc:`MNE-CPP <../mne_cpp>` provides core MNE functionality implemented in
+- :ref:`MNE-CPP <mne_cpp>` provides core MNE functionality implemented in
   C++ and is primarily intended for embedded and real-time applications.
 
 There is also a growing ecosystem of other Python packages that work alongside
@@ -59,6 +62,7 @@ MNE-Python, including packages for:
 - automatic multi-dipole localization and uncertainty quantification with
   the Bayesian algorithm SESAME (`sesameeg`_)
 - GLM and group level analysis of near-infrared spectroscopy data (`mne-nirs`_)
+- M/EEG inverse solutions using artificial neural networks (`ESINet`_)
 
 
 What should I install?
@@ -77,19 +81,14 @@ activity, you will need MNE-Python, plus :doc:`FreeSurfer <freesurfer>` to
 convert structural MRI scans into models of the scalp, inner/outer skull, and
 cortical surfaces (specifically, for command-line functions
 :ref:`mne flash_bem`, :ref:`mne watershed_bem`, and
-:ref:`mne make_scalp_surfaces`). If you follow the recommended installation
-procedure using anaconda, you don't need to do anything extra — Freesurfer will
-automatically be installed.
+:ref:`mne make_scalp_surfaces`).
 
 
 Getting help
 ^^^^^^^^^^^^
 
-Help with installation is available through the `MNE mailing list`_ and
-`MNE gitter channel`_. See the :ref:`help` page for more information.
-
-
-**Next:** :doc:`mne_python`
+Help with installation is available through the `MNE Forum`_. See the
+:ref:`help` page for more information.
 
 
 .. LINKS:
@@ -107,3 +106,4 @@ Help with installation is available through the `MNE mailing list`_ and
 .. _pyprep: https://github.com/sappelhoff/pyprep
 .. _sesameeg: https://pybees.github.io/sesameeg
 .. _mne-nirs: https://github.com/mne-tools/mne-nirs
+.. _ESINet: https://github.com/LukeTheHecker/ESINet

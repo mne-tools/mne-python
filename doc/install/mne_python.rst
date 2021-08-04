@@ -5,10 +5,6 @@
 Installing MNE-Python
 =====================
 
-.. contents:: Page contents
-   :local:
-   :depth: 1
-
 .. highlight:: console
 
 .. _install-python:
@@ -17,7 +13,7 @@ Installing Python
 ^^^^^^^^^^^^^^^^^
 
 MNE-Python runs within Python, and depends on several other Python packages.
-Starting with version 0.21, MNE-Python only supports Python version 3.6 or
+Starting with version 0.24, MNE-Python only supports Python version 3.7 or
 higher. We strongly
 recommend the `Anaconda`_ distribution of Python, which comes with more than
 250 scientific packages pre-bundled, and includes the ``conda`` command line
@@ -41,14 +37,14 @@ you should see outputs similar to the following (assuming you installed
 conda to ``/home/user/anaconda3``)::
 
     $ conda --version && python --version
-    conda 4.6.2
-    Python 3.6.7 :: Anaconda, Inc.
+    conda 4.9.2
+    Python 3.7.7 :: Anaconda, Inc.
     $ which python
     /home/user/anaconda3/bin/python
     $ which pip
     /home/user/anaconda3/bin/pip
 
-.. collapse:: |hand-stop-o| If you get an error or these look incorrect...
+.. collapse:: |hand-paper| If you get an error or these look incorrect...
     :class: danger
 
     .. rubric:: If you are on a |windows| Windows command prompt:
@@ -122,8 +118,8 @@ Installing MNE-Python and its dependencies
 Once you have Python/Anaconda installed, you have a few choices for how to
 install MNE-Python.
 
-For sensor-level analysis
-~~~~~~~~~~~~~~~~~~~~~~~~~
+2D plotting and sensor-level analysis
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you only need 2D plotting capabilities with MNE-Python (i.e., most EEG/ERP
 or other sensor-level analyses), you can install all you need by running
@@ -133,8 +129,8 @@ GUI). This will install MNE-Python into the "base" conda environment, which
 should be active by default and should already have the necessary dependencies
 (``numpy``, ``scipy``, and ``matplotlib``).
 
-For 3D plotting and source analysis
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+3D plotting and source analysis
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you need MNE-Python's 3D plotting capabilities (e.g., plotting estimated
 source activity on a cortical surface) it is a good idea to install
@@ -148,10 +144,10 @@ your operating system.
    Download the MNE-Python `environment file`_ (done here with ``curl``) and
    use it to create a new environment (named ``mne`` by default)::
 
-       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/environment.yml
        $ conda env update --file environment.yml
 
-   .. collapse:: |hand-stop-o| If you get errors building mayavi...
+   .. collapse:: |hand-paper| If you get errors building mayavi...
        :class: danger
 
        Installing `mayavi`_ needs OpenGL support. On debian-like systems this
@@ -165,15 +161,15 @@ your operating system.
    with ``curl``) and use it to create a new environment (named ``mne`` by
    default)::
 
-       $ conda install --name base nb_conda_kernels
-       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+       $ conda install --name base nb_conda_kernels "spyder>=4.2.1"
+       $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/environment.yml
        $ conda env update --file environment.yml
 
 .. collapse:: |windows| Windows
 
    - Download the `environment file`_
    - Open an Anaconda command prompt
-   - Run :samp:`conda install --name base nb_conda_kernels`
+   - Run :samp:`conda install --name base nb_conda_kernels "spyder>=4.2.1"`
    - :samp:`cd` to the directory where you downloaded the file
    - Run :samp:`conda env update --file environment.yml`
 
@@ -191,7 +187,7 @@ your operating system.
     if (navigator.userAgent.indexOf("Mac")!=-1) OSName="apple-macos";
     $(document).ready(function(){
         var element = document.getElementById("collapse_" + OSName);
-        element.className += " in";
+        element.className += " show";
         element.setAttribute("aria-expanded", "true");
     });
     </script>
@@ -219,8 +215,8 @@ Installing to a headless server
     need administrator privileges to install it.
 
 
-Testing MNE-Python installation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Testing your installation
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To make sure MNE-Python installed itself and its dependencies correctly,
 type the following command in a terminal::
@@ -253,7 +249,7 @@ MNE-Python and its dependencies. Typical output looks like this::
     PyQt5:         5.14.1
 
 
-.. collapse:: |hand-stop-o| If you get an error...
+.. collapse:: |hand-paper| If you get an error...
     :class: danger
 
     .. rubric:: If you see an error like:
@@ -276,12 +272,12 @@ MNE-Python and its dependencies. Typical output looks like this::
 
 If something else went wrong during installation and you can't figure it out,
 check out the :doc:`advanced` page to see if your problem is discussed there.
-If not, the `MNE mailing list`_ and `MNE gitter channel`_ are
-good resources for troubleshooting installation problems.
+If not, the `MNE Forum`_ is a good resources for troubleshooting installation
+problems.
 
 
-Installing a Python IDE
-^^^^^^^^^^^^^^^^^^^^^^^
+Python IDEs
+^^^^^^^^^^^
 
 Most users find it convenient to write and run their code in an `Integrated
 Development Environment`_ (IDE). Some popular choices for scientific
@@ -291,16 +287,17 @@ Python development are:
   use Python. It is included by default in the ``base`` environment when you
   install Anaconda, and can be started from a terminal with the command
   ``spyder`` (or on Windows or macOS, launched from the Anaconda Navigator GUI).
-  If you installed MNE-Python into a separate ``mne`` environment (not the
-  ``base`` Anaconda environment), you can set up Spyder to use the ``mne``
-  environment automatically, by opening Spyder and navigating to
+  If you use Spyder, you should *not* install it into the ``mne`` environment;
+  instead, launch Spyder from the ``base`` environment and set it to use the
+  ``mne`` environment automatically, by opening Spyder and navigating to
   :samp:`Tools > Preferences > Python Interpreter > Use the following interpreter`.
-  There, paste the output of the following terminal command::
+  There, paste the output of the following terminal commands::
 
-      $ conda activate mne && python -c "import sys; print(sys.executable)"
+      $ conda activate mne
+      $ python -c "import sys; print(sys.executable)"
 
   It should be something like ``C:\Users\user\anaconda3\envs\mne\python.exe``
-  (Windows) or ``/Users/user/anaconda3/envs/mne/bin/python`` (macOS).
+  (Windows) or ``/Users/user/opt/anaconda3/envs/mne/bin/python`` (macOS).
 - `Visual Studio Code`_ (often shortened to "VS Code" or "vscode") is a
   development-focused text editor that supports many programming languages in
   addition to Python, includes an integrated terminal console, and has a rich
@@ -329,13 +326,10 @@ Python development are:
 
 .. highlight:: python
 
-**Next:** :doc:`freesurfer`
-
-
 .. LINKS
 
-.. _environment file: https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
-.. _server environment file: https://raw.githubusercontent.com/mne-tools/mne-python/master/server_environment.yml
+.. _environment file: https://raw.githubusercontent.com/mne-tools/mne-python/main/environment.yml
+.. _server environment file: https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
 .. _`mayavi`: https://docs.enthought.com/mayavi/mayavi/
 .. _`pyvista`: https://docs.pyvista.org/
 .. _`X server`: https://en.wikipedia.org/wiki/X_Window_System

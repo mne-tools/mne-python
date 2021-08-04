@@ -14,17 +14,17 @@ from mne import (read_forward_solution, write_forward_solution,
                  make_forward_solution, convert_forward_solution,
                  setup_volume_source_space, read_source_spaces, create_info,
                  make_sphere_model, pick_types_forward, pick_info, pick_types,
-                 read_evokeds, read_cov, read_dipole)
-from mne.utils import (requires_mne, requires_nibabel,
-                       run_tests_if_main, run_subprocess)
+                 read_evokeds, read_cov, read_dipole,
+                 get_volume_labels_from_aseg)
+from mne.utils import requires_mne, requires_nibabel, run_subprocess
 from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
 from mne.forward._compute_forward import _magnetic_dipole_field_vec
 from mne.forward import Forward, _do_forward_solution
 from mne.dipole import Dipole, fit_dipole
 from mne.simulation import simulate_evoked
 from mne.source_estimate import VolSourceEstimate
-from mne.source_space import (get_volume_labels_from_aseg, write_source_spaces,
-                              _compare_source_spaces, setup_source_space)
+from mne.source_space import (write_source_spaces, _compare_source_spaces,
+                              setup_source_space)
 
 from mne.forward.tests.test_forward import assert_forward_allclose
 
@@ -304,9 +304,10 @@ def test_forward_mixed_source_space(tmpdir):
     # setup two volume source spaces
     label_names = get_volume_labels_from_aseg(fname_aseg)
     vol_labels = rng.choice(label_names, 2)
-    vol1 = setup_volume_source_space('sample', pos=20., mri=fname_aseg,
-                                     volume_label=vol_labels[0],
-                                     add_interpolator=False)
+    with pytest.warns(RuntimeWarning, match='Found no usable.*CC_Mid_Ant.*'):
+        vol1 = setup_volume_source_space('sample', pos=20., mri=fname_aseg,
+                                         volume_label=vol_labels[0],
+                                         add_interpolator=False)
     vol2 = setup_volume_source_space('sample', pos=20., mri=fname_aseg,
                                      volume_label=vol_labels[1],
                                      add_interpolator=False)
@@ -467,6 +468,3 @@ def test_make_forward_no_meg(tmpdir):
     write_forward_solution(fname, fwd)
     fwd_read = read_forward_solution(fname)
     assert_allclose(fwd['sol']['data'], fwd_read['sol']['data'])
-
-
-run_tests_if_main()

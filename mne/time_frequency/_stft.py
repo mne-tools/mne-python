@@ -1,7 +1,7 @@
 from math import ceil
 import numpy as np
 
-from ..fixes import fft, ifft, fftfreq
+from ..fixes import _import_fft
 from ..utils import logger, verbose
 
 
@@ -34,6 +34,7 @@ def stft(x, wsize, tstep=None, verbose=None):
     istft
     stftfreq
     """
+    rfft = _import_fft('rfft')
     if not np.isrealobj(x):
         raise ValueError("x is not a real valued array")
 
@@ -90,8 +91,7 @@ def stft(x, wsize, tstep=None, verbose=None):
         wwin = win / swin[t * tstep: t * tstep + wsize]
         frame = x[:, t * tstep: t * tstep + wsize] * wwin[None, :]
         # FFT
-        fframe = fft(frame)
-        X[:, :, t] = fframe[:, :n_freq]
+        X[:, :, t] = rfft(frame)
 
     return X
 
@@ -101,7 +101,7 @@ def istft(X, tstep=None, Tx=None):
 
     Parameters
     ----------
-    X : array, shape (n_signals, wsize / 2 + 1, n_step)
+    X : array, shape (..., wsize / 2 + 1, n_step)
         The STFT coefficients for positive frequencies.
     tstep : int
         Step between successive windows in samples (must be a multiple of 2,
@@ -119,9 +119,14 @@ def istft(X, tstep=None, Tx=None):
     stft
     """
     # Errors and warnings
-    n_signals, n_win, n_step = X.shape
-    if (n_win % 2 == 0):
-        ValueError('The number of rows of the STFT matrix must be odd.')
+    irfft = _import_fft('irfft')
+    X = np.asarray(X)
+    if X.ndim < 2:
+        raise ValueError(f'X must have ndim >= 2, got {X.ndim}')
+    n_win, n_step = X.shape[-2:]
+    signal_shape = X.shape[:-2]
+    if n_win % 2 == 0:
+        raise ValueError('The number of rows of the STFT matrix must be odd.')
 
     wsize = 2 * (n_win - 1)
     if tstep is None:
@@ -143,10 +148,10 @@ def istft(X, tstep=None, Tx=None):
 
     T = n_step * tstep
 
-    x = np.zeros((n_signals, T + wsize - tstep), dtype=np.float64)
+    x = np.zeros(signal_shape + (T + wsize - tstep,), dtype=np.float64)
 
-    if n_signals == 0:
-        return x[:, :Tx]
+    if np.prod(signal_shape) == 0:
+        return x[..., :Tx]
 
     # Defining sine window
     win = np.sin(np.arange(.5, wsize + .5) / wsize * np.pi)
@@ -158,18 +163,16 @@ def istft(X, tstep=None, Tx=None):
         swin[t * tstep:t * tstep + wsize] += win ** 2
     swin = np.sqrt(swin / wsize)
 
-    fframe = np.empty((n_signals, n_win + wsize // 2 - 1), dtype=X.dtype)
     for t in range(n_step):
         # IFFT
-        fframe[:, :n_win] = X[:, :, t]
-        fframe[:, n_win:] = np.conj(X[:, wsize // 2 - 1: 0: -1, t])
-        frame = ifft(fframe)
-        wwin = win / swin[t * tstep:t * tstep + wsize]
+        frame = irfft(X[..., t], wsize)
         # Overlap-add
-        x[:, t * tstep: t * tstep + wsize] += np.real(np.conj(frame) * wwin)
+        frame *= win / swin[t * tstep:t * tstep + wsize]
+        x[..., t * tstep: t * tstep + wsize] += frame
 
     # Truncation
-    x = x[:, (wsize - tstep) // 2: (wsize - tstep) // 2 + T + 1][:, :Tx].copy()
+    x = x[..., (wsize - tstep) // 2: (wsize - tstep) // 2 + T + 1]
+    x = x[..., :Tx].copy()
     return x
 
 
@@ -194,9 +197,8 @@ def stftfreq(wsize, sfreq=None):  # noqa: D401
     stft
     istft
     """
-    n_freq = wsize // 2 + 1
-    freqs = fftfreq(wsize)
-    freqs = np.abs(freqs[:n_freq])
+    rfftfreq = _import_fft('rfftfreq')
+    freqs = rfftfreq(wsize)
     if sfreq is not None:
         freqs *= float(sfreq)
     return freqs

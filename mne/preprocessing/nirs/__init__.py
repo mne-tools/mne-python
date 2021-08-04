@@ -4,11 +4,12 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from .nirs import (short_channels, source_detector_distances,
                    _check_channels_ordered, _channel_frequencies,
-                   _fnirs_check_bads, _fnirs_spread_bads)
+                   _fnirs_check_bads, _fnirs_spread_bads, _channel_chromophore,
+                   _validate_nirs_info)
 from ._optical_density import optical_density
 from ._beer_lambert_law import beer_lambert_law
 from ._scalp_coupling_index import scalp_coupling_index

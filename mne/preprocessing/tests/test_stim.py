@@ -1,6 +1,6 @@
 # Authors: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -52,8 +52,7 @@ def test_fix_stim_artifact():
 
     epochs = fix_stim_artifact(epochs, tmin=tmin, tmax=tmax, mode='window')
     data_from_epochs_fix = epochs.get_data()[:, :, tmin_samp:tmax_samp]
-    # XXX This is a very weird check...
-    assert np.all(data_from_epochs_fix) == 0.
+    assert not np.all(data_from_epochs_fix != 0)
 
     # use window before stimulus in raw
     event_idx = np.where(events[:, 2] == 1)[0][0]

@@ -18,7 +18,7 @@ from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
 from mne.minimum_norm.tests.test_inverse import (assert_stc_res,
                                                  assert_var_exp_log)
 from mne import pick_types_forward
-from mne.utils import assert_stcs_equal, run_tests_if_main, catch_logging
+from mne.utils import assert_stcs_equal, catch_logging
 from mne.dipole import Dipole
 
 data_path = testing.data_path(download=False)
@@ -159,6 +159,3 @@ def test_gamma_map_vol_sphere():
 
     dip_fit = mne.fit_dipole(evoked_dip, cov, sphere)[0]
     assert (np.abs(np.dot(dip_fit.ori[0], dip_gmap.ori[0])) > 0.99)
-
-
-run_tests_if_main()

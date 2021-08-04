@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Author: Tommy Clausner <Tommy.Clausner@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import os.path as op
 
 import pytest
@@ -18,14 +18,13 @@ from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
                  read_forward_solution, grade_to_vertices,
                  setup_volume_source_space, make_forward_solution,
                  make_sphere_model, make_ad_hoc_cov, VolVectorSourceEstimate,
-                 read_freesurfer_lut)
+                 get_volume_labels_from_aseg, read_freesurfer_lut)
 from mne.datasets import testing
 from mne.fixes import _get_img_fdata
+from mne._freesurfer import _get_mri_info_data, _get_atlas_values
 from mne.minimum_norm import (apply_inverse, read_inverse_operator,
                               make_inverse_operator)
-from mne.source_space import (get_volume_labels_from_aseg, _get_mri_info_data,
-                              _get_atlas_values, _add_interpolator,
-                              _grid_interp)
+from mne.source_space import _add_interpolator, _grid_interp
 from mne.transforms import quat_to_rot
 from mne.utils import (requires_nibabel, check_version, requires_version,
                        requires_dipy, requires_h5py, catch_logging)
@@ -467,11 +466,11 @@ def test_volume_source_morph_basic(tmpdir):
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     'subject_from, subject_to, lower, upper, dtype, morph_mat', [
-        ('sample', 'fsaverage', 5.9, 6.1, float, False),
+        ('sample', 'fsaverage', 10.0, 10.4, float, False),
         ('fsaverage', 'fsaverage', 0., 0.1, float, False),
         ('sample', 'sample', 0., 0.1, complex, False),
         ('sample', 'sample', 0., 0.1, float, True),  # morph_mat
-        ('sample', 'fsaverage', 10, 12, float, True),  # morph_mat
+        ('sample', 'fsaverage', 7.0, 7.4, float, True),  # morph_mat
     ])
 def test_volume_source_morph_round_trip(
         tmpdir, subject_from, subject_to, lower, upper, dtype, morph_mat,
@@ -554,7 +553,7 @@ def test_volume_source_morph_round_trip(
     # check that power is more or less preserved (labelizing messes with this)
     if morph_mat:
         if subject_to == 'fsaverage':
-            limits = (18, 18.5)
+            limits = (14.0, 14.2)
         else:
             limits = (7, 7.5)
     else:
@@ -671,7 +670,7 @@ def test_morph_stc_dense():
             spacing=6, subjects_dir=subjects_dir)
     del stc_to1
 
-    with pytest.raises(ValueError, match='smooth.* has to be at least 1'):
+    with pytest.raises(ValueError, match='smooth.* has to be at least 0'):
         compute_source_morph(
             stc_from, subject_from, subject_to, spacing=5, smooth=-1,
             subjects_dir=subjects_dir)
@@ -778,7 +777,7 @@ def test_volume_labels_morph(tmpdir, sl, n_real, n_mri, n_orig):
     n_got_real = np.in1d(
         aseg_img.ravel(), [lut[name] for name in use_label_names]).sum()
     assert n_got_real == n_real
-    # - This was 291 on `master` before gh-5590
+    # - This was 291 on `main` before gh-5590
     # - Refactoring transforms it became 279 with a < 1e-8 change in vox_mri_t
     # - Dropped to 123 once nearest-voxel was used in gh-7653
     # - Jumped back up to 330 with morphing fixes actually correctly
@@ -791,7 +790,7 @@ def test_volume_labels_morph(tmpdir, sl, n_real, n_mri, n_orig):
             src[0]['interpolator'] = None
         img = stc.as_volume(src, mri_resolution=False)
         n_on = np.array(img.dataobj).astype(bool).sum()
-        # was 20 on `master` before gh-5590
+        # was 20 on `main` before gh-5590
         # then 44 before gh-7653, which took it back to 20
         assert n_on == n_orig
     # without the interpolator, this should fail
@@ -833,6 +832,7 @@ def _mixed_morph_srcs():
 
 @requires_nibabel()
 @requires_dipy()
+@pytest.mark.slowtest
 @pytest.mark.parametrize('vector', (False, True))
 def test_mixed_source_morph(_mixed_morph_srcs, vector):
     """Test mixed source space morphing."""

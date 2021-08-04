@@ -3,7 +3,7 @@
 #
 # Code borrowed from statsmodels
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
@@ -17,7 +17,7 @@ def _ecdf(x):
 def fdr_correction(pvals, alpha=0.05, method='indep'):
     """P-value correction with False Discovery Rate (FDR).
 
-    Correction for multiple comparison using FDR [1]_.
+    Correction for multiple comparison using FDR :footcite:`GenoveseEtAl2002`.
 
     This covers Benjamini/Hochberg for independent or positively correlated and
     Benjamini/Yekutieli for general or negatively correlated tests.
@@ -41,9 +41,7 @@ def fdr_correction(pvals, alpha=0.05, method='indep'):
 
     References
     ----------
-    .. [1] Genovese CR, Lazar NA, Nichols T. Thresholding of statistical maps
-           in functional neuroimaging using the false discovery rate.
-           Neuroimage. 2002 Apr;15(4):870-8.
+    .. footbibliography::
     """
     pvals = np.asarray(pvals)
     shape_init = pvals.shape

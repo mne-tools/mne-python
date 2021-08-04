@@ -20,51 +20,49 @@ inputs will be memcopied.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+import functools
 
 import numpy as np
-from scipy import linalg
-from scipy.linalg import LinAlgError
-from scipy._lib._util import _asarray_validated
 
-_d = np.empty(0, np.float64)
-_z = np.empty(0, np.complex128)
-dgemm = linalg.get_blas_funcs('gemm', (_d,))
-zgemm = linalg.get_blas_funcs('gemm', (_z,))
-dgemv = linalg.get_blas_funcs('gemv', (_d,))
-ddot = linalg.get_blas_funcs('dot', (_d,))
-_I = np.cast['F'](1j)
+
+# For efficiency, names should be str or tuple of str, dtype a builtin
+# NumPy dtype
+
+@functools.lru_cache(None)
+def _get_blas_funcs(dtype, names):
+    from scipy import linalg
+    return linalg.get_blas_funcs(names, (np.empty(0, dtype),))
+
+
+@functools.lru_cache(None)
+def _get_lapack_funcs(dtype, names):
+    from scipy import linalg
+    assert dtype in (np.float64, np.complex128)
+    x = np.empty(0, dtype)
+    return linalg.get_lapack_funcs(names, (x,))
 
 
 ###############################################################################
 # linalg.svd and linalg.pinv2
-dgesdd, dgesdd_lwork = linalg.get_lapack_funcs(('gesdd', 'gesdd_lwork'), (_d,))
-zgesdd, zgesdd_lwork = linalg.get_lapack_funcs(('gesdd', 'gesdd_lwork'), (_z,))
-dgesvd, dgesvd_lwork = linalg.get_lapack_funcs(('gesvd', 'gesvd_lwork'), (_d,))
-zgesvd, zgesvd_lwork = linalg.get_lapack_funcs(('gesvd', 'gesvd_lwork'), (_z,))
-
 
 def _svd_lwork(shape, dtype=np.float64):
     """Set up SVD calculations on identical-shape float64/complex128 arrays."""
-    if dtype == np.float64:
-        gesdd_lwork, gesvd_lwork = dgesdd_lwork, dgesvd_lwork
-    else:
-        assert dtype == np.complex128
-        gesdd_lwork, gesvd_lwork = zgesdd_lwork, zgesvd_lwork
+    from scipy import linalg
+    gesdd_lwork, gesvd_lwork = _get_lapack_funcs(
+        dtype, ('gesdd_lwork', 'gesvd_lwork'))
     sdd_lwork = linalg.decomp_svd._compute_lwork(
         gesdd_lwork, *shape, compute_uv=True, full_matrices=False)
     svd_lwork = linalg.decomp_svd._compute_lwork(
         gesvd_lwork, *shape, compute_uv=True, full_matrices=False)
-    return (sdd_lwork, svd_lwork)
+    return sdd_lwork, svd_lwork
 
 
 def _repeated_svd(x, lwork, overwrite_a=False):
     """Mimic scipy.linalg.svd, avoid lwork and get_lapack_funcs overhead."""
-    if x.dtype == np.float64:
-        gesdd, gesvd = dgesdd, zgesdd
-    else:
-        assert x.dtype == np.complex128
-        gesdd, gesvd = zgesdd, zgesvd
+    gesdd, gesvd = _get_lapack_funcs(
+        x.dtype, ('gesdd', 'gesvd'))
     # this has to use overwrite_a=False in case we need to fall back to gesvd
     u, s, v, info = gesdd(x, compute_uv=True, lwork=lwork[0],
                           full_matrices=False, overwrite_a=False)
@@ -73,7 +71,7 @@ def _repeated_svd(x, lwork, overwrite_a=False):
         u, s, v, info = gesvd(x, compute_uv=True, lwork=lwork[1],
                               full_matrices=False, overwrite_a=overwrite_a)
     if info > 0:
-        raise LinAlgError("SVD did not converge")
+        raise np.linalg.LinAlgError("SVD did not converge")
     if info < 0:
         raise ValueError('illegal value in %d-th argument of internal gesdd'
                          % -info)
@@ -83,8 +81,17 @@ def _repeated_svd(x, lwork, overwrite_a=False):
 ###############################################################################
 # linalg.eigh
 
-dsyevd, = linalg.get_lapack_funcs(('syevd',), (_d,))
-zheevd, = linalg.get_lapack_funcs(('heevd',), (_z,))
+@functools.lru_cache(None)
+def _get_evd(dtype):
+    from scipy import linalg
+    x = np.empty(0, dtype)
+    if dtype == np.float64:
+        driver = 'syevd'
+    else:
+        assert dtype == np.complex128
+        driver = 'heevd'
+    evr, = linalg.get_lapack_funcs((driver,), (x,))
+    return evr, driver
 
 
 def eigh(a, overwrite_a=False, check_finite=True):
@@ -108,15 +115,13 @@ def eigh(a, overwrite_a=False, check_finite=True):
         The normalized eigenvector corresponding to the eigenvalue ``w[i]``
         is the column ``v[:, i]``.
     """
+    from scipy.linalg import LinAlgError
+    from scipy._lib._util import _asarray_validated
     # We use SYEVD, see https://github.com/scipy/scipy/issues/9212
     if check_finite:
         a = _asarray_validated(a, check_finite=check_finite)
-    if a.dtype == np.float64:
-        evr, driver = dsyevd, 'syevd'
-    else:
-        assert a.dtype == np.complex128
-        evr, driver = zheevd, 'heevd'
-    w, v, info = evr(a, lower=1, overwrite_a=overwrite_a)
+    evd, driver = _get_evd(a.dtype)
+    w, v, info = evd(a, lower=1, overwrite_a=overwrite_a)
     if info == 0:
         return w, v
     if info < 0:

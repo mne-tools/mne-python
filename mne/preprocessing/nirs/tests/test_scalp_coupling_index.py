@@ -2,7 +2,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -32,7 +32,7 @@ fname_nirx_15_2_short = op.join(data_path(download=False),
 def test_scalp_coupling_index(fname, fmt, tmpdir):
     """Test converting NIRX files."""
     assert fmt in ('nirx', 'fif')
-    raw = read_raw_nirx(fname).load_data()
+    raw = read_raw_nirx(fname)
     with pytest.raises(RuntimeError, match='Scalp'):
         scalp_coupling_index(raw)
 
@@ -58,11 +58,17 @@ def test_scalp_coupling_index(fname, fmt, tmpdir):
     # Set next two channels to be uncorrelated
     raw._data[6] = new_data
     raw._data[7] = rng.rand(raw._data[0].shape[0])
+    # Set next channel to have zero std
+    raw._data[8] = 0.
+    raw._data[9] = 1.
+    raw._data[10] = 2.
+    raw._data[11] = 3.
     # Check values
     sci = scalp_coupling_index(raw)
     assert_allclose(sci[0:6], [1, 1, 1, 1, -1, -1], atol=0.01)
     assert np.abs(sci[6]) < 0.5
     assert np.abs(sci[7]) < 0.5
+    assert_allclose(sci[8:12], 0, atol=1e-10)
 
     # Ensure function errors if wrong type is passed in
     raw = beer_lambert_law(raw)

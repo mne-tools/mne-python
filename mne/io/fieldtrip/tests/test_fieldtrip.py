@@ -2,7 +2,7 @@
 # Authors: Thomas Hartmann <thomas.hartmann@th-ht.de>
 #          Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import mne
 import os.path
@@ -33,6 +33,14 @@ all_test_params_raw = list(itertools.product(all_systems_raw, all_versions,
 all_test_params_epochs = list(itertools.product(all_systems_epochs,
                                                 all_versions,
                                                 use_info))
+# just for speed we skip some slowest ones -- the coverage should still
+# be sufficient
+for obj in (all_test_params_epochs, all_test_params_raw):
+    for key in [('CTF', 'v73', True), ('neuromag306', 'v73', False)]:
+        obj.pop(obj.index(key))
+    for ki, key in enumerate(obj):
+        if key[1] == 'v73':
+            obj[ki] = pytest.param(*obj[ki], marks=pytest.mark.slowtest)
 
 no_info_warning = {'expected_warning': RuntimeWarning,
                    'match': NOINFO_WARNING}

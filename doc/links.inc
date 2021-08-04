@@ -11,19 +11,23 @@
 
 .. mne
 
-.. _`mne-python`: http://mne-tools.github.io/mne-python-intro
+.. _`mne-python`: http://mne.tools/mne-python-intro
 .. _`mne-python GitHub`: https://github.com/mne-tools/mne-python
 .. _`mne-python sample dataset`: https://s3.amazonaws.com/mne-python/datasets/MNE-sample-data-processed.tar.gz
 .. _`mne command line utilities`: http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/
 .. _`mne-scripts`: https://github.com/mne-tools/mne-scripts/
 .. _`MNE-C manual`: https://mne.tools/mne-c-manual/MNE-manual-2.7.3.pdf
-.. _`MNE mailing list`: http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
 .. _`GitHub issues page`: https://github.com/mne-tools/mne-python/issues/
-.. _`MNE gitter channel`: https://gitter.im/mne-tools/mne-python
-.. _`MNE-BIDS`: https://mne-tools.github.io/mne-bids/
-.. _`MNE-HCP`: http://mne-tools.github.io/mne-hcp/
-.. _`MNE-Realtime`: https://github.com/mne-tools/mne-realtime
+.. _`MNE Forum`: https://mne.discourse.group
+.. _`MNE-BIDS`: https://mne.tools/mne-bids
+.. _`MNE-BIDS-Pipeline`: https://mne.tools/mne-bids-pipeline
+.. _`MNE-HCP`: http://mne.tools/mne-hcp
+.. _`MNE-Realtime`: https://mne.tools/mne-realtime
 .. _`MNE-MATLAB git repository`: https://github.com/mne-tools/mne-matlab
+.. _`MNE-Docker`: https://github.com/mne-tools/mne-docker
+.. _EOSS2: https://chanzuckerberg.com/eoss/proposals/improving-usability-of-core-neuroscience-analysis-tools-with-mne-python
+.. _`code of conduct`: https://github.com/mne-tools/.github/blob/main/CODE_OF_CONDUCT.md
+
 
 .. TUTORIAL LINKS
 
@@ -54,6 +58,12 @@
 .. _scipy: http://www.scipy.org
 .. _`scipy github`: http://github.com/scipy/scipy
 .. _`scipy mailing list`: http://mail.scipy.org/mailman/listinfo/scipy-dev
+
+.. freesurfer
+
+.. _freesurfer: https://surfer.nmr.mgh.harvard.edu/
+.. _`freesufer github`: https://github.com/freesurfer/freesurfer
+.. _`freesurfer mailing list`: https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSupport
 
 
 .. nipy
@@ -133,7 +143,7 @@
 .. _git-osx-installer: http://code.google.com/p/git-osx-installer/downloads/list
 .. _subversion: http://subversion.tigris.org/
 .. _git cheat sheet: http://github.com/guides/git-cheat-sheet
-.. _pro git book: http://progit.org/
+.. _pro git book: https://git-scm.com/book/
 .. _git svn crash course: http://git-scm.com/course/svn.html
 .. _learn.github: http://learn.github.com/
 .. _network graph visualizer: https://github.com/blog/39-say-hello-to-the-network-graph-visualizer
@@ -207,7 +217,7 @@
 
 .. installation links
 
-.. _requirements file:  https://raw.githubusercontent.com/mne-tools/mne-python/master/requirements.txt
+.. _requirements file:  https://raw.githubusercontent.com/mne-tools/mne-python/main/requirements.txt
 .. _NVIDIA CUDA GPU processing: https://developer.nvidia.com/cuda-zone
 .. _NVIDIA proprietary drivers: https://www.geforce.com/drivers
 

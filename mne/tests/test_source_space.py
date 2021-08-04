@@ -2,7 +2,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 from shutil import copytree
@@ -14,23 +14,19 @@ from numpy.testing import (assert_array_equal, assert_allclose, assert_equal,
                            assert_array_less)
 from mne.datasets import testing
 import mne
-from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
+from mne import (read_source_spaces, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
                  add_source_space_distances, read_bem_surfaces,
                  morph_source_spaces, SourceEstimate, make_sphere_model,
-                 head_to_mni, compute_source_morph, pick_types,
-                 read_bem_solution, read_freesurfer_lut, read_talxfm,
+                 compute_source_morph, pick_types,
+                 read_bem_solution, read_freesurfer_lut,
                  read_trans)
 from mne.fixes import _get_img_fdata
 from mne.utils import (requires_nibabel, run_subprocess,
-                       modified_env, requires_mne, run_tests_if_main,
-                       check_version)
+                       modified_env, requires_mne, check_version)
 from mne.surface import _accumulate_normals, _triangle_neighbors
-from mne.source_space import _get_mgz_header
 from mne.source_estimate import _get_src_type
-from mne.transforms import apply_trans, _get_trans
-from mne.source_space import (get_volume_labels_from_aseg,
-                              get_volume_labels_from_src,
+from mne.source_space import (get_volume_labels_from_src,
                               _compare_source_spaces,
                               compute_distance_to_sensors)
 from mne.io.pick import _picks_to_idx
@@ -118,18 +114,6 @@ def test_compute_distance_to_sensors(picks, limits):
         with pytest.raises(ValueError,
                            match='Transform between meg<->head'):
             compute_distance_to_sensors(src, info, use_picks, trans)
-
-
-@testing.requires_testing_data
-@requires_nibabel()
-def test_mgz_header():
-    """Test MGZ header reading."""
-    import nibabel
-    header = _get_mgz_header(fname_mri)
-    mri_hdr = nibabel.load(fname_mri).header
-    assert_allclose(mri_hdr.get_data_shape(), header['dims'])
-    assert_allclose(mri_hdr.get_vox2ras_tkr(), header['vox2ras_tkr'])
-    assert_allclose(mri_hdr.get_ras2vox(), np.linalg.inv(header['vox2ras']))
 
 
 def _read_small_src(remove=True):
@@ -286,14 +270,19 @@ def test_discrete_source_space(tmpdir):
     _compare_source_spaces(src_c, src_c2)
 
     # now do MRI
-    pytest.raises(ValueError, setup_volume_source_space, 'sample',
-                  pos=pos_dict, mri=fname_mri)
+    with pytest.raises(ValueError, match='Cannot create interpolation'):
+        setup_volume_source_space('sample', pos=pos_dict, mri=fname_mri)
     assert repr(src_new).split('~')[0] == repr(src_c).split('~')[0]
     assert ' kB' in repr(src_new)
     assert src_new.kind == 'discrete'
     assert _get_src_type(src_new, None) == 'discrete'
 
+    with pytest.raises(RuntimeError, match='finite'):
+        setup_volume_source_space(
+            pos=dict(rr=[[0, 0, float('inf')]], nn=[[0, 1, 0]]))
 
+
+@requires_nibabel()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_volume_source_space(tmpdir):
@@ -559,111 +548,6 @@ def test_write_source_space(tmpdir):
 
 
 @testing.requires_testing_data
-def test_vertex_to_mni():
-    """Test conversion of vertices to MNI coordinates."""
-    # obtained using "tksurfer (sample) (l/r)h white"
-    vertices = [100960, 7620, 150549, 96761]
-    coords = np.array([[-60.86, -11.18, -3.19], [-36.46, -93.18, -2.36],
-                       [-38.00, 50.08, -10.61], [47.14, 8.01, 46.93]])
-    hemis = [0, 0, 0, 1]
-    coords_2 = vertex_to_mni(vertices, hemis, 'sample', subjects_dir)
-    # less than 1mm error
-    assert_allclose(coords, coords_2, atol=1.0)
-
-
-@testing.requires_testing_data
-def test_head_to_mni():
-    """Test conversion of aseg vertices to MNI coordinates."""
-    # obtained using freeview
-    coords = np.array([[22.52, 11.24, 17.72], [22.52, 5.46, 21.58],
-                       [16.10, 5.46, 22.23], [21.24, 8.36, 22.23]]) / 1000.
-
-    xfm = read_talxfm('sample', subjects_dir)
-    coords_MNI = apply_trans(xfm['trans'], coords) * 1000.
-
-    mri_head_t, _ = _get_trans(trans_fname, 'mri', 'head', allow_none=False)
-
-    # obtained from sample_audvis-meg-oct-6-mixed-fwd.fif
-    coo_right_amygdala = np.array([[0.01745682, 0.02665809, 0.03281873],
-                                   [0.01014125, 0.02496262, 0.04233755],
-                                   [0.01713642, 0.02505193, 0.04258181],
-                                   [0.01720631, 0.03073877, 0.03850075]])
-    coords_MNI_2 = head_to_mni(coo_right_amygdala, 'sample', mri_head_t,
-                               subjects_dir)
-    # less than 1mm error
-    assert_allclose(coords_MNI, coords_MNI_2, atol=10.0)
-
-
-@testing.requires_testing_data
-def test_vertex_to_mni_fs_nibabel(monkeypatch):
-    """Test equivalence of vert_to_mni for nibabel and freesurfer."""
-    n_check = 1000
-    subject = 'sample'
-    vertices = rng.randint(0, 100000, n_check)
-    hemis = rng.randint(0, 1, n_check)
-    coords = vertex_to_mni(vertices, hemis, subject, subjects_dir)
-    monkeypatch.setattr(mne.source_space, 'has_nibabel', lambda: False)
-    coords_2 = vertex_to_mni(vertices, hemis, subject, subjects_dir)
-    # less than 0.1 mm error
-    assert_allclose(coords, coords_2, atol=0.1)
-
-
-@testing.requires_testing_data
-@requires_nibabel()
-@pytest.mark.parametrize('fname', [
-    None,
-    op.join(op.dirname(mne.__file__), 'data', 'FreeSurferColorLUT.txt'),
-])
-def test_read_freesurfer_lut(fname, tmpdir):
-    """Test reading volume label names."""
-    atlas_ids, colors = read_freesurfer_lut(fname)
-    assert list(atlas_ids).count('Brain-Stem') == 1
-    assert len(colors) == len(atlas_ids) == 1266
-    label_names, label_colors = get_volume_labels_from_aseg(
-        aseg_fname, return_colors=True)
-    assert isinstance(label_names, list)
-    assert isinstance(label_colors, list)
-    assert label_names.count('Brain-Stem') == 1
-    for c in label_colors:
-        assert isinstance(c, np.ndarray)
-        assert c.shape == (4,)
-    assert len(label_names) == len(label_colors) == 46
-    with pytest.raises(ValueError, match='must be False'):
-        get_volume_labels_from_aseg(
-            aseg_fname, return_colors=True, atlas_ids=atlas_ids)
-    label_names_2 = get_volume_labels_from_aseg(
-        aseg_fname, atlas_ids=atlas_ids)
-    assert label_names == label_names_2
-    # long name (only test on one run)
-    if fname is not None:
-        return
-    fname = str(tmpdir.join('long.txt'))
-    names = ['Anterior_Cingulate_and_Medial_Prefrontal_Cortex-' + hemi
-             for hemi in ('lh', 'rh')]
-    ids = np.arange(1, len(names) + 1)
-    colors = [(id_,) * 4 for id_ in ids]
-    with open(fname, 'w') as fid:
-        for name, id_, color in zip(names, ids, colors):
-            out_color = ' '.join('%3d' % x for x in color)
-            line = '%d    %s %s\n' % (id_, name, out_color)
-            fid.write(line)
-    lut, got_colors = read_freesurfer_lut(fname)
-    assert len(lut) == len(got_colors) == len(names) == len(ids)
-    for name, id_, color in zip(names, ids, colors):
-        assert name in lut
-        assert name in got_colors
-        assert_array_equal(got_colors[name][:3], color[:3])
-        assert lut[name] == id_
-    with open(fname, 'w') as fid:
-        for name, id_, color in zip(names, ids, colors):
-            out_color = ' '.join('%3d' % x for x in color[:3])  # wrong length!
-            line = '%d    %s %s\n' % (id_, name, out_color)
-            fid.write(line)
-    with pytest.raises(RuntimeError, match='formatted'):
-        read_freesurfer_lut(fname)
-
-
-@testing.requires_testing_data
 @requires_nibabel()
 @pytest.mark.parametrize('pass_ids', (True, False))
 def test_source_space_from_label(tmpdir, pass_ids):
@@ -731,10 +615,11 @@ def test_source_space_exclusive_complete(src_volume_labels):
     for si, s in enumerate(src):
         assert_allclose(src_full[0]['rr'], s['rr'], atol=1e-6)
     # also check single_volume=True -- should be the same result
-    src_single = setup_volume_source_space(
-        src[0]['subject_his_id'], 7., 'aseg.mgz', bem=fname_bem,
-        volume_label=volume_labels, single_volume=True, add_interpolator=False,
-        subjects_dir=subjects_dir)
+    with pytest.warns(RuntimeWarning, match='Found no usable.*Left-vessel.*'):
+        src_single = setup_volume_source_space(
+            src[0]['subject_his_id'], 7., 'aseg.mgz', bem=fname_bem,
+            volume_label=volume_labels, single_volume=True,
+            add_interpolator=False, subjects_dir=subjects_dir)
     assert len(src_single) == 1
     assert 'Unknown+Left-Cerebral-White-Matter+Left-' in repr(src_single)
     assert_array_equal(src_full[0]['vertno'], src_single[0]['vertno'])
@@ -998,8 +883,6 @@ def test_morphed_source_space_return():
     pytest.raises(RuntimeError, stc_morph.to_original_src,
                   src, subjects_dir=subjects_dir)
 
-
-run_tests_if_main()
 
 # The following code was used to generate small-src.fif.gz.
 # Unfortunately the C code bombs when trying to add source space distances,

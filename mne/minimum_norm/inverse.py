@@ -3,12 +3,11 @@
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from copy import deepcopy
 from math import sqrt
 import numpy as np
-from scipy import linalg
 
 from ._eloreta import _compute_eloreta
 from ..fixes import _safe_svd
@@ -528,6 +527,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
     inv : instance of InverseOperator
         Prepared inverse operator.
     """
+    from scipy import linalg
     if nave <= 0:
         raise ValueError('The number of averages should be positive')
 
@@ -789,7 +789,7 @@ def _check_reference(inst, ch_names=None):
         raise ValueError(
             'EEG average reference (using a projector) is mandatory for '
             'modeling, use the method set_eeg_reference(projection=True)')
-    if info['custom_ref_applied']:
+    if info.get('custom_ref_applied', False):
         raise ValueError('Custom EEG reference is not allowed for inverse '
                          'modeling.')
 
@@ -1256,8 +1256,7 @@ def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
     cov : instance of Covariance
         Covariance data, computed on the time segment for which to compute
         source power.
-    info : dict
-        The measurement info to specify the channels to include.
+    %(info_not_none)s Used specify the channels to include.
     inverse_operator : instance of InverseOperator
         Inverse operator.
     nave : int
@@ -1372,9 +1371,9 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     # Deal with "depth"
     if exp is not None:
         exp = float(exp)
-        if not (0 <= exp <= 1):
-            raise ValueError('depth exponent should be a scalar between '
-                             '0 and 1, got %s' % (exp,))
+        if exp < 0:
+            raise ValueError('depth exponent should be greater than or '
+                             f'equal to 0, got {exp}')
         exp = exp or None  # alias 0. -> None
 
     # put the forward solution in correct orientation
@@ -1384,7 +1383,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
         if not is_fixed_orient(forward):
             if allow_fixed_depth:
                 # can convert now
-                logger.info('Converting forward solution to fixed orietnation')
+                logger.info('Converting forward solution to fixed orientation')
                 convert_forward_solution(
                     forward, force_fixed=True, use_cps=True, copy=False)
         elif exp is not None and not allow_fixed_depth:
@@ -1454,7 +1453,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     # Adjusting Source Covariance matrix to make trace of G*R*G' equal
     # to number of sensors.
     logger.info('Adjusting source covariance matrix.')
-    trace_GRGT = linalg.norm(gain, ord='fro') ** 2
+    trace_GRGT = np.linalg.norm(gain, ord='fro') ** 2
     n_nzero = (noise_cov['eig'] > 0).sum()
     scale = np.sqrt(n_nzero / trace_GRGT)
     source_std *= scale
@@ -1471,9 +1470,9 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
 
     Parameters
     ----------
-    info : dict
-        The measurement info to specify the channels to include.
-        Bad channels in info['bads'] are not used.
+    %(info_not_none)s
+        Specifies the channels to include. Bad channels (in ``info['bads']``)
+        are not used.
     forward : dict
         Forward operator.
     noise_cov : instance of Covariance
@@ -1527,6 +1526,13 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     has patch statistics computed, these are used to improve the depth
     weighting. Thus slightly different results are to be expected with
     and without this information.
+
+    For depth weighting, 0.8 is generally good for MEG, and between 2 and 5
+    is good for EEG, see :footcite:`LinEtAl2006a`.
+
+    References
+    ----------
+    .. footbibliography::
     """  # noqa: E501
     # For now we always have pca='white'. It does not seem to affect
     # calculations and is also backward-compatible with MNE-C
@@ -1553,7 +1559,9 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     eigen_fields, sing, eigen_leads = _safe_svd(gain, full_matrices=False)
     del gain
     logger.info('    largest singular value = %g' % np.max(sing))
-    logger.info('    scaling factor to adjust the trace = %g' % trace_GRGT)
+    logger.info(f'    scaling factor to adjust the trace = {trace_GRGT:g} '
+                f'(nchan = {eigen_fields.shape[0]} '
+                f'nzero = {(noise_cov["eig"] <= 0).sum()})')
 
     # MNE-ify everything for output
     eigen_fields = dict(data=eigen_fields.T, col_names=gain_info['ch_names'],

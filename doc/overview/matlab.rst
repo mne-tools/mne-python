@@ -8,10 +8,6 @@
 MNE-MATLAB documentation
 ========================
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 .. note:: The MNE MATLAB Toolbox is compatible with Matlab versions 7.0 or later.
 
 Overview
@@ -529,8 +525,9 @@ The documented structures are:
 
 **measurement info**
 
-    Translation of the FIFFB_MEAS_INFO entity, see :ref:`BGBFHDIJ`. This
-    data structure is returned by fiff_read_meas_info .
+    Translation of the FIFFB_MEAS_INFO entity, see :ref:`BGBFHDIJ` and
+    :class:`mne.Info`. This data structure is returned by fiff_read_meas_info,
+    will not be as complete as :class:`mne.Info`.
 
 **surf**
 

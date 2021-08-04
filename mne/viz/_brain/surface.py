@@ -9,12 +9,13 @@
 from os import path as path
 
 import numpy as np
-from ...utils import _check_option, get_subjects_dir, _check_fname
+from ...utils import (_check_option, get_subjects_dir, _check_fname,
+                      _validate_type)
 from ...surface import (complete_surface_info, read_surface, read_curvature,
                         _read_patch)
 
 
-class Surface(object):
+class _Surface(object):
     """Container for a brain surface.
 
     It is used for storing vertices, faces and morphometric data
@@ -37,6 +38,8 @@ class Surface(object):
         be applied. If != 0.0, an additional offset will be used.
     units : str
         Can be 'm' or 'mm' (default).
+    x_dir : ndarray | None
+        The x direction to use for offset alignment.
 
     Attributes
     ----------
@@ -68,18 +71,13 @@ class Surface(object):
     """
 
     def __init__(self, subject_id, hemi, surf, subjects_dir=None, offset=None,
-                 units='mm'):
+                 units='mm', x_dir=None):
 
-        hemis = ('lh', 'rh')
-
-        if hemi not in hemis:
-            raise ValueError('hemi should be either "lh" or "rh",' +
-                             'given value {0}'.format(hemi))
-
-        if offset is not None and ((not isinstance(offset, float)) and
-                                   (not isinstance(offset, int))):
-            raise ValueError('offset should either float or int, given ' +
-                             'type {0}'.format(type(offset).__name__))
+        x_dir = np.array([1., 0, 0]) if x_dir is None else x_dir
+        assert isinstance(x_dir, np.ndarray)
+        assert np.isclose(np.linalg.norm(x_dir), 1., atol=1e-6)
+        assert hemi in ('lh', 'rh')
+        _validate_type(offset, (None, 'numeric'), 'offset')
 
         self.units = _check_option('units', units, ('mm', 'm'))
         self.subject_id = subject_id
@@ -93,9 +91,13 @@ class Surface(object):
         self.grey_curv = None
         self.nn = None
         self.labels = dict()
+        self.x_dir = x_dir
 
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         self.data_path = path.join(subjects_dir, subject_id)
+        if surf == 'seghead':
+            raise ValueError('`surf` cannot be seghead, use '
+                             '`mne.viz.Brain.add_head` to plot the seghead')
 
     def load_geometry(self):
         """Load geometry of the surface.
@@ -114,6 +116,10 @@ class Surface(object):
             _check_fname(fname, overwrite='read', must_exist=True,
                          name='flatmap surface file')
             coords, faces, orig_faces = _read_patch(fname)
+            # rotate 90 degrees to get to a more standard orientation
+            # where X determines the distance between the hemis
+            coords = coords[:, [1, 0, 2]]
+            coords[:, 1] *= -1
         else:
             coords, faces = read_surface(
                 path.join(self.data_path, 'surf',
@@ -122,12 +128,14 @@ class Surface(object):
         if self.units == 'm':
             coords /= 1000.
         if self.offset is not None:
+            x_ = coords @ self.x_dir
             if self.hemi == 'lh':
-                coords[:, 0] -= (np.max(coords[:, 0]) + self.offset)
+                coords -= (np.max(x_) + self.offset) * self.x_dir
             else:
-                coords[:, 0] -= (np.min(coords[:, 0]) + self.offset)
+                coords -= (np.min(x_) + self.offset) * self.x_dir
         surf = dict(rr=coords, tris=faces)
-        complete_surface_info(surf, copy=False, verbose=False)
+        complete_surface_info(
+            surf, copy=False, verbose=False, do_neighbor_tri=False)
         nn = surf['nn']
         self.coords = coords
         self.faces = faces

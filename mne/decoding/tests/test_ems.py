@@ -1,6 +1,6 @@
 # Author: Denis A. Engemann <d.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 import numpy as np
@@ -8,7 +8,7 @@ from numpy.testing import assert_array_almost_equal, assert_equal
 import pytest
 
 from mne import io, Epochs, read_events, pick_types
-from mne.utils import requires_sklearn, run_tests_if_main
+from mne.utils import requires_sklearn
 from mne.decoding import compute_ems, EMS
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -82,6 +82,3 @@ def test_ems():
     assert_equal(ems.__repr__(), '<EMS: fitted with 4 filters on 2 classes.>')
     assert_array_almost_equal(filters, np.mean(coefs, axis=0))
     assert_array_almost_equal(surrogates, np.vstack(Xt))
-
-
-run_tests_if_main()

@@ -5,7 +5,7 @@ For each supported file format, implement a test.
 """
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -20,7 +20,7 @@ from mne.channels import make_dig_montage
 from mne import create_info, EvokedArray, pick_types, Epochs
 from mne.io import read_raw_fif, RawArray
 from mne.io.constants import FIFF
-from mne.utils import object_diff, run_tests_if_main
+from mne.utils import object_diff
 from mne.datasets import testing
 
 from mne.preprocessing import compute_current_source_density
@@ -182,6 +182,3 @@ def test_csd_fif():
         ch.update(coil_type=FIFF.FIFFV_COIL_EEG, unit=FIFF.FIFF_UNIT_V)
         raw_csd._data[pick] = raw._data[pick]
     assert object_diff(raw.info, raw_csd.info) == ''
-
-
-run_tests_if_main()

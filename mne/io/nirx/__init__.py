@@ -2,6 +2,6 @@
 
 # Author: Robert Luke <mail@robertluke.net>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from .nirx import read_raw_nirx
