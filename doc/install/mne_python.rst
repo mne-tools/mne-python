@@ -72,9 +72,20 @@ your operating system.
 
 .. collapse:: |windows| Windows
 
-   - Open an Anaconda command prompt
-   - Run :samp:`conda install --name base nb_conda_kernels "spyder>=4.2.1"`
-   - Run :samp:`conda create --name=mne --channel=conda-forge mne`
+    Open an Anaconda command prompt, and run:
+
+    .. code-block:: doscon
+
+        > conda create --name=mne --channel=conda-forge mne
+
+    If you like using Jupyter notebooks, you should also update the "base"
+    conda environment to include the ``nb_conda_kernels`` package; this will
+    make it easier to use MNE-Python in Jupyter Notebooks launched from the
+    Anaconda GUI:
+
+    .. code-block:: doscon
+
+        > conda install --name base nb_conda_kernels
 
 .. raw:: html
 

@@ -52,7 +52,7 @@ conda to ``/home/user/anaconda3``):
     ``bash`` shells, so commands like ``which`` will not work. You can test
     your installation in Windows ``cmd.exe`` shells with ``where`` instead:
 
-    .. code-block:: console
+    .. code-block:: doscon
 
         > where python
         C:\Users\user\anaconda3\python.exe
