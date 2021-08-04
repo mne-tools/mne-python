@@ -1253,6 +1253,11 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
 class Coregistration(object):
     """Class for MRI<->head coregistration.
 
+    Attributes
+    ----------
+    trans : instance of Transform
+        MRI<->Head coordinate transformation.
+
     Parameters
     ----------
     info : instance of Info
