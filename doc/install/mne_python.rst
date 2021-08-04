@@ -47,7 +47,7 @@ your operating system.
 
    Install MNE-Python from conda-forge::
 
-       $ conda create --name mne --channel conda-forge mne
+       $ conda create --name=mne --channel=conda-forge mne
 
    .. collapse:: |hand-paper| If you get errors building mayavi...
        :class: danger
@@ -63,13 +63,13 @@ your operating system.
    ``mne``, but you can name the environment whatever you want)::
 
        $ conda install --name base nb_conda_kernels "spyder>=4.2.1"
-       $ conda create --name mne --channel conda-forge mne
+       $ conda create --name=mne --channel=conda-forge mne
 
 .. collapse:: |windows| Windows
 
    - Open an Anaconda command prompt
    - Run :samp:`conda install --name base nb_conda_kernels "spyder>=4.2.1"`
-   - Run :samp:`conda create --name mne --channel conda-forge mne`
+   - Run :samp:`conda create --name=mne --channel=conda-forge mne`
 
 .. raw:: html
 
@@ -101,7 +101,7 @@ Installing to a headless server
     environment::
 
         $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
-        $ conda create --name mne --file server_environment.yml
+        $ conda create --name=mne --file=server_environment.yml
 
     With `mayavi`_:
     Installing `mayavi`_ requires a running `X server`_. If you are installing

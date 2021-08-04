@@ -24,7 +24,7 @@ For users already familiar with Python:
 
   .. code-block:: console
 
-      $ conda create --name mne --channel conda-forge mne
+      $ conda create --name=mne --channel=conda-forge mne
       $ #                   ↑↑↑                       ↑↑↑
       $ #             environment name            package name
 
@@ -33,7 +33,7 @@ For users already familiar with Python:
   inner/outer skull, and cortical surfaces you also need
   :doc:`FreeSurfer <freesurfer>`.
 
-The :ref:`standard_instructions` page has detailed instructions for different
+For users unfamiliar with Python, the :ref:`standard_instructions` page has detailed instructions for different
 operating systems, and there are instructions for :ref:`install-python`
 if you don't already have it. The :ref:`advanced_setup` page has additional
 tips and tricks for special situations (servers, notebooks, CUDA, installing
