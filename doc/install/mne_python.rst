@@ -57,13 +57,18 @@ your operating system.
 
 .. collapse:: |apple| macOS
 
-   Update the "base" conda environment to include the ``nb_conda_kernels``
-   package, so you can use MNE-Python in Jupyter Notebooks launched from the
-   Anaconda GUI. Then install MNE-Python into a new environment (here called
-   ``mne``, but you can name the environment whatever you want)::
+    Install MNE-Python into a new environment (here called ``mne``, but you can
+    name the environment whatever you want)::
 
-       $ conda install --name base nb_conda_kernels "spyder>=4.2.1"
-       $ conda create --name=mne --channel=conda-forge mne
+        $ conda create --name=mne --channel=conda-forge mne
+
+    If you like using Jupyter notebooks, you should also update the "base"
+    conda environment to include the ``nb_conda_kernels`` package; this will
+    make it easier to use MNE-Python in Jupyter Notebooks launched from the
+    Anaconda GUI::
+
+        $ conda install --name base nb_conda_kernels
+
 
 .. collapse:: |windows| Windows
 

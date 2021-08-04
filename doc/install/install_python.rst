@@ -5,53 +5,82 @@
 Installing Python
 =================
 
-MNE-Python runs within Python, and depends on several other Python packages.
-Version |version| requires Python version |min_python_version| or higher. We
+MNE-Python requires Python and several Python packages. MNE-Python
+version |version| requires Python version |min_python_version| or higher. We
 recommend the `Anaconda`_ distribution of Python, which comes with more than
 250 scientific packages pre-bundled and includes the ``conda`` command line
 tool for installing new packages and managing different package sets
 ("environments") for different projects.
 
 To get started, follow the `installation instructions for Anaconda`_.
-
-.. warning::
-   If you have the ``PYTHONPATH`` or ``PYTHONHOME`` environment variables set,
-   you may run into difficulty using Anaconda. See the
-   `Anaconda troubleshooting guide`_ for more information. Note that it is
-   easy to switch between ``conda``-managed Python installations and the system
-   Python installation using the ``conda activate`` and ``conda deactivate``
-   commands, so you may find that after adopting Anaconda it is possible
-   (indeed, preferable) to leave ``PYTHONPATH`` and ``PYTHONHOME`` permanently
-   unset.
-
 When you are done, if you type the following commands in a command shell,
 you should see outputs similar to the following (assuming you installed
-conda to ``/home/user/anaconda3``)::
+conda to ``/home/user/anaconda3``):
 
-    $ conda --version && python --version
-    conda 4.9.2
-    Python 3.7.7 :: Anaconda, Inc.
-    $ which python
-    /home/user/anaconda3/bin/python
-    $ which pip
-    /home/user/anaconda3/bin/pip
+.. collapse:: |linux| Linux
 
-.. collapse:: |hand-paper| If you get an error or these look incorrect...
-    :class: danger
+    .. code-block:: console
 
-    .. rubric:: If you are on a |windows| Windows command prompt:
+        $ conda --version && python --version
+        conda 4.9.2
+        Python 3.7.7 :: Anaconda, Inc.
+        $ which python
+        /home/user/anaconda3/bin/python
+        $ which pip
+        /home/user/anaconda3/bin/pip
+
+
+.. collapse:: |apple| macOS
+
+    .. code-block:: console
+
+        $ conda --version && python --version
+        conda 4.9.2
+        Python 3.7.7 :: Anaconda, Inc.
+        $ which python
+        /home/user/anaconda3/bin/python
+        $ which pip
+        /home/user/anaconda3/bin/pip
+
+
+.. collapse:: |windows| Windows
 
     Most of our instructions start with ``$``, which indicates
     that the commands are designed to be run from a ``bash`` command shell.
 
     Windows command prompts do not expose the same command-line tools as
     ``bash`` shells, so commands like ``which`` will not work. You can test
-    your installation in Windows ``cmd.exe`` shells with ``where`` instead::
+    your installation in Windows ``cmd.exe`` shells with ``where`` instead:
+
+    .. code-block:: console
 
         > where python
         C:\Users\user\anaconda3\python.exe
         > where pip
         C:\Users\user\anaconda3\Scripts\pip.exe
+
+.. raw:: html
+
+    <div width="100%" height="0 px" style="margin: 0 0 15px;"></div>
+
+.. javascript below adapted from nilearn
+
+.. raw:: html
+
+     <script type="text/javascript">
+     var OSName="linux-linux";
+     if (navigator.userAgent.indexOf("Win")!=-1) OSName="windows-windows";
+     if (navigator.userAgent.indexOf("Mac")!=-1) OSName="apple-macos";
+     $(document).ready(function(){
+         var element = document.getElementById("collapse_" + OSName);
+         element.className += " show";
+         element.setAttribute("aria-expanded", "true");
+     });
+     </script>
+
+
+.. collapse:: |hand-paper| If you get an error or these look incorrect...
+    :class: danger
 
     .. rubric:: If you see something like:
 
