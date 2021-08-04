@@ -29,7 +29,7 @@ raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.pick_types(meg=False, eeg=True, eog=True).load_data()
 
 # Create epochs from events, and reject epochs
-events = events = mne.read_events(event_fname)
+events = mne.read_events(event_fname)
 event_id = {'auditory/left': 1,
             'auditory/right': 2,
             'visual/left': 3,
