@@ -283,13 +283,13 @@ def test_get_mni_fiducials():
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('ref_scale', [
+@pytest.mark.parametrize('scale_mode,ref_scale', [
     (None, [1., 1., 1.]),
     ('uniform', [1., 1., 1.]),
     ('3-axis', [1., 1., 1.]),
     ('uniform', [0.8, 0.8, 0.8]),
     ('3-axis', [0.8, 1.2, 1.2])])
-def test_coregistration(ref_scale):
+def test_coregistration(scale_mode, ref_scale):
     """Test automated coregistration."""
     trans_fname = op.join(data_path, 'MEG', 'sample',
                           'sample_audvis_trunc-trans.fif')
@@ -299,7 +299,7 @@ def test_coregistration(ref_scale):
     subjects_dir = os.path.join(data_path, 'subjects')
     info = read_info(fname_raw).copy()
     for d in info['dig']:
-        d['r'] *= ref_scale[1]
+        d['r'] *= ref_scale
     trans = read_trans(trans_fname)
     coreg = Coregistration(info, subject=subject, subjects_dir=subjects_dir)
     assert np.allclose(coreg._last_parameters, coreg._parameters)
@@ -309,7 +309,7 @@ def test_coregistration(ref_scale):
     coreg.set_scale(default_params[6:9])
     coreg.set_grow_hair(0.)
     coreg.fit_fiducials()
-    coreg.set_scale_mode(ref_scale[0])
+    coreg.set_scale_mode(scale_mode)
     assert not np.allclose(coreg._parameters, default_params)
     assert coreg._extra_points_filter is None
     coreg.omit_hsp_points(distance=-1)
@@ -322,9 +322,9 @@ def test_coregistration(ref_scale):
     assert np.rad2deg(_angle_between_quats(
         rot_to_quat(coreg.trans['trans'][:3, :3]),
         rot_to_quat(trans['trans'][:3, :3]))) < 13
-    if ref_scale[0] is None:
+    if scale_mode is None:
         assert_allclose(coreg._scale, [1., 1., 1.])
     else:
-        assert_allclose(coreg._scale, ref_scale[1], atol=0.35)
+        assert_allclose(coreg._scale, ref_scale, atol=0.35)
     coreg.reset()
     assert np.allclose(coreg._parameters, default_params)

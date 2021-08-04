@@ -1,15 +1,15 @@
 """
 =========================================
-Use automated approach to co-registration
+Use automated approach to coregistration
 =========================================
 
 This example shows how to use the get_mni_fiducials routine and the
-coregistration functions to perform an automated MEG-MRI co-registration.
+coregistration functions to perform an automated MEG-MRI coregistration.
 
-.. warning:: The quality of the co-registration depends heavily upon the
+.. warning:: The quality of the coregistration depends heavily upon the
              quality of the head shape collected during subject prepration and
              the quality of your T1-weighted MRI. Use with caution and check
-             the co-registration error.
+             the coregistration error.
 """
 
 # Author: Jon Houck <jon.houck@gmail.com>

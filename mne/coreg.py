@@ -1615,6 +1615,11 @@ class Coregistration(object):
         rpa_weight : float
             Relative weight for RPA. The default value is 1.
         %(verbose)s
+
+        Returns
+        -------
+        self : mne.Coregistration
+            The modified Coregistration object.
         """
         if verbose:
             self._log_dig_mri_distance()
@@ -1622,8 +1627,11 @@ class Coregistration(object):
             n_scale_params = 0
         elif self._scale_mode == 'uniform':
             n_scale_params = 1
-        else:
-            n_scale_params = 3
+        elif self._scale_mode == '3-axis':
+            # enfore 1 even for 3-axis here (3 points is not enough)
+            logger.info("Enforcing 1 scaling parameter for fit "
+                        "with fiducials.")
+            n_scale_params = 1
         self._lpa_weight = lpa_weight
         self._nasion_weight = nasion_weight
         self._rpa_weight = rpa_weight
@@ -1641,12 +1649,15 @@ class Coregistration(object):
         est = fit_matched_points(mri_pts, head_pts, x0=x0, out='params',
                                  scale=n_scale_params, weights=weights)
         if n_scale_params == 0:
-            self._update_params(est[:3], est[3:6])
+            self._update_params(rot=est[:3], tra=est[3:6])
         else:
+            assert est.size == 7
             est = np.concatenate([est, [est[-1]] * 2])
-            self._update_params(est[:3], est[3:6], est[6:9])
+            assert est.size == 9
+            self._update_params(rot=est[:3], tra=est[3:6], sca=est[6:9])
         if verbose:
             self._log_dig_mri_distance()
+        return self
 
     def _setup_icp(self, n_scale_params):
         head_pts = list()
@@ -1704,6 +1715,11 @@ class Coregistration(object):
         rpa_weight : float
             Relative weight for RPA. The default value is 1.
         %(verbose)s
+
+        Returns
+        -------
+        self : mne.Coregistration
+            The modified Coregistration object.
         """
         if verbose:
             self._log_dig_mri_distance()
@@ -1727,18 +1743,19 @@ class Coregistration(object):
             est = fit_matched_points(mri_pts, head_pts, scale=n_scale_params,
                                      x0=est, out='params', weights=weights)
             if n_scale_params == 0:
-                self._update_params(est[:3], est[3:6])
+                self._update_params(rot=est[:3], tra=est[3:6])
             elif n_scale_params == 1:
                 est = np.array(list(est) + [est[-1]] * 2)
-                self._update_params(est[:3], est[3:6], est[6:9])
+                self._update_params(rot=est[:3], tra=est[3:6], sca=est[6:9])
             else:
-                self._update_params(est[:3], est[3:6], est[6:9])
+                self._update_params(rot=est[:3], tra=est[3:6], sca=est[6:9])
             angle, move, scale = self._changes
             if angle <= self._icp_angle and move <= self._icp_distance and \
                     all(scale <= self._icp_scale):
                 break
         if verbose:
             self._log_dig_mri_distance()
+        return self
 
     def omit_hsp_points(self, distance):
         """Exclude head shape points that are far away from the MRI head.
