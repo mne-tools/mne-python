@@ -32,10 +32,6 @@ def _export_raw(fname, raw):
 
     # set channel data
     for ichan, ch in enumerate(ch_names):
-        cals = raw.info['chs'][ichan]['cal']
-        # digital_min = - cals / 2.
-        # digital_max = cals / 2.
-        # print(digital_min, digital_max)
         if hdl.setPhysicalMaximum(ichan, 3000) != 0:  # noqa
             raise RuntimeError("setPhysicalMaximum() returned an error")
         if hdl.setPhysicalMinimum(ichan, -3000) != 0:  # noqa
@@ -79,11 +75,12 @@ def _export_raw(fname, raw):
     # set measurement date
     meas_date = raw.info['meas_date']
     if meas_date:
-        # TODO: add support for subseconds
+        subsecond = meas_date.microsecond / 100.
         if hdl.setStartDateTime(year=meas_date.year, month=meas_date.month,
                                 day=meas_date.day, hour=meas_date.hour,
                                 minute=meas_date.minute,
-                                second=meas_date.second) != 0:  # noqa
+                                second=meas_date.second, 
+                                subsecond=subsecond) != 0:  # noqa
             raise RuntimeError("setStartDateTime() returned an error")
     # if hdl.setAdministrationCode("1234567890") != 0:
     #     raise RuntimeError("setAdministrationCode() returned an error")
@@ -102,10 +99,17 @@ def _export_raw(fname, raw):
     #     sys.exit()
 
     # get data in uV
-    data = raw.get_data(units=phys_dims, picks=ch_names)
+    units = dict()
+    if 'eeg' in raw:
+        units['eeg'] = 'uV'
+    if 'ecog' in raw:
+        units['ecog'] = 'uV'
+    if 'seeg' in raw:
+        units['seeg'] = 'uV'
+    data = raw.get_data(units=units, picks=ch_names)
 
     # write each second separately
-    for isec in range(np.ceil(n_secs).astype(int) - 1):
+    for isec in range(np.ceil(n_secs).astype(int)):
         end_samp = (isec + 1) * sfreq
         if end_samp > n_times:
             end_samp = n_times
@@ -122,6 +126,8 @@ def _export_raw(fname, raw):
             err = hdl.writeSamples(buf)
             if err != 0:  # noqa
                 raise RuntimeError(f"writeSamples() returned error: {err}")
+
+
 
     # write annotations
     if raw.annotations:
