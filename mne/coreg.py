@@ -1816,7 +1816,13 @@ class Coregistration(object):
         return self
 
     def compute_dig_head_distances(self):
-        """Compute Euclidean distance between the head-mri points."""
+        """Compute Euclidean distance between the head-mri points.
+
+        Returns
+        -------
+        dist : float
+            The distance between the head-mri points.
+        """
         mri_points = list()
         hsp_points = list()
         if self._hsp_weight > 0 and self._has_dig_data:
