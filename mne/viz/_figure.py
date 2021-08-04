@@ -53,8 +53,8 @@ class BrowserBase(ABC):
 
         self.mne = BrowserParams(**kwargs)
 
-        inst = kwargs['inst'] if 'inst' in kwargs else None
-        ica = kwargs['ica'] if 'ica' in kwargs else None
+        inst = kwargs.get('inst', None)
+        ica = kwargs.get('ica', None)
 
         # what kind of data are we dealing with?
         if inst is not None:
