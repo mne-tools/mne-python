@@ -1253,11 +1253,6 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
 class Coregistration(object):
     """Class for MRI<->head coregistration.
 
-    Attributes
-    ----------
-    trans : instance of Transform
-        MRI<->Head coordinate transformation.
-
     Parameters
     ----------
     info : instance of Info
@@ -1266,6 +1261,11 @@ class Coregistration(object):
         Name of the subject the data are defined for.
     subjects_dir : path-like
         Path to MRI subjects directory.
+
+    Attributes
+    ----------
+    trans : instance of Transform
+        MRI<->Head coordinate transformation.
 
     Notes
     -----
