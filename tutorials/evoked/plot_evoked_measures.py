@@ -47,7 +47,7 @@ epochs.plot_sensors(show_names=True)
 evokeds = dict((cond, epochs[cond].average()) for cond in event_id)
 print(evokeds['visual/left'])
 
-# Plot the evokeds for visual trial
+# Plot the ERPs for visual stimulation
 evokeds['visual/left'].plot_joint(title='Visual Left (EEG)',
                                   times=[.09, .18, .27])
 evokeds['visual/right'].plot_joint(title='Visual Right (EEG)',
