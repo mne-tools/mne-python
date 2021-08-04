@@ -62,7 +62,9 @@ fake_evoked.set_montage(biosemi_montage)
 
 # first we obtain the 3d positions of selected channels
 chs = ['Oz', 'Fpz', 'T7', 'T8']
-# we need the montage transformed to "head" coordinates
+# when the montage is set, it is transformed to the "head" coordinate frame
+# that MNE uses internally, therefore we need to use
+# :meth:`mne.Evoked.get_montage` to get these properly transformed coordinates
 montage_head = fake_evoked.get_montage()
 ch_pos = montage_head.get_positions()['ch_pos']
 pos = np.stack([ch_pos[ch] for ch in chs])
