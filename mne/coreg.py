@@ -1353,8 +1353,11 @@ class Coregistration(object):
 
         # find fiducials file
         fid_files = _find_fiducials_files(subject, subjects_dir)
-        fid_filename = fid_files[0].format(subjects_dir=subjects_dir,
-                                           subject=subject)
+        if len(fid_files) > 0:
+            fid_filename = fid_files[0].format(subjects_dir=subjects_dir,
+                                               subject=subject)
+        else:
+            fid_filename = None
         if fid_filename is None or not op.exists(fid_filename):
             self.fid_points = self.mni_points
         else:

@@ -18,17 +18,13 @@ coregistration functions to perform an automated MEG-MRI coregistration.
 
 import os.path as op
 import mne
-from mne.coreg import get_mni_fiducials, Coregistration
-from mne.io import write_fiducials, read_info
-from mne.io.constants import FIFF
+from mne.coreg import Coregistration
+from mne.io import read_info
 
 
 data_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 subject = 'sample'
-fname_fids = op.join(subjects_dir, subject, 'bem', subject + '-fiducials.fif')
-fids_mri = get_mni_fiducials(subject, subjects_dir)
-write_fiducials(fname_fids, fids_mri, coord_frame=FIFF.FIFFV_COORD_MRI)
 
 fname_raw = op.join(data_path, 'MEG', subject, subject + '_audvis_raw.fif')
 info = read_info(fname_raw)
