@@ -25,7 +25,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 
-# Select only the the EEG channels
+# Select only the the EEG and EOG channels
 raw.pick_types(meg=False, eeg=True, eog=True).load_data()
 
 # Create epochs from events, and reject epochs
