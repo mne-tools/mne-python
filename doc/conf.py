@@ -217,7 +217,7 @@ numpydoc_xref_aliases = {
     'Vectorizer': 'mne.decoding.Vectorizer',
     'UnsupervisedSpatialFilter': 'mne.decoding.UnsupervisedSpatialFilter',
     'TemporalFilter': 'mne.decoding.TemporalFilter',
-    'SSD': 'mne.decoding.SSD',
+    'SSD': 'mne.decoding.SSD', 'Coregistration': 'mne.coreg.Coregistration',
     'Scaler': 'mne.decoding.Scaler', 'SPoC': 'mne.decoding.SPoC',
     'PSDEstimator': 'mne.decoding.PSDEstimator',
     'LinearModel': 'mne.decoding.LinearModel',

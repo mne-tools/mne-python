@@ -1459,7 +1459,7 @@ class Coregistration(object):
 
         Returns
         -------
-        self : mne.Coregistration
+        self : Coregistration
             The modified Coregistration object.
         """
         self._scale_mode = scale_mode
@@ -1475,7 +1475,7 @@ class Coregistration(object):
 
         Returns
         -------
-        self : mne.Coregistration
+        self : Coregistration
             The modified Coregistration object.
         """
         self._grow_hair = value
@@ -1492,7 +1492,7 @@ class Coregistration(object):
 
         Returns
         -------
-        self : mne.Coregistration
+        self : Coregistration
             The modified Coregistration object.
         """
         self._update_params(rot=np.array(rot))
@@ -1508,7 +1508,7 @@ class Coregistration(object):
 
         Returns
         -------
-        self : mne.Coregistration
+        self : Coregistration
             The modified Coregistration object.
         """
         self._update_params(tra=np.array(tra))
@@ -1524,7 +1524,7 @@ class Coregistration(object):
 
         Returns
         -------
-        self : mne.Coregistration
+        self : Coregistration
             The modified Coregistration object.
         """
         self._update_params(sca=np.array(sca))
@@ -1653,7 +1653,7 @@ class Coregistration(object):
 
         Returns
         -------
-        self : mne.Coregistration
+        self : Coregistration
             The modified Coregistration object.
         """
         if verbose:
@@ -1753,7 +1753,7 @@ class Coregistration(object):
 
         Returns
         -------
-        self : mne.Coregistration
+        self : Coregistration
             The modified Coregistration object.
         """
         if verbose:
@@ -1803,7 +1803,7 @@ class Coregistration(object):
 
         Returns
         -------
-        self : mne.Coregistration
+        self : Coregistration
             The modified Coregistration object.
         """
         distance = float(distance)
@@ -1861,7 +1861,7 @@ class Coregistration(object):
 
         Returns
         -------
-        self : mne.Coregistration
+        self : Coregistration
             The modified Coregistration object.
         """
         self._grow_hair = 0.
