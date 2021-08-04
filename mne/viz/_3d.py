@@ -2602,8 +2602,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     linestyles = [
         ('solid',                 'solid'),
-        ('dotted',                'dotted'),
         ('dashed',                'dashed'),
+        ('dotted',                'dotted'),
         ('dashdot',               'dashdot'),
         ('loosely dotted',        (0, (1, 10))),
         ('dotted',                (0, (1, 1))),
