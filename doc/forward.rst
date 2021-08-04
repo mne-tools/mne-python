@@ -59,16 +59,3 @@ Forward Modeling
    make_flash_bem
    make_scalp_surfaces
    convert_flash_mris
-
-:py:mod:`mne.coreg`:
-
-.. automodule:: mne.coreg
-   :no-members:
-   :no-inherited-members:
-
-.. currentmodule:: mne.coreg
-
-.. autosummary::
-   :toctree: generated/
-
-   Coregistration
