@@ -1451,8 +1451,14 @@ class Coregistration(object):
             * 'uniform': 1 scale factor is recovered.
             * '3-axis': 3 scale factors are recovered.
             * None: no unity scale factor is recovered.
+
+        Returns
+        -------
+        self : mne.Coregistration
+            The modified Coregistration object.
         """
         self._scale_mode = scale_mode
+        return self
 
     def set_grow_hair(self, value):
         """Compensate for hair on the digitizer head shape.
@@ -1461,9 +1467,15 @@ class Coregistration(object):
         ----------
         value : float
             Move the back of the MRI head outwards by ``value`` (mm).
+
+        Returns
+        -------
+        self : mne.Coregistration
+            The modified Coregistration object.
         """
         self._grow_hair = value
         self._update_params(self._rotation, self._translation, self._scale)
+        return self
 
     def set_rotation(self, rot):
         """Set the rotation parameter.
@@ -1472,8 +1484,14 @@ class Coregistration(object):
         ----------
         rot : array, shape (3,)
             The rotation parameter.
+
+        Returns
+        -------
+        self : mne.Coregistration
+            The modified Coregistration object.
         """
         self._update_params(rot=np.array(rot))
+        return self
 
     def set_translation(self, tra):
         """Set the translation parameter.
@@ -1482,8 +1500,14 @@ class Coregistration(object):
         ----------
         tra : array, shape (3,)
             The translation parameter.
+
+        Returns
+        -------
+        self : mne.Coregistration
+            The modified Coregistration object.
         """
         self._update_params(tra=np.array(tra))
+        return self
 
     def set_scale(self, sca):
         """Set the scale parameter.
@@ -1492,8 +1516,14 @@ class Coregistration(object):
         ----------
         sca : array, shape (3,)
             The scale parameter.
+
+        Returns
+        -------
+        self : mne.Coregistration
+            The modified Coregistration object.
         """
         self._update_params(sca=np.array(sca))
+        return self
 
     def _nearest_calc_default(self):
         return _DistanceQuery(
@@ -1765,6 +1795,11 @@ class Coregistration(object):
         distance : float
             Exclude all points that are further away from the MRI head than
             this distance. A value of distance <= 0 excludes nothing.
+
+        Returns
+        -------
+        self : mne.Coregistration
+            The modified Coregistration object.
         """
         distance = float(distance)
         if distance <= 0:
@@ -1778,6 +1813,7 @@ class Coregistration(object):
         # set the filter
         self._extra_points_filter = mask
         self._update_params(force_update_omitted=True)
+        return self
 
     def compute_dig_head_distances(self):
         """Compute Euclidean distance between the head-mri points."""
@@ -1810,7 +1846,13 @@ class Coregistration(object):
         return Transform('head', 'mri', self._head_mri_t)
 
     def reset(self):
-        """Reset all the parameters affecting the coregistration."""
+        """Reset all the parameters affecting the coregistration.
+
+        Returns
+        -------
+        self : mne.Coregistration
+            The modified Coregistration object.
+        """
         self._grow_hair = 0.
         self._rotation = self._default_parameters[:3]
         self._translation = self._default_parameters[3:6]
@@ -1820,3 +1862,4 @@ class Coregistration(object):
         self._last_scale = self._scale.copy()
         self._extra_points_filter = None
         self._update_nearest_calc()
+        return self
