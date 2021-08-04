@@ -1331,6 +1331,18 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         self._remove_annotation_hover_line()
         self.canvas.draw_idle()
 
+    def _clear_annotations(self):
+        """Clear all annotations from the figure."""
+        for annot in list(self.mne.annotations):
+            annot.remove()
+            self.mne.annotations.remove(annot)
+        for annot in list(self.mne.hscroll_annotations):
+            annot.remove()
+            self.mne.hscroll_annotations.remove(annot)
+        for text in list(self.mne.annotation_texts):
+            text.remove()
+            self.mne.annotation_texts.remove(text)
+
     def _draw_annotations(self):
         """Draw (or redraw) the annotation spans."""
         self._clear_annotations()

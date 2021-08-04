@@ -276,7 +276,7 @@ def test_plot_raw_ssp_interaction(raw, browse_backend):
     # this should have no effect (proj 0 is already applied)
     assert t[0].get_text().endswith('(already applied)')
     pos = np.array(t[0].get_position()) + 0.01
-    fig._fake_click(pos, ssp_fig, ssp_fig.get_axes()[0], xform='data')
+    fig._fake_click(pos, ssp_fig, ssp_fig.mne.ax_main, xform='data')
     assert _proj_status(ax) == [True, True, True]
     # this should work (proj 1 not applied)
     pos = np.array(t[1].get_position()) + 0.01
@@ -433,13 +433,13 @@ def test_plot_raw_traces(raw, events, browse_backend):
                                [np.arange(len(raw.ch_names))[::-3],
                                 [1, 2, 4, 6]]):
         fig = raw.plot(group_by=group_by, order=order)
-        x = fig.get_axes()[0].lines[1].get_xdata()[10]
-        y = fig.get_axes()[0].lines[1].get_ydata()[10]
-        # ToDo: Is this intentional?
-        #  (click in data-coordinates of data_ax from start of test)
-        fig._fake_click((x, y), ax=data_ax, xform='data')  # mark bad
+        x = fig.mne.ax_main.lines[1].get_xdata()[10]
+        y = fig.mne.ax_main.lines[1].get_ydata()[10]
+        # ToDo: This throws an error now because a channel from the projection
+        #  is marked bad.
+        fig._fake_click((x, y), xform='data')  # mark bad
         fig._fake_keypress('down')  # change selection
-        fig._fake_click((0.5, 0.5), ax=fig.get_axes()[2])  # change channels
+        fig._fake_click((0.5, 0.5), ax=fig.mne.ax_vscroll)  # change channels
         sel_fig = plt.figure(1)
         topo_ax = sel_fig.axes[1]
         fig._fake_click([-0.425, 0.20223853], sel_fig, topo_ax, xform='data')
@@ -464,12 +464,8 @@ def test_plot_raw_traces(raw, events, browse_backend):
         raw.set_annotations(annot)
     with pytest.warns(None):  # sometimes projection
         raw.plot(group_by='position', order=np.arange(8))
-    for fig_num in plt.get_fignums():
-        sel_fig = plt.figure(fig_num)
-        if hasattr(sel_fig, 'radio'):  # Get access to selection fig.
-            break
     for key in ['down', 'up', 'escape']:
-        fig._fake_keypress(key, fig=sel_fig)
+        fig._fake_keypress(key, fig=fig.mne.fig_selection)
 
     raw._data[:] = np.nan
     # this should (at least) not die, the output should pretty clearly show

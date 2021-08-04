@@ -13,11 +13,11 @@ from itertools import cycle
 
 import numpy as np
 
-from mne import verbose, get_config
-from mne.annotations import _sync_onset
-from mne.utils import logger, _validate_type, _check_option
-from mne.viz.backends._utils import VALID_BROWSE_BACKENDS
-from mne.viz.utils import _get_color_list, _setup_plot_projector
+from .. import verbose, get_config
+from ..annotations import _sync_onset
+from ..utils import logger, _validate_type, _check_option
+from .backends._utils import VALID_BROWSE_BACKENDS
+from .utils import _get_color_list, _setup_plot_projector
 
 MNE_BROWSE_BACKEND = None
 _backend_name_map = dict(
@@ -57,18 +57,15 @@ class BrowserBase(ABC):
         ica = kwargs.get('ica', None)
 
         # what kind of data are we dealing with?
-        if inst is not None:
-            if isinstance(ica, ICA):
-                self.mne.instance_type = 'ica'
-            elif isinstance(inst, BaseRaw):
-                self.mne.instance_type = 'raw'
-            elif isinstance(inst, BaseEpochs):
-                self.mne.instance_type = 'epochs'
-            else:
-                raise TypeError('Expected an instance of Raw, Epochs, or ICA, '
-                                f'got {type(inst)}.')
+        if isinstance(ica, ICA):
+            self.mne.instance_type = 'ica'
+        elif isinstance(inst, BaseRaw):
+            self.mne.instance_type = 'raw'
+        elif isinstance(inst, BaseEpochs):
+            self.mne.instance_type = 'epochs'
         else:
-            self.mne.instance_type = None
+            raise TypeError('Expected an instance of Raw, Epochs, or ICA, '
+                            f'got {type(inst)}.')
 
         self.mne.ica_type = None
         if self.mne.instance_type == 'ica':
@@ -156,18 +153,6 @@ class BrowserBase(ABC):
         # init a couple other annotation-related variables
         self.mne.visible_annotations = {label: True for label in labels}
         self.mne.show_hide_annotation_checkboxes = None
-
-    def _clear_annotations(self):
-        """Clear all annotations from the figure."""
-        for annot in list(self.mne.annotations):
-            annot.remove()
-            self.mne.annotations.remove(annot)
-        for annot in list(self.mne.hscroll_annotations):
-            annot.remove()
-            self.mne.hscroll_annotations.remove(annot)
-        for text in list(self.mne.annotation_texts):
-            text.remove()
-            self.mne.annotation_texts.remove(text)
 
     def _update_annotation_segments(self):
         """Update the array of annotation start/end times."""
@@ -455,8 +440,8 @@ def _init_browser_backend():
     global MNE_BROWSE_BACKEND
 
     # check if MNE_BROWSE_BACKEND is not None and valid or get it from config
-    loaded_backend = MNE_BROWSE_BACKEND \
-        or get_config(key='MNE_BROWSE_BACKEND', default=None)
+    loaded_backend = (MNE_BROWSE_BACKEND or
+                      get_config(key='MNE_BROWSE_BACKEND', default=None))
     if loaded_backend is not None:
         set_browser_backend(loaded_backend)
         return MNE_BROWSE_BACKEND
