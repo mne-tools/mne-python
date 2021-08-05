@@ -1325,33 +1325,33 @@ class Coregistration(object):
             raise RuntimeError("No standard head model was "
                                f"found for subject {subject}")
         if high_res_path is not None:
-            self.bem_high_res = self._read_surface(high_res_path)
+            self._bem_high_res = self._read_surface(high_res_path)
             logger.info(f'Using high resolution head model in {high_res_path}')
         else:
-            self.bem_high_res = self._read_surface(low_res_path)
+            self._bem_high_res = self._read_surface(low_res_path)
             logger.info(f'Using low resolution head model in {low_res_path}')
         if low_res_path is None:
             # This should be very rare!
             warn('No low-resolution head found, decimating high resolution '
-                 'mesh (%d vertices): %s' % (len(self.bem_high_res.surf.rr),
+                 'mesh (%d vertices): %s' % (len(self._bem_high_res.surf.rr),
                                              high_res_path,))
             # Create one from the high res one, which we know we have
-            rr, tris = decimate_surface(self.bem_high_res.surf.rr,
-                                        self.bem_high_res.surf.tris,
+            rr, tris = decimate_surface(self._bem_high_res.surf.rr,
+                                        self._bem_high_res.surf.tris,
                                         n_triangles=5120)
             # directly set the attributes of bem_low_res
-            self.bem_low_res = complete_surface_info(dict(rr=rr, tris=tris),
-                                                     copy=False, verbose=False)
+            self._bem_low_res = complete_surface_info(
+                dict(rr=rr, tris=tris), copy=False, verbose=False)
         else:
-            self.bem_low_res = self._read_surface(low_res_path)
+            self._bem_low_res = self._read_surface(low_res_path)
 
         # Set MNI points
         try:
             fids = get_mni_fiducials(subject, subjects_dir)
         except Exception:  # some problem, leave at origin
-            self.mni_points = None
+            self._mni_points = None
         else:
-            self.mni_points = np.array([f['r'] for f in fids], float)
+            self._mni_points = np.array([f['r'] for f in fids], float)
 
         # find fiducials file
         fid_files = _find_fiducials_files(subject, subjects_dir)
@@ -1361,9 +1361,9 @@ class Coregistration(object):
         else:
             fid_filename = None
         if fid_filename is None or not op.exists(fid_filename):
-            self.fid_points = self.mni_points
+            self._fid_points = self._mni_points
         else:
-            self.fid_points = _fiducial_coords(*read_fiducials(fid_filename))
+            self._fid_points = _fiducial_coords(*read_fiducials(fid_filename))
 
         # does not seem to happen by itself ... so hard code it:
         self._reset_fiducials()
@@ -1385,10 +1385,10 @@ class Coregistration(object):
         return bem
 
     def _reset_fiducials(self):  # noqa: D102
-        if self.fid_points is not None:
-            self.lpa = self.fid_points[0:1]
-            self.nasion = self.fid_points[1:2]
-            self.rpa = self.fid_points[2:3]
+        if self._fid_points is not None:
+            self._lpa = self._fid_points[0:1]
+            self._nasion = self._fid_points[1:2]
+            self._rpa = self._fid_points[2:3]
 
     def _update_params(self, rot=None, tra=None, sca=None,
                        force_update_omitted=False):
@@ -1584,15 +1584,15 @@ class Coregistration(object):
 
     @property
     def _has_lpa_data(self):
-        return (np.any(self.lpa) and np.any(self._dig['lpa']))
+        return (np.any(self._lpa) and np.any(self._dig['lpa']))
 
     @property
     def _has_nasion_data(self):
-        return (np.any(self.nasion) and np.any(self._dig.nasion))
+        return (np.any(self._nasion) and np.any(self._dig.nasion))
 
     @property
     def _has_rpa_data(self):
-        return (np.any(self.rpa) and np.any(self._dig['rpa']))
+        return (np.any(self._rpa) and np.any(self._dig['rpa']))
 
     @property
     def _processed_high_res_mri_points(self):
@@ -1603,7 +1603,7 @@ class Coregistration(object):
         return self._get_processed_mri_points('low')
 
     def _get_processed_mri_points(self, res):
-        bem = self.bem_low_res if res == 'low' else self.bem_high_res
+        bem = self._bem_low_res if res == 'low' else self._bem_high_res
         if self._grow_hair:
             if len(bem['nn']):
                 scaled_hair_dist = (1e-3 * self._grow_hair /
@@ -1679,7 +1679,7 @@ class Coregistration(object):
         head_pts = np.vstack((self._dig['lpa'],
                               self._dig['nasion'],
                               self._dig['rpa']))
-        mri_pts = np.vstack((self.lpa, self.nasion, self.rpa))
+        mri_pts = np.vstack((self._lpa, self._nasion, self._rpa))
         weights = [lpa_weight, nasion_weight, rpa_weight]
 
         if n_scale_params == 0:
@@ -1831,7 +1831,7 @@ class Coregistration(object):
         Returns
         -------
         dist : float
-            The distance between the head-mri points.
+            The distance of the head shape points to the MRI skin surface.
         """
         mri_points = list()
         hsp_points = list()
