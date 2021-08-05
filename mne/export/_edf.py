@@ -37,17 +37,18 @@ def _export_raw(fname, raw):
         units['seeg'] = 'uV'
     data = raw.get_data(units=units, picks=ch_names)
 
-    # get the physical min and max of the data
-    pmin, pmax = data.min(axis=1), data.max(axis=1)
+    # get the physical min and max of the data in uV
+    # see discussion in: https://github.com/sccn/eeglab/issues/246
+    pmin, pmax = -3200, 3200
 
     # create instance of EDF Writer
     hdl = EDFwriter(fname, EDFwriter.EDFLIB_FILETYPE_EDFPLUS, n_chs)
 
     # set channel data
     for ichan, ch in enumerate(ch_names):
-        if hdl.setPhysicalMaximum(ichan, pmax[ichan]) != 0:  # noqa
+        if hdl.setPhysicalMaximum(ichan, pmax) != 0:  # noqa
             raise RuntimeError("setPhysicalMaximum() returned an error")
-        if hdl.setPhysicalMinimum(ichan, pmin[ichan]) != 0:  # noqa
+        if hdl.setPhysicalMinimum(ichan, pmin) != 0:  # noqa
             raise RuntimeError("setPhysicalMinimum() returned an error")
         if hdl.setDigitalMaximum(ichan, 32767) != 0:  # noqa
             raise RuntimeError("setDigitalMaximum() returned an error")
