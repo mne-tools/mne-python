@@ -7,7 +7,7 @@ import numpy as np
 
 from ..utils import _check_edflib_installed
 _check_edflib_installed()
-from edflib_python import EDFwriter  # noqa: E402
+from EDFlib.edfwriter import EDFwriter  # noqa: E402
 
 
 def _export_raw(fname, raw):
@@ -108,7 +108,7 @@ def _export_raw(fname, raw):
         units['seeg'] = 'uV'
     data = raw.get_data(units=units, picks=ch_names)
 
-    # write each second separately
+    # Write each second (i.e. datarecord) separately.
     for isec in range(np.ceil(n_secs).astype(int)):
         end_samp = (isec + 1) * sfreq
         if end_samp > n_times:
@@ -128,6 +128,8 @@ def _export_raw(fname, raw):
                 raise RuntimeError(f"writeSamples() returned error: {err}")
 
     # write annotations
+    # XXX: possibly writing multiple annotations per data record is not
+    # possible, but can be expanded if we write to more then one channel
     if raw.annotations:
         annotations = [raw.annotations.description,
                        raw.annotations.onset,

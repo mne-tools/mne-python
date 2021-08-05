@@ -293,8 +293,8 @@ def _check_eeglabio_installed(strict=True):
 def _check_edflib_installed(strict=True):
     """Aux function."""
     try:
-        import edflib_python
-        return edflib_python
+        import EDFlib
+        return EDFlib
     except ImportError:
         if strict is True:
             raise RuntimeError('For this functionality to work, '
