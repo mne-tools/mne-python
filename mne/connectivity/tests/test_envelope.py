@@ -12,6 +12,11 @@ from scipy.signal import hilbert
 from mne.connectivity import envelope_correlation
 
 
+warning_str = dict(
+    deprecation='ignore:.*mne-connectivity:DeprecationWarning:mne'
+)
+
+
 def _compute_corrs_orig(data):
     # This is the version of the code by Sheraz and Denis.
     # For this version (epochs, labels, time) must be -> (labels, time, epochs)
@@ -35,6 +40,7 @@ def _compute_corrs_orig(data):
     return corr
 
 
+@pytest.mark.filterwarnings(warning_str['deprecation'])
 def test_envelope_correlation():
     """Test the envelope correlation function."""
     rng = np.random.RandomState(0)

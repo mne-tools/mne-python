@@ -1,9 +1,16 @@
 import numpy as np
 from numpy.testing import assert_array_almost_equal
+import pytest
 
 from mne.connectivity import phase_slope_index
 
 
+warning_str = dict(
+    deprecation='ignore:.*mne-connectivity:DeprecationWarning:mne'
+)
+
+
+@pytest.mark.filterwarnings(warning_str['deprecation'])
 def test_psi():
     """Test Phase Slope Index (PSI) estimation."""
     sfreq = 50.
