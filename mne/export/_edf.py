@@ -41,6 +41,12 @@ def _export_raw(fname, raw):
     # see discussion in: https://github.com/sccn/eeglab/issues/246
     pmin, pmax = -3200, 3200
 
+    # check that physical min and max is not exceeded
+    if data.flatten().max() > pmax:
+        raise RuntimeError('The maximum uV of the data is more then pmax.')
+    if data.flatten().min() < pmin:
+        raise RuntimeError('The minimum uV of the data is less then pmin.')
+
     # create instance of EDF Writer
     hdl = EDFwriter(fname, EDFwriter.EDFLIB_FILETYPE_EDFPLUS, n_chs)
 
