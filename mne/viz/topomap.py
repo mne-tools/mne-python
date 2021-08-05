@@ -985,6 +985,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                 col.set_clip_path(patch_)
 
     pos_x, pos_y = pos.T
+    mask = mask.astype(bool, copy=False) if mask is not None else None
     if sensors is not False and mask is None:
         _topomap_plot_sensors(pos_x, pos_y, sensors=sensors, ax=ax)
     elif sensors and mask is not None:
@@ -1690,6 +1691,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
             merge_channels = False
     # apply mask if requested
     if mask is not None:
+        mask = mask.astype(bool, copy=False)
         if ch_type == 'grad':
             mask_ = (mask[np.ix_(picks[::2], time_idx)] |
                      mask[np.ix_(picks[1::2], time_idx)])
