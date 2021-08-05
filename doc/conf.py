@@ -60,11 +60,10 @@ if os.getenv('MNE_FULL_DATE', 'false').lower() != 'true':
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-# The short X.Y version.
-version = mne.__version__
 # The full version, including alpha/beta/rc tags.
-release = version
-
+release = mne.__version__
+# The short X.Y version.
+version = '.'.join(release.split('.')[:2])
 
 # -- General configuration ---------------------------------------------------
 
@@ -877,6 +876,16 @@ for icon, cls in icons.items():
 
     <i class="fa{cls} fa-{icon[3:] if fw else icon}{fw}"></i>
 '''
+
+# -- Dependency info ----------------------------------------------------------
+
+strip_chars = '=<>,"\''
+with open(os.path.join('..', 'setup.py'), 'r') as fid:
+    for line in fid:
+        if line.strip().startswith('python_requires='):
+            min_py = line.strip().split('=', maxsplit=1)[1].strip(strip_chars)
+
+prolog += f'\n.. |min_python_version| replace:: {min_py}\n'
 
 # -- website redirects --------------------------------------------------------
 
