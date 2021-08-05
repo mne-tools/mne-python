@@ -344,8 +344,12 @@ class BrowserBase(ABC):
 
 def _load_backend(backend_name):
     global backend
-    backend = importlib.import_module(name=_backends[backend_name],
-                                      package='mne.viz')
+    if backend_name == 'pyqtgraph':
+        from prototypes import pyqtgraph_ptyp
+        backend = pyqtgraph_ptyp
+    else:
+        backend = importlib.import_module(name=_backends[backend_name],
+                                          package='mne.viz')
     logger.info(f'Using {backend_name} as 2D backend.')
 
     return backend

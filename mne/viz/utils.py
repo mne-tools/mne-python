@@ -109,6 +109,19 @@ def plt_show(show=True, fig=None, **kwargs):
         (fig or plt).show(**kwargs)
 
 
+def show_browser(show=True, block=True, fig=None, **kwargs):
+    from ._figure import get_browser_backend
+    backend = get_browser_backend()
+    kwargs['block'] = block
+    if backend == 'matplotlib':
+        plt_show(show, **kwargs)
+    else:
+        from qtpy.QtWidgets import QApplication
+        app = QApplication.instance() or QApplication(['MNE'])
+        fig.show()
+        app.exec()
+
+
 def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     """Adjust subplot parameters to give specified padding.
 

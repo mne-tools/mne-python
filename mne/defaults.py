@@ -7,9 +7,9 @@
 from copy import deepcopy
 
 DEFAULTS = dict(
-    color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='m', emg='k',
-               ref_meg='steelblue', misc='k', stim='k', resp='k', chpi='k',
-               exci='k', ias='k', syst='k', seeg='saddlebrown', dbs='seagreen',
+    color=dict(mag='#00008B', grad='b', eeg='k', eog='k', ecg='m', emg='k',
+               ref_meg='#4682B4', misc='k', stim='k', resp='k', chpi='k',
+               exci='k', ias='k', syst='k', seeg='#8B4513', dbs='#2E8B57',
                dipole='k', gof='k', bio='k', ecog='k', hbo='#AA3377', hbr='b',
                fnirs_cw_amplitude='k', fnirs_fd_ac_amplitude='k',
                fnirs_fd_phase='k', fnirs_od='k', csd='k', whitened='k'),
