@@ -24,7 +24,7 @@ should be active by default and should already have the necessary dependencies
 A second option is to install MNE-Python into its own virtual environment
 (instead of installing into conda's "base" environment). This can be done via::
 
-    $ conda create --name new_environment_name python=3
+    $ conda create --name=new_environment_name python=3
     $ conda activate new_environment_name
     $ pip install mne
 
@@ -67,7 +67,7 @@ your operating system.
     make it easier to use MNE-Python in Jupyter Notebooks launched from the
     Anaconda GUI::
 
-        $ conda install --name base nb_conda_kernels
+        $ conda install --name=base nb_conda_kernels
 
 
 .. collapse:: |windows| Windows
