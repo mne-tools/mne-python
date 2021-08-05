@@ -439,12 +439,10 @@ def test_plot_raw_groupby(raw, browse_backend, group_by):
     order = (np.arange(len(raw.ch_names))[::-3] if group_by == 'position' else
              [1, 2, 4, 6])
     fig = raw.plot(group_by=group_by, order=order)
-    x = fig.mne.ax_main.lines[1].get_xdata()[10]
-    y = fig.mne.ax_main.lines[1].get_ydata()[10]
-    # ToDo: This throws an error now because a channel from the projection
-    #  is marked bad.
-    fig._fake_click((x, y), xform='data')  # mark bad
+    x = fig.mne.traces[0].get_xdata()[10]
+    y = fig.mne.traces[0].get_ydata()[10]
     fig._fake_keypress('down')  # change selection
+    fig._fake_click((x, y), xform='data')  # mark bad
     fig._fake_click((0.5, 0.5), ax=fig.mne.ax_vscroll)  # change channels
     sel_fig = plt.figure(1)
     topo_ax = sel_fig.axes[1]
