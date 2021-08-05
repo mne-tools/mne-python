@@ -276,7 +276,7 @@ def test_plot_raw_ssp_interaction(raw, browse_backend):
     # this should have no effect (proj 0 is already applied)
     assert t[0].get_text().endswith('(already applied)')
     pos = np.array(t[0].get_position()) + 0.01
-    fig._fake_click(pos, ssp_fig, ssp_fig.mne.ax_main, xform='data')
+    fig._fake_click(pos, ssp_fig, ax, xform='data')
     assert _proj_status(ax) == [True, True, True]
     # this should work (proj 1 not applied)
     pos = np.array(t[1].get_position()) + 0.01
