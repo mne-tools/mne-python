@@ -1269,7 +1269,7 @@ class Coregistration(object):
 
     Notes
     -----
-    Internal computation quantities parameters are in units of (for X/Y/Z):
+    Internal computation quantities parameters are in the following units:
     - rotation are in radians
     - translation are in m
     - scale are in scale proportion
@@ -1326,8 +1326,10 @@ class Coregistration(object):
                                f"found for subject {subject}")
         if high_res_path is not None:
             self.bem_high_res = self._read_surface(high_res_path)
+            logger.info(f'Using high resolution head model in {high_res_path}')
         else:
             self.bem_high_res = self._read_surface(low_res_path)
+            logger.info(f'Using low resolution head model in {low_res_path}')
         if low_res_path is None:
             # This should be very rare!
             warn('No low-resolution head found, decimating high resolution '

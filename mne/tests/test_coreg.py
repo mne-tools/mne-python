@@ -324,7 +324,7 @@ def test_coregistration(scale_mode, ref_scale, grow_hair):
         rot_to_quat(coreg.trans['trans'][:3, :3]),
         rot_to_quat(trans['trans'][:3, :3]))) < 13
     if scale_mode is None:
-        assert_allclose(coreg._scale, [1., 1., 1.])
+        assert_allclose(coreg._scale, ref_scale)
     else:
         assert_allclose(coreg._scale, ref_scale, atol=0.35)
     coreg.reset()
