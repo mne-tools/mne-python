@@ -1250,6 +1250,23 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
     _write_fs_xfm(fname_to, T_ras_mni['trans'], kind)
 
 
+def _read_surface(filename):
+    bem = dict()
+    if filename is not None and op.exists(filename):
+        if filename.endswith('.fif'):
+            bem = read_bem_surfaces(filename, verbose=False)[0]
+        else:
+            try:
+                bem = read_surface(filename, return_dict=True)[2]
+                bem['rr'] *= 1e-3
+                complete_surface_info(bem, copy=False)
+            except Exception:
+                raise ValueError(
+                    "Error loading surface from %s (see "
+                    "Terminal for details)." % filename)
+    return bem
+
+
 class Coregistration(object):
     """Class for MRI<->head coregistration.
 
@@ -1325,10 +1342,10 @@ class Coregistration(object):
             raise RuntimeError("No standard head model was "
                                f"found for subject {subject}")
         if high_res_path is not None:
-            self._bem_high_res = self._read_surface(high_res_path)
+            self._bem_high_res = _read_surface(high_res_path)
             logger.info(f'Using high resolution head model in {high_res_path}')
         else:
-            self._bem_high_res = self._read_surface(low_res_path)
+            self._bem_high_res = _read_surface(low_res_path)
             logger.info(f'Using low resolution head model in {low_res_path}')
         if low_res_path is None:
             # This should be very rare!
@@ -1343,7 +1360,7 @@ class Coregistration(object):
             self._bem_low_res = complete_surface_info(
                 dict(rr=rr, tris=tris), copy=False, verbose=False)
         else:
-            self._bem_low_res = self._read_surface(low_res_path)
+            self._bem_low_res = _read_surface(low_res_path)
 
         # Set MNI points
         try:
@@ -1367,22 +1384,6 @@ class Coregistration(object):
 
         # does not seem to happen by itself ... so hard code it:
         self._reset_fiducials()
-
-    def _read_surface(self, filename):
-        bem = dict()
-        if filename is not None and op.exists(filename):
-            if filename.endswith('.fif'):
-                bem = read_bem_surfaces(filename, verbose=False)[0]
-            else:
-                try:
-                    bem = read_surface(filename, return_dict=True)[2]
-                    bem['rr'] *= 1e-3
-                    complete_surface_info(bem, copy=False)
-                except Exception:
-                    raise ValueError(
-                        "Error loading surface from %s (see "
-                        "Terminal for details)." % filename)
-        return bem
 
     def _reset_fiducials(self):  # noqa: D102
         if self._fid_points is not None:
