@@ -358,7 +358,6 @@ def test_plot_raw_keypresses(raw, browse_backend):
 def test_plot_raw_traces(raw, events, browse_backend):
     """Test plotting of raw data."""
     raw.info['lowpass'] = 10.  # allow heavy decim during plotting
-    browse_backend._close_all()  # ensure all are closed
     fig = raw.plot(events=events, order=[1, 7, 5, 2, 3], n_channels=3,
                    group_by='original')
     assert hasattr(fig, 'mne')  # make sure fig.mne param object is present
@@ -418,61 +417,73 @@ def test_plot_raw_traces(raw, events, browse_backend):
     raw.plot(show_options=True)
     browse_backend._close_all()
 
+    # annotations outside data range
+    annot = Annotations([10, 10 + raw.first_samp / raw.info['sfreq']],
+                        [10, 10], ['test', 'test'], raw.info['meas_date'])
+    with pytest.warns(RuntimeWarning, match='outside data range'):
+        raw.set_annotations(annot)
+
     # Color setting
     with pytest.raises(KeyError, match='must be strictly positive, or -1'):
         raw.plot(event_color={0: 'r'})
     with pytest.raises(TypeError, match='event_color key must be an int, got'):
         raw.plot(event_color={'foo': 'r'})
-    annot = Annotations([10, 10 + raw.first_samp / raw.info['sfreq']],
-                        [10, 10], ['test', 'test'], raw.info['meas_date'])
-    with pytest.warns(RuntimeWarning, match='outside data range'):
-        raw.set_annotations(annot)
     fig = plot_raw(raw, events=events, event_color={-1: 'r', 998: 'b'})
     browse_backend._close_all()
-    for group_by, order in zip(['position', 'selection'],
-                               [np.arange(len(raw.ch_names))[::-3],
-                                [1, 2, 4, 6]]):
-        fig = raw.plot(group_by=group_by, order=order)
-        x = fig.mne.ax_main.lines[1].get_xdata()[10]
-        y = fig.mne.ax_main.lines[1].get_ydata()[10]
-        # ToDo: This throws an error now because a channel from the projection
-        #  is marked bad.
-        fig._fake_click((x, y), xform='data')  # mark bad
-        fig._fake_keypress('down')  # change selection
-        fig._fake_click((0.5, 0.5), ax=fig.mne.ax_vscroll)  # change channels
-        sel_fig = plt.figure(1)
-        topo_ax = sel_fig.axes[1]
-        fig._fake_click([-0.425, 0.20223853], sel_fig, topo_ax, xform='data')
-        fig._fake_keypress('down')
-        fig._fake_keypress('up')
-        fig._fake_scroll(0.5, 0.5, -1)  # scroll down
-        fig._fake_scroll(0.5, 0.5, 1)  # scroll up
-        fig._fake_click([-0.5, 0.], sel_fig, topo_ax, xform='data')
-        fig._fake_click((0.5, 0.), sel_fig, topo_ax, xform='data',
-                        kind='motion')
-        fig._fake_click((0.5, 0.5), sel_fig, topo_ax, xform='data',
-                        kind='motion')
-        fig._fake_click([-0.5, 0.5], sel_fig, topo_ax, xform='data',
-                        kind='release')
 
-        browse_backend._close_all()
-    # test if meas_date is off
+
+@pytest.mark.parametrize('group_by', ('position', 'selection'))
+def test_plot_raw_groupby(raw, browse_backend, group_by):
+    """Test group-by plotting of raw data."""
+    raw.info['lowpass'] = 10.  # allow heavy decim during plotting
+    order = (np.arange(len(raw.ch_names))[::-3] if group_by == 'position' else
+             [1, 2, 4, 6])
+    fig = raw.plot(group_by=group_by, order=order)
+    x = fig.mne.ax_main.lines[1].get_xdata()[10]
+    y = fig.mne.ax_main.lines[1].get_ydata()[10]
+    # ToDo: This throws an error now because a channel from the projection
+    #  is marked bad.
+    fig._fake_click((x, y), xform='data')  # mark bad
+    fig._fake_keypress('down')  # change selection
+    fig._fake_click((0.5, 0.5), ax=fig.mne.ax_vscroll)  # change channels
+    sel_fig = plt.figure(1)
+    topo_ax = sel_fig.axes[1]
+    fig._fake_click([-0.425, 0.20223853], sel_fig, topo_ax, xform='data')
+    fig._fake_keypress('down')
+    fig._fake_keypress('up')
+    fig._fake_scroll(0.5, 0.5, -1)  # scroll down
+    fig._fake_scroll(0.5, 0.5, 1)  # scroll up
+    fig._fake_click([-0.5, 0.], sel_fig, topo_ax, xform='data')
+    fig._fake_click((0.5, 0.), sel_fig, topo_ax, xform='data',
+                    kind='motion')
+    fig._fake_click((0.5, 0.5), sel_fig, topo_ax, xform='data',
+                    kind='motion')
+    fig._fake_click([-0.5, 0.5], sel_fig, topo_ax, xform='data',
+                    kind='release')
+    browse_backend._close_all()
+
+
+def test_plot_raw_meas_date(raw, browse_backend):
+    """Test effect of mismatched meas_date in raw.plot()."""
     raw.set_meas_date(_dt_to_stamp(raw.info['meas_date'])[0])
-    annot = Annotations([1 + raw.first_samp / raw.info['sfreq']],
-                        [5], ['bad'])
+    annot = Annotations([1 + raw.first_samp / raw.info['sfreq']], [5], ['bad'])
     with pytest.warns(RuntimeWarning, match='outside data range'):
         raw.set_annotations(annot)
     with pytest.warns(None):  # sometimes projection
         raw.plot(group_by='position', order=np.arange(8))
+    fig = raw.plot()
     for key in ['down', 'up', 'escape']:
         fig._fake_keypress(key, fig=fig.mne.fig_selection)
+    browse_backend._close_all()
 
+
+def test_plot_raw_nan(raw, browse_backend):
+    """Test plotting all NaNs."""
     raw._data[:] = np.nan
     # this should (at least) not die, the output should pretty clearly show
     # that there is a problem so probably okay to just plot something blank
     with pytest.warns(None):
         raw.plot(scalings='auto')
-
     browse_backend._close_all()
 
 
