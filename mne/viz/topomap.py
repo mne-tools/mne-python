@@ -728,15 +728,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         List of channel names. If None, channel names are not plotted.
     %(topomap_show_names)s
         If ``True``, a list of names must be provided (see ``names`` keyword).
-    mask : ndarray of bool, shape (n_channels, n_times) | None
-        The channels to be marked as significant at a given time point.
-        Indices set to ``True`` will be considered. Defaults to None.
-    mask_params : dict | None
-        Additional plotting parameters for plotting significant sensors.
-        Default (None) equals::
-
-           dict(marker='o', markerfacecolor='w', markeredgecolor='k',
-                linewidth=0, markersize=4)
+    %(topomap_mask)s
+    %(topomap_mask_params)s
     %(topomap_outlines)s
     contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
@@ -2518,15 +2511,8 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
         List of channel names. If None, channel names are not plotted.
     %(topomap_show_names)s
         If ``True``, a list of names must be provided (see ``names`` keyword).
-    mask : ndarray of bool, shape (n_channels, n_times) | None
-        The channels to be marked as significant at a given time point.
-        Indices set to ``True`` will be considered. Defaults to None.
-    mask_params : dict | None
-        Additional plotting parameters for plotting significant sensors.
-        Default (None) equals::
-
-            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
-                 linewidth=0, markersize=4)
+    %(topomap_mask)s
+    %(topomap_mask_params)s
     %(topomap_outlines)s
     contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
