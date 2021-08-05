@@ -14,6 +14,12 @@ from mne.viz import (plot_connectivity_circle, circular_layout,
                      plot_channel_labels_circle)
 
 
+warning_str = dict(
+    deprecation='ignore:.*mne-connectivity:DeprecationWarning:mne'
+)
+
+
+@pytest.mark.filterwarnings(warning_str['deprecation'])
 def test_plot_connectivity_circle():
     """Test plotting connectivity circle."""
     node_order = ['frontalpole-lh', 'parsorbitalis-lh',
@@ -91,6 +97,7 @@ def test_plot_connectivity_circle():
     plt.close('all')
 
 
+@pytest.mark.filterwarnings(warning_str['deprecation'])
 @pytest.mark.filterwarnings('ignore:invalid value encountered in greater_equal'
                             ':RuntimeWarning')
 def test_plot_channel_labels_circle():

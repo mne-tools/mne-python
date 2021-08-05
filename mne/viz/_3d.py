@@ -38,7 +38,7 @@ from ..transforms import (_find_trans, apply_trans, rot_to_quat,
                           read_ras_mni_t, _print_coord_trans)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version, fill_doc, _pl, get_config,
-                     _ensure_int, _validate_type, _check_option)
+                     _ensure_int, _validate_type, _check_option, deprecated)
 from .utils import (mne_analyze_colormap, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
 from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
@@ -2896,6 +2896,9 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     return proj.xy, im
 
 
+@deprecated(extra='Starting version v0.25, mne.connectivity sub-modules '
+                  'will be housed in `mne-connectivity`. Download it '
+                  'by running `pip install mne-connectivity`.')
 @fill_doc
 def plot_sensors_connectivity(info, con, picks=None,
                               cbar_label='Connectivity'):
