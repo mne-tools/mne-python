@@ -2553,7 +2553,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     src : dict
         The source space.
     stcs : instance of SourceEstimate or list of instances of SourceEstimate
-        The source estimates (up to 3).
+        The source estimates.
     colors : list
         List of colors.
     linewidth : int
@@ -2600,6 +2600,25 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     # Update the backend
     from .backends.renderer import _get_renderer
 
+    linestyles = [
+        ('solid',                 'solid'),
+        ('dashed',                'dashed'),
+        ('dotted',                'dotted'),
+        ('dashdot',               'dashdot'),
+        ('loosely dotted',        (0, (1, 10))),
+        ('dotted',                (0, (1, 1))),
+        ('densely dotted',        (0, (1, 1))),
+        ('loosely dashed',        (0, (5, 10))),
+        ('dashed',                (0, (5, 5))),
+        ('densely dashed',        (0, (5, 1))),
+        ('loosely dashdotted',    (0, (3, 10, 1, 10))),
+        ('dashdotted',            (0, (3, 5, 1, 5))),
+        ('densely dashdotted',    (0, (3, 1, 1, 1))),
+        ('dashdotdotted',         (0, (3, 5, 1, 5, 1, 5))),
+        ('loosely dashdotdotted', (0, (3, 10, 1, 10, 1, 10))),
+        ('densely dashdotdotted', (0, (3, 1, 1, 1, 1, 1)))
+    ]
+
     known_modes = ['cone', 'sphere']
     if not isinstance(modes, (list, tuple)) or \
             not all(mode in known_modes for mode in modes):
@@ -2613,7 +2632,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     if colors is None:
         colors = _get_color_list()
 
-    linestyles = ['-', '--', ':']
+    linestyles = cycle(linestyles)
+    linestyles = [next(linestyles)[1] for _ in range(len(stcs))]
 
     # Show 3D
     lh_points = src[0]['rr']
