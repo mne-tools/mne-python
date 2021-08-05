@@ -384,7 +384,7 @@ cbar_fmt : str
     String format for colorbar values.
 """
 docdict["topomap_mask"] = """
-mask : ndarray of bool, shape (n_channels, n_times) | None
+mask : ndarray of bool, shape (n_channels, n_samples) | None
     The channels to be marked as significant at a given time point.
     Indices set to ``True`` will be considered. Defaults to ``None``.
 """
