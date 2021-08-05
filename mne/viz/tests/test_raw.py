@@ -444,8 +444,8 @@ def test_plot_raw_groupby(raw, browse_backend, group_by):
     fig._fake_keypress('down')  # change selection
     fig._fake_click((x, y), xform='data')  # mark bad
     fig._fake_click((0.5, 0.5), ax=fig.mne.ax_vscroll)  # change channels
-    sel_fig = plt.figure(1)
-    topo_ax = sel_fig.axes[1]
+    sel_fig = fig.mne.fig_selection
+    topo_ax = sel_fig.mne.sensor_ax
     fig._fake_click([-0.425, 0.20223853], sel_fig, topo_ax, xform='data')
     fig._fake_keypress('down')
     fig._fake_keypress('up')
