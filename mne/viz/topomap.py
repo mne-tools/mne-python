@@ -1499,7 +1499,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         automatically by checking for local maxima in global field power. If
         "interactive", the time can be set interactively at run-time by using a
         slider.
-    %(topomap_ch_type)s
+    %(evoked_topomap_ch_type)s
     %(topomap_vmin_vmax)s
     %(topomap_cmap)s
     %(topomap_sensors)s

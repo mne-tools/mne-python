@@ -318,7 +318,7 @@ proj : bool | 'interactive' | 'reconstruct'
     .. versionchanged:: 0.21
        Support for 'reconstruct' was added.
 """
-docdict["topomap_ch_type"] = """
+docdict["evoked_topomap_ch_type"] = """
 ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
     The channel type to plot. For 'grad', the gradiometers are collected in
     pairs and the RMS for each pair is plotted.
