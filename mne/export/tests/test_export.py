@@ -69,7 +69,7 @@ def test_export_raw_edf(tmpdir):
     print(len(raw.times), len(raw_read.times))
     assert_array_almost_equal(raw.times, raw_read.times, decimal=1)
     assert_array_almost_equal(
-        raw.get_data(), raw_read.get_data(), decimal=1)
+        raw.get_data(), raw_read.get_data(), decimal=3)
 
 
 @pytest.mark.skipif(not _check_eeglabio_installed(strict=False),

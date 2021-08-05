@@ -5,7 +5,7 @@
 
 import numpy as np
 
-from ..utils import _check_edflib_installed
+from ..utils import _check_edflib_installed, warn
 _check_edflib_installed()
 from EDFlib.edfwriter import EDFwriter  # noqa: E402
 
@@ -27,14 +27,27 @@ def _export_raw(fname, raw):
     sfreq = int(raw.info['sfreq'])
     n_secs = n_times / sfreq
 
+    # get data in uV
+    units = dict()
+    if 'eeg' in raw:
+        units['eeg'] = 'uV'
+    if 'ecog' in raw:
+        units['ecog'] = 'uV'
+    if 'seeg' in raw:
+        units['seeg'] = 'uV'
+    data = raw.get_data(units=units, picks=ch_names)
+
+    # get the physical min and max of the data
+    pmin, pmax = data.min(axis=1), data.max(axis=1)
+
     # create instance of EDF Writer
     hdl = EDFwriter(fname, EDFwriter.EDFLIB_FILETYPE_EDFPLUS, n_chs)
 
     # set channel data
     for ichan, ch in enumerate(ch_names):
-        if hdl.setPhysicalMaximum(ichan, 3000) != 0:  # noqa
+        if hdl.setPhysicalMaximum(ichan, pmax[ichan]) != 0:  # noqa
             raise RuntimeError("setPhysicalMaximum() returned an error")
-        if hdl.setPhysicalMinimum(ichan, -3000) != 0:  # noqa
+        if hdl.setPhysicalMinimum(ichan, pmin[ichan]) != 0:  # noqa
             raise RuntimeError("setPhysicalMinimum() returned an error")
         if hdl.setDigitalMaximum(ichan, 32767) != 0:  # noqa
             raise RuntimeError("setDigitalMaximum() returned an error")
@@ -98,16 +111,6 @@ def _export_raw(fname, raw):
     #     raise RuntimeError("setAdditionalRecordingInfo() returned an error")
     #     sys.exit()
 
-    # get data in uV
-    units = dict()
-    if 'eeg' in raw:
-        units['eeg'] = 'uV'
-    if 'ecog' in raw:
-        units['ecog'] = 'uV'
-    if 'seeg' in raw:
-        units['seeg'] = 'uV'
-    data = raw.get_data(units=units, picks=ch_names)
-
     # Write each second (i.e. datarecord) separately.
     for isec in range(np.ceil(n_secs).astype(int)):
         end_samp = (isec + 1) * sfreq
@@ -118,14 +121,22 @@ def _export_raw(fname, raw):
         # then for each second write each channel
         for ich in range(n_chs):
             # create a buffer with sampling rate
-            buf = np.empty(sfreq, np.float64, "C")
+            buf = np.zeros(sfreq, np.float64, "C")
 
             # get channel data for this second
             ch_data = data[ich, start_samp:end_samp]
+
             buf[:len(ch_data)] = ch_data
             err = hdl.writeSamples(buf)
             if err != 0:  # noqa
                 raise RuntimeError(f"writeSamples() returned error: {err}")
+
+        # there was an incomplete datarecord
+        if len(ch_data) != len(buf):
+            warn(f'A complete data record consists of {len(buf)} samples, '
+                 f'but this sample window ended up having {len(ch_data)} '
+                 f'samples. {len(buf) - len(ch_data)} zeros were appended '
+                 f'to the datarecord.')
 
     # write annotations
     # XXX: possibly writing multiple annotations per data record is not
