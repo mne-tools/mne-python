@@ -1325,8 +1325,8 @@ class Coregistration(object):
         self._dig['nasion'] = np.array([self._dig['nasion']])
         self._dig['lpa'] = np.array([self._dig['lpa']])
 
-        self._setup_mri(subjects_dir=self._subjects_dir,
-                        subject=self._subject)
+        self._setup_bem()
+        self._setup_fiducials()
         self.reset()
         self._update_params(
             rot=self._default_parameters[:3],
@@ -1334,13 +1334,15 @@ class Coregistration(object):
             sca=self._default_parameters[6:9],
         )
 
-    def _setup_mri(self, subjects_dir, subject):
+    def _setup_bem(self):
         # find high-res head model (if possible)
-        high_res_path = _find_head_bem(subject, subjects_dir, high_res=True)
-        low_res_path = _find_head_bem(subject, subjects_dir, high_res=False)
+        high_res_path = _find_head_bem(self._subject, self._subjects_dir,
+                                       high_res=True)
+        low_res_path = _find_head_bem(self._subject, self._subjects_dir,
+                                      high_res=False)
         if high_res_path is None and low_res_path is None:
             raise RuntimeError("No standard head model was "
-                               f"found for subject {subject}")
+                               f"found for subject {self._subject}")
         if high_res_path is not None:
             self._bem_high_res = _read_surface(high_res_path)
             logger.info(f'Using high resolution head model in {high_res_path}')
@@ -1362,23 +1364,23 @@ class Coregistration(object):
         else:
             self._bem_low_res = _read_surface(low_res_path)
 
-        # Set MNI points
+    def _setup_fiducials(self):
         try:
-            fids = get_mni_fiducials(subject, subjects_dir)
+            fids = get_mni_fiducials(self._subject, self._subjects_dir)
         except Exception:  # some problem, leave at origin
-            self._mni_points = None
+            mni_points = None
         else:
-            self._mni_points = np.array([f['r'] for f in fids], float)
+            mni_points = np.array([f['r'] for f in fids], float)
 
         # find fiducials file
-        fid_files = _find_fiducials_files(subject, subjects_dir)
+        fid_files = _find_fiducials_files(self._subject, self._subjects_dir)
         if len(fid_files) > 0:
-            fid_filename = fid_files[0].format(subjects_dir=subjects_dir,
-                                               subject=subject)
+            fid_filename = fid_files[0].format(subjects_dir=self._subjects_dir,
+                                               subject=self._subject)
         else:
             fid_filename = None
         if fid_filename is None or not op.exists(fid_filename):
-            self._fid_points = self._mni_points
+            self._fid_points = mni_points
         else:
             self._fid_points = _fiducial_coords(*read_fiducials(fid_filename))
 
@@ -1805,7 +1807,7 @@ class Coregistration(object):
         ----------
         distance : float
             Exclude all points that are further away from the MRI head than
-            this distance. A value of distance <= 0 excludes nothing.
+            this distance (in m.). A value of distance <= 0 excludes nothing.
 
         Returns
         -------
