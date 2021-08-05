@@ -891,7 +891,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     del other_bools
 
     # initialize figure
-    renderer = _get_renderer(fig, bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
+    renderer = _get_renderer(fig, name=f'Sensor alignment: {subject}',
+                             bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
     if interaction == 'terrain':
         renderer.set_interaction('terrain')
 
