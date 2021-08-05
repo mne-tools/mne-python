@@ -77,29 +77,14 @@ The notebook 3d backend requires PyVista to be installed along with other packag
 please follow :doc:`mne_python`.
 
 
-.. _installing_main:
-
 Using the development version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you want access to the latest features and bugfixes, you can easily switch
-from the stable version of MNE-Python to the current development version.
+See :ref:`installing_main` for how to do a one-time update to the latest
+development version of MNE-Python. If you plan to contribute to MNE-Python, or
+just prefer to use git rather than pip to make frequent updates, there are
+instructions for installing from a ``git clone`` in the :ref:`contributing`.
 
-.. warning:: In between releases, function and class APIs can change without
-             warning.
-
-For a one-time update to latest main, make sure you're in the conda
-environment where MNE-Python is installed (if you followed the default install
-instructions, this will be ``mne``), and use ``pip`` to upgrade:
-
-.. code-block:: console
-
-   $ conda activate name_of_my_mne_environment
-   $ pip install --upgrade --no-deps https://github.com/mne-tools/mne-python/archive/main.zip
-
-If you plan to contribute to MNE-Python, or just prefer to use git rather than
-pip to make frequent updates, there are instructions for installing from a
-``git clone`` in the :ref:`contributing`.
 
 .. _other-py-distros:
 
@@ -113,10 +98,25 @@ like Anaconda, Miniconda includes the ``conda`` command line tool for
 installing new packages and managing environments; unlike Anaconda, Miniconda
 starts off with a minimal set of around 30 packages instead of Anaconda's
 hundreds. See the `installation instructions for Miniconda`_ for more info.
+A similar alternative is `MiniForge`_, which uses the ``conda-forge`` channel
+as the default source for package installation (saving you the trouble of
+typing ``--channel=conda-forge`` with each ``conda install`` command).
 
-It is also possible to use a system-level installation of Python (version 3.6
-or higher) and use ``pip`` to install MNE-Python and its dependencies, using
-the provided `requirements file`_:
+.. warning::
+
+    If you have the ``PYTHONPATH`` or ``PYTHONHOME`` environment variables set,
+    you may run into difficulty using Anaconda. See the
+    `Anaconda troubleshooting guide`_ for more information. Note that it is
+    easy to switch between ``conda``-managed Python installations and the
+    system Python installation using the ``conda activate`` and ``conda
+    deactivate`` commands, so you may find that after adopting Anaconda it is
+    possible (indeed, preferable) to leave ``PYTHONPATH`` and ``PYTHONHOME``
+    permanently unset.
+
+
+It is also possible to use a system-level installation of Python (version
+|min_python_version| or higher) and use ``pip`` to install MNE-Python and its
+dependencies, using the provided `requirements file`_:
 
 .. code-block:: console
 
