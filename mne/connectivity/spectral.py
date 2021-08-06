@@ -557,8 +557,8 @@ def _check_estimators(method, mode):
 
 
 @deprecated(extra='Starting version v0.25, mne.connectivity sub-modules '
-                  'will be housed in `mne-connectivity`. Download it '
-                  'by running `pip install mne-connectivity`.')
+                  'will be housed in ``mne-connectivity``. Download it '
+                  'by running ``pip install mne-connectivity``.')
 @verbose
 def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                           mode='multitaper', fmin=None, fmax=np.inf,
