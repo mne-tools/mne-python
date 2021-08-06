@@ -145,6 +145,7 @@ intersphinx_mapping = {
     'nilearn': ('http://nilearn.github.io', None),
     'surfer': ('https://pysurfer.github.io/', None),
     'mne_bids': ('https://mne.tools/mne-bids/stable', None),
+    'mne-connectivity': ('https://mne.tools/mne-connectivity/stable', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
     'seaborn': ('https://seaborn.pydata.org/', None),
     'statsmodels': ('https://www.statsmodels.org/dev', None),
@@ -230,8 +231,6 @@ numpydoc_xref_aliases = {
     'dipy.align.DiffeomorphicMap': 'dipy.align.imwarp.DiffeomorphicMap',
 }
 numpydoc_xref_ignore = {
-    # connectivity - deprecated
-    'connectivity',
     # words
     'instance', 'instances', 'of', 'default', 'shape', 'or',
     'with', 'length', 'pair', 'matplotlib', 'optional', 'kwargs', 'in',
@@ -736,7 +735,7 @@ html_context = {
         dict(title='Connectivity',
              text='All-to-all spectral and effective connec\u00ADtivity measures.',  # noqa E501
              url='https://mne.tools/mne-connectivity/stable/auto_examples/mne_inverse_label_connectivity.html',  # noqa E501
-             img='_static/temp_sphx_glr_mne_inverse_label_connectivity_001.png',  # noqa E501
+             img='_static/temp_homepage_connectivity.png',  # noqa E501
              alt='Connectivity'),
         dict(title='Data Visualization',
              text='Explore your data from multiple perspectives.',
