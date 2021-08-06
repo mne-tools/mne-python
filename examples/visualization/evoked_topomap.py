@@ -121,6 +121,7 @@ evoked.plot_topomap(0.1, ch_type='mag', show_names=True, colorbar=False,
                     time_unit='s')
 plt.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)
 
+# %%
 # We can also highlight specific channels by adding a mask:
 
 times = (0.09, 0.1, 0.11)
