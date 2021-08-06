@@ -385,8 +385,11 @@ cbar_fmt : str
 """
 docdict["topomap_mask"] = """
 mask : ndarray of bool, shape (n_channels, n_samples) | None
-    The channels to be marked as significant at a given time point.
-    Indices set to ``True`` will be considered. Defaults to ``None``.
+    Array indicating channel-time combinations to highlight with a distinct
+    plotting style (useful for, e.g., marking which channels at which times a
+    statistical test of the data reaches significance). Array elements set to
+    ``True`` will be plotted with the parameters given in ``mask_params``.
+    Defaults to ``None``, equivalent to an array of all ``False`` elements.
 """
 docdict["topomap_mask_params"] = """
 mask_params : dict | None
