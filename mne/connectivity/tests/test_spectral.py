@@ -7,10 +7,6 @@ from mne.connectivity import spectral_connectivity
 from mne.connectivity.spectral import _CohEst, _get_n_epochs
 from mne.filter import filter_data
 
-warning_str = dict(
-    deprecation='ignore:.*mne-connectivity:DeprecationWarning:mne'
-)
-
 
 def _stc_gen(data, sfreq, tmin, combo=False):
     """Simulate a SourceEstimate generator."""
@@ -28,7 +24,6 @@ def _stc_gen(data, sfreq, tmin, combo=False):
             yield (arr, stc)
 
 
-@pytest.mark.filterwarnings(warning_str['deprecation'])
 @pytest.mark.parametrize('method', ['coh', 'cohy', 'imcoh', 'plv',
                                     ['ciplv', 'ppc', 'pli', 'pli2_unbiased',
                                      'wpli', 'wpli2_debiased', 'coh']])
@@ -215,7 +210,6 @@ def test_spectral_connectivity(method, mode):
     assert (out_lens[0] == 10)
 
 
-@pytest.mark.filterwarnings(warning_str['deprecation'])
 @pytest.mark.parametrize('kind', ('epochs', 'ndarray', 'stc', 'combo'))
 def test_epochs_tmin_tmax(kind):
     """Test spectral.spectral_connectivity with epochs and arrays."""

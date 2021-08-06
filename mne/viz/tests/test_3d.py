@@ -703,12 +703,6 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     del brain
 
 
-warning_str = dict(
-    deprecation='ignore:.*mne-connectivity:DeprecationWarning:mne'
-)
-
-
-@pytest.mark.filterwarnings(warning_str['deprecation'])
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_plot_sensors_connectivity(renderer):

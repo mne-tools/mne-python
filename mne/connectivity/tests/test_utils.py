@@ -5,12 +5,6 @@ import pytest
 from mne.connectivity import seed_target_indices, degree
 
 
-warning_str = dict(
-    deprecation='ignore:.*mne-connectivity:DeprecationWarning:mne'
-)
-
-
-@pytest.mark.filterwarnings(warning_str['deprecation'])
 def test_indices():
     """Test connectivity indexing methods."""
     n_seeds_test = [1, 3, 4]
@@ -31,7 +25,6 @@ def test_indices():
                 assert np.sum(indices[1] == target) == n_seeds
 
 
-@pytest.mark.filterwarnings(warning_str['deprecation'])
 def test_degree():
     """Test degree function."""
     # degenerate conditions

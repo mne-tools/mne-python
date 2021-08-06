@@ -16,7 +16,7 @@ create 30 second epochs that allow us to perform non-event-related analyses of
 the signal.
 
 Note: Starting version v0.25, mne.connectivity sub-modules will be housed in
-`mne-connectivity`. Download it by  running `pip install mne-connectivity`.
+`mne-connectivity`. Download it by  running `pip install mne-connectivity`
 """
 
 # %%
@@ -26,6 +26,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import mne
 from mne.preprocessing import compute_proj_ecg
+from mne_connectivity import envelope_correlation
 
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
@@ -93,7 +94,7 @@ alpha_data = epochs.get_data()
 # For envelope correlations, this is done by passing ``combine=None`` to the
 # envelope correlations function.
 
-corr_matrix = mne.connectivity.envelope_correlation(alpha_data, combine=None)
+corr_matrix = envelope_correlation(alpha_data, combine=None)
 
 # %%
 # Now we can plot correlation matrices. We'll compare the first and last
