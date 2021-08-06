@@ -879,12 +879,16 @@ for icon, cls in icons.items():
 
 # -- Dependency info ----------------------------------------------------------
 
-strip_chars = '=<>,"\''
-with open(os.path.join('..', 'setup.py'), 'r') as fid:
-    for line in fid:
-        if line.strip().startswith('python_requires='):
-            min_py = line.strip().split('=', maxsplit=1)[1].strip(strip_chars)
-
+try:
+    from importlib.metadata import metadata  # new in Python 3.8
+    min_py = metadata('mne')['Requires-Python']
+except ModuleNotFoundError:
+    from pkg_resources import get_distribution
+    info = get_distribution('mne').get_metadata_lines('PKG-INFO')
+    for line in info:
+        if line.strip().startswith('Requires-Python'):
+            min_py = line.split(':')[1]
+min_py = min_py.lstrip(' =<>')
 prolog += f'\n.. |min_python_version| replace:: {min_py}\n'
 
 # -- website redirects --------------------------------------------------------
