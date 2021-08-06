@@ -463,6 +463,8 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
 def _check_mri(mri, subject, subjects_dir):
     """Check whether an mri exists in the Freesurfer subject directory."""
     _validate_type(mri, 'path-like', 'mri')
+    if op.isfile(mri) and op.basename(mri) != mri:
+        return mri
     if not op.isfile(mri):
         if subject is None:
             raise FileNotFoundError(
@@ -471,6 +473,9 @@ def _check_mri(mri, subject, subjects_dir):
         mri = op.join(subjects_dir, subject, 'mri', mri)
         if not op.isfile(mri):
             raise FileNotFoundError(f'MRI file {mri!r} not found')
+    if op.basename(mri) == mri:
+        raise IOError(f'Ambiguous filename - found {mri!r} in current folder.\n'
+                      'If this is correct prefix with relative or absolute path')
     return mri
 
 
