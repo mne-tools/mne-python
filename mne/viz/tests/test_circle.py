@@ -91,7 +91,6 @@ def test_plot_connectivity_circle():
     plt.close('all')
 
 
-@pytest.mark.filterwarnings(warning_str['deprecation'])
 @pytest.mark.filterwarnings('ignore:invalid value encountered in greater_equal'
                             ':RuntimeWarning')
 def test_plot_channel_labels_circle():
