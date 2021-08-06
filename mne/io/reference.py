@@ -135,7 +135,7 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None,
             # 4. Compute the forward (G) and average-reference it (Ga):
             Ga = G - np.mean(G, axis=0, keepdims=True)
             # 5. Compute the Ga_inv by SVD
-            Ga_inv = linalg.pinv(Ga, rcond=1e-6)
+            Ga_inv = linalg.pinv(Ga, atol=1e-6)
             # 6. Compute Ra = (G @ Ga_inv) in eq (8) from G and Ga_inv
             Ra = G @ Ga_inv
             # 7-8. Compute Vp = Ra @ Va; then Vpa=average(Vp)

@@ -1002,7 +1002,7 @@ def _fit_confidence(rd, Q, ori, whitener, fwd_data):
     norm = np.array([direction_norm] * 3 + [Q_norm] * 3)
     J /= norm
     J = np.dot(J.T, J)
-    C = linalg.pinvh(J, rcond=1e-14)
+    C = linalg.pinvh(J, atol=1e-14)
     C /= norm
     C /= norm[:, np.newaxis]
     conf = 1.96 * np.sqrt(np.diag(C))

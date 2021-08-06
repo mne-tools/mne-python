@@ -1756,7 +1756,7 @@ class ICA(ContainsMixin):
         if self.noise_cov is None:  # revert standardization
             data *= self.pre_whitener_
         else:
-            data = np.linalg.pinv(self.pre_whitener_, rcond=1e-14) @ data
+            data = np.linalg.pinv(self.pre_whitener_, atol=1e-14) @ data
 
         return data
 
