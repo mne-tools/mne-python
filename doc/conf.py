@@ -230,6 +230,8 @@ numpydoc_xref_aliases = {
     'dipy.align.DiffeomorphicMap': 'dipy.align.imwarp.DiffeomorphicMap',
 }
 numpydoc_xref_ignore = {
+    # connectivity - deprecated
+    'connectivity',
     # words
     'instance', 'instances', 'of', 'default', 'shape', 'or',
     'with', 'length', 'pair', 'matplotlib', 'optional', 'kwargs', 'in',

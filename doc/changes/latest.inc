@@ -189,4 +189,4 @@ API changes
 
 - Deprecate ``solver='prox'`` in :func:`mne.inverse_sparse.mixed_norm` in favor of ``solver='cd'`` and ``solver='bcd'`` as coordinate descent solvers consistently outperform proximal gradient descent (:gh:`9608` by `Pierre-Antoine Bannier`_)
 
-- All `mne.connectivity` functions are deprecated to be fully removed in v0.25 (:gh:`9493` by `Adam Li`_).
+- All `mne.connectivity` functions are deprecated to be fully removed in v0.25. The new functionality is now housed in the ``mne-connectivity`` package (:gh:`9493` by `Adam Li`_).
