@@ -1110,10 +1110,16 @@ def _require_minimum_version(version_required):
 
 @contextmanager
 def _disabled_depth_peeling():
-    from pyvista import rcParams
-    depth_peeling_enabled = rcParams["depth_peeling"]["enabled"]
-    rcParams["depth_peeling"]["enabled"] = False
+    try:
+        from pyvista import global_theme
+    except Exception:  # workaround for older PyVista
+        from pyvista import rcParams
+        depth_peeling = rcParams['depth_peeling']
+    else:
+        depth_peeling = global_theme.depth_peeling
+    depth_peeling_enabled = depth_peeling["enabled"]
+    depth_peeling["enabled"] = False
     try:
         yield
     finally:
-        rcParams["depth_peeling"]["enabled"] = depth_peeling_enabled
+        depth_peeling["enabled"] = depth_peeling_enabled
