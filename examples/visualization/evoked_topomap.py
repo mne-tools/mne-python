@@ -89,7 +89,7 @@ evoked.plot_topomap(times, ch_type='mag', cmap='Spectral_r', res=32,
 # the effect of extrapolation. There are three extrapolation modes:
 #
 # - ``extrapolate='local'`` extrapolates only to points close to the sensors.
-# - ``extrapolate='head'`` extrapolates out to the head head circle.
+# - ``extrapolate='head'`` extrapolates out to the head circle.
 # - ``extrapolate='box'`` extrapolates to a large box stretching beyond the
 #   head circle.
 #
