@@ -121,6 +121,23 @@ evoked.plot_topomap(0.1, ch_type='mag', show_names=True, colorbar=False,
                     time_unit='s')
 plt.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)
 
+# We can also highlight specific channels by adding a mask:
+
+times = (0.09, 0.1, 0.11)
+_times = np.searchsorted(evoked.times, times) - 1
+significant_channels = [
+    ('MEG 0231', 'MEG 1611', 'MEG 1621', 'MEG 1631', 'MEG 1811'),
+    ('MEG 2411', 'MEG 2421'),
+    ('MEG 1621')]
+_channels = [np.in1d(evoked.ch_names, ch) for ch in significant_channels]
+
+mask = np.zeros(evoked.data.shape, dtype='bool')
+for _chs, _time in zip(_channels, _times):
+    mask[_chs, _time] = True
+
+evoked.plot_topomap(times, ch_type='mag', time_unit='s', mask=mask,
+                    mask_params=dict(markersize=10, markerfacecolor='y'))
+
 # %%
 # Animating the topomap
 # ---------------------
