@@ -474,8 +474,9 @@ def _check_mri(mri, subject, subjects_dir):
         if not op.isfile(mri):
             raise FileNotFoundError(f'MRI file {mri!r} not found')
     if op.basename(mri) == mri:
-        raise IOError(f'Ambiguous filename - found {mri!r} in current folder.\n'
-                      'If this is correct prefix with relative or absolute path')
+        err = (f'Ambiguous filename - found {mri!r} in current folder.\n'
+               'If this is correct prefix name with relative or absolute path')
+        raise IOError(err)
     return mri
 
 
