@@ -370,20 +370,26 @@ list(event_dict)
 epochs['auditory'].average()
 
 # %%
+# see :ref:`tut-section-subselect-epochs` for details.
+#
+# The tutorials :ref:`tut-epochs-class` and :ref:`tut-evoked-class` have many
+# more details about working with the `~mne.Epochs` and `~mne.Evoked` classes.
+
+# %%
 # Amplitude and Latency Measures
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # It is common in ERP research to extract measures of amplitude or latency to
 # to compare across different conditions. There are many measures that can be
 # extracted from ERPs, and many of these are detailed (including the respective
-# strengths and weaknesses) in Ch. 10 of:footcite:`Luck2014` (also see the
+# strengths and weaknesses) in Ch. 10 of Luck :footcite:`Luck2014` (also see the
 # `Measurement Tool <https://bit.ly/37uydRw>` in the ERPLAB Toolbox
 # :footcite:`Lopez-CalderonLuck2014`.
 #
 # This part of the tutorial will demonstrate how to extract three common
 # measures:
-# * Peak Latency
-# * Peak Amplitude
-# * Mean Amplitude
+#      * Peak Latency
+#      * Peak Amplitude
+#      * Mean Amplitude
 #
 # Peak Latency and Amplitude
 # --------------------------
@@ -553,12 +559,7 @@ m_amp_df['tmax'] = tmax
 m_amp_df['condition'] = 'Left/Visual'
 m_amp_df.head()
 
-# %%
-# see :ref:`tut-section-subselect-epochs` for details.
-#
-# The tutorials :ref:`tut-epochs-class` and :ref:`tut-evoked-class` have many
-# more details about working with the `~mne.Epochs` and `~mne.Evoked` classes.
-#
+
 # .. _ten_twenty: https://en.wikipedia.org/wiki/10%E2%80%9320_system_(EEG)
 #
 #
