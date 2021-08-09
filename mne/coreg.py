@@ -1280,7 +1280,8 @@ class Coregistration(object):
         Path to MRI subjects directory.
     fids : list | str
         List of fiducials or if set to 'auto', the fiducials are initialized
-        automatically. Defaults to 'auto'.
+        automatically using fiducials defined in MNI template. Defaults to
+        'auto'.
 
     Attributes
     ----------
@@ -1463,7 +1464,7 @@ class Coregistration(object):
 
             * 'uniform': 1 scale factor is recovered.
             * '3-axis': 3 scale factors are recovered.
-            * None: no unity scale factor is recovered.
+            * None: do not scale the MRI.
 
         Returns
         -------
