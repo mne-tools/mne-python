@@ -560,7 +560,7 @@ m_amp_df['tmax'] = tmax
 m_amp_df['condition'] = 'Left/Visual'
 m_amp_df.head()
 
-
+# %%
 # .. _ten_twenty: https://en.wikipedia.org/wiki/10%E2%80%9320_system_(EEG)
 #
 #
