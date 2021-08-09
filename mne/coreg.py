@@ -1804,7 +1804,7 @@ class Coregistration(object):
             self._log_dig_mri_distance()
         return self
 
-    def omit_hsp_points(self, distance):
+    def omit_head_shape_points(self, distance):
         """Exclude head shape points that are far away from the MRI head.
 
         Parameters
