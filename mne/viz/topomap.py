@@ -1519,7 +1519,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     %(show)s
     %(topomap_show_names)s
     %(title_None)s
-    %(topomap_mask)s
+    %(evoked_topomap_mask)s
     %(topomap_mask_params)s
     %(topomap_outlines)s
     %(topomap_contours)s

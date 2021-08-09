@@ -383,14 +383,29 @@ docdict["topomap_cbar_fmt"] = """
 cbar_fmt : str
     String format for colorbar values.
 """
-docdict["topomap_mask"] = """
-mask : ndarray of bool, shape (n_channels, n_samples) | None
-    Array indicating channel-time combinations to highlight with a distinct
-    plotting style (useful for, e.g., marking which channels at which times a
-    statistical test of the data reaches significance). Array elements set to
-    ``True`` will be plotted with the parameters given in ``mask_params``.
-    Defaults to ``None``, equivalent to an array of all ``False`` elements.
+mask_base = """
+mask : ndarray of bool, shape %(shape)s | None
+    Array indicating channel%(shape-appendinx)s to highlight with a distrinct
+    plotting style%(example)s. Array elements set to ``True`` will be plotted
+    with the parameters given in ``mask_params``. Defaults to ``None``,
+    equivalent to an array of all ``False`` elements.
 """
+topomap_mask_dstr = {
+    'shape': '(n_channels, )',
+    'shape-appendinx': '',
+    'example': ''}
+evoked_topomap_mask_dstr = {
+    'shape': '(n_channels, n_times)',
+    'shape-appendinx': '-time combinations',
+    'example': ''}
+patterns_topomap_mask_dstr = {
+    'shape': '(n_channels, n_patterns)',
+    'shape-appendinx': '-pattern combinations',
+    'example': ' (useful for, e.g., marking which channels at which times ' +
+               'a statistical test of the data reaches significance)'}
+docdict['topomap_mask'] = mask_base % topomap_mask_dstr
+docdict['evoked_topomap_mask'] = mask_base % evoked_topomap_mask_dstr
+docdict['patterns_topomap_mask'] = mask_base % patterns_topomap_mask_dstr
 docdict["topomap_mask_params"] = """
 mask_params : dict | None
     Additional plotting parameters for plotting significant sensors.
