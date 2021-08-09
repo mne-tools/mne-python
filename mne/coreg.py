@@ -37,7 +37,7 @@ from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          _fit_matched_points, apply_trans,
                          rot_to_quat, _angle_between_quats)
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
-                    warn, has_nibabel, fill_doc)
+                    warn, has_nibabel, fill_doc, _validate_type)
 from .viz._3d import _fiducial_coords
 
 # some path templates
@@ -1278,7 +1278,7 @@ class Coregistration(object):
         Name of the subject the data are defined for.
     subjects_dir : path-like
         Path to MRI subjects directory.
-    fids : list | str
+    fids : dict | str
         List of fiducials or if set to 'auto', the fiducials are initialized
         automatically using fiducials defined in MNI template. Defaults to
         'auto'.
@@ -1369,8 +1369,11 @@ class Coregistration(object):
             self._bem_low_res = _read_surface(low_res_path)
 
     def _setup_fiducials(self, fids):
+        _validate_type(fids, (str, dict))
         if fids == 'auto':
             fids = get_mni_fiducials(self._subject, self._subjects_dir)
+        else:
+            fids = fids.values()
         mni_points = np.array([f['r'] for f in fids], float)
 
         # find fiducials file

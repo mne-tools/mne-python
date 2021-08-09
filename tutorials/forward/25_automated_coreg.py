@@ -7,9 +7,9 @@ This example shows how to use the coregistration functions to perform an
 automated MEG-MRI coregistration.
 
 .. warning:: The quality of the coregistration depends heavily upon the
-             quality of the head shape collected during subject prepration and
-             the quality of your T1-weighted MRI. Use with caution and check
-             the coregistration error.
+             quality of the head shape points (HSP) collected during subject
+             prepration and the quality of your T1-weighted MRI. Use with
+             caution and check the coregistration error.
 """
 
 # Author: Jon Houck <jon.houck@gmail.com>
