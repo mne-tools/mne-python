@@ -60,11 +60,10 @@ if os.getenv('MNE_FULL_DATE', 'false').lower() != 'true':
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-# The short X.Y version.
-version = mne.__version__
 # The full version, including alpha/beta/rc tags.
-release = version
-
+release = mne.__version__
+# The short X.Y version.
+version = '.'.join(release.split('.')[:2])
 
 # -- General configuration ---------------------------------------------------
 
@@ -877,6 +876,20 @@ for icon, cls in icons.items():
 
     <i class="fa{cls} fa-{icon[3:] if fw else icon}{fw}"></i>
 '''
+
+# -- Dependency info ----------------------------------------------------------
+
+try:
+    from importlib.metadata import metadata  # new in Python 3.8
+    min_py = metadata('mne')['Requires-Python']
+except ModuleNotFoundError:
+    from pkg_resources import get_distribution
+    info = get_distribution('mne').get_metadata_lines('PKG-INFO')
+    for line in info:
+        if line.strip().startswith('Requires-Python'):
+            min_py = line.split(':')[1]
+min_py = min_py.lstrip(' =<>')
+prolog += f'\n.. |min_python_version| replace:: {min_py}\n'
 
 # -- website redirects --------------------------------------------------------
 
