@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 """Compute resolution metrics from resolution matrix.
 
 Resolution metrics: localisation error, spatial extent, relative amplitude.
@@ -44,13 +44,14 @@ def resolution_metrics(resmat, src, function='psf', metric='peak_err',
 
         Spatial-extent-based metrics:
 
-        - ``'sd_ext'`` spatial deviation (e.g. [1,2]_).
-        - ``'maxrad_ext'`` maximum radius to 50%% of max amplitude.
+        - ``'sd_ext'`` Spatial deviation
+          (e.g. :footcite:`MolinsEtAl2008,HaukEtAl2019`).
+        - ``'maxrad_ext'`` Maximum radius to 50%% of max amplitude.
 
         Amplitude-based metrics:
 
-        - ``'peak_amp'`` Ratio between absolute maximum amplitudes of peaks per
-            location and maximum peak across locations.
+        - ``'peak_amp'`` Ratio between absolute maximum amplitudes of peaks
+          per location and maximum peak across locations.
         - ``'sum_amp'`` Ratio between sums of absolute amplitudes.
 
     threshold : float
@@ -65,18 +66,13 @@ def resolution_metrics(resmat, src, function='psf', metric='peak_err',
 
     Notes
     -----
-    For details, see [1]_ [2]_.
+    For details, see :footcite:`MolinsEtAl2008,HaukEtAl2019`.
 
     .. versionadded:: 0.20
 
     References
     ----------
-    .. [1] Molins A, Stufflebeam S M, Brown E N, Hämäläinen M S (2008).
-           Quantification of the benefit from integrating MEG and EEG data in
-           minimum l2-norm estimation. Neuroimage, 42(3):1069-77.
-    .. [2] Hauk O, Stenroos M, Treder M (2019). "Towards an Objective
-           Evaluation of EEG/MEG Source Estimation Methods: The Linear Tool
-           Kit", bioRxiv, doi: https://doi.org/10.1101/672956.
+    .. footbibliography::
     """
     # Check if input options are valid
     metrics = ('peak_err', 'cog_err', 'sd_ext', 'maxrad_ext', 'peak_amp',

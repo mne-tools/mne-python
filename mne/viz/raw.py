@@ -31,10 +31,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4,
-             clipping=_RAW_CLIP_DEF,
-             show_first_samp=False, proj=True, group_by='type',
-             butterfly=False, decim='auto', noise_cov=None, event_id=None,
-             show_scrollbars=True, show_scalebars=True, verbose=None):
+             clipping=_RAW_CLIP_DEF, show_first_samp=False,
+             proj=True, group_by='type', butterfly=False, decim='auto',
+             noise_cov=None, event_id=None, show_scrollbars=True,
+             show_scalebars=True, time_format='float', verbose=None):
     """Plot raw data.
 
     Parameters
@@ -77,6 +77,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
             dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
                  emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
                  resp=1, chpi=1e-4, whitened=1e2)
+
+        A particular scaling value ``s`` corresponds to half of the visualized
+        signal range around zero (i.e. from ``0`` to ``+s`` or from ``0`` to
+        ``-s``). For example, the default scaling of ``20e-6`` (20µV) for EEG
+        signals means that the visualized range will be 40µV (20µV in the
+        positive direction and 20µV in the negative direction).
 
     remove_dc : bool
         If True remove DC component when plotting data.
@@ -162,6 +168,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Whether or not to show the scale bars. Defaults to True.
 
         .. versionadded:: 0.20.0
+    %(time_format)s
     %(verbose)s
 
     Returns
@@ -311,6 +318,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   duration=duration,
                   n_times=raw.n_times,
                   first_time=first_time,
+                  time_format=time_format,
                   decim=decim,
                   # events
                   event_color_dict=event_color_dict,
@@ -354,16 +362,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # plot annotations (if any)
     fig._setup_annotation_colors()
-    fig._update_annotation_segments()
     fig._draw_annotations()
 
     # start with projectors dialog open, if requested
     if show_options:
         fig._toggle_proj_fig()
-
-    # for blitting
-    fig.canvas.flush_events()
-    fig.mne.bg = fig.canvas.copy_from_bbox(fig.bbox)
 
     plt_show(show, block=block)
     return fig
@@ -375,7 +378,8 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
                  picks=None, ax=None, color='black', xscale='linear',
                  area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
                  show=True, n_jobs=1, average=False, line_alpha=None,
-                 spatial_colors=True, sphere=None, verbose=None):
+                 spatial_colors=True, sphere=None, window='hamming',
+                 exclude='bads', verbose=None):
     """%(plot_psd_doc)s.
 
     Parameters
@@ -415,6 +419,15 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     %(plot_psd_line_alpha)s
     %(plot_psd_spatial_colors)s
     %(topomap_sphere_auto)s
+    %(window-psd)s
+
+        .. versionadded:: 0.22.0
+    exclude : list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the bad channels
+        are excluded. Pass an empty list to plot all channels (including
+        channels marked "bad", if any).
+
+        .. versionadded:: 0.24.0
     %(verbose)s
 
     Returns
@@ -436,7 +449,8 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
         average=average, estimate=estimate, area_mode=area_mode,
         line_alpha=line_alpha, area_alpha=area_alpha, color=color,
         spatial_colors=spatial_colors, n_jobs=n_jobs, n_fft=n_fft,
-        n_overlap=n_overlap, reject_by_annotation=reject_by_annotation)
+        n_overlap=n_overlap, reject_by_annotation=reject_by_annotation,
+        window=window, exclude=exclude)
     plt_show(show)
     return fig
 
@@ -531,8 +545,8 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
 
 def _setup_channel_selections(raw, kind, order):
     """Get dictionary of channel groupings."""
-    from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
-                             _divide_to_regions)
+    from ..channels import (read_vectorview_selection, _SELECTIONS,
+                            _EEG_SELECTIONS, _divide_to_regions)
     from ..utils import _get_stim_channel
     _check_option('group_by', kind, ('position', 'selection'))
     if kind == 'position':
@@ -553,7 +567,7 @@ def _setup_channel_selections(raw, kind, order):
         # loop over regions
         keys = np.concatenate([_SELECTIONS, _EEG_SELECTIONS])
         for key in keys:
-            channels = read_selection(key, info=raw.info)
+            channels = read_vectorview_selection(key, info=raw.info)
             picks = pick_channels(raw.ch_names, channels)
             picks = np.intersect1d(picks, order)
             if not len(picks):
@@ -563,7 +577,7 @@ def _setup_channel_selections(raw, kind, order):
     misc = pick_types(raw.info, meg=False, eeg=False, stim=True, eog=True,
                       ecg=True, emg=True, ref_meg=False, misc=True,
                       resp=True, chpi=True, exci=True, ias=True, syst=True,
-                      seeg=False, bio=True, ecog=False, fnirs=False,
+                      seeg=False, bio=True, ecog=False, fnirs=False, dbs=False,
                       exclude=())
     if len(misc) and np.in1d(misc, order).any():
         selections_dict['Misc'] = misc

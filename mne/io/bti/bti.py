@@ -144,7 +144,7 @@ def _rename_channels(names, ecg_ch='E31', eog_ch=('E63', 'E64')):
     return new
 
 
-# XXX: This is the guy reading the points
+# read the points
 def _read_head_shape(fname):
     """Read the head shape."""
     with _bti_open(fname, 'rb') as fid:
@@ -153,7 +153,7 @@ def _read_head_shape(fname):
         idx_points = read_double_matrix(fid, BTI.DATA_N_IDX_POINTS, 3)
         dig_points = read_double_matrix(fid, _n_dig_points, 3)
 
-    # XXX : reorder to lpa, rpa, nasion so = is direct.
+    # reorder to lpa, rpa, nasion so = is direct.
     nasion, lpa, rpa = [idx_points[_, :] for _ in [2, 0, 1]]
     hpi = idx_points[3:len(idx_points), :]
 
@@ -1186,7 +1186,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
             chan_info['unit'] = FIFF.FIFF_UNIT_V
 
         elif chan_4d == 'RESPONSE':
-            chan_info['kind'] = FIFF.FIFFV_RESP_CH
+            chan_info['kind'] = FIFF.FIFFV_STIM_CH
         elif chan_4d == 'TRIGGER':
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
         elif chan_4d.startswith('EOG'):

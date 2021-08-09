@@ -2,26 +2,28 @@
 # Authors: Mainak Jas <mainak@neuro.hut.fi>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
+import base64
 import copy
 import glob
+import pickle
+from io import BytesIO
 import os
 import os.path as op
+import re
 import shutil
 import pathlib
 
 import numpy as np
-from numpy.testing import assert_equal
 import pytest
 from matplotlib import pyplot as plt
 
-from mne import Epochs, read_events, read_evokeds
+from mne import Epochs, read_events, read_evokeds, report as report_mod
 from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper
-from mne.utils import (requires_nibabel, Bunch,
-                       run_tests_if_main, requires_h5py)
+from mne.utils import requires_nibabel, Bunch, requires_h5py
 from mne.viz import plot_alignment
 from mne.io.write import DATE_NONE
 
@@ -38,10 +40,17 @@ trans_fname = op.join(report_dir, 'sample_audvis_trunc-trans.fif')
 inv_fname = op.join(report_dir,
                     'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
 mri_fname = op.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
+bdf_fname = op.realpath(op.join(op.dirname(__file__), '..', 'io',
+                                'edf', 'tests', 'data', 'test.bdf'))
+edf_fname = op.realpath(op.join(op.dirname(__file__), '..', 'io',
+                                'edf', 'tests', 'data', 'test.edf'))
 
 base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
                                'data'))
 evoked_fname = op.join(base_dir, 'test-ave.fif')
+
+nirs_fname = op.join(data_dir, 'SNIRF', 'NIRx', 'NIRSport2', '1.0.3',
+                     '2021-05-05_001.snirf')
 
 
 def _get_example_figures():
@@ -54,7 +63,7 @@ def _get_example_figures():
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_render_report(renderer, tmpdir):
-    """Test rendering -*.fif files for mne report."""
+    """Test rendering *.fif files for mne report."""
     tempdir = str(tmpdir)
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
     raw_fname_new_bids = op.join(tempdir, 'temp_meg.fif')
@@ -64,6 +73,7 @@ def test_render_report(renderer, tmpdir):
     proj_fname_new = op.join(tempdir, 'temp_ecg-proj.fif')
     fwd_fname_new = op.join(tempdir, 'temp_raw-fwd.fif')
     inv_fname_new = op.join(tempdir, 'temp_raw-inv.fif')
+    nirs_fname_new = op.join(tempdir, 'temp_raw-nirs.snirf')
     for a, b in [[raw_fname, raw_fname_new],
                  [raw_fname, raw_fname_new_bids],
                  [ms_fname, ms_fname_new],
@@ -71,7 +81,8 @@ def test_render_report(renderer, tmpdir):
                  [cov_fname, cov_fname_new],
                  [proj_fname, proj_fname_new],
                  [fwd_fname, fwd_fname_new],
-                 [inv_fname, inv_fname_new]]:
+                 [inv_fname, inv_fname_new],
+                 [nirs_fname, nirs_fname_new]]:
         shutil.copyfile(a, b)
 
     # create and add -epo.fif and -ave.fif files
@@ -84,9 +95,11 @@ def test_render_report(renderer, tmpdir):
     raw.set_eeg_reference(projection=True)
     epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2)
     epochs.save(epochs_fname, overwrite=True)
-    # This can take forever (stall Travis), so let's make it fast
+    # This can take forever, so let's make it fast
     # Also, make sure crop range is wide enough to avoid rendering bug
-    evoked = epochs.average().crop(0.1, 0.2)
+    evoked = epochs.average()
+    with pytest.warns(RuntimeWarning, match='tmax is not in Evoked'):
+        evoked.crop(0.1, 0.2)
     evoked.save(evoked_fname)
 
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
@@ -97,14 +110,15 @@ def test_render_report(renderer, tmpdir):
 
     # Check correct paths and filenames
     fnames = glob.glob(op.join(tempdir, '*.fif'))
+    fnames.extend(glob.glob(op.join(tempdir, '*.snirf')))
     for fname in fnames:
         assert (op.basename(fname) in
                 [op.basename(x) for x in report.fnames])
         assert (''.join(report.html).find(op.basename(fname)) != -1)
 
-    assert_equal(len(report.fnames), len(fnames))
-    assert_equal(len(report.html), len(report.fnames))
-    assert_equal(len(report.fnames), len(report))
+    assert len(report.fnames) == len(fnames)
+    assert len(report.html) == len(report.fnames)
+    assert len(report.fnames) == len(report)
 
     # Check saving functionality
     report.data_path = tempdir
@@ -123,8 +137,8 @@ def test_render_report(renderer, tmpdir):
     assert 'Topomap (ch_type =' in html
     assert f'Evoked: {op.basename(evoked_fname)} (GFPs)' in html
 
-    assert_equal(len(report.html), len(fnames))
-    assert_equal(len(report.html), len(report.fnames))
+    assert len(report.html) == len(fnames)
+    assert len(report.html) == len(report.fnames)
 
     # Check saving same report to new filename
     report.save(fname=op.join(tempdir, 'report2.html'), open_browser=False)
@@ -165,6 +179,80 @@ def test_render_report(renderer, tmpdir):
         report.add_figs_to_section('foo', 'caption', 'section')
     with pytest.raises(TypeError, match='figure must be a'):
         report.add_figs_to_section(['foo'], 'caption', 'section')
+
+
+def test_add_custom_css(tmpdir):
+    """Test adding custom CSS rules to the report."""
+    tempdir = str(tmpdir)
+    fname = op.join(tempdir, 'report.html')
+    fig = plt.figure()  # Empty figure
+
+    report = Report()
+    report.add_figs_to_section(figs=fig, captions='Test section')
+    custom_css = '.report_custom { color: red; }'
+    report.add_custom_css(css=custom_css)
+
+    assert custom_css in report.include
+    report.save(fname, open_browser=False)
+    with open(fname, 'rb') as fid:
+        html = fid.read().decode('utf-8')
+    assert custom_css in html
+
+
+def test_add_custom_js(tmpdir):
+    """Test adding custom JavaScript to the report."""
+    tempdir = str(tmpdir)
+    fname = op.join(tempdir, 'report.html')
+    fig = plt.figure()  # Empty figure
+
+    report = Report()
+    report.add_figs_to_section(figs=fig, captions='Test section')
+    custom_js = ('function hello() {\n'
+                 '  alert("Hello, report!");\n'
+                 '}')
+    report.add_custom_js(js=custom_js)
+
+    assert custom_js in report.include
+    report.save(fname, open_browser=False)
+    with open(fname, 'rb') as fid:
+        html = fid.read().decode('utf-8')
+    assert custom_js in html
+
+
+@testing.requires_testing_data
+def test_render_non_fiff(tmpdir):
+    """Test rendering non-FIFF files for mne report."""
+    tempdir = str(tmpdir)
+    fnames_in = [bdf_fname, edf_fname]
+    fnames_out = []
+    for fname in fnames_in:
+        basename = op.basename(fname)
+        basename, ext = op.splitext(basename)
+        fname_out = f'{basename}_raw{ext}'
+        outpath = op.join(tempdir, fname_out)
+        shutil.copyfile(fname, outpath)
+        fnames_out.append(fname_out)
+
+    report = Report()
+    report.parse_folder(data_path=tempdir, render_bem=False, on_error='raise')
+
+    # Check correct paths and filenames
+    for fname in fnames_out:
+        assert (op.basename(fname) in
+                [op.basename(x) for x in report.fnames])
+
+    assert len(report.fnames) == len(fnames_out)
+    assert len(report.html) == len(report.fnames)
+    assert len(report.fnames) == len(report)
+
+    report.data_path = tempdir
+    fname = op.join(tempdir, 'report.html')
+    report.save(fname=fname, open_browser=False)
+    with open(fname, 'rb') as fid:
+        html = fid.read().decode('utf-8')
+
+    assert '<h4>Raw: test_raw.bdf</h4>' in html
+    assert '<h4>Raw: test_raw.edf</h4>' in html
 
 
 @testing.requires_testing_data
@@ -288,6 +376,40 @@ def test_render_mri(renderer, tmpdir):
 
 @testing.requires_testing_data
 @requires_nibabel()
+@pytest.mark.parametrize('n_jobs', [
+    1,
+    pytest.param(2, marks=pytest.mark.slowtest),  # 1.5 sec locally
+])
+def test_add_bem_n_jobs(n_jobs, tmpdir, monkeypatch):
+    """Test add_bem with n_jobs."""
+    from matplotlib.pyplot import imread
+    if n_jobs == 1:  # in one case, do at init -- in the other, pass in
+        use_subjects_dir = None
+    else:
+        use_subjects_dir = subjects_dir
+    report = Report(subjects_dir=use_subjects_dir)
+    # implicitly test that subjects_dir is correctly preserved here
+    monkeypatch.setattr(report_mod, '_BEM_VIEWS', ('axial',))
+    if use_subjects_dir is not None:
+        use_subjects_dir = None
+    report.add_bem_to_section('sample', 'sample', 'sample', decim=15,
+                              n_jobs=n_jobs, verbose='debug',
+                              subjects_dir=subjects_dir)
+    assert len(report.html) == 1
+    imgs = np.array([imread(BytesIO(base64.b64decode(b)), 'png')
+                     for b in re.findall(r'data:image/png;base64,(\S*)">',
+                                         report.html[0])])
+    assert imgs.ndim == 4  # images, h, w, rgba
+    assert len(imgs) == 6
+    imgs.shape = (len(imgs), -1)
+    norms = np.linalg.norm(imgs, axis=-1)
+    # should have down-up-down shape
+    corr = np.corrcoef(norms, np.hanning(len(imgs)))[0, 1]
+    assert 0.78 < corr < 0.80
+
+
+@testing.requires_testing_data
+@requires_nibabel()
 def test_render_mri_without_bem(tmpdir):
     """Test rendering MRI without BEM for mne report."""
     tempdir = str(tmpdir)
@@ -359,7 +481,7 @@ def test_validate_input():
                   comments=comments[:-1])
     values = report._validate_input(items, captions, section, comments=None)
     items_new, captions_new, comments_new = values
-    assert_equal(len(comments_new), len(items))
+    assert len(comments_new) == len(items)
 
 
 @requires_h5py
@@ -488,7 +610,6 @@ def test_scraper(tmpdir):
     rst = scraper(block, block_vars, gallery_conf)
     out_html = op.join(app.builder.outdir, 'auto_examples', 'my_html.html')
     assert not op.isfile(out_html)
-    os.makedirs(op.join(app.builder.outdir, 'auto_examples'))
     scraper.copyfiles()
     assert op.isfile(out_html)
     assert rst.count('"') == 6
@@ -511,4 +632,19 @@ def test_split_files(tmpdir, split_naming):
     assert len(report.fnames) == 1
 
 
-run_tests_if_main()
+@testing.requires_testing_data
+def test_survive_pickle(tmpdir):
+    """Testing functionality of Report-Object after pickling."""
+    tempdir = str(tmpdir)
+    raw_fname_new = op.join(tempdir, 'temp_raw.fif')
+    shutil.copyfile(raw_fname, raw_fname_new)
+
+    # Pickle report object to simulate multiprocessing with joblib
+    report = Report(info_fname=raw_fname_new)
+    pickled_report = pickle.dumps(report)
+    report = pickle.loads(pickled_report)
+
+    # Just test if no errors occur
+    report.parse_folder(tempdir, render_bem=False)
+    save_name = op.join(tempdir, 'report.html')
+    report.save(fname=save_name, open_browser=False)

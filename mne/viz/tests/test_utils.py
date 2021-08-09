@@ -15,7 +15,6 @@ from mne.viz.utils import (compare_fiff, _fake_click, _compute_scalings,
                            _setup_vmin_vmax, center_cmap, centers_to_edges,
                            _make_event_color_dict)
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
-from mne.utils import run_tests_if_main
 from mne.io import read_raw_fif
 from mne.event import read_events
 from mne.epochs import Epochs
@@ -199,6 +198,3 @@ def test_event_color_dict():
     # test error
     with pytest.raises(KeyError, match='must be strictly positive, or -1'):
         _ = _make_event_color_dict({-2: 'r', -1: 'b'})
-
-
-run_tests_if_main()

@@ -23,9 +23,10 @@ import numpy as np
 from copy import deepcopy
 from distutils.version import LooseVersion
 import warnings
+from datetime import datetime
 
 from ..defaults import _handle_default
-from ..fixes import _get_status
+from ..fixes import _get_args
 from ..io import show_fiff, Info
 from ..io.constants import FIFF
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
@@ -37,17 +38,16 @@ from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
 from ..utils import (verbose, get_config, warn, _check_ch_locs, _check_option,
-                     logger, fill_doc, _pl, _check_sphere, _ensure_int)
-
-from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
-                         _divide_to_regions)
+                     logger, fill_doc, _pl, _check_sphere, _ensure_int,
+                     _validate_type)
 from ..transforms import apply_trans
 
 
 _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
                              'mag': "Magnetometer", 'seeg': "sEEG channel",
-                             'eog': "EOG channel", 'ecg': "ECG sensor",
-                             'emg': "EMG sensor", 'ecog': "ECoG channel",
+                             'dbs': "DBS channel", 'eog': "EOG channel",
+                             'ecg': "ECG sensor", 'emg': "EMG sensor",
+                             'ecog': "ECoG channel",
                              'misc': "miscellaneous sensor"}
 
 
@@ -134,6 +134,7 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     This will not force constrained_layout=False if the figure was created
     with that method.
     """
+    _validate_type(pad, 'numeric', 'pad')
     import matplotlib.pyplot as plt
     fig = plt.gcf() if fig is None else fig
 
@@ -294,7 +295,7 @@ def _toggle_proj(event, params, all_=False):
     """Perform operations when proj boxes clicked."""
     # read options if possible
     if 'proj_checks' in params:
-        bools = _get_status(params['proj_checks'])
+        bools = list(params['proj_checks'].get_status())
         if all_:
             new_bools = [not all(bools)] * len(bools)
             with _events_off(params['proj_checks']):
@@ -362,9 +363,9 @@ def _make_event_color_dict(event_color, events=None, event_id=None):
 
 
 def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
-                     size=1.3):
-    import matplotlib.pyplot as plt
+                     size=1.3, sharex=False, sharey=False):
     from matplotlib.gridspec import GridSpec
+    from ._figure import _figure
 
     if n_cells == 1:
         nrows = ncols = 1
@@ -389,9 +390,8 @@ def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
     width = size * ncols
     height = (size + max(0, 0.1 * (4 - size))) * nrows + bool(title) * 0.5
     height_ratios = None
-    g_kwargs = {}
-    figure_nobar(figsize=(width * 1.5, height * 1.5))
-    gs = GridSpec(nrows, ncols, height_ratios=height_ratios, **g_kwargs)
+    fig = _figure(toolbar=False, figsize=(width * 1.5, 0.25 + height * 1.5))
+    gs = GridSpec(nrows, ncols, figure=fig, height_ratios=height_ratios)
 
     axes = []
     if colorbar:
@@ -401,9 +401,13 @@ def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
     else:
         ax_idxs = range(n_cells)
     for ax_idx in ax_idxs:
-        axes.append(plt.subplot(gs[ax_idx]))
-
-    fig = axes[0].get_figure()
+        subplot_kw = dict()
+        if ax_idx > 0:
+            if sharex:
+                subplot_kw.update(sharex=axes[0])
+            if sharey:
+                subplot_kw.update(sharey=axes[0])
+        axes.append(fig.add_subplot(gs[ax_idx], **subplot_kw))
 
     return fig, axes, ncols, nrows
 
@@ -554,11 +558,8 @@ def figure_nobar(*args, **kwargs):
     return fig
 
 
-def _show_help(col1, col2, width, height):
-    fig_help = figure_nobar(figsize=(width, height), dpi=80)
+def _show_help_fig(col1, col2, fig_help, ax, show):
     _set_window_title(fig_help, 'Help')
-
-    ax = fig_help.add_subplot(111)
     celltext = [[c1, c2] for c1, c2 in zip(col1.strip().split("\n"),
                                            col2.strip().split("\n"))]
     table = ax.table(cellText=celltext, loc="center", cellLoc="left")
@@ -574,12 +575,19 @@ def _show_help(col1, col2, width, height):
 
     fig_help.canvas.mpl_connect('key_press_event', _key_press)
 
-    # this should work for non-test cases
-    try:
-        fig_help.canvas.draw()
-        plt_show(fig=fig_help, warn=False)
-    except Exception:
-        pass
+    if show:
+        # this should work for non-test cases
+        try:
+            fig_help.canvas.draw()
+            plt_show(fig=fig_help, warn=False)
+        except Exception:
+            pass
+
+
+def _show_help(col1, col2, width, height):
+    fig_help = figure_nobar(figsize=(width, height), dpi=80)
+    ax = fig_help.add_subplot(111)
+    _show_help_fig(col1, col2, fig_help, ax, show=True)
 
 
 def _key_press(event):
@@ -807,8 +815,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
 
     Parameters
     ----------
-    info : instance of Info
-        Info structure containing the channel locations.
+    %(info_not_none)s
     kind : str
         Whether to plot the sensors as 3d, topomap or as an interactive
         sensor selection dialog. Available options 'topomap', '3d', 'select'.
@@ -818,9 +825,9 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         'topomap'.
     ch_type : None | str
         The channel type to plot. Available options 'mag', 'grad', 'eeg',
-        'seeg', 'ecog', 'all'. If ``'all'``, all the available mag, grad, eeg,
-        seeg and ecog channels are plotted. If None (default), then channels
-        are chosen in the order given above.
+        'seeg', 'dbs', 'ecog', 'all'. If ``'all'``, all the available mag,
+        grad, eeg, seeg, dbs and ecog channels are plotted. If None (default),
+        then channels are chosen in the order given above.
     title : str | None
         Title for the figure. If None (default), equals to
         ``'Sensor positions (%%s)' %% ch_type``.
@@ -922,6 +929,10 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                   for i, pick in enumerate(picks)]
     else:
         if ch_groups in ['position', 'selection']:
+            # Avoid circular import
+            from ..channels import (read_vectorview_selection, _SELECTIONS,
+                                    _EEG_SELECTIONS, _divide_to_regions)
+
             if ch_groups == 'position':
                 ch_groups = _divide_to_regions(info, add_stim=False)
                 ch_groups = list(ch_groups.values())
@@ -929,7 +940,8 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                 ch_groups, color_vals = list(), list()
                 for selection in _SELECTIONS + _EEG_SELECTIONS:
                     channels = pick_channels(
-                        info['ch_names'], read_selection(selection, info=info))
+                        info['ch_names'],
+                        read_vectorview_selection(selection, info=info))
                     ch_groups.append(channels)
             color_vals = np.ones((len(ch_groups), 4))
             for idx, ch_group in enumerate(ch_groups):
@@ -1000,7 +1012,7 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
     """Plot sensors."""
     from matplotlib import rcParams
     import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 analysis:ignore
     from .topomap import _get_pos_outlines, _draw_outlines
     sphere = _check_sphere(sphere, info)
 
@@ -1008,12 +1020,12 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
     edgecolors[bads] = 'red'
     axes_was_none = ax is None
     if axes_was_none:
-        fig = plt.figure(figsize=(max(rcParams['figure.figsize']),) * 2)
+        subplot_kw = dict()
         if kind == '3d':
-            Axes3D(fig)
-            ax = fig.gca(projection='3d')
-        else:
-            ax = fig.add_subplot(111)
+            subplot_kw.update(projection='3d')
+        fig, ax = plt.subplots(
+            1, figsize=(max(rcParams['figure.figsize']),) * 2,
+            subplot_kw=subplot_kw)
     else:
         fig = ax.get_figure()
 
@@ -1042,9 +1054,8 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
 
         # Equal aspect for 3D looks bad, so only use for 2D
         ax.set(aspect='equal')
-        if axes_was_none:
-            fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
-                                hspace=None)
+        if axes_was_none:  # we'll show the plot title as the window title
+            fig.subplots_adjust(left=0, bottom=0, right=1, top=1)
         ax.axis("off")  # remove border around figure
     del sphere
 
@@ -1066,8 +1077,8 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
         picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,
                          ch_names=ch_names, show_names=show_names)
         fig.canvas.mpl_connect('pick_event', picker)
-
-    ax.set(title=title)
+    if axes_was_none:
+        _set_window_title(fig, title)
     closed = partial(_close_event, fig=fig)
     fig.canvas.mpl_connect('close_event', closed)
     plt_show(show, block=block)
@@ -1122,7 +1133,9 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
             time_middle = np.mean(inst.times)
             tmin = np.clip(time_middle - n_secs / 2., inst.times.min(), None)
             tmax = np.clip(time_middle + n_secs / 2., None, inst.times.max())
-            data = inst._read_segment(tmin, tmax)
+            smin, smax = [
+                int(round(x * inst.info['sfreq'])) for x in (tmin, tmax)]
+            data = inst._read_segment(smin, smax)
         elif isinstance(inst, BaseEpochs):
             # Load a random subset of epochs up to 100mb in size
             n_epochs = 1e8 // (len(inst.ch_names) * len(inst.times) * 8)
@@ -1229,15 +1242,15 @@ class DraggableColorbar(object):
 
     def connect(self):
         """Connect to all the events we need."""
-        self.cidpress = self.cbar.patch.figure.canvas.mpl_connect(
+        self.cidpress = self.cbar.ax.figure.canvas.mpl_connect(
             'button_press_event', self.on_press)
-        self.cidrelease = self.cbar.patch.figure.canvas.mpl_connect(
+        self.cidrelease = self.cbar.ax.figure.canvas.mpl_connect(
             'button_release_event', self.on_release)
-        self.cidmotion = self.cbar.patch.figure.canvas.mpl_connect(
+        self.cidmotion = self.cbar.ax.figure.canvas.mpl_connect(
             'motion_notify_event', self.on_motion)
-        self.keypress = self.cbar.patch.figure.canvas.mpl_connect(
+        self.keypress = self.cbar.ax.figure.canvas.mpl_connect(
             'key_press_event', self.key_press)
-        self.scroll = self.cbar.patch.figure.canvas.mpl_connect(
+        self.scroll = self.cbar.ax.figure.canvas.mpl_connect(
             'scroll_event', self.on_scroll)
 
     def on_press(self, event):
@@ -1314,10 +1327,12 @@ class DraggableColorbar(object):
         self._update()
 
     def _update(self):
-        self.cbar.set_ticks(None, update_ticks=True)  # use default
+        from matplotlib.ticker import AutoLocator
+        self.cbar.set_ticks(AutoLocator())
+        self.cbar.update_ticks()
         self.cbar.draw_all()
         self.mappable.set_norm(self.cbar.norm)
-        self.cbar.patch.figure.canvas.draw()
+        self.cbar.ax.figure.canvas.draw()
 
 
 class SelectFromCollection(object):
@@ -1378,8 +1393,8 @@ class SelectFromCollection(object):
         self.ec[:, -1] = self.alpha_other
         self.lw = np.full(self.Npts, self.linewidth_other)
 
-        self.lasso = LassoSelector(ax, onselect=self.on_select,
-                                   lineprops=dict(color='red', linewidth=0.5))
+        line_kw = _prop_kw('line', dict(color='red', linewidth=0.5))
+        self.lasso = LassoSelector(ax, onselect=self.on_select, **line_kw)
         self.selection = list()
 
     def on_select(self, verts):
@@ -1578,7 +1593,7 @@ class DraggableLine(object):
         self.line.figure.canvas.mpl_disconnect(self.cidpress)
         self.line.figure.canvas.mpl_disconnect(self.cidrelease)
         self.line.figure.canvas.mpl_disconnect(self.cidmotion)
-        self.line.figure.axes[0].lines.remove(self.line)
+        self.line.remove()
 
 
 def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
@@ -2267,3 +2282,88 @@ def centers_to_edges(*arrays):
             arr[:-1] + arr_diff,
             [arr[-1] + arr_diff[-1]]]))
     return out
+
+
+def _figure_agg(**kwargs):
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from matplotlib.figure import Figure
+    fig = Figure(**kwargs)
+    FigureCanvasAgg(fig)
+    return fig
+
+
+def _ndarray_to_fig(img):
+    """Convert to MPL figure, adapted from matplotlib.image.imsave."""
+    dpi = 100
+    figsize = np.array(img.shape[:2][::-1]) / dpi
+    fig = _figure_agg(dpi=dpi, figsize=figsize, frameon=False)
+    fig.figimage(img, resize=True)
+    return fig
+
+
+def _save_ndarray_img(fname, img):
+    """Save an image to disk."""
+    from PIL import Image
+    Image.fromarray(img).save(fname)
+
+
+def concatenate_images(images, axis=0, bgcolor='black', centered=True,
+                       n_channels=3):
+    """Concatenate a list of images.
+
+    Parameters
+    ----------
+    images : list of ndarray
+        The list of images to concatenate.
+    axis : 0 or 1
+        The images are concatenated horizontally if 0 and vertically otherwise.
+        The default orientation is horizontal.
+    bgcolor : str | list
+        The color of the background. The name of the color is accepted
+        (e.g 'red') or a list of RGB values between 0 and 1. Defaults to
+        'black'.
+    centered : bool
+        If True, the images are centered. Defaults to True.
+    n_channels : int
+        Number of color channels. Can be 3 or 4. The default value is 3.
+
+    Returns
+    -------
+    img : ndarray
+        The concatenated image.
+    """
+    from matplotlib.colors import colorConverter
+    if isinstance(bgcolor, str):
+        func_name = 'to_rgb' if n_channels == 3 else 'to_rgba'
+        bgcolor = getattr(colorConverter, func_name)(bgcolor)
+    bgcolor = np.asarray(bgcolor) * 255
+    funcs = [np.sum, np.max]
+    ret_shape = np.asarray([
+        funcs[axis]([image.shape[0] for image in images]),
+        funcs[1 - axis]([image.shape[1] for image in images]),
+    ])
+    ret = np.zeros((ret_shape[0], ret_shape[1], n_channels), dtype=np.uint8)
+    ret[:, :, :] = bgcolor
+    ptr = np.array([0, 0])
+    sec = np.array([0 == axis, 1 == axis]).astype(int)
+    for image in images:
+        shape = image.shape[:-1]
+        dec = ptr
+        dec += ((ret_shape - shape) // 2) * (1 - sec) if centered else 0
+        ret[dec[0]:dec[0] + shape[0], dec[1]:dec[1] + shape[1], :] = image
+        ptr += shape * sec
+    return ret
+
+
+def _generate_default_filename(ext=".png"):
+    now = datetime.now()
+    dt_string = now.strftime("_%Y-%m-%d_%H-%M-%S")
+    return "MNE" + dt_string + ext
+
+
+def _prop_kw(kind, val):
+    # Can be removed in when we depend on matplotlib 3.4.3+
+    # https://github.com/matplotlib/matplotlib/pull/20585
+    from matplotlib.widgets import SpanSelector
+    pre = '' if 'props' in _get_args(SpanSelector) else kind
+    return {pre + 'props': val}

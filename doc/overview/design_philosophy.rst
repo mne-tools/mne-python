@@ -2,8 +2,8 @@
 
 .. _design_philosophy:
 
-MNE-Python design philosophy
-============================
+Design philosophy
+=================
 
 Interactive versus scripted analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -22,7 +22,7 @@ later and/or share it with others (including your future self).
 Integration with the scientific python stack
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-MNE-Python also integrates well with other standard scientific python
+MNE-Python also integrates well with other standard scientific Python
 libraries. For example, MNE-Python objects underlyingly store their data in
 NumPy arrays, making it easy to apply custom algorithms or pass your data into
 one of `scikit-learn's <scikit-learn_>`_ machine learning pipelines.
@@ -73,6 +73,8 @@ attribute containing an :class:`~mne.Info` object, which keeps track of channel
 names and types, applied filters, projectors, etc. See :ref:`tut-info-class`
 for more info.
 
+
+.. _sect-meth-chain:
 
 In-place operation
 ^^^^^^^^^^^^^^^^^^

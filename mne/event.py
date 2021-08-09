@@ -5,14 +5,14 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Clement Moutard <clement.moutard@polytechnique.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 import numpy as np
 
 
 from .utils import (check_fname, logger, verbose, _get_stim_channel, warn,
-                    _validate_type, _check_option)
+                    _validate_type, _check_option, fill_doc)
 from .io.constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
@@ -98,7 +98,7 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
     tmax : float
         The upper limit border in seconds from the target event.
     new_id : int
-        new_id for the new event
+        New ID for the new event.
     fill_na : int | None
         Fill event to be inserted if target is not available within the time
         window specified. If None, the 'null' events will be dropped.
@@ -106,9 +106,9 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
     Returns
     -------
     new_events : ndarray
-        The new defined events
+        The new defined events.
     lag : ndarray
-        time lag between reference and target in milliseconds.
+        Time lag between reference and target in milliseconds.
     """
     if new_id is None:
         new_id = reference_id
@@ -823,7 +823,7 @@ def shift_time_events(events, ids, tshift, sfreq):
     Parameters
     ----------
     events : array, shape=(n_events, 3)
-        The events
+        The events.
     ids : ndarray of int | None
         The ids of events to shift.
     tshift : float
@@ -858,12 +858,12 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
     id : int
         The id to use (default 1).
     start : float
-        Time of first event.
+        Time of first event (in seconds).
     stop : float | None
-        Maximum time of last event. If None, events extend to the end
-        of the recording.
+        Maximum time of last event (in seconds). If None, events extend to the
+        end of the recording.
     duration : float
-        The duration to separate events by.
+        The duration to separate events by (in seconds).
     first_samp : bool
         If True (default), times will have raw.first_samp added to them, as
         in :func:`mne.find_events`. This behavior is not desirable if the
@@ -871,7 +871,8 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
         have ``raw.first_samp`` added to them, e.g. event times that come
         from :func:`mne.find_events`.
     overlap : float
-        The overlap between events. Must be ``0 <= overlap < duration``.
+        The overlap between events (in seconds).
+        Must be ``0 <= overlap < duration``.
 
         .. versionadded:: 0.18
 
@@ -960,6 +961,7 @@ def concatenate_events(events, first_samps, last_samps):
     return events_out
 
 
+@fill_doc
 class AcqParserFIF(object):
     """Parser for Elekta data acquisition settings.
 
@@ -971,8 +973,7 @@ class AcqParserFIF(object):
 
     Parameters
     ----------
-    info : Info
-        An instance of Info where the DACQ parameters will be taken from.
+    %(info_not_none)s This is where the DACQ parameters will be taken from.
 
     Attributes
     ----------
@@ -1142,7 +1143,13 @@ class AcqParserFIF(object):
         return cats[0] if len(cats) == 1 else cats
 
     def __len__(self):
-        """Return number of averaging categories marked active in DACQ."""
+        """Return number of averaging categories marked active in DACQ.
+
+        Returns
+        -------
+        n_cat : int
+            The number of categories.
+        """
         return len(self.categories)
 
     def _events_from_acq_pars(self):

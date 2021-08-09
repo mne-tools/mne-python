@@ -4,7 +4,7 @@
 Documentation
 =============
 
-The icons are used in ``mne/viz/_brain/_Brain.py`` for the toolbar.
+The icons are used in ``mne/viz/_brain/_brain.py`` for the toolbar.
 It is necessary to compile those icons into a resource file for proper use by
 the application.
 

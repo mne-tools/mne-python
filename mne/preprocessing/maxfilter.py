@@ -2,7 +2,7 @@
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
 
@@ -84,8 +84,7 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
         Path to Cross-talk compensation file.
     mx_args : str
         Additional command line arguments to pass to MaxFilter.
-    overwrite : bool
-        Overwrite output file if it already exists.
+    %(overwrite)s
     %(verbose)s
 
     Returns

@@ -1,6 +1,6 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 import re
@@ -19,11 +19,12 @@ from mne.utils import _fetch_file, requires_good_network
 
 
 # https://github.com/mne-tools/fiff-constants/commits/master
-commit = '198d943d0ff92ecdfb947b84af6289a0e79ad060'
+REPO = 'mne-tools'
+COMMIT = 'aae5960007ee8a67dfc07535ea37d421d37dfe1b'
 
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
-tag_dups = (3501, 3507)  # in both MEGIN and MNE files
+tag_dups = (3501,)  # in both MEGIN and MNE files
 
 _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
                      'pop', 'popitem', 'setdefault', 'update', 'values',
@@ -81,8 +82,8 @@ def test_constants(tmpdir):
     """Test compensation."""
     tmpdir = str(tmpdir)  # old pytest...
     dest = op.join(tmpdir, 'fiff.zip')
-    _fetch_file('https://codeload.github.com/mne-tools/fiff-constants/zip/' +
-                commit, dest)
+    _fetch_file('https://codeload.github.com/'
+                f'{REPO}/fiff-constants/zip/{COMMIT}', dest)
     names = list()
     with zipfile.ZipFile(dest, 'r') as ff:
         for name in ff.namelist():
@@ -336,4 +337,4 @@ def test_dict_completion(dict_, match, extras):
     for e in extras:
         got.add(e)
     want = set(dict_)
-    assert got == want
+    assert got == want, match

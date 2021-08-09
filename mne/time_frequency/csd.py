@@ -3,16 +3,17 @@
 #          Susanna Aro <susanna.aro@aalto.fi>
 #          Roman Goj <roman.goj@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import copy as cp
 import numbers
 
 import numpy as np
-from .tfr import cwt, morlet
-from ..fixes import rfftfreq
+from .tfr import _cwt_array, morlet, _get_nfft
+from ..fixes import _import_fft
 from ..io.pick import pick_channels, _picks_to_idx
-from ..utils import logger, verbose, warn, copy_function_doc_to_method_doc
+from ..utils import (logger, verbose, warn, copy_function_doc_to_method_doc,
+                     ProgressBar)
 from ..viz.misc import plot_csd
 from ..time_frequency.multitaper import (_compute_mt_params, _mt_spectra,
                                          _csd_from_mt, _psd_from_mt_adaptive)
@@ -698,6 +699,7 @@ def csd_array_fourier(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
     csd_morlet
     csd_multitaper
     """
+    rfftfreq = _import_fft('rfftfreq')
     X, times, tmin, tmax, fmin, fmax = _prepare_csd_array(
         X, sfreq, t0, tmin, tmax, fmin, fmax)
 
@@ -845,6 +847,7 @@ def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
     csd_morlet
     csd_multitaper
     """
+    rfftfreq = _import_fft('rfftfreq')
     X, times, tmin, tmax, fmin, fmax = _prepare_csd_array(
         X, sfreq, t0, tmin, tmax, fmin, fmax)
 
@@ -1021,9 +1024,10 @@ def csd_array_morlet(X, sfreq, frequencies, t0=0, tmin=None, tmax=None,
     times = times[csd_tslice]
 
     # Compute the CSD
+    nfft = _get_nfft(wavelets, X, use_fft)
     return _execute_csd_function(X, times, frequencies, _csd_morlet,
-                                 params=[sfreq, wavelets, csd_tslice, use_fft,
-                                         decim],
+                                 params=[sfreq, wavelets, nfft, csd_tslice,
+                                         use_fft, decim],
                                  n_fft=1, ch_names=ch_names, projs=projs,
                                  n_jobs=n_jobs, verbose=verbose)
 
@@ -1140,14 +1144,8 @@ def _execute_csd_function(X, times, frequencies, csd_function, params, n_fft,
 
     # Compute CSD for each trial
     n_blocks = int(np.ceil(n_epochs / float(n_jobs)))
-    for i in range(n_blocks):
+    for i in ProgressBar(range(n_blocks), mesg='CSD epoch blocks'):
         epoch_block = X[i * n_jobs:(i + 1) * n_jobs]
-        if n_jobs > 1:
-            logger.info('    Computing CSD matrices for epochs %d..%d'
-                        % (i * n_jobs + 1, (i + 1) * n_jobs))
-        else:
-            logger.info('    Computing CSD matrix for epoch %d' % (i + 1))
-
         csds = parallel(my_csd(this_epoch, *params)
                         for this_epoch in epoch_block)
 
@@ -1274,7 +1272,8 @@ def _csd_multitaper(X, sfreq, n_times, window_fun, eigvals, freq_mask, n_fft,
     return csds
 
 
-def _csd_morlet(data, sfreq, wavelets, tslice=None, use_fft=True, decim=1):
+def _csd_morlet(data, sfreq, wavelets, nfft, tslice=None, use_fft=True,
+                decim=1):
     """Compute cross spectral density (CSD) using the given Morlet wavelets.
 
     Computes the CSD for a single epoch of data.
@@ -1289,6 +1288,8 @@ def _csd_morlet(data, sfreq, wavelets, tslice=None, use_fft=True, decim=1):
     wavelets : list of ndarray
         The Morlet wavelets for which to compute the CSD's. These have been
         created by the `mne.time_frequency.tfr.morlet` function.
+    nfft : int
+        The number of FFT points.
     tslice : slice | None
         The desired time samples to compute the CSD over. If None, defaults to
         including all time samples.
@@ -1314,7 +1315,8 @@ def _csd_morlet(data, sfreq, wavelets, tslice=None, use_fft=True, decim=1):
     _vector_to_sym_mat : For converting the CSD to a full matrix.
     """
     # Compute PSD
-    psds = cwt(data, wavelets, use_fft=use_fft, decim=decim)
+    psds = _cwt_array(data, wavelets, nfft, mode='same', use_fft=use_fft,
+                      decim=decim)
 
     if tslice is not None:
         tstart = None if tslice.start is None else tslice.start // decim

@@ -16,13 +16,14 @@ BASE_URL = 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette/
 
 
 @verbose
-def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
+def fetch_data(subjects, recording=(1, 2), path=None, force_update=False,
                update_path=None, base_url=BASE_URL, on_missing='raise',
                verbose=None):  # noqa: D301
     """Get paths to local copies of PhysioNet Polysomnography dataset files.
 
     This will fetch data from the publicly available subjects from PhysioNet's
-    study of age effects on sleep in healthy subjects [1]_[2]_. This
+    study of age effects on sleep in healthy subjects
+    :footcite:`MourtazaevEtAl1995,GoldbergerEtAl2000`. This
     corresponds to a subset of 153 recordings from 37 males and 41 females that
     were 25-101 years old at the time of the recordings. There are two night
     recordings per subject except for subjects 13, 36 and 52 which have one
@@ -52,6 +53,8 @@ def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
     update_path : bool | None
         If True, set the MNE_DATASETS_EEGBCI_PATH in mne-python
         config to the given path. If None, the user is prompted.
+    base_url : str
+        The URL root.
     on_missing : 'raise' | 'warn' | 'ignore'
         What to do if one or several recordings are not available. Valid keys
         are 'raise' | 'warn' | 'ignore'. Default is 'error'. If on_missing
@@ -64,6 +67,10 @@ def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
     paths : list
         List of local data paths of the given type.
 
+    See Also
+    --------
+    mne.datasets.sleep_physionet.temazepam.fetch_data
+
     Notes
     -----
     For example, one could do:
@@ -75,18 +82,7 @@ def fetch_data(subjects, recording=[1, 2], path=None, force_update=False,
 
     References
     ----------
-    .. [1] MS Mourtazaev, B Kemp, AH Zwinderman, HAC Kamphuisen. Age and gender
-           affect different characteristics of slow waves in the sleep EEG.
-           Sleep 18(7):557–564 (1995).
-    .. [2] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh,
-           Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000)
-           PhysioBank, PhysioToolkit, and PhysioNet: Components of a New
-           Research Resource for Complex Physiologic Signals.
-           Circulation 101(23):e215-e220
-
-    See Also
-    --------
-    :func:`mne.datasets.sleep_physionet.temazepam.fetch_data`
+    .. footbibliography::
     """  # noqa: E501
     records = np.loadtxt(AGE_SLEEP_RECORDS,
                          skiprows=1,

@@ -3,7 +3,7 @@
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import configparser
 import fnmatch
@@ -20,17 +20,21 @@ import numpy as np
 
 from .io import read_fiducials, write_fiducials, read_info
 from .io.constants import FIFF
+# keep get_mni_fiducials for backward compat (no burden to keep in this
+# namespace, too)
+from ._freesurfer import _read_mri_info, get_mni_fiducials  # noqa: F401
 from .label import read_label, Label
-from .source_space import (add_source_space_distances, read_source_spaces,
-                           write_source_spaces, read_talxfm, _read_mri_info)
-from .surface import read_surface, write_surface, _normalize_vectors
+from .source_space import (add_source_space_distances, read_source_spaces,  # noqa: E501,F401
+                           write_source_spaces)
+from .surface import (read_surface, write_surface, _normalize_vectors,
+                      _DistanceQuery)
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          _read_fs_xfm, _write_fs_xfm, invert_transform,
-                         combine_transforms, apply_trans, _quat_to_euler,
+                         combine_transforms, _quat_to_euler,
                          _fit_matched_points)
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
-                    warn, has_nibabel)
+                    warn, has_nibabel, fill_doc)
 from .viz._3d import _fiducial_coords
 
 # some path templates
@@ -76,13 +80,13 @@ def _find_head_bem(subject, subjects_dir, high_res=False):
             return path
 
 
+@fill_doc
 def coregister_fiducials(info, fiducials, tol=0.01):
     """Create a head-MRI transform by aligning 3 fiducial points.
 
     Parameters
     ----------
-    info : Info
-        Measurement info object with fiducials in head coordinate space.
+    %(info_not_none)s
     fiducials : str | list of dict
         Fiducials in MRI coordinate space (either path to a ``*-fiducials.fif``
         file or list of fiducials as returned by :func:`read_fiducials`.
@@ -91,6 +95,9 @@ def coregister_fiducials(info, fiducials, tol=0.01):
     -------
     trans : Transform
         The device-MRI transform.
+
+    .. note:: The :class:`mne.Info` object fiducials must be in the
+              head coordinate space.
     """
     if isinstance(info, str):
         info = read_info(info)
@@ -226,25 +233,43 @@ def _decimate_points(pts, res=10):
 
     # find voxels containing one or more point
     H, _ = np.histogramdd(pts, bins=(xax, yax, zax), normed=False)
-
-    # for each voxel, select one point
     X, Y, Z = pts.T
-    out = np.empty((np.sum(H > 0), 3))
-    for i, (xbin, ybin, zbin) in enumerate(zip(*np.nonzero(H))):
-        x = xax[xbin]
-        y = yax[ybin]
-        z = zax[zbin]
-        xi = np.logical_and(X >= x, X < x + res)
-        yi = np.logical_and(Y >= y, Y < y + res)
-        zi = np.logical_and(Z >= z, Z < z + res)
-        idx = np.logical_and(zi, np.logical_and(yi, xi))
-        ipts = pts[idx]
+    xbins, ybins, zbins = np.nonzero(H)
+    x = xax[xbins]
+    y = yax[ybins]
+    z = zax[zbins]
+    mids = np.c_[x, y, z] + res / 2.
 
-        mid = np.array([x, y, z]) + res / 2.
-        dist = cdist(ipts, [mid])
-        i_min = np.argmin(dist)
-        ipt = ipts[i_min]
-        out[i] = ipt
+    # each point belongs to at most one voxel center, so figure those out
+    # (cKDTree faster than BallTree for these small problems)
+    tree = _DistanceQuery(mids, method='cKDTree')
+    _, mid_idx = tree.query(pts)
+
+    # then figure out which to actually use based on proximity
+    # (take advantage of sorting the mid_idx to get our mapping of
+    # pts to nearest voxel midpoint)
+    sort_idx = np.argsort(mid_idx)
+    bounds = np.cumsum(
+        np.concatenate([[0], np.bincount(mid_idx, minlength=len(mids))]))
+    assert len(bounds) == len(mids) + 1
+    out = list()
+    for mi, mid in enumerate(mids):
+        # Now we do this:
+        #
+        #     use_pts = pts[mid_idx == mi]
+        #
+        # But it's faster for many points than making a big boolean indexer
+        # over and over (esp. since each point can only belong to a single
+        # voxel).
+        use_pts = pts[sort_idx[bounds[mi]:bounds[mi + 1]]]
+        if not len(use_pts):
+            out.append([np.inf] * 3)
+        else:
+            out.append(
+                use_pts[np.argmin(cdist(use_pts, mid[np.newaxis])[:, 0])])
+    out = np.array(out, float).reshape(-1, 3)
+    out = out[np.abs(out - mids).max(axis=1) < res / 2.]
+    # """
 
     return out
 
@@ -358,6 +383,8 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     if param_info in ((True, True, 0), (True, True, 1)) and _ALLOW_ANALITICAL:
         src_pts = np.asarray(src_pts, float)
         tgt_pts = np.asarray(tgt_pts, float)
+        if weights is not None:
+            weights = np.asarray(weights, float)
         x, s = _fit_matched_points(
             src_pts, tgt_pts, weights, bool(param_info[2]))
         x[:3] = _quat_to_euler(x[:3])
@@ -1218,54 +1245,3 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
                 F_mri_ras, 'ras', 'ras'),
             F_ras_mni, 'ras', 'mni_tal')
     _write_fs_xfm(fname_to, T_ras_mni['trans'], kind)
-
-
-@verbose
-def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
-    """Estimate fiducials for a subject.
-
-    Parameters
-    ----------
-    subject : str
-        Name of the mri subject
-    subjects_dir : None | str
-        Override the SUBJECTS_DIR environment variable
-        (sys.environ['SUBJECTS_DIR'])
-    %(verbose)s
-
-    Returns
-    -------
-    fids_mri : list
-        List of estimated fiducials (each point in a dict), in the order
-        LPA, nasion, RPA.
-
-    Notes
-    -----
-    This takes the ``fsaverage-fiducials.fif`` file included with MNE—which
-    contain the LPA, nasion, and RPA for the ``fsaverage`` subject—and
-    transforms them to the given FreeSurfer subject's MRI space.
-    The MRI of ``fsaverage`` is already in MNI Talairach space, so applying
-    the inverse of the given subject's MNI Talairach affine transformation
-    (``$SUBJECTS_DIR/$SUBJECT/mri/transforms/talairach.xfm``) is used
-    to estimate the subject's fiducial locations.
-
-    For more details about the coordinate systems and transformations involved,
-    see https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems and
-    :ref:`plot_source_alignment`.
-    """
-    # Eventually we might want to allow using the MNI Talairach with-skull
-    # transformation rather than the standard brain-based MNI Talaranch
-    # transformation, and/or project the points onto the head surface
-    # (if available).
-    fname_fids_fs = os.path.join(os.path.dirname(__file__), 'data',
-                                 'fsaverage', 'fsaverage-fiducials.fif')
-
-    # Read fsaverage fiducials file and subject Talairach.
-    fids, coord_frame = read_fiducials(fname_fids_fs)
-    assert coord_frame == FIFF.FIFFV_COORD_MRI
-    if subject == 'fsaverage':
-        return fids  # special short-circuit for fsaverage
-    mni_mri_t = invert_transform(read_talxfm(subject, subjects_dir))
-    for f in fids:
-        f['r'] = apply_trans(mni_mri_t, f['r'])
-    return fids

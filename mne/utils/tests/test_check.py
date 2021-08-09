@@ -2,10 +2,9 @@
 # Authors: MNE Developers
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import os
 import os.path as op
-import shutil
 import sys
 
 import numpy as np
@@ -13,6 +12,7 @@ import pytest
 from pathlib import Path
 
 import mne
+from mne import read_vectorview_selection
 from mne.datasets import testing
 from mne.io.pick import pick_channels_cov
 from mne.utils import (check_random_state, _check_fname, check_fname,
@@ -20,6 +20,7 @@ from mne.utils import (check_random_state, _check_fname, check_fname,
                        _check_mayavi_version, _check_info_inv, _check_option,
                        check_version, _check_path_like, _validate_type,
                        _suggest, _on_missing, requires_nibabel, _safe_input)
+
 data_path = testing.data_path(download=False)
 base_dir = op.join(data_path, 'MEG', 'sample')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -34,7 +35,7 @@ def test_check(tmpdir):
     """Test checking functions."""
     pytest.raises(ValueError, check_random_state, 'foo')
     pytest.raises(TypeError, _check_fname, 1)
-    _check_fname(Path('./'))
+    _check_fname(Path('./foo'))
     fname = str(tmpdir.join('foo'))
     with open(fname, 'wb'):
         pass
@@ -59,10 +60,17 @@ def test_check(tmpdir):
     if check_version('numpy', '1.17'):
         check_random_state(np.random.default_rng(0)).choice(1)
 
-    # _meg.fif is a valid ending and should not raise an error
-    new_fname = str(
-        tmpdir.join(op.basename(fname_raw).replace('_raw.', '_meg.')))
-    shutil.copyfile(fname_raw, new_fname)
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('suffix',
+                         ('_meg.fif', '_eeg.fif', '_ieeg.fif',
+                          '_meg.fif.gz', '_eeg.fif.gz', '_ieeg.fif.gz'))
+def test_check_fname_suffixes(suffix, tmpdir):
+    """Test checking for valid filename suffixes."""
+    new_fname = str(tmpdir.join(op.basename(fname_raw)
+                                .replace('_raw.fif', suffix)))
+    raw = mne.io.read_raw_fif(fname_raw).crop(0, 0.1)
+    raw.save(new_fname)
     mne.io.read_raw_fif(new_fname)
 
 
@@ -83,7 +91,7 @@ def _get_data():
     event_id, tmin, tmax = 1, -0.1, 0.15
 
     # decimate for speed
-    left_temporal_channels = mne.read_selection('Left-temporal')
+    left_temporal_channels = read_vectorview_selection('Left-temporal')
     picks = mne.pick_types(raw.info, meg=True,
                            selection=left_temporal_channels)
     picks = picks[::2]

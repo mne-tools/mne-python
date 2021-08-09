@@ -14,7 +14,7 @@ from itertools import cycle
 import numpy as np
 
 from ..io.pick import channel_type, pick_types
-from ..utils import _clean_names, warn, _check_option, Bunch
+from ..utils import _clean_names, warn, _check_option, Bunch, fill_doc
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, _get_color_list, _draw_proj_checkbox,
@@ -23,6 +23,7 @@ from .utils import (_check_delayed_ssp, _get_color_list, _draw_proj_checkbox,
                     _check_cov, _plot_masked_image)
 
 
+@fill_doc
 def iter_topography(info, layout=None, on_pick=None, fig=None,
                     fig_facecolor='k', axis_facecolor='k',
                     axis_spinecolor='k', layout_scale=None, legend=False):
@@ -36,8 +37,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
     layout : instance of mne.channels.Layout | None
         The layout to use. If None, layout will be guessed.
     on_pick : callable | None
@@ -563,11 +563,12 @@ def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
                                 interpolation='nearest'))
 
 
-def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
-                      border='none', ylim=None, scalings=None, title=None,
-                      proj=False, vline=(0.,), hline=(0.,), fig_facecolor='k',
-                      fig_background=None, axis_facecolor='k', font_color='w',
-                      merge_channels=False, legend=True, axes=None, show=True,
+def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
+                      color=None, border='none', ylim=None, scalings=None,
+                      title=None, proj=False, vline=(0.,), hline=(0.,),
+                      fig_facecolor='k', fig_background=None,
+                      axis_facecolor='k', font_color='w', merge_channels=False,
+                      legend=True, axes=None, exclude='bads', show=True,
                       noise_cov=None):
     """Plot 2D topography of evoked responses.
 
@@ -595,8 +596,8 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         ylim for plots (after scaling has been applied). The value
         determines the upper and lower subplot limits. e.g.
         ylim = dict(eeg=[-20, 20]). Valid keys are eeg, mag, grad. If None,
-        the ylim parameter for each channel is determined by the maximum
-        absolute peak.
+        the ylim parameter for each channel type is determined by the minimum
+        and maximum peak.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`
         defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
@@ -632,12 +633,15 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         See matplotlib documentation for more details.
     axes : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
-    show : bool
-        Show figure if True.
     noise_cov : instance of Covariance | str | None
         Noise covariance used to whiten the data while plotting.
         Whitened data channels names are shown in italic.
         Can be a string to load a covariance from disk.
+    exclude : list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the
+        bad channels are excluded. By default, exclude is set to 'bads'.
+    show : bool
+        Show figure if True.
 
         .. versionadded:: 0.16.0
 
@@ -679,14 +683,14 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         raise ValueError('All evoked.picks must be the same')
     ch_names = _clean_names(ch_names)
     if merge_channels:
-        picks = _pair_grad_sensors(info, topomap_coords=False)
+        picks = _pair_grad_sensors(info, topomap_coords=False, exclude=exclude)
         chs = list()
         for pick in picks[::2]:
             ch = info['chs'][pick]
             ch['ch_name'] = ch['ch_name'][:-1] + 'X'
             chs.append(ch)
         info['chs'] = chs
-        info['bads'] = list()  # bads dropped on pair_grad_sensors
+        info['bads'] = list()   # Bads handled by pair_grad_sensors
         info._update_redundant()
         info._check_consistency()
         new_picks = list()
@@ -702,31 +706,34 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         y_label = 'RMS amplitude (%s)' % unit
 
     if layout is None:
-        layout = find_layout(info)
+        layout = find_layout(info, exclude=exclude)
 
     if not merge_channels:
         # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
-        chs_in_layout = set(layout.names) & set(ch_names)
-        types_used = {channel_type(info, ch_names.index(ch))
-                      for ch in chs_in_layout}
+        chs_in_layout = [ch_name for ch_name in ch_names
+                         if ch_name in layout.names]
+        types_used = [channel_type(info, ch_names.index(ch))
+                      for ch in chs_in_layout]
+        # Using dict conversion to remove duplicates
+        types_used = list(dict.fromkeys(types_used))
         # remove possible reference meg channels
-        types_used = set.difference(types_used, set('ref_meg'))
+        types_used = [types_used for types_used in types_used
+                      if types_used != 'ref_meg']
         # one check for all vendors
-        meg_types = {'mag', 'grad'}
-        is_meg = len(set.intersection(types_used, meg_types)) > 0
-        nirs_types = {'hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od'}
-        is_nirs = len(set.intersection(types_used, nirs_types)) > 0
+        is_meg = len([x for x in types_used if x in ['mag', 'grad']]) > 0
+        is_nirs = len([x for x in types_used if x in
+                      ('hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od')]) > 0
         if is_meg:
             types_used = list(types_used)[::-1]  # -> restore kwarg order
-            picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
+            picks = [pick_types(info, meg=kk, ref_meg=False, exclude=exclude)
                      for kk in types_used]
         elif is_nirs:
             types_used = list(types_used)[::-1]  # -> restore kwarg order
-            picks = [pick_types(info, fnirs=kk, ref_meg=False, exclude=[])
+            picks = [pick_types(info, fnirs=kk, ref_meg=False, exclude=exclude)
                      for kk in types_used]
         else:
             types_used_kwargs = {t: True for t in types_used}
-            picks = [pick_types(info, meg=False, exclude=[],
+            picks = [pick_types(info, meg=False, exclude=exclude,
                                 **types_used_kwargs)]
         assert isinstance(picks, list) and len(types_used) == len(picks)
 
@@ -750,10 +757,13 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
             y_label.append('Amplitude (%s)' % unit)
 
     if ylim is None:
-        # find maxima over all evoked data for each channel pick
-        ymaxes = np.array([max(np.abs(e.data[t]).max() for e in evoked)
+        # find minima and maxima over all evoked data for each channel pick
+        ymaxes = np.array([max((e.data[t]).max() for e in evoked)
                            for t in picks])
-        ylim_ = (-ymaxes, ymaxes)
+        ymins = np.array([min((e.data[t]).min() for e in evoked)
+                          for t in picks])
+
+        ylim_ = (ymins, ymaxes)
     elif isinstance(ylim, dict):
         ylim_ = _handle_default('ylim', ylim)
         ylim_ = [ylim_[kk] for kk in types_used]
@@ -761,7 +771,10 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         if len(ylim_) == 1:
             ylim_ = ylim_[0]
         else:
-            ylim_ = zip(*[np.array(yl) for yl in ylim_])
+            ylim_ = [np.array(yl) for yl in ylim_]
+            # Transposing to avoid Zipping confusion
+            if is_meg or is_nirs:
+                ylim_ = list(map(list, zip(*ylim_)))
     else:
         raise TypeError('ylim must be None or a dict. Got %s.' % type(ylim))
 

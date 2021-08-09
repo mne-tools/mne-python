@@ -2,7 +2,7 @@
 
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from collections import OrderedDict
 from os import SEEK_CUR, path as op
@@ -36,21 +36,23 @@ def read_mrk(fname):
     mrk_points : ndarray, shape (n_points, 3)
         Marker points in MEG space [m].
     """
+    from .kit import _read_dirs
     ext = op.splitext(fname)[-1]
     if ext in ('.sqd', '.mrk'):
         with open(fname, 'rb', buffering=0) as fid:
-            fid.seek(192)
-            mrk_offset = np.fromfile(fid, INT32, 1)[0]
-            fid.seek(mrk_offset)
+            dirs = _read_dirs(fid)
+            fid.seek(dirs[KIT.DIR_INDEX_COREG]['offset'])
             # skips match_done, meg_to_mri and mri_to_meg
-            fid.seek(KIT.INT + (2 * KIT.DOUBLE * 4 ** 2), SEEK_CUR)
+            fid.seek(KIT.INT + (2 * KIT.DOUBLE * 16), SEEK_CUR)
             mrk_count = np.fromfile(fid, INT32, 1)[0]
             pts = []
             for _ in range(mrk_count):
-                # skips mri/meg mrk_type and done, mri_marker
-                fid.seek(KIT.INT * 4 + (KIT.DOUBLE * 3), SEEK_CUR)
-                pts.append(np.fromfile(fid, dtype=FLOAT64, count=3))
-                mrk_points = np.array(pts)
+                # mri_type, meg_type, mri_done, meg_done
+                _, _, _, meg_done = np.fromfile(fid, INT32, 4)
+                _, meg_pts = np.fromfile(fid, FLOAT64, 6).reshape(2, 3)
+                if meg_done:
+                    pts.append(meg_pts)
+            mrk_points = np.array(pts)
     elif ext == '.txt':
         mrk_points = _read_dig_kit(fname, unit='m')
     elif ext == '.pickled':
@@ -123,6 +125,8 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
         List of digitizer points for info['dig'].
     dev_head_t : dict
         A dictionary describe the device-head transformation.
+    hpi_results : list
+        The hpi results.
     """
     from ...coreg import fit_matched_points, _decimate_points
 
@@ -144,8 +148,8 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
             raise ValueError("File %r should contain 8 points; got shape "
                              "%s." % (elp, elp_points.shape))
         elp = elp_points
-    elif len(elp) not in (7, 8):
-        raise ValueError("ELP should contain 7 or 8 points; got shape "
+    elif len(elp) not in (6, 7, 8):
+        raise ValueError("ELP should contain 6 ~ 8 points; got shape "
                          "%s." % (elp.shape,))
     if isinstance(mrk, str):
         mrk = read_mrk(mrk)
@@ -167,7 +171,12 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
     dig_points = _make_dig_points(nasion, lpa, rpa, elp, hsp, dig_ch_pos=eeg)
     dev_head_t = Transform('meg', 'head', trans)
 
-    return dig_points, dev_head_t
+    hpi_results = [dict(dig_points=[
+        dict(ident=ci, r=r, kind=FIFF.FIFFV_POINT_HPI,
+             coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
+        for ci, r in enumerate(mrk)], coord_trans=dev_head_t)]
+
+    return dig_points, dev_head_t, hpi_results
 
 
 def _read_dig_kit(fname, unit='auto'):

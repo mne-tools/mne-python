@@ -4,7 +4,7 @@
 #          Roman Goj <roman.goj@gmail.com>
 #          Britta Westner <britta.wstnr@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import numpy as np
 
 from ..rank import compute_rank
@@ -16,8 +16,8 @@ from ..source_estimate import _make_stc, _get_src_type
 from ..utils import logger, verbose, _check_channels_spatial_filter
 from ..utils import _check_one_ch_type, _check_info_inv
 from ._compute_beamformer import (
-    _check_proj_match, _prepare_beamformer_input, _compute_power,
-    _compute_beamformer, _check_src_type, Beamformer)
+    _prepare_beamformer_input, _compute_power,
+    _compute_beamformer, _check_src_type, Beamformer, _proj_whiten_data)
 
 
 @verbose
@@ -29,9 +29,9 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement info to specify the channels to include.
-        Bad channels in info['bads'] are not used.
+    %(info_not_none)s
+        Specifies the channels to include. Bad channels (in ``info['bads']``)
+        are not used.
     forward : instance of Forward
         Forward operator.
     data_cov : instance of Covariance
@@ -168,13 +168,6 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     Cm = data_cov._get_square()
     if 'estimator' in data_cov:
         del data_cov['estimator']
-
-    # Whiten the data covariance
-    Cm = np.dot(whitener, np.dot(Cm, whitener.T))
-    # Restore to positive semi-definite, as
-    # (negative eigenvalues are errant / due to massive scaling differences)
-    s, u = np.linalg.eigh(Cm)
-    Cm = np.dot(u * np.abs(s), u.T.conj())
     rank_int = sum(rank.values())
     del rank
 
@@ -182,7 +175,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     n_orient = 3 if is_free_ori else 1
     W, max_power_ori = _compute_beamformer(
         G, Cm, reg, n_orient, weight_norm, pick_ori, reduce_rank, rank_int,
-        inversion=inversion, nn=nn, orient_std=orient_std)
+        inversion=inversion, nn=nn, orient_std=orient_std,
+        whitener=whitener)
 
     # get src type to store with filters for _make_stc
     src_type = _get_src_type(forward['src'], vertno)
@@ -204,18 +198,6 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         inversion=inversion)
 
     return filters
-
-
-def _proj_whiten_data(M, proj, filters):
-    if filters['is_ssp']:
-        # check whether data and filter projs match
-        _check_proj_match(proj, filters)
-        if filters['whitener'] is None:
-            M = np.dot(filters['proj'], M)
-
-    if filters['whitener'] is not None:
-        M = np.dot(filters['whitener'], M)
-    return M
 
 
 def _apply_lcmv(data, filters, info, tmin, max_ori_out):

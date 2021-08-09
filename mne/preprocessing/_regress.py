@@ -1,6 +1,6 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
@@ -13,7 +13,7 @@ from ..utils import _check_preload, _validate_type, _check_option, verbose
 @verbose
 def regress_artifact(inst, picks=None, picks_artifact='eog', betas=None,
                      copy=True, verbose=None):
-    """Regress artifacts using reference channels.
+    """Remove artifacts using regression based on reference channels.
 
     Parameters
     ----------

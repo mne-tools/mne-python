@@ -1,13 +1,13 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 import pytest
 
 from mne import create_info
 from mne.io import RawArray
-from mne.utils import logger, catch_logging, run_tests_if_main
+from mne.utils import logger, catch_logging
 
 
 def bad_1(x):
@@ -63,6 +63,3 @@ def test_apply_function_verbose():
         assert out is raw
         raw.apply_function(printer, verbose=True)
         assert sio.getvalue().count('\n') == n_chan
-
-
-run_tests_if_main()
