@@ -1500,7 +1500,7 @@ class Coregistration(object):
         Parameters
         ----------
         rot : array, shape (3,)
-            The rotation parameter.
+            The rotation parameter (in radians).
 
         Returns
         -------
@@ -1516,7 +1516,7 @@ class Coregistration(object):
         Parameters
         ----------
         tra : array, shape (3,)
-            The translation parameter.
+            The translation parameter (in m.).
 
         Returns
         -------
