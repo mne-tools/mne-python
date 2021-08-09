@@ -397,12 +397,12 @@ topomap_mask_dstr = {
 evoked_topomap_mask_dstr = {
     'shape': '(n_channels, n_times)',
     'shape-appendinx': '-time combinations',
-    'example': ''}
+    'example': ' (useful for, e.g., marking which channels at which times ' +
+               'a statistical test of the data reaches significance)'}
 patterns_topomap_mask_dstr = {
     'shape': '(n_channels, n_patterns)',
     'shape-appendinx': '-pattern combinations',
-    'example': ' (useful for, e.g., marking which channels at which times ' +
-               'a statistical test of the data reaches significance)'}
+    'example': ''}
 docdict['topomap_mask'] = mask_base % topomap_mask_dstr
 docdict['evoked_topomap_mask'] = mask_base % evoked_topomap_mask_dstr
 docdict['patterns_topomap_mask'] = mask_base % patterns_topomap_mask_dstr
