@@ -381,8 +381,8 @@ epochs['auditory'].average()
 # It is common in ERP research to extract measures of amplitude or latency to
 # to compare across different conditions. There are many measures that can be
 # extracted from ERPs, and many of these are detailed (including the respective
-# strengths and weaknesses) in Ch. 10 of Luck :footcite:`Luck2014` (also see the
-# `Measurement Tool <https://bit.ly/37uydRw>` in the ERPLAB Toolbox
+# strengths and weaknesses) in Ch. 10 of Luck :footcite:`Luck2014` (also see
+# the `Measurement Tool <https://bit.ly/37uydRw>`_ in the ERPLAB Toolbox
 # :footcite:`Lopez-CalderonLuck2014`.
 #
 # This part of the tutorial will demonstrate how to extract three common
@@ -405,11 +405,11 @@ epochs['auditory'].average()
 # the ~mne.Evoked~ object.
 # Second, the `~mne.Evoked.get_peak` method can find different 'types' of
 # peaks using the ``mode`` argument. There are three options:
-# * ``mode='pos'``: finds the peak with a positive voltage (ignores negative
-# voltages)
-# * ``mode='neg'``: finds the peak with a negative voltage (ignores positive
-# voltages)
-# * ``mode='abs'``: finds the peak with the largest absolute voltage
+#      * ``mode='pos'``: finds the peak with a positive voltage (ignores
+# negative voltages)
+#      * ``mode='neg'``: finds the peak with a negative voltage (ignores
+# positive voltages)
+#      * ``mode='abs'``: finds the peak with the largest absolute voltage
 # regardless of sign (positive or negative)
 #
 # The following example demonstrates how to find positive peak in the ERP for
@@ -434,7 +434,7 @@ print(f'Peak Amplitude: {amp:.3f} \u00B5V')
 # %%
 # The output shows that the channel ``eeg55`` had the maximum positive peak in
 # the chosen time window. In practice, one might want to pull out the peak for
-# an _a priori_ region of interest or a single electrode depending on the study
+# an *a priori* region of interest or a single electrode depending on the study
 # This can be done by combining the `~mne.Evoked.pick`
 # (or `~mne.Evoked.pick_channels`) methods with the `~mne.Evoked.get_peak`
 # method.
@@ -519,7 +519,8 @@ fig
 
 # %%
 # Mean Amplitude
-# ^^^^^^^^^^^^^^
+# --------------
+#
 # Another common practice in ERP studies is to define a component (or effect)
 # as the mean amplitude within a specified time window. One advatage of this
 # approach is that it is less sensitive to high freuqency noise (compared to
