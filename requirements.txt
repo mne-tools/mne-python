@@ -19,9 +19,10 @@ statsmodels
 joblib
 psutil
 dipy
-vtk<8.2; platform_system == "Darwin"
-vtk; platform_system != "Darwin"
-mayavi
+vtk; platform_system == "Darwin"
+vtk; platform_system == "Linux"
+vtk<=9.0.1; platform_system == "Windows"
+https://github.com/larsoner/mayavi/zipball/workaround
 PySurfer[save_movie]
 nilearn
 xlrd
