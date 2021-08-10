@@ -390,19 +390,15 @@ mask : ndarray of bool, shape {shape} | None
     with the parameters given in ``mask_params``. Defaults to ``None``,
     equivalent to an array of all ``False`` elements.
 """
-topomap_mask_dstr = {
-    'shape': '(n_channels, )', 'shape_appendix': '', 'example': ''}
-evoked_topomap_mask_dstr = {
-    'shape': '(n_channels, n_times)', 'shape_appendix': '-time combinations',
-    'example': ' (useful for, e.g. marking which channels at which times ' +
-               'a statistical test of the data reaches significance)'}
-patterns_topomap_mask_dstr = {
-    'shape': '(n_channels, n_patterns)',
-    'shape_appendix': '-pattern combinations', 'example': ''}
-docdict['topomap_mask'] = mask_base.format(**topomap_mask_dstr)
-docdict['evoked_topomap_mask'] = mask_base.format(**evoked_topomap_mask_dstr)
+docdict['topomap_mask'] = mask_base.format(
+    shape='(n_channels, )', shape_appendix='', example='')
+docdict['evoked_topomap_mask'] = mask_base.format(
+    shape='(n_channels, n_times)', shape_appendix='-time combinations',
+    example=' (useful for, e.g. marking which channels at which times a '
+            'statistical test of the data reaches significance)')
 docdict['patterns_topomap_mask'] = mask_base.format(
-    **patterns_topomap_mask_dstr)
+    shape='(n_channels, n_patterns)', shape_appendix='-pattern combinations',
+    example='')
 docdict["topomap_mask_params"] = """
 mask_params : dict | None
     Additional plotting parameters for plotting significant sensors.
