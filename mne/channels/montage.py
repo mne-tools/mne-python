@@ -729,6 +729,12 @@ def read_dig_localite(fname, nasion=None, lpa=None, rpa=None):
     ----------
     fname : path-like
         File name.
+    nasion : str | None
+        Name of nasion fiducial point.
+    lpa : str | None
+        Name of left preauricular fiducial point.
+    rpa : str | None
+        Name of right preauricular fiducial point.
 
     Returns
     -------
