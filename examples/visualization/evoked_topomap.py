@@ -123,7 +123,7 @@ plt.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)
 
 # %%
 # We can also highlight specific channels by adding a mask, to e.g. mark
-# chanels exceeding a threshold at a given time:
+# channels exceeding a threshold at a given time:
 
 # Define a threshold and create the mask
 mask = evoked.data > 1e-13
