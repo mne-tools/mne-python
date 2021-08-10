@@ -384,9 +384,9 @@ cbar_fmt : str
     String format for colorbar values.
 """
 mask_base = """
-mask : ndarray of bool, shape %(shape)s | None
-    Array indicating channel%(shape-appendinx)s to highlight with a distrinct
-    plotting style%(example)s. Array elements set to ``True`` will be plotted
+mask : ndarray of bool, shape {shape} | None
+    Array indicating channel{shape-appendinx} to highlight with a distrinct
+    plotting style{example}. Array elements set to ``True`` will be plotted
     with the parameters given in ``mask_params``. Defaults to ``None``,
     equivalent to an array of all ``False`` elements.
 """
@@ -397,15 +397,16 @@ topomap_mask_dstr = {
 evoked_topomap_mask_dstr = {
     'shape': '(n_channels, n_times)',
     'shape-appendinx': '-time combinations',
-    'example': ' (useful for, e.g., marking which channels at which times ' +
+    'example': ' (useful for, e.g. marking which channels at which times ' +
                'a statistical test of the data reaches significance)'}
 patterns_topomap_mask_dstr = {
     'shape': '(n_channels, n_patterns)',
     'shape-appendinx': '-pattern combinations',
     'example': ''}
-docdict['topomap_mask'] = mask_base % topomap_mask_dstr
-docdict['evoked_topomap_mask'] = mask_base % evoked_topomap_mask_dstr
-docdict['patterns_topomap_mask'] = mask_base % patterns_topomap_mask_dstr
+docdict['topomap_mask'] = mask_base.format(**topomap_mask_dstr)
+docdict['evoked_topomap_mask'] = mask_base.format(**evoked_topomap_mask_dstr)
+docdict['patterns_topomap_mask'] = mask_base.format(
+    **patterns_topomap_mask_dstr)
 docdict["topomap_mask_params"] = """
 mask_params : dict | None
     Additional plotting parameters for plotting significant sensors.
