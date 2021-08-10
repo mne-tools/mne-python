@@ -385,20 +385,20 @@ cbar_fmt : str
 """
 mask_base = """
 mask : ndarray of bool, shape {shape} | None
-    Array indicating channel{shape-appendinx} to highlight with a distrinct
+    Array indicating channel{shape_appendix} to highlight with a distrinct
     plotting style{example}. Array elements set to ``True`` will be plotted
     with the parameters given in ``mask_params``. Defaults to ``None``,
     equivalent to an array of all ``False`` elements.
 """
 topomap_mask_dstr = {
-    'shape': '(n_channels, )', 'shape-appendinx': '', 'example': ''}
+    'shape': '(n_channels, )', 'shape_appendix': '', 'example': ''}
 evoked_topomap_mask_dstr = {
-    'shape': '(n_channels, n_times)', 'shape-appendinx': '-time combinations',
+    'shape': '(n_channels, n_times)', 'shape_appendix': '-time combinations',
     'example': ' (useful for, e.g. marking which channels at which times ' +
                'a statistical test of the data reaches significance)'}
 patterns_topomap_mask_dstr = {
     'shape': '(n_channels, n_patterns)',
-    'shape-appendinx': '-pattern combinations', 'example': ''}
+    'shape_appendix': '-pattern combinations', 'example': ''}
 docdict['topomap_mask'] = mask_base.format(**topomap_mask_dstr)
 docdict['evoked_topomap_mask'] = mask_base.format(**evoked_topomap_mask_dstr)
 docdict['patterns_topomap_mask'] = mask_base.format(
