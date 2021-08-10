@@ -1374,7 +1374,8 @@ class Coregistration(object):
             fids = get_mni_fiducials(self._subject, self._subjects_dir)
             mni_points = np.array([f['r'] for f in fids], float)
         else:
-            mni_points = np.array([fids['lpa'], fids['nasion'], fids['rpa']], float)
+            mni_points = np.array([fids['lpa'], fids['nasion'], fids['rpa']],
+                                  float)
 
         # find fiducials file
         fid_files = _find_fiducials_files(self._subject, self._subjects_dir)
