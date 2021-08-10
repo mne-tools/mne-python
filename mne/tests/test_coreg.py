@@ -283,14 +283,14 @@ def test_get_mni_fiducials():
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('scale_mode,ref_scale,grow_hair', [
-    (None, [1., 1., 1.], 0.),
-    (None, [1., 1., 1.], 2.),
-    ('uniform', [1., 1., 1.], 0.),
-    ('3-axis', [1., 1., 1.], 0.),
-    ('uniform', [0.8, 0.8, 0.8], 0.),
-    ('3-axis', [0.8, 1.2, 1.2], 0.)])
-def test_coregistration(scale_mode, ref_scale, grow_hair):
+@pytest.mark.parametrize('scale_mode,ref_scale,grow_hair,auto_fids', [
+    (None, [1., 1., 1.], 0., False),
+    (None, [1., 1., 1.], 2., True),
+    ('uniform', [1., 1., 1.], 0., False),
+    ('3-axis', [1., 1., 1.], 0., False),
+    ('uniform', [0.8, 0.8, 0.8], 0., True),
+    ('3-axis', [0.8, 1.2, 1.2], 0., True)])
+def test_coregistration(scale_mode, ref_scale, grow_hair, auto_fids):
     """Test automated coregistration."""
     trans_fname = op.join(data_path, 'MEG', 'sample',
                           'sample_audvis_trunc-trans.fif')
@@ -298,11 +298,17 @@ def test_coregistration(scale_mode, ref_scale, grow_hair):
                         'tests', 'data', 'test_raw.fif')
     subject = 'sample'
     subjects_dir = os.path.join(data_path, 'subjects')
+    fids = {
+        "lpa": (-80.1, 2.2, -5.9),
+        "nasion": (2.6, 99.8, 40.8),
+        "rpa": (81.0, -7.3, -11.3),
+    }
     info = read_info(fname_raw).copy()
     for d in info['dig']:
         d['r'] *= ref_scale
     trans = read_trans(trans_fname)
-    coreg = Coregistration(info, subject=subject, subjects_dir=subjects_dir)
+    coreg = Coregistration(info, subject=subject, subjects_dir=subjects_dir,
+                           fids='auto' if auto_fids else fids)
     assert np.allclose(coreg._last_parameters, coreg._parameters)
     default_params = list(coreg._default_parameters)
     coreg.set_rotation(default_params[:3])

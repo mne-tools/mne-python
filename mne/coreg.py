@@ -1372,9 +1372,9 @@ class Coregistration(object):
         _validate_type(fids, (str, dict))
         if fids == 'auto':
             fids = get_mni_fiducials(self._subject, self._subjects_dir)
+            mni_points = np.array([f['r'] for f in fids], float)
         else:
-            fids = fids.values()
-        mni_points = np.array([f['r'] for f in fids], float)
+            mni_points = np.array([fids['lpa'], fids['nasion'], fids['rpa']], float)
 
         # find fiducials file
         fid_files = _find_fiducials_files(self._subject, self._subjects_dir)
