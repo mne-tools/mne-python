@@ -137,7 +137,7 @@ evoked.plot_topomap(times, ch_type='mag', time_unit='s', mask=mask,
 # Or by manually picking the channels to highlight at different times:
 
 times = (0.09, 0.1, 0.11)
-_times = np.searchsorted(evoked.times, times) - 1
+_times = ((np.abs(evoked.times - t)).argmin() for t in times)
 significant_channels = [
     ('MEG 0231', 'MEG 1611', 'MEG 1621', 'MEG 1631', 'MEG 1811'),
     ('MEG 2411', 'MEG 2421'),
