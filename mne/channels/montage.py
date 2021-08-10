@@ -722,6 +722,36 @@ def read_dig_captrak(fname):
     return make_dig_montage(**data)
 
 
+def read_dig_localite(fname, nasion=None, lpa=None, rpa=None):
+    """Read Localite .csv file.
+
+    Parameters
+    ----------
+    fname : path-like
+        File name.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+    """
+    ch_pos = {}
+    with open(fname) as f:
+        f.readline()  # skip first row
+        for row in f:
+            _, name, x, y, z = row.split(",")
+            ch_pos[name] = np.array((float(x), float(y), float(z))) / 1000
+
+    if nasion is not None:
+        nasion = ch_pos.pop(nasion)
+    if lpa is not None:
+        lpa = ch_pos.pop(lpa)
+    if rpa is not None:
+        rpa = ch_pos.pop(rpa)
+
+    return make_dig_montage(ch_pos, nasion, lpa, rpa)
+
+
 def _get_montage_in_head(montage):
     coords = set([d['coord_frame'] for d in montage.dig])
     if len(coords) == 1 and coords.pop() == FIFF.FIFFV_COORD_HEAD:
