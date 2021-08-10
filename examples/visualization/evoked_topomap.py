@@ -122,7 +122,19 @@ evoked.plot_topomap(0.1, ch_type='mag', show_names=True, colorbar=False,
 plt.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)
 
 # %%
-# We can also highlight specific channels by adding a mask:
+# We can also highlight specific channels by adding a mask, to e.g. mark
+# chanels exceeding a threshold at a given time:
+
+# Define a threshold and create the mask
+mask = evoked.data > 1e-13
+
+# Select times and plot
+times = (0.09, 0.1, 0.11)
+evoked.plot_topomap(times, ch_type='mag', time_unit='s', mask=mask,
+                    mask_params=dict(markersize=10, markerfacecolor='y'))
+
+#%%
+# Or by manually picking the channels to highlight at different times:
 
 times = (0.09, 0.1, 0.11)
 _times = np.searchsorted(evoked.times, times) - 1
