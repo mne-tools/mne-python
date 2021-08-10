@@ -133,7 +133,7 @@ times = (0.09, 0.1, 0.11)
 evoked.plot_topomap(times, ch_type='mag', time_unit='s', mask=mask,
                     mask_params=dict(markersize=10, markerfacecolor='y'))
 
-#%%
+# %%
 # Or by manually picking the channels to highlight at different times:
 
 times = (0.09, 0.1, 0.11)
