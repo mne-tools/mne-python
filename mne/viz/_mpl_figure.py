@@ -48,7 +48,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
-from mne import set_config, channel_indices_by_type, pick_types
+from mne import channel_indices_by_type, pick_types
 from mne.annotations import _sync_onset
 from mne.defaults import _handle_default
 from mne.io.pick import (_DATA_CH_TYPES_SPLIT, _DATA_CH_TYPES_ORDER_DEFAULT,
@@ -503,31 +503,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             vsel_patch=vsel_patch, hsel_patch=hsel_patch, vline=vline,
             vline_hscroll=vline_hscroll, vline_text=vline_text)
 
-    def _close(self, event):
-        """Handle close events (via keypress or window [x])."""
-        from matplotlib.pyplot import close
-        # write out bad epochs (after converting epoch numbers to indices)
-        if self.mne.instance_type == 'epochs':
-            bad_ixs = np.in1d(self.mne.inst.selection,
-                              self.mne.bad_epochs).nonzero()[0]
-            self.mne.inst.drop(bad_ixs)
-        # write bad channels back to instance (don't do this for proj;
-        # proj checkboxes are for viz only and shouldn't modify the instance)
-        if self.mne.instance_type in ('raw', 'epochs'):
-            self.mne.inst.info['bads'] = self.mne.info['bads']
-            logger.info(
-                f"Channels marked as bad: {self.mne.info['bads'] or 'none'}")
-        # ICA excludes
-        elif self.mne.instance_type == 'ica':
-            self.mne.ica.exclude = [self.mne.ica._ica_names.index(ch)
-                                    for ch in self.mne.info['bads']]
-        # write window size to config
-        size = ','.join(self.get_size_inches().astype(str))
-        set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
-        # Clean up child figures (don't pop(), child figs remove themselves)
-        while len(self.mne.child_figs):
-            fig = self.mne.child_figs[-1]
-            close(fig)
+    def _get_size(self):
+        return self.get_size_inches()
 
     def _resize(self, event):
         """Handle resize event for mne_browse-style plots (Raw/Epochs/ICA)."""

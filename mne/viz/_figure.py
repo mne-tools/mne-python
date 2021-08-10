@@ -12,6 +12,7 @@ from copy import deepcopy
 from itertools import cycle
 
 import numpy as np
+from mne import set_config
 
 from .. import verbose, get_config
 from ..annotations import _sync_onset
@@ -318,11 +319,40 @@ class BrowserBase(ABC):
         """Redraws backend if necessary."""
         pass
 
+    def _close(self, event):
+        """Handle close events (via keypress or window [x])."""
+        # write out bad epochs (after converting epoch numbers to indices)
+        if self.mne.instance_type == 'epochs':
+            bad_ixs = np.in1d(self.mne.inst.selection,
+                              self.mne.bad_epochs).nonzero()[0]
+            self.mne.inst.drop(bad_ixs)
+        # write bad channels back to instance (don't do this for proj;
+        # proj checkboxes are for viz only and shouldn't modify the instance)
+        if self.mne.instance_type in ('raw', 'epochs'):
+            self.mne.inst.info['bads'] = self.mne.info['bads']
+            logger.info(
+                f"Channels marked as bad: {self.mne.info['bads'] or 'none'}")
+        # ICA excludes
+        elif self.mne.instance_type == 'ica':
+            self.mne.ica.exclude = [self.mne.ica._ica_names.index(ch)
+                                    for ch in self.mne.info['bads']]
+        # write window size to config
+        str_size = ','.join([str(i) for i in self._get_size()])
+        set_config('MNE_BROWSE_RAW_SIZE', str_size, set_env=False)
+        # Clean up child figures (don't pop(), child figs remove themselves)
+        while len(self.mne.child_figs):
+            fig = self.mne.child_figs[-1]
+            self._close_event(fig)
+
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # INTERACTION
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     @abstractmethod
     def _close_event(self, fig):
+        pass
+
+    @abstractmethod
+    def _get_size(self):
         pass
 
     @abstractmethod
