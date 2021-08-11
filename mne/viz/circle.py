@@ -120,9 +120,7 @@ def _plot_connectivity_circle_onpick(event, fig=None, axes=None, indices=None,
         fig.canvas.draw()
 
 
-@deprecated("Starting version v0.25, mne.connectivity sub-modules "
-            "will be housed in 'mne-connectivity'. Download it "
-            "by running 'pip install mne-connectivity'.")
+@deprecated(CONNECTIVITY_DEPRECATION_MSG)
 def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                              node_angles=None, node_width=None,
                              node_colors=None, facecolor='black',
