@@ -17,8 +17,8 @@ from ..utils import _validate_type, deprecated
 
 
 @deprecated('Starting version v0.25, mne.connectivity sub-modules '
-            'will be housed in ``mne-connectivity``. Download it '
-            'by running ``pip install mne-connectivity``.')
+            'will be housed in "mne-connectivity". Download it '
+            'by running "pip install mne-connectivity".')
 def circular_layout(node_names, node_order, start_pos=90, start_between=True,
                     group_boundaries=None, group_sep=10):
     """Create layout arranging nodes on a circle.
@@ -123,8 +123,8 @@ def _plot_connectivity_circle_onpick(event, fig=None, axes=None, indices=None,
 
 
 @deprecated('Starting version v0.25, mne.connectivity sub-modules '
-            'will be housed in ``mne-connectivity``. Download it '
-            'by running ``pip install mne-connectivity``.')
+            'will be housed in "mne-connectivity". Download it '
+            'by running "pip install mne-connectivity".')
 def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                              node_angles=None, node_width=None,
                              node_colors=None, facecolor='black',
