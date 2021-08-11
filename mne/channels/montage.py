@@ -118,6 +118,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     read_dig_captrak
     read_dig_egi
     read_dig_fif
+    read_dig_localite
     read_dig_polhemus_isotrak
 
     Notes
@@ -160,6 +161,7 @@ class DigMontage(object):
     read_dig_egi
     read_dig_fif
     read_dig_hpts
+    read_dig_localite
     read_dig_polhemus_isotrak
     make_dig_montage
 
@@ -485,6 +487,7 @@ def read_dig_dat(fname):
     read_dig_egi
     read_dig_fif
     read_dig_hpts
+    read_dig_localite
     read_dig_polhemus_isotrak
     make_dig_montage
 
@@ -551,6 +554,7 @@ def read_dig_fif(fname):
     read_dig_captrak
     read_dig_polhemus_isotrak
     read_dig_hpts
+    read_dig_localite
     make_dig_montage
     """
     _check_fname(fname, overwrite='read', must_exist=True)
@@ -590,6 +594,7 @@ def read_dig_hpts(fname, unit='mm'):
     read_dig_dat
     read_dig_egi
     read_dig_fif
+    read_dig_localite
     read_dig_polhemus_isotrak
     make_dig_montage
 
@@ -679,6 +684,7 @@ def read_dig_egi(fname):
     read_dig_dat
     read_dig_fif
     read_dig_hpts
+    read_dig_localite
     read_dig_polhemus_isotrak
     make_dig_montage
     """
@@ -713,6 +719,7 @@ def read_dig_captrak(fname):
     read_dig_egi
     read_dig_fif
     read_dig_hpts
+    read_dig_localite
     read_dig_polhemus_isotrak
     make_dig_montage
     """
@@ -740,6 +747,17 @@ def read_dig_localite(fname, nasion=None, lpa=None, rpa=None):
     -------
     montage : instance of DigMontage
         The montage.
+
+    See Also
+    --------
+    DigMontage
+    read_dig_captrak
+    read_dig_dat
+    read_dig_egi
+    read_dig_fif
+    read_dig_hpts
+    read_dig_polhemus_isotrak
+    make_dig_montage
     """
     ch_pos = {}
     with open(fname) as f:
@@ -1106,6 +1124,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     read_dig_dat
     read_dig_egi
     read_dig_fif
+    read_dig_localite
     """
     VALID_FILE_EXT = ('.hsp', '.elp', '.eeg')
     _scale = _check_unit_and_get_scaling(unit)
