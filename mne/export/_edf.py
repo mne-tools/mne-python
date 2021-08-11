@@ -10,8 +10,15 @@ _check_edflib_installed()
 from EDFlib.edfwriter import EDFwriter  # noqa: E402
 
 
-def _export_raw(fname, raw, physical_range):
+def _export_raw(fname, raw, physical_range, fmt):
     phys_dims = 'uV'
+
+    if fmt == 'bdf':
+        digital_min = -8388607
+        digital_max = 8388607
+    elif fmt == 'bdf':
+        digital_min = -32767
+        digital_max = 32767
 
     # load data first
     raw.load_data()
@@ -73,9 +80,9 @@ def _export_raw(fname, raw, physical_range):
             raise RuntimeError("setPhysicalMaximum() returned an error")
         if hdl.setPhysicalMinimum(ichan, pmin) != 0:  # noqa
             raise RuntimeError("setPhysicalMinimum() returned an error")
-        if hdl.setDigitalMaximum(ichan, 32767) != 0:  # noqa
+        if hdl.setDigitalMaximum(ichan, digital_max) != 0:  # noqa
             raise RuntimeError("setDigitalMaximum() returned an error")
-        if hdl.setDigitalMinimum(ichan, -32767) != 0:  # noqa
+        if hdl.setDigitalMinimum(ichan, digital_min) != 0:  # noqa
             raise RuntimeError("setDigitalMinimum() returned an error")
         if hdl.setPhysicalDimension(ichan, phys_dims) != 0:  # noqa
             raise RuntimeError("setPhysicalDimension() returned an error")

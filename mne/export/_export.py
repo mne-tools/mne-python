@@ -10,7 +10,7 @@ from ..utils import verbose, logger, _validate_type
 
 
 @verbose
-def export_raw(fname, raw, fmt='auto', physical_range='auto', verbose=None):
+def export_raw(fname, raw, fmt='auto', verbose=None, **kwargs):
     """Export Raw to external formats.
 
     Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
@@ -22,13 +22,13 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto', verbose=None):
     raw : instance of Raw
         The raw instance to export.
     %(export_params_fmt)s
+    %(verbose)s
     physical_range : str | tuple
         The physical range of the data. If 'auto' (default), then
         it will infer the physical min and max from the data itself,
         taking the minimum and maximum values per channel type.
         If it is a 2-tuple of minimum and maximum limit, then those
         physical ranges will be hard-set. Only used for exporting EDF.
-    %(verbose)s
 
     Notes
     -----
@@ -46,7 +46,12 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto', verbose=None):
         _export_raw(fname, raw)
     elif fmt == 'edf':
         from ._edf import _export_raw
-        _export_raw(fname, raw, physical_range)
+        physical_range = kwargs.get('physical_range', 'auto')
+        _export_raw(fname, raw, physical_range, fmt)
+    elif fmt == 'bdf':
+        from ._edf import _export_raw
+        physical_range = kwargs.get('physical_range', 'auto')
+        _export_raw(fname, raw, physical_range, fmt)
     elif fmt == 'brainvision':
         raise NotImplementedError('Export to BrainVision not implemented.')
 
