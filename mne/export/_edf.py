@@ -10,7 +10,7 @@ _check_edflib_installed()
 from EDFlib.edfwriter import EDFwriter  # noqa: E402
 
 
-def _export_raw(fname, raw):
+def _export_raw(fname, raw, physical_range):
     phys_dims = 'uV'
 
     # load data first
@@ -35,23 +35,40 @@ def _export_raw(fname, raw):
         units['ecog'] = 'uV'
     if 'seeg' in raw:
         units['seeg'] = 'uV'
+
+    # get the entire dataset in uV
     data = raw.get_data(units=units, picks=ch_names)
 
-    # get the physical min and max of the data in uV
-    # see discussion in: https://github.com/sccn/eeglab/issues/246
-    pmin, pmax = -3200, 3200
+    if physical_range == 'auto':
+        # get max and min for each channel type data
+        ch_types_phys_max = dict()
+        ch_types_phys_min = dict()
+        for ch_type in raw.get_channel_types():
+            ch_type_data = raw.copy().pick_types(
+                **{ch_type: True}).get_data(units=units)
+            ch_types_phys_max[ch_type] = ch_type_data.max()
+            ch_types_phys_min[ch_type] = ch_type_data.min()
+    else:
+        # get the physical min and max of the data in uV
+        # see discussion in: https://github.com/sccn/eeglab/issues/246
+        pmin, pmax = -3200, 3200
 
-    # check that physical min and max is not exceeded
-    if data.flatten().max() > pmax:
-        raise RuntimeError('The maximum uV of the data is more then pmax.')
-    if data.flatten().min() < pmin:
-        raise RuntimeError('The minimum uV of the data is less then pmin.')
+        # check that physical min and max is not exceeded
+        if data.max() > pmax:
+            raise RuntimeError('The maximum uV of the data is more then pmax.')
+        if data.min() < pmin:
+            raise RuntimeError('The minimum uV of the data is less then pmin.')
 
     # create instance of EDF Writer
     hdl = EDFwriter(fname, EDFwriter.EDFLIB_FILETYPE_EDFPLUS, n_chs)
 
     # set channel data
     for ichan, ch in enumerate(ch_names):
+        if physical_range == 'auto':
+            # take the channel type minimum and maximum
+            ch_type = raw.get_channel_types(picks=ch)[0]
+            pmin, pmax = ch_types_phys_min[ch_type], ch_types_phys_max[ch_type]
+
         if hdl.setPhysicalMaximum(ichan, pmax) != 0:  # noqa
             raise RuntimeError("setPhysicalMaximum() returned an error")
         if hdl.setPhysicalMinimum(ichan, pmin) != 0:  # noqa
