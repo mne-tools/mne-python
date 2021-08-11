@@ -119,7 +119,8 @@ def show_browser(show=True, block=True, fig=None, **kwargs):
         from qtpy.QtWidgets import QApplication
         app = QApplication.instance() or QApplication(['MNE'])
         fig.show()
-        app.exec()
+        if block:
+            app.exec()
 
 
 def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
