@@ -9,7 +9,7 @@ from inspect import getmembers
 import numpy as np
 
 from .utils import check_indices
-from ..utils import _check_option
+from ..utils import _check_option, CONNECTIVITY_DEPRECATION_MSG
 from ..fixes import _get_args, _import_fft
 from ..parallel import parallel_func
 from ..source_estimate import _BaseSourceEstimate
@@ -556,10 +556,8 @@ def _check_estimators(method, mode):
     return con_method_types, n_methods, accumulate_psd, n_comp_args
 
 
-@deprecated("Starting version v0.25, mne.connectivity sub-modules "
-            "will be housed in 'mne-connectivity'. Download it "
-            "by running 'pip install mne-connectivity'.")
 @verbose
+@deprecated(CONNECTIVITY_DEPRECATION_MSG)
 def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                           mode='multitaper', fmin=None, fmax=np.inf,
                           fskip=0, faverage=False, tmin=None, tmax=None,

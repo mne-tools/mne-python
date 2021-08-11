@@ -6,14 +6,12 @@ import copy
 
 import numpy as np
 
-from ..utils import logger, verbose, deprecated
+from ..utils import logger, verbose, deprecated, CONNECTIVITY_DEPRECATION_MSG
 from .spectral import spectral_connectivity
 
 
-@deprecated("Starting version v0.25, mne.connectivity sub-modules "
-            "will be housed in 'mne-connectivity'. Download it "
-            "by running 'pip install mne-connectivity'.")
 @verbose
+@deprecated(CONNECTIVITY_DEPRECATION_MSG)
 def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
                       mode='multitaper', fmin=None, fmax=np.inf,
                       tmin=None, tmax=None, mt_bandwidth=None,

@@ -13,12 +13,10 @@ from functools import partial
 import numpy as np
 
 from .utils import plt_show
-from ..utils import _validate_type, deprecated
+from ..utils import _validate_type, deprecated, CONNECTIVITY_DEPRECATION_MSG
 
 
-@deprecated("Starting version v0.25, mne.connectivity sub-modules "
-            "will be housed in 'mne-connectivity'. Download it "
-            "by running 'pip install mne-connectivity'.")
+@deprecated(CONNECTIVITY_DEPRECATION_MSG)
 def circular_layout(node_names, node_order, start_pos=90, start_between=True,
                     group_boundaries=None, group_sep=10):
     """Create layout arranging nodes on a circle.
