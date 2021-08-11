@@ -61,7 +61,7 @@ def _data_path(path=None, force_update=False, update_path=None, verbose=None):
         Force update of the dataset even if a local copy exists.
     update_path : bool | None
         XXX Not implemented
-        If True, set the MNE_DATASETS_PHYSIONET_SLEEP_PATH in mne-python
+        If True, set the ``PHYSIONET_SLEEP_PATH`` in MNE-Python
         config to the given path. If None, the user is prompted.
     %(verbose)s
 
