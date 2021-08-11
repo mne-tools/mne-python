@@ -35,7 +35,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              clipping=_RAW_CLIP_DEF, show_first_samp=False,
              proj=True, group_by='type', butterfly=False, decim='auto',
              noise_cov=None, event_id=None, show_scrollbars=True,
-             show_scalebars=True, time_format='float', verbose=None):
+             show_scalebars=True, time_format='float', verbose=None, **kwargs):
     """Plot raw data.
 
     Parameters
@@ -347,6 +347,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   scrollbars_visible=show_scrollbars,
                   scalebars_visible=show_scalebars,
                   window_title=title)
+
+    params = {**params, **kwargs}
 
     fig = _get_browser(**params)
 
