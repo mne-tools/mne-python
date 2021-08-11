@@ -556,8 +556,8 @@ def _check_estimators(method, mode):
     return con_method_types, n_methods, accumulate_psd, n_comp_args
 
 
-@verbose
 @deprecated(CONNECTIVITY_DEPRECATION_MSG)
+@verbose
 def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                           mode='multitaper', fmin=None, fmax=np.inf,
                           fskip=0, faverage=False, tmin=None, tmax=None,

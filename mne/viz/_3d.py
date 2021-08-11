@@ -2897,8 +2897,8 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     return proj.xy, im
 
 
-@fill_doc
 @deprecated(CONNECTIVITY_DEPRECATION_MSG)
+@fill_doc
 def plot_sensors_connectivity(info, con, picks=None,
                               cbar_label='Connectivity'):
     """Visualize the sensor connectivity in 3D.

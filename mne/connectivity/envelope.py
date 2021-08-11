@@ -12,8 +12,8 @@ from ..utils import (verbose, _check_combine, _check_option, deprecated,
                      CONNECTIVITY_DEPRECATION_MSG)
 
 
-@verbose
 @deprecated(CONNECTIVITY_DEPRECATION_MSG)
+@verbose
 def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
                          log=False, absolute=True, verbose=None):
     """Compute the envelope correlation.
