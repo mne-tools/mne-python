@@ -10,9 +10,9 @@ from ..utils import logger, verbose, deprecated
 from .spectral import spectral_connectivity
 
 
-@deprecated('Starting version v0.25, mne.connectivity sub-modules '
-            'will be housed in "mne-connectivity". Download it '
-            'by running "pip install mne-connectivity".')
+@deprecated("Starting version v0.25, mne.connectivity sub-modules "
+            "will be housed in 'mne-connectivity'. Download it "
+            "by running 'pip install mne-connectivity'.")
 @verbose
 def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
                       mode='multitaper', fmin=None, fmax=np.inf,

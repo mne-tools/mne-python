@@ -2896,9 +2896,9 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     return proj.xy, im
 
 
-@deprecated('Starting version v0.25, mne.connectivity sub-modules '
-            'will be housed in "mne-connectivity". Download it '
-            'by running "pip install mne-connectivity".')
+@deprecated("Starting version v0.25, mne.connectivity sub-modules "
+            "will be housed in 'mne-connectivity'. Download it "
+            "by running 'pip install mne-connectivity'.")
 @fill_doc
 def plot_sensors_connectivity(info, con, picks=None,
                               cbar_label='Connectivity'):

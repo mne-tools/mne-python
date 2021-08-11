@@ -934,7 +934,7 @@ needed_plot_redirects = {
     'psf_ctf_vertices_lcmv.py', 'publication_figure.py', 'rap_music.py',
     'read_inverse.py', 'read_neo_format.py', 'read_noise_covariance_matrix.py',
     'read_stc.py', 'receptive_field_mtrf.py', 'resolution_metrics.py',
-    'resolution_metrics_eegmeg.py', 'roi_erpimage_by_rt.py', 
+    'resolution_metrics_eegmeg.py', 'roi_erpimage_by_rt.py',
     'sensor_noise_level.py',
     'sensor_permutation_test.py', 'sensor_regression.py',
     'shift_evoked.py', 'simulate_evoked_data.py', 'simulate_raw_data.py',

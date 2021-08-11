@@ -11,9 +11,9 @@ from ..source_estimate import _BaseSourceEstimate
 from ..utils import verbose, _check_combine, _check_option, deprecated
 
 
-@deprecated('Starting version v0.25, mne.connectivity sub-modules '
-            'will be housed in "mne-connectivity". Download it '
-            'by running "pip install mne-connectivity".')
+@deprecated("Starting version v0.25, mne.connectivity sub-modules "
+            "will be housed in 'mne-connectivity'. Download it "
+            "by running 'pip install mne-connectivity'.")
 @verbose
 def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
                          log=False, absolute=True, verbose=None):
