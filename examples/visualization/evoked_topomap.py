@@ -89,7 +89,7 @@ evoked.plot_topomap(times, ch_type='mag', cmap='Spectral_r', res=32,
 # the effect of extrapolation. There are three extrapolation modes:
 #
 # - ``extrapolate='local'`` extrapolates only to points close to the sensors.
-# - ``extrapolate='head'`` extrapolates out to the head head circle.
+# - ``extrapolate='head'`` extrapolates out to the head circle.
 # - ``extrapolate='box'`` extrapolates to a large box stretching beyond the
 #   head circle.
 #
@@ -120,6 +120,36 @@ evoked.plot_topomap(0.1, ch_type='mag', show_names=True, colorbar=False,
                     size=6, res=128, title='Auditory response',
                     time_unit='s')
 plt.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)
+
+# %%
+# We can also highlight specific channels by adding a mask, to e.g. mark
+# channels exceeding a threshold at a given time:
+
+# Define a threshold and create the mask
+mask = evoked.data > 1e-13
+
+# Select times and plot
+times = (0.09, 0.1, 0.11)
+evoked.plot_topomap(times, ch_type='mag', time_unit='s', mask=mask,
+                    mask_params=dict(markersize=10, markerfacecolor='y'))
+
+# %%
+# Or by manually picking the channels to highlight at different times:
+
+times = (0.09, 0.1, 0.11)
+_times = ((np.abs(evoked.times - t)).argmin() for t in times)
+significant_channels = [
+    ('MEG 0231', 'MEG 1611', 'MEG 1621', 'MEG 1631', 'MEG 1811'),
+    ('MEG 2411', 'MEG 2421'),
+    ('MEG 1621')]
+_channels = [np.in1d(evoked.ch_names, ch) for ch in significant_channels]
+
+mask = np.zeros(evoked.data.shape, dtype='bool')
+for _chs, _time in zip(_channels, _times):
+    mask[_chs, _time] = True
+
+evoked.plot_topomap(times, ch_type='mag', time_unit='s', mask=mask,
+                    mask_params=dict(markersize=10, markerfacecolor='y'))
 
 # %%
 # Animating the topomap

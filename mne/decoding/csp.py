@@ -308,7 +308,7 @@ class CSP(TransformerMixin, BaseEstimator):
             only significant sensors will be shown.
         title : str | None
             Title. If None (default), no title is displayed.
-        %(topomap_mask)s
+        %(patterns_topomap_mask)s
         %(topomap_mask_params)s
         %(topomap_outlines)s
         contours : int | array of float
