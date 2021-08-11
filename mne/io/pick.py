@@ -984,10 +984,10 @@ _PICK_TYPES_DATA_DICT = dict(
     dbs=True)
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT) + ['ref_meg'])
 _MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
-_FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_cw_amplitude',
-                         'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', 'fnirs_od',
-                         'fnirs_td_gated_amplitude', 'fnirs_td_moments_amplitude',
-                         'fnirs_processed')
+_FNIRS_CH_TYPES_SPLIT = (
+    'hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_fd_ac_amplitude',
+    'fnirs_fd_phase', 'fnirs_od', 'fnirs_td_gated_amplitude',
+    'fnirs_td_moments_amplitude', 'fnirs_processed')
 _DATA_CH_TYPES_ORDER_DEFAULT = (
     'mag', 'grad', 'eeg', 'csd', 'eog', 'ecg', 'resp', 'emg', 'ref_meg',
     'misc', 'stim', 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio', 'ecog',

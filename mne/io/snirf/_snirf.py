@@ -220,40 +220,67 @@ class RawSNIRF(BaseRaw):
 
             chnames = []
             for chan in channels:
-                src_idx = int(_correct_shape(np.array(dat.get('nirs/data1/' +
-                                                              chan + '/sourceIndex')))[0])
-                det_idx = int(_correct_shape(np.array(dat.get('nirs/data1/' +
-                                                              chan + '/detectorIndex')))[0])
+                src_idx = int(
+                    _correct_shape(
+                        np.array(
+                            dat.get(
+                                'nirs/data1/' + chan + '/sourceIndex')))
+                    [0])
+                det_idx = int(
+                    _correct_shape(
+                        np.array(
+                            dat.get(
+                                'nirs/data1/' + chan + '/detectorIndex')))[0])
                 if snirf_data_type == 1:
-                    wve_idx = int(_correct_shape(np.array(dat.get('nirs/data1/' +
-                                                                  chan + '/wavelengthIndex')))[0])
+                    wve_idx = int(
+                        _correct_shape(
+                            np.array(
+                                dat.get(
+                                    'nirs/data1/' + chan +
+                                    '/wavelengthIndex')))[0])
                     ch_name = sources[src_idx - 1] + '_' +\
                         detectors[det_idx - 1] + ' ' +\
                         str(fnirs_wavelengths[wve_idx - 1])
                     chnames.append(ch_name)
                 elif snirf_data_type == 201:
-                    wve_idx = int(_correct_shape(np.array(dat.get('nirs/data1/' +
-                                                                  chan + '/wavelengthIndex')))[0])
-                    bin_idx = int(_correct_shape(np.array(dat.get('nirs/data1/' +
-                                                                  chan + '/dataTypeIndex')))[0])
+                    wve_idx = int(
+                        _correct_shape(
+                            np.array(
+                                dat.get(
+                                    'nirs/data1/' + chan +
+                                    '/wavelengthIndex')))[0])
+                    bin_idx = int(
+                        _correct_shape(
+                            np.array(
+                                dat.get(
+                                    'nirs/data1/' + chan +
+                                    '/dataTypeIndex')))[0])
                     ch_name = sources[src_idx - 1] + '_' +\
                         detectors[det_idx - 1] + ' ' +\
                         str(fnirs_wavelengths[wve_idx - 1]) + ' ' +\
                         'bin' + str(fnirs_time_delays[bin_idx - 1])
                     chnames.append(ch_name)
                 elif snirf_data_type == 301:
-                    wve_idx = int(_correct_shape(np.array(dat.get('nirs/data1/' +
-                                                                  chan + '/wavelengthIndex')))[0])
-                    moment_idx = int(_correct_shape(np.array(dat.get('nirs/data1/' +
-                                                                     chan + '/dataTypeIndex')))[0])
+                    wve_idx = int(
+                        _correct_shape(
+                            np.array(
+                                dat.get(
+                                    'nirs/data1/' + chan +
+                                    '/wavelengthIndex')))[0])
+                    moment_idx = int(
+                        _correct_shape(
+                            np.array(
+                                dat.get(
+                                    'nirs/data1/' + chan +
+                                    '/dataTypeIndex')))[0])
                     ch_name = sources[src_idx - 1] + '_' +\
                         detectors[det_idx - 1] + ' ' +\
                         str(fnirs_wavelengths[wve_idx - 1]) + ' ' +\
                         'moment' + str(fnirs_moment_orders[moment_idx - 1])
                     chnames.append(ch_name)
                 elif snirf_data_type == 99999:
-                    hb_id = _correct_shape(np.array(dat.get('nirs/data1/' +
-                                                            chan + '/dataTypeLabel')))[0].decode('UTF-8')
+                    hb_id = _correct_shape(
+                        np.array(dat.get('nirs/data1/' + chan + '/dataTypeLabel')))[0].decode('UTF-8')
                     ch_name = sources[src_idx - 1] + '_' +\
                         detectors[det_idx - 1] + ' ' +\
                         hb_id
@@ -330,10 +357,17 @@ class RawSNIRF(BaseRaw):
                 coord_frame = FIFF.FIFFV_COORD_UNKNOWN
 
             for idx, chan in enumerate(channels):
-                src_idx = int(_correct_shape(np.array(dat.get('nirs/data1/' +
-                                                              chan + '/sourceIndex')))[0])
-                det_idx = int(_correct_shape(np.array(dat.get('nirs/data1/' +
-                                                              chan + '/detectorIndex')))[0])
+                src_idx = int(
+                    _correct_shape(
+                        np.array(
+                            dat.get(
+                                'nirs/data1/' + chan + '/sourceIndex')))
+                    [0])
+                det_idx = int(
+                    _correct_shape(
+                        np.array(
+                            dat.get(
+                                'nirs/data1/' + chan + '/detectorIndex')))[0])
                 info['chs'][idx]['loc'][3:6] = srcPos3D[src_idx - 1, :]
                 info['chs'][idx]['loc'][6:9] = detPos3D[det_idx - 1, :]
                 # Store channel as mid point
@@ -344,22 +378,34 @@ class RawSNIRF(BaseRaw):
 
                 # get data type specific info:
                 if snirf_data_type in [1, 201, 301]:
-                    wve_idx = int(_correct_shape(np.array(dat.get('nirs/data1/' +
-                                                                  chan + '/wavelengthIndex')))[0])
+                    wve_idx = int(
+                        _correct_shape(
+                            np.array(
+                                dat.get(
+                                    'nirs/data1/' + chan +
+                                    '/wavelengthIndex')))[0])
                     info['chs'][idx]['loc'][9] = fnirs_wavelengths[wve_idx - 1]
                 elif snirf_data_type == 99999:
-                    hb_id = _correct_shape(np.array(dat.get('nirs/data1/' +
-                                                            chan + '/dataTypeLabel')))[0].decode('UTF-8')
+                    hb_id = _correct_shape(
+                        np.array(dat.get('nirs/data1/' + chan + '/dataTypeLabel')))[0].decode('UTF-8')
                     info['chs'][idx]['loc'][9] = FNIRS_SNIRF_DATATYPELABELS[hb_id]
 
                 if snirf_data_type == 201:
-                    bin_idx = int(_correct_shape(np.array(dat.get('nirs/data1/' +
-                                                                  chan + '/dataTypeIndex')))[0])
+                    bin_idx = int(
+                        _correct_shape(
+                            np.array(
+                                dat.get(
+                                    'nirs/data1/' + chan +
+                                    '/dataTypeIndex')))[0])
                     info['chs'][idx]['loc'][10] = fnirs_time_delays[bin_idx -
                                                                     1] * fnirs_time_delay_widths
                 elif snirf_data_type == 301:
-                    moment_idx = int(_correct_shape(np.array(dat.get('nirs/data1/' +
-                                                                     chan + '/dataTypeIndex')))[0])
+                    moment_idx = int(
+                        _correct_shape(
+                            np.array(
+                                dat.get(
+                                    'nirs/data1/' + chan +
+                                    '/dataTypeIndex')))[0])
                     info['chs'][idx]['loc'][10] = fnirs_moment_orders[moment_idx - 1]
 
             if 'landmarkPos3D' in dat.get('nirs/probe/'):
@@ -416,16 +462,17 @@ class RawSNIRF(BaseRaw):
                     else:
                         break
                 else:
-                    warn("Extraction of measurement date from SNIRF file failed. "
-                         "The date is being set to January 1st, 2000, "
-                         f"instead of {str_datetime}")
+                    warn(
+                        "Extraction of measurement date from SNIRF file failed. "
+                        "The date is being set to January 1st, 2000, "
+                        f"instead of {str_datetime}")
                     meas_date = datetime.datetime(2000, 1, 1, 0, 0, 0)
                 meas_date = meas_date.replace(tzinfo=datetime.timezone.utc)
                 info['meas_date'] = meas_date
 
                 if 'DateOfBirth' in dat.get('nirs/metaDataTags/'):
-                    str_birth = _correct_shape(np.array((dat.get('/nirs/metaDataTags/'
-                                                                 'DateOfBirth'))))[0].decode()
+                    str_birth = _correct_shape(
+                        np.array((dat.get('/nirs/metaDataTags/' 'DateOfBirth'))))[0].decode()
                     birth_matched = re.fullmatch(
                         r'(\d+)-(\d+)-(\d+)', str_birth)
                     if birth_matched is not None:
