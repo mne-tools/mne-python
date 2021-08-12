@@ -899,8 +899,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     fig._update_picks()
 
-    # make channel selection dialog,
-    # if requested (doesn't work well in init)
+    # make channel selection dialog, if requested (doesn't work well in init)
     if group_by in ('selection', 'position'):
         fig._create_selection_fig()
 
