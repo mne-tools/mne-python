@@ -37,7 +37,7 @@ class BrowserParams:
 
 
 class BrowserBase(ABC):
-    """ A base class containing for the 2D browser.
+    """A base class containing for the 2D browser.
 
     This class contains all backend-independent attributes and methods.
     """
