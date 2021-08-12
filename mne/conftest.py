@@ -25,7 +25,7 @@ from mne.io import read_raw_fif, read_raw_ctf
 from mne.stats import cluster_level
 from mne.utils import _pl, _assert_no_instances, numerics
 
-# data from sample-dataset
+# data from sample dataset
 from mne.viz._figure import use_browser_backend
 
 test_path = testing.data_path(download=False)
