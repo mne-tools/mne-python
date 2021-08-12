@@ -498,12 +498,13 @@ class RawSNIRF(BaseRaw):
             self.set_annotations(annot)
 
             # Reorder channels to match expected ordering in MNE
-            num_chans = len(self.ch_names)
-            chans = []
-            for idx in range(num_chans // 2):
-                chans.append(idx)
-                chans.append(idx + num_chans // 2)
-            self.pick(picks=chans)
+            if snirf_data_type in [1, 99999]:
+                num_chans = len(self.ch_names)
+                chans = []
+                for idx in range(num_chans // 2):
+                    chans.append(idx)
+                    chans.append(idx + num_chans // 2)
+                self.pick(picks=chans)
 
         # Validate that the fNIRS info is correctly formatted
         _validate_nirs_info(self.info)
