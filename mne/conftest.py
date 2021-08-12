@@ -41,7 +41,6 @@ subjects_dir = op.join(test_path, 'subjects')
 fname_src = op.join(bem_path, 'sample-oct-4-src.fif')
 fname_trans = op.join(s_path, 'sample_audvis_trunc-trans.fif')
 
-# CTF-Dataset
 ctf_dir = op.join(test_path, 'CTF')
 fname_ctf_continuous = op.join(ctf_dir, 'testdata_ctf.ds')
 
