@@ -20,7 +20,7 @@ from .backends._utils import VALID_BROWSE_BACKENDS
 from .utils import _get_color_list, _setup_plot_projector
 
 MNE_BROWSE_BACKEND = None
-_backend_name_map = dict(
+_backends = dict(
     matplotlib='._mpl_figure',
     pyqtgraph='._pyqtgraph'
 )
@@ -37,8 +37,7 @@ class BrowserParams:
 
 
 class BrowserBase(ABC):
-    """
-    A base class containing for the 2D browser.
+    """ A base class containing for the 2D browser.
 
     This class contains all backend-independent attributes and methods.
     """
@@ -312,6 +311,7 @@ class BrowserBase(ABC):
         epoch_nums = self.mne.inst.selection
         return epoch_nums[np.searchsorted(self.mne.boundary_times[1:], time)]
 
+    @abstractmethod
     def _redraw(self, **kwargs):
         """Redraws backend if necessary."""
         pass
@@ -342,9 +342,9 @@ class BrowserBase(ABC):
 
 def _load_backend(backend_name):
     global backend
-    backend = importlib.import_module(name=_backend_name_map[backend_name],
+    backend = importlib.import_module(name=_backends[backend_name],
                                       package='mne.viz')
-    logger.info(f'Using {backend_name} as 2d backend.')
+    logger.info(f'Using {backend_name} as 2D backend.')
 
     return backend
 
@@ -415,11 +415,11 @@ def set_browser_backend(backend_name, verbose=None):
        +--------------------------------------+------------+-----------+
        | Toggle Projections                   | ✓          |           |
        +--------------------------------------+------------+-----------+
-       | Butterfly-Mode                       | ✓          |           |
+       | Butterfly Mode                       | ✓          |           |
        +--------------------------------------+------------+-----------+
        | Smooth Scrolling                     |            | ✓         |
        +--------------------------------------+------------+-----------+
-       | OpenGL-Acceleration                  |            | ✓         |
+       | OpenGL Acceleration                  |            | ✓         |
        +--------------------------------------+------------+-----------+
        | Toolbar                              |            | ✓         |
        +--------------------------------------+------------+-----------+
