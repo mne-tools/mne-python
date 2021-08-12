@@ -2,10 +2,11 @@
 #
 # License: BSD-3-Clause
 import numpy as np
-from ..utils import deprecated, CONNECTIVITY_DEPRECATION_MSG
+from ..utils import deprecated, verbose, CONNECTIVITY_DEPRECATION_MSG
 
 
 @deprecated(CONNECTIVITY_DEPRECATION_MSG)
+@verbose
 def check_indices(indices):
     """Check indices parameter."""
     if not isinstance(indices, tuple) or len(indices) != 2:
@@ -19,6 +20,7 @@ def check_indices(indices):
 
 
 @deprecated(CONNECTIVITY_DEPRECATION_MSG)
+@verbose
 def seed_target_indices(seeds, targets):
     """Generate indices parameter for seed based connectivity analysis.
 
@@ -48,6 +50,7 @@ def seed_target_indices(seeds, targets):
 
 
 @deprecated(CONNECTIVITY_DEPRECATION_MSG)
+@verbose
 def degree(connectivity, threshold_prop=0.2):
     """Compute the undirected degree of a connectivity matrix.
 
