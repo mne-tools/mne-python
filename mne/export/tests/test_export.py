@@ -50,7 +50,7 @@ def test_export_raw_eeglab(tmpdir):
 
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')
-@pytest.mark.parametrize('format', ['edf', 'bdf'])
+@pytest.mark.parametrize('format', ['edf'])
 def test_export_raw_edf_and_bdf(tmpdir, format):
     """Test saving a Raw instance to EDF format."""
     fname = (Path(__file__).parent.parent.parent /

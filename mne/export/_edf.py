@@ -10,7 +10,32 @@ _check_edflib_installed()
 from EDFlib.edfwriter import EDFwriter  # noqa: E402
 
 
+def _try_to_set_value(header, key, value, channel_index=None):
+    """Helper function to set key/value pairs in EDF/BDF header."""
+    # all EDFLib set functions are set<X>
+    # for example "setPatientName()"
+    func_name = f'set{key}'
+    func = getattr(header, func_name)
+
+    # some setter functions are indexed by channels
+    if channel_index is None:
+        return_val = func(value)
+    else:
+        return_val = func(channel_index, value)
+
+    # a return value of 0 indicates an error
+    if return_val != 0:
+        raise RuntimeError(f"Setting {key} with {value} "
+                           f"returned an error")
+
+
 def _export_raw(fname, raw, physical_range, fmt):
+    """Export Raw objects to EDF or BDF files.
+
+    TODO:
+    - if Info stores transducer information, allow writing here.
+    - if Info stores techniciain information, allow writing here.
+    """
     phys_dims = 'uV'
 
     if fmt == 'bdf':
@@ -34,14 +59,18 @@ def _export_raw(fname, raw, physical_range, fmt):
     sfreq = int(raw.info['sfreq'])
     n_secs = n_times / sfreq
 
+    # get any filter information applied to the data
+    lowpass = raw.info['lowpass']
+    highpass = raw.info['highpass']
+    linefreq = raw.info['line_freq']
+    filter_str_info = f"HP:{highpass}Hz LP:{lowpass}Hz N:{linefreq}Hz"
+
     # get data in uV
+    # XXX: what about non-EEG data?... How to handle?
     units = dict()
-    if 'eeg' in raw:
-        units['eeg'] = 'uV'
-    if 'ecog' in raw:
-        units['ecog'] = 'uV'
-    if 'seeg' in raw:
-        units['seeg'] = 'uV'
+    units['eeg'] = 'uV'
+    units['ecog'] = 'uV'
+    units['seeg'] = 'uV'
 
     # get the entire dataset in uV
     data = raw.get_data(units=units, picks=ch_names)
@@ -50,21 +79,37 @@ def _export_raw(fname, raw, physical_range, fmt):
         # get max and min for each channel type data
         ch_types_phys_max = dict()
         ch_types_phys_min = dict()
-        for ch_type in raw.get_channel_types():
-            ch_type_data = raw.copy().pick_types(
-                **{ch_type: True}).get_data(units=units)
-            ch_types_phys_max[ch_type] = ch_type_data.max()
-            ch_types_phys_min[ch_type] = ch_type_data.min()
+
+        for idx, ch_name in enumerate(raw.ch_names):
+            ch_type = raw.get_channel_types(picks=ch_name)[0]
+
+            ch_type_data = data[idx, :]
+            if ch_type not in ch_types_phys_max:
+                ch_types_phys_max[ch_type] = ch_type_data.max()
+                ch_types_phys_min[ch_type] = ch_type_data.min()
+            else:
+                ch_types_phys_max[ch_type] = max(
+                    ch_type_data.max(), ch_types_phys_max[ch_type])
+                ch_types_phys_min[ch_type] = min(
+                    ch_type_data.min(), ch_types_phys_min[ch_type])
     else:
         # get the physical min and max of the data in uV
-        # see discussion in: https://github.com/sccn/eeglab/issues/246
+        # Physical ranges of the data in uV is usually set by the manufacturer
+        # and properties of the electrode. In general, physical max and min
+        # should be the clipping levels of the ADC input and they should be
+        # the same for all channels. For example, Nihon Kohden uses +3200 uV
+        # and -3200 uV for all EEG channels (which are the actual clipping
+        # levels of their input amplifiers & ADC).
+        # For full discussion, see: https://github.com/sccn/eeglab/issues/246
         pmin, pmax = -3200, 3200
 
         # check that physical min and max is not exceeded
         if data.max() > pmax:
-            raise RuntimeError('The maximum uV of the data is more then pmax.')
+            raise RuntimeError(f'The maximum uV of the data {data.max()} '
+                               f'is more then physical max passed in {pmax}.')
         if data.min() < pmin:
-            raise RuntimeError('The minimum uV of the data is less then pmin.')
+            raise RuntimeError('The minimum uV of the data {data.min()} '
+                               f'is less then physical min passed in {pmin}.')
 
     # create instance of EDF Writer
     hdl = EDFwriter(fname, EDFwriter.EDFLIB_FILETYPE_EDFPLUS, n_chs)
@@ -76,26 +121,15 @@ def _export_raw(fname, raw, physical_range, fmt):
             ch_type = raw.get_channel_types(picks=ch)[0]
             pmin, pmax = ch_types_phys_min[ch_type], ch_types_phys_max[ch_type]
 
-        if hdl.setPhysicalMaximum(ichan, pmax) != 0:  # noqa
-            raise RuntimeError("setPhysicalMaximum() returned an error")
-        if hdl.setPhysicalMinimum(ichan, pmin) != 0:  # noqa
-            raise RuntimeError("setPhysicalMinimum() returned an error")
-        if hdl.setDigitalMaximum(ichan, digital_max) != 0:  # noqa
-            raise RuntimeError("setDigitalMaximum() returned an error")
-        if hdl.setDigitalMinimum(ichan, digital_min) != 0:  # noqa
-            raise RuntimeError("setDigitalMinimum() returned an error")
-        if hdl.setPhysicalDimension(ichan, phys_dims) != 0:  # noqa
-            raise RuntimeError("setPhysicalDimension() returned an error")
-        if hdl.setSampleFrequency(ichan, sfreq) != 0:  # noqa
-            raise RuntimeError("setSampleFrequency() returned an error")
-        if hdl.setSignalLabel(ichan, ch) != 0:  # noqa
-            raise RuntimeError("setSignalLabel() returned an error")
-        # if hdl.setPreFilter(ichan, "HP:0.05Hz LP:40Hz N:60Hz") != 0:
-        #     raise RuntimeError("setPreFilter() returned an error")
-        #     sys.exit()
-        # if hdl.setTransducer(ichan, "AgAgCl cup electrode") != 0:
-        #     raise RuntimeError("setTransducer() returned an error")
-        #     sys.exit()
+        for key, val in zip(
+            ['PhysicalMaximum', 'PhysicalMinimum', 'DigitalMaximum',
+             'DigitalMinimum', 'PhysicalDimension', 'SampleFrequency',
+             'SignalLabel', 'PreFilter',
+             ],
+            [pmax, pmin, digital_max, digital_min, phys_dims, sfreq,
+             ch, filter_str_info]
+        ):
+            _try_to_set_value(hdl, key, val, channel_index=ichan)
 
     # set patient info
     subj_info = raw.info.get('subject_info')
@@ -106,15 +140,14 @@ def _export_raw(fname, raw, physical_range, fmt):
         sex = subj_info.get('sex')
 
         if birthday is not None:
-            if hdl.setPatientBirthDate(birthday[0], birthday[1], birthday[2]) != 0:  # noqa
-                raise RuntimeError("setPatientBirthDate() returned an error")
-        if hdl.setPatientName(name) != 0:  # noqa
-            raise RuntimeError("setPatientName() returned an error")
-        if hdl.setPatientGender(sex) != 0:  # noqa
-            raise RuntimeError("setPatientGender() returned an error")
-
-        if hdl.setAdditionalPatientInfo(f"hand={hand}") != 0:  # noqa
-            raise RuntimeError("setAdditionalPatientInfo() returned an error")
+            if hdl.setPatientBirthDate(birthday[0], birthday[1],
+                                       birthday[2]) != 0:
+                raise RuntimeError(f"Setting Patient Birth Date to {birthday} "
+                                   f"returned an error")
+        for key, val in zip(['PatientName', 'PatientGender',
+                             'AdditionalPatientInfo'],
+                            [name, sex, f'hand={hand}']):
+            _try_to_set_value(hdl, key, val)
 
     # set measurement date
     meas_date = raw.info['meas_date']
@@ -125,22 +158,13 @@ def _export_raw(fname, raw, physical_range, fmt):
                                 minute=meas_date.minute,
                                 second=meas_date.second,
                                 subsecond=subsecond) != 0:  # noqa
-            raise RuntimeError("setStartDateTime() returned an error")
-    # if hdl.setAdministrationCode("1234567890") != 0:
-    #     raise RuntimeError("setAdministrationCode() returned an error")
-    #     sys.exit()
-    # if hdl.setTechnician("Black Jack") != 0:
-    #     raise RuntimeError("setTechnician() returned an error")
-    #     sys.exit()
+            raise RuntimeError(f"Setting Start Date Time {meas_date} "
+                               f"returned an error")
 
     device_info = raw.info.get('device_info')
     if device_info is not None:
         device_type = device_info.get('type')
-        if hdl.setEquipment(device_type) != 0:  # noqa
-            raise RuntimeError("setEquipment() returned an error")
-    # if hdl.setAdditionalRecordingInfo("nothing special") != 0:
-    #     raise RuntimeError("setAdditionalRecordingInfo() returned an error")
-    #     sys.exit()
+        _try_to_set_value(hdl, 'Equipment', device_type)
 
     # Write each second (i.e. datarecord) separately.
     for isec in range(np.ceil(n_secs).astype(int)):
@@ -168,6 +192,10 @@ def _export_raw(fname, raw, physical_range, fmt):
                  f'but this sample window ended up having {len(ch_data)} '
                  f'samples. {len(buf) - len(ch_data)} zeros were appended '
                  f'to the datarecord.')
+            warn(f'EDF format requires equal-length data blocks, '
+                 f'so {(len(buf) - len(ch_data)) / sfreq} seconds of zeros '
+                 f'were appended to all channels when writing the final '
+                 f'block.')
 
     # write annotations
     # XXX: possibly writing multiple annotations per data record is not

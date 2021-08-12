@@ -10,7 +10,7 @@ from ..utils import verbose, logger, _validate_type
 
 
 @verbose
-def export_raw(fname, raw, fmt='auto', verbose=None, **kwargs):
+def export_raw(fname, raw, fmt='auto', verbose=None, physical_range='auto'):
     """Export Raw to external formats.
 
     Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
@@ -23,13 +23,13 @@ def export_raw(fname, raw, fmt='auto', verbose=None, **kwargs):
         The raw instance to export.
     %(export_params_fmt)s
     %(verbose)s
-    kwargs : dict
-        Can be physical_range, a string or tuple, which is the physical
-        range of the data. If 'auto' (default), then
+    physical_range : string | tuple
+        The physical range of the data. If 'auto' (default), then
         it will infer the physical min and max from the data itself,
         taking the minimum and maximum values per channel type.
         If it is a 2-tuple of minimum and maximum limit, then those
-        physical ranges will be hard-set. Only used for exporting EDF.
+        physical ranges will be hard-set. Only used for exporting EDF
+        or BDF files.
 
     Notes
     -----
@@ -38,6 +38,7 @@ def export_raw(fname, raw, fmt='auto', verbose=None, **kwargs):
     supported_export_formats = {  # format : extensions
         'eeglab': ('set',),
         'edf': ('edf',),
+        'bdf': ('bdf',),
         'brainvision': ('eeg', 'vmrk', 'vhdr',)
     }
     fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
@@ -45,13 +46,8 @@ def export_raw(fname, raw, fmt='auto', verbose=None, **kwargs):
     if fmt == 'eeglab':
         from ._eeglab import _export_raw
         _export_raw(fname, raw)
-    elif fmt == 'edf':
+    elif fmt in ['edf', 'bdf']:
         from ._edf import _export_raw
-        physical_range = kwargs.get('physical_range', 'auto')
-        _export_raw(fname, raw, physical_range, fmt)
-    elif fmt == 'bdf':
-        from ._edf import _export_raw
-        physical_range = kwargs.get('physical_range', 'auto')
         _export_raw(fname, raw, physical_range, fmt)
     elif fmt == 'brainvision':
         raise NotImplementedError('Export to BrainVision not implemented.')
