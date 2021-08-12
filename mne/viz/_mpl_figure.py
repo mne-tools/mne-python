@@ -1214,7 +1214,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _toggle_annotation_fig(self):
         """Show/hide the annotation dialog window."""
-        if self.mne.fig_annotation is None:
+        if self.mne.fig_annotation is None and not self.mne.is_epochs:
             self._create_annotation_fig()
         else:
             from matplotlib.pyplot import close
