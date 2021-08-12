@@ -16,7 +16,7 @@ def _export_raw(fname, raw, physical_range, fmt):
     if fmt == 'bdf':
         digital_min = -8388607
         digital_max = 8388607
-    elif fmt == 'bdf':
+    elif fmt == 'edf':
         digital_min = -32767
         digital_max = 32767
 

@@ -23,8 +23,9 @@ def export_raw(fname, raw, fmt='auto', verbose=None, **kwargs):
         The raw instance to export.
     %(export_params_fmt)s
     %(verbose)s
-    physical_range : str | tuple
-        The physical range of the data. If 'auto' (default), then
+    kwargs : 
+        Can be physical_range, a string or tuple, which is the physical
+        range of the data. If 'auto' (default), then
         it will infer the physical min and max from the data itself,
         taking the minimum and maximum values per channel type.
         If it is a 2-tuple of minimum and maximum limit, then those
