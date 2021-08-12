@@ -63,8 +63,8 @@ def test_export_raw_edf_and_bdf(tmpdir, format):
     raw.load_data()
     temp_fname = op.join(str(tmpdir), f'test.{format}')
     raw.export(temp_fname)
-    raw.drop_channels([ch for ch in ['epoc']
-                       if ch in raw.ch_names])
+    if 'epoc' in raw.ch_names:
+        raw.drop_channels(['epoc'])
     raw_read = read_raw_edf(temp_fname, preload=True)
     assert raw.ch_names == raw_read.ch_names
     print(len(raw.times), len(raw_read.times))
