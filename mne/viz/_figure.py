@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Base classes and functions for 2D-Browser-Backends."""
+"""Base classes and functions for 2D browser backends."""
 
 # Authors: Daniel McCloy <dan@mccloy.info>
 #          Martin Schulz <dev@earthman-music.de>
@@ -28,7 +28,7 @@ backend = None
 
 
 class BrowserParams:
-    """Container object for 2D-Data-Browser parameters."""
+    """Container object for 2D browser parameters."""
 
     def __init__(self, **kwargs):
         # default key to close window
@@ -38,7 +38,7 @@ class BrowserParams:
 
 class BrowserBase(ABC):
     """
-    A base class containing for the 2D-Data-Browser.
+    A base class containing for the 2D browser.
 
     This class contains all backend-independent attributes and methods.
     """
@@ -355,7 +355,7 @@ def _get_browser(**kwargs):
     figsize = kwargs.setdefault('figsize', _get_figsize_from_config())
     if figsize is None or np.any(np.array(figsize) < 8):
         kwargs['figsize'] = (8, 8)
-    # Initialize Browser-Backend
+    # Initialize browser backend
     _init_browser_backend()
 
     # Initialize Browser
@@ -374,7 +374,7 @@ def _check_browser_backend_name(backend_name):
 #  state of the pyqtgraph backend.
 @verbose
 def set_browser_backend(backend_name, verbose=None):
-    """Set the 2D-Browser backend for MNE.
+    """Set the 2D browser backend for MNE.
 
     The backend will be set as specified and operations will use
     that backend.
@@ -382,7 +382,7 @@ def set_browser_backend(backend_name, verbose=None):
     Parameters
     ----------
     backend_name : str
-        The 2d-browser backend to select. See Notes for the capabilities
+        The 2D browser backend to select. See Notes for the capabilities
         of each backend (``'matplotlib'``, ``'pyqtgraph'``).
     %(verbose)s
 
@@ -400,7 +400,7 @@ def set_browser_backend(backend_name, verbose=None):
        :widths: auto
 
        +--------------------------------------+------------+-----------+
-       | **2D-Browser function:**             | matplotlib | pyqtgraph |
+       | **2D browser function:**             | matplotlib | pyqtgraph |
        +======================================+============+===========+
        | :func:`plot_raw`                     | ✓          | ✓         |
        +--------------------------------------+------------+-----------+
@@ -447,7 +447,7 @@ def _init_browser_backend():
         return MNE_BROWSE_BACKEND
     else:
         errors = dict()
-        # Try import of valid browser-backends
+        # Try import of valid browser backends
         for name in VALID_BROWSE_BACKENDS:
             try:
                 _load_backend(name)
@@ -470,7 +470,7 @@ def get_browser_backend():
     Returns
     -------
     backend_used : str | None
-        The 2D-Browser backend currently in use. If no backend is found,
+        The 2D browser backend currently in use. If no backend is found,
         returns ``None``.
     """
     try:
@@ -483,15 +483,15 @@ def get_browser_backend():
 
 @contextmanager
 def use_browser_backend(backend_name):
-    """Create a 2D-Browser visualization context using the designated backend.
+    """Create a 2D browser visualization context using the designated backend.
 
     See :func:`mne.viz.set_browser_backend` for more details on the available
-    2D-Browser backends and their capabilities.
+    2D browser backends and their capabilities.
 
     Parameters
     ----------
     backend_name : {'matplotlib', 'pyqtgraph'}
-        The 2D-Browser backend to use in the context.
+        The 2D browser backend to use in the context.
     """
     old_backend = set_browser_backend(backend_name)
     try:

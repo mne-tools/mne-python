@@ -384,7 +384,7 @@ def garbage_collect():
 
 @pytest.fixture(params=['matplotlib'])
 def browse_backend(request, garbage_collect):
-    """Parametrizes the name of the browser-backend."""
+    """Parametrizes the name of the browser backend."""
     with use_browser_backend(request.param) as backend:
         yield backend
 
