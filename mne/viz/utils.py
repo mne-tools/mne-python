@@ -110,11 +110,25 @@ def plt_show(show=True, fig=None, **kwargs):
 
 
 def show_browser(show=True, block=True, fig=None, **kwargs):
+    """Show the browser considering different backends.
+
+    Parameters
+    ----------
+    show : bool
+        Show the figure.
+    block : bool
+        If to block execution on showing.
+    fig : instance of Figure | None
+        Needs to be passed for pyqtgraph backend,
+         optional for matplotlib.
+    **kwargs : dict
+        Extra arguments for :func:`matplotlib.pyplot.show`.
+    """
     from ._figure import get_browser_backend
     backend = get_browser_backend()
     kwargs['block'] = block
     if backend == 'matplotlib':
-        plt_show(show, **kwargs)
+        plt_show(show, fig, **kwargs)
     else:
         from qtpy.QtWidgets import QApplication
         app = QApplication.instance() or QApplication(['MNE'])
