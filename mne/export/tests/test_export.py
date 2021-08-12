@@ -50,7 +50,8 @@ def test_export_raw_eeglab(tmpdir):
 
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')
-def test_export_raw_edf(tmpdir):
+@pytest.mark.parametrize('format', ['edf', 'bdf'])
+def test_export_raw_edf_and_bdf(tmpdir, format):
     """Test saving a Raw instance to EDF format."""
     fname = (Path(__file__).parent.parent.parent /
              "io" / "tests" / "data" / "test_raw.fif")
@@ -60,7 +61,7 @@ def test_export_raw_edf(tmpdir):
     raw.pick_types(eeg=True, eog=True, ecg=True, emg=True)
 
     raw.load_data()
-    temp_fname = op.join(str(tmpdir), 'test.edf')
+    temp_fname = op.join(str(tmpdir), f'test.{format}')
     raw.export(temp_fname)
     raw.drop_channels([ch for ch in ['epoc']
                        if ch in raw.ch_names])

@@ -23,7 +23,7 @@ def export_raw(fname, raw, fmt='auto', verbose=None, **kwargs):
         The raw instance to export.
     %(export_params_fmt)s
     %(verbose)s
-    kwargs : 
+    kwargs : dict
         Can be physical_range, a string or tuple, which is the physical
         range of the data. If 'auto' (default), then
         it will infer the physical min and max from the data itself,
