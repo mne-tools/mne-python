@@ -296,7 +296,7 @@ def _check_edflib_installed(strict=True):
         import EDFlib
         return EDFlib
     except ImportError:
-        if strict is True:
+        if strict:
             raise RuntimeError('For this functionality to work, '
                                'the EDFlib-Python '
                                'library is required.')
