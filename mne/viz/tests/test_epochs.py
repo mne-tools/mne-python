@@ -11,8 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from mne import (Epochs, create_info,
-                 EpochsArray)
+from mne import Epochs, create_info, EpochsArray
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
 from mne.utils import _click_ch_name
