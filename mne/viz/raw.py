@@ -351,8 +351,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     fig._update_picks()
 
-    # make channel selection dialog,
-    # if requested (doesn't work well in init)
+    # make channel selection dialog, if requested (doesn't work well in init)
     if group_by in ('selection', 'position'):
         fig._create_selection_fig()
 
