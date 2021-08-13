@@ -86,18 +86,20 @@ def test_run_update_age_records(tmpdir):
 def test_sleep_physionet_age_missing_subjects(physionet_tmpdir, subject,
                                               download_is_error):
     """Test handling of missing subjects in Sleep Physionet age fetcher."""
-    params = {'path': physionet_tmpdir, 'update_path': False}
 
     with pytest.raises(
             ValueError, match='This dataset contains subjects 0 to 82'):
         age.fetch_data(
-            subjects=[subject], recording=[1], on_missing='raise', **params)
+            subjects=[subject], recording=[1], on_missing='raise',
+            path=physionet_tmpdir)
     with pytest.warns(RuntimeWarning,
                       match='This dataset contains subjects 0 to 82'):
         age.fetch_data(
-            subjects=[subject], recording=[1], on_missing='warn', **params)
+            subjects=[subject], recording=[1], on_missing='warn',
+            path=physionet_tmpdir)
     paths = age.fetch_data(
-        subjects=[subject], recording=[1], on_missing='ignore', **params)
+        subjects=[subject], recording=[1], on_missing='ignore',
+        path=physionet_tmpdir)
     assert paths == []
 
 
@@ -105,42 +107,42 @@ def test_sleep_physionet_age_missing_subjects(physionet_tmpdir, subject,
 def test_sleep_physionet_age_missing_recordings(physionet_tmpdir, subject,
                                                 recording, download_is_error):
     """Test handling of missing recordings in Sleep Physionet age fetcher."""
-    params = {'path': physionet_tmpdir, 'update_path': False}
 
     with pytest.raises(
             ValueError, match=f'Requested recording {recording} for subject'):
         age.fetch_data(subjects=[subject], recording=[recording],
-                       on_missing='raise', **params)
+                       on_missing='raise', path=physionet_tmpdir)
     with pytest.warns(RuntimeWarning,
                       match=f'Requested recording {recording} for subject'):
         age.fetch_data(subjects=[subject], recording=[recording],
-                       on_missing='warn', **params)
+                       on_missing='warn', path=physionet_tmpdir)
     paths = age.fetch_data(subjects=[subject], recording=[recording],
-                           on_missing='ignore', **params)
+                           on_missing='ignore', path=physionet_tmpdir)
     assert paths == []
 
 
 def test_sleep_physionet_age(physionet_tmpdir, monkeypatch, download_is_error):
     """Test Sleep Physionet URL handling."""
     # check download_is_error patching
-    params = {'path': physionet_tmpdir, 'update_path': False}
     with pytest.raises(AssertionError, match='Test should not download'):
-        age.fetch_data(subjects=[0], recording=[1], **params)
+        age.fetch_data(subjects=[0], recording=[1], path=physionet_tmpdir)
     # then patch
     my_func = _FakeFetch()
     monkeypatch.setattr(
         mne.datasets.sleep_physionet._utils, '_fetch_file', my_func)
 
-    paths = age.fetch_data(subjects=[0], recording=[1], **params)
+    paths = age.fetch_data(subjects=[0], recording=[1], path=physionet_tmpdir)
     assert_array_equal(_keep_basename_only(paths),
                        [['SC4001E0-PSG.edf', 'SC4001EC-Hypnogram.edf']])
 
-    paths = age.fetch_data(subjects=[0, 1], recording=[1], **params)
+    paths = age.fetch_data(subjects=[0, 1], recording=[1],
+                           path=physionet_tmpdir)
     assert_array_equal(_keep_basename_only(paths),
                        [['SC4001E0-PSG.edf', 'SC4001EC-Hypnogram.edf'],
                         ['SC4011E0-PSG.edf', 'SC4011EH-Hypnogram.edf']])
 
-    paths = age.fetch_data(subjects=[0], recording=[1, 2], **params)
+    paths = age.fetch_data(subjects=[0], recording=[1, 2],
+                           path=physionet_tmpdir)
     assert_array_equal(_keep_basename_only(paths),
                        [['SC4001E0-PSG.edf', 'SC4001EC-Hypnogram.edf'],
                         ['SC4002E0-PSG.edf', 'SC4002EC-Hypnogram.edf']])
@@ -191,9 +193,7 @@ def test_sleep_physionet_temazepam(physionet_tmpdir, monkeypatch):
     monkeypatch.setattr(
         mne.datasets.sleep_physionet._utils, '_fetch_file', my_func)
 
-    params = {'path': physionet_tmpdir, 'update_path': False}
-
-    paths = temazepam.fetch_data(subjects=[0], **params)
+    paths = temazepam.fetch_data(subjects=[0], path=physionet_tmpdir)
     assert_array_equal(_keep_basename_only(paths),
                        [['ST7011J0-PSG.edf', 'ST7011JP-Hypnogram.edf']])
 
@@ -207,4 +207,4 @@ def test_sleep_physionet_temazepam(physionet_tmpdir, monkeypatch):
 
     with pytest.raises(
             ValueError, match='This dataset contains subjects 0 to 21'):
-        paths = temazepam.fetch_data(subjects=[22], **params)
+        paths = temazepam.fetch_data(subjects=[22], path=physionet_tmpdir)

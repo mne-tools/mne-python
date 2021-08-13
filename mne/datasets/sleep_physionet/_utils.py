@@ -41,7 +41,7 @@ def _fetch_one(fname, hashsum, path, force_update, base_url):
 
 
 @verbose
-def _data_path(path=None, force_update=False, update_path=None, verbose=None):
+def _data_path(path=None, verbose=None):
     """Get path to local copy of EEG Physionet age Polysomnography dataset URL.
 
     This is a low-level function useful for getting a local copy of a
@@ -56,13 +56,6 @@ def _data_path(path=None, force_update=False, update_path=None, verbose=None):
         ``PHYSIONET_SLEEP_PATH`` is used. If it doesn't exist, the "~/mne_data"
         directory is used. If the dataset is not found under the given path,
         the data will be automatically downloaded to the specified folder.
-    force_update : bool
-        XXX Not implemented
-        Force update of the dataset even if a local copy exists.
-    update_path : bool | None
-        XXX Not implemented
-        If True, set the ``PHYSIONET_SLEEP_PATH`` in MNE-Python
-        config to the given path. If None, the user is prompted.
     %(verbose)s
 
     Returns
