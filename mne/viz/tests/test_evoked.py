@@ -368,9 +368,12 @@ def test_plot_compare_evokeds():
         if _ci in ci_types[2:]:
             assert np.any([isinstance(coll, PolyCollection)
                            for coll in fig.axes[0].collections])
+
     # make sure we can get a CI even for single conditions
-    ci_fnc = lambda d: d.mean(axis=0, keepdims=True) * np.array([[0.5], [1.5]])
-    fig = plot_compare_evokeds(evoked, picks='eeg', ci=ci_fnc)[0]
+    def ci_func(array):
+        return array.mean(axis=0, keepdims=True) * np.array([[0.5], [1.5]])
+
+    fig = plot_compare_evokeds(evoked, picks='eeg', ci=ci_func)[0]
     assert np.any([isinstance(coll, PolyCollection)
                    for coll in fig.axes[0].collections])
 
