@@ -15,6 +15,7 @@ from mne.datasets import testing
 from mne.utils import get_config, set_config
 from mne.io import RawArray
 from mne.utils import _dt_to_stamp
+from mne.viz._figure import get_browser_backend
 from mne.viz.utils import _fake_click
 from mne.annotations import _sync_onset
 from mne.viz import plot_raw, plot_sensors
@@ -361,22 +362,23 @@ def test_plot_raw_keypresses(raw, browse_backend):
 
 def test_plot_raw_traces(raw, events, browse_backend):
     """Test plotting of raw data."""
+    ismpl = get_browser_backend() == 'matplotlib'
     with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     fig = raw.plot(events=events, order=[1, 7, 5, 2, 3], n_channels=3,
                    group_by='original')
     assert hasattr(fig, 'mne')  # make sure fig.mne param object is present
-    assert len(fig.axes) == 5
+    if ismpl:
+        assert len(fig.axes) == 5
 
     # setup
     x = fig.mne.traces[0].get_xdata()[5]
     y = fig.mne.traces[0].get_ydata()[5]
-    data_ax = fig.mne.ax_main
     # ToDo: The interaction with scrollbars will be different in pyqtgraph.
     hscroll = fig.mne.ax_hscroll
     vscroll = fig.mne.ax_vscroll
     # test marking bad channels
-    label = fig.mne.ax_main.get_yticklabels()[0].get_text()
+    label = fig._get_ticklabels('y')[0]
     assert label not in fig.mne.info['bads']
     # click data to mark bad
     fig._fake_click((x, y), xform='data')
@@ -389,19 +391,23 @@ def test_plot_raw_traces(raw, events, browse_backend):
     assert label in fig.mne.info['bads']
     # test other kinds of clicks
     fig._fake_click((0.5, 0.999))  # click elsewhere (add vline)
+    assert fig.mne.vline_visible is True
     fig._fake_click((0.5, 0.999), button=3)  # remove vline
+    assert fig.mne.vline_visible is False
     fig._fake_click((0.5, 0.5), ax=hscroll)  # change time
+    t_start = fig.mne.t_start
     fig._fake_click((0.5, 0.5), ax=hscroll)  # shouldn't change time this time
+    assert t_start == fig.mne.t_start
     # test scrolling through channels
-    labels = [label.get_text() for label in data_ax.get_yticklabels()]
+    labels = fig._get_ticklabels('y')
     assert labels == [raw.ch_names[1], raw.ch_names[7], raw.ch_names[5]]
     fig._fake_click((0.5, 0.01), ax=vscroll)  # change channels to end
-    labels = [label.get_text() for label in data_ax.get_yticklabels()]
+    labels = fig._get_ticklabels('y')
     assert labels == [raw.ch_names[5], raw.ch_names[2], raw.ch_names[3]]
     for _ in (0, 0):
         # first click changes channels to mid; second time shouldn't change
         fig._fake_click((0.5, 0.5), ax=vscroll)
-        labels = [label.get_text() for label in data_ax.get_yticklabels()]
+        labels = fig._get_ticklabels('y')
         assert labels == [raw.ch_names[7], raw.ch_names[5], raw.ch_names[2]]
         assert browse_backend._get_n_figs() == 1
 

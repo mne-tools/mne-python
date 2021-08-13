@@ -350,7 +350,7 @@ class BrowserBase(ABC):
             self._close_event(fig)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    # INTERACTION
+    # TEST METHODS
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     @abstractmethod
     def _close_event(self, fig):
@@ -374,6 +374,10 @@ class BrowserBase(ABC):
 
     @abstractmethod
     def _resize_by_factor(self, factor):
+        pass
+
+    @abstractmethod
+    def _get_ticklabels(self, orientation):
         pass
 
 

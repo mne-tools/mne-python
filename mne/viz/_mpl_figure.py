@@ -66,6 +66,8 @@ from mne.viz.utils import (_events_off, DraggableLine, plt_show, _prop_kw,
                            _merge_annotations, _set_window_title,
                            _validate_if_list_of_axes, _fake_click, _plot_psd)
 
+name = 'matplotlib'
+
 # CONSTANTS (inches)
 ANNOTATION_FIG_PAD = 0.1
 ANNOTATION_FIG_MIN_H = 2.9  # fixed part, not including radio buttons/labels
@@ -2102,6 +2104,15 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         else:
             size = [int(x * factor) for x in size]
         self.canvas.manager.canvas.resize(*size)
+
+    def _get_ticklabels(self, orientation):
+        if orientation == 'x':
+            labels = self.mne.ax_main.get_yticklabels()
+        elif orientation == 'y':
+            labels = self.mne.ax_main.get_yticklabels()
+        label_texts = [lb.get_text() for lb in labels]
+
+        return label_texts
 
 
 class MNELineFigure(MNEFigure):
