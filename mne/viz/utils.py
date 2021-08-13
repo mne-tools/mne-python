@@ -132,7 +132,8 @@ def show_browser(show=True, block=True, fig=None, **kwargs):
     else:
         from qtpy.QtWidgets import QApplication
         app = QApplication.instance() or QApplication(['MNE'])
-        fig.show()
+        if show:
+            fig.show()
         if block:
             app.exec()
 
