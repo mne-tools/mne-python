@@ -86,7 +86,6 @@ def test_run_update_age_records(tmpdir):
 def test_sleep_physionet_age_missing_subjects(physionet_tmpdir, subject,
                                               download_is_error):
     """Test handling of missing subjects in Sleep Physionet age fetcher."""
-
     with pytest.raises(
             ValueError, match='This dataset contains subjects 0 to 82'):
         age.fetch_data(
@@ -107,7 +106,6 @@ def test_sleep_physionet_age_missing_subjects(physionet_tmpdir, subject,
 def test_sleep_physionet_age_missing_recordings(physionet_tmpdir, subject,
                                                 recording, download_is_error):
     """Test handling of missing recordings in Sleep Physionet age fetcher."""
-
     with pytest.raises(
             ValueError, match=f'Requested recording {recording} for subject'):
         age.fetch_data(subjects=[subject], recording=[recording],
