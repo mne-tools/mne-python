@@ -2363,7 +2363,6 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
             this_evokeds = evokeds[cond]
             # skip CIs when possible; assign ci_fun first to get arg checking
             ci_fun = _get_ci_function_pce(ci, do_topo=do_topo)
-            ci_fun = ci_fun if len(this_evokeds) > 1 else None
             res = _get_data_and_ci(this_evokeds, combine, c_func, picks=_picks,
                                    scaling=scalings, ci_fun=ci_fun)
             data_dict[cond] = res[0]
