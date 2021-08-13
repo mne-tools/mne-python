@@ -360,19 +360,18 @@ def test_plot_compare_evokeds():
         assert (yvals < ylim[1]).all()
         assert (yvals > ylim[0]).all()
     plt.close('all')
+
     # test other CI args
-    ci_types = (None, False, 0.5,
-                lambda x: np.stack([x.mean(axis=0) + 1, x.mean(axis=0) - 1]))
+    def ci_func(array):
+        return array.mean(axis=0, keepdims=True) * np.array([[0.5], [1.5]])
+
+    ci_types = (None, False, 0.5, ci_func)
     for _ci in ci_types:
         fig = plot_compare_evokeds({'cond': [blue, red, evoked]}, ci=_ci)[0]
         if _ci in ci_types[2:]:
             assert np.any([isinstance(coll, PolyCollection)
                            for coll in fig.axes[0].collections])
-
     # make sure we can get a CI even for single conditions
-    def ci_func(array):
-        return array.mean(axis=0, keepdims=True) * np.array([[0.5], [1.5]])
-
     fig = plot_compare_evokeds(evoked, picks='eeg', ci=ci_func)[0]
     assert np.any([isinstance(coll, PolyCollection)
                    for coll in fig.axes[0].collections])
