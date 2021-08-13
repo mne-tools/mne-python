@@ -118,6 +118,11 @@ class BrowserBase(ABC):
         self.mne.fig_histogram = None
         self.mne.fig_selection = None
         self.mne.fig_annotation = None
+        # extra attributes for epochs
+        if self.mne.is_epochs:
+            # add epoch boundaries & center epoch numbers between boundaries
+            self.mne.midpoints = np.convolve(self.mne.boundary_times,
+                                             np.ones(2), mode='valid') / 2
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # ANNOTATIONS

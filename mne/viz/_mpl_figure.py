@@ -383,9 +383,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 ax_hscroll.add_patch(
                     Rectangle((start, 0), width, 1, color='none',
                               zorder=self.mne.zorder['patch']))
-            # add epoch boundaries & center epoch numbers between boundaries
-            midpoints = np.convolve(self.mne.boundary_times, np.ones(2),
-                                    mode='valid') / 2
             # both axes, major ticks: gridlines
             for _ax in (ax_main, ax_hscroll):
                 _ax.xaxis.set_major_locator(
@@ -397,11 +394,11 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             ax_hscroll.grid(alpha=0.5, linewidth=0.5, linestyle='solid',
                             **grid_kwargs)
             # main axes, minor ticks: ticklabel (epoch number) for every epoch
-            ax_main.xaxis.set_minor_locator(FixedLocator(midpoints))
+            ax_main.xaxis.set_minor_locator(FixedLocator(self.mne.midpoints))
             ax_main.xaxis.set_minor_formatter(FixedFormatter(epoch_nums))
             # hscroll axes, minor ticks: up to 20 ticklabels (epoch numbers)
             ax_hscroll.xaxis.set_minor_locator(
-                FixedLocator(midpoints, nbins=20))
+                FixedLocator(self.mne.midpoints, nbins=20))
             ax_hscroll.xaxis.set_minor_formatter(
                 FuncFormatter(lambda x, pos: self._get_epoch_num_from_time(x)))
             # hide some ticks
