@@ -126,9 +126,8 @@ def show_browser(show=True, block=True, fig=None, **kwargs):
     """
     from ._figure import get_browser_backend
     backend = get_browser_backend()
-    kwargs['block'] = block
     if backend == 'matplotlib':
-        plt_show(show, fig, **kwargs)
+        plt_show(show, block=block)
     else:
         from qtpy.QtWidgets import QApplication
         app = QApplication.instance() or QApplication(['MNE'])
