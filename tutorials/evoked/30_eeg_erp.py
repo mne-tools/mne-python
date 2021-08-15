@@ -470,7 +470,7 @@ print(f'Peak Amplitude: {amp_roi:.3f} \u00B5V')
 # noise, it can introduce challenges in interpreting latency measures for
 # effects of interest :footcite:`Rousselet2012,VanRullen2011`.
 #
-# Also, if using peak measures, it is critical to visuall inspect the data to
+# Also, if using peak measures, it is critical to visually inspect the data to
 # make sure the selected time window actually contained something that looks
 # like a peak. It can be problematic if the time window is incorrect and, on
 # some participants, only identifies the rising edge of a peak.
