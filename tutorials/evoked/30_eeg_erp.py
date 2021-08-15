@@ -439,7 +439,8 @@ print(f'Peak Amplitude: {amp:.3f} \u00B5V')
 # (or `~mne.Evoked.pick_channels`) methods with the `~mne.Evoked.get_peak`
 # method.
 #
-# Here, let's assume we believe the effects of interest will occur at ``eeg59``.
+# Here, let's assume we believe the effects of interest will occur
+# at ``eeg59``.
 
 # Get the peak and latency measure from a single ROI
 # Fist, return a copy of l_vis to select the channel from
