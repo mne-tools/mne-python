@@ -539,7 +539,7 @@ fig
 # amplitude.
 #
 # The following code also demonstrates how to extract this for all channels
-# and store the output in a pandas dataframe
+# and store the output in a pandas dataframe.
 
 # Extract mean amplitude from eeg59 using the l_vis_roi Evoked object
 l_vis_roi_cropped = l_vis_roi.copy().crop(tmin=tmin, tmax=tmax)
