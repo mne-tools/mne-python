@@ -491,7 +491,7 @@ _, bad_lat_roi, bad_amp_roi = \
 
 bad_lat_roi *= 1e3
 bad_amp_roi *= 1e6
-print('**BAD TIME WINDOW**')
+print('** BAD TIME WINDOW **')
 print('Channel: eeg59')
 print(f'Peak Latency: {bad_lat_roi:.3f} msec')
 print(f'Peak Amplitude: {bad_amp_roi:.3f} \u00B5V')
