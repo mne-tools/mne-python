@@ -528,7 +528,7 @@ fig
 # peak amplitude measures) because averaging over a time window is, in essence,
 # a filter.
 #
-# When using mean amplitude measures, it is a good idea to have a predifed time
+# When using mean amplitude measures, it is a good idea to have a predefined time
 # window for extracting mean amplitude. Selecting the time window based on the
 # observed data (e.g., the grand average) can inflate false positives in ERP
 # research :footcite:`LuckGaspelin2017`.
