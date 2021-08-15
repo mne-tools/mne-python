@@ -397,7 +397,7 @@ epochs['auditory'].average()
 # Probably most common measures of amplitude and latency are peak measures.
 # Peak measures are basically the maximum amplitude of the signal in a
 # specified time window, and the time point (or latency) at which the peak
-# amplitude occured.
+# amplitude occurred.
 #
 # Peak measures can be obtained using the `~mne.Evoked.get_peak` method. There
 # are two important things to point out about `~mne.Evoked.get_peak` method.
@@ -439,7 +439,7 @@ print(f'Peak Amplitude: {amp:.3f} \u00B5V')
 # (or `~mne.Evoked.pick_channels`) methods with the `~mne.Evoked.get_peak`
 # method.
 #
-# Here, let's assume we believe the effects of interst will occur at ``eeg59``.
+# Here, let's assume we believe the effects of interest will occur at ``eeg59``.
 
 # Get the peak and latency measure from a single ROI
 # Fist, return a copy of l_vis to select the channel from
@@ -535,7 +535,7 @@ fig
 # Below, demonstrates how to pull out the mean amplitude between .065 sec and
 # .115 sec. Note that this time window was chosen based on inspecting this
 # data, which is a bad way to select a time window as just discussed. It is
-# done here out of convience and to simply demonstrate how to extract mean
+# done here out of convenience and to simply demonstrate how to extract mean
 # amplitude.
 #
 # The following code also demonstrates how to extract this for all channels
