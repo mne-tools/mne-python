@@ -470,7 +470,7 @@ print(f'Peak Amplitude: {amp_roi:.3f} \u00B5V')
 # noise, it can introduce challenges in interpreting latency measures for
 # effects of interest :footcite:`Rousselet2012,VanRullen2011`.
 #
-# Also, if using peak measures, it is critical to visuall inspect the data to
+# Also, if using peak measures, it is critical to visually inspect the data to
 # make sure the selected time window actually contained something that looks
 # like a peak. It can be problematic if the time window is incorrect and, on
 # some participants, only identifies the rising edge of a peak.
@@ -491,7 +491,7 @@ _, bad_lat_roi, bad_amp_roi = \
 
 bad_lat_roi *= 1e3
 bad_amp_roi *= 1e6
-print('**BAD TIME WINDOW**')
+print('** BAD TIME WINDOW **')
 print('Channel: eeg59')
 print(f'Peak Latency: {bad_lat_roi:.3f} msec')
 print(f'Peak Amplitude: {bad_amp_roi:.3f} \u00B5V')
@@ -528,7 +528,7 @@ fig
 # peak amplitude measures) because averaging over a time window is, in essence,
 # a filter.
 #
-# When using mean amplitude measures, it is a good idea to have a predifed time
+# When using mean amplitude measures, it is a good idea to have a predefined time
 # window for extracting mean amplitude. Selecting the time window based on the
 # observed data (e.g., the grand average) can inflate false positives in ERP
 # research :footcite:`LuckGaspelin2017`.
