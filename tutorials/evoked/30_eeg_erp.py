@@ -466,7 +466,7 @@ print(f'Peak Amplitude: {amp_roi:.3f} \u00B5V')
 # While beyond the scope of this tutorial, peak measures are very susceptible
 # to high frequency noise (for discussion, see :footcite:`Luck2014`). One way
 # to avoid this is to apply a non-causal low-pass filters to the ERP. While
-# this can reduce bias in peak amplitude measures pweing to high frequency
+# this can reduce bias in peak amplitude measures due to high frequency
 # noise, it can introduce challenges in interpreting latency measures for
 # effects of interest :footcite:`Rousselet2012,VanRullen2011`.
 #
