@@ -802,6 +802,10 @@ def reset_warnings(gallery_conf, fname):
         'ignore', '.*semaphore_tracker: process died unexpectedly.*')
     warnings.filterwarnings(  # needed until SciPy 1.2.0 is released
         'ignore', '.*will be interpreted as an array index.*', module='scipy')
+    warnings.filterwarnings(
+        'ignore', '.*invalid escape sequence.*', module='quantities')
+    warnings.filterwarnings(
+        'ignore', '.*"is not" with a literal.*', module='nilearn')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
                 'Using or importing the ABCs from',  # internal modules on 3.7
                 r"it will be an error for 'np\.bool_'",  # ndimage
