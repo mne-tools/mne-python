@@ -1278,8 +1278,9 @@ class Coregistration(object):
         Name of the subject the data are defined for.
     subjects_dir : path-like
         Path to MRI subjects directory.
-    fids : dict | str
-        List of fiducials or if set to 'auto', the fiducials are initialized
+    fiducials : dict | str
+        List of fiducials given in mm and in the MRI (surface RAS) coordinate
+        system or if set to 'auto', the fiducials are initialized
         automatically using fiducials defined in MNI template. Defaults to
         'auto'.
 
@@ -1296,7 +1297,7 @@ class Coregistration(object):
     - scale are in scale proportion
     """
 
-    def __init__(self, info, subject, subjects_dir, fids='auto'):
+    def __init__(self, info, subject, subjects_dir, fiducials='auto'):
         self._info = info
         self._subject = subject
         self._subjects_dir = subjects_dir
@@ -1330,7 +1331,7 @@ class Coregistration(object):
         self._dig['lpa'] = np.array([self._dig['lpa']])
 
         self._setup_bem()
-        self._setup_fiducials(fids)
+        self._setup_fiducials(fiducials)
         self.reset()
         self._update_params(
             rot=self._default_parameters[:3],

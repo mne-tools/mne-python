@@ -308,7 +308,7 @@ def test_coregistration(scale_mode, ref_scale, grow_hair, auto_fids):
         d['r'] *= ref_scale
     trans = read_trans(trans_fname)
     coreg = Coregistration(info, subject=subject, subjects_dir=subjects_dir,
-                           fids='auto' if auto_fids else fids)
+                           fiducials='auto' if auto_fids else fids)
     assert np.allclose(coreg._last_parameters, coreg._parameters)
     default_params = list(coreg._default_parameters)
     coreg.set_rotation(default_params[:3])
