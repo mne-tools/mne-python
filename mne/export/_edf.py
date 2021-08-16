@@ -50,8 +50,10 @@ def _export_raw(fname, raw, physical_range, fmt):
 
     # remove extra epoc and STI channels
     drop_chs = ['epoc']
-    if not (raw.filenames[0].endswith('.fif')):
-        drop_chs.append('STI 014')
+    orig_ch_types = raw.get_channel_types()
+    if 'stim' in orig_ch_types:
+        stim_index = np.argwhere(orig_ch_types == 'stim')
+        drop_chs.extend([raw.ch_names[idx] for idx in stim_index])
 
     ch_names = [ch for ch in raw.ch_names if ch not in drop_chs]
     n_channels = len(ch_names)
@@ -65,8 +67,7 @@ def _export_raw(fname, raw, physical_range, fmt):
     linefreq = raw.info['line_freq']
     filter_str_info = f"HP:{highpass}Hz LP:{lowpass}Hz N:{linefreq}Hz"
 
-    # get data in uV
-    # XXX: what about non-EEG data?... How to handle?
+    # get EEG-related data in uV
     units = dict(eeg='uV', ecog='uV', seeg='uV')
 
     # get the entire dataset in uV
@@ -77,9 +78,9 @@ def _export_raw(fname, raw, physical_range, fmt):
         ch_types_phys_max = dict()
         ch_types_phys_min = dict()
 
-        for idx, ch_name in enumerate(raw.ch_names):
-            ch_type = raw.get_channel_types(picks=ch_name)[0]
+        ch_types = raw.get_channel_types(picks=raw.ch_names)
 
+        for idx, ch_type in enumerate(ch_types):
             ch_type_data = data[idx, :]
             if ch_type not in ch_types_phys_max:
                 ch_types_phys_max[ch_type] = ch_type_data.max()
@@ -109,7 +110,7 @@ def _export_raw(fname, raw, physical_range, fmt):
                                f'is less then physical min passed in {pmin}.')
 
     # create instance of EDF Writer
-    hdl = EDFwriter(fname, EDFwriter.EDFLIB_FILETYPE_EDFPLUS, n_chs)
+    hdl = EDFwriter(fname, EDFwriter.EDFLIB_FILETYPE_EDFPLUS, n_channels)
 
     # set channel data
     for ichan, ch in enumerate(ch_names):
@@ -118,14 +119,14 @@ def _export_raw(fname, raw, physical_range, fmt):
             ch_type = raw.get_channel_types(picks=ch)[0]
             pmin, pmax = ch_types_phys_min[ch_type], ch_types_phys_max[ch_type]
 
-        for key, val in zip(
-            ['PhysicalMaximum', 'PhysicalMinimum', 'DigitalMaximum',
-             'DigitalMinimum', 'PhysicalDimension', 'SampleFrequency',
-             'SignalLabel', 'PreFilter',
-             ],
-            [pmax, pmin, digital_max, digital_min, phys_dims, sfreq,
-             ch, filter_str_info]
-        ):
+        for key, val in [('PhysicalMaximum', pmax),
+                         ('PhysicalMinimum', pmin),
+                         ('DigitalMaximum', digital_max),
+                         ('DigitalMinimum', digital_min),
+                         ('PhysicalDimension', phys_dims),
+                         ('SampleFrequency', sfreq),
+                         ('SignalLabel', ch),
+                         ('PreFilter', filter_str_info)]:
             _try_to_set_value(hdl, key, val, channel_index=ichan)
 
     # set patient info
@@ -141,9 +142,9 @@ def _export_raw(fname, raw, physical_range, fmt):
                                        birthday[2]) != 0:
                 raise RuntimeError(f"Setting Patient Birth Date to {birthday} "
                                    f"returned an error")
-        for key, val in zip(['PatientName', 'PatientGender',
-                             'AdditionalPatientInfo'],
-                            [name, sex, f'hand={hand}']):
+        for key, val in [('PatientName', name),
+                         ('PatientGender', sex),
+                         ('AdditionalPatientInfo', f'hand={hand}')]:
             _try_to_set_value(hdl, key, val)
 
     # set measurement date
@@ -171,7 +172,7 @@ def _export_raw(fname, raw, physical_range, fmt):
         start_samp = isec * sfreq
 
         # then for each second write each channel
-        for ich in range(n_chs):
+        for ich in range(n_channels):
             # create a buffer with sampling rate
             buf = np.zeros(sfreq, np.float64, "C")
 
