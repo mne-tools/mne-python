@@ -530,7 +530,7 @@ fig
 #
 # When using mean amplitude measures, it is a good idea to have a predefined
 # time window for extracting mean amplitude. Selecting the time window based
-# on theobserved data (e.g., the grand average) can inflate false positives in
+# on the observed data (e.g., the grand average) can inflate false positives in
 # ERP research :footcite:`LuckGaspelin2017`.
 #
 # Below, demonstrates how to pull out the mean amplitude between .065 sec and
