@@ -454,7 +454,7 @@ def estimate_head_mri_t(subject, subjects_dir=None, verbose=None):
 @verbose
 def _get_transforms_to_coord_frame(info, trans, coord_frame='mri',
                                    verbose=None):
-    """Get the transforms from one coordinate frame to others."""
+    """Get the transforms to a coordinate frame from device, head and mri."""
     head_mri_t = _get_trans(trans, 'head', 'mri')[0]
     dev_head_t = _get_trans(info['dev_head_t'], 'meg', 'head')[0]
     mri_dev_t = invert_transform(combine_transforms(
@@ -470,12 +470,10 @@ def _get_transforms_to_coord_frame(info, trans, coord_frame='mri',
 
 
 @verbose
-def _ch_pos_in_coord_frame(info, to_cf_t, coord_frame='mri', warn_meg=True,
-                           verbose=None):
+def _ch_pos_in_coord_frame(info, to_cf_t, warn_meg=True, verbose=None):
     """Transform a channel location to "mri" (surface RAS)."""
     from .forward import _create_meg_coils
     from .viz._3d import _sensor_shape
-    _check_option('coord_frame', coord_frame, ('meg', 'head', 'mri'))
     chs = dict(ch_pos=dict(), sources=dict(), detectors=dict())
     unknown_chs = list()  # prepare for chs with unknown coordinate frame
     type_counts = dict()
@@ -497,8 +495,7 @@ def _ch_pos_in_coord_frame(info, to_cf_t, coord_frame='mri', warn_meg=True,
                 ch_coord, triangles = _sensor_shape(coil)
                 ch_coord = apply_trans(coil_trans, ch_coord)
                 if len(ch_coord) == 0 and warn_meg:
-                    warn(f'MEG sensor {info.ch_names[idx]} not found. '
-                         'Cannot plot MEG location.')
+                    warn(f'MEG sensor {info.ch_names[idx]} not found.')
             else:
                 ch_coord = info['chs'][idx]['loc'][type_slice]
             ch_coord_frame = info['chs'][idx]['coord_frame']
