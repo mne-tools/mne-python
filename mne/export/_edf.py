@@ -23,7 +23,7 @@ def _try_to_set_value(header, key, value, channel_index=None):
     else:
         return_val = func(channel_index, value)
 
-    # a return value of 0 indicates an error
+    # a nonzero return value indicates an error
     if return_val != 0:
         raise RuntimeError(f"Setting {key} with {value} "
                            f"returned an error")
@@ -54,7 +54,7 @@ def _export_raw(fname, raw, physical_range, fmt):
         drop_chs.append('STI 014')
 
     ch_names = [ch for ch in raw.ch_names if ch not in drop_chs]
-    n_chs = len(ch_names)
+    n_channels = len(ch_names)
     n_times = raw.n_times
     sfreq = int(raw.info['sfreq'])
     n_secs = n_times / sfreq
