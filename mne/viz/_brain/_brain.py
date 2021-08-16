@@ -2323,7 +2323,7 @@ class Brain(object):
         self._renderer._update()
 
     @fill_doc
-    def add_head(self, dense=True, color=None, alpha=0.5):
+    def add_head(self, dense=True, color='gray', alpha=0.5):
         """Add a mesh to render the outer head surface.
 
         Parameters
@@ -2333,7 +2333,6 @@ class Brain(object):
             (``head``).
         color : matplotlib-style color | None
             A list of anything matplotlib accepts: string, RGB, hex, etc.
-            (default: "gray").
         alpha : float in [0, 1]
             Alpha level to control opacity.
 
@@ -2361,7 +2360,7 @@ class Brain(object):
         self._renderer._update()
 
     @fill_doc
-    def add_skull(self, outer=True, color=None, alpha=0.5):
+    def add_skull(self, outer=True, color='gray', alpha=0.5):
         """Add a mesh to render the skull surface.
 
         Parameters
@@ -2370,7 +2369,6 @@ class Brain(object):
             Adds the outer skull if ``True``, otherwise adds the inner skull.
         color : matplotlib-style color | None
             A list of anything matplotlib accepts: string, RGB, hex, etc.
-            (default: "gray").
         alpha : float in [0, 1]
             Alpha level to control opacity.
 
