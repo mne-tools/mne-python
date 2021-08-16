@@ -106,7 +106,7 @@ def _export_raw(fname, raw, physical_range, fmt):
             raise RuntimeError(f'The maximum uV of the data {data.max()} '
                                f'is more then physical max passed in {pmax}.')
         if data.min() < pmin:
-            raise RuntimeError('The minimum uV of the data {data.min()} '
+            raise RuntimeError(f'The minimum uV of the data {data.min()} '
                                f'is less then physical min passed in {pmin}.')
 
     # create instance of EDF Writer
