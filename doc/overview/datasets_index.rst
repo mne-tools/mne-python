@@ -119,6 +119,9 @@ Resting state
 
 Details can be found at the Brainstorm `resting state dataset tutorial`_.
 
+.. topic:: Examples
+
+    * :ref:`mne-connectivity:ex-envelope-correlation`
 
 Median nerve
 ^^^^^^^^^^^^

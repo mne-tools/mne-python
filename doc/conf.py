@@ -273,6 +273,10 @@ numpydoc_validation_exclude = {  # set of regex
     r'\.__sub__', r'\.__add__', r'\.__iter__', r'\.__div__', r'\.__neg__',
     # copied from sklearn
     r'mne\.utils\.deprecated',
+    # deprecations
+    r'mne\.connectivity\.degree', r'mne\.connectivity\.seed_target_indices',
+    r'mne\.viz\.circular_layout', r'mne\.viz\.plot_sensors_connectivity',
+    'plot_connectivity_circle',
 }
 
 
@@ -735,7 +739,7 @@ html_context = {
         dict(title='Connectivity',
              text='All-to-all spectral and effective connec\u00ADtivity measures.',  # noqa E501
              url='https://mne.tools/mne-connectivity/stable/auto_examples/mne_inverse_label_connectivity.html',  # noqa E501
-             img='_static/temp_homepage_connectivity.png',  # noqa E501
+             img='https://mne.tools/mne-connectivity/stable/_images/sphx_glr_mne_inverse_label_connectivity_001.png',  # noqa E501
              alt='Connectivity'),
         dict(title='Data Visualization',
              text='Explore your data from multiple perspectives.',
