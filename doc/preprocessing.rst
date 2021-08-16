@@ -40,6 +40,7 @@ Projections:
    read_dig_egi
    read_dig_fif
    read_dig_hpts
+   read_dig_localite
    make_standard_montage
    read_custom_montage
    compute_dev_head_t

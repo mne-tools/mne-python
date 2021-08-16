@@ -203,7 +203,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     ``True``. This flag can be toggled by pressing 'd'.
     """
     from ..io.base import BaseRaw
-    from ._figure import _browse_figure
+    from ._figure import _get_browser
 
     info = raw.info.copy()
     sfreq = info['sfreq']
@@ -347,7 +347,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   scalebars_visible=show_scalebars,
                   window_title=title)
 
-    fig = _browse_figure(**params)
+    fig = _get_browser(**params)
+
     fig._update_picks()
 
     # make channel selection dialog, if requested (doesn't work well in init)
@@ -369,6 +370,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         fig._toggle_proj_fig()
 
     plt_show(show, block=block)
+
     return fig
 
 
@@ -435,7 +437,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     fig : instance of Figure
         Figure with frequency spectra of the data channels.
     """
-    from ._figure import _psd_figure
+    from ._mpl_figure import _psd_figure
     # handle FFT
     if n_fft is None:
         if tmax is None or not np.isfinite(tmax):
