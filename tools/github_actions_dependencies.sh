@@ -19,7 +19,8 @@ else
 	echo "H5py, pillow, matplotlib"
 	pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py pillow matplotlib
 	echo "Numba, nilearn"
-	pip install --progress-bar off --upgrade --pre --only-binary ":all:" numba llvmlite nilearn
+	pip install --progress-bar off --upgrade --pre --only-binary ":all:" numba llvmlite
+    pip install --progress-bar off --upgrade git+git://github.com/nilearn/nilearn.git@54494926f393b18267fddfb6b56ee6ec648764b4  # XXX until release 0.8.1 or 0.9.0 comes out
 	echo "VTK"
 	# built using vtk master branch on an Ubuntu 18.04.5 VM and uploaded to OSF,
 	# can't use VTK's pre wheel because it breaks Mayavi (probably event processing)
