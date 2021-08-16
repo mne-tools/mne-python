@@ -5,6 +5,7 @@ pydata-sphinx-theme>=0.6.3
 https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip
 sphinxcontrib-bibtex>=2.1.2
 memory_profiler
+https://github.com/drammock/python-quantities/archive/fix-backslash-escape.zip  # XXX until release 0.12.5 or higher; then can remove (neo will pull it in)
 neo
 seaborn
 sphinx_copybutton
