@@ -50,12 +50,12 @@ def test_export_raw_eeglab(tmpdir):
 
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')
-@pytest.mark.parametrize('format', ['edf'])
-def test_export_raw_edf_and_bdf(tmpdir, format):
+def test_export_raw_edf(tmpdir):
     """Test saving a Raw instance to EDF format."""
     fname = (Path(__file__).parent.parent.parent /
              "io" / "tests" / "data" / "test_raw.fif")
     raw = read_raw_fif(fname)
+    format = 'edf'
 
     # only test with EEG channels
     raw.pick_types(eeg=True, eog=True, ecg=True, emg=True)
@@ -68,7 +68,8 @@ def test_export_raw_edf_and_bdf(tmpdir, format):
     raw_read = read_raw_edf(temp_fname, preload=True)
     assert raw.ch_names == raw_read.ch_names
     print(len(raw.times), len(raw_read.times))
-    assert_array_almost_equal(raw.times, raw_read.times, decimal=1)
+    # assert_array_almost_equal(raw.times, raw_read.times, decimal=1)
+    assert_allclose(raw.times, raw_read.times, rtol=0, atol=1e-2)
     assert_array_almost_equal(
         raw.get_data(), raw_read.get_data(), decimal=3)
 

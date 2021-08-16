@@ -32,7 +32,7 @@ def _try_to_set_value(header, key, value, channel_index=None):
 def _export_raw(fname, raw, physical_range, fmt):
     """Export Raw objects to EDF or BDF files.
 
-    TODO:
+    XXX:
     - if Info stores transducer information, allow writing here.
     - if Info stores techniciain information, allow writing here.
     """
@@ -67,10 +67,7 @@ def _export_raw(fname, raw, physical_range, fmt):
 
     # get data in uV
     # XXX: what about non-EEG data?... How to handle?
-    units = dict()
-    units['eeg'] = 'uV'
-    units['ecog'] = 'uV'
-    units['seeg'] = 'uV'
+    units = dict(eeg='uV', ecog='uV', seeg='uV')
 
     # get the entire dataset in uV
     data = raw.get_data(units=units, picks=ch_names)
@@ -101,7 +98,7 @@ def _export_raw(fname, raw, physical_range, fmt):
         # and -3200 uV for all EEG channels (which are the actual clipping
         # levels of their input amplifiers & ADC).
         # For full discussion, see: https://github.com/sccn/eeglab/issues/246
-        pmin, pmax = -3200, 3200
+        pmin, pmax = physical_range[0], physical_range[1]
 
         # check that physical min and max is not exceeded
         if data.max() > pmax:
