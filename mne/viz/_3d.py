@@ -862,7 +862,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     if picks.size > 0:
         ch_pos, sources, detectors = _ch_pos_in_coord_frame(
             info.pick_channels([info.ch_names[idx] for idx in picks]),
-            coord_frame=coord_frame, to_cf_t=to_cf_t, warn_meg=warn_meg,
+            to_cf_t=to_cf_t, warn_meg=warn_meg,
             verbose=verbose)
 
         for ch_name, ch_coord in ch_pos.items():
