@@ -186,10 +186,6 @@ def _export_raw(fname, raw, physical_range, fmt):
 
         # there was an incomplete datarecord
         if len(ch_data) != len(buf):
-            warn(f'A complete data record consists of {len(buf)} samples, '
-                 f'but this sample window ended up having {len(ch_data)} '
-                 f'samples. {len(buf) - len(ch_data)} zeros were appended '
-                 f'to the datarecord.')
             warn(f'EDF format requires equal-length data blocks, '
                  f'so {(len(buf) - len(ch_data)) / sfreq} seconds of zeros '
                  f'were appended to all channels when writing the final '
