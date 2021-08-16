@@ -317,7 +317,7 @@ def test_brain_init(renderer_pyvistaqt, tmpdir, pixel_ratio, brain_gc):
 
     # add head and skull
     brain.add_head(color='red', alpha=0.1)
-    brain.add_skull(outer=True, inner=True, color='green', alpha=0.1)
+    brain.add_skull(outer=True, color='green', alpha=0.1)
 
     # add volume labels
     brain.add_volume_labels(
