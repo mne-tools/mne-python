@@ -193,7 +193,7 @@ Bugs
 
 - Fix bug where "seeg", "ecog", "dbs" and "fnirs" data had coordinate frame unknown upon loading from a file when it should have been in "head" (:gh:`9580` by `Alex Rockhill`_)
 
-- Add warning when no ``trans`` is provided to :func:`mne.viz.plot_alignment` that the identity head->mri transform is assumed (:gh:`9585` by `Alex Rockhill`_)
+- Raise error when no ``trans`` is provided to :func:`mne.viz.plot_alignment` when required instead of assuming identitiy head->mri transform (:gh:`9585` by `Alex Rockhill`_)
 
 API changes
 ~~~~~~~~~~~

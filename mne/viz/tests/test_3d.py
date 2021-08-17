@@ -224,8 +224,6 @@ def test_plot_alignment(tmpdir, renderer, mixed_fwd_cov_evoked):
     with pytest.raises(ValueError, match='transformation matrix is required'):
         plot_alignment(info, trans=None, src=src_fname)
     with pytest.raises(ValueError, match='transformation matrix is required'):
-        plot_alignment(info, trans=None, coord_frame='mri')
-    with pytest.raises(ValueError, match='transformation matrix is required'):
         plot_alignment(info, trans=None, mri_fiducials=True)
     with pytest.raises(ValueError, match='transformation matrix is required'):
         plot_alignment(info, trans=None, surfaces=['brain'])
