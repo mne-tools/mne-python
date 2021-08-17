@@ -21,7 +21,7 @@ import numpy as np
 
 from .channels.channels import _get_meg_system
 from .fixes import (_serialize_volume_info, _get_read_geometry, jit,
-                    prange, bincount)
+                    prange, bincount, _get_img_fdata)
 from .io.constants import FIFF
 from .io.pick import pick_types
 from .parallel import parallel_func
@@ -1740,7 +1740,7 @@ def _warn_missing_chs(montage, dig_image, after_warp):
     """Warn that channels are missing."""
     # ensure that each electrode contact was marked in at least one voxel
     missing = set(np.arange(1, len(montage.ch_names) + 1)).difference(
-        set(np.unique(np.array(dig_image.dataobj))))
+        set(np.unique(np.asanyarray(dig_image.dataobj))))
     missing_ch = [montage.ch_names[idx - 1] for idx in missing]
     if missing_ch:
         warn('Channels ' + ', '.join(missing_ch) + ' were not assigned '
@@ -1853,7 +1853,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     # take channel coordinates and use the image to transform them
     # into a volume where all the voxels over a threshold nearby
     # are labeled with an index
-    image_data = np.array(base_image.dataobj)
+    image_data = _get_img_fdata(base_image.dataobj)
     if use_min:
         image_data *= -1
     thresh = np.quantile(image_data, thresh)
@@ -1889,9 +1889,9 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     _warn_missing_chs(montage, image_to, after_warp=True)
 
     # recover the contact positions as the center of mass
-    warped_data = np.array(image_to.dataobj)
+    warped_data = np.asanyarray(image_to.dataobj)
     for val, ch_coord in enumerate(ch_coords, 1):
-        ch_coord[:] = np.array(
+        ch_coord[:] = np.asanyarray(
             np.where(warped_data == val), float).mean(axis=1)
 
     # convert back to surface RAS of the template

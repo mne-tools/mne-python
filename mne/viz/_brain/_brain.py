@@ -35,13 +35,13 @@ from ...externals.decorator import decorator
 from ..._freesurfer import (vertex_to_mni, read_talxfm, read_freesurfer_lut,
                             _get_head_surface, _ch_pos_in_coord_frame,
                             _get_skull_surface, _get_transforms_to_coord_frame)
-from ...io.pick import (pick_types, channel_type, _picks_to_idx,
+from ...io.pick import (pick_types, channel_type, _picks_to_idx, pick_info,
                         _FNIRS_CH_TYPES_SPLIT, _MEG_CH_TYPES_SPLIT)
 from ...io.meas_info import Info
 from ...surface import (mesh_edges, _mesh_borders, _marching_cubes,
                         get_meg_helmet_surf, _project_onto_surface)
 from ...source_space import SourceSpaces
-from ...transforms import apply_trans, invert_transform, Transform, _get_trans
+from ...transforms import apply_trans, invert_transform, _get_trans
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn,
                       get_subjects_dir, _check_fname)
@@ -2331,7 +2331,7 @@ class Brain(object):
         dense : bool
             Whether to plot the dense head (``seghead``) or the less dense head
             (``head``).
-        color : matplotlib-style color | None
+        color : color
             A list of anything matplotlib accepts: string, RGB, hex, etc.
         alpha : float in [0, 1]
             Alpha level to control opacity.
@@ -2347,8 +2347,6 @@ class Brain(object):
                                  self._subject_id, self._subjects_dir)
         verts, triangles = surf['rr'], surf['tris']
         verts *= 1e3 if self._units == 'mm' else 1
-        if color is None:
-            color = DEFAULTS['coreg']['head_color']
         color = colorConverter.to_rgba(color, alpha)
 
         for h in self._hemis:
@@ -2367,7 +2365,7 @@ class Brain(object):
         ----------
         outer : bool
             Adds the outer skull if ``True``, otherwise adds the inner skull.
-        color : matplotlib-style color | None
+        color : color
             A list of anything matplotlib accepts: string, RGB, hex, etc.
         alpha : float in [0, 1]
             Alpha level to control opacity.
@@ -2382,8 +2380,6 @@ class Brain(object):
                                   self._subject_id, self._subjects_dir)
         verts, triangles = surf['rr'], surf['tris']
         verts *= 1e3 if self._units == 'mm' else 1
-        if color is None:
-            color = 'gray'
         color = colorConverter.to_rgba(color, alpha)
 
         for h in self._hemis:
@@ -2537,7 +2533,7 @@ class Brain(object):
             self._renderer.set_camera(**views_dicts[hemi][v])
 
     @verbose
-    def add_sensors(self, inst, trans, picks=None, colors=None,
+    def add_sensors(self, info, trans, picks=None, colors=None,
                     scales=None, alphas=None, meg_helmet=True,
                     project_eeg=False, fnirs_pairs=None, fnirs_sources=None,
                     fnirs_detectors=None, verbose=None):
@@ -2545,8 +2541,7 @@ class Brain(object):
 
         Parameters
         ----------
-        inst : mne.Info | mne.io.Raw | mne.Epochs | mne.Evoked
-            The MNE object with sensor locations.
+        %(info_not_none)s
         %(trans_not_none)s
         %(picks_all)s
         colors : str | dict
@@ -2584,17 +2579,12 @@ class Brain(object):
         .. versionadded:: 0.24
         """
         from matplotlib.colors import colorConverter
-        if isinstance(inst, Info):
-            info = inst.copy()
-        else:
-            info = inst.info.copy()
+        _validate_type(info, Info, 'info')
         picks = _picks_to_idx(info, picks, none='all', exclude=(),
                               allow_empty=False)
-        info = info.pick_channels([inst.ch_names[idx] for idx in picks])
-        if trans is None:
-            warn('No `trans` provided, assuming identity head->mri transform')
-            trans = Transform('head', 'mri')
-        head_mri_t = _get_trans(trans, 'head', 'mri')[0]
+        info = pick_info(info, picks)  # makes a copy
+        head_mri_t = _get_trans(trans, 'head', 'mri', allow_none=False)[0]
+        del trans
         # get transforms to "mri"window
         to_cf_t = _get_transforms_to_coord_frame(
             info, head_mri_t, coord_frame='mri', verbose=verbose)
@@ -2605,12 +2595,12 @@ class Brain(object):
             raise RuntimeError(
                 f'{err} You may want to use `picks=("meg", "eeg")` '
                 'to avoid sensors that should not be plotted for instance')
-        eeg_indices = pick_types(info, eeg=True)
+        eeg_indices = pick_types(info, eeg=True, exclude=())
         if eeg_indices.size > 0 and project_eeg:
             logger.info('Projecting sensors to the head surface')
             head_surf = _get_head_surface(
                 'seghead', self._subject_id, self._subjects_dir)
-            head_surf['rr'] = apply_trans(trans, head_surf['rr'] * 1000)
+            head_surf['rr'] = apply_trans(head_mri_t, head_surf['rr'] * 1000)
             ch_coords = np.array([
                 ch_pos[info.ch_names[idx]] for idx in eeg_indices])
             ch_coords = _project_onto_surface(ch_coords, head_surf)[0]

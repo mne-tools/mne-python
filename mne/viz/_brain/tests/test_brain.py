@@ -24,7 +24,7 @@ from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_space import (read_source_spaces,
                               setup_volume_source_space)
 from mne.datasets import testing
-from mne.io import read_raw_fif
+from mne.io import read_info
 from mne.utils import check_version, requires_pysurfer
 from mne.label import read_label
 from mne.viz._brain import Brain, _LinkViewer, _BrainScraper, _LayeredMesh
@@ -324,13 +324,13 @@ def test_brain_init(renderer_pyvistaqt, tmpdir, pixel_ratio, brain_gc):
         aseg='aseg', labels=('Brain-Stem', 'Left-Hippocampus',
                              'Left-Amygdala'))
     # add sensors
-    raw = read_raw_fif(fname_raw_testing)
-    brain.add_sensors(raw, trans=fname_trans, picks=('meg', 'eeg'),
+    info = read_info(fname_raw_testing)
+    brain.add_sensors(info, trans=fname_trans, picks=('meg', 'eeg'),
                       colors=dict(eeg='r', grad='b', mag='y'))
 
-    raw.info['chs'][0]['coord_frame'] = 99
+    info['chs'][0]['coord_frame'] = 99
     with pytest.raises(RuntimeError, match='must be "meg", "head" or "mri"'):
-        brain.add_sensors(raw, trans=fname_trans)
+        brain.add_sensors(info, trans=fname_trans)
 
     # add text
     brain.add_text(x=0, y=0, text='foo')

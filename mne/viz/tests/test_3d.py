@@ -209,7 +209,7 @@ def test_plot_alignment(tmpdir, renderer, mixed_fwd_cov_evoked):
                   subject='fsaverage', subjects_dir=subjects_dir,
                   src=sample_src)
     sample_src.plot(subjects_dir=subjects_dir, head=True, skull=True,
-                    brain='white', trans=trans_fname)
+                    brain='white')
     # mixed source space
     mixed_src = mixed_fwd_cov_evoked[0]['src']
     assert mixed_src.kind == 'mixed'
@@ -230,7 +230,7 @@ def test_plot_alignment(tmpdir, renderer, mixed_fwd_cov_evoked):
     with pytest.raises(ValueError, match='transformation matrix is required'):
         plot_alignment(info, trans=None, surfaces=['brain'])
     # all coord frames
-    plot_alignment(info, trans=trans_fname)  # works: surfaces='auto' default
+    plot_alignment(info)  # works: surfaces='auto' default
     for coord_frame in ('meg', 'head', 'mri'):
         fig = plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
                              coord_frame=coord_frame, trans=Path(trans_fname),
