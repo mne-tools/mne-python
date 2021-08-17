@@ -1780,7 +1780,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
 
     Parameters
     ----------
-    montage : mne.channels.montage.DigMontage
+    montage : instance of mne.channels.DigMontage
         The montage object containing the channels.
     base_image : str | pathlib.Path | nibabel.spatialimages.SpatialImage
         Path to a volumetric scan (e.g. CT) of the subject. Can be in any
@@ -1810,7 +1810,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
 
     Returns
     -------
-    montage_warped : mne.channels.montage.DigMontage
+    montage_warped : mne.channels.DigMontage
         The modified montage object containing the channels.
     image_from : nibabel.spatialimages.SpatialImage
         An image in Freesurfer surface RAS space with voxel values
