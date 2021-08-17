@@ -2533,8 +2533,8 @@ class Brain(object):
             self._renderer.set_camera(**views_dicts[hemi][v])
 
     @verbose
-    def add_sensors(self, info, trans, picks=None, meg=None, eeg='original',
-                    fnirs=True, ecog=True, seeg=True, dbs=True, verbose=None):
+    def add_sensors(self, info, trans, meg=None, eeg='original', fnirs=True,
+                    ecog=True, seeg=True, dbs=True, verbose=None):
         """Add mesh objects to represent sensor positions.
 
         Parameters

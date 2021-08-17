@@ -828,8 +828,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     # plot sensors
     if picks.size > 0:
+        head_surf = surfs['head'] if 'head' in surfs else None
         _plot_sensors(info, to_cf_t, renderer, picks, meg, eeg, fnirs,
-                      surfs['head'], warn_meg, 'm', verbose)
+                      head_surf, warn_meg, 'm', verbose)
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
