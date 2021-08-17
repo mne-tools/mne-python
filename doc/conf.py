@@ -1087,10 +1087,14 @@ def make_redirects(app, exception):
             f'Added {len(fnames):3d} HTML plot_* redirects for {out_dir}')
     # custom redirects
     for fr, to in custom_redirects.items():
-        to_path = os.path.join(app.outdir, to)
-        if not to_path.startswith('http'):
-            assert os.path.isfile(to_path), to
-        assert to_path.endswith('html'), to_path
+        if not to.startswith('http'):
+            assert os.path.isfile(os.path.join(app.outdir, to)), to
+            # handle links to sibling folders
+            path_parts = to.split(os.path.sep)
+            assert tu in path_parts, path_parts  # need to refactor otherwise
+            path_parts = ['..'] + path_parts[(path_parts.index(tu) + 1):]
+            to = os.path.join(*path_parts)
+        assert to.endswith('html'), to
         fr_path = os.path.join(app.outdir, fr)
         assert fr_path.endswith('html'), fr_path
         # allow overwrite if existing file is just a redirect
@@ -1102,13 +1106,11 @@ def make_redirects(app, exception):
                 assert 'Page Redirection' in line, line
         # handle folders that no longer exist
         if fr_path.split(os.path.sep)[-2] in (
-                'misc', 'discussions', 'source-modeling', 'sample-datasets'):
+                'misc', 'discussions', 'source-modeling', 'sample-datasets',
+                'connectivity'):
             os.makedirs(os.path.dirname(fr_path), exist_ok=True)
-        # handle links to sibling folders
-        path_parts = to.split(os.path.sep)
-        path_parts = ['..'] + path_parts[(path_parts.index(tu) + 1):]
         with open(fr_path, 'w') as fid:
-            fid.write(TEMPLATE.format(to=os.path.join(*path_parts)))
+            fid.write(TEMPLATE.format(to=to))
     logger.info(
         f'Added {len(custom_redirects):3d} HTML custom redirects')
 
