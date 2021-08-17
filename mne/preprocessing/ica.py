@@ -479,38 +479,46 @@ class ICA(ContainsMixin):
             The data to be decomposed.
         %(picks_good_data_noref)s
             This selection remains throughout the initialized ICA solution.
-        start : int | float | None
-            First sample to include. If float, data will be interpreted as
-            time in seconds. If None, data will be used from the first sample.
-        stop : int | float | None
-            Last sample to not include. If float, data will be interpreted as
-            time in seconds. If None, data will be used to the last sample.
+        start, stop : int | float | None
+            First and last sample to include. If float, data will be
+            interpreted as time in seconds. If ``None``, data will be used from
+            the first sample and to the last sample, respectively.
+
+            .. note:: These parameters only have an effect if ``inst`` is
+                      `~mne.io.Raw` data.
         decim : int | None
-            Increment for selecting each nth time slice. If None, all samples
-            within ``start`` and ``stop`` are used.
-        reject : dict | None
-            Rejection parameters based on peak-to-peak amplitude.
-            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'dbs', 'ecog', 'eog',
-            'ecg', 'hbo', 'hbr'.
-            If reject is None then no rejection is done. Example::
+            Increment for selecting only each n-th sampling point. If ``None``,
+            all samples  between ``start`` and ``stop`` (inclusive) are used.
 
-                reject = dict(grad=4000e-13, # T / m (gradiometers)
-                              mag=4e-12, # T (magnetometers)
-                              eeg=40e-6, # V (EEG channels)
-                              eog=250e-6 # V (EOG channels)
-                              )
+            .. note:: This parameter only has an effect if ``inst`` is
+                      `~mne.io.Raw` data.
+        reject, flat : dict | None
+            Rejection parameters based on peak-to-peak amplitude (PTP)
+            in the continuous data. Signal periods exceeding the thresholds
+            in ``reject`` or less than the thresholds in ``flat`` will be
+            removed before fitting the ICA.
 
-            It only applies if ``inst`` is of type Raw.
-        flat : dict | None
-            Rejection parameters based on flatness of signal.
-            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'dbs', 'ecog', 'eog',
-            'ecg', 'hbo', 'hbr'.
-            Values are floats that set the minimum acceptable peak-to-peak
-            amplitude. If flat is None then no rejection is done.
-            It only applies if ``inst`` is of type Raw.
+            .. note:: These parameters only have an effect if ``inst`` is
+                      `~mne.io.Raw` data. For `~mne.Epochs`, perform PTP
+                      rejection via :meth:`~mne.Epochs.drop_bad`.
+
+            Valid keys are all channel types present in the data. Values must
+            be integers or floats.
+
+            If ``None``, no PTP-based rejection will be performed. Example::
+
+                reject = dict(
+                    grad=4000e-13, # T / m (gradiometers)
+                    mag=4e-12, # T (magnetometers)
+                    eeg=40e-6, # V (EEG channels)
+                    eog=250e-6 # V (EOG channels)
+                )
+                flat = None  # no rejection based on flatness
         tstep : float
             Length of data chunks for artifact rejection in seconds.
-            It only applies if ``inst`` is of type Raw.
+
+            .. note:: This parameter only has an effect if ``inst`` is
+                      `~mne.io.Raw` data.
         %(reject_by_annotation_raw)s
 
             .. versionadded:: 0.14.0
@@ -532,6 +540,19 @@ class ICA(ContainsMixin):
             warn('The epochs you passed to ICA.fit() were baseline-corrected. '
                  'However, we suggest to fit ICA only on data that has been '
                  'high-pass filtered, but NOT baseline-corrected.')
+
+        if not isinstance(inst, BaseRaw):
+            ignored_params = [
+                param_name for param_name, param_val in zip(
+                    ('start', 'stop', 'decim', 'reject', 'flat'),
+                    (start, stop, decim, reject, flat)
+                )
+                if param_val is not None
+            ]
+            if ignored_params:
+                warn(f'The following parameters passed to ICA.fit() will be '
+                     f'ignored, as they only affect raw data (and it appears '
+                     f'you passed epochs): {", ".join(ignored_params)}')
 
         picks = _picks_to_idx(inst.info, picks, allow_empty=False,
                               with_ref_meg=self.allow_ref_meg)

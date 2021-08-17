@@ -183,7 +183,7 @@ def test_bem_model_topology(tmpdir):
     # Now get past this error to reach gh-6127 (not enough neighbor tris)
     rr_bad = np.concatenate([rr, np.mean(rr, axis=0, keepdims=True)], axis=0)
     write_surface(outer_fname, rr_bad, tris, overwrite=True)
-    with pytest.raises(RuntimeError, match='Surface outer skull.*triangles'):
+    with pytest.raises(ValueError, match='Surface outer skull.*triangles'):
         make_bem_model('foo', None, subjects_dir=tmpdir)
 
 
@@ -399,13 +399,13 @@ def test_io_head_bem(tmpdir):
     head['rr'][0] = np.array([-0.01487014, -0.04563854, -0.12660208])
     head['tris'][0] = np.array([21919, 21918, 21907])
 
-    with pytest.raises(RuntimeError, match='topological defects:'):
+    with pytest.raises(ValueError, match='topological defects:'):
         write_head_bem(fname_defect, head['rr'], head['tris'])
     with pytest.warns(RuntimeWarning, match='topological defects:'):
         write_head_bem(fname_defect, head['rr'], head['tris'],
                        on_defects='warn')
     # test on_defects in read_bem_surfaces
-    with pytest.raises(RuntimeError, match='topological defects:'):
+    with pytest.raises(ValueError, match='topological defects:'):
         read_bem_surfaces(fname_defect)
     with pytest.warns(RuntimeWarning, match='topological defects:'):
         head_defect = read_bem_surfaces(fname_defect, on_defects='warn')[0]

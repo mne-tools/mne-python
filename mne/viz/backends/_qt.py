@@ -8,10 +8,7 @@
 from contextlib import contextmanager
 
 import pyvista
-try:
-    from pyvista.plotting.qt_plotting import FileDialog
-except ImportError:
-    from pyvistaqt.plotting import FileDialog
+from pyvistaqt.plotting import FileDialog
 
 from PyQt5.QtCore import Qt, pyqtSignal, QLocale
 from PyQt5.QtGui import QIcon, QImage, QPixmap, QCursor

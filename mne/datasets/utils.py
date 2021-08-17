@@ -254,7 +254,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.121', misc='0.18')
+    releases = dict(testing='0.122', misc='0.18')
     # And also update the "md5_hashes['testing']" variable below.
     # To update any other dataset, update the data archive itself (upload
     # an updated version) and update the md5 hash.
@@ -349,7 +349,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample='12b75d1cb7df9dfb4ad73ed82f61094f',
         somato='32fd2f6c8c7eb0784a1de6435273c48b',
         spm='9f43f67150e3b694b523a21eb929ea75',
-        testing='570186827dfdc1d454675dab552441c6',
+        testing='3da5aacbed94282e69ed250fdecbb3e6',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         fnirs_motor='c4935d19ddab35422a69f3326a01fef8',
         opm='370ad1dcfd5c47e029e692c85358a374',
@@ -642,8 +642,7 @@ def _download_all_example_data(verbose=True):
     eegbci.load_data(1, [6, 10, 14], update_path=True)
     for subj in range(4):
         eegbci.load_data(subj + 1, runs=[3], update_path=True)
-    sleep_physionet.age.fetch_data(subjects=[0, 1], recording=[1],
-                                   update_path=True)
+    sleep_physionet.age.fetch_data(subjects=[0, 1], recording=[1])
     # If the user has SUBJECTS_DIR, respect it, if not, set it to the EEG one
     # (probably on CircleCI, or otherwise advanced user)
     fetch_fsaverage(None)

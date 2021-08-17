@@ -34,7 +34,8 @@ from .._3d import _process_clim, _handle_time, _check_views
 
 from ...externals.decorator import decorator
 from ...defaults import _handle_default
-from ..._freesurfer import vertex_to_mni, read_talxfm, read_freesurfer_lut
+from ..._freesurfer import (vertex_to_mni, read_talxfm, read_freesurfer_lut,
+                            _get_head_surface)
 from ...surface import mesh_edges, _mesh_borders, _marching_cubes
 from ...source_space import SourceSpaces
 from ...transforms import apply_trans, invert_transform
@@ -2317,6 +2318,43 @@ class Brain(object):
         self._renderer._update()
 
     @fill_doc
+    def add_head(self, dense=True, color=None, alpha=0.5):
+        """Add a mesh to render the outer head surface.
+
+        Parameters
+        ----------
+        dense : bool
+            Whether to plot the dense head (``seghead``) or the less dense head
+            (``head``).
+        color : matplotlib-style color | None
+            A list of anything matplotlib accepts: string, RGB, hex, etc.
+            (default: "gray").
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
+
+        Notes
+        -----
+        .. versionadded:: 0.24
+        """
+        from matplotlib.colors import colorConverter
+
+        # load head
+        surf = _get_head_surface('seghead' if dense else 'head',
+                                 self._subject_id, self._subjects_dir)
+        verts, triangles = surf['rr'], surf['tris']
+        if color is None:
+            color = 'gray'
+        color = colorConverter.to_rgba(color, alpha)
+
+        for h in self._hemis:
+            for ri, ci, v in self._iter_views(h):
+                self._renderer.mesh(
+                    *verts.T, triangles=triangles, color=color,
+                    opacity=alpha, reset_camera=False, render=False)
+
+        self._renderer._update()
+
+    @fill_doc
     def add_volume_labels(self, aseg='aparc+aseg', labels=None, colors=None,
                           alpha=0.5, smooth=0.9, legend=None):
         """Add labels to the rendering from an anatomical segmentation.
@@ -2545,8 +2583,9 @@ class Brain(object):
             Show only label borders. If int, specify the number of steps
             (away from the true border) along the cortical mesh to include
             as part of the border definition.
-        alpha : float in [0, 1]
-            Alpha level to control opacity.
+        alpha : float
+            Opacity of the head surface. Must be between 0 and 1 (inclusive).
+            Default is 0.5.
         hemi : str | None
             If None, it is assumed to belong to the hemipshere being
             shown. If two hemispheres are being shown, data must exist

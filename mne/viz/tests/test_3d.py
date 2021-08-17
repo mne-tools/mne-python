@@ -9,7 +9,6 @@
 
 import os.path as op
 from pathlib import Path
-import sys
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
@@ -35,8 +34,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_brain_colorbar, link_brains, mne_analyze_colormap)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click
-from mne.utils import (requires_nibabel, traits_test,
-                       catch_logging, run_subprocess, modified_env)
+from mne.utils import requires_nibabel, traits_test, catch_logging
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 from mne.bem import read_bem_solution, read_bem_surfaces
@@ -727,7 +725,7 @@ def test_plot_sensors_connectivity(renderer):
         plot_sensors_connectivity(info=info, con=con[::2, ::2], picks=picks)
 
     fig = plot_sensors_connectivity(info=info, con=con, picks=picks)
-    if renderer._get_3d_backend() == 'pyvista':
+    if renderer._get_3d_backend() == 'pyvistaqt':
         title = list(fig.plotter.scalar_bars.values())[0].GetTitle()
     else:
         assert renderer._get_3d_backend() == 'mayavi'
@@ -816,7 +814,7 @@ def test_link_brains(renderer_interactive):
         clim='auto'
     )
     if renderer_interactive._get_3d_backend() == 'mayavi':
-        with pytest.raises(NotImplementedError, match='backend is pyvista'):
+        with pytest.raises(NotImplementedError, match='backend is pyvistaqt'):
             link_brains(brain)
     else:
         with pytest.raises(ValueError, match='is empty'):
@@ -824,14 +822,3 @@ def test_link_brains(renderer_interactive):
         with pytest.raises(TypeError, match='type is Brain'):
             link_brains('foo')
         link_brains(brain, time=True, camera=True)
-
-
-def test_renderer(renderer):
-    """Test that renderers are available on demand."""
-    backend = renderer.get_3d_backend()
-    cmd = [sys.executable, '-uc',
-           'import mne; mne.viz.create_3d_figure((800, 600)); '
-           'backend = mne.viz.get_3d_backend(); '
-           'assert backend == %r, backend' % (backend,)]
-    with modified_env(MNE_3D_BACKEND=backend):
-        run_subprocess(cmd)

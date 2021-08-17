@@ -33,6 +33,8 @@ Current (0.24.dev0)
 
 .. |Darin Erat Sleiter| replace:: **Darin Erat Sleiter**
 
+.. |Mathieu Scheltienne| replace:: **Mathieu Scheltienne**
+
 Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
@@ -46,6 +48,10 @@ Enhancements
 - Add support for SURE parameter selection in :func:`mne.inverse_sparse.mixed_norm` and make ``alpha`` parameter now default to ``'sure'`` (:gh:`9430` by **new contributor** |Pierre-Antoine Bannier|_ and `Alex Gramfort`_)
 
 - Speed up BCD solver in :func:`mne.inverse_sparse.mixed_norm` by adding Anderson acceleration (:gh:`9481` by **new contributor** |Pierre-Antoine Bannier|_ and `Alex Gramfort`_)
+
+- Add support for list of channel types for EEG/sEEG/ECoG/DBS referencing (:gh:`9637` **by new contributor** |Mathieu Scheltienne|_)
+
+- Add support for more than 3 source estimates in :func:`mne.viz.plot_sparse_source_estimates` (:gh:`9640` **by new contributor** |Pierre-Antoine Bannier|_ and `Alex Gramfort`_)
 
 - Speed up point decimation in :func:`mne.io.read_raw_kit` by vectorization and use of :class:`scipy.spatial.cKDTree` (:gh:`9568` by `Jean-Remi King`_ and `Eric Larson`_)
 
@@ -117,6 +123,16 @@ Enhancements
 
 - Add :meth:`mne.channels.DigMontage.apply_trans` to apply a transform directly to a montage (:gh:`9601` by `Alex Rockhill`_)
 
+- :meth:`mne.preprocessing.ICA.fit` now emits a warning if any of the ``start``, ``stop``, ``reject``, and ``flat`` parameters are passed when performing ICA on `~mne.Epochs`. These parameters only have an effect on `~mne.io.Raw` data and were previously silently ignored in the case of `~mne.Epochs` (:gh:`9605` by `Richard Höchenberger`_)
+
+- :func:`mne.viz.plot_alignment` now emits a warning (instead of aborting with an exception) if the surfaces contain topological defects (:gh:`9614` by `Richard Höchenberger`_)
+
+- The coregistration GUI can now display the head surface even if there are topological defects. Previously, a low-resolution standard head unsuitable for individualized coregistration was displayed (:gh:`9614` by `Richard Höchenberger`_)
+
+- Add :meth:`mne.viz.Brain.add_head` to plot the head surface (:gh:`9618` by `Alex Rockhill`_)
+
+- Add :func:`mne.channels.read_dig_localite` to read Localite electrode location files (:gh:`9658` by `Clemens Brunner`_)
+
 Bugs
 ~~~~
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)
@@ -134,6 +150,8 @@ Bugs
 - Fix bug with `mne.io.Raw.set_montage` and related functions where the channel coordinate frame was not properly set to head (:gh:`9447` by `Eric Larson`_)
 
 - Fix bug with `mne.io.read_raw_fieldtrip` and `mne.read_epochs_fieldtrip` where channel positions were not set properly (:gh:`9447` by `Eric Larson`_)
+
+- Fix bug with :func:`mne.io.read_raw_kit` where omitting HPI coils could lead to an :exc:`python:AssertionError` on reading (:gh:`9612` by `Eric Larson`_)
 
 - Fix bug with `mne.preprocessing.nirs.optical_density` where protection against zero values was not guaranteed (:gh:`9522` by `Eric Larson`_)
 
@@ -159,10 +177,20 @@ Bugs
 
 - Fix bug in :func:`mne.io.read_raw_egi` where reading data from a data segment that is part of an acquisition skip would lead to an error (:gh:`9565` by `Eric Larson`_)
 
+- Prevent :meth:`mne.io.Raw.plot` windows from spawning at sizes too small to properly render (:gh:`9629` by `Daniel McCloy`_)
+
 - Fix bug in ::meth:`mne.preprocessing.ICA.find_bads_ecg` where passing ``start`` and ``stop`` lead to erroneous data windows depending on the combination of Raw, Epochs, Evoked, and the type (int, float, None) of ``start`` and ``stop`` (:gh:`9556` by `Stefan Appelhoff`_)
+
+- Fix bug in :func:`mne.viz.set_3d_backend` and :func:`mne.viz.get_3d_backend` where the PyVistaQt-based backend was ambiguously named ``'pyvista'`` instead of ``'pyvistaqt'``; use ``set_3d_backend('pyvistaqt')`` and expect ``'pyvistaqt'`` as the output of :func:`mne.viz.get_3d_backend` instead of ``'pyvista'``, and consider using ``get_3d_backend().startswith('pyvista')`` for example for backward-compatible conditionals (:gh:`9607` by `Guillaume Favelier`_)
+
+- Fix bug in :func:`mne.viz.plot_compare_evokeds` where confidence bands were not drawn if only one condition was plotted (:gh:`9663` by `Daniel McCloy`_)
+
+- Fix bug where setting of a montage with fNIRS data got set to "unknown" coordinate frame when it should have been in "head" (:gh:`9630` by `Alex Rockhill`_)
 
 API changes
 ~~~~~~~~~~~
 - In `mne.compute_source_morph`, the ``niter_affine`` and ``niter_sdr`` parameters have been replaced by ``niter`` and ``pipeline`` parameters for more consistent and finer-grained control of registration/warping steps and iteration (:gh:`9505` by `Alex Rockhill`_ and `Eric Larson`_)
 
 - Split :func:`mne.viz.Brain.show_view` argument ``view`` into ``azimuth``, ``elevation`` and ``focalpoint`` for clearer view setting and make the default for ``row`` and ``col`` apply to all rows and columns (:gh:`9596` by `Alex Rockhill`_)
+
+- Deprecate ``solver='prox'`` in :func:`mne.inverse_sparse.mixed_norm` in favor of ``solver='cd'`` and ``solver='bcd'`` as coordinate descent solvers consistently outperform proximal gradient descent (:gh:`9608` by `Pierre-Antoine Bannier`_)

@@ -118,6 +118,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     read_dig_captrak
     read_dig_egi
     read_dig_fif
+    read_dig_localite
     read_dig_polhemus_isotrak
 
     Notes
@@ -160,6 +161,7 @@ class DigMontage(object):
     read_dig_egi
     read_dig_fif
     read_dig_hpts
+    read_dig_localite
     read_dig_polhemus_isotrak
     make_dig_montage
 
@@ -485,6 +487,7 @@ def read_dig_dat(fname):
     read_dig_egi
     read_dig_fif
     read_dig_hpts
+    read_dig_localite
     read_dig_polhemus_isotrak
     make_dig_montage
 
@@ -551,6 +554,7 @@ def read_dig_fif(fname):
     read_dig_captrak
     read_dig_polhemus_isotrak
     read_dig_hpts
+    read_dig_localite
     make_dig_montage
     """
     _check_fname(fname, overwrite='read', must_exist=True)
@@ -590,6 +594,7 @@ def read_dig_hpts(fname, unit='mm'):
     read_dig_dat
     read_dig_egi
     read_dig_fif
+    read_dig_localite
     read_dig_polhemus_isotrak
     make_dig_montage
 
@@ -679,6 +684,7 @@ def read_dig_egi(fname):
     read_dig_dat
     read_dig_fif
     read_dig_hpts
+    read_dig_localite
     read_dig_polhemus_isotrak
     make_dig_montage
     """
@@ -713,6 +719,7 @@ def read_dig_captrak(fname):
     read_dig_egi
     read_dig_fif
     read_dig_hpts
+    read_dig_localite
     read_dig_polhemus_isotrak
     make_dig_montage
     """
@@ -720,6 +727,53 @@ def read_dig_captrak(fname):
     data = _parse_brainvision_dig_montage(fname, scale=1e-3)
 
     return make_dig_montage(**data)
+
+
+def read_dig_localite(fname, nasion=None, lpa=None, rpa=None):
+    """Read Localite .csv file.
+
+    Parameters
+    ----------
+    fname : path-like
+        File name.
+    nasion : str | None
+        Name of nasion fiducial point.
+    lpa : str | None
+        Name of left preauricular fiducial point.
+    rpa : str | None
+        Name of right preauricular fiducial point.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    DigMontage
+    read_dig_captrak
+    read_dig_dat
+    read_dig_egi
+    read_dig_fif
+    read_dig_hpts
+    read_dig_polhemus_isotrak
+    make_dig_montage
+    """
+    ch_pos = {}
+    with open(fname) as f:
+        f.readline()  # skip first row
+        for row in f:
+            _, name, x, y, z = row.split(",")
+            ch_pos[name] = np.array((float(x), float(y), float(z))) / 1000
+
+    if nasion is not None:
+        nasion = ch_pos.pop(nasion)
+    if lpa is not None:
+        lpa = ch_pos.pop(lpa)
+    if rpa is not None:
+        rpa = ch_pos.pop(rpa)
+
+    return make_dig_montage(ch_pos, nasion, lpa, rpa)
 
 
 def _get_montage_in_head(montage):
@@ -757,6 +811,7 @@ def _set_montage_fnirs(info, montage):
         info['chs'][ch_idx]['loc'][6:9] = detector_pos
         midpoint = (source_pos + detector_pos) / 2
         info['chs'][ch_idx]['loc'][:3] = midpoint
+        info['chs'][ch_idx]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
     # Modify info['dig'] in place
     info['dig'] = montage.dig
@@ -1069,6 +1124,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     read_dig_dat
     read_dig_egi
     read_dig_fif
+    read_dig_localite
     """
     VALID_FILE_EXT = ('.hsp', '.elp', '.eeg')
     _scale = _check_unit_and_get_scaling(unit)

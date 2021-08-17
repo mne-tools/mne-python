@@ -17,10 +17,16 @@ import pytest
 import numpy as np
 
 import mne
+from mne import read_events, pick_types, Epochs
+from mne.channels import read_layout
 from mne.datasets import testing
 from mne.fixes import has_numba
+from mne.io import read_raw_fif, read_raw_ctf
 from mne.stats import cluster_level
 from mne.utils import _pl, _assert_no_instances, numerics
+
+# data from sample dataset
+from mne.viz._figure import use_browser_backend
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -33,10 +39,19 @@ fname_bem = op.join(bem_path, 'sample-1280-bem.fif')
 fname_aseg = op.join(test_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
 subjects_dir = op.join(test_path, 'subjects')
 fname_src = op.join(bem_path, 'sample-oct-4-src.fif')
-subjects_dir = op.join(test_path, 'subjects')
-fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
 fname_trans = op.join(s_path, 'sample_audvis_trunc-trans.fif')
 
+ctf_dir = op.join(test_path, 'CTF')
+fname_ctf_continuous = op.join(ctf_dir, 'testdata_ctf.ds')
+
+# data from mne.io.tests.data
+base_dir = op.join(op.dirname(__file__), 'io', 'tests', 'data')
+fname_raw_io = op.join(base_dir, 'test_raw.fif')
+fname_event_io = op.join(base_dir, 'test-eve.fif')
+fname_cov_io = op.join(base_dir, 'test-cov.fif')
+fname_evoked_io = op.join(base_dir, 'test-ave.fif')
+event_id, tmin, tmax = 1, -0.1, 1.0
+vv_layout = read_layout('Vectorview-all')
 
 collect_ignore = ['export/_eeglab.py']
 
@@ -214,6 +229,79 @@ def check_gui_ci(ci_macos, azure_windows):
         pytest.skip('Skipping GUI tests on MacOS CIs and Azure Windows')
 
 
+@pytest.fixture(scope='function')
+def raw_orig():
+    """Get raw data without any change to it from mne.io.tests.data."""
+    raw = read_raw_fif(fname_raw_io, preload=True)
+    return raw
+
+
+@pytest.fixture(scope='function')
+def raw():
+    """
+    Get raw data and pick channels to reduce load for testing.
+
+    (from mne.io.tests.data)
+    """
+    raw = read_raw_fif(fname_raw_io, preload=True)
+    # Throws a warning about a changed unit.
+    with pytest.warns(RuntimeWarning, match='unit'):
+        raw.set_channel_types({raw.ch_names[0]: 'ias'})
+    raw.pick_channels(raw.ch_names[:9])
+    raw.info.normalize_proj()  # Fix projectors after subselection
+    return raw
+
+
+@pytest.fixture(scope='function')
+def raw_ctf():
+    """Get ctf raw data from mne.io.tests.data."""
+    raw_ctf = read_raw_ctf(fname_ctf_continuous, preload=True)
+    return raw_ctf
+
+
+@pytest.fixture(scope='function')
+def events():
+    """Get events from mne.io.tests.data."""
+    return read_events(fname_event_io)
+
+
+def _get_epochs(stop=5, meg=True, eeg=False, n_chan=20):
+    """Get epochs."""
+    raw = read_raw_fif(fname_raw_io)
+    events = read_events(fname_event_io)
+    picks = pick_types(raw.info, meg=meg, eeg=eeg, stim=False,
+                       ecg=False, eog=False, exclude='bads')
+    # Use a subset of channels for plotting speed
+    picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
+    with pytest.warns(RuntimeWarning, match='projection'):
+        epochs = Epochs(raw, events[:stop], event_id, tmin, tmax, picks=picks,
+                        proj=False, preload=False)
+    epochs.info.normalize_proj()  # avoid warnings
+    return epochs
+
+
+@pytest.fixture()
+def epochs():
+    """
+    Get minimal, pre-loaded epochs data suitable for most tests.
+
+    (from mne.io.tests.data)
+    """
+    return _get_epochs().load_data()
+
+
+@pytest.fixture()
+def epochs_unloaded():
+    """Get minimal, unloaded epochs data from mne.io.tests.data."""
+    return _get_epochs()
+
+
+@pytest.fixture()
+def epochs_full():
+    """Get full, preloaded epochs from mne.io.tests.data."""
+    return _get_epochs(None).load_data()
+
+
 @pytest.fixture(scope='session', params=[testing._pytest_param()])
 def _evoked():
     # This one is session scoped, so be sure not to modify it (use evoked
@@ -234,6 +322,12 @@ def evoked(_evoked):
 def noise_cov():
     """Get a noise cov from the testing dataset."""
     return mne.read_cov(fname_cov)
+
+
+@pytest.fixture
+def noise_cov_io():
+    """Get noise-covariance (from mne.io.tests.data)."""
+    return mne.read_cov(fname_cov_io)
 
 
 @pytest.fixture(scope='function')
@@ -287,15 +381,22 @@ def garbage_collect():
     gc.collect()
 
 
-@pytest.fixture(params=["mayavi", "pyvista"])
+@pytest.fixture(params=['matplotlib'])
+def browse_backend(request, garbage_collect):
+    """Parametrizes the name of the browser backend."""
+    with use_browser_backend(request.param) as backend:
+        yield backend
+
+
+@pytest.fixture(params=["mayavi", "pyvistaqt"])
 def renderer(request, garbage_collect):
     """Yield the 3D backends."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
-@pytest.fixture(params=["pyvista"])
-def renderer_pyvista(request, garbage_collect):
+@pytest.fixture(params=["pyvistaqt"])
+def renderer_pyvistaqt(request, garbage_collect):
     """Yield the PyVista backend."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
@@ -308,14 +409,14 @@ def renderer_notebook(request):
         yield renderer
 
 
-@pytest.fixture(scope="module", params=["pyvista"])
-def renderer_interactive_pyvista(request):
+@pytest.fixture(scope="module", params=["pyvistaqt"])
+def renderer_interactive_pyvistaqt(request):
     """Yield the interactive PyVista backend."""
     with _use_backend(request.param, interactive=True) as renderer:
         yield renderer
 
 
-@pytest.fixture(scope="module", params=["pyvista", "mayavi"])
+@pytest.fixture(scope="module", params=["pyvistaqt", "mayavi"])
 def renderer_interactive(request):
     """Yield the interactive 3D backends."""
     with _use_backend(request.param, interactive=True) as renderer:
@@ -342,19 +443,19 @@ def _use_backend(backend_name, interactive):
 
 def _check_skip_backend(name):
     from mne.viz.backends.tests._utils import (has_mayavi, has_pyvista,
-                                               has_pyqt5, has_imageio_ffmpeg)
-    check_pyvista = name in ('pyvista', 'notebook')
-    check_pyqt5 = name in ('mayavi', 'pyvista')
-    if name == 'mayavi':
-        if not has_mayavi():
-            pytest.skip("Test skipped, requires mayavi.")
-    elif name == 'pyvista':
+                                               has_pyqt5, has_imageio_ffmpeg,
+                                               has_pyvistaqt)
+    if name in ('pyvistaqt', 'notebook'):
+        if not has_pyvista():
+            pytest.skip("Test skipped, requires pyvista.")
         if not has_imageio_ffmpeg():
             pytest.skip("Test skipped, requires imageio-ffmpeg")
-    if check_pyvista and not has_pyvista():
-        pytest.skip("Test skipped, requires pyvista.")
-    if check_pyqt5 and not has_pyqt5():
+    if name in ('pyvistaqt', 'mayavi') and not has_pyqt5():
         pytest.skip("Test skipped, requires PyQt5.")
+    if name == 'mayavi' and not has_mayavi():
+        pytest.skip("Test skipped, requires mayavi.")
+    if name == 'pyvistaqt' and not has_pyvistaqt():
+        pytest.skip("Test skipped, requires pyvistaqt")
 
 
 @pytest.fixture(scope='session')
@@ -513,16 +614,17 @@ def brain_gc(request):
     """Ensure that brain can be properly garbage collected."""
     keys = (
         'renderer_interactive',
-        'renderer_interactive_pyvista',
+        'renderer_interactive_pyvistaqt',
         'renderer_interactive_pysurfer',
         'renderer',
-        'renderer_pyvista',
+        'renderer_pyvistaqt',
         'renderer_notebook',
     )
     assert set(request.fixturenames) & set(keys) != set()
     for key in keys:
         if key in request.fixturenames:
-            is_pv = request.getfixturevalue(key)._get_3d_backend() == 'pyvista'
+            is_pv = \
+                request.getfixturevalue(key)._get_3d_backend() == 'pyvistaqt'
             close_func = request.getfixturevalue(key).backend._close_all
             break
     if not is_pv:

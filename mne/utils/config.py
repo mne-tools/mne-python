@@ -68,6 +68,7 @@ def set_memmap_min_size(memmap_min_size):
 known_config_types = (
     'MNE_3D_OPTION_ANTIALIAS',
     'MNE_BROWSE_RAW_SIZE',
+    'MNE_BROWSE_BACKEND',
     'MNE_CACHE_DIR',
     'MNE_COREG_ADVANCED_RENDERING',
     'MNE_COREG_COPY_ANNOT',
@@ -559,7 +560,7 @@ def sys_info(fid=None, show_paths=False):
                 try:
                     from pyvistaqt import __version__
                 except Exception:
-                    pass
+                    extras += ['pyvistaqt not found']
                 else:
                     extras += [f'pyvistaqt={__version__}']
                 try:

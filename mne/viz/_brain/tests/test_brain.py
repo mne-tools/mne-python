@@ -104,10 +104,10 @@ class TstVTKPicker(object):
         return np.array(self.GetPickPosition()) - (0, 0, 100)
 
 
-def test_layered_mesh(renderer_interactive_pyvista):
+def test_layered_mesh(renderer_interactive_pyvistaqt):
     """Test management of scalars/colormap overlay."""
     mesh = _LayeredMesh(
-        renderer=renderer_interactive_pyvista._get_renderer(size=(300, 300)),
+        renderer=renderer_interactive_pyvistaqt._get_renderer(size=(300, 300)),
         vertices=np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0]]),
         triangles=np.array([[0, 1, 2], [1, 2, 3]]),
         normals=np.array([[0, 0, 1]] * 4),
@@ -149,7 +149,7 @@ def test_layered_mesh(renderer_interactive_pyvista):
 
 
 @testing.requires_testing_data
-def test_brain_gc(renderer_pyvista, brain_gc):
+def test_brain_gc(renderer_pyvistaqt, brain_gc):
     """Test that a minimal version of Brain gets GC'ed."""
     brain = Brain('fsaverage', 'both', 'inflated', subjects_dir=subjects_dir)
     brain.close()
@@ -168,7 +168,7 @@ def test_brain_routines(renderer, brain_gc):
 
 
 @testing.requires_testing_data
-def test_brain_init(renderer_pyvista, tmpdir, pixel_ratio, brain_gc):
+def test_brain_init(renderer_pyvistaqt, tmpdir, pixel_ratio, brain_gc):
     """Test initialization of the Brain instance."""
     from mne.source_estimate import _BaseSourceEstimate
 
@@ -196,8 +196,10 @@ def test_brain_init(renderer_pyvista, tmpdir, pixel_ratio, brain_gc):
         Brain(hemi=hemi, surf=surf, interaction='foo', **kwargs)
     with pytest.raises(FileNotFoundError, match=r'lh\.whatever'):
         Brain(subject_id, 'lh', 'whatever')
+    with pytest.raises(ValueError, match='`surf` cannot be seghead'):
+        Brain(hemi='lh', surf='seghead', **kwargs)
     Brain(subject_id, hemi=None, surf=None)  # test no surfaces
-    renderer_pyvista.backend._close_all()
+    renderer_pyvistaqt.backend._close_all()
 
     brain = Brain(hemi=hemi, surf=surf, size=size, title=title,
                   cortex=cortex, units='m',
@@ -313,6 +315,9 @@ def test_brain_init(renderer_pyvista, tmpdir, pixel_ratio, brain_gc):
     brain.add_foci([0], coords_as_verts=True,
                    hemi=hemi, color='blue')
 
+    # add head
+    brain.add_head(color='red', alpha=0.1)
+
     # add volume labels
     brain.add_volume_labels(
         aseg='aseg', labels=('Brain-Stem', 'Left-Hippocampus',
@@ -378,7 +383,7 @@ def test_brain_init(renderer_pyvista, tmpdir, pixel_ratio, brain_gc):
 @pytest.mark.skipif(os.getenv('CI_OS_NAME', '') == 'osx',
                     reason='Unreliable/segfault on macOS CI')
 @pytest.mark.parametrize('hemi', ('lh', 'rh'))
-def test_single_hemi(hemi, renderer_interactive_pyvista, brain_gc):
+def test_single_hemi(hemi, renderer_interactive_pyvistaqt, brain_gc):
     """Test single hemi support."""
     stc = read_source_estimate(fname_stc)
     idx, order = (0, 1) if hemi == 'lh' else (1, -1)
@@ -466,7 +471,7 @@ def tiny(tmpdir):
 
 
 @pytest.mark.filterwarnings('ignore:.*constrained_layout not applied.*:')
-def test_brain_screenshot(renderer_interactive_pyvista, tmpdir, brain_gc):
+def test_brain_screenshot(renderer_interactive_pyvistaqt, tmpdir, brain_gc):
     """Test time viewer screenshot."""
     # XXX disable for sprint because it's too unreliable
     if sys.platform == 'darwin' and os.getenv('GITHUB_ACTIONS', '') == 'true':
@@ -494,7 +499,7 @@ def _assert_brain_range(brain, rng):
 
 @testing.requires_testing_data
 @pytest.mark.slowtest
-def test_brain_time_viewer(renderer_interactive_pyvista, pixel_ratio,
+def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio,
                            brain_gc):
     """Test time viewer primitives."""
     with pytest.raises(ValueError, match="between 0 and 1"):
@@ -587,7 +592,7 @@ def test_brain_time_viewer(renderer_interactive_pyvista, pixel_ratio,
     pytest.param('mixed', marks=pytest.mark.slowtest),
 ])
 @pytest.mark.slowtest
-def test_brain_traces(renderer_interactive_pyvista, hemi, src, tmpdir,
+def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmpdir,
                       brain_gc):
     """Test brain traces."""
     hemi_str = list()
@@ -779,7 +784,7 @@ something
 
 @testing.requires_testing_data
 @pytest.mark.slowtest
-def test_brain_linkviewer(renderer_interactive_pyvista, brain_gc):
+def test_brain_linkviewer(renderer_interactive_pyvistaqt, brain_gc):
     """Test _LinkViewer primitives."""
     brain1 = _create_testing_brain(hemi='lh', show_traces=False)
     brain2 = _create_testing_brain(hemi='lh', show_traces='separate')

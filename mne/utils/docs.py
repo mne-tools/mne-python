@@ -318,7 +318,7 @@ proj : bool | 'interactive' | 'reconstruct'
     .. versionchanged:: 0.21
        Support for 'reconstruct' was added.
 """
-docdict["topomap_ch_type"] = """
+docdict["evoked_topomap_ch_type"] = """
 ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
     The channel type to plot. For 'grad', the gradiometers are collected in
     pairs and the RMS for each pair is plotted.
@@ -383,11 +383,22 @@ docdict["topomap_cbar_fmt"] = """
 cbar_fmt : str
     String format for colorbar values.
 """
-docdict["topomap_mask"] = """
-mask : ndarray of bool, shape (n_channels, n_times) | None
-    The channels to be marked as significant at a given time point.
-    Indices set to ``True`` will be considered. Defaults to ``None``.
+mask_base = """
+mask : ndarray of bool, shape {shape} | None
+    Array indicating channel{shape_appendix} to highlight with a distinct
+    plotting style{example}. Array elements set to ``True`` will be plotted
+    with the parameters given in ``mask_params``. Defaults to ``None``,
+    equivalent to an array of all ``False`` elements.
 """
+docdict['topomap_mask'] = mask_base.format(
+    shape='(n_channels,)', shape_appendix='(s)', example='')
+docdict['evoked_topomap_mask'] = mask_base.format(
+    shape='(n_channels, n_times)', shape_appendix='-time combinations',
+    example=' (useful for, e.g. marking which channels at which times a '
+            'statistical test of the data reaches significance)')
+docdict['patterns_topomap_mask'] = mask_base.format(
+    shape='(n_channels, n_patterns)', shape_appendix='-pattern combinations',
+    example='')
 docdict["topomap_mask_params"] = """
 mask_params : dict | None
     Additional plotting parameters for plotting significant sensors.
@@ -856,10 +867,11 @@ projection : bool
     must be set to ``False`` (the default in this case).
 """
 docdict['set_eeg_reference_ch_type'] = """
-ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg' | 'dbs'
-    The name of the channel type to apply the reference to. If 'auto',
-    the first channel type of eeg, ecog, seeg or dbs that is found (in that
-    order) will be selected.
+ch_type : list of str | str
+    The name of the channel type to apply the reference to.
+    Valid channel types are ``'auto'``, ``'eeg'``, ``'ecog'``, ``'seeg'``,
+    ``'dbs'``. If ``'auto'``, the first channel type of eeg, ecog, seeg or dbs
+    that is found (in that order) will be selected.
 
     .. versionadded:: 0.19
 """
@@ -1322,7 +1334,7 @@ stcs : instance of SourceEstimate | list of instances of SourceEstimate
 
 # Forward
 docdict['on_missing_fwd'] = """
-on_missing : str
+on_missing : 'raise' | 'warn' | 'ignore'
     %s ``stc`` has vertices that are not in ``fwd``.
 """ % (_on_missing_base,)
 docdict['dig_kinds'] = """
@@ -1618,7 +1630,7 @@ on_header_missing : str
     .. versionadded:: 0.22
 """ % (_on_missing_base,)
 docdict['on_missing_events'] = """
-on_missing : str
+on_missing : 'raise' | 'warn' | 'ignore'
     %s event numbers from ``event_id`` are missing from ``events``.
     When numbers from ``events`` are missing from ``event_id`` they will be
     ignored and a warning emitted; consider using ``verbose='error'`` in
@@ -1627,13 +1639,13 @@ on_missing : str
     .. versionadded:: 0.21
 """ % (_on_missing_base,)
 docdict['on_missing_montage'] = """
-on_missing : str
+on_missing : 'raise' | 'warn' | 'ignore'
     %s channels have missing coordinates.
 
     .. versionadded:: 0.20.1
 """ % (_on_missing_base,)
 docdict['on_missing_ch_names'] = """
-on_missing : str
+on_missing : 'raise' | 'warn' | 'ignore'
     %s entries in ch_names are not present in the raw instance.
 
     .. versionadded:: 0.23.0
@@ -2306,7 +2318,7 @@ raw : Raw object
     An instance of `~mne.io.Raw`.
 """
 docdict['epochs_on_missing'] = """
-on_missing : str
+on_missing : 'raise' | 'warn' | 'ignore'
     What to do if one or several event ids are not found in the recording.
     Valid keys are 'raise' | 'warn' | 'ignore'
     Default is 'raise'. If on_missing is 'warn' it will proceed but
@@ -2322,7 +2334,7 @@ reject_common = """
     respective epoch will be dropped.
 
     The dictionary keys correspond to the different channel types; valid
-    keys are: ``'grad'``, ``'mag'``, ``'eeg'``, ``'eog'``, and ``'ecg'``.
+    **keys** can be any channel type present in the object.
 
     Example::
 
@@ -2353,8 +2365,8 @@ reject : dict | str | None
 """
 flat_common = """
     Reject epochs based on **minimum** peak-to-peak signal amplitude (PTP).
-    Valid **keys** are ``'grad'``, ``'mag'``, ``'eeg'``, ``'eog'``, ``'ecg'``.
-    The **values** are floats that set the minimum acceptable PTP. If the PTP
+    Valid **keys** can be any channel type present in the object. The
+    **values** are floats that set the minimum acceptable PTP. If the PTP
     is smaller than this threshold, the epoch will be dropped. If ``None``
     then no rejection is performed based on flatness of the signal."""
 docdict['flat'] = f"""
@@ -2452,13 +2464,13 @@ docdict['compute_proj_eog'] = f"""%(create_eog_epochs)s {compute_proj_common}
 """ % docdict
 
 # BEM
-docdict['on_defects'] = """
-on_defects : str
-    What to do if the surface is found to have topological defects. Can be
-    ``'raise'`` (default) to raise an error, or ``'warn'`` to emit a warning.
+docdict['on_defects'] = f"""
+on_defects : 'raise' | 'warn' | 'ignore'
+    What to do if the surface is found to have topological defects.
+    {_on_missing_base} one or more defects are found.
     Note that a lot of computations in MNE-Python assume the surfaces to be
     topologically correct, topological defects may still make other
-    computations (e.g., ``mne.make_bem_model`` and ``mne.make_bem_solution``)
+    computations (e.g., `mne.make_bem_model` and `mne.make_bem_solution`)
     fail irrespective of this parameter.
 """
 
