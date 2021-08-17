@@ -29,17 +29,17 @@ from .callback import (ShowView, TimeCallBack, SmartCallBack,
 
 from ..utils import (_show_help_fig, _get_color_list, concatenate_images,
                      _generate_default_filename, _save_ndarray_img)
-from .._3d import _process_clim, _handle_time, _check_views
+from .._3d import (_process_clim, _handle_time, _check_views,
+                   _handle_sensor_types, _plot_sensors)
 from ...defaults import _handle_default, DEFAULTS
 from ...externals.decorator import decorator
 from ..._freesurfer import (vertex_to_mni, read_talxfm, read_freesurfer_lut,
-                            _get_head_surface, _ch_pos_in_coord_frame,
-                            _get_skull_surface, _get_transforms_to_coord_frame)
-from ...io.pick import (pick_types, channel_type, _picks_to_idx, pick_info,
-                        _FNIRS_CH_TYPES_SPLIT, _MEG_CH_TYPES_SPLIT)
+                            _get_head_surface, _get_skull_surface,
+                            _get_transforms_to_coord_frame)
+from ...io.pick import pick_types
 from ...io.meas_info import Info
 from ...surface import (mesh_edges, _mesh_borders, _marching_cubes,
-                        get_meg_helmet_surf, _project_onto_surface)
+                        get_meg_helmet_surf)
 from ...source_space import SourceSpaces
 from ...transforms import apply_trans, invert_transform, _get_trans
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
@@ -2533,146 +2533,76 @@ class Brain(object):
             self._renderer.set_camera(**views_dicts[hemi][v])
 
     @verbose
-    def add_sensors(self, info, trans, picks=None, colors=None,
-                    scales=None, alphas=None, meg_helmet=True,
-                    project_eeg=False, fnirs_pairs=None, fnirs_sources=None,
-                    fnirs_detectors=None, verbose=None):
+    def add_sensors(self, info, trans, picks=None, meg=None, eeg='original',
+                    fnirs=True, ecog=True, seeg=True, dbs=True, verbose=None):
         """Add mesh objects to represent sensor positions.
 
         Parameters
         ----------
         %(info_not_none)s
         %(trans_not_none)s
-        %(picks_all)s
-        colors : str | dict
-            The color of the sensors. If dict, channel names or types can be
-            keys with values of matplotlib colors. Default is all sensors
-            yellow and the MEG helmet and reference blue. The MEG helmet
-            can be colored with the key "meg_helmet".
-        scales : float | dict
-            The size of the sensors. If dict, channel names or types can be
-            keys with values for the size in mm. If None, default scales will
-            be used.
-        alphas : float | dict
-            The opacity of the sensors or, if dict, each sensor by name or
-            type. Default is all sensors 0.5 opacity. The MEG helmet
-            can be colored with the key "meg_helmet".
-        meg_helmet : bool
-            Whether to plot the MEG helmet (only applies if MEG sensors are
-            present in ``info``).
-        project_eeg : bool
-            Whether to project the EEG sensors to the scalp (only applies if
-            EEG sensors are present in ``info``).
-        fnirs_pairs : str | bool
-            The color to plot fnirs pairs. If False, fnirs pairs will not
-            be plotted. If None, the default color will be used.
-        fnirs_sources : str | bool
-            The color to plot fnirs sources. If False, fnirs sources will not
-            be plotted. If None, the default color will be used.
-        fnirs_detectors : str | bool
-            The color to plot the fnirs detectors. If False, fnirs detectors
-            will not be plotted. If None, the default color will be used.
+        meg : str | list | bool | None
+            Can be "helmet", "sensors" or "ref" to show the MEG helmet, sensors
+            or reference sensors respectively, or a combination like
+            ``('helmet', 'sensors')`` (same as None, default). True translates
+            to ``('helmet', 'sensors', 'ref')``.
+        eeg : bool | str | list
+            String options are:
+
+            - "original" (default; equivalent to ``True``)
+                Shows EEG sensors using their digitized locations (after
+                transformation to the chosen ``coord_frame``)
+            - "projected"
+                The EEG locations projected onto the scalp, as is done in
+                forward modeling
+
+            Can also be a list of these options, or an empty list (``[]``,
+            equivalent of ``False``).
+        fnirs : str | list | bool | None
+            Can be "channels", "pairs", "detectors", and/or "sources" to show
+            the fNIRS channel locations, optode locations, or line between
+            source-detector pairs, or a combination like
+            ``('pairs', 'channels')``. True translates to ``('pairs',)``.
+        ecog : bool
+            If True (default), show ECoG sensors.
+        seeg : bool
+            If True (default), show sEEG electrodes.
+        dbs : bool
+            If True (default), show DBS (deep brain stimulation) electrodes.
         %(verbose)s
 
         Notes
         -----
         .. versionadded:: 0.24
         """
-        from matplotlib.colors import colorConverter
         _validate_type(info, Info, 'info')
-        picks = _picks_to_idx(info, picks, none='all', exclude=(),
-                              allow_empty=False)
-        info = pick_info(info, picks)  # makes a copy
+        meg, eeg, fnirs, warn_meg = _handle_sensor_types(meg, eeg, fnirs)
+        picks = pick_types(info, meg=('sensors' in meg),
+                           ref_meg=('ref' in meg), eeg=(len(eeg) > 0),
+                           ecog=ecog, seeg=seeg, dbs=dbs,
+                           fnirs=(len(fnirs) > 0))
         head_mri_t = _get_trans(trans, 'head', 'mri', allow_none=False)[0]
         del trans
         # get transforms to "mri"window
         to_cf_t = _get_transforms_to_coord_frame(
             info, head_mri_t, coord_frame='mri', verbose=verbose)
-        try:
-            ch_pos, sources, detectors = _ch_pos_in_coord_frame(
-                info, to_cf_t, verbose=verbose)
-        except RuntimeError as err:
-            raise RuntimeError(
-                f'{err} You may want to use `picks=("meg", "eeg")` '
-                'to avoid sensors that should not be plotted for instance')
-        eeg_indices = pick_types(info, eeg=True, exclude=())
-        if eeg_indices.size > 0 and project_eeg:
-            logger.info('Projecting sensors to the head surface')
+        if pick_types(info, eeg=True, exclude=()).size > 0 and \
+                'projected' in eeg:
             head_surf = _get_head_surface(
                 'seghead', self._subject_id, self._subjects_dir)
-            head_surf['rr'] = apply_trans(head_mri_t, head_surf['rr'] * 1000)
-            ch_coords = np.array([
-                ch_pos[info.ch_names[idx]] for idx in eeg_indices])
-            ch_coords = _project_onto_surface(ch_coords, head_surf)[0]
-            for idx, ch_coord in zip(eeg_indices, ch_coords):
-                ch_pos[info.ch_names[idx]] = ch_coord
-        if fnirs_sources is None:
-            fnirs_sources = DEFAULTS['coreg']['source_color']
-        if fnirs_detectors is None:
-            fnirs_detectors = DEFAULTS['coreg']['detector_color']
-        if fnirs_pairs is None:
-            fnirs_pairs = 'gray'
-        for ch_name, ch_coord in ch_pos.items():
-            # assign plotting info
-            ch_type = channel_type(info, info.ch_names.index(ch_name))
-            # for default picking
-            if ch_type in _FNIRS_CH_TYPES_SPLIT:
-                ch_type = 'fnirs'
-            elif ch_type in _MEG_CH_TYPES_SPLIT:
-                ch_type = 'meg'
-            color = _assign_by_name_or_ch_type(colors, ch_name, ch_type)
-            scale = _assign_by_name_or_ch_type(scales, ch_name, ch_type)
-            alpha = _assign_by_name_or_ch_type(alphas, ch_name, ch_type)
-            if color is None:
-                color = 'y'  # default
-                if ch_type + '_color' in DEFAULTS['coreg']:
-                    color = DEFAULTS['coreg'][ch_type + '_color']
-            if alpha is None:
-                alpha = 0.5
-            color = colorConverter.to_rgba(color, alpha)
-            if scale is None:
-                scale = 5  # default
-                if ch_type + '_scale' in DEFAULTS['coreg']:
-                    scale = DEFAULTS['coreg'][ch_type + '_scale'] * 1e3
-            scale *= 1e-3 if self._units == 'm' else 1
-            # plot sensors
-            if isinstance(ch_coord, tuple):  # is meg, plot coil
-                verts, triangles = ch_coord
-                self._renderer.surface(
-                    surface=dict(rr=verts * 1e3, tris=triangles),
-                    color=tuple(color[:3]), opacity=alpha,
-                    backface_culling=True)
-            else:
-                self._renderer.sphere(
-                    center=tuple(ch_coord * 1e3), color=color, scale=scale)
-            if ch_name in sources and fnirs_sources:
-                self._renderer.sphere(
-                    center=tuple(sources[ch_name] * 1e3),
-                    color=colorConverter.to_rgba(fnirs_sources, alpha),
-                    scale=scale)
-            if ch_name in detectors and fnirs_detectors:
-                self._renderer.sphere(
-                    center=tuple(detectors[ch_name] * 1e3),
-                    color=colorConverter.to_rgba(fnirs_detectors, alpha),
-                    scale=scale)
-            if ch_name in sources and ch_name in detectors and fnirs_pairs:
-                self._renderer.tube(  # array of origin and dest points
-                    origin=sources[ch_name][np.newaxis] * 1e3,
-                    destination=detectors[ch_name][np.newaxis] * 1e3,
-                    color=colorConverter.to_rgba(fnirs_pairs, alpha),
-                    radius=scale / 5)
+        else:
+            head_surf = None
+        # Do the main plotting
+        if picks.size > 0:
+            _plot_sensors(info, to_cf_t, self._renderer, picks, meg, eeg,
+                          fnirs, head_surf, warn_meg, self._units, verbose)
 
-        if meg_helmet and pick_types(info.copy(), meg=True).size > 0:
+        if 'helmet' in meg and pick_types(info.copy(), meg=True).size > 0:
             surf = get_meg_helmet_surf(info, head_mri_t)
-            verts, triangles = surf['rr'] * 1e3, surf['tris']
-            color = _assign_by_name_or_ch_type(colors, 'meg_helmet', 'meg')
-            if color is None:
-                color = DEFAULTS['coreg']['helmet_color']
-            alpha = _assign_by_name_or_ch_type(alphas, 'meg_helmet', 'meg')
-            alpha = 0.25 if alpha is None else alpha
-            self._renderer.mesh(*verts.T, triangles,
-                                color=colorConverter.to_rgba(color, alpha),
-                                opacity=alpha, reset_camera=False,
+            verts = surf['rr'] * (1 if self._units == 'm' else 1e3)
+            self._renderer.mesh(*verts.T, surf['tris'],
+                                color=DEFAULTS['coreg']['helmet_color'],
+                                opacity=0.25, reset_camera=False,
                                 render=False)
 
         self._renderer._update()
@@ -3656,17 +3586,6 @@ class Brain(object):
     def __hash__(self):
         """Hash the object."""
         raise NotImplementedError
-
-
-def _assign_by_name_or_ch_type(param, ch_name, ch_type):
-    """Assign a parameter either by channel name or type."""
-    if isinstance(param, dict):
-        if ch_name in param:  # channel name takes precedence
-            return param[ch_name]
-        elif ch_type in param:
-            return param[ch_type]
-    else:
-        return param  # if not a dict, use same for all
 
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):

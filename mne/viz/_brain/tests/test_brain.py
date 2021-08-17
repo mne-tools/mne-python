@@ -325,8 +325,7 @@ def test_brain_init(renderer_pyvistaqt, tmpdir, pixel_ratio, brain_gc):
                              'Left-Amygdala'))
     # add sensors
     info = read_info(fname_raw_testing)
-    brain.add_sensors(info, trans=fname_trans, picks=('meg', 'eeg'),
-                      colors=dict(eeg='r', grad='b', mag='y'))
+    brain.add_sensors(info, trans=fname_trans, picks=('meg', 'eeg'))
 
     info['chs'][0]['coord_frame'] = 99
     with pytest.raises(RuntimeError, match='must be "meg", "head" or "mri"'):

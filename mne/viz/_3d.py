@@ -554,50 +554,16 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     # Update the backend
     from .backends.renderer import _get_renderer
 
-    if eeg is True:
-        eeg = ['original']
-    elif eeg is False:
-        eeg = list()
-
-    warn_meg = meg is not None  # only warn if the value is explicit
-    if meg is True:
-        meg = ['helmet', 'sensors', 'ref']
-    elif meg is None:
-        meg = ['helmet', 'sensors']
-    elif meg is False:
-        meg = list()
-
-    if fnirs is True:
-        fnirs = ['pairs']
-    elif fnirs is False:
-        fnirs = list()
-
-    if isinstance(meg, str):
-        meg = [meg]
-    if isinstance(eeg, str):
-        eeg = [eeg]
-    if isinstance(fnirs, str):
-        fnirs = [fnirs]
-
+    meg, eeg, fnirs, warn_meg = _handle_sensor_types(meg, eeg, fnirs)
     _check_option('interaction', interaction, ['trackball', 'terrain'])
-    for kind, var in zip(('eeg', 'meg', 'fnirs'), (eeg, meg, fnirs)):
-        if not isinstance(var, (list, tuple)) or \
-                not all(isinstance(x, str) for x in var):
-            raise TypeError(
-                f'{kind} must be list or tuple of str, got {type(kind)}')
-    for xi, x in enumerate(meg):
-        _check_option(f'meg[{xi}]', x, ('helmet', 'sensors', 'ref'))
-    for xi, x in enumerate(eeg):
-        _check_option(f'eeg[{xi}]', x, ('original', 'projected'))
-    for xi, x in enumerate(fnirs):
-        _check_option(f'fnirs[{xi}]', x, ('channels', 'pairs',
-                                          'sources', 'detectors'))
 
     info = create_info(1, 1000., 'misc') if info is None else info
     _validate_type(info, "info")
     info = info.copy()
 
     # Handle surfaces:
+    if surfaces == 'auto' and trans is None:
+        surfaces = list()  # if no `trans` can't plot mri surfaces
     if isinstance(surfaces, str):
         surfaces = [surfaces]
     if isinstance(surfaces, dict):
@@ -862,68 +828,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     # plot sensors
     if picks.size > 0:
-        ch_pos, sources, detectors = _ch_pos_in_coord_frame(
-            info.pick_channels([info.ch_names[idx] for idx in picks]),
-            to_cf_t=to_cf_t, warn_meg=warn_meg,
-            verbose=verbose)
-
-        for ch_name, ch_coord in ch_pos.items():
-            ch_type = channel_type(info, info.ch_names.index(ch_name))
-            # for default picking
-            if ch_type in _FNIRS_CH_TYPES_SPLIT:
-                ch_type = 'fnirs'
-            elif ch_type in _MEG_CH_TYPES_SPLIT:
-                ch_type = 'meg'
-            # only plot sensor locations if channels/original in selection
-            plot_sensors = (ch_type != 'fnirs' or 'channels' in fnirs) and \
-                (ch_type != 'eeg' or 'original' in eeg)
-            color = defaults[ch_type + '_color']
-            # plot sensors
-            if isinstance(ch_coord, tuple):  # is meg, plot coil
-                verts, triangles = ch_coord
-                renderer.surface(
-                    surface=dict(rr=verts, tris=triangles),
-                    color=color, opacity=0.25, backface_culling=True)
-            else:
-                if plot_sensors:
-                    renderer.sphere(center=tuple(ch_coord), color=color,
-                                    scale=defaults[ch_type + '_scale'],
-                                    opacity=0.8)
-            if ch_name in sources and 'sources' in fnirs:
-                renderer.sphere(
-                    center=tuple(sources[ch_name]),
-                    color=defaults['source_color'],
-                    scale=defaults['source_scale'], opacity=0.8)
-            if ch_name in detectors and 'detectors' in fnirs:
-                renderer.sphere(
-                    center=tuple(detectors[ch_name]),
-                    color=defaults['detector_color'],
-                    scale=defaults['detector_scale'], opacity=0.8)
-            if ch_name in sources and ch_name in detectors and \
-                    'pairs' in fnirs:
-                renderer.tube(  # array of origin and dest points
-                    origin=sources[ch_name][np.newaxis],
-                    destination=detectors[ch_name][np.newaxis])
-
-        # add projected eeg
-        eeg_indices = pick_types(info, eeg=True)
-        if eeg_indices.size > 0 and 'projected' in eeg:
-            logger.info('Projecting sensors to the head surface')
-            eeg_loc = np.array([
-                ch_pos[info.ch_names[idx]] for idx in eeg_indices])
-            eeg_loc = apply_trans(to_cf_t['head'], eeg_loc)
-            eegp_loc, eegp_nn = _project_onto_surface(
-                eeg_loc, surfs['head'], project_rrs=True,
-                return_nn=True)[2:4]
-            renderer.quiver3d(
-                x=eegp_loc[:, 0], y=eegp_loc[:, 1], z=eegp_loc[:, 2],
-                u=eegp_nn[:, 0], v=eegp_nn[:, 1], w=eegp_nn[:, 2],
-                color=defaults['eegp_color'], mode='cylinder',
-                scale=defaults['eegp_scale'], opacity=0.6,
-                glyph_height=defaults['eegp_height'],
-                glyph_center=(0., -defaults['eegp_height'], 0),
-                glyph_resolution=20,
-                backface_culling=True)
+        _plot_sensors(info, to_cf_t, renderer, picks, meg, eeg, fnirs,
+                      surfs['head'], warn_meg, 'm', verbose)
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
@@ -979,6 +885,118 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                         distance=0.6, focalpoint=(0., 0., 0.))
     renderer.show()
     return renderer.scene()
+
+
+def _handle_sensor_types(meg, eeg, fnirs):
+    """Handle plotting inputs for sensors types."""
+    if eeg is True:
+        eeg = ['original']
+    elif eeg is False:
+        eeg = list()
+
+    warn_meg = meg is not None  # only warn if the value is explicit
+    if meg is True:
+        meg = ['helmet', 'sensors', 'ref']
+    elif meg is None:
+        meg = ['helmet', 'sensors']
+    elif meg is False:
+        meg = list()
+
+    if fnirs is True:
+        fnirs = ['pairs']
+    elif fnirs is False:
+        fnirs = list()
+
+    if isinstance(meg, str):
+        meg = [meg]
+    if isinstance(eeg, str):
+        eeg = [eeg]
+    if isinstance(fnirs, str):
+        fnirs = [fnirs]
+
+    for kind, var in zip(('eeg', 'meg', 'fnirs'), (eeg, meg, fnirs)):
+        if not isinstance(var, (list, tuple)) or \
+                not all(isinstance(x, str) for x in var):
+            raise TypeError(
+                f'{kind} must be list or tuple of str, got {type(kind)}')
+    for xi, x in enumerate(meg):
+        _check_option(f'meg[{xi}]', x, ('helmet', 'sensors', 'ref'))
+    for xi, x in enumerate(eeg):
+        _check_option(f'eeg[{xi}]', x, ('original', 'projected'))
+    for xi, x in enumerate(fnirs):
+        _check_option(f'fnirs[{xi}]', x, ('channels', 'pairs',
+                                          'sources', 'detectors'))
+    return meg, eeg, fnirs, warn_meg
+
+
+def _plot_sensors(info, to_cf_t, renderer, picks, meg, eeg, fnirs,
+                  warn_meg, head_surf, units, verbose):
+    """Render sensors in a 3D scene."""
+    defaults = DEFAULTS['coreg']
+    ch_pos, sources, detectors = _ch_pos_in_coord_frame(
+        info.pick_channels([info.ch_names[idx] for idx in picks]),
+        to_cf_t=to_cf_t, warn_meg=warn_meg,
+        verbose=verbose)
+
+    for ch_name, ch_coord in ch_pos.items():
+        ch_type = channel_type(info, info.ch_names.index(ch_name))
+        # for default picking
+        if ch_type in _FNIRS_CH_TYPES_SPLIT:
+            ch_type = 'fnirs'
+        elif ch_type in _MEG_CH_TYPES_SPLIT:
+            ch_type = 'meg'
+        # only plot sensor locations if channels/original in selection
+        plot_sensors = (ch_type != 'fnirs' or 'channels' in fnirs) and \
+            (ch_type != 'eeg' or 'original' in eeg)
+        color = defaults[ch_type + '_color']
+        scalar = 1 if units == 'm' else 1e3
+        # plot sensors
+        if isinstance(ch_coord, tuple):  # is meg, plot coil
+            verts, triangles = ch_coord
+            renderer.surface(
+                surface=dict(rr=verts * scalar, tris=triangles),
+                color=color, opacity=0.25, backface_culling=True)
+        else:
+            if plot_sensors:
+                renderer.sphere(center=tuple(ch_coord * scalar), color=color,
+                                scale=defaults[ch_type + '_scale'] * scalar,
+                                opacity=0.8)
+        if ch_name in sources and 'sources' in fnirs:
+            renderer.sphere(
+                center=tuple(sources[ch_name] * scalar),
+                color=defaults['source_color'],
+                scale=defaults['source_scale'] * scalar, opacity=0.8)
+        if ch_name in detectors and 'detectors' in fnirs:
+            renderer.sphere(
+                center=tuple(detectors[ch_name] * scalar),
+                color=defaults['detector_color'],
+                scale=defaults['detector_scale'] * scalar, opacity=0.8)
+        if ch_name in sources and ch_name in detectors and \
+                'pairs' in fnirs:
+            renderer.tube(  # array of origin and dest points
+                origin=sources[ch_name][np.newaxis] * scalar,
+                destination=detectors[ch_name][np.newaxis] * scalar)
+
+    # add projected eeg
+    eeg_indices = pick_types(info, eeg=True)
+    if eeg_indices.size > 0 and 'projected' in eeg:
+
+        logger.info('Projecting sensors to the head surface')
+        eeg_loc = np.array([
+            ch_pos[info.ch_names[idx]] for idx in eeg_indices])
+        eeg_loc = apply_trans(to_cf_t['head'], eeg_loc)
+        eegp_loc, eegp_nn = _project_onto_surface(
+            eeg_loc, head_surf, project_rrs=True,
+            return_nn=True)[2:4]
+        renderer.quiver3d(
+            x=eegp_loc[:, 0], y=eegp_loc[:, 1], z=eegp_loc[:, 2],
+            u=eegp_nn[:, 0], v=eegp_nn[:, 1], w=eegp_nn[:, 2],
+            color=defaults['eegp_color'], mode='cylinder',
+            scale=defaults['eegp_scale'], opacity=0.6,
+            glyph_height=defaults['eegp_height'],
+            glyph_center=(0., -defaults['eegp_height'], 0),
+            glyph_resolution=20,
+            backface_culling=True)
 
 
 def _make_tris_fan(n_vert):
