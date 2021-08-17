@@ -427,7 +427,7 @@ def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
 
 @verbose
 def estimate_head_mri_t(subject, subjects_dir=None, verbose=None):
-    """Estimate the head->mri transform.
+    """Estimate the head->mri transform from fsaverage fiducials.
 
     A subject's fiducials can be estimated given a Freesurfer ``recon-all``
     by transforming ``fsaverage`` fiducials using the inverse Talairach
@@ -471,7 +471,7 @@ def _get_transforms_to_coord_frame(info, trans, coord_frame='mri',
 
 @verbose
 def _ch_pos_in_coord_frame(info, to_cf_t, warn_meg=True, verbose=None):
-    """Transform a channel location to "mri" (surface RAS)."""
+    """Transform positions from head/device/mri to a coordinate frame."""
     from .forward import _create_meg_coils
     from .viz._3d import _sensor_shape
     chs = dict(ch_pos=dict(), sources=dict(), detectors=dict())

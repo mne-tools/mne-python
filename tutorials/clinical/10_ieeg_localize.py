@@ -229,7 +229,7 @@ subj_trans = mne.coreg.estimate_head_mri_t('sample_seeg', subjects_dir)
 brain_kwargs = dict(cortex='low_contrast', alpha=0.2, background='white',
                     subjects_dir=subjects_dir)
 brain = mne.viz.Brain('sample_seeg', **brain_kwargs)
-brain.add_sensors(raw, trans=subj_trans)
+brain.add_sensors(raw.info, trans=subj_trans)
 view_kwargs = dict(azimuth=60, elevation=100, distance=350,
                    focalpoint=(0, 0, -15))
 brain.show_view(**view_kwargs)
@@ -335,7 +335,7 @@ raw.set_montage(montage_warped)
 
 # plot the resulting alignment
 brain = mne.viz.Brain('fsaverage', **brain_kwargs)
-brain.add_sensors(raw, trans=template_trans)
+brain.add_sensors(raw.info, trans=template_trans)
 brain.show_view(**view_kwargs)
 
 # %%
