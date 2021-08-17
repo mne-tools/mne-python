@@ -29,7 +29,7 @@ from .callback import (ShowView, TimeCallBack, SmartCallBack,
 
 from ..utils import (_show_help_fig, _get_color_list, concatenate_images,
                      _generate_default_filename, _save_ndarray_img)
-from .._3d import _process_clim, _handle_time, _check_views, _plot_sensor
+from .._3d import _process_clim, _handle_time, _check_views
 from ...defaults import _handle_default, DEFAULTS
 from ...externals.decorator import decorator
 from ..._freesurfer import (vertex_to_mni, read_talxfm, read_freesurfer_lut,

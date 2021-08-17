@@ -869,11 +869,41 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
         for ch_name, ch_coord in ch_pos.items():
             ch_type = channel_type(info, info.ch_names.index(ch_name))
-            source_coord = sources[ch_name] if ch_name in sources else None
-            detector_coord = detectors[ch_name] if ch_name in detectors \
-                else None
-            _plot_sensor(renderer, ch_coord, ch_name, ch_type, source_coord,
-                         detector_coord, meg, eeg, fnirs, 'm')
+            # for default picking
+            if ch_type in _FNIRS_CH_TYPES_SPLIT:
+                ch_type = 'fnirs'
+            elif ch_type in _MEG_CH_TYPES_SPLIT:
+                ch_type = 'meg'
+            # only plot sensor locations if channels/original in selection
+            plot_sensors = (ch_type != 'fnirs' or 'channels' in fnirs) and \
+                (ch_type != 'eeg' or 'original' in eeg)
+            color = defaults[ch_type + '_color']
+            # plot sensors
+            if isinstance(ch_coord, tuple):  # is meg, plot coil
+                verts, triangles = ch_coord
+                renderer.surface(
+                    surface=dict(rr=verts, tris=triangles),
+                    color=color, opacity=0.25, backface_culling=True)
+            else:
+                if plot_sensors:
+                    renderer.sphere(center=tuple(ch_coord), color=color,
+                                    scale=defaults[ch_type + '_scale'],
+                                    opacity=0.8)
+            if ch_name in sources and 'sources' in fnirs:
+                renderer.sphere(
+                    center=tuple(sources[ch_name]),
+                    color=defaults['source_color'],
+                    scale=defaults['source_scale'], opacity=0.8)
+            if ch_name in detectors and 'detectors' in fnirs:
+                renderer.sphere(
+                    center=tuple(detectors[ch_name]),
+                    color=defaults['detector_color'],
+                    scale=defaults['detector_scale'], opacity=0.8)
+            if ch_name in sources and ch_name in detectors and \
+                    'pairs' in fnirs:
+                renderer.tube(  # array of origin and dest points
+                    origin=sources[ch_name][np.newaxis],
+                    destination=detectors[ch_name][np.newaxis])
 
         # add projected eeg
         eeg_indices = pick_types(info, eeg=True)
@@ -881,7 +911,19 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             logger.info('Projecting sensors to the head surface')
             eeg_loc = np.array([
                 ch_pos[info.ch_names[idx]] for idx in eeg_indices])
-            _plot_projected_eeg(renderer, eeg_loc, to_cf_t, surfs['head'], 'm')
+            eeg_loc = apply_trans(to_cf_t['head'], eeg_loc)
+            eegp_loc, eegp_nn = _project_onto_surface(
+                eeg_loc, surfs['head'], project_rrs=True,
+                return_nn=True)[2:4]
+            renderer.quiver3d(
+                x=eegp_loc[:, 0], y=eegp_loc[:, 1], z=eegp_loc[:, 2],
+                u=eegp_nn[:, 0], v=eegp_nn[:, 1], w=eegp_nn[:, 2],
+                color=defaults['eegp_color'], mode='cylinder',
+                scale=defaults['eegp_scale'], opacity=0.6,
+                glyph_height=defaults['eegp_height'],
+                glyph_center=(0., -defaults['eegp_height'], 0),
+                glyph_resolution=20,
+                backface_culling=True)
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
@@ -937,68 +979,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                         distance=0.6, focalpoint=(0., 0., 0.))
     renderer.show()
     return renderer.scene()
-
-
-def _plot_projected_eeg(renderer, ch_locs, to_cf_t, head_surf, units):
-    """Plot eeg projected to the scalp."""
-    scalar = 1 if units == 'm' else 1e3
-    defaults = DEFAULTS['coreg']
-    eeg_locs = apply_trans(to_cf_t['head'], ch_locs)
-    eegp_locs, eegp_nn = _project_onto_surface(
-        eeg_locs, head_surf, project_rrs=True,
-        return_nn=True)[2:4]
-    eeg_locs *= scalar
-    renderer.quiver3d(
-        x=eegp_locs[:, 0], y=eegp_locs[:, 1], z=eegp_locs[:, 2],
-        u=eegp_nn[:, 0], v=eegp_nn[:, 1], w=eegp_nn[:, 2],
-        color=defaults['eegp_color'], mode='cylinder',
-        scale=defaults['eegp_scale'] * scalar, opacity=0.6,
-        glyph_height=defaults['eegp_height'],
-        glyph_center=(0., -defaults['eegp_height'], 0),
-        glyph_resolution=20,
-        backface_culling=True)
-
-
-def _plot_sensor(renderer, ch_coord, ch_name, ch_type, source_coord,
-                 detector_coord, meg, eeg, fnirs, units):
-    """Render a sensor."""
-    defaults = DEFAULTS['coreg']
-    # for default picking
-    if ch_type in _FNIRS_CH_TYPES_SPLIT:
-        ch_type = 'fnirs'
-    elif ch_type in _MEG_CH_TYPES_SPLIT:
-        ch_type = 'meg'
-    # only plot sensor locations if channels/original in selection
-    plot_sensors = (ch_type != 'fnirs' or 'channels' in fnirs) and \
-        (ch_type != 'eeg' or 'original' in eeg)
-    color = defaults[ch_type + '_color']
-    scalar = 1 if units == 'm' else 1e3
-    # plot sensors
-    if isinstance(ch_coord, tuple):  # is meg, plot coil
-        verts, triangles = ch_coord
-        renderer.surface(
-            surface=dict(rr=verts * scalar, tris=triangles),
-            color=color, opacity=0.25, backface_culling=True)
-    else:
-        if plot_sensors:
-            renderer.sphere(center=tuple(ch_coord * scalar), color=color,
-                            scale=defaults[ch_type + '_scale'] * scalar,
-                            opacity=0.8)
-    if 'sources' in fnirs:
-        renderer.sphere(
-            center=tuple(source_coord * scalar),
-            color=defaults['source_color'],
-            scale=defaults['source_scale'] * scalar, opacity=0.8)
-    if 'detectors' in fnirs:
-        renderer.sphere(
-            center=tuple(detector_coord * scalar),
-            color=defaults['detector_color'],
-            scale=defaults['detector_scale'] * scalar, opacity=0.8)
-    if 'pairs' in fnirs:
-        renderer.tube(  # array of origin and dest points
-            origin=source_coord[np.newaxis] * scalar,
-            destination=detector_coord[np.newaxis] * scalar,
-            scale=scalar / 5)
 
 
 def _make_tris_fan(n_vert):
