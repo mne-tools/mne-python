@@ -52,9 +52,13 @@ def test_export_raw_eeglab(tmpdir):
                     reason='edflib-python not installed')
 def test_export_raw_edf(tmpdir):
     """Test saving a Raw instance to EDF format."""
-    fname = (Path(__file__).parent.parent.parent /
-             "io" / "tests" / "data" / "test_raw.fif")
-    raw = read_raw_fif(fname)
+    try:
+        import importlib_resources as imp_resrc  # py 3.7
+    except ImportError:
+        import importlib.resources as imp_resrc  # py 3.8+
+    import mne.io.tests.data
+    with imp_resrc.path(mne.io.tests.data, 'test_raw.fif') as fname:
+        raw = read_raw_fif(fname)
     format = 'edf'
 
     # only test with EEG channels
