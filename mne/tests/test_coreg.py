@@ -7,7 +7,7 @@ from shutil import copyfile, copytree
 import pytest
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
-                           assert_array_equal)
+                           assert_array_equal, assert_array_less)
 
 import mne
 from mne.datasets import testing
@@ -23,6 +23,8 @@ from mne.utils import requires_nibabel, modified_env, check_version
 from mne.source_space import write_source_spaces
 
 data_path = testing.data_path(download=False)
+subjects_dir = os.path.join(data_path, 'subjects')
+fid_fname = op.join(subjects_dir, 'sample', 'bem', 'sample-fiducials.fif')
 
 
 @pytest.fixture
@@ -269,9 +271,6 @@ def test_fit_matched_points():
 @requires_nibabel()
 def test_get_mni_fiducials():
     """Test get_mni_fiducials."""
-    subjects_dir = op.join(data_path, 'subjects')
-    fid_fname = op.join(subjects_dir, 'sample', 'bem',
-                        'sample-fiducials.fif')
     fids, coord_frame = read_fiducials(fid_fname)
     assert coord_frame == FIFF.FIFFV_COORD_MRI
     assert [f['ident'] for f in fids] == list(range(1, 4))
@@ -298,16 +297,12 @@ def test_coregistration(scale_mode, ref_scale, grow_hair, fiducials):
     fname_raw = op.join(op.dirname(__file__), '..', 'io',
                         'tests', 'data', 'test_raw.fif')
     subject = 'sample'
-    subjects_dir = os.path.join(data_path, 'subjects')
     if fiducials is None:
-        fiducials = {
-            "lpa": (-80.1, 2.2, -5.9),
-            "nasion": (2.6, 99.8, 40.8),
-            "rpa": (81.0, -7.3, -11.3),
-        }
-    info = read_info(fname_raw).copy()
+        fiducials, coord_frame = read_fiducials(fid_fname)
+        assert coord_frame == FIFF.FIFFV_COORD_MRI
+    info = read_info(fname_raw)
     for d in info['dig']:
-        d['r'] *= ref_scale
+        d['r'] = d['r'] * ref_scale
     trans = read_trans(trans_fname)
     coreg = Coregistration(info, subject=subject, subjects_dir=subjects_dir,
                            fiducials=fiducials)
@@ -318,22 +313,48 @@ def test_coregistration(scale_mode, ref_scale, grow_hair, fiducials):
     coreg.set_scale(default_params[6:9])
     coreg.set_grow_hair(grow_hair)
     coreg.set_scale_mode(scale_mode)
+    # Identity transform
+    errs_id = coreg.compute_dig_mri_distances()
+    is_scaled = ref_scale != [1., 1., 1.]
+    id_max = 0.03 if is_scaled and scale_mode == '3-axis' else 0.02
+    assert 0.005 < np.median(errs_id) < id_max
+    # Fiducial transform + scale
     coreg.fit_fiducials(verbose=True)
-    assert not np.allclose(coreg._parameters, default_params)
     assert coreg._extra_points_filter is None
+    coreg.omit_head_shape_points(distance=0.02)
+    assert coreg._extra_points_filter is not None
+    errs_fid = coreg.compute_dig_mri_distances()
+    assert_array_less(0, errs_fid)
+    if is_scaled or scale_mode is not None:
+        fid_max = 0.05
+        fid_med = 0.02
+    else:
+        fid_max = 0.03
+        fid_med = 0.01
+    assert_array_less(errs_fid, fid_max)
+    assert 0.001 < np.median(errs_fid) < fid_med
+    assert not np.allclose(coreg._parameters, default_params)
     coreg.omit_head_shape_points(distance=-1)
     coreg.omit_head_shape_points(distance=5. / 1000)
     assert coreg._extra_points_filter is not None
+    # ICP transform + scale
     coreg.fit_icp(verbose=True)
     assert isinstance(coreg.trans, Transform)
-    errs_icp = coreg.compute_dig_head_distances()
-    assert np.median(errs_icp * 1000) < 10
+    errs_icp = coreg.compute_dig_mri_distances()
+    assert_array_less(0, errs_icp)
+    if is_scaled or scale_mode == '3-axis':
+        icp_max = 0.015
+    else:
+        icp_max = 0.01
+    assert_array_less(errs_icp, icp_max)
+    assert 0.001 < np.median(errs_icp) < 0.004
     assert np.rad2deg(_angle_between_quats(
         rot_to_quat(coreg.trans['trans'][:3, :3]),
         rot_to_quat(trans['trans'][:3, :3]))) < 13
     if scale_mode is None:
-        assert_allclose(coreg._scale, ref_scale)
+        atol = 1e-7
     else:
-        assert_allclose(coreg._scale, ref_scale, atol=0.35)
+        atol = 0.35
+    assert_allclose(coreg._scale, ref_scale, atol=atol)
     coreg.reset()
-    assert np.allclose(coreg._parameters, default_params)
+    assert_allclose(coreg._parameters, default_params)

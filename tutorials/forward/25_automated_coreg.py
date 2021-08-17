@@ -76,7 +76,7 @@ coreg.fit_icp(n_iterations=20, nasion_weight=10., verbose=True)
 fig = mne.viz.plot_alignment(info, trans=coreg.trans, **plot_kwargs)
 mne.viz.set_3d_view(fig, **view_kwargs)
 
-dists = coreg.compute_dig_head_distances() * 1e3  # in mm
+dists = coreg.compute_dig_mri_distances() * 1e3  # in mm
 print(
     f"Distance between HSP and MRI (mean/min/max):\n{np.mean(dists):.2f} mm "
     f"/ {np.min(dists):.2f} mm / {np.max(dists):.2f} mm"

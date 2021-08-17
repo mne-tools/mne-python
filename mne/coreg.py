@@ -20,6 +20,7 @@ import numpy as np
 
 from .io import read_fiducials, write_fiducials, read_info
 from .io.constants import FIFF
+from .io.meas_info import Info
 from .io._digitization import _get_data_as_dict_from_dig
 # keep get_mni_fiducials for backward compat (no burden to keep in this
 # namespace, too)
@@ -29,7 +30,7 @@ from .source_space import (add_source_space_distances, read_source_spaces,  # no
                            write_source_spaces)
 from .surface import (read_surface, write_surface, _normalize_vectors,
                       complete_surface_info, decimate_surface,
-                      _DistanceQuery, dig_mri_distances)
+                      _DistanceQuery)
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          _read_fs_xfm, _write_fs_xfm, invert_transform,
@@ -37,7 +38,8 @@ from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          _fit_matched_points, apply_trans,
                          rot_to_quat, _angle_between_quats)
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
-                    warn, has_nibabel, fill_doc, _validate_type)
+                    warn, has_nibabel, fill_doc, _validate_type,
+                    _check_subject)
 from .viz._3d import _fiducial_coords
 
 # some path templates
@@ -1267,6 +1269,7 @@ def _read_surface(filename):
     return bem
 
 
+@fill_doc
 class Coregistration(object):
     """Class for MRI<->head coregistration.
 
@@ -1274,14 +1277,12 @@ class Coregistration(object):
     ----------
     info : instance of Info
         The measurement info.
-    subject : str
-        Name of the subject the data are defined for.
-    subjects_dir : path-like
-        Path to MRI subjects directory.
+    %(subject)s
+    %(subjects_dir)s
     fiducials : list | dict | str
         The fiducials given in the MRI (surface RAS) coordinate
         system. If a dict is provided it must be a dict with 3 entries
-        with keys 'lpa', 'rpa' and 'nasion' with as values coordinates in mm.
+        with keys 'lpa', 'rpa' and 'nasion' with as values coordinates in m.
         If a list it must be a list of DigPoint instances as returned
         by the read_fiducials function.
         If set to 'estimated', the fiducials are initialized
@@ -1298,15 +1299,17 @@ class Coregistration(object):
     Notes
     -----
     Internal computation quantities parameters are in the following units:
+
     - rotation are in radians
     - translation are in m
     - scale are in scale proportion
     """
 
-    def __init__(self, info, subject, subjects_dir, fiducials='auto'):
+    def __init__(self, info, subject, subjects_dir=None, fiducials='auto'):
+        _validate_type(info, Info, 'info')
         self._info = info
-        self._subject = subject
-        self._subjects_dir = subjects_dir
+        self._subject = _check_subject(subject, subject)
+        self._subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         self._scale_mode = None
 
         self._rot_trans = None
@@ -1327,14 +1330,14 @@ class Coregistration(object):
         self._hpi_weight = 1.
 
         self._extra_points_filter = None
-        self._dig = _get_data_as_dict_from_dig(
+        self._dig_dict = _get_data_as_dict_from_dig(
             dig=self._info['dig'],
             exclude_ref_channel=False
         )
         # adjustments
-        self._dig['rpa'] = np.array([self._dig['rpa']])
-        self._dig['nasion'] = np.array([self._dig['nasion']])
-        self._dig['lpa'] = np.array([self._dig['lpa']])
+        self._dig_dict['rpa'] = np.array([self._dig_dict['rpa']], float)
+        self._dig_dict['nasion'] = np.array([self._dig_dict['nasion']], float)
+        self._dig_dict['lpa'] = np.array([self._dig_dict['lpa']], float)
 
         self._setup_bem()
         self._setup_fiducials(fiducials)
@@ -1399,7 +1402,7 @@ class Coregistration(object):
         else:
             assert isinstance(fids, dict)
             fid_coords = np.array([fids['lpa'], fids['nasion'], fids['rpa']],
-                                  dtype=float) / 1e3  # convert to meters
+                                  dtype=float)
 
         self._fid_points = fid_coords
 
@@ -1432,14 +1435,15 @@ class Coregistration(object):
             self._head_mri_t[:3, 3] = \
                 -np.dot(self._head_mri_t[:3, :3], tra)
             self._transformed_dig_hpi = \
-                apply_trans(self._head_mri_t, self._dig['hpi'])
+                apply_trans(self._head_mri_t, self._dig_dict['hpi'])
             self._transformed_dig_eeg = \
-                apply_trans(self._head_mri_t, self._dig['dig_ch_pos_location'])
+                apply_trans(
+                    self._head_mri_t, self._dig_dict['dig_ch_pos_location'])
             self._transformed_dig_extra = \
                 apply_trans(self._head_mri_t,
                             self._filtered_extra_points)
             self._transformed_orig_dig_extra = \
-                apply_trans(self._head_mri_t, self._dig['hsp'])
+                apply_trans(self._head_mri_t, self._dig_dict['hsp'])
             self._mri_head_t = rotation(*self._rotation)
             self._mri_head_t[:3, 3] = np.array(tra)
         if tra_changed or sca is not None:
@@ -1463,13 +1467,13 @@ class Coregistration(object):
                 self._nearest_calc.query(self._transformed_dig_eeg)[1]
             self._nearest_transformed_high_res_mri_idx_rpa = \
                 self._nearest_calc.query(
-                    apply_trans(self._head_mri_t, self._dig['rpa']))[1]
+                    apply_trans(self._head_mri_t, self._dig_dict['rpa']))[1]
             self._nearest_transformed_high_res_mri_idx_nasion = \
                 self._nearest_calc.query(
-                    apply_trans(self._head_mri_t, self._dig['nasion']))[1]
+                    apply_trans(self._head_mri_t, self._dig_dict['nasion']))[1]
             self._nearest_transformed_high_res_mri_idx_lpa = \
                 self._nearest_calc.query(
-                    apply_trans(self._head_mri_t, self._dig['lpa']))[1]
+                    apply_trans(self._head_mri_t, self._dig_dict['lpa']))[1]
 
     def set_scale_mode(self, scale_mode):
         """Select how to fit the scale parameters.
@@ -1557,19 +1561,16 @@ class Coregistration(object):
         self._update_params(sca=np.array(sca))
         return self
 
-    def _nearest_calc_default(self):
-        return _DistanceQuery(
-            self._processed_high_res_mri_points * self._scale)
-
     def _update_nearest_calc(self):
-        self._nearest_calc = self._nearest_calc_default()
+        self._nearest_calc = _DistanceQuery(
+            self._processed_high_res_mri_points * self._scale)
 
     @property
     def _filtered_extra_points(self):
         if self._extra_points_filter is None:
-            return self._dig['hsp']
+            return self._dig_dict['hsp']
         else:
-            return self._dig['hsp'][self._extra_points_filter]
+            return self._dig_dict['hsp'][self._extra_points_filter]
 
     @property
     def _parameters(self):
@@ -1606,15 +1607,15 @@ class Coregistration(object):
 
     @property
     def _has_lpa_data(self):
-        return (np.any(self._lpa) and np.any(self._dig['lpa']))
+        return (np.any(self._lpa) and np.any(self._dig_dict['lpa']))
 
     @property
     def _has_nasion_data(self):
-        return (np.any(self._nasion) and np.any(self._dig.nasion))
+        return (np.any(self._nasion) and np.any(self._dig_dict.nasion))
 
     @property
     def _has_rpa_data(self):
-        return (np.any(self._rpa) and np.any(self._dig['rpa']))
+        return (np.any(self._rpa) and np.any(self._dig_dict['rpa']))
 
     @property
     def _processed_high_res_mri_points(self):
@@ -1656,12 +1657,10 @@ class Coregistration(object):
         hsp_points = self._transformed_orig_dig_extra
         return np.linalg.norm(mri_points - hsp_points, axis=-1)
 
-    def _log_dig_mri_distance(self):
-        errs_nearest = dig_mri_distances(self._info, self.trans, self._subject,
-                                         self._subjects_dir)
-        logger.info('Median distance from digitized points to head surface '
-                    'using nearest neighbor is %.3f mm' % np.median(
-                        errs_nearest * 1000))
+    def _log_dig_mri_distance(self, prefix):
+        errs_nearest = self.compute_dig_mri_distances()
+        logger.info(f'{prefix} median distance: '
+                    f'{np.median(errs_nearest * 1000):6.2f} mm')
 
     @verbose
     def fit_fiducials(self, lpa_weight=1., nasion_weight=10., rpa_weight=1.,
@@ -1683,13 +1682,10 @@ class Coregistration(object):
         self : Coregistration
             The modified Coregistration object.
         """
-        if verbose:
-            self._log_dig_mri_distance()
-        if self._scale_mode is None:
-            n_scale_params = 0
-        elif self._scale_mode == 'uniform':
-            n_scale_params = 1
-        elif self._scale_mode == '3-axis':
+        logger.info('Aligning using fiducials')
+        self._log_dig_mri_distance('Start')
+        n_scale_params = self._n_scale_params
+        if n_scale_params == 3:
             # enfore 1 even for 3-axis here (3 points is not enough)
             logger.info("Enforcing 1 scaling parameter for fit "
                         "with fiducials.")
@@ -1698,9 +1694,9 @@ class Coregistration(object):
         self._nasion_weight = nasion_weight
         self._rpa_weight = rpa_weight
 
-        head_pts = np.vstack((self._dig['lpa'],
-                              self._dig['nasion'],
-                              self._dig['rpa']))
+        head_pts = np.vstack((self._dig_dict['lpa'],
+                              self._dig_dict['nasion'],
+                              self._dig_dict['rpa']))
         mri_pts = np.vstack((self._lpa, self._nasion, self._rpa))
         weights = [lpa_weight, nasion_weight, rpa_weight]
 
@@ -1717,8 +1713,7 @@ class Coregistration(object):
             est = np.concatenate([est, [est[-1]] * 2])
             assert est.size == 9
             self._update_params(rot=est[:3], tra=est[3:6], sca=est[6:9])
-        if verbose:
-            self._log_dig_mri_distance()
+        self._log_dig_mri_distance('End  ')
         return self
 
     def _setup_icp(self, n_scale_params):
@@ -1732,7 +1727,7 @@ class Coregistration(object):
             weights.append(np.full(len(head_pts[-1]), self._hsp_weight))
         for key in ('lpa', 'nasion', 'rpa'):
             if getattr(self, '_has_%s_data' % key):
-                head_pts.append(self._dig[key])
+                head_pts.append(self._dig_dict[key])
                 if self._icp_fid_match == 'matched':
                     mri_pts.append(getattr(self, key))
                 else:
@@ -1745,12 +1740,12 @@ class Coregistration(object):
                 weights.append(np.full(len(mri_pts[-1]),
                                        getattr(self, '_%s_weight' % key)))
         if self._has_eeg_data and self._eeg_weight > 0:
-            head_pts.append(self._dig['dig_ch_pos_location'])
+            head_pts.append(self._dig_dict['dig_ch_pos_location'])
             mri_pts.append(self._processed_high_res_mri_points[
                 self._nearest_transformed_high_res_mri_idx_eeg])
             weights.append(np.full(len(mri_pts[-1]), self._eeg_weight))
         if self._has_hpi_data and self._hpi_weight > 0:
-            head_pts.append(self._dig['hpi'])
+            head_pts.append(self._dig_dict['hpi'])
             mri_pts.append(self._processed_high_res_mri_points[
                 self._nearest_transformed_high_res_mri_idx_hpi])
             weights.append(np.full(len(mri_pts[-1]), self._hpi_weight))
@@ -1783,14 +1778,9 @@ class Coregistration(object):
         self : Coregistration
             The modified Coregistration object.
         """
-        if verbose:
-            self._log_dig_mri_distance()
-        if self._scale_mode is None:
-            n_scale_params = 0
-        elif self._scale_mode == 'uniform':
-            n_scale_params = 1
-        else:
-            n_scale_params = 3
+        logger.info('Aligning using ICP')
+        self._log_dig_mri_distance('Start    ')
+        n_scale_params = self._n_scale_params
         self._lpa_weight = lpa_weight
         self._nasion_weight = nasion_weight
         self._rpa_weight = rpa_weight
@@ -1800,7 +1790,7 @@ class Coregistration(object):
         est = est[:[6, 7, None, 9][n_scale_params]]
 
         # Do the fits, assigning and evaluating at each step
-        for _ in range(n_iterations):
+        for ii in range(n_iterations):
             head_pts, mri_pts, weights = self._setup_icp(n_scale_params)
             est = fit_matched_points(mri_pts, head_pts, scale=n_scale_params,
                                      x0=est, out='params', weights=weights)
@@ -1812,12 +1802,22 @@ class Coregistration(object):
             else:
                 self._update_params(rot=est[:3], tra=est[3:6], sca=est[6:9])
             angle, move, scale = self._changes
+            self._log_dig_mri_distance(f'  ICP {ii + 1:2d} ')
             if angle <= self._icp_angle and move <= self._icp_distance and \
                     all(scale <= self._icp_scale):
                 break
-        if verbose:
-            self._log_dig_mri_distance()
+        self._log_dig_mri_distance('End      ')
         return self
+
+    @property
+    def _n_scale_params(self):
+        if self._scale_mode is None:
+            n_scale_params = 0
+        elif self._scale_mode == 'uniform':
+            n_scale_params = 1
+        else:
+            n_scale_params = 3
+        return n_scale_params
 
     def omit_head_shape_points(self, distance):
         """Exclude head shape points that are far away from the MRI head.
@@ -1847,35 +1847,22 @@ class Coregistration(object):
         self._update_params(force_update_omitted=True)
         return self
 
-    def compute_dig_head_distances(self):
+    def compute_dig_mri_distances(self):
         """Compute distance between head shape points and MRI skin surface.
 
         Returns
         -------
         dist : array, shape (n_points,)
             The distance of the head shape points to the MRI skin surface.
+
+        See Also
+        --------
+        mne.surface.dig_mri_distances
         """
-        mri_points = list()
-        hsp_points = list()
-        if self._hsp_weight > 0 and self._has_dig_data:
-            mri_points.append(self._transformed_high_res_mri_points[
-                self._nearest_transformed_high_res_mri_idx_hsp])
-            hsp_points.append(self._transformed_dig_extra)
-            assert len(mri_points[-1]) == len(hsp_points[-1])
-        if self._eeg_weight > 0 and self._has_eeg_data:
-            mri_points.append(self._transformed_high_res_mri_points[
-                self._nearest_transformed_high_res_mri_idx_eeg])
-            hsp_points.append(self._transformed_dig_eeg)
-            assert len(mri_points[-1]) == len(hsp_points[-1])
-        if self._hpi_weight > 0 and self._has_hpi_data:
-            mri_points.append(self._transformed_high_res_mri_points[
-                self._nearest_transformed_high_res_mri_idx_hpi])
-            hsp_points.append(self._transformed_dig_hpi)
-            assert len(mri_points[-1]) == len(hsp_points[-1])
-        if all(len(h) == 0 for h in hsp_points):
-            return None
-        mri_points = np.concatenate(mri_points)
-        hsp_points = np.concatenate(hsp_points)
+        # we don't use `dig_mri_distances` here because it should be much
+        # faster to use our already-determined nearest points
+        hsp_points, mri_points, _ = self._setup_icp(0)
+        hsp_points = apply_trans(self._head_mri_t, hsp_points)
         return np.linalg.norm(mri_points - hsp_points, axis=-1)
 
     @property
