@@ -1278,11 +1278,17 @@ class Coregistration(object):
         Name of the subject the data are defined for.
     subjects_dir : path-like
         Path to MRI subjects directory.
-    fiducials : dict | str
-        List of fiducials given in mm and in the MRI (surface RAS) coordinate
-        system or if set to 'auto', the fiducials are initialized
-        automatically using fiducials defined in MNI template. Defaults to
-        'auto'.
+    fiducials : list | dict | str
+        The fiducials given in the MRI (surface RAS) coordinate
+        system. If a dict is provided it must be a dict with 3 entries
+        with keys 'lpa', 'rpa' and 'nasion' with as values coordinates in mm.
+        If a list it must be a list of DigPoint instances as returned
+        by the `io.read_fiducials` function.
+        If set to 'estimated', the fiducials are initialized
+        automatically using fiducials defined in MNI space on fsaverage
+        template. If set to 'auto', one tries to find the fiducials
+        in a file with the canonical name (``bem/{subject}-fiducials.fif``)
+        and if abstent one falls back to 'estimated'. Defaults to 'auto'.
 
     Attributes
     ----------
@@ -1370,25 +1376,32 @@ class Coregistration(object):
             self._bem_low_res = _read_surface(low_res_path)
 
     def _setup_fiducials(self, fids):
-        _validate_type(fids, (str, dict))
-        if fids == 'auto':
-            fids = get_mni_fiducials(self._subject, self._subjects_dir)
-            mni_points = np.array([f['r'] for f in fids], float)
-        else:
-            mni_points = np.array([fids['lpa'], fids['nasion'], fids['rpa']],
-                                  float)
-
+        _validate_type(fids, (str, dict, list))
         # find fiducials file
-        fid_files = _find_fiducials_files(self._subject, self._subjects_dir)
-        if len(fid_files) > 0:
-            fid_filename = fid_files[0].format(subjects_dir=self._subjects_dir,
-                                               subject=self._subject)
+        if fids == 'auto':
+            fid_files = _find_fiducials_files(self._subject,
+                                              self._subjects_dir)
+            if len(fid_files) > 0:
+                # Read fiducials from disk
+                fid_filename = fid_files[0].format(
+                    subjects_dir=self._subjects_dir, subject=self._subject)
+                logger.info(f'Using fiducials from: {fid_filename}.')
+                fids, _ = read_fiducials(fid_filename)
+            else:
+                fids = 'estimated'
+
+        if fids == 'estimated':
+            logger.info('Estimating fiducials from fsaverage.')
+            fids = get_mni_fiducials(self._subject, self._subjects_dir)
+
+        if isinstance(fids, list):
+            fid_coords = _fiducial_coords(fids)
         else:
-            fid_filename = None
-        if fid_filename is None or not op.exists(fid_filename):
-            self._fid_points = mni_points
-        else:
-            self._fid_points = _fiducial_coords(*read_fiducials(fid_filename))
+            assert isinstance(fids, dict)
+            fid_coords = np.array([fids['lpa'], fids['nasion'], fids['rpa']],
+                                  dtype=float) / 1e3  # convert to meters
+
+        self._fid_points = fid_coords
 
         # does not seem to happen by itself ... so hard code it:
         self._reset_fiducials()
@@ -1835,11 +1848,11 @@ class Coregistration(object):
         return self
 
     def compute_dig_head_distances(self):
-        """Compute Euclidean distance between the head-mri points.
+        """Compute distance between head shape points and MRI skin surface.
 
         Returns
         -------
-        dist : float
+        dist : array, shape (n_points,)
             The distance of the head shape points to the MRI skin surface.
         """
         mri_points = list()
