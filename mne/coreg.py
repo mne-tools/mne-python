@@ -1283,7 +1283,7 @@ class Coregistration(object):
         system. If a dict is provided it must be a dict with 3 entries
         with keys 'lpa', 'rpa' and 'nasion' with as values coordinates in mm.
         If a list it must be a list of DigPoint instances as returned
-        by the `io.read_fiducials` function.
+        by the read_fiducials function.
         If set to 'estimated', the fiducials are initialized
         automatically using fiducials defined in MNI space on fsaverage
         template. If set to 'auto', one tries to find the fiducials
