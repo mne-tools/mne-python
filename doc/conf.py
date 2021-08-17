@@ -973,7 +973,7 @@ needed_plot_redirects = {
 }
 ex = 'auto_examples'
 co = 'connectivity'
-mne_conn = 'https://mne.tools/mne-connectivity/stable/'
+mne_conn = 'https://mne.tools/mne-connectivity/stable'
 tu = 'auto_tutorials'
 di = 'discussions'
 sm = 'source-modeling'
@@ -1088,7 +1088,8 @@ def make_redirects(app, exception):
     # custom redirects
     for fr, to in custom_redirects.items():
         to_path = os.path.join(app.outdir, to)
-        assert os.path.isfile(to_path), to
+        if not to_path.startswith('http'):
+            assert os.path.isfile(to_path), to
         assert to_path.endswith('html'), to_path
         fr_path = os.path.join(app.outdir, fr)
         assert fr_path.endswith('html'), fr_path
