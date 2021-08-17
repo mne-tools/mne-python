@@ -971,6 +971,9 @@ needed_plot_redirects = {
     'vector_mne_solution.py', 'virtual_evoked.py', 'xdawn_denoising.py',
     'xhemi.py',
 }
+ex = 'auto_examples'
+co = 'connectivity'
+mne_conn = 'https://mne.tools/mne-connectivity/stable/'
 tu = 'auto_tutorials'
 di = 'discussions'
 sm = 'source-modeling'
@@ -1028,6 +1031,15 @@ custom_redirects = {
     f'{tu}/{si}/plot_creating_data_structures.html': f'{tu}/{si}/10_array_objs.html',  # noqa E501
     f'{tu}/{si}/plot_point_spread.html': f'{tu}/{si}/70_point_spread.html',
     f'{tu}/{si}/plot_dics.html': f'{tu}/{si}/80_dics.html',
+    f'{ex}/{co}/mne_inverse_label_connectivity.html': f'{mne_conn}/{ex}/mne_inverse_label_connectivity.html',  # noqa E501
+    f'{ex}/{co}/cwt_sensor_connectivity.html': f'{mne_conn}/{ex}/cwt_sensor_connectivity.html',  # noqa E501
+    f'{ex}/{co}/mixed_source_space_connectivity.html': f'{mne_conn}/{ex}/mixed_source_space_connectivity.html',  # noqa E501
+    f'{ex}/{co}/mne_inverse_coherence_epochs.html': f'{mne_conn}/{ex}/mne_inverse_coherence_epochs.html',  # noqa E501
+    f'{ex}/{co}/mne_inverse_connectivity_spectrum.html': f'{mne_conn}/{ex}/mne_inverse_connectivity_spectrum.html',  # noqa E501
+    f'{ex}/{co}/mne_inverse_envelope_correlation_volume.html': f'{mne_conn}/{ex}/mne_inverse_envelope_correlation_volume.html',  # noqa E501
+    f'{ex}/{co}/mne_inverse_envelope_correlation.html': f'{mne_conn}/{ex}/mne_inverse_envelope_correlation.html',  # noqa E501
+    f'{ex}/{co}/mne_inverse_psi_visual.html': f'{mne_conn}/{ex}/mne_inverse_psi_visual.html',  # noqa E501
+    f'{ex}/{co}/sensor_connectivity.html': f'{mne_conn}/{ex}/sensor_connectivity.html',  # noqa E501
 }
 
 
