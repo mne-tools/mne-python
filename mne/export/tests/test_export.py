@@ -62,16 +62,21 @@ def test_export_raw_edf(tmpdir):
 
     raw.load_data()
     temp_fname = op.join(str(tmpdir), f'test.{format}')
+
+    # test runtime errors
+    with pytest.raises(RuntimeError, match='The maximum'):
+        raw.export(temp_fname, physical_range=(-3200, 0))
+    with pytest.raises(RuntimeError, match='The minimum'):
+        raw.export(temp_fname, physical_range=(0, 3200))
     raw.export(temp_fname)
+
     if 'epoc' in raw.ch_names:
         raw.drop_channels(['epoc'])
     raw_read = read_raw_edf(temp_fname, preload=True)
     assert raw.ch_names == raw_read.ch_names
-    print(len(raw.times), len(raw_read.times))
-    # assert_array_almost_equal(raw.times, raw_read.times, decimal=1)
-    assert_allclose(raw.times, raw_read.times, rtol=0, atol=1e-2)
     assert_array_almost_equal(
         raw.get_data(), raw_read.get_data(), decimal=3)
+    assert_allclose(raw.times, raw_read.times, rtol=0, atol=1e-1)
 
 
 @pytest.mark.skipif(not _check_eeglabio_installed(strict=False),

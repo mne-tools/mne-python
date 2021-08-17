@@ -32,9 +32,8 @@ def _try_to_set_value(header, key, value, channel_index=None):
 def _export_raw(fname, raw, physical_range, fmt):
     """Export Raw objects to EDF or BDF files.
 
-    XXX:
-    - if Info stores transducer information, allow writing here.
-    - if Info stores techniciain information, allow writing here.
+    TODO: if in future the Info object supports transducer or
+    technician information, allow writing those here.
     """
     phys_dims = 'uV'
 

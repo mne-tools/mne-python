@@ -10,7 +10,7 @@ from ..utils import verbose, logger, _validate_type
 
 
 @verbose
-def export_raw(fname, raw, fmt='auto', verbose=None, physical_range='auto'):
+def export_raw(fname, raw, fmt='auto', physical_range='auto', verbose=None):
     """Export Raw to external formats.
 
     Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
@@ -22,18 +22,14 @@ def export_raw(fname, raw, fmt='auto', verbose=None, physical_range='auto'):
     raw : instance of Raw
         The raw instance to export.
     %(export_params_fmt)s
+    %(export_params_physical_range)s
     %(verbose)s
-    physical_range : string | tuple
-        The physical range of the data. If 'auto' (default), then
-        it will infer the physical min and max from the data itself,
-        taking the minimum and maximum values per channel type.
-        If it is a 2-tuple of minimum and maximum limit, then those
-        physical ranges will be hard-set. Only used for exporting EDF
-        or BDF files.
 
     Notes
     -----
     %(export_eeglab_note)s
+
+    %(export_edf_note)s
     """
     supported_export_formats = {  # format : extensions
         'eeglab': ('set',),
