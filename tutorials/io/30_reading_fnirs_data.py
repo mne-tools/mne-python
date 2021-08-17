@@ -247,6 +247,6 @@ mne.datasets.fetch_fsaverage(subjects_dir=subjects_dir)
 brain = mne.viz.Brain('fsaverage', subjects_dir=subjects_dir,
                       alpha=0.5, cortex='low_contrast')
 brain.add_head()
-brain.add_sensors(raw, trans='fsaverage')
+brain.add_sensors(raw.info, trans='fsaverage')
 brain.enable_depth_peeling()
 brain.show_view(azimuth=90, elevation=90, distance=500)

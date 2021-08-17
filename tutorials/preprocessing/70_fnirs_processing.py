@@ -59,7 +59,7 @@ raw_intensity.annotations.delete(
 subjects_dir = op.join(mne.datasets.sample.data_path(), 'subjects')
 
 brain = mne.viz.Brain('fsaverage', subjects_dir=subjects_dir, background="w")
-brain.add_sensors(raw_intensity, trans='fsaverage')
+brain.add_sensors(raw_intensity.info, trans='fsaverage')
 brain.show_view(azimuth=20, elevation=60, distance=400)
 
 

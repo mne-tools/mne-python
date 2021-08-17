@@ -1853,7 +1853,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     # take channel coordinates and use the image to transform them
     # into a volume where all the voxels over a threshold nearby
     # are labeled with an index
-    image_data = _get_img_fdata(base_image.dataobj)
+    image_data = _get_img_fdata(base_image)
     if use_min:
         image_data *= -1
     thresh = np.quantile(image_data, thresh)
