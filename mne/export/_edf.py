@@ -115,7 +115,7 @@ def _export_raw(fname, raw, physical_range, fmt):
     for ichan, ch in enumerate(ch_names):
         if physical_range == 'auto':
             # take the channel type minimum and maximum
-            ch_type = raw.get_channel_types(picks=ch)[0]
+            ch_type = ch_types[ichan]
             pmin, pmax = ch_types_phys_min[ch_type], ch_types_phys_max[ch_type]
 
         for key, val in [('PhysicalMaximum', pmax),
