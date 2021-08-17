@@ -1490,7 +1490,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Notes
         -----
         %(export_eeglab_note)s
-
         %(export_edf_note)s
         """
         from ..export import export_raw

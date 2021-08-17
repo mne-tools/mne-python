@@ -28,7 +28,6 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto', verbose=None):
     Notes
     -----
     %(export_eeglab_note)s
-
     %(export_edf_note)s
     """
     supported_export_formats = {  # format : extensions
