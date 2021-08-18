@@ -387,9 +387,10 @@ epochs['auditory'].average()
 #
 # This part of the tutorial will demonstrate how to extract three common
 # measures:
-#      * Peak Latency
-#      * Peak Amplitude
-#      * Mean Amplitude
+#
+# * Peak Latency
+# * Peak Amplitude
+# * Mean Amplitude
 #
 # Peak Latency and Amplitude
 # --------------------------
@@ -405,12 +406,12 @@ epochs['auditory'].average()
 # the ~mne.Evoked~ object.
 # Second, the `~mne.Evoked.get_peak` method can find different 'types' of
 # peaks using the ``mode`` argument. There are three options:
-#      * ``mode='pos'``: finds the peak with a positive voltage (ignores
-# negative voltages)
-#      * ``mode='neg'``: finds the peak with a negative voltage (ignores
-# positive voltages)
-#      * ``mode='abs'``: finds the peak with the largest absolute voltage
-# regardless of sign (positive or negative)
+# * ``mode='pos'``: finds the peak with a positive voltage (ignores
+#   negative voltages)
+# * ``mode='neg'``: finds the peak with a negative voltage (ignores
+#   positive voltages)
+# * ``mode='abs'``: finds the peak with the largest absolute voltage
+#   regardless of sign (positive or negative)
 #
 # The following example demonstrates how to find positive peak in the ERP for
 # the left visual condition (i.e., the ``l_vis`` `~mne.Evoked` object). The
