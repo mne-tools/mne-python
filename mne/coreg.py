@@ -1857,7 +1857,7 @@ class Coregistration(object):
 
         See Also
         --------
-        mne.surface.dig_mri_distances
+        mne.dig_mri_distances
         """
         # we don't use `dig_mri_distances` here because it should be much
         # faster to use our already-determined nearest points

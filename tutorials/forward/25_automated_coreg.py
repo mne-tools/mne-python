@@ -43,7 +43,6 @@ view_kwargs = dict(azimuth=45, elevation=90, distance=0.6,
 fiducials = "estimated"  # get fiducials from fsaverage
 coreg = Coregistration(info, subject, subjects_dir, fiducials=fiducials)
 fig = mne.viz.plot_alignment(info, trans=coreg.trans, **plot_kwargs)
-mne.viz.set_3d_view(fig, **view_kwargs)
 
 # %%
 # Do first a coregistration fit using only 3 fiducial points. This allows
@@ -54,7 +53,6 @@ mne.viz.set_3d_view(fig, **view_kwargs)
 # the subsequent fit.
 coreg.fit_fiducials(verbose=True)
 fig = mne.viz.plot_alignment(info, trans=coreg.trans, **plot_kwargs)
-mne.viz.set_3d_view(fig, **view_kwargs)
 
 # %%
 # Next we refine the transformation using a few iteration of the
@@ -63,7 +61,6 @@ mne.viz.set_3d_view(fig, **view_kwargs)
 # GUI we do a fit with reduced weight for the nasion.
 coreg.fit_icp(n_iterations=6, nasion_weight=2., verbose=True)
 fig = mne.viz.plot_alignment(info, trans=coreg.trans, **plot_kwargs)
-mne.viz.set_3d_view(fig, **view_kwargs)
 
 # %%
 # It is now very clear that we have one point that is an outlier
