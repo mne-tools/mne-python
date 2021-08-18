@@ -809,7 +809,7 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings(  # needed until SciPy 1.2.0 is released
         'ignore', '.*will be interpreted as an array index.*', module='scipy')
     warnings.filterwarnings(
-        'ignore', '.*invalid escape sequence.*', module='quantities')
+        'ignore', '.*invalid escape sequence.*', lineno=90)  # quantities
     warnings.filterwarnings(
         'ignore', '.*"is not" with a literal.*', module='nilearn')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',

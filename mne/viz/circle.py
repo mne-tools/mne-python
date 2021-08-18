@@ -522,4 +522,4 @@ def plot_channel_labels_circle(labels, colors=None, picks=None, **kwargs):
         kwargs.update(vmax=1)
     if 'colormap' not in kwargs:
         kwargs.update(colormap=label_cmap)
-    return plot_connectivity_circle(con, node_names, **kwargs)
+    return _plot_connectivity_circle(con, node_names, **kwargs)
