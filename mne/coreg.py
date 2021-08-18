@@ -1726,10 +1726,10 @@ class Coregistration(object):
                 self._nearest_transformed_high_res_mri_idx_hsp])
             weights.append(np.full(len(head_pts[-1]), self._hsp_weight))
         for key in ('lpa', 'nasion', 'rpa'):
-            if getattr(self, '_has_%s_data' % key):
+            if getattr(self, f'_has_{key}_data'):
                 head_pts.append(self._dig_dict[key])
                 if self._icp_fid_match == 'matched':
-                    mri_pts.append(getattr(self, key))
+                    mri_pts.append(getattr(self, f'_{key}'))
                 else:
                     assert self._icp_fid_match == 'nearest'
                     mri_pts.append(self._processed_high_res_mri_points[
@@ -1755,6 +1755,24 @@ class Coregistration(object):
         if n_scale_params == 0:
             mri_pts *= self._scale  # not done in fit_matched_points
         return head_pts, mri_pts, weights
+
+    def set_fid_match(self, match):
+        """Set the strategy for fitting anatomical landmark (fiducial) points.
+
+        Parameters
+        ----------
+
+        match : 'nearest' | 'matched'
+            Alignment strategy; ``'nearest'`` aligns anatomical landmarks to
+            any point on the head surface; ``'matched'`` aligns to the fiducial
+            points in the MRI.
+
+        """
+        if match not in self._icp_fid_matches:
+            msg = (f'"match" must be one of {self._icp_fid_matches}, got '
+                   f'{match}')
+            raise ValueError(msg)
+        self._icp_fid_match = match
 
     @verbose
     def fit_icp(self, n_iterations=20, lpa_weight=1., nasion_weight=10.,
