@@ -463,7 +463,7 @@ def plot_channel_labels_circle(labels, colors=None, picks=None, **kwargs):
     picks : list | tuple
         The channels to consider.
     **kwargs : kwargs
-        Keyword arguments for :func:`mne.viz.plot_connectivity_circle`.
+        Keyword arguments for ``plot_connectivity_circle``.
 
     Returns
     -------
