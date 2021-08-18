@@ -397,16 +397,19 @@ def test_plot_raw_traces(raw, events, browse_backend):
     fig._fake_click((0.5, 0.5), ax=hscroll)  # change time
     t_start = fig.mne.t_start
     fig._fake_click((0.5, 0.5), ax=hscroll)  # shouldn't change time this time
-    assert t_start == fig.mne.t_start
+    assert round(t_start, 6) == round(fig.mne.t_start, 6)
     # test scrolling through channels
     labels = fig._get_ticklabels('y')
     assert labels == [raw.ch_names[1], raw.ch_names[7], raw.ch_names[5]]
-    fig._fake_click((0.5, 0.01), ax=vscroll)  # change channels to end
+    fig._fake_click((0.5, 0.05), ax=vscroll)  # change channels to end
     labels = fig._get_ticklabels('y')
     assert labels == [raw.ch_names[5], raw.ch_names[2], raw.ch_names[3]]
     for _ in (0, 0):
         # first click changes channels to mid; second time shouldn't change
-        fig._fake_click((0.5, 0.5), ax=vscroll)
+        # This needs to be changed for pyqtgraph, because there scrollbars are
+        # drawn differently (value of slider at lower end, not at middle)
+        yclick = 0.5 if ismpl else 0.7
+        fig._fake_click((0.5, yclick), ax=vscroll)
         labels = fig._get_ticklabels('y')
         assert labels == [raw.ch_names[7], raw.ch_names[5], raw.ch_names[2]]
         assert browse_backend._get_n_figs() == 1
