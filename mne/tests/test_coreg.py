@@ -282,15 +282,17 @@ def test_get_mni_fiducials():
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('scale_mode,ref_scale,grow_hair,fiducials', [
-    (None, [1., 1., 1.], 0., None),
-    (None, [1., 1., 1.], 0., 'estimated'),
-    (None, [1., 1., 1.], 2., 'auto'),
-    ('uniform', [1., 1., 1.], 0., None),
-    ('3-axis', [1., 1., 1.], 0., 'auto'),
-    ('uniform', [0.8, 0.8, 0.8], 0., 'auto'),
-    ('3-axis', [0.8, 1.2, 1.2], 0., 'auto')])
-def test_coregistration(scale_mode, ref_scale, grow_hair, fiducials):
+@pytest.mark.parametrize(
+    'scale_mode,ref_scale,grow_hair,fiducials,fid_match', [
+        (None, [1., 1., 1.], 0., None, 'nearest'),
+        (None, [1., 1., 1.], 0., 'estimated', 'nearest'),
+        (None, [1., 1., 1.], 2., 'auto', 'nearest'),
+        ('uniform', [1., 1., 1.], 0., None, 'nearest'),
+        ('3-axis', [1., 1., 1.], 0., 'auto', 'nearest'),
+        ('uniform', [0.8, 0.8, 0.8], 0., 'auto', 'nearest'),
+        ('3-axis', [0.8, 1.2, 1.2], 0., 'auto', 'nearest')])
+def test_coregistration(scale_mode, ref_scale, grow_hair, fiducials,
+                        fid_match):
     """Test automated coregistration."""
     trans_fname = op.join(data_path, 'MEG', 'sample',
                           'sample_audvis_trunc-trans.fif')
@@ -307,6 +309,7 @@ def test_coregistration(scale_mode, ref_scale, grow_hair, fiducials):
     coreg = Coregistration(info, subject=subject, subjects_dir=subjects_dir,
                            fiducials=fiducials)
     assert np.allclose(coreg._last_parameters, coreg._parameters)
+    coreg.set_fid_match(fid_match)
     default_params = list(coreg._default_parameters)
     coreg.set_rotation(default_params[:3])
     coreg.set_translation(default_params[3:6])
