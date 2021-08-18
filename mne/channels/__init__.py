@@ -11,7 +11,7 @@ from .montage import (DigMontage,
                       read_dig_egi, read_dig_captrak, read_dig_fif,
                       read_dig_polhemus_isotrak, read_polhemus_fastscan,
                       compute_dev_head_t, make_standard_montage,
-                      read_custom_montage, read_dig_hpts,
+                      read_custom_montage, read_dig_hpts, read_dig_localite,
                       compute_native_head_t)
 from .channels import (equalize_channels, rename_channels, fix_mag_coil_types,
                        read_ch_adjacency, _get_ch_type, find_ch_adjacency,
@@ -29,8 +29,8 @@ __all__ = [
 
     # Readers
     'read_ch_adjacency', 'read_dig_captrak', 'read_dig_dat',
-    'read_dig_egi', 'read_dig_fif', 'read_dig_montage',
-    'read_dig_polhemus_isotrak', 'read_layout', 'read_montage',
+    'read_dig_egi', 'read_dig_fif', 'read_dig_localite',
+    'read_dig_polhemus_isotrak', 'read_layout',
     'read_polhemus_fastscan', 'read_custom_montage', 'read_dig_hpts',
 
     # Helpers

@@ -642,8 +642,7 @@ def _download_all_example_data(verbose=True):
     eegbci.load_data(1, [6, 10, 14], update_path=True)
     for subj in range(4):
         eegbci.load_data(subj + 1, runs=[3], update_path=True)
-    sleep_physionet.age.fetch_data(subjects=[0, 1], recording=[1],
-                                   update_path=True)
+    sleep_physionet.age.fetch_data(subjects=[0, 1], recording=[1])
     # If the user has SUBJECTS_DIR, respect it, if not, set it to the EEG one
     # (probably on CircleCI, or otherwise advanced user)
     fetch_fsaverage(None)
