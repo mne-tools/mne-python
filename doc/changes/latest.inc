@@ -133,6 +133,8 @@ Enhancements
 
 - Add :meth:`mne.viz.Brain.add_head` to plot the head surface (:gh:`9618` by `Alex Rockhill`_)
 
+- Add :func:`mne.channels.read_dig_localite` to read Localite electrode location files (:gh:`9658` by `Clemens Brunner`_)
+
 Bugs
 ~~~~
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)
@@ -183,6 +185,8 @@ Bugs
 
 - Fix bug in :func:`mne.viz.set_3d_backend` and :func:`mne.viz.get_3d_backend` where the PyVistaQt-based backend was ambiguously named ``'pyvista'`` instead of ``'pyvistaqt'``; use ``set_3d_backend('pyvistaqt')`` and expect ``'pyvistaqt'`` as the output of :func:`mne.viz.get_3d_backend` instead of ``'pyvista'``, and consider using ``get_3d_backend().startswith('pyvista')`` for example for backward-compatible conditionals (:gh:`9607` by `Guillaume Favelier`_)
 
+- Fix bug in :func:`mne.viz.plot_compare_evokeds` where confidence bands were not drawn if only one condition was plotted (:gh:`9663` by `Daniel McCloy`_)
+
 - Fix bug where setting of a montage with fNIRS data got set to "unknown" coordinate frame when it should have been in "head" (:gh:`9630` by `Alex Rockhill`_)
 
 API changes
@@ -192,3 +196,5 @@ API changes
 - Split :func:`mne.viz.Brain.show_view` argument ``view`` into ``azimuth``, ``elevation`` and ``focalpoint`` for clearer view setting and make the default for ``row`` and ``col`` apply to all rows and columns (:gh:`9596` by `Alex Rockhill`_)
 
 - Deprecate ``solver='prox'`` in :func:`mne.inverse_sparse.mixed_norm` in favor of ``solver='cd'`` and ``solver='bcd'`` as coordinate descent solvers consistently outperform proximal gradient descent (:gh:`9608` by `Pierre-Antoine Bannier`_)
+
+- All `mne.connectivity` functions have moved to the ``mne-connectivity`` package; they are deprecated in MNE-Python and will be removed in version 0.25 (:gh:`9493` by `Adam Li`_).

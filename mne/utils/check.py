@@ -578,6 +578,41 @@ def _check_depth(depth, kind='depth_mne'):
     return _handle_default(kind, depth)
 
 
+def _check_dict_keys(mapping, valid_keys,
+                     key_description, valid_key_source):
+    """Check that the keys in dictionary are valid against a set list.
+
+    Return the input dictionary if it is valid,
+    otherwise raise a ValueError with a readable error message.
+
+    Parameters
+    ----------
+    mapping : dict
+        The user-provided dict whose keys we want to check.
+    valid_keys : iterable
+        The valid keys.
+    key_description : str
+        Description of the keys in ``mapping``, e.g., "channel name(s)" or
+        "annotation(s)".
+    valid_key_source : str
+        Description of the ``valid_keys`` source, e.g., "info dict" or
+        "annotations in the data".
+
+    Returns
+    -------
+    mapping
+        If all keys are valid the input dict is returned unmodified.
+    """
+    missing = set(mapping) - set(valid_keys)
+    if len(missing):
+        _is = 'are' if len(missing) > 1 else 'is'
+        msg = (f'Invalid {key_description} {missing} {_is} not present in '
+               f'{valid_key_source}')
+        raise ValueError(msg)
+
+    return mapping
+
+
 def _check_option(parameter, value, allowed_values, extra=''):
     """Check the value of a parameter against a list of valid options.
 
