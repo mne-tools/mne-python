@@ -33,7 +33,7 @@ from mne.io.meas_info import (Info, create_info, _merge_info,
                               _add_timedelta_to_stamp, _read_extended_ch_info)
 from mne.minimum_norm import (make_inverse_operator, write_inverse_operator,
                               read_inverse_operator, apply_inverse)
-from mne.io._digitization import _write_dig_points, _make_dig_points
+from mne.io._digitization import _write_dig_points, _make_dig_points, DigPoint
 from mne.io import read_raw_ctf
 from mne.transforms import Transform
 from mne.utils import catch_logging, assert_object_equal
@@ -159,6 +159,8 @@ def test_fiducials_io(tmpdir):
         assert pt['ident'] == pt_1['ident']
         assert pt['coord_frame'] == pt_1['coord_frame']
         assert_array_equal(pt['r'], pt_1['r'])
+        assert isinstance(pt, DigPoint)
+        assert isinstance(pt_1, DigPoint)
 
     # test safeguards
     pts[0]['coord_frame'] += 1
