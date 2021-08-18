@@ -276,6 +276,7 @@ numpydoc_validation_exclude = {  # set of regex
     # deprecations
     r'mne\.connectivity\.degree', r'mne\.connectivity\.seed_target_indices',
     r'mne\.viz\.plot_sensors_connectivity',
+    r'mne\.viz\.plot_connectivity_circle',
 }
 
 
