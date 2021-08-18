@@ -1,7 +1,7 @@
 """
-=========================================
-Use automated approach to coregistration
-=========================================
+=============================================
+Using an automated approach to coregistration
+=============================================
 
 This example shows how to use the coregistration functions to perform an
 automated MEG-MRI coregistration via scripting.
@@ -69,6 +69,8 @@ coreg.omit_head_shape_points(distance=5. / 1000)  # distance is in meters
 
 # %%
 # Do a final coregistration fit
+
+# sphinx_gallery_thumbnail_number = 4
 coreg.fit_icp(n_iterations=20, nasion_weight=10., verbose=True)
 fig = mne.viz.plot_alignment(info, trans=coreg.trans, **plot_kwargs)
 mne.viz.set_3d_view(fig, **view_kwargs)

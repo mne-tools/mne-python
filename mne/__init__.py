@@ -87,7 +87,7 @@ from .label import (read_label, label_sign_flip,
                     random_parcellation, morph_labels, labels_to_stc)
 from .misc import parse_config, read_reject_parameters
 from .coreg import (create_default_subject, scale_bem, scale_mri, scale_labels,
-                    scale_source_space, Coregistration)
+                    scale_source_space)
 from .transforms import (read_trans, write_trans,
                          transform_surface_to, Transform)
 from .proj import (read_proj, write_proj, compute_proj_epochs,
