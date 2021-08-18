@@ -2492,7 +2492,7 @@ fmt : 'auto' | 'eeglab'
     information.
 """
 docdict['export_params_physical_range'] = """
-physical_range : string | tuple
+physical_range : str | tuple
     The physical range of the data. If 'auto' (default), then
     it will infer the physical min and max from the data itself,
     taking the minimum and maximum values per channel type.
