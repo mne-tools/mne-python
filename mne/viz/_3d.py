@@ -681,6 +681,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         raise ValueError('A head surface is required to project EEG, '
                          '"head", "outer_skin", "head-dense" or "seghead" '
                          'must be in surfaces or surfaces must be "auto"')
+    else:
+        head_surf = None
 
     # Skull surface:
     skulls = [s for s in surfaces if s in ('outer_skull', 'inner_skull')]
@@ -829,7 +831,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     # plot sensors
     if picks.size > 0:
         _plot_sensors(info, to_cf_t, renderer, picks, meg, eeg, fnirs,
-                      warn_meg, surfs['head'], 'm', verbose)
+                      warn_meg, head_surf, 'm', verbose)
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
