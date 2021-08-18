@@ -129,6 +129,8 @@ Enhancements
 
 - The coregistration GUI can now display the head surface even if there are topological defects. Previously, a low-resolution standard head unsuitable for individualized coregistration was displayed (:gh:`9614` by `Richard Höchenberger`_)
 
+- New :class:`mne.coreg.Coregistration` object to allow coregistration scripting without a dependency on mayavi (:gh:`9516` by `Guillaume Favelier`_).
+
 - Add :meth:`mne.viz.Brain.add_head` to plot the head surface (:gh:`9618` by `Alex Rockhill`_)
 
 - Add :func:`mne.channels.read_dig_localite` to read Localite electrode location files (:gh:`9658` by `Clemens Brunner`_)
