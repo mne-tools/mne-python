@@ -1761,12 +1761,10 @@ class Coregistration(object):
 
         Parameters
         ----------
-
         match : 'nearest' | 'matched'
             Alignment strategy; ``'nearest'`` aligns anatomical landmarks to
             any point on the head surface; ``'matched'`` aligns to the fiducial
             points in the MRI.
-
         """
         if match not in self._icp_fid_matches:
             msg = (f'"match" must be one of {self._icp_fid_matches}, got '
