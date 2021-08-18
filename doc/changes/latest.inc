@@ -135,7 +135,7 @@ Enhancements
 
 - Add :meth:`mne.viz.Brain.add_sensors` to plot sensor locations (:gh:`9585` by `Alex Rockhill`_)
 
-- Add :func:`mne.coreg.estimate_head_mri_t` estimate the head->mri transform from fsaverage fiducials (:gh:`9585` by `Alex Rockhill`_)
+- Add :func:`mne.coreg.estimate_head_mri_t` to estimate the head->mri transform from fsaverage fiducials (:gh:`9585` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
