@@ -375,6 +375,7 @@ def test_plot_alignment(tmpdir, renderer, mixed_fwd_cov_evoked):
     plot_alignment(subject='sample', subjects_dir=subjects_dir,
                    trans=trans_fname, fwd=fwd,
                    surfaces='white', coord_frame='head')
+    fwd['coord_frame'] = FIFF.FIFFV_COORD_MRI  # check required to get to MRI
     with pytest.raises(ValueError, match='transformation matrix is required'):
         plot_alignment(info, trans=None, fwd=fwd)
     # surfaces as dict

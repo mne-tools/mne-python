@@ -613,24 +613,26 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                        eeg=(len(eeg) > 0), ecog=ecog, seeg=seeg, dbs=dbs,
                        fnirs=(len(fnirs) > 0))
     if trans is None:
-        needs_mri = None
+        needs_trans = None
         if coord_frame == 'mri':
-            needs_mri = 'in mri coordinates'
+            needs_trans = 'in mri coordinates'
         if fwd is not None and _frame_to_str[fwd['coord_frame']] == 'mri':
-            needs_mri = 'forward solution'
+            needs_trans = 'forward solution'
         if src is not None and _frame_to_str[src[0]['coord_frame']] == 'mri':
-            needs_mri = 'source space'
+            needs_trans = 'source space'
         if len(surfaces) > 0:
             # okay if only plotting sphere model
             if surfaces != ['brain'] or bem is None or not bem['is_sphere']:
-                needs_mri = ', '.join(surfaces) + ' surfaces'
+                needs_trans = ', '.join(surfaces) + ' surfaces'
         if mri_fiducials is not False:
-            needs_mri = 'mri fiducials'
+            needs_trans = 'mri fiducials'
         # only enforce needing `trans` if there are channels in "head"/"device"
-        if picks.size > 0 and coord_frame != 'mri' and needs_mri is not None:
+        if picks.size == 0 and coord_frame == 'mri':  # not leaving "mri"
+            needs_trans = None
+        if needs_trans is not None:
             raise ValueError(
                 'A head->mri transformation matrix is required '
-                f'to plot {needs_mri}, `trans=None` is not allowed')
+                f'to plot {needs_trans}, `trans=None` is not allowed')
         else:
             trans = Transform('head', 'mri')  # not used so just use identity
     # get transforms
