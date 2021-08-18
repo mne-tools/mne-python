@@ -1445,23 +1445,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         self._update_vscroll()
         self._redraw(annotations=True)
 
-    def _make_butterfly_selections_dict(self):
-        """Make an altered copy of the selections dict for butterfly mode."""
-        from ..utils import _get_stim_channel
-        selections_dict = deepcopy(self.mne.ch_selections)
-        # remove potential duplicates
-        for selection_group in ('Vertex', 'Custom'):
-            selections_dict.pop(selection_group, None)
-        # if present, remove stim channel from non-misc selection groups
-        stim_ch = _get_stim_channel(None, self.mne.info, raise_error=False)
-        if len(stim_ch):
-            stim_pick = self.mne.ch_names.tolist().index(stim_ch[0])
-            for _sel, _picks in selections_dict.items():
-                if _sel != 'Misc':
-                    stim_mask = np.in1d(_picks, [stim_pick], invert=True)
-                    selections_dict[_sel] = np.array(_picks)[stim_mask]
-        return selections_dict
-
     def _update_highlighted_sensors(self):
         """Update the sensor plot to show what is selected."""
         inds = np.in1d(self.mne.fig_selection.lasso.ch_names,
@@ -1979,14 +1962,10 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _redraw(self, update_data=True, annotations=False):
         """Redraw (convenience method for frequently grouped actions)."""
-        if update_data:
-            self._update_data()
+        super()._redraw(update_data, annotations)
         if self.mne.vline_visible and self.mne.is_epochs:
             # prevent flickering
             _ = self._recompute_epochs_vlines(None)
-        self._draw_traces()
-        if annotations and not self.mne.is_epochs:
-            self._draw_annotations()
         self.canvas.draw_idle()
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

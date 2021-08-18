@@ -361,12 +361,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # update projector and data, and plot
     fig._update_projector()
     fig._update_trace_offsets()
-    fig._update_data()
-    fig._draw_traces()
-
-    # plot annotations (if any)
     fig._setup_annotation_colors()
-    fig._draw_annotations()
+
+    # Draw Plot
+    fig._redraw(update_data=True, annotations=True)
 
     # start with projectors dialog open, if requested
     if show_options:

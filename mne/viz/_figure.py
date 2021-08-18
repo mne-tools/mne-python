@@ -106,6 +106,9 @@ class BrowserBase(ABC):
         self.mne.event_lines = None
         self.mne.event_texts = list()
         self.mne.vline_visible = False
+        # decim
+        self.mne.decim_times = None
+        self.mne.decim_data = None
         # scalings
         if hasattr(self.mne, 'butterfly'):
             self.mne.scale_factor = 0.5 if self.mne.butterfly else 1.
@@ -222,7 +225,7 @@ class BrowserBase(ABC):
         return epoch_ix, color
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    # DATA TRACES
+    # MANAGE TRACES
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     def _update_picks(self):
@@ -237,6 +240,23 @@ class BrowserBase(ABC):
                            self.mne.ch_start + self.mne.n_channels)
             self.mne.picks = self.mne.ch_order[_slice]
             self.mne.n_channels = len(self.mne.picks)
+
+    def _make_butterfly_selections_dict(self):
+        """Make an altered copy of the selections dict for butterfly mode."""
+        from ..utils import _get_stim_channel
+        selections_dict = deepcopy(self.mne.ch_selections)
+        # remove potential duplicates
+        for selection_group in ('Vertex', 'Custom'):
+            selections_dict.pop(selection_group, None)
+        # if present, remove stim channel from non-misc selection groups
+        stim_ch = _get_stim_channel(None, self.mne.info, raise_error=False)
+        if len(stim_ch):
+            stim_pick = self.mne.ch_names.tolist().index(stim_ch[0])
+            for _sel, _picks in selections_dict.items():
+                if _sel != 'Misc':
+                    stim_mask = np.in1d(_picks, [stim_pick], invert=True)
+                    selections_dict[_sel] = np.array(_picks)[stim_mask]
+        return selections_dict
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # MANAGE DATA
@@ -320,9 +340,15 @@ class BrowserBase(ABC):
         return epoch_nums[np.searchsorted(self.mne.boundary_times[1:], time)]
 
     @abstractmethod
-    def _redraw(self, **kwargs):
+    def _redraw(self, update_data=True, annotations=False):
         """Redraws backend if necessary."""
-        pass
+        if update_data:
+            self._update_data()
+
+        self._draw_traces()
+
+        if annotations and not self.mne.is_epochs:
+            self._draw_annotations()
 
     def _close(self, event):
         """Handle close events (via keypress or window [x])."""
