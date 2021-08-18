@@ -11,7 +11,7 @@ from EDFlib.edfwriter import EDFwriter  # noqa: E402
 
 
 def _try_to_set_value(header, key, value, channel_index=None):
-    """Helper function to set key/value pairs in EDF/BDF header."""
+    """Set key/value pairs in EDF/BDF header."""
     # all EDFLib set functions are set<X>
     # for example "setPatientName()"
     func_name = f'set{key}'
