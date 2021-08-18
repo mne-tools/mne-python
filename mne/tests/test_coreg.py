@@ -290,7 +290,7 @@ def test_get_mni_fiducials():
         ('uniform', [1., 1., 1.], 0., None, 'nearest'),
         ('3-axis', [1., 1., 1.], 0., 'auto', 'nearest'),
         ('uniform', [0.8, 0.8, 0.8], 0., 'auto', 'nearest'),
-        ('3-axis', [0.8, 1.2, 1.2], 0., 'auto', 'nearest')])
+        ('3-axis', [0.8, 1.2, 1.2], 0., 'auto', 'matched')])
 def test_coregistration(scale_mode, ref_scale, grow_hair, fiducials,
                         fid_match):
     """Test automated coregistration."""
