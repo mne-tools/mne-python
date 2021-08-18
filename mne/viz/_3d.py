@@ -828,9 +828,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     # plot sensors
     if picks.size > 0:
-        head_surf = surfs['head'] if 'head' in surfs else None
         _plot_sensors(info, to_cf_t, renderer, picks, meg, eeg, fnirs,
-                      head_surf, warn_meg, 'm', verbose)
+                      warn_meg, surfs['head'], 'm', verbose)
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
@@ -979,9 +978,8 @@ def _plot_sensors(info, to_cf_t, renderer, picks, meg, eeg, fnirs,
                 destination=detectors[ch_name][np.newaxis] * scalar)
 
     # add projected eeg
-    eeg_indices = pick_types(info, eeg=True)
+    eeg_indices = pick_types(info, eeg=True, exclude=())
     if eeg_indices.size > 0 and 'projected' in eeg:
-
         logger.info('Projecting sensors to the head surface')
         eeg_loc = np.array([
             ch_pos[info.ch_names[idx]] for idx in eeg_indices])
