@@ -323,13 +323,12 @@ def test_plot_alignment(tmpdir, renderer, mixed_fwd_cov_evoked):
     info['dig'] = None
     info_cube['chs'][0]['coil_type'] = 9999
     with pytest.raises(RuntimeError, match='coil definition not found'):
-        _create_meg_coils([info_cube['chs'][0]], acc='normal')
+        plot_alignment(info_cube, meg='sensors', surfaces=())
     coil_def_fname = op.join(tempdir, 'temp')
     with open(coil_def_fname, 'w') as fid:
         fid.write(coil_3d)
     with use_coil_def(coil_def_fname):
-        plot_alignment(info_cube, trans=trans_fname, meg='sensors',
-                       surfaces=(), dig=True)
+        plot_alignment(info_cube, meg='sensors', surfaces=(), dig=True)
 
     # one layer bem with skull surfaces:
     with pytest.raises(RuntimeError, match='Sphere model does not.*boundary'):

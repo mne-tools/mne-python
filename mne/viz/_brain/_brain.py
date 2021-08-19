@@ -34,14 +34,14 @@ from .._3d import (_process_clim, _handle_time, _check_views,
 from ...defaults import _handle_default, DEFAULTS
 from ...externals.decorator import decorator
 from ..._freesurfer import (vertex_to_mni, read_talxfm, read_freesurfer_lut,
-                            _get_head_surface, _get_skull_surface,
-                            _get_transforms_to_coord_frame)
+                            _get_head_surface, _get_skull_surface)
 from ...io.pick import pick_types
 from ...io.meas_info import Info
 from ...surface import (mesh_edges, _mesh_borders, _marching_cubes,
                         get_meg_helmet_surf)
 from ...source_space import SourceSpaces
-from ...transforms import apply_trans, invert_transform, _get_trans
+from ...transforms import (apply_trans, invert_transform, _get_trans,
+                           _get_transforms_to_coord_frame)
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn,
                       get_subjects_dir, _check_fname)
