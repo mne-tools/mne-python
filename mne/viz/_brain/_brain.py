@@ -2542,6 +2542,7 @@ class Brain(object):
         %(info_not_none)s
         %(trans_not_none)s
         %(meg)s
+        %(eeg)s
         %(fnirs)s
         %(ecog)s
         %(seeg)s
