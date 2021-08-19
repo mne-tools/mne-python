@@ -70,9 +70,9 @@ fig_T1 = plot_anat(t1_fname, cut_coords=mri_pos[0],
                    title=f'Dipole location: {label}')
 
 try:
-      template = load_mni152_template(resolution=1)
+    template = load_mni152_template(resolution=1)
 except TypeError:  # in nilearn < 0.8.1 this did not exist
-      template = load_mni152_template()
+    template = load_mni152_template()
 fig_template = plot_anat(template, cut_coords=mni_pos[0],
                          title='Dipole loc. (MNI Space)')
 
