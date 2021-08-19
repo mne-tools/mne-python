@@ -381,7 +381,7 @@ epochs['auditory'].average()
 # It is common in ERP research to extract measures of amplitude or latency to
 # compare across different conditions. There are many measures that can be
 # extracted from ERPs, and many of these are detailed (including the respective
-# strengths and weaknesses) in Ch. 10 of Luck :footcite:`Luck2014` (also see
+# strengths and weaknesses) in Ch. 9 of Luck :footcite:`Luck2014` (also see
 # the `Measurement Tool <https://bit.ly/37uydRw>`_ in the ERPLAB Toolbox
 # :footcite:`Lopez-CalderonLuck2014`).
 #
