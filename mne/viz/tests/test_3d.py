@@ -22,7 +22,6 @@ from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  setup_volume_source_space, read_forward_solution,
                  convert_forward_solution, MixedSourceEstimate)
 from mne.source_estimate import _BaseVolSourceEstimate
-from mne.forward import _create_meg_coils
 from mne.io import (read_raw_ctf, read_raw_bti, read_raw_kit, read_info,
                     read_raw_nirx)
 from mne.io._digitization import write_dig

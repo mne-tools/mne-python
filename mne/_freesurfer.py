@@ -10,16 +10,13 @@ import numpy as np
 from gzip import GzipFile
 
 from .bem import _bem_find_surface, read_bem_surfaces
-from .io import _loc_to_coil_trans
 from .io.constants import FIFF
 from .io.meas_info import read_fiducials
-from .io.pick import channel_type, _FNIRS_CH_TYPES_SPLIT, _MEG_CH_TYPES_SPLIT
 from .transforms import (apply_trans, invert_transform, combine_transforms,
-                         _ensure_trans, read_ras_mni_t, Transform, _get_trans,
-                         _frame_to_str)
+                         _ensure_trans, read_ras_mni_t, Transform)
 from .surface import read_surface, _read_mri_surface
 from .utils import (verbose, _validate_type, _check_fname, _check_option,
-                    get_subjects_dir, _require_version, logger, warn)
+                    get_subjects_dir, _require_version, logger)
 
 
 def _check_subject_dir(subject, subjects_dir):
@@ -449,61 +446,6 @@ def estimate_head_mri_t(subject, subjects_dir=None, verbose=None):
     montage = make_dig_montage(lpa=lpa['r'], nasion=nasion['r'], rpa=rpa['r'],
                                coord_frame='mri')
     return invert_transform(compute_native_head_t(montage))
-
-
-@verbose
-def _ch_pos_in_coord_frame(info, to_cf_t, warn_meg=True, verbose=None):
-    """Transform positions from head/device/mri to a coordinate frame."""
-    from .forward import _create_meg_coils
-    from .viz._3d import _sensor_shape
-    chs = dict(ch_pos=dict(), sources=dict(), detectors=dict())
-    unknown_chs = list()  # prepare for chs with unknown coordinate frame
-    type_counts = dict()
-    for idx in range(info['nchan']):
-        ch_type = channel_type(info, idx)
-        if ch_type in type_counts:
-            type_counts[ch_type] += 1
-        else:
-            type_counts[ch_type] = 1
-        type_slices = dict(ch_pos=slice(0, 3))
-        if ch_type in _FNIRS_CH_TYPES_SPLIT:
-            # add sensors and detectors too for fNIRS
-            type_slices.update(sources=slice(3, 6), detectors=slice(6, 9))
-        for type_name, type_slice in type_slices.items():
-            if ch_type in _MEG_CH_TYPES_SPLIT + ('ref_meg',):
-                coil_trans = _loc_to_coil_trans(info['chs'][idx]['loc'])
-                coil = _create_meg_coils([info['chs'][idx]], acc='normal')[0]
-                # store verts as ch_coord
-                ch_coord, triangles = _sensor_shape(coil)
-                ch_coord = apply_trans(coil_trans, ch_coord)
-                if len(ch_coord) == 0 and warn_meg:
-                    warn(f'MEG sensor {info.ch_names[idx]} not found.')
-            else:
-                ch_coord = info['chs'][idx]['loc'][type_slice]
-            ch_coord_frame = info['chs'][idx]['coord_frame']
-            if ch_coord_frame not in (FIFF.FIFFV_COORD_UNKNOWN,
-                                      FIFF.FIFFV_COORD_DEVICE,
-                                      FIFF.FIFFV_COORD_HEAD,
-                                      FIFF.FIFFV_COORD_MRI):
-                raise RuntimeError(
-                    f'Channel {info.ch_names[idx]} has coordinate frame '
-                    f'{ch_coord_frame}, must be "meg", "head" or "mri".')
-            # set unknown as head first
-            if ch_coord_frame == FIFF.FIFFV_COORD_UNKNOWN:
-                unknown_chs.append(info.ch_names[idx])
-                ch_coord_frame = FIFF.FIFFV_COORD_HEAD
-            ch_coord = apply_trans(
-                to_cf_t[_frame_to_str[ch_coord_frame]], ch_coord)
-            if ch_type in _MEG_CH_TYPES_SPLIT + ('ref_meg',):
-                chs[type_name][info.ch_names[idx]] = (ch_coord, triangles)
-            else:
-                chs[type_name][info.ch_names[idx]] = ch_coord
-    if unknown_chs:
-        warn(f'Got coordinate frame "unknown" for {unknown_chs}, assuming '
-             '"head" coordinates.')
-    logger.info('Channel types::\t' + ', '.join(
-        [f'{ch_type}: {count}' for ch_type, count in type_counts.items()]))
-    return chs['ch_pos'], chs['sources'], chs['detectors']
 
 
 def _ensure_image_in_surface_RAS(image, subject, subjects_dir):
