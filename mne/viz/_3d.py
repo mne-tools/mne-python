@@ -954,7 +954,7 @@ def _plot_sensors(info, to_cf_t, renderer, picks, meg, eeg, fnirs,
                 destination=detectors[ch_name][np.newaxis] * scalar)
 
     # add projected eeg
-    eeg_indices = pick_types(info, eeg=True, exclude=())
+    eeg_indices = pick_types(info, eeg=True)
     if eeg_indices.size > 0 and 'projected' in eeg:
         logger.info('Projecting sensors to the head surface')
         eeg_loc = np.array([
