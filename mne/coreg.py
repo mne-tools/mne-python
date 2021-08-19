@@ -1771,6 +1771,7 @@ class Coregistration(object):
                    f'{match}')
             raise ValueError(msg)
         self._icp_fid_match = match
+        return self
 
     @verbose
     def fit_icp(self, n_iterations=20, lpa_weight=1., nasion_weight=10.,
