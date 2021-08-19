@@ -119,6 +119,7 @@ def pytest_configure(config):
     ignore:Call to deprecated method.*Deprecated since.*:DeprecationWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     ignore:.*rcParams is deprecated.*global_theme.*:DeprecationWarning
+    ignore:.*distutils\.sysconfig module is deprecated.*:DeprecationWarning
     ignore:.*moved to a new package \(mne-connectivity\).*:DeprecationWarning
     always::ResourceWarning
     """  # noqa: E501
