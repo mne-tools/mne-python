@@ -515,11 +515,10 @@ def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
             else:
                 index = list(range(1, n_labels + 1))
                 if t_power == 1:
-                    sums = ndimage.measurements.sum(x, labels, index=index)
+                    sums = ndimage.sum(x, labels, index=index)
                 else:
-                    sums = ndimage.measurements.sum(np.sign(x) *
-                                                    np.abs(x) ** t_power,
-                                                    labels, index=index)
+                    sums = ndimage.sum(np.sign(x) * np.abs(x) ** t_power,
+                                       labels, index=index)
         else:
             # boolean masks (raveled)
             clusters = list()
