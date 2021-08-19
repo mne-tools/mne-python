@@ -442,7 +442,7 @@ for pi, proj in enumerate((False, True, 'reconstruct')):
             ax.set(ylabel=f'{parts[0]} ({ax.get_ylabel()})\n'
                           f'{parts[1].replace(")", "")}')
     axes[0, pi].set(title=f'proj={proj}')
-    axes[0, pi].texts = []
+    axes[0, pi].texts.clear()
 plt.setp(axes[1:, :].ravel(), title='')
 plt.setp(axes[:, 1:].ravel(), ylabel='')
 plt.setp(axes[:-1, :].ravel(), xlabel='')
