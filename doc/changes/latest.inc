@@ -135,6 +135,10 @@ Enhancements
 
 - Add :func:`mne.channels.read_dig_localite` to read Localite electrode location files (:gh:`9658` by `Clemens Brunner`_)
 
+- Add :meth:`mne.viz.Brain.add_sensors` to plot sensor locations (:gh:`9585` by `Alex Rockhill`_)
+
+- Add :func:`mne.coreg.estimate_head_mri_t` to estimate the head->mri transform from fsaverage fiducials (:gh:`9585` by `Alex Rockhill`_)
+
 Bugs
 ~~~~
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)
@@ -188,6 +192,10 @@ Bugs
 - Fix bug in :func:`mne.viz.plot_compare_evokeds` where confidence bands were not drawn if only one condition was plotted (:gh:`9663` by `Daniel McCloy`_)
 
 - Fix bug where setting of a montage with fNIRS data got set to "unknown" coordinate frame when it should have been in "head" (:gh:`9630` by `Alex Rockhill`_)
+
+- Fix bug where "seeg", "ecog", "dbs" and "fnirs" data had coordinate frame unknown upon loading from a file when it should have been in "head" (:gh:`9580` by `Alex Rockhill`_)
+
+- Raise error when no ``trans`` is provided to :func:`mne.viz.plot_alignment` when required instead of assuming identitiy head->mri transform (:gh:`9585` by `Alex Rockhill`_)
 
 API changes
 ~~~~~~~~~~~

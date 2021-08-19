@@ -2588,6 +2588,48 @@ pipeline : str | tuple
         The affine steps (first three) will be performed, i.e., omitting
         the SDR step.
 """
+
+# 3D viewing
+docdict['meg'] = """
+meg : str | list | bool | None
+    Can be "helmet", "sensors" or "ref" to show the MEG helmet, sensors or
+    reference sensors respectively, or a combination like
+    ``('helmet', 'sensors')`` (same as None, default). True translates to
+    ``('helmet', 'sensors', 'ref')``.
+"""
+docdict['eeg'] = """
+eeg : bool | str | list
+    String options are:
+
+    - "original" (default; equivalent to ``True``)
+        Shows EEG sensors using their digitized locations (after
+        transformation to the chosen ``coord_frame``)
+    - "projected"
+        The EEG locations projected onto the scalp, as is done in
+        forward modeling
+
+    Can also be a list of these options, or an empty list (``[]``,
+    equivalent of ``False``).
+"""
+docdict['fnirs'] = """
+fnirs : str | list | bool | None
+    Can be "channels", "pairs", "detectors", and/or "sources" to show the
+    fNIRS channel locations, optode locations, or line between
+    source-detector pairs, or a combination like ``('pairs', 'channels')``.
+    True translates to ``('pairs',)``.
+"""
+docdict['ecog'] = """
+ecog : bool
+    If True (default), show ECoG sensors.
+"""
+docdict['seeg'] = """
+seeg : bool
+    If True (default), show sEEG electrodes.
+"""
+docdict['dbs'] = """
+dbs : bool
+    If True (default), show DBS (deep brain stimulation) electrodes.
+"""
 docdict_indented = {}
 
 

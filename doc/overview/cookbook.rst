@@ -314,7 +314,7 @@ for each experimental session, *i.e.*, each time when new head
 digitization data are employed.
 
 The corregistration is stored in ``-trans.fif`` file. If is present,
-you can follow :ref:`plot_source_alignment` to validate its correctness.
+you can follow :ref:`tut-source-alignment` to validate its correctness.
 If the ``-trans.fif`` is not present or the alignment is not correct
 you need to use :func:`mne.gui.coregistration` (or its convenient command line
 equivalent :ref:`mne coreg`) to generate it.

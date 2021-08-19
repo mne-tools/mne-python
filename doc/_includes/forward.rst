@@ -690,7 +690,7 @@ EEG forward solution in the sphere model
    dataset tutorial <plt_brainstorm_phantom_ctf_eeg_sphere_geometry>`,
    :ref:`Brainstorm Elekta phantom dataset tutorial
    <plt_brainstorm_phantom_elekta_eeg_sphere_geometry>`, and
-   :ref:`plot_source_alignment_without_mri`.
+   :ref:`tut-source-alignment-without-mri`.
 
 When the sphere model is employed, the computation of the EEG solution can be
 substantially accelerated by using approximation methods described by Mosher

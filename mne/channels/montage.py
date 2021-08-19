@@ -392,7 +392,7 @@ class DigMontage(object):
 
         See Also
         --------
-        :ref:`plot_source_alignment`
+        :ref:`tut-source-alignment`
 
         Notes
         -----

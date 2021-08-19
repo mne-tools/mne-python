@@ -15,6 +15,7 @@ Step by step instructions for using :func:`gui.coregistration`:
    :toctree: generated/
 
    coreg.get_mni_fiducials
+   coreg.estimate_head_mri_t
    get_montage_volume_labels
    gui.coregistration
    gui.fiducials

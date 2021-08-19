@@ -685,6 +685,22 @@ def get_ras_to_neuromag_trans(nasion, lpa, rpa):
     return trans
 
 
+def _get_transforms_to_coord_frame(info, trans, coord_frame='mri'):
+    """Get the transforms to a coordinate frame from device, head and mri."""
+    head_mri_t = _get_trans(trans, 'head', 'mri')[0]
+    dev_head_t = _get_trans(info['dev_head_t'], 'meg', 'head')[0]
+    mri_dev_t = invert_transform(combine_transforms(
+        dev_head_t, head_mri_t, 'meg', 'mri'))
+    to_cf_t = dict(
+        meg=_ensure_trans([dev_head_t, mri_dev_t, Transform('meg', 'meg')],
+                          fro='meg', to=coord_frame),
+        head=_ensure_trans([dev_head_t, head_mri_t, Transform('head', 'head')],
+                           fro='head', to=coord_frame),
+        mri=_ensure_trans([head_mri_t, mri_dev_t, Transform('mri', 'mri')],
+                          fro='mri', to=coord_frame))
+    return to_cf_t
+
+
 ###############################################################################
 # Spherical coordinates and harmonics
 
