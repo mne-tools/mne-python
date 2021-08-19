@@ -164,7 +164,7 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 # Now let's see how to view all sources in 3D.
 
 fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
-                             surfaces='white', coord_frame='head',
+                             surfaces='white', coord_frame='mri',
                              src=src)
 mne.viz.set_3d_view(fig, azimuth=173.78, elevation=101.75,
                     distance=0.30, focalpoint=(-0.03, -0.01, 0.03))
