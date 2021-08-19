@@ -39,7 +39,7 @@ from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          rot_to_quat, _angle_between_quats)
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
                     warn, has_nibabel, fill_doc, _validate_type,
-                    _check_subject)
+                    _check_subject, _check_option)
 from .viz._3d import _fiducial_coords
 
 # some path templates
@@ -1627,19 +1627,14 @@ class Coregistration(object):
 
     def _get_processed_mri_points(self, res):
         bem = self._bem_low_res if res == 'low' else self._bem_high_res
+        points = bem['rr'].copy()
         if self._grow_hair:
-            if len(bem['nn']):
-                scaled_hair_dist = (1e-3 * self._grow_hair /
-                                    np.array(self._scale))
-                points = bem['rr'].copy()
-                hair = points[:, 2] > points[:, 1]
-                points[hair] += bem['nn'][hair] * scaled_hair_dist
-                return points
-            else:
-                raise ValueError("Norms missing from bem, can't grow hair")
-                self._grow_hair = 0
-        else:
-            return bem['rr']
+            assert len(bem['nn'])  # should be guaranteed by _read_surface
+            scaled_hair_dist = (1e-3 * self._grow_hair /
+                                np.array(self._scale))
+            hair = points[:, 2] > points[:, 1]
+            points[hair] += bem['nn'][hair] * scaled_hair_dist
+        return points
 
     @property
     def _has_mri_data(self):
@@ -1766,10 +1761,7 @@ class Coregistration(object):
             any point on the head surface; ``'matched'`` aligns to the fiducial
             points in the MRI.
         """
-        if match not in self._icp_fid_matches:
-            msg = (f'"match" must be one of {self._icp_fid_matches}, got '
-                   f'{match}')
-            raise ValueError(msg)
+        _check_option('match', match, self._icp_fid_matches)
         self._icp_fid_match = match
         return self
 
