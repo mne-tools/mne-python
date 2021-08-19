@@ -406,6 +406,7 @@ epochs['auditory'].average()
 # the ~mne.Evoked~ object.
 # Second, the `~mne.Evoked.get_peak` method can find different 'types' of
 # peaks using the ``mode`` argument. There are three options:
+#
 # * ``mode='pos'``: finds the peak with a positive voltage (ignores
 #   negative voltages)
 # * ``mode='neg'``: finds the peak with a negative voltage (ignores
@@ -490,8 +491,11 @@ _, bad_lat_roi, bad_amp_roi = \
     l_vis_roi.get_peak(mode='pos', tmin=bad_tmin, tmax=bad_tmax,
                        return_amplitude=True)
 
+# Convert latency and amplitude to msec and microvolts
 bad_lat_roi *= 1e3
 bad_amp_roi *= 1e6
+
+# Print output
 print('** BAD TIME WINDOW **')
 print('Channel: eeg59')
 print(f'Peak Latency: {bad_lat_roi:.3f} msec')
