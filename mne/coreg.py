@@ -1760,6 +1760,11 @@ class Coregistration(object):
             Alignment strategy; ``'nearest'`` aligns anatomical landmarks to
             any point on the head surface; ``'matched'`` aligns to the fiducial
             points in the MRI.
+
+        Returns
+        -------
+        self : Coregistration
+            The modified Coregistration object.
         """
         _check_option('match', match, self._icp_fid_matches)
         self._icp_fid_match = match
