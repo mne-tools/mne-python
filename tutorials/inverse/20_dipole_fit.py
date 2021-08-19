@@ -115,7 +115,7 @@ dip_fixed = mne.fit_dipole(evoked_full, fname_cov, fname_bem, fname_trans,
                            pos=dip.pos[best_idx], ori=dip.ori[best_idx])[0]
 dip_fixed.plot(time_unit='s')
 
-##############################################################################
+# %%
 # References
 # ----------
 # .. footbibliography::

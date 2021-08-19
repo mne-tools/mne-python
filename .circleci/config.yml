@@ -126,6 +126,9 @@ jobs:
                python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
                python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
                python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
+        - run:
+            name: List packages
+            command: python -m pip list
 
         # Figure out if we should run a full, pattern, or noplot version
         - restore_cache:
