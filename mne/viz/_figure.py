@@ -262,12 +262,27 @@ class BrowserBase(ABC):
     # MANAGE DATA
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+    def _get_start_stop(self):
+        # update time
+        start_sec = self.mne.t_start - self.mne.first_time
+        stop_sec = start_sec + self.mne.duration
+        if self.mne.is_epochs:
+            start, stop = np.round(np.array([start_sec, stop_sec])
+                                   * self.mne.info['sfreq']).astype(int)
+        else:
+            start, stop = self.mne.inst.time_as_index((start_sec, stop_sec))
+
+        return start, stop
+
     def _load_data(self, start=None, stop=None):
         """Retrieve the bit of data we need for plotting."""
         if 'raw' in (self.mne.instance_type, self.mne.ica_type):
             # Add additional sample to cover the case sfreq!=1000
             # when the shown time-range wouldn't correspond to duration anymore
-            return self.mne.inst[:, start:stop + 2]
+            if stop is None:
+                return self.mne.inst[:, start:]
+            else:
+                return self.mne.inst[:, start:stop + 2]
         else:
             # subtract one sample from tstart before searchsorted, to make sure
             # we land on the left side of the boundary time (avoid precision
@@ -280,47 +295,49 @@ class BrowserBase(ABC):
                               )[start:stop] / self.mne.info['sfreq']
             return data, times
 
-    def _update_data(self):
-        """Update self.mne.data after user interaction."""
+    def _apply_filter(self, data, start, stop, picks):
+        """filter (with same defaults as raw.filter())"""
         from ..filter import _overlap_add_filter, _filtfilt
-        # update time
-        start_sec = self.mne.t_start - self.mne.first_time
-        stop_sec = start_sec + self.mne.duration
-        if self.mne.is_epochs:
-            start, stop = np.round(np.array([start_sec, stop_sec])
-                                   * self.mne.info['sfreq']).astype(int)
-        else:
-            start, stop = self.mne.inst.time_as_index((start_sec, stop_sec))
-        # get the data
-        data, times = self._load_data(start, stop)
+        starts, stops = self.mne.filter_bounds
+        mask = (starts < stop) & (stops > start)
+        starts = np.maximum(starts[mask], start) - start
+        stops = np.minimum(stops[mask], stop) - start
+        for _start, _stop in zip(starts, stops):
+            _picks = np.where(np.in1d(picks, self.mne.picks_data))[0]
+            if len(_picks) == 0:
+                break
+            this_data = data[_picks, _start:_stop]
+            if isinstance(self.mne.filter_coefs, np.ndarray):  # FIR
+                this_data = _overlap_add_filter(
+                    this_data, self.mne.filter_coefs, copy=False)
+            else:  # IIR
+                this_data = _filtfilt(
+                    this_data, self.mne.filter_coefs, None, 1, False)
+            data[_picks, _start:_stop] = this_data
+
+    def _process_data(self, data, start, stop, picks,
+                      signals=None):
+        """Update self.mne.data after user interaction."""
         # apply projectors
         if self.mne.projector is not None:
+            if signals:
+                signals.processText.emit('Applying Projectors...')
             data = self.mne.projector @ data
         # get only the channels we're displaying
-        picks = self.mne.picks
         data = data[picks]
         # remove DC
         if self.mne.remove_dc:
+            if signals:
+                signals.processText.emit('Removing DC...')
             data -= data.mean(axis=1, keepdims=True)
-        # filter (with same defaults as raw.filter())
+        # apply filter
         if self.mne.filter_coefs is not None:
-            starts, stops = self.mne.filter_bounds
-            mask = (starts < stop) & (stops > start)
-            starts = np.maximum(starts[mask], start) - start
-            stops = np.minimum(stops[mask], stop) - start
-            for _start, _stop in zip(starts, stops):
-                _picks = np.where(np.in1d(picks, self.mne.picks_data))[0]
-                if len(_picks) == 0:
-                    break
-                this_data = data[_picks, _start:_stop]
-                if isinstance(self.mne.filter_coefs, np.ndarray):  # FIR
-                    this_data = _overlap_add_filter(
-                        this_data, self.mne.filter_coefs, copy=False)
-                else:  # IIR
-                    this_data = _filtfilt(
-                        this_data, self.mne.filter_coefs, None, 1, False)
-                data[_picks, _start:_stop] = this_data
+            if signals:
+                signals.processText.emit('Apply Filter...')
+            self._apply_filter(data, start, stop, picks)
         # scale the data for display in a 1-vertical-axis-unit slot
+        if signals:
+            signals.processText.emit('Scale Data...')
         this_names = self.mne.ch_names[picks]
         this_types = self.mne.ch_types[picks]
         stims = this_types == 'stim'
@@ -332,6 +349,16 @@ class BrowserBase(ABC):
         norms[white] = self.mne.scalings['whitened']
         norms[norms == 0] = 1
         data /= 2 * norms[:, np.newaxis]
+
+        return data
+
+    def _update_data(self):
+        start, stop = self._get_start_stop()
+        # get the data
+        data, times = self._load_data(start, stop)
+        # process the data
+        data = self._process_data(data, start, stop, self.mne.picks)
+        # set the data as attributes
         self.mne.data = data
         self.mne.times = times
 
