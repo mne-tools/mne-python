@@ -39,7 +39,7 @@ from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          rot_to_quat, _angle_between_quats)
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
                     warn, has_nibabel, fill_doc, _validate_type,
-                    _check_subject)
+                    _check_subject, _check_option)
 from .viz._3d import _fiducial_coords
 
 # some path templates
@@ -1627,19 +1627,14 @@ class Coregistration(object):
 
     def _get_processed_mri_points(self, res):
         bem = self._bem_low_res if res == 'low' else self._bem_high_res
+        points = bem['rr'].copy()
         if self._grow_hair:
-            if len(bem['nn']):
-                scaled_hair_dist = (1e-3 * self._grow_hair /
-                                    np.array(self._scale))
-                points = bem['rr'].copy()
-                hair = points[:, 2] > points[:, 1]
-                points[hair] += bem['nn'][hair] * scaled_hair_dist
-                return points
-            else:
-                raise ValueError("Norms missing from bem, can't grow hair")
-                self._grow_hair = 0
-        else:
-            return bem['rr']
+            assert len(bem['nn'])  # should be guaranteed by _read_surface
+            scaled_hair_dist = (1e-3 * self._grow_hair /
+                                np.array(self._scale))
+            hair = points[:, 2] > points[:, 1]
+            points[hair] += bem['nn'][hair] * scaled_hair_dist
+        return points
 
     @property
     def _has_mri_data(self):
@@ -1726,10 +1721,10 @@ class Coregistration(object):
                 self._nearest_transformed_high_res_mri_idx_hsp])
             weights.append(np.full(len(head_pts[-1]), self._hsp_weight))
         for key in ('lpa', 'nasion', 'rpa'):
-            if getattr(self, '_has_%s_data' % key):
+            if getattr(self, f'_has_{key}_data'):
                 head_pts.append(self._dig_dict[key])
                 if self._icp_fid_match == 'matched':
-                    mri_pts.append(getattr(self, key))
+                    mri_pts.append(getattr(self, f'_{key}'))
                 else:
                     assert self._icp_fid_match == 'nearest'
                     mri_pts.append(self._processed_high_res_mri_points[
@@ -1755,6 +1750,25 @@ class Coregistration(object):
         if n_scale_params == 0:
             mri_pts *= self._scale  # not done in fit_matched_points
         return head_pts, mri_pts, weights
+
+    def set_fid_match(self, match):
+        """Set the strategy for fitting anatomical landmark (fiducial) points.
+
+        Parameters
+        ----------
+        match : 'nearest' | 'matched'
+            Alignment strategy; ``'nearest'`` aligns anatomical landmarks to
+            any point on the head surface; ``'matched'`` aligns to the fiducial
+            points in the MRI.
+
+        Returns
+        -------
+        self : Coregistration
+            The modified Coregistration object.
+        """
+        _check_option('match', match, self._icp_fid_matches)
+        self._icp_fid_match = match
+        return self
 
     @verbose
     def fit_icp(self, n_iterations=20, lpa_weight=1., nasion_weight=10.,
