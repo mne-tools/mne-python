@@ -451,9 +451,7 @@ def estimate_head_mri_t(subject, subjects_dir=None, verbose=None):
     return invert_transform(compute_native_head_t(montage))
 
 
-@verbose
-def _get_transforms_to_coord_frame(info, trans, coord_frame='mri',
-                                   verbose=None):
+def _get_transforms_to_coord_frame(info, trans, coord_frame='mri'):
     """Get the transforms to a coordinate frame from device, head and mri."""
     head_mri_t = _get_trans(trans, 'head', 'mri')[0]
     dev_head_t = _get_trans(info['dev_head_t'], 'meg', 'head')[0]
@@ -783,9 +781,9 @@ def _get_skull_surface(surf, subject, subjects_dir, bem=None, verbose=None):
             logger.info('Could not find the surface for '
                         'skull in the provided BEM model, '
                         'looking in the subject directory.')
-    fname = op.join(get_subjects_dir(subjects_dir, raise_error=True),
-                    subject, 'bem', surf + '_skull.surf')
-    if not op.isfile(fname):
-        raise ValueError('Skull surface cannot be found, should be '
-                         f'located at {fname}')
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    fname = _check_fname(op.join(subjects_dir, subject, 'bem',
+                                 surf + '_skull.surf'),
+                         overwrite='read', must_exist=True,
+                         name=f'{surf} skull surface')
     return _read_mri_surface(fname)

@@ -2541,34 +2541,11 @@ class Brain(object):
         ----------
         %(info_not_none)s
         %(trans_not_none)s
-        meg : str | list | bool | None
-            Can be "helmet", "sensors" or "ref" to show the MEG helmet, sensors
-            or reference sensors respectively, or a combination like
-            ``('helmet', 'sensors')`` (same as None, default). True translates
-            to ``('helmet', 'sensors', 'ref')``.
-        eeg : bool | str | list
-            String options are:
-
-            - "original" (default; equivalent to ``True``)
-                Shows EEG sensors using their digitized locations (after
-                transformation to the chosen ``coord_frame``)
-            - "projected"
-                The EEG locations projected onto the scalp, as is done in
-                forward modeling
-
-            Can also be a list of these options, or an empty list (``[]``,
-            equivalent of ``False``).
-        fnirs : str | list | bool | None
-            Can be "channels", "pairs", "detectors", and/or "sources" to show
-            the fNIRS channel locations, optode locations, or line between
-            source-detector pairs, or a combination like
-            ``('pairs', 'channels')``. True translates to ``('pairs',)``.
-        ecog : bool
-            If True (default), show ECoG sensors.
-        seeg : bool
-            If True (default), show sEEG electrodes.
-        dbs : bool
-            If True (default), show DBS (deep brain stimulation) electrodes.
+        %(meg)s
+        %(fnirs)s
+        %(ecog)s
+        %(seeg)s
+        %(dbs)s
         %(verbose)s
 
         Notes
@@ -2585,7 +2562,7 @@ class Brain(object):
         del trans
         # get transforms to "mri"window
         to_cf_t = _get_transforms_to_coord_frame(
-            info, head_mri_t, coord_frame='mri', verbose=verbose)
+            info, head_mri_t, coord_frame='mri')
         if pick_types(info, eeg=True, exclude=()).size > 0 and \
                 'projected' in eeg:
             head_surf = _get_head_surface(
@@ -2595,7 +2572,7 @@ class Brain(object):
         # Do the main plotting
         if picks.size > 0:
             _plot_sensors(info, to_cf_t, self._renderer, picks, meg, eeg,
-                          fnirs, head_surf, warn_meg, self._units, verbose)
+                          fnirs, head_surf, warn_meg, self._units)
 
         if 'helmet' in meg and pick_types(info.copy(), meg=True).size > 0:
             surf = get_meg_helmet_surf(info, head_mri_t)

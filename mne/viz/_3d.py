@@ -24,7 +24,7 @@ from ..fixes import _crop_colorbar, _get_img_fdata, _get_args
 from .._freesurfer import (_read_mri_info, _check_mri, _get_head_surface,
                            _ch_pos_in_coord_frame, _get_skull_surface,
                            _get_transforms_to_coord_frame)
-from ..io.pick import (pick_types, _picks_to_idx, channel_type,
+from ..io.pick import (pick_types, _picks_to_idx, channel_type, pick_info,
                        _FNIRS_CH_TYPES_SPLIT, _MEG_CH_TYPES_SPLIT)
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials, create_info
@@ -428,9 +428,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     ----------
     %(info)s If None (default), no sensor information will be shown.
     %(trans)s
-    subject : str | None
-        The subject name corresponding to FreeSurfer environment
-        variable SUBJECT. Can be omitted if ``src`` is provided.
+    %(subject)s Can be omitted if ``src`` is provided.
     %(subjects_dir)s
     surfaces : str | list | dict
         Surfaces to plot. Supported values:
@@ -454,31 +452,15 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         .. note:: For single layer BEMs it is recommended to use 'brain'.
     coord_frame : str
         Coordinate frame to use, 'head', 'meg', or 'mri'.
-    meg : str | list | bool | None
-        Can be "helmet", "sensors" or "ref" to show the MEG helmet, sensors or
-        reference sensors respectively, or a combination like
-        ``('helmet', 'sensors')`` (same as None, default). True translates to
-        ``('helmet', 'sensors', 'ref')``.
-    eeg : bool | str | list
-        String options are:
-
-        - "original" (default; equivalent to ``True``)
-            Shows EEG sensors using their digitized locations (after
-            transformation to the chosen ``coord_frame``)
-        - "projected"
-            The EEG locations projected onto the scalp, as is done in forward
-            modeling
-
-        Can also be a list of these options, or an empty list (``[]``,
-        equivalent of ``False``).
+    %(meg)s
+    %(eeg)s
     fwd : instance of Forward
         The forward solution. If present, the orientations of the dipoles
         present in the forward solution are displayed.
     dig : bool | 'fiducials'
         If True, plot the digitization points; 'fiducials' to plot fiducial
         points only.
-    ecog : bool
-        If True (default), show ECoG sensors.
+    %(ecog)s
     src : instance of SourceSpaces | None
         If not None, also plot the source space points.
     mri_fiducials : bool | str
@@ -496,14 +478,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         for ``'$SUBJECT*$SOURCE.fif'`` in the same directory. For
         ``'outer_skin'``, the subjects bem and bem/flash folders are searched.
         Defaults to None.
-    seeg : bool
-        If True (default), show sEEG electrodes.
-    fnirs : str | list | bool | None
-        Can be "channels", "pairs", "detectors", and/or "sources" to show the
-        fNIRS channel locations, optode locations, or line between
-        source-detector pairs, or a combination like ``('pairs', 'channels')``.
-        True translates to ``('pairs',)``.
-
+    %(seeg)s
+    %(fnirs)s
         .. versionadded:: 0.20
     show_axes : bool
         If True (default False), coordinate frame axis indicators will be
@@ -514,8 +490,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         * MEG in blue (if MEG sensors are present).
 
         .. versionadded:: 0.16
-    dbs : bool
-        If True (default), show DBS (deep brain stimulation) electrodes.
+    %(dbs)s
     fig : mayavi.mlab.Figure | None
         Mayavi Scene in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
@@ -559,7 +534,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     info = create_info(1, 1000., 'misc') if info is None else info
     _validate_type(info, "info")
-    info = info.copy()
 
     # Handle surfaces:
     if surfaces == 'auto' and trans is None:
@@ -833,7 +807,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     # plot sensors
     if picks.size > 0:
         _plot_sensors(info, to_cf_t, renderer, picks, meg, eeg, fnirs,
-                      warn_meg, head_surf, 'm', verbose)
+                      warn_meg, head_surf, 'm')
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
@@ -934,13 +908,11 @@ def _handle_sensor_types(meg, eeg, fnirs):
 
 
 def _plot_sensors(info, to_cf_t, renderer, picks, meg, eeg, fnirs,
-                  warn_meg, head_surf, units, verbose):
+                  warn_meg, head_surf, units):
     """Render sensors in a 3D scene."""
     defaults = DEFAULTS['coreg']
     ch_pos, sources, detectors = _ch_pos_in_coord_frame(
-        info.pick_channels([info.ch_names[idx] for idx in picks]),
-        to_cf_t=to_cf_t, warn_meg=warn_meg,
-        verbose=verbose)
+        pick_info(info, picks), to_cf_t=to_cf_t, warn_meg=warn_meg)
 
     for ch_name, ch_coord in ch_pos.items():
         ch_type = channel_type(info, info.ch_names.index(ch_name))
