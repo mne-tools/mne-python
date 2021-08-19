@@ -19,7 +19,7 @@ Version 0.23.1
 
 - Fix bug in `mne.viz.plot_topomap` (and related methods) where passing ``axes`` that are part of a matplotlib figure that uses a constrained layout would emit warnings (:gh:`9558` by `Eric Larson`_)
 
-- Fix bugs with deprecated uses of SciPy and matplotlib functionality (:gh:`9550`, :gh:`9561`, :gh:`9590`, and :gh:`9677` by `Eric Larson`_)
+- Fix bugs with deprecated uses of SciPy and matplotlib functionality (:gh:`9550`, :gh:`9561`, :gh:`9557`, :gh:`9590`, and :gh:`9677` by `Eric Larson`_)
 
 .. _changes_0_23_0:
 

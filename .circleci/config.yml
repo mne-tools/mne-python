@@ -113,7 +113,7 @@ jobs:
         # Load tiny cache so that ~/.mne does not need to be created below
         - restore_cache:
             keys:
-              - data-cache-tiny-0
+              - data-cache-tiny-0-23
 
         # Look at what we have and fail early if there is some library conflict
         - run:
@@ -261,7 +261,7 @@ jobs:
 
         # Keep these separate, maybe better in terms of size limitations (?)
         - save_cache:
-            key: data-cache-tiny-0  # < 100 M, might as well combine
+            key: data-cache-tiny-0-23  # < 100 M, might as well combine
             paths:
               - ~/.mne
               - ~/mne_data/MNE-kiloword-data  # (28 M)
