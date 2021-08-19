@@ -262,7 +262,7 @@ def test_plot_alignment(tmpdir, renderer, mixed_fwd_cov_evoked):
                    eeg='projected', meg='helmet', bem=sphere, dig=True,
                    surfaces=['brain', 'inner_skull', 'outer_skull',
                              'outer_skin'])
-    plot_alignment(info, trans_fname, subject='sample', meg='helmet',
+    plot_alignment(info, subject='sample', meg='helmet',
                    subjects_dir=subjects_dir, eeg='projected', bem=sphere,
                    surfaces=['head', 'brain'], src=sample_src)
     # no trans okay, no mri surfaces

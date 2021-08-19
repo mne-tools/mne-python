@@ -595,13 +595,14 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         if src is not None and _frame_to_str[src[0]['coord_frame']] == 'mri':
             needs_trans = 'source space'
         if len(surfaces) > 0:
-            # okay if only plotting sphere model
-            if surfaces != ['brain'] or bem is None or not bem['is_sphere']:
-                needs_trans = ', '.join(surfaces) + ' surfaces'
+            needs_trans = ', '.join(surfaces) + ' surfaces'
         if mri_fiducials is not False:
             needs_trans = 'mri fiducials'
         # only enforce needing `trans` if there are channels in "head"/"device"
         if picks.size == 0 and coord_frame == 'mri':  # not leaving "mri"
+            needs_trans = None
+        # if only plotting sphere model no trans needed
+        if bem is not None and bem['is_sphere']:
             needs_trans = None
         if needs_trans is not None:
             raise ValueError(
