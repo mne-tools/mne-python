@@ -196,7 +196,7 @@ del CT_data, T1
 #     $ freeview $MISC_PATH/seeg/sample_seeg_T1.mgz \
 #           $MISC_PATH/seeg/sample_seeg_CT.mgz
 
-###############################################################################
+# %%
 # Now, we'll make a montage with the channels that we've found in the
 # previous step.
 #
@@ -205,35 +205,34 @@ del CT_data, T1
 # load electrophysiology data with channel locations
 raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
 
-# MNE stores digitization montages in a coordinate frame called "head"
-# thus even though the channel positions were found in the reference frame of
-# Freesurfer surfaces when they were assigned to the ``raw`` object, they were
-# transformed to "head" so we need to have a transform to put them back
-subj_trans = mne.read_trans(op.join(misc_path, 'seeg',
-                                    'sample_seeg_trans.fif'))
-
 # create symbolic link to share ``subjects_dir``
-seeg_subject_dir = op.join(subjects_dir, 'sample_seeg')
-if not op.exists(seeg_subject_dir):
-    os.symlink(op.join(misc_path, 'seeg', 'sample_seeg'), seeg_subject_dir)
+if not op.exists(op.join(subjects_dir, 'sample_seeg')):
+    os.symlink(op.join(misc_path, 'seeg', 'sample_seeg'),
+               op.join(subjects_dir, 'sample_seeg'))
 
-###############################################################################
+# %%
 # Let's plot the electrode contact locations on the subject's brain.
+#
+# MNE stores digitization montages in a coordinate frame called "head"
+# defined by fiducial points (origin is halfway between the LPA and RPA
+# see :ref:`tut-source-alignment`). For sEEG, it is convenient to get an
+# estimate of the location of the fiducial points for the subject
+# using the Talairach transform (see :func:`mne.coreg.get_mni_fiducials`)
+# to use to define the coordinate frame so that we don't have to manually
+# identify their location. The estimated head->mri ``trans`` was used
+# when the electrode contacts were localized so we need to use it again here.
 
-# load the subject's brain
-subject_brain = nib.load(
-    op.join(misc_path, 'seeg', 'sample_seeg', 'mri', 'brain.mgz'))
+# estimate head->mri transform
+subj_trans = mne.coreg.estimate_head_mri_t('sample_seeg', subjects_dir)
 
 # plot the alignment
-fig_kwargs = dict(size=(800, 600), bgcolor='w', scene=False)
-renderer = mne.viz.backends.renderer.create_3d_figure(**fig_kwargs)
-al_kwargs = dict(
-    show_axes=True, surfaces=dict(pial=0.2), coord_frame='mri',
-    subjects_dir=subjects_dir)
-fig = mne.viz.plot_alignment(raw.info, subj_trans, 'sample_seeg',
-                             fig=renderer.figure, **al_kwargs)
-view_kwargs = dict(azimuth=60, elevation=100, distance=0.3)
-mne.viz.set_3d_view(fig, **view_kwargs)
+brain_kwargs = dict(cortex='low_contrast', alpha=0.2, background='white',
+                    subjects_dir=subjects_dir)
+brain = mne.viz.Brain('sample_seeg', **brain_kwargs)
+brain.add_sensors(raw.info, trans=subj_trans)
+view_kwargs = dict(azimuth=60, elevation=100, distance=350,
+                   focalpoint=(0, 0, -15))
+brain.show_view(**view_kwargs)
 
 # %%
 # Warping to a Common Atlas
@@ -249,7 +248,9 @@ mne.viz.set_3d_view(fig, **view_kwargs)
 # shape and size of brain areas, we need to fix the alignment of the brains.
 # The plot below shows that they are not yet aligned.
 
-# load the freesurfer average brain
+# load the subject's brain and the Freesurfer "fsaverage" template brain
+subject_brain = nib.load(
+    op.join(misc_path, 'seeg', 'sample_seeg', 'mri', 'brain.mgz'))
 template_brain = nib.load(
     op.join(subjects_dir, 'fsaverage', 'mri', 'brain.mgz'))
 
@@ -291,10 +292,10 @@ del subject_brain, template_brain
 # positions of all the voxels that had the contact's lookup number in
 # the warped image.
 
-# first we need our montage but it should be converted to "mri" coordinates
+# first we need our montage but it needs to be converted to "mri" coordinates
+# using our ``subj_trans``
 montage = raw.get_montage()
-# ``subj_trans`` is "mri" to "head", we need "head" to "mri"
-montage.apply_trans(mne.transforms.invert_transform(subj_trans))
+montage.apply_trans(subj_trans)
 
 montage_warped, elec_image, warped_elec_image = mne.warp_montage_volume(
     montage, CT_aligned, reg_affine, sdr_morph,
@@ -320,17 +321,22 @@ del CT_aligned
 
 # sphinx_gallery_thumbnail_number = 8
 
-# get native to head trans
-fsaverage_trans = mne.channels.compute_native_head_t(montage_warped)
+# first we need to add fiducials so that we can define the "head" coordinate
+# frame in terms of them (with the origin at the center between LPA and RPA)
+montage_warped.add_estimated_fiducials('fsaverage', subjects_dir)
 
-# set new montage
+# compute the head<->mri ``trans`` now using the fiducials
+template_trans = mne.channels.compute_native_head_t(montage_warped)
+
+# now we can set the montage and, because there are fiducials in the montage,
+# the montage will be properly transformed to "head" coordinates when we do
+# (this step uses ``template_trans`` but it is recomputed behind the scenes)
 raw.set_montage(montage_warped)
 
 # plot the resulting alignment
-renderer = mne.viz.backends.renderer.create_3d_figure(**fig_kwargs)
-fig = mne.viz.plot_alignment(raw.info, fsaverage_trans, 'fsaverage',
-                             fig=renderer.figure, **al_kwargs)
-mne.viz.set_3d_view(fig, **view_kwargs)
+brain = mne.viz.Brain('fsaverage', **brain_kwargs)
+brain.add_sensors(raw.info, trans=template_trans)
+brain.show_view(**view_kwargs)
 
 # %%
 # This pipeline was developed based on previous work

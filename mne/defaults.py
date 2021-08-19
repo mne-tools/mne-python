@@ -77,6 +77,8 @@ DEFAULTS = dict(
         head_color=(0.988, 0.89, 0.74),
         hpi_color=(1., 0., 1.),
         extra_color=(1., 1., 1.),
+        meg_color=(0., 0.25, 0.5), ref_meg_color=(0.5, 0.5, 0.5),
+        helmet_color=(0.0, 0.0, 0.6),
         eeg_color=(1., 0.596, 0.588), eegp_color=(0.839, 0.15, 0.16),
         ecog_color=(1., 1., 1.),
         dbs_color=(0.82, 0.455, 0.659),

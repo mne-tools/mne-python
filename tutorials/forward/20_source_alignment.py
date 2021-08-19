@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-.. _plot_source_alignment:
+.. _tut-source-alignment:
 
 Source alignment and coordinate frames
 ======================================
@@ -175,11 +175,12 @@ print('Distance from %s digitized points to head surface: %0.1f mm'
 #
 # A bad example
 # ^^^^^^^^^^^^^
-# Let's try using `~mne.viz.plot_alignment` with ``trans=None``, which
-# (incorrectly!) equates the MRI and head coordinate frames.
+# Let's try using `~mne.viz.plot_alignment` by making ``trans`` the identity
+# transform. This (incorrectly!) equates the MRI and head coordinate frames.
 
-mne.viz.plot_alignment(raw.info, trans=None, subject='sample', src=src,
-                       subjects_dir=subjects_dir, dig=True,
+identity_trans = mne.transforms.Transform('head', 'mri')
+mne.viz.plot_alignment(raw.info, trans=identity_trans, subject='sample',
+                       src=src, subjects_dir=subjects_dir, dig=True,
                        surfaces=['head-dense', 'white'], coord_frame='meg')
 
 # %%
@@ -327,7 +328,7 @@ renderer.show()
 # mne.gui.coregistration(subject='sample', subjects_dir=subjects_dir)
 
 # %%
-# .. _plot_source_alignment_without_mri:
+# .. _tut-source-alignment-without-mri:
 #
 # Alignment without MRI
 # ---------------------
@@ -340,7 +341,7 @@ renderer.show()
 sphere = mne.make_sphere_model(info=raw.info, r0='auto', head_radius='auto')
 src = mne.setup_volume_source_space(sphere=sphere, pos=10.)
 mne.viz.plot_alignment(
-    raw.info, eeg='projected', bem=sphere, src=src, dig=True,
+    raw.info, trans=trans, eeg='projected', bem=sphere, src=src, dig=True,
     surfaces=['brain', 'inner_skull', 'outer_skull', 'outer_skin'],
     coord_frame='meg', show_axes=True)
 

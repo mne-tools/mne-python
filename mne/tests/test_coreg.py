@@ -7,21 +7,24 @@ from shutil import copyfile, copytree
 import pytest
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
-                           assert_array_equal)
+                           assert_array_equal, assert_array_less)
 
 import mne
 from mne.datasets import testing
 from mne.transforms import (Transform, apply_trans, rotation, translation,
-                            scaling)
+                            scaling, read_trans, _angle_between_quats,
+                            rot_to_quat)
 from mne.coreg import (fit_matched_points, create_default_subject, scale_mri,
                        _is_mri_subject, scale_labels, scale_source_space,
-                       coregister_fiducials, get_mni_fiducials)
-from mne.io import read_fiducials
+                       coregister_fiducials, get_mni_fiducials, Coregistration)
+from mne.io import read_fiducials, read_info
 from mne.io.constants import FIFF
 from mne.utils import requires_nibabel, modified_env, check_version
 from mne.source_space import write_source_spaces
 
 data_path = testing.data_path(download=False)
+subjects_dir = os.path.join(data_path, 'subjects')
+fid_fname = op.join(subjects_dir, 'sample', 'bem', 'sample-fiducials.fif')
 
 
 @pytest.fixture
@@ -268,9 +271,6 @@ def test_fit_matched_points():
 @requires_nibabel()
 def test_get_mni_fiducials():
     """Test get_mni_fiducials."""
-    subjects_dir = op.join(data_path, 'subjects')
-    fid_fname = op.join(subjects_dir, 'sample', 'bem',
-                        'sample-fiducials.fif')
     fids, coord_frame = read_fiducials(fid_fname)
     assert coord_frame == FIFF.FIFFV_COORD_MRI
     assert [f['ident'] for f in fids] == list(range(1, 4))
@@ -279,3 +279,85 @@ def test_get_mni_fiducials():
     fids_est = np.array([f['r'] for f in fids_est])
     dists = np.linalg.norm(fids - fids_est, axis=-1) * 1000.  # -> mm
     assert (dists < 8).all(), dists
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    'scale_mode,ref_scale,grow_hair,fiducials,fid_match', [
+        (None, [1., 1., 1.], 0., None, 'nearest'),
+        (None, [1., 1., 1.], 0., 'estimated', 'nearest'),
+        (None, [1., 1., 1.], 2., 'auto', 'nearest'),
+        ('uniform', [1., 1., 1.], 0., None, 'nearest'),
+        ('3-axis', [1., 1., 1.], 0., 'auto', 'nearest'),
+        ('uniform', [0.8, 0.8, 0.8], 0., 'auto', 'nearest'),
+        ('3-axis', [0.8, 1.2, 1.2], 0., 'auto', 'matched')])
+def test_coregistration(scale_mode, ref_scale, grow_hair, fiducials,
+                        fid_match):
+    """Test automated coregistration."""
+    trans_fname = op.join(data_path, 'MEG', 'sample',
+                          'sample_audvis_trunc-trans.fif')
+    fname_raw = op.join(op.dirname(__file__), '..', 'io',
+                        'tests', 'data', 'test_raw.fif')
+    subject = 'sample'
+    if fiducials is None:
+        fiducials, coord_frame = read_fiducials(fid_fname)
+        assert coord_frame == FIFF.FIFFV_COORD_MRI
+    info = read_info(fname_raw)
+    for d in info['dig']:
+        d['r'] = d['r'] * ref_scale
+    trans = read_trans(trans_fname)
+    coreg = Coregistration(info, subject=subject, subjects_dir=subjects_dir,
+                           fiducials=fiducials)
+    assert np.allclose(coreg._last_parameters, coreg._parameters)
+    coreg.set_fid_match(fid_match)
+    default_params = list(coreg._default_parameters)
+    coreg.set_rotation(default_params[:3])
+    coreg.set_translation(default_params[3:6])
+    coreg.set_scale(default_params[6:9])
+    coreg.set_grow_hair(grow_hair)
+    coreg.set_scale_mode(scale_mode)
+    # Identity transform
+    errs_id = coreg.compute_dig_mri_distances()
+    is_scaled = ref_scale != [1., 1., 1.]
+    id_max = 0.03 if is_scaled and scale_mode == '3-axis' else 0.02
+    assert 0.005 < np.median(errs_id) < id_max
+    # Fiducial transform + scale
+    coreg.fit_fiducials(verbose=True)
+    assert coreg._extra_points_filter is None
+    coreg.omit_head_shape_points(distance=0.02)
+    assert coreg._extra_points_filter is not None
+    errs_fid = coreg.compute_dig_mri_distances()
+    assert_array_less(0, errs_fid)
+    if is_scaled or scale_mode is not None:
+        fid_max = 0.05
+        fid_med = 0.02
+    else:
+        fid_max = 0.03
+        fid_med = 0.01
+    assert_array_less(errs_fid, fid_max)
+    assert 0.001 < np.median(errs_fid) < fid_med
+    assert not np.allclose(coreg._parameters, default_params)
+    coreg.omit_head_shape_points(distance=-1)
+    coreg.omit_head_shape_points(distance=5. / 1000)
+    assert coreg._extra_points_filter is not None
+    # ICP transform + scale
+    coreg.fit_icp(verbose=True)
+    assert isinstance(coreg.trans, Transform)
+    errs_icp = coreg.compute_dig_mri_distances()
+    assert_array_less(0, errs_icp)
+    if is_scaled or scale_mode == '3-axis':
+        icp_max = 0.015
+    else:
+        icp_max = 0.01
+    assert_array_less(errs_icp, icp_max)
+    assert 0.001 < np.median(errs_icp) < 0.004
+    assert np.rad2deg(_angle_between_quats(
+        rot_to_quat(coreg.trans['trans'][:3, :3]),
+        rot_to_quat(trans['trans'][:3, :3]))) < 13
+    if scale_mode is None:
+        atol = 1e-7
+    else:
+        atol = 0.35
+    assert_allclose(coreg._scale, ref_scale, atol=atol)
+    coreg.reset()
+    assert_allclose(coreg._parameters, default_params)

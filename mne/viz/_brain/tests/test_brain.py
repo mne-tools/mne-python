@@ -9,7 +9,7 @@
 # License: Simplified BSD
 
 import os
-import os.path as path
+import os.path as op
 import sys
 
 import pytest
@@ -24,6 +24,7 @@ from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_space import (read_source_spaces,
                               setup_volume_source_space)
 from mne.datasets import testing
+from mne.io import read_info
 from mne.utils import check_version, requires_pysurfer
 from mne.label import read_label
 from mne.viz._brain import Brain, _LinkViewer, _BrainScraper, _LayeredMesh
@@ -34,17 +35,16 @@ from matplotlib.lines import Line2D
 
 data_path = testing.data_path(download=False)
 subject_id = 'sample'
-subjects_dir = path.join(data_path, 'subjects')
-fname_stc = path.join(data_path, 'MEG/sample/sample_audvis_trunc-meg')
-fname_label = path.join(data_path, 'MEG/sample/labels/Vis-lh.label')
-fname_cov = path.join(
-    data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
-fname_evoked = path.join(data_path, 'MEG', 'sample',
-                         'sample_audvis_trunc-ave.fif')
-fname_fwd = path.join(
-    data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-src_fname = path.join(data_path, 'subjects', 'sample', 'bem',
-                      'sample-oct-6-src.fif')
+subjects_dir = op.join(data_path, 'subjects')
+sample_dir = op.join(data_path, 'MEG', 'sample')
+fname_raw_testing = op.join(sample_dir, 'sample_audvis_trunc_raw.fif')
+fname_trans = op.join(sample_dir, 'sample_audvis_trunc-trans.fif')
+fname_stc = op.join(sample_dir, 'sample_audvis_trunc-meg')
+fname_label = op.join(sample_dir, 'labels', 'Vis-lh.label')
+fname_cov = op.join(sample_dir, 'sample_audvis_trunc-cov.fif')
+fname_evoked = op.join(sample_dir, 'sample_audvis_trunc-ave.fif')
+fname_fwd = op.join(sample_dir, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+src_fname = op.join(subjects_dir, subject_id, 'bem', 'sample-oct-6-src.fif')
 
 
 class _Collection(object):
@@ -315,20 +315,29 @@ def test_brain_init(renderer_pyvistaqt, tmpdir, pixel_ratio, brain_gc):
     brain.add_foci([0], coords_as_verts=True,
                    hemi=hemi, color='blue')
 
-    # add head
+    # add head and skull
     brain.add_head(color='red', alpha=0.1)
+    brain.add_skull(outer=True, color='green', alpha=0.1)
 
     # add volume labels
     brain.add_volume_labels(
         aseg='aseg', labels=('Brain-Stem', 'Left-Hippocampus',
                              'Left-Amygdala'))
+    # add sensors
+    info = read_info(fname_raw_testing)
+    brain.add_sensors(info, trans=fname_trans)
+
+    info['chs'][0]['coord_frame'] = 99
+    with pytest.raises(RuntimeError, match='must be "meg", "head" or "mri"'):
+        brain.add_sensors(info, trans=fname_trans)
+
     # add text
     brain.add_text(x=0, y=0, text='foo')
     brain.close()
 
     # add annotation
-    annots = ['aparc', path.join(subjects_dir, 'fsaverage', 'label',
-                                 'lh.PALS_B12_Lobes.annot')]
+    annots = ['aparc', op.join(subjects_dir, 'fsaverage', 'label',
+                               'lh.PALS_B12_Lobes.annot')]
     borders = [True, 2]
     alphas = [1, 0.5]
     colors = [None, 'r']
@@ -357,10 +366,10 @@ def test_brain_init(renderer_pyvistaqt, tmpdir, pixel_ratio, brain_gc):
         brain.show_view(view=dict(azimuth=180., elevation=90.))
 
     # image and screenshot
-    fname = path.join(str(tmpdir), 'test.png')
-    assert not path.isfile(fname)
+    fname = op.join(str(tmpdir), 'test.png')
+    assert not op.isfile(fname)
     brain.save_image(fname)
-    assert path.isfile(fname)
+    assert op.isfile(fname)
     fp = np.array(
         brain._renderer.figure.plotter.renderer.ComputeVisiblePropBounds())
     fp = (fp[1::2] + fp[::2]) * 0.5
@@ -409,7 +418,7 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
         pytest.skip('Save movie only supported on PyVista')
     from imageio_ffmpeg import count_frames_and_secs
     brain = _create_testing_brain(hemi='lh', time_viewer=False)
-    filename = str(path.join(tmpdir, "brain_test.mov"))
+    filename = str(op.join(tmpdir, "brain_test.mov"))
     for interactive_state in (False, True):
         # for coverage, we set interactivity
         if interactive_state:
@@ -419,13 +428,13 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
         with pytest.raises(TypeError, match='unexpected keyword argument'):
             brain.save_movie(filename, time_dilation=1, tmin=1, tmax=1.1,
                              bad_name='blah')
-        assert not path.isfile(filename)
+        assert not op.isfile(filename)
         tmin = 1
         tmax = 5
         duration = np.floor(tmax - tmin)
         brain.save_movie(filename, time_dilation=1., tmin=tmin,
                          tmax=tmax, interpolation='nearest')
-        assert path.isfile(filename)
+        assert op.isfile(filename)
         _, nsecs = count_frames_and_secs(filename)
         assert_allclose(duration, nsecs, atol=0.2)
 
@@ -774,8 +783,8 @@ something
     assert brain.plotter is None  # closed
     gif_0 = fnames[0][:-3] + 'gif'
     for fname in (gif_0, fnames[1]):
-        assert path.basename(fname) in rst
-        assert path.isfile(fname)
+        assert op.basename(fname) in rst
+        assert op.isfile(fname)
         img = image.imread(fname)
         assert img.shape[1] == screenshot.shape[1]  # same width
         assert img.shape[0] > screenshot.shape[0]  # larger height

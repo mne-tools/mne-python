@@ -33,7 +33,7 @@ from mne.io.meas_info import (Info, create_info, _merge_info,
                               _add_timedelta_to_stamp, _read_extended_ch_info)
 from mne.minimum_norm import (make_inverse_operator, write_inverse_operator,
                               read_inverse_operator, apply_inverse)
-from mne.io._digitization import _write_dig_points, _make_dig_points
+from mne.io._digitization import _write_dig_points, _make_dig_points, DigPoint
 from mne.io import read_raw_ctf
 from mne.transforms import Transform
 from mne.utils import catch_logging, assert_object_equal
@@ -159,6 +159,8 @@ def test_fiducials_io(tmpdir):
         assert pt['ident'] == pt_1['ident']
         assert pt['coord_frame'] == pt_1['coord_frame']
         assert_array_equal(pt['r'], pt_1['r'])
+        assert isinstance(pt, DigPoint)
+        assert isinstance(pt_1, DigPoint)
 
     # test safeguards
     pts[0]['coord_frame'] += 1
@@ -315,6 +317,18 @@ def test_io_dig_points(tmpdir):
     with pytest.raises(ValueError, match='must be of shape'):
         with pytest.warns(RuntimeWarning, match='FastSCAN header'):
             read_polhemus_fastscan(dest, on_header_missing='warn')
+
+
+def test_io_coord_frame(tmpdir):
+    """Test round trip for coordinate frame."""
+    fname = tmpdir.join('test.fif')
+    for ch_type in ('eeg', 'seeg', 'ecog', 'dbs', 'hbo', 'hbr'):
+        info = create_info(
+            ch_names=['Test Ch'], sfreq=1000., ch_types=[ch_type])
+        info['chs'][0]['loc'][:3] = [0.05, 0.01, -0.03]
+        write_info(fname, info)
+        info2 = read_info(fname)
+        assert info2['chs'][0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
 
 
 def test_make_dig_points():

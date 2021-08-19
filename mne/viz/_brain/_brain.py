@@ -22,7 +22,6 @@ import numpy as np
 from collections import OrderedDict
 
 from .colormap import calculate_lut
-from ...defaults import DEFAULTS
 from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
 from .callback import (ShowView, TimeCallBack, SmartCallBack,
@@ -30,15 +29,19 @@ from .callback import (ShowView, TimeCallBack, SmartCallBack,
 
 from ..utils import (_show_help_fig, _get_color_list, concatenate_images,
                      _generate_default_filename, _save_ndarray_img)
-from .._3d import _process_clim, _handle_time, _check_views
-
+from .._3d import (_process_clim, _handle_time, _check_views,
+                   _handle_sensor_types, _plot_sensors)
+from ...defaults import _handle_default, DEFAULTS
 from ...externals.decorator import decorator
-from ...defaults import _handle_default
 from ..._freesurfer import (vertex_to_mni, read_talxfm, read_freesurfer_lut,
-                            _get_head_surface)
-from ...surface import mesh_edges, _mesh_borders, _marching_cubes
+                            _get_head_surface, _get_skull_surface)
+from ...io.pick import pick_types
+from ...io.meas_info import Info
+from ...surface import (mesh_edges, _mesh_borders, _marching_cubes,
+                        get_meg_helmet_surf)
 from ...source_space import SourceSpaces
-from ...transforms import apply_trans, invert_transform
+from ...transforms import (apply_trans, invert_transform, _get_trans,
+                           _get_transforms_to_coord_frame)
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn,
                       get_subjects_dir, _check_fname)
@@ -342,6 +345,8 @@ class Brain(object):
        | add_foci                  | ✓            | ✓             |
        +---------------------------+--------------+---------------+
        | add_label                 | ✓            | ✓             |
+       +---------------------------+--------------+---------------+
+       | add_sensors               |              | ✓             |
        +---------------------------+--------------+---------------+
        | add_text                  | ✓            | ✓             |
        +---------------------------+--------------+---------------+
@@ -2318,7 +2323,7 @@ class Brain(object):
         self._renderer._update()
 
     @fill_doc
-    def add_head(self, dense=True, color=None, alpha=0.5):
+    def add_head(self, dense=True, color='gray', alpha=0.5):
         """Add a mesh to render the outer head surface.
 
         Parameters
@@ -2326,9 +2331,8 @@ class Brain(object):
         dense : bool
             Whether to plot the dense head (``seghead``) or the less dense head
             (``head``).
-        color : matplotlib-style color | None
+        color : color
             A list of anything matplotlib accepts: string, RGB, hex, etc.
-            (default: "gray").
         alpha : float in [0, 1]
             Alpha level to control opacity.
 
@@ -2342,8 +2346,40 @@ class Brain(object):
         surf = _get_head_surface('seghead' if dense else 'head',
                                  self._subject_id, self._subjects_dir)
         verts, triangles = surf['rr'], surf['tris']
-        if color is None:
-            color = 'gray'
+        verts *= 1e3 if self._units == 'mm' else 1
+        color = colorConverter.to_rgba(color, alpha)
+
+        for h in self._hemis:
+            for ri, ci, v in self._iter_views(h):
+                self._renderer.mesh(
+                    *verts.T, triangles=triangles, color=color,
+                    opacity=alpha, reset_camera=False, render=False)
+
+        self._renderer._update()
+
+    @fill_doc
+    def add_skull(self, outer=True, color='gray', alpha=0.5):
+        """Add a mesh to render the skull surface.
+
+        Parameters
+        ----------
+        outer : bool
+            Adds the outer skull if ``True``, otherwise adds the inner skull.
+        color : color
+            A list of anything matplotlib accepts: string, RGB, hex, etc.
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
+
+        Notes
+        -----
+        .. versionadded:: 0.24
+        """
+        from matplotlib.colors import colorConverter
+
+        surf = _get_skull_surface('outer' if outer else 'inner',
+                                  self._subject_id, self._subjects_dir)
+        verts, triangles = surf['rr'], surf['tris']
+        verts *= 1e3 if self._units == 'mm' else 1
         color = colorConverter.to_rgba(color, alpha)
 
         for h in self._hemis:
@@ -2495,6 +2531,59 @@ class Brain(object):
                                   scale=(10. * scale_factor),
                                   opacity=alpha, resolution=resolution)
             self._renderer.set_camera(**views_dicts[hemi][v])
+
+    @verbose
+    def add_sensors(self, info, trans, meg=None, eeg='original', fnirs=True,
+                    ecog=True, seeg=True, dbs=True, verbose=None):
+        """Add mesh objects to represent sensor positions.
+
+        Parameters
+        ----------
+        %(info_not_none)s
+        %(trans_not_none)s
+        %(meg)s
+        %(eeg)s
+        %(fnirs)s
+        %(ecog)s
+        %(seeg)s
+        %(dbs)s
+        %(verbose)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24
+        """
+        _validate_type(info, Info, 'info')
+        meg, eeg, fnirs, warn_meg = _handle_sensor_types(meg, eeg, fnirs)
+        picks = pick_types(info, meg=('sensors' in meg),
+                           ref_meg=('ref' in meg), eeg=(len(eeg) > 0),
+                           ecog=ecog, seeg=seeg, dbs=dbs,
+                           fnirs=(len(fnirs) > 0))
+        head_mri_t = _get_trans(trans, 'head', 'mri', allow_none=False)[0]
+        del trans
+        # get transforms to "mri"window
+        to_cf_t = _get_transforms_to_coord_frame(
+            info, head_mri_t, coord_frame='mri')
+        if pick_types(info, eeg=True, exclude=()).size > 0 and \
+                'projected' in eeg:
+            head_surf = _get_head_surface(
+                'seghead', self._subject_id, self._subjects_dir)
+        else:
+            head_surf = None
+        # Do the main plotting
+        if picks.size > 0:
+            _plot_sensors(info, to_cf_t, self._renderer, picks, meg, eeg,
+                          fnirs, head_surf, warn_meg, self._units)
+
+        if 'helmet' in meg and pick_types(info.copy(), meg=True).size > 0:
+            surf = get_meg_helmet_surf(info, head_mri_t)
+            verts = surf['rr'] * (1 if self._units == 'm' else 1e3)
+            self._renderer.mesh(*verts.T, surf['tris'],
+                                color=DEFAULTS['coreg']['helmet_color'],
+                                opacity=0.25, reset_camera=False,
+                                render=False)
+
+        self._renderer._update()
 
     def add_text(self, x, y, text, name=None, color=None, opacity=1.0,
                  row=-1, col=-1, font_size=None, justification=None):
