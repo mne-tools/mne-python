@@ -60,7 +60,10 @@ mri_pos = mne.head_to_mri(dip.pos, mri_head_t=trans,
 t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
 fig_T1 = plot_anat(t1_fname, cut_coords=mri_pos[0], title='Dipole loc.')
 
-template = load_mni152_template()
+try:
+    template = load_mni152_template(resolution=1)
+except TypeError:  # in nilearn < 0.8.1 this did not exist
+    template = load_mni152_template()
 fig_template = plot_anat(template, cut_coords=mni_pos[0],
                          title='Dipole loc. (MNI Space)')
 

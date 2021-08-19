@@ -217,7 +217,7 @@ def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg, tol_kind, tol):
     # degenerate cases
     with pytest.raises(ValueError, match='tol must be'):
         _estimate_rank_raw(raw, tol='foo')
-    with pytest.raises(TypeError, match='must be a string or a number'):
+    with pytest.raises(TypeError, match='must be a string or a'):
         _estimate_rank_raw(raw, tol=None)
 
     allowed_rank = [rank_orig if meg == 'separate' else rank]

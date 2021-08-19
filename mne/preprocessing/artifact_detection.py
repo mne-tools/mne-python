@@ -60,7 +60,7 @@ def annotate_muscle_zscore(raw, threshold=4, ch_type=None, min_length_good=0.1,
     .. footbibliography::
     """
     from scipy.stats import zscore
-    from scipy.ndimage.measurements import label
+    from scipy.ndimage import label
 
     raw_copy = raw.copy()
 
@@ -318,7 +318,7 @@ def compute_average_dev_head_t(raw, pos):
 
 def _annotations_from_mask(times, art_mask, art_name):
     """Construct annotations from boolean mask of the data."""
-    from scipy.ndimage.measurements import label
+    from scipy.ndimage import label
     comps, num_comps = label(art_mask)
     onsets, durations, desc = [], [], []
     n_times = len(times)
