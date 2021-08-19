@@ -472,18 +472,14 @@ print(f'Peak Amplitude: {amp_roi:.3f} \u00B5V')
 # noise, it can introduce challenges in interpreting latency measures for
 # effects of interest :footcite:`Rousselet2012,VanRullen2011`.
 #
-# Also, if using peak measures, it is critical to visually inspect the data to
-# make sure the selected time window actually contained something that looks
-# like a peak. It can be problematic if the time window is incorrect and, on
-# some participants, only identifies the rising edge of a peak.
-#
-# The following demonstrates why visual inspection is crucial. The dotted
-# lines depict the time window searched, and the solid lines indicates the
-# peak latency returned by `~mne.Evoked.get_peak`. The example uses ``eeg59``
-# with the time window defined previously (.065 to .115) and a time window
-# that occurs later in time and does not include the peak. As can be seen
-# with the red lines below (the bad time window), the returned peak is not
-# the true peak.
+# If using peak measures, it is critical to visually inspect the data to
+# make sure the selected time window actually contains a peak. Note that
+# `~mne.Evoked.get_peak` will always identify a peak amplitude in the time
+# window being searched. However, the peak that is identified may be incorrect.
+# Instead of a peak, we could just measure the rising edge of a peak, for
+# instance, which is not ideal. The following demonstrates why visual
+# inspection is crucial. Below, we use a known bad time window (.09 to .12
+# seconds) to search for a peak on ``eeg59``.
 
 # Get BAD peak measures
 bad_tmin, bad_tmax = .09, .12
@@ -496,32 +492,41 @@ bad_lat_roi *= 1e3
 bad_amp_roi *= 1e6
 
 # Print output
-print('** BAD TIME WINDOW **')
+print('** PEAK MEASURES FROM A BAD TIME WINDOW **')
 print('Channel: eeg59')
 print(f'Peak Latency: {bad_lat_roi:.3f} msec')
 print(f'Peak Amplitude: {bad_amp_roi:.3f} \u00B5V')
 
+# %%
+# If all we had were the above values, it would be unclear if they are truly
+# identifying peak or just a the rising edge. However, it becomes clear that
+# the .09 to .12 second time window use for the search is missing the peak
+# on ``eeg59``. This is shown in the bottom panel where we see the bad time
+# window (highlighted in orange) misses the peak (the pink star). In contrast,
+# the time window defined initially (.065 to .115 seconds; highlighted in blue)
+# returns the actual peak instead of a value on the rising edge. Visual
+# inspection will always help you to convince yourself the data returned are
+# really peaks.
+
 # Make an empty figure handle and axis
-fig, ax = plt.subplots(nrows=1, ncols=1)
+fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1)
 
-# Plot the ERP. Note the time_unit is milliseconds
-l_vis_roi.plot(axes=ax, time_unit='ms', show=False,
-               titles='Good and Bad Peaks at eeg59')
+# Plot the ERP, actual peak, and the good time window searched
+l_vis_roi.plot(axes=ax1, time_unit='ms', show=False,
+               titles='Bad time window missing peak')
+ax1.plot(lat_roi, amp_roi, marker="*", color='C6')
+ax1.axvspan(bad_tmin * 1e3, bad_tmax * 1e3, facecolor='C1',
+            alpha=.3)
+ax1.set_xlim(-50, 150)  # Show zoomed in around peak
 
-# Plot lines for good peak window
-hg = ax.axvline(lat_roi, linestyle='-', color='g')
-ax.axvline(tmin * 1e3, linestyle=':', color='g')
-ax.axvline(tmax * 1e3, linestyle=':', color='g')
-
-# Plot lines for bad peak window
-hb = ax.axvline(bad_lat_roi, linestyle='-', color='r')
-ax.axvline(bad_tmin * 1e3, linestyle=':', color='r')
-ax.axvline(bad_tmax * 1e3, linestyle=':', color='r')
-
-# Last bit of options
-ax.legend([hg, hb], ['Good Time Window', 'Bad Time Window'])
-ax.set_xlim((-50, 150))  # Show zoomed in around peak
-fig
+# Plot the ERP, actual peak, and the bad time window searched
+l_vis_roi.plot(axes=ax2, time_unit='ms', show=False,
+               titles='Good time window finding peak')
+ax2.plot(lat_roi, amp_roi, marker="*", color='C6')
+ax2.axvspan(tmin * 1e3, tmax * 1e3, facecolor='C0',
+            alpha=.3)
+ax2.set_xlim(-50, 150)  # Show zoomed in around peak
+plt.tight_layout()
 
 # %%
 # Mean Amplitude
