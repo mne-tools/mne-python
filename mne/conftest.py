@@ -120,6 +120,7 @@ def pytest_configure(config):
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     ignore:.*rcParams is deprecated.*global_theme.*:DeprecationWarning
     ignore:.*moved to a new package \(mne-connectivity\).*:DeprecationWarning
+    ignore:.*numpy\.dual is deprecated.*:DeprecationWarning
     always::ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
