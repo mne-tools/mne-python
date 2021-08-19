@@ -379,11 +379,11 @@ epochs['auditory'].average()
 # Amplitude and Latency Measures
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # It is common in ERP research to extract measures of amplitude or latency to
-# to compare across different conditions. There are many measures that can be
+# compare across different conditions. There are many measures that can be
 # extracted from ERPs, and many of these are detailed (including the respective
 # strengths and weaknesses) in Ch. 10 of Luck :footcite:`Luck2014` (also see
 # the `Measurement Tool <https://bit.ly/37uydRw>`_ in the ERPLAB Toolbox
-# :footcite:`Lopez-CalderonLuck2014`.
+# :footcite:`Lopez-CalderonLuck2014`).
 #
 # This part of the tutorial will demonstrate how to extract three common
 # measures:
@@ -403,7 +403,7 @@ epochs['auditory'].average()
 # Peak measures can be obtained using the `~mne.Evoked.get_peak` method. There
 # are two important things to point out about `~mne.Evoked.get_peak` method.
 # First, it returns the peak latency and amplitude from **all channels** in
-# the ~mne.Evoked~ object.
+# the `~mne.Evoked` object.
 # Second, the `~mne.Evoked.get_peak` method can find different 'types' of
 # peaks using the ``mode`` argument. There are three options:
 #
@@ -528,8 +528,8 @@ fig
 # --------------
 #
 # Another common practice in ERP studies is to define a component (or effect)
-# as the mean amplitude within a specified time window. One advatage of this
-# approach is that it is less sensitive to high freuqency noise (compared to
+# as the mean amplitude within a specified time window. One advantage of this
+# approach is that it is less sensitive to high frequency noise (compared to
 # peak amplitude measures) because averaging over a time window is, in essence,
 # a filter.
 #
