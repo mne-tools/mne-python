@@ -408,6 +408,11 @@ class _PyVistaRenderer(_AbstractRenderer):
                resolution=8, backface_culling=False,
                radius=None):
         factor = 1.0 if radius is not None else scale
+        center = np.array(center, dtype=float)
+        if len(center) == 0:
+            return None, None
+        _check_option('center.ndim', center.ndim, (1, 2))
+        _check_option('center.shape[-1]', center.shape[-1], (3,))
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             sphere = vtk.vtkSphereSource()
@@ -417,7 +422,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 sphere.SetRadius(radius)
             sphere.Update()
             geom = sphere.GetOutput()
-            mesh = PolyData(np.array(center))
+            mesh = PolyData(center)
             glyph = mesh.glyph(orient=False, scale=False,
                                factor=factor, geom=geom)
             actor = _add_mesh(

@@ -145,8 +145,8 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 # following.
 
 surface = op.join(subjects_dir, subject, 'bem', 'inner_skull.surf')
-vol_src = mne.setup_volume_source_space(subject, subjects_dir=subjects_dir,
-                                        surface=surface)
+vol_src = mne.setup_volume_source_space(
+    subject, subjects_dir=subjects_dir, surface=surface)
 print(vol_src)
 
 mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
