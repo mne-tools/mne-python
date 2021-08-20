@@ -95,7 +95,7 @@ def _export_raw(fname, raw, physical_range, fmt):
         ch_types_phys_max = dict()
         ch_types_phys_min = dict()
 
-        ch_types = raw.get_channel_types(picks=raw.ch_names)
+        ch_types = np.array(raw.get_channel_types(picks=raw.ch_names))
 
         for idx, ch_type in enumerate(ch_types):
             ch_type_data = data[idx, :]
