@@ -139,7 +139,7 @@ Enhancements
 
 - Add :func:`mne.coreg.estimate_head_mri_t` to estimate the head->mri transform from fsaverage fiducials (:gh:`9585` by `Alex Rockhill`_)
 
-- Add :meth:`mne.channels.DigMontage.add_mni_fiducials` to add fiducials to a montage in MNI coordinates (:gh:`XXX` by `Alex Rockhill`_)
+- Add :meth:`mne.channels.DigMontage.add_mni_fiducials` to add fiducials to a montage in MNI coordinates (:gh:`9682` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
