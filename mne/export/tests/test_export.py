@@ -111,14 +111,14 @@ def test_export_raw_edf_and_bdf(tmp_path, dataset, format):
 
     # test runtime errors
     with pytest.raises(RuntimeError, match='The maximum'), \
-            pytest.warns(RuntimeWarning, match='Dataset has float'):
+            pytest.warns(RuntimeWarning, match='Data has a non-integer'):
         raw.export(temp_fname, physical_range=(-1e6, 0))
     with pytest.raises(RuntimeError, match='The minimum'), \
-            pytest.warns(RuntimeWarning, match='Dataset has float'):
+            pytest.warns(RuntimeWarning, match='Data has a non-integer'):
         raw.export(temp_fname, physical_range=(0, 1e6))
 
     if dataset == 'test':
-        with pytest.warns(RuntimeWarning, match='Dataset has float'):
+        with pytest.warns(RuntimeWarning, match='Data has a non-integer'):
             raw.export(temp_fname)
     elif dataset == 'misc':
         with pytest.warns(RuntimeWarning, match='EDF format requires'):
