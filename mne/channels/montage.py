@@ -420,6 +420,39 @@ class DigMontage(object):
         self.dig = fids_mri + self.dig
         return self
 
+    @verbose
+    def add_mni_fiducials(self, subjects_dir=None,
+                          verbose=None):
+        """Add fiducials to a montage in MNI space.
+
+        Parameters
+        ----------
+        %(subjects_dir)s
+        %(verbose)s
+
+        Returns
+        -------
+        inst : instance of DigMontage
+            The instance, modified in-place.
+
+        Notes
+        -----
+        ``fsaverage`` is in MNI space and so its fiducials can be
+        added to a montage in "mni_tal". MNI is an ACPC-aligned
+        coordinate system (the posterior commissure is the origin)
+        so since BIDS requires channel locations for ECoG, sEEG and
+        DBS to be in ACPC space, this function can be used to allow
+        those coordinate to be transformed to "head" space (origin
+        between LPA and RPA).
+        """
+        fids_mni = get_mni_fiducials('fsaverage', subjects_dir)
+        for fid in fids_mni:
+            # "mri" and "mni_tal" are equivalent for fsaverage
+            assert fid['coord_frame'] == FIFF.FIFFV_COORD_MRI
+            fid['coord_frame'] = FIFF.FIFFV_MNE_COORD_MNI_TAL
+        self.dig = fids_mni + self.dig
+        return self
+
 
 VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
 

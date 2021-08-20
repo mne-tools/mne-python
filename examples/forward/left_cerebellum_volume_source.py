@@ -14,6 +14,7 @@ segmentation file.
 # License: BSD-3-Clause
 
 # %%
+import os.path as op
 
 import mne
 from mne import setup_source_space, setup_volume_source_space
@@ -22,9 +23,11 @@ from mne.datasets import sample
 print(__doc__)
 
 data_path = sample.data_path()
-subjects_dir = data_path + '/subjects'
+subjects_dir = op.join(data_path, 'subjects')
 subject = 'sample'
-aseg_fname = subjects_dir + '/sample/mri/aseg.mgz'
+trans = mne.read_trans(op.join(data_path, 'MEG', 'sample',
+                               'sample_audvis_raw-trans.fif'))
+aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
 
 # %%
 # Setup the source spaces
@@ -46,10 +49,11 @@ src = surf + lh_cereb
 # %%
 # Plot the positions of each source space
 
-fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
+fig = mne.viz.plot_alignment(trans=trans, subject=subject,
+                             subjects_dir=subjects_dir,
                              surfaces='white', coord_frame='head',
                              src=src)
-mne.viz.set_3d_view(fig, azimuth=173.78, elevation=101.75,
+mne.viz.set_3d_view(fig, azimuth=180, elevation=90, roll=-30,
                     distance=0.30, focalpoint=(-0.03, -0.01, 0.03))
 
 

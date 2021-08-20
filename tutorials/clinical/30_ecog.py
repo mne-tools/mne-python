@@ -80,7 +80,17 @@ raw.notch_filter([60], trans_bandwidth=3)
 raw.drop_channels(raw.info['bads'])
 
 # the coordinate frame of the montage
-print(raw.get_montage().get_positions()['coord_frame'])
+montage = raw.get_montage()
+print(montage.get_positions()['coord_frame'])
+
+# add fiducials to montage
+montage.add_mni_fiducials(subjects_dir)
+
+# now with fiducials assigned, the montage will be properly converted
+# to "head" which is what MNE requires internally (this is the coordinate
+# system with the origin between LPA and RPA whereas MNI has the origin
+# at the posterior commissure)
+raw.set_montage(montage)
 
 # Find the annotated events
 events, event_id = mne.events_from_annotations(raw)
@@ -108,7 +118,8 @@ evoked = epochs.average()
 # (along with xy positions of each electrode in the image), so that later
 # we can plot frequency band power on top of it.
 
-fig = plot_alignment(raw.info, subject='fsaverage', subjects_dir=subjects_dir,
+fig = plot_alignment(raw.info, trans='fsaverage',
+                     subject='fsaverage', subjects_dir=subjects_dir,
                      surfaces=['pial'], coord_frame='mri')
 az, el, focalpoint = 160, -70, [0.067, -0.040, 0.018]
 mne.viz.set_3d_view(fig, azimuth=az, elevation=el, focalpoint=focalpoint)

@@ -67,7 +67,7 @@ del epochs, raw
 #           but should be fine for these analyses.
 
 bem = mne.read_bem_solution(bem_fname)
-trans = None
+trans = mne.transforms.Transform('head', 'mri')  # identity transformation
 
 # To compute the forward solution, we must
 # provide our temporary/custom coil definitions, which can be done as::
