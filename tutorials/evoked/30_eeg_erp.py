@@ -376,35 +376,35 @@ epochs['auditory'].average()
 # more details about working with the `~mne.Epochs` and `~mne.Evoked` classes.
 
 # %%
-# Amplitude and Latency Measures
+# Amplitude and latency measures
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # It is common in ERP research to extract measures of amplitude or latency to
 # compare across different conditions. There are many measures that can be
 # extracted from ERPs, and many of these are detailed (including the respective
-# strengths and weaknesses) in Ch. 9 of Luck :footcite:`Luck2014` (also see
+# strengths and weaknesses) in chapter 9 of Luck :footcite:`Luck2014` (also see
 # the `Measurement Tool <https://bit.ly/37uydRw>`_ in the ERPLAB Toolbox
 # :footcite:`Lopez-CalderonLuck2014`).
 #
 # This part of the tutorial will demonstrate how to extract three common
 # measures:
 #
-# * Peak Latency
-# * Peak Amplitude
-# * Mean Amplitude
+# * Peak latency
+# * Peak amplitude
+# * Mean amplitude
 #
-# Peak Latency and Amplitude
+# Peak latency and amplitude
 # --------------------------
 #
-# Probably most common measures of amplitude and latency are peak measures.
+# The most common measures of amplitude and latency are peak measures.
 # Peak measures are basically the maximum amplitude of the signal in a
-# specified time window, and the time point (or latency) at which the peak
+# specified time window and the time point (or latency) at which the peak
 # amplitude occurred.
 #
 # Peak measures can be obtained using the `~mne.Evoked.get_peak` method. There
-# are two important things to point out about `~mne.Evoked.get_peak` method.
+# are two important things to point out:
 # First, it returns the peak latency and amplitude from **all channels** in
 # the `~mne.Evoked` object.
-# Second, the `~mne.Evoked.get_peak` method can find different 'types' of
+# Second, the `~mne.Evoked.get_peak` method can find different types of
 # peaks using the ``mode`` argument. There are three options:
 #
 # * ``mode='pos'``: finds the peak with a positive voltage (ignores
@@ -414,31 +414,31 @@ epochs['auditory'].average()
 # * ``mode='abs'``: finds the peak with the largest absolute voltage
 #   regardless of sign (positive or negative)
 #
-# The following example demonstrates how to find positive peak in the ERP for
+# The following example demonstrates how to find the positive peak in the ERP for
 # the left visual condition (i.e., the ``l_vis`` `~mne.Evoked` object). The
-# time window used to search for the peak is between .065 to .115 sec, and all
+# time window used to search for the peak ranges from .065 to .115 s, and all
 # ``'eeg'`` channels are used.
 
-# Get peak amplitude and latency.
+# Get peak amplitude and latency
 tmin, tmax = .065, .115
 ch, lat, amp = l_vis.get_peak(ch_type='eeg', tmin=tmin, tmax=tmax,
                               mode='pos', return_amplitude=True)
 
-# Convert latency and amplitude to msec and microvolts
+# Convert latency and amplitude to ms and µV
 lat *= 1e3
 amp *= 1e6
 
 # Print output
 print(f'Channel: {ch}')
-print(f'Peak Latency: {lat:.3f} msec')
-print(f'Peak Amplitude: {amp:.3f} \u00B5V')
+print(f'Peak Latency: {lat:.3f} ms')
+print(f'Peak Amplitude: {amp:.3f} µV')
 
 # %%
-# The output shows that the channel ``eeg55`` had the maximum positive peak in
+# The output shows that channel ``eeg55`` had the maximum positive peak in
 # the chosen time window. In practice, one might want to pull out the peak for
-# an *a priori* region of interest or a single electrode depending on the study
+# an *a priori* region of interest or a single electrode depending on the study.
 # This can be done by combining the `~mne.Evoked.pick`
-# (or `~mne.Evoked.pick_channels`) methods with the `~mne.Evoked.get_peak`
+# or `~mne.Evoked.pick_channels` methods with the `~mne.Evoked.get_peak`
 # method.
 #
 # Here, let's assume we believe the effects of interest will occur
@@ -450,57 +450,57 @@ l_vis_roi = l_vis.copy().pick('eeg59')
 _, lat_roi, amp_roi = l_vis_roi.get_peak(tmin=tmin, tmax=tmax, mode='pos',
                                          return_amplitude=True)
 
-# Convert latency and amplitude to msec and microvolts
+# Convert latency and amplitude to ms and µV
 lat_roi *= 1e3
 amp_roi *= 1e6
 
 # Print output
 print('Channel: eeg59')
-print(f'Peak Latency: {lat_roi:.3f} msec')
-print(f'Peak Amplitude: {amp_roi:.3f} \u00B5V')
+print(f'Peak Latency: {lat_roi:.3f} ms')
+print(f'Peak Amplitude: {amp_roi:.3f} µV')
 
 # %%
-# While the peak latency is the same in channels ``eeg55`` and ``eeg59``, the
-# peak amplitudes differ. The above approach can be done on virtual channels
-# created with the `~mne.channels.combine_channels` function and on difference
-# waves created with the `mne.combine_evoked` function (``aud_minus_vis``).
+# While the peak latencies are the same in channels ``eeg55`` and ``eeg59``, the
+# peak amplitudes differ. This approach can also be applied to virtual channels
+# created with the `~mne.channels.combine_channels` function and difference
+# waves created with the `mne.combine_evoked` function (see ``aud_minus_vis``
+# in section :ref:`Comparing conditions` above).
 #
-# While beyond the scope of this tutorial, peak measures are very susceptible
+# Peak measures are very susceptible
 # to high frequency noise (for discussion, see :footcite:`Luck2014`). One way
-# to avoid this is to apply a non-causal low-pass filters to the ERP. While
+# to avoid this is to apply a non-causal low-pass filter to the ERP. While
 # this can reduce bias in peak amplitude measures due to high frequency
 # noise, it can introduce challenges in interpreting latency measures for
 # effects of interest :footcite:`Rousselet2012,VanRullen2011`.
 #
 # If using peak measures, it is critical to visually inspect the data to
-# make sure the selected time window actually contains a peak. Note that
-# `~mne.Evoked.get_peak` will always identify a peak amplitude in the time
-# window being searched. However, the peak that is identified may be incorrect.
+# make sure the selected time window actually contains a peak
+# (`~mne.Evoked.get_peak` will always identify a peak).
+# However, the peak that is identified may be incorrect.
 # Instead of a peak, we could just measure the rising edge of a peak, for
-# instance, which is not ideal. The following demonstrates why visual
+# instance, which is not ideal. The following example demonstrates why visual
 # inspection is crucial. Below, we use a known bad time window (.09 to .12
 # seconds) to search for a peak on ``eeg59``.
 
 # Get BAD peak measures
 bad_tmin, bad_tmax = .09, .12
-_, bad_lat_roi, bad_amp_roi = \
-    l_vis_roi.get_peak(mode='pos', tmin=bad_tmin, tmax=bad_tmax,
-                       return_amplitude=True)
+ch, bad_lat_roi, bad_amp_roi = l_vis_roi.get_peak(
+    mode='pos', tmin=bad_tmin, tmax=bad_tmax, return_amplitude=True)
 
-# Convert latency and amplitude to msec and microvolts
+# Convert latency and amplitude to ms and µV
 bad_lat_roi *= 1e3
 bad_amp_roi *= 1e6
 
 # Print output
 print('** PEAK MEASURES FROM A BAD TIME WINDOW **')
 print('Channel: eeg59')
-print(f'Peak Latency: {bad_lat_roi:.3f} msec')
-print(f'Peak Amplitude: {bad_amp_roi:.3f} \u00B5V')
+print(f'Peak Latency: {bad_lat_roi:.3f} ms')
+print(f'Peak Amplitude: {bad_amp_roi:.3f} µV')
 
 # %%
 # If all we had were the above values, it would be unclear if they are truly
-# identifying peak or just a the rising edge. However, it becomes clear that
-# the .09 to .12 second time window use for the search is missing the peak
+# identifying a peak or just a rising edge. However, it becomes clear that
+# the .09 to .12 second time window used for the search is missing the peak
 # on ``eeg59``. This is shown in the bottom panel where we see the bad time
 # window (highlighted in orange) misses the peak (the pink star). In contrast,
 # the time window defined initially (.065 to .115 seconds; highlighted in blue)
@@ -538,26 +538,26 @@ plt.tight_layout()
 # peak amplitude measures) because averaging over a time window is, in essence,
 # a filter.
 #
-# When using mean amplitude measures, it is a good idea to have a predefined
+# When using mean amplitude measures, it is a good idea to have a predetermined
 # time window for extracting mean amplitude. Selecting the time window based
 # on the observed data (e.g., the grand average) can inflate false positives in
 # ERP research :footcite:`LuckGaspelin2017`.
 #
 # Below, demonstrates how to pull out the mean amplitude between .065 sec and
-# .115 sec. Note that this time window was chosen based on inspecting this
+# .115 s. Note that this time window was chosen based on inspecting this
 # data, which is a bad way to select a time window as just discussed. It is
-# done here out of convenience and to simply demonstrate how to extract mean
+# done here out of convenience and to simply demonstrate how to extract the mean
 # amplitude.
 #
 # The following code also demonstrates how to extract this for all channels
-# and store the output in a pandas dataframe.
+# and store the output in a :class:`pandas.DataFrame`.
 
 # Extract mean amplitude from eeg59 using the l_vis_roi Evoked object
 l_vis_roi_cropped = l_vis_roi.copy().crop(tmin=tmin, tmax=tmax)
 m_amp_roi = l_vis_roi_cropped.data.mean() * 1e6
 print('Channel: eeg59')
 print(f'Time Window: {tmin}s - {tmax}s')
-print(f'Mean Amplitude: {m_amp_roi:.3f} \u00B5V')
+print(f'Mean Amplitude: {m_amp_roi:.3f} µV')
 
 # Extract mean amplitude for all channels in l_vis (including `eog`)
 l_vis_cropped = l_vis.copy().crop(tmin=tmin, tmax=tmax)
