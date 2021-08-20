@@ -2497,14 +2497,15 @@ physical_range : str | tuple
     it will infer the physical min and max from the data itself,
     taking the minimum and maximum values per channel type.
     If it is a 2-tuple of minimum and maximum limit, then those
-    physical ranges will be hard-set. Only used for exporting EDF files.
+    physical ranges will be hard-set. Only used for exporting EDF
+    and BDF files.
 """
 docdict['export_eeglab_note'] = """
 For EEGLAB exports, channel locations are expanded to full EEGLAB format.
 For more details see :func:`eeglabio.utils.cart_to_eeglab`.
 """
 docdict['export_edf_note'] = """
-For EDF exports, only EEG, ECoG and sEEG data are supported.
+For EDF and BDF exports, only EEG, ECoG and sEEG data are supported.
 """
 
 # Other
