@@ -141,7 +141,7 @@ Enhancements
 
 - Add :meth:`mne.channels.DigMontage.add_mni_fiducials` to add fiducials to a montage in MNI coordinates (:gh:`9682` by `Alex Rockhill`_)
 
-- Add :meth:`mne.channels.DigMontage.remove_fiducials` to remove fiducials under rare circumstances when the coordinate frame should not be set to "head" (:gh:`9683` by `Alex Rockhill`_)
+- Add :meth:`mne.channels.DigMontage.remove_fiducials` to remove fiducials under rare circumstances when the coordinate frame should not be set to "head" (:gh:`9684` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
