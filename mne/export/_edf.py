@@ -202,9 +202,10 @@ def _export_raw(fname, raw, physical_range, fmt):
             # create a buffer with sampling rate
             buf = np.zeros(out_sfreq, np.float64, "C")
 
-            # get channel data for this second
+            # get channel data for this block
             ch_data = data[jdx, start_samp:end_samp]
 
+            # assign channel data to the buffer and write to EDF
             buf[:len(ch_data)] = ch_data
             err = hdl.writeSamples(buf)
             if err != 0:  # noqa
