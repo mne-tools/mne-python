@@ -133,7 +133,10 @@ def show_browser(show=True, block=True, fig=None, **kwargs):
         app = QApplication.instance() or QApplication(['MNE'])
         if show:
             fig.show()
-        app.exec()
+        # If block=False, a Qt-Event-Loop has to be started
+        # somewhere else in the calling code.
+        if block:
+            app.exec()
 
 
 def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
