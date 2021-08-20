@@ -71,6 +71,10 @@ def _export_raw(fname, raw, physical_range, fmt):
         data_record_duration = int(np.around(
             channel_sfreq / sfreq, decimals=6) * 1e6)
 
+        warn(f'Dataset has float sampling rate of {sfreq}. '
+             f'EDF will experience some mismatch in the times '
+             f'possibly.')
+
     n_secs = n_times / sfreq
 
     # get any filter information applied to the data
@@ -187,7 +191,8 @@ def _export_raw(fname, raw, physical_range, fmt):
         _try_to_set_value(hdl, 'Equipment', device_type)
 
     # set data record duration
-    _try_to_set_value(hdl, 'DataRecordDuration', data_record_duration)
+    if data_record_duration is not None:
+        _try_to_set_value(hdl, 'DataRecordDuration', data_record_duration)
 
     # compute number of seconds to loop over
     n_secs = n_times / channel_sfreq

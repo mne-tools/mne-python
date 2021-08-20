@@ -4,6 +4,8 @@
 #
 # License: BSD-3-Clause
 
+from mne.io import RawArray
+from mne.io.meas_info import create_info
 from mne.io.edf.edf import read_raw_bdf
 from pathlib import Path
 import os.path as op
@@ -51,6 +53,32 @@ def test_export_raw_eeglab(tmpdir):
 
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')
+@pytest.mark.parametrize('format', ['edf', 'bdf'])
+def test_integer_sfreq_edf_and_bdf(tmp_path, format):
+    """Test saving a Raw array with integer sfreq to EDF and BDF."""
+    info = create_info(['1', '2', '3'], sfreq=1000, ch_types='eeg')
+    data = np.random.random(size=(3, 1000))
+    raw = RawArray(data, info)
+
+    temp_fname = op.join(str(tmp_path), f'test.{format}')
+
+    raw.export(temp_fname)
+    if format == 'edf':
+        raw_read = read_raw_edf(temp_fname, preload=True)
+    elif format == 'bdf':
+        raw_read = read_raw_bdf(temp_fname, preload=True)
+
+    assert raw.ch_names == raw_read.ch_names
+    # only compare the original length, since extra zeros are appended
+    orig_raw_len = len(raw)
+    assert_array_almost_equal(
+        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=3)
+    assert_allclose(
+        raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
+
+
+@pytest.mark.skipif(not _check_edflib_installed(strict=False),
+                    reason='edflib-python not installed')
 @pytest.mark.parametrize(
     ['dataset', 'format'], [
         ['test', 'edf'],
@@ -58,8 +86,8 @@ def test_export_raw_eeglab(tmpdir):
         ['misc', 'edf'],
         ['misc', 'bdf']
     ])
-def test_export_raw_edf(tmpdir, dataset, format):
-    """Test saving a Raw instance to EDF format."""
+def test_export_raw_edf_and_bdf(tmpdir, dataset, format):
+    """Test saving a Raw instance to EDF and BDF format."""
     if dataset == 'test':
         try:
             import importlib_resources as imp_resrc  # py 3.7
@@ -82,14 +110,17 @@ def test_export_raw_edf(tmpdir, dataset, format):
     temp_fname = op.join(str(tmpdir), f'test.{format}')
 
     # test runtime errors
-    with pytest.raises(RuntimeError, match='The maximum'):
+    with pytest.raises(RuntimeError, match='The maximum'), \
+            pytest.warns(RuntimeWarning, match='Dataset has float'):
         raw.export(temp_fname, physical_range=(-1e6, 0))
-    with pytest.raises(RuntimeError, match='The minimum'):
+    with pytest.raises(RuntimeError, match='The minimum'), \
+            pytest.warns(RuntimeWarning, match='Dataset has float'):
         raw.export(temp_fname, physical_range=(0, 1e6))
 
     if dataset == 'test':
-        raw.export(temp_fname)
-    else:
+        with pytest.warns(RuntimeWarning, match='Dataset has float'):
+            raw.export(temp_fname)
+    elif dataset == 'misc':
         with pytest.warns(RuntimeWarning, match='EDF format requires'):
             raw.export(temp_fname)
 
