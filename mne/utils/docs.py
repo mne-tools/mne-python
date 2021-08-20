@@ -2505,7 +2505,9 @@ For EEGLAB exports, channel locations are expanded to full EEGLAB format.
 For more details see :func:`eeglabio.utils.cart_to_eeglab`.
 """
 docdict['export_edf_note'] = """
-For EDF and BDF exports, only EEG, ECoG and sEEG data are supported.
+For EDF and BDF exports, only EEG, ECoG and sEEG data are supported. In
+addition, EDF and BDF do not support the storage of a montage within the
+files. So the montage will not be saved in the corresponding EDF/BDF file.
 """
 
 # Other

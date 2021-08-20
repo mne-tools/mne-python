@@ -61,20 +61,20 @@ def _export_raw(fname, raw, physical_range, fmt):
     n_channels = len(ch_names)
     n_times = raw.n_times
 
-    # sampling frequency in EDF only supports integers
+    # Sampling frequency in EDF only supports integers, so to allow for
+    # float sampling rates from Raw, we adjust the output sampling rate
+    # for all channels and the data record duration.
     sfreq = raw.info['sfreq']
     if float(sfreq).is_integer():
-        channel_sfreq = int(sfreq)
+        out_sfreq = int(sfreq)
         data_record_duration = None
     else:
-        channel_sfreq = np.floor(sfreq).astype(int)
+        out_sfreq = np.floor(sfreq).astype(int)
         data_record_duration = int(np.around(
-            channel_sfreq / sfreq, decimals=6) * 1e6)
+            out_sfreq / sfreq, decimals=6) * 1e6)
 
         warn(f'Data has a non-integer sampling rate of {sfreq}; writing to '
              'EDF format may cause a small change to sample times.')
-
-    n_secs = n_times / sfreq
 
     # get any filter information applied to the data
     lowpass = raw.info['lowpass']
@@ -112,20 +112,20 @@ def _export_raw(fname, raw, physical_range, fmt):
 
         # check that physical min and max is not exceeded
         if data.max() > pmax:
-            raise RuntimeError(f'The maximum μV of the data {data.max()} '
-                               f'is more than the physical max passed in {pmax}.')
+            raise RuntimeError(f'The maximum μV of the data {data.max()} is '
+                               f'more than the physical max passed in {pmax}.')
         if data.min() < pmin:
-            raise RuntimeError(f'The minimum μV of the data {data.min()} '
-                               f'is less than the physical min passed in {pmin}.')
+            raise RuntimeError(f'The minimum μV of the data {data.min()} is '
+                               f'less than the physical min passed in {pmin}.')
 
     # create instance of EDF/BDF Writer
     hdl = EDFwriter(fname, file_type, n_channels)
 
     # set channel data
-    for ichan, ch in enumerate(ch_names):
+    for idx, ch in enumerate(ch_names):
         if physical_range == 'auto':
             # take the channel type minimum and maximum
-            ch_type = ch_types[ichan]
+            ch_type = ch_types[idx]
             pmin, pmax = ch_types_phys_min[ch_type], ch_types_phys_max[ch_type]
 
         for key, val in [('PhysicalMaximum', pmax),
@@ -133,15 +133,17 @@ def _export_raw(fname, raw, physical_range, fmt):
                          ('DigitalMaximum', digital_max),
                          ('DigitalMinimum', digital_min),
                          ('PhysicalDimension', phys_dims),
-                         ('SampleFrequency', channel_sfreq),
+                         ('SampleFrequency', out_sfreq),
                          ('SignalLabel', ch),
                          ('PreFilter', filter_str_info)]:
-            _try_to_set_value(hdl, key, val, channel_index=ichan)
+            _try_to_set_value(hdl, key, val, channel_index=idx)
 
     # set patient info
     subj_info = raw.info.get('subject_info')
     if subj_info is not None:
         birthday = subj_info.get('birthday')
+
+        # get the full name of subject if available
         first_name = subj_info.get('first_name')
         last_name = subj_info.get('last_name')
         first_name = first_name or ''
@@ -149,7 +151,7 @@ def _export_raw(fname, raw, physical_range, fmt):
         joiner = ''
         if len(first_name) and len(last_name):
             joiner = ' '
-        name joiner.join([first_name, last_name])
+        name = joiner.join([first_name, last_name])
 
         hand = subj_info.get('hand')
         sex = subj_info.get('sex')
@@ -185,23 +187,23 @@ def _export_raw(fname, raw, physical_range, fmt):
     if data_record_duration is not None:
         _try_to_set_value(hdl, 'DataRecordDuration', data_record_duration)
 
-    # compute number of seconds to loop over
-    n_secs = n_times / channel_sfreq
+    # compute number of data records to loop over
+    n_blocks = n_times / out_sfreq
 
-    # Write each datarecord sequentially
-    for isec in range(np.ceil(n_secs).astype(int)):
-        end_samp = (isec + 1) * channel_sfreq
+    # Write each data record sequentially
+    for idx in range(np.ceil(n_blocks).astype(int)):
+        end_samp = (idx + 1) * out_sfreq
         if end_samp > n_times:
             end_samp = n_times
-        start_samp = isec * channel_sfreq
+        start_samp = idx * out_sfreq
 
         # then for each datarecord write each channel
-        for ich in range(n_channels):
+        for jdx in range(n_channels):
             # create a buffer with sampling rate
-            buf = np.zeros(channel_sfreq, np.float64, "C")
+            buf = np.zeros(out_sfreq, np.float64, "C")
 
             # get channel data for this second
-            ch_data = data[ich, start_samp:end_samp]
+            ch_data = data[jdx, start_samp:end_samp]
 
             buf[:len(ch_data)] = ch_data
             err = hdl.writeSamples(buf)
