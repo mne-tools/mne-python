@@ -462,7 +462,7 @@ class DigMontage(object):
         return self
 
     @verbose
-    def remove_fiducials(self, verbose):
+    def remove_fiducials(self, verbose=None):
         """Remove the fiducial points from a montage.
 
         Parameters
