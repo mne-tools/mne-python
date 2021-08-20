@@ -133,8 +133,7 @@ def show_browser(show=True, block=True, fig=None, **kwargs):
         app = QApplication.instance() or QApplication(['MNE'])
         if show:
             fig.show()
-        if block:
-            app.exec()
+        app.exec()
 
 
 def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
