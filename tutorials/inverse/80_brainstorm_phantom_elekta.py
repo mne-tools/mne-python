@@ -7,13 +7,9 @@ Brainstorm Elekta phantom dataset tutorial
 ==========================================
 
 Here we compute the evoked from raw for the Brainstorm Elekta phantom
-tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and:
-
-    https://neuroimage.usc.edu/brainstorm/Tutorials/PhantomElekta
-
-References
-----------
-.. footbibliography::
+tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and
+`the original Brainstorm tutorial
+<https://neuroimage.usc.edu/brainstorm/Tutorials/PhantomElekta>`__.
 """
 # sphinx_gallery_thumbnail_number = 9
 
@@ -116,7 +112,8 @@ dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=1)
 fig, axes = plt.subplots(2, 1)
 evoked.plot(axes=axes)
 for ax in axes:
-    ax.texts = []
+    for text in list(ax.texts):
+        text.remove()
     for line in ax.lines:
         line.set_color('#98df81')
 residual.plot(axes=axes)
@@ -172,3 +169,8 @@ fig = mne.viz.plot_dipole_locations(dipoles=dip, mode='arrow', subject=subject,
                                     color=(0.2, 1., 0.5), fig=fig)
 
 mne.viz.set_3d_view(figure=fig, azimuth=70, elevation=80, distance=0.5)
+
+# %%
+# References
+# ----------
+# .. footbibliography::
