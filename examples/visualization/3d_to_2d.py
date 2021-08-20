@@ -81,8 +81,8 @@ print('Created %s channel positions' % len(ch_names))
 fig = plot_alignment(info, trans=trans, subject='sample',
                      subjects_dir=subjects_dir,
                      surfaces=['pial'], meg=False)
-set_3d_view(figure=fig, azimuth=200, elevation=70)
-xy, im = snapshot_brain_montage(fig, montage)
+set_3d_view(figure=fig, azimuth=200, elevation=50)
+xy, im = snapshot_brain_montage(fig, info)
 
 # Convert from a dictionary to array to plot
 xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])
