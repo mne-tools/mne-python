@@ -122,6 +122,7 @@ def pytest_configure(config):
     ignore:.*moved to a new package \(mne-connectivity\).*:DeprecationWarning
     ignore:.*numpy\.dual is deprecated.*:DeprecationWarning
     ignore:.*`np.typeDict` is a deprecated.*:DeprecationWarning
+    ignore:.*Creating an ndarray from ragged.*:numpy.VisibleDeprecationWarning
     always::ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
