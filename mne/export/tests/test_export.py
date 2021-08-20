@@ -4,6 +4,7 @@
 #
 # License: BSD-3-Clause
 
+from mne.io.edf.edf import read_raw_bdf
 from pathlib import Path
 import os.path as op
 
@@ -13,7 +14,7 @@ from numpy.testing import (assert_allclose, assert_array_almost_equal,
                            assert_array_equal)
 
 from mne import read_epochs_eeglab, Epochs, read_evokeds, read_evokeds_mff
-from mne.datasets import testing
+from mne.datasets import testing, misc
 from mne.export import export_evokeds, export_evokeds_mff
 from mne.io import read_raw_fif, read_raw_eeglab, read_raw_edf
 from mne.utils import (_check_eeglabio_installed, requires_version,
@@ -50,37 +51,63 @@ def test_export_raw_eeglab(tmpdir):
 
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')
-def test_export_raw_edf(tmpdir):
+@pytest.mark.parametrize(
+    ['dataset', 'format'], [
+        ['test', 'edf'],
+        ['test', 'bdf'],
+        ['misc', 'edf'],
+        ['misc', 'bdf']
+    ])
+def test_export_raw_edf(tmpdir, dataset, format):
     """Test saving a Raw instance to EDF format."""
-    try:
-        import importlib_resources as imp_resrc  # py 3.7
-    except ImportError:
-        import importlib.resources as imp_resrc  # py 3.8+
-    import mne.io.tests.data
-    with imp_resrc.path(mne.io.tests.data, 'test_raw.fif') as fname:
-        raw = read_raw_fif(fname)
-    format = 'edf'
+    if dataset == 'test':
+        try:
+            import importlib_resources as imp_resrc  # py 3.7
+        except ImportError:
+            import importlib.resources as imp_resrc  # py 3.8+
+        import mne.io.tests.data
+        with imp_resrc.path(mne.io.tests.data, 'test_raw.fif') as fname:
+            raw = read_raw_fif(fname)
+    elif dataset == 'misc':
+        fname = op.join(misc.data_path(),
+                        'ecog', 'sample_ecog.edf')
+        raw = read_raw_edf(fname)
 
     # only test with EEG channels
-    raw.pick_types(eeg=True, eog=True, ecg=True, emg=True)
-
+    if dataset == 'misc':
+        raw = raw.set_channel_types({'EKGL': 'ecg', 'EKGR': 'ecg'})
+    raw.pick_types(eeg=True, ecog=True, seeg=True,
+                   eog=True, ecg=True, emg=True)
     raw.load_data()
     temp_fname = op.join(str(tmpdir), f'test.{format}')
 
     # test runtime errors
     with pytest.raises(RuntimeError, match='The maximum'):
-        raw.export(temp_fname, physical_range=(-3200, 0))
+        raw.export(temp_fname, physical_range=(-1e6, 0))
     with pytest.raises(RuntimeError, match='The minimum'):
-        raw.export(temp_fname, physical_range=(0, 3200))
-    raw.export(temp_fname)
+        raw.export(temp_fname, physical_range=(0, 1e6))
+
+    if dataset == 'test':
+        raw.export(temp_fname)
+    else:
+        with pytest.warns(RuntimeWarning, match='EDF format requires'):
+            raw.export(temp_fname)
 
     if 'epoc' in raw.ch_names:
         raw.drop_channels(['epoc'])
-    raw_read = read_raw_edf(temp_fname, preload=True)
+
+    if format == 'edf':
+        raw_read = read_raw_edf(temp_fname, preload=True)
+    elif format == 'bdf':
+        raw_read = read_raw_bdf(temp_fname, preload=True)
+
     assert raw.ch_names == raw_read.ch_names
+    # only compare the original length, since extra zeros are appended
+    orig_raw_len = len(raw)
     assert_array_almost_equal(
-        raw.get_data(), raw_read.get_data(), decimal=3)
-    assert_allclose(raw.times, raw_read.times, rtol=0, atol=1e-1)
+        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=3)
+    assert_allclose(
+        raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
 
 
 @pytest.mark.skipif(not _check_eeglabio_installed(strict=False),
