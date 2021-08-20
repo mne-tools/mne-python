@@ -1514,7 +1514,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @copy_function_doc_to_method_doc(plot_raw)
     def plot(self, events=None, duration=10.0, start=0.0, n_channels=20,
-             bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
+             bgcolor='w', color=None, bad_color='#CCCCCC',
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=_RAW_CLIP_DEF,
