@@ -25,8 +25,6 @@ print(__doc__)
 data_path = sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 subject = 'sample'
-trans = mne.read_trans(op.join(data_path, 'MEG', 'sample',
-                               'sample_audvis_raw-trans.fif'))
 aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
 
 # %%
@@ -49,9 +47,8 @@ src = surf + lh_cereb
 # %%
 # Plot the positions of each source space
 
-fig = mne.viz.plot_alignment(trans=trans, subject=subject,
-                             subjects_dir=subjects_dir,
-                             surfaces='white', coord_frame='head',
+fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
+                             surfaces='white', coord_frame='mri',
                              src=src)
 mne.viz.set_3d_view(fig, azimuth=180, elevation=90, roll=-30,
                     distance=0.30, focalpoint=(-0.03, -0.01, 0.03))
