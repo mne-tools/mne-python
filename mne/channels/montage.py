@@ -406,11 +406,11 @@ class DigMontage(object):
         # get coordframe and fiducial coordinates
         montage_bunch = _get_data_as_dict_from_dig(self.dig)
 
-        # get the coordinate frame as a string and check that it's MRI
+        # get the coordinate frame and check that it's MRI
         if montage_bunch.coord_frame != FIFF.FIFFV_COORD_MRI:
             raise RuntimeError(
-                f'Montage should be in mri coordinate frame to call '
-                f'`add_estimated_fiducials`. The current coordinate '
+                f'Montage should be in the "mri" coordinate frame '
+                f'to use `add_estimated_fiducials`. The current coordinate '
                 f'frame is {montage_bunch.coord_frame}')
 
         # estimate LPA, nasion, RPA from FreeSurfer fsaverage
@@ -445,6 +445,15 @@ class DigMontage(object):
         those coordinate to be transformed to "head" space (origin
         between LPA and RPA).
         """
+        montage_bunch = _get_data_as_dict_from_dig(self.dig)
+
+        # get the coordinate frame and check that it's MNI TAL
+        if montage_bunch.coord_frame != FIFF.FIFFV_MNE_COORD_MNI_TAL:
+            raise RuntimeError(
+                f'Montage should be in the "mni_tal" coordinate frame '
+                f'to use `add_estimated_fiducials`. The current coordinate '
+                f'frame is {montage_bunch.coord_frame}')
+
         fids_mni = get_mni_fiducials('fsaverage', subjects_dir)
         for fid in fids_mni:
             # "mri" and "mni_tal" are equivalent for fsaverage
