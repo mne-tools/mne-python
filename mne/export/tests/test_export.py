@@ -86,7 +86,7 @@ def test_integer_sfreq_edf_and_bdf(tmp_path, format):
         ['misc', 'edf'],
         ['misc', 'bdf']
     ])
-def test_export_raw_edf_and_bdf(tmpdir, dataset, format):
+def test_export_raw_edf_and_bdf(tmp_path, dataset, format):
     """Test saving a Raw instance to EDF and BDF format."""
     if dataset == 'test':
         try:
@@ -107,7 +107,7 @@ def test_export_raw_edf_and_bdf(tmpdir, dataset, format):
     raw.pick_types(eeg=True, ecog=True, seeg=True,
                    eog=True, ecg=True, emg=True)
     raw.load_data()
-    temp_fname = op.join(str(tmpdir), f'test.{format}')
+    temp_fname = op.join(str(tmp_path), f'test.{format}')
 
     # test runtime errors
     with pytest.raises(RuntimeError, match='The maximum'), \
