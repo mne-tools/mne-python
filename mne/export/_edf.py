@@ -63,7 +63,7 @@ def _export_raw(fname, raw, physical_range, fmt):
 
     # sampling frequency in EDF only supports integers
     sfreq = raw.info['sfreq']
-    if sfreq.is_integer():
+    if float(sfreq).is_integer():
         channel_sfreq = int(sfreq)
         data_record_duration = None
     else:
@@ -71,9 +71,8 @@ def _export_raw(fname, raw, physical_range, fmt):
         data_record_duration = int(np.around(
             channel_sfreq / sfreq, decimals=6) * 1e6)
 
-        warn(f'Dataset has float sampling rate of {sfreq}. '
-             f'EDF will experience some mismatch in the times '
-             f'possibly.')
+        warn(f'Data has a non-integer sampling rate of {sfreq}; writing to '
+             'EDF format may cause a small change to sample times.')
 
     n_secs = n_times / sfreq
 
@@ -84,8 +83,7 @@ def _export_raw(fname, raw, physical_range, fmt):
     filter_str_info = f"HP:{highpass}Hz LP:{lowpass}Hz N:{linefreq}Hz"
 
     # get EEG-related data in uV
-    units = dict(eeg='uV', ecog='uV', seeg='uV',
-                 eog='uV', ecg='uV', emg='uV')
+    units = dict(eeg='uV', ecog='uV', seeg='uV', eog='uV', ecg='uV', emg='uV')
 
     # get the entire dataset in uV
     data = raw.get_data(units=units, picks=ch_names)
@@ -96,17 +94,11 @@ def _export_raw(fname, raw, physical_range, fmt):
         ch_types_phys_min = dict()
 
         ch_types = np.array(raw.get_channel_types(picks=raw.ch_names))
-
-        for idx, ch_type in enumerate(ch_types):
-            ch_type_data = data[idx, :]
-            if ch_type not in ch_types_phys_max:
-                ch_types_phys_max[ch_type] = ch_type_data.max()
-                ch_types_phys_min[ch_type] = ch_type_data.min()
-            else:
-                ch_types_phys_max[ch_type] = max(
-                    ch_type_data.max(), ch_types_phys_max[ch_type])
-                ch_types_phys_min[ch_type] = min(
-                    ch_type_data.min(), ch_types_phys_min[ch_type])
+        for _type in ch_types.unique():
+            _picks = np.nonzero(ch_types == _type)[0]
+            _data = raw.get_data(units=units, picks=_picks)
+            ch_types_phys_max[_type] = _data.max()
+            ch_types_phys_min[_type] = _data.min()
     else:
         # get the physical min and max of the data in uV
         # Physical ranges of the data in uV is usually set by the manufacturer
@@ -120,11 +112,11 @@ def _export_raw(fname, raw, physical_range, fmt):
 
         # check that physical min and max is not exceeded
         if data.max() > pmax:
-            raise RuntimeError(f'The maximum uV of the data {data.max()} '
-                               f'is more then physical max passed in {pmax}.')
+            raise RuntimeError(f'The maximum μV of the data {data.max()} '
+                               f'is more than the physical max passed in {pmax}.')
         if data.min() < pmin:
-            raise RuntimeError(f'The minimum uV of the data {data.min()} '
-                               f'is less then physical min passed in {pmin}.')
+            raise RuntimeError(f'The minimum μV of the data {data.min()} '
+                               f'is less than the physical min passed in {pmin}.')
 
     # create instance of EDF/BDF Writer
     hdl = EDFwriter(fname, file_type, n_channels)
@@ -152,13 +144,12 @@ def _export_raw(fname, raw, physical_range, fmt):
         birthday = subj_info.get('birthday')
         first_name = subj_info.get('first_name')
         last_name = subj_info.get('last_name')
-        name = None
-        if first_name is not None:
-            name = first_name
-        if last_name is not None:
-            name += last_name
-        if name is None:
-            name = ''
+        first_name = first_name or ''
+        last_name = last_name or ''
+        joiner = ''
+        if len(first_name) and len(last_name):
+            joiner = ' '
+        name joiner.join([first_name, last_name])
 
         hand = subj_info.get('hand')
         sex = subj_info.get('sex')
@@ -197,7 +188,7 @@ def _export_raw(fname, raw, physical_range, fmt):
     # compute number of seconds to loop over
     n_secs = n_times / channel_sfreq
 
-    # Write each second (i.e. datarecord) separately.
+    # Write each datarecord sequentially
     # buffer_sfreq = (int(sfreq * data_record_duration))
     for isec in range(np.ceil(n_secs).astype(int)):
         end_samp = (isec + 1) * channel_sfreq
