@@ -35,8 +35,10 @@ from mne.viz import (plot_alignment, snapshot_brain_montage,
 
 print(__doc__)
 
-subjects_dir = mne.datasets.sample.data_path() + '/subjects'
-path_data = mne.datasets.misc.data_path() + '/ecog/sample_ecog.mat'
+sample_path = mne.datasets.sample.data_path()
+subjects_dir = op.join(sample_path, 'subjects')
+misc_path = mne.datasets.misc.data_path()
+ecog_data_fname = op.join(misc_path, 'ecog', 'sample_ecog.mat')
 
 # We've already clicked and exported
 layout_path = op.join(op.dirname(mne.__file__), 'data', 'image')
@@ -49,15 +51,21 @@ layout_name = 'custom_layout.lout'
 # First we will load a sample ECoG dataset which we'll use for generating
 # a 2D snapshot.
 
-mat = loadmat(path_data)
+mat = loadmat(ecog_data_fname)
 ch_names = mat['ch_names'].tolist()
 elec = mat['elec']  # electrode coordinates in meters
-# Now we make a montage stating that the sEEG contacts are in head
-# coordinate system (although they are in MRI). This is compensated
-# by the fact that below we do not specicty a trans file so the Head<->MRI
-# transform is the identity.
+# Now we make a montage and specify that these electrode contacts
+# are in the "mri" or surface RAS coordinate frame
 montage = mne.channels.make_dig_montage(ch_pos=dict(zip(ch_names, elec)),
-                                        coord_frame='head')
+                                        coord_frame='mri')
+
+# now we'll add some fiducials estimated from the Taliarach transform
+# of fsaverage's fiducials
+montage.add_estimated_fiducials('sample', subjects_dir)
+
+# we also need the head->mri transform based on these fiducials
+trans = mne.channels.compute_native_head_t(montage)
+
 info = mne.create_info(ch_names, 1000., 'ecog').set_montage(montage)
 print('Created %s channel positions' % len(ch_names))
 
@@ -70,10 +78,11 @@ print('Created %s channel positions' % len(ch_names))
 # with the electrode positions on that image. We use this in conjunction with
 # :func:`mne.viz.plot_alignment`, which visualizes electrode positions.
 
-fig = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
+fig = plot_alignment(info, trans=trans, subject='sample',
+                     subjects_dir=subjects_dir,
                      surfaces=['pial'], meg=False)
-set_3d_view(figure=fig, azimuth=200, elevation=70)
-xy, im = snapshot_brain_montage(fig, montage)
+set_3d_view(figure=fig, azimuth=200, elevation=50)
+xy, im = snapshot_brain_montage(fig, info)
 
 # Convert from a dictionary to array to plot
 xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])

@@ -139,6 +139,8 @@ Enhancements
 
 - Add :func:`mne.coreg.estimate_head_mri_t` to estimate the head->mri transform from fsaverage fiducials (:gh:`9585` by `Alex Rockhill`_)
 
+- Add :meth:`mne.channels.DigMontage.add_mni_fiducials` to add fiducials to a montage in MNI coordinates (:gh:`9682` by `Alex Rockhill`_)
+
 Bugs
 ~~~~
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)

@@ -406,11 +406,11 @@ class DigMontage(object):
         # get coordframe and fiducial coordinates
         montage_bunch = _get_data_as_dict_from_dig(self.dig)
 
-        # get the coordinate frame as a string and check that it's MRI
+        # get the coordinate frame and check that it's MRI
         if montage_bunch.coord_frame != FIFF.FIFFV_COORD_MRI:
             raise RuntimeError(
-                f'Montage should be in mri coordinate frame to call '
-                f'`add_estimated_fiducials`. The current coordinate '
+                f'Montage should be in the "mri" coordinate frame '
+                f'to use `add_estimated_fiducials`. The current coordinate '
                 f'frame is {montage_bunch.coord_frame}')
 
         # estimate LPA, nasion, RPA from FreeSurfer fsaverage
@@ -418,6 +418,48 @@ class DigMontage(object):
 
         # add those digpoints to front of montage
         self.dig = fids_mri + self.dig
+        return self
+
+    @verbose
+    def add_mni_fiducials(self, subjects_dir=None,
+                          verbose=None):
+        """Add fiducials to a montage in MNI space.
+
+        Parameters
+        ----------
+        %(subjects_dir)s
+        %(verbose)s
+
+        Returns
+        -------
+        inst : instance of DigMontage
+            The instance, modified in-place.
+
+        Notes
+        -----
+        ``fsaverage`` is in MNI space and so its fiducials can be
+        added to a montage in "mni_tal". MNI is an ACPC-aligned
+        coordinate system (the posterior commissure is the origin)
+        so since BIDS requires channel locations for ECoG, sEEG and
+        DBS to be in ACPC space, this function can be used to allow
+        those coordinate to be transformed to "head" space (origin
+        between LPA and RPA).
+        """
+        montage_bunch = _get_data_as_dict_from_dig(self.dig)
+
+        # get the coordinate frame and check that it's MNI TAL
+        if montage_bunch.coord_frame != FIFF.FIFFV_MNE_COORD_MNI_TAL:
+            raise RuntimeError(
+                f'Montage should be in the "mni_tal" coordinate frame '
+                f'to use `add_estimated_fiducials`. The current coordinate '
+                f'frame is {montage_bunch.coord_frame}')
+
+        fids_mni = get_mni_fiducials('fsaverage', subjects_dir)
+        for fid in fids_mni:
+            # "mri" and "mni_tal" are equivalent for fsaverage
+            assert fid['coord_frame'] == FIFF.FIFFV_COORD_MRI
+            fid['coord_frame'] = FIFF.FIFFV_MNE_COORD_MNI_TAL
+        self.dig = fids_mni + self.dig
         return self
 
 

@@ -1560,7 +1560,7 @@ def test_plot_montage():
 
 
 @testing.requires_testing_data
-def test_montage_add_estimated_fiducials():
+def test_montage_add_fiducials():
     """Test montage can add estimated fiducials for rpa, lpa, nas."""
     # get the fiducials from test file
     subjects_dir = op.join(data_path, 'subjects')
@@ -1575,6 +1575,11 @@ def test_montage_add_estimated_fiducials():
     montage = make_dig_montage(ch_pos=test_ch_pos, coord_frame='mri')
     montage.add_estimated_fiducials(subject=subject, subjects_dir=subjects_dir)
 
+    # check that adding MNI fiducials fails because we're in MRI
+    with pytest.raises(RuntimeError, match='Montage should be in the '
+                                           '"mni_tal" coordinate frame'):
+        montage.add_mni_fiducials(subjects_dir=subjects_dir)
+
     # check that these fiducials are close to the estimated fiducials
     ch_pos = montage.get_positions()
     fids_est = [ch_pos['lpa'], ch_pos['nasion'], ch_pos['rpa']]
@@ -1585,10 +1590,16 @@ def test_montage_add_estimated_fiducials():
     # an error should be raised if the montage is not in `mri` coord_frame
     # which is the FreeSurfer RAS
     montage = make_dig_montage(ch_pos=test_ch_pos, coord_frame='mni_tal')
-    with pytest.raises(RuntimeError, match='Montage should be in mri '
-                                           'coordinate frame'):
+    with pytest.raises(RuntimeError, match='Montage should be in the '
+                                           '"mri" coordinate frame'):
         montage.add_estimated_fiducials(subject=subject,
                                         subjects_dir=subjects_dir)
+
+    # test that adding MNI fiducials works
+    montage.add_mni_fiducials(subjects_dir=subjects_dir)
+    test_fids = get_mni_fiducials('fsaverage', subjects_dir=subjects_dir)
+    for fid, test_fid in zip(montage.dig[:3], test_fids):
+        assert_array_equal(fid['r'], test_fid['r'])
 
 
 def test_read_dig_localite(tmpdir):

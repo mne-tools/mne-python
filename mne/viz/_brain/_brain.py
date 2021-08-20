@@ -2571,17 +2571,21 @@ class Brain(object):
         else:
             head_surf = None
         # Do the main plotting
-        if picks.size > 0:
-            _plot_sensors(info, to_cf_t, self._renderer, picks, meg, eeg,
-                          fnirs, head_surf, warn_meg, self._units)
+        for h in self._hemis:
+            for ri, ci, v in self._iter_views(h):
+                self._renderer.subplot(ri, ci)
+                if picks.size > 0:
+                    _plot_sensors(
+                        info, to_cf_t, self._renderer, picks, meg, eeg,
+                        fnirs, head_surf, warn_meg, self._units)
 
-        if 'helmet' in meg and pick_types(info.copy(), meg=True).size > 0:
-            surf = get_meg_helmet_surf(info, head_mri_t)
-            verts = surf['rr'] * (1 if self._units == 'm' else 1e3)
-            self._renderer.mesh(*verts.T, surf['tris'],
-                                color=DEFAULTS['coreg']['helmet_color'],
-                                opacity=0.25, reset_camera=False,
-                                render=False)
+                if 'helmet' in meg and pick_types(info, meg=True).size > 0:
+                    surf = get_meg_helmet_surf(info, head_mri_t)
+                    verts = surf['rr'] * (1 if self._units == 'm' else 1e3)
+                    self._renderer.mesh(
+                        *verts.T, surf['tris'],
+                        color=DEFAULTS['coreg']['helmet_color'],
+                        opacity=0.25, reset_camera=False, render=False)
 
         self._renderer._update()
 
