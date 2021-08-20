@@ -190,14 +190,13 @@ def _export_raw(fname, raw, physical_range, fmt):
     n_secs = n_times / channel_sfreq
 
     # Write each datarecord sequentially
-    # buffer_sfreq = (int(sfreq * data_record_duration))
     for isec in range(np.ceil(n_secs).astype(int)):
         end_samp = (isec + 1) * channel_sfreq
         if end_samp > n_times:
             end_samp = n_times
         start_samp = isec * channel_sfreq
 
-        # then for each second write each channel
+        # then for each datarecord write each channel
         for ich in range(n_channels):
             # create a buffer with sampling rate
             buf = np.zeros(channel_sfreq, np.float64, "C")
@@ -214,12 +213,9 @@ def _export_raw(fname, raw, physical_range, fmt):
         if len(ch_data) != len(buf):
             warn(f'EDF format requires equal-length data blocks, '
                  f'so {(len(buf) - len(ch_data)) / sfreq} seconds of zeros '
-                 f'were appended to all channels when writing the final '
-                 f'block.')
+                 'were appended to all channels when writing the final block.')
 
     # write annotations
-    # XXX: possibly writing multiple annotations per data record is not
-    # possible, but can be expanded if we write to more then one channel
     if raw.annotations:
         for desc, onset, duration in zip(raw.annotations.description,
                                          raw.annotations.onset,
