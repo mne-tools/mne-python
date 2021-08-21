@@ -1601,6 +1601,10 @@ def test_montage_add_fiducials():
     for fid, test_fid in zip(montage.dig[:3], test_fids):
         assert_array_equal(fid['r'], test_fid['r'])
 
+    # test remove fiducials
+    montage.remove_fiducials()
+    assert all([d['kind'] != FIFF.FIFFV_POINT_CARDINAL for d in montage.dig])
+
 
 def test_read_dig_localite(tmpdir):
     """Test reading Localite .csv file."""

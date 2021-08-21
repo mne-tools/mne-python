@@ -421,8 +421,7 @@ class DigMontage(object):
         return self
 
     @verbose
-    def add_mni_fiducials(self, subjects_dir=None,
-                          verbose=None):
+    def add_mni_fiducials(self, subjects_dir=None, verbose=None):
         """Add fiducials to a montage in MNI space.
 
         Parameters
@@ -460,6 +459,33 @@ class DigMontage(object):
             assert fid['coord_frame'] == FIFF.FIFFV_COORD_MRI
             fid['coord_frame'] = FIFF.FIFFV_MNE_COORD_MNI_TAL
         self.dig = fids_mni + self.dig
+        return self
+
+    @verbose
+    def remove_fiducials(self, verbose=None):
+        """Remove the fiducial points from a montage.
+
+        Parameters
+        ----------
+        %(verbose)s
+
+        Returns
+        -------
+        inst : instance of DigMontage
+            The instance, modified in-place.
+
+        Notes
+        -----
+        MNE will transform a montage to the internal "head" coordinate
+        frame if the fiducials are present. Under most circumstances, this
+        is ideal as it standardizes the coordinate frame for things like
+        plotting. However, in some circumstances, such as saving a ``raw``
+        with intracranial data to BIDS format, the coordinate frame
+        should not be changed by removing fiducials.
+        """
+        for d in self.dig.copy():
+            if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
+                self.dig.remove(d)
         return self
 
 
