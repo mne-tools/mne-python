@@ -229,7 +229,7 @@ class ASR():
             return clean, sample_mask
 
     def transform(self, X, y=None, lookahead=0.25, stepsize=32, maxdims=0.66,
-                  return_states=False):
+                  return_states=False, mem_splits=3):
         """Apply Artifact Subspace Reconstruction.
 
         Parameters
@@ -263,7 +263,9 @@ class ASR():
             If True, returns a dict including the updated states {"M":M,
             "T":T, "R":R, "Zi":Zi, "cov":cov, "carry":carry}. Defaults to
             False.
-
+        mem_splits : int
+            Split the array in `mem_splits` segments to save memory.
+        
         Returns
         -------
         out : array, shape=(n_channels, n_samples)
@@ -273,7 +275,7 @@ class ASR():
         return asr_process(X, self.sfreq, self.M, self.T, self.win_len,
                            lookahead, stepsize, maxdims, (self.A, self.B),
                            self.R, self.Zi, self.cov, self.carry,
-                           return_states)
+                           return_states, self.method, mem_splits)
 
 
 def asr_calibrate(X, sfreq, cutoff=5, blocksize=100, win_len=0.5,
@@ -402,7 +404,7 @@ def asr_calibrate(X, sfreq, cutoff=5, blocksize=100, win_len=0.5,
 
 def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
                 maxdims=0.66, ab=None, R=None, Zi=None, cov=None, carry=None,
-                return_states=False, method="euclid"):
+                return_states=False, method="euclid", mem_splits=3):
     """Apply Artifact Subspace Reconstruction method.
 
     This function is used to clean multi-channel signal using the ASR method.
@@ -467,6 +469,8 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
     method : {'euclid', 'riemann'}
         Metric to compute the covariance matrix average. For now, only
         euclidean ASR is supported.
+    mem_splits : int
+        Split the array in `mem_splits` segments to save memory.
 
 
     Returns
@@ -506,7 +510,7 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
     data = np.concatenate([carry, data], axis=-1)
 
     # splits = np.ceil(C*C*S*8*8 + C*C*8*s/stepsize + C*S*8*2 + S*8*5)...
-    splits = 3  # TODO: use this for parallelization MAKE IT A PARAM FIRST
+    splits = mem_splits  # TODO: use this for parallelization MAKE IT A PARAM FIRST
 
     # loop over smaller segments of the data (for memory purposes)
     last_trivial = False
