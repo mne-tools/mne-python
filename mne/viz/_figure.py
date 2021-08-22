@@ -23,7 +23,7 @@ from .utils import _get_color_list, _setup_plot_projector
 MNE_BROWSE_BACKEND = None
 _backends = dict(
     matplotlib='._mpl_figure',
-    pyqtgraph='._pyqtgraph'
+    pyqtgraph='._pg_figure'
 )
 backend = None
 
@@ -435,12 +435,8 @@ class BrowserBase(ABC):
 
 def _load_backend(backend_name):
     global backend
-    if backend_name == 'pyqtgraph':
-        from prototypes import pyqtgraph_ptyp
-        backend = pyqtgraph_ptyp
-    else:
-        backend = importlib.import_module(name=_backends[backend_name],
-                                          package='mne.viz')
+    backend = importlib.import_module(name=_backends[backend_name],
+                                      package='mne.viz')
     logger.info(f'Using {backend_name} as 2D backend.')
 
     return backend
