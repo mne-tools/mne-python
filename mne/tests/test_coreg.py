@@ -19,12 +19,16 @@ from mne.coreg import (fit_matched_points, create_default_subject, scale_mri,
                        coregister_fiducials, get_mni_fiducials, Coregistration)
 from mne.io import read_fiducials, read_info
 from mne.io.constants import FIFF
-from mne.utils import requires_nibabel, modified_env, check_version
+from mne.utils import (requires_nibabel, modified_env, check_version,
+                       catch_logging)
 from mne.source_space import write_source_spaces
 
 data_path = testing.data_path(download=False)
 subjects_dir = os.path.join(data_path, 'subjects')
 fid_fname = op.join(subjects_dir, 'sample', 'bem', 'sample-fiducials.fif')
+raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
+trans_fname = op.join(data_path, 'MEG', 'sample',
+                      'sample_audvis_trunc-trans.fif')
 
 
 @pytest.fixture
@@ -281,6 +285,7 @@ def test_get_mni_fiducials():
     assert (dists < 8).all(), dists
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     'scale_mode,ref_scale,grow_hair,fiducials,fid_match', [
@@ -294,15 +299,11 @@ def test_get_mni_fiducials():
 def test_coregistration(scale_mode, ref_scale, grow_hair, fiducials,
                         fid_match):
     """Test automated coregistration."""
-    trans_fname = op.join(data_path, 'MEG', 'sample',
-                          'sample_audvis_trunc-trans.fif')
-    fname_raw = op.join(op.dirname(__file__), '..', 'io',
-                        'tests', 'data', 'test_raw.fif')
     subject = 'sample'
     if fiducials is None:
         fiducials, coord_frame = read_fiducials(fid_fname)
         assert coord_frame == FIFF.FIFFV_COORD_MRI
-    info = read_info(fname_raw)
+    info = read_info(raw_fname)
     for d in info['dig']:
         d['r'] = d['r'] * ref_scale
     trans = read_trans(trans_fname)
@@ -361,3 +362,84 @@ def test_coregistration(scale_mode, ref_scale, grow_hair, fiducials,
     assert_allclose(coreg._scale, ref_scale, atol=atol)
     coreg.reset()
     assert_allclose(coreg._parameters, default_params)
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_coreg_class_gui_match():
+    """Test that using Coregistration matches mne coreg."""
+    fiducials, _ = read_fiducials(fid_fname)
+    info = read_info(raw_fname)
+    coreg = Coregistration(info, subject='sample', subjects_dir=subjects_dir,
+                           fiducials=fiducials)
+    assert_allclose(coreg.trans['trans'], np.eye(4), atol=1e-6)
+    # mne coreg -s sample -d subjects -f MEG/sample/sample_audvis_trunc_raw.fif
+    # then "Fit Fid.", Save... to get trans, read_trans:
+    want_trans = [
+        [9.99428809e-01, 2.94733196e-02, 1.65350307e-02, -8.76054692e-04],
+        [-1.92420650e-02, 8.98512006e-01, -4.38526988e-01, 9.39774036e-04],
+        [-2.77817696e-02, 4.37958330e-01, 8.98565888e-01, -8.29207990e-03],
+        [0, 0, 0, 1]]
+    coreg.set_fid_match('matched')
+    coreg.fit_fiducials(verbose=True)
+    assert_allclose(coreg.trans['trans'], want_trans, atol=1e-6)
+    # Set ICP iterations to one, click "Fit ICP"
+    want_trans = [
+        [9.99512792e-01, 2.80128177e-02, 1.37659665e-02, 6.08855276e-04],
+        [-1.91694051e-02, 8.98992002e-01, -4.37545270e-01, 9.66848747e-04],
+        [-2.46323701e-02, 4.37068194e-01, 8.99091005e-01, -1.44129358e-02],
+        [0, 0, 0, 1]]
+    coreg.fit_icp(1, verbose=True)
+    assert_allclose(coreg.trans['trans'], want_trans, atol=1e-6)
+    # Set ICP iterations to 20, click "Fit ICP"
+    with catch_logging() as log:
+        coreg.fit_icp(20, verbose=True)
+    log = log.getvalue()
+    want_trans = [
+        [9.97582495e-01, 2.12266613e-02, 6.61706254e-02, -5.07694029e-04],
+        [1.81089472e-02, 8.39900672e-01, -5.42437911e-01, 7.81218382e-03],
+        [-6.70908988e-02, 5.42324841e-01, 8.37485850e-01, -2.50057746e-02],
+        [0, 0, 0, 1]]
+    assert_allclose(coreg.trans['trans'], want_trans, atol=1e-6)
+    assert 'ICP 19' in log
+    assert 'ICP 20' not in log  # converged on 19
+    # Change to uniform scale mode, "Fit Fiducials" in scale UI
+    coreg.set_scale_mode('uniform')
+    coreg.fit_fiducials()
+    want_scale = [0.975] * 3
+    want_trans = [
+        [9.99428809e-01, 2.94733196e-02, 1.65350307e-02, -9.25998494e-04],
+        [-1.92420650e-02, 8.98512006e-01, -4.38526988e-01, -1.03350170e-03],
+        [-2.77817696e-02, 4.37958330e-01, 8.98565888e-01, -9.03170835e-03],
+        [0, 0, 0, 1]]
+    assert_allclose(coreg.scale, want_scale, atol=5e-4)
+    assert_allclose(coreg.trans['trans'], want_trans, atol=1e-6)
+    # Click "Fit ICP" in scale UI
+    with catch_logging() as log:
+        coreg.fit_icp(20, verbose=True)
+    log = log.getvalue()
+    assert 'ICP 18' in log
+    assert 'ICP 19' not in log
+    want_scale = [1.036] * 3
+    want_trans = [
+        [9.98992383e-01, 1.72388796e-02, 4.14364934e-02, 6.19427126e-04],
+        [6.80460501e-03, 8.54430079e-01, -5.19521892e-01, 5.58008114e-03],
+        [-4.43605632e-02, 5.19280374e-01, 8.53451848e-01, -2.03358755e-02],
+        [0, 0, 0, 1]]
+    assert_allclose(coreg.scale, want_scale, atol=5e-4)
+    assert_allclose(coreg.trans['trans'], want_trans, atol=1e-6)
+    # Change scale mode to 3-axis, click "Fit ICP" in scale UI
+    coreg.set_scale_mode('3-axis')
+    with catch_logging() as log:
+        coreg.fit_icp(20, verbose=True)
+    log = log.getvalue()
+    assert 'ICP  7' in log
+    assert 'ICP  8' not in log
+    want_scale = [1.025, 1.010, 1.121]
+    want_trans = [
+        [9.98387098e-01, 2.04762165e-02, 5.29526398e-02, 4.97257097e-05],
+        [1.13287698e-02, 8.42087150e-01, -5.39222538e-01, 7.09863892e-03],
+        [-5.56319728e-02, 5.38952649e-01, 8.40496957e-01, -1.46372067e-02],
+        [0, 0, 0, 1]]
+    assert_allclose(coreg.scale, want_scale, atol=5e-4)
+    assert_allclose(coreg.trans['trans'], want_trans, atol=1e-6)
