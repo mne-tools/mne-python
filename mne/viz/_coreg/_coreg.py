@@ -49,20 +49,35 @@ class CoregistrationUI(object):
         )
 
         layout = self._renderer._dock_add_group_box("MRI Fiducials")
-        hlayout = self._renderer._dock_add_layout(vertical=False)
+        digs_states = ["Lock", "Edit"]
+        self._renderer._dock_add_radio_buttons(
+            value=digs_states[0],
+            rng=digs_states,
+            callback=noop,
+            vertical=False,
+            layout=layout,
+        )
         self._widgets["show_hsp"] = self._renderer._dock_add_check_box(
             name="Show Head Shape Points",
             value=False,
             callback=noop,
             layout=layout
         )
+        self._widgets["fid_file"] = self._renderer._dock_add_file_button(
+            name="fid_file",
+            desc="fid_file",
+            func=noop,
+            layout=layout,
+        )
         digs = ["LPA", "Nasion", "RPA"]
         self._renderer._dock_add_radio_buttons(
             value=digs[0],
             rng=digs,
             callback=noop,
+            vertical=False,
             layout=layout,
         )
+        hlayout = self._renderer._dock_add_layout(vertical=False)
         for coord in ("X", "Y", "Z"):
             name = f"dig_{coord}"
             self._widgets[name] = self._renderer._dock_add_spin_box(
@@ -77,7 +92,12 @@ class CoregistrationUI(object):
         self._renderer._layout_add_widget(layout, hlayout)
 
         layout = self._renderer._dock_add_group_box("Digitization Source")
-        # self._widgets["fids_file"] = self._renderer._dock_file_button()
+        self._widgets["info_file"] = self._renderer._dock_add_file_button(
+            name="info_file",
+            desc="info_file",
+            func=noop,
+            layout=layout,
+        )
         self._widgets["grow_hair"] = self._renderer._dock_add_spin_box(
             name="Grow Hair",
             value=0.0,
@@ -117,9 +137,9 @@ class CoregistrationUI(object):
             layout=layout
         )
         for coord in ("X", "Y", "Z"):
-            name = f"scaling_{coord}"
+            name = f"s{coord}"
             self._widgets[name] = self._renderer._dock_add_spin_box(
-                name=coord,
+                name=name,
                 value=0.,
                 rng=[0., 1.],
                 callback=noop,
