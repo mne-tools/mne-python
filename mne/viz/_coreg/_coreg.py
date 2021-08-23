@@ -68,7 +68,7 @@ class CoregistrationUI(object):
             name="fid_file",
             desc="Load",
             func=noop,
-            placeholder="Path to the fiducials file",
+            placeholder="Path to fiducials",
             layout=layout,
         )
         digs = ["LPA", "Nasion", "RPA"]
@@ -98,7 +98,7 @@ class CoregistrationUI(object):
             name="info_file",
             desc="Load",
             func=noop,
-            placeholder="Path to the info file",
+            placeholder="Path to info",
             layout=layout,
         )
         self._widgets["grow_hair"] = self._renderer._dock_add_spin_box(
