@@ -58,12 +58,6 @@ class CoregistrationUI(object):
             vertical=False,
             layout=layout,
         )
-        self._widgets["show_hsp"] = self._renderer._dock_add_check_box(
-            name="Show Head Shape Points",
-            value=False,
-            callback=noop,
-            layout=layout
-        )
         self._widgets["fid_file"] = self._renderer._dock_add_file_button(
             name="fid_file",
             desc="Load",
@@ -79,7 +73,7 @@ class CoregistrationUI(object):
             vertical=False,
             layout=layout,
         )
-        hlayout = self._renderer._dock_add_layout(vertical=False)
+        hlayout = self._renderer._dock_add_layout()
         for coord in ("X", "Y", "Z"):
             name = f"dig_{coord}"
             self._widgets[name] = self._renderer._dock_add_spin_box(
@@ -122,6 +116,20 @@ class CoregistrationUI(object):
             layout=hlayout,
         )
         self._renderer._layout_add_widget(layout, hlayout)
+
+        layout = self._renderer._dock_add_group_box("View")
+        self._widgets["show_hsp"] = self._renderer._dock_add_check_box(
+            name="Show Head Shape Points",
+            value=False,
+            callback=noop,
+            layout=layout
+        )
+        self._widgets["make_transparent"] = self._renderer._dock_add_check_box(
+            name="Make skin surface transparent",
+            value=False,
+            callback=noop,
+            layout=layout
+        )
         self._renderer._dock_add_stretch()
 
         self._renderer._dock_initialize(
@@ -151,9 +159,9 @@ class CoregistrationUI(object):
                 layout=hlayout
             )
 
-        hlayout = self._renderer._dock_add_group_box(
-            "Translation (t) and Rotation (r)")
-        for mode in ("t", "r"):
+        for mode, mode_name in (("t", "Translation"), ("r", "Rotation")):
+            hlayout = self._renderer._dock_add_group_box(
+                f"{mode_name} ({mode})")
             for coord in ("X", "Y", "Z"):
                 name = f"{mode}{coord}"
                 self._widgets[name] = self._renderer._dock_add_spin_box(
