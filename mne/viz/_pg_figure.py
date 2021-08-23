@@ -1171,7 +1171,6 @@ class PyQtGraphPtyp(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
                                       lowpass=None,
                                       ds='auto',
                                       ds_method='peak',
-                                      ds_chunk_size=None,
                                       antialiasing=False,
                                       use_opengl=True,
                                       enable_ds_cache=True,
@@ -2072,6 +2071,9 @@ class PyQtGraphPtyp(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
     def _draw_traces(self):
         # Update data in traces
         for trace in self.mne.traces:
+            # self update ch-idx for butterfly-mode
+            trace.set_ch_idx(trace.ch_idx)
+            # Update data
             trace.set_data()
 
     def _close_event(self, fig=None):
