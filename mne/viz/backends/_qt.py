@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
                              QSizePolicy, QScrollArea, QStyle, QProgressBar,
                              QStyleOptionSlider, QLayout, QCheckBox,
-                             QButtonGroup, QRadioButton)
+                             QButtonGroup, QRadioButton, QLineEdit)
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
@@ -174,7 +174,15 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return hlayout
 
-    def _dock_add_file_button(self, name, desc, func, layout=None):
+    def _dock_add_text(self, name, value, placeholder, layout=None):
+        layout = self._dock_layout if layout is None else layout
+        widget = QLineEdit(value)
+        widget.setPlaceholderText(placeholder)
+        self._layout_add_widget(layout, widget)
+        return _QtWidget(widget)
+
+    def _dock_add_file_button(self, name, desc, func,
+                              placeholder="Type a file name", layout=None):
         layout = self._dock_layout if layout is None else layout
 
         def callback():
@@ -183,11 +191,19 @@ class _QtDock(_AbstractDock, _QtLayout):
                 callback=func,
             )
 
-        return self._dock_add_button(
+        hlayout = self._dock_add_layout(vertical=False)
+        self._dock_add_text(
+            name=f"{name}_field",
+            value=None,
+            placeholder=placeholder,
+            layout=hlayout,
+        )
+        self._dock_add_button(
             name=name,
             callback=callback,
-            layout=layout,
+            layout=hlayout,
         )
+        self._layout_add_widget(layout, hlayout)
 
 
 class QFloatSlider(QSlider):

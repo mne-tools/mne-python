@@ -159,24 +159,28 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         layout = self._dock_layout if layout is None else layout
         widget = Text(value=value, placeholder=placeholder)
         self._layout_add_widget(layout, widget)
+        return _IpyWidget(widget)
 
-    def _dock_add_file_button(self, name, desc, func, layout=None):
+    def _dock_add_file_button(self, name, desc, func,
+                              placeholder="Type a file name", layout=None):
         layout = self._dock_layout if layout is None else layout
 
         def callback():
             fname = self.actions[f"{name}_field"].value
             func(None if len(fname) == 0 else fname)
+        hlayout = self._dock_add_layout(vertical=False)
         self._dock_add_text(
             name=f"{name}_field",
             value=None,
-            placeholder="Type a file name",
-            layout=layout,
+            placeholder=placeholder,
+            layout=hlayout,
         )
         self._dock_add_button(
             name=name,
             callback=callback,
-            layout=layout,
+            layout=hlayout,
         )
+        self._layout_add_widget(layout, hlayout)
 
 
 def _generate_callback(callback, to_float=False):
