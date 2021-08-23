@@ -72,7 +72,7 @@ def test_integer_sfreq_edf_and_bdf(tmp_path, format):
     # only compare the original length, since extra zeros are appended
     orig_raw_len = len(raw)
     assert_array_almost_equal(
-        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=3)
+        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=4)
     assert_allclose(
         raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
 
@@ -97,8 +97,7 @@ def test_export_raw_edf_and_bdf(tmp_path, dataset, format):
         with imp_resrc.path(mne.io.tests.data, 'test_raw.fif') as fname:
             raw = read_raw_fif(fname)
     elif dataset == 'misc':
-        fname = op.join(misc.data_path(),
-                        'ecog', 'sample_ecog.edf')
+        fname = op.join(misc.data_path(), 'ecog', 'sample_ecog.edf')
         raw = read_raw_edf(fname)
 
     # only test with EEG channels
@@ -136,7 +135,7 @@ def test_export_raw_edf_and_bdf(tmp_path, dataset, format):
     # only compare the original length, since extra zeros are appended
     orig_raw_len = len(raw)
     assert_array_almost_equal(
-        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=3)
+        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=4)
     assert_allclose(
         raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
 
