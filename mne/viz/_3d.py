@@ -997,7 +997,7 @@ def _plot_sensors(info, to_cf_t, renderer, picks, meg, eeg, fnirs,
                 actor, _ = renderer.sphere(
                     center=tuple(ch_coord * scalar), color=color,
                     scale=defaults[ch_type + '_scale'] * scalar, opacity=0.8)
-            actors[ch_type].append(actor)
+                actors[ch_type].append(actor)
         if ch_name in sources and 'sources' in fnirs:
             actor, _ = renderer.sphere(
                 center=tuple(sources[ch_name] * scalar),

@@ -193,6 +193,7 @@ class _Renderer(_AbstractRenderer):
                                      scale_factor=scale, opacity=opacity,
                                      figure=self.fig)
         surface.actor.property.backface_culling = backface_culling
+        return surface.actor, surface
 
     def tube(self, origin, destination, radius=0.001, color='white',
              scalars=None, vmin=None, vmax=None, colormap='RdBu',
