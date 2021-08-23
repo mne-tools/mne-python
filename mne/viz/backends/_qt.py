@@ -16,7 +16,8 @@ from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
                              QSizePolicy, QScrollArea, QStyle, QProgressBar,
-                             QStyleOptionSlider, QLayout)
+                             QStyleOptionSlider, QLayout, QCheckBox,
+                             QButtonGroup, QRadioButton)
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
@@ -41,11 +42,17 @@ class _QtLayout(_AbstractLayout):
 
 
 class _QtDock(_AbstractDock, _QtLayout):
-    def _dock_initialize(self, window=None):
+    def _dock_initialize(self, window=None, name="Controls",
+                         area="left"):
         window = self._window if window is None else window
+        qt_area = Qt.LeftDockWidgetArea if area == "left" \
+            else Qt.RightDockWidgetArea
         self._dock, self._dock_layout = _create_dock_widget(
-            self._window, "Controls", Qt.LeftDockWidgetArea)
-        window.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
+            self._window, name, qt_area)
+        if area == "left":
+            window.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
+        else:
+            window.setCorner(Qt.BottomRightCorner, Qt.RightDockWidgetArea)
 
     def _dock_finalize(self):
         self._dock.setMinimumSize(self._dock.sizeHint().width(), 0)
@@ -57,7 +64,8 @@ class _QtDock(_AbstractDock, _QtLayout):
     def _dock_hide(self):
         self._dock.hide()
 
-    def _dock_add_stretch(self, layout):
+    def _dock_add_stretch(self, layout=None):
+        layout = self._dock_layout if layout is None else layout
         layout.addStretch()
 
     def _dock_add_layout(self, vertical=True):
@@ -106,6 +114,14 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
+    def _dock_add_check_box(self, name, value, callback, layout=None):
+        layout = self._dock_layout if layout is None else layout
+        widget = QCheckBox(name)
+        widget.setCheckState(value)
+        widget.stateChanged.connect(callback)
+        self._layout_add_widget(layout, widget)
+        return _QtWidget(widget)
+
     def _dock_add_spin_box(self, name, value, rng, callback,
                            compact=True, double=True, layout=None):
         layout = self._dock_named_layout(name, layout, compact)
@@ -134,6 +150,22 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
+    def _dock_add_radio_buttons(self, value, rng, callback, vertical=True,
+                                layout=None):
+        layout = self._dock_layout if layout is None else layout
+        group_layout = QVBoxLayout() if vertical else QHBoxLayout()
+        group = QButtonGroup()
+        for val in rng:
+            button = QRadioButton(val)
+            button.toggled.connect(callback)
+            if val == value:
+                button.setChecked(True)
+            group.addButton(button)
+            self._layout_add_widget(group_layout, button)
+        self._layout_add_widget(layout, group_layout)
+        # XXX: the following should be wrapped by _QtWidget
+        return group.buttons()
+
     def _dock_add_group_box(self, name, layout=None):
         layout = self._dock_layout if layout is None else layout
         hlayout = QVBoxLayout()
@@ -141,6 +173,21 @@ class _QtDock(_AbstractDock, _QtLayout):
         widget.setLayout(hlayout)
         self._layout_add_widget(layout, widget)
         return hlayout
+
+    def _dock_add_file_button(self, name, desc, func, layout=None):
+        layout = self._dock_layout if layout is None else layout
+
+        def callback():
+            return FileDialog(
+                self.plotter.app_window,
+                callback=func,
+            )
+
+        return self._dock_add_button(
+            name=name,
+            callback=callback,
+            layout=layout,
+        )
 
 
 class QFloatSlider(QSlider):

@@ -33,3 +33,4 @@ from .backends.renderer import (set_3d_backend, get_3d_backend, use_3d_backend,
                                 get_brain_class)
 from . import backends
 from ._brain import Brain
+from ._coreg import CoregistrationUI

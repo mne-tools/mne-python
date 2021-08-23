@@ -26,7 +26,6 @@ from .io._digitization import _get_data_as_dict_from_dig
 # namespace, too)
 from ._freesurfer import (_read_mri_info, get_mni_fiducials,  # noqa: F401
                           estimate_head_mri_t)  # noqa: F401
-from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,  # noqa: E501,F401
                            write_source_spaces)
 from .surface import (read_surface, write_surface, _normalize_vectors,
@@ -897,6 +896,7 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     """
+    from .label import read_label, Label
     subjects_dir, subject_from, scale, _ = _scale_params(
         subject_to, subject_from, scale, subjects_dir)
 

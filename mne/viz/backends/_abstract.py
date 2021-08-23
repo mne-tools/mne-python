@@ -488,7 +488,8 @@ class _AbstractToolBar(ABC):
 
 class _AbstractDock(ABC):
     @abstractmethod
-    def _dock_initialize(self, window=None):
+    def _dock_initialize(self, window=None, name="Controls",
+                         area="left"):
         pass
 
     @abstractmethod
@@ -504,7 +505,7 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_stretch(self, layout):
+    def _dock_add_stretch(self, layout=None):
         pass
 
     @abstractmethod
@@ -529,6 +530,10 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
+    def _dock_add_check_box(self, name, value, callback, layout=None):
+        pass
+
+    @abstractmethod
     def _dock_add_spin_box(self, name, value, rng, callback,
                            compact=True, double=True, layout=None):
         pass
@@ -539,7 +544,16 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
+    def _dock_add_radio_buttons(self, value, rng, callback, vertical=True,
+                                layout=None):
+        pass
+
+    @abstractmethod
     def _dock_add_group_box(self, name, layout=None):
+        pass
+
+    @abstractmethod
+    def _dock_add_file_button(self, name, desc, func, layout=None):
         pass
 
 
