@@ -10,14 +10,15 @@ from contextlib import contextmanager
 import pyvista
 from pyvistaqt.plotting import FileDialog
 
-from PyQt5.QtCore import Qt, pyqtSignal, QLocale
+from PyQt5.QtCore import Qt, pyqtSignal, QLocale, QDir
 from PyQt5.QtGui import QIcon, QImage, QPixmap, QCursor
 from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
                              QSizePolicy, QScrollArea, QStyle, QProgressBar,
                              QStyleOptionSlider, QLayout, QCheckBox,
-                             QButtonGroup, QRadioButton, QLineEdit)
+                             QButtonGroup, QRadioButton, QLineEdit,
+                             QFileDialog)
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
@@ -186,11 +187,15 @@ class _QtDock(_AbstractDock, _QtLayout):
         layout = self._dock_layout if layout is None else layout
 
         def callback():
-            return FileDialog(
-                self.plotter.app_window,
-                callback=func,
-                directory=directory,
-            )
+            if directory:
+                folder = QFileDialog.getExistingDirectory(
+                    None, ("Select Directory"), QDir.currentPath())
+                func(folder)
+            else:
+                return FileDialog(
+                    self.plotter.app_window,
+                    callback=func,
+                )
 
         hlayout = self._dock_add_layout(vertical=False)
         self._dock_add_text(

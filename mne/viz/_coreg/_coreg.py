@@ -38,6 +38,7 @@ class CoregistrationUI(object):
             desc="Load",
             func=noop,
             placeholder="Subjects Directory",
+            directory=True,
             layout=layout,
         )
         self._widgets["subject"] = self._renderer._dock_add_combo_box(
