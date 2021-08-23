@@ -199,7 +199,7 @@ class _QtDock(_AbstractDock, _QtLayout):
             layout=hlayout,
         )
         self._dock_add_button(
-            name=name,
+            name=desc,
             callback=callback,
             layout=hlayout,
         )

@@ -35,8 +35,9 @@ class CoregistrationUI(object):
         layout = self._renderer._dock_add_group_box("MRI Subject")
         self._widgets["subjects_dir"] = self._renderer._dock_add_file_button(
             name="subjects_dir",
-            desc="Subjects Directory",
+            desc="Load",
             func=noop,
+            placeholder="Subjects Directory",
             layout=layout,
         )
         self._widgets["subject"] = self._renderer._dock_add_combo_box(
@@ -65,8 +66,9 @@ class CoregistrationUI(object):
         )
         self._widgets["fid_file"] = self._renderer._dock_add_file_button(
             name="fid_file",
-            desc="fid_file",
+            desc="Load",
             func=noop,
+            placeholder="Path to the fiducials file",
             layout=layout,
         )
         digs = ["LPA", "Nasion", "RPA"]
@@ -94,8 +96,9 @@ class CoregistrationUI(object):
         layout = self._renderer._dock_add_group_box("Digitization Source")
         self._widgets["info_file"] = self._renderer._dock_add_file_button(
             name="info_file",
-            desc="info_file",
+            desc="Load",
             func=noop,
+            placeholder="Path to the info file",
             layout=layout,
         )
         self._widgets["grow_hair"] = self._renderer._dock_add_spin_box(

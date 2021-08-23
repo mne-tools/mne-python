@@ -177,7 +177,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
             layout=hlayout,
         )
         self._dock_add_button(
-            name=name,
+            name=desc,
             callback=callback,
             layout=hlayout,
         )
