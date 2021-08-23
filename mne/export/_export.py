@@ -33,7 +33,6 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto', verbose=None):
     supported_export_formats = {  # format : extensions
         'eeglab': ('set',),
         'edf': ('edf',),
-        'bdf': ('bdf',),
         'brainvision': ('eeg', 'vmrk', 'vhdr',)
     }
     fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
@@ -41,9 +40,9 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto', verbose=None):
     if fmt == 'eeglab':
         from ._eeglab import _export_raw
         _export_raw(fname, raw)
-    elif fmt in ['edf', 'bdf']:
+    elif fmt == 'edf':
         from ._edf import _export_raw
-        _export_raw(fname, raw, physical_range, fmt)
+        _export_raw(fname, raw, physical_range)
     elif fmt == 'brainvision':
         raise NotImplementedError('Export to BrainVision not implemented.')
 

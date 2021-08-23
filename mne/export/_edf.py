@@ -11,7 +11,7 @@ from EDFlib.edfwriter import EDFwriter  # noqa: E402
 
 
 def _try_to_set_value(header, key, value, channel_index=None):
-    """Set key/value pairs in EDF/BDF header."""
+    """Set key/value pairs in EDF header."""
     # all EDFLib set functions are set<X>
     # for example "setPatientName()"
     func_name = f'set{key}'
@@ -30,22 +30,17 @@ def _try_to_set_value(header, key, value, channel_index=None):
                            f"{return_val}.")
 
 
-def _export_raw(fname, raw, physical_range, fmt):
-    """Export Raw objects to EDF or BDF files.
+def _export_raw(fname, raw, physical_range):
+    """Export Raw objects to EDF files.
 
     TODO: if in future the Info object supports transducer or
     technician information, allow writing those here.
     """
     phys_dims = 'uV'
 
-    if fmt == 'bdf':
-        digital_min = -8388607
-        digital_max = 8388607
-        file_type = EDFwriter.EDFLIB_FILETYPE_BDFPLUS
-    elif fmt == 'edf':
-        digital_min = -32767
-        digital_max = 32767
-        file_type = EDFwriter.EDFLIB_FILETYPE_EDFPLUS
+    digital_min = -32767
+    digital_max = 32767
+    file_type = EDFwriter.EDFLIB_FILETYPE_EDFPLUS
 
     # load data first
     raw.load_data()
@@ -118,7 +113,7 @@ def _export_raw(fname, raw, physical_range, fmt):
             raise RuntimeError(f'The minimum μV of the data {data.min()} is '
                                f'less than the physical min passed in {pmin}.')
 
-    # create instance of EDF/BDF Writer
+    # create instance of EDF Writer
     hdl = EDFwriter(fname, file_type, n_channels)
 
     # set channel data

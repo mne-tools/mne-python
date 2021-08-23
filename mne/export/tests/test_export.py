@@ -53,9 +53,8 @@ def test_export_raw_eeglab(tmpdir):
 
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')
-@pytest.mark.parametrize('format', ['edf', 'bdf'])
 def test_integer_sfreq_edf_and_bdf(tmp_path, format):
-    """Test saving a Raw array with integer sfreq to EDF and BDF."""
+    """Test saving a Raw array with integer sfreq to EDF."""
     info = create_info(['1', '2', '3'], sfreq=1000, ch_types='eeg')
     data = np.random.random(size=(3, 1000))
     raw = RawArray(data, info)
@@ -63,10 +62,7 @@ def test_integer_sfreq_edf_and_bdf(tmp_path, format):
     temp_fname = op.join(str(tmp_path), f'test.{format}')
 
     raw.export(temp_fname)
-    if format == 'edf':
-        raw_read = read_raw_edf(temp_fname, preload=True)
-    elif format == 'bdf':
-        raw_read = read_raw_bdf(temp_fname, preload=True)
+    raw_read = read_raw_edf(temp_fname, preload=True)
 
     assert raw.ch_names == raw_read.ch_names
     # only compare the original length, since extra zeros are appended
@@ -82,12 +78,10 @@ def test_integer_sfreq_edf_and_bdf(tmp_path, format):
 @pytest.mark.parametrize(
     ['dataset', 'format'], [
         ['test', 'edf'],
-        ['test', 'bdf'],
         ['misc', 'edf'],
-        ['misc', 'bdf']
     ])
 def test_export_raw_edf_and_bdf(tmp_path, dataset, format):
-    """Test saving a Raw instance to EDF and BDF format."""
+    """Test saving a Raw instance to EDF format."""
     if dataset == 'test':
         try:
             import importlib_resources as imp_resrc  # py 3.7
@@ -129,8 +123,6 @@ def test_export_raw_edf_and_bdf(tmp_path, dataset, format):
 
     if format == 'edf':
         raw_read = read_raw_edf(temp_fname, preload=True)
-    elif format == 'bdf':
-        raw_read = read_raw_bdf(temp_fname, preload=True)
 
     assert raw.ch_names == raw_read.ch_names
     # only compare the original length, since extra zeros are appended
