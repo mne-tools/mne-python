@@ -1802,13 +1802,14 @@ class Brain(object):
                             )
         return colormap_map[cortex]
 
-    def _remove(self, item):
+    def _remove(self, item, render=False):
         """Remove actors from the rendered scene."""
         if item in self._actors:
             for actor in self._actors[item]:
                 self._renderer.plotter.remove_actor(actor)
             self._actors.pop(item)  # remove actor list
-            self._renderer._update()
+            if render:
+                self._renderer._update()
 
     def _add_actor(self, item, actor):
         """Add an actor to the internal register."""
@@ -2067,7 +2068,7 @@ class Brain(object):
 
     def remove_data(self):
         """Remove rendered data from the mesh."""
-        self._remove('data')
+        self._remove('data', render=True)
 
     def _iter_views(self, hemi):
         """Iterate over rows and columns that need to be added to."""
@@ -2399,7 +2400,7 @@ class Brain(object):
 
     def remove_head(self):
         """Remove head objects from the rendered scene."""
-        self._remove('head')
+        self._remove('head', render=True)
 
     @fill_doc
     def add_skull(self, outer=True, color='gray', alpha=0.5):
@@ -2437,7 +2438,7 @@ class Brain(object):
 
     def remove_skull(self):
         """Remove skull objects from the rendered scene."""
-        self._remove('skull')
+        self._remove('skull', render=True)
 
     @fill_doc
     def add_volume_labels(self, aseg='aparc+aseg', labels=None, colors=None,
@@ -2526,7 +2527,7 @@ class Brain(object):
 
     def remove_volume_labels(self):
         """Remove the volume labels from the rendered scene."""
-        self._remove('volume_labels')
+        self._remove('volume_labels', render=True)
         self._renderer.plotter.remove_legend()
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
@@ -2661,16 +2662,17 @@ class Brain(object):
         all_kinds = ('meg', 'eeg', 'fnirs', 'ecog', 'seeg', 'dbs', 'helmet')
         if kind is None:
             for item in all_kinds:
-                self._remove(item)
+                self._remove(item, render=False)
         else:
             if isinstance(kind, str):
                 kind = [kind]
             for this_kind in kind:
                 _check_option('kind', this_kind, all_kinds)
-            self._remove(this_kind)
+            self._remove(this_kind, render=False)
+        self._renderer._update()
 
     def add_text(self, x, y, text, name=None, color=None, opacity=1.0,
-                 row=-1, col=-1, font_size=None, justification=None):
+                 row=0, col=0, font_size=None, justification=None):
         """Add a text to the visualization.
 
         Parameters
@@ -2690,7 +2692,7 @@ class Brain(object):
         opacity : float
             Opacity of the text (default 1.0).
         row : int | None
-            Row index of which brain to use. Default is the bottom row.
+            Row index of which brain to use. Default is the top row.
         col : int | None
             Column index of which brain to use. Default is the left-most
             column.

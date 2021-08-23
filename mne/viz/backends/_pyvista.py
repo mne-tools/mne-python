@@ -554,7 +554,6 @@ class _PyVistaRenderer(_AbstractRenderer):
             warnings.filterwarnings("ignore", category=FutureWarning)
             actor = self.plotter.add_text(text, position=position,
                                           font_size=size,
-                                          font=self.font_family,
                                           color=color,
                                           viewport=True)
             if isinstance(justification, str):
