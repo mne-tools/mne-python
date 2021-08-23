@@ -229,7 +229,7 @@ class _Renderer(_AbstractRenderer):
                                            colormap=colormap,
                                            figure=self.fig)
         surface.module_manager.scalar_lut_manager.reverse_lut = reverse_lut
-        return surface
+        return surface.actor, surface
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
@@ -267,6 +267,7 @@ class _Renderer(_AbstractRenderer):
                     quiv.glyph.glyph_source.glyph_source.resolution = \
                         glyph_resolution
                 quiv.actor.property.backface_culling = backface_culling
+        return quiv.actor, quiv
 
     def text2d(self, x_window, y_window, text, size=14, color='white',
                justification=None):

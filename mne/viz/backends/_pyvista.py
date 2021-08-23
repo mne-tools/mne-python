@@ -448,7 +448,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 else:
                     scalars = None
                 tube = line.tube(radius, n_sides=self.tube_n_sides)
-                _add_mesh(
+                actor = _add_mesh(
                     plotter=self.plotter,
                     mesh=tube,
                     scalars=scalars,
@@ -459,7 +459,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                     cmap=cmap,
                     smooth_shading=self.figure.smooth_shading,
                 )
-        return tube
+        return actor, tube
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
@@ -537,13 +537,14 @@ class _PyVistaRenderer(_AbstractRenderer):
                 geom = glyph.GetOutput()
                 mesh = grid.glyph(orient='vec', scale=scale, factor=factor,
                                   geom=geom)
-            _add_mesh(
+            actor = _add_mesh(
                 self.plotter,
                 mesh=mesh,
                 color=color,
                 opacity=opacity,
                 backface_culling=backface_culling
             )
+        return actor, mesh
 
     def text2d(self, x_window, y_window, text, size=14, color='white',
                justification=None):
