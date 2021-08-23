@@ -10,7 +10,7 @@ from contextlib import contextmanager
 import pyvista
 from pyvistaqt.plotting import FileDialog
 
-from PyQt5.QtCore import Qt, pyqtSignal, QLocale, QDir
+from PyQt5.QtCore import Qt, pyqtSignal, QLocale
 from PyQt5.QtGui import QIcon, QImage, QPixmap, QCursor
 from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
@@ -188,9 +188,7 @@ class _QtDock(_AbstractDock, _QtLayout):
 
         def callback():
             if directory:
-                folder = QFileDialog.getExistingDirectory(
-                    None, ("Select Directory"), QDir.currentPath())
-                func(folder)
+                func(QFileDialog.getExistingDirectory())
             else:
                 return FileDialog(
                     self.plotter.app_window,
