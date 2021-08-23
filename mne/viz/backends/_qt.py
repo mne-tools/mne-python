@@ -181,7 +181,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
-    def _dock_add_file_button(self, name, desc, func,
+    def _dock_add_file_button(self, name, desc, func, directory=False,
                               placeholder="Type a file name", layout=None):
         layout = self._dock_layout if layout is None else layout
 
@@ -189,6 +189,7 @@ class _QtDock(_AbstractDock, _QtLayout):
             return FileDialog(
                 self.plotter.app_window,
                 callback=func,
+                directory=directory,
             )
 
         hlayout = self._dock_add_layout(vertical=False)

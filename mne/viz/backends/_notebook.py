@@ -162,7 +162,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_add_file_button(self, name, desc, func,
+    def _dock_add_file_button(self, name, desc, func, directory=False,
                               placeholder="Type a file name", layout=None):
         layout = self._dock_layout if layout is None else layout
 
