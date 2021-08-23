@@ -185,23 +185,30 @@ class _QtDock(_AbstractDock, _QtLayout):
     def _dock_add_file_button(self, name, desc, func, directory=False,
                               placeholder="Type a file name", layout=None):
         layout = self._dock_layout if layout is None else layout
-
-        def callback():
-            if directory:
-                func(QFileDialog.getExistingDirectory())
-            else:
-                return FileDialog(
-                    self.plotter.app_window,
-                    callback=func,
-                )
-
         hlayout = self._dock_add_layout(vertical=False)
-        self._dock_add_text(
+        text_widget = self._dock_add_text(
             name=f"{name}_field",
             value=None,
             placeholder=placeholder,
             layout=hlayout,
         )
+
+        def sync_text_widget(s):
+            text_widget.set_value(s)
+
+        def callback():
+            if directory:
+                dname = QFileDialog.getExistingDirectory()
+                sync_text_widget(dname)
+                func(dname)
+            else:
+                dialog = FileDialog(
+                    self.plotter.app_window,
+                    callback=func,
+                )
+                dialog.dlg_accepted.connect(sync_text_widget)
+                return dialog
+
         self._dock_add_button(
             name=desc,
             callback=callback,
