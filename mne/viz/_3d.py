@@ -971,8 +971,8 @@ def _plot_sensors(info, to_cf_t, renderer, picks, meg, eeg, fnirs,
     ch_pos, sources, detectors = _ch_pos_in_coord_frame(
         pick_info(info, picks), to_cf_t=to_cf_t, warn_meg=warn_meg)
 
-    actors = dict(meg=list(), eeg=list(), fnirs=list(), ecog=list(),
-                  seeg=list(), dbs=list())
+    actors = dict(meg=list(), ref_meg=list(), eeg=list(), fnirs=list(),
+                  ecog=list(), seeg=list(), dbs=list())
     for ch_name, ch_coord in ch_pos.items():
         ch_type = channel_type(info, info.ch_names.index(ch_name))
         # for default picking

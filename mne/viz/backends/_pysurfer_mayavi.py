@@ -180,6 +180,7 @@ class _Renderer(_AbstractRenderer):
             if colormap is not None:
                 surface.module_manager.scalar_lut_manager.lut.table = colormap
             surface.actor.property.backface_culling = backface_culling
+        return surface.actor, surface
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False,
@@ -240,11 +241,11 @@ class _Renderer(_AbstractRenderer):
         color = _check_color(color)
         with warnings.catch_warnings(record=True):  # traits
             if mode in ('arrow', '2darrow'):
-                self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
-                                   color=color, scale_factor=scale,
-                                   scale_mode=scale_mode,
-                                   resolution=resolution, scalars=scalars,
-                                   opacity=opacity, figure=self.fig)
+                quiv = self.mlab.quiver3d(
+                    x, y, z, u, v, w, mode=mode, color=color,
+                    scale_factor=scale, scale_mode=scale_mode,
+                    resolution=resolution, scalars=scalars,
+                    opacity=opacity, figure=self.fig)
             elif mode in ('cone', 'sphere', 'oct'):
                 use_mode = 'sphere' if mode == 'oct' else mode
                 quiv = self.mlab.quiver3d(x, y, z, u, v, w, color=color,
