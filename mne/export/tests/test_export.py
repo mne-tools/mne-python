@@ -4,9 +4,9 @@
 #
 # License: BSD-3-Clause
 
+from datetime import datetime, timezone
 from mne.io import RawArray
 from mne.io.meas_info import create_info
-from mne.io.edf.edf import read_raw_bdf
 from pathlib import Path
 import os.path as op
 
@@ -53,16 +53,28 @@ def test_export_raw_eeglab(tmpdir):
 
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')
-def test_integer_sfreq_edf_and_bdf(tmp_path, format):
+def test_integer_sfreq_edf(tmp_path):
     """Test saving a Raw array with integer sfreq to EDF."""
-    info = create_info(['1', '2', '3'], sfreq=1000, ch_types='eeg')
-    data = np.random.random(size=(3, 1000))
+    np.random.RandomState(12345)
+    format = 'edf'
+    info = create_info(['1', '2', '3'], sfreq=1000,
+                       ch_types=['eeg', 'eeg', 'stim'])
+    data = np.random.random(size=(3, 1000)) * 1e-6
+
+    # include subject info and measurement date
+    subject_info = dict(first_name='mne', last_name='python',
+                        birthday=(1992, 1, 20), sex=1, hand=3)
+    info['subject_info'] = subject_info
     raw = RawArray(data, info)
+    raw.set_meas_date(datetime.now(tz=timezone.utc))
 
     temp_fname = op.join(str(tmp_path), f'test.{format}')
 
     raw.export(temp_fname)
     raw_read = read_raw_edf(temp_fname, preload=True)
+
+    # stim channel should be dropped
+    raw.drop_channels('3')
 
     assert raw.ch_names == raw_read.ch_names
     # only compare the original length, since extra zeros are appended
@@ -72,6 +84,9 @@ def test_integer_sfreq_edf_and_bdf(tmp_path, format):
     assert_allclose(
         raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
 
+    # export now by hard-coding physical range
+    raw.export(temp_fname, physical_range=(-3200, 3200))
+
 
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')
@@ -80,7 +95,7 @@ def test_integer_sfreq_edf_and_bdf(tmp_path, format):
         ['test', 'edf'],
         ['misc', 'edf'],
     ])
-def test_export_raw_edf_and_bdf(tmp_path, dataset, format):
+def test_export_raw_edf(tmp_path, dataset, format):
     """Test saving a Raw instance to EDF format."""
     if dataset == 'test':
         try:
@@ -126,8 +141,21 @@ def test_export_raw_edf_and_bdf(tmp_path, dataset, format):
     assert raw.ch_names == raw_read.ch_names
     # only compare the original length, since extra zeros are appended
     orig_raw_len = len(raw)
+
+    # assert data and times are not different
+    # Due to the physical range of the data, reading and writing is
+    # not lossless. For example, a physical min/max of -/+ 3200 uV
+    # will result in a resolution of 0.09 uV. This resolution
+    # though is acceptable for most EEG manufacturers.
     assert_array_almost_equal(
         raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=4)
+
+    # Due to the data record duration limitations of EDF files, one
+    # cannot store arbitrary float sampling rate exactly. Usually this
+    # results in two sampling rates that are off by very low number of
+    # decimal points. This for practical purposes does not matter
+    # but will result in an error when say the number of time points
+    # is very very large.
     assert_allclose(
         raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
 

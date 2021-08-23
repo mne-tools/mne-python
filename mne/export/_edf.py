@@ -49,7 +49,8 @@ def _export_raw(fname, raw, physical_range):
     drop_chs = ['epoc']
     orig_ch_types = raw.get_channel_types()
     if 'stim' in orig_ch_types:
-        stim_index = np.argwhere(orig_ch_types == 'stim')
+        stim_index = np.argwhere(np.array(orig_ch_types) == 'stim')
+        stim_index = np.atleast_1d(stim_index.squeeze()).tolist()
         drop_chs.extend([raw.ch_names[idx] for idx in stim_index])
 
     ch_names = [ch for ch in raw.ch_names if ch not in drop_chs]
