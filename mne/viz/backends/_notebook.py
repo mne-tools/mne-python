@@ -43,6 +43,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
     def _dock_initialize(self, window=None, name="Controls",
                          area="left"):
         self._dock_width = 300
+        # XXX: this can be improved
         if hasattr(self, "_dock") and hasattr(self, "_dock_layout"):
             self._dock2 = self._dock
             self._dock_layout2 = self._dock_layout
@@ -422,6 +423,7 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         # main widget
         if self._dock is None:
             main_widget = viewer
+        # XXX: this can be improved
         elif hasattr(self, "_dock2"):
             main_widget = HBox([self._dock2, viewer, self._dock])
         else:
