@@ -956,8 +956,15 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
 
     See Also
     --------
+    scale_bem : Add a scaled BEM to a scaled MRI.
     scale_labels : Add labels to a scaled MRI.
     scale_source_space : Add a source space to a scaled MRI.
+
+    Notes
+    -----
+    This function will automatically call :func:`scale_bem`,
+    :func:`scale_labels`, and :func:`scale_source_space` based on expected
+    filename patterns in the subject directory.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     paths = _find_mri_paths(subject_from, skip_fiducials, subjects_dir)
@@ -1297,6 +1304,10 @@ class Coregistration(object):
     trans : instance of Transform
         MRI<->Head coordinate transformation.
 
+    See Also
+    --------
+    mne.scale_mri
+
     Notes
     -----
     Internal computation quantities parameters are in the following units:
@@ -1304,6 +1315,9 @@ class Coregistration(object):
     - rotation are in radians
     - translation are in m
     - scale are in scale proportion
+
+    If using a scale mode, the :func:`~mne.scale_mri` should be used
+    to create a surrogate MRI subject with the proper scale factors.
     """
 
     def __init__(self, info, subject, subjects_dir=None, fiducials='auto'):
@@ -1657,6 +1671,17 @@ class Coregistration(object):
         errs_nearest = self.compute_dig_mri_distances()
         logger.info(f'{prefix} median distance: '
                     f'{np.median(errs_nearest * 1000):6.2f} mm')
+
+    @property
+    def scale(self):
+        """Get the current scale factor.
+
+        Returns
+        -------
+        scale : ndarray, shape (3,)
+            The scale factors.
+        """
+        return self._scale.copy()
 
     @verbose
     def fit_fiducials(self, lpa_weight=1., nasion_weight=10., rpa_weight=1.,

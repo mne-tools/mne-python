@@ -80,3 +80,13 @@ print(
     f"Distance between HSP and MRI (mean/min/max):\n{np.mean(dists):.2f} mm "
     f"/ {np.min(dists):.2f} mm / {np.max(dists):.2f} mm"
 )
+
+# %%
+# .. note:: The :class:`mne.coreg.Coregistration` class has the ability to
+#           compute MRI scale factors using
+#           :meth:`~mne.coreg.Coregistration.set_scale_mode` that is useful
+#           for creating surrogate MRI subjects, i.e., using a template MRI
+#           (such as one from :func:`mne.datasets.fetch_infant_template`)
+#           matched to a subject's head digitization. When scaling is desired,
+#           a scaled surrogate MRI should be created using
+#           :func:`mne.scale_mri`.
