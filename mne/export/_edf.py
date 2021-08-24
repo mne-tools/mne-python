@@ -155,7 +155,7 @@ def _export_raw(fname, raw, physical_range):
         if birthday is not None:
             if hdl.setPatientBirthDate(birthday[0], birthday[1],
                                        birthday[2]) != 0:
-                raise RuntimeError(f"Setting Patient Birth Date to {birthday} "
+                raise RuntimeError(f"Setting patient birth date to {birthday} "
                                    f"returned an error")
         for key, val in [('PatientName', name),
                          ('PatientGender', sex),
@@ -171,7 +171,7 @@ def _export_raw(fname, raw, physical_range):
                                 minute=meas_date.minute,
                                 second=meas_date.second,
                                 subsecond=subsecond) != 0:  # noqa
-            raise RuntimeError(f"Setting Start Date Time {meas_date} "
+            raise RuntimeError(f"Setting start date time {meas_date} "
                                f"returned an error")
 
     device_info = raw.info.get('device_info')
