@@ -285,6 +285,7 @@ class CoregistrationUI(object):
                 name=name,
                 value=getattr(self, f"_{dig}_weight"),
                 rng=[1., 100.],
+                # XXX: does not work with lambda+setattr?
                 callback=getattr(self, f"_set_{dig}_weight"),
                 compact=True,
                 double=True,
