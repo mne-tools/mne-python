@@ -1,0 +1,17 @@
+# The purpose of this file is to trigger review requests when PRs touch
+# particular files. Those reviews are not mandatory, however it's often useful
+# to have an expert pinged who is interested in only one part of MNE and
+# doesn't follow general development.
+#
+# Note that only GitHub handles (whether individuals or teams) with commit
+# rights should be added to this file.
+# See https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
+# for more details about how CODEOWNERS works.
+# This file was adapted from SciPy.
+
+# Each line is a file pattern followed by one or more owners.
+
+# NIRS
+/mne/io/nirx/ @rob-luke
+/mne/io/nihon/ @rob-luke
+/mne/io/preprocessing/nirs/ @rob-luke
