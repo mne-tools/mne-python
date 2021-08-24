@@ -9,6 +9,7 @@ class CoregistrationUI(object):
     def __init__(self, info, subject=None, subjects_dir=None, fids='auto'):
         from ..backends.renderer import _get_renderer
         self._widgets = dict()
+        self._verbose = False
         self._first_time = True
         self._opacity = 1.0
         self._default_icp_n_iterations = 20
@@ -58,7 +59,7 @@ class CoregistrationUI(object):
                        surfaces=dict(head=self._opacity),
                        dig=True, eeg=[], meg=False,
                        coord_frame='meg', fig=self._renderer.figure,
-                       show=False, verbose=False)
+                       show=False, verbose=self._verbose)
         self._renderer.reset_camera()
 
     def _toggle_transparent(self, state):
@@ -99,6 +100,7 @@ class CoregistrationUI(object):
             lpa_weight=self._lpa_weight,
             nasion_weight=self._nasion_weight,
             rpa_weight=self._rpa_weight,
+            verbose=self._verbose,
         )
         self._update()
 
@@ -108,6 +110,7 @@ class CoregistrationUI(object):
             lpa_weight=self._lpa_weight,
             nasion_weight=self._nasion_weight,
             rpa_weight=self._rpa_weight,
+            verbose=self._verbose,
         )
         self._update()
 
