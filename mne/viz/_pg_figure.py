@@ -147,7 +147,7 @@ class TimeAxis(AxisItem):
             tick_strings = list()
             for val in values:
                 val_time = datetime.timedelta(seconds=val) + \
-                    first_time + meas_date
+                           first_time + meas_date
                 val_str = val_time.strftime('%H:%M:%S')
                 if int(val_time.microsecond):
                     val_str += \
@@ -293,7 +293,8 @@ class BaseScrollBar(QScrollBar):
                     sliderMax = gr.bottom() - sliderLength + 1
                 self.setValue(QStyle.sliderValueFromPosition(
                     self.minimum(), self.maximum(), pos - sliderMin,
-                    sliderMax - sliderMin, opt.upsideDown))
+                                                    sliderMax - sliderMin,
+                    opt.upsideDown))
                 return
 
         return super().mousePressEvent(event)
@@ -644,8 +645,16 @@ class HelpDialog(QDialog):
 
     def _init_ui(self):
         layout = QFormLayout()
-        for key, text in self.mne.keyboard_shortcuts:
-            layout.addRow(key, QLabel(text))
+        for key in self.mne.keyboard_shortcuts:
+            key_dict = self.mne.keyboard_shortcuts[key]
+            if 'alias' in key_dict:
+                key = key_dict['alias']
+            for idx, key_des in enumerate(key_dict['description']):
+                if 'modifier' in key_dict:
+                    mod = key_dict['modifier'][idx]
+                    if mod is not None:
+                        key = mod + ' + ' + key
+                layout.addRow(key, QLabel(key_des))
         self.setLayout(layout)
 
 
@@ -1278,31 +1287,6 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
 
         setConfigOption('antialias', self.mne.antialiasing)
 
-        # Initialize Keyboard-Shortcuts
-        is_mac = platform.system() == 'Darwin'
-        dur_keys = ('fn + ←', 'fn + →') if is_mac else ('Home', 'End')
-        ch_keys = ('fn + ↑', 'fn + ↓') if is_mac else ('Page up', 'Page down')
-        self.mne.keyboard_shortcuts = [
-            ('←', 'Move left'),
-            ('→', 'Move right'),
-            ('Ctrl + ←', 'Move 1s left'),
-            ('Ctrl + →', 'Move 1s right'),
-            ('↑', 'Move up'),
-            ('↓', 'Move down'),
-            ('Ctrl + ↑', 'Move 1 channel up'),
-            ('Ctrl + ↓', 'Move 1 channel down'),
-            (dur_keys[0], 'Increase time-window'),
-            ('Ctrl + ' + dur_keys[0], 'Increase time-window'),
-            (dur_keys[1], 'Decrease time-window'),
-            ('Ctrl + ' + dur_keys[1], 'Decrease time-window'),
-            (ch_keys[0], 'Increase channel-count'),
-            ('Ctrl + ' + ch_keys[0], 'Increase channel-count'),
-            (ch_keys[1], 'Decrease channel-count'),
-            ('Ctrl + ' + ch_keys[1], 'Decrease channel-count'),
-            ('a', 'Toggle annotation-mode'),
-            ('t', 'Toggle time format')
-        ]
-
         # Start preloading if enabled
         if self.mne.preload:
             self._preload_in_thread()
@@ -1437,6 +1421,138 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
             toolbar=toolbar
         )
 
+        # Initialize Keyboard-Shortcuts
+        is_mac = platform.system() == 'Darwin'
+        dur_keys = ('fn + ←', 'fn + →') if is_mac else ('Home', 'End')
+        ch_keys = ('fn + ↑', 'fn + ↓') if is_mac else ('Page up', 'Page down')
+        self.mne.keyboard_shortcuts = {
+            'left': {
+                'alias': '←',
+                'key': Qt.Key_Left,
+                'modifier': [None, 'Ctrl'],
+                'slot': self.hscroll,
+                'parameter': [-10, -1],
+                'description': ['Move left', 'Move left (tiny step)']
+            },
+            'right': {
+                'alias': '→',
+                'key': Qt.Key_Right,
+                'modifier': [None, 'Ctrl'],
+                'slot': self.hscroll,
+                'parameter': [10, 1],
+                'description': ['Move right', 'Move left (tiny step)']
+            },
+            'up': {
+                'alias': '↑',
+                'key': Qt.Key_Up,
+                'modifier': [None, 'Ctrl'],
+                'slot': self.vscroll,
+                'parameter': [-10, -1],
+                'description': ['Move up', 'Move up (tiny step)']
+            },
+            'down': {
+                'alias': '↓',
+                'key': Qt.Key_Down,
+                'modifier': [None, 'Ctrl'],
+                'slot': self.vscroll,
+                'parameter': [10, 1],
+                'description': ['Move down', 'Move down (tiny step)']
+            },
+            'home': {
+                'alias': dur_keys[0],
+                'key': Qt.Key_Home,
+                'modifier': [None, 'Ctrl'],
+                'slot': self.change_duration,
+                'parameter': [-10, -1],
+                'description': ['Decrease duration',
+                                'Decrease duration (tiny step)']
+            },
+            'end': {
+                'alias': dur_keys[1],
+                'key': Qt.Key_End,
+                'modifier': [None, 'Ctrl'],
+                'slot': self.change_duration,
+                'parameter': [10, 1],
+                'description': ['Increase duration',
+                                'Increase duration (tiny step)']
+            },
+            'pagedown': {
+                'alias': ch_keys[1],
+                'key': Qt.Key_PageUp,
+                'modifier': [None, 'Ctrl'],
+                'slot': self.change_nchan,
+                'parameter': [-10, -1],
+                'description': ['Decrease shown channels',
+                                'Decrease shown channels (tiny step)']
+            },
+            'pageup': {
+                'alias': ch_keys[0],
+                'key': Qt.Key_PageDown,
+                'modifier': [None, 'Ctrl'],
+                'slot': self.change_nchan,
+                'parameter': [10, 1],
+                'description': ['Increase shown channels',
+                                'Increase shown channels (tiny step)']
+            },
+            '-': {
+                'key': Qt.Key_Minus,
+                'slot': self.scale_all,
+                'parameter': [0.5],
+                'description': ['Decrease Scale']
+            },
+            '+': {
+                'key': Qt.Key_Plus,
+                'slot': self.scale_all,
+                'parameter': [2],
+                'description': ['Increase Scale']
+            },
+            'a': {
+                'key': Qt.Key_A,
+                'slot': self._toggle_annotation_fig,
+                'description': ['Toggle Annotation-Tool']
+            },
+            'b': {
+                'key': Qt.Key_B,
+                'slot': self._toggle_butterfly,
+                'description': ['Toggle Annotation-Tool']
+            },
+            'd': {
+                'key': Qt.Key_D,
+                'slot': self._toggle_dc,
+                'description': ['Toggle DC-Correction']
+            },
+            'o': {
+                'key': Qt.Key_O,
+                'slot': self._toggle_overview_bar,
+                'description': ['Toggle Overview-Bar']
+            },
+            't': {
+                'key': Qt.Key_T,
+                'slot': self._toggle_time_format,
+                'description': ['Toggle Time-Format']
+            },
+            'x': {
+                'key': Qt.Key_X,
+                'slot': self._toggle_crosshair,
+                'description': ['Toggle Crosshair']
+            },
+            'z': {
+                'key': Qt.Key_Z,
+                'slot': self._toggle_zenmode,
+                'description': ['Toggle Zen-Mode']
+            },
+            '?': {
+                'key': Qt.Key_Question,
+                'slot': self._toggle_help_fig,
+                'description': ['Show Help']
+            },
+            'f11': {
+                'key': Qt.Key_F11,
+                'slot': self._toggle_fullscreen,
+                'description': ['Toggle Full-Screen']
+            }
+        }
+
     def _get_scale_transform(self):
         transform = QTransform()
         transform.scale(1, self.mne.scale_factor)
@@ -1520,7 +1636,7 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
     def change_duration(self, step):
         """Change duration by step."""
         rel_step = (self.mne.duration * step) / (
-            self.mne.tsteps_per_window * 2)
+                self.mne.tsteps_per_window * 2)
         xmin, xmax = self.mne.viewbox.viewRange()[0]
         xmax += rel_step
         xmin -= rel_step
@@ -1697,7 +1813,7 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
                 view_range = None
             if view_range is not None and len(self.mne.times) > 1:
                 dx = float(self.mne.times[-1] - self.mne.times[0]) / (
-                    len(self.mne.times) - 1)
+                        len(self.mne.times) - 1)
                 if dx != 0.0:
                     x0 = view_range.left() / dx
                     x1 = view_range.right() / dx
@@ -1796,7 +1912,8 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
             # decim can vary by channel type,
             # so compute different `times` vectors
             self.mne.decim_times = {decim_value: self.mne.times[::decim_value]
-                                    + self.mne.first_time for decim_value in
+                                                 + self.mne.first_time for
+                                    decim_value in
                                     set(self.mne.decim_data)}
 
     def _update_data(self):
@@ -1809,7 +1926,7 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
             # remove DC locally
             if self.mne.remove_dc:
                 self.mne.data = self.mne.data - \
-                    self.mne.data.mean(axis=1, keepdims=True)
+                                self.mne.data.mean(axis=1, keepdims=True)
         else:
             super()._update_data()
 
@@ -2036,76 +2153,31 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
         # On Unix GroupSwitchModifier is set when ctrl is pressed.
         # To preserve cross-platform consistency the following comparison
         # of the modifier-values is done.
-        shift_pressed = '4' in hex(int(event.modifiers()))
-        lil_t = 1
-        big_t = 10
-        if event.key() == Qt.Key_Left:
-            if shift_pressed:
-                self.hscroll(-lil_t)
-            else:
-                self.hscroll(-big_t)
-        elif event.key() == Qt.Key_Right:
-            if shift_pressed:
-                self.hscroll(lil_t)
-            else:
-                self.hscroll(big_t)
-        elif event.key() == Qt.Key_Up:
-            if shift_pressed:
-                self.vscroll(-1)
-            else:
-                self.vscroll(-10)
-        elif event.key() == Qt.Key_Down:
-            if shift_pressed:
-                self.vscroll(1)
-            else:
-                self.vscroll(10)
-        elif event.key() == Qt.Key_Home:
-            if shift_pressed:
-                self.change_duration(-lil_t)
-            else:
-                self.change_duration(-big_t)
-        elif event.key() == Qt.Key_End:
-            if shift_pressed:
-                self.change_duration(lil_t)
-            else:
-                self.change_duration(big_t)
-        elif event.key() == Qt.Key_PageDown:
-            if shift_pressed:
-                self.change_nchan(-1)
-            else:
-                self.change_nchan(-10)
-        elif event.key() == Qt.Key_PageUp:
-            if shift_pressed:
-                self.change_nchan(1)
-            else:
-                self.change_nchan(10)
-        elif event.key() == Qt.Key_Minus:
-            self.scale_all(0.5)
-        elif event.key() == Qt.Key_Plus:
-            self.scale_all(2)
-        elif event.key() == Qt.Key_A:
-            self._toggle_annotation_fig()
-        elif event.key() == Qt.Key_B:
-            self._toggle_butterfly()
-        elif event.key() == Qt.Key_T:
-            self._toggle_time_format()
-        elif event.key() == Qt.Key_Question:
-            self._toggle_help_fig()
-        elif event.key() == Qt.Key_J:
-            if shift_pressed:
-                self._toggle_all_projs()
-            else:
-                self._toggle_proj_fig()
-        elif event.key() == Qt.Key_D:
-            self._toggle_dc()
-        elif event.key() == Qt.Key_F11:
-            self._toggle_fullscreen()
-        elif event.key() == Qt.Key_X:
-            self._toggle_crosshair()
-        elif event.key() == Qt.Key_Z:
-            self._toggle_zenmode()
-        elif event.key() == Qt.Key_O:
-            self._toggle_overview_bar()
+        # modifiers need to be exclusive
+        modifiers = {
+            'Ctrl': '4' in hex(int(event.modifiers()))
+        }
+
+        for key_name in self.mne.keyboard_shortcuts:
+            key_dict = self.mne.keyboard_shortcuts[key_name]
+            if key_dict['key'] == event.key():
+                slot = key_dict['slot']
+
+                param_idx = 0
+                # Get modifier
+                if 'modifier' in key_dict:
+                    mods = [modifiers[mod] for mod in modifiers]
+                    if any(mods):
+                        mod = [mod for mod in modifiers if modifiers[mod]][0]
+                        if mod in key_dict['modifier']:
+                            param_idx = key_dict['modifier'].index(mod)
+
+                if 'parameter' in key_dict:
+                    slot(key_dict['parameter'][param_idx])
+                else:
+                    slot()
+
+                break
 
     def _draw_traces(self):
         # Update data in traces
