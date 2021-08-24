@@ -8,6 +8,17 @@ from ...utils import get_subjects_dir
 class CoregistrationUI(object):
     def __init__(self, info, subject=None, subjects_dir=None, fids='auto'):
         from ..backends.renderer import _get_renderer
+        self._widgets = dict()
+        self._first_time = True
+        self._opacity = 1.0
+        self._default_icp_n_iterations = 20
+        self._default_weights = {
+            "lpa": 1.0,
+            "nasion": 10.0,
+            "rpa": 1.0,
+        }
+        self._reset_fitting_parameters()
+
         self._fids = fids
         self._subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                               raise_error=True)
@@ -15,12 +26,6 @@ class CoregistrationUI(object):
         self._subject = subject if subject is not None else self._subjects[0]
         self._info = info
 
-        self._first_time = True
-        self._opacity = 1.0
-        self._default_n_iterations = 6
-        self._icp_n_iterations = self._default_n_iterations
-
-        self._widgets = dict()
         self._coreg = Coregistration(info, subject, subjects_dir, fids)
         self._renderer = _get_renderer()
         self._renderer._window_close_connect(self._clean)
@@ -28,6 +33,16 @@ class CoregistrationUI(object):
         self._renderer.show()
 
         self._update()
+
+    def _reset_fitting_parameters(self):
+        self._icp_n_iterations = self._default_icp_n_iterations
+        for dig in ("lpa", "nasion", "rpa"):
+            widget_name = f"{dig}_weight"
+            if widget_name in self._widgets:
+                self._widgets[widget_name].set_value(
+                    self._default_weights[dig])
+            else:
+                setattr(self, f"_{dig}_weight", self._default_weights[dig])
 
     def _reset(self):
         self._coreg.reset()
@@ -70,13 +85,29 @@ class CoregistrationUI(object):
     def _set_icp_n_iterations(self, n_iterations):
         self._icp_n_iterations = n_iterations
 
+    def _set_lpa_weight(self, value):
+        self._lpa_weight = value
+
+    def _set_nasion_weight(self, value):
+        self._nasion_weight = value
+
+    def _set_rpa_weight(self, value):
+        self._rpa_weight = value
+
     def _fit_fiducials(self):
-        self._coreg.fit_fiducials()
+        self._coreg.fit_fiducials(
+            lpa_weight=self._lpa_weight,
+            nasion_weight=self._nasion_weight,
+            rpa_weight=self._rpa_weight,
+        )
         self._update()
 
     def _fit_icp(self):
         self._coreg.fit_icp(
             n_iterations=self._icp_n_iterations,
+            lpa_weight=self._lpa_weight,
+            nasion_weight=self._nasion_weight,
+            rpa_weight=self._rpa_weight,
         )
         self._update()
 
@@ -240,14 +271,31 @@ class CoregistrationUI(object):
         layout = self._renderer._dock_add_group_box("Fitting Options")
         self._renderer._dock_add_spin_box(
             name="Number Of ICP Iterations",
-            value=self._default_n_iterations,
+            value=self._default_icp_n_iterations,
             rng=[1, 100],
             callback=self._set_icp_n_iterations,
             compact=True,
             double=False,
             layout=layout,
         )
+        for dig in digs:
+            dig = dig.lower()
+            name = f"{dig}_weight"
+            self._widgets[name] = self._renderer._dock_add_spin_box(
+                name=name,
+                value=getattr(self, f"_{dig}_weight"),
+                rng=[1., 100.],
+                callback=getattr(self, f"_set_{dig}_weight"),
+                compact=True,
+                double=True,
+                layout=layout
+            )
         hlayout = self._renderer._dock_add_layout(vertical=False)
+        self._renderer._dock_add_button(
+            name="Reset",
+            callback=self._reset_fitting_parameters,
+            layout=hlayout,
+        )
         self._renderer._dock_add_button(
             name="Fit Fiducials",
             callback=self._fit_fiducials,
