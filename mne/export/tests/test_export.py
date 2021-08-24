@@ -87,6 +87,20 @@ def test_integer_sfreq_edf(tmp_path):
     # export now by hard-coding physical range
     raw.export(temp_fname, physical_range=(-3200, 3200))
 
+    # include bad birthday that is non-EDF compliant
+    bad_info = info.copy()
+    bad_info['subject_info']['birthday'] = (1700, 1, 20)
+    raw = RawArray(data, bad_info)
+    with pytest.raises(RuntimeError, match='Setting patient birth date'):
+        raw.export(temp_fname)
+
+    # include bad measurement date that is non-EDF compliant
+    raw = RawArray(data, info)
+    meas_date = datetime(year=1984, month=1, day=1, tzinfo=timezone.utc)
+    raw.set_meas_date(meas_date)
+    with pytest.raises(RuntimeError, match='Setting start date time'):
+        raw.export(temp_fname)
+
 
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')
