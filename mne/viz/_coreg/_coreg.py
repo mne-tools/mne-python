@@ -32,7 +32,8 @@ class CoregistrationUI(object):
                        subjects_dir=self._subjects_dir,
                        surfaces=dict(head=self._opacity),
                        dig=True, eeg=[], meg=False,
-                       coord_frame='meg', fig=self._renderer.figure)
+                       coord_frame='meg', fig=self._renderer.figure,
+                       show=False)
         self._renderer.reset_camera()
 
     def _configure_dock(self):
