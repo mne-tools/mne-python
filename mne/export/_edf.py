@@ -45,9 +45,9 @@ def _export_raw(fname, raw, physical_range):
     # load data first
     raw.load_data()
 
-    # remove extra epoc and STI channels
-    drop_chs = ['epoc']
+    # remove extra STI channels
     orig_ch_types = raw.get_channel_types()
+    drop_chs = []
     if 'stim' in orig_ch_types:
         stim_index = np.argwhere(np.array(orig_ch_types) == 'stim')
         stim_index = np.atleast_1d(stim_index.squeeze()).tolist()
