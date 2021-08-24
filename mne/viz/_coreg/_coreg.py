@@ -17,6 +17,8 @@ class CoregistrationUI(object):
 
         self._first_time = True
         self._opacity = 1.0
+        self._default_n_iterations = 6
+        self._icp_n_iterations = self._default_n_iterations
 
         self._widgets = dict()
         self._coreg = Coregistration(info, subject, subjects_dir, fids)
@@ -64,8 +66,17 @@ class CoregistrationUI(object):
         self._coreg.reset()
         self._update()
 
+    def _set_icp_n_iterations(self, n_iterations):
+        self._icp_n_iterations = n_iterations
+
     def _fit_fiducials(self):
         self._coreg.fit_fiducials()
+        self._update()
+
+    def _fit_icp(self):
+        self._coreg.fit_icp(
+            n_iterations=self._icp_n_iterations,
+        )
         self._update()
 
     def _get_subjects(self):
@@ -85,7 +96,7 @@ class CoregistrationUI(object):
         def noop(x):
             del x
 
-        self._renderer._dock_initialize(name="Parameters", area="left")
+        self._renderer._dock_initialize(name="Input", area="left")
         layout = self._renderer._dock_add_group_box("MRI Subject")
         self._widgets["subjects_dir"] = self._renderer._dock_add_file_button(
             name="subjects_dir",
@@ -188,8 +199,7 @@ class CoregistrationUI(object):
         )
         self._renderer._dock_add_stretch()
 
-        self._renderer._dock_initialize(
-            name="Fitting Parameters", area="right")
+        self._renderer._dock_initialize(name="Parameters", area="right")
         self._widgets["scaling_mode"] = self._renderer._dock_add_combo_box(
             name="Scaling Mode",
             value="0",
@@ -226,6 +236,16 @@ class CoregistrationUI(object):
                     double=True,
                     layout=hlayout
                 )
+        layout = self._renderer._dock_add_group_box("Fitting Options")
+        self._renderer._dock_add_spin_box(
+            name="Number Of ICP Iterations",
+            value=self._default_n_iterations,
+            rng=[1, 100],
+            callback=self._set_icp_n_iterations,
+            compact=True,
+            double=False,
+            layout=layout,
+        )
         hlayout = self._renderer._dock_add_layout(vertical=False)
         self._renderer._dock_add_button(
             name="Fit Fiducials",
@@ -234,10 +254,9 @@ class CoregistrationUI(object):
         )
         self._renderer._dock_add_button(
             name="Fit ICP",
-            callback=noop,
+            callback=self._fit_icp,
             layout=hlayout,
         )
-        layout = self._renderer._dock_layout
         self._renderer._layout_add_widget(layout, hlayout)
         self._renderer._dock_add_stretch()
 
