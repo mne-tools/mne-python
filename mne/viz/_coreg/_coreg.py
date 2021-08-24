@@ -1,13 +1,17 @@
-from ...coreg import Coregistration
+import os
+import os.path as op
+from ...coreg import Coregistration, _is_mri_subject
 from ...viz import plot_alignment
+from ...utils import get_subjects_dir
 
 
 class CoregistrationUI(object):
-    def __init__(self, info, subject, subjects_dir, fids='auto'):
+    def __init__(self, info, subject, subjects_dir=None, fids='auto'):
         from ..backends.renderer import _get_renderer
         self._info = info
         self._subject = subject
-        self._subjects_dir = subjects_dir
+        self._subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                              raise_error=True)
         self._fids = fids
 
         self._first_time = True
@@ -20,9 +24,9 @@ class CoregistrationUI(object):
         self._configure_dock()
         self._renderer.show()
 
-        self._plot()
+        self._update()
 
-    def _plot(self):
+    def _update(self):
         if self._first_time:
             self._first_time = False
         else:
@@ -38,7 +42,23 @@ class CoregistrationUI(object):
 
     def _toggle_transparent(self, state):
         self._opacity = 0.4 if state else 1.0
-        self._plot()
+        self._update()
+
+    def _switch_subject(self, subject):
+        self._subject = subject
+        self._update()
+
+    def _get_subjects(self):
+        sdir = self._subjects_dir
+        is_dir = sdir and op.isdir(sdir)
+        if is_dir:
+            dir_content = os.listdir(sdir)
+            subjects = [s for s in dir_content if _is_mri_subject(s, sdir)]
+            if len(subjects) == 0:
+                subjects.append('')
+        else:
+            subjects = ['']
+        return sorted(subjects)
 
     def _configure_dock(self):
         def noop(x):
@@ -50,15 +70,16 @@ class CoregistrationUI(object):
             name="subjects_dir",
             desc="Load",
             func=noop,
+            value=self._subjects_dir,
             placeholder="Subjects Directory",
             directory=True,
             layout=layout,
         )
         self._widgets["subject"] = self._renderer._dock_add_combo_box(
             name="Subject",
-            value="sample",
-            rng=["sample"],
-            callback=noop,
+            value=self._subject,
+            rng=self._get_subjects(),
+            callback=self._switch_subject,
             compact=True,
             layout=layout
         )

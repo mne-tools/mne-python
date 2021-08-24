@@ -177,18 +177,19 @@ class _QtDock(_AbstractDock, _QtLayout):
 
     def _dock_add_text(self, name, value, placeholder, layout=None):
         layout = self._dock_layout if layout is None else layout
-        widget = QLineEdit(value)
+        widget = QLineEdit(value if value is not None else placeholder)
         widget.setPlaceholderText(placeholder)
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
-    def _dock_add_file_button(self, name, desc, func, directory=False,
-                              placeholder="Type a file name", layout=None):
+    def _dock_add_file_button(self, name, desc, func, value=None,
+                              directory=False, placeholder="Type a file name",
+                              layout=None):
         layout = self._dock_layout if layout is None else layout
         hlayout = self._dock_add_layout(vertical=False)
         text_widget = self._dock_add_text(
             name=f"{name}_field",
-            value=None,
+            value=value,
             placeholder=placeholder,
             layout=hlayout,
         )
