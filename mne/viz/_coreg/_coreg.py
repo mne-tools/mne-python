@@ -36,6 +36,10 @@ class CoregistrationUI(object):
                        show=False)
         self._renderer.reset_camera()
 
+    def _toggle_transparent(self, state):
+        self._opacity = 0.4 if state else 1.0
+        self._plot()
+
     def _configure_dock(self):
         def noop(x):
             del x
@@ -134,15 +138,10 @@ class CoregistrationUI(object):
             callback=noop,
             layout=layout
         )
-
-        def _toggle_transparent(state):
-            self._opacity = 0.4 if state else 1.0
-            self._plot()
-
         self._widgets["make_transparent"] = self._renderer._dock_add_check_box(
             name="Make skin surface transparent",
             value=False,
-            callback=_toggle_transparent,
+            callback=self._toggle_transparent,
             layout=layout
         )
         self._renderer._dock_add_stretch()
