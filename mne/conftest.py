@@ -53,7 +53,7 @@ fname_evoked_io = op.join(base_dir, 'test-ave.fif')
 event_id, tmin, tmax = 1, -0.1, 1.0
 vv_layout = read_layout('Vectorview-all')
 
-collect_ignore = ['export/_eeglab.py']
+collect_ignore = ['export/_eeglab.py', 'export/_edf.py']
 
 
 def pytest_configure(config):
@@ -121,6 +121,9 @@ def pytest_configure(config):
     ignore:.*rcParams is deprecated.*global_theme.*:DeprecationWarning
     ignore:.*distutils\.sysconfig module is deprecated.*:DeprecationWarning
     ignore:.*moved to a new package \(mne-connectivity\).*:DeprecationWarning
+    ignore:.*numpy\.dual is deprecated.*:DeprecationWarning
+    ignore:.*`np.typeDict` is a deprecated.*:DeprecationWarning
+    ignore:.*Creating an ndarray from ragged.*:numpy.VisibleDeprecationWarning
     always::ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):

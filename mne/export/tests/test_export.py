@@ -4,18 +4,23 @@
 #
 # License: BSD-3-Clause
 
+from datetime import datetime, timezone
+from mne.io import RawArray
+from mne.io.meas_info import create_info
 from pathlib import Path
 import os.path as op
 
 import pytest
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_equal
+from numpy.testing import (assert_allclose, assert_array_almost_equal,
+                           assert_array_equal)
 
 from mne import read_epochs_eeglab, Epochs, read_evokeds, read_evokeds_mff
-from mne.datasets import testing
+from mne.datasets import testing, misc
 from mne.export import export_evokeds, export_evokeds_mff
-from mne.io import read_raw_fif, read_raw_eeglab
-from mne.utils import _check_eeglabio_installed, requires_version, object_diff
+from mne.io import read_raw_fif, read_raw_eeglab, read_raw_edf
+from mne.utils import (_check_eeglabio_installed, requires_version,
+                       object_diff, _check_edflib_installed)
 from mne.tests.test_epochs import _get_data
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -44,6 +49,129 @@ def test_export_raw_eeglab(tmpdir):
     assert_allclose(cart_coords, cart_coords_read)
     assert_allclose(raw.times, raw_read.times)
     assert_allclose(raw.get_data(), raw_read.get_data())
+
+
+@pytest.mark.skipif(not _check_edflib_installed(strict=False),
+                    reason='edflib-python not installed')
+def test_integer_sfreq_edf(tmp_path):
+    """Test saving a Raw array with integer sfreq to EDF."""
+    np.random.RandomState(12345)
+    format = 'edf'
+    info = create_info(['1', '2', '3'], sfreq=1000,
+                       ch_types=['eeg', 'eeg', 'stim'])
+    data = np.random.random(size=(3, 1000)) * 1e-6
+
+    # include subject info and measurement date
+    subject_info = dict(first_name='mne', last_name='python',
+                        birthday=(1992, 1, 20), sex=1, hand=3)
+    info['subject_info'] = subject_info
+    raw = RawArray(data, info)
+    raw.set_meas_date(datetime.now(tz=timezone.utc))
+
+    temp_fname = op.join(str(tmp_path), f'test.{format}')
+
+    raw.export(temp_fname)
+    raw_read = read_raw_edf(temp_fname, preload=True)
+
+    # stim channel should be dropped
+    raw.drop_channels('3')
+
+    assert raw.ch_names == raw_read.ch_names
+    # only compare the original length, since extra zeros are appended
+    orig_raw_len = len(raw)
+    assert_array_almost_equal(
+        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=4)
+    assert_allclose(
+        raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
+
+    # export now by hard-coding physical range
+    raw.export(temp_fname, physical_range=(-3200, 3200))
+
+    # include bad birthday that is non-EDF compliant
+    bad_info = info.copy()
+    bad_info['subject_info']['birthday'] = (1700, 1, 20)
+    raw = RawArray(data, bad_info)
+    with pytest.raises(RuntimeError, match='Setting patient birth date'):
+        raw.export(temp_fname)
+
+    # include bad measurement date that is non-EDF compliant
+    raw = RawArray(data, info)
+    meas_date = datetime(year=1984, month=1, day=1, tzinfo=timezone.utc)
+    raw.set_meas_date(meas_date)
+    with pytest.raises(RuntimeError, match='Setting start date time'):
+        raw.export(temp_fname)
+
+
+@pytest.mark.skipif(not _check_edflib_installed(strict=False),
+                    reason='edflib-python not installed')
+@pytest.mark.parametrize(
+    ['dataset', 'format'], [
+        ['test', 'edf'],
+        ['misc', 'edf'],
+    ])
+def test_export_raw_edf(tmp_path, dataset, format):
+    """Test saving a Raw instance to EDF format."""
+    if dataset == 'test':
+        try:
+            import importlib_resources as imp_resrc  # py 3.7
+        except ImportError:
+            import importlib.resources as imp_resrc  # py 3.8+
+        import mne.io.tests.data
+        with imp_resrc.path(mne.io.tests.data, 'test_raw.fif') as fname:
+            raw = read_raw_fif(fname)
+    elif dataset == 'misc':
+        fname = op.join(misc.data_path(), 'ecog', 'sample_ecog.edf')
+        raw = read_raw_edf(fname)
+
+    # only test with EEG channels
+    if dataset == 'misc':
+        raw = raw.set_channel_types({'EKGL': 'ecg', 'EKGR': 'ecg'})
+    raw.pick_types(eeg=True, ecog=True, seeg=True,
+                   eog=True, ecg=True, emg=True)
+    raw.load_data()
+    temp_fname = op.join(str(tmp_path), f'test.{format}')
+
+    # test runtime errors
+    with pytest.raises(RuntimeError, match='The maximum'), \
+            pytest.warns(RuntimeWarning, match='Data has a non-integer'):
+        raw.export(temp_fname, physical_range=(-1e6, 0))
+    with pytest.raises(RuntimeError, match='The minimum'), \
+            pytest.warns(RuntimeWarning, match='Data has a non-integer'):
+        raw.export(temp_fname, physical_range=(0, 1e6))
+
+    if dataset == 'test':
+        with pytest.warns(RuntimeWarning, match='Data has a non-integer'):
+            raw.export(temp_fname)
+    elif dataset == 'misc':
+        with pytest.warns(RuntimeWarning, match='EDF format requires'):
+            raw.export(temp_fname)
+
+    if 'epoc' in raw.ch_names:
+        raw.drop_channels(['epoc'])
+
+    if format == 'edf':
+        raw_read = read_raw_edf(temp_fname, preload=True)
+
+    assert raw.ch_names == raw_read.ch_names
+    # only compare the original length, since extra zeros are appended
+    orig_raw_len = len(raw)
+
+    # assert data and times are not different
+    # Due to the physical range of the data, reading and writing is
+    # not lossless. For example, a physical min/max of -/+ 3200 uV
+    # will result in a resolution of 0.09 uV. This resolution
+    # though is acceptable for most EEG manufacturers.
+    assert_array_almost_equal(
+        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=4)
+
+    # Due to the data record duration limitations of EDF files, one
+    # cannot store arbitrary float sampling rate exactly. Usually this
+    # results in two sampling rates that are off by very low number of
+    # decimal points. This for practical purposes does not matter
+    # but will result in an error when say the number of time points
+    # is very very large.
+    assert_allclose(
+        raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
 
 
 @pytest.mark.skipif(not _check_eeglabio_installed(strict=False),
