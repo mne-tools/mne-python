@@ -190,18 +190,15 @@ class CoregistrationUI(object):
 
         self._renderer._dock_initialize(
             name="Fitting Parameters", area="right")
-        layout = self._renderer._dock_add_group_box("Scaling")
         self._widgets["scaling_mode"] = self._renderer._dock_add_combo_box(
             name="Scaling Mode",
             value="0",
             rng=["0", "1", "3"],
             callback=noop,
             compact=True,
-            layout=layout,
         )
         hlayout = self._renderer._dock_add_group_box(
             name="Scaling Parameters",
-            layout=layout
         )
         for coord in ("X", "Y", "Z"):
             name = f"s{coord}"
