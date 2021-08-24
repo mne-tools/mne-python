@@ -6,13 +6,14 @@ from ...utils import get_subjects_dir
 
 
 class CoregistrationUI(object):
-    def __init__(self, info, subject, subjects_dir=None, fids='auto'):
+    def __init__(self, info, subject=None, subjects_dir=None, fids='auto'):
         from ..backends.renderer import _get_renderer
-        self._info = info
-        self._subject = subject
+        self._fids = fids
         self._subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                               raise_error=True)
-        self._fids = fids
+        self._subjects = self._get_subjects()
+        self._subject = subject if subject is not None else self._subjects[0]
+        self._info = info
 
         self._first_time = True
         self._opacity = 1.0
@@ -44,11 +45,31 @@ class CoregistrationUI(object):
         self._opacity = 0.4 if state else 1.0
         self._update()
 
+    def _switch_subjects_dir(self, subjects_dir):
+        self._subjects_dir = subjects_dir
+        self._subjects = self._get_subjects()
+        self._subject = self._subjects[0]
+
+        # XXX: add coreg.set_subjects_dir
+        self._coreg._subjects_dir = subjects_dir
+        self._coreg._subject = self._subject
+        self._coreg.reset()
+        self._update()
+
     def _switch_subject(self, subject):
         self._subject = subject
+
+        # XXX: add coreg.set_subject()
+        self._coreg._subject = subject
+        self._coreg.reset()
+        self._update()
+
+    def _fit_fiducials(self):
+        self._coreg.fit_fiducials()
         self._update()
 
     def _get_subjects(self):
+        # XXX: would be nice to move this function to util
         sdir = self._subjects_dir
         is_dir = sdir and op.isdir(sdir)
         if is_dir:
@@ -69,7 +90,7 @@ class CoregistrationUI(object):
         self._widgets["subjects_dir"] = self._renderer._dock_add_file_button(
             name="subjects_dir",
             desc="Load",
-            func=noop,
+            func=self._switch_subjects_dir,
             value=self._subjects_dir,
             placeholder="Subjects Directory",
             directory=True,
@@ -78,7 +99,7 @@ class CoregistrationUI(object):
         self._widgets["subject"] = self._renderer._dock_add_combo_box(
             name="Subject",
             value=self._subject,
-            rng=self._get_subjects(),
+            rng=self._subjects,
             callback=self._switch_subject,
             compact=True,
             layout=layout
@@ -211,7 +232,7 @@ class CoregistrationUI(object):
         hlayout = self._renderer._dock_add_layout(vertical=False)
         self._renderer._dock_add_button(
             name="Fit Fiducials",
-            callback=noop,
+            callback=self._fit_fiducials,
             layout=hlayout,
         )
         self._renderer._dock_add_button(
