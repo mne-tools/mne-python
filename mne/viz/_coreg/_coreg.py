@@ -10,6 +10,9 @@ class CoregistrationUI(object):
         self._subjects_dir = subjects_dir
         self._fids = fids
 
+        self._first_time = True
+        self._opacity = 1.0
+
         self._widgets = dict()
         self._coreg = Coregistration(info, subject, subjects_dir, fids)
         self._renderer = _get_renderer()
@@ -20,12 +23,17 @@ class CoregistrationUI(object):
         self._plot()
 
     def _plot(self):
+        if self._first_time:
+            self._first_time = False
+        else:
+            self._renderer.figure.plotter.clear()
         plot_alignment(self._info, trans=self._coreg.trans,
                        subject=self._subject,
                        subjects_dir=self._subjects_dir,
-                       surfaces=dict(head=0.4),
+                       surfaces=dict(head=self._opacity),
                        dig=True, eeg=[], meg=False,
                        coord_frame='meg', fig=self._renderer.figure)
+        self._renderer.reset_camera()
 
     def _configure_dock(self):
         def noop(x):
@@ -125,10 +133,15 @@ class CoregistrationUI(object):
             callback=noop,
             layout=layout
         )
+
+        def _toggle_transparent(state):
+            self._opacity = 0.4 if state else 1.0
+            self._plot()
+
         self._widgets["make_transparent"] = self._renderer._dock_add_check_box(
             name="Make skin surface transparent",
             value=False,
-            callback=noop,
+            callback=_toggle_transparent,
             layout=layout
         )
         self._renderer._dock_add_stretch()
