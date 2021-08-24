@@ -170,7 +170,7 @@ def _export_raw(fname, raw, physical_range):
                                 day=meas_date.day, hour=meas_date.hour,
                                 minute=meas_date.minute,
                                 second=meas_date.second,
-                                subsecond=subsecond) != 0:  # noqa
+                                subsecond=subsecond) != 0:
             raise RuntimeError(f"Setting start date time {meas_date} "
                                f"returned an error")
 
@@ -204,7 +204,7 @@ def _export_raw(fname, raw, physical_range):
             # assign channel data to the buffer and write to EDF
             buf[:len(ch_data)] = ch_data
             err = hdl.writeSamples(buf)
-            if err != 0:  # noqa
+            if err != 0:
                 raise RuntimeError(f"writeSamples() returned error: {err}")
 
         # there was an incomplete datarecord
@@ -218,7 +218,7 @@ def _export_raw(fname, raw, physical_range):
         for desc, onset, duration in zip(raw.annotations.description,
                                          raw.annotations.onset,
                                          raw.annotations.duration):
-            if hdl.writeAnnotation(onset, duration, desc) != 0:  # noqa
+            if hdl.writeAnnotation(onset, duration, desc) != 0:
                 raise RuntimeError(f'writeAnnotation() returned an error '
                                    f'trying to write {desc} at {onset} '
                                    f'for {duration} seconds.')
