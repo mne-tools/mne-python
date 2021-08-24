@@ -124,6 +124,7 @@ def pytest_configure(config):
     ignore:.*numpy\.dual is deprecated.*:DeprecationWarning
     ignore:.*`np.typeDict` is a deprecated.*:DeprecationWarning
     ignore:.*Creating an ndarray from ragged.*:numpy.VisibleDeprecationWarning
+    ignore:^Please use.*scipy\..*:DeprecationWarning
     always::ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
