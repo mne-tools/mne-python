@@ -15,3 +15,8 @@
 /mne/io/nirx/ @rob-luke
 /mne/io/nihon/ @rob-luke
 /mne/io/preprocessing/nirs/ @rob-luke
+
+
+# IO
+/mne/io/brainvision @sappelhoff
+/mne/export @sappelhoff
