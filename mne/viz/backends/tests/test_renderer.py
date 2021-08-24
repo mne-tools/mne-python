@@ -149,9 +149,9 @@ def test_3d_backend(renderer):
     # use tube
     rend.tube(origin=np.array([[0, 0, 0]]),
               destination=np.array([[0, 1, 0]]))
-    tube = rend.tube(origin=np.array([[1, 0, 0]]),
-                     destination=np.array([[1, 1, 0]]),
-                     scalars=np.array([[1.0, 1.0]]))
+    _, tube = rend.tube(origin=np.array([[1, 0, 0]]),
+                        destination=np.array([[1, 1, 0]]),
+                        scalars=np.array([[1.0, 1.0]]))
 
     # scalar bar
     rend.scalarbar(source=tube, title="Scalar Bar",

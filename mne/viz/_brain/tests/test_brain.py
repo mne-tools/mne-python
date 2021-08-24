@@ -317,15 +317,23 @@ def test_brain_init(renderer_pyvistaqt, tmpdir, pixel_ratio, brain_gc):
 
     # add head and skull
     brain.add_head(color='red', alpha=0.1)
+    brain.remove_head()
     brain.add_skull(outer=True, color='green', alpha=0.1)
+    brain.remove_skull()
 
     # add volume labels
     brain.add_volume_labels(
         aseg='aseg', labels=('Brain-Stem', 'Left-Hippocampus',
                              'Left-Amygdala'))
+    brain.remove_volume_labels()
+
     # add sensors
     info = read_info(fname_raw_testing)
     brain.add_sensors(info, trans=fname_trans)
+    for kind in ('meg', 'eeg', 'fnirs', 'ecog', 'seeg', 'dbs', 'helmet'):
+        brain.remove_sensors(kind)
+    brain.add_sensors(info, trans=fname_trans)
+    brain.remove_sensors()
 
     info['chs'][0]['coord_frame'] = 99
     with pytest.raises(RuntimeError, match='must be "meg", "head" or "mri"'):
@@ -333,6 +341,12 @@ def test_brain_init(renderer_pyvistaqt, tmpdir, pixel_ratio, brain_gc):
 
     # add text
     brain.add_text(x=0, y=0, text='foo')
+    with pytest.raises(ValueError, match='already exists'):
+        brain.add_text(x=0, y=0, text='foo')
+    brain.remove_text('foo')
+    brain.add_text(x=0, y=0, text='foo')
+    brain.remove_text()
+
     brain.close()
 
     # add annotation

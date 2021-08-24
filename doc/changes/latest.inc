@@ -145,6 +145,8 @@ Enhancements
 
 - Add :meth:`mne.channels.DigMontage.remove_fiducials` to remove fiducials under rare circumstances when the coordinate frame should not be set to "head" (:gh:`9684` by `Alex Rockhill`_)
 
+- Add remove methods for mesh objects in :class:`mne.viz.Brain` (:gh:`9688` by `Alex Rockhill`_)
+
 Bugs
 ~~~~
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)

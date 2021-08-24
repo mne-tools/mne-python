@@ -971,6 +971,8 @@ def _plot_sensors(info, to_cf_t, renderer, picks, meg, eeg, fnirs,
     ch_pos, sources, detectors = _ch_pos_in_coord_frame(
         pick_info(info, picks), to_cf_t=to_cf_t, warn_meg=warn_meg)
 
+    actors = dict(meg=list(), ref_meg=list(), eeg=list(), fnirs=list(),
+                  ecog=list(), seeg=list(), dbs=list())
     for ch_name, ch_coord in ch_pos.items():
         ch_type = channel_type(info, info.ch_names.index(ch_name))
         # for default picking
@@ -986,29 +988,34 @@ def _plot_sensors(info, to_cf_t, renderer, picks, meg, eeg, fnirs,
         # plot sensors
         if isinstance(ch_coord, tuple):  # is meg, plot coil
             verts, triangles = ch_coord
-            renderer.surface(
+            actor, _ = renderer.surface(
                 surface=dict(rr=verts * scalar, tris=triangles),
                 color=color, opacity=0.25, backface_culling=True)
+            actors[ch_type].append(actor)
         else:
             if plot_sensors:
-                renderer.sphere(center=tuple(ch_coord * scalar), color=color,
-                                scale=defaults[ch_type + '_scale'] * scalar,
-                                opacity=0.8)
+                actor, _ = renderer.sphere(
+                    center=tuple(ch_coord * scalar), color=color,
+                    scale=defaults[ch_type + '_scale'] * scalar, opacity=0.8)
+                actors[ch_type].append(actor)
         if ch_name in sources and 'sources' in fnirs:
-            renderer.sphere(
+            actor, _ = renderer.sphere(
                 center=tuple(sources[ch_name] * scalar),
                 color=defaults['source_color'],
                 scale=defaults['source_scale'] * scalar, opacity=0.8)
+            actors[ch_type].append(actor)
         if ch_name in detectors and 'detectors' in fnirs:
-            renderer.sphere(
+            actor, _ = renderer.sphere(
                 center=tuple(detectors[ch_name] * scalar),
                 color=defaults['detector_color'],
                 scale=defaults['detector_scale'] * scalar, opacity=0.8)
+            actors[ch_type].append(actor)
         if ch_name in sources and ch_name in detectors and \
                 'pairs' in fnirs:
-            renderer.tube(  # array of origin and dest points
+            actor, _ = renderer.tube(  # array of origin and dest points
                 origin=sources[ch_name][np.newaxis] * scalar,
                 destination=detectors[ch_name][np.newaxis] * scalar)
+            actors[ch_type].append(actor)
 
     # add projected eeg
     eeg_indices = pick_types(info, eeg=True)
@@ -1020,7 +1027,7 @@ def _plot_sensors(info, to_cf_t, renderer, picks, meg, eeg, fnirs,
         eegp_loc, eegp_nn = _project_onto_surface(
             eeg_loc, head_surf, project_rrs=True,
             return_nn=True)[2:4]
-        renderer.quiver3d(
+        actor, _ = renderer.quiver3d(
             x=eegp_loc[:, 0], y=eegp_loc[:, 1], z=eegp_loc[:, 2],
             u=eegp_nn[:, 0], v=eegp_nn[:, 1], w=eegp_nn[:, 2],
             color=defaults['eegp_color'], mode='cylinder',
@@ -1029,6 +1036,9 @@ def _plot_sensors(info, to_cf_t, renderer, picks, meg, eeg, fnirs,
             glyph_center=(0., -defaults['eegp_height'], 0),
             glyph_resolution=20,
             backface_culling=True)
+        actors['eeg'].append(actor)
+
+    return actors
 
 
 def _make_tris_fan(n_vert):
@@ -2960,11 +2970,11 @@ def plot_sensors_connectivity(info, con, picks=None,
     for val, nodes in zip(con_val, con_nodes):
         x1, y1, z1 = sens_loc[nodes[0]]
         x2, y2, z2 = sens_loc[nodes[1]]
-        tube = renderer.tube(origin=np.c_[x1, y1, z1],
-                             destination=np.c_[x2, y2, z2],
-                             scalars=np.c_[val, val],
-                             vmin=vmin, vmax=vmax,
-                             reverse_lut=True)
+        _, tube = renderer.tube(origin=np.c_[x1, y1, z1],
+                                destination=np.c_[x2, y2, z2],
+                                scalars=np.c_[val, val],
+                                vmin=vmin, vmax=vmax,
+                                reverse_lut=True)
 
     renderer.scalarbar(source=tube, title=cbar_label)
 
