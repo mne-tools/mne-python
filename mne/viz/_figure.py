@@ -296,7 +296,7 @@ class BrowserBase(ABC):
             return data, times
 
     def _apply_filter(self, data, start, stop, picks):
-        """filter (with same defaults as raw.filter())"""
+        """Filter (with same defaults as raw.filter())."""
         from ..filter import _overlap_add_filter, _filtfilt
         starts, stops = self.mne.filter_bounds
         mask = (starts < stop) & (stops > start)

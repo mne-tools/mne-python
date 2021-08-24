@@ -38,9 +38,8 @@ matplotlib.figure.Figure
 
 from collections import OrderedDict
 from contextlib import contextmanager
-from copy import deepcopy
-import datetime
 from functools import partial
+import datetime
 import platform
 import warnings
 
