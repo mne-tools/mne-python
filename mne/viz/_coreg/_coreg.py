@@ -29,6 +29,9 @@ class CoregistrationUI(object):
 
         self._update()
 
+    def _reset(self):
+        self._coreg.reset()
+
     def _update(self):
         if self._first_time:
             self._first_time = False
@@ -51,19 +54,17 @@ class CoregistrationUI(object):
         self._subjects_dir = subjects_dir
         self._subjects = self._get_subjects()
         self._subject = self._subjects[0]
-
         # XXX: add coreg.set_subjects_dir
-        self._coreg._subjects_dir = subjects_dir
+        self._coreg._subjects_dir = self._subjects_dir
         self._coreg._subject = self._subject
-        self._coreg.reset()
+        self._reset()
         self._update()
 
     def _switch_subject(self, subject):
         self._subject = subject
-
         # XXX: add coreg.set_subject()
         self._coreg._subject = subject
-        self._coreg.reset()
+        self._reset()
         self._update()
 
     def _set_icp_n_iterations(self, n_iterations):
