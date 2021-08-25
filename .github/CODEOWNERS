@@ -23,3 +23,7 @@
 # IO
 /mne/io/brainvision @sappelhoff
 /mne/export @sappelhoff
+
+
+# Beamforming
+/mne/beamformer/ @britta-wstnr
