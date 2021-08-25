@@ -57,7 +57,8 @@ def test_integer_sfreq_edf(tmp_path):
     """Test saving a Raw array with integer sfreq to EDF."""
     np.random.RandomState(12345)
     format = 'edf'
-    ch_types = ['eeg', 'eeg', 'stim', 'ecog', 'seeg', 'eog', 'ecg', 'emg']
+    ch_types = ['eeg', 'eeg', 'stim', 'ecog', 'seeg', 'eog', 'ecg', 'emg',
+                'dbs', 'bio']
     ch_names = np.arange(len(ch_types)).astype(str).tolist()
     info = create_info(ch_names, sfreq=1000,
                        ch_types=ch_types)
