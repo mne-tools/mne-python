@@ -36,7 +36,12 @@ def _export_raw(fname, raw, physical_range):
     TODO: if in future the Info object supports transducer or
     technician information, allow writing those here.
     """
+    # scale to save data in EDF
     phys_dims = 'uV'
+    
+    # get EEG-related data in uV
+    units = dict(eeg='uV', ecog='uV', seeg='uV', eog='uV', ecg='uV', emg='uV',
+                 bio='uV', dbs='uV')
 
     digital_min = -32767
     digital_max = 32767
@@ -52,6 +57,13 @@ def _export_raw(fname, raw, physical_range):
         stim_index = np.argwhere(np.array(orig_ch_types) == 'stim')
         stim_index = np.atleast_1d(stim_index.squeeze()).tolist()
         drop_chs.extend([raw.ch_names[idx] for idx in stim_index])
+
+    # add warning if any channel types are not voltage based
+    voltage_types = list(units.keys()) + ['stim']
+    if any([ch not in voltage_types for ch in orig_ch_types]):
+        warn('There are non-voltage channels. '
+             'EDF only supports writing Voltage-based data, and '
+             'these channels will be dropped.')
 
     ch_names = [ch for ch in raw.ch_names if ch not in drop_chs]
     n_channels = len(ch_names)
@@ -78,10 +90,6 @@ def _export_raw(fname, raw, physical_range):
     linefreq = raw.info['line_freq']
     filter_str_info = f"HP:{highpass}Hz LP:{lowpass}Hz N:{linefreq}Hz"
 
-    # get EEG-related data in uV
-    units = dict(eeg='uV', ecog='uV', seeg='uV', eog='uV', ecg='uV', emg='uV',
-                 bio='uV', dbs='uV')
-
     # get the entire dataset in uV
     data = raw.get_data(units=units, picks=ch_names)
 
@@ -94,22 +102,8 @@ def _export_raw(fname, raw, physical_range):
         for _type in np.unique(ch_types):
             _picks = np.nonzero(ch_types == _type)[0]
             _data = raw.get_data(units=units, picks=_picks)
-            data_max = _data.max(axis=1)
-            data_min = _data.min(axis=1)
-
-            # perform a check to see that all data ranges are
-            # within two decimal places away, else it is possible
-            # that the user incorrectly set channel groupings
-            # XXX: not sure how to compare to get a robust check
-            # - needs to account for maybe normalizing data onto
-            # a consistent scale
-            # - then basically do hard-threshold check for
-            # super outliers
-            # max_diffs = pdist(data_max)
-            # min_diffs = pdist(data_min)
-
-            ch_types_phys_max[_type].append(data_max)
-            ch_types_phys_min[_type].append(data_min)
+            ch_types_phys_max[_type] = _data.max()
+            ch_types_phys_min[_type] = _data.min()
     else:
         # get the physical min and max of the data in uV
         # Physical ranges of the data in uV is usually set by the manufacturer
