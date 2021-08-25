@@ -26,7 +26,8 @@ from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: 
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
-                        _AbstractBrainMplCanvas, _AbstractMplInterface)
+                        _AbstractBrainMplCanvas, _AbstractMplInterface,
+                        _AbstractWidgetList)
 from ._utils import _init_qt_resources, _qt_disable_paint
 from ..utils import logger
 
@@ -161,14 +162,13 @@ class _QtDock(_AbstractDock, _QtLayout):
         group = QButtonGroup()
         for val in rng:
             button = QRadioButton(val)
-            button.toggled.connect(callback)
             if val == value:
                 button.setChecked(True)
             group.addButton(button)
             self._layout_add_widget(group_layout, button)
+        group.buttonClicked.connect(callback)
         self._layout_add_widget(layout, group_layout)
-        # XXX: the following should be wrapped by _QtWidget
-        return group.buttons()
+        return _QtWidgetList(group)
 
     def _dock_add_group_box(self, name, layout=None):
         layout = self._dock_layout if layout is None else layout
@@ -213,12 +213,13 @@ class _QtDock(_AbstractDock, _QtLayout):
                 dialog.dlg_accepted.connect(sync_text_widget)
                 return dialog
 
-        self._dock_add_button(
+        button_widget = self._dock_add_button(
             name=desc,
             callback=callback,
             layout=hlayout,
         )
         self._layout_add_widget(layout, hlayout)
+        return _QtWidgetList([text_widget, button_widget])
 
 
 class QFloatSlider(QSlider):
@@ -556,12 +557,25 @@ class _QtWindow(_AbstractWindow):
         self._window.setStyleSheet(stylesheet)
 
 
+class _QtWidgetList(_AbstractWidgetList):
+    def __init__(self, src):
+        self._src = src
+        self._widgets = list()
+        widgets = src.buttons() if isinstance(src, QButtonGroup) else src
+        for widget in widgets:
+            if not isinstance(widget, _QtWidget):
+                widget = _QtWidget(widget)
+            self._widgets.append(widget)
+
+
 class _QtWidget(_AbstractWidget):
     def set_value(self, value):
         if hasattr(self._widget, "setValue"):
             self._widget.setValue(value)
         elif hasattr(self._widget, "setCurrentText"):
             self._widget.setCurrentText(value)
+        elif hasattr(self._widget, "setChecked"):
+            self._widget.setChecked(value)
         else:
             assert hasattr(self._widget, "setText")
             self._widget.setText(value)
@@ -582,6 +596,9 @@ class _QtWidget(_AbstractWidget):
 
     def hide(self):
         self._widget.hide()
+
+    def set_enabled(self, state):
+        self._widget.setEnabled(state)
 
     def update(self, repaint=True):
         self._widget.update()

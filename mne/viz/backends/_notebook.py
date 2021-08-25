@@ -16,7 +16,8 @@ from ipywidgets import (Button, Dropdown, FloatSlider, FloatText, HBox,
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
-                        _AbstractBrainMplCanvas, _AbstractMplInterface)
+                        _AbstractBrainMplCanvas, _AbstractMplInterface,
+                        _AbstractWidgetList)
 from ._pyvista import _PyVistaRenderer, _close_all, _set_3d_view, _set_3d_title  # noqa: F401,E501, analysis:ignore
 
 
@@ -149,6 +150,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
             disabled=False,
         )
         self._layout_add_widget(layout, widget)
+        # XXX: works but would be nice to use _IpyWidgetList for consistency
         return _IpyWidget(widget)
 
     def _dock_add_group_box(self, name, layout=None):
@@ -172,18 +174,19 @@ class _IpyDock(_AbstractDock, _IpyLayout):
             fname = self.actions[f"{name}_field"].value
             func(None if len(fname) == 0 else fname)
         hlayout = self._dock_add_layout(vertical=False)
-        self._dock_add_text(
+        text_widget = self._dock_add_text(
             name=f"{name}_field",
             value=value,
             placeholder=placeholder,
             layout=hlayout,
         )
-        self._dock_add_button(
+        button_widget = self._dock_add_button(
             name=desc,
             callback=callback,
             layout=hlayout,
         )
         self._layout_add_widget(layout, hlayout)
+        return _IpyWidgetList([text_widget, button_widget])
 
 
 def _generate_callback(callback, to_float=False):
@@ -366,6 +369,16 @@ class _IpyWindow(_AbstractWindow):
         pass
 
 
+class _IpyWidgetList(_AbstractWidgetList):
+    def __init__(self, src):
+        self._src = src
+        self._widgets = list()
+        for widget in src:
+            if not isinstance(widget, _IpyWidget):
+                widget = _IpyWidget(widget)
+            self._widgets.append(widget)
+
+
 class _IpyWidget(_AbstractWidget):
     def set_value(self, value):
         self._widget.value = value
@@ -382,6 +395,9 @@ class _IpyWidget(_AbstractWidget):
 
     def hide(self):
         self._widget.layout.visibility = "hidden"
+
+    def set_enabled(self, state):
+        self._widget.disabled = not state
 
     def update(self, repaint=True):
         pass

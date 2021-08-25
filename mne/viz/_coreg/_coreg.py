@@ -57,6 +57,16 @@ class CoregistrationUI(object):
     def _set_omit_hsp_distance(self, distance):
         self._omit_hsp_distance = distance
 
+    def _set_lock_fids(self, state):
+        if "fid_file" in self._widgets:
+            self._widgets["fid_file"].set_enabled(not state)
+        if "digs" in self._widgets:
+            self._widgets["digs"].set_enabled(not state)
+        for coord in ("X", "Y", "Z"):
+            name = f"dig_{coord}"
+            if name in self._widgets:
+                self._widgets[name].set_enabled(not state)
+
     def _omit_hsp(self):
         self._coreg.omit_head_shape_points(self._omit_hsp_distance)
 
@@ -175,13 +185,11 @@ class CoregistrationUI(object):
         )
 
         layout = self._renderer._dock_add_group_box("MRI Fiducials")
-        digs_states = ["Lock", "Edit"]
-        self._renderer._dock_add_radio_buttons(
-            value=digs_states[0],
-            rng=digs_states,
-            callback=noop,
-            vertical=False,
-            layout=layout,
+        self._widgets["lock_fids"] = self._renderer._dock_add_check_box(
+            name="Lock fiducials",
+            value=False,
+            callback=self._set_lock_fids,
+            layout=layout
         )
         self._widgets["fid_file"] = self._renderer._dock_add_file_button(
             name="fid_file",
@@ -191,7 +199,7 @@ class CoregistrationUI(object):
             layout=layout,
         )
         digs = ["LPA", "Nasion", "RPA"]
-        self._renderer._dock_add_radio_buttons(
+        self._widgets["digs"] = self._renderer._dock_add_radio_buttons(
             value=digs[0],
             rng=digs,
             callback=noop,
@@ -211,6 +219,7 @@ class CoregistrationUI(object):
                 layout=hlayout
             )
         self._renderer._layout_add_widget(layout, hlayout)
+        self._widgets["lock_fids"].set_value(True)
 
         layout = self._renderer._dock_add_group_box("Digitization Source")
         self._widgets["info_file"] = self._renderer._dock_add_file_button(
@@ -261,7 +270,7 @@ class CoregistrationUI(object):
         self._renderer._dock_initialize(name="Parameters", area="right")
         self._widgets["scaling_mode"] = self._renderer._dock_add_combo_box(
             name="Scaling Mode",
-            value="0",
+            value="None",
             rng=["None", "uniform", "3-axis"],
             callback=self._set_scale_mode,
             compact=True,

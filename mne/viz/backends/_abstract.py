@@ -613,6 +613,15 @@ class _AbstractLayout(ABC):
         pass
 
 
+class _AbstractWidgetList(ABC):
+    def set_enabled(self, state):
+        for widget in self._widgets:
+            widget.set_enabled(state)
+
+    def widget(self, idx):
+        return self._widgets[idx]
+
+
 class _AbstractWidget(ABC):
     def __init__(self, widget):
         self._widget = widget
@@ -639,6 +648,10 @@ class _AbstractWidget(ABC):
 
     @abstractmethod
     def hide(self):
+        pass
+
+    @abstractmethod
+    def set_enabled(self, state):
         pass
 
     @abstractmethod
