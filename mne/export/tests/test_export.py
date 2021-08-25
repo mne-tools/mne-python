@@ -111,6 +111,16 @@ def test_integer_sfreq_edf(tmp_path):
     with pytest.warns(RuntimeWarning, match='There are non-voltage channels'):
         raw.export(temp_fname)
 
+    # the data should still match though
+    raw_read = read_raw_edf(temp_fname, preload=True)
+    raw.drop_channels('2')
+    assert raw.ch_names == raw_read.ch_names
+    orig_raw_len = len(raw)
+    assert_array_almost_equal(
+        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=4)
+    assert_allclose(
+        raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
+
 
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')
