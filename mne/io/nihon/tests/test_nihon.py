@@ -60,6 +60,9 @@ def test_nihon_eeg():
         annot = _read_nihon_annotations(bad_fname)
         assert all(len(x) == 0 for x in annot.values())
 
+    # the nihon test file has $A1 and $A2 in it, which are not EEG
+    assert '$A1' in raw.ch_names
+
     # assert that channels with $ are 'misc'
     picks = any([ch for ch in raw.ch_names if ch.startswith('$')])
     ch_types = raw.get_channel_types(picks=picks)
