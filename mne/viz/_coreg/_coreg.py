@@ -57,7 +57,9 @@ class CoregistrationUI(object):
         self._coreg.omit_head_shape_points(self._omit_hsp_distance)
 
     def _reset(self):
+        self._reset_fitting_parameters()
         self._coreg.reset()
+        self._update()
 
     def _update(self):
         if self._first_time:
@@ -93,14 +95,12 @@ class CoregistrationUI(object):
         self._coreg._subjects_dir = self._subjects_dir
         self._coreg._subject = self._subject
         self._reset()
-        self._update()
 
     def _switch_subject(self, subject):
         self._subject = subject
         # XXX: add coreg.set_subject()
         self._coreg._subject = subject
         self._reset()
-        self._update()
 
     def _set_icp_n_iterations(self, n_iterations):
         self._icp_n_iterations = n_iterations
@@ -293,6 +293,19 @@ class CoregistrationUI(object):
                     decimals=4,
                     layout=hlayout
                 )
+        layout = self._renderer._dock_layout
+        hlayout = self._renderer._dock_add_layout(vertical=False)
+        self._renderer._dock_add_button(
+            name="Fit Fiducials",
+            callback=self._fit_fiducials,
+            layout=hlayout,
+        )
+        self._renderer._dock_add_button(
+            name="Fit ICP",
+            callback=self._fit_icp,
+            layout=hlayout,
+        )
+        self._renderer._layout_add_widget(layout, hlayout)
         layout = self._renderer._dock_add_group_box("Fitting Options")
         self._widgets["icp_n_iterations"] = self._renderer._dock_add_spin_box(
             name="Number Of ICP Iterations",
@@ -324,13 +337,18 @@ class CoregistrationUI(object):
         layout = self._renderer._dock_layout
         hlayout = self._renderer._dock_add_layout(vertical=False)
         self._renderer._dock_add_button(
-            name="Fit Fiducials",
-            callback=self._fit_fiducials,
+            name="Reset",
+            callback=self._reset,
             layout=hlayout,
         )
         self._renderer._dock_add_button(
-            name="Fit ICP",
-            callback=self._fit_icp,
+            name="Save...",
+            callback=noop,
+            layout=hlayout,
+        )
+        self._renderer._dock_add_button(
+            name="Load...",
+            callback=noop,
             layout=hlayout,
         )
         self._renderer._layout_add_widget(layout, hlayout)
