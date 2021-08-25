@@ -82,6 +82,15 @@ print(
 )
 
 # %%
+# .. warning::
+#     Don't forget to save the resulting ``trans`` matrix!
+#
+#     .. code-block:: python
+#
+#         mne.write_trans('/path/to/filename-trans.fif', coreg.trans)
+
+
+# %%
 # .. note:: The :class:`mne.coreg.Coregistration` class has the ability to
 #           compute MRI scale factors using
 #           :meth:`~mne.coreg.Coregistration.set_scale_mode` that is useful
