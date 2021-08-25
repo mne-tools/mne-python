@@ -1317,6 +1317,9 @@ class Coregistration(object):
         self._default_parameters = \
             np.array([0., 0., 0., 0., 0., 0., 1., 1., 1.])
 
+        self._rotation = self._default_parameters[:3]
+        self._translation = self._default_parameters[3:6]
+        self._scale = self._default_parameters[6:9]
         self._icp_iterations = 20
         self._icp_angle = 0.2
         self._icp_distance = 0.2
@@ -1343,11 +1346,6 @@ class Coregistration(object):
         self._setup_bem()
         self._setup_fiducials(fiducials)
         self.reset()
-        self._update_params(
-            rot=self._default_parameters[:3],
-            tra=self._default_parameters[3:6],
-            sca=self._default_parameters[6:9],
-        )
 
     def _setup_bem(self):
         # find high-res head model (if possible)
@@ -1894,9 +1892,11 @@ class Coregistration(object):
             The modified Coregistration object.
         """
         self._grow_hair = 0.
-        self._rotation = self._default_parameters[:3]
-        self._translation = self._default_parameters[3:6]
-        self._scale = self._default_parameters[6:9]
+        self._update_params(
+            rot=self._default_parameters[:3],
+            tra=self._default_parameters[3:6],
+            sca=self._default_parameters[6:9],
+        )
         self._last_rotation = self._rotation.copy()
         self._last_translation = self._translation.copy()
         self._last_scale = self._scale.copy()
