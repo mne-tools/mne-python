@@ -210,10 +210,11 @@ class MNEAnnotationFigure(MNEFigure):
         # update click-drag rectangle color
         color = buttons.circles[idx].get_edgecolor()
         selector = self.mne.parent_fig.mne.ax_main.selector
-        # We need to update this pending
         # https://github.com/matplotlib/matplotlib/issues/20618
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter('ignore', DeprecationWarning)
+        # https://github.com/matplotlib/matplotlib/pull/20693
+        try:  # > 3.4.2
+            selector.set_props(color=color, facecolor=color)
+        except AttributeError:
             selector.rect.set_color(color)
             selector.rectprops.update(dict(facecolor=color))
 
