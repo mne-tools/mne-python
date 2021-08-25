@@ -79,7 +79,8 @@ def _export_raw(fname, raw, physical_range):
     filter_str_info = f"HP:{highpass}Hz LP:{lowpass}Hz N:{linefreq}Hz"
 
     # get EEG-related data in uV
-    units = dict(eeg='uV', ecog='uV', seeg='uV', eog='uV', ecg='uV', emg='uV')
+    units = dict(eeg='uV', ecog='uV', seeg='uV', eog='uV', ecg='uV', emg='uV',
+                 bio='uV', dbs='uV')
 
     # get the entire dataset in uV
     data = raw.get_data(units=units, picks=ch_names)
@@ -89,7 +90,7 @@ def _export_raw(fname, raw, physical_range):
         ch_types_phys_max = dict()
         ch_types_phys_min = dict()
 
-        ch_types = np.array(raw.get_channel_types(picks=raw.ch_names))
+        ch_types = np.array(raw.get_channel_types(picks=ch_names))
         for _type in np.unique(ch_types):
             _picks = np.nonzero(ch_types == _type)[0]
             _data = raw.get_data(units=units, picks=_picks)
@@ -123,7 +124,6 @@ def _export_raw(fname, raw, physical_range):
             # take the channel type minimum and maximum
             ch_type = ch_types[idx]
             pmin, pmax = ch_types_phys_min[ch_type], ch_types_phys_max[ch_type]
-
         for key, val in [('PhysicalMaximum', pmax),
                          ('PhysicalMinimum', pmin),
                          ('DigitalMaximum', digital_max),

@@ -57,9 +57,11 @@ def test_integer_sfreq_edf(tmp_path):
     """Test saving a Raw array with integer sfreq to EDF."""
     np.random.RandomState(12345)
     format = 'edf'
-    info = create_info(['1', '2', '3'], sfreq=1000,
-                       ch_types=['eeg', 'eeg', 'stim'])
-    data = np.random.random(size=(3, 1000)) * 1e-6
+    ch_types = ['eeg', 'eeg', 'stim', 'ecog', 'seeg', 'eog', 'ecg', 'emg']
+    ch_names = np.arange(len(ch_types)).astype(str).tolist()
+    info = create_info(ch_names, sfreq=1000,
+                       ch_types=ch_types)
+    data = np.random.random(size=(len(ch_names), 1000)) * 1e-5
 
     # include subject info and measurement date
     subject_info = dict(first_name='mne', last_name='python',
@@ -74,7 +76,7 @@ def test_integer_sfreq_edf(tmp_path):
     raw_read = read_raw_edf(temp_fname, preload=True)
 
     # stim channel should be dropped
-    raw.drop_channels('3')
+    raw.drop_channels('2')
 
     assert raw.ch_names == raw_read.ch_names
     # only compare the original length, since extra zeros are appended
