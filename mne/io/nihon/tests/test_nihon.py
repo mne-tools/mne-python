@@ -59,3 +59,8 @@ def test_nihon_eeg():
     with pytest.warns(RuntimeWarning, match=msg):
         annot = _read_nihon_annotations(bad_fname)
         assert all(len(x) == 0 for x in annot.values())
+
+    # assert that channels with $ are 'misc'
+    picks = any([ch for ch in raw.ch_names if ch.startswith('$')])
+    ch_types = raw.get_channel_types(picks=picks)
+    assert all([ch == 'misc' for ch in ch_types])
