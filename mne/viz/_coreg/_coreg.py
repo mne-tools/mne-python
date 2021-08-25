@@ -11,6 +11,7 @@ class CoregistrationUI(object):
         self._widgets = dict()
         self._verbose = False
         self._first_time = True
+        self._omit_hsp_distance = 0.0
         self._opacity = 1.0
         self._default_icp_n_iterations = 20
         self._default_weights = {
@@ -48,6 +49,12 @@ class CoregistrationUI(object):
                     self._default_weights[dig])
             else:
                 setattr(self, f"_{dig}_weight", self._default_weights[dig])
+
+    def _set_omit_hsp_distance(self, distance):
+        self._omit_hsp_distance = distance
+
+    def _omit_hsp(self):
+        self._coreg.omit_head_shape_points(self._omit_hsp_distance)
 
     def _reset(self):
         self._coreg.reset()
@@ -220,13 +227,14 @@ class CoregistrationUI(object):
         self._widgets["omit_distance"] = self._renderer._dock_add_spin_box(
             name="Omit Distance",
             value=0.0,
-            rng=[0.0, 10.0],
-            callback=noop,
+            rng=[0.0, 100.0],
+            callback=self._set_omit_hsp_distance,
+            decimals=4,
             layout=hlayout,
         )
         self._widgets["omit"] = self._renderer._dock_add_button(
             name="Omit",
-            callback=noop,
+            callback=self._omit_hsp,
             layout=hlayout,
         )
         self._renderer._layout_add_widget(layout, hlayout)
