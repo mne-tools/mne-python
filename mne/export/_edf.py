@@ -4,6 +4,8 @@
 # License: BSD-3-Clause
 
 import numpy as np
+from numpy.testing import assert_allclose, assert_array_almost_equal
+from scipy.spatial.distance import pdist
 
 from ..utils import _check_edflib_installed, warn
 _check_edflib_installed()
@@ -94,8 +96,22 @@ def _export_raw(fname, raw, physical_range):
         for _type in np.unique(ch_types):
             _picks = np.nonzero(ch_types == _type)[0]
             _data = raw.get_data(units=units, picks=_picks)
-            ch_types_phys_max[_type] = _data.max()
-            ch_types_phys_min[_type] = _data.min()
+            data_max = _data.max(axis=1)
+            data_min = _data.min(axis=1)
+
+            # perform a check to see that all data ranges are
+            # within two decimal places away, else it is possible
+            # that the user incorrectly set channel groupings
+            # XXX: not sure how to compare to get a robust check
+            # - needs to account for maybe normalizing data onto
+            # a consistent scale
+            # - then basically do hard-threshold check for 
+            # super outliers
+            max_diffs = pdist(data_max)
+            min_diffs = pdist(data_min)
+
+            ch_types_phys_max[_type].append(data_max)
+            ch_types_phys_min[_type].append(data_min)
     else:
         # get the physical min and max of the data in uV
         # Physical ranges of the data in uV is usually set by the manufacturer
