@@ -105,7 +105,7 @@ def _export_raw(fname, raw, physical_range):
             # XXX: not sure how to compare to get a robust check
             # - needs to account for maybe normalizing data onto
             # a consistent scale
-            # - then basically do hard-threshold check for 
+            # - then basically do hard-threshold check for
             # super outliers
             max_diffs = pdist(data_max)
             min_diffs = pdist(data_min)
