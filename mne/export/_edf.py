@@ -38,7 +38,7 @@ def _export_raw(fname, raw, physical_range):
     """
     # scale to save data in EDF
     phys_dims = 'uV'
-    
+
     # get EEG-related data in uV
     units = dict(eeg='uV', ecog='uV', seeg='uV', eog='uV', ecg='uV', emg='uV',
                  bio='uV', dbs='uV')

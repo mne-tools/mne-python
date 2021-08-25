@@ -107,7 +107,7 @@ def test_integer_sfreq_edf(tmp_path):
     # test that warning is raised if there are non-voltage based channels
     raw = RawArray(data, info)
     with pytest.warns(RuntimeWarning, match='The unit'):
-       raw.set_channel_types({'1': 'hbr'})
+        raw.set_channel_types({'1': 'hbr'})
     with pytest.warns(RuntimeWarning, match='There are non-voltage channels'):
         raw.export(temp_fname)
 
