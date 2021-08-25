@@ -14,16 +14,9 @@
 
 # Each line is a file pattern followed by one or more owners.
 
-# NIRS
-/mne/io/nirx/ @rob-luke
-/mne/io/nihon/ @rob-luke
-/mne/io/preprocessing/nirs/ @rob-luke
-
-
 # IO
 /mne/io/brainvision @sappelhoff
 /mne/export @sappelhoff
-
 
 # Beamforming
 /mne/beamformer/ @britta-wstnr
