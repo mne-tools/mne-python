@@ -124,13 +124,16 @@ class _QtDock(_AbstractDock, _QtLayout):
         return _QtWidget(widget)
 
     def _dock_add_spin_box(self, name, value, rng, callback,
-                           compact=True, double=True, layout=None):
+                           compact=True, double=True, decimals=2,
+                           layout=None):
         layout = self._dock_named_layout(name, layout, compact)
         value = value if double else int(value)
         widget = QDoubleSpinBox() if double else QSpinBox()
         widget.setAlignment(Qt.AlignCenter)
         widget.setMinimum(rng[0])
         widget.setMaximum(rng[1])
+        if double:
+            widget.setDecimals(decimals)
         inc = (rng[1] - rng[0]) / 20.
         inc = max(int(round(inc)), 1) if not double else inc
         widget.setKeyboardTracking(False)

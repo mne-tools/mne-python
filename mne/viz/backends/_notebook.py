@@ -114,7 +114,8 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         return _IpyWidget(widget)
 
     def _dock_add_spin_box(self, name, value, rng, callback,
-                           compact=True, double=True, layout=None):
+                           compact=True, double=True, decimals=2,
+                           layout=None):
         layout = self._dock_named_layout(name, layout, compact)
         klass = FloatText if double else IntText
         widget = klass(

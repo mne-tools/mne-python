@@ -37,6 +37,10 @@ class CoregistrationUI(object):
 
     def _reset_fitting_parameters(self):
         self._icp_n_iterations = self._default_icp_n_iterations
+        if "icp_n_iterations" in self._widgets:
+            self._widgets["icp_n_iterations"].set_value(
+                self._default_icp_n_iterations)
+
         for dig in ("lpa", "nasion", "rpa"):
             widget_name = f"{dig}_weight"
             if widget_name in self._widgets:
@@ -61,6 +65,14 @@ class CoregistrationUI(object):
                        coord_frame='meg', fig=self._renderer.figure,
                        show=False, verbose=self._verbose)
         self._renderer.reset_camera()
+        coords = ["X", "Y", "Z"]
+        for tr in ("translation", "rotation", "scale"):
+            for coord in coords:
+                widget_name = tr[0] + coord
+                if widget_name in self._widgets:
+                    idx = coords.index(coord)
+                    val = getattr(self._coreg, f"_{tr}")
+                    self._widgets[widget_name].set_value(val[idx])
 
     def _toggle_transparent(self, state):
         self._opacity = 0.4 if state else 1.0
@@ -250,10 +262,11 @@ class CoregistrationUI(object):
             self._widgets[name] = self._renderer._dock_add_spin_box(
                 name=name,
                 value=0.,
-                rng=[0., 1.],
+                rng=[-100., 100.],
                 callback=noop,
                 compact=True,
                 double=True,
+                decimals=4,
                 layout=hlayout
             )
 
@@ -265,14 +278,15 @@ class CoregistrationUI(object):
                 self._widgets[name] = self._renderer._dock_add_spin_box(
                     name=name,
                     value=0.,
-                    rng=[0., 1.],
+                    rng=[-100., 100.],
                     callback=noop,
                     compact=True,
                     double=True,
+                    decimals=4,
                     layout=hlayout
                 )
         layout = self._renderer._dock_add_group_box("Fitting Options")
-        self._renderer._dock_add_spin_box(
+        self._widgets["icp_n_iterations"] = self._renderer._dock_add_spin_box(
             name="Number Of ICP Iterations",
             value=self._default_icp_n_iterations,
             rng=[1, 100],
@@ -294,12 +308,13 @@ class CoregistrationUI(object):
                 double=True,
                 layout=layout
             )
-        hlayout = self._renderer._dock_add_layout(vertical=False)
         self._renderer._dock_add_button(
-            name="Reset",
+            name="Reset Fitting Options",
             callback=self._reset_fitting_parameters,
-            layout=hlayout,
+            layout=layout,
         )
+        layout = self._renderer._dock_layout
+        hlayout = self._renderer._dock_add_layout(vertical=False)
         self._renderer._dock_add_button(
             name="Fit Fiducials",
             callback=self._fit_fiducials,
