@@ -24,6 +24,7 @@ from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_space import (read_source_spaces,
                               setup_volume_source_space)
 from mne.datasets import testing
+from mne.fixes import _cell_data
 from mne.io import read_info
 from mne.utils import check_version, requires_pysurfer
 from mne.label import read_label
@@ -727,7 +728,7 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmpdir,
         if current_hemi == 'vol':
             current_mesh = brain._data['vol']['grid']
             vertices = brain._data['vol']['vertices']
-            values = current_mesh.cell_arrays['values'][vertices]
+            values = _cell_data(current_mesh)['values'][vertices]
             cell_id = vertices[np.argmax(np.abs(values))]
         else:
             current_mesh = brain._layered_meshes[current_hemi]._polydata
