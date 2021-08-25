@@ -64,6 +64,6 @@ def test_nihon_eeg():
     assert '$A1' in raw.ch_names
 
     # assert that channels with $ are 'misc'
-    picks = any([ch for ch in raw.ch_names if ch.startswith('$')])
+    picks = [ch for ch in raw.ch_names if ch.startswith('$')]
     ch_types = raw.get_channel_types(picks=picks)
     assert all(ch == 'misc' for ch in ch_types)
