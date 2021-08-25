@@ -2506,8 +2506,13 @@ For more details see :func:`eeglabio.utils.cart_to_eeglab`.
 docdict['export_edf_note'] = """
 For EDF exports, only channels that are measured in terms of Voltage are
 supported. For example, 'eeg', 'ecog', 'seeg', 'bio', 'emg', 'eog',
-'ecg', 'dbs', 'bio' data are supported. In addition, EDF does not
-support storing a montage.
+'ecg', 'dbs', 'bio' data are supported. However, EDF files do not
+support the storage of channel types, so when re-reading the file
+naively, you will only get 'eeg' types by default. You will need
+to call :attr:`raw.set_channel_types <mne.io.Raw.set_channel_types>`.
+In addition, EDF does not support storing a montage. You will need
+to store the montage separately and call :attr:`raw.set_montage
+<mne.io.Raw.set_montage>`.
 """
 
 # Other
