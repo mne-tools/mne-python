@@ -2176,6 +2176,9 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         plot_map_callback(
             params['img_idx'], title='', cut_coords=cut_coords)
 
+    def _update_vertlabel(loc_idx):
+        vert_legend.get_texts()[0].set_text(f'{stc.vertices[0][loc_idx]}')
+
     @verbose_dec
     def _onclick(event, params, verbose=None):
         """Manage clicks on the plot."""
@@ -2201,6 +2204,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             ax_time.lines[0].set_ydata(ydata)
         else:
             ax_time.lines[0].set_ydata(0.)
+        _update_vertlabel(loc_idx)
         params['fig'].canvas.draw()
 
     if mode == 'glass_brain':
@@ -2264,10 +2268,12 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     axes.set(xticks=[], yticks=[])
     marker = 'o' if len(stc.times) == 1 else None
     ydata = stc.data[loc_idx]
-    ax_time.plot(stc.times, ydata, color='k', marker=marker)
+    h = ax_time.plot(stc.times, ydata, color='k', marker=marker)[0]
     if len(stc.times) > 1:
         ax_time.set(xlim=stc.times[[0, -1]])
     ax_time.set(xlabel='Time (s)', ylabel='Activation')
+    vert_legend = ax_time.legend([h], [''], title='Vertex')
+    _update_vertlabel(loc_idx)
     lx = ax_time.axvline(stc.times[time_idx], color='g')
     fig.tight_layout()
 

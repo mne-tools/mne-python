@@ -93,6 +93,8 @@ Enhancements
 
 - Add tutorial for how to processes image (CT and MR) files in order to localize electrode contacts for intracranial recordings :ref:`tut-ieeg-localize` (:gh:`9484` by `Alex Rockhill`_)
 
+- Add vertex number in source space for :meth:`mne.VolSourceEstimate.plot` and :func:`mne.viz.plot_volume_source_estimates` (:gh:`9697` by `Eric Larson`_)
+
 - Add support for colormap normalization in :func:`mne.viz.plot_topomap` (:gh:`9468` by `Clemens Brunner`_)
 
 - Update :func:`mne.preprocessing.realign_raw` with Numpy-recommended polynomial fitting method (:gh:`9514` by `Erica Peterson`_)
