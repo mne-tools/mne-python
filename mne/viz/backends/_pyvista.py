@@ -24,7 +24,7 @@ import vtk
 from ._abstract import _AbstractRenderer
 from ._utils import (_get_colormap_from_array, _alpha_blend_background,
                      ALLOWED_QUIVER_MODES, _init_qt_resources)
-from ...fixes import _get_args
+from ...fixes import _get_args, _point_data, _cell_data
 from ...transforms import apply_trans
 from ...utils import copy_base_doc_to_subclass_doc, _check_option
 
@@ -292,7 +292,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 from matplotlib.colors import ListedColormap
                 colormap = ListedColormap(colormap)
             if normals is not None:
-                mesh.point_arrays["Normals"] = normals
+                _point_data(mesh)["Normals"] = normals
                 mesh.GetPointData().SetActiveNormals("Normals")
             else:
                 _compute_normals(mesh)
@@ -358,7 +358,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             n_triangles = len(triangles)
             triangles = np.c_[np.full(n_triangles, 3), triangles]
             mesh = PolyData(vertices, triangles)
-            mesh.point_arrays['scalars'] = scalars
+            _point_data(mesh)['scalars'] = scalars
             contour = mesh.contour(isosurfaces=contours)
             line_width = width
             if kind == 'tube':
@@ -390,7 +390,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             mesh = PolyData(vertices, triangles)
         colormap = _get_colormap_from_array(colormap, normalized_colormap)
         if scalars is not None:
-            mesh.point_arrays['scalars'] = scalars
+            _point_data(mesh)['scalars'] = scalars
         return self.polydata(
             mesh=mesh,
             color=color,
@@ -442,7 +442,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             for (pointa, pointb) in zip(origin, destination):
                 line = Line(pointa, pointb)
                 if scalars is not None:
-                    line.point_arrays['scalars'] = scalars[0, :]
+                    _point_data(line)['scalars'] = scalars[0, :]
                     scalars = 'scalars'
                     color = None
                 else:
@@ -480,9 +480,9 @@ class _PyVistaRenderer(_AbstractRenderer):
             if not VTK9:
                 args = (np.arange(n_points) * 3,) + args
             grid = UnstructuredGrid(*args)
-            grid.point_arrays['vec'] = vectors
+            _point_data(grid)['vec'] = vectors
             if scale_mode == 'scalar':
-                grid.point_arrays['mag'] = np.array(scalars)
+                _point_data(grid)['mag'] = np.array(scalars)
                 scale = 'mag'
             else:
                 scale = False
@@ -701,7 +701,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         # issubdtype from `complex` to `np.complexfloating` is deprecated.
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            mesh.point_arrays[name] = scalars
+            _point_data(mesh)[name] = scalars
 
     def _set_colormap_range(self, actor, ctable, scalar_bar, rng=None,
                             background_color=None):
@@ -763,7 +763,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         grid.dimensions = dimensions + 1  # inject data on the cells
         grid.origin = origin
         grid.spacing = spacing
-        grid.cell_arrays['values'] = scalars
+        _cell_data(grid)['values'] = scalars
 
         # Add contour of enclosed volume (use GetOutput instead of
         # GetOutputPort below to avoid updating)
@@ -843,7 +843,7 @@ class _PyVistaRenderer(_AbstractRenderer):
 
 def _compute_normals(mesh):
     """Patch PyVista compute_normals."""
-    if 'Normals' not in mesh.point_arrays:
+    if 'Normals' not in _point_data(mesh):
         mesh.compute_normals(
             cell_normals=False,
             consistent_normals=False,
@@ -866,7 +866,7 @@ def _add_mesh(plotter, *args, **kwargs):
     if 'render' not in kwargs and 'render' in _get_args(plotter.add_mesh):
         kwargs['render'] = False
     actor = plotter.add_mesh(*args, **kwargs)
-    if smooth_shading and 'Normals' in mesh.point_arrays:
+    if smooth_shading and 'Normals' in _point_data(mesh):
         prop = actor.GetProperty()
         prop.SetInterpolationToPhong()
     if renderer.MNE_3D_BACKEND_TESTING:
