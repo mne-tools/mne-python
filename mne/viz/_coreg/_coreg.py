@@ -50,6 +50,10 @@ class CoregistrationUI(object):
             else:
                 setattr(self, f"_{dig}_weight", self._default_weights[dig])
 
+    def _set_scale_mode(self, mode):
+        mode = None if mode == "None" else mode
+        self._coreg.set_scale_mode(mode)
+
     def _set_omit_hsp_distance(self, distance):
         self._omit_hsp_distance = distance
 
@@ -258,8 +262,8 @@ class CoregistrationUI(object):
         self._widgets["scaling_mode"] = self._renderer._dock_add_combo_box(
             name="Scaling Mode",
             value="0",
-            rng=["0", "1", "3"],
-            callback=noop,
+            rng=["None", "uniform", "3-axis"],
+            callback=self._set_scale_mode,
             compact=True,
         )
         hlayout = self._renderer._dock_add_group_box(
