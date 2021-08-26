@@ -1,5 +1,6 @@
 import os
 import os.path as op
+from ...io import read_info
 from ...coreg import Coregistration, _is_mri_subject
 from ...viz import plot_alignment
 from ...transforms import (read_trans, write_trans, _ensure_trans,
@@ -94,7 +95,7 @@ class CoregistrationUI(object):
             self._renderer.figure.plotter.clear()
         surfaces = dict()
         surfaces[self._surface] = self._opacity
-        plot_alignment(self._info, trans=self._coreg.trans,
+        plot_alignment(info=self._info, trans=self._coreg.trans,
                        subject=self._subject,
                        subjects_dir=self._subjects_dir,
                        surfaces=surfaces,
@@ -135,7 +136,13 @@ class CoregistrationUI(object):
     def _set_subject(self, subject):
         self._subject = subject
         # XXX: add coreg.set_subject()
-        self._coreg._subject = subject
+        self._coreg._subject = self._subject
+        self._reset()
+
+    def _set_info_file(self, fname):
+        self._info = read_info(fname)
+        # XXX: add coreg.set_info()
+        self._coreg._info = self._info
         self._reset()
 
     def _set_icp_n_iterations(self, n_iterations):
@@ -270,7 +277,7 @@ class CoregistrationUI(object):
         self._widgets["info_file"] = self._renderer._dock_add_file_button(
             name="info_file",
             desc="Load",
-            func=noop,
+            func=self._set_info_file,
             placeholder="Path to info",
             layout=layout,
         )
