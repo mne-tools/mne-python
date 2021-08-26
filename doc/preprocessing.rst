@@ -183,6 +183,7 @@ EEG referencing:
    :toctree: generated/
 
    Transform
+   hough_transform_3D
    quat_to_rot
    rot_to_quat
    read_ras_mni_t

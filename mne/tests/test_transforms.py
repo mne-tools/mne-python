@@ -23,7 +23,8 @@ from mne.transforms import (invert_transform, _get_trans,
                             rotation3d_align_z_axis, _read_fs_xfm,
                             _write_fs_xfm, _quat_real, _fit_matched_points,
                             _quat_to_euler, _euler_to_quat,
-                            _quat_to_affine, _compute_r2, _validate_pipeline)
+                            _quat_to_affine, _compute_r2, _validate_pipeline,
+                            hough_transform_3D, _hough_3D_line_param)
 from mne.utils import requires_nibabel, requires_dipy
 
 data_path = testing.data_path(download=False)
@@ -116,6 +117,57 @@ def test_get_ras_to_neuromag_trans():
 
     err = "Neuromag transformation failed"
     assert_allclose(pts_restored, pts, atol=1e-6, err_msg=err)
+
+
+def test_hough_transform_3D():
+    """Test the 3D Hough transformation."""
+    for coord in [(1, 1, 1), (0, 0, 0), (-1, 0, 1)]:
+        coord = np.array(coord)
+        for v in [(0, 0, 1), (0, 1, 0), (1, 0, 0),
+                  (-1, 0, 0), (-1, -1, 1)]:
+            v = np.array(v)
+            p, angle = _hough_3D_line_param(coord, v)
+            coord2 = coord + v  # continue on line, should be the same line
+            p2, angle2 = _hough_3D_line_param(coord2, v)
+            assert_allclose(p, p2)
+            assert_allclose(angle, angle2)
+    with pytest.raises(ValueError, match='`v` cannot be the zero vector'):
+        _hough_3D_line_param(np.array([0, 0, 0]), np.array([0, 0, 0]))
+
+    with pytest.raises(ValueError,
+                       match='`coords` must be an (n_points, 3) array'):
+        hough_transform_3D(np.array([0]))
+
+    with pytest.raises(ValueError, match='Too many coordinates given'):
+        hough_transform_3D(np.ones((2 ** 17, 3)))
+
+    with pytest.raises(ValueError, match='`img_res` must be greater than 1'):
+        hough_transform_3D(np.array([0, 0, 0])[np.newaxis], img_res=1)
+
+    # make three clouds of lines
+    origins = np.array([[1, 1, 1], [3, -3, 3], [-3, 0, -3]], dtype=float)
+    vectors = np.array([[-1, 2, 2], [1, 0, 1], [1, 1, 0]], dtype=float)
+    coords = list()
+    np.random.seed(99)
+    for t in range(-3, 4):
+        for origin, vector in zip(origins, vectors):
+            coords.append(origin + t * vector + np.random.random())
+    coords = np.array(coords)
+
+    # to check
+    # fig = plt.figure()
+    # ax = plt.axes(projection='3d')
+    # ax.scatter(*coords.T)
+
+    count_image, bin_centers = hough_transform_3D(coords, img_res=100)
+    for i in range(len(origins)):
+        x, y, z, angle = [bin_centers[j, i] for i, j in enumerate(
+            np.unravel_index(np.argmax(count_image), count_image.shape))]
+    for origin, vector in zip(origins, vectors):
+        p, angle = _hough_3D_line_param(origin, vector)
+        idx = tuple([np.argmax(bin_centers[:, i] > x) - 1 for i, x in
+                     enumerate(tuple(p) + (angle,))])
+        assert count_image[idx] > 6  # seven points each line
 
 
 def _cartesian_to_sphere(x, y, z):

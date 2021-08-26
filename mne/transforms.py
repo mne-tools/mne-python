@@ -702,6 +702,145 @@ def _get_transforms_to_coord_frame(info, trans, coord_frame='mri'):
 
 
 ###############################################################################
+# Hough Transform
+
+def hough_transform_3D(coords, grade=3, img_res=1000):
+    """Compute the Hough transform on 3D coordinates.
+
+    Parameters
+    ----------
+    coords : `numpy.ndarray` (n_points, 3)
+        The coordinates to find optimal lines though.
+    grade : int
+        The grade of the icosahedron determining the resolution
+        of the line fitting algorithm.
+    img_res : int
+        The resolution of the transform output image.
+
+    Returns
+    -------
+    count_image : ndarray (``img_res``, ``img_res``, ``img_res``, ``img_res``)
+        The 4D array with counts for each line parameterization.
+        The first three columns are the x, y and z values of the
+        point nearest the origin for that line and the fourth column
+        is the angle in the plane normal to the vector from the
+        origin to the nearest point with zero-phase defined by largest
+        unit vector projection onto the plane.
+    bin_centers : ndarray (``img_res``, 4)
+        The label for each of the bins in the ``count_image``
+
+    Notes
+    -----
+    See `<https://www.ipol.im/pub/art/2017/208/article.pdf>`_ for a
+    detailed desription.
+    """
+    from mne.surface import _get_ico_surface
+    _validate_type(coords, np.ndarray, 'coords')
+    _validate_type(img_res, int, 'img_res')
+    if coords.ndim != 2 or coords.shape[1] != 3:
+        raise ValueError('`coords` must be an (n_points, 3) array')
+    if coords.shape[0] > 2 ** 16 - 1:
+        raise ValueError('Too many coordinates given')
+    if img_res < 2:
+        raise ValueError('`img_res` must be greater than 1')
+    shift = coords.mean(axis=0)
+    coords = coords.copy() - shift
+    norms = np.linalg.norm(coords, axis=1)
+    point_range = np.linspace(-norms.max(), norms.max(), img_res + 1)
+    angle_range = np.linspace(-np.pi, np.pi, img_res + 1)
+    dx = point_range[1] - point_range[0]
+    dtheta = angle_range[1] - angle_range[0]
+    logger.info(f'Point resolution {dx}, angle resolution {dtheta}')
+    bin_centers = np.array(
+        [point_range[:-1] + dx] * 3 + [angle_range[:-1] + dtheta]).T
+    bin_centers[:, :3] += shift  # put back shift
+    # load icosahedron to determine point sampling
+    ico = _get_ico_surface(grade=grade)
+    # initialize counts
+    count_image = np.zeros((img_res,) * 4, dtype=np.uint16)
+    # for each coordinate make a line going in the direction of the ico
+    for coord in coords:
+        for v in ico['rr']:
+            p, angle = _hough_3D_line_param(coord, v)
+            count_image[tuple(
+                [np.argmax(point_range > c) - 1 for c in p] +
+                [np.argmax(angle_range > angle) - 1])] += 1
+    return count_image, bin_centers
+
+
+def _hough_3D_line_param(coord, v):
+    """Parameterize a 3D line with a point and an angle in the normal plane."""
+    if not v.any():
+        raise ValueError('`v` cannot be the zero vector')
+    # find point nearest to the origin from coord + t * v
+    p = coord - (np.dot(coord, v) / np.dot(v, v)) * v
+    # normalize for vector that defines the plane the line is in
+    if p.any():
+        n = p / np.linalg.norm(p)
+    else:
+        # for a point at the origin, use the unit vector with
+        # the greatest orthogonal value to the absolute value
+        # of the vector crossed with the vector as the normal
+        u = np.array([0., 0., 0.])  # unit vector
+        u[np.argmin(abs(v))] = 1
+        n = np.cross(u, v)
+        n /= np.linalg.norm(n)
+    # zero phase vector is the unit vector from the least
+    # magnitude direction projected onto the plane
+    # works for every non-zero vector
+    u = np.array([0., 0., 0.])  # unit vector
+    u[np.argmin(abs(n))] = 1
+    zpv = u - np.dot(u, n) * n  # project onto plane
+    # find directional angle relative to zero-phase vector of the
+    # absolute value of the vector to avoid sign flips
+    angle = np.arctan2(
+        np.dot(np.cross(zpv, p + abs(v)), n), np.dot(zpv, p + abs(v)))
+    return p, angle
+
+
+def _plot_line_param(coord, v, p, angle, lim=3):
+    """Plot a line parameterization and the coordinate and vector."""
+    import matplotlib.pyplot as plt
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+    ax.set_xlim([-lim, lim])
+    ax.set_ylim([-lim, lim])
+    ax.set_zlim([-lim, lim])
+    ax.scatter(*coord)
+    ax.scatter(*(coord + v))
+    # six parameter, non-invertible line
+    # line = np.array([coord + t * v for t in
+    #                  np.linspace(-2 * lim, 2 * lim, 1000)])
+    ax.scatter(0, 0, 0)
+    ax.scatter(*p)
+    if p.any():
+        n = p / np.linalg.norm(p)
+    else:
+        u = np.array([0., 0., 0.])  # unit vector
+        u[np.argmin(abs(v))] = 1
+        n = np.cross(u, v)
+        n /= np.linalg.norm(n)
+    u = np.array([0, 0, 0])  # unit vector
+    u[np.argmin(abs(p))] = 1
+    zpv = u - np.dot(u, n) * n  # zero-phase on plane
+    # use Rodrigues rotation formula
+    v2 = zpv * np.cos(angle) + np.cross(n, zpv) * np.sin(angle) + \
+        n * np.dot(n, zpv) * (1 - np.cos(angle))
+    normal = np.zeros((2, 3))
+    normal[1] = p
+    ax.plot(*normal.T)
+    zp_vector = np.zeros((2, 3))
+    zp_vector[0] = p
+    zp_vector[1] = p + zpv
+    ax.plot(*zp_vector.T)
+    line = np.zeros((2, 3))
+    line[0] = p - 10 * v2
+    line[1] = p + 10 * v2
+    ax.plot(*line.T)
+    fig.show()
+
+
+###############################################################################
 # Spherical coordinates and harmonics
 
 def _cart_to_sph(cart):
