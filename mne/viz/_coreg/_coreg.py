@@ -2,6 +2,7 @@ import os
 import os.path as op
 from ...coreg import Coregistration, _is_mri_subject
 from ...viz import plot_alignment
+from ...transforms import read_trans, write_trans
 from ...utils import get_subjects_dir
 
 
@@ -165,6 +166,12 @@ class CoregistrationUI(object):
             verbose=self._verbose,
         )
         self._update()
+
+    def _save_trans(self, filename):
+        write_trans(filename, self._coreg.trans)
+
+    def _load_trans(self, filename):
+        read_trans(filename)
 
     def _get_subjects(self):
         # XXX: would be nice to move this function to util
@@ -399,14 +406,18 @@ class CoregistrationUI(object):
             callback=self._reset,
             layout=hlayout,
         )
-        self._renderer._dock_add_button(
-            name="Save...",
-            callback=noop,
+        self._widgets["save_trans"] = self._renderer._dock_add_file_button(
+            name="save_trans",
+            desc="Save...",
+            func=self._save_trans,
+            input_text_widget=False,
             layout=hlayout,
         )
-        self._renderer._dock_add_button(
-            name="Load...",
-            callback=noop,
+        self._widgets["load_trans"] = self._renderer._dock_add_file_button(
+            name="load_trans",
+            desc="Load...",
+            func=self._load_trans,
+            input_text_widget=False,
             layout=hlayout,
         )
         self._renderer._layout_add_widget(layout, hlayout)

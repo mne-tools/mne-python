@@ -186,31 +186,36 @@ class _QtDock(_AbstractDock, _QtLayout):
         return _QtWidget(widget)
 
     def _dock_add_file_button(self, name, desc, func, value=None,
-                              directory=False, placeholder="Type a file name",
-                              layout=None):
+                              directory=False, input_text_widget=True,
+                              placeholder="Type a file name", layout=None):
         layout = self._dock_layout if layout is None else layout
-        hlayout = self._dock_add_layout(vertical=False)
-        text_widget = self._dock_add_text(
-            name=f"{name}_field",
-            value=value,
-            placeholder=placeholder,
-            layout=hlayout,
-        )
+        if input_text_widget:
+            hlayout = self._dock_add_layout(vertical=False)
+            text_widget = self._dock_add_text(
+                name=f"{name}_field",
+                value=value,
+                placeholder=placeholder,
+                layout=hlayout,
+            )
 
-        def sync_text_widget(s):
-            text_widget.set_value(s)
+            def sync_text_widget(s):
+                text_widget.set_value(s)
+        else:
+            hlayout = layout
 
         def callback():
             if directory:
                 dname = QFileDialog.getExistingDirectory()
-                sync_text_widget(dname)
+                if input_text_widget:
+                    sync_text_widget(dname)
                 func(dname)
             else:
                 dialog = FileDialog(
                     self.plotter.app_window,
                     callback=func,
                 )
-                dialog.dlg_accepted.connect(sync_text_widget)
+                if input_text_widget:
+                    dialog.dlg_accepted.connect(sync_text_widget)
                 return dialog
 
         button_widget = self._dock_add_button(
@@ -218,8 +223,11 @@ class _QtDock(_AbstractDock, _QtLayout):
             callback=callback,
             layout=hlayout,
         )
-        self._layout_add_widget(layout, hlayout)
-        return _QtWidgetList([text_widget, button_widget])
+        if input_text_widget:
+            self._layout_add_widget(layout, hlayout)
+            return _QtWidgetList([text_widget, button_widget])
+        else:
+            return _QtWidget(button_widget)
 
 
 class QFloatSlider(QSlider):
