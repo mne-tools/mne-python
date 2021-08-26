@@ -16,6 +16,7 @@ class CoregistrationUI(object):
         self._omit_hsp_distance = 0.0
         self._surface = "head-dense"
         self._opacity = 1.0
+        self._default_icp_fid_matches = ('nearest', 'matched')
         self._default_icp_n_iterations = 20
         self._default_weights = {
             "lpa": 1.0,
@@ -46,7 +47,12 @@ class CoregistrationUI(object):
         self._icp_n_iterations = self._default_icp_n_iterations
         if "icp_n_iterations" in self._widgets:
             self._widgets["icp_n_iterations"].set_value(
-                self._default_icp_n_iterations)
+                self._icp_n_iterations)
+
+        self._icp_fid_match = self._default_icp_fid_matches[0]
+        if "icp_fid_match" in self._widgets:
+            self._widgets["icp_fid_match"].set_value(
+                self._icp_fid_match)
 
         for fid in self._default_weights.keys():
             widget_name = f"{fid}_weight"
@@ -111,6 +117,10 @@ class CoregistrationUI(object):
 
     def _toggle_transparent(self, state):
         self._opacity = 0.4 if state else 1.0
+        self._update()
+
+    def _switch_icp_fid_match(self, method):
+        self._coreg.set_fid_match(method)
         self._update()
 
     def _switch_subjects_dir(self, subjects_dir):
@@ -368,6 +378,14 @@ class CoregistrationUI(object):
             compact=True,
             double=False,
             layout=layout,
+        )
+        self._widgets["icp_fid_match"] = self._renderer._dock_add_combo_box(
+            name="Fiducial point matching",
+            value=self._default_icp_fid_matches[0],
+            rng=self._default_icp_fid_matches,
+            callback=self._switch_icp_fid_match,
+            compact=True,
+            layout=layout
         )
         layout = self._renderer._dock_add_group_box(
             name="Weights",
