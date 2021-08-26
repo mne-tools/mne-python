@@ -328,19 +328,25 @@ class CoregistrationUI(object):
             double=False,
             layout=layout,
         )
+        layout = self._renderer._dock_add_group_box(
+            name="Weights",
+            layout=layout,
+        )
+        hlayout = self._renderer._dock_add_layout(vertical=False)
         for dig in digs:
             dig = dig.lower()
             name = f"{dig}_weight"
             self._widgets[name] = self._renderer._dock_add_spin_box(
-                name=name,
+                name=dig,
                 value=getattr(self, f"_{dig}_weight"),
                 rng=[1., 100.],
                 # XXX: does not work with lambda+setattr?
                 callback=getattr(self, f"_set_{dig}_weight"),
                 compact=True,
                 double=True,
-                layout=layout
+                layout=hlayout
             )
+        self._renderer._layout_add_widget(layout, hlayout)
         self._renderer._dock_add_button(
             name="Reset Fitting Options",
             callback=self._reset_fitting_parameters,
