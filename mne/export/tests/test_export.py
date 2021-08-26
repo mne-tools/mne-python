@@ -55,14 +55,14 @@ def test_export_raw_eeglab(tmpdir):
                     reason='edflib-python not installed')
 def test_integer_sfreq_edf(tmp_path):
     """Test saving a Raw array with integer sfreq to EDF."""
-    np.random.RandomState(12345)
+    prng = np.random.RandomState(12345)
     format = 'edf'
     ch_types = ['eeg', 'eeg', 'stim', 'ecog', 'seeg', 'eog', 'ecg', 'emg',
                 'dbs', 'bio']
     ch_names = np.arange(len(ch_types)).astype(str).tolist()
     info = create_info(ch_names, sfreq=1000,
                        ch_types=ch_types)
-    data = np.random.random(size=(len(ch_names), 1000)) * 1e-5
+    data = prng.random(size=(len(ch_names), 1000)) * 1e-5
 
     # include subject info and measurement date
     subject_info = dict(first_name='mne', last_name='python',
