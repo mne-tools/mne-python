@@ -131,6 +131,7 @@ def test_hough_transform_3D():
             p2, angle2 = _hough_3D_line_param(coord2, v)
             assert_allclose(p, p2)
             assert_allclose(angle, angle2)
+
     with pytest.raises(ValueError, match='`v` cannot be the zero vector'):
         _hough_3D_line_param(np.array([0, 0, 0]), np.array([0, 0, 0]))
 
@@ -161,6 +162,7 @@ def test_hough_transform_3D():
     # ax.scatter(*coords.T)
 
     count_image, bin_centers = hough_transform_3D(coords, img_res=40)
+
     '''
     import matplotlib.pyplot as plt
     fig = plt.figure()
