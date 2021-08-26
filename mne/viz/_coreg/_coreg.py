@@ -2,7 +2,8 @@ import os
 import os.path as op
 from ...coreg import Coregistration, _is_mri_subject
 from ...viz import plot_alignment
-from ...transforms import read_trans, write_trans
+from ...transforms import (read_trans, write_trans, _ensure_trans,
+                           rotation_angles)
 from ...utils import get_subjects_dir
 
 
@@ -167,11 +168,19 @@ class CoregistrationUI(object):
         )
         self._update()
 
-    def _save_trans(self, filename):
-        write_trans(filename, self._coreg.trans)
+    def _save_trans(self, fname):
+        write_trans(fname, self._coreg.trans)
 
-    def _load_trans(self, filename):
-        read_trans(filename)
+    def _load_trans(self, fname):
+        mri_head_t = _ensure_trans(read_trans(fname, return_all=True),
+                                   'mri', 'head')['trans']
+        rot_x, rot_y, rot_z = rotation_angles(mri_head_t)
+        x, y, z = mri_head_t[:3, 3]
+        self._coreg._update_params(
+            rot=[rot_x, rot_y, rot_z],
+            tra=[x, y, z],
+        )
+        self._update()
 
     def _get_subjects(self):
         # XXX: would be nice to move this function to util
