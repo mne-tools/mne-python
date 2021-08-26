@@ -60,8 +60,8 @@ class CoregistrationUI(object):
     def _set_lock_fids(self, state):
         if "fid_file" in self._widgets:
             self._widgets["fid_file"].set_enabled(not state)
-        if "digs" in self._widgets:
-            self._widgets["digs"].set_enabled(not state)
+        if "fids" in self._widgets:
+            self._widgets["fids"].set_enabled(not state)
         for coord in ("X", "Y", "Z"):
             name = f"dig_{coord}"
             if name in self._widgets:
@@ -198,10 +198,10 @@ class CoregistrationUI(object):
             placeholder="Path to fiducials",
             layout=layout,
         )
-        digs = ["LPA", "Nasion", "RPA"]
-        self._widgets["digs"] = self._renderer._dock_add_radio_buttons(
-            value=digs[0],
-            rng=digs,
+        fids = ["LPA", "Nasion", "RPA"]
+        self._widgets["fids"] = self._renderer._dock_add_radio_buttons(
+            value=fids[0],
+            rng=fids,
             callback=noop,
             vertical=False,
             layout=layout,
@@ -333,15 +333,15 @@ class CoregistrationUI(object):
             layout=layout,
         )
         hlayout = self._renderer._dock_add_layout(vertical=False)
-        for dig in digs:
-            dig = dig.lower()
-            name = f"{dig}_weight"
+        for fid in fids:
+            fid_lower = fid.lower()
+            name = f"{fid}_weight"
             self._widgets[name] = self._renderer._dock_add_spin_box(
-                name=dig,
-                value=getattr(self, f"_{dig}_weight"),
+                name=fid,
+                value=getattr(self, f"_{fid_lower}_weight"),
                 rng=[1., 100.],
                 # XXX: does not work with lambda+setattr?
-                callback=getattr(self, f"_set_{dig}_weight"),
+                callback=getattr(self, f"_set_{fid_lower}_weight"),
                 compact=True,
                 double=True,
                 layout=hlayout
