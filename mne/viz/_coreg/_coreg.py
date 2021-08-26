@@ -68,7 +68,7 @@ class CoregistrationUI(object):
         self._coreg.set_scale_mode(mode)
 
     def _set_omit_hsp_distance(self, distance):
-        self._omit_hsp_distance = distance
+        self._omit_hsp_distance = distance / 1000.0
 
     def _set_lock_fids(self, state):
         if "fid_file" in self._widgets:
@@ -110,7 +110,10 @@ class CoregistrationUI(object):
                 if widget_name in self._widgets:
                     idx = coords.index(coord)
                     val = getattr(self._coreg, f"_{tr}")
-                    self._widgets[widget_name].set_value(val[idx])
+                    val_idx = val[idx]
+                    if tr in ("translation", "scale"):
+                        val_idx *= 1000.0
+                    self._widgets[widget_name].set_value(val_idx)
 
     def _toggle_high_resolution_head(self, state):
         self._surface = "head-dense" if state else "head"
@@ -291,10 +294,10 @@ class CoregistrationUI(object):
         hlayout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["omit_distance"] = self._renderer._dock_add_spin_box(
             name="Omit Distance",
-            value=0.0,
+            value=10.,
             rng=[0.0, 100.0],
             callback=self._set_omit_hsp_distance,
-            decimals=4,
+            decimals=1,
             layout=hlayout,
         )
         self._widgets["omit"] = self._renderer._dock_add_button(
@@ -345,7 +348,7 @@ class CoregistrationUI(object):
                 callback=noop,
                 compact=True,
                 double=True,
-                decimals=4,
+                decimals=1,
                 layout=hlayout
             )
 
@@ -361,7 +364,7 @@ class CoregistrationUI(object):
                     callback=noop,
                     compact=True,
                     double=True,
-                    decimals=4,
+                    decimals=1,
                     layout=hlayout
                 )
 
