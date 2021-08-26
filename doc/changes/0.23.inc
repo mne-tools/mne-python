@@ -12,6 +12,13 @@
    like this (where xxxx is the pull request number):
    - description of enhancement/bugfix/API change (:gh:`xxxx` **by new contributor** |Firstname Lastname|_)
 
+.. _changes_0_23_2:
+
+Version 0.23.2
+--------------
+
+- Fix bug in shim for ``contextlib.nullcontext`` for Python 3.6 (by `Eric Larson`_)
+
 .. _changes_0_23_1:
 
 Version 0.23.1

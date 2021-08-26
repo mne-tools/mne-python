@@ -1080,6 +1080,11 @@ try:
 except ImportError:
     from contextlib import contextmanager
 
+    @contextmanager
+    def nullcontext():
+        yield
+
+
 def _is_last_row(ax):
     try:
         return ax.get_subplotspec().is_last_row()  # 3.4+
