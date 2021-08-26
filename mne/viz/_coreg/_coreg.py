@@ -357,6 +357,7 @@ class CoregistrationUI(object):
                     decimals=4,
                     layout=hlayout
                 )
+
         layout = self._renderer._dock_add_group_box("Fitting")
         hlayout = self._renderer._dock_add_layout(vertical=False)
         self._renderer._dock_add_button(
