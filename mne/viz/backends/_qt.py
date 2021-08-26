@@ -119,7 +119,7 @@ class _QtDock(_AbstractDock, _QtLayout):
     def _dock_add_check_box(self, name, value, callback, layout=None):
         layout = self._dock_layout if layout is None else layout
         widget = QCheckBox(name)
-        widget.setCheckState(value)
+        widget.setChecked(value)
         widget.stateChanged.connect(callback)
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)

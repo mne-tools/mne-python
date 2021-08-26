@@ -12,6 +12,7 @@ class CoregistrationUI(object):
         self._verbose = False
         self._first_time = True
         self._omit_hsp_distance = 0.0
+        self._surface = "head-dense"
         self._opacity = 1.0
         self._default_icp_n_iterations = 20
         self._default_weights = {
@@ -80,10 +81,12 @@ class CoregistrationUI(object):
             self._first_time = False
         else:
             self._renderer.figure.plotter.clear()
+        surfaces = dict()
+        surfaces[self._surface] = self._opacity
         plot_alignment(self._info, trans=self._coreg.trans,
                        subject=self._subject,
                        subjects_dir=self._subjects_dir,
-                       surfaces=dict(head=self._opacity),
+                       surfaces=surfaces,
                        dig=True, eeg=[], meg=False,
                        coord_frame='meg', fig=self._renderer.figure,
                        show=False, verbose=self._verbose)
@@ -96,6 +99,10 @@ class CoregistrationUI(object):
                     idx = coords.index(coord)
                     val = getattr(self._coreg, f"_{tr}")
                     self._widgets[widget_name].set_value(val[idx])
+
+    def _toggle_high_resolution_head(self, state):
+        self._surface = "head-dense" if state else "head"
+        self._update()
 
     def _toggle_transparent(self, state):
         self._opacity = 0.4 if state else 1.0
@@ -257,6 +264,12 @@ class CoregistrationUI(object):
             name="Show Head Shape Points",
             value=False,
             callback=noop,
+            layout=layout
+        )
+        self._widgets["high_res_head"] = self._renderer._dock_add_check_box(
+            name="Show High Resolution Head",
+            value=True,
+            callback=self._toggle_high_resolution_head,
             layout=layout
         )
         self._widgets["make_transparent"] = self._renderer._dock_add_check_box(
