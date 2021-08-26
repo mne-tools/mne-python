@@ -306,7 +306,7 @@ class CoregistrationUI(object):
                     decimals=4,
                     layout=hlayout
                 )
-        layout = self._renderer._dock_layout
+        layout = self._renderer._dock_add_group_box("Fitting")
         hlayout = self._renderer._dock_add_layout(vertical=False)
         self._renderer._dock_add_button(
             name="Fit Fiducials",
@@ -319,7 +319,6 @@ class CoregistrationUI(object):
             layout=hlayout,
         )
         self._renderer._layout_add_widget(layout, hlayout)
-        layout = self._renderer._dock_add_group_box("Fitting Options")
         self._widgets["icp_n_iterations"] = self._renderer._dock_add_spin_box(
             name="Number Of ICP Iterations",
             value=self._default_icp_n_iterations,
