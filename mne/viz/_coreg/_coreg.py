@@ -76,7 +76,7 @@ class CoregistrationUI(object):
         if "fids" in self._widgets:
             self._widgets["fids"].set_enabled(not state)
         for coord in ("X", "Y", "Z"):
-            name = f"dig_{coord}"
+            name = f"fid_{coord}"
             if name in self._widgets:
                 self._widgets[name].set_enabled(not state)
 
@@ -260,7 +260,7 @@ class CoregistrationUI(object):
         )
         hlayout = self._renderer._dock_add_layout()
         for coord in ("X", "Y", "Z"):
-            name = f"dig_{coord}"
+            name = f"fid_{coord}"
             self._widgets[name] = self._renderer._dock_add_spin_box(
                 name=coord,
                 value=0.,
