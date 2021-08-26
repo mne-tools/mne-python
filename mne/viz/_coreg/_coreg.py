@@ -119,11 +119,11 @@ class CoregistrationUI(object):
         self._opacity = 0.4 if state else 1.0
         self._update()
 
-    def _switch_icp_fid_match(self, method):
+    def _set_icp_fid_match(self, method):
         self._coreg.set_fid_match(method)
         self._update()
 
-    def _switch_subjects_dir(self, subjects_dir):
+    def _set_subjects_dir(self, subjects_dir):
         self._subjects_dir = subjects_dir
         self._subjects = self._get_subjects()
         self._subject = self._subjects[0]
@@ -132,7 +132,7 @@ class CoregistrationUI(object):
         self._coreg._subject = self._subject
         self._reset()
 
-    def _switch_subject(self, subject):
+    def _set_subject(self, subject):
         self._subject = subject
         # XXX: add coreg.set_subject()
         self._coreg._subject = subject
@@ -214,7 +214,7 @@ class CoregistrationUI(object):
         self._widgets["subjects_dir"] = self._renderer._dock_add_file_button(
             name="subjects_dir",
             desc="Load",
-            func=self._switch_subjects_dir,
+            func=self._set_subjects_dir,
             value=self._subjects_dir,
             placeholder="Subjects Directory",
             directory=True,
@@ -224,7 +224,7 @@ class CoregistrationUI(object):
             name="Subject",
             value=self._subject,
             rng=self._subjects,
-            callback=self._switch_subject,
+            callback=self._set_subject,
             compact=True,
             layout=layout
         )
@@ -383,7 +383,7 @@ class CoregistrationUI(object):
             name="Fiducial point matching",
             value=self._default_icp_fid_matches[0],
             rng=self._default_icp_fid_matches,
-            callback=self._switch_icp_fid_match,
+            callback=self._set_icp_fid_match,
             compact=True,
             layout=layout
         )
