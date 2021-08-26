@@ -180,6 +180,7 @@ class _Renderer(_AbstractRenderer):
             if colormap is not None:
                 surface.module_manager.scalar_lut_manager.lut.table = colormap
             surface.actor.property.backface_culling = backface_culling
+        return surface.actor, surface
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False,
@@ -192,6 +193,7 @@ class _Renderer(_AbstractRenderer):
                                      scale_factor=scale, opacity=opacity,
                                      figure=self.fig)
         surface.actor.property.backface_culling = backface_culling
+        return surface.actor, surface
 
     def tube(self, origin, destination, radius=0.001, color='white',
              scalars=None, vmin=None, vmax=None, colormap='RdBu',
@@ -229,7 +231,7 @@ class _Renderer(_AbstractRenderer):
                                            colormap=colormap,
                                            figure=self.fig)
         surface.module_manager.scalar_lut_manager.reverse_lut = reverse_lut
-        return surface
+        return surface.actor, surface
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
@@ -240,11 +242,11 @@ class _Renderer(_AbstractRenderer):
         color = _check_color(color)
         with warnings.catch_warnings(record=True):  # traits
             if mode in ('arrow', '2darrow'):
-                self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
-                                   color=color, scale_factor=scale,
-                                   scale_mode=scale_mode,
-                                   resolution=resolution, scalars=scalars,
-                                   opacity=opacity, figure=self.fig)
+                quiv = self.mlab.quiver3d(
+                    x, y, z, u, v, w, mode=mode, color=color,
+                    scale_factor=scale, scale_mode=scale_mode,
+                    resolution=resolution, scalars=scalars,
+                    opacity=opacity, figure=self.fig)
             elif mode in ('cone', 'sphere', 'oct'):
                 use_mode = 'sphere' if mode == 'oct' else mode
                 quiv = self.mlab.quiver3d(x, y, z, u, v, w, color=color,
@@ -267,6 +269,7 @@ class _Renderer(_AbstractRenderer):
                     quiv.glyph.glyph_source.glyph_source.resolution = \
                         glyph_resolution
                 quiv.actor.property.backface_culling = backface_culling
+        return quiv.actor, quiv
 
     def text2d(self, x_window, y_window, text, size=14, color='white',
                justification=None):

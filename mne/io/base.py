@@ -1474,7 +1474,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    split_size, split_naming, 0, None, overwrite)
 
     @verbose
-    def export(self, fname, fmt='auto', verbose=None):
+    def export(self, fname, fmt='auto', physical_range='auto', verbose=None):
         """Export Raw to external formats.
 
         Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
@@ -1484,14 +1484,17 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ----------
         %(export_params_fname)s
         %(export_params_fmt)s
+        %(export_params_physical_range)s
         %(verbose)s
 
         Notes
         -----
         %(export_eeglab_note)s
+        %(export_edf_note)s
         """
         from ..export import export_raw
-        export_raw(fname, self, fmt, verbose=verbose)
+        export_raw(fname, self, fmt, physical_range=physical_range,
+                   verbose=verbose)
 
     def _tmin_tmax_to_start_stop(self, tmin, tmax):
         start = int(np.floor(tmin * self.info['sfreq']))

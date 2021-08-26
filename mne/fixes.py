@@ -1057,3 +1057,23 @@ def pinv(a, rtol=None):
     u = u[:, :rank]
     u /= s[:rank]
     return (u @ vh[:rank]).conj().T
+
+
+###############################################################################
+# PyVista
+
+# Deal with pyvista deprecation of point_data and cell_data
+# (can be removed once we require 0.31+)
+
+def _point_data(obj):
+    try:
+        return obj.point_data
+    except AttributeError:
+        return obj.point_arrays
+
+
+def _cell_data(obj):
+    try:
+        return obj.cell_data
+    except AttributeError:
+        return obj.cell_arrays

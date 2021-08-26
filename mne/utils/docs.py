@@ -2491,9 +2491,21 @@ fmt : 'auto' | 'eeglab'
     from the filename extension. See supported formats above for more
     information.
 """
+docdict['export_params_physical_range'] = """
+physical_range : str | tuple
+    The physical range of the data. If 'auto' (default), then
+    it will infer the physical min and max from the data itself,
+    taking the minimum and maximum values per channel type.
+    If it is a 2-tuple of minimum and maximum limit, then those
+    physical ranges will be used. Only used for exporting EDF files.
+"""
 docdict['export_eeglab_note'] = """
 For EEGLAB exports, channel locations are expanded to full EEGLAB format.
 For more details see :func:`eeglabio.utils.cart_to_eeglab`.
+"""
+docdict['export_edf_note'] = """
+For EDF exports, only EEG, ECoG and sEEG data are supported. In
+addition, EDF does not support storing a montage.
 """
 
 # Other

@@ -232,6 +232,8 @@ class _AbstractRenderer(ABC):
 
         Returns
         -------
+        actor :
+            The actor in the scene.
         surface :
             Handle of the tube in the scene.
         """
@@ -297,6 +299,13 @@ class _AbstractRenderer(ABC):
             If None, the max of the data will be used
         line_width : float
             The width of the 2d arrows.
+
+        Returns
+        -------
+        actor :
+            The actor in the scene.
+        surface :
+            Handle of the quiver in the scene.
         """
         pass
 

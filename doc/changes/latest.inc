@@ -39,6 +39,8 @@ Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
 
+- Add ability to export EDF+ files using :func:`mne.export.export_raw` (:gh:`9643` by `Adam Li`_)
+
 - Get annotation descriptions from the name field of SNIRF stimulus groups when reading SNIRF files via `mne.io.read_raw_snirf` (:gh:`9575` **by new contributor** |Darin Erat Sleiter|_)
 
 - Add support for NIRSport and NIRSport2 devices to `mne.io.read_raw_nirx` (:gh:`9348` and :gh:`9401` **by new contributor** |David Julien|_, **new contributor** |Romain Derollepot|_, `Robert Luke`_, and `Eric Larson`_)
@@ -91,6 +93,8 @@ Enhancements
 
 - Add tutorial for how to processes image (CT and MR) files in order to localize electrode contacts for intracranial recordings :ref:`tut-ieeg-localize` (:gh:`9484` by `Alex Rockhill`_)
 
+- Add vertex number in source space for :meth:`mne.VolSourceEstimate.plot` and :func:`mne.viz.plot_volume_source_estimates` (:gh:`9697` by `Eric Larson`_)
+
 - Add support for colormap normalization in :func:`mne.viz.plot_topomap` (:gh:`9468` by `Clemens Brunner`_)
 
 - Update :func:`mne.preprocessing.realign_raw` with Numpy-recommended polynomial fitting method (:gh:`9514` by `Erica Peterson`_)
@@ -142,6 +146,8 @@ Enhancements
 - Add :meth:`mne.channels.DigMontage.add_mni_fiducials` to add fiducials to a montage in MNI coordinates (:gh:`9682` by `Alex Rockhill`_)
 
 - Add :meth:`mne.channels.DigMontage.remove_fiducials` to remove fiducials under rare circumstances when the coordinate frame should not be set to "head" (:gh:`9684` by `Alex Rockhill`_)
+
+- Add remove methods for mesh objects in :class:`mne.viz.Brain` (:gh:`9688` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
@@ -200,6 +206,8 @@ Bugs
 - Fix bug where "seeg", "ecog", "dbs" and "fnirs" data had coordinate frame unknown upon loading from a file when it should have been in "head" (:gh:`9580` by `Alex Rockhill`_)
 
 - Raise error when no ``trans`` is provided to :func:`mne.viz.plot_alignment` when required instead of assuming identitiy head->mri transform (:gh:`9585` by `Alex Rockhill`_)
+
+- Fix bug where channels with a dollar sign ($) were not being labeled "misc" in :func:`mne.io.read_raw_nihon` (:gh:`9695` by `Adam Li`_)
 
 API changes
 ~~~~~~~~~~~

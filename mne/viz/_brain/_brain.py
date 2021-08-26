@@ -33,6 +33,7 @@ from .._3d import (_process_clim, _handle_time, _check_views,
                    _handle_sensor_types, _plot_sensors)
 from ...defaults import _handle_default, DEFAULTS
 from ...externals.decorator import decorator
+from ...fixes import _point_data, _cell_data
 from ..._freesurfer import (vertex_to_mni, read_talxfm, read_freesurfer_lut,
                             _get_head_surface, _get_skull_surface)
 from ...io.pick import pick_types
@@ -344,9 +345,13 @@ class Brain(object):
        +---------------------------+--------------+---------------+
        | add_foci                  | ✓            | ✓             |
        +---------------------------+--------------+---------------+
+       | add_head                  |              | ✓             |
+       +---------------------------+--------------+---------------+
        | add_label                 | ✓            | ✓             |
        +---------------------------+--------------+---------------+
        | add_sensors               |              | ✓             |
+       +---------------------------+--------------+---------------+
+       | add_skull                 |              | ✓             |
        +---------------------------+--------------+---------------+
        | add_text                  | ✓            | ✓             |
        +---------------------------+--------------+---------------+
@@ -360,11 +365,23 @@ class Brain(object):
        +---------------------------+--------------+---------------+
        | labels                    | ✓            | ✓             |
        +---------------------------+--------------+---------------+
+       | remove_data               |              | ✓             |
+       +---------------------------+--------------+---------------+
        | remove_foci               | ✓            |               |
+       +---------------------------+--------------+---------------+
+       | remove_head               |              | ✓             |
        +---------------------------+--------------+---------------+
        | remove_labels             | ✓            | ✓             |
        +---------------------------+--------------+---------------+
        | remove_annotations        | -            | ✓             |
+       +---------------------------+--------------+---------------+
+       | remove_sensors            |              | ✓             |
+       +---------------------------+--------------+---------------+
+       | remove_skull              |              | ✓             |
+       +---------------------------+--------------+---------------+
+       | remove_text               |              | ✓             |
+       +---------------------------+--------------+---------------+
+       | remove_volume_labels      |              | ✓             |
        +---------------------------+--------------+---------------+
        | scale_data_colormap       | ✓            |               |
        +---------------------------+--------------+---------------+
@@ -461,7 +478,8 @@ class Brain(object):
         self._labels = {'lh': list(), 'rh': list()}
         self._unnamed_label_id = 0  # can only grow
         self._annots = {'lh': list(), 'rh': list()}
-        self._layered_meshes = {}
+        self._layered_meshes = dict()
+        self._actors = dict()
         self._elevation_rng = [15, 165]  # range of motion of camera on theta
         self._lut_locked = None
         # default values for silhouette
@@ -1445,7 +1463,7 @@ class Brain(object):
             grid = mesh = self._data[hemi]['grid']
             vertices = self._data[hemi]['vertices']
             coords = self._data[hemi]['grid_coords'][vertices]
-            scalars = grid.cell_arrays['values'][vertices]
+            scalars = _cell_data(grid)['values'][vertices]
             spacing = np.array(grid.GetSpacing())
             max_dist = np.linalg.norm(spacing) / 2.
             origin = vtk_picker.GetRenderer().GetActiveCamera().GetPosition()
@@ -1461,7 +1479,7 @@ class Brain(object):
             # useful for debugging the ray by mapping it into the volume:
             # dists = dists - dists.min()
             # dists = (1. - dists / dists.max()) * self._cmap_range[1]
-            # grid.cell_arrays['values'][vertices] = dists * mask
+            # _cell_data(grid)['values'][vertices] = dists * mask
             idx = idx[np.argmax(np.abs(scalars[idx]))]
             vertex_id = vertices[idx]
             # Naive way: convert pos directly to idx; i.e., apply mri_src_t
@@ -1785,6 +1803,22 @@ class Brain(object):
                             )
         return colormap_map[cortex]
 
+    def _remove(self, item, render=False):
+        """Remove actors from the rendered scene."""
+        if item in self._actors:
+            for actor in self._actors[item]:
+                self._renderer.plotter.remove_actor(actor)
+            self._actors.pop(item)  # remove actor list
+            if render:
+                self._renderer._update()
+
+    def _add_actor(self, item, actor):
+        """Add an actor to the internal register."""
+        if item in self._actors:  # allows adding more than one
+            self._actors[item].append(actor)
+        else:
+            self._actors[item] = [actor]
+
     @verbose
     def add_data(self, array, fmin=None, fmid=None, fmax=None,
                  thresh=None, center=None, transparent=False, colormap="auto",
@@ -1894,6 +1928,8 @@ class Brain(object):
                 raise ValueError('time_label_size must be positive, got '
                                  f'{time_label_size}')
 
+        self.remove_data()  # remove any existing data
+
         hemi = self._check_hemi(hemi, extras=['vol'])
         stc, array, vertices = self._check_stc(hemi, array, vertices)
         array = np.asarray(array)
@@ -1994,6 +2030,7 @@ class Brain(object):
                 src_vol = src[2:] if src.kind == 'mixed' else src
                 actor, _ = self._add_volume_data(hemi, src_vol, volume_options)
         assert actor is not None  # should have added one
+        self._add_actor('data', actor)
 
         # 2) update time and smoothing properties
         # set_data_smoothing calls "set_time_point" for us, which will set
@@ -2029,6 +2066,10 @@ class Brain(object):
 
         # 4) update the scalar bar and opacity
         self.update_lut(alpha=alpha)
+
+    def remove_data(self):
+        """Remove rendered data from the mesh."""
+        self._remove('data', render=True)
 
     def _iter_views(self, hemi):
         """Iterate over rows and columns that need to be added to."""
@@ -2351,11 +2392,16 @@ class Brain(object):
 
         for h in self._hemis:
             for ri, ci, v in self._iter_views(h):
-                self._renderer.mesh(
+                actor, _ = self._renderer.mesh(
                     *verts.T, triangles=triangles, color=color,
                     opacity=alpha, reset_camera=False, render=False)
+                self._add_actor('head', actor)
 
         self._renderer._update()
+
+    def remove_head(self):
+        """Remove head objects from the rendered scene."""
+        self._remove('head', render=True)
 
     @fill_doc
     def add_skull(self, outer=True, color='gray', alpha=0.5):
@@ -2384,11 +2430,16 @@ class Brain(object):
 
         for h in self._hemis:
             for ri, ci, v in self._iter_views(h):
-                self._renderer.mesh(
+                actor, _ = self._renderer.mesh(
                     *verts.T, triangles=triangles, color=color,
                     opacity=alpha, reset_camera=False, render=False)
+                self._add_actor('skull', actor)
 
         self._renderer._update()
+
+    def remove_skull(self):
+        """Remove skull objects from the rendered scene."""
+        self._remove('skull', render=True)
 
     @fill_doc
     def add_volume_labels(self, aseg='aparc+aseg', labels=None, colors=None,
@@ -2462,9 +2513,10 @@ class Brain(object):
             verts = apply_trans(vox_mri_t, verts)
             for h in self._hemis:
                 for ri, ci, v in self._iter_views(h):
-                    self._renderer.mesh(
+                    actor, _ = self._renderer.mesh(
                         *verts.T, triangles=triangles, color=color,
                         opacity=alpha, reset_camera=False, render=False)
+                    self._add_actor('volume_labels', actor)
 
         if legend or isinstance(legend, dict):
             # use empty kwargs for legend = True
@@ -2473,6 +2525,11 @@ class Brain(object):
                 list(zip(labels, colors)), **legend)
 
         self._renderer._update()
+
+    def remove_volume_labels(self):
+        """Remove the volume labels from the rendered scene."""
+        self._remove('volume_labels', render=True)
+        self._renderer.plotter.remove_legend()
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
                  scale_factor=1, color="white", alpha=1, name=None,
@@ -2575,22 +2632,48 @@ class Brain(object):
             for ri, ci, v in self._iter_views(h):
                 self._renderer.subplot(ri, ci)
                 if picks.size > 0:
-                    _plot_sensors(
+                    sensors_actors = _plot_sensors(
                         info, to_cf_t, self._renderer, picks, meg, eeg,
                         fnirs, head_surf, warn_meg, self._units)
+                    for item, actors in sensors_actors.items():
+                        for actor in actors:
+                            self._add_actor(item, actor)
 
                 if 'helmet' in meg and pick_types(info, meg=True).size > 0:
                     surf = get_meg_helmet_surf(info, head_mri_t)
                     verts = surf['rr'] * (1 if self._units == 'm' else 1e3)
-                    self._renderer.mesh(
+                    actor, _ = self._renderer.mesh(
                         *verts.T, surf['tris'],
                         color=DEFAULTS['coreg']['helmet_color'],
                         opacity=0.25, reset_camera=False, render=False)
+                    self._add_actor('helmet', actor)
 
         self._renderer._update()
 
+    def remove_sensors(self, kind=None):
+        """Remove sensors from the rendered scene.
+
+        Parameters
+        ----------
+        kind : str | list | None
+            If None, removes all sensor-related data including the helmet.
+            Can be "meg", "eeg", "fnirs", "ecog", "seeg", "dbs" or "helmet"
+            to remove that item.
+        """
+        all_kinds = ('meg', 'eeg', 'fnirs', 'ecog', 'seeg', 'dbs', 'helmet')
+        if kind is None:
+            for item in all_kinds:
+                self._remove(item, render=False)
+        else:
+            if isinstance(kind, str):
+                kind = [kind]
+            for this_kind in kind:
+                _check_option('kind', this_kind, all_kinds)
+            self._remove(this_kind, render=False)
+        self._renderer._update()
+
     def add_text(self, x, y, text, name=None, color=None, opacity=1.0,
-                 row=-1, col=-1, font_size=None, justification=None):
+                 row=0, col=0, font_size=None, justification=None):
         """Add a text to the visualization.
 
         Parameters
@@ -2610,7 +2693,7 @@ class Brain(object):
         opacity : float
             Opacity of the text (default 1.0).
         row : int | None
-            Row index of which brain to use. Default is the bottom row.
+            Row index of which brain to use. Default is the top row.
         col : int | None
             Column index of which brain to use. Default is the left-most
             column.
@@ -2619,17 +2702,43 @@ class Brain(object):
         justification : str | None
             The text justification.
         """
-        # XXX: support `name` should be added when update_text/remove_text
-        # are implemented
-        # _check_option('name', name, [None])
-
+        _validate_type(name, (str, None), 'name')
+        name = text if name is None else name
+        if 'text' in self._actors and name in self._actors['text']:
+            raise ValueError(f'Text with the name {name} already exists')
         for h in self._hemis:
             for ri, ci, v in self._iter_views(h):
                 if (row is None or row == ri) and (col is None or col == ci):
                     self._renderer.subplot(ri, ci)
-                    self._renderer.text2d(x_window=x, y_window=y, text=text,
-                                          color=color, size=font_size,
-                                          justification=justification)
+                    actor = self._renderer.text2d(
+                        x_window=x, y_window=y, text=text, color=color,
+                        size=font_size, justification=justification)
+                    if 'text' not in self._actors:
+                        self._actors['text'] = dict()
+                    self._actors['text'][name] = actor
+
+    def remove_text(self, name=None):
+        """Remove text from the rendered scene.
+
+        Parameters
+        ----------
+        name : str | None
+            Remove specific text by name. If None, all text will be removed.
+        """
+        _validate_type(name, (str, None), 'name')
+        if name is None:
+            for actor in self._actors['text'].values():
+                self._renderer.plotter.remove_actor(actor)
+            self._actors.pop('text')
+        else:
+            names = [None]
+            if 'text' in self._actors:
+                names += list(self._actors['text'].keys())
+            _check_option('name', name, names)
+            self._renderer.plotter.remove_actor(
+                self._actors['text'][name])
+            self._actors['text'].pop(name)
+        self._renderer._update()
 
     def _configure_label_time_course(self):
         from ...label import read_labels_from_annot
@@ -3108,12 +3217,12 @@ class Brain(object):
                     values = self._current_act_data['vol']
                     rng = self._cmap_range
                     fill = 0 if self._data['center'] is not None else rng[0]
-                    grid.cell_arrays['values'].fill(fill)
+                    _cell_data(grid)['values'].fill(fill)
                     # XXX for sided data, we probably actually need two
                     # volumes as composite/MIP needs to look at two
                     # extremes... for now just use abs. Eventually we can add
                     # two volumes if we want.
-                    grid.cell_arrays['values'][vertices] = values
+                    _cell_data(grid)['values'][vertices] = values
 
                 # interpolate in space
                 smooth_mat = hemi_data.get('smooth_mat')
@@ -3192,7 +3301,7 @@ class Brain(object):
                 hemi_data['glyph_mapper'] = glyph_mapper
             else:
                 glyph_dataset = hemi_data['glyph_dataset']
-                glyph_dataset.point_arrays['vec'] = vectors
+                _point_data(glyph_dataset)['vec'] = vectors
                 glyph_mapper = hemi_data['glyph_mapper']
             if add:
                 glyph_actor = self._renderer._actor(glyph_mapper)

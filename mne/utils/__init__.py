@@ -19,7 +19,8 @@ from .check import (check_fname, check_version, check_random_state,
                     _check_freesurfer_home, _suggest, _require_version,
                     _on_missing, _check_on_missing, int_like, _safe_input,
                     _check_all_same_channel_names, path_like, _ensure_events,
-                    _check_eeglabio_installed, _check_dict_keys)
+                    _check_eeglabio_installed, _check_dict_keys,
+                    _check_edflib_installed)
 from .config import (set_config, get_config, get_config_path, set_cache_dir,
                      set_memmap_min_size, get_subjects_dir, _get_stim_channel,
                      sys_info, _get_extra_data_path, _get_root_dir,
