@@ -19,6 +19,9 @@ class CoregistrationUI(object):
             "lpa": 1.0,
             "nasion": 10.0,
             "rpa": 1.0,
+            "hsp": 1.0,
+            "eeg": 1.0,
+            "hpi": 1.0,
         }
         self._reset_fitting_parameters()
 
@@ -43,13 +46,13 @@ class CoregistrationUI(object):
             self._widgets["icp_n_iterations"].set_value(
                 self._default_icp_n_iterations)
 
-        for dig in ("lpa", "nasion", "rpa"):
-            widget_name = f"{dig}_weight"
+        for fid in self._default_weights.keys():
+            widget_name = f"{fid}_weight"
             if widget_name in self._widgets:
                 self._widgets[widget_name].set_value(
-                    self._default_weights[dig])
+                    self._default_weights[fid])
             else:
-                setattr(self, f"_{dig}_weight", self._default_weights[dig])
+                setattr(self, f"_{fid}_weight", self._default_weights[fid])
 
     def _set_scale_mode(self, mode):
         mode = None if mode == "None" else mode
@@ -134,6 +137,15 @@ class CoregistrationUI(object):
 
     def _set_rpa_weight(self, value):
         self._rpa_weight = value
+
+    def _set_hsp_weight(self, value):
+        self._hsp_weight = value
+
+    def _set_eeg_weight(self, value):
+        self._eeg_weight = value
+
+    def _set_hpi_weight(self, value):
+        self._hpi_weight = value
 
     def _fit_fiducials(self):
         self._coreg.fit_fiducials(
@@ -355,6 +367,21 @@ class CoregistrationUI(object):
                 rng=[1., 100.],
                 # XXX: does not work with lambda+setattr?
                 callback=getattr(self, f"_set_{fid_lower}_weight"),
+                compact=True,
+                double=True,
+                layout=hlayout
+            )
+        self._renderer._layout_add_widget(layout, hlayout)
+        hlayout = self._renderer._dock_add_layout(vertical=False)
+        for point in ("HSP", "EEG", "HPI"):
+            point_lower = point.lower()
+            name = f"{point}_weight"
+            self._widgets[name] = self._renderer._dock_add_spin_box(
+                name=point,
+                value=getattr(self, f"_{point_lower}_weight"),
+                rng=[1., 100.],
+                # XXX: does not work with lambda+setattr?
+                callback=getattr(self, f"_set_{point_lower}_weight"),
                 compact=True,
                 double=True,
                 layout=hlayout
