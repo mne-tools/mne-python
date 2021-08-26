@@ -153,16 +153,55 @@ def test_hough_transform_3D():
         for origin, vector in zip(origins, vectors):
             coords.append(origin + t * vector + np.random.random())
     coords = np.array(coords)
+    coords -= coords.mean(axis=0)  # XXX remove
 
     # to check
     # fig = plt.figure()
     # ax = plt.axes(projection='3d')
     # ax.scatter(*coords.T)
 
-    count_image, bin_centers = hough_transform_3D(coords, img_res=100)
+    count_image, bin_centers = hough_transform_3D(coords, img_res=40)
+    '''
+    import matplotlib.pyplot as plt
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+    ax.scatter(*coords.T)
+    lim = 7
+    ax.set_xlim([-lim, lim])
+    ax.set_ylim([-lim, lim])
+    ax.set_zlim([-lim, lim])
     for i in range(len(origins)):
-        x, y, z, angle = [bin_centers[j, i] for i, j in enumerate(
-            np.unravel_index(np.argmax(count_image), count_image.shape))]
+        max_idx = np.unravel_index(np.argmax(count_image), count_image.shape)
+        x, y, z, angle = [bin_centers[j, i] for i, j in enumerate(max_idx)]
+        p = np.array([x, y, z])
+        count_image[max_idx] = 0  # remove
+        ax.scatter(*p)
+        if p.any():
+            n = p / np.linalg.norm(p)
+        else:
+            u = np.array([0., 0., 0.])  # unit vector
+            u[np.argmin(abs(v))] = 1
+            n = np.cross(u, v)
+            n /= np.linalg.norm(n)
+        u = np.array([0, 0, 0])  # unit vector
+        u[np.argmin(abs(p))] = 1
+        zpv = u - np.dot(u, n) * n  # zero-phase on plane
+        # use Rodrigues rotation formula
+        v2 = zpv * np.cos(angle) + np.cross(n, zpv) * np.sin(angle) + \
+            n * np.dot(n, zpv) * (1 - np.cos(angle))
+        normal = np.zeros((2, 3))
+        normal[1] = p
+        ax.plot(*normal.T)
+        zp_vector = np.zeros((2, 3))
+        zp_vector[0] = p
+        zp_vector[1] = p + zpv
+        ax.plot(*zp_vector.T)
+        line = np.zeros((2, 3))
+        line[0] = p - 10 * v2
+        line[1] = p + 10 * v2
+        ax.plot(*line.T)
+    '''
+
     for origin, vector in zip(origins, vectors):
         p, angle = _hough_3D_line_param(origin, vector)
         idx = tuple([np.argmax(bin_centers[:, i] > x) - 1 for i, x in
