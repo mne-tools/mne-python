@@ -59,11 +59,14 @@ def _export_raw(fname, raw, physical_range):
         drop_chs.extend([raw.ch_names[idx] for idx in stim_index])
 
     # add warning if any channel types are not voltage based
+    # note: we can write these other channels, such as 'misc'
+    # but they just won't work because EDF doesn't support
+    # the idea of a 'misc' channel
     voltage_types = list(units.keys()) + ['stim']
     if any([ch not in voltage_types for ch in orig_ch_types]):
         warn('There are non-voltage channels. '
-             'EDF only supports writing Voltage-based data, and '
-             'these channels will be dropped.')
+             'EDF only supports writing Voltage-based data. '
+             'These channels will not be written correctly.')
 
     ch_names = [ch for ch in raw.ch_names if ch not in drop_chs]
     n_channels = len(ch_names)
