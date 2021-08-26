@@ -732,7 +732,7 @@ def hough_transform_3D(coords, grade=3, img_res=1000):
     Notes
     -----
     See `<https://www.ipol.im/pub/art/2017/208/article.pdf>`_ for a
-    detailed desription.
+    detailed description.
     """
     from mne.surface import _get_ico_surface
     _validate_type(coords, np.ndarray, 'coords')
@@ -791,10 +791,11 @@ def _hough_3D_line_param(coord, v):
     u = np.array([0., 0., 0.])  # unit vector
     u[np.argmin(abs(n))] = 1
     zpv = u - np.dot(u, n) * n  # project onto plane
-    # find directional angle relative to zero-phase vector of the
-    # absolute value of the vector to avoid sign flips
+    # v is the same line as -v so flip to positive largest
+    # magnitude direction for consistency
+    use_v = -v if v[np.argmax(abs(v))] < 0 else v
     angle = np.arctan2(
-        np.dot(np.cross(zpv, p + abs(v)), n), np.dot(zpv, p + abs(v)))
+        np.dot(np.cross(zpv, p + use_v), n), np.dot(zpv, p + use_v))
     return p, angle
 
 
