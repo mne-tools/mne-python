@@ -1,6 +1,6 @@
 import os
 import os.path as op
-from ...io import read_info
+from ...io import read_info, read_fiducials
 from ...coreg import Coregistration, _is_mri_subject
 from ...viz import plot_alignment
 from ...transforms import (read_trans, write_trans, _ensure_trans,
@@ -64,6 +64,9 @@ class CoregistrationUI(object):
             else:
                 setattr(self, f"_{fid}_weight", self._default_weights[fid])
 
+    def _reset_fiducials(self):
+        self._set_fiducial(self._default_fiducials[0])
+
     def _set_fiducial(self, fid):
         fid = fid.lower()
         val = getattr(self._coreg, f"_{fid}")[0] * 1000.0
@@ -97,6 +100,7 @@ class CoregistrationUI(object):
 
     def _reset(self):
         self._reset_fitting_parameters()
+        self._reset_fiducials()
         self._coreg.reset()
         self._update()
 
@@ -152,6 +156,11 @@ class CoregistrationUI(object):
         self._subject = subject
         # XXX: add coreg.set_subject()
         self._coreg._subject = self._subject
+        self._reset()
+
+    def _set_fiducial_file(self, fname):
+        fids, _ = read_fiducials(fname)
+        self._coreg._setup_fiducials(fids)
         self._reset()
 
     def _set_info_file(self, fname):
@@ -261,7 +270,7 @@ class CoregistrationUI(object):
         self._widgets["fid_file"] = self._renderer._dock_add_file_button(
             name="fid_file",
             desc="Load",
-            func=noop,
+            func=self._set_fiducial_file,
             placeholder="Path to fiducials",
             layout=layout,
         )
@@ -282,6 +291,7 @@ class CoregistrationUI(object):
                 callback=noop,
                 compact=True,
                 double=True,
+                decimals=1,
                 layout=hlayout
             )
         self._set_fiducial(self._default_fiducials[0])  # init
