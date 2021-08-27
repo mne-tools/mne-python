@@ -166,7 +166,10 @@ class _QtDock(_AbstractDock, _QtLayout):
                 button.setChecked(True)
             group.addButton(button)
             self._layout_add_widget(group_layout, button)
-        group.buttonClicked.connect(callback)
+
+        def func(button):
+            callback(button.text())
+        group.buttonClicked.connect(func)
         self._layout_add_widget(layout, group_layout)
         return _QtWidgetList(group)
 

@@ -149,6 +149,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
             value=value,
             disabled=False,
         )
+        widget.observe(_generate_callback(callback), names='value')
         self._layout_add_widget(layout, widget)
         # XXX: works but would be nice to use _IpyWidgetList for consistency
         return _IpyWidget(widget)
