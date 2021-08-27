@@ -429,8 +429,7 @@ class CoregistrationUI(object):
                 name=point,
                 value=getattr(self, f"_{point_lower}_weight"),
                 rng=[1., 100.],
-                # XXX: does not work with lambda+setattr?
-                callback=getattr(self, f"_set_{point_lower}_weight"),
+                callback=lambda x: self._set_point_weight(fid_lower, x),
                 compact=True,
                 double=True,
                 layout=hlayout
