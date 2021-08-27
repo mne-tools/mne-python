@@ -170,23 +170,8 @@ class CoregistrationUI(object):
     def _set_icp_n_iterations(self, n_iterations):
         self._icp_n_iterations = n_iterations
 
-    def _set_lpa_weight(self, value):
-        self._lpa_weight = value
-
-    def _set_nasion_weight(self, value):
-        self._nasion_weight = value
-
-    def _set_rpa_weight(self, value):
-        self._rpa_weight = value
-
-    def _set_hsp_weight(self, value):
-        self._hsp_weight = value
-
-    def _set_eeg_weight(self, value):
-        self._eeg_weight = value
-
-    def _set_hpi_weight(self, value):
-        self._hpi_weight = value
+    def _set_point_weight(self, point, weight):
+        setattr(f"_{point}_weight", weight)
 
     def _fit_fiducials(self):
         self._coreg.fit_fiducials(
@@ -430,8 +415,7 @@ class CoregistrationUI(object):
                 name=fid,
                 value=getattr(self, f"_{fid_lower}_weight"),
                 rng=[1., 100.],
-                # XXX: does not work with lambda+setattr?
-                callback=getattr(self, f"_set_{fid_lower}_weight"),
+                callback=lambda x: self._set_point_weight(fid_lower, x),
                 compact=True,
                 double=True,
                 layout=hlayout
