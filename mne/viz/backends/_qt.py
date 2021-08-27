@@ -572,11 +572,24 @@ class _QtWidgetList(_AbstractWidgetList):
     def __init__(self, src):
         self._src = src
         self._widgets = list()
-        widgets = src.buttons() if isinstance(src, QButtonGroup) else src
+        if isinstance(self._src, QButtonGroup):
+            widgets = self._src.buttons()
+        else:
+            widgets = src
         for widget in widgets:
             if not isinstance(widget, _QtWidget):
                 widget = _QtWidget(widget)
             self._widgets.append(widget)
+
+    def set_enabled(self, state):
+        for widget in self._widgets:
+            widget.set_enabled(state)
+
+    def set_value(self, idx, value):
+        if isinstance(self._src, QButtonGroup):
+            self._widgets[idx].set_value(True)
+        else:
+            self._widgets[idx].set_value(value)
 
 
 class _QtWidget(_AbstractWidget):
@@ -586,7 +599,10 @@ class _QtWidget(_AbstractWidget):
         elif hasattr(self._widget, "setCurrentText"):
             self._widget.setCurrentText(value)
         elif hasattr(self._widget, "setChecked"):
-            self._widget.setChecked(value)
+            if isinstance(self._widget, QRadioButton):
+                self._widget.click()
+            else:
+                self._widget.setChecked(value)
         else:
             assert hasattr(self._widget, "setText")
             self._widget.setText(value)

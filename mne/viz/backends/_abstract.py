@@ -623,12 +623,13 @@ class _AbstractLayout(ABC):
 
 
 class _AbstractWidgetList(ABC):
+    @abstractmethod
     def set_enabled(self, state):
-        for widget in self._widgets:
-            widget.set_enabled(state)
+        pass
 
-    def widget(self, idx):
-        return self._widgets[idx]
+    @abstractmethod
+    def set_value(self, idx, value):
+        pass
 
 
 class _AbstractWidget(ABC):

@@ -151,8 +151,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         )
         widget.observe(_generate_callback(callback), names='value')
         self._layout_add_widget(layout, widget)
-        # XXX: works but would be nice to use _IpyWidgetList for consistency
-        return _IpyWidget(widget)
+        return _IpyWidgetList(widget)
 
     def _dock_add_group_box(self, name, layout=None):
         layout = self._dock_layout if layout is None else layout
@@ -373,11 +372,27 @@ class _IpyWindow(_AbstractWindow):
 class _IpyWidgetList(_AbstractWidgetList):
     def __init__(self, src):
         self._src = src
-        self._widgets = list()
-        for widget in src:
-            if not isinstance(widget, _IpyWidget):
-                widget = _IpyWidget(widget)
-            self._widgets.append(widget)
+        if isinstance(self._src, RadioButtons):
+            self._widgets = _IpyWidget(self._src)
+        else:
+            self._widgets = list()
+            for widget in self._src:
+                if not isinstance(widget, _IpyWidget):
+                    widget = _IpyWidget(widget)
+                self._widgets.append(widget)
+
+    def set_enabled(self, state):
+        if isinstance(self._src, RadioButtons):
+            self._widgets.set_enabled(state)
+        else:
+            for widget in self._widgets:
+                widget.set_enabled(state)
+
+    def set_value(self, idx, value):
+        if isinstance(self._src, RadioButtons):
+            self._widgets.set_value(value)
+        else:
+            self._widgets[idx].set_value(value)
 
 
 class _IpyWidget(_AbstractWidget):

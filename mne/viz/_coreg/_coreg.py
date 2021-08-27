@@ -17,6 +17,7 @@ class CoregistrationUI(object):
         self._omit_hsp_distance = 0.0
         self._surface = "head-dense"
         self._opacity = 1.0
+        self._default_fiducials = ("LPA", "Nasion", "RPA")
         self._default_icp_fid_matches = ('nearest', 'matched')
         self._default_icp_n_iterations = 20
         self._default_weights = {
@@ -62,6 +63,16 @@ class CoregistrationUI(object):
                     self._default_weights[fid])
             else:
                 setattr(self, f"_{fid}_weight", self._default_weights[fid])
+
+    def _set_fiducial(self, fid):
+        print("called")
+        fid = fid.lower()
+        val = getattr(self._coreg, f"_{fid}")[0] * 1000.0
+        coords = ["X", "Y", "Z"]
+        for coord in coords:
+            name = f"fid_{coord}"
+            idx = coords.index(coord)
+            self._widgets[name].set_value(val[idx])
 
     def _set_scale_mode(self, mode):
         mode = None if mode == "None" else mode
@@ -253,11 +264,10 @@ class CoregistrationUI(object):
             placeholder="Path to fiducials",
             layout=layout,
         )
-        fids = ["LPA", "Nasion", "RPA"]
         self._widgets["fids"] = self._renderer._dock_add_radio_buttons(
-            value=fids[0],
-            rng=fids,
-            callback=noop,
+            value=self._default_fiducials[0],
+            rng=self._default_fiducials,
+            callback=self._set_fiducial,
             vertical=False,
             layout=layout,
         )
@@ -267,14 +277,15 @@ class CoregistrationUI(object):
             self._widgets[name] = self._renderer._dock_add_spin_box(
                 name=coord,
                 value=0.,
-                rng=[0., 1.],
+                rng=[-100., 100.],
                 callback=noop,
                 compact=True,
                 double=True,
                 layout=hlayout
             )
+        self._widgets["fids"].set_value(0, self._default_fiducials[0])  # init
         self._renderer._layout_add_widget(layout, hlayout)
-        self._widgets["lock_fids"].set_value(True)
+        self._widgets["lock_fids"].set_value(True)  # init
 
         layout = self._renderer._dock_add_group_box("Digitization Source")
         self._widgets["info_file"] = self._renderer._dock_add_file_button(
@@ -403,7 +414,7 @@ class CoregistrationUI(object):
             layout=layout,
         )
         hlayout = self._renderer._dock_add_layout(vertical=False)
-        for fid in fids:
+        for fid in self._default_fiducials:
             fid_lower = fid.lower()
             name = f"{fid}_weight"
             self._widgets[name] = self._renderer._dock_add_spin_box(
