@@ -21,7 +21,7 @@ from .io.write import start_file, end_file, write_coord_trans
 from .defaults import _handle_default
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
                     _check_path_like, get_subjects_dir, fill_doc, _check_fname,
-                    _check_option, _require_version, wrapped_stdout)
+                    _check_option, _require_version, wrapped_stdout, warn)
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -704,99 +704,142 @@ def _get_transforms_to_coord_frame(info, trans, coord_frame='mri'):
 ###############################################################################
 # Hough Transform
 
-def hough_transform_3D(coords, grade=3, img_res=1000):
+def hough_transform_3D(coords, method='k-means', grade=3, image_res=64,
+                       n_lines=20):
     """Compute the Hough transform on 3D coordinates.
 
     Parameters
     ----------
     coords : `numpy.ndarray` (n_points, 3)
         The coordinates to find optimal lines though.
+    method : str
+        Options are:
+
+        - ``k-means`` to compute the four-variable parameterization
+        of the lines coming out of each coordinate and going to the
+        vertices of an icosahedron and cluster with k-means (requires
+        n_lines)
+        - ``image`` to compute the three-variable parameterization
+        of lines going to the icosahedron vertices from each coordinate
+        (Roberts' minimal line representation with five parameters but
+        the three direction parameters can be collapsed into one parameter
+        for the icosahedron vertex)
     grade : int
         The grade of the icosahedron determining the resolution
         of the line fitting algorithm.
-    img_res : int
+    image_res : int
         The resolution of the transform output image.
 
     Returns
     -------
-    count_image : ndarray (``img_res``, ``img_res``, ``img_res``, ``img_res``)
-        The 4D array with counts for each line parameterization.
-        The first three columns are the x, y and z values of the
-        point nearest the origin for that line and the fourth column
-        is the angle in the plane normal to the vector from the
-        origin to the nearest point with zero-phase defined by largest
-        unit vector projection onto the plane.
-    bin_centers : ndarray (``img_res``, 4)
-        The label for each of the bins in the ``count_image``
+    groups : list
+        Groups of coordinates that were found to be on the same line.
+    lines : list
+        The point-direction 6D line parameterization of the lines.
 
     Notes
     -----
-    See `<https://www.ipol.im/pub/art/2017/208/article.pdf>`_ for a
-    detailed description.
+    See :footcite:`DalitzEtAl2017` for a detailed description and
+    :ref:`https://github.com/JingLin0/3D-Hough-Transform/blob/master/hough3d.py`_
+    for a similar implementation.
     """
     from mne.surface import _get_ico_surface
     _validate_type(coords, np.ndarray, 'coords')
-    _validate_type(img_res, int, 'img_res')
     if coords.ndim != 2 or coords.shape[1] != 3:
-        raise ValueError('`coords` must be an (n_points, 3) array')
-    if coords.shape[0] > 2 ** 16 - 1:
-        raise ValueError('Too many coordinates given')
-    if img_res < 2:
-        raise ValueError('`img_res` must be greater than 1')
-    shift = coords.mean(axis=0)
-    coords = coords.copy() - shift
-    norms = np.linalg.norm(coords, axis=1)
-    point_range = np.linspace(-norms.max(), norms.max(), img_res + 1)
-    angle_range = np.linspace(-np.pi, np.pi, img_res + 1)
-    dx = point_range[1] - point_range[0]
-    dtheta = angle_range[1] - angle_range[0]
-    logger.info(f'Point resolution {dx}, angle resolution {dtheta}')
-    bin_centers = np.array(
-        [point_range[:-1] + dx] * 3 + [angle_range[:-1] + dtheta]).T
-    bin_centers[:, :3] += shift  # put back shift
+        raise ValueError('`coords` must be an array of shape (n_points, 3)')
+    _check_option('method', method, ('k-means', 'image'))
+    if method == 'image':
+        _validate_type(image_res, int, 'img_res')
+        if image_res < 2:
+            raise ValueError('`image_res` must be greater than 1')
+        if coords.shape[0] > 2 ** 16 - 1:
+            raise ValueError('Too many coordinates given')
+    else:  # method == 'k-means'
+        _validate_type(n_lines, int, 'n_lines')
+        if n_lines < 1:
+            raise ValueError('`n_lines` must be 1 or more')
+
     # load icosahedron to determine point sampling
     ico = _get_ico_surface(grade=grade)
-    # initialize counts
-    count_image = np.zeros((img_res,) * 4, dtype=np.uint16)
-    # for each coordinate make a line going in the direction of the ico
-    for coord in coords:
-        for v in ico['rr']:
-            p, angle = _hough_3D_line_param(coord, v)
-            count_image[tuple(
-                [np.argmax(point_range > c) - 1 for c in p] +
-                [np.argmax(angle_range > angle) - 1])] += 1
-    return count_image, bin_centers
+
+    if method == 'image':
+        shift = coords.mean(axis=0)
+        coords = coords.copy() - shift
+        norms = np.linalg.norm(coords, axis=1)
+        point_range = np.linspace(-norms.max(), norms.max(), image_res + 1)
+        angle_range = np.linspace(-np.pi, np.pi, image_res + 1)
+        dx = point_range[1] - point_range[0]
+        dtheta = angle_range[1] - angle_range[0]
+        logger.info(f'Point resolution {dx}, angle resolution {dtheta}')
+        bin_centers = np.array(
+            [point_range[:-1] + dx] * 3 + [angle_range[:-1] + dtheta]).T
+        bin_centers[:, :3] += shift  # put back shift
+
+        # initialize counts
+        count_image = np.zeros((img_res,) * 4, dtype=np.uint16)
+        # for each coordinate make a line going in the direction of the ico
+        for coord in coords:
+            for v in ico['rr']:
+                p, angle = _hough_3D_line_param(coord, v)
+                count_image[tuple(
+                    [np.argmax(point_range > c) - 1 for c in p] +
+                    [np.argmax(angle_range > angle) - 1])] += 1
+    else:  # method == k-means
+        from scipy.cluster.vq import kmeans
+        # initialize counts
+        line_params = np.zeros((coords.shape[0] * ico['rr'].shape[0], 4),
+                               dtype=float)
+        # for each coordinate make a line going in the direction of the ico
+        idx = 0
+        for coord in coords:
+            for v in ico['rr']:
+                p, angle = _point_direction_to_point_angle_3D(coord, v)
+                line_params[idx, :3] = p
+                line_params[idx, 3] = angle
+                idx += 1
+        # use k-means to find lines
+        line_param_centers, _ = kmeans(line_params, n_lines)
+        lines = [_point_angle_to_point_direction_3D(param[:3], param[3])
+                 for param in line_param_centers]
+    return groups, lines
 
 
-def _hough_3D_line_param(coord, v):
+def _get_angle_params_3D(p):
+    """Find representation of a direction as an angle in 3D."""
+    # normalize for vector that defines the plane the line is in
+    if not p.any():  # not able to parameterize lines through origin
+        return np.array([0, 0, 0]), np.array([0, 0, 0])
+    n = p / np.linalg.norm(p)
+    # zero phase vector is n rotated forward one dimension
+    # this makes it so points near n have similar zpvs
+    zpv = np.array([-n[2], n[0], -n[1]])  # zero-phase
+    zpv = zpv - np.dot(zpv, n) * n  # project to plane
+    return n, zpv
+
+
+def _point_direction_to_point_angle_3D(coord, v):
     """Parameterize a 3D line with a point and an angle in the normal plane."""
     if not v.any():
         raise ValueError('`v` cannot be the zero vector')
     # find point nearest to the origin from coord + t * v
     p = coord - (np.dot(coord, v) / np.dot(v, v)) * v
-    # normalize for vector that defines the plane the line is in
-    if p.any():
-        n = p / np.linalg.norm(p)
-    else:
-        # for a point at the origin, use the unit vector with
-        # the greatest orthogonal value to the absolute value
-        # of the vector crossed with the vector as the normal
-        u = np.array([0., 0., 0.])  # unit vector
-        u[np.argmin(abs(v))] = 1
-        n = np.cross(u, v)
-        n /= np.linalg.norm(n)
-    # zero phase vector is the unit vector from the least
-    # magnitude direction projected onto the plane
-    # works for every non-zero vector
-    u = np.array([0., 0., 0.])  # unit vector
-    u[np.argmin(abs(n))] = 1
-    zpv = u - np.dot(u, n) * n  # project onto plane
+    # get a vector to define the zero-phase of the angle
+    n, zpv = _get_angle_params_3D(p)
     # v is the same line as -v so flip to positive largest
     # magnitude direction for consistency
     use_v = -v if v[np.argmax(abs(v))] < 0 else v
     angle = np.arctan2(
         np.dot(np.cross(zpv, p + use_v), n), np.dot(zpv, p + use_v))
     return p, angle
+
+
+def _point_angle_to_point_direction_3D(p, angle):
+    """Find the direction from a 3D line angle."""
+    n, zpv = _get_angle_params_3D(p)
+    # use Rodrigues rotation formula
+    v = zpv * np.cos(angle) + np.cross(n, zpv) * np.sin(angle) + \
+        n * np.dot(n, zpv) * (1 - np.cos(angle))
+    return p, v
 
 
 def _plot_line_param(coord, v, p, angle, lim=3):
@@ -814,16 +857,9 @@ def _plot_line_param(coord, v, p, angle, lim=3):
     #                  np.linspace(-2 * lim, 2 * lim, 1000)])
     ax.scatter(0, 0, 0)
     ax.scatter(*p)
-    if p.any():
-        n = p / np.linalg.norm(p)
-    else:
-        u = np.array([0., 0., 0.])  # unit vector
-        u[np.argmin(abs(v))] = 1
-        n = np.cross(u, v)
-        n /= np.linalg.norm(n)
-    u = np.array([0, 0, 0])  # unit vector
-    u[np.argmin(abs(p))] = 1
-    zpv = u - np.dot(u, n) * n  # zero-phase on plane
+    n = p / np.linalg.norm(p)
+    zpv = np.array([n[2], -n[0], n[1]])  # zero-phase
+    zpv = zpv - np.dot(zpv, n) * n  # project to plane
     # use Rodrigues rotation formula
     v2 = zpv * np.cos(angle) + np.cross(n, zpv) * np.sin(angle) + \
         n * np.dot(n, zpv) * (1 - np.cos(angle))
