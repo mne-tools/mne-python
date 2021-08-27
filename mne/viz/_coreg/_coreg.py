@@ -13,7 +13,6 @@ class CoregistrationUI(object):
         from ..backends.renderer import _get_renderer
         self._widgets = dict()
         self._verbose = False
-        self._first_time = True
         self._omit_hsp_distance = 0.0
         self._surface = "head-dense"
         self._opacity = 1.0
@@ -43,7 +42,7 @@ class CoregistrationUI(object):
         self._configure_dock()
         self._renderer.show()
 
-        self._update()
+        self._update(clear=False)
 
     def _reset_fitting_parameters(self):
         self._icp_n_iterations = self._default_icp_n_iterations
@@ -104,10 +103,8 @@ class CoregistrationUI(object):
         self._coreg.reset()
         self._update()
 
-    def _update(self):
-        if self._first_time:
-            self._first_time = False
-        else:
+    def _update(self, clear=True, update_parameters=True):
+        if clear:
             self._renderer.figure.plotter.clear()
         surfaces = dict()
         surfaces[self._surface] = self._opacity
@@ -119,17 +116,18 @@ class CoregistrationUI(object):
                        coord_frame='meg', fig=self._renderer.figure,
                        show=False, verbose=self._verbose)
         self._renderer.reset_camera()
-        coords = ["X", "Y", "Z"]
-        for tr in ("translation", "rotation", "scale"):
-            for coord in coords:
-                widget_name = tr[0] + coord
-                if widget_name in self._widgets:
-                    idx = coords.index(coord)
-                    val = getattr(self._coreg, f"_{tr}")
-                    val_idx = val[idx]
-                    if tr in ("translation", "scale"):
-                        val_idx *= 1000.0
-                    self._widgets[widget_name].set_value(val_idx)
+        if update_parameters:
+            coords = ["X", "Y", "Z"]
+            for tr in ("translation", "rotation", "scale"):
+                for coord in coords:
+                    widget_name = tr[0] + coord
+                    if widget_name in self._widgets:
+                        idx = coords.index(coord)
+                        val = getattr(self._coreg, f"_{tr}")
+                        val_idx = val[idx]
+                        if tr in ("translation", "scale"):
+                            val_idx *= 1000.0
+                        self._widgets[widget_name].set_value(val_idx)
 
     def _toggle_high_resolution_head(self, state):
         self._surface = "head-dense" if state else "head"
