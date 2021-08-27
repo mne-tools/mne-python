@@ -65,7 +65,6 @@ class CoregistrationUI(object):
                 setattr(self, f"_{fid}_weight", self._default_weights[fid])
 
     def _set_fiducial(self, fid):
-        print("called")
         fid = fid.lower()
         val = getattr(self._coreg, f"_{fid}")[0] * 1000.0
         coords = ["X", "Y", "Z"]
@@ -82,6 +81,8 @@ class CoregistrationUI(object):
         self._omit_hsp_distance = distance / 1000.0
 
     def _set_lock_fids(self, state):
+        if "lock_fids" in self._widgets:
+            self._widgets["lock_fids"].set_value(state)
         if "fid_file" in self._widgets:
             self._widgets["fid_file"].set_enabled(not state)
         if "fids" in self._widgets:
@@ -283,9 +284,9 @@ class CoregistrationUI(object):
                 double=True,
                 layout=hlayout
             )
-        self._widgets["fids"].set_value(0, self._default_fiducials[0])  # init
+        self._set_fiducial(self._default_fiducials[0])  # init
         self._renderer._layout_add_widget(layout, hlayout)
-        self._widgets["lock_fids"].set_value(True)  # init
+        self._set_lock_fids(True)  # init
 
         layout = self._renderer._dock_add_group_box("Digitization Source")
         self._widgets["info_file"] = self._renderer._dock_add_file_button(
