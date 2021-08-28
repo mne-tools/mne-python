@@ -405,10 +405,10 @@ epochs['auditory'].average()
 # First, it finds the strongest peak looking across **all channels** of the
 # selected type that are available in the `~mne.Evoked` object. As a
 # consequence if you want to restrict the search for the peak to a group of
-# channels or a single channel, you should first use
-# `~mne.Evoked.pick_channels`. Second, the `~mne.Evoked.get_peak` method can
-# find different types of peaks using the ``mode`` argument. There are three
-# options:
+# channels or a single channel, you should first use the `~mne.Evoked.pick`
+# or `~mne.Evoked.pick_channels` methods. Second, the `~mne.Evoked.get_peak`
+# method can find different types of peaks using the ``mode`` argument. There
+# are three options:
 #
 # * ``mode='pos'``: finds the peak with a positive voltage (ignores
 #   negative voltages)
@@ -474,7 +474,7 @@ print_peak_measures(ch_roi, good_tmin, good_tmax, lat_roi, amp_roi)
 # the peak amplitudes differ. This approach can also be applied to virtual
 # channels created with the `~mne.channels.combine_channels` function and
 # difference waves created with the `mne.combine_evoked` function (see
-# ``aud_minus_vis`` in section :ref:`Comparing conditions` above).
+# ``aud_minus_vis`` in section :ref:`Comparing conditions`_ above).
 #
 # Peak measures are very susceptible to high frequency noise in the
 # signal (for discussion, see :footcite:`Luck2014`). Specifically, high
@@ -482,12 +482,12 @@ print_peak_measures(ch_roi, good_tmin, good_tmax, lat_roi, amp_roi)
 # confound comparisons across conditions where ERPs differ in the level of high
 # frequency noise, such as when the conditions differ in the number of trials
 # contributing to the ERP. One way to avoid this is to apply a non-causal
-# low-pass filter to the ERP. Low-pass filters reduce the contribution of high
+# low-pass filter to the ERP . Low-pass filters reduce the contribution of high
 # frequency noise by smoothing out fast (i.e., high frequency) fluctuations in
-# the signal. While this can reduce the positive bias in peak amplitude
-# measures caused by high frequency noise, low-pass filtering the ERP can
-# introduce challenges in interpreting peak latency measures for effects of
-# interest :footcite:`Rousselet2012,VanRullen2011`.
+# the signal (see :ref:`disc-filtering`). While this can reduce the positive
+# bias in peak amplitude measures caused by high frequency noise, low-pass
+# filtering the ERP can introduce challenges in interpreting peak latency
+# measures for effects of interest :footcite:`Rousselet2012,VanRullen2011`.
 #
 # If using peak measures, it is critical to visually inspect the data to
 # make sure the selected time window actually contains a peak
@@ -551,7 +551,8 @@ plt.tight_layout()
 # as the mean amplitude within a specified time window. One advantage of this
 # approach is that it is less sensitive to high frequency noise (compared to
 # peak amplitude measures) because averaging over a time window acts like a
-# low-pass filter (see discusion in section :ref:`Peak latency and amplitude`)
+# low-pass filter (see discussion in the above section
+# :ref:`Peak latency and amplitude`_)
 #
 # When using mean amplitude measures, selecting the time window based on
 # when the effect of interest (e.g., the difference between two conditions) can
