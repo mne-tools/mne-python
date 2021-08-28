@@ -401,10 +401,19 @@ epochs['auditory'].average()
 # amplitude occurred.
 #
 # Peak measures can be obtained using the `~mne.Evoked.get_peak` method. There
+<<<<<<< HEAD
 # are two important things to point out about `~mne.Evoked.get_peak` method.
 # First, it returns the peak latency and amplitude from **all channels** in
 # the `~mne.Evoked` object.
 # Second, the `~mne.Evoked.get_peak` method can find different 'types' of
+=======
+# are two important things to point out:
+# First, it finds the strongest peak looking across **all channels** of
+# the selected type that are available in the `~mne.Evoked` object. As a
+# consequence if you want to restrict the search for the peak to a group of
+# channels, you should first use `~mne.Evoked.pick_channels`.
+# Second, the `~mne.Evoked.get_peak` method can find different types of
+>>>>>>> c41898baf37a02b87c224fb12ef198293de6ad67
 # peaks using the ``mode`` argument. There are three options:
 #
 # * ``mode='pos'``: finds the peak with a positive voltage (ignores
@@ -473,11 +482,20 @@ print(f'Peak Amplitude: {amp_roi:.3f} \u00B5V')
 # effects of interest :footcite:`Rousselet2012,VanRullen2011`.
 #
 # If using peak measures, it is critical to visually inspect the data to
+<<<<<<< HEAD
 # make sure the selected time window actually contains a peak. Note that
 # `~mne.Evoked.get_peak` will always identify a peak amplitude in the time
 # window being searched. However, the peak that is identified may be incorrect.
 # Instead of a peak, we could just measure the rising edge of a peak, for
 # instance, which is not ideal. The following demonstrates why visual
+=======
+# make sure the selected time window actually contains a peak
+# (`~mne.Evoked.get_peak` will always identify a peak).
+# Visual inspection allows to easily verify whether the automatically found
+# peak is correct. The automatic procedure can identify the rising slope of
+# the signal as a peak, for example, which is incorrect.
+# The following example demonstrates why visual
+>>>>>>> c41898baf37a02b87c224fb12ef198293de6ad67
 # inspection is crucial. Below, we use a known bad time window (.09 to .12
 # seconds) to search for a peak on ``eeg59``.
 
@@ -506,7 +524,7 @@ print(f'Peak Amplitude: {bad_amp_roi:.3f} \u00B5V')
 # the time window defined initially (.065 to .115 seconds; highlighted in blue)
 # returns the actual peak instead of a value on the rising edge. Visual
 # inspection will always help you to convince yourself the data returned are
-# really peaks.
+# actual peaks.
 
 # Make an empty figure handle and axis
 fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1)
