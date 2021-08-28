@@ -402,8 +402,10 @@ epochs['auditory'].average()
 #
 # Peak measures can be obtained using the `~mne.Evoked.get_peak` method. There
 # are two important things to point out:
-# First, it returns the peak latency and amplitude from **all channels** in
-# the `~mne.Evoked` object.
+# First, it finds the strongest peak looking across **all channels** of
+# the selected type that are available in the `~mne.Evoked` object. As a
+# consequence if you want to restrict the search for the peak to a group of
+# channels, you should first use `~mne.Evoked.pick_channels`.
 # Second, the `~mne.Evoked.get_peak` method can find different types of
 # peaks using the ``mode`` argument. There are three options:
 #
@@ -476,9 +478,10 @@ print(f'Peak Amplitude: {amp_roi:.3f} µV')
 # If using peak measures, it is critical to visually inspect the data to
 # make sure the selected time window actually contains a peak
 # (`~mne.Evoked.get_peak` will always identify a peak).
-# However, the peak that is identified may be incorrect.
-# Instead of a peak, we could just measure the rising edge of a peak, for
-# instance, which is not ideal. The following example demonstrates why visual
+# Visual inspection allows to easily verify whether the automatically found
+# peak is correct. The automatic procedure can identify the rising slope of
+# the signal as a peak, for example, which is incorrect.
+# The following example demonstrates why visual
 # inspection is crucial. Below, we use a known bad time window (.09 to .12
 # seconds) to search for a peak on ``eeg59``.
 
@@ -506,7 +509,7 @@ print(f'Peak Amplitude: {bad_amp_roi:.3f} µV')
 # the time window defined initially (.065 to .115 seconds; highlighted in blue)
 # returns the actual peak instead of a value on the rising edge. Visual
 # inspection will always help you to convince yourself the data returned are
-# really peaks.
+# actual peaks.
 
 # Make an empty figure handle and axis
 fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1)
