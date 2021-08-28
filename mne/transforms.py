@@ -704,6 +704,7 @@ def _get_transforms_to_coord_frame(info, trans, coord_frame='mri'):
 ###############################################################################
 # Hough Transform
 
+# XXX: Possibly add `min_line_prob` stopping criterium instead of `n_lines`
 def hough_transform_3D(coords, method='k-means', grade=3, image_res=64,
                        n_lines=20):
     """Compute the Hough transform on 3D coordinates.
@@ -728,7 +729,10 @@ def hough_transform_3D(coords, method='k-means', grade=3, image_res=64,
         The grade of the icosahedron determining the resolution
         of the line fitting algorithm.
     image_res : int
-        The resolution of the transform output image.
+        The resolution of the transform image used to differentiate
+        lines.
+    n_lines : int
+        The number of lines to search for.
 
     Returns
     -------
@@ -748,16 +752,12 @@ def hough_transform_3D(coords, method='k-means', grade=3, image_res=64,
     if coords.ndim != 2 or coords.shape[1] != 3:
         raise ValueError('`coords` must be an array of shape (n_points, 3)')
     _check_option('method', method, ('k-means', 'image'))
-    if method == 'image':
-        _validate_type(image_res, int, 'img_res')
-        if image_res < 2:
-            raise ValueError('`image_res` must be greater than 1')
-        if coords.shape[0] > 2 ** 16 - 1:
-            raise ValueError('Too many coordinates given')
-    else:  # method == 'k-means'
-        _validate_type(n_lines, int, 'n_lines')
-        if n_lines < 1:
-            raise ValueError('`n_lines` must be 1 or more')
+    _validate_type(image_res, int, 'img_res')
+    if image_res < 2:
+        raise ValueError('`image_res` must be greater than 1')
+    _validate_type(n_lines, int, 'n_lines')
+    if n_lines < 1:
+        raise ValueError('`n_lines` must be 1 or more')
 
     # load icosahedron to determine point sampling
     ico = _get_ico_surface(grade=grade)
@@ -785,61 +785,43 @@ def hough_transform_3D(coords, method='k-means', grade=3, image_res=64,
                     [np.argmax(point_range > c) - 1 for c in p] +
                     [np.argmax(angle_range > angle) - 1])] += 1
     else:  # method == k-means
-        from scipy.cluster.vq import kmeans
         # initialize counts
-        line_params = np.zeros((coords.shape[0] * ico['rr'].shape[0], 4),
+        line_params = np.zeros((coords.shape[0] * ico['rr'].shape[0], 5),
                                dtype=float)
         # for each coordinate make a line going in the direction of the ico
         idx = 0
         for coord in coords:
             for v in ico['rr']:
-                p, angle = _point_direction_to_point_angle_3D(coord, v)
+                p = coord - (np.dot(coord, v) / np.dot(v, v)) * v
+                # enforce unique direction, remove opposite direction
+                use_v = v if v[np.argmax(abs(v))] > 0 else -v
+                _, phi, theta = _cart_to_sph(use_v).squeeze()
                 line_params[idx, :3] = p
-                line_params[idx, 3] = angle
+                line_params[idx, 3:] = phi, theta
                 idx += 1
+        # find `n_coords` smallest distances -- one line for each coord
+        min_dist = np.inf
+        dists = [np.inf] * coords.shape[0]
+        points = [np.nan] * coords.shape[0]
+        for i, param1 in enumerate(line_params):
+            print(i)
+            for j, param2 in enumerate(line_params[i + 1:]):
+                dist = np.linalg.norm(param2 - param1)
+                if dist < min_dist:
+                    idx = np.argmax(dist < np.array(dists))
+                    dists.insert(idx, dist)  # keep sorted
+                    points.insert(idx, ((i, i + 1 + j)))
+                    min_dist = dists.pop()  # remove last
+                    points.pop()
+
+        # search for highest-density regions
+        kernal = gaussian_kde(line_params)
         # use k-means to find lines
         line_param_centers, _ = kmeans(line_params, n_lines)
-        lines = [_point_angle_to_point_direction_3D(param[:3], param[3])
+        # convert to parametric point + direction, unit direction vector
+        lines = [(param[:3], _sph_to_cart([1, param[3], param[4]]))
                  for param in line_param_centers]
     return groups, lines
-
-
-def _get_angle_params_3D(p):
-    """Find representation of a direction as an angle in 3D."""
-    # normalize for vector that defines the plane the line is in
-    if not p.any():  # not able to parameterize lines through origin
-        return np.array([0, 0, 0]), np.array([0, 0, 0])
-    n = p / np.linalg.norm(p)
-    # zero phase vector is n rotated forward one dimension
-    # this makes it so points near n have similar zpvs
-    zpv = np.array([-n[2], n[0], -n[1]])  # zero-phase
-    zpv = zpv - np.dot(zpv, n) * n  # project to plane
-    return n, zpv
-
-
-def _point_direction_to_point_angle_3D(coord, v):
-    """Parameterize a 3D line with a point and an angle in the normal plane."""
-    if not v.any():
-        raise ValueError('`v` cannot be the zero vector')
-    # find point nearest to the origin from coord + t * v
-    p = coord - (np.dot(coord, v) / np.dot(v, v)) * v
-    # get a vector to define the zero-phase of the angle
-    n, zpv = _get_angle_params_3D(p)
-    # v is the same line as -v so flip to positive largest
-    # magnitude direction for consistency
-    use_v = -v if v[np.argmax(abs(v))] < 0 else v
-    angle = np.arctan2(
-        np.dot(np.cross(zpv, p + use_v), n), np.dot(zpv, p + use_v))
-    return p, angle
-
-
-def _point_angle_to_point_direction_3D(p, angle):
-    """Find the direction from a 3D line angle."""
-    n, zpv = _get_angle_params_3D(p)
-    # use Rodrigues rotation formula
-    v = zpv * np.cos(angle) + np.cross(n, zpv) * np.sin(angle) + \
-        n * np.dot(n, zpv) * (1 - np.cos(angle))
-    return p, v
 
 
 def _plot_line_param(coord, v, p, angle, lim=3):
@@ -893,8 +875,8 @@ def _cart_to_sph(cart):
     sph_pts : ndarray, shape (n_points, 3)
         Array containing points in spherical coordinates (rad, azimuth, polar)
     """
-    assert cart.ndim == 2 and cart.shape[1] == 3
     cart = np.atleast_2d(cart)
+    assert cart.ndim == 2 and cart.shape[1] == 3
     out = np.empty((len(cart), 3))
     out[:, 0] = np.sqrt(np.sum(cart * cart, axis=1))
     norm = np.where(out[:, 0] > 0, out[:, 0], 1)  # protect against / 0
@@ -918,8 +900,8 @@ def _sph_to_cart(sph_pts):
         Array containing points in Cartesian coordinates (x, y, z)
 
     """
-    assert sph_pts.ndim == 2 and sph_pts.shape[1] == 3
     sph_pts = np.atleast_2d(sph_pts)
+    assert sph_pts.ndim == 2 and sph_pts.shape[1] == 3
     cart_pts = np.empty((len(sph_pts), 3))
     cart_pts[:, 2] = sph_pts[:, 0] * np.cos(sph_pts[:, 2])
     xy = sph_pts[:, 0] * np.sin(sph_pts[:, 2])
