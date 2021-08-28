@@ -164,6 +164,9 @@ def test_hough_transform_3D():
         assert count_image[idx] > 6  # seven points each line
 
     '''
+    for point, vector in lines:
+        ax.plot(*np.concatenate([point - 10 * vector, point + 10 * vector]).T)
+
     import matplotlib.pyplot as plt
     fig = plt.figure()
     ax = plt.axes(projection='3d')

@@ -760,7 +760,11 @@ def hough_transform_3D(coords, method='k-means', grade=3, image_res=64,
         raise ValueError('`n_lines` must be 1 or more')
 
     # load icosahedron to determine point sampling
-    ico = _get_ico_surface(grade=grade)
+    ico = _get_ico_surface(grade=grade)['rr']
+    # remove redundant directions
+    ico = ico[ico[:, 0] >= 0]
+    ico = ico[~np.logical_and(ico[:, 0] == 0, ico[:, 1] < 0)]
+    ico = ico[~np.logical_and(ico[:, 0] == 0, ico[:, 1] == 0, ico[:, 2] < 0)]
 
     if method == 'image':
         shift = coords.mean(axis=0)
@@ -785,13 +789,15 @@ def hough_transform_3D(coords, method='k-means', grade=3, image_res=64,
                     [np.argmax(point_range > c) - 1 for c in p] +
                     [np.argmax(angle_range > angle) - 1])] += 1
     else:  # method == k-means
+        from scipy.spatial import distance_matrix
+        from scipy.cluster.vq import kmeans
         # initialize counts
-        line_params = np.zeros((coords.shape[0] * ico['rr'].shape[0], 5),
+        line_params = np.zeros((coords.shape[0] * ico.shape[0], 5),
                                dtype=float)
         # for each coordinate make a line going in the direction of the ico
         idx = 0
         for coord in coords:
-            for v in ico['rr']:
+            for v in ico:
                 p = coord - (np.dot(coord, v) / np.dot(v, v)) * v
                 # enforce unique direction, remove opposite direction
                 use_v = v if v[np.argmax(abs(v))] > 0 else -v
@@ -799,28 +805,26 @@ def hough_transform_3D(coords, method='k-means', grade=3, image_res=64,
                 line_params[idx, :3] = p
                 line_params[idx, 3:] = phi, theta
                 idx += 1
-        # find `n_coords` smallest distances -- one line for each coord
-        min_dist = np.inf
-        dists = [np.inf] * coords.shape[0]
-        points = [np.nan] * coords.shape[0]
-        for i, param1 in enumerate(line_params):
-            print(i)
-            for j, param2 in enumerate(line_params[i + 1:]):
-                dist = np.linalg.norm(param2 - param1)
-                if dist < min_dist:
-                    idx = np.argmax(dist < np.array(dists))
-                    dists.insert(idx, dist)  # keep sorted
-                    points.insert(idx, ((i, i + 1 + j)))
-                    min_dist = dists.pop()  # remove last
-                    points.pop()
+        # whiten
+        line_params_w = line_params.copy()
+        line_params_w -= line_params.mean(axis=0)
+        line_params_w /= line_params.std(axis=0)
+        # use only the number of coordinates pairs of lines
+        dist_mat = distance_matrix(line_params, line_params)
+        np.fill_diagonal(dist_mat, np.inf)
+        dist_mat_flat = dist_mat[np.tril_indices(dist_mat.shape[0], -1)]
+        thresh = np.quantile(
+            dist_mat_flat, coords.shape[0]**2 / dist_mat_flat.size)
+        # use pairs greater than threshold
+        points = list()
+        for i, dists in enumerate(dist_mat):
+            if any(dists < thresh):
+                points.append(line_params[i])
 
-        # search for highest-density regions
-        kernal = gaussian_kde(line_params)
-        # use k-means to find lines
-        line_param_centers, _ = kmeans(line_params, n_lines)
+        centers, _ = kmeans(points, n_lines)
         # convert to parametric point + direction, unit direction vector
         lines = [(param[:3], _sph_to_cart([1, param[3], param[4]]))
-                 for param in line_param_centers]
+                 for param in centers]
     return groups, lines
 
 
