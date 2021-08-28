@@ -404,7 +404,7 @@ epochs['auditory'].average()
 # are two important things to point out about `~mne.Evoked.get_peak` method.
 # First, it finds the strongest peak looking across **all channels** of the
 # selected type that are available in the `~mne.Evoked` object. As a
-# consequence if you want to restrict the search for the peak to a group of
+# consequence, if you want to restrict the search for the peak to a group of
 # channels or a single channel, you should first use the `~mne.Evoked.pick`
 # or `~mne.Evoked.pick_channels` methods. Second, the `~mne.Evoked.get_peak`
 # method can find different types of peaks using the ``mode`` argument. There
@@ -514,9 +514,9 @@ print_peak_measures(ch_roi, bad_tmin, bad_tmax, bad_lat_roi, bad_amp_roi)
 
 # %%
 # If all we had were the above values, it would be unclear if they are truly
-# identifying a peak or just a the falling or rising edge. However, it becomes
-# clear that the .095 to .135 s time window is misses the peak on ``eeg59``.
-# This is shown in the bottom panel where we see the bad time window
+# identifying a peak or just a the falling or rising edge of one. However, it
+# becomes clear that the .095 to .135 s time window is misses the peak on
+# ``eeg59``. This is shown in the bottom panel where we see the bad time window
 # (highlighted in orange) misses the peak (the pink star). In contrast, the
 # time window defined initially (.08 to .12 s; highlighted in blue) returns
 # an actual peak instead of a just a maximal or minimal value in the searched
@@ -559,7 +559,7 @@ plt.tight_layout()
 # inflate the likelihood of finding false positives in your results because
 # this approach is circular :footcite:`LuckGaspelin2017`. There are other, and
 # better, ways to identify a time window to use for extracting mean amplitude
-# measures. First, you can use *a priori* time window* based on prior research.
+# measures. First, you can use *a priori* time window based on prior research.
 # A second way is to define a time window from an independent condition or set
 # of trials not used in the analysis (e.g., a "localizer"). A third approach is
 # to define a time window using the across-condition grand average. This latter
@@ -598,20 +598,20 @@ mean_amp_roi_df = pd.DataFrame({
 })
 
 # Print the data frame
-print(mean_amp_roi_df)
+print(mean_amp_roi_df.groupby('hemisphere').mean())
 
 # %%
-# As demonstrate in the above example, the there was a higher and positive
-# mean amplitude in right compared to left hemisphere channels. It should be
+# As demonstrate in the above example, the mean amplitude was higher and
+# positive in right compared to left hemisphere channels. It should be
 # reiterated that both that spatial and temporal window you use should be
 # determined in an independent manner (e.g., *a priori*, "localizer", from
 # and independent condition) and not based on the data you will use to test
 # your hypotheses.
 #
 # The above example can be modified to extract the the mean amplitude
-# from all channels and store the resulting output in :class:`pandas.DataFrame.
-# This can be useful for statistical analyses conducted in other packages, such
-# as R.
+# from all channels and store the resulting output in
+# :class:`pandas.DataFrame`. This can be useful for statistical analyses
+# conducted in other programming languages.
 
 # Extract mean amplitude for all channels in l_vis (including `eog`)
 l_vis_cropped = l_vis.copy().crop(tmin=good_tmin, tmax=good_tmax)
