@@ -204,7 +204,10 @@ class BrowserBase(ABC):
         else:
             while ch_name in bads:  # to make sure duplicates are removed
                 bads.remove(ch_name)
-            color = self.mne.ch_colors[idx]
+            if hasattr(self.mne, 'ch_colors'):  # Only mpl-backend has ch_colors
+                color = self.mne.ch_colors[idx]
+            else:
+                color = None
         self.mne.info['bads'] = bads
 
         self._update_projector()

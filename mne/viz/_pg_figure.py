@@ -47,7 +47,10 @@ class RawTraceItem(PlotCurveItem):
         self.mne = mne
         self.check_nan = self.mne.check_nan
 
-        self._set_ch_idx(ch_idx)
+        # Set default z-value to 1 to be before other items in scene
+        self.setZValue(1)
+
+        self.set_ch_idx(ch_idx)
         self._update_bad_color()
         self.update_data()
 
@@ -57,18 +60,34 @@ class RawTraceItem(PlotCurveItem):
         else:
             self.setPen(self.color)
 
-    def _set_ch_idx(self, ch_idx):
+    def update_range_idx(self):
+        """Should be updated when view-range or ch_idx changes."""
+        self.range_idx = np.argwhere(self.mne.picks == self.ch_idx)[0][0]
+
+    def update_ypos(self):
+        """Should be updated when butterfly is toggled or ch_idx changes."""
+        if self.mne.butterfly:
+            self.ypos = self.mne.butterfly_type_order.index(self.ch_type) + 1
+        else:
+            self.ypos = self.order_idx + 1
+
+    def set_ch_idx(self, ch_idx):
+        """Sets the channel index and all deriving indices."""
+        # The ch_idx is the index of the channel represented by this trace
+        # in the channel-order from the unchanged instance (which also picks
+        # refer to).
         self.ch_idx = ch_idx
-        self.pick_idx = np.argwhere(self.mne.picks == self.ch_idx)[0][0]
+        # The range_idx is the index of the channel represented by this trace
+        # in the shown range.
+        self.update_range_idx()
+        # The order_idx is the index of the channel represented by this trace
+        # in the channel-order (defined e.g. by group_by).
         self.order_idx = np.argwhere(self.mne.ch_order == self.ch_idx)[0][0]
         self.ch_name = self.mne.inst.ch_names[ch_idx]
         self.isbad = self.ch_name in self.mne.info['bads']
         self.ch_type = self.mne.ch_types[ch_idx]
         self.color = self.mne.ch_color_dict[self.ch_type]
-        if self.mne.butterfly:
-            self.ypos = self.mne.butterfly_type_order.index(self.ch_type) + 1
-        else:
-            self.ypos = self.order_idx + 1
+        self.update_ypos()
 
     def update_data(self):
         """Update data (fetch data from self.mne according to self.ch_idx)."""
@@ -82,13 +101,13 @@ class RawTraceItem(PlotCurveItem):
         if self.mne.data_preloaded:
             data = self.mne.data[self.order_idx]
         else:
-            data = self.mne.data[self.pick_idx]
+            data = self.mne.data[self.range_idx]
 
         # Apply decim
         if all([i is not None for i in [self.mne.decim_times,
                                         self.mne.decim_data]]):
-            times = self.mne.decim_times[self.mne.decim_data[self.pick_idx]]
-            data = data[..., ::self.mne.decim_data[self.pick_idx]]
+            times = self.mne.decim_times[self.mne.decim_data[self.range_idx]]
+            data = data[..., ::self.mne.decim_data[self.range_idx]]
         else:
             times = self.mne.times
 
@@ -103,8 +122,6 @@ class RawTraceItem(PlotCurveItem):
             return
         if self.mouseShape().contains(ev.pos()):
             ev.accept()
-            self.isbad = not self.isbad
-            self._update_bad_color()
             self.sigClicked.emit(self, ev)
 
     def get_xdata(self):
@@ -238,7 +255,7 @@ class ChannelAxis(AxisItem):
                 print(f'{ch_name} clicked!')
                 line = [li for li in self.mne.traces
                         if li.ch_name == ch_name][0]
-                self.main.toggle_bad_channel(line)
+                self.main._bad_ch_clicked(line)
                 break
         # return super().mouseClickEvent(event)
 
@@ -669,6 +686,8 @@ class AnnotRegion(LinearRegionItem):
 
         super().__init__(values=values, orientation='vertical',
                          movable=True, swapMode='sort')
+        # Set default z-value to 0 to be behind other items in scene
+        self.setZValue(0)
 
         self.sigRegionChangeFinished.connect(self._region_changed)
         self.mne = mne
@@ -1559,18 +1578,12 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
 
         return transform
 
-    def toggle_bad_channel(self, line):
-        """Toggle bad channel of line."""
-        if line.ch_name in self.mne.info['bads']:
-            self.mne.info['bads'].remove(line.ch_name)
-            line.isbad = False
-            print(f'{line.ch_name} removed from bad channels!')
-        else:
-            self.mne.info['bads'].append(line.ch_name)
-            line.isbad = True
-            print(f'{line.ch_name} added to bad channels!')
+    def _bad_ch_clicked(self, line):
+        """Slot for bad channel click."""
+        self._toggle_bad_channel(line.range_idx)
 
         # Update line color
+        line.isbad = not line.isbad
         line._update_bad_color()
 
         # Update Channel-Axis
@@ -1590,7 +1603,7 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
         self.mne.plt.addItem(trace)
         self.mne.traces.append(trace)
 
-        trace.sigClicked.connect(lambda tr, _: self.toggle_bad_channel(tr))
+        trace.sigClicked.connect(lambda tr, _: self._bad_ch_clicked(tr))
 
     def _remove_trace(self, trace):
         self.mne.plt.removeItem(trace)
@@ -1769,8 +1782,10 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
                       if tr.ch_idx not in self.mne.picks]
         add_idxs = [p for p in self.mne.picks
                     if p not in [tr.ch_idx for tr in self.mne.traces]]
+
         # Update number of traces.
         trace_diff = len(self.mne.picks) - len(self.mne.traces)
+
         # Remove unnecessary traces.
         if trace_diff < 0:
             # Only remove from traces not in picks.
@@ -1778,6 +1793,7 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
             for trace in remove_traces:
                 self._remove_trace(trace)
                 off_traces.remove(trace)
+
         # Add new traces if necessary.
         if trace_diff > 0:
             # Make copy to avoid skipping iteration.
@@ -1786,9 +1802,13 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
                 self._add_trace(aidx)
                 add_idxs.remove(aidx)
 
-        # Update data of traces outside of yrange
+        # Update range_idx for traces which just shifted in y-position
+        for trace in [tr for tr in self.mne.traces if tr not in off_traces]:
+            trace.update_range_idx()
+
+        # Update data of traces outside of yrange (reuse remaining trace-items)
         for trace, ch_idx in zip(off_traces, add_idxs):
-            trace._set_ch_idx(ch_idx)
+            trace.set_ch_idx(ch_idx)
             trace._update_bad_color()
             trace.update_data()
 
@@ -2067,9 +2087,13 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
         # Show Annotation-Dock if activated.
         self.mne.fig_annotation.setVisible(self.mne.annotation_mode)
 
-        # Make Regions movable if activated.
+        # Make Regions movable if activated and move into foreground
         for region in self.mne.regions:
             region.setMovable(self.mne.annotation_mode)
+            if self.mne.annotation_mode:
+                region.setZValue(2)
+            else:
+                region.setZValue(0)
 
         # Remove selection-rectangle.
         if not self.mne.annotation_mode and self.mne.selected_region:
@@ -2182,8 +2206,9 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
     def _draw_traces(self):
         # Update data in traces
         for trace in self.mne.traces:
-            # self update ch-idx for butterfly-mode
-            trace._set_ch_idx(trace.ch_idx)
+            if self.mne.butterfly:
+                # self update ypos for butterfly-mode
+                trace.update_ypos()
             # Update data
             trace.update_data()
 
