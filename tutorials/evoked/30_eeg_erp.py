@@ -601,7 +601,7 @@ mean_amp_roi_df = pd.DataFrame({
 print(mean_amp_roi_df.groupby('hemisphere').mean())
 
 # %%
-# As demonstrate in the above example, the mean amplitude was higher and
+# As demonstrated in the above example, the mean amplitude was higher and
 # positive in right compared to left hemisphere channels. It should be
 # reiterated that both that spatial and temporal window you use should be
 # determined in an independent manner (e.g., *a priori*, "localizer", from
@@ -623,8 +623,9 @@ mean_amp_all_df = pd.DataFrame({
 mean_amp_all_df['tmin'] = good_tmin
 mean_amp_all_df['tmax'] = good_tmax
 mean_amp_all_df['condition'] = 'Left/Visual'
-mean_amp_all_df.head()
-mean_amp_all_df.tail()
+print(mean_amp_all_df.head())
+print(mean_amp_all_df.tail())
+
 
 # %%
 # .. _ten_twenty: https://en.wikipedia.org/wiki/10%E2%80%9320_system_(EEG)
