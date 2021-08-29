@@ -24,6 +24,8 @@ from PyQt5.QtWidgets import (QAction, QColorDialog, QComboBox, QDialog,
                              QWidget, QStyleOptionSlider, QStyle,
                              QApplication, QGraphicsView, QProgressBar,
                              QVBoxLayout, QLineEdit, QCheckBox, QScrollArea)
+from pytestqt.exceptions import capture_exceptions
+
 from ._figure import BrowserBase
 from ..annotations import _sync_onset
 from ..io.pick import _DATA_CH_TYPES_ORDER_DEFAULT
@@ -1447,7 +1449,7 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
         self.mne.keyboard_shortcuts = {
             'left': {
                 'alias': '←',
-                'key': Qt.Key_Left,
+                'qt_key': Qt.Key_Left,
                 'modifier': [None, 'Ctrl'],
                 'slot': self.hscroll,
                 'parameter': [-10, -1],
@@ -1455,7 +1457,7 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
             },
             'right': {
                 'alias': '→',
-                'key': Qt.Key_Right,
+                'qt_key': Qt.Key_Right,
                 'modifier': [None, 'Ctrl'],
                 'slot': self.hscroll,
                 'parameter': [10, 1],
@@ -1463,7 +1465,7 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
             },
             'up': {
                 'alias': '↑',
-                'key': Qt.Key_Up,
+                'qt_key': Qt.Key_Up,
                 'modifier': [None, 'Ctrl'],
                 'slot': self.vscroll,
                 'parameter': [-10, -1],
@@ -1471,7 +1473,7 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
             },
             'down': {
                 'alias': '↓',
-                'key': Qt.Key_Down,
+                'qt_key': Qt.Key_Down,
                 'modifier': [None, 'Ctrl'],
                 'slot': self.vscroll,
                 'parameter': [10, 1],
@@ -1479,7 +1481,7 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
             },
             'home': {
                 'alias': dur_keys[0],
-                'key': Qt.Key_Home,
+                'qt_key': Qt.Key_Home,
                 'modifier': [None, 'Ctrl'],
                 'slot': self.change_duration,
                 'parameter': [-10, -1],
@@ -1488,7 +1490,7 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
             },
             'end': {
                 'alias': dur_keys[1],
-                'key': Qt.Key_End,
+                'qt_key': Qt.Key_End,
                 'modifier': [None, 'Ctrl'],
                 'slot': self.change_duration,
                 'parameter': [10, 1],
@@ -1497,7 +1499,7 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
             },
             'pagedown': {
                 'alias': ch_keys[1],
-                'key': Qt.Key_PageUp,
+                'qt_key': Qt.Key_PageUp,
                 'modifier': [None, 'Ctrl'],
                 'slot': self.change_nchan,
                 'parameter': [-10, -1],
@@ -1506,7 +1508,7 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
             },
             'pageup': {
                 'alias': ch_keys[0],
-                'key': Qt.Key_PageDown,
+                'qt_key': Qt.Key_PageDown,
                 'modifier': [None, 'Ctrl'],
                 'slot': self.change_nchan,
                 'parameter': [10, 1],
@@ -1514,59 +1516,59 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
                                 'Increase shown channels (tiny step)']
             },
             '-': {
-                'key': Qt.Key_Minus,
+                'qt_key': Qt.Key_Minus,
                 'slot': self.scale_all,
                 'parameter': [0.5],
                 'description': ['Decrease Scale']
             },
             '+': {
-                'key': Qt.Key_Plus,
+                'qt_key': Qt.Key_Plus,
                 'slot': self.scale_all,
                 'parameter': [2],
                 'description': ['Increase Scale']
             },
             'a': {
-                'key': Qt.Key_A,
+                'qt_key': Qt.Key_A,
                 'slot': self._toggle_annotation_fig,
                 'description': ['Toggle Annotation-Tool']
             },
             'b': {
-                'key': Qt.Key_B,
+                'qt_key': Qt.Key_B,
                 'slot': self._toggle_butterfly,
                 'description': ['Toggle Annotation-Tool']
             },
             'd': {
-                'key': Qt.Key_D,
+                'qt_key': Qt.Key_D,
                 'slot': self._toggle_dc,
                 'description': ['Toggle DC-Correction']
             },
             'o': {
-                'key': Qt.Key_O,
+                'qt_key': Qt.Key_O,
                 'slot': self._toggle_overview_bar,
                 'description': ['Toggle Overview-Bar']
             },
             't': {
-                'key': Qt.Key_T,
+                'qt_key': Qt.Key_T,
                 'slot': self._toggle_time_format,
                 'description': ['Toggle Time-Format']
             },
             'x': {
-                'key': Qt.Key_X,
+                'qt_key': Qt.Key_X,
                 'slot': self._toggle_crosshair,
                 'description': ['Toggle Crosshair']
             },
             'z': {
-                'key': Qt.Key_Z,
+                'qt_key': Qt.Key_Z,
                 'slot': self._toggle_zenmode,
                 'description': ['Toggle Zen-Mode']
             },
             '?': {
-                'key': Qt.Key_Question,
+                'qt_key': Qt.Key_Question,
                 'slot': self._toggle_help_fig,
                 'description': ['Show Help']
             },
             'f11': {
-                'key': Qt.Key_F11,
+                'qt_key': Qt.Key_F11,
                 'slot': self._toggle_fullscreen,
                 'description': ['Toggle Full-Screen']
             }
@@ -2129,6 +2131,11 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
             self.mne.plt.setYRange(self.mne.ch_start,
                                    self.mne.ch_start + self.mne.n_channels + 1,
                                    padding=0)
+
+        # update ypos for butterfly-mode
+        for trace in self.mne.traces:
+            trace.update_ypos()
+
         self._draw_traces()
 
     def _toggle_dc(self):
@@ -2184,7 +2191,7 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
 
         for key_name in self.mne.keyboard_shortcuts:
             key_dict = self.mne.keyboard_shortcuts[key_name]
-            if key_dict['key'] == event.key():
+            if key_dict['qt_key'] == event.key():
                 slot = key_dict['slot']
 
                 param_idx = 0
@@ -2204,11 +2211,8 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
                 break
 
     def _draw_traces(self):
-        # Update data in traces
+        # Update data in traces (=drawing traces)
         for trace in self.mne.traces:
-            if self.mne.butterfly:
-                # self update ypos for butterfly-mode
-                trace.update_ypos()
             # Update data
             trace.update_data()
 
@@ -2224,7 +2228,9 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
 
     def _fake_keypress(self, key, fig=None):
         fig = fig or self
-        QTest.keyPress(fig, qt_key_mapping[key])
+        # Use pytest-qt's exception-hook
+        with capture_exceptions():
+            QTest.keyPress(fig, self.mne.keyboard_shortcuts[key]['qt_key'])
 
     def _fake_click(self, point, fig=None, ax=None,
                     xform='ax', button=1, kind='press'):
@@ -2266,12 +2272,14 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
         elif xform == 'none':
             point = QPointF(*point)
 
-        if kind == 'press':
-            _mouseClick(widget=fig, pos=point, button=button)
-        elif kind == 'release':
-            _mouseRelease(widget=fig, pos=point, button=button)
-        elif kind == 'motion':
-            _mouseMove(widget=fig, pos=point)
+        # Use pytest-qt's exception-hook
+        with capture_exceptions():
+            if kind == 'press':
+                _mouseClick(widget=fig, pos=point, button=button)
+            elif kind == 'release':
+                _mouseRelease(widget=fig, pos=point, button=button)
+            elif kind == 'motion':
+                _mouseMove(widget=fig, pos=point)
 
         # Waiting some time for events to be processed.
         QTest.qWait(10)
