@@ -2229,8 +2229,12 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
     def _fake_keypress(self, key, fig=None):
         fig = fig or self
         # Use pytest-qt's exception-hook
-        with capture_exceptions():
+        with capture_exceptions() as exceptions:
             QTest.keyPress(fig, self.mne.keyboard_shortcuts[key]['qt_key'])
+
+        for exc in exceptions:
+            raise RuntimeError(f'There as been an {exc[0]} inside the Qt '
+                               f'event loop (look above for traceback).')
 
     def _fake_click(self, point, fig=None, ax=None,
                     xform='ax', button=1, kind='press'):
@@ -2273,13 +2277,17 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
             point = QPointF(*point)
 
         # Use pytest-qt's exception-hook
-        with capture_exceptions():
+        with capture_exceptions() as exceptions:
             if kind == 'press':
                 _mouseClick(widget=fig, pos=point, button=button)
             elif kind == 'release':
                 _mouseRelease(widget=fig, pos=point, button=button)
             elif kind == 'motion':
                 _mouseMove(widget=fig, pos=point)
+
+        for exc in exceptions:
+            raise RuntimeError(f'There as been an {exc[0]} inside the Qt '
+                               f'event loop (look above for traceback).')
 
         # Waiting some time for events to be processed.
         QTest.qWait(10)
