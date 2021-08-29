@@ -474,7 +474,7 @@ print_peak_measures(ch_roi, good_tmin, good_tmax, lat_roi, amp_roi)
 # the peak amplitudes differ. This approach can also be applied to virtual
 # channels created with the `~mne.channels.combine_channels` function and
 # difference waves created with the `mne.combine_evoked` function (see
-# ``aud_minus_vis`` in section :ref:`Comparing conditions`_ above).
+# ``aud_minus_vis`` in section `Comparing conditions`_ above).
 #
 # Peak measures are very susceptible to high frequency noise in the
 # signal (for discussion, see :footcite:`Luck2014`). Specifically, high
@@ -552,7 +552,7 @@ plt.tight_layout()
 # approach is that it is less sensitive to high frequency noise (compared to
 # peak amplitude measures) because averaging over a time window acts like a
 # low-pass filter (see discussion in the above section
-# :ref:`Peak latency and amplitude`_)
+# `Peak latency and amplitude`_)
 #
 # When using mean amplitude measures, selecting the time window based on
 # when the effect of interest (e.g., the difference between two conditions) can
