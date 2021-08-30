@@ -47,7 +47,7 @@ edf_uneven_eeglab_path = op.join(data_dir, 'test_uneven_samp.mat')
 edf_stim_channel_path = op.join(data_dir, 'test_edf_stim_channel.edf')
 edf_txt_stim_channel_path = op.join(data_dir, 'test_edf_stim_channel.txt')
 
-data_path = testing.data_path(download=True)
+data_path = testing.data_path(download=False)
 edf_stim_resamp_path = op.join(data_path, 'EDF', 'test_edf_stim_resamp.edf')
 edf_overlap_annot_path = op.join(data_path, 'EDF',
                                  'test_edf_overlapping_annotations.edf')
@@ -537,7 +537,7 @@ def test_ch_types():
     ch_types = raw.get_channel_types()
     assert all([x in ch_types for x in ['eeg', 'ecg']])
 
-    # test certain channels were correctly detected as a channnel type
+    # test certain channels were correctly detected as a channel type
     test_ch_names = {"Fp1-Ref": "eeg", "P10-Ref": "eeg", "DC01": "eeg",
                      "ECG1": "ecg", "ECG2": "ecg"}
     assert all([raw.get_channel_types(picks=pick)[0] == ch_type

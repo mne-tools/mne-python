@@ -427,7 +427,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         elif ch_type not in ch_type_mapping:
             bad_map[ch_name] = ch_type
 
-        # if user passes in explict mapping for eog, misc and stim
+        # if user passes in explicit mapping for eog, misc and stim
         # channels set them here
         if ch_name in eog or idx in eog or idx - nchan in eog:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
@@ -447,12 +447,12 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             edf_info['units'][idx] = 1
         chs.append(chan_info)
 
-    # warn if channel type was not inferrable
-    # if len(bad_map):
-    #     bad_map = '\n'.join([f'{ch_name}: {ch_type}'
-    #                         for ch_name, ch_type in bad_map.items()])
-    #     warn(f'Found the following unknown channel type mapping(s), '
-    #          f'setting the channel type to EEG:\n{bad_map}')
+    # warn if channel type was not inferable
+    if len(bad_map):
+        bad_map = '\n'.join([f'{ch_name}: {ch_type}'
+                            for ch_name, ch_type in bad_map.items()])
+        warn(f'Found the following unknown channel type mapping(s), '
+             f'setting the channel type to EEG:\n{bad_map}')
 
     edf_info['stim_channel_idxs'] = stim_channel_idxs
 
