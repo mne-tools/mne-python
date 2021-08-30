@@ -158,6 +158,11 @@ def test_export_raw_edf(tmp_path, dataset, format):
     with pytest.raises(RuntimeError, match='The minimum'), \
             pytest.warns(RuntimeWarning, match='Data has a non-integer'):
         raw.export(temp_fname, physical_range=(0, 1e6))
+    raw_bad = raw.copy()
+    raw_bad.rename_channels({'1': 'abcdefghijklmnopqrs'})
+    with pytest.raises(RuntimeError, match='Signal label'), \
+            pytest.warns(RuntimeWarning, match='Data has a non-integer'):
+        raw_bad.export(temp_fname)
 
     if dataset == 'test':
         with pytest.warns(RuntimeWarning, match='Data has a non-integer'):

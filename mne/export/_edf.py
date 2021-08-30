@@ -131,9 +131,16 @@ def _export_raw(fname, raw, physical_range):
 
     # set channel data
     for idx, ch in enumerate(ch_names):
+        ch_type = ch_types[idx]
+        signal_label = f'{ch_type.upper()} {ch}'
+        if len(signal_label) > 16:
+            raise RuntimeError(f'Signal label for {ch} ({ch_type}) is '
+                               f'longer then 16 characters, which is not '
+                               f'supported in EDF. Please shorten the channel '
+                               f'name before exporting to EDF.')
+
         if physical_range == 'auto':
             # take the channel type minimum and maximum
-            ch_type = ch_types[idx]
             pmin, pmax = ch_types_phys_min[ch_type], ch_types_phys_max[ch_type]
         for key, val in [('PhysicalMaximum', pmax),
                          ('PhysicalMinimum', pmin),
@@ -141,7 +148,7 @@ def _export_raw(fname, raw, physical_range):
                          ('DigitalMinimum', digital_min),
                          ('PhysicalDimension', phys_dims),
                          ('SampleFrequency', out_sfreq),
-                         ('SignalLabel', ch),
+                         ('SignalLabel', signal_label),
                          ('PreFilter', filter_str_info)]:
             _try_to_set_value(hdl, key, val, channel_index=idx)
 

@@ -58,6 +58,7 @@ bdf_multiple_annotations_path = op.join(data_path, 'BDF',
 test_generator_bdf = op.join(data_path, 'BDF', 'test_generator_2.bdf')
 test_generator_edf = op.join(data_path, 'EDF', 'test_generator_2.edf')
 edf_annot_sub_s_path = op.join(data_path, 'EDF', 'subsecond_starttime.edf')
+edf_chtypes_path = op.join(data_path, 'EDF', 'chtypes_edf.edf')
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
@@ -525,3 +526,19 @@ def test_exclude():
     raw = read_raw_edf(edf_path, exclude="I[1-4]")
     for ch in exclude:
         assert ch not in raw.ch_names
+
+
+@testing.requires_testing_data
+def test_ch_types():
+    """Test reading of channel types from EDF channel label."""
+    raw = read_raw_edf(edf_chtypes_path)
+
+    # get the channel types for all channels
+    ch_types = raw.get_channel_types()
+    assert all([x in ch_types for x in ['eeg', 'ecg', 'misc']])
+
+    # test certain channels were correctly detected as a channnel type
+    test_ch_names = {"Fp1-Ref": "eeg", "P10-Ref": "eeg", "dc01": "misc",
+                     "ECG1": "ecg", "ECG2": "ecg"}
+    assert all([raw.get_channel_types(picks=pick)[0] == ch_type
+                for pick, ch_type in test_ch_names.items()])
