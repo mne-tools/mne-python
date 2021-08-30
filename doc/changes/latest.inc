@@ -149,7 +149,7 @@ Enhancements
 
 - Add remove methods for mesh objects in :class:`mne.viz.Brain` (:gh:`9688` by `Alex Rockhill`_)
 
-- Add :func:`mne.transforms.hough_transform_3D` to find the lines that fit a cloud of points best (:gh:`XXX` by `Alex Rockhill`_)
+- Add :func:`mne.transforms.hough_transform_3D` to find the lines that fit a cloud of points best (:gh:`9702` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
