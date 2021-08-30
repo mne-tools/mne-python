@@ -964,7 +964,7 @@ class AnnotationDock(QDockWidget):
                     self.mne.annotation_segment_colors.pop(rm_description)
 
                 # Set first description in Combo-Box to current description
-                if len(self.description_cmbx.count()) > 0:
+                if self.description_cmbx.count() > 0:
                     self.description_cmbx.setCurrentIndex(0)
                     self.mne.current_description = \
                         self.description_cmbx.currentText()
@@ -1022,7 +1022,7 @@ class AnnotationDock(QDockWidget):
         select_dlg.setLayout(layout)
         select_dlg.exec()
 
-        self.main._update_regions_visible()
+        self._update_regions_visible()
 
     def _description_changed(self, descr_idx):
         new_descr = self.description_cmbx.itemText(descr_idx)
