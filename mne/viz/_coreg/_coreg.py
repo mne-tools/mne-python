@@ -6,9 +6,20 @@ from ...viz import plot_alignment
 from ...transforms import (read_trans, write_trans, _ensure_trans,
                            rotation_angles)
 from ...utils import get_subjects_dir
+from traitlets import observe, HasTraits, Unicode, Bool
 
 
-class CoregistrationUI(object):
+class CoregistrationUI(HasTraits):
+    _subject = Unicode()
+    _subjects_dir = Unicode()
+    _lock_fids = Bool()
+    _fiducials_file = Unicode()
+    _current_fiducial = Unicode()
+    _info_file = Unicode()
+    _head_resolution = Bool()
+    _head_transparency = Bool()
+    _scale_mode = Unicode()
+
     def __init__(self, info, subject=None, subjects_dir=None, fids='auto'):
         from ..backends.renderer import _get_renderer
         self._widgets = dict()
@@ -29,20 +40,114 @@ class CoregistrationUI(object):
         }
         self._reset_fitting_parameters()
 
-        self._fids = fids
-        self._subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                              raise_error=True)
-        self._subjects = self._get_subjects()
-        self._subject = subject if subject is not None else self._subjects[0]
-        self._info = info
-
-        self._coreg = Coregistration(info, subject, subjects_dir, fids)
         self._renderer = _get_renderer()
         self._renderer._window_close_connect(self._clean)
-        self._configure_dock()
         self._renderer.show()
+        self._coreg = Coregistration(info, subject, subjects_dir, fids)
+        self._fids = fids
+        self._info = info
+        self._subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                              raise_error=True)
+        self._subject = subject if subject is not None else self._subjects[0]
 
+        self._configure_dock()
         self._update(clear=False)
+
+    def _set_subjects_dir(self, subjects_dir):
+        self._subjects_dir = subjects_dir
+
+    def _set_subject(self, subject):
+        self._subject = subject
+
+    def _set_lock_fids(self, state):
+        self._lock_fids = bool(state)
+
+    def _set_fiducials_file(self, fname):
+        self._fiducials_file = fname
+
+    def _set_current_fiducial(self, fid):
+        self._current_fiducial = fid.lower()
+
+    def _set_info_file(self, fname):
+        self._info_file = fname
+
+    def _set_omit_hsp_distance(self, distance):
+        self._omit_hsp_distance = distance / 1000.0
+
+    def _set_head_resolution(self, state):
+        self._head_resolution = bool(state)
+
+    def _set_head_transparency(self, state):
+        self._head_transparency = bool(state)
+
+    def _set_scale_mode(self, mode):
+        self._scale_mode = mode
+
+    @observe("_subjects_dir")
+    def _subjects_dir_changed(self, change=None):
+        # XXX: add coreg.set_subjects_dir
+        self._coreg._subjects_dir = self._subjects_dir
+        subjects = self._get_subjects()
+        self._subject = subjects[0]
+        self._reset()
+
+    @observe("_subject")
+    def _subject_changed(self, changed=None):
+        # XXX: add coreg.set_subject()
+        self._coreg._subject = self._subject
+        self._reset()
+
+    @observe("_lock_fids")
+    def _lock_fids_changed(self, change=None):
+        if "lock_fids" in self._widgets:
+            self._widgets["lock_fids"].set_value(self._lock_fids)
+        if "fid_file" in self._widgets:
+            self._widgets["fid_file"].set_enabled(not self._lock_fids)
+        if "fids" in self._widgets:
+            self._widgets["fids"].set_enabled(not self._lock_fids)
+        for coord in ("X", "Y", "Z"):
+            name = f"fid_{coord}"
+            if name in self._widgets:
+                self._widgets[name].set_enabled(not self._lock_fids)
+
+    @observe("_fiducials_file")
+    def _fiducials_file_changed(self, change=None):
+        fids, _ = read_fiducials(self._fiducials_file)
+        self._coreg._setup_fiducials(fids)
+        self._reset()
+
+    @observe("_current_fiducial")
+    def _current_fiducial_changed(self, change=None):
+        fid = self._current_fiducial
+        val = getattr(self._coreg, f"_{fid}")[0] * 1000.0
+        coords = ["X", "Y", "Z"]
+        for coord in coords:
+            name = f"fid_{coord}"
+            idx = coords.index(coord)
+            if name in self._widgets:
+                self._widgets[name].set_value(val[idx])
+
+    @observe("_info_file")
+    def _info_file_changed(self, change=None):
+        self._info = read_info(self._info_file)
+        # XXX: add coreg.set_info()
+        self._coreg._info = self._info
+        self._reset()
+
+    @observe("_head_resolution")
+    def _head_resolution_changed(self, change=None):
+        self._surface = "head-dense" if self._head_resolution else "head"
+        self._update()
+
+    @observe("_head_transparency")
+    def _head_transparency_changed(self, change=None):
+        self._opacity = 0.4 if self._head_transparency else 1.0
+        self._update()
+
+    @observe("_scale_mode")
+    def _scale_mode_changed(self, change=None):
+        mode = None if self._scale_mode == "None" else self._scale_mode
+        self._coreg.set_scale_mode(mode)
 
     def _reset_fitting_parameters(self):
         self._icp_n_iterations = self._default_icp_n_iterations
@@ -64,35 +169,7 @@ class CoregistrationUI(object):
                 setattr(self, f"_{fid}_weight", self._default_weights[fid])
 
     def _reset_fiducials(self):
-        self._set_fiducial(self._default_fiducials[0])
-
-    def _set_fiducial(self, fid):
-        fid = fid.lower()
-        val = getattr(self._coreg, f"_{fid}")[0] * 1000.0
-        coords = ["X", "Y", "Z"]
-        for coord in coords:
-            name = f"fid_{coord}"
-            idx = coords.index(coord)
-            self._widgets[name].set_value(val[idx])
-
-    def _set_scale_mode(self, mode):
-        mode = None if mode == "None" else mode
-        self._coreg.set_scale_mode(mode)
-
-    def _set_omit_hsp_distance(self, distance):
-        self._omit_hsp_distance = distance / 1000.0
-
-    def _set_lock_fids(self, state):
-        if "lock_fids" in self._widgets:
-            self._widgets["lock_fids"].set_value(state)
-        if "fid_file" in self._widgets:
-            self._widgets["fid_file"].set_enabled(not state)
-        if "fids" in self._widgets:
-            self._widgets["fids"].set_enabled(not state)
-        for coord in ("X", "Y", "Z"):
-            name = f"fid_{coord}"
-            if name in self._widgets:
-                self._widgets[name].set_enabled(not state)
+        self._set_current_fiducial(self._default_fiducials[0])
 
     def _omit_hsp(self):
         self._coreg.omit_head_shape_points(self._omit_hsp_distance)
@@ -108,13 +185,18 @@ class CoregistrationUI(object):
             self._renderer.figure.plotter.clear()
         surfaces = dict()
         surfaces[self._surface] = self._opacity
-        plot_alignment(info=self._info, trans=self._coreg.trans,
-                       subject=self._subject,
-                       subjects_dir=self._subjects_dir,
-                       surfaces=surfaces,
-                       dig=True, eeg=[], meg=False,
-                       coord_frame='meg', fig=self._renderer.figure,
-                       show=False, verbose=self._verbose)
+        kwargs = dict(info=self._info, trans=self._coreg.trans,
+                      subject=self._subject,
+                      subjects_dir=self._subjects_dir,
+                      surfaces=surfaces,
+                      dig=True, eeg=[], meg=False,
+                      coord_frame='meg', fig=self._renderer.figure,
+                      show=False, verbose=self._verbose)
+        try:
+            plot_alignment(**kwargs)
+        except IOError:
+            kwargs.update(surfaces="head")
+            plot_alignment(**kwargs)
         self._renderer.reset_camera()
         if update_parameters:
             coords = ["X", "Y", "Z"]
@@ -129,43 +211,9 @@ class CoregistrationUI(object):
                             val_idx *= 1000.0
                         self._widgets[widget_name].set_value(val_idx)
 
-    def _toggle_high_resolution_head(self, state):
-        self._surface = "head-dense" if state else "head"
-        self._update()
-
-    def _toggle_transparent(self, state):
-        self._opacity = 0.4 if state else 1.0
-        self._update()
-
     def _set_icp_fid_match(self, method):
         self._coreg.set_fid_match(method)
         self._update()
-
-    def _set_subjects_dir(self, subjects_dir):
-        self._subjects_dir = subjects_dir
-        self._subjects = self._get_subjects()
-        self._subject = self._subjects[0]
-        # XXX: add coreg.set_subjects_dir
-        self._coreg._subjects_dir = self._subjects_dir
-        self._coreg._subject = self._subject
-        self._reset()
-
-    def _set_subject(self, subject):
-        self._subject = subject
-        # XXX: add coreg.set_subject()
-        self._coreg._subject = self._subject
-        self._reset()
-
-    def _set_fiducial_file(self, fname):
-        fids, _ = read_fiducials(fname)
-        self._coreg._setup_fiducials(fids)
-        self._reset()
-
-    def _set_info_file(self, fname):
-        self._info = read_info(fname)
-        # XXX: add coreg.set_info()
-        self._coreg._info = self._info
-        self._reset()
 
     def _set_icp_n_iterations(self, n_iterations):
         self._icp_n_iterations = n_iterations
@@ -237,7 +285,7 @@ class CoregistrationUI(object):
         self._widgets["subject"] = self._renderer._dock_add_combo_box(
             name="Subject",
             value=self._subject,
-            rng=self._subjects,
+            rng=self._get_subjects(),
             callback=self._set_subject,
             compact=True,
             layout=layout
@@ -253,14 +301,14 @@ class CoregistrationUI(object):
         self._widgets["fid_file"] = self._renderer._dock_add_file_button(
             name="fid_file",
             desc="Load",
-            func=self._set_fiducial_file,
+            func=self._set_fiducials_file,
             placeholder="Path to fiducials",
             layout=layout,
         )
         self._widgets["fids"] = self._renderer._dock_add_radio_buttons(
             value=self._default_fiducials[0],
             rng=self._default_fiducials,
-            callback=self._set_fiducial,
+            callback=self._set_current_fiducial,
             vertical=False,
             layout=layout,
         )
@@ -277,7 +325,7 @@ class CoregistrationUI(object):
                 decimals=1,
                 layout=hlayout
             )
-        self._set_fiducial(self._default_fiducials[0])  # init
+        self._set_current_fiducial(self._default_fiducials[0])  # init
         self._renderer._layout_add_widget(layout, hlayout)
         self._set_lock_fids(True)  # init
 
@@ -322,13 +370,13 @@ class CoregistrationUI(object):
         self._widgets["high_res_head"] = self._renderer._dock_add_check_box(
             name="Show High Resolution Head",
             value=True,
-            callback=self._toggle_high_resolution_head,
+            callback=self._set_head_resolution,
             layout=layout
         )
         self._widgets["make_transparent"] = self._renderer._dock_add_check_box(
             name="Make skin surface transparent",
             value=False,
-            callback=self._toggle_transparent,
+            callback=self._set_head_transparency,
             layout=layout
         )
         self._renderer._dock_add_stretch()
