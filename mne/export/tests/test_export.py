@@ -5,6 +5,7 @@
 # License: BSD-3-Clause
 
 from datetime import datetime, timezone
+from operator import add
 from mne.io import RawArray
 from mne.io.meas_info import create_info
 from pathlib import Path
@@ -73,7 +74,7 @@ def test_integer_sfreq_edf(tmp_path):
 
     temp_fname = op.join(str(tmp_path), f'test.{format}')
 
-    raw.export(temp_fname)
+    raw.export(temp_fname, add_ch_type=True)
     raw_read = read_raw_edf(temp_fname, preload=True)
 
     # stim channel should be dropped
@@ -91,6 +92,13 @@ def test_integer_sfreq_edf(tmp_path):
     orig_ch_types = raw.get_channel_types()
     read_ch_types = raw_read.get_channel_types()
     assert_array_equal(orig_ch_types[:-1], read_ch_types[:-1])
+
+    # channel name can't be longer then 16 characters with the type added
+    raw_bad = raw.copy()
+    raw_bad.rename_channels({'1': 'abcdefghijklmnopqrstuvwxyz'})
+    with pytest.raises(RuntimeError, match='Signal label'), \
+            pytest.warns(RuntimeWarning, match='Data has a non-integer'):
+        raw_bad.export(temp_fname)
 
     # export now by hard-coding physical range
     raw.export(temp_fname, physical_range=(-3200, 3200))
@@ -154,6 +162,7 @@ def test_export_raw_edf(tmp_path, dataset, format):
     raw.pick_types(eeg=True, ecog=True, seeg=True,
                    eog=True, ecg=True, emg=True)
     raw.load_data()
+    orig_ch_names = raw.ch_names
     temp_fname = op.join(str(tmp_path), f'test.{format}')
 
     # test runtime errors
@@ -163,15 +172,11 @@ def test_export_raw_edf(tmp_path, dataset, format):
     with pytest.raises(RuntimeError, match='The minimum'), \
             pytest.warns(RuntimeWarning, match='Data has a non-integer'):
         raw.export(temp_fname, physical_range=(0, 1e6))
-    raw_bad = raw.copy()
-    raw_bad.rename_channels({'1': 'abcdefghijklmnopqrs'})
-    with pytest.raises(RuntimeError, match='Signal label'), \
-            pytest.warns(RuntimeWarning, match='Data has a non-integer'):
-        raw_bad.export(temp_fname)
 
     if dataset == 'test':
+        orig_ch_names = [ch.split(' ')[1] for ch in raw.ch_names]
         with pytest.warns(RuntimeWarning, match='Data has a non-integer'):
-            raw.export(temp_fname)
+            raw.export(temp_fname, add_ch_type=False)
     elif dataset == 'misc':
         with pytest.warns(RuntimeWarning, match='EDF format requires'):
             raw.export(temp_fname)
@@ -179,10 +184,8 @@ def test_export_raw_edf(tmp_path, dataset, format):
     if 'epoc' in raw.ch_names:
         raw.drop_channels(['epoc'])
 
-    if format == 'edf':
-        raw_read = read_raw_edf(temp_fname, preload=True)
-
-    assert raw.ch_names == raw_read.ch_names
+    raw_read = read_raw_edf(temp_fname, preload=True)
+    assert orig_ch_names == raw_read.ch_names
     # only compare the original length, since extra zeros are appended
     orig_raw_len = len(raw)
 

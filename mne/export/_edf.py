@@ -30,7 +30,7 @@ def _try_to_set_value(header, key, value, channel_index=None):
                            f"{return_val}.")
 
 
-def _export_raw(fname, raw, physical_range):
+def _export_raw(fname, raw, physical_range, add_ch_type):
     """Export Raw objects to EDF files.
 
     TODO: if in future the Info object supports transducer or
@@ -132,7 +132,8 @@ def _export_raw(fname, raw, physical_range):
     # set channel data
     for idx, ch in enumerate(ch_names):
         ch_type = ch_types[idx]
-        signal_label = f'{ch_type.upper()} {ch}'
+        signal_label = f'{ch_type.upper()} ' if add_ch_type else ''
+        signal_label = signal_label + f'{ch}'
         if len(signal_label) > 16:
             raise RuntimeError(f'Signal label for {ch} ({ch_type}) is '
                                f'longer then 16 characters, which is not '

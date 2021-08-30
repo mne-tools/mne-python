@@ -2499,6 +2499,12 @@ physical_range : str | tuple
     If it is a 2-tuple of minimum and maximum limit, then those
     physical ranges will be used. Only used for exporting EDF files.
 """
+docdict['export_params_add_ch_type'] = """
+add_ch_type : bool
+    Whether to add the channel type of the channel currently set
+    (default is False) to the signal label. Only used for
+    exporting EDF files.
+"""
 docdict['export_eeglab_note'] = """
 For EEGLAB exports, channel locations are expanded to full EEGLAB format.
 For more details see :func:`eeglabio.utils.cart_to_eeglab`.
