@@ -420,7 +420,7 @@ epochs['auditory'].average()
 # The following example demonstrates how to find the first positive peak in the
 # ERP (i.e., the P100) for the left visual condition (i.e., the
 # ``l_vis`` `~mne.Evoked` object). The time window used to search for the peak
-# ranges from .08 to .12 s. This time window was selected becuase it is when
+# ranges from .08 to .12 s. This time window was selected because it is when
 # P100 typically occurs. Note that all ``'eeg'`` channels are submitted
 # to the `~mne.Evoked.get_peak` method.
 
@@ -495,7 +495,7 @@ print_peak_measures(ch_roi, good_tmin, good_tmax, lat_roi, amp_roi)
 # Visual inspection allows to easily verify whether the automatically found
 # peak is correct. The `~mne.Evoked.get_peak` detects the maximum or minimum
 # voltage in the specified time range and returns the latency and amplitude
-# of this peak. There is no gaurantee that this method will return an actual
+# of this peak. There is no guarantee that this method will return an actual
 # peak. Instead, it may return a value on the rising or falling edge of the
 # peak we are trying to find.
 #
