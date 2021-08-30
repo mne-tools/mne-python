@@ -69,6 +69,7 @@ def _export_raw(fname, raw, physical_range):
              'These channels will not be written correctly.')
 
     ch_names = [ch for ch in raw.ch_names if ch not in drop_chs]
+    ch_types = np.array(raw.get_channel_types(picks=ch_names))
     n_channels = len(ch_names)
     n_times = raw.n_times
 
@@ -101,7 +102,6 @@ def _export_raw(fname, raw, physical_range):
         ch_types_phys_max = dict()
         ch_types_phys_min = dict()
 
-        ch_types = np.array(raw.get_channel_types(picks=ch_names))
         for _type in np.unique(ch_types):
             _picks = np.nonzero(ch_types == _type)[0]
             _data = raw.get_data(units=units, picks=_picks)

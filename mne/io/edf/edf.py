@@ -364,7 +364,10 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
 
     sel = edf_info['sel']  # selection of channels not excluded
     ch_names = edf_info['ch_names']  # of length len(sel)
-    ch_types = edf_info['ch_types']  # of length len(sel)
+    if 'ch_types' in edf_info:
+        ch_types = edf_info['ch_types']  # of length len(sel)
+    else:
+        ch_types = [None] * len(sel)
     n_samps = edf_info['n_samps'][sel]
     nchan = edf_info['nchan']
     physical_ranges = edf_info['physical_max'] - edf_info['physical_min']
@@ -397,10 +400,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         'SAO2': FIFF.FIFFV_BIO_CH,
         'RESP': FIFF.FIFFV_RESP_CH,
     }
-    if any([ch_type is None for ch_type in ch_types]):
-        warn('Not all channel types could be inferred when reading the EDF '
-             f'file: {fname}. You should check the channel types and set '
-             'them using `raw.set_channel_types`.')
+    bad_map = dict()
 
     for idx, ch_name in enumerate(ch_names):
         chan_info = {}
@@ -419,11 +419,13 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         # if the edf info contained channel type information
         # set it now
         ch_type = ch_types[idx]
-        if ch_type is not None:
+        if ch_type is not None and ch_type in ch_type_mapping:
             chan_info['kind'] = ch_type_mapping.get(ch_type)
             if ch_type not in ['EEG', 'ECOG', 'SEEG', 'DBS']:
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
                 pick_mask[idx] = False
+        elif ch_type not in ch_type_mapping:
+            bad_map[ch_name] = ch_type
 
         # if user passes in explict mapping for eog, misc and stim
         # channels set them here
@@ -444,6 +446,13 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             ch_names[idx] = chan_info['ch_name']
             edf_info['units'][idx] = 1
         chs.append(chan_info)
+
+    # warn if channel type was not inferrable
+    # if len(bad_map):
+    #     bad_map = '\n'.join([f'{ch_name}: {ch_type}'
+    #                         for ch_name, ch_type in bad_map.items()])
+    #     warn(f'Found the following unknown channel type mapping(s), '
+    #          f'setting the channel type to EEG:\n{bad_map}')
 
     edf_info['stim_channel_idxs'] = stim_channel_idxs
 
@@ -633,26 +642,30 @@ def _read_edf_header(fname, exclude):
         nchan = int(_edf_str(fid.read(4)))
         channels = list(range(nchan))
 
+        # read in 16 byte labels and strip any extra spaces at the end
+        signal_labels = [fid.read(16).strip().decode('latin-1')
+                         for ch in channels]
+
+        # ch_names = signal_labels.copy()
         # get channel names and optionally channel type
         # EDF specification contains 16 bytes that encode channel names,
         # optionally prefixed by a string representing channel type separated
         # by a space
         ch_names = []
         ch_types = []
-        for ch in channels:
-            # read in 16 byte label and strip any extra spaces at the end
-            new_label = fid.read(16).strip().decode('latin-1')
+        for ch, new_label in enumerate(signal_labels):
+            # if no channel type, then we will default to eeg
+            ch_type = None
+            ch_name = new_label
 
-            # space is found, so the prefix is the channel type
-            if ' ' in new_label:
+            # space is found, so the prefix is the channel type. 'Annotations'
+            # is also a keyword we search for
+            if new_label.count(' ') == 1 and ('Annotations' not in new_label):
                 ch_type, ch_name = new_label.split(' ')
 
                 # channel types should be upper case for easy comparison
-                ch_type = ch_types.upper()
-            else:
-                # if no channel type, then we will default to eeg
-                ch_type = None
-                ch_name = new_label
+                ch_type = ch_type.upper()
+
             ch_names.append(ch_name)
             ch_types.append(ch_type)
         exclude = _find_exclude_idx(ch_names, exclude)

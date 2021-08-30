@@ -87,6 +87,11 @@ def test_integer_sfreq_edf(tmp_path):
     assert_allclose(
         raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
 
+    # check channel types except for 'bio', which loses its type
+    orig_ch_types = raw.get_channel_types()
+    read_ch_types = raw_read.get_channel_types()
+    assert_array_equal(orig_ch_types[:-1], read_ch_types[:-1])
+
     # export now by hard-coding physical range
     raw.export(temp_fname, physical_range=(-3200, 3200))
 

@@ -47,7 +47,7 @@ edf_uneven_eeglab_path = op.join(data_dir, 'test_uneven_samp.mat')
 edf_stim_channel_path = op.join(data_dir, 'test_edf_stim_channel.edf')
 edf_txt_stim_channel_path = op.join(data_dir, 'test_edf_stim_channel.txt')
 
-data_path = testing.data_path(download=False)
+data_path = testing.data_path(download=True)
 edf_stim_resamp_path = op.join(data_path, 'EDF', 'test_edf_stim_resamp.edf')
 edf_overlap_annot_path = op.join(data_path, 'EDF',
                                  'test_edf_overlapping_annotations.edf')
@@ -179,7 +179,7 @@ def test_edf_data_broken(tmpdir):
 
 def test_duplicate_channel_labels_edf():
     """Test reading edf file with duplicate channel names."""
-    EXPECTED_CHANNEL_NAMES = ['EEG F1-Ref-0', 'EEG F2-Ref', 'EEG F1-Ref-1']
+    EXPECTED_CHANNEL_NAMES = ['F1-Ref-0', 'F2-Ref', 'F1-Ref-1']
     with pytest.warns(RuntimeWarning, match='Channel names are not unique'):
         raw = read_raw_edf(duplicate_channel_labels_path, preload=False)
 
@@ -409,7 +409,7 @@ def test_bdf_multiple_annotation_channels():
 def test_edf_lowpass_zero():
     """Test if a lowpass filter of 0Hz is mapped to the Nyquist frequency."""
     raw = read_raw_edf(edf_stim_resamp_path)
-    assert raw.ch_names[100] == 'EEG LDAMT_01-REF'
+    assert raw.ch_names[100] == 'LDAMT_01-REF'
     assert len(raw.ch_names[100]) > 15
     assert_allclose(raw.info["lowpass"], raw.info["sfreq"] / 2)
 
@@ -535,10 +535,10 @@ def test_ch_types():
 
     # get the channel types for all channels
     ch_types = raw.get_channel_types()
-    assert all([x in ch_types for x in ['eeg', 'ecg', 'misc']])
+    assert all([x in ch_types for x in ['eeg', 'ecg']])
 
     # test certain channels were correctly detected as a channnel type
-    test_ch_names = {"Fp1-Ref": "eeg", "P10-Ref": "eeg", "dc01": "misc",
+    test_ch_names = {"Fp1-Ref": "eeg", "P10-Ref": "eeg", "DC01": "eeg",
                      "ECG1": "ecg", "ECG2": "ecg"}
     assert all([raw.get_channel_types(picks=pick)[0] == ch_type
                 for pick, ch_type in test_ch_names.items()])
