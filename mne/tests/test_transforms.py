@@ -118,27 +118,14 @@ def test_get_ras_to_neuromag_trans():
 
 def test_hough_transform_3D():
     """Test the 3D Hough transformation."""
-    '''for coord in [(1, 1, 1), (0, 0, 0), (-1, 0, 1)]:
-        coord = np.array(coord, dtype=float)
-        for v in [(0, 0, 1), (0, 1, 0), (1, 0, 0),
-                  (-1, 0, 0), (-1, -1, 1)]:
-            v = np.array(v, dtype=float)
-            p, angle = _point_direction_to_point_angle_3D(coord, v)
-            coord2 = coord + v  # continue on line, should be the same line
-            p2, angle2 = _point_direction_to_point_angle_3D(coord2, v)
-            assert_allclose(p, p2)
-            assert_allclose(angle, angle2)
-
-    with pytest.raises(ValueError, match='`v` cannot be the zero vector'):
-        _point_direction_to_point_angle_3D(
-            np.array([0, 0, 0]), np.array([0, 0, 0]))'''
-
     with pytest.raises(ValueError, match='must be an array'):
         hough_transform_3D(np.array([0]))
 
     with pytest.raises(ValueError, match='`image_res` must be greater than 1'):
-        hough_transform_3D(np.array([0, 0, 0])[np.newaxis], method='image',
-                           image_res=1)
+        hough_transform_3D(np.array([0, 0, 0])[np.newaxis], image_res=1)
+
+    with pytest.raises(ValueError, match='`n_lines` must be 1 or more'):
+        hough_transform_3D(np.array([0, 0, 0])[np.newaxis], n_lines=0)
 
     # make three clouds of lines
     origins = np.array([[1, 1, 1], [3, -3, 3], [-3, 0, -3]], dtype=float)
@@ -150,62 +137,14 @@ def test_hough_transform_3D():
             coords.append(origin + t * vector + np.random.random() - 0.5)
     coords = np.array(coords)
 
-    # to check
-    # fig = plt.figure()
-    # ax = plt.axes(projection='3d')
-    # ax.scatter(*coords.T)
-
     groups, lines = hough_transform_3D(coords, n_lines=3)
 
-    for origin, vector in zip(origins, vectors):
-        p, angle = _point_direction_to_point_angle_3D(origin, vector)
-        idx = tuple([np.argmax(bin_centers[:, i] > x) - 1 for i, x in
-                     enumerate(tuple(p) + (angle,))])
-        assert count_image[idx] > 6  # seven points each line
-
-    '''
-    for point, vector in lines:
-        ax.plot(*np.concatenate([point - 10 * vector, point + 10 * vector]).T)
-
-    import matplotlib.pyplot as plt
-    fig = plt.figure()
-    ax = plt.axes(projection='3d')
-    ax.scatter(*coords.T)
-    lim = 7
-    ax.set_xlim([-lim, lim])
-    ax.set_ylim([-lim, lim])
-    ax.set_zlim([-lim, lim])
-    for i in range(len(origins)):
-        max_idx = np.unravel_index(np.argmax(count_image), count_image.shape)
-        x, y, z, angle = [bin_centers[j, i] for i, j in enumerate(max_idx)]
-        p = np.array([x, y, z])
-        count_image[max_idx] = 0  # remove
-        ax.scatter(*p)
-        if p.any():
-            n = p / np.linalg.norm(p)
-        else:
-            u = np.array([0., 0., 0.])  # unit vector
-            u[np.argmin(abs(v))] = 1
-            n = np.cross(u, v)
-            n /= np.linalg.norm(n)
-        u = np.array([0, 0, 0])  # unit vector
-        u[np.argmin(abs(p))] = 1
-        zpv = u - np.dot(u, n) * n  # zero-phase on plane
-        # use Rodrigues rotation formula
-        v2 = zpv * np.cos(angle) + np.cross(n, zpv) * np.sin(angle) + \
-            n * np.dot(n, zpv) * (1 - np.cos(angle))
-        normal = np.zeros((2, 3))
-        normal[1] = p
-        ax.plot(*normal.T)
-        zp_vector = np.zeros((2, 3))
-        zp_vector[0] = p
-        zp_vector[1] = p + zpv
-        ax.plot(*zp_vector.T)
-        line = np.zeros((2, 3))
-        line[0] = p - 10 * v2
-        line[1] = p + 10 * v2
-        ax.plot(*line.T)
-    '''
+    for i, vector in enumerate(vectors):
+        group_idx = np.argmin(
+            [np.linalg.norm(vector / np.linalg.norm(vector) - line[1])
+             for line in lines])
+        assert_allclose(np.sort(coords[i::3], axis=0),
+                        np.sort(groups[group_idx], axis=0))
 
 
 def _cartesian_to_sphere(x, y, z):

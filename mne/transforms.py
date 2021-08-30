@@ -21,7 +21,7 @@ from .io.write import start_file, end_file, write_coord_trans
 from .defaults import _handle_default
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
                     _check_path_like, get_subjects_dir, fill_doc, _check_fname,
-                    _check_option, _require_version, wrapped_stdout, warn)
+                    _check_option, _require_version, wrapped_stdout)
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -704,27 +704,45 @@ def _get_transforms_to_coord_frame(info, trans, coord_frame='mri'):
 ###############################################################################
 # Hough Transform
 
-# XXX: Possibly add `min_line_prob` stopping criterium instead of `n_lines`
-def hough_transform_3D(coords, method='k-means', grade=3, image_res=64,
-                       n_lines=20):
+def _coord_vote(px, py, pz, ico, max_x, dx, voting_space, vote=1):
+    """Add or subtract votes for a coordinate to the Hough voting space."""
+    for angle_idx, (bx, by, bz) in enumerate(ico):
+        beta = 1 / (1 + bz)
+        x_new = ((1 - (beta * (bx * bx))) * px) - \
+            ((beta * (bx * by)) * py) - (bx * pz)
+        y_new = ((-beta * (bx * by)) * px) + \
+            ((1 - (beta * (by * by))) * py) - (by * pz)
+        x_idx = np.round((x_new + max_x) / dx).astype(int)
+        y_idx = np.round((y_new + max_x) / dx).astype(int)
+        voting_space[x_idx, y_idx, angle_idx] += vote
+
+
+def _group_coords_by_line(coords, a, b, dx):
+    """Group coordinates by their proximity to a line."""
+    group = list()
+    for i, coord in enumerate(coords):
+        t = np.dot(b, (coord - a))
+        d = coord - (a + (t * b))
+        if np.linalg.norm(d) <= 3 * dx:
+            group.append(i)
+    return group
+
+
+def _fit_line_to_coords(coords):
+    """Fit an orthogonal least squares regression to coordinates."""
+    a = coords.mean(axis=0)
+    # recomputed direction based on least squares (via SVD)
+    b = np.linalg.svd(coords - a)[2][0]
+    return a, b
+
+
+def hough_transform_3D(coords, grade=4, image_res=64, n_lines=20):
     """Compute the Hough transform on 3D coordinates.
 
     Parameters
     ----------
     coords : `numpy.ndarray` (n_points, 3)
         The coordinates to find optimal lines though.
-    method : str
-        Options are:
-
-        - ``k-means`` to compute the four-variable parameterization
-        of the lines coming out of each coordinate and going to the
-        vertices of an icosahedron and cluster with k-means (requires
-        n_lines)
-        - ``image`` to compute the three-variable parameterization
-        of lines going to the icosahedron vertices from each coordinate
-        (Roberts' minimal line representation with five parameters but
-        the three direction parameters can be collapsed into one parameter
-        for the icosahedron vertex)
     grade : int
         The grade of the icosahedron determining the resolution
         of the line fitting algorithm.
@@ -743,15 +761,13 @@ def hough_transform_3D(coords, method='k-means', grade=3, image_res=64,
 
     Notes
     -----
-    See :footcite:`DalitzEtAl2017` for a detailed description and
-    :ref:`https://github.com/JingLin0/3D-Hough-Transform/blob/master/hough3d.py`_
-    for a similar implementation.
+    See :footcite:`DalitzEtAl2017` for a detailed description and the
+    original implementation.
     """
     from mne.surface import _get_ico_surface
     _validate_type(coords, np.ndarray, 'coords')
     if coords.ndim != 2 or coords.shape[1] != 3:
         raise ValueError('`coords` must be an array of shape (n_points, 3)')
-    _check_option('method', method, ('k-means', 'image'))
     _validate_type(image_res, int, 'img_res')
     if image_res < 2:
         raise ValueError('`image_res` must be greater than 1')
@@ -762,105 +778,62 @@ def hough_transform_3D(coords, method='k-means', grade=3, image_res=64,
     # load icosahedron to determine point sampling
     ico = _get_ico_surface(grade=grade)['rr']
     # remove redundant directions
-    ico = ico[ico[:, 0] >= 0]
-    ico = ico[~np.logical_and(ico[:, 0] == 0, ico[:, 1] < 0)]
-    ico = ico[~np.logical_and(ico[:, 0] == 0, ico[:, 1] == 0, ico[:, 2] < 0)]
+    ico = ico[ico[:, 2] >= 0]
+    ico = ico[~np.logical_and(ico[:, 2] == 0, ico[:, 1] < 0)]
+    ico = ico[~np.logical_and(np.logical_and(ico[:, 2] == 0, ico[:, 1] == 0),
+                              ico[:, 0] < 0)]
 
-    if method == 'image':
-        shift = coords.mean(axis=0)
-        coords = coords.copy() - shift
-        norms = np.linalg.norm(coords, axis=1)
-        point_range = np.linspace(-norms.max(), norms.max(), image_res + 1)
-        angle_range = np.linspace(-np.pi, np.pi, image_res + 1)
-        dx = point_range[1] - point_range[0]
-        dtheta = angle_range[1] - angle_range[0]
-        logger.info(f'Point resolution {dx}, angle resolution {dtheta}')
-        bin_centers = np.array(
-            [point_range[:-1] + dx] * 3 + [angle_range[:-1] + dtheta]).T
-        bin_centers[:, :3] += shift  # put back shift
+    d = np.linalg.norm(coords.max(axis=0) - coords.min(axis=0))
+    max_x = d / 2
+    dx = d / image_res
 
-        # initialize counts
-        count_image = np.zeros((img_res,) * 4, dtype=np.uint16)
-        # for each coordinate make a line going in the direction of the ico
-        for coord in coords:
-            for v in ico['rr']:
-                p, angle = _hough_3D_line_param(coord, v)
-                count_image[tuple(
-                    [np.argmax(point_range > c) - 1 for c in p] +
-                    [np.argmax(angle_range > angle) - 1])] += 1
-    else:  # method == k-means
-        from scipy.spatial import distance_matrix
-        from scipy.cluster.vq import kmeans
-        # initialize counts
-        line_params = np.zeros((coords.shape[0] * ico.shape[0], 5),
-                               dtype=float)
-        # for each coordinate make a line going in the direction of the ico
-        idx = 0
-        for coord in coords:
-            for v in ico:
-                p = coord - (np.dot(coord, v) / np.dot(v, v)) * v
-                # enforce unique direction, remove opposite direction
-                use_v = v if v[np.argmax(abs(v))] > 0 else -v
-                _, phi, theta = _cart_to_sph(use_v).squeeze()
-                line_params[idx, :3] = p
-                line_params[idx, 3:] = phi, theta
-                idx += 1
-        # whiten
-        line_params_w = line_params.copy()
-        line_params_w -= line_params.mean(axis=0)
-        line_params_w /= line_params.std(axis=0)
-        # use only the number of coordinates pairs of lines
-        dist_mat = distance_matrix(line_params, line_params)
-        np.fill_diagonal(dist_mat, np.inf)
-        dist_mat_flat = dist_mat[np.tril_indices(dist_mat.shape[0], -1)]
-        thresh = np.quantile(
-            dist_mat_flat, coords.shape[0]**2 / dist_mat_flat.size)
-        # use pairs greater than threshold
-        points = list()
-        for i, dists in enumerate(dist_mat):
-            if any(dists < thresh):
-                points.append(line_params[i])
+    # shift to centered on origin
+    shift = (coords.max(axis=0) + coords.min(axis=0)) / 2
+    coords = coords.copy() - shift
 
-        centers, _ = kmeans(points, n_lines)
-        # convert to parametric point + direction, unit direction vector
-        lines = [(param[:3], _sph_to_cart([1, param[3], param[4]]))
-                 for param in centers]
+    logger.info(f'x`y` value range is {d} in {image_res} steps '
+                f'of width dx={dx}')
+
+    # initialize counts
+    voting_space = np.zeros((image_res,) * 2 + (ico.shape[0],),
+                            dtype=np.uint32)
+    logger.info(f'Hough space has {voting_space.size} cells taking '
+                f'{voting_space.itemsize * voting_space.size / 1e6} MB memory')
+
+    # for each coordinate make a line going in the direction of the ico
+    for (px, py, pz) in coords:
+        _coord_vote(px, py, pz, ico, max_x, dx, voting_space, vote=1)
+
+    groups = list()
+    lines = list()
+    for line_idx in range(n_lines):
+        best_idx = np.unravel_index(
+            np.argmax(voting_space), voting_space.shape)
+        x, y = best_idx[0] * dx - max_x, best_idx[1] * dx - max_x
+        bx, by, bz = ico[best_idx[2]]
+        ax = x * (1 - ((bx * bx) / (1 + bz))) - y * ((bx * by) / (1 + bz))
+        ay = x * (-((bx * by) / (1 + bz))) + y * (1 - ((by * by) / (1 + bz)))
+        az = - x * bx - y * by
+        a = np.array([ax, ay, az])
+        b = np.array([bx, by, bz])
+        group = _group_coords_by_line(coords, a, b, dx)
+        if len(group) == 0:
+            return groups, lines
+        a, b = _fit_line_to_coords(np.array([coords[i] for i in group]))
+        group = _group_coords_by_line(coords, a, b, dx)
+        a, b = _fit_line_to_coords(np.array([coords[i] for i in group]))
+        logger.info(
+            f'Line found with {len(group)} points, from '
+            f'{tuple((a + shift).round(3))}, to {tuple(b.round(3))}')
+        for idx in group:  # remove votes
+            px, py, pz = coords[idx]
+            _coord_vote(px, py, pz, ico, max_x, dx, voting_space, vote=-1)
+        groups.append(np.array([coords[i] + shift for i in group]))
+        coords = np.delete(coords, group, axis=0)
+        lines.append((a + shift, b))
+        if coords.size == 0:
+            return groups, lines
     return groups, lines
-
-
-def _plot_line_param(coord, v, p, angle, lim=3):
-    """Plot a line parameterization and the coordinate and vector."""
-    import matplotlib.pyplot as plt
-    fig = plt.figure()
-    ax = plt.axes(projection='3d')
-    ax.set_xlim([-lim, lim])
-    ax.set_ylim([-lim, lim])
-    ax.set_zlim([-lim, lim])
-    ax.scatter(*coord)
-    ax.scatter(*(coord + v))
-    # six parameter, non-invertible line
-    # line = np.array([coord + t * v for t in
-    #                  np.linspace(-2 * lim, 2 * lim, 1000)])
-    ax.scatter(0, 0, 0)
-    ax.scatter(*p)
-    n = p / np.linalg.norm(p)
-    zpv = np.array([n[2], -n[0], n[1]])  # zero-phase
-    zpv = zpv - np.dot(zpv, n) * n  # project to plane
-    # use Rodrigues rotation formula
-    v2 = zpv * np.cos(angle) + np.cross(n, zpv) * np.sin(angle) + \
-        n * np.dot(n, zpv) * (1 - np.cos(angle))
-    normal = np.zeros((2, 3))
-    normal[1] = p
-    ax.plot(*normal.T)
-    zp_vector = np.zeros((2, 3))
-    zp_vector[0] = p
-    zp_vector[1] = p + zpv
-    ax.plot(*zp_vector.T)
-    line = np.zeros((2, 3))
-    line[0] = p - 10 * v2
-    line[1] = p + 10 * v2
-    ax.plot(*line.T)
-    fig.show()
 
 
 ###############################################################################
