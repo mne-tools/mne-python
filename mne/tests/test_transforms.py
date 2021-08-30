@@ -139,12 +139,15 @@ def test_hough_transform_3D():
 
     groups, lines = hough_transform_3D(coords, n_lines=3)
 
+    group_indices = set()
     for i, vector in enumerate(vectors):
         group_idx = np.argmin(
             [np.linalg.norm(vector / np.linalg.norm(vector) - line[1])
              for line in lines])
+        group_indices.add(group_idx)
         assert_allclose(np.sort(coords[i::3], axis=0),
                         np.sort(groups[group_idx], axis=0))
+    assert len(group_indices) == 3
 
 
 def _cartesian_to_sphere(x, y, z):

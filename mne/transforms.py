@@ -704,9 +704,10 @@ def _get_transforms_to_coord_frame(info, trans, coord_frame='mri'):
 ###############################################################################
 # Hough Transform
 
-def _coord_vote(px, py, pz, ico, max_x, dx, voting_space, vote=1):
+def _coord_vote(px, py, pz, ico, max_x, dx, dtheta, dphi, voting_space,
+                vote=1):
     """Add or subtract votes for a coordinate to the Hough voting space."""
-    for angle_idx, (bx, by, bz) in enumerate(ico):
+    for (bx, by, bz) in ico:
         beta = 1 / (1 + bz)
         x_new = ((1 - (beta * (bx * bx))) * px) - \
             ((beta * (bx * by)) * py) - (bx * pz)
@@ -714,7 +715,10 @@ def _coord_vote(px, py, pz, ico, max_x, dx, voting_space, vote=1):
             ((1 - (beta * (by * by))) * py) - (by * pz)
         x_idx = np.round((x_new + max_x) / dx).astype(int)
         y_idx = np.round((y_new + max_x) / dx).astype(int)
-        voting_space[x_idx, y_idx, angle_idx] += vote
+        _, theta_new, phi_new = _cart_to_sph([bx, by, bz])[0]
+        theta_idx = np.round((theta_new + np.pi) / dtheta).astype(int)
+        phi_idx = np.round((phi_new) / dphi).astype(int)
+        voting_space[x_idx, y_idx, theta_idx, phi_idx] += vote
 
 
 def _group_coords_by_line(coords, a, b, dx):
@@ -786,23 +790,26 @@ def hough_transform_3D(coords, grade=4, image_res=64, n_lines=20):
     d = np.linalg.norm(coords.max(axis=0) - coords.min(axis=0))
     max_x = d / 2
     dx = d / image_res
+    dtheta = 2 * np.pi / (image_res - 1)
+    dphi = np.pi / (image_res - 1)  # - 1 to avoid edge cases
 
     # shift to centered on origin
     shift = (coords.max(axis=0) + coords.min(axis=0)) / 2
     coords = coords.copy() - shift
 
-    logger.info(f'x`y` value range is {d} in {image_res} steps '
-                f'of width dx={dx}')
+    logger.info(f'x`y` value range is {round(d, 3)} in {image_res} steps '
+                f'of width dx={round(dx, 3)}, dtheta={round(dtheta, 3)}, '
+                f'dphi={round(dphi, 3)}')
 
     # initialize counts
-    voting_space = np.zeros((image_res,) * 2 + (ico.shape[0],),
-                            dtype=np.uint32)
+    voting_space = np.zeros((image_res,) * 4, dtype=np.uint32)
     logger.info(f'Hough space has {voting_space.size} cells taking '
                 f'{voting_space.itemsize * voting_space.size / 1e6} MB memory')
 
     # for each coordinate make a line going in the direction of the ico
     for (px, py, pz) in coords:
-        _coord_vote(px, py, pz, ico, max_x, dx, voting_space, vote=1)
+        _coord_vote(px, py, pz, ico, max_x, dx, dtheta, dphi,
+                    voting_space, vote=1)
 
     groups = list()
     lines = list()
@@ -810,7 +817,8 @@ def hough_transform_3D(coords, grade=4, image_res=64, n_lines=20):
         best_idx = np.unravel_index(
             np.argmax(voting_space), voting_space.shape)
         x, y = best_idx[0] * dx - max_x, best_idx[1] * dx - max_x
-        bx, by, bz = ico[best_idx[2]]
+        theta, phi = best_idx[2] * dtheta - np.pi, best_idx[3] * dphi
+        bx, by, bz = _sph_to_cart([1, theta, phi])[0]
         ax = x * (1 - ((bx * bx) / (1 + bz))) - y * ((bx * by) / (1 + bz))
         ay = x * (-((bx * by) / (1 + bz))) + y * (1 - ((by * by) / (1 + bz)))
         az = - x * bx - y * by
@@ -823,11 +831,13 @@ def hough_transform_3D(coords, grade=4, image_res=64, n_lines=20):
         group = _group_coords_by_line(coords, a, b, dx)
         a, b = _fit_line_to_coords(np.array([coords[i] for i in group]))
         logger.info(
-            f'Line found with {len(group)} points, from '
+            f'Vote count {voting_space[best_idx]} for the best line, '
+            f'with {len(group)} points on the line, from '
             f'{tuple((a + shift).round(3))}, to {tuple(b.round(3))}')
         for idx in group:  # remove votes
             px, py, pz = coords[idx]
-            _coord_vote(px, py, pz, ico, max_x, dx, voting_space, vote=-1)
+            _coord_vote(px, py, pz, ico, max_x, dx, dtheta, dphi,
+                        voting_space, vote=-1)
         groups.append(np.array([coords[i] + shift for i in group]))
         coords = np.delete(coords, group, axis=0)
         lines.append((a + shift, b))
@@ -845,12 +855,12 @@ def _cart_to_sph(cart):
     Parameters
     ----------
     cart_pts : ndarray, shape (n_points, 3)
-        Array containing points in Cartesian coordinates (x, y, z)
+        Points in Cartesian coordinates (x, y, z).
 
     Returns
     -------
     sph_pts : ndarray, shape (n_points, 3)
-        Array containing points in spherical coordinates (rad, azimuth, polar)
+        Points in spherical coordinates (rad, azimuth, polar).
     """
     cart = np.atleast_2d(cart)
     assert cart.ndim == 2 and cart.shape[1] == 3
@@ -864,17 +874,17 @@ def _cart_to_sph(cart):
 
 
 def _sph_to_cart(sph_pts):
-    """Convert spherical coordinates to Cartesion coordinates.
+    """Convert spherical coordinates to Cartesian coordinates.
 
     Parameters
     ----------
     sph_pts : ndarray, shape (n_points, 3)
-        Array containing points in spherical coordinates (rad, azimuth, polar)
+        Points in spherical coordinates (rad, azimuth, polar).
 
     Returns
     -------
     cart_pts : ndarray, shape (n_points, 3)
-        Array containing points in Cartesian coordinates (x, y, z)
+        Points in Cartesian coordinates (x, y, z).
 
     """
     sph_pts = np.atleast_2d(sph_pts)
