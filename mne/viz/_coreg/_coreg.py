@@ -19,6 +19,7 @@ class CoregistrationUI(HasTraits):
     _head_resolution = Bool()
     _head_transparency = Bool()
     _scale_mode = Unicode()
+    _icp_fid_match = Unicode()
 
     def __init__(self, info, subject=None, subjects_dir=None, fids='auto'):
         from ..backends.renderer import _get_renderer
@@ -38,7 +39,6 @@ class CoregistrationUI(HasTraits):
             "eeg": 1.0,
             "hpi": 1.0,
         }
-        self._reset_fitting_parameters()
 
         self._renderer = _get_renderer()
         self._renderer._window_close_connect(self._clean)
@@ -50,6 +50,7 @@ class CoregistrationUI(HasTraits):
                                               raise_error=True)
         self._subject = subject if subject is not None else self._subjects[0]
 
+        self._reset_fitting_parameters()
         self._configure_dock()
         self._update(clear=False)
 
@@ -82,6 +83,15 @@ class CoregistrationUI(HasTraits):
 
     def _set_scale_mode(self, mode):
         self._scale_mode = mode
+
+    def _set_icp_n_iterations(self, n_iterations):
+        self._icp_n_iterations = n_iterations
+
+    def _set_icp_fid_match(self, method):
+        self._icp_fid_match = method
+
+    def _set_point_weight(self, point, weight):
+        setattr(f"_{point}_weight", weight)
 
     @observe("_subjects_dir")
     def _subjects_dir_changed(self, change=None):
@@ -149,6 +159,11 @@ class CoregistrationUI(HasTraits):
         mode = None if self._scale_mode == "None" else self._scale_mode
         self._coreg.set_scale_mode(mode)
 
+    @observe("_icp_fid_match")
+    def _icp_fid_match_changed(self, change=None):
+        self._coreg.set_fid_match(self._icp_fid_match)
+        self._update()
+
     def _reset_fitting_parameters(self):
         self._icp_n_iterations = self._default_icp_n_iterations
         if "icp_n_iterations" in self._widgets:
@@ -210,16 +225,6 @@ class CoregistrationUI(HasTraits):
                         if tr in ("translation", "scale"):
                             val_idx *= 1000.0
                         self._widgets[widget_name].set_value(val_idx)
-
-    def _set_icp_fid_match(self, method):
-        self._coreg.set_fid_match(method)
-        self._update()
-
-    def _set_icp_n_iterations(self, n_iterations):
-        self._icp_n_iterations = n_iterations
-
-    def _set_point_weight(self, point, weight):
-        setattr(f"_{point}_weight", weight)
 
     def _fit_fiducials(self):
         self._coreg.fit_fiducials(
