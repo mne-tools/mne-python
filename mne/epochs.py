@@ -2256,7 +2256,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     The time window used for metadata generation need not correspond to the
     time window used to create the `~mne.Epochs`, to which the metadata will
     be attached; it may well be much shorter or longer, or not overlap at all,
-    if desired. The can be useful, for example, to include events that ccurred
+    if desired. The can be useful, for example, to include events that occurred
     before or after an epoch, e.g. during the inter-trial interval.
 
     .. versionadded:: 0.23

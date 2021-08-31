@@ -312,7 +312,7 @@ FIFF.FIFF_SQUID_BIAS        = 701
 FIFF.FIFF_SQUID_OFFSET      = 702
 FIFF.FIFF_SQUID_GATE        = 703
 #
-# Aspect values used to save charactersitic curves of SQUIDs. (mjk)
+# Aspect values used to save characteristic curves of SQUIDs. (mjk)
 #
 FIFF.FIFFV_ASPECT_IFII_LOW  = 1100
 FIFF.FIFFV_ASPECT_IFII_HIGH = 1101

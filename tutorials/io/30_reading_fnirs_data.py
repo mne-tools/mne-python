@@ -120,7 +120,7 @@ Custom Data Import
 Loading legacy data in CSV or TSV format
 ========================================
 
-.. warning:: This method is not supported and users are discoraged to use it.
+.. warning:: This method is not supported and users are discouraged to use it.
              You should convert your data to the
              `SNIRF <https://github.com/fNIRS/snirf>`_ format using the tools
              provided by the Society for functional Near-Infrared Spectroscopy,
