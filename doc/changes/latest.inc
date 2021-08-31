@@ -35,7 +35,7 @@ Current (0.24.dev0)
 
 .. |Mathieu Scheltienne| replace:: **Mathieu Scheltienne**
 
-.. |Tim Gates| replace:: **Tim Gates**
+.. |Timothy Gates| replace:: **Timothy Gates**
 
 Enhancements
 ~~~~~~~~~~~~
@@ -153,7 +153,7 @@ Enhancements
 
 Bugs
 ~~~~
-- Fix a few typos (:gh:`9706` **by new contributor** |Tim Gates|_)
+- Fix a few typos (:gh:`9706` **by new contributor** |Timothy Gates|_)
 
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)
 
