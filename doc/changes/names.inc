@@ -405,3 +405,5 @@
 .. _Darin Erat Sleiter: https://github.com/dsleiter
 
 .. _Mathieu Scheltienne: https://github.com/mscheltienne
+
+.. _Tim Gates: https://github.com/timgates42
