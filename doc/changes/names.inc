@@ -406,4 +406,4 @@
 
 .. _Mathieu Scheltienne: https://github.com/mscheltienne
 
-.. _Tim Gates: https://github.com/timgates42
+.. _Timothy Gates: https://github.com/timgates42
