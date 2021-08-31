@@ -62,7 +62,7 @@ def test_integer_sfreq_edf(tmp_path):
     ch_names = np.arange(len(ch_types)).astype(str).tolist()
     info = create_info(ch_names, sfreq=1000,
                        ch_types=ch_types)
-    data = prng.random(size=(len(ch_names), 1000)) * 1e-5
+    data = rng.random(size=(len(ch_names), 1000)) * 1e-5
 
     # include subject info and measurement date
     subject_info = dict(first_name='mne', last_name='python',
