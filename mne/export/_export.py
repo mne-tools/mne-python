@@ -10,8 +10,8 @@ from ..utils import verbose, logger, _validate_type
 
 
 @verbose
-def export_raw(fname, raw, fmt='auto', physical_range='auto', add_ch_type=False,
-               verbose=None):
+def export_raw(fname, raw, fmt='auto', physical_range='auto',
+               add_ch_type=False, verbose=None):
     """Export Raw to external formats.
 
     Supported formats: EEGLAB (set, uses :mod:`eeglabio`)

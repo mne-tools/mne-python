@@ -5,7 +5,6 @@
 # License: BSD-3-Clause
 
 from datetime import datetime, timezone
-from operator import add
 from mne.io import RawArray
 from mne.io.meas_info import create_info
 from pathlib import Path
