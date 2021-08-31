@@ -643,7 +643,7 @@ def _read_edf_header(fname, exclude):
         channels = list(range(nchan))
 
         # read in 16 byte labels and strip any extra spaces at the end
-        signal_labels = [fid.read(16).strip().decode('latin-1')
+        ch_labels = [fid.read(16).strip().decode('latin-1')
                          for ch in channels]
 
         # ch_names = signal_labels.copy()
@@ -653,15 +653,15 @@ def _read_edf_header(fname, exclude):
         # by a space
         ch_names = []
         ch_types = []
-        for ch, new_label in enumerate(signal_labels):
+        for ch_idx, this_label in enumerate(signal_labels):
             # if no channel type, then we will default to eeg
             ch_type = None
-            ch_name = new_label
+            ch_name = this_label
 
             # space is found, so the prefix is the channel type. 'Annotations'
             # is also a keyword we search for
-            if new_label.count(' ') == 1 and ('Annotations' not in new_label):
-                ch_type, ch_name = new_label.split(' ')
+            if this_label.count(' ') == 1 and ('Annotations' not in this_label):
+                ch_type, ch_name = this_label.split(' ')
 
                 # channel types should be upper case for easy comparison
                 ch_type = ch_type.upper()
