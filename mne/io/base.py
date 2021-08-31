@@ -13,7 +13,6 @@
 from contextlib import nullcontext
 from copy import deepcopy
 from datetime import timedelta
-from operator import add
 import os
 import os.path as op
 import shutil
@@ -1475,8 +1474,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    split_size, split_naming, 0, None, overwrite)
 
     @verbose
-    def export(self, fname, fmt='auto', physical_range='auto', add_ch_type=False,
-               verbose=None):
+    def export(self, fname, fmt='auto', physical_range='auto',
+               add_ch_type=False, verbose=None):
         """Export Raw to external formats.
 
         Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
