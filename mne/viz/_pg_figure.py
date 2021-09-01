@@ -908,7 +908,7 @@ class AnnotationDock(QDockWidget):
                 self.mne.current_description = new_des
                 self.main._setup_annotation_colors()
                 self._update_description_cmbx()
-                self.main._update_regions_colors()
+                self._update_regions_colors()
 
             edit_dlg.close()
 
@@ -1072,7 +1072,7 @@ class AnnotationDock(QDockWidget):
         if color.isValid():
             self.mne.annotation_segment_colors[curr_descr] = color
             self._update_description_cmbx()
-            self.main._update_regions_colors()
+            self._update_regions_colors()
 
     def update_values(self, region):
         """Update spinbox-values from region."""
