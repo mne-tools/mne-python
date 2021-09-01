@@ -365,6 +365,15 @@ def test_drop_channels():
     pytest.raises(ValueError, raw.drop_channels, 5)  # must be list or str
 
 
+def test_pick_channels():
+    """Test if dropping channels works with various arguments."""
+    raw = read_raw_fif(raw_fname, preload=True).crop(0, 0.1)
+    raw.pick(['MEG 0113', 'MEG 0112', 'MEG 0111'])  # selected correctly 3 channels
+    assert len(raw.ch_names) == 3
+    raw.pick(['MEG 0113', 'meg', 'MEG 0112', 'MEG 0111'])  # selected correctly 3 channels and ignored 'meg'
+    assert len(raw.ch_names) == 3
+
+
 def test_add_reference_channels():
     """Test if there is a new reference channel that consist of all zeros."""
     raw = read_raw_fif(raw_fname, preload=True)
