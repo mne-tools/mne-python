@@ -44,7 +44,6 @@ class CoregistrationUI(HasTraits):
 
         self._renderer = _get_renderer()
         self._renderer._window_close_connect(self._clean)
-        self._renderer.show()
         self._coreg = Coregistration(info, subject, subjects_dir, fids)
         self._fids = fids
         self._info = info
@@ -60,6 +59,7 @@ class CoregistrationUI(HasTraits):
         self._reset_fitting_parameters()
         self._configure_dock()
         self._update(clear=False)
+        self._renderer.show()
 
     def _set_subjects_dir(self, subjects_dir):
         self._subjects_dir = subjects_dir
