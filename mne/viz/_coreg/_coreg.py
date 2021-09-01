@@ -1,5 +1,6 @@
 import os
 import os.path as op
+import numpy as np
 from functools import partial
 from ...io import read_info, read_fiducials
 from ...coreg import Coregistration, _is_mri_subject
@@ -84,6 +85,25 @@ class CoregistrationUI(HasTraits):
 
     def _set_scale_mode(self, mode):
         self._scale_mode = mode
+
+    def _set_parameter(self, x, mode_name, coord):
+        params = dict(
+            rotation=self._coreg._rotation,
+            translation=self._coreg._translation,
+            scale=self._coreg._scale,
+        )
+        coords = ["X", "Y", "Z"]
+        idx = coords.index(coord)
+        if mode_name == "rotation":
+            params[mode_name][idx] = np.deg2rad(x)
+        else:
+            params[mode_name][idx] = x / 1000.0
+        self._coreg._update_params(
+            rot=params["rotation"],
+            tra=params["translation"],
+            sca=params["scale"],
+        )
+        self._update(update_parameters=False)
 
     def _set_icp_n_iterations(self, n_iterations):
         self._icp_n_iterations = n_iterations
@@ -421,8 +441,12 @@ class CoregistrationUI(HasTraits):
                 self._widgets[name] = self._renderer._dock_add_spin_box(
                     name=name,
                     value=0.,
-                    rng=[-100., 100.],
-                    callback=noop,
+                    rng=[-1000., 1000.],
+                    callback=partial(
+                        self._set_parameter,
+                        mode_name=mode_name.lower(),
+                        coord=coord,
+                    ),
                     compact=True,
                     double=True,
                     decimals=1,
