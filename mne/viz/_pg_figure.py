@@ -1526,13 +1526,19 @@ class PyQtGraphBrowser(BrowserBase, QMainWindow, metaclass=_PGMetaClass):
             '-': {
                 'qt_key': Qt.Key_Minus,
                 'slot': self.scale_all,
-                'parameter': [0.5],
+                'parameter': [0.75],
                 'description': ['Decrease Scale']
             },
             '+': {
                 'qt_key': Qt.Key_Plus,
                 'slot': self.scale_all,
-                'parameter': [2],
+                'parameter': [1.25],
+                'description': ['Increase Scale']
+            },
+            '=': {
+                'qt_key': Qt.Key_Equal,
+                'slot': self.scale_all,
+                'parameter': [1.25],
                 'description': ['Increase Scale']
             },
             'a': {
