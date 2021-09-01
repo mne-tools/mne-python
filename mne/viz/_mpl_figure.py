@@ -38,7 +38,6 @@ matplotlib.figure.Figure
 
 import datetime
 import platform
-import warnings
 from collections import OrderedDict
 from contextlib import contextmanager
 from copy import deepcopy
