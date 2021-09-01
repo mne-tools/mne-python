@@ -1,5 +1,6 @@
 import os
 import os.path as op
+from functools import partial
 from ...io import read_info, read_fiducials
 from ...coreg import Coregistration, _is_mri_subject
 from ...viz import plot_alignment
@@ -90,8 +91,8 @@ class CoregistrationUI(HasTraits):
     def _set_icp_fid_match(self, method):
         self._icp_fid_match = method
 
-    def _set_point_weight(self, point, weight):
-        setattr(f"_{point}_weight", weight)
+    def _set_point_weight(self, weight, point):
+        setattr(self, f"_{point}_weight", weight)
 
     @observe("_subjects_dir")
     def _subjects_dir_changed(self, change=None):
@@ -165,15 +166,17 @@ class CoregistrationUI(HasTraits):
         self._update()
 
     def _reset_fitting_parameters(self):
-        self._icp_n_iterations = self._default_icp_n_iterations
         if "icp_n_iterations" in self._widgets:
             self._widgets["icp_n_iterations"].set_value(
-                self._icp_n_iterations)
+                self._default_icp_n_iterations)
+        else:
+            self._icp_n_iterations = self._default_icp_n_iterations
 
-        self._icp_fid_match = self._default_icp_fid_matches[0]
         if "icp_fid_match" in self._widgets:
             self._widgets["icp_fid_match"].set_value(
-                self._icp_fid_match)
+                self._default_icp_fid_matches[0])
+        else:
+            self._icp_fid_match = self._default_icp_fid_matches[0]
 
         for fid in self._default_weights.keys():
             widget_name = f"{fid}_weight"
@@ -463,12 +466,12 @@ class CoregistrationUI(HasTraits):
         hlayout = self._renderer._dock_add_layout(vertical=False)
         for fid in self._default_fiducials:
             fid_lower = fid.lower()
-            name = f"{fid}_weight"
+            name = f"{fid_lower}_weight"
             self._widgets[name] = self._renderer._dock_add_spin_box(
                 name=fid,
                 value=getattr(self, f"_{fid_lower}_weight"),
                 rng=[1., 100.],
-                callback=lambda x: self._set_point_weight(fid_lower, x),
+                callback=partial(self._set_point_weight, point=fid_lower),
                 compact=True,
                 double=True,
                 layout=hlayout
@@ -482,7 +485,7 @@ class CoregistrationUI(HasTraits):
                 name=point,
                 value=getattr(self, f"_{point_lower}_weight"),
                 rng=[1., 100.],
-                callback=lambda x: self._set_point_weight(fid_lower, x),
+                callback=partial(self._set_point_weight, point=fid_lower),
                 compact=True,
                 double=True,
                 layout=hlayout
