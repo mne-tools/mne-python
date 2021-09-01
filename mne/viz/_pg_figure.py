@@ -8,9 +8,12 @@
 import datetime
 import math
 import platform
+from contextlib import contextmanager
 from functools import partial
 
 import numpy as np
+from scipy.stats import zscore
+
 from PyQt5.QtCore import (QEvent, QPointF, Qt, pyqtSignal, QRunnable,
                           QObject, QThreadPool, QRectF)
 from PyQt5.QtGui import (QFont, QIcon, QPixmap, QTransform,
@@ -24,17 +27,22 @@ from PyQt5.QtWidgets import (QAction, QColorDialog, QComboBox, QDialog,
                              QWidget, QStyleOptionSlider, QStyle,
                              QApplication, QGraphicsView, QProgressBar,
                              QVBoxLayout, QLineEdit, QCheckBox, QScrollArea)
-from pytestqt.exceptions import capture_exceptions
+from pyqtgraph import (AxisItem, GraphicsView, InfLineLabel, InfiniteLine,
+                       LinearRegionItem,
+                       PlotCurveItem, PlotItem, TextItem, ViewBox, functions,
+                       mkBrush, mkPen, setConfigOption, mkQApp, mkColor)
+try:
+    from pytestqt.exceptions import capture_exceptions
+except ModuleNotFoundError:
+    @contextmanager
+    def capture_exceptions():
+        yield [None]
+
 
 from ._figure import BrowserBase
 from ..annotations import _sync_onset
 from ..io.pick import _DATA_CH_TYPES_ORDER_DEFAULT
 from ..utils import logger
-from pyqtgraph import (AxisItem, GraphicsView, InfLineLabel, InfiniteLine,
-                       LinearRegionItem,
-                       PlotCurveItem, PlotItem, TextItem, ViewBox, functions,
-                       mkBrush, mkPen, setConfigOption, mkQApp, mkColor)
-from scipy.stats import zscore
 
 name = 'pyqtgraph'
 
