@@ -36,12 +36,13 @@ matplotlib.figure.Figure
 #
 # License: Simplified BSD
 
-import datetime
-import platform
 from collections import OrderedDict
 from contextlib import contextmanager
 from copy import deepcopy
+import datetime
 from functools import partial
+import platform
+import warnings
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -214,8 +215,10 @@ class MNEAnnotationFigure(MNEFigure):
         try:  # > 3.4.2
             selector.set_props(color=color, facecolor=color)
         except AttributeError:
-            selector.rect.set_color(color)
-            selector.rectprops.update(dict(facecolor=color))
+            with warnings.catch_warnings(record=True):
+                warnings.simplefilter('ignore', DeprecationWarning)
+                selector.rect.set_color(color)
+                selector.rectprops.update(dict(facecolor=color))
 
     def _click_override(self, event):
         """Override MPL radiobutton click detector to use transData."""
