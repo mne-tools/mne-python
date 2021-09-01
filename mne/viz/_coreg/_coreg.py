@@ -92,8 +92,7 @@ class CoregistrationUI(HasTraits):
             translation=self._coreg._translation,
             scale=self._coreg._scale,
         )
-        coords = ["X", "Y", "Z"]
-        idx = coords.index(coord)
+        idx = ["X", "Y", "Z"].index(coord)
         if mode_name == "rotation":
             params[mode_name][idx] = np.deg2rad(x)
         else:
@@ -504,12 +503,12 @@ class CoregistrationUI(HasTraits):
         hlayout = self._renderer._dock_add_layout(vertical=False)
         for point in ("HSP", "EEG", "HPI"):
             point_lower = point.lower()
-            name = f"{point}_weight"
+            name = f"{point_lower}_weight"
             self._widgets[name] = self._renderer._dock_add_spin_box(
                 name=point,
                 value=getattr(self, f"_{point_lower}_weight"),
                 rng=[1., 100.],
-                callback=partial(self._set_point_weight, point=fid_lower),
+                callback=partial(self._set_point_weight, point=point_lower),
                 compact=True,
                 double=True,
                 layout=hlayout

@@ -1796,7 +1796,8 @@ class Coregistration(object):
 
     @verbose
     def fit_icp(self, n_iterations=20, lpa_weight=1., nasion_weight=10.,
-                rpa_weight=1., verbose=None):
+                rpa_weight=1., hsp_weight=1., eeg_weight=1., hpi_weight=1.,
+                verbose=None):
         """Find MRI scaling, translation, and rotation to match HSP.
 
         Parameters
@@ -1809,6 +1810,12 @@ class Coregistration(object):
             Relative weight for nasion. The default value is 10.
         rpa_weight : float
             Relative weight for RPA. The default value is 1.
+        hsp_weight : float
+            Relative weight for HSP. The default value is 1.
+        eeg_weight : float
+            Relative weight for EEG. The default value is 1.
+        hpi_weight : float
+            Relative weight for HPI. The default value is 1.
         %(verbose)s
 
         Returns
@@ -1822,6 +1829,9 @@ class Coregistration(object):
         self._lpa_weight = lpa_weight
         self._nasion_weight = nasion_weight
         self._rpa_weight = rpa_weight
+        self._hsp_weight = hsp_weight
+        self._eeg_weight = eeg_weight
+        self._hsp_weight = hpi_weight
 
         # Initial guess (current state)
         est = self._parameters
