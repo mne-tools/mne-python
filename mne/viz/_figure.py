@@ -206,7 +206,8 @@ class BrowserBase(ABC):
         else:
             while ch_name in bads:  # to make sure duplicates are removed
                 bads.remove(ch_name)
-            if hasattr(self.mne, 'ch_colors'):  # Only mpl-backend has ch_colors
+            # Only mpl-backend has ch_colors
+            if hasattr(self.mne, 'ch_colors'):
                 color = self.mne.ch_colors[idx]
             else:
                 color = None
@@ -444,6 +445,7 @@ def _load_backend(backend_name):
         backend = importlib.import_module(name=_backends[backend_name],
                                           package='mne.viz')
     else:
+        repo_link = "https://github.com/marsipu/mne_pg_browser/zipball/main"
         try:
             from mne_pg_browser import _pg_figure as backend
         except ModuleNotFoundError:
@@ -453,8 +455,7 @@ def _load_backend(backend_name):
                 try:
                     subprocess.run(
                         [sys.executable, "-m", "pip", "install",
-                         "https://github.com/marsipu/"
-                         "mne_pg_browser/zipball/main"],
+                         repo_link],
                         check=True)
                 except subprocess.CalledProcessError:
                     print('Installation of pyqtgraph-backend failed!')
@@ -462,9 +463,8 @@ def _load_backend(backend_name):
                 else:
                     from mne_pg_browser import _pg_figure as backend
             else:
-                print('You can install the pyqtgraph-backend manually with '
-                      '"pip install '
-                      'https://github.com/marsipu/mne_pg_browser/zipball/main"')
+                print(f'You can install the pyqtgraph-backend manually with '
+                      f'"pip install {repo_link}"')
                 return _load_backend('matplotlib')
 
     logger.info(f'Using {backend_name} as 2D backend.')
