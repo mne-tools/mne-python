@@ -1104,14 +1104,17 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
     # second: match all to channel names
     #
 
-    bad_name = None
+    bad_names = []
     picks_name = list()
     for pick in picks:
         try:
             picks_name.append(info['ch_names'].index(pick))
         except ValueError:
-            bad_name = pick
-            break
+            bad_names.append(pick)
+
+    if bad_names:
+        logger.warning('Please not that some of the channel names were ignored since they are not appearing in the'
+                    ' instance channels list: {}'.format(str(bad_names)))
 
     #
     # third: match all to types
@@ -1158,7 +1161,7 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
                 'picks (%s) could not be interpreted as '
                 'channel names (no channel "%s"), channel types (no '
                 'type "%s"), or a generic type (just "all" or "data")'
-                % (repr(orig_picks) + extra_repr, bad_name, bad_type))
+                % (repr(orig_picks) + extra_repr, str(bad_names), bad_type))
         picks = np.array([], int)
     elif sum(any_found) > 1:
         raise RuntimeError('Some channel names are ambiguously equivalent to '
