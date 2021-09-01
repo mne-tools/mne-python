@@ -1114,7 +1114,7 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
 
     if bad_names:
         logger.warning('Please not that some of the channel names were ignored since they are not appearing in the'
-                       ' instance channels list: {}'.format(str(bad_names)))
+                    ' instance channels list: {}'.format(str(bad_names)))
 
     #
     # third: match all to types
