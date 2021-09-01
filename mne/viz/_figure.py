@@ -6,6 +6,8 @@
 #
 # License: Simplified BSD
 import importlib
+import subprocess
+import sys
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from copy import deepcopy
@@ -438,8 +440,33 @@ class BrowserBase(ABC):
 
 def _load_backend(backend_name):
     global backend
-    backend = importlib.import_module(name=_backends[backend_name],
-                                      package='mne.viz')
+    if backend_name == 'matplotlib':
+        backend = importlib.import_module(name=_backends[backend_name],
+                                          package='mne.viz')
+    else:
+        try:
+            from mne_pg_browser import _pg_figure as backend
+        except ModuleNotFoundError:
+            answer = input('The pyqtgraph-backend wasn\'t installed yet.\n'
+                           'Do you want to install it now (y/n)?')
+            if answer.lower() == 'y':
+                try:
+                    subprocess.run(
+                        [sys.executable, "-m", "pip", "install",
+                         "https://github.com/marsipu/"
+                         "mne_pg_browser/zipball/main"],
+                        check=True)
+                except subprocess.CalledProcessError:
+                    print('Installation of pyqtgraph-backend failed!')
+                    return _load_backend('matplotlib')
+                else:
+                    from mne_pg_browser import _pg_figure as backend
+            else:
+                print('You can install the pyqtgraph-backend manually with '
+                      '"pip install '
+                      'https://github.com/marsipu/mne_pg_browser/zipball/main"')
+                return _load_backend('matplotlib')
+
     logger.info(f'Using {backend_name} as 2D backend.')
 
     return backend
