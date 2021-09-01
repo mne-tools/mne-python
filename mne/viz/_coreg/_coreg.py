@@ -51,6 +51,11 @@ class CoregistrationUI(HasTraits):
         self._subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                               raise_error=True)
         self._subject = subject if subject is not None else self._subjects[0]
+        self._head_resolution = True
+        self._icp_n_iterations = self._default_icp_n_iterations
+        self._icp_fid_match = self._default_icp_fid_matches[0]
+        for fid in self._default_weights.keys():
+            setattr(self, f"_{fid}_weight", self._default_weights[fid])
 
         self._reset_fitting_parameters()
         self._configure_dock()
@@ -188,22 +193,14 @@ class CoregistrationUI(HasTraits):
         if "icp_n_iterations" in self._widgets:
             self._widgets["icp_n_iterations"].set_value(
                 self._default_icp_n_iterations)
-        else:
-            self._icp_n_iterations = self._default_icp_n_iterations
-
         if "icp_fid_match" in self._widgets:
             self._widgets["icp_fid_match"].set_value(
                 self._default_icp_fid_matches[0])
-        else:
-            self._icp_fid_match = self._default_icp_fid_matches[0]
-
         for fid in self._default_weights.keys():
             widget_name = f"{fid}_weight"
             if widget_name in self._widgets:
                 self._widgets[widget_name].set_value(
                     self._default_weights[fid])
-            else:
-                setattr(self, f"_{fid}_weight", self._default_weights[fid])
 
     def _reset_fiducials(self):
         self._set_current_fiducial(self._default_fiducials[0])
