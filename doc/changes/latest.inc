@@ -37,6 +37,8 @@ Current (0.24.dev0)
 
 .. |Timothy Gates| replace:: **Timothy Gates**
 
+.. |Reza Shoorangiz| replace:: **Reza Shoorangiz**
+
 Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
@@ -157,7 +159,7 @@ Bugs
 
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)
 
-- Fix bug with `mne.io.read_raw_curry` to allow reading Curry 8 event files with '.cdt.ceo' extension (:gh:`9381` by **new contributor** |Xiaokai Xia|_ and `Daniel McCloy`_)
+- Fix bug with `mne.io.read_raw_curry` to allow reading Curry 7 and 8 event files with '.ceo' and '.cdt.ceo' extensions (:gh:`9381`, :gh:`9712` by **new contributor** |Xiaokai Xia|_, `Daniel McCloy`_, and **by new contributor** |Reza Shoorangiz|_)
 
 - Fix bug with :func:`mne.io.read_raw_nihon` where latin-1 annotations could not be read (:gh:`9384` by `Alex Gramfort`_)
 
