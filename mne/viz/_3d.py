@@ -961,20 +961,25 @@ def _plot_head_surface(renderer, head, subject, subjects_dir, bem,
 
 
 def _plot_axes(renderer, info, to_cf_t, head_mri_t):
+    """Render different axes a 3D scene."""
     axes = [(to_cf_t['head'], (0.9, 0.3, 0.3))]  # always show head
     if not np.allclose(head_mri_t['trans'], np.eye(4)):  # Show MRI
         axes.append((to_cf_t['mri'], (0.6, 0.6, 0.6)))
     if pick_types(info, meg=True).size > 0:  # Show MEG
         axes.append((to_cf_t['meg'], (0., 0.6, 0.6)))
+    actors = list()
     for ax in axes:
         x, y, z = np.tile(ax[0]['trans'][:3, 3], 3).reshape((3, 3)).T
         u, v, w = ax[0]['trans'][:3, :3]
-        renderer.sphere(center=np.column_stack((x[0], y[0], z[0])),
-                        color=ax[1], scale=3e-3)
-        renderer.quiver3d(x=x, y=y, z=z, u=u, v=v, w=w, mode='arrow',
-                          scale=2e-2, color=ax[1],
-                          scale_mode='scalar', resolution=20,
-                          scalars=[0.33, 0.66, 1.0])
+        actor, _ = renderer.sphere(center=np.column_stack((x[0], y[0], z[0])),
+                                   color=ax[1], scale=3e-3)
+        actors.append(actor)
+        actor, _ = renderer.quiver3d(x=x, y=y, z=z, u=u, v=v, w=w,
+                                     mode='arrow', scale=2e-2, color=ax[1],
+                                     scale_mode='scalar', resolution=20,
+                                     scalars=[0.33, 0.66, 1.0])
+        actors.append(actor)
+    return actors
 
 
 def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
