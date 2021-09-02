@@ -25,7 +25,7 @@ from .utils import _get_color_list, _setup_plot_projector
 MNE_BROWSE_BACKEND = None
 _backends = dict(
     matplotlib='._mpl_figure',
-    pyqtgraph='._pg_figure'
+    # pyqtgraph='._pg_figure'
 )
 backend = None
 
