@@ -866,6 +866,7 @@ def _add_mesh(plotter, *args, **kwargs):
     if 'render' not in kwargs and 'render' in _get_args(plotter.add_mesh):
         kwargs['render'] = False
     actor = plotter.add_mesh(*args, **kwargs)
+    plotter.mesh = None  # keep track of it ourselves
     if smooth_shading and 'Normals' in _point_data(mesh):
         prop = actor.GetProperty()
         prop.SetInterpolationToPhong()
