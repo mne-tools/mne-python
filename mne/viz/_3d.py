@@ -417,22 +417,6 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     return renderer.scene()
 
 
-def _plot_head_surface(head, subject, subjects_dir, bem,
-                       coord_frame, to_cf_t, renderer, alpha, color=None):
-    color = DEFAULTS['coreg']['head_color'] if color is None else color
-    actor = None
-    surf = None
-    if head is not False:
-        surf = _get_head_surface(head, subject, subjects_dir, bem=bem)
-        surf = transform_surface_to(
-            surf, coord_frame, [to_cf_t['mri'], to_cf_t['head']],
-            copy=True)
-        actor, _ = renderer.surface(
-            surface=surf, color=color, opacity=alpha,
-            backface_culling=False)
-    return actor, surf
-
-
 @verbose
 def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    surfaces='auto', coord_frame='head',
@@ -728,8 +712,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     # plot head
     _, head_surf = _plot_head_surface(
-        head, subject, subjects_dir, bem, coord_frame,
-        to_cf_t, renderer, alpha=head_alpha)
+        renderer, head, subject, subjects_dir, bem, coord_frame,
+        to_cf_t, alpha=head_alpha)
 
     # plot surfaces
     if brain and 'lh' not in surfs:  # one layer sphere
@@ -817,7 +801,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     # plot sensors
     if picks.size > 0:
-        _plot_sensors(info, to_cf_t, renderer, picks, meg, eeg, fnirs,
+        _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                       warn_meg, head_surf, 'm')
 
     if src is not None:
@@ -972,7 +956,24 @@ def _ch_pos_in_coord_frame(info, to_cf_t, warn_meg=True, verbose=None):
     return chs['ch_pos'], chs['sources'], chs['detectors']
 
 
-def _plot_sensors(info, to_cf_t, renderer, picks, meg, eeg, fnirs,
+def _plot_head_surface(renderer, head, subject, subjects_dir, bem,
+                       coord_frame, to_cf_t, alpha, color=None):
+    """Render a head surface in a 3D scene."""
+    color = DEFAULTS['coreg']['head_color'] if color is None else color
+    actor = None
+    surf = None
+    if head is not False:
+        surf = _get_head_surface(head, subject, subjects_dir, bem=bem)
+        surf = transform_surface_to(
+            surf, coord_frame, [to_cf_t['mri'], to_cf_t['head']],
+            copy=True)
+        actor, _ = renderer.surface(
+            surface=surf, color=color, opacity=alpha,
+            backface_culling=False)
+    return list(actor), surf
+
+
+def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                   warn_meg, head_surf, units):
     """Render sensors in a 3D scene."""
     defaults = DEFAULTS['coreg']
