@@ -445,7 +445,7 @@ def _load_backend(backend_name):
         backend = importlib.import_module(name=_backends[backend_name],
                                           package='mne.viz')
     else:
-        repo_link = "https://github.com/mne-tools/mne_qt_browser/zipball/main"
+        repo_link = "https://github.com/mne-tools/mne-qt-browser/zipball/main"
         try:
             from mne_qt_browser import _pg_figure as backend
         except ModuleNotFoundError:
