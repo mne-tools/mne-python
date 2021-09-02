@@ -1112,9 +1112,9 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
         except ValueError:
             bad_names.append(pick)
 
-    if bad_names:
-        logger.warning('Please not that some of the channel names were ignored since they are not appearing in the'
-                    ' instance channels list: {}'.format(str(bad_names)))
+    if bad_names and bad_names[0] not in ["all", "data"]:
+        logger.warning(f'Channel(s) {bad_names} could not be picked, because '
+                        'they are not present in the info instance.')
 
     #
     # third: match all to types

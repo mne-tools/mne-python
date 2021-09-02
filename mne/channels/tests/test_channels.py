@@ -372,7 +372,11 @@ def test_pick_channels():
     assert len(raw.ch_names) == 3
     raw.pick(['MEG 0113', 'meg', 'MEG 0112', 'MEG 0111'])  # selected correctly 3 channels and ignored 'meg'
     assert len(raw.ch_names) == 3
-
+    names_len = len(raw.ch_names)
+    raw.pick(['all'])  # selected correctly 3 channels and ignored 'meg'
+    assert len(raw.ch_names) == names_len
+    raw.pick('all')  # selected correctly 3 channels and ignored 'meg'
+    assert len(raw.ch_names) == names_len
 
 def test_add_reference_channels():
     """Test if there is a new reference channel that consist of all zeros."""
