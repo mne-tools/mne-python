@@ -2557,10 +2557,10 @@ niter : dict | tuple | None
     step as a key. Steps not in the dictionary will use the default value.
     The default (None) is equivalent to:
 
-        niter=dict(translation=(100, 100, 10),
-                   rigid=(100, 100, 10),
-                   affine=(100, 100, 10),
-                   sdr=(5, 5, 3))
+        niter=dict(translation=(10000, 1000, 100),
+                   rigid=(10000, 1000, 100),
+                   affine=(10000, 1000, 100),
+                   sdr=(10, 10, 5))
 """
 docdict['pipeline'] = """
 pipeline : str | tuple
