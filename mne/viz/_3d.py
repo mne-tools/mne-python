@@ -417,6 +417,22 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     return renderer.scene()
 
 
+def _plot_head_surface(head, subject, subjects_dir, bem,
+                       coord_frame, to_cf_t, renderer, alpha, color=None):
+    color = DEFAULTS['coreg']['head_color'] if color is None else color
+    actor = None
+    surf = None
+    if head is not False:
+        surf = _get_head_surface(head, subject, subjects_dir, bem=bem)
+        surf = transform_surface_to(
+            surf, coord_frame, [to_cf_t['mri'], to_cf_t['head']],
+            copy=True)
+        actor, _ = renderer.surface(
+            surface=surf, color=color, opacity=alpha,
+            backface_culling=False)
+    return actor, surf
+
+
 @verbose
 def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    surfaces='auto', coord_frame='head',
@@ -645,23 +661,17 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                 surfs[hemi] = _read_mri_surface(brain_fname)
 
     # Head surface:
-    head = [s for s in surfaces if s in
-            ('auto', 'head', 'outer_skin', 'head-dense', 'seghead')]
+    head_keys = ('auto', 'head', 'outer_skin', 'head-dense', 'seghead')
+    head = [s for s in surfaces if s in head_keys]
     if len(head) > 1:
         raise ValueError('Can only supply one head-like surface name, '
                          f'got {head}')
     head = head[0] if head else False
-    if head is not False:
-        surfaces.pop(surfaces.index(head))
-        head_surf = _get_head_surface(head, subject, subjects_dir, bem=bem)
-        if head_surf is not None:
-            surfs['head'] = head_surf
-    elif 'projected' in eeg:
+    if head is False and 'projected' in eeg:
         raise ValueError('A head surface is required to project EEG, '
                          '"head", "outer_skin", "head-dense" or "seghead" '
                          'must be in surfaces or surfaces must be "auto"')
-    else:
-        head_surf = None
+    surfaces.pop(surfaces.index(head))
 
     # Skull surface:
     skulls = [s for s in surfaces if s in ('outer_skull', 'inner_skull')]
@@ -693,9 +703,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         head_alpha = max_alpha
     else:
         head_alpha = alpha_range[0]
-    alphas = dict(head=head_alpha, helmet=0.25, lh=hemi_val, rh=hemi_val)
-    colors = dict(head=DEFAULTS['coreg']['head_color'],
-                  helmet=DEFAULTS['coreg']['helmet_color'],
+    alphas = dict(helmet=0.25, lh=hemi_val, rh=hemi_val)
+    colors = dict(helmet=DEFAULTS['coreg']['helmet_color'],
                   lh=(0.5,) * 3, rh=(0.5,) * 3)
     for idx, name in enumerate(skulls):
         alphas[name] = alpha_range[idx + 1]
@@ -706,6 +715,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     for k, v in user_alpha.items():
         if v is not None:
             alphas[k] = v
+        if k in head_keys:
+            head_alpha = v
     fid_colors = tuple(
         defaults[f'{key}_color'] for key in ('lpa', 'nasion', 'rpa'))
 
@@ -715,15 +726,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     if interaction == 'terrain':
         renderer.set_interaction('terrain')
 
+    # plot head
+    _, head_surf = _plot_head_surface(
+        head, subject, subjects_dir, bem, coord_frame,
+        to_cf_t, renderer, alpha=head_alpha)
+
     # plot surfaces
-    for key, surf in surfs.items():
-        # Surfs can sometimes be in head coords (e.g., if coming from sphere)
-        assert isinstance(surf, dict), f'{key}: {type(surf)}'
-        surf = transform_surface_to(
-            surf, coord_frame, [to_cf_t['mri'], to_cf_t['head']], copy=True)
-        renderer.surface(surface=surf, color=colors[key],
-                         opacity=alphas[key],
-                         backface_culling=(key != 'helmet'))
     if brain and 'lh' not in surfs:  # one layer sphere
         assert bem['coord_frame'] == FIFF.FIFFV_COORD_HEAD
         center = bem['r0'].copy()
