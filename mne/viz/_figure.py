@@ -449,7 +449,7 @@ def _load_backend(backend_name):
         try:
             from mne_qt_browser import _pg_figure as backend
         except ModuleNotFoundError:
-            answer = input('The pyqtgraph-backend wasn\'t installed yet.\n'
+            answer = input('The pyqtgraph-backend is not installed yet.\n'
                            'Do you want to install it now (y/n)?')
             if answer.lower() == 'y':
                 try:
