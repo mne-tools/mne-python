@@ -373,7 +373,7 @@ def test_pick_channels():
     raw.pick(['MEG 0113', 'MEG 0112', 'MEG 0111'])
     assert len(raw.ch_names) == 3
 
-    # selected correctly 3 channels and ignored 'meg', and emmit warning
+    # selected correctly 3 channels and ignored 'meg', and emit warning
     with pytest.warns(RuntimeWarning, match='not present in the info'):
         raw.pick(['MEG 0113', "meg", 'MEG 0112', 'MEG 0111'])
         assert len(raw.ch_names) == 3
