@@ -651,11 +651,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         raise ValueError('Can only supply one head-like surface name, '
                          f'got {head}')
     head = head[0] if head else False
-    if head is False and 'projected' in eeg:
+    if head is not False:
+        surfaces.pop(surfaces.index(head))
+    elif 'projected' in eeg:
         raise ValueError('A head surface is required to project EEG, '
                          '"head", "outer_skin", "head-dense" or "seghead" '
                          'must be in surfaces or surfaces must be "auto"')
-    surfaces.pop(surfaces.index(head))
 
     # Skull surface:
     skulls = [s for s in surfaces if s in ('outer_skull', 'inner_skull')]
@@ -699,7 +700,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     for k, v in user_alpha.items():
         if v is not None:
             alphas[k] = v
-        if k in head_keys:
+        if k in head_keys and v is not None:
             head_alpha = v
     fid_colors = tuple(
         defaults[f'{key}_color'] for key in ('lpa', 'nasion', 'rpa'))
