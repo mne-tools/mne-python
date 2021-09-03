@@ -957,7 +957,7 @@ def _plot_head_surface(renderer, head, subject, subjects_dir, bem,
         actor, _ = renderer.surface(
             surface=surf, color=color, opacity=alpha,
             backface_culling=False)
-    return list(actor), surf
+    return actor, surf
 
 
 def _plot_axes(renderer, info, to_cf_t, head_mri_t):
