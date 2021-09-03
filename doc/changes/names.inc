@@ -407,3 +407,5 @@
 .. _Mathieu Scheltienne: https://github.com/mscheltienne
 
 .. _Timothy Gates: https://github.com/timgates42
+
+.. _Evgeny Goldstein: https://github.com/evgenygoldstein

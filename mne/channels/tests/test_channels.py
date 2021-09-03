@@ -368,12 +368,16 @@ def test_drop_channels():
 def test_pick_channels():
     """Test if picking channels works with various arguments."""
     raw = read_raw_fif(raw_fname, preload=True).crop(0, 0.1)
+
     # selected correctly 3 channels
     raw.pick(['MEG 0113', 'MEG 0112', 'MEG 0111'])
     assert len(raw.ch_names) == 3
-    # selected correctly 3 channels and ignored 'meg'
-    raw.pick(['MEG 0113', 'meg', 'MEG 0112', 'MEG 0111'])
-    assert len(raw.ch_names) == 3
+
+    # selected correctly 3 channels and ignored 'meg', and emmit warning
+    with pytest.warns(RuntimeWarning, match='not present in the info'):
+        raw.pick(['MEG 0113', "meg", 'MEG 0112', 'MEG 0111'])
+        assert len(raw.ch_names) == 3
+
     names_len = len(raw.ch_names)
     raw.pick(['all'])  # selected correctly all channels
     assert len(raw.ch_names) == names_len

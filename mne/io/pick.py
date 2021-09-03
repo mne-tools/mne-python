@@ -12,7 +12,7 @@ import numpy as np
 
 from .constants import FIFF
 from ..utils import (logger, verbose, _validate_type, fill_doc, _ensure_int,
-                     _check_option)
+                     _check_option, warn)
 
 
 def get_channel_type_constants(include_defaults=False):
@@ -1113,8 +1113,8 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
             bad_names.append(pick)
 
     if bad_names and bad_names[0] not in ["all", "data"]:
-        logger.warning(f'Channel(s) {bad_names} could not be picked, because '
-                       'they are not present in the info instance.')
+        warn(f'Channel(s) {bad_names} could not be picked, because '
+             'they are not present in the info instance.')
 
     #
     # third: match all to types
