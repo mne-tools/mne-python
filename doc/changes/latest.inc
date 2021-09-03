@@ -155,7 +155,7 @@ Enhancements
 
 Bugs
 ~~~~
-- Fix bug: channels.py pick function can behave unexpectedly when parameter list contains channels which are not in info instance (:gh:`9708` **by new contributor** |Evgeny Goldstein|_)
+- Fix bug in :meth:`mne.io.Raw.pick` and related functions when parameter list contains channels which are not in info instance (:gh:`9708` **by new contributor** |Evgeny Goldstein|_)
 
 - Fix a few typos (:gh:`9706` **by new contributor** |Timothy Gates|_)
 
