@@ -1112,7 +1112,7 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
         except ValueError:
             bad_names.append(pick)
 
-    if bad_names and bad_names[0] not in ["all", "data"]:
+    if bad_names and bad_names[0] not in ["all", "data", "data_or_ica"]:
         warn(f'Channel(s) {bad_names} could not be picked, because '
              'they are not present in the info instance.')
 
