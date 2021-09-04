@@ -1112,10 +1112,6 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
         except ValueError:
             bad_names.append(pick)
 
-    if bad_names and bad_names[0] not in ["all", "data", "data_or_ica"]:
-        warn(f'Channel(s) {bad_names} could not be picked, because '
-             'they are not present in the info instance.')
-
     #
     # third: match all to types
     #
@@ -1169,8 +1165,13 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
                            'picks for these')
     else:
         picks = np.array(all_picks[np.where(any_found)[0][0]])
+
+    picked_ch_type_or_generic = not len(picks_name)
+    if len(bad_names) > 0 and not picked_ch_type_or_generic:
+        warn(f'Channel(s) {bad_names} could not be picked, because '
+             'they are not present in the info instance.')
+
     if return_kind:
-        picked_ch_type_or_generic = not len(picks_name)
         return picks, picked_ch_type_or_generic
     return picks
 
