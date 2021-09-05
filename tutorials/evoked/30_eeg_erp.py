@@ -523,25 +523,17 @@ print_peak_measures(ch_roi, bad_tmin, bad_tmax, bad_lat_roi, bad_amp_roi)
 # time window. Visual inspection will always help you to convince yourself the
 # data returned are actual peaks.
 
-# Make an empty figure handle and axis
-fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1)
+fig, axs = plt.subplots(nrows=2, ncols=1)
+words = (('Bad', 'missing'), ('Good', 'finding'))
+times = (np.array([bad_tmin, bad_tmax]), np.array([good_tmin, good_tmax]))
+colors = ('C1', 'C0')
 
-# Plot the ERP, actual peak, and the bad time window searched
-l_vis_roi.plot(axes=ax1, time_unit='ms', show=False,
-               titles='Bad time window missing peak')
-ax1.plot(lat_roi * 1e3, amp_roi * 1e6, marker="*", color='C6')
-ax1.axvspan(bad_tmin * 1e3, bad_tmax * 1e3, facecolor='C1',
-            alpha=.3)
-ax1.set_xlim(-50, 150)  # Show zoomed in around peak
-
-# Plot the ERP, actual peak, and the good time window searched
-l_vis_roi.plot(axes=ax2, time_unit='ms', show=False,
-               titles='Good time window finding peak')
-ax2.plot(lat_roi * 1e3, amp_roi * 1e6, marker="*", color='C6')
-ax2.axvspan(good_tmin * 1e3, good_tmax * 1e3, facecolor='C0',
-            alpha=.3)
-ax2.set_xlim(-50, 150)  # Show zoomed in around peak
-plt.tight_layout()
+for ix, ax in enumerate(axs):
+    title = '{} time window {} peak'.format(words[ix])
+    l_vis_roi.plot(axes=ax, time_unit='ms', show=False, titles=title)
+    ax.plot(lat_roi * 1e3, amp_roi * 1e6, marker='*', color='C6')
+    ax.axvspan(*(times[ix] * 1e3), facecolor=colors[ix], alpha=0.3)
+    ax.set_xlim(-50, 150)  # Show zoomed in around peak
 
 # %%
 # Mean Amplitude
@@ -552,7 +544,7 @@ plt.tight_layout()
 # approach is that it is less sensitive to high frequency noise (compared to
 # peak amplitude measures) because averaging over a time window acts like a
 # low-pass filter (see discussion in the above section
-# `Peak latency and amplitude`_)
+# `Peak latency and amplitude`_).
 #
 # When using mean amplitude measures, selecting the time window based on
 # when the effect of interest (e.g., the difference between two conditions) can
@@ -604,8 +596,8 @@ print(mean_amp_roi_df.groupby('hemisphere').mean())
 # As demonstrated in the above example, the mean amplitude was higher and
 # positive in right compared to left hemisphere channels. It should be
 # reiterated that both that spatial and temporal window you use should be
-# determined in an independent manner (e.g., *a priori*, "localizer", from
-# and independent condition) and not based on the data you will use to test
+# determined in an independent manner (e.g., *a priori* from a "localizer" or
+# other independent condition) and not based on the data you will use to test
 # your hypotheses.
 #
 # The above example can be modified to extract the the mean amplitude
