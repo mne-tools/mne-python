@@ -400,15 +400,16 @@ epochs['auditory'].average()
 # specified time window and the time point (or latency) at which the peak
 # amplitude occurred.
 #
-# Peak measures can be obtained using the `~mne.Evoked.get_peak` method. There
-# are two important things to point out about `~mne.Evoked.get_peak` method.
-# First, it finds the strongest peak looking across **all channels** of the
-# selected type that are available in the `~mne.Evoked` object. As a
-# consequence, if you want to restrict the search for the peak to a group of
-# channels or a single channel, you should first use the `~mne.Evoked.pick`
-# or `~mne.Evoked.pick_channels` methods. Second, the `~mne.Evoked.get_peak`
-# method can find different types of peaks using the ``mode`` argument. There
-# are three options:
+# Peak measures can be obtained using the :meth:`~mne.Evoked.get_peak` method.
+# There are two important things to point out about
+# :meth:`~mne.Evoked.get_peak` method. First, it finds the strongest peak
+# looking across **all channels** of the selected type that are available in
+# the :class:`~mne.Evoked` object. As a consequence, if you want to restrict
+# the search for the peak to a group of channels or a single channel, you
+# should first use the :meth:`~mne.Evoked.pick` or
+# :meth:`~mne.Evoked.pick_channels` methods. Second, the
+# :meth:`~mne.Evoked.get_peak` method can find different types of peaks using
+# the ``mode`` argument. There are three options:
 #
 # * ``mode='pos'``: finds the peak with a positive voltage (ignores
 #   negative voltages)
@@ -419,10 +420,10 @@ epochs['auditory'].average()
 #
 # The following example demonstrates how to find the first positive peak in the
 # ERP (i.e., the P100) for the left visual condition (i.e., the
-# ``l_vis`` `~mne.Evoked` object). The time window used to search for the peak
-# ranges from .08 to .12 s. This time window was selected because it is when
-# P100 typically occurs. Note that all ``'eeg'`` channels are submitted
-# to the `~mne.Evoked.get_peak` method.
+# ``l_vis`` :class:`~mne.Evoked` object). The time window used to search for
+# the peak ranges from .08 to .12 s. This time window was selected because it
+# is when P100 typically occurs. Note that all ``'eeg'`` channels are submitted
+# to the :meth:`~mne.Evoked.get_peak` method.
 
 
 # Define a function to print out the channel (ch) containing the
@@ -451,9 +452,9 @@ print_peak_measures(ch, good_tmin, good_tmax, lat, amp)
 # the chosen time window from all of the ``'eeg'`` channels searched.
 # In practice, one might want to pull out the peak for
 # an *a priori* region of interest or a single channel depending on the study.
-# This can be done by combining the `~mne.Evoked.pick`
-# or `~mne.Evoked.pick_channels` methods with the `~mne.Evoked.get_peak`
-# method.
+# This can be done by combining the :meth:`~mne.Evoked.pick`
+# or :meth:`~mne.Evoked.pick_channels` methods with the
+# :meth:`~mne.Evoked.get_peak` method.
 #
 # Here, let's assume we believe the effects of interest will occur
 # at ``eeg59``.
@@ -472,8 +473,8 @@ print_peak_measures(ch_roi, good_tmin, good_tmax, lat_roi, amp_roi)
 # %%
 # While the peak latencies are the same in channels ``eeg55`` and ``eeg59``,
 # the peak amplitudes differ. This approach can also be applied to virtual
-# channels created with the `~mne.channels.combine_channels` function and
-# difference waves created with the `mne.combine_evoked` function (see
+# channels created with the :func:`~mne.channels.combine_channels` function and
+# difference waves created with the :func:`mne.combine_evoked` function (see
 # ``aud_minus_vis`` in section `Comparing conditions`_ above).
 #
 # Peak measures are very susceptible to high frequency noise in the
@@ -482,7 +483,7 @@ print_peak_measures(ch_roi, good_tmin, good_tmax, lat_roi, amp_roi)
 # confound comparisons across conditions where ERPs differ in the level of high
 # frequency noise, such as when the conditions differ in the number of trials
 # contributing to the ERP. One way to avoid this is to apply a non-causal
-# low-pass filter to the ERP . Low-pass filters reduce the contribution of high
+# low-pass filter to the ERP. Low-pass filters reduce the contribution of high
 # frequency noise by smoothing out fast (i.e., high frequency) fluctuations in
 # the signal (see :ref:`disc-filtering`). While this can reduce the positive
 # bias in peak amplitude measures caused by high frequency noise, low-pass
@@ -491,13 +492,13 @@ print_peak_measures(ch_roi, good_tmin, good_tmax, lat_roi, amp_roi)
 #
 # If using peak measures, it is critical to visually inspect the data to
 # make sure the selected time window actually contains a peak
-# (`~mne.Evoked.get_peak` will always identify a peak).
+# (:meth:`~mne.Evoked.get_peak` will always identify a peak).
 # Visual inspection allows to easily verify whether the automatically found
-# peak is correct. The `~mne.Evoked.get_peak` detects the maximum or minimum
-# voltage in the specified time range and returns the latency and amplitude
-# of this peak. There is no guarantee that this method will return an actual
-# peak. Instead, it may return a value on the rising or falling edge of the
-# peak we are trying to find.
+# peak is correct. The :meth:`~mne.Evoked.get_peak` detects the maximum or
+# minimum voltage in the specified time range and returns the latency and
+# amplitude of this peak. There is no guarantee that this method will return
+# an actual peak. Instead, it may return a value on the rising or falling edge
+# of the peak we are trying to find.
 #
 # The following example demonstrates why visual inspection is crucial. Below,
 # we use a known bad time window (.095 to .135 s) to search for a peak in
@@ -529,7 +530,7 @@ times = (np.array([bad_tmin, bad_tmax]), np.array([good_tmin, good_tmax]))
 colors = ('C1', 'C0')
 
 for ix, ax in enumerate(axs):
-    title = '{} time window {} peak'.format(words[ix])
+    title = '{} time window {} peak'.format(*words[ix])
     l_vis_roi.plot(axes=ax, time_unit='ms', show=False, titles=title)
     ax.plot(lat_roi * 1e3, amp_roi * 1e6, marker='*', color='C6')
     ax.axvspan(*(times[ix] * 1e3), facecolor=colors[ix], alpha=0.3)
@@ -560,17 +561,17 @@ for ix, ax in enumerate(axs):
 # apply to selecting channels used for analysis.
 #
 # The following example demonstrates how to pull out the mean amplitude
-# from the left visual condition (i.e., the ``l_vis`` `~mne.Evoked` object)
-# using from selected channels and time windows. Stimulating the left visual
-# field is increases neural activity visual cortex of the contralateral
-# (i.e., right) hemisphere. We can test this by examining the amplitude of
-# the ERP for left visual field stimulation over right (contralateral) and
-# left (ipsilateral) channels. The channels used for this analysis are
-# ``eeg54`` and ``eeg57`` (left hemisphere), and ``eeg59`` and ``eeg55``
-# (right hemisphere). The time window used is .08 (``good_tmin``) to .12 s
-# (``good_tmax``) as it corresponds to when P100 typically occurs. The P100
-# is sensitive to left and right visual field stimulation. The mean amplitude
-# is extracted from the above four channels and stored in a
+# from the left visual condition (i.e., the ``l_vis`` :class:`~mne.Evoked`
+# object) using from selected channels and time windows. Stimulating the
+# left visual field is increases neural activity visual cortex of the
+# contralateral (i.e., right) hemisphere. We can test this by examining the
+# amplitude of the ERP for left visual field stimulation over right
+# (contralateral) and left (ipsilateral) channels. The channels used for this
+# analysis are ``eeg54`` and ``eeg57`` (left hemisphere), and ``eeg59`` and
+# ``eeg55`` (right hemisphere). The time window used is .08 (``good_tmin``)
+# to .12 s (``good_tmax``) as it corresponds to when P100 typically occurs. The
+# P100 is sensitive to left and right visual field stimulation. The mean
+# amplitude is extracted from the above four channels and stored in a
 # :class:`pandas.DataFrame`.
 
 # Select all of the channels and crop to the time window
@@ -596,9 +597,9 @@ print(mean_amp_roi_df.groupby('hemisphere').mean())
 # As demonstrated in the above example, the mean amplitude was higher and
 # positive in right compared to left hemisphere channels. It should be
 # reiterated that both that spatial and temporal window you use should be
-# determined in an independent manner (e.g., *a priori* from a "localizer" or
-# other independent condition) and not based on the data you will use to test
-# your hypotheses.
+# determined in an independent manner (e.g., defined *a priori* from prior
+# research, a "localizer" or another independent condition) and not based
+# on the data you will use to test your hypotheses.
 #
 # The above example can be modified to extract the the mean amplitude
 # from all channels and store the resulting output in
