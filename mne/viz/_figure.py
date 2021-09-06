@@ -445,7 +445,8 @@ def _load_backend(backend_name):
         backend = importlib.import_module(name=_backends[backend_name],
                                           package='mne.viz')
     else:
-        repo_link = "https://github.com/mne-tools/mne-qt-browser/zipball/main"
+        repo_link = "git+https://github.com/mne-tools/" \
+                    "mne-qt-browser.git#egg=mne-qt-browser"
         try:
             from mne_qt_browser import _pg_figure as backend
         except ModuleNotFoundError:
@@ -463,7 +464,7 @@ def _load_backend(backend_name):
                 else:
                     from mne_qt_browser import _pg_figure as backend
             else:
-                print(f'You can install the pyqtgraph-backend manually with '
+                print(f'You can install the pyqtgraph-backend manually with:\n'
                       f'"pip install {repo_link}"')
                 return _load_backend('matplotlib')
 
