@@ -729,34 +729,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     # plot points
     _check_option('dig', dig, (True, False, 'fiducials'))
     if dig:
-        no_ext_or_hpi = True
         if dig is True:
-            hpi_loc = np.array([
-                d['r'] for d in (info['dig'] or [])
-                if (d['kind'] == FIFF.FIFFV_POINT_HPI and
-                    d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
-            hpi_loc = apply_trans(to_cf_t['head'], hpi_loc)
-            renderer.sphere(center=hpi_loc, color=defaults['hpi_color'],
-                            scale=defaults['hpi_scale'], opacity=0.5,
-                            backface_culling=True)
-            ext_loc = np.array([
-                d['r'] for d in (info['dig'] or [])
-                if (d['kind'] == FIFF.FIFFV_POINT_EXTRA and
-                    d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
-            ext_loc = apply_trans(to_cf_t['head'], ext_loc)
-            renderer.sphere(center=ext_loc, color=defaults['extra_color'],
-                            scale=defaults['extra_scale'], opacity=0.25,
-                            backface_culling=True)
-            no_ext_or_hpi = len(hpi_loc) + len(ext_loc) == 0
-        car_loc = _fiducial_coords(info['dig'], FIFF.FIFFV_COORD_HEAD)
-        car_loc = apply_trans(to_cf_t['head'], car_loc)
-        if len(car_loc) == 0 and no_ext_or_hpi:
-            warn('Digitization points not found. Cannot plot digitization.')
-        for color, data in zip(fid_colors, car_loc):
-            renderer.sphere(center=data, color=color,
-                            scale=defaults['dig_fid_scale'],
-                            opacity=defaults['dig_fid_opacity'],
-                            backface_culling=True)
+            _plot_head_shape_points(renderer, info, to_cf_t)
+        _plot_fiducials(renderer, info, to_cf_t, fid_colors)
 
     if mri_fiducials:
         if mri_fiducials is True:
@@ -981,6 +956,39 @@ def _plot_axes(renderer, info, to_cf_t, head_mri_t):
                                      scalars=[0.33, 0.66, 1.0])
         actors.append(actor)
     return actors
+
+
+def _plot_fiducials(renderer, info, to_cf_t, fid_colors):
+    defaults = DEFAULTS['coreg']
+    car_loc = _fiducial_coords(info['dig'], FIFF.FIFFV_COORD_HEAD)
+    car_loc = apply_trans(to_cf_t['head'], car_loc)
+    if len(car_loc) == 0:
+        warn('Digitization points not found. Cannot plot digitization.')
+    for color, data in zip(fid_colors, car_loc):
+        renderer.sphere(center=data, color=color,
+                        scale=defaults['dig_fid_scale'],
+                        opacity=defaults['dig_fid_opacity'],
+                        backface_culling=True)
+
+
+def _plot_head_shape_points(renderer, info, to_cf_t):
+    defaults = DEFAULTS['coreg']
+    hpi_loc = np.array([
+        d['r'] for d in (info['dig'] or [])
+        if (d['kind'] == FIFF.FIFFV_POINT_HPI and
+            d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
+    hpi_loc = apply_trans(to_cf_t['head'], hpi_loc)
+    renderer.sphere(center=hpi_loc, color=defaults['hpi_color'],
+                    scale=defaults['hpi_scale'], opacity=0.5,
+                    backface_culling=True)
+    ext_loc = np.array([
+        d['r'] for d in (info['dig'] or [])
+        if (d['kind'] == FIFF.FIFFV_POINT_EXTRA and
+            d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
+    ext_loc = apply_trans(to_cf_t['head'], ext_loc)
+    renderer.sphere(center=ext_loc, color=defaults['extra_color'],
+                    scale=defaults['extra_scale'], opacity=0.25,
+                    backface_culling=True)
 
 
 def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
