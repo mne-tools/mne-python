@@ -548,7 +548,7 @@ for ix, ax in enumerate(axs):
 # `Peak latency and amplitude`_).
 #
 # When using mean amplitude measures, selecting the time window based on
-# when the effect of interest (e.g., the difference between two conditions) can
+# the effect of interest (e.g., the difference between two conditions) can
 # inflate the likelihood of finding false positives in your results because
 # this approach is circular :footcite:`LuckGaspelin2017`. There are other, and
 # better, ways to identify a time window to use for extracting mean amplitude
