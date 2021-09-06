@@ -964,11 +964,14 @@ def _plot_fiducials(renderer, info, to_cf_t, fid_colors):
     car_loc = apply_trans(to_cf_t['head'], car_loc)
     if len(car_loc) == 0:
         warn('Digitization points not found. Cannot plot digitization.')
+    actors = list()
     for color, data in zip(fid_colors, car_loc):
-        renderer.sphere(center=data, color=color,
-                        scale=defaults['dig_fid_scale'],
-                        opacity=defaults['dig_fid_opacity'],
-                        backface_culling=True)
+        actor, _ = renderer.sphere(center=data, color=color,
+                                   scale=defaults['dig_fid_scale'],
+                                   opacity=defaults['dig_fid_opacity'],
+                                   backface_culling=True)
+        actors.append(actor)
+    return actors
 
 
 def _plot_head_shape_points(renderer, info, to_cf_t):
@@ -986,9 +989,10 @@ def _plot_head_shape_points(renderer, info, to_cf_t):
         if (d['kind'] == FIFF.FIFFV_POINT_EXTRA and
             d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
     ext_loc = apply_trans(to_cf_t['head'], ext_loc)
-    renderer.sphere(center=ext_loc, color=defaults['extra_color'],
-                    scale=defaults['extra_scale'], opacity=0.25,
-                    backface_culling=True)
+    actor, _ = renderer.sphere(center=ext_loc, color=defaults['extra_color'],
+                               scale=defaults['extra_scale'], opacity=0.25,
+                               backface_culling=True)
+    return actor
 
 
 def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
