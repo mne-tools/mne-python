@@ -625,7 +625,7 @@ class ICA(ContainsMixin):
                                                           tstep)
 
         self.n_samples_ = data.shape[1]
-        self._fit(data, 'raw')
+        self._fit(data, 'raw', picks)
 
         return self
 
@@ -647,11 +647,11 @@ class ICA(ContainsMixin):
         # This will make at least one copy (one from hstack, maybe one
         # more from _pre_whiten)
         data = np.hstack(data)
-        self._fit(data, 'epochs')
+        self._fit(data, 'epochs', picks)
 
         return self
 
-    def _compute_pre_whitener(self, data):
+    def _compute_pre_whitener(self, data, picks):
         """Aux function."""
         data = self._do_proj(data, log_suffix='(pre-whitener computation)')
 
@@ -710,11 +710,11 @@ class ICA(ContainsMixin):
             data = self.pre_whitener_ @ data
         return data
 
-    def _fit(self, data, fit_type):
+    def _fit(self, data, fit_type, picks):
         """Aux function."""
         random_state = check_random_state(self.random_state)
         n_channels, n_samples = data.shape
-        self._compute_pre_whitener(data)
+        self._compute_pre_whitener(data, picks)
         data = self._pre_whiten(data)
 
         pca = _PCA(n_components=self._max_pca_components, whiten=True)
