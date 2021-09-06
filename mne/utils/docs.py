@@ -1518,20 +1518,20 @@ time_format : 'float' | 'clock'
 # Visualization with pyqtgraph
 docdict['preload'] = """
 preload : bool | str
-    (Only pyqtgraph) Preloads all data (if not already done) and performs 
+    (Only pyqtgraph) Preloads all data (if not already done) and performs
     most preprocessing for visualization once to increase
     performance. This happens in a separate thread and the effect applies
     after preloading is done.
     With 'auto' the currently available RAM space will be compared to the
     expected size of the preloaded data in RAM
     Default is ``'auto'``.
-    
+
     .. versionadded:: 0.24
 """
 
 docdict['use_opengl'] = """
 use_opengl : bool
-    Enables enhanced performance with OpenGL 
+    Enables enhanced performance with OpenGL
     (requires pyopengl to be installed).
     Default is ``True``.
 
@@ -1540,11 +1540,11 @@ use_opengl : bool
 
 docdict['downsampling'] = """
 downsampling : str | int
-    (Only pyqtgraph) Set an integer as the downsampling factor 
-    or 'auto' to get the factor from the visible range. 
+    (Only pyqtgraph) Set an integer as the downsampling factor
+    or 'auto' to get the factor from the visible range.
     Setting the factor 1 means no downsampling.
     Default is ``'auto'``.
-    
+
     .. versionadded:: 0.24
 """
 
@@ -1556,7 +1556,7 @@ downsampling_method : str
     https://pyqtgraph.readthedocs.io/en/latest/graphicsItems/
     plotdataitem.html?#.
     Default is ``'peak''``.
-    
+
     .. versionadded:: 0.24
 """
 
@@ -1564,7 +1564,7 @@ docdict['antialiasing'] = """
 antialiasing : bool
     (Only pyqtgraph) Enable Antialiasing.
     Default is ``False``.
-    
+
     .. versionadded:: 0.24
 """
 
@@ -1574,23 +1574,23 @@ scroll_sensitivity : int
     is divided into.
     ("Ctrl + <Arrow-Key>" scrolls 1 step, "<Arrow-Key>" scrolls 10 steps).
     Default is ``100``.
-    
+
     .. versionadded:: 0.24
 """
 
 docdict['overview_mode'] = """
 overview_mode : str | None
     (Only pyqtgraph) Set the mode for the display of an overview over the data:
-    
+
     - ``'channels'``
         Display each channel with its channel-type color.
-    
+
     - ``'zscore'``
         Display the zscore for each channel across time.
         This only works if preload is set to ``True``
 
     Defaults to "channels".
-    
+
     .. versionadded:: 0.24
 """
 
