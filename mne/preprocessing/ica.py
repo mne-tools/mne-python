@@ -25,7 +25,7 @@ from .infomax_ import infomax
 
 from ..cov import compute_whitener
 from .. import Covariance, Evoked
-from ..io.pick import (pick_types, pick_channels, pick_info,
+from ..io.pick import (channel_type, pick_types, pick_channels, pick_info,
                        _picks_to_idx, _get_channel_types, _DATA_CH_TYPES_SPLIT)
 from ..io.proj import make_projector
 from ..io.write import (write_double_matrix, write_string,
@@ -662,26 +662,8 @@ class ICA(ContainsMixin):
             pre_whitener = np.empty([len(data), 1])
             for ch_type in _DATA_CH_TYPES_SPLIT + ('eog', "ref_meg"):
                 if _contains_ch_type(info, ch_type):
-                    if ch_type == 'seeg':
-                        this_picks = pick_types(info, meg=False, seeg=True)
-                    elif ch_type == 'dbs':
-                        this_picks = pick_types(info, meg=False, dbs=True)
-                    elif ch_type == 'ecog':
-                        this_picks = pick_types(info, meg=False, ecog=True)
-                    elif ch_type == 'eeg':
-                        this_picks = pick_types(info, meg=False, eeg=True)
-                    elif ch_type in ('mag', 'grad'):
-                        this_picks = pick_types(info, meg=ch_type)
-                    elif ch_type == 'eog':
-                        this_picks = pick_types(info, meg=False, eog=True)
-                    elif ch_type in ('hbo', 'hbr'):
-                        this_picks = pick_types(info, meg=False, fnirs=ch_type)
-                    elif ch_type == 'ref_meg':
-                        this_picks = pick_types(info, meg=False, ref_meg=True)
-                    else:
-                        raise RuntimeError('Should not be reached.'
-                                           'Unsupported channel {}'
-                                           .format(ch_type))
+                    this_picks = [idx for idx in picks
+                                  if channel_type(info, idx) == ch_type]
                     pre_whitener[this_picks] = np.std(data[this_picks])
         else:
             pre_whitener, _ = compute_whitener(self.noise_cov, self.info)
