@@ -842,7 +842,7 @@ class ICA(ContainsMixin):
             raise RuntimeError('No fit available. Please fit ICA.')
         start, stop = _check_start_stop(raw, start, stop)
 
-        picks = pick_types(raw.info, include=self.ch_names, exclude='bads',
+        picks = pick_types(raw.info, include=self.ch_names, exclude=[],
                            meg=False, ref_meg=False)
         if len(picks) != len(self.ch_names):
             raise RuntimeError('Raw doesn\'t match fitted data: %i channels '
@@ -860,7 +860,7 @@ class ICA(ContainsMixin):
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please fit ICA.')
 
-        picks = pick_types(epochs.info, include=self.ch_names, exclude='bads',
+        picks = pick_types(epochs.info, include=self.ch_names, exclude=[],
                            meg=False, ref_meg=False)
         # special case where epochs come picked but fit was 'unpicked'.
         if len(picks) != len(self.ch_names):
@@ -884,7 +884,7 @@ class ICA(ContainsMixin):
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please fit ICA.')
 
-        picks = pick_types(evoked.info, include=self.ch_names, exclude='bads',
+        picks = pick_types(evoked.info, include=self.ch_names, exclude=[],
                            meg=False, ref_meg=False)
 
         if len(picks) != len(self.ch_names):
