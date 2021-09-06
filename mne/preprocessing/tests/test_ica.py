@@ -933,7 +933,7 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
             ica.find_bads_ecg(raw, threshold='auto')
 
     # test passing picks including the marked bad channels
-    data = np.zeros((4, 160 * 10))
+    data = np.random.randn(4, 160 * 10)
     ch_names = [f'EEG{i+1}' for i in range(4)]
     ch_types = ['eeg'] * len(ch_names)
     info = create_info(ch_names, ch_types=ch_types, sfreq=160)
