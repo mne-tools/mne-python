@@ -1515,6 +1515,85 @@ time_format : 'float' | 'clock'
     .. versionadded:: 0.24
 """
 
+# Visualization with pyqtgraph
+docdict['preload'] = """
+preload : bool | str
+    (Only pyqtgraph) Preloads all data (if not already done) and performs 
+    most preprocessing for visualization once to increase
+    performance. This happens in a separate thread and the effect applies
+    after preloading is done.
+    With 'auto' the currently available RAM space will be compared to the
+    expected size of the preloaded data in RAM
+    Default is ``'auto'``.
+    
+    .. versionadded:: 0.24
+"""
+
+docdict['use_opengl'] = """
+use_opengl : bool
+    Enables enhanced performance with OpenGL 
+    (requires pyopengl to be installed).
+    Default is ``True``.
+
+    .. versionadded:: 0.24
+"""
+
+docdict['downsampling'] = """
+downsampling : str | int
+    (Only pyqtgraph) Set an integer as the downsampling factor 
+    or 'auto' to get the factor from the visible range. 
+    Setting the factor 1 means no downsampling.
+    Default is ``'auto'``.
+    
+    .. versionadded:: 0.24
+"""
+
+docdict['downsampling_method'] = """
+downsampling_method : str
+    (Only pyqtgraph) The method to use for to use (from pyqtgraph).
+    Look here in the pyqgraph-documentation
+    under "Optimization-Keywords" for more details:
+    https://pyqtgraph.readthedocs.io/en/latest/graphicsItems/
+    plotdataitem.html?#.
+    Default is ``'peak''``.
+    
+    .. versionadded:: 0.24
+"""
+
+docdict['antialiasing'] = """
+antialiasing : bool
+    (Only pyqtgraph) Enable Antialiasing.
+    Default is ``False``.
+    
+    .. versionadded:: 0.24
+"""
+
+docdict['scroll_sensitivity'] = """
+scroll_sensitivity : int
+    (Only pyqtgraph) Set amount of scrolling steps the visible time-window
+    is divided into.
+    ("Ctrl + <Arrow-Key>" scrolls 1 step, "<Arrow-Key>" scrolls 10 steps).
+    Default is ``100``.
+    
+    .. versionadded:: 0.24
+"""
+
+docdict['overview_mode'] = """
+overview_mode : str | None
+    (Only pyqtgraph) Set the mode for the display of an overview over the data:
+    
+    - ``'channels'``
+        Display each channel with its channel-type color.
+    
+    - ``'zscore'``
+        Display the zscore for each channel across time.
+        This only works if preload is set to ``True``
+
+    Defaults to "channels".
+    
+    .. versionadded:: 0.24
+"""
+
 # PSD plotting
 docdict["plot_psd_doc"] = """
 Plot the power spectral density across channels.

@@ -35,7 +35,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              clipping=_RAW_CLIP_DEF, show_first_samp=False,
              proj=True, group_by='type', butterfly=False, decim='auto',
              noise_cov=None, event_id=None, show_scrollbars=True,
-             show_scalebars=True, time_format='float', verbose=None, **kwargs):
+             show_scalebars=True, time_format='float',
+             preload='auto', use_opengl=True, downsampling='auto',
+             downsampling_method='peak', antialiasing=False,
+             scroll_sensitivity=100, overview_mode='channels',
+             verbose=None):
     """Plot raw data.
 
     Parameters
@@ -169,6 +173,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
         .. versionadded:: 0.20.0
     %(time_format)s
+    %(preload)s
+    %(use_opengl)s
+    %(downsampling)s
+    %(downsampling_method)s
+    %(antialiasing)s
+    %(scroll_sensitivity)s
+    %(overview_mode)s
     %(verbose)s
 
     Returns
@@ -346,9 +357,15 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   clipping=clipping,
                   scrollbars_visible=show_scrollbars,
                   scalebars_visible=show_scalebars,
-                  window_title=title)
-
-    params = {**params, **kwargs}
+                  window_title=title,
+                  # pyqtgraph-specific
+                  preload=preload,
+                  use_opengl=use_opengl,
+                  downsampling=downsampling,
+                  downsampling_method=downsampling_method,
+                  antialiasing=antialiasing,
+                  scroll_sensitivity=scroll_sensitivity,
+                  overview_mode=overview_mode)
 
     fig = _get_browser(**params)
 

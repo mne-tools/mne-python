@@ -1521,15 +1521,24 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
              show_scrollbars=True, show_scalebars=True, time_format='float',
-             verbose=None, **kwargs):
+             preload='auto', use_opengl=True, downsampling='auto',
+             downsampling_method='peak', antialiasing=False,
+             scroll_sensitivity=100, overview_mode='channels',
+             verbose=None):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
                         lowpass, filtorder, clipping, show_first_samp,
                         proj, group_by, butterfly, decim, noise_cov=noise_cov,
                         event_id=event_id, show_scrollbars=show_scrollbars,
-                        show_scalebars=show_scalebars,
-                        time_format=time_format, verbose=verbose, **kwargs)
+                        show_scalebars=show_scalebars, time_format=time_format,
+                        preload=preload, use_opengl=use_opengl,
+                        downsampling=downsampling,
+                        downsampling_method=downsampling_method,
+                        antialiasing=antialiasing,
+                        scroll_sensitivity=scroll_sensitivity,
+                        overview_mode=overview_mode,
+                        verbose=verbose)
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)
