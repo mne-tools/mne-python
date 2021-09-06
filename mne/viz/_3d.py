@@ -998,14 +998,18 @@ def _plot_forward(renderer, fwd, to_cf_t):
     red = (1.0, 0.0, 0.0)
     green = (0.0, 1.0, 0.0)
     blue = (0.0, 0.0, 1.0)
+    actors = list()
     for ori, color in zip(range(fwd_nn.shape[1]), (red, green, blue)):
-        renderer.quiver3d(fwd_rr[:, 0],
-                          fwd_rr[:, 1],
-                          fwd_rr[:, 2],
-                          fwd_nn[:, ori, 0],
-                          fwd_nn[:, ori, 1],
-                          fwd_nn[:, ori, 2],
-                          color=color, mode='arrow', scale=1.5e-3)
+        actor, _ = renderer.quiver3d(
+            fwd_rr[:, 0],
+            fwd_rr[:, 1],
+            fwd_rr[:, 2],
+            fwd_nn[:, ori, 0],
+            fwd_nn[:, ori, 1],
+            fwd_nn[:, ori, 2],
+            color=color, mode='arrow', scale=1.5e-3)
+        actors.append(actor)
+    return actors
 
 
 def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
