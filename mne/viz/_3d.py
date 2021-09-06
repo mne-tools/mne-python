@@ -526,7 +526,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     .. versionadded:: 0.15
     """
-    from ..forward import Forward
     from ..coreg import get_mni_fiducials
     # Update the backend
     from .backends.renderer import _get_renderer
@@ -572,14 +571,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         if src_subject is not None and subject != src_subject:
             raise ValueError(f'subject ("{subject}") did not match the '
                              f'subject name in src ("{src_subject}")')
-    if fwd is not None:
-        _validate_type(fwd, [Forward])
-        fwd_rr = fwd['source_rr']
-        if fwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
-            fwd_nn = fwd['source_nn'].reshape(-1, 1, 3)
-        else:
-            fwd_nn = fwd['source_nn'].reshape(-1, 3, 3)
-
     # configure transforms
     if trans == 'auto':
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
@@ -801,21 +792,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                     backface_culling=True)
 
     if fwd is not None:
-        # update coordinate frame
-        fwd_trans = to_cf_t[_frame_to_str[fwd['coord_frame']]]
-        fwd_rr = apply_trans(fwd_trans, fwd_rr)
-        fwd_nn = apply_trans(fwd_trans, fwd_nn, move=False)
-        red = (1.0, 0.0, 0.0)
-        green = (0.0, 1.0, 0.0)
-        blue = (0.0, 0.0, 1.0)
-        for ori, color in zip(range(fwd_nn.shape[1]), (red, green, blue)):
-            renderer.quiver3d(fwd_rr[:, 0],
-                              fwd_rr[:, 1],
-                              fwd_rr[:, 2],
-                              fwd_nn[:, ori, 0],
-                              fwd_nn[:, ori, 1],
-                              fwd_nn[:, ori, 2],
-                              color=color, mode='arrow', scale=1.5e-3)
+        _plot_forward(renderer, fwd, to_cf_t)
 
     renderer.set_camera(azimuth=90, elevation=90,
                         distance=0.6, focalpoint=(0., 0., 0.))
@@ -993,6 +970,32 @@ def _plot_head_shape_points(renderer, info, to_cf_t):
                                scale=defaults['extra_scale'], opacity=0.25,
                                backface_culling=True)
     return actor
+
+
+def _plot_forward(renderer, fwd, to_cf_t):
+    from ..forward import Forward
+    if fwd is not None:
+        _validate_type(fwd, [Forward])
+        fwd_rr = fwd['source_rr']
+        if fwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
+            fwd_nn = fwd['source_nn'].reshape(-1, 1, 3)
+        else:
+            fwd_nn = fwd['source_nn'].reshape(-1, 3, 3)
+    # update coordinate frame
+    fwd_trans = to_cf_t[_frame_to_str[fwd['coord_frame']]]
+    fwd_rr = apply_trans(fwd_trans, fwd_rr)
+    fwd_nn = apply_trans(fwd_trans, fwd_nn, move=False)
+    red = (1.0, 0.0, 0.0)
+    green = (0.0, 1.0, 0.0)
+    blue = (0.0, 0.0, 1.0)
+    for ori, color in zip(range(fwd_nn.shape[1]), (red, green, blue)):
+        renderer.quiver3d(fwd_rr[:, 0],
+                          fwd_rr[:, 1],
+                          fwd_rr[:, 2],
+                          fwd_nn[:, ori, 0],
+                          fwd_nn[:, ori, 1],
+                          fwd_nn[:, ori, 2],
+                          color=color, mode='arrow', scale=1.5e-3)
 
 
 def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
