@@ -933,16 +933,12 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
             ica.find_bads_ecg(raw, threshold='auto')
 
     # test passing picks including the marked bad channels
-    data = np.random.randn(4, 160 * 10)
-    ch_names = [f'EEG{i+1}' for i in range(4)]
-    ch_types = ['eeg'] * len(ch_names)
-    info = create_info(ch_names, ch_types=ch_types, sfreq=160)
-    raw = RawArray(data, info)
-    raw.info['bads'] = ['EEG2']
-
-    picks = pick_types(raw.info, eeg=True, exclude=[])
+    raw_ = raw.copy()
+    raw_.pick_types(eeg=True)
+    raw_.info['bads'] = [raw_.ch_names[0]]
+    picks = pick_types(raw_.info, eeg=True, exclude=[])
     ica = ICA(n_components=0.99, max_iter='auto')
-    ica.fit(raw, picks=picks, reject_by_annotation=True)
+    ica.fit(raw_, picks=picks, reject_by_annotation=True)
 
 
 @requires_sklearn
