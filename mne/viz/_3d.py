@@ -526,7 +526,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     .. versionadded:: 0.15
     """
-    from ..coreg import get_mni_fiducials
     # Update the backend
     from .backends.renderer import _get_renderer
 
@@ -722,36 +721,11 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     if dig:
         if dig is True:
             _plot_head_shape_points(renderer, info, to_cf_t)
-        _plot_fiducials(renderer, info, to_cf_t, fid_colors)
+        _plot_head_fiducials(renderer, info, to_cf_t, fid_colors)
 
     if mri_fiducials:
-        if mri_fiducials is True:
-            subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-            if subject is None:
-                raise ValueError("Subject needs to be specified to "
-                                 "automatically find the fiducials file.")
-            mri_fiducials = op.join(subjects_dir, subject, 'bem',
-                                    subject + '-fiducials.fif')
-        if isinstance(mri_fiducials, str):
-            if mri_fiducials == 'estimated':
-                mri_fiducials = get_mni_fiducials(subject, subjects_dir)
-            else:
-                mri_fiducials, cf = read_fiducials(mri_fiducials)
-                if cf != FIFF.FIFFV_COORD_MRI:
-                    raise ValueError("Fiducials are not in MRI space")
-        fid_loc = _fiducial_coords(mri_fiducials, FIFF.FIFFV_COORD_MRI)
-        fid_loc = apply_trans(to_cf_t['mri'], fid_loc)
-        transform = np.eye(4)
-        transform[:3, :3] = to_cf_t['mri']['trans'][:3, :3] * \
-            defaults['mri_fid_scale']
-        # rotate around Z axis 45 deg first
-        transform = transform @ rotation(0, 0, np.pi / 4)
-        for color, data in zip(fid_colors, fid_loc):
-            renderer.quiver3d(
-                x=data[0], y=data[1], z=data[2],
-                u=1., v=0., w=0., color=color, mode='oct',
-                scale=1., opacity=defaults['mri_fid_opacity'],
-                backface_culling=True, solid_transform=transform)
+        _plot_mri_fiducials(renderer, mri_fiducials, subjects_dir, subject,
+                            to_cf_t, fid_colors)
 
     # plot sensors
     if picks.size > 0:
@@ -935,7 +909,7 @@ def _plot_axes(renderer, info, to_cf_t, head_mri_t):
     return actors
 
 
-def _plot_fiducials(renderer, info, to_cf_t, fid_colors):
+def _plot_head_fiducials(renderer, info, to_cf_t, fid_colors):
     defaults = DEFAULTS['coreg']
     car_loc = _fiducial_coords(info['dig'], FIFF.FIFFV_COORD_HEAD)
     car_loc = apply_trans(to_cf_t['head'], car_loc)
@@ -947,6 +921,42 @@ def _plot_fiducials(renderer, info, to_cf_t, fid_colors):
                                    scale=defaults['dig_fid_scale'],
                                    opacity=defaults['dig_fid_opacity'],
                                    backface_culling=True)
+        actors.append(actor)
+    return actors
+
+
+def _plot_mri_fiducials(renderer, mri_fiducials, subjects_dir, subject,
+                        to_cf_t, fid_colors):
+    from ..coreg import get_mni_fiducials
+    defaults = DEFAULTS['coreg']
+    if mri_fiducials is True:
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        if subject is None:
+            raise ValueError("Subject needs to be specified to "
+                             "automatically find the fiducials file.")
+        mri_fiducials = op.join(subjects_dir, subject, 'bem',
+                                subject + '-fiducials.fif')
+    if isinstance(mri_fiducials, str):
+        if mri_fiducials == 'estimated':
+            mri_fiducials = get_mni_fiducials(subject, subjects_dir)
+        else:
+            mri_fiducials, cf = read_fiducials(mri_fiducials)
+            if cf != FIFF.FIFFV_COORD_MRI:
+                raise ValueError("Fiducials are not in MRI space")
+    fid_loc = _fiducial_coords(mri_fiducials, FIFF.FIFFV_COORD_MRI)
+    fid_loc = apply_trans(to_cf_t['mri'], fid_loc)
+    transform = np.eye(4)
+    transform[:3, :3] = to_cf_t['mri']['trans'][:3, :3] * \
+        defaults['mri_fid_scale']
+    # rotate around Z axis 45 deg first
+    transform = transform @ rotation(0, 0, np.pi / 4)
+    actors = list()
+    for color, data in zip(fid_colors, fid_loc):
+        actor, _ = renderer.quiver3d(
+            x=data[0], y=data[1], z=data[2],
+            u=1., v=0., w=0., color=color, mode='oct',
+            scale=1., opacity=defaults['mri_fid_opacity'],
+            backface_culling=True, solid_transform=transform)
         actors.append(actor)
     return actors
 
