@@ -575,6 +575,7 @@ class ICA(ContainsMixin):
 
         # filter out all the channels the raw wouldn't have initialized
         self.info = pick_info(inst.info, picks)
+        picks = np.arange(start=0, stop=len(picks))
 
         if self.info['comps']:
             self.info['comps'] = []
