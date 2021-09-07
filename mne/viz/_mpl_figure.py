@@ -2092,6 +2092,13 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
         return label_texts
 
+    def _get_scale_bar_texts(self):
+        texts = tuple(t.get_text().strip() for t in self.mne.ax_main.texts)
+        # First text is empty because of vline
+        texts = texts[1:]
+
+        return texts
+
 
 class MNELineFigure(MNEFigure):
     """Interactive figure for non-scrolling line plots."""

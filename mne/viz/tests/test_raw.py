@@ -174,6 +174,7 @@ def _child_fig_helper(fig, key, attr, browse_backend):
 
 def test_scale_bar(browse_backend):
     """Test scale bar for raw."""
+    ismpl = browse_backend.name == 'matplotlib'
     sfreq = 1000.
     t = np.arange(10000) / sfreq
     data = np.sin(2 * np.pi * 10. * t)
@@ -182,13 +183,15 @@ def test_scale_bar(browse_backend):
     info = create_info(3, sfreq, ('mag', 'grad', 'eeg'))
     raw = RawArray(data, info)
     fig = raw.plot()
-    ax = fig.mne.ax_main
-    assert len(ax.texts) == 4  # empty vline-text + ch_type scale-bars
-    # ToDo: This might be solved differently in pyqtgraph.
-    texts = tuple(t.get_text().strip() for t in ax.texts)
-    wants = ('', '800.0 fT/cm', '2000.0 fT', '40.0 µV')
+    texts = fig._get_scale_bar_texts()
+    assert len(texts) == 3  # ch_type scale-bars
+    wants = ('800.0 fT/cm', '2000.0 fT', '40.0 µV')
     assert texts == wants
-    assert len(ax.lines) == 7  # 1 green vline, 3 data, 3 scalebars
+    if ismpl:
+        # 1 green vline, 3 data, 3 scalebars
+        assert len(fig.mne.ax_main.lines) == 7
+    else:
+        assert len(fig.mne.scalebars) == 3
     for data, bar in zip(fig.mne.traces, fig.mne.scalebars.values()):
         y = data.get_ydata()
         y_lims = [y.min(), y.max()]
@@ -362,7 +365,7 @@ def test_plot_raw_keypresses(raw, browse_backend):
 
 def test_plot_raw_traces(raw, events, browse_backend):
     """Test plotting of raw data."""
-    ismpl = get_browser_backend() == 'matplotlib'
+    ismpl = browse_backend.name == 'matplotlib'
     with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     fig = raw.plot(events=events, order=[1, 7, 5, 2, 3], n_channels=3,
