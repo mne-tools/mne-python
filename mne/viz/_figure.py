@@ -240,7 +240,7 @@ class BrowserBase(ABC):
             selections_dict = self._make_butterfly_selections_dict()
             self.mne.picks = np.concatenate(tuple(selections_dict.values()))
         elif self.mne.butterfly:
-            self.mne.picks = np.arange(self.mne.ch_names.shape[0])
+            self.mne.picks = self.mne.ch_order
         else:
             _slice = slice(self.mne.ch_start,
                            self.mne.ch_start + self.mne.n_channels)
@@ -526,7 +526,7 @@ def set_browser_backend(backend_name, verbose=None):
        +--------------------------------------+------------+-----------+
        | **2D browser function:**             | matplotlib | pyqtgraph |
        +======================================+============+===========+
-       | :func:`plot_raw`                     | ✓          | ✓         |
+       | :func:`plot_raw`                     | ✓          | -         |
        +--------------------------------------+------------+-----------+
        | :func:`plot_epochs`                  | ✓          |           |
        +--------------------------------------+------------+-----------+
@@ -539,15 +539,13 @@ def set_browser_backend(backend_name, verbose=None):
        +--------------------------------------+------------+-----------+
        | Toggle Projections                   | ✓          |           |
        +--------------------------------------+------------+-----------+
-       | Butterfly Mode                       | ✓          |           |
+       | Butterfly Mode                       | ✓          | ✓         |
        +--------------------------------------+------------+-----------+
        | Smooth Scrolling                     |            | ✓         |
        +--------------------------------------+------------+-----------+
        | OpenGL Acceleration                  |            | ✓         |
        +--------------------------------------+------------+-----------+
        | Toolbar                              |            | ✓         |
-       +--------------------------------------+------------+-----------+
-       | Dark Mode                            |            |           |
        +--------------------------------------+------------+-----------+
     """
     global MNE_BROWSE_BACKEND
