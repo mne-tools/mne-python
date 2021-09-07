@@ -808,6 +808,8 @@ def reset_warnings(gallery_conf, fname):
         'ignore', message="can't resolve package from", category=ImportWarning)
     warnings.filterwarnings(
         'ignore', message='.*mne-realtime.*', category=DeprecationWarning)
+    warnings.filterwarnings(  # pyvista deprecation
+        'ignore', message=r'.*Use of .* is deprecated\. Use .* instead.*')
 
 
 reset_warnings(None, None)
