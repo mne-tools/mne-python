@@ -842,9 +842,18 @@ class ICA(ContainsMixin):
             raise RuntimeError('No fit available. Please fit ICA.')
         start, stop = _check_start_stop(raw, start, stop)
 
-        picks = pick_types(raw.info, include=self.ch_names, exclude=[],
-                           meg=False, ref_meg=False)
-        if len(picks) != len(self.ch_names):
+        try:
+            picks = _picks_to_idx(raw.info, self.ch_names, exclude=[])
+            raise_ = False if len(picks) == len(self.ch_names) else True
+        except ValueError:
+            raise_ = True
+            picks = list()
+            for ch in self.ch_names:
+                try:
+                    picks.extend(_picks_to_idx(raw.info, ch, exclude=[]))
+                except ValueError:
+                    pass
+        if raise_:
             raise RuntimeError('Raw doesn\'t match fitted data: %i channels '
                                'fitted but %i channels supplied. \nPlease '
                                'provide Raw compatible with '
@@ -860,10 +869,19 @@ class ICA(ContainsMixin):
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please fit ICA.')
 
-        picks = pick_types(epochs.info, include=self.ch_names, exclude=[],
-                           meg=False, ref_meg=False)
-        # special case where epochs come picked but fit was 'unpicked'.
-        if len(picks) != len(self.ch_names):
+        try:
+            picks = _picks_to_idx(epochs.info, self.ch_names, exclude=[])
+            # special case where epochs come picked but fit was 'unpicked'.
+            raise_ = False if len(picks) == len(self.ch_names) else True
+        except ValueError:
+            raise_ = True
+            picks = list()
+            for ch in self.ch_names:
+                try:
+                    picks.extend(_picks_to_idx(epochs.info, ch, exclude=[]))
+                except ValueError:
+                    pass
+        if raise_:
             raise RuntimeError('Epochs don\'t match fitted data: %i channels '
                                'fitted but %i channels supplied. \nPlease '
                                'provide Epochs compatible with '
@@ -884,10 +902,18 @@ class ICA(ContainsMixin):
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please fit ICA.')
 
-        picks = pick_types(evoked.info, include=self.ch_names, exclude=[],
-                           meg=False, ref_meg=False)
-
-        if len(picks) != len(self.ch_names):
+        try:
+            picks = _picks_to_idx(evoked.info, self.ch_names, exclude=[])
+            raise_ = False if len(picks) == len(self.ch_names) else True
+        except ValueError:
+            raise_ = True
+            picks = list()
+            for ch in self.ch_names:
+                try:
+                    picks.extend(_picks_to_idx(evoked.info, ch, exclude=[]))
+                except ValueError:
+                    pass
+        if raise_:
             raise RuntimeError('Evoked doesn\'t match fitted data: %i channels'
                                ' fitted but %i channels supplied. \nPlease '
                                'provide Evoked compatible with '
