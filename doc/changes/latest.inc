@@ -37,6 +37,8 @@ Current (0.24.dev0)
 
 .. |Timothy Gates| replace:: **Timothy Gates**
 
+.. |Evgeny Goldstein| replace:: **Evgeny Goldstein**
+
 Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
@@ -153,6 +155,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug in :meth:`mne.io.Raw.pick` and related functions when parameter list contains channels which are not in info instance (:gh:`9708` **by new contributor** |Evgeny Goldstein|_)
+
 - Fix a few typos (:gh:`9706` **by new contributor** |Timothy Gates|_)
 
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)
