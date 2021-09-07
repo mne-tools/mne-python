@@ -416,3 +416,25 @@ def test_mxne_inverse_sure():
     stc_ = mixed_norm(evoked, forward, noise_cov, loose=0.9, n_mxne_iter=5,
                       depth=0.9)
     assert_array_equal(stc_.vertices, stc.vertices)
+
+
+@pytest.mark.slowtest  # slow on Azure
+@testing.requires_testing_data
+def test_mxne_inverse_empty():
+    """Tests solver with too high alpha."""
+    evoked = read_evokeds(fname_data, condition=0, baseline=(None, 0))
+    evoked.pick("grad", exclude="bads")
+    fname_fwd = op.join(data_path, 'MEG', 'sample',
+                        'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+    forward = mne.read_forward_solution(fname_fwd)
+    forward = mne.pick_types_forward(forward, meg="grad", eeg=False,
+                                     exclude=evoked.info['bads'])
+    cov = read_cov(fname_cov)
+    with pytest.warns(RuntimeWarning, match='too big'):
+        stc, residual = mixed_norm(
+            evoked, forward, cov, n_mxne_iter=3, alpha=99,
+            return_residual=True)
+        assert stc.data.size == 0
+        assert stc.vertices[0].size == 0
+        assert stc.vertices[1].size == 0
+        assert_allclose(evoked.data, residual.data)

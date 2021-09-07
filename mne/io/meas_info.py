@@ -229,7 +229,7 @@ class Info(dict, MontageMixin):
     Attributes
     ----------
     acq_pars : str | None
-        MEG system acquition parameters.
+        MEG system acquisition parameters.
         See :class:`mne.AcqParserFIF` for details.
     acq_stim : str | None
         MEG system stimulus parameters.
