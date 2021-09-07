@@ -4,9 +4,9 @@ import numpy as np
 from functools import partial
 from ...io import read_info, read_fiducials
 from ...coreg import Coregistration, _is_mri_subject
-from ...viz import plot_alignment
+from ...viz._3d import _plot_head_surface
 from ...transforms import (read_trans, write_trans, _ensure_trans,
-                           rotation_angles)
+                           rotation_angles, _get_transforms_to_coord_frame)
 from ...utils import get_subjects_dir
 from traitlets import observe, HasTraits, Unicode, Bool
 
@@ -217,21 +217,20 @@ class CoregistrationUI(HasTraits):
     def _update(self, clear=True, update_parameters=True):
         if clear:
             self._renderer.figure.plotter.clear()
-        surfaces = dict()
-        surfaces[self._surface] = self._opacity
-        kwargs = dict(info=self._info, trans=self._coreg.trans,
-                      subject=self._subject,
-                      subjects_dir=self._subjects_dir,
-                      surfaces=surfaces,
-                      dig=True, eeg=[], meg=False,
-                      coord_frame='meg', fig=self._renderer.figure,
-                      show=False, verbose=self._verbose)
+        bem = None
+        coord_frame = 'mri'
+        to_cf_t = _get_transforms_to_coord_frame(
+            self._info, self._coreg.trans, coord_frame=coord_frame)
         try:
-            plot_alignment(**kwargs)
+            head_actor, _ = _plot_head_surface(
+                self._renderer, self._surface, self._subject,
+                self._subjects_dir, bem, coord_frame, to_cf_t,
+                alpha=self._opacity)
         except IOError:
-            kwargs.update(surfaces="head")
-            plot_alignment(**kwargs)
-        self._renderer.reset_camera()
+            head_actor, _ = _plot_head_surface(
+                self._renderer, "head", self._subject, self._subjects_dir,
+                bem, coord_frame, to_cf_t, alpha=self._opacity)
+        del head_actor  # XXX: unused for now
         if update_parameters:
             coords = ["X", "Y", "Z"]
             for tr in ("translation", "rotation", "scale"):
