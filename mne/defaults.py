@@ -105,10 +105,10 @@ DEFAULTS = dict(
     transform_zooms=dict(
         translation=None, rigid=None, affine=None, sdr=None),
     transform_niter=dict(
-        translation=(100, 100, 10),
-        rigid=(100, 100, 10),
-        affine=(100, 100, 10),
-        sdr=(5, 5, 3)),
+        translation=(10000, 1000, 100),
+        rigid=(10000, 1000, 100),
+        affine=(10000, 1000, 100),
+        sdr=(10, 10, 5)),
     volume_label_indices=(
         # Left and middle
         4,  # Left-Lateral-Ventricle

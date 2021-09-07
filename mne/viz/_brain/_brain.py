@@ -2633,7 +2633,7 @@ class Brain(object):
                 self._renderer.subplot(ri, ci)
                 if picks.size > 0:
                     sensors_actors = _plot_sensors(
-                        info, to_cf_t, self._renderer, picks, meg, eeg,
+                        self._renderer, info, to_cf_t, picks, meg, eeg,
                         fnirs, head_surf, warn_meg, self._units)
                     for item, actors in sensors_actors.items():
                         for actor in actors:
