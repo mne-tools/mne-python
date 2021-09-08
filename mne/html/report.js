@@ -55,30 +55,9 @@ const toggleTagVisibility = (tagName) => {
       $(badgeElement).addClass('bg-secondary');
     }
   })
-  // elements.each((i) => {
-  //   const currentElement = elements[i];
-  //   const tagValuesOfCurrentElement = currentElement.getAttribute('data-mne-tags');
-
-
 
   refreshScrollSpy();
 }
-
-
-// /* Prevent navbar from covering content */
-// function fixNavbarPadding() {
-//     $('body').css('padding-top', parseInt($('#main-navbar').css("height"))-30);
-// }
-
-// $(window).resize(function () { fixNavbarPadding(); });
-// $(window).load(function () { fixNavbarPadding(); });
-
-
-// /* Update things when document is ready */
-// $( document ).ready(function () {
-//     updateToggleAllButton();
-//     observer.observe($("#viewnavbar")[0], {attributes: true});
-// });
 
 
 /* Gather all available tags and expose them in the global namespace */
@@ -223,8 +202,7 @@ $(document).ready(() => {
   addSliderEventHandlers();
   fixTopMargin();
   fixScrollingForTocLinks();
-  // enable highlight.js
-  hljs.highlightAll();
+  hljs.highlightAll();   // enable highlight.js
 });
 
 window.onresize = () => {
