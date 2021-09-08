@@ -1761,7 +1761,6 @@ class Report(object):
         cov = None
         if self.cov_fname is not None:
             cov = read_cov(self.cov_fname)
-        baseline = self.baseline
 
         # render plots in parallel; check that n_jobs <= # of files
         logger.info('Iterating over %s potential files (this may take some '
