@@ -102,13 +102,6 @@ def _html_footer_element(*, mne_version, date, current_year):
     return t
 
 
-def _html_toc_entry_element(*, id, text, tags):
-    template_path = template_dir / 'toc_entry.html'
-    t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(id=id, text=text, tags=tags)
-    return t
-
-
 def _html_toc_element(*, toc_entries):
     template_path = template_dir / 'toc.html'
     t = Template(template_path.read_text(encoding='utf-8'))
