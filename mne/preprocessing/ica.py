@@ -830,7 +830,7 @@ class ICA(ContainsMixin):
         try:
             picks = _picks_to_idx(raw.info, self.ch_names, exclude=[])
             raise_ = False if len(picks) == len(self.ch_names) else True
-        except ValueError:
+        except RuntimeWarning:
             raise_ = True
             picks = list()
             for ch in self.ch_names:
@@ -858,7 +858,7 @@ class ICA(ContainsMixin):
             picks = _picks_to_idx(epochs.info, self.ch_names, exclude=[])
             # special case where epochs come picked but fit was 'unpicked'.
             raise_ = False if len(picks) == len(self.ch_names) else True
-        except ValueError:
+        except RuntimeWarning:
             raise_ = True
             picks = list()
             for ch in self.ch_names:
@@ -890,7 +890,7 @@ class ICA(ContainsMixin):
         try:
             picks = _picks_to_idx(evoked.info, self.ch_names, exclude=[])
             raise_ = False if len(picks) == len(self.ch_names) else True
-        except ValueError:
+        except RuntimeWarning:
             raise_ = True
             picks = list()
             for ch in self.ch_names:
