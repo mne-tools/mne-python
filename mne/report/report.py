@@ -23,29 +23,29 @@ import html as stdlib_html  # avoid namespace confusion!
 
 import numpy as np
 
-from . import __version__ as MNE_VERSION
-from . import (read_evokeds, read_events, pick_types, read_cov,
-               read_source_estimate, read_trans, sys_info,
-               Evoked, SourceEstimate, Covariance, Info, Transform)
-from .io import read_raw, read_info, BaseRaw
-from .io._read_raw import supported as extension_reader_map
-from .proj import read_proj
-from ._freesurfer import _reorient_image, _mri_orientation
-from .utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
-                    fill_doc, _check_option, _validate_type, _safe_input,
-                    deprecated)
-from .viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
-                  plot_compare_evokeds, set_3d_view, get_3d_backend)
-from .viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
-from .viz.utils import _ndarray_to_fig
-from .forward import read_forward_solution, Forward
-from .epochs import read_epochs, BaseEpochs
-from . import dig_mri_distances
-from .minimum_norm import read_inverse_operator, InverseOperator
-from .parallel import parallel_func, check_n_jobs
+from .. import __version__ as MNE_VERSION
+from .. import (read_evokeds, read_events, pick_types, read_cov,
+                read_source_estimate, read_trans, sys_info,
+                Evoked, SourceEstimate, Covariance, Info, Transform)
+from ..io import read_raw, read_info, BaseRaw
+from ..io._read_raw import supported as extension_reader_map
+from ..proj import read_proj
+from .._freesurfer import _reorient_image, _mri_orientation
+from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
+                     fill_doc, _check_option, _validate_type, _safe_input,
+                     deprecated)
+from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
+                   plot_compare_evokeds, set_3d_view, get_3d_backend)
+from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
+from ..viz.utils import _ndarray_to_fig
+from ..forward import read_forward_solution, Forward
+from ..epochs import read_epochs, BaseEpochs
+from .. import dig_mri_distances
+from ..minimum_norm import read_inverse_operator, InverseOperator
+from ..parallel import parallel_func, check_n_jobs
 
-from .externals.tempita import HTMLTemplate, Template
-from .externals.h5io import read_hdf5, write_hdf5
+from ..externals.tempita import HTMLTemplate, Template
+from ..externals.h5io import read_hdf5, write_hdf5
 
 _BEM_VIEWS = ('axial', 'sagittal', 'coronal')
 
@@ -78,7 +78,7 @@ del RAW_EXTENSIONS
 SECTION_ORDER = ('raw', 'events', 'epochs', 'ssp', 'evoked', 'covariance',
                  'trans', 'mri', 'forward', 'inverse')
 
-html_include_dir = Path(__file__).parent / 'html'
+html_include_dir = Path(__file__).parent / 'js_and_css'
 JAVASCRIPT = (html_include_dir / 'report.js').read_text(encoding='utf-8')
 CSS = (html_include_dir / 'report.sass').read_text(encoding='utf-8')
 
@@ -359,7 +359,7 @@ def _build_html_slider(slices_range, slides_klass, slider_id,
 ###############################################################################
 # HTML scan renderer
 
-mne_logo_path = Path(__file__).parent / 'icons' / 'mne_icon-cropped.png'
+mne_logo_path = Path(__file__).parents[1] / 'icons' / 'mne_icon-cropped.png'
 mne_logo = base64.b64encode(mne_logo_path.read_bytes()).decode('ascii')
 
 header_template = Template("""
@@ -2035,7 +2035,7 @@ class Report(object):
     def _init_render(self, verbose=None):
         """Initialize the renderer."""
         inc_fnames = [
-            'jquery-3.6.0.min.js', 'jquery-ui.min.js', 'jquery-ui.min.css',
+            'jquery-3.6.0.min.js',
             'bootstrap.bundle.min.js', 'bootstrap.min.css',
             'highlightjs/highlight.min.js',
             'highlightjs/atom-one-dark-reasonable.min.css'
@@ -2043,16 +2043,22 @@ class Report(object):
 
         include = list()
         for inc_fname in inc_fnames:
-            logger.info('Embedding : %s' % inc_fname)
-            fname = op.join(op.dirname(__file__), 'html', inc_fname)
-            with open(fname, 'rb') as fid:
-                file_content = fid.read().decode('utf-8')
+            logger.info(f'Embedding : {inc_fname}')
+            fname = html_include_dir / inc_fname
+            file_content = fname.read_text(encoding='utf-8')
+
             if inc_fname.endswith('.js'):
-                include.append(u'<script type="text/javascript">' +
-                               file_content + u'</script>')
+                include.append(
+                    f'<script type="text/javascript">\n'
+                    f'{file_content}\n'
+                    f'</script>'
+                )
             elif inc_fname.endswith('.css'):
-                include.append(u'<style type="text/css">' +
-                               file_content + u'</style>')
+                include.append(
+                    f'<style type="text/css">\n'
+                    f'{file_content}\n'
+                    f'</style>'
+                )
         self.include = ''.join(include)
 
     @verbose
