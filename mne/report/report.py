@@ -1231,6 +1231,79 @@ class Report(object):
         info = f.getvalue()
         self.add_code(code=info, title=title, language='shell', tags=tags)
 
+    def add_figs(self, figs, titles, *, captions=None, image_format=None,
+                 tags=('custom-figure',)):
+        """Add figures to the report.
+
+        Parameters
+        ----------
+        figs : matplotlib.figure.Figure | mlab.Figure |
+               collection of matplotlib.figure.Figure |
+               collection of mlab.Figure
+            A figure or a collection of figures to add to the report. Each
+            figure can be an instance of :class:`matplotlib.figure.Figure`,
+            :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
+        titles : str | collection of str
+            Title(s) corresponding to the figure(s).
+        captions : str | collection of str | None
+            If not ``None``, the caption(s) to add to the figure(s).
+        %(report_image_format)s
+        tags : collection of str
+            Tags to add for later interactive filtering.
+        """
+        if hasattr(figs, '__len__'):
+            figs = tuple(figs)
+        else:
+            figs = (figs,)
+
+        if isinstance(titles, str):
+            titles = (titles,)
+        else:
+            titles = tuple(titles)
+
+        if isinstance(captions, str):
+            captions = (captions,)
+        elif captions is None:
+            captions = (None,) * len(figs)
+        else:
+            captions = tuple(captions)
+
+        if len(figs) != len(titles):
+            raise ValueError(
+                f'Number of figs ({len(figs)}) must equal number of titles '
+                f'({len(titles)})'
+            )
+        if len(figs) != len(captions):
+            raise ValueError(
+                f'Number of figs ({len(figs)}) must equal number of captions '
+                f'({len(captions)})'
+            )
+
+        tags = tuple(tags)
+        for tag in tags:
+            if tag not in self.tags:
+                self.tags.append(tag)
+
+        if image_format is None:
+            image_format = self.image_format
+
+        for fig, title, caption in zip(figs, titles, captions):
+            img = _fig_to_img(fig=fig, image_format=image_format)
+            dom_id = self._get_id()
+            img_html = _html_image_element(
+                img=img, div_klass='custom-image', img_klass='custom-image',
+                title=title, caption=caption, show=True,
+                image_format=image_format, id=dom_id, tags=tags
+            )
+
+            self._add_or_replace(
+                dom_id=dom_id,
+                toc_entry_name=title,
+                tags=tags,
+                html=img_html
+            )
+
+    @deprecated(extra='Use `Report.add_figs` instead')
     def add_figs_to_section(self, figs, captions, section='custom',
                             scale=None, image_format=None, comments=None,
                             replace=False, auto_close=True):
@@ -1265,50 +1338,16 @@ class Report(object):
             If True, the plots are closed during the generation of the report.
             Defaults to True.
         """
-        if section.lower() not in self.tags:
-            self.tags.append(section.lower())
-            self._sectionvars[section.lower()] = section.lower()
+        # figs, captions, comments = self._validate_input(
+        #     figs, captions,
+        #     section.lower(), comments
+        # )
+        # image_format = _check_image_format(self, image_format)
+        # _check_scale(scale)
 
-        figs, captions, comments = self._validate_input(
-            figs, captions,
-            section.lower(), comments
-        )
-        image_format = _check_image_format(self, image_format)
-        _check_scale(scale)
-
-        htmls = []
-        for fig, caption, comment in zip(figs, captions, comments):
-            caption = 'custom plot' if caption == '' else caption
-            global_id = self._get_id()
-            div_klass = self._sectionvars[section.lower()]
-            img_klass = self._sectionvars[section.lower()]
-
-            img = _fig_to_img(fig, image_format, scale, auto_close)
-            html = image_template.substitute(
-                img=img, id=global_id,
-                div_klass=div_klass,
-                img_klass=img_klass,
-                caption=caption,
-                show=True,
-                image_format=image_format,
-                comment=comment
-            )
-            htmls.append(html)
-
-        global_id = self._get_id()
-        html = html_template.substitute(
-            div_klass=self._sectionvars[section.lower()],
-            id=global_id,
-            caption=section,
-            html='\n'.join(htmls)
-        )
-        self._add_or_replace(
-            content_id=f'{section}-#-{section.lower()}-#-custom',
-            sectionlabel=section.lower(),
-            html=html,
-            dom_id=global_id,
-            replace=replace
-        )
+        tags = _clean_tags(section)
+        self.add_figs(figs=figs, titles=captions, captions=comments,
+                      image_format=image_format, tags=tags)
 
     def add_images_to_section(self, fnames, captions, scale=None,
                               section='custom', comments=None, replace=False):
@@ -1863,7 +1902,7 @@ class Report(object):
         is_hdf5 = ext.lower() in ['.h5', '.hdf5']
 
         if overwrite or not op.isfile(fname):
-            logger.info('Saving report to location %s' % fname)
+            logger.info(f'Saving report to : {fname}')
 
             if is_hdf5:
                 write_hdf5(fname, self.__getstate__(), overwrite=overwrite,
@@ -2685,10 +2724,13 @@ class Report(object):
         return '\n'.join(htmls)
 
 
-def _clean_tag(tag):
-    # Remove any whitespace characters
-    tag_cleaned = re.sub(r'[\s*]', '', tag)
-    return tag_cleaned
+def _clean_tags(tags):
+    if isinstance(tags, str):
+        tags = (tags,)
+
+    # Replace any whitespace characters with dashes
+    tags_cleaned = tuple(re.sub(r'[\s*]', '-', tag) for tag in tags)
+    return tags_cleaned
 
 
 def _recursive_search(path, pattern):
