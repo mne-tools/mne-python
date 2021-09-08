@@ -1806,6 +1806,8 @@ class Brain(object):
     def _remove(self, item, render=False):
         """Remove actors from the rendered scene."""
         if item in self._actors:
+            logger.debug(
+                f'Removing {len(self._actors[item])} {item} actor(s)')
             for actor in self._actors[item]:
                 self._renderer.plotter.remove_actor(actor)
             self._actors.pop(item)  # remove actor list
@@ -1927,8 +1929,6 @@ class Brain(object):
             if time_label_size < 0:
                 raise ValueError('time_label_size must be positive, got '
                                  f'{time_label_size}')
-
-        self.remove_data()  # remove any existing data
 
         hemi = self._check_hemi(hemi, extras=['vol'])
         stc, array, vertices = self._check_stc(hemi, array, vertices)
@@ -2633,7 +2633,7 @@ class Brain(object):
                 self._renderer.subplot(ri, ci)
                 if picks.size > 0:
                     sensors_actors = _plot_sensors(
-                        info, to_cf_t, self._renderer, picks, meg, eeg,
+                        self._renderer, info, to_cf_t, picks, meg, eeg,
                         fnirs, head_surf, warn_meg, self._units)
                     for item, actors in sensors_actors.items():
                         for actor in actors:
