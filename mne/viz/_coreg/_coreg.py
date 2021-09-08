@@ -42,6 +42,7 @@ class CoregistrationUI(HasTraits):
             "hpi": 1.0,
         }
 
+        self._actors = dict()
         self._renderer = _get_renderer()
         self._renderer._window_close_connect(self._clean)
         self._coreg = Coregistration(info, subject, subjects_dir, fids)
@@ -131,6 +132,7 @@ class CoregistrationUI(HasTraits):
         # XXX: add coreg.set_subject()
         self._coreg._subject = self._subject
         self._reset()
+        self._update_head()
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
@@ -172,12 +174,12 @@ class CoregistrationUI(HasTraits):
     @observe("_head_resolution")
     def _head_resolution_changed(self, change=None):
         self._surface = "head-dense" if self._head_resolution else "head"
-        self._update()
+        self._update_head()
 
     @observe("_head_transparency")
     def _head_transparency_changed(self, change=None):
         self._opacity = 0.4 if self._head_transparency else 1.0
-        self._update()
+        self._update_head()
 
     @observe("_scale_mode")
     def _scale_mode_changed(self, change=None):
@@ -187,7 +189,6 @@ class CoregistrationUI(HasTraits):
     @observe("_icp_fid_match")
     def _icp_fid_match_changed(self, change=None):
         self._coreg.set_fid_match(self._icp_fid_match)
-        self._update()
 
     def _reset_fitting_parameters(self):
         if "icp_n_iterations" in self._widgets:
@@ -212,11 +213,10 @@ class CoregistrationUI(HasTraits):
         self._reset_fitting_parameters()
         self._reset_fiducials()
         self._coreg.reset()
-        self._update()
 
-    def _update(self, clear=True, update_parameters=True):
-        if clear:
-            self._renderer.figure.plotter.clear()
+    def _update_head(self):
+        if "head" in self._actors:
+            self._renderer.plotter.remove_actor(self._actors["head"])
         bem = None
         coord_frame = 'mri'
         to_cf_t = _get_transforms_to_coord_frame(
@@ -230,19 +230,8 @@ class CoregistrationUI(HasTraits):
             head_actor, _ = _plot_head_surface(
                 self._renderer, "head", self._subject, self._subjects_dir,
                 bem, coord_frame, to_cf_t, alpha=self._opacity)
-        del head_actor  # XXX: unused for now
-        if update_parameters:
-            coords = ["X", "Y", "Z"]
-            for tr in ("translation", "rotation", "scale"):
-                for coord in coords:
-                    widget_name = tr[0] + coord
-                    if widget_name in self._widgets:
-                        idx = coords.index(coord)
-                        val = getattr(self._coreg, f"_{tr}")
-                        val_idx = val[idx]
-                        if tr in ("translation", "scale"):
-                            val_idx *= 1000.0
-                        self._widgets[widget_name].set_value(val_idx)
+        self._actors["head"] = head_actor
+        self._renderer._update()
 
     def _fit_fiducials(self):
         self._coreg.fit_fiducials(
@@ -251,7 +240,6 @@ class CoregistrationUI(HasTraits):
             rpa_weight=self._rpa_weight,
             verbose=self._verbose,
         )
-        self._update()
 
     def _fit_icp(self):
         self._coreg.fit_icp(
@@ -261,7 +249,6 @@ class CoregistrationUI(HasTraits):
             rpa_weight=self._rpa_weight,
             verbose=self._verbose,
         )
-        self._update()
 
     def _save_trans(self, fname):
         write_trans(fname, self._coreg.trans)
@@ -275,7 +262,6 @@ class CoregistrationUI(HasTraits):
             rot=[rot_x, rot_y, rot_z],
             tra=[x, y, z],
         )
-        self._update()
 
     def _get_subjects(self):
         # XXX: would be nice to move this function to util
@@ -541,3 +527,4 @@ class CoregistrationUI(HasTraits):
 
     def _clean(self):
         self._renderer = None
+        self._actors.clear()
