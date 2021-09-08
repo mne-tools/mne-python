@@ -1,0 +1,12 @@
+<div class="container-fluid" id="container">
+  <div class="row">
+    <div class="col-2 px-1 position-fixed vh-100 overflow-auto" id="toc">
+      <h5 class="px-1">Table of contents</h5>
+      <nav class="nav nav-pills flex-column lh-sm" id="toc-navbar">
+        {{for toc_entry in toc_entries}}
+        <a class="nav-link list-group-item list-group-item-action text-break" href="#{{toc_entry['dom_target_id']}}"
+          data-mne-tags="{{for tag in toc_entry['tags']}} {{tag}} {{endfor}}">{{toc_entry['name']}}</a>
+        {{endfor}}
+      </nav>
+    </div>
+    <div id="content" class="accordion col-9 offset-2">
