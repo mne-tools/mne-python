@@ -871,7 +871,8 @@ class ICA(ContainsMixin):
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please fit ICA.')
 
-        picks = _picks_to_idx(evoked.info, self.ch_names, exclude=[])
+        picks = _picks_to_idx(
+            evoked.info, self.ch_names, exclude=[], allow_empty=True)
         raise_ = False if len(picks) == len(self.ch_names) else True
         if raise_:
             raise RuntimeError('Evoked doesn\'t match fitted data: %i channels'
