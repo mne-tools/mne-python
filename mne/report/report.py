@@ -44,7 +44,7 @@ from .. import dig_mri_distances
 from ..minimum_norm import read_inverse_operator, InverseOperator
 from ..parallel import parallel_func, check_n_jobs
 
-from ..externals.tempita import HTMLTemplate, Template
+from ..externals.tempita import Template
 from ..externals.h5io import read_hdf5, write_hdf5
 
 _BEM_VIEWS = ('axial', 'sagittal', 'coronal')
@@ -79,8 +79,117 @@ SECTION_ORDER = ('raw', 'events', 'epochs', 'ssp', 'evoked', 'covariance',
                  'trans', 'mri', 'forward', 'inverse')
 
 html_include_dir = Path(__file__).parent / 'js_and_css'
+template_dir = Path(__file__).parent / 'templates'
 JAVASCRIPT = (html_include_dir / 'report.js').read_text(encoding='utf-8')
 CSS = (html_include_dir / 'report.sass').read_text(encoding='utf-8')
+
+
+def _html_header_element(*, lang, include, js, css, title, tags, mne_logo_img):
+    template_path = template_dir / 'header.html'
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(lang=lang, include=include, js=js, css=css, title=title,
+                     tags=tags, mne_logo_img=mne_logo_img)
+    return t
+
+
+def _html_footer_element(*, mne_version, date, current_year):
+    template_path = template_dir / 'footer.html'
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(mne_version=mne_version, date=date,
+                     current_year=current_year)
+    return t
+
+
+def _html_toc_entry_element(*, id, text, tags):
+    template_path = template_dir / 'toc_entry.html'
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, text=text, tags=tags)
+    return t
+
+
+def _html_raw_element(*, id, repr, psd, butterfly, ssp_projs, title, tags):
+    template_path = template_dir / 'raw.html'
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, repr=repr, psd=psd, butterfly=butterfly,
+                     ssp_projs=ssp_projs, tags=tags, title=title)
+    return t
+
+
+def _html_epochs_element(*, id, repr, drop_log, psd, ssp_projs, title, tags):
+    template_path = template_dir / 'epochs.html'
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, repr=repr, drop_log=drop_log, psd=psd,
+                     ssp_projs=ssp_projs, tags=tags, title=title)
+    return t
+
+
+def _html_evoked_element(*, id, joint, slider, gfp, whitened, ssp_projs, title,
+                         tags):
+    template_path = template_dir / 'evoked.html'
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, joint=joint, slider=slider, gfp=gfp,
+                     whitened=whitened, ssp_projs=ssp_projs, tags=tags,
+                     title=title)
+    return t
+
+
+def _html_cov_element(*, id, matrix, svd, title, tags):
+    template_path = template_dir / 'cov.html'
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, matrix=matrix, svd=svd, tags=tags, title=title)
+    return t
+
+
+def _html_forward_sol_element(*, id, info, sensitivity_maps, title, tags):
+    template_path = template_dir / 'forward.html'
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, info=info, sensitivity_maps=sensitivity_maps,
+                     tags=tags, title=title)
+    return t
+
+
+def _html_inverse_op_element(*, id, info, source_space, title, tags):
+    template_path = template_dir / 'inverse.html'
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, info=info, source_space=source_space, tags=tags,
+                     title=title)
+    return t
+
+
+def _html_slider_element(*, id, images, captions, start_idx, image_format,
+                         title, tags):
+    template_path = template_dir / 'slider.html'
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, images=images, captions=captions, tags=tags,
+                     title=title, start_idx=start_idx,
+                     image_format=image_format)
+    return t
+
+
+def _html_image_element(*, id, img, image_format, caption, show, div_klass,
+                        img_klass, title, tags):
+    template_path = template_dir / 'image.html'
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, img=img, caption=caption, tags=tags, title=title,
+                     image_format=image_format, div_klass=div_klass,
+                     img_klass=img_klass, show=show)
+    return t
+
+
+def _html_code_element(*, id, code, language, title, tags):
+    template_path = template_dir / 'code.html'
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, code=code, language=language, title=title,
+                     tags=tags)
+    return t
+
+
+def _html_element(*, id, div_klass, html, title, tags):
+    template_path = template_dir / 'html.html'
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, div_klass=div_klass, html=html, title=title,
+                     tags=tags)
+    return t
 
 
 class TocEntry(TypedDict):
@@ -105,7 +214,7 @@ def _fig_to_img(fig, image_format='png', auto_close=True, **kwargs):
             plt.close('all')
         fig = fig(**kwargs)
     elif not isinstance(fig, Figure):
-        from .viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
+        from ..viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
         backend._check_3d_figure(figure=fig)
         if not MNE_3D_BACKEND_TESTING:
             img = backend._take_3d_screenshot(figure=fig)
@@ -145,8 +254,8 @@ def _get_mri_contour_figs(sl, n_jobs, **kwargs):
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     import matplotlib.pyplot as plt
-    from .viz.backends.renderer import MNE_3D_BACKEND_TESTING
-    from .viz._brain.view import views_dicts
+    from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+    from ..viz._brain.view import views_dicts
 
     fig = function(**kwargs)
 
@@ -156,7 +265,7 @@ def _iterate_trans_views(function, **kwargs):
     images = []
     for view in views:
         if not MNE_3D_BACKEND_TESTING:
-            from .viz.backends.renderer import backend
+            from ..viz.backends.renderer import backend
             set_3d_view(fig, **views_dicts['both'][view])
             backend._check_3d_figure(fig)
             im = backend._take_3d_screenshot(figure=fig)
@@ -259,521 +368,11 @@ def open_report(fname, **params):
     return report
 
 
-slider_template = Template(u"""
-  <div class="accordion-item slider"
-    id="{{id}}"
-    data-mne-tags="{{for tag in tags}} {{tag}} {{endfor}}"
-  >
-    <div class="accordion-header" id="accordion-header-{{id}}">
-      <button class="accordion-button pt-1 pb-1"
-              type="button"
-              data-bs-toggle="collapse"
-              data-bs-target="#accordion-collapse-{{id}}"
-              aria-expanded="true" aria-controls="accordion-collapse-{{id}}">
-        <div class="w-100">
-        <span class="me-auto">{{title}}</span>
-        {{for tag in tags}}
-        <span class="badge bg-primary rounded-pill float-end me-1"
-              data-mne-tag="{{tag}}">
-          {{tag}}
-        </span>
-        {{endfor}}
-        </div>
-      </button>
-    </div>
-
-    <div id="accordion-collapse-{{id}}"
-         class="accordion-collapse collapse show"
-         aria-labelledby="accordion-header-{{id}}""
-    >
-      <div class="accordion-body">
-
-        <div class="mx-auto d-block w-75">
-            <label for="slider-{{id}}"
-                class="form-label small"
-            >
-            Move slider to change view
-            </label>
-            <input type="range"
-                class="form-range"
-                min="0"
-                max="{{len(images) - 1}}"
-                value="{{start_idx}}"
-                id="slider-{{id}}"
-            >
-        </div>
-
-        <div id="corousel-{{id}}"
-             class="carousel"
-             data-bs-interval="false"
-             data-bs-wrap="false"
-        >
-          <div class="carousel-inner">
-          {{for idx, img, caption in zip(range(len(images)), images, captions) }}
-            <div class="carousel-item {{if idx == start_idx}}active{{endif}}">
-              <figure class="figure mx-auto d-block ">
-                <img class="figure-img img-fluid rounded mx-auto my-0 d-block"
-                     alt="{{title}}"
-                     src="data:image/{{image_format}};base64,{{img}}"
-                >
-                <figcaption class="figure-caption text-center">
-                  {{caption}}
-                </figcaption>
-              </figure>
-            </div>
-          {{endfor}}
-          </div>
-
-          <button class="carousel-control-prev" type="button" data-bs-target="#corousel-{{id}}" data-bs-slide="prev">
-              <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-              <span class="visually-hidden">Previous</span>
-          </button>
-          <button class="carousel-control-next" type="button" data-bs-target="#corousel-{{id}}" data-bs-slide="next">
-              <span class="carousel-control-next-icon" aria-hidden="true"></span>
-              <span class="visually-hidden">Next</span>
-          </button>
-
-        </div>
-
-      </div>
-    </div>
-  </div>
-""")
-
-
-def _build_html_slider(slices_range, slides_klass, slider_id,
-                       start_value=None):
-    """Build an html slider for a given slices range and a slices klass."""
-    if start_value is None:
-        start_value = slices_range[len(slices_range) // 2]
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('ignore')
-        out = slider_template.substitute(
-            slider_id=slider_id, klass=slides_klass,
-            step=slices_range[1] - slices_range[0],
-            minvalue=slices_range[0], maxvalue=slices_range[-1],
-            startvalue=start_value)
-    return out
-
-
 ###############################################################################
 # HTML scan renderer
 
 mne_logo_path = Path(__file__).parents[1] / 'icons' / 'mne_icon-cropped.png'
 mne_logo = base64.b64encode(mne_logo_path.read_bytes()).decode('ascii')
-
-header_template = Template("""
-<!DOCTYPE html>
-<html lang="{{lang}}">
-<head>
-    <meta charset="UTF-8">
-    {{include}}
-    <script type="text/javascript">
-        {{js}}
-    </script>
-
-    <style type="text/css">
-        {{css}}
-    </style>
-
-  <title>{{title}}</title>
-</head>
-
-<body
-  data-bs-spy="scroll"
-  data-bs-target="#toc-navbar"
-  data-bs-offset="150"
->
-<nav class="navbar fixed-top navbar-light bg-light shadow-sm" id="top-bar">
-  <div class="container-fluid">
-    <a class="navbar-brand d-flex align-items-center" href="#">
-      <img src="data:image/png;base64,{{mne_logo_img}}" alt="MNE" width="80" class="d-inline-block">
-      <span class="mx-2 fs-3">{{title}}</span>
-    </a>
-
-    <div class="btn-group" role="group" aria-label="Filter by tags" id="filter-by-tags-dropdown-menu">
-        <button class="btn btn-primary dropdown-toggle"
-                type="button"
-                id="show-hide-tags"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-        >
-            Filter by tags
-        </button>
-
-        <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="show-hide-tags">
-            <li>
-              <label class="dropdown-item" id="selectAllTagsCheckboxLabel">
-                <input class="form-check-input me-1"
-                       type="checkbox"
-                       value=""
-                       checked
-                >
-                Select all
-              </label>
-            </li>
-            <li>
-              <hr class="dropdown-divider">
-            </li>
-
-        {{for tag in sorted(tags)}}
-            <li>
-                <label class="tag dropdown-item  me-5" data-mne-tag="{{tag}}">
-                    <input class="form-check-input me-1" type="checkbox" value="" checked>
-                    {{tag}}
-                    <span class="badge bg-primary rounded-pill float-end me-1"
-                          data-mne-tag="{{tag}}"></span>
-                </label>
-            </li>
-        {{endfor}}
-        </ul>
-
-    </div>
-  </div>
-</nav>
-""")
-
-
-footer_template = HTMLTemplate("""
-</div>
-</div>
-<footer>
-    <nav class="navbar fixed-bottom navbar-light bg-light border-top justify-content-center pt-0 pb-0 small">
-        <span>Created on {{date}} via <a href="https://mne.tools" target="_blank">MNE-Python</a> {{mne_version}}</span>
-    </nav>
-</footer>
-</body>
-</html>
-""")
-
-
-html_template = Template("""
-  <div class="accordion-item {{div_klass}}"
-    id="{{id}}"
-    data-mne-tags="{{for tag in tags}} {{tag}} {{endfor}}"
-  >
-    <div class="accordion-header" id="accordion-header-{{id}}">
-      <button class="accordion-button pt-1 pb-1" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-collapse-{{id}}"
-              aria-expanded="true" aria-controls="accordion-collapse-{{id}}">
-        <div class="w-100">
-        <span class="me-auto">{{title}}</span>
-        {{for tag in tags}}
-        <span class="badge bg-primary rounded-pill float-end me-1"
-              data-mne-tag="{{tag}}">
-          {{tag}}
-        </span>
-        {{endfor}}
-        </div>
-      </button>
-    </div>
-
-
-    <div id="accordion-collapse-{{id}}" class="accordion-collapse collapse show" aria-labelledby="accordion-header-{{id}}">
-      <div class="accordion-body">
-        {{html}}
-      </div>
-    </div>
-  </div>
-""")
-
-image_template = Template("""
-  <div class="accordion-item {{div_klass}}"
-    id="{{id}}"
-    data-mne-tags="{{for tag in tags}} {{tag}} {{endfor}}"
-    {{if not show}}style="display: none"{{endif}}
-  >
-    <div class="accordion-header" id="accordion-header-{{id}}">
-      <button class="accordion-button pt-1 pb-1"
-              type="button"
-              data-bs-toggle="collapse"
-              data-bs-target="#accordion-collapse-{{id}}"
-              aria-expanded="true"
-              aria-controls="accordion-collapse-{{id}}"
-      >
-        <div class="w-100">
-        <span class="me-auto">{{title}}</span>
-        {{for tag in tags}}
-        <span class="badge bg-primary rounded-pill float-end me-1"
-              data-mne-tag="{{tag}}">
-          {{tag}}
-        </span>
-        {{endfor}}
-        </div>
-      </button>
-    </div>
-
-    <div id="accordion-collapse-{{id}}"
-         class="accordion-collapse collapse show"
-         aria-labelledby="accordion-header-{{id}}""
-    >
-      <div class="accordion-body">
-        <figure class="figure mx-auto d-block">
-            {{if image_format == 'svg'}}
-            <div">
-                {{img}}
-            </div>
-            {{else}}
-            <img class="figure-img img-fluid rounded mx-auto my-0 d-block"
-                 alt="{{title}}"
-                 src="data:image/{{image_format}};base64,{{img}}"
-            >
-            {{endif}}
-
-            {{if caption is not None}}
-            <figcaption class="figure-caption text-center">{{caption}}</figcaption>
-            {{endif}}
-        </figure>
-      </div>
-    </div>
-  </div>
-""")
-
-raw_template = Template("""
-  <div class="accordion-item raw"
-       id="{{id}}"
-       data-mne-tags="{{for tag in tags}} {{tag}} {{endfor}}"
-  >
-    <div class="accordion-header" id="accordion-header-{{id}}">
-      <button class="accordion-button pt-1 pb-1" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-collapse-{{id}}"
-              aria-expanded="true" aria-controls="accordion-collapse-{{id}}">
-        <div class="w-100">
-        <span class="me-auto">{{title}}</span>
-        {{for tag in tags}}
-        <span class="badge bg-primary rounded-pill float-end me-1"
-              data-mne-tag="{{tag}}">
-          {{tag}}
-        </span>
-        {{endfor}}
-        </div>
-      </button>
-    </div>
-
-    <div id="accordion-collapse-{{id}}" class="accordion-collapse collapse show" aria-labelledby="accordion-header-{{id}}"">
-      <div class="accordion-body">
-        {{repr}}
-        {{psd}}
-        {{butterfly}}
-        {{ssp_projs}}
-      </div>
-    </div>
-  </div>
-""")
-
-epochs_template = Template("""
-  <div class="accordion-item epochs"
-       id="{{id}}"
-       data-mne-tags="{{for tag in tags}} {{tag}} {{endfor}}"
-  >
-    <div class="accordion-header" id="accordion-header-{{id}}">
-      <button class="accordion-button pt-1 pb-1" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-collapse-{{id}}"
-              aria-expanded="true" aria-controls="accordion-collapse-{{id}}">
-        <div class="w-100">
-        <span class="me-auto">{{title}}</span>
-        {{for tag in tags}}
-        <span class="badge bg-primary rounded-pill float-end me-1"
-              data-mne-tag="{{tag}}">
-          {{tag}}
-        </span>
-        {{endfor}}
-        </div>
-      </button>
-    </div>
-
-    <div id="accordion-collapse-{{id}}" class="accordion-collapse collapse show" aria-labelledby="accordion-header-{{id}}"">
-      <div class="accordion-body">
-        {{repr}}
-        {{drop_log}}
-        {{psd}}
-        {{ssp_projs}}
-      </div>
-    </div>
-  </div>
-""")
-
-evoked_template = Template("""
-  <div class="accordion-item evoked"
-    id="{{id}}"
-    data-mne-tags="{{for tag in tags}} {{tag}} {{endfor}}"
-  >
-    <div class="accordion-header" id="accordion-header-{{id}}">
-      <button class="accordion-button pt-1 pb-1" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-collapse-{{id}}"
-              aria-expanded="true" aria-controls="accordion-collapse-{{id}}">
-        <div class="w-100">
-        <span class="me-auto">{{title}}</span>
-        {{for tag in tags}}
-        <span class="badge bg-primary rounded-pill float-end me-1"
-              data-mne-tag="{{tag}}">
-          {{tag}}
-        </span>
-        {{endfor}}
-        </div>
-      </button>
-    </div>
-
-    <div id="accordion-collapse-{{id}}" class="accordion-collapse collapse show" aria-labelledby="accordion-header-{{id}}"">
-      <div class="accordion-body">
-        {{joint}}
-        {{slider}}
-        {{gfp}}
-        {{whitened}}
-        {{ssp_projs}}
-      </div>
-    </div>
-  </div>
-""")
-
-cov_template = Template("""
-  <div class="accordion-item covariance"
-    id="{{id}}"
-    data-mne-tags="{{for tag in tags}} {{tag}} {{endfor}}"
-  >
-    <div class="accordion-header" id="accordion-header-{{id}}">
-      <button class="accordion-button pt-1 pb-1" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-collapse-{{id}}"
-              aria-expanded="true" aria-controls="accordion-collapse-{{id}}">
-        <div class="w-100">
-        <span class="me-auto">{{title}}</span>
-        {{for tag in tags}}
-        <span class="badge bg-primary rounded-pill float-end me-1"
-              data-mne-tag="{{tag}}">
-          {{tag}}
-        </span>
-        {{endfor}}
-        </div>
-      </button>
-    </div>
-
-    <div id="accordion-collapse-{{id}}" class="accordion-collapse collapse show" aria-labelledby="accordion-header-{{id}}"">
-      <div class="accordion-body">
-        {{matrix}}
-        {{svd}}
-      </div>
-    </div>
-  </div>
-""")
-
-stc_template = Template("""
-  <div class="accordion-item stc
-    id="{{id}}"
-    data-mne-tags="{{for tag in tags}} {{tag}} {{endfor}}"
-  >
-    <div class="accordion-header" id="accordion-header-{{id}}">
-      <button class="accordion-button pt-1 pb-1" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-collapse-{{id}}"
-              aria-expanded="true" aria-controls="accordion-collapse-{{id}}">
-        <div class="w-100">
-        <span class="me-auto">{{title}}</span>
-        {{for tag in tags}}
-        <span class="badge bg-primary rounded-pill float-end me-1"
-              data-mne-tag="{{tag}}">
-          {{tag}}
-        </span>
-        {{endfor}}
-        </div>
-      </button>
-    </div>
-
-    <div id="accordion-collapse-{{id}}" class="accordion-collapse collapse show" aria-labelledby="accordion-header-{{id}}"">
-      <div class="accordion-body">
-        {{slider}}
-      </div>
-    </div>
-  </div>
-""")
-
-inverse_template = Template("""
-  <div class="accordion-item inverse-operator"
-    id="{{id}}"
-    data-mne-tags="{{for tag in tags}} {{tag}} {{endfor}}"
-  >
-    <div class="accordion-header" id="accordion-header-{{id}}">
-      <button class="accordion-button pt-1 pb-1" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-collapse-{{id}}"
-              aria-expanded="true" aria-controls="accordion-collapse-{{id}}">
-        <div class="w-100">
-        <span class="me-auto">{{title}}</span>
-        {{for tag in tags}}
-        <span class="badge bg-primary rounded-pill float-end me-1"
-              data-mne-tag="{{tag}}">
-          {{tag}}
-        </span>
-        {{endfor}}
-        </div>
-      </button>
-    </div>
-
-    <div id="accordion-collapse-{{id}}" class="accordion-collapse collapse show" aria-labelledby="accordion-header-{{id}}"">
-      <div class="accordion-body">
-        {{info}}
-        {{source_space}}
-      </div>
-    </div>
-  </div>
-""")
-
-forward_template = Template("""
-  <div class="accordion-item forward-solution"
-    id="{{id}}"
-    data-mne-tags="{{for tag in tags}} {{tag}} {{endfor}}"
-  >
-    <div class="accordion-header" id="accordion-header-{{id}}">
-      <button class="accordion-button pt-1 pb-1" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-collapse-{{id}}"
-              aria-expanded="true" aria-controls="accordion-collapse-{{id}}">
-        <div class="w-100">
-        <span class="me-auto">{{title}}</span>
-        {{for tag in tags}}
-        <span class="badge bg-primary rounded-pill float-end me-1"
-              data-mne-tag="{{tag}}">
-          {{tag}}
-        </span>
-        {{endfor}}
-        </div>
-      </button>
-    </div>
-
-    <div id="accordion-collapse-{{id}}" class="accordion-collapse collapse show" aria-labelledby="accordion-header-{{id}}"">
-      <div class="accordion-body">
-        {{info}}
-        {{sensitivity_maps}}
-      </div>
-    </div>
-  </div>
-""")
-
-
-code_template = Template("""
-  <div class="accordion-item code"
-    id="{{id}}"
-    data-mne-tags="{{for tag in tags}} {{tag}} {{endfor}}"
-  >
-    <div class="accordion-header" id="accordion-header-{{id}}">
-      <button class="accordion-button pt-1 pb-1" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-collapse-{{id}}"
-              aria-expanded="true" aria-controls="accordion-collapse-{{id}}">
-        <div class="w-100">
-        <span class="me-auto">{{title}}</span>
-        {{for tag in tags}}
-        <span class="badge bg-primary rounded-pill float-end me-1"
-              data-mne-tag="{{tag}}">
-          {{tag}}
-        </span>
-        {{endfor}}
-        </div>
-      </button>
-    </div>
-
-    <div id="accordion-collapse-{{id}}" class="accordion-collapse collapse show" aria-labelledby="accordion-header-{{id}}"">
-      <div class="accordion-body">
-        <pre>
-          <code class="language-{{language}}">{{code}}</code>
-        </pre>
-      </div>
-    </div>
-  </div>
-""")
-
-toc_entry_template = Template("""
-  <a class="nav-link list-group-item list-group-item-action text-break"
-     href="#{{id}}"
-     data-mne-tags="{{for tag in tags}} {{tag}} {{endfor}}"
-  >{{text}}</a>
-""")
 
 
 def _check_scale(scale):
@@ -1036,7 +635,7 @@ class Report(object):
         repr_html, drop_log_html, psd_html, ssp_projs_html = htmls
 
         dom_id = self._get_id()
-        html = epochs_template.substitute(
+        html = _html_epochs_element(
             repr=repr_html,
             drop_log=drop_log_html,
             psd=psd_html,
@@ -1044,7 +643,6 @@ class Report(object):
             tags=tags,
             title=title,
             id=dom_id,
-            show=True
         )
         self._add_or_replace(
             toc_entry_name=title,
@@ -1127,7 +725,7 @@ class Report(object):
              ssp_projs_html) = evoked_htmls
 
             dom_id = self._get_id()
-            html = evoked_template.substitute(
+            html = _html_evoked_element(
                 id=dom_id,
                 joint=joint_html,
                 slider=slider_html,
@@ -1185,7 +783,7 @@ class Report(object):
         )
         repr_html, psd_img_html, butterfly_img_html, ssp_proj_img_html = htmls
         dom_id = self._get_id()
-        html = raw_template.substitute(
+        html = _html_raw_element(
             repr=repr_html,
             psd=psd_img_html,
             butterfly=butterfly_img_html,
@@ -1193,7 +791,6 @@ class Report(object):
             tags=tags,
             title=title,
             id=dom_id,
-            show=True
         )
         self._add_or_replace(
             dom_id=dom_id,
@@ -1393,7 +990,7 @@ class Report(object):
         cov_matrix_html, cov_svd_html = htmls
 
         dom_id = self._get_id()
-        html = cov_template.substitute(
+        html = _html_cov_element(
             matrix=cov_matrix_html,
             svd=cov_svd_html,
             tags=tags,
@@ -1585,7 +1182,7 @@ class Report(object):
         code = stdlib_html.escape(code)
 
         dom_id = self._get_id()
-        html = code_template.substitute(
+        html = _html_code_element(
             tags=tags,
             title=title,
             id=dom_id,
@@ -1935,7 +1532,7 @@ class Report(object):
                                 image_format=self.image_format, tags=tags)
 
         dom_id = self._get_id()
-        html = html_template.substitute(
+        html = _html_element(
             div_klass='bem',
             id=dom_id,
             tags=tags,
@@ -1958,11 +1555,10 @@ class Report(object):
                   for fig in figs]
 
         dom_id = self._get_id()
-        html = slider_template.substitute(
+        html = _html_slider_element(
             id=dom_id,
             title=title,
             captions=captions,
-            div_klass=klass,
             tags=tags,
             images=images,
             image_format=image_format,
@@ -2293,7 +1889,7 @@ class Report(object):
                 # Annotate the HTML with a TOC and footer.
                 with warnings.catch_warnings(record=True):
                     warnings.simplefilter('ignore')
-                    html = footer_template.substitute(
+                    html = _html_footer_element(
                         mne_version=MNE_VERSION,
                         date=time.strftime("%B %d, %Y"),
                         current_year=time.strftime("%Y")
@@ -2344,7 +1940,8 @@ class Report(object):
         html_toc = """
         <div class="container-fluid" id="container">
           <div class="row">
-            <div class="col-2 px-1 position-fixed vh-100 overflow-auto" id="toc">
+            <div class="col-2 px-1 position-fixed vh-100 overflow-auto"
+                 id="toc">
               <h5 class="px-1">Table of contents</h5>
               <nav class="nav nav-pills flex-column lh-sm" id="toc-navbar">
         """
@@ -2363,7 +1960,7 @@ class Report(object):
             logger.info(_get_fname(toc_entry['name']))
             # htmls.append(html)
 
-            html_toc += toc_entry_template.substitute(
+            html_toc += _html_toc_entry_element(
                 text=toc_entry['name'],
                 id=toc_entry['dom_target_id'],
                 tags=toc_entry['tags']
@@ -2382,7 +1979,7 @@ class Report(object):
         lang = getattr(self, 'lang', 'en-us')
         sections = [section if section != 'mri' else 'MRI'
                     for section in self.tags]
-        html_header = header_template.substitute(
+        html_header = _html_header_element(
             title=self.title, include=self.include, lang=lang,
             tags=sections, js=JAVASCRIPT, css=CSS, mne_logo_img=mne_logo
         )
@@ -2435,7 +2032,7 @@ class Report(object):
 
         # Summary table
         dom_id = self._get_id()
-        repr_html = html_template.substitute(
+        repr_html = _html_element(
             div_klass='raw',
             id=dom_id,
             tags=tags,
@@ -2461,11 +2058,10 @@ class Report(object):
         )
         fig.tight_layout()
         img = _fig_to_img(fig=fig, image_format=image_format)
-        butterfly_img_html = image_template.substitute(
+        butterfly_img_html = _html_image_element(
             img=img, div_klass='raw', img_klass='raw',
             title='Time course', caption=None, show=True,
-            image_format=image_format, width=80, scale=True, id=dom_id,
-            tags=tags
+            image_format=image_format, id=dom_id, tags=tags
         )
         del raw_copy
 
@@ -2480,11 +2076,10 @@ class Report(object):
             fig = raw.plot_psd(fmax=fmax, show=False, **add_psd)
             fig.tight_layout()
             img = _fig_to_img(fig, image_format=image_format)
-            psd_img_html = image_template.substitute(
+            psd_img_html = _html_image_element(
                 img=img, div_klass='raw', img_klass='raw',
                 title='PSD', caption=None, show=True,
-                image_format=image_format, width=80, scale=True, id=dom_id,
-                tags=tags
+                image_format=image_format, id=dom_id, tags=tags
             )
         else:
             psd_img_html = ''
@@ -2532,7 +2127,7 @@ class Report(object):
         img = _fig_to_img(fig=fig, image_format=image_format)
 
         dom_id = self._get_id()
-        html = image_template.substitute(
+        html = _html_image_element(
             img=img, div_klass='ssp', img_klass='ssp',
             title=title, caption=None, show=True, image_format=image_format,
             id=dom_id, tags=tags
@@ -2563,13 +2158,12 @@ class Report(object):
             sensitivity_maps_html = ''
 
         dom_id = self._get_id()
-        html = forward_template.substitute(
+        html = _html_forward_sol_element(
             id=dom_id,
             info=info_html,
             sensitivity_maps=sensitivity_maps_html,
             title=title,
-            tags=tags,
-            image_format=image_format
+            tags=tags
         )
         return html, dom_id
 
@@ -2606,7 +2200,7 @@ class Report(object):
             img = _fig_to_img(fig=fig, image_format=image_format)
 
             dom_id = self._get_id()
-            src_img_html = image_template.substitute(
+            src_img_html = _html_image_element(
                 img=img,
                 div_klass='inverse-operator source-space',
                 img_klass='inverse-operator source-space',
@@ -2618,13 +2212,12 @@ class Report(object):
             src_img_html = ''
 
         dom_id = self._get_id()
-        html = inverse_template.substitute(
+        html = _html_inverse_op_element(
             id=dom_id,
             info=info_html,
             source_space=src_img_html,
             title=title,
             tags=tags,
-            image_format=image_format
         )
         return html, dom_id
 
@@ -2648,9 +2241,10 @@ class Report(object):
             dom_id = self._get_id()
 
             htmls.append(
-                image_template.substitute(
+                _html_image_element(
                     img=img,
                     div_klass='evoked evoked-joint',
+                    img_klass='evoked evoked-joint',
                     tags=tags,
                     title=title,
                     caption=None,
@@ -2765,11 +2359,12 @@ class Report(object):
         fig.tight_layout()
         img = _fig_to_img(fig, image_format)
         title = 'Global field power'
-        html = image_template.substitute(
+        html = _html_image_element(
             img=img,
             id=dom_id,
             tags=tags,
             div_klass='evoked evoked-gfp',
+            img_klass='evoked evoked-gfp',
             title=title,
             caption=None,
             image_format=image_format,
@@ -2790,7 +2385,7 @@ class Report(object):
         img = _fig_to_img(fig, image_format=image_format)
         title = 'Whitened'
 
-        html = image_template.substitute(
+        html = _html_image_element(
             img=img, id=dom_id, div_klass='evoked',
             img_klass='evoked evoked-whitened', title=title, caption=None,
             show=True, image_format=image_format, tags=tags
@@ -2868,7 +2463,7 @@ class Report(object):
         )
 
         dom_id = self._get_id()
-        html = image_template.substitute(
+        html = _html_image_element(
             img=img,
             id=dom_id,
             div_klass='events',
@@ -2892,7 +2487,7 @@ class Report(object):
 
         # Summary table
         dom_id = self._get_id()
-        repr_html = html_template.substitute(
+        repr_html = _html_element(
             div_klass='epochs',
             id=dom_id,
             tags=tags,
@@ -2904,10 +2499,10 @@ class Report(object):
         dom_id = self._get_id()
         img = _fig_to_img(epochs.plot_drop_log, image_format,
                           subject=self.subject, show=False)
-        drop_log_img_html = image_template.substitute(
+        drop_log_img_html = _html_image_element(
             img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
-            show=True, image_format=image_format, width=50, scale=True,
-            title='Drop log', caption=None, tags=tags
+            show=True, image_format=image_format, title='Drop log',
+            caption=None, tags=tags
         )
 
         # PSD
@@ -2920,10 +2515,10 @@ class Report(object):
         fig = epochs.plot_psd(fmax=fmax, show=False)
         fig.tight_layout()
         img = _fig_to_img(fig=fig, image_format=image_format)
-        psd_img_html = image_template.substitute(
+        psd_img_html = _html_image_element(
             img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
-            show=True, image_format=image_format, width=80, scale=True,
-            title='PSD', caption=None, tags=tags
+            show=True, image_format=image_format, title='PSD', caption=None,
+            tags=tags
         )
 
         # SSP projectors
@@ -2957,7 +2552,7 @@ class Report(object):
         for fig, title in zip(figs, titles):
             dom_id = self._get_id()
             img = _fig_to_img(fig, image_format)
-            html = image_template.substitute(
+            html = _html_image_element(
                 img=img, id=dom_id, div_klass='covariance',
                 img_klass='covariance', title=title, caption=None,
                 image_format=image_format, tags=tags, show=True
@@ -2988,7 +2583,7 @@ class Report(object):
             )
 
         dom_id = self._get_id()
-        html = image_template.substitute(
+        html = _html_image_element(
             img=img, id=dom_id, div_klass='trans',
             img_klass='trans', title=title, caption=caption,
             show=True, image_format='png', tags=tags
