@@ -9,18 +9,20 @@ import importlib
 import subprocess
 import sys
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 from contextlib import contextmanager
 from copy import deepcopy
 from itertools import cycle
 
 import numpy as np
-from mne import set_config
 
-from .. import verbose, get_config
+from .. import verbose, get_config, set_config
 from ..annotations import _sync_onset
+from ..defaults import _handle_default
 from ..utils import logger, _validate_type, _check_option
+from ..io.pick import _DATA_CH_TYPES_SPLIT
 from .backends._utils import VALID_BROWSE_BACKENDS
-from .utils import _get_color_list, _setup_plot_projector
+from .utils import _get_color_list, _setup_plot_projector, plt_show
 
 MNE_BROWSE_BACKEND = None
 _backends = dict(
@@ -49,6 +51,8 @@ class BrowserBase(ABC):
         from .. import BaseEpochs
         from ..io import BaseRaw
         from ..preprocessing import ICA
+
+        self.backend_name = None
 
         self._data = None
         self._times = None
@@ -406,6 +410,151 @@ class BrowserBase(ABC):
         while len(self.mne.child_figs):
             fig = self.mne.child_figs[-1]
             self._close_event(fig)
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # CHILD FIGURES
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    def _new_child_figure(self, fig_name, **kwargs):
+        from ._mpl_figure import _figure
+        """Instantiate a new MNE dialog figure (with event listeners)."""
+        fig = _figure(toolbar=False, parent_fig=self, fig_name=fig_name,
+                      **kwargs)
+        fig._add_default_callbacks()
+        self.mne.child_figs.append(fig)
+        if isinstance(fig_name, str):
+            setattr(self.mne, fig_name, fig)
+        return fig
+
+    def _create_ch_context_fig(self, idx):
+        """Show context figure; idx is index of **visible** channels."""
+        inst = self.mne.instance_type
+        pick = self.mne.picks[idx]
+        if inst == 'raw':
+            fig = self._create_ch_location_fig(pick)
+        elif inst == 'ica':
+            fig = self._create_ica_properties_fig(pick)
+        else:
+            fig = self._create_epoch_image_fig(pick)
+
+        return fig
+
+    def _create_ch_location_fig(self, pick):
+        """Show channel location figure."""
+        from .utils import _channel_type_prettyprint, plot_sensors
+        ch_name = self.mne.ch_names[pick]
+        ch_type = self.mne.ch_types[pick]
+        if ch_type not in _DATA_CH_TYPES_SPLIT:
+            return
+        # create figure and axes
+        title = f'Location of {ch_name}'
+        fig = self._new_child_figure(figsize=(4, 4), fig_name=None,
+                                     window_title=title)
+        fig.suptitle(title)
+        ax = fig.add_subplot(111)
+        title = f'{ch_name} position ({_channel_type_prettyprint[ch_type]})'
+        _ = plot_sensors(self.mne.info, ch_type=ch_type, axes=ax,
+                         title=title, kind='select', show=False)
+        # highlight desired channel & disable interactivity
+        inds = np.in1d(fig.lasso.ch_names, [ch_name])
+        fig.lasso.disconnect()
+        fig.lasso.alpha_other = 0.3
+        fig.lasso.linewidth_selected = 3
+        fig.lasso.style_sensors(inds)
+
+        return fig
+
+    def _create_ica_properties_fig(self, idx):
+        """Show ICA properties for the selected component."""
+        from mne.viz.ica import (_create_properties_layout,
+                                 _prepare_data_ica_properties,
+                                 _fast_plot_ica_properties)
+
+        ch_name = self.mne.ch_names[idx]
+        if ch_name not in self.mne.ica._ica_names:  # for EOG chans: do nothing
+            return
+        pick = self.mne.ica._ica_names.index(ch_name)
+        title = f'{ch_name} properties'
+        fig = self._new_child_figure(figsize=(7, 6), fig_name=None,
+                                     window_title=title)
+        fig.suptitle(title)
+        fig, axes = _create_properties_layout(fig=fig)
+        if not hasattr(self.mne, 'data_ica_properties'):
+            # Precompute epoch sources only once
+            self.mne.data_ica_properties = _prepare_data_ica_properties(
+                self.mne.ica_inst, self.mne.ica)
+        _fast_plot_ica_properties(
+            self.mne.ica, self.mne.ica_inst, picks=pick, axes=axes,
+            precomputed_data=self.mne.data_ica_properties)
+
+        return fig
+
+    def _create_epoch_image_fig(self, pick):
+        """Show epochs image for the selected channel."""
+        from matplotlib.gridspec import GridSpec
+        from mne.viz import plot_epochs_image
+        ch_name = self.mne.ch_names[pick]
+        title = f'Epochs image ({ch_name})'
+        fig = self._new_child_figure(figsize=(6, 4), fig_name=None,
+                                     window_title=title)
+        fig.suptitle = title
+        gs = GridSpec(nrows=3, ncols=10)
+        fig.add_subplot(gs[:2, :9])
+        fig.add_subplot(gs[2, :9])
+        fig.add_subplot(gs[:2, 9])
+        plot_epochs_image(self.mne.inst, picks=pick, fig=fig)
+
+        return fig
+
+    def _toggle_epoch_histogram(self):
+        """Show or hide peak-to-peak histogram of channel amplitudes."""
+        if self.mne.fig_histogram is None:
+            self._create_epoch_histogram()
+            plt_show(fig=self.mne.fig_histogram)
+        else:
+            from matplotlib.pyplot import close
+            close(self.mne.fig_histogram)
+
+    def _create_epoch_histogram(self):
+        """Create peak-to-peak histogram of channel amplitudes."""
+        epochs = self.mne.inst
+        data = OrderedDict()
+        ptp = np.ptp(epochs.get_data(), axis=2)
+        for ch_type in ('eeg', 'mag', 'grad'):
+            if ch_type in epochs:
+                data[ch_type] = ptp.T[self.mne.ch_types == ch_type].ravel()
+        units = _handle_default('units')
+        titles = _handle_default('titles')
+        colors = _handle_default('color')
+        scalings = _handle_default('scalings')
+        title = 'Histogram of peak-to-peak amplitudes'
+        figsize = (4, 1 + 1.5 * len(data))
+        fig = self._new_child_figure(figsize=figsize, fig_name='fig_histogram',
+                                     window_title=title)
+        for ix, (_ch_type, _data) in enumerate(data.items()):
+            ax = fig.add_subplot(len(data), 1, ix + 1)
+            ax.set(title=titles[_ch_type], xlabel=units[_ch_type],
+                   ylabel='Count')
+            # set histogram bin range based on rejection thresholds
+            reject = None
+            _range = None
+            if epochs.reject is not None and _ch_type in epochs.reject:
+                reject = epochs.reject[_ch_type] * scalings[_ch_type]
+                _range = (0., reject * 1.1)
+            # plot it
+            ax.hist(_data * scalings[_ch_type], bins=100,
+                    color=colors[_ch_type], range=_range)
+            if reject is not None:
+                ax.plot((reject, reject), (0, ax.get_ylim()[1]), color='r')
+        # finalize
+        fig.suptitle(title, y=0.99)
+        kwargs = dict(bottom=fig._inch_to_rel(0.5, horiz=False),
+                      top=1 - fig._inch_to_rel(0.5, horiz=False),
+                      left=fig._inch_to_rel(0.75),
+                      right=1 - fig._inch_to_rel(0.25))
+        fig.subplots_adjust(hspace=0.7, **kwargs)
+        self.mne.fig_histogram = fig
+
+        return fig
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # TEST METHODS
