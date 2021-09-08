@@ -2,9 +2,10 @@ import os
 import os.path as op
 import numpy as np
 from functools import partial
+from ...defaults import DEFAULTS
 from ...io import read_info, read_fiducials
 from ...coreg import Coregistration, _is_mri_subject
-from ...viz._3d import _plot_head_surface
+from ...viz._3d import _plot_head_surface, _plot_head_fiducials
 from ...transforms import (read_trans, write_trans, _ensure_trans,
                            rotation_angles, _get_transforms_to_coord_frame)
 from ...utils import get_subjects_dir
@@ -59,7 +60,6 @@ class CoregistrationUI(HasTraits):
 
         self._reset_fitting_parameters()
         self._configure_dock()
-        self._update(clear=False)
         self._renderer.show()
 
     def _set_subjects_dir(self, subjects_dir):
@@ -132,7 +132,8 @@ class CoregistrationUI(HasTraits):
         # XXX: add coreg.set_subject()
         self._coreg._subject = self._subject
         self._reset()
-        self._update_head()
+        self._add_head_surface()
+        self._add_head_fiducials()
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
@@ -152,6 +153,7 @@ class CoregistrationUI(HasTraits):
         fids, _ = read_fiducials(self._fiducials_file)
         self._coreg._setup_fiducials(fids)
         self._reset()
+        self._add_head_fiducials()
 
     @observe("_current_fiducial")
     def _current_fiducial_changed(self, change=None):
@@ -174,12 +176,13 @@ class CoregistrationUI(HasTraits):
     @observe("_head_resolution")
     def _head_resolution_changed(self, change=None):
         self._surface = "head-dense" if self._head_resolution else "head"
-        self._update_head()
+        self._add_head_surface()
 
     @observe("_head_transparency")
     def _head_transparency_changed(self, change=None):
         self._opacity = 0.4 if self._head_transparency else 1.0
-        self._update_head()
+        self._actors["head"].GetProperty().SetOpacity(self._opacity)
+        self._renderer._update()
 
     @observe("_scale_mode")
     def _scale_mode_changed(self, change=None):
@@ -214,7 +217,20 @@ class CoregistrationUI(HasTraits):
         self._reset_fiducials()
         self._coreg.reset()
 
-    def _update_head(self):
+    def _add_head_fiducials(self):
+        if "head_fids" in self._actors:
+            self._renderer.plotter.remove_actor(self._actors["head_fids"])
+        coord_frame = 'mri'
+        defaults = DEFAULTS['coreg']
+        fid_colors = tuple(
+            defaults[f'{key}_color'] for key in ('lpa', 'nasion', 'rpa'))
+        to_cf_t = _get_transforms_to_coord_frame(
+            self._info, self._coreg.trans, coord_frame=coord_frame)
+        head_fids_actors = _plot_head_fiducials(
+            self._renderer, self._info, to_cf_t, fid_colors)
+        self._actors["head_fids"] = head_fids_actors
+
+    def _add_head_surface(self):
         if "head" in self._actors:
             self._renderer.plotter.remove_actor(self._actors["head"])
         bem = None
