@@ -620,8 +620,7 @@ class Report(object):
             epochs=epochs,
             add_ssp_projs=projs,
             tags=tags,
-            image_format=self.image_format,
-            data_path=None
+            image_format=self.image_format
         )
         repr_html, drop_log_html, psd_html, ssp_projs_html = htmls
 
@@ -708,7 +707,6 @@ class Report(object):
                 noise_cov=noise_cov,
                 image_format=self.image_format,
                 add_ssp_projs=projs,
-                data_path=None,
                 tags=tags
             )
 
@@ -769,7 +767,6 @@ class Report(object):
             add_psd=add_psd,
             add_ssp_projs=projs,
             image_format=self.image_format,
-            data_path=None,
             tags=tags
         )
         repr_html, psd_img_html, butterfly_img_html, ssp_proj_img_html = htmls
@@ -857,8 +854,7 @@ class Report(object):
 
         html, dom_id = self._render_forward(
             forward=forward, subject=subject, subjects_dir=subjects_dir,
-            data_path=None, title=title, image_format=self.image_format,
-            tags=tags
+            title=title, image_format=self.image_format, tags=tags
         )
         self._add_or_replace(
             dom_id=dom_id,
@@ -901,8 +897,7 @@ class Report(object):
 
         html, dom_id = self._render_inverse(
             inverse=inverse, subject=subject, subjects_dir=subjects_dir,
-            trans=trans, data_path=None, title=title,
-            image_format=self.image_format, tags=tags
+            trans=trans, title=title, image_format=self.image_format, tags=tags
         )
         self._add_or_replace(
             dom_id=dom_id,
@@ -1027,7 +1022,6 @@ class Report(object):
             first_samp=first_samp,
             title=title,
             image_format=self.image_format,
-            data_path=None,
             tags=tags
         )
         self._add_or_replace(
@@ -1060,7 +1054,7 @@ class Report(object):
                 self.tags.append(tag)
 
         html, dom_id = self._render_ssp_projs(
-            info=info, projs=projs, data_path=None, title=title,
+            info=info, projs=projs, title=title,
             image_format=self.image_format, tags=tags
         )
         self._add_or_replace(
@@ -1988,8 +1982,7 @@ class Report(object):
         )
         return html
 
-    def _render_raw(self, *, raw, add_psd, add_ssp_projs, image_format,
-                    data_path, tags):
+    def _render_raw(self, *, raw, add_psd, add_ssp_projs, image_format, tags):
         """Render raw."""
         if isinstance(raw, BaseRaw):
             fname = raw.filenames[0]
@@ -2057,7 +2050,7 @@ class Report(object):
         # SSP projectors
         if add_ssp_projs:
             ssp_projs_html, _ = self._render_ssp_projs(
-                info=raw, projs=None, title='SSP Projectors', data_path=None,
+                info=raw, projs=None, title='SSP Projectors',
                 image_format=image_format, tags=tags
             )
         else:
@@ -2065,8 +2058,7 @@ class Report(object):
 
         return [repr_html, psd_img_html, butterfly_img_html, ssp_projs_html]
 
-    def _render_ssp_projs(self, *, info, projs, title, data_path, image_format,
-                          tags):
+    def _render_ssp_projs(self, *, info, projs, title, image_format, tags):
         if isinstance(info, Info):  # no-op
             pass
         elif hasattr(info, 'info'):  # try to get the file name
@@ -2106,7 +2098,7 @@ class Report(object):
         return html, dom_id
 
     def _render_forward(self, *, forward, subject, subjects_dir, title,
-                        data_path, image_format, tags):
+                        image_format, tags):
         """Render forward solution."""
         if not isinstance(forward, Forward):
             forward = read_forward_solution(forward)
@@ -2138,7 +2130,7 @@ class Report(object):
         return html, dom_id
 
     def _render_inverse(self, *, inverse, subject, subjects_dir, trans, title,
-                        data_path, image_format, tags):
+                        image_format, tags):
         """Render inverse operator."""
         if not isinstance(inverse, InverseOperator):
             inverse = read_inverse_operator(inverse)
@@ -2344,7 +2336,7 @@ class Report(object):
         return html
 
     def _render_evoked_whitened(self, evoked, *, noise_cov, image_format,
-                                data_path, tags):
+                                tags):
         """Render whitened evoked."""
         dom_id = self._get_id()
         fig = evoked.plot_white(
@@ -2363,7 +2355,7 @@ class Report(object):
         return html
 
     def _render_evoked(self, evoked, noise_cov, add_ssp_projs, image_format,
-                       data_path, tags):
+                       tags):
         def _get_ch_types(ev):
             has_types = []
             if len(pick_types(ev.info, meg=False, eeg=True)) > 0:
@@ -2395,7 +2387,6 @@ class Report(object):
                 evoked=evoked,
                 noise_cov=noise_cov,
                 image_format=image_format,
-                data_path=data_path,
                 tags=tags
             )
         else:
@@ -2405,7 +2396,7 @@ class Report(object):
         if add_ssp_projs:
             html_ssp_projs, _ = self._render_ssp_projs(
                 info=evoked, projs=None, title='SSP Projectors',
-                data_path=None, image_format=image_format, tags=tags
+                image_format=image_format, tags=tags
             )
         else:
             html_ssp_projs = ''
@@ -2413,8 +2404,8 @@ class Report(object):
         logger.debug('Evoked: done')
         return html_joint, html_slider, html_gfp, html_whitened, html_ssp_projs
 
-    def _render_events(self, events, *, event_id, sfreq, first_samp,
-                       title, image_format, data_path, tags):
+    def _render_events(self, events, *, event_id, sfreq, first_samp, title,
+                       image_format, tags):
         """Render events."""
         if not isinstance(events, np.ndarray):
             events = read_events(filename=events)
@@ -2446,8 +2437,7 @@ class Report(object):
         )
         return html, dom_id
 
-    def _render_epochs(self, *, epochs, add_ssp_projs, image_format, data_path,
-                       tags):
+    def _render_epochs(self, *, epochs, add_ssp_projs, image_format, tags):
         """Render epochs."""
         if isinstance(epochs, BaseEpochs):
             fname = epochs.filename
@@ -2495,7 +2485,7 @@ class Report(object):
         if add_ssp_projs:
             ssp_projs_html, _ = self._render_ssp_projs(
                 info=epochs, projs=None, title='SSP Projectors',
-                data_path=None, image_format=image_format, tags=tags
+                image_format=image_format, tags=tags
             )
         else:
             ssp_projs_html = ''
@@ -2791,13 +2781,9 @@ class _ReportScraper(object):
 def _iterate_files(
     report: Report,
     fnames,
-    info,
     cov,
-    baseline,
     sfreq,
     on_error,
-    image_format,
-    data_path
 ):
     """Parallel process in batch mode."""
     for fname in fnames:
