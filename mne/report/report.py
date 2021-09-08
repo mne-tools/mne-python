@@ -83,6 +83,8 @@ template_dir = Path(__file__).parent / 'templates'
 JAVASCRIPT = (html_include_dir / 'report.js').read_text(encoding='utf-8')
 CSS = (html_include_dir / 'report.sass').read_text(encoding='utf-8')
 
+###############################################################################
+# HTML generation
 
 def _html_header_element(*, lang, include, js, css, title, tags, mne_logo_img):
     template_path = template_dir / 'header.html'
@@ -104,6 +106,13 @@ def _html_toc_entry_element(*, id, text, tags):
     template_path = template_dir / 'toc_entry.html'
     t = Template(template_path.read_text(encoding='utf-8'))
     t = t.substitute(id=id, text=text, tags=tags)
+    return t
+
+
+def _html_toc_element(*, toc_entries):
+    template_path = template_dir / 'toc.html'
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(toc_entries=toc_entries)
     return t
 
 
@@ -303,16 +312,6 @@ def _iterate_trans_views(function, **kwargs):
 ###############################################################################
 # TOC FUNCTIONS
 
-def _get_fname(fname):
-    """Get fname without -#-."""
-    if '-#-' in fname:
-        fname = fname.split('-#-')[0]
-    else:
-        fname = op.basename(fname)
-    fname = ' ... %s' % fname
-    return fname
-
-
 def _endswith(fname, suffixes):
     """Aux function to test if file name includes the specified suffixes."""
     if isinstance(suffixes, str):
@@ -496,7 +495,6 @@ class Report(object):
         self.include = []
         self.tags = []  # all tags
         self.lang = 'en-us'  # language setting for the HTML file
-        self._toc_ids = []  # DOM element IDs to be linked to from the TOC
         # boolean to specify if sections should be ordered in natural
         # order of processing (raw -> events ... -> inverse)
         self._sort_sections = False
@@ -1884,17 +1882,24 @@ class Report(object):
                 write_hdf5(fname, self.__getstate__(), overwrite=overwrite,
                            title='mnepython')
             else:
-                self._render_toc()
+                # Add header, TOC, and footer.
+                header_html = _html_header_element(
+                    title=self.title, include=self.include, lang=self.lang,
+                    tags=self.tags, js=JAVASCRIPT, css=CSS,
+                    mne_logo_img=mne_logo
+                )
 
-                # Annotate the HTML with a TOC and footer.
+                toc_html = _html_toc_element(toc_entries=self._toc_entries)
+
                 with warnings.catch_warnings(record=True):
                     warnings.simplefilter('ignore')
-                    html = _html_footer_element(
+                    footer_html = _html_footer_element(
                         mne_version=MNE_VERSION,
                         date=time.strftime("%B %d, %Y"),
                         current_year=time.strftime("%Y")
                     )
-                self.html.append(html)
+
+                self.html = [header_html, toc_html, *self.html, footer_html]
 
                 # Writing to disk may fail. However, we need to make sure that
                 # the TOC and footer are removed regardless, otherwise they
@@ -1932,59 +1937,31 @@ class Report(object):
         caption = f'{prefix}: {fname} {suffix}'
         return caption.strip()
 
-    @verbose
-    def _render_toc(self, verbose=None):
-        """Render the Table of Contents."""
-        logger.info('Rendering : Table of Contents')
+    # @verbose
+    # def _render_toc(self, verbose=None):
+    #     """Render the Table of Contents."""
+    #     logger.info('Rendering : Table of Contents')
 
-        html_toc = """
-        <div class="container-fluid" id="container">
-          <div class="row">
-            <div class="col-2 px-1 position-fixed vh-100 overflow-auto"
-                 id="toc">
-              <h5 class="px-1">Table of contents</h5>
-              <nav class="nav nav-pills flex-column lh-sm" id="toc-navbar">
-        """
+    #     # Reorder self.sections to reflect natural ordering
+    #     # if self._sort_sections:
+    #     #     sections = list(set(self.tags) & set(SECTION_ORDER))
+    #     #     custom = [section for section in self.tags if section
+    #     #               not in SECTION_ORDER]
+    #     #     order = [sections.index(section) for section in SECTION_ORDER if
+    #     #              section in sections]
+    #     #     self.tags = np.array(sections)[order].tolist() + custom
 
-        # Reorder self.sections to reflect natural ordering
-        # if self._sort_sections:
-        #     sections = list(set(self.tags) & set(SECTION_ORDER))
-        #     custom = [section for section in self.tags if section
-        #               not in SECTION_ORDER]
-        #     order = [sections.index(section) for section in SECTION_ORDER if
-        #              section in sections]
-        #     self.tags = np.array(sections)[order].tolist() + custom
 
-        # htmls = []
-        for html, toc_entry in zip(self.html, self._toc_entries):
-            logger.info(_get_fname(toc_entry['name']))
-            # htmls.append(html)
-
-            html_toc += _html_toc_entry_element(
-                text=toc_entry['name'],
-                id=toc_entry['dom_target_id'],
-                tags=toc_entry['tags']
-            )
-
-        html_toc += '\n</nav></div>'
-        html_toc += """
-            <div
-              id="content"
-              class="accordion col-9 offset-2"
-            >"""
-
-        # The sorted html (according to section)
-        # self.html = htmls
-
-        lang = getattr(self, 'lang', 'en-us')
-        sections = [section if section != 'mri' else 'MRI'
-                    for section in self.tags]
-        html_header = _html_header_element(
-            title=self.title, include=self.include, lang=lang,
-            tags=sections, js=JAVASCRIPT, css=CSS, mne_logo_img=mne_logo
-        )
-        self.html.insert(0, html_header)  # Insert header at position 0
-        self.html.insert(1, html_toc)  # insert TOC
+    #     toc_html = _html_toc_element(toc_entries=self._toc_entries)
+    #     lang = getattr(self, 'lang', 'en-us')
+    #     sections = [section if section != 'mri' else 'MRI'
+    #                 for section in self.tags]
+    #     html_header = _html_header_element(
+    #         title=self.title, include=self.include, lang=lang,
+    #         tags=sections, js=JAVASCRIPT, css=CSS, mne_logo_img=mne_logo
+    #     )
+    #     self.html.insert(0, html_header)  # Insert header at position 0
+    #     self.html.insert(1, toc_html)  # insert TOC
 
     def _render_one_bem_axis(self, *, mri_fname, surfaces,
                              image_format, orientation, decim=2, n_jobs=1,
