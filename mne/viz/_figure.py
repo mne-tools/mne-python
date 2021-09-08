@@ -414,16 +414,9 @@ class BrowserBase(ABC):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # CHILD FIGURES
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    @abstractmethod
     def _new_child_figure(self, fig_name, **kwargs):
-        from ._mpl_figure import _figure
-        """Instantiate a new MNE dialog figure (with event listeners)."""
-        fig = _figure(toolbar=False, parent_fig=self, fig_name=fig_name,
-                      **kwargs)
-        fig._add_default_callbacks()
-        self.mne.child_figs.append(fig)
-        if isinstance(fig_name, str):
-            setattr(self.mne, fig_name, fig)
-        return fig
+        pass
 
     def _create_ch_context_fig(self, idx):
         """Show context figure; idx is index of **visible** channels."""
@@ -484,7 +477,7 @@ class BrowserBase(ABC):
                 self.mne.ica_inst, self.mne.ica)
         _fast_plot_ica_properties(
             self.mne.ica, self.mne.ica_inst, picks=pick, axes=axes,
-            precomputed_data=self.mne.data_ica_properties)
+            precomputed_data=self.mne.data_ica_properties, show=False)
 
         return fig
 
@@ -501,7 +494,7 @@ class BrowserBase(ABC):
         fig.add_subplot(gs[:2, :9])
         fig.add_subplot(gs[2, :9])
         fig.add_subplot(gs[:2, 9])
-        plot_epochs_image(self.mne.inst, picks=pick, fig=fig)
+        plot_epochs_image(self.mne.inst, picks=pick, fig=fig, show=False)
 
         return fig
 

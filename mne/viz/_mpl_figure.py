@@ -775,6 +775,16 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         fig = super()._create_ch_context_fig(idx)
         plt_show(fig=fig)
 
+    def _new_child_figure(self, fig_name, **kwargs):
+        """Instantiate a new MNE dialog figure (with event listeners)."""
+        fig = _figure(toolbar=False, parent_fig=self, fig_name=fig_name,
+                      **kwargs)
+        fig._add_default_callbacks()
+        self.mne.child_figs.append(fig)
+        if isinstance(fig_name, str):
+            setattr(self.mne, fig_name, fig)
+        return fig
+
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # HELP DIALOG
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
