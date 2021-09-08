@@ -2152,7 +2152,7 @@ class Report(object):
         """Initialize the renderer."""
         inc_fnames = [
             'jquery-3.6.0.min.js', 'jquery-ui.min.js','jquery-ui.min.css',
-            'bootstrap5.min.js', 'bootstrap5.min.css',
+            'bootstrap.bundle.min.js', 'bootstrap.min.css',
             'highlightjs/highlight.min.js',
             'highlightjs/atom-one-dark-reasonable.min.css'
         ]
