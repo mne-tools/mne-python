@@ -10,10 +10,8 @@
 #
 # License: Simplified BSD
 
-import base64
 import copy
 from glob import glob
-from io import BytesIO
 from itertools import cycle
 import os.path as op
 import warnings

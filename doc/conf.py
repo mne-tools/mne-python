@@ -358,7 +358,7 @@ else:
         pyvista.OFF_SCREEN = False
         brain_scraper = mne.viz._brain._BrainScraper()
         scrapers += (brain_scraper, 'pyvista')
-    report_scraper = mne.report._ReportScraper()
+    report_scraper = mne.report.report._ReportScraper()
     scrapers += (report_scraper,)
     del backend
 

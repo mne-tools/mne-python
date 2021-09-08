@@ -86,6 +86,7 @@ CSS = (html_include_dir / 'report.sass').read_text(encoding='utf-8')
 ###############################################################################
 # HTML generation
 
+
 def _html_header_element(*, lang, include, js, css, title, tags, mne_logo_img):
     template_path = template_dir / 'header.html'
     t = Template(template_path.read_text(encoding='utf-8'))
@@ -503,13 +504,13 @@ class Report(object):
         s = '<Report | %d items' % len(self._toc_entries)
         if self.title is not None:
             s += ' | %s' % self.title
-        fnames = [_get_fname(e['name']) for e in self._toc_entries]
-        if len(fnames) > 4:
-            s += '\n%s' % '\n'.join(fnames[:2])
+        toc_entry_names = [e['name'] for e in self._toc_entries]
+        if len(toc_entry_names) > 4:
+            s += '\n%s' % '\n'.join(toc_entry_names[:2])
             s += '\n ...\n'
-            s += '\n'.join(fnames[-2:])
-        elif len(fnames) > 0:
-            s += '\n%s' % '\n'.join(fnames)
+            s += '\n'.join(toc_entry_names[-2:])
+        elif len(toc_entry_names) > 0:
+            s += '\n%s' % '\n'.join(toc_entry_names)
         s += '\n>'
         return s
 
@@ -547,10 +548,6 @@ class Report(object):
             raise ValueError('Captions and report items must have the same '
                              'length, got %d and %d'
                              % (len(captions), len(items)))
-
-        # Book-keeping of section names
-        if tag not in self.tags:
-            self.tags.append(_clean_tag(tag))
 
         return items, captions, comments
 
@@ -1346,8 +1343,10 @@ class Report(object):
         # _check_scale(scale)
 
         tags = _clean_tags(section)
-        self.add_figs(figs=figs, titles=captions, captions=comments,
-                      image_format=image_format, tags=tags)
+        self.add_figs(
+            figs=figs, titles=captions, captions=comments,
+            image_format=image_format, tags=tags
+        )
 
     def add_images_to_section(self, fnames, captions, scale=None,
                               section='custom', comments=None, replace=False):
@@ -1496,30 +1495,10 @@ class Report(object):
         -----
         .. versionadded:: 0.9.0
         """
-        if section not in self.tags:
-            self.tags.append(section)
-            self._sectionvars[section] = section
-
-        width = _ensure_int(width, 'width')
-        html = self._render_bem(subject=subject, subjects_dir=subjects_dir,
-                                decim=decim, n_jobs=n_jobs, width=width,
-                                image_format=self.image_format, tags=tags)
-
-        self._validate_input(html, caption, section)
-
-        global_id = self._get_id()
-        html = html_template.substitute(
-            html=html,
-            id=global_id, div_klass='bem', show=True,
-            caption='Boundary Element Model'
-        )
-
-        self._add_or_replace(
-            content_id=f'{caption}-#-{section}-#-custom',
-            sectionlabel=section,
-            dom_id=global_id,
-            html=html,
-            replace=replace
+        tags = _clean_tags(section)
+        self.add_bem(
+            subject=subject, subjects_dir=subjects_dir, title=caption,
+            decim=decim, width=width, n_jobs=n_jobs, tags=tags
         )
 
     def add_bem(self, subject, title, *, subjects_dir=None, decim=2, width=512,
@@ -1789,8 +1768,7 @@ class Report(object):
                     'time)' % len(fnames))
         use_jobs = min(n_jobs, max(1, len(fnames)))
         parallel, p_fun, _ = parallel_func(_iterate_files, use_jobs)
-        parallel(p_fun(self, fname, info, cov, baseline, sfreq, on_error,
-                       image_format, self.data_path)
+        parallel(p_fun(self, fname, cov, sfreq, on_error)
                  for fname in np.array_split(fnames, use_jobs))
 
         # # combine results from n_jobs discarding plots not rendered
@@ -1805,17 +1783,17 @@ class Report(object):
         # self.tags = sorted(set(self._sectionlabels))
         # self._sectionvars = dict(zip(self.tags, self.tags))
 
-        # # render mri
-        # if render_bem:
-        #     if self.subjects_dir is not None and self.subject is not None:
-        #         logger.info('Rendering BEM')
-        #         self.fnames.append('bem')
-        #         self.add_bem_to_section(
-        #             self.subject, decim=mri_decim, n_jobs=n_jobs,
-        #             subjects_dir=self.subjects_dir)
-        #     else:
-        #         warn('`subjects_dir` and `subject` not provided. Cannot '
-        #              'render MRI and -trans.fif(.gz) files.')
+        # render mri
+        if render_bem:
+            if self.subjects_dir is not None and self.subject is not None:
+                logger.info('Rendering BEM')
+                self.add_bem(
+                    subject=self.subject, subjects_dir=self.subjects_dir,
+                    title='BEM surfaces', decim=mri_decim, n_jobs=n_jobs
+                )
+            else:
+                warn('`subjects_dir` and `subject` not provided. Cannot '
+                     'render MRI and -trans.fif(.gz) files.')
 
     def _get_state_params(self):
         """Obtain all fields that are in the state dictionary of this object.
@@ -1932,8 +1910,10 @@ class Report(object):
                 # will be duplicated when the user attempts to save again.
                 try:
                     # Write HTML
-                    with open(fname, 'w', encoding='utf-8') as f:
-                        f.write(_fix_global_ids(''.join(self.html)))
+                    # with open(fname, 'w', encoding='utf-8') as f:
+                    #     f.write(_fix_global_ids(''.join(self.html)))
+                    Path(fname).write_text(data=''.join(self.html),
+                                           encoding='utf-8')
                 finally:
                     self.html.pop(0)
                     self.html.pop(0)
@@ -1969,14 +1949,13 @@ class Report(object):
     #     logger.info('Rendering : Table of Contents')
 
     #     # Reorder self.sections to reflect natural ordering
-    #     # if self._sort_sections:
-    #     #     sections = list(set(self.tags) & set(SECTION_ORDER))
-    #     #     custom = [section for section in self.tags if section
-    #     #               not in SECTION_ORDER]
-    #     #     order = [sections.index(section) for section in SECTION_ORDER if
-    #     #              section in sections]
-    #     #     self.tags = np.array(sections)[order].tolist() + custom
-
+    #     if self._sort_sections:
+    #         sections = list(set(self.tags) & set(SECTION_ORDER))
+    #         custom = [section for section in self.tags if section
+    #                   not in SECTION_ORDER]
+    #         order = [sections.index(section) for section in SECTION_ORDER if
+    #                  section in sections]
+    #         self.tags = np.array(sections)[order].tolist() + custom
 
     #     toc_html = _html_toc_element(toc_entries=self._toc_entries)
     #     lang = getattr(self, 'lang', 'en-us')
@@ -2746,14 +2725,14 @@ def _recursive_search(path, pattern):
     return filtered_files
 
 
-def _fix_global_ids(html):
-    """Fix the global_ids after reordering in _render_toc()."""
-    html = re.sub(r'id="\d+"', 'id="###"', html)
-    global_id = 1
-    while len(re.findall('id="###"', html)) > 0:
-        html = re.sub('id="###"', 'id="%s"' % global_id, html, count=1)
-        global_id += 1
-    return html
+# def _fix_global_ids(html):
+#     """Fix the global_ids after reordering in _render_toc()."""
+#     html = re.sub(r'id="\d+"', 'id="###"', html)
+#     global_id = 1
+#     while len(re.findall('id="###"', html)) > 0:
+#         html = re.sub('id="###"', 'id="%s"' % global_id, html, count=1)
+#         global_id += 1
+#     return html
 
 
 ###############################################################################
