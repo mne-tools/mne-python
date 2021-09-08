@@ -59,7 +59,7 @@ from ..fixes import _get_args, _safe_svd
 from ..filter import filter_data
 from .bads import _find_outliers
 from .ctps_ import ctps
-from ..io.pick import pick_channels_regexp
+from ..io.pick import pick_channels_regexp, _picks_by_type
 
 __all__ = ('ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
            'get_score_funcs', 'read_ica', 'read_ica_eeglab')
@@ -660,29 +660,14 @@ class ICA(ContainsMixin):
             # Scale (z-score) the data by channel type
             info = self.info
             pre_whitener = np.empty([len(data), 1])
-            for ch_type in _DATA_CH_TYPES_SPLIT + ('eog', "ref_meg"):
-                if _contains_ch_type(info, ch_type):
-                    if ch_type == 'seeg':
-                        picks_ = pick_types(info, seeg=True, exclude=[])
-                    elif ch_type == 'dbs':
-                        picks_ = pick_types(info, dbs=True, exclude=[])
-                    elif ch_type == 'ecog':
-                        picks_ = pick_types(info, ecog=True, exclude=[])
-                    elif ch_type == 'eeg':
-                        picks_ = pick_types(info, eeg=True, exclude=[])
-                    elif ch_type in ('mag', 'grad'):
-                        picks_ = pick_types(info, meg=ch_type, exclude=[])
-                    elif ch_type == 'eog':
-                        picks_ = pick_types(info, eog=True, exclude=[])
-                    elif ch_type in ('hbo', 'hbr'):
-                        picks_ = pick_types(info, fnirs=ch_type, exclude=[])
-                    elif ch_type == 'ref_meg':
-                        picks_ = pick_types(info, ref_meg=True, exclude=[])
-                    else:
-                        raise RuntimeError('Should not be reached.'
-                                           'Unsupported channel {}'
-                                           .format(ch_type))
-                    pre_whitener[picks_] = np.std(data[picks_])
+            for _, picks_ in _picks_by_type(info, ref_meg=False, exclude=[]):
+                pre_whitener[picks_] = np.std(data[picks_])
+            if _contains_ch_type(info, "ref_meg"):
+                picks_ = pick_types(info, ref_meg=True, exclude=[])
+                pre_whitener[picks_] = np.std(data[picks_])
+            if _contains_ch_type(info, "eog"):
+                picks_ = pick_types(info, eog=True, exclude=[])
+                pre_whitener[picks_] = np.std(data[picks_])
         else:
             pre_whitener, _ = compute_whitener(self.noise_cov, self.info)
             assert data.shape[0] == pre_whitener.shape[1]
