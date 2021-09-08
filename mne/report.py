@@ -29,7 +29,6 @@ from . import (read_evokeds, read_events, pick_types, read_cov,
                Evoked, SourceEstimate, Covariance, Info, Transform)
 from .io import read_raw, read_info, BaseRaw
 from .io._read_raw import supported as extension_reader_map
-from .io.pick import _DATA_CH_TYPES_SPLIT
 from .proj import read_proj
 from ._freesurfer import _reorient_image, _mri_orientation
 from .utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
@@ -38,7 +37,7 @@ from .utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
 from .viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                   plot_compare_evokeds, set_3d_view, get_3d_backend)
 from .viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
-from .viz.utils import _ndarray_to_fig, _figure_agg
+from .viz.utils import _ndarray_to_fig
 from .forward import read_forward_solution, Forward
 from .epochs import read_epochs, BaseEpochs
 from . import dig_mri_distances
@@ -195,8 +194,6 @@ def _iterate_trans_views(function, **kwargs):
 ###############################################################################
 # TOC FUNCTIONS
 
-
-
 def _get_fname(fname):
     """Get fname without -#-."""
     if '-#-' in fname:
@@ -217,64 +214,6 @@ def _endswith(fname, suffixes):
                                f'_{suffix}{ext}', f'_{suffix}{ext}')):
                 return True
     return False
-
-
-def _get_toc_property(fname):
-    """Assign class names to TOC elements to allow button-based toggling."""
-    if _endswith(fname, 'eve'):
-        div_klass = 'events'
-        tooltip = fname
-        text = op.basename(fname)
-    elif _endswith(fname, 'ave'):
-        div_klass = 'evoked'
-        tooltip = fname
-        text = op.basename(fname)
-    elif _endswith(fname, 'cov'):
-        div_klass = 'covariance'
-        tooltip = fname
-        text = op.basename(fname)
-    elif _endswith(fname, 'proj'):
-        div_klass = 'ssp'
-        tooltip = fname
-        text = op.basename(fname)
-    elif _endswith(fname, ['raw', 'sss', 'meg', 'nirs']):
-        div_klass = 'raw'
-        tooltip = fname
-        text = op.basename(fname)
-    elif _endswith(fname, 'trans'):
-        div_klass = 'trans'
-        tooltip = fname
-        text = op.basename(fname)
-    elif _endswith(fname, 'fwd'):
-        div_klass = 'forward'
-        tooltip = fname
-        text = op.basename(fname)
-    elif _endswith(fname, 'inv'):
-        div_klass = 'inverse'
-        tooltip = fname
-        text = op.basename(fname)
-    elif _endswith(fname, 'epo'):
-        div_klass = 'epochs'
-        tooltip = fname
-        text = op.basename(fname)
-    elif fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz')):
-        div_klass = 'mri'
-        tooltip = 'MRI'
-        text = 'MRI'
-    elif fname.endswith(('bem')):
-        div_klass = 'bem'
-        tooltip = 'BEM'
-        text = 'BEM'
-    elif fname.endswith('(whitened)'):
-        div_klass = 'evoked'
-        tooltip = fname
-        text = op.basename(fname[:-11]) + '(whitened)'
-    else:
-        div_klass = fname.split('-#-')[1]
-        tooltip = fname.split('-#-')[0]
-        text = fname.split('-#-')[0]
-
-    return div_klass, tooltip, text
 
 
 def open_report(fname, **params):
@@ -320,70 +259,16 @@ def open_report(fname, **params):
     return report
 
 
-###############################################################################
-# IMAGE FUNCTIONS
-
-def _build_image_png(data, cmap='gray'):
-    """Build an image encoded in base64."""
-    import matplotlib.pyplot as plt
-
-    figsize = data.shape[::-1]
-    if figsize[0] == 1:
-        figsize = tuple(figsize[1:])
-        data = data[:, :, 0]
-    fig = _figure_agg(figsize=figsize, dpi=100, frameon=False)
-    cmap = getattr(plt.cm, cmap, plt.cm.gray)
-    fig.figimage(data, cmap=cmap)
-    output = BytesIO()
-    fig.savefig(output, dpi=fig.get_dpi(), format='png')
-    return base64.b64encode(output.getvalue()).decode('ascii')
-
-
-def _iterate_mri_slices(name, ind, global_id, slides_klass, data, cmap):
-    """Auxiliary function for parallel processing of mri slices."""
-    img_klass = 'slideimg-%s' % name
-
-    caption = u'Slice %s %s' % (name, ind)
-    slice_id = '%s-%s-%s' % (name, global_id, ind)
-    div_klass = 'span12 %s' % slides_klass
-    img = _build_image_png(data, cmap=cmap)
-    first = True if ind == 0 else False
-    html = _build_html_image(img, slice_id, div_klass, img_klass, caption,
-                             first, image_format='png')
-    return ind, html
-
-
-###############################################################################
-# HTML functions
-
-# def _build_html_image(img, id, div_klass, img_klass, caption=None,
-#                       show=True, image_format='png'):
-#     """Build a html image from a slice array."""
-#     html = []
-#     klass = div_klass if show else div_klass + ' d-none'
-#     html.append(f'<li class="{klass}" id="{id}">')
-
-#     if image_format == 'png':
-#         html.append(
-#             f'<img class="{img_klass}" '
-#             f'alt="" src="data:image/png;base64,{img}">'
-#         )
-#     else:
-#         html.append(f'<div class="{img_klass}">{img}</div>')
-
-#     if caption:
-#         html.append(f'<h4>{caption}</h4>')
-#     html.append('</li>')
-#     return '\n'.join(html)
-
-
 slider_template = Template(u"""
   <div class="accordion-item slider"
     id="{{id}}"
     data-mne-tags="{{for tag in tags}} {{tag}} {{endfor}}"
   >
     <div class="accordion-header" id="accordion-header-{{id}}">
-      <button class="accordion-button pt-1 pb-1" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-collapse-{{id}}"
+      <button class="accordion-button pt-1 pb-1"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#accordion-collapse-{{id}}"
               aria-expanded="true" aria-controls="accordion-collapse-{{id}}">
         <div class="w-100">
         <span class="me-auto">{{title}}</span>
@@ -515,7 +400,7 @@ header_template = Template("""
         >
             Filter by tags
         </button>
-      
+
         <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="show-hide-tags">
             <li>
               <label class="dropdown-item" id="selectAllTagsCheckboxLabel">
@@ -540,7 +425,7 @@ header_template = Template("""
                           data-mne-tag="{{tag}}"></span>
                 </label>
             </li>
-        {{endfor}}        
+        {{endfor}}
         </ul>
 
     </div>
@@ -1121,7 +1006,6 @@ class Report(object):
         script = f'\n<script type="text/javascript">\n{js}\n</script>'
         self.include += script
 
-
     def add_epochs(self, epochs, title, *, projs=True, tags=('epochs')):
         """Add `~mne.Epochs` to the report.
 
@@ -1290,7 +1174,7 @@ class Report(object):
             add_psd = dict()
         else:
             add_psd = False
-    
+
         htmls  = self._render_raw(
             raw=raw,
             add_psd=add_psd,
@@ -1325,7 +1209,7 @@ class Report(object):
         Parameters
         ----------
         stc : path-like | instance of mne.SourceEstimate
-            The `~mne.SourceEstimate` to add to the report. 
+            The `~mne.SourceEstimate` to add to the report.
         title : str
             The title to add.
         subject : str | None
@@ -1732,7 +1616,7 @@ class Report(object):
 
         language = language.lower()
         html, dom_id = self._render_code(
-            code=code, title=title, language=language,tags=tags
+            code=code, title=title, language=language, tags=tags
         )
         self._add_or_replace(
             dom_id=dom_id,
@@ -1900,8 +1784,8 @@ class Report(object):
                                                  img_klass=img_klass,
                                                  caption=caption,
                                                  width=scale,
-                                                comment=comment,
-                                                show=True)
+                                                 comment=comment,
+                                                 show=True)
 
             self._add_or_replace(
                 content_id=f'{caption}-#-{sectionvar}-#-custom',
@@ -2151,7 +2035,7 @@ class Report(object):
     def _init_render(self, verbose=None):
         """Initialize the renderer."""
         inc_fnames = [
-            'jquery-3.6.0.min.js', 'jquery-ui.min.js','jquery-ui.min.css',
+            'jquery-3.6.0.min.js', 'jquery-ui.min.js', 'jquery-ui.min.css',
             'bootstrap.bundle.min.js', 'bootstrap.min.css',
             'highlightjs/highlight.min.js',
             'highlightjs/atom-one-dark-reasonable.min.css'
@@ -2545,7 +2429,7 @@ class Report(object):
 
         # Summary table
         dom_id = self._get_id()
-        repr_html= html_template.substitute(
+        repr_html = html_template.substitute(
             div_klass='raw',
             id=dom_id,
             tags=tags,
@@ -2611,7 +2495,7 @@ class Report(object):
         return [repr_html, psd_img_html, butterfly_img_html, ssp_projs_html]
 
     def _render_ssp_projs(self, *, info, projs, title, data_path, image_format,
-                      tags):
+                          tags):
         if isinstance(info, Info):  # no-op
             pass
         elif hasattr(info, 'info'):  # try to get the file name
@@ -2667,7 +2551,7 @@ class Report(object):
 
         # Render sensitivity maps
         if subject is not None:
-            
+
             sensitivity_maps_html = ''  # XXX
         else:
             sensitivity_maps_html = ''
@@ -2776,7 +2660,7 @@ class Report(object):
     def _render_evoked_topo_slider(self, *, evoked, ch_types, image_format,
                                    tags):
         import matplotlib.pyplot as plt
-    
+
         times = np.linspace(start=evoked.tmin, stop=evoked.tmax, num=21)
         t_zero_idx = np.abs(times).argmin()  # index closest to zero
 
@@ -2813,8 +2697,8 @@ class Report(object):
                 )
                 ch_type_ax_map = dict(
                     zip(ch_types,
-                        [(ax[i], ax[i+1]) for i in 
-                        range(0, 2*len(ch_types) - 1, 2)])
+                        [(ax[i], ax[i + 1]) for i in
+                         range(0, 2 * len(ch_types) - 1, 2)])
                 )
 
                 for ch_type in ch_types:
@@ -2831,7 +2715,7 @@ class Report(object):
         html = self._render_slider(
             figs=figs,
             captions=captions,
-            title=f'Topographies',
+            title='Topographies',
             klass='evoked evoked-topo slider',
             image_format=image_format,
             start_idx=t_zero_idx,
@@ -3058,7 +2942,7 @@ class Report(object):
                                     show_svd=True)
         figs = [fig_cov, fig_svd]
         htmls = []
-        
+
         titles = (
             'Covariance matrix',
             'Singular values'
@@ -3138,7 +3022,7 @@ class Report(object):
                 num=n_time_points
             )
         t_zero_idx = np.abs(times).argmin()  # index of time closest to zero
-    
+
         # Plot using 3d backend if available, and use Matplotlib
         # otherwise.
         import matplotlib.pyplot as plt
