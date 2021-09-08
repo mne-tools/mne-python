@@ -54,16 +54,13 @@ from mne.io.pick import (_DATA_CH_TYPES_SPLIT, _DATA_CH_TYPES_ORDER_DEFAULT,
                          _VALID_CHANNEL_TYPES, _picks_to_idx,
                          _FNIRS_CH_TYPES_SPLIT)
 from mne.time_frequency import psd_welch, psd_multitaper
-from mne.utils import logger, _check_option, _check_sphere, Bunch, \
-    _click_ch_name
-from mne.viz import plot_sensors, plot_epochs_image
-from mne.viz._figure import BrowserBase
-from mne.viz.ica import (_create_properties_layout,
-                         _prepare_data_ica_properties,
-                         _fast_plot_ica_properties)
-from mne.viz.utils import (_events_off, DraggableLine, plt_show, _prop_kw,
-                           _merge_annotations, _set_window_title,
-                           _validate_if_list_of_axes, _fake_click, _plot_psd)
+from mne.utils import (logger, _check_option, _check_sphere, Bunch,
+                       _click_ch_name)
+from . import plot_sensors
+from ._figure import BrowserBase
+from .utils import (_events_off, DraggableLine, plt_show, _prop_kw,
+                    _merge_annotations, _set_window_title,
+                    _validate_if_list_of_axes, _fake_click, _plot_psd)
 
 name = 'matplotlib'
 
