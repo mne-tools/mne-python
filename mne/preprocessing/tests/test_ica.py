@@ -705,7 +705,8 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
     assert_equal(ica_sorted.labels_, dict(blink=[3], think=[2]))
 
     # epochs extraction from raw fit
-    pytest.raises(RuntimeError, ica.get_sources, epochs)
+    with pytest.warns(RuntimeWarning, match='could not be picked'):
+        pytest.raises(RuntimeError, ica.get_sources, epochs)
 
     # test filtering
     ica_raw = ica.get_sources(raw)
