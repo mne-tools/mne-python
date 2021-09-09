@@ -33,7 +33,7 @@ from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
-                     deprecated, _check_path_like)
+                     _check_path_like)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
@@ -552,12 +552,12 @@ class Report(object):
         return items, captions, comments
 
     @property
-    @deprecated
+    # @deprecated
     def fnames(self):
         return [toc_entry['name'] for toc_entry in self._toc_entries]
 
     @property
-    @deprecated(extra='Use Report.tags instead')
+    # @deprecated(extra='Use Report.tags instead')
     def sections(self):
         return self.tags
 
@@ -1300,7 +1300,7 @@ class Report(object):
                 html=img_html
             )
 
-    @deprecated(extra='Use `Report.add_figs` instead')
+    # @deprecated(extra='Use `Report.add_figs` instead')
     def add_figs_to_section(self, figs, captions, section='custom',
                             scale=None, image_format=None, comments=None,
                             replace=False, auto_close=True):
@@ -1417,7 +1417,7 @@ class Report(object):
                 html=img_html
             )
 
-    @deprecated(extra='Use `Report.add_images` instead')
+    # @deprecated(extra='Use `Report.add_images` instead')
     def add_images_to_section(self, fnames, captions, scale=None,
                               section='custom', comments=None, replace=False):
         """Append custom user-defined images.
@@ -1452,7 +1452,7 @@ class Report(object):
         tags = _clean_tags(section)
         self.add_images(images=fnames, titles=captions, captions=comments,
                         tags=tags)
-       
+
     def add_htmls_to_section(self, htmls, captions, section='custom',
                              replace=False):
         """Append htmls to the report.
@@ -1496,7 +1496,7 @@ class Report(object):
                 replace=replace
             )
 
-    @deprecated(extra='Use `Report.add_bem` instead')
+    # @deprecated(extra='Use `Report.add_bem` instead')
     @verbose
     def add_bem_to_section(self, subject, caption='BEM', section='bem',
                            decim=2, n_jobs=1, subjects_dir=None,
