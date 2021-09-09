@@ -815,24 +815,45 @@ class Info(dict, MontageMixin):
         return self['ch_names']
 
     def _repr_html_(self, caption=None):
+        """Summarize info for HTML representation."""
         if isinstance(caption, str):
             html = f'<h4>{caption}</h4>'
         else:
             html = ''
-        n_eeg = len(pick_types(self, meg=False, eeg=True))
-        n_grad = len(pick_types(self, meg='grad'))
-        n_mag = len(pick_types(self, meg='mag'))
-        n_fnirs = len(pick_types(self, meg=False, eeg=False, fnirs=True))
-        pick_eog = pick_types(self, meg=False, eog=True)
-        if len(pick_eog) > 0:
-            eog = ', '.join(np.array(self['ch_names'])[pick_eog])
-        else:
-            eog = 'Not available'
-        pick_ecg = pick_types(self, meg=False, ecg=True)
-        if len(pick_ecg) > 0:
-            ecg = ', '.join(np.array(self['ch_names'])[pick_ecg])
-        else:
+
+        # good channels
+        channels = {}
+        ch_types = [channel_type(self, idx) for idx in range(len(self['chs']))]
+        ch_counts = Counter(ch_types)
+        for ch_type, count in ch_counts.items():
+            if ch_type == 'meg':
+                channels['mag'] = len(pick_types(self, meg='mag'))
+                channels['grad'] = len(pick_types(self, meg='grad'))
+            elif ch_type == 'eog':
+                pick_eog = pick_types(self, meg=False, eog=True)
+                eog = ', '.join(
+                    np.array(self['ch_names'])[pick_eog])
+            elif ch_type == 'ecg':
+                pick_ecg = pick_types(self, meg=False, ecg=True)
+                ecg = ', '.join(
+                    np.array(self['ch_names'])[pick_ecg])
+            channels[ch_type] = count
+
+        good_channels = ', '.join(
+            [f'{v} {k.upper()}' for k, v in channels.items()])
+
+        if 'ecg' not in channels.keys():
             ecg = 'Not available'
+        if 'eog' not in channels.keys():
+            eog = 'Not available'
+
+        # bad channels
+        if len(self['bads']) > 0:
+            bad_channels = ', '.join(self['bads'])
+        else:
+            bad_channels = 'None'
+
+        # meas date
         meas_date = self['meas_date']
         if meas_date is not None:
             meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + ' GMT'
@@ -840,12 +861,11 @@ class Info(dict, MontageMixin):
         if projs:
             projs = '<br/>'.join(
                 p['desc'] + ': o%s' % {0: 'ff', 1: 'n'}[p['active']]
-                for p in projs
-            )
+                for p in projs)
 
         html += info_template.substitute(
-            caption=caption, info=self, meas_date=meas_date, n_eeg=n_eeg,
-            n_grad=n_grad, n_mag=n_mag, n_fnirs=n_fnirs, eog=eog, ecg=ecg,
+            caption=caption, info=self, meas_date=meas_date, ecg=ecg,
+            eog=eog, good_channels=good_channels, bad_channels=bad_channels,
             projs=projs)
         return html
 
