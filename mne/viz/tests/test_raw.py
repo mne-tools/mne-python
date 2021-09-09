@@ -137,9 +137,43 @@ def _annotation_helper(raw, browse_backend, events=False):
     assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
 
 
-def _proj_status(ax):
-    return [line.get_visible()
-            for line in ax.findobj(matplotlib.lines.Line2D)][::2]
+def _proj_status(ssp_fig, browse_backend):
+    if browse_backend.name == 'matplotlib':
+        ax = ssp_fig.mne.proj_checkboxes.ax
+        return [line.get_visible() for line
+                in ax.findobj(matplotlib.lines.Line2D)][::2]
+    else:
+        return [chkbx.isChecked() for chkbx in ssp_fig.checkboxes]
+
+
+def _proj_label(ssp_fig, browse_backend):
+    if browse_backend.name == 'matplotlib':
+        return [lb.get_text() for lb in ssp_fig.mne.proj_checkboxes.labels]
+    else:
+        return [chkbx.text() for chkbx in ssp_fig.checkboxes]
+
+
+def _proj_click(idx, fig, browse_backend):
+    ssp_fig = fig.mne.fig_proj
+    if browse_backend.name == 'matplotlib':
+        pos = np.array(ssp_fig.mne.proj_checkboxes.
+                       labels[idx].get_position()) + 0.01
+
+        fig._fake_click(pos, ssp_fig, ssp_fig.mne.proj_checkboxes.ax,
+                        xform='data')
+    else:
+        fig._fake_click((0, 0), fig=ssp_fig.checkboxes[idx], xform='none')
+
+
+def _proj_click_all(fig, browse_backend):
+    ssp_fig = fig.mne.fig_proj
+    if browse_backend.name == 'matplotlib':
+        fig._fake_click((0.5, 0.5), ssp_fig, ssp_fig.mne.proj_all.ax)
+        fig._fake_click((0.5, 0.5), ssp_fig, ssp_fig.mne.proj_all.ax,
+                        kind='release')
+    else:
+        fig._fake_click((0, 0), fig=ssp_fig.toggle_all_bt,
+                        xform='none')
 
 
 def _child_fig_helper(fig, key, attr, browse_backend):
@@ -272,40 +306,32 @@ def test_plot_raw_ssp_interaction(raw, browse_backend):
     raw.add_proj(projs)
     fig = raw.plot()
     # open SSP window
-    fig._fake_click((0.5, 0.5), ax=fig.mne.ax_proj)
+    fig._fake_keypress('j')
     assert browse_backend._get_n_figs() == 2
     ssp_fig = fig.mne.fig_proj
-    # ToDo: These gui-elements might differ in pyqtgraph.
-    t = ssp_fig.mne.proj_checkboxes.labels
-    ax = ssp_fig.mne.proj_checkboxes.ax
-    assert _proj_status(ax) == [True, True, True]
+    assert _proj_status(ssp_fig, browse_backend) == [True, True, True]
     # this should have no effect (proj 0 is already applied)
-    assert t[0].get_text().endswith('(already applied)')
-    pos = np.array(t[0].get_position()) + 0.01
-    fig._fake_click(pos, ssp_fig, ax, xform='data')
-    assert _proj_status(ax) == [True, True, True]
+    assert _proj_label(ssp_fig,
+                       browse_backend)[0].endswith('(already applied)')
+    _proj_click(0, fig, browse_backend)
+    assert _proj_status(ssp_fig, browse_backend) == [True, True, True]
     # this should work (proj 1 not applied)
-    pos = np.array(t[1].get_position()) + 0.01
-    fig._fake_click(pos, ssp_fig, ax, xform='data')
-    assert _proj_status(ax) == [True, False, True]
+    _proj_click(1, fig, browse_backend)
+    assert _proj_status(ssp_fig, browse_backend) == [True, False, True]
     # turn it back on
-    fig._fake_click(pos, ssp_fig, ax, xform='data')
-    assert _proj_status(ax) == [True, True, True]
+    _proj_click(1, fig, browse_backend)
+    assert _proj_status(ssp_fig, browse_backend) == [True, True, True]
     # toggle all off (button axes need both press and release)
-    fig._fake_click((0.5, 0.5), ssp_fig, ssp_fig.mne.proj_all.ax)
-    fig._fake_click((0.5, 0.5), ssp_fig,
-                    ssp_fig.mne.proj_all.ax, kind='release')
-    assert _proj_status(ax) == [True, False, False]
+    _proj_click_all(fig, browse_backend)
+    assert _proj_status(ssp_fig, browse_backend) == [True, False, False]
     fig._fake_keypress('J')
-    assert _proj_status(ax) == [True, True, True]
+    assert _proj_status(ssp_fig, browse_backend) == [True, True, True]
     fig._fake_keypress('J')
-    assert _proj_status(ax) == [True, False, False]
+    assert _proj_status(ssp_fig, browse_backend) == [True, False, False]
     # turn all on
-    fig._fake_click((0.5, 0.5), ssp_fig, ssp_fig.mne.proj_all.ax)  # all on
-    fig._fake_click((0.5, 0.5), ssp_fig, ssp_fig.mne.proj_all.ax,
-                    kind='release')
+    _proj_click_all(fig, browse_backend)
     assert fig.mne.projector is not None  # on
-    assert _proj_status(ax) == [True, True, True]
+    assert _proj_status(ssp_fig, browse_backend) == [True, True, True]
 
 
 def test_plot_raw_child_figures(raw, browse_backend):
