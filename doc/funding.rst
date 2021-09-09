@@ -9,15 +9,35 @@ Development of MNE-Python has been supported by:
 
 .. rst-class:: list-unstyled funders
 
-- |nih| **National Institutes of Health:** R01-EB009048, R01-EB009048, R01-EB006385, R01-HD40712, R01-NS44319, R01-NS37462, R01-NS104585, P41-EB015896, P41-RR14075-06
-- |nsf| **US National Science Foundation:** 0958669, 1042134
-- |erc| **European Research Council:** YStG-263584, YStG-676943
+- |nih| **National Institutes of Health:**
+  `R01-EB009048 <https://reporter.nih.gov/project-details/9053482>`_,
+  `R01-EB006385 <https://reporter.nih.gov/project-details/8105475>`_,
+  `R01-HD040712 <https://reporter.nih.gov/project-details/8511739>`_,
+  `R01-NS044319 <https://reporter.nih.gov/project-details/6924553>`_,
+  `R01-NS037462 <https://reporter.nih.gov/project-details/9083237>`_,
+  `R01-NS104585 <https://reporter.nih.gov/project-details/10175064>`_,
+  `P41-EB015896 <https://reporter.nih.gov/project-details/9518908>`_,
+  `P41-RR014075 <https://reporter.nih.gov/project-details/8098820>`_
+- |nsf| **US National Science Foundation:**
+  `0958669 <https://www.nsf.gov/awardsearch/showAward?AWD_ID=0958669>`_,
+  `1042134 <https://www.nsf.gov/awardsearch/showAward?AWD_ID=1042134>`_
+- |erc| **European Research Council:**
+  `YStG-263584 <https://erc.easme-web.eu/?p=263584>`_,
+  `YStG-676943 <https://erc.easme-web.eu/?p=676943>`_
 - |doe| **US Department of Energy:** DE-FG02-99ER62764 (MIND)
-- |anr| **Agence Nationale de la Recherche:** `14-NEUC-0002-01 <https://anr.fr/Project-ANR-14-NEUC-0002>`_, **IDEX** Paris-Saclay `11-IDEX-0003-02 <https://anr.fr/ProjetIA-11-IDEX-0003>`_
-- |cds| **Paris-Saclay Center for Data Science:** `PARIS-SACLAY <http://www.datascience-paris-saclay.fr>`_
-- |goo| **Google:** Summer of code (×7)
-- |ama| **Amazon:** AWS Research Grants
-- |czi| **Chan Zuckerberg Initiative:** `EOSS2`_, `EOSS4`_
+- |anr| **Agence Nationale de la Recherche:**
+  `14-NEUC-0002-01 <https://anr.fr/Project-ANR-14-NEUC-0002>`_,
+  **IDEX** Paris-Saclay
+  `11-IDEX-0003-02 <https://anr.fr/ProjetIA-11-IDEX-0003>`_
+- |cds| **Paris-Saclay Center for Data Science:**
+  `PARIS-SACLAY <http://www.datascience-paris-saclay.fr>`_
+- |goo| **Google:**
+  Summer of code (×7 years)
+- |ama| **Amazon:**
+  AWS Research Grants
+- |czi| **Chan Zuckerberg Initiative:**
+  `EOSS2`_,
+  `EOSS4`_
 
 
 .. _supporting-institutions:
