@@ -638,6 +638,7 @@ class Report(object):
             html=html
         )
 
+    @fill_doc
     def add_evokeds(self, evokeds, titles, *, baseline=None, noise_cov=None,
                     projs=True, tags=('evoked',)):
         """Add `~mne.Evoked` objects to the report.
@@ -1301,6 +1302,7 @@ class Report(object):
             )
 
     # @deprecated(extra='Use `Report.add_figs` instead')
+    @fill_doc
     def add_figs_to_section(self, figs, captions, section='custom',
                             scale=None, image_format=None, comments=None,
                             replace=False, auto_close=True):
