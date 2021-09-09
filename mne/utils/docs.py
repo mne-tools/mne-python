@@ -2252,6 +2252,10 @@ image_format : 'png' | 'svg' | 'gif' | None
     None (default) will use the default specified during `~mne.Report`
     instantiation.
 """
+docdict['report_tags'] = """
+tags : collection of str
+    Tags to add for later interactive filtering.
+"""
 
 # Epochs
 docdict['epochs_tmin_tmax'] = """

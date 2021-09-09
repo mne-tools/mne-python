@@ -593,6 +593,7 @@ class Report(object):
         script = f'\n<script type="text/javascript">\n{js}\n</script>'
         self.include += script
 
+    @fill_doc
     def add_epochs(self, epochs, title, *, projs=True, tags=('epochs')):
         """Add `~mne.Epochs` to the report.
 
@@ -605,8 +606,7 @@ class Report(object):
         projs : bool
             Whether to add SSP projector plots, if projectors are present in
             the data.
-        tags : collection of str
-            Tags to add for later interactive filtering.
+        %(report_tags)s
         """
         tags = tuple(tags)
         for tag in tags:
@@ -660,8 +660,7 @@ class Report(object):
         projs : bool
             Whether to add SSP projector plots, if projectors are present in
             the data.
-        tags : collection of str
-            Tags to add for later interactive filtering.
+        %(report_tags)s
         """
         baseline = self.baseline if baseline is None else baseline
 
@@ -728,15 +727,16 @@ class Report(object):
                 html=html,
             )
 
+    @fill_doc
     def add_raw(self, raw, title, *, psd=True, projs=True, tags=('raw',)):
-        """Add `~mne.Raw` objects to the report.
+        """Add `~mne.io.Raw` objects to the report.
 
         Parameters
         ----------
         raw : path-like | instance of mne.io.BaseRaw
             The data to add to the report.
         title : str
-            The title corresponding to the `~mne.Raw` object.
+            The title corresponding to the ``raw`` object.
         psd : bool | None
             Whether to add PSD plots. Overrides the ``raw_psd`` parameter
             passed when initializing the `~mne.Report`. If ``None``, use
@@ -744,8 +744,7 @@ class Report(object):
         projs : bool
             Whether to add SSP projector plots, if projectors are present in
             the data.
-        tags : collection of str
-            Tags to add for later interactive filtering.
+        %(report_tags)s
         """
         tags = tuple(tags)
         for tag in tags:
@@ -784,6 +783,7 @@ class Report(object):
             html=html
         )
 
+    @fill_doc
     def add_stc(self, stc, title, *, subject=None, subjects_dir=None,
                 tags=('source-estimate',)):
         """Add a `~mne.SourceEstimate` (STC) to the report.
@@ -801,8 +801,7 @@ class Report(object):
             creation.
         subjects_dir : path-like | None
             The FreeSurfer ``SUBJECTS_DIR``.
-        tags : collection of str
-            Tags to add for later interactive filtering.
+        %(report_tags)s
         """
         tags = tuple(tags)
         for tag in tags:
@@ -824,6 +823,7 @@ class Report(object):
             html=html
         )
 
+    @fill_doc
     def add_forward(self, forward, title, *, subject=None, subjects_dir=None,
                     tags=('forward-solution',)):
         """Add a forward solution.
@@ -841,8 +841,7 @@ class Report(object):
             passed on report creation. If supplied, also pass ``subjects_dir``.
         subjects_dir : path-like | None
             The FreeSurfer ``SUBJECTS_DIR``.
-        tags : collection of str
-            Tags to add for later interactive filtering.
+        %(report_tags)s
         """
         tags = tuple(tags)
         for tag in tags:
@@ -860,6 +859,7 @@ class Report(object):
             html=html
         )
 
+    @fill_doc
     def add_inverse(self, inverse, title, *, subject=None, subjects_dir=None,
                     trans=None, tags=('inverse-operator',)):
         """Add an inverse operator.
@@ -878,10 +878,9 @@ class Report(object):
             and ``trans``.
         subjects_dir : path-like | None
             The FreeSurfer ``SUBJECTS_DIR``.
-        trans : path-like | instance of mne.Transform | None
-            The `head -> MRI` transform for ``subject``.
-        tags : collection of str
-            Tags to add for later interactive filtering.
+        trans : path-like | instance of mne.transforms.Transform | None
+            The ``head -> MRI`` transformation for ``subject``.
+        %(report_tags)s
         """
         tags = tuple(tags)
         for tag in tags:
@@ -903,14 +902,15 @@ class Report(object):
             html=html
         )
 
+    @fill_doc
     def add_trans(self, trans, *, info, title, subject=None, subjects_dir=None,
                   tags=('coregistration',)):
         """Add a coregistration visualization to the report.
 
         Parameters
         ----------
-        trans : path-like | instance of mne.Transform
-            The `head -> MRI` transform to render.
+        trans : path-like | instance of mne.transforms.Transform
+            The ``head -> MRI`` transformation to render.
         info : path-like | instance of mne.Info
             The `~mne.Info` corresponding to ``trans``.
         title : str
@@ -922,8 +922,7 @@ class Report(object):
             report creation.
         subjects_dir : path-like | None
             The FreeSurfer ``SUBJECTS_DIR``.
-        tags : collection of str
-            Tags to add for later interactive filtering.
+        %(report_tags)s
         """
         tags = tuple(tags)
         for tag in tags:
@@ -945,6 +944,7 @@ class Report(object):
             html=html
         )
 
+    @fill_doc
     def add_covariance(self, cov, *, info, title, tags=('covariance',)):
         """Add covariance to the report.
 
@@ -956,8 +956,7 @@ class Report(object):
             The `~mne.Info` corresponding to ``cov``.
         title : str
             The title corresponding to the `~mne.Covariance` object.
-        tags : collection of str
-            Tags to add for later interactive filtering.
+        %(report_tags)s
         """
         tags = tuple(tags)
         for tag in tags:
@@ -987,6 +986,7 @@ class Report(object):
             html=html
         )
 
+    @fill_doc
     def add_events(self, events, title, *, event_id=None, sfreq, first_samp=0,
                    tags=('events',)):
         """Add events to the report.
@@ -1004,8 +1004,7 @@ class Report(object):
         first_samp : int
             The first sample point in the recording. This corresponds to
             ``raw.first_samp`` on files created with Elekta/Neuromag systems.
-        tags : collection of str
-            Tags to add for later interactive filtering.
+        %(report_tags)s
         """
         tags = tuple(tags)
         for tag in tags:
@@ -1028,6 +1027,7 @@ class Report(object):
             html=html
         )
 
+    @fill_doc
     def add_ssp_projs(self, *, info, projs=None, title, tags=('ssp',)):
         """Render SSP projectors.
 
@@ -1041,9 +1041,8 @@ class Report(object):
             file that will be loaded via `mne.read_proj`. If ``None``, the
             projectors are taken from ``info['projs']``.
         title : str
-            The title corresponding to the `~mne.Raw` object.
-        tags : collection of str
-            Tags to add for later interactive filtering.
+            The title corresponding to the `~mne.Projection` object.
+        %(report_tags)s
         """
         tags = tuple(tags)
         for tag in tags:
@@ -1173,6 +1172,7 @@ class Report(object):
         )
         return html, dom_id
 
+    @fill_doc
     def add_code(self, code, title, *, language='python', tags=('code',)):
         """Add a code snippet (e.g., an analysis script) to the report.
 
@@ -1185,8 +1185,7 @@ class Report(object):
         language : str
             The programming language of ``code``. This will be used for syntax
             highlighting. Can be ``'auto'`` to try to auto-detect the language.
-        tags : collection of str
-            Tags to add for later interactive filtering.
+        %(report_tags)s
         """
         tags = tuple(tags)
         for tag in tags:
@@ -1204,6 +1203,7 @@ class Report(object):
             html=html
         )
 
+    @fill_doc
     def add_sys_info(self, title, *, tags=('mne-sysinfo',)):
         """Add a MNE-Python system information to the report.
 
@@ -1214,8 +1214,7 @@ class Report(object):
         ----------
         title : str
             The title to assign.
-        tags : collection of str
-            Tags to add for later interactive filtering.
+        %(report_tags)s
         """
         tags = tuple(tags)
         for tag in tags:
@@ -1228,6 +1227,7 @@ class Report(object):
         info = f.getvalue()
         self.add_code(code=info, title=title, language='shell', tags=tags)
 
+    @fill_doc
     def add_figs(self, figs, titles, *, captions=None, image_format=None,
                  tags=('custom-figure',)):
         """Add figures to the report.
@@ -1237,6 +1237,7 @@ class Report(object):
         figs : matplotlib.figure.Figure | mlab.Figure |
                collection of matplotlib.figure.Figure |
                collection of mlab.Figure
+
             A figure or a collection of figures to add to the report. Each
             figure can be an instance of :class:`matplotlib.figure.Figure`,
             :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
@@ -1245,8 +1246,7 @@ class Report(object):
         captions : str | collection of str | None
             If not ``None``, the caption(s) to add to the figure(s).
         %(report_image_format)s
-        tags : collection of str
-            Tags to add for later interactive filtering.
+        %(report_tags)s
         """
         if hasattr(figs, '__len__'):
             figs = tuple(figs)
@@ -1348,6 +1348,7 @@ class Report(object):
             image_format=image_format, tags=tags
         )
 
+    @fill_doc
     def add_images(self, images, titles, *, captions=None,
                    tags=('custom-image',)):
         """Add images (e.g., PNG or JPEG pictures) to the report.
@@ -1360,8 +1361,7 @@ class Report(object):
             Title(s) corresponding to the images(s).
         captions : str | collection of str | None
             If not ``None``, the caption(s) to add to the image(s).
-        tags : collection of str
-            Tags to add for later interactive filtering.
+        %(report_tags)s
         """
         if _check_path_like(images):
             images = (images,)
@@ -1539,6 +1539,7 @@ class Report(object):
             decim=decim, width=width, n_jobs=n_jobs, tags=tags
         )
 
+    @fill_doc
     def add_bem(self, subject, title, *, subjects_dir=None, decim=2, width=512,
                 n_jobs=1, tags=('bem',)):
         """Render a visualization of the boundary element model (BEM) surfaces.
@@ -1548,7 +1549,7 @@ class Report(object):
         subject : str
             The FreeSurfer subject name.
         title : str
-            The title corresponding to the `~mne.Raw` object.
+            The title corresponding to the BEM image.
         %(subjects_dir)s
         decim : int
             Use this decimation factor for generating MRI/BEM images
@@ -1559,8 +1560,7 @@ class Report(object):
             Typically a factor of 2 more than the number of MRI voxels along
             each dimension (typically 512, default) is reasonable.
         %(n_jobs)s
-        tags : collection of str
-            Tags to add for later interactive filtering.
+        %(report_tags)s
         """
         tags = tuple(tags)
         for tag in tags:
@@ -1610,6 +1610,7 @@ class Report(object):
 
         return html, dom_id
 
+    @fill_doc
     def add_slider(self, figs, title, *, captions, start_idx=0,
                    image_format=None, tags=('custom-slider')):
         """Add a slider element to scroll through a collection of figures.
@@ -1618,6 +1619,7 @@ class Report(object):
         ----------
         figs : collection of matplotlib.figure.Figure |
                collection of mlab.Figure
+
             The figures add to the report. Each figure can be an instance of
             :class:`matplotlib.figure.Figure`, :class:`mayavi.core.api.Scene`,
             or :class:`numpy.ndarray`.
@@ -1629,8 +1631,7 @@ class Report(object):
         start_idx : int
             The index of the figure in ``figs`` to display initially.
         %(report_image_format)s
-        tags : collection of str
-            Tags to add for later interactive filtering.
+        %(report_tags)s
         """
         tags = tuple(tags)
         for tag in tags:
@@ -1641,9 +1642,12 @@ class Report(object):
             captions = [f'Figure {i+1} of {len(figs)}'
                         for i in range(len(figs))]
 
+        if image_format is None:
+            image_format = self.image_format
+
         html, dom_id = self._render_slider(
             figs=figs, title=title, captions=captions, start_idx=start_idx,
-            image_format=self.image_format, tags=tags
+            image_format=image_format, tags=tags
         )
         self._add_or_replace(
             dom_id=dom_id,
@@ -1653,6 +1657,7 @@ class Report(object):
         )
 
     # @deprecated(extra='Use `Report.add_slider` instead')
+    @fill_doc
     def add_slider_to_section(self, figs, captions=None, section='custom',
                               title='Slider', scale=None, image_format=None,
                               replace=False, auto_close=True):
@@ -1666,9 +1671,8 @@ class Report(object):
             :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
             Must have at least 2 elements.
         captions : list of str | list of float | None
-            A list of captions to the figures. If float, a str will be
-            constructed as ``%f s``. If None, it will default to
-            ``Data slice %d``.
+            A list of captions to the figures. If ``None``, it will default to
+            ``Data slice [i]``.
         section : str
             Name of the section. If section already exists, the figures
             will be appended to the end of the section.
