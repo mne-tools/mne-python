@@ -1588,10 +1588,12 @@ class Report(object):
         )
 
     def _render_slider(self, *, figs, title, captions, start_idx, image_format,
-                       tags, klass):
+                       tags):
         if len(figs) != len(captions):
-            raise ValueError('Captions must be the same length as the '
-                             'number of slides.')
+            raise ValueError(
+                f'Number of captions ({len(captions)} must be the same length '
+                f'as the number of figures {len(figs)}'
+            )
         images = [_fig_to_img(fig=fig, image_format=image_format)
                   for fig in figs]
 
@@ -1608,6 +1610,49 @@ class Report(object):
 
         return html, dom_id
 
+    def add_slider(self, figs, title, *, captions, start_idx=0,
+                   image_format=None, tags=('custom-slider')):
+        """Add a slider element to scroll through a collection of figures.
+
+        Parameters
+        ----------
+        figs : collection of matplotlib.figure.Figure |
+               collection of mlab.Figure
+            The figures add to the report. Each figure can be an instance of
+            :class:`matplotlib.figure.Figure`, :class:`mayavi.core.api.Scene`,
+            or :class:`numpy.ndarray`.
+        title : str
+            The title of the slider element.
+        captions : collection of str | None
+            The captions to add to the figures. If ``None``, will add a
+            default caption.
+        start_idx : int
+            The index of the figure in ``figs`` to display initially.
+        %(report_image_format)s
+        tags : collection of str
+            Tags to add for later interactive filtering.
+        """
+        tags = tuple(tags)
+        for tag in tags:
+            if tag not in self.tags:
+                self.tags.append(tag)
+
+        if captions is None:
+            captions = [f'Figure {i+1} of {len(figs)}'
+                        for i in range(len(figs))]
+
+        html, dom_id = self._render_slider(
+            figs=figs, title=title, captions=captions, start_idx=start_idx,
+            image_format=self.image_format, tags=tags
+        )
+        self._add_or_replace(
+            dom_id=dom_id,
+            toc_entry_name=title,
+            tags=tags,
+            html=html
+        )
+
+    # @deprecated(extra='Use `Report.add_slider` instead')
     def add_slider_to_section(self, figs, captions=None, section='custom',
                               title='Slider', scale=None, image_format=None,
                               replace=False, auto_close=True):
@@ -1649,22 +1694,11 @@ class Report(object):
         -----
         .. versionadded:: 0.10.0
         """
-        if section not in self.tags:
-            self.tags.append(section)
-            self._sectionvars[section] = section
-
-        sectionvar = self._sectionvars[section]
-
-        html = self._render_slider(
-            figs=figs, captions=captions, section=section, title=title,
-            scale=scale, image_format=image_format,
-            auto_close=auto_close)
-
-        self._add_or_replace(
-            sectionlabel=sectionvar,
-            dom_id=global_id,
-            html=html,
-            replace=replace)
+        tags = _clean_tags(section)
+        self.add_slider(
+            figs=figs, title=title, captions=captions,
+            image_format=image_format, tags=tags
+        )
 
     ###########################################################################
     # global rendering functions
@@ -2026,11 +2060,10 @@ class Report(object):
         # Render the slider
         captions = [f'Slice index: {i * decim}' for i in range(len(figs))]
         start_idx = int(round(len(figs) / 2))
-        html, slider_id = self._render_slider(
+        html, _ = self._render_slider(
             figs=figs,
             captions=captions,
             title=orientation,
-            klass='bem slider',
             image_format=image_format,
             start_idx=start_idx,
             tags=tags
@@ -2349,7 +2382,6 @@ class Report(object):
             figs=figs,
             captions=captions,
             title='Topographies',
-            klass='evoked evoked-topo slider',
             image_format=image_format,
             start_idx=t_zero_idx,
             tags=tags
@@ -2718,7 +2750,6 @@ class Report(object):
             figs=figs,
             captions=captions,
             title=title,
-            klass='stc slider',
             image_format=image_format,
             start_idx=t_zero_idx,
             tags=tags
