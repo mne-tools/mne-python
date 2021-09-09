@@ -1455,6 +1455,53 @@ class Report(object):
         self.add_images(images=fnames, titles=captions, captions=comments,
                         tags=tags)
 
+    @fill_doc
+    def add_htmls(self, htmls, titles, *, tags=('custom-html',)):
+        """Add HTML content to the report.
+
+        Parameters
+        ----------
+        htmls : str | collection of str
+            The HTML content to add.
+        titles : str | collection of str
+            Title(s) corresponding to ``htmls``.
+        %(report_tags)s
+        """
+        if isinstance(htmls, str):
+            htmls = (htmls,)
+        else:
+            htmls = tuple(htmls)
+
+        if isinstance(titles, str):
+            titles = (titles,)
+        else:
+            titles = tuple(titles)
+
+        if len(htmls) != len(titles):
+            raise ValueError(
+                f'Number of htmls ({len(htmls)}) must equal number of '
+                f'titles ({len(titles)})'
+            )
+
+        tags = tuple(tags)
+        for tag in tags:
+            if tag not in self.tags:
+                self.tags.append(tag)
+
+        for html, title in zip(htmls, titles):
+            dom_id = self._get_id()
+            html_element = _html_element(
+                id=dom_id, html=html, title=title, tags=tags,
+                div_klass='custom-html'
+            )
+            self._add_or_replace(
+                dom_id=dom_id,
+                toc_entry_name=title,
+                tags=tags,
+                html=html_element
+            )
+
+    # @deprecated(extra='Use `Report.add_htmls` instead')
     def add_htmls_to_section(self, htmls, captions, section='custom',
                              replace=False):
         """Append htmls to the report.
@@ -1476,27 +1523,10 @@ class Report(object):
         -----
         .. versionadded:: 0.9.0
         """
-        if section not in self.tags:
-            self.tags.append(section)
-            self._sectionvars[section] = section
+        # htmls, captions, _ = self._validate_input(htmls, captions, section)
 
-        htmls, captions, _ = self._validate_input(htmls, captions, section)
-        for html, caption in zip(htmls, captions):
-            caption = 'custom plot' if caption == '' else caption
-            sectionvar = self._sectionvars[section]
-            global_id = self._get_id()
-            div_klass = self._sectionvars[section]
-
-            self._add_or_replace(
-                content_id=f'{caption}-#-{sectionvar}-#-custom',
-                sectionlabel=sectionvar,
-                dom_id=global_id,
-                html=html_template.substitute(
-                    div_klass=div_klass, id=global_id,
-                    caption=caption, html=html
-                ),
-                replace=replace
-            )
+        tags = _clean_tags(section)
+        self.add_htmls(htmls=htmls, titles=captions, tags=tags)
 
     # @deprecated(extra='Use `Report.add_bem` instead')
     @verbose
