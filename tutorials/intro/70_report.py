@@ -293,34 +293,3 @@ report.save('report_stc.html', overwrite=True)
 #    Although we've been generating separate reports in each of these examples,
 #    you could easily create a single report for all :file:`.fif` files (raw,
 #    evoked, covariance, etc) by passing ``pattern='*.fif'``.
-#
-#
-# Editing a saved report
-# ^^^^^^^^^^^^^^^^^^^^^^
-#
-# Saving to HTML is a write-only operation, meaning that we cannot read an
-# ``.html`` file back as a :class:`~mne.Report` object. In order to be able
-# to edit a report once it's no longer in-memory in an active Python session,
-# save it as an HDF5 file instead of HTML:
-
-# XXX uncomment when saving works
-# report.save('report.h5', overwrite=True)
-# report_from_disk = mne.open_report('report.h5')
-# print(report_from_disk)
-
-# %%
-# This allows the possibility of multiple scripts adding figures to the same
-# report. To make this even easier, :class:`mne.Report` can be used as a
-# context manager:
-
-# XXX uncomment when loading works
-# with mne.open_report('report.h5') as report:
-#     report.add_figs_to_section(fig_evoked,
-#                                captions='Left Auditory',
-#                                section='evoked',
-#                                replace=True)
-#     report.save('report_final.html', overwrite=True)
-
-# %%
-# With the context manager, the updated report is also automatically saved
-# back to :file:`report.h5` upon leaving the block.
