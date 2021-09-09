@@ -556,12 +556,13 @@ class BrowserBase(ABC):
 
         return fig
 
+    def _close_event(self, fig):
+        # This method is a fix for mpl issue #18609, which still seems to
+        # be a problem with matplotlib==3.4.
+        pass
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # TEST METHODS
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    @abstractmethod
-    def _close_event(self, fig):
-        pass
 
     @abstractmethod
     def _get_size(self):

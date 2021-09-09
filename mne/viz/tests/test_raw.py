@@ -336,6 +336,7 @@ def test_plot_raw_ssp_interaction(raw, browse_backend):
 
 def test_plot_raw_child_figures(raw, browse_backend):
     """Test spawning and closing of child figures."""
+    ismpl = browse_backend == 'matplotlib'
     with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     browse_backend._close_all()  # make sure we start clean
@@ -345,8 +346,9 @@ def test_plot_raw_child_figures(raw, browse_backend):
     # test child fig toggles
     _child_fig_helper(fig, '?', 'fig_help', browse_backend)
     _child_fig_helper(fig, 'j', 'fig_proj', browse_backend)
-    # ToDo: This figure won't be there with pyqtgraph.
-    _child_fig_helper(fig, 'a', 'fig_annotation', browse_backend)
+    # In pyqtgraph, this is a dock-widget instead of a separated window.
+    if ismpl:
+        _child_fig_helper(fig, 'a', 'fig_annotation', browse_backend)
     assert len(fig.mne.child_figs) == 0  # make sure the helper cleaned up
     assert browse_backend._get_n_figs() == 1
     # test right-click → channel location popup
@@ -355,7 +357,8 @@ def test_plot_raw_child_figures(raw, browse_backend):
     assert len(fig.mne.child_figs) == 1
     assert browse_backend._get_n_figs() == 2
     fig._fake_keypress('escape', fig=fig.mne.child_figs[0])
-    fig._close_event(fig.mne.child_figs[0])
+    if ismpl:
+        fig._close_event(fig.mne.child_figs[0])
     assert browse_backend._get_n_figs() == 1
     # test right-click on non-data channel
     ix = raw.get_channel_types().index('ias')  # find the shielding channel
