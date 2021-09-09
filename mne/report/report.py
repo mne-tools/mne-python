@@ -33,7 +33,7 @@ from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
-                     deprecated)
+                     deprecated, _check_path_like)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
@@ -1348,6 +1348,76 @@ class Report(object):
             image_format=image_format, tags=tags
         )
 
+    def add_images(self, images, titles, *, captions=None,
+                   tags=('custom-image',)):
+        """Add images (e.g., PNG or JPEG pictures) to the report.
+
+        Parameters
+        ----------
+        images : path-like | collection of path-like
+            The images to add.
+        titles : str | collection of str
+            Title(s) corresponding to the images(s).
+        captions : str | collection of str | None
+            If not ``None``, the caption(s) to add to the image(s).
+        tags : collection of str
+            Tags to add for later interactive filtering.
+        """
+        if _check_path_like(images):
+            images = (images,)
+        else:
+            images = tuple(images)
+
+        if isinstance(titles, str):
+            titles = (titles,)
+        else:
+            titles = tuple(titles)
+
+        if isinstance(captions, str):
+            captions = (captions,)
+        elif captions is None:
+            captions = (None,) * len(images)
+        else:
+            captions = tuple(captions)
+
+        if len(images) != len(titles):
+            raise ValueError(
+                f'Number of images ({len(images)}) must equal number of '
+                f'titles ({len(titles)})'
+            )
+        if len(images) != len(captions):
+            raise ValueError(
+                f'Number of images ({len(images)}) must equal number of '
+                f'captions ({len(captions)})'
+            )
+
+        tags = tuple(tags)
+        for tag in tags:
+            if tag not in self.tags:
+                self.tags.append(tag)
+
+        for img, title, caption in zip(images, titles, captions):
+            img_bytes = Path(img).expanduser().read_bytes()
+            img_base64 = base64.b64encode(img_bytes).decode('ascii')
+            img_format = Path(img).suffix.lower()[1:]  # omit leading period
+            _check_option('Image format', value=img_format,
+                          allowed_values=('png', 'gif', 'svg'))
+
+            dom_id = self._get_id()
+            img_html = _html_image_element(
+                img=img_base64, div_klass='custom-image',
+                img_klass='custom-image', title=title, caption=caption,
+                show=True,  image_format=img_format, id=dom_id,
+                tags=tags
+            )
+            self._add_or_replace(
+                dom_id=dom_id,
+                toc_entry_name=title,
+                tags=tags,
+                html=img_html
+            )
+
+    @deprecated(extra='Use `Report.add_images` instead')
     def add_images_to_section(self, fnames, captions, scale=None,
                               section='custom', comments=None, replace=False):
         """Append custom user-defined images.
@@ -1375,46 +1445,14 @@ class Report(object):
         # Note: using scipy.misc is equivalent because scipy internally
         # imports PIL anyway. It's not possible to redirect image output
         # to binary string using scipy.misc.
-        if section not in self.tags:
-            self.tags.append(section)
-            self._sectionvars[section] = section
+        # fnames, captions, comments = self._validate_input(fnames, captions,
+        #                                                   section, comments)
+        # _check_scale(scale)
 
-        fnames, captions, comments = self._validate_input(fnames, captions,
-                                                          section, comments)
-        _check_scale(scale)
-
-        for fname, caption, comment in zip(fnames, captions, comments):
-            caption = 'custom plot' if caption == '' else caption
-            sectionvar = self._sectionvars[section]
-            global_id = self._get_id()
-            div_klass = self._sectionvars[section]
-            img_klass = self._sectionvars[section]
-
-            image_format = os.path.splitext(fname)[1][1:]
-            image_format = image_format.lower()
-
-            _check_option('image_format', image_format, ['png', 'gif', 'svg'])
-
-            # Convert image to binary string.
-            with open(fname, 'rb') as f:
-                img = base64.b64encode(f.read()).decode('ascii')
-                html = image_template.substitute(img=img, id=global_id,
-                                                 image_format=image_format,
-                                                 div_klass=div_klass,
-                                                 img_klass=img_klass,
-                                                 caption=caption,
-                                                 width=scale,
-                                                 comment=comment,
-                                                 show=True)
-
-            self._add_or_replace(
-                content_id=f'{caption}-#-{sectionvar}-#-custom',
-                sectionvar=sectionvar,
-                html=html,
-                dom_id=global_id,
-                replace=replace
-            )
-
+        tags = _clean_tags(section)
+        self.add_images(images=fnames, titles=captions, captions=comments,
+                        tags=tags)
+       
     def add_htmls_to_section(self, htmls, captions, section='custom',
                              replace=False):
         """Append htmls to the report.
