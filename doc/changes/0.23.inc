@@ -12,6 +12,13 @@
    like this (where xxxx is the pull request number):
    - description of enhancement/bugfix/API change (:gh:`xxxx` **by new contributor** |Firstname Lastname|_)
 
+.. _changes_0_23_4:
+
+Version 0.23.4
+--------------
+
+- Fix test tolerances for ARM (:gh:`9705` by `Eric Larson`_)
+
 .. _changes_0_23_3:
 
 Version 0.23.3
