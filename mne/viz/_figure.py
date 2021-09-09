@@ -109,7 +109,7 @@ class BrowserBase(ABC):
         self.mne.annotation_hover_line = None
         self.mne.draggable_annotations = False
         # lines
-        self.mne.event_lines = None
+        self.mne.event_lines = list()
         self.mne.event_texts = list()
         self.mne.vline_visible = False
         # decim
