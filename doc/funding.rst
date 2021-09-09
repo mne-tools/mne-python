@@ -15,9 +15,9 @@ Development of MNE-Python has been supported by:
 - |doe| **US Department of Energy:** DE-FG02-99ER62764 (MIND)
 - |anr| **Agence Nationale de la Recherche:** `14-NEUC-0002-01 <https://anr.fr/Project-ANR-14-NEUC-0002>`_, **IDEX** Paris-Saclay `11-IDEX-0003-02 <https://anr.fr/ProjetIA-11-IDEX-0003>`_
 - |cds| **Paris-Saclay Center for Data Science:** `PARIS-SACLAY <http://www.datascience-paris-saclay.fr>`_
-- |goo| **Google:** Summer of code (×6)
+- |goo| **Google:** Summer of code (×7)
 - |ama| **Amazon:** AWS Research Grants
-- |czi| **Chan Zuckerberg Initiative:** `EOSS2`_
+- |czi| **Chan Zuckerberg Initiative:** `EOSS2`_, `EOSS4`_
 
 
 .. _supporting-institutions:

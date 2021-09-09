@@ -26,6 +26,7 @@
 .. _`MNE-MATLAB git repository`: https://github.com/mne-tools/mne-matlab
 .. _`MNE-Docker`: https://github.com/mne-tools/mne-docker
 .. _EOSS2: https://chanzuckerberg.com/eoss/proposals/improving-usability-of-core-neuroscience-analysis-tools-with-mne-python
+.. _EOSS4: https://chanzuckerberg.com/eoss/proposals/building-pediatric-and-clinical-data-pipelines-for-mne-python/
 .. _`code of conduct`: https://github.com/mne-tools/.github/blob/main/CODE_OF_CONDUCT.md
 
 
