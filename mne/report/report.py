@@ -2029,13 +2029,21 @@ class Report(object):
             if not annotation['description'].lower().startswith('bad'):
                 annots_to_remove_idx.append(idx)
         raw_copy.annotations.delete(annots_to_remove_idx)
-        fig = raw_copy.plot(
-            butterfly=True,
-            show_scrollbars=False,
-            duration=raw.times[-1],
-            decim=10,
-            show=False
-        )
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                action='ignore',
+                message='.*can cause aliasing artifacts.*',
+                category=RuntimeWarning
+            )
+            fig = raw_copy.plot(
+                butterfly=True,
+                show_scrollbars=False,
+                duration=raw.times[-1],
+                decim=10,
+                show=False
+            )
+
         fig.tight_layout()
         img = _fig_to_img(fig=fig, image_format=image_format)
         butterfly_img_html = _html_image_element(
@@ -2054,7 +2062,15 @@ class Report(object):
                 fmax = np.inf
 
             fig = raw.plot_psd(fmax=fmax, show=False, **add_psd)
-            fig.tight_layout()
+
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    action='ignore',
+                    message='.*not compatible with tight_layout.*',
+                    category=UserWarning
+                )
+                fig.tight_layout()
+
             img = _fig_to_img(fig, image_format=image_format)
             psd_img_html = _html_image_element(
                 img=img, div_klass='raw', img_klass='raw',
