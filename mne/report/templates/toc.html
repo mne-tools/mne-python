@@ -1,12 +1,20 @@
 <div class="container-fluid" id="container">
   <div class="row">
     <div class="col-2 px-1 position-fixed vh-100 overflow-auto" id="toc">
-      <h5 class="px-1">Table of contents</h5>
-      <nav class="nav nav-pills flex-column lh-sm" id="toc-navbar">
-        {{for toc_entry in toc_entries}}
-        <a class="nav-link list-group-item list-group-item-action text-break" href="#{{toc_entry['dom_target_id']}}"
-          data-mne-tags="{{for tag in toc_entry['tags']}} {{tag}} {{endfor}}">{{toc_entry['name']}}</a>
-        {{endfor}}
+      <nav class="navbar navbar-expand-lg nav-pills navbar-light lh-sm pt-0" id="toc-navbar">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#toc-navbar-collapsible"
+          aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle table of contents">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="navbar-expand-lg collapse navbar-collapse flex-column" id="toc-navbar-collapsible">
+          <h5 class="nav-item">Table of contents</h5>
+          {{for toc_entry in toc_entries}}
+          <a class="nav-link list-group-item list-group-item-action text-break" href="#{{toc_entry['dom_target_id']}}"
+            data-mne-tags="{{for tag in toc_entry['tags']}} {{tag}} {{endfor}}">{{toc_entry['name']}}</a>
+          {{endfor}}
+        </div>
       </nav>
     </div>
+
     <div id="content" class="accordion col-9 offset-2">
