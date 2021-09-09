@@ -234,6 +234,13 @@ class BrowserBase(ABC):
 
         return epoch_ix, color
 
+    def _toggle_whitening(self):
+        if self.mne.noise_cov is not None:
+            self.mne.use_noise_cov = not self.mne.use_noise_cov
+            self._update_projector()
+            self._update_yaxis_labels()  # add/remove italics
+            self._redraw()
+
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # MANAGE TRACES
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -500,12 +507,12 @@ class BrowserBase(ABC):
 
     def _toggle_epoch_histogram(self):
         """Show or hide peak-to-peak histogram of channel amplitudes."""
-        if self.mne.fig_histogram is None:
-            self._create_epoch_histogram()
-            plt_show(fig=self.mne.fig_histogram)
-        else:
-            from matplotlib.pyplot import close
-            close(self.mne.fig_histogram)
+        if self.mne.instance_type == 'epochs':
+            if self.mne.fig_histogram is None:
+                self._create_epoch_histogram()
+            else:
+                from matplotlib.pyplot import close
+                close(self.mne.fig_histogram)
 
     def _create_epoch_histogram(self):
         """Create peak-to-peak histogram of channel amplitudes."""
@@ -578,6 +585,10 @@ class BrowserBase(ABC):
 
     @abstractmethod
     def _get_ticklabels(self, orientation):
+        pass
+
+    @abstractmethod
+    def _update_yaxis_labels(self):
         pass
 
 

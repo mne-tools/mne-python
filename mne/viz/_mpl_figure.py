@@ -671,7 +671,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         elif key == 'd':  # DC shift
             self.mne.remove_dc = not self.mne.remove_dc
             self._redraw()
-        elif key == 'h' and self.mne.instance_type == 'epochs':  # histogram
+        elif key == 'h':  # histogram
             self._toggle_epoch_histogram()
         elif key == 'j' and len(self.mne.projs):  # SSP window
             self._toggle_proj_fig()
@@ -686,11 +686,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         elif key == 's':  # scalebars
             self._toggle_scalebars(event)
         elif key == 'w':  # toggle noise cov whitening
-            if self.mne.noise_cov is not None:
-                self.mne.use_noise_cov = not self.mne.use_noise_cov
-                self._update_projector()
-                self._update_yaxis_labels()  # add/remove italics
-                self._redraw()
+            self._toggle_whitening()
         elif key == 'z':  # zen mode: hide scrollbars and buttons
             self._toggle_scrollbars()
             self._redraw(update_data=False)
