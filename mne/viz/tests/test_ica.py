@@ -266,14 +266,14 @@ def test_plot_ica_sources(raw_orig, browse_backend):
     # test error handling
     raw_ = raw.copy().load_data()
     raw_.drop_channels('MEG 0113')
-    with pytest.raises(RuntimeError, match="Raw doesn't match fitted data"):
-        with pytest.warns(RuntimeWarning, match='could not be picked'):
-            ica.plot_sources(inst=raw_)
+    with pytest.raises(RuntimeError, match="Raw doesn't match fitted data"), \
+         pytest.warns(RuntimeWarning, match='could not be picked'):
+        ica.plot_sources(inst=raw_)
     epochs_ = epochs.copy().load_data()
     epochs_.drop_channels('MEG 0113')
-    with pytest.raises(RuntimeError, match="Epochs don't match fitted data"):
-        with pytest.warns(RuntimeWarning, match='could not be picked'):
-            ica.plot_sources(inst=epochs_)
+    with pytest.raises(RuntimeError, match="Epochs don't match fitted data"), \
+         pytest.warns(RuntimeWarning, match='could not be picked'):
+        ica.plot_sources(inst=epochs_)
     del raw_
     del epochs_
 
