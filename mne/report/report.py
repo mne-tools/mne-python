@@ -2065,9 +2065,9 @@ class Report(object):
             All parameters that are optionally present in the state dictionary.
         """
         # Note: self._fname is not part of the state
-        return (['baseline', 'cov_fname', 'fnames', 'html', 'include',
+        return (['baseline', 'cov_fname',  'include', '_content',
                  'image_format', 'info_fname', '_initial_id', 'raw_psd',
-                 '_sectionlabels', 'sections', '_sectionvars', 'projs',
+                 'projs', 'tags',
                  '_sort_sections', 'subjects_dir', 'subject', 'title',
                  'verbose'],
                 ['data_path', 'lang', '_sort'])
@@ -2100,16 +2100,19 @@ class Report(object):
 
         Parameters
         ----------
-        fname : str | None
-            File name of the report. If the file name ends in '.h5' or '.hdf5',
-            the report is saved in HDF5 format, so it can later be loaded again
-            with :func:`open_report`. If the file name ends in anything else,
-            the report is rendered to HTML. If ``None``, the report is saved to
-            'report.html' in the current working directory.
-            Defaults to ``None``.
+        fname : path-like | None
+            Output filename. If the name ends with ``.h5`` or ``.hdf5``, the
+            report is saved in HDF5 format, so it can later be loaded again
+            with :func:`open_report`. For any other suffix, the report will be
+            saved in HTML format. If ``None`` and :meth:`Report.parse_folder`
+            was **not** called, the report is saved as ``report.html`` in the
+            current working directory. If ``None`` and
+            :meth:`Report.parse_folder` **was** used, the report is saved as
+            ``report.html`` inside the ``data_path`` supplied to
+            :meth:`Report.parse_folder`.
         open_browser : bool
-            When saving to HTML, open the rendered HTML file browser after
-            saving if True. Defaults to True.
+            Whether to open the rendered HTML report in the default web browser
+            after saving. This is ignored when writing an HDF5 file.
         %(overwrite)s
         %(verbose_meth)s
 
@@ -2121,16 +2124,15 @@ class Report(object):
         if fname is None:
             if not hasattr(self, 'data_path'):
                 self.data_path = os.getcwd()
-                warn('`data_path` not provided. Using %s instead'
-                     % self.data_path)
+                warn(f'`data_path` not provided. Using {self.data_path} '
+                     f'instead')
             fname = op.realpath(op.join(self.data_path, 'report.html'))
         else:
             fname = op.realpath(fname)
 
         if not overwrite and op.isfile(fname):
-            msg = ('Report already exists at location %s. '
-                   'Overwrite it (y/[n])? '
-                   % fname)
+            msg = (f'Report already exists at location {fname}. '
+                   f'Overwrite it (y/[n])? ')
             answer = _safe_input(msg, alt='pass overwrite=True')
             if answer.lower() == 'y':
                 overwrite = True
