@@ -975,7 +975,7 @@ class Report(object):
             report creation.
         subjects_dir : path-like | None
             The FreeSurfer ``SUBJECTS_DIR``.
-        %(report_tags)s,
+        %(report_tags)s
         %(report_replace)s
 
         Notes

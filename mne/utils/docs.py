@@ -2259,8 +2259,8 @@ tags : collection of str
 docdict['report_replace'] = """
 replace : bool
     If ``True``, content already present that has the same ``title`` will be
-    replaced. Defaults to ``False``, which will raise an error if content
-    with the provided title already exists.
+    replaced. Defaults to ``False``, which will cause duplicate entries in the
+    table of contents if an entry for ``title`` already exists.
 """
 
 # Epochs
