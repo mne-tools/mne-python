@@ -1875,7 +1875,6 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         "colorbar": colorbar,
         "vector_alpha": vector_alpha,
         "scale_factor": scale_factor,
-        "verbose": False,
         "initial_time": initial_time,
         "transparent": transparent,
         "center": center,
@@ -1885,7 +1884,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         "clim": clim,
         "src": src,
         "volume_options": volume_options,
-        "verbose": False,
+        "verbose": None,
     }
     if add_data_kwargs is not None:
         kwargs.update(add_data_kwargs)

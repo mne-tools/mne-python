@@ -1806,6 +1806,8 @@ class Brain(object):
     def _remove(self, item, render=False):
         """Remove actors from the rendered scene."""
         if item in self._actors:
+            logger.debug(
+                f'Removing {len(self._actors[item])} {item} actor(s)')
             for actor in self._actors[item]:
                 self._renderer.plotter.remove_actor(actor)
             self._actors.pop(item)  # remove actor list
@@ -1898,7 +1900,7 @@ class Brain(object):
             Original clim arguments.
         %(src_volume_options)s
         colorbar_kwargs : dict | None
-            Options to pass to :meth:`pyvista.BasePlotter.add_scalar_bar`
+            Options to pass to :meth:`pyvista.Plotter.add_scalar_bar`
             (e.g., ``dict(title_font_size=10)``).
         %(verbose)s
 
@@ -1927,8 +1929,6 @@ class Brain(object):
             if time_label_size < 0:
                 raise ValueError('time_label_size must be positive, got '
                                  f'{time_label_size}')
-
-        self.remove_data()  # remove any existing data
 
         hemi = self._check_hemi(hemi, extras=['vol'])
         stc, array, vertices = self._check_stc(hemi, array, vertices)
@@ -2464,7 +2464,7 @@ class Brain(object):
             Add a legend displaying the names of the ``labels``. Default (None)
             is ``True`` if the number of ``labels`` is 10 or fewer.
             Can also be a dict of ``kwargs`` to pass to
-            :meth:`pyvista.BasePlotter.add_legend`.
+            :meth:`pyvista.Plotter.add_legend`.
 
         Notes
         -----
