@@ -80,7 +80,7 @@ def test_compute_whitener(proj, pca):
     with pytest.warns(RuntimeWarning, match='Too few samples'):
         cov = compute_raw_covariance(raw, picks=picks)
     W2, _, C2 = compute_whitener(cov, raw.info, pca=pca, return_colorer=True,
-                               picks=picks, verbose='error')
+                                 picks=picks, verbose='error')
     assert (W == W2).all()
     assert (C == C2).all()
 
