@@ -264,6 +264,7 @@ def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg, tol_kind, tol):
 
 
 def test_explicit_bads_pick():
+    """Test when bads channels are explicitly passed to picks."""
     raw = read_raw_fif(raw_fname, preload=True)
     raw.pick_types(eeg=True, meg=True, ref_meg=True)
     picks = pick_types(raw.info, eeg=True, meg=True, ref_meg=True, exclude=[])
