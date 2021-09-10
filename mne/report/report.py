@@ -1218,7 +1218,7 @@ class Report(object):
             remove_idx = tuple(remove_idx)
             self._content = [e for idx, e in enumerate(self._content)
                              if idx not in remove_idx]
-                
+
         return remove_idx
 
     def _add_or_replace(self, *, toc_entry_name, dom_id, tags, html,

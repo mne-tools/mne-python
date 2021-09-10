@@ -1459,7 +1459,9 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     # we use a new axis for the title to handle scaling of plots
     old_title = ts_ax.get_title()
     ts_ax.set_title('')
-    if title is not None:  # XXX BUG destroys ax -> fig assignment if title & axes are passed
+
+    # XXX BUG destroys ax -> fig assignment if title & axes are passed
+    if title is not None:
         title_ax = plt.subplot(4, 3, 2)
         if title == '':
             title = old_title
