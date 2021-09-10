@@ -19,7 +19,7 @@ import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 
-from mne import Epochs, read_events, read_evokeds_mff
+from mne import Epochs, read_events, read_evokeds
 from mne.report import report as report_mod
 from mne.io import read_raw_fif
 from mne.datasets import testing
