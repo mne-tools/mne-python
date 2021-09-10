@@ -261,3 +261,18 @@ def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg, tol_kind, tol):
     rank_new = _compute_rank_int(raw, 'info')
     assert rank_new == rank
     assert_array_equal(raw[:][0], data_orig)
+
+
+def test_explicit_bads_pick():
+    raw = read_raw_fif(raw_fname, preload=True)
+    raw.pick_types(eeg=True, meg=True, ref_meg=True)
+    picks = pick_types(raw.info, eeg=True, meg=True, ref_meg=True, exclude=[])
+    noise_cov_1 = compute_raw_covariance(raw, picks=picks)
+    rank_noise_cov_1 = compute_rank(noise_cov_1, info=raw.info)
+    raw.info['bads'] = ['EEG 002', 'EEG 012', 'EEG 015']
+    noise_cov_2 = compute_raw_covariance(raw, picks=picks)
+    rank_noise_cov_2 = compute_rank(noise_cov_2, info=raw.info)
+    assert (noise_cov_1['data'] == noise_cov_2['data']).all()
+    assert noise_cov_1['names'] == noise_cov_2['names']
+    assert rank_noise_cov_1['eeg'] == rank_noise_cov_2['eeg']
+    assert rank_noise_cov_1['meg'] == rank_noise_cov_2['meg']
