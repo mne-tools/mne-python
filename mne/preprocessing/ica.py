@@ -669,7 +669,8 @@ class ICA(ContainsMixin):
                 picks_ = pick_types(info, eog=True, exclude=[])
                 pre_whitener[picks_] = np.std(data[picks_])
         else:
-            pre_whitener, _ = compute_whitener(self.noise_cov, self.info)
+            pre_whitener, _ = compute_whitener(
+                self.noise_cov, self.info, picks=self.info.ch_names)
             assert data.shape[0] == pre_whitener.shape[1]
         self.pre_whitener_ = pre_whitener
 
