@@ -1139,61 +1139,87 @@ class Report(object):
             replace=replace
         )
 
-    def remove(self, caption, section=None):
-        """Remove a figure from the report.
+    def remove(self, title, tags=None, all=False, caption=None, section=None):
+        """Remove elements from the report.
 
-        The figure to remove is searched for by its caption. When searching by
-        caption, the section label can be specified as well to narrow down the
-        search. If multiple figures match the search criteria, the last one
-        will be removed.
-
-        Any empty sections will be removed as well.
+        The element to remove is searched for by its title. Optionally, tags
+        may be specified as well to narrow down the search to elements that
+        have the supplied tags.
 
         Parameters
         ----------
+        title : str
+            The title of the element(s) to remove.
+
+            .. versionadded:: 0.24.0
+        tags : collection of str | None
+            If supplied, restrict the operation to elements with the supplied
+            tags.
+
+            .. versionadded:: 0.24.0
+        all : bool
+            Controls the behavior if multiple elements match the search
+            criteria. If ``False`` (default) only the element last added to the
+            report will be removed. If ``True``, all matches will be removed.
+
+            .. versionadded:: 0.24.0
         caption : str
-            If set, search for the figure by caption.
+            The caption of the element to remove.
+
+            .. deprecated:: 0.24.0
+               Use ``title`` instead.
         section : str | None
             If set, limit the search to the section with the given label.
 
+            .. deprecated:: 0.24.0
+               Use ``tags`` instead.
+
         Returns
         -------
-        removed_index : int | None
-            The integer index of the figure that was removed, or ``None`` if no
-            figure matched the search criteria.
+        removed_index : int | tuple of int | None
+            The indices of the elements that were removed, or ``None`` if no
+            element matched the search criteria. A tuple will always be
+            returned if ``all`` was set to ``True`` and at least one element
+            was removed.
+
+            .. versionchanged:: 0.24.0
+               Returns tuple if ``all`` is ``True``.
         """
-        # Construct the search pattern
-        pattern = r'^%s-#-.*-#-custom$' % caption
-
-        # Search for figures matching the search pattern, regardless of
-        # section
-        matches = [i for i, fname_ in enumerate(self.fnames)
-                   if re.match(pattern, fname_)]
+        if caption is not None:
+            warn(
+                message='The "caption" parameter has been deprecated. Please '
+                        'use "title" instead',
+                category=DeprecationWarning
+            )
+            title = caption
         if section is not None:
-            # Narrow down the search to the given section
-            svar = self._sectionvars[section]
-            matches = [i for i in matches
-                       if self._sectionlabels[i] == svar]
-        if len(matches) == 0:
-            return None
+            warn(
+                message='The "section" parameter has been deprecated. Please '
+                        'use "tags" instead',
+                category=DeprecationWarning
+            )
+            tags = _clean_tags(section)
 
-        # Remove last occurrence
-        index = max(matches)
+        remove_idx = []
+        for idx, element in enumerate(self._content):
+            if element['toc_entry']['name'] == title:
+                if (tags is not None and
+                    not all(t in element['toc_entry']['tags']
+                            for t in tags)):
+                    continue
+                remove_idx.append(idx)
 
-        # Remove the figure
-        del self.fnames[index]
-        del self._sectionlabels[index]
-        del self.html[index]
-
-        # Remove any (now) empty sections.
-        # We use a list() to copy the _sectionvars dictionary, since we are
-        # removing elements during the loop.
-        for section_, sectionlabel_ in list(self._sectionvars.items()):
-            if sectionlabel_ not in self._sectionlabels:
-                self.tags.remove(section_)
-                del self._sectionvars[section_]
-
-        return index
+        if not remove_idx:
+            remove_idx = None
+        elif not all:  # only remove last occurrence
+            remove_idx = remove_idx[-1]
+            del self._content[remove_idx]
+        else:  # remove all occurrences
+            remove_idx = tuple(remove_idx)
+            self._content = [e for idx, e in enumerate(self._content)
+                             if idx not in remove_idx]
+                
+        return remove_idx
 
     def _add_or_replace(self, *, toc_entry_name, dom_id, tags, html,
                         replace=False):
