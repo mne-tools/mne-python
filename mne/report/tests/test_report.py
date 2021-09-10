@@ -19,7 +19,8 @@ import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 
-from mne import Epochs, read_events, read_evokeds, report as report_mod
+from mne import Epochs, read_events, read_evokeds_mff
+from mne.report import report as report_mod
 from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper
@@ -40,9 +41,9 @@ trans_fname = op.join(report_dir, 'sample_audvis_trunc-trans.fif')
 inv_fname = op.join(report_dir,
                     'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
 mri_fname = op.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
-bdf_fname = op.realpath(op.join(op.dirname(__file__), '..', 'io',
+bdf_fname = op.realpath(op.join(op.dirname(__file__), '..', '..', 'io',
                                 'edf', 'tests', 'data', 'test.bdf'))
-edf_fname = op.realpath(op.join(op.dirname(__file__), '..', 'io',
+edf_fname = op.realpath(op.join(op.dirname(__file__), '..', '..', 'io',
                                 'edf', 'tests', 'data', 'test.edf'))
 
 base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
@@ -251,8 +252,8 @@ def test_render_non_fiff(tmpdir):
     with open(fname, 'rb') as fid:
         html = fid.read().decode('utf-8')
 
-    assert '<h4>Raw: test_raw.bdf</h4>' in html
-    assert '<h4>Raw: test_raw.edf</h4>' in html
+    assert 'test_raw.bdf' in html
+    assert 'test_raw.edf' in html
 
 
 @testing.requires_testing_data
@@ -263,6 +264,9 @@ def test_report_raw_psd_and_date(tmpdir):
 
     tempdir = str(tmpdir)
     raw = read_raw_fif(raw_fname).crop(0, 1.).load_data()
+    raw.info['experimenter'] = 'mne test'
+    raw.info['subject_info'] = dict(id=123, his_id='sample')
+
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
     raw.save(raw_fname_new)
     report = Report(raw_psd=True)
@@ -270,7 +274,7 @@ def test_report_raw_psd_and_date(tmpdir):
                         on_error='raise')
     assert isinstance(report.html, list)
     assert 'PSD' in ''.join(report.html)
-    assert 'GMT' in ''.join(report.html)
+    assert 'Unknown' not in ''.join(report.html)
 
     # test new anonymize functionality
     report = Report()
@@ -279,7 +283,7 @@ def test_report_raw_psd_and_date(tmpdir):
     report.parse_folder(data_path=tempdir, render_bem=False,
                         on_error='raise')
     assert isinstance(report.html, list)
-    assert 'GMT' in ''.join(report.html)
+    assert 'Unknown' not in ''.join(report.html)
 
     # DATE_NONE functionality
     report = Report()
@@ -295,7 +299,7 @@ def test_report_raw_psd_and_date(tmpdir):
     report.parse_folder(data_path=tempdir, render_bem=False,
                         on_error='raise')
     assert isinstance(report.html, list)
-    assert 'GMT' not in ''.join(report.html)
+    assert 'Unknown' in ''.join(report.html)
 
 
 @testing.requires_testing_data
@@ -380,7 +384,7 @@ def test_render_mri(renderer, tmpdir):
     1,
     pytest.param(2, marks=pytest.mark.slowtest),  # 1.5 sec locally
 ])
-def test_add_bem_n_jobs(n_jobs, tmpdir, monkeypatch):
+def test_add_bem_n_jobs(n_jobs, monkeypatch):
     """Test add_bem with n_jobs."""
     from matplotlib.pyplot import imread
     if n_jobs == 1:  # in one case, do at init -- in the other, pass in
@@ -392,9 +396,10 @@ def test_add_bem_n_jobs(n_jobs, tmpdir, monkeypatch):
     monkeypatch.setattr(report_mod, '_BEM_VIEWS', ('axial',))
     if use_subjects_dir is not None:
         use_subjects_dir = None
-    report.add_bem_to_section('sample', 'sample', 'sample', decim=15,
-                              n_jobs=n_jobs, verbose='debug',
-                              subjects_dir=subjects_dir)
+    report.add_bem_to_section(
+        subject='sample', caption='sample', section='sample', decim=15,
+        n_jobs=n_jobs, verbose='debug', subjects_dir=subjects_dir
+    )
     assert len(report.html) == 1
     imgs = np.array([imread(BytesIO(base64.b64decode(b)), 'png')
                      for b in re.findall(r'data:image/png;base64,(\S*)">',
@@ -422,7 +427,7 @@ def test_render_mri_without_bem(tmpdir):
         report.parse_folder(tempdir, render_bem=False)
     with pytest.warns(RuntimeWarning, match='No BEM surfaces found'):
         report.parse_folder(tempdir, render_bem=True, mri_decim=20)
-    assert 'bem' in report.fnames
+    assert 'BEM surfaces' in report.fnames
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
 
@@ -433,11 +438,8 @@ def test_add_htmls_to_section():
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
     html = '<b>MNE-Python is AWESOME</b>'
-    caption, section = 'html', 'html_section'
-    report.add_htmls_to_section(html, caption, section)
-    idx = report._sectionlabels.index('report_' + section)
-    html_compare = report.html[idx]
-    assert (html in html_compare)
+    report.add_htmls_to_section(html, captions='html', section='html-section')
+    assert (html in report.html[0])
     assert (repr(report))
 
 
@@ -449,17 +451,17 @@ def test_add_slider_to_section(tmpdir):
     section = 'slider_section'
     figs = _get_example_figures()
     report.add_slider_to_section(figs, section=section, title='my title')
-    assert report.fnames[0] == 'my title-#-report_slider_section-#-custom'
+    assert report.fnames[0] == 'my title'
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
-    pytest.raises(NotImplementedError, report.add_slider_to_section,
-                  [figs, figs])
-    pytest.raises(ValueError, report.add_slider_to_section, figs, ['wug'])
-    pytest.raises(TypeError, report.add_slider_to_section, figs, 'wug')
-    # need at least 2
-    pytest.raises(ValueError, report.add_slider_to_section, figs[:1], 'wug')
+    with pytest.raises(ValueError):
+        report.add_slider_to_section(figs=figs, captions=['wug'])
 
-    # Smoke test that SVG w/unicode can be added
+    with pytest.raises(ValueError,
+                       match='Number of captions.*must be equal to.*figures'):
+        report.add_slider_to_section(figs=figs, captions='wug')
+
+    # Smoke test that SVG with unicode can be added
     report = Report()
     fig, ax = plt.subplots()
     ax.set_xlabel('µ')
@@ -530,7 +532,8 @@ def test_remove():
 
     # Test removal by caption
     r2 = copy.deepcopy(r)
-    removed_index = r2.remove(caption='figure1')
+    with pytest.warns(DeprecationWarning, match='use "title" instead'):
+        removed_index = r2.remove(caption='figure1')
     assert removed_index == 2
     assert len(r2.html) == 3
     assert r2.html[0] == r.html[0]
@@ -539,18 +542,13 @@ def test_remove():
 
     # Test restricting to section
     r2 = copy.deepcopy(r)
-    removed_index = r2.remove(caption='figure1', section='othersection')
+    with pytest.warns(DeprecationWarning, match='use .* instead'):
+        removed_index = r2.remove(caption='figure1', section='othersection')
     assert removed_index == 1
     assert len(r2.html) == 3
     assert r2.html[0] == r.html[0]
     assert r2.html[1] == r.html[2]
     assert r2.html[2] == r.html[3]
-
-    # Test removal of empty sections
-    r2 = copy.deepcopy(r)
-    r2.remove(caption='figure1', section='othersection')
-    assert r2.tags == ['mysection']
-    assert r2._sectionvars == {'mysection': 'report_mysection'}
 
 
 def test_add_or_replace():
@@ -568,7 +566,9 @@ def test_add_or_replace():
 
     # Re-add fig1 with replace=True, it should overwrite the last occurrence of
     # fig1 in section 'mysection'.
-    r.add_figs_to_section(fig2, 'duplicate', 'mysection', replace=True)
+    r.add_figs_to_section(
+        figs=fig2, captions='duplicate', section='mysection', replace=True
+    )
     assert len(r.html) == 4
     assert r.html[1] != old_r.html[1]  # This figure should have changed
     # All other figures should be the same

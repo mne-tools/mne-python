@@ -1127,10 +1127,18 @@ class Report(object):
             if tag not in self.tags:
                 self.tags.append(tag)
 
-        html, dom_id = self._render_ssp_projs(
+        output = self._render_ssp_projs(
             info=info, projs=projs, title=title,
             image_format=self.image_format, tags=tags
         )
+        if output is None:
+            raise ValueError(
+                'The provided data does not contain digitization information. '
+                'However, this is required for rendering the SSP projectors.'
+            )
+        else:
+            html, dom_id = output
+
         self._add_or_replace(
             dom_id=dom_id,
             toc_entry_name=title,
@@ -1139,7 +1147,8 @@ class Report(object):
             replace=replace
         )
 
-    def remove(self, title, tags=None, all=False, caption=None, section=None):
+    def remove(self, caption=None, section=None, *, title=None, tags=None,
+               remove_all=False):
         """Remove elements from the report.
 
         The element to remove is searched for by its title. Optionally, tags
@@ -1148,6 +1157,17 @@ class Report(object):
 
         Parameters
         ----------
+        caption : str
+            The caption of the element to remove.
+
+            .. deprecated:: 0.24.0
+               This parameter is scheduled for removal. Use ``title`` instead.
+        section : str | None
+            If set, limit the search to the section with the given label.
+
+            .. deprecated:: 0.24.0
+               This parameter is scheduled for removal. Use ``tags`` instead.
+
         title : str
             The title of the element(s) to remove.
 
@@ -1157,33 +1177,23 @@ class Report(object):
             tags.
 
             .. versionadded:: 0.24.0
-        all : bool
+        remove_all : bool
             Controls the behavior if multiple elements match the search
             criteria. If ``False`` (default) only the element last added to the
             report will be removed. If ``True``, all matches will be removed.
 
             .. versionadded:: 0.24.0
-        caption : str
-            The caption of the element to remove.
-
-            .. deprecated:: 0.24.0
-               Use ``title`` instead.
-        section : str | None
-            If set, limit the search to the section with the given label.
-
-            .. deprecated:: 0.24.0
-               Use ``tags`` instead.
 
         Returns
         -------
         removed_index : int | tuple of int | None
             The indices of the elements that were removed, or ``None`` if no
             element matched the search criteria. A tuple will always be
-            returned if ``all`` was set to ``True`` and at least one element
-            was removed.
+            returned if ``remove_all`` was set to ``True`` and at least one
+            element was removed.
 
             .. versionchanged:: 0.24.0
-               Returns tuple if ``all`` is ``True``.
+               Returns tuple if ``remove_all`` is ``True``.
         """
         if caption is not None:
             warn(
@@ -1211,7 +1221,7 @@ class Report(object):
 
         if not remove_idx:
             remove_idx = None
-        elif not all:  # only remove last occurrence
+        elif not remove_all:  # only remove last occurrence
             remove_idx = remove_idx[-1]
             del self._content[remove_idx]
         else:  # remove all occurrences
@@ -1254,11 +1264,12 @@ class Report(object):
         new_content = _ContentElement(html=html, toc_entry=toc_entry)
 
         if replace and toc_entry_name in existing_toc_entry_names:
-            # Find and replace existing content
-            for idx, content_element in enumerate(self._content):
+            # Find and replace existing content, starting from the last element
+            for idx, content_element in enumerate(self._content[::-1]):
                 if content_element['toc_entry']['name'] == toc_entry_name:
                     self._content[idx] = new_content
-                    break
+                    return
+            raise RuntimeError('This should never happen')
         else:
             # Append new content
             self._content.append(new_content)
@@ -1769,8 +1780,8 @@ class Report(object):
                        tags):
         if len(figs) != len(captions):
             raise ValueError(
-                f'Number of captions ({len(captions)} must be the same length '
-                f'as the number of figures {len(figs)}'
+                f'Number of captions ({len(captions)}) must be equal to the '
+                f'number of figures ({len(figs)})'
             )
         images = [_fig_to_img(fig=fig, image_format=image_format)
                   for fig in figs]
@@ -1853,7 +1864,6 @@ class Report(object):
             Each figure in the list can be an instance of
             :class:`matplotlib.figure.Figure`,
             :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
-            Must have at least 2 elements.
         captions : list of str | list of float | None
             A list of captions to the figures. If ``None``, it will default to
             ``Data slice [i]``.
@@ -2308,10 +2318,19 @@ class Report(object):
             dom_id = self._get_id()
             if raw.info['lowpass'] is not None:
                 fmax = raw.info['lowpass'] + 15
+                # Must not exceed half the sampling frequency
+                if fmax > 0.5 * raw.info['sfreq']:
+                    fmax = np.inf
             else:
                 fmax = np.inf
 
-            fig = raw.plot_psd(fmax=fmax, show=False, **add_psd)
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    action='ignore',
+                    message='Channel locations not available.*',
+                    category=RuntimeWarning
+                )
+                fig = raw.plot_psd(fmax=fmax, show=False, **add_psd)
 
             with warnings.catch_warnings():
                 warnings.filterwarnings(
@@ -2332,10 +2351,14 @@ class Report(object):
 
         # SSP projectors
         if add_ssp_projs:
-            ssp_projs_html, _ = self._render_ssp_projs(
+            output = self._render_ssp_projs(
                 info=raw, projs=None, title='SSP Projectors',
                 image_format=image_format, tags=tags
             )
+            if output is None:
+                ssp_projs_html = ''
+            else:
+                ssp_projs_html, _ = output
         else:
             ssp_projs_html = ''
 
@@ -2361,6 +2384,9 @@ class Report(object):
         elif not isinstance(projs, list):
             fname = projs
             projs = read_proj(fname)
+
+        if info['dig'] is None:  # We cannot proceed without digpoints
+            return None
 
         fig = plot_projs_topomap(
             projs=projs, info=info, colorbar=True, vlim='joint',
@@ -2676,10 +2702,14 @@ class Report(object):
 
         # SSP projectors
         if add_ssp_projs:
-            html_ssp_projs, _ = self._render_ssp_projs(
+            output = self._render_ssp_projs(
                 info=evoked, projs=None, title='SSP Projectors',
                 image_format=image_format, tags=tags
             )
+            if output is None:
+                html_ssp_projs = ''
+            else:
+                html_ssp_projs, _ = output
         else:
             html_ssp_projs = ''
 
@@ -2765,10 +2795,14 @@ class Report(object):
 
         # SSP projectors
         if add_ssp_projs:
-            ssp_projs_html, _ = self._render_ssp_projs(
+            output = self._render_ssp_projs(
                 info=epochs, projs=None, title='SSP Projectors',
                 image_format=image_format, tags=tags
             )
+            if output is None:
+                ssp_projs_html = ''
+            else:
+                ssp_projs_html, _ = output
         else:
             ssp_projs_html = ''
 
