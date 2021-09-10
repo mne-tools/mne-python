@@ -2256,6 +2256,12 @@ docdict['report_tags'] = """
 tags : collection of str
     Tags to add for later interactive filtering.
 """
+docdict['report_replace'] = """
+replace : bool
+    If ``True``, content already present that has the same ``title`` will be
+    replaced. Defaults to ``False``, which will raise an error if content
+    with the provided title already exists.
+"""
 
 # Epochs
 docdict['epochs_tmin_tmax'] = """

@@ -195,10 +195,15 @@ def _html_element(*, id, div_klass, html, title, tags):
     return t
 
 
-class TocEntry(TypedDict):
+class _TocEntry(TypedDict):
     name: str
     dom_target_id: str
     tags: Tuple[str]
+
+
+class _ContentElement(TypedDict):
+    html: str
+    toc_entry: _TocEntry
 
 
 ###############################################################################
@@ -485,7 +490,7 @@ class Report(object):
         self.verbose = verbose
 
         self._initial_id = 0
-        self.html = []
+        self._content = []
         self.include = []
         self.tags = []  # all tags
         self.lang = 'en-us'  # language setting for the HTML file
@@ -496,21 +501,24 @@ class Report(object):
             raise TypeError('raw_psd must be bool or dict, got %s'
                             % (type(raw_psd),))
         self.raw_psd = raw_psd
-        self._toc_entries = []
         self._init_render()  # Initialize the renderer
 
     def __repr__(self):
         """Print useful info about report."""
-        s = '<Report | %d items' % len(self._toc_entries)
+        s = f'<Report | {len(self._content)} items'
         if self.title is not None:
-            s += ' | %s' % self.title
-        toc_entry_names = [e['name'] for e in self._toc_entries]
+            s += f' | {self.title}'
+        toc_entry_names = [element['toc_entry']['name']
+                           for element in self._content]
         if len(toc_entry_names) > 4:
-            s += '\n%s' % '\n'.join(toc_entry_names[:2])
+            first_entries = '\n'.join(toc_entry_names[:2])
+            last_entries = '\n'.join(toc_entry_names[-2:])
+            s += f'\n{first_entries}'
             s += '\n ...\n'
-            s += '\n'.join(toc_entry_names[-2:])
+            s += last_entries
         elif len(toc_entry_names) > 0:
-            s += '\n%s' % '\n'.join(toc_entry_names)
+            entries = '\n'.join(toc_entry_names)
+            s += f'\n{entries}'
         s += '\n>'
         return s
 
@@ -522,7 +530,7 @@ class Report(object):
         n_files : int
             The number of files processed.
         """
-        return len(self._toc_entries)
+        return len(self._content)
 
     def _get_id(self):
         """Get id of plot."""
@@ -553,8 +561,14 @@ class Report(object):
 
     @property
     # @deprecated
+    def html(self):
+        return [element['html'] for element in self._content]
+
+    @property
+    # @deprecated
     def fnames(self):
-        return [toc_entry['name'] for toc_entry in self._toc_entries]
+        return [element['toc_entry']['name']
+                for element in self._content]
 
     @property
     # @deprecated(extra='Use Report.tags instead')
@@ -594,7 +608,8 @@ class Report(object):
         self.include += script
 
     @fill_doc
-    def add_epochs(self, epochs, title, *, projs=True, tags=('epochs')):
+    def add_epochs(self, epochs, title, *, projs=True, tags=('epochs'),
+                   replace=False):
         """Add `~mne.Epochs` to the report.
 
         Parameters
@@ -607,6 +622,11 @@ class Report(object):
             Whether to add SSP projector plots, if projectors are present in
             the data.
         %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
         for tag in tags:
@@ -635,12 +655,13 @@ class Report(object):
             toc_entry_name=title,
             dom_id=dom_id,
             tags=tags,
-            html=html
+            html=html,
+            replace=replace
         )
 
     @fill_doc
     def add_evokeds(self, evokeds, titles, *, baseline=None, noise_cov=None,
-                    projs=True, tags=('evoked',)):
+                    projs=True, tags=('evoked',), replace=False):
         """Add `~mne.Evoked` objects to the report.
 
         Parameters
@@ -662,6 +683,11 @@ class Report(object):
             Whether to add SSP projector plots, if projectors are present in
             the data.
         %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
         """
         baseline = self.baseline if baseline is None else baseline
 
@@ -726,10 +752,12 @@ class Report(object):
                 toc_entry_name=title,
                 tags=tags,
                 html=html,
+                replace=replace
             )
 
     @fill_doc
-    def add_raw(self, raw, title, *, psd=True, projs=True, tags=('raw',)):
+    def add_raw(self, raw, title, *, psd=True, projs=True, tags=('raw',),
+                replace=False):
         """Add `~mne.io.Raw` objects to the report.
 
         Parameters
@@ -746,6 +774,11 @@ class Report(object):
             Whether to add SSP projector plots, if projectors are present in
             the data.
         %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
         for tag in tags:
@@ -781,12 +814,13 @@ class Report(object):
             dom_id=dom_id,
             toc_entry_name=title,
             tags=tags,
-            html=html
+            html=html,
+            replace=replace
         )
 
     @fill_doc
     def add_stc(self, stc, title, *, subject=None, subjects_dir=None,
-                tags=('source-estimate',)):
+                tags=('source-estimate',), replace=False):
         """Add a `~mne.SourceEstimate` (STC) to the report.
 
         Parameters
@@ -803,6 +837,11 @@ class Report(object):
         subjects_dir : path-like | None
             The FreeSurfer ``SUBJECTS_DIR``.
         %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
         for tag in tags:
@@ -821,12 +860,13 @@ class Report(object):
             dom_id=dom_id,
             toc_entry_name=title,
             tags=tags,
-            html=html
+            html=html,
+            replace=replace
         )
 
     @fill_doc
     def add_forward(self, forward, title, *, subject=None, subjects_dir=None,
-                    tags=('forward-solution',)):
+                    tags=('forward-solution',), replace=False):
         """Add a forward solution.
 
         Parameters
@@ -843,6 +883,11 @@ class Report(object):
         subjects_dir : path-like | None
             The FreeSurfer ``SUBJECTS_DIR``.
         %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
         for tag in tags:
@@ -857,12 +902,13 @@ class Report(object):
             dom_id=dom_id,
             toc_entry_name=title,
             tags=tags,
-            html=html
+            html=html,
+            replace=replace
         )
 
     @fill_doc
     def add_inverse(self, inverse, title, *, subject=None, subjects_dir=None,
-                    trans=None, tags=('inverse-operator',)):
+                    trans=None, tags=('inverse-operator',), replace=False):
         """Add an inverse operator.
 
         Parameters
@@ -882,6 +928,11 @@ class Report(object):
         trans : path-like | instance of mne.transforms.Transform | None
             The ``head -> MRI`` transformation for ``subject``.
         %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
         for tag in tags:
@@ -900,12 +951,13 @@ class Report(object):
             dom_id=dom_id,
             toc_entry_name=title,
             tags=tags,
-            html=html
+            html=html,
+            replace=replace
         )
 
     @fill_doc
     def add_trans(self, trans, *, info, title, subject=None, subjects_dir=None,
-                  tags=('coregistration',)):
+                  tags=('coregistration',), replace=False):
         """Add a coregistration visualization to the report.
 
         Parameters
@@ -923,7 +975,12 @@ class Report(object):
             report creation.
         subjects_dir : path-like | None
             The FreeSurfer ``SUBJECTS_DIR``.
-        %(report_tags)s
+        %(report_tags)s,
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
         for tag in tags:
@@ -942,11 +999,13 @@ class Report(object):
             dom_id=dom_id,
             toc_entry_name=title,
             tags=tags,
-            html=html
+            html=html,
+            replace=replace
         )
 
     @fill_doc
-    def add_covariance(self, cov, *, info, title, tags=('covariance',)):
+    def add_covariance(self, cov, *, info, title, tags=('covariance',),
+                       replace=False):
         """Add covariance to the report.
 
         Parameters
@@ -958,6 +1017,11 @@ class Report(object):
         title : str
             The title corresponding to the `~mne.Covariance` object.
         %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
         for tag in tags:
@@ -984,12 +1048,13 @@ class Report(object):
             dom_id=dom_id,
             toc_entry_name=title,
             tags=tags,
-            html=html
+            html=html,
+            replace=replace
         )
 
     @fill_doc
     def add_events(self, events, title, *, event_id=None, sfreq, first_samp=0,
-                   tags=('events',)):
+                   tags=('events',), replace=False):
         """Add events to the report.
 
         Parameters
@@ -1006,6 +1071,11 @@ class Report(object):
             The first sample point in the recording. This corresponds to
             ``raw.first_samp`` on files created with Elekta/Neuromag systems.
         %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
         for tag in tags:
@@ -1025,11 +1095,13 @@ class Report(object):
             dom_id=dom_id,
             toc_entry_name=title,
             tags=tags,
-            html=html
+            html=html,
+            replace=replace
         )
 
     @fill_doc
-    def add_ssp_projs(self, *, info, projs=None, title, tags=('ssp',)):
+    def add_ssp_projs(self, *, info, projs=None, title, tags=('ssp',),
+                      replace=False):
         """Render SSP projectors.
 
         Parameters
@@ -1044,6 +1116,11 @@ class Report(object):
         title : str
             The title corresponding to the `~mne.Projection` object.
         %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
         for tag in tags:
@@ -1058,7 +1135,8 @@ class Report(object):
             dom_id=dom_id,
             toc_entry_name=title,
             tags=tags,
-            html=html
+            html=html,
+            replace=replace
         )
 
     def remove(self, caption, section=None):
@@ -1125,7 +1203,8 @@ class Report(object):
         ----------
         toc_entry_name : str
             The entry under which the content shall be listed in the table of
-            contents. If it already exists, the content will be replaced.
+            contents. If it already exists, the content will be replaced if
+            ``replace`` is ``True``
         dom_id : str
             A unique element ``id`` in the DOM.
         tags : tuple of str
@@ -1137,22 +1216,26 @@ class Report(object):
         """
         assert isinstance(html, str)  # otherwise later will break
 
-        existing_toc_entry_names = [toc_entry['name']
-                                    for toc_entry in self._toc_entries]
+        existing_toc_entry_names = [element['toc_entry']['name']
+                                    for element in self._content]
+
+        toc_entry = _TocEntry(
+            name=toc_entry_name,
+            dom_target_id=dom_id,
+            tags=tags
+        )
+
+        new_content = _ContentElement(html=html, toc_entry=toc_entry)
+
         if replace and toc_entry_name in existing_toc_entry_names:
-            # Find last occurrence of the figure
-            ind = max([i for i, existing in enumerate(existing_toc_entry_names)
-                       if existing == toc_entry_name])
-            self.html[ind] = html
+            # Find and replace existing content
+            for idx, content_element in enumerate(self._content):
+                if content_element['toc_entry']['name'] == toc_entry_name:
+                    self._content[idx] = new_content
+                    break
         else:
-            # Append new record
-            self.html.append(html)
-            toc_entry = TocEntry(
-                name=toc_entry_name,
-                dom_target_id=dom_id,
-                tags=tags
-            )
-            self._toc_entries.append(toc_entry)
+            # Append new content
+            self._content.append(new_content)
 
     def _render_code(self, *, code, title, language, tags):
         try:
@@ -1174,7 +1257,8 @@ class Report(object):
         return html, dom_id
 
     @fill_doc
-    def add_code(self, code, title, *, language='python', tags=('code',)):
+    def add_code(self, code, title, *, language='python', tags=('code',),
+                 replace=False):
         """Add a code snippet (e.g., an analysis script) to the report.
 
         Parameters
@@ -1187,6 +1271,11 @@ class Report(object):
             The programming language of ``code``. This will be used for syntax
             highlighting. Can be ``'auto'`` to try to auto-detect the language.
         %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
         for tag in tags:
@@ -1201,7 +1290,8 @@ class Report(object):
             dom_id=dom_id,
             toc_entry_name=title,
             tags=tags,
-            html=html
+            html=html,
+            replace=replace
         )
 
     @fill_doc
@@ -1216,6 +1306,10 @@ class Report(object):
         title : str
             The title to assign.
         %(report_tags)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
         for tag in tags:
@@ -1230,7 +1324,7 @@ class Report(object):
 
     @fill_doc
     def add_figs(self, figs, titles, *, captions=None, image_format=None,
-                 tags=('custom-figure',)):
+                 tags=('custom-figure',), replace=False):
         """Add figures to the report.
 
         Parameters
@@ -1248,6 +1342,11 @@ class Report(object):
             If not ``None``, the caption(s) to add to the figure(s).
         %(report_image_format)s
         %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
         """
         if hasattr(figs, '__len__'):
             figs = tuple(figs)
@@ -1298,7 +1397,8 @@ class Report(object):
                 dom_id=dom_id,
                 toc_entry_name=title,
                 tags=tags,
-                html=img_html
+                html=img_html,
+                replace=replace
             )
 
     # @deprecated(extra='Use `Report.add_figs` instead')
@@ -1347,12 +1447,12 @@ class Report(object):
         tags = _clean_tags(section)
         self.add_figs(
             figs=figs, titles=captions, captions=comments,
-            image_format=image_format, tags=tags
+            image_format=image_format, tags=tags, replace=replace
         )
 
     @fill_doc
     def add_images(self, images, titles, *, captions=None,
-                   tags=('custom-image',)):
+                   tags=('custom-image',), replace=False):
         """Add images (e.g., PNG or JPEG pictures) to the report.
 
         Parameters
@@ -1364,6 +1464,11 @@ class Report(object):
         captions : str | collection of str | None
             If not ``None``, the caption(s) to add to the image(s).
         %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
         """
         if _check_path_like(images):
             images = (images,)
@@ -1416,7 +1521,8 @@ class Report(object):
                 dom_id=dom_id,
                 toc_entry_name=title,
                 tags=tags,
-                html=img_html
+                html=img_html,
+                replace=replace
             )
 
     # @deprecated(extra='Use `Report.add_images` instead')
@@ -1453,10 +1559,11 @@ class Report(object):
 
         tags = _clean_tags(section)
         self.add_images(images=fnames, titles=captions, captions=comments,
-                        tags=tags)
+                        tags=tags, replace=replace)
 
     @fill_doc
-    def add_htmls(self, htmls, titles, *, tags=('custom-html',)):
+    def add_htmls(self, htmls, titles, *, tags=('custom-html',),
+                  replace=False):
         """Add HTML content to the report.
 
         Parameters
@@ -1466,6 +1573,11 @@ class Report(object):
         titles : str | collection of str
             Title(s) corresponding to ``htmls``.
         %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
         """
         if isinstance(htmls, str):
             htmls = (htmls,)
@@ -1498,7 +1610,8 @@ class Report(object):
                 dom_id=dom_id,
                 toc_entry_name=title,
                 tags=tags,
-                html=html_element
+                html=html_element,
+                replace=replace
             )
 
     # @deprecated(extra='Use `Report.add_htmls` instead')
@@ -1526,7 +1639,8 @@ class Report(object):
         # htmls, captions, _ = self._validate_input(htmls, captions, section)
 
         tags = _clean_tags(section)
-        self.add_htmls(htmls=htmls, titles=captions, tags=tags)
+        self.add_htmls(htmls=htmls, titles=captions, tags=tags,
+                       replace=replace)
 
     # @deprecated(extra='Use `Report.add_bem` instead')
     @verbose
@@ -1568,12 +1682,12 @@ class Report(object):
         tags = _clean_tags(section)
         self.add_bem(
             subject=subject, subjects_dir=subjects_dir, title=caption,
-            decim=decim, width=width, n_jobs=n_jobs, tags=tags
+            decim=decim, width=width, n_jobs=n_jobs, tags=tags, replace=replace
         )
 
     @fill_doc
     def add_bem(self, subject, title, *, subjects_dir=None, decim=2, width=512,
-                n_jobs=1, tags=('bem',)):
+                n_jobs=1, tags=('bem',), replace=False):
         """Render a visualization of the boundary element model (BEM) surfaces.
 
         Parameters
@@ -1593,6 +1707,11 @@ class Report(object):
             each dimension (typically 512, default) is reasonable.
         %(n_jobs)s
         %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
         for tag in tags:
@@ -1616,7 +1735,8 @@ class Report(object):
             dom_id=dom_id,
             toc_entry_name=title,
             tags=tags,
-            html=html
+            html=html,
+            replace=replace
         )
 
     def _render_slider(self, *, figs, title, captions, start_idx, image_format,
@@ -1644,7 +1764,7 @@ class Report(object):
 
     @fill_doc
     def add_slider(self, figs, title, *, captions, start_idx=0,
-                   image_format=None, tags=('custom-slider')):
+                   image_format=None, tags=('custom-slider'), replace=False):
         """Add a slider element to scroll through a collection of figures.
 
         Parameters
@@ -1664,6 +1784,11 @@ class Report(object):
             The index of the figure in ``figs`` to display initially.
         %(report_image_format)s
         %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
         for tag in tags:
@@ -1685,7 +1810,8 @@ class Report(object):
             dom_id=dom_id,
             toc_entry_name=title,
             tags=tags,
-            html=html
+            html=html,
+            replace=replace
         )
 
     # @deprecated(extra='Use `Report.add_slider` instead')
@@ -1733,7 +1859,7 @@ class Report(object):
         tags = _clean_tags(section)
         self.add_slider(
             figs=figs, title=title, captions=captions,
-            image_format=image_format, tags=tags
+            image_format=image_format, tags=tags, replace=replace
         )
 
     ###########################################################################
@@ -2000,7 +2126,9 @@ class Report(object):
                     mne_logo_img=mne_logo
                 )
 
-                toc_html = _html_toc_element(toc_entries=self._toc_entries)
+                toc_entries = [element['toc_entry']
+                               for element in self._content]
+                toc_html = _html_toc_element(toc_entries=toc_entries)
 
                 with warnings.catch_warnings(record=True):
                     warnings.simplefilter('ignore')
@@ -2010,21 +2138,8 @@ class Report(object):
                         current_year=time.strftime("%Y")
                     )
 
-                self.html = [header_html, toc_html, *self.html, footer_html]
-
-                # Writing to disk may fail. However, we need to make sure that
-                # the TOC and footer are removed regardless, otherwise they
-                # will be duplicated when the user attempts to save again.
-                try:
-                    # Write HTML
-                    # with open(fname, 'w', encoding='utf-8') as f:
-                    #     f.write(_fix_global_ids(''.join(self.html)))
-                    Path(fname).write_text(data=''.join(self.html),
-                                           encoding='utf-8')
-                finally:
-                    self.html.pop(0)
-                    self.html.pop(0)
-                    self.html.pop()
+                html = [header_html, toc_html, *self.html, footer_html]
+                Path(fname).write_text(data=''.join(html), encoding='utf-8')
 
         building_doc = os.getenv('_MNE_BUILDING_DOC', '').lower() == 'true'
         if open_browser and not is_hdf5 and not building_doc:
