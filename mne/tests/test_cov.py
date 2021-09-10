@@ -75,6 +75,15 @@ def test_compute_whitener(proj, pca):
         assert pca is False
         assert_allclose(round_trip, np.eye(n_channels), atol=0.05)
 
+    raw.info['bads'] = [raw.ch_names[0]]
+    picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
+        cov = compute_raw_covariance(raw, picks=picks)
+    W2, _, C2 = compute_whitener(cov, raw.info, pca=pca, return_colorer=True,
+                               picks=picks, verbose='error')
+    assert (W == W2).all()
+    assert (C == C2).all()
+
 
 def test_cov_mismatch():
     """Test estimation with MEG<->Head mismatch."""
