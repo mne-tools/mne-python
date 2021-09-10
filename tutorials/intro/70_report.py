@@ -303,23 +303,21 @@ report.save('report_stc.html', overwrite=True)
 # to edit a report once it's no longer in-memory in an active Python session,
 # save it as an HDF5 file instead of HTML:
 
-# XXX uncomment when saving works
-# report.save('report.h5', overwrite=True)
-# report_from_disk = mne.open_report('report.h5')
-# print(report_from_disk)
+report.save('report.h5', overwrite=True)
+report_from_disk = mne.open_report('report.h5')
+print(report_from_disk)
 
 # %%
 # This allows the possibility of multiple scripts adding figures to the same
 # report. To make this even easier, :class:`mne.Report` can be used as a
 # context manager:
 
-# XXX uncomment when loading works
-# with mne.open_report('report.h5') as report:
-#     report.add_figs_to_section(fig_evoked,
-#                                captions='Left Auditory',
-#                                section='evoked',
-#                                replace=True)
-#     report.save('report_final.html', overwrite=True)
+with mne.open_report('report.h5') as report:
+    report.add_figs_to_section(fig_evoked,
+                               captions='Left Auditory',
+                               section='evoked',
+                               replace=True)
+    report.save('report_final.html', overwrite=True)
 
 # %%
 # With the context manager, the updated report is also automatically saved
