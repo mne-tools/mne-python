@@ -132,8 +132,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     # set channel data
     for idx, ch in enumerate(ch_names):
         ch_type = ch_types[idx]
-        signal_label = f'{ch_type.upper()} ' if add_ch_type else ''
-        signal_label = signal_label + f'{ch}'
+        signal_label = f'{ch_type.upper()} {ch}' if add_ch_type else ch
         if len(signal_label) > 16:
             raise RuntimeError(f'Signal label for {ch} ({ch_type}) is '
                                f'longer then 16 characters, which is not '
