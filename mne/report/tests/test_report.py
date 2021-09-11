@@ -326,8 +326,8 @@ def test_render_add_sections(renderer, tmpdir):
     pytest.raises(ValueError, report.add_images_to_section,
                   fnames=[img_fname, img_fname], captions='H')
 
-    pytest.raises(ValueError, report.add_images_to_section,
-                  fnames=['foobar.xxx'], captions='H')
+    with pytest.raises(FileNotFoundError, match='No such file or directory'):
+        report.add_images_to_section(fnames=['foobar.xxx'], captions='H')
 
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
