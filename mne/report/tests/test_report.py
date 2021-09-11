@@ -136,7 +136,7 @@ def test_render_report(renderer, tmpdir):
     # Evoked in `evoked_fname`
     assert f'{op.basename(evoked_fname)}: {evoked.comment}' in html
     assert 'Topographies' in html
-    assert f'Global field power' in html
+    assert 'Global field power' in html
 
     assert len(report.html) == len(fnames)
     assert len(report.html) == len(report.fnames)
