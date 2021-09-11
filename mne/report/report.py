@@ -6,7 +6,9 @@
 #
 # License: BSD-3-Clause
 
-from typing import TypedDict, Tuple
+import dataclasses
+from dataclasses import dataclass
+from typing import Tuple
 import base64
 from io import BytesIO, StringIO
 import contextlib
@@ -103,10 +105,10 @@ def _html_footer_element(*, mne_version, date, current_year):
     return t
 
 
-def _html_toc_element(*, toc_entries):
+def _html_toc_element(*, content_elements):
     template_path = template_dir / 'toc.html'
     t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(toc_entries=toc_entries)
+    t = t.substitute(content_elements=content_elements)
     return t
 
 
@@ -195,15 +197,12 @@ def _html_element(*, id, div_klass, html, title, tags):
     return t
 
 
-class _TocEntry(TypedDict):
+@dataclass
+class _ContentElement:
     name: str
-    dom_target_id: str
+    dom_id: str
     tags: Tuple[str]
-
-
-class _ContentElement(TypedDict):
     html: str
-    toc_entry: _TocEntry
 
 
 ###############################################################################
@@ -508,16 +507,15 @@ class Report(object):
         s = f'<Report | {len(self._content)} items'
         if self.title is not None:
             s += f' | {self.title}'
-        toc_entry_names = [element['toc_entry']['name']
-                           for element in self._content]
-        if len(toc_entry_names) > 4:
-            first_entries = '\n'.join(toc_entry_names[:2])
-            last_entries = '\n'.join(toc_entry_names[-2:])
+        content_element_names = [element.name for element in self._content]
+        if len(content_element_names) > 4:
+            first_entries = '\n'.join(content_element_names[:2])
+            last_entries = '\n'.join(content_element_names[-2:])
             s += f'\n{first_entries}'
             s += '\n ...\n'
             s += last_entries
-        elif len(toc_entry_names) > 0:
-            entries = '\n'.join(toc_entry_names)
+        elif len(content_element_names) > 0:
+            entries = '\n'.join(content_element_names)
             s += f'\n{entries}'
         s += '\n>'
         return s
@@ -562,13 +560,12 @@ class Report(object):
     @property
     # @deprecated
     def html(self):
-        return [element['html'] for element in self._content]
+        return [element.html for element in self._content]
 
     @property
     # @deprecated
     def fnames(self):
-        return [element['toc_entry']['name']
-                for element in self._content]
+        return [element.name for element in self._content]
 
     @property
     # @deprecated(extra='Use Report.tags instead')
@@ -652,7 +649,7 @@ class Report(object):
             id=dom_id,
         )
         self._add_or_replace(
-            toc_entry_name=title,
+            name=title,
             dom_id=dom_id,
             tags=tags,
             html=html,
@@ -749,7 +746,7 @@ class Report(object):
             )
             self._add_or_replace(
                 dom_id=dom_id,
-                toc_entry_name=title,
+                name=title,
                 tags=tags,
                 html=html,
                 replace=replace
@@ -812,7 +809,7 @@ class Report(object):
         )
         self._add_or_replace(
             dom_id=dom_id,
-            toc_entry_name=title,
+            name=title,
             tags=tags,
             html=html,
             replace=replace
@@ -858,7 +855,7 @@ class Report(object):
         )
         self._add_or_replace(
             dom_id=dom_id,
-            toc_entry_name=title,
+            name=title,
             tags=tags,
             html=html,
             replace=replace
@@ -900,7 +897,7 @@ class Report(object):
         )
         self._add_or_replace(
             dom_id=dom_id,
-            toc_entry_name=title,
+            name=title,
             tags=tags,
             html=html,
             replace=replace
@@ -949,7 +946,7 @@ class Report(object):
         )
         self._add_or_replace(
             dom_id=dom_id,
-            toc_entry_name=title,
+            name=title,
             tags=tags,
             html=html,
             replace=replace
@@ -997,7 +994,7 @@ class Report(object):
         )
         self._add_or_replace(
             dom_id=dom_id,
-            toc_entry_name=title,
+            name=title,
             tags=tags,
             html=html,
             replace=replace
@@ -1046,7 +1043,7 @@ class Report(object):
         )
         self._add_or_replace(
             dom_id=dom_id,
-            toc_entry_name=title,
+            name=title,
             tags=tags,
             html=html,
             replace=replace
@@ -1093,7 +1090,7 @@ class Report(object):
         )
         self._add_or_replace(
             dom_id=dom_id,
-            toc_entry_name=title,
+            name=title,
             tags=tags,
             html=html,
             replace=replace
@@ -1141,7 +1138,7 @@ class Report(object):
 
         self._add_or_replace(
             dom_id=dom_id,
-            toc_entry_name=title,
+            name=title,
             tags=tags,
             html=html,
             replace=replace
@@ -1212,10 +1209,9 @@ class Report(object):
 
         remove_idx = []
         for idx, element in enumerate(self._content):
-            if element['toc_entry']['name'] == title:
+            if element.name == title:
                 if (tags is not None and
-                    not all(t in element['toc_entry']['tags']
-                            for t in tags)):
+                        not all(t in element.tags for t in tags)):
                     continue
                 remove_idx.append(idx)
 
@@ -1231,13 +1227,12 @@ class Report(object):
 
         return remove_idx
 
-    def _add_or_replace(self, *, toc_entry_name, dom_id, tags, html,
-                        replace=False):
+    def _add_or_replace(self, *, name, dom_id, tags, html, replace=False):
         """Append HTML content report, or replace it if it already exists.
 
         Parameters
         ----------
-        toc_entry_name : str
+        name : str
             The entry under which the content shall be listed in the table of
             contents. If it already exists, the content will be replaced if
             ``replace`` is ``True``
@@ -1252,21 +1247,19 @@ class Report(object):
         """
         assert isinstance(html, str)  # otherwise later will break
 
-        existing_toc_entry_names = [element['toc_entry']['name']
-                                    for element in self._content]
+        existing_names = [element.name for element in self._content]
 
-        toc_entry = _TocEntry(
-            name=toc_entry_name,
-            dom_target_id=dom_id,
-            tags=tags
+        new_content = _ContentElement(
+            name=name,
+            dom_id=dom_id,
+            tags=tags,
+            html=html
         )
 
-        new_content = _ContentElement(html=html, toc_entry=toc_entry)
-
-        if replace and toc_entry_name in existing_toc_entry_names:
+        if name in existing_names and replace:
             # Find and replace existing content, starting from the last element
             for idx, content_element in enumerate(self._content[::-1]):
-                if content_element['toc_entry']['name'] == toc_entry_name:
+                if content_element.name == name:
                     self._content[idx] = new_content
                     return
             raise RuntimeError('This should never happen')
@@ -1325,7 +1318,7 @@ class Report(object):
         )
         self._add_or_replace(
             dom_id=dom_id,
-            toc_entry_name=title,
+            name=title,
             tags=tags,
             html=html,
             replace=replace
@@ -1432,7 +1425,7 @@ class Report(object):
 
             self._add_or_replace(
                 dom_id=dom_id,
-                toc_entry_name=title,
+                name=title,
                 tags=tags,
                 html=img_html,
                 replace=replace
@@ -1556,7 +1549,7 @@ class Report(object):
             )
             self._add_or_replace(
                 dom_id=dom_id,
-                toc_entry_name=title,
+                name=title,
                 tags=tags,
                 html=img_html,
                 replace=replace
@@ -1645,7 +1638,7 @@ class Report(object):
             )
             self._add_or_replace(
                 dom_id=dom_id,
-                toc_entry_name=title,
+                name=title,
                 tags=tags,
                 html=html_element,
                 replace=replace
@@ -1770,7 +1763,7 @@ class Report(object):
         )
         self._add_or_replace(
             dom_id=dom_id,
-            toc_entry_name=title,
+            name=title,
             tags=tags,
             html=html,
             replace=replace
@@ -1845,7 +1838,7 @@ class Report(object):
         )
         self._add_or_replace(
             dom_id=dom_id,
-            toc_entry_name=title,
+            name=title,
             tags=tags,
             html=html,
             replace=replace
@@ -2086,21 +2079,34 @@ class Report(object):
         """Get the state of the report as a dictionary."""
         state = dict()
         non_opt_params, opt_params = self._get_state_params()
-        for param in non_opt_params:
-            state[param] = getattr(self, param)
-        for param in opt_params:
-            if hasattr(self, param):
-                state[param] = getattr(self, param)
+        for param_name in [*non_opt_params, *opt_params]:
+            if param_name in opt_params and not hasattr(self, param_name):
+                continue
+
+            param_val = getattr(self, param_name)
+
+            # Workaround as h5io doesn't support dataclasses
+            if param_name == '_content':
+                assert all(dataclasses.is_dataclass(val) for val in param_val)
+                param_val = [dataclasses.asdict(val) for val in param_val]
+
+            state[param_name] = param_val
         return state
 
     def __setstate__(self, state):
         """Set the state of the report."""
         non_opt_params, opt_params = self._get_state_params()
-        for param in non_opt_params:
-            setattr(self, param, state[param])
-        for param in opt_params:
-            if param in state:
-                setattr(self, param, state[param])
+        for param_name in [*non_opt_params, *opt_params]:
+            if param_name in opt_params and param_name not in state:
+                continue
+
+            param_val = state[param_name]
+
+            # Workaround as h5io doesn't support dataclasses
+            if param_name == '_content':
+                param_val = [_ContentElement(**val) for val in param_val]
+
+            setattr(self, param_name, param_val)
         return state
 
     @verbose
@@ -2164,9 +2170,7 @@ class Report(object):
                     mne_logo_img=mne_logo
                 )
 
-                toc_entries = [element['toc_entry']
-                               for element in self._content]
-                toc_html = _html_toc_element(toc_entries=toc_entries)
+                toc_html = _html_toc_element(content_elements=self._content)
 
                 with warnings.catch_warnings(record=True):
                     warnings.simplefilter('ignore')
