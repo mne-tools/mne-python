@@ -339,9 +339,8 @@ def test_render_add_sections(renderer, tmpdir):
     assert (repr(report))
     fname = op.join(str(tmpdir), 'test.html')
     report.save(fname, open_browser=False)
-    with open(fname, 'r') as fid:
-        html = fid.read()
-    assert html.count('<li class="report_custom"') == 8  # several
+
+    assert len(report) == 4
 
 
 @pytest.mark.slowtest
@@ -365,7 +364,7 @@ def test_render_mri(renderer, tmpdir):
                               subjects_dir=subjects_dir, decim=30)
     report.save(fname, open_browser=False, overwrite=True)
     html = Path(fname).read_text(encoding='utf-8')
-    assert 'data-mne-tags=" bem "' not in html
+    assert 'data-mne-tags=" bem "' in html
     assert 'data-mne-tags=" foo "' in html
 
 
