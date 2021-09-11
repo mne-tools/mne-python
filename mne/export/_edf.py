@@ -107,8 +107,6 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         for _type in np.unique(ch_types):
             _picks = np.nonzero(ch_types == _type)[0]
             _data = raw.get_data(units=units, picks=_picks)
-            if _type == 'ecog':
-                print(_data)
             ch_types_phys_max[_type] = _data.max()
             ch_types_phys_min[_type] = _data.min()
     else:
@@ -227,8 +225,6 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             buf[:len(ch_data)] = ch_data
             err = hdl.writeSamples(buf)
             if err != 0:
-                print(ch_types[jdx])
-                print(jdx)
                 raise RuntimeError(
                     f"writeSamples() for channel{ch_names[jdx]} "
                     f"returned error: {err}")
