@@ -135,7 +135,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         signal_label = f'{ch_type.upper()} {ch}' if add_ch_type else ch
         if len(signal_label) > 16:
             raise RuntimeError(f'Signal label for {ch} ({ch_type}) is '
-                               f'longer then 16 characters, which is not '
+                               f'longer than 16 characters, which is not '
                                f'supported in EDF. Please shorten the channel '
                                f'name before exporting to EDF.')
 
