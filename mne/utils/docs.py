@@ -2517,8 +2517,8 @@ require the storage of channel types, so when re-reading the file
 naively, you will only get 'eeg' types by default. For example, if you
 have 'misc' channels, they will be read back in as 'eeg' type. If you
 want to set the channel types, then set the ``add_ch_type`` keyword.
-This will then for example take EEG channel ``Fz1`` and export the
-signal label as ``EEG Fz1`` in the EDF file. In order to properly set
+This will then for example take EEG channel ``Fz`` and export the
+signal label as ``EEG Fz`` in the EDF file. In order to properly set
 the channel types before exporting, you will need to call
 :attr:`raw.set_channel_types <mne.io.Raw.set_channel_types>`.
 In addition, EDF does not support storing a montage. You will need

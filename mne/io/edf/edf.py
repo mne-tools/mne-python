@@ -447,10 +447,10 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             edf_info['units'][idx] = 1
         chs.append(chan_info)
 
-    # warn if channel type was not inferable
+    # warn if channel type was not inferrable
     if len(bad_map):
-        bad_map = '\n'.join([f'{ch_name}: {ch_type}'
-                            for ch_name, ch_type in bad_map.items()])
+        bad_map = '\n'.join(f'{ch_name}: {ch_type}'
+                            for ch_name, ch_type in bad_map.items())
         warn(f'Found the following unknown channel type mapping(s), '
              f'setting the channel type to EEG:\n{bad_map}')
 
@@ -646,7 +646,6 @@ def _read_edf_header(fname, exclude):
         ch_labels = [fid.read(16).strip().decode('latin-1')
                      for ch in channels]
 
-        # ch_names = signal_labels.copy()
         # get channel names and optionally channel type
         # EDF specification contains 16 bytes that encode channel names,
         # optionally prefixed by a string representing channel type separated

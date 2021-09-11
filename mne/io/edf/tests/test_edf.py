@@ -535,10 +535,10 @@ def test_ch_types():
 
     # get the channel types for all channels
     ch_types = raw.get_channel_types()
-    assert all([x in ch_types for x in ['eeg', 'ecg']])
+    assert all(x in ch_types for x in ['eeg', 'ecg'])
 
     # test certain channels were correctly detected as a channel type
     test_ch_names = {"Fp1-Ref": "eeg", "P10-Ref": "eeg", "DC01": "eeg",
                      "ECG1": "ecg", "ECG2": "ecg"}
-    assert all([raw.get_channel_types(picks=pick)[0] == ch_type
-                for pick, ch_type in test_ch_names.items()])
+    assert all(raw.get_channel_types(picks=pick)[0] == ch_type
+               for pick, ch_type in test_ch_names.items())

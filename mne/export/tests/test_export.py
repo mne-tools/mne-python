@@ -92,7 +92,7 @@ def test_integer_sfreq_edf(tmp_path):
     read_ch_types = raw_read.get_channel_types()
     assert_array_equal(orig_ch_types[:-1], read_ch_types[:-1])
 
-    # channel name can't be longer then 16 characters with the type added
+    # channel name can't be longer than 16 characters with the type added
     raw_bad = raw.copy()
     raw_bad.rename_channels({'1': 'abcdefghijklmnopqrstuvwxyz'})
     with pytest.raises(RuntimeError, match='Signal label'), \
