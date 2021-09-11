@@ -397,10 +397,17 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         'EOG': FIFF.FIFFV_EOG_CH,
         'ECG': FIFF.FIFFV_ECG_CH,
         'EMG': FIFF.FIFFV_EMG_CH,
-        'SAO2': FIFF.FIFFV_BIO_CH,
+        'BIO': FIFF.FIFFV_BIO_CH,
         'RESP': FIFF.FIFFV_RESP_CH,
+        'MISC': FIFF.FIFFV_MISC_CH,
+        'SAO2': FIFF.FIFFV_BIO_CH,
     }
     bad_map = dict()
+
+    # montage is not able to be stored in EDF, so
+    # default to unknown locations for the channels
+    nan_arr = np.zeros(12)
+    nan_arr[:] = np.nan
 
     for idx, ch_name in enumerate(ch_names):
         chan_info = {}
@@ -414,7 +421,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
         chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
         chan_info['kind'] = FIFF.FIFFV_EEG_CH
-        chan_info['loc'] = np.zeros(12)
+        chan_info['loc'] = nan_arr
 
         # if the edf info contained channel type information
         # set it now
@@ -1266,6 +1273,7 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
     --------
     mne.io.read_raw_bdf : Reader function for BDF files.
     mne.io.read_raw_gdf : Reader function for GDF files.
+    mne.export.export_raw : Export function for EDF files.
 
     Notes
     -----
@@ -1283,6 +1291,31 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
     If channels named 'status' or 'trigger' are present, they are considered as
     STIM channels by default. Use func:`mne.find_events` to parse events
     encoded in such analog stim channels.
+
+    The EDF specification allows optional storage of channel types in the
+    prefix of the signal label for each channel. For example, ``EEG Fz``
+    implies that ``Fz`` is an EEG channel and ``MISC E`` would imply ``E`` is
+    a MISC channel. However, there is no standard way of specifying all
+    channel types. MNE-Python will try to infer the channel type, when such a
+    string exists, defaulting to EEG, when there is no prefix or the prefix is
+    not recognized.
+
+    The following prefix strings are mapped to MNE internal types:
+
+        - 'EEG': 'eeg'
+        - 'SEEG': 'seeg'
+        - 'ECOG': 'ecog'
+        - 'DBS': 'dbs'
+        - 'EOG': 'eog'
+        - 'ECG': 'ecg'
+        - 'EMG': 'emg'
+        - 'BIO': 'bio'
+        - 'RESP': 'resp'
+        - 'MISC': 'misc'
+        - 'SAO2': 'bio'
+
+    The EDF specification allows storage of subseconds in measurement date.
+    However, this reader currently sets subseconds to 0 by default.
     """
     input_fname = os.path.abspath(input_fname)
     ext = os.path.splitext(input_fname)[1][1:].lower()

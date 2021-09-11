@@ -2512,15 +2512,19 @@ For more details see :func:`eeglabio.utils.cart_to_eeglab`.
 docdict['export_edf_note'] = """
 For EDF exports, only channels that are measured in terms of Voltage are
 supported. For example, 'eeg', 'ecog', 'seeg', 'bio', 'emg', 'eog',
-'ecg', 'dbs', 'bio' data are supported. However, EDF files do not
-require the storage of channel types, so when re-reading the file
-naively, you will only get 'eeg' types by default. For example, if you
-have 'misc' channels, they will be read back in as 'eeg' type. If you
-want to set the channel types, then set the ``add_ch_type`` keyword.
+'ecg', 'dbs', and 'bio' data are supported. 'misc' channels are also
+written to allow for a catch-all of "unknown" channel types. Channel types are able
+to be stored in the prefix of the signal label. For example, ``EEG Fz`` implies
+that ``Fz`` is an EEG channel and ``MISC E`` would imply ``E`` is a MISC
+channel. However, EDF files do not require the storage of channel types,
+so many writers do not actively export the channel type.
+
+If you want to set the channel types, then set the ``add_ch_type`` keyword.
 This will then for example take EEG channel ``Fz`` and export the
 signal label as ``EEG Fz`` in the EDF file. In order to properly set
 the channel types before exporting, you will need to call
 :attr:`raw.set_channel_types <mne.io.Raw.set_channel_types>`.
+
 In addition, EDF does not support storing a montage. You will need
 to store the montage separately and call :attr:`raw.set_montage
 <mne.io.Raw.set_montage>`.

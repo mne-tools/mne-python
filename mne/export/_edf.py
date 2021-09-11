@@ -62,11 +62,13 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     # note: we can write these other channels, such as 'misc'
     # but they just won't work because EDF doesn't support
     # the idea of a 'misc' channel
-    voltage_types = list(units) + ['stim']
+    voltage_types = list(units) + ['stim', 'misc']
     if any([ch not in voltage_types for ch in orig_ch_types]):
-        warn('There are non-voltage channels. '
+        warn('There are non-voltage channels that are not set as "misc". '
              'EDF only supports writing Voltage-based data. '
-             'These channels will not be written correctly.')
+             'These channels will not be written to the EDF file. '
+             'If you would still like these channels to be written, '
+             'set their channel type to "misc".')
 
     ch_names = [ch for ch in raw.ch_names if ch not in drop_chs]
     ch_types = np.array(raw.get_channel_types(picks=ch_names))
@@ -183,7 +185,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     # set measurement date
     meas_date = raw.info['meas_date']
     if meas_date:
-        subsecond = meas_date.microsecond / 100.
+        subsecond = int(meas_date.microsecond / 100)
         if hdl.setStartDateTime(year=meas_date.year, month=meas_date.month,
                                 day=meas_date.day, hour=meas_date.hour,
                                 minute=meas_date.minute,

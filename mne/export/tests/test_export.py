@@ -69,8 +69,12 @@ def test_integer_sfreq_edf(tmp_path):
                         birthday=(1992, 1, 20), sex=1, hand=3)
     info['subject_info'] = subject_info
     raw = RawArray(data, info)
-    raw.set_meas_date(datetime.now(tz=timezone.utc))
-
+    time_now = datetime.now()
+    meas_date = datetime(year=time_now.year, month=time_now.month,
+                         day=time_now.day, hour=time_now.hour,
+                         minute=time_now.minute, second=time_now.second,
+                         tzinfo=timezone.utc)
+    raw.set_meas_date(meas_date)
     temp_fname = op.join(str(tmp_path), f'test.{format}')
 
     raw.export(temp_fname, add_ch_type=True)
@@ -90,7 +94,8 @@ def test_integer_sfreq_edf(tmp_path):
     # check channel types except for 'bio', which loses its type
     orig_ch_types = raw.get_channel_types()
     read_ch_types = raw_read.get_channel_types()
-    assert_array_equal(orig_ch_types[:-1], read_ch_types[:-1])
+    assert_array_equal(orig_ch_types, read_ch_types)
+    assert raw.info['meas_date'] == raw_read.info['meas_date']
 
     # channel name can't be longer than 16 characters with the type added
     raw_bad = raw.copy()
@@ -98,9 +103,6 @@ def test_integer_sfreq_edf(tmp_path):
     with pytest.raises(RuntimeError, match='Signal label'), \
             pytest.warns(RuntimeWarning, match='Data has a non-integer'):
         raw_bad.export(temp_fname)
-
-    # export now by hard-coding physical range
-    raw.export(temp_fname, physical_range=(-3200, 3200))
 
     # include bad birthday that is non-EDF compliant
     bad_info = info.copy()
@@ -119,9 +121,18 @@ def test_integer_sfreq_edf(tmp_path):
     # test that warning is raised if there are non-voltage based channels
     raw = RawArray(data, info)
     with pytest.warns(RuntimeWarning, match='The unit'):
-        raw.set_channel_types({'1': 'hbr'})
+        raw.set_channel_types({'9': 'hbr'})
     with pytest.warns(RuntimeWarning, match='There are non-voltage channels'):
         raw.export(temp_fname)
+
+    # data should match up to the non-accepted channel
+    raw_read = read_raw_edf(temp_fname, preload=True)
+    orig_raw_len = len(raw)
+    assert_array_almost_equal(
+        raw.get_data()[:-1, :], raw_read.get_data()[:, :orig_raw_len],
+        decimal=4)
+    assert_allclose(
+        raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
 
     # the data should still match though
     raw_read = read_raw_edf(temp_fname, preload=True)
