@@ -47,7 +47,7 @@ bdf_fname = op.realpath(op.join(op.dirname(__file__), '..', '..', 'io',
 edf_fname = op.realpath(op.join(op.dirname(__file__), '..', '..', 'io',
                                 'edf', 'tests', 'data', 'test.edf'))
 
-base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
+base_dir = op.realpath(op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                                'data'))
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 
@@ -113,10 +113,13 @@ def test_render_report(renderer, tmpdir):
     # Check correct paths and filenames
     fnames = glob.glob(op.join(tempdir, '*.fif'))
     fnames.extend(glob.glob(op.join(tempdir, '*.snirf')))
-    for fname in fnames:
-        assert (op.basename(fname) in
-                [op.basename(x) for x in report.fnames])
-        assert (''.join(report.html).find(op.basename(fname)) != -1)
+
+    titles = [op.basename(x) for x in fnames if not x.endswith('-ave.fif')]
+    titles.append(f'{op.basename(evoked_fname)}: {evoked.comment}')
+
+    for title in titles:
+        assert title in report.fnames
+        assert (''.join(report.html).find(title) != -1)
 
     assert len(report.fnames) == len(fnames)
     assert len(report.html) == len(report.fnames)
@@ -128,15 +131,12 @@ def test_render_report(renderer, tmpdir):
     report.save(fname=fname, open_browser=False)
     assert (op.isfile(fname))
     html = Path(fname).read_text(encoding='utf-8')
-    assert '(MaxShield on)' in html
     # Projectors in Raw.info
-    assert '<h4>SSP Projectors</h4>' in html
-    # Projectors in `proj_fname_new`
-    assert f'SSP Projectors: {op.basename(proj_fname_new)}' in html
+    assert 'SSP Projectors' in html
     # Evoked in `evoked_fname`
-    assert f'Evoked: {op.basename(evoked_fname)} ({evoked.comment})' in html
-    assert 'Topomap (ch_type =' in html
-    assert f'Evoked: {op.basename(evoked_fname)} (GFPs)' in html
+    assert f'{op.basename(evoked_fname)}: {evoked.comment}' in html
+    assert 'Topographies' in html
+    assert f'Global field power' in html
 
     assert len(report.html) == len(fnames)
     assert len(report.html) == len(report.fnames)
@@ -176,9 +176,9 @@ def test_render_report(renderer, tmpdir):
     # ndarray support smoke test
     report.add_figs_to_section(np.zeros((2, 3, 3)), 'caption', 'section')
 
-    with pytest.raises(TypeError, match='figure must be a'):
+    with pytest.raises(TypeError, match='It seems you passed a path'):
         report.add_figs_to_section('foo', 'caption', 'section')
-    with pytest.raises(TypeError, match='figure must be a'):
+    with pytest.raises(TypeError, match='It seems you passed a path'):
         report.add_figs_to_section(['foo'], 'caption', 'section')
 
 
@@ -359,14 +359,14 @@ def test_render_mri(renderer, tmpdir):
     fname = op.join(tempdir, 'report.html')
     report.save(fname, open_browser=False)
     html = Path(fname).read_text(encoding='utf-8')
-    assert html.count('<li class="bem"') == 2  # left and content
+    assert 'data-mne-tags=" bem "' in html
     assert repr(report)
     report.add_bem_to_section('sample', caption='extra', section='foo',
                               subjects_dir=subjects_dir, decim=30)
     report.save(fname, open_browser=False, overwrite=True)
     html = Path(fname).read_text(encoding='utf-8')
-    assert 'report_report' not in html
-    assert html.count('<li class="report_foo"') == 2
+    assert 'data-mne-tags=" bem "' not in html
+    assert 'data-mne-tags=" foo "' in html
 
 
 @testing.requires_testing_data

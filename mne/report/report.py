@@ -1359,9 +1359,9 @@ class Report(object):
 
         Parameters
         ----------
-        figs : matplotlib.figure.Figure | mlab.Figure |
+        figs : matplotlib.figure.Figure | mlab.Figure | array
                collection of matplotlib.figure.Figure |
-               collection of mlab.Figure
+               collection of mlab.Figure | collection of array
 
             A figure or a collection of figures to add to the report. Each
             figure can be an instance of :class:`matplotlib.figure.Figure`,
@@ -1378,7 +1378,14 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        if hasattr(figs, '__len__'):
+        if _check_path_like(figs) or any(_check_path_like(f) for f in figs):
+            raise TypeError(
+                'It seems you passed a path to `add_figs`. However, only '
+                'Matplotlib figures, Mayavi scences, and NumPy arrays are '
+                'accepted. You may want to try `add_images` instead.'
+            )
+
+        if hasattr(figs, '__len__') and not isinstance(figs, np.ndarray):
             figs = tuple(figs)
         else:
             figs = (figs,)
@@ -2372,13 +2379,13 @@ class Report(object):
         if isinstance(info, Info):  # no-op
             pass
         elif hasattr(info, 'info'):  # try to get the file name
-            info = info.info
             if isinstance(info, BaseRaw):
                 fname = info.filenames[0]
             elif isinstance(info, (Evoked, BaseEpochs)):
                 fname = info.filename
             else:
                 fname = ''
+            info = info.info
         else:  # read from a file
             fname = info
             info = read_info(fname, verbose=False)
@@ -2389,7 +2396,10 @@ class Report(object):
             fname = projs
             projs = read_proj(fname)
 
-        if info['dig'] is None:  # We cannot proceed without digpoints
+        if not projs:  # Abort mission!
+            return None
+
+        if info['dig'] is None:  # We cannot proceed without digpoints either
             return None
 
         fig = plot_projs_topomap(
