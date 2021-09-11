@@ -454,7 +454,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             edf_info['units'][idx] = 1
         chs.append(chan_info)
 
-    # warn if channel type was not inferrable
+    # warn if channel type was not inferable
     if len(bad_map):
         bad_map = '\n'.join(f'{ch_name}: {ch_type}'
                             for ch_name, ch_type in bad_map.items())
