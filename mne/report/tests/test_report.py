@@ -307,14 +307,10 @@ def test_render_add_sections(renderer, tmpdir):
     # Check add_figs_to_section functionality
     fig = plt.plot([1, 2], [1, 2])[0].figure
     report.add_figs_to_section(figs=fig,  # test non-list input
-                               captions=['evoked response'], scale=1.2,
+                               captions=['evoked response'],
                                image_format='svg')
     pytest.raises(ValueError, report.add_figs_to_section, figs=[fig, fig],
                   captions='H')
-    pytest.raises(ValueError, report.add_figs_to_section, figs=fig,
-                  captions=['foo'], scale=0, image_format='svg')
-    pytest.raises(ValueError, report.add_figs_to_section, figs=fig,
-                  captions=['foo'], scale=1e-10, image_format='svg')
     # need to recreate because calls above change size
     fig = plt.plot([1, 2], [1, 2])[0].figure
 
@@ -339,7 +335,7 @@ def test_render_add_sections(renderer, tmpdir):
                          subjects_dir=subjects_dir)
 
     report.add_figs_to_section(figs=fig,  # test non-list input
-                               captions='random image', scale=1.2)
+                               captions='random image')
     assert (repr(report))
     fname = op.join(str(tmpdir), 'test.html')
     report.save(fname, open_browser=False)
