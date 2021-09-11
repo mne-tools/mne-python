@@ -1378,9 +1378,11 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        if (_check_path_like(figs) or 
+        if (
+            _check_path_like(figs) or
             (hasattr(figs, '__iter__') and
-             any(_check_path_like(f) for f in figs))):
+             any(_check_path_like(f) for f in figs))
+        ):
             raise TypeError(
                 'It seems you passed a path to `add_figs`. However, only '
                 'Matplotlib figures, Mayavi scences, and NumPy arrays are '
