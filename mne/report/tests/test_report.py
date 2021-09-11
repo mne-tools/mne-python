@@ -4,6 +4,7 @@
 #
 # License: BSD-3-Clause
 
+from pathlib import Path
 import base64
 import copy
 import glob
@@ -126,8 +127,7 @@ def test_render_report(renderer, tmpdir):
     fname = op.join(tempdir, 'report.html')
     report.save(fname=fname, open_browser=False)
     assert (op.isfile(fname))
-    with open(fname, 'rb') as fid:
-        html = fid.read().decode('utf-8')
+    html = Path(fname).read_text(encoding='utf-8')
     assert '(MaxShield on)' in html
     # Projectors in Raw.info
     assert '<h4>SSP Projectors</h4>' in html
@@ -195,8 +195,7 @@ def test_add_custom_css(tmpdir):
 
     assert custom_css in report.include
     report.save(fname, open_browser=False)
-    with open(fname, 'rb') as fid:
-        html = fid.read().decode('utf-8')
+    html = Path(fname).read_text(encoding='utf-8')
     assert custom_css in html
 
 
@@ -215,8 +214,7 @@ def test_add_custom_js(tmpdir):
 
     assert custom_js in report.include
     report.save(fname, open_browser=False)
-    with open(fname, 'rb') as fid:
-        html = fid.read().decode('utf-8')
+    html = Path(fname).read_text(encoding='utf-8')
     assert custom_js in html
 
 
@@ -249,8 +247,7 @@ def test_render_non_fiff(tmpdir):
     report.data_path = tempdir
     fname = op.join(tempdir, 'report.html')
     report.save(fname=fname, open_browser=False)
-    with open(fname, 'rb') as fid:
-        html = fid.read().decode('utf-8')
+    html = Path(fname).read_text(encoding='utf-8')
 
     assert 'test_raw.bdf' in html
     assert 'test_raw.edf' in html
@@ -365,15 +362,13 @@ def test_render_mri(renderer, tmpdir):
     report.parse_folder(data_path=tempdir, mri_decim=30, pattern='*')
     fname = op.join(tempdir, 'report.html')
     report.save(fname, open_browser=False)
-    with open(fname, 'r') as fid:
-        html = fid.read()
+    html = Path(fname).read_text(encoding='utf-8')
     assert html.count('<li class="bem"') == 2  # left and content
     assert repr(report)
     report.add_bem_to_section('sample', caption='extra', section='foo',
                               subjects_dir=subjects_dir, decim=30)
     report.save(fname, open_browser=False, overwrite=True)
-    with open(fname, 'r') as fid:
-        html = fid.read()
+    html = Path(fname).read_text(encoding='utf-8')
     assert 'report_report' not in html
     assert html.count('<li class="report_foo"') == 2
 
