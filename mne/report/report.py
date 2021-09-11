@@ -1385,7 +1385,7 @@ class Report(object):
         ):
             raise TypeError(
                 'It seems you passed a path to `add_figs`. However, only '
-                'Matplotlib figures, Mayavi scences, and NumPy arrays are '
+                'Matplotlib figures, Mayavi scenes, and NumPy arrays are '
                 'accepted. You may want to try `add_images` instead.'
             )
 
