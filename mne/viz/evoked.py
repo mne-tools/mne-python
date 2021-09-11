@@ -1382,7 +1382,13 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
             raise ValueError("If one of `ts_args` and `topomap_args` contains "
                              "'axes', the other must, too.")
         _validate_if_list_of_axes([ts_args["axes"]], 1)
-        n_topomaps = (3 if times in (None, 'peaks') else len(times)) + 1
+
+        if times in (None, 'peaks'):
+            n_topomaps = 3 + 1
+        else:
+            assert not isinstance(times, str)
+            n_topomaps = len(times) + 1
+
         _validate_if_list_of_axes(list(topomap_args["axes"]), n_topomaps)
         got_axes = True
 
