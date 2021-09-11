@@ -54,9 +54,10 @@ def test_export_raw_eeglab(tmpdir):
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')
 def test_double_export_edf(tmp_path):
+    """Test exporting an EDF file multiple times."""
     rng = np.random.RandomState(123456)
     format = 'edf'
-    ch_types = ['eeg', 'eeg', 'stim', 'ecog', 'ecog', 'seeg', 
+    ch_types = ['eeg', 'eeg', 'stim', 'ecog', 'ecog', 'seeg',
                 'eog', 'ecg', 'emg', 'dbs', 'bio']
     ch_names = np.arange(len(ch_types)).astype(str).tolist()
     info = create_info(ch_names, sfreq=1000,

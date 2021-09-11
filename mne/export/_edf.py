@@ -111,10 +111,6 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                 print(_data)
             ch_types_phys_max[_type] = _data.max()
             ch_types_phys_min[_type] = _data.min()
-        
-        from pprint import pprint
-        pprint(ch_types_phys_max)
-        pprint(ch_types_phys_min)
     else:
         # get the physical min and max of the data in uV
         # Physical ranges of the data in uV is usually set by the manufacturer
@@ -233,8 +229,9 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             if err != 0:
                 print(ch_types[jdx])
                 print(jdx)
-                raise RuntimeError(f"writeSamples() for channel {ch_names[jdx]} "
-                                   f"returned error: {err}")
+                raise RuntimeError(
+                    f"writeSamples() for channel{ch_names[jdx]} "
+                    f"returned error: {err}")
 
         # there was an incomplete datarecord
         if len(ch_data) != len(buf):
