@@ -53,7 +53,52 @@ def test_export_raw_eeglab(tmpdir):
 
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')
-def test_integer_sfreq_edf(tmp_path):
+def test_double_export_edf(tmp_path):
+    rng = np.random.RandomState(123456)
+    format = 'edf'
+    ch_types = ['eeg', 'eeg', 'stim', 'ecog', 'ecog', 'seeg', 
+                'eog', 'ecg', 'emg', 'dbs', 'bio']
+    ch_names = np.arange(len(ch_types)).astype(str).tolist()
+    info = create_info(ch_names, sfreq=1000,
+                       ch_types=ch_types)
+    data = rng.random(size=(len(ch_names), 1000)) * 1.e-5
+
+    # include subject info and measurement date
+    subject_info = dict(first_name='mne', last_name='python',
+                        birthday=(1992, 1, 20), sex=1, hand=3)
+    info['subject_info'] = subject_info
+    raw = RawArray(data, info)
+
+    # export once
+    temp_fname = op.join(str(tmp_path), f'test.{format}')
+    raw.export(temp_fname, add_ch_type=True)
+    raw_read = read_raw_edf(temp_fname, preload=True)
+
+    # export again
+    raw_read.load_data()
+    raw_read.export(temp_fname, add_ch_type=True)
+    raw_read = read_raw_edf(temp_fname, preload=True)
+
+    # stim channel should be dropped
+    raw.drop_channels('2')
+
+    assert raw.ch_names == raw_read.ch_names
+    # only compare the original length, since extra zeros are appended
+    orig_raw_len = len(raw)
+    assert_array_almost_equal(
+        raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=4)
+    assert_allclose(
+        raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
+
+    # check channel types except for 'bio', which loses its type
+    orig_ch_types = raw.get_channel_types()
+    read_ch_types = raw_read.get_channel_types()
+    assert_array_equal(orig_ch_types, read_ch_types)
+
+
+@pytest.mark.skipif(not _check_edflib_installed(strict=False),
+                    reason='edflib-python not installed')
+def test_rawarray_edf(tmp_path):
     """Test saving a Raw array with integer sfreq to EDF."""
     rng = np.random.RandomState(12345)
     format = 'edf'
