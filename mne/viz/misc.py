@@ -301,7 +301,7 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
     return fig
 
 
-def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
+def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
                        slices=None, slices_as_figures=False, show=True,
                        show_indices=False, show_orientation=False, width=512):
     """Plot BEM contours on anatomical slices.
@@ -314,7 +314,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
 
     Returns
     -------
-    matplotlib.figure.Figure | tuple of matplotlib.figure.Figure
+    matplotlib.figure.Figure | list of matplotlib.figure.Figure
         The plotted slices. If ``slices_as_figures`` is ``True``, a single
         figure. If ``False``, one figure per slice.
     """
@@ -563,8 +563,12 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
                       'inner_skull.surf, outer_skull.surf or outer_skin.surf')
 
     # Plot the contours
-    return _plot_mri_contours(mri_fname, surfaces, src, orientation, slices,
-                              show, show_indices, show_orientation)
+    fig =  _plot_mri_contours(
+        mri_fname=mri_fname, surfaces=surfaces, src=src,
+        orientation=orientation, slices=slices, show=show,
+        show_indices=show_indices, show_orientation=show_orientation
+    )
+    return fig
 
 
 def _get_bem_plotting_surfaces(bem_path):
