@@ -400,7 +400,7 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
     norms = np.linalg.norm(imgs, axis=-1)
     # should have down-up-down shape
     corr = np.corrcoef(norms, np.hanning(len(imgs)))[0, 1]
-    assert 0.78 < corr < 0.80
+    assert 0.778 < corr < 0.80
 
 
 @testing.requires_testing_data

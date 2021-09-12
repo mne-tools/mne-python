@@ -245,13 +245,32 @@ def _fig_to_img(fig, image_format='png', auto_close=True, **kwargs):
             base64.b64encode(output).decode('ascii'))
 
 
-def _get_mri_contour_figs(sl, n_jobs, **kwargs):
+def _get_mri_contour_figs(*, sl, n_jobs, mri_fname, surfaces,
+                          orientation, src, show, show_orientation, width,
+                          slices_as_figures):
     import matplotlib.pyplot as plt
+
+    # Matplotlib <3.2 doesn't work nicely with process-based parallelization
+    from matplotlib import __version__ as MPL_VERSION
+    from pkg_resources import parse_version
+    if parse_version(MPL_VERSION) >= parse_version('3.2'):
+        prefer = 'processes'
+    else:
+        prefer = 'threads'
+
     plt.close('all')
     use_jobs = min(n_jobs, max(1, len(sl)))
-    parallel, p_fun, _ = parallel_func(_plot_mri_contours, use_jobs)
-    outs = parallel(p_fun(slices=s, **kwargs)
-                    for s in np.array_split(sl, use_jobs))
+    parallel, p_fun, _ = parallel_func(_plot_mri_contours, use_jobs,
+                                       prefer=prefer)
+    outs = parallel(
+        p_fun(
+            slices=s, mri_fname=mri_fname, surfaces=surfaces,
+            orientation=orientation, src=src, show=show,
+            show_orientation=show_orientation, width=width,
+            slices_as_figures=slices_as_figures
+        )
+        for s in np.array_split(sl, use_jobs)
+    )
     out = list()
     for o in outs:
         out.extend(o)
@@ -2263,8 +2282,8 @@ class Report(object):
         logger.debug(f'Rendering BEM {orientation} with {len(sl)} slices')
         figs = _get_mri_contour_figs(
             sl=sl, n_jobs=n_jobs, mri_fname=mri_fname, surfaces=surfaces,
-            orientation=orientation, img_output=True, src=None, show=False,
-            show_orientation=True, width=width
+            orientation=orientation, src=None, show=False,
+            show_orientation=True, width=width, slices_as_figures=True
         )
 
         # Render the slider

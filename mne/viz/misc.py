@@ -302,9 +302,22 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
 
 
 def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
-                       slices=None, show=True, show_indices=False,
-                       show_orientation=False, img_output=False, width=512):
-    """Plot BEM contours on anatomical slices."""
+                       slices=None, slices_as_figures=False, show=True,
+                       show_indices=False, show_orientation=False, width=512):
+    """Plot BEM contours on anatomical slices.
+
+    Parameters
+    ----------
+    slices_as_figures : bool
+        If ``True``, create one figure per slice. If ``False``, add all slices
+        as subplots to a single figure.
+
+    Returns
+    -------
+    matplotlib.figure.Figure | tuple of matplotlib.figure.Figure
+        The plotted slices. If ``slices_as_figures`` is ``True``, a single
+        figure. If ``False``, one figure per slice.
+    """
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
     # For ease of plotting, we will do everything in voxel coordinates.
@@ -321,6 +334,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     n_slices = data.shape[axis]
     if slices is None:
         slices = np.round(np.linspace(0, n_slices - 1, 14)).astype(int)[1:-1]
+
     slices = np.atleast_1d(slices).copy()
     slices[slices < 0] += n_slices  # allow negative indexing
     if not np.array_equal(np.sort(slices), slices) or slices.ndim != 1 or \
@@ -352,7 +366,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
             sources.append(apply_trans(mri_rasvox_t, points * 1e3))
         sources = np.concatenate(sources, axis=0)
 
-    if img_output:
+    if slices_as_figures:
         n_col = n_axes = 1
         dpi = 96
         # 2x standard MRI resolution is probably good enough for the
@@ -361,10 +375,11 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         figsize = (w, w / data.shape[x] * data.shape[y])
     else:
         n_col = 4
-        fig, axs, _, _ = _prepare_trellis(len(slices), n_col)
-        fig.set_facecolor('k')
-        dpi = fig.get_dpi()
-        n_axes = len(axs)
+
+    fig, axs, _, _ = _prepare_trellis(len(slices), n_col)
+    fig.set_facecolor('k')
+    dpi = fig.get_dpi()
+    n_axes = len(axs)
 
     bounds = np.concatenate(
         [[-np.inf], slices[:-1] + np.diff(slices) / 2.,
@@ -380,7 +395,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     for ai, (sl, lower, upper) in enumerate(
         zip(slices, bounds[:-1], bounds[1:])
     ):
-        if img_output:
+        if slices_as_figures:
             fig = _figure_agg(figsize=figsize, dpi=dpi, facecolor='k')
             ax = fig.add_axes([0, 0, 1, 1], frame_on=False, facecolor='k')
         else:
@@ -391,8 +406,6 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         dat = data[tuple(slicer)].T
 
         # First plot the anatomical data
-        if img_output:
-            ax.clear()
         ax.imshow(dat, cmap=plt.cm.gray, origin='lower')
         ax.set_autoscale_on(False)
         ax.axis('off')
@@ -432,16 +445,15 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
                 ax.text(dat.shape[1] / 2., dat.shape[0] - 1, ylabels[1],
                         ha='center', va='top', **kwargs)
 
-        if img_output:
+        if slices_as_figures:
             figs.append(fig)
-            plt.close(fig)
 
-    if not img_output:
+    if not slices_as_figures:
         fig.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
                             hspace=0.)
         plt_show(show, fig=fig)
 
-    return figs if img_output else fig
+    return figs if slices_as_figures else fig
 
 
 def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
@@ -451,14 +463,14 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
 
     Parameters
     ----------
-    subject : str
+    subject : str | None
         Subject name.
     subjects_dir : str | None
         Path to the SUBJECTS_DIR. If None, the path is obtained by using
         the environment variable SUBJECTS_DIR.
     orientation : str
         'coronal' or 'axial' or 'sagittal'.
-    slices : list of int
+    slices : list of int | None
         Slice indices.
     brain_surfaces : None | str | list of str
         One or more brain surface to plot (optional). Entries should correspond
