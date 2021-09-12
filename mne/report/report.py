@@ -1353,23 +1353,21 @@ class Report(object):
         self.add_code(code=info, title=title, language='shell', tags=tags)
 
     @fill_doc
-    def add_figs(self, figs, titles, *, captions=None, image_format=None,
-                 tags=('custom-figure',), replace=False):
+    def add_figure(self, fig, title, *, caption=None, image_format=None,
+                   tags=('custom-figure',), replace=False):
         """Add figures to the report.
 
         Parameters
         ----------
-        figs : matplotlib.figure.Figure | mlab.Figure | array
-               collection of matplotlib.figure.Figure |
-               collection of mlab.Figure | collection of array
+        fig : matplotlib.figure.Figure | mlab.Figure | array
 
-            A figure or a collection of figures to add to the report. Each
-            figure can be an instance of :class:`matplotlib.figure.Figure`,
-            :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
-        titles : str | collection of str
-            Title(s) corresponding to the figure(s).
-        captions : str | collection of str | None
-            If not ``None``, the caption(s) to add to the figure(s).
+            A figure to add to the report. Must be an instance of
+            :class:`matplotlib.figure.Figure`, :class:`mayavi.core.api.Scene`,
+            or :class:`numpy.ndarray`.
+        title : str
+            Title corresponding to the figure.
+        caption : str | None
+            If not ``None``, the caption to add to the figure.
         %(report_image_format)s
         %(report_tags)s
         %(report_replace)s
@@ -1378,43 +1376,11 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        if (
-            _check_path_like(figs) or
-            (hasattr(figs, '__iter__') and
-             any(_check_path_like(f) for f in figs))
-        ):
+        if _check_path_like(fig):
             raise TypeError(
-                'It seems you passed a path to `add_figs`. However, only '
+                'It seems you passed a path to `add_figure`. However, only '
                 'Matplotlib figures, Mayavi scenes, and NumPy arrays are '
-                'accepted. You may want to try `add_images` instead.'
-            )
-
-        if hasattr(figs, '__len__') and not isinstance(figs, np.ndarray):
-            figs = tuple(figs)
-        else:
-            figs = (figs,)
-
-        if isinstance(titles, str):
-            titles = (titles,)
-        else:
-            titles = tuple(titles)
-
-        if isinstance(captions, str):
-            captions = (captions,)
-        elif captions is None:
-            captions = (None,) * len(figs)
-        else:
-            captions = tuple(captions)
-
-        if len(figs) != len(titles):
-            raise ValueError(
-                f'Number of figs ({len(figs)}) must equal number of titles '
-                f'({len(titles)})'
-            )
-        if len(figs) != len(captions):
-            raise ValueError(
-                f'Number of figs ({len(figs)}) must equal number of captions '
-                f'({len(captions)})'
+                'accepted. You may want to try `add_image` instead.'
             )
 
         tags = tuple(tags)
@@ -1425,24 +1391,22 @@ class Report(object):
         if image_format is None:
             image_format = self.image_format
 
-        for fig, title, caption in zip(figs, titles, captions):
-            img = _fig_to_img(fig=fig, image_format=image_format)
-            dom_id = self._get_id()
-            img_html = _html_image_element(
-                img=img, div_klass='custom-image', img_klass='custom-image',
-                title=title, caption=caption, show=True,
-                image_format=image_format, id=dom_id, tags=tags
-            )
+        img = _fig_to_img(fig=fig, image_format=image_format)
+        dom_id = self._get_id()
+        img_html = _html_image_element(
+            img=img, div_klass='custom-image', img_klass='custom-image',
+            title=title, caption=caption, show=True,
+            image_format=image_format, id=dom_id, tags=tags
+        )
+        self._add_or_replace(
+            dom_id=dom_id,
+            name=title,
+            tags=tags,
+            html=img_html,
+            replace=replace
+        )
 
-            self._add_or_replace(
-                dom_id=dom_id,
-                name=title,
-                tags=tags,
-                html=img_html,
-                replace=replace
-            )
-
-    # @deprecated(extra='Use `Report.add_figs` instead')
+    # @deprecated(extra='Use `Report.add_figure` instead')
     @fill_doc
     def add_figs_to_section(self, figs, captions, section='custom',
                             scale=None, image_format=None, comments=None,
@@ -1485,25 +1449,66 @@ class Report(object):
         # image_format = _check_image_format(self, image_format)
         # _check_scale(scale)
 
+        if (
+            _check_path_like(figs) or
+            (hasattr(figs, '__iter__') and
+             any(_check_path_like(f) for f in figs))
+        ):
+            raise TypeError(
+                'It seems you passed a path to `add_figs_to_section`. '
+                'However, only Matplotlib figures, Mayavi scenes, and NumPy '
+                'arrays are accepted. You may want to try `add_image` instead.'
+            )
+
+        if hasattr(figs, '__len__') and not isinstance(figs, np.ndarray):
+            figs = tuple(figs)
+        else:
+            figs = (figs,)
+
+        if isinstance(captions, str):
+            captions = (captions,)
+        else:
+            captions = tuple(captions)
+
+        if isinstance(comments, str):
+            comments = (comments,)
+        elif comments is None:
+            comments = (None,) * len(figs)
+        else:
+            comments = tuple(comments)
+
+        if len(figs) != len(captions):
+            raise ValueError(
+                f'Number of figs ({len(figs)}) must equal number of captions '
+                f'({len(captions)})'
+            )
+        if len(figs) != len(comments):
+            raise ValueError(
+                f'Number of figs ({len(figs)}) must equal number of comments '
+                f'({len(comments)})'
+            )
+
         tags = _clean_tags(section)
-        self.add_figs(
-            figs=figs, titles=captions, captions=comments,
-            image_format=image_format, tags=tags, replace=replace
-        )
+
+        for fig, title, caption in zip(figs, captions, comments):
+            self.add_figure(
+                fig=fig, title=title, caption=caption,
+                image_format=image_format, tags=tags, replace=replace
+            )
 
     @fill_doc
-    def add_images(self, images, titles, *, captions=None,
-                   tags=('custom-image',), replace=False):
-        """Add images (e.g., PNG or JPEG pictures) to the report.
+    def add_image(self, image, title, *, caption=None, tags=('custom-image',),
+                  replace=False):
+        """Add an image (e.g., PNG or JPEG pictures) to the report.
 
         Parameters
         ----------
-        images : path-like | collection of path-like
-            The images to add.
-        titles : str | collection of str
-            Title(s) corresponding to the images(s).
-        captions : str | collection of str | None
-            If not ``None``, the caption(s) to add to the image(s).
+        image : path-like
+            The image to add.
+        title : str
+            Title corresponding to the images.
+        caption : str | None
+            If not ``None``, the caption to add to the image.
         %(report_tags)s
         %(report_replace)s
 
@@ -1511,62 +1516,35 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        if _check_path_like(images):
-            images = (images,)
-        else:
-            images = tuple(images)
-
-        if isinstance(titles, str):
-            titles = (titles,)
-        else:
-            titles = tuple(titles)
-
-        if isinstance(captions, str):
-            captions = (captions,)
-        elif captions is None:
-            captions = (None,) * len(images)
-        else:
-            captions = tuple(captions)
-
-        if len(images) != len(titles):
-            raise ValueError(
-                f'Number of images ({len(images)}) must equal number of '
-                f'titles ({len(titles)})'
-            )
-        if len(images) != len(captions):
-            raise ValueError(
-                f'Number of images ({len(images)}) must equal number of '
-                f'captions ({len(captions)})'
-            )
-
         tags = tuple(tags)
         for tag in tags:
             if tag not in self.tags:
                 self.tags.append(tag)
 
-        for img, title, caption in zip(images, titles, captions):
-            img_bytes = Path(img).expanduser().read_bytes()
-            img_base64 = base64.b64encode(img_bytes).decode('ascii')
-            img_format = Path(img).suffix.lower()[1:]  # omit leading period
-            _check_option('Image format', value=img_format,
-                          allowed_values=('png', 'gif', 'svg'))
+        img_bytes = Path(image).expanduser().read_bytes()
+        img_base64 = base64.b64encode(img_bytes).decode('ascii')
+        del img_bytes  # Free memory
 
-            dom_id = self._get_id()
-            img_html = _html_image_element(
-                img=img_base64, div_klass='custom-image',
-                img_klass='custom-image', title=title, caption=caption,
-                show=True,  image_format=img_format, id=dom_id,
-                tags=tags
-            )
-            self._add_or_replace(
-                dom_id=dom_id,
-                name=title,
-                tags=tags,
-                html=img_html,
-                replace=replace
-            )
+        img_format = Path(image).suffix.lower()[1:]  # omit leading period
+        _check_option('Image format', value=img_format,
+                        allowed_values=('png', 'gif', 'svg'))
 
-    # @deprecated(extra='Use `Report.add_images` instead')
+        dom_id = self._get_id()
+        img_html = _html_image_element(
+            img=img_base64, div_klass='custom-image',
+            img_klass='custom-image', title=title, caption=caption,
+            show=True,  image_format=img_format, id=dom_id,
+            tags=tags
+        )
+        self._add_or_replace(
+            dom_id=dom_id,
+            name=title,
+            tags=tags,
+            html=img_html,
+            replace=replace
+        )
+
+    # @deprecated(extra='Use `Report.add_image` instead')
     def add_images_to_section(self, fnames, captions, scale=None,
                               section='custom', comments=None, replace=False):
         """Append custom user-defined images.
@@ -1598,21 +1576,50 @@ class Report(object):
         #                                                   section, comments)
         # _check_scale(scale)
 
+        if isinstance(fnames, str):
+            fnames = (fnames,)
+        else:
+            fnames = tuple(fnames)
+
+        if isinstance(captions, str):
+            captions = (captions,)
+        else:
+            captions = tuple(captions)
+
+        if isinstance(comments, str):
+            comments = (comments,)
+        elif comments is None:
+            comments = (None,) * len(fnames)
+        else:
+            comments = tuple(comments)
+
+        if len(fnames) != len(captions):
+            raise ValueError(
+                f'Number of fnames ({len(fnames)}) must equal number of '
+                f'captions ({len(captions)})'
+            )
+        if len(fnames) != len(comments):
+            raise ValueError(
+                f'Number of fnames ({len(fnames)}) must equal number of '
+                f'comments ({len(comments)})'
+            )
+
         tags = _clean_tags(section)
-        self.add_images(images=fnames, titles=captions, captions=comments,
-                        tags=tags, replace=replace)
+
+        for image, title, caption in zip(fnames, captions, comments):
+            self.add_image(image=image, title=title, caption=caption,
+                            tags=tags, replace=replace)
 
     @fill_doc
-    def add_htmls(self, htmls, titles, *, tags=('custom-html',),
-                  replace=False):
+    def add_html(self, html, title, *, tags=('custom-html',),  replace=False):
         """Add HTML content to the report.
 
         Parameters
         ----------
-        htmls : str | collection of str
+        html : str
             The HTML content to add.
-        titles : str | collection of str
-            Title(s) corresponding to ``htmls``.
+        title : str
+            The title corresponding to ``html``.
         %(report_tags)s
         %(report_replace)s
 
@@ -1620,42 +1627,25 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        if isinstance(htmls, str):
-            htmls = (htmls,)
-        else:
-            htmls = tuple(htmls)
-
-        if isinstance(titles, str):
-            titles = (titles,)
-        else:
-            titles = tuple(titles)
-
-        if len(htmls) != len(titles):
-            raise ValueError(
-                f'Number of htmls ({len(htmls)}) must equal number of '
-                f'titles ({len(titles)})'
-            )
-
         tags = tuple(tags)
         for tag in tags:
             if tag not in self.tags:
                 self.tags.append(tag)
 
-        for html, title in zip(htmls, titles):
-            dom_id = self._get_id()
-            html_element = _html_element(
-                id=dom_id, html=html, title=title, tags=tags,
-                div_klass='custom-html'
-            )
-            self._add_or_replace(
-                dom_id=dom_id,
-                name=title,
-                tags=tags,
-                html=html_element,
-                replace=replace
-            )
+        dom_id = self._get_id()
+        html_element = _html_element(
+            id=dom_id, html=html, title=title, tags=tags,
+            div_klass='custom-html'
+        )
+        self._add_or_replace(
+            dom_id=dom_id,
+            name=title,
+            tags=tags,
+            html=html_element,
+            replace=replace
+        )
 
-    # @deprecated(extra='Use `Report.add_htmls` instead')
+    # @deprecated(extra='Use `Report.add_html` instead')
     def add_htmls_to_section(self, htmls, captions, section='custom',
                              replace=False):
         """Append htmls to the report.
@@ -1679,9 +1669,25 @@ class Report(object):
         """
         # htmls, captions, _ = self._validate_input(htmls, captions, section)
 
+        if isinstance(htmls, str):
+            htmls = (htmls,)
+        else:
+            htmls = tuple(htmls)
+
+        if isinstance(captions, str):
+            captions = (captions,)
+        else:
+            captions = tuple(captions)
+
+        if len(htmls) != len(captions):
+            raise ValueError(
+                f'Number of htmls ({len(htmls)}) must equal number of '
+                f'captions ({len(captions)})'
+            )
+
         tags = _clean_tags(section)
-        self.add_htmls(htmls=htmls, titles=captions, tags=tags,
-                       replace=replace)
+        for html, title in zip(htmls, captions):
+            self.add_html(html=html, title=title, tags=tags, replace=replace)
 
     # @deprecated(extra='Use `Report.add_bem` instead')
     @verbose
