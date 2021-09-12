@@ -1527,7 +1527,7 @@ class Report(object):
 
         img_format = Path(image).suffix.lower()[1:]  # omit leading period
         _check_option('Image format', value=img_format,
-                        allowed_values=('png', 'gif', 'svg'))
+                      allowed_values=('png', 'gif', 'svg'))
 
         dom_id = self._get_id()
         img_html = _html_image_element(
@@ -1608,7 +1608,7 @@ class Report(object):
 
         for image, title, caption in zip(fnames, captions, comments):
             self.add_image(image=image, title=title, caption=caption,
-                            tags=tags, replace=replace)
+                           tags=tags, replace=replace)
 
     @fill_doc
     def add_html(self, html, title, *, tags=('custom-html',),  replace=False):
