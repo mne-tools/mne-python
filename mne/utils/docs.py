@@ -2523,6 +2523,9 @@ their channels are set correctly. You can call
 :attr:`raw.set_channel_types <mne.io.Raw.set_channel_types>` to set
 channel types.
 
+Exporting EDF currently only supports the storage of one annotation
+per data record.
+
 In addition, EDF does not support storing a montage. You will need
 to store the montage separately and call :attr:`raw.set_montage()
 <mne.io.Raw.set_montage>`.

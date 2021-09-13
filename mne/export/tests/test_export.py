@@ -15,7 +15,8 @@ import numpy as np
 from numpy.testing import (assert_allclose, assert_array_almost_equal,
                            assert_array_equal)
 
-from mne import read_epochs_eeglab, Epochs, read_evokeds, read_evokeds_mff
+from mne import (read_epochs_eeglab, Epochs, read_evokeds, read_evokeds_mff,
+                 Annotations)
 from mne.datasets import testing, misc
 from mne.export import export_evokeds, export_evokeds_mff
 from mne.io import read_raw_fif, read_raw_eeglab, read_raw_edf
@@ -95,6 +96,32 @@ def test_double_export_edf(tmp_path):
     orig_ch_types = raw.get_channel_types()
     read_ch_types = raw_read.get_channel_types()
     assert_array_equal(orig_ch_types, read_ch_types)
+
+
+@pytest.mark.skipif(not _check_edflib_installed(strict=False),
+                    reason='edflib-python not installed')
+def test_export_edf_annotations(tmp_path):
+    rng = np.random.RandomState(123456)
+    format = 'edf'
+    ch_types = ['eeg', 'eeg', 'stim', 'ecog', 'ecog', 'seeg',
+                'eog', 'ecg', 'emg', 'dbs', 'bio']
+    ch_names = np.arange(len(ch_types)).astype(str).tolist()
+    info = create_info(ch_names, sfreq=1000,
+                       ch_types=ch_types)
+    data = rng.random(size=(len(ch_names), 2000)) * 1.e-5
+    raw = RawArray(data, info)
+
+    annotations = Annotations(onset=[0.01, 1.05], duration=[0, 0],
+                              description=['test1', 'test2'])
+    raw.set_annotations(annotations)
+
+    # export
+    temp_fname = op.join(str(tmp_path), f'test.{format}')
+    raw.export(temp_fname)
+
+    # read in the file
+    raw_read = read_raw_edf(temp_fname, preload=True)
+    assert_array_equal(raw.annotations.onset, raw_read.annotations.onset)
 
 
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),

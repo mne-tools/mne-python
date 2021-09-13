@@ -240,6 +240,9 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         for desc, onset, duration in zip(raw.annotations.description,
                                          raw.annotations.onset,
                                          raw.annotations.duration):
+            # annotations are written in terms of 100 microseconds
+            onset = onset * 10000
+            duration = duration * 10000
             if hdl.writeAnnotation(onset, duration, desc) != 0:
                 raise RuntimeError(f'writeAnnotation() returned an error '
                                    f'trying to write {desc} at {onset} '
