@@ -264,16 +264,40 @@ def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg, tol_kind, tol):
 
 
 def test_explicit_bads_pick():
-    """Test when bads channels are explicitly passed to picks."""
+    """Test when bads channels are explicitly passed to picks and def ault
+    behavior with picks=None."""
     raw = read_raw_fif(raw_fname, preload=True)
     raw.pick_types(eeg=True, meg=True, ref_meg=True)
-    picks = pick_types(raw.info, eeg=True, meg=True, ref_meg=True, exclude=[])
-    noise_cov_1 = compute_raw_covariance(raw, picks=picks)
-    rank_noise_cov_1 = compute_rank(noise_cov_1, info=raw.info)
-    raw.info['bads'] = ['EEG 002', 'EEG 012', 'EEG 015']
+
+    ## Covariance
+    # Default picks=None
+    raw.info['bads'] = list()
+    noise_cov_1 = compute_raw_covariance(raw, picks=None)
+    rank = compute_rank(noise_cov_1, info=raw.info)
+    assert rank == dict(meg=303, eeg=60)
+    assert raw.info['bads'] == []
+
+    raw.info['bads'] = ['EEG 002', 'EEG 012', 'EEG 015', 'MEG 0122']
+    noise_cov = compute_raw_covariance(raw, picks=None)
+    rank = compute_rank(noise_cov, info=raw.info)
+    assert rank == dict(meg=302, eeg=57)
+    assert raw.info['bads'] == ['EEG 002', 'EEG 012', 'EEG 015', 'MEG 0122']
+
+    # Explicit picks
+    picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
     noise_cov_2 = compute_raw_covariance(raw, picks=picks)
-    rank_noise_cov_2 = compute_rank(noise_cov_2, info=raw.info)
+    rank = compute_rank(noise_cov_2, info=raw.info)
+    assert rank == dict(meg=303, eeg=60)
+    assert raw.info['bads'] == ['EEG 002', 'EEG 012', 'EEG 015', 'MEG 0122']
+
     assert (noise_cov_1['data'] == noise_cov_2['data']).all()
     assert noise_cov_1['names'] == noise_cov_2['names']
-    assert rank_noise_cov_1['eeg'] == rank_noise_cov_2['eeg']
-    assert rank_noise_cov_1['meg'] == rank_noise_cov_2['meg']
+
+    ## Raw
+    raw.info['bads'] = list()
+    rank = compute_rank(raw)
+    assert rank == dict(meg=303, eeg=60)
+
+    raw.info['bads'] = ['EEG 002', 'EEG 012', 'EEG 015', 'MEG 0122']
+    rank = compute_rank(raw)
+    assert rank == dict(meg=302, eeg=57)
