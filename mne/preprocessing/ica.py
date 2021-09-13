@@ -827,16 +827,7 @@ class ICA(ContainsMixin):
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please fit ICA.')
         start, stop = _check_start_stop(raw, start, stop)
-
-        picks = _picks_to_idx(
-            raw.info, self.ch_names, exclude=[], allow_empty=True)
-        if len(picks) != len(self.ch_names):
-            raise RuntimeError('Raw doesn\'t match fitted data: %i channels '
-                               'fitted but %i channels supplied. \nPlease '
-                               'provide Raw compatible with '
-                               'ica.ch_names' % (len(self.ch_names),
-                                                 len(picks)))
-
+        picks = self._get_picks(raw)
         reject = 'omit' if reject_by_annotation else None
         data = raw.get_data(picks, start, stop, reject)
         return self._transform(data)
@@ -845,43 +836,41 @@ class ICA(ContainsMixin):
         """Aux method."""
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please fit ICA.')
-
-        picks = _picks_to_idx(
-            epochs.info, self.ch_names, exclude=[], allow_empty=True)
-        # special case where epochs come picked but fit was 'unpicked'.
-        if len(picks) != len(self.ch_names):
-            raise RuntimeError('Epochs don\'t match fitted data: %i channels '
-                               'fitted but %i channels supplied. \nPlease '
-                               'provide Epochs compatible with '
-                               'ica.ch_names' % (len(self.ch_names),
-                                                 len(picks)))
-
+        picks = self._get_picks(epochs)
         data = np.hstack(epochs.get_data()[:, picks])
         sources = self._transform(data)
-
         if not concatenate:
             # Put the data back in 3D
             sources = np.array(np.split(sources, len(epochs.events), 1))
-
         return sources
 
     def _transform_evoked(self, evoked):
         """Aux method."""
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please fit ICA.')
+        picks = self._get_picks(evoked)
+        return self._transform(evoked.data[picks])
 
+    def _get_picks(self, inst):
+        """Pick logic for _transform method."""
         picks = _picks_to_idx(
-            evoked.info, self.ch_names, exclude=[], allow_empty=True)
+            inst.info, self.ch_names, exclude=[], allow_empty=True)
         if len(picks) != len(self.ch_names):
-            raise RuntimeError('Evoked doesn\'t match fitted data: %i channels'
-                               ' fitted but %i channels supplied. \nPlease '
-                               'provide Evoked compatible with '
-                               'ica.ch_names' % (len(self.ch_names),
-                                                 len(picks)))
-
-        sources = self._transform(evoked.data[picks])
-
-        return sources
+            if isinstance(inst, BaseRaw):
+                kind, do = 'Raw', "doesn't"
+            elif isinstance(inst, BaseEpochs):
+                kind, do = 'Epochs', "don't"
+            elif isinstance(inst, Evoked):
+                kind, do = 'Evoked', "doesn't"
+            else:
+                raise ValueError('Data input must be of Raw, Epochs or Evoked '
+                                 'type')
+            raise RuntimeError("%s %s match fitted data: %i channels "
+                               "fitted but %i channels supplied. \nPlease "
+                               "provide %s compatible with ica.ch_names"
+                               % (kind, do, len(self.ch_names), len(picks),
+                                  kind))
+        return picks
 
     def get_components(self):
         """Get ICA topomap for components as numpy arrays.
