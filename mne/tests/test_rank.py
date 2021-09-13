@@ -269,7 +269,7 @@ def test_explicit_bads_pick():
     raw = read_raw_fif(raw_fname, preload=True)
     raw.pick_types(eeg=True, meg=True, ref_meg=True)
 
-    ## Covariance
+    # Covariance
     # Default picks=None
     raw.info['bads'] = list()
     noise_cov_1 = compute_raw_covariance(raw, picks=None)
@@ -293,7 +293,7 @@ def test_explicit_bads_pick():
     assert (noise_cov_1['data'] == noise_cov_2['data']).all()
     assert noise_cov_1['names'] == noise_cov_2['names']
 
-    ## Raw
+    # Raw
     raw.info['bads'] = list()
     rank = compute_rank(raw)
     assert rank == dict(meg=303, eeg=60)
