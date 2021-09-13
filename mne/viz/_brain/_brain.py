@@ -3454,9 +3454,8 @@ class Brain(object):
 
         The movie is created through the :mod:`imageio` module. The format is
         determined by the extension, and additional options can be specified
-        through keyword arguments that depend on the format. For available
-        formats and corresponding parameters see the imageio documentation:
-        http://imageio.readthedocs.io/en/latest/formats.html#multiple-images
+        through keyword arguments that depend on the format, see
+        :doc:`imageio's format page <imageio:supported_formats>`.
 
         .. Warning::
             This method assumes that time is specified in seconds when adding
