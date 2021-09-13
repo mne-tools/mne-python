@@ -12,7 +12,6 @@ at which the fix is no longer needed.
 #          Lars Buitinck <L.J.Buitinck@uva.nl>
 # License: BSD
 
-from distutils.version import LooseVersion
 import functools
 import inspect
 from math import log
@@ -1077,3 +1076,36 @@ def _cell_data(obj):
         return obj.cell_data
     except AttributeError:
         return obj.cell_arrays
+
+
+###############################################################################
+# distutils
+
+# distutils has been deprecated since Python 3.10 and is scheduled for removal
+# from the standard library with the release of Python 3.12. For version
+# comparisons, we use setuptools's `parse_version` if available.
+
+def _compare_version(version_a, operator, version_b):
+    """Check if 
+
+    Parameters
+    ----------
+    version_a : str
+        First version string.
+    operator : '==' | '>' | '<' | '>=' | '<=' | '~='
+        Operator to compare ``version_a`` and ``version_b`` in the form of
+        ``version_a operator version_b``.
+    version_b : str
+        Second version string.
+
+    Returns
+    -------
+    bool
+        The result of the version comparison.
+    """
+    try:
+        from pkg_resources import parse_version as parse
+    except ImportError:
+        from distutils.version import LooseVersion as parse
+
+    return eval(f'parse("{version_a}") {operator} parse("{version_b}")')

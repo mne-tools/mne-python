@@ -26,6 +26,7 @@ import html as stdlib_html  # avoid namespace confusion!
 import numpy as np
 
 from .. import __version__ as MNE_VERSION
+from ..fixes import _compare_version
 from .. import (read_evokeds, read_events, pick_types, read_cov,
                 read_source_estimate, read_trans, sys_info,
                 Evoked, SourceEstimate, Covariance, Info, Transform)
@@ -252,8 +253,7 @@ def _get_mri_contour_figs(*, sl, n_jobs, mri_fname, surfaces,
 
     # Matplotlib <3.2 doesn't work nicely with process-based parallelization
     from matplotlib import __version__ as MPL_VERSION
-    from pkg_resources import parse_version
-    if parse_version(MPL_VERSION) >= parse_version('3.2'):
+    if _compare_version(MPL_VERSION, '>=', '3.2'):
         prefer = 'processes'
     else:
         prefer = 'threads'
