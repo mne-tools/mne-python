@@ -2501,24 +2501,20 @@ physical_range : str | tuple
 """
 docdict['export_params_add_ch_type'] = """
 add_ch_type : bool
-    Whether to add the channel type of the channel currently set
-    (default is False) to the signal label. Only used for
-    exporting EDF files.
+    Whether to incorporate the channel type into the signal label (e.g. whether
+    to store channel "Fz" as "EEG Fz"). Only used for EDF format. Default is
+    ``False``.
 """
 docdict['export_eeglab_note'] = """
 For EEGLAB exports, channel locations are expanded to full EEGLAB format.
 For more details see :func:`eeglabio.utils.cart_to_eeglab`.
 """
 docdict['export_edf_note'] = """
-For EDF exports, only channels that are measured in terms of Voltage are
-supported. For example, 'eeg', 'ecog', 'seeg', 'bio', 'emg', 'eog',
-'ecg', 'dbs', and 'bio' data are supported. 'misc' channels are also
-allowed for a catch-all of "unknown" channel types. Channel types are able
-to be stored in the prefix of the signal label. For example, ``EEG Fz`` implies
-that ``Fz`` is an EEG channel and ``MISC E`` would imply ``E`` is a MISC
-channel. However, EDF files do not require the storage of channel types,
-so many writers do not export the channel type. This is because
-there is no standard way for specifying all channel types.
+For EDF exports, only channels measured in Volts are allowed; in MNE-Python
+this means channel types 'eeg', 'ecog', 'seeg', 'emg', 'eog', 'ecg', 'dbs',
+'bio', and 'misc'. Although this function supports storing channel types in the
+signal label (e.g. ``EEG Fz`` or ``MISC E``), other software may not support
+this (optional) feature of the EDF standard.
 
 If you want to set the channel types, then set the ``add_ch_type`` keyword.
 This will then for example take EEG channel ``Fz`` and export the
@@ -2527,7 +2523,7 @@ the channel types before exporting, you will need to call
 :attr:`raw.set_channel_types <mne.io.Raw.set_channel_types>`.
 
 In addition, EDF does not support storing a montage. You will need
-to store the montage separately and call :attr:`raw.set_montage
+to store the montage separately and call :attr:`raw.set_montage()
 <mne.io.Raw.set_montage>`.
 """
 
