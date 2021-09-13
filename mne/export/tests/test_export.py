@@ -101,6 +101,7 @@ def test_double_export_edf(tmp_path):
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')
 def test_export_edf_annotations(tmp_path):
+    """Test that exporting EDF preserves annotations."""
     rng = np.random.RandomState(123456)
     format = 'edf'
     ch_types = ['eeg', 'eeg', 'stim', 'ecog', 'ecog', 'seeg',

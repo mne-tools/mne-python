@@ -235,6 +235,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                  f'so {(len(buf) - len(ch_data)) / sfreq} seconds of zeros '
                  'were appended to all channels when writing the final block.')
 
+    # XXX: improve the ability to write arbitrary number of annotations
     # write annotations
     if raw.annotations:
         for desc, onset, duration in zip(raw.annotations.description,
