@@ -215,7 +215,10 @@ def _plot_update_evoked_topomap(params, bools):
             tp = cont.collections[0]
             visible = tp.get_visible()
             patch_ = tp.get_clip_path()
-            color = tp.get_color()
+            try:
+                color = tp.get_edgecolors()
+            except AttributeError:  # old MPL
+                color = tp.get_color()
             lw = tp.get_linewidth()
         for tp in cont.collections:
             tp.remove()
@@ -971,7 +974,8 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
             ax.text(p[0], p[1], ch_id, horizontalalignment='center',
                     verticalalignment='center', size='x-small')
 
-    plt.subplots_adjust(top=.95)
+    if not ax.figure.get_constrained_layout():
+        plt.subplots_adjust(top=.95)
 
     if onselect is not None:
         lim = ax.dataLim
@@ -1609,10 +1613,11 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
             raise RuntimeError(f'You must provide {want_axes} axes (one for '
                                f'each time{cbar_err}), got {len(axes)}.')
     # figure margins
-    side_margin = plt.rcParams['figure.subplot.wspace'] / (2 * want_axes)
-    top_margin = max((0.05 if title is None else 0.25), .2 / size)
-    fig.subplots_adjust(left=side_margin, right=1 - side_margin, bottom=0,
-                        top=1 - top_margin)
+    if not fig.get_constrained_layout():
+        side_margin = plt.rcParams['figure.subplot.wspace'] / (2 * want_axes)
+        top_margin = max((0.05 if title is None else 0.25), .2 / size)
+        fig.subplots_adjust(left=side_margin, right=1 - side_margin, bottom=0,
+                            top=1 - top_margin)
     # find first index that's >= (to rounding error) to each time point
     time_idx = [np.where(_time_mask(evoked.times, tmin=t, tmax=None,
                                     sfreq=evoked.info['sfreq']))[0][0]
@@ -2189,7 +2194,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_channels, sphere, ch_type,
     outlines_ = _draw_outlines(ax, outlines)
 
     params.update({'patch': patch_, 'outlines': outlines_})
-    ax.figure.tight_layout()
+    tight_layout(fig=ax.figure)
     return tuple(items) + tuple(cont.collections)
 
 

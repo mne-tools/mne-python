@@ -1055,8 +1055,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                                                  mri_trans, head_trans)
             # volume sources
             if ss['type'] == 'vol':
-                if ss['seg_name'] in colors.keys():
-                    color = colors[ss['seg_name']][:3]
+                seg_name = ss.get('seg_name', None)
+                if seg_name is not None and seg_name in colors:
+                    color = colors[seg_name][:3]
                     color = tuple(i / 256. for i in color)
                 else:
                     color = (1., 1., 0.)
@@ -1551,7 +1552,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         cb_yticks = plt.getp(cax, 'yticklabels')
         plt.setp(cb_yticks, color='w')
         cax.tick_params(labelsize=16)
-        cb.patch.set_facecolor('0.5')
+        cb.ax.set_facecolor('0.5')
         cax.set(xlim=(scale_pts[0], scale_pts[2]))
     plt_show(True)
     return fig
@@ -2399,7 +2400,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             params.update({'ax_' + key: params['fig_anat'].axes[key].ax})
         # Fix nilearn bug w/cbar background being white
         if plot_kwargs['colorbar']:
-            params['fig_anat']._cbar.patch.set_facecolor('0.5')
+            params['fig_anat']._cbar.ax.set_facecolor('0.5')
             # adjust one-sided colorbars
             if not diverging:
                 _crop_colorbar(params['fig_anat']._cbar, *scale_pts[[0, -1]])
@@ -3283,7 +3284,7 @@ def plot_brain_colorbar(ax, clim, colormap='auto', transparent=True,
     cbar = ColorbarBase(ax, cmap=colormap, norm=norm, ticks=ticks,
                         label=label, orientation=orientation)
     # make the colorbar background match the brain color
-    cbar.patch.set(facecolor=bgcolor)
+    cbar.ax.set(facecolor=bgcolor)
     # remove the colorbar frame except for the line containing the ticks
     cbar.outline.set_visible(False)
     cbar.ax.set_frame_on(True)

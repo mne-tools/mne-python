@@ -754,7 +754,8 @@ def test_brain_colorbar(orientation, diverging, lims):
         clim['pos_lims'] = lims
     else:
         clim['lims'] = lims
-    plot_brain_colorbar(ax, clim, orientation=orientation)
+    cbar = plot_brain_colorbar(ax, clim, orientation=orientation)
+    ax = cbar.ax  # in newer mpl this can be inset axes relative to the orig
     if orientation == 'vertical':
         have, empty = ax.get_yticklabels, ax.get_xticklabels
     else:
@@ -766,7 +767,7 @@ def test_brain_colorbar(orientation, diverging, lims):
             ticks = list(-np.array(lims[::-1])) + [0] + lims
     else:
         ticks = lims
-    plt.draw()
+    ax.figure.canvas.draw_idle()
     assert_array_equal(
         [float(h.get_text().replace('−', '-')) for h in have()], ticks)
     assert_array_equal(empty(), [])

@@ -102,7 +102,7 @@ def test_compute_fine_cal():
             # processing a very short (one 10-sec segment), downsampled (90 Hz)
             # file
             assert 66 < want_orig_max_angle < 68, want_orig_max_angle
-            assert 56 < got_orig_max_angle < 107, got_orig_max_angle
+            assert 56 < got_orig_max_angle < 112, got_orig_max_angle
             assert 53 < got_want_max_angle < 60, got_want_max_angle
 
     kwargs = dict(bad_condition='warning', cross_talk=ctc, coord_frame='meg')

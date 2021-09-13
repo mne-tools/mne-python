@@ -60,6 +60,7 @@ tutorials/misc/report.h5
 pip-log.txt
 .coverage*
 tags
+coverage.xml
 doc/coverages
 doc/samples
 doc/*.dat

@@ -49,7 +49,8 @@ layout = read_layout('Vectorview-all')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 
 
-def test_plot_topomap_interactive():
+@pytest.mark.parametrize('constrained_layout', (False, True))
+def test_plot_topomap_interactive(constrained_layout):
     """Test interactive topomap projection plotting."""
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
     evoked.pick_types(meg='mag')
@@ -58,8 +59,8 @@ def test_plot_topomap_interactive():
     evoked.add_proj(compute_proj_evoked(evoked, n_mag=1))
 
     plt.close('all')
-    fig = plt.figure()
-    ax, canvas = fig.gca(), fig.canvas
+    fig, ax = plt.subplots(constrained_layout=constrained_layout)
+    canvas = fig.canvas
 
     kwargs = dict(vmin=-240, vmax=240, times=[0.1], colorbar=False, axes=ax,
                   res=8, time_unit='s')
@@ -84,19 +85,33 @@ def test_plot_topomap_interactive():
     assert len(plt.get_fignums()) == 2
 
     proj_fig = plt.figure(plt.get_fignums()[-1])
+    assert len(proj_fig.axes[0].lines) == 2
+    for line in proj_fig.axes[0].lines:
+        assert not line.get_visible()
     _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='data')
+    assert len(proj_fig.axes[0].lines) == 2
+    for line in proj_fig.axes[0].lines:
+        assert line.get_visible()
     canvas.draw()
     image_interactive_click = np.frombuffer(
         canvas.tostring_rgb(), dtype='uint8')
-    assert_array_equal(image_proj, image_interactive_click)
-    assert not np.array_equal(image_noproj, image_interactive_click)
+    corr = np.corrcoef(
+        image_proj.ravel(), image_interactive_click.ravel())[0, 1]
+    assert 0.99 < corr <= 1
+    corr = np.corrcoef(
+        image_noproj.ravel(), image_interactive_click.ravel())[0, 1]
+    assert 0.85 < corr < 0.9
 
     _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='data')
     canvas.draw()
     image_interactive_click = np.frombuffer(
         canvas.tostring_rgb(), dtype='uint8')
-    assert_array_equal(image_noproj, image_interactive_click)
-    assert not np.array_equal(image_proj, image_interactive_click)
+    corr = np.corrcoef(
+        image_noproj.ravel(), image_interactive_click.ravel())[0, 1]
+    assert 0.99 < corr <= 1
+    corr = np.corrcoef(
+        image_proj.ravel(), image_interactive_click.ravel())[0, 1]
+    assert 0.85 < corr < 0.9
 
 
 @testing.requires_testing_data

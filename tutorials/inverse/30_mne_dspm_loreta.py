@@ -114,7 +114,7 @@ ax.set(xlabel='time (ms)', ylabel='%s value' % method)
 fig, axes = plt.subplots(2, 1)
 evoked.plot(axes=axes)
 for ax in axes:
-    ax.texts = []
+    ax.texts.clear()
     for line in ax.lines:
         line.set_color('#98df81')
 residual.plot(axes=axes)

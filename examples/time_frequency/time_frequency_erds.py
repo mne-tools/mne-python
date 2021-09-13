@@ -53,7 +53,8 @@ raw.rename_channels(lambda x: x.strip('.'))  # remove dots from channel names
 
 events, _ = mne.events_from_annotations(raw, event_id=dict(T1=2, T2=3))
 
-picks = mne.pick_channels(raw.info["ch_names"], ["C3", "Cz", "C4"])
+want_chs = ['C3', 'Cz', 'C4']
+picks = mne.pick_channels(raw.info["ch_names"], want_chs)
 
 # epoch data ##################################################################
 tmin, tmax = -1, 4  # define epochs around events (in s)
@@ -143,8 +144,7 @@ df = df[df.band.isin(freq_bands_of_interest)]
 df['band'] = df['band'].cat.remove_unused_categories()
 
 # Order channels for plotting:
-df['channel'].cat.reorder_categories(['C3', 'Cz', 'C4'], ordered=True,
-                                     inplace=True)
+df['channel'] = df['channel'].cat.reorder_categories(want_chs, ordered=True)
 
 g = sns.FacetGrid(df, row='band', col='channel', margin_titles=True)
 g.map(sns.lineplot, 'time', 'value', 'condition', n_boot=10)

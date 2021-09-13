@@ -59,11 +59,10 @@ if os.getenv('MNE_FULL_DATE', 'false').lower() != 'true':
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-# The short X.Y version.
-version = mne.__version__
 # The full version, including alpha/beta/rc tags.
-release = version
-
+release = mne.__version__
+# The short X.Y version.
+version = '.'.join(release.split('.')[:2])
 
 # -- General configuration ---------------------------------------------------
 
@@ -125,6 +124,9 @@ pygments_style = 'default'
 # A list of ignored prefixes for module index sorting.
 modindex_common_prefix = ['mne.']
 
+# -- Sphinx-Copybutton configuration -----------------------------------------
+copybutton_prompt_text = r">>> |\.\.\. |\$ "
+copybutton_prompt_is_regexp = True
 
 # -- Intersphinx configuration -----------------------------------------------
 
@@ -149,7 +151,9 @@ intersphinx_mapping = {
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
     'qdarkstyle': ('https://qdarkstylesheet.readthedocs.io/en/latest', None),
-    'eeglabio': ('https://eeglabio.readthedocs.io/en/latest', None)
+    'eeglabio': ('https://eeglabio.readthedocs.io/en/latest', None),
+    'dipy': ('https://dipy.org/documentation/1.4.0./',
+             'https://dipy.org/documentation/1.4.0./objects.inv/'),
 }
 
 
@@ -218,6 +222,9 @@ numpydoc_xref_aliases = {
     'EMS': 'mne.decoding.EMS', 'CSP': 'mne.decoding.CSP',
     'Beamformer': 'mne.beamformer.Beamformer',
     'Transform': 'mne.transforms.Transform',
+    # dipy
+    'dipy.align.AffineMap': 'dipy.align.imaffine.AffineMap',
+    'dipy.align.DiffeomorphicMap': 'dipy.align.imwarp.DiffeomorphicMap',
 }
 numpydoc_xref_ignore = {
     # words
@@ -247,10 +254,6 @@ numpydoc_xref_ignore = {
     # unlinkable
     'mayavi.mlab.pipeline.surface',
     'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame',
-    # dipy has resolution problems, wait for them to be solved, e.g.
-    # https://github.com/dipy/dipy/issues/2290
-    'dipy.align.AffineMap',
-    'dipy.align.DiffeomorphicMap',
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)
@@ -309,38 +312,32 @@ gallery_dirs = ['auto_tutorials', 'auto_examples']
 os.environ['_MNE_BUILDING_DOC'] = 'true'
 scrapers = ('matplotlib',)
 try:
-    mlab = mne.utils._import_mlab()
-    # Do not pop up any mayavi windows while running the
-    # examples. These are very annoying since they steal the focus.
-    mlab.options.offscreen = True
-    # hack to initialize the Mayavi Engine
-    mlab.test_plot3d()
-    mlab.close()
+    mne.viz.set_3d_backend(mne.viz.get_3d_backend())
 except Exception:
-    pass
+    report_scraper = None
 else:
-    scrapers += ('mayavi',)
-try:
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        import pyvista
-    pyvista.OFF_SCREEN = False
-except Exception:
-    pass
-else:
-    scrapers += ('pyvista',)
-if any(x in scrapers for x in ('pyvista', 'mayavi')):
-    from traits.api import push_exception_handler
-    push_exception_handler(reraise_exceptions=True)
+    backend = mne.viz.get_3d_backend()
+    if backend == 'mayavi':
+        from traits.api import push_exception_handler
+        mlab = mne.utils._import_mlab()
+        # Do not pop up any mayavi windows while running the
+        # examples. These are very annoying since they steal the focus.
+        mlab.options.offscreen = True
+        # hack to initialize the Mayavi Engine
+        mlab.test_plot3d()
+        mlab.close()
+        scrapers += ('mayavi',)
+        push_exception_handler(reraise_exceptions=True)
+    elif backend in ('notebook', 'pyvista'):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            import pyvista
+        pyvista.OFF_SCREEN = False
+        brain_scraper = mne.viz._brain._BrainScraper()
+        scrapers += (brain_scraper, 'pyvista')
     report_scraper = mne.report._ReportScraper()
     scrapers += (report_scraper,)
-else:
-    report_scraper = None
-if 'pyvista' in scrapers:
-    brain_scraper = mne.viz._brain._BrainScraper()
-    scrapers = list(scrapers)
-    scrapers.insert(scrapers.index('pyvista'), brain_scraper)
-    scrapers = tuple(scrapers)
+    del backend
 
 sphinx_gallery_conf = {
     'doc_module': ('mne',),
@@ -385,7 +382,7 @@ sphinx_gallery_conf = {
     'reset_modules': ('matplotlib', Resetter()),  # called w/each script
     'image_scrapers': scrapers,
     'show_memory': not sys.platform.startswith('win'),
-    'line_numbers': False,  # XXX currently (0.3.dev0) messes with style
+    'line_numbers': False,  # messes with style
     'within_subsection_order': FileNameSortKey,
     'capture_repr': ('_repr_html_',),
     'junit': os.path.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
@@ -570,6 +567,7 @@ sm = '2.5'
 md = '3'
 lg = '4.5'
 xl = '5'
+xxl = '6'
 # variables to pass to HTML templating engine
 html_context = {
     'build_dev_html': bool(int(os.environ.get('BUILD_DEV_HTML', False))),
@@ -659,7 +657,7 @@ html_context = {
         dict(name='Technische Universität Ilmenau',
              img='Ilmenau.gif',
              url='https://www.tu-ilmenau.de/',
-             size=xl),
+             size=xxl),
         dict(name='Berkeley Institute for Data Science',
              img='BIDS.png',
              url='https://bids.berkeley.edu/',
@@ -706,7 +704,7 @@ html_context = {
              alt='Connectivity'),
         dict(title='Data Visualization',
              text='Explore your data from multiple perspectives.',
-             url='auto_tutorials/evoked/20_visualize_evoked.py',
+             url='auto_tutorials/evoked/20_visualize_evoked.html',
              img='sphx_glr_20_visualize_evoked_007.png',
              alt='Visualization'),
     ]
@@ -769,6 +767,10 @@ def reset_warnings(gallery_conf, fname):
         'ignore', '.*semaphore_tracker: process died unexpectedly.*')
     warnings.filterwarnings(  # needed until SciPy 1.2.0 is released
         'ignore', '.*will be interpreted as an array index.*', module='scipy')
+    warnings.filterwarnings(
+        'ignore', '.*invalid escape sequence.*', lineno=90)  # quantities
+    warnings.filterwarnings(
+        'ignore', '.*"is not" with a literal.*', module='nilearn')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
                 'Using or importing the ABCs from',  # internal modules on 3.7
                 r"it will be an error for 'np\.bool_'",  # ndimage
@@ -781,6 +783,8 @@ def reset_warnings(gallery_conf, fname):
                 r'sphinx\.util\.smartypants is deprecated',
                 'is a deprecated alias for the builtin',  # NumPy
                 'the old name will be removed',  # Jinja, via sphinx
+                'rcParams is deprecated',  # PyVista rcParams -> global_theme
+                'to mean no clipping',
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
@@ -804,6 +808,8 @@ def reset_warnings(gallery_conf, fname):
         'ignore', message="can't resolve package from", category=ImportWarning)
     warnings.filterwarnings(
         'ignore', message='.*mne-realtime.*', category=DeprecationWarning)
+    warnings.filterwarnings(  # pyvista deprecation
+        'ignore', message=r'.*Use of .* is deprecated\. Use .* instead.*')
 
 
 reset_warnings(None, None)
@@ -837,6 +843,20 @@ for icon, cls in icons.items():
 
     <i class="fa{cls} fa-{icon[3:] if fw else icon}{fw}"></i>
 '''
+
+# -- Dependency info ----------------------------------------------------------
+
+try:
+    from importlib.metadata import metadata  # new in Python 3.8
+    min_py = metadata('mne')['Requires-Python']
+except ModuleNotFoundError:
+    from pkg_resources import get_distribution
+    info = get_distribution('mne').get_metadata_lines('PKG-INFO')
+    for line in info:
+        if line.strip().startswith('Requires-Python'):
+            min_py = line.split(':')[1]
+min_py = min_py.lstrip(' =<>')
+prolog += f'\n.. |min_python_version| replace:: {min_py}\n'
 
 # -- website redirects --------------------------------------------------------
 
@@ -910,6 +930,7 @@ needed_plot_redirects = {
     'vector_mne_solution.py', 'virtual_evoked.py', 'xdawn_denoising.py',
     'xhemi.py',
 }
+co = 'connectivity'
 tu = 'auto_tutorials'
 di = 'discussions'
 sm = 'source-modeling'
@@ -973,7 +994,7 @@ custom_redirects = {
 def make_redirects(app, exception):
     """Make HTML redirects."""
     # https://www.sphinx-doc.org/en/master/extdev/appapi.html
-    # Adapted from sphinxcontrib/redirects (BSD 2-clause)
+    # Adapted from sphinxcontrib/redirects (BSD-2-Clause)
     if not isinstance(app.builder, sphinx.builders.html.StandaloneHTMLBuilder):
         return
     logger = sphinx.util.logging.getLogger('mne')
@@ -1014,9 +1035,14 @@ def make_redirects(app, exception):
             f'Added {len(fnames):3d} HTML plot_* redirects for {out_dir}')
     # custom redirects
     for fr, to in custom_redirects.items():
-        to_path = os.path.join(app.outdir, to)
-        assert os.path.isfile(to_path), to
-        assert to_path.endswith('html'), to_path
+        if not to.startswith('http'):
+            assert os.path.isfile(os.path.join(app.outdir, to)), to
+            # handle links to sibling folders
+            path_parts = to.split(os.path.sep)
+            assert tu in path_parts, path_parts  # need to refactor otherwise
+            path_parts = ['..'] + path_parts[(path_parts.index(tu) + 1):]
+            to = os.path.join(*path_parts)
+        assert to.endswith('html'), to
         fr_path = os.path.join(app.outdir, fr)
         assert fr_path.endswith('html'), fr_path
         # allow overwrite if existing file is just a redirect
@@ -1030,11 +1056,8 @@ def make_redirects(app, exception):
         if fr_path.split(os.path.sep)[-2] in (
                 'misc', 'discussions', 'source-modeling', 'sample-datasets'):
             os.makedirs(os.path.dirname(fr_path), exist_ok=True)
-        # handle links to sibling folders
-        path_parts = to.split(os.path.sep)
-        path_parts = ['..'] + path_parts[(path_parts.index(tu) + 1):]
         with open(fr_path, 'w') as fid:
-            fid.write(TEMPLATE.format(to=os.path.join(*path_parts)))
+            fid.write(TEMPLATE.format(to=to))
     logger.info(
         f'Added {len(custom_redirects):3d} HTML custom redirects')
 

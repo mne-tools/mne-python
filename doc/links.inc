@@ -198,6 +198,7 @@
 .. _Spyder: https://www.spyder-ide.org/
 .. _anaconda: https://www.anaconda.com/distribution/
 .. _miniconda: https://conda.io/en/latest/miniconda.html
+.. _miniforge: https://github.com/conda-forge/miniforge
 .. _installation instructions for Anaconda: http://docs.continuum.io/anaconda/install
 .. _installation instructions for Miniconda: https://conda.io/projects/conda/en/latest/user-guide/install/index.html
 .. _Anaconda troubleshooting guide: http://conda.pydata.org/docs/troubleshooting.html

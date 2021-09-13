@@ -19,6 +19,7 @@ from .io.pick import pick_types
 from .io.proj import make_projector, _needs_eeg_average_ref_proj
 from .bem import _fit_sphere
 from .evoked import _read_evoked, _aspect_rev, _write_evokeds
+from .fixes import pinvh
 from .transforms import _print_coord_trans, _coord_frame_name, apply_trans
 from .viz.evoked import _plot_evoked
 from .forward._make_forward import (_get_trans, _setup_bem,
@@ -1002,7 +1003,7 @@ def _fit_confidence(rd, Q, ori, whitener, fwd_data):
     norm = np.array([direction_norm] * 3 + [Q_norm] * 3)
     J /= norm
     J = np.dot(J.T, J)
-    C = linalg.pinvh(J, rcond=1e-14)
+    C = pinvh(J, rtol=1e-14)
     C /= norm
     C /= norm[:, np.newaxis]
     conf = 1.96 * np.sqrt(np.diag(C))

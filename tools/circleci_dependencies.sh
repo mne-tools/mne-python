@@ -3,7 +3,8 @@
 echo "Working around PyQt5 bugs"
 # https://github.com/ContinuumIO/anaconda-issues/issues/9190#issuecomment-386508136
 # https://github.com/golemfactory/golem/issues/1019
-sudo apt-get install libosmesa6 libglx-mesa0 libopengl0 libglx0 libdbus-1-3 \
+sudo apt update
+sudo apt install libosmesa6 libglx-mesa0 libopengl0 libglx0 libdbus-1-3 \
 	libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
 	libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 \
 	graphviz optipng
@@ -20,8 +21,8 @@ if [[ "$CIRCLE_JOB" == "interactive_test" ]]; then
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" numba llvmlite
 	wget -q https://osf.io/kej3v/download -O vtk-9.0.20201117-cp39-cp39-linux_x86_64.whl
 	python -m pip install --progress-bar off vtk-9.0.20201117-cp39-cp39-linux_x86_64.whl
-	python -m pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/master
-	python -m pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/master
+	python -m pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/main
+	python -m pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/main
 	python -m pip install --progress-bar off --upgrade -r requirements_testing.txt -r requirements_testing_extra.txt
 	python -m pip install -e .
 elif [[ "$CIRCLE_JOB" == "linkcheck"* ]]; then
@@ -32,8 +33,10 @@ elif [[ "$CIRCLE_JOB" == "linkcheck"* ]]; then
 else  # standard doc build
 	echo "Installing doc build dependencies"
 	python -m pip uninstall -y pydata-sphinx-theme
-	python -m pip install --upgrade --progress-bar off -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
-	python -m pip install --progress-bar off https://github.com/sphinx-gallery/sphinx-gallery/zipball/master https://github.com/pyvista/pyvista/zipball/master https://github.com/pyvista/pyvistaqt/zipball/master
-	python -m pip uninstall -yq pysurfer mayavi
+	python -m pip install --upgrade --progress-bar off --only-binary matplotlib -r <(grep -Ev "mayavi|PySurfer" requirements.txt) -r requirements_testing.txt -r requirements_doc.txt
+	python -m pip install --progress-bar off https://github.com/sphinx-gallery/sphinx-gallery/zipball/master https://github.com/pyvista/pyvista/zipball/main https://github.com/pyvista/pyvistaqt/zipball/main
+	# deal with comparisons and escapes (https://app.circleci.com/pipelines/github/mne-tools/mne-python/9686/workflows/3fd32b47-3254-4812-8b9a-8bab0d646d18/jobs/32934)
+	python -m pip install --upgrade quantities
+	python -m pip install https://github.com/nilearn/nilearn/zipball/cb5329d89bad6554f036c84634702cb67eb7d5ea
 	python -m pip install -e .
 fi

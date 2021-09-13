@@ -596,7 +596,10 @@ def test_describe_print():
         raw.describe()
     s = f.getvalue().strip().split("\n")
     assert len(s) == 378
-    assert s[0] == "<Raw | test_raw.fif, 376 x 14400 (24.0 s), ~3.3 MB, data not loaded>"  # noqa
+    # Can be 3.1, 3.3, etc.
+    assert re.match(
+        r'<Raw | test_raw.fif, 376 x 14400 (24\.0 s), '
+        r'~3\.. MB, data not loaded>', s[0]) is not None, s[0]
     assert s[1] == " ch  name      type  unit        min        Q1    median        Q3       max"  # noqa
     assert s[2] == "  0  MEG 0113  GRAD  fT/cm   -221.80    -38.57     -9.64     19.29    414.67"  # noqa
     assert s[-1] == "375  EOG 061   EOG   µV      -231.41    271.28    277.16    285.66    334.69"  # noqa

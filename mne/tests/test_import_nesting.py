@@ -14,7 +14,7 @@ out = set()
 
 # check scipy (Numba imports it to check the version)
 ok_scipy_submodules = set(['scipy', 'numpy',  # these appear in old scipy
-                           'version'])
+                           'version', 'sparse', 'misc'])
 scipy_submodules = set(x.split('.')[1] for x in sys.modules.keys()
                        if x.startswith('scipy.') and '__' not in x and
                        not x.split('.')[1].startswith('_')

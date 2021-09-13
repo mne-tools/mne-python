@@ -250,10 +250,13 @@ def test_plot_topo_image_epochs():
     fig = plot_topo_image_epochs(ep, vmin=None, vmax=None, colorbar=None,
                                  cmap=cmap)
     ax = [x for x in fig.get_children() if isinstance(x, matplotlib.axes.Axes)]
+    # include inset axes (newer MPL)
+    ax.extend(y for x in ax for y in x.get_children()
+              if isinstance(y, matplotlib.axes.Axes))
     qm_cmap = [y.cmap for x in ax for y in x.get_children()
                if isinstance(y, matplotlib.collections.QuadMesh)]
+    assert len(qm_cmap) >= 1
     assert qm_cmap[0] is cmap
-    plt.close('all')
 
 
 def test_plot_tfr_topo():
