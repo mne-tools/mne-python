@@ -206,6 +206,12 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     # compute number of data records to loop over
     n_blocks = n_times / out_sfreq
 
+    # increase the number of annotation signals if necessary
+    n_annotations = len(raw.annotations)
+    if n_annotations > n_blocks:
+        n_annot_signals = np.ceil(n_annotations / n_blocks).astype(int)
+        hdl.setNumberOfAnnotationSignals(n_annot_signals)
+
     # Write each data record sequentially
     for idx in range(np.ceil(n_blocks).astype(int)):
         end_samp = (idx + 1) * out_sfreq
@@ -235,7 +241,6 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                  f'so {(len(buf) - len(ch_data)) / sfreq} seconds of zeros '
                  'were appended to all channels when writing the final block.')
 
-    # XXX: improve the ability to write arbitrary number of annotations
     # write annotations
     if raw.annotations:
         for desc, onset, duration in zip(raw.annotations.description,

@@ -112,8 +112,9 @@ def test_export_edf_annotations(tmp_path):
     data = rng.random(size=(len(ch_names), 2000)) * 1.e-5
     raw = RawArray(data, info)
 
-    annotations = Annotations(onset=[0.01, 1.05], duration=[0, 0],
-                              description=['test1', 'test2'])
+    annotations = Annotations(
+        onset=[0.01, 0.05, 0.90, 1.05], duration=[0, 1, 0, 0],
+        description=['test1', 'test2', 'test3', 'test4'])
     raw.set_annotations(annotations)
 
     # export
@@ -123,6 +124,8 @@ def test_export_edf_annotations(tmp_path):
     # read in the file
     raw_read = read_raw_edf(temp_fname, preload=True)
     assert_array_equal(raw.annotations.onset, raw_read.annotations.onset)
+    assert_array_equal(raw.annotations.description,
+                       raw_read.annotations.description)
 
 
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
