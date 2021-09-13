@@ -56,6 +56,7 @@ def test_compute_whitener(proj, pca):
         raw.del_proj()
     with pytest.warns(RuntimeWarning, match='Too few samples'):
         cov = compute_raw_covariance(raw)
+    assert cov['names'] == raw.ch_names
     W, _, C = compute_whitener(cov, raw.info, pca=pca, return_colorer=True,
                                verbose='error')
     n_channels = len(raw.ch_names)
@@ -78,11 +79,19 @@ def test_compute_whitener(proj, pca):
     raw.info['bads'] = [raw.ch_names[0]]
     picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
     with pytest.warns(RuntimeWarning, match='Too few samples'):
-        cov = compute_raw_covariance(raw, picks=picks)
-    W2, _, C2 = compute_whitener(cov, raw.info, pca=pca, return_colorer=True,
+        cov2 = compute_raw_covariance(raw, picks=picks)
+        cov3 = compute_raw_covariance(raw, picks=None)
+    W2, _, C2 = compute_whitener(cov2, raw.info, pca=pca, return_colorer=True,
                                  picks=picks, verbose='error')
+    W3, _, C3 = compute_whitener(cov3, raw.info, pca=pca, return_colorer=True,
+                                 picks=None, verbose='error')
     assert (W == W2).all()
     assert (C == C2).all()
+    n_channels = len(raw.ch_names) - len(raw.info['bads'])
+    n_reduced = len(raw.ch_names) - len(raw.info['bads'])
+    rank = n_channels - len(raw.info['projs'])
+    n_reduced = rank if pca is True else n_channels
+    assert W3.shape == C3.shape[::-1] == (n_reduced, n_channels)
 
 
 def test_cov_mismatch():
