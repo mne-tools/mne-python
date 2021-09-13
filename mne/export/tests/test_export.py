@@ -124,6 +124,7 @@ def test_export_edf_annotations(tmp_path):
     # read in the file
     raw_read = read_raw_edf(temp_fname, preload=True)
     assert_array_equal(raw.annotations.onset, raw_read.annotations.onset)
+    assert_array_equal(raw.annotations.duration, raw_read.annotations.duration)
     assert_array_equal(raw.annotations.description,
                        raw_read.annotations.description)
 
