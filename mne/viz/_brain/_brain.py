@@ -1900,7 +1900,7 @@ class Brain(object):
             Original clim arguments.
         %(src_volume_options)s
         colorbar_kwargs : dict | None
-            Options to pass to :meth:`pyvista.BasePlotter.add_scalar_bar`
+            Options to pass to :meth:`pyvista.Plotter.add_scalar_bar`
             (e.g., ``dict(title_font_size=10)``).
         %(verbose)s
 
@@ -2464,7 +2464,7 @@ class Brain(object):
             Add a legend displaying the names of the ``labels``. Default (None)
             is ``True`` if the number of ``labels`` is 10 or fewer.
             Can also be a dict of ``kwargs`` to pass to
-            :meth:`pyvista.BasePlotter.add_legend`.
+            :meth:`pyvista.Plotter.add_legend`.
 
         Notes
         -----
