@@ -81,7 +81,7 @@ def test_compute_whitener(proj, pca):
     with pytest.warns(RuntimeWarning, match='Too few samples'):
         cov2 = compute_raw_covariance(raw, picks=picks)
         cov3 = compute_raw_covariance(raw, picks=None)
-    assert_array_equal(cov2['data'][1:, 1:], cov3['data'])
+    assert_allclose(cov2['data'][1:, 1:], cov3['data'])
     W2, _, C2 = compute_whitener(cov2, raw.info, pca=pca, return_colorer=True,
                                  picks=picks, verbose='error')
     W3, _, C3 = compute_whitener(cov3, raw.info, pca=pca, return_colorer=True,
