@@ -261,3 +261,42 @@ def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg, tol_kind, tol):
     rank_new = _compute_rank_int(raw, 'info')
     assert rank_new == rank
     assert_array_equal(raw[:][0], data_orig)
+
+
+def test_explicit_bads_pick():
+    """Test when bads channels are explicitly passed + default picks=None."""
+    raw = read_raw_fif(raw_fname, preload=True)
+    raw.pick_types(eeg=True, meg=True, ref_meg=True)
+
+    # Covariance
+    # Default picks=None
+    raw.info['bads'] = list()
+    noise_cov_1 = compute_raw_covariance(raw, picks=None)
+    rank = compute_rank(noise_cov_1, info=raw.info)
+    assert rank == dict(meg=303, eeg=60)
+    assert raw.info['bads'] == []
+
+    raw.info['bads'] = ['EEG 002', 'EEG 012', 'EEG 015', 'MEG 0122']
+    noise_cov = compute_raw_covariance(raw, picks=None)
+    rank = compute_rank(noise_cov, info=raw.info)
+    assert rank == dict(meg=302, eeg=57)
+    assert raw.info['bads'] == ['EEG 002', 'EEG 012', 'EEG 015', 'MEG 0122']
+
+    # Explicit picks
+    picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
+    noise_cov_2 = compute_raw_covariance(raw, picks=picks)
+    rank = compute_rank(noise_cov_2, info=raw.info)
+    assert rank == dict(meg=303, eeg=60)
+    assert raw.info['bads'] == ['EEG 002', 'EEG 012', 'EEG 015', 'MEG 0122']
+
+    assert_array_equal(noise_cov_1['data'], noise_cov_2['data'])
+    assert noise_cov_1['names'] == noise_cov_2['names']
+
+    # Raw
+    raw.info['bads'] = list()
+    rank = compute_rank(raw)
+    assert rank == dict(meg=303, eeg=60)
+
+    raw.info['bads'] = ['EEG 002', 'EEG 012', 'EEG 015', 'MEG 0122']
+    rank = compute_rank(raw)
+    assert rank == dict(meg=302, eeg=57)
