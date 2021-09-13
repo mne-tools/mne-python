@@ -850,6 +850,9 @@ def reset_warnings(gallery_conf, fname):
         'ignore', message="can't resolve package from", category=ImportWarning)
     warnings.filterwarnings(
         'ignore', message='.*mne-realtime.*', category=DeprecationWarning)
+    warnings.filterwarnings(
+        'ignore', message=r'numpy\.ndarray size changed.*',
+        category=RuntimeWarning)
 
     # In case we use np.set_printoptions in any tutorials, we only
     # want it to affect those:
