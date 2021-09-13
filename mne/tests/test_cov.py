@@ -81,13 +81,13 @@ def test_compute_whitener(proj, pca):
     with pytest.warns(RuntimeWarning, match='Too few samples'):
         cov2 = compute_raw_covariance(raw, picks=picks)
         cov3 = compute_raw_covariance(raw, picks=None)
-    assert (cov2['data'][1:, 1:] == cov3['data']).all()
+    assert_array_equal(cov2['data'][1:, 1:], cov3['data'])
     W2, _, C2 = compute_whitener(cov2, raw.info, pca=pca, return_colorer=True,
                                  picks=picks, verbose='error')
     W3, _, C3 = compute_whitener(cov3, raw.info, pca=pca, return_colorer=True,
                                  picks=None, verbose='error')
-    assert (W == W2).all()
-    assert (C == C2).all()
+    assert_array_equal(W, W2)
+    assert_array_equal(C, C2)
     n_channels = len(raw.ch_names) - len(raw.info['bads'])
     n_reduced = len(raw.ch_names) - len(raw.info['bads'])
     rank = n_channels - len(raw.info['projs'])

@@ -289,7 +289,7 @@ def test_explicit_bads_pick():
     assert rank == dict(meg=303, eeg=60)
     assert raw.info['bads'] == ['EEG 002', 'EEG 012', 'EEG 015', 'MEG 0122']
 
-    assert (noise_cov_1['data'] == noise_cov_2['data']).all()
+    assert_array_equal(noise_cov_1['data'], noise_cov_2['data'])
     assert noise_cov_1['names'] == noise_cov_2['names']
 
     # Raw
