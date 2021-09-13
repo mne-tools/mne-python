@@ -830,8 +830,7 @@ class ICA(ContainsMixin):
 
         picks = _picks_to_idx(
             raw.info, self.ch_names, exclude=[], allow_empty=True)
-        raise_ = False if len(picks) == len(self.ch_names) else True
-        if raise_:
+        if len(picks) != len(self.ch_names):
             raise RuntimeError('Raw doesn\'t match fitted data: %i channels '
                                'fitted but %i channels supplied. \nPlease '
                                'provide Raw compatible with '
@@ -850,8 +849,7 @@ class ICA(ContainsMixin):
         picks = _picks_to_idx(
             epochs.info, self.ch_names, exclude=[], allow_empty=True)
         # special case where epochs come picked but fit was 'unpicked'.
-        raise_ = False if len(picks) == len(self.ch_names) else True
-        if raise_:
+        if len(picks) != len(self.ch_names):
             raise RuntimeError('Epochs don\'t match fitted data: %i channels '
                                'fitted but %i channels supplied. \nPlease '
                                'provide Epochs compatible with '
@@ -874,8 +872,7 @@ class ICA(ContainsMixin):
 
         picks = _picks_to_idx(
             evoked.info, self.ch_names, exclude=[], allow_empty=True)
-        raise_ = False if len(picks) == len(self.ch_names) else True
-        if raise_:
+        if len(picks) != len(self.ch_names):
             raise RuntimeError('Evoked doesn\'t match fitted data: %i channels'
                                ' fitted but %i channels supplied. \nPlease '
                                'provide Evoked compatible with '
