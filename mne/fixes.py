@@ -30,7 +30,7 @@ import numpy as np
 # comparisons, we use setuptools's `parse_version` if available.
 
 def _compare_version(version_a, operator, version_b):
-    """Compare two version strings via a user-specified operator;
+    """Compare two version strings via a user-specified operator.
 
     Parameters
     ----------
