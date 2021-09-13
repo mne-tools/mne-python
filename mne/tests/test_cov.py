@@ -86,8 +86,10 @@ def test_compute_whitener(proj, pca):
                                  picks=picks, verbose='error')
     W3, _, C3 = compute_whitener(cov3, raw.info, pca=pca, return_colorer=True,
                                  picks=None, verbose='error')
-    assert_array_equal(W, W2)
-    assert_array_equal(C, C2)
+    # this tol is not great, but Windows needs it
+    rtol = 3e-5 if pca is True and proj is True else 1e-11
+    assert_allclose(W, W2, rtol=rtol)
+    assert_allclose(C, C2, rtol=rtol)
     n_channels = len(raw.ch_names) - len(raw.info['bads'])
     n_reduced = len(raw.ch_names) - len(raw.info['bads'])
     rank = n_channels - len(raw.info['projs'])
