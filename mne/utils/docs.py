@@ -2486,7 +2486,7 @@ fname : str
     Name of the output file.
 """
 docdict['export_params_fmt'] = """
-fmt : 'auto' | 'eeglab'
+fmt : 'auto' | 'eeglab' | 'edf'
     Format of the export. Defaults to ``'auto'``, which will infer the format
     from the filename extension. See supported formats above for more
     information.
@@ -2516,11 +2516,11 @@ this means channel types 'eeg', 'ecog', 'seeg', 'emg', 'eog', 'ecg', 'dbs',
 signal label (e.g. ``EEG Fz`` or ``MISC E``), other software may not support
 this (optional) feature of the EDF standard.
 
-If you want to set the channel types, then set the ``add_ch_type`` keyword.
-This will then for example take EEG channel ``Fz`` and export the
-signal label as ``EEG Fz`` in the EDF file. In order to properly set
-the channel types before exporting, you will need to call
-:attr:`raw.set_channel_types <mne.io.Raw.set_channel_types>`.
+If ``add_ch_type`` is True, then channel types are written based on what
+they are currently set in MNE-Python. One should double check that all
+their channels are set correctly. You can call
+:attr:`raw.set_channel_types <mne.io.Raw.set_channel_types>` to set
+channel types.
 
 In addition, EDF does not support storing a montage. You will need
 to store the montage separately and call :attr:`raw.set_montage()

@@ -14,8 +14,10 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
                add_ch_type=False, verbose=None):
     """Export Raw to external formats.
 
-    Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
-    %(export_warning)s
+    Supported formats:
+    - EEGLAB (set, uses :mod:`eeglabio`)
+    - EDF (edf, uses :mod:`EDFlib-Python`)
+    %(export_warning)s :meth:`mne.io.Raw.save` instead.
 
     Parameters
     ----------
