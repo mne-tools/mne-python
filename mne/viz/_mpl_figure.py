@@ -1960,7 +1960,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                         button=button, kind='release')
         else:
             _fake_click(fig=fig, ax=ax, point=point, xform=xform,
-                    button=button, kind=kind)
+                        button=button, kind=kind)
 
     def _fake_scroll(self, x, y, step, fig=None):
         fig = fig or self

@@ -23,6 +23,7 @@ from mne.viz import plot_raw, plot_sensors
 
 def _annotation_helper(raw, browse_backend, events=False):
     """Test interactive annotations."""
+    ismpl = browse_backend.name == 'matplotlib'
     # Some of our checks here require modern mpl to work properly
     n_anns = len(raw.annotations)
     browse_backend._close_all()
@@ -35,106 +36,114 @@ def _annotation_helper(raw, browse_backend, events=False):
         events = None
         n_events = 0
     fig = raw.plot(events=events)
-    assert browse_backend._get_n_figs() == 1
-    data_ax = fig.mne.ax_main
-    fig._fake_keypress('a')  # annotation mode
-    # ToDo: This will be different in pyqtgraph because it handles annotations
-    #  from the toolbar.
-    assert browse_backend._get_n_figs() == 2
-    # +3 from the scale bars
-    n_scale = 3
-    assert len(data_ax.texts) == n_anns + n_events + n_scale
-    # modify description to create label "BAD test"
-    ann_fig = fig.mne.fig_annotation
-    # semicolon is ignored
-    for key in ['backspace'] + list(' test;') + ['enter']:
-        fig._fake_keypress(key, fig=ann_fig)
+    if ismpl:
+        assert browse_backend._get_n_figs() == 1
 
-    # change annotation label
-    for ix in (-1, 0):
-        xy = ann_fig.mne.radio_ax.buttons.circles[ix].center
-        fig._fake_click(xy, ann_fig, ann_fig.mne.radio_ax,
-                        xform='data')
+    fig._fake_keypress('a')  # annotation mode
+    ann_fig = fig.mne.fig_annotation
+    if ismpl:
+        assert browse_backend._get_n_figs() == 2
+        # +3 from the scale bars
+        n_scale = 3
+        assert len(fig.mne.ax_main.texts) == n_anns + n_events + n_scale
+    else:
+        assert ann_fig.isVisible()
+
+    # modify description to create label "BAD test"
+    # semicolon is ignored
+    if ismpl:
+        for key in ['backspace'] + list(' test;') + ['enter']:
+            fig._fake_keypress(key, fig=ann_fig)
+        # change annotation label
+        for ix in (-1, 0):
+            xy = ann_fig.mne.radio_ax.buttons.circles[ix].center
+            fig._fake_click(xy, fig=ann_fig, ax=ann_fig.mne.radio_ax,
+                            xform='data')
+    else:
+        # The modal dialogs of the pyqtgraph-backend would block the test,
+        # thus a new description will be added programmatically.
+        ann_fig._add_description('BAD test')
 
     # draw annotation
-    fig._fake_click((1., 1.), xform='data', button=1, kind='press')
-    fig._fake_click((5., 1.), xform='data', button=1, kind='motion')
-    fig._fake_click((5., 1.), xform='data', button=1, kind='release')
+    fig._fake_click((1., 1.), point2=(5., 1.), xform='data', button=1,
+                    kind='drag')
+    if ismpl:
+        fig._fake_click((1., 1.), xform='data', button=1, kind='press')
+        fig._fake_click((5., 1.), xform='data', button=1, kind='motion')
+        fig._fake_click((5., 1.), xform='data', button=1, kind='release')
+        assert len(fig.mne.ax_main.texts) == n_anns + 1 + n_events + n_scale
+        # test hover event
+        fig._fake_keypress('p')  # first turn on draggable mode
+        assert fig.mne.draggable_annotations
+        hover_kwargs = dict(xform='data', button=None, kind='motion')
+        fig._fake_click((4.6, 1.), **hover_kwargs)  # well inside ann.
+        fig._fake_click((4.9, 1.), **hover_kwargs)  # almost at edge
+        assert fig.mne.annotation_hover_line is not None
+        fig._fake_click((5.5, 1.), **hover_kwargs)  # well outside ann.
+        assert fig.mne.annotation_hover_line is None
+        # more tests of hover line
+        fig._fake_click((4.6, 1.), **hover_kwargs)  # well inside ann.
+        fig._fake_click((4.9, 1.), **hover_kwargs)  # almost at edge
+        assert fig.mne.annotation_hover_line is not None
+        fig._fake_keypress('p')  # turn off draggable mode, then move a bit
+        fig._fake_click((4.95, 1.), **hover_kwargs)
+        assert fig.mne.annotation_hover_line is None
+        fig._fake_keypress('p')  # turn draggable mode back on
     assert len(raw.annotations.onset) == n_anns + 1
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
     assert raw.annotations.description[n_anns] == 'BAD test'
-    assert len(data_ax.texts) == n_anns + 1 + n_events + n_scale
     onset = raw.annotations.onset[n_anns]
     want_onset = _sync_onset(raw, 1., inverse=True)
     assert_allclose(onset, want_onset)
     assert_allclose(raw.annotations.duration[n_anns], 4.)
-    # test hover event
-    fig._fake_keypress('p')  # first turn on draggable mode
-    assert fig.mne.draggable_annotations
-    hover_kwargs = dict(xform='data', button=None, kind='motion')
-    fig._fake_click((4.6, 1.), **hover_kwargs)  # well inside ann.
-    fig._fake_click((4.9, 1.), **hover_kwargs)  # almost at edge
-    assert fig.mne.annotation_hover_line is not None
-    fig._fake_click((5.5, 1.), **hover_kwargs)  # well outside ann.
-    assert fig.mne.annotation_hover_line is None
-    # more tests of hover line
-    fig._fake_click((4.6, 1.), **hover_kwargs)  # well inside ann.
-    fig._fake_click((4.9, 1.), **hover_kwargs)  # almost at edge
-    assert fig.mne.annotation_hover_line is not None
-    fig._fake_keypress('p')  # turn off draggable mode, then move a bit
-    fig._fake_click((4.95, 1.), **hover_kwargs)
-    assert fig.mne.annotation_hover_line is None
-    fig._fake_keypress('p')  # turn draggable mode back on
     # modify annotation from end (duration 4 → 1.5)
-    fig._fake_click((4.9, 1.), xform='data', button=None,
+    fig._fake_click((4.9, 1.), xform='data', button=1,
                     kind='motion')  # ease up to it
-    fig._fake_click((5., 1.), xform='data', button=1, kind='press')
-    fig._fake_click((2.5, 1.), xform='data', button=1, kind='motion')
-    fig._fake_click((2.5, 1.), xform='data', button=1,
-                    kind='release')
+    fig._fake_click((5., 1.), point2=(2.5, 1.), xform='data',
+                    button=1, kind='drag')
     assert raw.annotations.onset[n_anns] == onset
     assert_allclose(raw.annotations.duration[n_anns], 1.5)  # 4 → 1.5
     # modify annotation from beginning (duration 1.5 → 2.0)
-    fig._fake_click((1., 1.), xform='data', button=1, kind='press')
-    fig._fake_click((0.5, 1.), xform='data', button=1, kind='motion')
-    fig._fake_click((0.5, 1.), xform='data', button=1,
-                    kind='release')
+    fig._fake_click((1., 1.), point2=(0.5, 1.), xform='data', button=1,
+                    kind='drag')
     assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
     assert_allclose(raw.annotations.duration[n_anns], 2.0)  # 1.5 → 2.0
     assert len(raw.annotations.onset) == n_anns + 1
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
     assert raw.annotations.description[n_anns] == 'BAD test'
-    assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
-    fig._fake_keypress('shift+right')
-    assert len(fig.axes[0].texts) == n_scale
-    fig._fake_keypress('shift+left')
-    assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
+    if ismpl:
+        assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
+        fig._fake_keypress('shift+right')
+        assert len(fig.axes[0].texts) == n_scale
+        fig._fake_keypress('shift+left')
+        assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
 
     # draw another annotation merging the two
-    fig._fake_click((5.5, 1.), xform='data', button=1, kind='press')
-    fig._fake_click((2., 1.), xform='data', button=1, kind='motion')
-    fig._fake_click((2., 1.), xform='data', button=1, kind='release')
+    fig._fake_click((5.5, 1.), (2., 1.), xform='data', button=1,
+                    kind='drag')
     # delete the annotation
     assert len(raw.annotations.onset) == n_anns + 1
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
     assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
     assert_allclose(raw.annotations.duration[n_anns], 5.0)
-    assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
+    if ismpl:
+        assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
     # Delete
     fig._fake_click((1.5, 1.), xform='data', button=3, kind='press')
     # exit, re-enter, then exit a different way
     fig._fake_keypress('a')  # exit
     fig._fake_keypress('a')  # enter
-    fig._fake_keypress('escape', fig=fig.mne.fig_annotation)  # exit again
     assert len(raw.annotations.onset) == n_anns
-    assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
-    fig._fake_keypress('shift+right')
-    assert len(fig.axes[0].texts) == n_scale
-    fig._fake_keypress('shift+left')
-    assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
+    if ismpl:
+        fig._fake_keypress('escape', fig=fig.mne.fig_annotation)  # exit again
+        assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
+        fig._fake_keypress('shift+right')
+        assert len(fig.axes[0].texts) == n_scale
+        fig._fake_keypress('shift+left')
+        assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
 
 
 def _proj_status(ssp_fig, browse_backend):
@@ -159,7 +168,7 @@ def _proj_click(idx, fig, browse_backend):
         pos = np.array(ssp_fig.mne.proj_checkboxes.
                        labels[idx].get_position()) + 0.01
 
-        fig._fake_click(pos, ssp_fig, ssp_fig.mne.proj_checkboxes.ax,
+        fig._fake_click(pos, fig=ssp_fig, ax=ssp_fig.mne.proj_checkboxes.ax,
                         xform='data')
     else:
         fig._fake_click((0, 0), fig=ssp_fig.checkboxes[idx], xform='none')
@@ -168,8 +177,8 @@ def _proj_click(idx, fig, browse_backend):
 def _proj_click_all(fig, browse_backend):
     ssp_fig = fig.mne.fig_proj
     if browse_backend.name == 'matplotlib':
-        fig._fake_click((0.5, 0.5), ssp_fig, ssp_fig.mne.proj_all.ax)
-        fig._fake_click((0.5, 0.5), ssp_fig, ssp_fig.mne.proj_all.ax,
+        fig._fake_click((0.5, 0.5), fig=ssp_fig, ax=ssp_fig.mne.proj_all.ax)
+        fig._fake_click((0.5, 0.5), fig=ssp_fig, ax=ssp_fig.mne.proj_all.ax,
                         kind='release')
     else:
         fig._fake_click((0, 0), fig=ssp_fig.toggle_all_bt,
@@ -260,13 +269,13 @@ def test_plot_raw_selection(raw, browse_backend):
     assert fig.mne.butterfly
     # test clicking on radio buttons → should cancel butterfly mode
     xy = buttons.circles[0].center
-    fig._fake_click(xy, sel_fig, sel_fig.mne.radio_ax, xform='data')
+    fig._fake_click(xy, fig=sel_fig, ax=sel_fig.mne.radio_ax, xform='data')
     assert len(fig.mne.traces) == len(sel_dict['Left-temporal'])  # 6
     assert not fig.mne.butterfly
     # test clicking on "custom" when not defined: should be no-op
     before_state = buttons.value_selected
     xy = buttons.circles[-1].center
-    fig._fake_click(xy, sel_fig, sel_fig.mne.radio_ax, xform='data')
+    fig._fake_click(xy, fig=sel_fig, ax=sel_fig.mne.radio_ax, xform='data')
     assert len(fig.mne.traces) == len(sel_dict['Left-temporal'])  # unchanged
     assert buttons.value_selected == before_state                 # unchanged
     # test marking bad channel in selection mode → should make sensor red
@@ -279,13 +288,13 @@ def test_plot_raw_selection(raw, browse_backend):
     sel_fig._set_custom_selection()  # lasso empty → should do nothing
     sensor_ax = sel_fig.mne.sensor_ax
     # Lasso with 1 mag/grad sensor unit (upper left)
-    fig._fake_click((0, 1), sel_fig,
-                    sensor_ax, xform='ax')
-    fig._fake_click((0.65, 1), sel_fig, sensor_ax,
+    fig._fake_click((0, 1), fig=sel_fig,
+                    ax=sensor_ax, xform='ax')
+    fig._fake_click((0.65, 1), fig=sel_fig, ax=sensor_ax,
                     xform='ax', kind='motion')
-    fig._fake_click((0.65, 0.7), sel_fig, sensor_ax,
+    fig._fake_click((0.65, 0.7), fig=sel_fig, ax=sensor_ax,
                     xform='ax', kind='motion')
-    fig._fake_click((0, 0.7), sel_fig, sensor_ax,
+    fig._fake_click((0, 0.7), fig=sel_fig, ax=sensor_ax,
                     xform='ax', kind='release')
     want = ['MEG 0121', 'MEG 0122', 'MEG 0123']
     assert sorted(want) == sorted(sel_fig.lasso.selection)
@@ -492,17 +501,18 @@ def test_plot_raw_groupby(raw, browse_backend, group_by):
     fig._fake_click((0.5, 0.5), ax=fig.mne.ax_vscroll)  # change channels
     sel_fig = fig.mne.fig_selection
     topo_ax = sel_fig.mne.sensor_ax
-    fig._fake_click([-0.425, 0.20223853], sel_fig, topo_ax, xform='data')
+    fig._fake_click([-0.425, 0.20223853], fig=sel_fig, ax=topo_ax,
+                    xform='data')
     fig._fake_keypress('down')
     fig._fake_keypress('up')
     fig._fake_scroll(0.5, 0.5, -1)  # scroll down
     fig._fake_scroll(0.5, 0.5, 1)  # scroll up
-    fig._fake_click([-0.5, 0.], sel_fig, topo_ax, xform='data')
-    fig._fake_click((0.5, 0.), sel_fig, topo_ax, xform='data',
+    fig._fake_click([-0.5, 0.], fig=sel_fig, ax=topo_ax, xform='data')
+    fig._fake_click((0.5, 0.), fig=sel_fig, ax=topo_ax, xform='data',
                     kind='motion')
-    fig._fake_click((0.5, 0.5), sel_fig, topo_ax, xform='data',
+    fig._fake_click((0.5, 0.5), fig=sel_fig, ax=topo_ax, xform='data',
                     kind='motion')
-    fig._fake_click([-0.5, 0.5], sel_fig, topo_ax, xform='data',
+    fig._fake_click([-0.5, 0.5], fig=sel_fig, ax=topo_ax, xform='data',
                     kind='release')
     browse_backend._close_all()
 
@@ -564,6 +574,7 @@ def test_plot_misc_auto(browse_backend):
 @pytest.mark.slowtest
 def test_plot_annotations(raw, browse_backend):
     """Test annotation mode of the plotter."""
+    ismpl = browse_backend.name == 'matplotlib'
     with raw.info._unlock():
         raw.info['lowpass'] = 10.
     _annotation_helper(raw, browse_backend)
@@ -575,17 +586,27 @@ def test_plot_annotations(raw, browse_backend):
     _annotation_helper(raw, browse_backend)
     # test annotation visibility toggle
     fig = raw.plot()
-    assert len(fig.mne.annotations) == 1
-    assert len(fig.mne.annotation_texts) == 1
+    if ismpl:
+        assert len(fig.mne.annotations) == 1
+        assert len(fig.mne.annotation_texts) == 1
+    else:
+        assert len(fig.mne.regions) == 1
     fig._fake_keypress('a')  # start annotation mode
-    # ToDo: This will be different in pyqtgraph (toolbar).
-    checkboxes = fig.mne.show_hide_annotation_checkboxes
-    checkboxes.set_active(0)
-    assert len(fig.mne.annotations) == 0
-    assert len(fig.mne.annotation_texts) == 0
-    checkboxes.set_active(0)
-    assert len(fig.mne.annotations) == 1
-    assert len(fig.mne.annotation_texts) == 1
+    if ismpl:
+        checkboxes = fig.mne.show_hide_annotation_checkboxes
+        checkboxes.set_active(0)
+        assert len(fig.mne.annotations) == 0
+        assert len(fig.mne.annotation_texts) == 0
+        checkboxes.set_active(0)
+        assert len(fig.mne.annotations) == 1
+        assert len(fig.mne.annotation_texts) == 1
+    else:
+        fig.mne.visible_annotations['test'] = False
+        fig._update_regions_visible()
+        assert not fig.mne.regions[0].isVisible()
+        fig.mne.visible_annotations['test'] = True
+        fig._update_regions_visible()
+        assert fig.mne.regions[0].isVisible()
 
 
 @pytest.mark.parametrize('hide_which', ([], [0], [1], [0, 1]))
