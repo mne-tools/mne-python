@@ -145,7 +145,6 @@ def _annotation_helper(raw, browse_backend, events=False):
         fig._fake_keypress('shift+left')
         assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
 
-
 def _proj_status(ssp_fig, browse_backend):
     if browse_backend.name == 'matplotlib':
         ax = ssp_fig.mne.proj_checkboxes.ax
@@ -430,9 +429,9 @@ def test_plot_raw_traces(raw, events, browse_backend):
     fig._click_ch_name(ch_index=0, button=1)
     assert label in fig.mne.info['bads']
     # test other kinds of clicks
-    fig._fake_click((0.5, 0.999))  # click elsewhere (add vline)
+    fig._fake_click((0.5, 0.98))  # click elsewhere (add vline)
     assert fig.mne.vline_visible is True
-    fig._fake_click((0.5, 0.999), button=3)  # remove vline
+    fig._fake_click((0.5, 0.98), button=3)  # remove vline
     assert fig.mne.vline_visible is False
     fig._fake_click((0.5, 0.5), ax=hscroll)  # change time
     t_start = fig.mne.t_start
@@ -452,7 +451,6 @@ def test_plot_raw_traces(raw, events, browse_backend):
         fig._fake_click((0.5, yclick), ax=vscroll)
         labels = fig._get_ticklabels('y')
         assert labels == [raw.ch_names[7], raw.ch_names[5], raw.ch_names[2]]
-        assert browse_backend._get_n_figs() == 1
 
     # test clicking a channel name in butterfly mode
     bads = fig.mne.info['bads'].copy()
@@ -810,13 +808,12 @@ def test_scalings_int(browse_backend):
     raw.plot(scalings='auto')
 
 
-@pytest.mark.parametrize('dur, n_dec', [(20, 1), (4.2, 2), (0.01, 4)])
+@pytest.mark.parametrize('dur, n_dec', [(20, 1), (1.8, 2), (0.01, 4)])
 def test_clock_xticks(raw, dur, n_dec, browse_backend):
     """Test if decimal seconds of xticks have appropriate length."""
     fig = raw.plot(duration=dur, time_format='clock')
-    fig.canvas.draw()
-    ticklabels = fig.mne.ax_main.get_xticklabels()
-    tick_texts = [tl.get_text() for tl in ticklabels]
+    fig._redraw()
+    tick_texts = fig._get_ticklabels('x')
     assert tick_texts[0].startswith('19:01:53')
     if len(tick_texts[0].split('.')) > 1:
         assert len(tick_texts[0].split('.')[1]) == n_dec

@@ -1980,7 +1980,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _get_ticklabels(self, orientation):
         if orientation == 'x':
-            labels = self.mne.ax_main.get_yticklabels()
+            labels = self.mne.ax_main.get_xticklabels()
         elif orientation == 'y':
             labels = self.mne.ax_main.get_yticklabels()
         label_texts = [lb.get_text() for lb in labels]
