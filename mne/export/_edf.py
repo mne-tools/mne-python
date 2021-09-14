@@ -204,16 +204,19 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         _try_to_set_value(hdl, 'DataRecordDuration', data_record_duration)
 
     # compute number of data records to loop over
-    n_blocks = n_times / out_sfreq
+    n_blocks = np.ceil(n_times / out_sfreq).astype(int)
 
     # increase the number of annotation signals if necessary
     n_annotations = len(raw.annotations)
-    if n_annotations > n_blocks:
-        n_annot_signals = np.ceil(n_annotations / n_blocks).astype(int)
-        hdl.setNumberOfAnnotationSignals(n_annot_signals)
+    if n_annotations is not None:
+        n_annot_chans = int(n_annotations / n_blocks)
+        if np.mod(n_annotations, n_blocks):
+            n_annot_chans += 1
+        if n_annot_chans > 1:
+            hdl.setNumberOfAnnotationSignals(n_annot_chans)
 
     # Write each data record sequentially
-    for idx in range(np.ceil(n_blocks).astype(int)):
+    for idx in range(n_blocks):
         end_samp = (idx + 1) * out_sfreq
         if end_samp > n_times:
             end_samp = n_times
