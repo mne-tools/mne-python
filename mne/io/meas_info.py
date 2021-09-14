@@ -834,7 +834,7 @@ class Info(dict, MontageMixin):
                 eog = ', '.join(
                     np.array(self['ch_names'])[pick_eog])
             elif ch_type == 'ecg':
-                pick_ecg = pick_types(self, meg=False, ecg=True)
+                pick_ecg = pick_types(self, ecg=True)
                 ecg = ', '.join(
                     np.array(self['ch_names'])[pick_ecg])
             channels[ch_type] = count
