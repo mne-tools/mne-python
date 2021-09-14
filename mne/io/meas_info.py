@@ -830,7 +830,7 @@ class Info(dict, MontageMixin):
                 channels['mag'] = len(pick_types(self, meg='mag'))
                 channels['grad'] = len(pick_types(self, meg='grad'))
             elif ch_type == 'eog':
-                pick_eog = pick_types(self, meg=False, eog=True)
+                pick_eog = pick_types(self, eog=True)
                 eog = ', '.join(
                     np.array(self['ch_names'])[pick_eog])
             elif ch_type == 'ecg':
