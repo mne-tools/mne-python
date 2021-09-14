@@ -6,11 +6,11 @@ import warnings
 import numpy as np
 import pytest
 
-from mne import read_evokeds, Epochs
-from mne.io import read_raw_fif
+from mne import read_evokeds, Epochs, create_info
+from mne.io import read_raw_fif, RawArray
 from mne.utils import (warn, set_log_level, set_log_file, filter_out_warnings,
                        verbose, _get_call_line, use_log_level, catch_logging,
-                       logger)
+                       logger, check)
 from mne.utils._logging import _frame_info
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -169,13 +169,31 @@ def test_verbose_method(verbose):
     assert log == ''
 
 
-def test_warn(capsys):
+def test_warn(capsys, tmpdir, monkeypatch):
     """Test the smart warn() function."""
     with pytest.warns(RuntimeWarning, match='foo'):
         warn('foo')
     captured = capsys.readouterr()
     assert captured.out == ''  # gh-5592
     assert captured.err == ''  # this is because pytest.warns took it already
+    # test ignore_namespaces
+    bad_name = tmpdir.join('bad.fif')
+    raw = RawArray(np.zeros((1, 1)), create_info(1, 1000., 'eeg'))
+    with pytest.warns(RuntimeWarning, match='filename') as ws:
+        raw.save(bad_name)
+    assert len(ws) == 1
+    assert 'test_logging.py' in ws[0].filename  # this file (it's in tests/)
+
+    def warn_wrap(msg):
+        warn(msg, ignore_namespaces=())
+
+    monkeypatch.setattr(check, 'warn', warn_wrap)
+    with pytest.warns(RuntimeWarning, match='filename') as ws:
+        raw.save(bad_name, overwrite=True)
+
+    assert len(ws) == 1
+    assert 'test_logging.py' not in ws[0].filename  # this file
+    assert '_logging.py' in ws[0].filename  # where `mne.utils.warn` lives
 
 
 def test_get_call_line():

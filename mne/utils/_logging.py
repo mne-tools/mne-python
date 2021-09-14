@@ -5,6 +5,7 @@
 # License: BSD-3-Clause
 
 import contextlib
+import importlib
 import inspect
 from io import StringIO
 import re
@@ -316,7 +317,8 @@ class WrapStdOut(object):
 _verbose_dec_re = re.compile('^<decorator-gen-[0-9]+>$')
 
 
-def warn(message, category=RuntimeWarning, module='mne'):
+def warn(message, category=RuntimeWarning, module='mne',
+         ignore_namespaces=('mne',)):
     """Emit a warning with trace outside the mne namespace.
 
     This function takes arguments like warnings.warn, and sends messages
@@ -333,9 +335,13 @@ def warn(message, category=RuntimeWarning, module='mne'):
         The warning class. Defaults to ``RuntimeWarning``.
     module : str
         The name of the module emitting the warning.
+    ignore_namespaces : list of str
+        Namespaces to ignore when traversing the stack.
+
+        .. versionadded:: 0.24
     """
-    import mne
-    root_dir = op.dirname(mne.__file__)
+    root_dirs = [importlib.import_module(ns) for ns in ignore_namespaces]
+    root_dirs = [op.dirname(ns.__file__) for ns in root_dirs]
     frame = None
     if logger.level <= logging.WARN:
         frame = inspect.currentframe()
@@ -346,7 +352,7 @@ def warn(message, category=RuntimeWarning, module='mne'):
             if not _verbose_dec_re.search(fname):
                 # treat tests as scripts
                 # and don't capture unittest/case.py (assert_raises)
-                if not (fname.startswith(root_dir) or
+                if not (any(fname.startswith(rd) for rd in root_dirs) or
                         ('unittest' in fname and 'case' in fname)) or \
                         op.basename(op.dirname(fname)) == 'tests':
                     break
