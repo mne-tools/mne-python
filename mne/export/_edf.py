@@ -68,14 +68,14 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     voltage_types = list(units) + ['stim', 'misc']
     non_voltage_ch = [ch not in voltage_types for ch in orig_ch_types]
     if any(non_voltage_ch):
-        warn('There are non-voltage channels that are not set as "misc". '
-             f'{non_voltage_ch}'
-             'EDF only supports writing Voltage-based data. '
-             'These channels will not be written to the EDF file. '
-             'If you would still like these channels to be written, '
-             'you can set their channel type to "misc", but they will '
-             'most likely not be written correctly. For example, EDF '
-             'does not support storing MEG channels.')
+        warn(f"Non-voltage channels detected: {non_voltage_ch}. MNE-Python's "
+             'EDF exporter only supports voltage-based channels, because the '
+             'EDF format cannot accommodate much of the accompanying data '
+             'necessary for channel types like MEG and fNIRS (channel '
+             'orientations, coordinate frame transforms, etc). You can '
+             'override this restriction by setting those channel types to '
+             '"misc" but no guarantees are made of the fidelity of that '
+             'approach.')
 
     ch_names = [ch for ch in raw.ch_names if ch not in drop_chs]
     ch_types = np.array(raw.get_channel_types(picks=ch_names))
@@ -214,8 +214,9 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
     n_blocks = np.ceil(n_times / out_sfreq).astype(int)
 
     # increase the number of annotation signals if necessary
-    n_annotations = len(raw.annotations)
-    if n_annotations is not None:
+    annots = raw.annotations
+    if annots is not None:
+        n_annotations = len(raw.annotations)
         n_annot_chans = int(n_annotations / n_blocks)
         if np.mod(n_annotations, n_blocks):
             n_annot_chans += 1
@@ -252,7 +253,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                  'were appended to all channels when writing the final block.')
 
     # write annotations
-    if raw.annotations:
+    if annots is not None:
         for desc, onset, duration in zip(raw.annotations.description,
                                          raw.annotations.onset,
                                          raw.annotations.duration):

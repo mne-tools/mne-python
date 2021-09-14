@@ -200,7 +200,7 @@ def test_rawarray_edf(tmp_path):
     raw = RawArray(data, info)
     with pytest.warns(RuntimeWarning, match='The unit'):
         raw.set_channel_types({'9': 'hbr'})
-    with pytest.warns(RuntimeWarning, match='There are non-voltage channels'):
+    with pytest.warns(RuntimeWarning, match='Non-voltage channels'):
         raw.export(temp_fname)
 
     # data should match up to the non-accepted channel
