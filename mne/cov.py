@@ -1519,7 +1519,7 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
     eigvec = np.zeros((n_chan, n_chan), dtype)
     mask = np.zeros(n_chan, bool)
     for ch_type, picks in _picks_by_type(info, meg_combined=True,
-                                         ref_meg=False, exclude='bads'):
+                                         ref_meg=False, exclude=[]):
         if len(picks) == 0:
             continue
         this_C = C[np.ix_(picks, picks)]

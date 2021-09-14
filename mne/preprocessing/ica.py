@@ -59,7 +59,7 @@ from ..fixes import _get_args, _safe_svd
 from ..filter import filter_data
 from .bads import _find_outliers
 from .ctps_ import ctps
-from ..io.pick import pick_channels_regexp
+from ..io.pick import pick_channels_regexp, _picks_by_type
 
 __all__ = ('ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
            'get_score_funcs', 'read_ica', 'read_ica_eeglab')
@@ -660,31 +660,17 @@ class ICA(ContainsMixin):
             # Scale (z-score) the data by channel type
             info = self.info
             pre_whitener = np.empty([len(data), 1])
-            for ch_type in _DATA_CH_TYPES_SPLIT + ('eog', "ref_meg"):
-                if _contains_ch_type(info, ch_type):
-                    if ch_type == 'seeg':
-                        this_picks = pick_types(info, meg=False, seeg=True)
-                    elif ch_type == 'dbs':
-                        this_picks = pick_types(info, meg=False, dbs=True)
-                    elif ch_type == 'ecog':
-                        this_picks = pick_types(info, meg=False, ecog=True)
-                    elif ch_type == 'eeg':
-                        this_picks = pick_types(info, meg=False, eeg=True)
-                    elif ch_type in ('mag', 'grad'):
-                        this_picks = pick_types(info, meg=ch_type)
-                    elif ch_type == 'eog':
-                        this_picks = pick_types(info, meg=False, eog=True)
-                    elif ch_type in ('hbo', 'hbr'):
-                        this_picks = pick_types(info, meg=False, fnirs=ch_type)
-                    elif ch_type == 'ref_meg':
-                        this_picks = pick_types(info, meg=False, ref_meg=True)
-                    else:
-                        raise RuntimeError('Should not be reached.'
-                                           'Unsupported channel {}'
-                                           .format(ch_type))
-                    pre_whitener[this_picks] = np.std(data[this_picks])
+            for _, picks_ in _picks_by_type(info, ref_meg=False, exclude=[]):
+                pre_whitener[picks_] = np.std(data[picks_])
+            if _contains_ch_type(info, "ref_meg"):
+                picks_ = pick_types(info, ref_meg=True, exclude=[])
+                pre_whitener[picks_] = np.std(data[picks_])
+            if _contains_ch_type(info, "eog"):
+                picks_ = pick_types(info, eog=True, exclude=[])
+                pre_whitener[picks_] = np.std(data[picks_])
         else:
-            pre_whitener, _ = compute_whitener(self.noise_cov, self.info)
+            pre_whitener, _ = compute_whitener(
+                self.noise_cov, self.info, picks=self.info.ch_names)
             assert data.shape[0] == pre_whitener.shape[1]
         self.pre_whitener_ = pre_whitener
 
@@ -841,16 +827,7 @@ class ICA(ContainsMixin):
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please fit ICA.')
         start, stop = _check_start_stop(raw, start, stop)
-
-        picks = pick_types(raw.info, include=self.ch_names, exclude='bads',
-                           meg=False, ref_meg=False)
-        if len(picks) != len(self.ch_names):
-            raise RuntimeError('Raw doesn\'t match fitted data: %i channels '
-                               'fitted but %i channels supplied. \nPlease '
-                               'provide Raw compatible with '
-                               'ica.ch_names' % (len(self.ch_names),
-                                                 len(picks)))
-
+        picks = self._get_picks(raw)
         reject = 'omit' if reject_by_annotation else None
         data = raw.get_data(picks, start, stop, reject)
         return self._transform(data)
@@ -859,44 +836,41 @@ class ICA(ContainsMixin):
         """Aux method."""
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please fit ICA.')
-
-        picks = pick_types(epochs.info, include=self.ch_names, exclude='bads',
-                           meg=False, ref_meg=False)
-        # special case where epochs come picked but fit was 'unpicked'.
-        if len(picks) != len(self.ch_names):
-            raise RuntimeError('Epochs don\'t match fitted data: %i channels '
-                               'fitted but %i channels supplied. \nPlease '
-                               'provide Epochs compatible with '
-                               'ica.ch_names' % (len(self.ch_names),
-                                                 len(picks)))
-
+        picks = self._get_picks(epochs)
         data = np.hstack(epochs.get_data()[:, picks])
         sources = self._transform(data)
-
         if not concatenate:
             # Put the data back in 3D
             sources = np.array(np.split(sources, len(epochs.events), 1))
-
         return sources
 
     def _transform_evoked(self, evoked):
         """Aux method."""
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please fit ICA.')
+        picks = self._get_picks(evoked)
+        return self._transform(evoked.data[picks])
 
-        picks = pick_types(evoked.info, include=self.ch_names, exclude='bads',
-                           meg=False, ref_meg=False)
-
+    def _get_picks(self, inst):
+        """Pick logic for _transform method."""
+        picks = _picks_to_idx(
+            inst.info, self.ch_names, exclude=[], allow_empty=True)
         if len(picks) != len(self.ch_names):
-            raise RuntimeError('Evoked doesn\'t match fitted data: %i channels'
-                               ' fitted but %i channels supplied. \nPlease '
-                               'provide Evoked compatible with '
-                               'ica.ch_names' % (len(self.ch_names),
-                                                 len(picks)))
-
-        sources = self._transform(evoked.data[picks])
-
-        return sources
+            if isinstance(inst, BaseRaw):
+                kind, do = 'Raw', "doesn't"
+            elif isinstance(inst, BaseEpochs):
+                kind, do = 'Epochs', "don't"
+            elif isinstance(inst, Evoked):
+                kind, do = 'Evoked', "doesn't"
+            else:
+                raise ValueError('Data input must be of Raw, Epochs or Evoked '
+                                 'type')
+            raise RuntimeError("%s %s match fitted data: %i channels "
+                               "fitted but %i channels supplied. \nPlease "
+                               "provide %s compatible with ica.ch_names"
+                               % (kind, do, len(self.ch_names), len(picks),
+                                  kind))
+        return picks
 
     def get_components(self):
         """Get ICA topomap for components as numpy arrays.
