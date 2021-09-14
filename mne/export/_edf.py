@@ -58,17 +58,24 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         stim_index = np.atleast_1d(stim_index.squeeze()).tolist()
         drop_chs.extend([raw.ch_names[idx] for idx in stim_index])
 
-    # add warning if any channel types are not voltage based
-    # note: we can write these other channels, such as 'misc'
-    # but they just won't work because EDF doesn't support
-    # the idea of a 'misc' channel
+    # Add warning if any channel types are not voltage based.
+    # Users are expected to only export data that is voltage based,
+    # such as EEG, ECoG, sEEG, etc.
+    # Non-voltage channels are dropped by the export function.
+    # Note: we can write these other channels, such as 'misc'
+    # but these are simply a "catch all" for unknown or undesired
+    # channels.
     voltage_types = list(units) + ['stim', 'misc']
-    if any([ch not in voltage_types for ch in orig_ch_types]):
+    non_voltage_ch = [ch not in voltage_types for ch in orig_ch_types]
+    if any(non_voltage_ch):
         warn('There are non-voltage channels that are not set as "misc". '
+             f'{non_voltage_ch}'
              'EDF only supports writing Voltage-based data. '
              'These channels will not be written to the EDF file. '
              'If you would still like these channels to be written, '
-             'set their channel type to "misc".')
+             'you can set their channel type to "misc", but they will '
+             'most likely not be written correctly. For example, EDF '
+             'does not support storing MEG channels.')
 
     ch_names = [ch for ch in raw.ch_names if ch not in drop_chs]
     ch_types = np.array(raw.get_channel_types(picks=ch_names))
