@@ -5,6 +5,8 @@
 
 import os
 from os import path as op
+import pkg_resources
+import re
 
 from ..utils import _get_path, _do_path_update
 from ...utils import _fetch_file, _url_to_local_path, verbose
@@ -150,12 +152,44 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
     if not hasattr(runs, '__iter__'):
         runs = [runs]
 
-    data_paths = []
-    for r in runs:
-        url = '{u}S{s:03d}/S{s:03d}R{r:02d}.edf'.format(u=base_url,
-                                                        s=subject, r=r)
-        data_paths.extend(data_path(url, path, force_update, update_path))
+    # get local storage path
+    config_key = 'MNE_DATASETS_EEGBCI_PATH'
+    folder = 'MNE-eegbci-data'
+    name = 'EEGBCI'
+    path = _get_path(path, config_key, name)
 
+    # extract path parts
+    pattern = r'(?:https?://.*)(files)/(eegmmidb)/(\d+\.\d+\.\d+)/?'
+    match = re.compile(pattern).match(base_url)
+    if match is None:
+        raise ValueError('base_url does not match the expected EEGMI folder '
+                         'structure. Please notify MNE-Python developers.')
+    base_path = op.join(path, folder, *match.groups())
+
+    # create the download manager
+    fetcher = pooch.create(
+        path=base_path,
+        base_url=base_url,
+        version=None,   # Data versioning is decoupled from MNE-Python version.
+        registry=None,  # Registry is loaded from file, below.
+        retry_if_failed=2  # 2 retries = 3 total attempts
+    )
+
+    # load the checksum registry
+    registry = pkg_resources.resource_stream(
+        'mne', op.join('data', 'eegbci_checksums.txt'))
+    fetcher.load_registry(registry)
+
+    # fetch the file(s)
+    data_paths = []
+    for run in runs:
+        file_part = f'S{subject:03d}/S{subject:03d}R{run:02d}.edf'
+        destination = op.join(base_path, file_part)
+        if force_update and op.isfile(destination):
+            os.remove(destination)
+        data_paths.append(fetcher.fetch(file_part))
+        # update path in config if desired
+        _do_path_update(path, update_path, config_key, name)
     return data_paths
 
 
