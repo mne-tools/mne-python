@@ -1,9 +1,10 @@
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
+from contextlib import nullcontext
 import itertools
 import os.path as op
 import numpy as np
@@ -13,19 +14,25 @@ import pytest
 
 from mne import (pick_channels, pick_types, Epochs, read_events,
                  set_eeg_reference, set_bipolar_reference,
-                 add_reference_channels, create_info)
+                 add_reference_channels, create_info, make_sphere_model,
+                 make_forward_solution, setup_volume_source_space,
+                 pick_channels_forward, read_evokeds,
+                 find_events)
 from mne.epochs import BaseEpochs
 from mne.io import RawArray, read_raw_fif
 from mne.io.constants import FIFF
 from mne.io.proj import _has_eeg_average_ref_proj, Projection
 from mne.io.reference import _apply_reference
 from mne.datasets import testing
-from mne.utils import run_tests_if_main
+from mne.utils import catch_logging
+
+base_dir = op.join(op.dirname(__file__), 'data')
+raw_fname = op.join(base_dir, 'test_raw.fif')
 
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
 eve_fname = op.join(data_dir, 'sample_audvis_trunc_raw-eve.fif')
-ave_fname = op.join(data_dir, 'sample_audvis_trunc-ave.fif')
+ave_fname = op.join(data_dir, 'sample_audvis-ave.fif')
 
 
 def _test_reference(raw, reref, ref_data, ref_from):
@@ -128,10 +135,16 @@ def test_apply_reference():
         )
     )
     # Projection concerns channels mentioned in projector
-    pytest.raises(RuntimeError, _apply_reference, raw, ['EEG 001'])
+    with pytest.raises(RuntimeError, match='Inactive signal space'):
+        _apply_reference(raw, ['EEG 001'])
 
     # Projection does not concern channels mentioned in projector, no error
     _apply_reference(raw, ['EEG 003'], ['EEG 004'])
+
+    # CSD cannot be rereferenced
+    raw.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_CSD
+    with pytest.raises(RuntimeError, match="Cannot set.* type 'CSD'"):
+        raw.set_eeg_reference()
 
 
 @testing.requires_testing_data
@@ -161,39 +174,39 @@ def test_set_eeg_reference():
     raw_nopreload = read_raw_fif(fif_fname, preload=False)
     raw_nopreload.info['projs'] = []
     reref, ref_data = set_eeg_reference(raw_nopreload, projection=True)
-    assert (_has_eeg_average_ref_proj(reref.info['projs']))
-    assert (not reref.info['projs'][0]['active'])
+    assert _has_eeg_average_ref_proj(reref.info['projs'])
+    assert not reref.info['projs'][0]['active']
 
     # Rereference raw data by creating a copy of original data
     reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'], copy=True)
-    assert (reref.info['custom_ref_applied'])
+    assert reref.info['custom_ref_applied']
     _test_reference(raw, reref, ref_data, ['EEG 001', 'EEG 002'])
 
     # Test that data is modified in place when copy=False
     reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'],
                                         copy=False)
-    assert (raw is reref)
+    assert raw is reref
 
     # Test moving from custom to average reference
     reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'])
     reref, _ = set_eeg_reference(reref, projection=True)
-    assert (_has_eeg_average_ref_proj(reref.info['projs']))
-    assert_equal(reref.info['custom_ref_applied'], False)
+    assert _has_eeg_average_ref_proj(reref.info['projs'])
+    assert not reref.info['custom_ref_applied']
 
     # When creating an average reference fails, make sure the
     # custom_ref_applied flag remains untouched.
     reref = raw.copy()
-    reref.info['custom_ref_applied'] = True
-    reref.pick_types(eeg=False)  # Cause making average ref fail
+    reref.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
+    reref.pick_types(meg=True, eeg=False)  # Cause making average ref fail
     pytest.raises(ValueError, set_eeg_reference, reref, projection=True)
-    assert (reref.info['custom_ref_applied'])
+    assert reref.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_ON
 
     # Test moving from average to custom reference
     reref, ref_data = set_eeg_reference(raw, projection=True)
     reref, _ = set_eeg_reference(reref, ['EEG 001', 'EEG 002'])
     assert not _has_eeg_average_ref_proj(reref.info['projs'])
     assert len(reref.info['projs']) == 0
-    assert_equal(reref.info['custom_ref_applied'], True)
+    assert reref.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_ON
 
     # Test that disabling the reference does not change the data
     assert _has_eeg_average_ref_proj(raw.info['projs'])
@@ -219,26 +232,134 @@ def test_set_eeg_reference():
                                         projection=False)
     _test_reference(raw, reref, ref_data, eeg_chans)
 
-    # projection=True only works for ref_channels='average'
-    pytest.raises(ValueError, set_eeg_reference, raw, [], True, True)
-    pytest.raises(ValueError, set_eeg_reference, raw, ['EEG 001'], True, True)
+    with pytest.raises(ValueError, match='supported for ref_channels="averag'):
+        set_eeg_reference(raw, [], True, True)
+    with pytest.raises(ValueError, match='supported for ref_channels="averag'):
+        set_eeg_reference(raw, ['EEG 001'], True, True)
+
+
+@pytest.mark.parametrize('ch_type, msg',
+                         [('auto', ('ECoG',)),
+                          ('ecog', ('ECoG',)),
+                          ('dbs', ('DBS',)),
+                          (['ecog', 'dbs'], ('ECoG', 'DBS'))])
+def test_set_eeg_reference_ch_type(ch_type, msg):
+    """Test setting EEG reference for ECoG or DBS."""
+    # gh-6454
+    # gh-8739 added DBS
+    ch_names = ['ECOG01', 'ECOG02', 'DBS01', 'DBS02', 'MISC']
+    rng = np.random.RandomState(0)
+    data = rng.randn(5, 1000)
+    raw = RawArray(data, create_info(ch_names, 1000., ['ecog'] * 2
+                                     + ['dbs'] * 2 + ['misc']))
+    if ch_type == 'auto':
+        ref_ch = ch_names[:2]
+    else:
+        ref_ch = raw.copy().pick(picks=ch_type).ch_names
+    with catch_logging() as log:
+        reref, ref_data = set_eeg_reference(raw.copy(), ch_type=ch_type,
+                                            verbose=True)
+    assert f"Applying a custom {msg}" in log.getvalue()
+    assert reref.info['custom_ref_applied']  # gh-7350
+    _test_reference(raw, reref, ref_data, ref_ch)
+    with pytest.raises(ValueError, match='No channels supplied'):
+        set_eeg_reference(raw, ch_type='eeg')
+    # gh-8739
+    raw2 = RawArray(data, create_info(5, 1000., ['mag'] * 4 + ['misc']))
+    with pytest.raises(ValueError, match='No EEG, ECoG, sEEG or DBS channels '
+                       'found to rereference.'):
+        set_eeg_reference(raw2, ch_type='auto')
 
 
 @testing.requires_testing_data
-def test_set_bipolar_reference():
+def test_set_eeg_reference_rest():
+    """Test setting a REST reference."""
+    raw = read_raw_fif(fif_fname).crop(0, 1).pick_types(
+        meg=False, eeg=True, exclude=()).load_data()
+    raw.info['bads'] = ['EEG 057']  # should be excluded
+    same = [raw.ch_names.index(raw.info['bads'][0])]
+    picks = np.setdiff1d(np.arange(len(raw.ch_names)), same)
+    trans = None
+    sphere = make_sphere_model('auto', 'auto', raw.info)
+    src = setup_volume_source_space(pos=20., sphere=sphere, exclude=30.)
+    assert src[0]['nuse'] == 223  # low but fast
+    fwd = make_forward_solution(raw.info, trans, src, sphere)
+    orig_data = raw.get_data()
+    avg_data = raw.copy().set_eeg_reference('average').get_data()
+    assert_array_equal(avg_data[same], orig_data[same])  # not processed
+    raw.set_eeg_reference('REST', forward=fwd)
+    rest_data = raw.get_data()
+    assert_array_equal(rest_data[same], orig_data[same])
+    # should be more similar to an avg ref than nose ref
+    orig_corr = np.corrcoef(rest_data[picks].ravel(),
+                            orig_data[picks].ravel())[0, 1]
+    avg_corr = np.corrcoef(rest_data[picks].ravel(),
+                           avg_data[picks].ravel())[0, 1]
+    assert -0.6 < orig_corr < -0.5
+    assert 0.1 < avg_corr < 0.2
+    # and applying an avg ref after should work
+    avg_after = raw.set_eeg_reference('average').get_data()
+    assert_allclose(avg_after, avg_data, atol=1e-12)
+    with pytest.raises(TypeError, match='forward when ref_channels="REST"'):
+        raw.set_eeg_reference('REST')
+    fwd_bad = pick_channels_forward(fwd, raw.ch_names[:-1])
+    with pytest.raises(ValueError, match='Missing channels'):
+        raw.set_eeg_reference('REST', forward=fwd_bad)
+    # compare to FieldTrip
+    evoked = read_evokeds(ave_fname, baseline=(None, 0))[0]
+    evoked.info['bads'] = []
+    evoked.pick_types(meg=False, eeg=True, exclude=())
+    assert len(evoked.ch_names) == 60
+    # Data obtained from FieldTrip with something like (after evoked.save'ing
+    # then scipy.io.savemat'ing fwd['sol']['data']):
+    # dat = ft_read_data('ft-ave.fif');
+    # load('leadfield.mat', 'G');
+    # dat_ref = ft_preproc_rereference(dat, 'all', 'rest', true, G);
+    # sprintf('%g ', dat_ref(:, 171));
+    want = np.array('-3.3265e-05 -3.2419e-05 -3.18758e-05 -3.24079e-05 -3.39801e-05 -3.40573e-05 -3.24163e-05 -3.26896e-05 -3.33814e-05 -3.54734e-05 -3.51289e-05 -3.53229e-05 -3.51532e-05 -3.53149e-05 -3.4505e-05 -3.03462e-05 -2.81848e-05 -3.08895e-05 -3.27158e-05 -3.4605e-05 -3.47728e-05 -3.2459e-05 -3.06552e-05 -2.53255e-05 -2.69671e-05 -2.83425e-05 -3.12836e-05 -3.30965e-05 -3.34099e-05 -3.32766e-05 -3.32256e-05 -3.36385e-05 -3.20796e-05 -2.7108e-05 -2.47054e-05 -2.49589e-05 -2.7382e-05 -3.09774e-05 -3.12003e-05 -3.1246e-05 -3.07572e-05 -2.64942e-05 -2.25505e-05 -2.67194e-05 -2.86e-05 -2.94903e-05 -2.96249e-05 -2.92653e-05 -2.86472e-05 -2.81016e-05 -2.69737e-05 -2.48076e-05 -3.00473e-05 -2.73404e-05 -2.60153e-05 -2.41608e-05 -2.61937e-05 -2.5539e-05 -2.47104e-05 -2.35194e-05'.split(' '), float)  # noqa: E501
+    norm = np.linalg.norm(want)
+    idx = np.argmin(np.abs(evoked.times - 0.083))
+    assert idx == 170
+    old = evoked.data[:, idx].ravel()
+    exp_var = 1 - np.linalg.norm(want - old) / norm
+    assert 0.006 < exp_var < 0.008
+    evoked.set_eeg_reference('REST', forward=fwd)
+    exp_var_old = 1 - np.linalg.norm(evoked.data[:, idx] - old) / norm
+    assert 0.005 < exp_var_old <= 0.009
+    exp_var = 1 - np.linalg.norm(evoked.data[:, idx] - want) / norm
+    assert 0.995 < exp_var <= 1
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('inst_type', ('raw', 'epochs', 'evoked'))
+def test_set_bipolar_reference(inst_type):
     """Test bipolar referencing."""
     raw = read_raw_fif(fif_fname, preload=True)
     raw.apply_proj()
 
-    reref = set_bipolar_reference(raw, 'EEG 001', 'EEG 002', 'bipolar',
-                                  {'kind': FIFF.FIFFV_EOG_CH,
-                                   'extra': 'some extra value'})
+    if inst_type == 'raw':
+        inst = raw
+        del raw
+    elif inst_type in ['epochs', 'evoked']:
+        events = find_events(raw, stim_channel='STI 014')
+        epochs = Epochs(raw, events, tmin=-0.3, tmax=0.7, preload=True)
+        inst = epochs
+        if inst_type == 'evoked':
+            inst = epochs.average()
+        del epochs
+
+    ch_info = {'kind': FIFF.FIFFV_EOG_CH, 'extra': 'some extra value'}
+    with pytest.raises(KeyError, match='key errantly present'):
+        set_bipolar_reference(inst, 'EEG 001', 'EEG 002', 'bipolar', ch_info)
+    ch_info.pop('extra')
+    reref = set_bipolar_reference(
+        inst, 'EEG 001', 'EEG 002', 'bipolar', ch_info)
     assert (reref.info['custom_ref_applied'])
 
     # Compare result to a manual calculation
-    a = raw.copy().pick_channels(['EEG 001', 'EEG 002'])
-    a = a._data[0, :] - a._data[1, :]
-    b = reref.copy().pick_channels(['bipolar'])._data[0, :]
+    a = inst.copy().pick_channels(['EEG 001', 'EEG 002'])
+    a = a._data[..., 0, :] - a._data[..., 1, :]
+    b = reref.copy().pick_channels(['bipolar'])._data[..., 0, :]
     assert_allclose(a, b)
 
     # Original channels should be replaced by a virtual one
@@ -248,24 +369,21 @@ def test_set_bipolar_reference():
 
     # Check channel information
     bp_info = reref.info['chs'][reref.ch_names.index('bipolar')]
-    an_info = reref.info['chs'][raw.ch_names.index('EEG 001')]
+    an_info = inst.info['chs'][inst.ch_names.index('EEG 001')]
     for key in bp_info:
-        if key == 'loc':
-            assert_array_equal(bp_info[key], 0)
-        elif key == 'coil_type':
-            assert_equal(bp_info[key], FIFF.FIFFV_COIL_EEG_BIPOLAR)
+        if key == 'coil_type':
+            assert bp_info[key] == FIFF.FIFFV_COIL_EEG_BIPOLAR, key
         elif key == 'kind':
-            assert_equal(bp_info[key], FIFF.FIFFV_EOG_CH)
-        else:
-            assert_equal(bp_info[key], an_info[key])
-    assert_equal(bp_info['extra'], 'some extra value')
+            assert bp_info[key] == FIFF.FIFFV_EOG_CH, key
+        elif key != 'ch_name':
+            assert_equal(bp_info[key], an_info[key], err_msg=key)
 
     # Minimalist call
-    reref = set_bipolar_reference(raw, 'EEG 001', 'EEG 002')
+    reref = set_bipolar_reference(inst, 'EEG 001', 'EEG 002')
     assert ('EEG 001-EEG 002' in reref.ch_names)
 
     # Minimalist call with twice the same anode
-    reref = set_bipolar_reference(raw,
+    reref = set_bipolar_reference(inst,
                                   ['EEG 001', 'EEG 001', 'EEG 002'],
                                   ['EEG 002', 'EEG 003', 'EEG 003'])
     assert ('EEG 001-EEG 002' in reref.ch_names)
@@ -273,38 +391,41 @@ def test_set_bipolar_reference():
 
     # Set multiple references at once
     reref = set_bipolar_reference(
-        raw,
+        inst,
         ['EEG 001', 'EEG 003'],
         ['EEG 002', 'EEG 004'],
         ['bipolar1', 'bipolar2'],
-        [{'kind': FIFF.FIFFV_EOG_CH, 'extra': 'some extra value'},
-         {'kind': FIFF.FIFFV_EOG_CH, 'extra': 'some extra value'}],
+        [{'kind': FIFF.FIFFV_EOG_CH},
+         {'kind': FIFF.FIFFV_EOG_CH}],
     )
-    a = raw.copy().pick_channels(['EEG 001', 'EEG 002', 'EEG 003', 'EEG 004'])
-    a = np.array([a._data[0, :] - a._data[1, :],
-                  a._data[2, :] - a._data[3, :]])
+    a = inst.copy().pick_channels(['EEG 001', 'EEG 002', 'EEG 003', 'EEG 004'])
+    a = np.concatenate(
+        [a._data[..., :1, :] - a._data[..., 1:2, :],
+         a._data[..., 2:3, :] - a._data[..., 3:4, :]],
+        axis=-2
+    )
     b = reref.copy().pick_channels(['bipolar1', 'bipolar2'])._data
     assert_allclose(a, b)
 
     # Test creating a bipolar reference that doesn't involve EEG channels:
     # it should not set the custom_ref_applied flag
-    reref = set_bipolar_reference(raw, 'MEG 0111', 'MEG 0112',
+    reref = set_bipolar_reference(inst, 'MEG 0111', 'MEG 0112',
                                   ch_info={'kind': FIFF.FIFFV_MEG_CH},
                                   verbose='error')
     assert (not reref.info['custom_ref_applied'])
-    assert ('MEG 0111-MEG 0112'[:15] in reref.ch_names)
+    assert ('MEG 0111-MEG 0112' in reref.ch_names)
 
     # Test a battery of invalid inputs
-    pytest.raises(ValueError, set_bipolar_reference, raw,
+    pytest.raises(ValueError, set_bipolar_reference, inst,
                   'EEG 001', ['EEG 002', 'EEG 003'], 'bipolar')
-    pytest.raises(ValueError, set_bipolar_reference, raw,
+    pytest.raises(ValueError, set_bipolar_reference, inst,
                   ['EEG 001', 'EEG 002'], 'EEG 003', 'bipolar')
-    pytest.raises(ValueError, set_bipolar_reference, raw,
+    pytest.raises(ValueError, set_bipolar_reference, inst,
                   'EEG 001', 'EEG 002', ['bipolar1', 'bipolar2'])
-    pytest.raises(ValueError, set_bipolar_reference, raw,
+    pytest.raises(ValueError, set_bipolar_reference, inst,
                   'EEG 001', 'EEG 002', 'bipolar',
                   ch_info=[{'foo': 'bar'}, {'foo': 'bar'}])
-    pytest.raises(ValueError, set_bipolar_reference, raw,
+    pytest.raises(ValueError, set_bipolar_reference, inst,
                   'EEG 001', 'EEG 002', ch_name='EEG 003')
 
 
@@ -469,9 +590,42 @@ def test_add_reference():
                        evoked_ref.data[picks_eeg, :])
 
     # Test invalid inputs
-    raw_np = read_raw_fif(fif_fname, preload=False)
-    pytest.raises(RuntimeError, add_reference_channels, raw_np, ['Ref'])
-    pytest.raises(ValueError, add_reference_channels, raw, 1)
+    raw = read_raw_fif(fif_fname, preload=False)
+    with pytest.raises(RuntimeError, match='loaded'):
+        add_reference_channels(raw, ['Ref'])
+    raw.load_data()
+    with pytest.raises(ValueError, match='Channel.*already.*'):
+        add_reference_channels(raw, raw.ch_names[:1])
+    with pytest.raises(TypeError, match='instance of'):
+        add_reference_channels(raw, 1)
+
+
+@pytest.mark.parametrize('n_ref', (1, 2))
+def test_add_reorder(n_ref):
+    """Test that a reference channel can be added and then data reordered."""
+    # gh-8300
+    raw = read_raw_fif(raw_fname).crop(0, 0.1).del_proj().pick('eeg')
+    assert len(raw.ch_names) == 60
+    chs = ['EEG %03d' % (60 + ii) for ii in range(1, n_ref)] + ['EEG 000']
+    with pytest.raises(RuntimeError, match='preload'):
+        with pytest.warns(None):  # ignore multiple warning
+            add_reference_channels(raw, chs, copy=False)
+    raw.load_data()
+    if n_ref == 1:
+        ctx = nullcontext()
+    else:
+        assert n_ref == 2
+        ctx = pytest.warns(RuntimeWarning, match='locations of multiple')
+    with ctx:
+        add_reference_channels(raw, chs, copy=False)
+    data = raw.get_data()
+    assert_array_equal(data[-1], 0.)
+    assert raw.ch_names[-n_ref:] == chs
+    raw.reorder_channels(raw.ch_names[-1:] + raw.ch_names[:-1])
+    assert raw.ch_names == ['EEG %03d' % ii for ii in range(60 + n_ref)]
+    data_new = raw.get_data()
+    data_new = np.concatenate([data_new[1:], data_new[:1]])
+    assert_allclose(data, data_new)
 
 
 def test_bipolar_combinations():
@@ -507,15 +661,11 @@ def test_bipolar_combinations():
     # check if reference channels have been kept correctly.
     assert (len(raw_test.ch_names) == len(a_channels) + len(ch_names))
     for idx, ch_label in enumerate(ch_names):
-        manual_ch = raw_data[idx, :]
-        assert_array_equal(
-            raw_test._data[raw_test.ch_names.index(ch_label), :], manual_ch)
+        manual_ch = raw_data[np.newaxis, idx]
+        assert_array_equal(raw_test.get_data(ch_label), manual_ch)
 
     # test bipolars with a channel in both list (anode & cathode).
     raw_test = set_bipolar_reference(
         raw, ['CH2', 'CH1'], ['CH1', 'CH2'], copy=True)
     _check_bipolar(raw_test, 'CH2', 'CH1')
     _check_bipolar(raw_test, 'CH1', 'CH2')
-
-
-run_tests_if_main()

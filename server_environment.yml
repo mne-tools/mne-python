@@ -1,0 +1,27 @@
+name: base
+channels:
+- conda-forge/label/vtk_dev
+- conda-forge
+dependencies:
+- python ==3.8
+- pip
+- mesalib
+- ffmpeg
+- vtk
+- traits
+- scipy
+- numpy
+- matplotlib-base
+- pyvista>=0.30
+- nilearn
+- nibabel
+- nbformat <5.1  # XXX remove pinning once https://github.com/jupyter/nbformat/issues/206 has been fixed
+- nbclient
+- mffpy>=0.5.7
+- pip:
+  - mne
+  - jupyter
+  - ipympl
+  - ipywidgets
+  - ipyvtklink
+  - jupyter_client!=6.1.5

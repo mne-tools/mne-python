@@ -3,12 +3,15 @@ import os.path as op
 
 import pytest
 import numpy as np
-from numpy.testing import assert_array_equal, assert_equal, assert_allclose
+from numpy.testing import (assert_array_equal, assert_equal, assert_allclose,
+                           assert_array_less)
+import itertools
 
+import mne
 from mne.datasets import testing
+from mne.fixes import _get_img_fdata
 from mne import read_trans, write_trans
 from mne.io import read_info
-from mne.utils import _TempDir, run_tests_if_main
 from mne.transforms import (invert_transform, _get_trans,
                             rotation, rotation3d, rotation_angles, _find_trans,
                             combine_transforms, apply_trans, translation,
@@ -18,12 +21,17 @@ from mne.transforms import (invert_transform, _get_trans,
                             _topo_to_sph, _average_quats,
                             _SphericalSurfaceWarp as SphericalSurfaceWarp,
                             rotation3d_align_z_axis, _read_fs_xfm,
-                            _write_fs_xfm)
+                            _write_fs_xfm, _quat_real, _fit_matched_points,
+                            _quat_to_euler, _euler_to_quat,
+                            _quat_to_affine, _compute_r2, _validate_pipeline)
+from mne.utils import requires_nibabel, requires_dipy
 
 data_path = testing.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-trans.fif')
 fname_eve = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc_raw-eve.fif')
+subjects_dir = op.join(data_path, 'subjects')
+fname_t1 = op.join(subjects_dir, 'fsaverage', 'mri', 'T1.mgz')
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname_trans = op.join(base_dir, 'sample-audvis-raw-trans.txt')
@@ -62,9 +70,9 @@ def test_get_trans():
 
 
 @testing.requires_testing_data
-def test_io_trans():
+def test_io_trans(tmpdir):
     """Test reading and writing of trans files."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     os.mkdir(op.join(tempdir, 'sample'))
     pytest.raises(RuntimeError, _find_trans, 'sample', subjects_dir=tempdir)
     trans0 = read_trans(fname)
@@ -182,7 +190,7 @@ def test_polar_to_cartesian():
                     _pol_to_cart(polar), atol=1e-7)
 
 
-def _topo_to_sphere(theta, radius):
+def _topo_to_phi_theta(theta, radius):
     """Convert using old function."""
     sph_phi = (0.5 - radius) * 180
     sph_theta = -theta
@@ -202,9 +210,9 @@ def test_topo_to_sph():
     new[:, [0, 1]] = new[:, [1, 0]] * [-1, 1]
     # old way
     for ii, (angle, radius) in enumerate(zip(angles, radii)):
-        sph_phi, sph_theta = _topo_to_sphere(angle, radius)
+        sph_phi, sph_theta = _topo_to_phi_theta(angle, radius)
         if ii == 0:
-            assert_allclose(_topo_to_sphere(angle, radius), [45, -30])
+            assert_allclose(_topo_to_phi_theta(angle, radius), [45, -30])
         azimuth = sph_theta / 180.0 * np.pi
         elevation = sph_phi / 180.0 * np.pi
         assert_allclose(sph[ii], [1., azimuth, np.pi / 2. - elevation],
@@ -238,7 +246,7 @@ def test_rotation3d_align_z_axis():
     # The more complex z axis fails the assert presumably due to tolerance
     #
     inp_zs = [[0, 0, 1], [0, 1, 0], [1, 0, 0], [0, 0, -1],
-              [-0.75071668, -0.62183808,  0.22302888]]
+              [-0.75071668, -0.62183808, 0.22302888]]
 
     exp_res = [[[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]],
                [[1., 0., 0.], [0., 0., 1.], [0., -1., 0.]],
@@ -304,6 +312,13 @@ def test_quaternions():
             expected = np.pi if ii != jj else 0.
             assert_allclose(_angle_between_quats(a, b), expected, atol=1e-5)
 
+    y_180 = np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1.]])
+    assert_allclose(_angle_between_quats(rot_to_quat(y_180),
+                                         np.zeros(3)), np.pi)
+    h_180_attitude_90 = np.array([[0, 1, 0], [1, 0, 0], [0, 0, -1.]])
+    assert_allclose(_angle_between_quats(rot_to_quat(h_180_attitude_90),
+                                         np.zeros(3)), np.pi)
+
 
 def test_vector_rotation():
     """Test basic rotation matrix math."""
@@ -341,38 +356,199 @@ def test_average_quats():
     assert_allclose(rot_0, rot_1, atol=1e-7)
     for lim, ex in enumerate(expected):
         assert_allclose(_average_quats(quats[:lim + 1]), ex, atol=1e-7)
+    # Assert some symmetry
+    count = 0
+    extras = [[sq2, sq2, 0]] + list(np.eye(3))
+    for quat in np.concatenate((quats, expected, extras)):
+        if np.isclose(_quat_real(quat), 0., atol=1e-7):  # can flip sign
+            count += 1
+            angle = _angle_between_quats(quat, -quat)
+            assert_allclose(angle, 0., atol=1e-7)
+            rot_0, rot_1 = quat_to_rot(np.array((quat, -quat)))
+            assert_allclose(rot_0, rot_1, atol=1e-7)
+    assert count == 4 + len(extras)
 
 
 @testing.requires_testing_data
-def test_fs_xfm():
+@pytest.mark.parametrize('subject', ('fsaverage', 'sample'))
+def test_fs_xfm(subject, tmpdir):
     """Test reading and writing of Freesurfer transforms."""
-    for subject in ('fsaverage', 'sample'):
-        fname = op.join(data_path, 'subjects', subject, 'mri', 'transforms',
-                        'talairach.xfm')
-        xfm, kind = _read_fs_xfm(fname)
-        if subject == 'fsaverage':
-            assert_allclose(xfm, np.eye(4), atol=1e-5)  # fsaverage is in MNI
-        assert kind == 'MNI Transform File'
-        tempdir = _TempDir()
-        fname_out = op.join(tempdir, 'out.xfm')
-        _write_fs_xfm(fname_out, xfm, kind)
-        xfm_read, kind_read = _read_fs_xfm(fname_out)
-        assert kind_read == kind
-        assert_allclose(xfm, xfm_read, rtol=1e-5, atol=1e-5)
-        # Some wacky one
-        xfm[:3] = np.random.RandomState(0).randn(3, 4)
-        _write_fs_xfm(fname_out, xfm, 'foo')
-        xfm_read, kind_read = _read_fs_xfm(fname_out)
-        assert kind_read == 'foo'
-        assert_allclose(xfm, xfm_read, rtol=1e-5, atol=1e-5)
-        # degenerate conditions
-        with open(fname_out, 'w') as fid:
-            fid.write('foo')
-        with pytest.raises(ValueError, match='Failed to find'):
-            _read_fs_xfm(fname_out)
-        _write_fs_xfm(fname_out, xfm[:2], 'foo')
-        with pytest.raises(ValueError, match='Could not find'):
-            _read_fs_xfm(fname_out)
+    fname = op.join(data_path, 'subjects', subject, 'mri', 'transforms',
+                    'talairach.xfm')
+    xfm, kind = _read_fs_xfm(fname)
+    if subject == 'fsaverage':
+        assert_allclose(xfm, np.eye(4), atol=1e-5)  # fsaverage is in MNI
+    assert kind == 'MNI Transform File'
+    tempdir = str(tmpdir)
+    fname_out = op.join(tempdir, 'out.xfm')
+    _write_fs_xfm(fname_out, xfm, kind)
+    xfm_read, kind_read = _read_fs_xfm(fname_out)
+    assert kind_read == kind
+    assert_allclose(xfm, xfm_read, rtol=1e-5, atol=1e-5)
+    # Some wacky one
+    xfm[:3] = np.random.RandomState(0).randn(3, 4)
+    _write_fs_xfm(fname_out, xfm, 'foo')
+    xfm_read, kind_read = _read_fs_xfm(fname_out)
+    assert kind_read == 'foo'
+    assert_allclose(xfm, xfm_read, rtol=1e-5, atol=1e-5)
+    # degenerate conditions
+    with open(fname_out, 'w') as fid:
+        fid.write('foo')
+    with pytest.raises(ValueError, match='Failed to find'):
+        _read_fs_xfm(fname_out)
+    _write_fs_xfm(fname_out, xfm[:2], 'foo')
+    with pytest.raises(ValueError, match='Could not find'):
+        _read_fs_xfm(fname_out)
 
 
-run_tests_if_main()
+@pytest.fixture()
+def quats():
+    """Make some unit quats."""
+    quats = np.random.RandomState(0).randn(5, 3)
+    quats[:, 0] = 0  # identity
+    quats /= 2 * np.linalg.norm(quats, axis=1, keepdims=True)  # some real part
+    return quats
+
+
+def _check_fit_matched_points(
+        p, x, weights, do_scale, angtol=1e-5, dtol=1e-5, stol=1e-7):
+    __tracebackhide__ = True
+    mne.coreg._ALLOW_ANALITICAL = False
+    try:
+        params = mne.coreg.fit_matched_points(
+            p, x, weights=weights, scale=do_scale, out='params')
+    finally:
+        mne.coreg._ALLOW_ANALITICAL = True
+    quat_an, scale_an = _fit_matched_points(p, x, weights, scale=do_scale)
+    assert len(params) == 6 + int(do_scale)
+    q_co = _euler_to_quat(params[:3])
+    translate_co = params[3:6]
+    angle = np.rad2deg(_angle_between_quats(quat_an[:3], q_co))
+    dist = np.linalg.norm(quat_an[3:] - translate_co)
+    assert 0 <= angle < angtol, 'angle'
+    assert 0 <= dist < dtol, 'dist'
+    if do_scale:
+        scale_co = params[6]
+        assert_allclose(scale_an, scale_co, rtol=stol, err_msg='scale')
+    # errs
+    trans = _quat_to_affine(quat_an)
+    trans[:3, :3] *= scale_an
+    weights = np.ones(1) if weights is None else weights
+    err_an = np.linalg.norm(
+        weights[:, np.newaxis] * apply_trans(trans, p) - x)
+    trans = mne.coreg._trans_from_params((True, True, do_scale), params)
+    err_co = np.linalg.norm(
+        weights[:, np.newaxis] * apply_trans(trans, p) - x)
+    if err_an > 1e-14:
+        assert err_an < err_co * 1.5
+    return quat_an, scale_an
+
+
+@pytest.mark.parametrize('scaling', [0.25, 1])
+@pytest.mark.parametrize('do_scale', (True, False))
+def test_fit_matched_points(quats, scaling, do_scale):
+    """Test analytical least-squares matched point fitting."""
+    if scaling != 1 and not do_scale:
+        return  # no need to test this, it will not be good
+    rng = np.random.RandomState(0)
+    fro = rng.randn(10, 3)
+    translation = rng.randn(3)
+    for qi, quat in enumerate(quats):
+        to = scaling * np.dot(quat_to_rot(quat), fro.T).T + translation
+        for corrupted in (False, True):
+            # mess up a point
+            if corrupted:
+                to[0, 2] += 100
+                weights = np.ones(len(to))
+                weights[0] = 0
+            else:
+                weights = None
+            est, scale_est = _check_fit_matched_points(
+                fro, to, weights=weights, do_scale=do_scale)
+            assert_allclose(scale_est, scaling, rtol=1e-5)
+            assert_allclose(est[:3], quat, atol=1e-14)
+            assert_allclose(est[3:], translation, atol=1e-14)
+        # if we don't adjust for the corruption above, it should get worse
+        angle = dist = None
+        for weighted in (False, True):
+            if not weighted:
+                weights = None
+                dist_bounds = (5, 20)
+                if scaling == 1:
+                    angle_bounds = (5, 95)
+                    angtol, dtol, stol = 1, 15, 3
+                else:
+                    angle_bounds = (5, 105)
+                    angtol, dtol, stol = 20, 15, 3
+            else:
+                weights = np.ones(len(to))
+                weights[0] = 10  # weighted=True here means "make it worse"
+                angle_bounds = (angle, 180)  # unweighted values as new min
+                dist_bounds = (dist, 100)
+                if scaling == 1:
+                    # XXX this angtol is not great but there is a hard to
+                    # identify linalg/angle calculation bug on Travis...
+                    angtol, dtol, stol = 180, 70, 3
+                else:
+                    angtol, dtol, stol = 50, 70, 3
+            est, scale_est = _check_fit_matched_points(
+                fro, to, weights=weights, do_scale=do_scale,
+                angtol=angtol, dtol=dtol, stol=stol)
+            assert not np.allclose(est[:3], quat, atol=1e-5)
+            assert not np.allclose(est[3:], translation, atol=1e-5)
+            angle = np.rad2deg(_angle_between_quats(est[:3], quat))
+            assert_array_less(angle_bounds[0], angle)
+            assert_array_less(angle, angle_bounds[1])
+            dist = np.linalg.norm(est[3:] - translation)
+            assert_array_less(dist_bounds[0], dist)
+            assert_array_less(dist, dist_bounds[1])
+
+
+def test_euler(quats):
+    """Test euler transformations."""
+    euler = _quat_to_euler(quats)
+    quats_2 = _euler_to_quat(euler)
+    assert_allclose(quats, quats_2, atol=1e-14)
+    quat_rot = quat_to_rot(quats)
+    euler_rot = np.array([rotation(*e)[:3, :3] for e in euler])
+    assert_allclose(quat_rot, euler_rot, atol=1e-14)
+
+
+@requires_nibabel()
+@requires_dipy()
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_volume_registration():
+    """Test volume registration."""
+    import nibabel as nib
+    from dipy.align import resample
+    T1 = nib.load(fname_t1)
+    affine = np.eye(4)
+    affine[0, 3] = 10
+    T1_resampled = resample(moving=T1.get_fdata(),
+                            static=T1.get_fdata(),
+                            moving_affine=T1.affine,
+                            static_affine=T1.affine,
+                            between_affine=np.linalg.inv(affine))
+    for pipeline in ('rigids', ('translation', 'sdr')):
+        reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
+            T1_resampled, T1, pipeline=pipeline, zooms=10, niter=[5])
+        assert_allclose(affine, reg_affine, atol=0.25)
+        T1_aligned = mne.transforms.apply_volume_registration(
+            T1_resampled, T1, reg_affine, sdr_morph)
+        r2 = _compute_r2(_get_img_fdata(T1_aligned), _get_img_fdata(T1))
+        assert 99.9 < r2
+
+    # check that all orders of the pipeline work
+    for pipeline_len in range(1, 5):
+        for pipeline in itertools.combinations(
+                ('translation', 'rigid', 'affine', 'sdr'), pipeline_len):
+            _validate_pipeline(pipeline)
+            _validate_pipeline(list(pipeline))
+
+    with pytest.raises(ValueError, match='Steps in pipeline are out of order'):
+        _validate_pipeline(('sdr', 'affine'))
+
+    with pytest.raises(ValueError,
+                       match='Steps in pipeline should not be repeated'):
+        _validate_pipeline(('affine', 'affine'))

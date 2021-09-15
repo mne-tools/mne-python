@@ -7,7 +7,6 @@ import numpy as np
 from mne.io import read_raw_fif, read_raw_ctf
 from mne.io.proj import make_projector, activate_proj
 from mne.preprocessing.ssp import compute_proj_ecg, compute_proj_eog
-from mne.utils import run_tests_if_main
 from mne.datasets import testing
 from mne import pick_types
 
@@ -20,98 +19,116 @@ ctf_fname = op.join(testing.data_path(download=False), 'CTF',
                     'testdata_ctf.ds')
 
 
-def test_compute_proj_ecg():
+@pytest.fixture()
+def short_raw():
+    """Create a short, picked raw instance."""
+    raw = read_raw_fif(raw_fname).crop(0, 7).pick_types(
+        meg=True, eeg=True, eog=True)
+    raw.pick(raw.ch_names[:306:10] + raw.ch_names[306:]).load_data()
+    raw.info.normalize_proj()
+    return raw
+
+
+@pytest.mark.parametrize('average', (True, False))
+def test_compute_proj_ecg(short_raw, average):
     """Test computation of ECG SSP projectors."""
-    raw = read_raw_fif(raw_fname).crop(0, 10)
-    raw.load_data()
-    for average in [False, True]:
-        # For speed, let's not filter here (must also not reject then)
+    raw = short_raw
+
+    # For speed, let's not filter here (must also not reject then)
+    with pytest.warns(RuntimeWarning, match='Attenuation'):
         projs, events = compute_proj_ecg(
             raw, n_mag=2, n_grad=2, n_eeg=2, ch_name='MEG 1531',
             bads=['MEG 2443'], average=average, avg_ref=True, no_proj=True,
             l_freq=None, h_freq=None, reject=None, tmax=dur_use,
-            qrs_threshold=0.5, filter_length=6000)
-        assert len(projs) == 7
-        # heart rate at least 0.5 Hz, but less than 3 Hz
-        assert (events.shape[0] > 0.5 * dur_use and
-                events.shape[0] < 3 * dur_use)
-        ssp_ecg = [proj for proj in projs if proj['desc'].startswith('ECG')]
-        # check that the first principal component have a certain minimum
-        ssp_ecg = [proj for proj in ssp_ecg if 'PCA-01' in proj['desc']]
-        thresh_eeg, thresh_axial, thresh_planar = .9, .3, .1
-        for proj in ssp_ecg:
-            if 'planar' in proj['desc']:
-                assert proj['explained_var'] > thresh_planar
-            elif 'axial' in proj['desc']:
-                assert proj['explained_var'] > thresh_axial
-            elif 'eeg' in proj['desc']:
-                assert proj['explained_var'] > thresh_eeg
-        # XXX: better tests
+            qrs_threshold=0.5, filter_length=1000)
+    assert len(projs) == 7
+    # heart rate at least 0.5 Hz, but less than 3 Hz
+    assert (events.shape[0] > 0.5 * dur_use and
+            events.shape[0] < 3 * dur_use)
+    ssp_ecg = [proj for proj in projs if proj['desc'].startswith('ECG')]
+    # check that the first principal component have a certain minimum
+    ssp_ecg = [proj for proj in ssp_ecg if 'PCA-01' in proj['desc']]
+    thresh_eeg, thresh_axial, thresh_planar = .9, .3, .1
+    for proj in ssp_ecg:
+        if 'planar' in proj['desc']:
+            assert proj['explained_var'] > thresh_planar
+        elif 'axial' in proj['desc']:
+            assert proj['explained_var'] > thresh_axial
+        elif 'eeg' in proj['desc']:
+            assert proj['explained_var'] > thresh_eeg
+    # XXX: better tests
 
-        # without setting a bad channel, this should throw a warning
-        with pytest.warns(RuntimeWarning, match='No good epochs found'):
-            projs, events, drop_log = compute_proj_ecg(
-                raw, n_mag=2, n_grad=2, n_eeg=2, ch_name='MEG 1531', bads=[],
-                average=average, avg_ref=True, no_proj=True, l_freq=None,
-                h_freq=None, tmax=dur_use, return_drop_log=True)
-        assert projs is None
-        assert len(events) == len(drop_log)
+    # without setting a bad channel, this should throw a warning
+    with pytest.warns(RuntimeWarning, match='No good epochs found'):
+        projs, events, drop_log = compute_proj_ecg(
+            raw, n_mag=2, n_grad=2, n_eeg=2, ch_name='MEG 1531', bads=[],
+            average=average, avg_ref=True, no_proj=True, l_freq=None,
+            h_freq=None, tmax=dur_use, return_drop_log=True,
+            # XXX can be removed once
+            # XXX https://github.com/mne-tools/mne-python/issues/9273
+            # XXX has been resolved:
+            qrs_threshold=1e-15)
+    assert projs == []
+    assert len(events) == len(drop_log)
 
 
-def test_compute_proj_eog():
+@pytest.mark.parametrize('average', [True, False])
+def test_compute_proj_eog(average, short_raw):
     """Test computation of EOG SSP projectors."""
-    raw = read_raw_fif(raw_fname).crop(0, 10)
-    raw.load_data()
-    for average in [False, True]:
-        n_projs_init = len(raw.info['projs'])
-        projs, events = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
-                                         bads=['MEG 2443'], average=average,
-                                         avg_ref=True, no_proj=False,
-                                         l_freq=None, h_freq=None,
-                                         reject=None, tmax=dur_use,
-                                         filter_length=6000)
-        assert (len(projs) == (7 + n_projs_init))
-        assert (np.abs(events.shape[0] -
-                np.sum(np.less(eog_times, dur_use))) <= 1)
-        ssp_eog = [proj for proj in projs if proj['desc'].startswith('EOG')]
-        # check that the first principal component have a certain minimum
-        ssp_eog = [proj for proj in ssp_eog if 'PCA-01' in proj['desc']]
-        thresh_eeg, thresh_axial, thresh_planar = .9, .3, .1
-        for proj in ssp_eog:
-            if 'planar' in proj['desc']:
-                assert (proj['explained_var'] > thresh_planar)
-            elif 'axial' in proj['desc']:
-                assert (proj['explained_var'] > thresh_axial)
-            elif 'eeg' in proj['desc']:
-                assert (proj['explained_var'] > thresh_eeg)
-        # XXX: better tests
+    raw = short_raw
 
-        with pytest.warns(RuntimeWarning, match='longer'):
-            projs, events = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
-                                             average=average, bads=[],
-                                             avg_ref=True, no_proj=False,
-                                             l_freq=None, h_freq=None,
-                                             tmax=dur_use)
-        assert projs is None
+    n_projs_init = len(raw.info['projs'])
+    with pytest.warns(RuntimeWarning, match='Attenuation'):
+        projs, events = compute_proj_eog(
+            raw, n_mag=2, n_grad=2, n_eeg=2, bads=['MEG 2443'],
+            average=average, avg_ref=True, no_proj=False, l_freq=None,
+            h_freq=None, reject=None, tmax=dur_use, filter_length=1000)
+    assert (len(projs) == (7 + n_projs_init))
+    assert (np.abs(events.shape[0] -
+            np.sum(np.less(eog_times, dur_use))) <= 1)
+    ssp_eog = [proj for proj in projs if proj['desc'].startswith('EOG')]
+    # check that the first principal component have a certain minimum
+    ssp_eog = [proj for proj in ssp_eog if 'PCA-01' in proj['desc']]
+    thresh_eeg, thresh_axial, thresh_planar = .9, .3, .1
+    for proj in ssp_eog:
+        if 'planar' in proj['desc']:
+            assert (proj['explained_var'] > thresh_planar)
+        elif 'axial' in proj['desc']:
+            assert (proj['explained_var'] > thresh_axial)
+        elif 'eeg' in proj['desc']:
+            assert (proj['explained_var'] > thresh_eeg)
+    # XXX: better tests
+
+    with pytest.warns(RuntimeWarning, match='longer'):
+        projs, events = compute_proj_eog(
+            raw, n_mag=2, n_grad=2, n_eeg=2, average=average, bads=[],
+            avg_ref=True, no_proj=False, l_freq=None, h_freq=None,
+            tmax=dur_use)
+    assert projs == []
+
+    raw._data[raw.ch_names.index('EOG 061'), :] = 1.
+    with pytest.warns(RuntimeWarning, match='filter.*longer than the signal'):
+        projs, events = compute_proj_eog(raw=raw, tmax=dur_use,
+                                         ch_name='EOG 061')
 
 
 @pytest.mark.slowtest  # can be slow on OSX
-def test_compute_proj_parallel():
+def test_compute_proj_parallel(short_raw):
     """Test computation of ExG projectors using parallelization."""
-    raw_0 = read_raw_fif(raw_fname).crop(0, 10)
-    raw_0.load_data()
-    raw = raw_0.copy()
-    projs, _ = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
-                                bads=['MEG 2443'], average=False,
-                                avg_ref=True, no_proj=False, n_jobs=1,
-                                l_freq=None, h_freq=None, reject=None,
-                                tmax=dur_use, filter_length=6000)
-    raw_2 = raw_0.copy()
-    projs_2, _ = compute_proj_eog(raw_2, n_mag=2, n_grad=2, n_eeg=2,
-                                  bads=['MEG 2443'], average=False,
-                                  avg_ref=True, no_proj=False, n_jobs=2,
-                                  l_freq=None, h_freq=None, reject=None,
-                                  tmax=dur_use, filter_length=6000)
+    short_raw = short_raw.copy().pick(('eeg', 'eog')).resample(100)
+    raw = short_raw.copy()
+    with pytest.warns(RuntimeWarning, match='Attenuation'):
+        projs, _ = compute_proj_eog(
+            raw, n_eeg=2, bads=raw.ch_names[1:2], average=False,
+            avg_ref=True, no_proj=False, n_jobs=1, l_freq=None, h_freq=None,
+            reject=None, tmax=dur_use, filter_length=100)
+    raw_2 = short_raw.copy()
+    with pytest.warns(RuntimeWarning, match='Attenuation'):
+        projs_2, _ = compute_proj_eog(
+            raw_2, n_eeg=2, bads=raw.ch_names[1:2],
+            average=False, avg_ref=True, no_proj=False, n_jobs=2,
+            l_freq=None, h_freq=None, reject=None, tmax=dur_use,
+            filter_length=100)
     projs = activate_proj(projs)
     projs_2 = activate_proj(projs_2)
     projs, _, _ = make_projector(projs, raw_2.info['ch_names'],
@@ -122,6 +139,7 @@ def test_compute_proj_parallel():
 
 
 def _check_projs_for_expected_channels(projs, n_mags, n_grads, n_eegs):
+    assert projs is not None
     for p in projs:
         if 'planar' in p['desc']:
             assert len(p['data']['col_names']) == n_grads
@@ -135,41 +153,39 @@ def _check_projs_for_expected_channels(projs, n_mags, n_grads, n_eegs):
 @testing.requires_testing_data
 def test_compute_proj_ctf():
     """Test to show that projector code completes on CTF data."""
-    raw = read_raw_ctf(ctf_fname)
-    raw.load_data()
+    raw = read_raw_ctf(ctf_fname, preload=True)
 
     # expected channels per projector type
-    n_mags = len(pick_types(raw.info, meg='mag', ref_meg=False,
-                            exclude='bads'))
-    n_grads = len(pick_types(raw.info, meg='grad', ref_meg=False,
-                             exclude='bads'))
-    n_eegs = len(pick_types(raw.info, meg=False, eeg=True, ref_meg=False,
-                            exclude='bads'))
+    mag_picks = pick_types(
+        raw.info, meg='mag', ref_meg=False, exclude='bads')[::10]
+    n_mags = len(mag_picks)
+    grad_picks = pick_types(raw.info, meg='grad', ref_meg=False,
+                            exclude='bads')[::10]
+    n_grads = len(grad_picks)
+    eeg_picks = pick_types(raw.info, meg=False, eeg=True, ref_meg=False,
+                           exclude='bads')[2::3]
+    n_eegs = len(eeg_picks)
+    ref_picks = pick_types(raw.info, meg=False, ref_meg=True)
+    raw.pick(np.sort(np.concatenate(
+        [mag_picks, grad_picks, eeg_picks, ref_picks])))
+    del mag_picks, grad_picks, eeg_picks, ref_picks
 
     # Test with and without gradient compensation
-    for c in [0, 1]:
-        raw.apply_gradient_compensation(c)
-        for average in [False, True]:
-            n_projs_init = len(raw.info['projs'])
-            projs, events = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
-                                             average=average,
-                                             ch_name='EEG059',
-                                             avg_ref=True, no_proj=False,
-                                             l_freq=None, h_freq=None,
-                                             reject=None, tmax=dur_use,
-                                             filter_length=6000)
-            _check_projs_for_expected_channels(projs, n_mags, n_grads, n_eegs)
-            assert len(projs) == (5 + n_projs_init)
+    raw.apply_gradient_compensation(0)
+    n_projs_init = len(raw.info['projs'])
+    with pytest.warns(RuntimeWarning, match='Attenuation'):
+        projs, _ = compute_proj_eog(
+            raw, n_mag=2, n_grad=2, n_eeg=2, average=True, ch_name='EEG059',
+            avg_ref=True, no_proj=False, l_freq=None, h_freq=None,
+            reject=None, tmax=dur_use, filter_length=1000)
+    _check_projs_for_expected_channels(projs, n_mags, n_grads, n_eegs)
+    assert len(projs) == (5 + n_projs_init)
 
-            projs, events = compute_proj_ecg(raw, n_mag=1, n_grad=1, n_eeg=2,
-                                             average=average,
-                                             ch_name='EEG059',
-                                             avg_ref=True, no_proj=False,
-                                             l_freq=None, h_freq=None,
-                                             reject=None, tmax=dur_use,
-                                             filter_length=6000)
-            _check_projs_for_expected_channels(projs, n_mags, n_grads, n_eegs)
-            assert len(projs) == (4 + n_projs_init)
-
-
-run_tests_if_main()
+    raw.apply_gradient_compensation(1)
+    with pytest.warns(RuntimeWarning, match='Attenuation'):
+        projs, _ = compute_proj_ecg(
+            raw, n_mag=1, n_grad=1, n_eeg=2, average=True, ch_name='EEG059',
+            avg_ref=True, no_proj=False, l_freq=None, h_freq=None,
+            reject=None, tmax=dur_use, filter_length=1000)
+    _check_projs_for_expected_channels(projs, n_mags, n_grads, n_eegs)
+    assert len(projs) == (4 + n_projs_init)

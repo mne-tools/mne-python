@@ -1,9 +1,11 @@
 # Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import numpy as np
+from ..utils import deprecated, CONNECTIVITY_DEPRECATION_MSG
 
 
+@deprecated(CONNECTIVITY_DEPRECATION_MSG)
 def check_indices(indices):
     """Check indices parameter."""
     if not isinstance(indices, tuple) or len(indices) != 2:
@@ -16,6 +18,7 @@ def check_indices(indices):
     return indices
 
 
+@deprecated(CONNECTIVITY_DEPRECATION_MSG)
 def seed_target_indices(seeds, targets):
     """Generate indices parameter for seed based connectivity analysis.
 
@@ -44,16 +47,18 @@ def seed_target_indices(seeds, targets):
     return indices
 
 
-def degree(connectivity, threshold=1.):
+@deprecated(CONNECTIVITY_DEPRECATION_MSG)
+def degree(connectivity, threshold_prop=0.2):
     """Compute the undirected degree of a connectivity matrix.
 
     Parameters
     ----------
     connectivity : ndarray, shape (n_nodes, n_nodes)
         The connectivity matrix.
-    threshold : float
-        The proportion of activations to keep before computing
-        the degree.
+    threshold_prop : float
+        The proportion of edges to keep in the graph before
+        computing the degree. The value should be between 0
+        and 1.
 
     Returns
     -------
@@ -76,13 +81,14 @@ def degree(connectivity, threshold=1.):
         connectivity[np.tril_indices(n_nodes)] = 0
     else:
         split = 1.
-    threshold = float(threshold)
-    if not 0 < threshold <= 1:
+    threshold_prop = float(threshold_prop)
+    if not 0 < threshold_prop <= 1:
         raise ValueError('threshold must be 0 <= threshold < 1, got %s'
-                         % (threshold,))
+                         % (threshold_prop,))
     degree = connectivity.ravel()  # no need to copy because np.array does
     degree[::n_nodes + 1] = 0.
-    n_keep = int(round((degree.size - len(connectivity)) * threshold / split))
+    n_keep = int(round((degree.size - len(connectivity)) *
+                       threshold_prop / split))
     degree[np.argsort(degree)[:-n_keep]] = 0
     degree.shape = connectivity.shape
     if split == 2:

@@ -1,6 +1,6 @@
 # Authors: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -9,7 +9,6 @@ from numpy.testing import assert_array_almost_equal
 import pytest
 
 from mne.io import read_raw_fif
-from mne.io.pick import pick_types
 from mne.event import read_events
 from mne.epochs import Epochs
 from mne.preprocessing.stim import fix_stim_artifact
@@ -30,8 +29,7 @@ def test_fix_stim_artifact():
 
     # use window before stimulus in epochs
     tmin, tmax, event_id = -0.2, 0.5, 1
-    picks = pick_types(raw.info, meg=True, eeg=True,
-                       eog=True, stim=False, exclude='bads')
+    picks = ('meg', 'eeg', 'eog')
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     preload=True, reject=None)
     e_start = int(np.ceil(epochs.info['sfreq'] * epochs.tmin))
@@ -39,16 +37,22 @@ def test_fix_stim_artifact():
     tmin_samp = int(-0.035 * epochs.info['sfreq']) - e_start
     tmax_samp = int(-0.015 * epochs.info['sfreq']) - e_start
 
-    epochs = fix_stim_artifact(epochs, tmin=tmin, tmax=tmax, mode='linear')
-    data = epochs.get_data()[:, :, tmin_samp:tmax_samp]
+    epochs = fix_stim_artifact(epochs, tmin=tmin, tmax=tmax, mode='linear',
+                               picks=('eeg', 'eog'))
+    data = epochs.copy().pick(
+        ('eeg', 'eog')).get_data()[:, :, tmin_samp:tmax_samp]
     diff_data0 = np.diff(data[0][0])
     diff_data0 -= np.mean(diff_data0)
     assert_array_almost_equal(diff_data0, np.zeros(len(diff_data0)))
 
+    data = epochs.copy().pick(('meg')).get_data()[:, :, tmin_samp:tmax_samp]
+    diff_data0 = np.diff(data[0][0])
+    diff_data0 -= np.mean(diff_data0)
+    assert np.all(diff_data0 != 0)
+
     epochs = fix_stim_artifact(epochs, tmin=tmin, tmax=tmax, mode='window')
     data_from_epochs_fix = epochs.get_data()[:, :, tmin_samp:tmax_samp]
-    # XXX This is a very weird check...
-    assert np.all(data_from_epochs_fix) == 0.
+    assert not np.all(data_from_epochs_fix != 0)
 
     # use window before stimulus in raw
     event_idx = np.where(events[:, 2] == 1)[0][0]

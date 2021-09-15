@@ -31,6 +31,8 @@
 import scipy.io
 import os
 
+from scipy.io.matlab.miobase import get_matfile_version
+
 from .utils import _import_h5py, _hdf5todict, _check_for_scipy_mat_struct
 
 __all__ = 'read_mat'
@@ -79,10 +81,15 @@ def read_mat(filename, variable_names=None, ignore_fields=None,
         ignore_fields = []
     try:
         with open(filename, 'rb') as fid:  # avoid open file warnings on error
+            mjv, _ = get_matfile_version(fid)
+            extra_kwargs = {}
+            if mjv == 1:
+                extra_kwargs['uint16_codec'] = uint16_codec
+
             raw_data = scipy.io.loadmat(fid, struct_as_record=True,
-                                        squeeze_me=True, mat_dtype=True,
+                                        squeeze_me=True, mat_dtype=False,
                                         variable_names=variable_names,
-                                        uint16_codec=uint16_codec)
+                                        **extra_kwargs)
         data = _check_for_scipy_mat_struct(raw_data)
     except NotImplementedError:
         ignore_fields.append('#refs#')

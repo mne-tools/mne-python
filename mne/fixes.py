@@ -1,9 +1,9 @@
-"""Compatibility fixes for older version of python, numpy and scipy
+"""Compatibility fixes for older versions of libraries
 
 If you add content to this file, please give the version of the package
 at which the fix is no longer needed.
 
-# XXX : originally copied from scikit-learn
+# originally copied from scikit-learn
 
 """
 # Authors: Emmanuelle Gouillart <emmanuelle.gouillart@normalesup.org>
@@ -12,16 +12,34 @@ at which the fix is no longer needed.
 #          Lars Buitinck <L.J.Buitinck@uva.nl>
 # License: BSD
 
-import inspect
 from distutils.version import LooseVersion
+import functools
+import inspect
+from math import log
+import os
+from pathlib import Path
 import warnings
 
 import numpy as np
-from scipy import linalg
 
 
 ###############################################################################
 # Misc
+
+def _median_complex(data, axis):
+    """Compute marginal median on complex data safely.
+
+    Can be removed when numpy introduces a fix.
+    See: https://github.com/scipy/scipy/pull/12676/.
+    """
+    # np.median must be passed real arrays for the desired result
+    if np.iscomplexobj(data):
+        data = (np.median(np.real(data), axis=axis)
+                + 1j * np.median(np.imag(data), axis=axis))
+    else:
+        data = np.median(data, axis=axis)
+    return data
+
 
 # helpers to get function arguments
 def _get_args(function, varargs=False):
@@ -44,6 +62,7 @@ def _safe_svd(A, **kwargs):
     #     https://software.intel.com/en-us/forums/intel-distribution-for-python/topic/628049  # noqa: E501
     # For SciPy 0.18 and up, we can work around it by using
     # lapack_driver='gesvd' instead.
+    from scipy import linalg
     if kwargs.get('overwrite_a', False):
         raise ValueError('Cannot set overwrite_a=True with this function')
     try:
@@ -58,6 +77,11 @@ def _safe_svd(A, **kwargs):
             raise
 
 
+def _csc_matrix_cast(x):
+    from scipy.sparse import csc_matrix
+    return csc_matrix(x)
+
+
 ###############################################################################
 # Backporting nibabel's read_geometry
 
@@ -68,7 +92,7 @@ def _get_read_geometry():
         has_nibabel = True
     except ImportError:
         has_nibabel = False
-    if has_nibabel and LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
+    if has_nibabel:
         from nibabel.freesurfer import read_geometry
     else:
         read_geometry = _read_geometry
@@ -89,14 +113,14 @@ def _read_geometry(filepath, read_metadata=False, read_stamp=False):
             nvert = _fread3(fobj)
             nquad = _fread3(fobj)
             (fmt, div) = (">i2", 100.) if magic == QUAD_MAGIC else (">f4", 1.)
-            coords = np.fromfile(fobj, fmt, nvert * 3).astype(np.float) / div
+            coords = np.fromfile(fobj, fmt, nvert * 3).astype(np.float64) / div
             coords = coords.reshape(-1, 3)
             quads = _fread3_many(fobj, nquad * 4)
             quads = quads.reshape(nquad, 4)
             #
             #   Face splitting follows
             #
-            faces = np.zeros((2 * nquad, 3), dtype=np.int)
+            faces = np.zeros((2 * nquad, 3), dtype=np.int64)
             nface = 0
             for quad in quads:
                 if (quad[0] % 2) == 0:
@@ -123,7 +147,7 @@ def _read_geometry(filepath, read_metadata=False, read_stamp=False):
         else:
             raise ValueError("File does not appear to be a Freesurfer surface")
 
-    coords = coords.astype(np.float)  # XXX: due to mayavi bug on mac 32bits
+    coords = coords.astype(np.float64)
 
     ret = (coords, faces)
     if read_metadata:
@@ -137,247 +161,34 @@ def _read_geometry(filepath, read_metadata=False, read_stamp=False):
 
 
 ###############################################################################
-# Backporting logsumexp from scipy which is imported from scipy.special
-# (1.0.0) instead of scipy.misc
+# Triaging FFT functions to get fast pocketfft (SciPy 1.4)
 
-
-def _get_logsumexp():
+@functools.lru_cache(None)
+def _import_fft(name):
+    single = False
+    if not isinstance(name, tuple):
+        name = (name,)
+        single = True
     try:
-        from scipy.special import logsumexp
-    except ImportError:  # old SciPy
-        from scipy.misc import logsumexp
-    return logsumexp
-
-
-###############################################################################
-# Triaging scipy.signal.windows.compute_dpss
-
-def tridisolve(d, e, b, overwrite_b=True):
-    """Symmetric tridiagonal system solver, from Golub and Van Loan p157.
-
-    .. note:: Copied from NiTime.
-
-    Parameters
-    ----------
-    d : ndarray
-      main diagonal stored in d[:]
-    e : ndarray
-      superdiagonal stored in e[:-1]
-    b : ndarray
-      RHS vector
-
-    Returns
-    -------
-    x : ndarray
-      Solution to Ax = b (if overwrite_b is False). Otherwise solution is
-      stored in previous RHS vector b
-
-    """
-    N = len(b)
-    # work vectors
-    dw = d.copy()
-    ew = e.copy()
-    if overwrite_b:
-        x = b
-    else:
-        x = b.copy()
-    for k in range(1, N):
-        # e^(k-1) = e(k-1) / d(k-1)
-        # d(k) = d(k) - e^(k-1)e(k-1) / d(k-1)
-        t = ew[k - 1]
-        ew[k - 1] = t / dw[k - 1]
-        dw[k] = dw[k] - t * ew[k - 1]
-    for k in range(1, N):
-        x[k] = x[k] - ew[k - 1] * x[k - 1]
-    x[N - 1] = x[N - 1] / dw[N - 1]
-    for k in range(N - 2, -1, -1):
-        x[k] = x[k] / dw[k] - ew[k] * x[k + 1]
-
-    if not overwrite_b:
-        return x
-
-
-def tridi_inverse_iteration(d, e, w, x0=None, rtol=1e-8):
-    """Perform an inverse iteration.
-
-    This will find the eigenvector corresponding to the given eigenvalue
-    in a symmetric tridiagonal system.
-
-    ..note:: Copied from NiTime.
-
-    Parameters
-    ----------
-    d : ndarray
-      main diagonal of the tridiagonal system
-    e : ndarray
-      offdiagonal stored in e[:-1]
-    w : float
-      eigenvalue of the eigenvector
-    x0 : ndarray
-      initial point to start the iteration
-    rtol : float
-      tolerance for the norm of the difference of iterates
-
-    Returns
-    -------
-    e: ndarray
-      The converged eigenvector
-    """
-    eig_diag = d - w
-    if x0 is None:
-        x0 = np.random.randn(len(d))
-    x_prev = np.zeros_like(x0)
-    norm_x = np.linalg.norm(x0)
-    # the eigenvector is unique up to sign change, so iterate
-    # until || |x^(n)| - |x^(n-1)| ||^2 < rtol
-    x0 /= norm_x
-    while np.linalg.norm(np.abs(x0) - np.abs(x_prev)) > rtol:
-        x_prev = x0.copy()
-        tridisolve(eig_diag, e, x0)
-        norm_x = np.linalg.norm(x0)
-        x0 /= norm_x
-    return x0
-
-
-def _dpss(N, half_nbw, Kmax):
-    """Compute DPSS windows."""
-    # here we want to set up an optimization problem to find a sequence
-    # whose energy is maximally concentrated within band [-W,W].
-    # Thus, the measure lambda(T,W) is the ratio between the energy within
-    # that band, and the total energy. This leads to the eigen-system
-    # (A - (l1)I)v = 0, where the eigenvector corresponding to the largest
-    # eigenvalue is the sequence with maximally concentrated energy. The
-    # collection of eigenvectors of this system are called Slepian
-    # sequences, or discrete prolate spheroidal sequences (DPSS). Only the
-    # first K, K = 2NW/dt orders of DPSS will exhibit good spectral
-    # concentration
-    # [see http://en.wikipedia.org/wiki/Spectral_concentration_problem]
-
-    # Here I set up an alternative symmetric tri-diagonal eigenvalue
-    # problem such that
-    # (B - (l2)I)v = 0, and v are our DPSS (but eigenvalues l2 != l1)
-    # the main diagonal = ([N-1-2*t]/2)**2 cos(2PIW), t=[0,1,2,...,N-1]
-    # and the first off-diagonal = t(N-t)/2, t=[1,2,...,N-1]
-    # [see Percival and Walden, 1993]
-    nidx = np.arange(N, dtype='d')
-    W = float(half_nbw) / N
-    diagonal = ((N - 1 - 2 * nidx) / 2.) ** 2 * np.cos(2 * np.pi * W)
-    off_diag = np.zeros_like(nidx)
-    off_diag[:-1] = nidx[1:] * (N - nidx[1:]) / 2.
-    # put the diagonals in LAPACK "packed" storage
-    ab = np.zeros((2, N), 'd')
-    ab[1] = diagonal
-    ab[0, 1:] = off_diag[:-1]
-    # only calculate the highest Kmax eigenvalues
-    w = linalg.eigvals_banded(ab, select='i',
-                              select_range=(N - Kmax, N - 1))
-    w = w[::-1]
-
-    # find the corresponding eigenvectors via inverse iteration
-    t = np.linspace(0, np.pi, N)
-    dpss = np.zeros((Kmax, N), 'd')
-    for k in range(Kmax):
-        dpss[k] = tridi_inverse_iteration(diagonal, off_diag, w[k],
-                                          x0=np.sin((k + 1) * t))
-
-    # By convention (Percival and Walden, 1993 pg 379)
-    # * symmetric tapers (k=0,2,4,...) should have a positive average.
-    # * antisymmetric tapers should begin with a positive lobe
-    fix_symmetric = (dpss[0::2].sum(axis=1) < 0)
-    for i, f in enumerate(fix_symmetric):
-        if f:
-            dpss[2 * i] *= -1
-    # rather than test the sign of one point, test the sign of the
-    # linear slope up to the first (largest) peak
-    pk = np.argmax(np.abs(dpss[1::2, :N // 2]), axis=1)
-    for i, p in enumerate(pk):
-        if np.sum(dpss[2 * i + 1, :p]) < 0:
-            dpss[2 * i + 1] *= -1
-
-    return dpss
-
-
-def _get_dpss():
-    try:
-        from scipy.signal.windows import dpss
+        from scipy.fft import rfft  # noqa analysis:ignore
     except ImportError:
-        dpss = _dpss
-    return dpss
+        from numpy import fft  # noqa
+    else:
+        from scipy import fft  # noqa
+    out = [getattr(fft, n) for n in name]
+    if single:
+        out = out[0]
+    return out
 
 
 ###############################################################################
-# Backporting scipy.signal.sosfiltfilt (0.18)
-
-def _sosfiltfilt(sos, x, axis=-1, padtype='odd', padlen=None):
-    """copy of SciPy sosfiltfilt"""
-    from scipy.signal import sosfilt, sosfilt_zi
-    sos, n_sections = _validate_sos(sos)
-
-    # `method` is "pad"...
-    ntaps = 2 * n_sections + 1
-    ntaps -= min((sos[:, 2] == 0).sum(), (sos[:, 5] == 0).sum())
-    edge, ext = _validate_pad(padtype, padlen, x, axis,
-                              ntaps=ntaps)
-
-    # These steps follow the same form as filtfilt with modifications
-    zi = sosfilt_zi(sos)  # shape (n_sections, 2) --> (n_sections, ..., 2, ...)
-    zi_shape = [1] * x.ndim
-    zi_shape[axis] = 2
-    zi.shape = [n_sections] + zi_shape
-    x_0 = axis_slice(ext, stop=1, axis=axis)
-    (y, zf) = sosfilt(sos, ext, axis=axis, zi=zi * x_0)
-    y_0 = axis_slice(y, start=-1, axis=axis)
-    (y, zf) = sosfilt(sos, axis_reverse(y, axis=axis), axis=axis, zi=zi * y_0)
-    y = axis_reverse(y, axis=axis)
-    if edge > 0:
-        y = axis_slice(y, start=edge, stop=-edge, axis=axis)
-    return y
+# NumPy Generator (NumPy 1.17)
 
 
-def axis_slice(a, start=None, stop=None, step=None, axis=-1):
-    """Take a slice along axis 'axis' from 'a'"""
-    a_slice = [slice(None)] * a.ndim
-    a_slice[axis] = slice(start, stop, step)
-    b = a[a_slice]
-    return b
-
-
-def axis_reverse(a, axis=-1):
-    """Reverse the 1-d slices of `a` along axis `axis`."""
-    return axis_slice(a, step=-1, axis=axis)
-
-
-def _validate_pad(padtype, padlen, x, axis, ntaps):
-    """Helper to validate padding for filtfilt"""
-    from .utils import _check_option  # avoid circular import
-    _check_option('padtype', padtype, ['even', 'odd', 'constant', None])
-
-    if padtype is None:
-        padlen = 0
-
-    if padlen is None:
-        # Original padding; preserved for backwards compatibility.
-        edge = ntaps * 3
-    else:
-        edge = padlen
-
-    # x's 'axis' dimension must be bigger than edge.
-    if x.shape[axis] <= edge:
-        raise ValueError("The length of the input vector x must be at least "
-                         "padlen, which is %d." % edge)
-
-    if padtype is not None and edge > 0:
-        # Make an extension of length `edge` at each
-        # end of the input array.
-        if padtype == 'even':
-            ext = even_ext(x, edge, axis=axis)
-        elif padtype == 'odd':
-            ext = odd_ext(x, edge, axis=axis)
-        else:
-            ext = const_ext(x, edge, axis=axis)
-    else:
-        ext = x
-    return edge, ext
+def rng_uniform(rng):
+    """Get the unform/randint from the rng."""
+    # prefer Generator.integers, fall back to RandomState.randint
+    return getattr(rng, 'integers', getattr(rng, 'randint', None))
 
 
 def _validate_sos(sos):
@@ -393,140 +204,15 @@ def _validate_sos(sos):
     return sos, n_sections
 
 
-def odd_ext(x, n, axis=-1):
-    """Generate a new ndarray by making an odd extension of x along an axis."""
-    if n < 1:
-        return x
-    if n > x.shape[axis] - 1:
-        raise ValueError(("The extension length n (%d) is too big. " +
-                         "It must not exceed x.shape[axis]-1, which is %d.")
-                         % (n, x.shape[axis] - 1))
-    left_end = axis_slice(x, start=0, stop=1, axis=axis)
-    left_ext = axis_slice(x, start=n, stop=0, step=-1, axis=axis)
-    right_end = axis_slice(x, start=-1, axis=axis)
-    right_ext = axis_slice(x, start=-2, stop=-(n + 2), step=-1, axis=axis)
-    ext = np.concatenate((2 * left_end - left_ext,
-                          x,
-                          2 * right_end - right_ext),
-                         axis=axis)
-    return ext
-
-
-def even_ext(x, n, axis=-1):
-    """Create an ndarray that is an even extension of x along an axis."""
-    if n < 1:
-        return x
-    if n > x.shape[axis] - 1:
-        raise ValueError(("The extension length n (%d) is too big. " +
-                         "It must not exceed x.shape[axis]-1, which is %d.")
-                         % (n, x.shape[axis] - 1))
-    left_ext = axis_slice(x, start=n, stop=0, step=-1, axis=axis)
-    right_ext = axis_slice(x, start=-2, stop=-(n + 2), step=-1, axis=axis)
-    ext = np.concatenate((left_ext,
-                          x,
-                          right_ext),
-                         axis=axis)
-    return ext
-
-
-def const_ext(x, n, axis=-1):
-    """Create an ndarray that is a constant extension of x along an axis"""
-    if n < 1:
-        return x
-    left_end = axis_slice(x, start=0, stop=1, axis=axis)
-    ones_shape = [1] * x.ndim
-    ones_shape[axis] = n
-    ones = np.ones(ones_shape, dtype=x.dtype)
-    left_ext = ones * left_end
-    right_end = axis_slice(x, start=-1, axis=axis)
-    right_ext = ones * right_end
-    ext = np.concatenate((left_ext,
-                          x,
-                          right_ext),
-                         axis=axis)
-    return ext
-
-
-def get_sosfiltfilt():
-    """Helper to get sosfiltfilt from scipy"""
-    try:
-        from scipy.signal import sosfiltfilt
-    except ImportError:
-        sosfiltfilt = _sosfiltfilt
-    return sosfiltfilt
-
-
-def minimum_phase(h):
-    """Convert a linear-phase FIR filter to minimum phase.
-
-    Parameters
-    ----------
-    h : array
-        Linear-phase FIR filter coefficients.
-
-    Returns
-    -------
-    h_minimum : array
-        The minimum-phase version of the filter, with length
-        ``(length(h) + 1) // 2``.
-    """
-    try:
-        from scipy.signal import minimum_phase
-    except Exception:
-        pass
-    else:
-        return minimum_phase(h)
-    from scipy.fftpack import fft, ifft
-    h = np.asarray(h)
-    if np.iscomplexobj(h):
-        raise ValueError('Complex filters not supported')
-    if h.ndim != 1 or h.size <= 2:
-        raise ValueError('h must be 1D and at least 2 samples long')
-    n_half = len(h) // 2
-    if not np.allclose(h[-n_half:][::-1], h[:n_half]):
-        warnings.warn('h does not appear to by symmetric, conversion may '
-                      'fail', RuntimeWarning)
-    n_fft = 2 ** int(np.ceil(np.log2(2 * (len(h) - 1) / 0.01)))
-    # zero-pad; calculate the DFT
-    h_temp = np.abs(fft(h, n_fft))
-    # take 0.25*log(|H|**2) = 0.5*log(|H|)
-    h_temp += 1e-7 * h_temp[h_temp > 0].min()  # don't let log blow up
-    np.log(h_temp, out=h_temp)
-    h_temp *= 0.5
-    # IDFT
-    h_temp = ifft(h_temp).real
-    # multiply pointwise by the homomorphic filter
-    # lmin[n] = 2u[n] - d[n]
-    win = np.zeros(n_fft)
-    win[0] = 1
-    stop = (len(h) + 1) // 2
-    win[1:stop] = 2
-    if len(h) % 2:
-        win[stop] = 1
-    h_temp *= win
-    h_temp = ifft(np.exp(fft(h_temp)))
-    h_minimum = h_temp.real
-    n_out = n_half + len(h) % 2
-    return h_minimum[:n_out]
-
-
 ###############################################################################
 # Misc utilities
 
-def assert_true(expr, msg='False is not True'):
-    """Fake assert_true without message"""
-    if not expr:
-        raise AssertionError(msg)
-
-
-def assert_is(expr1, expr2, msg=None):
-    """Fake assert_is without message"""
-    assert_true(expr2 is expr2, msg)
-
-
-def assert_is_not(expr1, expr2, msg=None):
-    """Fake assert_is_not without message"""
-    assert_true(expr1 is not expr2, msg)
+# get_fdata() requires knowing the dtype ahead of time, so let's triage on our
+# own instead
+def _get_img_fdata(img):
+    data = np.asanyarray(img.dataobj)
+    dtype = np.complex128 if np.iscomplexobj(data) else np.float64
+    return data.astype(dtype)
 
 
 def _read_volume_info(fobj):
@@ -572,7 +258,7 @@ def _serialize_volume_info(volume_info):
             if not (np.array_equal(volume_info[key], [20]) or np.array_equal(
                     volume_info[key], [2, 0, 20])):
                 warnings.warn("Unknown extension code.")
-            strings.append(np.array(volume_info[key], dtype='>i4').tostring())
+            strings.append(np.array(volume_info[key], dtype='>i4').tobytes())
         elif key in ('valid', 'filename'):
             val = volume_info[key]
             strings.append('{} = {}\n'.format(key, val).encode('utf-8'))
@@ -623,8 +309,30 @@ def is_regressor(estimator):
     return getattr(estimator, "_estimator_type", None) == "regressor"
 
 
+_DEFAULT_TAGS = {
+    'non_deterministic': False,
+    'requires_positive_X': False,
+    'requires_positive_y': False,
+    'X_types': ['2darray'],
+    'poor_score': False,
+    'no_validation': False,
+    'multioutput': False,
+    "allow_nan": False,
+    'stateless': False,
+    'multilabel': False,
+    '_skip_test': False,
+    '_xfail_checks': False,
+    'multioutput_only': False,
+    'binary_only': False,
+    'requires_fit': True,
+    'preserves_dtype': [np.float64],
+    'requires_y': False,
+    'pairwise': False,
+}
+
+
 class BaseEstimator(object):
-    """Base class for all estimators in scikit-learn
+    """Base class for all estimators in scikit-learn.
 
     Notes
     -----
@@ -665,13 +373,13 @@ class BaseEstimator(object):
 
         Parameters
         ----------
-        deep : boolean, optional
+        deep : bool, optional
             If True, will return the parameters for this estimator and
             contained subobjects that are estimators.
 
         Returns
         -------
-        params : mapping of string to any
+        params : dict
             Parameter names mapped to their values.
         """
         out = dict()
@@ -699,13 +407,21 @@ class BaseEstimator(object):
 
     def set_params(self, **params):
         """Set the parameters of this estimator.
+
         The method works on simple estimators as well as on nested objects
         (such as pipelines). The latter have parameters of the form
         ``<component>__<parameter>`` so that it's possible to update each
         component of a nested object.
+
+        Parameters
+        ----------
+        **params : dict
+            Parameters.
+
         Returns
         -------
-        self
+        inst : instance
+            The object.
         """
         if not params:
             # Simple optimisation to gain speed (inspect is slow)
@@ -742,6 +458,64 @@ class BaseEstimator(object):
     # __getstate__ and __setstate__ are omitted because they only contain
     # conditionals that are not satisfied by our objects (e.g.,
     # ``if type(self).__module__.startswith('sklearn.')``.
+
+    def _more_tags(self):
+        return _DEFAULT_TAGS
+
+    def _get_tags(self):
+        collected_tags = {}
+        for base_class in reversed(inspect.getmro(self.__class__)):
+            if hasattr(base_class, '_more_tags'):
+                # need the if because mixins might not have _more_tags
+                # but might do redundant work in estimators
+                # (i.e. calling more tags on BaseEstimator multiple times)
+                more_tags = base_class._more_tags(self)
+                collected_tags.update(more_tags)
+        return collected_tags
+
+
+# newer sklearn deprecates importing from sklearn.metrics.scoring,
+# but older sklearn does not expose check_scoring in sklearn.metrics.
+def _get_check_scoring():
+    try:
+        from sklearn.metrics import check_scoring  # noqa
+    except ImportError:
+        from sklearn.metrics.scorer import check_scoring  # noqa
+    return check_scoring
+
+
+def _check_fit_params(X, fit_params, indices=None):
+    """Check and validate the parameters passed during `fit`.
+
+    Parameters
+    ----------
+    X : array-like of shape (n_samples, n_features)
+        Data array.
+
+    fit_params : dict
+        Dictionary containing the parameters passed at fit.
+
+    indices : array-like of shape (n_samples,), default=None
+        Indices to be selected if the parameter has the same size as
+        `X`.
+
+    Returns
+    -------
+    fit_params_validated : dict
+        Validated parameters. We ensure that the values support
+        indexing.
+    """
+    try:
+        from sklearn.utils.validation import \
+            _check_fit_params as _sklearn_check_fit_params
+        return _sklearn_check_fit_params(X, fit_params, indices)
+    except ImportError:
+        from sklearn.model_selection import _validation
+
+        fit_params_validated = \
+            {k: _validation._index_param_value(X, v, indices)
+             for k, v in fit_params.items()}
+        return fit_params_validated
 
 
 ###############################################################################
@@ -829,6 +603,7 @@ class EmpiricalCovariance(BaseEstimator):
             is computed.
 
         """
+        from scipy import linalg
         # covariance = check_array(covariance)
         # set covariance
         self.covariance_ = covariance
@@ -847,6 +622,7 @@ class EmpiricalCovariance(BaseEstimator):
             The precision matrix associated to the current covariance object.
 
         """
+        from scipy import linalg
         if self.store_precision:
             precision = self.precision_
         else:
@@ -854,23 +630,21 @@ class EmpiricalCovariance(BaseEstimator):
         return precision
 
     def fit(self, X, y=None):
-        """Fits the Maximum Likelihood Estimator covariance model
-        according to the given training data and parameters.
+        """Fit the Maximum Likelihood Estimator covariance model.
 
         Parameters
         ----------
         X : array-like, shape = [n_samples, n_features]
           Training data, where n_samples is the number of samples and
           n_features is the number of features.
-
-        y : not used, present for API consistence purpose.
+        y : ndarray | None
+            Not used, present for API consistency.
 
         Returns
         -------
         self : object
             Returns self.
-
-        """
+        """  # noqa: E501
         # X = check_array(X)
         if self.assume_centered:
             self.location_ = np.zeros(X.shape[1])
@@ -883,8 +657,9 @@ class EmpiricalCovariance(BaseEstimator):
         return self
 
     def score(self, X_test, y=None):
-        """Computes the log-likelihood of a Gaussian data set with
-        `self.covariance_` as an estimator of its covariance matrix.
+        """Compute the log-likelihood of a Gaussian dataset.
+
+        Uses ``self.covariance_`` as an estimator of its covariance matrix.
 
         Parameters
         ----------
@@ -893,15 +668,14 @@ class EmpiricalCovariance(BaseEstimator):
             the number of samples and n_features is the number of features.
             X_test is assumed to be drawn from the same distribution than
             the data used in fit (including centering).
-
-        y : not used, present for API consistence purpose.
+        y : ndarray | None
+            Not used, present for API consistency.
 
         Returns
         -------
         res : float
             The likelihood of the data set with `self.covariance_` as an
             estimator of its covariance matrix.
-
         """
         # compute empirical covariance of the test set
         test_cov = empirical_covariance(
@@ -914,23 +688,19 @@ class EmpiricalCovariance(BaseEstimator):
     def error_norm(self, comp_cov, norm='frobenius', scaling=True,
                    squared=True):
         """Computes the Mean Squared Error between two covariance estimators.
-        (In the sense of the Frobenius norm).
 
         Parameters
         ----------
         comp_cov : array-like, shape = [n_features, n_features]
             The covariance to compare with.
-
         norm : str
             The type of norm used to compute the error. Available error types:
             - 'frobenius' (default): sqrt(tr(A^t.A))
             - 'spectral': sqrt(max(eigenvalues(A^t.A))
             where A is the error ``(comp_cov - self.covariance_)``.
-
         scaling : bool
             If True (default), the squared error norm is divided by n_features.
             If False, the squared error norm is not rescaled.
-
         squared : bool
             Whether to compute the squared error norm or the error norm.
             If True (default), the squared error norm is returned.
@@ -940,8 +710,8 @@ class EmpiricalCovariance(BaseEstimator):
         -------
         The Mean Squared Error (in the sense of the Frobenius norm) between
         `self` and `comp_cov` covariance estimators.
-
         """
+        from scipy import linalg
         # compute the error
         error = comp_cov - self.covariance_
         # compute the error norm
@@ -1018,116 +788,131 @@ def log_likelihood(emp_cov, precision):
 
 def _logdet(A):
     """Compute the log det of a positive semidefinite matrix."""
-    vals = linalg.eigh(A)[0]
+    from scipy import linalg
+    vals = linalg.eigvalsh(A)
     # avoid negative (numerical errors) or zero (semi-definite matrix) values
     tol = vals.max() * vals.size * np.finfo(np.float64).eps
     vals = np.where(vals > tol, vals, tol)
     return np.sum(np.log(vals))
 
 
-###############################################################################
-# NumPy einsum backward compat (allow "optimize" arg and fix 1.14.0 bug)
-# XXX eventually we should hand-tune our `einsum` calls given our array sizes!
-
-_has_optimize = (LooseVersion(np.__version__) >= '1.12')
-
-
-def einsum(*args, **kwargs):
-    if 'optimize' in kwargs:
-        if not _has_optimize:
-            kwargs.pop('optimize')
-    elif _has_optimize:
-        kwargs['optimize'] = False
-    return np.einsum(*args, **kwargs)
+def _infer_dimension_(spectrum, n_samples, n_features):
+    """Infers the dimension of a dataset of shape (n_samples, n_features)
+    The dataset is described by its spectrum `spectrum`.
+    """
+    n_spectrum = len(spectrum)
+    ll = np.empty(n_spectrum)
+    for rank in range(n_spectrum):
+        ll[rank] = _assess_dimension_(spectrum, rank, n_samples, n_features)
+    return ll.argmax()
 
 
-# np.unique has axis kwarg only since 1.13.0. This is used only once in
-# topomap interpolation code to remove duplicates from 2d array along axis 0
-# can be removed once we require NumPy 1.13.0
+def _assess_dimension_(spectrum, rank, n_samples, n_features):
+    from scipy.special import gammaln
+    if rank > len(spectrum):
+        raise ValueError("The tested rank cannot exceed the rank of the"
+                         " dataset")
 
-_has_unique_axis = (LooseVersion(np.__version__) >= '1.13.0')
+    pu = -rank * log(2.)
+    for i in range(rank):
+        pu += (gammaln((n_features - i) / 2.) -
+               log(np.pi) * (n_features - i) / 2.)
 
+    pl = np.sum(np.log(spectrum[:rank]))
+    pl = -pl * n_samples / 2.
 
-def _remove_duplicate_rows(arr):
-    if _has_unique_axis:
-        return np.unique(arr, axis=0)
+    if rank == n_features:
+        pv = 0
+        v = 1
     else:
-        remove = np.zeros(arr.shape[0], dtype='bool')
-        for idx in range(arr.shape[0] - 1):
-            remove[idx + 1:] = ((arr[idx + 1:, :] == arr[[idx], :]).all(axis=1)
-                                | remove[idx + 1:])
-        return arr[~remove, :]
+        v = np.sum(spectrum[rank:]) / (n_features - rank)
+        pv = -np.log(v) * n_samples * (n_features - rank) / 2.
+
+    m = n_features * rank - rank * (rank + 1.) / 2.
+    pp = log(2. * np.pi) * (m + rank + 1.) / 2.
+
+    pa = 0.
+    spectrum_ = spectrum.copy()
+    spectrum_[rank:n_features] = v
+    for i in range(rank):
+        for j in range(i + 1, len(spectrum)):
+            pa += log((spectrum[i] - spectrum[j]) *
+                      (1. / spectrum_[j] - 1. / spectrum_[i])) + log(n_samples)
+
+    ll = pu + pl + pv + pp - pa / 2. - rank * log(n_samples) / 2.
+
+    return ll
 
 
-###############################################################################
-# csr_matrix.argmax from SciPy 0.19+
-
-def _find_missing_index(ind, n):
-    for k, a in enumerate(ind):
-        if k != a:
-            return k
-
-    k += 1
-    if k < n:
-        return k
+def svd_flip(u, v, u_based_decision=True):
+    if u_based_decision:
+        # columns of u, rows of v
+        max_abs_cols = np.argmax(np.abs(u), axis=0)
+        signs = np.sign(u[max_abs_cols, np.arange(u.shape[1])])
+        u *= signs
+        v *= signs[:, np.newaxis]
     else:
-        return -1
+        # rows of v, columns of u
+        max_abs_rows = np.argmax(np.abs(v), axis=1)
+        signs = np.sign(v[np.arange(v.shape[0]), max_abs_rows])
+        u *= signs
+        v *= signs[:, np.newaxis]
+    return u, v
 
 
-def _sparse_argmax(mat, axis):
-    import scipy
-    if LooseVersion(scipy.__version__) >= '0.19':
-        return mat.argmax(axis)
+def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
+    """Use high precision for cumsum and check that final value matches sum
+
+    Parameters
+    ----------
+    arr : array-like
+        To be cumulatively summed as flat
+    axis : int, optional
+        Axis along which the cumulative sum is computed.
+        The default (None) is to compute the cumsum over the flattened array.
+    rtol : float
+        Relative tolerance, see ``np.allclose``
+    atol : float
+        Absolute tolerance, see ``np.allclose``
+    """
+    out = np.cumsum(arr, axis=axis, dtype=np.float64)
+    expected = np.sum(arr, axis=axis, dtype=np.float64)
+    if not np.all(np.isclose(out.take(-1, axis=axis), expected, rtol=rtol,
+                             atol=atol, equal_nan=True)):
+        warnings.warn('cumsum was found to be unstable: '
+                      'its last element does not correspond to sum',
+                      RuntimeWarning)
+    return out
+
+
+# This shim can be removed once NumPy 1.19.0+ is required (1.18.4 has sign bug)
+def svd(a, hermitian=False):
+    if hermitian:  # faster
+        s, u = np.linalg.eigh(a)
+        sgn = np.sign(s)
+        s = np.abs(s)
+        sidx = np.argsort(s)[..., ::-1]
+        sgn = np.take_along_axis(sgn, sidx, axis=-1)
+        s = np.take_along_axis(s, sidx, axis=-1)
+        u = np.take_along_axis(u, sidx[..., None, :], axis=-1)
+        # singular values are unsigned, move the sign into v
+        vt = (u * sgn[..., np.newaxis, :]).swapaxes(-2, -1).conj()
+        np.abs(s, out=s)
+        return u, s, vt
     else:
-        op = np.argmax
-        compare = np.greater
-        self = mat
-        if self.shape[axis] == 0:
-            raise ValueError("Can't apply the operation along a zero-sized "
-                             "dimension.")
-
-        if axis < 0:
-            axis += 2
-
-        zero = self.dtype.type(0)
-
-        mat = self.tocsc() if axis == 0 else self.tocsr()
-        mat.sum_duplicates()
-
-        ret_size, line_size = mat._swap(mat.shape)
-        ret = np.zeros(ret_size, dtype=int)
-
-        nz_lines, = np.nonzero(np.diff(mat.indptr))
-        for i in nz_lines:
-            p, q = mat.indptr[i:i + 2]
-            data = mat.data[p:q]
-            indices = mat.indices[p:q]
-            am = op(data)
-            m = data[am]
-            if compare(m, zero) or q - p == line_size:
-                ret[i] = indices[am]
-            else:
-                zero_ind = _find_missing_index(indices, line_size)
-                if m == zero:
-                    ret[i] = min(am, zero_ind)
-                else:
-                    ret[i] = zero_ind
-
-        if axis == 1:
-            ret = ret.reshape(-1, 1)
-
-        return np.asmatrix(ret)
+        return np.linalg.svd(a)
 
 
 ###############################################################################
 # From nilearn
 
+
 def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
     """
     crop a colorbar to show from cbar_vmin to cbar_vmax
-
     Used when symmetric_cbar=False is used.
     """
+    import matplotlib
     if (cbar_vmin is None) and (cbar_vmax is None):
         return
     cbar_tick_locs = cbar.locator.locs
@@ -1137,10 +922,158 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
         cbar_vmin = cbar_tick_locs.min()
     new_tick_locs = np.linspace(cbar_vmin, cbar_vmax,
                                 len(cbar_tick_locs))
-    cbar.ax.set_ylim(cbar.norm(cbar_vmin), cbar.norm(cbar_vmax))
-    outline = cbar.outline.get_xy()
-    outline[:2, 1] += cbar.norm(cbar_vmin)
-    outline[2:6, 1] -= (1. - cbar.norm(cbar_vmax))
-    outline[6:, 1] += cbar.norm(cbar_vmin)
-    cbar.outline.set_xy(outline)
-    cbar.set_ticks(new_tick_locs, update_ticks=True)
+
+    # matplotlib >= 3.2.0 no longer normalizes axes between 0 and 1
+    # See https://matplotlib.org/3.2.1/api/prev_api_changes/api_changes_3.2.0.html
+    # _outline was removed in
+    # https://github.com/matplotlib/matplotlib/commit/03a542e875eba091a027046d5ec652daa8be6863
+    # so we use the code from there
+    if LooseVersion(matplotlib.__version__) >= LooseVersion("3.2.0"):
+        cbar.ax.set_ylim(cbar_vmin, cbar_vmax)
+        X = cbar._mesh()[0]
+        X = np.array([X[0], X[-1]])
+        Y = np.array([[cbar_vmin, cbar_vmin], [cbar_vmax, cbar_vmax]])
+        N = X.shape[0]
+        ii = [0, 1, N - 2, N - 1, 2 * N - 1, 2 * N - 2, N + 1, N, 0]
+        x = X.T.reshape(-1)[ii]
+        y = Y.T.reshape(-1)[ii]
+        xy = (np.column_stack([y, x])
+              if cbar.orientation == 'horizontal' else
+              np.column_stack([x, y]))
+        cbar.outline.set_xy(xy)
+    else:
+        cbar.ax.set_ylim(cbar.norm(cbar_vmin), cbar.norm(cbar_vmax))
+        outline = cbar.outline.get_xy()
+        outline[:2, 1] += cbar.norm(cbar_vmin)
+        outline[2:6, 1] -= (1. - cbar.norm(cbar_vmax))
+        outline[6:, 1] += cbar.norm(cbar_vmin)
+        cbar.outline.set_xy(outline)
+
+    cbar.set_ticks(new_tick_locs)
+    cbar.update_ticks()
+
+
+###############################################################################
+# Numba (optional requirement)
+
+# Here we choose different defaults to speed things up by default
+try:
+    import numba
+    if LooseVersion(numba.__version__) < LooseVersion('0.40'):
+        raise ImportError
+    prange = numba.prange
+    def jit(nopython=True, nogil=True, fastmath=True, cache=True,
+            **kwargs):  # noqa
+        return numba.jit(nopython=nopython, nogil=nogil, fastmath=fastmath,
+                         cache=cache, **kwargs)
+except ImportError:
+    has_numba = False
+else:
+    has_numba = (os.getenv('MNE_USE_NUMBA', 'true').lower() == 'true')
+
+
+if not has_numba:
+    def jit(**kwargs):  # noqa
+        def _jit(func):
+            return func
+        return _jit
+    prange = range
+    bincount = np.bincount
+    mean = np.mean
+
+else:
+    @jit()
+    def bincount(x, weights, minlength):  # noqa: D103
+        out = np.zeros(minlength)
+        for idx, w in zip(x, weights):
+            out[idx] += w
+        return out
+
+    # fix because Numba does not support axis kwarg for mean
+    @jit()
+    def _np_apply_along_axis(func1d, axis, arr):
+        assert arr.ndim == 2
+        assert axis in [0, 1]
+        if axis == 0:
+            result = np.empty(arr.shape[1])
+            for i in range(len(result)):
+                result[i] = func1d(arr[:, i])
+        else:
+            result = np.empty(arr.shape[0])
+            for i in range(len(result)):
+                result[i] = func1d(arr[i, :])
+        return result
+
+    @jit()
+    def mean(array, axis):
+        return _np_apply_along_axis(np.mean, axis, array)
+
+
+###############################################################################
+# workaround: plt.close() doesn't spawn close_event on Agg backend
+# (check MPL github issue #18609; scheduled to be fixed by MPL 3.4)
+
+def _close_event(fig):
+    """Force calling of the MPL figure close event."""
+    try:
+        fig.canvas.close_event()
+    except ValueError:  # old mpl with Qt
+        pass  # pragma: no cover
+
+
+def _is_last_row(ax):
+    try:
+        return ax.get_subplotspec().is_last_row()  # 3.4+
+    except AttributeError:
+        return ax.is_last_row()
+    return ax.get_subplotspec().is_last_row()
+
+
+###############################################################################
+# SciPy deprecation of pinv + pinvh rcond (never worked properly anyway) in 1.7
+
+def pinvh(a, rtol=None):
+    """Compute a pseudo-inverse of a Hermitian matrix."""
+    from scipy.linalg.decomp import _asarray_validated
+    s, u = np.linalg.eigh(a)
+    del a
+    if rtol is None:
+        rtol = s.size * np.finfo(s.dtype).eps
+    maxS = np.max(np.abs(s))
+    above_cutoff = (abs(s) > maxS * rtol)
+    psigma_diag = 1.0 / s[above_cutoff]
+    u = u[:, above_cutoff]
+    return (u * psigma_diag) @ u.conj().T
+
+
+def pinv(a, rtol=None):
+    """Compute a pseudo-inverse of a matrix."""
+    u, s, vh = np.linalg.svd(a, full_matrices=False)
+    del a
+    maxS = np.max(s)
+    if rtol is None:
+        rtol = max(vh.shape + u.shape) * np.finfo(u.dtype).eps
+    rank = np.sum(s > maxS * rtol)
+    u = u[:, :rank]
+    u /= s[:rank]
+    return (u @ vh[:rank]).conj().T
+
+
+###############################################################################
+# PyVista
+
+# Deal with pyvista deprecation of point_data and cell_data
+# (can be removed once we require 0.31+)
+
+def _point_data(obj):
+    try:
+        return obj.point_data
+    except AttributeError:
+        return obj.point_arrays
+
+
+def _cell_data(obj):
+    try:
+        return obj.cell_data
+    except AttributeError:
+        return obj.cell_arrays

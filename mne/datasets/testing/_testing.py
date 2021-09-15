@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD Style.
@@ -47,6 +47,20 @@ def _skip_testing_data():
 
 def requires_testing_data(func):
     """Skip testing data test."""
+    return _pytest_mark()(func)
+
+
+def _pytest_param(*args, **kwargs):
+    if len(args) == len(kwargs) == 0:
+        args = ('testing_data',)
     import pytest
-    return pytest.mark.skipif(_skip_testing_data(),
-                              reason='Requires testing dataset')(func)
+    # turn anything that uses testing data into an auto-skipper by
+    # setting params=[testing._pytest_param()], or by parametrizing functions
+    # with testing._pytest_param(whatever)
+    return pytest.param(*args, **kwargs, marks=_pytest_mark())
+
+
+def _pytest_mark():
+    import pytest
+    return pytest.mark.skipif(
+        _skip_testing_data(), reason='Requires testing dataset')

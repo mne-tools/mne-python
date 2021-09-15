@@ -22,11 +22,13 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
                       update_path=update_path, name=data_name,
                       download=download)
 
+
 data_path.__doc__ = _data_path_doc.format(name=data_name,
                                           conf=conf_name)
 
 
 def get_version():  # noqa: D103
     return _get_version(data_name)
+
 
 get_version.__doc__ = _version_doc.format(name=data_name)

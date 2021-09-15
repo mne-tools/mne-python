@@ -1,8 +1,8 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from copy import deepcopy
 
@@ -74,6 +74,32 @@ def read_ctf_comp(fid, node, chs, verbose=None):
     compdata : list
         The compensation data
     """
+    return _read_ctf_comp(fid, node, chs, None)
+
+
+def _read_ctf_comp(fid, node, chs, ch_names_mapping):
+    """Read the CTF software compensation data from the given node.
+
+    Parameters
+    ----------
+    fid : file
+        The file descriptor.
+    node : dict
+        The node in the FIF tree.
+    chs : list
+        The list of channels from info['chs'] to match with
+        compensators that are read.
+    ch_names_mapping : dict | None
+        The channel renaming to use.
+    %(verbose)s
+
+    Returns
+    -------
+    compdata : list
+        The compensation data
+    """
+    from .meas_info import _rename_comps
+    ch_names_mapping = dict() if ch_names_mapping is None else ch_names_mapping
     compdata = []
     comps = dir_tree_find(node, FIFF.FIFFB_MNE_CTF_COMP_DATA)
 
@@ -105,12 +131,13 @@ def read_ctf_comp(fid, node, chs, verbose=None):
 
         one['save_calibrated'] = bool(calibrated)
         one['data'] = mat
+        _rename_comps([one], ch_names_mapping)
         if not calibrated:
             #   Calibrate...
             _calibrate_comp(one, chs, mat['row_names'], mat['col_names'])
         else:
-            one['rowcals'] = np.ones(mat['data'].shape[0], dtype=np.float)
-            one['colcals'] = np.ones(mat['data'].shape[1], dtype=np.float)
+            one['rowcals'] = np.ones(mat['data'].shape[0], dtype=np.float64)
+            one['colcals'] = np.ones(mat['data'].shape[1], dtype=np.float64)
 
         compdata.append(one)
 

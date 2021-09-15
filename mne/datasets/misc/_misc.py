@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD Style.
@@ -13,6 +13,7 @@ def data_path(path=None, force_update=False, update_path=True,
     return _data_path(path=path, force_update=force_update,
                       update_path=update_path, name='misc',
                       download=download)
+
 
 data_path.__doc__ = _data_path_doc.format(name='misc',
                                           conf='MNE_DATASETS_MISC_PATH')

@@ -1,303 +1,197 @@
-html {
-  position: relative;
-  min-height: 100%;
-}
+:root {
 
-body {
-    margin-bottom: 150px;
-}
-
-.navbar-version {
-    display: none;
-}
-
-a {
-    color: rgb(41, 122, 204);
-    text-decoration: none;
-}
-
-a:hover {
-    color: rgb(102, 179, 255);
-}
-
-blockquote {
-    font-size: 100% !important;
-}
-
-.devbar {
-    text-align: center;
-    padding: 5px;
-    margin-bottom: 5px;
-}
-
-#navbar a:hover {
-    color: rgb(242, 80, 80);
-}
-
-div.crop-wrapper {
-  width: 380px;
-  height: 190px;
-  overflow: hidden
-}
-
-a.button-front {
-    width: 32%;
-    height: 100%;
-    margin: 5px;
-    float:left;
-    background-color: #e7e7e7;
-    color: black;
-    border: 1px solid;
-    font-size: larger;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.anchor-doc {
-    position: relative;
-    padding-top: 200px !important;
-    display: none !important;
+    --pst-font-size-base: 16px;
+    --pst-font-size-milli: 13px;
+    --pst-font-family-base: 'Source Sans Pro', var(--pst-font-family-base-system);
+    --pst-font-family-heading: var(--pst-font-family-base);
+    --pst-font-family-monospace: 'Source Code Pro', var(--pst-font-family-monospace-system);
 
 }
 
-.note a {
-    color: rgb(0,0,255);
+/* ************************************************************ Sphinx fixes */
+dl.field-list {
+    grid-template-columns: auto 1fr;
 }
 
-.note {
-    background-color: rgb(204, 230, 255);
-    color: rgb(0, 0, 0);
-    border: none;
-}
+/* ********************************************************** Sphinx-gallery */
 
-.note pre {
-    background-color: rgb(242, 249, 255);
+/* backreference links: restore hover decoration that SG removes */
+a.sphx-glr-backref-instance:hover {
+    text-decoration: underline;
 }
-
-blockquote {
-  padding: 0 0 0 15px;
-  margin: 0 0 20px;
-  border-left: 5px solid #eeeeee;
+/* backreference links: make non-MNE func/meth calls resemble regular code */
+a[class^="sphx-glr-backref-module"] {
+    color: rgb(var(--pst-color-text-base));
 }
-
-.span.box {
-    width: 47%;
-    height: 230px;
-    float: left;
-    border-radius: 20px;
-    background: rgb(242, 249, 255);
+/* backreference links: make MNE calls bold and colorful */
+a[class^="sphx-glr-backref-module-mne"] {
+    font-weight: 600;
+    color: rgb(var(--pst-color-link));
+}
+/* suppress redundant note at top of every tutorial and signature at the end */
+div.sphx-glr-download-link-note,
+p.sphx-glr-signature {
+    visibility: hidden;
+    height: 0;
+    margin: 0;
+    padding: 0;
+}
+/* script/notebook download buttons */
+.sphx-glr-download a.download {
+    background-image: none;
+    background-color: rgba(var(--pst-color-info), 0.1);
+    border-color: rgb(var(--pst-color-info));
+}
+/* Report embedding */
+iframe.sg_report {
+    width: 95%;
+    height: 70vh;
+    margin: 20px auto;
+    display: block;
     border-style: solid;
-    border-color: rgb(143, 173, 204);
-    margin: 5px;
-    padding: 0px 0px 0px 10px;
 }
-
-.span h2 {
-    background: rgb(242, 249, 255);
-}
-/* OVERRIDES */
-div.sphx-glr-download {
-  width: inherit;
-}
-div.sphx-glr-footer {
-  width: fit-content;
-}
-div.sphx-glr-download a {
-  background-color: rgb(230, 242, 255);
-  background-image: inherit;
-  border: 1px solid #000;
-  color: inherit;
-  width: fit-content;
-  display: inherit;
-  font-weight: inherit;
-  padding: 0px;
-  text-align: center;
-}
-div.sphx-glr-download a:hover {
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 1px 5px rgba(0,0,0,.25);
-  text-decoration: none;
-  background-image: none;
-  background-color: inherit;
-}
-/* hide the top link */
-div.sphx-glr-download-link-note {
-  height: 0px;
-  visibility: hidden;
-}
-.warning {
-    background-color: rgb(230, 57, 57);
-    color: white;
-}
-.warning a {
-    color: rgb(255, 238, 0);
-}
-dt:target, .highlighted {
-    background-color: rgb(255, 238, 0);
-}
-dt:target code {
-    color: inherit !important;
-    background-color: inherit !important;
-}
-
-.label {  /* Necessary for multiple refs, from bootstrap.min.css:7 */
-    color: #2c3e50;
-}
-/* Override bootstrap.min.css to avoid .. container:: padding problems */
-.nosize {
-    width:  auto;
-}
-.nopad {
-    padding:  0px;
-}
-.halfpad {
-    margin-left: 1%;
-    margin-right: 1%;
-    width: 48%;
-    padding:  0px;
-    margin: 10px;
-    float: left;
-}
-/* our carousel */
-.chopper {
-    overflow: hidden;
+/* gallery thumbnail size */
+.sphx-glr-thumbcontainer {
+    min-width: 160px;
     height: 250px;
 }
-.carousel-image {
-    position: absolute;
+
+/* ******************************** make HTML'd pandas dataframes scrollable */
+table.dataframe {
+    display: block;
+    overflow: auto;
+}
+
+/* ********************************* Long API titles need to wrap for mobile */
+div[id^="mne-"] h1,
+div[id^="examples-using-"] h2 {
+    word-break: break-word;
+}
+
+/* ******************************************* in-text sidebar callout boxes */
+div.sidebar,
+aside.sidebar {
+    margin: 0 0 0.5em 1em;
+    padding: 7px;
+    width: 40%;
+    float: right;
+    clear: right;
+    overflow-x: auto;
+    /* above copied from div.sidebar in basic.css; below are our overrides */
+    background-color: rgba(var(--pst-color-info), 0.1);
+    border: 1px solid rgb(var(--pst-color-info));
+    border-radius: 4px;
+}
+
+/* **************************************************************** homepage */
+img.logo {
+    max-width: 360px;
     width: 100%;
+}
+
+/* ************************************* homepage quick links & funders list */
+ul.quicklinks {
+    font-weight: 600;
+}
+ul.quicklinks a:hover {
+    text-decoration: none;
+}
+ul.funders li {
+    margin-left: 36px;
+    text-indent: -36px;
+    padding-bottom: 9px;
+}
+ul.funders li img {
+    width: 30px;
+    max-height: 24px;
+    object-fit: contain;
+}
+
+/* these two also affect collapsible divs */
+h5.card-header {
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+h5.card-header::before {
+    height: 0px;
+    margin-top: 0px;
+}
+
+/* ************************************************* dev version warning bar */
+.devbar {
+    /* body top padding minus navbar height; */
+    /*might be possible to calc from theme variables */
+    margin-top: -20px;
+}
+
+/* ******************************************************** version dropdown */
+.dropdown {
+    padding: 0 .5rem;  /* match other items in the hamburger menu */
+}
+.dropdown-toggle {
+    font-weight: 600;
+}
+
+/* ***************************************************** front page carousel */
+div.frontpage-gallery {
+    overflow: hidden;
+    height: 180px;
+    justify-content: center;
+}
+div.frontpage-gallery a {
+    text-decoration: none;
+    color: rgb(var(--pst-color-text-base));
+}
+div.frontpage-gallery img.card-img {
+    transform: scale(1.8);
+    transform-origin: 40% 20%;
+    opacity: 0.2;
+    transition: 400ms ease-out;
+}
+div.frontpage-gallery:hover img.card-img {
+    transform: scale(1.2);
     opacity: 1.0;
-    left: 50%;
-    top: 50%;
-    transform: translateY(-50%) translateX(-50%);
+    transition: 400ms ease-out;
+}
+div.frontpage-gallery .fadeout {
+    opacity: 1.0;
+    transition: 200ms linear;
+}
+div.frontpage-gallery:hover .fadeout {
+    opacity: 0.0;
+    transition: 200ms linear;
 }
 
-.cont{
-    width: 100%;
-    display: table;
-    border-spacing: 20px 5px;
+/* ****************************************************** navbar quick links */
+
+i.fa-github-square:before {
+    color: #000;
 }
-.cont:before {
-    content: "";
+i.fa-twitter-square:before {
+    color: #55acee;
 }
-.cont:after {
-    content: "";
+i.fa-discourse:before {
+    color: #231e20;
 }
-.btn-cont {
-    display: table-cell;
-    width: 100%;
-}
-.footer {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-}
-.footer a {
-    font-weight: 700;
-}
-.support-front {
-    font-size: 10px;
-}
-.support-front ul{
-    list-style-type: none;
-}
-.ul-2col ul{
-    columns: 2;
-}
-.carousel-caption {
-    text-shadow: 0 1px 1px rgba(0,0,0,1.0);
-    background-color: rgba(0,0,0,0.5);
-    box-shadow: 0 0 5px rgba(0,0,0,0.5);
-}
-.carousel-caption p {
-    font-size: 16px;
-}
-.support-front ul {
-    padding-left: 15px;
-}
-.topmargin {
-    margin-top: 10px;
-}
-.bottommargin {
-    margin-bottom: 10px;
-}
-h4.list-group-item-heading {
-    font-size: 15px;
-}
-.table-like {
-    display: table;
-}
-.cell-like {
-    display: table-cell;
-    vertical-align: middle;
-    float: none;
-}
-.limitedwidth {
-    max-width: 1024px;
-    float: none;
-    margin: auto;
-}
-.tagline {
-    font-size: 20px;
-}
-/* Fix collapsing */
-@media (max-width: 991px) {
-  .navbar-header {
-      float: none;
-  }
-  .navbar-left,.navbar-right {
-      float: none !important;
-  }
-  .navbar-toggle {
-      display: block;
-  }
-  .navbar-collapse {
-      border-top: 1px solid transparent;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
-  }
-  .navbar-fixed-top {
-      top: 0;
-      border-width: 0 0 1px;
-  }
-  .navbar-collapse.collapse {
-      display: none!important;
-  }
-  .navbar-nav {
-      float: none!important;
-      margin-top: 7.5px;
-  }
-  .navbar-nav>li {
-      float: none;
-  }
-  .navbar-nav>li>a {
-      padding-top: 10px;
-      padding-bottom: 10px;
-  }
-  .collapse.in{
-      display:block !important;
-  }
+i.fa-discord:before {
+    color: #7289da;  /* 99aab5 is also in-brand for discord */
 }
 
-.skinnytable {
-    width: auto;
+/* ************************************************* Previous / Next buttons */
+.prev-next-bottom a.left-prev:before {
+    content:"❮\00A0"
 }
-.skinnytable thead {
-    border-bottom: 1px solid black;
+.prev-next-bottom a.right-next:after {
+    content:"\00A0❯"
 }
-/* Unify color of refs and classes in parameter lists */
-span.classifier a span.xref {
-    color: #2c3e50;
+.prev-next-bottom a.right-next {
+    text-align: right;
 }
-span.classifier a code.docutils.literal.notranslate {
-    color: #2c3e50;
+
+/* *********************************************************** miscellaneous */
+.hidden {
+    display: none;
 }
-/* Allow easier copy-paste in code blocks */
-div.highlight-console div.highlight span.gp {
-  -webkit-touch-callout: none; /* iOS Safari */
-    -webkit-user-select: none; /* Safari */
-     -khtml-user-select: none; /* Konqueror HTML */
-       -moz-user-select: none; /* Firefox */
-        -ms-user-select: none; /* Internet Explorer/Edge */
-            user-select: none; /* Non-prefixed version, currently
-                                  supported by Chrome and Opera */
+img.hidden {
+    visibility: hidden;
 }

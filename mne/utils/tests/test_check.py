@@ -1,29 +1,77 @@
+"""Test check utilities."""
+# Authors: MNE Developers
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#
+# License: BSD-3-Clause
+import os
 import os.path as op
+import sys
+
+import numpy as np
 import pytest
+from pathlib import Path
 
 import mne
+from mne import read_vectorview_selection
 from mne.datasets import testing
 from mne.io.pick import pick_channels_cov
 from mne.utils import (check_random_state, _check_fname, check_fname,
                        _check_subject, requires_mayavi, traits_test,
-                       _check_mayavi_version, _check_info_inv, _check_option)
+                       _check_mayavi_version, _check_info_inv, _check_option,
+                       check_version, _check_path_like, _validate_type,
+                       _suggest, _on_missing, requires_nibabel, _safe_input)
 
 data_path = testing.data_path(download=False)
 base_dir = op.join(data_path, 'MEG', 'sample')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 fname_event = op.join(base_dir, 'sample_audvis_trunc_raw-eve.fif')
 fname_fwd = op.join(base_dir, 'sample_audvis_trunc-meg-vol-7-fwd.fif')
+fname_mgz = op.join(data_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
 reject = dict(grad=4000e-13, mag=4e-12)
 
 
-def test_check():
+@testing.requires_testing_data
+def test_check(tmpdir):
     """Test checking functions."""
     pytest.raises(ValueError, check_random_state, 'foo')
     pytest.raises(TypeError, _check_fname, 1)
+    _check_fname(Path('./foo'))
+    fname = str(tmpdir.join('foo'))
+    with open(fname, 'wb'):
+        pass
+    assert op.isfile(fname)
+    _check_fname(fname, overwrite='read', must_exist=True)
+    orig_perms = os.stat(fname).st_mode
+    os.chmod(fname, 0)
+    if not sys.platform.startswith('win'):
+        with pytest.raises(PermissionError, match='read permissions'):
+            _check_fname(fname, overwrite='read', must_exist=True)
+    os.chmod(fname, orig_perms)
+    os.remove(fname)
+    assert not op.isfile(fname)
     pytest.raises(IOError, check_fname, 'foo', 'tets-dip.x', (), ('.fif',))
     pytest.raises(ValueError, _check_subject, None, None)
     pytest.raises(TypeError, _check_subject, None, 1)
     pytest.raises(TypeError, _check_subject, 1, None)
+    # smoke tests for permitted types
+    check_random_state(None).choice(1)
+    check_random_state(0).choice(1)
+    check_random_state(np.random.RandomState(0)).choice(1)
+    if check_version('numpy', '1.17'):
+        check_random_state(np.random.default_rng(0)).choice(1)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('suffix',
+                         ('_meg.fif', '_eeg.fif', '_ieeg.fif',
+                          '_meg.fif.gz', '_eeg.fif.gz', '_ieeg.fif.gz'))
+def test_check_fname_suffixes(suffix, tmpdir):
+    """Test checking for valid filename suffixes."""
+    new_fname = str(tmpdir.join(op.basename(fname_raw)
+                                .replace('_raw.fif', suffix)))
+    raw = mne.io.read_raw_fif(fname_raw).crop(0, 0.1)
+    raw.save(new_fname)
+    mne.io.read_raw_fif(new_fname)
 
 
 @requires_mayavi
@@ -43,8 +91,9 @@ def _get_data():
     event_id, tmin, tmax = 1, -0.1, 0.15
 
     # decimate for speed
-    left_temporal_channels = mne.read_selection('Left-temporal')
-    picks = mne.pick_types(raw.info, selection=left_temporal_channels)
+    left_temporal_channels = read_vectorview_selection('Left-temporal')
+    picks = mne.pick_types(raw.info, meg=True,
+                           selection=left_temporal_channels)
     picks = picks[::2]
     raw.pick_channels([raw.ch_names[ii] for ii in picks])
     del picks
@@ -116,7 +165,7 @@ def test_check_option():
 
     # Check error message for invalid value
     msg = ("Invalid value for the 'option' parameter. Allowed values are "
-           "'valid', 'good' and 'ok', but got 'bad' instead.")
+           "'valid', 'good', and 'ok', but got 'bad' instead.")
     with pytest.raises(ValueError, match=msg):
         assert _check_option('option', 'bad', allowed_values)
 
@@ -125,3 +174,60 @@ def test_check_option():
            "is 'valid', but got 'bad' instead.")
     with pytest.raises(ValueError, match=msg):
         assert _check_option('option', 'bad', ['valid'])
+
+
+def test_check_path_like():
+    """Test _check_path_like()."""
+    str_path = str(base_dir)
+    pathlib_path = Path(base_dir)
+    no_path = dict(foo='bar')
+
+    assert _check_path_like(str_path) is True
+    assert _check_path_like(pathlib_path) is True
+    assert _check_path_like(no_path) is False
+
+
+def test_validate_type():
+    """Test _validate_type."""
+    _validate_type(1, 'int-like')
+    with pytest.raises(TypeError, match='int-like'):
+        _validate_type(False, 'int-like')
+
+
+@requires_nibabel()
+@testing.requires_testing_data
+def test_suggest():
+    """Test suggestions."""
+    names = mne.get_volume_labels_from_aseg(fname_mgz)
+    sug = _suggest('', names)
+    assert sug == ''  # nothing
+    sug = _suggest('Left-cerebellum', names)
+    assert sug == " Did you mean 'Left-Cerebellum-Cortex'?"
+    sug = _suggest('Cerebellum-Cortex', names)
+    assert sug == " Did you mean one of ['Left-Cerebellum-Cortex', 'Right-Cerebellum-Cortex', 'Left-Cerebral-Cortex']?"  # noqa: E501
+
+
+def test_on_missing():
+    """Test _on_missing."""
+    msg = 'test'
+    with pytest.raises(ValueError, match=msg):
+        _on_missing('raise', msg)
+    with pytest.warns(RuntimeWarning, match=msg):
+        _on_missing('warn', msg)
+    _on_missing('ignore', msg)
+
+    with pytest.raises(ValueError,
+                       match='Invalid value for the \'on_missing\' parameter'):
+        _on_missing('foo', msg)
+
+
+def _matlab_input(msg):
+    raise EOFError()
+
+
+def test_safe_input(monkeypatch):
+    """Test _safe_input."""
+    monkeypatch.setattr(mne.utils.check, 'input', _matlab_input)
+    with pytest.raises(RuntimeError, match='Could not use input'):
+        _safe_input('whatever', alt='nothing')
+    assert _safe_input('whatever', use='nothing') == 'nothing'

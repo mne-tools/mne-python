@@ -1,9 +1,8 @@
 import numpy as np
 import os.path as op
+from .._digitization import _artemis123_read_pos
 from ...utils import logger
-from ...transforms import (rotation3d_align_z_axis, get_ras_to_neuromag_trans,
-                           apply_trans)
-from ..meas_info import _make_dig_points
+from ...transforms import rotation3d_align_z_axis
 
 
 def _load_mne_locs(fname=None):
@@ -21,7 +20,7 @@ def _load_mne_locs(fname=None):
     with open(fname, 'r') as fid:
         for line in fid:
             vals = line.strip().split(',')
-            locs[vals[0]] = np.array(vals[1::], np.float)
+            locs[vals[0]] = np.array(vals[1::], np.float64)
 
     return locs
 
@@ -57,9 +56,9 @@ def _load_tristan_coil_locs(coil_loc_path):
             channel_info[vals[0]] = dict()
             if vals[6]:
                 channel_info[vals[0]]['inner_coil'] = \
-                    np.array(vals[2:5], np.float)
+                    np.array(vals[2:5], np.float64)
                 channel_info[vals[0]]['outer_coil'] = \
-                    np.array(vals[5:8], np.float)
+                    np.array(vals[5:8], np.float64)
             else:  # nothing supplied
                 channel_info[vals[0]]['inner_coil'] = np.zeros(3)
                 channel_info[vals[0]]['outer_coil'] = np.zeros(3)
@@ -88,11 +87,7 @@ def _compute_mne_loc(coil_loc):
 
 def _read_pos(fname):
     """Read the .pos file and return positions as dig points."""
-    nas = None
-    lpa = None
-    rpa = None
-    hpi = None
-    extra = None
+    nas, lpa, rpa, hpi, extra = None, None, None, None, None
     with open(fname, 'r') as fid:
         for line in fid:
             line = line.strip()
@@ -120,19 +115,5 @@ def _read_pos(fname):
                         extra = list()
                     extra.append(np.array([float(p)
                                            for p in parts[-3:]]) / 100.)
-    # move into MNE head coords
-    if ((nas is not None) and (lpa is not None) and (rpa is not None)):
-        neuromag_trans = get_ras_to_neuromag_trans(nas, lpa, rpa)
-        nas = apply_trans(neuromag_trans, nas)
-        lpa = apply_trans(neuromag_trans, lpa)
-        rpa = apply_trans(neuromag_trans, rpa)
 
-        if hpi is not None:
-            hpi = apply_trans(neuromag_trans, hpi)
-
-        if extra is not None:
-            extra = apply_trans(neuromag_trans, extra)
-
-    digs = _make_dig_points(nasion=nas, lpa=lpa, rpa=rpa, hpi=hpi,
-                            extra_points=extra)
-    return digs
+    return _artemis123_read_pos(nas, lpa, rpa, hpi, extra)

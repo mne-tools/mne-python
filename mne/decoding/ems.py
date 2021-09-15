@@ -1,8 +1,8 @@
 # Author: Denis Engemann <denis.engemann@gmail.com>
-#         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Jean-Remi King <jeanremi.king@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from collections import Counter
 
@@ -19,13 +19,14 @@ from .. import pick_types, pick_info
 class EMS(TransformerMixin, EstimatorMixin):
     """Transformer to compute event-matched spatial filters.
 
-    This version of EMS [1]_ operates on the entire time course. No time
+    This version of EMS :footcite:`SchurgerEtAl2013` operates on the entire
+    time course. No time
     window needs to be specified. The result is a spatial filter at each
     time point and a corresponding time course. Intuitively, the result
     gives the similarity between the filter at each time point and the
     data vector (sensors) at that time point.
 
-    .. note : EMS only works for binary classification.
+    .. note:: EMS only works for binary classification.
 
     Attributes
     ----------
@@ -36,9 +37,7 @@ class EMS(TransformerMixin, EstimatorMixin):
 
     References
     ----------
-    .. [1] Aaron Schurger, Sebastien Marti, and Stanislas Dehaene, "Reducing
-           multi-sensor data to a single time course that reveals experimental
-           effects", BMC Neuroscience 2013, 14:122
+    .. footbibliography::
     """
 
     def __repr__(self):  # noqa: D105
@@ -97,7 +96,8 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
                 verbose=None):
     """Compute event-matched spatial filter on epochs.
 
-    This version of EMS [1]_ operates on the entire time course. No time
+    This version of EMS :footcite:`SchurgerEtAl2013` operates on the entire
+    time course. No time
     window needs to be specified. The result is a spatial filter at each
     time point and a corresponding time course. Intuitively, the result
     gives the similarity between the filter at each time point and the
@@ -123,8 +123,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
         well as the number of conditions supported by the objective_function.
         If None keys in epochs.event_id are used.
     %(picks_good_data)s
-    n_jobs : int, default 1
-        Number of jobs to run in parallel.
+    %(n_jobs)s
     cv : cross-validation object | str | None, default LeaveOneOut
         The cross-validation scheme.
     %(verbose)s
@@ -140,9 +139,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
 
     References
     ----------
-    .. [1] Aaron Schurger, Sebastien Marti, and Stanislas Dehaene, "Reducing
-           multi-sensor data to a single time course that reveals experimental
-           effects", BMC Neuroscience 2013, 14:122
+    .. footbibliography::
     """
     logger.info('...computing surrogate time series. This can take some time')
 
@@ -174,7 +171,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
     cond_idx = [np.where(ev == epochs.event_id[k])[0] for k in conditions]
 
     info = pick_info(epochs.info, picks)
-    data = epochs.get_data()[:, picks]
+    data = epochs.get_data(picks=picks)
 
     # Scale (z-score) the data by channel type
     # XXX the z-scoring is applied outside the CV, which is not standard.

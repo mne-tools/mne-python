@@ -1,8 +1,8 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import math
 
 import numpy as np
@@ -11,11 +11,11 @@ from ..cov import compute_whitener
 from ..io.pick import pick_info
 from ..forward import apply_forward
 from ..utils import (logger, verbose, check_random_state, _check_preload,
-                     deprecated, _validate_type)
+                     _validate_type)
 
 
 @verbose
-def simulate_evoked(fwd, stc, info, cov, nave=30, iir_filter=None,
+def simulate_evoked(fwd, stc, info, cov=None, nave=30, iir_filter=None,
                     random_state=None, use_cps=True, verbose=None):
     """Generate noisy evoked data.
 
@@ -27,25 +27,21 @@ def simulate_evoked(fwd, stc, info, cov, nave=30, iir_filter=None,
 
     Parameters
     ----------
-    fwd : Forward
-        a forward solution.
+    fwd : instance of Forward
+        A forward solution.
     stc : SourceEstimate object
         The source time courses.
-    info : dict
-        Measurement info to generate the evoked.
-    cov : Covariance object
-        The noise covariance.
+    %(info_not_none)s Used to generate the evoked.
+    cov : Covariance object | None
+        The noise covariance. If None, no noise is added.
     nave : int
         Number of averaged epochs (defaults to 30).
 
         .. versionadded:: 0.15.0
     iir_filter : None | array
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
-    random_state : None | int | ~numpy.random.RandomState
-        To specify the random generator state.
-    use_cps : bool (default True)
-        Whether to use cortical patch statistics to define normal
-        orientations when converting to fixed orientation (if necessary).
+    %(random_state)s
+    %(use_cps)s
 
         .. versionadded:: 0.15
     %(verbose)s
@@ -53,7 +49,7 @@ def simulate_evoked(fwd, stc, info, cov, nave=30, iir_filter=None,
     Returns
     -------
     evoked : Evoked object
-        The simulated evoked data
+        The simulated evoked data.
 
     See Also
     --------
@@ -73,43 +69,16 @@ def simulate_evoked(fwd, stc, info, cov, nave=30, iir_filter=None,
     .. versionadded:: 0.10.0
     """
     evoked = apply_forward(fwd, stc, info, use_cps=use_cps)
+    if cov is None:
+        return evoked
+
     if nave < np.inf:
         noise = _simulate_noise_evoked(evoked, cov, iir_filter, random_state)
         evoked.data += noise.data / math.sqrt(nave)
-        evoked.nave = np.int(nave)
-    if cov is not None and cov.get('projs', None):
+        evoked.nave = np.int64(nave)
+    if cov.get('projs', None):
         evoked.add_proj(cov['projs']).apply_proj()
     return evoked
-
-
-@deprecated('simulate_noise_evoked is deprecated in 0.18 and will be removed '
-            'in 0.19, use add_noise instead')
-def simulate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
-    """Create noise as a multivariate Gaussian.
-
-    The spatial covariance of the noise is given from the cov matrix.
-
-    Parameters
-    ----------
-    evoked : evoked object
-        an instance of evoked used as template
-    cov : Covariance object
-        The noise covariance
-    iir_filter : None | array
-        IIR filter coefficients (denominator)
-    random_state : None | int | np.random.RandomState
-        To specify the random generator state.
-
-    Returns
-    -------
-    noise : evoked object
-        an instance of evoked
-
-    Notes
-    -----
-    .. versionadded:: 0.10.0
-    """
-    return _simulate_noise_evoked(evoked, cov, iir_filter, random_state)
 
 
 def _simulate_noise_evoked(evoked, cov, iir_filter, random_state):
@@ -134,8 +103,7 @@ def add_noise(inst, cov, iir_filter=None, random_state=None,
         The noise covariance.
     iir_filter : None | array-like
         IIR filter coefficients (denominator).
-    random_state : None | int | np.random.RandomState
-        To specify the random generator state.
+    %(random_state)s
     %(verbose)s
 
     Returns
@@ -172,25 +140,31 @@ def _add_noise(inst, cov, iir_filter, random_state, allow_subselection=True):
         data = data[np.newaxis]
     # Subselect if necessary
     info = inst.info
-    picks = slice(None)
+    info._check_consistency()
+    picks = gen_picks = slice(None)
     if allow_subselection:
         use_chs = list(set(info['ch_names']) & set(cov['names']))
         picks = np.where(np.in1d(info['ch_names'], use_chs))[0]
         logger.info('Adding noise to %d/%d channels (%d channels in cov)'
                     % (len(picks), len(info['chs']), len(cov['names'])))
         info = pick_info(inst.info, picks)
+        info._check_consistency()
+
+        gen_picks = np.arange(info['nchan'])
     for epoch in data:
         epoch[picks] += _generate_noise(info, cov, iir_filter, random_state,
-                                        epoch.shape[1])[0]
+                                        epoch.shape[1], picks=gen_picks)[0]
     return inst
 
 
-def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
+def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None,
+                    picks=None):
     """Create spatially colored and temporally IIR-filtered noise."""
     from scipy.signal import lfilter
     rng = check_random_state(random_state)
-    _, _, colorer = compute_whitener(cov, info, pca=True, return_colorer=True)
-    noise = np.dot(colorer, rng.randn(colorer.shape[1], n_samples))
+    _, _, colorer = compute_whitener(cov, info, pca=True, return_colorer=True,
+                                     picks=picks, verbose=False)
+    noise = np.dot(colorer, rng.standard_normal((colorer.shape[1], n_samples)))
     if iir_filter is not None:
         if zi is None:
             zi = np.zeros((len(colorer), len(iir_filter) - 1))

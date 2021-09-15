@@ -1,8 +1,9 @@
 """Read .res4 files."""
 
-# Author: Eric Larson <larson.eric.d<gmail.com>
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Eric Larson <larsoner@uw.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 

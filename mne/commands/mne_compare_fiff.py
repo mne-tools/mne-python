@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 """Compare FIFF files.
 
-You can do for example:
+Examples
+--------
+.. code-block:: console
 
-$ mne compare_fiff test_raw.fif test_raw_sss.fif
+    $ mne compare_fiff test_raw.fif test_raw_sss.fif
+
 """
 
 # Authors : Eric Larson, PhD
@@ -23,6 +26,4 @@ def run():
     mne.viz.compare_fiff(args[0], args[1])
 
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()

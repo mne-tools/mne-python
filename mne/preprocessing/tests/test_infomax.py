@@ -1,8 +1,10 @@
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # Parts of this code are taken from scikit-learn
+
+import pytest
 
 import numpy as np
 from numpy.testing import assert_almost_equal
@@ -11,7 +13,7 @@ from scipy import stats
 from scipy import linalg
 
 from mne.preprocessing.infomax_ import infomax
-from mne.utils import requires_sklearn, run_tests_if_main, check_version
+from mne.utils import requires_sklearn
 
 
 def center_and_norm(x, axis=-1):
@@ -45,7 +47,7 @@ def test_infomax_blowup():
 
     # Mixing angle
     phi = 0.6
-    mixing = np.array([[np.cos(phi),  np.sin(phi)],
+    mixing = np.array([[np.cos(phi),  np.sin(phi)],  # noqa: E241
                        [np.sin(phi), -np.cos(phi)]])
     m = np.dot(mixing, s)
 
@@ -85,7 +87,7 @@ def test_infomax_simple():
 
     # Mixing angle
     phi = 0.6
-    mixing = np.array([[np.cos(phi),  np.sin(phi)],
+    mixing = np.array([[np.cos(phi),  np.sin(phi)],  # noqa: E241
                        [np.sin(phi), -np.cos(phi)]])
     for add_noise in (False, True):
         m = np.dot(mixing, s)
@@ -178,15 +180,22 @@ def test_non_square_infomax():
             assert_almost_equal(np.dot(s2_, s2) / n_samples, 1, decimal=2)
 
 
-def _get_pca(rng=None):
-    if not check_version('sklearn', '0.18'):
-        from sklearn.decomposition import RandomizedPCA
-        return RandomizedPCA(n_components=2, whiten=True,
-                             random_state=rng)
+@pytest.mark.parametrize("return_n_iter", [True, False])
+def test_infomax_n_iter(return_n_iter):
+    """Test the return_n_iter kwarg."""
+    X = np.random.random((3, 100))
+    max_iter = 1
+    r = infomax(X, max_iter=max_iter, extended=True,
+                return_n_iter=return_n_iter)
+
+    if return_n_iter:
+        assert isinstance(r, tuple)
+        assert r[1] == max_iter
     else:
-        from sklearn.decomposition import PCA
-        return PCA(n_components=2, whiten=True, svd_solver='randomized',
-                   random_state=rng)
+        assert isinstance(r, np.ndarray)
 
 
-run_tests_if_main()
+def _get_pca(rng=None):
+    from sklearn.decomposition import PCA
+    return PCA(n_components=2, whiten=True, svd_solver='randomized',
+               random_state=rng)

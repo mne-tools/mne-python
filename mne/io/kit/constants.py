@@ -3,12 +3,13 @@
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
-from ..constants import Bunch, FIFF
+from ..constants import FIFF
+from ...utils import BunchConst
 
 
-KIT = Bunch()
+KIT = BunchConst()
 
 # byte values
 KIT.SHORT = 2
@@ -18,22 +19,24 @@ KIT.DOUBLE = 8
 # channel parameters
 KIT.CALIB_FACTOR = 1.0  # mne_manual p.272
 KIT.RANGE = 1.  # mne_manual p.272
-KIT.UNIT_MUL = 0  # default is 0 mne_manual p.273
+KIT.UNIT_MUL = FIFF.FIFF_UNITM_NONE  # default is 0 mne_manual p.273
 KIT.GAINS = [1, 2, 5, 10, 20, 50, 100, 200]
 
 KIT.HPFS = {
     1: (0, 1, 3, 3),
-    2: (0, 1, 3, 0.3),
+    2: (0, 0.03, 0.1, 0.3, 1, 3, 10, 30),
     3: (0, 0.03, 0.1, 0.3, 1, 3, 10, 30),
     4: (0, 1, 3, 10, 30, 100, 200, 500),
 }
 KIT.LPFS = {
     1: (10, 20, 50, 100, 200, 500, 1000, 2000),
+    2: (10, 20, 50, 100, 200, 500, 1000, 2000),
     3: (10, 20, 50, 100, 200, 500, 1000, 10000),
     4: (10, 30, 100, 300, 1000, 2000, 5000, 10000),
 }
 KIT.BEFS = {
     1: (0, 50, 60, 60),
+    2: (0, 0, 0),
     3: (0, 60, 50, 50),
 }
 
@@ -45,7 +48,10 @@ KIT.FLL_SETTINGS = {
     50: (2, 1, 1),  # Hanger Type #3
     60: (2, 1, 1),  # Hanger Type #3
     100: (3, 3, 3),  # Low Band Kapper Type
+    101: (1, 3, 2),  # Berlin (DC, 200 Hz, Through)
+    120: (3, 3, 3),  # Low Band Kapper Type
     200: (4, 4, 3),  # High Band Kapper Type
+    300: (2, 2, 2),  # Kapper Type
 }
 
 # channel types
@@ -84,6 +90,14 @@ KIT.CHANNELS_MISC = (
     KIT.CHANNEL_ECG,
     KIT.CHANNEL_ETC,
 )
+KIT.CHANNEL_NAME_NCHAR = {
+    KIT.CHANNEL_MAGNETOMETER: 6,
+    KIT.CHANNEL_AXIAL_GRADIOMETER: 6,
+    KIT.CHANNEL_TRIGGER: 32,
+    KIT.CHANNEL_EEG: 8,
+    KIT.CHANNEL_ECG: 32,
+    KIT.CHANNEL_ETC: 32,
+}
 KIT.CH_TO_FIFF_COIL = {
     # KIT.CHANNEL_MAGNETOMETER: FIFF.???,
     KIT.CHANNEL_MAGNETOMETER_REFERENCE: FIFF.FIFFV_COIL_KIT_REF_MAG,
@@ -134,35 +148,73 @@ KIT.DIG_POINTS = 10000
 # -----------------
 # KIT recording system is encoded in the SQD file as integer:
 KIT.SYSTEM_MQ_ADULT = 345  # Macquarie Dept of Cognitive Science, 2006 -
+KIT.SYSTEM_MQ_CHILD = 403  # Macquarie Dept of Cognitive Science, 2006 -
 KIT.SYSTEM_AS = 260  # Academia Sinica at Taiwan
 KIT.SYSTEM_AS_2008 = 261  # Academia Sinica, 2008 or 2009 -
 KIT.SYSTEM_NYU_2008 = 32  # NYU-NY, July 7, 2008 -
 KIT.SYSTEM_NYU_2009 = 33  # NYU-NY, January 24, 2009 -
 KIT.SYSTEM_NYU_2010 = 34  # NYU-NY, January 22, 2010 -
+KIT.SYSTEM_NYU_2019 = 35  # NYU-NY, September 18, 2019 -
 KIT.SYSTEM_NYUAD_2011 = 440  # NYU-AD initial launch May 20, 2011 -
 KIT.SYSTEM_NYUAD_2012 = 441  # NYU-AD more channels July 11, 2012 -
 KIT.SYSTEM_NYUAD_2014 = 442  # NYU-AD move to NYUAD campus Nov 20, 2014 -
 KIT.SYSTEM_UMD_2004 = 51  # UMD Marie Mount Hall, October 1, 2004 -
 KIT.SYSTEM_UMD_2014_07 = 52  # UMD update to 16 bit ADC, July 4, 2014 -
 KIT.SYSTEM_UMD_2014_12 = 53  # UMD December 4, 2014 -
-# Sensor layouts, used for plotting and connectivity
+KIT.SYSTEM_UMD_2019_09 = 54  # UMD September 3, 2019 -
+KIT.SYSTEM_YOKOGAWA_2017_01 = 1001  # Kanazawa (until 2017)
+KIT.SYSTEM_YOKOGAWA_2018_01 = 10020  # Kanazawa (since 2018)
+KIT.SYSTEM_YOKOGAWA_2020_08 = 10021  # Kanazawa (since August 2020)
+KIT.SYSTEM_EAGLE_TECHNOLOGY_PTB_2008 = 124
+
+# Sensor layouts for plotting
 KIT_LAYOUT = {
     KIT.SYSTEM_AS: None,
     KIT.SYSTEM_AS_2008: 'KIT-AS-2008',
     KIT.SYSTEM_MQ_ADULT: 'KIT-160',
+    KIT.SYSTEM_MQ_CHILD: 'KIT-125',
     KIT.SYSTEM_NYU_2008: 'KIT-157',
     KIT.SYSTEM_NYU_2009: 'KIT-157',
     KIT.SYSTEM_NYU_2010: 'KIT-157',
+    KIT.SYSTEM_NYU_2019: None,
     KIT.SYSTEM_NYUAD_2011: 'KIT-AD',
     KIT.SYSTEM_NYUAD_2012: 'KIT-AD',
     KIT.SYSTEM_NYUAD_2014: 'KIT-AD',
     KIT.SYSTEM_UMD_2004: None,
     KIT.SYSTEM_UMD_2014_07: None,
     KIT.SYSTEM_UMD_2014_12: 'KIT-UMD-3',
+    KIT.SYSTEM_UMD_2019_09: None,
+    KIT.SYSTEM_YOKOGAWA_2017_01: None,
+    KIT.SYSTEM_YOKOGAWA_2018_01: None,
+    KIT.SYSTEM_YOKOGAWA_2020_08: None,
+    KIT.SYSTEM_EAGLE_TECHNOLOGY_PTB_2008: None,
+}
+# Sensor neighbor definitions
+KIT_NEIGHBORS = {
+    KIT.SYSTEM_AS: None,
+    KIT.SYSTEM_AS_2008: None,
+    KIT.SYSTEM_MQ_ADULT: None,
+    KIT.SYSTEM_MQ_CHILD: None,
+    KIT.SYSTEM_NYU_2008: 'KIT-157',
+    KIT.SYSTEM_NYU_2009: 'KIT-157',
+    KIT.SYSTEM_NYU_2010: 'KIT-157',
+    KIT.SYSTEM_NYU_2019: 'KIT-NYU-2019',
+    KIT.SYSTEM_NYUAD_2011: 'KIT-208',
+    KIT.SYSTEM_NYUAD_2012: 'KIT-208',
+    KIT.SYSTEM_NYUAD_2014: 'KIT-208',
+    KIT.SYSTEM_UMD_2004: 'KIT-UMD-1',
+    KIT.SYSTEM_UMD_2014_07: 'KIT-UMD-2',
+    KIT.SYSTEM_UMD_2014_12: 'KIT-UMD-3',
+    KIT.SYSTEM_UMD_2019_09: 'KIT-UMD-4',
+    KIT.SYSTEM_YOKOGAWA_2017_01: None,
+    KIT.SYSTEM_YOKOGAWA_2018_01: None,
+    KIT.SYSTEM_YOKOGAWA_2020_08: None,
+    KIT.SYSTEM_EAGLE_TECHNOLOGY_PTB_2008: None,
 }
 # Names displayed in the info dict description
 KIT_SYSNAMES = {
-    KIT.SYSTEM_MQ_ADULT: 'Macquarie Dept of Cognitive Science, 2006-',    
+    KIT.SYSTEM_MQ_ADULT: 'Macquarie Dept of Cognitive Science (Adult), 2006-',
+    KIT.SYSTEM_MQ_CHILD: 'Macquarie Dept of Cognitive Science (Child), 2006-',
     KIT.SYSTEM_AS: 'Academia Sinica, -2008',
     KIT.SYSTEM_AS_2008: 'Academia Sinica, 2008-',
     KIT.SYSTEM_NYU_2008: 'NYU New York, 2008-9',
@@ -174,6 +226,11 @@ KIT_SYSNAMES = {
     KIT.SYSTEM_UMD_2004: 'University of Maryland, 2004-14',
     KIT.SYSTEM_UMD_2014_07: 'University of Maryland, 2014',
     KIT.SYSTEM_UMD_2014_12: 'University of Maryland, 2014-',
+    KIT.SYSTEM_UMD_2019_09: 'University of Maryland, 2019-',
+    KIT.SYSTEM_YOKOGAWA_2017_01: 'Yokogawa of Kanazawa (until 2017)',
+    KIT.SYSTEM_YOKOGAWA_2018_01: 'Yokogawa of Kanazawa (since 2018)',
+    KIT.SYSTEM_YOKOGAWA_2020_08: 'Yokogawa of Kanazawa (since August 2020)',
+    KIT.SYSTEM_EAGLE_TECHNOLOGY_PTB_2008: 'Eagle Technology MEG (KIT/Yokogawa style) at PTB (since 2008, software upgrade in 2018)',  # noqa: E501
 }
 
 LEGACY_AMP_PARAMS = {
@@ -182,3 +239,22 @@ LEGACY_AMP_PARAMS = {
     KIT.SYSTEM_NYU_2010: (5., 11.),
     KIT.SYSTEM_UMD_2004: (5., 11.),
 }
+
+# Ones that we don't use are commented out
+KIT.DIR_INDEX_DIR = 0
+KIT.DIR_INDEX_SYSTEM = 1
+KIT.DIR_INDEX_CHANNELS = 4
+KIT.DIR_INDEX_CALIBRATION = 5
+# FLL = 6
+KIT.DIR_INDEX_AMP_FILTER = 7
+KIT.DIR_INDEX_ACQ_COND = 8
+KIT.DIR_INDEX_RAW_DATA = 9
+# AVERAGED_DATA = 10
+# MRI = 11
+KIT.DIR_INDEX_COREG = 12
+# MAGNETIC_SOURCE = 13
+# TRIGGER = 14
+# BOOKMARKS = 15
+# DIGITIZER = 25
+KIT.DIR_INDEX_DIG_POINTS = 26
+KIT.DIR_INDEX_CHPI_DATA = 29

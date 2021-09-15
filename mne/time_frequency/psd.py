@@ -1,19 +1,41 @@
-# Authors : Alexandre Gramfort, alexandre.gramfort@telecom-paristech.fr (2011)
+# Authors : Alexandre Gramfort, alexandre.gramfort@inria.fr (2011)
 #           Denis A. Engemann <denis.engemann@gmail.com>
-# License : BSD 3-clause
+# License : BSD-3-Clause
 
+from functools import partial
 import numpy as np
 
 from ..parallel import parallel_func
 from ..io.pick import _picks_to_idx
-from ..utils import logger, verbose, _time_mask
+from ..utils import logger, verbose, _time_mask, _check_option
 from .multitaper import psd_array_multitaper
 
 
-def _psd_func(epoch, noverlap, n_per_seg, nfft, fs, freq_mask, func):
+def _decomp_aggregate_mask(epoch, func, average, freq_sl):
+    _, _, spect = func(epoch)
+    spect = spect[..., freq_sl, :]
+    # Do the averaging here (per epoch) to save memory
+    if average == 'mean':
+        spect = np.nanmean(spect, axis=-1)
+    elif average == 'median':
+        spect = np.nanmedian(spect, axis=-1)
+    return spect
+
+
+def _spect_func(epoch, func, freq_sl, average):
     """Aux function."""
-    return func(epoch, fs=fs, nperseg=n_per_seg, noverlap=noverlap,
-                nfft=nfft, window='hamming')[2][..., freq_mask, :]
+    # Decide if we should split this to save memory or not, since doing
+    # multiple calls will incur some performance overhead. Eventually we might
+    # want to write (really, go back to) our own spectrogram implementation
+    # that, if possible, averages after each transform, but this will incur
+    # a lot of overhead because of the many Python calls required.
+    kwargs = dict(func=func, average=average, freq_sl=freq_sl)
+    if epoch.nbytes > 10e6:
+        spect = np.apply_along_axis(
+            _decomp_aggregate_mask, -1, epoch, **kwargs)
+    else:
+        spect = _decomp_aggregate_mask(epoch, **kwargs)
+    return spect
 
 
 def _check_nfft(n, n_fft, n_per_seg, n_overlap):
@@ -53,7 +75,7 @@ def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
         rba = 'NaN' if reject_by_annotation else None
         data = inst.get_data(picks, start, stop + 1, reject_by_annotation=rba)
     elif isinstance(inst, BaseEpochs):
-        data = inst.get_data()[:, picks][:, :, time_mask]
+        data = inst.get_data(picks=picks)[:, :, time_mask]
     else:  # Evoked
         data = inst.data[picks][:, time_mask]
 
@@ -62,7 +84,8 @@ def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
 
 @verbose
 def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
-                    n_per_seg=None, n_jobs=1, verbose=None):
+                    n_per_seg=None, n_jobs=1, average='mean', window='hamming',
+                    verbose=None):
     """Compute power spectral density (PSD) using Welch's method.
 
     Parameters
@@ -84,15 +107,24 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     n_per_seg : int | None
         Length of each Welch segment (windowed with a Hamming window). Defaults
         to None, which sets n_per_seg equal to n_fft.
-    n_jobs : int
-        Number of CPUs to use in the computation.
+    %(n_jobs)s
+    %(average-psd)s
+
+        .. versionadded:: 0.19.0
+    %(window-psd)s
+
+        .. versionadded:: 0.22.0
     %(verbose)s
 
     Returns
     -------
-    psds : ndarray, shape (..., n_freqs) or
-        The power spectral densities. All dimensions up to the last will
-        be the same as input.
+    psds : ndarray, shape (..., n_freqs) or (..., n_freqs, n_segments)
+        The power spectral densities. If ``average='mean`` or
+        ``average='median'``, the returned array will have the same shape
+        as the input data plus an additional frequency dimension.
+        If ``average=None``, the returned array will have the same shape as
+        the input data plus two additional dimensions corresponding to
+        frequencies and the unaggregated segments, respectively.
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
 
@@ -100,7 +132,8 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     -----
     .. versionadded:: 0.14.0
     """
-    from scipy.signal import spectrogram
+    _check_option('average', average, (None, 'mean', 'median'))
+
     dshape = x.shape[:-1]
     n_times = x.shape[-1]
     x = x.reshape(-1, n_times)
@@ -112,27 +145,39 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     logger.info("Effective window size : %0.3f (s)" % win_size)
     freqs = np.arange(n_fft // 2 + 1, dtype=float) * (sfreq / n_fft)
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
-    freqs = freqs[freq_mask]
+    if not freq_mask.any():
+        raise ValueError(
+            f'No frequencies found between fmin={fmin} and fmax={fmax}')
+    freq_sl = slice(*(np.where(freq_mask)[0][[0, -1]] + [0, 1]))
+    del freq_mask
+    freqs = freqs[freq_sl]
 
     # Parallelize across first N-1 dimensions
-    parallel, my_psd_func, n_jobs = parallel_func(_psd_func, n_jobs=n_jobs)
     x_splits = np.array_split(x, n_jobs)
-    f_spectrogram = parallel(my_psd_func(d, noverlap=n_overlap, nfft=n_fft,
-                                         fs=sfreq, freq_mask=freq_mask,
-                                         func=spectrogram, n_per_seg=n_per_seg)
-                             for d in x_splits)
+    logger.debug(
+        f'Spectogram using {n_fft}-point FFT on {n_per_seg} samples with '
+        f'{n_overlap} overlap and {window} window')
 
-    # Combining, reducing windows and reshaping to original data shape
-    psds = np.concatenate([np.nanmean(f_s, axis=-1)
-                           for f_s in f_spectrogram], axis=0)
-    psds.shape = dshape + (-1,)
+    from scipy.signal import spectrogram
+    parallel, my_spect_func, n_jobs = parallel_func(_spect_func, n_jobs=n_jobs)
+    func = partial(spectrogram, noverlap=n_overlap, nperseg=n_per_seg,
+                   nfft=n_fft, fs=sfreq, window=window)
+    f_spect = parallel(my_spect_func(d, func=func, freq_sl=freq_sl,
+                                     average=average)
+                       for d in x_splits)
+    psds = np.concatenate(f_spect, axis=0)
+    shape = dshape + (len(freqs),)
+    if average is None:
+        shape = shape + (-1,)
+    psds.shape = shape
     return psds, freqs
 
 
 @verbose
 def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
               n_overlap=0, n_per_seg=None, picks=None, proj=False, n_jobs=1,
-              reject_by_annotation=True, verbose=None):
+              reject_by_annotation=True, average='mean', window='hamming',
+              verbose=None):
     """Compute the power spectral density (PSD) using Welch's method.
 
     Calculates periodograms for a sliding window over the time dimension, then
@@ -141,19 +186,19 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     Parameters
     ----------
     inst : instance of Epochs or Raw or Evoked
-        The data for PSD calculation
+        The data for PSD calculation.
     fmin : float
-        Min frequency of interest
+        Min frequency of interest.
     fmax : float
-        Max frequency of interest
+        Max frequency of interest.
     tmin : float | None
-        Min time of interest
+        Min time of interest.
     tmax : float | None
-        Max time of interest
+        Max time of interest.
     n_fft : int
         The length of FFT used, must be ``>= n_per_seg`` (default: 256).
         The segments will be zero-padded if ``n_fft > n_per_seg``.
-        If n_per_seg is None, n_fft must be >= number of time points
+        If n_per_seg is None, n_fft must be <= number of time points
         in the data.
     n_overlap : int
         The number of points of overlap between segments. Will be adjusted
@@ -164,23 +209,27 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     %(picks_good_data_noref)s
     proj : bool
         Apply SSP projection vectors. If inst is ndarray this is not used.
-    n_jobs : int
-        Number of CPUs to use in the computation.
-    reject_by_annotation : bool
-        Whether to omit bad segments from the data while computing the
-        PSD. If True, annotated segments with a description that starts
-        with 'bad' are omitted. Has no effect if ``inst`` is an Epochs or
-        Evoked object. Defaults to True.
+    %(n_jobs)s
+    %(reject_by_annotation_raw)s
 
         .. versionadded:: 0.15.0
+    %(average-psd)s
+
+        .. versionadded:: 0.19.0
+    %(window-psd)s
+
+        .. versionadded:: 0.22.0
     %(verbose)s
 
     Returns
     -------
-    psds : ndarray, shape (..., n_freqs)
-        The power spectral densities. If input is of type Raw,
-        then psds will be shape (n_channels, n_freqs), if input is type Epochs
-        then psds will be shape (n_epochs, n_channels, n_freqs).
+    psds : ndarray, shape (..., n_freqs) or (..., n_freqs, n_segments)
+        The power spectral densities. If ``average='mean`` or
+        ``average='median'`` and input is of type Raw or Evoked, then psds will
+        be of shape (n_channels, n_freqs); if input is of type Epochs, then
+        psds will be of shape (n_epochs, n_channels, n_freqs).
+        If ``average=None``, the returned array will have an additional
+        dimension corresponding to the unaggregated segments.
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
 
@@ -200,32 +249,34 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
                                   reject_by_annotation=reject_by_annotation)
     return psd_array_welch(data, sfreq, fmin=fmin, fmax=fmax, n_fft=n_fft,
                            n_overlap=n_overlap, n_per_seg=n_per_seg,
-                           n_jobs=n_jobs, verbose=verbose)
+                           average=average, n_jobs=n_jobs, window=window,
+                           verbose=verbose)
 
 
 @verbose
 def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                    bandwidth=None, adaptive=False, low_bias=True,
                    normalization='length', picks=None, proj=False,
-                   n_jobs=1, verbose=None):
+                   n_jobs=1, reject_by_annotation=False, verbose=None):
     """Compute the power spectral density (PSD) using multitapers.
 
     Calculates spectral density for orthogonal tapers, then averages them
-    together for each channel/epoch. See [1] for a description of the tapers
-    and [2] for the general method.
+    together for each channel/epoch. See :footcite:`Slepian1978` for a
+    description of the tapers and :footcite:`PercivalWalden1993` for the
+    general method.
 
     Parameters
     ----------
     inst : instance of Epochs or Raw or Evoked
         The data for PSD calculation.
     fmin : float
-        Min frequency of interest
+        Min frequency of interest.
     fmax : float
-        Max frequency of interest
+        Max frequency of interest.
     tmin : float | None
-        Min time of interest
+        Min time of interest.
     tmax : float | None
-        Max time of interest
+        Max time of interest.
     bandwidth : float
         The bandwidth of the multi taper windowing function in Hz. The default
         value is a window half-bandwidth of 4.
@@ -233,7 +284,7 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     normalization : str
         Either "full" or "length" (default). If "full", the PSD will
@@ -242,8 +293,8 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     %(picks_good_data_noref)s
     proj : bool
         Apply SSP projection vectors. If inst is ndarray this is not used.
-    n_jobs : int
-        Number of CPUs to use in the computation.
+    %(n_jobs)s
+    %(reject_by_annotation_raw)s
     %(verbose)s
 
     Returns
@@ -254,16 +305,6 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         then psds will be shape (n_epochs, n_channels, n_freqs).
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
-
-    References
-    ----------
-    .. [1] Slepian, D. "Prolate spheroidal wave functions, Fourier analysis,
-           and uncertainty V: The discrete case." Bell System Technical
-           Journal, vol. 57, 1978.
-
-    .. [2] Percival D.B. and Walden A.T. "Spectral Analysis for Physical
-           Applications: Multitaper and Conventional Univariate Techniques."
-           Cambridge University Press, 1993.
 
     See Also
     --------
@@ -276,9 +317,14 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     Notes
     -----
     .. versionadded:: 0.12.0
+
+    References
+    ----------
+    .. footbibliography::
     """
     # Prep data
-    data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj)
+    data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj,
+                                  reject_by_annotation=reject_by_annotation)
     return psd_array_multitaper(data, sfreq, fmin=fmin, fmax=fmax,
                                 bandwidth=bandwidth, adaptive=adaptive,
                                 low_bias=low_bias, normalization=normalization,

@@ -2,27 +2,24 @@
 """Some utility functions for rank estimation."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
-
-import operator
+# License: BSD-3-Clause
 
 import numpy as np
-from scipy import linalg
 
 from .defaults import _handle_default
 from .io.meas_info import _simplify_info
 from .io.pick import (_picks_by_type, pick_info, pick_channels_cov,
                       _picks_to_idx)
 from .io.proj import make_projector
-from .utils import (logger, _compute_row_norms,
+from .utils import (logger, _compute_row_norms, _pl, _validate_type,
                     _apply_scaling_cov, _undo_scaling_cov,
-                    _scaled_array,
-                    warn, _check_rank, verbose)
+                    _scaled_array, warn, _check_rank, _on_missing, verbose,
+                    _check_on_missing, fill_doc)
 
 
 @verbose
 def estimate_rank(data, tol='auto', return_singular=False, norm=True,
-                  verbose=None):
+                  tol_kind='absolute', verbose=None):
     """Estimate the rank of data.
 
     This function will normalize the rows of the data (typically
@@ -33,18 +30,14 @@ def estimate_rank(data, tol='auto', return_singular=False, norm=True,
     ----------
     data : array
         Data to estimate the rank of (should be 2-dimensional).
-    tol : float | 'auto'
-        Tolerance for singular values to consider non-zero in
-        calculating the rank. The singular values are calculated
-        in this method such that independent data are expected to
-        have singular value around one. Can be 'auto' to use the
-        same thresholding as ``scipy.linalg.orth``.
+    %(rank_tol)s
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.
     norm : bool
         If True, data will be scaled by their estimated row-wise norm.
         Else data are assumed to be scaled. Defaults to True.
+    %(rank_tol_kind)s
 
     Returns
     -------
@@ -54,36 +47,41 @@ def estimate_rank(data, tol='auto', return_singular=False, norm=True,
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
+    from scipy import linalg
     if norm:
         data = data.copy()  # operate on a copy
         norms = _compute_row_norms(data)
         data /= norms[:, np.newaxis]
     s = linalg.svdvals(data)
-    rank = _estimate_rank_from_s(s, tol)
+    rank = _estimate_rank_from_s(s, tol, tol_kind)
     if return_singular is True:
         return rank, s
     else:
         return rank
 
 
-def _estimate_rank_from_s(s, tol='auto'):
+def _estimate_rank_from_s(s, tol='auto', tol_kind='absolute'):
     """Estimate the rank of a matrix from its singular values.
 
     Parameters
     ----------
-    s : list of float
+    s : ndarray, shape (..., ndim)
         The singular values of the matrix.
     tol : float | 'auto'
         Tolerance for singular values to consider non-zero in calculating the
         rank. Can be 'auto' to use the same thresholding as
         ``scipy.linalg.orth`` (assuming np.float64 datatype) adjusted
         by a factor of 2.
+    tol_kind : str
+        Can be "absolute" or "relative".
 
     Returns
     -------
-    rank : int
+    rank : ndarray, shape (...)
         The estimated rank.
     """
+    s = np.array(s, float)
+    max_s = np.amax(s, axis=-1)
     if isinstance(tol, str):
         if tol not in ('auto', 'float32'):
             raise ValueError('tol must be "auto" or float, got %r' % (tol,))
@@ -96,34 +94,40 @@ def _estimate_rank_from_s(s, tol='auto'):
             eps = np.finfo(np.float32).eps
         else:
             eps = np.finfo(np.float64).eps
-        max_s = np.amax(s)
-        tol = len(s) * max_s * eps
-        logger.info('Using tolerance %0.2g (%0.2g eps * %d dim * %0.2g max '
-                    ' singular value)' % (tol, eps, len(s), max_s))
+        tol = s.shape[-1] * max_s * eps
+        if s.ndim == 1:  # typical
+            logger.info('    Using tolerance %0.2g (%0.2g eps * %d dim * %0.2g'
+                        '  max singular value)' % (tol, eps, len(s), max_s))
+    elif not (isinstance(tol, np.ndarray) and tol.dtype.kind == 'f'):
+        tol = float(tol)
+        if tol_kind == 'relative':
+            tol = tol * max_s
 
-    tol = float(tol)
-    rank = np.sum(s > tol)
+    rank = np.sum(s > tol, axis=-1)
     return rank
 
 
-def _estimate_rank_raw(raw, picks=None, tol=1e-4, scalings='norm'):
+def _estimate_rank_raw(raw, picks=None, tol=1e-4, scalings='norm',
+                       with_ref_meg=False, tol_kind='absolute'):
     """Aid the deprecation of raw.estimate_rank."""
-    picks = _picks_to_idx(raw.info, picks, with_ref_meg=False)
+    if picks is None:
+        picks = _picks_to_idx(raw.info, picks, with_ref_meg=with_ref_meg)
     # conveniency wrapper to expose the expert "tol" option + scalings options
     return _estimate_rank_meeg_signals(
-        raw[picks][0], pick_info(raw.info, picks), scalings, tol)
+        raw[picks][0], pick_info(raw.info, picks), scalings,
+        tol, False, tol_kind)
 
 
+@fill_doc
 def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
-                                return_singular=False):
+                                return_singular=False, tol_kind='absolute'):
     """Estimate rank for M/EEG data.
 
     Parameters
     ----------
     data : np.ndarray of float, shape(n_channels, n_samples)
         The M/EEG signals.
-    info : Info
-        The measurement info.
+    %(info_not_none)s
     scalings : dict | 'norm' | np.ndarray | None
         The rescaling method to be applied. If dict, it will override the
         following default dict:
@@ -137,6 +141,8 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.
+    tol_kind : str
+        Tolerance kind. See ``estimate_rank``.
 
     Returns
     -------
@@ -152,23 +158,24 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
                    "rank estimate might be inaccurate.")
     with _scaled_array(data, picks_list, scalings):
         out = estimate_rank(data, tol=tol, norm=False,
-                            return_singular=return_singular)
+                            return_singular=return_singular,
+                            tol_kind=tol_kind)
     rank = out[0] if isinstance(out, tuple) else out
     ch_type = ' + '.join(list(zip(*picks_list))[0])
-    logger.info('Estimated rank (%s): %d' % (ch_type, rank))
+    logger.info('    Estimated rank (%s): %d' % (ch_type, rank))
     return out
 
 
+@verbose
 def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
-                            return_singular=False):
+                            return_singular=False, verbose=None):
     """Estimate rank of M/EEG covariance data, given the covariance.
 
     Parameters
     ----------
     data : np.ndarray of float, shape (n_channels, n_channels)
         The M/EEG covariance.
-    info : Info
-        The measurement info.
+    %(info_not_none)s
     scalings : dict | 'norm' | np.ndarray | None
         The rescaling method to be applied. If dict, it will override the
         following default dict:
@@ -191,7 +198,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
-    picks_list = _picks_by_type(info)
+    picks_list = _picks_by_type(info, exclude=[])
     scalings = _handle_default('scalings_cov_rank', scalings)
     _apply_scaling_cov(data, picks_list, scalings)
     if data.shape[1] < data.shape[0]:
@@ -201,7 +208,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
                         return_singular=return_singular)
     rank = out[0] if isinstance(out, tuple) else out
     ch_type = ' + '.join(list(zip(*picks_list))[0])
-    logger.info('estimated rank (%s): %d' % (ch_type, rank))
+    logger.info('    Estimated rank (%s): %d' % (ch_type, rank))
     _undo_scaling_cov(data, picks_list, scalings)
     return out
 
@@ -248,7 +255,7 @@ def _get_rank_sss(inst, msg='You should use data-based rank estimate instead',
 
 
 def _info_rank(info, ch_type, picks, rank):
-    if ch_type == 'meg' and rank != 'full':
+    if ch_type in ['meg', 'mag', 'grad'] and rank != 'full':
         try:
             return _get_rank_sss(info)
         except ValueError:
@@ -266,7 +273,8 @@ def _compute_rank_int(inst, *args, **kwargs):
 
 @verbose
 def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
-                 proj=True, verbose=None):
+                 proj=True, tol_kind='absolute', on_rank_mismatch='ignore',
+                 verbose=None):
     """Compute the rank of data or noise covariance.
 
     This function will normalize the rows of the data (typically
@@ -282,15 +290,14 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
         Defaults to ``dict(mag=1e15, grad=1e13, eeg=1e6)``.
         These defaults will scale different channel types
         to comparable values.
-    info : instance of Info | None
-        The measurement info used to compute the covariance. It is
-        only necessary if inst is a Covariance object (since this does
-        not provide ``inst.info``).
-    tol : float | str
-        Tolerance. See ``estimate_rank``.
+    %(info)s Only necessary if ``inst`` is a :class:`mne.Covariance`
+        object (since this does not provide ``inst.info``).
+    %(rank_tol)s
     proj : bool
         If True, all projs in ``inst`` and ``info`` will be applied or
         considered when ``rank=None`` or ``rank='info'``.
+    %(rank_tol_kind)s
+    %(on_rank_mismatch)s
     %(verbose)s
 
     Returns
@@ -301,29 +308,6 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
 
     Notes
     -----
-    The ``rank`` parameter can be:
-
-    :data:`python:None` (default)
-        Rank will be estimated from the data after proper scaling of
-        different channel types.
-    ``'info'``
-        Rank is inferred from `info`. If data have been processed
-        with Maxwell filtering, the Maxwell filtering header is used.
-        Otherwise, the channel counts themselves are used.
-        In both cases, the number of projectors is subtracted from
-        the (effective) number of channels in the data.
-        For example, if Maxwell filtering reduces the rank to 68, with
-        two projectors the returned value will be 68.
-    ``'full'``
-        Rank is assumed to be full, i.e. equal to the
-        number of good channels. If a `Covariance` is passed, this can make
-        sense if it has been (possibly improperly) regularized without taking
-        into account the true data rank.
-    :class:`python:int`
-        This value is used as the MEG rank. For other channel types,
-        rank is taken from ``info``. This is deprecated and will be
-        removed in 0.19, use ``dict(meg=...)`` instead.
-
     .. versionadded:: 0.18
     """
     from .io.base import BaseRaw
@@ -332,76 +316,126 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
 
     rank = _check_rank(rank)
     scalings = _handle_default('scalings_cov_rank', scalings)
+    _check_on_missing(on_rank_mismatch, 'on_rank_mismatch')
 
     if isinstance(inst, Covariance):
+        inst_type = 'covariance'
         if info is None:
             raise ValueError('info cannot be None if inst is a Covariance.')
+        # Reset bads as it's already taken into account in inst['names']
+        info = info.copy()
+        info['bads'] = []
         inst = pick_channels_cov(
-            inst, set(inst['names']) & set(info['ch_names']))
-        info = pick_info(info, [info['ch_names'].index(name)
-                                for name in inst['names']])
+            inst, set(inst['names']) & set(info['ch_names']), exclude=[])
+        if info['ch_names'] != inst['names']:
+            info = pick_info(info, [info['ch_names'].index(name)
+                                    for name in inst['names']])
     else:
         info = inst.info
+        inst_type = 'data'
+    logger.info('Computing rank from %s with rank=%r' % (inst_type, rank))
 
+    _validate_type(rank, (str, dict, None), 'rank')
     if isinstance(rank, str):  # string, either 'info' or 'full'
         rank_type = 'info'
         info_type = rank
         rank = dict()
-    else:  # None, dict, or int
+    else:  # None or dict
         rank_type = 'estimated'
-        if not isinstance(rank, dict):  # dict is pass-through
-            if rank is not None:  # int
-                rank = dict(meg=int(operator.index(rank)))
-            else:  # None
-                rank = dict()
-    assert isinstance(rank, dict)  # should be guaranteed by _check_rank
+        if rank is None:
+            rank = dict()
 
+    simple_info = _simplify_info(info)
     picks_list = _picks_by_type(info, meg_combined=True, ref_meg=False,
                                 exclude='bads')
     for ch_type, picks in picks_list:
+        est_verbose = None
         if ch_type in rank:
-            continue
+            # raise an error of user-supplied rank exceeds number of channels
+            if rank[ch_type] > len(picks):
+                raise ValueError(
+                    f'rank[{repr(ch_type)}]={rank[ch_type]} exceeds the number'
+                    f' of channels ({len(picks)})')
+            # special case: if whitening a covariance, check the passed rank
+            # against the estimated one
+            est_verbose = False
+            if not (on_rank_mismatch != 'ignore' and
+                    rank_type == 'estimated' and
+                    ch_type == 'meg' and
+                    isinstance(inst, Covariance) and
+                    not inst['diag']):
+                continue
         ch_names = [info['ch_names'][pick] for pick in picks]
+        n_chan = len(ch_names)
         if proj:
             proj_op, n_proj, _ = make_projector(info['projs'], ch_names)
         else:
             proj_op, n_proj = None, 0
         if rank_type == 'info':
             # use info
-            rank[ch_type] = _info_rank(info, ch_type, picks, info_type)
+            this_rank = _info_rank(info, ch_type, picks, info_type)
             if info_type != 'full':
-                rank[ch_type] -= n_proj
+                this_rank -= n_proj
+                logger.info('    %s: rank %d after %d projector%s applied to '
+                            '%d channel%s'
+                            % (ch_type.upper(), this_rank,
+                               n_proj, _pl(n_proj), n_chan, _pl(n_chan)))
+            else:
+                logger.info('    %s: rank %d from info'
+                            % (ch_type.upper(), this_rank))
         else:
             # Use empirical estimation
-            use_info = _simplify_info(info)
             assert rank_type == 'estimated'
             if isinstance(inst, (BaseRaw, BaseEpochs)):
                 if isinstance(inst, BaseRaw):
-                    data = inst.get_data(picks, None, None,
-                                         reject_by_annotation='omit')
+                    data = inst.get_data(picks, reject_by_annotation='omit')
                 else:  # isinstance(inst, BaseEpochs):
                     data = inst.get_data()[:, picks, :]
                     data = np.concatenate(data, axis=1)
                 if proj:
                     data = np.dot(proj_op, data)
-                rank[ch_type] = _estimate_rank_meeg_signals(
-                    data, pick_info(use_info, picks), scalings, tol)
+                this_rank = _estimate_rank_meeg_signals(
+                    data, pick_info(simple_info, picks), scalings, tol, False,
+                    tol_kind)
             else:
                 assert isinstance(inst, Covariance)
                 if inst['diag']:
-                    rank[ch_type] = (inst['data'][picks] > 0).sum() - n_proj
+                    this_rank = (inst['data'][picks] > 0).sum() - n_proj
                 else:
                     data = inst['data'][picks][:, picks]
                     if proj:
                         data = np.dot(np.dot(proj_op, data), proj_op.T)
-                    rank[ch_type] = _estimate_rank_meeg_cov(
-                        data, pick_info(info, picks), scalings, tol)
+
+                    this_rank, sing = _estimate_rank_meeg_cov(
+                        data, pick_info(simple_info, picks), scalings, tol,
+                        return_singular=True, verbose=est_verbose)
+                    if ch_type in rank:
+                        ratio = sing[this_rank - 1] / sing[rank[ch_type] - 1]
+                        if ratio > 100:
+                            msg = (
+                                f'The passed rank[{repr(ch_type)}]='
+                                f'{rank[ch_type]} exceeds the estimated rank '
+                                f'of the noise covariance ({this_rank}) '
+                                f'leading to a potential increase in '
+                                f'noise during whitening by a factor '
+                                f'of {np.sqrt(ratio):0.1g}. Ensure that the '
+                                f'rank correctly corresponds to that of the '
+                                f'given noise covariance matrix.')
+                            _on_missing(on_rank_mismatch, msg,
+                                        'on_rank_mismatch')
+                        continue
             this_info_rank = _info_rank(info, ch_type, picks, 'info')
-            if rank[ch_type] > this_info_rank:
+            logger.info('    %s: rank %d computed from %d data channel%s '
+                        'with %d projector%s'
+                        % (ch_type.upper(), this_rank, n_chan, _pl(n_chan),
+                           n_proj, _pl(n_proj)))
+            if this_rank > this_info_rank:
                 warn('Something went wrong in the data-driven estimation of '
                      'the data rank as it exceeds the theoretical rank from '
                      'the info (%d > %d). Consider setting rank to "auto" or '
                      'setting it explicitly as an integer.' %
-                     (rank[ch_type], this_info_rank))
+                     (this_rank, this_info_rank))
+        if ch_type not in rank:
+            rank[ch_type] = this_rank
 
     return rank

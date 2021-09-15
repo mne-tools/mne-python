@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 r"""Convert surface to BEM FIF file.
 
-Example usage
+Examples
+--------
+.. code-block:: console
 
-mne surf2bem --surf ${SUBJECTS_DIR}/${SUBJECT}/surf/lh.seghead --fif \
-${SUBJECTS_DIR}/${SUBJECT}/bem/${SUBJECT}-head.fif --id=4
+    $ mne surf2bem --surf ${SUBJECTS_DIR}/${SUBJECT}/surf/lh.seghead \
+        --fif ${SUBJECTS_DIR}/${SUBJECT}/bem/${SUBJECT}-head.fif \
+        --id=4
+
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import sys
 
@@ -26,7 +30,7 @@ def run():
     parser.add_option("-f", "--fif", dest="fif",
                       help="FIF file produced", metavar="FILE")
     parser.add_option("-i", "--id", dest="id", default=4,
-                      help=("Surface Id (e.g. 4 sur head surface)"))
+                      help=("Surface Id (e.g. 4 for head surface)"))
 
     options, args = parser.parse_args()
 
@@ -40,6 +44,4 @@ def run():
     mne.write_bem_surfaces(options.fif, surf)
 
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()

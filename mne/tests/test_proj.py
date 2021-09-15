@@ -1,26 +1,25 @@
+import copy as cp
 import os.path as op
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
                            assert_equal)
 import pytest
-
-import copy as cp
+from scipy import linalg
 
 from mne import (compute_proj_epochs, compute_proj_evoked, compute_proj_raw,
                  pick_types, read_events, Epochs, sensitivity_map,
-                 read_source_estimate, compute_raw_covariance,
+                 read_source_estimate, compute_raw_covariance, create_info,
                  read_forward_solution, convert_forward_solution)
 from mne.cov import regularize, compute_whitener
 from mne.datasets import testing
-from mne.io import read_raw_fif
+from mne.io import read_raw_fif, RawArray
 from mne.io.proj import (make_projector, activate_proj,
                          _needs_eeg_average_ref_proj)
 from mne.preprocessing import maxwell_filter
 from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
 from mne.rank import _compute_rank_int
-from mne.utils import _TempDir, run_tests_if_main
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -144,9 +143,9 @@ def test_sensitivity_maps():
     sensitivity_map(fwd)
 
 
-def test_compute_proj_epochs():
+def test_compute_proj_epochs(tmpdir):
     """Test SSP computation on epochs."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     event_id, tmin, tmax = 1, -0.2, 0.3
 
     raw = read_raw_fif(raw_fname, preload=True)
@@ -175,7 +174,7 @@ def test_compute_proj_epochs():
             p2_data = p2['data']['data'] * np.sign(p2['data']['data'][0, 0])
             if bad_ch in p1['data']['col_names']:
                 bad = p1['data']['col_names'].index('MEG 2443')
-                mask = np.ones(p1_data.size, dtype=np.bool)
+                mask = np.ones(p1_data.size, dtype=bool)
                 mask[bad] = False
                 p1_data = p1_data[:, mask]
                 p2_data = p2_data[:, mask]
@@ -218,11 +217,18 @@ def test_compute_proj_epochs():
     with pytest.warns(RuntimeWarning, match='-proj.fif'):
         read_proj(proj_badname)
 
+    # bad inputs
+    fname = op.join(tempdir, 'out-proj.fif')
+    with pytest.raises(TypeError, match='projs'):
+        write_proj(fname, 'foo')
+    with pytest.raises(TypeError, match=r'projs\[0\] must be .*'):
+        write_proj(fname, ['foo'])
+
 
 @pytest.mark.slowtest
-def test_compute_proj_raw():
+def test_compute_proj_raw(tmpdir):
     """Test SSP computation on raw."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     # Test that the raw projectors work
     raw_time = 2.5  # Do shorter amount for speed
     raw = read_raw_fif(raw_fname).crop(0, raw_time)
@@ -273,11 +279,45 @@ def test_compute_proj_raw():
     raw.load_bad_channels(bads_fname)  # adds 2 bad mag channels
     with pytest.warns(RuntimeWarning, match='Too few samples'):
         projs = compute_proj_raw(raw, n_grad=0, n_mag=0, n_eeg=1)
+    assert len(projs) == 1
 
-    # test that bad channels can be excluded
-    proj, nproj, U = make_projector(projs, raw.ch_names,
-                                    bads=raw.ch_names)
-    assert_array_almost_equal(proj, np.eye(len(raw.ch_names)))
+    # test that bad channels can be excluded, and empty support
+    for projs_ in (projs, []):
+        proj, nproj, U = make_projector(projs_, raw.ch_names,
+                                        bads=raw.ch_names)
+        assert_array_almost_equal(proj, np.eye(len(raw.ch_names)))
+        assert nproj == 0  # all channels excluded
+        assert U.shape == (len(raw.ch_names), nproj)
+
+
+@pytest.mark.parametrize('duration', [1, np.pi / 2.])
+@pytest.mark.parametrize('sfreq', [600.614990234375, 1000.])
+def test_proj_raw_duration(duration, sfreq):
+    """Test equivalence of `duration` options."""
+    n_ch, n_dim = 30, 3
+    rng = np.random.RandomState(0)
+    signals = rng.randn(n_dim, 10000)
+    mixing = rng.randn(n_ch, n_dim) + [0, 1, 2]
+    data = np.dot(mixing, signals)
+    raw = RawArray(data, create_info(n_ch, sfreq, 'eeg'))
+    raw.set_eeg_reference(projection=True)
+    n_eff = int(round(raw.info['sfreq'] * duration))
+    # crop to an even "duration" number of epochs
+    stop = ((len(raw.times) // n_eff) * n_eff - 1) / raw.info['sfreq']
+    raw.crop(0, stop)
+    proj_def = compute_proj_raw(raw, n_eeg=n_dim)
+    proj_dur = compute_proj_raw(raw, duration=duration, n_eeg=n_dim)
+    proj_none = compute_proj_raw(raw, duration=None, n_eeg=n_dim)
+    assert len(proj_dur) == len(proj_none) == len(proj_def) == n_dim
+    # proj_def is not in here because it does not necessarily evenly divide
+    # the signal length:
+    for pu, pn in zip(proj_dur, proj_none):
+        assert_allclose(pu['data']['data'], pn['data']['data'])
+    # but we can test it here since it should still be a small subspace angle:
+    for proj in (proj_dur, proj_none, proj_def):
+        computed = np.concatenate([p['data']['data'] for p in proj], 0)
+        angle = np.rad2deg(linalg.subspace_angles(computed.T, mixing)[0])
+        assert angle < 1e-5
 
 
 def test_make_eeg_average_ref_proj():
@@ -340,10 +380,8 @@ def test_needs_eeg_average_ref_proj():
 def test_sss_proj():
     """Test `meg` proj option."""
     raw = read_raw_fif(raw_fname)
-    raw.crop(0, 1.0).load_data().pick_types(exclude=())
+    raw.crop(0, 1.0).load_data().pick_types(meg=True, exclude=())
     raw.pick_channels(raw.ch_names[:51]).del_proj()
-    with pytest.raises(ValueError, match='can only be used with Maxfiltered'):
-        compute_proj_raw(raw, meg='combined')
     raw_sss = maxwell_filter(raw, int_order=5, ext_order=2)
     sss_rank = 21  # really low due to channel picking
     assert len(raw_sss.info['projs']) == 0
@@ -364,6 +402,3 @@ def test_sss_proj():
         else:
             mag_names = ch_names[2::3]
             assert this_raw.info['projs'][3]['data']['col_names'] == mag_names
-
-
-run_tests_if_main()

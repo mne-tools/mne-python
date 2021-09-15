@@ -2,7 +2,7 @@
 #          Juergen Dammers <j.dammers@fz-juelich.de>
 #          Denis A. Engeman <denis.engemann@gemail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import math
 
@@ -16,7 +16,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
             anneal_deg=60., anneal_step=0.9, extended=True, n_subgauss=1,
             kurt_size=6000, ext_blocks=1, max_iter=200, random_state=None,
             blowup=1e4, blowup_fac=0.5, n_small_angle=20, use_bias=True,
-            verbose=None):
+            verbose=None, return_n_iter=False):
     """Run (extended) Infomax ICA decomposition on raw data.
 
     Parameters
@@ -63,10 +63,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
         Defaults to 1.
     max_iter : int
         The maximum number of iterations. Defaults to 200.
-    random_state : int | np.random.RandomState
-        If random_state is an int, use random_state to seed the random number
-        generator. If random_state is already a np.random.RandomState instance,
-        use random_state as random number generator.
+    %(random_state)s
     blowup : float
         The maximum difference allowed between two successive estimations of
         the unmixing matrix. Defaults to 10000.
@@ -83,11 +80,16 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
         This quantity indicates if the bias should be computed.
         Defaults to True.
     %(verbose)s
+    return_n_iter : bool
+        Whether to return the number of iterations performed. Defaults to
+        False.
 
     Returns
     -------
     unmixing_matrix : np.ndarray, shape (n_features, n_features)
         The linear unmixing operator.
+    n_iter : int
+        The number of iterations. Only returned if ``return_max_iter=True``.
 
     References
     ----------
@@ -308,4 +310,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
                                  'might not be invertible!')
 
     # prepare return values
-    return weights.T
+    if return_n_iter:
+        return weights.T, step
+    else:
+        return weights.T

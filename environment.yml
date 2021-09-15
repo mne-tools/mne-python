@@ -1,15 +1,13 @@
 name: mne
 channels:
-- defaults
+- conda-forge
 dependencies:
-- python<3.7
+- python>=3.8
 - pip
-- mkl
 - numpy
 - scipy
 - matplotlib
-- cython
-- pyqt>=5.9
+- numba
 - pandas
 - xlrd
 - scikit-learn
@@ -17,30 +15,27 @@ dependencies:
 - pillow
 - statsmodels
 - jupyter
-- pytest
-- pytest-cov
-- pytest-mock
-- pytest-timeout
 - joblib
 - psutil
-- numpydoc
-- flake8
-- spyder
 - numexpr
-- traits>=4.6.0
-- pyface>=6
-- traitsui>=6
-- testpath<0.4
+- imageio
+- tqdm
+- spyder-kernels>=1.10.0
+- imageio-ffmpeg>=0.4.1
+- vtk>=9.0.1
+- pyvista>=0.30
+- pyvistaqt>=0.4
+- qdarkstyle
+- darkdetect
+- mayavi
+- PySurfer
+- dipy
+- nibabel
+- nilearn
+- python-picard
+- pyqt!=5.15.3
+- mne
+- mffpy>=0.5.7
+- ipywidgets
 - pip:
-  - mne
-  - vtk
-  - https://api.github.com/repos/enthought/mayavi/zipball/226189a6ad3dc3c01d031ef21d0d0cde554ac851
-  - PySurfer[save_movie]
-  - dipy --only-binary dipy
-  - nibabel
-  - nilearn
-  - neo
-  - pytest-faulthandler
-  - pydocstyle
-  - codespell
-  - python-picard
+  - ipyvtklink

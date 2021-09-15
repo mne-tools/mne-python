@@ -1,6 +1,6 @@
 """Functions to plot on circle as for connectivity."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
@@ -12,7 +12,8 @@ from functools import partial
 
 import numpy as np
 
-from .utils import plt_show, _set_ax_facecolor
+from .utils import plt_show
+from ..utils import _validate_type, deprecated, CONNECTIVITY_DEPRECATION_MSG
 
 
 def circular_layout(node_names, node_order, start_pos=90, start_between=True,
@@ -50,7 +51,7 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True,
         raise ValueError('node_order has to be the same length as node_names')
 
     if group_boundaries is not None:
-        boundaries = np.array(group_boundaries, dtype=np.int)
+        boundaries = np.array(group_boundaries, dtype=np.int64)
         if np.any(boundaries >= n_nodes) or np.any(boundaries < 0):
             raise ValueError('"group_boundaries" has to be between 0 and '
                              'n_nodes - 1.')
@@ -78,7 +79,7 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True,
             start_pos += group_sep / 2
             boundaries = boundaries[1:] if n_group_sep > 1 else None
 
-    node_angles = np.ones(n_nodes, dtype=np.float) * node_sep
+    node_angles = np.ones(n_nodes, dtype=np.float64) * node_sep
     node_angles[0] = start_pos
     if boundaries is not None:
         node_angles[boundaries] += group_sep
@@ -118,6 +119,7 @@ def _plot_connectivity_circle_onpick(event, fig=None, axes=None, indices=None,
         fig.canvas.draw()
 
 
+@deprecated(CONNECTIVITY_DEPRECATION_MSG)
 def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                              node_angles=None, node_width=None,
                              node_colors=None, facecolor='black',
@@ -163,7 +165,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         Color to use for lines around nodes. See matplotlib.colors.
     linewidth : float
         Line width to use for connections.
-    colormap : str
+    colormap : str | instance of matplotlib.colors.LinearSegmentedColormap
         Colormap to use for coloring the connections.
     vmin : float | None
         Minimum value for colormap. If None, it is determined automatically.
@@ -209,8 +211,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 
     Notes
     -----
-    This code is based on the circle graph example by Nicolas P. Rougier
-    http://www.labri.fr/perso/nrougier/coding/.
+    This code is based on a circle graph example by Nicolas P. Rougier
 
     By default, :func:`matplotlib.pyplot.savefig` does not take ``facecolor``
     into account when saving, even if set when a figure is generated. This
@@ -221,6 +222,25 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     If ``facecolor`` is not set via :func:`matplotlib.pyplot.savefig`, the
     figure labels, title, and legend may be cut off in the output figure.
     """
+    return _plot_connectivity_circle(
+        con, node_names, indices, n_lines, node_angles, node_width,
+        node_colors, facecolor, textcolor, node_edgecolor, linewidth, colormap,
+        vmin, vmax, colorbar, title, colorbar_size, colorbar_pos,
+        fontsize_title, fontsize_names, fontsize_colorbar, padding,
+        fig, subplot, interactive, node_linewidth, show)
+
+
+def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
+                              node_angles=None, node_width=None,
+                              node_colors=None, facecolor='black',
+                              textcolor='white', node_edgecolor='black',
+                              linewidth=1.5, colormap='hot', vmin=None,
+                              vmax=None, colorbar=True, title=None,
+                              colorbar_size=0.2, colorbar_pos=(-0.3, 0.1),
+                              fontsize_title=12, fontsize_names=8,
+                              fontsize_colorbar=8, padding=6.,
+                              fig=None, subplot=111, interactive=True,
+                              node_linewidth=2., show=True):
     import matplotlib.pyplot as plt
     import matplotlib.path as m_path
     import matplotlib.patches as m_patches
@@ -282,7 +302,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     if not isinstance(subplot, tuple):
         subplot = (subplot,)
     axes = plt.subplot(*subplot, polar=True)
-    _set_ax_facecolor(axes, facecolor)
+    axes.set_facecolor(facecolor)
 
     # No ticks, we'll put our own
     plt.xticks([])
@@ -326,13 +346,13 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     # edges: We modulate the noise with the number of connections of the
     # node and the connection strength, such that the strongest connections
     # are closer to the node center
-    nodes_n_con = np.zeros((n_nodes), dtype=np.int)
+    nodes_n_con = np.zeros((n_nodes), dtype=np.int64)
     for i, j in zip(indices[0], indices[1]):
         nodes_n_con[i] += 1
         nodes_n_con[j] += 1
 
     # initialize random number generator so plot is reproducible
-    rng = np.random.mtrand.RandomState(seed=0)
+    rng = np.random.mtrand.RandomState(0)
 
     n_con = len(indices[0])
     noise_max = 0.25 * node_width
@@ -425,3 +445,81 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 
     plt_show(show)
     return fig, axes
+
+
+def plot_channel_labels_circle(labels, colors=None, picks=None, **kwargs):
+    """Plot labels for each channel in a circle plot.
+
+    .. note:: This primarily makes sense for sEEG channels where each
+              channel can be assigned an anatomical label as the electrode
+              passes through various brain areas.
+
+    Parameters
+    ----------
+    labels : dict
+        Lists of labels (values) associated with each channel (keys).
+    colors : dict
+        The color (value) for each label (key).
+    picks : list | tuple
+        The channels to consider.
+    **kwargs : kwargs
+        Keyword arguments for ``plot_connectivity_circle``.
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        The figure handle.
+    axes : instance of matplotlib.projections.polar.PolarAxes
+        The subplot handle.
+    """
+    from matplotlib.colors import LinearSegmentedColormap
+
+    _validate_type(labels, dict, 'labels')
+    _validate_type(colors, (dict, None), 'colors')
+    _validate_type(picks, (list, tuple, None), 'picks')
+    if picks is not None:
+        labels = {k: v for k, v in labels.items() if k in picks}
+    ch_names = list(labels.keys())
+    all_labels = list(set([label for val in labels.values()
+                           for label in val]))
+    n_labels = len(all_labels)
+    if colors is not None:
+        for label in all_labels:
+            if label not in colors:
+                raise ValueError(f'No color provided for {label} in `colors`')
+        # update all_labels, there may be unconnected labels in colors
+        all_labels = list(colors.keys())
+        n_labels = len(all_labels)
+        # make colormap
+        label_colors = [colors[label] for label in all_labels]
+        node_colors = ['black'] * len(ch_names) + label_colors
+        label_cmap = LinearSegmentedColormap.from_list(
+            'label_cmap', label_colors, N=len(label_colors))
+    else:
+        node_colors = None
+
+    node_names = ch_names + all_labels
+    con = np.zeros((len(node_names), len(node_names))) * np.nan
+    for idx, ch_name in enumerate(ch_names):
+        for label in labels[ch_name]:
+            node_idx = node_names.index(label)
+            label_color = all_labels.index(label) / n_labels
+            con[idx, node_idx] = con[node_idx, idx] = label_color  # symmetric
+    # plot
+    node_order = ch_names + all_labels[::-1]
+    node_angles = circular_layout(node_names, node_order, start_pos=90,
+                                  group_boundaries=[0, len(ch_names)])
+    # provide defaults but don't overwrite
+    if 'node_angles' not in kwargs:
+        kwargs.update(node_angles=node_angles)
+    if 'colorbar' not in kwargs:
+        kwargs.update(colorbar=False)
+    if 'node_colors' not in kwargs:
+        kwargs.update(node_colors=node_colors)
+    if 'vmin' not in kwargs:
+        kwargs.update(vmin=0)
+    if 'vmax' not in kwargs:
+        kwargs.update(vmax=1)
+    if 'colormap' not in kwargs:
+        kwargs.update(colormap=label_cmap)
+    return _plot_connectivity_circle(con, node_names, **kwargs)

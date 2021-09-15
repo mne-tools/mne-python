@@ -1,6 +1,6 @@
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from io import BytesIO
 import os
@@ -14,17 +14,18 @@ import pytest
 
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_bti
-from mne.io.bti.bti import (_read_config, _process_bti_headshape,
+from mne.io._digitization import _make_bti_dig_points
+from mne.io.bti.bti import (_read_config,
                             _read_bti_header, _get_bti_dev_t,
                             _correct_trans, _get_bti_info,
                             _loc_to_coil_trans, _convert_coil_trans,
                             _check_nan_dev_head_t, _rename_channels)
+from mne.io.bti.bti import _read_head_shape
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.tests.common import assert_dig_allclose
 from mne.io.pick import pick_info
 from mne.io.constants import FIFF
 from mne import pick_types
-from mne.utils import run_tests_if_main
+from mne.utils import assert_dig_allclose
 from mne.transforms import Transform, combine_transforms, invert_transform
 
 base_dir = op.join(op.abspath(op.dirname(__file__)), 'data')
@@ -39,6 +40,10 @@ tmp_raw_fname = op.join(base_dir, 'tmp_raw.fif')
 
 fname_2500 = op.join(testing.data_path(download=False), 'BTi', 'erm_HFH',
                      'c,rfDC')
+fname_sim = op.join(testing.data_path(download=False), 'BTi', '4Dsim',
+                    'c,rfDC')
+fname_sim_filt = op.join(testing.data_path(download=False), 'BTi', '4Dsim',
+                         'c,rfDC,fn50,o')
 
 # the 4D exporter doesn't export all channels, so we confine our comparison
 NCH = 248
@@ -238,7 +243,11 @@ def test_no_conversion():
         assert_array_equal(dev_ctf_t, raw_info['dev_ctf_t']['trans'])
         assert_array_equal(raw_info['dev_head_t']['trans'], np.eye(4))
         assert_array_equal(raw_info['ctf_head_t']['trans'], np.eye(4))
-        dig, t = _process_bti_headshape(hs, convert=False, use_hpi=False)
+
+        nasion, lpa, rpa, hpi, dig_points = _read_head_shape(hs)
+        dig, t, _ = _make_bti_dig_points(nasion, lpa, rpa, hpi, dig_points,
+                                         convert=False, use_hpi=False)
+
         assert_array_equal(t['trans'], np.eye(4))
 
         for ii, (old, new, con) in enumerate(zip(
@@ -290,7 +299,9 @@ def test_bytes_io():
 def test_setup_headshape():
     """Test reading bti headshape."""
     for hs in hs_fnames:
-        dig, t = _process_bti_headshape(hs)
+        nasion, lpa, rpa, hpi, dig_points = _read_head_shape(hs)
+        dig, t, _ = _make_bti_dig_points(nasion, lpa, rpa, hpi, dig_points)
+
         expected = {'kind', 'ident', 'r'}
         found = set(reduce(lambda x, y: list(x) + list(y),
                            [d.keys() for d in dig]))
@@ -338,4 +349,9 @@ def test_nan_trans():
                     t = _convert_coil_trans(t, dev_ctf_t, bti_dev_t)
 
 
-run_tests_if_main()
+@testing.requires_testing_data
+@pytest.mark.parametrize('fname', (fname_sim, fname_sim_filt))
+@pytest.mark.parametrize('preload', (True, False))
+def test_bti_ch_data(fname, preload):
+    """Test for gh-6048."""
+    read_raw_bti(fname, preload=preload)  # used to fail with ascii decode err

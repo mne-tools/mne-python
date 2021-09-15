@@ -2,7 +2,7 @@
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
 
@@ -26,7 +26,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
                    trans=None, scrollable=True, project_eeg=None,
                    orient_to_surface=None, scale_by_distance=None,
                    mark_inside=None, interaction=None, scale=None,
-                   advanced_rendering=None, verbose=None):
+                   advanced_rendering=None, head_inside=True, verbose=None):
     """Coregister an MRI with a subject's head shape.
 
     The recommended way to use the GUI is through bash with:
@@ -34,7 +34,6 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     .. code-block::  bash
 
         $ mne coreg
-
 
     Parameters
     ----------
@@ -53,9 +52,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         Raw, Epochs, and Evoked files.
     subject : None | str
         Name of the mri subject.
-    subjects_dir : None | str
-        Override the SUBJECTS_DIR environment variable
-        (sys.environ['SUBJECTS_DIR'])
+    %(subjects_dir)s
     guess_mri_subject : bool
         When selecting a new head shape file, guess the subject's name based
         on the filename and change the MRI subject accordingly (default True).
@@ -111,7 +108,17 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         bugs.
 
         .. versionadded:: 0.18
+    head_inside : bool
+        If True (default), add opaque inner scalp head surface to help occlude
+        points behind the head.
+
+        .. versionadded:: 0.23
     %(verbose)s
+
+    Returns
+    -------
+    frame : instance of CoregFrame
+        The coregistration frame.
 
     Notes
     -----
@@ -136,6 +143,9 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
             config.get('MNE_COREG_ADVANCED_RENDERING', 'true') == 'true'
     if head_opacity is None:
         head_opacity = config.get('MNE_COREG_HEAD_OPACITY', 1.)
+    if head_inside is None:
+        head_inside = \
+            config.get('MNE_COREG_HEAD_INSIDE', 'true').lower() == 'true'
     if width is None:
         width = config.get('MNE_COREG_WINDOW_WIDTH', 800)
     if height is None:
@@ -160,6 +170,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     if scale is None:
         scale = config.get('MNE_COREG_SCENE_SCALE', 0.16)
     head_opacity = float(head_opacity)
+    head_inside = bool(head_inside)
     width = int(width)
     height = int(height)
     scale = float(scale)
@@ -174,7 +185,8 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
                        orient_to_surface=orient_to_surface,
                        scale_by_distance=scale_by_distance,
                        mark_inside=mark_inside, interaction=interaction,
-                       scale=scale, advanced_rendering=advanced_rendering)
+                       scale=scale, advanced_rendering=advanced_rendering,
+                       head_inside=head_inside)
     return _initialize_gui(frame, view)
 
 
@@ -190,6 +202,11 @@ def fiducials(subject=None, fid_file=None, subjects_dir=None):
         ("{subjects_dir}/{subject}/bem/{subject}-fiducials.fif").
     subjects_dir : None | str
         Overrule the subjects_dir environment variable.
+
+    Returns
+    -------
+    frame : instance of FiducialsFrame
+        The GUI frame.
 
     Notes
     -----
@@ -211,6 +228,10 @@ def kit2fiff():
 
         $ mne kit2fiff
 
+    Returns
+    -------
+    frame : instance of Kit2FiffFrame
+        The GUI frame.
     """
     _check_mayavi_version()
     from ._backend import _check_backend

@@ -2,10 +2,9 @@
 #          Asish Panda <asishrocks95@gmail.com>
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
-from scipy import linalg
 
 from .. import EvokedArray, Evoked
 from ..cov import Covariance, _regularized_covariance
@@ -59,6 +58,7 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq):
     toeplitz : array, shape (n_class * n_components, n_channels)
         An concatenated array of toeplitz matrix for each event type.
     """
+    from scipy import linalg
     n_epochs, n_channels, n_times = epochs_data.shape
     tmax = tmin + n_times / float(sfreq)
 
@@ -137,11 +137,13 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
     -------
     filters : array, shape (n_channels, n_channels)
         The Xdawn components used to decompose the data for each event type.
+        Each row corresponds to one component.
     patterns : array, shape (n_channels, n_channels)
         The Xdawn patterns used to restore the signals for each event type.
     evokeds : array, shape (n_class, n_components, n_times)
         The independent evoked responses per condition.
     """
+    from scipy import linalg
     if not isinstance(epochs_data, np.ndarray) or epochs_data.ndim != 3:
         raise ValueError('epochs_data must be 3D ndarray')
 
@@ -343,11 +345,12 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
 class Xdawn(_XdawnTransformer):
     """Implementation of the Xdawn Algorithm.
 
-    Xdawn [1]_ [2]_ is a spatial filtering method designed to improve the
-    signal to signal + noise ratio (SSNR) of the ERP responses. Xdawn was
-    originally designed for P300 evoked potential by enhancing the target
-    response with respect to the non-target response. This implementation
-    is a generalization to any type of ERP.
+    Xdawn :footcite:`RivetEtAl2009,RivetEtAl2011` is a spatial
+    filtering method designed to improve the signal to signal + noise
+    ratio (SSNR) of the ERP responses. Xdawn was originally designed for
+    P300 evoked potential by enhancing the target response with respect
+    to the non-target response. This implementation is a generalization
+    to any type of ERP.
 
     Parameters
     ----------
@@ -371,7 +374,8 @@ class Xdawn(_XdawnTransformer):
     ----------
     filters_ : dict of ndarray
         If fit, the Xdawn components used to decompose the data for each event
-        type, else empty.
+        type, else empty. For each event type, the filters are in the rows of
+        the corresponding array.
     patterns_ : dict of ndarray
         If fit, the Xdawn patterns used to restore the signals for each event
         type, else empty.
@@ -382,26 +386,17 @@ class Xdawn(_XdawnTransformer):
     correct_overlap_ : bool
         Whether overlap correction was applied.
 
-    Notes
-    -----
-    .. versionadded:: 0.10
-
     See Also
     --------
     mne.decoding.CSP, mne.decoding.SPoC
 
+    Notes
+    -----
+    .. versionadded:: 0.10
+
     References
     ----------
-    .. [1] Rivet, B., Souloumiac, A., Attina, V., & Gibert, G. (2009). xDAWN
-           algorithm to enhance evoked potentials: application to
-           brain-computer interface. Biomedical Engineering, IEEE Transactions
-           on, 56(8), 2035-2043.
-
-    .. [2] Rivet, B., Cecotti, H., Souloumiac, A., Maby, E., & Mattout, J.
-           (2011, August). Theoretical analysis of xDAWN algorithm:
-           application to an efficient sensor selection in a P300 BCI. In
-           Signal Processing Conference, 2011 19th European (pp. 1382-1386).
-           IEEE.
+    .. footbibliography::
     """
 
     def __init__(self, n_components=2, signal_cov=None, correct_overlap='auto',
@@ -409,9 +404,9 @@ class Xdawn(_XdawnTransformer):
         """Init."""
         super(Xdawn, self).__init__(n_components=n_components,
                                     signal_cov=signal_cov, reg=reg)
-        _check_option('correct_overlap', correct_overlap,
-                      ['auto', True, False])
-        self.correct_overlap = correct_overlap
+        self.correct_overlap = _check_option('correct_overlap',
+                                             correct_overlap,
+                                             ['auto', True, False])
 
     def fit(self, epochs, y=None):
         """Fit Xdawn from epochs.
@@ -474,8 +469,8 @@ class Xdawn(_XdawnTransformer):
         idx = np.argsort([value for _, value in epochs.event_id.items()])
         for eid, this_filter, this_pattern, this_evo in zip(
                 epochs.event_id, filters[idx], patterns[idx], evokeds[idx]):
-            self.filters_[eid] = this_filter.T
-            self.patterns_[eid] = this_pattern.T
+            self.filters_[eid] = this_filter
+            self.patterns_[eid] = this_pattern
             n_events = len(epochs[eid])
             evoked = EvokedArray(this_evo, use_info, tmin=epochs.tmin,
                                  comment=eid, nave=n_events)
@@ -625,10 +620,10 @@ class Xdawn(_XdawnTransformer):
         logger.info('Transforming to Xdawn space')
 
         # Apply unmixing
-        sources = np.dot(self.filters_[eid].T, data)
+        sources = np.dot(self.filters_[eid], data)
 
         if include not in (None, list()):
-            mask = np.ones(len(sources), dtype=np.bool)
+            mask = np.ones(len(sources), dtype=bool)
             mask[np.unique(include)] = False
             sources[mask] = 0.
             logger.info('Zeroing out %i Xdawn components' % mask.sum())
@@ -637,7 +632,7 @@ class Xdawn(_XdawnTransformer):
             sources[exclude_] = 0.
             logger.info('Zeroing out %i Xdawn components' % len(exclude_))
         logger.info('Inverse transforming to sensor space')
-        data = np.dot(self.patterns_[eid], sources)
+        data = np.dot(self.patterns_[eid].T, sources)
 
         return data
 

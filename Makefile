@@ -5,7 +5,7 @@
 PYTHON ?= python
 PYTESTS ?= py.test
 CTAGS ?= ctags
-CODESPELL_SKIPS ?= "*.fif,*.eve,*.gz,*.tgz,*.zip,*.mat,*.stc,*.label,*.w,*.bz2,*.annot,*.sulc,*.log,*.local-copy,*.orig_avg,*.inflated_avg,*.gii,*.pyc,*.doctree,*.pickle,*.inv,*.png,*.edf,*.touch,*.thickness,*.nofix,*.volume,*.defect_borders,*.mgh,lh.*,rh.*,COR-*,FreeSurferColorLUT.txt,*.examples,.xdebug_mris_calc,bad.segments,BadChannels,*.hist,empty_file,*.orig,*.js,*.map,*.ipynb,searchindex.dat,install_mne_c.rst,plot_*.rst,*.rst.txt,c_EULA.rst*,*.html"
+CODESPELL_SKIPS ?= "doc/auto_*,*.fif,*.eve,*.gz,*.tgz,*.zip,*.mat,*.stc,*.label,*.w,*.bz2,*.annot,*.sulc,*.log,*.local-copy,*.orig_avg,*.inflated_avg,*.gii,*.pyc,*.doctree,*.pickle,*.inv,*.png,*.edf,*.touch,*.thickness,*.nofix,*.volume,*.defect_borders,*.mgh,lh.*,rh.*,COR-*,FreeSurferColorLUT.txt,*.examples,.xdebug_mris_calc,bad.segments,BadChannels,*.hist,empty_file,*.orig,*.js,*.map,*.ipynb,searchindex.dat,install_mne_c.rst,plot_*.rst,*.rst.txt,c_EULA.rst*,*.html,gdf_encodes.txt,*.svg,references.bib"
 CODESPELL_DIRS ?= mne/ doc/ tutorials/ examples/
 all: clean inplace test test-doc
 
@@ -17,7 +17,7 @@ clean-so:
 	find . -name "*.pyd" | xargs rm -f
 
 clean-build:
-	rm -rf _build
+	rm -rf build dist
 
 clean-ctags:
 	rm -f tags
@@ -30,6 +30,12 @@ clean: clean-build clean-pyc clean-so clean-ctags clean-cache
 in: inplace # just a shortcut
 inplace:
 	$(PYTHON) setup.py build_ext -i
+
+wheel:
+	$(PYTHON) setup.py sdist bdist_wheel
+
+wheel_quiet:
+	$(PYTHON) setup.py -q sdist bdist_wheel
 
 sample_data:
 	@python -c "import mne; mne.datasets.sample.data_path(verbose=True);"
@@ -67,7 +73,7 @@ test-no-sample-with-coverage: in testing_data
 	$(PYTESTS) --cov=mne --cov-report html:coverage
 
 test-doc: sample_data testing_data
-	$(PYTESTS) --doctest-modules --doctest-ignore-import-errors --doctest-glob='*.rst' ./doc/
+	$(PYTESTS) --doctest-modules --doctest-ignore-import-errors --doctest-glob='*.rst' ./doc/ --ignore=./doc/auto_examples --ignore=./doc/auto_tutorials --ignore=./doc/_build --fulltrace
 
 test-coverage: testing_data
 	rm -rf coverage .coverage
@@ -91,7 +97,7 @@ upload-pipy:
 flake:
 	@if command -v flake8 > /dev/null; then \
 		echo "Running flake8"; \
-		flake8 --count mne examples tutorials; \
+		flake8 --count; \
 	else \
 		echo "flake8 not found, please install it!"; \
 		exit 1; \
@@ -99,10 +105,10 @@ flake:
 	@echo "flake8 passed"
 
 codespell:  # running manually
-	@codespell -w -i 3 -q 3 -S $(CODESPELL_SKIPS) --ignore-words=ignore_words.txt $(CODESPELL_DIRS)
+	@codespell --builtin clear,rare,informal,names,usage -w -i 3 -q 3 -S $(CODESPELL_SKIPS) --ignore-words=ignore_words.txt $(CODESPELL_DIRS)
 
 codespell-error:  # running on travis
-	@codespell -i 0 -q 7 -S $(CODESPELL_SKIPS) --ignore-words=ignore_words.txt $(CODESPELL_DIRS)
+	@codespell --builtin clear,rare,informal,names,usage -i 0 -q 7 -S $(CODESPELL_SKIPS) --ignore-words=ignore_words.txt $(CODESPELL_DIRS)
 
 pydocstyle:
 	@echo "Running pydocstyle"
@@ -113,10 +119,10 @@ docstring:
 	@$(PYTESTS) --doctest-modules mne/tests/test_docstring_parameters.py
 
 check-manifest:
-	check-manifest --ignore .circleci*,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data,.DS_Store
+	check-manifest -q --ignore .circleci/config.yml,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data,.DS_Store
 
-check-readme:
-	python setup.py check --restructuredtext --strict
+check-readme: clean wheel_quiet
+	twine check dist/*
 
 nesting:
 	@echo "Running import nesting tests"

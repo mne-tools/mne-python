@@ -1,6 +1,6 @@
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #
-# License: BSD 3 clause
+# License: BSD-3-Clause
 
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -31,7 +31,7 @@ rng = np.random.RandomState(42)
 
 def get_data(n_trials, j_extent):
     """Generate ground truth and testing data."""
-    ground_truth = np.tile(single_trial,  n_trials)
+    ground_truth = np.tile(single_trial, n_trials)
     my_shape = n_trials, 1, 600
     random_data = rng.random_sample(my_shape)
     rand_ints = rng.randint(-j_extent, j_extent, n_trials)

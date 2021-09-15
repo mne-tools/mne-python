@@ -1,4 +1,3 @@
-import os
 import os.path as op
 import gc
 
@@ -11,12 +10,14 @@ from mne.datasets import testing
 from mne import (read_forward_solution, apply_forward, apply_forward_raw,
                  average_forward_solutions, write_forward_solution,
                  convert_forward_solution, SourceEstimate, pick_types_forward,
-                 read_evokeds)
+                 read_evokeds, VectorSourceEstimate)
+from mne.io import read_info
 from mne.label import read_label
-from mne.utils import (requires_mne, run_subprocess, _TempDir,
-                       run_tests_if_main)
+from mne.utils import requires_mne, run_subprocess
 from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
-                         Forward, is_fixed_orient)
+                         Forward, is_fixed_orient, compute_orient_prior,
+                         compute_depth_prior)
+from mne.channels import equalize_channels
 
 data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
@@ -24,32 +25,26 @@ fname_meeg = op.join(data_path, 'MEG', 'sample',
 fname_meeg_grad = op.join(data_path, 'MEG', 'sample',
                           'sample_audvis_trunc-meg-eeg-oct-2-grad-fwd.fif')
 
-fname_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
-                    'test_raw.fif')
-
 fname_evoked = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                        'data', 'test-ave.fif')
-fname_mri = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-trans.fif')
-subjects_dir = os.path.join(data_path, 'subjects')
-fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-4-src.fif')
 
 
-def compare_forwards(f1, f2):
+def assert_forward_allclose(f1, f2, rtol=1e-7):
     """Compare two potentially converted forward solutions."""
-    assert_allclose(f1['sol']['data'], f2['sol']['data'])
-    assert_equal(f1['sol']['ncol'], f2['sol']['ncol'])
-    assert_equal(f1['sol']['ncol'], f1['sol']['data'].shape[1])
-    assert_allclose(f1['source_nn'], f2['source_nn'])
+    assert_allclose(f1['sol']['data'], f2['sol']['data'], rtol=rtol)
+    assert f1['sol']['ncol'] == f2['sol']['ncol']
+    assert f1['sol']['ncol'] == f1['sol']['data'].shape[1]
+    assert_allclose(f1['source_nn'], f2['source_nn'], rtol=rtol)
     if f1['sol_grad'] is not None:
         assert (f2['sol_grad'] is not None)
         assert_allclose(f1['sol_grad']['data'], f2['sol_grad']['data'])
-        assert_equal(f1['sol_grad']['ncol'], f2['sol_grad']['ncol'])
-        assert_equal(f1['sol_grad']['ncol'], f1['sol_grad']['data'].shape[1])
+        assert f1['sol_grad']['ncol'] == f2['sol_grad']['ncol']
+        assert f1['sol_grad']['ncol'] == f1['sol_grad']['data'].shape[1]
     else:
         assert (f2['sol_grad'] is None)
-    assert_equal(f1['source_ori'], f2['source_ori'])
-    assert_equal(f1['surf_ori'], f2['surf_ori'])
+    assert f1['source_ori'] == f2['source_ori']
+    assert f1['surf_ori'] == f2['surf_ori']
+    assert f1['src'][0]['coord_frame'] == f1['src'][0]['coord_frame']
 
 
 @testing.requires_testing_data
@@ -67,7 +62,7 @@ def test_convert_forward():
     fwd_new = convert_forward_solution(fwd_surf, surf_ori=False)
     assert (repr(fwd_new))
     assert (isinstance(fwd_new, Forward))
-    compare_forwards(fwd, fwd_new)
+    assert_forward_allclose(fwd, fwd_new)
     del fwd_new
     gc.collect()
 
@@ -84,16 +79,15 @@ def test_convert_forward():
                                        force_fixed=False)
     assert (repr(fwd_new))
     assert (isinstance(fwd_new, Forward))
-    compare_forwards(fwd, fwd_new)
+    assert_forward_allclose(fwd, fwd_new)
     del fwd, fwd_new, fwd_fixed
     gc.collect()
 
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_io_forward():
+def test_io_forward(tmpdir):
     """Test IO for forward solutions."""
-    temp_dir = _TempDir()
     # do extensive tests with MEEG + grad
     n_channels, n_src = 366, 108
     fwd = read_forward_solution(fname_meeg_grad)
@@ -103,7 +97,7 @@ def test_io_forward():
     leadfield = fwd['sol']['data']
     assert_equal(leadfield.shape, (n_channels, n_src))
     assert_equal(len(fwd['sol']['row_names']), n_channels)
-    fname_temp = op.join(temp_dir, 'test-fwd.fif')
+    fname_temp = tmpdir.join('test-fwd.fif')
     with pytest.warns(RuntimeWarning, match='stored on disk'):
         write_forward_solution(fname_temp, fwd, overwrite=True)
 
@@ -130,7 +124,7 @@ def test_io_forward():
     assert (repr(fwd_read))
     assert (isinstance(fwd_read, Forward))
     assert (is_fixed_orient(fwd_read))
-    compare_forwards(fwd, fwd_read)
+    assert_forward_allclose(fwd, fwd_read)
 
     fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
                                    use_cps=True)
@@ -149,7 +143,7 @@ def test_io_forward():
     assert (repr(fwd_read))
     assert (isinstance(fwd_read, Forward))
     assert (is_fixed_orient(fwd_read))
-    compare_forwards(fwd, fwd_read)
+    assert_forward_allclose(fwd, fwd_read)
 
     fwd = read_forward_solution(fname_meeg_grad)
     fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
@@ -169,11 +163,11 @@ def test_io_forward():
     assert (repr(fwd_read))
     assert (isinstance(fwd_read, Forward))
     assert (is_fixed_orient(fwd_read))
-    compare_forwards(fwd, fwd_read)
+    assert_forward_allclose(fwd, fwd_read)
 
     # test warnings on bad filenames
     fwd = read_forward_solution(fname_meeg_grad)
-    fwd_badname = op.join(temp_dir, 'test-bad-name.fif.gz')
+    fwd_badname = tmpdir.join('test-bad-name.fif.gz')
     with pytest.warns(RuntimeWarning, match='end with'):
         write_forward_solution(fwd_badname, fwd)
     with pytest.warns(RuntimeWarning, match='end with'):
@@ -182,7 +176,7 @@ def test_io_forward():
     fwd = read_forward_solution(fname_meeg)
     write_forward_solution(fname_temp, fwd, overwrite=True)
     fwd_read = read_forward_solution(fname_temp)
-    compare_forwards(fwd, fwd_read)
+    assert_forward_allclose(fwd, fwd_read)
 
 
 @testing.requires_testing_data
@@ -220,6 +214,15 @@ def test_apply_forward():
     assert_array_almost_equal(times[0], t_start)
     assert_array_almost_equal(times[-1], t_start + (n_times - 1) / sfreq)
 
+    # vector
+    stc_vec = VectorSourceEstimate(
+        fwd['source_nn'][:, :, np.newaxis] * stc.data[:, np.newaxis],
+        stc.vertices, stc.tmin, stc.tstep)
+    with pytest.warns(RuntimeWarning, match='very large'):
+        evoked_2 = apply_forward(fwd, stc_vec, evoked.info)
+    assert np.abs(evoked_2.data).mean() > 1e-5
+    assert_allclose(evoked.data, evoked_2.data, atol=1e-10)
+
     # Raw
     with pytest.warns(RuntimeWarning, match='only .* positive values'):
         raw_proj = apply_forward_raw(fwd, stc, evoked.info, start=start,
@@ -236,7 +239,7 @@ def test_apply_forward():
 
 
 @testing.requires_testing_data
-def test_restrict_forward_to_stc():
+def test_restrict_forward_to_stc(tmpdir):
     """Test restriction of source space to source SourceEstimate."""
     start = 0
     stop = 5
@@ -280,18 +283,17 @@ def test_restrict_forward_to_stc():
 
     # Test saving the restricted forward object. This only works if all fields
     # are properly accounted for.
-    temp_dir = _TempDir()
-    fname_copy = op.join(temp_dir, 'copy-fwd.fif')
+    fname_copy = tmpdir.join('copy-fwd.fif')
     with pytest.warns(RuntimeWarning, match='stored on disk'):
         write_forward_solution(fname_copy, fwd_out, overwrite=True)
     fwd_out_read = read_forward_solution(fname_copy)
     fwd_out_read = convert_forward_solution(fwd_out_read, surf_ori=True,
                                             force_fixed=False)
-    compare_forwards(fwd_out, fwd_out_read)
+    assert_forward_allclose(fwd_out, fwd_out_read)
 
 
 @testing.requires_testing_data
-def test_restrict_forward_to_label():
+def test_restrict_forward_to_label(tmpdir):
     """Test restriction of source space to label."""
     fwd = read_forward_solution(fname_meeg)
     fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
@@ -350,18 +352,16 @@ def test_restrict_forward_to_label():
 
     # Test saving the restricted forward object. This only works if all fields
     # are properly accounted for.
-    temp_dir = _TempDir()
-    fname_copy = op.join(temp_dir, 'copy-fwd.fif')
+    fname_copy = tmpdir.join('copy-fwd.fif')
     write_forward_solution(fname_copy, fwd_out, overwrite=True)
     fwd_out_read = read_forward_solution(fname_copy)
-    compare_forwards(fwd_out, fwd_out_read)
+    assert_forward_allclose(fwd_out, fwd_out_read)
 
 
 @testing.requires_testing_data
 @requires_mne
-def test_average_forward_solution():
+def test_average_forward_solution(tmpdir):
     """Test averaging forward solutions."""
-    temp_dir = _TempDir()
     fwd = read_forward_solution(fname_meeg)
     # input not a list
     pytest.raises(TypeError, average_forward_solutions, 1)
@@ -383,7 +383,7 @@ def test_average_forward_solution():
 
     # modify a fwd solution, save it, use MNE to average with old one
     fwd_copy['sol']['data'] *= 0.5
-    fname_copy = op.join(temp_dir, 'copy-fwd.fif')
+    fname_copy = str(tmpdir.join('copy-fwd.fif'))
     write_forward_solution(fname_copy, fwd_copy, overwrite=True)
     cmd = ('mne_average_forward_solutions', '--fwd', fname_meeg, '--fwd',
            fname_copy, '--out', fname_copy)
@@ -398,7 +398,50 @@ def test_average_forward_solution():
     # with gradient
     fwd = read_forward_solution(fname_meeg_grad)
     fwd_ave = average_forward_solutions([fwd, fwd])
-    compare_forwards(fwd, fwd_ave)
+    assert_forward_allclose(fwd, fwd_ave)
 
 
-run_tests_if_main()
+@testing.requires_testing_data
+def test_priors():
+    """Test prior computations."""
+    # Depth prior
+    fwd = read_forward_solution(fname_meeg)
+    assert not is_fixed_orient(fwd)
+    n_sources = fwd['nsource']
+    info = read_info(fname_evoked)
+    depth_prior = compute_depth_prior(fwd, info, exp=0.8)
+    assert depth_prior.shape == (3 * n_sources,)
+    depth_prior = compute_depth_prior(fwd, info, exp=0.)
+    assert_array_equal(depth_prior, 1.)
+    with pytest.raises(ValueError, match='must be "whiten"'):
+        compute_depth_prior(fwd, info, limit_depth_chs='foo')
+    with pytest.raises(ValueError, match='noise_cov must be a Covariance'):
+        compute_depth_prior(fwd, info, limit_depth_chs='whiten')
+    fwd_fixed = convert_forward_solution(fwd, force_fixed=True)
+    depth_prior = compute_depth_prior(fwd_fixed, info=info)
+    assert depth_prior.shape == (n_sources,)
+    # Orientation prior
+    orient_prior = compute_orient_prior(fwd, 1.)
+    assert_array_equal(orient_prior, 1.)
+    orient_prior = compute_orient_prior(fwd_fixed, 0.)
+    assert_array_equal(orient_prior, 1.)
+    with pytest.raises(ValueError, match='oriented in surface coordinates'):
+        compute_orient_prior(fwd, 0.5)
+    fwd_surf_ori = convert_forward_solution(fwd, surf_ori=True)
+    orient_prior = compute_orient_prior(fwd_surf_ori, 0.5)
+    assert all(np.in1d(orient_prior, (0.5, 1.)))
+    with pytest.raises(ValueError, match='between 0 and 1'):
+        compute_orient_prior(fwd_surf_ori, -0.5)
+    with pytest.raises(ValueError, match='with fixed orientation'):
+        compute_orient_prior(fwd_fixed, 0.5)
+
+
+@testing.requires_testing_data
+def test_equalize_channels():
+    """Test equalization of channels for instances of Forward."""
+    fwd1 = read_forward_solution(fname_meeg)
+    fwd1.pick_channels(['EEG 001', 'EEG 002', 'EEG 003'])
+    fwd2 = fwd1.copy().pick_channels(['EEG 002', 'EEG 001'], ordered=True)
+    fwd1, fwd2 = equalize_channels([fwd1, fwd2])
+    assert fwd1.ch_names == ['EEG 001', 'EEG 002']
+    assert fwd2.ch_names == ['EEG 001', 'EEG 002']

@@ -1,11 +1,12 @@
 # Author: Jean-Remi King <jeanremi.king@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
 from .mixin import TransformerMixin
 from .base import BaseEstimator, _check_estimator
+from ..fixes import _get_check_scoring
 from ..parallel import parallel_func
 from ..utils import (_validate_type, array_split_idx, ProgressBar,
                      verbose, fill_doc)
@@ -23,14 +24,14 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
     ----------
     base_estimator : object
         The base estimator to iteratively fit on a subset of the dataset.
-    scoring : callable, string, default None
+    scoring : callable, str, default None
         Score function (or loss function) with signature
         ``score_func(y, y_pred, **kwargs)``.
         Note that the predict_method is automatically identified if scoring is
         a string (e.g. scoring="roc_auc" calls predict_proba) but is not
         automatically set if scoring is a callable (e.g.
         scoring=sklearn.metrics.roc_auc_score).
-    n_jobs : int, optional (default=1)
+    %(n_jobs)s
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.
     %(verbose)s
@@ -69,7 +70,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             The training input samples. For each data slice, a clone estimator
             is fitted independently. The feature dimension can be
             multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
         **fit_params : dict of string -> object
@@ -88,8 +89,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
                                                  verbose=False)
         n_jobs = min(n_jobs, X.shape[-1])
         mesg = 'Fitting %s' % (self.__class__.__name__,)
-        with ProgressBar(X.shape[-1], verbose_bool='auto',
-                         mesg=mesg) as pb:
+        with ProgressBar(X.shape[-1], mesg=mesg) as pb:
             estimators = parallel(
                 p_func(self.base_estimator, split, y, pb.subset(pb_idx),
                        **fit_params)
@@ -114,8 +114,9 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         X : array, shape (n_samples, nd_features, n_tasks)
             The training input samples. For each task, a clone estimator
             is fitted independently. The feature dimension can be
-            multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+            multidimensional, e.g.::
+
+                X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
         **fit_params : dict of string -> object
@@ -144,7 +145,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         n_jobs = min(n_jobs, X.shape[-1])
         X_splits = np.array_split(X, n_jobs, axis=-1)
         idx, est_splits = zip(*array_split_idx(self.estimators_, n_jobs))
-        with ProgressBar(X.shape[-1], verbose_bool='auto', mesg=mesg) as pb:
+        with ProgressBar(X.shape[-1], mesg=mesg) as pb:
             y_pred = parallel(p_func(est, x, method, pb.subset(pb_idx))
                               for pb_idx, est, x in zip(
                                   idx, est_splits, X_splits))
@@ -165,7 +166,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             estimator makes a transformation of the data, e.g.
             ``[estimators[ii].transform(X[..., ii]) for ii in range(n_estimators)]``.
             The feature dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
 
         Returns
         -------
@@ -187,7 +188,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             makes the sample predictions, e.g.:
             ``[estimators[ii].predict(X[..., ii]) for ii in range(n_estimators)]``.
             The feature dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
 
         Returns
         -------
@@ -209,7 +210,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             makes the sample probabilistic predictions, e.g.:
             ``[estimators[ii].predict_proba(X[..., ii]) for ii in range(n_estimators)]``.
             The feature dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
 
         Returns
         -------
@@ -228,7 +229,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             outputs the distance to the hyperplane, e.g.:
             ``[estimators[ii].decision_function(X[..., ii]) for ii in range(n_estimators)]``.
             The feature dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+            X.shape = (n_samples, n_features_1, n_features_2, n_estimators).
 
         Returns
         -------
@@ -263,8 +264,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             scores the prediction, e.g.:
             ``[estimators[ii].score(X[..., ii], y) for ii in range(n_estimators)]``.
             The feature dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
-
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
 
@@ -273,7 +273,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         score : array, shape (n_samples, n_estimators)
             Score for each estimator/task.
         """  # noqa: E501
-        from sklearn.metrics.scorer import check_scoring
+        check_scoring = _get_check_scoring()
 
         self._check_Xy(X)
         if X.shape[-1] != len(self.estimators_):
@@ -386,7 +386,7 @@ def _sl_score(estimators, scoring, X, y):
     X : array, shape (n_samples, nd_features, n_tasks)
         The target data. The feature dimension can be multidimensional e.g.
         X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
-    scoring : callable, string or None
+    scoring : callable, str or None
         If scoring is None (default), the predictions are internally
         generated by estimator.score(). Else, we must first get the
         predictions to pass them to ad-hoc scorer.
@@ -429,14 +429,14 @@ class GeneralizingEstimator(SlidingEstimator):
     ----------
     base_estimator : object
         The base estimator to iteratively fit on a subset of the dataset.
-    scoring : callable | string | None
+    scoring : callable | str | None
         Score function (or loss function) with signature
         ``score_func(y, y_pred, **kwargs)``.
         Note that the predict_method is automatically identified if scoring is
         a string (e.g. scoring="roc_auc" calls predict_proba) but is not
         automatically set if scoring is a callable (e.g.
         scoring=sklearn.metrics.roc_auc_score).
-    n_jobs : int, optional (default=1)
+    %(n_jobs)s
         The number of jobs to run in parallel for both `fit` and `predict`.
         If -1, then the number of jobs is set to the number of cores.
     %(verbose)s
@@ -458,8 +458,7 @@ class GeneralizingEstimator(SlidingEstimator):
         parallel, p_func, n_jobs = parallel_func(
             _gl_transform, self.n_jobs, verbose=False)
         n_jobs = min(n_jobs, X.shape[-1])
-        with ProgressBar(X.shape[-1] * len(self.estimators_),
-                         verbose_bool='auto', mesg=mesg) as pb:
+        with ProgressBar(X.shape[-1] * len(self.estimators_), mesg=mesg) as pb:
             y_pred = parallel(
                 p_func(self.estimators_, x_split, method, pb.subset(pb_idx))
                 for pb_idx, x_split in array_split_idx(
@@ -477,7 +476,7 @@ class GeneralizingEstimator(SlidingEstimator):
             The input samples. For estimator the corresponding data slice is
             used to make a transformation. The feature dimension can be
             multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+            X.shape = (n_samples, n_features_1, n_features_2, n_estimators).
 
         Returns
         -------
@@ -495,7 +494,7 @@ class GeneralizingEstimator(SlidingEstimator):
             The training input samples. For each data slice, a fitted estimator
             predicts each slice of the data independently. The feature
             dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+            X.shape = (n_samples, n_features_1, n_features_2, n_estimators).
 
         Returns
         -------
@@ -569,7 +568,7 @@ class GeneralizingEstimator(SlidingEstimator):
         score : array, shape (n_samples, n_estimators, n_slices)
             Score for each estimator / data slice couple.
         """  # noqa: E501
-        from sklearn.metrics.scorer import check_scoring
+        check_scoring = _get_check_scoring()
         self._check_Xy(X)
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
@@ -579,8 +578,7 @@ class GeneralizingEstimator(SlidingEstimator):
         n_jobs = min(n_jobs, X.shape[-1])
         scoring = check_scoring(self.base_estimator, self.scoring)
         y = _fix_auc(scoring, y)
-        with ProgressBar(X.shape[-1] * len(self.estimators_),
-                         verbose_bool='auto', mesg=mesg) as pb:
+        with ProgressBar(X.shape[-1] * len(self.estimators_), mesg=mesg) as pb:
             score = parallel(p_func(self.estimators_, scoring, x, y,
                                     pb.subset(pb_idx))
                              for pb_idx, x in array_split_idx(
@@ -684,11 +682,10 @@ def _fix_auc(scoring, y):
     # This fixes sklearn's inability to compute roc_auc when y not in [0, 1]
     # scikit-learn/scikit-learn#6874
     if scoring is not None:
-        if (
-            hasattr(scoring, '_score_func') and
-            hasattr(scoring._score_func, '__name__') and
-            scoring._score_func.__name__ == 'roc_auc_score'
-        ):
+        score_func = getattr(scoring, '_score_func', None)
+        kwargs = getattr(scoring, '_kwargs', {})
+        if (getattr(score_func, '__name__', '') == 'roc_auc_score' and
+                kwargs.get('multi_class', 'raise') == 'raise'):
             if np.ndim(y) != 1 or len(set(y)) != 2:
                 raise ValueError('roc_auc scoring can only be computed for '
                                  'two-class problems.')

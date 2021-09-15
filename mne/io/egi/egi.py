@@ -10,22 +10,22 @@ import numpy as np
 
 from .egimff import _read_raw_egi_mff
 from .events import _combine_triggers
-from ..base import BaseRaw, _check_update_montage
+from ..base import BaseRaw
 from ..utils import _read_segments_file, _create_chs
 from ..meas_info import _empty_info
 from ..constants import FIFF
-from ...utils import verbose, logger, warn
+from ...utils import verbose, logger, warn, _validate_type, _check_fname
 
 
 def _read_header(fid):
     """Read EGI binary header."""
-    version = np.fromfile(fid, np.int32, 1)[0]
+    version = np.fromfile(fid, '<i4', 1)[0]
 
     if version > 6 & ~np.bitwise_and(version, 6):
         version = version.byteswap().astype(np.uint32)
     else:
-        ValueError('Watchout. This does not seem to be a simple '
-                   'binary EGI file.')
+        raise ValueError('Watchout. This does not seem to be a simple '
+                         'binary EGI file.')
 
     def my_fread(*x, **y):
         return np.fromfile(*x, **y)[0]
@@ -49,7 +49,7 @@ def _read_header(fid):
     unsegmented = 1 if np.bitwise_and(version, 1) == 0 else 0
     precision = np.bitwise_and(version, 6)
     if precision == 0:
-        RuntimeError('Floating point precision is undefined.')
+        raise RuntimeError('Floating point precision is undefined.')
 
     if unsegmented:
         info.update(dict(n_categories=0,
@@ -63,7 +63,6 @@ def _read_header(fid):
         for event in range(info['n_events']):
             event_codes = ''.join(np.fromfile(fid, 'S1', 4).astype('U1'))
             info['event_codes'].append(event_codes)
-        info['event_codes'] = np.array(info['event_codes'])
     else:
         raise NotImplementedError('Only continuous files are supported')
     info['unsegmented'] = unsegmented
@@ -88,20 +87,19 @@ def _read_events(fid, info):
 
 
 @verbose
-def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
+def read_raw_egi(input_fname, eog=None, misc=None,
                  include=None, exclude=None, preload=False,
                  channel_naming='E%d', verbose=None):
     """Read EGI simple binary as raw object.
 
+    .. note:: This function attempts to create a synthetic trigger channel.
+              See the Notes section below.
+
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the raw file. Files with an extension .mff are automatically
         considered to be EGI's native MFF format files.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Default is None.
@@ -111,28 +109,21 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
     include : None | list
        The event channels to be ignored when creating the synthetic
        trigger. Defaults to None.
-       Note. Overrides `exclude` parameter.
+       Note. Overrides ``exclude`` parameter.
     exclude : None | list
        The event channels to be ignored when creating the synthetic
        trigger. Defaults to None. If None, channels that have more than
        one event and the ``sync`` and ``TREV`` channels will be
        ignored.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
 
-        ..versionadded:: 0.11
-
+        .. versionadded:: 0.11
     channel_naming : str
         Channel naming convention for the data channels. Defaults to 'E%%d'
         (resulting in channel names 'E1', 'E2', 'E3'...). The effective default
         prior to 0.14.0 was 'EEG %%03d'.
 
-         ..versionadded:: 0.14.0
-
+         .. versionadded:: 0.14.0
     %(verbose)s
 
     Returns
@@ -140,11 +131,15 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
     raw : instance of RawEGI
         A Raw object containing EGI data.
 
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
+
     Notes
     -----
     The trigger channel names are based on the arbitrary user dependent event
-    codes used. However this function will attempt to generate a synthetic
-    trigger channel named ``STI 014`` in accordance with the general
+    codes used. However this function will attempt to generate a **synthetic
+    trigger channel** named ``STI 014`` in accordance with the general
     Neuromag / MNE naming pattern.
 
     The event_id assignment equals ``np.arange(n_events) + 1``. The resulting
@@ -154,15 +149,13 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
     As a consequence, triggers have only short durations.
 
     This step will fail if events are not mutually exclusive.
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attribute and methods.
     """
+    _validate_type(input_fname, 'path-like', 'input_fname')
+    input_fname = str(input_fname)
     if input_fname.endswith('.mff'):
-        return _read_raw_egi_mff(input_fname, montage, eog, misc, include,
+        return _read_raw_egi_mff(input_fname, eog, misc, include,
                                  exclude, preload, channel_naming, verbose)
-    return RawEGI(input_fname, montage, eog, misc, include, exclude, preload,
+    return RawEGI(input_fname, eog, misc, include, exclude, preload,
                   channel_naming, verbose)
 
 
@@ -170,9 +163,10 @@ class RawEGI(BaseRaw):
     """Raw object from EGI simple binary file."""
 
     @verbose
-    def __init__(self, input_fname, montage=None, eog=None, misc=None,
+    def __init__(self, input_fname, eog=None, misc=None,
                  include=None, exclude=None, preload=False,
                  channel_naming='E%d', verbose=None):  # noqa: D102
+        input_fname = _check_fname(input_fname, 'read', True, 'input_fname')
         if eog is None:
             eog = []
         if misc is None:
@@ -230,14 +224,14 @@ class RawEGI(BaseRaw):
             logger.info('    Excluding events {%s} ...' %
                         ", ".join([k for i, k in enumerate(event_codes)
                                    if i not in include_]))
-            self._new_trigger = _combine_triggers(egi_events[include_],
-                                                  remapping=event_ids)
+            egi_info['new_trigger'] = _combine_triggers(
+                egi_events[include_], remapping=event_ids)
             self.event_id = dict(zip([e for e in event_codes if e in
                                       include_names], event_ids))
         else:
             # No events
             self.event_id = None
-            self._new_trigger = None
+            egi_info['new_trigger'] = None
         info = _empty_info(egi_info['samp_rate'])
         my_time = datetime.datetime(
             egi_info['year'], egi_info['month'], egi_info['day'],
@@ -247,7 +241,7 @@ class RawEGI(BaseRaw):
         ch_names = [channel_naming % (i + 1) for i in
                     range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))
-        if self._new_trigger is not None:
+        if egi_info['new_trigger'] is not None:
             ch_names.append('STI 014')  # our new_trigger
         nchan = len(ch_names)
         cals = np.repeat(cal, nchan)
@@ -257,13 +251,12 @@ class RawEGI(BaseRaw):
         sti_ch_idx = [i for i, name in enumerate(ch_names) if
                       name.startswith('STI') or name in event_codes]
         for idx in sti_ch_idx:
-            chs[idx].update({'unit_mul': 0, 'cal': 1,
+            chs[idx].update({'unit_mul': FIFF.FIFF_UNITM_NONE, 'cal': 1.,
                              'kind': FIFF.FIFFV_STIM_CH,
                              'coil_type': FIFF.FIFFV_COIL_NONE,
                              'unit': FIFF.FIFF_UNIT_NONE})
         info['chs'] = chs
         info._update_redundant()
-        _check_update_montage(info, montage)
         super(RawEGI, self).__init__(
             info, preload, orig_format=egi_info['orig_format'],
             filenames=[input_fname], last_samps=[egi_info['n_samples'] - 1],
@@ -275,6 +268,7 @@ class RawEGI(BaseRaw):
         dtype = egi_info['dtype']
         n_chan_read = egi_info['n_channels'] + egi_info['n_events']
         offset = 36 + egi_info['n_events'] * 4
+        trigger_ch = egi_info['new_trigger']
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
                             dtype=dtype, n_channels=n_chan_read, offset=offset,
-                            trigger_ch=self._new_trigger)
+                            trigger_ch=trigger_ch)

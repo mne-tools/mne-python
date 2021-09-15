@@ -1,10 +1,12 @@
 # Authors: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
+#          Robert Luke <mail@robertluke.net>
 #
-# License: BSD 3 clause
+# License: BSD-3-Clause
 
-from datetime import datetime
-from itertools import repeat
 from collections import OrderedDict
+from datetime import datetime, timezone
+from itertools import repeat
+import sys
 
 import os.path as op
 
@@ -16,37 +18,67 @@ from numpy.testing import (assert_equal, assert_array_equal,
 import numpy as np
 
 import mne
-from mne import create_info, read_annotations, events_from_annotations
+from mne import (create_info, read_annotations, annotations_from_events,
+                 events_from_annotations)
 from mne import Epochs, Annotations
-from mne.utils import (run_tests_if_main, _TempDir, requires_version,
-                       catch_logging)
-from mne.utils.testing import assert_and_remove_boundary_annot
+from mne.utils import (requires_version,
+                       catch_logging, requires_pandas)
+from mne.utils import (assert_and_remove_boundary_annot, _raw_annot,
+                       _dt_to_stamp, _stamp_to_dt, check_version)
 from mne.io import read_raw_fif, RawArray, concatenate_raws
-from mne.io.tests.test_raw import _raw_annot
-from mne.annotations import _sync_onset, _handle_meas_date
-from mne.annotations import _read_annotations_txt_parse_header
+from mne.annotations import (_sync_onset, _handle_meas_date,
+                             _read_annotations_txt_parse_header)
 from mne.datasets import testing
-
 
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fif_fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
                     'test_raw.fif')
 
+first_samps = pytest.mark.parametrize('first_samp', (0, 10000))
+
+
+needs_pandas = pytest.mark.skipif(
+    not check_version('pandas'), reason='Needs pandas')
+
+
+# On Windows, datetime.fromtimestamp throws an error for negative times.
+# We mimic this behavior on non-Windows platforms for ease of testing.
+class _windows_datetime(datetime):
+    @classmethod
+    def fromtimestamp(cls, timestamp, tzinfo=None):
+        if timestamp < 0:
+            raise OSError('[Errno 22] Invalid argument')
+        return datetime.fromtimestamp(timestamp, tzinfo)
+
+
+@pytest.fixture(scope='function')
+def windows_like_datetime(monkeypatch):
+    """Ensure datetime.fromtimestamp is Windows-like."""
+    if not sys.platform.startswith('win'):
+        monkeypatch.setattr('mne.annotations.datetime', _windows_datetime)
+    yield
+
 
 def test_basics():
     """Test annotation class."""
     raw = read_raw_fif(fif_fname)
-    assert raw.annotations is not None  # XXX to be fixed in #5416
-    assert len(raw.annotations.onset) == 0  # XXX to be fixed in #5416
+    assert raw.annotations is not None
+    assert len(raw.annotations.onset) == 0
     pytest.raises(IOError, read_annotations, fif_fname)
     onset = np.array(range(10))
     duration = np.ones(10)
     description = np.repeat('test', 10)
-    dt = datetime.utcnow()
-    meas_date = raw.info['meas_date']
+    dt = raw.info['meas_date']
+    assert isinstance(dt, datetime)
+    stamp = _dt_to_stamp(dt)
     # Test time shifts.
-    for orig_time in [None, dt, meas_date[0], meas_date]:
+    for orig_time in [None, dt, stamp[0], stamp]:
         annot = Annotations(onset, duration, description, orig_time)
+        if orig_time is None:
+            assert annot.orig_time is None
+        else:
+            assert isinstance(annot.orig_time, datetime)
+            assert annot.orig_time.tzinfo is timezone.utc
 
     pytest.raises(ValueError, Annotations, onset, duration, description[:9])
     pytest.raises(ValueError, Annotations, [onset, 1], duration, description)
@@ -55,35 +87,60 @@ def test_basics():
     # Test combining annotations with concatenate_raws
     raw2 = raw.copy()
     delta = raw.times[-1] + 1. / raw.info['sfreq']
-    orig_time = (meas_date[0] + meas_date[1] * 1e-6 + raw2._first_time)
-    offset = orig_time - _handle_meas_date(raw2.info['meas_date'])
+    orig_time = (stamp[0] + stamp[1] * 1e-6 + raw2._first_time)
+    offset = _dt_to_stamp(_handle_meas_date(raw2.info['meas_date']))
+    offset = offset[0] + offset[1] * 1e-6
+    offset = orig_time - offset
+    assert_allclose(offset, raw._first_time)
     annot = Annotations(onset, duration, description, orig_time)
+    assert annot.orig_time is not None
     assert ' segments' in repr(annot)
     raw2.set_annotations(annot)
-    assert_array_equal(raw2.annotations.onset, onset + offset)
-    assert id(raw2.annotations) != id(annot)
+    assert_allclose(raw2.annotations.onset, onset + offset)
+    assert raw2.annotations is not annot
+    assert raw2.annotations.orig_time is not None
     concatenate_raws([raw, raw2])
     assert_and_remove_boundary_annot(raw)
     assert_allclose(onset + offset + delta, raw.annotations.onset, rtol=1e-5)
     assert_array_equal(annot.duration, raw.annotations.duration)
     assert_array_equal(raw.annotations.description, np.repeat('test', 10))
 
-    # Test combining with RawArray and orig_times
+
+def test_annot_sanitizing(tmpdir):
+    """Test description sanitizing."""
+    annot = Annotations([0], [1], ['a;:b'])
+    fname = str(tmpdir.join('custom-annot.fif'))
+    annot.save(fname)
+    annot_read = read_annotations(fname)
+    _assert_annotations_equal(annot, annot_read)
+
+    # make sure pytest raises error on char-sequence that is not allowed
+    with pytest.raises(ValueError, match='in description not supported'):
+        Annotations([0], [1], ['a{COLON}b'])
+
+
+def test_raw_array_orig_times():
+    """Test combining with RawArray and orig_times."""
     data = np.random.randn(2, 1000) * 10e-12
     sfreq = 100.
     info = create_info(ch_names=['MEG1', 'MEG2'], ch_types=['grad'] * 2,
                        sfreq=sfreq)
-    info['meas_date'] = (np.pi, 0)
+    meas_date = _handle_meas_date(np.pi)
+    info['meas_date'] = meas_date
     raws = []
     for first_samp in [12300, 100, 12]:
         raw = RawArray(data.copy(), info, first_samp=first_samp)
         ants = Annotations([1., 2.], [.5, .5], 'x', np.pi + first_samp / sfreq)
         raw.set_annotations(ants)
         raws.append(raw)
+    assert_allclose(raws[0].annotations.onset, [124, 125])
     raw = RawArray(data.copy(), info)
+    assert not len(raw.annotations)
     raw.set_annotations(Annotations([1.], [.5], 'x', None))
+    assert_allclose(raw.annotations.onset, [1.])
     raws.append(raw)
     raw = concatenate_raws(raws, verbose='debug')
+    assert raw.info['meas_date'] == raw.annotations.orig_time == meas_date
     assert_and_remove_boundary_annot(raw, 3)
     assert_array_equal(raw.annotations.onset, [124., 125., 134., 135.,
                                                144., 145., 154.])
@@ -98,8 +155,21 @@ def test_basics():
     assert_array_equal(raw.annotations.description,
                        ['y', 'x', 'x', 'x', 'x', 'x', 'x'])
 
+    # These three things should be equivalent
+    stamp = _dt_to_stamp(raw.info['meas_date'])
+    orig_time = _handle_meas_date(stamp)
+    for empty_annot in (
+            Annotations([], [], [], stamp),
+            Annotations([], [], [], orig_time),
+            Annotations([], [], [], None),
+            None):
+        raw.set_annotations(empty_annot)
+        assert isinstance(raw.annotations, Annotations)
+        assert len(raw.annotations) == 0
+        assert raw.annotations.orig_time == orig_time
 
-def test_crop():
+
+def test_crop(tmpdir):
     """Test cropping with annotations."""
     raw = read_raw_fif(fif_fname)
     events = mne.find_events(raw)
@@ -151,20 +221,22 @@ def test_crop():
     assert_array_almost_equal(raw.annotations.onset, expected_onset, decimal=2)
 
     # Test IO
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     fname = op.join(tempdir, 'test-annot.fif')
     raw.annotations.save(fname)
     annot_read = read_annotations(fname)
-    for attr in ('onset', 'duration', 'orig_time'):
+    for attr in ('onset', 'duration'):
         assert_allclose(getattr(annot_read, attr),
                         getattr(raw.annotations, attr))
+    assert annot_read.orig_time == raw.annotations.orig_time
     assert_array_equal(annot_read.description, raw.annotations.description)
     annot = Annotations((), (), ())
-    annot.save(fname)
+    annot.save(fname, overwrite=True)
     pytest.raises(IOError, read_annotations, fif_fname)  # none in old raw
     annot = read_annotations(fname)
     assert isinstance(annot, Annotations)
     assert len(annot) == 0
+    annot.crop()  # test if cropping empty annotations doesn't raise an error
     # Test that empty annotations can be saved with an object
     fname = op.join(tempdir, 'test_raw.fif')
     raw.set_annotations(annot)
@@ -175,29 +247,67 @@ def test_crop():
     raw.set_annotations(None)
     raw.save(fname, overwrite=True)
     raw_read = read_raw_fif(fname)
-    assert raw_read.annotations is not None  # XXX to be fixed in #5416
-    assert len(raw_read.annotations.onset) == 0  # XXX to be fixed in #5416
+    assert raw_read.annotations is not None
+    assert len(raw_read.annotations.onset) == 0
 
 
-def test_chunk_duration():
+@first_samps
+def test_chunk_duration(first_samp):
     """Test chunk_duration."""
     # create dummy raw
     raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
                    info=create_info(ch_names=10, sfreq=1.),
-                   first_samp=0)
-    raw.info['meas_date'] = 0
+                   first_samp=first_samp)
+    raw.info['meas_date'] = _handle_meas_date(0)
     raw.set_annotations(Annotations(description='foo', onset=[0],
                                     duration=[10], orig_time=None))
+    assert raw.annotations.orig_time == raw.info['meas_date']
+    assert_allclose(raw.annotations.onset, [first_samp])
 
     # expected_events = [[0, 0, 1], [0, 0, 1], [1, 0, 1], [1, 0, 1], ..
     #                    [9, 0, 1], [9, 0, 1]]
     expected_events = np.atleast_2d(np.repeat(range(10), repeats=2)).T
     expected_events = np.insert(expected_events, 1, 0, axis=1)
     expected_events = np.insert(expected_events, 2, 1, axis=1)
+    expected_events[:, 0] += first_samp
 
     events, events_id = events_from_annotations(raw, chunk_duration=.5,
                                                 use_rounding=False)
     assert_array_equal(events, expected_events)
+
+    # test chunk durations that do not fit equally in annotation duration
+    expected_events = np.zeros((3, 3))
+    expected_events[:, -1] = 1
+    expected_events[:, 0] = np.arange(0, 9, step=3) + first_samp
+    events, events_id = events_from_annotations(raw, chunk_duration=3.)
+    assert_array_equal(events, expected_events)
+
+
+def test_events_from_annotation_orig_time_none():
+    """Tests events_from_annotation with orig_time None and first_sampe > 0."""
+    # Create fake data
+    sfreq, duration_s = 100, 10
+    data = np.random.RandomState(42).randn(1, sfreq * duration_s)
+    info = mne.create_info(ch_names=['EEG1'], ch_types=['eeg'], sfreq=sfreq)
+    raw = mne.io.RawArray(data, info)
+
+    # Add annotation toward the end
+    onset = [8]
+    duration = [1]
+    description = ['0']
+    annots = mne.Annotations(onset, duration, description)
+    raw = raw.set_annotations(annots)
+
+    # Crop start of raw
+    raw.crop(tmin=7)
+
+    # Extract epochs
+    events, event_ids = mne.events_from_annotations(raw)
+    epochs = mne.Epochs(
+        raw, events, tmin=0, tmax=1, baseline=None, on_missing='warning')
+
+    # epochs is empty
+    assert_array_equal(epochs.get_data()[0], data[:, 800:901])
 
 
 def test_crop_more():
@@ -239,11 +349,12 @@ def test_read_brainstorm_annotations():
     assert np.unique(annot.description).size == 5
 
 
-def test_raw_reject():
+@first_samps
+def test_raw_reject(first_samp):
     """Test raw data getter with annotation reject."""
     sfreq = 100.
     info = create_info(['a', 'b', 'c', 'd', 'e'], sfreq, ch_types='eeg')
-    raw = RawArray(np.ones((5, 15000)), info)
+    raw = RawArray(np.ones((5, 15000)), info, first_samp=first_samp)
     with pytest.warns(RuntimeWarning, match='outside the data range'):
         raw.set_annotations(Annotations([2, 100, 105, 148],
                                         [2, 8, 5, 8], 'BAD'))
@@ -289,12 +400,14 @@ def test_raw_reject():
     assert_array_almost_equal(times, _sync_onset(raw, onsets, True))
 
 
-def test_annotation_filtering():
+@first_samps
+def test_annotation_filtering(first_samp):
     """Test that annotations work properly with filtering."""
     # Create data with just a DC component
     data = np.ones((1, 1000))
     info = create_info(1, 1000., 'eeg')
-    raws = [RawArray(data * (ii + 1), info) for ii in range(4)]
+    raws = [RawArray(data * (ii + 1), info, first_samp=first_samp)
+            for ii in range(4)]
     kwargs_pass = dict(l_freq=None, h_freq=50., fir_design='firwin')
     kwargs_stop = dict(l_freq=50., h_freq=None, fir_design='firwin')
     # lowpass filter, which should not modify the data
@@ -319,13 +432,13 @@ def test_annotation_filtering():
     # one last test: let's cut out a section entirely:
     # here the 1-3 second window should be skipped
     raw = raws_concat.copy()
-    raw.annotations.append(1., 2., 'foo')
+    raw.annotations.append(1. + raw._first_time, 2., 'foo')
     with catch_logging() as log:
         raw.filter(l_freq=50., h_freq=None, fir_design='firwin',
                    skip_by_annotation='foo', verbose='info')
     log = log.getvalue()
     assert '2 contiguous segments' in log
-    raw.annotations.append(2., 1., 'foo')  # shouldn't change anything
+    raw.annotations.append(2. + raw._first_time, 1., 'foo')  # shouldn't change
     with catch_logging() as log:
         raw.filter(l_freq=50., h_freq=None, fir_design='firwin',
                    skip_by_annotation='foo', verbose='info')
@@ -362,11 +475,12 @@ def test_annotation_filtering():
     assert_allclose(raw_filt[:][0], expected, atol=1e-14)
 
 
-def test_annotation_omit():
+@first_samps
+def test_annotation_omit(first_samp):
     """Test raw.get_data with annotations."""
     data = np.concatenate([np.ones((1, 1000)), 2 * np.ones((1, 1000))], -1)
     info = create_info(1, 1000., 'eeg')
-    raw = RawArray(data, info)
+    raw = RawArray(data, info, first_samp=first_samp)
     raw.set_annotations(Annotations([0.5], [1], ['bad']))
     expected = raw[0][0]
     assert_allclose(raw.get_data(reject_by_annotation=None), expected)
@@ -429,7 +543,7 @@ def test_annotation_concat():
     assert_equal(len(b), 3)
 
     # test += operator (modifies a in place)
-    b.orig_time = 1038942070.7201
+    b._orig_time = _handle_meas_date(1038942070.7201)
     with pytest.raises(ValueError, match='orig_time should be the same'):
         a += b
 
@@ -446,7 +560,7 @@ def test_annotations_crop():
                     orig_time=0)
 
     # cropping window larger than annotations --> do not modify
-    a_ = a.copy().crop(tmin=0, tmax=42)
+    a_ = a.copy().crop(tmin=-10, tmax=42)
     assert_array_equal(a_.onset, a.onset)
     assert_array_equal(a_.duration, a.duration)
 
@@ -477,10 +591,8 @@ def test_annotations_crop():
     assert len(w) == 0
 
     # test error raising
-    with pytest.raises(ValueError, match='tmax should be greater than tmin'):
+    with pytest.raises(ValueError, match='tmax should be greater than.*tmin'):
         a.copy().crop(tmin=42, tmax=0)
-    with pytest.raises(ValueError, match='tmin should be positive'):
-        a.copy().crop(tmin=-10, tmax=0)
 
     # test warnings
     with pytest.warns(RuntimeWarning, match='Omitted .* were outside'):
@@ -520,6 +632,11 @@ def test_events_from_annot_in_raw_objects():
     assert_array_equal(events[:, 0], events3[:, 0])
     assert set(event_id.keys()) == set(event_id3.keys())
 
+    # ensure that these actually got sorted properly
+    expected_event_id = {
+        desc: idx + 1 for idx, desc in enumerate(sorted(event_id.keys()))}
+    assert event_id3 == expected_event_id
+
     first = np.unique(events3[:, 2])
     second = np.arange(1, len(event_id) + 1, 1).astype(first.dtype)
     assert_array_equal(first, second)
@@ -549,6 +666,20 @@ def test_events_from_annot_in_raw_objects():
     with pytest.raises(ValueError, match='not find any of the events'):
         events_from_annotations(raw, regexp='not_there')
 
+    with pytest.raises(ValueError, match='Invalid type for event_id'):
+        events_from_annotations(raw, event_id='wrong')
+
+    # concat does not introduce BAD or EDGE
+    raw_concat = concatenate_raws([raw.copy(), raw.copy()])
+    _, event_id = events_from_annotations(raw_concat)
+    assert isinstance(event_id, dict)
+    assert len(event_id) > 0
+    for kind in ('BAD', 'EDGE'):
+        assert '%s boundary' % kind in raw_concat.annotations.description
+        for key in event_id.keys():
+            assert kind not in key
+
+    # remove all events
     raw.set_annotations(None)
     events7, _ = events_from_annotations(raw)
     assert_array_equal(events7, np.empty((0, 3), dtype=int))
@@ -558,13 +689,13 @@ def test_events_from_annot_onset_alingment():
     """Test events and annotations onset are the same."""
     raw = _raw_annot(meas_date=1, orig_time=1.5)
     #       sec  0        1        2        3
-    #       raw  .        |--------XXXXXXXXX
-    #     annot  .             |---XX
-    # raw.annot  .        |--------XX
+    #       raw  .        |--------xxxxxxxxx
+    #     annot  .             |---xx
+    # raw.annot  .        |--------xx
     #   latency  .        0        1        2
     #            .                 0        0
 
-    assert raw.annotations.orig_time == 1
+    assert raw.annotations.orig_time == _handle_meas_date(1)
     assert raw.annotations.onset[0] == 1
     assert raw.first_samp == 10
     event_latencies, event_id = events_from_annotations(raw)
@@ -583,7 +714,7 @@ def _create_annotation_based_on_descr(description, annotation_start_sampl=0,
     raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
                    info=create_info(ch_names=10, sfreq=1000.),
                    first_samp=0)
-    raw.info['meas_date'] = 0
+    raw.set_meas_date(0)
 
     # create dummy annotations based on the descriptions
     onset = raw.times[annotation_start_sampl]
@@ -656,67 +787,129 @@ def test_event_id_function_using_custom_function():
 # Test for IO with .csv files
 
 
-def _assert_annotations_equal(a, b):
-    assert_array_equal(a.onset, b.onset)
-    assert_array_equal(a.duration, b.duration)
+def _assert_annotations_equal(a, b, tol=0):
+    __tracebackhide__ = True
+    assert_allclose(a.onset, b.onset, rtol=0, atol=tol)
+    assert_allclose(a.duration, b.duration, rtol=0, atol=tol)
     assert_array_equal(a.description, b.description)
-    assert a.orig_time == b.orig_time
+    assert_array_equal(a.ch_names, b.ch_names)
+    a_orig_time = a.orig_time
+    b_orig_time = b.orig_time
+    assert a_orig_time == b_orig_time
 
 
-@pytest.fixture(scope='session')
-def dummy_annotation_csv_file(tmpdir_factory):
+_ORIG_TIME = datetime.fromtimestamp(1038942071.7201, timezone.utc)
+
+
+@pytest.fixture(scope='function', params=('ch_names', 'fmt'))
+def dummy_annotation_file(tmpdir_factory, ch_names, fmt):
     """Create csv file for testing."""
-    content = ("onset,duration,description\n"
-               "2002-12-03 19:01:11.720100,1.0,AA\n"
-               "2002-12-03 19:01:20.720100,2.425,BB")
+    if fmt == 'csv':
+        content = ("onset,duration,description\n"
+                   "2002-12-03 19:01:11.720100,1.0,AA\n"
+                   "2002-12-03 19:01:20.720100,2.425,BB")
+    elif fmt == 'txt':
+        content = ("# MNE-Annotations\n"
+                   "# orig_time : 2002-12-03 19:01:11.720100\n"
+                   "# onset, duration, description\n"
+                   "0, 1, AA \n"
+                   "9, 2.425, BB")
+    else:
+        assert fmt == 'fif'
+        content = Annotations(
+            [0, 9], [1, 2.425], ['AA', 'BB'], orig_time=_ORIG_TIME)
 
-    fname = tmpdir_factory.mktemp('data').join('annotations.csv')
-    fname.write(content)
+    if ch_names:
+        if isinstance(content, Annotations):
+            # this is a bit of a hack but it works
+            content.ch_names[:] = ((), ('MEG0111', 'MEG2563'))
+        else:
+            content = content.splitlines()
+            content[-3] += ',ch_names'
+            content[-2] += ','
+            content[-1] += ',MEG0111:MEG2563'
+            content = '\n'.join(content)
+
+    fname = tmpdir_factory.mktemp('data').join(f'annotations-annot.{fmt}')
+    if isinstance(content, str):
+        fname.write(content)
+    else:
+        content.save(fname)
     return fname
 
 
-@requires_version('pandas', '0.16')
-def test_io_annotation_csv(dummy_annotation_csv_file, tmpdir_factory):
-    """Test CSV input/output."""
-    annot = read_annotations(str(dummy_annotation_csv_file))
-    assert annot.orig_time == 1038942071.7201
-    assert_array_equal(annot.onset, np.array([0., 9.], dtype=np.float32))
-    assert_array_almost_equal(annot.duration, [1., 2.425])
-    assert_array_equal(annot.description, ['AA', 'BB'])
+@pytest.mark.parametrize('ch_names', (False, True))
+@pytest.mark.parametrize('fmt', [
+    pytest.param('csv', marks=needs_pandas),
+    'txt',
+    'fif'
+])
+def test_io_annotation(dummy_annotation_file, tmpdir, fmt, ch_names):
+    """Test CSV, TXT, and FIF input/output (which support ch_names)."""
+    annot = read_annotations(dummy_annotation_file)
+    assert annot.orig_time == _ORIG_TIME
+    kwargs = dict(orig_time=_ORIG_TIME)
+    if ch_names:
+        kwargs['ch_names'] = ((), ('MEG0111', 'MEG2563'))
+    _assert_annotations_equal(
+        annot, Annotations([0., 9.], [1., 2.425], ['AA', 'BB'], **kwargs),
+        tol=1e-6)
 
     # Now test writing
-    fname = str(tmpdir_factory.mktemp('data').join('annotations.csv'))
+    fname = tmpdir.join(f'annotations-annot.{fmt}')
     annot.save(fname)
     annot2 = read_annotations(fname)
     _assert_annotations_equal(annot, annot2)
 
     # Now without an orig_time
-    annot.orig_time = None
-    annot.save(fname)
+    annot._orig_time = None
+    annot.save(fname, overwrite=True)
     annot2 = read_annotations(fname)
     _assert_annotations_equal(annot, annot2)
 
 
+@requires_version('pandas')
+def test_broken_csv(tmpdir):
+    """Test broken .csv that does not use timestamps."""
+    content = ("onset,duration,description\n"
+               "1.,1.0,AA\n"
+               "3.,2.425,BB")
+
+    fname = tmpdir.join('annotations_broken.csv')
+    fname.write(content)
+    with pytest.warns(RuntimeWarning, match='save your CSV as a TXT'):
+        read_annotations(fname)
+
+
 # Test for IO with .txt files
 
-@pytest.fixture(scope='session')
-def dummy_annotation_txt_file(tmpdir_factory):
+@pytest.fixture(scope='function', params=('ch_names',))
+def dummy_annotation_txt_file(tmpdir_factory, ch_names):
     """Create txt file for testing."""
     content = ("3.14, 42, AA \n"
                "6.28, 48, BB")
+    if ch_names:
+        content = content.splitlines()
+        content[0] = content[0].strip() + ','
+        content[1] = content[1].strip() + ', MEG0111:MEG2563'
+        content = '\n'.join(content)
 
     fname = tmpdir_factory.mktemp('data').join('annotations.txt')
     fname.write(content)
     return fname
 
 
-def test_io_annotation_txt(dummy_annotation_txt_file, tmpdir_factory):
-    """Test TXT input/output."""
+@pytest.mark.parametrize('ch_names', (False, True))
+def test_io_annotation_txt(dummy_annotation_txt_file, tmpdir_factory,
+                           ch_names):
+    """Test TXT input/output without meas_date."""
     annot = read_annotations(str(dummy_annotation_txt_file))
     assert annot.orig_time is None
-    assert_array_equal(annot.onset, [3.14, 6.28])
-    assert_array_equal(annot.duration, [42., 48])
-    assert_array_equal(annot.description, ['AA', 'BB'])
+    kwargs = dict()
+    if ch_names:
+        kwargs['ch_names'] = [(), ('MEG0111', 'MEG2563')]
+    _assert_annotations_equal(
+        annot, Annotations([3.14, 6.28], [42., 48], ['AA', 'BB'], **kwargs))
 
     # Now test writing
     fname = str(tmpdir_factory.mktemp('data').join('annotations.txt'))
@@ -725,69 +918,67 @@ def test_io_annotation_txt(dummy_annotation_txt_file, tmpdir_factory):
     _assert_annotations_equal(annot, annot2)
 
     # Now with an orig_time
-    annot.orig_time = 1038942071.7201
-    annot.save(fname)
+    assert annot.orig_time is None
+    annot._orig_time = _handle_meas_date(1038942071.7201)
+    assert annot.orig_time is not None
+    annot.save(fname, overwrite=True)
     annot2 = read_annotations(fname)
+    assert annot2.orig_time is not None
     _assert_annotations_equal(annot, annot2)
 
 
-@pytest.fixture(scope='session')
-def dummy_annotation_txt_header(tmpdir_factory):
-    """Create txt header."""
+@pytest.mark.parametrize('meas_date, out', [
+    pytest.param('toto', None, id='invalid string'),
+    pytest.param(None, None, id='None'),
+    pytest.param(42, 42.0, id='Scalar'),
+    pytest.param(3.14, 3.14, id='Float'),
+    pytest.param((3, 140000), 3.14, id='Scalar touple'),
+    pytest.param('2002-12-03 19:01:11.720100', 1038942071.7201,
+                 id='valid iso8601 string'),
+    pytest.param('2002-12-03T19:01:11.720100', None,
+                 id='invalid iso8601 string')])
+def test_handle_meas_date(meas_date, out):
+    """Test meas date formats."""
+    if out is not None:
+        assert out >= 0  # otherwise it'll break on Windows
+        out = datetime.fromtimestamp(out, timezone.utc)
+    assert _handle_meas_date(meas_date) == out
+
+
+def test_read_annotation_txt_header(tmpdir):
+    """Test TXT orig_time recovery."""
     content = ("# A something \n"
                "# orig_time : 42\n"
                "# orig_time : 2002-12-03 19:01:11.720100\n"
                "# orig_time : 42\n"
                "# C\n"
                "Done")
-    fname = tmpdir_factory.mktemp('data').join('header.txt')
+    fname = tmpdir.join('header.txt')
     fname.write(content)
-    return str(fname)
+    orig_time = _read_annotations_txt_parse_header(fname)
+    want = datetime.fromtimestamp(1038942071.7201, timezone.utc)
+    assert orig_time == want
 
 
-@pytest.mark.parametrize('meas_date, out', [
-    pytest.param('toto', 0, id='invalid string'),
-    pytest.param(None, 0, id='None'),
-    pytest.param(42, 42.0, id='Scalar'),
-    pytest.param(3.14, 3.14, id='Float'),
-    pytest.param((3, 140000), 3.14, id='Scalar touple'),
-    pytest.param('2002-12-03 19:01:11.720100', 1038942071.7201,
-                 id='valid iso8601 string'),
-    pytest.param('2002-12-03T19:01:11.720100', 0,
-                 id='invalid iso8601 string')])
-def test_handle_meas_date(meas_date, out):
-    """Test meas date formats."""
-    assert _handle_meas_date(meas_date) == out
-
-
-def test_read_annotation_txt_header(dummy_annotation_txt_header):
-    """Test TXT orig_time recovery."""
-    orig_time = _read_annotations_txt_parse_header(dummy_annotation_txt_header)
-    assert orig_time == 1038942071.7201
-
-
-@pytest.fixture(scope='session')
-def dummy_annotation_txt_file_with_orig_time(tmpdir_factory):
-    """Create TXT annotations with header."""
+def test_read_annotation_txt_one_segment(tmpdir):
+    """Test empty TXT input/output."""
     content = ("# MNE-Annotations\n"
-               "# orig_time : 2002-12-03 19:01:11.720100\n"
                "# onset, duration, description\n"
-               "3.14, 42, AA \n"
-               "6.28, 48, BB")
-
-    fname = tmpdir_factory.mktemp('data').join('annotations.txt')
+               "3.14, 42, AA")
+    fname = tmpdir.join('one-annotations.txt')
     fname.write(content)
-    return fname
+    annot = read_annotations(fname)
+    _assert_annotations_equal(annot, Annotations(3.14, 42, ['AA']))
 
 
-def test_read_annotation_txt_orig_time(
-        dummy_annotation_txt_file_with_orig_time):
-    """Test TXT input/output."""
-    annot = read_annotations(str(dummy_annotation_txt_file_with_orig_time))
-    assert annot.orig_time == 1038942071.7201
-    assert_array_equal(annot.onset, [3.14, 6.28])
-    assert_array_equal(annot.duration, [42., 48])
-    assert_array_equal(annot.description, ['AA', 'BB'])
+def test_read_annotation_txt_empty(tmpdir):
+    """Test empty TXT input/output."""
+    content = ("# MNE-Annotations\n"
+               "# onset, duration, description\n")
+    fname = tmpdir.join('empty-annotations.txt')
+    fname.write(content)
+    annot = read_annotations(fname)
+    _assert_annotations_equal(annot, Annotations([], [], []))
 
 
 def test_annotations_simple_iteration():
@@ -876,4 +1067,308 @@ def test_sorting():
     assert_array_equal(annot.duration, duration)
 
 
-run_tests_if_main()
+def test_date_none(tmpdir):
+    """Test that DATE_NONE is used properly."""
+    # Regression test for gh-5908
+    n_chans = 139
+    n_samps = 20
+    data = np.random.random_sample((n_chans, n_samps))
+    ch_names = ['E{}'.format(x) for x in range(n_chans)]
+    ch_types = ['eeg'] * n_chans
+    info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=2048)
+    assert info['meas_date'] is None
+    raw = RawArray(data=data, info=info)
+    fname = op.join(str(tmpdir), 'test-raw.fif')
+    raw.save(fname)
+    raw_read = read_raw_fif(fname, preload=True)
+    assert raw_read.info['meas_date'] is None
+
+
+def test_negative_meas_dates(windows_like_datetime):
+    """Test meas_date previous to 1970."""
+    # Regression test for gh-6621
+    raw = RawArray(data=np.empty((1, 1), dtype=np.float64),
+                   info=create_info(ch_names=1, sfreq=1.))
+    raw.set_meas_date((-908196946, 988669))
+    raw.set_annotations(Annotations(description='foo', onset=[0],
+                                    duration=[0], orig_time=None))
+    events, _ = events_from_annotations(raw)
+    assert events[:, 0] == 0
+
+
+def test_crop_when_negative_orig_time(windows_like_datetime):
+    """Test cropping with orig_time, tmin and tmax previous to 1970."""
+    # Regression test for gh-6621
+    orig_time_stamp = -908196945.011331  # 1941-03-22 11:04:14.988669
+    annot = Annotations(description='foo', onset=np.arange(0, 0.999, 0.1),
+                        duration=[0], orig_time=orig_time_stamp)
+    stamp = _dt_to_stamp(annot.orig_time)
+    assert_allclose(stamp[0] + stamp[1] * 1e-6, orig_time_stamp)
+    t = stamp[0] + stamp[1] * 1e-6
+    assert t == orig_time_stamp
+    assert len(annot) == 10
+
+    # do not raise
+    annot.crop(verbose='debug')
+    assert len(annot) == 10
+
+    # Crop with negative tmin, tmax
+    tmin, tmax = [orig_time_stamp + t for t in (0.25, .75)]
+    assert tmin < 0 and tmax < 0
+    crop_annot = annot.crop(tmin=tmin, tmax=tmax)
+    assert_allclose(crop_annot.onset, [0.3, 0.4, 0.5, 0.6, 0.7])
+    orig_dt = _stamp_to_dt(stamp)
+    assert crop_annot.orig_time == orig_dt  # orig_time does not change
+
+
+def test_allow_nan_durations():
+    """Deal with "n/a" strings in BIDS events with nan durations."""
+    raw = RawArray(data=np.empty([2, 10], dtype=np.float64),
+                   info=create_info(ch_names=2, sfreq=1.),
+                   first_samp=0)
+    raw.set_meas_date(0)
+
+    ons = [1, 2., 15., 17.]
+    dus = [np.nan, 1., 0.5, np.nan]
+    descriptions = ['A'] * 4
+    onsets = np.asarray(ons, dtype=float)
+    durations = np.asarray(dus, dtype=float)
+    annot = mne.Annotations(onset=onsets,
+                            duration=durations,
+                            description=descriptions)
+    with pytest.warns(RuntimeWarning, match='Omitted 2 annotation'):
+        raw.set_annotations(annot)
+
+
+@testing.requires_testing_data
+def test_annotations_from_events():
+    """Test events to annotations conversion."""
+    raw = read_raw_fif(fif_fname)
+    events = mne.find_events(raw)
+
+    # 1. Automatic event description
+    # -------------------------------------------------------------------------
+    annots = annotations_from_events(events, raw.info['sfreq'],
+                                     first_samp=raw.first_samp,
+                                     orig_time=None)
+    assert len(annots) == events.shape[0]
+
+    # Convert back to events
+    raw.set_annotations(annots)
+    events_out, _ = events_from_annotations(raw, event_id=int)
+    assert_array_equal(events, events_out)
+
+    # 2. Explicit event mapping
+    # -------------------------------------------------------------------------
+    event_desc = {1: 'one', 2: 'two', 3: 'three', 32: None}
+    annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
+                                     event_desc=event_desc,
+                                     first_samp=raw.first_samp,
+                                     orig_time=None)
+
+    assert np.all([a in ['one', 'two', 'three'] for a in annots.description])
+    assert len(annots) == events[events[:, 2] <= 3].shape[0]
+
+    # 3. Pass list
+    # -------------------------------------------------------------------------
+    event_desc = [1, 2, 3]
+    annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
+                                     event_desc=event_desc,
+                                     first_samp=raw.first_samp,
+                                     orig_time=None)
+
+    assert np.all([a in ['1', '2', '3'] for a in annots.description])
+    assert len(annots) == events[events[:, 2] <= 3].shape[0]
+
+    # 4. Try passing callable
+    # -------------------------------------------------------------------------
+    event_desc = lambda d: 'event{}'.format(d)  # noqa:E731
+    annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
+                                     event_desc=event_desc,
+                                     first_samp=raw.first_samp,
+                                     orig_time=None)
+
+    assert np.all(['event' in a for a in annots.description])
+    assert len(annots) == events.shape[0]
+
+    # 5. Pass numpy array
+    # -------------------------------------------------------------------------
+    event_desc = np.array([[1, 2, 3], [1, 2, 3]])
+    with pytest.raises(ValueError, match='event_desc must be 1D'):
+        annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
+                                         event_desc=event_desc,
+                                         first_samp=raw.first_samp,
+                                         orig_time=None)
+
+    with pytest.raises(ValueError, match='Invalid type for event_desc'):
+        annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
+                                         event_desc=1,
+                                         first_samp=raw.first_samp,
+                                         orig_time=None)
+
+    event_desc = np.array([1, 2, 3])
+    annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
+                                     event_desc=event_desc,
+                                     first_samp=raw.first_samp,
+                                     orig_time=None)
+    assert np.all([a in ['1', '2', '3'] for a in annots.description])
+    assert len(annots) == events[events[:, 2] <= 3].shape[0]
+
+
+def test_repr():
+    """Test repr of Annotations."""
+    # short annotation repr (< 79 characters)
+    r = repr(Annotations(range(3), [0] * 3, list("abc")))
+    assert r == '<Annotations | 3 segments: a (1), b (1), c (1)>'
+
+    # long annotation repr (> 79 characters, will be shortened)
+    r = repr(Annotations(range(14), [0] * 14, list("abcdefghijklmn")))
+    assert r == ('<Annotations | 14 segments: a (1), b (1), c (1), d (1), '
+                 'e (1), f (1), g ...>')
+
+    # empty Annotations
+    r = repr(Annotations([], [], []))
+    assert r == '<Annotations | 0 segments>'
+
+
+@requires_pandas
+def test_annotation_to_data_frame():
+    """Test annotation class to data frame conversion."""
+    onset = np.arange(1, 10)
+    durations = np.full_like(onset, [4, 5, 6, 4, 5, 6, 4, 5, 6])
+    description = ["yy"] * onset.shape[0]
+
+    a = Annotations(onset=onset,
+                    duration=durations,
+                    description=description,
+                    orig_time=0)
+
+    df = a.to_data_frame()
+    for col in ['onset', 'duration', 'description']:
+        assert col in df.columns
+    assert df.description[0] == 'yy'
+    assert (df.onset[1] - df.onset[0]).seconds == 1
+    assert df.groupby('description').count().onset['yy'] == 9
+
+
+def test_annotation_ch_names():
+    """Test annotation ch_names updating and pruning."""
+    info = create_info(10, 1000., 'eeg')
+    raw = RawArray(np.zeros((10, 1000)), info)
+    onset = [0.1, 0.3, 0.6]
+    duration = [0.05, 0.1, 0.2]
+    description = ['first', 'second', 'third']
+    ch_names = [[], raw.ch_names[4:6], raw.ch_names[5:7]]
+    annot = Annotations(onset, duration, description, ch_names=ch_names)
+    raw.set_annotations(annot)
+    # renaming
+    rename = {name: name + 'new' for name in raw.ch_names}
+    raw_2 = raw.copy().rename_channels(rename)
+    for ch_rename, ch in zip(raw_2.annotations.ch_names, annot.ch_names):
+        assert all(name in raw_2.ch_names for name in ch_rename)
+        assert all(name in raw.ch_names for name in ch)
+        assert not any(name in raw.ch_names for name in ch_rename)
+        assert not any(name in raw_2.ch_names for name in ch)
+    raw_2.rename_channels({val: key for key, val in rename.items()})
+    _assert_annotations_equal(raw.annotations, raw_2.annotations)
+    # dropping
+    raw_2.drop_channels(raw.ch_names[5:])
+    annot_pruned = raw_2.annotations
+    assert len(raw_2.annotations) == 2  # dropped the last one
+    assert raw_2.annotations.ch_names[1] == tuple(raw.ch_names[4:5])
+    for ch_drop in raw_2.annotations.ch_names:
+        assert all(name in raw_2.ch_names for name in ch_drop)
+    with pytest.raises(ValueError, match='channel name in annotations missin'):
+        raw_2.set_annotations(annot)
+    with pytest.warns(RuntimeWarning, match='channel name in annotations mis'):
+        raw_2.set_annotations(annot, on_missing='warn')
+    assert raw_2.annotations is not annot_pruned
+    _assert_annotations_equal(raw_2.annotations, annot_pruned)
+
+
+def test_annotation_rename():
+    """Test annotation renaming works."""
+    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
+    assert isinstance(a.description, np.ndarray)
+    assert len(a) == 3
+    assert "a" in a.description
+    assert "b" in a.description
+    assert "c" in a.description
+    assert "new_name" not in a.description
+
+    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
+    a.rename({"a": "new_name"})
+    assert isinstance(a.description, np.ndarray)
+    assert len(a) == 3
+    assert "a" not in a.description
+    assert "new_name" in a.description
+    assert np.where([d == "new_name" for d in a.description])[0] == 0
+
+    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
+    a.rename({"a": "new_name", "b": "new name b"})
+    assert len(a) == 3
+    assert "a" not in a.description
+    assert "new_name" in a.description
+    assert "b" not in a.description
+    assert "new name b" in a.description
+    assert np.where([d == "new_name" for d in a.description])[0] == 0
+    assert np.where([d == "new name b" for d in a.description])[0] == 1
+
+    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
+    a.rename({"b": "new_name", "c": "new name c"})
+    assert isinstance(a.description, np.ndarray)
+    assert len(a) == 3
+    assert "b" not in a.description
+    assert "new_name" in a.description
+    assert "c" not in a.description
+    assert "new name c" in a.description
+    assert "a" in a.description
+    assert np.where([d == "new_name" for d in a.description])[0] == 1
+    assert np.where([d == "new name c" for d in a.description])[0] == 2
+    assert len(np.where([d == "new name b" for d in a.description])[0]) == 0
+
+    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
+    with pytest.raises(ValueError, match="not present in data"):
+        a.rename({"aaa": "does not exist"})
+    with pytest.raises(ValueError, match="[' a']"):
+        a.rename({" a": "does not exist"})
+    with pytest.raises(TypeError, match="dict, got <class 'str'> instead"):
+        a.rename("wrong")
+    with pytest.raises(TypeError, match="dict, got <class 'list'> instead"):
+        a.rename(["wrong"])
+    with pytest.raises(TypeError, match="dict, got <class 'set'> instead"):
+        a.rename({"wrong"})
+
+
+def test_annotation_duration_setting():
+    """Test annotation duration setting works."""
+    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
+    assert isinstance(a.duration, np.ndarray)
+    assert len(a) == 3
+    assert a.duration[0] == 5
+    assert a.duration[2] == 8
+    a.set_durations({"a": 3})
+    assert a.duration[0] == 3
+    assert a.duration[2] == 8
+    a.set_durations({"a": 313, "c": 18})
+    assert a.duration[0] == 313
+    assert a.duration[2] == 18
+    a.set_durations({"a": 1, "b": 13})
+    assert a.duration[0] == 1
+    assert a.duration[1] == 13
+
+    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
+    assert len(a) == 3
+    assert a.duration[0] == 5
+    assert a.duration[2] == 8
+    a.set_durations(7.2)
+    assert isinstance(a.duration, np.ndarray)
+    assert a.duration[0] == 7.2
+    assert a.duration[2] == 7.2
+    a.set_durations(2)
+    assert a.duration[0] == 2
+
+    with pytest.raises(ValueError, match="not present in data"):
+        a.set_durations({"aaa": 2.2})
+    with pytest.raises(TypeError, match=" got <class 'set'> instead"):
+        a.set_durations({"aaa", 2.2})

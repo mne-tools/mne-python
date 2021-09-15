@@ -1,18 +1,22 @@
 #!/usr/bin/env python
 r"""Compute SSP/PCA projections for EOG artifacts.
 
-You can do for example:
+Examples
+--------
+.. code-block:: console
 
-$ mne compute_proj_eog -i sample_audvis_raw.fif \
-                       --l-freq 1 --h-freq 35 \
-                       --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
+    $ mne compute_proj_eog -i sample_audvis_raw.fif -a \
+                           --l-freq 1 --h-freq 35 \
+                           --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
 
 or
 
-$ mne compute_proj_eog -i sample_audvis_raw.fif \
-                       --l-freq 1 --h-freq 35 \
-                       --rej-grad 3000 --rej-mag 4000 --rej-eeg 100 \
-                       --proj sample_audvis_ecg-proj.fif
+.. code-block:: console
+
+    $ mne compute_proj_eog -i sample_audvis_raw.fif -a \
+                           --l-freq 1 --h-freq 35 \
+                           --rej-grad 3000 --rej-mag 4000 --rej-eeg 100 \
+                           --proj sample_audvis_ecg-proj.fif
 
 to exclude ECG artifacts from projection computation.
 """
@@ -61,7 +65,7 @@ def run():
                       "save memory)", default=True)
     parser.add_option("-a", "--average", dest="average", action="store_true",
                       help="Compute SSP after averaging",
-                      default=False)  # XXX: change to default=True in 0.17
+                      default=False)
     parser.add_option("--proj", dest="proj",
                       help="Use SSP projections from a fif file.",
                       default=None)
@@ -77,17 +81,17 @@ def run():
                       help="Magnetometers rejection parameter in fT (peak to "
                       "peak amplitude)", default=3000)
     parser.add_option("--rej-eeg", dest="rej_eeg", type="float",
-                      help="EEG rejection parameter in uV (peak to peak "
+                      help="EEG rejection parameter in µV (peak to peak "
                       "amplitude)", default=50)
     parser.add_option("--rej-eog", dest="rej_eog", type="float",
-                      help="EOG rejection parameter in uV (peak to peak "
+                      help="EOG rejection parameter in µV (peak to peak "
                       "amplitude)", default=1e9)
     parser.add_option("--avg-ref", dest="avg_ref", action="store_true",
                       help="Add EEG average reference proj",
                       default=False)
     parser.add_option("--no-proj", dest="no_proj", action="store_true",
                       help="Exclude the SSP projectors currently in the "
-                      "fiff file",  default=False)
+                      "fiff file", default=False)
     parser.add_option("--bad", dest="bad_fname",
                       help="Text file containing bad channels list "
                       "(one per line)", default=None)
@@ -162,7 +166,7 @@ def run():
     else:
         raw_event = raw
 
-    flat = None  # XXX : not exposed to the user
+    flat = None
     projs, events = mne.preprocessing.compute_proj_eog(
         raw=raw, raw_event=raw_event, tmin=tmin, tmax=tmax, n_grad=n_grad,
         n_mag=n_mag, n_eeg=n_eeg, l_freq=l_freq, h_freq=h_freq,
@@ -190,6 +194,7 @@ def run():
 
     print("Writing EOG events in %s" % eog_event_fname)
     mne.write_events(eog_event_fname, events)
+
 
 is_main = (__name__ == '__main__')
 if is_main:

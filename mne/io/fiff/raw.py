@@ -1,10 +1,10 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import copy
 import os
@@ -21,11 +21,11 @@ from ..base import (BaseRaw, _RawShell, _check_raw_compatibility,
                     _check_maxshield)
 from ..utils import _mult_cal_one
 
-from ...annotations import (Annotations, _combine_annotations,
-                            _read_annotations_fif)
+from ...annotations import Annotations, _read_annotations_fif
 
 from ...event import AcqParserFIF
-from ...utils import check_fname, logger, verbose, warn, fill_doc
+from ...utils import (check_fname, logger, verbose, warn, fill_doc, _file_like,
+                      _on_missing, _check_fname)
 
 
 @fill_doc
@@ -34,29 +34,29 @@ class Raw(BaseRaw):
 
     Parameters
     ----------
-    fname : str
-        The raw file to load. For files that have automatically been split,
-        the split part will be automatically loaded. Filenames should end
-        with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz,
-        raw_tsss.fif or raw_tsss.fif.gz.
+    fname : str | file-like
+        The raw filename to load. For files that have automatically been split,
+        the split part will be automatically loaded. Filenames not ending with
+        ``raw.fif``, ``raw_sss.fif``, ``raw_tsss.fif``, ``_meg.fif``,
+        ``_eeg.fif``,  or ``_ieeg.fif`` (with or without an optional additional
+        ``.gz`` extension) will generate a warning. If a file-like object is
+        provided, preloading must be used.
+
+        .. versionchanged:: 0.18
+           Support for file-like objects.
     allow_maxshield : bool | str (default False)
         If True, allow loading of data that has been recorded with internal
         active compensation (MaxShield). Data recorded with MaxShield should
         generally not be loaded directly, but should first be processed using
         SSS/tSSS to remove the compensation signals that may also affect brain
         activity. Can also be "yes" to load without eliciting a warning.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
+    %(on_split_missing)s
     %(verbose)s
 
     Attributes
     ----------
-    info : dict
-        :class:`Measurement info <mne.Info>`.
+    %(info_not_none)s
     ch_names : list of string
         List of channels' names.
     n_times : int
@@ -72,25 +72,30 @@ class Raw(BaseRaw):
 
     @verbose
     def __init__(self, fname, allow_maxshield=False, preload=False,
-                 verbose=None):  # noqa: D102
-        fnames = [op.realpath(fname)]
-        split_fnames = []
-
+                 on_split_missing='raise', verbose=None):  # noqa: D102
         raws = []
-        for ii, this_fname in enumerate(fnames):
-            do_check_fname = this_fname not in split_fnames
+        do_check_ext = not _file_like(fname)
+        next_fname = fname
+        while next_fname is not None:
             raw, next_fname, buffer_size_sec = \
-                self._read_raw_file(this_fname, allow_maxshield,
-                                    preload, do_check_fname)
+                self._read_raw_file(next_fname, allow_maxshield,
+                                    preload, do_check_ext)
+            do_check_ext = False
             raws.append(raw)
             if next_fname is not None:
                 if not op.exists(next_fname):
-                    warn('Split raw file detected but next file %s does not '
-                         'exist.' % next_fname)
-                    continue
-                # process this file next
-                fnames.insert(ii + 1, next_fname)
-                split_fnames.append(next_fname)
+                    msg = (
+                        f'Split raw file detected but next file {next_fname} '
+                        'does not exist. Ensure all files were transferred '
+                        'properly and that split and original files were not '
+                        'manually renamed on disk (split files should be '
+                        'renamed by loading and re-saving with MNE-Python to '
+                        'preserve proper filename linkage).')
+                    _on_missing(on_split_missing, msg, name='on_split_missing')
+                    break
+        if _file_like(fname):
+            # avoid serialization error when copying file-like
+            fname = None  # noqa
 
         _check_raw_compatibility(raws)
         super(Raw, self).__init__(
@@ -101,23 +106,14 @@ class Raw(BaseRaw):
             verbose=verbose)
 
         # combine annotations
-        self.set_annotations(raws[0].annotations, False)
-        if any([r.annotations for r in raws[1:]]):
-            n_samples = np.sum(self._last_samps - self._first_samps + 1)
-            for r in raws:
-                annotations = _combine_annotations(
-                    self.annotations, r.annotations,
-                    n_samples, self.first_samp, r.first_samp,
-                    r.info['sfreq'], self.info['meas_date'])
-                self.set_annotations(annotations, emit_warning=False)
-                n_samples += r.last_samp - r.first_samp + 1
+        self.set_annotations(raws[0].annotations, emit_warning=False)
 
         # Add annotations for in-data skips
         for extra in self._raw_extras:
-            start = np.array([e['first'] for e in extra if e['ent'] is None])
-            stop = np.array([e['last'] for e in extra if e['ent'] is None])
+            mask = [ent is None for ent in extra['ent']]
+            start = extra['bounds'][:-1][mask]
+            stop = extra['bounds'][1:][mask] - 1
             duration = (stop - start + 1.) / self.info['sfreq']
-
             annot = Annotations(onset=(start / self.info['sfreq']),
                                 duration=duration,
                                 description='BAD_ACQ_SKIP',
@@ -129,21 +125,34 @@ class Raw(BaseRaw):
             self._preload_data(preload)
         else:
             self.preload = False
+        # If using a file-like object, fix the filenames to be representative
+        # strings now instead of the file-like objects
+        self._filenames = [_get_fname_rep(fname) for fname in self._filenames]
 
     @verbose
     def _read_raw_file(self, fname, allow_maxshield, preload,
-                       do_check_fname=True, verbose=None):
+                       do_check_ext=True, verbose=None):
         """Read in header information from a raw file."""
         logger.info('Opening raw data file %s...' % fname)
 
-        if do_check_fname:
-            check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif',
-                                       'raw_tsss.fif', 'raw.fif.gz',
-                                       'raw_sss.fif.gz', 'raw_tsss.fif.gz'))
-
         #   Read in the whole file if preload is on and .fif.gz (saves time)
-        ext = os.path.splitext(fname)[1].lower()
-        whole_file = preload if '.gz' in ext else False
+        if not _file_like(fname):
+            if do_check_ext:
+                endings = ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
+                           '_meg.fif', '_eeg.fif', '_ieeg.fif')
+                endings += tuple([f'{e}.gz' for e in endings])
+                check_fname(fname, 'raw', endings)
+            # filename
+            fname = _check_fname(fname, 'read', True, 'fname')
+            ext = os.path.splitext(fname)[1].lower()
+            whole_file = preload if '.gz' in ext else False
+            del ext
+        else:
+            # file-like
+            if not preload:
+                raise ValueError('preload must be used with file-like objects')
+            whole_file = True
+        fname_rep = _get_fname_rep(fname)
         ff, tree, _ = fiff_open(fname, preload=whole_file)
         with ff as fid:
             #   Read the measurement info
@@ -156,11 +165,12 @@ class Raw(BaseRaw):
             if len(raw_node) == 0:
                 raw_node = dir_tree_find(meas, FIFF.FIFFB_CONTINUOUS_DATA)
                 if (len(raw_node) == 0):
-                    raw_node = dir_tree_find(meas, FIFF.FIFFB_SMSH_RAW_DATA)
+                    raw_node = dir_tree_find(meas, FIFF.FIFFB_IAS_RAW_DATA)
                     if (len(raw_node) == 0):
-                        raise ValueError('No raw data in %s' % fname)
+                        raise ValueError('No raw data in %s' % fname_rep)
                     _check_maxshield(allow_maxshield)
                     info['maxshield'] = True
+            del meas
 
             if len(raw_node) == 1:
                 raw_node = raw_node[0]
@@ -260,7 +270,27 @@ class Raw(BaseRaw):
                                            nsamp=nsamp))
                     first_samp += nsamp
 
-            next_fname = _get_next_fname(fid, fname, tree)
+            next_fname = _get_next_fname(fid, fname_rep, tree)
+
+        # reformat raw_extras to be a dict of list/ndarray rather than
+        # list of dict (faster access)
+        raw_extras = {key: [r[key] for r in raw_extras]
+                      for key in raw_extras[0]}
+        for key in raw_extras:
+            if key != 'ent':  # dict or None
+                raw_extras[key] = np.array(raw_extras[key], int)
+        if not np.array_equal(raw_extras['last'][:-1],
+                              raw_extras['first'][1:] - 1):
+            raise RuntimeError('FIF file appears to be broken')
+        bounds = np.cumsum(np.concatenate(
+            [raw_extras['first'][:1], raw_extras['nsamp']]))
+        raw_extras['bounds'] = bounds
+        assert len(raw_extras['bounds']) == len(raw_extras['ent']) + 1
+        # store the original buffer size
+        buffer_size_sec = np.median(raw_extras['nsamp']) / info['sfreq']
+        del raw_extras['first']
+        del raw_extras['last']
+        del raw_extras['nsamp']
 
         raw.last_samp = first_samp - 1
         raw.orig_format = orig_format
@@ -277,10 +307,6 @@ class Raw(BaseRaw):
                     float(raw.first_samp) / info['sfreq'],
                     float(raw.last_samp) / info['sfreq']))
 
-        # store the original buffer size
-        buffer_size_sec = np.median(
-            [r['nsamp'] for r in raw_extras]) / info['sfreq']
-
         raw.info = info
         raw.verbose = verbose
 
@@ -295,10 +321,10 @@ class Raw(BaseRaw):
             return self._dtype_
         dtype = None
         for raw_extra, filename in zip(self._raw_extras, self._filenames):
-            for this in raw_extra:
-                if this['ent'] is not None:
+            for ent in raw_extra['ent']:
+                if ent is not None:
                     with _fiff_get_fid(filename) as fid:
-                        fid.seek(this['ent'].pos, 0)
+                        fid.seek(ent.pos, 0)
                         tag = read_tag_info(fid)
                         if tag is not None:
                             if tag.type in (FIFF.FIFFT_COMPLEX_FLOAT,
@@ -317,52 +343,38 @@ class Raw(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""
-        stop -= 1
-        offset = 0
+        n_bad = 0
         with _fiff_get_fid(self._filenames[fi]) as fid:
-            for this in self._raw_extras[fi]:
-                #  Do we need this buffer
-                if this['last'] >= start:
-                    #  The picking logic is a bit complicated
-                    if stop > this['last'] and start < this['first']:
-                        #    We need the whole buffer
-                        first_pick = 0
-                        last_pick = this['nsamp']
-                        logger.debug('W')
-
-                    elif start >= this['first']:
-                        first_pick = start - this['first']
-                        if stop <= this['last']:
-                            #   Something from the middle
-                            last_pick = this['nsamp'] + stop - this['last']
-                            logger.debug('M')
-                        else:
-                            #   From the middle to the end
-                            last_pick = this['nsamp']
-                            logger.debug('E')
+            bounds = self._raw_extras[fi]['bounds']
+            ents = self._raw_extras[fi]['ent']
+            nchan = self._raw_extras[fi]['orig_nchan']
+            use = (stop > bounds[:-1]) & (start < bounds[1:])
+            offset = 0
+            for ei in np.where(use)[0]:
+                first = bounds[ei]
+                last = bounds[ei + 1]
+                nsamp = last - first
+                ent = ents[ei]
+                first_pick = max(start - first, 0)
+                last_pick = min(nsamp, stop - first)
+                picksamp = last_pick - first_pick
+                # only read data if it exists
+                if ent is not None:
+                    one = read_tag(fid, ent.pos,
+                                   shape=(nsamp, nchan),
+                                   rlims=(first_pick, last_pick)).data
+                    try:
+                        one.shape = (picksamp, nchan)
+                    except AttributeError:  # one is None
+                        n_bad += picksamp
                     else:
-                        #    From the beginning to the middle
-                        first_pick = 0
-                        last_pick = stop - this['first'] + 1
-                        logger.debug('B')
-
-                    #   Now we are ready to pick
-                    picksamp = last_pick - first_pick
-                    if picksamp > 0:
-                        # only read data if it exists
-                        if this['ent'] is not None:
-                            one = read_tag(fid, this['ent'].pos,
-                                           shape=(this['nsamp'],
-                                                  self.info['nchan']),
-                                           rlims=(first_pick, last_pick)).data
-                            one.shape = (picksamp, self.info['nchan'])
-                            _mult_cal_one(data[:, offset:(offset + picksamp)],
-                                          one.T, idx, cals, mult)
-                        offset += picksamp
-
-                #   Done?
-                if this['last'] >= stop:
-                    break
+                        _mult_cal_one(data[:, offset:(offset + picksamp)],
+                                      one.T, idx, cals, mult)
+                offset += picksamp
+            if n_bad:
+                warn(f'FIF raw buffer could not be read, acquisition error '
+                     f'likely: {n_bad} samples set to zero')
+            assert offset == stop - start
 
     def fix_mag_coil_types(self):
         """Fix Elekta magnetometer coil types.
@@ -409,6 +421,13 @@ class Raw(BaseRaw):
         return self._acqparser
 
 
+def _get_fname_rep(fname):
+    if not _file_like(fname):
+        return fname
+    else:
+        return 'File-like'
+
+
 def _check_entry(first, nent):
     """Sanity check entries."""
     if first >= nent:
@@ -416,28 +435,29 @@ def _check_entry(first, nent):
 
 
 @fill_doc
-def read_raw_fif(fname, allow_maxshield=False, preload=False, verbose=None):
+def read_raw_fif(fname, allow_maxshield=False, preload=False,
+                 on_split_missing='raise', verbose=None):
     """Reader function for Raw FIF data.
 
     Parameters
     ----------
-    fname : str
-        The raw file to load. For files that have automatically been split,
+    fname : str | file-like
+        The raw filename to load. For files that have automatically been split,
         the split part will be automatically loaded. Filenames should end
-        with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz,
-        raw_tsss.fif or raw_tsss.fif.gz.
+        with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif,
+        raw_tsss.fif.gz, or _meg.fif. If a file-like object is provided,
+        preloading must be used.
+
+        .. versionchanged:: 0.18
+           Support for file-like objects.
     allow_maxshield : bool | str (default False)
         If True, allow loading of data that has been recorded with internal
         active compensation (MaxShield). Data recorded with MaxShield should
         generally not be loaded directly, but should first be processed using
         SSS/tSSS to remove the compensation signals that may also affect brain
         activity. Can also be "yes" to load without eliciting a warning.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
+    %(on_split_missing)s
     %(verbose)s
 
     Returns
@@ -450,4 +470,5 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False, verbose=None):
     .. versionadded:: 0.9.0
     """
     return Raw(fname=fname, allow_maxshield=allow_maxshield,
-               preload=preload, verbose=verbose)
+               preload=preload, verbose=verbose,
+               on_split_missing=on_split_missing)

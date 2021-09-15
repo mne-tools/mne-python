@@ -1,14 +1,15 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from numpy.testing import assert_array_equal, assert_allclose
 import numpy as np
 from scipy import stats, sparse
 
 from mne.stats import permutation_cluster_1samp_test
-from mne.stats.permutations import permutation_t_test, _ci, _bootstrap_ci
-from mne.utils import run_tests_if_main
+from mne.stats.permutations import (permutation_t_test, _ci,
+                                    bootstrap_confidence_interval)
+from mne.utils import check_version
 
 
 def test_permutation_t_test():
@@ -47,9 +48,10 @@ def test_permutation_t_test():
     assert_array_equal(is_significant, [True, True, False, False, False])
 
     # check equivalence with spatio_temporal_cluster_test
-    for connectivity in (sparse.eye(n_tests), False):
+    for adjacency in (sparse.eye(n_tests), False):
         t_obs_clust, _, p_values_clust, _ = permutation_cluster_1samp_test(
-            X, n_permutations=999, seed=0, connectivity=connectivity)
+            X, n_permutations=999, seed=0, adjacency=adjacency,
+            out_type='mask')
         # the cluster tests drop any clusters that don't get thresholded
         keep = p_values < 1
         assert_allclose(t_obs_clust, t_obs)
@@ -68,9 +70,12 @@ def test_ci():
     arr = np.linspace(0, 1, 1000)[..., np.newaxis]
     assert_allclose(_ci(arr, method="parametric"),
                     _ci(arr, method="bootstrap"), rtol=.005)
-    assert_allclose(_bootstrap_ci(arr, stat_fun="median", random_state=0),
-                    _bootstrap_ci(arr, stat_fun="mean", random_state=0),
+    assert_allclose(bootstrap_confidence_interval(arr, stat_fun="median",
+                                                  random_state=0),
+                    bootstrap_confidence_interval(arr, stat_fun="mean",
+                                                  random_state=0),
                     rtol=.1)
-
-
-run_tests_if_main()
+    # smoke test for new API
+    if check_version('numpy', '1.17'):
+        random_state = np.random.default_rng(0)
+        bootstrap_confidence_interval(arr, random_state=random_state)

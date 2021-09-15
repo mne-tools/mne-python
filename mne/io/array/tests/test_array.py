@@ -1,6 +1,6 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -10,12 +10,13 @@ from numpy.testing import (assert_array_almost_equal, assert_allclose,
 import pytest
 import matplotlib.pyplot as plt
 
-from mne import find_events, Epochs, pick_types, channels
+from mne import find_events, Epochs, pick_types
 from mne.io import read_raw_fif
 from mne.io.array import RawArray
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.meas_info import create_info, _kind_dict
-from mne.utils import requires_version, run_tests_if_main
+from mne.io.meas_info import create_info
+from mne.io.pick import get_channel_type_constants
+from mne.channels import make_dig_montage
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
 fif_fname = op.join(base_dir, 'test_raw.fif')
@@ -26,15 +27,54 @@ def test_long_names():
     info = create_info(['a' * 15 + 'b', 'a' * 16], 1000., verbose='error')
     data = np.empty((2, 1000))
     raw = RawArray(data, info)
+    assert raw.ch_names == ['a' * 15 + 'b', 'a' * 16]
+    # and a way to get the old behavior
+    raw.rename_channels({k: k[:13] for k in raw.ch_names},
+                        allow_duplicates=True, verbose='error')
     assert raw.ch_names == ['a' * 13 + '-0', 'a' * 13 + '-1']
     info = create_info(['a' * 16] * 11, 1000., verbose='error')
     data = np.empty((11, 1000))
     raw = RawArray(data, info)
-    assert raw.ch_names == ['a' * 12 + '-%s' % ii for ii in range(11)]
+    assert raw.ch_names == ['a' * 16 + '-%s' % ii for ii in range(11)]
+
+
+def test_array_copy():
+    """Test copying during construction."""
+    info = create_info(1, 1000.)
+    data = np.empty((1, 1000))
+    # 'auto' (default)
+    raw = RawArray(data, info)
+    assert raw._data is data
+    assert raw.info is not info
+    raw = RawArray(data.astype(np.float32), info)
+    assert raw._data is not data
+    assert raw.info is not info
+    # 'info' (more restrictive)
+    raw = RawArray(data, info, copy='info')
+    assert raw._data is data
+    assert raw.info is not info
+    with pytest.raises(ValueError, match="data copying was not .* copy='info"):
+        RawArray(data.astype(np.float32), info, copy='info')
+    # 'data'
+    raw = RawArray(data, info, copy='data')
+    assert raw._data is not data
+    assert raw.info is info
+    # 'both'
+    raw = RawArray(data, info, copy='both')
+    assert raw._data is not data
+    assert raw.info is not info
+    raw = RawArray(data.astype(np.float32), info, copy='both')
+    assert raw._data is not data
+    assert raw.info is not info
+    # None
+    raw = RawArray(data, info, copy=None)
+    assert raw._data is data
+    assert raw.info is info
+    with pytest.raises(ValueError, match='data copying was not .* copy=None'):
+        RawArray(data.astype(np.float32), info, copy=None)
 
 
 @pytest.mark.slowtest
-@requires_version('scipy', '0.12')
 def test_array_raw():
     """Test creating raw from array."""
     # creating
@@ -46,10 +86,11 @@ def test_array_raw():
     types = list()
     for ci in range(101):
         types.extend(('grad', 'grad', 'mag'))
-    types.extend(['ecog', 'seeg', 'hbo'])  # really 3 meg channels
+    types.extend(['ecog', 'seeg', 'hbo'])  # really 4 meg channels
     types.extend(['stim'] * 9)
+    types.extend(['dbs'])  # really eeg channel
     types.extend(['eeg'] * 60)
-    picks = np.concatenate([pick_types(raw.info)[::20],
+    picks = np.concatenate([pick_types(raw.info, meg=True)[::20],
                             pick_types(raw.info, meg=False, stim=True),
                             pick_types(raw.info, meg=False, eeg=True)[::20]])
     del raw
@@ -65,7 +106,8 @@ def test_array_raw():
     types[-1] = 'eog'
     # default type
     info = create_info(ch_names, sfreq)
-    assert_equal(info['chs'][0]['kind'], _kind_dict['misc'][0])
+    assert_equal(info['chs'][0]['kind'],
+                 get_channel_type_constants()['misc']['kind'])
     # use real types
     info = create_info(ch_names, sfreq, types)
     raw2 = _test_raw_reader(RawArray, test_preloading=False,
@@ -77,7 +119,7 @@ def test_array_raw():
     pytest.raises(TypeError, RawArray, info, data)
 
     # filtering
-    picks = pick_types(raw2.info, misc=True, exclude='bads')[:4]
+    picks = pick_types(raw2.info, meg=True, misc=True, exclude='bads')[:4]
     assert_equal(len(picks), 4)
     raw_lp = raw2.copy()
     kwargs = dict(fir_design='firwin', picks=picks)
@@ -101,7 +143,8 @@ def test_array_raw():
 
     # plotting
     raw2.plot()
-    raw2.plot_psd(tmax=2., average=True, n_fft=1024, spatial_colors=False)
+    raw2.plot_psd(tmax=2., average=True, n_fft=1024,
+                  spatial_colors=False)
     plt.close('all')
 
     # epoching
@@ -122,17 +165,17 @@ def test_array_raw():
     n_elec = 10
     ts_size = 10000
     Fs = 512.
-    elec_labels = [str(i) for i in range(n_elec)]
-    elec_coords = np.random.randint(60, size=(n_elec, 3)).tolist()
+    ch_names = [str(i) for i in range(n_elec)]
+    ch_pos_loc = np.random.randint(60, size=(n_elec, 3)).tolist()
 
-    electrode = np.random.rand(n_elec, ts_size)
-    dig_ch_pos = dict(zip(elec_labels, elec_coords))
-    mon = channels.DigMontage(dig_ch_pos=dig_ch_pos)
-    info = create_info(elec_labels, Fs, 'ecog', montage=mon)
+    data = np.random.rand(n_elec, ts_size)
+    montage = make_dig_montage(
+        ch_pos=dict(zip(ch_names, ch_pos_loc)),
+        coord_frame='head'
+    )
+    info = create_info(ch_names, Fs, 'ecog')
 
-    raw = RawArray(electrode, info)
-    raw.plot_psd(average=False)  # looking for inexistent layout
+    raw = RawArray(data, info)
+    raw.set_montage(montage)
+    raw.plot_psd(average=False)  # looking for nonexistent layout
     raw.plot_psd_topo()
-
-
-run_tests_if_main()

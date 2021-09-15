@@ -1,15 +1,16 @@
 # Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import copy
 
 import numpy as np
 
-from ..utils import logger, verbose
+from ..utils import logger, verbose, deprecated, CONNECTIVITY_DEPRECATION_MSG
 from .spectral import spectral_connectivity
 
 
+@deprecated(CONNECTIVITY_DEPRECATION_MSG)
 @verbose
 def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
                       mode='multitaper', fmin=None, fmax=np.inf,
@@ -22,22 +23,16 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     The PSI is an effective connectivity measure, i.e., a measure which can
     give an indication of the direction of the information flow (causality).
     For two time series, and one computes the PSI between the first and the
-    second time series as follows
+    second time series as follows::
 
-    indices = (np.array([0]), np.array([1]))
-    psi = phase_slope_index(data, indices=indices, ...)
+        indices = (np.array([0]), np.array([1]))
+        psi = phase_slope_index(data, indices=indices, ...)
 
     A positive value means that time series 0 is ahead of time series 1 and
     a negative value means the opposite.
 
     The PSI is computed from the coherency (see spectral_connectivity), details
-    can be found in [1].
-
-    References
-    ----------
-    [1] Nolte et al. "Robustly Estimating the Flow Direction of Information in
-    Complex Physical Systems", Physical Review Letters, vol. 100, no. 23,
-    pp. 1-4, Jun. 2008.
+    can be found in :footcite:`NolteEtAl2008`.
 
     Parameters
     ----------
@@ -76,11 +71,11 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
         Use adaptive weights to combine the tapered spectra into PSD.
         Only used in 'multitaper' mode.
     mt_low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth. Only used in 'multitaper' mode.
     cwt_freqs : array
         Array of frequencies of interest. Only used in 'cwt_morlet' mode.
-    cwt_n_cycles: float | array of float
+    cwt_n_cycles : float | array of float
         Number of cycles. Fixed number or one per frequency. Only used in
         'cwt_morlet' mode.
     block_size : int
@@ -109,6 +104,10 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     n_tapers : int
         The number of DPSS tapers used. Only defined in 'multitaper' mode.
         Otherwise None is returned.
+
+    References
+    ----------
+    .. footbibliography::
     """
     logger.info('Estimating phase slope index (PSI)')
     # estimate the coherency
@@ -133,7 +132,7 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     # allocate space for output
     out_shape = list(cohy.shape)
     out_shape[freq_dim] = n_bands
-    psi = np.zeros(out_shape, dtype=np.float)
+    psi = np.zeros(out_shape, dtype=np.float64)
 
     # allocate accumulator
     acc_shape = copy.copy(out_shape)

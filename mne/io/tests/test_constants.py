@@ -1,6 +1,6 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 import re
@@ -8,31 +8,36 @@ import shutil
 import zipfile
 
 import numpy as np
+import pytest
 
-from mne.io.constants import FIFF, FWD
+from mne.io.constants import (FIFF, FWD, _coord_frame_named, _ch_kind_named,
+                              _ch_unit_named, _ch_unit_mul_named,
+                              _ch_coil_type_named, _dig_kind_named,
+                              _dig_cardinal_named)
 from mne.forward._make_forward import _read_coil_defs
 from mne.utils import _fetch_file, requires_good_network
 
 
-commit = '4da59a8ed8b84e9941e739c9994a7348c13d3a48'  # mne-tools/fiff-constants
+# https://github.com/mne-tools/fiff-constants/commits/master
+REPO = 'mne-tools'
+COMMIT = 'aae5960007ee8a67dfc07535ea37d421d37dfe1b'
 
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
-tag_dups = (3501, 3507)  # in both MEGIN and MNE files
+tag_dups = (3501,)  # in both MEGIN and MNE files
 
 _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
                      'pop', 'popitem', 'setdefault', 'update', 'values',
                      'has_key', 'iteritems', 'iterkeys', 'itervalues',  # Py2
                      'viewitems', 'viewkeys', 'viewvalues',  # Py2
                      )
-_tag_ignore_names = (  # for fiff-constants pending updates
-)
+_tag_ignore_names = (
+)  # for fiff-constants pending updates
 _ignore_incomplete_enums = (  # XXX eventually we could complete these
     'bem_surf_id', 'cardinal_point_cardiac', 'cond_model', 'coord',
     'dacq_system', 'diffusion_param', 'gantry_type', 'map_surf',
     'mne_lin_proj', 'mne_ori', 'mri_format', 'mri_pixel', 'proj_by',
     'tags', 'type', 'iod', 'volume_type', 'vol_type',
-    'coil',  # Especially these!  3015, 3025
 )
 # not in coil_def.dat but in DictionaryTypes:enum(coil)
 _missing_coil_def = (
@@ -41,9 +46,14 @@ _missing_coil_def = (
     3,      # Old 24 channel system in HUT
     4,      # The axial devices in the HUCS MCG system
     5,      # Bipolar EEG electrode position
+    6,      # CSD-transformed EEG electrodes
     200,    # Time-varying dipole definition
-    300,    # FNIRS oxyhemoglobin
-    301,    # FNIRS deoxyhemoglobin
+    300,    # fNIRS oxyhemoglobin
+    301,    # fNIRS deoxyhemoglobin
+    302,    # fNIRS continuous wave
+    303,    # fNIRS optical density
+    304,    # fNIRS frequency domain AC amplitude
+    305,    # fNIRS frequency domain phase
     1000,   # For testing the MCG software
     2001,   # Generic axial gradiometer
     3011,   # VV prototype wirewound planar sensor
@@ -55,6 +65,7 @@ _aliases = dict(
     FIFFV_COIL_MAGNES_R_MAG='FIFFV_COIL_MAGNES_REF_MAG',
     FIFFV_COIL_MAGNES_R_GRAD='FIFFV_COIL_MAGNES_REF_GRAD',
     FIFFV_COIL_MAGNES_R_GRAD_OFF='FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD',
+    FIFFV_COIL_FNIRS_RAW='FIFFV_COIL_FNIRS_CW_AMPLITUDE',
     FIFFV_MNE_COORD_CTF_HEAD='FIFFV_MNE_COORD_4D_HEAD',
     FIFFV_MNE_COORD_KIT_HEAD='FIFFV_MNE_COORD_4D_HEAD',
     FIFFV_MNE_COORD_DIGITIZER='FIFFV_COORD_ISOTRAK',
@@ -71,8 +82,8 @@ def test_constants(tmpdir):
     """Test compensation."""
     tmpdir = str(tmpdir)  # old pytest...
     dest = op.join(tmpdir, 'fiff.zip')
-    _fetch_file('https://codeload.github.com/mne-tools/fiff-constants/zip/' +
-                commit, dest)
+    _fetch_file('https://codeload.github.com/'
+                f'{REPO}/fiff-constants/zip/{COMMIT}', dest)
     names = list()
     with zipfile.ZipFile(dest, 'r') as ff:
         for name in ff.namelist():
@@ -246,14 +257,15 @@ def test_constants(tmpdir):
             elif name.startswith('FIFFV_SUBJ_'):
                 check = name.split('_')[2].lower()
             elif name in ('FIFFV_POINT_LPA', 'FIFFV_POINT_NASION',
-                          'FIFFV_POINT_RPA'):
+                          'FIFFV_POINT_RPA', 'FIFFV_POINT_INION'):
                 check = 'cardinal_point'
             else:
                 for check in used_enums:
                     if name.startswith('FIFFV_' + check.upper()):
                         break
                 else:
-                    raise RuntimeError('Could not find %s' % (name,))
+                    if name not in _tag_ignore_names:
+                        raise RuntimeError('Could not find %s' % (name,))
             assert check in used_enums, name
             if 'SSS' in check:
                 raise RuntimeError
@@ -299,9 +311,30 @@ def test_constants(tmpdir):
         if key not in _missing_coil_def and key not in coil_def:
             bad_list.append(('    %s,' % key).ljust(10) +
                             '  # ' + fif['coil'][key][1])
-    assert len(bad_list) == 0, '\n' + '\n'.join(bad_list)
+    assert len(bad_list) == 0, \
+        '\nIn fiff-constants, missing from coil_def:\n' + '\n'.join(bad_list)
     # Assert that enum(coil) has all `coil_def.dat` entries
     for key, desc in zip(coil_def, coil_desc):
         if key not in fif['coil']:
             bad_list.append(('    %s,' % key).ljust(10) + '  # ' + desc)
-    assert len(bad_list) == 0, '\n' + '\n'.join(bad_list)
+    assert len(bad_list) == 0, \
+        'In coil_def, missing  from fiff-constants:\n' + '\n'.join(bad_list)
+
+
+@pytest.mark.parametrize('dict_, match, extras', [
+    ({**_dig_kind_named, **_dig_cardinal_named}, 'FIFFV_POINT_', ()),
+    (_ch_kind_named, '^FIFFV_.*_CH$',
+     (FIFF.FIFFV_DIPOLE_WAVE, FIFF.FIFFV_GOODNESS_FIT)),
+    (_coord_frame_named, 'FIFFV_COORD_', ()),
+    (_ch_unit_named, 'FIFF_UNIT_', ()),
+    (_ch_unit_mul_named, 'FIFF_UNITM_', ()),
+    (_ch_coil_type_named, 'FIFFV_COIL_', ()),
+])
+def test_dict_completion(dict_, match, extras):
+    """Test readable dict completions."""
+    regex = re.compile(match)
+    got = set(FIFF[key] for key in FIFF if regex.search(key) is not None)
+    for e in extras:
+        got.add(e)
+    want = set(dict_)
+    assert got == want, match

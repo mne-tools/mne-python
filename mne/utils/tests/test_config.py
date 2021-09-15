@@ -1,10 +1,11 @@
-from io import StringIO
 import os
+import platform
 import pytest
+from pathlib import Path
 
 from mne.utils import (set_config, get_config, get_config_path,
                        set_memmap_min_size, _get_stim_channel, sys_info,
-                       verbose, _get_call_line)
+                       ClosingStringIO, get_subjects_dir)
 
 
 def test_config(tmpdir):
@@ -13,12 +14,14 @@ def test_config(tmpdir):
     key = '_MNE_PYTHON_CONFIG_TESTING'
     value = '123456'
     value2 = '123'
+    value3 = Path('/foo/bar')
+
     old_val = os.getenv(key, None)
     os.environ[key] = value
     assert (get_config(key) == value)
     del os.environ[key]
     # catch the warning about it being a non-standard config key
-    assert (len(set_config(None, None)) > 10)  # tuple of valid keys
+    assert (len(get_config('')) > 10)  # tuple of valid keys
     with pytest.warns(RuntimeWarning, match='non-standard'):
         set_config(key, None, home_dir=tempdir, set_env=False)
     assert (get_config(key, home_dir=tempdir) is None)
@@ -36,6 +39,11 @@ def test_config(tmpdir):
     assert (key not in os.environ)
     if old_val is not None:
         os.environ[key] = old_val
+
+    # Check serialization from Path to string
+    with pytest.warns(RuntimeWarning, match='non-standard'):
+        set_config(key, value3, home_dir=tempdir)
+
     # Check if get_config with key=None returns all config
     key = 'MNE_PYTHON_TESTING_KEY'
     assert key not in get_config(home_dir=tempdir)
@@ -72,24 +80,26 @@ def test_config(tmpdir):
 
 def test_sys_info():
     """Test info-showing utility."""
-    out = StringIO()
+    out = ClosingStringIO()
     sys_info(fid=out)
     out = out.getvalue()
     assert ('numpy:' in out)
 
+    if platform.system() == 'Darwin':
+        assert 'Platform:      macOS-' in out
 
-def test_get_call_line():
-    """Test getting a call line."""
-    @verbose
-    def foo(verbose=None):
-        return _get_call_line(in_verbose=True)
 
-    for v in (None, True):
-        my_line = foo(verbose=v)  # testing
-        assert my_line == 'my_line = foo(verbose=v)  # testing'
+def test_get_subjects_dir(monkeypatch, tmpdir):
+    """Test get_subjects_dir()."""
+    # String
+    subjects_dir = '/foo'
+    assert get_subjects_dir(subjects_dir) == subjects_dir
 
-    def bar():
-        return _get_call_line(in_verbose=False)
+    # Path
+    subjects_dir = Path('/foo')
+    assert get_subjects_dir(subjects_dir) == str(subjects_dir)
 
-    my_line = bar()  # testing more
-    assert my_line == 'my_line = bar()  # testing more'
+    # `None`
+    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmpdir))
+    monkeypatch.delenv('SUBJECTS_DIR', raising=False)
+    assert get_subjects_dir() is None

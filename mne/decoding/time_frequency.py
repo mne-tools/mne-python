@@ -1,6 +1,6 @@
 # Author: Jean-Remi King <jeanremi.king@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 from .mixin import TransformerMixin
@@ -48,7 +48,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         * 'complex' : single trial complex.
         * 'power' : single trial power.
         * 'phase' : single trial phase.
-    n_jobs : int, default 1
+    %(n_jobs)s
         The number of epochs to process at the same time. The parallelization
         is implemented across channels.
     %(verbose)s
@@ -74,8 +74,8 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         self.use_fft = use_fft
         self.decim = decim
         # Check that output is not an average metric (e.g. ITC)
-        _check_option('output', output, ['complex', 'power', 'phase'])
-        self.output = output
+        self.output = _check_option('output', output,
+                                    ['complex', 'power', 'phase'])
         self.n_jobs = n_jobs
         self.verbose = verbose
 
@@ -129,7 +129,6 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         Xt : array, shape (n_samples, n_channels, n_freqs, n_times)
             The time-frequency transform of the data, where n_channels can be
             zero- or 1-dimensional.
-
         """
         # Ensure 3-dimensional X
         shape = X.shape[1:-1]

@@ -1,0 +1,17 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+    <file alias="visibility_on.svg">visibility_on-black-18dp.svg</file>
+    <file alias="visibility_off.svg">visibility_off-black-18dp.svg</file>
+    <file alias="help.svg">help-black-18dp.svg</file>
+    <file alias="play.svg">play-black-18dp.svg</file>
+    <file alias="reset.svg">reset-black-18dp.svg</file>
+    <file alias="pause.svg">pause-black-18dp.svg</file>
+    <file alias="scale.svg">scale-black-18dp.svg</file>
+    <file alias="restore.svg">restore-black-18dp.svg</file>
+    <file alias="clear.svg">clear-black-18dp.svg</file>
+    <file alias="screenshot.svg">screenshot-black-18dp.svg</file>
+    <file alias="movie.svg">movie-black-18dp.svg</file>
+    <file alias="mne-icon.png">mne-circle-black.png</file>
+    <file alias="mne-bigsur-icon.png">mne-bigsur-white.png</file>
+</qresource>
+</RCC>

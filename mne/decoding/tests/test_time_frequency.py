@@ -1,6 +1,6 @@
 # Author: Jean-Remi King, <jeanremi.king@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 
 import numpy as np
@@ -17,7 +17,7 @@ def test_timefrequency():
     from sklearn.base import clone
     # Init
     n_freqs = 3
-    freqs = np.linspace(20, 30, n_freqs)
+    freqs = [20, 21, 22]
     tf = TimeFrequency(freqs, sfreq=100)
     for output in ['avg_power', 'foo', None]:
         pytest.raises(ValueError, TimeFrequency, freqs, output=output)

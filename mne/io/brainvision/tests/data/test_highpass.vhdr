@@ -101,10 +101,7 @@ S o f t w a r e  F i l t e r s
 ==============================
 Disabled
 
-
-Data Electrodes Selected Impedance Measurement Range: 0 - 100 kOhm
-Ground Electrode Selected Impedance Measurement Range: 0 - 10 kOhm
-Reference Electrode Selected Impedance Measurement Range: 0 - 10 kOhm
+Data / Ref / Gnd Electrodes Selected Impedance Measurement Range: 0 - 100 kOhm
 Impedance [kOhm] at 16:12:27 :
 FP1:        ???
 FP2:        ???

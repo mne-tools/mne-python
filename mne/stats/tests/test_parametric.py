@@ -1,9 +1,13 @@
+from functools import partial
 from itertools import product
 
 import pytest
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import (assert_array_almost_equal, assert_allclose,
+                           assert_array_less)
 import numpy as np
+import scipy.stats
 
+import mne
 from mne.stats.parametric import (f_mway_rm, f_threshold_mway_rm,
                                   _map_effects)
 
@@ -112,3 +116,44 @@ def test_f_twoway_rm():
 
     fvals, _ = f_mway_rm(test_data, [8], 'A')
     assert_array_almost_equal(fvals, test_external['r_fvals_1way'], 5)
+
+
+@pytest.mark.parametrize('kind, kwargs', [
+    ('1samp', {}),
+    ('ind', {}),  # equal_var=True is the default
+    ('ind', dict(equal_var=True)),
+    ('ind', dict(equal_var=False)),
+])
+@pytest.mark.parametrize('sigma', (0., 1e-3,))
+@pytest.mark.parametrize('seed', [0, 42, 1337])
+def test_ttest_equiv(kind, kwargs, sigma, seed):
+    """Test t-test equivalence."""
+    rng = np.random.RandomState(seed)
+
+    def theirs(*a, **kw):
+        f = getattr(scipy.stats, 'ttest_%s' % (kind,))
+        if kind == '1samp':
+            func = partial(f, popmean=0, **kwargs)
+        else:
+            func = partial(f, **kwargs)
+        return func(*a, **kw)[0]
+
+    ours = partial(getattr(mne.stats, 'ttest_%s_no_p' % (kind,)),
+                   sigma=sigma, **kwargs)
+
+    X = rng.randn(3, 4, 5)
+    if kind == 'ind':
+        X = [X, rng.randn(30, 4, 5)]  # should differ based on equal_var
+        got = ours(*X)
+        want = theirs(*X)
+    else:
+        got = ours(X)
+        want = theirs(X)
+    if sigma == 0.:
+        assert_allclose(got, want, rtol=1e-7, atol=1e-6)
+    else:
+        assert not np.allclose(got, want, rtol=1e-7, atol=1e-6)
+        # should mostly be similar, but uniformly smaller because we add
+        # something to the divisor (var)
+        assert_allclose(got, want, rtol=2e-1, atol=1e-2)
+        assert_array_less(np.abs(got), np.abs(want))

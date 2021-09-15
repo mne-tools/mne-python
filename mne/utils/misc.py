@@ -2,21 +2,24 @@
 """Some miscellaneous utility functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
+from contextlib import contextmanager
 import fnmatch
+import gc
 import inspect
-from io import StringIO
-import logging
 from math import log
 import os
+from queue import Queue, Empty
 from string import Formatter
 import subprocess
 import sys
+from threading import Thread
 import traceback
 
 import numpy as np
 
+from ..utils import _check_option, _validate_type
 from ..fixes import _get_args
 from ._logging import logger, verbose, warn
 
@@ -46,13 +49,17 @@ def _sort_keys(x):
     return keys
 
 
-class _Counter():
-    count = 1
+class _DefaultEventParser:
+    """Parse none standard events."""
 
-    def __call__(self, *args, **kargs):
-        c = self.count
-        self.count += 1
-        return c
+    def __init__(self):
+        self.event_ids = dict()
+
+    def __call__(self, description, offset=1):
+        if description not in self.event_ids:
+            self.event_ids[description] = offset + len(self.event_ids)
+
+        return self.event_ids[description]
 
 
 class _FormatDict(dict):
@@ -75,8 +82,13 @@ def pformat(temp, **fmt):
     return formatter.vformat(temp, (), mapping)
 
 
+def _enqueue_output(out, queue):
+    for line in iter(out.readline, b''):
+        queue.put(line)
+
+
 @verbose
-def run_subprocess(command, verbose=None, *args, **kwargs):
+def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
     """Run command using subprocess.Popen.
 
     Run command and wait for command to complete. If the return code was zero
@@ -88,6 +100,11 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     ----------
     command : list of str | str
         Command to run as subprocess (see subprocess.Popen documentation).
+    return_code : bool
+        If True, return the return code instead of raising an error if it's
+        non-zero.
+
+        .. versionadded:: 0.20
     %(verbose)s
     *args, **kwargs : arguments
         Additional arguments to pass to subprocess.Popen.
@@ -98,18 +115,95 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
         Stdout returned by the process.
     stderr : str
         Stderr returned by the process.
+    code : int
+        The return code, only returned if ``return_code == True``.
     """
-    for stdxxx, sys_stdxxx, thresh in (
-            ['stderr', sys.stderr, logging.ERROR],
-            ['stdout', sys.stdout, logging.WARNING]):
-        if stdxxx not in kwargs and logger.level >= thresh:
+    all_out = ''
+    all_err = ''
+    # non-blocking adapted from https://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python#4896288  # noqa: E501
+    out_q = Queue()
+    err_q = Queue()
+    with running_subprocess(command, *args, **kwargs) as p, p.stdout, p.stderr:
+        out_t = Thread(target=_enqueue_output, args=(p.stdout, out_q))
+        err_t = Thread(target=_enqueue_output, args=(p.stderr, err_q))
+        out_t.daemon = True
+        err_t.daemon = True
+        out_t.start()
+        err_t.start()
+        while True:
+            do_break = p.poll() is not None
+            # read all current lines without blocking
+            while True:
+                try:
+                    out = out_q.get(timeout=0.01)
+                except Empty:
+                    break
+                else:
+                    out = out.decode('utf-8')
+                    logger.info(out)
+                    all_out += out
+            while True:
+                try:
+                    err = err_q.get(timeout=0.01)
+                except Empty:
+                    break
+                else:
+                    err = err.decode('utf-8')
+                    # Leave this as logger.warning rather than warn(...) to
+                    # mirror the logger.info above for stdout. This function
+                    # is basically just a version of subprocess.call, and
+                    # shouldn't emit Python warnings due to stderr outputs
+                    # (the calling function can check for stderr output and
+                    # emit a warning if it wants).
+                    logger.warning(err)
+                    all_err += err
+            if do_break:
+                break
+    output = (all_out, all_err)
+
+    if return_code:
+        output = output + (p.returncode,)
+    elif p.returncode:
+        print(output)
+        err_fun = subprocess.CalledProcessError.__init__
+        if 'output' in _get_args(err_fun):
+            raise subprocess.CalledProcessError(p.returncode, command, output)
+        else:
+            raise subprocess.CalledProcessError(p.returncode, command)
+
+    return output
+
+
+@contextmanager
+def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
+    """Context manager to do something with a command running via Popen.
+
+    Parameters
+    ----------
+    command : list of str | str
+        Command to run as subprocess (see :class:`python:subprocess.Popen`).
+    after : str
+        Can be:
+
+        - "wait" to use :meth:`~python:subprocess.Popen.wait`
+        - "communicate" to use :meth:`~python.subprocess.Popen.communicate`
+        - "terminate" to use :meth:`~python:subprocess.Popen.terminate`
+        - "kill" to use :meth:`~python:subprocess.Popen.kill`
+
+    %(verbose)s
+    *args, **kwargs : arguments
+        Additional arguments to pass to subprocess.Popen.
+
+    Returns
+    -------
+    p : instance of Popen
+        The process.
+    """
+    _validate_type(after, str, 'after')
+    _check_option('after', after, ['wait', 'terminate', 'kill', 'communicate'])
+    for stdxxx, sys_stdxxx in (['stderr', sys.stderr], ['stdout', sys.stdout]):
+        if stdxxx not in kwargs:
             kwargs[stdxxx] = subprocess.PIPE
-        elif kwargs.get(stdxxx, sys_stdxxx) is sys_stdxxx:
-            if isinstance(sys_stdxxx, StringIO):
-                # nose monkey patches sys.stderr and sys.stdout to StringIO
-                kwargs[stdxxx] = subprocess.PIPE
-            else:
-                kwargs[stdxxx] = sys_stdxxx
 
     # Check the PATH environment variable. If run_subprocess() is to be called
     # frequently this should be refactored so as to only check the path once.
@@ -122,7 +216,8 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     if isinstance(command, str):
         command_str = command
     else:
-        command_str = ' '.join(command)
+        command = [str(s) for s in command]
+        command_str = ' '.join(s for s in command)
     logger.info("Running subprocess: %s" % command_str)
     try:
         p = subprocess.Popen(command, *args, **kwargs)
@@ -133,20 +228,11 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
             command_name = command[0]
         logger.error('Command not found: %s' % command_name)
         raise
-    stdout_, stderr = p.communicate()
-    stdout_ = u'' if stdout_ is None else stdout_.decode('utf-8')
-    stderr = u'' if stderr is None else stderr.decode('utf-8')
-    output = (stdout_, stderr)
-
-    if p.returncode:
-        print(output)
-        err_fun = subprocess.CalledProcessError.__init__
-        if 'output' in _get_args(err_fun):
-            raise subprocess.CalledProcessError(p.returncode, command, output)
-        else:
-            raise subprocess.CalledProcessError(p.returncode, command)
-
-    return output
+    try:
+        yield p
+    finally:
+        getattr(p, after)()
+        p.wait()
 
 
 def _clean_names(names, remove_whitespace=False, before_dash=True):
@@ -182,12 +268,19 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
 def _get_argvalues():
     """Return all arguments (except self) and values of read_raw_xxx."""
     # call stack
-    # read_raw_xxx -> EOF -> verbose() -> BaseRaw.__init__ -> get_argvalues
-    frame = inspect.stack()[4][0]
-    fname = frame.f_code.co_filename
-    if not fnmatch.fnmatch(fname, '*/mne/io/*'):
-        return None
-    args, _, _, values = inspect.getargvalues(frame)
+    # read_raw_xxx -> <decorator-gen-000> -> BaseRaw.__init__ -> _get_argvalues
+
+    # This is equivalent to `frame = inspect.stack(0)[4][0]` but faster
+    frame = inspect.currentframe()
+    try:
+        for _ in range(3):
+            frame = frame.f_back
+        fname = frame.f_code.co_filename
+        if not fnmatch.fnmatch(fname, '*/mne/io/*'):
+            return None
+        args, _, _, values = inspect.getargvalues(frame)
+    finally:
+        del frame
     params = dict()
     for arg in args:
         params[arg] = values[arg]
@@ -221,3 +314,50 @@ def sizeof_fmt(num):
         return '0 bytes'
     if num == 1:
         return '1 byte'
+
+
+def _file_like(obj):
+    # An alternative would be::
+    #
+    #   isinstance(obj, (TextIOBase, BufferedIOBase, RawIOBase, IOBase))
+    #
+    # but this might be more robust to file-like objects not properly
+    # inheriting from these classes:
+    return all(callable(getattr(obj, name, None)) for name in ('read', 'seek'))
+
+
+def _assert_no_instances(cls, when=''):
+    __tracebackhide__ = True
+    n = 0
+    ref = list()
+    gc.collect()
+    objs = gc.get_objects()
+    for obj in objs:
+        try:
+            check = isinstance(obj, cls)
+        except Exception:  # such as a weakref
+            check = False
+        if check:
+            rr = gc.get_referrers(obj)
+            count = 0
+            for r in rr:
+                if r is not objs and \
+                        r is not globals() and \
+                        r is not locals() and \
+                        not inspect.isframe(r):
+                    if isinstance(r, (list, dict)):
+                        rep = f'len={len(r)}'
+                        r_ = gc.get_referrers(r)
+                        types = (x.__class__.__name__ for x in r_)
+                        types = "/".join(sorted(set(
+                            x for x in types if x is not None)))
+                        rep += f', {len(r_)} referrers: {types}'
+                        del r_
+                    else:
+                        rep = repr(r)[:100].replace('\n', ' ')
+                    ref.append(f'{r.__class__.__name__}: {rep}')
+                    count += 1
+                del r
+            del rr
+            n += count > 0
+    assert n == 0, f'{n} {when}:\n' + '\n'.join(ref)

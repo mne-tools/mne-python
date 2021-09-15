@@ -34,7 +34,7 @@ def read_char(fid, count=1):
 
 def read_bool(fid):
     """Read bool value from bti file."""
-    return _unpack_simple(fid, '>?', np.bool)
+    return _unpack_simple(fid, '>?', bool)
 
 
 def read_uint8(fid):

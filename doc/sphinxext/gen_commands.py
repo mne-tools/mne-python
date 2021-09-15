@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import os
 import glob
+from importlib import import_module
+import os
 from os import path as op
-import subprocess
-import sys
 
-from mne.utils import run_subprocess, _replace_md5
+from mne.utils import _replace_md5, ArgvSetter
 
 
 def setup(app):
@@ -18,40 +17,38 @@ def setup_module():
     pass
 
 
-header = """.. _python_commands:
+# Header markings go:
+# 1. =/= : Page title
+# 2. =   : Command name
+# 3. -/- : Command description
+# 4. -   : Command sections (Examples, Notes)
 
+header = """\
+:orphan:
+
+.. _python_commands:
+
+===============================
 Command line tools using Python
 ===============================
-
-.. contents:: Contents
-   :local:
-   :depth: 1
 
 """
 
 command_rst = """
 
-.. _gen_%s:
+.. _{0}:
 
-%s
-%s
+{0}
+{1}
 
-.. raw:: html
+.. rst-class:: callout
 
-   <div>
-   <pre>
-
-%s
-
-.. raw:: html
-
-   </pre>
-   </div>
+{2}
 
 """
 
 
-def generate_commands_rst(app):
+def generate_commands_rst(app=None):
     from sphinx_gallery import sphinx_compatibility
     out_dir = op.abspath(op.join(op.dirname(__file__), '..', 'generated'))
     if not op.isdir(out_dir):
@@ -60,24 +57,49 @@ def generate_commands_rst(app):
 
     command_path = op.abspath(
         op.join(os.path.dirname(__file__), '..', '..', 'mne', 'commands'))
-    fnames = [op.basename(fname)
-              for fname in glob.glob(op.join(command_path, 'mne_*.py'))]
+    fnames = sorted([
+        op.basename(fname)
+        for fname in glob.glob(op.join(command_path, 'mne_*.py'))])
     iterator = sphinx_compatibility.status_iterator(
         fnames, 'generating MNE command help ... ', length=len(fnames))
-    with open(out_fname, 'w') as f:
+    with open(out_fname, 'w', encoding='utf8') as f:
         f.write(header)
         for fname in iterator:
             cmd_name = fname[:-3]
-            run_name = op.join(command_path, fname)
-            output, _ = run_subprocess([sys.executable, run_name, '--help'],
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE, verbose=False)
-            f.write(command_rst % (cmd_name,
-                                   cmd_name.replace('mne_', 'mne '),
-                                   '-' * len(cmd_name),
-                                   output))
+            module = import_module('.' + cmd_name, 'mne.commands')
+            with ArgvSetter(('mne', cmd_name, '--help')) as out:
+                try:
+                    module.run()
+                except SystemExit:  # this is how these terminate
+                    pass
+            output = out.stdout.getvalue().splitlines()
+
+            # Swap usage and title lines
+            output[0], output[2] = output[2], output[0]
+
+            # Add header marking
+            for idx in (1, 0):
+                output.insert(idx, '-' * len(output[0]))
+
+            # Add code styling for the "Usage: " line
+            for li, line in enumerate(output):
+                if line.startswith('Usage: mne '):
+                    output[li] = 'Usage: ``%s``' % line[7:]
+                    break
+
+            # Turn "Options:" into field list
+            if 'Options:' in output:
+                ii = output.index('Options:')
+                output[ii] = 'Options'
+                output.insert(ii + 1, '-------')
+                output.insert(ii + 2, '')
+                output.insert(ii + 3, '.. rst-class:: field-list cmd-list')
+                output.insert(ii + 4, '')
+            output = '\n'.join(output)
+            cmd_name_space = cmd_name.replace('mne_', 'mne ')
+            f.write(command_rst.format(
+                cmd_name_space, '=' * len(cmd_name_space), output))
     _replace_md5(out_fname)
-    print('[Done]')
 
 
 # This is useful for testing/iterating to see what the result looks like

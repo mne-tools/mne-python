@@ -2,19 +2,15 @@
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from collections import Counter
 import os
 import queue
 import sys
-
-import numpy as np
-from scipy.linalg import inv
 from threading import Thread
 
-from ..io.meas_info import _read_dig_points, _make_dig_points
-from ..utils import get_config, set_config, logger, warn
+import numpy as np
 
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools.mlab_scene_model import MlabSceneModel
@@ -30,25 +26,28 @@ from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
 from ..io.constants import FIFF
+from ..io._digitization import _make_dig_points
+from ..io.kit.coreg import _read_dig_kit
 from ..io.kit.kit import (RawKIT, KIT, _make_stim_channel, _default_stim_chs,
                           UnsupportedKITFormat)
 from ..transforms import (apply_trans, als_ras_trans,
                           get_ras_to_neuromag_trans, Transform)
 from ..coreg import _decimate_points, fit_matched_points
+from ..utils import get_config, set_config, logger, warn
+from ._backend import _get_pyface_backend
 from ..event import _find_events
 from ._marker_gui import CombineMarkersPanel, CombineMarkersModel
 from ._help import read_tooltips
 from ._viewer import HeadViewController, PointObject
 
-
 use_editor = CheckListEditor(cols=5, values=[(i, str(i)) for i in range(5)])
-backend_is_wx = False  # is there a way to determine this?
-if backend_is_wx:
+
+if _get_pyface_backend() == 'wx':
     # wx backend allows labels for wildcards
     hsp_wildcard = ['Head Shape Points (*.hsp;*.txt)|*.hsp;*.txt']
     elp_wildcard = ['Head Shape Fiducials (*.elp;*.txt)|*.elp;*.txt']
     kit_con_wildcard = ['Continuous KIT Files (*.sqd;*.con)|*.sqd;*.con']
-elif sys.platform in ('win32',  'linux2'):
+if sys.platform in ('win32', 'linux2'):
     # on Windows and Ubuntu, multiple wildcards does not seem to work
     hsp_wildcard = ['*.hsp', '*.txt']
     elp_wildcard = ['*.elp', '*.txt']
@@ -176,7 +175,7 @@ class Kit2FiffModel(HasPrivateTraits):
             return
 
         try:
-            pts = _read_dig_points(self.fid_file)
+            pts = _read_dig_kit(self.fid_file)
             if len(pts) < 8:
                 raise ValueError("File contains %i points, need 8" % len(pts))
         except Exception as err:
@@ -204,7 +203,7 @@ class Kit2FiffModel(HasPrivateTraits):
 
     @cached_property
     def _get_head_dev_trans(self):
-        return inv(self.dev_head_trans)
+        return np.linalg.inv(self.dev_head_trans)
 
     @cached_property
     def _get_hsp(self):
@@ -228,7 +227,7 @@ class Kit2FiffModel(HasPrivateTraits):
             return
 
         try:
-            pts = _read_dig_points(fname)
+            pts = _read_dig_kit(fname)
             n_pts = len(pts)
             if n_pts > KIT.DIG_POINTS:
                 msg = ("The selected head shape contains {n_in} points, "

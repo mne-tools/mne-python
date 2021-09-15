@@ -2,17 +2,16 @@
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numbers
 
 import numpy as np
-from scipy import linalg
 
 from .base import get_coef, BaseEstimator, _check_estimator
 from .time_delaying_ridge import TimeDelayingRidge
 from ..fixes import is_regressor
-from ..utils import _validate_type
+from ..utils import _validate_type, verbose
 
 
 class ReceptiveField(BaseEstimator):
@@ -20,7 +19,8 @@ class ReceptiveField(BaseEstimator):
 
     This allows you to fit an encoding model (stimulus to brain) or a decoding
     model (brain to stimulus) using time-lagged input features (for example, a
-    spectro- or spatio-temporal receptive field, or STRF).
+    spectro- or spatio-temporal receptive field, or STRF)
+    :footcite:`TheunissenEtAl2001,WillmoreSmyth2003,CrosseEtAl2016,HoldgrafEtAl2016`.
 
     Parameters
     ----------
@@ -37,7 +37,7 @@ class ReceptiveField(BaseEstimator):
     estimator : instance of sklearn.base.BaseEstimator | float | None
         The model used in fitting inputs and outputs. This can be any
         scikit-learn-style model that contains a fit and predict method. If a
-        float is passed, it will be interpreted as the `alpha` parameter
+        float is passed, it will be interpreted as the ``alpha`` parameter
         to be passed to a Ridge regression model. If `None`, then a Ridge
         regression model with an alpha of 0 will be used.
     fit_intercept : bool | None
@@ -51,7 +51,25 @@ class ReceptiveField(BaseEstimator):
     patterns : bool
         If True, inverse coefficients will be computed upon fitting using the
         covariance matrix of the inputs, and the cross-covariance of the
-        inputs/outputs, according to [5]_. Defaults to False.
+        inputs/outputs, according to :footcite:`HaufeEtAl2014`. Defaults to
+        False.
+    n_jobs : int | str
+        Number of jobs to run in parallel. Can be 'cuda' if CuPy
+        is installed properly and ``estimator is None``.
+
+        .. versionadded:: 0.18
+    edge_correction : bool
+        If True (default), correct the autocorrelation coefficients for
+        non-zero delays for the fact that fewer samples are available.
+        Disabling this speeds up performance at the cost of accuracy
+        depending on the relationship between epoch length and model
+        duration. Only used if ``estimator`` is float or None.
+
+        .. versionadded:: 0.18
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see
+        :func:`mne.verbose` and :ref:`Logging documentation <tut-logging>`
+        for more).
 
     Attributes
     ----------
@@ -84,33 +102,13 @@ class ReceptiveField(BaseEstimator):
 
     References
     ----------
-    .. [1] Theunissen, F. E. et al. Estimating spatio-temporal receptive
-           fields of auditory and visual neurons from their responses to
-           natural stimuli. Network 12, 289-316 (2001).
+    .. footbibliography::
+    """  # noqa E501
 
-    .. [2] Willmore, B. & Smyth, D. Methods for first-order kernel
-           estimation: simple-cell receptive fields from responses to
-           natural scenes. Network 14, 553-77 (2003).
-
-    .. [3] Crosse, M. J., Di Liberto, G. M., Bednar, A. & Lalor, E. C. (2016).
-           The Multivariate Temporal Response Function (mTRF) Toolbox:
-           A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli.
-           Frontiers in Human Neuroscience 10, 604.
-           doi:10.3389/fnhum.2016.00604
-
-    .. [4] Holdgraf, C. R. et al. Rapid tuning shifts in human auditory cortex
-           enhance speech intelligibility. Nature Communications,
-           7, 13654 (2016). doi:10.1038/ncomms13654
-
-    .. [5] Haufe, S., Meinecke, F., Goergen, K., Daehne, S., Haynes, J.-D.,
-           Blankertz, B., & Biessmann, F. (2014). On the interpretation of
-           weight vectors of linear models in multivariate neuroimaging.
-           NeuroImage, 87, 96-110. doi:10.1016/j.neuroimage.2013.10.067
-    """
-
+    @verbose
     def __init__(self, tmin, tmax, sfreq, feature_names=None, estimator=None,
-                 fit_intercept=None, scoring='r2',
-                 patterns=False):  # noqa: D102
+                 fit_intercept=None, scoring='r2', patterns=False,
+                 n_jobs=1, edge_correction=True, verbose=None):
         self.feature_names = feature_names
         self.sfreq = float(sfreq)
         self.tmin = tmin
@@ -119,6 +117,9 @@ class ReceptiveField(BaseEstimator):
         self.fit_intercept = fit_intercept
         self.scoring = scoring
         self.patterns = patterns
+        self.n_jobs = n_jobs
+        self.edge_correction = edge_correction
+        self.verbose = verbose
 
     def __repr__(self):  # noqa: D105
         s = "tmin, tmax : (%.3f, %.3f), " % (self.tmin, self.tmax)
@@ -127,17 +128,18 @@ class ReceptiveField(BaseEstimator):
             estimator = type(self.estimator)
         s += "estimator : %s, " % (estimator,)
         if hasattr(self, 'coef_'):
-            feats = self.feature_names
-            if len(feats) == 1:
-                s += "feature: %s, " % feats[0]
-            else:
-                s += "features : [%s, ..., %s], " % (feats[0], feats[-1])
+            if self.feature_names is not None:
+                feats = self.feature_names
+                if len(feats) == 1:
+                    s += "feature: %s, " % feats[0]
+                else:
+                    s += "features : [%s, ..., %s], " % (feats[0], feats[-1])
             s += "fit: True"
         else:
             s += "fit: False"
         if hasattr(self, 'scores_'):
             s += "scored (%s)" % self.scoring
-        return "<ReceptiveField  |  %s>" % s
+        return "<ReceptiveField | %s>" % s
 
     def _delay_and_reshape(self, X, y=None):
         """Delay and reshape the variables."""
@@ -151,6 +153,7 @@ class ReceptiveField(BaseEstimator):
                 y = y.reshape(-1, y.shape[-1], order='F')
         return X, y
 
+    @verbose
     def fit(self, X, y):
         """Fit a receptive field model.
 
@@ -166,6 +169,7 @@ class ReceptiveField(BaseEstimator):
         self : instance
             The instance so you can chain operations.
         """
+        from scipy import linalg
         if self.scoring not in _SCORERS.keys():
             raise ValueError('scoring must be one of %s, got'
                              '%s ' % (sorted(_SCORERS.keys()), self.scoring))
@@ -184,9 +188,10 @@ class ReceptiveField(BaseEstimator):
         if isinstance(self.estimator, numbers.Real):
             if self.fit_intercept is None:
                 self.fit_intercept = True
-            estimator = TimeDelayingRidge(self.tmin, self.tmax, self.sfreq,
-                                          alpha=self.estimator,
-                                          fit_intercept=self.fit_intercept)
+            estimator = TimeDelayingRidge(
+                self.tmin, self.tmax, self.sfreq, alpha=self.estimator,
+                fit_intercept=self.fit_intercept, n_jobs=self.n_jobs,
+                edge_correction=self.edge_correction)
         elif is_regressor(self.estimator):
             estimator = clone(self.estimator)
             if self.fit_intercept is not None and \
@@ -195,7 +200,7 @@ class ReceptiveField(BaseEstimator):
                     'Estimator fit_intercept (%s) != initialization '
                     'fit_intercept (%s), initialize ReceptiveField with the '
                     'same fit_intercept value or use fit_intercept=None'
-                    % (estimator.fit_intercept, self.fit_itercept))
+                    % (estimator.fit_intercept, self.fit_intercept))
             self.fit_intercept = estimator.fit_intercept
         else:
             raise ValueError('`estimator` must be a float or an instance'
@@ -211,9 +216,8 @@ class ReceptiveField(BaseEstimator):
         n_delays = len(self.delays_)
 
         # Update feature names if we have none
-        if self.feature_names is None:
-            self.feature_names = ['feature_%s' % ii for ii in range(n_feats)]
-        if len(self.feature_names) != n_feats:
+        if ((self.feature_names is not None) and
+                (len(self.feature_names) != n_feats)):
             raise ValueError('n_features in X does not match feature names '
                              '(%s != %s)' % (n_feats, len(self.feature_names)))
 
@@ -293,7 +297,7 @@ class ReceptiveField(BaseEstimator):
         """Score predictions generated with a receptive field.
 
         This calls ``self.predict``, then masks the output of this
-        and ``y` with ``self.mask_prediction_``. Finally, it passes
+        and ``y` with ``self.valid_samples_``. Finally, it passes
         this to a :mod:`sklearn.metrics` scorer.
 
         Parameters
@@ -352,10 +356,10 @@ class ReceptiveField(BaseEstimator):
                              ' n_features), got %s' % (X.shape,))
         if y is not None:
             if X.shape[0] != y.shape[0]:
-                raise ValueError('X any y do not have the same n_times\n'
+                raise ValueError('X and y do not have the same n_times\n'
                                  '%s != %s' % (X.shape[0], y.shape[0]))
             if X.shape[1] != y.shape[1]:
-                raise ValueError('X any y do not have the same n_epochs\n'
+                raise ValueError('X and y do not have the same n_epochs\n'
                                  '%s != %s' % (X.shape[1], y.shape[1]))
             if predict and y.shape[-1] != len(self.estimator_.coef_):
                 raise ValueError('Number of outputs does not match'
@@ -448,7 +452,6 @@ def _delays_to_slice(delays):
 def _check_delayer_params(tmin, tmax, sfreq):
     """Check delayer input parameters. For future custom delay support."""
     _validate_type(sfreq, 'numeric', '`sfreq`')
-    sfreq = float(sfreq)
 
     for tlim in (tmin, tmax):
         _validate_type(tlim, 'numeric', 'tmin/tmax')
@@ -470,7 +473,7 @@ def _corr_score(y_true, y, multioutput=None):
     assert multioutput == 'raw_values'
     for this_y in (y_true, y):
         if this_y.ndim != 2:
-            raise ValueError('inputs must shape (samples, outputs), got %s'
+            raise ValueError('inputs must be shape (samples, outputs), got %s'
                              % (this_y.shape,))
     return np.array([pearsonr(y_true[:, ii], y[:, ii])[0]
                      for ii in range(y.shape[-1])])

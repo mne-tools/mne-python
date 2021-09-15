@@ -2,77 +2,69 @@
 """File downloading functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
 import shutil
-import sys
 import time
-from urllib import parse, request
 
 from .progressbar import ProgressBar
 from .numerics import hashfunc
 from .misc import sizeof_fmt
-from ._logging import warn, logger, verbose
+from ._logging import logger, verbose
 
 
-def _get_http(url, temp_file_name, initial_size, file_size, timeout,
-              verbose_bool):
+# Adapted from nilearn
+
+
+def _get_http(url, temp_file_name, initial_size, timeout, verbose_bool):
     """Safely (resume a) download to a file from http(s)."""
+    from urllib import request
+    from urllib.error import HTTPError, URLError
     # Actually do the reading
-    req = request.Request(url)
+    response = None
+    extra = ''
     if initial_size > 0:
-        req.headers['Range'] = 'bytes=%s-' % (initial_size,)
-    try:
-        response = request.urlopen(req, timeout=timeout)
-    except Exception:
-        # There is a problem that may be due to resuming, some
-        # servers may not support the "Range" header. Switch
-        # back to complete download method
-        logger.info('Resuming download failed (server '
-                    'rejected the request). Attempting to '
-                    'restart downloading the entire file.')
-        del req.headers['Range']
-        response = request.urlopen(req, timeout=timeout)
-    total_size = int(response.headers.get('Content-Length', '1').strip())
-    if initial_size > 0 and file_size == total_size:
-        logger.info('Resuming download failed (resume file size '
-                    'mismatch). Attempting to restart downloading the '
-                    'entire file.')
-        initial_size = 0
-    total_size += initial_size
-    if total_size != file_size:
-        raise RuntimeError('URL could not be parsed properly '
-                           '(total size %s != file size %s)'
-                           % (total_size, file_size))
+        logger.debug('  Resuming at %s' % (initial_size,))
+        req = request.Request(
+            url, headers={'Range': 'bytes=%s-' % (initial_size,)})
+        try:
+            response = request.urlopen(req, timeout=timeout)
+            content_range = response.info().get('Content-Range', None)
+            if (content_range is None or not content_range.startswith(
+                    'bytes %s-' % (initial_size,))):
+                raise IOError('Server does not support resuming')
+        except (KeyError, HTTPError, URLError, IOError):
+            initial_size = 0
+            response = None
+        else:
+            extra = ', resuming at %s' % (sizeof_fmt(initial_size),)
+    if response is None:
+        response = request.urlopen(request.Request(url), timeout=timeout)
+    file_size = int(response.headers.get('Content-Length', '0').strip())
+    file_size += initial_size
+    url = response.geturl()
+    logger.info('Downloading %s (%s%s)' % (url, sizeof_fmt(file_size), extra))
+    del url
     mode = 'ab' if initial_size > 0 else 'wb'
-    progress = ProgressBar(total_size, initial_value=initial_size,
-                           spinner=True, mesg='file_sizes',
-                           verbose_bool=verbose_bool)
+    progress = ProgressBar(file_size, initial_size, unit='B',
+                           mesg='Downloading', unit_scale=True,
+                           unit_divisor=1024)
+    del file_size
     chunk_size = 8192  # 2 ** 13
     with open(temp_file_name, mode) as local_file:
         while True:
             t0 = time.time()
             chunk = response.read(chunk_size)
             dt = time.time() - t0
-            if dt < 0.005:
+            if dt < 0.01:
                 chunk_size *= 2
             elif dt > 0.1 and chunk_size > 8192:
                 chunk_size = chunk_size // 2
             if not chunk:
-                if verbose_bool:
-                    sys.stdout.write('\n')
-                    sys.stdout.flush()
                 break
             local_file.write(chunk)
-            progress.update_with_increment_value(len(chunk),
-                                                 mesg='file_sizes')
-
-
-def _chunk_write(chunk, local_file, progress):
-    """Write a chunk to file and update the progress bar."""
-    local_file.write(chunk)
-    progress.update_with_increment_value(len(chunk))
+            progress.update_with_increment_value(len(chunk))
 
 
 @verbose
@@ -102,30 +94,17 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
     """
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
+    from urllib import parse
     if hash_ is not None and (not isinstance(hash_, str) or
                               len(hash_) != 32) and hash_type == 'md5':
         raise ValueError('Bad hash value given, should be a 32-character '
                          'string:\n%s' % (hash_,))
     temp_file_name = file_name + ".part"
     verbose_bool = (logger.level <= 20)  # 20 is info
+    scheme = parse.urlparse(url).scheme
+    if scheme not in ('http', 'https'):
+        raise NotImplementedError('Cannot use scheme %r' % (scheme,))
     try:
-        # Check file size and displaying it alongside the download url
-        # this loop is necessary to follow any redirects
-        for _ in range(10):  # 10 really should be sufficient...
-            u = request.urlopen(url, timeout=timeout)
-            try:
-                last_url, url = url, u.geturl()
-                if url == last_url:
-                    file_size = int(
-                        u.headers.get('Content-Length', '1').strip())
-                    break
-            finally:
-                u.close()
-                del u
-        else:
-            raise RuntimeError('Too many redirects')
-        logger.info('Downloading %s (%s)' % (url, sizeof_fmt(file_size)))
-
         # Triage resume
         if not os.path.exists(temp_file_name):
             resume = False
@@ -136,24 +115,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
             del local_file
         else:
             initial_size = 0
-        # This should never happen if our functions work properly
-        if initial_size > file_size:
-            raise RuntimeError('Local file (%s) is larger than remote '
-                               'file (%s), cannot resume download'
-                               % (sizeof_fmt(initial_size),
-                                  sizeof_fmt(file_size)))
-        elif initial_size == file_size:
-            # This should really only happen when a hash is wrong
-            # during dev updating
-            warn('Local file appears to be complete (file_size == '
-                 'initial_size == %s)' % (file_size,))
-        else:
-            # Need to resume or start over
-            scheme = parse.urlparse(url).scheme
-            if scheme not in ('http', 'https'):
-                raise NotImplementedError('Cannot use %s' % (scheme,))
-            _get_http(url, temp_file_name, initial_size, file_size, timeout,
-                      verbose_bool)
+        _get_http(url, temp_file_name, initial_size, timeout, verbose_bool)
 
         # check hash sum eg md5sum
         if hash_ is not None:
@@ -174,6 +136,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
 
 def _url_to_local_path(url, path):
     """Mirror a url path in a local destination (keeping folder structure)."""
+    from urllib import parse, request
     destination = parse.urlparse(url).path
     # First char should be '/', and it needs to be discarded
     if len(destination) < 2 or destination[0] != '/':

@@ -1,15 +1,17 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# The computations in this code were primarily derived from Matti Hämäläinen's
+# C code.
 
 from time import time
 from copy import deepcopy
 import re
 
 import numpy as np
-from scipy import linalg, sparse
 
 import shutil
 import os
@@ -23,30 +25,42 @@ from ..io.tree import dir_tree_find
 from ..io.tag import find_tag, read_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                          write_named_matrix)
-from ..io.meas_info import read_bad_channels, write_info
+from ..io.meas_info import (_read_bad_channels, write_info, _write_ch_infos,
+                            _read_extended_ch_info, _make_ch_names_mapping,
+                            _rename_list)
 from ..io.pick import (pick_channels_forward, pick_info, pick_channels,
                        pick_types)
 from ..io.write import (write_int, start_block, end_block,
-                        write_coord_trans, write_ch_info, write_name_list,
+                        write_coord_trans, write_name_list,
                         write_string, start_file, end_file, write_id)
 from ..io.base import BaseRaw
 from ..evoked import Evoked, EvokedArray
 from ..epochs import BaseEpochs
 from ..source_space import (_read_source_spaces_from_tree,
-                            find_source_space_hemi,
-                            _write_source_spaces_to_fid)
-from ..source_estimate import VolSourceEstimate
+                            find_source_space_hemi, _set_source_space_vertices,
+                            _write_source_spaces_to_fid, _get_src_nn,
+                            _src_kind_dict)
+from ..source_estimate import _BaseVectorSourceEstimate, _BaseSourceEstimate
+from ..surface import _normal_orth
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
-                     run_subprocess, check_fname, logger, verbose,
-                     _validate_type, _check_compensation_grade, _check_option)
+                     run_subprocess, check_fname, logger, verbose, fill_doc,
+                     _validate_type, _check_compensation_grade, _check_option,
+                     _check_stc_units, _stamp_to_dt, _on_missing)
 from ..label import Label
-from ..fixes import einsum
 
 
 class Forward(dict):
-    """Forward class to represent info from forward solution."""
+    """Forward class to represent info from forward solution.
+
+    Attributes
+    ----------
+    ch_names : list of str
+        List of channels' names.
+
+        .. versionadded:: 0.20.0
+    """
 
     def copy(self):
         """Copy the Forward instance."""
@@ -95,6 +109,36 @@ class Forward(dict):
 
         return entr
 
+    @property
+    def ch_names(self):
+        return self['info']['ch_names']
+
+    def pick_channels(self, ch_names, ordered=False):
+        """Pick channels from this forward operator.
+
+        Parameters
+        ----------
+        ch_names : list of str
+            List of channels to include.
+        ordered : bool
+            If true (default False), treat ``include`` as an ordered list
+            rather than a set.
+
+        Returns
+        -------
+        fwd : instance of Forward.
+            The modified forward model.
+
+        Notes
+        -----
+        Operates in-place.
+
+        .. versionadded:: 0.20.0
+        """
+        return pick_channels_forward(self, ch_names, exclude=[],
+                                     ordered=ordered, copy=False,
+                                     verbose=False)
+
 
 def _block_diag(A, n):
     """Construct a block diagonal from a packed structure.
@@ -124,6 +168,7 @@ def _block_diag(A, n):
     bd : sparse matrix
         The block diagonal matrix
     """
+    from scipy import sparse
     if sparse.issparse(A):  # then make block sparse
         raise NotImplementedError('sparse reversal not implemented yet')
     ma, na = A.shape
@@ -132,58 +177,12 @@ def _block_diag(A, n):
     if na % n > 0:
         raise ValueError('Width of matrix must be a multiple of n')
 
-    tmp = np.arange(ma * bdn, dtype=np.int).reshape(bdn, ma)
+    tmp = np.arange(ma * bdn, dtype=np.int64).reshape(bdn, ma)
     tmp = np.tile(tmp, (1, n))
     ii = tmp.ravel()
 
-    jj = np.arange(na, dtype=np.int)[None, :]
-    jj = jj * np.ones(ma, dtype=np.int)[:, None]
-    jj = jj.T.ravel()  # column indices foreach sparse bd
-
-    bd = sparse.coo_matrix((A.T.ravel(), np.c_[ii, jj].T)).tocsc()
-
-    return bd
-
-
-def _inv_block_diag(A, n):
-    """Construct an inverse block diagonal from a packed structure.
-
-    You have to try it on a matrix to see what it's doing.
-
-    "A" is ma x na, comprising bdn=(na/"n") blocks of submatrices.
-    Each submatrix is ma x "n", and the inverses of these submatrices
-    are placed down the diagonal of the matrix.
-
-    Parameters
-    ----------
-    A : array
-        The matrix.
-    n : int
-        The block size.
-
-    Returns
-    -------
-    bd : sparse matrix
-        The block diagonal matrix.
-    """
-    ma, na = A.shape
-    bdn = na // int(n)  # number of submatrices
-
-    if na % n > 0:
-        raise ValueError('Width of matrix must be a multiple of n')
-
-    # modify A in-place to invert each sub-block
-    A = A.copy()
-    for start in range(0, na, 3):
-        # this is a view
-        A[:, start:start + 3] = linalg.inv(A[:, start:start + 3])
-
-    tmp = np.arange(ma * bdn, dtype=np.int).reshape(bdn, ma)
-    tmp = np.tile(tmp, (1, n))
-    ii = tmp.ravel()
-
-    jj = np.arange(na, dtype=np.int)[None, :]
-    jj = jj * np.ones(ma, dtype=np.int)[:, None]
+    jj = np.arange(na, dtype=np.int64)[None, :]
+    jj = jj * np.ones(ma, dtype=np.int64)[:, None]
     jj = jj.T.ravel()  # column indices foreach sparse bd
 
     bd = sparse.coo_matrix((A.T.ravel(), np.c_[ii, jj].T)).tocsc()
@@ -247,6 +246,7 @@ def _read_one(fid, node):
     return one
 
 
+@fill_doc
 def _read_forward_meas_info(tree, fid):
     """Read light measurement info from forward operator.
 
@@ -259,8 +259,7 @@ def _read_forward_meas_info(tree, fid):
 
     Returns
     -------
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
     """
     # This function assumes fid is being used as a context manager
     info = Info()
@@ -288,14 +287,14 @@ def _read_forward_meas_info(tree, fid):
     info['meas_id'] = tag.data if tag is not None else None
 
     # Add channel information
-    chs = list()
+    info['chs'] = chs = list()
     for k in range(parent_meg['nent']):
         kind = parent_meg['directory'][k].kind
         pos = parent_meg['directory'][k].pos
         if kind == FIFF.FIFF_CH_INFO:
             tag = read_tag(fid, pos)
             chs.append(tag.data)
-    info['chs'] = chs
+    ch_names_mapping = _read_extended_ch_info(chs, parent_meg, fid)
     info._update_redundant()
 
     #   Get the MRI <-> head coordinate transformation
@@ -324,7 +323,8 @@ def _read_forward_meas_info(tree, fid):
     else:
         raise ValueError('MEG/head coordinate transformation not found')
 
-    info['bads'] = read_bad_channels(fid, parent_meg)
+    info['bads'] = _read_bad_channels(
+        fid, parent_meg, ch_names_mapping=ch_names_mapping)
     # clean up our bad list, old versions could have non-existent bads
     info['bads'] = [bad for bad in info['bads'] if bad in info['ch_names']]
 
@@ -333,14 +333,14 @@ def _read_forward_meas_info(tree, fid):
     if tag is None:
         tag = find_tag(fid, parent_mri, 236)  # Constant 236 used before v0.11
 
-    info['custom_ref_applied'] = bool(tag.data) if tag is not None else False
+    info['custom_ref_applied'] = int(tag.data) if tag is not None else False
     info._check_consistency()
     return info
 
 
 def _subject_from_forward(forward):
     """Get subject id from inverse operator."""
-    return forward['src'][0].get('subject_his_id', None)
+    return forward['src']._subject
 
 
 @verbose
@@ -385,7 +385,7 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The file name, which should end with -fwd.fif or -fwd.fif.gz.
     include : list, optional
         List of names of channels to include. If empty all channels
@@ -547,7 +547,7 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
     fwd['_orig_source_ori'] = fwd['source_ori']
 
     #   Deal with include and exclude
-    fwd = pick_channels_forward(fwd, include=include, exclude=exclude)
+    pick_channels_forward(fwd, include=include, exclude=exclude, copy=False)
 
     if is_fixed_orient(fwd, orig=True):
         fwd['source_nn'] = np.concatenate([_src['nn'][_src['vertno'], :]
@@ -574,12 +574,10 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         Use surface-based source coordinate system? Note that force_fixed=True
         implies surf_ori=True.
     force_fixed : bool, optional (default False)
-        Force fixed source orientation mode?
+        If True, force fixed source orientation mode.
     copy : bool
         Whether to return a new instance or modify in place.
-    use_cps : bool (default True)
-        Whether to use cortical patch statistics to define normal
-        orientations. Only used when surf_ori and/or force_fixed are True.
+    %(use_cps)s
     %(verbose)s
 
     Returns
@@ -587,32 +585,29 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     fwd : Forward
         The modified forward solution.
     """
+    from scipy import sparse
     fwd = fwd.copy() if copy else fwd
 
     if force_fixed is True:
         surf_ori = True
 
     if any([src['type'] == 'vol' for src in fwd['src']]) and force_fixed:
-        warn('Forward operator was generated with sources from a '
-             'volume source space. Conversion to fixed orientation is not '
-             'possible. Setting force_fixed to False. surf_ori is ignored for '
-             'volume source spaces.')
-        force_fixed = False
+        raise ValueError(
+            'Forward operator was generated with sources from a '
+            'volume source space. Conversion to fixed orientation is not '
+            'possible. Consider using a discrete source space if you have '
+            'meaningful normal orientations.')
 
-    if surf_ori:
-        if use_cps:
-            if any(s.get('patch_inds') is not None for s in fwd['src']):
-                use_ave_nn = True
-                logger.info('    Average patch normals will be employed in '
-                            'the rotation to the local surface coordinates..'
-                            '..')
-            else:
-                use_ave_nn = False
-                logger.info('    No patch info available. The standard source '
-                            'space normals will be employed in the rotation '
-                            'to the local surface coordinates....')
+    if surf_ori and use_cps:
+        if any(s.get('patch_inds') is not None for s in fwd['src']):
+            logger.info('    Average patch normals will be employed in '
+                        'the rotation to the local surface coordinates..'
+                        '..')
         else:
-            use_ave_nn = False
+            use_cps = False
+            logger.info('    No patch info available. The standard source '
+                        'space normals will be employed in the rotation '
+                        'to the local surface coordinates....')
 
     # We need to change these entries (only):
     # 1. source_nn
@@ -622,9 +617,9 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     # 5. sol_grad['ncol']
     # 6. source_ori
 
-    if is_fixed_orient(fwd, orig=True) or (force_fixed and not use_ave_nn):
+    if is_fixed_orient(fwd, orig=True) or (force_fixed and not use_cps):
         # Fixed
-        fwd['source_nn'] = np.concatenate([s['nn'][s['vertno'], :]
+        fwd['source_nn'] = np.concatenate([_get_src_nn(s, use_cps)
                                            for s in fwd['src']], axis=0)
         if not is_fixed_orient(fwd, orig=True):
             logger.info('    Changing to fixed-orientation forward '
@@ -650,20 +645,11 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         pp = 0
         for s in fwd['src']:
             if s['type'] in ['surf', 'discrete']:
-                for p in range(s['nuse']):
-                    #  Project out the surface normal and compute SVD
-                    if use_ave_nn and s.get('patch_inds') is not None:
-                        nn = s['nn'][s['pinfo'][s['patch_inds'][p]], :]
-                        nn = np.sum(nn, axis=0)[:, np.newaxis]
-                        nn /= linalg.norm(nn)
-                    else:
-                        nn = s['nn'][s['vertno'][p], :][:, np.newaxis]
-                    U, S, _ = linalg.svd(np.eye(3, 3) - nn * nn.T)
-                    #  Make sure that ez is in the direction of nn
-                    if np.sum(nn.ravel() * U[:, 2].ravel()) < 0:
-                        U *= -1.0
-                    fwd['source_nn'][pp:pp + 3, :] = U.T
-                    pp += 3
+                nn = _get_src_nn(s, use_cps)
+                stop = pp + 3 * s['nuse']
+                fwd['source_nn'][pp:stop] = _normal_orth(nn).reshape(-1, 3)
+                pp = stop
+                del nn
             else:
                 pp += 3 * s['nuse']
 
@@ -695,7 +681,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
 
     else:  # Free, cartesian
         logger.info('    Cartesian source orientations...')
-        fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
+        fwd['source_nn'] = np.tile(np.eye(3), (fwd['nsource'], 1))
         fwd['sol']['data'] = fwd['_orig_sol'].copy()
         fwd['sol']['ncol'] = 3 * fwd['nsource']
         if fwd['sol_grad'] is not None:
@@ -720,8 +706,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
         or -fwd.fif.gz.
     fwd : Forward
         Forward solution.
-    overwrite : bool
-        If True, overwrite destination file (if it exists).
+    %(overwrite)s
     %(verbose)s
 
     See Also
@@ -909,6 +894,7 @@ def is_fixed_orient(forward, orig=False):
     return fixed_ori
 
 
+@fill_doc
 def write_forward_meas_info(fid, info):
     """Write measurement info stored in forward solution.
 
@@ -916,8 +902,7 @@ def write_forward_meas_info(fid, info):
     ----------
     fid : file id
         The file id
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
     """
     info._check_consistency()
     #
@@ -934,25 +919,23 @@ def write_forward_meas_info(fid, info):
         raise ValueError('Head<-->sensor transform not found')
     write_coord_trans(fid, meg_head_t)
 
+    ch_names_mapping = dict()
     if 'chs' in info:
         #  Channel information
+        ch_names_mapping = _make_ch_names_mapping(info['chs'])
         write_int(fid, FIFF.FIFF_NCHAN, len(info['chs']))
-        for k, c in enumerate(info['chs']):
-            #   Scan numbers may have been messed up
-            c = deepcopy(c)
-            c['scanno'] = k + 1
-            write_ch_info(fid, c)
+        _write_ch_infos(fid, info['chs'], False, ch_names_mapping)
     if 'bads' in info and len(info['bads']) > 0:
         #   Bad channels
+        bads = _rename_list(info['bads'], ch_names_mapping)
         start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
-        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, info['bads'])
+        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, bads)
         end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
 
     end_block(fid, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
 
 
-@verbose
-def _select_orient_forward(forward, info, noise_cov=None, verbose=None):
+def _select_orient_forward(forward, info, noise_cov=None, copy=True):
     """Prepare forward solution for inverse solvers."""
     # fwd['sol']['row_names'] may be different order from fwd['info']['chs']
     fwd_sol_ch_names = forward['sol']['row_names']
@@ -977,137 +960,159 @@ def _select_orient_forward(forward, info, noise_cov=None, verbose=None):
 
     n_chan = len(ch_names)
     logger.info("Computing inverse operator with %d channels." % n_chan)
-
-    gain = forward['sol']['data']
-
-    # This actually reorders the gain matrix to conform to the info ch order
-    fwd_idx = [fwd_sol_ch_names.index(name) for name in ch_names]
-    gain = gain[fwd_idx]
-    # Any function calling this helper will be using the returned fwd_info
-    # dict, so fwd['sol']['row_names'] becomes obsolete and is NOT re-ordered
-
+    forward = pick_channels_forward(forward, ch_names, ordered=True,
+                                    copy=copy)
     info_idx = [info['ch_names'].index(name) for name in ch_names]
-    fwd_info = pick_info(info, info_idx)
+    info_picked = pick_info(info, info_idx)
     forward['info']._check_consistency()
-    fwd_info._check_consistency()
+    info_picked._check_consistency()
+    return forward, info_picked
 
-    return fwd_info, gain
+
+def _triage_loose(src, loose, fixed='auto'):
+    _validate_type(loose, (str, dict, 'numeric'), 'loose')
+    _validate_type(fixed, (str, bool), 'fixed')
+    orig_loose = loose
+    if isinstance(loose, str):
+        _check_option('loose', loose, ('auto',))
+        if fixed is True:
+            loose = 0.
+        else:  # False or auto
+            loose = 0.2 if src.kind == 'surface' else 1.
+    src_types = set(_src_kind_dict[s['type']] for s in src)
+    if not isinstance(loose, dict):
+        loose = float(loose)
+        loose = {key: loose for key in src_types}
+    loose_keys = set(loose.keys())
+    if loose_keys != src_types:
+        raise ValueError(
+            f'loose, if dict, must have keys {sorted(src_types)} to match the '
+            f'source space, got {sorted(loose_keys)}')
+    # if fixed is auto it can be ignored, if it's False it can be ignored,
+    # only really need to care about fixed=True
+    if fixed is True:
+        if not all(v == 0. for v in loose.values()):
+            raise ValueError(
+                'When using fixed=True, loose must be 0. or "auto", '
+                f'got {orig_loose}')
+    elif fixed is False:
+        if any(v == 0. for v in loose.values()):
+            raise ValueError(
+                'If loose==0., then fixed must be True or "auto", got False')
+    del fixed
+
+    for key, this_loose in loose.items():
+        if key != 'surface' and this_loose != 1:
+            raise ValueError(
+                'loose parameter has to be 1 or "auto" for non-surface '
+                f'source spaces, got loose["{key}"] = {this_loose}')
+        if not 0 <= this_loose <= 1:
+            raise ValueError(
+                f'loose ({key}) must be between 0 and 1, got {this_loose}')
+    return loose
 
 
 @verbose
-def compute_orient_prior(forward, loose=0.2, verbose=None):
+def compute_orient_prior(forward, loose='auto', verbose=None):
     """Compute orientation prior.
 
     Parameters
     ----------
     forward : instance of Forward
         Forward operator.
-    loose : float
-        The loose orientation parameter (between 0 and 1).
+    %(loose)s
     %(verbose)s
 
     Returns
     -------
-    orient_prior : ndarray, shape (n_vertices,)
+    orient_prior : ndarray, shape (n_sources,)
         Orientation priors.
 
     See Also
     --------
     compute_depth_prior
     """
-    is_fixed_ori = is_fixed_orient(forward)
+    _validate_type(forward, Forward, 'forward')
     n_sources = forward['sol']['data'].shape[1]
-    loose = float(loose)
-    if not (0 <= loose <= 1):
-        raise ValueError('loose value should be smaller than 1 and bigger '
-                         'than 0, got %s.' % (loose,))
-    if loose < 1 and not forward['surf_ori']:
+
+    loose = _triage_loose(forward['src'], loose)
+    orient_prior = np.ones(n_sources, dtype=np.float64)
+    if is_fixed_orient(forward):
+        if any(v > 0. for v in loose.values()):
+            raise ValueError('loose must be 0. with forward operator '
+                             'with fixed orientation, got %s' % (loose,))
+        return orient_prior
+    if all(v == 1. for v in loose.values()):
+        return orient_prior
+    # We actually need non-unity prior, compute it for each source space
+    # separately
+    if not forward['surf_ori']:
         raise ValueError('Forward operator is not oriented in surface '
-                         'coordinates. loose parameter should be 1 '
-                         'not %s.' % loose)
-    if is_fixed_ori and loose != 0:
-        raise ValueError('loose must be 0. with forward operator '
-                         'with fixed orientation.')
-
-    orient_prior = np.ones(n_sources, dtype=np.float)
-    if not is_fixed_ori and loose < 1:
-        logger.info('Applying loose dipole orientations. Loose value '
-                    'of %s.' % loose)
-        orient_prior[np.mod(np.arange(n_sources), 3) != 2] *= loose
-
+                         'coordinates. loose parameter should be 1. '
+                         'not %s.' % (loose,))
+    start = 0
+    logged = dict()
+    for s in forward['src']:
+        this_type = _src_kind_dict[s['type']]
+        use_loose = loose[this_type]
+        if not logged.get(this_type):
+            if use_loose == 1.:
+                name = 'free'
+            else:
+                name = 'fixed' if use_loose == 0. else 'loose'
+            logger.info(f'Applying {name.ljust(5)} dipole orientations to '
+                        f'{this_type.ljust(7)} source spaces: {use_loose}')
+            logged[this_type] = True
+        stop = start + 3 * s['nuse']
+        orient_prior[start:stop:3] *= use_loose
+        orient_prior[start + 1:stop:3] *= use_loose
+        start = stop
     return orient_prior
 
 
 def _restrict_gain_matrix(G, info):
     """Restrict gain matrix entries for optimal depth weighting."""
     # Figure out which ones have been used
-    if not (len(info['chs']) == G.shape[0]):
-        raise ValueError("G.shape[0] and length of info['chs'] do not match: "
-                         "%d != %d" % (G.shape[0], len(info['chs'])))
-    sel = pick_types(info, meg='grad', ref_meg=False, exclude=[])
-    if len(sel) > 0:
-        G = G[sel]
-        logger.info('    %d planar channels' % len(sel))
-    else:
-        sel = pick_types(info, meg='mag', ref_meg=False, exclude=[])
+    if len(info['chs']) != G.shape[0]:
+        raise ValueError('G.shape[0] (%d) and length of info["chs"] (%d) '
+                         'do not match' % (G.shape[0], len(info['chs'])))
+    for meg, eeg, kind in (
+            ('grad', False, 'planar'),
+            ('mag', False, 'magnetometer or axial gradiometer'),
+            (False, True, 'EEG')):
+        sel = pick_types(info, meg=meg, eeg=eeg, ref_meg=False, exclude=[])
         if len(sel) > 0:
-            G = G[sel]
-            logger.info('    %d magnetometer or axial gradiometer '
-                        'channels' % len(sel))
-        else:
-            sel = pick_types(info, meg=False, eeg=True, exclude=[])
-            if len(sel) > 0:
-                G = G[sel]
-                logger.info('    %d EEG channels' % len(sel))
-            else:
-                warn('Could not find MEG or EEG channels')
-    return G
+            logger.info('    %d %s channels' % (len(sel), kind))
+            break
+    else:
+        warn('Could not find MEG or EEG channels to limit depth channels')
+        sel = slice(None)
+    return G[sel]
 
 
 @verbose
-def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
-                        patch_areas=None, limit_depth_chs=False,
-                        combine_xyz='spectral', noise_cov=None, rank=None,
-                        verbose=None):
+def compute_depth_prior(forward, info, exp=0.8, limit=10.0,
+                        limit_depth_chs=False, combine_xyz='spectral',
+                        noise_cov=None, rank=None, verbose=None):
     """Compute depth prior for depth weighting.
 
     Parameters
     ----------
-    G : ndarray, shape (n_channels, n_vertices)
-        The gain matrix.
-    gain_info : instance of Info
-        The info associated with the gain matrix.
-    is_fixed_ori : bool
-        Whether or not ``G`` is fixed orientation.
+    forward : instance of Forward
+        The forward solution.
+    %(info_not_none)s
     exp : float
         Exponent for the depth weighting, must be between 0 and 1.
     limit : float | None
         The upper bound on depth weighting.
         Can be None to be bounded by the largest finite prior.
-    patch_areas : ndarray | None
-        Patch areas of the vertices from the forward solution.
     limit_depth_chs : bool | 'whiten'
-        How to deal with multiple channel types in depth weighting. Options:
+        How to deal with multiple channel types in depth weighting.
+        The default is True, which whitens based on the source sensitivity
+        of the highest-SNR channel type. See Notes for details.
 
-        :data:`python:True` (default)
-            Use only grad channels in depth weighting (equivalent to MNE C
-            minimum-norm code). If grad channels aren't present, only mag
-            channels will be used (if no mag, then eeg). This makes the depth
-            prior dependent only on the sensor geometry (and relationship
-            to the sources).
-        ``'whiten'``
-            Compute a whitener and apply it to the channels before computing
-            the depth prior. In this case ``noise_cov`` must not be None.
-
-            .. versionadded:: 0.18
-        :data:`python:False`
-            Use all channels. Only recommended when the gain matrix has
-            already been whitened (otherwise it will be arbitrarily
-            biased toward whichever channel type has the largest values in
-            SI units). Whitening the gain matrix makes the depth prior
-            depend on both sensor geometry and the data of interest captured
-            by the noise covariance (e.g., projections, SNR).
-
+        .. versionchanged:: 0.18
+           Added the "whiten" option.
     combine_xyz : 'spectral' | 'fro'
         When a loose (or free) orientation is used, how the depth weighting
         for each triplet should be calculated.
@@ -1142,17 +1147,37 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
         compute_depth_prior(..., limit=10., limit_depth_chs=True,
                             combine_xyz='spectral')
 
-    In sparse solvers, the values are::
+    In sparse solvers and LCMV, the values are::
 
         compute_depth_prior(..., limit=None, limit_depth_chs='whiten',
                             combine_xyz='fro')
 
+    The ``limit_depth_chs`` argument can take the following values:
+
+    * :data:`python:True` (default)
+          Use only grad channels in depth weighting (equivalent to MNE C
+          minimum-norm code). If grad channels aren't present, only mag
+          channels will be used (if no mag, then eeg). This makes the depth
+          prior dependent only on the sensor geometry (and relationship
+          to the sources).
+    * ``'whiten'``
+          Compute a whitener and apply it to the gain matirx before computing
+          the depth prior. In this case ``noise_cov`` must not be None.
+          Whitening the gain matrix makes the depth prior
+          depend on both sensor geometry and the data of interest captured
+          by the noise covariance (e.g., projections, SNR).
+
+          .. versionadded:: 0.18
+    * :data:`python:False`
+          Use all channels. Not recommended since the depth weighting will be
+          biased toward whichever channel type has the largest values in
+          SI units (such as EEG being orders of magnitude larger than MEG).
     """
-    # XXX this perhaps should just take ``forward`` instead of ``G`` and
-    # ``gain_info``. However, it's not easy to do this given that the
-    # mixed norm code requires that ``G`` is whitened before this chunk
-    # of code executes.
     from ..cov import Covariance, compute_whitener
+    _validate_type(forward, Forward, 'forward')
+    patch_areas = forward.get('patch_areas', None)
+    is_fixed_ori = is_fixed_orient(forward)
+    G = forward['sol']['data']
     logger.info('Creating the depth weighting matrix...')
     _validate_type(noise_cov, (Covariance, None), 'noise_cov',
                    'Covariance or None')
@@ -1164,20 +1189,21 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
         if not isinstance(noise_cov, Covariance):
             raise ValueError('With limit_depth_chs="whiten", noise_cov must be'
                              ' a Covariance, got %s' % (type(noise_cov),))
-    _check_option('combine_xyz', combine_xyz, ('fro', 'spectral'))
+    if combine_xyz is not False:  # private / expert option
+        _check_option('combine_xyz', combine_xyz, ('fro', 'spectral'))
 
     # If possible, pick best depth-weighting channels
     if limit_depth_chs is True:
-        G = _restrict_gain_matrix(G, gain_info)
+        G = _restrict_gain_matrix(G, info)
     elif limit_depth_chs == 'whiten':
-        whitener, _ = compute_whitener(noise_cov, gain_info, pca=True,
-                                       rank=rank)
+        whitener, _ = compute_whitener(noise_cov, info, pca=True, rank=rank,
+                                       verbose=False)
         G = np.dot(whitener, G)
 
     # Compute the gain matrix
-    if is_fixed_ori or combine_xyz == 'fro':
+    if is_fixed_ori or combine_xyz in ('fro', False):
         d = np.sum(G ** 2, axis=0)
-        if not is_fixed_ori:
+        if not (is_fixed_ori or combine_xyz is False):
             d = d.reshape(-1, 3).sum(axis=1)
         # Spherical leadfield can be zero at the center
         d[d == 0.] = np.min(d[d != 0.])
@@ -1190,12 +1216,14 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
         #     x = np.dot(Gk.T, Gk)
         #     d[k] = linalg.svdvals(x)[0]
         G.shape = (G.shape[0], -1, 3)
-        d = np.linalg.norm(einsum('svj,svk->vjk', G, G),  # vector dot products
+        d = np.linalg.norm(np.einsum('svj,svk->vjk', G, G),  # vector dot prods
                            ord=2, axis=(1, 2))  # ord=2 spectral (largest s.v.)
         G.shape = (G.shape[0], -1)
 
     # XXX Currently the fwd solns never have "patch_areas" defined
     if patch_areas is not None:
+        if not is_fixed_ori and combine_xyz is False:
+            patch_areas = np.repeat(patch_areas, 3)
         d /= patch_areas ** 2
         logger.info('    Patch areas taken into account in the depth '
                     'weighting')
@@ -1206,10 +1234,9 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
         weight_limit = limit ** 2
         if limit_depth_chs is False:
             # match old mne-python behavor
-            ind = np.argmin(ws)
-            n_limit = ind
-            limit = ws[ind] * weight_limit
-            wpp = (np.minimum(w / limit, 1)) ** exp
+            # we used to do ind = np.argmin(ws), but this is 0 by sort above
+            n_limit = 0
+            limit = ws[0] * weight_limit
         else:
             # match C code behavior
             limit = ws[-1]
@@ -1224,36 +1251,53 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
                        np.sqrt(limit / ws[0])))
         scale = 1.0 / limit
         logger.info('    scale = %g exp = %g' % (scale, exp))
-        wpp = np.minimum(w / limit, 1) ** exp
-    else:
-        wpp = w ** exp
+        w = np.minimum(w / limit, 1)
+    depth_prior = w ** exp
 
-    depth_prior = wpp if is_fixed_ori else np.repeat(wpp, 3)
+    if not (is_fixed_ori or combine_xyz is False):
+        depth_prior = np.repeat(depth_prior, 3)
 
     return depth_prior
 
 
-def _stc_src_sel(src, stc):
+def _stc_src_sel(src, stc, on_missing='raise',
+                 extra=', likely due to forward calculations'):
     """Select the vertex indices of a source space using a source estimate."""
-    if isinstance(stc, VolSourceEstimate):
-        vertices = [stc.vertices]
+    if isinstance(stc, list):
+        vertices = stc
     else:
+        assert isinstance(stc, _BaseSourceEstimate)
         vertices = stc.vertices
+    del stc
     if not len(src) == len(vertices):
         raise RuntimeError('Mismatch between number of source spaces (%s) and '
                            'STC vertices (%s)' % (len(src), len(vertices)))
-    src_sels = []
-    offset = 0
+    src_sels, stc_sels, out_vertices = [], [], []
+    src_offset = stc_offset = 0
     for s, v in zip(src, vertices):
-        src_sel = np.intersect1d(s['vertno'], v)
-        src_sel = np.searchsorted(s['vertno'], src_sel)
-        src_sels.append(src_sel + offset)
-        offset += len(s['vertno'])
+        joint_sel = np.intersect1d(s['vertno'], v)
+        src_sels.append(np.searchsorted(s['vertno'], joint_sel) + src_offset)
+        src_offset += len(s['vertno'])
+        idx = np.searchsorted(v, joint_sel)
+        stc_sels.append(idx + stc_offset)
+        stc_offset += len(v)
+        out_vertices.append(np.array(v)[idx])
     src_sel = np.concatenate(src_sels)
-    return src_sel
+    stc_sel = np.concatenate(stc_sels)
+    assert len(src_sel) == len(stc_sel) == sum(len(v) for v in out_vertices)
+
+    n_stc = sum(len(v) for v in vertices)
+    n_joint = len(src_sel)
+    if n_joint != n_stc:
+        msg = ('Only %i of %i SourceEstimate %s found in '
+               'source space%s'
+               % (n_joint, n_stc, 'vertex' if n_stc == 1 else 'vertices',
+                  extra))
+        _on_missing(on_missing, msg)
+    return src_sel, stc_sel, out_vertices
 
 
-def _fill_measurement_info(info, fwd, sfreq):
+def _fill_measurement_info(info, fwd, sfreq, data):
     """Fill the measurement info of a Raw or Evoked object."""
     sel = pick_channels(info['ch_names'], fwd['sol']['row_names'])
     info = pick_info(info, sel)
@@ -1267,58 +1311,59 @@ def _fill_measurement_info(info, fwd, sfreq):
     sec = np.floor(now)
     usec = 1e6 * (now - sec)
 
-    info['meas_date'] = (int(sec), int(usec))
-    info['highpass'] = 0.0
-    info['lowpass'] = sfreq / 2.0
-    info['sfreq'] = sfreq
-    info['projs'] = []
+    info.update(meas_date=_stamp_to_dt((int(sec), int(usec))), highpass=0.,
+                lowpass=sfreq / 2., sfreq=sfreq, projs=[])
+    info._check_consistency()
 
-    return info
+    # reorder data (which is in fwd order) to match that of info
+    order = [fwd['sol']['row_names'].index(name) for name in info['ch_names']]
+    data = data[order]
+
+    return info, data
 
 
 @verbose
-def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
+def _apply_forward(fwd, stc, start=None, stop=None, on_missing='raise',
+                   use_cps=True, verbose=None):
     """Apply forward model and return data, times, ch_names."""
-    if not is_fixed_orient(fwd):
-        raise ValueError('Only fixed-orientation forward operators are '
-                         'supported.')
+    _validate_type(stc, _BaseSourceEstimate, 'stc', 'SourceEstimate')
+    _validate_type(fwd, Forward, 'fwd')
+    if isinstance(stc, _BaseVectorSourceEstimate):
+        vector = True
+        fwd = convert_forward_solution(fwd, force_fixed=False, surf_ori=False)
+    else:
+        vector = False
+        if not is_fixed_orient(fwd):
+            fwd = convert_forward_solution(fwd, force_fixed=True,
+                                           use_cps=use_cps)
 
     if np.all(stc.data > 0):
         warn('Source estimate only contains currents with positive values. '
              'Use pick_ori="normal" when computing the inverse to compute '
              'currents not current magnitudes.')
 
-    max_cur = np.max(np.abs(stc.data))
-    if max_cur > 1e-7:  # 100 nAm threshold for warning
-        warn('The maximum current magnitude is %0.1f nAm, which is very large.'
-             ' Are you trying to apply the forward model to noise-normalized '
-             '(dSPM, sLORETA, or eLORETA) values? The result will only be '
-             'correct if currents (in units of Am) are used.'
-             % (1e9 * max_cur))
+    _check_stc_units(stc)
 
-    src_sel = _stc_src_sel(fwd['src'], stc)
-    if isinstance(stc, VolSourceEstimate):
-        n_src = len(stc.vertices)
-    else:
-        n_src = sum([len(v) for v in stc.vertices])
-    if len(src_sel) != n_src:
-        raise RuntimeError('Only %i of %i SourceEstimate vertices found in '
-                           'fwd' % (len(src_sel), n_src))
-
-    gain = fwd['sol']['data'][:, src_sel]
+    src_sel, stc_sel, _ = _stc_src_sel(fwd['src'], stc, on_missing=on_missing)
+    gain = fwd['sol']['data']
+    stc_sel = slice(None) if len(stc_sel) == len(stc.data) else stc_sel
+    times = stc.times[start:stop].copy()
+    stc_data = stc.data[stc_sel, ..., start:stop].reshape(-1, len(times))
+    del stc
+    if vector:
+        gain = gain.reshape(len(gain), gain.shape[1] // 3, 3)
+    gain = gain[:, src_sel].reshape(len(gain), -1)
+    # save some memory if possible
 
     logger.info('Projecting source estimate to sensor space...')
-    data = np.dot(gain, stc.data[:, start:stop])
+    data = np.dot(gain, stc_data)
     logger.info('[done]')
-
-    times = deepcopy(stc.times[start:stop])
-
     return data, times
 
 
 @verbose
 def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
-                  verbose=None):
+                  on_missing='raise', verbose=None):
     """Project source space currents to sensor space using a forward operator.
 
     The sensor space data is computed for all channels present in fwd. Use
@@ -1330,24 +1375,24 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     which the original data was acquired. An exception will be raised if the
     forward operator contains channels that are not present in the template.
 
-
     Parameters
     ----------
     fwd : Forward
         Forward operator to use.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    info : instance of Info
-        Measurement info to generate the evoked.
+    %(info_not_none)s
     start : int, optional
         Index of first time sample (index not time is seconds).
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
-    use_cps : bool (default True)
-        Whether to use cortical patch statistics to define normal
-        orientations when converting to fixed orientation (if necessary).
+    %(use_cps)s
 
         .. versionadded:: 0.15
+    %(on_missing_fwd)s
+        Default is "raise".
+
+        .. versionadded:: 0.18
     %(verbose)s
 
     Returns
@@ -1359,6 +1404,10 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     --------
     apply_forward_raw: Compute sensor space data and return a Raw object.
     """
+    _validate_type(info, Info, 'info')
+    _validate_type(fwd, Forward, 'forward')
+    info._check_consistency()
+
     # make sure evoked_template contains all channels in fwd
     for ch_name in fwd['sol']['row_names']:
         if ch_name not in info['ch_names']:
@@ -1366,26 +1415,24 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
                              'evoked_template.' % ch_name)
 
     # project the source estimate to the sensor space
-    if not is_fixed_orient(fwd):
-        fwd = convert_forward_solution(fwd, force_fixed=True, use_cps=use_cps)
-    data, times = _apply_forward(fwd, stc, start, stop)
+    data, times = _apply_forward(fwd, stc, start, stop, on_missing=on_missing,
+                                 use_cps=use_cps)
 
     # fill the measurement info
     sfreq = float(1.0 / stc.tstep)
-    info_out = _fill_measurement_info(info, fwd, sfreq)
+    info, data = _fill_measurement_info(info, fwd, sfreq, data)
 
-    evoked = EvokedArray(data, info_out, times[0], nave=1)
+    evoked = EvokedArray(data, info, times[0], nave=1)
 
     evoked.times = times
-    evoked.first = int(np.round(evoked.times[0] * sfreq))
-    evoked.last = evoked.first + evoked.data.shape[1] - 1
+    evoked._update_first_last()
 
     return evoked
 
 
 @verbose
 def apply_forward_raw(fwd, stc, info, start=None, stop=None,
-                      verbose=None):
+                      on_missing='raise', use_cps=True, verbose=None):
     """Project source space currents to sensor space using a forward operator.
 
     The sensor space data is computed for all channels present in fwd. Use
@@ -1400,15 +1447,21 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
     Parameters
     ----------
     fwd : Forward
-        Forward operator to use. Has to be fixed-orientation.
+        Forward operator to use.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
     start : int, optional
         Index of first time sample (index not time is seconds).
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
+    %(on_missing_fwd)s
+        Default is "raise".
+
+        .. versionadded:: 0.18
+    %(use_cps)s
+
+        .. versionadded:: 0.21
     %(verbose)s
 
     Returns
@@ -1427,10 +1480,11 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
                              'info.' % ch_name)
 
     # project the source estimate to the sensor space
-    data, times = _apply_forward(fwd, stc, start, stop)
+    data, times = _apply_forward(fwd, stc, start, stop, on_missing=on_missing,
+                                 use_cps=use_cps)
 
     sfreq = 1.0 / stc.tstep
-    info = _fill_measurement_info(info, fwd, sfreq)
+    info, data = _fill_measurement_info(info, fwd, sfreq, data)
     info['projs'] = []
     # store sensor data in Raw object using the info
     raw = RawArray(data, info)
@@ -1439,11 +1493,11 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
     raw._first_samps = np.array([int(np.round(times[0] * sfreq))])
     raw._last_samps = np.array([raw.first_samp + raw._data.shape[1] - 1])
     raw._projector = None
-    raw._update_times()
     return raw
 
 
-def restrict_forward_to_stc(fwd, stc):
+@fill_doc
+def restrict_forward_to_stc(fwd, stc, on_missing='ignore'):
     """Restrict forward operator to active sources in a source estimate.
 
     Parameters
@@ -1452,6 +1506,10 @@ def restrict_forward_to_stc(fwd, stc):
         Forward operator.
     stc : instance of SourceEstimate
         Source estimate.
+    %(on_missing_fwd)s
+        Default is "ignore".
+
+        .. versionadded:: 0.18
 
     Returns
     -------
@@ -1462,8 +1520,21 @@ def restrict_forward_to_stc(fwd, stc):
     --------
     restrict_forward_to_label
     """
+    _validate_type(on_missing, str, 'on_missing')
+    _check_option('on_missing', on_missing, ('ignore', 'warn', 'raise'))
+    src_sel, _, vertices = _stc_src_sel(fwd['src'], stc, on_missing=on_missing)
+    del stc
+    return _restrict_forward_to_src_sel(fwd, src_sel)
+
+
+def _restrict_forward_to_src_sel(fwd, src_sel):
     fwd_out = deepcopy(fwd)
-    src_sel = _stc_src_sel(fwd['src'], stc)
+    # figure out the vertno we are keeping
+    idx_sel = np.concatenate([[[si] * len(s['vertno']), s['vertno']]
+                              for si, s in enumerate(fwd['src'])], axis=-1)
+    assert idx_sel.ndim == 2 and idx_sel.shape[0] == 2
+    assert idx_sel.shape[1] == fwd['nsource']
+    idx_sel = idx_sel[:, src_sel]
 
     fwd_out['source_rr'] = fwd['source_rr'][src_sel]
     fwd_out['nsource'] = len(src_sel)
@@ -1496,14 +1567,9 @@ def restrict_forward_to_stc(fwd, stc):
     if fwd['sol_grad'] is not None:
         fwd_out['_orig_sol_grad'] = fwd['_orig_sol_grad'][:, idx_grad]
 
-    for i in range(2):
-        fwd_out['src'][i]['vertno'] = stc.vertices[i]
-        fwd_out['src'][i]['nuse'] = len(stc.vertices[i])
-        fwd_out['src'][i]['inuse'] = fwd['src'][i]['inuse'].copy()
-        fwd_out['src'][i]['inuse'].fill(0)
-        fwd_out['src'][i]['inuse'][stc.vertices[i]] = 1
-        fwd_out['src'][i]['use_tris'] = np.array([[]], int)
-        fwd_out['src'][i]['nuse_tri'] = np.array([0])
+    vertices = [idx_sel[1][idx_sel[0] == si]
+                for si in range(len(fwd_out['src']))]
+    _set_source_space_vertices(fwd_out['src'], vertices)
 
     return fwd_out
 
@@ -1671,12 +1737,9 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         If True, compute the gradient of the field with respect to the
         dipole coordinates as well (Default: False).
     mricoord : bool
-        If True, calculate in MRI coordinates (Default: False).
-    overwrite : bool
-        If True, the destination file (if it exists) will be overwritten.
-        If False (default), an error will be raised if the file exists.
-    subjects_dir : None | str
-        Override the SUBJECTS_DIR environment variable.
+        If True, calculate in MRI coordinates (Default: False)
+    %(overwrite)s
+    %(subjects_dir)s
     %(verbose)s
 
     See Also
@@ -1756,9 +1819,11 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
             mindist = ['--mindist', '%g' % mindist]
 
     # src, spacing, bem
-    for element, name in zip((src, spacing, bem), ("src", "spacing", "bem")):
+    for element, name, kind in zip((src, spacing, bem),
+                                   ("src", "spacing", "bem"),
+                                   ('path-like', 'str', 'path-like')):
         if element is not None:
-            _validate_type(element, "str", name, "string or None")
+            _validate_type(element, kind, name, "%s or None" % kind)
 
     # put together the actual call
     cmd = ['mne_do_forward_solution',
@@ -1817,7 +1882,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
 
 
 @verbose
-def average_forward_solutions(fwds, weights=None):
+def average_forward_solutions(fwds, weights=None, verbose=None):
     """Average forward solutions.
 
     Parameters
@@ -1829,6 +1894,7 @@ def average_forward_solutions(fwds, weights=None):
         Weights to apply to each forward solution in averaging. If None,
         forward solutions will be equally weighted. Weights must be
         non-negative, and will be adjusted to sum to one.
+    %(verbose)s
 
     Returns
     -------

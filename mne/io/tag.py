@@ -1,18 +1,17 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
-import gzip
 from functools import partial
-import os
 import struct
 
 import numpy as np
-from scipy import sparse
 
-from .constants import FIFF
-from ..externals.jdcal import jd2jcal
+from .constants import (FIFF, _dig_kind_named, _dig_cardinal_named,
+                        _ch_kind_named, _ch_coil_type_named, _ch_unit_named,
+                        _ch_unit_mul_named)
+from ..utils.numerics import _julian_to_cal
 
 
 ##############################################################################
@@ -45,94 +44,20 @@ class Tag(object):
         self.data = None
 
     def __repr__(self):  # noqa: D105
-        out = ("<Tag  |  kind %s - type %s - size %s - next %s - pos %s"
+        out = ("<Tag | kind %s - type %s - size %s - next %s - pos %s"
                % (self.kind, self.type, self.size, self.next, self.pos))
         if hasattr(self, 'data'):
             out += " - data %s" % self.data
         out += ">"
         return out
 
-    def __cmp__(self, tag):  # noqa: D105
+    def __eq__(self, tag):  # noqa: D105
         return int(self.kind == tag.kind and
                    self.type == tag.type and
                    self.size == tag.size and
                    self.next == tag.next and
                    self.pos == tag.pos and
                    self.data == tag.data)
-
-
-def read_big(fid, size=None):
-    """Read large chunks of data (>16MB) Windows-friendly.
-
-    Parameters
-    ----------
-    fid : file
-        Open file to read from.
-    size : int or None
-        Number of bytes to read. If None, the whole file is read.
-
-    Returns
-    -------
-    buf : bytes
-        The data.
-
-    Notes
-    -----
-    Windows (argh) can't handle reading large chunks of data, so we
-    have to do it piece-wise, possibly related to:
-       http://stackoverflow.com/questions/4226941
-
-    Examples
-    --------
-    This code should work for normal files and .gz files:
-
-        >>> import numpy as np
-        >>> import gzip, os, tempfile, shutil
-        >>> fname = tempfile.mkdtemp()
-        >>> fname_gz = os.path.join(fname, 'temp.gz')
-        >>> fname = os.path.join(fname, 'temp.bin')
-        >>> randgen = np.random.RandomState(9)
-        >>> x = randgen.randn(3000000)  # > 16MB data
-        >>> with open(fname, 'wb') as fid: x.tofile(fid)
-        >>> with open(fname, 'rb') as fid: y = np.frombuffer(read_big(fid))
-        >>> assert np.all(x == y)
-        >>> fid_gz = gzip.open(fname_gz, 'wb')
-        >>> _ = fid_gz.write(x.tostring())
-        >>> fid_gz.close()
-        >>> fid_gz = gzip.open(fname_gz, 'rb')
-        >>> y = np.frombuffer(read_big(fid_gz))
-        >>> assert np.all(x == y)
-        >>> fid_gz.close()
-        >>> shutil.rmtree(os.path.dirname(fname))
-
-    """
-    # buf_size is chosen as a largest working power of 2 (16 MB):
-    buf_size = 16777216
-    if size is None:
-        # it's not possible to get .gz uncompressed file size
-        if not isinstance(fid, gzip.GzipFile):
-            size = os.fstat(fid.fileno()).st_size - fid.tell()
-
-    if size is not None:
-        # Use pre-buffering method
-        segments = np.r_[np.arange(0, size, buf_size), size]
-        buf = bytearray(b' ' * size)
-        for start, end in zip(segments[:-1], segments[1:]):
-            data = fid.read(int(end - start))
-            if len(data) != end - start:
-                raise ValueError('Read error')
-            buf[start:end] = data
-        buf = bytes(buf)
-    else:
-        # Use presumably less efficient concatenating method
-        buf = [b'']
-        new = fid.read(buf_size)
-        while len(new) > 0:
-            buf.append(new)
-            new = fid.read(buf_size)
-        buf = b''.join(buf)
-
-    return buf
 
 
 def read_tag_info(fid):
@@ -181,10 +106,12 @@ def _frombuffer_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
 
 def _loc_to_coil_trans(loc):
     """Convert loc vector to coil_trans."""
-    coil_trans = np.zeros((4, 4))
-    coil_trans[:3, 3] = loc[:3]
-    coil_trans[:3, :3] = np.reshape(loc[3:], (3, 3)).T
-    coil_trans[-1, -1] = 1.
+    assert loc.shape[-1] == 12
+    coil_trans = np.zeros(loc.shape[:-1] + (4, 4))
+    coil_trans[..., :3, 3] = loc[..., :3]
+    coil_trans[..., :3, :3] = np.reshape(
+        loc[..., 3:], loc.shape[:-1] + (3, 3)).swapaxes(-1, -2)
+    coil_trans[..., -1, -1] = 1.
     return coil_trans
 
 
@@ -228,8 +155,19 @@ def _read_tag_header(fid):
     return Tag(*struct.unpack('>iIii', s))
 
 
+_matrix_bit_dtype = {
+    FIFF.FIFFT_INT: (4, '>i4'),
+    FIFF.FIFFT_JULIAN: (4, '>i4'),
+    FIFF.FIFFT_FLOAT: (4, '>f4'),
+    FIFF.FIFFT_DOUBLE: (8, '>f8'),
+    FIFF.FIFFT_COMPLEX_FLOAT: (8, '>f4'),
+    FIFF.FIFFT_COMPLEX_DOUBLE: (16, '>f8'),
+}
+
+
 def _read_matrix(fid, tag, shape, rlims, matrix_coding):
     """Read a matrix (dense or sparse) tag."""
+    from scipy import sparse
     matrix_coding = matrix_coding >> 16
 
     # This should be easy to implement (see _frombuffer_rows)
@@ -256,28 +194,18 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
                             'supported at this time')
 
         matrix_type = _data_type & tag.type
-
-        if matrix_type == FIFF.FIFFT_INT:
-            data = np.frombuffer(read_big(fid, 4 * dims.prod()), dtype='>i4')
-        elif matrix_type == FIFF.FIFFT_JULIAN:
-            data = np.frombuffer(read_big(fid, 4 * dims.prod()), dtype='>i4')
-        elif matrix_type == FIFF.FIFFT_FLOAT:
-            data = np.frombuffer(read_big(fid, 4 * dims.prod()), dtype='>f4')
-        elif matrix_type == FIFF.FIFFT_DOUBLE:
-            data = np.frombuffer(read_big(fid, 8 * dims.prod()), dtype='>f8')
-        elif matrix_type == FIFF.FIFFT_COMPLEX_FLOAT:
-            data = np.frombuffer(read_big(fid, 4 * 2 * dims.prod()),
-                                 dtype='>f4')
-            # Note: we need the non-conjugate transpose here
-            data = (data[::2] + 1j * data[1::2])
+        try:
+            bit, dtype = _matrix_bit_dtype[matrix_type]
+        except KeyError:
+            raise RuntimeError('Cannot handle matrix of type %d yet'
+                               % matrix_type)
+        data = fid.read(int(bit * dims.prod()))
+        data = np.frombuffer(data, dtype=dtype)
+        # Note: we need the non-conjugate transpose here
+        if matrix_type == FIFF.FIFFT_COMPLEX_FLOAT:
+            data = data.view('>c8')
         elif matrix_type == FIFF.FIFFT_COMPLEX_DOUBLE:
-            data = np.frombuffer(read_big(fid, 8 * 2 * dims.prod()),
-                                 dtype='>f8')
-            # Note: we need the non-conjugate transpose here
-            data = (data[::2] + 1j * data[1::2])
-        else:
-            raise Exception('Cannot handle matrix of type %d yet'
-                            % matrix_type)
+            data = data.view('>c16')
         data.shape = dims
     elif matrix_coding in (_matrix_coding_CCS, _matrix_coding_RCS):
         # Find dimensions and return to the beginning of tag data
@@ -342,7 +270,7 @@ def _read_string(fid, tag, shape, rlims):
     """Read a string tag."""
     # Always decode to ISO 8859-1 / latin1 (FIFF standard).
     d = _frombuffer_rows(fid, tag.size, dtype='>c', shape=shape, rlims=rlims)
-    return str(d.tostring().decode('latin1', 'ignore'))
+    return str(d.tobytes().decode('latin1', 'ignore'))
 
 
 def _read_complex_float(fid, tag, shape, rlims):
@@ -351,7 +279,7 @@ def _read_complex_float(fid, tag, shape, rlims):
     if shape is not None:
         shape = (shape[0], shape[1] * 2)
     d = _frombuffer_rows(fid, tag.size, dtype=">f4", shape=shape, rlims=rlims)
-    d = d[::2] + 1j * d[1::2]
+    d = d.view(">c8")
     return d
 
 
@@ -361,7 +289,7 @@ def _read_complex_double(fid, tag, shape, rlims):
     if shape is not None:
         shape = (shape[0], shape[1] * 2)
     d = _frombuffer_rows(fid, tag.size, dtype=">f8", shape=shape, rlims=rlims)
-    d = d[::2] + 1j * d[1::2]
+    d = d.view(">c16")
     return d
 
 
@@ -376,9 +304,13 @@ def _read_id_struct(fid, tag, shape, rlims):
 
 def _read_dig_point_struct(fid, tag, shape, rlims):
     """Read dig point struct tag."""
+    kind = int(np.frombuffer(fid.read(4), dtype=">i4"))
+    kind = _dig_kind_named.get(kind, kind)
+    ident = int(np.frombuffer(fid.read(4), dtype=">i4"))
+    if kind == FIFF.FIFFV_POINT_CARDINAL:
+        ident = _dig_cardinal_named.get(ident, ident)
     return dict(
-        kind=int(np.frombuffer(fid.read(4), dtype=">i4")),
-        ident=int(np.frombuffer(fid.read(4), dtype=">i4")),
+        kind=kind, ident=ident,
         r=np.frombuffer(fid.read(12), dtype=">f4"),
         coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
 
@@ -397,10 +329,14 @@ def _read_coord_trans_struct(fid, tag, shape, rlims):
     return data
 
 
-_coord_dict = {
+_ch_coord_dict = {
     FIFF.FIFFV_MEG_CH: FIFF.FIFFV_COORD_DEVICE,
     FIFF.FIFFV_REF_MEG_CH: FIFF.FIFFV_COORD_DEVICE,
     FIFF.FIFFV_EEG_CH: FIFF.FIFFV_COORD_HEAD,
+    FIFF.FIFFV_ECOG_CH: FIFF.FIFFV_COORD_HEAD,
+    FIFF.FIFFV_SEEG_CH: FIFF.FIFFV_COORD_HEAD,
+    FIFF.FIFFV_DBS_CH: FIFF.FIFFV_COORD_HEAD,
+    FIFF.FIFFV_FNIRS_CH: FIFF.FIFFV_COORD_HEAD
 }
 
 
@@ -421,11 +357,19 @@ def _read_ch_info_struct(fid, tag, shape, rlims):
     )
     # channel name
     ch_name = np.frombuffer(fid.read(16), dtype=">c")
-    ch_name = ch_name[:np.argmax(ch_name == b'')].tostring()
+    ch_name = ch_name[:np.argmax(ch_name == b'')].tobytes()
     d['ch_name'] = ch_name.decode()
     # coil coordinate system definition
-    d['coord_frame'] = _coord_dict.get(d['kind'], FIFF.FIFFV_COORD_UNKNOWN)
+    _update_ch_info_named(d)
     return d
+
+
+def _update_ch_info_named(d):
+    d['coord_frame'] = _ch_coord_dict.get(d['kind'], FIFF.FIFFV_COORD_UNKNOWN)
+    d['kind'] = _ch_kind_named.get(d['kind'], d['kind'])
+    d['coil_type'] = _ch_coil_type_named.get(d['coil_type'], d['coil_type'])
+    d['unit'] = _ch_unit_named.get(d['unit'], d['unit'])
+    d['unit_mul'] = _ch_unit_mul_named.get(d['unit_mul'], d['unit_mul'])
 
 
 def _read_old_pack(fid, tag, shape, rlims):
@@ -445,7 +389,7 @@ def _read_dir_entry_struct(fid, tag, shape, rlims):
 
 def _read_julian(fid, tag, shape, rlims):
     """Read julian tag."""
-    return jd2jcal(int(np.frombuffer(fid.read(4), dtype=">i4")))
+    return _julian_to_cal(int(np.frombuffer(fid.read(4), dtype=">i4")))
 
 
 # Read types call dict
@@ -477,7 +421,7 @@ _call_dict_names = {
 
 #  Append the simple types
 _simple_dict = {
-    FIFF.FIFFT_BYTE: '>B1',
+    FIFF.FIFFT_BYTE: '>B',
     FIFF.FIFFT_SHORT: '>i2',
     FIFF.FIFFT_INT: '>i4',
     FIFF.FIFFT_USHORT: '>u2',
@@ -517,17 +461,19 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
     if pos is not None:
         fid.seek(pos, 0)
     tag = _read_tag_header(fid)
+    if tag is None:
+        return tag
     if tag.size > 0:
         matrix_coding = _is_matrix & tag.type
         if matrix_coding != 0:
             tag.data = _read_matrix(fid, tag, shape, rlims, matrix_coding)
         else:
             #   All other data types
-            fun = _call_dict.get(tag.type)
-            if fun is not None:
-                tag.data = fun(fid, tag, shape, rlims)
-            else:
+            try:
+                fun = _call_dict[tag.type]
+            except KeyError:
                 raise Exception('Unimplemented tag data type %s' % tag.type)
+            tag.data = fun(fid, tag, shape, rlims)
     if tag.next != FIFF.FIFFV_NEXT_SEQ:
         # f.seek(tag.next,0)
         fid.seek(tag.next, 1)  # XXX : fix? pb when tag.next < 0
@@ -565,3 +511,7 @@ def has_tag(node, kind):
         if d.kind == kind:
             return True
     return False
+
+
+def _rename_list(bads, ch_names_mapping):
+    return [ch_names_mapping.get(bad, bad) for bad in bads]

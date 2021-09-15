@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-# Copyright (C) 2011-2017 Alexandre Gramfort
-# <alexandre.gramfort@telecom-paristech.fr>
+# Copyright (C) 2011-2020 Alexandre Gramfort
+# <alexandre.gramfort@inria.fr>
 
 import os
 import os.path as op
@@ -10,7 +10,7 @@ from setuptools import setup
 
 # get the version (don't import mne here, so dependencies are not needed)
 version = None
-with open(op.join('mne', '__init__.py'), 'r') as fid:
+with open(op.join('mne', '_version.py'), 'r') as fid:
     for line in (line.strip() for line in fid):
         if line.startswith('__version__'):
             version = line.split('=')[1].strip().strip('\'')
@@ -24,9 +24,9 @@ descr = """MNE python project for MEG and EEG data analysis."""
 DISTNAME = 'mne'
 DESCRIPTION = descr
 MAINTAINER = 'Alexandre Gramfort'
-MAINTAINER_EMAIL = 'alexandre.gramfort@telecom-paristech.fr'
-URL = 'http://martinos.org/mne'
-LICENSE = 'BSD (3-clause)'
+MAINTAINER_EMAIL = 'alexandre.gramfort@inria.fr'
+URL = 'https://mne.tools/dev/'
+LICENSE = 'BSD-3-Clause'
 DOWNLOAD_URL = 'http://github.com/mne-tools/mne-python'
 VERSION = version
 
@@ -45,6 +45,18 @@ if __name__ == "__main__":
     if op.exists('MANIFEST'):
         os.remove('MANIFEST')
 
+    with open('README.rst', 'r') as fid:
+        long_description = fid.read()
+
+    hard_dependencies = ('numpy', 'scipy')
+    install_requires = list()
+    with open('requirements.txt', 'r') as fid:
+        for line in fid:
+            req = line.strip()
+            for hard_dep in hard_dependencies:
+                if req.startswith(hard_dep):
+                    install_requires.append(req)
+
     setup(name=DISTNAME,
           maintainer=MAINTAINER,
           include_package_data=True,
@@ -54,7 +66,8 @@ if __name__ == "__main__":
           url=URL,
           version=VERSION,
           download_url=DOWNLOAD_URL,
-          long_description=open('README.rst').read(),
+          long_description=long_description,
+          long_description_content_type='text/x-rst',
           zip_safe=False,  # the package can run out of an .egg file
           classifiers=['Intended Audience :: Science/Research',
                        'Intended Audience :: Developers',
@@ -68,7 +81,15 @@ if __name__ == "__main__":
                        'Operating System :: MacOS',
                        'Programming Language :: Python :: 3',
                        ],
+          keywords='neuroscience neuroimaging MEG EEG ECoG fNIRS brain',
+          project_urls={
+              'Documentation': 'https://mne.tools/',
+              'Source': 'https://github.com/mne-tools/mne-python/',
+              'Tracker': 'https://github.com/mne-tools/mne-python/issues/',
+          },
           platforms='any',
+          python_requires='>=3.7',
+          install_requires=install_requires,
           packages=package_tree('mne'),
           package_data={'mne': [
               op.join('data', '*.sel'),
@@ -86,10 +107,16 @@ if __name__ == "__main__":
               op.join('channels', 'data', 'montages', '*.elc'),
               op.join('channels', 'data', 'neighbors', '*.mat'),
               op.join('datasets', 'sleep_physionet', 'SHA1SUMS'),
+              op.join('datasets', '_fsaverage', '*.txt'),
+              op.join('datasets', '_infant', '*.txt'),
               op.join('gui', 'help', '*.json'),
               op.join('html', '*.js'),
               op.join('html', '*.css'),
+              op.join('icons', '*.svg'),
+              op.join('icons', '*.png'),
               op.join('io', 'artemis123', 'resources', '*.csv'),
               op.join('io', 'edf', 'gdf_encodes.txt')
-              ]},
-          scripts=['bin/mne'])
+          ]},
+          entry_points={'console_scripts': [
+              'mne = mne.commands.utils:main',
+          ]})

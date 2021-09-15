@@ -149,8 +149,8 @@ def generate_flow_diagram(app):
     del node
     g.get_node('legend').attr.update(shape='plaintext', margin=0, rank='sink')
     # put legend in same rank/level as inverse
-    l = g.add_subgraph(['legend', 'inv'], name='legendy')
-    l.graph_attr['rank'] = 'same'
+    leg = g.add_subgraph(['legend', 'inv'], name='legendy')
+    leg.graph_attr['rank'] = 'same'
 
     g.layout('dot')
     g.draw(out_fname, format='svg')

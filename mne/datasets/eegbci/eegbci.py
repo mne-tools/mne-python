@@ -8,7 +8,7 @@ from ..utils import _get_path, _do_path_update
 from ...utils import _fetch_file, _url_to_local_path, verbose
 
 
-EEGMI_URL = 'http://www.physionet.org/physiobank/database/eegmmidb/'
+EEGMI_URL = 'https://physionet.org/files/eegmmidb/1.0.0/'
 
 
 @verbose
@@ -17,7 +17,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
     """Get path to local copy of EEGMMI dataset URL.
 
     This is a low-level function useful for getting a local copy of a
-    remote EEGBCI dataset [1]_ which is available at PhysioNet [2]_.
+    remote EEGBCI dataset :footcite:`SchalkEtAl2004` which is available at PhysioNet :footcite:`GoldbergerEtAl2000`.
 
     Parameters
     ----------
@@ -57,14 +57,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
 
     References
     ----------
-    .. [1] Schalk, G., McFarland, D.J., Hinterberger, T., Birbaumer, N.,
-           Wolpaw, J.R. (2004) BCI2000: A General-Purpose Brain-Computer
-           Interface (BCI) System. IEEE TBME 51(6):1034-1043
-    .. [2] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh,
-           Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000)
-           PhysioBank, PhysioToolkit, and PhysioNet: Components of a New
-           Research Resource for Complex Physiologic Signals.
-           Circulation 101(23):e215-e220
+    .. footbibliography::
     """  # noqa: E501
     key = 'MNE_DATASETS_EEGBCI_PATH'
     name = 'EEGBCI'
@@ -90,27 +83,15 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
               base_url=EEGMI_URL, verbose=None):  # noqa: D301
     """Get paths to local copies of EEGBCI dataset files.
 
-    This will fetch data for the EEGBCI dataset [1]_, which is also
-    available at PhysioNet [2]_.
+    This will fetch data for the EEGBCI dataset :footcite:`SchalkEtAl2004`, which is also
+    available at PhysioNet :footcite:`GoldbergerEtAl2000`.
 
     Parameters
     ----------
     subject : int
         The subject to use. Can be in the range of 1-109 (inclusive).
     runs : int | list of int
-        The runs to use. The runs correspond to:
-
-        =========  ===================================
-        run        task
-        =========  ===================================
-        1          Baseline, eyes open
-        2          Baseline, eyes closed
-        3, 7, 11   Motor execution: left vs right hand
-        4, 8, 12   Motor imagery: left vs right hand
-        5, 9, 13   Motor execution: hands vs feet
-        6, 10, 14  Motor imagery: hands vs feet
-        =========  ===================================
-
+        The runs to use. See Notes for details.
     path : None | str
         Location of where to look for the EEGBCI data storing location.
         If None, the environment variable or config parameter
@@ -123,6 +104,8 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
     update_path : bool | None
         If True, set the MNE_DATASETS_EEGBCI_PATH in mne-python
         config to the given path. If None, the user is prompted.
+    base_url : str
+        The URL root for the data.
     %(verbose)s
 
     Returns
@@ -132,11 +115,23 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
 
     Notes
     -----
-    For example, one could do:
+    The run numbers correspond to:
+
+    =========  ===================================
+    run        task
+    =========  ===================================
+    1          Baseline, eyes open
+    2          Baseline, eyes closed
+    3, 7, 11   Motor execution: left vs right hand
+    4, 8, 12   Motor imagery: left vs right hand
+    5, 9, 13   Motor execution: hands vs feet
+    6, 10, 14  Motor imagery: hands vs feet
+    =========  ===================================
+
+    For example, one could do::
 
         >>> from mne.datasets import eegbci
-        >>> eegbci.load_data(1, [4, 10, 14],\
-                             os.getenv('HOME') + '/datasets') # doctest:+SKIP
+        >>> eegbci.load_data(1, [4, 10, 14], os.getenv('HOME') + '/datasets') # doctest:+SKIP
 
     This would download runs 4, 10, and 14 (hand/foot motor imagery) runs from
     subject 1 in the EEGBCI dataset to the 'datasets' folder, and prompt the
@@ -145,15 +140,8 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
 
     References
     ----------
-    .. [1] Schalk, G., McFarland, D.J., Hinterberger, T., Birbaumer, N.,
-           Wolpaw, J.R. (2004) BCI2000: A General-Purpose Brain-Computer
-           Interface (BCI) System. IEEE TBME 51(6):1034-1043
-    .. [2] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh,
-           Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000)
-           PhysioBank, PhysioToolkit, and PhysioNet: Components of a New
-           Research Resource for Complex Physiologic Signals.
-           Circulation 101(23):e215-e220
-    """
+    .. footbibliography::
+    """  # noqa: E501
     if not hasattr(runs, '__iter__'):
         runs = [runs]
 
@@ -164,3 +152,23 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
         data_paths.extend(data_path(url, path, force_update, update_path))
 
     return data_paths
+
+
+def standardize(raw):
+    """Standardize channel positions and names.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        The raw data to standardize. Operates in-place.
+    """
+    rename = dict()
+    for name in raw.ch_names:
+        std_name = name.strip('.')
+        std_name = std_name.upper()
+        if std_name.endswith('Z'):
+            std_name = std_name[:-1] + 'z'
+        if std_name.startswith('FP'):
+            std_name = 'Fp' + std_name[2:]
+        rename[name] = std_name
+    raw.rename_channels(rename)

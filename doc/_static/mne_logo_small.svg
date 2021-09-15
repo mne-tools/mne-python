@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   id="svg19"
+   width="141.13637pt"
+   viewBox="0 0 141.13637 33.749998"
+   version="1.1"
+   height="33.75pt">
+  <metadata
+     id="metadata23">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     style="stroke-linecap:butt;stroke-linejoin:round"
+     id="defs4">
+    <style
+       id="style2"
+       type="text/css">
+*{stroke-linecap:butt;stroke-linejoin:round;}
+  </style>
+  </defs>
+  <g
+     transform="matrix(6.39205,0,0,6.39205,-1.1622396,-1.5564375e-5)"
+     style="stroke-linecap:butt;stroke-linejoin:round"
+     id="figure_1">
+    <g
+       style="stroke-linecap:butt;stroke-linejoin:round"
+       id="axes_1">
+      <g
+         transform="translate(0,0.32000046)"
+         style="stroke-linecap:butt;stroke-linejoin:round"
+         id="g7"
+         clip-path="url(#pc7af782329)">
+        <image
+           style="stroke-linecap:butt;stroke-linejoin:round"
+           y="-1.36"
+           xlink:href="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAB8AAAAICAYAAAABfSQaAAAAdElEQVR4nO3NsQ3CMAAF0fN3hzCxoigVEjsxLPsgpQIUEiKo8DcNO1CQ6656we9QPQqPok4RjxHPwndRH8JzxEvEy/efkcvmwK3Zc+qPDNeOYeo4v3rKVjgFnERJojTCu4CzcBalFSUH3Aq3QvywFV/x/8E/2JQwCpYkwJgAAAAASUVORK5CYII="
+           x="14"
+           width="7.4400001"
+           transform="matrix(1,0,0,-1,0,1.92)"
+           id="imaged79025e25a"
+           height="1.92" />
+      </g>
+      <g
+         style="stroke-linecap:butt;stroke-linejoin:round"
+         id="patch_1">
+        <path
+           id="path9"
+           style="fill:#808080;stroke-linecap:butt;stroke-linejoin:round"
+           d="M 3.793331,4.506059 V 2.586641 L 2.995202,3.904832 Q 2.980923,3.93339 2.947104,3.94316 2.913285,3.95293 2.889235,3.95293 2.860677,3.95293 2.826858,3.94316 2.793039,3.93339 2.77876,3.904832 L 1.980631,2.586641 V 4.506059 H 1.003636 V 0.773941 h 0.913866 q 0.048098,0 0.081917,0.042837 L 2.884726,2.293543 3.774543,0.816778 Q 3.808362,0.773941 3.851199,0.773941 H 4.770325 V 4.506059 Z M 7.665685,4.50155 6.371544,2.509985 V 4.50155 H 5.375761 V 0.773941 h 0.991274 l 1.29865,2.010354 V 0.773941 H 8.665977 V 4.50155 Z M 9.202272,4.50606 V 0.773941 h 2.977578 v 0.889816 h -2.005845 v 0.533589 h 1.890109 v 0.889817 h -1.890109 v 0.533589 h 2.005845 v 0.885307 z"
+           clip-path="url(#pc7af782329)" />
+      </g>
+    </g>
+  </g>
+  <defs
+     id="defs17">
+    <clipPath
+       style="stroke-linecap:butt;stroke-linejoin:round"
+       id="pc7af782329">
+      <rect
+         style="stroke-linecap:butt;stroke-linejoin:round"
+         id="rect14"
+         y="0.58733499"
+         x="0"
+         width="22.08"
+         height="4.10533" />
+    </clipPath>
+  </defs>
+</svg>

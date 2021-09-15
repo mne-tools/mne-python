@@ -1,11 +1,16 @@
 #!/usr/bin/env python
 r"""Browse raw data.
 
-You can do for example:
+This uses :func:`mne.io.read_raw` so it supports the same formats
+(without keyword arguments).
 
-$ mne browse_raw --raw sample_audvis_raw.fif \
-                 --proj sample_audvis_ecg-proj.fif \
-                 --eve sample_audvis_raw-eve.fif
+Examples
+--------
+.. code-block:: console
+
+    $ mne browse_raw sample_audvis_raw.fif \
+                     --proj sample_audvis_ecg-proj.fif \
+                     --eve sample_audvis_raw-eve.fif
 """
 
 # Authors : Eric Larson, PhD
@@ -17,16 +22,21 @@ import mne
 def run():
     """Run command."""
     import matplotlib.pyplot as plt
+    from mne.commands.utils import get_optparser, _add_verbose_flag
+    from mne.viz import _RAW_CLIP_DEF
 
-    from mne.commands.utils import get_optparser
-
-    parser = get_optparser(__file__)
+    parser = get_optparser(__file__, usage='usage: %prog raw [options]')
 
     parser.add_option("--raw", dest="raw_in",
-                      help="Input raw FIF file", metavar="FILE")
+                      help="Input raw FIF file (can also be specified "
+                      "directly as an argument without the --raw prefix)",
+                      metavar="FILE")
     parser.add_option("--proj", dest="proj_in",
                       help="Projector file", metavar="FILE",
                       default='')
+    parser.add_option("--projoff", dest="proj_off",
+                      help="Disable all projectors",
+                      default=False, action="store_true")
     parser.add_option("--eve", dest="eve_in",
                       help="Events file", metavar="FILE",
                       default='')
@@ -58,18 +68,21 @@ def run():
                       help="Display low-pass filter corner frequency",
                       default=-1)
     parser.add_option("--filtorder", dest="filtorder", type="int",
-                      help="Display filtering IIR order",
+                      help="Display filtering IIR order (or 0 to use FIR)",
                       default=4)
     parser.add_option("--clipping", dest="clipping",
-                      help="Enable trace clipping mode, either 'clip' or "
-                      "'transparent'", default=None)
+                      help="Enable trace clipping mode, either 'clamp' or "
+                      "'transparent'", default=_RAW_CLIP_DEF)
     parser.add_option("--filterchpi", dest="filterchpi",
                       help="Enable filtering cHPI signals.", default=None,
                       action="store_true")
-
+    _add_verbose_flag(parser)
     options, args = parser.parse_args()
 
-    raw_in = options.raw_in
+    if len(args):
+        raw_in = args[0]
+    else:
+        raw_in = options.raw_in
     duration = options.duration
     start = options.start
     n_channels = options.n_channels
@@ -77,20 +90,32 @@ def run():
     preload = options.preload
     show_options = options.show_options
     proj_in = options.proj_in
+    proj_off = options.proj_off
     eve_in = options.eve_in
     maxshield = options.maxshield
     highpass = options.highpass
     lowpass = options.lowpass
     filtorder = options.filtorder
     clipping = options.clipping
+    if isinstance(clipping, str):
+        if clipping.lower() == 'none':
+            clipping = None
+        else:
+            try:
+                clipping = float(clipping)  # allow float and convert it
+            except ValueError:
+                pass
     filterchpi = options.filterchpi
+    verbose = options.verbose
 
     if raw_in is None:
         parser.print_help()
         sys.exit(1)
 
-    raw = mne.io.read_raw_fif(raw_in, preload=preload,
-                              allow_maxshield=maxshield)
+    kwargs = dict(preload=preload)
+    if maxshield:
+        kwargs.update(allow_maxshield='yes')
+    raw = mne.io.read_raw(raw_in, **kwargs)
     if len(proj_in) > 0:
         projs = mne.read_proj(proj_in)
         raw.info['projs'] = projs
@@ -105,16 +130,13 @@ def run():
                 'Raw data must be preloaded for chpi, use --preload')
         raw = mne.chpi.filter_chpi(raw)
 
-    highpass = None if highpass < 0 or filtorder <= 0 else highpass
-    lowpass = None if lowpass < 0 or filtorder <= 0 else lowpass
-    filtorder = 4 if filtorder <= 0 else filtorder
+    highpass = None if highpass < 0 or filtorder < 0 else highpass
+    lowpass = None if lowpass < 0 or filtorder < 0 else lowpass
     raw.plot(duration=duration, start=start, n_channels=n_channels,
              group_by=group_by, show_options=show_options, events=events,
              highpass=highpass, lowpass=lowpass, filtorder=filtorder,
-             clipping=clipping)
+             clipping=clipping, proj=not proj_off, verbose=verbose)
     plt.show(block=True)
 
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()

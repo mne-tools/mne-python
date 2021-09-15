@@ -5,6 +5,7 @@
 SPHINXOPTS    = -nWT --keep-going
 SPHINXBUILD   = sphinx-build
 PAPER         =
+MPROF         = SG_STAMP_STARTS=true mprof run -E --python sphinx
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
@@ -40,13 +41,28 @@ html_stable:
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html_stable."
 
+html_stable-memory:
+	$(MPROF) -b html $(ALLSPHINXOPTS) _build/html_stable
+	@echo
+	@echo "Build finished. The HTML pages are in _build/html_stable."
+
 html_dev:
 	BUILD_DEV_HTML=1 $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html"
 
+html_dev-memory:
+	BUILD_DEV_HTML=1 $(MPROF) -b html $(ALLSPHINXOPTS) _build/html
+	@echo
+	@echo "Build finished. The HTML pages are in _build/html"
+
 html_dev-pattern:
-	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=1 -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -b html $(ALLSPHINXOPTS) _build/html
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -D sphinx_gallery_conf.run_stale_examples=True -b html $(ALLSPHINXOPTS) _build/html
+	@echo
+	@echo "Build finished. The HTML pages are in _build/html"
+
+html_dev-pattern-memory:
+	BUILD_DEV_HTML=1 $(MPROF) -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -D sphinx_gallery_conf.run_stale_examples=True -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html"
 
@@ -55,13 +71,16 @@ html_dev-noplot:
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html."
 
+html_dev-debug:
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -PD plot_gallery=0 -b html $(ALLSPHINXOPTS) _build/html
+
 html-noplot:
 	$(SPHINXBUILD) -D plot_gallery=0 -b html $(ALLSPHINXOPTS) _build/html_stable
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html_stable."
 
 html_dev-front:
-	@PATTERN="\(plot_mne_dspm_source_localization.py\|plot_receptive_field.py\|plot_mne_inverse_label_connectivity.py\|plot_sensors_decoding.py\|plot_stats_cluster_spatio_temporal.py\|plot_visualize_evoked.py\)" make html_dev-pattern;
+	@PATTERN="\(plot_mne_dspm_source_localization.py\|plot_receptive_field.py\|plot_mne_inverse_label_connectivity.py\|plot_sensors_decoding.py\|plot_stats_cluster_spatio_temporal.py\|plot_20_visualize_evoked.py\)" make html_dev-pattern;
 
 dirhtml:
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) _build/dirhtml

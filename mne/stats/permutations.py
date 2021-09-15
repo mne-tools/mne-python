@@ -1,6 +1,6 @@
 """T-test with permutations."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: Simplified BSD
 
@@ -32,7 +32,7 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
     adjusts p-values in a way that controls the family-wise error rate.
     However, the permutation method will be more
     powerful than Bonferroni correction when different variables in the test
-    are correlated (see [1]_).
+    are correlated (see :footcite:`NicholsHolmes2002`).
 
     Parameters
     ----------
@@ -49,20 +49,16 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
         the alternative hypothesis is that the mean of the data is different
         than 0 (two tailed test).  If tail is -1, the alternative hypothesis
         is that the mean of the data is less than 0 (lower tailed test).
-    n_jobs : int
-        Number of CPUs to use for computation.
-    seed : int | instance of RandomState | None
-        Seed the random number generator for results reproducibility.
+    %(n_jobs)s
+    %(seed)s
     %(verbose)s
 
     Returns
     -------
     T_obs : array of shape [n_tests]
-        T-statistic observed for all variables
-
+        T-statistic observed for all variables.
     p_values : array of shape [n_tests]
-        P-values for all the tests (aka variables)
-
+        P-values for all the tests (a.k.a. variables).
     H0 : array of shape [n_permutations]
         T-statistic obtained by permutations and t-max trick for multiple
         comparison.
@@ -75,9 +71,7 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
 
     References
     ----------
-    .. [1] Nichols, T. E. & Holmes, A. P. (2002). Nonparametric permutation
-       tests for functional neuroimaging: a primer with examples.
-       Human Brain Mapping, 15, 1-25.
+    .. footbibliography::
     """
     from .cluster_level import _get_1samp_orders
     n_samples, n_tests = X.shape
@@ -104,9 +98,29 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
     return T_obs, p_values, H0
 
 
-def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000, stat_fun='mean',
-                  random_state=None):
-    """Get confidence intervals from non-parametric bootstrap."""
+def bootstrap_confidence_interval(arr, ci=.95, n_bootstraps=2000,
+                                  stat_fun='mean', random_state=None):
+    """Get confidence intervals from non-parametric bootstrap.
+
+    Parameters
+    ----------
+    arr : ndarray, shape (n_samples, ...)
+        The input data on which to calculate the confidence interval.
+    ci : float
+        Level of the confidence interval between 0 and 1.
+    n_bootstraps : int
+        Number of bootstraps.
+    stat_fun : str | callable
+        Can be "mean", "median", or a callable operating along ``axis=0``.
+    random_state : int | float | array_like | None
+        The seed at which to initialize the bootstrap.
+
+    Returns
+    -------
+    cis : ndarray, shape (2, ...)
+        Containing the lower boundary of the CI at ``cis[0, ...]`` and the
+        upper boundary of the CI at ``cis[1, ...]``.
+    """
     if stat_fun == "mean":
         def stat_fun(x):
             return x.mean(axis=0)
@@ -129,8 +143,9 @@ def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000, stat_fun='mean',
 def _ci(arr, ci=.95, method="bootstrap", n_bootstraps=2000, random_state=None):
     """Calculate confidence interval. Aux function for plot_compare_evokeds."""
     if method == "bootstrap":
-        return _bootstrap_ci(arr, ci=ci, n_bootstraps=n_bootstraps,
-                             random_state=random_state)
+        return bootstrap_confidence_interval(arr, ci=ci,
+                                             n_bootstraps=n_bootstraps,
+                                             random_state=random_state)
     else:
         from . import _parametric_ci
         return _parametric_ci(arr, ci=ci)

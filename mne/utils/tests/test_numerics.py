@@ -1,6 +1,7 @@
 from copy import deepcopy
 from io import StringIO
 import os.path as op
+from datetime import datetime, timezone
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
@@ -9,15 +10,18 @@ from scipy import sparse
 
 from mne import read_evokeds, read_cov, pick_types
 from mne.io.pick import _picks_by_type
-from mne.epochs import _segment_raw
+from mne.epochs import make_fixed_length_epochs
 from mne.io import read_raw_fif
 from mne.time_frequency import tfr_morlet
-from mne.utils import (_get_inst_data, md5sum, hashfunc,
+from mne.utils import (_get_inst_data, hashfunc,
                        sum_squared, compute_corr, create_slices, _time_mask,
-                       random_permutation, _reg_pinv, object_size,
+                       _freq_mask, random_permutation, _reg_pinv, object_size,
                        object_hash, object_diff, _apply_scaling_cov,
                        _undo_scaling_cov, _apply_scaling_array,
-                       _undo_scaling_array)
+                       _undo_scaling_array, _PCA, requires_sklearn,
+                       _array_equal_nan, _julian_to_cal, _cal_to_julian,
+                       _dt_to_julian, _julian_to_dt, grand_average,
+                       _ReuseCycle, requires_version, numerics)
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -33,7 +37,7 @@ def test_get_inst_data():
     assert_array_equal(_get_inst_data(raw), raw._data)
     raw.pick_channels(raw.ch_names[:2])
 
-    epochs = _segment_raw(raw, 0.5)
+    epochs = make_fixed_length_epochs(raw, 0.5)
     assert_array_equal(_get_inst_data(epochs), epochs._data)
 
     evoked = epochs.average()
@@ -47,22 +51,6 @@ def test_get_inst_data():
     assert_array_equal(_get_inst_data(tfr), tfr.data)
 
     pytest.raises(TypeError, _get_inst_data, 'foo')
-
-
-def test_md5sum(tmpdir):
-    """Test md5sum calculation."""
-    tempdir = str(tmpdir)
-    fname1 = op.join(tempdir, 'foo')
-    fname2 = op.join(tempdir, 'bar')
-    with open(fname1, 'wb') as fid:
-        fid.write(b'abcd')
-    with open(fname2, 'wb') as fid:
-        fid.write(b'efgh')
-
-    with pytest.deprecated_call(match="please use .*hashfunc"):
-        assert md5sum(fname1) == md5sum(fname1, 1)
-        assert md5sum(fname2) == md5sum(fname2, 1024)
-        assert (md5sum(fname1) != md5sum(fname2))
 
 
 def test_hashfunc(tmpdir):
@@ -170,8 +158,40 @@ def test_time_mask():
     assert _time_mask(x, tmin=4.4999, sfreq=1).sum() == 2
     assert _time_mask(x, tmin=4, sfreq=1).sum() == 2
     # degenerate cases
-    pytest.raises(ValueError, _time_mask, x[:1], tmin=11, tmax=12)
-    pytest.raises(ValueError, _time_mask, x[:1], tmin=10, sfreq=1)
+    with pytest.raises(ValueError, match='No samples remain'):
+        _time_mask(x[:1], tmin=11, tmax=12)
+    with pytest.raises(ValueError, match='must be less than or equal to tmax'):
+        _time_mask(x[:1], tmin=10, sfreq=1)
+
+
+def test_freq_mask():
+    """Test safe frequency masking."""
+    N = 10
+    x = np.arange(N).astype(float)
+    assert _freq_mask(x, 1000., fmin=0, fmax=N - 1).sum() == N
+    assert _freq_mask(x - 1e-10, 1000., fmin=0, fmax=N - 1).sum() == N
+    assert _freq_mask(x - 1e-10, 1000., fmin=None, fmax=N - 1).sum() == N
+    assert _freq_mask(x - 1e-10, 1000., fmin=None, fmax=None).sum() == N
+    assert _freq_mask(x - 1e-10, 1000., fmin=-np.inf, fmax=None).sum() == N
+    assert _freq_mask(x - 1e-10, 1000., fmin=None, fmax=np.inf).sum() == N
+    # non-uniformly spaced inputs
+    x = np.array([4, 10])
+    assert _freq_mask(x[:1], 1, fmin=10, raise_error=False).sum() == 0
+    assert _freq_mask(x[:1], 1, fmin=11, fmax=12,
+                      raise_error=False).sum() == 0
+    assert _freq_mask(x, sfreq=1, fmin=10).sum() == 1
+    assert _freq_mask(x, sfreq=1, fmin=6).sum() == 1
+    assert _freq_mask(x, sfreq=1, fmin=5).sum() == 1
+    assert _freq_mask(x, sfreq=1, fmin=4.5001).sum() == 1
+    assert _freq_mask(x, sfreq=1, fmin=4.4999).sum() == 2
+    assert _freq_mask(x, sfreq=1, fmin=4).sum() == 2
+    # degenerate cases
+    with pytest.raises(ValueError, match='sfreq can not be None'):
+        _freq_mask(x[:1], sfreq=None, fmin=3, fmax=5)
+    with pytest.raises(ValueError, match='No frequencies remain'):
+        _freq_mask(x[:1], sfreq=1, fmin=11, fmax=12)
+    with pytest.raises(ValueError, match='must be less than or equal to fmax'):
+        _freq_mask(x[:1], sfreq=1, fmin=10)
 
 
 def test_random_permutation():
@@ -216,10 +236,14 @@ def test_cov_scaling():
     assert_allclose(data, evoked.data, atol=1e-20)
 
 
-def test_reg_pinv():
+@requires_version('numpy', '1.17')  # hermitian kwarg
+@pytest.mark.parametrize('ndim', (2, 3))
+def test_reg_pinv(ndim):
     """Test regularization and inversion of covariance matrix."""
     # create rank-deficient array
     a = np.array([[1., 0., 1.], [0., 1., 0.], [1., 0., 1.]])
+    for _ in range(ndim - 2):
+        a = a[np.newaxis]
 
     # Test if rank-deficient matrix without regularization throws
     # specific warning
@@ -227,15 +251,15 @@ def test_reg_pinv():
         _reg_pinv(a, reg=0.)
 
     # Test inversion with explicit rank
-    a_inv_np = np.linalg.pinv(a)
+    a_inv_np = np.linalg.pinv(a, hermitian=True)
     a_inv_mne, loading_factor, rank = _reg_pinv(a, rank=2)
     assert loading_factor == 0
     assert rank == 2
-    assert_array_equal(a_inv_np, a_inv_mne)
+    assert_allclose(a_inv_np, a_inv_mne, atol=1e-14)
 
     # Test inversion with automatic rank detection
     a_inv_mne, _, estimated_rank = _reg_pinv(a, rank=None)
-    assert_array_equal(a_inv_np, a_inv_mne)
+    assert_allclose(a_inv_np, a_inv_mne, atol=1e-14)
     assert estimated_rank == 2
 
     # Test adding regularization
@@ -246,13 +270,13 @@ def test_reg_pinv():
     # The estimated rank should be that of the non-regularized matrix
     assert estimated_rank == 2
     # Test result against the NumPy version
-    a_inv_np = np.linalg.pinv(a + loading_factor * np.eye(3))
-    assert_array_equal(a_inv_np, a_inv_mne)
+    a_inv_np = np.linalg.pinv(a + loading_factor * np.eye(3), hermitian=True)
+    assert_allclose(a_inv_np, a_inv_mne, atol=1e-14)
 
     # Test setting rcond
     a_inv_np = np.linalg.pinv(a, rcond=0.5)
     a_inv_mne, _, estimated_rank = _reg_pinv(a, rcond=0.5)
-    assert_array_equal(a_inv_np, a_inv_mne)
+    assert_allclose(a_inv_np, a_inv_mne, atol=1e-14)
     assert estimated_rank == 1
 
     # Test inverting an all zero cov
@@ -273,13 +297,40 @@ def test_object_size():
                               (0, 150, np.ones(0)),
                               (0, 150, np.int32(1)),
                               (150, 500, np.ones(20)),
-                              (100, 400, dict()),
+                              (30, 400, dict()),
                               (400, 1000, dict(a=np.ones(50))),
                               (200, 900, sparse.eye(20, format='csc')),
                               (200, 900, sparse.eye(20, format='csr'))):
         size = object_size(obj)
         assert lower < size < upper, \
             '%s < %s < %s:\n%s' % (lower, size, upper, obj)
+    # views work properly
+    x = dict(a=1)
+    assert object_size(x) < 1000
+    x['a'] = np.ones(100000, float)
+    nb = x['a'].nbytes
+    sz = object_size(x)
+    assert nb < sz < nb * 1.01
+    x['b'] = x['a']
+    sz = object_size(x)
+    assert nb < sz < nb * 1.01
+    x['b'] = x['a'].view()
+    x['b'].flags.writeable = False
+    assert x['a'].flags.writeable
+    sz = object_size(x)
+    assert nb < sz < nb * 1.01
+
+
+def test_object_diff_with_nan():
+    """Test object diff can handle NaNs."""
+    d0 = np.array([1, np.nan, 0])
+    d1 = np.array([1, np.nan, 0])
+    d2 = np.array([np.nan, 1, 0])
+
+    assert object_diff(d0, d1) == ''
+    assert object_diff(d0, d2) != ''
+    assert object_diff(np.nan, np.nan) == ''
+    assert object_diff(np.nan, 3.5) == ' value mismatch (nan, 3.5)\n'
 
 
 def test_hash():
@@ -366,3 +417,125 @@ def test_hash():
     # smoke test for gh-4796
     assert object_hash(np.int64(1)) != 0
     assert object_hash(np.bool_(True)) != 0
+
+
+@requires_sklearn
+@pytest.mark.parametrize('n_components', (None, 0.9999, 8, 'mle'))
+@pytest.mark.parametrize('whiten', (True, False))
+def test_pca(n_components, whiten):
+    """Test PCA equivalence."""
+    from sklearn.decomposition import PCA
+    n_samples, n_dim = 1000, 10
+    X = np.random.RandomState(0).randn(n_samples, n_dim)
+    X[:, -1] = np.mean(X[:, :-1], axis=-1)  # true X dim is ndim - 1
+    X_orig = X.copy()
+    pca_skl = PCA(n_components, whiten=whiten, svd_solver='full')
+    pca_mne = _PCA(n_components, whiten=whiten)
+    X_skl = pca_skl.fit_transform(X)
+    assert_array_equal(X, X_orig)
+    X_mne = pca_mne.fit_transform(X)
+    assert_array_equal(X, X_orig)
+    assert_allclose(X_skl, X_mne)
+    assert pca_mne.n_components_ == pca_skl.n_components_
+    for key in ('mean_', 'components_',
+                'explained_variance_', 'explained_variance_ratio_'):
+        val_skl, val_mne = getattr(pca_skl, key), getattr(pca_mne, key)
+        assert_allclose(val_skl, val_mne)
+    if isinstance(n_components, float):
+        assert pca_mne.n_components_ == n_dim - 1
+    elif isinstance(n_components, int):
+        assert pca_mne.n_components_ == n_components
+    elif n_components == 'mle':
+        assert pca_mne.n_components_ == n_dim - 1
+    else:
+        assert n_components is None
+        assert pca_mne.n_components_ == n_dim
+
+
+def test_array_equal_nan():
+    """Test comparing arrays with NaNs."""
+    a = b = [1, np.nan, 0]
+    assert not np.array_equal(a, b)  # this is the annoying behavior we avoid
+    assert _array_equal_nan(a, b)
+    b = [np.nan, 1, 0]
+    assert not _array_equal_nan(a, b)
+    a = b = [np.nan] * 2
+    assert _array_equal_nan(a, b)
+
+
+def test_julian_conversions():
+    """Test julian calendar conversions."""
+    # https://aa.usno.navy.mil/data/docs/JulianDate.php
+    # A.D. 1922 Jun 13  12:00:00.0  2423219.000000
+    # A.D. 2018 Oct 3   12:00:00.0  2458395.000000
+
+    jds = [2423219, 2458395, 2445701]
+    dds = [datetime(1922, 6, 13, 12, 0, 0, tzinfo=timezone.utc),
+           datetime(2018, 10, 3, 12, 0, 0, tzinfo=timezone.utc),
+           datetime(1984, 1, 1, 12, 0, 0, tzinfo=timezone.utc)]
+    cals = [(1922, 6, 13), (2018, 10, 3), (1984, 1, 1)]
+
+    for dd, cal, jd in zip(dds, cals, jds):
+        assert (dd == _julian_to_dt(jd))
+        assert (cal == _julian_to_cal(jd))
+
+        assert (jd == _dt_to_julian(dd))
+        assert (jd == _cal_to_julian(cal[0], cal[1], cal[2]))
+
+
+def test_grand_average_empty_sequence():
+    """Test if mne.grand_average handles an empty sequence correctly."""
+    with pytest.raises(ValueError, match='Please pass a list of Evoked'):
+        grand_average([])
+
+
+def test_grand_average_len_1():
+    """Test if mne.grand_average handles a sequence of length 1 correctly."""
+    # returns a list of length 1
+    evokeds = read_evokeds(ave_fname, condition=[0], proj=True)
+
+    with pytest.warns(RuntimeWarning, match='Only a single dataset'):
+        gave = grand_average(evokeds)
+
+    assert_allclose(gave.data, evokeds[0].data)
+
+
+def test_reuse_cycle():
+    """Test _ReuseCycle."""
+    vals = 'abcde'
+    iterable = _ReuseCycle(vals)
+    assert ''.join(next(iterable) for _ in range(2 * len(vals))) == vals + vals
+    # we're back to initial
+    assert ''.join(next(iterable) for _ in range(2)) == 'ab'
+    iterable.restore('a')
+    assert ''.join(next(iterable) for _ in range(10)) == 'acdeabcdea'
+    assert ''.join(next(iterable) for _ in range(4)) == 'bcde'
+    # we're back to initial
+    assert ''.join(next(iterable) for _ in range(3)) == 'abc'
+    iterable.restore('a')
+    iterable.restore('b')
+    iterable.restore('c')
+    assert ''.join(next(iterable) for _ in range(5)) == 'abcde'
+    # we're back to initial
+    assert ''.join(next(iterable) for _ in range(3)) == 'abc'
+    iterable.restore('a')
+    iterable.restore('c')
+    assert ''.join(next(iterable) for _ in range(4)) == 'acde'
+    assert ''.join(next(iterable) for _ in range(5)) == 'abcde'
+    # we're back to initial
+    assert ''.join(next(iterable) for _ in range(3)) == 'abc'
+    iterable.restore('c')
+    iterable.restore('a')
+    with pytest.warns(RuntimeWarning, match='Could not find'):
+        iterable.restore('a')
+    assert ''.join(next(iterable) for _ in range(4)) == 'acde'
+    assert ''.join(next(iterable) for _ in range(5)) == 'abcde'
+
+
+@pytest.mark.parametrize('n', (0, 1, 10, 1000))
+@pytest.mark.parametrize('d', (0.0001, 1, 2.5, 1000))
+def test_arange_div(numba_conditional, n, d):
+    """Test Numba arange_div."""
+    want = np.arange(n) / d
+    got = numerics._arange_div(n, d)
+    assert_allclose(got, want)

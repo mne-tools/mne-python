@@ -2,7 +2,7 @@
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
 import sys
@@ -13,27 +13,27 @@ from mayavi.tools.mlab_scene_model import MlabSceneModel
 from pyface.api import confirm, error, FileDialog, OK, YES
 from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                         cached_property, Instance, Property, Array, Bool,
-                        Button, Enum, File, Float, List, Str)
+                        Button, Enum, File, Float, List, Str, ArrayOrNone)
 from traitsui.api import View, Item, HGroup, VGroup, CheckListEditor
 from traitsui.menu import Action, CancelButton
 
 from ..transforms import apply_trans, rotation, translation
 from ..coreg import fit_matched_points
 from ..io.kit import read_mrk
-from ..io.meas_info import _write_dig_points
+from ..io._digitization import _write_dig_points
 from ._viewer import PointObject
+from ._backend import _get_pyface_backend
 
 
-backend_is_wx = False  # is there a way to determine this?
-if backend_is_wx:
-    mrk_wildcard = ['Supported Files (*.sqd, *.mrk, *.txt, *.pickled)|'
-                    '*.sqd;*.mrk;*.txt;*.pickled',
-                    'Sqd marker file (*.sqd;*.mrk)|*.sqd;*.mrk',
-                    'Text marker file (*.txt)|*.txt',
-                    'Pickled markers (*.pickled)|*.pickled']
+if _get_pyface_backend() == 'wx':
+    mrk_wildcard = [
+        'Supported Files (*.sqd, *.mrk, *.txt, *.pickled)|*.sqd;*.mrk;*.txt;*.pickled',  # noqa:E501
+        'Sqd marker file (*.sqd;*.mrk)|*.sqd;*.mrk',
+        'Text marker file (*.txt)|*.txt',
+        'Pickled markers (*.pickled)|*.pickled']
     mrk_out_wildcard = ["Tab separated values file (*.txt)|*.txt"]
 else:
-    if sys.platform in ('win32',  'linux2'):
+    if sys.platform in ('win32', 'linux2'):
         # on Windows and Ubuntu, multiple wildcards does not seem to work
         mrk_wildcard = ["*.sqd", "*.mrk", "*.txt", "*.pickled"]
     else:
@@ -217,7 +217,7 @@ class MarkerPointDest(MarkerPoints):  # noqa: D401
     name = Property(Str, depends_on='src1.name,src2.name')
     dir = Property(Str, depends_on='src1.dir,src2.dir')
 
-    points = Property(Array(float, (5, 3)),
+    points = Property(ArrayOrNone(float, (5, 3)),
                       depends_on=['method', 'src1.points', 'src1.use',
                                   'src2.points', 'src2.use'])
     enabled = Property(Bool, depends_on=['points'])

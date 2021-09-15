@@ -1,34 +1,56 @@
 # -*- coding: utf-8 -*-
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
-from io import BytesIO
+from io import BytesIO, SEEK_SET
 from gzip import GzipFile
 
 import numpy as np
-from scipy import sparse
 
-from .tag import read_tag_info, read_tag, read_big, Tag, _call_dict_names
+from .tag import read_tag_info, read_tag, Tag, _call_dict_names
 from .tree import make_dir_tree, dir_tree_find
 from .constants import FIFF
-from ..utils import logger, verbose
+from ..utils import logger, verbose, _file_like, warn
+
+
+class _NoCloseRead(object):
+    """Create a wrapper that will not close when used as a context manager."""
+
+    def __init__(self, fid):
+        self.fid = fid
+
+    def __enter__(self):
+        return self.fid
+
+    def __exit__(self, type_, value, traceback):
+        return
+
+    def close(self):
+        return
+
+    def seek(self, offset, whence=SEEK_SET):
+        return self.fid.seek(offset, whence)
+
+    def read(self, size=-1):
+        return self.fid.read(size)
 
 
 def _fiff_get_fid(fname):
     """Open a FIF file with no additional parsing."""
-    if isinstance(fname, str):
+    if _file_like(fname):
+        fid = _NoCloseRead(fname)
+        fid.seek(0)
+    else:
+        fname = str(fname)
         if op.splitext(fname)[1].lower() == '.gz':
             logger.debug('Using gzip')
             fid = GzipFile(fname, "rb")  # Open in binary mode
         else:
             logger.debug('Using normal I/O')
             fid = open(fname, "rb")  # Open in binary mode
-    else:
-        fid = fname
-        fid.seek(0)
     return fid
 
 
@@ -57,15 +79,17 @@ def _get_next_fname(fid, fname, tree):
                 path, base = op.split(fname)
                 idx = base.find('.')
                 idx2 = base.rfind('-')
+                num_str = base[idx2 + 1:idx]
+                if not num_str.isdigit():
+                    idx2 = -1
+
                 if idx2 < 0 and next_num == 1:
                     # this is the first file, which may not be numbered
                     next_fname = op.join(
                         path, '%s-%d.%s' % (base[:idx], next_num,
                                             base[idx + 1:]))
                     continue
-                num_str = base[idx2 + 1:idx]
-                if not num_str.isdigit():
-                    continue
+
                 next_fname = op.join(path, '%s-%d.%s'
                                      % (base[:idx2], next_num, base[idx + 1:]))
         if next_fname is not None:
@@ -79,7 +103,7 @@ def fiff_open(fname, preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : string | fid
+    fname : str | fid
         Name of the fif file, or an opened file (will seek back to 0).
     preload : bool
         If True, all data from the file is read into a memory buffer. This
@@ -90,7 +114,7 @@ def fiff_open(fname, preload=False, verbose=None):
     Returns
     -------
     fid : file
-        The file descriptor of the open file
+        The file descriptor of the open file.
     tree : fif tree
         The tree is a complex structure filled with dictionaries,
         lists and tags.
@@ -98,13 +122,20 @@ def fiff_open(fname, preload=False, verbose=None):
         A list of tags.
     """
     fid = _fiff_get_fid(fname)
+    try:
+        return _fiff_open(fname, fid, preload)
+    except Exception:
+        fid.close()
+        raise
+
+
+def _fiff_open(fname, fid, preload):
     # do preloading of entire file
     if preload:
         # note that StringIO objects instantiated this way are read-only,
         # but that's okay here since we are using mode "rb" anyway
-        fid_old = fid
-        fid = BytesIO(read_big(fid_old))
-        fid_old.close()
+        with fid as fid_old:
+            fid = BytesIO(fid_old.read())
 
     tag = read_tag_info(fid)
 
@@ -127,10 +158,16 @@ def fiff_open(fname, preload=False, verbose=None):
     logger.debug('    Creating tag directory for %s...' % fname)
 
     dirpos = int(tag.data)
+    read_slow = True
     if dirpos > 0:
-        tag = read_tag(fid, dirpos)
-        directory = tag.data
-    else:
+        dir_tag = read_tag(fid, dirpos)
+        if dir_tag is None:
+            warn(f'FIF tag directory missing at the end of the file, possibly '
+                 f'corrupted file: {fname}')
+        else:
+            directory = dir_tag.data
+            read_slow = False
+    if read_slow:
         fid.seek(0, 0)
         directory = list()
         while tag.next >= 0:
@@ -177,6 +214,11 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
         Provide information about this tag. If None (default), all information
         is shown.
     %(verbose)s
+
+    Returns
+    -------
+    contents : str
+        The contents of the file.
     """
     if output not in [list, str]:
         raise ValueError('output must be list or str')
@@ -207,6 +249,7 @@ def _find_type(value, fmts=['FIFF_'], exclude=['FIFF_UNIT']):
 
 def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
     """Show FIFF tree."""
+    from scipy import sparse
     this_idt = indent * level
     next_idt = indent * (level + 1)
     # print block-level information

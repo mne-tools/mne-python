@@ -11,7 +11,7 @@ from mne import (read_evokeds, read_cov, compute_raw_covariance, pick_types,
 from mne.cov import prepare_noise_cov
 from mne.datasets import testing
 from mne.io import read_raw_fif
-from mne.io.pick import channel_type, _picks_by_type
+from mne.io.pick import _picks_by_type, _get_channel_types
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.proj import compute_proj_raw
 from mne.rank import (estimate_rank, compute_rank, _get_rank_sss,
@@ -22,11 +22,11 @@ base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 ave_fname = op.join(base_dir, 'test-ave.fif')
+ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 testing_path = testing.data_path(download=False)
 data_dir = op.join(testing_path, 'MEG', 'sample')
-fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
 mf_fif_fname = op.join(testing_path, 'SSS', 'test_move_anon_raw_sss.fif')
 
 
@@ -41,34 +41,52 @@ def test_estimate_rank():
 
 
 @pytest.mark.slowtest
-@testing.requires_testing_data
-def test_rank_estimation():
+@pytest.mark.parametrize(
+    'fname, ref_meg', ((raw_fname, False),
+                       (hp_fif_fname, False),
+                       (ctf_fname, False),
+                       (ctf_fname, True)))
+@pytest.mark.parametrize(
+    'scalings', ('norm', dict(mag=1e11, grad=1e9, eeg=1e5)))
+@pytest.mark.parametrize('tol_kind, tol', [
+    ('absolute', 1e-4),
+    ('relative', 1e-6),
+])
+def test_raw_rank_estimation(fname, ref_meg, scalings, tol_kind, tol):
     """Test raw rank estimation."""
-    iter_tests = itt.product(
-        [fif_fname, hp_fif_fname],  # sss
-        ['norm', dict(mag=1e11, grad=1e9, eeg=1e5)]
-    )
-    for fname, scalings in iter_tests:
-        raw = read_raw_fif(fname).crop(0, 4.).load_data()
-        (_, picks_meg), (_, picks_eeg) = _picks_by_type(raw.info,
-                                                        meg_combined=True)
-        n_meg = len(picks_meg)
-        n_eeg = len(picks_eeg)
-
-        if len(raw.info['proc_history']) == 0:
-            expected_rank = n_meg + n_eeg
+    if ref_meg and scalings != 'norm':
+        # Adjust for CTF data (scale factors are quite different)
+        if tol_kind == 'relative':
+            scalings = dict(mag=1.)
         else:
-            expected_rank = _get_rank_sss(raw.info) + n_eeg
-        assert _estimate_rank_raw(raw, scalings=scalings) == expected_rank
-        with pytest.deprecated_call():
-            assert raw.estimate_rank(picks=picks_eeg,
-                                     scalings=scalings) == n_eeg
-        if 'sss' in fname:
-            raw.add_proj(compute_proj_raw(raw))
-        raw.apply_proj()
-        n_proj = len(raw.info['projs'])
-        want_rank = expected_rank - (0 if 'sss' in fname else n_proj)
-        assert _estimate_rank_raw(raw, scalings=scalings) == want_rank
+            scalings = dict(mag=1e31)
+    raw = read_raw_fif(fname)
+    raw.crop(0, min(4., raw.times[-1])).load_data()
+    out = _picks_by_type(raw.info, ref_meg=ref_meg, meg_combined=True)
+    has_eeg = 'eeg' in raw
+    if has_eeg:
+        (_, picks_meg), (_, picks_eeg) = out
+    else:
+        (_, picks_meg), = out
+        picks_eeg = []
+    n_meg = len(picks_meg)
+    n_eeg = len(picks_eeg)
+
+    if len(raw.info['proc_history']) == 0:
+        expected_rank = n_meg + n_eeg
+    else:
+        expected_rank = _get_rank_sss(raw.info) + n_eeg
+    got_rank = _estimate_rank_raw(raw, scalings=scalings, with_ref_meg=ref_meg,
+                                  tol=tol, tol_kind=tol_kind)
+    assert got_rank == expected_rank
+    if 'sss' in fname:
+        raw.add_proj(compute_proj_raw(raw))
+    raw.apply_proj()
+    n_proj = len(raw.info['projs'])
+    want_rank = expected_rank - (0 if 'sss' in fname else n_proj)
+    got_rank = _estimate_rank_raw(raw, scalings=scalings, with_ref_meg=ref_meg,
+                                  tol=tol, tol_kind=tol_kind)
+    assert got_rank == want_rank
 
 
 @pytest.mark.slowtest
@@ -145,8 +163,7 @@ def test_cov_rank_estimation(rank_method, proj, meg):
                                for proj in this_info['projs'])
 
             # count channel types
-            ch_types = [channel_type(this_info, idx)
-                        for idx in range(len(picks))]
+            ch_types = _get_channel_types(this_info)
             n_eeg, n_mag, n_grad = [ch_types.count(k) for k in
                                     ['eeg', 'mag', 'grad']]
             n_meg = n_mag + n_grad
@@ -176,13 +193,22 @@ def test_cov_rank_estimation(rank_method, proj, meg):
 @pytest.mark.parametrize('n_proj, meg', ((0, 'combined'),
                                          (10, 'combined'),
                                          (10, 'separate')))
-def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg):
+@pytest.mark.parametrize('tol_kind, tol', [
+    ('absolute', 'float32'),
+    ('relative', 'float32'),
+    ('relative', 1e-5),
+])
+def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg, tol_kind, tol):
     """Test maxfilter rank lookup."""
-    raw = read_raw_fif(fname).crop(0, 5).load_data().pick_types()
+    raw = read_raw_fif(fname).crop(0, 5).load_data().pick_types(meg=True)
     assert raw.info['projs'] == []
     mf = raw.info['proc_history'][0]['max_info']
     assert mf['sss_info']['nfree'] == rank_orig
-    assert _get_rank_sss(raw) == rank_orig
+
+    assert compute_rank(raw, 'info')['meg'] == rank_orig
+    assert compute_rank(raw.copy().pick('grad'), 'info')['grad'] == rank_orig
+    assert compute_rank(raw.copy().pick('mag'), 'info')['mag'] == rank_orig
+
     mult = 1 + (meg == 'separate')
     rank = rank_orig - mult * n_proj
     if n_proj > 0:
@@ -195,7 +221,7 @@ def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg):
     # degenerate cases
     with pytest.raises(ValueError, match='tol must be'):
         _estimate_rank_raw(raw, tol='foo')
-    with pytest.raises(TypeError, match='must be a string or a number'):
+    with pytest.raises(TypeError, match='must be a string or a'):
         _estimate_rank_raw(raw, tol=None)
 
     allowed_rank = [rank_orig if meg == 'separate' else rank]
@@ -207,25 +233,70 @@ def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg):
 
     # multiple ways of hopefully getting the same thing
     # default tol=1e-4, scalings='norm'
-    rank_new = _estimate_rank_raw(raw)
+    rank_new = _estimate_rank_raw(raw, tol_kind=tol_kind)
     assert rank_new in allowed_rank
 
-    tol = 'float32'  # temporary option until we can fix things
-    rank_new = _estimate_rank_raw(raw, tol=tol)
-    assert rank_new in allowed_rank
-    rank_new = _estimate_rank_raw(raw, scalings=dict(), tol=tol)
+    rank_new = _estimate_rank_raw(
+        raw, tol=tol, tol_kind=tol_kind)
+    if fname == mf_fif_fname and tol_kind == 'relative' and tol != 'auto':
+        pass  # does not play nicely with row norms of _estimate_rank_raw
+    else:
+        assert rank_new in allowed_rank
+    rank_new = _estimate_rank_raw(
+        raw, scalings=dict(), tol=tol, tol_kind=tol_kind)
     assert rank_new in allowed_rank
     scalings = dict(grad=1e13, mag=1e15)
-    rank_new = _compute_rank_int(raw, None, scalings=scalings, tol=tol,
-                                 verbose='debug')
+    rank_new = _compute_rank_int(
+        raw, None, scalings=scalings, tol=tol, tol_kind=tol_kind,
+        verbose='debug')
     assert rank_new in allowed_rank
     # XXX default scalings mis-estimate sometimes :(
     if fname == hp_fif_fname:
         allowed_rank.append(allowed_rank[0] - 2)
-    rank_new = _compute_rank_int(raw, None, tol=tol, verbose='debug')
+    rank_new = _compute_rank_int(
+        raw, None, tol=tol, tol_kind=tol_kind, verbose='debug')
     assert rank_new in allowed_rank
     del allowed_rank
 
     rank_new = _compute_rank_int(raw, 'info')
     assert rank_new == rank
     assert_array_equal(raw[:][0], data_orig)
+
+
+def test_explicit_bads_pick():
+    """Test when bads channels are explicitly passed + default picks=None."""
+    raw = read_raw_fif(raw_fname, preload=True)
+    raw.pick_types(eeg=True, meg=True, ref_meg=True)
+
+    # Covariance
+    # Default picks=None
+    raw.info['bads'] = list()
+    noise_cov_1 = compute_raw_covariance(raw, picks=None)
+    rank = compute_rank(noise_cov_1, info=raw.info)
+    assert rank == dict(meg=303, eeg=60)
+    assert raw.info['bads'] == []
+
+    raw.info['bads'] = ['EEG 002', 'EEG 012', 'EEG 015', 'MEG 0122']
+    noise_cov = compute_raw_covariance(raw, picks=None)
+    rank = compute_rank(noise_cov, info=raw.info)
+    assert rank == dict(meg=302, eeg=57)
+    assert raw.info['bads'] == ['EEG 002', 'EEG 012', 'EEG 015', 'MEG 0122']
+
+    # Explicit picks
+    picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
+    noise_cov_2 = compute_raw_covariance(raw, picks=picks)
+    rank = compute_rank(noise_cov_2, info=raw.info)
+    assert rank == dict(meg=303, eeg=60)
+    assert raw.info['bads'] == ['EEG 002', 'EEG 012', 'EEG 015', 'MEG 0122']
+
+    assert_array_equal(noise_cov_1['data'], noise_cov_2['data'])
+    assert noise_cov_1['names'] == noise_cov_2['names']
+
+    # Raw
+    raw.info['bads'] = list()
+    rank = compute_rank(raw)
+    assert rank == dict(meg=303, eeg=60)
+
+    raw.info['bads'] = ['EEG 002', 'EEG 012', 'EEG 015', 'MEG 0122']
+    rank = compute_rank(raw)
+    assert rank == dict(meg=302, eeg=57)

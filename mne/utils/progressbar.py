@@ -2,21 +2,21 @@
 """Some utility functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from collections.abc import Iterable
-import time
+import os
+import os.path as op
 import logging
 import tempfile
-import sys
-import os.path as op
-import os
-import shutil
+from threading import Thread
+import time
 
 import numpy as np
 
+from .check import _check_option
+from .config import get_config
 from ._logging import logger
-from .misc import sizeof_fmt
 
 
 class ProgressBar(object):
@@ -24,82 +24,65 @@ class ProgressBar(object):
 
     Parameters
     ----------
-    max_value : int | iterable
-        Maximum value of process (e.g. number of samples to process, bytes to
-        download, etc.). If an iterable is given, then `max_value` will be set
-        to the length of this iterable.
+    iterable : iterable | int | None
+        The iterable to use. Can also be an int for backward compatibility
+        (acts like ``max_value``).
     initial_value : int
         Initial value of process, useful when resuming process from a specific
         value, defaults to 0.
     mesg : str
         Message to include at end of progress bar.
-    max_chars : int | str
-        Number of characters to use for progress bar itself.
-        This does not include characters used for the message or percent
-        complete. Can be "auto" (default) to try to set a sane value based
-        on the terminal width.
-    progress_character : char
-        Character in the progress bar that indicates the portion completed.
-    spinner : bool
-        Show a spinner.  Useful for long-running processes that may not
-        increment the progress bar very often.  This provides the user with
-        feedback that the progress has not stalled.
     max_total_width : int | str
         Maximum total message width. Can use "auto" (default) to try to set
         a sane value based on the current terminal width.
-    verbose_bool : bool
-        If True, show progress.
-
-    Example
-    -------
-    >>> progress = ProgressBar(13000)
-    >>> progress.update(3000) # doctest: +SKIP
-    [.........                               ] 23.07692 |
-    >>> progress.update(6000) # doctest: +SKIP
-    [..................                      ] 46.15385 |
-
-    >>> progress = ProgressBar(13000, spinner=True)
-    >>> progress.update(3000) # doctest: +SKIP
-    [.........                               ] 23.07692 |
-    >>> progress.update(6000) # doctest: +SKIP
-    [..................                      ] 46.15385 /
+    max_value : int | None
+        The max value. If None, the length of ``iterable`` will be used.
+    **kwargs : dict
+        Additional keyword arguments for tqdm.
     """
 
-    spinner_symbols = ['|', '/', '-', '\\']
-    template = '\r[{0}{1}] {2:6.02f}% {4} {3}   '
-
-    def __init__(self, max_value, initial_value=0, mesg='', max_chars='auto',
-                 progress_character='.', spinner=False,
-                 max_total_width='auto', verbose_bool=True):  # noqa: D102
-        self.cur_value = initial_value
-        if isinstance(max_value, Iterable):
-            self.max_value = len(max_value)
-            self.iterable = max_value
-        else:
-            self.max_value = max_value
+    def __init__(self, iterable=None, initial_value=0, mesg=None,
+                 max_total_width='auto', max_value=None,
+                 **kwargs):  # noqa: D102
+        # The following mimics this, but with configurable module to use
+        # from ..externals.tqdm import auto
+        from ..externals import tqdm
+        which_tqdm = get_config('MNE_TQDM', 'tqdm.auto')
+        _check_option('MNE_TQDM', which_tqdm[:5], ('tqdm', 'tqdm.', 'off'),
+                      extra='beginning')
+        logger.debug(f'Using ProgressBar with {which_tqdm}')
+        if which_tqdm not in ('tqdm', 'off'):
+            tqdm = getattr(tqdm, which_tqdm.split('.', 1)[1])
+        tqdm = tqdm.tqdm
+        defaults = dict(
+            leave=True, mininterval=0.016, miniters=1, smoothing=0.05,
+            bar_format='{percentage:3.0f}%|{bar}| {desc} : {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt:>11}{postfix}]',  # noqa: E501
+        )
+        for key, val in defaults.items():
+            if key not in kwargs:
+                kwargs.update({key: val})
+        if isinstance(iterable, Iterable):
+            self.iterable = iterable
+            if max_value is None:
+                self.max_value = len(iterable)
+            else:
+                self.max_value = max_value
+        else:  # ignore max_value then
+            self.max_value = int(iterable)
             self.iterable = None
-        self.mesg = mesg
-        self.progress_character = progress_character
-        self.spinner = spinner
-        self.spinner_index = 0
-        self.n_spinner = len(self.spinner_symbols)
-        if verbose_bool == 'auto':
-            verbose_bool = True if logger.level <= logging.INFO else False
-        self._do_print = verbose_bool
-        self.cur_time = time.time()
         if max_total_width == 'auto':
-            max_total_width = _get_terminal_width()
-        self.max_total_width = int(max_total_width)
-        if max_chars == 'auto':
-            max_chars = min(max(max_total_width - 40, 10), 60)
-        self.max_chars = int(max_chars)
-        self.cur_rate = 0
+            max_total_width = None  # tqdm's auto
         with tempfile.NamedTemporaryFile('wb', prefix='tmp_mne_prog') as tf:
             self._mmap_fname = tf.name
         del tf  # should remove the file
         self._mmap = None
+        disable = logger.level > logging.INFO or which_tqdm == 'off'
+        self._tqdm = tqdm(
+            iterable=self.iterable, desc=mesg, total=self.max_value,
+            initial=initial_value, ncols=max_total_width,
+            disable=disable, **kwargs)
 
-    def update(self, cur_value, mesg=None):
+    def update(self, cur_value):
         """Update progressbar with current value of process.
 
         Parameters
@@ -107,54 +90,11 @@ class ProgressBar(object):
         cur_value : number
             Current value of process.  Should be <= max_value (but this is not
             enforced).  The percent of the progressbar will be computed as
-            (cur_value / max_value) * 100
-        mesg : str
-            Message to display to the right of the progressbar.  If None, the
-            last message provided will be used.  To clear the current message,
-            pass a null string, ''.
+            ``(cur_value / max_value) * 100``.
         """
-        cur_time = time.time()
-        cur_rate = ((cur_value - self.cur_value) /
-                    max(float(cur_time - self.cur_time), 1e-6))
-        # Smooth the estimate a bit
-        cur_rate = 0.1 * cur_rate + 0.9 * self.cur_rate
-        # Ensure floating-point division so we can get fractions of a percent
-        # for the progressbar.
-        self.cur_time = cur_time
-        self.cur_value = cur_value
-        self.cur_rate = cur_rate
-        max_value = float(self.max_value) if self.max_value else 1.
-        progress = np.clip(self.cur_value / max_value, 0, 1)
-        num_chars = int(progress * self.max_chars)
-        num_left = self.max_chars - num_chars
+        self.update_with_increment_value(cur_value - self._tqdm.n)
 
-        # Update the message
-        if mesg is not None:
-            if mesg == 'file_sizes':
-                mesg = '(%s, %s/s)' % (
-                    sizeof_fmt(self.cur_value).rjust(8),
-                    sizeof_fmt(cur_rate).rjust(8))
-            self.mesg = mesg
-
-        # The \r tells the cursor to return to the beginning of the line rather
-        # than starting a new line.  This allows us to have a progressbar-style
-        # display in the console window.
-        bar = self.template.format(self.progress_character * num_chars,
-                                   ' ' * num_left,
-                                   progress * 100,
-                                   self.spinner_symbols[self.spinner_index],
-                                   self.mesg)
-        bar = bar[:self.max_total_width]
-        # Force a flush because sometimes when using bash scripts and pipes,
-        # the output is not printed until after the program exits.
-        if self._do_print:
-            sys.stdout.write(bar)
-            sys.stdout.flush()
-        # Increment the spinner
-        if self.spinner:
-            self.spinner_index = (self.spinner_index + 1) % self.n_spinner
-
-    def update_with_increment_value(self, increment_value, mesg=None):
+    def update_with_increment_value(self, increment_value):
         """Update progressbar with an increment.
 
         Parameters
@@ -162,32 +102,14 @@ class ProgressBar(object):
         increment_value : int
             Value of the increment of process.  The percent of the progressbar
             will be computed as
-            (self.cur_value + increment_value / max_value) * 100
-        mesg : str
-            Message to display to the right of the progressbar.  If None, the
-            last message provided will be used.  To clear the current message,
-            pass a null string, ''.
+            ``(self.cur_value + increment_value / max_value) * 100``.
         """
-        self.update(self.cur_value + increment_value, mesg)
+        self._tqdm.update(increment_value)
 
     def __iter__(self):
         """Iterate to auto-increment the pbar with 1."""
-        if self.iterable is None:
-            raise ValueError("Must give an iterable to be used in a loop.")
-        self.update(self.cur_value)
-        for obj in self.iterable:
-            yield obj
-            self.update_with_increment_value(1)
-
-    def __call__(self, seq):
-        """Call the ProgressBar in a joblib-friendly way."""
-        while True:
-            try:
-                yield next(seq)
-            except StopIteration:
-                return
-            else:
-                self.update_with_increment_value(1)
+        for x in self._tqdm:
+            yield x
 
     def subset(self, idx):
         """Make a joblib-friendly index subset updater.
@@ -204,47 +126,54 @@ class ProgressBar(object):
         """
         return _PBSubsetUpdater(self, idx)
 
-    def __setitem__(self, idx, val):
-        """Use alternative, mmap-based incrementing (max_value must be int)."""
-        if not self._do_print:
-            return
-        assert val is True
-        self._mmap[idx] = True
-        self.update(self._mmap.sum())
-
     def __enter__(self):  # noqa: D105
+        # This should only be used with pb.subset and parallelization
         if op.isfile(self._mmap_fname):
             os.remove(self._mmap_fname)
         # prevent corner cases where self.max_value == 0
         self._mmap = np.memmap(self._mmap_fname, bool, 'w+',
                                shape=max(self.max_value, 1))
         self.update(0)  # must be zero as we just created the memmap
+
+        # We need to control how the pickled bars exit: remove print statements
+        self._thread = _UpdateThread(self)
+        self._thread.start()
         return self
 
-    def __exit__(self, type, value, traceback):  # noqa: D105
-        """Clean up memmapped file."""
-        # we can't put this in __del__ b/c then each worker will delete the
-        # file, which is not so good
+    def __exit__(self, type_, value, traceback):  # noqa: D105
+        # Restore exit behavior for our one from the main thread
+        self.update(self._mmap.sum())
+        self._tqdm.close()
+        self._thread._mne_run = False
+        self._thread.join()
         self._mmap = None
         if op.isfile(self._mmap_fname):
             os.remove(self._mmap_fname)
-        if self._do_print:
-            print('')
+
+    def __del__(self):
+        """Ensure output completes."""
+        if getattr(self, '_tqdm', None) is not None:
+            self._tqdm.close()
+
+
+class _UpdateThread(Thread):
+
+    def __init__(self, pb):
+        super(_UpdateThread, self).__init__(daemon=True)
+        self._mne_run = True
+        self._mne_pb = pb
+
+    def run(self):
+        while self._mne_run:
+            self._mne_pb.update(self._mne_pb._mmap.sum())
+            time.sleep(1. / 30.)  # 30 Hz refresh is plenty
 
 
 class _PBSubsetUpdater(object):
 
     def __init__(self, pb, idx):
-        self.pb = pb
+        self.mmap = pb._mmap
         self.idx = idx
 
     def update(self, ii):
-        self.pb[self.idx[:ii]] = True
-
-
-def _get_terminal_width():
-    """Get the terminal width."""
-    if sys.version[0] == '2':
-        return 80
-    else:
-        return shutil.get_terminal_size((80, 20)).columns
+        self.mmap[self.idx[ii - 1]] = True

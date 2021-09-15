@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: Simplified BSD
 
@@ -12,9 +12,9 @@ import matplotlib.cm as cm
 
 from mne.viz.utils import (compare_fiff, _fake_click, _compute_scalings,
                            _validate_if_list_of_axes, _get_color_list,
-                           _setup_vmin_vmax, center_cmap)
+                           _setup_vmin_vmax, center_cmap, centers_to_edges,
+                           _make_event_color_dict)
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
-from mne.utils import run_tests_if_main
 from mne.io import read_raw_fif
 from mne.event import read_events
 from mne.epochs import Epochs
@@ -120,19 +120,18 @@ def test_auto_scale():
                              ('stim', 'auto')])
 
         # Test for wrong inputs
-        pytest.raises(ValueError, inst.plot, scalings='foo')
-        pytest.raises(ValueError, _compute_scalings, 'foo', inst)
+        with pytest.raises(ValueError, match=r".*scalings.*'foo'.*"):
+            inst.plot(scalings='foo')
 
         # Make sure compute_scalings doesn't change anything not auto
         scalings_new = _compute_scalings(scalings_def, inst)
         assert (scale_grad == scalings_new['grad'])
         assert (scalings_new['eeg'] != 'auto')
 
-    pytest.raises(ValueError, _compute_scalings, scalings_def, rand_data)
+    with pytest.raises(ValueError, match='Must supply either Raw or Epochs'):
+        _compute_scalings(scalings_def, rand_data)
     epochs = epochs[0].load_data()
     epochs.pick_types(eeg=True, meg=False)
-    pytest.raises(ValueError, _compute_scalings,
-                  dict(grad='auto'), epochs)
 
 
 def test_validate_if_list_of_axes():
@@ -172,4 +171,30 @@ def test_center_cmap():
     assert not np.allclose(cmap(0.5), reference[1])
 
 
-run_tests_if_main()
+def test_centers_to_edges():
+    """Test centers_to_edges."""
+    assert_allclose(centers_to_edges([0, 1, 2])[0], [-0.5, 0.5, 1.5, 2.5])
+    assert_allclose(centers_to_edges([0])[0], [-0.001, 0.001])
+    assert_allclose(centers_to_edges([1])[0], [0.999, 1.001])
+    assert_allclose(centers_to_edges([1000])[0], [999., 1001.])
+
+
+def test_event_color_dict():
+    """Test handling of event_color."""
+    one = _make_event_color_dict('k')
+    two = _make_event_color_dict((0, 0, 0))
+    three = _make_event_color_dict('#000')
+    assert one == two
+    assert one == three
+    # test dict with integer keys / event name keys
+    event_id = dict(foo=1, bar=2)
+    one = _make_event_color_dict({1: 'r', 2: 'b'}, event_id=event_id)
+    two = _make_event_color_dict(dict(foo='r', bar='b'), event_id=event_id)
+    assert one == two
+    # test default value
+    one = _make_event_color_dict({1: 'r', -1: 'b'}, event_id=event_id)
+    two = _make_event_color_dict({1: 'r', 2: 'b'}, event_id=event_id)
+    assert one[2] == two[2]
+    # test error
+    with pytest.raises(KeyError, match='must be strictly positive, or -1'):
+        _ = _make_event_color_dict({-2: 'r', -1: 'b'})

@@ -1,4 +1,10 @@
+# Author: Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD-3-Clause
+
+from contextlib import nullcontext
 import glob
+from itertools import product
 import os
 import os.path as op
 import pickle
@@ -8,22 +14,22 @@ import numpy as np
 from scipy import sparse
 
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_equal)
+                           assert_equal, assert_allclose, assert_array_less)
 import pytest
 
 from mne.datasets import testing
 from mne import (read_label, stc_to_label, read_source_estimate,
                  read_source_spaces, grow_labels, read_labels_from_annot,
-                 write_labels_to_annot, split_label, spatial_tris_connectivity,
+                 write_labels_to_annot, split_label, spatial_tris_adjacency,
                  read_surface, random_parcellation, morph_labels,
                  labels_to_stc)
-from mne.label import Label, _blend_colors, label_sign_flip, _load_vert_pos
-from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
-                       run_tests_if_main)
-from mne.fixes import assert_is, assert_is_not
-from mne.label import _n_colors
+from mne.label import (Label, _blend_colors, label_sign_flip, _load_vert_pos,
+                       select_sources, _n_colors, _read_annot,
+                       _read_annot_cands)
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
+from mne.surface import _mesh_borders
+from mne.utils import requires_sklearn, get_subjects_dir, check_version
 
 
 data_path = testing.data_path(download=False)
@@ -173,7 +179,7 @@ def test_copy():
 def test_label_subject():
     """Test label subject name extraction."""
     label = read_label(label_fname)
-    assert_is(label.subject, None)
+    assert label.subject is None
     assert ('unknown' in repr(label))
     label = read_label(label_fname, subject='fsaverage')
     assert (label.subject == 'fsaverage')
@@ -250,18 +256,25 @@ def test_label_addition():
 
 
 @testing.requires_testing_data
-def test_label_in_src():
-    """Test label in src."""
+@pytest.mark.parametrize('fname', (real_label_fname, v1_label_fname))
+def test_label_fill_restrict(fname):
+    """Test label in fill and restrict."""
     src = read_source_spaces(src_fname)
-    label = read_label(v1_label_fname)
+    label = read_label(fname)
 
     # construct label from source space vertices
-    vert_in_src = np.intersect1d(label.vertices, src[0]['vertno'], True)
-    where = np.in1d(label.vertices, vert_in_src)
-    pos_in_src = label.pos[where]
-    values_in_src = label.values[where]
-    label_src = Label(vert_in_src, pos_in_src, values_in_src,
-                      hemi='lh').fill(src)
+    label_src = label.restrict(src)
+    vert_in_src = label_src.vertices
+    values_in_src = label_src.values
+    if check_version('scipy', '1.3') and fname == real_label_fname:
+        # Check that we can auto-fill patch info quickly for one condition
+        for s in src:
+            s['nearest'] = None
+        with pytest.warns(None):
+            label_src = label_src.fill(src)
+    else:
+        label_src = label_src.fill(src)
+    assert src[0]['nearest'] is not None
 
     # check label vertices
     vertices_status = np.in1d(src[0]['nearest'], label.vertices)
@@ -276,7 +289,8 @@ def test_label_in_src():
 
     # test exception
     vertices = np.append([-1], vert_in_src)
-    pytest.raises(ValueError, Label(vertices, hemi='lh').fill, src)
+    with pytest.raises(ValueError, match='does not contain all of the label'):
+        Label(vertices, hemi='lh').fill(src)
 
     # test filling empty label
     label = Label([], hemi='lh')
@@ -296,15 +310,15 @@ def test_label_io_and_time_course_estimates():
 
 
 @testing.requires_testing_data
-def test_label_io():
+def test_label_io(tmpdir):
     """Test IO of label files."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     label = read_label(label_fname)
 
     # label attributes
     assert_equal(label.name, 'test-lh')
-    assert_is(label.subject, None)
-    assert_is(label.color, None)
+    assert label.subject is None
+    assert label.color is None
 
     # save and reload
     label.save(op.join(tempdir, 'foo'))
@@ -331,10 +345,10 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
 
 
 @testing.requires_testing_data
-def test_annot_io():
+def test_annot_io(tmpdir):
     """Test I/O from and to *.annot files."""
     # copy necessary files from fsaverage to tempdir
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     subject = 'fsaverage'
     label_src = os.path.join(subjects_dir, 'fsaverage', 'label')
     surf_src = os.path.join(subjects_dir, 'fsaverage', 'surf')
@@ -348,22 +362,23 @@ def test_annot_io():
     shutil.copy(os.path.join(surf_src, 'rh.white'), surf_dir)
 
     # read original labels
-    pytest.raises(IOError, read_labels_from_annot, subject, 'PALS_B12_Lobesey',
-                  subjects_dir=tempdir)
+    with pytest.raises(IOError, match='\nPALS_B12_Lobes$'):
+        read_labels_from_annot(subject, 'PALS_B12_Lobesey',
+                               subjects_dir=tempdir)
     labels = read_labels_from_annot(subject, 'PALS_B12_Lobes',
                                     subjects_dir=tempdir)
 
     # test saving parcellation only covering one hemisphere
-    parc = [l for l in labels if l.name == 'LOBE.TEMPORAL-lh']
+    parc = [label for label in labels if label.name == 'LOBE.TEMPORAL-lh']
     write_labels_to_annot(parc, subject, 'myparc', subjects_dir=tempdir)
     parc1 = read_labels_from_annot(subject, 'myparc', subjects_dir=tempdir)
-    parc1 = [l for l in parc1 if not l.name.startswith('unknown')]
+    parc1 = [label for label in parc1 if not label.name.startswith('unknown')]
     assert_equal(len(parc1), len(parc))
-    for l1, l in zip(parc1, parc):
-        assert_labels_equal(l1, l)
+    for lt, rt in zip(parc1, parc):
+        assert_labels_equal(lt, rt)
 
     # test saving only one hemisphere
-    parc = [l for l in labels if l.name.startswith('LOBE')]
+    parc = [label for label in labels if label.name.startswith('LOBE')]
     write_labels_to_annot(parc, subject, 'myparc2', hemi='lh',
                           subjects_dir=tempdir)
     annot_fname = os.path.join(tempdir, subject, 'label', '%sh.myparc2.annot')
@@ -372,9 +387,14 @@ def test_annot_io():
     parc1 = read_labels_from_annot(subject, 'myparc2',
                                    annot_fname=annot_fname % 'l',
                                    subjects_dir=tempdir)
-    parc_lh = [l for l in parc if l.name.endswith('lh')]
-    for l1, l in zip(parc1, parc_lh):
-        assert_labels_equal(l1, l)
+    parc_lh = [label for label in parc if label.name.endswith('lh')]
+    for lt, rt in zip(parc1, parc_lh):
+        assert_labels_equal(lt, rt)
+
+    # test that the annotation is complete (test Label() support)
+    rr = read_surface(op.join(surf_dir, 'lh.white'))[0]
+    label = sum(labels, Label(hemi='lh', subject='fsaverage')).lh
+    assert_array_equal(label.vertices, np.arange(len(rr)))
 
 
 @testing.requires_testing_data
@@ -417,7 +437,10 @@ def test_labels_to_stc():
         labels_to_stc(labels, values[:, np.newaxis, np.newaxis])
     with pytest.raises(ValueError, match=r'values\.shape'):
         labels_to_stc(labels, values[np.newaxis])
+    with pytest.raises(ValueError, match='multiple values of subject'):
+        labels_to_stc(labels, values, subject='foo')
     stc = labels_to_stc(labels, values)
+    assert stc.subject == 'sample'
     for value, label in zip(values, labels):
         stc_label = stc.in_label(label)
         assert (stc_label.data == value).all()
@@ -425,30 +448,34 @@ def test_labels_to_stc():
 
 
 @testing.requires_testing_data
-def test_read_labels_from_annot():
+def test_read_labels_from_annot(tmpdir):
     """Test reading labels from FreeSurfer parcellation."""
     # test some invalid inputs
     pytest.raises(ValueError, read_labels_from_annot, 'sample', hemi='bla',
                   subjects_dir=subjects_dir)
     pytest.raises(ValueError, read_labels_from_annot, 'sample',
                   annot_fname='bla.annot', subjects_dir=subjects_dir)
+    with pytest.raises(IOError, match='does not exist'):
+        _read_annot_cands('foo')
+    with pytest.raises(IOError, match='no candidate'):
+        _read_annot(str(tmpdir))
 
     # read labels using hemi specification
     labels_lh = read_labels_from_annot('sample', hemi='lh',
                                        subjects_dir=subjects_dir)
     for label in labels_lh:
-        assert (label.name.endswith('-lh'))
-        assert (label.hemi == 'lh')
-        assert_is_not(label.color, None)
+        assert label.name.endswith('-lh')
+        assert label.hemi == 'lh'
+        assert label.color is not None
 
     # read labels using annot_fname
     annot_fname = op.join(subjects_dir, 'sample', 'label', 'rh.aparc.annot')
     labels_rh = read_labels_from_annot('sample', annot_fname=annot_fname,
                                        subjects_dir=subjects_dir)
     for label in labels_rh:
-        assert (label.name.endswith('-rh'))
-        assert (label.hemi == 'rh')
-        assert_is_not(label.color, None)
+        assert label.name.endswith('-rh')
+        assert label.hemi == 'rh'
+        assert label.color is not None
 
     # combine the lh, rh, labels and sort them
     labels_lhrh = list()
@@ -476,9 +503,10 @@ def test_read_labels_from_annot():
                                    regexp='.*-.{4,}_.{3,3}-L',
                                    subjects_dir=subjects_dir)[0]
     assert (label.name == 'G_oc-temp_med-Lingual-lh')
-    pytest.raises(RuntimeError, read_labels_from_annot, 'sample', parc='aparc',
-                  annot_fname=annot_fname, regexp='JackTheRipper',
-                  subjects_dir=subjects_dir)
+    with pytest.raises(RuntimeError, match='did not match any of'):
+        read_labels_from_annot(
+            'sample', parc='aparc', annot_fname=annot_fname, regexp='foo',
+            subjects_dir=subjects_dir)
 
 
 @testing.requires_testing_data
@@ -494,9 +522,9 @@ def test_read_labels_from_annot_annot2labels():
 
 
 @testing.requires_testing_data
-def test_write_labels_to_annot():
+def test_write_labels_to_annot(tmpdir):
     """Test writing FreeSurfer parcellation from labels."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
 
     labels = read_labels_from_annot('sample', subjects_dir=subjects_dir)
 
@@ -700,10 +728,10 @@ def test_stc_to_label():
 
     # test getting tris
     tris = labels_lh[0].get_tris(src[0]['use_tris'], vertices=stc.vertices[0])
-    pytest.raises(ValueError, spatial_tris_connectivity, tris,
+    pytest.raises(ValueError, spatial_tris_adjacency, tris,
                   remap_vertices=False)
-    connectivity = spatial_tris_connectivity(tris, remap_vertices=True)
-    assert (connectivity.shape[0] == len(stc.vertices[0]))
+    adjacency = spatial_tris_adjacency(tris, remap_vertices=True)
+    assert (adjacency.shape[0] == len(stc.vertices[0]))
 
     # "src" as a subject name
     pytest.raises(TypeError, stc_to_label, stc, src=1, smooth=False,
@@ -795,6 +823,24 @@ def test_grow_labels():
     assert_equal(l11.name, 'Label_0-lh')
     assert_equal(l12.name, 'Label_1-lh')
 
+    # test color assignment
+    l11_c, l12_c = grow_labels('fsaverage', seeds, 20, [0, 0], subjects_dir,
+                               overlap=False, colors=None)
+    assert_equal(l11_c.color, _n_colors(2)[0])
+    assert_equal(l12_c.color, _n_colors(2)[1])
+
+    lab_colors = np.array([[0, 0, 1, 1], [1, 0, 0, 1]])
+    l11_c, l12_c = grow_labels('fsaverage', seeds, 20, [0, 0], subjects_dir,
+                               overlap=False, colors=lab_colors)
+    assert_array_equal(l11_c.color, lab_colors[0, :])
+    assert_array_equal(l12_c.color, lab_colors[1, :])
+
+    lab_colors = np.array([.1, .2, .3, .9])
+    l11_c, l12_c = grow_labels('fsaverage', seeds, 20, [0, 0], subjects_dir,
+                               overlap=False, colors=lab_colors)
+    assert_array_equal(l11_c.color, lab_colors)
+    assert_array_equal(l12_c.color, lab_colors)
+
     # make sure set 1 does not overlap
     overlap = np.intersect1d(l11.vertices, l12.vertices, True)
     assert_array_equal(overlap, [])
@@ -803,6 +849,10 @@ def test_grow_labels():
     l0 = l01 + l02
     l1 = l11 + l12
     assert_array_equal(l1.vertices, l0.vertices)
+
+    # non-overlapping (gh-8848)
+    for overlap in (False, True):
+        grow_labels('fsaverage', [0], 1, 1, subjects_dir, overlap=overlap)
 
 
 @testing.requires_testing_data
@@ -851,8 +901,8 @@ def test_label_sign_flip():
     label = Label(vertices=src[0]['vertno'][:5], hemi='lh')
     src[0]['nn'][label.vertices] = np.array(
         [[1., 0., 0.],
-         [0.,  1., 0.],
-         [0,  0, 1.],
+         [0., 1., 0.],
+         [0, 0, 1.],
          [1. / np.sqrt(2), 1. / np.sqrt(2), 0.],
          [1. / np.sqrt(2), 1. / np.sqrt(2), 0.]])
     known_flips = np.array([1, 1, np.nan, 1, 1])
@@ -925,4 +975,97 @@ def test_label_center_of_mass():
                   surf='foo')
 
 
-run_tests_if_main()
+@testing.requires_testing_data
+def test_select_sources():
+    """Test the selection of sources for simulation."""
+    subject = 'sample'
+    label_file = op.join(subjects_dir, subject, 'label', 'aparc',
+                         'temporalpole-rh.label')
+
+    # Regardless of other parameters, using extent 0 should always yield a
+    # a single source.
+    tp_label = read_label(label_file)
+    tp_label.values[:] = 1
+    labels = ['lh', tp_label]
+    locations = ['random', 'center']
+    for label, location in product(labels, locations):
+        label = select_sources(
+            subject, label, location, extent=0, subjects_dir=subjects_dir)
+        assert (len(label.vertices) == 1)
+
+    # As we increase the extent, the new region should contain the previous
+    # one.
+    label = select_sources(subject, 'lh', 0, extent=0,
+                           subjects_dir=subjects_dir)
+    for extent in range(1, 3):
+        new_label = select_sources(subject, 'lh', 0, extent=extent * 2,
+                                   subjects_dir=subjects_dir)
+        assert (set(new_label.vertices) > set(label.vertices))
+        assert (new_label.hemi == 'lh')
+        label = new_label
+
+    # With a large enough extent and not allowing growing outside the label,
+    # every vertex of the label should be in the region.
+    label = select_sources(subject, tp_label, 0, extent=30,
+                           grow_outside=False, subjects_dir=subjects_dir)
+    assert (set(label.vertices) == set(tp_label.vertices))
+
+    # Without this restriction, we should get new vertices.
+    label = select_sources(subject, tp_label, 0, extent=30,
+                           grow_outside=True, subjects_dir=subjects_dir)
+    assert (set(label.vertices) > set(tp_label.vertices))
+
+    # Other parameters are taken into account.
+    label = select_sources(subject, tp_label, 0, extent=10,
+                           grow_outside=False, subjects_dir=subjects_dir,
+                           name='mne')
+    assert (label.name == 'mne')
+    assert (label.hemi == 'rh')
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('fname, area', [
+    (real_label_fname, 0.657e-3),
+    (v1_label_fname, 3.245e-3),
+])
+def test_label_geometry(fname, area):
+    """Test label geometric computations."""
+    label = read_label(fname, subject='sample')
+    got_area = label.compute_area(subjects_dir=subjects_dir)
+    assert_allclose(got_area, area, rtol=1e-3)
+    # using a sparse label emits a warning
+    label_sparse = label.restrict(src_fname)
+    assert 0 < len(label_sparse.vertices) < len(label.vertices)
+    with pytest.warns(RuntimeWarning, match='No complete triangles'):
+        assert label_sparse.compute_area(subjects_dir=subjects_dir) == 0.
+    if not check_version('scipy', '1.3'):
+        ctx = pytest.raises(RuntimeError, match='required to calculate')
+        stop = True
+    else:
+        ctx = nullcontext()
+        stop = False
+    with ctx:
+        dist, outside = label.distances_to_outside(subjects_dir=subjects_dir)
+    if stop:
+        return
+    rr, tris = read_surface(
+        op.join(subjects_dir, 'sample', 'surf', 'lh.white'))
+    mask = np.zeros(len(rr), bool)
+    mask[label.vertices] = 1
+    border_mask = np.in1d(label.vertices, _mesh_borders(tris, mask))
+    # The distances of the border vertices is smaller than that of non-border
+    lo, mi, hi = np.percentile(dist[border_mask], (0, 50, 100))
+    assert 0.1e-3 < lo < 0.5e-3 < mi < 1.0e-3 < hi < 2.0e-3
+    lo, mi, hi = np.percentile(dist[~border_mask], (0, 50, 100))
+    assert 0.5e-3 < lo < 1.0e-3 < mi < 9.0e-3 < hi < 25e-3
+    # check that the distances are close but uniformly <= than euclidean
+    assert not np.in1d(outside, label.vertices).any()
+    border_dist = dist[border_mask]
+    border_euc = 1e-3 * np.linalg.norm(
+        rr[label.vertices[border_mask]] - rr[outside[border_mask]], axis=1)
+    assert_allclose(border_dist, border_euc, atol=1e-4)
+    inside_dist = dist[~border_mask]
+    inside_euc = 1e-3 * np.linalg.norm(
+        rr[label.vertices[~border_mask]] - rr[outside[~border_mask]], axis=1)
+    assert_array_less(inside_euc, inside_dist)
+    assert_array_less(0.25 * inside_dist, inside_euc)

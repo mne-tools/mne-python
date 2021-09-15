@@ -1,11 +1,11 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD Style.
 
 from functools import partial
 
-from ...utils import verbose, get_config
+from ...utils import verbose
 from ..utils import (has_dataset, _data_path, _data_path_doc,
                      _get_version, _version_doc)
 
@@ -30,18 +30,3 @@ def get_version():  # noqa: D103
 
 
 get_version.__doc__ = _version_doc.format(name='sample')
-
-
-# Allow forcing of sample dataset skip
-def _skip_sample_data():
-    skip_testing = (get_config('MNE_SKIP_SAMPLE_DATASET_TESTS', 'false') ==
-                    'true')
-    skip = skip_testing or not has_sample_data()
-    return skip
-
-
-def requires_sample_data(func):
-    """Skip testing data test."""
-    import pytest
-    return pytest.mark.skipif(_skip_sample_data(),
-                              reason='Requires sample dataset')(func)

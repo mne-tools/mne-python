@@ -1,30 +1,36 @@
-numpy
-scipy
+# requirements for full MNE-Python functionality (other than raw/epochs export)
+numpy>=1.15.4
+scipy>=1.1.0
 matplotlib
-mayavi
-pyqt5
+pyqt5>=5.10,<5.14; platform_system == "Darwin"
+pyqt5>=5.10,!=5.15.2,!=5.15.3; platform_system == "Linux"
+pyqt5>=5.10,!=5.15.3; platform_system != "Linux" and platform_system != "Darwin"
 pyqt5-sip
 sip
 scikit-learn
 nibabel
+numba
 h5py
 pandas
 numexpr
+jupyter
 python-picard
 statsmodels
-pytest
-pytest-cov
-pytest-sugar
-pytest-timeout
-pytest-faulthandler
-pytest-mock
 joblib
 psutil
 dipy
-numpydoc
-https://api.github.com/repos/nipy/PySurfer/zipball/master
+vtk; platform_system == "Darwin"
+vtk; platform_system == "Linux"
+vtk<=9.0.1; platform_system == "Windows"
+https://github.com/larsoner/mayavi/zipball/workaround
+PySurfer[save_movie]
 nilearn
-neo
 xlrd
-pydocstyle
-flake8
+imageio>=2.6.1
+imageio-ffmpeg>=0.4.1
+pyvista>=0.30
+pyvistaqt>=0.4
+tqdm
+mffpy>=0.5.7
+ipywidgets
+ipyvtklink

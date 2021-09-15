@@ -2,26 +2,30 @@
 # Authors: Mainak Jas <mainak@neuro.hut.fi>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
+import base64
 import copy
 import glob
+import pickle
+from io import BytesIO
 import os
 import os.path as op
+import re
 import shutil
+import pathlib
 
 import numpy as np
-from numpy.testing import assert_equal
 import pytest
 from matplotlib import pyplot as plt
 
-from mne import Epochs, read_events, read_evokeds
+from mne import Epochs, read_events, read_evokeds, report as report_mod
 from mne.io import read_raw_fif
 from mne.datasets import testing
-from mne.report import Report, open_report
-from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
-                       run_tests_if_main, traits_test, requires_h5py)
+from mne.report import Report, open_report, _ReportScraper
+from mne.utils import requires_nibabel, Bunch, requires_h5py
 from mne.viz import plot_alignment
+from mne.io.write import DATE_NONE
 
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
@@ -30,15 +34,23 @@ raw_fname = op.join(report_dir, 'sample_audvis_trunc_raw.fif')
 ms_fname = op.join(data_dir, 'SSS', 'test_move_anon_raw.fif')
 event_fname = op.join(report_dir, 'sample_audvis_trunc_raw-eve.fif')
 cov_fname = op.join(report_dir, 'sample_audvis_trunc-cov.fif')
+proj_fname = op.join(report_dir, 'sample_audvis_ecg-proj.fif')
 fwd_fname = op.join(report_dir, 'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 trans_fname = op.join(report_dir, 'sample_audvis_trunc-trans.fif')
 inv_fname = op.join(report_dir,
                     'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
 mri_fname = op.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
+bdf_fname = op.realpath(op.join(op.dirname(__file__), '..', 'io',
+                                'edf', 'tests', 'data', 'test.bdf'))
+edf_fname = op.realpath(op.join(op.dirname(__file__), '..', 'io',
+                                'edf', 'tests', 'data', 'test.edf'))
 
 base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
                                'data'))
 evoked_fname = op.join(base_dir, 'test-ave.fif')
+
+nirs_fname = op.join(data_dir, 'SNIRF', 'NIRx', 'NIRSport2', '1.0.3',
+                     '2021-05-05_001.snirf')
 
 
 def _get_example_figures():
@@ -50,21 +62,27 @@ def _get_example_figures():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_render_report():
-    """Test rendering -*.fif files for mne report."""
-    tempdir = _TempDir()
+def test_render_report(renderer, tmpdir):
+    """Test rendering *.fif files for mne report."""
+    tempdir = str(tmpdir)
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
+    raw_fname_new_bids = op.join(tempdir, 'temp_meg.fif')
     ms_fname_new = op.join(tempdir, 'temp_ms_raw.fif')
     event_fname_new = op.join(tempdir, 'temp_raw-eve.fif')
     cov_fname_new = op.join(tempdir, 'temp_raw-cov.fif')
+    proj_fname_new = op.join(tempdir, 'temp_ecg-proj.fif')
     fwd_fname_new = op.join(tempdir, 'temp_raw-fwd.fif')
     inv_fname_new = op.join(tempdir, 'temp_raw-inv.fif')
+    nirs_fname_new = op.join(tempdir, 'temp_raw-nirs.snirf')
     for a, b in [[raw_fname, raw_fname_new],
+                 [raw_fname, raw_fname_new_bids],
                  [ms_fname, ms_fname_new],
                  [event_fname, event_fname_new],
                  [cov_fname, cov_fname_new],
+                 [proj_fname, proj_fname_new],
                  [fwd_fname, fwd_fname_new],
-                 [inv_fname, inv_fname_new]]:
+                 [inv_fname, inv_fname_new],
+                 [nirs_fname, nirs_fname_new]]:
         shutil.copyfile(a, b)
 
     # create and add -epo.fif and -ave.fif files
@@ -72,29 +90,35 @@ def test_render_report():
     evoked_fname = op.join(tempdir, 'temp-ave.fif')
     # Speed it up by picking channels
     raw = read_raw_fif(raw_fname_new, preload=True)
-    raw.pick_channels(['MEG 0111', 'MEG 0121'])
+    raw.pick_channels(['MEG 0111', 'MEG 0121', 'EEG 001', 'EEG 002'])
     raw.del_proj()
+    raw.set_eeg_reference(projection=True)
     epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2)
-    epochs.save(epochs_fname)
-    # This can take forever (stall Travis), so let's make it fast
+    epochs.save(epochs_fname, overwrite=True)
+    # This can take forever, so let's make it fast
     # Also, make sure crop range is wide enough to avoid rendering bug
-    epochs.average().crop(0.1, 0.2).save(evoked_fname)
+    evoked = epochs.average()
+    with pytest.warns(RuntimeWarning, match='tmax is not in Evoked'):
+        evoked.crop(0.1, 0.2)
+    evoked.save(evoked_fname)
 
-    report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir)
+    report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
+                    projs=True)
     with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
         report.parse_folder(data_path=tempdir, on_error='raise')
     assert repr(report)
 
     # Check correct paths and filenames
     fnames = glob.glob(op.join(tempdir, '*.fif'))
+    fnames.extend(glob.glob(op.join(tempdir, '*.snirf')))
     for fname in fnames:
         assert (op.basename(fname) in
                 [op.basename(x) for x in report.fnames])
         assert (''.join(report.html).find(op.basename(fname)) != -1)
 
-    assert_equal(len(report.fnames), len(fnames))
-    assert_equal(len(report.html), len(report.fnames))
-    assert_equal(len(report.fnames), len(report))
+    assert len(report.fnames) == len(fnames)
+    assert len(report.html) == len(report.fnames)
+    assert len(report.fnames) == len(report)
 
     # Check saving functionality
     report.data_path = tempdir
@@ -104,9 +128,17 @@ def test_render_report():
     with open(fname, 'rb') as fid:
         html = fid.read().decode('utf-8')
     assert '(MaxShield on)' in html
+    # Projectors in Raw.info
+    assert '<h4>SSP Projectors</h4>' in html
+    # Projectors in `proj_fname_new`
+    assert f'SSP Projectors: {op.basename(proj_fname_new)}' in html
+    # Evoked in `evoked_fname`
+    assert f'Evoked: {op.basename(evoked_fname)} ({evoked.comment})' in html
+    assert 'Topomap (ch_type =' in html
+    assert f'Evoked: {op.basename(evoked_fname)} (GFPs)' in html
 
-    assert_equal(len(report.html), len(fnames))
-    assert_equal(len(report.html), len(report.fnames))
+    assert len(report.html) == len(fnames)
+    assert len(report.html) == len(report.fnames)
 
     # Check saving same report to new filename
     report.save(fname=op.join(tempdir, 'report2.html'), open_browser=False)
@@ -136,20 +168,100 @@ def test_render_report():
     # SVG rendering
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
                     image_format='svg')
+    tempdir = pathlib.Path(tempdir)  # test using pathlib.Path
     with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
         report.parse_folder(data_path=tempdir, on_error='raise')
 
     # ndarray support smoke test
     report.add_figs_to_section(np.zeros((2, 3, 3)), 'caption', 'section')
 
+    with pytest.raises(TypeError, match='figure must be a'):
+        report.add_figs_to_section('foo', 'caption', 'section')
+    with pytest.raises(TypeError, match='figure must be a'):
+        report.add_figs_to_section(['foo'], 'caption', 'section')
+
+
+def test_add_custom_css(tmpdir):
+    """Test adding custom CSS rules to the report."""
+    tempdir = str(tmpdir)
+    fname = op.join(tempdir, 'report.html')
+    fig = plt.figure()  # Empty figure
+
+    report = Report()
+    report.add_figs_to_section(figs=fig, captions='Test section')
+    custom_css = '.report_custom { color: red; }'
+    report.add_custom_css(css=custom_css)
+
+    assert custom_css in report.include
+    report.save(fname, open_browser=False)
+    with open(fname, 'rb') as fid:
+        html = fid.read().decode('utf-8')
+    assert custom_css in html
+
+
+def test_add_custom_js(tmpdir):
+    """Test adding custom JavaScript to the report."""
+    tempdir = str(tmpdir)
+    fname = op.join(tempdir, 'report.html')
+    fig = plt.figure()  # Empty figure
+
+    report = Report()
+    report.add_figs_to_section(figs=fig, captions='Test section')
+    custom_js = ('function hello() {\n'
+                 '  alert("Hello, report!");\n'
+                 '}')
+    report.add_custom_js(js=custom_js)
+
+    assert custom_js in report.include
+    report.save(fname, open_browser=False)
+    with open(fname, 'rb') as fid:
+        html = fid.read().decode('utf-8')
+    assert custom_js in html
+
 
 @testing.requires_testing_data
-def test_report_raw_psd_and_date():
+def test_render_non_fiff(tmpdir):
+    """Test rendering non-FIFF files for mne report."""
+    tempdir = str(tmpdir)
+    fnames_in = [bdf_fname, edf_fname]
+    fnames_out = []
+    for fname in fnames_in:
+        basename = op.basename(fname)
+        basename, ext = op.splitext(basename)
+        fname_out = f'{basename}_raw{ext}'
+        outpath = op.join(tempdir, fname_out)
+        shutil.copyfile(fname, outpath)
+        fnames_out.append(fname_out)
+
+    report = Report()
+    report.parse_folder(data_path=tempdir, render_bem=False, on_error='raise')
+
+    # Check correct paths and filenames
+    for fname in fnames_out:
+        assert (op.basename(fname) in
+                [op.basename(x) for x in report.fnames])
+
+    assert len(report.fnames) == len(fnames_out)
+    assert len(report.html) == len(report.fnames)
+    assert len(report.fnames) == len(report)
+
+    report.data_path = tempdir
+    fname = op.join(tempdir, 'report.html')
+    report.save(fname=fname, open_browser=False)
+    with open(fname, 'rb') as fid:
+        html = fid.read().decode('utf-8')
+
+    assert '<h4>Raw: test_raw.bdf</h4>' in html
+    assert '<h4>Raw: test_raw.edf</h4>' in html
+
+
+@testing.requires_testing_data
+def test_report_raw_psd_and_date(tmpdir):
     """Test report raw PSD and DATE_NONE functionality."""
     with pytest.raises(TypeError, match='dict'):
         Report(raw_psd='foo')
 
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     raw = read_raw_fif(raw_fname).crop(0, 1.).load_data()
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
     raw.save(raw_fname_new)
@@ -160,9 +272,25 @@ def test_report_raw_psd_and_date():
     assert 'PSD' in ''.join(report.html)
     assert 'GMT' in ''.join(report.html)
 
-    # DATE_NONE functionality
+    # test new anonymize functionality
     report = Report()
     raw.anonymize()
+    raw.save(raw_fname_new, overwrite=True)
+    report.parse_folder(data_path=tempdir, render_bem=False,
+                        on_error='raise')
+    assert isinstance(report.html, list)
+    assert 'GMT' in ''.join(report.html)
+
+    # DATE_NONE functionality
+    report = Report()
+    # old style (pre 0.20) date anonymization
+    raw.info['meas_date'] = None
+    for key in ('file_id', 'meas_id'):
+        value = raw.info.get(key)
+        if value is not None:
+            assert 'msecs' not in value
+            value['secs'] = DATE_NONE[0]
+            value['usecs'] = DATE_NONE[1]
     raw.save(raw_fname_new, overwrite=True)
     report.parse_folder(data_path=tempdir, render_bem=False,
                         on_error='raise')
@@ -171,11 +299,9 @@ def test_report_raw_psd_and_date():
 
 
 @testing.requires_testing_data
-@requires_mayavi
-@traits_test
-def test_render_add_sections():
+def test_render_add_sections(renderer, tmpdir):
     """Test adding figures/images to section."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     report = Report(subjects_dir=subjects_dir)
     # Check add_figs_to_section functionality
     fig = plt.plot([1, 2], [1, 2])[0].figure
@@ -214,41 +340,89 @@ def test_render_add_sections():
     report.add_figs_to_section(figs=fig,  # test non-list input
                                captions='random image', scale=1.2)
     assert (repr(report))
+    fname = op.join(str(tmpdir), 'test.html')
+    report.save(fname, open_browser=False)
+    with open(fname, 'r') as fid:
+        html = fid.read()
+    assert html.count('<li class="report_custom"') == 8  # several
 
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_mayavi
-@traits_test
 @requires_nibabel()
-def test_render_mri():
+def test_render_mri(renderer, tmpdir):
     """Test rendering MRI for mne report."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     trans_fname_new = op.join(tempdir, 'temp-trans.fif')
     for a, b in [[trans_fname, trans_fname_new]]:
         shutil.copyfile(a, b)
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
     report.parse_folder(data_path=tempdir, mri_decim=30, pattern='*')
-    report.save(op.join(tempdir, 'report.html'), open_browser=False)
+    fname = op.join(tempdir, 'report.html')
+    report.save(fname, open_browser=False)
+    with open(fname, 'r') as fid:
+        html = fid.read()
+    assert html.count('<li class="bem"') == 2  # left and content
     assert repr(report)
     report.add_bem_to_section('sample', caption='extra', section='foo',
                               subjects_dir=subjects_dir, decim=30)
-    report.save(op.join(tempdir, 'report.html'), open_browser=False,
-                overwrite=True)
+    report.save(fname, open_browser=False, overwrite=True)
+    with open(fname, 'r') as fid:
+        html = fid.read()
+    assert 'report_report' not in html
+    assert html.count('<li class="report_foo"') == 2
 
 
 @testing.requires_testing_data
 @requires_nibabel()
-def test_render_mri_without_bem():
+@pytest.mark.parametrize('n_jobs', [
+    1,
+    pytest.param(2, marks=pytest.mark.slowtest),  # 1.5 sec locally
+])
+def test_add_bem_n_jobs(n_jobs, tmpdir, monkeypatch):
+    """Test add_bem with n_jobs."""
+    from matplotlib.pyplot import imread
+    if n_jobs == 1:  # in one case, do at init -- in the other, pass in
+        use_subjects_dir = None
+    else:
+        use_subjects_dir = subjects_dir
+    report = Report(subjects_dir=use_subjects_dir)
+    # implicitly test that subjects_dir is correctly preserved here
+    monkeypatch.setattr(report_mod, '_BEM_VIEWS', ('axial',))
+    if use_subjects_dir is not None:
+        use_subjects_dir = None
+    report.add_bem_to_section('sample', 'sample', 'sample', decim=15,
+                              n_jobs=n_jobs, verbose='debug',
+                              subjects_dir=subjects_dir)
+    assert len(report.html) == 1
+    imgs = np.array([imread(BytesIO(base64.b64decode(b)), 'png')
+                     for b in re.findall(r'data:image/png;base64,(\S*)">',
+                                         report.html[0])])
+    assert imgs.ndim == 4  # images, h, w, rgba
+    assert len(imgs) == 6
+    imgs.shape = (len(imgs), -1)
+    norms = np.linalg.norm(imgs, axis=-1)
+    # should have down-up-down shape
+    corr = np.corrcoef(norms, np.hanning(len(imgs)))[0, 1]
+    assert 0.78 < corr < 0.80
+
+
+@testing.requires_testing_data
+@requires_nibabel()
+def test_render_mri_without_bem(tmpdir):
     """Test rendering MRI without BEM for mne report."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     os.mkdir(op.join(tempdir, 'sample'))
     os.mkdir(op.join(tempdir, 'sample', 'mri'))
     shutil.copyfile(mri_fname, op.join(tempdir, 'sample', 'mri', 'T1.mgz'))
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=tempdir)
-    report.parse_folder(tempdir, render_bem=False)
+    with pytest.raises(RuntimeError, match='No matching files found'):
+        report.parse_folder(tempdir, render_bem=False)
+    with pytest.warns(RuntimeWarning, match='No BEM surfaces found'):
+        report.parse_folder(tempdir, render_bem=True, mri_decim=20)
+    assert 'bem' in report.fnames
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
 
@@ -267,14 +441,15 @@ def test_add_htmls_to_section():
     assert (repr(report))
 
 
-def test_add_slider_to_section():
+def test_add_slider_to_section(tmpdir):
     """Test adding a slider with a series of images to mne report."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
     section = 'slider_section'
     figs = _get_example_figures()
-    report.add_slider_to_section(figs, section=section)
+    report.add_slider_to_section(figs, section=section, title='my title')
+    assert report.fnames[0] == 'my title-#-report_slider_section-#-custom'
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
     pytest.raises(NotImplementedError, report.add_slider_to_section,
@@ -287,7 +462,7 @@ def test_add_slider_to_section():
     # Smoke test that SVG w/unicode can be added
     report = Report()
     fig, ax = plt.subplots()
-    ax.set_xlabel(u'μ')
+    ax.set_xlabel('µ')
     report.add_slider_to_section([fig] * 2, image_format='svg')
 
 
@@ -306,13 +481,13 @@ def test_validate_input():
                   comments=comments[:-1])
     values = report._validate_input(items, captions, section, comments=None)
     items_new, captions_new, comments_new = values
-    assert_equal(len(comments_new), len(items))
+    assert len(comments_new) == len(items)
 
 
 @requires_h5py
-def test_open_report():
+def test_open_report(tmpdir):
     """Test the open_report function."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     hdf5 = op.join(tempdir, 'report.h5')
 
     # Test creating a new report through the open_report function
@@ -324,7 +499,7 @@ def test_open_report():
     # Exiting the context block should have triggered saving to HDF5
     assert op.exists(hdf5)
 
-    # Load the HDF5 version of the report and check equivalency
+    # Load the HDF5 version of the report and check equivalence
     report2 = open_report(hdf5)
     assert report2._fname == hdf5
     assert report2.subjects_dir == report.subjects_dir
@@ -337,13 +512,19 @@ def test_open_report():
     pytest.raises(ValueError, open_report, hdf5, subjects_dir='foo')
     open_report(hdf5, subjects_dir=subjects_dir)  # This should work
 
+    # Check that the context manager doesn't swallow exceptions
+    with pytest.raises(ZeroDivisionError):
+        with open_report(hdf5, subjects_dir=subjects_dir) as report:
+            1 / 0
+
 
 def test_remove():
     """Test removing figures from a report."""
     r = Report()
     fig1, fig2 = _get_example_figures()
     r.add_figs_to_section(fig1, 'figure1', 'mysection')
-    r.add_figs_to_section(fig1, 'figure1', 'othersection')
+    r.add_slider_to_section([fig1, fig2], title='figure1',
+                            section='othersection')
     r.add_figs_to_section(fig2, 'figure1', 'mysection')
     r.add_figs_to_section(fig2, 'figure2', 'mysection')
 
@@ -396,4 +577,74 @@ def test_add_or_replace():
     assert r.html[3] == old_r.html[3]
 
 
-run_tests_if_main()
+def test_scraper(tmpdir):
+    """Test report scraping."""
+    r = Report()
+    fig1, fig2 = _get_example_figures()
+    r.add_figs_to_section(fig1, 'a', 'mysection')
+    r.add_figs_to_section(fig2, 'b', 'mysection')
+    # Mock a Sphinx + sphinx_gallery config
+    app = Bunch(builder=Bunch(srcdir=str(tmpdir),
+                              outdir=op.join(str(tmpdir), '_build', 'html')))
+    scraper = _ReportScraper()
+    scraper.app = app
+    gallery_conf = dict(src_dir=app.builder.srcdir, builder_name='html')
+    img_fname = op.join(app.builder.srcdir, 'auto_examples', 'images',
+                        'sg_img.png')
+    target_file = op.join(app.builder.srcdir, 'auto_examples', 'sg.py')
+    os.makedirs(op.dirname(img_fname))
+    os.makedirs(app.builder.outdir)
+    block_vars = dict(image_path_iterator=(img for img in [img_fname]),
+                      example_globals=dict(a=1), target_file=target_file)
+    # Nothing yet
+    block = None
+    rst = scraper(block, block_vars, gallery_conf)
+    assert rst == ''
+    # Still nothing
+    block_vars['example_globals']['r'] = r
+    rst = scraper(block, block_vars, gallery_conf)
+    # Once it's saved, add it
+    assert rst == ''
+    fname = op.join(str(tmpdir), 'my_html.html')
+    r.save(fname, open_browser=False)
+    rst = scraper(block, block_vars, gallery_conf)
+    out_html = op.join(app.builder.outdir, 'auto_examples', 'my_html.html')
+    assert not op.isfile(out_html)
+    scraper.copyfiles()
+    assert op.isfile(out_html)
+    assert rst.count('"') == 6
+    assert "<iframe" in rst
+    assert op.isfile(img_fname.replace('png', 'svg'))
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('split_naming', ('neuromag', 'bids',))
+def test_split_files(tmpdir, split_naming):
+    """Test that in the case of split files, we only parse the first."""
+    raw = read_raw_fif(raw_fname)
+    split_size = '7MB'  # Should produce 3 files
+    buffer_size_sec = 1  # Tiny buffer so it's smaller than the split size
+    raw.save(op.join(tmpdir, 'raw_meg.fif'), split_size=split_size,
+             split_naming=split_naming, buffer_size_sec=buffer_size_sec)
+
+    report = Report()
+    report.parse_folder(tmpdir, render_bem=False)
+    assert len(report.fnames) == 1
+
+
+@testing.requires_testing_data
+def test_survive_pickle(tmpdir):
+    """Testing functionality of Report-Object after pickling."""
+    tempdir = str(tmpdir)
+    raw_fname_new = op.join(tempdir, 'temp_raw.fif')
+    shutil.copyfile(raw_fname, raw_fname_new)
+
+    # Pickle report object to simulate multiprocessing with joblib
+    report = Report(info_fname=raw_fname_new)
+    pickled_report = pickle.dumps(report)
+    report = pickle.loads(pickled_report)
+
+    # Just test if no errors occur
+    report.parse_folder(tempdir, render_bem=False)
+    save_name = op.join(tempdir, 'report.html')
+    report.save(fname=save_name, open_browser=False)

@@ -1,16 +1,20 @@
 #!/usr/bin/env python
 """View the 3-Layers BEM model using Freeview.
 
-You can do for example:
+Examples
+--------
+.. code-block:: console
 
-$ mne freeview_bem_surfaces -s sample
+    $ mne freeview_bem_surfaces -s sample
+
 """
-# Authors:  Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors:  Alexandre Gramfort <alexandre.gramfort@inria.fr>
 
 import sys
 import os
 import os.path as op
 
+import mne
 from mne.utils import run_subprocess, get_subjects_dir
 
 
@@ -98,6 +102,4 @@ def run():
     freeview_bem_surfaces(subject, subjects_dir, method)
 
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()

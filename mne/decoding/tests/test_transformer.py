@@ -1,7 +1,7 @@
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 #         Romain Trachel <trachelr@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 import numpy as np
@@ -14,7 +14,7 @@ from mne import io, read_events, Epochs, pick_types
 from mne.decoding import (Scaler, FilterEstimator, PSDEstimator, Vectorizer,
                           UnsupervisedSpatialFilter, TemporalFilter)
 from mne.defaults import DEFAULTS
-from mne.utils import requires_version, run_tests_if_main, check_version
+from mne.utils import requires_sklearn, check_version
 
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
@@ -25,7 +25,13 @@ raw_fname = op.join(data_dir, 'test_raw.fif')
 event_name = op.join(data_dir, 'test-eve.fif')
 
 
-def test_scaler():
+@pytest.mark.parametrize('info, method', [
+    (True, None),
+    (True, dict(mag=5, grad=10, eeg=20)),
+    (False, 'mean'),
+    (False, 'median'),
+])
+def test_scaler(info, method):
     """Test methods of Scaler."""
     raw = io.read_raw_fif(raw_fname)
     events = read_events(event_name)
@@ -38,49 +44,48 @@ def test_scaler():
     epochs_data = epochs.get_data()
     y = epochs.events[:, -1]
 
-    methods = (None, dict(mag=5, grad=10, eeg=20), 'mean', 'median')
-    infos = (epochs.info, epochs.info, None, None)
     epochs_data_t = epochs_data.transpose([1, 0, 2])
-    for method, info in zip(methods, infos):
-        if method == 'median' and not check_version('sklearn', '0.17'):
-            pytest.raises(ValueError, Scaler, info, method)
-            continue
-        if method == 'mean' and not check_version('sklearn', ''):
-            pytest.raises(ImportError, Scaler, info, method)
-            continue
-        scaler = Scaler(info, method)
-        X = scaler.fit_transform(epochs_data, y)
-        assert_equal(X.shape, epochs_data.shape)
-        if method is None or isinstance(method, dict):
-            sd = DEFAULTS['scalings'] if method is None else method
-            stds = np.zeros(len(picks))
-            for key in ('mag', 'grad'):
-                stds[pick_types(epochs.info, meg=key)] = 1. / sd[key]
-            stds[pick_types(epochs.info, meg=False, eeg=True)] = 1. / sd['eeg']
-            means = np.zeros(len(epochs.ch_names))
-        elif method == 'mean':
-            stds = np.array([np.std(ch_data) for ch_data in epochs_data_t])
-            means = np.array([np.mean(ch_data) for ch_data in epochs_data_t])
-        else:  # median
-            percs = np.array([np.percentile(ch_data, [25, 50, 75])
-                              for ch_data in epochs_data_t])
-            stds = percs[:, 2] - percs[:, 0]
-            means = percs[:, 1]
-        assert_allclose(X * stds[:, np.newaxis] + means[:, np.newaxis],
-                        epochs_data, rtol=1e-12, atol=1e-20, err_msg=method)
+    if method in ('mean', 'median'):
+        if not check_version('sklearn'):
+            with pytest.raises(ImportError, match='No module'):
+                Scaler(info, method)
+            return
 
-        X2 = scaler.fit(epochs_data, y).transform(epochs_data)
-        assert_array_equal(X, X2)
+    if info:
+        info = epochs.info
+    scaler = Scaler(info, method)
+    X = scaler.fit_transform(epochs_data, y)
+    assert_equal(X.shape, epochs_data.shape)
+    if method is None or isinstance(method, dict):
+        sd = DEFAULTS['scalings'] if method is None else method
+        stds = np.zeros(len(picks))
+        for key in ('mag', 'grad'):
+            stds[pick_types(epochs.info, meg=key)] = 1. / sd[key]
+        stds[pick_types(epochs.info, meg=False, eeg=True)] = 1. / sd['eeg']
+        means = np.zeros(len(epochs.ch_names))
+    elif method == 'mean':
+        stds = np.array([np.std(ch_data) for ch_data in epochs_data_t])
+        means = np.array([np.mean(ch_data) for ch_data in epochs_data_t])
+    else:  # median
+        percs = np.array([np.percentile(ch_data, [25, 50, 75])
+                          for ch_data in epochs_data_t])
+        stds = percs[:, 2] - percs[:, 0]
+        means = percs[:, 1]
+    assert_allclose(X * stds[:, np.newaxis] + means[:, np.newaxis],
+                    epochs_data, rtol=1e-12, atol=1e-20, err_msg=method)
 
-        # inverse_transform
-        Xi = scaler.inverse_transform(X)
-        assert_array_almost_equal(epochs_data, Xi)
+    X2 = scaler.fit(epochs_data, y).transform(epochs_data)
+    assert_array_equal(X, X2)
+
+    # inverse_transform
+    Xi = scaler.inverse_transform(X)
+    assert_array_almost_equal(epochs_data, Xi)
 
     # Test init exception
     pytest.raises(ValueError, Scaler, None, None)
-    pytest.raises(ValueError, scaler.fit, epochs, y)
-    pytest.raises(ValueError, scaler.transform, epochs)
-    epochs_bad = Epochs(raw, events, event_id, 0, 0.01,
+    pytest.raises(TypeError, scaler.fit, epochs, y)
+    pytest.raises(TypeError, scaler.transform, epochs)
+    epochs_bad = Epochs(raw, events, event_id, 0, 0.01, baseline=None,
                         picks=np.arange(len(raw.ch_names)))  # non-data chs
     scaler = Scaler(epochs_bad.info, None)
     pytest.raises(ValueError, scaler.fit, epochs_bad.get_data(), y)
@@ -172,7 +177,7 @@ def test_vectorizer():
                   np.random.rand(102, 12, 12))
 
 
-@requires_version('sklearn', '0.16')
+@requires_sklearn
 def test_unsupervised_spatial_filter():
     """Test unsupervised spatial filter."""
     from sklearn.decomposition import PCA
@@ -227,14 +232,11 @@ def test_temporal_filter():
         assert (X.shape == Xt.shape)
 
     # Test fit and transform numpy type check
-    with pytest.warns(RuntimeWarning, match='longer than the signal'):
-        pytest.raises(TypeError, filt.transform, [1, 2])
+    with pytest.raises(ValueError, match='Data to be filtered must be'):
+        filt.transform([1, 2])
 
     # Test with 2 dimensional data array
     X = np.random.rand(101, 500)
     filt = TemporalFilter(l_freq=25., h_freq=50., sfreq=1000.,
                           filter_length=150, fir_design='firwin2')
     assert_equal(filt.fit_transform(X).shape, X.shape)
-
-
-run_tests_if_main()

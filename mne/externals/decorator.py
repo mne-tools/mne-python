@@ -40,9 +40,9 @@ import operator
 import itertools
 import collections
 
-__version__ = '4.3.2'
+__version__ = '4.4.2'
 
-if sys.version >= '3':
+if sys.version_info >= (3,):
     from inspect import getfullargspec
 
     def get_init(cls):
@@ -69,7 +69,7 @@ try:
     from inspect import isgeneratorfunction
 except ImportError:
     # assume no generator function in old Python versions
-    def isgeneratorfunction():
+    def isgeneratorfunction(caller):
         return False
 
 
@@ -179,8 +179,7 @@ class FunctionMaker(object):
         # Ensure each generated function has a unique filename for profilers
         # (such as cProfile) that depend on the tuple of (<filename>,
         # <definition line>, <function name>) being unique.
-        filename = '<%s:decorator-gen-%d>' % (
-            __file__, next(self._compile_count))
+        filename = '<decorator-gen-%d>' % next(self._compile_count)
         try:
             code = compile(src, filename, 'single')
             exec(code, evaldict)
@@ -284,12 +283,12 @@ def decorator(caller, _func=None):
         doc = caller.__call__.__doc__
     evaldict = dict(_call=caller, _decorate_=decorate)
     dec = FunctionMaker.create(
-        '%s(%s func)' % (name, defaultargs),
+        '%s(func, %s)' % (name, defaultargs),
         'if func is None: return lambda func:  _decorate_(func, _call, (%s))\n'
         'return _decorate_(func, _call, (%s))' % (defaultargs, defaultargs),
         evaldict, doc=doc, module=caller.__module__, __wrapped__=caller)
     if defaults:
-        dec.__defaults__ = defaults + (None,)
+        dec.__defaults__ = (None,) + defaults
     return dec
 
 

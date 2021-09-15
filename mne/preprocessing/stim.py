@@ -1,6 +1,6 @@
 # Authors: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 from ..evoked import Evoked
@@ -8,8 +8,8 @@ from ..epochs import BaseEpochs
 from ..io import BaseRaw
 from ..event import find_events
 
-from ..io.pick import _pick_data_channels
-from ..utils import _check_preload, _check_option
+from ..io.pick import _picks_to_idx
+from ..utils import _check_preload, _check_option, fill_doc
 
 
 def _get_window(start, end):
@@ -35,8 +35,10 @@ def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
             data[picks, first_samp:last_samp] * window[np.newaxis, :]
 
 
+@fill_doc
 def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
-                      tmax=0.01, mode='linear', stim_channel=None):
+                      tmax=0.01, mode='linear', stim_channel=None,
+                      picks=None):
     """Eliminate stimulation's artifacts from instance.
 
     .. note:: This function operates in-place, consider passing
@@ -61,11 +63,12 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         'window' applies a (1 - hanning) window.
     stim_channel : str | None
         Stim channel to use.
+    %(picks_all_data)s
 
     Returns
     -------
     inst : instance of Raw or Evoked or Epochs
-        Instance with modified data
+        Instance with modified data.
     """
     _check_option('mode', mode, ['linear', 'window'])
     s_start = int(np.ceil(inst.info['sfreq'] * tmin))
@@ -76,7 +79,8 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     window = None
     if mode == 'window':
         window = _get_window(s_start, s_end)
-    picks = _pick_data_channels(inst.info)
+
+    picks = _picks_to_idx(inst.info, picks, 'data', exclude=())
 
     _check_preload(inst, 'fix_stim_artifact')
     if isinstance(inst, BaseRaw):
@@ -94,7 +98,6 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
             first_samp = int(event_idx) - inst.first_samp + s_start
             last_samp = int(event_idx) - inst.first_samp + s_end
             _fix_artifact(data, window, picks, first_samp, last_samp, mode)
-
     elif isinstance(inst, BaseEpochs):
         if inst.reject is not None:
             raise RuntimeError('Reject is already applied. Use reject=None '

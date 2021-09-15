@@ -1,0 +1,9 @@
+.card-header a {
+    display: block !important;
+    text-decoration: none;
+}
+@media (max-width: 991px) {
+    .collapse.show{
+        display:block !important;
+    }
+  }

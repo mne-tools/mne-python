@@ -1,3 +1,7 @@
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#
+# License: BSD-3-Clause
+
 import os.path as op
 
 from mne.misc import parse_config

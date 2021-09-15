@@ -1,6 +1,6 @@
 # Author: Luke Bloy <bloyl@chop.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 import os.path as op
@@ -8,12 +8,12 @@ import datetime
 import calendar
 
 from .utils import _load_mne_locs, _read_pos
-from ...utils import logger, warn, verbose
+from ...utils import logger, warn, verbose, _check_fname
 from ..utils import _read_segments_file
 from ..base import BaseRaw
-from ..meas_info import _empty_info, _make_dig_points
+from ..meas_info import _empty_info
+from .._digitization import _make_dig_points, DigPoint
 from ..constants import FIFF
-from ...chpi import _fit_device_hpi_positions, _fit_coil_order_dev_head_trans
 from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
 
 
@@ -28,15 +28,10 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None,
         Path to the data file (extension ``.bin``). The header file with the
         same file name stem and an extension ``.txt`` is expected to be found
         in the same directory.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     %(verbose)s
     pos_fname : str or None (default None)
-        If not None, load digitized head points from this file
+        If not None, load digitized head points from this file.
     add_head_trans : bool (default True)
         If True attempt to perform initial head localization. Compute initial
         device to head coordinate transform using HPI coils. If no
@@ -236,7 +231,7 @@ def _get_artemis123_info(fname, pos_fname=None):
             raise ValueError('Channel does not match expected' +
                              ' channel Types:"%s"' % chan['name'])
 
-        # incorporate mulitplier (unit_mul) into calibration
+        # incorporate multiplier (unit_mul) into calibration
         t['cal'] *= 10 ** t['unit_mul']
         t['unit_mul'] = FIFF.FIFF_UNITM_NONE
 
@@ -299,12 +294,7 @@ class RawArtemis123(BaseRaw):
     ----------
     input_fname : str
         Path to the Artemis123 data file (ending in ``'.bin'``).
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     %(verbose)s
 
     See Also
@@ -316,7 +306,9 @@ class RawArtemis123(BaseRaw):
     def __init__(self, input_fname, preload=False, verbose=None,
                  pos_fname=None, add_head_trans=True):  # noqa: D102
         from scipy.spatial.distance import cdist
-
+        from ...chpi import (compute_chpi_amplitudes, compute_chpi_locs,
+                             _fit_coil_order_dev_head_trans)
+        input_fname = _check_fname(input_fname, 'read', True, 'input_fname')
         fname, ext = op.splitext(input_fname)
         if ext == '.txt':
             input_fname = fname + '.bin'
@@ -336,7 +328,6 @@ class RawArtemis123(BaseRaw):
             info, preload, filenames=[input_fname], raw_extras=[header_info],
             last_samps=last_samps, orig_format=np.float32,
             verbose=verbose)
-        self.info['hpi_results'] = []
 
         if add_head_trans:
             n_hpis = 0
@@ -347,14 +338,33 @@ class RawArtemis123(BaseRaw):
                 warn('%d HPIs active. At least 3 needed to perform' % n_hpis +
                      'head localization\n *NO* head localization performed')
             else:
-                # Localized HPIs using the 1st seconds of data.
-                hpi_dev, hpi_g = _fit_device_hpi_positions(self,
-                                                           t_win=[0, 0.25])
-                if pos_fname is not None:
-                    logger.info('No Digitized cHPI locations found.\n' +
-                                'Assuming cHPIs are placed at cardinal ' +
-                                'fiducial locations. (Nasion, LPA, RPA')
+                # Localized HPIs using the 1st 250 milliseconds of data.
+                info['hpi_results'] = [
+                    dict(
+                        dig_points=[dict(
+                            r=np.zeros(3), coord_frame=FIFF.FIFFV_COORD_DEVICE,
+                            ident=ii + 1) for ii in range(n_hpis)],
+                        coord_trans=Transform('meg', 'head'))]
+                coil_amplitudes = compute_chpi_amplitudes(
+                    self, tmin=0, tmax=0.25, t_window=0.25, t_step_min=0.25)
+                assert len(coil_amplitudes['times']) == 1
+                coil_locs = compute_chpi_locs(self.info, coil_amplitudes)
+                info['hpi_results'] = None
+                hpi_g = coil_locs['gofs'][0]
+                hpi_dev = coil_locs['rrs'][0]
 
+                # only use HPI coils with localizaton goodness_of_fit > 0.98
+                bad_idx = []
+                for i, g in enumerate(hpi_g):
+                    msg = 'HPI coil %d - location goodness of fit (%0.3f)'
+                    if g < 0.98:
+                        bad_idx.append(i)
+                        msg += ' *Removed from coregistration*'
+                    logger.info(msg % (i + 1, g))
+                hpi_dev = np.delete(hpi_dev, bad_idx, axis=0)
+                hpi_g = np.delete(hpi_g, bad_idx, axis=0)
+
+                if pos_fname is not None:
                     # Digitized HPI points are needed.
                     hpi_head = np.array([d['r']
                                          for d in self.info.get('dig', [])
@@ -368,7 +378,7 @@ class RawArtemis123(BaseRaw):
                                                    len(hpi_dev)))
 
                     # compute initial head to dev transform and hpi ordering
-                    head_to_dev_t, order = \
+                    head_to_dev_t, order, trans_g = \
                         _fit_coil_order_dev_head_trans(hpi_dev, hpi_head)
 
                     # set the device to head transform
@@ -376,10 +386,23 @@ class RawArtemis123(BaseRaw):
                         Transform(FIFF.FIFFV_COORD_DEVICE,
                                   FIFF.FIFFV_COORD_HEAD, head_to_dev_t)
 
-                    dig_dists = cdist(hpi_head, hpi_head)
+                    # add hpi_meg_dev to dig...
+                    for idx, point in enumerate(hpi_dev):
+                        d = {'r': point, 'ident': idx + 1,
+                             'kind': FIFF.FIFFV_POINT_HPI,
+                             'coord_frame': FIFF.FIFFV_COORD_DEVICE}
+                        self.info['dig'].append(DigPoint(d))
+
+                    dig_dists = cdist(hpi_head[order], hpi_head[order])
                     dev_dists = cdist(hpi_dev, hpi_dev)
                     tmp_dists = np.abs(dig_dists - dev_dists)
                     dist_limit = tmp_dists.max() * 1.1
+
+                    msg = 'HPI-Dig corrregsitration\n'
+                    msg += '\tGOF : %0.3f\n' % trans_g
+                    msg += '\tMax Coil Error : %0.3f cm\n' % (100 *
+                                                              tmp_dists.max())
+                    logger.info(msg)
 
                 else:
                     logger.info('Assuming Cardinal HPIs')
@@ -396,7 +419,7 @@ class RawArtemis123(BaseRaw):
                     lpa = apply_trans(t, lpa)
                     rpa = apply_trans(t, rpa)
 
-                    hpi = [nas, rpa, lpa]
+                    hpi = apply_trans(self.info['dev_head_t'], hpi_dev)
                     self.info['dig'] = _make_dig_points(nasion=nas, lpa=lpa,
                                                         rpa=rpa, hpi=hpi)
                     order = np.array([0, 1, 2])
@@ -435,5 +458,5 @@ class RawArtemis123(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        _read_segments_file(self, data, idx, fi, start,
-                            stop, cals, mult, dtype='>f4')
+        _read_segments_file(
+            self, data, idx, fi, start, stop, cals, mult, dtype='>f4')

@@ -1,25 +1,26 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
-from .. import pick_types, pick_channels
 from ..annotations import _annotations_starts_stops
-from ..utils import logger, verbose, sum_squared, warn
+from ..utils import logger, verbose, sum_squared, warn, int_like
 from ..filter import filter_data
 from ..epochs import Epochs, BaseEpochs
 from ..io.base import BaseRaw
 from ..evoked import Evoked
 from ..io import RawArray
-from ..io.pick import _picks_to_idx
-from .. import create_info
+from ..io.meas_info import create_info
+from ..io.pick import _picks_to_idx, pick_types, pick_channels
 
 
+@verbose
 def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
-                 l_freq=5, h_freq=35, tstart=0, filter_length='10s'):
+                 l_freq=5, h_freq=35, tstart=0, filter_length='10s',
+                 verbose=None):
     """Detect QRS component in ECG channels.
 
     QRS is the main wave on the heart beat.
@@ -41,15 +42,14 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
         Low pass frequency
     h_freq : float
         High pass frequency
-    tstart : float
-        Start detection after tstart seconds.
-    filter_length : str | int | None
-        Number of taps to use for filtering.
+    %(ecg_tstart)s
+    %(ecg_filter_length)s
+    %(verbose)s
 
     Returns
     -------
     events : array
-        Indices of ECG peaks
+        Indices of ECG peaks.
     """
     win_size = int(round((60.0 * sfreq) / 120.0))
 
@@ -92,7 +92,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
             if window[0] > thresh1:
                 max_time = np.argmax(window)
                 time.append(ii + max_time)
-                nx = np.sum(np.diff(((window > thresh1).astype(np.int) ==
+                nx = np.sum(np.diff(((window > thresh1).astype(np.int64) ==
                                      1).astype(int)))
                 numcross.append(nx)
                 rms.append(np.sqrt(sum_squared(window) / window.size))
@@ -112,20 +112,27 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
         ce = time[b[a < n_thresh]]
 
         ce += n_samples_start
-        clean_events.append(ce)
+        if ce.size > 0:  # We actually found an event
+            clean_events.append(ce)
 
-    # pick the best threshold; first get effective heart rates
-    rates = np.array([60. * len(cev) / (len(ecg) / float(sfreq))
-                      for cev in clean_events])
+    if clean_events:
+        # pick the best threshold; first get effective heart rates
+        rates = np.array([60. * len(cev) / (len(ecg) / float(sfreq))
+                          for cev in clean_events])
 
-    # now find heart rates that seem reasonable (infant through adult athlete)
-    idx = np.where(np.logical_and(rates <= 160., rates >= 40.))[0]
-    if len(idx) > 0:
-        ideal_rate = np.median(rates[idx])  # get close to the median
+        # now find heart rates that seem reasonable (infant through adult
+        # athlete)
+        idx = np.where(np.logical_and(rates <= 160., rates >= 40.))[0]
+        if idx.size > 0:
+            ideal_rate = np.median(rates[idx])  # get close to the median
+        else:
+            ideal_rate = 80.  # get close to a reasonable default
+
+        idx = np.argmin(np.abs(rates - ideal_rate))
+        clean_events = clean_events[idx]
     else:
-        ideal_rate = 80.  # get close to a reasonable default
-    idx = np.argmin(np.abs(rates - ideal_rate))
-    clean_events = clean_events[idx]
+        clean_events = np.array([])
+
     return clean_events
 
 
@@ -133,38 +140,27 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
 def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
                     l_freq=5, h_freq=35, qrs_threshold='auto',
                     filter_length='10s', return_ecg=False,
-                    reject_by_annotation=None, verbose=None):
-    """Find ECG peaks.
+                    reject_by_annotation=True, verbose=None):
+    """Find ECG events by localizing the R wave peaks.
 
     Parameters
     ----------
     raw : instance of Raw
-        The raw data
-    event_id : int
-        The index to assign to found events
-    ch_name : None | str
-        The name of the channel to use for ECG peak detection.
-        If None (default), a synthetic ECG channel is created from
-        cross channel average. Synthetic channel can only be created from
-        'meg' channels.
-    tstart : float
-        Start detection after tstart seconds. Useful when beginning
-        of run is noisy.
-    l_freq : float
-        Low pass frequency to apply to the ECG channel while finding events.
-    h_freq : float
-        High pass frequency to apply to the ECG channel while finding events.
+        The raw data.
+    %(ecg_event_id)s
+    %(ecg_ch_name)s
+    %(ecg_tstart)s
+    %(ecg_filter_freqs)s
     qrs_threshold : float | str
         Between 0 and 1. qrs detection threshold. Can also be "auto" to
         automatically choose the threshold that generates a reasonable
         number of heartbeats (40-160 beats / min).
-    filter_length : str | int | None
-        Number of taps to use for filtering.
+    %(ecg_filter_length)s
     return_ecg : bool
-        Return ecg channel if synthesized. Defaults to False. If True and
-        and ecg exists this will yield None.
-    reject_by_annotation : bool
-        Whether to omit data that is annotated as bad.
+        Return the ECG data. This is especially useful if no ECG channel
+        is present in the input data, so one will be synthesized. Defaults to
+        ``False``.
+    %(reject_by_annotation_all)s
 
         .. versionadded:: 0.18
     %(verbose)s
@@ -172,23 +168,21 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     Returns
     -------
     ecg_events : array
-        Events.
+        The events corresponding to the peaks of the R waves.
     ch_ecg : string
         Name of channel used.
     average_pulse : float
-        Estimated average pulse.
+        The estimated average pulse. If no ECG events could be found, this will
+        be zero.
+    ecg : array | None
+        The ECG data of the synthesized ECG channel, if any. This will only
+        be returned if ``return_ecg=True`` was passed.
 
     See Also
     --------
     create_ecg_epochs
     compute_proj_ecg
     """
-    if reject_by_annotation is None:
-        if len(raw.annotations) > 0:
-            warn('reject_by_annotation in find_ecg_events defaults to False '
-                 'in 0.18 but will change to True in 0.19, set it explicitly '
-                 'to avoid this warning', DeprecationWarning)
-        reject_by_annotation = False
     skip_by_annotation = ('edge', 'bad') if reject_by_annotation else ()
     del reject_by_annotation
     idx_ecg = _get_ecg_channel_index(ch_name, raw)
@@ -197,7 +191,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
                     % raw.ch_names[idx_ecg])
         ecg = raw.get_data(picks=idx_ecg)
     else:
-        ecg = _make_ecg(raw, None, None)[0]
+        ecg, _ = _make_ecg(raw, start=None, stop=None)
     assert ecg.ndim == 2 and ecg.shape[0] == 1
     ecg = ecg[0]
     # Deal with filtering the same way we do in raw, i.e. filter each good
@@ -217,10 +211,11 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
             verbose=use_verbose))
     ecg = np.concatenate(ecgs)
 
-    # detecting QRS and generating event file
+    # detecting QRS and generating events. Since not user-controlled, don't
+    # output filter params here (hardcode verbose=False)
     ecg_events = qrs_detector(raw.info['sfreq'], ecg, tstart=tstart,
                               thresh_value=qrs_threshold, l_freq=None,
-                              h_freq=None)
+                              h_freq=None, verbose=False)
 
     # map ECG events back to original times
     remap = np.empty(len(ecg), int)
@@ -231,11 +226,16 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
         remap[offset:offset + this_len] = np.arange(start, stop)
         offset += this_len
     assert offset == len(ecg)
-    ecg_events = remap[ecg_events]
+
+    if ecg_events.size > 0:
+        ecg_events = remap[ecg_events]
+    else:
+        ecg_events = np.array([])
 
     n_events = len(ecg_events)
-    minutes = len(ecg) / (raw.info['sfreq'] * 60.)
-    average_pulse = n_events / minutes
+    duration_sec = len(ecg) / raw.info['sfreq'] - tstart
+    duration_min = duration_sec / 60.
+    average_pulse = n_events / duration_min
     logger.info("Number of ECG events detected : %d (average pulse %d / "
                 "min.)" % (n_events, average_pulse))
 
@@ -277,54 +277,31 @@ def _get_ecg_channel_index(ch_name, inst):
 def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
                       tmax=0.5, l_freq=8, h_freq=16, reject=None, flat=None,
                       baseline=None, preload=True, keep_ecg=False,
-                      reject_by_annotation=True, verbose=None):
+                      reject_by_annotation=True, decim=1, verbose=None):
     """Conveniently generate epochs around ECG artifact events.
+
+    %(create_ecg_epochs)s
+
+    .. note:: Filtering is only applied to the ECG channel while finding
+                events. The resulting ``ecg_epochs`` will have no filtering
+                applied (i.e., have the same filter properties as the input
+                ``raw`` instance).
 
     Parameters
     ----------
     raw : instance of Raw
-        The raw data
-    ch_name : None | str
-        The name of the channel to use for ECG peak detection.
-        If None (default), ECG channel is used if present. If None and no
-        ECG channel is present, a synthetic ECG channel is created from
-        cross channel average. Synthetic channel can only be created from
-        MEG channels.
-    event_id : int
-        The index to assign to found events
+        The raw data.
+    %(ecg_ch_name)s
+    %(ecg_event_id)s
     %(picks_all)s
     tmin : float
         Start time before event.
     tmax : float
         End time after event.
-    l_freq : float
-        Low pass frequency to apply to the ECG channel while finding events.
-    h_freq : float
-        High pass frequency to apply to the ECG channel while finding events.
-    reject : dict | None
-        Rejection parameters based on peak-to-peak amplitude.
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-        If reject is None then no rejection is done. Example::
-
-            reject = dict(grad=4000e-13, # T / m (gradiometers)
-                          mag=4e-12, # T (magnetometers)
-                          eeg=40e-6, # V (EEG channels)
-                          eog=250e-6 # V (EOG channels)
-                          )
-
-    flat : dict | None
-        Rejection parameters based on flatness of signal.
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
-        are floats that set the minimum acceptable peak-to-peak amplitude.
-        If flat is None then no rejection is done.
-    baseline : tuple | list of length 2 | None
-        The time interval to apply rescaling / baseline correction.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal to (None, None) all the time
-        interval is used. If None, no correction is applied.
+    %(ecg_filter_freqs)s
+    %(reject_epochs)s
+    %(flat)s
+    %(baseline_epochs)s
     preload : bool
         Preload epochs or not (default True). Must be True if
         keep_ecg is True.
@@ -332,29 +309,23 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         When ECG is synthetically created (after picking), should it be added
         to the epochs? Must be False when synthetic channel is not used.
         Defaults to False.
-    reject_by_annotation : bool
-        Whether to reject based on annotations. If True (default), epochs
-        overlapping with segments whose description begins with ``'bad'`` are
-        rejected. If False, no rejection based on annotations is performed.
+    %(reject_by_annotation_epochs)s
 
         .. versionadded:: 0.14.0
+    %(decim)s
+
+        .. versionadded:: 0.21.0
     %(verbose)s
 
     Returns
     -------
     ecg_epochs : instance of Epochs
-        Data epoched around ECG r-peaks.
+        Data epoched around ECG R wave peaks.
 
     See Also
     --------
     find_ecg_events
     compute_proj_ecg
-
-    Notes
-    -----
-    Filtering is only applied to the ECG channel while finding events.
-    The resulting ``ecg_epochs`` will have no filtering applied (i.e., have
-    the same filter properties as the input ``raw`` instance).
     """
     has_ecg = 'ecg' in raw or ch_name is not None
     if keep_ecg and (has_ecg or not preload):
@@ -372,7 +343,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
                         tmin=tmin, tmax=tmax, proj=False, flat=flat,
                         picks=picks, reject=reject, baseline=baseline,
                         reject_by_annotation=reject_by_annotation,
-                        preload=preload)
+                        preload=preload, decim=decim)
 
     if keep_ecg:
         # We know we have created a synthetic channel and epochs are preloaded
@@ -387,7 +358,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         syn_epochs = Epochs(ecg_raw, events=ecg_epochs.events,
                             event_id=event_id, tmin=tmin, tmax=tmax,
                             proj=False, picks=[0], baseline=baseline,
-                            preload=True)
+                            decim=decim, preload=True)
         ecg_epochs = ecg_epochs.add_channels([syn_epochs])
 
     return ecg_epochs
@@ -405,14 +376,38 @@ def _make_ecg(inst, start, stop, reject_by_annotation=False, verbose=None):
                 .format({'mag': 'Magnetometers',
                          'grad': 'Gradiometers'}[ch]))
     picks = pick_types(inst.info, meg=ch, eeg=False, ref_meg=False)
+
+    # Handle start/stop
+    msg = ('integer arguments for the start and stop parameters are '
+           'not supported for Epochs and Evoked objects. Please '
+           'consider using float arguments specifying start and stop '
+           'time in seconds.')
+    begin_param_name = 'tmin'
+    if isinstance(start, int_like):
+        if isinstance(inst, BaseRaw):
+            # Raw has start param, can just use int
+            begin_param_name = 'start'
+        else:
+            raise ValueError(msg)
+
+    end_param_name = 'tmax'
+    if isinstance(start, int_like):
+        if isinstance(inst, BaseRaw):
+            # Raw has stop param, can just use int
+            end_param_name = 'stop'
+        else:
+            raise ValueError(msg)
+
+    kwargs = {begin_param_name: start, end_param_name: stop}
+
     if isinstance(inst, BaseRaw):
         reject_by_annotation = 'omit' if reject_by_annotation else None
-        ecg, times = inst.get_data(picks, start, stop, reject_by_annotation,
-                                   True)
+        ecg, times = inst.get_data(picks, return_times=True, **kwargs,
+                                   reject_by_annotation=reject_by_annotation)
     elif isinstance(inst, BaseEpochs):
-        ecg = np.hstack(inst.copy().crop(start, stop).get_data())
+        ecg = np.hstack(inst.copy().get_data(picks, **kwargs))
         times = inst.times
     elif isinstance(inst, Evoked):
-        ecg = inst.data
+        ecg = inst.get_data(picks, **kwargs)
         times = inst.times
     return ecg.mean(0, keepdims=True), times

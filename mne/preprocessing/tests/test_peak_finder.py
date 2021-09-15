@@ -2,8 +2,7 @@ from numpy.testing import assert_array_equal, assert_equal
 import pytest
 import numpy as np
 
-from mne.utils import run_tests_if_main
-from mne.preprocessing.peak_finder import peak_finder
+from mne.preprocessing import peak_finder
 
 
 def test_peak_finder():
@@ -38,6 +37,3 @@ def test_peak_finder():
     # check values
     peak_inds, peak_mags = peak_finder([0, 2, 5, 0, 6, -1])
     assert_array_equal(peak_inds, [2, 4])
-
-
-run_tests_if_main()

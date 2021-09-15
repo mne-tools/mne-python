@@ -1,6 +1,14 @@
 #!/usr/bin/env python
 """Create 3-layer BEM model from Flash MRI images.
 
+Examples
+--------
+.. code-block:: console
+
+    $ mne flash_bem --subject=sample
+
+Notes
+-----
 This program assumes that FreeSurfer and MNE are installed and
 sourced properly.
 
@@ -14,29 +22,26 @@ should be, as usual, in the subject's mri directory.
 Before running this script do the following:
 (unless the --noconvert option is specified)
 
-    1. Copy all of your FLASH images in a single directory <source> and
-       create a directory <dest> to hold the output of mne_organize_dicom
-    2. cd to <dest> and run
-       $ mne_organize_dicom <source>
-       to create an appropriate directory structure
-    3. Create symbolic links to make flash05 and flash30 point to the
-       appropriate series:
-       $ ln -s <FLASH 5 series dir> flash05
-       $ ln -s <FLASH 30 series dir> flash30
-       Some partition formats (e.g. FAT32) do not support symbolic links.
-       In this case, copy the file to the appropriate series:
-       $ cp <FLASH 5 series dir> flash05
-       $ cp <FLASH 30 series dir> flash30
-    4. cd to the directory where flash05 and flash30 links are
-    5. Set SUBJECTS_DIR and SUBJECT environment variables appropriately
-    6. Run this script
-
-Example usage:
-
-$ mne flash_bem --subject=sample
+1. Copy all of your FLASH images in a single directory <source> and
+   create a directory <dest> to hold the output of mne_organize_dicom
+2. cd to <dest> and run
+   $ mne_organize_dicom <source>
+   to create an appropriate directory structure
+3. Create symbolic links to make flash05 and flash30 point to the
+   appropriate series:
+   $ ln -s <FLASH 5 series dir> flash05
+   $ ln -s <FLASH 30 series dir> flash30
+   Some partition formats (e.g. FAT32) do not support symbolic links.
+   In this case, copy the file to the appropriate series:
+   $ cp <FLASH 5 series dir> flash05
+   $ cp <FLASH 30 series dir> flash30
+4. cd to the directory where flash05 and flash30 links are
+5. Set SUBJECTS_DIR and SUBJECT environment variables appropriately
+6. Run this script
 """
 # Authors: Lorenzo De Santis
 
+import mne
 from mne.bem import convert_flash_mris, make_flash_bem
 
 
@@ -67,6 +72,9 @@ def run():
     parser.add_option("-v", "--view", dest="show", action="store_true",
                       help="Show BEM model in 3D for visual inspection",
                       default=False)
+    parser.add_option("--copy", dest="copy",
+                      help="Use copies instead of symlinks for surfaces",
+                      action="store_true")
     parser.add_option("-p", "--flash-path", dest="flash_path",
                       default=None,
                       help="The directory containing flash05.mgz and "
@@ -83,17 +91,18 @@ def run():
     overwrite = options.overwrite
     show = options.show
     flash_path = options.flash_path
+    copy = options.copy
 
     if options.subject is None:
         parser.print_help()
         raise RuntimeError('The subject argument must be set')
 
     convert_flash_mris(subject=subject, subjects_dir=subjects_dir,
-                       flash30=flash30, convert=convert, unwarp=unwarp)
+                       flash30=flash30, convert=convert, unwarp=unwarp,
+                       verbose=True)
     make_flash_bem(subject=subject, subjects_dir=subjects_dir,
-                   overwrite=overwrite, show=show, flash_path=flash_path)
+                   overwrite=overwrite, show=show, flash_path=flash_path,
+                   copy=copy, verbose=True)
 
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()

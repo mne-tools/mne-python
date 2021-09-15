@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 """Apply MaxFilter.
 
-Example usage:
+Examples
+--------
+.. code-block:: console
 
-$ mne maxfilter -i sample_audvis_raw.fif --st
+    $ mne maxfilter -i sample_audvis_raw.fif --st
 
 This will apply MaxFilter with the MaxSt extension. The origin used
 by MaxFilter is computed by mne-python by fitting a sphere to the
@@ -144,6 +146,5 @@ def run():
         with open(origin_out, 'w') as fid:
             fid.write(origin + '\n')
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+
+mne.utils.run_command_if_main()

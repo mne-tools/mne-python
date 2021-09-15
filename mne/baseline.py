@@ -1,8 +1,8 @@
-"""Util function to baseline correct data."""
+"""Utility functions to baseline-correct data."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
@@ -32,14 +32,7 @@ def rescale(data, times, baseline, mode='mean', copy=True, picks=None,
         dimension should be time.
     times : 1D array
         Time instants is seconds.
-    baseline : tuple or list of length 2, or None
-        The time interval to apply rescaling / baseline correction.
-        If None do not apply it. If baseline is ``(bmin, bmax)``
-        the interval is between ``bmin`` (s) and ``bmax`` (s).
-        If ``bmin is None`` the beginning of the data is used
-        and if ``bmax is None`` then ``bmax`` is set to the end of the
-        interval. If baseline is ``(None, None)`` the entire time
-        interval is used. If baseline is None, no correction is applied.
+    %(rescale_baseline)s
     mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
         Perform baseline correction by
 
@@ -66,9 +59,11 @@ def rescale(data, times, baseline, mode='mean', copy=True, picks=None,
     data_scaled: array
         Array of same shape as data after rescaling.
     """
-    data = data.copy() if copy else data
-    msg = _log_rescale(baseline, mode)
-    logger.info(msg)
+    if copy:
+        data = data.copy()
+    if verbose is not False:
+        msg = _log_rescale(baseline, mode)
+        logger.info(msg)
     if baseline is None or data.shape[-1] == 0:
         return data
 
@@ -127,3 +122,80 @@ def rescale(data, times, baseline, mode='mean', copy=True, picks=None,
         for pi in picks:
             fun(data[..., pi, :], mean[..., pi, :])
     return data
+
+
+def _check_baseline(baseline, times, sfreq, on_baseline_outside_data='raise'):
+    """Check if the baseline is valid, and adjust it if requested.
+
+    ``None`` values inside the baseline parameter will be replaced with
+    ``times[0]`` and ``times[-1]``.
+
+    Parameters
+    ----------
+    baseline : tuple | None
+        Beginning and end of the baseline period, in seconds. If ``None``,
+        assume no baseline and return immediately.
+    times : array
+        The time points.
+    sfreq : float
+        The sampling rate.
+    on_baseline_outside_data : 'raise' | 'info' | 'adjust'
+        What do do if the baseline period exceeds the data.
+        If ``'raise'``, raise an exception (default).
+        If ``'info'``, log an info message.
+        If ``'adjust'``, adjust the baseline such that it's within the data
+        range again.
+
+    Returns
+    -------
+    (baseline_tmin, baseline_tmax) | None
+        The baseline with ``None`` values replaced with times, and with
+        adjusted times if ``on_baseline_outside_data='adjust'``; or ``None``
+        if the ``baseline`` parameter is ``None``.
+
+    """
+    if baseline is None:
+        return None
+
+    if not isinstance(baseline, tuple) or len(baseline) != 2:
+        raise ValueError(f'`baseline={baseline}` is an invalid argument, must '
+                         f'be a tuple of length 2 or None')
+
+    tmin, tmax = times[0], times[-1]
+    tstep = 1. / float(sfreq)
+
+    # check default value of baseline and `tmin=0`
+    if baseline == (None, 0) and tmin == 0:
+        raise ValueError('Baseline interval is only one sample. Use '
+                         '`baseline=(0, 0)` if this is desired.')
+
+    baseline_tmin, baseline_tmax = baseline
+
+    if baseline_tmin is None:
+        baseline_tmin = tmin
+    baseline_tmin = float(baseline_tmin)
+
+    if baseline_tmax is None:
+        baseline_tmax = tmax
+    baseline_tmax = float(baseline_tmax)
+
+    if baseline_tmin > baseline_tmax:
+        raise ValueError(
+            "Baseline min (%s) must be less than baseline max (%s)"
+            % (baseline_tmin, baseline_tmax))
+
+    if (baseline_tmin < tmin - tstep) or (baseline_tmax > tmax + tstep):
+        msg = (f"Baseline interval [{baseline_tmin}, {baseline_tmax}] sec "
+               f"is outside of epochs data [{tmin}, {tmax}] sec. Epochs were "
+               f"probably cropped.")
+        if on_baseline_outside_data == 'raise':
+            raise ValueError(msg)
+        elif on_baseline_outside_data == 'info':
+            logger.info(msg)
+        elif on_baseline_outside_data == 'adjust':
+            if baseline_tmin < tmin - tstep:
+                baseline_tmin = tmin
+            if baseline_tmax > tmax + tstep:
+                baseline_tmax = tmax
+
+    return baseline_tmin, baseline_tmax

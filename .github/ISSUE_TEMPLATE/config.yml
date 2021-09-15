@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Forum
+    url: https://mne.discourse.group
+    about: For questions about analysis and usage, and announcements of interest to the neuroimaging community

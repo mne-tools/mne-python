@@ -7,8 +7,10 @@
 import os
 import os.path as op
 import numpy as np
+from distutils.version import LooseVersion
 
-from ...utils import _fetch_file, verbose, _TempDir, _check_pandas_installed
+from ...utils import (_fetch_file, verbose, _TempDir, _check_pandas_installed,
+                      _on_missing)
 from ..utils import _get_path
 
 AGE_SLEEP_RECORDS = op.join(op.dirname(__file__), 'age_records.csv')
@@ -39,26 +41,21 @@ def _fetch_one(fname, hashsum, path, force_update, base_url):
 
 
 @verbose
-def _data_path(path=None, force_update=False, update_path=None, verbose=None):
+def _data_path(path=None, verbose=None):
     """Get path to local copy of EEG Physionet age Polysomnography dataset URL.
 
     This is a low-level function useful for getting a local copy of a
-    remote Polysomnography dataset [1]_ which is available at PhysioNet [2]_.
+    remote Polysomnography dataset :footcite:`KempEtAl2000` which is available
+    at PhysioNet :footcite:`GoldbergerEtAl2000`.
 
     Parameters
     ----------
     path : None | str
         Location of where to look for the data storing location.
         If None, the environment variable or config parameter
-        ``MNE_DATASETS_PHYSIONET_SLEEP_PATH`` is used. If it doesn't exist, the
-        "~/mne_data" directory is used. If the dataset
-        is not found under the given path, the data
-        will be automatically downloaded to the specified folder.
-    force_update : bool
-        Force update of the dataset even if a local copy exists.
-    update_path : bool | None
-        If True, set the MNE_DATASETS_PHYSIONET_SLEEP_PATH in mne-python
-        config to the given path. If None, the user is prompted.
+        ``PHYSIONET_SLEEP_PATH`` is used. If it doesn't exist, the "~/mne_data"
+        directory is used. If the dataset is not found under the given path,
+        the data will be automatically downloaded to the specified folder.
     %(verbose)s
 
     Returns
@@ -69,14 +66,7 @@ def _data_path(path=None, force_update=False, update_path=None, verbose=None):
 
     References
     ----------
-    .. [1] B Kemp, AH Zwinderman, B Tuk, HAC Kamphuisen, JJL Oberyé. Analysis of
-           a sleep-dependent neuronal feedback loop: the slow-wave microcontinuity
-           of the EEG. IEEE-BME 47(9):1185-1194 (2000).
-    .. [2] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh,
-           Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000)
-           PhysioBank, PhysioToolkit, and PhysioNet: Components of a New
-           Research Resource for Complex Physiologic Signals.
-           Circulation 101(23):e215-e220
+    .. footbibliography::
     """  # noqa: E501
     key = 'PHYSIONET_SLEEP_PATH'
     name = 'PHYSIONET_SLEEP'
@@ -106,6 +96,8 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
 
     # Load and massage the data.
     data = pd.read_excel(subjects_fname, header=[0, 1])
+    if LooseVersion(pd.__version__) >= LooseVersion('0.24.0'):
+        data = data.set_index(('Subject - age - sex', 'Nr'))
     data.index.name = 'subject'
     data.columns.names = [None, None]
     data = (data.set_index([('Subject - age - sex', 'Age'),
@@ -126,7 +118,10 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
     data = data.set_index(['id', 'subject', 'age', 'sex', 'drug',
                            'lights off', 'night nr', 'record type']).unstack()
     data.columns = [l1 + '_' + l2 for l1, l2 in data.columns]
-    data = data.reset_index().drop(columns=['id'])
+    if LooseVersion(pd.__version__) < LooseVersion('0.21.0'):
+        data = data.reset_index().drop(labels=['id'], axis=1)
+    else:
+        data = data.reset_index().drop(columns=['id'])
 
     data['sex'] = (data.sex.astype('category')
                        .cat.rename_categories({1: 'male', 2: 'female'}))
@@ -175,8 +170,10 @@ def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
                                      .str.split('.', expand=True)[0]
                                      .astype('category'))
 
-    # data = data.set_index(['subject', 'night', 'record type'])
-    data = data.reset_index().drop(columns=['id'])
+    if LooseVersion(pd.__version__) < LooseVersion('0.21.0'):
+        data = data.reset_index().drop(labels=['id'], axis=1)
+    else:
+        data = data.reset_index().drop(columns=['id'])
     data = data[['subject', 'night', 'record type', 'age', 'sex', 'lights off',
                  'sha', 'fname']]
 
@@ -184,12 +181,30 @@ def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
     data.to_csv(fname, index=False)
 
 
-def _check_subjects(subjects, n_subjects):
+def _check_subjects(subjects, n_subjects, missing=None, on_missing='raise'):
+    """Check whether subjects are available.
+
+    Parameters
+    ----------
+    subjects : list
+        Subject numbers to be checked.
+    n_subjects : int
+        Number of subjects available.
+    missing : list | None
+        Subject numbers that are missing.
+    on_missing : 'raise' | 'warn' | 'ignore'
+        What to do if one or several subjects are not available. Valid keys
+        are 'raise' | 'warn' | 'ignore'. Default is 'error'. If on_missing
+        is 'warn' it will proceed but warn, if 'ignore' it will proceed
+        silently.
+    """
     valid_subjects = np.arange(n_subjects)
+    if missing is not None:
+        valid_subjects = np.setdiff1d(valid_subjects, missing)
     unknown_subjects = np.setdiff1d(subjects, valid_subjects)
     if unknown_subjects.size > 0:
         subjects_list = ', '.join([str(s) for s in unknown_subjects])
-        raise ValueError('Only subjects 0 to {} are'
-                         ' available from this dataset.'
-                         ' Unknown subjects: {}'.format(n_subjects - 1,
-                                                        subjects_list))
+        msg = (f'This dataset contains subjects 0 to {n_subjects - 1} with '
+               f'missing subjects {missing}. Unknown subjects: '
+               f'{subjects_list}.')
+        _on_missing(on_missing, msg)

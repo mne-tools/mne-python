@@ -2,24 +2,23 @@
 """The config functions."""
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import atexit
 from functools import partial
-import inspect
-from io import StringIO
 import json
-import multiprocessing
 import os
 import os.path as op
 import platform
 import shutil
 import sys
 import tempfile
+import re
 
 import numpy as np
 
-from .check import _validate_type
+from .check import _validate_type, _check_pyqt5_version
+from .docs import fill_doc
 from ._logging import warn, logger
 
 
@@ -35,7 +34,7 @@ def set_cache_dir(cache_dir):
 
     Parameters
     ----------
-    cache_dir: str or None
+    cache_dir : str or None
         Directory to use for temporary file storage. None disables
         temporary file storage.
     """
@@ -50,7 +49,7 @@ def set_memmap_min_size(memmap_min_size):
 
     Parameters
     ----------
-    memmap_min_size: str or None
+    memmap_min_size : str or None
         Threshold on the minimum size of arrays that triggers automated memory
         mapping for parallel processing, e.g., '1M' for 1 megabyte.
         Use None to disable memmaping of large arrays.
@@ -67,13 +66,16 @@ def set_memmap_min_size(memmap_min_size):
 
 # List the known configuration values
 known_config_types = (
+    'MNE_3D_OPTION_ANTIALIAS',
     'MNE_BROWSE_RAW_SIZE',
+    'MNE_BROWSE_BACKEND',
     'MNE_CACHE_DIR',
     'MNE_COREG_ADVANCED_RENDERING',
     'MNE_COREG_COPY_ANNOT',
     'MNE_COREG_GUESS_MRI_SUBJECT',
     'MNE_COREG_HEAD_HIGH_RES',
     'MNE_COREG_HEAD_OPACITY',
+    'MNE_COREG_HEAD_INSIDE',
     'MNE_COREG_INTERACTION',
     'MNE_COREG_MARK_INSIDE',
     'MNE_COREG_PREPARE_BEM',
@@ -85,10 +87,12 @@ known_config_types = (
     'MNE_COREG_WINDOW_HEIGHT',
     'MNE_COREG_WINDOW_WIDTH',
     'MNE_COREG_SUBJECTS_DIR',
+    'MNE_CUDA_DEVICE',
     'MNE_CUDA_IGNORE_PRECISION',
     'MNE_DATA',
     'MNE_DATASETS_BRAINSTORM_PATH',
     'MNE_DATASETS_EEGBCI_PATH',
+    'MNE_DATASETS_EPILEPSY_ECOG_PATH',
     'MNE_DATASETS_HF_SEF_PATH',
     'MNE_DATASETS_MEGSIM_PATH',
     'MNE_DATASETS_MISC_PATH',
@@ -96,6 +100,7 @@ known_config_types = (
     'MNE_DATASETS_SAMPLE_PATH',
     'MNE_DATASETS_SOMATO_PATH',
     'MNE_DATASETS_MULTIMODAL_PATH',
+    'MNE_DATASETS_FNIRS_MOTOR_PATH',
     'MNE_DATASETS_OPM_PATH',
     'MNE_DATASETS_SPM_FACE_DATASETS_TESTS',
     'MNE_DATASETS_SPM_FACE_PATH',
@@ -104,6 +109,11 @@ known_config_types = (
     'MNE_DATASETS_KILOWORD_PATH',
     'MNE_DATASETS_FIELDTRIP_CMC_PATH',
     'MNE_DATASETS_PHANTOM_4DBTI_PATH',
+    'MNE_DATASETS_LIMO_PATH',
+    'MNE_DATASETS_REFMEG_NOISE_PATH',
+    'MNE_DATASETS_SSVEP_PATH',
+    'MNE_DATASETS_ERP_CORE_PATH',
+    'MNE_DATASETS_EPILEPSY_ECOG_PATH',
     'MNE_FORCE_SERIAL',
     'MNE_KIT2FIFF_STIM_CHANNELS',
     'MNE_KIT2FIFF_STIM_CHANNEL_CODING',
@@ -115,8 +125,9 @@ known_config_types = (
     'MNE_SKIP_NETWORK_TESTS',
     'MNE_SKIP_TESTING_DATASET_TESTS',
     'MNE_STIM_CHANNEL',
+    'MNE_TQDM',
     'MNE_USE_CUDA',
-    'MNE_SKIP_FS_FLASH_CALL',
+    'MNE_USE_NUMBA',
     'SUBJECTS_DIR',
 )
 
@@ -173,7 +184,8 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None,
         The preference key to look for. The os environment is searched first,
         then the mne-python config file is parsed.
         If None, all the config parameters present in environment variables or
-        the path are returned.
+        the path are returned. If key is an empty string, a list of all valid
+        keys (but not values) is returned.
     default : str | None
         Value to return if the key is not found.
     raise_error : bool
@@ -198,6 +210,9 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None,
     set_config
     """
     _validate_type(key, (str, type(None)), "key", 'string or None')
+
+    if key == '':
+        return known_config_types
 
     # first, check to see if key is in env
     if use_env and key is not None and key in os.environ:
@@ -239,9 +254,8 @@ def set_config(key, value, home_dir=None, set_env=True):
 
     Parameters
     ----------
-    key : str | None
-        The preference key to set. If None, a tuple of the valid
-        keys is returned, and ``value`` and ``home_dir`` are ignored.
+    key : str
+        The preference key to set.
     value : str |  None
         The value to assign to the preference key. If None, the key is
         deleted.
@@ -256,13 +270,12 @@ def set_config(key, value, home_dir=None, set_env=True):
     --------
     get_config
     """
-    if key is None:
-        return known_config_types
     _validate_type(key, 'str', "key")
     # While JSON allow non-string types, we allow users to override config
     # settings using env, which are strings, so we enforce that here
-    _validate_type(value, (str, type(None)), "value",
-                   "None or string")
+    _validate_type(value, (str, 'path-like', type(None)), 'value')
+    if value is not None:
+        value = str(value)
 
     if key not in known_config_types and not \
             any(k in key for k in known_config_wildcards):
@@ -347,11 +360,17 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
     value : str | None
         The SUBJECTS_DIR value.
     """
+    _validate_type(item=subjects_dir, types=('path-like', None),
+                   item_name='subjects_dir', type_name='str or path-like')
+
     if subjects_dir is None:
         subjects_dir = get_config('SUBJECTS_DIR', raise_error=raise_error)
+    if subjects_dir is not None:
+        subjects_dir = str(subjects_dir)
     return subjects_dir
 
 
+@fill_doc
 def _get_stim_channel(stim_channel, info, raise_error=True):
     """Determine the appropriate stim_channel.
 
@@ -363,8 +382,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     ----------
     stim_channel : str | list of str | None
         The stim channel selected by the user.
-    info : instance of Info
-        An information structure containing information about the channels.
+    %(info_not_none)s
 
     Returns
     -------
@@ -414,6 +432,29 @@ def _get_root_dir():
     return root_dir
 
 
+def _get_numpy_libs():
+    from ._testing import SilenceStdout
+    with SilenceStdout(close=False) as capture:
+        np.show_config()
+    lines = capture.getvalue().split('\n')
+    capture.close()
+    libs = []
+    for li, line in enumerate(lines):
+        for key in ('lapack', 'blas'):
+            if line.startswith('%s_opt_info' % key):
+                lib = lines[li + 1]
+                if 'NOT AVAILABLE' in lib:
+                    lib = 'unknown'
+                else:
+                    try:
+                        lib = lib.split('[')[1].split("'")[1]
+                    except IndexError:
+                        pass  # keep whatever it was
+                libs += ['%s=%s' % (key, lib)]
+    libs = ', '.join(libs)
+    return libs
+
+
 def sys_info(fid=None, show_paths=False):
     """Print the system information for debugging.
 
@@ -435,30 +476,53 @@ def sys_info(fid=None, show_paths=False):
 
         >>> import mne
         >>> mne.sys_info() # doctest: +SKIP
-        Platform:      Linux-4.2.0-27-generic-x86_64-with-Ubuntu-15.10-wily
-        Python:        2.7.10 (default, Oct 14 2015, 16:09:02)  [GCC 5.2.1 20151010]
-        Executable:    /usr/bin/python
+        Platform:      Linux-4.15.0-1067-aws-x86_64-with-glibc2.2.5
+        Python:        3.8.1 (default, Feb  2 2020, 08:37:37)  [GCC 8.3.0]
+        Executable:    /usr/local/bin/python
+        CPU:           : 36 cores
+        Memory:        68.7 GB
 
-        mne:           0.12.dev0
-        numpy:         1.12.0.dev0+ec5bd81 {lapack=mkl_rt, blas=mkl_rt}
-        scipy:         0.18.0.dev0+3deede3
-        matplotlib:    1.5.1+1107.g1fa2697
+        mne:           0.21.dev0
+        numpy:         1.19.0 {blas=openblas, lapack=openblas}
+        scipy:         1.5.1
+        matplotlib:    3.2.2 {backend=Qt5Agg}
 
-        sklearn:       0.18.dev0
-        nibabel:       2.1.0dev
-        mayavi:        4.3.1
-        cupy:          4.1.0
-        pandas:        0.17.1+25.g547750a
-        dipy:          0.14.0
-
+        sklearn:       0.23.1
+        numba:         0.50.1
+        nibabel:       3.1.1
+        nilearn:       0.7.0
+        dipy:          1.1.1
+        cupy:          Not found
+        pandas:        1.0.5
+        mayavi:        Not found
+        pyvista:       0.25.3 {pyvistaqt=0.1.1, OpenGL 3.3 (Core Profile) Mesa 18.3.6 via llvmpipe (LLVM 7.0, 256 bits)}
+        vtk:           9.0.1
+        PyQt5:         5.15.0
     """  # noqa: E501
     ljust = 15
-    out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
+    platform_str = platform.platform()
+    if platform.system() == 'Darwin' and sys.version_info[:2] < (3, 8):
+        # platform.platform() in Python < 3.8 doesn't call
+        # platform.mac_ver() if we're on Darwin, so we don't get a nice macOS
+        # version number. Therefore, let's do this manually here.
+        macos_ver = platform.mac_ver()[0]
+        macos_architecture = re.findall('Darwin-.*?-(.*)', platform_str)
+        if macos_architecture:
+            macos_architecture = macos_architecture[0]
+            platform_str = f'macOS-{macos_ver}-{macos_architecture}'
+        del macos_ver, macos_architecture
+
+    out = 'Platform:'.ljust(ljust) + platform_str + '\n'
     out += 'Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n'
     out += 'Executable:'.ljust(ljust) + sys.executable + '\n'
-    out += 'CPU:'.ljust(ljust) + ('%s: %s cores\n' %
-                                  (platform.processor(),
-                                   multiprocessing.cpu_count()))
+    out += 'CPU:'.ljust(ljust) + ('%s: ' % platform.processor())
+    try:
+        import multiprocessing
+    except ImportError:
+        out += ('number of processors unavailable ' +
+                '(requires "multiprocessing" package)\n')
+    else:
+        out += '%s cores\n' % multiprocessing.cpu_count()
     out += 'Memory:'.ljust(ljust)
     try:
         import psutil
@@ -467,32 +531,15 @@ def sys_info(fid=None, show_paths=False):
     else:
         out += '%0.1f GB\n' % (psutil.virtual_memory().total / float(2 ** 30),)
     out += '\n'
-    old_stdout = sys.stdout
-    capture = StringIO()
-    try:
-        sys.stdout = capture
-        np.show_config()
-    finally:
-        sys.stdout = old_stdout
-    lines = capture.getvalue().split('\n')
-    libs = []
-    for li, line in enumerate(lines):
-        for key in ('lapack', 'blas'):
-            if line.startswith('%s_opt_info' % key):
-                lib = lines[li + 1]
-                if 'NOT AVAILABLE' in lib:
-                    lib = 'unknown'
-                else:
-                    try:
-                        lib = lib.split('[')[1].split("'")[1]
-                    except IndexError:
-                        pass  # keep whatever it was
-                libs += ['%s=%s' % (key, lib)]
-    libs = ', '.join(libs)
+    libs = _get_numpy_libs()
+    has_3d = False
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
-                     'nibabel', 'mayavi', 'cupy', 'pandas', 'dipy'):
+                     'numba', 'nibabel', 'nilearn', 'dipy', 'cupy', 'pandas',
+                     'mayavi', 'pyvista', 'vtk', 'PyQt5'):
         if mod_name == '':
             out += '\n'
+            continue
+        if mod_name == 'PyQt5' and not has_3d:
             continue
         out += ('%s:' % mod_name).ljust(ljust)
         try:
@@ -505,33 +552,38 @@ def sys_info(fid=None, show_paths=False):
         else:
             extra = (' (%s)' % op.dirname(mod.__file__)) if show_paths else ''
             if mod_name == 'numpy':
-                extra = ' {%s}%s' % (libs, extra)
+                extra += ' {%s}%s' % (libs, extra)
             elif mod_name == 'matplotlib':
-                extra = ' {backend=%s}%s' % (mod.get_backend(), extra)
-            elif mod_name == 'mayavi':
+                extra += ' {backend=%s}%s' % (mod.get_backend(), extra)
+            elif mod_name == 'pyvista':
+                extras = list()
                 try:
-                    from pyface.qt import qt_api
+                    from pyvistaqt import __version__
                 except Exception:
-                    qt_api = 'unknown'
-                if qt_api == 'pyqt5':
-                    try:
-                        from PyQt5.Qt import PYQT_VERSION_STR
-                        qt_api += ', PyQt5=%s' % (PYQT_VERSION_STR,)
-                    except Exception:
-                        pass
-                extra = ' {qt_api=%s}%s' % (qt_api, extra)
-            out += '%s%s\n' % (mod.__version__, extra)
+                    extras += ['pyvistaqt not found']
+                else:
+                    extras += [f'pyvistaqt={__version__}']
+                try:
+                    from pyvista import GPUInfo
+                except ImportError:
+                    pass
+                else:
+                    gi = GPUInfo()
+                    extras += [f'OpenGL {gi.version} via {gi.renderer}']
+                if extras:
+                    extra += f' {{{", ".join(extras)}}}'
+            elif mod_name in ('mayavi', 'vtk'):
+                has_3d = True
+            if mod_name == 'vtk':
+                version = mod.vtkVersion()
+                # 9.0 dev has VersionFull but 9.0 doesn't
+                for attr in ('GetVTKVersionFull', 'GetVTKVersion'):
+                    if hasattr(version, attr):
+                        version = getattr(version, attr)()
+                        break
+            elif mod_name == 'PyQt5':
+                version = _check_pyqt5_version()
+            else:
+                version = mod.__version__
+            out += '%s%s\n' % (version, extra)
     print(out, end='', file=fid)
-
-
-def _get_call_line(in_verbose=False):
-    """Get the call line from within a function."""
-    # XXX Eventually we could auto-triage whether in a `verbose` decorated
-    # function or not.
-    # NB This probably only works for functions that are undecorated,
-    # or decorated by `verbose`.
-    back = 2 if not in_verbose else 4
-    call_frame = inspect.getouterframes(inspect.currentframe())[back][0]
-    context = inspect.getframeinfo(call_frame).code_context
-    context = 'unknown' if context is None else context[0].strip()
-    return context

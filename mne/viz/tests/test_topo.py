@@ -1,7 +1,8 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Robert Luke <mail@robertluke.net>
 #
 # License: Simplified BSD
 
@@ -13,11 +14,11 @@ import pytest
 import matplotlib
 import matplotlib.pyplot as plt
 
-from mne import read_events, Epochs, pick_channels_evoked, read_cov
+from mne import (read_events, Epochs, pick_channels_evoked, read_cov,
+                 compute_proj_evoked)
 from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFR
-from mne.utils import run_tests_if_main
 
 from mne.viz import (plot_topo_image_epochs, _get_presser,
                      mne_analyze_colormap, plot_evoked_topo)
@@ -82,15 +83,43 @@ def test_plot_joint():
                                                       time_unit='ms'),
                       ts_args=dict(spatial_colors=True, zorder=return_inds,
                                    time_unit='s'))
-    pytest.raises(ValueError, evoked.plot_joint, ts_args=dict(axes=True,
-                                                              time_unit='s'))
+    with pytest.raises(ValueError, match='If one of `ts_args` and'):
+        evoked.plot_joint(ts_args=dict(axes=True, time_unit='s'))
 
     axes = plt.subplots(nrows=3)[-1].flatten().tolist()
-    evoked.plot_joint(times=[0], picks=[6, 7, 8],  ts_args=dict(axes=axes[0]),
+    evoked.plot_joint(times=[0], picks=[6, 7, 8], ts_args=dict(axes=axes[0]),
                       topomap_args={"axes": axes[1:], "time_unit": "s"})
     with pytest.raises(ValueError, match='array of length 6'):
         evoked.plot_joint(picks=[6, 7, 8], ts_args=dict(axes=axes[0]),
                           topomap_args=dict(axes=axes[2:]))
+    plt.close('all')
+
+    # test proj options
+    assert len(evoked.info['projs']) == 0
+    evoked.pick_types(meg=True)
+    evoked.add_proj(compute_proj_evoked(
+        evoked, n_mag=1, n_grad=1, meg='combined'))
+    assert len(evoked.info['projs']) == 1
+    with pytest.raises(ValueError, match='must match ts_args'):
+        evoked.plot_joint(ts_args=dict(proj=True),
+                          topomap_args=dict(proj=False))
+    evoked.plot_joint(ts_args=dict(proj='reconstruct'),
+                      topomap_args=dict(proj='reconstruct'))
+    plt.close('all')
+
+    # test sEEG (gh:8733)
+    evoked.del_proj().pick_types('mag')  # avoid overlapping positions error
+    mapping = {ch_name: 'seeg' for ch_name in evoked.ch_names}
+    with pytest.warns(RuntimeWarning, match='The unit .* has changed from .*'):
+        evoked.set_channel_types(mapping)
+    evoked.plot_joint()
+
+    # test DBS (gh:8739)
+    evoked = _get_epochs().average().pick_types('mag')
+    mapping = {ch_name: 'dbs' for ch_name in evoked.ch_names}
+    with pytest.warns(RuntimeWarning, match='The unit for'):
+        evoked.set_channel_types(mapping)
+    evoked.plot_joint()
     plt.close('all')
 
 
@@ -99,7 +128,8 @@ def test_plot_topo():
     # Show topography
     evoked = _get_epochs().average()
     # should auto-find layout
-    plot_evoked_topo([evoked, evoked], merge_grads=True, background_color='w')
+    plot_evoked_topo([evoked, evoked], merge_grads=True,
+                     background_color='w')
 
     picked_evoked = evoked.copy().pick_channels(evoked.ch_names[:3])
     picked_evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
@@ -138,20 +168,42 @@ def test_plot_topo():
     # Test RMS plot of grad pairs
     picked_evoked.plot_topo(merge_grads=True, background_color='w')
     plt.close('all')
-    for ax, idx in iter_topography(evoked.info):
+    for ax, idx in iter_topography(evoked.info, legend=True):
         ax.plot(evoked.data[idx], color='red')
         # test status bar message
-        assert (evoked.ch_names[idx] in ax.format_coord(.5, .5))
+        if idx != -1:
+            assert (evoked.ch_names[idx] in ax.format_coord(.5, .5))
+    assert idx == -1
     plt.close('all')
     cov = read_cov(cov_fname)
     cov['projs'] = []
     evoked.pick_types(meg=True).plot_topo(noise_cov=cov)
     plt.close('all')
 
+    # Test exclude parameter
+    exclude = ['MEG 0112']
+    fig = picked_evoked.plot_topo(exclude=exclude)
+    n_axes_expected = len(picked_evoked.info['ch_names']) - len(exclude)
+    n_axes_found = len(fig.axes[0].lines)
+    assert n_axes_found == n_axes_expected
+
     # test plot_topo
     evoked.plot_topo()  # should auto-find layout
     _line_plot_onselect(0, 200, ['mag', 'grad'], evoked.info, evoked.data,
                         evoked.times)
+    plt.close('all')
+
+    for ax, idx in iter_topography(evoked.info):  # brief test with false
+        ax.plot([0, 1, 2])
+        break
+    plt.close('all')
+
+
+def test_plot_topo_nirs(fnirs_evoked):
+    """Test plotting of ERP topography for nirs data."""
+    fnirs_evoked.pick(picks='hbo')
+    fig = plot_evoked_topo(fnirs_evoked)
+    assert len(fig.axes) == 1
     plt.close('all')
 
 
@@ -192,7 +244,18 @@ def test_plot_topo_image_epochs():
     num_figures_before = len(plt.get_fignums())
     _fake_click(fig, fig.axes[0], (0.08, 0.64))
     assert num_figures_before + 1 == len(plt.get_fignums())
-    plt.close('all')
+    # test for auto-showing a colorbar when only 1 sensor type
+    ep = epochs.copy().pick_types(meg=False, eeg=True)
+    fig = plot_topo_image_epochs(ep, vmin=None, vmax=None, colorbar=None,
+                                 cmap=cmap)
+    ax = [x for x in fig.get_children() if isinstance(x, matplotlib.axes.Axes)]
+    # include inset axes (newer MPL)
+    ax.extend(y for x in ax for y in x.get_children()
+              if isinstance(y, matplotlib.axes.Axes))
+    qm_cmap = [y.cmap for x in ax for y in x.get_children()
+               if isinstance(y, matplotlib.collections.QuadMesh)]
+    assert len(qm_cmap) >= 1
+    assert qm_cmap[0] is cmap
 
 
 def test_plot_tfr_topo():
@@ -210,7 +273,7 @@ def test_plot_tfr_topo():
     # test opening tfr by clicking
     num_figures_before = len(plt.get_fignums())
     # could use np.reshape(fig.axes[-1].images[0].get_extent(), (2, 2)).mean(1)
-    with pytest.warns(None):  # on old mpl there is a warning
+    with pytest.warns(RuntimeWarning, match='not masking'):
         _fake_click(fig, fig.axes[0], (0.08, 0.65))
     assert num_figures_before + 1 == len(plt.get_fignums())
     plt.close('all')
@@ -222,7 +285,7 @@ def test_plot_tfr_topo():
     freqs = np.logspace(*np.log10([3, 10]), num=3)
     tfr = AverageTFR(epochs.info, data, epochs.times, freqs, nave)
     fig = tfr.plot([4], baseline=(None, 0), mode='mean', vmax=14., show=False)
-    assert fig.axes[0].get_yaxis().get_scale() == 'log'
+    assert fig[0].axes[0].get_yaxis().get_scale() == 'log'
 
     # one timesample
     tfr = AverageTFR(epochs.info, data[:, :, [0]], epochs.times[[1]],
@@ -250,6 +313,3 @@ def test_plot_tfr_topo():
                       None, tfr=data[:, :3, :], freq=these_freqs, x_label=None,
                       y_label=None, colorbar=False, cmap=('RdBu_r', True),
                       yscale='log')
-
-
-run_tests_if_main()

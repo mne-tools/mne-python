@@ -1,19 +1,20 @@
 # Authors: Yousra Bekhti <yousra.bekhti@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 import numpy as np
 from scipy import linalg
 
-from numpy.testing import assert_array_equal, assert_equal
+from numpy.testing import assert_allclose
 
 import mne
-from mne.datasets import testing
 from mne.beamformer import rap_music
 from mne.cov import regularize
-from mne.utils import run_tests_if_main
+from mne.datasets import testing
+from mne.minimum_norm.tests.test_inverse import assert_var_exp_log
+from mne.utils import catch_logging
 
 
 data_path = testing.data_path(download=False)
@@ -28,7 +29,7 @@ def _get_data(ch_decim=1):
     # Read evoked
     evoked = mne.read_evokeds(fname_ave, 0, baseline=(None, 0))
     evoked.info['bads'] = ['MEG 2443']
-    evoked.info['lowpass'] = 20  # fake for decim
+    evoked.info['lowpass'] = 16  # fake for decim
     evoked.decimate(12)
     evoked.crop(0.0, 0.3)
     picks = mne.pick_types(evoked.info, meg=True, eeg=False)
@@ -125,12 +126,14 @@ def test_rap_music_simulated():
     sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov,
                                 n_dipoles, evoked.times, nave=evoked.nave)
     # Check dipoles for fixed ori
-    dipoles = rap_music(sim_evoked, forward_fixed, noise_cov,
-                        n_dipoles=n_dipoles)
+    with catch_logging() as log:
+        dipoles = rap_music(sim_evoked, forward_fixed, noise_cov,
+                            n_dipoles=n_dipoles, verbose=True)
+    assert_var_exp_log(log.getvalue(), 89, 91)
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked)
-    assert (0.97 < dipoles[0].gof.max() < 1.)
-    assert (dipoles[0].gof.min() >= 0.)
-    assert_array_equal(dipoles[0].gof, dipoles[1].gof)
+    assert 97 < dipoles[0].gof.max() < 100
+    assert 91 < dipoles[1].gof.max() < 93
+    assert dipoles[0].gof.min() >= 0.
 
     nave = 100000  # add a tiny amount of noise to the simulated evokeds
     sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov,
@@ -157,22 +160,40 @@ def test_rap_music_sphere():
     sphere = mne.make_sphere_model(r0=(0., 0., 0.04))
     src = mne.setup_volume_source_space(subject=None, pos=10.,
                                         sphere=(0.0, 0.0, 40, 65.0),
-                                        mindist=5.0, exclude=0.0)
+                                        mindist=5.0, exclude=0.0,
+                                        sphere_units='mm')
     forward = mne.make_forward_solution(evoked.info, trans=None, src=src,
                                         bem=sphere)
 
-    dipoles = rap_music(evoked, forward, noise_cov, n_dipoles=2)
+    with catch_logging() as log:
+        dipoles = rap_music(evoked, forward, noise_cov, n_dipoles=2,
+                            verbose=True)
+    assert_var_exp_log(log.getvalue(), 47, 49)
     # Test that there is one dipole on each hemisphere
     pos = np.array([dip.pos[0] for dip in dipoles])
-    assert_equal(pos.shape, (2, 3))
-    assert_equal((pos[:, 0] < 0).sum(), 1)
-    assert_equal((pos[:, 0] > 0).sum(), 1)
+    assert pos.shape == (2, 3)
+    assert (pos[:, 0] < 0).sum() == 1
+    assert (pos[:, 0] > 0).sum() == 1
     # Check the amplitude scale
     assert (1e-10 < dipoles[0].amplitude[0] < 1e-7)
     # Check the orientation
     dip_fit = mne.fit_dipole(evoked, noise_cov, sphere)[0]
     assert (np.max(np.abs(np.dot(dip_fit.ori, dipoles[0].ori[0]))) > 0.99)
     assert (np.max(np.abs(np.dot(dip_fit.ori, dipoles[1].ori[0]))) > 0.99)
+    idx = dip_fit.gof.argmax()
+    dist = np.linalg.norm(dipoles[0].pos[idx] - dip_fit.pos[idx])
+    assert 0.004 <= dist < 0.007
+    assert_allclose(dipoles[0].gof[idx], dip_fit.gof[idx], atol=3)
 
 
-run_tests_if_main()
+@testing.requires_testing_data
+def test_rap_music_picks():
+    """Test RAP-MUSIC with picking."""
+    evoked = mne.read_evokeds(fname_ave, condition='Right Auditory',
+                              baseline=(None, 0))
+    evoked.crop(tmin=0.05, tmax=0.15)  # select N100
+    evoked.pick_types(meg=True, eeg=False)
+    forward = mne.read_forward_solution(fname_fwd)
+    noise_cov = mne.read_cov(fname_cov)
+    dipoles = rap_music(evoked, forward, noise_cov, n_dipoles=2)
+    assert len(dipoles) == 2
