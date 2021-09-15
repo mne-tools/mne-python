@@ -379,7 +379,11 @@ class IntracranialElectrodeLocator(QMainWindow):
         """Make a bar with buttons for user interactions."""
         hbox = QHBoxLayout()
 
-        hbox.addStretch(10)
+        help_button = QPushButton('Help')
+        help_button.released.connect(self._show_help)
+        hbox.addWidget(help_button)
+
+        hbox.addStretch(8)
 
         hbox.addWidget(QLabel('Snap to Center'))
         self._snap_button = QPushButton('Off')
@@ -387,6 +391,12 @@ class IntracranialElectrodeLocator(QMainWindow):
         hbox.addWidget(self._snap_button)
         self._snap_button.released.connect(self._toggle_snap)
         self._toggle_snap()  # turn on to start
+
+        hbox.addStretch(1)
+
+        self._toggle_brain_button = QPushButton('Show Brain')
+        self._toggle_brain_button.released.connect(self._toggle_show_brain)
+        hbox.addWidget(self._toggle_brain_button)
 
         hbox.addStretch(1)
 
@@ -412,7 +422,7 @@ class IntracranialElectrodeLocator(QMainWindow):
                                 brush, QtCore.Qt.BackgroundRole)
         self._group_selector.clicked.connect(self._select_group)
         self._group_selector.currentIndexChanged.connect(
-            self._update_group)
+            self._select_group)
         hbox.addWidget(self._group_selector)
 
         # update background color for current selection
@@ -787,21 +797,41 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._images['cursor2'][axis].set_ydata([y, y])
         self._images['cursor'][axis].set_xdata([x, x])
 
+    def _show_help(self):
+        """Show the help menu."""
+        QMessageBox.information(
+            self, 'Help',
+            "Help:\n'm': mark channel location\n"
+            "'r': remove channel location\n"
+            "'b': toggle viewing of brain in T1\n"
+            "'+'/'-': zoom\nleft/right arrow: left/right\n"
+            "up/down arrow: superior/inferior\n"
+            "page up/page down arrow: anterior/posterior")
+
+    def _toggle_show_brain(self):
+        """Toggle whether the brain/MRI is being shown."""
+        if 'mri' in self._images:
+            for img in self._images['mri']:
+                img.remove()
+            self._images.pop('mri')
+            self._toggle_brain_button.setText('Show Brain')
+        else:
+            self._images['mri'] = list()
+            for axis in range(3):
+                mri_data = np.take(self._mri_data,
+                                   self._current_slice[axis], axis=axis).T
+                self._images['mri'].append(self._figs[axis].axes[0].imshow(
+                    mri_data, cmap='hot', aspect='auto', alpha=0.25))
+            self._toggle_brain_button.setText('Hide Brain')
+        self._draw()
+
     def _key_press_event(self, event):
         """Execute functions when the user presses a key."""
         if event.key() == 'escape':
             self.close()
 
         if event.text() == 'h':
-            # Show help
-            QMessageBox.information(
-                self, 'Help',
-                "Help:\n'm': mark channel location\n"
-                "'r': remove channel location\n"
-                "'b': toggle viewing of brain in T1\n"
-                "'+'/'-': zoom\nleft/right arrow: left/right\n"
-                "up/down arrow: superior/inferior\n"
-                "page up/page down arrow: anterior/posterior")
+            self._show_help()
 
         if event.text() == 'm':
             self._mark_ch()
@@ -810,18 +840,7 @@ class IntracranialElectrodeLocator(QMainWindow):
             self._remove_ch()
 
         if event.text() == 'b':
-            if 'mri' in self._images:
-                for img in self._images['mri']:
-                    img.remove()
-                self._images.pop('mri')
-            else:
-                self._images['mri'] = list()
-                for axis in range(3):
-                    mri_data = np.take(self._mri_data,
-                                       self._current_slice[axis], axis=axis).T
-                    self._images['mri'].append(self._figs[axis].axes[0].imshow(
-                        mri_data, cmap='hot', aspect='auto', alpha=0.25))
-            self._draw()
+            self._toggle_show_brain()
 
         if event.text() in ('=', '+', '-'):
             self._zoom(sign=-2 * (event.text() == '-') + 1, draw=True)
