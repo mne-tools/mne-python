@@ -39,3 +39,4 @@ dependencies:
 - ipywidgets
 - pip:
   - ipyvtklink
+  - pooch

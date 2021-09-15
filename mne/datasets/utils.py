@@ -3,30 +3,40 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Denis Egnemann <denis.engemann@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#          Adam Li <adam2392@gmail.com>
+#          Daniel McCloy <dan@mccloy.info>
+#
 # License: BSD Style.
 
 from collections import OrderedDict
 import os
 import os.path as op
-import shutil
-import tarfile
-import stat
 import sys
 import zipfile
 import tempfile
+import pkg_resources
 from distutils.version import LooseVersion
+from shutil import rmtree
 
 import numpy as np
 
+from .config import (_bst_license_text, _hcp_mmp_license_text, URLS,
+                     CONFIG_KEYS, ARCHIVE_NAMES, FOLDER_NAMES, RELEASES,
+                     TESTING_VERSIONED, MISC_VERSIONED)
 from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,
-                     verbose, get_subjects_dir, hashfunc, _pl, _safe_input)
+                     verbose, get_subjects_dir, _pl, _safe_input)
 from ..utils.docs import docdict
+from ..utils.check import _soft_import
 from ..externals.doccer import docformat
 
 
+# import pooch library for handling the dataset downloading
+pooch = _soft_import('pooch', 'dataset downloading', strict=True)
+
 _FAKE_VERSION = None  # used for monkeypatching while testing versioning
+
 
 _data_path_doc = """Get path to local copy of {name} dataset.
 
@@ -41,8 +51,9 @@ _data_path_doc = """Get path to local copy of {name} dataset.
         will be automatically downloaded to the specified folder.
     force_update : bool
         Force update of the {name} dataset even if a local copy exists.
+        Default is False.
     update_path : bool | None
-        If True, set the ``{conf}`` in mne-python
+        If True (default), set the ``{conf}`` in mne-python
         config to the given path. If None, the user is prompted.
     download : bool
         If False and the {name} dataset has not been downloaded yet,
@@ -70,86 +81,6 @@ _version_doc = """Get version of the local {name} dataset.
     version : str | None
         Version of the {name} local dataset, or None if the dataset
         does not exist locally.
-"""
-
-
-_bst_license_text = """
-License
--------
-This tutorial dataset (EEG and MRI data) remains a property of the MEG Lab,
-McConnell Brain Imaging Center, Montreal Neurological Institute,
-McGill University, Canada. Its use and transfer outside the Brainstorm
-tutorial, e.g. for research purposes, is prohibited without written consent
-from the MEG Lab.
-
-If you reference this dataset in your publications, please:
-
-    1) acknowledge its authors: Elizabeth Bock, Esther Florin, Francois Tadel
-       and Sylvain Baillet, and
-    2) cite Brainstorm as indicated on the website:
-       http://neuroimage.usc.edu/brainstorm
-
-For questions, please contact Francois Tadel (francois.tadel@mcgill.ca).
-"""
-
-_hcp_mmp_license_text = """
-License
--------
-I request access to data collected by the Washington University - University
-of Minnesota Consortium of the Human Connectome Project (WU-Minn HCP), and
-I agree to the following:
-
-1. I will not attempt to establish the identity of or attempt to contact any
-   of the included human subjects.
-
-2. I understand that under no circumstances will the code that would link
-   these data to Protected Health Information be given to me, nor will any
-   additional information about individual human subjects be released to me
-   under these Open Access Data Use Terms.
-
-3. I will comply with all relevant rules and regulations imposed by my
-   institution. This may mean that I need my research to be approved or
-   declared exempt by a committee that oversees research on human subjects,
-   e.g. my IRB or Ethics Committee. The released HCP data are not considered
-   de-identified, insofar as certain combinations of HCP Restricted Data
-   (available through a separate process) might allow identification of
-   individuals.  Different committees operate under different national, state
-   and local laws and may interpret regulations differently, so it is
-   important to ask about this. If needed and upon request, the HCP will
-   provide a certificate stating that you have accepted the HCP Open Access
-   Data Use Terms.
-
-4. I may redistribute original WU-Minn HCP Open Access data and any derived
-   data as long as the data are redistributed under these same Data Use Terms.
-
-5. I will acknowledge the use of WU-Minn HCP data and data derived from
-   WU-Minn HCP data when publicly presenting any results or algorithms
-   that benefitted from their use.
-
-   1. Papers, book chapters, books, posters, oral presentations, and all
-      other printed and digital presentations of results derived from HCP
-      data should contain the following wording in the acknowledgments
-      section: "Data were provided [in part] by the Human Connectome
-      Project, WU-Minn Consortium (Principal Investigators: David Van Essen
-      and Kamil Ugurbil; 1U54MH091657) funded by the 16 NIH Institutes and
-      Centers that support the NIH Blueprint for Neuroscience Research; and
-      by the McDonnell Center for Systems Neuroscience at Washington
-      University."
-
-   2. Authors of publications or presentations using WU-Minn HCP data
-      should cite relevant publications describing the methods used by the
-      HCP to acquire and process the data. The specific publications that
-      are appropriate to cite in any given study will depend on what HCP
-      data were used and for what purposes. An annotated and appropriately
-      up-to-date list of publications that may warrant consideration is
-      available at http://www.humanconnectome.org/about/acknowledgehcp.html
-
-   3. The WU-Minn HCP Consortium as a whole should not be included as an
-      author of publications or presentations if this authorship would be
-      based solely on the use of WU-Minn HCP data.
-
-6. Failure to abide by these guidelines will result in termination of my
-   privileges to access WU-Minn HCP data.
 """
 
 
@@ -226,196 +157,93 @@ def _do_path_update(path, update_path, key, name):
 
 def _data_path(path=None, force_update=False, update_path=True, download=True,
                name=None, check_version=False, return_version=False,
-               archive_name=None, accept=False):
-    """Aux function."""
-    key = {
-        'fake': 'MNE_DATASETS_FAKE_PATH',
-        'misc': 'MNE_DATASETS_MISC_PATH',
-        'sample': 'MNE_DATASETS_SAMPLE_PATH',
-        'spm': 'MNE_DATASETS_SPM_FACE_PATH',
-        'somato': 'MNE_DATASETS_SOMATO_PATH',
-        'brainstorm': 'MNE_DATASETS_BRAINSTORM_PATH',
-        'testing': 'MNE_DATASETS_TESTING_PATH',
-        'multimodal': 'MNE_DATASETS_MULTIMODAL_PATH',
-        'fnirs_motor': 'MNE_DATASETS_FNIRS_MOTOR_PATH',
-        'opm': 'MNE_DATASETS_OPM_PATH',
-        'visual_92_categories': 'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
-        'kiloword': 'MNE_DATASETS_KILOWORD_PATH',
-        'mtrf': 'MNE_DATASETS_MTRF_PATH',
-        'fieldtrip_cmc': 'MNE_DATASETS_FIELDTRIP_CMC_PATH',
-        'phantom_4dbti': 'MNE_DATASETS_PHANTOM_4DBTI_PATH',
-        'limo': 'MNE_DATASETS_LIMO_PATH',
-        'refmeg_noise': 'MNE_DATASETS_REFMEG_NOISE_PATH',
-        'ssvep': 'MNE_DATASETS_SSVEP_PATH',
-        'erp_core': 'MNE_DATASETS_ERP_CORE_PATH',
-        'epilepsy_ecog': 'MNE_DATASETS_EPILEPSY_ECOG_PATH',
-    }[name]
+               accept=False):
+    """Aux function.
 
-    path = _get_path(path, key, name)
-    # To update the testing or misc dataset, push commits, then make a new
-    # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.123', misc='0.18')
-    # And also update the "md5_hashes['testing']" variable below.
-    # To update any other dataset, update the data archive itself (upload
-    # an updated version) and update the md5 hash.
+    This is a general function for fetching MNE datasets. In order
+    to define an MNE dataset, one needs to define a URL, archive name,
+    folder name, and environment configuration key. They also need
+    to define a ``pooch`` registry txt file mapping the dataset
+    archive name to a hash (i.e. md5, or sha).
 
-    # try to match url->archive_name->folder_name
-    urls = dict(  # the URLs to use
-        brainstorm=dict(
-            bst_auditory='https://osf.io/5t9n8/download?version=1',
-            bst_phantom_ctf='https://osf.io/sxr8y/download?version=1',
-            bst_phantom_elekta='https://osf.io/dpcku/download?version=1',
-            bst_raw='https://osf.io/9675n/download?version=2',
-            bst_resting='https://osf.io/m7bd3/download?version=3'),
-        fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
-             'datasets/foo.tgz',
-        misc='https://codeload.github.com/mne-tools/mne-misc-data/'
-             'tar.gz/%s' % releases['misc'],
-        sample='https://osf.io/86qa2/download?version=5',
-        somato='https://osf.io/tp4sg/download?version=7',
-        spm='https://osf.io/je4s8/download?version=2',
-        testing='https://codeload.github.com/mne-tools/mne-testing-data/'
-                'tar.gz/%s' % releases['testing'],
-        multimodal='https://ndownloader.figshare.com/files/5999598',
-        fnirs_motor='https://osf.io/dj3eh/download?version=1',
-        opm='https://osf.io/p6ae7/download?version=2',
-        visual_92_categories=[
-            'https://osf.io/8ejrs/download?version=1',
-            'https://osf.io/t4yjp/download?version=1'],
-        mtrf='https://osf.io/h85s2/download?version=1',
-        kiloword='https://osf.io/qkvf9/download?version=1',
-        fieldtrip_cmc='https://osf.io/j9b6s/download?version=1',
-        phantom_4dbti='https://osf.io/v2brw/download?version=2',
-        refmeg_noise='https://osf.io/drt6v/download?version=1',
-        ssvep='https://osf.io/z8h6k/download?version=5',
-        erp_core='https://osf.io/rzgba/download?version=1',
-        epilepsy_ecog='https://osf.io/z4epq/download?revision=1',
-    )
-    # filename of the resulting downloaded archive (only needed if the URL
-    # name does not match resulting filename)
-    archive_names = dict(
-        fieldtrip_cmc='SubjectCMC.zip',
-        kiloword='MNE-kiloword-data.tar.gz',
-        misc='mne-misc-data-%s.tar.gz' % releases['misc'],
-        mtrf='mTRF_1.5.zip',
-        multimodal='MNE-multimodal-data.tar.gz',
-        fnirs_motor='MNE-fNIRS-motor-data.tgz',
-        opm='MNE-OPM-data.tar.gz',
-        sample='MNE-sample-data-processed.tar.gz',
-        somato='MNE-somato-data.tar.gz',
-        spm='MNE-spm-face.tar.gz',
-        testing='mne-testing-data-%s.tar.gz' % releases['testing'],
-        visual_92_categories=['MNE-visual_92_categories-data-part1.tar.gz',
-                              'MNE-visual_92_categories-data-part2.tar.gz'],
-        phantom_4dbti='MNE-phantom-4DBTi.zip',
-        refmeg_noise='sample_reference_MEG_noise-raw.zip',
-        ssvep='ssvep_example_data.zip',
-        erp_core='MNE-ERP-CORE-data.tar.gz',
-        epilepsy_ecog='MNE-epilepsy-ecog-data.tar.gz',
-    )
-    # original folder names that get extracted (only needed if the
-    # archive does not extract the right folder name; e.g., usually GitHub)
-    folder_origs = dict(  # not listed means None (no need to move)
-        misc='mne-misc-data-%s' % releases['misc'],
-        testing='mne-testing-data-%s' % releases['testing'],
-        ssvep='ssvep-example-data'
-    )
-    # finally, where we want them to extract to (only needed if the folder name
-    # is not the same as the last bit of the archive name without the file
-    # extension)
-    folder_names = dict(
-        brainstorm='MNE-brainstorm-data',
-        fake='foo',
-        misc='MNE-misc-data',
-        mtrf='mTRF_1.5',
-        sample='MNE-sample-data',
-        testing='MNE-testing-data',
-        visual_92_categories='MNE-visual_92_categories-data',
-        fieldtrip_cmc='MNE-fieldtrip_cmc-data',
-        phantom_4dbti='MNE-phantom-4DBTi',
-        refmeg_noise='MNE-refmeg-noise-data',
-        ssvep='ssvep-example-data',
-        erp_core='MNE-ERP-CORE-data',
-    )
-    md5_hashes = dict(
-        brainstorm=dict(
-            bst_auditory='fa371a889a5688258896bfa29dd1700b',
-            bst_phantom_ctf='80819cb7f5b92d1a5289db3fb6acb33c',
-            bst_phantom_elekta='1badccbe17998d18cc373526e86a7aaf',
-            bst_raw='fa2efaaec3f3d462b319bc24898f440c',
-            bst_resting='70fc7bf9c3b97c4f2eab6260ee4a0430'),
-        fake='3194e9f7b46039bb050a74f3e1ae9908',
-        misc='0aa25a9bb4f204b3d4769f0b84e9b526',
-        sample='12b75d1cb7df9dfb4ad73ed82f61094f',
-        somato='32fd2f6c8c7eb0784a1de6435273c48b',
-        spm='9f43f67150e3b694b523a21eb929ea75',
-        testing='db07710c0b94476f954f60926685b5b7',
-        multimodal='26ec847ae9ab80f58f204d09e2c08367',
-        fnirs_motor='c4935d19ddab35422a69f3326a01fef8',
-        opm='370ad1dcfd5c47e029e692c85358a374',
-        visual_92_categories=['74f50bbeb65740903eadc229c9fa759f',
-                              '203410a98afc9df9ae8ba9f933370e20'],
-        kiloword='3a124170795abbd2e48aae8727e719a8',
-        mtrf='273a390ebbc48da2c3184b01a82e4636',
-        fieldtrip_cmc='6f9fd6520f9a66e20994423808d2528c',
-        phantom_4dbti='938a601440f3ffa780d20a17bae039ff',
-        refmeg_noise='779fecd890d98b73a4832e717d7c7c45',
-        ssvep='af866bbc0f921114ac9d683494fe87d6',
-        erp_core='5866c0d6213bd7ac97f254c776f6c4b1',
-        epilepsy_ecog='ffb139174afa0f71ec98adbbb1729dea',
-    )
-    assert set(md5_hashes) == set(urls)
-    url = urls[name]
-    hash_ = md5_hashes[name]
-    folder_orig = folder_origs.get(name, None)
-    if name == 'brainstorm':
-        assert archive_name is not None
-        url = [url[archive_name.split('.')[0]]]
-        folder_path = [op.join(path, folder_names[name],
-                               archive_name.split('.')[0])]
-        hash_ = [hash_[archive_name.split('.')[0]]]
-        archive_name = [archive_name]
-    else:
-        url = [url] if not isinstance(url, list) else url
-        hash_ = [hash_] if not isinstance(hash_, list) else hash_
-        archive_name = archive_names.get(name)
-        if archive_name is None:
-            archive_name = [u.split('/')[-1] for u in url]
-        if not isinstance(archive_name, list):
-            archive_name = [archive_name]
-        folder_path = [op.join(path, folder_names.get(name, a.split('.')[0]))
-                       for a in archive_name]
-    if not isinstance(folder_orig, list):
-        folder_orig = [folder_orig] * len(url)
-    folder_path = [op.abspath(f) for f in folder_path]
-    assert hash_ is not None
-    assert all(isinstance(x, list) for x in (url, archive_name, hash_,
-                                             folder_path))
-    assert len(url) == len(archive_name) == len(hash_) == len(folder_path)
-    logger.debug('URL:          %s' % (url,))
-    logger.debug('archive_name: %s' % (archive_name,))
-    logger.debug('hash:         %s' % (hash_,))
-    logger.debug('folder_path:  %s' % (folder_path,))
+    Parameters
+    ----------
+    path : None | str
+        Location of where to look for the {name} dataset.
+        If None, the environment variable or config parameter
+        ``{conf}`` is used. If it doesn't exist, the
+        "~/mne_data" directory is used. If the {name} dataset
+        is not found under the given path, the data
+        will be automatically downloaded to the specified folder.
+    force_update : bool
+        Force update of the {name} dataset even if a local copy exists.
+        Default is False.
+    update_path : bool | None
+        If True (default), set the ``{conf}`` in mne-python
+        config to the given path. If None, the user is prompted.
+    download : bool
+        If False and the {name} dataset has not been downloaded yet,
+        it will not be downloaded and the path will be returned as
+        '' (empty string). This is mostly used for debugging purposes
+        and can be safely ignored by most users.
+    name : str | None
+        The name of the dataset, which should correspond to the
+        URL, archive name, folder names and configuration key mappings
+        for pooch.
+    check_version : bool
+        Whether to check the version of the dataset or not. Each version
+        of the dataset is stored in the root with a ``version.txt`` file.
+    return_version : bool
+        Whether or not to return the version of the dataset or not.
+        Defaults to False.
+    accept : bool
+        Some datasets require an acceptance of an additional license.
+        Default to False. If this is True, then license text should
+        be passed into key word argument ``license_text``.
+    license_text : str | None
+        The text of a license agreement. Only used if ``accept`` is True.
 
-    need_download = any(not op.exists(f) for f in folder_path)
+    Returns
+    -------
+    path : str
+        Path to {name} dataset directory.
+    """
+    # get download path for specific dataset
+    path = _get_path(path=path, key=CONFIG_KEYS[name], name=name)
+
+    # get the actual path to each dataset folder name
+    final_path = op.join(path, FOLDER_NAMES[name])
+
+    # handle BrainStorm datasets with nested folders for datasets
+    if name.startswith('bst_'):
+        final_path = op.join(final_path, name)
+
     # additional condition: check for version.txt and parse it
-    want_version = releases.get(name, None)
+    # check if testing or misc data is outdated; if so, redownload it
+    want_version = RELEASES.get(name, None)
     want_version = _FAKE_VERSION if name == 'fake' else want_version
-    if not need_download and want_version is not None:
-        data_version = _dataset_version(folder_path[0], name)
-        need_download = LooseVersion(data_version) < LooseVersion(want_version)
-        if need_download:
-            logger.info(f'Dataset {name} version {data_version} out of date, '
-                        f'latest version is {want_version}')
-    if need_download and not download:
-        return ''
 
-    if need_download or force_update:
-        logger.debug('Downloading: need_download=%s, force_update=%s'
-                     % (need_download, force_update))
-        for f in folder_path:
-            logger.debug('  Exists: %s: %s' % (f, op.exists(f)))
-        if name == 'brainstorm':
+    # get the version of the dataset and then check if the version is outdated
+    data_version = _dataset_version(final_path, name)
+    outdated_dataset = want_version is not None and \
+        LooseVersion(want_version) > LooseVersion(data_version)
+
+    if outdated_dataset:
+        logger.info(f'Dataset {name} version {data_version} out of date, '
+                    f'latest version is {want_version}')
+
+    # reasons to bail early (hf_sef has separate code for this):
+    if (not force_update) and (not outdated_dataset) and \
+            (not name.startswith('hf_sef_')):
+        # if target folder exists (otherwise pooch downloads every time,
+        # because we don't save the archive files after unpacking)
+        if op.isdir(final_path):
+            return final_path
+        # if download=False (useful for debugging)
+        elif not download:
+            return ''
+        # if user didn't accept the license
+        elif name.startswith('bst_'):
             if accept or '--accept-brainstorm-license' in sys.argv:
                 answer = 'y'
             else:
@@ -426,32 +254,95 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             if answer.lower() != 'y':
                 raise RuntimeError('You must agree to the license to use this '
                                    'dataset')
-        assert len(url) == len(hash_)
-        assert len(url) == len(archive_name)
-        assert len(url) == len(folder_orig)
-        assert len(url) == len(folder_path)
-        assert len(url) > 0
-        # 1. Get all the archives
-        full_name = list()
-        for u, an, h, fo in zip(url, archive_name, hash_, folder_orig):
-            remove_archive, full = _download(path, u, an, h)
-            full_name.append(full)
-        del archive_name
-        # 2. Extract all of the files
-        remove_dir = True
-        for u, fp, an, h, fo in zip(url, folder_path, full_name, hash_,
-                                    folder_orig):
-            _extract(path, name, fp, an, fo, remove_dir)
-            remove_dir = False  # only do on first iteration
-        # 3. Remove all of the archives
-        if remove_archive:
-            for an in full_name:
-                os.remove(op.join(path, an))
 
-        logger.info('Successfully extracted to: %s' % folder_path)
+    # downloader & processors TODO: may want to skip using tqdm during tests?
+    downloader = pooch.HTTPDownloader(progressbar=True)  # use tqdm
+    unzip = pooch.Unzip(extract_dir=path)  # to unzip downloaded file
+    untar = pooch.Untar(extract_dir=path)  # to untar downloaded file
 
-    _do_path_update(path, update_path, key, name)
-    path = folder_path[0]
+    # this processor handles nested tar files
+    nested_untar = pooch.Untar(extract_dir=op.join(path, FOLDER_NAMES[name]))
+
+    # create a map for each dataset name to its corresponding processor
+    # Note: when adding a new dataset, a new line must be added here.
+    processors = dict(
+        bst_auditory=nested_untar,
+        bst_phantom_ctf=nested_untar,
+        bst_phantom_elekta=nested_untar,
+        bst_raw=nested_untar,
+        bst_resting=nested_untar,
+        fake=untar,
+        fieldtrip_cmc=nested_untar,
+        kiloword=untar,
+        misc=untar,
+        mtrf=unzip,
+        multimodal=untar,
+        fnirs_motor=untar,
+        opm=untar,
+        sample=untar,
+        somato=untar,
+        spm=untar,
+        testing=untar,
+        visual_92_categories=untar,
+        phantom_4dbti=unzip,
+        refmeg_noise=unzip,
+        hf_sef_raw=pooch.Untar(
+            extract_dir=path, members=[f'hf_sef/{subdir}' for subdir in
+                                       ('MEG', 'SSS', 'subjects')]),
+        hf_sef_evoked=pooch.Untar(
+            extract_dir=path, members=[f'hf_sef/{subdir}' for subdir in
+                                       ('MEG', 'SSS', 'subjects')]),
+        ssvep=unzip,
+        erp_core=untar,
+        epilepsy_ecog=untar,
+    )
+    # construct the mapping needed by pooch
+    pooch_urls = {ARCHIVE_NAMES[key]: URLS[key] for key in URLS}
+
+    # create the download manager
+    fetcher = pooch.create(
+        path=path,
+        base_url='',    # Full URLs are given in the `urls` dict.
+        version=None,   # Data versioning is decoupled from MNE-Python version.
+        registry=None,  # Registry is loaded from file, below.
+        urls=pooch_urls,
+        retry_if_failed=2  # 2 retries = 3 total attempts
+    )
+    # load the checksum registry
+    registry = pkg_resources.resource_stream(
+        'mne', op.join('data', 'dataset_checksums.txt'))
+    fetcher.load_registry(registry)
+
+    # update the keys that are versioned
+    versioned_keys = {
+        f'{TESTING_VERSIONED}.tar.gz': fetcher.registry['mne-testing-data'],
+        f'{MISC_VERSIONED}.tar.gz': fetcher.registry['mne-misc-data']}
+    fetcher.registry.update(versioned_keys)
+    for key in ('testing', 'misc'):
+        del fetcher.registry[f'mne-{key}-data']
+    # use our logger level for pooch's logger too
+    pooch.get_logger().setLevel(logger.getEffectiveLevel())
+    # fetch and unpack the data
+    if name == 'visual_92_categories':
+        names = [f'visual_92_categories_{n}' for n in (1, 2)]
+    else:
+        names = [name]
+    for this_name in names:
+        archive_name = ARCHIVE_NAMES[this_name]
+        fetcher.fetch(fname=archive_name, downloader=downloader,
+                      processor=processors[name])
+        # after unpacking, remove the archive file
+        os.remove(op.join(path, archive_name))
+    # remove version number from "misc" and "testing" datasets folder names
+    if name == 'misc':
+        rmtree(final_path, ignore_errors=True)
+        os.replace(op.join(path, MISC_VERSIONED), final_path)
+    elif name == 'testing':
+        rmtree(final_path, ignore_errors=True)
+        os.replace(op.join(path, TESTING_VERSIONED), final_path)
+    # maybe update the config
+    old_name = 'brainstorm' if name.startswith('bst_') else name
+    _do_path_update(path, update_path, CONFIG_KEYS[name], old_name)
 
     # compare the version of the dataset and mne
     data_version = _dataset_version(path, name)
@@ -463,83 +354,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
              'you may need to update the {name} dataset by using '
              'mne.datasets.{name}.data_path(force_update=True)'.format(
                  name=name, current=data_version, newest=mne_version))
-    return (path, data_version) if return_version else path
-
-
-def _download(path, url, archive_name, hash_, hash_type='md5'):
-    """Download and extract an archive, completing the filename."""
-    martinos_path = '/cluster/fusion/sample_data/' + archive_name
-    neurospin_path = '/neurospin/tmp/gramfort/' + archive_name
-    remove_archive = False
-    if op.exists(martinos_path):
-        full_name = martinos_path
-    elif op.exists(neurospin_path):
-        full_name = neurospin_path
-    else:
-        full_name = op.join(path, archive_name)
-        remove_archive = True
-        fetch_archive = True
-        if op.exists(full_name):
-            logger.info('Archive exists (%s), checking hash %s.'
-                        % (archive_name, hash_,))
-            fetch_archive = False
-            if hashfunc(full_name, hash_type=hash_type) != hash_:
-                if input('Archive already exists but the hash does not match: '
-                         '%s\nOverwrite (y/[n])?'
-                         % (archive_name,)).lower() == 'y':
-                    os.remove(full_name)
-                    fetch_archive = True
-        if fetch_archive:
-            logger.info('Downloading archive %s to %s' % (archive_name, path))
-            _fetch_file(url, full_name, print_destination=False,
-                        hash_=hash_, hash_type=hash_type)
-    return remove_archive, full_name
-
-
-def _extract(path, name, folder_path, archive_name, folder_orig, remove_dir):
-    if op.exists(folder_path) and remove_dir:
-        logger.info('Removing old directory: %s' % (folder_path,))
-
-        def onerror(func, path, exc_info):
-            """Deal with access errors (e.g. testing dataset read-only)."""
-            # Is the error an access error ?
-            do = False
-            if not os.access(path, os.W_OK):
-                perm = os.stat(path).st_mode | stat.S_IWUSR
-                os.chmod(path, perm)
-                do = True
-            if not os.access(op.dirname(path), os.W_OK):
-                dir_perm = (os.stat(op.dirname(path)).st_mode |
-                            stat.S_IWUSR)
-                os.chmod(op.dirname(path), dir_perm)
-                do = True
-            if do:
-                func(path)
-            else:
-                raise exc_info[1]
-        shutil.rmtree(folder_path, onerror=onerror)
-
-    logger.info('Decompressing the archive: %s' % archive_name)
-    logger.info('(please be patient, this can take some time)')
-    if name == 'fieldtrip_cmc':
-        extract_path = folder_path
-    elif name == 'brainstorm':
-        extract_path = op.join(*op.split(folder_path)[:-1])
-    else:
-        extract_path = path
-    if archive_name.endswith('.zip'):
-        with zipfile.ZipFile(archive_name, 'r') as ff:
-            ff.extractall(extract_path)
-    else:
-        if archive_name.endswith('.bz2'):
-            ext = 'bz2'
-        else:
-            ext = 'gz'
-        with tarfile.open(archive_name, 'r:%s' % ext) as tf:
-            tf.extractall(path=extract_path)
-
-    if folder_orig is not None:
-        shutil.move(op.join(path, folder_orig), folder_path)
+    return (final_path, data_version) if return_version else final_path
 
 
 def _get_version(name):

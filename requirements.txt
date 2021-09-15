@@ -34,3 +34,4 @@ tqdm
 mffpy>=0.5.7
 ipywidgets
 ipyvtklink
+pooch

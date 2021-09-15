@@ -25,3 +25,4 @@ dependencies:
   - ipywidgets
   - ipyvtklink
   - jupyter_client!=6.1.5
+  - pooch
