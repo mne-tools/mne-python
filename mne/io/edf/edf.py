@@ -404,11 +404,6 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     }
     chs_without_types = list()
 
-    # montage is not able to be stored in EDF, so
-    # default to unknown locations for the channels
-    nan_arr = np.zeros(12)
-    nan_arr[:] = np.nan
-
     for idx, ch_name in enumerate(ch_names):
         chan_info = {}
         chan_info['cal'] = 1.
@@ -421,7 +416,8 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
         chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
         chan_info['kind'] = FIFF.FIFFV_EEG_CH
-        chan_info['loc'] = nan_arr
+        # montage can't be stored in EDF so channel locs are unknown:
+        chan_info['loc'] = np.full(12, np.nan)
 
         # if the edf info contained channel type information
         # set it now
