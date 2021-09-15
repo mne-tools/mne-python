@@ -627,6 +627,7 @@ def test_survive_pickle(tmpdir):
 
 @testing.requires_testing_data
 def test_full_report(tmpdir):
+    """Simulate user manually creating report by adding one file at a time."""
     r = Report(title='My Report')
     raw = read_raw_fif(raw_fname)
     events = read_events(events_fname)
@@ -662,6 +663,7 @@ def test_full_report(tmpdir):
 
 @testing.requires_testing_data
 def test_deprecated_methods(tmpdir):
+    """Test methods that are scheduled for removal after 0.24."""
     r = Report()
     r.add_ssp_projs(info=raw_fname, title='SSP Projectors', tags=('mytag',))
     fig = plt.figure()  # Empty figure
