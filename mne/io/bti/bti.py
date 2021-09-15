@@ -37,7 +37,8 @@ dtypes = zip(list(range(1, 5)), ('>i2', '>i4', '>f4', '>f8'))
 DTYPES = {i: np.dtype(t) for i, t in dtypes}
 
 
-def instantiate_default_info_chs():
+def _instantiate_default_info_chs():
+    """Populate entries in info['chs'] with default values."""
     return dict(loc=np.array([0, 0, 0, 1] * 3, dtype='f4'),
                 ch_name=None,
                 unit_mul=FIFF.FIFF_UNITM_NONE,
@@ -1136,7 +1137,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
 
     logger.info('... Setting channel info structure.')
     for idx, (chan_4d, chan_neuromag) in enumerate(ch_mapping):
-        chan_info = instantiate_default_info_chs()
+        chan_info = _instantiate_default_info_chs()
         chan_info['ch_name'] = chan_neuromag if rename_channels else chan_4d
         chan_info['logno'] = idx + BTI.FIFF_LOGNO
         chan_info['scanno'] = idx + 1
