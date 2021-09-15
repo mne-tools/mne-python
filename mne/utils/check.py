@@ -4,6 +4,7 @@
 #
 # License: BSD-3-Clause
 
+import importlib
 from builtins import input  # no-op here but facilitates testing
 from difflib import get_close_matches
 from distutils.version import LooseVersion
@@ -251,30 +252,33 @@ def _check_compensation_grade(info1, info2, name1,
             % (name1, grade1, name2, grade2))
 
 
-def _check_pylsl_installed(strict=True):
-    """Aux function."""
-    try:
-        import pylsl
-        return pylsl
-    except ImportError:
-        if strict is True:
-            raise RuntimeError('For this functionality to work, the pylsl '
-                               'library is required.')
-        else:
-            return False
+def _soft_import(name, purpose, strict=True):
+     """Import soft dependencies, providing informative errors on failure.
+
+     Parameters
+     ----------
+     name : str
+         Name of the module to be imported. For example, 'pandas'.
+     purpose : str
+         A very brief statement (formulated as a noun phrase) explaining what
+         functionality the package provides to MNE-Python.
+     strict : bool
+         Whether to raise an error if module import fails.
+     """
+     try:
+         mod = importlib.import_module(name)
+         return mod
+     except (ImportError, ModuleNotFoundError):
+         if strict:
+             raise RuntimeError(f'For {purpose} to work, the {name} module is '
+                                'needed, but it could not be imported.')
+         else:
+             return False
 
 
 def _check_pandas_installed(strict=True):
     """Aux function."""
-    try:
-        import pandas
-        return pandas
-    except ImportError:
-        if strict is True:
-            raise RuntimeError('For this functionality to work, the Pandas '
-                               'library is required.')
-        else:
-            return False
+    return _soft_import('pandas', 'dataframe integration', strict=strict)
 
 
 def _check_eeglabio_installed(strict=True):
