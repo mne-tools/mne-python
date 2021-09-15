@@ -468,7 +468,6 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
         fpath = op.join(destination, fname)
         if not op.isfile(fpath):
             pooch.retrieve(
-                # URL to one of Pooch's test files
                 url=urls[hemi],
                 known_hash=f"md5:{hashes[hemi]}",
                 path=destination,
@@ -526,7 +525,6 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
         if not op.isfile(fpath):
             fname = op.basename(fpath)
             pooch.retrieve(
-                # URL to one of Pooch's test files
                 url=urls[hemi],
                 known_hash=f"md5:{hashes[hemi]}",
                 path=destination,
@@ -649,7 +647,6 @@ def _manifest_check_download(manifest_path, destination, url, hash_):
 
             fname_path = op.join(path, 'temp.zip')
             pooch.retrieve(
-                # URL to one of Pooch's test files
                 url=url,
                 known_hash=f"md5:{hash_}",
                 path=path,

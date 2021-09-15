@@ -18,6 +18,9 @@ from mne.utils import (requires_good_network,
 from mne.utils.check import _soft_import
 
 
+# import pooch library for handling the dataset downloading
+pooch = _soft_import('pooch', 'dataset downloading', strict=True)
+
 subjects_dir = op.join(testing.data_path(download=False), 'subjects')
 
 
@@ -109,7 +112,7 @@ def test_downloads(tmpdir, monkeypatch, capsys):
         assert str(tmpdir) in full_name
         raise RuntimeError(want_msg)
 
-    monkeypatch.setattr(datasets.utils, '_fetch_file', _error_download)
+    monkeypatch.setattr(pooch, 'retrieve', _error_download)
     with pytest.raises(RuntimeError, match=want_msg):
         datasets._fake.data_path(**kwargs)
     out, _ = capsys.readouterr()
@@ -188,7 +191,8 @@ def test_manifest_check_download(tmpdir, n_have, monkeypatch):
             pass
     with catch_logging() as log:
         with use_log_level(True):
-            url = hash_ = ''  # we mock the _fetch_file so these are not used
+            # we mock the pooch.retrieve so these are not used
+            url = hash_ = ''
             _manifest_check_download(manifest_path, destination, url, hash_)
     log = log.getvalue()
     n_missing = 3 - n_have
