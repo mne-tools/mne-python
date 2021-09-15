@@ -253,27 +253,27 @@ def _check_compensation_grade(info1, info2, name1,
 
 
 def _soft_import(name, purpose, strict=True):
-     """Import soft dependencies, providing informative errors on failure.
+    """Import soft dependencies, providing informative errors on failure.
 
-     Parameters
-     ----------
-     name : str
-         Name of the module to be imported. For example, 'pandas'.
-     purpose : str
-         A very brief statement (formulated as a noun phrase) explaining what
-         functionality the package provides to MNE-Python.
-     strict : bool
-         Whether to raise an error if module import fails.
-     """
-     try:
-         mod = importlib.import_module(name)
-         return mod
-     except (ImportError, ModuleNotFoundError):
-         if strict:
-             raise RuntimeError(f'For {purpose} to work, the {name} module is '
-                                'needed, but it could not be imported.')
-         else:
-             return False
+    Parameters
+    ----------
+    name : str
+        Name of the module to be imported. For example, 'pandas'.
+    purpose : str
+        A very brief statement (formulated as a noun phrase) explaining what
+        functionality the package provides to MNE-Python.
+    strict : bool
+        Whether to raise an error if module import fails.
+    """
+    try:
+        mod = importlib.import_module(name)
+        return mod
+    except (ImportError, ModuleNotFoundError):
+        if strict:
+            raise RuntimeError(f'For {purpose} to work, the {name} module is '
+                               'needed, but it could not be imported.')
+        else:
+            return False
 
 
 def _check_pandas_installed(strict=True):
@@ -283,29 +283,12 @@ def _check_pandas_installed(strict=True):
 
 def _check_eeglabio_installed(strict=True):
     """Aux function."""
-    try:
-        import eeglabio
-        return eeglabio
-    except ImportError:
-        if strict is True:
-            raise RuntimeError('For this functionality to work, the eeglabio '
-                               'library is required.')
-        else:
-            return False
+    return _soft_import('eeglabio', 'exporting to EEGLab', strict=strict)
 
 
 def _check_edflib_installed(strict=True):
     """Aux function."""
-    try:
-        import EDFlib
-        return EDFlib
-    except ImportError:
-        if strict:
-            raise RuntimeError('For this functionality to work, '
-                               'the EDFlib-Python '
-                               'library is required.')
-        else:
-            return False
+    return _soft_import('EDFlib', 'exporting to EDF', strict=strict)
 
 
 def _check_pandas_index_arguments(index, valid):
