@@ -39,7 +39,7 @@ else
                 python -c "import mne; print(mne.datasets.eegbci.load_data(4, [3], update_path=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*sleep_physionet.*" | wc -l) -gt 0 ]]; then
-                python -c "import mne; print(mne.datasets.sleep_physionet.age.fetch_data([0, 1], recording=[1], update_path=True))";
+                python -c "import mne; print(mne.datasets.sleep_physionet.age.fetch_data([0, 1], recording=[1]))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*hf_sef.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.hf_sef.data_path(update_path=True))";

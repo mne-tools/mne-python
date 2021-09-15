@@ -402,12 +402,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         'MISC': FIFF.FIFFV_MISC_CH,
         'SAO2': FIFF.FIFFV_BIO_CH,
     }
-    bad_map = dict()
-
-    # montage is not able to be stored in EDF, so
-    # default to unknown locations for the channels
-    nan_arr = np.zeros(12)
-    nan_arr[:] = np.nan
+    chs_without_types = list()
 
     for idx, ch_name in enumerate(ch_names):
         chan_info = {}
@@ -421,7 +416,8 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
         chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
         chan_info['kind'] = FIFF.FIFFV_EEG_CH
-        chan_info['loc'] = nan_arr
+        # montage can't be stored in EDF so channel locs are unknown:
+        chan_info['loc'] = np.full(12, np.nan)
 
         # if the edf info contained channel type information
         # set it now
@@ -431,9 +427,6 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             if ch_type not in ['EEG', 'ECOG', 'SEEG', 'DBS']:
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
                 pick_mask[idx] = False
-        elif ch_type not in ch_type_mapping:
-            bad_map[ch_name] = ch_type
-
         # if user passes in explicit mapping for eog, misc and stim
         # channels set them here
         if ch_name in eog or idx in eog or idx - nchan in eog:
@@ -452,14 +445,15 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             chan_info['ch_name'] = ch_name
             ch_names[idx] = chan_info['ch_name']
             edf_info['units'][idx] = 1
+        elif ch_type not in ch_type_mapping:
+            chs_without_types.append(ch_name)
         chs.append(chan_info)
 
     # warn if channel type was not inferable
-    if len(bad_map):
-        bad_map = '\n'.join(f'{ch_name}: {ch_type}'
-                            for ch_name, ch_type in bad_map.items())
-        warn(f'Found the following unknown channel type mapping(s), '
-             f'setting the channel type to EEG:\n{bad_map}')
+    if len(chs_without_types):
+        msg = ('Could not determine channel type of the following channels, '
+               f'they will be set as EEG:\n{", ".join(chs_without_types)}')
+        logger.info(msg)
 
     edf_info['stim_channel_idxs'] = stim_channel_idxs
 

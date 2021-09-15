@@ -467,8 +467,8 @@ del raw, ica, new_ica
 # an IC for exclusion on one subject, and then use that component as a
 # *template* for selecting which ICs to exclude from other subjects' data,
 # using `mne.preprocessing.corrmap` :footcite:`CamposViolaEtAl2009`.
-# The idea behind
-# `~mne.preprocessing.corrmap` is that the artifact patterns are similar
+# The idea behind `~mne.preprocessing.corrmap` is that the artifact patterns
+# are similar
 # enough across subjects that corresponding ICs can be identified by
 # correlating the ICs from each ICA solution with a common template, and
 # picking the ICs with the highest correlation strength.
