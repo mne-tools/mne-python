@@ -10,11 +10,14 @@ from ..utils import verbose, logger, _validate_type
 
 
 @verbose
-def export_raw(fname, raw, fmt='auto', physical_range='auto', verbose=None):
+def export_raw(fname, raw, fmt='auto', physical_range='auto',
+               add_ch_type=False, verbose=None):
     """Export Raw to external formats.
 
-    Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
-    %(export_warning)s
+    Supported formats:
+        - EEGLAB (.set, uses :mod:`eeglabio`)
+        - EDF (.edf, uses ``EDFlib-Python``)
+    %(export_warning)s :meth:`mne.io.Raw.save` instead.
 
     Parameters
     ----------
@@ -23,6 +26,7 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto', verbose=None):
         The raw instance to export.
     %(export_params_fmt)s
     %(export_params_physical_range)s
+    %(export_params_add_ch_type)s
     %(verbose)s
 
     Notes
@@ -42,7 +46,7 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto', verbose=None):
         _export_raw(fname, raw)
     elif fmt == 'edf':
         from ._edf import _export_raw
-        _export_raw(fname, raw, physical_range)
+        _export_raw(fname, raw, physical_range, add_ch_type)
     elif fmt == 'brainvision':
         raise NotImplementedError('Export to BrainVision not implemented.')
 

@@ -26,7 +26,7 @@ def test_nihon_eeg():
     assert raw._data.shape == raw_edf._data.shape
     assert raw.info['sfreq'] == raw.info['sfreq']
     # ch names and order are switched in the EDF
-    edf_ch_names = {x: x.split(' ')[1].replace('-Ref', '')
+    edf_ch_names = {x: x.replace('-Ref', '')
                     for x in raw_edf.ch_names}
     raw_edf.rename_channels(edf_ch_names)
     assert raw.ch_names == raw_edf.ch_names
