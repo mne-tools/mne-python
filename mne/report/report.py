@@ -236,10 +236,14 @@ def _fig_to_img(fig, image_format='png', auto_close=True, **kwargs):
     output = BytesIO()
     logger.debug('Saving figure %s with dpi %s'
                  % (fig.get_size_inches(), fig.get_dpi()))
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('ignore')  # incompatible axes
-        fig.savefig(output, format=image_format, dpi=fig.get_dpi(),
-                    bbox_to_inches='tight')
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            action='ignore',
+            message='.*not compatible with tight_layout.*',
+            category=UserWarning
+        )
+        fig.tight_layout()
+    fig.savefig(output, format=image_format, dpi=fig.get_dpi())
     plt.close(fig)
     output = output.getvalue()
     return (output.decode('utf-8') if image_format == 'svg' else
@@ -1266,8 +1270,6 @@ class Report(object):
         """
         assert isinstance(html, str)  # otherwise later will break
 
-        existing_names = [element.name for element in self._content]
-
         new_content = _ContentElement(
             name=name,
             dom_id=dom_id,
@@ -1275,6 +1277,7 @@ class Report(object):
             html=html
         )
 
+        existing_names = [element.name for element in self._content]
         if name in existing_names and replace:
             # Find and replace existing content, starting from the last element
             for idx, content_element in enumerate(self._content[::-1]):
@@ -1829,7 +1832,7 @@ class Report(object):
         return html, dom_id
 
     @fill_doc
-    def add_slider(self, figs, title, *, captions, start_idx=0,
+    def add_slider(self, figs, title, *, captions=None, start_idx=0,
                    image_format=None, tags=('custom-slider'), replace=False):
         """Add a slider element to scroll through a collection of figures.
 
@@ -2811,14 +2814,17 @@ class Report(object):
         )
 
         # Drop log
-        dom_id = self._get_id()
-        img = _fig_to_img(epochs.plot_drop_log, image_format,
-                          subject=self.subject, show=False)
-        drop_log_img_html = _html_image_element(
-            img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
-            show=True, image_format=image_format, title='Drop log',
-            caption=None, tags=tags
-        )
+        if epochs._bad_dropped:
+            dom_id = self._get_id()
+            img = _fig_to_img(epochs.plot_drop_log, image_format,
+                              subject=self.subject, show=False)
+            drop_log_img_html = _html_image_element(
+                img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
+                show=True, image_format=image_format, title='Drop log',
+                caption=None, tags=tags
+            )
+        else:
+            drop_log_img_html = ''
 
         # PSD
         dom_id = self._get_id()
@@ -2828,7 +2834,14 @@ class Report(object):
             fmax = np.inf
 
         fig = epochs.plot_psd(fmax=fmax, show=False)
-        fig.tight_layout()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                action='ignore',
+                message='.*not compatible with tight_layout.*',
+                category=UserWarning
+            )
+            fig.tight_layout()
+
         img = _fig_to_img(fig=fig, image_format=image_format)
         psd_img_html = _html_image_element(
             img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
