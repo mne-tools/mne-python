@@ -78,8 +78,18 @@ VALID_EXTENSIONS = ('sss.fif', 'sss.fif.gz',
                     'T1.mgz') + tuple(RAW_EXTENSIONS)
 del RAW_EXTENSIONS
 
-SECTION_ORDER = ('raw', 'events', 'epochs', 'ssp', 'evoked', 'covariance',
-                 'trans', 'mri', 'forward', 'inverse')
+CONTENT_ORDER = (
+    'raw',
+    'events',
+    'epochs',
+    'ssp',
+    'evoked',
+    'covariance',
+    'coregistration',
+    'bem',
+    'forward',
+    'inverse'
+)
 
 html_include_dir = Path(__file__).parent / 'js_and_css'
 template_dir = Path(__file__).parent / 'templates'
@@ -384,7 +394,7 @@ def open_report(fname, **params):
         report = Report(**params)
     # Keep track of the filename in case the Report object is used as a context
     # manager.
-    report._fname = fname
+    report.fname = fname
     return report
 
 
@@ -511,19 +521,18 @@ class Report(object):
         self.projs = projs
         self.verbose = verbose
 
-        self._initial_id = 0
+        self._dom_id = 0
         self._content = []
         self.include = []
-        self.tags = []  # all tags
         self.lang = 'en-us'  # language setting for the HTML file
-        # boolean to specify if sections should be ordered in natural
-        # order of processing (raw -> events ... -> inverse)
-        self._sort_sections = False
         if not isinstance(raw_psd, bool) and not isinstance(raw_psd, dict):
             raise TypeError('raw_psd must be bool or dict, got %s'
                             % (type(raw_psd),))
         self.raw_psd = raw_psd
         self._init_render()  # Initialize the renderer
+
+        self.fname = None  # The name of the saved report
+        self.data_path = None
 
     def __repr__(self):
         """Print useful info about report."""
@@ -553,10 +562,19 @@ class Report(object):
         """
         return len(self._content)
 
-    def _get_id(self):
+    @staticmethod
+    def _get_state_params():
+        # Which attributes to store in and read from HDF5 files
+        return (
+            'baseline', 'cov_fname',  'include', '_content', 'image_format',
+            'info_fname', '_dom_id', 'raw_psd', 'projs',
+            'subjects_dir', 'subject', 'title', 'data_path', 'lang', 'verbose'
+        )
+
+    def _get_dom_id(self):
         """Get id of plot."""
-        self._initial_id += 1
-        return f'global{self._initial_id}'
+        self._dom_id += 1
+        return f'global{self._dom_id}'
 
     def _validate_input(self, items, captions, tag, comments=None):
         """Validate input."""
@@ -594,6 +612,16 @@ class Report(object):
     # @deprecated(extra='Use Report.tags instead')
     def sections(self):
         return self.tags
+
+    @property
+    def tags(self):
+        """All tags currently used in the report."""
+        tags = []
+        for c in self._content:
+            tags.extend(c.tags)
+
+        tags = tuple(sorted(set(tags)))
+        return tags
 
     def add_custom_css(self, css):
         """Add custom CSS to the report.
@@ -649,9 +677,6 @@ class Report(object):
         .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
-        for tag in tags:
-            if tag not in self.tags:
-                self.tags.append(tag)
 
         htmls = self._render_epochs(
             epochs=epochs,
@@ -661,7 +686,7 @@ class Report(object):
         )
         repr_html, drop_log_html, psd_html, ssp_projs_html = htmls
 
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
         html = _html_epochs_element(
             repr=repr_html,
             drop_log=drop_log_html,
@@ -740,9 +765,6 @@ class Report(object):
             noise_cov = read_cov(fname=noise_cov)
 
         tags = tuple(tags)
-        for tag in tags:
-            if tag not in self.tags:
-                self.tags.append(tag)
 
         for evoked, title in zip(evokeds, titles):
             evoked_htmls = self._render_evoked(
@@ -756,7 +778,7 @@ class Report(object):
             (joint_html, slider_html, gfp_html, whitened_html,
              ssp_projs_html) = evoked_htmls
 
-            dom_id = self._get_id()
+            dom_id = self._get_dom_id()
             html = _html_evoked_element(
                 id=dom_id,
                 joint=joint_html,
@@ -801,9 +823,6 @@ class Report(object):
         .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
-        for tag in tags:
-            if tag not in self.tags:
-                self.tags.append(tag)
 
         if psd is None:
             add_psd = dict() if self.raw_psd is True else self.raw_psd
@@ -820,7 +839,7 @@ class Report(object):
             tags=tags
         )
         repr_html, psd_img_html, butterfly_img_html, ssp_proj_img_html = htmls
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
         html = _html_raw_element(
             repr=repr_html,
             psd=psd_img_html,
@@ -864,9 +883,6 @@ class Report(object):
         .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
-        for tag in tags:
-            if tag not in self.tags:
-                self.tags.append(tag)
 
         html, dom_id = self._render_stc(
             stc=stc,
@@ -910,9 +926,6 @@ class Report(object):
         .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
-        for tag in tags:
-            if tag not in self.tags:
-                self.tags.append(tag)
 
         html, dom_id = self._render_forward(
             forward=forward, subject=subject, subjects_dir=subjects_dir,
@@ -955,9 +968,6 @@ class Report(object):
         .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
-        for tag in tags:
-            if tag not in self.tags:
-                self.tags.append(tag)
 
         if ((subject is not None and trans is None) or
                 (trans is not None and subject is None)):
@@ -1003,9 +1013,6 @@ class Report(object):
         .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
-        for tag in tags:
-            if tag not in self.tags:
-                self.tags.append(tag)
 
         html, dom_id = self._render_trans(
             trans=trans,
@@ -1044,10 +1051,6 @@ class Report(object):
         .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
-        for tag in tags:
-            if tag not in self.tags:
-                self.tags.append(tag)
-
         htmls = self._render_cov(
             cov=cov,
             info=info,
@@ -1056,7 +1059,7 @@ class Report(object):
         )
         cov_matrix_html, cov_svd_html = htmls
 
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
         html = _html_cov_element(
             matrix=cov_matrix_html,
             svd=cov_svd_html,
@@ -1098,10 +1101,6 @@ class Report(object):
         .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
-        for tag in tags:
-            if tag not in self.tags:
-                self.tags.append(tag)
-
         html, dom_id = self._render_events(
             events=events,
             event_id=event_id,
@@ -1143,10 +1142,6 @@ class Report(object):
         .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
-        for tag in tags:
-            if tag not in self.tags:
-                self.tags.append(tag)
-
         output = self._render_ssp_projs(
             info=info, projs=projs, title=title,
             image_format=self.image_format, tags=tags
@@ -1178,16 +1173,13 @@ class Report(object):
         Parameters
         ----------
         caption : str
-            The caption of the element to remove.
 
             .. deprecated:: 0.24.0
                This parameter is scheduled for removal. Use ``title`` instead.
         section : str | None
-            If set, limit the search to the section with the given label.
 
             .. deprecated:: 0.24.0
                This parameter is scheduled for removal. Use ``tags`` instead.
-
         title : str
             The title of the element(s) to remove.
 
@@ -1298,7 +1290,7 @@ class Report(object):
 
         code = stdlib_html.escape(code)
 
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
         html = _html_code_element(
             tags=tags,
             title=title,
@@ -1330,10 +1322,6 @@ class Report(object):
         .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
-        for tag in tags:
-            if tag not in self.tags:
-                self.tags.append(tag)
-
         language = language.lower()
         html, dom_id = self._render_code(
             code=code, title=title, language=language, tags=tags
@@ -1364,9 +1352,6 @@ class Report(object):
         .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
-        for tag in tags:
-            if tag not in self.tags:
-                self.tags.append(tag)
 
         with contextlib.redirect_stdout(StringIO()) as f:
             sys_info()
@@ -1406,15 +1391,11 @@ class Report(object):
             )
 
         tags = tuple(tags)
-        for tag in tags:
-            if tag not in self.tags:
-                self.tags.append(tag)
-
         if image_format is None:
             image_format = self.image_format
 
         img = _fig_to_img(fig=fig, image_format=image_format)
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
         img_html = _html_image_element(
             img=img, div_klass='custom-image', img_klass='custom-image',
             title=title, caption=caption, show=True,
@@ -1539,10 +1520,6 @@ class Report(object):
         .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
-        for tag in tags:
-            if tag not in self.tags:
-                self.tags.append(tag)
-
         img_bytes = Path(image).expanduser().read_bytes()
         img_base64 = base64.b64encode(img_bytes).decode('ascii')
         del img_bytes  # Free memory
@@ -1551,7 +1528,7 @@ class Report(object):
         _check_option('Image format', value=img_format,
                       allowed_values=('png', 'gif', 'svg'))
 
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
         img_html = _html_image_element(
             img=img_base64, div_klass='custom-image',
             img_klass='custom-image', title=title, caption=caption,
@@ -1650,11 +1627,7 @@ class Report(object):
         .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
-        for tag in tags:
-            if tag not in self.tags:
-                self.tags.append(tag)
-
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
         html_element = _html_element(
             id=dom_id, html=html, title=title, tags=tags,
             div_klass='custom-html'
@@ -1783,16 +1756,12 @@ class Report(object):
         .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
-        for tag in tags:
-            if tag not in self.tags:
-                self.tags.append(tag)
-
         width = _ensure_int(width, 'width')
         html = self._render_bem(subject=subject, subjects_dir=subjects_dir,
                                 decim=decim, n_jobs=n_jobs, width=width,
                                 image_format=self.image_format, tags=tags)
 
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
         html = _html_element(
             div_klass='bem',
             id=dom_id,
@@ -1818,7 +1787,7 @@ class Report(object):
         images = [_fig_to_img(fig=fig, image_format=image_format)
                   for fig in figs]
 
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
         html = _html_slider_element(
             id=dom_id,
             title=title,
@@ -1860,9 +1829,6 @@ class Report(object):
         .. versionadded:: 0.24.0
         """
         tags = tuple(tags)
-        for tag in tags:
-            if tag not in self.tags:
-                self.tags.append(tag)
 
         if captions is None:
             captions = [f'Figure {i+1} of {len(figs)}'
@@ -1964,8 +1930,8 @@ class Report(object):
 
     @verbose
     def parse_folder(self, data_path, pattern=None, n_jobs=1, mri_decim=2,
-                     sort_sections=True, on_error='warn', image_format=None,
-                     render_bem=True, verbose=None):
+                     sort_content=True, sort_sections=None, on_error='warn',
+                     image_format=None, render_bem=True, verbose=None):
         r"""Render all the files in the folder.
 
         Parameters
@@ -1975,8 +1941,9 @@ class Report(object):
             created.
         pattern : None | str | list of str
             Filename pattern(s) to include in the report.
-            Example: [\*raw.fif, \*ave.fif] will include Raw as well as Evoked
-            files. If ``None``, include all supported file formats.
+            For example, ``[\*raw.fif, \*ave.fif]`` will include `~mne.io.Raw`
+            as well as `~mne.Evoked` files. If ``None``, include all supported
+            file formats.
 
             .. versionchanged:: 0.23
                Include supported non-FIFF files by default.
@@ -1984,9 +1951,17 @@ class Report(object):
         mri_decim : int
             Use this decimation factor for generating MRI/BEM images
             (since it can be time consuming).
+        sort_content : bool
+            If ``True``, sort the content based on tags in the order:
+            raw -> events -> epochs -> evoked -> covariance -> coregistration
+            -> bem -> forward-solution -> inverse-operator -> source-estimate.
+
+            .. versionadded:: 0.24.0
         sort_sections : bool
-            If True, sort sections in the order: raw -> events -> epochs
-             -> evoked -> covariance -> trans -> mri -> forward -> inverse.
+
+            .. deprecated:: 0.24.0
+               This parameter is scheduled for removal. Use ``sort_content``
+               instead.
         on_error : str
             What to do if a file cannot be rendered. Can be 'ignore',
             'warn' (default), or 'raise'.
@@ -2003,7 +1978,14 @@ class Report(object):
         data_path = str(data_path)
         image_format = _check_image_format(self, image_format)
         _check_option('on_error', on_error, ['ignore', 'warn', 'raise'])
-        self._sort = sort_sections
+
+        if sort_sections is not None:
+            warn(
+                message='The "sort_sections" parameter has been deprecated. '
+                        'Please use "sort_content" instead',
+                category=DeprecationWarning
+            )
+            sort_content = sort_sections
 
         n_jobs = check_n_jobs(n_jobs)
         self.data_path = data_path
@@ -2072,6 +2054,8 @@ class Report(object):
         parallel(p_fun(self, fname, cov, sfreq, on_error)
                  for fname in np.array_split(fnames, use_jobs))
 
+        # XXX I don't know what this code does – can it be removed?
+        #
         # # combine results from n_jobs discarding plots not rendered
         # self.html = [html for html in sum(htmls, []) if html is not None]
         # self.fnames = [fname for fname in sum(report_fnames, []) if
@@ -2084,7 +2068,7 @@ class Report(object):
         # self.tags = sorted(set(self._sectionlabels))
         # self._sectionvars = dict(zip(self.tags, self.tags))
 
-        # render mri
+        # Render BEM
         if render_bem:
             if self.subjects_dir is not None and self.subject is not None:
                 logger.info('Rendering BEM')
@@ -2096,32 +2080,15 @@ class Report(object):
                 warn('`subjects_dir` and `subject` not provided. Cannot '
                      'render MRI and -trans.fif(.gz) files.')
 
-    def _get_state_params(self):
-        """Obtain all fields that are in the state dictionary of this object.
-
-        Returns
-        -------
-        non_opt_params : list of str
-            All parameters that must be present in the state dictionary.
-        opt_params : list of str
-            All parameters that are optionally present in the state dictionary.
-        """
-        # Note: self._fname is not part of the state
-        return (['baseline', 'cov_fname',  'include', '_content',
-                 'image_format', 'info_fname', '_initial_id', 'raw_psd',
-                 'projs', 'tags',
-                 '_sort_sections', 'subjects_dir', 'subject', 'title',
-                 'verbose'],
-                ['data_path', 'lang', '_sort'])
+        if sort_content:
+            self._content = self._sort(
+                content=self._content, order=CONTENT_ORDER
+            )
 
     def __getstate__(self):
         """Get the state of the report as a dictionary."""
         state = dict()
-        non_opt_params, opt_params = self._get_state_params()
-        for param_name in [*non_opt_params, *opt_params]:
-            if param_name in opt_params and not hasattr(self, param_name):
-                continue
-
+        for param_name in self._get_state_params():
             param_val = getattr(self, param_name)
 
             # Workaround as h5io doesn't support dataclasses
@@ -2134,23 +2101,18 @@ class Report(object):
 
     def __setstate__(self, state):
         """Set the state of the report."""
-        non_opt_params, opt_params = self._get_state_params()
-        for param_name in [*non_opt_params, *opt_params]:
-            if param_name in opt_params and param_name not in state:
-                continue
-
+        for param_name in self._get_state_params():
             param_val = state[param_name]
 
             # Workaround as h5io doesn't support dataclasses
             if param_name == '_content':
                 param_val = [_ContentElement(**val) for val in param_val]
-
             setattr(self, param_name, param_val)
         return state
 
     @verbose
-    def save(self, fname=None, open_browser=True, overwrite=False, *,
-             verbose=None):
+    def save(self, fname=None, open_browser=True, overwrite=False,
+             sort_content=False, *, verbose=None):
         """Save the report and optionally open it in browser.
 
         Parameters
@@ -2169,6 +2131,13 @@ class Report(object):
             Whether to open the rendered HTML report in the default web browser
             after saving. This is ignored when writing an HDF5 file.
         %(overwrite)s
+        sort_content : bool
+            If ``True``, sort the content based on tags before saving in the
+            order:
+            raw -> events -> epochs -> evoked -> covariance -> coregistration
+            -> bem -> forward-solution -> inverse-operator -> source-estimate.
+
+            .. versionadded:: 0.24.0
         %(verbose_meth)s
 
         Returns
@@ -2177,13 +2146,18 @@ class Report(object):
             The file name to which the report was saved.
         """
         if fname is None:
-            if not hasattr(self, 'data_path'):
+            if self.data_path is None:
                 self.data_path = os.getcwd()
                 warn(f'`data_path` not provided. Using {self.data_path} '
                      f'instead')
             fname = op.realpath(op.join(self.data_path, 'report.html'))
         else:
             fname = op.realpath(fname)
+
+        if sort_content:
+            self._content = self._sort(
+                content=self._content, order=CONTENT_ORDER
+            )
 
         if not overwrite and op.isfile(fname):
             msg = (f'Report already exists at location {fname}. '
@@ -2235,41 +2209,32 @@ class Report(object):
 
     def __exit__(self, type, value, traceback):
         """Save the report when leaving the context block."""
-        if self._fname is not None:
-            self.save(self._fname, open_browser=False, overwrite=True)
+        if self.fname is not None:
+            self.save(self.fname, open_browser=False, overwrite=True)
 
     @staticmethod
-    def _gen_caption(prefix, fname, data_path, suffix=''):
-        if data_path is not None:
-            fname = op.relpath(fname, start=data_path)
+    def _sort(content, order):
+        """Reorder content to reflect "natural" ordering."""
+        content_unsorted = content.copy()
+        content_sorted = []
+        content_sorted_idx = []
+        del content
 
-        caption = f'{prefix}: {fname} {suffix}'
-        return caption.strip()
+        # First arrange content with known tags in the predefined order
+        for tag in order:
+            for idx, content in enumerate(content_unsorted):
+                if tag in content.tags:
+                    content_sorted_idx.append(idx)
+                    content_sorted.append(content)
 
-    # @verbose
-    # def _render_toc(self, verbose=None):
-    #     """Render the Table of Contents."""
-    #     logger.info('Rendering : Table of Contents')
+        # Now simply append the rest (custom tags)
+        content_remaining = [
+            content for idx, content in enumerate(content_unsorted)
+            if idx not in content_sorted_idx
+        ]
 
-    #     # Reorder self.sections to reflect natural ordering
-    #     if self._sort_sections:
-    #         sections = list(set(self.tags) & set(SECTION_ORDER))
-    #         custom = [section for section in self.tags if section
-    #                   not in SECTION_ORDER]
-    #         order = [sections.index(section) for section in SECTION_ORDER if
-    #                  section in sections]
-    #         self.tags = np.array(sections)[order].tolist() + custom
-
-    #     toc_html = _html_toc_element(toc_entries=self._toc_entries)
-    #     lang = getattr(self, 'lang', 'en-us')
-    #     sections = [section if section != 'mri' else 'MRI'
-    #                 for section in self.tags]
-    #     html_header = _html_header_element(
-    #         title=self.title, include=self.include, lang=lang,
-    #         tags=sections, js=JAVASCRIPT, css=CSS, mne_logo_img=mne_logo
-    #     )
-    #     self.html.insert(0, html_header)  # Insert header at position 0
-    #     self.html.insert(1, toc_html)  # insert TOC
+        content_sorted = [*content_sorted, *content_remaining]
+        return content_sorted
 
     def _render_one_bem_axis(self, *, mri_fname, surfaces,
                              image_format, orientation, decim=2, n_jobs=1,
@@ -2314,7 +2279,7 @@ class Report(object):
             raw = read_raw(**kwargs)
 
         # Summary table
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
         repr_html = _html_element(
             div_klass='raw',
             id=dom_id,
@@ -2324,7 +2289,7 @@ class Report(object):
         )
 
         # Butterfly plot
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
         # Only keep "bad" annotations
         raw_copy = raw.copy()
         annots_to_remove_idx = []
@@ -2358,7 +2323,7 @@ class Report(object):
 
         # PSD
         if isinstance(add_psd, dict):
-            dom_id = self._get_id()
+            dom_id = self._get_dom_id()
             if raw.info['lowpass'] is not None:
                 fmax = raw.info['lowpass'] + 15
                 # Must not exceed half the sampling frequency
@@ -2443,7 +2408,7 @@ class Report(object):
 
         img = _fig_to_img(fig=fig, image_format=image_format)
 
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
         html = _html_image_element(
             img=img, div_klass='ssp', img_klass='ssp',
             title=title, caption=None, show=True, image_format=image_format,
@@ -2467,14 +2432,14 @@ class Report(object):
         info_html, _  = self._render_code(code=info_string, title='Info',
                                           language='plaintext', tags=tags)
 
+        # XXX Todo
         # Render sensitivity maps
         if subject is not None:
-
-            sensitivity_maps_html = ''  # XXX
+            sensitivity_maps_html = ''
         else:
             sensitivity_maps_html = ''
 
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
         html = _html_forward_sol_element(
             id=dom_id,
             info=info_html,
@@ -2516,7 +2481,7 @@ class Report(object):
             set_3d_view(fig, focalpoint=(0., 0., 0.06))
             img = _fig_to_img(fig=fig, image_format=image_format)
 
-            dom_id = self._get_id()
+            dom_id = self._get_dom_id()
             src_img_html = _html_image_element(
                 img=img,
                 div_klass='inverse-operator source-space',
@@ -2528,7 +2493,7 @@ class Report(object):
         else:
             src_img_html = ''
 
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
         html = _html_inverse_op_element(
             id=dom_id,
             info=info_html,
@@ -2555,7 +2520,7 @@ class Report(object):
 
             img = _fig_to_img(fig, image_format)
             title = f'Time course ({ch_type_to_caption_map[ch_type]})'
-            dom_id = self._get_id()
+            dom_id = self._get_dom_id()
 
             htmls.append(
                 _html_image_element(
@@ -2649,7 +2614,7 @@ class Report(object):
         for match in re.findall(pattern=pattern, string=label):
             label = label.replace(match, '')
 
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
 
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots(len(ch_types), 1, sharex=True)
@@ -2692,7 +2657,7 @@ class Report(object):
     def _render_evoked_whitened(self, evoked, *, noise_cov, image_format,
                                 tags):
         """Render whitened evoked."""
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
         fig = evoked.plot_white(
             noise_cov=noise_cov,
             show=False
@@ -2781,7 +2746,7 @@ class Report(object):
             image_format=image_format,
         )
 
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
         html = _html_image_element(
             img=img,
             id=dom_id,
@@ -2804,7 +2769,7 @@ class Report(object):
             epochs = read_epochs(fname)
 
         # Summary table
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
         repr_html = _html_element(
             div_klass='epochs',
             id=dom_id,
@@ -2815,7 +2780,7 @@ class Report(object):
 
         # Drop log
         if epochs._bad_dropped:
-            dom_id = self._get_id()
+            dom_id = self._get_dom_id()
             img = _fig_to_img(epochs.plot_drop_log, image_format,
                               subject=self.subject, show=False)
             drop_log_img_html = _html_image_element(
@@ -2827,7 +2792,7 @@ class Report(object):
             drop_log_img_html = ''
 
         # PSD
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
         if epochs.info['lowpass'] is not None:
             fmax = epochs.info['lowpass'] + 15
         else:
@@ -2882,7 +2847,7 @@ class Report(object):
         )
 
         for fig, title in zip(figs, titles):
-            dom_id = self._get_id()
+            dom_id = self._get_dom_id()
             img = _fig_to_img(fig, image_format)
             html = _html_image_element(
                 img=img, id=dom_id, div_klass='covariance',
@@ -2914,7 +2879,7 @@ class Report(object):
                 function=plot_alignment, surfaces=['head'], **kwargs
             )
 
-        dom_id = self._get_id()
+        dom_id = self._get_dom_id()
         html = _html_image_element(
             img=img, id=dom_id, div_klass='trans',
             img_klass='trans', title=title, caption=caption,
@@ -3076,16 +3041,6 @@ def _recursive_search(path, pattern):
                 filtered_files.append(op.realpath(op.join(dirpath, f)))
 
     return filtered_files
-
-
-# def _fix_global_ids(html):
-#     """Fix the global_ids after reordering in _render_toc()."""
-#     html = re.sub(r'id="\d+"', 'id="###"', html)
-#     global_id = 1
-#     while len(re.findall('id="###"', html)) > 0:
-#         html = re.sub('id="###"', 'id="%s"' % global_id, html, count=1)
-#         global_id += 1
-#     return html
 
 
 ###############################################################################

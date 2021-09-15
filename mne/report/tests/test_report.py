@@ -475,14 +475,14 @@ def test_open_report(tmpdir):
     fig1 = _get_example_figures()[0]
     with open_report(hdf5, subjects_dir=subjects_dir) as report:
         assert report.subjects_dir == subjects_dir
-        assert report._fname == hdf5
+        assert report.fname == hdf5
         report.add_figure(fig=fig1, title='evoked response')
     # Exiting the context block should have triggered saving to HDF5
     assert op.exists(hdf5)
 
     # Load the HDF5 version of the report and check equivalence
     report2 = open_report(hdf5)
-    assert report2._fname == hdf5
+    assert report2.fname == hdf5
     assert report2.subjects_dir == report.subjects_dir
     assert report2.html == report.html
     assert report2.__getstate__() == report.__getstate__()
