@@ -1,0 +1,42 @@
+# include here the name of the zipped file and the md5 hash
+# Note: other hashing algorithms can be enforced
+MNE-fNIRS-motor-data.tgz                   md5:c4935d19ddab35422a69f3326a01fef8
+MNE-kiloword-data.tar.gz                   md5:3a124170795abbd2e48aae8727e719a8
+MNE-multimodal-data.tar.gz                 md5:26ec847ae9ab80f58f204d09e2c08367
+MNE-OPM-data.tar.gz                        md5:370ad1dcfd5c47e029e692c85358a374
+MNE-phantom-4DBTi.zip                      md5:938a601440f3ffa780d20a17bae039ff
+MNE-sample-data-processed.tar.gz           md5:12b75d1cb7df9dfb4ad73ed82f61094f
+MNE-somato-data.tar.gz                     md5:32fd2f6c8c7eb0784a1de6435273c48b
+MNE-spm-face.tar.gz                        md5:9f43f67150e3b694b523a21eb929ea75
+MNE-visual_92_categories-data-part1.tar.gz md5:74f50bbeb65740903eadc229c9fa759f
+MNE-visual_92_categories-data-part2.tar.gz md5:203410a98afc9df9ae8ba9f933370e20
+mTRF_1.5.zip                               md5:273a390ebbc48da2c3184b01a82e4636
+sample_reference_MEG_noise-raw.zip         md5:779fecd890d98b73a4832e717d7c7c45
+ssvep_example_data.zip                     md5:af866bbc0f921114ac9d683494fe87d6
+MNE-ERP-CORE-data.tar.gz                   md5:5866c0d6213bd7ac97f254c776f6c4b1
+MNE-epilepsy-ecog-data.tar.gz              md5:ffb139174afa0f71ec98adbbb1729dea
+
+# Fieldtrip CMC dataset
+SubjectCMC.zip                             md5:6f9fd6520f9a66e20994423808d2528c
+
+# brainstorm datasets:
+bst_auditory.tar.gz                        md5:fa371a889a5688258896bfa29dd1700b
+bst_phantom_ctf.tar.gz                     md5:80819cb7f5b92d1a5289db3fb6acb33c
+bst_phantom_elekta.tar.gz                  md5:1badccbe17998d18cc373526e86a7aaf
+bst_raw.tar.gz                             md5:fa2efaaec3f3d462b319bc24898f440c
+bst_resting.tar.gz                         md5:70fc7bf9c3b97c4f2eab6260ee4a0430
+
+# HF-SEF
+hf_sef_raw.tar.gz                          md5:33934351e558542bafa9b262ac071168
+hf_sef_evoked.tar.gz                       md5:13d34cb5db584e00868677d8fb0aab2b
+
+# "fake" dataset (for testing)
+foo.tgz                                    md5:3194e9f7b46039bb050a74f3e1ae9908
+
+# below, do **not** include the release
+# number in the names of the testing or
+# misc datasets (it gets done automatically
+# in mne/datasets/utils.py). Only update
+# the md5 hashes as needed.
+mne-testing-data                           md5:3da5aacbed94282e69ed250fdecbb3e6
+mne-misc-data                              md5:0aa25a9bb4f204b3d4769f0b84e9b526
