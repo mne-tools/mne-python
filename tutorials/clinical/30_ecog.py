@@ -11,7 +11,7 @@ electrocorticography (ECoG) data.
 
 This example shows how to use:
 
-- ECoG data (`available here <https://openneuro.org/datasets/ds003029>`_)
+- ECoG data (`available here <https://openneuro.org/datasets/ds003029>`__)
   from an epilepsy patient during a seizure
 - channel locations in FreeSurfer's ``fsaverage`` MRI space
 - projection onto a pial surface
