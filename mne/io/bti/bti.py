@@ -27,18 +27,6 @@ from .read import (read_int32, read_int16, read_float, read_double,
                    read_uint32, read_double_matrix, read_float_matrix,
                    read_int16_matrix, read_dev_header)
 
-FIFF_INFO_CHS_FIELDS = ('loc',
-                        'ch_name', 'unit_mul', 'coord_frame',
-                        'coil_type',
-                        'range', 'unit', 'cal',
-                        'scanno', 'kind', 'logno')
-
-FIFF_INFO_CHS_DEFAULTS = (np.array([0, 0, 0, 1] * 3, dtype='f4'),
-                          None, FIFF.FIFF_UNITM_NONE, FIFF.FIFFV_COORD_UNKNOWN,
-                          FIFF.FIFFV_COIL_NONE,
-                          1.0, FIFF.FIFF_UNIT_V, 1.0,
-                          None, FIFF.FIFFV_ECG_CH, None)
-
 FIFF_INFO_DIG_FIELDS = ('kind', 'ident', 'r', 'coord_frame')
 FIFF_INFO_DIG_DEFAULTS = (None, None, None, FIFF.FIFFV_COORD_HEAD)
 
@@ -47,6 +35,20 @@ BTI_WH2500_REF_GRAD = ('GxxA', 'GyyA', 'GyxA', 'GzaA', 'GzyA')
 
 dtypes = zip(list(range(1, 5)), ('>i2', '>i4', '>f4', '>f8'))
 DTYPES = {i: np.dtype(t) for i, t in dtypes}
+
+
+def instantiate_default_info_chs():
+    return dict(loc=np.array([0, 0, 0, 1] * 3, dtype='f4'),
+                ch_name=None,
+                unit_mul=FIFF.FIFF_UNITM_NONE,
+                coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                coil_type=FIFF.FIFFV_COIL_NONE,
+                range=1.0,
+                unit=FIFF.FIFF_UNIT_V,
+                cal=1.0,
+                scanno=None,
+                kind=FIFF.FIFFV_ECG_CH,
+                logno=None)
 
 
 class _bytes_io_mock_context():
@@ -1134,7 +1136,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
 
     logger.info('... Setting channel info structure.')
     for idx, (chan_4d, chan_neuromag) in enumerate(ch_mapping):
-        chan_info = dict(zip(FIFF_INFO_CHS_FIELDS, FIFF_INFO_CHS_DEFAULTS))
+        chan_info = instantiate_default_info_chs()
         chan_info['ch_name'] = chan_neuromag if rename_channels else chan_4d
         chan_info['logno'] = idx + BTI.FIFF_LOGNO
         chan_info['scanno'] = idx + 1
