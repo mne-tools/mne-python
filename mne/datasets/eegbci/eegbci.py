@@ -9,7 +9,7 @@ import pkg_resources
 import re
 
 from ..utils import _get_path, _do_path_update
-from ...utils import _fetch_file, _url_to_local_path, verbose
+from ...utils import _url_to_local_path, verbose
 from ...utils.check import _soft_import
 
 pooch = _soft_import('pooch', 'dataset downloading', True)
@@ -69,7 +69,8 @@ def data_path(url, path=None, force_update=False, update_path=None,
     key = 'MNE_DATASETS_EEGBCI_PATH'
     name = 'EEGBCI'
     path = _get_path(path, key, name)
-    destination = _url_to_local_path(url, op.join(path, 'MNE-eegbci-data'))
+    fname = 'MNE-eegbci-data'
+    destination = _url_to_local_path(url, op.join(path, fname))
     destinations = [destination]
 
     # Fetch the file
@@ -78,7 +79,13 @@ def data_path(url, path=None, force_update=False, update_path=None,
             os.remove(destination)
         if not op.isdir(op.dirname(destination)):
             os.makedirs(op.dirname(destination))
-        _fetch_file(url, destination, print_destination=False)
+        pooch.retrieve(
+            # URL to one of Pooch's test files
+            url=url,
+            path=destination,
+            fname=fname
+        )
+        # _fetch_file(url, destination, print_destination=False)
 
     # Offer to update the path
     _do_path_update(path, update_path, key, name)
