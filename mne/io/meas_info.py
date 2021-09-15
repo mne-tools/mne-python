@@ -40,6 +40,7 @@ from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
 from ._digitization import write_dig as _dig_write_dig
 from .compensator import get_current_comp
 from ..data.html_templates import info_template
+from ..defaults import _handle_default
 
 b = bytes  # alias
 
@@ -608,6 +609,7 @@ class Info(dict, MontageMixin):
         MAX_WIDTH = 68
         strs = ['<Info | %s non-empty values']
         non_empty = 0
+        titles = _handle_default('titles')
         for k, v in self.items():
             if k == 'ch_names':
                 if v:
@@ -659,11 +661,13 @@ class Info(dict, MontageMixin):
             elif isinstance(v, str):
                 entr = shorten(v, MAX_WIDTH, placeholder=' ...')
             elif k == 'chs':
+                # TODO someday we should refactor with _repr_html_ with
+                # bad vs good
                 ch_types = [channel_type(self, idx) for idx in range(len(v))]
                 ch_counts = Counter(ch_types)
-                entr = "%s" % ', '.join("%d %s" % (count, ch_type.upper())
-                                        for ch_type, count
-                                        in ch_counts.items())
+                entr = ', '.join(
+                    f'{count} {titles.get(ch_type, ch_type.upper())}'
+                    for ch_type, count in ch_counts.items())
             elif k == 'custom_ref_applied':
                 entr = str(bool(v))
                 if not v:
@@ -816,6 +820,7 @@ class Info(dict, MontageMixin):
 
     def _repr_html_(self, caption=None):
         """Summarize info for HTML representation."""
+        titles = _handle_default('titles')
         if isinstance(caption, str):
             html = f'<h4>{caption}</h4>'
         else:
@@ -840,7 +845,7 @@ class Info(dict, MontageMixin):
             channels[ch_type] = count
 
         good_channels = ', '.join(
-            [f'{v} {k.upper()}' for k, v in channels.items()])
+            [f'{v} {titles.get(k, k.upper())}' for k, v in channels.items()])
 
         if 'ecg' not in channels.keys():
             ecg = 'Not available'

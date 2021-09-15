@@ -837,7 +837,8 @@ def test_repr_html():
     assert 'EEG 053' in info._repr_html_()
 
     html = info._repr_html_()
-    for ch in ['204 GRAD', '102 MAG', '9 STIM', '60 EEG', '1 EOG']:
+    for ch in ['204 Gradiometers', '102 Magnetometers', '9 Stimulus',
+               '60 EEG', '1 EOG']:
         assert ch in html
 
 
