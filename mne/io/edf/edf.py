@@ -402,7 +402,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         'MISC': FIFF.FIFFV_MISC_CH,
         'SAO2': FIFF.FIFFV_BIO_CH,
     }
-    bad_map = dict()
+    chs_without_types = list()
 
     # montage is not able to be stored in EDF, so
     # default to unknown locations for the channels
@@ -432,7 +432,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
                 pick_mask[idx] = False
         elif ch_type not in ch_type_mapping:
-            bad_map[ch_name] = ch_type
+            chs_without_types.append(ch_name)
 
         # if user passes in explicit mapping for eog, misc and stim
         # channels set them here
@@ -455,11 +455,10 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         chs.append(chan_info)
 
     # warn if channel type was not inferable
-    if len(bad_map):
-        bad_map = '\n'.join(f'{ch_name}: {ch_type}'
-                            for ch_name, ch_type in bad_map.items())
-        warn(f'Found the following unknown channel type mapping(s), '
-             f'setting the channel type to EEG:\n{bad_map}')
+    if len(chs_without_types):
+        msg = ('Could not determine channel type of the following channels, '
+               f'they will be set as EEG:\n{", ".join(chs_without_types)}')
+        logger.info(msg)
 
     edf_info['stim_channel_idxs'] = stim_channel_idxs
 
