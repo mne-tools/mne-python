@@ -613,7 +613,8 @@ def _fail(*args, **kwargs):
 @pytest.fixture(scope='function')
 def download_is_error(monkeypatch):
     """Prevent downloading by raising an error when it's attempted."""
-    monkeypatch.setattr(mne.utils.fetching, '_get_http', _fail)
+    import pooch
+    monkeypatch.setattr(pooch, 'retrieve', _fail)
 
 
 @pytest.fixture()
