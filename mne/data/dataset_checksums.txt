@@ -33,10 +33,14 @@ hf_sef_evoked.tar.gz                       md5:13d34cb5db584e00868677d8fb0aab2b
 # "fake" dataset (for testing)
 foo.tgz                                    md5:3194e9f7b46039bb050a74f3e1ae9908
 
+# FreeSurfer files
+lh.aparc_sub.annot                         md5:9e4d8d6b90242b7e4b0145353436ef77
+rh.aparc_sub.annot                         md5:dd6464db8e7762d969fc1d8087cd211b
+
 # below, do **not** include the release
 # number in the names of the testing or
 # misc datasets (it gets done automatically
 # in mne/datasets/utils.py). Only update
 # the md5 hashes as needed.
-mne-testing-data                           md5:3da5aacbed94282e69ed250fdecbb3e6
+mne-testing-data                           md5:8eabd73532dd7df7c155983962c5b1fd
 mne-misc-data                              md5:0aa25a9bb4f204b3d4769f0b84e9b526

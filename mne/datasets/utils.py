@@ -25,7 +25,7 @@ from .config import (_bst_license_text, _hcp_mmp_license_text, URLS,
                      TESTING_VERSIONED, MISC_VERSIONED)
 from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
-from ..utils import (get_config, set_config, _fetch_file, logger, warn,
+from ..utils import (get_config, set_config, logger, warn,
                      verbose, get_subjects_dir, _pl, _safe_input)
 from ..utils.docs import docdict
 from ..utils.check import _soft_import
@@ -361,12 +361,7 @@ def _get_version(name):
     """Get a dataset version."""
     if not has_dataset(name):
         return None
-    if name.startswith('brainstorm'):
-        name, archive_name = name.split('.')
-    else:
-        archive_name = None
-    return _data_path(name=name, archive_name=archive_name,
-                      return_version=True)[1]
+    return _data_path(name=name, return_version=True)[1]
 
 
 def has_dataset(name):
@@ -385,35 +380,9 @@ def has_dataset(name):
         True if the dataset is present.
     """
     name = 'spm' if name == 'spm_face' else name
-    if name.startswith('brainstorm'):
-        name, archive_name = name.split('.')
-        endswith = archive_name
-    else:
-        archive_name = None
-        # XXX eventually should be refactored with data_path
-        endswith = {
-            'fieldtrip_cmc': 'MNE-fieldtrip_cmc-data',
-            'fake': 'foo',
-            'misc': 'MNE-misc-data',
-            'sample': 'MNE-sample-data',
-            'somato': 'MNE-somato-data',
-            'spm': 'MNE-spm-face',
-            'multimodal': 'MNE-multimodal-data',
-            'fnirs_motor': 'MNE-fNIRS-motor-data',
-            'opm': 'MNE-OPM-data',
-            'testing': 'MNE-testing-data',
-            'visual_92_categories': 'MNE-visual_92_categories-data',
-            'kiloword': 'MNE-kiloword-data',
-            'phantom_4dbti': 'MNE-phantom-4DBTi',
-            'mtrf': 'mTRF_1.5',
-            'refmeg_noise': 'MNE-refmeg-noise-data',
-            'ssvep': 'ssvep-example-data',
-            'erp_core': 'MNE-ERP-CORE-data',
-            'epilepsy_ecog': 'MNE-epilepsy-ecog-data'
-        }[name]
-    dp = _data_path(download=False, name=name, check_version=False,
-                    archive_name=archive_name)
-    return dp.endswith(endswith)
+    dp = _data_path(download=False, name=name, check_version=False)
+    check = name if name.startswith('bst_') else FOLDER_NAMES[name]
+    return dp.endswith(check)
 
 
 @verbose
@@ -495,9 +464,16 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
     hashes = dict(lh='9e4d8d6b90242b7e4b0145353436ef77',
                   rh='dd6464db8e7762d969fc1d8087cd211b')
     for hemi in ('lh', 'rh'):
-        fname = op.join(destination, '%s.aparc_sub.annot' % hemi)
-        if not op.isfile(fname):
-            _fetch_file(urls[hemi], fname, hash_=hashes[hemi])
+        fname = f'{hemi}.aparc_sub.annot'
+        fpath = op.join(destination, fname)
+        if not op.isfile(fpath):
+            pooch.retrieve(
+                # URL to one of Pooch's test files
+                url=urls[hemi],
+                known_hash=f"md5:{hashes[hemi]}",
+                path=destination,
+                fname=fname
+            )
 
 
 @verbose
@@ -546,9 +522,17 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
         if answer.lower() != 'y':
             raise RuntimeError('You must agree to the license to use this '
                                'dataset')
-    for hemi, fname in zip(('lh', 'rh'), fnames):
-        if not op.isfile(fname):
-            _fetch_file(urls[hemi], fname, hash_=hashes[hemi])
+    for hemi, fpath in zip(('lh', 'rh'), fnames):
+        if not op.isfile(fpath):
+            fname = op.basename(fpath)
+            pooch.retrieve(
+                # URL to one of Pooch's test files
+                url=urls[hemi],
+                known_hash=f"md5:{hashes[hemi]}",
+                path=destination,
+                fname=fname
+            )
+
     if combine:
         fnames = [op.join(destination, '%s.HCPMMP1_combined.annot' % hemi)
                   for hemi in ('lh', 'rh')]
@@ -664,7 +648,14 @@ def _manifest_check_download(manifest_path, destination, url, hash_):
             logger.info('Downloading missing files remotely')
 
             fname_path = op.join(path, 'temp.zip')
-            _fetch_file(url, fname_path, hash_=hash_)
+            pooch.retrieve(
+                # URL to one of Pooch's test files
+                url=url,
+                known_hash=f"md5:{hash_}",
+                path=path,
+                fname=op.basename(fname_path)
+            )
+
             logger.info('Extracting missing file%s' % (_pl(need),))
             with zipfile.ZipFile(fname_path, 'r') as ff:
                 members = set(f for f in ff.namelist() if not f.endswith('/'))
