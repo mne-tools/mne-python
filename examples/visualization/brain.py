@@ -31,30 +31,30 @@ data_path = sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 sample_dir = op.join(data_path, 'MEG', 'sample')
 
-brain = mne.viz.Brain('sample', subjects_dir=subjects_dir,
-                      alpha=0.1, background='white', cortex='low_contrast')
-
 # %%
 # Add source information
 # ----------------------
 #
 # Plot source information.
+
+brain_kwargs = dict(alpha=0.1, background='white', cortex='low_contrast')
+brain = mne.viz.Brain('sample', subjects_dir=subjects_dir, **brain_kwargs)
+
 stc = mne.read_source_estimate(op.join(sample_dir, 'sample_audvis-meg'))
 stc.crop(0.09, 0.1)
 
-fmin, fmax = stc.data.min(), stc.data.max()
-brain.add_data(stc.lh_data, hemi='lh', fmin=fmin, fmax=fmax,
-               vertices=stc.lh_vertno, alpha=0.25,
-               smoothing_steps='nearest', time=stc.times)
-brain.add_data(stc.rh_data, hemi='rh', fmin=fmin, fmax=fmax,
-               vertices=stc.rh_vertno, alpha=0.25,
-               smoothing_steps='nearest', time=stc.times)
+kwargs = dict(fmin=stc.data.min(), fmax=stc.data.max(), alpha=0.25,
+              smoothing_steps='nearest', time=stc.times)
+brain.add_data(stc.lh_data, hemi='lh', vertices=stc.lh_vertno, **kwargs)
+brain.add_data(stc.rh_data, hemi='rh', vertices=stc.rh_vertno, **kwargs)
 
 # %%
 # Modify the view of the brain
 # ----------------------------
 #
 # You can adjust the view of the brain using ``show_view`` method.
+
+brain = mne.viz.Brain('sample', subjects_dir=subjects_dir, **brain_kwargs)
 brain.show_view(azimuth=190, elevation=70, distance=350, focalpoint=(0, 0, 20))
 
 # %%
@@ -71,13 +71,18 @@ brain.show_view(azimuth=190, elevation=70, distance=350, focalpoint=(0, 0, 20))
 #
 # .. note:: The MNE sample dataset contains only a subselection of the
 #           Freesurfer labels created during the ``recon-all``.
+
+brain = mne.viz.Brain('sample', subjects_dir=subjects_dir, **brain_kwargs)
 brain.add_label('BA44', hemi='lh', color='green', borders=True)
+brain.show_view(azimuth=190, elevation=70, distance=350, focalpoint=(0, 0, 20))
 
 # %%
 # Include the head in the image
 # -----------------------------
 #
 # Add a head image using the ``add_head`` method.
+
+brain = mne.viz.Brain('sample', subjects_dir=subjects_dir, **brain_kwargs)
 brain.add_head(alpha=0.5)
 
 # %%
@@ -86,6 +91,8 @@ brain.add_head(alpha=0.5)
 #
 # To put into context the data that generated the source time course,
 # the sensor positions can be displayed as well.
+
+brain = mne.viz.Brain('sample', subjects_dir=subjects_dir, **brain_kwargs)
 evoked = mne.read_evokeds(op.join(sample_dir, 'sample_audvis-ave.fif'))[0]
 trans = mne.read_trans(op.join(sample_dir, 'sample_audvis_raw-trans.fif'))
 brain.add_sensors(evoked.info, trans)
@@ -97,6 +104,8 @@ brain.show_view(distance=500)  # move back to show sensors
 #
 # For publication you may wish to take a static image of the brain,
 # for this use ``screenshot``.
+
+brain = mne.viz.Brain('sample', subjects_dir=subjects_dir, **brain_kwargs)
 img = brain.screenshot()
 fig, ax = plt.subplots()
 ax.imshow(img)
