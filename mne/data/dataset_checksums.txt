@@ -42,5 +42,5 @@ rh.aparc_sub.annot                         md5:dd6464db8e7762d969fc1d8087cd211b
 # misc datasets (it gets done automatically
 # in mne/datasets/utils.py). Only update
 # the md5 hashes as needed.
-mne-testing-data                           md5:8eabd73532dd7df7c155983962c5b1fd
+mne-testing-data                           md5:db07710c0b94476f954f60926685b5b7
 mne-misc-data                              md5:0aa25a9bb4f204b3d4769f0b84e9b526

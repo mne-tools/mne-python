@@ -1,4 +1,6 @@
 # Author: Martin Billinger <martin.billinger@tugraz.at>
+#         Adam Li <adam2392@gmail.com>
+#         Daniel McCloy <dan@mccloy.info>
 # License: BSD Style.
 
 import os
@@ -6,6 +8,9 @@ from os import path as op
 
 from ..utils import _get_path, _do_path_update
 from ...utils import _fetch_file, _url_to_local_path, verbose
+from ...utils.check import _soft_import
+
+pooch = _soft_import('pooch', 'dataset downloading', True)
 
 
 EEGMI_URL = 'https://physionet.org/files/eegmmidb/1.0.0/'
