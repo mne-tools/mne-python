@@ -31,6 +31,8 @@ recursive-include mne/gui/help *.json
 recursive-include mne/html *.js
 recursive-include mne/html *.css
 
+recursive-include mne/report *
+
 recursive-include mne/io/artemis123/resources *
 
 recursive-include mne mne/datasets *.csv
