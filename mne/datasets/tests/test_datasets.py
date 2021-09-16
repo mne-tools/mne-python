@@ -107,12 +107,14 @@ def test_downloads(tmpdir, monkeypatch, capsys):
     # 2. Will try to update when `data_path` gets called, with logged message
     want_msg = 'Correctly trying to download newer version'
 
-    def _error_download(url, full_name, print_destination, hash_, hash_type):
+    def _error_download(self, fname, downloader, processor):
+        url = self.get_url(fname)
+        full_path = self.abspath / fname
         assert 'foo.tgz' in url
-        assert str(tmpdir) in full_name
+        assert str(tmpdir) in str(full_path)
         raise RuntimeError(want_msg)
 
-    monkeypatch.setattr(pooch, 'retrieve', _error_download)
+    monkeypatch.setattr(pooch.Pooch, 'fetch', _error_download)
     with pytest.raises(RuntimeError, match=want_msg):
         datasets._fake.data_path(**kwargs)
     out, _ = capsys.readouterr()

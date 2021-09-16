@@ -232,16 +232,22 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         logger.info(f'Dataset {name} version {data_version} out of date, '
                     f'latest version is {want_version}')
 
+    # return empty string if outdated dataset and we dont' want
+    # to download
+    if (not force_update) and outdated_dataset and not download:
+        return ('', data_version) if return_version else ''
+
     # reasons to bail early (hf_sef has separate code for this):
     if (not force_update) and (not outdated_dataset) and \
             (not name.startswith('hf_sef_')):
         # if target folder exists (otherwise pooch downloads every time,
         # because we don't save the archive files after unpacking)
         if op.isdir(final_path):
-            return final_path
+            _do_path_update(path, update_path, CONFIG_KEYS[name], name)
+            return (final_path, data_version) if return_version else final_path
         # if download=False (useful for debugging)
         elif not download:
-            return ''
+            return ('', data_version) if return_version else ''
         # if user didn't accept the license
         elif name.startswith('bst_'):
             if accept or '--accept-brainstorm-license' in sys.argv:
