@@ -814,6 +814,8 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings(
         'ignore', '.*invalid escape sequence.*', lineno=14)  # mne-connectivity
     warnings.filterwarnings(
+        'ignore', '.*invalid escape sequence.*', lineno=281)  # mne-conn
+    warnings.filterwarnings(
         'ignore', '.*"is not" with a literal.*', module='nilearn')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
                 'Using or importing the ABCs from',  # internal modules on 3.7
