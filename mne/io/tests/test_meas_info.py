@@ -830,6 +830,16 @@ def test_repr_html():
     assert 'Projections' in info._repr_html_()
     info['projs'] = []
     assert 'Projections' not in info._repr_html_()
+    info['bads'] = []
+    assert 'None' in info._repr_html_()
+    info['bads'] = ['MEG 2443', 'EEG 053']
+    assert 'MEG 2443' in info._repr_html_()
+    assert 'EEG 053' in info._repr_html_()
+
+    html = info._repr_html_()
+    for ch in ['204 Gradiometers', '102 Magnetometers', '9 Stimulus',
+               '60 EEG', '1 EOG']:
+        assert ch in html
 
 
 @testing.requires_testing_data
