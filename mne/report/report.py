@@ -20,25 +20,25 @@ import warnings
 import webbrowser
 import numpy as np
 
-from . import read_evokeds, read_events, pick_types, read_cov
-from .io import read_raw, read_info
-from .io._read_raw import supported as extension_reader_map
-from .io.pick import _DATA_CH_TYPES_SPLIT
-from ._freesurfer import _reorient_image, _mri_orientation
-from .utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
-                    fill_doc, _check_option, _validate_type, _safe_input)
-from .viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
-                  plot_compare_evokeds, set_3d_view)
-from .viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
-from .viz.utils import _ndarray_to_fig, _figure_agg
-from .forward import read_forward_solution
-from .epochs import read_epochs
-from . import dig_mri_distances
-from .minimum_norm import read_inverse_operator
-from .parallel import parallel_func, check_n_jobs
+from .. import read_evokeds, read_events, pick_types, read_cov
+from ..io import read_raw, read_info
+from ..io._read_raw import supported as extension_reader_map
+from ..io.pick import _DATA_CH_TYPES_SPLIT
+from .._freesurfer import _reorient_image, _mri_orientation
+from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
+                     fill_doc, _check_option, _validate_type, _safe_input)
+from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
+                   plot_compare_evokeds, set_3d_view)
+from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
+from ..viz.utils import _ndarray_to_fig, _figure_agg
+from ..forward import read_forward_solution
+from ..epochs import read_epochs
+from .. import dig_mri_distances
+from ..minimum_norm import read_inverse_operator
+from ..parallel import parallel_func, check_n_jobs
 
-from .externals.tempita import HTMLTemplate, Template
-from .externals.h5io import read_hdf5, write_hdf5
+from ..externals.tempita import HTMLTemplate, Template
+from ..externals.h5io import read_hdf5, write_hdf5
 
 _BEM_VIEWS = ('axial', 'sagittal', 'coronal')
 
@@ -89,7 +89,7 @@ def _fig_to_img(fig, image_format='png', scale=None, auto_close=True,
             plt.close('all')
         fig = fig(**kwargs)
     elif not isinstance(fig, Figure):
-        from .viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
+        from ..viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
         backend._check_3d_figure(figure=fig)
         if not MNE_3D_BACKEND_TESTING:
             img = backend._take_3d_screenshot(figure=fig)
@@ -159,8 +159,8 @@ def _figs_to_mrislices(sl, n_jobs, **kwargs):
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     import matplotlib.pyplot as plt
-    from .viz.backends.renderer import MNE_3D_BACKEND_TESTING
-    from .viz._brain.view import views_dicts
+    from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+    from ..viz._brain.view import views_dicts
 
     fig = function(**kwargs)
 
@@ -170,7 +170,7 @@ def _iterate_trans_views(function, **kwargs):
     images = []
     for view in views:
         if not MNE_3D_BACKEND_TESTING:
-            from .viz.backends.renderer import backend
+            from ..viz.backends.renderer import backend
             set_3d_view(fig, **views_dicts['both'][view])
             backend._check_3d_figure(fig)
             im = backend._take_3d_screenshot(figure=fig)
@@ -1496,7 +1496,7 @@ class Report(object):
         include = list()
         for inc_fname in inc_fnames:
             logger.info('Embedding : %s' % inc_fname)
-            fname = op.join(op.dirname(__file__), 'html', inc_fname)
+            fname = op.join(op.dirname(__file__), '..', 'html', inc_fname)
             with open(fname, 'rb') as fid:
                 file_content = fid.read().decode('utf-8')
             if inc_fname.endswith('.js'):

@@ -19,7 +19,8 @@ import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 
-from mne import Epochs, read_events, read_evokeds, report as report_mod
+from mne import Epochs, read_events, read_evokeds
+from mne.report import report as report_mod
 from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper
@@ -40,12 +41,12 @@ trans_fname = op.join(report_dir, 'sample_audvis_trunc-trans.fif')
 inv_fname = op.join(report_dir,
                     'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
 mri_fname = op.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
-bdf_fname = op.realpath(op.join(op.dirname(__file__), '..', 'io',
+bdf_fname = op.realpath(op.join(op.dirname(__file__), '..', '..', 'io',
                                 'edf', 'tests', 'data', 'test.bdf'))
-edf_fname = op.realpath(op.join(op.dirname(__file__), '..', 'io',
+edf_fname = op.realpath(op.join(op.dirname(__file__), '..', '..', 'io',
                                 'edf', 'tests', 'data', 'test.edf'))
 
-base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
+base_dir = op.realpath(op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                                'data'))
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 
