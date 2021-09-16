@@ -5,6 +5,7 @@
 
 import os.path as op
 import itertools as itt
+import sys
 
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal, assert_allclose)
@@ -87,7 +88,7 @@ def test_compute_whitener(proj, pca):
     W3, _, C3 = compute_whitener(cov3, raw.info, pca=pca, return_colorer=True,
                                  picks=None, verbose='error')
     # this tol is not great, but Windows needs it
-    rtol = 3e-5 if pca in (True, 'white') and proj is True else 1e-11
+    rtol = 3e-5 if sys.platform.startswith('win') else 1e-11
     assert_allclose(W, W2, rtol=rtol)
     assert_allclose(C, C2, rtol=rtol)
     n_channels = len(raw.ch_names) - len(raw.info['bads'])
