@@ -256,7 +256,10 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
                                    'dataset')
 
     # downloader & processors TODO: may want to skip using tqdm during tests?
-    downloader = pooch.HTTPDownloader(progressbar=True)  # use tqdm
+    progressbar = True
+    if name == 'fake':
+        progressbar = False
+    downloader = pooch.HTTPDownloader(progressbar=progressbar)  # use tqdm
     unzip = pooch.Unzip(extract_dir=path)  # to unzip downloaded file
     untar = pooch.Untar(extract_dir=path)  # to untar downloaded file
 
