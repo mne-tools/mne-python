@@ -5,12 +5,12 @@ Getting started with ``mne.Report``
 ===================================
 
 `mne.Report` is a way to create interactive HTML summaries of your data. These
-reports can show many different visualizations of one subject's data. A common
-use case is creating diagnostic summaries to check data quality at different
-stages in the processing pipeline. The report can show things like plots of
-data before and after each preprocessing step, epoch rejection statistics, MRI
-slices with overlaid BEM shells, all the way up to plots of estimated cortical
-activity.
+reports can show many different visualizations of one or multiple subject's
+data. A common use case is creating diagnostic summaries to check data quality
+at different stages in the processing pipeline. The report can show things like
+plots of data before and after each preprocessing step, epoch rejection
+statistics, MRI slices with overlaid BEM shells, all the way up to plots of
+estimated cortical activity.
 
 Compared to a Jupyter notebook, `mne.Report` is easier to deploy (the HTML
 pages it generates are self-contained and do not require a running Python
@@ -21,13 +21,13 @@ directly within the browser). This tutorial covers the basics of building a
 
 # %%
 
-import os.path as op
+from pathlib import Path
 import matplotlib.pyplot as plt
 import mne
 
-data_path = mne.datasets.sample.data_path(verbose=False)
-sample_dir = op.join(data_path, 'MEG', 'sample')
-subjects_dir = op.join(data_path, 'subjects')
+data_path = Path(mne.datasets.sample.data_path(verbose=False))
+sample_dir = data_path / 'MEG' / 'sample'
+subjects_dir = data_path / 'subjects'
 
 # %%
 # Before getting started with :class:`mne.Report`, make sure the files you want
@@ -56,21 +56,83 @@ subjects_dir = op.join(data_path, 'subjects')
 # Alternatively, the dash ``-`` in the filename may be replaced with an
 # underscore ``_``.
 #
-# Basic reports
-# ^^^^^^^^^^^^^
-#
 # The basic process for creating an HTML report is to instantiate the
-# :class:`~mne.Report` class, then use the :meth:`~mne.Report.parse_folder`
-# method to select particular files to include in the report. Which files are
-# included depends on both the ``pattern`` parameter passed to
-# :meth:`~mne.Report.parse_folder` and also the ``subject`` and
-# ``subjects_dir`` parameters provided to the :class:`~mne.Report` constructor.
+# :class:`~mne.Report` class and then use one or more of its many methods to
+# add content, one element at a time.
+# 
+# You may also use the :meth:`~mne.Report.parse_folder` method to select
+# particular files to include in the report. But more on that later.
 #
 # .. sidebar: Viewing the report
 #
 #    On successful creation of the report, the :meth:`~mne.Report.save` method
 #    will open the HTML in a new tab in the browser. To disable this, use the
 #    ``open_browser=False`` parameter of :meth:`~mne.Report.save`.
+#
+
+# %%
+# Adding `~mne.io.Raw` data
+# ^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# Raw data can be added via the `~mne.Report.add_raw` method. It can operate
+# with a path to a raw file and `~mne.io.Raw` objects:
+
+raw_path = sample_dir / 'sample_audvis_filt-0-40_raw.fif'
+raw = mne.io.read_raw(raw_path)
+
+report = mne.Report()
+report.add_raw(raw=raw_path, title='Raw from Path')
+report.add_raw(raw=raw, title='Raw from "raw"')
+report.save('report_raw.html', overwrite=True)
+
+# %%
+# Adding events
+# ^^^^^^^^^^^^^
+#
+# Events can be added via `~mne.Report.add_events`. You also need to supply the
+# sampling frequency used during the recording.
+
+events_path = sample_dir / 'sample_audvis_filt-0-40_raw-eve.fif'
+events = mne.read_events(events_path)
+sfreq = raw.info['sfreq']
+
+report = mne.Report()
+report.add_events(events=events_path, title='Events from Path', sfreq=sfreq)
+report.add_events(events=events, title='Events from "events"', sfreq=sfreq)
+report.save('report_events.html', overwrite=True)
+
+# %%
+# Adding `~mne.Epochs`
+# ^^^^^^^^^^^^^^^^^^^^
+#
+# Epochs can be added via `~mne.Report.add_epochs`. Note that although this
+# methods accepts a path to an epochs file too, in the following example we
+# only add epochs that we create on the fly from raw data.
+
+epochs = mne.Epochs(raw=raw, events=events)
+
+report = mne.Report()
+report.add_epochs(epochs=epochs, title='Epochs from "epochs"')
+report.save('report_epochs.html', overwrite=True)
+
+# %%
+# Adding `~mne.Evoked`
+# ^^^^^^^^^^^^^^^^^^^^
+#
+# Evoked data can be added via `~mne.Report.add_evokeds`. Since we don't
+# specify titles via the optional ``titles`` parameter, the ``Evoked.comment``
+# attribute of each evoked will be used as a title.
+
+evoked_path = sample_dir / 'sample_audvis-ave.fif'
+evokeds = mne.read_evokeds(evoked_path)
+
+report = mne.Report()
+report.add_evokeds(evokeds=evoked_path)
+report.add_evokeds(evokeds=evokeds)
+report.save('report_evoked.html', overwrite=True)
+
+# %%
+
 #
 # For our first example, we'll generate a barebones report for all the
 # :file:`.fif` files containing raw data in the sample dataset, by passing the

@@ -1609,7 +1609,7 @@ def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
     # new ticks that are nice round numbers close to (but less extreme than)
     # xmin and xmax
     vlines = [] if vlines is None else vlines
-    xticks = _trim_ticks(axes.get_xticks(), xmin, xmax)
+    xticks = _trim_ticks(axes.get_xticks(), round(xmin, 2), round(xmax, 2))
     xticks = np.array(sorted(set([x for x in xticks] + vlines)))
     if len(xticks) < 2:
         def log_fix(tval):
@@ -2219,8 +2219,11 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
 
 def _trim_ticks(ticks, _min, _max):
     """Remove ticks that are more extreme than the given limits."""
-    keep = np.where(np.logical_and(ticks >= _min, ticks <= _max))
-    return ticks[keep]
+    if np.isclose(_min, _max):
+        keep_idx = 0  # ensure we always keep at least one tick
+    else:
+        keep_idx = np.where(np.logical_and(ticks >= _min, ticks <= _max))
+    return np.atleast_1d(ticks[keep_idx])
 
 
 def _set_window_title(fig, title):
