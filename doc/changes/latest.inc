@@ -59,6 +59,8 @@ Enhancements
 
 - Add support for more than 3 source estimates in :func:`mne.viz.plot_sparse_source_estimates` (:gh:`9640` **by new contributor** |Pierre-Antoine Bannier|_ and `Alex Gramfort`_)
 
+- Show all good channel types and counts when printing a :class:`mne.Info` in the notebook (:gh:`9725` by `Valerii Chirkov`_ and `Eric Larson`_)
+
 - Speed up point decimation in :func:`mne.io.read_raw_kit` by vectorization and use of :class:`scipy.spatial.cKDTree` (:gh:`9568` by `Jean-Remi King`_ and `Eric Larson`_)
 
 - Add ability to export EDF+ files using :func:`mne.export.export_raw` (:gh:`9643` by `Adam Li`_)

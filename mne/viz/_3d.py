@@ -732,6 +732,15 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                       warn_meg, head_surf, 'm')
 
+    for key, surf in surfs.items():
+        # Surfs can sometimes be in head coords (e.g., if coming from sphere)
+        assert isinstance(surf, dict), f'{key}: {type(surf)}'
+        surf = transform_surface_to(
+            surf, coord_frame, [to_cf_t['mri'], to_cf_t['head']], copy=True)
+        renderer.surface(surface=surf, color=colors[key],
+                         opacity=alphas[key],
+                         backface_culling=(key != 'helmet'))
+
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
         for ss in src:

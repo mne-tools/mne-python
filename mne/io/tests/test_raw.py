@@ -234,6 +234,9 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
     else:
         raw = reader(**kwargs)
     assert_named_constants(raw.info)
+    # smoke test for gh #9743
+    ids = [id(ch['loc']) for ch in raw.info['chs']]
+    assert len(set(ids)) == len(ids)
 
     full_data = raw._data
     assert raw.__class__.__name__ in repr(raw)  # to test repr
@@ -252,6 +255,9 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
     # gh-5604
     meas_date = raw.info['meas_date']
     assert meas_date is None or meas_date >= _stamp_to_dt((0, 0))
+
+    # test repr_html
+    assert 'Good channels' in raw.info._repr_html_()
 
     # test resetting raw
     if test_kwargs:

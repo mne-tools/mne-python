@@ -18,7 +18,7 @@ from matplotlib.colors import Colormap
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate,
-                 make_sphere_model, use_coil_def,
+                 make_sphere_model, use_coil_def, pick_types,
                  setup_volume_source_space, read_forward_solution,
                  convert_forward_solution, MixedSourceEstimate)
 from mne.source_estimate import _BaseVolSourceEstimate
@@ -161,10 +161,61 @@ def test_plot_evoked_field(renderer):
             assert isinstance(fig, mayavi.core.scene.Scene)
 
 
+def _assert_n_actors(fig, renderer, n_actors):
+    __tracebackhide__ = True
+    if renderer._get_3d_backend() == 'mayavi':
+        return
+    assert len(fig.plotter.renderer.actors) == n_actors
+
+
+@pytest.mark.parametrize('system', [
+    'Neuromag',
+    pytest.param('CTF', marks=testing._pytest_mark()),
+    'BTi',
+    'KIT',
+])
+def test_plot_alignment_meg(renderer, system):
+    """Test plotting of MEG sensors + helmet."""
+    if system == 'Neuromag':
+        this_info = read_info(evoked_fname)
+    elif system == 'CTF':
+        this_info = read_raw_ctf(ctf_fname).info
+    elif system == 'BTi':
+        this_info = read_raw_bti(
+            pdf_fname, config_fname, hs_fname, convert=True,
+            preload=False).info
+    else:
+        assert system == 'KIT'
+        this_info = read_raw_kit(sqd_fname).info
+
+    meg = ['helmet', 'sensors']
+    if system == 'KIT':
+        meg.append('ref')
+    fig = plot_alignment(
+        this_info, read_trans(trans_fname), subject='sample',
+        subjects_dir=subjects_dir, meg=meg, eeg=True)
+    # count the number of objects: should be n_meg_ch + 1 (helmet) + 1 (head)
+    use_info = pick_info(this_info, pick_types(
+        this_info, meg=True, eeg=True, ref_meg='ref' in meg, exclude=()))
+    n_actors = use_info['nchan'] + 2
+    _assert_n_actors(fig, renderer, n_actors)
+
+
+@testing.requires_testing_data
+def test_plot_alignment_surf(renderer):
+    """Test plotting of a surface."""
+    info = read_info(evoked_fname)
+    fig = plot_alignment(
+        info, read_trans(trans_fname), subject='sample',
+        subjects_dir=subjects_dir, meg=False, eeg=False, dig=False,
+        surfaces=['white', 'head'])
+    _assert_n_actors(fig, renderer, 3)  # left and right hemis plus head
+
+
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @traits_test
-def test_plot_alignment(tmpdir, renderer, mixed_fwd_cov_evoked):
+def test_plot_alignment_basic(tmpdir, renderer, mixed_fwd_cov_evoked):
     """Test plotting of -trans.fif files and MEG sensor layouts."""
     # generate fiducials file for testing
     tempdir = str(tmpdir)
@@ -176,30 +227,10 @@ def test_plot_alignment(tmpdir, renderer, mixed_fwd_cov_evoked):
            {'coord_frame': 5, 'ident': 3, 'kind': 1,
             'r': [0.08436285, -0.02850276, -0.04127743]}]
     write_dig(fiducials_path, fid, 5)
-
-    renderer.backend._close_all()
     evoked = read_evokeds(evoked_fname)[0]
     info = evoked.info
+
     sample_src = read_source_spaces(src_fname)
-    bti = read_raw_bti(pdf_fname, config_fname, hs_fname, convert=True,
-                       preload=False).info
-    infos = dict(
-        Neuromag=evoked.info,
-        CTF=read_raw_ctf(ctf_fname).info,
-        BTi=bti,
-        KIT=read_raw_kit(sqd_fname).info,
-    )
-    for system, this_info in infos.items():
-        meg = ['helmet', 'sensors']
-        if system == 'KIT':
-            meg.append('ref')
-        fig = plot_alignment(
-            this_info, read_trans(trans_fname), subject='sample',
-            subjects_dir=subjects_dir, meg=meg)
-        rend = renderer.backend._Renderer(fig=fig)
-        rend.close()
-    # KIT ref sensor coil def is defined
-    renderer.backend._close_all()
     pytest.raises(TypeError, plot_alignment, 'foo', trans_fname,
                   subject='sample', subjects_dir=subjects_dir)
     pytest.raises(OSError, plot_alignment, info, trans_fname,
