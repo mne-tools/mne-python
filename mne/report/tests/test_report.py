@@ -652,7 +652,7 @@ def test_full_report(tmpdir):
                     subject='sample', subjects_dir=subjects_dir)
         r.add_bem(subject='sample', subjects_dir=subjects_dir, title='my bem')
         r.add_inverse(inverse=inv_fname, title='my inverse', subject='sample',
-                    subjects_dir=subjects_dir, trans=trans_fname)
+                      subjects_dir=subjects_dir, trans=trans_fname)
         r.add_stc(stc=stc_fname, title='my stc', subject='sample',
                   subjects_dir=subjects_dir)
 
