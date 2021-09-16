@@ -28,3 +28,12 @@ fig = plot_alignment(raw.info, trans, subject='sample', dig=False,
                      coord_frame='head', subjects_dir=subjects_dir)
 # Set viewing angle
 set_3d_view(figure=fig, azimuth=135, elevation=80)
+
+# %%
+# A similar effect can be achieved using :class:`mne.viz.Brain`:
+
+brain = mne.viz.Brain(
+    'sample', 'both', 'pial', 'frontal', background='w',
+    subjects_dir=subjects_dir)
+brain.add_head()
+brain.add_sensors(raw.info, trans, meg=False, eeg=('original', 'projected'))

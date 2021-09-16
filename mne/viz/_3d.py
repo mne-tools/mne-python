@@ -1030,6 +1030,7 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
 
     actors = dict(meg=list(), ref_meg=list(), eeg=list(), fnirs=list(),
                   ecog=list(), seeg=list(), dbs=list())
+    scalar = 1 if units == 'm' else 1e3
     for ch_name, ch_coord in ch_pos.items():
         ch_type = channel_type(info, info.ch_names.index(ch_name))
         # for default picking
@@ -1041,7 +1042,6 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
         plot_sensors = (ch_type != 'fnirs' or 'channels' in fnirs) and \
             (ch_type != 'eeg' or 'original' in eeg)
         color = defaults[ch_type + '_color']
-        scalar = 1 if units == 'm' else 1e3
         # plot sensors
         if isinstance(ch_coord, tuple):  # is meg, plot coil
             verts, triangles = ch_coord
@@ -1071,7 +1071,8 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                 'pairs' in fnirs:
             actor, _ = renderer.tube(  # array of origin and dest points
                 origin=sources[ch_name][np.newaxis] * scalar,
-                destination=detectors[ch_name][np.newaxis] * scalar)
+                destination=detectors[ch_name][np.newaxis] * scalar,
+                radius=0.001 * scalar)
             actors[ch_type].append(actor)
 
     # add projected eeg
@@ -1080,17 +1081,19 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
         logger.info('Projecting sensors to the head surface')
         eeg_loc = np.array([
             ch_pos[info.ch_names[idx]] for idx in eeg_indices])
-        eeg_loc = apply_trans(to_cf_t['head'], eeg_loc)
         eegp_loc, eegp_nn = _project_onto_surface(
             eeg_loc, head_surf, project_rrs=True,
             return_nn=True)[2:4]
+        del eeg_loc
+        eegp_loc *= scalar
+        scale = defaults['eegp_scale'] * scalar
         actor, _ = renderer.quiver3d(
             x=eegp_loc[:, 0], y=eegp_loc[:, 1], z=eegp_loc[:, 2],
             u=eegp_nn[:, 0], v=eegp_nn[:, 1], w=eegp_nn[:, 2],
             color=defaults['eegp_color'], mode='cylinder',
-            scale=defaults['eegp_scale'], opacity=0.6,
+            scale=scale, opacity=0.6,
             glyph_height=defaults['eegp_height'],
-            glyph_center=(0., -defaults['eegp_height'], 0),
+            glyph_center=(0., -defaults['eegp_height'] / 2., 0),
             glyph_resolution=20,
             backface_culling=True)
         actors['eeg'].append(actor)
