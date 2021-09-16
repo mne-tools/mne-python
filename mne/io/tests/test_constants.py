@@ -91,7 +91,8 @@ def test_constants(tmpdir):
         url='https://codeload.github.com/'
             f'{REPO}/fiff-constants/zip/{COMMIT}',
         path=tmpdir,
-        fname=fname
+        fname=fname,
+        known_hash=None
     )
     names = list()
     with zipfile.ZipFile(dest, 'r') as ff:
