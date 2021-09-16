@@ -32,14 +32,11 @@ info_template = Template("""
     </tr>
     <tr>
         <th>Good channels</th>
-        <td>{{n_mag}} magnetometer, {{n_grad}} gradiometer,
-            {{n_eeg}} EEG channels, and {{n_fnirs}} fNIRS channels.</td>
+        <td>{{good_channels}}</td>
     </tr>
     <tr>
         <th>Bad channels</th>
-        {{if info['bads'] is not None}}
-        <td>{{', '.join(info['bads'])}}</td>
-        {{else}}<td>None</td>{{endif}}
+        <td>{{bad_channels}}</td>
     </tr>
     <tr>
         <th>EOG channels</th>
