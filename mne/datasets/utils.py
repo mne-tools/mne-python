@@ -9,12 +9,12 @@
 # License: BSD Style.
 
 from collections import OrderedDict
+from importlib.resources import files
 import os
 import os.path as op
 import sys
 import zipfile
 import tempfile
-import pkg_resources
 from distutils.version import LooseVersion
 from shutil import rmtree
 
@@ -312,8 +312,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         retry_if_failed=2  # 2 retries = 3 total attempts
     )
     # load the checksum registry
-    registry = pkg_resources.resource_stream(
-        'mne', op.join('data', 'dataset_checksums.txt'))
+    registry = files('mne.data').joinpath('dataset_checksums.txt')
     fetcher.load_registry(registry)
 
     # update the keys that are versioned
