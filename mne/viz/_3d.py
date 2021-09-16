@@ -41,7 +41,7 @@ from ..transforms import (apply_trans, rot_to_quat, combine_transforms,
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version, fill_doc, _pl, get_config,
                      _ensure_int, _validate_type, _check_option, deprecated,
-                     CONNECTIVITY_DEPRECATION_MSG)
+                     CONNECTIVITY_DEPRECATION_MSG, _to_rgb)
 from .utils import (mne_analyze_colormap, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
 from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
@@ -2653,7 +2653,6 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         The triangular mesh surface.
     """
     import matplotlib.pyplot as plt
-    from matplotlib.colors import ColorConverter
     # Update the backend
     from .backends.renderer import _get_renderer
 
@@ -2716,8 +2715,6 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
                for stc in stcs]
     unique_vertnos = np.unique(np.concatenate(vertnos).ravel())
 
-    color_converter = ColorConverter()
-
     renderer = _get_renderer(bgcolor=bgcolor, size=(600, 600), name=fig_name)
     surface = renderer.mesh(x=points[:, 0], y=points[:, 1],
                             z=points[:, 2], triangles=use_faces,
@@ -2759,7 +2756,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         x, y, z = points[v]
         nx, ny, nz = normals[v]
         renderer.quiver3d(x=x, y=y, z=z, u=nx, v=ny, w=nz,
-                          color=color_converter.to_rgb(c),
+                          color=_to_rgb(c),
                           mode=mode, scale=scale_factor)
 
         for k in ind:
@@ -3172,8 +3169,6 @@ def _plot_dipole(ax, data, vox, idx, dipole, gridx, gridy, ori, coord_frame,
                  show_all, pos, color, highlight_color, title):
     """Plot dipoles."""
     import matplotlib.pyplot as plt
-    from matplotlib.colors import ColorConverter
-    color_converter = ColorConverter()
     xidx, yidx, zidx = np.round(vox[idx]).astype(int)
     xslice = data[xidx]
     yslice = data[:, yidx]
@@ -3182,8 +3177,9 @@ def _plot_dipole(ax, data, vox, idx, dipole, gridx, gridy, ori, coord_frame,
     ori = ori[idx]
     if color is None:
         color = 'y' if show_all else 'r'
-    color = np.array(color_converter.to_rgba(color))
-    highlight_color = np.array(color_converter.to_rgba(highlight_color))
+    color = np.array(_to_rgb(color, alpha=True))
+    highlight_color = np.array(_to_rgb(
+        highlight_color, name='highlight_color', alpha=True))
     if show_all:
         colors = np.repeat(color[np.newaxis], len(vox), axis=0)
         colors[idx] = highlight_color

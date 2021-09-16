@@ -17,7 +17,6 @@ import time
 import copy
 import traceback
 import warnings
-from matplotlib.colors import Colormap, ListedColormap, colorConverter
 
 import numpy as np
 from collections import OrderedDict
@@ -46,7 +45,7 @@ from ...transforms import (apply_trans, invert_transform, _get_trans,
                            _get_transforms_to_coord_frame)
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn,
-                      get_subjects_dir, _check_fname)
+                      get_subjects_dir, _check_fname, _to_rgb)
 
 
 _ARROW_MOVE = 10  # degrees per press
@@ -72,6 +71,7 @@ class _Overlay(object):
 
     def to_colors(self):
         from .._3d import _get_cmap
+        from matplotlib.colors import Colormap, ListedColormap
 
         if isinstance(self._colormap, str):
             cmap = _get_cmap(self._colormap)
@@ -451,14 +451,11 @@ class Brain(object):
             self._title = title
         self._interaction = 'trackball'
 
-        if isinstance(background, str):
-            background = colorConverter.to_rgb(background)
-        self._bg_color = background
+        self._bg_color = _to_rgb(background, name='background')
         if foreground is None:
             foreground = 'w' if sum(self._bg_color) < 2 else 'k'
-        if isinstance(foreground, str):
-            foreground = colorConverter.to_rgb(foreground)
-        self._fg_color = foreground
+        self._fg_color = _to_rgb(foreground, name='foreground')
+        del background, foreground
         views = _check_views(surf, views, hemi)
         col_dict = dict(lh=1, rh=1, both=1, split=2, vol=1)
         shape = (len(views), col_dict[hemi])
@@ -528,7 +525,7 @@ class Brain(object):
         logger.debug(f'Hemi offset: {offset}')
 
         self._renderer = _get_renderer(name=self._title, size=size,
-                                       bgcolor=background,
+                                       bgcolor=self._bg_color,
                                        shape=shape,
                                        fig=figure)
         self._renderer._window_close_connect(self._clean)
@@ -1800,6 +1797,7 @@ class Brain(object):
     def _cortex_colormap(self, cortex):
         """Return the colormap corresponding to the cortex."""
         from .._3d import _get_cmap
+        from matplotlib.colors import ListedColormap
         colormap_map = dict(classic=dict(colormap="Greys",
                                          vmin=-1, vmax=2),
                             high_contrast=dict(colormap="Greys",
@@ -1822,15 +1820,10 @@ class Brain(object):
                 cortex = [cortex] * 2
             cortex = list(cortex)
             for ci, c in enumerate(cortex):
-                try:
-                    cortex[ci] = colorConverter.to_rgb(c)
-                except ValueError:
-                    raise ValueError(
-                        f'Invalid RGB argument for cortex: {repr(c)}')
+                cortex[ci] = _to_rgb(c, name='cortex')
             cortex = dict(
                 colormap=ListedColormap(cortex, name='custom binary'),
                 vmin=0, vmax=1)
-            print(cortex)
         cortex = dict(
             vmin=float(cortex['vmin']),
             vmax=float(cortex['vmax']),
@@ -2357,7 +2350,7 @@ class Brain(object):
             line = None
 
         orig_color = color
-        color = colorConverter.to_rgba(color, alpha)
+        color = _to_rgb(color, alpha, alpha=True)
         cmap = np.array([(0, 0, 0, 0,), color])
         ctable = np.round(cmap * 255).astype(np.uint8)
 
@@ -2417,7 +2410,7 @@ class Brain(object):
                                  self._subject_id, self._subjects_dir)
         verts, triangles = surf['rr'], surf['tris']
         verts *= 1e3 if self._units == 'mm' else 1
-        color = colorConverter.to_rgba(color, alpha)
+        color = _to_rgb(color, alpha, alpha=True)
 
         for _ in self._iter_views('vol'):
             actor, _ = self._renderer.mesh(
@@ -2452,7 +2445,7 @@ class Brain(object):
                                   self._subject_id, self._subjects_dir)
         verts, triangles = surf['rr'], surf['tris']
         verts *= 1e3 if self._units == 'mm' else 1
-        color = colorConverter.to_rgba(color, alpha)
+        color = _to_rgb(color, alpha, alpha=True)
 
         for _ in self._iter_views('vol'):
             actor, _ = self._renderer.mesh(
@@ -2526,7 +2519,8 @@ class Brain(object):
             colors = [fs_colors[label] / 255 for label in labels]
         elif not isinstance(colors, (list, tuple)):
             colors = [colors] * len(labels)  # make into list
-        colors = [colorConverter.to_rgba(color, alpha) for color in colors]
+        colors = [_to_rgb(color, alpha, name=f'colors[{ci}]', alpha=True)
+                  for ci, color in enumerate(colors)]
         surfs = _marching_cubes(
             aseg_data, [lut[label] for label in labels], smooth=smooth)
         for label, color, (verts, triangles) in zip(labels, colors, surfs):
@@ -2589,7 +2583,6 @@ class Brain(object):
         resolution : int
             The resolution of the spheres.
         """
-        from matplotlib.colors import colorConverter
         hemi = self._check_hemi(hemi, extras=['vol'])
 
         # those parameters are not supported yet, only None is allowed
@@ -2600,8 +2593,7 @@ class Brain(object):
             coords = self.geo[hemi].coords[coords]
 
         # Convert the color code
-        if not isinstance(color, tuple):
-            color = colorConverter.to_rgb(color)
+        color = _to_rgb(color)
 
         if self._units == 'm':
             scale_factor = scale_factor / 1000.
@@ -2884,8 +2876,7 @@ class Brain(object):
 
             # Override the cmap when a single color is used
             if color is not None:
-                from matplotlib.colors import colorConverter
-                rgb = np.round(np.multiply(colorConverter.to_rgb(color), 255))
+                rgb = np.round(np.multiply(_to_rgb(color), 255))
                 cmap[:, :3] = rgb.astype(cmap.dtype)
 
             ctable = cmap.astype(np.float64)
