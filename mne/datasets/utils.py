@@ -9,7 +9,7 @@
 # License: BSD Style.
 
 from collections import OrderedDict
-from importlib.resources import files
+from importlib_resources import files
 import os
 import os.path as op
 import sys
