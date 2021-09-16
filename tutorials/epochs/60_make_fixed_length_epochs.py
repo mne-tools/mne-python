@@ -18,8 +18,11 @@ the signal.
 .. note::
     Starting in version 0.25, all functions in the ``mne.connectivity``
     sub-module will be housed in a separate package called
-    ``mne-connectivity``. Download it by  running
-    ``pip install mne-connectivity``.
+    :mod:`mne-connectivity <mne_connectivity>`. Download it by  running:
+
+    .. code-block:: console
+
+        $ pip install mne-connectivity
 """
 
 # %%
