@@ -1188,7 +1188,9 @@ class Report(object):
             The title of the element(s) to remove.
 
             .. versionadded:: 0.24.0
-        %(report_tags)s
+        tags : collection of str | None
+             If supplied, restrict the operation to elements with the supplied
+             tags.
 
             .. versionadded:: 0.24.0
         remove_all : bool
