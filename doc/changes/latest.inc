@@ -161,7 +161,7 @@ Enhancements
 
 - Reading EDF files via :func:`mne.io.read_raw_edf` now can infer channel type from the signal label in the EDF header (:gh:`9694` by `Adam Li`_)
 
-- All data fetching code now relies on ``pooch``, which is an added optional requirement for dataset fetchers (:gh:`9742` by `Adam Li` and `Daniel McCloy`)
+- All data fetching code now relies on ``pooch``, which is an added optional requirement for dataset fetchers (:gh:`9742` by `Adam Li`_ and `Daniel McCloy`_)
 
 
 Bugs
