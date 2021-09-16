@@ -1931,6 +1931,64 @@ class Report(object):
                 )
         self.include = ''.join(include)
 
+    def _iterate_files(self, *, fnames, cov, sfreq, on_error):
+        """Parallel process in batch mode."""
+        assert self.data_path is not None
+
+        for fname in fnames:
+            logger.info(
+                f"Rendering : {op.join('…' + self.data_path[-20:], fname)}"
+            )
+
+            title = Path(fname).name
+            try:
+                if _endswith(fname, ['raw', 'sss', 'meg', 'nirs']):
+                    self.add_raw(raw=fname, title=title, psd=self.raw_psd)
+                elif _endswith(fname, 'fwd'):
+                    self.add_forward(
+                        forward=fname, title=title, subject=self.subject,
+                        subjects_dir=self.subjects_dir
+                    )
+                elif _endswith(fname, 'inv'):
+                    # XXX if we pass trans, we can plot the source space, too…
+                    self.add_inverse(inverse=fname, title=title)
+                elif _endswith(fname, 'ave'):
+                    evokeds = read_evokeds(fname)
+                    titles = [
+                        f'{Path(fname).name}: {e.comment}'
+                        for e in evokeds
+                    ]
+                    self.add_evokeds(evokeds=fname, titles=titles,
+                                     noise_cov=cov)
+                elif _endswith(fname, 'eve'):
+                    if self.info_fname is not None:
+                        sfreq = read_info(self.info_fname)['sfreq']
+                    else:
+                        sfreq = None
+                    self.add_events(events=fname, title=title, sfreq=sfreq)
+                elif _endswith(fname, 'epo'):
+                    self.add_epochs(epochs=fname, title=title)
+                elif _endswith(fname, 'cov') and self.info_fname is not None:
+                    self.add_covariance(cov=fname, info=self.info_fname,
+                                        title=title)
+                elif _endswith(fname, 'proj') and self.info_fname is not None:
+                    self.add_ssp_projs(info=self.info_fname, projs=fname,
+                                       title=title)
+                elif (_endswith(fname, 'trans') and
+                        self.info_fname is not None and
+                        self.subjects_dir is not None and
+                        self.subject is not None):
+                    self.add_trans(
+                        trans=fname, info=self.info_fname,
+                        subject=self.subject, subjects_dir=self.subjects_dir,
+                        title=title
+                    )
+            except Exception as e:
+                if on_error == 'warn':
+                    warn(f'Failed to process file {fname}:\n"{e}"')
+                elif on_error == 'raise':
+                    raise
+
     @verbose
     def parse_folder(self, data_path, pattern=None, n_jobs=1, mri_decim=2,
                      sort_content=True, sort_sections=None, on_error='warn',
@@ -2053,26 +2111,12 @@ class Report(object):
             cov = read_cov(self.cov_fname)
 
         # render plots in parallel; check that n_jobs <= # of files
-        logger.info('Iterating over %s potential files (this may take some '
-                    'time)' % len(fnames))
+        logger.info(f'Iterating over {len(fnames)} potential files '
+                    f'(this may take some ')
         use_jobs = min(n_jobs, max(1, len(fnames)))
-        parallel, p_fun, _ = parallel_func(_iterate_files, use_jobs)
-        parallel(p_fun(self, fname, cov, sfreq, on_error)
+        parallel, p_fun, _ = parallel_func(self._iterate_files, use_jobs)
+        parallel(p_fun(fnames=fname, cov=cov, sfreq=sfreq, on_error=on_error)
                  for fname in np.array_split(fnames, use_jobs))
-
-        # XXX I don't know what this code does – can it be removed?
-        #
-        # # combine results from n_jobs discarding plots not rendered
-        # self.html = [html for html in sum(htmls, []) if html is not None]
-        # self.fnames = [fname for fname in sum(report_fnames, []) if
-        #                fname is not None]
-        # self._sectionlabels = [slabel for slabel in
-        #                        sum(report_sectionlabels, [])
-        #                        if slabel is not None]
-
-        # # find unique section labels
-        # self.tags = sorted(set(self._sectionlabels))
-        # self._sectionvars = dict(zip(self.tags, self.tags))
 
         # Render BEM
         if render_bem:
@@ -3112,67 +3156,3 @@ class _ReportScraper(object):
     def copyfiles(self, *args, **kwargs):
         for key, value in self.files.items():
             copyfile(key, value)
-
-
-def _iterate_files(
-    report: Report,
-    fnames,
-    cov,
-    sfreq,
-    on_error,
-):
-    """Parallel process in batch mode."""
-    for fname in fnames:
-        logger.info(
-            f"Rendering : {op.join('…' + report.data_path[-20:], fname)}"
-        )
-
-        title = Path(fname).name
-        try:
-            if _endswith(fname, ['raw', 'sss', 'meg', 'nirs']):
-                report.add_raw(raw=fname, title=title, psd=report.raw_psd)
-            elif _endswith(fname, 'fwd'):
-                report.add_forward(
-                    forward=fname, title=title, subject=report.subject,
-                    subjects_dir=report.subjects_dir
-                )
-            elif _endswith(fname, 'inv'):
-                # XXX if we pass trans, we can plot the source space, too…
-                report.add_inverse(inverse=fname, title=title)
-            elif _endswith(fname, 'ave'):
-                evokeds = read_evokeds(fname)
-                titles = [
-                    f'{Path(fname).name}: {e.comment}'
-                    for e in evokeds
-                ]
-                report.add_evokeds(evokeds=fname, titles=titles, noise_cov=cov)
-            elif _endswith(fname, 'eve'):
-                if report.info_fname is not None:
-                    sfreq = read_info(report.info_fname)['sfreq']
-                else:
-                    sfreq = None
-                report.add_events(events=fname, title=title, sfreq=sfreq)
-            elif _endswith(fname, 'epo'):
-                report.add_epochs(epochs=fname, title=title)
-            elif _endswith(fname, 'cov') and report.info_fname is not None:
-                report.add_covariance(cov=fname, info=report.info_fname,
-                                      title=title)
-            elif _endswith(fname, 'proj') and report.info_fname is not None:
-                report.add_ssp_projs(info=report.info_fname, projs=fname,
-                                     title=title)
-            elif (_endswith(fname, 'trans') and
-                  report.info_fname is not None and
-                  report.subjects_dir is not None and
-                  report.subject is not None):
-                report.add_trans(
-                    trans=fname, info=report.info_fname,
-                    subject=report.subject, subjects_dir=report.subjects_dir,
-                    title=title
-                )
-        except Exception as e:
-            if on_error == 'warn':
-                warn('Failed to process file %s:\n"%s"' % (fname, e))
-            elif on_error == 'raise':
-                raise
-
-    return report
