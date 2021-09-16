@@ -646,13 +646,13 @@ def test_full_report(tmpdir):
     r.add_covariance(cov=cov_fname, info=raw_fname, title='my cov')
     r.add_forward(forward=fwd_fname, title='my forward', subject='sample',
                   subjects_dir=subjects_dir)
-    r.add_inverse(inverse=inv_fname, title='my inverse', subject='sample',
-                  subjects_dir=subjects_dir, trans=trans_fname)
 
     if get_3d_backend() is not None:
         r.add_trans(trans=trans_fname, info=raw_fname, title='my coreg',
                     subject='sample', subjects_dir=subjects_dir)
         r.add_bem(subject='sample', subjects_dir=subjects_dir, title='my bem')
+        r.add_inverse(inverse=inv_fname, title='my inverse', subject='sample',
+                    subjects_dir=subjects_dir, trans=trans_fname)
         r.add_stc(stc=stc_fname, title='my stc', subject='sample',
                   subjects_dir=subjects_dir)
 
