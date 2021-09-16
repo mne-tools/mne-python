@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Authors: Adam Li  <adam2392@gmail.com>
-#          simplified BSD-3 license
+#
+# License: BSD-3-Clause
 
 import os
 import os.path as op
@@ -190,15 +191,15 @@ def test_persyst_standard():
 
 
 @requires_testing_data
-def test_persyst_annotations(tmpdir):
+def test_persyst_annotations(tmp_path):
     """Test annotations reading in Persyst."""
-    out_dir = str(tmpdir)
-    new_fname_lay = op.join(out_dir, op.basename(fname_lay))
-    new_fname_dat = op.join(out_dir, op.basename(fname_dat))
+    new_fname_lay = tmp_path / op.basename(fname_lay)
+    new_fname_dat = tmp_path / op.basename(fname_dat)
     shutil.copy(fname_dat, new_fname_dat)
     shutil.copy(fname_lay, new_fname_lay)
 
     raw = read_raw_persyst(new_fname_lay)
+    raw.crop(tmin=0, tmax=4)
 
     # get the annotations and make sure that repeated annotations
     # are in the dataset
@@ -207,6 +208,7 @@ def test_persyst_annotations(tmpdir):
 
     # make sure annotation with a "," character is in there
     assert 'seizure1,2' in annotations.description
+    assert 'CLip2' in annotations.description
 
 
 @requires_testing_data
