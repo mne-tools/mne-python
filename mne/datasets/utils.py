@@ -232,7 +232,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         logger.info(f'Dataset {name} version {data_version} out of date, '
                     f'latest version is {want_version}')
 
-    # return empty string if outdated dataset and we dont' want
+    # return empty string if outdated dataset and we don't want
     # to download
     if (not force_update) and outdated_dataset and not download:
         return ('', data_version) if return_version else ''
