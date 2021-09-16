@@ -264,13 +264,18 @@ def test_plot_ica_sources(raw_orig, browse_backend):
     raw.set_annotations(orig_annot)
 
     # test error handling
-    raw.info['bads'] = ['MEG 0113']
-    with pytest.raises(RuntimeError, match="Raw doesn't match fitted data"):
-        ica.plot_sources(inst=raw)
-    epochs.info['bads'] = ['MEG 0113']
-    with pytest.raises(RuntimeError, match="Epochs don't match fitted data"):
-        ica.plot_sources(inst=epochs)
-    epochs.info['bads'] = []
+    raw_ = raw.copy().load_data()
+    raw_.drop_channels('MEG 0113')
+    with pytest.raises(RuntimeError, match="Raw doesn't match fitted data"), \
+         pytest.warns(RuntimeWarning, match='could not be picked'):
+        ica.plot_sources(inst=raw_)
+    epochs_ = epochs.copy().load_data()
+    epochs_.drop_channels('MEG 0113')
+    with pytest.raises(RuntimeError, match="Epochs don't match fitted data"), \
+         pytest.warns(RuntimeWarning, match='could not be picked'):
+        ica.plot_sources(inst=epochs_)
+    del raw_
+    del epochs_
 
     # test w/ epochs and evokeds
     ica.plot_sources(epochs)
