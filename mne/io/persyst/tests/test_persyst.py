@@ -2,6 +2,7 @@
 # Authors: Adam Li  <adam2392@gmail.com>
 #          simplified BSD-3 license
 
+from mne.io.edf.edf import read_raw_edf
 import os
 import os.path as op
 import shutil
@@ -13,6 +14,7 @@ import numpy as np
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_persyst
 from mne.io.tests.test_raw import _test_raw_reader
+from mne.utils import _check_edflib_installed
 
 fname_lay = op.join(
     data_path(download=False), 'Persyst',
@@ -189,16 +191,18 @@ def test_persyst_standard():
     _test_raw_reader(read_raw_persyst, fname=fname_lay)
 
 
+@pytest.mark.skipif(not _check_edflib_installed(strict=False),
+                    reason='edflib-python not installed')
 @requires_testing_data
-def test_persyst_annotations(tmpdir):
+def test_persyst_annotations(tmp_path):
     """Test annotations reading in Persyst."""
-    out_dir = str(tmpdir)
-    new_fname_lay = op.join(out_dir, op.basename(fname_lay))
-    new_fname_dat = op.join(out_dir, op.basename(fname_dat))
+    new_fname_lay = tmp_path / op.basename(fname_lay)
+    new_fname_dat = tmp_path / op.basename(fname_dat)
     shutil.copy(fname_dat, new_fname_dat)
     shutil.copy(fname_lay, new_fname_lay)
 
     raw = read_raw_persyst(new_fname_lay)
+    raw.crop(tmin=0, tmax=4)
 
     # get the annotations and make sure that repeated annotations
     # are in the dataset
@@ -207,6 +211,15 @@ def test_persyst_annotations(tmpdir):
 
     # make sure annotation with a "," character is in there
     assert 'seizure1,2' in annotations.description
+    assert 'CLip2' in annotations.description
+
+    # roundtripping annotations should work.
+    tmp_fpath = tmp_path / 'tmp_file.edf'
+    with pytest.warns(RuntimeWarning, match='EDF format'):
+        raw.export(tmp_fpath)
+    raw_edf = read_raw_edf(tmp_fpath)
+    for annot in raw.annotations:
+        assert annot['description'] in raw_edf.annotations.description
 
 
 @requires_testing_data
