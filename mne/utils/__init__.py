@@ -36,7 +36,7 @@ from ._logging import (verbose, logger, set_log_level, set_log_file,
 from .misc import (run_subprocess, _pl, _clean_names, pformat, _file_like,
                    _explain_exception, _get_argvalues, sizeof_fmt,
                    running_subprocess, _DefaultEventParser,
-                   _assert_no_instances)
+                   _assert_no_instances, _resource_path)
 from .progressbar import ProgressBar
 from ._testing import (run_command_if_main, requires_sklearn,
                        requires_version, requires_nibabel, requires_mayavi,
