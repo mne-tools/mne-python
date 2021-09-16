@@ -26,7 +26,7 @@ from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper
 from mne.utils import requires_nibabel, Bunch, requires_h5py
-from mne.viz import plot_alignment
+from mne.viz import plot_alignment, get_3d_backend
 from mne.io.write import DATE_NONE
 
 data_dir = testing.data_path(download=False)
@@ -644,18 +644,21 @@ def test_full_report(tmpdir):
                     tags=('ssp', 'ecg'))
     r.add_ssp_projs(info=raw_fname, title='my proj', tags=('ssp'))
     r.add_covariance(cov=cov_fname, info=raw_fname, title='my cov')
-    r.add_trans(trans=trans_fname, info=raw_fname, title='my coreg',
-                subject='sample', subjects_dir=subjects_dir)
-    r.add_bem(subject='sample', subjects_dir=subjects_dir, title='my bem')
     r.add_forward(forward=fwd_fname, title='my forward', subject='sample',
                   subjects_dir=subjects_dir)
     r.add_inverse(inverse=inv_fname, title='my inverse', subject='sample',
                   subjects_dir=subjects_dir, trans=trans_fname)
-    r.add_stc(stc=stc_fname, title='my stc', subject='sample',
-              subjects_dir=subjects_dir)
+
+    if get_3d_backend() is not None:
+        r.add_trans(trans=trans_fname, info=raw_fname, title='my coreg',
+                    subject='sample', subjects_dir=subjects_dir)
+        r.add_bem(subject='sample', subjects_dir=subjects_dir, title='my bem')
+        r.add_stc(stc=stc_fname, title='my stc', subject='sample',
+                  subjects_dir=subjects_dir)
+
+    r.add_html(html='<strong>Hello</strong>', title='Bold')
     r.add_code(code=__file__, title='my code')
     r.add_sys_info(title='my sysinfo')
-    r.add_html(html='<strong>Hello</strong>', title='Bold')
 
     fname = op.join(tmpdir, 'report.html')
     r.save(fname=fname, open_browser=False)

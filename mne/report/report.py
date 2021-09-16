@@ -1173,10 +1173,13 @@ class Report(object):
         Parameters
         ----------
         caption : str
+            Remove content based on its caption.
 
             .. deprecated:: 0.24.0
                This parameter is scheduled for removal. Use ``title`` instead.
         section : str | None
+            If supplied, restrict the operation to elements within the supplied
+            section.
 
             .. deprecated:: 0.24.0
                This parameter is scheduled for removal. Use ``tags`` instead.
@@ -1958,6 +1961,9 @@ class Report(object):
 
             .. versionadded:: 0.24.0
         sort_sections : bool
+            If ``True``, sort the content based on tags in the order:
+            raw -> events -> epochs -> evoked -> covariance -> coregistration
+            -> bem -> forward-solution -> inverse-operator -> source-estimate.
 
             .. deprecated:: 0.24.0
                This parameter is scheduled for removal. Use ``sort_content``
@@ -3078,7 +3084,8 @@ class _ReportScraper(object):
 
     def __call__(self, block, block_vars, gallery_conf):
         for report in block_vars['example_globals'].values():
-            if (isinstance(report, Report) and hasattr(report, 'fname') and
+            if (isinstance(report, Report) and
+                    report.fname is not None and
                     report.fname.endswith('.html') and
                     gallery_conf['builder_name'] == 'html'):
                 # Thumbnail
