@@ -22,6 +22,7 @@ from matplotlib import pyplot as plt
 
 from mne import Epochs, read_events, read_evokeds
 from mne.report import report as report_mod
+from mne.report.report import CONTENT_ORDER
 from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper
@@ -662,6 +663,31 @@ def test_full_report(tmpdir):
 
     fname = op.join(tmpdir, 'report.html')
     r.save(fname=fname, open_browser=False)
+
+
+def test_sorting(tmpdir):
+    """Test that automated ordering based on tags works."""
+    r = Report()
+
+    r.add_code(code='E = m * c**2', title='intelligence >9000', tags=('bem',))
+    r.add_code(code='a**2 + b**2 = c**2', title='Pythagoras', tags=('evoked',))
+    r.add_code(code='🧠', title='source of truth', tags=('source-estimate',))
+    r.add_code(code='🥦', title='veggies', tags=('raw',))
+
+    # Check that repeated calls of add_* actually continuously appended to
+    # the report
+    orig_order = ['bem', 'evoked', 'source-estimate', 'raw']
+    assert [c.tags[0] for c in r._content] == orig_order
+
+    # Now check the actual sorting
+    content_sorted = r._sort(content=r._content, order=CONTENT_ORDER)
+    expected_order = ['raw', 'evoked', 'bem', 'source-estimate']
+
+    assert content_sorted != r._content
+    assert [c.tags[0] for c in content_sorted] == expected_order
+
+    r.save(fname=op.join(tmpdir, 'report.html'), sort_content=True,
+           open_browser=False)
 
 
 @testing.requires_testing_data

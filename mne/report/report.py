@@ -82,13 +82,14 @@ CONTENT_ORDER = (
     'raw',
     'events',
     'epochs',
-    'ssp',
+    'ssp-projectors',
     'evoked',
     'covariance',
     'coregistration',
     'bem',
-    'forward',
-    'inverse'
+    'forward-solution',
+    'inverse-operator',
+    'source-estimate'
 )
 
 html_include_dir = Path(__file__).parent / 'js_and_css'
@@ -1187,9 +1188,7 @@ class Report(object):
             The title of the element(s) to remove.
 
             .. versionadded:: 0.24.0
-        tags : collection of str | None
-            If supplied, restrict the operation to elements with the supplied
-            tags.
+        %(report_tags)s
 
             .. versionadded:: 0.24.0
         remove_all : bool
