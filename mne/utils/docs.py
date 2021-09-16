@@ -2252,6 +2252,16 @@ image_format : 'png' | 'svg' | 'gif' | None
     None (default) will use the default specified during `~mne.Report`
     instantiation.
 """
+docdict['report_tags'] = """
+tags : collection of str
+    Tags to add for later interactive filtering.
+"""
+docdict['report_replace'] = """
+replace : bool
+    If ``True``, content already present that has the same ``title`` will be
+    replaced. Defaults to ``False``, which will cause duplicate entries in the
+    table of contents if an entry for ``title`` already exists.
+"""
 
 # Epochs
 docdict['epochs_tmin_tmax'] = """

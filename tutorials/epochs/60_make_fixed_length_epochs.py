@@ -8,8 +8,8 @@ Creating epochs of equal length
 This tutorial shows how to create equal length epochs and briefly demonstrates
 an example of their use in connectivity analysis.
 
-First, we import necessary modules and read in a sample raw
-data set. This data set contains brain activity that is event-related, i.e.
+First, we import necessary modules and read in a sample raw data set.
+This data set contains brain activity that is event-related, i.e.,
 synchronized to the onset of auditory stimuli. However, rather than creating
 epochs by segmenting the data around the onset of each stimulus, we will
 create 30 second epochs that allow us to perform non-event-related analyses of
@@ -94,10 +94,11 @@ alpha_data = epochs.get_data()
 
 # %%
 # If desired, separate correlation matrices for each epoch can be obtained.
-# For envelope correlations, this is done by passing ``combine=None`` to the
-# envelope correlations function.
+# For envelope correlations, this is the default return if you use
+# :meth:`mne-connectivity:mne_connectivity.EpochConnectivity.get_data`:
 
-corr_matrix = envelope_correlation(alpha_data, combine=None)
+corr_matrix = envelope_correlation(alpha_data).get_data()
+print(corr_matrix.shape)
 
 # %%
 # Now we can plot correlation matrices. We'll compare the first and last

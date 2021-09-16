@@ -89,7 +89,7 @@ def test_plot_joint():
     axes = plt.subplots(nrows=3)[-1].flatten().tolist()
     evoked.plot_joint(times=[0], picks=[6, 7, 8], ts_args=dict(axes=axes[0]),
                       topomap_args={"axes": axes[1:], "time_unit": "s"})
-    with pytest.raises(ValueError, match='array of length 6'):
+    with pytest.raises(ValueError, match='array of length 4'):
         evoked.plot_joint(picks=[6, 7, 8], ts_args=dict(axes=axes[0]),
                           topomap_args=dict(axes=axes[2:]))
     plt.close('all')

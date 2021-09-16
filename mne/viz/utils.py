@@ -2219,8 +2219,11 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
 
 def _trim_ticks(ticks, _min, _max):
     """Remove ticks that are more extreme than the given limits."""
-    keep = np.where(np.logical_and(ticks >= _min, ticks <= _max))
-    return ticks[keep]
+    if np.isclose(_min, _max):
+        keep_idx = 0  # ensure we always keep at least one tick
+    else:
+        keep_idx = np.where(np.logical_and(ticks >= _min, ticks <= _max))
+    return np.atleast_1d(ticks[keep_idx])
 
 
 def _set_window_title(fig, title):
