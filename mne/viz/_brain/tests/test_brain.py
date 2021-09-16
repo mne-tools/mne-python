@@ -199,6 +199,8 @@ def test_brain_init(renderer_pyvistaqt, tmpdir, pixel_ratio, brain_gc):
         Brain(subject_id, 'lh', 'whatever')
     with pytest.raises(ValueError, match='`surf` cannot be seghead'):
         Brain(hemi='lh', surf='seghead', **kwargs)
+    with pytest.raises(ValueError, match='RGB argument'):
+        Brain('sample', cortex='badcolor')
     Brain(subject_id, hemi=None, surf=None)  # test no surfaces
     renderer_pyvistaqt.backend._close_all()
 
@@ -420,7 +422,8 @@ def test_single_hemi(hemi, renderer_interactive_pyvistaqt, brain_gc):
         getattr(stc, f'{hemi}_data'), [stc.vertices[idx], []][::order],
         0, 1, 'sample')
     brain = stc.plot(
-        subjects_dir=subjects_dir, hemi='both', size=300)
+        subjects_dir=subjects_dir, hemi='both', size=300,
+        cortex='0.5')  # single cortex string arg
     brain.close()
 
     # test skipping when len(vertices) == 0
@@ -437,7 +440,8 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
     if renderer._get_3d_backend() == "mayavi":
         pytest.skip('Save movie only supported on PyVista')
     from imageio_ffmpeg import count_frames_and_secs
-    brain = _create_testing_brain(hemi='lh', time_viewer=False)
+    brain = _create_testing_brain(hemi='lh', time_viewer=False,
+                                  cortex=['r', 'b'])  # custom binarized
     filename = str(op.join(tmpdir, "brain_test.mov"))
     for interactive_state in (False, True):
         # for coverage, we set interactivity
