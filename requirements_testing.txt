@@ -11,5 +11,3 @@ pydocstyle
 check-manifest
 twine
 wheel
-pooch
-importlib_resources
