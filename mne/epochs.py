@@ -2830,8 +2830,12 @@ def _minimize_time_diff(t_shorter, t_longer):
     """Find a boolean mask to minimize timing differences."""
     from scipy.interpolate import interp1d
     keep = np.ones((len(t_longer)), dtype=bool)
-    if len(t_shorter) == 0:
+    # special case: length zero or one
+    if len(t_shorter) < 2:  # interp1d won't work
         keep.fill(False)
+        if len(t_shorter) == 1:
+            idx = np.argmin(np.abs(t_longer - t_shorter))
+            keep[idx] = True
         return keep
     scores = np.ones((len(t_longer)))
     x1 = np.arange(len(t_shorter))
