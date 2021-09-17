@@ -513,7 +513,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     bem_path = op.join(subjects_dir, subject, 'bem')
 
     if not op.isdir(bem_path):
-        raise IOError('Subject bem directory "%s" does not exist' % bem_path)
+        raise IOError(f'Subject bem directory "{bem_path}" does not exist')
 
     surfaces = _get_bem_plotting_surfaces(bem_path)
     if brain_surfaces is not None:
