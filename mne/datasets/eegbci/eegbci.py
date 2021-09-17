@@ -85,7 +85,6 @@ def data_path(url, path=None, force_update=False, update_path=None,
             path=destination,
             fname=fname
         )
-        # _fetch_file(url, destination, print_destination=False)
 
     # Offer to update the path
     _do_path_update(path, update_path, key, name)
