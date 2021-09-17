@@ -133,6 +133,8 @@ Enhancements
 
 - Add :func:`mne.viz.Brain.add_volume_labels` to plot subcortical surfaces and other regions of interest (:gh:`9540` by `Alex Rockhill`_ and `Eric Larson`_)
 
+- Add custom cortex curvature colors in :class:`mne.viz.Brain` via the ``cortex`` argument (:gh:`9750` by `Eric Larson`_)
+
 - Add :meth:`mne.channels.DigMontage.apply_trans` to apply a transform directly to a montage (:gh:`9601` by `Alex Rockhill`_)
 
 - :meth:`mne.preprocessing.ICA.fit` now emits a warning if any of the ``start``, ``stop``, ``reject``, and ``flat`` parameters are passed when performing ICA on `~mne.Epochs`. These parameters only have an effect on `~mne.io.Raw` data and were previously silently ignored in the case of `~mne.Epochs` (:gh:`9605` by `Richard Höchenberger`_)
@@ -227,6 +229,8 @@ Bugs
 - Raise error when no ``trans`` is provided to :func:`mne.viz.plot_alignment` when required instead of assuming identitiy head->mri transform (:gh:`9585` by `Alex Rockhill`_)
 
 - Fix bug where channels with a dollar sign ($) were not being labeled "misc" in :func:`mne.io.read_raw_nihon` (:gh:`9695` by `Adam Li`_)
+
+- Fix bug where :func:`mne.io.read_raw_persyst` was lower-casing events it found in the ``.lay`` file (:gh:`9746` by `Adam Li`_)
 
 API changes
 ~~~~~~~~~~~
