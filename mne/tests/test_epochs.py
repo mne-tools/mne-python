@@ -2014,6 +2014,13 @@ def test_epoch_eq():
         epochs.equalize_event_counts([['a/x', 'a/y'], 'x'])
     with pytest.raises(KeyError, match='not found in the epoch object'):
         epochs.equalize_event_counts(["a/no_match", "b"])
+    # test equalization with only one epoch in each cond
+    epo = epochs[[0, 1, 5]]
+    assert len(epo['x']) == 2
+    assert len(epo['y']) == 1
+    epo_, drop_inds = epo.equalize_event_counts()
+    assert len(epo_) == 2
+    assert drop_inds.shape == (1,)
     # test equalization with no events of one type
     epochs.drop(np.arange(10))
     assert_equal(len(epochs['a/x']), 0)
