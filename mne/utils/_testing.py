@@ -66,7 +66,7 @@ def requires_nibabel():
 def requires_dipy():
     """Check for dipy."""
     import pytest
-    # for some strange reason on CIs we cane get:
+    # for some strange reason on CIs we can get:
     #
     #     can get weird ImportError: dlopen: cannot load any more object
     #     with static TLS
