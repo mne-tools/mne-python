@@ -11,3 +11,4 @@ pydocstyle
 check-manifest
 twine
 wheel
+pooch
