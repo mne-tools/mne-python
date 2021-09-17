@@ -31,9 +31,6 @@ from ..utils.check import _soft_import
 from ..externals.doccer import docformat
 
 
-# import pooch library for handling the dataset downloading
-pooch = _soft_import('pooch', 'dataset downloading', strict=True)
-
 _FAKE_VERSION = None  # used for monkeypatching while testing versioning
 
 
@@ -207,6 +204,9 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path : str
         Path to {name} dataset directory.
     """
+    # import pooch library for handling the dataset downloading
+    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
+
     # get download path for specific dataset
     path = _get_path(path=path, key=CONFIG_KEYS[name], name=name)
 
@@ -464,6 +464,9 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
     ----------
     .. footbibliography::
     """
+    # import pooch library for handling the dataset downloading
+    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
+
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     destination = op.join(subjects_dir, 'fsaverage', 'label')
     urls = dict(lh='https://osf.io/p92yb/download',
@@ -512,6 +515,9 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
     ----------
     .. footbibliography::
     """
+    # import pooch library for handling the dataset downloading
+    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
+
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     destination = op.join(subjects_dir, 'fsaverage', 'label')
     fnames = [op.join(destination, '%s.HCPMMP1.annot' % hemi)
@@ -639,6 +645,9 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
 
 
 def _manifest_check_download(manifest_path, destination, url, hash_):
+    # import pooch library for handling the dataset downloading
+    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
+
     with open(manifest_path, 'r') as fid:
         names = [name.strip() for name in fid.readlines()]
     manifest_path = op.basename(manifest_path)

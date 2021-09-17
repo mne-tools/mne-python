@@ -12,8 +12,6 @@ from ..utils import _get_path, _do_path_update
 from ...utils import _url_to_local_path, verbose
 from ...utils.check import _soft_import
 
-pooch = _soft_import('pooch', 'dataset downloading', True)
-
 
 EEGMI_URL = 'https://physionet.org/files/eegmmidb/1.0.0/'
 
@@ -66,6 +64,8 @@ def data_path(url, path=None, force_update=False, update_path=None,
     ----------
     .. footbibliography::
     """  # noqa: E501
+    pooch = _soft_import('pooch', 'dataset downloading', True)
+
     key = 'MNE_DATASETS_EEGBCI_PATH'
     name = 'EEGBCI'
     path = _get_path(path, key, name)
@@ -155,6 +155,8 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
     ----------
     .. footbibliography::
     """  # noqa: E501
+    pooch = _soft_import('pooch', 'dataset downloading', True)
+
     if not hasattr(runs, '__iter__'):
         runs = [runs]
 

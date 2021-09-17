@@ -15,10 +15,6 @@ from ..utils import _get_path, _do_path_update, logger
 from ...utils.check import _soft_import
 
 
-pooch = _soft_import('pooch', 'dataset downloading', True)
-
-downloader = pooch.HTTPDownloader(progressbar=True)  # use tqdm
-
 # root url for LIMO files
 root_url = 'https://files.de-1.osf.io/v1/resources/52rea/providers/osfstorage/'
 
@@ -71,6 +67,10 @@ def data_path(subject, path=None, force_update=False, update_path=None,
     ----------
     .. footbibliography::
     """  # noqa: E501
+    pooch = _soft_import('pooch', 'dataset downloading', True)
+
+    downloader = pooch.HTTPDownloader(progressbar=True)  # use tqdm
+
     # local storage patch
     config_key = 'MNE_DATASETS_LIMO_PATH'
     name = 'LIMO'
