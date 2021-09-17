@@ -247,13 +247,6 @@ def _fig_to_img(fig, image_format='png', auto_close=True, **kwargs):
     output = BytesIO()
     logger.debug('Saving figure %s with dpi %s'
                  % (fig.get_size_inches(), fig.get_dpi()))
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            action='ignore',
-            message='.*not compatible with tight_layout.*',
-            category=UserWarning
-        )
-        fig.tight_layout()
     fig.savefig(output, format=image_format, dpi=fig.get_dpi())
     plt.close(fig)
     output = output.getvalue()
@@ -2643,7 +2636,7 @@ class Report(object):
                     evoked.plot_topomap(
                         times=[t], ch_type=ch_type,
                         vmin=vmin[ch_type], vmax=vmax[ch_type],
-                        axes=ch_type_ax_map[ch_type]
+                        axes=ch_type_ax_map[ch_type], show=False
                     )
                     ch_type_ax_map[ch_type][0].set_title(ch_type)
                 fig.tight_layout()
