@@ -604,23 +604,19 @@ def _load_backend(backend_name):
         try:
             from mne_qt_browser import _pg_figure as backend
         except ModuleNotFoundError:
-            answer = input('The pyqtgraph-backend is not installed yet.\n'
-                           'Do you want to install it now (y/n)?')
-            if answer.lower() == 'y':
-                try:
-                    subprocess.run(
-                        [sys.executable, "-m", "pip", "install",
-                         repo_link],
-                        check=True)
-                except subprocess.CalledProcessError:
-                    print('Installation of pyqtgraph-backend failed!')
-                    return _load_backend('matplotlib')
-                else:
-                    from mne_qt_browser import _pg_figure as backend
-            else:
-                print(f'You can install the pyqtgraph-backend manually with:\n'
+            try:
+                subprocess.run(
+                    [sys.executable, "-m", "pip", "install",
+                     repo_link],
+                    check=True)
+            except subprocess.CalledProcessError:
+                print('Installation of pyqtgraph-backend failed!\n'
+                      f'You can try to install the pyqtgraph-backend '
+                      f'manually with:\n'
                       f'"pip install {repo_link}"')
                 return _load_backend('matplotlib')
+            else:
+                from mne_qt_browser import _pg_figure as backend
 
     logger.info(f'Using {backend_name} as 2D backend.')
 
