@@ -813,3 +813,15 @@ def _ensure_events(events):
         raise ValueError(
             f'events must be of shape (N, 3), got {events.shape}')
     return events
+
+
+def _to_rgb(*args, name='color', alpha=False):
+    from matplotlib.colors import colorConverter
+    func = colorConverter.to_rgba if alpha else colorConverter.to_rgb
+    try:
+        return func(*args)
+    except ValueError:
+        args = args[0] if len(args) == 1 else args
+        raise ValueError(
+            f'Invalid RGB{"A" if alpha else ""} argument(s) for {name}: '
+            f'{repr(args)}') from None

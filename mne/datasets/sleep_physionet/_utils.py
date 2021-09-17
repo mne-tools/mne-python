@@ -40,8 +40,6 @@ def _fetch_one(fname, hashsum, path, force_update, base_url):
             os.remove(destination)
         if not op.isdir(op.dirname(destination)):
             os.makedirs(op.dirname(destination))
-        # _fetch_file(url, destination, print_destination=False,
-            # hash_=hashsum, hash_type='sha1')
         pooch.retrieve(
             url=url,
             known_hash=f"sha1:{hashsum}",
@@ -93,15 +91,11 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
     # Download subjects info.
     fname = 'ST-subjects.xls'
     subjects_fname = op.join(tmp, fname)
-    # _fetch_file(url=TEMAZEPAM_RECORDS_URL,
-    #             file_name=subjects_fname,
-    #             hash_=TEMAZEPAM_RECORDS_URL_SHA1,
-    #             hash_type='sha1')
     pooch.retrieve(
         url=TEMAZEPAM_RECORDS_URL,
         known_hash=f"sha1:{TEMAZEPAM_RECORDS_URL_SHA1}",
         path=tmp,
-        # fname=fname
+        fname=fname
     )
 
     # Load and Massage the checksums.
@@ -160,10 +154,6 @@ def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
     # Download subjects info.
     fname = 'SC-subjects.xls'
     subjects_fname = op.join(tmp, fname)
-    # _fetch_file(url=AGE_RECORDS_URL,
-    #             file_name=subjects_fname,
-    #             hash_=AGE_RECORDS_URL_SHA1,
-    #             hash_type='sha1')
     pooch.retrieve(
         url=AGE_RECORDS_URL,
         known_hash=f"sha1:{AGE_RECORDS_URL_SHA1}",

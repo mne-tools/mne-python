@@ -47,8 +47,8 @@ raw_intensity.annotations.delete(
 
 
 # %%
-# View location of sensors over brain surface
-# -------------------------------------------
+# Viewing location of sensors over brain surface
+# ----------------------------------------------
 #
 # Here we validate that the location of sources-detector pairs and channels
 # are in the expected locations. Source-detector pairs are shown as lines
@@ -58,10 +58,12 @@ raw_intensity.annotations.delete(
 
 subjects_dir = op.join(mne.datasets.sample.data_path(), 'subjects')
 
-brain = mne.viz.Brain('fsaverage', subjects_dir=subjects_dir, background="w")
-brain.add_sensors(raw_intensity.info, trans='fsaverage')
+brain = mne.viz.Brain(
+    'fsaverage', subjects_dir=subjects_dir, background='w', cortex='0.5')
+brain.add_sensors(
+    raw_intensity.info, trans='fsaverage',
+    fnirs=['channels', 'pairs', 'sources', 'detectors'])
 brain.show_view(azimuth=20, elevation=60, distance=400)
-
 
 # %%
 # Selecting channels appropriate for detecting neural responses

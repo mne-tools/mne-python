@@ -25,7 +25,7 @@ from .config import (_bst_license_text, _hcp_mmp_license_text, URLS,
                      TESTING_VERSIONED, MISC_VERSIONED)
 from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
-from ..utils import (get_config, set_config, logger, warn,
+from ..utils import (get_config, set_config, logger, warn, _resource_path,
                      verbose, get_subjects_dir, _pl, _safe_input)
 from ..utils.docs import docdict
 from ..utils.check import _soft_import
@@ -318,7 +318,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         retry_if_failed=2  # 2 retries = 3 total attempts
     )
     # load the checksum registry
-    registry = files('mne.data').joinpath('dataset_checksums.txt')
+    registry = _resource_path('mne.data', 'dataset_checksums.txt')
     fetcher.load_registry(registry)
 
     # update the keys that are versioned

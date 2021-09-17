@@ -93,6 +93,7 @@ if __name__ == "__main__":
           packages=package_tree('mne'),
           package_data={'mne': [
               op.join('data', 'dataset_checksums.txt'),
+              op.join('data', 'eegbci_checksums.txt'),
               op.join('data', '*.sel'),
               op.join('data', 'icos.fif.gz'),
               op.join('data', 'coil_def*.dat'),

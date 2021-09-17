@@ -411,18 +411,28 @@ def test_plot_alignment_basic(tmpdir, renderer, mixed_fwd_cov_evoked):
     plot_alignment(subject='sample', coord_frame='head',
                    trans=trans_fname, subjects_dir=subjects_dir,
                    surfaces={'white': 0.4, 'outer_skull': 0.6, 'head': None})
+
+
+@testing.requires_testing_data
+def test_plot_alignment_fnirs(renderer, tmpdir):
+    """Test fNIRS plotting."""
+    # Here we use subjects_dir=tmpdir, since no surfaces should actually
+    # be loaded!
+
     # fNIRS (default is pairs)
     info = read_raw_nirx(nirx_fname).info
+    assert info['nchan'] == 26
+    kwargs = dict(trans='fsaverage', subject='fsaverage', surfaces=(),
+                  verbose=True, subjects_dir=tmpdir)
     with catch_logging() as log:
-        plot_alignment(info, trans=Transform('head', 'mri'),
-                       subject='fsaverage', surfaces=(), verbose=True)
+        fig = plot_alignment(info, **kwargs)
     log = log.getvalue()
-    assert 'fnirs_cw_amplitude: 26' in log
+    assert f'fnirs_cw_amplitude: {info["nchan"]}' in log
+    _assert_n_actors(fig, renderer, info['nchan'])
 
-    plot_alignment(info, trans=Transform('head', 'mri'), subject='fsaverage',
-                   surfaces=(), verbose=True,
-                   fnirs=['channels', 'sources', 'detectors'])
-    renderer.backend._close_all()
+    fig = plot_alignment(
+        info, fnirs=['channels', 'sources', 'detectors'], **kwargs)
+    _assert_n_actors(fig, renderer, 3 * info['nchan'])
 
 
 @pytest.mark.slowtest  # can be slow on OSX
