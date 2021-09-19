@@ -518,21 +518,22 @@ def test_plot_raw_groupby(raw, browse_backend, group_by):
     fig._fake_keypress('down')  # change selection
     fig._fake_click((x, y), xform='data')  # mark bad
     fig._fake_click((0.5, 0.5), ax=fig.mne.ax_vscroll)  # change channels
-    sel_fig = fig.mne.fig_selection
-    topo_ax = sel_fig.mne.sensor_ax
-    fig._fake_click([-0.425, 0.20223853], fig=sel_fig, ax=topo_ax,
-                    xform='data')
-    fig._fake_keypress('down')
+    if browse_backend.name == 'matplotlib':
+        # Test lasso-selection
+        # (test difficult with pyqtgraph-backend, set plot_raw_selection)
+        sel_fig = fig.mne.fig_selection
+        topo_ax = sel_fig.mne.sensor_ax
+        fig._fake_click([-0.425, 0.20223853], fig=sel_fig, ax=topo_ax,
+                        xform='data')
+        fig._fake_click((-0.5, 0.), add_points=[(0.5, 0.),
+                                                (0.5, 0.5),
+                                                (-0.5, 0.5)],
+                        fig=sel_fig, ax=topo_ax, xform='data', kind='drag')
+        fig._fake_keypress('down')
+        fig._fake_keypress('up')
     fig._fake_keypress('up')
     fig._fake_scroll(0.5, 0.5, -1)  # scroll down
     fig._fake_scroll(0.5, 0.5, 1)  # scroll up
-    fig._fake_click([-0.5, 0.], fig=sel_fig, ax=topo_ax, xform='data')
-    fig._fake_click((0.5, 0.), fig=sel_fig, ax=topo_ax, xform='data',
-                    kind='motion')
-    fig._fake_click((0.5, 0.5), fig=sel_fig, ax=topo_ax, xform='data',
-                    kind='motion')
-    fig._fake_click([-0.5, 0.5], fig=sel_fig, ax=topo_ax, xform='data',
-                    kind='release')
     browse_backend._close_all()
 
 
