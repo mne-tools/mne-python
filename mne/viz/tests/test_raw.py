@@ -92,26 +92,26 @@ def _annotation_helper(raw, browse_backend, events=False):
     assert raw.annotations.description[n_anns] == 'BAD test'
     onset = raw.annotations.onset[n_anns]
     want_onset = _sync_onset(raw, 1., inverse=True)
-    if ismpl:
-        assert_allclose(onset, want_onset)
-    else:
-        # pyqtgraph: during the transformation from pixel-coordinates
-        # to scene-coordinates when clicked on QGraphicsView, there seems
-        # to happen a rounding of pixels to integers internally.
-        assert_allclose(onset, want_onset, rtol=1e-4)
-    assert_allclose(raw.annotations.duration[n_anns], 4.)
+    # pyqtgraph: during the transformation from pixel-coordinates
+    # to scene-coordinates when clicked on QGraphicsView, there seems
+    # to happen a rounding of pixels to integers internally.
+    atol = 1e-10 if ismpl else 0.005
+    assert_allclose(onset, want_onset, atol=atol)
+    assert_allclose(raw.annotations.duration[n_anns], 4., atol=atol)
     # modify annotation from end (duration 4 → 1.5)
     fig._fake_click((4.9, 1.), xform='data', button=1,
                     kind='motion')  # ease up to it
     fig._fake_click((5., 1.), add_points=[(2.5, 1.)], xform='data',
                     button=1, kind='drag')
     assert raw.annotations.onset[n_anns] == onset
-    assert_allclose(raw.annotations.duration[n_anns], 1.5)  # 4 → 1.5
+    # 4 → 1.5
+    assert_allclose(raw.annotations.duration[n_anns], 1.5, atol=atol)
     # modify annotation from beginning (duration 1.5 → 2.0)
     fig._fake_click((1., 1.), add_points=[(0.5, 1.)], xform='data', button=1,
                     kind='drag')
-    assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
-    assert_allclose(raw.annotations.duration[n_anns], 2.0)  # 1.5 → 2.0
+    assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=atol)
+    # 1.5 → 2.0
+    assert_allclose(raw.annotations.duration[n_anns], 2.0, atol=atol)
     assert len(raw.annotations.onset) == n_anns + 1
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
@@ -130,8 +130,8 @@ def _annotation_helper(raw, browse_backend, events=False):
     assert len(raw.annotations.onset) == n_anns + 1
     assert len(raw.annotations.duration) == n_anns + 1
     assert len(raw.annotations.description) == n_anns + 1
-    assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
-    assert_allclose(raw.annotations.duration[n_anns], 5.0)
+    assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=atol)
+    assert_allclose(raw.annotations.duration[n_anns], 5.0, atol=atol)
     if ismpl:
         assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
     # Delete
