@@ -397,11 +397,12 @@ def garbage_collect():
     gc.collect()
 
 
-@pytest.fixture(params=['matplotlib'])
+@pytest.fixture(params=['matplotlib', 'pyqtgraph'])
 def browse_backend(request, garbage_collect):
     """Parametrizes the name of the browser backend."""
     with use_browser_backend(request.param) as backend:
         yield backend
+        backend._close_all()
 
 
 @pytest.fixture(params=["mayavi", "pyvistaqt"])
