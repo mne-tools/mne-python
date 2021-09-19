@@ -819,7 +819,7 @@ def test_min_window_size(raw, cfg_value, browse_backend):
     set_config('MNE_BROWSE_RAW_SIZE', cfg_value)
     fig = raw.plot()
     # 8 × 8 inches is default minimum size
-    assert_array_equal(fig.get_size_inches(), (8, 8))
+    assert_array_equal(fig._get_size(), (8, 8))
     set_config('MNE_BROWSE_RAW_SIZE', old_cfg)
 
 
