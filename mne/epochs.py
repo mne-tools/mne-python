@@ -46,7 +46,7 @@ from .filter import detrend, FilterMixin, _check_fun
 from .parallel import parallel_func
 
 from .event import _read_events_fif, make_fixed_length_events
-from .fixes import _get_args, rng_uniform
+from .fixes import rng_uniform
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
 from .utils import (_check_fname, check_fname, logger, verbose,
@@ -1994,8 +1994,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                          for id_ in event_ids]
             for ii, id_ in enumerate(event_ids):
                 if len(id_) == 0:
-                    raise KeyError(orig_ids[ii] + "not found in the "
-                                   "epoch object's event_id.")
+                    raise KeyError(f"{orig_ids[ii]} not found in the epoch "
+                                   "object's event_id.")
                 elif len({sub_id in ids for sub_id in id_}) != 1:
                     err = ("Don't mix hierarchical and regular event_ids"
                            " like in \'%s\'." % ", ".join(id_))
@@ -2830,16 +2830,17 @@ def _minimize_time_diff(t_shorter, t_longer):
     """Find a boolean mask to minimize timing differences."""
     from scipy.interpolate import interp1d
     keep = np.ones((len(t_longer)), dtype=bool)
-    if len(t_shorter) == 0:
+    # special case: length zero or one
+    if len(t_shorter) < 2:  # interp1d won't work
         keep.fill(False)
+        if len(t_shorter) == 1:
+            idx = np.argmin(np.abs(t_longer - t_shorter))
+            keep[idx] = True
         return keep
     scores = np.ones((len(t_longer)))
     x1 = np.arange(len(t_shorter))
     # The first set of keep masks to test
-    kwargs = dict(copy=False, bounds_error=False)
-    # this is a speed tweak, only exists for certain versions of scipy
-    if 'assume_sorted' in _get_args(interp1d.__init__):
-        kwargs['assume_sorted'] = True
+    kwargs = dict(copy=False, bounds_error=False, assume_sorted=True)
     shorter_interp = interp1d(x1, t_shorter, fill_value=t_shorter[-1],
                               **kwargs)
     for ii in range(len(t_longer) - len(t_shorter)):
