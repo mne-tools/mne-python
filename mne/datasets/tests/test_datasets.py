@@ -3,7 +3,6 @@ from os import path as op
 import re
 import shutil
 import zipfile
-import sys
 
 import pytest
 
@@ -16,7 +15,11 @@ from mne.datasets.utils import _manifest_check_download
 from mne.utils import (requires_good_network,
                        get_subjects_dir, ArgvSetter, _pl, use_log_level,
                        catch_logging, hashfunc)
+from mne.utils.check import _soft_import
 
+
+# import pooch library for handling the dataset downloading
+pooch = _soft_import('pooch', 'dataset downloading', strict=True)
 
 subjects_dir = op.join(testing.data_path(download=False), 'subjects')
 
@@ -31,17 +34,15 @@ def test_datasets_basic(tmpdir, monkeypatch):
                   'visual_92_categories', 'fieldtrip_cmc'):
         if dname.startswith('bst'):
             dataset = getattr(datasets.brainstorm, dname)
-            check_name = 'brainstorm.%s' % (dname,)
         else:
             dataset = getattr(datasets, dname)
-            check_name = dname
         if dataset.data_path(download=False) != '':
             assert isinstance(dataset.get_version(), str)
-            assert datasets.utils.has_dataset(check_name)
+            assert datasets.utils.has_dataset(dname)
         else:
             assert dataset.get_version() is None
-            assert not datasets.utils.has_dataset(check_name)
-        print('%s: %s' % (dname, datasets.utils.has_dataset(check_name)))
+            assert not datasets.utils.has_dataset(dname)
+        print('%s: %s' % (dname, datasets.utils.has_dataset(dname)))
     tempdir = str(tmpdir)
     # don't let it read from the config file to get the directory,
     # force it to look for the default
@@ -63,9 +64,11 @@ def test_downloads(tmpdir, monkeypatch, capsys):
     """Test dataset URL and version handling."""
     # Try actually downloading a dataset
     kwargs = dict(path=str(tmpdir), verbose=True)
-    path = datasets._fake.data_path(update_path=False, **kwargs)
-    out, _ = capsys.readouterr()
-    assert 'Downloading' in out
+    # XXX we shouldn't need to disable capsys here, but there's a pytest bug
+    # that we're hitting (https://github.com/pytest-dev/pytest/issues/5997)
+    # now that we use pooch
+    with capsys.disabled():
+        path = datasets._fake.data_path(update_path=False, **kwargs)
     assert op.isdir(path)
     assert op.isfile(op.join(path, 'bar'))
     assert not datasets.utils.has_dataset('fake')  # not in the desired path
@@ -104,12 +107,14 @@ def test_downloads(tmpdir, monkeypatch, capsys):
     # 2. Will try to update when `data_path` gets called, with logged message
     want_msg = 'Correctly trying to download newer version'
 
-    def _error_download(url, full_name, print_destination, hash_, hash_type):
+    def _error_download(self, fname, downloader, processor):
+        url = self.get_url(fname)
+        full_path = self.abspath / fname
         assert 'foo.tgz' in url
-        assert str(tmpdir) in full_name
+        assert str(tmpdir) in str(full_path)
         raise RuntimeError(want_msg)
 
-    monkeypatch.setattr(datasets.utils, '_fetch_file', _error_download)
+    monkeypatch.setattr(pooch.Pooch, 'fetch', _error_download)
     with pytest.raises(RuntimeError, match=want_msg):
         datasets._fake.data_path(**kwargs)
     out, _ = capsys.readouterr()
@@ -156,7 +161,8 @@ def test_fetch_parcellations(tmpdir):
 _zip_fnames = ['foo/foo.txt', 'foo/bar.txt', 'foo/baz.txt']
 
 
-def _fake_zip_fetch(url, fname, hash_):
+def _fake_zip_fetch(url, path, fname, known_hash):
+    fname = op.join(path, fname)
     with zipfile.ZipFile(fname, 'w') as zipf:
         with zipf.open('foo/', 'w'):
             pass
@@ -165,12 +171,11 @@ def _fake_zip_fetch(url, fname, hash_):
                 pass
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6),
-                    reason="writing zip files requires python3.6 or higher")
 @pytest.mark.parametrize('n_have', range(len(_zip_fnames)))
 def test_manifest_check_download(tmpdir, n_have, monkeypatch):
     """Test our manifest downloader."""
-    monkeypatch.setattr(datasets.utils, '_fetch_file', _fake_zip_fetch)
+    pooch = _soft_import('pooch', 'download datasets')
+    monkeypatch.setattr(pooch, 'retrieve', _fake_zip_fetch)
     destination = op.join(str(tmpdir), 'empty')
     manifest_path = op.join(str(tmpdir), 'manifest.txt')
     with open(manifest_path, 'w') as fid:
@@ -188,7 +193,8 @@ def test_manifest_check_download(tmpdir, n_have, monkeypatch):
             pass
     with catch_logging() as log:
         with use_log_level(True):
-            url = hash_ = ''  # we mock the _fetch_file so these are not used
+            # we mock the pooch.retrieve so these are not used
+            url = hash_ = ''
             _manifest_check_download(manifest_path, destination, url, hash_)
     log = log.getvalue()
     n_missing = 3 - n_have

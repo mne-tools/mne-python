@@ -25,6 +25,7 @@ def _try_to_set_value(header, key, value, channel_index=None):
 
     # a nonzero return value indicates an error
     if return_val != 0:
+        header.close()
         raise RuntimeError(f"Setting {key} with {value} "
                            f"returned an error value "
                            f"{return_val}.")
@@ -143,6 +144,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         ch_type = ch_types[idx]
         signal_label = f'{ch_type.upper()} {ch}' if add_ch_type else ch
         if len(signal_label) > 16:
+            hdl.close()
             raise RuntimeError(f'Signal label for {ch} ({ch_type}) is '
                                f'longer than 16 characters, which is not '
                                f'supported in EDF. Please shorten the channel '
@@ -182,6 +184,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         if birthday is not None:
             if hdl.setPatientBirthDate(birthday[0], birthday[1],
                                        birthday[2]) != 0:
+                hdl.close()
                 raise RuntimeError(f"Setting patient birth date to {birthday} "
                                    f"returned an error")
         for key, val in [('PatientName', name),
@@ -198,6 +201,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                                 minute=meas_date.minute,
                                 second=meas_date.second,
                                 subsecond=subsecond) != 0:
+            hdl.close()
             raise RuntimeError(f"Setting start date time {meas_date} "
                                f"returned an error")
 
@@ -242,6 +246,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             buf[:len(ch_data)] = ch_data
             err = hdl.writeSamples(buf)
             if err != 0:
+                hdl.close()
                 raise RuntimeError(
                     f"writeSamples() for channel{ch_names[jdx]} "
                     f"returned error: {err}")
@@ -261,6 +266,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             onset = onset * 10000
             duration = duration * 10000
             if hdl.writeAnnotation(onset, duration, desc) != 0:
+                hdl.close()
                 raise RuntimeError(f'writeAnnotation() returned an error '
                                    f'trying to write {desc} at {onset} '
                                    f'for {duration} seconds.')
