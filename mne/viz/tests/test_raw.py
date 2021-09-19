@@ -93,9 +93,11 @@ def _annotation_helper(raw, browse_backend, events=False):
     onset = raw.annotations.onset[n_anns]
     want_onset = _sync_onset(raw, 1., inverse=True)
     # pyqtgraph: during the transformation from pixel-coordinates
-    # to scene-coordinates when clicked on QGraphicsView, there seems
-    # to happen a rounding of pixels to integers internally.
-    atol = 1e-10 if ismpl else 0.005
+    # to scene-coordinates when the click is simulated on QGraphicsView
+    # with QTest, there seems to happen a rounding of pixels to integers
+    # internally. This deviatian also seems to change between runs
+    # (maybe device-dependent?).
+    atol = 1e-10 if ismpl else 1e-2
     assert_allclose(onset, want_onset, atol=atol)
     assert_allclose(raw.annotations.duration[n_anns], 4., atol=atol)
     # modify annotation from end (duration 4 → 1.5)
@@ -242,7 +244,7 @@ def test_scale_bar(browse_backend):
         y_lims = [y.min(), y.max()]
         bar_lims = bar.get_ydata()
         assert_allclose(y_lims, bar_lims, atol=1e-4)
-
+    browse_backend._close_all()
 
 def test_plot_raw_selection(raw, browse_backend):
     """Test selection mode of plot_raw()."""
@@ -325,6 +327,7 @@ def test_plot_raw_selection(raw, browse_backend):
     fig._fake_keypress(sel_fig.mne.close_key, fig=sel_fig)
     fig._close_event(sel_fig)
     assert browse_backend._get_n_figs() == 0
+    browse_backend._close_all()
 
 
 def test_plot_raw_ssp_interaction(raw, browse_backend):
@@ -364,11 +367,12 @@ def test_plot_raw_ssp_interaction(raw, browse_backend):
     _proj_click_all(fig, browse_backend)
     assert fig.mne.projector is not None  # on
     assert _proj_status(ssp_fig, browse_backend) == [True, True, True]
+    browse_backend._close_all()
 
 
 def test_plot_raw_child_figures(raw, browse_backend):
     """Test spawning and closing of child figures."""
-    ismpl = browse_backend == 'matplotlib'
+    ismpl = browse_backend.name == 'matplotlib'
     with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     browse_backend._close_all()  # make sure we start clean
@@ -403,6 +407,7 @@ def test_plot_raw_child_figures(raw, browse_backend):
     assert browse_backend._get_n_figs() == 1
     # test resize of main window
     fig._resize_by_factor(0.5)
+    browse_backend._close_all()
 
 
 def test_plot_raw_keypresses(raw, browse_backend):
@@ -422,6 +427,7 @@ def test_plot_raw_keypresses(raw, browse_backend):
     fig = plot_raw(raw, group_by='selection')
     for key in 2 * keys + ('escape',):
         fig._fake_keypress(key)
+    browse_backend._close_all()
 
 
 def test_plot_raw_traces(raw, events, browse_backend):
@@ -630,6 +636,7 @@ def test_plot_annotations(raw, browse_backend):
         fig.mne.visible_annotations['test'] = True
         fig._update_regions_visible()
         assert fig.mne.regions[0].isVisible()
+    browse_backend._close_all()
 
 
 @pytest.mark.parametrize('hide_which', ([], [0], [1], [0, 1]))
@@ -653,24 +660,31 @@ def test_remove_annotations(raw, hide_which, browse_backend):
         fig._update_regions_visible()
     fig._fake_click((2.5, 0.1), xform='data', button=3)
     assert len(raw.annotations) == len(hide_which)
+    browse_backend._close_all()
 
 
 @pytest.mark.parametrize('filtorder', (0, 2))  # FIR, IIR
 def test_plot_raw_filtered(filtorder, raw, browse_backend):
     """Test filtering of raw plots."""
+    # Opening that many plots can cause a Segmentation fault
+    # if multithreading is activated in pyqtgraph-backend
+    pg_kwargs = {'preload': False}
     with pytest.raises(ValueError, match='lowpass.*Nyquist'):
-        raw.plot(lowpass=raw.info['sfreq'] / 2., filtorder=filtorder)
+        raw.plot(lowpass=raw.info['sfreq'] / 2., filtorder=filtorder,
+                 **pg_kwargs)
     with pytest.raises(ValueError, match='highpass must be > 0'):
-        raw.plot(highpass=0, filtorder=filtorder)
+        raw.plot(highpass=0, filtorder=filtorder, **pg_kwargs)
     with pytest.raises(ValueError, match='Filter order must be'):
-        raw.plot(lowpass=1, filtorder=-1)
+        raw.plot(lowpass=1, filtorder=-1, **pg_kwargs)
     with pytest.raises(ValueError, match="Invalid value for the 'clipping'"):
-        raw.plot(clipping='foo')
-    raw.plot(lowpass=40, clipping='transparent', filtorder=filtorder)
-    raw.plot(highpass=1, clipping='clamp', filtorder=filtorder)
-    raw.plot(lowpass=40, butterfly=True, filtorder=filtorder)
+        raw.plot(clipping='foo', **pg_kwargs)
+    raw.plot(lowpass=40, clipping='transparent', filtorder=filtorder,
+             **pg_kwargs)
+    raw.plot(highpass=1, clipping='clamp', filtorder=filtorder, **pg_kwargs)
+    raw.plot(lowpass=40, butterfly=True, filtorder=filtorder, **pg_kwargs)
     # shouldn't break if all shown are non-data
     RawArray(np.zeros((1, 100)), create_info(1, 20., 'stim')).plot(lowpass=5)
+    browse_backend._close_all()
 
 
 def test_plot_raw_psd(raw, raw_orig):
