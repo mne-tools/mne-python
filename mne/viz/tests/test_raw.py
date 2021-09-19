@@ -15,7 +15,6 @@ from mne.datasets import testing
 from mne.utils import get_config, set_config
 from mne.io import RawArray
 from mne.utils import _dt_to_stamp
-from mne.viz._figure import get_browser_backend
 from mne.viz.utils import _fake_click
 from mne.annotations import _sync_onset
 from mne.viz import plot_raw, plot_sensors
@@ -150,6 +149,7 @@ def _annotation_helper(raw, browse_backend, events=False):
         fig._fake_keypress('shift+left')
         assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
 
+
 def _proj_status(ssp_fig, browse_backend):
     if browse_backend.name == 'matplotlib':
         ax = ssp_fig.mne.proj_checkboxes.ax
@@ -245,6 +245,7 @@ def test_scale_bar(browse_backend):
         bar_lims = bar.get_ydata()
         assert_allclose(y_lims, bar_lims, atol=1e-4)
     browse_backend._close_all()
+
 
 def test_plot_raw_selection(raw, browse_backend):
     """Test selection mode of plot_raw()."""

@@ -22,7 +22,7 @@ from ..defaults import _handle_default
 from ..utils import logger, _validate_type, _check_option
 from ..io.pick import _DATA_CH_TYPES_SPLIT
 from .backends._utils import VALID_BROWSE_BACKENDS
-from .utils import _get_color_list, _setup_plot_projector, plt_show
+from .utils import _get_color_list, _setup_plot_projector
 
 MNE_BROWSE_BACKEND = None
 _backends = dict(
