@@ -1946,17 +1946,18 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         fig = fig or self
         fig.canvas.key_press_event(key)
 
-    def _fake_click(self, point, point2=None, fig=None, ax=None,
+    def _fake_click(self, point, add_points=None, fig=None, ax=None,
                     xform='ax', button=1, kind='press'):
         """Fake a click at a relative point within axes."""
         fig = fig or self
         ax = ax or self.mne.ax_main
-        if kind == 'drag' and point2 is not None:
+        if kind == 'drag' and add_points is not None:
             _fake_click(fig=fig, ax=ax, point=point, xform=xform,
                         button=button, kind='press')
-            _fake_click(fig=fig, ax=ax, point=point2, xform=xform,
-                        button=button, kind='motion')
-            _fake_click(fig=fig, ax=ax, point=point2, xform=xform,
+            for apoint in add_points:
+                _fake_click(fig=fig, ax=ax, point=apoint, xform=xform,
+                            button=button, kind='motion')
+            _fake_click(fig=fig, ax=ax, point=add_points[-1], xform=xform,
                         button=button, kind='release')
         else:
             _fake_click(fig=fig, ax=ax, point=point, xform=xform,

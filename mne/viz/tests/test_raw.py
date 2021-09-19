@@ -65,7 +65,7 @@ def _annotation_helper(raw, browse_backend, events=False):
         ann_fig._add_description('BAD test')
 
     # draw annotation
-    fig._fake_click((1., 1.), point2=(5., 1.), xform='data', button=1,
+    fig._fake_click((1., 1.), add_points=[(5., 1.)], xform='data', button=1,
                     kind='drag')
     if ismpl:
         fig._fake_click((1., 1.), xform='data', button=1, kind='press')
@@ -100,12 +100,12 @@ def _annotation_helper(raw, browse_backend, events=False):
     # modify annotation from end (duration 4 → 1.5)
     fig._fake_click((4.9, 1.), xform='data', button=1,
                     kind='motion')  # ease up to it
-    fig._fake_click((5., 1.), point2=(2.5, 1.), xform='data',
+    fig._fake_click((5., 1.), add_points=[(2.5, 1.)], xform='data',
                     button=1, kind='drag')
     assert raw.annotations.onset[n_anns] == onset
     assert_allclose(raw.annotations.duration[n_anns], 1.5)  # 4 → 1.5
     # modify annotation from beginning (duration 1.5 → 2.0)
-    fig._fake_click((1., 1.), point2=(0.5, 1.), xform='data', button=1,
+    fig._fake_click((1., 1.), add_points=[(0.5, 1.)], xform='data', button=1,
                     kind='drag')
     assert_allclose(raw.annotations.onset[n_anns], onset - 0.5, atol=1e-10)
     assert_allclose(raw.annotations.duration[n_anns], 2.0)  # 1.5 → 2.0
@@ -243,6 +243,7 @@ def test_scale_bar(browse_backend):
 
 def test_plot_raw_selection(raw, browse_backend):
     """Test selection mode of plot_raw()."""
+    ismpl = browse_backend.name == 'matplotlib'
     with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     browse_backend._close_all()           # ensure all are closed
@@ -250,8 +251,6 @@ def test_plot_raw_selection(raw, browse_backend):
     fig = raw.plot(group_by='selection', proj=False)
     assert browse_backend._get_n_figs() == 2
     sel_fig = fig.mne.fig_selection
-    # ToDo: These gui-elements might differ in pyqtgraph.
-    buttons = sel_fig.mne.radio_ax.buttons
     assert sel_fig is not None
     # test changing selection with arrow keys
     sel_dict = fig.mne.ch_selections
@@ -264,39 +263,61 @@ def test_plot_raw_selection(raw, browse_backend):
     assert len(fig.mne.traces) == len(sel_dict['Misc'])  # 1
     # switch to butterfly mode
     fig._fake_keypress('b', fig=sel_fig)
-    assert len(fig.mne.traces) == len(np.concatenate(list(sel_dict.values())))
+    # ToDo: For pyqtgraph-backend the framework around RawTraceItem makes
+    #  it difficult to show the same channel multiple times which is why
+    #  it is currently not implemented.
+    #  This would be relevant if you wanted to plot several selections in
+    #  butterfly-mode which have some channels in common.
+    sel_picks = len(np.concatenate(list(sel_dict.values())))
+    if ismpl:
+        assert len(fig.mne.traces) == sel_picks
+    else:
+        assert len(fig.mne.traces) == sel_picks - 1
     assert fig.mne.butterfly
     # test clicking on radio buttons → should cancel butterfly mode
-    xy = buttons.circles[0].center
-    fig._fake_click(xy, fig=sel_fig, ax=sel_fig.mne.radio_ax, xform='data')
+    if ismpl:
+        xy = sel_fig.mne.radio_ax.buttons.circles[0].center
+        fig._fake_click(xy, fig=sel_fig, ax=sel_fig.mne.radio_ax, xform='data')
+    else:
+        chkbx = sel_fig.chkbxs[list(sel_fig.chkbxs.keys())[0]]
+        fig._fake_click((0, 1), fig=chkbx)
     assert len(fig.mne.traces) == len(sel_dict['Left-temporal'])  # 6
     assert not fig.mne.butterfly
     # test clicking on "custom" when not defined: should be no-op
-    before_state = buttons.value_selected
-    xy = buttons.circles[-1].center
-    fig._fake_click(xy, fig=sel_fig, ax=sel_fig.mne.radio_ax, xform='data')
+    if ismpl:
+        before_state = sel_fig.mne.radio_ax.buttons.value_selected
+        xy = sel_fig.mne.radio_ax.buttons.circles[-1].center
+        fig._fake_click(xy, fig=sel_fig, ax=sel_fig.mne.radio_ax, xform='data')
+        lasso = sel_fig.lasso
+        sensor_ax = sel_fig.mne.sensor_ax
+        assert sel_fig.mne.radio_ax.buttons.value_selected == before_state
+    else:
+        before_state = sel_fig.mne.old_selection
+        chkbx = sel_fig.chkbxs[list(sel_fig.chkbxs.keys())[-1]]
+        fig._fake_click((0.5, 0.5), fig=chkbx)
+        lasso = sel_fig.channel_fig.lasso
+        sensor_ax = sel_fig.channel_widget
+        assert before_state == sel_fig.mne.old_selection          # unchanged
     assert len(fig.mne.traces) == len(sel_dict['Left-temporal'])  # unchanged
-    assert buttons.value_selected == before_state                 # unchanged
     # test marking bad channel in selection mode → should make sensor red
-    assert sel_fig.lasso.ec[:, 0].sum() == 0   # R of RGBA zero for all chans
+    assert lasso.ec[:, 0].sum() == 0   # R of RGBA zero for all chans
     fig._click_ch_name(ch_index=1, button=1)  # mark bad
-    assert sel_fig.lasso.ec[:, 0].sum() == 1   # one channel red
+    assert lasso.ec[:, 0].sum() == 1   # one channel red
     fig._click_ch_name(ch_index=1, button=1)  # mark good
-    assert sel_fig.lasso.ec[:, 0].sum() == 0   # all channels black
+    assert lasso.ec[:, 0].sum() == 0   # all channels black
     # test lasso
-    sel_fig._set_custom_selection()  # lasso empty → should do nothing
-    sensor_ax = sel_fig.mne.sensor_ax
-    # Lasso with 1 mag/grad sensor unit (upper left)
-    fig._fake_click((0, 1), fig=sel_fig,
-                    ax=sensor_ax, xform='ax')
-    fig._fake_click((0.65, 1), fig=sel_fig, ax=sensor_ax,
-                    xform='ax', kind='motion')
-    fig._fake_click((0.65, 0.7), fig=sel_fig, ax=sensor_ax,
-                    xform='ax', kind='motion')
-    fig._fake_click((0, 0.7), fig=sel_fig, ax=sensor_ax,
-                    xform='ax', kind='release')
+    # Testing lasso-interactivity of sensor-plot within pyqtgraph-backend
+    # with QTest doesn't seem to work.
     want = ['MEG 0121', 'MEG 0122', 'MEG 0123']
-    assert sorted(want) == sorted(sel_fig.lasso.selection)
+    if ismpl:
+        sel_fig._set_custom_selection()  # lasso empty → should do nothing
+        # Lasso with 1 mag/grad sensor unit (upper left)
+        fig._fake_click((0, 1), add_points=[(0.65, 1), (0.65, 0.7), (0, 0.7)],
+                        fig=sel_fig, ax=sensor_ax, xform='ax', kind='drag')
+    else:
+        lasso.selection = want
+        sel_fig._set_custom_selection()
+    assert sorted(want) == sorted(fig.mne.ch_names[fig.mne.picks])
     # test joint closing of selection & data windows
     fig._fake_keypress(sel_fig.mne.close_key, fig=sel_fig)
     fig._close_event(sel_fig)
