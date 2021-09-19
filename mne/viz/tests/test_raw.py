@@ -68,9 +68,6 @@ def _annotation_helper(raw, browse_backend, events=False):
     fig._fake_click((1., 1.), add_points=[(5., 1.)], xform='data', button=1,
                     kind='drag')
     if ismpl:
-        fig._fake_click((1., 1.), xform='data', button=1, kind='press')
-        fig._fake_click((5., 1.), xform='data', button=1, kind='motion')
-        fig._fake_click((5., 1.), xform='data', button=1, kind='release')
         assert len(fig.mne.ax_main.texts) == n_anns + 1 + n_events + n_scale
         # test hover event
         fig._fake_keypress('p')  # first turn on draggable mode
@@ -95,7 +92,13 @@ def _annotation_helper(raw, browse_backend, events=False):
     assert raw.annotations.description[n_anns] == 'BAD test'
     onset = raw.annotations.onset[n_anns]
     want_onset = _sync_onset(raw, 1., inverse=True)
-    assert_allclose(onset, want_onset)
+    if ismpl:
+        assert_allclose(onset, want_onset)
+    else:
+        # pyqtgraph: during the transformation from pixel-coordinates
+        # to scene-coordinates when clicked on QGraphicsView, there seems
+        # to happen a rounding of pixels to integers internally.
+        assert_allclose(onset, want_onset, rtol=1e-4)
     assert_allclose(raw.annotations.duration[n_anns], 4.)
     # modify annotation from end (duration 4 → 1.5)
     fig._fake_click((4.9, 1.), xform='data', button=1,
@@ -121,8 +124,8 @@ def _annotation_helper(raw, browse_backend, events=False):
         assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
 
     # draw another annotation merging the two
-    fig._fake_click((5.5, 1.), (2., 1.), xform='data', button=1,
-                    kind='drag')
+    fig._fake_click((5.5, 1.), add_points=[(2., 1.)],
+                    xform='data', button=1, kind='drag')
     # delete the annotation
     assert len(raw.annotations.onset) == n_anns + 1
     assert len(raw.annotations.duration) == n_anns + 1
@@ -632,16 +635,22 @@ def test_plot_annotations(raw, browse_backend):
 @pytest.mark.parametrize('hide_which', ([], [0], [1], [0, 1]))
 def test_remove_annotations(raw, hide_which, browse_backend):
     """Test that right-click doesn't remove hidden annotation spans."""
+    descriptions = ['foo', 'bar']
     ann = Annotations(onset=[2, 1], duration=[1, 3],
-                      description=['foo', 'bar'])
+                      description=descriptions)
     raw.set_annotations(ann)
     assert len(raw.annotations) == 2
     fig = raw.plot()
     fig._fake_keypress('a')  # start annotation mode
-    # ToDo: This will be different in pyqtgraph (toolbar).
-    checkboxes = fig.mne.show_hide_annotation_checkboxes
-    for which in hide_which:
-        checkboxes.set_active(which)
+    if browse_backend.name == 'matplotlib':
+        checkboxes = fig.mne.show_hide_annotation_checkboxes
+        for which in hide_which:
+            checkboxes.set_active(which)
+    else:
+        for hide_idx in hide_which:
+            hide_key = descriptions[hide_idx]
+            fig.mne.visible_annotations[hide_key] = False
+        fig._update_regions_visible()
     fig._fake_click((2.5, 0.1), xform='data', button=3)
     assert len(raw.annotations) == len(hide_which)
 
