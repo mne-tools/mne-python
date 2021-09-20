@@ -95,123 +95,265 @@ RELEASES = dict(testing='0.123', misc='0.18')
 TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
 MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
 
-# remote locations of the various datasets
-URLS = dict(
-    bst_auditory='https://osf.io/5t9n8/download?version=1',
-    bst_phantom_ctf='https://osf.io/sxr8y/download?version=1',
-    bst_phantom_elekta='https://osf.io/dpcku/download?version=1',
-    bst_raw='https://osf.io/9675n/download?version=2',
-    bst_resting='https://osf.io/m7bd3/download?version=3',
-    epilepsy_ecog='https://osf.io/z4epq/download?revision=1',
-    erp_core='https://osf.io/rzgba/download?version=1',
-    fake=('https://github.com/mne-tools/mne-testing-data/raw/master/'
-          'datasets/foo.tgz'),
-    fieldtrip_cmc='https://osf.io/j9b6s/download?version=1',
-    fnirs_motor='https://osf.io/dj3eh/download?version=1',
-    hf_sef_raw='https://zenodo.org/record/889296/files/hf_sef_raw.tar.gz',
-    hf_sef_evoked=('https://zenodo.org/record/3523071/files/'
-                   'hf_sef_evoked.tar.gz'),
-    kiloword='https://osf.io/qkvf9/download?version=1',
-    misc=('https://codeload.github.com/mne-tools/mne-misc-data/tar.gz/'
-          f'{RELEASES["misc"]}'),
-    multimodal='https://ndownloader.figshare.com/files/5999598',
-    mtrf='https://osf.io/h85s2/download?version=1',
-    opm='https://osf.io/p6ae7/download?version=2',
-    phantom_4dbti='https://osf.io/v2brw/download?version=2',
-    refmeg_noise='https://osf.io/drt6v/download?version=1',
-    sample='https://osf.io/86qa2/download?version=5',
-    somato='https://osf.io/tp4sg/download?version=7',
-    spm='https://osf.io/je4s8/download?version=2',
-    ssvep='https://osf.io/z8h6k/download?version=5',
-    testing=('https://codeload.github.com/mne-tools/mne-testing-data/'
-             f'tar.gz/{RELEASES["testing"]}'),
-    visual_92_categories_1='https://osf.io/8ejrs/download?version=1',
-    visual_92_categories_2='https://osf.io/t4yjp/download?version=1',
+# Each dataset should contain minimally:
+# - archive_name : the name of the compressed file that is downloaded
+# - hash : the md5 hash of the file
+# - url : the web url at which the file is downloaded
+# - folder_name : the folder in which the files are uncompressed to
+# - config_key : the environment variable for that dataset
+# - (optional) token : An authorization token for private datasets.
+# include here the name of the zipped file and the ' : 'md5 hash
+# Note: other hashing algorithms can be enforced
+fnirs_motor = dict(
+    archive_name='MNE-fNIRS-motor-data.tgz',
+    hash='md5:c4935d19ddab35422a69f3326a01fef8',
+    url='https://osf.io/dj3eh/download?version=1',
+    folder_name='MNE-fNIRS-motor-data',
+    config_key='MNE_DATASETS_FNIRS_MOTOR_PATH',
 )
 
-# the name of the zipped file for each dataset
-ARCHIVE_NAMES = dict(
-    bst_auditory='bst_auditory.tar.gz',
-    bst_phantom_ctf='bst_phantom_ctf.tar.gz',
-    bst_phantom_elekta='bst_phantom_elekta.tar.gz',
-    bst_raw='bst_raw.tar.gz',
-    bst_resting='bst_resting.tar.gz',
-    erp_core='MNE-ERP-CORE-data.tar.gz',
-    epilepsy_ecog='MNE-epilepsy-ecog-data.tar.gz',
-    fake='foo.tgz',
-    fieldtrip_cmc='SubjectCMC.zip',
-    fnirs_motor='MNE-fNIRS-motor-data.tgz',
-    hf_sef_raw='hf_sef_raw.tar.gz',
-    hf_sef_evoked='hf_sef_evoked.tar.gz',
-    kiloword='MNE-kiloword-data.tar.gz',
-    misc=f'{MISC_VERSIONED}.tar.gz',
-    mtrf='mTRF_1.5.zip',
-    multimodal='MNE-multimodal-data.tar.gz',
-    opm='MNE-OPM-data.tar.gz',
-    phantom_4dbti='MNE-phantom-4DBTi.zip',
-    refmeg_noise='sample_reference_MEG_noise-raw.zip',
-    sample='MNE-sample-data-processed.tar.gz',
-    somato='MNE-somato-data.tar.gz',
-    spm='MNE-spm-face.tar.gz',
-    ssvep='ssvep_example_data.zip',
-    testing=f'{TESTING_VERSIONED}.tar.gz',
-    visual_92_categories_1='MNE-visual_92_categories-data-part1.tar.gz',
-    visual_92_categories_2='MNE-visual_92_categories-data-part2.tar.gz',
-)
-FOLDER_NAMES = dict(
-    bst_auditory='MNE-brainstorm-data',
-    bst_phantom_ctf='MNE-brainstorm-data',
-    bst_phantom_elekta='MNE-brainstorm-data',
-    bst_raw='MNE-brainstorm-data',
-    bst_resting='MNE-brainstorm-data',
-    erp_core='MNE-ERP-CORE-data',
-    epilepsy_ecog='MNE-epilepsy-ecog-data',
-    fake='foo',
-    fieldtrip_cmc='MNE-fieldtrip_cmc-data',
-    fnirs_motor='MNE-fNIRS-motor-data',
-    hf_sef_raw='HF_SEF',
-    hf_sef_evoked='HF_SEF',
-    kiloword='MNE-kiloword-data',
-    misc='MNE-misc-data',
-    mtrf='mTRF_1.5',
-    multimodal='MNE-multimodal-data',
-    opm='MNE-OPM-data',
-    phantom_4dbti='MNE-phantom-4DBTi',
-    refmeg_noise='MNE-refmeg-noise-data',
-    sample='MNE-sample-data',
-    somato='MNE-somato-data',
-    spm='MNE-spm-face',
-    ssvep='ssvep-example-data',
-    testing='MNE-testing-data',
-    visual_92_categories='MNE-visual_92_categories-data',
+kiloword = dict(
+    archive_name='MNE-kiloword-data.tar.gz',
+    hash='md5:3a124170795abbd2e48aae8727e719a8',
+    url='https://osf.io/qkvf9/download?version=1',
+    folder_name='MNE-kiloword-data',
+    config_key='MNE_DATASETS_KILOWORD_PATH',
 )
 
-# the environment configuration keys for each dataset name
-CONFIG_KEYS = dict(
-    bst_auditory='MNE_DATASETS_BRAINSTORM_PATH',
-    bst_phantom_ctf='MNE_DATASETS_BRAINSTORM_PATH',
-    bst_phantom_elekta='MNE_DATASETS_BRAINSTORM_PATH',
-    bst_raw='MNE_DATASETS_BRAINSTORM_PATH',
-    bst_resting='MNE_DATASETS_BRAINSTORM_PATH',
-    erp_core='MNE_DATASETS_ERP_CORE_PATH',
-    epilepsy_ecog='MNE_DATASETS_EPILEPSY_ECOG_PATH',
-    fake='MNE_DATASETS_FAKE_PATH',
-    fieldtrip_cmc='MNE_DATASETS_FIELDTRIP_CMC_PATH',
-    fnirs_motor='MNE_DATASETS_FNIRS_MOTOR_PATH',
-    hf_sef_raw='MNE_DATASETS_HF_SEF_PATH',
-    hf_sef_evoked='MNE_DATASETS_HF_SEF_PATH',
-    kiloword='MNE_DATASETS_KILOWORD_PATH',
-    misc='MNE_DATASETS_MISC_PATH',
-    multimodal='MNE_DATASETS_MULTIMODAL_PATH',
-    mtrf='MNE_DATASETS_MTRF_PATH',
-    opm='MNE_DATASETS_OPM_PATH',
-    refmeg_noise='MNE_DATASETS_REFMEG_NOISE_PATH',
-    phantom_4dbti='MNE_DATASETS_PHANTOM_4DBTI_PATH',
-    sample='MNE_DATASETS_SAMPLE_PATH',
-    spm='MNE_DATASETS_SPM_FACE_PATH',
-    somato='MNE_DATASETS_SOMATO_PATH',
-    ssvep='MNE_DATASETS_SSVEP_PATH',
-    testing='MNE_DATASETS_TESTING_PATH',
-    visual_92_categories='MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
+multimodal = dict(
+    archive_name='MNE-multimodal-data.tar.gz',
+    hash='md5:26ec847ae9ab80f58f204d09e2c08367',
+    url='https://ndownloader.figshare.com/files/5999598',
+    folder_name='MNE-multimodal-data',
+    config_key='MNE_DATASETS_MULTIMODAL_PATH',
 )
-assert set(ARCHIVE_NAMES) == set(URLS)
+
+opm = dict(
+    archive_name='MNE-OPM-data.tar.gz',
+    hash='md5:370ad1dcfd5c47e029e692c85358a374',
+    url='https://osf.io/p6ae7/download?version=2',
+    folder_name='MNE-OPM-data',
+    config_key='MNE_DATASETS_OPM_PATH',
+)
+
+phantom_4dbti = dict(
+    archive_name='MNE-phantom-4DBTi.zip',
+    hash='md5:938a601440f3ffa780d20a17bae039ff',
+    url='https://osf.io/v2brw/download?version=2',
+    folder_name='MNE-phantom-4DBTi',
+    config_key='MNE_DATASETS_PHANTOM_4DBTI_PATH',
+)
+
+sample = dict(
+    archive_name='MNE-sample-data-processed.tar.gz',
+    hash='md5:12b75d1cb7df9dfb4ad73ed82f61094f',
+    url='https://osf.io/86qa2/download?version=5',
+    folder_name='MNE-sample-data',
+    config_key='MNE_DATASETS_SAMPLE_PATH',
+)
+
+somato = dict(
+    archive_name='MNE-somato-data.tar.gz',
+    hash='md5:32fd2f6c8c7eb0784a1de6435273c48b',
+    url='https://osf.io/tp4sg/download?version=7',
+    folder_name='MNE-somato-data',
+    config_key='MNE_DATASETS_SOMATO_PATH'
+)
+
+spm = dict(
+    archive_name='MNE-spm-face.tar.gz',
+    hash='md5:9f43f67150e3b694b523a21eb929ea75',
+    url='https://osf.io/je4s8/download?version=2',
+    folder_name='MNE-spm-face',
+    config_key='MNE_DATASETS_SPM_FACE_PATH',
+)
+
+visual_92_categories_1 = dict(
+    archive_name='MNE-visual_92_categories-data-part1.tar.gz',
+    hash='md5:74f50bbeb65740903eadc229c9fa759f',
+    url='https://osf.io/8ejrs/download?version=1',
+    folder_name='MNE-visual_92_categories-data',
+    config_key='MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
+)
+visual_92_categories_2 = dict(
+    archive_name='MNE-visual_92_categories-data-part2.tar.gz',
+    hash='md5:203410a98afc9df9ae8ba9f933370e20',
+    url='https://osf.io/t4yjp/download?version=1',
+    folder_name='MNE-visual_92_categories-data',
+    config_key='MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
+)
+
+mtrf = dict(
+    archive_name='mTRF_1.5.zip',
+    hash='md5:273a390ebbc48da2c3184b01a82e4636',
+    url='https://osf.io/h85s2/download?version=1',
+    folder_name='mTRF_1.5',
+    config_key='MNE_DATASETS_MTRF_PATH'
+)
+refmeg_noise = dict(
+    archive_name='sample_reference_MEG_noise-raw.zip',
+    hash='md5:779fecd890d98b73a4832e717d7c7c45',
+    url='https://osf.io/drt6v/download?version=1',
+    folder_name='MNE-refmeg-noise-data',
+    config_key='MNE_DATASETS_REFMEG_NOISE_PATH'
+)
+ssvep = dict(
+    archive_name='ssvep_example_data.zip',
+    hash='md5:af866bbc0f921114ac9d683494fe87d6',
+    url='https://osf.io/z8h6k/download?version=5',
+    folder_name='ssvep-example-data',
+    config_key='MNE_DATASETS_SSVEP_PATH'
+)
+
+erp_core = dict(
+    archive_name='MNE-ERP-CORE-data.tar.gz',
+    hash='md5:5866c0d6213bd7ac97f254c776f6c4b1',
+    url='https://osf.io/rzgba/download?version=1',
+    folder_name='MNE-ERP-CORE-data',
+    config_key='MNE_DATASETS_ERP_CORE_PATH',
+)
+
+epilepsy_ecog = dict(
+    archive_name='MNE-epilepsy-ecog-data.tar.gz',
+    hash='md5:ffb139174afa0f71ec98adbbb1729dea',
+    url='https://osf.io/z4epq/download?revision=1',
+    folder_name='MNE-epilepsy-ecog-data',
+    config_key='MNE_DATASETS_EPILEPSY_ECOG_PATH',
+)
+
+# Fieldtrip CMC dataset
+fieldtrip_cmc = dict(
+    archive_name='SubjectCMC.zip',
+    hash='md5:6f9fd6520f9a66e20994423808d2528c',
+    url='https://osf.io/j9b6s/download?version=1',
+    folder_name='MNE-fieldtrip_cmc-data',
+    config_key='MNE_DATASETS_FIELDTRIP_CMC_PATH'
+)
+
+# brainstorm datasets:
+bst_auditory = dict(
+    archive_name='bst_auditory.tar.gz',
+    hash='md5:fa371a889a5688258896bfa29dd1700b',
+    url='https://osf.io/5t9n8/download?version=1',
+    folder_name='MNE-brainstorm-data',
+    config_key='MNE_DATASETS_BRAINSTORM_PATH',
+)
+bst_phantom_ctf = dict(
+    archive_name='bst_phantom_ctf.tar.gz',
+    hash='md5:80819cb7f5b92d1a5289db3fb6acb33c',
+    url='https://osf.io/sxr8y/download?version=1',
+    folder_name='MNE-brainstorm-data',
+    config_key='MNE_DATASETS_BRAINSTORM_PATH',
+)
+bst_phantom_elekta = dict(
+    archive_name='bst_phantom_elekta.tar.gz',
+    hash='md5:1badccbe17998d18cc373526e86a7aaf',
+    url='https://osf.io/dpcku/download?version=1',
+    folder_name='MNE-brainstorm-data',
+    config_key='MNE_DATASETS_BRAINSTORM_PATH',
+)
+bst_raw = dict(
+    archive_name='bst_raw.tar.gz',
+    hash='md5:fa2efaaec3f3d462b319bc24898f440c',
+    url='https://osf.io/9675n/download?version=2',
+    folder_name='MNE-brainstorm-data',
+    config_key='MNE_DATASETS_BRAINSTORM_PATH',
+)
+bst_resting = dict(
+    archive_name='bst_resting.tar.gz',
+    hash='md5:70fc7bf9c3b97c4f2eab6260ee4a0430',
+    url='https://osf.io/m7bd3/download?version=3',
+    folder_name='MNE-brainstorm-data',
+    config_key='MNE_DATASETS_BRAINSTORM_PATH',
+)
+
+# HF-SEF
+hf_sef_raw = dict(
+    archive_name='hf_sef_raw.tar.gz',
+    hash='md5:33934351e558542bafa9b262ac071168',
+    url='https://zenodo.org/record/889296/files/hf_sef_raw.tar.gz',
+    folder_name='HF_SEF',
+    config_key='MNE_DATASETS_HF_SEF_PATH',
+)
+hf_sef_evoked = dict(
+    archive_name='hf_sef_evoked.tar.gz',
+    hash='md5:13d34cb5db584e00868677d8fb0aab2b',
+    url=('https://zenodo.org/record/3523071/files/'
+         'hf_sef_evoked.tar.gz'),
+    folder_name='HF_SEF',
+    config_key='MNE_DATASETS_HF_SEF_PATH',
+)
+
+# "fake" dataset (for testing)
+fake = dict(
+    archive_name='foo.tgz',
+    hash='md5:3194e9f7b46039bb050a74f3e1ae9908',
+    url=('https://github.com/mne-tools/mne-testing-data/raw/master/'
+         'datasets/foo.tgz'),
+    folder_name='foo',
+    config_key='MNE_DATASETS_FAKE_PATH'
+)
+
+# FreeSurfer files
+lh_aparc_sub_annot = dict(
+    archive_name='lh.aparc_sub.annot',
+    hash='md5:9e4d8d6b90242b7e4b0145353436ef77',
+)
+rh_aparc_sub_annot = dict(
+    archive_name='rh.aparc_sub.annot',
+    hash='md5:dd6464db8e7762d969fc1d8087cd211b'
+)
+
+# below, do **not** include the release
+# number in the names of the testing or
+# misc datasets (it gets done automatically
+# in mne/datasets/utils.py). Only update
+# the ' : 'md5 hashes as needed.
+testing = dict(
+    archive_name=f'{TESTING_VERSIONED}.tar.gz',  # 'mne-testing-data',
+    hash='md5:db07710c0b94476f954f60926685b5b7',
+    url=('https://codeload.github.com/mne-tools/mne-testing-data/'
+         f'tar.gz/{RELEASES["testing"]}'),
+    folder_name='MNE-testing-data',
+    config_key='MNE_DATASETS_TESTING_PATH',
+)
+misc = dict(
+    archive_name=f'{MISC_VERSIONED}.tar.gz',  # 'mne-misc-data',
+    hash='md5:0aa25a9bb4f204b3d4769f0b84e9b526',
+    url=('https://codeload.github.com/mne-tools/mne-misc-data/tar.gz/'
+         f'{RELEASES["misc"]}'),
+    folder_name='MNE-misc-data',
+    config_key='MNE_DATASETS_MISC_PATH'
+)
+
+# Define all internal MNE datasets here.
+# Note: That all dictionary keys are equal to the name of the variable
+# to make things easier to reference
+MNE_DATASETS = dict(
+    bst_auditory=bst_auditory,
+    bst_phantom_ctf=bst_phantom_ctf,
+    bst_phantom_elekta=bst_phantom_elekta,
+    bst_raw=bst_raw,
+    bst_resting=bst_resting,
+    epilepsy_ecog=epilepsy_ecog,
+    erp_core=erp_core,
+    fake=fake,
+    fieldtrip_cmc=fieldtrip_cmc,
+    fnirs_motor=fnirs_motor,
+    hf_sef_raw=hf_sef_raw,
+    hf_sef_evoked=hf_sef_evoked,
+    kiloword=kiloword,
+    misc=misc,
+    multimodal=multimodal,
+    mtrf=mtrf,
+    opm=opm,
+    phantom_4dbti=phantom_4dbti,
+    refmeg_noise=refmeg_noise,
+    sample=sample,
+    somato=somato,
+    spm=spm,
+    ssvep=ssvep,
+    testing=testing,
+    visual_92_categories_1=visual_92_categories_1,
+    visual_92_categories_2=visual_92_categories_2,
+)

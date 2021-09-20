@@ -9,7 +9,6 @@ from ...utils import verbose, get_config
 from ..utils import (has_dataset, _data_path, _data_path_doc,
                      _get_version, _version_doc)
 
-
 has_testing_data = partial(has_dataset, name='testing')
 
 
