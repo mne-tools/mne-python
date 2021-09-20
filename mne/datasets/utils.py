@@ -335,16 +335,6 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         # load the checksum registry
         fetcher.load_registry(registry)
 
-    # update the keys that are versioned
-    if name == 'testing':
-        versioned_keys = {
-            f'{TESTING_VERSIONED}.tar.gz': dataset_hash}
-    elif name == 'misc':
-        versioned_keys = {
-            f'{MISC_VERSIONED}.tar.gz': dataset_hash}
-    fetcher.registry.update(versioned_keys)
-    for key in ('testing', 'misc'):
-        del fetcher.registry[f'mne-{key}-data']
     # use our logger level for pooch's logger too
     pooch.get_logger().setLevel(logger.getEffectiveLevel())
 
