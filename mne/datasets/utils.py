@@ -152,7 +152,7 @@ def _do_path_update(path, update_path, key, name):
 
 def _data_path(path=None, force_update=False, update_path=True, download=True,
                name=None, check_version=False, return_version=False,
-               accept=False):
+               accept=False, auth=None):
     """Aux function.
 
     This is a general function for fetching MNE datasets. In order
@@ -195,14 +195,20 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         Some datasets require an acceptance of an additional license.
         Default to False. If this is True, then license text should
         be passed into key word argument ``license_text``.
-    license_text : str | None
-        The text of a license agreement. Only used if ``accept`` is True.
+    auth : tuple | None
+        If defined, then must be a tuple of username and password/token
+        used for HTTP/HTTPS authorization in downloading.
 
     Returns
     -------
     path : str
         Path to {name} dataset directory.
     """
+    if auth is not None:
+        if len(auth) != 2:
+            raise RuntimeError('auth should be a 2-tuple consisting '
+                               'of a username and password/token.')
+
     # import pooch library for handling the dataset downloading
     pooch = _soft_import('pooch', 'dataset downloading', strict=True)
 
@@ -265,10 +271,12 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
                                    'dataset')
 
     # downloader & processors
-    progressbar = True
+    download_params = dict(progressbar=True)  # use tqdm
     if name == 'fake':
-        progressbar = False
-    downloader = pooch.HTTPDownloader(progressbar=progressbar)  # use tqdm
+        download_params['progressbar'] = False
+    if auth is not None:
+        download_params['auth'] = auth
+    downloader = pooch.HTTPDownloader(**download_params)  
     unzip = pooch.Unzip(extract_dir=path)  # to unzip downloaded file
     untar = pooch.Untar(extract_dir=path)  # to untar downloaded file
 
@@ -338,23 +346,10 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         path=path,
         base_url='',    # Full URLs are given in the `urls` dict.
         version=None,   # Data versioning is decoupled from MNE-Python version.
-        registry=None,  # Registry is loaded from file, below.
         urls=pooch_urls,
-        retry_if_failed=2  # 2 retries = 3 total attempts
+        retry_if_failed=2,  # 2 retries = 3 total attempts
+        registry=pooch_hash_mapping
     )
-
-    # create temporary checksum registry
-    with tempfile.TemporaryDirectory() as tmpdir:
-        registry = op.join(tmpdir, 'dataset_checksums.txt')
-
-        # write the md5 hashes
-        with open(registry, 'w') as fout:
-            for archive_name, dataset_hash in pooch_hash_mapping.items():
-                # write to the checksums file registry
-                fout.write(f'{archive_name} {dataset_hash}\n')
-
-        # load the checksum registry
-        fetcher.load_registry(registry)
 
     # use our logger level for pooch's logger too
     pooch.get_logger().setLevel(logger.getEffectiveLevel())
