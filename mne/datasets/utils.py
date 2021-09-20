@@ -23,7 +23,7 @@ from .config import (_bst_license_text, _hcp_mmp_license_text, RELEASES,
                      TESTING_VERSIONED, MISC_VERSIONED, MNE_DATASETS)
 from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
-from ..utils import (get_config, set_config, logger, warn, _resource_path,
+from ..utils import (get_config, set_config, logger, warn,
                      verbose, get_subjects_dir, _pl, _safe_input)
 from ..utils.docs import docdict
 from ..utils.check import _soft_import
@@ -338,10 +338,10 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     # update the keys that are versioned
     if name == 'testing':
         versioned_keys = {
-            f'{TESTING_VERSIONED}.tar.gz': fetcher.registry['mne-testing-data']}
+            f'{TESTING_VERSIONED}.tar.gz': dataset_hash}
     elif name == 'misc':
         versioned_keys = {
-            f'{MISC_VERSIONED}.tar.gz': fetcher.registry['mne-misc-data']}
+            f'{MISC_VERSIONED}.tar.gz': dataset_hash}
     fetcher.registry.update(versioned_keys)
     for key in ('testing', 'misc'):
         del fetcher.registry[f'mne-{key}-data']
