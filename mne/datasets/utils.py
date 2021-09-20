@@ -150,8 +150,8 @@ def _do_path_update(path, update_path, key, name):
     return path
 
 
-def _data_path(path=None, force_update=False, update_path=True, download=True,
-               name=None, check_version=False, return_version=False,
+def _data_path(dataset_params, path=None, force_update=False, update_path=True,
+               download=True, name=None, check_version=False, return_version=False,
                accept=False, auth=None):
     """Aux function.
 
@@ -163,6 +163,10 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
 
     Parameters
     ----------
+    dataset_params : dict of dict
+        The dataset name and corresponding parameters to download each dataset.
+        The dataset parameters that contains the following keys: ``archive_name``,
+        ``url``, ``folder_name``, ``hash``, ``config_key`` (optional).
     path : None | str
         Location of where to look for the {name} dataset.
         If None, the environment variable or config parameter
@@ -193,11 +197,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         Defaults to False.
     accept : bool
         Some datasets require an acceptance of an additional license.
-        Default to False. If this is True, then license text should
-        be passed into key word argument ``license_text``.
-    auth : tuple | None
-        If defined, then must be a tuple of username and password/token
-        used for HTTP/HTTPS authorization in downloading.
+        Default to False.
 
     Returns
     -------
