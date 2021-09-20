@@ -6,8 +6,10 @@
 from functools import partial
 
 from ...utils import verbose, get_config
-from ..utils import (has_dataset, _data_path, _data_path_doc,
-                     _get_version, _version_doc)
+from ..utils import (has_dataset, _data_path_doc,
+                     _get_version, _version_doc, _soft_import)
+from ..config import testing
+from ..fetch import fetch_dataset
 
 has_testing_data = partial(has_dataset, name='testing')
 
@@ -19,9 +21,15 @@ def data_path(path=None, force_update=False, update_path=True,
     if download and \
             get_config('MNE_SKIP_TESTING_DATASET_TESTS', 'false') == 'true':
         raise RuntimeError('Cannot download data if skipping is forced')
-    return _data_path(path=path, force_update=force_update,
-                      update_path=update_path, name='testing',
-                      download=download)
+    
+    # import pooch library for handling the dataset downloading
+    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
+
+    dataset_params = dict(name=testing)
+    processor = pooch.Untar(extract_dir=path)  # to untar downloaded file
+    return fetch_dataset(dataset_params=dataset_params, processor=processor,
+                         path=path, force_update=force_update,
+                         update_path=update_path, download=download)
 
 
 data_path.__doc__ = _data_path_doc.format(name='testing',
