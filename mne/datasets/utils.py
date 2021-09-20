@@ -210,6 +210,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     this_dataset = MNE_DATASETS[name]
     archive_name = this_dataset['archive_name']
     dataset_url = this_dataset['url']
+    dataset_hash = this_dataset['hash']
     config_key = this_dataset['config_key']
     folder_name = this_dataset['folder_name']
 
@@ -325,16 +326,22 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
 
     # create temporary checksum registry
     with tempfile.TemporaryDirectory() as tmpdir:
-        registry = tmpdir / 'dataset_checksums.txt'
+        registry = op.join(tmpdir, 'dataset_checksums.txt')
 
-    # load the checksum registry
-    registry = _resource_path('mne.data', 'dataset_checksums.txt')
-    fetcher.load_registry(registry)
+        # write the md5 hashes
+        with open(registry, 'w') as fout:
+            fout.write(f'{archive_name} {dataset_hash}')
+
+        # load the checksum registry
+        fetcher.load_registry(registry)
 
     # update the keys that are versioned
-    versioned_keys = {
-        f'{TESTING_VERSIONED}.tar.gz': fetcher.registry['mne-testing-data'],
-        f'{MISC_VERSIONED}.tar.gz': fetcher.registry['mne-misc-data']}
+    if name == 'testing':
+        versioned_keys = {
+            f'{TESTING_VERSIONED}.tar.gz': fetcher.registry['mne-testing-data']}
+    elif name == 'misc':
+        versioned_keys = {
+            f'{MISC_VERSIONED}.tar.gz': fetcher.registry['mne-misc-data']}
     fetcher.registry.update(versioned_keys)
     for key in ('testing', 'misc'):
         del fetcher.registry[f'mne-{key}-data']
