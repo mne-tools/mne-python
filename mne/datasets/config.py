@@ -168,6 +168,13 @@ spm = dict(
     config_key='MNE_DATASETS_SPM_FACE_PATH',
 )
 
+# Visual 92 categories has the dataset split into 2 files.
+# We define a dictionary holding the items with the same
+# value across both files: folder name and configuration key.
+visual_92_categories = dict(
+    folder_name='MNE-visual_92_categories-data',
+    config_key='MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
+)
 visual_92_categories_1 = dict(
     archive_name='MNE-visual_92_categories-data-part1.tar.gz',
     hash='md5:74f50bbeb65740903eadc229c9fa759f',
@@ -354,6 +361,7 @@ MNE_DATASETS = dict(
     spm=spm,
     ssvep=ssvep,
     testing=testing,
+    visual_92_categories=visual_92_categories,
     visual_92_categories_1=visual_92_categories_1,
     visual_92_categories_2=visual_92_categories_2,
 )
