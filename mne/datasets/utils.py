@@ -276,7 +276,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         download_params['progressbar'] = False
     if auth is not None:
         download_params['auth'] = auth
-    downloader = pooch.HTTPDownloader(**download_params)  
+    downloader = pooch.HTTPDownloader(**download_params)
     unzip = pooch.Unzip(extract_dir=path)  # to unzip downloaded file
     untar = pooch.Untar(extract_dir=path)  # to untar downloaded file
 
