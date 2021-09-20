@@ -19,6 +19,8 @@ Current (0.24.dev0)
 
 .. |New Contributor| replace:: **New Contributor**
 
+.. |Dominique Makowski| replace:: **Dominique Makowski**
+
 .. |David Julien| replace:: **David Julien**
 
 .. |Romain Derollepot| replace:: **Romain Derollepot**
@@ -44,6 +46,8 @@ Current (0.24.dev0)
 Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
+
+- Allow custom R-peaks list to be passed to `create_ecg_epochs` (:gh:`9761` **by new contributor** |Dominique Makowski|_)
 
 - Get annotation descriptions from the name field of SNIRF stimulus groups when reading SNIRF files via `mne.io.read_raw_snirf` (:gh:`9575` **by new contributor** |Darin Erat Sleiter|_)
 
