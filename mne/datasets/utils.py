@@ -207,9 +207,9 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     pooch = _soft_import('pooch', 'dataset downloading', strict=True)
 
     # extract configuration parameters
-    this_dataset = MNE_DATASETS[name]
-    config_key = this_dataset['config_key']
-    folder_name = this_dataset['folder_name']
+    dataset_dict = MNE_DATASETS[name]
+    config_key = dataset_dict['config_key']
+    folder_name = dataset_dict['folder_name']
 
     # get download path for specific dataset
     path = _get_path(path=path, key=config_key, name=name)
@@ -340,7 +340,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         version=None,   # Data versioning is decoupled from MNE-Python version.
         registry=None,  # Registry is loaded from file, below.
         urls=pooch_urls,
-        retry_if_failed=2  # 2 retries = 3 total attempts,
+        retry_if_failed=2  # 2 retries = 3 total attempts
     )
 
     # create temporary checksum registry

@@ -97,13 +97,15 @@ MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
 
 # Each dataset should contain minimally:
 # - archive_name : the name of the compressed file that is downloaded
-# - hash : the md5 hash of the file
-# - url : the web url at which the file is downloaded
-# - folder_name : the folder in which the files are uncompressed to
-# - config_key : the environment variable for that dataset
-# - (optional) token : An authorization token for private datasets.
-# include here the name of the zipped file and the ' : 'md5 hash
-# Note: other hashing algorithms can be enforced
+# - hash : the cryptographic hash type of the file followed by a colon and then
+#          the hash value (examples: "sha256:19uheid...", "md5:upodh2io...")
+# - url : URL from which the file can be downloaded
+# - folder_name : the subfolder within the MNE data folder in which to save and
+#                 uncompress (if needed) the file(s)
+# - config_key : key to use with `mne.set_config` to store the on-disk location
+#                of the downloaded dataset (ex: "MNE_DATASETS_EEGBCI_PATH").
+# - (optional) token : An authorization token, if one is needed to access the
+#                      download URL.
 fnirs_motor = dict(
     archive_name='MNE-fNIRS-motor-data.tgz',
     hash='md5:c4935d19ddab35422a69f3326a01fef8',
@@ -311,11 +313,6 @@ rh_aparc_sub_annot = dict(
     hash='md5:dd6464db8e7762d969fc1d8087cd211b'
 )
 
-# below, do **not** include the release
-# number in the names of the testing or
-# misc datasets (it gets done automatically
-# in mne/datasets/utils.py). Only update
-# the ' : 'md5 hashes as needed.
 testing = dict(
     archive_name=f'{TESTING_VERSIONED}.tar.gz',  # 'mne-testing-data',
     hash='md5:db07710c0b94476f954f60926685b5b7',
