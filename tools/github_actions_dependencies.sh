@@ -31,8 +31,6 @@ else
 	pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/main
 	echo "imageio-ffmpeg, xlrd, mffpy"
 	pip install --progress-bar off --pre mayavi imageio-ffmpeg xlrd mffpy
-	echo "pooch"
-	pip install --progress-bar off pooch
 fi
 pip install --progress-bar off --upgrade -r requirements_testing.txt
 if [ "${DEPS}" != "minimal" ]; then
