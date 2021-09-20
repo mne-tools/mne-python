@@ -397,6 +397,14 @@ def garbage_collect():
     gc.collect()
 
 
+@pytest.fixture
+def mpl_backend(garbage_collect):
+    """Use for epochs/ica when not implemented with pyqtgraph yet."""
+    with use_browser_backend('matplotlib') as backend:
+        yield backend
+        backend._close_all()
+
+
 @pytest.fixture(params=['matplotlib', 'pyqtgraph'])
 def browse_backend(request, garbage_collect):
     """Parametrizes the name of the browser backend."""

@@ -244,7 +244,6 @@ def test_scale_bar(browse_backend):
         y_lims = [y.min(), y.max()]
         bar_lims = bar.get_ydata()
         assert_allclose(y_lims, bar_lims, atol=1e-4)
-    browse_backend._close_all()
 
 
 def test_plot_raw_selection(raw, browse_backend):
@@ -328,7 +327,6 @@ def test_plot_raw_selection(raw, browse_backend):
     fig._fake_keypress(sel_fig.mne.close_key, fig=sel_fig)
     fig._close_event(sel_fig)
     assert browse_backend._get_n_figs() == 0
-    browse_backend._close_all()
 
 
 def test_plot_raw_ssp_interaction(raw, browse_backend):
@@ -368,7 +366,6 @@ def test_plot_raw_ssp_interaction(raw, browse_backend):
     _proj_click_all(fig, browse_backend)
     assert fig.mne.projector is not None  # on
     assert _proj_status(ssp_fig, browse_backend) == [True, True, True]
-    browse_backend._close_all()
 
 
 def test_plot_raw_child_figures(raw, browse_backend):
@@ -408,7 +405,6 @@ def test_plot_raw_child_figures(raw, browse_backend):
     assert browse_backend._get_n_figs() == 1
     # test resize of main window
     fig._resize_by_factor(0.5)
-    browse_backend._close_all()
 
 
 def test_plot_raw_keypresses(raw, browse_backend):
@@ -428,7 +424,6 @@ def test_plot_raw_keypresses(raw, browse_backend):
     fig = plot_raw(raw, group_by='selection')
     for key in 2 * keys + ('escape',):
         fig._fake_keypress(key)
-    browse_backend._close_all()
 
 
 def test_plot_raw_traces(raw, events, browse_backend):
@@ -511,8 +506,7 @@ def test_plot_raw_traces(raw, events, browse_backend):
         raw.plot(event_color={0: 'r'})
     with pytest.raises(TypeError, match='event_color key must be an int, got'):
         raw.plot(event_color={'foo': 'r'})
-    fig = plot_raw(raw, events=events, event_color={-1: 'r', 998: 'b'})
-    browse_backend._close_all()
+    plot_raw(raw, events=events, event_color={-1: 'r', 998: 'b'})
 
 
 @pytest.mark.parametrize('group_by', ('position', 'selection'))
@@ -544,7 +538,6 @@ def test_plot_raw_groupby(raw, browse_backend, group_by):
     fig._fake_keypress('up')
     fig._fake_scroll(0.5, 0.5, -1)  # scroll down
     fig._fake_scroll(0.5, 0.5, 1)  # scroll up
-    browse_backend._close_all()
 
 
 def test_plot_raw_meas_date(raw, browse_backend):
@@ -558,7 +551,6 @@ def test_plot_raw_meas_date(raw, browse_backend):
     fig = raw.plot()
     for key in ['down', 'up', 'escape']:
         fig._fake_keypress(key, fig=fig.mne.fig_selection)
-    browse_backend._close_all()
 
 
 def test_plot_raw_nan(raw, browse_backend):
@@ -568,7 +560,6 @@ def test_plot_raw_nan(raw, browse_backend):
     # that there is a problem so probably okay to just plot something blank
     with pytest.warns(None):
         raw.plot(scalings='auto')
-    browse_backend._close_all()
 
 
 @testing.requires_testing_data
@@ -579,7 +570,6 @@ def test_plot_raw_white(raw_orig, noise_cov_io, browse_backend):
     # toggle whitening
     fig._fake_keypress('w')
     fig._fake_keypress('w')
-    browse_backend._close_all()
 
 
 @testing.requires_testing_data
@@ -587,7 +577,6 @@ def test_plot_ref_meg(raw_ctf, browse_backend):
     """Test plotting ref_meg."""
     raw_ctf.crop(0, 1)
     raw_ctf.plot()
-    browse_backend._close_all()
     pytest.raises(ValueError, raw_ctf.plot, group_by='selection')
 
 
@@ -637,7 +626,6 @@ def test_plot_annotations(raw, browse_backend):
         fig.mne.visible_annotations['test'] = True
         fig._update_regions_visible()
         assert fig.mne.regions[0].isVisible()
-    browse_backend._close_all()
 
 
 @pytest.mark.parametrize('hide_which', ([], [0], [1], [0, 1]))
@@ -661,7 +649,6 @@ def test_remove_annotations(raw, hide_which, browse_backend):
         fig._update_regions_visible()
     fig._fake_click((2.5, 0.1), xform='data', button=3)
     assert len(raw.annotations) == len(hide_which)
-    browse_backend._close_all()
 
 
 @pytest.mark.parametrize('filtorder', (0, 2))  # FIR, IIR
@@ -685,7 +672,6 @@ def test_plot_raw_filtered(filtorder, raw, browse_backend):
     raw.plot(lowpass=40, butterfly=True, filtorder=filtorder, **pg_kwargs)
     # shouldn't break if all shown are non-data
     RawArray(np.zeros((1, 100)), create_info(1, 20., 'stim')).plot(lowpass=5)
-    browse_backend._close_all()
 
 
 def test_plot_raw_psd(raw, raw_orig):

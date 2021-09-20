@@ -19,7 +19,7 @@ from mne.viz import plot_drop_log
 from mne.viz.utils import _fake_click
 
 
-def test_plot_epochs_not_preloaded(epochs_unloaded, browse_backend):
+def test_plot_epochs_not_preloaded(epochs_unloaded, mpl_backend):
     """Test plotting non-preloaded epochs."""
     assert epochs_unloaded._data is None
     epochs_unloaded.plot()
@@ -27,7 +27,7 @@ def test_plot_epochs_not_preloaded(epochs_unloaded, browse_backend):
 
 
 def test_plot_epochs_basic(epochs, epochs_full, noise_cov_io, capsys,
-                           browse_backend):
+                           mpl_backend):
     """Test epoch plotting."""
     assert len(epochs.events) == 1
     with epochs.info._unlock():
@@ -36,30 +36,30 @@ def test_plot_epochs_basic(epochs, epochs_full, noise_cov_io, capsys,
     # ToDo: The ticks will be fetched differently with pyqtgraph.
     ticks = [x.get_text() for x in fig.mne.ax_main.get_xticklabels(minor=True)]
     assert ticks == ['2']
-    browse_backend._close_all()
+    mpl_backend._close_all()
     # covariance / whitening
     assert len(noise_cov_io['names']) == 366  # all channels
     assert noise_cov_io['bads'] == []
     assert epochs.info['bads'] == []  # all good
     with pytest.warns(RuntimeWarning, match='projection'):
         epochs.plot(noise_cov=noise_cov_io)
-    browse_backend._close_all()
+    mpl_backend._close_all()
     # add a channel to the epochs.info['bads']
     epochs.info['bads'] = [epochs.ch_names[0]]
     with pytest.warns(RuntimeWarning, match='projection'):
         epochs.plot(noise_cov=noise_cov_io)
-    browse_backend._close_all()
+    mpl_backend._close_all()
     # add a channel to cov['bads']
     noise_cov_io['bads'] = [epochs.ch_names[1]]
     with pytest.warns(RuntimeWarning, match='projection'):
         epochs.plot(noise_cov=noise_cov_io)
-    browse_backend._close_all()
+    mpl_backend._close_all()
     # have a data channel missing from the covariance
     noise_cov_io['names'] = noise_cov_io['names'][:306]
     noise_cov_io['data'] = noise_cov_io['data'][:306][:306]
     with pytest.warns(RuntimeWarning, match='projection'):
         epochs.plot(noise_cov=noise_cov_io)
-    browse_backend._close_all()
+    mpl_backend._close_all()
     # other options
     fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
     fig._fake_keypress('escape')
@@ -78,12 +78,12 @@ def test_plot_epochs_basic(epochs, epochs_full, noise_cov_io, capsys,
 
 @pytest.mark.parametrize('scalings', (dict(mag=1e-12, grad=1e-11, stim='auto'),
                                       None, 'auto'))
-def test_plot_epochs_scalings(epochs, scalings, browse_backend):
+def test_plot_epochs_scalings(epochs, scalings, mpl_backend):
     """Test the valid options for scalings."""
     epochs.plot(scalings=scalings)
 
 
-def test_plot_epochs_colors(epochs, browse_backend):
+def test_plot_epochs_colors(epochs, mpl_backend):
     """Test epoch_colors, for compatibility with autoreject."""
     epoch_colors = [['r'] * len(epochs.ch_names) for _ in
                     range(len(epochs.events))]
@@ -96,7 +96,7 @@ def test_plot_epochs_colors(epochs, browse_backend):
     epochs.plot(event_color='b')
 
 
-def test_plot_epochs_scale_bar(epochs, browse_backend):
+def test_plot_epochs_scale_bar(epochs, mpl_backend):
     """Test scale bar for epochs."""
     fig = epochs.plot()
     ax = fig.mne.ax_main
@@ -109,7 +109,7 @@ def test_plot_epochs_scale_bar(epochs, browse_backend):
 
 
 def test_plot_epochs_clicks(epochs, epochs_full, capsys,
-                            browse_backend):
+                            mpl_backend):
     """Test plot_epochs mouse interaction."""
     fig = epochs.plot(events=epochs.events)
     x = fig.mne.traces[0].get_xdata()[3]
@@ -160,7 +160,7 @@ def test_plot_epochs_clicks(epochs, epochs_full, capsys,
     fig._fake_scroll(0.5, 0.5, 0.5)  # scroll up
 
 
-def test_plot_epochs_keypresses(epochs_full, browse_backend):
+def test_plot_epochs_keypresses(epochs_full, mpl_backend):
     """Test plot_epochs keypress interaction."""
     # we need more than 1 epoch
     epochs_full.drop_bad(dict(mag=4e-12))  # for histogram plot coverage
@@ -180,7 +180,7 @@ def test_plot_epochs_keypresses(epochs_full, browse_backend):
     fig._fake_click([x, y], xform='data', button=3)  # remove vlines
 
 
-def test_plot_overlapping_epochs_with_events(browse_backend):
+def test_plot_overlapping_epochs_with_events(mpl_backend):
     """Test drawing of event lines in overlapping epochs."""
     data = np.zeros(shape=(3, 2, 100))  # 3 epochs, 2 channels, 100 samples
     sfreq = 100
@@ -198,7 +198,7 @@ def test_epochs_plot_sensors(epochs):
     epochs.plot_sensors()
 
 
-def test_plot_epochs_nodata(browse_backend):
+def test_plot_epochs_nodata(mpl_backend):
     """Test plotting of epochs when no data channels are present."""
     data = np.random.RandomState(0).randn(10, 2, 1000)
     info = create_info(2, 1000., 'stim')
@@ -355,7 +355,7 @@ def test_plot_psdtopo_nirs(fnirs_epochs):
 
 
 @testing.requires_testing_data
-def test_plot_epochs_ctf(raw_ctf, browse_backend):
+def test_plot_epochs_ctf(raw_ctf, mpl_backend):
     """Test of basic CTF plotting."""
     raw_ctf.pick_channels(['UDIO001', 'UPPT001', 'SCLK01-177',
                            'BG1-4304', 'MLC11-4304', 'MLC11-4304',
@@ -363,7 +363,7 @@ def test_plot_epochs_ctf(raw_ctf, browse_backend):
     evts = make_fixed_length_events(raw_ctf)
     epochs = Epochs(raw_ctf, evts, preload=True)
     epochs.plot()
-    browse_backend._close_all()
+    mpl_backend._close_all()
 
     # test butterfly
     fig = epochs.plot(butterfly=True)
