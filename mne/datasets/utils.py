@@ -313,11 +313,35 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     # to urls
     pooch_urls = dict()
 
+    # construct the mapping needed by pooch for the hash checking
+    pooch_hash_mapping = dict()
+
     # handle case of multiple sub-datasets with different urls
     if name == 'visual_92_categories':
         names = [f'visual_92_categories_{n}' for n in (1, 2)]
     else:
         names = [name]
+
+    # write all pooch urls
+    for this_name in names:
+        this_dataset = MNE_DATASETS[this_name]
+        archive_name = this_dataset['archive_name']
+        dataset_url = this_dataset['url']
+        dataset_hash = this_dataset['hash']
+
+        # write to pooch url
+        pooch_urls[archive_name] = dataset_url
+        pooch_hash_mapping[archive_name] = dataset_hash
+
+    # create the download manager
+    fetcher = pooch.create(
+        path=path,
+        base_url='',    # Full URLs are given in the `urls` dict.
+        version=None,   # Data versioning is decoupled from MNE-Python version.
+        registry=None,  # Registry is loaded from file, below.
+        urls=pooch_urls,
+        retry_if_failed=2  # 2 retries = 3 total attempts,
+    )
 
     # create temporary checksum registry
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -325,27 +349,9 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
 
         # write the md5 hashes
         with open(registry, 'w') as fout:
-            for this_name in names:
-                # fetch and unpack the data
-                archive_name = MNE_DATASETS[this_name]['archive_name']
-                dataset_hash = MNE_DATASETS[this_name]['hash']
-                dataset_url = MNE_DATASETS[this_name]['url']
-
-                # write to pooch url
-                pooch_urls[archive_name] = dataset_url
-
+            for archive_name, dataset_hash in pooch_hash_mapping.items():
                 # write to the checksums file registry
                 fout.write(f'{archive_name} {dataset_hash}\n')
-
-        # create the download manager
-        fetcher = pooch.create(
-            path=path,
-            base_url='',    # Full URLs are given in the `urls` dict.
-            version=None,   # Data versioning is decoupled from MNE version.
-            registry=None,  # Registry is loaded from file, below.
-            urls=pooch_urls,
-            retry_if_failed=2  # 2 retries = 3 total attempts,
-        )
 
         # load the checksum registry
         fetcher.load_registry(registry)
