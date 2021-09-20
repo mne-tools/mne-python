@@ -19,12 +19,11 @@ from shutil import rmtree
 
 import numpy as np
 
-from .config import (_bst_license_text, _hcp_mmp_license_text, URLS,
-                     CONFIG_KEYS, ARCHIVE_NAMES, FOLDER_NAMES, RELEASES,
-                     TESTING_VERSIONED, MISC_VERSIONED)
+from .config import (_bst_license_text, _hcp_mmp_license_text, RELEASES,
+                     TESTING_VERSIONED, MISC_VERSIONED, MNE_DATASETS)
 from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
-from ..utils import (get_config, set_config, logger, warn, _resource_path,
+from ..utils import (get_config, set_config, logger, warn,
                      verbose, get_subjects_dir, _pl, _safe_input)
 from ..utils.docs import docdict
 from ..utils.check import _soft_import
@@ -153,7 +152,7 @@ def _do_path_update(path, update_path, key, name):
 
 def _data_path(path=None, force_update=False, update_path=True, download=True,
                name=None, check_version=False, return_version=False,
-               accept=False):
+               accept=False, auth=None):
     """Aux function.
 
     This is a general function for fetching MNE datasets. In order
@@ -196,22 +195,33 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         Some datasets require an acceptance of an additional license.
         Default to False. If this is True, then license text should
         be passed into key word argument ``license_text``.
-    license_text : str | None
-        The text of a license agreement. Only used if ``accept`` is True.
+    auth : tuple | None
+        If defined, then must be a tuple of username and password/token
+        used for HTTP/HTTPS authorization in downloading.
 
     Returns
     -------
     path : str
         Path to {name} dataset directory.
     """
+    if auth is not None:
+        if len(auth) != 2:
+            raise RuntimeError('auth should be a 2-tuple consisting '
+                               'of a username and password/token.')
+
     # import pooch library for handling the dataset downloading
     pooch = _soft_import('pooch', 'dataset downloading', strict=True)
 
+    # extract configuration parameters
+    dataset_dict = MNE_DATASETS[name]
+    config_key = dataset_dict['config_key']
+    folder_name = dataset_dict['folder_name']
+
     # get download path for specific dataset
-    path = _get_path(path=path, key=CONFIG_KEYS[name], name=name)
+    path = _get_path(path=path, key=config_key, name=name)
 
     # get the actual path to each dataset folder name
-    final_path = op.join(path, FOLDER_NAMES[name])
+    final_path = op.join(path, folder_name)
 
     # handle BrainStorm datasets with nested folders for datasets
     if name.startswith('bst_'):
@@ -242,7 +252,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         # if target folder exists (otherwise pooch downloads every time,
         # because we don't save the archive files after unpacking)
         if op.isdir(final_path):
-            _do_path_update(path, update_path, CONFIG_KEYS[name], name)
+            _do_path_update(path, update_path, config_key, name)
             return (final_path, data_version) if return_version else final_path
         # if download=False (useful for debugging)
         elif not download:
@@ -260,16 +270,18 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
                 raise RuntimeError('You must agree to the license to use this '
                                    'dataset')
 
-    # downloader & processors TODO: may want to skip using tqdm during tests?
-    progressbar = True
+    # downloader & processors
+    download_params = dict(progressbar=True)  # use tqdm
     if name == 'fake':
-        progressbar = False
-    downloader = pooch.HTTPDownloader(progressbar=progressbar)  # use tqdm
+        download_params['progressbar'] = False
+    if auth is not None:
+        download_params['auth'] = auth
+    downloader = pooch.HTTPDownloader(**download_params)
     unzip = pooch.Unzip(extract_dir=path)  # to unzip downloaded file
     untar = pooch.Untar(extract_dir=path)  # to untar downloaded file
 
     # this processor handles nested tar files
-    nested_untar = pooch.Untar(extract_dir=op.join(path, FOLDER_NAMES[name]))
+    nested_untar = pooch.Untar(extract_dir=op.join(path, folder_name))
 
     # create a map for each dataset name to its corresponding processor
     # Note: when adding a new dataset, a new line must be added here.
@@ -304,42 +316,52 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         erp_core=untar,
         epilepsy_ecog=untar,
     )
-    # construct the mapping needed by pooch
-    pooch_urls = {ARCHIVE_NAMES[key]: URLS[key] for key in URLS}
+
+    # construct the mapping needed by pooch from archive names
+    # to urls
+    pooch_urls = dict()
+
+    # construct the mapping needed by pooch for the hash checking
+    pooch_hash_mapping = dict()
+
+    # handle case of multiple sub-datasets with different urls
+    if name == 'visual_92_categories':
+        names = [f'visual_92_categories_{n}' for n in (1, 2)]
+    else:
+        names = [name]
+
+    # write all pooch urls
+    for this_name in names:
+        this_dataset = MNE_DATASETS[this_name]
+        archive_name = this_dataset['archive_name']
+        dataset_url = this_dataset['url']
+        dataset_hash = this_dataset['hash']
+
+        # write to pooch url
+        pooch_urls[archive_name] = dataset_url
+        pooch_hash_mapping[archive_name] = dataset_hash
 
     # create the download manager
     fetcher = pooch.create(
         path=path,
         base_url='',    # Full URLs are given in the `urls` dict.
         version=None,   # Data versioning is decoupled from MNE-Python version.
-        registry=None,  # Registry is loaded from file, below.
         urls=pooch_urls,
-        retry_if_failed=2  # 2 retries = 3 total attempts
+        retry_if_failed=2,  # 2 retries = 3 total attempts
+        registry=pooch_hash_mapping
     )
-    # load the checksum registry
-    registry = _resource_path('mne.data', 'dataset_checksums.txt')
-    fetcher.load_registry(registry)
 
-    # update the keys that are versioned
-    versioned_keys = {
-        f'{TESTING_VERSIONED}.tar.gz': fetcher.registry['mne-testing-data'],
-        f'{MISC_VERSIONED}.tar.gz': fetcher.registry['mne-misc-data']}
-    fetcher.registry.update(versioned_keys)
-    for key in ('testing', 'misc'):
-        del fetcher.registry[f'mne-{key}-data']
     # use our logger level for pooch's logger too
     pooch.get_logger().setLevel(logger.getEffectiveLevel())
-    # fetch and unpack the data
-    if name == 'visual_92_categories':
-        names = [f'visual_92_categories_{n}' for n in (1, 2)]
-    else:
-        names = [name]
+
     for this_name in names:
-        archive_name = ARCHIVE_NAMES[this_name]
+        # fetch and unpack the data
+        archive_name = MNE_DATASETS[this_name]['archive_name']
         fetcher.fetch(fname=archive_name, downloader=downloader,
                       processor=processors[name])
         # after unpacking, remove the archive file
         os.remove(op.join(path, archive_name))
+
     # remove version number from "misc" and "testing" datasets folder names
     if name == 'misc':
         rmtree(final_path, ignore_errors=True)
@@ -349,7 +371,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         os.replace(op.join(path, TESTING_VERSIONED), final_path)
     # maybe update the config
     old_name = 'brainstorm' if name.startswith('bst_') else name
-    _do_path_update(path, update_path, CONFIG_KEYS[name], old_name)
+    _do_path_update(path, update_path, config_key, old_name)
 
     # compare the version of the dataset and mne
     data_version = _dataset_version(path, name)
@@ -388,7 +410,10 @@ def has_dataset(name):
     """
     name = 'spm' if name == 'spm_face' else name
     dp = _data_path(download=False, name=name, check_version=False)
-    check = name if name.startswith('bst_') else FOLDER_NAMES[name]
+    if name.startswith('bst_'):
+        check = name
+    else:
+        check = MNE_DATASETS[name]['folder_name']
     return dp.endswith(check)
 
 
