@@ -277,7 +277,7 @@ def _get_ecg_channel_index(ch_name, inst):
 def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
                       tmax=0.5, l_freq=8, h_freq=16, reject=None, flat=None,
                       baseline=None, preload=True, keep_ecg=False,
-                      reject_by_annotation=True, decim=1, verbose=None):
+                      reject_by_annotation=True, decim=1, rpeaks=None, verbose=None):
     """Conveniently generate epochs around ECG artifact events.
 
     %(create_ecg_epochs)s
@@ -309,6 +309,9 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         When ECG is synthetically created (after picking), should it be added
         to the epochs? Must be False when synthetic channel is not used.
         Defaults to False.
+    rpeaks : list
+        A list of R-peak location indices. If `None`, will attempt to find them
+        using MNE's built-in detector.
     %(reject_by_annotation_epochs)s
 
         .. versionadded:: 0.14.0
@@ -332,9 +335,18 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         raise ValueError('keep_ecg can be True only if the ECG channel is '
                          'created synthetically and preload=True.')
 
-    events, _, _, ecg = find_ecg_events(
-        raw, ch_name=ch_name, event_id=event_id, l_freq=l_freq, h_freq=h_freq,
-        return_ecg=True, reject_by_annotation=reject_by_annotation)
+    # if r-peaks are not supplied externally (default), find them
+    if rpeaks is None:
+        events, _, _, ecg = find_ecg_events(
+            raw, ch_name=ch_name, event_id=event_id, l_freq=l_freq, h_freq=h_freq,
+            return_ecg=True, reject_by_annotation=reject_by_annotation)
+    else:
+        # compute heart rate
+        ecg = 60 / np.mean(np.ediff1d(rpeaks, to_begin=0)[1:] / raw.info['sfreq'])
+        # format events
+        events = np.array([np.array(rpeaks) + raw.first_samp,
+                           np.zeros(len(rpeaks), int),
+                           event_id * np.ones(len(rpeaks), int)]).T
 
     picks = _picks_to_idx(raw.info, picks, 'all', exclude=())
 
