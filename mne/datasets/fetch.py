@@ -91,7 +91,6 @@ def fetch_dataset(dataset_params, processor=None, path=None,
             },
         }
 
-
     Fetching datasets downloads files over HTTP/HTTPS. One can fetch private
     datasets by passing in authorization to the ``auth`` argument.
     """
