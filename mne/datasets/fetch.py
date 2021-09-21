@@ -16,8 +16,7 @@ def fetch_dataset(dataset_params, processor=None, path=None,
         The dataset parameters that contains the following keys:
         ``archive_name``, ``url``, ``folder_name``, ``hash``,
         ``config_key`` (optional). See Notes.
-    processor : None | "zip" | "tar" | instance of pooch.Unzip |
-            instance of pooch.Untar
+    processor : None | "zip" | "tar" | instance of pooch.Unzip | instance of pooch.Untar
         The processor to handle the downloaded file. If ``None`` (default),
         the files are left as is. If ``'zip'``, or ``'tar'`` will use
         our internally defined `pooch.Unzip` or `pooch.Untar`.
@@ -93,7 +92,7 @@ def fetch_dataset(dataset_params, processor=None, path=None,
 
     Fetching datasets downloads files over HTTP/HTTPS. One can fetch private
     datasets by passing in authorization to the ``auth`` argument.
-    """
+    """  # noqa
     from mne.datasets.utils import _data_path
 
     return _data_path(
