@@ -12,7 +12,7 @@ def fetch_dataset(dataset_params, processor=None, path=None,
     Parameters
     ----------
     dataset_params : dict of dict
-        The dataset name and corresponding parameters to download each dataset.
+        The dataset name and corresponding parameters to download the dataset.
         The dataset parameters that contains the following keys:
         ``archive_name``, ``url``, ``folder_name``, ``hash``,
         ``config_key`` (optional). See Notes.

@@ -12,7 +12,8 @@ Datasets
 
 .. autosummary::
    :toctree: generated/
-
+   
+   fetch.fetch_dataset
    brainstorm.bst_auditory.data_path
    brainstorm.bst_resting.data_path
    brainstorm.bst_raw.data_path
