@@ -237,6 +237,9 @@ Bugs
 
 - Fix bug where :func:`mne.io.read_raw_persyst` was lower-casing events it found in the ``.lay`` file (:gh:`9746` by `Adam Li`_)
 
+- Fix bug with :meth:`mne.Epochs.concatenate_epochs` where the concatenated events could end up in non-chronological order. (:gh:`9765` **by new contributor** |Jan Sosulski|_)
+
+
 API changes
 ~~~~~~~~~~~
 - In `mne.compute_source_morph`, the ``niter_affine`` and ``niter_sdr`` parameters have been replaced by ``niter`` and ``pipeline`` parameters for more consistent and finer-grained control of registration/warping steps and iteration (:gh:`9505` by `Alex Rockhill`_ and `Eric Larson`_)

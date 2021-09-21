@@ -2764,6 +2764,14 @@ def test_concatenate_epochs():
     with pytest.warns(RuntimeWarning, match='was empty'):
         concatenate_epochs([epochs, epochs2])
 
+    # check concatenating epochs results are chronologically ordered
+    epochs2 = epochs.copy().load_data()
+    # Ensure first event is at 0
+    epochs2.events[:, 0] -= np.min(epochs2.events[:, 0])
+    with pytest.warns(RuntimeWarning, match='not chronologically ordered'):
+        concatenate_epochs([epochs, epochs2], add_offset=False)
+    concatenate_epochs([epochs, epochs2], add_offset=True)
+
 
 def test_concatenate_epochs_large():
     """Test concatenating epochs on large data."""

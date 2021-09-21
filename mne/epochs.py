@@ -3364,8 +3364,7 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
     selection = out.selection
     # offset is the last epoch + tmax + 10 second
     shift = int((10 + tmax) * out.info['sfreq'])
-    events_offset = 0
-    events_number_overflow = False
+    events_overflow = False
     for ii, epochs in enumerate(epochs_list[1:], 1):
         _ensure_infos_match(epochs.info, info, f'epochs[{ii}]',
                             on_mismatch=on_mismatch)
@@ -3394,14 +3393,13 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
         elif add_offset:
             # We need to cast to a native Python int here to prevent an
             # overflow of a numpy int32 or int64 type.
-            events_offset += int(np.max(evs[:, 0])) + shift
-            if events_offset > INT32_MAX:
+            events_offset = int(np.max(events[-1][:, 0])) + shift
+            evs[:, 0] += events_offset
+            if not events_overflow and int(np.max(evs[:, 0])) > INT32_MAX:
                 warn(f'Event number greater than {INT32_MAX} created, '
                      'events[:, 0] will be assigned consecutive increasing '
                      'integer values')
-                events_number_overflow = True
-            else:
-                evs[:, 0] += events_offset
+                events_overflow = True
         events.append(evs)
         selection = np.concatenate((selection, epochs.selection))
         drop_log = drop_log + epochs.drop_log
@@ -3409,7 +3407,7 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
         metadata.append(epochs.metadata)
     events = np.concatenate(events, axis=0)
     # check to see if we exceeded our maximum event offset
-    if events_number_overflow:
+    if events_overflow:
         events[:, 0] = np.arange(1, len(events) + 1)
 
     # Create metadata object (or make it None)
