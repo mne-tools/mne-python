@@ -71,13 +71,13 @@ def fetch_dataset(dataset_params, processor=None, path=None,
     - ``archive_name``: The name of the compressed file that is downloaded
     - ``url``: URL from which the file can be downloaded
     - ``folder_name``: the subfolder within the MNE data folder in which to
-    save and uncompress (if needed) the file(s)
+        save and uncompress (if needed) the file(s)
     - ``hash``: the cryptographic hash type of the file followed by a colon and
-    then the hash value (examples: "sha256:19uheid...", "md5:upodh2io...")
+        then the hash value (examples: "sha256:19uheid...", "md5:upodh2io...")
     - ``config_key`` (optional): key to use with `mne.set_config` to store the
-    on-disk location of the downloaded dataset (ex:
-    "MNE_DATASETS_EEGBCI_PATH"). This is only used internally by MNE
-    developers.
+        on-disk location of the downloaded dataset (ex:
+        "MNE_DATASETS_EEGBCI_PATH"). This is only used internally by MNE
+        developers.
 
     An example would look like:
 
