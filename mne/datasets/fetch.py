@@ -68,13 +68,16 @@ def fetch_dataset(dataset_params, processor=None, path=None,
     One must define the following keys in the ``dataset_params`` dictionary
     for each dataset name:
 
-    - ``archive_name``: This is the name of the archived file.
-    - ``url``: This is the URL at which the files are downloaded from.
-    - ``folder_name``: This is the folder name in which the uncompressed
-    data will be stored.
-    - ``hash``: This is the hash of the downloaded archive file.
-    - ``config_key`` (optional): This is an MNE-Python environment variable
-    configuration key. This is only used internally by MNE developers.
+    - ``archive_name``: The name of the compressed file that is downloaded
+    - ``url``: URL from which the file can be downloaded
+    - ``folder_name``: the subfolder within the MNE data folder in which to
+    save and uncompress (if needed) the file(s)
+    - ``hash``: the cryptographic hash type of the file followed by a colon and
+    then the hash value (examples: "sha256:19uheid...", "md5:upodh2io...")
+    - ``config_key`` (optional): key to use with `mne.set_config` to store the
+    on-disk location of the downloaded dataset (ex:
+    "MNE_DATASETS_EEGBCI_PATH"). This is only used internally by MNE
+    developers.
 
     An example would look like:
 
@@ -88,7 +91,8 @@ def fetch_dataset(dataset_params, processor=None, path=None,
         },
     }
 
-    Fetching datasets downloads files over HTTP/HTTPS.
+    Fetching datasets downloads files over HTTP/HTTPS. One can fetch private
+    datasets by passing in authorization to the ``auth`` argument.
     """
     from mne.datasets.utils import _data_path
 
