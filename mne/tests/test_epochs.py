@@ -2349,6 +2349,9 @@ def test_drop_epochs():
     assert_array_equal(events[epochs[3:].selection], events1[[5, 6]])
     assert_array_equal(events[epochs['1'].selection], events1[[0, 1, 3, 5, 6]])
 
+    # After subset selection, drop log should be 0
+    assert_equal(epochs[0:1].drop_log_stats(), 0)
+
 
 def test_drop_epochs_mult():
     """Test that subselecting epochs or making less epochs is equivalent."""
