@@ -8,7 +8,7 @@ import os.path as op
 import os
 from ...utils import verbose, _check_option, _soft_import
 from ..utils import _get_path, _do_path_update
-from ..config import hf_sef_evoked, hf_sef_raw
+from ..config import MNE_DATASETS
 from ..fetch import fetch_dataset
 
 
@@ -54,10 +54,10 @@ def data_path(dataset='evoked', path=None, force_update=False,
     pooch = _soft_import('pooch', 'dataset downloading', strict=True)
 
     if dataset == 'raw':
-        data_dict = hf_sef_raw
+        data_dict = MNE_DATASETS['hf_sef_raw']
         dataset_params = {'hf_sef_raw': data_dict}
     else:
-        data_dict = hf_sef_evoked
+        data_dict = MNE_DATASETS['hf_sef_evoked']
         dataset_params = {'hf_sef_evoked': data_dict}
     config_key = data_dict['config_key']
     folder_name = data_dict['folder_name']
