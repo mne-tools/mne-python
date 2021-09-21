@@ -9,7 +9,6 @@
 # License: BSD Style.
 
 from collections import OrderedDict
-from mne.datasets.fetch import fetch_dataset
 import os
 import os.path as op
 import sys
@@ -22,6 +21,7 @@ import numpy as np
 
 from .config import (_bst_license_text, _hcp_mmp_license_text, RELEASES,
                      TESTING_VERSIONED, MISC_VERSIONED, MNE_DATASETS)
+from .fetch import fetch_dataset
 from .. import __version__ as mne_version
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, logger, warn,
@@ -149,6 +149,37 @@ def _do_path_update(path, update_path, key, name):
         if update_path:
             set_config(key, path, set_env=False)
     return path
+
+
+def _download_mne_dataset(name, processor, path, force_update,
+                          update_path, download, accept=False):
+    """Aux function for downloading internal MNE datasets."""
+    # import pooch library for handling the dataset downloading
+    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
+    dataset_params = {name: MNE_DATASETS[name]}
+    config_key = MNE_DATASETS[name]['config_key']
+    folder_name = MNE_DATASETS[name]['folder_name']
+
+    # get download path for specific dataset
+    path = _get_path(path=path, key=config_key, name=name)
+
+    # instantiate processor that unzips file
+    if processor == 'tar':
+        processor_ = pooch.Untar(extract_dir=path)
+    elif processor == 'zip':
+        processor_ = pooch.Unzip(extract_dir=path)
+    elif processor == 'nested_tar':
+        processor_ = pooch.Untar(extract_dir=op.join(path, folder_name))
+
+    # handle case of multiple sub-datasets with different urls
+    if name == 'visual_92_categories':
+        dataset_params = {name: MNE_DATASETS[name] for name in
+                          ['visual_92_categories_1', 'visual_92_categories_2']}
+
+    return fetch_dataset(dataset_params=dataset_params, processor=processor_,
+                         path=path, force_update=force_update,
+                         update_path=update_path, download=download,
+                         accept=accept)
 
 
 def _data_path(dataset_params, processor, path=None, force_update=False,

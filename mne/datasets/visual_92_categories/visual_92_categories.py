@@ -1,10 +1,8 @@
 # License: BSD Style.
 
-from ...utils import verbose, _soft_import
-from ..utils import _get_path, _data_path_doc, _get_version, _version_doc
-from ..config import (visual_92_categories, visual_92_categories_1,
-                      visual_92_categories_2)
-from ..fetch import fetch_dataset
+from ...utils import verbose
+from ..utils import (_download_mne_dataset, _data_path_doc, _get_version,
+                     _version_doc)
 
 
 @verbose
@@ -45,26 +43,10 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
         Radoslaw M. Cichy, Dimitrios Pantazis, Aude Oliva (2014) Resolving
         human object recognition in space and time. doi: 10.1038/NN.3635
     """
-    # import pooch library for handling the dataset downloading
-    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
-    dataset_params = visual_92_categories
-    config_key = dataset_params['config_key']
-
-    # get download path for specific dataset
-    path = _get_path(path=path, key=config_key, name='visual_92_categories')
-
-    # instantiate processor that unzips file
-    processor = pooch.Untar(extract_dir=path)
-
-    # handle case of multiple sub-datasets with different urls
-    dataset_params = {
-        'visual_92_categories_1': visual_92_categories_1,
-        'visual_92_categories_2': visual_92_categories_2,
-    }
-
-    return fetch_dataset(dataset_params=dataset_params, processor=processor,
-                         path=path, force_update=force_update,
-                         update_path=update_path, download=download)
+    return _download_mne_dataset(
+        name='visual_92_categories', processor='tar', path=path,
+        force_update=force_update, update_path=update_path,
+        download=download)
 
 
 data_path.__doc__ = _data_path_doc.format(

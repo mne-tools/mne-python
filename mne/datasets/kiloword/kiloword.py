@@ -1,9 +1,7 @@
 # License: BSD Style.
 
-from ...utils import verbose, _soft_import
-from ..utils import (_get_version, _version_doc, _get_path)
-from ..config import kiloword
-from ..fetch import fetch_dataset
+from ...utils import verbose
+from ..utils import (_get_version, _version_doc, _download_mne_dataset)
 
 
 @verbose
@@ -45,20 +43,10 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
     ----------
     .. footbibliography::
     """
-    # import pooch library for handling the dataset downloading
-    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
-    dataset_params = {'kiloword': kiloword}
-    config_key = kiloword['config_key']
-
-    # get download path for specific dataset
-    path = _get_path(path=path, key=config_key, name='kiloword')
-
-    # instantiate processor that unzips file
-    processor = pooch.Untar(extract_dir=path)
-
-    return fetch_dataset(dataset_params=dataset_params, processor=processor,
-                         path=path, force_update=force_update,
-                         update_path=update_path, download=download)
+    return _download_mne_dataset(
+        name='kiloword', processor='tar', path=path,
+        force_update=force_update, update_path=update_path,
+        download=download)
 
 
 def get_version():
