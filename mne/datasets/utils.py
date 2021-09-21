@@ -9,6 +9,7 @@
 # License: BSD Style.
 
 from collections import OrderedDict
+from mne.datasets.fetch import fetch_dataset
 import os
 import os.path as op
 import sys
@@ -150,9 +151,9 @@ def _do_path_update(path, update_path, key, name):
     return path
 
 
-def _data_path(dataset_params, path=None, force_update=False, update_path=True,
-               download=True, name=None, check_version=False, return_version=False,
-               accept=False, auth=None):
+def _data_path(dataset_params, processor, path=None, force_update=False,
+               update_path=True, download=True, check_version=False,
+               return_version=False, accept=False, auth=None):
     """Aux function.
 
     This is a general function for fetching MNE datasets. In order
@@ -165,8 +166,14 @@ def _data_path(dataset_params, path=None, force_update=False, update_path=True,
     ----------
     dataset_params : dict of dict
         The dataset name and corresponding parameters to download each dataset.
-        The dataset parameters that contains the following keys: ``archive_name``,
-        ``url``, ``folder_name``, ``hash``, ``config_key`` (optional).
+        The dataset parameters that contains the following keys:
+        ``archive_name``, ``url``, ``folder_name``, ``hash``,
+        ``config_key`` (optional).
+    processor : None | "zip" | "tar" | instance of pooch.Unzip |
+            instance of pooch.Untar
+        The processor to handle the downloaded file. If ``None`` (default),
+        the files are left as is. If ``'zip'``, or ``'tar'`` will use
+        our internally defined `pooch.Unzip` or `pooch.Untar`.
     path : None | str
         Location of where to look for the {name} dataset.
         If None, the environment variable or config parameter
@@ -213,12 +220,11 @@ def _data_path(dataset_params, path=None, force_update=False, update_path=True,
     pooch = _soft_import('pooch', 'dataset downloading', strict=True)
 
     # extract configuration parameters
-    dataset_dict = MNE_DATASETS[name]
+    names = list(dataset_params.keys())
+    name = names[0]
+    dataset_dict = dataset_params[name]
     config_key = dataset_dict['config_key']
     folder_name = dataset_dict['folder_name']
-
-    # get download path for specific dataset
-    path = _get_path(path=path, key=config_key, name=name)
 
     # get the actual path to each dataset folder name
     final_path = op.join(path, folder_name)
@@ -277,45 +283,6 @@ def _data_path(dataset_params, path=None, force_update=False, update_path=True,
     if auth is not None:
         download_params['auth'] = auth
     downloader = pooch.HTTPDownloader(**download_params)
-    unzip = pooch.Unzip(extract_dir=path)  # to unzip downloaded file
-    untar = pooch.Untar(extract_dir=path)  # to untar downloaded file
-
-    # this processor handles nested tar files
-    nested_untar = pooch.Untar(extract_dir=op.join(path, folder_name))
-
-    # create a map for each dataset name to its corresponding processor
-    # Note: when adding a new dataset, a new line must be added here.
-    processors = dict(
-        bst_auditory=nested_untar,
-        bst_phantom_ctf=nested_untar,
-        bst_phantom_elekta=nested_untar,
-        bst_raw=nested_untar,
-        bst_resting=nested_untar,
-        fake=untar,
-        fieldtrip_cmc=nested_untar,
-        kiloword=untar,
-        misc=untar,
-        mtrf=unzip,
-        multimodal=untar,
-        fnirs_motor=untar,
-        opm=untar,
-        sample=untar,
-        somato=untar,
-        spm=untar,
-        testing=untar,
-        visual_92_categories=untar,
-        phantom_4dbti=unzip,
-        refmeg_noise=unzip,
-        hf_sef_raw=pooch.Untar(
-            extract_dir=path, members=[f'hf_sef/{subdir}' for subdir in
-                                       ('MEG', 'SSS', 'subjects')]),
-        hf_sef_evoked=pooch.Untar(
-            extract_dir=path, members=[f'hf_sef/{subdir}' for subdir in
-                                       ('MEG', 'SSS', 'subjects')]),
-        ssvep=unzip,
-        erp_core=untar,
-        epilepsy_ecog=untar,
-    )
 
     # construct the mapping needed by pooch from archive names
     # to urls
@@ -324,15 +291,9 @@ def _data_path(dataset_params, path=None, force_update=False, update_path=True,
     # construct the mapping needed by pooch for the hash checking
     pooch_hash_mapping = dict()
 
-    # handle case of multiple sub-datasets with different urls
-    if name == 'visual_92_categories':
-        names = [f'visual_92_categories_{n}' for n in (1, 2)]
-    else:
-        names = [name]
-
-    # write all pooch urls
+    # write all pooch urls - possibly multiple
     for this_name in names:
-        this_dataset = MNE_DATASETS[this_name]
+        this_dataset = dataset_params[this_name]
         archive_name = this_dataset['archive_name']
         dataset_url = this_dataset['url']
         dataset_hash = this_dataset['hash']
@@ -358,7 +319,7 @@ def _data_path(dataset_params, path=None, force_update=False, update_path=True,
         # fetch and unpack the data
         archive_name = MNE_DATASETS[this_name]['archive_name']
         fetcher.fetch(fname=archive_name, downloader=downloader,
-                      processor=processors[name])
+                      processor=processor)
         # after unpacking, remove the archive file
         os.remove(op.join(path, archive_name))
 
@@ -390,7 +351,16 @@ def _get_version(name):
     """Get a dataset version."""
     if not has_dataset(name):
         return None
-    return _data_path(name=name, return_version=True)[1]
+    dataset_params = {
+        name: MNE_DATASETS[name]
+    }
+    config_key = MNE_DATASETS[name]['config_key']
+
+    # get download path for specific dataset
+    path = _get_path(path=None, key=config_key, name=name)
+
+    return fetch_dataset(dataset_params, path=path,
+                         return_version=True)[1]
 
 
 def has_dataset(name):
@@ -409,7 +379,16 @@ def has_dataset(name):
         True if the dataset is present.
     """
     name = 'spm' if name == 'spm_face' else name
-    dp = _data_path(download=False, name=name, check_version=False)
+    dataset_params = {
+        name: MNE_DATASETS[name]
+    }
+    config_key = MNE_DATASETS[name]['config_key']
+
+    # get download path for specific dataset
+    path = _get_path(path=None, key=config_key, name=name)
+
+    dp = fetch_dataset(dataset_params, path=path, download=False,
+                       check_version=False)
     if name.startswith('bst_'):
         check = name
     else:

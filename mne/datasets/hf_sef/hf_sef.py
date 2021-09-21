@@ -6,8 +6,10 @@
 
 import os.path as op
 import os
-from ...utils import verbose, _check_option
-from ..utils import _get_path, _do_path_update, _data_path
+from ...utils import verbose, _check_option, _soft_import
+from ..utils import _get_path, _do_path_update
+from ..config import hf_sef_evoked, hf_sef_raw
+from ..fetch import fetch_dataset
 
 
 @verbose
@@ -47,19 +49,38 @@ def data_path(dataset='evoked', path=None, force_update=False,
     .. footbibliography::
     """
     _check_option('dataset', dataset, ('evoked', 'raw'))
-    # check if data already exists, if so bail early
-    path = _get_path(path, 'MNE_DATASETS_HF_SEF_PATH', 'HF_SEF')
+
+    # import pooch library for handling the dataset downloading
+    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
+
+    if dataset == 'raw':
+        data_dict = hf_sef_raw
+        dataset_params = {'hf_sef_raw': data_dict}
+    else:
+        data_dict = hf_sef_evoked
+        dataset_params = {'hf_sef_evoked': data_dict}
+    config_key = data_dict['config_key']
+    folder_name = data_dict['folder_name']
+
+    # get download path for specific dataset
+    path = _get_path(path=path, key=config_key, name=folder_name)
     final_path = op.join(path, 'HF_SEF')
     megdir = op.join(final_path, 'MEG', 'subject_a')
     has_raw = (dataset == 'raw' and op.isdir(megdir) and
                any('raw' in filename for filename in os.listdir(megdir)))
     has_evoked = (dataset == 'evoked' and
                   op.isdir(op.join(final_path, 'subjects')))
+    # data not there, or force_update requested:
     if has_raw or has_evoked and not force_update:
         _do_path_update(path, update_path, 'MNE_DATASETS_HF_SEF_PATH',
                         'HF_SEF')
         return final_path
-    # data not there, or force_update requested:
-    name = f'hf_sef_{dataset}'
-    return _data_path(path=path, force_update=force_update,
-                      update_path=update_path, name=name)
+
+    # instantiate processor that unzips file
+    processor = pooch.Untar(
+        extract_dir=path, members=[f'hf_sef/{subdir}' for subdir in
+                                   ('MEG', 'SSS', 'subjects')]),
+
+    return fetch_dataset(dataset_params=dataset_params, processor=processor,
+                         path=path, force_update=force_update,
+                         update_path=update_path)

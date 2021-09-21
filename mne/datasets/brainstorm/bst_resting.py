@@ -1,12 +1,14 @@
 # Authors: Mainak Jas <mainak.jas@telecom-paristech.fr>
 #
 # License: BSD-3-Clause
-
+import os.path as op
 from functools import partial
 
-from ...utils import verbose
-from ..utils import (has_dataset, _data_path, _get_version, _version_doc,
-                     _data_path_doc_accept)
+from ...utils import verbose, _soft_import
+from ..utils import (has_dataset, _get_version, _version_doc,
+                     _data_path_doc_accept, _get_path)
+from ..config import bst_resting
+from ..fetch import fetch_dataset
 
 has_brainstorm_data = partial(has_dataset, name='bst_resting')
 
@@ -21,9 +23,23 @@ URL: http://neuroimage.usc.edu/brainstorm/DatasetResting
 @verbose
 def data_path(path=None, force_update=False, update_path=True, download=True,
               *, accept=False, verbose=None):  # noqa: D103
-    return _data_path(path=path, force_update=force_update,
-                      update_path=update_path, name='bst_resting',
-                      download=download, accept=accept)
+    # import pooch library for handling the dataset downloading
+    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
+    dataset_params = {'bst_resting': bst_resting}
+    config_key = bst_resting['config_key']
+    folder_name = bst_resting['folder_name']
+
+    # get download path for specific dataset
+    path = _get_path(path=path, key=config_key, name='bst_resting')
+
+    # instantiate processor that unzips file
+    # this processor handles nested tar files
+    processor = pooch.Untar(extract_dir=op.join(path, folder_name))
+
+    return fetch_dataset(dataset_params=dataset_params, processor=processor,
+                         path=path, force_update=force_update,
+                         update_path=update_path, download=download,
+                         accept=accept)
 
 
 _data_path_doc = _data_path_doc_accept.format(

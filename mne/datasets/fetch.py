@@ -3,23 +3,24 @@
 # License: BSD Style.
 
 
-from .utils import _data_path
-
-
-def fetch_dataset(dataset_params, processor=None, path=None, force_update=False,
-                  update_path=True, download=True, check_version=False,
-                  return_version=False, accept=False, auth=None):
+def fetch_dataset(dataset_params, processor=None, path=None,
+                  force_update=False, update_path=True, download=True,
+                  check_version=False, return_version=False, accept=False,
+                  auth=None):
     """Fetch an MNE-compatible dataset.
 
     Parameters
     ----------
     dataset_params : dict of dict
         The dataset name and corresponding parameters to download each dataset.
-        The dataset parameters that contains the following keys: ``archive_name``,
-        ``url``, ``folder_name``, ``hash``, ``config_key`` (optional). See Notes.
-    processor : callable | None
-        A processor that will unzip the respective file. See `pooch.Unzip`,
-        `pooch.Untar` and `pooch.Decompress`.
+        The dataset parameters that contains the following keys:
+        ``archive_name``, ``url``, ``folder_name``, ``hash``,
+        ``config_key`` (optional). See Notes.
+    processor : None | "zip" | "tar" | instance of pooch.Unzip |
+            instance of pooch.Untar
+        The processor to handle the downloaded file. If ``None`` (default),
+        the files are left as is. If ``'zip'``, or ``'tar'`` will use
+        our internally defined `pooch.Unzip` or `pooch.Untar`.
     path : None | str
         Location of where to look for the {name} dataset.
         If None, the environment variable or config parameter
@@ -48,8 +49,8 @@ def fetch_dataset(dataset_params, processor=None, path=None, force_update=False,
         Some MNE datasets require an acceptance of an additional license.
         Default to False.
     auth : tuple | None
-        Optional authorization tuple containing the username and password/token.
-        For example, ``auth=('foo', 012345)``.
+        Optional authorization tuple containing the username and
+        password/token. For example, ``auth=('foo', 012345)``.
 
     Returns
     -------
@@ -60,19 +61,20 @@ def fetch_dataset(dataset_params, processor=None, path=None, force_update=False,
 
     Notes
     -----
-    Fetching datasets uses the :mod:`pooch` module, but imposes additional structure
-    for MNE-style datasets. The ``dataset_params`` argument takes in multiple dictionaries.
-    Each dictionary corresponds to a dataset. This allows one to extract multiple zipped files
-    corresponding to one dataset. One must define the following keys in the ``dataset_params``
-    dictionary for each dataset name:
+    Fetching datasets uses the :mod:`pooch` module, but imposes additional
+    structure for MNE-style datasets. The ``dataset_params`` argument takes in
+    multiple dictionaries. Each dictionary corresponds to a dataset. This
+    allows one to extract multiple zipped files corresponding to one dataset.
+    One must define the following keys in the ``dataset_params`` dictionary
+    for each dataset name:
 
-    - ``archive_name``: This is the 
+    - ``archive_name``: This is the name of the archived file.
     - ``url``: This is the URL at which the files are downloaded from.
-    - ``folder_name``: This is the folder name in which the uncompressed data will be
-    stored.
+    - ``folder_name``: This is the folder name in which the uncompressed
+    data will be stored.
     - ``hash``: This is the hash of the downloaded archive file.
-    - ``config_key`` (optional): This is an MNE-Python environment variable configuration
-    key. This is only used internally by MNE developers.
+    - ``config_key`` (optional): This is an MNE-Python environment variable
+    configuration key. This is only used internally by MNE developers.
 
     An example would look like:
 
@@ -88,8 +90,11 @@ def fetch_dataset(dataset_params, processor=None, path=None, force_update=False,
 
     Fetching datasets downloads files over HTTP/HTTPS.
     """
-    return _data_path(dataset_params=dataset_params, path=path, force_update=force_update,
-                      update_path=update_path, download=download, 
-                      check_version=check_version, return_version=return_version,
-                      accept=accept, auth=auth)
-    
+    from mne.datasets.utils import _data_path
+
+    return _data_path(
+        dataset_params=dataset_params, processor=processor,
+        path=path, force_update=force_update,
+        update_path=update_path, download=download,
+        check_version=check_version, return_version=return_version,
+        accept=accept, auth=auth)

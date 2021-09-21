@@ -4,9 +4,11 @@
 
 from functools import partial
 
-from ...utils import verbose
-from ..utils import (has_dataset, _data_path, _data_path_doc,
+from ...utils import verbose, _soft_import
+from ..utils import (has_dataset, _get_path, _data_path_doc,
                      _get_version, _version_doc)
+from ..config import mtrf
+from ..fetch import fetch_dataset
 
 
 data_name = 'mtrf'
@@ -16,9 +18,20 @@ has_mtrf_data = partial(has_dataset, name=data_name)
 @verbose
 def data_path(path=None, force_update=False, update_path=True, download=True,
               verbose=None):  # noqa: D103
-    return _data_path(path=path, force_update=force_update,
-                      update_path=update_path, name=data_name,
-                      download=download)
+    # import pooch library for handling the dataset downloading
+    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
+    dataset_params = {'mtrf': mtrf}
+    config_key = mtrf['config_key']
+
+    # get download path for specific dataset
+    path = _get_path(path=path, key=config_key, name='mtrf')
+
+    # instantiate processor that unzips file
+    processor = pooch.Unzip(extract_dir=path)
+
+    return fetch_dataset(dataset_params=dataset_params, processor=processor,
+                         path=path, force_update=force_update,
+                         update_path=update_path, download=download)
 
 
 data_path.__doc__ = _data_path_doc.format(name=data_name,
