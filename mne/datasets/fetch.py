@@ -79,17 +79,18 @@ def fetch_dataset(dataset_params, processor=None, path=None,
         "MNE_DATASETS_EEGBCI_PATH"). This is only used internally by MNE
         developers.
 
-    An example would look like:
+    An example would look like::
 
-    {
-        'sample': {
-            'archive_name'='MNE-sample-data-processed.tar.gz',
-            'hash'='md5:12b75d1cb7df9dfb4ad73ed82f61094f',
-            'url'='https://osf.io/86qa2/download?version=5',
-            'folder_name'='MNE-sample-data',
-            'config_key'='MNE_DATASETS_SAMPLE_PATH',
-        },
-    }
+        {
+            'sample': {
+                'archive_name'='MNE-sample-data-processed.tar.gz',
+                'hash'='md5:12b75d1cb7df9dfb4ad73ed82f61094f',
+                'url'='https://osf.io/86qa2/download?version=5',
+                'folder_name'='MNE-sample-data',
+                'config_key'='MNE_DATASETS_SAMPLE_PATH',
+            },
+        }
+
 
     Fetching datasets downloads files over HTTP/HTTPS. One can fetch private
     datasets by passing in authorization to the ``auth`` argument.
