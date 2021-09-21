@@ -552,7 +552,7 @@ class Info(dict, MontageMixin):
     """
 
     def __init__(self, *args, **kwargs):
-        super(Info, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         # Deal with h5io writing things as dict
         for key in ('dev_head_t', 'ctf_head_t', 'dev_ctf_t'):
             _format_trans(self, key)
@@ -577,6 +577,17 @@ class Info(dict, MontageMixin):
             pass
         else:
             self['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
+
+    def __setattr__(self, key, value):
+        """Set attributes."""
+        self[key] = value
+
+    def __getattr__(self, key):
+        """Get attributes."""
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(key)
 
     def copy(self):
         """Copy the instance.
@@ -813,10 +824,6 @@ class Info(dict, MontageMixin):
         sel = pick_channels(self.ch_names, ch_names, exclude=[],
                             ordered=ordered)
         return pick_info(self, sel, copy=False, verbose=False)
-
-    @property
-    def ch_names(self):
-        return self['ch_names']
 
     def _repr_html_(self, caption=None):
         """Summarize info for HTML representation."""
