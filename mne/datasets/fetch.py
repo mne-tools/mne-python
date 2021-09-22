@@ -2,6 +2,21 @@
 #
 # License: BSD Style.
 
+import sys
+import os
+import os.path as op
+from distutils.version import LooseVersion
+from shutil import rmtree
+
+from .config import (_bst_license_text, RELEASES,
+                     TESTING_VERSIONED, MISC_VERSIONED, MNE_DATASETS)
+from .. import __version__ as mne_version
+from ..utils import (logger, warn, _safe_input, _soft_import)
+from .utils import _dataset_version, _do_path_update
+
+
+_FAKE_VERSION = None  # used for monkeypatching while testing versioning
+
 
 def fetch_dataset(dataset_params, processor=None, path=None,
                   force_update=False, update_path=True, download=True,
@@ -93,11 +108,137 @@ def fetch_dataset(dataset_params, processor=None, path=None,
     Fetching datasets downloads files over HTTP/HTTPS. One can fetch private
     datasets by passing in authorization to the ``auth`` argument.
     """  # noqa
-    from mne.datasets.utils import _data_path
+    if auth is not None:
+        if len(auth) != 2:
+            raise RuntimeError('auth should be a 2-tuple consisting '
+                               'of a username and password/token.')
 
-    return _data_path(
-        dataset_params=dataset_params, processor=processor,
-        path=path, force_update=force_update,
-        update_path=update_path, download=download,
-        check_version=check_version, return_version=return_version,
-        accept=accept, auth=auth)
+    # import pooch library for handling the dataset downloading
+    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
+
+    # extract configuration parameters
+    names = list(dataset_params.keys())
+    name = names[0]
+    dataset_dict = dataset_params[name]
+    config_key = dataset_dict['config_key']
+    folder_name = dataset_dict['folder_name']
+
+    # get the actual path to each dataset folder name
+    final_path = op.join(path, folder_name)
+
+    # handle BrainStorm datasets with nested folders for datasets
+    if name.startswith('bst_'):
+        final_path = op.join(final_path, name)
+
+    # additional condition: check for version.txt and parse it
+    # check if testing or misc data is outdated; if so, redownload it
+    want_version = RELEASES.get(name, None)
+    want_version = _FAKE_VERSION if name == 'fake' else want_version
+
+    # get the version of the dataset and then check if the version is outdated
+    data_version = _dataset_version(final_path, name)
+    outdated_dataset = want_version is not None and \
+        LooseVersion(want_version) > LooseVersion(data_version)
+
+    if outdated_dataset:
+        logger.info(f'Dataset {name} version {data_version} out of date, '
+                    f'latest version is {want_version}')
+
+    # return empty string if outdated dataset and we don't want
+    # to download
+    if (not force_update) and outdated_dataset and not download:
+        return ('', data_version) if return_version else ''
+
+    # reasons to bail early (hf_sef has separate code for this):
+    if (not force_update) and (not outdated_dataset) and \
+            (not name.startswith('hf_sef_')):
+        # if target folder exists (otherwise pooch downloads every time,
+        # because we don't save the archive files after unpacking)
+        if op.isdir(final_path):
+            _do_path_update(path, update_path, config_key, name)
+            return (final_path, data_version) if return_version else final_path
+        # if download=False (useful for debugging)
+        elif not download:
+            return ('', data_version) if return_version else ''
+        # if user didn't accept the license
+        elif name.startswith('bst_'):
+            if accept or '--accept-brainstorm-license' in sys.argv:
+                answer = 'y'
+            else:
+                # If they don't have stdin, just accept the license
+                # https://github.com/mne-tools/mne-python/issues/8513#issuecomment-726823724  # noqa: E501
+                answer = _safe_input(
+                    '%sAgree (y/[n])? ' % _bst_license_text, use='y')
+            if answer.lower() != 'y':
+                raise RuntimeError('You must agree to the license to use this '
+                                   'dataset')
+
+    # downloader & processors
+    download_params = dict(progressbar=True)  # use tqdm
+    if name == 'fake':
+        download_params['progressbar'] = False
+    if auth is not None:
+        download_params['auth'] = auth
+    downloader = pooch.HTTPDownloader(**download_params)
+
+    # construct the mapping needed by pooch from archive names
+    # to urls
+    pooch_urls = dict()
+
+    # construct the mapping needed by pooch for the hash checking
+    pooch_hash_mapping = dict()
+
+    # write all pooch urls - possibly multiple
+    for this_name in names:
+        this_dataset = dataset_params[this_name]
+        archive_name = this_dataset['archive_name']
+        dataset_url = this_dataset['url']
+        dataset_hash = this_dataset['hash']
+
+        # write to pooch url
+        pooch_urls[archive_name] = dataset_url
+        pooch_hash_mapping[archive_name] = dataset_hash
+
+    # create the download manager
+    fetcher = pooch.create(
+        path=path,
+        base_url='',    # Full URLs are given in the `urls` dict.
+        version=None,   # Data versioning is decoupled from MNE-Python version.
+        urls=pooch_urls,
+        retry_if_failed=2,  # 2 retries = 3 total attempts
+        registry=pooch_hash_mapping
+    )
+
+    # use our logger level for pooch's logger too
+    pooch.get_logger().setLevel(logger.getEffectiveLevel())
+
+    for this_name in names:
+        # fetch and unpack the data
+        archive_name = MNE_DATASETS[this_name]['archive_name']
+        fetcher.fetch(fname=archive_name, downloader=downloader,
+                      processor=processor)
+        # after unpacking, remove the archive file
+        os.remove(op.join(path, archive_name))
+
+    # remove version number from "misc" and "testing" datasets folder names
+    if name == 'misc':
+        rmtree(final_path, ignore_errors=True)
+        os.replace(op.join(path, MISC_VERSIONED), final_path)
+    elif name == 'testing':
+        rmtree(final_path, ignore_errors=True)
+        os.replace(op.join(path, TESTING_VERSIONED), final_path)
+    # maybe update the config
+    old_name = 'brainstorm' if name.startswith('bst_') else name
+    _do_path_update(path, update_path, config_key, old_name)
+
+    # compare the version of the dataset and mne
+    data_version = _dataset_version(path, name)
+    # 0.7 < 0.7.git should be False, therefore strip
+    if check_version and (LooseVersion(data_version) <
+                          LooseVersion(mne_version.strip('.git'))):
+        warn('The {name} dataset (version {current}) is older than '
+             'mne-python (version {newest}). If the examples fail, '
+             'you may need to update the {name} dataset by using '
+             'mne.datasets.{name}.data_path(force_update=True)'.format(
+                 name=name, current=data_version, newest=mne_version))
+    return (final_path, data_version) if return_version else final_path
