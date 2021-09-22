@@ -20,6 +20,7 @@ from PyQt5.QtWidgets import (QMainWindow, QGridLayout,
                              QComboBox, QPlainTextEdit)
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.figure import Figure
+from matplotlib import patheffects
 
 from .._freesurfer import _check_subject_dir, _import_nibabel
 from ..viz.backends.renderer import _get_renderer
@@ -290,8 +291,10 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._images = dict(ct=list(), chs=list(),
                             cursor=list(), cursor2=list())
         ct_min, ct_max = np.nanmin(self._ct_data), np.nanmax(self._ct_data)
-        text_kwargs = dict(fontsize=3, color='#66CCEE', family='monospace',
-                           weight='bold', ha='center', va='center')
+        text_kwargs = dict(fontsize='medium', weight='bold', color='#66CCEE',
+                           family='monospace', ha='center', va='center',
+                           path_effects=[patheffects.withStroke(
+                               linewidth=4, foreground="k", alpha=0.75)])
         xyz = apply_trans(self._ras_vox_t, self._ras)
         for axis in range(3):
             ct_data = np.take(self._ct_data, self._current_slice[axis],
