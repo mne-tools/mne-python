@@ -1957,7 +1957,7 @@ def test_epoch_eq():
     old_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     epochs.equalize_event_counts(['a', 'b'])
     # undo the eq logging
-    drop_log2 = tuple(() if log == ('EQUALIZED_COUNT',) else log
+    drop_log2 = tuple(log[:-1] if 'EQUALIZED_COUNT' in log else log
                       for log in epochs.drop_log)
     assert_equal(drop_log1, drop_log2)
 
