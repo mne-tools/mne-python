@@ -31,10 +31,12 @@ def fetch_dataset(dataset_params, processor=None, path=None,
         The dataset parameters that contains the following keys:
         ``archive_name``, ``url``, ``folder_name``, ``hash``,
         ``config_key`` (optional). See Notes.
-    processor : None | "zip" | "tar" | instance of pooch.Unzip | instance of pooch.Untar
-        The processor to handle the downloaded file. If ``None`` (default),
-        the files are left as is. If ``'zip'``, or ``'tar'`` will use
-        our internally defined `pooch.Unzip` or `pooch.Untar`.
+    processor : None | "unzip" | "untar" | instance of pooch.Unzip | instance of pooch.Untar
+        What to do after downloading the file. ``"unzip"`` and ``"untar"` will
+        decompress the downloaded file in place; for custom extraction (e.g.,
+        only extracting certain files from the archive) pass an instance of
+        :class:`pooch.Unzip` or :class:`pooch.Untar`. If ``None`` (the
+        default), the files are left as is.
     path : None | str
         Location of where to look for the {name} dataset.
         If None, the environment variable or config parameter

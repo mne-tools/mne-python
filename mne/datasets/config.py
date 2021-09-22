@@ -215,7 +215,7 @@ MNE_DATASETS['ssvep'] = dict(
     hash='md5:af866bbc0f921114ac9d683494fe87d6',
     url='https://osf.io/z8h6k/download?version=5',
     folder_name='ssvep-example-data',
-    config_key='MNE_DATASETS_SSVEP_PATH',
+    config_key='MNE_DATASETS_SSVEP_PATH'
 )
 
 MNE_DATASETS['erp_core'] = dict(
