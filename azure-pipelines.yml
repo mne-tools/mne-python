@@ -289,8 +289,6 @@ stages:
       displayName: Install OpenGL
     - script: echo "##vso[task.prependpath]%CONDA%\Scripts;%CONDA%\Library\bin\graphviz;"
       displayName: Add conda to PATH
-    - bash: make --version && conda --version && graphviz --version
-      displayName: Check make, conda, graphviz
     - powershell: |
         Set-StrictMode -Version Latest
         $ErrorActionPreference = "Stop"
@@ -298,6 +296,7 @@ stages:
         conda update -n base -c defaults conda "brotli<1.0" urllib3
         conda env update --name base --file environment.yml
         conda install graphviz
+        graphviz --version
         pip uninstall -yq mne
         pip install --progress-bar off -r requirements_doc.txt
       displayName: 'Install dependencies with conda'
