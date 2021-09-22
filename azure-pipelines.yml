@@ -136,6 +136,7 @@ stages:
         summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
         reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
 
+
   - job: Notebook
     pool:
       vmImage: 'ubuntu-18.04'
@@ -273,3 +274,42 @@ stages:
         codeCoverageTool: Cobertura
         summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
         reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
+
+  - job: WindowsSphinx
+    pool:
+      vmImage: 'VS2017-Win2016'
+    variables:
+      MNE_LOGGING_LEVEL: 'warning'
+      MNE_FORCE_SERIAL: 'true'
+      OPENBLAS_NUM_THREADS: 1
+      OMP_NUM_THREADS: 1
+      PYTHONUNBUFFERED: 1
+      PYTHONIOENCODING: 'utf-8'
+      AZURE_CI_WINDOWS: 'true'
+      PYTHON_ARCH: 'x64'
+      TEST_MODE: 'pip'
+      PYTHON_VERSION: '3.8'
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: $(PYTHON_VERSION)
+        architecture: $(PYTHON_ARCH)
+        addToPath: true
+      displayName: 'Get Python'
+    - bash: |
+        set -e
+        git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
+        powershell gl-ci-helpers/appveyor/install_opengl.ps1
+      displayName: Install OpenGL
+    - bash: |
+        set -e
+        ./tools/azure_dependencies.sh
+      displayName: 'Install dependencies with pip'
+    - script: python setup.py develop
+      displayName: 'Install MNE-Python dev'
+    - script: mne sys_info
+      displayName: 'Print config and test access to commands'
+    - script: python -c "import numpy; numpy.show_config()"
+      displayName: Print NumPy config
+    - script: make -C doc html_dev-noplot
+      displayName: 'Run tests'
