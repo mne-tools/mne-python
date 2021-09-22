@@ -218,9 +218,10 @@ stages:
       displayName: 'Get Python'
     # https://docs.microsoft.com/en-us/azure/devops/pipelines/ecosystems/anaconda
     # https://github.com/MicrosoftDocs/pipelines-anaconda
-    - script: echo "##vso[task.prependpath]%CONDA%\Scripts;"
+    # https://github.com/ContinuumIO/anaconda-issues/issues/10949
+    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;"
       condition: in(variables['TEST_MODE'], 'conda')
-      displayName: Add conda to PATH
+      displayName: Add conda to PATH, deal with Qt linking bug
     - bash: |
         set -e
         git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
@@ -287,8 +288,8 @@ stages:
         git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
         powershell gl-ci-helpers/appveyor/install_opengl.ps1
       displayName: Install OpenGL
-    - script: echo "##vso[task.prependpath]%CONDA%\Scripts;%CONDA%\Library\bin\graphviz;"
-      displayName: Add conda to PATH
+    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%CONDA%\Library\bin\graphviz;"
+      displayName: Add conda to PATH, deal with Qt linking bug
     - powershell: |
         Set-StrictMode -Version Latest
         $ErrorActionPreference = "Stop"
