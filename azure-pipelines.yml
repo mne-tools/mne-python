@@ -235,7 +235,7 @@ stages:
         Set-StrictMode -Version Latest
         $ErrorActionPreference = "Stop"
         $PSDefaultParameterValues['*:ErrorAction']='Stop'
-        conda update -n base -c defaults conda "brotli<1.0" urllib3
+        conda update -n base -c defaults conda
         conda env update --name base --file environment.yml
         pip uninstall -yq mne
         pip install --progress-bar off -r requirements_testing.txt -r requirements_testing_extra.txt codecov
@@ -293,7 +293,7 @@ stages:
         Set-StrictMode -Version Latest
         $ErrorActionPreference = "Stop"
         $PSDefaultParameterValues['*:ErrorAction']='Stop'
-        conda update -n base -c defaults conda "brotli<1.0" urllib3
+        conda update -n base -c defaults conda
         conda env update --name base --file environment.yml
         conda install graphviz
         graphviz --version
