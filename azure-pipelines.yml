@@ -285,12 +285,6 @@ stages:
       TEST_MODE: 'conda'
       PYTHON_VERSION: '3.9'
     steps:
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: $(PYTHON_VERSION)
-        architecture: $(PYTHON_ARCH)
-        addToPath: true
-      displayName: 'Get Python'
     - bash: |
         set -e
         git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
