@@ -275,7 +275,7 @@ stages:
         summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
         reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
 
-  - job: WindowsSphinx
+  - job: SphinxWindows
     pool:
       vmImage: 'VS2017-Win2016'
     variables:
@@ -313,4 +313,4 @@ stages:
     - script: python -c "import numpy; numpy.show_config()"
       displayName: Print NumPy config
     - script: make -C doc html_dev-noplot
-      displayName: 'Run tests'
+      displayName: 'Build doc'

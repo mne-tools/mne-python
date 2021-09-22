@@ -1100,7 +1100,7 @@ def make_redirects(app, exception):
         if not to.startswith('http'):
             assert os.path.isfile(os.path.join(app.outdir, to)), to
             # handle links to sibling folders
-            path_parts = to.split(os.path.sep)
+            path_parts = to.split('/')
             assert tu in path_parts, path_parts  # need to refactor otherwise
             path_parts = ['..'] + path_parts[(path_parts.index(tu) + 1):]
             to = os.path.join(*path_parts)
