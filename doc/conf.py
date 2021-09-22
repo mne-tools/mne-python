@@ -1115,7 +1115,7 @@ def make_redirects(app, exception):
                 line = fid.readline()
                 assert 'Page Redirection' in line, line
         # handle folders that no longer exist
-        if fr_path.split(os.path.sep)[-2] in (
+        if fr_path.split('/')[-2] in (
                 'misc', 'discussions', 'source-modeling', 'sample-datasets',
                 'connectivity'):
             os.makedirs(os.path.dirname(fr_path), exist_ok=True)
