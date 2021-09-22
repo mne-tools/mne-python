@@ -289,6 +289,7 @@ stages:
       PYTHON_ARCH: 'x64'
       TEST_MODE: 'pip'
       PYTHON_VERSION: '3.8'
+      DOC_BUILD: 'true'
     steps:
     - task: UsePythonVersion@0
       inputs:

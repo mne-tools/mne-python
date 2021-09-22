@@ -21,4 +21,7 @@ else
 	echo "Unknown run type ${TEST_MODE}"
 	exit 1
 fi
+if [ "${DOC_BUILD}" == "true" ]; then
+	python -m pip install --progress-bar off --only-binary ":all:" -r requirements_doc.txt
+fi
 python -m pip install -r requirements_testing.txt -r requirements_testing_extra.txt codecov
