@@ -296,8 +296,8 @@ stages:
         $PSDefaultParameterValues['*:ErrorAction']='Stop'
         conda update -n base -c defaults conda
         conda env update --name base --file environment.yml
-        conda install graphviz
-        graphviz --version
+        conda install -c conda-forge graphviz
+        dot -V
         pip uninstall -yq mne
         pip install --progress-bar off -r requirements_doc.txt
       displayName: 'Install dependencies with conda'
