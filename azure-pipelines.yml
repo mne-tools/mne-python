@@ -218,9 +218,7 @@ stages:
       displayName: 'Get Python'
     # https://docs.microsoft.com/en-us/azure/devops/pipelines/ecosystems/anaconda
     # https://github.com/MicrosoftDocs/pipelines-anaconda
-    # Qt 5.9 post-link failure:
-    # https://github.com/ContinuumIO/anaconda-issues/issues/10949
-    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;"
+    - script: echo "##vso[task.prependpath]%CONDA%\Scripts;"
       condition: in(variables['TEST_MODE'], 'conda')
       displayName: Add conda to PATH
     - bash: |
@@ -289,8 +287,10 @@ stages:
         git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
         powershell gl-ci-helpers/appveyor/install_opengl.ps1
       displayName: Install OpenGL
-    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;"
+    - script: echo "##vso[task.prependpath]%CONDA%\Scripts;%CONDA%\Library\bin\graphviz;"
       displayName: Add conda to PATH
+    - bash: make --version && conda --version && graphviz --version
+      displayName: Check make, conda, graphviz
     - powershell: |
         Set-StrictMode -Version Latest
         $ErrorActionPreference = "Stop"
@@ -307,5 +307,5 @@ stages:
       displayName: 'Print config and test access to commands'
     - script: python -c "import numpy; numpy.show_config()"
       displayName: Print NumPy config
-    - script: make -C doc html_dev-noplot
+    - bash: make -C doc html_dev-noplot
       displayName: 'Build doc'

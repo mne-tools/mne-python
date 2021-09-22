@@ -272,7 +272,7 @@ To build documentation, you will also require `optipng`_:
 - On MacOS, optipng can be installed using Homebrew.
 
 - On Windows, unzip :file:`optipng.exe` from the `optipng for Windows`_ archive
-  into the :file:`doc/` folder.
+  into the :file:`doc/` folder. This step is optional for Windows users.
 
 You can also choose to install some optional linters for reStructuredText::
 
