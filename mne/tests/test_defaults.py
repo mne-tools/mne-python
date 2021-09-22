@@ -40,3 +40,12 @@ def test_si_units():
         else:
             want_scale = _get_scaling(key, units[key])
             assert_allclose(scale, want_scale, rtol=1e-12)
+
+
+@pytest.mark.parametrize('key', ('si_units', 'color', 'scalings',
+                                 'scalings_plot_raw'))
+def test_consistency(key):
+    """Test defaults consistency."""
+    units = _handle_default('units')
+    other = _handle_default(key)
+    assert set(units) == set(other), key
