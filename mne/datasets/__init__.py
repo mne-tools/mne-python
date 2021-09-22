@@ -3,6 +3,7 @@
 See :ref:`datasets` for more information.
 """
 
+from .fetch import fetch_dataset
 from . import fieldtrip_cmc
 from . import brainstorm
 from . import visual_92_categories
