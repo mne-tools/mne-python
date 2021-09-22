@@ -222,7 +222,7 @@ stages:
     # https://github.com/ContinuumIO/anaconda-issues/issues/10949
     - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;"
       condition: in(variables['TEST_MODE'], 'conda')
-      displayName: Add conda to PATH, deal with Qt 5.9 bug
+      displayName: Add conda to PATH
     - bash: |
         set -e
         git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
@@ -282,7 +282,6 @@ stages:
       AZURE_CI_WINDOWS: 'true'
       PYTHON_ARCH: 'x64'
       PLATFORM: 'x86-64'
-      TEST_MODE: 'conda'
       PYTHON_VERSION: '3.9'
     steps:
     - bash: |
@@ -291,8 +290,7 @@ stages:
         powershell gl-ci-helpers/appveyor/install_opengl.ps1
       displayName: Install OpenGL
     - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;"
-      condition: in(variables['TEST_MODE'], 'conda')
-      displayName: Add conda to PATH, deal with Qt 5.9 bug
+      displayName: Add conda to PATH
     - powershell: |
         Set-StrictMode -Version Latest
         $ErrorActionPreference = "Stop"
