@@ -150,7 +150,8 @@ def _download_mne_dataset(name, processor, path, force_update,
 
     # import pooch library for handling the dataset downloading
     pooch = _soft_import('pooch', 'dataset downloading', strict=True)
-    dataset_params = {name: MNE_DATASETS[name]}
+    dataset_params = MNE_DATASETS[name]
+    dataset_params['dataset_name'] = name
     config_key = MNE_DATASETS[name]['config_key']
     folder_name = MNE_DATASETS[name]['folder_name']
 
@@ -160,11 +161,16 @@ def _download_mne_dataset(name, processor, path, force_update,
     # instantiate processor that unzips file
     if processor == 'nested_untar':
         processor_ = pooch.Untar(extract_dir=op.join(path, folder_name))
+    else:
+        processor_ = processor
 
     # handle case of multiple sub-datasets with different urls
     if name == 'visual_92_categories':
-        dataset_params = {name: MNE_DATASETS[name] for name in
-                          ['visual_92_categories_1', 'visual_92_categories_2']}
+        dataset_params = []
+        for name in ['visual_92_categories_1', 'visual_92_categories_2']:
+            this_dataset = MNE_DATASETS[name]
+            this_dataset['dataset_name'] = name
+            dataset_params.append(this_dataset)
 
     return fetch_dataset(dataset_params=dataset_params, processor=processor_,
                          path=path, force_update=force_update,
@@ -178,9 +184,8 @@ def _get_version(name):
 
     if not has_dataset(name):
         return None
-    dataset_params = {
-        name: MNE_DATASETS[name]
-    }
+    dataset_params = MNE_DATASETS[name]
+    dataset_params['dataset_name'] = name
     config_key = MNE_DATASETS[name]['config_key']
 
     # get download path for specific dataset
@@ -208,9 +213,8 @@ def has_dataset(name):
     from mne.datasets.fetch import fetch_dataset
 
     name = 'spm' if name == 'spm_face' else name
-    dataset_params = {
-        name: MNE_DATASETS[name]
-    }
+    dataset_params = MNE_DATASETS[name]
+    dataset_params['dataset_name'] = name
     config_key = MNE_DATASETS[name]['config_key']
 
     # get download path for specific dataset

@@ -26,9 +26,9 @@ def fetch_dataset(dataset_params, processor=None, path=None,
 
     Parameters
     ----------
-    dataset_params : dict of dict
-        The dataset name and corresponding parameters to download the dataset.
-        The dataset parameters that contains the following keys:
+    dataset_params : list of dict | dict
+        The dataset name(s) and corresponding parameters to download the
+        dataset(s). The dataset parameters that contains the following keys:
         ``archive_name``, ``url``, ``folder_name``, ``hash``,
         ``config_key`` (optional). See Notes.
     processor : None | "unzip" | "untar" | instance of pooch.Unzip | instance of pooch.Untar
@@ -79,10 +79,10 @@ def fetch_dataset(dataset_params, processor=None, path=None,
     -----
     Fetching datasets uses the :mod:`pooch` module, but imposes additional
     structure for MNE-style datasets. The ``dataset_params`` argument takes in
-    multiple dictionaries. Each dictionary corresponds to a dataset. This
-    allows one to extract multiple zipped files corresponding to one dataset.
-    One must define the following keys in the ``dataset_params`` dictionary
-    for each dataset name:
+    multiple dictionaries if there are multiple files from one dataset. Each
+    dictionary corresponds to a dataset. This allows one to extract multiple
+    zipped files corresponding to one dataset. One must define the following
+    keys in the ``dataset_params`` dictionary for each dataset name:
 
     - ``archive_name``: The name of the compressed file that is downloaded
     - ``url``: URL from which the file can be downloaded
@@ -98,13 +98,12 @@ def fetch_dataset(dataset_params, processor=None, path=None,
     An example would look like::
 
         {
-            'sample': {
-                'archive_name'='MNE-sample-data-processed.tar.gz',
-                'hash'='md5:12b75d1cb7df9dfb4ad73ed82f61094f',
-                'url'='https://osf.io/86qa2/download?version=5',
-                'folder_name'='MNE-sample-data',
-                'config_key'='MNE_DATASETS_SAMPLE_PATH',
-            },
+            'dataset_name'='sample',
+            'archive_name'='MNE-sample-data-processed.tar.gz',
+            'hash'='md5:12b75d1cb7df9dfb4ad73ed82f61094f',
+            'url'='https://osf.io/86qa2/download?version=5',
+            'folder_name'='MNE-sample-data',
+            'config_key'='MNE_DATASETS_SAMPLE_PATH',
         }
 
     Fetching datasets downloads files over HTTP/HTTPS. One can fetch private
@@ -124,10 +123,13 @@ def fetch_dataset(dataset_params, processor=None, path=None,
     elif processor == 'unzip':
         processor = pooch.Unzip(extract_dir=path)
 
+    if isinstance(dataset_params, dict):
+        dataset_params = [dataset_params]
+
     # extract configuration parameters
-    names = list(dataset_params.keys())
+    names = [params['dataset_name'] for params in dataset_params]
     name = names[0]
-    dataset_dict = dataset_params[name]
+    dataset_dict = dataset_params[0]
     config_key = dataset_dict['config_key']
     folder_name = dataset_dict['folder_name']
 
@@ -197,8 +199,8 @@ def fetch_dataset(dataset_params, processor=None, path=None,
     pooch_hash_mapping = dict()
 
     # write all pooch urls - possibly multiple
-    for this_name in names:
-        this_dataset = dataset_params[this_name]
+    for idx, this_name in enumerate(names):
+        this_dataset = dataset_params[idx]
         archive_name = this_dataset['archive_name']
         dataset_url = this_dataset['url']
         dataset_hash = this_dataset['hash']
@@ -223,12 +225,6 @@ def fetch_dataset(dataset_params, processor=None, path=None,
     for this_name in names:
         # fetch and unpack the data
         archive_name = MNE_DATASETS[this_name]['archive_name']
-
-        print('\n\nhere...')
-        print(this_name)
-        print(archive_name)
-        print(processor)
-        print(downloader)
         fetcher.fetch(fname=archive_name, downloader=downloader,
                       processor=processor)
         # after unpacking, remove the archive file
