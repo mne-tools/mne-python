@@ -242,8 +242,7 @@ def _fig_to_img(fig, *, image_format='png', auto_close=True):
     output = BytesIO()
     logger.debug('Saving figure %s with dpi %s'
                  % (fig.get_size_inches(), fig.get_dpi()))
-    fig.savefig(output, format=image_format, dpi=fig.get_dpi(),
-                bbox_inches='tight', pad_inches=0)
+    fig.savefig(output, format=image_format, dpi=fig.get_dpi(), pad_inches=0)
     plt.close(fig)
     output = output.getvalue()
     return (output.decode('utf-8') if image_format == 'svg' else
