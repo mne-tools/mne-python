@@ -2836,13 +2836,20 @@ class Report(object):
         # Drop log
         if epochs._bad_dropped:
             dom_id = self._get_dom_id()
-            img = _fig_to_img(epochs.plot_drop_log, image_format,
-                              subject=self.subject, show=False)
-            drop_log_img_html = _html_image_element(
-                img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
-                show=True, image_format=image_format, title='Drop log',
-                caption=None, tags=tags
-            )
+            if epochs.drop_log_stats() == 0:  # No drops
+                drop_log_img_html = _html_element(
+                    html='No epochs exceeded the rejection thresholds. '
+                         'Nothing was dropped.',
+                    id=dom_id, div_klass='epochs', title='Drop log', tags=tags
+                )
+            else:
+                img = _fig_to_img(epochs.plot_drop_log, image_format,
+                                  subject=self.subject, show=False)
+                drop_log_img_html = _html_image_element(
+                    img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
+                    show=True, image_format=image_format, title='Drop log',
+                    caption=None, tags=tags
+                )
         else:
             drop_log_img_html = ''
 
@@ -2924,7 +2931,7 @@ class Report(object):
         kwargs = dict(info=info, trans=trans, subject=subject,
                       subjects_dir=subjects_dir, dig=True,
                       meg=['helmet', 'sensors'],
-                      coord_frame='mri', show=False)
+                      coord_frame='mri')
         try:
             img, caption = _iterate_trans_views(
                 function=plot_alignment, surfaces=['head-dense'], **kwargs
