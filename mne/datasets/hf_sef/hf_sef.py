@@ -6,7 +6,7 @@
 
 import os.path as op
 import os
-from ...utils import verbose, _check_option, _soft_import
+from ...utils import verbose, _check_option
 from ..utils import _get_path, _do_path_update
 from ..config import MNE_DATASETS
 from ..fetch import fetch_dataset
@@ -49,10 +49,6 @@ def data_path(dataset='evoked', path=None, force_update=False,
     .. footbibliography::
     """
     _check_option('dataset', dataset, ('evoked', 'raw'))
-
-    # import pooch library for handling the dataset downloading
-    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
-
     if dataset == 'raw':
         data_dict = MNE_DATASETS['hf_sef_raw']
         dataset_params = {'hf_sef_raw': data_dict}
