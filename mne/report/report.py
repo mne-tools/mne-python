@@ -40,7 +40,7 @@ from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
-from ..viz.utils import _ndarray_to_fig
+from ..viz.utils import _ndarray_to_fig, tight_layout
 from ..forward import read_forward_solution, Forward
 from ..epochs import read_epochs, BaseEpochs
 from .. import dig_mri_distances
@@ -2384,21 +2384,8 @@ class Report(object):
             else:
                 fmax = np.inf
 
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    action='ignore',
-                    message='Channel locations not available.*',
-                    category=RuntimeWarning
-                )
-                fig = raw.plot_psd(fmax=fmax, show=False, **add_psd)
-
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    action='ignore',
-                    message='.*not compatible with tight_layout.*',
-                    category=UserWarning
-                )
-                fig.tight_layout()
+            fig = raw.plot_psd(fmax=fmax, show=False, **add_psd)
+            tight_layout(fig)
 
             img = _fig_to_img(fig, image_format=image_format)
             psd_img_html = _html_image_element(
@@ -2857,13 +2844,7 @@ class Report(object):
             fmax = np.inf
 
         fig = epochs.plot_psd(fmax=fmax, show=False)
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                action='ignore',
-                message='.*not compatible with tight_layout.*',
-                category=UserWarning
-            )
-            fig.tight_layout()
+        tight_layout(fig)
 
         img = _fig_to_img(fig=fig, image_format=image_format)
         psd_img_html = _html_image_element(
