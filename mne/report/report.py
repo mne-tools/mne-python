@@ -2679,14 +2679,10 @@ class Report(object):
                     label: evoked.copy().pick(ch_type, verbose=False)
                 },
                 ci=None, truncate_xaxis=False,
-                truncate_yaxis=False, legend='lower right',
+                truncate_yaxis=False, legend=False,
                 axes=ax[idx], show=False
             )
             ax[idx].set_title(ch_type)
-
-            # Only show legend for the first subplot
-            if idx > 0:
-                ax[idx].get_legend().remove()
 
             # Hide x axis label for all but the last subplot
             if idx < len(ch_types) - 1:
