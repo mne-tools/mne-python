@@ -36,7 +36,7 @@ from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
-                     _check_path_like)
+                     _check_path_like, use_log_level)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
@@ -247,7 +247,8 @@ def _fig_to_img(fig, image_format='png', auto_close=True, **kwargs):
     output = BytesIO()
     logger.debug('Saving figure %s with dpi %s'
                  % (fig.get_size_inches(), fig.get_dpi()))
-    fig.savefig(output, format=image_format, dpi=fig.get_dpi())
+    fig.savefig(output, format=image_format, dpi=fig.get_dpi(),
+                bbox_inches='tight', pad_inches=0)
     plt.close(fig)
     output = output.getvalue()
     return (output.decode('utf-8') if image_format == 'svg' else
@@ -293,8 +294,10 @@ def _iterate_trans_views(function, **kwargs):
 
     fig = function(**kwargs)
 
-    views = ['frontal', 'lateral', 'medial']
-    views += ['axial', 'rostral', 'coronal']
+    views = (
+        'frontal', 'lateral', 'medial',
+        'axial', 'rostral', 'coronal'
+    )
 
     images = []
     for view in views:
@@ -2427,8 +2430,8 @@ class Report(object):
         elif hasattr(info, 'info'):  # try to get the file name
             if isinstance(info, BaseRaw):
                 fname = info.filenames[0]
-            elif isinstance(info, (Evoked, BaseEpochs)):
-                fname = info.filename
+            # elif isinstance(info, (Evoked, BaseEpochs)):
+            #     fname = info.filename
             else:
                 fname = ''
             info = info.info
@@ -2561,11 +2564,12 @@ class Report(object):
 
         htmls = []
         for ch_type in ch_types:
-            fig = evoked.copy().pick(ch_type).plot_joint(
-                ts_args=dict(gfp=True),
-                title=None,
-                show=False
-            )
+            with use_log_level(level=False):
+                fig = evoked.copy().pick(ch_type, verbose=False).plot_joint(
+                    ts_args=dict(gfp=True),
+                    title=None,
+                    show=False
+                )
 
             img = _fig_to_img(fig, image_format)
             title = f'Time course ({ch_type_to_caption_map[ch_type]})'
@@ -2602,7 +2606,7 @@ class Report(object):
         vmin = dict()
         for ch_type in ch_types:
             vmax[ch_type] = (np.abs(evoked.copy()
-                                    .pick(ch_type)
+                                    .pick(ch_type, verbose=False)
                                     .data)
                              .max()) * scalings[ch_type]
             if ch_type == 'grad':
@@ -2671,7 +2675,9 @@ class Report(object):
             ax = [ax]
         for idx, ch_type in enumerate(ch_types):
             plot_compare_evokeds(
-                evokeds={label: evoked.copy().pick(ch_type)},
+                evokeds={
+                    label: evoked.copy().pick(ch_type, verbose=False)
+                },
                 ci=None, truncate_xaxis=False,
                 truncate_yaxis=False, legend='lower right',
                 axes=ax[idx], show=False
@@ -2918,7 +2924,7 @@ class Report(object):
         kwargs = dict(info=info, trans=trans, subject=subject,
                       subjects_dir=subjects_dir, dig=True,
                       meg=['helmet', 'sensors'],
-                      coord_frame='mri')
+                      coord_frame='mri', show=False)
         try:
             img, caption = _iterate_trans_views(
                 function=plot_alignment, surfaces=['head-dense'], **kwargs

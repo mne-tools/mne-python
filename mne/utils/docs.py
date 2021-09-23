@@ -301,7 +301,7 @@ ch_names : list | None
 # General plotting
 docdict["show"] = """
 show : bool
-    Show figure if True.
+    Show the figure if ``True``.
 """
 docdict["title_None"] = """
 title : str | None
