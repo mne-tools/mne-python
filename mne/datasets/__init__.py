@@ -26,7 +26,7 @@ from . import refmeg_noise
 from . import ssvep
 from . import erp_core
 from . import epilepsy_ecog
-from .fetch import fetch_dataset
+from ._fetch import fetch_dataset
 from .utils import (_download_all_example_data, fetch_hcp_mmp_parcellation,
                     fetch_aparc_sub_parcellation)
 from ._fsaverage.base import fetch_fsaverage
