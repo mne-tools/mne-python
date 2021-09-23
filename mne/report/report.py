@@ -220,18 +220,13 @@ class _ContentElement:
 ###############################################################################
 # PLOTTING FUNCTIONS
 
-def _fig_to_img(fig, image_format='png', auto_close=True, **kwargs):
+def _fig_to_img(fig, *, image_format='png', auto_close=True):
     """Plot figure and create a binary image."""
-    # fig can be ndarray, mpl Figure, Mayavi Figure, or callable that produces
-    # a mpl Figure
+    # fig can be ndarray, mpl Figure, Mayavi Figure
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
     if isinstance(fig, np.ndarray):
         fig = _ndarray_to_fig(fig)
-    elif callable(fig):
-        if auto_close:
-            plt.close('all')
-        fig = fig(**kwargs)
     elif not isinstance(fig, Figure):
         from ..viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
         backend._check_3d_figure(figure=fig)
@@ -253,6 +248,32 @@ def _fig_to_img(fig, image_format='png', auto_close=True, **kwargs):
     output = output.getvalue()
     return (output.decode('utf-8') if image_format == 'svg' else
             base64.b64encode(output).decode('ascii'))
+
+
+def _scale_mpl_figure(fig, scale):
+    """Magic scaling helper.
+    Keeps font-size and artist sizes constant
+    0.5 : current font - 4pt
+    2.0 : current font + 4pt
+    This is a heuristic but it seems to work for most cases.
+    """
+    scale = float(scale)
+    fig.set_size_inches(fig.get_size_inches() * scale)
+    fig.set_dpi(fig.get_dpi() * scale)
+    import matplotlib as mpl
+    if scale >= 1:
+        sfactor = scale ** 2
+    else:
+        sfactor = -((1. / scale) ** 2)
+    for text in fig.findobj(mpl.text.Text):
+        fs = text.get_fontsize()
+        new_size = fs + sfactor
+        if new_size <= 0:
+            raise ValueError('could not rescale matplotlib fonts, consider '
+                             'increasing "scale"')
+        text.set_fontsize(new_size)
+
+    fig.canvas.draw()
 
 
 def _get_mri_contour_figs(*, sl, n_jobs, mri_fname, surfaces,
@@ -323,12 +344,12 @@ def _iterate_trans_views(function, **kwargs):
     fig2, ax = plt.subplots()
     ax.imshow(images)
     ax.axis('off')
-    fig2.tight_layout()
+    tight_layout(fig=fig2)
 
     if not MNE_3D_BACKEND_TESTING:
         backend._close_all()
 
-    img = _fig_to_img(fig2, image_format='png')
+    img = _fig_to_img(fig=fig2, image_format='png')
     plt.close(fig2)
 
     caption = (f'Average distance from {len(dists)} digitized points to '
@@ -1450,12 +1471,12 @@ class Report(object):
             If True, the plots are closed during the generation of the report.
             Defaults to True.
         """
-        # figs, captions, comments = self._validate_input(
-        #     figs, captions,
-        #     section.lower(), comments
-        # )
-        # image_format = _check_image_format(self, image_format)
-        # _check_scale(scale)
+        figs, captions, comments = self._validate_input(
+            figs, captions,
+            section.lower(), comments
+        )
+        image_format = _check_image_format(self, image_format)
+        _check_scale(scale)
 
         if (
             _check_path_like(figs) or
@@ -1499,6 +1520,10 @@ class Report(object):
         tags = _clean_tags(section)
 
         for fig, title, caption in zip(figs, captions, comments):
+            if scale is not None:
+                _scale_mpl_figure(fig, scale)
+            tight_layout(fig=fig)
+
             self.add_figure(
                 fig=fig, title=title, caption=caption,
                 image_format=image_format, tags=tags, replace=replace
@@ -1576,9 +1601,9 @@ class Report(object):
         # Note: using scipy.misc is equivalent because scipy internally
         # imports PIL anyway. It's not possible to redirect image output
         # to binary string using scipy.misc.
-        # fnames, captions, comments = self._validate_input(fnames, captions,
-        #                                                   section, comments)
-        # _check_scale(scale)
+        fnames, captions, comments = self._validate_input(fnames, captions,
+                                                          section, comments)
+        _check_scale(scale)
 
         if isinstance(fnames, str):
             fnames = (fnames,)
@@ -1896,6 +1921,12 @@ class Report(object):
         .. versionadded:: 0.10.0
         """
         tags = _clean_tags(section)
+
+        for fig in figs:
+            if scale is not None:
+                _scale_mpl_figure(fig, scale)
+            tight_layout(fig=fig)
+
         self.add_slider(
             figs=figs, title=title, captions=captions,
             image_format=image_format, tags=tags, replace=replace
@@ -2364,7 +2395,7 @@ class Report(object):
                 show=False
             )
 
-        fig.tight_layout()
+        tight_layout(fig=fig)
         img = _fig_to_img(fig=fig, image_format=image_format)
         butterfly_img_html = _html_image_element(
             img=img, div_klass='raw', img_klass='raw',
@@ -2385,7 +2416,7 @@ class Report(object):
                 fmax = np.inf
 
             fig = raw.plot_psd(fmax=fmax, show=False, **add_psd)
-            tight_layout(fig)
+            tight_layout(fig=fig)
 
             img = _fig_to_img(fig, image_format=image_format)
             psd_img_html = _html_image_element(
@@ -2443,7 +2474,7 @@ class Report(object):
             show=False
         )
         fig.set_size_inches((6, 4))
-        fig.tight_layout()
+        tight_layout(fig=fig)
 
         img = _fig_to_img(fig=fig, image_format=image_format)
 
@@ -2558,7 +2589,7 @@ class Report(object):
                     show=False
                 )
 
-            img = _fig_to_img(fig, image_format)
+            img = _fig_to_img(fig=fig, image_format=image_format)
             title = f'Time course ({ch_type_to_caption_map[ch_type]})'
             dom_id = self._get_dom_id()
 
@@ -2630,7 +2661,7 @@ class Report(object):
                         axes=ch_type_ax_map[ch_type], show=False
                     )
                     ch_type_ax_map[ch_type][0].set_title(ch_type)
-                fig.tight_layout()
+                tight_layout(fig=fig)
                 figs.append(fig)
 
         captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
@@ -2675,8 +2706,8 @@ class Report(object):
             if idx < len(ch_types) - 1:
                 ax[idx].set_xlabel(None)
 
-        fig.tight_layout()
-        img = _fig_to_img(fig, image_format)
+        tight_layout(fig=fig)
+        img = _fig_to_img(fig=fig, image_format=image_format)
         title = 'Global field power'
         html = _html_image_element(
             img=img,
@@ -2700,8 +2731,8 @@ class Report(object):
             noise_cov=noise_cov,
             show=False
         )
-        fig.tight_layout()
-        img = _fig_to_img(fig, image_format=image_format)
+        tight_layout(fig=fig)
+        img = _fig_to_img(fig=fig, image_format=image_format)
         title = 'Whitened'
 
         html = _html_image_element(
@@ -2818,19 +2849,21 @@ class Report(object):
 
         # Drop log
         if epochs._bad_dropped:
+            title = 'Drop log'
             dom_id = self._get_dom_id()
             if epochs.drop_log_stats() == 0:  # No drops
                 drop_log_img_html = _html_element(
                     html='No epochs exceeded the rejection thresholds. '
                          'Nothing was dropped.',
-                    id=dom_id, div_klass='epochs', title='Drop log', tags=tags
+                    id=dom_id, div_klass='epochs', title=title, tags=tags
                 )
             else:
-                img = _fig_to_img(epochs.plot_drop_log, image_format,
-                                  subject=self.subject, show=False)
+                fig = epochs.plot_drop_log(subject=self.subject, show=False)
+                tight_layout(fig=fig)
+                img = _fig_to_img(fig=fig, image_format=image_format)
                 drop_log_img_html = _html_image_element(
                     img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
-                    show=True, image_format=image_format, title='Drop log',
+                    show=True, image_format=image_format, title=title,
                     caption=None, tags=tags
                 )
         else:
@@ -2844,7 +2877,7 @@ class Report(object):
             fmax = np.inf
 
         fig = epochs.plot_psd(fmax=fmax, show=False)
-        tight_layout(fig)
+        tight_layout(fig=fig)
 
         img = _fig_to_img(fig=fig, image_format=image_format)
         psd_img_html = _html_image_element(
@@ -2887,7 +2920,7 @@ class Report(object):
 
         for fig, title in zip(figs, titles):
             dom_id = self._get_dom_id()
-            img = _fig_to_img(fig, image_format)
+            img = _fig_to_img(fig=fig, image_format=image_format)
             html = _html_image_element(
                 img=img, id=dom_id, div_klass='covariance',
                 img_klass='covariance', title=title, caption=None,
@@ -2995,7 +3028,7 @@ class Report(object):
                     fig, ax = plt.subplots(figsize=(8, 6))
                     ax.imshow(brain.screenshot(time_viewer=True, mode='rgb'))
                     ax.axis('off')
-                    fig.tight_layout()
+                    tight_layout(fig=fig)
                     figs.append(fig)
                 else:
                     fig_lh = plt.figure()
@@ -3013,8 +3046,8 @@ class Report(object):
                                         subjects_dir=subjects_dir,
                                         backend='matplotlib',
                                         figure=fig_rh)
-                    fig_lh.tight_layout()  # TODO is this necessary?
-                    fig_rh.tight_layout()  # TODO is this necessary?
+                    tight_layout(fig=fig_lh)  # TODO is this necessary?
+                    tight_layout(fig=fig_rh)  # TODO is this necessary?
                     figs.append(brain_lh)
                     figs.append(brain_rh)
 
