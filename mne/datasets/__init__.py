@@ -3,7 +3,6 @@
 See :ref:`datasets` for more information.
 """
 
-from .fetch import fetch_dataset
 from . import fieldtrip_cmc
 from . import brainstorm
 from . import visual_92_categories
@@ -27,6 +26,7 @@ from . import refmeg_noise
 from . import ssvep
 from . import erp_core
 from . import epilepsy_ecog
+from .fetch import fetch_dataset
 from .utils import (_download_all_example_data, fetch_hcp_mmp_parcellation,
                     fetch_aparc_sub_parcellation)
 from ._fsaverage.base import fetch_fsaverage
@@ -38,5 +38,6 @@ __all__ = [
     'fetch_hcp_mmp_parcellation', 'fieldtrip_cmc', 'hf_sef', 'kiloword',
     'misc', 'mtrf', 'multimodal', 'opm', 'phantom_4dbti', 'sample',
     'sleep_physionet', 'somato', 'spm_face', 'ssvep', 'testing',
-    'visual_92_categories', 'limo', 'erp_core', 'epilepsy_ecog'
+    'visual_92_categories', 'limo', 'erp_core', 'epilepsy_ecog',
+    'fetch_dataset'
 ]
