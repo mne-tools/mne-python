@@ -17,7 +17,7 @@ def data_path(
         download=True, verbose=None):  # noqa: D103
 
     return _download_mne_dataset(
-        name='ssvep', processor='zip', path=path,
+        name='ssvep', processor='unzip', path=path,
         force_update=force_update, update_path=update_path,
         download=download)
 

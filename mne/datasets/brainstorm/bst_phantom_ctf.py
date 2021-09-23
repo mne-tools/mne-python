@@ -19,7 +19,7 @@ URL: http://neuroimage.usc.edu/brainstorm/Tutorials/PhantomCtf
 def data_path(path=None, force_update=False, update_path=True, download=True,
               *, accept=False, verbose=None):  # noqa: D103
     return _download_mne_dataset(
-        name='bst_phantom_ctf', processor='nested_tar', path=path,
+        name='bst_phantom_ctf', processor='nested_untar', path=path,
         force_update=force_update, update_path=update_path,
         download=download, accept=accept)
 

@@ -44,7 +44,7 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
     .. footbibliography::
     """
     return _download_mne_dataset(
-        name='kiloword', processor='tar', path=path,
+        name='kiloword', processor='untar', path=path,
         force_update=force_update, update_path=update_path,
         download=download)
 

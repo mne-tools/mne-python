@@ -77,9 +77,7 @@ def data_path(dataset='evoked', path=None, force_update=False,
         return final_path
 
     # instantiate processor that unzips file
-    processor = pooch.Untar(
-        extract_dir=path, members=[f'hf_sef/{subdir}' for subdir in
-                                   ('MEG', 'SSS', 'subjects')]),
+    processor = 'untar'
 
     return fetch_dataset(dataset_params=dataset_params, processor=processor,
                          path=path, force_update=force_update,

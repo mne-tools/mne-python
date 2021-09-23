@@ -38,18 +38,18 @@ def fetch_dataset(dataset_params, processor=None, path=None,
         :class:`pooch.Unzip` or :class:`pooch.Untar`. If ``None`` (the
         default), the files are left as is.
     path : None | str
-        Location of where to look for the {name} dataset.
-        If None, the environment variable or config parameter
-        ``{conf}`` is used. If it doesn't exist, the
-        "~/mne_data" directory is used. If the {name} dataset
+        Location of where to look for the dataset.
+        If None, the environment variable or ``config_key`` parameter
+        is used. If it doesn't exist, the
+        "~/mne_data" directory is used. If the dataset
         is not found under the given path, the data
         will be automatically downloaded to the specified folder.
     force_update : bool
-        Force update of the {name} dataset even if a local copy exists.
+        Force update of the dataset even if a local copy exists.
         Default is False.
     update_path : bool | None
-        If True (default), set the ``{conf}`` in mne-python
-        config to the given path. If None, the user is prompted.
+        If True (default), set the mne-python config to the given
+        path. If None, the user is prompted.
     download : bool
         If False and the {name} dataset has not been downloaded yet,
         it will not be downloaded and the path will be returned as
@@ -110,13 +110,19 @@ def fetch_dataset(dataset_params, processor=None, path=None,
     Fetching datasets downloads files over HTTP/HTTPS. One can fetch private
     datasets by passing in authorization to the ``auth`` argument.
     """  # noqa
+    # import pooch library for handling the dataset downloading
+    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
+
     if auth is not None:
         if len(auth) != 2:
             raise RuntimeError('auth should be a 2-tuple consisting '
                                'of a username and password/token.')
 
-    # import pooch library for handling the dataset downloading
-    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
+    # processor to uncompress files
+    if processor == 'untar':
+        processor = pooch.Untar(extract_dir=path)
+    elif processor == 'unzip':
+        processor = pooch.Unzip(extract_dir=path)
 
     # extract configuration parameters
     names = list(dataset_params.keys())
@@ -217,6 +223,12 @@ def fetch_dataset(dataset_params, processor=None, path=None,
     for this_name in names:
         # fetch and unpack the data
         archive_name = MNE_DATASETS[this_name]['archive_name']
+
+        print('\n\nhere...')
+        print(this_name)
+        print(archive_name)
+        print(processor)
+        print(downloader)
         fetcher.fetch(fname=archive_name, downloader=downloader,
                       processor=processor)
         # after unpacking, remove the archive file

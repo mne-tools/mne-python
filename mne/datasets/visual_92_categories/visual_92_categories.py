@@ -44,7 +44,7 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
         human object recognition in space and time. doi: 10.1038/NN.3635
     """
     return _download_mne_dataset(
-        name='visual_92_categories', processor='tar', path=path,
+        name='visual_92_categories', processor='untar', path=path,
         force_update=force_update, update_path=update_path,
         download=download)
 

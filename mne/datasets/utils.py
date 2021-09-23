@@ -158,11 +158,7 @@ def _download_mne_dataset(name, processor, path, force_update,
     path = _get_path(path=path, key=config_key, name=name)
 
     # instantiate processor that unzips file
-    if processor == 'tar':
-        processor_ = pooch.Untar(extract_dir=path)
-    elif processor == 'zip':
-        processor_ = pooch.Unzip(extract_dir=path)
-    elif processor == 'nested_tar':
+    if processor == 'nested_untar':
         processor_ = pooch.Untar(extract_dir=op.join(path, folder_name))
 
     # handle case of multiple sub-datasets with different urls

@@ -21,7 +21,7 @@ def data_path(path=None, force_update=False, update_path=True,
         raise RuntimeError('Cannot download data if skipping is forced')
 
     return _download_mne_dataset(
-        name='testing', processor='tar', path=path,
+        name='testing', processor='untar', path=path,
         force_update=force_update, update_path=update_path,
         download=download)
 

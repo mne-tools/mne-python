@@ -15,7 +15,7 @@ has_fnirs_motor_data = partial(has_dataset, name='fnirs_motor')
 def data_path(path=None, force_update=False, update_path=True, download=True,
               verbose=None):  # noqa: D103
     return _download_mne_dataset(
-        name='fnirs_motor', processor='tar', path=path,
+        name='fnirs_motor', processor='untar', path=path,
         force_update=force_update, update_path=update_path,
         download=download)
 

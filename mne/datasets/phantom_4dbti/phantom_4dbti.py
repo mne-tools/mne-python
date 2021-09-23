@@ -16,7 +16,7 @@ has_phantom_4dbti_data = partial(has_dataset, name='phantom_4dbti')
 def data_path(path=None, force_update=False, update_path=True, download=True,
               verbose=None):  # noqa: D103
     return _download_mne_dataset(
-        name='phantom_4dbti', processor='zip', path=path,
+        name='phantom_4dbti', processor='unzip', path=path,
         force_update=force_update, update_path=update_path,
         download=download)
 
