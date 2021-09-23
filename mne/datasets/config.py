@@ -285,7 +285,7 @@ MNE_DATASETS['hf_sef_raw'] = dict(
     archive_name='hf_sef_raw.tar.gz',
     hash='md5:33934351e558542bafa9b262ac071168',
     url='https://zenodo.org/record/889296/files/hf_sef_raw.tar.gz',
-    folder_name='HF_SEF',
+    folder_name='hf_sef',
     config_key='MNE_DATASETS_HF_SEF_PATH',
 )
 MNE_DATASETS['hf_sef_evoked'] = dict(
@@ -293,7 +293,7 @@ MNE_DATASETS['hf_sef_evoked'] = dict(
     hash='md5:13d34cb5db584e00868677d8fb0aab2b',
     url=('https://zenodo.org/record/3523071/files/'
          'hf_sef_evoked.tar.gz'),
-    folder_name='HF_SEF',
+    folder_name='hf_sef',
     config_key='MNE_DATASETS_HF_SEF_PATH',
 )
 

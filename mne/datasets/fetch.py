@@ -12,7 +12,7 @@ from .config import (_bst_license_text, RELEASES,
                      TESTING_VERSIONED, MISC_VERSIONED, MNE_DATASETS)
 from .. import __version__ as mne_version
 from ..utils import (logger, warn, _safe_input, _soft_import)
-from .utils import _dataset_version, _do_path_update
+from .utils import _dataset_version, _do_path_update, _get_path
 
 
 _FAKE_VERSION = None  # used for monkeypatching while testing versioning
@@ -21,7 +21,7 @@ _FAKE_VERSION = None  # used for monkeypatching while testing versioning
 def fetch_dataset(dataset_params, processor=None, path=None,
                   force_update=False, update_path=True, download=True,
                   check_version=False, return_version=False, accept=False,
-                  auth=None):
+                  auth=None, token=None):
     """Fetch an MNE-compatible dataset.
 
     Parameters
@@ -67,6 +67,9 @@ def fetch_dataset(dataset_params, processor=None, path=None,
     auth : tuple | None
         Optional authorization tuple containing the username and
         password/token. For example, ``auth=('foo', 012345)``.
+        Is passed to `pooch.HTTPDownloader`.
+    token : str | None
+        Optional token to be passed to `pooch.HTTPDownloader`.
 
     Returns
     -------
@@ -133,6 +136,9 @@ def fetch_dataset(dataset_params, processor=None, path=None,
     config_key = dataset_dict['config_key']
     folder_name = dataset_dict['folder_name']
 
+    # get download path for specific dataset
+    path = _get_path(path=path, key=config_key, name=name)
+
     # get the actual path to each dataset folder name
     final_path = op.join(path, folder_name)
 
@@ -189,6 +195,8 @@ def fetch_dataset(dataset_params, processor=None, path=None,
         download_params['progressbar'] = False
     if auth is not None:
         download_params['auth'] = auth
+    if token is not None:
+        download_params['token'] = token
     downloader = pooch.HTTPDownloader(**download_params)
 
     # construct the mapping needed by pooch from archive names
@@ -237,6 +245,7 @@ def fetch_dataset(dataset_params, processor=None, path=None,
     elif name == 'testing':
         rmtree(final_path, ignore_errors=True)
         os.replace(op.join(path, TESTING_VERSIONED), final_path)
+
     # maybe update the config
     old_name = 'brainstorm' if name.startswith('bst_') else name
     _do_path_update(path, update_path, config_key, old_name)
