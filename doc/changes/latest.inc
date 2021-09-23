@@ -179,6 +179,8 @@ Bugs
 
 - Fix bug with `mne.compute_rank`, `mne.cov.compute_whitener` and `mne.preprocessing.ICA.fit` when explicit picks including bad channels are provided (:gh:`9719` **by new contributor** |Mathieu Scheltienne|_)
 
+- Fix bug with :func:`mne.concatenate_epochs` where the concatenated events could end up in non-chronological order. (:gh:`9765` **by new contributor** |Jan Sosulski|_)
+
 - Fix bug with :func:`mne.io.read_raw_nihon` where latin-1 annotations could not be read (:gh:`9384` by `Alex Gramfort`_)
 
 - Fix bug when printing a :class:`mne.io.RawArray` in the notebook (:gh:`9404` by `Alex Gramfort`_)
@@ -236,9 +238,6 @@ Bugs
 - Fix bug where channels with a dollar sign ($) were not being labeled "misc" in :func:`mne.io.read_raw_nihon` (:gh:`9695` by `Adam Li`_)
 
 - Fix bug where :func:`mne.io.read_raw_persyst` was lower-casing events it found in the ``.lay`` file (:gh:`9746` by `Adam Li`_)
-
-- Fix bug with :meth:`mne.Epochs.concatenate_epochs` where the concatenated events could end up in non-chronological order. (:gh:`9765` **by new contributor** |Jan Sosulski|_)
-
 
 API changes
 ~~~~~~~~~~~
