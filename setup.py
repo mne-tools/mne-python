@@ -92,7 +92,6 @@ if __name__ == "__main__":
           install_requires=install_requires,
           packages=package_tree('mne'),
           package_data={'mne': [
-              op.join('data', 'dataset_checksums.txt'),
               op.join('data', 'eegbci_checksums.txt'),
               op.join('data', '*.sel'),
               op.join('data', 'icos.fif.gz'),
