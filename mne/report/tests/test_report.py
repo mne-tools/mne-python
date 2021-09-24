@@ -277,6 +277,7 @@ def test_report_raw_psd_and_date(tmpdir):
     assert isinstance(report.html, list)
     assert 'PSD' in ''.join(report.html)
     assert 'Unknown' not in ''.join(report.html)
+    assert 'GMT' in ''.join(report.html)
 
     # test new anonymize functionality
     report = Report()
