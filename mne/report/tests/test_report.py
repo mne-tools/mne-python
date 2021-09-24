@@ -463,7 +463,6 @@ def test_validate_input():
                   comments=comments[:-1])
     values = report._validate_input(items, captions, section, comments=None)
     items_new, captions_new, comments_new = values
-    assert len(comments_new) == len(items)
 
 
 @requires_h5py
@@ -710,12 +709,15 @@ def test_deprecated_methods(tmpdir):
 
     with pytest.raises(
         ValueError,
-        match='figs.*must equal number of captions'
+        match='Number of "captions" and report items must be equal'
     ):
         r.add_figs_to_section(figs=[fig, fig], captions='H')
 
     # Passing lists should work
     r.add_images_to_section(fnames=[img_fname],  captions=['evoked response'])
 
-    with pytest.raises(ValueError, match='fnames.*must equal.*captions'):
+    with pytest.raises(
+        ValueError,
+        match='Number of "captions" and report items must be equal'
+    ):
         r.add_images_to_section(fnames=[img_fname, img_fname], captions='H')

@@ -242,8 +242,18 @@ def _fig_to_img(fig, *, image_format='png', auto_close=True):
     output = BytesIO()
     logger.debug('Saving figure %s with dpi %s'
                  % (fig.get_size_inches(), fig.get_dpi()))
-    fig.savefig(output, format=image_format, dpi=fig.get_dpi(), pad_inches=0)
-    plt.close(fig)
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            action='ignore',
+            message='.*Axes that are not compatible with tight_layout.*',
+            category=UserWarning
+        )
+        fig.savefig(output, format=image_format, dpi=fig.get_dpi(),
+                    bbox_inches='tight', pad_inches=0)
+
+    if auto_close:
+        plt.close(fig)
     output = output.getvalue()
     return (output.decode('utf-8') if image_format == 'svg' else
             base64.b64encode(output).decode('ascii'))
@@ -599,20 +609,19 @@ class Report(object):
             items = [items]
         if not isinstance(captions, (list, tuple)):
             captions = [captions]
-        if not isinstance(comments, (list, tuple)):
-            if comments is None:
-                comments = [comments] * len(captions)
-            else:
-                comments = [comments]
-        if len(comments) != len(items):
-            raise ValueError('Comments and report items must have the same '
-                             'length or comments should be None, got %d and %d'
-                             % (len(comments), len(items)))
-        elif len(captions) != len(items):
-            raise ValueError('Captions and report items must have the same '
-                             'length, got %d and %d'
-                             % (len(captions), len(items)))
-
+        if not isinstance(comments, (list, tuple)) and comments is not None:
+            comments = [comments]
+        if comments is not None and len(comments) != len(items):
+            raise ValueError(
+                f'Number of "comments" and report items must be equal, '
+                f'or comments should be None; got '
+                f'{len(comments)} and {len(items)}'
+            )
+        elif captions is not None and len(captions) != len(items):
+            raise ValueError(
+                f'Number of "captions" and report items must be equal; '
+                f'got {len(captions)} and {len(items)}'
+            )
         return items, captions, comments
 
     @property
@@ -1471,8 +1480,7 @@ class Report(object):
             Defaults to True.
         """
         figs, captions, comments = self._validate_input(
-            figs, captions,
-            section.lower(), comments
+            figs, captions, section, comments
         )
         image_format = _check_image_format(self, image_format)
         _check_scale(scale)
@@ -1691,7 +1699,7 @@ class Report(object):
         -----
         .. versionadded:: 0.9.0
         """
-        # htmls, captions, _ = self._validate_input(htmls, captions, section)
+        htmls, captions, _ = self._validate_input(htmls, captions, section)
 
         if isinstance(htmls, str):
             htmls = (htmls,)
@@ -2872,6 +2880,9 @@ class Report(object):
         dom_id = self._get_dom_id()
         if epochs.info['lowpass'] is not None:
             fmax = epochs.info['lowpass'] + 15
+            # Must not exceed half the sampling frequency
+            if fmax > 0.5 * epochs.info['sfreq']:
+                fmax = np.inf
         else:
             fmax = np.inf
 
