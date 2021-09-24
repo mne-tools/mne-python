@@ -8,14 +8,14 @@ import os.path as op
 from distutils.version import LooseVersion
 from shutil import rmtree
 
+from .. import __version__ as mne_version
+from ..utils import logger, warn, _safe_input, _soft_import
 from .config import (
     _bst_license_text,
     RELEASES,
     TESTING_VERSIONED,
     MISC_VERSIONED,
 )
-from .. import __version__ as mne_version
-from ..utils import logger, warn, _safe_input, _soft_import
 from .utils import _dataset_version, _do_path_update, _get_path
 
 
