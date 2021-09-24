@@ -689,7 +689,6 @@ def test_sorting(tmpdir):
            open_browser=False)
 
 
-@pytest.mark.filterwarnings('ignore:.*deprecated.*')
 @testing.requires_testing_data
 def test_deprecated_methods(tmpdir):
     """Test methods that are scheduled for removal after 0.24."""
@@ -699,8 +698,11 @@ def test_deprecated_methods(tmpdir):
     img_fname = op.join(tmpdir, 'testimage.png')
     fig.savefig(img_fname)
 
-    assert len(r.fnames) == 1
-    assert len(r.sections) == 1
+    with pytest.warns(DeprecationWarning, match='Report.fnames'):
+        assert len(r.fnames) == 1
+
+    with pytest.warns(DeprecationWarning, match='Report.sections'):
+        assert len(r.sections) == 1
 
     with pytest.warns(DeprecationWarning, match='use "title" instead'):
         r.remove(caption='SSP Projectors')
@@ -708,20 +710,26 @@ def test_deprecated_methods(tmpdir):
     with pytest.warns(DeprecationWarning, match='use .* instead'):
         r.remove(caption='SSP Projectors', tags=('mytag',))
 
-    with pytest.raises(TypeError, match='It seems you passed a path'):
-        r.add_figs_to_section(['foo'], 'caption', 'section')
+    with pytest.warns(DeprecationWarning, match='Use `Report.add_figure`'):
+        with pytest.raises(TypeError, match='It seems you passed a path'):
+            r.add_figs_to_section(['foo'], 'caption', 'section')
 
     with pytest.raises(
         ValueError,
         match='Number of "captions" and report items must be equal'
     ):
-        r.add_figs_to_section(figs=[fig, fig], captions='H')
+        with pytest.warns(DeprecationWarning, match='Use `Report.add_figure`'):
+            r.add_figs_to_section(figs=[fig, fig], captions='H')
 
     # Passing lists should work
-    r.add_images_to_section(fnames=[img_fname],  captions=['evoked response'])
+    with pytest.warns(DeprecationWarning, match='Use `Report.add_image`'):
+        r.add_images_to_section(fnames=[img_fname],
+                                captions=['evoked response'])
 
     with pytest.raises(
         ValueError,
         match='Number of "captions" and report items must be equal'
     ):
-        r.add_images_to_section(fnames=[img_fname, img_fname], captions='H')
+        with pytest.warns(DeprecationWarning, match='Use `Report.add_image`'):
+            r.add_images_to_section(fnames=[img_fname, img_fname],
+                                    captions='H')
