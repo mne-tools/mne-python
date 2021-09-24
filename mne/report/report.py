@@ -36,7 +36,7 @@ from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
-                     _check_path_like, use_log_level)
+                     _check_path_like, use_log_level, deprecated)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
@@ -625,18 +625,18 @@ class Report(object):
         return items, captions, comments
 
     @property
-    # @deprecated
     def html(self):
         return [element.html for element in self._content]
 
     @property
-    # @deprecated
     def fnames(self):
+        warn('Report.fnames is deprecated', category=DeprecationWarning)
         return [element.name for element in self._content]
 
     @property
-    # @deprecated(extra='Use Report.tags instead')
     def sections(self):
+        warn('Report.sections is deprecated. Use Reports.tags instead',
+             category=DeprecationWarning)
         return self.tags
 
     @property
@@ -1443,7 +1443,7 @@ class Report(object):
             replace=replace
         )
 
-    # @deprecated(extra='Use `Report.add_figure` instead')
+    @deprecated(extra='Use `Report.add_figure` instead')
     @fill_doc
     def add_figs_to_section(self, figs, captions, section='custom',
                             scale=None, image_format=None, comments=None,
@@ -1580,7 +1580,7 @@ class Report(object):
             replace=replace
         )
 
-    # @deprecated(extra='Use `Report.add_image` instead')
+    @deprecated(extra='Use `Report.add_image` instead')
     def add_images_to_section(self, fnames, captions, scale=None,
                               section='custom', comments=None, replace=False):
         """Append custom user-defined images.
@@ -1677,7 +1677,7 @@ class Report(object):
             replace=replace
         )
 
-    # @deprecated(extra='Use `Report.add_html` instead')
+    @deprecated(extra='Use `Report.add_html` instead')
     def add_htmls_to_section(self, htmls, captions, section='custom',
                              replace=False):
         """Append htmls to the report.
@@ -1721,7 +1721,7 @@ class Report(object):
         for html, title in zip(htmls, captions):
             self.add_html(html=html, title=title, tags=tags, replace=replace)
 
-    # @deprecated(extra='Use `Report.add_bem` instead')
+    @deprecated(extra='Use `Report.add_bem` instead')
     @verbose
     def add_bem_to_section(self, subject, caption='BEM', section='bem',
                            decim=2, n_jobs=1, subjects_dir=None,
@@ -1886,7 +1886,7 @@ class Report(object):
             replace=replace
         )
 
-    # @deprecated(extra='Use `Report.add_slider` instead')
+    @deprecated(extra='Use `Report.add_slider` instead')
     @fill_doc
     def add_slider_to_section(self, figs, captions=None, section='custom',
                               title='Slider', scale=None, image_format=None,

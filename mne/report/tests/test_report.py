@@ -124,13 +124,12 @@ def test_render_report(renderer, tmpdir):
     titles = [op.basename(x) for x in fnames if not x.endswith('-ave.fif')]
     titles.append(f'{op.basename(evoked_fname)}: {evoked.comment}')
 
+    content_names = [element.name for element in report._content]
     for title in titles:
-        assert title in report.fnames
+        assert title in content_names
         assert (''.join(report.html).find(title) != -1)
 
-    assert len(report.fnames) == len(fnames)
-    assert len(report.html) == len(report.fnames)
-    assert len(report.fnames) == len(report)
+    assert len(report._content) == len(fnames)
 
     # Check saving functionality
     report.data_path = tempdir
@@ -145,8 +144,7 @@ def test_render_report(renderer, tmpdir):
     assert 'Topographies' in html
     assert 'Global field power' in html
 
-    assert len(report.html) == len(fnames)
-    assert len(report.html) == len(report.fnames)
+    assert len(report._content) == len(fnames)
 
     # Check saving same report to new filename
     report.save(fname=op.join(tempdir, 'report2.html'), open_browser=False)
@@ -165,9 +163,11 @@ def test_render_report(renderer, tmpdir):
 
     fnames = glob.glob(op.join(tempdir, '*.raw')) + \
         glob.glob(op.join(tempdir, '*.raw'))
+
+    content_names = [element.name for element in report._content]
     for fname in fnames:
         assert (op.basename(fname) in
-                [op.basename(x) for x in report.fnames])
+                [op.basename(x) for x in content_names])
         assert (''.join(report.html).find(op.basename(fname)) != -1)
 
     pytest.raises(ValueError, Report, image_format='foo')
@@ -241,13 +241,12 @@ def test_render_non_fiff(tmpdir):
     report.parse_folder(data_path=tempdir, render_bem=False, on_error='raise')
 
     # Check correct paths and filenames
+    content_names = [element.name for element in report._content]
     for fname in fnames_out:
         assert (op.basename(fname) in
-                [op.basename(x) for x in report.fnames])
+                [op.basename(x) for x in content_names])
 
-    assert len(report.fnames) == len(fnames_out)
-    assert len(report.html) == len(report.fnames)
-    assert len(report.fnames) == len(report)
+    assert len(report._content) == len(fnames_out)
 
     report.data_path = tempdir
     fname = op.join(tempdir, 'report.html')
@@ -409,7 +408,7 @@ def test_render_mri_without_bem(tmpdir):
         report.parse_folder(tempdir, render_bem=False)
     with pytest.warns(RuntimeWarning, match='No BEM surfaces found'):
         report.parse_folder(tempdir, render_bem=True, mri_decim=20)
-    assert 'BEM surfaces' in report.fnames
+    assert 'BEM surfaces' in [element.name for element in report._content]
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
 
@@ -432,7 +431,7 @@ def test_add_slider(tmpdir):
                     subject='sample', subjects_dir=subjects_dir)
     figs = _get_example_figures()
     report.add_slider(figs=figs, title='my title')
-    assert report.fnames[0] == 'my title'
+    assert report._content[0].name == 'my title'
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
     with pytest.raises(ValueError):
@@ -605,7 +604,7 @@ def test_split_files(tmpdir, split_naming):
 
     report = Report()
     report.parse_folder(tmpdir, render_bem=False)
-    assert len(report.fnames) == 1
+    assert len(report._content) == 1
 
 
 @testing.requires_testing_data
@@ -690,6 +689,7 @@ def test_sorting(tmpdir):
            open_browser=False)
 
 
+@pytest.mark.filterwarnings('ignore:.*deprecated.*')
 @testing.requires_testing_data
 def test_deprecated_methods(tmpdir):
     """Test methods that are scheduled for removal after 0.24."""
@@ -698,6 +698,9 @@ def test_deprecated_methods(tmpdir):
     fig = plt.figure()  # Empty figure
     img_fname = op.join(tmpdir, 'testimage.png')
     fig.savefig(img_fname)
+
+    assert len(r.fnames) == 1
+    assert len(r.sections) == 1
 
     with pytest.warns(DeprecationWarning, match='use "title" instead'):
         r.remove(caption='SSP Projectors')
