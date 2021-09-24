@@ -146,7 +146,7 @@ def _do_path_update(path, update_path, key, name):
 def _download_mne_dataset(name, processor, path, force_update,
                           update_path, download, accept=False):
     """Aux function for downloading internal MNE datasets."""
-    from mne.datasets.fetch import fetch_dataset
+    from mne.datasets._fetch import fetch_dataset
 
     # import pooch library for handling the dataset downloading
     pooch = _soft_import('pooch', 'dataset downloading', strict=True)
@@ -180,7 +180,7 @@ def _download_mne_dataset(name, processor, path, force_update,
 
 def _get_version(name):
     """Get a dataset version."""
-    from mne.datasets.fetch import fetch_dataset
+    from mne.datasets._fetch import fetch_dataset
 
     if not has_dataset(name):
         return None
@@ -210,7 +210,7 @@ def has_dataset(name):
     has : bool
         True if the dataset is present.
     """
-    from mne.datasets.fetch import fetch_dataset
+    from mne.datasets._fetch import fetch_dataset
 
     name = 'spm' if name == 'spm_face' else name
     dataset_params = MNE_DATASETS[name]
