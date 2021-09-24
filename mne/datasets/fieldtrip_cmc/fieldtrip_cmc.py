@@ -18,7 +18,7 @@ has_mtrf_data = partial(has_dataset, name=data_name)
 def data_path(path=None, force_update=False, update_path=True, download=True,
               verbose=None):  # noqa: D103
     return _download_mne_dataset(
-        name='fieldtrip_cmc', processor='nested_untar', path=path,
+        name='fieldtrip_cmc', processor='nested_unzip', path=path,
         force_update=force_update, update_path=update_path,
         download=download)
 

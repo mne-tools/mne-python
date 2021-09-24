@@ -161,6 +161,8 @@ def _download_mne_dataset(name, processor, path, force_update,
     # instantiate processor that unzips file
     if processor == 'nested_untar':
         processor_ = pooch.Untar(extract_dir=op.join(path, folder_name))
+    elif processor == 'nested_unzip':
+        processor_ = pooch.Unzip(extract_dir=op.join(path, folder_name))
     else:
         processor_ = processor
 
