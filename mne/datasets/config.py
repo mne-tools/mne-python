@@ -87,7 +87,7 @@ I agree to the following:
 # respective repos, and make a new release of the dataset on GitHub. Then
 # update the checksum in `mne/data/dataset_checksums.txt` and change version
 # here:                  ↓↓↓↓↓         ↓↓↓
-RELEASES = dict(testing='0.123', misc='0.18')
+RELEASES = dict(testing='0.123', misc='0.22')
 
 # To update any other dataset besides `testing` or `misc`, upload the new
 # version of the data archive itself (e.g., to https://osf.io or wherever) and
