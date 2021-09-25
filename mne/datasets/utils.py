@@ -14,23 +14,16 @@ import os.path as op
 import sys
 import zipfile
 import tempfile
-from distutils.version import LooseVersion
-from shutil import rmtree
 
 import numpy as np
 
-from .config import (_bst_license_text, _hcp_mmp_license_text, RELEASES,
-                     TESTING_VERSIONED, MISC_VERSIONED, MNE_DATASETS)
-from .. import __version__ as mne_version
+from .config import _hcp_mmp_license_text, MNE_DATASETS
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
-from ..utils import (get_config, set_config, logger, warn,
+from ..utils import (get_config, set_config, logger,
                      verbose, get_subjects_dir, _pl, _safe_input)
 from ..utils.docs import docdict
 from ..utils.check import _soft_import
 from ..externals.doccer import docformat
-
-
-_FAKE_VERSION = None  # used for monkeypatching while testing versioning
 
 
 _data_path_doc = """Get path to local copy of {name} dataset.
@@ -150,247 +143,58 @@ def _do_path_update(path, update_path, key, name):
     return path
 
 
-def _data_path(path=None, force_update=False, update_path=True, download=True,
-               name=None, check_version=False, return_version=False,
-               accept=False, auth=None):
-    """Aux function.
-
-    This is a general function for fetching MNE datasets. In order
-    to define an MNE dataset, one needs to define a URL, archive name,
-    folder name, and environment configuration key. They also need
-    to define a ``pooch`` registry txt file mapping the dataset
-    archive name to a hash (i.e. md5, or sha).
-
-    Parameters
-    ----------
-    path : None | str
-        Location of where to look for the {name} dataset.
-        If None, the environment variable or config parameter
-        ``{conf}`` is used. If it doesn't exist, the
-        "~/mne_data" directory is used. If the {name} dataset
-        is not found under the given path, the data
-        will be automatically downloaded to the specified folder.
-    force_update : bool
-        Force update of the {name} dataset even if a local copy exists.
-        Default is False.
-    update_path : bool | None
-        If True (default), set the ``{conf}`` in mne-python
-        config to the given path. If None, the user is prompted.
-    download : bool
-        If False and the {name} dataset has not been downloaded yet,
-        it will not be downloaded and the path will be returned as
-        '' (empty string). This is mostly used for debugging purposes
-        and can be safely ignored by most users.
-    name : str | None
-        The name of the dataset, which should correspond to the
-        URL, archive name, folder names and configuration key mappings
-        for pooch.
-    check_version : bool
-        Whether to check the version of the dataset or not. Each version
-        of the dataset is stored in the root with a ``version.txt`` file.
-    return_version : bool
-        Whether or not to return the version of the dataset or not.
-        Defaults to False.
-    accept : bool
-        Some datasets require an acceptance of an additional license.
-        Default to False. If this is True, then license text should
-        be passed into key word argument ``license_text``.
-    auth : tuple | None
-        If defined, then must be a tuple of username and password/token
-        used for HTTP/HTTPS authorization in downloading.
-
-    Returns
-    -------
-    path : str
-        Path to {name} dataset directory.
-    """
-    if auth is not None:
-        if len(auth) != 2:
-            raise RuntimeError('auth should be a 2-tuple consisting '
-                               'of a username and password/token.')
+def _download_mne_dataset(name, processor, path, force_update,
+                          update_path, download, accept=False):
+    """Aux function for downloading internal MNE datasets."""
+    from mne.datasets._fetch import fetch_dataset
 
     # import pooch library for handling the dataset downloading
     pooch = _soft_import('pooch', 'dataset downloading', strict=True)
-
-    # extract configuration parameters
-    dataset_dict = MNE_DATASETS[name]
-    config_key = dataset_dict['config_key']
-    folder_name = dataset_dict['folder_name']
+    dataset_params = MNE_DATASETS[name]
+    dataset_params['dataset_name'] = name
+    config_key = MNE_DATASETS[name]['config_key']
+    folder_name = MNE_DATASETS[name]['folder_name']
 
     # get download path for specific dataset
     path = _get_path(path=path, key=config_key, name=name)
 
-    # get the actual path to each dataset folder name
-    final_path = op.join(path, folder_name)
-
-    # handle BrainStorm datasets with nested folders for datasets
-    if name.startswith('bst_'):
-        final_path = op.join(final_path, name)
-
-    # additional condition: check for version.txt and parse it
-    # check if testing or misc data is outdated; if so, redownload it
-    want_version = RELEASES.get(name, None)
-    want_version = _FAKE_VERSION if name == 'fake' else want_version
-
-    # get the version of the dataset and then check if the version is outdated
-    data_version = _dataset_version(final_path, name)
-    outdated_dataset = want_version is not None and \
-        LooseVersion(want_version) > LooseVersion(data_version)
-
-    if outdated_dataset:
-        logger.info(f'Dataset {name} version {data_version} out of date, '
-                    f'latest version is {want_version}')
-
-    # return empty string if outdated dataset and we don't want
-    # to download
-    if (not force_update) and outdated_dataset and not download:
-        return ('', data_version) if return_version else ''
-
-    # reasons to bail early (hf_sef has separate code for this):
-    if (not force_update) and (not outdated_dataset) and \
-            (not name.startswith('hf_sef_')):
-        # if target folder exists (otherwise pooch downloads every time,
-        # because we don't save the archive files after unpacking)
-        if op.isdir(final_path):
-            _do_path_update(path, update_path, config_key, name)
-            return (final_path, data_version) if return_version else final_path
-        # if download=False (useful for debugging)
-        elif not download:
-            return ('', data_version) if return_version else ''
-        # if user didn't accept the license
-        elif name.startswith('bst_'):
-            if accept or '--accept-brainstorm-license' in sys.argv:
-                answer = 'y'
-            else:
-                # If they don't have stdin, just accept the license
-                # https://github.com/mne-tools/mne-python/issues/8513#issuecomment-726823724  # noqa: E501
-                answer = _safe_input(
-                    '%sAgree (y/[n])? ' % _bst_license_text, use='y')
-            if answer.lower() != 'y':
-                raise RuntimeError('You must agree to the license to use this '
-                                   'dataset')
-
-    # downloader & processors
-    download_params = dict(progressbar=True)  # use tqdm
-    if name == 'fake':
-        download_params['progressbar'] = False
-    if auth is not None:
-        download_params['auth'] = auth
-    downloader = pooch.HTTPDownloader(**download_params)
-    unzip = pooch.Unzip(extract_dir=path)  # to unzip downloaded file
-    untar = pooch.Untar(extract_dir=path)  # to untar downloaded file
-
-    # this processor handles nested tar files
-    nested_untar = pooch.Untar(extract_dir=op.join(path, folder_name))
-
-    # create a map for each dataset name to its corresponding processor
-    # Note: when adding a new dataset, a new line must be added here.
-    processors = dict(
-        bst_auditory=nested_untar,
-        bst_phantom_ctf=nested_untar,
-        bst_phantom_elekta=nested_untar,
-        bst_raw=nested_untar,
-        bst_resting=nested_untar,
-        fake=untar,
-        fieldtrip_cmc=nested_untar,
-        kiloword=untar,
-        misc=untar,
-        mtrf=unzip,
-        multimodal=untar,
-        fnirs_motor=untar,
-        opm=untar,
-        sample=untar,
-        somato=untar,
-        spm=untar,
-        testing=untar,
-        visual_92_categories=untar,
-        phantom_4dbti=unzip,
-        refmeg_noise=unzip,
-        hf_sef_raw=pooch.Untar(
-            extract_dir=path, members=[f'hf_sef/{subdir}' for subdir in
-                                       ('MEG', 'SSS', 'subjects')]),
-        hf_sef_evoked=pooch.Untar(
-            extract_dir=path, members=[f'hf_sef/{subdir}' for subdir in
-                                       ('MEG', 'SSS', 'subjects')]),
-        ssvep=unzip,
-        erp_core=untar,
-        epilepsy_ecog=untar,
-    )
-
-    # construct the mapping needed by pooch from archive names
-    # to urls
-    pooch_urls = dict()
-
-    # construct the mapping needed by pooch for the hash checking
-    pooch_hash_mapping = dict()
+    # instantiate processor that unzips file
+    if processor == 'nested_untar':
+        processor_ = pooch.Untar(extract_dir=op.join(path, folder_name))
+    elif processor == 'nested_unzip':
+        processor_ = pooch.Unzip(extract_dir=op.join(path, folder_name))
+    else:
+        processor_ = processor
 
     # handle case of multiple sub-datasets with different urls
     if name == 'visual_92_categories':
-        names = [f'visual_92_categories_{n}' for n in (1, 2)]
-    else:
-        names = [name]
+        dataset_params = []
+        for name in ['visual_92_categories_1', 'visual_92_categories_2']:
+            this_dataset = MNE_DATASETS[name]
+            this_dataset['dataset_name'] = name
+            dataset_params.append(this_dataset)
 
-    # write all pooch urls
-    for this_name in names:
-        this_dataset = MNE_DATASETS[this_name]
-        archive_name = this_dataset['archive_name']
-        dataset_url = this_dataset['url']
-        dataset_hash = this_dataset['hash']
-
-        # write to pooch url
-        pooch_urls[archive_name] = dataset_url
-        pooch_hash_mapping[archive_name] = dataset_hash
-
-    # create the download manager
-    fetcher = pooch.create(
-        path=path,
-        base_url='',    # Full URLs are given in the `urls` dict.
-        version=None,   # Data versioning is decoupled from MNE-Python version.
-        urls=pooch_urls,
-        retry_if_failed=2,  # 2 retries = 3 total attempts
-        registry=pooch_hash_mapping
-    )
-
-    # use our logger level for pooch's logger too
-    pooch.get_logger().setLevel(logger.getEffectiveLevel())
-
-    for this_name in names:
-        # fetch and unpack the data
-        archive_name = MNE_DATASETS[this_name]['archive_name']
-        fetcher.fetch(fname=archive_name, downloader=downloader,
-                      processor=processors[name])
-        # after unpacking, remove the archive file
-        os.remove(op.join(path, archive_name))
-
-    # remove version number from "misc" and "testing" datasets folder names
-    if name == 'misc':
-        rmtree(final_path, ignore_errors=True)
-        os.replace(op.join(path, MISC_VERSIONED), final_path)
-    elif name == 'testing':
-        rmtree(final_path, ignore_errors=True)
-        os.replace(op.join(path, TESTING_VERSIONED), final_path)
-    # maybe update the config
-    old_name = 'brainstorm' if name.startswith('bst_') else name
-    _do_path_update(path, update_path, config_key, old_name)
-
-    # compare the version of the dataset and mne
-    data_version = _dataset_version(path, name)
-    # 0.7 < 0.7.git should be False, therefore strip
-    if check_version and (LooseVersion(data_version) <
-                          LooseVersion(mne_version.strip('.git'))):
-        warn('The {name} dataset (version {current}) is older than '
-             'mne-python (version {newest}). If the examples fail, '
-             'you may need to update the {name} dataset by using '
-             'mne.datasets.{name}.data_path(force_update=True)'.format(
-                 name=name, current=data_version, newest=mne_version))
-    return (final_path, data_version) if return_version else final_path
+    return fetch_dataset(dataset_params=dataset_params, processor=processor_,
+                         path=path, force_update=force_update,
+                         update_path=update_path, download=download,
+                         accept=accept)
 
 
 def _get_version(name):
     """Get a dataset version."""
+    from mne.datasets._fetch import fetch_dataset
+
     if not has_dataset(name):
         return None
-    return _data_path(name=name, return_version=True)[1]
+    dataset_params = MNE_DATASETS[name]
+    dataset_params['dataset_name'] = name
+    config_key = MNE_DATASETS[name]['config_key']
+
+    # get download path for specific dataset
+    path = _get_path(path=None, key=config_key, name=name)
+
+    return fetch_dataset(dataset_params, path=path,
+                         return_version=True)[1]
 
 
 def has_dataset(name):
@@ -408,8 +212,18 @@ def has_dataset(name):
     has : bool
         True if the dataset is present.
     """
+    from mne.datasets._fetch import fetch_dataset
+
     name = 'spm' if name == 'spm_face' else name
-    dp = _data_path(download=False, name=name, check_version=False)
+    dataset_params = MNE_DATASETS[name]
+    dataset_params['dataset_name'] = name
+    config_key = MNE_DATASETS[name]['config_key']
+
+    # get download path for specific dataset
+    path = _get_path(path=None, key=config_key, name=name)
+
+    dp = fetch_dataset(dataset_params, path=path, download=False,
+                       check_version=False)
     if name.startswith('bst_'):
         check = name
     else:

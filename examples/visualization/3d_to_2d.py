@@ -22,7 +22,7 @@ on the image.
 # License: BSD-3-Clause
 
 # %%
-from scipy.io import loadmat
+from mne.io.fiff.raw import read_raw_fif
 import numpy as np
 from matplotlib import pyplot as plt
 from os import path as op
@@ -38,7 +38,7 @@ print(__doc__)
 sample_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(sample_path, 'subjects')
 misc_path = mne.datasets.misc.data_path()
-ecog_data_fname = op.join(misc_path, 'ecog', 'sample_ecog.mat')
+ecog_data_fname = op.join(misc_path, 'ecog', 'sample_ecog_ieeg.fif')
 
 # We've already clicked and exported
 layout_path = op.join(op.dirname(mne.__file__), 'data', 'image')
@@ -51,12 +51,19 @@ layout_name = 'custom_layout.lout'
 # First we will load a sample ECoG dataset which we'll use for generating
 # a 2D snapshot.
 
-mat = loadmat(ecog_data_fname)
-ch_names = mat['ch_names'].tolist()
-elec = mat['elec']  # electrode coordinates in meters
+raw = read_raw_fif(ecog_data_fname)
+ch_names = raw.ch_names
+
+# Since we loaded in the ecog data from FIF, the coordinates
+# are in 'head' space, but we actually want them in 'mri' space.
+# So we will extract the positions and create a new montage
+# with the 'mri' coordinate frame.
+montage = raw.get_montage()
+ch_pos = montage.get_positions()['ch_pos']
+
 # Now we make a montage and specify that these electrode contacts
 # are in the "mri" or surface RAS coordinate frame
-montage = mne.channels.make_dig_montage(ch_pos=dict(zip(ch_names, elec)),
+montage = mne.channels.make_dig_montage(ch_pos=ch_pos,
                                         coord_frame='mri')
 
 # now we'll add some fiducials estimated from the Taliarach transform
@@ -66,7 +73,8 @@ montage.add_estimated_fiducials('sample', subjects_dir)
 # we also need the head->mri transform based on these fiducials
 trans = mne.channels.compute_native_head_t(montage)
 
-info = mne.create_info(ch_names, 1000., 'ecog').set_montage(montage)
+info = mne.create_info(ch_names, 1000., 'ecog')
+info.set_montage(montage)
 print('Created %s channel positions' % len(ch_names))
 
 # %%
