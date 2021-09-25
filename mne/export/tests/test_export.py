@@ -236,12 +236,10 @@ def test_export_raw_edf(tmp_path, dataset, format):
         fname = _resource_path('mne.io.tests.data', 'test_raw.fif')
         raw = read_raw_fif(fname)
     elif dataset == 'misc':
-        fname = op.join(misc.data_path(), 'ecog', 'sample_ecog.edf')
-        raw = read_raw_edf(fname)
+        fname = op.join(misc.data_path(), 'ecog', 'sample_ecog_ieeg.fif')
+        raw = read_raw_fif(fname)
 
     # only test with EEG channels
-    if dataset == 'misc':
-        raw = raw.set_channel_types({'EKGL': 'ecg', 'EKGR': 'ecg'})
     raw.pick_types(eeg=True, ecog=True, seeg=True,
                    eog=True, ecg=True, emg=True)
     raw.load_data()
