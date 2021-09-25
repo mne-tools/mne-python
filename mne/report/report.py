@@ -261,9 +261,11 @@ def _fig_to_img(fig, *, image_format='png', auto_close=True):
 
 def _scale_mpl_figure(fig, scale):
     """Magic scaling helper.
-    Keeps font-size and artist sizes constant
+
+    Keeps font size and artist sizes constant
     0.5 : current font - 4pt
     2.0 : current font + 4pt
+
     This is a heuristic but it seems to work for most cases.
     """
     scale = float(scale)
@@ -731,9 +733,8 @@ class Report(object):
         )
 
     @fill_doc
-    def add_evokeds(self, evokeds, *, titles=None, baseline=None,
-                    noise_cov=None, projs=True, tags=('evoked',),
-                    replace=False):
+    def add_evokeds(self, evokeds, *, titles=None, noise_cov=None, projs=True,
+                    tags=('evoked',), replace=False):
         """Add `~mne.Evoked` objects to the report.
 
         Parameters
@@ -746,9 +747,6 @@ class Report(object):
             The titles corresponding to the evoked data. If ``None``, the
             content of ``evoked.comment`` from each evoked will be used as
             title.
-        baseline : tuple of float, shape (2,) | None
-            Baseline correction to apply. If ``None`` (default), use the
-            value set when initializing the report.
         noise_cov : path-like | instance of Covariance | None
             A noise covariance matrix. If provided, will be used to whiten
             the ``evokeds``. If ``None``, will fall back to the ``cov_fname``
@@ -763,8 +761,6 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        baseline = self.baseline if baseline is None else baseline
-
         if isinstance(evokeds, Evoked):
             evoked_fname = evokeds.filename
             evokeds = [evokeds]
@@ -776,8 +772,9 @@ class Report(object):
             logger.debug(f'Evoked: Reading {evoked_fname}')
             evokeds = read_evokeds(evoked_fname, verbose=False)
 
-        if baseline is not None:
-            [e.apply_baseline(baseline) for e in evokeds]
+        if self.baseline is not None:
+            evokeds = [e.copy().apply_baseline(self.baseline)
+                       for e in evokeds]
 
         if titles is None:
             titles = [e.comment for e in evokeds]
@@ -944,7 +941,7 @@ class Report(object):
             The title corresponding to forward solution.
         subject : str | None
             The name of the FreeSurfer subject ``forward`` belongs to. If
-            provided, the sensitibity maps of the forward solution will
+            provided, the sensitivity maps of the forward solution will
             be visualized. If ``None``, will use the value of ``subject``
             passed on report creation. If supplied, also pass ``subjects_dir``.
         subjects_dir : path-like | None
@@ -971,18 +968,19 @@ class Report(object):
         )
 
     @fill_doc
-    def add_inverse(self, inverse, title, *, subject=None, subjects_dir=None,
-                    trans=None, tags=('inverse-operator',), replace=False):
+    def add_inverse_op(self, inverse_op, title, *, subject=None,
+                       subjects_dir=None, trans=None,
+                       tags=('inverse-operator',), replace=False):
         """Add an inverse operator.
 
         Parameters
         ----------
-        inverse : instance of mne.minimum_norm.InverseOperator | path-like
+        inverse_op : instance of mne.minimum_norm.InverseOperator | path-like
             The inverse operator to add to the report.
         title : str
             The title corresponding to the inverse operator object.
         subject : str | None
-            The name of the FreeSurfer subject ``inverse`` belongs to. If
+            The name of the FreeSurfer subject ``inverse_op`` belongs to. If
             provided, the source space the inverse solution is based on will
             be visualized. If ``None``, will use the value of ``subject``
             passed on report creation. If supplied, also pass ``subjects_dir``
@@ -1004,8 +1002,8 @@ class Report(object):
                 (trans is not None and subject is None)):
             raise ValueError('Please pass subject AND trans, or neither.')
 
-        html, dom_id = self._render_inverse(
-            inverse=inverse, subject=subject, subjects_dir=subjects_dir,
+        html, dom_id = self._render_inverse_op(
+            inverse_op=inverse_op, subject=subject, subjects_dir=subjects_dir,
             trans=trans, title=title, image_format=self.image_format, tags=tags
         )
         self._add_or_replace(
@@ -1031,7 +1029,7 @@ class Report(object):
             The title to add.
         subject : str | None
             The name of the FreeSurfer subject the ``trans```` belong to. The
-            name is not stored with the STC data and therefore needs to be
+            name is not stored with the ``trans`` and therefore needs to be
             specified. If ``None``, will use the value of ``subject`` passed on
             report creation.
         subjects_dir : path-like | None
@@ -1839,13 +1837,13 @@ class Report(object):
 
     @fill_doc
     def add_slider(self, figs, title, *, captions=None, start_idx=0,
-                   image_format=None, tags=('custom-slider'), replace=False):
+                   image_format=None, tags=('custom-slider',), replace=False):
         """Add a slider element to scroll through a collection of figures.
 
         Parameters
         ----------
         figs : collection of matplotlib.figure.Figure |
-               collection of mlab.Figure
+               collection of mlab.Figure | collection of array
 
             The figures add to the report. Each figure can be an instance of
             :class:`matplotlib.figure.Figure`, :class:`mayavi.core.api.Scene`,
@@ -2526,11 +2524,11 @@ class Report(object):
         )
         return html, dom_id
 
-    def _render_inverse(self, *, inverse, subject, subjects_dir, trans, title,
-                        image_format, tags):
+    def _render_inverse_op(self, *, inverse_op, subject, subjects_dir, trans,
+                           title, image_format, tags):
         """Render inverse operator."""
-        if not isinstance(inverse, InverseOperator):
-            inverse = read_inverse_operator(inverse)
+        if not isinstance(inverse_op, InverseOperator):
+            inverse_op = read_inverse_operator(inverse_op)
 
         if trans is not None and not isinstance(trans, Transform):
             trans = read_trans(trans)
@@ -2539,14 +2537,14 @@ class Report(object):
         subjects_dir = (self.subjects_dir if subjects_dir is None
                         else subjects_dir)
 
-        repr_string = repr(inverse).replace(' | ', '\n ')
-        info_string = repr_string + '\n\n' + repr(inverse['info'])
+        repr_string = repr(inverse_op).replace(' | ', '\n ')
+        info_string = repr_string + '\n\n' + repr(inverse_op['info'])
         info_html, _  = self._render_code(code=info_string, title='Info',
                                           language='plaintext', tags=tags)
 
         # Render source space
         if subject is not None and trans is not None:
-            src = inverse['src']
+            src = inverse_op['src']
 
             fig = plot_alignment(
                 subject=subject,

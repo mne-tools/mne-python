@@ -23,6 +23,8 @@ directly within the browser). This tutorial covers the basics of building a
 
 from pathlib import Path
 import matplotlib.pyplot as plt
+import numpy as np
+import scipy.ndimage
 import mne
 
 data_path = Path(mne.datasets.sample.data_path(verbose=False))
@@ -74,23 +76,23 @@ subjects_dir = data_path / 'subjects'
 # Adding `~mne.io.Raw` data
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# Raw data can be added via the `~mne.Report.add_raw` method. It can operate
-# with a path to a raw file and `~mne.io.Raw` objects:
+# Raw data can be added via the :meth:`mne.Report.add_raw` method. It can
+# operate with a path to a raw file and `~mne.io.Raw` objects:
 
 raw_path = sample_dir / 'sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw(raw_path)
 
 report = mne.Report()
 report.add_raw(raw=raw_path, title='Raw from Path')
-report.add_raw(raw=raw, title='Raw from "raw"')
+report.add_raw(raw=raw, title='Raw from "raw"', psd=False)  # omit PSD plot
 report.save('report_raw.html', overwrite=True)
 
 # %%
 # Adding events
 # ^^^^^^^^^^^^^
 #
-# Events can be added via `~mne.Report.add_events`. You also need to supply the
-# sampling frequency used during the recording.
+# Events can be added via :meth:`mne.Report.add_events`. You also need to
+# supply the sampling frequency used during the recording.
 
 events_path = sample_dir / 'sample_audvis_filt-0-40_raw-eve.fif'
 events = mne.read_events(events_path)
@@ -105,9 +107,9 @@ report.save('report_events.html', overwrite=True)
 # Adding `~mne.Epochs`
 # ^^^^^^^^^^^^^^^^^^^^
 #
-# Epochs can be added via `~mne.Report.add_epochs`. Note that although this
-# methods accepts a path to an epochs file too, in the following example we
-# only add epochs that we create on the fly from raw data.
+# Epochs can be added via :meth:`mne.Report.add_epochs`. Note that although
+# this methods accepts a path to an epochs file too, in the following example
+# we only add epochs that we create on the fly from raw data.
 
 epochs = mne.Epochs(raw=raw, events=events)
 
@@ -119,20 +121,274 @@ report.save('report_epochs.html', overwrite=True)
 # Adding `~mne.Evoked`
 # ^^^^^^^^^^^^^^^^^^^^
 #
-# Evoked data can be added via `~mne.Report.add_evokeds`. Since we don't
-# specify titles via the optional ``titles`` parameter, the ``Evoked.comment``
-# attribute of each evoked will be used as a title.
+# Evoked data can be added via :meth:`mne.Report.add_evokeds`. By default, the
+# ``Evoked.comment`` attribute of each evoked will be used as a title. We can
+# specify custom titles via the ``titles`` parameter. Again, this method
+# also accepts the path to an evoked file stored on disk; in the following
+# example, however, we load the evokeds manually first, since we only want to
+# add a subset of them to the report. The evokeds are not baseline-corrected,
+# so we apply baseline correction, too. Lastly, by providing an (optional)
+# noise covariance, we can add plots evokeds that were "whitened" using this
+# covariance matrix.
 
 evoked_path = sample_dir / 'sample_audvis-ave.fif'
+cov_path = sample_dir / 'sample_audvis-cov.fif'
+
 evokeds = mne.read_evokeds(evoked_path)
+evokeds_subset = evokeds[:2]  # The first two
+evokeds_subset_bl_corr = [e.apply_baseline((None, 0))  # Baseline correction
+                          for e in evokeds_subset]
 
 report = mne.Report()
-report.add_evokeds(evokeds=evoked_path)
-report.add_evokeds(evokeds=evokeds)
+report.add_evokeds(
+    evokeds=evokeds_subset_bl_corr,
+    titles=['evoked 1',  # Manually specify titles
+            'evoked 2'],
+    noise_cov=cov_path
+)
+
 report.save('report_evoked.html', overwrite=True)
 
 # %%
+# Adding `~mne.Covariance`
+# ^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# (Noise) covariance objects can be added via
+# :meth:`mne.Report.add_covariance`. The method accepts `~mne.Covariance`
+# objects and the path to a file on disk. It also expects us to pass an
+# `~mne.Info` object or the path to a file to read the measurement info from,
+# as well as a title.
 
+cov_path = sample_dir / 'sample_audvis-cov.fif'
+
+report = mne.Report()
+report.add_covariance(cov=cov_path, info=raw_path, title='Covariance')
+
+report.save('report_cov.html', overwrite=True)
+
+# %%
+# Adding SSP `~mne.Projection` vectors
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# `~mne.Projection` vectors can be added via
+# :meth:`mne.Report.add_spp_projs`. The method requires an `~mne.Info` object
+# (or the path to one) and a title. Projectors found in the `~mne.Info` will
+# be visualized. You may also supply a list of `~mne.Projection` objects or
+# a path to projectors stored on disk. In this case, the channel information
+# is read from the `~mne.Info`, but projectors potentially included will be
+# ignored; instead, only the explicitly passed projectors will be plotted.
+
+ecg_proj_path = sample_dir / 'sample_audvis_ecg-proj.fif'
+eog_proj_path = sample_dir / 'sample_audvis_eog-proj.fif'
+
+report = mne.Report()
+report.add_ssp_projs(info=raw_path, title='Projs from info')
+report.add_ssp_projs(info=raw_path, projs=ecg_proj_path,
+                     title='ECG projs from path')
+report.add_ssp_projs(info=raw_path, projs=eog_proj_path,
+                     title='EOG projs from path')
+
+report.save('report_ssp_projs.html', overwrite=True)
+
+
+# %%
+# Adding MRI with BEM
+# ^^^^^^^^^^^^^^^^^^^
+#
+# MRI slices with superimposed traces of the boundary element model (BEM)
+# surfaces can be added via :meth:`mne.Report.add_bem`. All you need to pass is
+# the FreeSurfer subject name and subjects directory, and a title.
+
+report = mne.Report()
+report.add_bem(subject='sample', subjects_dir=subjects_dir, title='MRI & BEM')
+report.save('report_mri_and_bem.html', overwrite=True)
+
+# %%
+# Adding coregistration
+# ^^^^^^^^^^^^^^^^^^^^^
+#
+# The `head -> mri` transformation ("coregistration") can be visualized via
+# :meth:`mne.Report.add_trans`. The method expects the transformation either as
+# a `~mne.Transform` object or as a path to a `trans.fif` file, the FreeSurfer
+# subject name and subjects directory, and a title.
+
+trans_path = sample_dir / 'sample_audvis_raw-trans.fif'
+
+report = mne.Report()
+report.add_trans(
+    trans=trans_path, info=raw_path, subject='sample',
+    subjects_dir=subjects_dir, title='Coregistration'
+)
+
+report.save('report_coregistration.html', overwrite=True)
+
+# %%
+# Adding a `~mne.Forward` solution
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# Forward solutions ("leadfields") can be added by passing a `~mne.Forward`
+# object or the path to a forward solution stored on disk to 
+# meth:`mne.Report.add_forward`.
+
+fwd_path = sample_dir / 'sample_audvis-meg-oct-6-fwd.fif'
+
+report = mne.Report()
+report.add_forward(forward=fwd_path, title='Forward solution')
+
+report.save('report_forward_sol.html', overwrite=True)
+
+# %%
+# Adding an `~mne.minimum_norm.InverseOperator`
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# An inverse operator can be added via :meth:`mne.Report.add_inverse`. The
+# method expects an `~mne.minimum_norm.InverseOperator` object or a path to one
+# stored on disk, and a title.
+# 
+# Optionally, you may pass the corresponding FreeSurfer subject name, subjects
+# directory, and a `head -> mri` transformation, either as a `~mne.Transform`
+# object or as a path to a `trans.fif` file to add a visualization of the
+# source space the provided inverse operator is based on.
+
+inverse_op_path = sample_dir / 'sample_audvis-meg-oct-6-meg-inv.fif'
+
+report = mne.Report()
+report.add_inverse_op(inverse_op=inverse_op_path, title='Inverse operator',
+                      subject='sample', subjects_dir=subjects_dir,
+                      trans=trans_path)
+
+report.save('report_inverse_op.html', overwrite=True)
+
+
+# %%
+# Adding a `~mne.SourceEstimate`
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# An inverse solution (also called source estimate or source time course, STC)
+# can be added vua :meth:`mne.Report.add_stc`. The
+# method expects an `~mne.SourceEstimate, the corresponding FreeSurfer subject
+# name and subjects directory, and a title
+
+stc_path = sample_dir / 'sample_audvis-meg'
+
+report = mne.Report()
+report.add_stc(stc=stc_path, subject='sample', subjects_dir=subjects_dir,
+               title='Source estimate')
+
+report.save('report_inverse_sol.html', overwrite=True)
+
+
+# %%
+# Adding system information
+# ^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# In order to improve reproducibility of results, it is useful to document some
+# key information on the system that was used to create the report. The output
+# of the helpful `mne.sys_info` command can be automatically added to a report
+# via :meth:`mne.Report.add_sys_info`.
+
+report = mne.Report()
+report.add_sys_info(title='System info')
+report.save('report_sys_info.html', overwrite=True)
+
+# %%
+# Adding code (e.g., a Python script)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# It is possible to add code or scripts (e.g., the scripts you used for
+# analysis) to the report via :meth:`mne.Report.add_code`. The code blocks will
+# be automatically syntax-highlighted. You may pass a string with the
+# respective code snippet, or the path to a file. Optionally, you can specify
+# which programming language to assume for syntax highlighting by passing the
+# ``language`` parameter. By default, we'll assume the provided code is Python.
+
+report = mne.Report()
+report.add_code(
+    code=mne.__file__,  # This will point to __init__.py in the MNE-Python root
+    title='mne.__init__.py'
+)
+report.save('report_code.html', overwrite=True)
+
+# %%
+# Adding custom plots
+# ^^^^^^^^^^^^^^^^^^^
+#
+# Custom Matplotlib figures can be added via :meth:`~mne.Report.add_figure`.
+# You may even add captions to appear below the figure!
+
+x = np.linspace(start=0, stop=10, num=100)
+y = x**2
+
+fig, ax = plt.subplots()
+ax.plot(x, y, ls='--', lw=2, color='blue', label='my function')
+ax.set_xlabel('x')
+ax.set_ylabel('f(x)')
+ax.legend()
+
+report = mne.Report(verbose=True)
+report.add_figure(fig=fig, title='A custom figure',
+                  caption='A blue dashed line reaches up into the sky …')
+report.save('report_custom_figure.html', overwrite=True)
+
+# %%
+# Adding image files
+# ^^^^^^^^^^^^^^^^^^
+#
+# Existing images (e.g., photos, screenshots, sketches etc.) can be added
+# to the report via :meth:`mne.Report.add_image`. Supported image formats
+# include JPEG, PNG, GIF, and SVG (and possibly others). Like with Matplotlib
+# figures, you can specify a caption to appear below the image.
+#
+# In the following example, we'll add the MNE logo.
+
+mne_logo_path = Path(mne.__file__).parent / 'icons' / 'mne_icon-cropped.png'
+
+report = mne.Report(verbose=True)
+report.add_image(image=mne_logo_path, title='MNE',
+                 caption='Powered by 🧠 🧠 🧠 around the world!')
+report.save('report_custom_image.html', overwrite=True)
+
+# %%
+# Adding a slider
+# ^^^^^^^^^^^^^^^
+#
+# Sliders provide an intuitive way for users to interactively browse a
+# predefined set of figures. You can add sliders via
+# :meth:`~mne.Report.add_slider`. You need to provide a collection of figures,
+# a title, and optionally a collection of captions, the index of the figure to
+# display first (i.e., slider starting position), and the desired image format
+# in which the figures will be saved before embedding them into the report.
+#
+# In the following example, we will read the MNE logo as a Matplotlib figure
+# and rotate it with different angles. Each rotated figure and its respective
+# caption will be added to a list, which is then used to create the slider.
+
+fig_array = plt.imread(mne_logo_path)
+rotation_angles = np.linspace(start=0, stop=360, num=17)
+
+figs = []
+captions = []
+for angle in rotation_angles:
+    # Rotate and remove some rounding errors to avoid Matplotlib warnings
+    fig_array_rotated = scipy.ndimage.rotate(input=fig_array, angle=angle)
+    fig_array_rotated = fig_array_rotated.clip(min=0, max=1)
+
+    # Create the figure
+    fig, ax = plt.subplots()
+    ax.imshow(fig_array_rotated)
+    ax.set_axis_off()
+
+    # Add figure and caption to the lists we'll use to create the slider
+    figs.append(fig)
+    captions.append(f'Rotation angle: {round(angle, 1)}°')
+
+report = mne.Report()
+report.add_slider(figs=figs, title='Fun with sliders! 🥳', captions=captions)
+report.save('report_slider.html', overwrite=True)
+
+# %%
+# Adding an entire folder of files
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # For our first example, we'll generate a barebones report for all the
 # :file:`.fif` files containing raw data in the sample dataset, by passing the
@@ -161,18 +417,6 @@ pattern = 'sample_audvis_filt-0-40_raw.fif'
 report = mne.Report(raw_psd=True, projs=True, verbose=True)
 report.parse_folder(data_path, pattern=pattern, render_bem=False)
 report.save('report_raw_psd.html', overwrite=True)
-
-# %%
-# The sample dataset also contains SSP projectors stored as *individual files*.
-# To add them to a report, we also have to provide the path to a file
-# containing an `~mne.Info` dictionary, from which the channel locations can be
-# read.
-
-info_fname = op.join(sample_dir, 'sample_audvis_filt-0-40_raw.fif')
-pattern = 'sample_audvis_*proj.fif'
-report = mne.Report(info_fname=info_fname, verbose=True)
-report.parse_folder(data_path, pattern=pattern, render_bem=False)
-report.save('report_proj.html', overwrite=True)
 
 # %%
 # This time we'll pass a specific ``subject`` and ``subjects_dir`` (even though
@@ -243,119 +487,17 @@ report = mne.Report(info_fname=info_fname, verbose=True)
 report.parse_folder(data_path, pattern=pattern, render_bem=False)
 report.save('report_cov.html', overwrite=True)
 
-# %%
-# Adding custom plots to a report
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#
-# The Python interface has greater flexibility compared to the :ref:`command
-# line interface <mne report>`. For example, custom plots can be added via
-# the :meth:`~mne.Report.add_figs_to_section` method:
 
-report = mne.Report(verbose=True)
 
-fname_raw = op.join(sample_dir, 'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(fname_raw, verbose=False).crop(tmax=60)
-events = mne.find_events(raw, stim_channel='STI 014')
-event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
-            'visual/right': 4, 'face': 5, 'buttonpress': 32}
-
-# create some epochs and ensure we drop a few, so we can then plot the drop log
-reject = dict(eeg=150e-6)
-epochs = mne.Epochs(raw=raw, events=events, event_id=event_id,
-                    tmin=-0.2, tmax=0.7, reject=reject, preload=True)
-fig_drop_log = epochs.plot_drop_log(subject='sample', show=False)
-
-# now also plot an evoked response
-evoked_aud_left = epochs['auditory/left'].average()
-fig_evoked = evoked_aud_left.plot(spatial_colors=True, show=False)
-
-# add the custom plots to the report:
-report.add_figs_to_section([fig_drop_log, fig_evoked],
-                           captions=['Dropped Epochs',
-                                     'Evoked: Left Auditory'],
-                           section='drop-and-evoked')
-report.save('report_custom.html', overwrite=True)
 
 # %%
-# Adding a slider
-# ^^^^^^^^^^^^^^^
+# Working with tags
+# ^^^^^^^^^^^^^^^^^^
 #
-# Sliders provide an intuitive way for users to interactively browse a
-# predefined set of images. You can add sliders via
-# :meth:`~mne.Report.add_slider_to_section`:
-
-report = mne.Report(verbose=True)
-
-figs = list()
-times = evoked_aud_left.times[::30]
-for t in times:
-    figs.append(evoked_aud_left.plot_topomap(t, vmin=-300, vmax=300, res=100,
-                                             show=False))
-    plt.close(figs[-1])
-report.add_slider_to_section(figs, times, 'Evoked Response',
-                             image_format='png')  # can also use 'svg'
-
-report.save('report_slider.html', overwrite=True)
-
-# %%
-# Adding coregistration plot to a report
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#
-# Now we see how :class:`~mne.Report` can plot coregistration results. This is
-# very useful to check the quality of the :term:`trans` coregistration file
-# that allows to align anatomy and MEG sensors.
-
-report = mne.Report(info_fname=info_fname, subject='sample',
-                    subjects_dir=subjects_dir, verbose=True)
-pattern = "sample_audvis_raw-trans.fif"
-report.parse_folder(data_path, pattern=pattern, render_bem=False)
-report.save('report_coreg.html', overwrite=True)
-
-# %%
-# Adding ``SourceEstimate`` (STC) plot to a report
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#
-# Now we see how :class:`~mne.Report` handles :class:`~mne.SourceEstimate`
-# data. The following will produce a :term:`STC` plot with vertex
-# time courses. In this scenario, we also demonstrate how to use the
-# :meth:`mne.viz.Brain.screenshot` method to save the figs in a slider.
-
-report = mne.Report(verbose=True)
-fname_stc = op.join(sample_dir, 'sample_audvis-meg')
-stc = mne.read_source_estimate(fname_stc, subject='sample')
-figs = list()
-kwargs = dict(subjects_dir=subjects_dir, initial_time=0.13,
-              clim=dict(kind='value', lims=[3, 6, 9]))
-for hemi in ('lh', 'rh'):
-    brain = stc.plot(hemi=hemi, **kwargs)
-    brain.toggle_interface(False)
-    figs.append(brain.screenshot(time_viewer=True))
-    brain.close()
-
-# add the stc plot to the report:
-report.add_slider_to_section(figs)
-
-report.save('report_stc.html', overwrite=True)
-
-# %%
-# Managing report sections
-# ^^^^^^^^^^^^^^^^^^^^^^^^
-#
-# The MNE report command internally manages the sections so that plots
-# belonging to the same section are rendered consecutively. Within a section,
-# the plots are ordered in the same order that they were added using the
-# :meth:`~mne.Report.add_figs_to_section` command. Each section is identified
 # by a toggle button in the top navigation bar of the report which can be used
 # to show or hide the contents of the section. To toggle the show/hide state of
 # all sections in the HTML report, press :kbd:`t`, or press the toggle-all
 # button in the upper right.
-#
-# .. sidebar:: Structure
-#
-#    Although we've been generating separate reports in each of these examples,
-#    you could easily create a single report for all :file:`.fif` files (raw,
-#    evoked, covariance, etc) by passing ``pattern='*.fif'``.
-#
 #
 # Editing a saved report
 # ^^^^^^^^^^^^^^^^^^^^^^
