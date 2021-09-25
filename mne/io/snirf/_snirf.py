@@ -290,11 +290,11 @@ class RawSNIRF(BaseRaw):
                 extra_ps = dict()
                 for idx, dign in enumerate(digname):
                     if dign == b'LPA':
-                        lpa = diglocs[idx, :]
+                        lpa = diglocs[idx, :3]
                     elif dign == b'NASION':
-                        nasion = diglocs[idx, :]
+                        nasion = diglocs[idx, :3]
                     elif dign == b'RPA':
-                        rpa = diglocs[idx, :]
+                        rpa = diglocs[idx, :3]
                     else:
                         extra_ps[f'EEG{len(extra_ps) + 1:03d}'] = diglocs[idx]
                 info['dig'] = _make_dig_points(nasion=nasion, lpa=lpa, rpa=rpa,
