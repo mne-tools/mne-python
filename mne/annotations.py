@@ -292,7 +292,8 @@ class Annotations(object):
                              "add/concatenate 2 annotations "
                              "(got %s != %s)" % (self.orig_time,
                                                  other.orig_time))
-        return self.append(other.onset, other.duration, other.description)
+        return self.append(other.onset, other.duration, other.description,
+                           other.ch_names)
 
     def __iter__(self):
         """Iterate over the annotations."""

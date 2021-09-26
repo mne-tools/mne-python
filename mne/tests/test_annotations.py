@@ -522,8 +522,10 @@ def test_annotation_epoching():
 
 def test_annotation_concat():
     """Test if two Annotations objects can be concatenated."""
-    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
-    b = Annotations([11, 12, 13], [1, 2, 2], ["x", "y", "z"])
+    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"],
+                    ch_names=[['1'], ['2'], []])
+    b = Annotations([11, 12, 13], [1, 2, 2], ["x", "y", "z"],
+                    ch_names=[[], ['3'], []])
 
     # test + operator (does not modify a or b)
     c = a + b
@@ -533,6 +535,9 @@ def test_annotation_concat():
     assert_equal(len(a), 3)
     assert_equal(len(b), 3)
     assert_equal(len(c), 6)
+
+    # c should have updated channel names
+    assert_array_equal(c.ch_names, [('1',), ('2',), (), (), ('3',), ()])
 
     # test += operator (modifies a in place)
     a += b
