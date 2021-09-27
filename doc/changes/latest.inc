@@ -169,6 +169,8 @@ Enhancements
 
 - Add :func:`mne.datasets.fetch_dataset` to allow packages to fetch datasets in a similar fashion to MNE (:gh:`9763` by `Adam Li`_)
 
+- Add full ECoG dataset to MNE-misc-data and demonstrate its use in :ex:`electrode-pos-2d` and :tut:`ieeg-localize` (:gh:`9784` by `Alex Rockhill`_)
+
 Bugs
 ~~~~
 - Fix bug in :meth:`mne.io.Raw.pick` and related functions when parameter list contains channels which are not in info instance (:gh:`9708` **by new contributor** |Evgeny Goldstein|_)

@@ -77,7 +77,7 @@ xy, im = snapshot_brain_montage(fig, raw.info)
 # Convert from a dictionary to array to plot
 xy_pts = np.vstack([xy[ch] for ch in raw.ch_names])
 
-# Compute beta power to vizualize
+# Compute beta power to visualize
 raw.load_data()
 beta_power = raw.filter(20, 30).apply_hilbert(envelope=True).get_data()
 beta_power = beta_power.max(axis=1)  # take maximum over time
