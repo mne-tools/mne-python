@@ -20,6 +20,7 @@ class CoregistrationUI(HasTraits):
     _fiducials_file = Unicode()
     _current_fiducial = Unicode()
     _info_file = Unicode()
+    _coreg_modified = Bool()
     _head_shape_point = Bool()
     _head_resolution = Bool()
     _head_transparency = Bool()
@@ -88,6 +89,7 @@ class CoregistrationUI(HasTraits):
 
     def _set_head_shape_points(self, state):
         self._head_shape_point = bool(state)
+        self._emit_coreg_modified()
 
     def _set_head_resolution(self, state):
         self._head_resolution = bool(state)
@@ -179,7 +181,7 @@ class CoregistrationUI(HasTraits):
         self._coreg._info = self._info
         self._reset()
 
-    @observe("_head_shape_point")
+    @observe("_coreg_modified")
     def _head_shape_point_changed(self, change=None):
         self._add_head_shape_points()
 
@@ -226,6 +228,10 @@ class CoregistrationUI(HasTraits):
         self._reset_fitting_parameters()
         self._reset_fiducials()
         self._coreg.reset()
+        self._emit_coreg_modified()
+
+    def _emit_coreg_modified(self):
+        self._coreg_modified = not self._coreg_modified
 
     def _add_head_fiducials(self):
         if "head_fids" in self._actors:
@@ -282,8 +288,7 @@ class CoregistrationUI(HasTraits):
             rpa_weight=self._rpa_weight,
             verbose=self._verbose,
         )
-        # XXX: better way to update viz (traits maybe)?
-        self._head_shape_point_changed()
+        self._emit_coreg_modified()
 
     def _fit_icp(self):
         self._coreg.fit_icp(
@@ -293,8 +298,7 @@ class CoregistrationUI(HasTraits):
             rpa_weight=self._rpa_weight,
             verbose=self._verbose,
         )
-        # XXX: better way to update viz (traits maybe)?
-        self._head_shape_point_changed()
+        self._emit_coreg_modified()
 
     def _save_trans(self, fname):
         write_trans(fname, self._coreg.trans)
