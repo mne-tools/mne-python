@@ -24,7 +24,14 @@
           id="slider-{{id}}">
       </div>
 
-      <div id="corousel-{{id}}" class="carousel" data-bs-interval="false" data-bs-wrap="false">
+      <div id="corousel-{{id}}" class="carousel carousel-dark" data-bs-interval="false" data-bs-wrap="false">
+        <!-- <div class="carousel-indicators">
+          {{for idx, caption in zip(range(len(images)), captions) }}
+          <button type="button" data-bs-target="#corousel-{{id}}" data-bs-slide-to="{{idx}}" class="active"
+            aria-current="true" aria-label="{{caption}}"></button>
+          {{endfor}}
+        </div> -->
+
         <div class="carousel-inner">
           {{for idx, img, caption in zip(range(len(images)), images, captions) }}
           <div class="carousel-item {{if idx == start_idx}}active{{endif}}">
@@ -47,9 +54,7 @@
           <span class="carousel-control-next-icon" aria-hidden="true"></span>
           <span class="visually-hidden">Next</span>
         </button> -->
-
       </div>
-
     </div>
   </div>
 </div>

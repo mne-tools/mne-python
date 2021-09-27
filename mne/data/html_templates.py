@@ -105,3 +105,41 @@ epochs_template = Template("""
     </tr>
 </table>
 """)
+
+forward_template = Template("""
+<table class="table table-hover table-striped table-sm table-responsive small">
+    <tr>
+        <th>Good channels</th>
+        <td>{{good_channels}}</td>
+    </tr>
+    <tr>
+        <th>Bad channels</th>
+        <td>{{bad_channels}}</td>
+    </tr>
+    <tr>
+        <th>Source space</th>
+        <td>{{source_space_descr}}</td>
+    </tr>
+    <tr>
+        <th>Source orientation</th>
+        <td>{{source_orientation}}</td>
+    </tr>
+</table>
+""")
+
+inverse_operator_template = Template("""
+<table class="table table-hover table-striped table-sm table-responsive small">
+    <tr>
+        <th>Channels</th>
+        <td>{{channels}}</td>
+    </tr>
+    <tr>
+        <th>Source space</th>
+        <td>{{source_space_descr}}</td>
+    </tr>
+    <tr>
+        <th>Source orientation</th>
+        <td>{{source_orientation}}</td>
+    </tr>
+</table>
+""")

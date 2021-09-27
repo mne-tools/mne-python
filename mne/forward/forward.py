@@ -49,6 +49,7 @@ from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      _validate_type, _check_compensation_grade, _check_option,
                      _check_stc_units, _stamp_to_dt, _on_missing)
 from ..label import Label
+from ..data.html_templates import forward_template
 
 
 class Forward(dict):
@@ -66,25 +67,15 @@ class Forward(dict):
         """Copy the Forward instance."""
         return Forward(deepcopy(self))
 
-    def __repr__(self):
-        """Summarize forward info instead of printing all."""
-        entr = '<Forward'
-
-        nchan = len(pick_types(self['info'], meg=True, eeg=False, exclude=[]))
-        entr += ' | ' + 'MEG channels: %d' % nchan
-        nchan = len(pick_types(self['info'], meg=False, eeg=True, exclude=[]))
-        entr += ' | ' + 'EEG channels: %d' % nchan
-
+    def _get_src_type_and_ori_for_repr(self):
         src_types = np.array([src['type'] for src in self['src']])
+
         if (src_types == 'surf').all():
-            entr += (' | Source space: Surface with %d vertices'
-                     % self['nsource'])
+            src_type = 'Surface with %d vertices' % self['nsource']
         elif (src_types == 'vol').all():
-            entr += (' | Source space: Volume with %d grid points'
-                     % self['nsource'])
+            src_type = 'Volume with %d grid points' % self['nsource']
         elif (src_types == 'discrete').all():
-            entr += (' | Source space: Discrete with %d dipoles'
-                     % self['nsource'])
+            src_type = 'Discrete with %d dipoles' % self['nsource']
         else:
             count_string = ''
             if (src_types == 'surf').any():
@@ -95,19 +86,44 @@ class Forward(dict):
                 count_string += '%d discrete, ' \
                                 % (src_types == 'discrete').sum()
             count_string = count_string.rstrip(', ')
-            entr += (' | Source space: Mixed (%s) with %d vertices'
-                     % (count_string, self['nsource']))
+            src_type=  ('Mixed (%s) with %d vertices'
+                        % (count_string, self['nsource']))
 
         if self['source_ori'] == FIFF.FIFFV_MNE_UNKNOWN_ORI:
-            entr += (' | Source orientation: Unknown')
+            src_ori = 'Unknown'
         elif self['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
-            entr += (' | Source orientation: Fixed')
+            src_ori = 'Fixed'
         elif self['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
-            entr += (' | Source orientation: Free')
+            src_ori = 'Free'
 
+        return src_type, src_ori
+
+    def __repr__(self):
+        """Summarize forward info instead of printing all."""
+        entr = '<Forward'
+
+        nchan = len(pick_types(self['info'], meg=True, eeg=False, exclude=[]))
+        entr += ' | ' + 'MEG channels: %d' % nchan
+        nchan = len(pick_types(self['info'], meg=False, eeg=True, exclude=[]))
+        entr += ' | ' + 'EEG channels: %d' % nchan
+
+        src_type, src_ori = self._get_src_type_and_ori_for_repr()
+        entr += f' | Source space: {src_type}'
+        entr += f' | Source orientation: {src_ori}'
         entr += '>'
 
         return entr
+
+    def _repr_html_(self):
+        good_chs, bad_chs, _, _, = self['info']._get_chs_for_repr()
+        src_descr, src_ori = self._get_src_type_and_ori_for_repr()
+        html = forward_template.substitute(
+            good_channels=good_chs,
+            bad_channels=bad_chs,
+            source_space_descr=src_descr,
+            source_orientation=src_ori
+        )
+        return html
 
     @property
     def ch_names(self):

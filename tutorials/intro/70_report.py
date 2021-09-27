@@ -133,14 +133,12 @@ report.save('report_epochs.html', overwrite=True)
 evoked_path = sample_dir / 'sample_audvis-ave.fif'
 cov_path = sample_dir / 'sample_audvis-cov.fif'
 
-evokeds = mne.read_evokeds(evoked_path)
+evokeds = mne.read_evokeds(evoked_path, baseline=(None, 0))
 evokeds_subset = evokeds[:2]  # The first two
-evokeds_subset_bl_corr = [e.apply_baseline((None, 0))  # Baseline correction
-                          for e in evokeds_subset]
 
 report = mne.Report()
 report.add_evokeds(
-    evokeds=evokeds_subset_bl_corr,
+    evokeds=evokeds_subset,
     titles=['evoked 1',  # Manually specify titles
             'evoked 2'],
     noise_cov=cov_path
@@ -168,7 +166,7 @@ report.save('report_cov.html', overwrite=True)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # `~mne.Projection` vectors can be added via
-# :meth:`mne.Report.add_ssp_projs`. The method requires an `~mne.Info` object
+# :meth:`mne.Report.add_projs`. The method requires an `~mne.Info` object
 # (or the path to one) and a title. Projectors found in the `~mne.Info` will
 # be visualized. You may also supply a list of `~mne.Projection` objects or
 # a path to projectors stored on disk. In this case, the channel information
@@ -179,13 +177,12 @@ ecg_proj_path = sample_dir / 'sample_audvis_ecg-proj.fif'
 eog_proj_path = sample_dir / 'sample_audvis_eog-proj.fif'
 
 report = mne.Report()
-report.add_ssp_projs(info=raw_path, title='Projs from info')
-report.add_ssp_projs(info=raw_path, projs=ecg_proj_path,
-                     title='ECG projs from path')
-report.add_ssp_projs(info=raw_path, projs=eog_proj_path,
-                     title='EOG projs from path')
-
-report.save('report_ssp_projs.html', overwrite=True)
+report.add_projs(info=raw_path, title='Projs from info')
+report.add_projs(info=raw_path, projs=ecg_proj_path,
+                 title='ECG projs from path')
+report.add_projs(info=raw_path, projs=eog_proj_path,
+                 title='EOG projs from path')
+report.save('report_projs.html', overwrite=True)
 
 # %%
 # Adding MRI with BEM
@@ -203,10 +200,11 @@ report.save('report_mri_and_bem.html', overwrite=True)
 # Adding coregistration
 # ^^^^^^^^^^^^^^^^^^^^^
 #
-# The ``head -> mri`` transformation ("coregistration") can be visualized via
-# :meth:`mne.Report.add_trans`. The method expects the transformation either as
-# a `~mne.transforms.Transform` object or as a path to a ``trans.fif`` file,
-# the FreeSurfer subject name and subjects directory, and a title.
+# The ``head -> mri`` transformation (obtained by "coregistration") can be
+# visualized via :meth:`mne.Report.add_trans`. The method expects the
+# transformation either as a `~mne.transforms.Transform` object or as a path to
+# a ``trans.fif`` file, the FreeSurfer subject name and subjects directory, and
+# a title.
 
 trans_path = sample_dir / 'sample_audvis_raw-trans.fif'
 
@@ -235,9 +233,9 @@ report.save('report_forward_sol.html', overwrite=True)
 # Adding an `~mne.minimum_norm.InverseOperator`
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# An inverse operator can be added via :meth:`mne.Report.add_inverse_op`. The
-# method expects an `~mne.minimum_norm.InverseOperator` object or a path to one
-# stored on disk, and a title.
+# An inverse operator can be added via :meth:`mne.Report.add_inverse_operator`.
+# The method expects an `~mne.minimum_norm.InverseOperator` object or a path to
+# one stored on disk, and a title.
 #
 # Optionally, you may pass the corresponding FreeSurfer subject name, subjects
 # directory, and a ``head -> mri`` transformation, either as a
@@ -248,9 +246,11 @@ report.save('report_forward_sol.html', overwrite=True)
 inverse_op_path = sample_dir / 'sample_audvis-meg-oct-6-meg-inv.fif'
 
 report = mne.Report()
-report.add_inverse_op(inverse_op=inverse_op_path, title='Inverse operator',
-                      subject='sample', subjects_dir=subjects_dir,
-                      trans=trans_path)
+report.add_inverse_operator(
+    inverse_operator=inverse_op_path, title='Inverse operator',
+    subject='sample', subjects_dir=subjects_dir,
+    trans=trans_path
+)
 report.save('report_inverse_op.html', overwrite=True)
 
 # %%
@@ -259,8 +259,8 @@ report.save('report_inverse_op.html', overwrite=True)
 #
 # An inverse solution (also called source estimate or source time course, STC)
 # can be added via :meth:`mne.Report.add_stc`. The
-# method expects an `~mne.SourceEstimate, the corresponding FreeSurfer subject
-# name and subjects directory, and a title
+# method expects an `~mne.SourceEstimate`, the corresponding FreeSurfer subject
+# name and subjects directory, and a title.
 
 stc_path = sample_dir / 'sample_audvis-meg'
 
@@ -301,11 +301,14 @@ report.add_code(
 report.save('report_code.html', overwrite=True)
 
 # %%
-# Adding custom plots
-# ^^^^^^^^^^^^^^^^^^^
+# Adding custom figures
+# ^^^^^^^^^^^^^^^^^^^^^
 #
 # Custom Matplotlib figures can be added via :meth:`~mne.Report.add_figure`.
-# You may even add captions to appear below the figure!
+# Required parameters are the figure and a title. Optionally, may add a caption
+# to appear below the figure. You can also specify the image format of the
+# image file that will be generated from the figure, so it can be embedded in
+# the HTML report.
 
 x = np.linspace(start=0, stop=10, num=100)
 y = x**2
@@ -317,43 +320,24 @@ ax.set_ylabel('f(x)')
 ax.legend()
 
 report = mne.Report()
-report.add_figure(fig=fig, title='A custom figure',
-                  caption='A blue dashed line reaches up into the sky …')
+report.add_figure(
+    fig=fig, title='A custom figure',
+    caption='A blue dashed line reaches up into the sky …',
+    image_format='PNG'
+)
 report.save('report_custom_figure.html', overwrite=True)
 
 # %%
-# Adding image files
-# ^^^^^^^^^^^^^^^^^^
-#
-# Existing images (e.g., photos, screenshots, sketches etc.) can be added
-# to the report via :meth:`mne.Report.add_image`. Supported image formats
-# include JPEG, PNG, GIF, and SVG (and possibly others). Like with Matplotlib
-# figures, you can specify a caption to appear below the image.
-#
-# In the following example, we'll add the MNE logo.
-
-mne_logo_path = Path(mne.__file__).parent / 'icons' / 'mne_icon-cropped.png'
-
-report = mne.Report()
-report.add_image(image=mne_logo_path, title='MNE',
-                 caption='Powered by 🧠 🧠 🧠 around the world!')
-report.save('report_custom_image.html', overwrite=True)
-
-# %%
-# Adding a slider
-# ^^^^^^^^^^^^^^^
-#
-# Sliders provide an intuitive way for users to interactively browse a
-# predefined set of figures. You can add sliders via
-# :meth:`~mne.Report.add_slider`. You need to provide a collection of figures,
-# a title, and optionally a collection of captions, the index of the figure to
-# display first (i.e., slider starting position), and the desired image format
-# in which the figures will be saved before embedding them into the report.
+# The :meth:`mne.Report.add_figure` method can add multiple figures at once. In
+# this case, a slider will appear, allowing users to intuitively browse the
+# figures. To make this work, you need to provide a collection of figures,
+# a title, and optionally a collection of captions.
 #
 # In the following example, we will read the MNE logo as a Matplotlib figure
 # and rotate it with different angles. Each rotated figure and its respective
 # caption will be added to a list, which is then used to create the slider.
 
+mne_logo_path = Path(mne.__file__).parent / 'icons' / 'mne_icon-cropped.png'
 fig_array = plt.imread(mne_logo_path)
 rotation_angles = np.linspace(start=0, stop=360, num=17)
 
@@ -369,13 +353,27 @@ for angle in rotation_angles:
     ax.imshow(fig_array_rotated)
     ax.set_axis_off()
 
-    # Add figure and caption to the lists we'll use to create the slider
+    # Store figure and caption
     figs.append(fig)
     captions.append(f'Rotation angle: {round(angle, 1)}°')
 
 report = mne.Report()
-report.add_slider(figs=figs, title='Fun with sliders! 🥳', captions=captions)
-report.save('report_slider.html', overwrite=True)
+report.add_figure(fig=figs, title='Fun with figures! 🥳', caption=captions)
+report.save('report_custom_figures.html', overwrite=True)
+
+# %%
+# Adding image files
+# ^^^^^^^^^^^^^^^^^^
+#
+# Existing images (e.g., photos, screenshots, sketches etc.) can be added
+# to the report via :meth:`mne.Report.add_image`. Supported image formats
+# include JPEG, PNG, GIF, and SVG (and possibly others). Like with Matplotlib
+# figures, you can specify a caption to appear below the image.
+
+report = mne.Report()
+report.add_image(image=mne_logo_path, title='MNE',
+                 caption='Powered by 🧠 🧠 🧠 around the world!')
+report.save('report_custom_image.html', overwrite=True)
 
 # %%
 # Working with tags

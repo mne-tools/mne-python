@@ -424,28 +424,28 @@ def test_add_html():
     assert (repr(report))
 
 
-def test_add_slider(tmpdir):
-    """Test adding a slider with a series of images to mne report."""
+def test_multiple_figs(tmpdir):
+    """Test adding a slider with a series of figures to mne report."""
     tempdir = str(tmpdir)
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
     figs = _get_example_figures()
-    report.add_slider(figs=figs, title='my title')
+    report.add_figure(fig=figs, title='my title')
     assert report._content[0].name == 'my title'
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
     with pytest.raises(ValueError):
-        report.add_slider(figs=figs, title='title', captions=['wug'])
+        report.add_figure(fig=figs, title='title', caption=['wug'])
 
     with pytest.raises(ValueError,
                        match='Number of captions.*must be equal to.*figures'):
-        report.add_slider(figs=figs, title='title', captions='wug')
+        report.add_figure(fig=figs, title='title', caption='wug')
 
     # Smoke test that SVG with unicode can be added
     report = Report()
     fig, ax = plt.subplots()
     ax.set_xlabel('µ')
-    report.add_slider(figs=[fig] * 2, title='title', image_format='svg')
+    report.add_figure(fig=[fig] * 2, title='title', image_format='svg')
 
 
 def test_validate_input():
@@ -504,7 +504,7 @@ def test_remove():
     r = Report()
     fig1, fig2 = _get_example_figures()
     r.add_figure(fig=fig1, title='figure1', tags=('slider',))
-    r.add_slider(figs=[fig1, fig2], title='figure1', tags=('othertag',))
+    r.add_figure(fig=[fig1, fig2], title='figure1', tags=('othertag',))
     r.add_figure(fig=fig2, title='figure1', tags=('slider',))
     r.add_figure(fig=fig2, title='figure2', tags=('slider',))
 
@@ -640,9 +640,9 @@ def test_full_report(tmpdir):
     r.add_epochs(epochs=epochs, title='my epochs', tags=('epochs',))
     r.add_evokeds(evokeds=evokeds[:2], noise_cov=cov_fname,
                   titles=['my evoked 1', 'my evoked 2'], tags=('evoked',))
-    r.add_ssp_projs(info=raw_fname, projs=ecg_proj_fname, title='my proj',
-                    tags=('ssp', 'ecg'))
-    r.add_ssp_projs(info=raw_fname, title='my proj', tags=('ssp'))
+    r.add_projs(info=raw_fname, projs=ecg_proj_fname, title='my proj',
+                tags=('ssp', 'ecg'))
+    r.add_projs(info=raw_fname, title='my proj', tags=('ssp'))
     r.add_covariance(cov=cov_fname, info=raw_fname, title='my cov')
     r.add_forward(forward=fwd_fname, title='my forward', subject='sample',
                   subjects_dir=subjects_dir)
@@ -650,9 +650,12 @@ def test_full_report(tmpdir):
     if get_3d_backend() is not None:
         r.add_trans(trans=trans_fname, info=raw_fname, title='my coreg',
                     subject='sample', subjects_dir=subjects_dir)
-        r.add_bem(subject='sample', subjects_dir=subjects_dir, title='my bem')
-        r.add_inverse(inverse=inv_fname, title='my inverse', subject='sample',
-                      subjects_dir=subjects_dir, trans=trans_fname)
+        r.add_bem(subject='sample', subjects_dir=subjects_dir, title='my bem',
+                  decim=50)
+        r.add_inverse_operator(
+            inverse_operator=inv_fname, title='my inverse', subject='sample',
+            subjects_dir=subjects_dir, trans=trans_fname
+        )
         r.add_stc(stc=stc_fname, title='my stc', subject='sample',
                   subjects_dir=subjects_dir)
 
@@ -693,7 +696,7 @@ def test_sorting(tmpdir):
 def test_deprecated_methods(tmpdir):
     """Test methods that are scheduled for removal after 0.24."""
     r = Report()
-    r.add_ssp_projs(info=raw_fname, title='SSP Projectors', tags=('mytag',))
+    r.add_projs(info=raw_fname, title='SSP Projectors', tags=('mytag',))
     fig = plt.figure()  # Empty figure
     img_fname = op.join(tmpdir, 'testimage.png')
     fig.savefig(img_fname)

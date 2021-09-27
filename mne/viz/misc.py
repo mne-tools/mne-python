@@ -380,6 +380,8 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
     fig.set_facecolor('k')
     dpi = fig.get_dpi()
     n_axes = len(axs)
+    if slices_as_figures:
+        plt.close(fig)
 
     bounds = np.concatenate(
         [[-np.inf], slices[:-1] + np.diff(slices) / 2.,
@@ -390,7 +392,6 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
     xlabels, ylabels = ori_labels['RAS'[x]], ori_labels['RAS'[y]]
     path_effects = [patheffects.withStroke(linewidth=4, foreground="k",
                                            alpha=0.75)]
-
     figs = []
     for ai, (sl, lower, upper) in enumerate(
         zip(slices, bounds[:-1], bounds[1:])

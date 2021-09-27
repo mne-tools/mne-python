@@ -157,18 +157,18 @@ def _html_cov_element(*, id, matrix, svd, title, tags):
     return t
 
 
-def _html_forward_sol_element(*, id, info, sensitivity_maps, title, tags):
+def _html_forward_sol_element(*, id, repr, sensitivity_maps, title, tags):
     template_path = template_dir / 'forward.html'
     t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(id=id, info=info, sensitivity_maps=sensitivity_maps,
+    t = t.substitute(id=id, repr=repr, sensitivity_maps=sensitivity_maps,
                      tags=tags, title=title)
     return t
 
 
-def _html_inverse_op_element(*, id, info, source_space, title, tags):
+def _html_inverse_operator_element(*, id, repr, source_space, title, tags):
     template_path = template_dir / 'inverse.html'
     t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(id=id, info=info, source_space=source_space, tags=tags,
+    t = t.substitute(id=id, repr=repr, source_space=source_space, tags=tags,
                      title=title)
     return t
 
@@ -684,8 +684,8 @@ class Report(object):
         self.include += script
 
     @fill_doc
-    def add_epochs(self, epochs, title, *, projs=True, tags=('epochs',),
-                   replace=False):
+    def add_epochs(self, epochs, title, *, psd=True, projs=True,
+                   tags=('epochs',), replace=False):
         """Add `~mne.Epochs` to the report.
 
         Parameters
@@ -694,8 +694,10 @@ class Report(object):
             The epochs to add to the report.
         title : str
             The title to add.
-        projs : bool
-            Whether to add SSP projector plots, if projectors are present in
+        psd : bool | None
+            Whether to add PSD plots.
+        projs : bool | None
+            Whether to add SSP projector plots if projectors are present in
             the data.
         %(report_tags)s
         %(report_replace)s
@@ -708,7 +710,8 @@ class Report(object):
 
         htmls = self._render_epochs(
             epochs=epochs,
-            add_ssp_projs=projs,
+            add_psd=psd,
+            add_projs=projs,
             tags=tags,
             image_format=self.image_format
         )
@@ -752,7 +755,7 @@ class Report(object):
             the ``evokeds``. If ``None``, will fall back to the ``cov_fname``
             provided upon report creation.
         projs : bool
-            Whether to add SSP projector plots, if projectors are present in
+            Whether to add SSP projector plots if projectors are present in
             the data.
         %(report_tags)s
         %(report_replace)s
@@ -799,7 +802,7 @@ class Report(object):
                 evoked=evoked,
                 noise_cov=noise_cov,
                 image_format=self.image_format,
-                add_ssp_projs=projs,
+                add_projs=projs,
                 tags=tags
             )
 
@@ -826,7 +829,7 @@ class Report(object):
             )
 
     @fill_doc
-    def add_raw(self, raw, title, *, psd=True, projs=True, tags=('raw',),
+    def add_raw(self, raw, title, *, psd=None, projs=True, tags=('raw',),
                 replace=False):
         """Add `~mne.io.Raw` objects to the report.
 
@@ -840,9 +843,9 @@ class Report(object):
             Whether to add PSD plots. Overrides the ``raw_psd`` parameter
             passed when initializing the `~mne.Report`. If ``None``, use
             ``raw_psd`` from `~mne.Report` creation.
-        projs : bool
-            Whether to add SSP projector plots, if projectors are present in
-            the data.
+        projs : bool | None
+            Whether to add SSP projector plots if projectors are present in
+            the data. If ``None``, use ``projs`` from `~mne.Report` creation.
         %(report_tags)s
         %(report_replace)s
 
@@ -859,10 +862,12 @@ class Report(object):
         else:
             add_psd = False
 
+        add_projs = self.projs if projs is None else projs
+
         htmls  = self._render_raw(
             raw=raw,
             add_psd=add_psd,
-            add_ssp_projs=projs,
+            add_projs=add_projs,
             image_format=self.image_format,
             tags=tags
         )
@@ -968,14 +973,16 @@ class Report(object):
         )
 
     @fill_doc
-    def add_inverse_op(self, inverse_op, title, *, subject=None,
-                       subjects_dir=None, trans=None,
-                       tags=('inverse-operator',), replace=False):
+    def add_inverse_operator(self, inverse_operator, title, *, subject=None,
+                             subjects_dir=None, trans=None,
+                             tags=('inverse-operator',), replace=False):
         """Add an inverse operator.
 
         Parameters
         ----------
-        inverse_op : instance of mne.minimum_norm.InverseOperator | path-like
+        inverse_operator : instance of mne.minimum_norm.InverseOperator |
+                           path-like
+
             The inverse operator to add to the report.
         title : str
             The title corresponding to the inverse operator object.
@@ -1002,9 +1009,10 @@ class Report(object):
                 (trans is not None and subject is None)):
             raise ValueError('Please pass subject AND trans, or neither.')
 
-        html, dom_id = self._render_inverse_op(
-            inverse_op=inverse_op, subject=subject, subjects_dir=subjects_dir,
-            trans=trans, title=title, image_format=self.image_format, tags=tags
+        html, dom_id = self._render_inverse_operator(
+            inverse_operator=inverse_operator, subject=subject,
+            subjects_dir=subjects_dir, trans=trans, title=title,
+            image_format=self.image_format, tags=tags
         )
         self._add_or_replace(
             dom_id=dom_id,
@@ -1148,9 +1156,9 @@ class Report(object):
         )
 
     @fill_doc
-    def add_ssp_projs(self, *, info, projs=None, title, tags=('ssp',),
-                      replace=False):
-        """Render SSP projectors.
+    def add_projs(self, *, info, projs=None, title, tags=('ssp',),
+                  replace=False):
+        """Render (SSP) projection vectors.
 
         Parameters
         ----------
@@ -1314,11 +1322,8 @@ class Report(object):
             self._content.append(new_content)
 
     def _render_code(self, *, code, title, language, tags):
-        try:
-            if Path(code).exists():
-                code = Path(code).read_text()
-        except OSError:  # It's most likely a string
-            pass
+        if isinstance(code, Path):
+            code = Path(code).read_text()
 
         code = stdlib_html.escape(code)
 
@@ -1339,8 +1344,12 @@ class Report(object):
 
         Parameters
         ----------
-        code : path-like | str
-            The code to add to the report.
+        code : str | pathlib.Path
+            The code to add to the report as a string, or the path to a file
+            as a `pathlib.Path` object.
+
+            .. note:: Paths must be passed as `pathlib.Path` object, as strings
+                      will be treated as literal code.
         title : str
             The title corresponding to the code.
         language : str
@@ -1398,15 +1407,19 @@ class Report(object):
 
         Parameters
         ----------
-        fig : matplotlib.figure.Figure | mlab.Figure | array
+        fig : matplotlib.figure.Figure | mlab.Figure | array |
+              collection of matplotlib.figure.Figure |
+              collection of mlab.Figure | collection of array
 
-            A figure to add to the report. Must be an instance of
-            :class:`matplotlib.figure.Figure`, :class:`mayavi.core.api.Scene`,
-            or :class:`numpy.ndarray`.
+            One or more figures to add to the report. All figures must be an
+            instance of :class:`matplotlib.figure.Figure`,
+            :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`. If
+            multiple figures are passed, they will be added as "slides"
+            that can be navigated using buttons and a slider element.
         title : str
-            Title corresponding to the figure.
-        caption : str | None
-            If not ``None``, the caption to add to the figure.
+            The title corresponding to the figure(s).
+        caption : str | collection of str | None
+            The caption(s) to add to the figure(s).
         %(report_image_format)s
         %(report_tags)s
         %(report_replace)s
@@ -1415,29 +1428,54 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        if _check_path_like(fig):
-            raise TypeError(
-                'It seems you passed a path to `add_figure`. However, only '
-                'Matplotlib figures, Mayavi scenes, and NumPy arrays are '
-                'accepted. You may want to try `add_image` instead.'
-            )
-
         tags = tuple(tags)
         if image_format is None:
             image_format = self.image_format
 
-        img = _fig_to_img(fig=fig, image_format=image_format)
-        dom_id = self._get_dom_id()
-        img_html = _html_image_element(
-            img=img, div_klass='custom-image', img_klass='custom-image',
-            title=title, caption=caption, show=True,
-            image_format=image_format, id=dom_id, tags=tags
-        )
+        if hasattr(fig, '__len__') and not isinstance(fig, np.ndarray):
+            figs = tuple(fig)
+        else:
+            figs = (fig,)
+
+        for fig in figs:
+            if _check_path_like(fig):
+                raise TypeError(
+                    f'It seems you passed a path to `add_figure`. However, '
+                    f'only Matplotlib figures, Mayavi scenes, and NumPy '
+                    f'arrays are accepted. You may want to try `add_image` '
+                    f'instead. The provided path was: {fig}'
+                )
+        del fig
+
+        if isinstance(caption, str):
+            captions = (caption,)
+        elif caption is None:
+            captions = [f'Figure {i+1}' for i in range(len(figs))]
+        else:
+            captions = tuple(caption)
+
+        del caption
+
+        assert figs
+        if len(figs) == 1:
+            img = _fig_to_img(fig=figs[0], image_format=image_format)
+            dom_id = self._get_dom_id()
+            html = _html_image_element(
+                img=img, div_klass='custom-image', img_klass='custom-image',
+                title=title, caption=captions[0], show=True,
+                image_format=image_format, id=dom_id, tags=tags
+            )
+        else:
+            html, dom_id = self._render_slider(
+                figs=figs, title=title, captions=captions, start_idx=0,
+                image_format=image_format, tags=tags
+            )
+
         self._add_or_replace(
             dom_id=dom_id,
             name=title,
             tags=tags,
-            html=img_html,
+            html=html,
             replace=replace
         )
 
@@ -1836,56 +1874,7 @@ class Report(object):
 
         return html, dom_id
 
-    @fill_doc
-    def add_slider(self, figs, title, *, captions=None, start_idx=0,
-                   image_format=None, tags=('custom-slider',), replace=False):
-        """Add a slider element to scroll through a collection of figures.
-
-        Parameters
-        ----------
-        figs : collection of matplotlib.figure.Figure |
-               collection of mlab.Figure | collection of array
-
-            The figures add to the report. Each figure can be an instance of
-            :class:`matplotlib.figure.Figure`, :class:`mayavi.core.api.Scene`,
-            or :class:`numpy.ndarray`.
-        title : str
-            The title of the slider element.
-        captions : collection of str | None
-            The captions to add to the figures. If ``None``, will add a
-            default caption.
-        start_idx : int
-            The index of the figure in ``figs`` to display initially.
-        %(report_image_format)s
-        %(report_tags)s
-        %(report_replace)s
-
-        Notes
-        -----
-        .. versionadded:: 0.24.0
-        """
-        tags = tuple(tags)
-
-        if captions is None:
-            captions = [f'Figure {i+1} of {len(figs)}'
-                        for i in range(len(figs))]
-
-        if image_format is None:
-            image_format = self.image_format
-
-        html, dom_id = self._render_slider(
-            figs=figs, title=title, captions=captions, start_idx=start_idx,
-            image_format=image_format, tags=tags
-        )
-        self._add_or_replace(
-            dom_id=dom_id,
-            name=title,
-            tags=tags,
-            html=html,
-            replace=replace
-        )
-
-    @deprecated(extra='Use `Report.add_slider` instead')
+    @deprecated(extra='Use `Report.add_figure` instead')
     @fill_doc
     def add_slider_to_section(self, figs, captions=None, section='custom',
                               title='Slider', scale=None, image_format=None,
@@ -1928,14 +1917,28 @@ class Report(object):
         """
         tags = _clean_tags(section)
 
+        if captions is None:
+            captions = [f'Figure {i+1} of {len(figs)}'
+                        for i in range(len(figs))]
+
+        if image_format is None:
+            image_format = self.image_format
+
         for fig in figs:
             if scale is not None:
                 _scale_mpl_figure(fig, scale)
             tight_layout(fig=fig)
 
-        self.add_slider(
-            figs=figs, title=title, captions=captions,
-            image_format=image_format, tags=tags, replace=replace
+        html, dom_id = self._render_slider(
+            figs=figs, title=title, captions=captions, start_idx=0,
+            image_format=image_format, tags=tags
+        )
+        self._add_or_replace(
+            dom_id=dom_id,
+            name=title,
+            tags=tags,
+            html=html,
+            replace=replace
         )
 
     ###########################################################################
@@ -1993,7 +1996,9 @@ class Report(object):
                     )
                 elif _endswith(fname, 'inv'):
                     # XXX if we pass trans, we can plot the source space, too…
-                    self.add_inverse(inverse=fname, title=title)
+                    self.add_inverse_operator(
+                        inverse_operator=fname, title=title
+                    )
                 elif _endswith(fname, 'ave'):
                     evokeds = read_evokeds(fname)
                     titles = [
@@ -2014,8 +2019,8 @@ class Report(object):
                     self.add_covariance(cov=fname, info=self.info_fname,
                                         title=title)
                 elif _endswith(fname, 'proj') and self.info_fname is not None:
-                    self.add_ssp_projs(info=self.info_fname, projs=fname,
-                                       title=title)
+                    self.add_projs(info=self.info_fname, projs=fname,
+                                   title=title)
                 elif (_endswith(fname, 'trans') and
                         self.info_fname is not None and
                         self.subjects_dir is not None and
@@ -2333,6 +2338,7 @@ class Report(object):
                              width=512, tags):
         """Render one axis of bem contours (only PNG)."""
         import nibabel as nib
+
         nim = nib.load(mri_fname)
         data = _reorient_image(nim)[0]
         axis = _mri_orientation(orientation)[0]
@@ -2358,9 +2364,10 @@ class Report(object):
             tags=tags,
             klass='bem col-md'
         )
+
         return html
 
-    def _render_raw(self, *, raw, add_psd, add_ssp_projs, image_format, tags):
+    def _render_raw(self, *, raw, add_psd, add_projs, image_format, tags):
         """Render raw."""
         if isinstance(raw, BaseRaw):
             fname = raw.filenames[0]
@@ -2438,7 +2445,7 @@ class Report(object):
             psd_img_html = ''
 
         # SSP projectors
-        if add_ssp_projs:
+        if add_projs:
             output = self._render_ssp_projs(
                 info=raw, projs=None, title='SSP Projectors',
                 image_format=image_format, tags=tags
@@ -2507,11 +2514,6 @@ class Report(object):
         subjects_dir = (self.subjects_dir if subjects_dir is None
                         else subjects_dir)
 
-        repr_string = repr(forward).replace(' | ', '\n ')
-        info_string = repr_string + '\n\n' + repr(forward['info'])
-        info_html, _  = self._render_code(code=info_string, title='Info',
-                                          language='plaintext', tags=tags)
-
         # XXX Todo
         # Render sensitivity maps
         if subject is not None:
@@ -2522,18 +2524,19 @@ class Report(object):
         dom_id = self._get_dom_id()
         html = _html_forward_sol_element(
             id=dom_id,
-            info=info_html,
+            repr=forward._repr_html_(),
             sensitivity_maps=sensitivity_maps_html,
             title=title,
             tags=tags
         )
         return html, dom_id
 
-    def _render_inverse_op(self, *, inverse_op, subject, subjects_dir, trans,
-                           title, image_format, tags):
+    def _render_inverse_operator(self, *, inverse_operator, subject,
+                                 subjects_dir, trans, title, image_format,
+                                 tags):
         """Render inverse operator."""
-        if not isinstance(inverse_op, InverseOperator):
-            inverse_op = read_inverse_operator(inverse_op)
+        if not isinstance(inverse_operator, InverseOperator):
+            inverse_operator = read_inverse_operator(inverse_operator)
 
         if trans is not None and not isinstance(trans, Transform):
             trans = read_trans(trans)
@@ -2542,41 +2545,36 @@ class Report(object):
         subjects_dir = (self.subjects_dir if subjects_dir is None
                         else subjects_dir)
 
-        repr_string = repr(inverse_op).replace(' | ', '\n ')
-        info_string = repr_string + '\n\n' + repr(inverse_op['info'])
-        info_html, _  = self._render_code(code=info_string, title='Info',
-                                          language='plaintext', tags=tags)
+        # XXX Todo Render source space?
+        # if subject is not None and trans is not None:
+        #     src = inverse_operator['src']
 
-        # Render source space
-        if subject is not None and trans is not None:
-            src = inverse_op['src']
+        #     fig = plot_alignment(
+        #         subject=subject,
+        #         subjects_dir=subjects_dir,
+        #         trans=trans,
+        #         surfaces='white',
+        #         src=src
+        #     )
+        #     set_3d_view(fig, focalpoint=(0., 0., 0.06))
+        #     img = _fig_to_img(fig=fig, image_format=image_format)
 
-            fig = plot_alignment(
-                subject=subject,
-                subjects_dir=subjects_dir,
-                trans=trans,
-                surfaces='white',
-                src=src
-            )
-            set_3d_view(fig, focalpoint=(0., 0., 0.06))
-            img = _fig_to_img(fig=fig, image_format=image_format)
-
-            dom_id = self._get_dom_id()
-            src_img_html = _html_image_element(
-                img=img,
-                div_klass='inverse-operator source-space',
-                img_klass='inverse-operator source-space',
-                title='Source space', caption=None, show=True,
-                image_format=image_format, id=dom_id,
-                tags=tags
-            )
-        else:
-            src_img_html = ''
+        #     dom_id = self._get_dom_id()
+        #     src_img_html = _html_image_element(
+        #         img=img,
+        #         div_klass='inverse-operator source-space',
+        #         img_klass='inverse-operator source-space',
+        #         title='Source space', caption=None, show=True,
+        #         image_format=image_format, id=dom_id,
+        #         tags=tags
+        #     )
+        # else:
+        src_img_html = ''
 
         dom_id = self._get_dom_id()
-        html = _html_inverse_op_element(
+        html = _html_inverse_operator_element(
             id=dom_id,
-            info=info_html,
+            repr=inverse_operator._repr_html_(),
             source_space=src_img_html,
             title=title,
             tags=tags,
@@ -2752,7 +2750,7 @@ class Report(object):
         )
         return html
 
-    def _render_evoked(self, evoked, noise_cov, add_ssp_projs, image_format,
+    def _render_evoked(self, evoked, noise_cov, add_projs, image_format,
                        tags):
         def _get_ch_types(ev):
             has_types = []
@@ -2791,7 +2789,7 @@ class Report(object):
             html_whitened = ''
 
         # SSP projectors
-        if add_ssp_projs:
+        if add_projs:
             output = self._render_ssp_projs(
                 info=evoked, projs=None, title='SSP Projectors',
                 image_format=image_format, tags=tags
@@ -2839,7 +2837,8 @@ class Report(object):
         )
         return html, dom_id
 
-    def _render_epochs(self, *, epochs, add_ssp_projs, image_format, tags):
+    def _render_epochs(self, *, epochs, add_psd, add_projs, image_format,
+                       tags):
         """Render epochs."""
         if isinstance(epochs, BaseEpochs):
             fname = epochs.filename
@@ -2880,27 +2879,30 @@ class Report(object):
             drop_log_img_html = ''
 
         # PSD
-        dom_id = self._get_dom_id()
-        if epochs.info['lowpass'] is not None:
-            fmax = epochs.info['lowpass'] + 15
-            # Must not exceed half the sampling frequency
-            if fmax > 0.5 * epochs.info['sfreq']:
+        if add_psd:
+            dom_id = self._get_dom_id()
+            if epochs.info['lowpass'] is not None:
+                fmax = epochs.info['lowpass'] + 15
+                # Must not exceed half the sampling frequency
+                if fmax > 0.5 * epochs.info['sfreq']:
+                    fmax = np.inf
+            else:
                 fmax = np.inf
+
+            fig = epochs.plot_psd(fmax=fmax, show=False)
+            tight_layout(fig=fig)
+
+            img = _fig_to_img(fig=fig, image_format=image_format)
+            psd_img_html = _html_image_element(
+                img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
+                show=True, image_format=image_format, title='PSD',
+                caption=None, tags=tags
+            )
         else:
-            fmax = np.inf
-
-        fig = epochs.plot_psd(fmax=fmax, show=False)
-        tight_layout(fig=fig)
-
-        img = _fig_to_img(fig=fig, image_format=image_format)
-        psd_img_html = _html_image_element(
-            img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
-            show=True, image_format=image_format, title='PSD', caption=None,
-            tags=tags
-        )
+            psd_img_html = ''
 
         # SSP projectors
-        if add_ssp_projs:
+        if add_projs:
             output = self._render_ssp_projs(
                 info=epochs, projs=None, title='SSP Projectors',
                 image_format=image_format, tags=tags
@@ -3043,26 +3045,39 @@ class Report(object):
                     ax.axis('off')
                     tight_layout(fig=fig)
                     figs.append(fig)
+                    plt.close(fig)
                 else:
                     fig_lh = plt.figure()
                     fig_rh = plt.figure()
 
-                    brain_lh = stc.plot(views='lat', hemi='lh',
-                                        initial_time=t,
-                                        backend='matplotlib',
-                                        subject=subject,
-                                        subjects_dir=subjects_dir,
-                                        figure=fig_lh)
-                    brain_rh = stc.plot(views='lat', hemi='rh',
-                                        initial_time=t,
-                                        subject=subject,
-                                        subjects_dir=subjects_dir,
-                                        backend='matplotlib',
-                                        figure=fig_rh)
+                    brain_lh = stc.plot(
+                        views='lat', hemi='lh',
+                        initial_time=t,
+                        backend='matplotlib',
+                        subject=subject,
+                        subjects_dir=subjects_dir,
+                        figure=fig_lh
+                    )
+                    brain_rh = stc.plot(
+                        views='lat', hemi='rh',
+                        initial_time=t,
+                        subject=subject,
+                        subjects_dir=subjects_dir,
+                        backend='matplotlib',
+                        figure=fig_rh
+                    )
                     tight_layout(fig=fig_lh)  # TODO is this necessary?
                     tight_layout(fig=fig_rh)  # TODO is this necessary?
                     figs.append(brain_lh)
                     figs.append(brain_rh)
+                    plt.close(fig_lh)
+                    plt.close(fig_rh)
+
+        if backend_is_3d:
+            brain.close()
+        else:
+            brain_lh.close()
+            brain_rh.close()
 
         captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
         html, dom_id = self._render_slider(
