@@ -169,7 +169,7 @@ Enhancements
 
 - Add :func:`mne.datasets.fetch_dataset` to allow packages to fetch datasets in a similar fashion to MNE (:gh:`9763` by `Adam Li`_)
 
-- Add full ECoG dataset to MNE-misc-data and demonstrate its use in :ex:`electrode-pos-2d` and :tut:`ieeg-localize` (:gh:`9784` by `Alex Rockhill`_)
+- Add full ECoG dataset to MNE-misc-data and demonstrate its use in :ref:`ex-electrode-pos-2d` and :ref:`tut-ieeg-localize` (:gh:`9784` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
