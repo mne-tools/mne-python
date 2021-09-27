@@ -54,6 +54,7 @@ class CoregistrationUI(HasTraits):
         self._subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                               raise_error=True)
         self._subject = subject if subject is not None else self._subjects[0]
+        self._head_shape_point = True
         self._head_resolution = True
         self._icp_n_iterations = self._default_icp_n_iterations
         self._icp_fid_match = self._default_icp_fid_matches[0]
@@ -238,16 +239,20 @@ class CoregistrationUI(HasTraits):
         head_fids_actors = _plot_head_fiducials(
             self._renderer, self._info, to_cf_t, fid_colors)
         self._actors["head_fids"] = head_fids_actors
+        self._renderer._update()
 
     def _add_head_shape_points(self):
         if "head_shape_points" in self._actors:
             self._renderer.plotter.remove_actor(
                 self._actors["head_shape_points"])
-        coord_frame = 'mri'
-        to_cf_t = _get_transforms_to_coord_frame(
-            self._info, self._coreg.trans, coord_frame=coord_frame)
-        head_shape_points = _plot_head_shape_points(
-            self._renderer, self._info, to_cf_t)
+        if self._head_shape_point:
+            coord_frame = 'mri'
+            to_cf_t = _get_transforms_to_coord_frame(
+                self._info, self._coreg.trans, coord_frame=coord_frame)
+            head_shape_points = _plot_head_shape_points(
+                self._renderer, self._info, to_cf_t)
+        else:
+            head_shape_points = None
         self._actors["head_shape_points"] = head_shape_points
         self._renderer._update()
 
@@ -409,7 +414,7 @@ class CoregistrationUI(HasTraits):
         layout = self._renderer._dock_add_group_box("View")
         self._widgets["show_hsp"] = self._renderer._dock_add_check_box(
             name="Show Head Shape Points",
-            value=False,
+            value=True,
             callback=self._set_head_shape_points,
             layout=layout
         )
