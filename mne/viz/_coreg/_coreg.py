@@ -282,6 +282,8 @@ class CoregistrationUI(HasTraits):
             rpa_weight=self._rpa_weight,
             verbose=self._verbose,
         )
+        # XXX: better way to update viz (traits maybe)?
+        self._head_shape_point_changed()
 
     def _fit_icp(self):
         self._coreg.fit_icp(
@@ -291,6 +293,8 @@ class CoregistrationUI(HasTraits):
             rpa_weight=self._rpa_weight,
             verbose=self._verbose,
         )
+        # XXX: better way to update viz (traits maybe)?
+        self._head_shape_point_changed()
 
     def _save_trans(self, fname):
         write_trans(fname, self._coreg.trans)

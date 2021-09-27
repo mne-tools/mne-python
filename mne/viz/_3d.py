@@ -974,14 +974,16 @@ def _plot_mri_fiducials(renderer, mri_fiducials, subjects_dir, subject,
 
 def _plot_head_shape_points(renderer, info, to_cf_t):
     defaults = DEFAULTS['coreg']
+    actors = list()
     hpi_loc = np.array([
         d['r'] for d in (info['dig'] or [])
         if (d['kind'] == FIFF.FIFFV_POINT_HPI and
             d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
     hpi_loc = apply_trans(to_cf_t['head'], hpi_loc)
-    renderer.sphere(center=hpi_loc, color=defaults['hpi_color'],
-                    scale=defaults['hpi_scale'], opacity=0.5,
-                    backface_culling=True)
+    actor, _ = renderer.sphere(center=hpi_loc, color=defaults['hpi_color'],
+                               scale=defaults['hpi_scale'], opacity=0.5,
+                               backface_culling=True)
+    actors.append(actor)
     ext_loc = np.array([
         d['r'] for d in (info['dig'] or [])
         if (d['kind'] == FIFF.FIFFV_POINT_EXTRA and
@@ -990,7 +992,8 @@ def _plot_head_shape_points(renderer, info, to_cf_t):
     actor, _ = renderer.sphere(center=ext_loc, color=defaults['extra_color'],
                                scale=defaults['extra_scale'], opacity=0.25,
                                backface_culling=True)
-    return actor
+    actors.append(actor)
+    return actors
 
 
 def _plot_forward(renderer, fwd, to_cf_t):
