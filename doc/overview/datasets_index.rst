@@ -376,10 +376,8 @@ pending availability).
 
 .. topic:: Examples
 
-    * :ref:`ex-electrode-pos-2d`: Demonstrates how to project a 3D electrode location
-    onto a 2D image, a common procedure in ECoG analyses.
-    * :ref:`tut-ieeg-localize`: Demonstrates how to use a graphical user interface
-    to locate electrode contacts as well as warp them to a common atlas.
+    * :ref:`ex-electrode-pos-2d`: Demonstrates how to project a 3D electrode location onto a 2D image, a common procedure in ECoG analyses.
+    * :ref:`tut-ieeg-localize`: Demonstrates how to use a graphical user interface to locate electrode contacts as well as warp them to a common atlas.
 
 sEEG Dataset
 ^^^^^^^^^^^^
@@ -390,8 +388,7 @@ It includes 21 shaft electrodes during a two-choice movement task on a keyboard.
 
 .. topic:: Examples
 
-    * :ref:`tut-ieeg-localize`: Demonstrates how to use a graphical user interface
-    to locate electrode contacts as well as warp them to a common atlas.
+    * :ref:`tut-ieeg-localize`: Demonstrates how to use a graphical user interface to locate electrode contacts as well as warp them to a common atlas.
     * :ref:`tut-working-with-seeg`: Demonstrates ways to plot sEEG anatomy and results.
 
 .. _limo-dataset:
