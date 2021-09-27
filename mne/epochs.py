@@ -3683,6 +3683,8 @@ def make_fixed_length_epochs(raw, id=1, duration=1., preload=False,
         The id to use (default 1).
     duration : float
         Duration of each epoch in seconds. Defaults to 1.
+
+        .. versionadded:: 0.24.0
     %(preload)s
     %(reject_by_annotation_epochs)s
 
