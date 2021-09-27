@@ -16,15 +16,15 @@ Compared to a Jupyter notebook, `mne.Report` is easier to deploy (the HTML
 pages it generates are self-contained and do not require a running Python
 environment) but less flexible (you can't change code and re-run something
 directly within the browser). This tutorial covers the basics of building a
-`~mne.Report`. As usual we'll start by importing the modules and data we need:
+`~mne.Report`. As usual, we'll start by importing the modules and data we need:
 """
 
 # %%
 
 from pathlib import Path
-import matplotlib.pyplot as plt
 import numpy as np
 import scipy.ndimage
+import matplotlib.pyplot as plt
 import mne
 
 data_path = Path(mne.datasets.sample.data_path(verbose=False))
@@ -61,7 +61,7 @@ subjects_dir = data_path / 'subjects'
 # The basic process for creating an HTML report is to instantiate the
 # :class:`~mne.Report` class and then use one or more of its many methods to
 # add content, one element at a time.
-# 
+#
 # You may also use the :meth:`~mne.Report.parse_folder` method to select
 # particular files to include in the report. But more on that later.
 #
@@ -71,7 +71,6 @@ subjects_dir = data_path / 'subjects'
 #    will open the HTML in a new tab in the browser. To disable this, use the
 #    ``open_browser=False`` parameter of :meth:`~mne.Report.save`.
 #
-
 # %%
 # Adding `~mne.io.Raw` data
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -146,7 +145,6 @@ report.add_evokeds(
             'evoked 2'],
     noise_cov=cov_path
 )
-
 report.save('report_evoked.html', overwrite=True)
 
 # %%
@@ -163,7 +161,6 @@ cov_path = sample_dir / 'sample_audvis-cov.fif'
 
 report = mne.Report()
 report.add_covariance(cov=cov_path, info=raw_path, title='Covariance')
-
 report.save('report_cov.html', overwrite=True)
 
 # %%
@@ -171,7 +168,7 @@ report.save('report_cov.html', overwrite=True)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # `~mne.Projection` vectors can be added via
-# :meth:`mne.Report.add_spp_projs`. The method requires an `~mne.Info` object
+# :meth:`mne.Report.add_ssp_projs`. The method requires an `~mne.Info` object
 # (or the path to one) and a title. Projectors found in the `~mne.Info` will
 # be visualized. You may also supply a list of `~mne.Projection` objects or
 # a path to projectors stored on disk. In this case, the channel information
@@ -190,7 +187,6 @@ report.add_ssp_projs(info=raw_path, projs=eog_proj_path,
 
 report.save('report_ssp_projs.html', overwrite=True)
 
-
 # %%
 # Adding MRI with BEM
 # ^^^^^^^^^^^^^^^^^^^
@@ -207,10 +203,10 @@ report.save('report_mri_and_bem.html', overwrite=True)
 # Adding coregistration
 # ^^^^^^^^^^^^^^^^^^^^^
 #
-# The `head -> mri` transformation ("coregistration") can be visualized via
+# The ``head -> mri`` transformation ("coregistration") can be visualized via
 # :meth:`mne.Report.add_trans`. The method expects the transformation either as
-# a `~mne.Transform` object or as a path to a `trans.fif` file, the FreeSurfer
-# subject name and subjects directory, and a title.
+# a `~mne.transforms.Transform` object or as a path to a ``trans.fif`` file,
+# the FreeSurfer subject name and subjects directory, and a title.
 
 trans_path = sample_dir / 'sample_audvis_raw-trans.fif'
 
@@ -219,7 +215,6 @@ report.add_trans(
     trans=trans_path, info=raw_path, subject='sample',
     subjects_dir=subjects_dir, title='Coregistration'
 )
-
 report.save('report_coregistration.html', overwrite=True)
 
 # %%
@@ -227,28 +222,28 @@ report.save('report_coregistration.html', overwrite=True)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # Forward solutions ("leadfields") can be added by passing a `~mne.Forward`
-# object or the path to a forward solution stored on disk to 
+# object or the path to a forward solution stored on disk to
 # meth:`mne.Report.add_forward`.
 
 fwd_path = sample_dir / 'sample_audvis-meg-oct-6-fwd.fif'
 
 report = mne.Report()
 report.add_forward(forward=fwd_path, title='Forward solution')
-
 report.save('report_forward_sol.html', overwrite=True)
 
 # %%
 # Adding an `~mne.minimum_norm.InverseOperator`
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# An inverse operator can be added via :meth:`mne.Report.add_inverse`. The
+# An inverse operator can be added via :meth:`mne.Report.add_inverse_op`. The
 # method expects an `~mne.minimum_norm.InverseOperator` object or a path to one
 # stored on disk, and a title.
-# 
+#
 # Optionally, you may pass the corresponding FreeSurfer subject name, subjects
-# directory, and a `head -> mri` transformation, either as a `~mne.Transform`
-# object or as a path to a `trans.fif` file to add a visualization of the
-# source space the provided inverse operator is based on.
+# directory, and a ``head -> mri`` transformation, either as a
+# `~mne.transforms.Transform` object or as a path to a ``trans.fif`` file to
+# add a visualization of the source space the provided inverse operator is
+# based on.
 
 inverse_op_path = sample_dir / 'sample_audvis-meg-oct-6-meg-inv.fif'
 
@@ -256,16 +251,14 @@ report = mne.Report()
 report.add_inverse_op(inverse_op=inverse_op_path, title='Inverse operator',
                       subject='sample', subjects_dir=subjects_dir,
                       trans=trans_path)
-
 report.save('report_inverse_op.html', overwrite=True)
-
 
 # %%
 # Adding a `~mne.SourceEstimate`
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # An inverse solution (also called source estimate or source time course, STC)
-# can be added vua :meth:`mne.Report.add_stc`. The
+# can be added via :meth:`mne.Report.add_stc`. The
 # method expects an `~mne.SourceEstimate, the corresponding FreeSurfer subject
 # name and subjects directory, and a title
 
@@ -274,9 +267,7 @@ stc_path = sample_dir / 'sample_audvis-meg'
 report = mne.Report()
 report.add_stc(stc=stc_path, subject='sample', subjects_dir=subjects_dir,
                title='Source estimate')
-
 report.save('report_inverse_sol.html', overwrite=True)
-
 
 # %%
 # Adding system information
@@ -325,7 +316,7 @@ ax.set_xlabel('x')
 ax.set_ylabel('f(x)')
 ax.legend()
 
-report = mne.Report(verbose=True)
+report = mne.Report()
 report.add_figure(fig=fig, title='A custom figure',
                   caption='A blue dashed line reaches up into the sky …')
 report.save('report_custom_figure.html', overwrite=True)
@@ -343,7 +334,7 @@ report.save('report_custom_figure.html', overwrite=True)
 
 mne_logo_path = Path(mne.__file__).parent / 'icons' / 'mne_icon-cropped.png'
 
-report = mne.Report(verbose=True)
+report = mne.Report()
 report.add_image(image=mne_logo_path, title='MNE',
                  caption='Powered by 🧠 🧠 🧠 around the world!')
 report.save('report_custom_image.html', overwrite=True)
@@ -387,8 +378,71 @@ report.add_slider(figs=figs, title='Fun with sliders! 🥳', captions=captions)
 report.save('report_slider.html', overwrite=True)
 
 # %%
+# Working with tags
+# ^^^^^^^^^^^^^^^^^
+#
+# Each ``add_*`` method accepts a keyword parameter ``tags``, which can be
+# used to pass one or more tags to associate with the respective content
+# elements. By default, each ``add_*`` method adds a tag describing the data
+# type, e.g., ``evoked`` or ``source-estimate``. When viewing the HTML report,
+# the ``Filter by tags`` dropdown menu can be used to interactively show or
+# hide content with specific tags. This allows you e.g. to only view
+# ``evoked`` or ``participant-001`` data, should you have added those tags.
+# Visible tags will appear with blue, and hidden tags with gray background
+# color.
+#
+# To toggle the visibility of **all** tags, use the respective checkbox in the
+# ``Filter by tags`` dropdown menu, or press :kbd:`T`.
+
+report = mne.Report()
+report.add_image(
+    image=mne_logo_path,
+    title='MNE Logo',
+    tags=('image', 'mne', 'logo', 'open-source')
+)
+report.save('report_tags.html', overwrite=True)
+
+# %%
+# Editing a saved report
+# ^^^^^^^^^^^^^^^^^^^^^^
+#
+# Saving to HTML is a write-only operation, meaning that we cannot read an
+# ``.html`` file back as a :class:`~mne.Report` object. In order to be able
+# to edit a report once it's no longer in-memory in an active Python session,
+# save it as an HDF5 file instead of HTML:
+
+report = mne.Report(verbose=True)
+report.add_image(image=mne_logo_path, title='MNE 1')
+report.save('report_partial.hdf5', overwrite=True)
+
+# %%
+# The saved report can be read back and modified or amended. This allows the
+# possibility to e.g. run multiple scripts in a processing pipeline, where each
+# script adds new content to an existing report.
+
+report_from_disk = mne.open_report('report_partial.hdf5')
+report_from_disk.add_image(image=mne_logo_path, title='MNE 2')
+report_from_disk.save('report_partial.hdf5', overwrite=True)
+
+# %%
+# To make this even easier, :class:`mne.Report` can be used as a
+# context manager (note the ``with`` statement)`):
+
+with mne.open_report('report_partial.hdf5') as report:
+    report.add_image(image=mne_logo_path, title='MNE 3')
+    report.save('report_final.html', overwrite=True)
+
+# %%
+# With the context manager, the updated report is also automatically saved
+# back to :file:`report.h5` upon leaving the block.
+#
 # Adding an entire folder of files
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# We also provide a way to add an entire **folder** of files to the report at
+# once, without having to invoke the individual ``add_*`` methods outlined
+# above for each file. This approach, while convenient, provides less
+# flexibility with respect to content ordering, tags, titles, etc.
 #
 # For our first example, we'll generate a barebones report for all the
 # :file:`.fif` files containing raw data in the sample dataset, by passing the
@@ -398,25 +452,27 @@ report.save('report_slider.html', overwrite=True)
 # :meth:`~mne.Report.parse_folder` method — otherwise we would get a warning
 # about not being able to render MRI and ``trans`` files without knowing the
 # subject.
+#
+# Which files are included depends on both the ``pattern`` parameter passed to
+# :meth:`~mne.Report.parse_folder` and also the ``subject`` and
+# ``subjects_dir`` parameters provided to the :class:`~mne.Report` constructor.
 
-report = mne.Report(verbose=True)
+report = mne.Report()
 report.parse_folder(data_path, pattern='*raw.fif', render_bem=False)
-report.save('report_basic.html', overwrite=True)
+report.save('report_parse_folder_basic.html', overwrite=True)
 
 # %%
-# This report yields a textual summary of the :class:`~mne.io.Raw` files
-# selected by the pattern. For a slightly more useful report, we'll ask for the
-# power spectral density of the :class:`~mne.io.Raw` files, by passing
-# ``raw_psd=True`` to the :class:`~mne.Report` constructor. We'll also
-# visualize the SSP projectors stored in the raw data's `~mne.Info` dictionary
-# by setting ``projs=True``. Lastly, let's also refine our pattern to select
-# only the filtered raw recording (omitting the unfiltered data and the
+# By default, the power spectral density and SSP projectors of the
+# :class:`~mne.io.Raw` files are not shown to speed up report generation. You
+# can add them by passing ``raw_psd=True`` and ``projs=True`` to the
+# :class:`~mne.Report` constructor. Lastly, let's also refine our pattern to
+# select only the filtered raw recording (omitting the unfiltered data and the
 # empty-room noise recordings):
 
 pattern = 'sample_audvis_filt-0-40_raw.fif'
-report = mne.Report(raw_psd=True, projs=True, verbose=True)
+report = mne.Report(raw_psd=True, projs=True)
 report.parse_folder(data_path, pattern=pattern, render_bem=False)
-report.save('report_raw_psd.html', overwrite=True)
+report.save('report_parse_folder_raw_psd_projs.html', overwrite=True)
 
 # %%
 # This time we'll pass a specific ``subject`` and ``subjects_dir`` (even though
@@ -426,20 +482,18 @@ report.save('report_raw_psd.html', overwrite=True)
 # expensive, we'll also pass the ``mri_decim`` parameter for the benefit of our
 # documentation servers, and skip processing the :file:`.fif` files:
 
-report = mne.Report(subject='sample', subjects_dir=subjects_dir, verbose=True)
+report = mne.Report(subject='sample', subjects_dir=subjects_dir)
 report.parse_folder(data_path, pattern='', mri_decim=25)
-report.save('report_mri_bem.html', overwrite=True)
+report.save('report_parse_folder_mri_bem.html', overwrite=True)
 
 # %%
 # Now let's look at how :class:`~mne.Report` handles :class:`~mne.Evoked` data
-# (we will skip the MRIs to save computation time). The following code will
-# produce butterfly plots, topomaps, and comparisons of the global field
-# power (GFP) for different experimental conditions.
+# (we will skip the MRIs to save computation time).
 
 pattern = 'sample_audvis-no-filter-ave.fif'
-report = mne.Report(verbose=True)
+report = mne.Report()
 report.parse_folder(data_path, pattern=pattern, render_bem=False)
-report.save('report_evoked.html', overwrite=True)
+report.save('report_parse_folder_evoked.html', overwrite=True)
 
 # %%
 # You have probably noticed that the EEG recordings look particularly odd. This
@@ -457,9 +511,9 @@ report.save('report_evoked.html', overwrite=True)
 
 baseline = (None, 0)
 pattern = 'sample_audvis-no-filter-ave.fif'
-report = mne.Report(baseline=baseline, verbose=True)
+report = mne.Report(baseline=baseline)
 report.parse_folder(data_path, pattern=pattern, render_bem=False)
-report.save('report_evoked_baseline.html', overwrite=True)
+report.save('report_parse_folder_evoked_baseline.html', overwrite=True)
 
 # %%
 # To render whitened :class:`~mne.Evoked` files with baseline correction, pass
@@ -467,11 +521,12 @@ report.save('report_evoked_baseline.html', overwrite=True)
 # This will display ERP/ERF plots for both the original and whitened
 # :class:`~mne.Evoked` objects, but scalp topomaps only for the original.
 
-cov_fname = op.join(sample_dir, 'sample_audvis-cov.fif')
+cov_fname = sample_dir / 'sample_audvis-cov.fif'
 baseline = (None, 0)
-report = mne.Report(cov_fname=cov_fname, baseline=baseline, verbose=True)
+report = mne.Report(cov_fname=cov_fname, baseline=baseline)
 report.parse_folder(data_path, pattern=pattern, render_bem=False)
-report.save('report_evoked_whitened.html', overwrite=True)
+report.save('report_parse_folder_evoked_baseline_whitened.html',
+            overwrite=True)
 
 # %%
 # If you want to actually *view* the noise covariance in the report, make sure
@@ -482,47 +537,7 @@ report.save('report_evoked_whitened.html', overwrite=True)
 # information and should work):
 
 pattern = 'sample_audvis-cov.fif'
-info_fname = op.join(sample_dir, 'sample_audvis-ave.fif')
-report = mne.Report(info_fname=info_fname, verbose=True)
+info_fname = sample_dir / 'sample_audvis-ave.fif'
+report = mne.Report(info_fname=info_fname)
 report.parse_folder(data_path, pattern=pattern, render_bem=False)
-report.save('report_cov.html', overwrite=True)
-
-
-
-
-# %%
-# Working with tags
-# ^^^^^^^^^^^^^^^^^^
-#
-# by a toggle button in the top navigation bar of the report which can be used
-# to show or hide the contents of the section. To toggle the show/hide state of
-# all sections in the HTML report, press :kbd:`t`, or press the toggle-all
-# button in the upper right.
-#
-# Editing a saved report
-# ^^^^^^^^^^^^^^^^^^^^^^
-#
-# Saving to HTML is a write-only operation, meaning that we cannot read an
-# ``.html`` file back as a :class:`~mne.Report` object. In order to be able
-# to edit a report once it's no longer in-memory in an active Python session,
-# save it as an HDF5 file instead of HTML:
-
-report.save('report.h5', overwrite=True)
-report_from_disk = mne.open_report('report.h5')
-print(report_from_disk)
-
-# %%
-# This allows the possibility of multiple scripts adding figures to the same
-# report. To make this even easier, :class:`mne.Report` can be used as a
-# context manager:
-
-with mne.open_report('report.h5') as report:
-    report.add_figs_to_section(fig_evoked,
-                               captions='Left Auditory',
-                               section='evoked',
-                               replace=True)
-    report.save('report_final.html', overwrite=True)
-
-# %%
-# With the context manager, the updated report is also automatically saved
-# back to :file:`report.h5` upon leaving the block.
+report.save('report_parse_folder_cov.html', overwrite=True)

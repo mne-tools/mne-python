@@ -1981,7 +1981,10 @@ class Report(object):
             title = Path(fname).name
             try:
                 if _endswith(fname, ['raw', 'sss', 'meg', 'nirs']):
-                    self.add_raw(raw=fname, title=title, psd=self.raw_psd)
+                    self.add_raw(
+                        raw=fname, title=title, psd=self.raw_psd,
+                        projs=self.projs
+                    )
                 elif _endswith(fname, 'fwd'):
                     self.add_forward(
                         forward=fname, title=title, subject=self.subject,
