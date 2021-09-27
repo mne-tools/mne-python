@@ -174,12 +174,12 @@ def _html_inverse_op_element(*, id, info, source_space, title, tags):
 
 
 def _html_slider_element(*, id, images, captions, start_idx, image_format,
-                         title, tags):
+                         title, tags, klass=''):
     template_path = template_dir / 'slider.html'
     t = Template(template_path.read_text(encoding='utf-8'))
     t = t.substitute(id=id, images=images, captions=captions, tags=tags,
                      title=title, start_idx=start_idx,
-                     image_format=image_format)
+                     image_format=image_format, klass=klass)
     return t
 
 
@@ -1813,7 +1813,7 @@ class Report(object):
         )
 
     def _render_slider(self, *, figs, title, captions, start_idx, image_format,
-                       tags):
+                       tags, klass=''):
         if len(figs) != len(captions):
             raise ValueError(
                 f'Number of captions ({len(captions)}) must be equal to the '
@@ -1830,7 +1830,8 @@ class Report(object):
             tags=tags,
             images=images,
             image_format=image_format,
-            start_idx=start_idx
+            start_idx=start_idx,
+            klass=klass
         )
 
         return html, dom_id
@@ -2354,7 +2355,8 @@ class Report(object):
             title=orientation,
             image_format=image_format,
             start_idx=start_idx,
-            tags=tags
+            tags=tags,
+            klass='bem col-md'
         )
         return html
 
@@ -3093,6 +3095,7 @@ class Report(object):
             warn('No BEM surfaces found, rendering empty MRI')
 
         htmls = []
+        htmls.append('<div class="row">')
         for orientation in _BEM_VIEWS:
             html = self._render_one_bem_axis(
                 mri_fname=mri_fname, surfaces=surfaces,
@@ -3101,6 +3104,7 @@ class Report(object):
                 tags=tags
             )
             htmls.append(html)
+        htmls.append('</div>')
         return '\n'.join(htmls)
 
 
