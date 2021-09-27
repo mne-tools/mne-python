@@ -57,7 +57,7 @@ Enhancements
 
 - Add support for list of channel types for EEG/sEEG/ECoG/DBS referencing (:gh:`9637` **by new contributor** |Mathieu Scheltienne|_)
 
-- Add support for changing the default event id used by :func:`mne.epochs.make_fixed_length_epochs` (:gh:`9782` **by new contributor** |Mathieu Scheltienne|_)
+- Add support for changing the default event id used by :func:`mne.make_fixed_length_epochs` (:gh:`9782` **by new contributor** |Mathieu Scheltienne|_)
 
 - Add support for more than 3 source estimates in :func:`mne.viz.plot_sparse_source_estimates` (:gh:`9640` **by new contributor** |Pierre-Antoine Bannier|_ and `Alex Gramfort`_)
 
