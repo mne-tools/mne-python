@@ -18,7 +18,6 @@ junit-results.xml
 *.tar.*
 *.egg*
 *.tmproj
-*.png
 *.dat
 .DS_Store
 events.eve
