@@ -3679,8 +3679,6 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
     ----------
     raw : instance of Raw
         Raw data to divide into segments.
-    id : int
-        The id to use (default 1).
     duration : float
         Duration of each epoch in seconds. Defaults to 1.
     %(preload)s
