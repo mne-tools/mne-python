@@ -182,6 +182,10 @@ class CoregistrationUI(HasTraits):
         self._reset()
 
     @observe("_coreg_modified")
+    def _update(self, change=None):
+        self._head_resolution_changed()
+
+    @observe("_head_shape_point")
     def _head_shape_point_changed(self, change=None):
         self._add_head_shape_points()
 
