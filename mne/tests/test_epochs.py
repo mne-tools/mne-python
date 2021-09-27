@@ -3435,7 +3435,7 @@ def test_make_fixed_length_epochs():
         make_fixed_length_epochs(raw, duration=1, overlap=1.1)
 
     # id
-    epochs = make_fixed_length_epochs(raw, id=2, duration=1, preload=True)
+    epochs = make_fixed_length_epochs(raw, duration=1, preload=True, id=2)
     assert '2' in epochs.event_id and len(epochs.event_id) == 1
 
 
