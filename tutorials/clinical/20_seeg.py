@@ -69,7 +69,8 @@ montage = epochs.get_montage()
 
 # first we need a head to mri transform since the data is stored in "head"
 # coordinates, let's load the mri to head transform and invert it
-head_mri_t = mne.coreg.estimate_head_mri_t('sample_seeg', subjects_dir)
+this_subject_dir = op.join(misc_path, 'seeg')
+head_mri_t = mne.coreg.estimate_head_mri_t('sample_seeg', this_subject_dir)
 # apply the transform to our montage
 montage.apply_trans(head_mri_t)
 

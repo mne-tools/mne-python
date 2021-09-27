@@ -78,17 +78,11 @@ ALICE, BOB = 0, 1
 
 [alice_files, bob_files] = fetch_data(subjects=[ALICE, BOB], recording=[1])
 
-mapping = {'EOG horizontal': 'eog',
-           'Resp oro-nasal': 'resp',
-           'EMG submental': 'emg',
-           'Temp rectal': 'misc',
-           'Event marker': 'misc'}
-
-raw_train = mne.io.read_raw_edf(alice_files[0])
+raw_train = mne.io.read_raw_edf(alice_files[0], stim_channel='marker',
+                                misc=['rectal'])
 annot_train = mne.read_annotations(alice_files[1])
 
 raw_train.set_annotations(annot_train, emit_warning=False)
-raw_train.set_channel_types(mapping)
 
 # plot some data
 # scalings were chosen manually to allow for simultaneous visualization of
@@ -164,12 +158,12 @@ print(epochs_train)
 # Applying the same steps to the test data from Bob
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-raw_test = mne.io.read_raw_edf(bob_files[0])
+raw_test = mne.io.read_raw_edf(bob_files[0], stim_channel='marker',
+                               misc=['rectal'])
 annot_test = mne.read_annotations(bob_files[1])
 annot_test.crop(annot_test[1]['onset'] - 30 * 60,
                 annot_test[-2]['onset'] + 30 * 60)
 raw_test.set_annotations(annot_test, emit_warning=False)
-raw_test.set_channel_types(mapping)
 events_test, _ = mne.events_from_annotations(
     raw_test, event_id=annotation_desc_2_event_id, chunk_duration=30.)
 epochs_test = mne.Epochs(raw=raw_test, events=events_test, event_id=event_id,
@@ -259,8 +253,8 @@ def eeg_power_band(epochs):
 #
 # To answer the question of how well can we predict the sleep stages of Bob
 # from Alice's data and avoid as much boilerplate code as possible, we will
-# take advantage of two key features of sckit-learn:
-# `Pipeline`_ , and `FunctionTransformer`_.
+# take advantage of two key features of sckit-learn: `Pipeline`_ , and
+# `FunctionTransformer`_.
 #
 # Scikit-learn pipeline composes an estimator as a sequence of transforms
 # and a final estimator, while the FunctionTransformer converts a python

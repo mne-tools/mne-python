@@ -37,6 +37,10 @@ Current (0.24.dev0)
 
 .. |Timothy Gates| replace:: **Timothy Gates**
 
+.. |Reza Shoorangiz| replace:: **Reza Shoorangiz**
+
+.. |Evgeny Goldstein| replace:: **Evgeny Goldstein**
+
 Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
@@ -54,6 +58,8 @@ Enhancements
 - Add support for list of channel types for EEG/sEEG/ECoG/DBS referencing (:gh:`9637` **by new contributor** |Mathieu Scheltienne|_)
 
 - Add support for more than 3 source estimates in :func:`mne.viz.plot_sparse_source_estimates` (:gh:`9640` **by new contributor** |Pierre-Antoine Bannier|_ and `Alex Gramfort`_)
+
+- Show all good channel types and counts when printing a :class:`mne.Info` in the notebook (:gh:`9725` by `Valerii Chirkov`_ and `Eric Larson`_)
 
 - Speed up point decimation in :func:`mne.io.read_raw_kit` by vectorization and use of :class:`scipy.spatial.cKDTree` (:gh:`9568` by `Jean-Remi King`_ and `Eric Larson`_)
 
@@ -127,6 +133,8 @@ Enhancements
 
 - Add :func:`mne.viz.Brain.add_volume_labels` to plot subcortical surfaces and other regions of interest (:gh:`9540` by `Alex Rockhill`_ and `Eric Larson`_)
 
+- Add custom cortex curvature colors in :class:`mne.viz.Brain` via the ``cortex`` argument (:gh:`9750` by `Eric Larson`_)
+
 - Add :meth:`mne.channels.DigMontage.apply_trans` to apply a transform directly to a montage (:gh:`9601` by `Alex Rockhill`_)
 
 - :meth:`mne.preprocessing.ICA.fit` now emits a warning if any of the ``start``, ``stop``, ``reject``, and ``flat`` parameters are passed when performing ICA on `~mne.Epochs`. These parameters only have an effect on `~mne.io.Raw` data and were previously silently ignored in the case of `~mne.Epochs` (:gh:`9605` by `Richard Höchenberger`_)
@@ -151,13 +159,29 @@ Enhancements
 
 - Add remove methods for mesh objects in :class:`mne.viz.Brain` (:gh:`9688` by `Alex Rockhill`_)
 
+- Add ability to export EDF+ files using :func:`mne.export.export_raw` (:gh:`9643` by `Adam Li`_)
+
+- Reading EDF files via :func:`mne.io.read_raw_edf` now can infer channel type from the signal label in the EDF header (:gh:`9694` by `Adam Li`_)
+
+- Add :func:`mne.gui.locate_ieeg` to locate intracranial electrode contacts from a CT, an MRI (with Freesurfer ``recon-all``) and the channel names from an :class:`mne.Info` object (:gh:`9586` by `Alex Rockhill`_)
+
+- All data fetching code now relies on ``pooch``, which is an added optional requirement for dataset fetchers (:gh:`9742` by `Adam Li`_ and `Daniel McCloy`_)
+
+- Add :func:`mne.datasets.fetch_dataset` to allow packages to fetch datasets in a similar fashion to MNE (:gh:`9763` by `Adam Li`_)
+
 Bugs
 ~~~~
+- Fix bug in :meth:`mne.io.Raw.pick` and related functions when parameter list contains channels which are not in info instance (:gh:`9708` **by new contributor** |Evgeny Goldstein|_)
+
 - Fix a few typos (:gh:`9706` **by new contributor** |Timothy Gates|_)
 
 - Fix bug with :meth:`mne.Epochs.crop` and :meth:`mne.Evoked.crop` when ``include_tmax=False``, where the last sample was always cut off, even when ``tmax > epo.times[-1]`` (:gh:`9378` **by new contributor** |Jan Sosulski|_)
 
-- Fix bug with `mne.io.read_raw_curry` to allow reading Curry 8 event files with '.cdt.ceo' extension (:gh:`9381` by **new contributor** |Xiaokai Xia|_ and `Daniel McCloy`_)
+- Fix bug with `mne.io.read_raw_curry` to allow reading Curry 7 and 8 event files with '.ceo' and '.cdt.ceo' extensions (:gh:`9381`, :gh:`9712` by **new contributor** |Xiaokai Xia|_, `Daniel McCloy`_, and **by new contributor** |Reza Shoorangiz|_)
+
+- Fix bug with `mne.compute_rank`, `mne.cov.compute_whitener` and `mne.preprocessing.ICA.fit` when explicit picks including bad channels are provided (:gh:`9719` **by new contributor** |Mathieu Scheltienne|_)
+
+- Fix bug with :func:`mne.concatenate_epochs` where the concatenated events could end up in non-chronological order. (:gh:`9765` **by new contributor** |Jan Sosulski|_)
 
 - Fix bug with :func:`mne.io.read_raw_nihon` where latin-1 annotations could not be read (:gh:`9384` by `Alex Gramfort`_)
 
@@ -211,7 +235,15 @@ Bugs
 
 - Raise error when no ``trans`` is provided to :func:`mne.viz.plot_alignment` when required instead of assuming identitiy head->mri transform (:gh:`9585` by `Alex Rockhill`_)
 
+- Fix bug where :meth:`mne.Epochs.equalize_event_counts` failed when only one good epoch existed for one of the event types (:gh:`9758` by `Daniel McCloy`_)
+
 - Fix bug where channels with a dollar sign ($) were not being labeled "misc" in :func:`mne.io.read_raw_nihon` (:gh:`9695` by `Adam Li`_)
+
+- Fix bug where :func:`mne.io.read_raw_persyst` was lower-casing events it found in the ``.lay`` file (:gh:`9746` by `Adam Li`_)
+
+- Fix bug where :func:`mne.io.read_raw_snirf` was including the landmark index as a spatial coordinate (:gh:`9777` by `Robert luke`_)
+
+- Fix bug where `mne.Annotations` were not appending channel names when being added together (:gh:`9780` by `Adam Li`_)
 
 API changes
 ~~~~~~~~~~~
@@ -224,3 +256,5 @@ API changes
 - All ``mne.connectivity`` functions have moved to the ``mne-connectivity`` package; they are deprecated in MNE-Python and will be removed in version 0.25 (:gh:`9493` by `Adam Li`_).
 
 - :func:`mne.inverse_sparse.mixed_norm` now simply warns when source estimates contain no dipole, e.g. if data are too noisy and alpha is based on SURE (:gh:`9685` by `Alex Gramfort`_)
+
+- The output folder name for HF_SEF datasets is now ``hf_sef`` instead of ``HF_SEF`` (:gh:`9763` by `Adam Li`_)

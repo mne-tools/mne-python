@@ -95,8 +95,11 @@ class RawPersyst(BaseRaw):
             if key == '':
                 continue
 
-            # make sure key are lowercase for everything, but electrodes
-            if key is not None and section != 'channelmap':
+            # Make sure key are lowercase for everything, but electrodes.
+            # We also do not want to lower-case comments because those
+            # are free-form text where casing may matter.
+            if key is not None and section not in ['channelmap',
+                                                   'comments']:
                 key = key.lower()
 
             # FileInfo

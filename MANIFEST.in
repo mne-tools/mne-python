@@ -21,6 +21,8 @@ recursive-include mne/data/fsaverage *
 include mne/datasets/_fsaverage/root.txt
 include mne/datasets/_fsaverage/bem.txt
 include mne/datasets/_infant/*.txt
+include mne/data/dataset_checksums.txt
+include mne/data/eegbci_checksums.txt
 
 recursive-include mne/channels/data/layouts *
 recursive-include mne/channels/data/montages *
@@ -30,6 +32,8 @@ recursive-include mne/gui/help *.json
 
 recursive-include mne/html *.js
 recursive-include mne/html *.css
+
+recursive-include mne/report *
 
 recursive-include mne/io/artemis123/resources *
 

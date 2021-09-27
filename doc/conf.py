@@ -8,6 +8,7 @@
 
 import gc
 import os
+import subprocess
 import sys
 import time
 import warnings
@@ -157,6 +158,7 @@ intersphinx_mapping = {
     'eeglabio': ('https://eeglabio.readthedocs.io/en/latest', None),
     'dipy': ('https://dipy.org/documentation/1.4.0./',
              'https://dipy.org/documentation/1.4.0./objects.inv/'),
+    'pooch': ('https://www.fatiando.org/pooch/latest/', None),
 }
 
 
@@ -258,6 +260,7 @@ numpydoc_xref_ignore = {
     # unlinkable
     'mayavi.mlab.pipeline.surface',
     'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame',
+    'IntracranialElectrodeLocator'
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)
@@ -362,6 +365,15 @@ else:
     scrapers += (report_scraper,)
     del backend
 
+compress_images = ('images', 'thumbnails')
+# let's make things easier on Windows users
+# (on Linux and macOS it's easy enough to require this)
+if sys.platform.startswith('win'):
+    try:
+        subprocess.check_call(['optipng', '--version'])
+    except Exception:
+        compress_images = ()
+
 sphinx_gallery_conf = {
     'doc_module': ('mne',),
     'reference_url': dict(mne=None),
@@ -410,7 +422,7 @@ sphinx_gallery_conf = {
     'capture_repr': ('_repr_html_',),
     'junit': os.path.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
     'matplotlib_animations': True,
-    'compress_images': ('images', 'thumbnails'),
+    'compress_images': compress_images,
     'filename_pattern': '^((?!sgskip).)*$',
 }
 # Files were renamed from plot_* with:
@@ -460,6 +472,7 @@ linkcheck_ignore = [  # will be compiled to regex
     'https://www.nyu.edu/',  # noqa Max retries exceeded with url: / (Caused by SSLError(SSLError(1, '[SSL: DH_KEY_TOO_SMALL] dh key too small (_ssl.c:1122)')))
     'https://docs.python.org/3/library/.*',  # noqa ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
     'https://hal.archives-ouvertes.fr/hal-01848442.*',  # noqa Sometimes: 503 Server Error: Service Unavailable for url: https://hal.archives-ouvertes.fr/hal-01848442/
+    'http://www.cs.ucl.ac.uk/staff/d.barber/brml.*',  # noqa Sometimes: Read timed out
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
@@ -811,6 +824,10 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings(
         'ignore', '.*invalid escape sequence.*', lineno=90)  # quantities
     warnings.filterwarnings(
+        'ignore', '.*invalid escape sequence.*', lineno=14)  # mne-connectivity
+    warnings.filterwarnings(
+        'ignore', '.*invalid escape sequence.*', lineno=281)  # mne-conn
+    warnings.filterwarnings(
         'ignore', '.*"is not" with a literal.*', module='nilearn')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
                 'Using or importing the ABCs from',  # internal modules on 3.7
@@ -849,6 +866,9 @@ def reset_warnings(gallery_conf, fname):
         'ignore', message="can't resolve package from", category=ImportWarning)
     warnings.filterwarnings(
         'ignore', message='.*mne-realtime.*', category=DeprecationWarning)
+    warnings.filterwarnings(
+        'ignore', message=r'numpy\.ndarray size changed.*',
+        category=RuntimeWarning)
 
     # In case we use np.set_printoptions in any tutorials, we only
     # want it to affect those:
@@ -1091,7 +1111,7 @@ def make_redirects(app, exception):
         if not to.startswith('http'):
             assert os.path.isfile(os.path.join(app.outdir, to)), to
             # handle links to sibling folders
-            path_parts = to.split(os.path.sep)
+            path_parts = to.split('/')
             assert tu in path_parts, path_parts  # need to refactor otherwise
             path_parts = ['..'] + path_parts[(path_parts.index(tu) + 1):]
             to = os.path.join(*path_parts)
@@ -1106,7 +1126,7 @@ def make_redirects(app, exception):
                 line = fid.readline()
                 assert 'Page Redirection' in line, line
         # handle folders that no longer exist
-        if fr_path.split(os.path.sep)[-2] in (
+        if fr_path.split('/')[-2] in (
                 'misc', 'discussions', 'source-modeling', 'sample-datasets',
                 'connectivity'):
             os.makedirs(os.path.dirname(fr_path), exist_ok=True)

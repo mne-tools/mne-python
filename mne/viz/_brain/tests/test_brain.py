@@ -199,12 +199,15 @@ def test_brain_init(renderer_pyvistaqt, tmpdir, pixel_ratio, brain_gc):
         Brain(subject_id, 'lh', 'whatever')
     with pytest.raises(ValueError, match='`surf` cannot be seghead'):
         Brain(hemi='lh', surf='seghead', **kwargs)
+    with pytest.raises(ValueError, match='RGB argument'):
+        Brain('sample', cortex='badcolor')
     Brain(subject_id, hemi=None, surf=None)  # test no surfaces
     renderer_pyvistaqt.backend._close_all()
 
     brain = Brain(hemi=hemi, surf=surf, size=size, title=title,
                   cortex=cortex, units='m',
                   silhouette=dict(decimate=0.95), **kwargs)
+    assert 'data' not in brain._actors
     with pytest.raises(TypeError, match='not supported'):
         brain._check_stc(hemi='lh', array=FakeSTC(), vertices=None)
     with pytest.raises(ValueError, match='add_data'):
@@ -290,6 +293,10 @@ def test_brain_init(renderer_pyvistaqt, tmpdir, pixel_ratio, brain_gc):
             brain.add_data(hemi_data[:, np.newaxis, np.newaxis],
                            fmin=fmin, hemi=h, fmax=fmax, colormap='hot',
                            vertices=hemi_vertices)
+    assert len(brain._actors['data']) == 4
+    brain.remove_data()
+    assert 'data' not in brain._actors
+
     # add label
     label = read_label(fname_label)
     with pytest.raises(ValueError, match="not a filename"):
@@ -415,7 +422,8 @@ def test_single_hemi(hemi, renderer_interactive_pyvistaqt, brain_gc):
         getattr(stc, f'{hemi}_data'), [stc.vertices[idx], []][::order],
         0, 1, 'sample')
     brain = stc.plot(
-        subjects_dir=subjects_dir, hemi='both', size=300)
+        subjects_dir=subjects_dir, hemi='both', size=300,
+        cortex='0.5')  # single cortex string arg
     brain.close()
 
     # test skipping when len(vertices) == 0
@@ -432,7 +440,8 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
     if renderer._get_3d_backend() == "mayavi":
         pytest.skip('Save movie only supported on PyVista')
     from imageio_ffmpeg import count_frames_and_secs
-    brain = _create_testing_brain(hemi='lh', time_viewer=False)
+    brain = _create_testing_brain(hemi='lh', time_viewer=False,
+                                  cortex=['r', 'b'])  # custom binarized
     filename = str(op.join(tmpdir, "brain_test.mov"))
     for interactive_state in (False, True):
         # for coverage, we set interactivity
@@ -707,9 +716,13 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmpdir,
     for current_hemi in hemi_str:
         assert len(picked_points[current_hemi]) == 1
     n_spheres = len(hemi_str)
+    n_actors = n_spheres
     if hemi == 'split' and src in ('mixed', 'volume'):
         n_spheres += 1
     assert len(spheres) == n_spheres
+
+    # test that there are actually enough actors
+    assert len(brain._actors['data']) == n_actors
 
     # test switching from 'vertex' to 'label'
     if src == 'surface':

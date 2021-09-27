@@ -2486,7 +2486,7 @@ fname : str
     Name of the output file.
 """
 docdict['export_params_fmt'] = """
-fmt : 'auto' | 'eeglab'
+fmt : 'auto' | 'eeglab' | 'edf'
     Format of the export. Defaults to ``'auto'``, which will infer the format
     from the filename extension. See supported formats above for more
     information.
@@ -2499,13 +2499,33 @@ physical_range : str | tuple
     If it is a 2-tuple of minimum and maximum limit, then those
     physical ranges will be used. Only used for exporting EDF files.
 """
+docdict['export_params_add_ch_type'] = """
+add_ch_type : bool
+    Whether to incorporate the channel type into the signal label (e.g. whether
+    to store channel "Fz" as "EEG Fz"). Only used for EDF format. Default is
+    ``False``.
+"""
 docdict['export_eeglab_note'] = """
 For EEGLAB exports, channel locations are expanded to full EEGLAB format.
 For more details see :func:`eeglabio.utils.cart_to_eeglab`.
 """
 docdict['export_edf_note'] = """
-For EDF exports, only EEG, ECoG and sEEG data are supported. In
-addition, EDF does not support storing a montage.
+For EDF exports, only channels measured in Volts are allowed; in MNE-Python
+this means channel types 'eeg', 'ecog', 'seeg', 'emg', 'eog', 'ecg', 'dbs',
+'bio', and 'misc'. 'stim' channels are dropped. Although this function
+supports storing channel types in the signal label (e.g. ``EEG Fz`` or
+``MISC E``), other software may not support this (optional) feature of
+the EDF standard.
+
+If ``add_ch_type`` is True, then channel types are written based on what
+they are currently set in MNE-Python. One should double check that all
+their channels are set correctly. You can call
+:attr:`raw.set_channel_types <mne.io.Raw.set_channel_types>` to set
+channel types.
+
+In addition, EDF does not support storing a montage. You will need
+to store the montage separately and call :attr:`raw.set_montage()
+<mne.io.Raw.set_montage>`.
 """
 
 # Other
@@ -2557,10 +2577,10 @@ niter : dict | tuple | None
     step as a key. Steps not in the dictionary will use the default value.
     The default (None) is equivalent to:
 
-        niter=dict(translation=(10000, 1000, 100),
-                   rigid=(10000, 1000, 100),
-                   affine=(10000, 1000, 100),
-                   sdr=(10, 10, 5))
+        niter=dict(translation=(100, 100, 10),
+                   rigid=(100, 100, 10),
+                   affine=(100, 100, 10),
+                   sdr=(5, 5, 3))
 """
 docdict['pipeline'] = """
 pipeline : str | tuple

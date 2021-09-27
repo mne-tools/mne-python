@@ -39,7 +39,7 @@ from ..rank import compute_rank
 from ..io.proj import setup_proj
 from ..utils import (verbose, get_config, warn, _check_ch_locs, _check_option,
                      logger, fill_doc, _pl, _check_sphere, _ensure_int,
-                     _validate_type)
+                     _validate_type, _to_rgb)
 from ..transforms import apply_trans
 
 
@@ -2332,10 +2332,10 @@ def concatenate_images(images, axis=0, bgcolor='black', centered=True,
     img : ndarray
         The concatenated image.
     """
-    from matplotlib.colors import colorConverter
-    if isinstance(bgcolor, str):
-        func_name = 'to_rgb' if n_channels == 3 else 'to_rgba'
-        bgcolor = getattr(colorConverter, func_name)(bgcolor)
+    n_channels = _ensure_int(n_channels, 'n_channels')
+    _check_option('n_channels', n_channels, (3, 4))
+    alpha = True if n_channels == 4 else False
+    bgcolor = _to_rgb(bgcolor, name='bgcolor', alpha=alpha)
     bgcolor = np.asarray(bgcolor) * 255
     funcs = [np.sum, np.max]
     ret_shape = np.asarray([

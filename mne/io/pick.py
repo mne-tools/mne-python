@@ -12,7 +12,7 @@ import numpy as np
 
 from .constants import FIFF
 from ..utils import (logger, verbose, _validate_type, fill_doc, _ensure_int,
-                     _check_option)
+                     _check_option, warn)
 
 
 def get_channel_type_constants(include_defaults=False):
@@ -1104,14 +1104,13 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
     # second: match all to channel names
     #
 
-    bad_name = None
+    bad_names = []
     picks_name = list()
     for pick in picks:
         try:
             picks_name.append(info['ch_names'].index(pick))
         except ValueError:
-            bad_name = pick
-            break
+            bad_names.append(pick)
 
     #
     # third: match all to types
@@ -1158,7 +1157,7 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
                 'picks (%s) could not be interpreted as '
                 'channel names (no channel "%s"), channel types (no '
                 'type "%s"), or a generic type (just "all" or "data")'
-                % (repr(orig_picks) + extra_repr, bad_name, bad_type))
+                % (repr(orig_picks) + extra_repr, str(bad_names), bad_type))
         picks = np.array([], int)
     elif sum(any_found) > 1:
         raise RuntimeError('Some channel names are ambiguously equivalent to '
@@ -1166,8 +1165,13 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
                            'picks for these')
     else:
         picks = np.array(all_picks[np.where(any_found)[0][0]])
+
+    picked_ch_type_or_generic = not len(picks_name)
+    if len(bad_names) > 0 and not picked_ch_type_or_generic:
+        warn(f'Channel(s) {bad_names} could not be picked, because '
+             'they are not present in the info instance.')
+
     if return_kind:
-        picked_ch_type_or_generic = not len(picks_name)
         return picks, picked_ch_type_or_generic
     return picks
 

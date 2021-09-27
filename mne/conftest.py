@@ -125,6 +125,7 @@ def pytest_configure(config):
     ignore:.*`np.typeDict` is a deprecated.*:DeprecationWarning
     ignore:.*Creating an ndarray from ragged.*:numpy.VisibleDeprecationWarning
     ignore:^Please use.*scipy\..*:DeprecationWarning
+    ignore:.*Found the following unknown channel type.*:RuntimeWarning
     always::ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
@@ -612,7 +613,8 @@ def _fail(*args, **kwargs):
 @pytest.fixture(scope='function')
 def download_is_error(monkeypatch):
     """Prevent downloading by raising an error when it's attempted."""
-    monkeypatch.setattr(mne.utils.fetching, '_get_http', _fail)
+    import pooch
+    monkeypatch.setattr(pooch, 'retrieve', _fail)
 
 
 @pytest.fixture()

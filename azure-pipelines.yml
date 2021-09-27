@@ -53,8 +53,8 @@ stages:
       displayName: 'Get Python'
     - bash: |
         set -e
-        python -m pip install --upgrade pip setuptools
-        python -m pip install numpy scipy matplotlib -r requirements_testing.txt
+        python -m pip install --progress-bar off --upgrade pip setuptools wheel
+        python -m pip install --progress-bar off numpy scipy matplotlib -r requirements_testing.txt
       displayName: Install dependencies
       condition: always()
     - bash: |
@@ -107,8 +107,8 @@ stages:
       displayName: 'Spin up Xvfb'
     - bash: |
         set -e
-        python -m pip install --upgrade pip setuptools
-        python -m pip install --upgrade numpy scipy "vtk<=9.0.1" -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt codecov
+        python -m pip install --progress-bar off --upgrade pip setuptools wheel
+        python -m pip install --progress-bar off --upgrade numpy scipy "vtk<=9.0.1" -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt codecov
       displayName: 'Install dependencies with pip'
     - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
@@ -136,6 +136,7 @@ stages:
         summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
         reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
 
+
   - job: Notebook
     pool:
       vmImage: 'ubuntu-18.04'
@@ -149,7 +150,7 @@ stages:
         conda env update --file server_environment.yml
         pip uninstall -yq mne
         pip install -ve .
-        pip install -r requirements_testing.txt -r requirements_testing_extra.txt codecov
+        pip install --progress-bar off -r requirements_testing.txt -r requirements_testing_extra.txt codecov
         echo "##vso[task.setvariable variable=PATH]${PATH}"
         echo "##vso[task.setvariable variable=LD_LIBRARY_PATH]${LD_LIBRARY_PATH}"
       displayName: 'Install dependencies'
@@ -217,11 +218,10 @@ stages:
       displayName: 'Get Python'
     # https://docs.microsoft.com/en-us/azure/devops/pipelines/ecosystems/anaconda
     # https://github.com/MicrosoftDocs/pipelines-anaconda
-    # Qt 5.9 post-link failure:
     # https://github.com/ContinuumIO/anaconda-issues/issues/10949
     - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;"
       condition: in(variables['TEST_MODE'], 'conda')
-      displayName: Add conda to PATH, deal with Qt 5.9 bug
+      displayName: Add conda to PATH, deal with Qt linking bug
     - bash: |
         set -e
         git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
@@ -236,10 +236,10 @@ stages:
         Set-StrictMode -Version Latest
         $ErrorActionPreference = "Stop"
         $PSDefaultParameterValues['*:ErrorAction']='Stop'
-        conda update -n base -c defaults conda "brotli<1.0" urllib3
+        conda update -n base -c defaults conda
         conda env update --name base --file environment.yml
         pip uninstall -yq mne
-        pip install -r requirements_testing.txt -r requirements_testing_extra.txt codecov
+        pip install --progress-bar off -r requirements_testing.txt -r requirements_testing_extra.txt codecov
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: 'Install dependencies with conda'
     - script: python setup.py develop
@@ -273,3 +273,39 @@ stages:
         codeCoverageTool: Cobertura
         summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
         reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
+
+  - job: SphinxWindows
+    pool:
+      vmImage: 'VS2017-Win2016'
+    variables:
+      AZURE_CI_WINDOWS: 'true'
+      PYTHON_ARCH: 'x64'
+      PLATFORM: 'x86-64'
+      PYTHON_VERSION: '3.9'
+    steps:
+    - bash: |
+        set -e
+        git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
+        powershell gl-ci-helpers/appveyor/install_opengl.ps1
+      displayName: Install OpenGL
+    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%CONDA%\Library\bin\graphviz;"
+      displayName: Add conda to PATH, deal with Qt linking bug
+    - powershell: |
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = "Stop"
+        $PSDefaultParameterValues['*:ErrorAction']='Stop'
+        conda update -n base -c defaults conda
+        conda env update --name base --file environment.yml
+        conda install -c conda-forge graphviz
+        dot -V
+        pip uninstall -yq mne
+        pip install --progress-bar off -r requirements_doc.txt
+      displayName: 'Install dependencies with conda'
+    - script: python setup.py develop
+      displayName: 'Install MNE-Python dev'
+    - script: mne sys_info
+      displayName: 'Print config and test access to commands'
+    - script: python -c "import numpy; numpy.show_config()"
+      displayName: Print NumPy config
+    - bash: make -C doc html_dev-noplot
+      displayName: 'Build doc'

@@ -664,7 +664,8 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
     ica_different_channels = ICA(n_components=2, max_iter=1)
     with pytest.warns(Warning, match='converge'):
         ica_different_channels.fit(raw, picks=[2, 3, 4, 5])
-    pytest.raises(ValueError, corrmap, [ica_different_channels, ica], (0, 0))
+    with pytest.raises(ValueError, match='Not all ICA instances have the'):
+        corrmap([ica_different_channels, ica], (0, 0))
 
     # test warnings on bad filenames
     ica_badname = tmpdir.join('test-bad-name.fif.gz')
@@ -705,7 +706,9 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
     assert_equal(ica_sorted.labels_, dict(blink=[3], think=[2]))
 
     # epochs extraction from raw fit
-    pytest.raises(RuntimeError, ica.get_sources, epochs)
+    with pytest.warns(RuntimeWarning, match='could not be picked'), \
+         pytest.raises(RuntimeError, match="match fitted data"):
+        ica.get_sources(epochs)
 
     # test filtering
     ica_raw = ica.get_sources(raw)
@@ -774,8 +777,8 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
     # check univariate stats
     scores = ica.score_sources(raw, start=0, stop=50, score_func=stats.skew)
     # check exception handling
-    pytest.raises(ValueError, ica.score_sources, raw,
-                  target=np.arange(1))
+    with pytest.raises(ValueError, match='Sources and target do not have'):
+        ica.score_sources(raw, target=np.arange(1))
 
     params = []
     params += [(None, -1, slice(2), [0, 1])]  # variance, kurtosis params
@@ -821,10 +824,10 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
                                     stop=epochs.times[-1])
 
     assert_equal(len(scores), ica.n_components_)
-    pytest.raises(ValueError, ica.find_bads_ecg, epochs.average(),
-                  method='ctps', threshold='auto')
-    pytest.raises(ValueError, ica.find_bads_ecg, raw,
-                  method='crazy-coupling')
+    with pytest.raises(ValueError, match='only Raw and Epochs input'):
+        ica.find_bads_ecg(epochs.average(), method='ctps', threshold='auto')
+    with pytest.raises(ValueError, match='not supported.'):
+        ica.find_bads_ecg(raw, method='crazy-coupling')
 
     with pytest.warns(RuntimeWarning, match='longer'):
         idx, scores = ica.find_bads_eog(raw)
@@ -862,8 +865,8 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
     scores = ica.score_sources(epochs, score_func=stats.skew)
 
     # check exception handling
-    pytest.raises(ValueError, ica.score_sources, epochs,
-                  target=np.arange(1))
+    with pytest.raises(ValueError, match='Sources and target do not have'):
+        ica.score_sources(epochs, target=np.arange(1))
 
     # ecg functionality
     ecg_scores = ica.score_sources(raw, target='MEG 1531',
@@ -931,6 +934,14 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
     with pytest.raises(RuntimeError, match='match fitted'):
         with pytest.warns(RuntimeWarning, match='longer'):
             ica.find_bads_ecg(raw, threshold='auto')
+
+    # test passing picks including the marked bad channels
+    raw_ = raw.copy()
+    raw_.pick_types(eeg=True)
+    raw_.info['bads'] = [raw_.ch_names[0]]
+    picks = pick_types(raw_.info, eeg=True, exclude=[])
+    ica = ICA(n_components=0.99, max_iter='auto')
+    ica.fit(raw_, picks=picks, reject_by_annotation=True)
 
 
 @requires_sklearn
@@ -1149,9 +1160,11 @@ def test_bad_channels(method, allow_ref_meg):
                 picks_bad2 = pick_types(inst.info, meg=True,
                                         **{str(ch): True})
 
-            pytest.raises(ValueError, ica.fit, inst, picks=picks_bad1)
-            pytest.raises(ValueError, ica.fit, inst, picks=picks_bad2)
-        pytest.raises(ValueError, ica.fit, inst, picks=[])
+            with pytest.raises(ValueError, match='Invalid channel type'):
+                ica.fit(inst, picks=picks_bad1)
+                ica.fit(inst, picks=picks_bad2)
+        with pytest.raises(ValueError, match='No appropriate channels found'):
+            ica.fit(inst, picks=[])
 
 
 @requires_sklearn

@@ -14,7 +14,7 @@ from itertools import cycle
 import numpy as np
 
 from ..io.pick import channel_type, pick_types
-from ..utils import _clean_names, warn, _check_option, Bunch, fill_doc
+from ..utils import _clean_names, warn, _check_option, Bunch, fill_doc, _to_rgb
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, _get_color_list, _draw_proj_checkbox,
@@ -357,7 +357,6 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
                      labels=None):
     """Show time series on topo split across multiple axes."""
     import matplotlib.pyplot as plt
-    from matplotlib.colors import colorConverter
     picker_flag = False
     for data_, color_, times_ in zip(data, color, times):
         if not picker_flag:
@@ -421,11 +420,8 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
 
     ax._cursorline = None
     # choose cursor color based on perceived brightness of background
-    try:
-        facecol = colorConverter.to_rgb(ax.get_facecolor())
-    except AttributeError:  # older MPL
-        facecol = colorConverter.to_rgb(ax.get_axis_bgcolor())
-    face_brightness = np.dot(facecol, np.array([299, 587, 114]))
+    facecol = _to_rgb(ax.get_facecolor())
+    face_brightness = np.dot(facecol, [299, 587, 114])
     ax._cursorcolor = 'white' if face_brightness < 150 else 'black'
 
     plt.connect('motion_notify_event', _cursor_vline)

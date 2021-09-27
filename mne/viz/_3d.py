@@ -41,7 +41,7 @@ from ..transforms import (apply_trans, rot_to_quat, combine_transforms,
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version, fill_doc, _pl, get_config,
                      _ensure_int, _validate_type, _check_option, deprecated,
-                     CONNECTIVITY_DEPRECATION_MSG)
+                     CONNECTIVITY_DEPRECATION_MSG, _to_rgb)
 from .utils import (mne_analyze_colormap, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
 from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
@@ -732,6 +732,15 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                       warn_meg, head_surf, 'm')
 
+    for key, surf in surfs.items():
+        # Surfs can sometimes be in head coords (e.g., if coming from sphere)
+        assert isinstance(surf, dict), f'{key}: {type(surf)}'
+        surf = transform_surface_to(
+            surf, coord_frame, [to_cf_t['mri'], to_cf_t['head']], copy=True)
+        renderer.surface(surface=surf, color=colors[key],
+                         opacity=alphas[key],
+                         backface_culling=(key != 'helmet'))
+
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
         for ss in src:
@@ -1023,6 +1032,7 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
 
     actors = dict(meg=list(), ref_meg=list(), eeg=list(), fnirs=list(),
                   ecog=list(), seeg=list(), dbs=list())
+    scalar = 1 if units == 'm' else 1e3
     for ch_name, ch_coord in ch_pos.items():
         ch_type = channel_type(info, info.ch_names.index(ch_name))
         # for default picking
@@ -1034,7 +1044,6 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
         plot_sensors = (ch_type != 'fnirs' or 'channels' in fnirs) and \
             (ch_type != 'eeg' or 'original' in eeg)
         color = defaults[ch_type + '_color']
-        scalar = 1 if units == 'm' else 1e3
         # plot sensors
         if isinstance(ch_coord, tuple):  # is meg, plot coil
             verts, triangles = ch_coord
@@ -1064,7 +1073,8 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                 'pairs' in fnirs:
             actor, _ = renderer.tube(  # array of origin and dest points
                 origin=sources[ch_name][np.newaxis] * scalar,
-                destination=detectors[ch_name][np.newaxis] * scalar)
+                destination=detectors[ch_name][np.newaxis] * scalar,
+                radius=0.001 * scalar)
             actors[ch_type].append(actor)
 
     # add projected eeg
@@ -1073,17 +1083,19 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
         logger.info('Projecting sensors to the head surface')
         eeg_loc = np.array([
             ch_pos[info.ch_names[idx]] for idx in eeg_indices])
-        eeg_loc = apply_trans(to_cf_t['head'], eeg_loc)
         eegp_loc, eegp_nn = _project_onto_surface(
             eeg_loc, head_surf, project_rrs=True,
             return_nn=True)[2:4]
+        del eeg_loc
+        eegp_loc *= scalar
+        scale = defaults['eegp_scale'] * scalar
         actor, _ = renderer.quiver3d(
             x=eegp_loc[:, 0], y=eegp_loc[:, 1], z=eegp_loc[:, 2],
             u=eegp_nn[:, 0], v=eegp_nn[:, 1], w=eegp_nn[:, 2],
             color=defaults['eegp_color'], mode='cylinder',
-            scale=defaults['eegp_scale'], opacity=0.6,
+            scale=scale, opacity=0.6,
             glyph_height=defaults['eegp_height'],
-            glyph_center=(0., -defaults['eegp_height'], 0),
+            glyph_center=(0., -defaults['eegp_height'] / 2., 0),
             glyph_resolution=20,
             backface_culling=True)
         actors['eeg'].append(actor)
@@ -1877,7 +1889,6 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         "colorbar": colorbar,
         "vector_alpha": vector_alpha,
         "scale_factor": scale_factor,
-        "verbose": False,
         "initial_time": initial_time,
         "transparent": transparent,
         "center": center,
@@ -1887,7 +1898,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         "clim": clim,
         "src": src,
         "volume_options": volume_options,
-        "verbose": False,
+        "verbose": None,
     }
     if add_data_kwargs is not None:
         kwargs.update(add_data_kwargs)
@@ -2644,7 +2655,6 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         The triangular mesh surface.
     """
     import matplotlib.pyplot as plt
-    from matplotlib.colors import ColorConverter
     # Update the backend
     from .backends.renderer import _get_renderer
 
@@ -2707,8 +2717,6 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
                for stc in stcs]
     unique_vertnos = np.unique(np.concatenate(vertnos).ravel())
 
-    color_converter = ColorConverter()
-
     renderer = _get_renderer(bgcolor=bgcolor, size=(600, 600), name=fig_name)
     surface = renderer.mesh(x=points[:, 0], y=points[:, 1],
                             z=points[:, 2], triangles=use_faces,
@@ -2750,7 +2758,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         x, y, z = points[v]
         nx, ny, nz = normals[v]
         renderer.quiver3d(x=x, y=y, z=z, u=nx, v=ny, w=nz,
-                          color=color_converter.to_rgb(c),
+                          color=_to_rgb(c),
                           mode=mode, scale=scale_factor)
 
         for k in ind:
@@ -3163,8 +3171,6 @@ def _plot_dipole(ax, data, vox, idx, dipole, gridx, gridy, ori, coord_frame,
                  show_all, pos, color, highlight_color, title):
     """Plot dipoles."""
     import matplotlib.pyplot as plt
-    from matplotlib.colors import ColorConverter
-    color_converter = ColorConverter()
     xidx, yidx, zidx = np.round(vox[idx]).astype(int)
     xslice = data[xidx]
     yslice = data[:, yidx]
@@ -3173,8 +3179,9 @@ def _plot_dipole(ax, data, vox, idx, dipole, gridx, gridy, ori, coord_frame,
     ori = ori[idx]
     if color is None:
         color = 'y' if show_all else 'r'
-    color = np.array(color_converter.to_rgba(color))
-    highlight_color = np.array(color_converter.to_rgba(highlight_color))
+    color = np.array(_to_rgb(color, alpha=True))
+    highlight_color = np.array(_to_rgb(
+        highlight_color, name='highlight_color', alpha=True))
     if show_all:
         colors = np.repeat(color[np.newaxis], len(vox), axis=0)
         colors[idx] = highlight_color
