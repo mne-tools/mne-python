@@ -5,7 +5,8 @@ from functools import partial
 from ...defaults import DEFAULTS
 from ...io import read_info, read_fiducials
 from ...coreg import Coregistration, _is_mri_subject
-from ...viz._3d import _plot_head_surface, _plot_head_fiducials
+from ...viz._3d import (_plot_head_surface, _plot_head_fiducials,
+                        _plot_head_shape_points)
 from ...transforms import (read_trans, write_trans, _ensure_trans,
                            rotation_angles, _get_transforms_to_coord_frame)
 from ...utils import get_subjects_dir
@@ -19,6 +20,7 @@ class CoregistrationUI(HasTraits):
     _fiducials_file = Unicode()
     _current_fiducial = Unicode()
     _info_file = Unicode()
+    _head_shape_point = Bool()
     _head_resolution = Bool()
     _head_transparency = Bool()
     _scale_mode = Unicode()
@@ -27,7 +29,7 @@ class CoregistrationUI(HasTraits):
     def __init__(self, info, subject=None, subjects_dir=None, fids='auto'):
         from ..backends.renderer import _get_renderer
         self._widgets = dict()
-        self._verbose = False
+        self._verbose = True
         self._omit_hsp_distance = 0.0
         self._surface = "head-dense"
         self._opacity = 1.0
@@ -82,6 +84,9 @@ class CoregistrationUI(HasTraits):
 
     def _set_omit_hsp_distance(self, distance):
         self._omit_hsp_distance = distance / 1000.0
+
+    def _set_head_shape_points(self, state):
+        self._head_shape_point = bool(state)
 
     def _set_head_resolution(self, state):
         self._head_resolution = bool(state)
@@ -173,6 +178,10 @@ class CoregistrationUI(HasTraits):
         self._coreg._info = self._info
         self._reset()
 
+    @observe("_head_shape_point")
+    def _head_shape_point_changed(self, change=None):
+        self._add_head_shape_points()
+
     @observe("_head_resolution")
     def _head_resolution_changed(self, change=None):
         self._surface = "head-dense" if self._head_resolution else "head"
@@ -229,6 +238,18 @@ class CoregistrationUI(HasTraits):
         head_fids_actors = _plot_head_fiducials(
             self._renderer, self._info, to_cf_t, fid_colors)
         self._actors["head_fids"] = head_fids_actors
+
+    def _add_head_shape_points(self):
+        if "head_shape_points" in self._actors:
+            self._renderer.plotter.remove_actor(
+                self._actors["head_shape_points"])
+        coord_frame = 'mri'
+        to_cf_t = _get_transforms_to_coord_frame(
+            self._info, self._coreg.trans, coord_frame=coord_frame)
+        head_shape_points = _plot_head_shape_points(
+            self._renderer, self._info, to_cf_t)
+        self._actors["head_shape_points"] = head_shape_points
+        self._renderer._update()
 
     def _add_head_surface(self):
         if "head" in self._actors:
@@ -389,7 +410,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["show_hsp"] = self._renderer._dock_add_check_box(
             name="Show Head Shape Points",
             value=False,
-            callback=noop,
+            callback=self._set_head_shape_points,
             layout=layout
         )
         self._widgets["high_res_head"] = self._renderer._dock_add_check_box(
