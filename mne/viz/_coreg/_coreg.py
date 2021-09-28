@@ -35,6 +35,9 @@ class CoregistrationUI(HasTraits):
         self._omit_hsp_distance = 0.0
         self._surface = "head-dense"
         self._opacity = 1.0
+        self._fid_colors = tuple(
+            DEFAULTS['coreg'][f'{key}_color'] for key in
+            ('lpa', 'nasion', 'rpa'))
         self._default_fiducials = ("LPA", "Nasion", "RPA")
         self._default_icp_fid_matches = ('nearest', 'matched')
         self._default_icp_n_iterations = 20
@@ -242,24 +245,18 @@ class CoregistrationUI(HasTraits):
         self._actors[actor_name] = actor
 
     def _add_mri_fiducials(self):
-        defaults = DEFAULTS['coreg']
-        fid_colors = tuple(
-            defaults[f'{key}_color'] for key in ('lpa', 'nasion', 'rpa'))
         to_cf_t = _get_transforms_to_coord_frame(
             self._info, self._coreg.trans, coord_frame=self._coord_frame)
         mri_fids_actors = _plot_mri_fiducials(
             self._renderer, self._coreg._fid_points, self._subjects_dir,
-            self._subject, to_cf_t, fid_colors)
+            self._subject, to_cf_t, self._fid_colors)
         self._update_actor("mri_fiducials", mri_fids_actors)
 
     def _add_head_fiducials(self):
-        defaults = DEFAULTS['coreg']
-        fid_colors = tuple(
-            defaults[f'{key}_color'] for key in ('lpa', 'nasion', 'rpa'))
         to_cf_t = _get_transforms_to_coord_frame(
             self._info, self._coreg.trans, coord_frame=self._coord_frame)
         head_fids_actors = _plot_head_fiducials(
-            self._renderer, self._info, to_cf_t, fid_colors)
+            self._renderer, self._info, to_cf_t, self._fid_colors)
         self._update_actor("head_fiducials", head_fids_actors)
 
     def _add_head_shape_points(self):
