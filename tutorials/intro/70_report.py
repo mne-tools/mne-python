@@ -266,7 +266,7 @@ report.save('report_inverse_op.html', overwrite=True)
 # can be added via :meth:`mne.Report.add_stc`. The
 # method expects an `~mne.SourceEstimate`, the corresponding FreeSurfer subject
 # name and subjects directory, and a title. By default, it will produce
-# snapshots at 51 equally-spaced time points (or fewer, if the data contains 
+# snapshots at 51 equally-spaced time points (or fewer, if the data contains
 # fewer time points). We can adjust this via the ``n_time_points`` parameter.
 
 stc_path = sample_dir / 'sample_audvis-meg'
@@ -299,7 +299,7 @@ report.save('report_sys_info.html', overwrite=True)
 # respective code snippet, or the path to a file. If you pass a path, it
 # **must** be a `pathlib.Path` object (and not a string), otherwise it will be
 # treated as a code literal.
-# 
+#
 # Optionally, you can specify which programming language to assume for syntax
 # highlighting by passing the ``language`` parameter. By default, we'll assume
 # the provided code is Python.
@@ -309,11 +309,11 @@ mne_init_py_content = mne_init_py_path.read_text(encoding='utf-8')
 
 report = mne.Report()
 report.add_code(
-    code=mne_init_py_path,  
+    code=mne_init_py_path,
     title="Code from Path"
 )
 report.add_code(
-    code=mne_init_py_content,  
+    code=mne_init_py_content,
     title="Code from string"
 )
 
