@@ -474,6 +474,8 @@ linkcheck_ignore = [  # will be compiled to regex
     'https://hal.archives-ouvertes.fr/hal-01848442.*',  # noqa Sometimes: 503 Server Error: Service Unavailable for url: https://hal.archives-ouvertes.fr/hal-01848442/
     'http://www.cs.ucl.ac.uk/staff/d.barber/brml.*',  # noqa Sometimes: Read timed out
     'https://compumedicsneuroscan.com/scan-acquire-configuration-files.*',  # noqa SSL certificate error as of 2021/09/28
+    'https://chrisholdgraf.com',  # noqa Max retries exceeded sometimes
+    'https://www.dtu.dk/english/service/phonebook/person.*',  # noqa Too slow
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow

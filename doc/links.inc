@@ -223,7 +223,7 @@
 .. _NVIDIA CUDA GPU processing: https://developer.nvidia.com/cuda-zone
 .. _NVIDIA proprietary drivers: https://www.geforce.com/drivers
 
-.. _Sphinx documentation: http://sphinx-doc.org/rest.html
+.. _Sphinx documentation: https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
 .. _sphinx gallery documentation: https://sphinx-gallery.github.io
 .. _NumPy docstring standard: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 .. _Stack Overflow: https://stackoverflow.com/

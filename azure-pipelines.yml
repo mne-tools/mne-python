@@ -154,7 +154,7 @@ stages:
         echo "##vso[task.setvariable variable=PATH]${PATH}"
         echo "##vso[task.setvariable variable=LD_LIBRARY_PATH]${LD_LIBRARY_PATH}"
       displayName: 'Install dependencies'
-    - script: mne sys_info --show-paths
+    - script: mne sys_info -pd
       displayName: 'Print config and test access to commands'
     - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
@@ -242,7 +242,7 @@ stages:
       displayName: 'Install dependencies with conda'
     - script: pip install -e .
       displayName: 'Install MNE-Python dev'
-    - script: mne sys_info --show-paths
+    - script: mne sys_info -pd
       displayName: 'Print config and test access to commands'
     - script: python -c "import numpy; numpy.show_config()"
       displayName: Print NumPy config
@@ -297,7 +297,7 @@ stages:
         pip install -e .
         pip install --progress-bar off -r requirements_doc.txt
       displayName: 'Install dependencies with conda'
-    - script: mne sys_info --show-paths
+    - script: mne sys_info -pd
       displayName: 'Print config and test access to commands'
     - script: python -c "import numpy; numpy.show_config()"
       displayName: Print NumPy config
