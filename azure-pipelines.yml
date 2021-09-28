@@ -231,15 +231,16 @@ stages:
         set -e
         ./tools/azure_dependencies.sh
       condition: in(variables['TEST_MODE'], 'pip', 'pip-pre')
-      displayName: 'Install dependencies with pip'
-    - bash: |
-        set -e
-        conda update -n base -c defaults conda
-        conda env update --name base --file environment.yml
-        pip uninstall -yq mne
-        pip install --progress-bar off -r requirements_testing.txt -r requirements_testing_extra.txt codecov
+      displayName: Install dependencies with pip
+    - script: conda env update --name base --file environment.yml
       condition: eq(variables['TEST_MODE'], 'conda')
-      displayName: 'Install dependencies with conda'
+      displayName: Setup MNE environment
+    - script: pip uninstall -yq mne
+      condition: eq(variables['TEST_MODE'], 'conda')
+      displayName: Remove old MNE
+    - script: pip install --progress-bar off -r requirements_testing.txt -r requirements_testing_extra.txt codecov
+      condition: eq(variables['TEST_MODE'], 'conda')
+      displayName: Install testing requirements
     - script: pip install -e .
       displayName: 'Install MNE-Python dev'
     - script: mne sys_info -pd
@@ -288,17 +289,20 @@ stages:
       displayName: Install OpenGL
     - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%CONDA%\Library\bin\graphviz;"
       displayName: Add conda to PATH, deal with Qt linking bug
-    - bash: |
-        set -e
-        conda update -n base -c defaults conda
-        conda env update --name base --file environment.yml
-        conda install -c conda-forge graphviz
-        conda remove mne
-        pip install -e .
-        pip install --progress-bar off -r requirements_doc.txt
-      displayName: 'Install dependencies with conda'
+    - script: conda update -n base -c defaults conda
+      displayName: Update conda
+    - script: conda env update --name base --file environment.yml
+      displayName: Setup MNE environment
+    - script: conda install -c conda-forge graphviz
+      displayName: Add graphviz dot
+    - script: conda remove mne
+      displayName: Remove old MNE
+    - script: pip install -e .
+      displayName: Install dev MNE
+    - script: pip install --progress-bar off -r requirements_doc.txt
+      displayName: Install documentation dependencies
     - script: mne sys_info -pd
-      displayName: 'Print config and test access to commands'
+      displayName: Print config and test access to commands
     - script: python -c "import numpy; numpy.show_config()"
       displayName: Print NumPy config
     - bash: make -C doc html_dev-noplot
