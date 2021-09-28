@@ -242,18 +242,13 @@ class CoregistrationUI(HasTraits):
         self._actors[actor_name] = actor
 
     def _add_mri_fiducials(self):
-        # XXX: Need a better sanity check
-        if len(self._fiducials_file) > 0:
-            mri_fiducials = self._fiducials_file
-        else:
-            mri_fiducials = "estimated"
         defaults = DEFAULTS['coreg']
         fid_colors = tuple(
             defaults[f'{key}_color'] for key in ('lpa', 'nasion', 'rpa'))
         to_cf_t = _get_transforms_to_coord_frame(
             self._info, self._coreg.trans, coord_frame=self._coord_frame)
         mri_fids_actors = _plot_mri_fiducials(
-            self._renderer, mri_fiducials, self._subjects_dir,
+            self._renderer, self._coreg._fid_points, self._subjects_dir,
             self._subject, to_cf_t, fid_colors)
         self._update_actor("mri_fiducials", mri_fids_actors)
 

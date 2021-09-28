@@ -955,7 +955,10 @@ def _plot_mri_fiducials(renderer, mri_fiducials, subjects_dir, subject,
             mri_fiducials, cf = read_fiducials(mri_fiducials)
             if cf != FIFF.FIFFV_COORD_MRI:
                 raise ValueError("Fiducials are not in MRI space")
-    fid_loc = _fiducial_coords(mri_fiducials, FIFF.FIFFV_COORD_MRI)
+    if isinstance(mri_fiducials, np.ndarray):
+        fid_loc = mri_fiducials
+    else:
+        fid_loc = _fiducial_coords(mri_fiducials, FIFF.FIFFV_COORD_MRI)
     fid_loc = apply_trans(to_cf_t['mri'], fid_loc)
     transform = np.eye(4)
     transform[:3, :3] = to_cf_t['mri']['trans'][:3, :3] * \
