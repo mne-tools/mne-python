@@ -8,6 +8,7 @@
 
 import gc
 import os
+import subprocess
 import sys
 import time
 import warnings
@@ -157,6 +158,7 @@ intersphinx_mapping = {
     'eeglabio': ('https://eeglabio.readthedocs.io/en/latest', None),
     'dipy': ('https://dipy.org/documentation/1.4.0./',
              'https://dipy.org/documentation/1.4.0./objects.inv/'),
+    'pooch': ('https://www.fatiando.org/pooch/latest/', None),
 }
 
 
@@ -258,6 +260,7 @@ numpydoc_xref_ignore = {
     # unlinkable
     'mayavi.mlab.pipeline.surface',
     'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame',
+    'IntracranialElectrodeLocator'
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)
@@ -362,6 +365,15 @@ else:
     scrapers += (report_scraper,)
     del backend
 
+compress_images = ('images', 'thumbnails')
+# let's make things easier on Windows users
+# (on Linux and macOS it's easy enough to require this)
+if sys.platform.startswith('win'):
+    try:
+        subprocess.check_call(['optipng', '--version'])
+    except Exception:
+        compress_images = ()
+
 sphinx_gallery_conf = {
     'doc_module': ('mne',),
     'reference_url': dict(mne=None),
@@ -410,7 +422,7 @@ sphinx_gallery_conf = {
     'capture_repr': ('_repr_html_',),
     'junit': os.path.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
     'matplotlib_animations': True,
-    'compress_images': ('images', 'thumbnails'),
+    'compress_images': compress_images,
     'filename_pattern': '^((?!sgskip).)*$',
 }
 # Files were renamed from plot_* with:
@@ -1099,7 +1111,7 @@ def make_redirects(app, exception):
         if not to.startswith('http'):
             assert os.path.isfile(os.path.join(app.outdir, to)), to
             # handle links to sibling folders
-            path_parts = to.split(os.path.sep)
+            path_parts = to.split('/')
             assert tu in path_parts, path_parts  # need to refactor otherwise
             path_parts = ['..'] + path_parts[(path_parts.index(tu) + 1):]
             to = os.path.join(*path_parts)
@@ -1114,7 +1126,7 @@ def make_redirects(app, exception):
                 line = fid.readline()
                 assert 'Page Redirection' in line, line
         # handle folders that no longer exist
-        if fr_path.split(os.path.sep)[-2] in (
+        if fr_path.split('/')[-2] in (
                 'misc', 'discussions', 'source-modeling', 'sample-datasets',
                 'connectivity'):
             os.makedirs(os.path.dirname(fr_path), exist_ok=True)

@@ -290,7 +290,7 @@ def test_voxel_neighbors():
     image[4:7, 4:7, 4:7] = 3
     image[5, 5, 5] = 4
     volume = _voxel_neighbors(
-        (5.5, 5.1, 4.9), image, thresh=2, max_peak_dist=1)
+        (5.5, 5.1, 4.9), image, thresh=2, max_peak_dist=1, use_relative=False)
     true_volume = set([(5, 4, 5), (5, 5, 4), (5, 5, 5), (6, 5, 5),
                        (5, 6, 5), (5, 5, 6), (4, 5, 5)])
     assert volume.difference(true_volume) == set()
@@ -341,7 +341,7 @@ def test_warp_montage_volume():
                                rpa=rpa['r'], coord_frame='mri')
     montage_warped, image_from, image_to = warp_montage_volume(
         montage, CT, reg_affine, sdr_morph, 'sample',
-        subjects_dir=subjects_dir, thresh=0.99)
+        subjects_dir_from=subjects_dir, thresh=0.99)
     # checked with nilearn plot from `tut-ieeg-localize`
     # check montage in surface RAS
     ground_truth_warped = np.array([[-0.009, -0.00133333, -0.033],
@@ -375,13 +375,15 @@ def test_warp_montage_volume():
     CT_unaligned = nib.Nifti1Image(CT_data, template_brain.affine)
     with pytest.raises(RuntimeError, match='not aligned to Freesurfer'):
         warp_montage_volume(montage, CT_unaligned, reg_affine,
-                            sdr_morph, 'sample', subjects_dir=subjects_dir)
+                            sdr_morph, 'sample',
+                            subjects_dir_from=subjects_dir)
     bad_montage = montage.copy()
     for d in bad_montage.dig:
         d['coord_frame'] = 99
     with pytest.raises(RuntimeError, match='Coordinate frame not supported'):
         warp_montage_volume(bad_montage, CT, reg_affine,
-                            sdr_morph, 'sample', subjects_dir=subjects_dir)
+                            sdr_morph, 'sample',
+                            subjects_dir_from=subjects_dir)
 
     # check channel not warped
     ch_pos_doubled = ch_pos.copy()
@@ -391,4 +393,5 @@ def test_warp_montage_volume():
         rpa=rpa['r'], coord_frame='mri')
     with pytest.warns(RuntimeWarning, match='not assigned'):
         warp_montage_volume(doubled_montage, CT, reg_affine,
-                            sdr_morph, 'sample', subjects_dir=subjects_dir)
+                            sdr_morph, 'sample',
+                            subjects_dir_from=subjects_dir)

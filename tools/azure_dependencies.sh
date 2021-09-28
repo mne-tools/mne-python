@@ -1,11 +1,11 @@
 #!/bin/bash -ef
 
 if [ "${TEST_MODE}" == "pip" ]; then
-	python -m pip install --upgrade pip setuptools
+	python -m pip install --upgrade pip setuptools wheel
 	python -m pip install --upgrade --only-binary ":all:" numpy scipy vtk
 	python -m pip install --upgrade --only-binary="numba,llvmlite" -r requirements.txt
 elif [ "${TEST_MODE}" == "pip-pre" ]; then
-	python -m pip install --progress-bar off --upgrade pip setuptools
+	python -m pip install --progress-bar off --upgrade pip setuptools wheel
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" python-dateutil pytz joblib threadpoolctl six cycler kiwisolver pyparsing patsy
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps --extra-index-url https://www.riverbankcomputing.com/pypi/simple PyQt5 PyQt5-sip PyQt5-Qt5
 	# SciPy Windows build is missing from conda nightly builds, and statsmodels does not work

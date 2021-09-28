@@ -1973,7 +1973,8 @@ def test_epoch_eq():
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     assert_equal(new_shapes[0] + new_shapes[1], new_shapes[2])
     assert_equal(new_shapes[3], old_shapes[3])
-    pytest.raises(KeyError, epochs.equalize_event_counts, [1, 'a'])
+    with pytest.raises(KeyError, match='keys must be strings, got'):
+        epochs.equalize_event_counts([1, 'a'])
 
     # now let's combine conditions
     old_shapes = new_shapes
@@ -1981,7 +1982,8 @@ def test_epoch_eq():
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     assert_equal(old_shapes[0] + old_shapes[1], new_shapes[0] + new_shapes[1])
     assert_equal(new_shapes[0] + new_shapes[1], new_shapes[2] + new_shapes[3])
-    pytest.raises(ValueError, combine_event_ids, epochs, ['a', 'b'], {'ab': 1})
+    with pytest.raises(ValueError, match='value must not already exist'):
+        combine_event_ids(epochs, ['a', 'b'], {'ab': 1})
 
     combine_event_ids(epochs, ['a', 'b'], {'ab': np.int32(12)}, copy=False)
     caught = 0
@@ -2006,11 +2008,19 @@ def test_epoch_eq():
     es = [epochs.copy().equalize_event_counts(c)[0]
           for c in (cond1, cond2)]
     assert_array_equal(es[0].events[:, 0], es[1].events[:, 0])
-    cond1, cond2 = ['a', ['b', 'b/y']], [['a/x', 'a/y'], 'x']
-    for c in (cond1, cond2):  # error b/c tag and id mix/non-orthogonal tags
-        pytest.raises(ValueError, epochs.equalize_event_counts, c)
-    pytest.raises(KeyError, epochs.equalize_event_counts,
-                  ["a/no_match", "b"])
+    with pytest.raises(ValueError, match='mix hierarchical and regular'):
+        epochs.equalize_event_counts(['a', ['b', 'b/y']])
+    with pytest.raises(ValueError, match='overlapping. Provide an orthogonal'):
+        epochs.equalize_event_counts([['a/x', 'a/y'], 'x'])
+    with pytest.raises(KeyError, match='not found in the epoch object'):
+        epochs.equalize_event_counts(["a/no_match", "b"])
+    # test equalization with only one epoch in each cond
+    epo = epochs[[0, 1, 5]]
+    assert len(epo['x']) == 2
+    assert len(epo['y']) == 1
+    epo_, drop_inds = epo.equalize_event_counts()
+    assert len(epo_) == 2
+    assert drop_inds.shape == (1,)
     # test equalization with no events of one type
     epochs.drop(np.arange(10))
     assert_equal(len(epochs['a/x']), 0)
@@ -2753,6 +2763,14 @@ def test_concatenate_epochs():
     epochs2 = epochs.copy()[:0]
     with pytest.warns(RuntimeWarning, match='was empty'):
         concatenate_epochs([epochs, epochs2])
+
+    # check concatenating epochs results are chronologically ordered
+    epochs2 = epochs.copy().load_data()
+    # Ensure first event is at 0
+    epochs2.events[:, 0] -= np.min(epochs2.events[:, 0])
+    with pytest.warns(RuntimeWarning, match='not chronologically ordered'):
+        concatenate_epochs([epochs, epochs2], add_offset=False)
+    concatenate_epochs([epochs, epochs2], add_offset=True)
 
 
 def test_concatenate_epochs_large():
