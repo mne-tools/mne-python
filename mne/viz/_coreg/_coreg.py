@@ -238,8 +238,7 @@ class CoregistrationUI(HasTraits):
         self._coreg_modified = not self._coreg_modified
 
     def _update_actor(self, actor_name, actor):
-        if actor_name in self._actors:
-            self._renderer.plotter.remove_actor(self._actors[actor_name])
+        self._renderer.plotter.remove_actor(self._actors.get(actor_name))
         self._renderer._update()
         self._actors[actor_name] = actor
 
