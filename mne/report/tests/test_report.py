@@ -115,7 +115,7 @@ def test_render_report(renderer, tmpdir):
                     projs=True)
     with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
         report.parse_folder(data_path=tempdir, on_error='raise',
-                            n_time_points_evokeds=2)
+                            n_time_points_evokeds=2, raw_butterfly=False)
     assert repr(report)
 
     # Check correct paths and filenames
@@ -159,7 +159,8 @@ def test_render_report(renderer, tmpdir):
     # Check pattern matching with multiple patterns
     pattern = ['*raw.fif', '*eve.fif']
     with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
-        report.parse_folder(data_path=tempdir, pattern=pattern)
+        report.parse_folder(data_path=tempdir, pattern=pattern,
+                            raw_butterfly=False)
     assert (repr(report))
 
     fnames = glob.glob(op.join(tempdir, '*.raw')) + \
@@ -179,7 +180,8 @@ def test_render_report(renderer, tmpdir):
                     image_format='svg')
     tempdir = pathlib.Path(tempdir)  # test using pathlib.Path
     with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
-        report.parse_folder(data_path=tempdir, on_error='raise')
+        report.parse_folder(data_path=tempdir, on_error='raise',
+                            raw_butterfly=False)
 
     # ndarray support smoke test
     report.add_figure(fig=np.zeros((2, 3, 3)), title='title')
@@ -239,7 +241,8 @@ def test_render_non_fiff(tmpdir):
         fnames_out.append(fname_out)
 
     report = Report()
-    report.parse_folder(data_path=tempdir, render_bem=False, on_error='raise')
+    report.parse_folder(data_path=tempdir, render_bem=False, on_error='raise',
+                        raw_butterfly=False)
 
     # Check correct paths and filenames
     content_names = [element.name for element in report._content]
@@ -273,7 +276,7 @@ def test_report_raw_psd_and_date(tmpdir):
     raw.save(raw_fname_new)
     report = Report(raw_psd=True)
     report.parse_folder(data_path=tempdir, render_bem=False,
-                        on_error='raise')
+                        on_error='raise', raw_butterfly=False)
     assert isinstance(report.html, list)
     assert 'PSD' in ''.join(report.html)
     assert 'Unknown' not in ''.join(report.html)
@@ -284,7 +287,7 @@ def test_report_raw_psd_and_date(tmpdir):
     raw.anonymize()
     raw.save(raw_fname_new, overwrite=True)
     report.parse_folder(data_path=tempdir, render_bem=False,
-                        on_error='raise')
+                        on_error='raise', raw_butterfly=False)
     assert isinstance(report.html, list)
     assert 'Unknown' not in ''.join(report.html)
 
@@ -300,7 +303,7 @@ def test_report_raw_psd_and_date(tmpdir):
             value['usecs'] = DATE_NONE[1]
     raw.save(raw_fname_new, overwrite=True)
     report.parse_folder(data_path=tempdir, render_bem=False,
-                        on_error='raise')
+                        on_error='raise', raw_butterfly=False)
     assert isinstance(report.html, list)
     assert 'Unknown' in ''.join(report.html)
 
@@ -604,7 +607,7 @@ def test_split_files(tmpdir, split_naming):
              split_naming=split_naming, buffer_size_sec=buffer_size_sec)
 
     report = Report()
-    report.parse_folder(tmpdir, render_bem=False)
+    report.parse_folder(tmpdir, render_bem=False, raw_butterfly=False)
     assert len(report._content) == 1
 
 
@@ -666,7 +669,7 @@ def test_full_report(tmpdir):
 
     r.add_html(html='<strong>Hello</strong>', title='Bold')
     r.add_code(code=__file__, title='my code')
-    r.add_sys_info(title='my sysinfo')
+    # r.add_sys_info(title='my sysinfo')
 
     fname = op.join(tmpdir, 'report.html')
     r.save(fname=fname, open_browser=False)

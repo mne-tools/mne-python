@@ -769,10 +769,8 @@ class Report(object):
         .. versionadded:: 0.24.0
         """
         if isinstance(evokeds, Evoked):
-            evoked_fname = evokeds.filename
             evokeds = [evokeds]
         elif isinstance(evokeds, list):
-            # evoked_fname = evokeds[0].filename
             pass
         else:
             evoked_fname = evokeds
@@ -834,8 +832,8 @@ class Report(object):
             )
 
     @fill_doc
-    def add_raw(self, raw, title, *, psd=None, projs=True, tags=('raw',),
-                replace=False):
+    def add_raw(self, raw, title, *, psd=None, projs=True, butterfly=True,
+                tags=('raw',), replace=False):
         """Add `~mne.io.Raw` objects to the report.
 
         Parameters
@@ -851,6 +849,9 @@ class Report(object):
         projs : bool | None
             Whether to add SSP projector plots if projectors are present in
             the data. If ``None``, use ``projs`` from `~mne.Report` creation.
+        butterfly : bool
+            Whether to add a butterfly plot of the (decimated) data. Can be
+            useful to spot segments marked as "bad" and problematic channels.
         %(report_tags)s
         %(report_replace)s
 
@@ -873,6 +874,7 @@ class Report(object):
             raw=raw,
             add_psd=add_psd,
             add_projs=add_projs,
+            add_butterfly=butterfly,
             image_format=self.image_format,
             tags=tags
         )
@@ -1983,7 +1985,8 @@ class Report(object):
                 )
         self.include = ''.join(include)
 
-    def _iterate_files(self, *, fnames, cov, sfreq, on_error):
+    def _iterate_files(self, *, fnames, cov, sfreq, raw_butterfly,
+                    n_time_points_evokeds, n_time_points_stcs, on_error):
         """Parallel process in batch mode."""
         assert self.data_path is not None
 
@@ -1997,7 +2000,7 @@ class Report(object):
                 if _endswith(fname, ['raw', 'sss', 'meg', 'nirs']):
                     self.add_raw(
                         raw=fname, title=title, psd=self.raw_psd,
-                        projs=self.projs
+                        projs=self.projs, butterfly=raw_butterfly
                     )
                 elif _endswith(fname, 'fwd'):
                     self.add_forward(
@@ -2015,8 +2018,10 @@ class Report(object):
                         f'{Path(fname).name}: {e.comment}'
                         for e in evokeds
                     ]
-                    self.add_evokeds(evokeds=fname, titles=titles,
-                                     noise_cov=cov)
+                    self.add_evokeds(
+                        evokeds=fname, titles=titles, noise_cov=cov,
+                        n_time_points=n_time_points_evokeds
+                    )
                 elif _endswith(fname, 'eve'):
                     if self.info_fname is not None:
                         sfreq = read_info(self.info_fname)['sfreq']
@@ -2040,6 +2045,16 @@ class Report(object):
                         subject=self.subject, subjects_dir=self.subjects_dir,
                         title=title
                     )
+                elif (fname.endswith('-lh.stc') or
+                        fname.endswith('-rh.stc') and
+                        self.info_fname is not None and
+                        self.subjects_dir is not None and
+                        self.subject is not None):
+                    self.add_stc(
+                        stc=fname, title=title, subject=self.subject,
+                        subjects_dir=self.subjects_dir,
+                        n_time_points=n_time_points_stcs
+                    )
             except Exception as e:
                 if on_error == 'warn':
                     warn(f'Failed to process file {fname}:\n"{e}"')
@@ -2051,7 +2066,7 @@ class Report(object):
                      sort_content=True, sort_sections=None, on_error='warn',
                      image_format=None, render_bem=True, *,
                      n_time_points_evokeds=None, n_time_points_stcs=None,
-                     verbose=None):
+                     raw_butterfly=True, verbose=None):
         r"""Render all the files in the folder.
 
         Parameters
@@ -2103,6 +2118,10 @@ class Report(object):
             points, in which call all will be rendered.
 
             .. versionadded:: 0.24.0
+        raw_butterfly : bool
+            Whether to render butterfly plots for (decimated) `~mne.Raw` data.
+
+            .. versionadded:: 0.24.0
         %(verbose_meth)s
         """
         _validate_type(data_path, 'path-like', 'data_path')
@@ -2137,19 +2156,32 @@ class Report(object):
         if not fnames and not render_bem:
             raise RuntimeError(f'No matching files found in {self.data_path}')
 
-        # For split files, only keep the first one.
         fnames_to_remove = []
         for fname in fnames:
+            # For split files, only keep the first one.
             if _endswith(fname, ('raw', 'sss', 'meg')):
                 kwargs = dict(fname=fname, preload=False)
                 if fname.endswith(('.fif', '.fif.gz')):
                     kwargs['allow_maxshield'] = True
                 inst = read_raw(**kwargs)
+
+                if len(inst.filenames) > 1:
+                    fnames_to_remove.extend(inst.filenames[1:])
+            # For STCs, only keep one hemisphere
+            elif fname.endswith('-lh.stc') or fname.endswith('-rh.stc'):
+                first_hemi_fname = fname
+                if first_hemi_fname.endswidth('-lh.stc'):
+                    second_hemi_fname = (first_hemi_fname
+                                         .replace('-lh.stc', '-rh.stc'))
+                else:
+                    second_hemi_fname = (first_hemi_fname
+                                         .replace('-rh.stc', '-lh.stc'))
+
+                if (second_hemi_fname in fnames and
+                        first_hemi_fname not in fnames_to_remove):
+                    fnames_to_remove.extend(first_hemi_fname)
             else:
                 continue
-
-            if len(inst.filenames) > 1:
-                fnames_to_remove.extend(inst.filenames[1:])
 
         fnames_to_remove = list(set(fnames_to_remove))  # Drop duplicates
         for fname in fnames_to_remove:
@@ -2182,8 +2214,14 @@ class Report(object):
                     f'(this may take some ')
         use_jobs = min(n_jobs, max(1, len(fnames)))
         parallel, p_fun, _ = parallel_func(self._iterate_files, use_jobs)
-        parallel(p_fun(fnames=fname, cov=cov, sfreq=sfreq, on_error=on_error)
-                 for fname in np.array_split(fnames, use_jobs))
+        parallel(
+            p_fun(
+                fnames=fname, cov=cov, sfreq=sfreq,
+                raw_butterfly=raw_butterfly,
+                n_time_points_evokeds=n_time_points_evokeds,
+                n_time_points_stcs=n_time_points_stcs, on_error=on_error
+            ) for fname in np.array_split(fnames, use_jobs)
+        )
 
         # Render BEM
         if render_bem:
@@ -2387,7 +2425,8 @@ class Report(object):
 
         return html
 
-    def _render_raw(self, *, raw, add_psd, add_projs, image_format, tags):
+    def _render_raw(self, *, raw, add_psd, add_projs, add_butterfly,
+                    image_format, tags):
         """Render raw."""
         if isinstance(raw, BaseRaw):
             fname = raw.filenames[0]
@@ -2409,37 +2448,40 @@ class Report(object):
         )
 
         # Butterfly plot
-        dom_id = self._get_dom_id()
-        # Only keep "bad" annotations
-        raw_copy = raw.copy()
-        annots_to_remove_idx = []
-        for idx, annotation in enumerate(raw.annotations):
-            if not annotation['description'].lower().startswith('bad'):
-                annots_to_remove_idx.append(idx)
-        raw_copy.annotations.delete(annots_to_remove_idx)
+        if add_butterfly:
+            dom_id = self._get_dom_id()
+            # Only keep "bad" annotations
+            raw_copy = raw.copy()
+            annots_to_remove_idx = []
+            for idx, annotation in enumerate(raw.annotations):
+                if not annotation['description'].lower().startswith('bad'):
+                    annots_to_remove_idx.append(idx)
+            raw_copy.annotations.delete(annots_to_remove_idx)
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                action='ignore',
-                message='.*can cause aliasing artifacts.*',
-                category=RuntimeWarning
-            )
-            fig = raw_copy.plot(
-                butterfly=True,
-                show_scrollbars=False,
-                duration=raw.times[-1],
-                decim=10,
-                show=False
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    action='ignore',
+                    message='.*can cause aliasing artifacts.*',
+                    category=RuntimeWarning
+                )
+                fig = raw_copy.plot(
+                    butterfly=True,
+                    show_scrollbars=False,
+                    duration=raw.times[-1],
+                    decim=10,
+                    show=False
+                )
 
-        tight_layout(fig=fig)
-        img = _fig_to_img(fig=fig, image_format=image_format)
-        butterfly_img_html = _html_image_element(
-            img=img, div_klass='raw', img_klass='raw',
-            title='Time course', caption=None, show=True,
-            image_format=image_format, id=dom_id, tags=tags
-        )
-        del raw_copy
+            tight_layout(fig=fig)
+            img = _fig_to_img(fig=fig, image_format=image_format)
+            butterfly_img_html = _html_image_element(
+                img=img, div_klass='raw', img_klass='raw',
+                title='Time course', caption=None, show=True,
+                image_format=image_format, id=dom_id, tags=tags
+            )
+            del raw_copy
+        else:
+            butterfly_img_html = ''
 
         # PSD
         if isinstance(add_psd, dict):
@@ -2651,8 +2693,8 @@ class Report(object):
                 f'({len(evoked.times)})'
             )
 
-        if n_time_points == 1:  # only a single time point
-            times = evoked.times
+        if n_time_points == 1:  # only a single time point, pick the first one
+            times = [evoked.times[0]]
         else:
             times = np.linspace(
                 start=evoked.tmin,
@@ -3043,8 +3085,8 @@ class Report(object):
                 f'exceeds the time points in the provided STC object '
                 f'({len(stc.times)})'
             )
-        if n_time_points == 1:  # only a single time point
-            times = stc.times
+        if n_time_points == 1:  # only a single time point, pick the first one
+            times = [stc.times[0]]
         else:
             times = np.linspace(
                 start=stc.times[0],
