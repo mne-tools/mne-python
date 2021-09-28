@@ -737,7 +737,7 @@ class Report(object):
 
     @fill_doc
     def add_evokeds(self, evokeds, *, titles=None, noise_cov=None, projs=True,
-                    tags=('evoked',), replace=False):
+                    n_time_points=None, tags=('evoked',), replace=False):
         """Add `~mne.Evoked` objects to the report.
 
         Parameters
@@ -757,6 +757,10 @@ class Report(object):
         projs : bool
             Whether to add SSP projector plots if projectors are present in
             the data.
+        n_time_points : int | None
+            The number of equidistant time points to render. If ``None``,
+            will render each `~mne.Evoked` at 21 time points (or fewer, if
+            ``evoked.times`` contains fewer than 21 time points).
         %(report_tags)s
         %(report_replace)s
 
@@ -803,6 +807,7 @@ class Report(object):
                 noise_cov=noise_cov,
                 image_format=self.image_format,
                 add_projs=projs,
+                n_time_points=n_time_points,
                 tags=tags
             )
 
@@ -892,7 +897,7 @@ class Report(object):
 
     @fill_doc
     def add_stc(self, stc, title, *, subject=None, subjects_dir=None,
-                tags=('source-estimate',), replace=False):
+                n_time_points=None, tags=('source-estimate',), replace=False):
         """Add a `~mne.SourceEstimate` (STC) to the report.
 
         Parameters
@@ -908,6 +913,10 @@ class Report(object):
             creation.
         subjects_dir : path-like | None
             The FreeSurfer ``SUBJECTS_DIR``.
+        n_time_points : int | None
+            The number of equidistant time points to render. If ``None``,
+            will render ``stc`` at 51 time points (or fewer, if ``stc.times``
+            contains the activation at fewer than 51 time points).
         %(report_tags)s
         %(report_replace)s
 
@@ -923,7 +932,8 @@ class Report(object):
             tags=tags,
             image_format=self.image_format,
             subject=subject,
-            subjects_dir=subjects_dir
+            subjects_dir=subjects_dir,
+            n_time_points=n_time_points
         )
         self._add_or_replace(
             dom_id=dom_id,
@@ -2618,11 +2628,28 @@ class Report(object):
         html = '\n'.join(htmls)
         return html
 
-    def _render_evoked_topo_slider(self, *, evoked, ch_types, image_format,
-                                   tags):
+    def _render_evoked_topo_slider(self, *, evoked, ch_types, n_time_points,
+                                   image_format, tags):
         import matplotlib.pyplot as plt
 
-        times = np.linspace(start=evoked.tmin, stop=evoked.tmax, num=21)
+        if n_time_points is None:
+            n_time_points = min(len(evoked.times), 21)
+        elif n_time_points > len(evoked.times):
+            raise ValueError(
+                f'The requested number of time points ({n_time_points}) '
+                f'exceeds the time points in the provided Evoked object '
+                f'({len(evoked.times)})'
+            )
+
+        if n_time_points == 1:  # only a single time point
+            times = evoked.times
+        else:
+            times = np.linspace(
+                start=evoked.tmin,
+                stop=evoked.tmax,
+                num=n_time_points
+            )
+
         t_zero_idx = np.abs(times).argmin()  # index closest to zero
 
         # global min and max values for each channel type
@@ -2750,8 +2777,8 @@ class Report(object):
         )
         return html
 
-    def _render_evoked(self, evoked, noise_cov, add_projs, image_format,
-                       tags):
+    def _render_evoked(self, evoked, noise_cov, add_projs, n_time_points,
+                       image_format, tags):
         def _get_ch_types(ev):
             has_types = []
             if len(pick_types(ev.info, meg=False, eeg=True)) > 0:
@@ -2770,6 +2797,7 @@ class Report(object):
         )
         html_slider, _ = self._render_evoked_topo_slider(
             evoked=evoked, ch_types=ch_types,
+            n_time_points=n_time_points,
             image_format=image_format,
             tags=tags
         )
@@ -2974,8 +3002,8 @@ class Report(object):
         )
         return html, dom_id
 
-    def _render_stc(self, *, stc, title, subject, subjects_dir, image_format,
-                    tags):
+    def _render_stc(self, *, stc, title, subject, subjects_dir, n_time_points,
+                    image_format, tags):
         """Render STC."""
         if isinstance(stc, SourceEstimate):
             if subject is None:
@@ -2997,7 +3025,14 @@ class Report(object):
         subjects_dir = (self.subjects_dir if subjects_dir is None
                         else subjects_dir)
 
-        n_time_points = min(len(stc.times), 51)
+        if n_time_points is None:
+            n_time_points = min(len(stc.times), 51)
+        elif n_time_points > len(stc.times):
+            raise ValueError(
+                f'The requested number of time points ({n_time_points}) '
+                f'exceeds the time points in the provided STC object '
+                f'({len(stc.times)})'
+            )
         if n_time_points == 1:  # only a single time point
             times = stc.times
         else:

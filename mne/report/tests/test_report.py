@@ -634,15 +634,17 @@ def test_full_report(tmpdir):
     epochs = Epochs(raw=raw, events=events)
     evokeds = read_evokeds(evoked_fname)
 
-    r.add_raw(raw=raw_fname, title='my raw data', tags=('raw',))
+    r.add_raw(raw=raw_fname, title='my raw data', tags=('raw',), psd=False,
+              projs=False)
     r.add_events(events=events_fname, title='my events',
                  sfreq=raw.info['sfreq'])
-    r.add_epochs(epochs=epochs, title='my epochs', tags=('epochs',))
-    r.add_evokeds(evokeds=evokeds[:2], noise_cov=cov_fname,
-                  titles=['my evoked 1', 'my evoked 2'], tags=('evoked',))
+    r.add_epochs(epochs=epochs, title='my epochs', tags=('epochs',), psd=False,
+                 projs=False)
+    r.add_evokeds(evokeds=evokeds[0], noise_cov=cov_fname,
+                  titles=['my evoked 1'], tags=('evoked',), projs=False,
+                  n_time_points=2)
     r.add_projs(info=raw_fname, projs=ecg_proj_fname, title='my proj',
                 tags=('ssp', 'ecg'))
-    r.add_projs(info=raw_fname, title='my proj', tags=('ssp'))
     r.add_covariance(cov=cov_fname, info=raw_fname, title='my cov')
     r.add_forward(forward=fwd_fname, title='my forward', subject='sample',
                   subjects_dir=subjects_dir)
@@ -651,13 +653,15 @@ def test_full_report(tmpdir):
         r.add_trans(trans=trans_fname, info=raw_fname, title='my coreg',
                     subject='sample', subjects_dir=subjects_dir)
         r.add_bem(subject='sample', subjects_dir=subjects_dir, title='my bem',
-                  decim=50)
+                  decim=100)
         r.add_inverse_operator(
             inverse_operator=inv_fname, title='my inverse', subject='sample',
             subjects_dir=subjects_dir, trans=trans_fname
         )
-        r.add_stc(stc=stc_fname, title='my stc', subject='sample',
-                  subjects_dir=subjects_dir)
+        r.add_stc(
+            stc=stc_fname, title='my stc', subject='sample',
+            subjects_dir=subjects_dir, n_time_points=2
+        )
 
     r.add_html(html='<strong>Hello</strong>', title='Bold')
     r.add_code(code=__file__, title='my code')
