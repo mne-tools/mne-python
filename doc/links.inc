@@ -200,7 +200,7 @@
 .. _pysurfer: https://pysurfer.github.io/
 .. _pyDICOM: https://pypi.python.org/pypi/pydicom/
 .. _matplotlib: https://matplotlib.org/
-.. _sphinx: https://sphinx-doc.org/
+.. _sphinx: https://www.sphinx-doc.org/
 .. _pandas: https://pandas.pydata.org/
 .. _PIL: https://pypi.python.org/pypi/PIL
 
@@ -208,7 +208,7 @@
 
 .. _atom: https://atom.io/
 .. _Spyder: https://www.spyder-ide.org/
-.. _anaconda: https://www.anaconda.com/distribution/
+.. _anaconda: https://www.anaconda.com/products/individual
 .. _miniconda: https://conda.io/en/latest/miniconda.html
 .. _miniforge: https://github.com/conda-forge/miniforge
 .. _installation instructions for Anaconda: http://docs.continuum.io/anaconda/install
