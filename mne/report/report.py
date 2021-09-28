@@ -760,7 +760,7 @@ class Report(object):
         n_time_points : int | None
             The number of equidistant time points to render. If ``None``,
             will render each `~mne.Evoked` at 21 time points, unless the data
-            contains fewer time points, in which call all will be rendered.
+            contains fewer time points, in which case all will be rendered.
         %(report_tags)s
         %(report_replace)s
 
@@ -918,7 +918,7 @@ class Report(object):
         n_time_points : int | None
             The number of equidistant time points to render. If ``None``,
             will render ``stc`` at 51 time points, unless the data
-            contains fewer time points, in which call all will be rendered.
+            contains fewer time points, in which case all will be rendered.
         %(report_tags)s
         %(report_replace)s
 
