@@ -1986,7 +1986,7 @@ class Report(object):
         self.include = ''.join(include)
 
     def _iterate_files(self, *, fnames, cov, sfreq, raw_butterfly,
-                    n_time_points_evokeds, n_time_points_stcs, on_error):
+                       n_time_points_evokeds, n_time_points_stcs, on_error):
         """Parallel process in batch mode."""
         assert self.data_path is not None
 

@@ -146,7 +146,7 @@ report.add_evokeds(
     titles=['evoked 1',  # Manually specify titles
             'evoked 2'],
     noise_cov=cov_path,
-    n_time_points=11
+    n_time_points=5
 )
 report.save('report_evoked.html', overwrite=True)
 
@@ -273,7 +273,7 @@ stc_path = sample_dir / 'sample_audvis-meg'
 
 report = mne.Report()
 report.add_stc(stc=stc_path, subject='sample', subjects_dir=subjects_dir,
-               title='Source estimate', n_time_points=11)
+               title='Source estimate', n_time_points=5)
 report.save('report_inverse_sol.html', overwrite=True)
 
 # %%
