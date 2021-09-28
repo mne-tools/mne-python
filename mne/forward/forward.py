@@ -86,7 +86,7 @@ class Forward(dict):
                 count_string += '%d discrete, ' \
                                 % (src_types == 'discrete').sum()
             count_string = count_string.rstrip(', ')
-            src_type=  ('Mixed (%s) with %d vertices'
+            src_type = ('Mixed (%s) with %d vertices'
                         % (count_string, self['nsource']))
 
         if self['source_ori'] == FIFF.FIFFV_MNE_UNKNOWN_ORI:

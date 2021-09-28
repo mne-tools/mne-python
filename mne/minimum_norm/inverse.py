@@ -72,7 +72,7 @@ class InverseOperator(dict):
         """Summarize inverse info instead of printing all."""
         repr_info = self._get_chs_and_src_info_for_repr()
         n_chs_meg, n_chs_eeg, src_space_descr, src_ori = repr_info
-    
+
         entr = '<InverseOperator'
         entr += f' | MEG channels: {n_chs_meg}'
         entr += f' | EEG channels: {n_chs_eeg}'
@@ -91,6 +91,7 @@ class InverseOperator(dict):
             source_orientation=src_ori
         )
         return html
+
 
 def _pick_channels_inverse_operator(ch_names, inv):
     """Return data channel indices to be used knowing an inverse operator.
