@@ -232,17 +232,15 @@ stages:
         ./tools/azure_dependencies.sh
       condition: in(variables['TEST_MODE'], 'pip', 'pip-pre')
       displayName: 'Install dependencies with pip'
-    - powershell: |
-        Set-StrictMode -Version Latest
-        $ErrorActionPreference = "Stop"
-        $PSDefaultParameterValues['*:ErrorAction']='Stop'
+    - bash: |
+        set -e
         conda update -n base -c defaults conda
         conda env update --name base --file environment.yml
         pip uninstall -yq mne
         pip install --progress-bar off -r requirements_testing.txt -r requirements_testing_extra.txt codecov
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: 'Install dependencies with conda'
-    - script: python setup.py develop
+    - script: pip install -e .
       displayName: 'Install MNE-Python dev'
     - script: mne sys_info --show-paths
       displayName: 'Print config and test access to commands'
@@ -290,13 +288,12 @@ stages:
       displayName: Install OpenGL
     - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%CONDA%\Library\bin\graphviz;"
       displayName: Add conda to PATH, deal with Qt linking bug
-    - powershell: |
-        Set-StrictMode -Version Latest
-        $ErrorActionPreference = "Stop"
-        $PSDefaultParameterValues['*:ErrorAction']='Stop'
+    - bash: |
+        set -e
         conda update -n base -c defaults conda
         conda env update --name base --file environment.yml
         conda install -c conda-forge graphviz
+        conda remove mne
         pip install -e .
         pip install --progress-bar off -r requirements_doc.txt
       displayName: 'Install dependencies with conda'
