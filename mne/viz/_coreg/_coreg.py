@@ -239,7 +239,6 @@ class CoregistrationUI(HasTraits):
 
     def _update_actor(self, actor_name, actor):
         self._renderer.plotter.remove_actor(self._actors.get(actor_name))
-        self._renderer._update()
         self._actors[actor_name] = actor
 
     def _add_head_fiducials(self):
