@@ -200,8 +200,8 @@
 .. _pysurfer: https://pysurfer.github.io/
 .. _pyDICOM: https://pypi.python.org/pypi/pydicom/
 .. _matplotlib: https://matplotlib.org/
-.. _sphinx: http://sphinx-doc.org/
-.. _pandas: http://pandas.pydata.org/
+.. _sphinx: https://sphinx-doc.org/
+.. _pandas: https://pandas.pydata.org/
 .. _PIL: https://pypi.python.org/pypi/PIL
 
 .. python editors
