@@ -759,8 +759,8 @@ class Report(object):
             the data.
         n_time_points : int | None
             The number of equidistant time points to render. If ``None``,
-            will render each `~mne.Evoked` at 21 time points (or fewer, if
-            ``evoked.times`` contains fewer than 21 time points).
+            will render each `~mne.Evoked` at 21 time points, unless the data
+            contains fewer time points, in which call all will be rendered.
         %(report_tags)s
         %(report_replace)s
 
@@ -915,8 +915,8 @@ class Report(object):
             The FreeSurfer ``SUBJECTS_DIR``.
         n_time_points : int | None
             The number of equidistant time points to render. If ``None``,
-            will render ``stc`` at 51 time points (or fewer, if ``stc.times``
-            contains the activation at fewer than 51 time points).
+            will render ``stc`` at 51 time points, unless the data
+            contains fewer time points, in which call all will be rendered.
         %(report_tags)s
         %(report_replace)s
 
@@ -2049,7 +2049,9 @@ class Report(object):
     @verbose
     def parse_folder(self, data_path, pattern=None, n_jobs=1, mri_decim=2,
                      sort_content=True, sort_sections=None, on_error='warn',
-                     image_format=None, render_bem=True, verbose=None):
+                     image_format=None, render_bem=True, *,
+                     n_time_points_evokeds=None, n_time_points_stcs=None,
+                     verbose=None):
         r"""Render all the files in the folder.
 
         Parameters
@@ -2093,6 +2095,14 @@ class Report(object):
             If True (default), try to render the BEM.
 
             .. versionadded:: 0.16
+        n_time_points_evokeds, n_time_points_stcs : int | None
+            The number of equidistant time points to render for `~mne.Evoked`
+            and `~mne.SourceEstimate` data, respectively. If ``None``,
+            will render each `~mne.Evoked` at 21 and each `~mne.SourceEstimate`
+            at 51 time points, unless the respective data contains fewer time
+            points, in which call all will be rendered.
+
+            .. versionadded:: 0.24.0
         %(verbose_meth)s
         """
         _validate_type(data_path, 'path-like', 'data_path')

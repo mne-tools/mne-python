@@ -114,7 +114,8 @@ def test_render_report(renderer, tmpdir):
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
                     projs=True)
     with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
-        report.parse_folder(data_path=tempdir, on_error='raise')
+        report.parse_folder(data_path=tempdir, on_error='raise',
+                            n_time_points_evokeds=2)
     assert repr(report)
 
     # Check correct paths and filenames
