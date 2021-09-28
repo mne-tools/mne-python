@@ -423,7 +423,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    meg=None, eeg='original', fwd=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, fnirs=True, show_axes=False, dbs=True,
-                   fig=None, interaction='trackball', show=True, verbose=None):
+                   fig=None, interaction='trackball', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -780,9 +780,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     renderer.set_camera(azimuth=90, elevation=90,
                         distance=0.6, focalpoint=(0., 0., 0.))
-    # XXX: temporary workaround
-    if show:
-        renderer.show()
+    renderer.show()
     return renderer.scene()
 
 
