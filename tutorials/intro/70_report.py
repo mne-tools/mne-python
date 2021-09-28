@@ -510,7 +510,7 @@ report.save('report_parse_folder_mri_bem.html', overwrite=True)
 pattern = 'sample_audvis-no-filter-ave.fif'
 report = mne.Report()
 report.parse_folder(
-    data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=11
+    data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=5
 )
 report.save('report_parse_folder_evoked.html', overwrite=True)
 
@@ -532,7 +532,7 @@ baseline = (None, 0)
 pattern = 'sample_audvis-no-filter-ave.fif'
 report = mne.Report(baseline=baseline)
 report.parse_folder(
-    data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=11
+    data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=5
 )
 report.save('report_parse_folder_evoked_baseline.html', overwrite=True)
 
@@ -546,7 +546,7 @@ cov_fname = sample_dir / 'sample_audvis-cov.fif'
 baseline = (None, 0)
 report = mne.Report(cov_fname=cov_fname, baseline=baseline)
 report.parse_folder(
-    data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=11
+    data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=5
 )
 report.save('report_parse_folder_evoked_baseline_whitened.html',
             overwrite=True)
@@ -563,6 +563,6 @@ pattern = 'sample_audvis-cov.fif'
 info_fname = sample_dir / 'sample_audvis-ave.fif'
 report = mne.Report(info_fname=info_fname)
 report.parse_folder(
-    data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=11
+    data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=5
 )
 report.save('report_parse_folder_cov.html', overwrite=True)
