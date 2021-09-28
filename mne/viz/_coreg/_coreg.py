@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import os
 import os.path as op
 import numpy as np
@@ -237,53 +238,55 @@ class CoregistrationUI(HasTraits):
     def _emit_coreg_modified(self):
         self._coreg_modified = not self._coreg_modified
 
+    @contextmanager
+    def _update_actor(self, actor_name):
+        if actor_name in self._actors:
+            self._renderer.plotter.remove_actor(self._actors[actor_name])
+        try:
+            yield
+        finally:
+            self._renderer._update()
+
     def _add_head_fiducials(self):
-        if "head_fids" in self._actors:
-            self._renderer.plotter.remove_actor(self._actors["head_fids"])
-        coord_frame = 'mri'
-        defaults = DEFAULTS['coreg']
-        fid_colors = tuple(
-            defaults[f'{key}_color'] for key in ('lpa', 'nasion', 'rpa'))
-        to_cf_t = _get_transforms_to_coord_frame(
-            self._info, self._coreg.trans, coord_frame=coord_frame)
-        head_fids_actors = _plot_head_fiducials(
-            self._renderer, self._info, to_cf_t, fid_colors)
-        self._actors["head_fids"] = head_fids_actors
-        self._renderer._update()
+        with self._update_actor("head_fiducials"):
+            coord_frame = 'mri'
+            defaults = DEFAULTS['coreg']
+            fid_colors = tuple(
+                defaults[f'{key}_color'] for key in ('lpa', 'nasion', 'rpa'))
+            to_cf_t = _get_transforms_to_coord_frame(
+                self._info, self._coreg.trans, coord_frame=coord_frame)
+            head_fids_actors = _plot_head_fiducials(
+                self._renderer, self._info, to_cf_t, fid_colors)
+            self._actors["head_fiducials"] = head_fids_actors
 
     def _add_head_shape_points(self):
-        if "head_shape_points" in self._actors:
-            self._renderer.plotter.remove_actor(
-                self._actors["head_shape_points"])
-        if self._head_shape_point:
+        with self._update_actor("head_shape_points"):
+            if self._head_shape_point:
+                coord_frame = 'mri'
+                to_cf_t = _get_transforms_to_coord_frame(
+                    self._info, self._coreg.trans, coord_frame=coord_frame)
+                head_shape_points = _plot_head_shape_points(
+                    self._renderer, self._info, to_cf_t)
+            else:
+                head_shape_points = None
+            self._actors["head_shape_points"] = head_shape_points
+
+    def _add_head_surface(self):
+        with self._update_actor("head_surface"):
+            bem = None
             coord_frame = 'mri'
             to_cf_t = _get_transforms_to_coord_frame(
                 self._info, self._coreg.trans, coord_frame=coord_frame)
-            head_shape_points = _plot_head_shape_points(
-                self._renderer, self._info, to_cf_t)
-        else:
-            head_shape_points = None
-        self._actors["head_shape_points"] = head_shape_points
-        self._renderer._update()
-
-    def _add_head_surface(self):
-        if "head" in self._actors:
-            self._renderer.plotter.remove_actor(self._actors["head"])
-        bem = None
-        coord_frame = 'mri'
-        to_cf_t = _get_transforms_to_coord_frame(
-            self._info, self._coreg.trans, coord_frame=coord_frame)
-        try:
-            head_actor, _ = _plot_head_surface(
-                self._renderer, self._surface, self._subject,
-                self._subjects_dir, bem, coord_frame, to_cf_t,
-                alpha=self._opacity)
-        except IOError:
-            head_actor, _ = _plot_head_surface(
-                self._renderer, "head", self._subject, self._subjects_dir,
-                bem, coord_frame, to_cf_t, alpha=self._opacity)
-        self._actors["head"] = head_actor
-        self._renderer._update()
+            try:
+                head_actor, _ = _plot_head_surface(
+                    self._renderer, self._surface, self._subject,
+                    self._subjects_dir, bem, coord_frame, to_cf_t,
+                    alpha=self._opacity)
+            except IOError:
+                head_actor, _ = _plot_head_surface(
+                    self._renderer, "head", self._subject, self._subjects_dir,
+                    bem, coord_frame, to_cf_t, alpha=self._opacity)
+            self._actors["head_surface"] = head_actor
 
     def _fit_fiducials(self):
         self._coreg.fit_fiducials(
