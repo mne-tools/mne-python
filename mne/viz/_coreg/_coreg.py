@@ -6,7 +6,7 @@ from ...defaults import DEFAULTS
 from ...io import read_info, read_fiducials
 from ...coreg import Coregistration, _is_mri_subject
 from ...viz._3d import (_plot_head_surface, _plot_head_fiducials,
-                        _plot_head_shape_points)
+                        _plot_head_shape_points, _plot_mri_fiducials)
 from ...transforms import (read_trans, write_trans, _ensure_trans,
                            rotation_angles, _get_transforms_to_coord_frame)
 from ...utils import get_subjects_dir
@@ -140,8 +140,6 @@ class CoregistrationUI(HasTraits):
         # XXX: add coreg.set_subject()
         self._coreg._subject = self._subject
         self._reset()
-        self._add_head_surface()
-        self._add_head_fiducials()
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
@@ -161,7 +159,6 @@ class CoregistrationUI(HasTraits):
         fids, _ = read_fiducials(self._fiducials_file)
         self._coreg._setup_fiducials(fids)
         self._reset()
-        self._add_head_fiducials()
 
     @observe("_current_fiducial")
     def _current_fiducial_changed(self, change=None):
@@ -183,7 +180,9 @@ class CoregistrationUI(HasTraits):
 
     @observe("_coreg_modified")
     def _update(self, change=None):
-        self._head_shape_point_changed()
+        self._add_head_shape_points()
+        self._add_head_fiducials()
+        self._add_mri_fiducials()
 
     @observe("_head_shape_point")
     def _head_shape_point_changed(self, change=None):
@@ -240,6 +239,20 @@ class CoregistrationUI(HasTraits):
     def _update_actor(self, actor_name, actor):
         self._renderer.plotter.remove_actor(self._actors.get(actor_name))
         self._actors[actor_name] = actor
+
+    def _add_mri_fiducials(self):
+        # XXX: Need a better sanity check
+        if len(self._fiducials_file) > 0:
+            coord_frame = 'mri'
+            defaults = DEFAULTS['coreg']
+            fid_colors = tuple(
+                defaults[f'{key}_color'] for key in ('lpa', 'nasion', 'rpa'))
+            to_cf_t = _get_transforms_to_coord_frame(
+                self._info, self._coreg.trans, coord_frame=coord_frame)
+            mri_fids_actors = _plot_mri_fiducials(
+                self._renderer, self._fiducials_file, self._subjects_dir,
+                self._subject, to_cf_t, fid_colors)
+            self._update_actor("mri_fiducials", mri_fids_actors)
 
     def _add_head_fiducials(self):
         coord_frame = 'mri'
