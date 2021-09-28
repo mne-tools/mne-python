@@ -129,6 +129,10 @@ report.save('report_epochs.html', overwrite=True)
 # so we apply baseline correction, too. Lastly, by providing an (optional)
 # noise covariance, we can add plots evokeds that were "whitened" using this
 # covariance matrix.
+#
+# By default, this method will produce snapshots at 21 equally-spaced time
+# points (or fewer, if the data contains fewer time points). We can adjust this
+# via the ``n_time_points`` parameter.
 
 evoked_path = sample_dir / 'sample_audvis-ave.fif'
 cov_path = sample_dir / 'sample_audvis-cov.fif'
@@ -141,7 +145,8 @@ report.add_evokeds(
     evokeds=evokeds_subset,
     titles=['evoked 1',  # Manually specify titles
             'evoked 2'],
-    noise_cov=cov_path
+    noise_cov=cov_path,
+    n_time_points=11
 )
 report.save('report_evoked.html', overwrite=True)
 
@@ -260,13 +265,15 @@ report.save('report_inverse_op.html', overwrite=True)
 # An inverse solution (also called source estimate or source time course, STC)
 # can be added via :meth:`mne.Report.add_stc`. The
 # method expects an `~mne.SourceEstimate`, the corresponding FreeSurfer subject
-# name and subjects directory, and a title.
+# name and subjects directory, and a title. By default, it will produce
+# snapshots at 51 equally-spaced time points (or fewer, if the data contains 
+# fewer time points). We can adjust this via the ``n_time_points`` parameter.
 
 stc_path = sample_dir / 'sample_audvis-meg'
 
 report = mne.Report()
 report.add_stc(stc=stc_path, subject='sample', subjects_dir=subjects_dir,
-               title='Source estimate')
+               title='Source estimate', n_time_points=11)
 report.save('report_inverse_sol.html', overwrite=True)
 
 # %%
@@ -283,21 +290,33 @@ report.add_sys_info(title='System info')
 report.save('report_sys_info.html', overwrite=True)
 
 # %%
-# Adding code (e.g., a Python script)
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Adding source code (e.g., a Python script)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # It is possible to add code or scripts (e.g., the scripts you used for
 # analysis) to the report via :meth:`mne.Report.add_code`. The code blocks will
 # be automatically syntax-highlighted. You may pass a string with the
-# respective code snippet, or the path to a file. Optionally, you can specify
-# which programming language to assume for syntax highlighting by passing the
-# ``language`` parameter. By default, we'll assume the provided code is Python.
+# respective code snippet, or the path to a file. If you pass a path, it
+# **must** be a `pathlib.Path` object (and not a string), otherwise it will be
+# treated as a code literal.
+# 
+# Optionally, you can specify which programming language to assume for syntax
+# highlighting by passing the ``language`` parameter. By default, we'll assume
+# the provided code is Python.
+
+mne_init_py_path = Path(mne.__file__)  # __init__.py in the MNE-Python root
+mne_init_py_content = mne_init_py_path.read_text(encoding='utf-8')
 
 report = mne.Report()
 report.add_code(
-    code=mne.__file__,  # This will point to __init__.py in the MNE-Python root
-    title='mne.__init__.py'
+    code=mne_init_py_path,  
+    title="Code from Path"
 )
+report.add_code(
+    code=mne_init_py_content,  
+    title="Code from string"
+)
+
 report.save('report_code.html', overwrite=True)
 
 # %%
@@ -490,7 +509,9 @@ report.save('report_parse_folder_mri_bem.html', overwrite=True)
 
 pattern = 'sample_audvis-no-filter-ave.fif'
 report = mne.Report()
-report.parse_folder(data_path, pattern=pattern, render_bem=False)
+report.parse_folder(
+    data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=11
+)
 report.save('report_parse_folder_evoked.html', overwrite=True)
 
 # %%
@@ -510,7 +531,9 @@ report.save('report_parse_folder_evoked.html', overwrite=True)
 baseline = (None, 0)
 pattern = 'sample_audvis-no-filter-ave.fif'
 report = mne.Report(baseline=baseline)
-report.parse_folder(data_path, pattern=pattern, render_bem=False)
+report.parse_folder(
+    data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=11
+)
 report.save('report_parse_folder_evoked_baseline.html', overwrite=True)
 
 # %%
@@ -522,7 +545,9 @@ report.save('report_parse_folder_evoked_baseline.html', overwrite=True)
 cov_fname = sample_dir / 'sample_audvis-cov.fif'
 baseline = (None, 0)
 report = mne.Report(cov_fname=cov_fname, baseline=baseline)
-report.parse_folder(data_path, pattern=pattern, render_bem=False)
+report.parse_folder(
+    data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=11
+)
 report.save('report_parse_folder_evoked_baseline_whitened.html',
             overwrite=True)
 
@@ -537,5 +562,7 @@ report.save('report_parse_folder_evoked_baseline_whitened.html',
 pattern = 'sample_audvis-cov.fif'
 info_fname = sample_dir / 'sample_audvis-ave.fif'
 report = mne.Report(info_fname=info_fname)
-report.parse_folder(data_path, pattern=pattern, render_bem=False)
+report.parse_folder(
+    data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=11
+)
 report.save('report_parse_folder_cov.html', overwrite=True)
