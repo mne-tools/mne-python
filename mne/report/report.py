@@ -2119,7 +2119,8 @@ class Report(object):
 
             .. versionadded:: 0.24.0
         raw_butterfly : bool
-            Whether to render butterfly plots for (decimated) `~mne.Raw` data.
+            Whether to render butterfly plots for (decimated) `~mne.io.Raw`
+            data.
 
             .. versionadded:: 0.24.0
         %(verbose_meth)s
