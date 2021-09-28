@@ -278,6 +278,8 @@ subj_trans = mne.coreg.estimate_head_mri_t(
 #   .. note:: If "Snap to Center" is on, this will use the radius so be
 #             sure to set it properly.
 
+# sphinx_gallery_thumbnail_number = 5
+
 # load electrophysiology data to find channel locations for
 # (the channels are already located in the example)
 raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
@@ -419,8 +421,6 @@ del CT_aligned
 # By accounting for the shape of this particular subject's brain using the
 # SDR to warp the positions of the electrode contacts, the position in the
 # template brain is able to be more accurately estimated.
-
-# sphinx_gallery_thumbnail_number = 8
 
 # first we need to add fiducials so that we can define the "head" coordinate
 # frame in terms of them (with the origin at the center between LPA and RPA)

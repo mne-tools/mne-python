@@ -10,7 +10,7 @@ import pytest
 
 import mne
 from mne.datasets import testing
-from mne.utils import requires_nibabel
+from mne.utils import requires_nibabel, requires_version
 from mne.viz.utils import _fake_click
 
 data_path = testing.data_path(download=False)
@@ -94,6 +94,35 @@ def test_ieeg_elec_locate_gui_io(_locate_ieeg):
     with pytest.raises(ValueError, match='CT is not aligned to MRI'):
         _locate_ieeg(info, trans, aligned_ct, subject=subject,
                      subjects_dir=subjects_dir)
+
+
+@requires_version('sphinx_gallery')
+@testing.requires_testing_data
+def test_locate_scraper(_locate_ieeg, _fake_CT_coords, tmpdir):
+    """Test sphinx-gallery scraping of the GUI."""
+    raw = mne.io.read_raw_fif(raw_path)
+    raw.pick_types(eeg=True)
+    ch_dict = {'EEG 001': 'LAMY 1', 'EEG 002': 'LAMY 2',
+               'EEG 003': 'LSTN 1', 'EEG 004': 'LSTN 2'}
+    raw.pick_channels(list(ch_dict.keys()))
+    raw.rename_channels(ch_dict)
+    raw.set_montage(None)
+    aligned_ct, _ = _fake_CT_coords
+    trans = mne.read_trans(fname_trans)
+    with pytest.warns(RuntimeWarning, match='`pial` surface not found'):
+        gui = _locate_ieeg(raw.info, trans, aligned_ct,
+                           subject=subject, subjects_dir=subjects_dir)
+    tmpdir.mkdir('_images')
+    image_path = str(tmpdir.join('_images', 'temp.png'))
+    gallery_conf = dict(builder_name='html', src_dir=str(tmpdir))
+    block_vars = dict(
+        example_globals=dict(gui=gui),
+        image_path_iterator=iter([image_path]))
+    assert not op.isfile(image_path)
+    assert not getattr(gui, '_scraped', False)
+    mne.gui._LocateScraper()(None, block_vars, gallery_conf)
+    assert op.isfile(image_path)
+    assert gui._scraped
 
 
 @testing.requires_testing_data
