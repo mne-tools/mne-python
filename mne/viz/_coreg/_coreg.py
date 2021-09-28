@@ -31,6 +31,7 @@ class CoregistrationUI(HasTraits):
         from ..backends.renderer import _get_renderer
         self._widgets = dict()
         self._verbose = True
+        self._coord_frame = "mri"
         self._omit_hsp_distance = 0.0
         self._surface = "head-dense"
         self._opacity = 1.0
@@ -243,33 +244,30 @@ class CoregistrationUI(HasTraits):
     def _add_mri_fiducials(self):
         # XXX: Need a better sanity check
         if len(self._fiducials_file) > 0:
-            coord_frame = 'mri'
             defaults = DEFAULTS['coreg']
             fid_colors = tuple(
                 defaults[f'{key}_color'] for key in ('lpa', 'nasion', 'rpa'))
             to_cf_t = _get_transforms_to_coord_frame(
-                self._info, self._coreg.trans, coord_frame=coord_frame)
+                self._info, self._coreg.trans, coord_frame=self._coord_frame)
             mri_fids_actors = _plot_mri_fiducials(
                 self._renderer, self._fiducials_file, self._subjects_dir,
                 self._subject, to_cf_t, fid_colors)
             self._update_actor("mri_fiducials", mri_fids_actors)
 
     def _add_head_fiducials(self):
-        coord_frame = 'mri'
         defaults = DEFAULTS['coreg']
         fid_colors = tuple(
             defaults[f'{key}_color'] for key in ('lpa', 'nasion', 'rpa'))
         to_cf_t = _get_transforms_to_coord_frame(
-            self._info, self._coreg.trans, coord_frame=coord_frame)
+            self._info, self._coreg.trans, coord_frame=self._coord_frame)
         head_fids_actors = _plot_head_fiducials(
             self._renderer, self._info, to_cf_t, fid_colors)
         self._update_actor("head_fiducials", head_fids_actors)
 
     def _add_head_shape_points(self):
         if self._head_shape_point:
-            coord_frame = 'mri'
             to_cf_t = _get_transforms_to_coord_frame(
-                self._info, self._coreg.trans, coord_frame=coord_frame)
+                self._info, self._coreg.trans, coord_frame=self._coord_frame)
             hsp_actors = _plot_head_shape_points(
                 self._renderer, self._info, to_cf_t)
         else:
@@ -278,18 +276,17 @@ class CoregistrationUI(HasTraits):
 
     def _add_head_surface(self):
         bem = None
-        coord_frame = 'mri'
         to_cf_t = _get_transforms_to_coord_frame(
-            self._info, self._coreg.trans, coord_frame=coord_frame)
+            self._info, self._coreg.trans, coord_frame=self._coord_frame)
         try:
             head_actor, _ = _plot_head_surface(
                 self._renderer, self._surface, self._subject,
-                self._subjects_dir, bem, coord_frame, to_cf_t,
+                self._subjects_dir, bem, self._coord_frame, to_cf_t,
                 alpha=self._opacity)
         except IOError:
             head_actor, _ = _plot_head_surface(
                 self._renderer, "head", self._subject, self._subjects_dir,
-                bem, coord_frame, to_cf_t, alpha=self._opacity)
+                bem, self._coord_frame, to_cf_t, alpha=self._opacity)
         self._update_actor("head_surface", head_actor)
 
     def _fit_fiducials(self):
