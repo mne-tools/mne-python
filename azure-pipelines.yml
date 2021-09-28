@@ -235,14 +235,14 @@ stages:
     - script: conda env update --name base --file environment.yml
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Setup MNE environment
-    - script: pip uninstall -yq mne
+    - script: conda remove mne
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Remove old MNE
+    - script: pip install -e .
+      displayName: 'Install MNE-Python dev'
     - script: pip install --progress-bar off -r requirements_testing.txt -r requirements_testing_extra.txt codecov
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Install testing requirements
-    - script: pip install -e .
-      displayName: 'Install MNE-Python dev'
     - script: mne sys_info -pd
       displayName: 'Print config and test access to commands'
     - script: python -c "import numpy; numpy.show_config()"
