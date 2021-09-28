@@ -297,12 +297,9 @@ stages:
         conda update -n base -c defaults conda
         conda env update --name base --file environment.yml
         conda install -c conda-forge graphviz
-        dot -V
-        pip uninstall -yq mne
+        pip install -e .
         pip install --progress-bar off -r requirements_doc.txt
       displayName: 'Install dependencies with conda'
-    - script: python setup.py develop
-      displayName: 'Install MNE-Python dev'
     - script: mne sys_info --show-paths
       displayName: 'Print config and test access to commands'
     - script: python -c "import numpy; numpy.show_config()"

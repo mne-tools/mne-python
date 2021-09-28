@@ -1034,8 +1034,8 @@ it can serve as a useful example of what to expect from the PR review process.
 .. sphinx
 
 .. _sphinx-gallery: https://sphinx-gallery.github.io
-.. _reStructuredText: http://sphinx-doc.org/rest.html
-.. _intersphinx: http://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
+.. _reStructuredText: https://sphinx-doc.org/rest.html
+.. _intersphinx: https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
 .. _sphobjinv: https://sphobjinv.readthedocs.io/en/latest/
 
 .. linting
