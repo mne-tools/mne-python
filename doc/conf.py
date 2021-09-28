@@ -1145,4 +1145,7 @@ def setup(app):
         report_scraper.app = app
         app.config.rst_prolog = prolog
         app.connect('builder-inited', report_scraper.copyfiles)
+    sphinx_logger = sphinx.util.logging.getLogger('mne')
+    sphinx_logger.info(
+        f'Building documentation for MNE {release} ({mne.__file__})')
     app.connect('build-finished', make_redirects)

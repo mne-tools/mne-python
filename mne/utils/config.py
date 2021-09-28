@@ -550,7 +550,7 @@ def sys_info(fid=None, show_paths=False):
         except Exception:
             out += 'Not found\n'
         else:
-            extra = (' (%s)' % op.dirname(mod.__file__)) if show_paths else ''
+            extra = ''
             if mod_name == 'numpy':
                 extra += ' {%s}%s' % (libs, extra)
             elif mod_name == 'matplotlib':
@@ -585,5 +585,7 @@ def sys_info(fid=None, show_paths=False):
                 version = _check_pyqt5_version()
             else:
                 version = mod.__version__
+            if show_paths:
+                extra += f'\n{" " * ljust}{op.dirname(mod.__file__)}'
             out += '%s%s\n' % (version, extra)
     print(out, end='', file=fid)

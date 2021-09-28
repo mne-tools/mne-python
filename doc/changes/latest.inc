@@ -159,6 +159,8 @@ Enhancements
 
 - Add remove methods for mesh objects in :class:`mne.viz.Brain` (:gh:`9688` by `Alex Rockhill`_)
 
+- Add ``--show-paths`` option to :ref:`mne sys_info` (:gh:`9789` by `Eric Larson`_)
+
 - Add ability to export EDF+ files using :func:`mne.export.export_raw` (:gh:`9643` by `Adam Li`_)
 
 - Reading EDF files via :func:`mne.io.read_raw_edf` now can infer channel type from the signal label in the EDF header (:gh:`9694` by `Adam Li`_)
