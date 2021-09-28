@@ -1047,7 +1047,6 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. misc
 
-.. _anaconda: https://www.anaconda.com/distribution/
 .. _miniconda: https://conda.io/en/latest/miniconda.html
 .. _Spyder: https://www.spyder-ide.org/
 .. _continuous integration: https://en.wikipedia.org/wiki/Continuous_integration
