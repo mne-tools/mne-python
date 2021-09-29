@@ -175,6 +175,10 @@ Enhancements
 
 - Add full ECoG dataset to MNE-misc-data and demonstrate its use in :ref:`ex-electrode-pos-2d` and :ref:`tut-ieeg-localize` (:gh:`9784` by `Alex Rockhill`_)
 
+- Completely revamp the `~mne.Report` experience: new HTML layout, many new methods, more flexibility; the functionality is demonstrated in :ref:`tut-report` (:gh:`9754` by `Richard Höchenberger`_, `Eric Larson`_, and `Alex Gramfort`_)
+
+- Add basic HTML representations of `~mne.Forward` and `~mne.minimum_norm.InverseOperator` instances for a nicer Jupyter experience (:gh:`9754` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 - Fix bug in :meth:`mne.io.Raw.pick` and related functions when parameter list contains channels which are not in info instance (:gh:`9708` **by new contributor** |Evgeny Goldstein|_)
@@ -251,6 +255,10 @@ Bugs
 
 - Fix bug where `mne.Annotations` were not appending channel names when being added together (:gh:`9780` by `Adam Li`_)
 
+- `mne.viz.plot_evoked_joint` now correctly handles a ``times='peaks'`` parameter value (:gh:`9754` by `Richard Höchenberger`_)
+
+- In `mne.viz.plot_compare_evokeds`, slightly adjust the x-axis limit calculation to avoid drawing an axis that is too short (:gh:`9754` by `Richard Höchenberger`_)
+
 API changes
 ~~~~~~~~~~~
 - In `mne.compute_source_morph`, the ``niter_affine`` and ``niter_sdr`` parameters have been replaced by ``niter`` and ``pipeline`` parameters for more consistent and finer-grained control of registration/warping steps and iteration (:gh:`9505` by `Alex Rockhill`_ and `Eric Larson`_)
@@ -264,3 +272,21 @@ API changes
 - :func:`mne.inverse_sparse.mixed_norm` now simply warns when source estimates contain no dipole, e.g. if data are too noisy and alpha is based on SURE (:gh:`9685` by `Alex Gramfort`_)
 
 - The output folder name for HF_SEF datasets is now ``hf_sef`` instead of ``HF_SEF`` (:gh:`9763` by `Adam Li`_)
+
+- :meth:`mne.Report.add_figs_to_section` and :meth:`mne.Report.add_slider_to_section` have been deprecated in favor of :meth:`mne.Report.add_figure` (:gh:`9754` by `Richard Höchenberger`_)
+
+- :meth:`mne.Report.add_images_to_section` has been deprecated in favor of :meth:`mne.Report.add_image` (:gh:`9754` by `Richard Höchenberger`_)
+
+- :meth:`mne.Report.add_bem_to_section` has been deprecated in favor of :meth:`mne.Report.add_bem` (:gh:`9754` by `Richard Höchenberger`_)
+
+- :meth:`mne.Report.add_htmls_to_section` has been deprecated in favor of :meth:`mne.Report.add_html` (:gh:`9754` by `Richard Höchenberger`_)
+
+- :meth:`mne.Report.add_bem_to_section` has been deprecated in favor of :meth:`mne.Report.add_bem` (:gh:`9754` by `Richard Höchenberger`_)
+
+- In :meth:`mne.Report.parse_folder`, the ``sort_sections`` parameter has been deprecated in favor of ``sort_content`` (:gh:`9754` by `Richard Höchenberger`_)
+
+- In :meth:`mne.Report.remove`, the ``caption`` and ``section`` parameters have been deprecated in favor of ``title`` and ``tags``, respectively (:gh:`9754` by `Richard Höchenberger`_)
+
+- The ``mne.Report.sections`` attribute has been deprecated in favor of ``mne.Report.tags`` (:gh:`9754` by `Richard Höchenberger`_)
+
+- The ``mne.Report.fnames`` attribute has been deprecated without replacement (:gh:`9754` by `Richard Höchenberger`_)
