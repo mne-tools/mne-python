@@ -152,6 +152,12 @@ class CoregistrationUI(HasTraits):
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
+        if "show_hsp" in self._widgets:
+            if self._lock_fids:
+                self._widgets["show_hsp"].set_enabled(True)
+            else:
+                self._widgets["show_hsp"].set_value(False)
+                self._widgets["show_hsp"].set_enabled(False)
         if "lock_fids" in self._widgets:
             self._widgets["lock_fids"].set_value(self._lock_fids)
         if "fid_file" in self._widgets:
