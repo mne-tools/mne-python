@@ -684,7 +684,7 @@ class Report(object):
         self.include += script
 
     @fill_doc
-    def add_epochs(self, epochs, title, *, psd=True, projs=True,
+    def add_epochs(self, epochs, title, *, psd=True, projs=None,
                    tags=('epochs',), replace=False):
         """Add `~mne.Epochs` to the report.
 
@@ -696,9 +696,7 @@ class Report(object):
             The title to add.
         psd : bool | None
             Whether to add PSD plots.
-        projs : bool | None
-            Whether to add SSP projector plots if projectors are present in
-            the data.
+        %(report_projs)s
         %(report_tags)s
         %(report_replace)s
 
@@ -708,10 +706,12 @@ class Report(object):
         """
         tags = tuple(tags)
 
+        add_projs = self.projs if projs is None else projs
+
         htmls = self._render_epochs(
             epochs=epochs,
             add_psd=psd,
-            add_projs=projs,
+            add_projs=add_projs,
             tags=tags,
             image_format=self.image_format
         )
@@ -736,7 +736,7 @@ class Report(object):
         )
 
     @fill_doc
-    def add_evokeds(self, evokeds, *, titles=None, noise_cov=None, projs=True,
+    def add_evokeds(self, evokeds, *, titles=None, noise_cov=None, projs=None,
                     n_time_points=None, tags=('evoked',), replace=False):
         """Add `~mne.Evoked` objects to the report.
 
@@ -754,9 +754,7 @@ class Report(object):
             A noise covariance matrix. If provided, will be used to whiten
             the ``evokeds``. If ``None``, will fall back to the ``cov_fname``
             provided upon report creation.
-        projs : bool
-            Whether to add SSP projector plots if projectors are present in
-            the data.
+        %(report_projs)s
         n_time_points : int | None
             The number of equidistant time points to render. If ``None``,
             will render each `~mne.Evoked` at 21 time points, unless the data
@@ -796,15 +794,16 @@ class Report(object):
             noise_cov = self.cov_fname
         if noise_cov is not None and not isinstance(noise_cov, Covariance):
             noise_cov = read_cov(fname=noise_cov)
-
         tags = tuple(tags)
+
+        add_projs = self.projs if projs is None else projs
 
         for evoked, title in zip(evokeds, titles):
             evoked_htmls = self._render_evoked(
                 evoked=evoked,
                 noise_cov=noise_cov,
                 image_format=self.image_format,
-                add_projs=projs,
+                add_projs=add_projs,
                 n_time_points=n_time_points,
                 tags=tags
             )
@@ -832,7 +831,7 @@ class Report(object):
             )
 
     @fill_doc
-    def add_raw(self, raw, title, *, psd=None, projs=True, butterfly=True,
+    def add_raw(self, raw, title, *, psd=None, projs=None, butterfly=True,
                 tags=('raw',), replace=False):
         """Add `~mne.io.Raw` objects to the report.
 
@@ -846,9 +845,7 @@ class Report(object):
             Whether to add PSD plots. Overrides the ``raw_psd`` parameter
             passed when initializing the `~mne.Report`. If ``None``, use
             ``raw_psd`` from `~mne.Report` creation.
-        projs : bool | None
-            Whether to add SSP projector plots if projectors are present in
-            the data. If ``None``, use ``projs`` from `~mne.Report` creation.
+        %(report_projs)s
         butterfly : bool
             Whether to add a butterfly plot of the (decimated) data. Can be
             useful to spot segments marked as "bad" and problematic channels.

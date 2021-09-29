@@ -2262,6 +2262,11 @@ replace : bool
     replaced. Defaults to ``False``, which will cause duplicate entries in the
     table of contents if an entry for ``title`` already exists.
 """
+docdict['report_projs'] = """
+projs : bool | None
+    Whether to add SSP projector plots if projectors are present in
+    the data. If ``None``, use ``projs`` from `~mne.Report` creation.
+"""
 
 # Epochs
 docdict['epochs_tmin_tmax'] = """

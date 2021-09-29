@@ -195,10 +195,15 @@ report.save('report_projs.html', overwrite=True)
 #
 # MRI slices with superimposed traces of the boundary element model (BEM)
 # surfaces can be added via :meth:`mne.Report.add_bem`. All you need to pass is
-# the FreeSurfer subject name and subjects directory, and a title.
+# the FreeSurfer subject name and subjects directory, and a title. To reduce
+# the resulting file size, you may pass the ``decim`` parameter to only include
+# every n-th volume slice.
 
 report = mne.Report()
-report.add_bem(subject='sample', subjects_dir=subjects_dir, title='MRI & BEM')
+report.add_bem(
+    subject='sample', subjects_dir=subjects_dir, title='MRI & BEM',
+    decim=10
+)
 report.save('report_mri_and_bem.html', overwrite=True)
 
 # %%
@@ -272,8 +277,10 @@ report.save('report_inverse_op.html', overwrite=True)
 stc_path = sample_dir / 'sample_audvis-meg'
 
 report = mne.Report()
-report.add_stc(stc=stc_path, subject='sample', subjects_dir=subjects_dir,
-               title='Source estimate', n_time_points=5)
+report.add_stc(
+    stc=stc_path, subject='sample', subjects_dir=subjects_dir,
+    title='Source estimate', n_time_points=5
+)
 report.save('report_inverse_sol.html', overwrite=True)
 
 # %%
@@ -390,8 +397,10 @@ report.save('report_custom_figures.html', overwrite=True)
 # figures, you can specify a caption to appear below the image.
 
 report = mne.Report()
-report.add_image(image=mne_logo_path, title='MNE',
-                 caption='Powered by 🧠 🧠 🧠 around the world!')
+report.add_image(
+    image=mne_logo_path, title='MNE',
+    caption='Powered by 🧠 🧠 🧠 around the world!'
+)
 report.save('report_custom_image.html', overwrite=True)
 
 # %%
@@ -509,52 +518,34 @@ report.parse_folder(data_path=data_path, pattern='', mri_decim=25)
 report.save('report_parse_folder_mri_bem.html', overwrite=True)
 
 # %%
-# Now let's look at how :class:`~mne.Report` handles :class:`~mne.Evoked` data
-# (we will skip the MRIs to save computation time).
-
-pattern = 'sample_audvis-no-filter-ave.fif'
-report = mne.Report()
-report.parse_folder(
-    data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=5
-)
-report.save('report_parse_folder_evoked.html', overwrite=True)
-
-# %%
-# You have probably noticed that the EEG recordings look particularly odd. This
-# is because by default, `~mne.Report` does not apply baseline correction
-# before rendering evoked data. So if the dataset you wish to add to the report
-# has not been baseline-corrected already, you can request baseline correction
-# here. The MNE sample dataset we're using in this example has **not** been
-# baseline-corrected; so let's do this now for the report!
+# Now let's look at how :class:`~mne.Report` handles :class:`~mne.Evoked`
+# data (we will skip the MRIs to save computation time).
+#
+# The MNE sample dataset we're using in this example has **not** been
+# baseline-corrected; so let's apply baseline correction this now for the
+# report!
 #
 # To request baseline correction, pass a ``baseline`` argument to
 # `~mne.Report`, which should be a tuple with the starting and ending time of
 # the baseline period. For more details, see the documentation on
 # `~mne.Evoked.apply_baseline`. Here, we will apply baseline correction for a
 # baseline period from the beginning of the time interval to time point zero.
+#
+# Lastly, we want to render the "whitened" evoked data, too. Whitening
+# requires us to specify the path to a covariance matrix file via the
+# ``cov_fname`` parameter of `~mne.Report`.
+#
+# Now, let's put all of this together!
 
 baseline = (None, 0)
-pattern = 'sample_audvis-no-filter-ave.fif'
-report = mne.Report(baseline=baseline)
-report.parse_folder(
-    data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=5
-)
-report.save('report_parse_folder_evoked_baseline.html', overwrite=True)
-
-# %%
-# To render whitened :class:`~mne.Evoked` files with baseline correction, pass
-# the ``baseline`` argument we just used, and add the noise covariance file.
-# This will display ERP/ERF plots for both the original and whitened
-# :class:`~mne.Evoked` objects, but scalp topomaps only for the original.
-
 cov_fname = sample_dir / 'sample_audvis-cov.fif'
-baseline = (None, 0)
-report = mne.Report(cov_fname=cov_fname, baseline=baseline)
+pattern = 'sample_audvis-no-filter-ave.fif'
+
+report = mne.Report(baseline=baseline, cov_fname=cov_fname)
 report.parse_folder(
     data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=5
 )
-report.save('report_parse_folder_evoked_baseline_whitened.html',
-            overwrite=True)
+report.save('report_parse_folder_evoked.html', overwrite=True)
 
 # %%
 # If you want to actually *view* the noise covariance in the report, make sure
