@@ -33,6 +33,7 @@ class CoregistrationUI(HasTraits):
         self._widgets = dict()
         self._verbose = True
         self._coord_frame = "mri"
+        self._mouse_no_mvt = -1
         self._omit_hsp_distance = 0.0
         self._surface = "head-dense"
         self._opacity = 1.0
@@ -70,7 +71,37 @@ class CoregistrationUI(HasTraits):
 
         self._reset_fitting_parameters()
         self._configure_dock()
+        self._configure_picking()
         self._renderer.show()
+
+    def _configure_picking(self):
+        self._renderer._update_picking_callback(
+            self._on_mouse_move,
+            self._on_button_press,
+            self._on_button_release,
+            self._on_pick
+        )
+
+    def _on_mouse_move(self, vtk_picker, event):
+        if self._mouse_no_mvt:
+            self._mouse_no_mvt -= 1
+
+    def _on_button_press(self, vtk_picker, event):
+        self._mouse_no_mvt = 2
+
+    def _on_button_release(self, vtk_picker, event):
+        if self._mouse_no_mvt > 0:
+            x, y = vtk_picker.GetEventPosition()
+            # XXX: plotter/renderer should not be exposed if possible
+            plotter = self._renderer.figure.plotter
+            picked_renderer = self._renderer.figure.plotter.renderer
+            # trigger the pick
+            plotter.picker.Pick(x, y, 0, picked_renderer)
+        self._mouse_no_mvt = 0
+
+    def _on_pick(self, vtk_picker, event):
+        # XXX: for debug only
+        print("picked!")
 
     def _set_subjects_dir(self, subjects_dir):
         self._subjects_dir = subjects_dir
