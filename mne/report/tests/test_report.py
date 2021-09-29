@@ -669,7 +669,7 @@ def test_full_report(tmpdir):
 
     r.add_html(html='<strong>Hello</strong>', title='Bold')
     r.add_code(code=__file__, title='my code')
-    # r.add_sys_info(title='my sysinfo')
+    r.add_sys_info(title='my sysinfo')
 
     fname = op.join(tmpdir, 'report.html')
     r.save(fname=fname, open_browser=False)
