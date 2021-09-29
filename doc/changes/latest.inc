@@ -281,8 +281,6 @@ API changes
 
 - :meth:`mne.Report.add_htmls_to_section` has been deprecated in favor of :meth:`mne.Report.add_html` (:gh:`9754` by `Richard Höchenberger`_)
 
-- :meth:`mne.Report.add_bem_to_section` has been deprecated in favor of :meth:`mne.Report.add_bem` (:gh:`9754` by `Richard Höchenberger`_)
-
 - In :meth:`mne.Report.parse_folder`, the ``sort_sections`` parameter has been deprecated in favor of ``sort_content`` (:gh:`9754` by `Richard Höchenberger`_)
 
 - In :meth:`mne.Report.remove`, the ``caption`` and ``section`` parameters have been deprecated in favor of ``title`` and ``tags``, respectively (:gh:`9754` by `Richard Höchenberger`_)
