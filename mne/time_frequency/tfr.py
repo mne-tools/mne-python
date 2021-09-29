@@ -1091,6 +1091,34 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
                                default_index=default_index)
         return df
 
+    def average_freqs(self, band_name, method='mean'):
+        """Average frequencies over a band.
+
+        Averages the TFR object over the entire frequency axis.
+
+        Parameters
+        ----------
+        band_name : str
+            The name of the frequency band to assign to.
+
+        Returns
+        -------
+        inst : instance of AverageTFR | EpochsTFR
+            The modified instance.
+        """
+        if self.data.ndim == 4:
+            axis = 2
+        elif self.data.ndim == 3:
+            axis = 1
+
+        # return a lambda function for computing a combination metric
+        # over epochs
+        func = _check_combine(mode=method, axis=axis)
+        data = func(self.data)
+        self._data = data
+        self.freqs = np.mean(self.freqs)
+        self.band_name = band_name
+
 
 @fill_doc
 class AverageTFR(_BaseTFR):

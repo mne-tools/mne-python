@@ -655,16 +655,16 @@ def _check_all_same_channel_names(instances):
     return True
 
 
-def _check_combine(mode, valid=('mean', 'median', 'std')):
+def _check_combine(mode, valid=('mean', 'median', 'std'), axis=0):
     if mode == "mean":
         def fun(data):
-            return np.mean(data, axis=0)
+            return np.mean(data, axis=axis)
     elif mode == "std":
         def fun(data):
-            return np.std(data, axis=0)
+            return np.std(data, axis=axis)
     elif mode == "median" or mode == np.median:
         def fun(data):
-            return _median_complex(data, axis=0)
+            return _median_complex(data, axis=axis)
     elif callable(mode):
         fun = mode
     else:
