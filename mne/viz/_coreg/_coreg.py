@@ -100,8 +100,22 @@ class CoregistrationUI(HasTraits):
         self._mouse_no_mvt = 0
 
     def _on_pick(self, vtk_picker, event):
+        if self._lock_fids:
+            return
+        # XXX: taken from Brain, can be refactored
+        cell_id = vtk_picker.GetCellId()
+        mesh = vtk_picker.GetDataSet()
+        if mesh is None or cell_id == -1 or not self._mouse_no_mvt:
+            return
+        pos = np.array(vtk_picker.GetPickPosition())
+        vtk_cell = mesh.GetCell(cell_id)
+        cell = [vtk_cell.GetPointId(point_id) for point_id
+                in range(vtk_cell.GetNumberOfPoints())]
+        vertices = mesh.points[cell]
+        idx = np.argmin(abs(vertices - pos), axis=0)
+        vertex_id = cell[idx[0]]
         # XXX: for debug only
-        print("picked!")
+        print(vertex_id)
 
     def _set_subjects_dir(self, subjects_dir):
         self._subjects_dir = subjects_dir
