@@ -331,6 +331,7 @@ class CoregistrationUI(HasTraits):
             rot=[rot_x, rot_y, rot_z],
             tra=[x, y, z],
         )
+        self._emit_coreg_modified()
 
     def _get_subjects(self):
         # XXX: would be nice to move this function to util
