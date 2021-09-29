@@ -891,7 +891,7 @@ def _plot_head_surface(renderer, head, subject, subjects_dir, bem,
         surf = transform_surface_to(
             surf, coord_frame, [to_cf_t['mri'], to_cf_t['head']],
             copy=True)
-        actor, _ = renderer.surface(
+        actor, surf = renderer.surface(
             surface=surf, color=color, opacity=alpha,
             backface_culling=False)
     return actor, surf

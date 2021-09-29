@@ -10,7 +10,7 @@ from ...viz._3d import (_plot_head_surface, _plot_head_fiducials,
 from ...transforms import (read_trans, write_trans, _ensure_trans,
                            rotation_angles, _get_transforms_to_coord_frame)
 from ...utils import get_subjects_dir
-from traitlets import observe, HasTraits, Unicode, Bool
+from traitlets import observe, HasTraits, Unicode, Bool, Float
 
 
 class CoregistrationUI(HasTraits):
@@ -24,6 +24,7 @@ class CoregistrationUI(HasTraits):
     _head_shape_point = Bool()
     _head_resolution = Bool()
     _head_transparency = Bool()
+    _grow_hair = Float()
     _scale_mode = Unicode()
     _icp_fid_match = Unicode()
 
@@ -51,6 +52,7 @@ class CoregistrationUI(HasTraits):
         }
 
         self._actors = dict()
+        self._surfaces = dict()
         self._renderer = _get_renderer()
         self._renderer._window_close_connect(self._clean)
         self._coreg = Coregistration(info, subject, subjects_dir, fids)
@@ -100,6 +102,9 @@ class CoregistrationUI(HasTraits):
 
     def _set_head_transparency(self, state):
         self._head_transparency = bool(state)
+
+    def _set_grow_hair(self, value):
+        self._grow_hair = value
 
     def _set_scale_mode(self, mode):
         self._scale_mode = mode
@@ -196,11 +201,21 @@ class CoregistrationUI(HasTraits):
     def _head_resolution_changed(self, change=None):
         self._surface = "head-dense" if self._head_resolution else "head"
         self._add_head_surface()
+        self._grow_hair_changed()
 
     @observe("_head_transparency")
     def _head_transparency_changed(self, change=None):
         self._opacity = 0.4 if self._head_transparency else 1.0
-        self._actors["head_surface"].GetProperty().SetOpacity(self._opacity)
+        self._actors["head"].GetProperty().SetOpacity(self._opacity)
+        self._renderer._update()
+
+    @observe("_grow_hair")
+    def _grow_hair_changed(self, change=None):
+        self._coreg.set_grow_hair(self._grow_hair)
+        if "head" in self._surfaces:
+            res = "high" if self._head_resolution else "low"
+            self._surfaces["head"].points = \
+                self._coreg._get_processed_mri_points(res)
         self._renderer._update()
 
     @observe("_scale_mode")
@@ -274,15 +289,16 @@ class CoregistrationUI(HasTraits):
         to_cf_t = _get_transforms_to_coord_frame(
             self._info, self._coreg.trans, coord_frame=self._coord_frame)
         try:
-            head_actor, _ = _plot_head_surface(
+            head_actor, head_surf = _plot_head_surface(
                 self._renderer, self._surface, self._subject,
                 self._subjects_dir, bem, self._coord_frame, to_cf_t,
                 alpha=self._opacity)
         except IOError:
-            head_actor, _ = _plot_head_surface(
+            head_actor, head_surf = _plot_head_surface(
                 self._renderer, "head", self._subject, self._subjects_dir,
                 bem, self._coord_frame, to_cf_t, alpha=self._opacity)
-        self._update_actor("head_surface", head_actor)
+        self._update_actor("head", head_actor)
+        self._surfaces["head"] = head_surf
 
     def _fit_fiducials(self):
         self._coreg.fit_fiducials(
@@ -403,7 +419,7 @@ class CoregistrationUI(HasTraits):
             name="Grow Hair",
             value=0.0,
             rng=[0.0, 10.0],
-            callback=noop,
+            callback=self._set_grow_hair,
             layout=layout,
         )
         hlayout = self._renderer._dock_add_layout(vertical=False)
@@ -581,3 +597,4 @@ class CoregistrationUI(HasTraits):
     def _clean(self):
         self._renderer = None
         self._actors.clear()
+        self._surfaces.clear()
