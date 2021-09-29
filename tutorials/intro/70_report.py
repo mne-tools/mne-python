@@ -475,7 +475,10 @@ with mne.open_report('report_partial.hdf5') as report:
 # ``subjects_dir`` parameters provided to the :class:`~mne.Report` constructor.
 
 report = mne.Report()
-report.parse_folder(data_path, pattern='*raw.fif', render_bem=False)
+report.parse_folder(
+    data_path=data_path, pattern='*raw.fif', render_bem=False,
+    raw_butterfly=False
+)
 report.save('report_parse_folder_basic.html', overwrite=True)
 
 # %%
@@ -488,7 +491,9 @@ report.save('report_parse_folder_basic.html', overwrite=True)
 
 pattern = 'sample_audvis_filt-0-40_raw.fif'
 report = mne.Report(raw_psd=True, projs=True)
-report.parse_folder(data_path, pattern=pattern, render_bem=False)
+report.parse_folder(
+    data_path=data_path, pattern=pattern, render_bem=False, raw_butterfly=False
+)
 report.save('report_parse_folder_raw_psd_projs.html', overwrite=True)
 
 # %%
@@ -500,7 +505,7 @@ report.save('report_parse_folder_raw_psd_projs.html', overwrite=True)
 # documentation servers, and skip processing the :file:`.fif` files:
 
 report = mne.Report(subject='sample', subjects_dir=subjects_dir)
-report.parse_folder(data_path, pattern='', mri_decim=25)
+report.parse_folder(data_path=data_path, pattern='', mri_decim=25)
 report.save('report_parse_folder_mri_bem.html', overwrite=True)
 
 # %%
