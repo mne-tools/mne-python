@@ -53,7 +53,7 @@ class CoregistrationUI(HasTraits):
 
         self._actors = dict()
         self._surfaces = dict()
-        self._renderer = _get_renderer()
+        self._renderer = _get_renderer(bgcolor="grey")
         self._renderer._window_close_connect(self._clean)
         self._coreg = Coregistration(info, subject, subjects_dir, fids)
         self._fids = fids
