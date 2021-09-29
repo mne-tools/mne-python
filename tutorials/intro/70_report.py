@@ -71,7 +71,6 @@ subjects_dir = data_path / 'subjects'
 #    will open the HTML in a new tab in the browser. To disable this, use the
 #    ``open_browser=False`` parameter of :meth:`~mne.Report.save`.
 #
-# %%
 # Adding `~mne.io.Raw` data
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -167,8 +166,8 @@ report.add_covariance(cov=cov_path, info=raw_path, title='Covariance')
 report.save('report_cov.html', overwrite=True)
 
 # %%
-# Adding SSP `~mne.Projection` vectors
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Adding `~mne.Projection` vectors
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # `~mne.Projection` vectors can be added via
 # :meth:`mne.Report.add_projs`. The method requires an `~mne.Info` object

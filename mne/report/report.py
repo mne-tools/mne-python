@@ -3131,6 +3131,7 @@ class Report(object):
                 hemi='split',
                 backend='pyvistaqt',
                 time_viewer=True,
+                show_traces=False,
                 subject=subject,
                 subjects_dir=subjects_dir,
                 size=(450, 450),
