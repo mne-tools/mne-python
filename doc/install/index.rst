@@ -20,7 +20,7 @@ For users already familiar with Python:
 - If you need MNE-Python's 3D rendering capabilities (e.g., plotting estimated
   source activity on a cortical surface) it is a good idea to install
   MNE-Python into its own virtual environment. To do this with
-  `conda <anaconda>`_:
+  `conda <anaconda_>`_:
 
   .. code-block:: console
 

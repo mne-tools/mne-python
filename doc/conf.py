@@ -480,6 +480,7 @@ linkcheck_ignore = [  # will be compiled to regex
     'https://chrisholdgraf.com',  # noqa Max retries exceeded sometimes
     'https://www.dtu.dk/english/service/phonebook/person.*',  # noqa Too slow
     'https://speakerdeck.com/dengemann/eeg-sensor-covariance-using-cross-validation',  # noqa Too slow
+    'https://doi.org/10.1002/hbm.10024',  # noqa Too slow sometimes
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
