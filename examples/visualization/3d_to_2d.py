@@ -18,6 +18,7 @@ and only have a 2D image of the electrodes on the brain, we can use the
 on the image.
 """
 # Authors: Christopher Holdgraf <choldgraf@berkeley.edu>
+#          Alex Rockhill        <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
 
@@ -28,17 +29,14 @@ from matplotlib import pyplot as plt
 from os import path as op
 
 import mne
-from mne.viz import ClickableImage  # noqa
-from mne.viz import (plot_alignment, snapshot_brain_montage,
-                     set_3d_view)
-
+from mne.viz import ClickableImage  # noqa: F401
+from mne.viz import (plot_alignment, snapshot_brain_montage, set_3d_view)
 
 print(__doc__)
 
-sample_path = mne.datasets.sample.data_path()
-subjects_dir = op.join(sample_path, 'subjects')
 misc_path = mne.datasets.misc.data_path()
 ecog_data_fname = op.join(misc_path, 'ecog', 'sample_ecog_ieeg.fif')
+subjects_dir = op.join(misc_path, 'ecog')
 
 # We've already clicked and exported
 layout_path = op.join(op.dirname(mne.__file__), 'data', 'image')
@@ -52,30 +50,15 @@ layout_name = 'custom_layout.lout'
 # a 2D snapshot.
 
 raw = read_raw_fif(ecog_data_fname)
-ch_names = raw.ch_names
+raw.pick_channels([f'G{i}' for i in range(1, 257)])  # pick just one grid
 
 # Since we loaded in the ecog data from FIF, the coordinates
 # are in 'head' space, but we actually want them in 'mri' space.
-# So we will extract the positions and create a new montage
-# with the 'mri' coordinate frame.
+# So we will apply the head->mri transform that was used when
+# generating the dataset (the estimated head->mri transform).
 montage = raw.get_montage()
-ch_pos = montage.get_positions()['ch_pos']
-
-# Now we make a montage and specify that these electrode contacts
-# are in the "mri" or surface RAS coordinate frame
-montage = mne.channels.make_dig_montage(ch_pos=ch_pos,
-                                        coord_frame='mri')
-
-# now we'll add some fiducials estimated from the Taliarach transform
-# of fsaverage's fiducials
-montage.add_estimated_fiducials('sample', subjects_dir)
-
-# we also need the head->mri transform based on these fiducials
-trans = mne.channels.compute_native_head_t(montage)
-
-info = mne.create_info(ch_names, 1000., 'ecog')
-info.set_montage(montage)
-print('Created %s channel positions' % len(ch_names))
+trans = mne.coreg.estimate_head_mri_t('sample_ecog', subjects_dir)
+montage.apply_trans(trans)
 
 # %%
 # Project 3D electrodes to a 2D snapshot
@@ -86,23 +69,27 @@ print('Created %s channel positions' % len(ch_names))
 # with the electrode positions on that image. We use this in conjunction with
 # :func:`mne.viz.plot_alignment`, which visualizes electrode positions.
 
-fig = plot_alignment(info, trans=trans, subject='sample',
-                     subjects_dir=subjects_dir,
-                     surfaces=['pial'], meg=False)
-set_3d_view(figure=fig, azimuth=200, elevation=50)
-xy, im = snapshot_brain_montage(fig, info)
+fig = plot_alignment(raw.info, trans=trans, subject='sample_ecog',
+                     subjects_dir=subjects_dir, surfaces=dict(pial=0.9))
+set_3d_view(figure=fig, azimuth=20, elevation=80)
+xy, im = snapshot_brain_montage(fig, raw.info)
 
 # Convert from a dictionary to array to plot
-xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])
+xy_pts = np.vstack([xy[ch] for ch in raw.ch_names])
 
-# Define an arbitrary "activity" pattern for viz
-activity = np.linspace(100, 200, xy_pts.shape[0])
+# Compute beta power to visualize
+raw.load_data()
+beta_power = raw.filter(20, 30).apply_hilbert(envelope=True).get_data()
+beta_power = beta_power.max(axis=1)  # take maximum over time
 
 # This allows us to use matplotlib to create arbitrary 2d scatterplots
 fig2, ax = plt.subplots(figsize=(10, 10))
 ax.imshow(im)
-ax.scatter(*xy_pts.T, c=activity, s=200, cmap='coolwarm')
+cmap = ax.scatter(*xy_pts.T, c=beta_power, s=100, cmap='coolwarm')
+cbar = fig2.colorbar(cmap)
+cbar.ax.set_ylabel('Beta Power')
 ax.set_axis_off()
+
 # fig2.savefig('./brain.png', bbox_inches='tight')  # For ClickableImage
 
 # %%
@@ -132,7 +119,7 @@ ax.set_axis_off()
 # # Generate a layout from our clicks and normalize by the image
 # print('Generating and saving layout...')
 # lt = click.to_layout()
-# lt.save(op.join(layout_path, layout_name))  # To save if we want
+# lt.save(op.join(layout_path, layout_name))  # save if we want
 
 # # We've already got the layout, load it
 lt = mne.channels.read_layout(layout_name, path=layout_path, scale=False)
@@ -140,7 +127,6 @@ x = lt.pos[:, 0] * float(im.shape[1])
 y = (1 - lt.pos[:, 1]) * float(im.shape[0])  # Flip the y-position
 fig, ax = plt.subplots()
 ax.imshow(im)
-ax.scatter(x, y, s=120, color='r')
-plt.autoscale(tight=True)
+ax.scatter(x, y, s=80, color='r')
+fig.tight_layout()
 ax.set_axis_off()
-plt.show()

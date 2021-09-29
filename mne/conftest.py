@@ -200,7 +200,10 @@ def matplotlib_config():
     except Exception:
         pass
     else:
-        ETSConfig.toolkit = 'qt4'
+        try:
+            ETSConfig.toolkit = 'qt4'
+        except Exception:
+            pass  # 'null' might be the only option in some configs
 
     # Make sure that we always reraise exceptions in handlers
     orig = cbook.CallbackRegistry

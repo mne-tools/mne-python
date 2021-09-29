@@ -57,6 +57,8 @@ Enhancements
 
 - Add support for list of channel types for EEG/sEEG/ECoG/DBS referencing (:gh:`9637` **by new contributor** |Mathieu Scheltienne|_)
 
+- Add support for changing the default event id used by :func:`mne.make_fixed_length_epochs` (:gh:`9782` **by new contributor** |Mathieu Scheltienne|_)
+
 - Add support for more than 3 source estimates in :func:`mne.viz.plot_sparse_source_estimates` (:gh:`9640` **by new contributor** |Pierre-Antoine Bannier|_ and `Alex Gramfort`_)
 
 - Show all good channel types and counts when printing a :class:`mne.Info` in the notebook (:gh:`9725` by `Valerii Chirkov`_ and `Eric Larson`_)
@@ -159,6 +161,8 @@ Enhancements
 
 - Add remove methods for mesh objects in :class:`mne.viz.Brain` (:gh:`9688` by `Alex Rockhill`_)
 
+- Add ``--show-paths`` and ``--developer`` options to :ref:`mne sys_info` (:gh:`9789` by `Eric Larson`_)
+
 - Add ability to export EDF+ files using :func:`mne.export.export_raw` (:gh:`9643` by `Adam Li`_)
 
 - Reading EDF files via :func:`mne.io.read_raw_edf` now can infer channel type from the signal label in the EDF header (:gh:`9694` by `Adam Li`_)
@@ -168,6 +172,8 @@ Enhancements
 - All data fetching code now relies on ``pooch``, which is an added optional requirement for dataset fetchers (:gh:`9742` by `Adam Li`_ and `Daniel McCloy`_)
 
 - Add :func:`mne.datasets.fetch_dataset` to allow packages to fetch datasets in a similar fashion to MNE (:gh:`9763` by `Adam Li`_)
+
+- Add full ECoG dataset to MNE-misc-data and demonstrate its use in :ref:`ex-electrode-pos-2d` and :ref:`tut-ieeg-localize` (:gh:`9784` by `Alex Rockhill`_)
 
 Bugs
 ~~~~

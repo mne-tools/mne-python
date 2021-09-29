@@ -200,15 +200,15 @@
 .. _pysurfer: https://pysurfer.github.io/
 .. _pyDICOM: https://pypi.python.org/pypi/pydicom/
 .. _matplotlib: https://matplotlib.org/
-.. _sphinx: http://sphinx-doc.org/
-.. _pandas: http://pandas.pydata.org/
+.. _sphinx: https://www.sphinx-doc.org/
+.. _pandas: https://pandas.pydata.org/
 .. _PIL: https://pypi.python.org/pypi/PIL
 
 .. python editors
 
 .. _atom: https://atom.io/
 .. _Spyder: https://www.spyder-ide.org/
-.. _anaconda: https://www.anaconda.com/distribution/
+.. _anaconda: https://www.anaconda.com/products/individual
 .. _miniconda: https://conda.io/en/latest/miniconda.html
 .. _miniforge: https://github.com/conda-forge/miniforge
 .. _installation instructions for Anaconda: http://docs.continuum.io/anaconda/install
@@ -223,7 +223,7 @@
 .. _NVIDIA CUDA GPU processing: https://developer.nvidia.com/cuda-zone
 .. _NVIDIA proprietary drivers: https://www.geforce.com/drivers
 
-.. _Sphinx documentation: http://sphinx-doc.org/rest.html
+.. _Sphinx documentation: https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
 .. _sphinx gallery documentation: https://sphinx-gallery.github.io
 .. _NumPy docstring standard: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 .. _Stack Overflow: https://stackoverflow.com/
