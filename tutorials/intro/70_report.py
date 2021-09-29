@@ -477,7 +477,9 @@ with mne.open_report('report_partial.hdf5') as report:
 # constructor, but we'll also pass ``render_bem=False`` to the
 # :meth:`~mne.Report.parse_folder` method — otherwise we would get a warning
 # about not being able to render MRI and ``trans`` files without knowing the
-# subject.
+# subject. To save some processing time in this tutorial, we're also going to
+# disable rendering of the butterfly plots for the `~mne.io.Raw` data by
+# passing ``raw_butterfly=False``.
 #
 # Which files are included depends on both the ``pattern`` parameter passed to
 # :meth:`~mne.Report.parse_folder` and also the ``subject`` and
@@ -494,9 +496,10 @@ report.save('report_parse_folder_basic.html', overwrite=True)
 # By default, the power spectral density and SSP projectors of the
 # :class:`~mne.io.Raw` files are not shown to speed up report generation. You
 # can add them by passing ``raw_psd=True`` and ``projs=True`` to the
-# :class:`~mne.Report` constructor. Lastly, let's also refine our pattern to
-# select only the filtered raw recording (omitting the unfiltered data and the
-# empty-room noise recordings):
+# :class:`~mne.Report` constructor. Like in the previous example, we're going
+# to omit the butterfly plots by passing ``raw_butterfly=False``. Lastly, let's
+# also refine our pattern to select only the filtered raw recording (omitting
+# the unfiltered data and the empty-room noise recordings).
 
 pattern = 'sample_audvis_filt-0-40_raw.fif'
 report = mne.Report(raw_psd=True, projs=True)
@@ -511,7 +514,7 @@ report.save('report_parse_folder_raw_psd_projs.html', overwrite=True)
 # ``render_bem=False`` parameter so we can see the MRI slices, with BEM
 # contours overlaid on top if available. Since this is computationally
 # expensive, we'll also pass the ``mri_decim`` parameter for the benefit of our
-# documentation servers, and skip processing the :file:`.fif` files:
+# documentation servers, and skip processing the :file:`.fif` files.
 
 report = mne.Report(subject='sample', subjects_dir=subjects_dir)
 report.parse_folder(data_path=data_path, pattern='', mri_decim=25)
