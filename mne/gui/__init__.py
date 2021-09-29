@@ -280,3 +280,43 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
         subjects_dir=subjects_dir, groups=groups, verbose=verbose)
     gui.show()
     return gui
+
+
+class _LocateScraper(object):
+    """Scrape locate_ieeg outputs."""
+
+    def __repr__(self):
+        return '<LocateScraper>'
+
+    def __call__(self, block, block_vars, gallery_conf):
+        from ._ieeg_locate_gui import IntracranialElectrodeLocator
+        from sphinx_gallery.scrapers import figure_rst
+        from PyQt5 import QtGui
+        for gui in block_vars['example_globals'].values():
+            if (isinstance(gui, IntracranialElectrodeLocator) and
+                    not getattr(gui, '_scraped', False) and
+                    gallery_conf['builder_name'] == 'html'):
+                gui._scraped = True  # monkey-patch but it's easy enough
+                img_fname = next(block_vars['image_path_iterator'])
+                # gui is QWindow
+                # https://doc.qt.io/qt-5/qwidget.html#grab
+                pixmap = gui.grab()
+                # Now the tricky part: we need to get the 3D renderer, extract
+                # the image from it, and put it in the correct place in the
+                # pixmap. The easiest way to do this is actually to save the
+                # 3D image first, then load it using QPixmap and Qt geometry.
+                plotter = gui._renderer.plotter
+                plotter.screenshot(img_fname)
+                sub_pixmap = QtGui.QPixmap(img_fname)
+                # https://doc.qt.io/qt-5/qwidget.html#mapTo
+                # https://doc.qt.io/qt-5/qpainter.html#drawPixmap-1
+                QtGui.QPainter(pixmap).drawPixmap(
+                    plotter.mapTo(gui, plotter.rect().topLeft()),
+                    sub_pixmap)
+                # https://doc.qt.io/qt-5/qpixmap.html#save
+                pixmap.save(img_fname)
+                gui._renderer.close()  # TODO should be triggered by close...
+                gui.close()
+                return figure_rst(
+                    [img_fname], gallery_conf['src_dir'], 'iEEG GUI')
+        return ''
