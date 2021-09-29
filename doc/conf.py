@@ -476,6 +476,7 @@ linkcheck_ignore = [  # will be compiled to regex
     'https://compumedicsneuroscan.com/scan-acquire-configuration-files.*',  # noqa SSL certificate error as of 2021/09/28
     'https://chrisholdgraf.com',  # noqa Max retries exceeded sometimes
     'https://www.dtu.dk/english/service/phonebook/person.*',  # noqa Too slow
+    'https://speakerdeck.com/dengemann/eeg-sensor-covariance-using-cross-validation',  # noqa Too slow
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
