@@ -11,7 +11,8 @@ There are several places to obtain help with MNE software tools.
   questions.
 - The :ref:`faq` page has some troubleshooting tips, and is a good source of
   general information. There are also some troubleshooting tips built into
-  :ref:`the installation page <install_python_and_mne_python>` (look for the
+  the :ref:`Python <install-python>` and
+  :ref:`MNE-Python <standard_instructions>` installation pages (look for the
   |hand-paper| symbols), and some tips related to 3D plotting problems on
   :ref:`the advanced setup page <troubleshoot_3d>`.
 - If you want to request new features or if you're confident that you have

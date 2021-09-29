@@ -12,7 +12,7 @@ from ..forward import is_fixed_orient
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
 from ..utils import (logger, verbose, _check_depth, _check_option, sum_squared,
-                     _validate_type, check_random_state)
+                     _validate_type, check_random_state, warn)
 from ..dipole import Dipole
 
 from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver, _Phi,
@@ -397,7 +397,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
            sure_alpha_grid == "auto"):
         raise ValueError('If not equal to "auto" sure_alpha_grid must be an '
                          'array. Got %s' % type(sure_alpha_grid))
-    if sure_alpha_grid != "auto" and alpha != "sure":
+    if ((isinstance(sure_alpha_grid, str) and sure_alpha_grid != "auto")
+            and (isinstance(alpha, str) and alpha != "sure")):
         raise Exception('If sure_alpha_grid is manually specified, alpha must '
                         'be "sure". Got %s' % alpha)
     pca = True
@@ -441,8 +442,9 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
 
     # Alpha selected automatically by SURE minimization
     if alpha == "sure":
-        alpha_grid = (np.geomspace(100, 10, num=15)
-                      if sure_alpha_grid == "auto" else sure_alpha_grid)
+        alpha_grid = sure_alpha_grid
+        if isinstance(sure_alpha_grid, str) and sure_alpha_grid == "auto":
+            alpha_grid = np.geomspace(100, 10, num=15)
         X, active_set, best_alpha_ = _compute_mxne_sure(
             M, gain, alpha_grid, sigma=1, random_state=random_state,
             n_mxne_iter=n_mxne_iter, maxit=maxit, tol=tol,
@@ -475,14 +477,15 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
         del active_set_tmp
 
     if active_set.sum() == 0:
-        raise Exception("No active dipoles found. alpha is too big.")
-
-    # Reapply weights to have correct unit
-    X = _reapply_source_weighting(X, source_weighting, active_set)
-    source_weighting[source_weighting == 0] = 1  # zeros
-    gain_active /= source_weighting[active_set]
-    del source_weighting
-    M_estimate = np.dot(gain_active, X)
+        warn("No active dipoles found. alpha is too big.")
+        M_estimate = np.zeros_like(M)
+    else:
+        # Reapply weights to have correct unit
+        X = _reapply_source_weighting(X, source_weighting, active_set)
+        source_weighting[source_weighting == 0] = 1  # zeros
+        gain_active /= source_weighting[active_set]
+        del source_weighting
+        M_estimate = np.dot(gain_active, X)
 
     outs = list()
     residual = list()

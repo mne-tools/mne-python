@@ -8,12 +8,21 @@ Creating epochs of equal length
 This tutorial shows how to create equal length epochs and briefly demonstrates
 an example of their use in connectivity analysis.
 
-First, we import necessary modules and read in a sample raw
-data set. This data set contains brain activity that is event-related, i.e.
+First, we import necessary modules and read in a sample raw data set.
+This data set contains brain activity that is event-related, i.e.,
 synchronized to the onset of auditory stimuli. However, rather than creating
 epochs by segmenting the data around the onset of each stimulus, we will
 create 30 second epochs that allow us to perform non-event-related analyses of
 the signal.
+
+.. note::
+    Starting in version 0.25, all functions in the ``mne.connectivity``
+    sub-module will be housed in a separate package called
+    :mod:`mne-connectivity <mne_connectivity>`. Download it by  running:
+
+    .. code-block:: console
+
+        $ pip install mne-connectivity
 """
 
 # %%
@@ -23,6 +32,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import mne
 from mne.preprocessing import compute_proj_ecg
+from mne_connectivity import envelope_correlation
 
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
@@ -87,10 +97,11 @@ alpha_data = epochs.get_data()
 
 # %%
 # If desired, separate correlation matrices for each epoch can be obtained.
-# For envelope correlations, this is done by passing ``combine=None`` to the
-# envelope correlations function.
+# For envelope correlations, this is the default return if you use
+# :meth:`mne-connectivity:mne_connectivity.EpochConnectivity.get_data`:
 
-corr_matrix = mne.connectivity.envelope_correlation(alpha_data, combine=None)
+corr_matrix = envelope_correlation(alpha_data).get_data()
+print(corr_matrix.shape)
 
 # %%
 # Now we can plot correlation matrices. We'll compare the first and last

@@ -26,6 +26,7 @@
 .. _`MNE-MATLAB git repository`: https://github.com/mne-tools/mne-matlab
 .. _`MNE-Docker`: https://github.com/mne-tools/mne-docker
 .. _EOSS2: https://chanzuckerberg.com/eoss/proposals/improving-usability-of-core-neuroscience-analysis-tools-with-mne-python
+.. _EOSS4: https://chanzuckerberg.com/eoss/proposals/building-pediatric-and-clinical-data-pipelines-for-mne-python/
 .. _`code of conduct`: https://github.com/mne-tools/.github/blob/main/CODE_OF_CONDUCT.md
 
 
@@ -199,16 +200,17 @@
 .. _pysurfer: https://pysurfer.github.io/
 .. _pyDICOM: https://pypi.python.org/pypi/pydicom/
 .. _matplotlib: https://matplotlib.org/
-.. _sphinx: http://sphinx-doc.org/
-.. _pandas: http://pandas.pydata.org/
+.. _sphinx: https://www.sphinx-doc.org/
+.. _pandas: https://pandas.pydata.org/
 .. _PIL: https://pypi.python.org/pypi/PIL
 
 .. python editors
 
 .. _atom: https://atom.io/
 .. _Spyder: https://www.spyder-ide.org/
-.. _anaconda: https://www.anaconda.com/distribution/
+.. _anaconda: https://www.anaconda.com/products/individual
 .. _miniconda: https://conda.io/en/latest/miniconda.html
+.. _miniforge: https://github.com/conda-forge/miniforge
 .. _installation instructions for Anaconda: http://docs.continuum.io/anaconda/install
 .. _installation instructions for Miniconda: https://conda.io/projects/conda/en/latest/user-guide/install/index.html
 .. _Anaconda troubleshooting guide: http://conda.pydata.org/docs/troubleshooting.html
@@ -221,7 +223,7 @@
 .. _NVIDIA CUDA GPU processing: https://developer.nvidia.com/cuda-zone
 .. _NVIDIA proprietary drivers: https://www.geforce.com/drivers
 
-.. _Sphinx documentation: http://sphinx-doc.org/rest.html
+.. _Sphinx documentation: https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
 .. _sphinx gallery documentation: https://sphinx-gallery.github.io
 .. _NumPy docstring standard: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 .. _Stack Overflow: https://stackoverflow.com/

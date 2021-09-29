@@ -33,7 +33,8 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _plot_masked_image, _trim_ticks, _set_window_title,
                     _prop_kw)
 from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
-                     _check_if_nan, _check_ch_locs, fill_doc, _is_numeric)
+                     _check_if_nan, _check_ch_locs, fill_doc, _is_numeric,
+                     _to_rgb)
 
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topomap_plot, plot_topomap, _get_pos_outlines,
@@ -848,13 +849,11 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
     fig : instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations.
     """
-    from matplotlib.colors import colorConverter
-
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
 
-    dark_background = \
-        np.mean(colorConverter.to_rgb(background_color)) < 0.5
+    background_color = _to_rgb(background_color, name='background_color')
+    dark_background = np.mean(background_color) < 0.5
     if dark_background:
         fig_facecolor = background_color
         axis_facecolor = background_color
@@ -2361,9 +2360,11 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         ci_dict = dict()
         for cond in conditions:
             this_evokeds = evokeds[cond]
-            # skip CIs when possible; assign ci_fun first to get arg checking
+            # assign ci_fun first to get arg checking
             ci_fun = _get_ci_function_pce(ci, do_topo=do_topo)
-            ci_fun = ci_fun if len(this_evokeds) > 1 else None
+            # for bootstrap or parametric CIs, skip when only 1 observation
+            if not callable(ci):
+                ci_fun = ci_fun if len(this_evokeds) > 1 else None
             res = _get_data_and_ci(this_evokeds, combine, c_func, picks=_picks,
                                    scaling=scalings, ci_fun=ci_fun)
             data_dict[cond] = res[0]

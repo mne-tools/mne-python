@@ -55,7 +55,7 @@ Changelog
 
 - Butterfly channel plots now possible for :meth:`mne.Epochs.plot_psd` with ``average=False``. Infrastructure for this function now shared with analogous Raw function, found in ``mne.viz.utils`` by `Jeff Hanna`_
 
-- Add option not to orthogonalize power envelopes with ``orthogonalize=False`` in :func:`mne.connectivity.envelope_correlation` by `Denis Engemann`_
+- Add option not to orthogonalize power envelopes with ``orthogonalize=False`` in ``mne.connectivity.envelope_correlation`` by `Denis Engemann`_
 
 - Accept filenames of raw .fif files that end in ``_meg.fif`` to enable complicance with the Brain Imaging Data Structure by `Stefan Appelhoff`_
 

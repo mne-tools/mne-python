@@ -51,7 +51,9 @@ DEFAULTS = dict(
                 fnirs_fd_ac_amplitude='fNIRS (FD AC amplitude)',
                 fnirs_fd_phase='fNIRS (FD phase)',
                 fnirs_od='fNIRS (OD)', hbr='Deoxyhemoglobin',
-                gof='Goodness of fit', csd='Current source density'),
+                gof='Goodness of fit', csd='Current source density',
+                stim='Stimulus',
+                ),
     mask_params=dict(marker='o',
                      markerfacecolor='w',
                      markeredgecolor='k',
@@ -77,6 +79,8 @@ DEFAULTS = dict(
         head_color=(0.988, 0.89, 0.74),
         hpi_color=(1., 0., 1.),
         extra_color=(1., 1., 1.),
+        meg_color=(0., 0.25, 0.5), ref_meg_color=(0.5, 0.5, 0.5),
+        helmet_color=(0.0, 0.0, 0.6),
         eeg_color=(1., 0.596, 0.588), eegp_color=(0.839, 0.15, 0.16),
         ecog_color=(1., 1., 1.),
         dbs_color=(0.82, 0.455, 0.659),
@@ -103,10 +107,10 @@ DEFAULTS = dict(
     transform_zooms=dict(
         translation=None, rigid=None, affine=None, sdr=None),
     transform_niter=dict(
-        translation=(100, 100, 10),
-        rigid=(100, 100, 10),
-        affine=(100, 100, 10),
-        sdr=(5, 5, 3)),
+        translation=(10000, 1000, 100),
+        rigid=(10000, 1000, 100),
+        affine=(10000, 1000, 100),
+        sdr=(10, 10, 5)),
     volume_label_indices=(
         # Left and middle
         4,  # Left-Lateral-Ventricle

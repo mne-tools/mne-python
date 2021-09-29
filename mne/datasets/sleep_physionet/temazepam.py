@@ -16,8 +16,8 @@ BASE_URL = 'https://physionet.org/physiobank/database/sleep-edfx/sleep-telemetry
 
 
 @verbose
-def fetch_data(subjects, *, path=None, force_update=False,
-               update_path=None, base_url=BASE_URL, verbose=None):
+def fetch_data(subjects, *, path=None, force_update=False, base_url=BASE_URL,
+               verbose=None):
     """Get paths to local copies of PhysioNet Polysomnography dataset files.
 
     This will fetch data from the publicly available subjects from PhysioNet's
@@ -36,15 +36,12 @@ def fetch_data(subjects, *, path=None, force_update=False,
     path : None | str
         Location of where to look for the PhysioNet data storing location.
         If None, the environment variable or config parameter
-        ``MNE_DATASETS_PHYSIONET_SLEEP_PATH`` is used. If it doesn't exist,
-        the "~/mne_data" directory is used. If the Polysomnography dataset
-        is not found under the given path, the data
-        will be automatically downloaded to the specified folder.
+        ``PHYSIONET_SLEEP_PATH`` is used. If it doesn't exist, the "~/mne_data"
+        directory is used. If the Polysomnography dataset is not found under
+        the given path, the data will be automatically downloaded to the
+        specified folder.
     force_update : bool
         Force update of the dataset even if a local copy exists.
-    update_path : bool | None
-        If True, set the MNE_DATASETS_EEGBCI_PATH in mne-python
-        config to the given path. If None, the user is prompted.
     base_url : str
         The base URL to download from.
     %(verbose)s
@@ -83,7 +80,7 @@ def fetch_data(subjects, *, path=None, force_update=False,
 
     _check_subjects(subjects, 22)
 
-    path = data_path(path=path, update_path=update_path)
+    path = data_path(path=path)
     params = [path, force_update, base_url]
 
     fnames = []

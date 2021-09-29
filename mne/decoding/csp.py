@@ -308,15 +308,8 @@ class CSP(TransformerMixin, BaseEstimator):
             only significant sensors will be shown.
         title : str | None
             Title. If None (default), no title is displayed.
-        mask : ndarray of bool, shape (n_channels, n_times) | None
-            The channels to be marked as significant at a given time point.
-            Indices set to `True` will be considered. Defaults to None.
-        mask_params : dict | None
-            Additional plotting parameters for plotting significant sensors.
-            Default (None) equals::
-
-                dict(marker='o', markerfacecolor='w', markeredgecolor='k',
-                     linewidth=0, markersize=4)
+        %(patterns_topomap_mask)s
+        %(topomap_mask_params)s
         %(topomap_outlines)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be

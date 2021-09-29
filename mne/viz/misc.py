@@ -23,8 +23,8 @@ from collections import defaultdict
 import numpy as np
 
 from ..defaults import DEFAULTS
-from ..fixes import _get_img_fdata
-from .._freesurfer import _mri_orientation, _read_mri_info, _check_mri
+from .._freesurfer import (_reorient_image, _read_mri_info, _check_mri,
+                           _mri_orientation)
 from ..rank import compute_rank
 from ..surface import read_surface
 from ..io.constants import FIFF
@@ -32,7 +32,7 @@ from ..io.proj import make_projector
 from ..io.pick import (_DATA_CH_TYPES_SPLIT, pick_types, pick_info,
                        pick_channels)
 from ..source_space import read_source_spaces, SourceSpaces, _ensure_src
-from ..transforms import invert_transform, apply_trans, _frame_to_str
+from ..transforms import apply_trans, _frame_to_str
 from ..utils import (logger, verbose, warn, _check_option, get_subjects_dir,
                      _mask_to_onsets_offsets, _pl, _on_missing, fill_doc)
 from ..io.pick import _picks_by_type
@@ -313,20 +313,14 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     _check_option('orientation', orientation, ('coronal', 'axial', 'sagittal'))
 
     # Load the T1 data
-    _, vox_mri_t, _, _, _, nim = _read_mri_info(
+    _, _, _, _, _, nim = _read_mri_info(
         mri_fname, units='mm', return_img=True)
-    mri_vox_t = invert_transform(vox_mri_t)['trans']
-    del vox_mri_t
 
-    # plot axes (x, y, z) as data axes
-    (x, y, z), (flip_x, flip_y, flip_z), order = _mri_orientation(
-        nim, orientation)
-    transpose = x < y
+    data, rasvox_mri_t = _reorient_image(nim)
+    mri_rasvox_t = np.linalg.inv(rasvox_mri_t)
+    axis, x, y = _mri_orientation(orientation)
 
-    data = _get_img_fdata(nim)
-    shift_x = data.shape[x] if flip_x < 0 else 0
-    shift_y = data.shape[y] if flip_y < 0 else 0
-    n_slices = data.shape[z]
+    n_slices = data.shape[axis]
     if slices is None:
         slices = np.round(np.linspace(0, n_slices - 1, 14)).astype(int)[1:-1]
     slices = np.atleast_1d(slices).copy()
@@ -337,9 +331,6 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         raise ValueError('slices must be a sorted 1D array of int with unique '
                          'elements, at least one element, and no elements '
                          'greater than %d, got %s' % (n_slices - 1, slices))
-    if flip_z < 0:
-        # Proceed in the opposite order to maintain left-to-right / orientation
-        slices = slices[::-1]
 
     # create of list of surfaces
     surfs = list()
@@ -347,7 +338,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         surf = dict()
         surf['rr'], surf['tris'] = read_surface(file_name)
         # move surface to voxel coordinate system
-        surf['rr'] = apply_trans(mri_vox_t, surf['rr'])
+        surf['rr'] = apply_trans(mri_rasvox_t, surf['rr'])
         surfs.append((surf, color))
 
     sources = list()
@@ -360,7 +351,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
                 f'{_frame_to_str[src[0]["coord_frame"]]}')
         for src_ in src:
             points = src_['rr'][src_['inuse'].astype(bool)]
-            sources.append(apply_trans(mri_vox_t, points * 1e3))
+            sources.append(apply_trans(mri_rasvox_t, points * 1e3))
         sources = np.concatenate(sources, axis=0)
 
     if img_output:
@@ -384,17 +375,15 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         [[-np.inf], slices[:-1] + np.diff(slices) / 2., [np.inf]])  # float
     slicer = [slice(None)] * 3
     ori_labels = dict(R='LR', A='PA', S='IS')
-    xlabels, ylabels = ori_labels[order[0]], ori_labels[order[1]]
+    xlabels, ylabels = ori_labels['RAS'[x]], ori_labels['RAS'[y]]
     path_effects = [patheffects.withStroke(linewidth=4, foreground="k",
                                            alpha=0.75)]
     out = list() if img_output else fig
     for ai, (ax, sl, lower, upper) in enumerate(zip(
             axs, slices, bounds[:-1], bounds[1:])):
         # adjust the orientations for good view
-        slicer[z] = sl
-        dat = data[tuple(slicer)]
-        dat = dat.T if transpose else dat
-        dat = dat[::flip_y, ::flip_x]
+        slicer[axis] = sl
+        dat = data[tuple(slicer)].T
 
         # First plot the anatomical data
         if img_output:
@@ -408,16 +397,14 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         for surf, color in surfs:
             with warnings.catch_warnings(record=True):  # ignore contour warn
                 warnings.simplefilter('ignore')
-                ax.tricontour(flip_x * surf['rr'][:, x] + shift_x,
-                              flip_y * surf['rr'][:, y] + shift_y,
-                              surf['tris'], surf['rr'][:, z],
+                ax.tricontour(surf['rr'][:, x], surf['rr'][:, y],
+                              surf['tris'], surf['rr'][:, axis],
                               levels=[sl], colors=color, linewidths=1.0,
                               zorder=1)
 
         if len(sources):
-            in_slice = (sources[:, z] >= lower) & (sources[:, z] < upper)
-            ax.scatter(flip_x * sources[in_slice, x] + shift_x,
-                       flip_y * sources[in_slice, y] + shift_y,
+            in_slice = (sources[:, axis] >= lower) & (sources[:, axis] < upper)
+            ax.scatter(sources[in_slice, x], sources[in_slice, y],
                        marker='.', color='#FF00FF', s=1, zorder=2)
         if show_indices:
             ax.text(dat.shape[1] // 8 + 0.5, 0.5, str(sl),
@@ -448,7 +435,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     fig.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
                         hspace=0.)
     plt_show(show, fig=fig)
-    return out, flip_z
+    return out
 
 
 def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
@@ -526,7 +513,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     bem_path = op.join(subjects_dir, subject, 'bem')
 
     if not op.isdir(bem_path):
-        raise IOError('Subject bem directory "%s" does not exist' % bem_path)
+        raise IOError(f'Subject bem directory "{bem_path}" does not exist')
 
     surfaces = _get_bem_plotting_surfaces(bem_path)
     if brain_surfaces is not None:
@@ -559,7 +546,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
 
     # Plot the contours
     return _plot_mri_contours(mri_fname, surfaces, src, orientation, slices,
-                              show, show_indices, show_orientation)[0]
+                              show, show_indices, show_orientation)
 
 
 def _get_bem_plotting_surfaces(bem_path):

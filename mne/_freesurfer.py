@@ -9,13 +9,14 @@ import os.path as op
 import numpy as np
 from gzip import GzipFile
 
+from .bem import _bem_find_surface, read_bem_surfaces
 from .io.constants import FIFF
 from .io.meas_info import read_fiducials
 from .transforms import (apply_trans, invert_transform, combine_transforms,
                          _ensure_trans, read_ras_mni_t, Transform)
-from .surface import read_surface
+from .surface import read_surface, _read_mri_surface
 from .utils import (verbose, _validate_type, _check_fname, _check_option,
-                    get_subjects_dir, _require_version)
+                    get_subjects_dir, _require_version, logger)
 
 
 def _check_subject_dir(subject, subjects_dir):
@@ -27,7 +28,7 @@ def _check_subject_dir(subject, subjects_dir):
             raise ValueError('Freesurfer recon-all subject folder '
                              'is incorrect or improperly formatted, '
                              f'got {op.join(subjects_dir, subject)}')
-    return subjects_dir
+    return op.join(subjects_dir, subject)
 
 
 def _get_aseg(aseg, subject, subjects_dir):
@@ -57,44 +58,68 @@ def _import_nibabel(why='use MRI files'):
     return nib
 
 
-def _mri_orientation(img, orientation):
-    """Get MRI orientation information from an image.
+def _reorient_image(img, axcodes='RAS'):
+    """Reorient an image to a given orientation.
 
     Parameters
     ----------
     img : instance of SpatialImage
         The MRI image.
+    axcodes : tuple | str
+        The axis codes specifying the orientation, e.g. "RAS".
+        See :func:`nibabel.orientations.aff2axcodes`.
+
+    Returns
+    -------
+    img_data : ndarray
+        The reoriented image data.
+    vox_ras_t : ndarray
+        The new transform from the new voxels to surface RAS.
+
+    Notes
+    -----
+    .. versionadded:: 0.24
+    """
+    import nibabel as nib
+    orig_data = np.array(img.dataobj).astype(np.float32)
+    # reorient data to RAS
+    ornt = nib.orientations.axcodes2ornt(
+        nib.orientations.aff2axcodes(img.affine)).astype(int)
+    ras_ornt = nib.orientations.axcodes2ornt(axcodes)
+    ornt_trans = nib.orientations.ornt_transform(ornt, ras_ornt)
+    img_data = nib.orientations.apply_orientation(orig_data, ornt_trans)
+    orig_mgh = nib.MGHImage(orig_data, img.affine)
+    aff_trans = nib.orientations.inv_ornt_aff(ornt_trans, img.shape)
+    vox_ras_t = np.dot(orig_mgh.header.get_vox2ras_tkr(), aff_trans)
+    return img_data, vox_ras_t
+
+
+def _mri_orientation(orientation):
+    """Get MRI orientation information from an image.
+
+    Parameters
+    ----------
     orientation : str
         Orientation that you want. Can be "axial", "saggital", or "coronal".
 
     Returns
     -------
-    xyz : tuple, shape (3,)
-        The dimension indices for X, Y, and Z.
-    flips : tuple, shape (3,)
-        Whether each dimension requires a flip.
-    order : tuple, shape (3,)
-        The resulting order of the data if the given ``xyz`` and ``flips``
-        are used.
+    axis : int
+        The dimension of the axis to take slices over when plotting.
+    x : int
+        The dimension of the x axis.
+    y : int
+        The dimension of the y axis.
 
     Notes
     -----
     .. versionadded:: 0.21
+    .. versionchanged:: 0.24
     """
-    import nibabel as nib
-    _validate_type(img, nib.spatialimages.SpatialImage)
     _check_option('orientation', orientation, ('coronal', 'axial', 'sagittal'))
-    axcodes = ''.join(nib.orientations.aff2axcodes(img.affine))
-    flips = {o: (1 if o in axcodes else -1) for o in 'RAS'}
-    axcodes = axcodes.replace('L', 'R').replace('P', 'A').replace('I', 'S')
-    order = dict(
-        coronal=('R', 'S', 'A'),
-        axial=('R', 'A', 'S'),
-        sagittal=('A', 'S', 'R'),
-    )[orientation]
-    xyz = tuple(axcodes.index(c) for c in order)
-    flips = tuple(flips[c] for c in order)
-    return xyz, flips, order
+    axis = dict(coronal=1, axial=2, sagittal=0)[orientation]
+    x, y = sorted(set([0, 1, 2]).difference(set([axis])))
+    return axis, x, y
 
 
 def _get_mri_info_data(mri, data):
@@ -377,7 +402,7 @@ def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
 
     For more details about the coordinate systems and transformations involved,
     see https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems and
-    :ref:`plot_source_alignment`.
+    :ref:`tut-source-alignment`.
     """
     # Eventually we might want to allow using the MNI Talairach with-skull
     # transformation rather than the standard brain-based MNI Talaranch
@@ -395,6 +420,47 @@ def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
     for f in fids:
         f['r'] = apply_trans(mni_mri_t, f['r'])
     return fids
+
+
+@verbose
+def estimate_head_mri_t(subject, subjects_dir=None, verbose=None):
+    """Estimate the head->mri transform from fsaverage fiducials.
+
+    A subject's fiducials can be estimated given a Freesurfer ``recon-all``
+    by transforming ``fsaverage`` fiducials using the inverse Talairach
+    transform, see :func:`mne.coreg.get_mni_fiducials`.
+
+    Parameters
+    ----------
+    %(subject)s
+    %(subjects_dir)s
+    %(verbose)s
+
+    Returns
+    -------
+    %(trans_not_none)s
+    """
+    from .channels.montage import make_dig_montage, compute_native_head_t
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    lpa, nasion, rpa = get_mni_fiducials(subject, subjects_dir)
+    montage = make_dig_montage(lpa=lpa['r'], nasion=nasion['r'], rpa=rpa['r'],
+                               coord_frame='mri')
+    return invert_transform(compute_native_head_t(montage))
+
+
+def _ensure_image_in_surface_RAS(image, subject, subjects_dir):
+    """Check if the image is in Freesurfer surface RAS space."""
+    import nibabel as nib
+    if not isinstance(image, nib.spatialimages.SpatialImage):
+        image = nib.load(image)
+    image = nib.MGHImage(image.dataobj.astype(np.float32), image.affine)
+    fs_img = nib.load(op.join(subjects_dir, subject, 'mri', 'brain.mgz'))
+    if not np.allclose(image.affine, fs_img.affine, atol=1e-6):
+        raise RuntimeError('The `image` is not aligned to Freesurfer '
+                           'surface RAS space. This space is required as '
+                           'it is the space where the anatomical '
+                           'segmentation and reconstructed surfaces are')
+    return image  # returns MGH image for header
 
 
 @verbose
@@ -436,15 +502,22 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
 
 
 def _check_mri(mri, subject, subjects_dir):
+    """Check whether an mri exists in the Freesurfer subject directory."""
     _validate_type(mri, 'path-like', 'mri')
+    if op.isfile(mri) and op.basename(mri) != mri:
+        return mri
     if not op.isfile(mri):
         if subject is None:
             raise FileNotFoundError(
-                'MRI file %r not found and no subject provided' % (mri,))
+                f'MRI file {mri!r} not found and no subject provided')
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         mri = op.join(subjects_dir, subject, 'mri', mri)
         if not op.isfile(mri):
-            raise FileNotFoundError('MRI file %r not found' % (mri,))
+            raise FileNotFoundError(f'MRI file {mri!r} not found')
+    if op.basename(mri) == mri:
+        err = (f'Ambiguous filename - found {mri!r} in current folder.\n'
+               'If this is correct prefix name with relative or absolute path')
+        raise IOError(err)
     return mri
 
 
@@ -537,3 +610,106 @@ def _get_lut(fname=None):
     lut = {d[0]: np.array(lut[d[0]], dtype=d[1]) for d in dtype}
     assert len(lut['name']) > 0
     return lut
+
+
+@verbose
+def _get_head_surface(surf, subject, subjects_dir, bem=None, verbose=None):
+    """Get a head surface from the Freesurfer subject directory.
+
+    Parameters
+    ----------
+    surf : str
+        The name of the surface 'auto', 'head', 'outer_skin', 'head-dense'
+        or 'seghead'.
+    %(subject)s
+    %(subjects_dir)s
+    bem : mne.bem.ConductorModel | None
+        The conductor model that stores information about the head surface.
+    %(verbose)s
+
+    Returns
+    -------
+    head_surf : dict | None
+        A dictionary with keys 'rr', 'tris', 'ntri', 'use_tris', 'np'
+        and 'coord_frame' that store information for mesh plotting and other
+        useful information about the head surface.
+
+    Notes
+    -----
+    .. versionadded: 0.24
+    """
+    _check_option(
+        'surf', surf, ('auto', 'head', 'outer_skin', 'head-dense', 'seghead'))
+    if surf in ('auto', 'head', 'outer_skin'):
+        if bem is not None:
+            try:
+                return _bem_find_surface(bem, 'head')
+            except RuntimeError:
+                logger.info('Could not find the surface for '
+                            'head in the provided BEM model, '
+                            'looking in the subject directory.')
+    if subject is None:
+        if surf == 'auto':
+            return
+        raise ValueError('To plot the head surface, the BEM/sphere'
+                         ' model must contain a head surface '
+                         'or "subject" must be provided (got '
+                         'None)')
+    subject_dir = op.join(
+        get_subjects_dir(subjects_dir, raise_error=True), subject)
+    if surf in ('head-dense', 'seghead'):
+        try_fnames = [op.join(subject_dir, 'bem', f'{subject}-head-dense.fif'),
+                      op.join(subject_dir, 'surf', 'lh.seghead')]
+    else:
+        try_fnames = [op.join(subject_dir, 'bem', 'outer_skin.surf'),
+                      op.join(subject_dir, 'bem', 'flash', 'outer_skin.surf'),
+                      op.join(subject_dir, 'bem', f'{subject}-head.fif')]
+    for fname in try_fnames:
+        if op.exists(fname):
+            logger.info(f'Using {op.basename(fname)} for head surface.')
+            if op.splitext(fname)[-1] == '.fif':
+                return read_bem_surfaces(fname, on_defects='warn')[0]
+            else:
+                return _read_mri_surface(fname)
+    raise IOError('No head surface found for subject '
+                  f'{subject} after trying:\n' + '\n'.join(try_fnames))
+
+
+@verbose
+def _get_skull_surface(surf, subject, subjects_dir, bem=None, verbose=None):
+    """Get a skull surface from the Freesurfer subject directory.
+
+    Parameters
+    ----------
+    surf : str
+        The name of the surface 'outer' or 'inner'.
+    %(subject)s
+    %(subjects_dir)s
+    bem : mne.bem.ConductorModel | None
+        The conductor model that stores information about the skull surface.
+    %(verbose)s
+
+    Returns
+    -------
+    skull_surf : dict | None
+        A dictionary with keys 'rr', 'tris', 'ntri', 'use_tris', 'np'
+        and 'coord_frame' that store information for mesh plotting and other
+        useful information about the head surface.
+
+    Notes
+    -----
+    .. versionadded: 0.24
+    """
+    if bem is not None:
+        try:
+            return _bem_find_surface(bem, surf + '_skull')
+        except RuntimeError:
+            logger.info('Could not find the surface for '
+                        'skull in the provided BEM model, '
+                        'looking in the subject directory.')
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    fname = _check_fname(op.join(subjects_dir, subject, 'bem',
+                                 surf + '_skull.surf'),
+                         overwrite='read', must_exist=True,
+                         name=f'{surf} skull surface')
+    return _read_mri_surface(fname)

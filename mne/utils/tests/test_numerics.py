@@ -297,7 +297,7 @@ def test_object_size():
                               (0, 150, np.ones(0)),
                               (0, 150, np.int32(1)),
                               (150, 500, np.ones(20)),
-                              (100, 400, dict()),
+                              (30, 400, dict()),
                               (400, 1000, dict(a=np.ones(50))),
                               (200, 900, sparse.eye(20, format='csc')),
                               (200, 900, sparse.eye(20, format='csr'))):

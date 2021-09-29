@@ -5,6 +5,7 @@
 
 import os.path as op
 import itertools as itt
+import sys
 
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal, assert_allclose)
@@ -56,6 +57,7 @@ def test_compute_whitener(proj, pca):
         raw.del_proj()
     with pytest.warns(RuntimeWarning, match='Too few samples'):
         cov = compute_raw_covariance(raw)
+    assert cov['names'] == raw.ch_names
     W, _, C = compute_whitener(cov, raw.info, pca=pca, return_colorer=True,
                                verbose='error')
     n_channels = len(raw.ch_names)
@@ -74,6 +76,26 @@ def test_compute_whitener(proj, pca):
     else:
         assert pca is False
         assert_allclose(round_trip, np.eye(n_channels), atol=0.05)
+
+    raw.info['bads'] = [raw.ch_names[0]]
+    picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
+        cov2 = compute_raw_covariance(raw, picks=picks)
+        cov3 = compute_raw_covariance(raw, picks=None)
+    assert_allclose(cov2['data'][1:, 1:], cov3['data'])
+    W2, _, C2 = compute_whitener(cov2, raw.info, pca=pca, return_colorer=True,
+                                 picks=picks, verbose='error')
+    W3, _, C3 = compute_whitener(cov3, raw.info, pca=pca, return_colorer=True,
+                                 picks=None, verbose='error')
+    # this tol is not great, but Windows needs it
+    rtol = 1e-3 if sys.platform.startswith('win') else 1e-11
+    assert_allclose(W, W2, rtol=rtol)
+    assert_allclose(C, C2, rtol=rtol)
+    n_channels = len(raw.ch_names) - len(raw.info['bads'])
+    n_reduced = len(raw.ch_names) - len(raw.info['bads'])
+    rank = n_channels - len(raw.info['projs'])
+    n_reduced = rank if pca is True else n_channels
+    assert W3.shape == C3.shape[::-1] == (n_reduced, n_channels)
 
 
 def test_cov_mismatch():

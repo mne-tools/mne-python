@@ -364,6 +364,10 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
 
     sel = edf_info['sel']  # selection of channels not excluded
     ch_names = edf_info['ch_names']  # of length len(sel)
+    if 'ch_types' in edf_info:
+        ch_types = edf_info['ch_types']  # of length len(sel)
+    else:
+        ch_types = [None] * len(sel)
     n_samps = edf_info['n_samps'][sel]
     nchan = edf_info['nchan']
     physical_ranges = edf_info['physical_max'] - edf_info['physical_min']
@@ -384,6 +388,22 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     chs = list()
     pick_mask = np.ones(len(ch_names))
 
+    # common channel type names mapped to internal ch types
+    ch_type_mapping = {
+        'EEG': FIFF.FIFFV_EEG_CH,
+        'SEEG': FIFF.FIFFV_SEEG_CH,
+        'ECOG': FIFF.FIFFV_ECOG_CH,
+        'DBS': FIFF.FIFFV_DBS_CH,
+        'EOG': FIFF.FIFFV_EOG_CH,
+        'ECG': FIFF.FIFFV_ECG_CH,
+        'EMG': FIFF.FIFFV_EMG_CH,
+        'BIO': FIFF.FIFFV_BIO_CH,
+        'RESP': FIFF.FIFFV_RESP_CH,
+        'MISC': FIFF.FIFFV_MISC_CH,
+        'SAO2': FIFF.FIFFV_BIO_CH,
+    }
+    chs_without_types = list()
+
     for idx, ch_name in enumerate(ch_names):
         chan_info = {}
         chan_info['cal'] = 1.
@@ -396,7 +416,19 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
         chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
         chan_info['kind'] = FIFF.FIFFV_EEG_CH
-        chan_info['loc'] = np.zeros(12)
+        # montage can't be stored in EDF so channel locs are unknown:
+        chan_info['loc'] = np.full(12, np.nan)
+
+        # if the edf info contained channel type information
+        # set it now
+        ch_type = ch_types[idx]
+        if ch_type is not None and ch_type in ch_type_mapping:
+            chan_info['kind'] = ch_type_mapping.get(ch_type)
+            if ch_type not in ['EEG', 'ECOG', 'SEEG', 'DBS']:
+                chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+                pick_mask[idx] = False
+        # if user passes in explicit mapping for eog, misc and stim
+        # channels set them here
         if ch_name in eog or idx in eog or idx - nchan in eog:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_EOG_CH
@@ -413,7 +445,15 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             chan_info['ch_name'] = ch_name
             ch_names[idx] = chan_info['ch_name']
             edf_info['units'][idx] = 1
+        elif ch_type not in ch_type_mapping:
+            chs_without_types.append(ch_name)
         chs.append(chan_info)
+
+    # warn if channel type was not inferable
+    if len(chs_without_types):
+        msg = ('Could not determine channel type of the following channels, '
+               f'they will be set as EEG:\n{", ".join(chs_without_types)}')
+        logger.info(msg)
 
     edf_info['stim_channel_idxs'] = stim_channel_idxs
 
@@ -602,7 +642,33 @@ def _read_edf_header(fname, exclude):
 
         nchan = int(_edf_str(fid.read(4)))
         channels = list(range(nchan))
-        ch_names = [fid.read(16).strip().decode('latin-1') for ch in channels]
+
+        # read in 16 byte labels and strip any extra spaces at the end
+        ch_labels = [fid.read(16).strip().decode('latin-1')
+                     for ch in channels]
+
+        # get channel names and optionally channel type
+        # EDF specification contains 16 bytes that encode channel names,
+        # optionally prefixed by a string representing channel type separated
+        # by a space
+        ch_names = []
+        ch_types = []
+        for ch_idx, this_label in enumerate(ch_labels):
+            # if no channel type, then we will default to eeg
+            ch_type = None
+            ch_name = this_label
+
+            # space is found, so the prefix is the channel type. 'Annotations'
+            # is also a keyword we search for
+            if (this_label.count(' ') == 1) and \
+                    ('Annotations' not in this_label):
+                ch_type, ch_name = this_label.split(' ')
+
+                # channel types should be upper case for easy comparison
+                ch_type = ch_type.upper()
+
+            ch_names.append(ch_name)
+            ch_types.append(ch_type)
         exclude = _find_exclude_idx(ch_names, exclude)
         tal_idx = _find_tal_idx(ch_names)
         exclude = np.concatenate([exclude, tal_idx])
@@ -646,7 +712,7 @@ def _read_edf_header(fname, exclude):
 
         # Populate edf_info
         edf_info.update(
-            ch_names=ch_names, data_offset=header_nbytes,
+            ch_names=ch_names, ch_types=ch_types, data_offset=header_nbytes,
             digital_max=digital_max, digital_min=digital_min,
             highpass=highpass, sel=sel, lowpass=lowpass, meas_date=meas_date,
             n_records=n_records, n_samps=n_samps, nchan=nchan,
@@ -1201,6 +1267,7 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
     --------
     mne.io.read_raw_bdf : Reader function for BDF files.
     mne.io.read_raw_gdf : Reader function for GDF files.
+    mne.export.export_raw : Export function for EDF files.
 
     Notes
     -----
@@ -1218,6 +1285,31 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
     If channels named 'status' or 'trigger' are present, they are considered as
     STIM channels by default. Use func:`mne.find_events` to parse events
     encoded in such analog stim channels.
+
+    The EDF specification allows optional storage of channel types in the
+    prefix of the signal label for each channel. For example, ``EEG Fz``
+    implies that ``Fz`` is an EEG channel and ``MISC E`` would imply ``E`` is
+    a MISC channel. However, there is no standard way of specifying all
+    channel types. MNE-Python will try to infer the channel type, when such a
+    string exists, defaulting to EEG, when there is no prefix or the prefix is
+    not recognized.
+
+    The following prefix strings are mapped to MNE internal types:
+
+        - 'EEG': 'eeg'
+        - 'SEEG': 'seeg'
+        - 'ECOG': 'ecog'
+        - 'DBS': 'dbs'
+        - 'EOG': 'eog'
+        - 'ECG': 'ecg'
+        - 'EMG': 'emg'
+        - 'BIO': 'bio'
+        - 'RESP': 'resp'
+        - 'MISC': 'misc'
+        - 'SAO2': 'bio'
+
+    The EDF specification allows storage of subseconds in measurement date.
+    However, this reader currently sets subseconds to 0 by default.
     """
     input_fname = os.path.abspath(input_fname)
     ext = os.path.splitext(input_fname)[1][1:].lower()

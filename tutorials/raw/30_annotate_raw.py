@@ -237,7 +237,7 @@ print(later_annot[0]['onset'])
 # provide). There is a corresponding :func:`~mne.read_annotations` function to
 # load them from disk:
 
-raw.annotations.save('saved-annotations.csv')
+raw.annotations.save('saved-annotations.csv', overwrite=True)
 annot_from_file = mne.read_annotations('saved-annotations.csv')
 print(annot_from_file)
 

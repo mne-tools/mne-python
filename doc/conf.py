@@ -8,6 +8,7 @@
 
 import gc
 import os
+import subprocess
 import sys
 import time
 import warnings
@@ -60,11 +61,10 @@ if os.getenv('MNE_FULL_DATE', 'false').lower() != 'true':
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-# The short X.Y version.
-version = mne.__version__
 # The full version, including alpha/beta/rc tags.
-release = version
-
+release = mne.__version__
+# The short X.Y version.
+version = '.'.join(release.split('.')[:2])
 
 # -- General configuration ---------------------------------------------------
 
@@ -145,6 +145,7 @@ intersphinx_mapping = {
     'nilearn': ('http://nilearn.github.io', None),
     'surfer': ('https://pysurfer.github.io/', None),
     'mne_bids': ('https://mne.tools/mne-bids/stable', None),
+    'mne-connectivity': ('https://mne.tools/mne-connectivity/stable', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
     'seaborn': ('https://seaborn.pydata.org/', None),
     'statsmodels': ('https://www.statsmodels.org/dev', None),
@@ -157,6 +158,7 @@ intersphinx_mapping = {
     'eeglabio': ('https://eeglabio.readthedocs.io/en/latest', None),
     'dipy': ('https://dipy.org/documentation/1.4.0./',
              'https://dipy.org/documentation/1.4.0./objects.inv/'),
+    'pooch': ('https://www.fatiando.org/pooch/latest/', None),
 }
 
 
@@ -225,6 +227,7 @@ numpydoc_xref_aliases = {
     'EMS': 'mne.decoding.EMS', 'CSP': 'mne.decoding.CSP',
     'Beamformer': 'mne.beamformer.Beamformer',
     'Transform': 'mne.transforms.Transform',
+    'Coregistration': 'mne.coreg.Coregistration',
     # dipy
     'dipy.align.AffineMap': 'dipy.align.imaffine.AffineMap',
     'dipy.align.DiffeomorphicMap': 'dipy.align.imwarp.DiffeomorphicMap',
@@ -247,7 +250,7 @@ numpydoc_xref_ignore = {
     'n_elp', 'n_pts', 'n_tris', 'n_nodes', 'n_nonzero', 'n_events_out',
     'n_segments', 'n_orient_inv', 'n_orient_fwd', 'n_orient', 'n_dipoles_lcmv',
     'n_dipoles_fwd', 'n_picks_ref', 'n_coords', 'n_meg', 'n_good_meg',
-    'n_moments',
+    'n_moments', 'n_patterns',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
     'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF', 'RawSNIRF', 'RawBOXY',
@@ -257,6 +260,7 @@ numpydoc_xref_ignore = {
     # unlinkable
     'mayavi.mlab.pipeline.surface',
     'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame',
+    'IntracranialElectrodeLocator'
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)
@@ -272,6 +276,10 @@ numpydoc_validation_exclude = {  # set of regex
     r'\.__sub__', r'\.__add__', r'\.__iter__', r'\.__div__', r'\.__neg__',
     # copied from sklearn
     r'mne\.utils\.deprecated',
+    # deprecations
+    r'mne\.connectivity\.degree', r'mne\.connectivity\.seed_target_indices',
+    r'mne\.viz\.plot_sensors_connectivity',
+    r'mne\.viz\.plot_connectivity_circle',
 }
 
 
@@ -351,11 +359,23 @@ else:
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             import pyvista
         pyvista.OFF_SCREEN = False
-        brain_scraper = mne.viz._brain._BrainScraper()
-        scrapers += (brain_scraper, 'pyvista')
+        scrapers += (
+            mne.gui._LocateScraper(),
+            mne.viz._brain._BrainScraper(),
+            'pyvista',
+        )
     report_scraper = mne.report._ReportScraper()
     scrapers += (report_scraper,)
     del backend
+
+compress_images = ('images', 'thumbnails')
+# let's make things easier on Windows users
+# (on Linux and macOS it's easy enough to require this)
+if sys.platform.startswith('win'):
+    try:
+        subprocess.check_call(['optipng', '--version'])
+    except Exception:
+        compress_images = ()
 
 sphinx_gallery_conf = {
     'doc_module': ('mne',),
@@ -405,7 +425,7 @@ sphinx_gallery_conf = {
     'capture_repr': ('_repr_html_',),
     'junit': os.path.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
     'matplotlib_animations': True,
-    'compress_images': ('images', 'thumbnails'),
+    'compress_images': compress_images,
     'filename_pattern': '^((?!sgskip).)*$',
 }
 # Files were renamed from plot_* with:
@@ -455,6 +475,12 @@ linkcheck_ignore = [  # will be compiled to regex
     'https://www.nyu.edu/',  # noqa Max retries exceeded with url: / (Caused by SSLError(SSLError(1, '[SSL: DH_KEY_TOO_SMALL] dh key too small (_ssl.c:1122)')))
     'https://docs.python.org/3/library/.*',  # noqa ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
     'https://hal.archives-ouvertes.fr/hal-01848442.*',  # noqa Sometimes: 503 Server Error: Service Unavailable for url: https://hal.archives-ouvertes.fr/hal-01848442/
+    'http://www.cs.ucl.ac.uk/staff/d.barber/brml.*',  # noqa Sometimes: Read timed out
+    'https://compumedicsneuroscan.com/scan-acquire-configuration-files.*',  # noqa SSL certificate error as of 2021/09/28
+    'https://chrisholdgraf.com',  # noqa Max retries exceeded sometimes
+    'https://www.dtu.dk/english/service/phonebook/person.*',  # noqa Too slow
+    'https://speakerdeck.com/dengemann/eeg-sensor-covariance-using-cross-validation',  # noqa Too slow
+    'https://doi.org/10.1002/hbm.10024',  # noqa Too slow sometimes
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
@@ -488,7 +514,7 @@ for key in ('AcqParserFIF', 'BiHemiLabel', 'Dipole', 'DipoleFixed', 'Label',
             'MixedSourceEstimate', 'MixedVectorSourceEstimate', 'Report',
             'SourceEstimate', 'SourceMorph', 'VectorSourceEstimate',
             'VolSourceEstimate', 'VolVectorSourceEstimate',
-            'channels.DigMontage', 'channels.Layout',
+            'channels.DigMontage', 'channels.Layout', 'coreg.Coregistration',
             'decoding.CSP', 'decoding.EMS', 'decoding.FilterEstimator',
             'decoding.GeneralizingEstimator', 'decoding.LinearModel',
             'decoding.PSDEstimator', 'decoding.ReceptiveField', 'decoding.SSD',
@@ -733,8 +759,8 @@ html_context = {
              alt='Clusters'),
         dict(title='Connectivity',
              text='All-to-all spectral and effective connec\u00ADtivity measures.',  # noqa E501
-             url='auto_examples/connectivity/mne_inverse_label_connectivity.html',  # noqa E501
-             img='sphx_glr_mne_inverse_label_connectivity_001.png',
+             url='https://mne.tools/mne-connectivity/stable/auto_examples/mne_inverse_label_connectivity.html',  # noqa E501
+             img='https://mne.tools/mne-connectivity/stable/_images/sphx_glr_mne_inverse_label_connectivity_001.png',  # noqa E501
              alt='Connectivity'),
         dict(title='Data Visualization',
              text='Explore your data from multiple perspectives.',
@@ -803,6 +829,14 @@ def reset_warnings(gallery_conf, fname):
         'ignore', '.*semaphore_tracker: process died unexpectedly.*')
     warnings.filterwarnings(  # needed until SciPy 1.2.0 is released
         'ignore', '.*will be interpreted as an array index.*', module='scipy')
+    warnings.filterwarnings(
+        'ignore', '.*invalid escape sequence.*', lineno=90)  # quantities
+    warnings.filterwarnings(
+        'ignore', '.*invalid escape sequence.*', lineno=14)  # mne-connectivity
+    warnings.filterwarnings(
+        'ignore', '.*invalid escape sequence.*', lineno=281)  # mne-conn
+    warnings.filterwarnings(
+        'ignore', '.*"is not" with a literal.*', module='nilearn')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
                 'Using or importing the ABCs from',  # internal modules on 3.7
                 r"it will be an error for 'np\.bool_'",  # ndimage
@@ -840,6 +874,9 @@ def reset_warnings(gallery_conf, fname):
         'ignore', message="can't resolve package from", category=ImportWarning)
     warnings.filterwarnings(
         'ignore', message='.*mne-realtime.*', category=DeprecationWarning)
+    warnings.filterwarnings(
+        'ignore', message=r'numpy\.ndarray size changed.*',
+        category=RuntimeWarning)
 
     # In case we use np.set_printoptions in any tutorials, we only
     # want it to affect those:
@@ -878,6 +915,20 @@ for icon, cls in icons.items():
     <i class="fa{cls} fa-{icon[3:] if fw else icon}{fw}"></i>
 '''
 
+# -- Dependency info ----------------------------------------------------------
+
+try:
+    from importlib.metadata import metadata  # new in Python 3.8
+    min_py = metadata('mne')['Requires-Python']
+except ModuleNotFoundError:
+    from pkg_resources import get_distribution
+    info = get_distribution('mne').get_metadata_lines('PKG-INFO')
+    for line in info:
+        if line.strip().startswith('Requires-Python'):
+            min_py = line.split(':')[1]
+min_py = min_py.lstrip(' =<>')
+prolog += f'\n.. |min_python_version| replace:: {min_py}\n'
+
 # -- website redirects --------------------------------------------------------
 
 # Static list created 2021/04/13 based on what we needed to redirect,
@@ -904,7 +955,7 @@ needed_plot_redirects = {
     'compute_mne_inverse_epochs_in_label.py',
     'compute_mne_inverse_raw_in_label.py', 'compute_mne_inverse_volume.py',
     'compute_source_psd_epochs.py', 'covariance_whitening_dspm.py',
-    'custom_inverse_solver.py', 'cwt_sensor_connectivity.py',
+    'custom_inverse_solver.py',
     'decoding_csp_eeg.py', 'decoding_csp_timefreq.py',
     'decoding_spatio_temporal_source.py', 'decoding_spoc_CMC.py',
     'decoding_time_generalization_conditions.py',
@@ -921,12 +972,11 @@ needed_plot_redirects = {
     'left_cerebellum_volume_source.py', 'limo_data.py',
     'linear_model_patterns.py', 'linear_regression_raw.py',
     'meg_sensors.py', 'mixed_norm_inverse.py',
-    'mixed_source_space_connectivity.py', 'mixed_source_space_inverse.py',
+    'mixed_source_space_inverse.py',
     'mne_cov_power.py', 'mne_helmet.py', 'mne_inverse_coherence_epochs.py',
-    'mne_inverse_connectivity_spectrum.py',
     'mne_inverse_envelope_correlation.py',
     'mne_inverse_envelope_correlation_volume.py',
-    'mne_inverse_label_connectivity.py', 'mne_inverse_psi_visual.py',
+    'mne_inverse_psi_visual.py',
     'morph_surface_stc.py', 'morph_volume_stc.py', 'movement_compensation.py',
     'movement_detection.py', 'multidict_reweighted_tfmxne.py',
     'muscle_detection.py', 'opm_data.py', 'otp.py', 'parcellation.py',
@@ -935,7 +985,7 @@ needed_plot_redirects = {
     'read_inverse.py', 'read_neo_format.py', 'read_noise_covariance_matrix.py',
     'read_stc.py', 'receptive_field_mtrf.py', 'resolution_metrics.py',
     'resolution_metrics_eegmeg.py', 'roi_erpimage_by_rt.py',
-    'sensor_connectivity.py', 'sensor_noise_level.py',
+    'sensor_noise_level.py',
     'sensor_permutation_test.py', 'sensor_regression.py',
     'shift_evoked.py', 'simulate_evoked_data.py', 'simulate_raw_data.py',
     'simulated_raw_data_using_subject_anatomy.py', 'snr_estimate.py',
@@ -950,6 +1000,9 @@ needed_plot_redirects = {
     'vector_mne_solution.py', 'virtual_evoked.py', 'xdawn_denoising.py',
     'xhemi.py',
 }
+ex = 'auto_examples'
+co = 'connectivity'
+mne_conn = 'https://mne.tools/mne-connectivity/stable'
 tu = 'auto_tutorials'
 di = 'discussions'
 sm = 'source-modeling'
@@ -1007,6 +1060,15 @@ custom_redirects = {
     f'{tu}/{si}/plot_creating_data_structures.html': f'{tu}/{si}/10_array_objs.html',  # noqa E501
     f'{tu}/{si}/plot_point_spread.html': f'{tu}/{si}/70_point_spread.html',
     f'{tu}/{si}/plot_dics.html': f'{tu}/{si}/80_dics.html',
+    f'{ex}/{co}/mne_inverse_label_connectivity.html': f'{mne_conn}/{ex}/mne_inverse_label_connectivity.html',  # noqa E501
+    f'{ex}/{co}/cwt_sensor_connectivity.html': f'{mne_conn}/{ex}/cwt_sensor_connectivity.html',  # noqa E501
+    f'{ex}/{co}/mixed_source_space_connectivity.html': f'{mne_conn}/{ex}/mixed_source_space_connectivity.html',  # noqa E501
+    f'{ex}/{co}/mne_inverse_coherence_epochs.html': f'{mne_conn}/{ex}/mne_inverse_coherence_epochs.html',  # noqa E501
+    f'{ex}/{co}/mne_inverse_connectivity_spectrum.html': f'{mne_conn}/{ex}/mne_inverse_connectivity_spectrum.html',  # noqa E501
+    f'{ex}/{co}/mne_inverse_envelope_correlation_volume.html': f'{mne_conn}/{ex}/mne_inverse_envelope_correlation_volume.html',  # noqa E501
+    f'{ex}/{co}/mne_inverse_envelope_correlation.html': f'{mne_conn}/{ex}/mne_inverse_envelope_correlation.html',  # noqa E501
+    f'{ex}/{co}/mne_inverse_psi_visual.html': f'{mne_conn}/{ex}/mne_inverse_psi_visual.html',  # noqa E501
+    f'{ex}/{co}/sensor_connectivity.html': f'{mne_conn}/{ex}/sensor_connectivity.html',  # noqa E501
 }
 
 
@@ -1054,9 +1116,14 @@ def make_redirects(app, exception):
             f'Added {len(fnames):3d} HTML plot_* redirects for {out_dir}')
     # custom redirects
     for fr, to in custom_redirects.items():
-        to_path = os.path.join(app.outdir, to)
-        assert os.path.isfile(to_path), to
-        assert to_path.endswith('html'), to_path
+        if not to.startswith('http'):
+            assert os.path.isfile(os.path.join(app.outdir, to)), to
+            # handle links to sibling folders
+            path_parts = to.split('/')
+            assert tu in path_parts, path_parts  # need to refactor otherwise
+            path_parts = ['..'] + path_parts[(path_parts.index(tu) + 1):]
+            to = os.path.join(*path_parts)
+        assert to.endswith('html'), to
         fr_path = os.path.join(app.outdir, fr)
         assert fr_path.endswith('html'), fr_path
         # allow overwrite if existing file is just a redirect
@@ -1067,14 +1134,12 @@ def make_redirects(app, exception):
                 line = fid.readline()
                 assert 'Page Redirection' in line, line
         # handle folders that no longer exist
-        if fr_path.split(os.path.sep)[-2] in (
-                'misc', 'discussions', 'source-modeling', 'sample-datasets'):
+        if fr_path.split('/')[-2] in (
+                'misc', 'discussions', 'source-modeling', 'sample-datasets',
+                'connectivity'):
             os.makedirs(os.path.dirname(fr_path), exist_ok=True)
-        # handle links to sibling folders
-        path_parts = to.split(os.path.sep)
-        path_parts = ['..'] + path_parts[(path_parts.index(tu) + 1):]
         with open(fr_path, 'w') as fid:
-            fid.write(TEMPLATE.format(to=os.path.join(*path_parts)))
+            fid.write(TEMPLATE.format(to=to))
     logger.info(
         f'Added {len(custom_redirects):3d} HTML custom redirects')
 
@@ -1088,4 +1153,7 @@ def setup(app):
         report_scraper.app = app
         app.config.rst_prolog = prolog
         app.connect('builder-inited', report_scraper.copyfiles)
+    sphinx_logger = sphinx.util.logging.getLogger('mne')
+    sphinx_logger.info(
+        f'Building documentation for MNE {release} ({mne.__file__})')
     app.connect('build-finished', make_redirects)

@@ -18,9 +18,10 @@ from mne.datasets import sample
 data_path = sample.data_path()
 
 # the raw file containing the channel location + types
-raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
+sample_dir = op.join(data_path, 'MEG', 'sample',)
+raw_fname = op.join(sample_dir, 'sample_audvis_raw.fif')
 # The paths to Freesurfer reconstructions
-subjects_dir = data_path + '/subjects'
+subjects_dir = op.join(data_path, 'subjects')
 subject = 'sample'
 
 # %%
@@ -75,7 +76,7 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 # alignment with the following code.
 
 # The transformation file obtained by coregistration
-trans = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
+trans = op.join(sample_dir, 'sample_audvis_raw-trans.fif')
 
 info = mne.io.read_info(raw_fname)
 # Here we look at the dense head, which isn't used for BEM computations but
@@ -144,8 +145,8 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 # following.
 
 surface = op.join(subjects_dir, subject, 'bem', 'inner_skull.surf')
-vol_src = mne.setup_volume_source_space(subject, subjects_dir=subjects_dir,
-                                        surface=surface)
+vol_src = mne.setup_volume_source_space(
+    subject, subjects_dir=subjects_dir, surface=surface)
 print(vol_src)
 
 mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
@@ -163,7 +164,7 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 # Now let's see how to view all sources in 3D.
 
 fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
-                             surfaces='white', coord_frame='head',
+                             surfaces='white', coord_frame='mri',
                              src=src)
 mne.viz.set_3d_view(fig, azimuth=173.78, elevation=101.75,
                     distance=0.30, focalpoint=(-0.03, -0.01, 0.03))

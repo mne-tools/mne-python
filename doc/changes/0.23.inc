@@ -216,7 +216,7 @@ Bugs
 
 - Fix bug with :func:`mne.io.read_raw_kit` where missing marker coils were not handled (:gh:`8989` **by new contributor** |Judy D Zhu|_)
 
-- Fix bug with `mne.connectivity.spectral_connectivity` where time axis in Epochs data object was dropped. (:gh:`8839` **by new contributor** |Anna Padee|_)
+- Fix bug with ``mne.connectivity.spectral_connectivity`` where time axis in Epochs data object was dropped. (:gh:`8839` **by new contributor** |Anna Padee|_)
 
 - Fix bug with `mne.io.Raw.resample` to allow passing ``stim_picks='misc'`` (:gh:`8844` **by new contributor** |Enrico Varano|_ and `Eric Larson`_)
 

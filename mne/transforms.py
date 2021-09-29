@@ -64,7 +64,9 @@ def _to_const(cf):
     """Convert string or int coord frame into int."""
     if isinstance(cf, str):
         if cf not in _str_to_frame:
-            raise ValueError('Unknown cf %s' % cf)
+            raise ValueError(
+                f'Unknown coordinate frame {cf}, '
+                'expected "' + '", "'.join(_str_to_frame.keys()) + '"')
         cf = _str_to_frame[cf]
     else:
         cf = _ensure_int(cf, 'coordinate frame', 'a str or int')
@@ -97,17 +99,17 @@ class Transform(dict):
         to = _to_const(to)
         trans = np.eye(4) if trans is None else np.asarray(trans, np.float64)
         if trans.shape != (4, 4):
-            raise ValueError('Transformation must be shape (4, 4) not %s'
-                             % (trans.shape,))
+            raise ValueError(
+                f'Transformation must be shape (4, 4) not {trans.shape}')
         self['from'] = fro
         self['to'] = to
         self['trans'] = trans
 
     def __repr__(self):  # noqa: D105
         with np.printoptions(suppress=True):  # suppress scientific notation
-            return ('<Transform | %s->%s>\n%s'
-                    % (_coord_frame_name(self['from']),
-                       _coord_frame_name(self['to']), self['trans']))
+            return '<Transform | {fro}->{to}>\n{trans}'.format(
+                fro=_coord_frame_name(self['from']),
+                to=_coord_frame_name(self['to']), trans=self['trans'])
 
     def __eq__(self, other, rtol=0., atol=0.):
         """Check for equality.
@@ -185,8 +187,8 @@ def _print_coord_trans(t, prefix='Coordinate transformation: ', units='m',
                        level='info'):
     # Units gives the units of the transformation. This always prints in mm.
     log_func = getattr(logger, level)
-    log_func(prefix + '%s -> %s'
-             % (_coord_frame_name(t['from']), _coord_frame_name(t['to'])))
+    log_func(prefix + '{fro} -> {to}'.format(
+             fro=_coord_frame_name(t['from']), to=_coord_frame_name(t['to'])))
     for ti, tt in enumerate(t['trans']):
         scale = 1000. if (ti != 3 and units != 'mm') else 1.
         text = ' mm' if ti != 3 else ''
@@ -417,8 +419,8 @@ def _ensure_trans(trans, fro='mri', to='head'):
         to_str = _frame_to_str[to]
         to_const = to
     del to
-    err_str = ('trans must be a Transform between %s<->%s, got'
-               % (from_str, to_str))
+    err_str = 'trans must be a Transform between ' \
+        f'{from_str}<->{to_str}, got'
     if not isinstance(trans, (list, tuple)):
         trans = [trans]
     # Ensure that we have exactly one match
@@ -426,15 +428,16 @@ def _ensure_trans(trans, fro='mri', to='head'):
     misses = list()
     for ti, this_trans in enumerate(trans):
         if not isinstance(this_trans, Transform):
-            raise ValueError('%s None' % err_str)
+            raise ValueError(f'{err_str} None')
         if {this_trans['from'],
                 this_trans['to']} == {from_const, to_const}:
             idx.append(ti)
         else:
-            misses += ['%s->%s' % (_frame_to_str[this_trans['from']],
-                                   _frame_to_str[this_trans['to']])]
+            misses += ['{fro}->{to}'.format(
+                fro=_frame_to_str[this_trans['from']],
+                to=_frame_to_str[this_trans['to']])]
     if len(idx) != 1:
-        raise ValueError('%s %s' % (err_str, ', '.join(misses)))
+        raise ValueError(f'{err_str} ' + ', '.join(misses))
     trans = trans[idx[0]]
     if trans['from'] != from_const:
         trans = invert_transform(trans)
@@ -453,7 +456,7 @@ def _get_trans(trans, fro='mri', to='head', allow_none=True):
             trans = op.join(op.dirname(__file__), 'data', 'fsaverage',
                             'fsaverage-trans.fif')
         if not op.isfile(trans):
-            raise IOError('trans file "%s" not found' % trans)
+            raise IOError(f'trans file "{trans}" not found')
         if op.splitext(trans)[1] in ['.fif', '.gz']:
             fro_to_t = read_trans(trans)
         else:
@@ -461,8 +464,7 @@ def _get_trans(trans, fro='mri', to='head', allow_none=True):
             # these are usually actually in to_fro form
             t = np.genfromtxt(trans)
             if t.ndim != 2 or t.shape != (4, 4):
-                raise RuntimeError('File "%s" did not have 4x4 entries'
-                                   % trans)
+                raise RuntimeError(f'File "{trans}" did not have 4x4 entries')
             fro_to_t = Transform(to, fro, t)
     elif isinstance(trans, Transform):
         fro_to_t = trans
@@ -498,21 +500,22 @@ def combine_transforms(t_first, t_second, fro, to):
     fro = _to_const(fro)
     to = _to_const(to)
     if t_first['from'] != fro:
-        raise RuntimeError('From mismatch: %s ("%s") != %s ("%s")'
-                           % (t_first['from'],
-                              _coord_frame_name(t_first['from']),
-                              fro, _coord_frame_name(fro)))
+        raise RuntimeError(
+            'From mismatch: {fro1} ("{cf1}") != {fro2} ("{cf2}")'.format(
+                fro1=t_first['from'], cf1=_coord_frame_name(t_first['from']),
+                fro2=fro, cf2=_coord_frame_name(fro)))
     if t_first['to'] != t_second['from']:
-        raise RuntimeError('Transform mismatch: t1["to"] = %s ("%s"), '
-                           't2["from"] = %s ("%s")'
-                           % (t_first['to'], _coord_frame_name(t_first['to']),
-                              t_second['from'],
-                              _coord_frame_name(t_second['from'])))
+        raise RuntimeError('Transform mismatch: t1["to"] = {to1} ("{cf1}"), '
+                           't2["from"] = {fro2} ("{cf2}")'.format(
+                               to1=t_first['to'],
+                               cf1=_coord_frame_name(t_first['to']),
+                               fro2=t_second['from'],
+                               cf2=_coord_frame_name(t_second['from'])))
     if t_second['to'] != to:
-        raise RuntimeError('To mismatch: %s ("%s") != %s ("%s")'
-                           % (t_second['to'],
-                              _coord_frame_name(t_second['to']),
-                              to, _coord_frame_name(to)))
+        raise RuntimeError(
+            'To mismatch: {to1} ("{cf1}") != {to2} ("{cf2}")'.format(
+                to1=t_second['to'], cf1=_coord_frame_name(t_second['to']),
+                to2=to, cf2=_coord_frame_name(to)))
     return Transform(fro, to, np.dot(t_second['trans'], t_first['trans']))
 
 
@@ -681,6 +684,22 @@ def get_ras_to_neuromag_trans(nasion, lpa, rpa):
 
     trans = np.dot(rot_trans, origin_trans)
     return trans
+
+
+def _get_transforms_to_coord_frame(info, trans, coord_frame='mri'):
+    """Get the transforms to a coordinate frame from device, head and mri."""
+    head_mri_t = _get_trans(trans, 'head', 'mri')[0]
+    dev_head_t = _get_trans(info['dev_head_t'], 'meg', 'head')[0]
+    mri_dev_t = invert_transform(combine_transforms(
+        dev_head_t, head_mri_t, 'meg', 'mri'))
+    to_cf_t = dict(
+        meg=_ensure_trans([dev_head_t, mri_dev_t, Transform('meg', 'meg')],
+                          fro='meg', to=coord_frame),
+        head=_ensure_trans([dev_head_t, head_mri_t, Transform('head', 'head')],
+                           fro='head', to=coord_frame),
+        mri=_ensure_trans([head_mri_t, mri_dev_t, Transform('mri', 'mri')],
+                          fro='mri', to=coord_frame))
+    return to_cf_t
 
 
 ###############################################################################

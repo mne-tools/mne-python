@@ -46,7 +46,7 @@ from .filter import detrend, FilterMixin, _check_fun
 from .parallel import parallel_func
 
 from .event import _read_events_fif, make_fixed_length_events
-from .fixes import _get_args, rng_uniform
+from .fixes import rng_uniform
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
 from .utils import (_check_fname, check_fname, logger, verbose,
@@ -1994,8 +1994,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                          for id_ in event_ids]
             for ii, id_ in enumerate(event_ids):
                 if len(id_) == 0:
-                    raise KeyError(orig_ids[ii] + "not found in the "
-                                   "epoch object's event_id.")
+                    raise KeyError(f"{orig_ids[ii]} not found in the epoch "
+                                   "object's event_id.")
                 elif len({sub_id in ids for sub_id in id_}) != 1:
                     err = ("Don't mix hierarchical and regular event_ids"
                            " like in \'%s\'." % ", ".join(id_))
@@ -2256,7 +2256,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     The time window used for metadata generation need not correspond to the
     time window used to create the `~mne.Epochs`, to which the metadata will
     be attached; it may well be much shorter or longer, or not overlap at all,
-    if desired. The can be useful, for example, to include events that ccurred
+    if desired. The can be useful, for example, to include events that occurred
     before or after an epoch, e.g. during the inter-trial interval.
 
     .. versionadded:: 0.23
@@ -2830,16 +2830,17 @@ def _minimize_time_diff(t_shorter, t_longer):
     """Find a boolean mask to minimize timing differences."""
     from scipy.interpolate import interp1d
     keep = np.ones((len(t_longer)), dtype=bool)
-    if len(t_shorter) == 0:
+    # special case: length zero or one
+    if len(t_shorter) < 2:  # interp1d won't work
         keep.fill(False)
+        if len(t_shorter) == 1:
+            idx = np.argmin(np.abs(t_longer - t_shorter))
+            keep[idx] = True
         return keep
     scores = np.ones((len(t_longer)))
     x1 = np.arange(len(t_shorter))
     # The first set of keep masks to test
-    kwargs = dict(copy=False, bounds_error=False)
-    # this is a speed tweak, only exists for certain versions of scipy
-    if 'assume_sorted' in _get_args(interp1d.__init__):
-        kwargs['assume_sorted'] = True
+    kwargs = dict(copy=False, bounds_error=False, assume_sorted=True)
     shorter_interp = interp1d(x1, t_shorter, fill_value=t_shorter[-1],
                               **kwargs)
     for ii in range(len(t_longer) - len(t_shorter)):
@@ -3362,8 +3363,8 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
     selection = out.selection
     # offset is the last epoch + tmax + 10 second
     shift = int((10 + tmax) * out.info['sfreq'])
-    events_offset = 0
-    events_number_overflow = False
+    events_offset = int(np.max(events[0][:, 0])) + shift
+    events_overflow = False
     for ii, epochs in enumerate(epochs_list[1:], 1):
         _ensure_infos_match(epochs.info, info, f'epochs[{ii}]',
                             on_mismatch=on_mismatch)
@@ -3390,16 +3391,17 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
         if len(epochs.events) == 0:
             warn('One of the Epochs objects to concatenate was empty.')
         elif add_offset:
-            # We need to cast to a native Python int here to prevent an
-            # overflow of a numpy int32 or int64 type.
-            events_offset += int(np.max(evs[:, 0])) + shift
+            # We need to cast to a native Python int here to detect an
+            # overflow of a numpy int32 (which is the default on windows)
+            max_timestamp = int(np.max(evs[:, 0]))
+            evs[:, 0] += events_offset
+            events_offset += max_timestamp + shift
             if events_offset > INT32_MAX:
                 warn(f'Event number greater than {INT32_MAX} created, '
                      'events[:, 0] will be assigned consecutive increasing '
                      'integer values')
-                events_number_overflow = True
-            else:
-                evs[:, 0] += events_offset
+                events_overflow = True
+                add_offset = False  # we no longer need to add offset
         events.append(evs)
         selection = np.concatenate((selection, epochs.selection))
         drop_log = drop_log + epochs.drop_log
@@ -3407,7 +3409,7 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
         metadata.append(epochs.metadata)
     events = np.concatenate(events, axis=0)
     # check to see if we exceeded our maximum event offset
-    if events_number_overflow:
+    if events_overflow:
         events[:, 0] = np.arange(1, len(events) + 1)
 
     # Create metadata object (or make it None)
@@ -3669,7 +3671,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
 @verbose
 def make_fixed_length_epochs(raw, duration=1., preload=False,
                              reject_by_annotation=True, proj=True, overlap=0.,
-                             verbose=None):
+                             id=1, verbose=None):
     """Divide continuous raw data into equal-sized consecutive epochs.
 
     Parameters
@@ -3690,6 +3692,10 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
         ``0 <= overlap < duration``. Default is 0, i.e., no overlap.
 
         .. versionadded:: 0.23.0
+    id : int
+        The id to use (default 1).
+
+        .. versionadded:: 0.24.0
     %(verbose)s
 
     Returns
@@ -3701,10 +3707,10 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
     -----
     .. versionadded:: 0.20
     """
-    events = make_fixed_length_events(raw, 1, duration=duration,
+    events = make_fixed_length_events(raw, id=id, duration=duration,
                                       overlap=overlap)
     delta = 1. / raw.info['sfreq']
-    return Epochs(raw, events, event_id=[1], tmin=0, tmax=duration - delta,
+    return Epochs(raw, events, event_id=[id], tmin=0, tmax=duration - delta,
                   baseline=None, preload=preload,
                   reject_by_annotation=reject_by_annotation, proj=proj,
                   verbose=verbose)

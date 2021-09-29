@@ -54,7 +54,7 @@ vv_erm_fname = data_path + '/MEG/SQUID/SQUID_empty_room.fif'
 vv_trans_fname = data_path + '/MEG/SQUID/SQUID-trans.fif'
 opm_fname = data_path + '/MEG/OPM/OPM_resting_state_raw.fif'
 opm_erm_fname = data_path + '/MEG/OPM/OPM_empty_room_raw.fif'
-opm_trans_fname = None
+opm_trans = mne.transforms.Transform('head', 'mri')  # use identity transform
 opm_coil_def_fname = op.join(data_path, 'MEG', 'OPM', 'coil_def.dat')
 
 ##############################################################################
@@ -136,12 +136,12 @@ fwd['vv'] = mne.make_forward_solution(
 
 with mne.use_coil_def(opm_coil_def_fname):
     fig = mne.viz.plot_alignment(
-        raws['opm'].info, trans=opm_trans_fname, subject=subject,
+        raws['opm'].info, trans=opm_trans, subject=subject,
         subjects_dir=subjects_dir, dig=False, coord_frame='mri',
         surfaces=('head', 'white'))
     mne.viz.set_3d_view(figure=fig, **kwargs)
     fwd['opm'] = mne.make_forward_solution(
-        raws['opm'].info, opm_trans_fname, src, bem, eeg=False, verbose=True)
+        raws['opm'].info, opm_trans, src, bem, eeg=False, verbose=True)
 
 del src, bem
 

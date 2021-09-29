@@ -269,4 +269,6 @@ def test_epochs_tmin_tmax(kind):
           SourceEstimate(d[[1]], [[0], []], tmin, 1. / sfreq)) for d in data]
     with pytest.warns(RuntimeWarning, match='time scales of input') as w:
         spectral_connectivity(X, **kwargs)
-    assert len(w) == 1  # just one even though there were multiple epochs
+
+    # increased to 2 to catch the DeprecationWarning
+    assert len(w) == 2  # just one even though there were multiple epochs

@@ -748,7 +748,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     .. versionadded:: 0.10.0
     """
-    from ._figure import _browse_figure
+    from ._figure import _get_browser
 
     epochs.drop_bad()
     info = epochs.info.copy()
@@ -894,7 +894,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   scalebars_visible=False,
                   window_title=title,
                   xlabel='Epoch number')
-    fig = _browse_figure(**params)
+
+    fig = _get_browser(**params)
+
     fig._update_picks()
 
     # make channel selection dialog, if requested (doesn't work well in init)
@@ -907,6 +909,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     fig._draw_traces()
 
     plt_show(show, block=block)
+
     return fig
 
 
@@ -975,7 +978,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig : instance of Figure
         Figure with frequency spectra of the data channels.
     """
-    from ._figure import _psd_figure
+    from ._mpl_figure import _psd_figure
 
     # generate figure
     # epochs always use multitaper, not Welch, so no need to allow "window"

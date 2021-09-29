@@ -198,7 +198,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
-    picks_list = _picks_by_type(info)
+    picks_list = _picks_by_type(info, exclude=[])
     scalings = _handle_default('scalings_cov_rank', scalings)
     _apply_scaling_cov(data, picks_list, scalings)
     if data.shape[1] < data.shape[0]:
@@ -322,8 +322,11 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
         inst_type = 'covariance'
         if info is None:
             raise ValueError('info cannot be None if inst is a Covariance.')
+        # Reset bads as it's already taken into account in inst['names']
+        info = info.copy()
+        info['bads'] = []
         inst = pick_channels_cov(
-            inst, set(inst['names']) & set(info['ch_names']))
+            inst, set(inst['names']) & set(info['ch_names']), exclude=[])
         if info['ch_names'] != inst['names']:
             info = pick_info(info, [info['ch_names'].index(name)
                                     for name in inst['names']])

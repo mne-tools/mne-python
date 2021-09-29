@@ -287,8 +287,7 @@ print(np.round((rem_events[:, 0] - raw.first_samp) / raw.info['sfreq'], 3))
 
 # %%
 # Other examples of resting-state analysis can be found in the online
-# documentation for `~mne.make_fixed_length_events`, such as
-# :ref:`ex-envelope-correlation`.
+# documentation for `~mne.make_fixed_length_events`.
 #
 # .. LINKS
 #

@@ -11,7 +11,7 @@ from .check import (check_fname, check_version, check_random_state,
                     _check_pandas_index_arguments, _check_mayavi_version,
                     _check_event_id, _check_ch_locs, _check_compensation_grade,
                     _check_if_nan, _is_numeric, _ensure_int, _check_preload,
-                    _validate_type, _check_info_inv, _check_pylsl_installed,
+                    _validate_type, _check_info_inv,
                     _check_channels_spatial_filter, _check_one_ch_type,
                     _check_rank, _check_option, _check_depth, _check_combine,
                     _check_path_like, _check_src_normal, _check_stc_units,
@@ -19,7 +19,8 @@ from .check import (check_fname, check_version, check_random_state,
                     _check_freesurfer_home, _suggest, _require_version,
                     _on_missing, _check_on_missing, int_like, _safe_input,
                     _check_all_same_channel_names, path_like, _ensure_events,
-                    _check_eeglabio_installed)
+                    _check_eeglabio_installed, _check_dict_keys,
+                    _check_edflib_installed, _to_rgb, _soft_import)
 from .config import (set_config, get_config, get_config_path, set_cache_dir,
                      set_memmap_min_size, get_subjects_dir, _get_stim_channel,
                      sys_info, _get_extra_data_path, _get_root_dir,
@@ -27,7 +28,7 @@ from .config import (set_config, get_config, get_config_path, set_cache_dir,
 from .docs import (copy_function_doc_to_method_doc, copy_doc, linkcode_resolve,
                    open_docs, deprecated, fill_doc, deprecated_alias,
                    copy_base_doc_to_subclass_doc, docdict as _docdict)
-from .fetching import _fetch_file, _url_to_local_path
+from .fetching import _url_to_local_path
 from ._logging import (verbose, logger, set_log_level, set_log_file,
                        use_log_level, catch_logging, warn, filter_out_warnings,
                        ETSContext, wrapped_stdout, _get_call_line,
@@ -35,7 +36,7 @@ from ._logging import (verbose, logger, set_log_level, set_log_file,
 from .misc import (run_subprocess, _pl, _clean_names, pformat, _file_like,
                    _explain_exception, _get_argvalues, sizeof_fmt,
                    running_subprocess, _DefaultEventParser,
-                   _assert_no_instances)
+                   _assert_no_instances, _resource_path)
 from .progressbar import ProgressBar
 from ._testing import (run_command_if_main, requires_sklearn,
                        requires_version, requires_nibabel, requires_mayavi,
@@ -68,3 +69,10 @@ from .linalg import (_svd_lwork, _repeated_svd, _sym_mat_pow, sqrtm_sym, eigh,
                      _get_blas_funcs)
 from .dataframe import (_set_pandas_dtype, _scale_dataframe_data,
                         _convert_times, _build_data_frame)
+
+CONNECTIVITY_DEPRECATION_MSG = (
+    'Functions in the ``mne.connectivity`` sub-module have moved to a new '
+    'package (mne-connectivity) and will be removed in MNE-Python version '
+    '0.25. Install the new connectivity package by running '
+    '``pip install mne-connectivity`` in a system terminal or anaconda '
+    'prompt.')

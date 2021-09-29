@@ -288,7 +288,8 @@ def _read_nihon_annotations(fname):
 
 def _map_ch_to_type(ch_name):
     ch_type_pattern = OrderedDict([
-        ('stim', ('Mark',)), ('misc', ('DC', 'NA', 'Z')), ('bio', ('X',))])
+        ('stim', ('Mark',)), ('misc', ('DC', 'NA', 'Z', '$')),
+        ('bio', ('X',))])
     for key, kinds in ch_type_pattern.items():
         if any(kind in ch_name for kind in kinds):
             return key

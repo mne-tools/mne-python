@@ -522,8 +522,10 @@ def test_annotation_epoching():
 
 def test_annotation_concat():
     """Test if two Annotations objects can be concatenated."""
-    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
-    b = Annotations([11, 12, 13], [1, 2, 2], ["x", "y", "z"])
+    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"],
+                    ch_names=[['1'], ['2'], []])
+    b = Annotations([11, 12, 13], [1, 2, 2], ["x", "y", "z"],
+                    ch_names=[[], ['3'], []])
 
     # test + operator (does not modify a or b)
     c = a + b
@@ -533,6 +535,9 @@ def test_annotation_concat():
     assert_equal(len(a), 3)
     assert_equal(len(b), 3)
     assert_equal(len(c), 6)
+
+    # c should have updated channel names
+    assert_array_equal(c.ch_names, [('1',), ('2',), (), (), ('3',), ()])
 
     # test += operator (modifies a in place)
     a += b
@@ -1328,7 +1333,7 @@ def test_annotation_rename():
     assert len(np.where([d == "new name b" for d in a.description])[0]) == 0
 
     a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
-    with pytest.raises(ValueError, match="mapping missing from data"):
+    with pytest.raises(ValueError, match="not present in data"):
         a.rename({"aaa": "does not exist"})
     with pytest.raises(ValueError, match="[' a']"):
         a.rename({" a": "does not exist"})
@@ -1368,7 +1373,7 @@ def test_annotation_duration_setting():
     a.set_durations(2)
     assert a.duration[0] == 2
 
-    with pytest.raises(ValueError, match="mapping missing from data"):
+    with pytest.raises(ValueError, match="not present in data"):
         a.set_durations({"aaa": 2.2})
     with pytest.raises(TypeError, match=" got <class 'set'> instead"):
         a.set_durations({"aaa", 2.2})

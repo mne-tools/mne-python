@@ -58,6 +58,7 @@ bdf_multiple_annotations_path = op.join(data_path, 'BDF',
 test_generator_bdf = op.join(data_path, 'BDF', 'test_generator_2.bdf')
 test_generator_edf = op.join(data_path, 'EDF', 'test_generator_2.edf')
 edf_annot_sub_s_path = op.join(data_path, 'EDF', 'subsecond_starttime.edf')
+edf_chtypes_path = op.join(data_path, 'EDF', 'chtypes_edf.edf')
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
@@ -178,7 +179,7 @@ def test_edf_data_broken(tmpdir):
 
 def test_duplicate_channel_labels_edf():
     """Test reading edf file with duplicate channel names."""
-    EXPECTED_CHANNEL_NAMES = ['EEG F1-Ref-0', 'EEG F2-Ref', 'EEG F1-Ref-1']
+    EXPECTED_CHANNEL_NAMES = ['F1-Ref-0', 'F2-Ref', 'F1-Ref-1']
     with pytest.warns(RuntimeWarning, match='Channel names are not unique'):
         raw = read_raw_edf(duplicate_channel_labels_path, preload=False)
 
@@ -408,8 +409,7 @@ def test_bdf_multiple_annotation_channels():
 def test_edf_lowpass_zero():
     """Test if a lowpass filter of 0Hz is mapped to the Nyquist frequency."""
     raw = read_raw_edf(edf_stim_resamp_path)
-    assert raw.ch_names[100] == 'EEG LDAMT_01-REF'
-    assert len(raw.ch_names[100]) > 15
+    assert raw.ch_names[100] == 'LDAMT_01-REF'
     assert_allclose(raw.info["lowpass"], raw.info["sfreq"] / 2)
 
 
@@ -525,3 +525,19 @@ def test_exclude():
     raw = read_raw_edf(edf_path, exclude="I[1-4]")
     for ch in exclude:
         assert ch not in raw.ch_names
+
+
+@testing.requires_testing_data
+def test_ch_types():
+    """Test reading of channel types from EDF channel label."""
+    raw = read_raw_edf(edf_chtypes_path)
+
+    # get the channel types for all channels
+    ch_types = raw.get_channel_types()
+    assert all(x in ch_types for x in ['eeg', 'ecg'])
+
+    # test certain channels were correctly detected as a channel type
+    test_ch_names = {"Fp1-Ref": "eeg", "P10-Ref": "eeg", "DC01": "eeg",
+                     "ECG1": "ecg", "ECG2": "ecg"}
+    assert all(raw.get_channel_types(picks=pick)[0] == ch_type
+               for pick, ch_type in test_ch_names.items())

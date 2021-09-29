@@ -26,6 +26,7 @@ from ..base import BaseRaw
 from ..utils import _read_segments_file, _mult_cal_one
 from ...annotations import Annotations, read_annotations
 from ...channels import make_dig_montage
+from ...defaults import HEAD_SIZE_DEFAULT
 
 
 @fill_doc
@@ -552,8 +553,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             az = np.deg2rad(phi)
             # Coordinates could be "idealized" (spherical head model)
             if rad == 1:
-                # scale up to realistic head radius (8.5cm == 85mm)
-                rad *= 85.
+                # scale up to realistic head radius: *1000 to convert m to mm
+                rad *= HEAD_SIZE_DEFAULT * 1000
             pos = _sph_to_cart(np.array([[rad, az, pol]]))[0]
             if (pos == 0).all() and ch_name not in list(eog) + misc:
                 to_misc.append(ch_name)

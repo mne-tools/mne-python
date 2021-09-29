@@ -247,11 +247,13 @@ class RawNIRX(BaseRaw):
         #       "Additional Notes", "Contact Information" and this information
         #       is currently discarded
         # NIRStar does not record an id, or handedness by default
+        # The name field is used to populate the his_id variable.
         subject_info = {}
         if is_aurora:
             names = inf["subject"].split()
         else:
-            names = inf['name'].split()
+            names = inf['name'].replace('"', "").split()
+        subject_info['his_id'] = "_".join(names)
         if len(names) > 0:
             subject_info['first_name'] = \
                 names[0].replace("\"", "")

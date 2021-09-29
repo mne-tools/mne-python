@@ -9,9 +9,11 @@ import os.path as op
 import numpy as np
 from distutils.version import LooseVersion
 
-from ...utils import (_fetch_file, verbose, _TempDir, _check_pandas_installed,
+from ...utils import (verbose, _TempDir, _check_pandas_installed,
                       _on_missing)
+from ...utils.check import _soft_import
 from ..utils import _get_path
+
 
 AGE_SLEEP_RECORDS = op.join(op.dirname(__file__), 'age_records.csv')
 TEMAZEPAM_SLEEP_RECORDS = op.join(op.dirname(__file__),
@@ -27,6 +29,9 @@ sha1sums_fname = op.join(op.dirname(__file__), 'SHA1SUMS')
 
 
 def _fetch_one(fname, hashsum, path, force_update, base_url):
+    # import pooch library for handling the dataset downloading
+    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
+
     # Fetch the file
     url = base_url + '/' + fname
     destination = op.join(path, fname)
@@ -35,13 +40,17 @@ def _fetch_one(fname, hashsum, path, force_update, base_url):
             os.remove(destination)
         if not op.isdir(op.dirname(destination)):
             os.makedirs(op.dirname(destination))
-        _fetch_file(url, destination, print_destination=False,
-                    hash_=hashsum, hash_type='sha1')
+        pooch.retrieve(
+            url=url,
+            known_hash=f"sha1:{hashsum}",
+            path=path,
+            fname=fname
+        )
     return destination
 
 
 @verbose
-def _data_path(path=None, force_update=False, update_path=None, verbose=None):
+def _data_path(path=None, verbose=None):
     """Get path to local copy of EEG Physionet age Polysomnography dataset URL.
 
     This is a low-level function useful for getting a local copy of a
@@ -53,15 +62,9 @@ def _data_path(path=None, force_update=False, update_path=None, verbose=None):
     path : None | str
         Location of where to look for the data storing location.
         If None, the environment variable or config parameter
-        ``MNE_DATASETS_PHYSIONET_SLEEP_PATH`` is used. If it doesn't exist, the
-        "~/mne_data" directory is used. If the dataset
-        is not found under the given path, the data
-        will be automatically downloaded to the specified folder.
-    force_update : bool
-        Force update of the dataset even if a local copy exists.
-    update_path : bool | None
-        If True, set the MNE_DATASETS_PHYSIONET_SLEEP_PATH in mne-python
-        config to the given path. If None, the user is prompted.
+        ``PHYSIONET_SLEEP_PATH`` is used. If it doesn't exist, the "~/mne_data"
+        directory is used. If the dataset is not found under the given path,
+        the data will be automatically downloaded to the specified folder.
     %(verbose)s
 
     Returns
@@ -82,15 +85,21 @@ def _data_path(path=None, force_update=False, update_path=None, verbose=None):
 
 def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
     """Help function to download Physionet's temazepam dataset records."""
+    # import pooch library for handling the dataset downloading
+    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
+
     pd = _check_pandas_installed()
     tmp = _TempDir()
 
     # Download subjects info.
-    subjects_fname = op.join(tmp, 'ST-subjects.xls')
-    _fetch_file(url=TEMAZEPAM_RECORDS_URL,
-                file_name=subjects_fname,
-                hash_=TEMAZEPAM_RECORDS_URL_SHA1,
-                hash_type='sha1')
+    fname = 'ST-subjects.xls'
+    subjects_fname = op.join(tmp, fname)
+    pooch.retrieve(
+        url=TEMAZEPAM_RECORDS_URL,
+        known_hash=f"sha1:{TEMAZEPAM_RECORDS_URL_SHA1}",
+        path=tmp,
+        fname=fname
+    )
 
     # Load and Massage the checksums.
     sha1_df = pd.read_csv(sha1sums_fname, sep='  ', header=None,
@@ -142,15 +151,21 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
 
 def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
     """Help function to download Physionet's age dataset records."""
+    # import pooch library for handling the dataset downloading
+    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
+
     pd = _check_pandas_installed()
     tmp = _TempDir()
 
     # Download subjects info.
-    subjects_fname = op.join(tmp, 'SC-subjects.xls')
-    _fetch_file(url=AGE_RECORDS_URL,
-                file_name=subjects_fname,
-                hash_=AGE_RECORDS_URL_SHA1,
-                hash_type='sha1')
+    fname = 'SC-subjects.xls'
+    subjects_fname = op.join(tmp, fname)
+    pooch.retrieve(
+        url=AGE_RECORDS_URL,
+        known_hash=f"sha1:{AGE_RECORDS_URL_SHA1}",
+        path=tmp,
+        fname=fname
+    )
 
     # Load and Massage the checksums.
     sha1_df = pd.read_csv(sha1sums_fname, sep='  ', header=None,

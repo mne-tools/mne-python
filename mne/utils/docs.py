@@ -324,7 +324,7 @@ proj : bool | 'interactive' | 'reconstruct'
     .. versionchanged:: 0.21
        Support for 'reconstruct' was added.
 """
-docdict["topomap_ch_type"] = """
+docdict["evoked_topomap_ch_type"] = """
 ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
     The channel type to plot. For 'grad', the gradiometers are collected in
     pairs and the RMS for each pair is plotted.
@@ -389,11 +389,22 @@ docdict["topomap_cbar_fmt"] = """
 cbar_fmt : str
     String format for colorbar values.
 """
-docdict["topomap_mask"] = """
-mask : ndarray of bool, shape (n_channels, n_times) | None
-    The channels to be marked as significant at a given time point.
-    Indices set to ``True`` will be considered. Defaults to ``None``.
+mask_base = """
+mask : ndarray of bool, shape {shape} | None
+    Array indicating channel{shape_appendix} to highlight with a distinct
+    plotting style{example}. Array elements set to ``True`` will be plotted
+    with the parameters given in ``mask_params``. Defaults to ``None``,
+    equivalent to an array of all ``False`` elements.
 """
+docdict['topomap_mask'] = mask_base.format(
+    shape='(n_channels,)', shape_appendix='(s)', example='')
+docdict['evoked_topomap_mask'] = mask_base.format(
+    shape='(n_channels, n_times)', shape_appendix='-time combinations',
+    example=' (useful for, e.g. marking which channels at which times a '
+            'statistical test of the data reaches significance)')
+docdict['patterns_topomap_mask'] = mask_base.format(
+    shape='(n_channels, n_patterns)', shape_appendix='-pattern combinations',
+    example='')
 docdict["topomap_mask_params"] = """
 mask_params : dict | None
     Additional plotting parameters for plotting significant sensors.
@@ -862,10 +873,11 @@ projection : bool
     must be set to ``False`` (the default in this case).
 """
 docdict['set_eeg_reference_ch_type'] = """
-ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg' | 'dbs'
-    The name of the channel type to apply the reference to. If 'auto',
-    the first channel type of eeg, ecog, seeg or dbs that is found (in that
-    order) will be selected.
+ch_type : list of str | str
+    The name of the channel type to apply the reference to.
+    Valid channel types are ``'auto'``, ``'eeg'``, ``'ecog'``, ``'seeg'``,
+    ``'dbs'``. If ``'auto'``, the first channel type of eeg, ecog, seeg or dbs
+    that is found (in that order) will be selected.
 
     .. versionadded:: 0.19
 """
@@ -1328,7 +1340,7 @@ stcs : instance of SourceEstimate | list of instances of SourceEstimate
 
 # Forward
 docdict['on_missing_fwd'] = """
-on_missing : str
+on_missing : 'raise' | 'warn' | 'ignore'
     %s ``stc`` has vertices that are not in ``fwd``.
 """ % (_on_missing_base,)
 docdict['dig_kinds'] = """
@@ -1624,7 +1636,7 @@ on_header_missing : str
     .. versionadded:: 0.22
 """ % (_on_missing_base,)
 docdict['on_missing_events'] = """
-on_missing : str
+on_missing : 'raise' | 'warn' | 'ignore'
     %s event numbers from ``event_id`` are missing from ``events``.
     When numbers from ``events`` are missing from ``event_id`` they will be
     ignored and a warning emitted; consider using ``verbose='error'`` in
@@ -1633,13 +1645,13 @@ on_missing : str
     .. versionadded:: 0.21
 """ % (_on_missing_base,)
 docdict['on_missing_montage'] = """
-on_missing : str
+on_missing : 'raise' | 'warn' | 'ignore'
     %s channels have missing coordinates.
 
     .. versionadded:: 0.20.1
 """ % (_on_missing_base,)
 docdict['on_missing_ch_names'] = """
-on_missing : str
+on_missing : 'raise' | 'warn' | 'ignore'
     %s entries in ch_names are not present in the raw instance.
 
     .. versionadded:: 0.23.0
@@ -2312,7 +2324,7 @@ raw : Raw object
     An instance of `~mne.io.Raw`.
 """
 docdict['epochs_on_missing'] = """
-on_missing : str
+on_missing : 'raise' | 'warn' | 'ignore'
     What to do if one or several event ids are not found in the recording.
     Valid keys are 'raise' | 'warn' | 'ignore'
     Default is 'raise'. If on_missing is 'warn' it will proceed but
@@ -2458,13 +2470,13 @@ docdict['compute_proj_eog'] = f"""%(create_eog_epochs)s {compute_proj_common}
 """ % docdict
 
 # BEM
-docdict['on_defects'] = """
-on_defects : 'raise' | 'warn'
-    What to do if the surface is found to have topological defects. Can be
-    ``'raise'`` (default) to raise an error, or ``'warn'`` to emit a warning.
+docdict['on_defects'] = f"""
+on_defects : 'raise' | 'warn' | 'ignore'
+    What to do if the surface is found to have topological defects.
+    {_on_missing_base} one or more defects are found.
     Note that a lot of computations in MNE-Python assume the surfaces to be
     topologically correct, topological defects may still make other
-    computations (e.g., ``mne.make_bem_model`` and ``mne.make_bem_solution``)
+    computations (e.g., `mne.make_bem_model` and `mne.make_bem_solution`)
     fail irrespective of this parameter.
 """
 
@@ -2480,14 +2492,46 @@ fname : str
     Name of the output file.
 """
 docdict['export_params_fmt'] = """
-fmt : 'auto' | 'eeglab'
+fmt : 'auto' | 'eeglab' | 'edf'
     Format of the export. Defaults to ``'auto'``, which will infer the format
     from the filename extension. See supported formats above for more
     information.
 """
+docdict['export_params_physical_range'] = """
+physical_range : str | tuple
+    The physical range of the data. If 'auto' (default), then
+    it will infer the physical min and max from the data itself,
+    taking the minimum and maximum values per channel type.
+    If it is a 2-tuple of minimum and maximum limit, then those
+    physical ranges will be used. Only used for exporting EDF files.
+"""
+docdict['export_params_add_ch_type'] = """
+add_ch_type : bool
+    Whether to incorporate the channel type into the signal label (e.g. whether
+    to store channel "Fz" as "EEG Fz"). Only used for EDF format. Default is
+    ``False``.
+"""
 docdict['export_eeglab_note'] = """
 For EEGLAB exports, channel locations are expanded to full EEGLAB format.
 For more details see :func:`eeglabio.utils.cart_to_eeglab`.
+"""
+docdict['export_edf_note'] = """
+For EDF exports, only channels measured in Volts are allowed; in MNE-Python
+this means channel types 'eeg', 'ecog', 'seeg', 'emg', 'eog', 'ecg', 'dbs',
+'bio', and 'misc'. 'stim' channels are dropped. Although this function
+supports storing channel types in the signal label (e.g. ``EEG Fz`` or
+``MISC E``), other software may not support this (optional) feature of
+the EDF standard.
+
+If ``add_ch_type`` is True, then channel types are written based on what
+they are currently set in MNE-Python. One should double check that all
+their channels are set correctly. You can call
+:attr:`raw.set_channel_types <mne.io.Raw.set_channel_types>` to set
+channel types.
+
+In addition, EDF does not support storing a montage. You will need
+to store the montage separately and call :attr:`raw.set_montage()
+<mne.io.Raw.set_montage>`.
 """
 
 # Other
@@ -2581,6 +2625,48 @@ pipeline : str | tuple
     ``'affines'``
         The affine steps (first three) will be performed, i.e., omitting
         the SDR step.
+"""
+
+# 3D viewing
+docdict['meg'] = """
+meg : str | list | bool | None
+    Can be "helmet", "sensors" or "ref" to show the MEG helmet, sensors or
+    reference sensors respectively, or a combination like
+    ``('helmet', 'sensors')`` (same as None, default). True translates to
+    ``('helmet', 'sensors', 'ref')``.
+"""
+docdict['eeg'] = """
+eeg : bool | str | list
+    String options are:
+
+    - "original" (default; equivalent to ``True``)
+        Shows EEG sensors using their digitized locations (after
+        transformation to the chosen ``coord_frame``)
+    - "projected"
+        The EEG locations projected onto the scalp, as is done in
+        forward modeling
+
+    Can also be a list of these options, or an empty list (``[]``,
+    equivalent of ``False``).
+"""
+docdict['fnirs'] = """
+fnirs : str | list | bool | None
+    Can be "channels", "pairs", "detectors", and/or "sources" to show the
+    fNIRS channel locations, optode locations, or line between
+    source-detector pairs, or a combination like ``('pairs', 'channels')``.
+    True translates to ``('pairs',)``.
+"""
+docdict['ecog'] = """
+ecog : bool
+    If True (default), show ECoG sensors.
+"""
+docdict['seeg'] = """
+seeg : bool
+    If True (default), show sEEG electrodes.
+"""
+docdict['dbs'] = """
+dbs : bool
+    If True (default), show DBS (deep brain stimulation) electrodes.
 """
 docdict_indented = {}
 

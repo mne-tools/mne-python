@@ -17,7 +17,7 @@ import re
 
 import numpy as np
 
-from .check import _validate_type, _check_pyqt5_version
+from .check import _validate_type, _check_pyqt5_version, _check_option
 from .docs import fill_doc
 from ._logging import warn, logger
 
@@ -68,6 +68,7 @@ def set_memmap_min_size(memmap_min_size):
 known_config_types = (
     'MNE_3D_OPTION_ANTIALIAS',
     'MNE_BROWSE_RAW_SIZE',
+    'MNE_BROWSE_BACKEND',
     'MNE_CACHE_DIR',
     'MNE_COREG_ADVANCED_RENDERING',
     'MNE_COREG_COPY_ANNOT',
@@ -454,7 +455,7 @@ def _get_numpy_libs():
     return libs
 
 
-def sys_info(fid=None, show_paths=False):
+def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     """Print the system information for debugging.
 
     This function is useful for printing system information
@@ -467,6 +468,11 @@ def sys_info(fid=None, show_paths=False):
         Can be None to use :data:`sys.stdout`.
     show_paths : bool
         If True, print paths for each module.
+    dependencies : str
+        Can be "user" (default) to show user-relevant dependencies, or
+        "developer" to additionally show developer dependencies.
+
+        .. versionadded:: 0.24
 
     Examples
     --------
@@ -498,7 +504,9 @@ def sys_info(fid=None, show_paths=False):
         vtk:           9.0.1
         PyQt5:         5.15.0
     """  # noqa: E501
-    ljust = 15
+    _validate_type(dependencies, str)
+    _check_option('dependencies', dependencies, ('user', 'developer'))
+    ljust = 21 if dependencies == 'developer' else 15
     platform_str = platform.platform()
     if platform.system() == 'Darwin' and sys.version_info[:2] < (3, 8):
         # platform.platform() in Python < 3.8 doesn't call
@@ -532,9 +540,14 @@ def sys_info(fid=None, show_paths=False):
     out += '\n'
     libs = _get_numpy_libs()
     has_3d = False
-    for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
+    use_mod_names = ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
                      'numba', 'nibabel', 'nilearn', 'dipy', 'cupy', 'pandas',
-                     'mayavi', 'pyvista', 'vtk', 'PyQt5'):
+                     'mayavi', 'pyvista', 'vtk', 'PyQt5')
+    if dependencies == 'developer':
+        use_mod_names += (
+            '', 'sphinx', 'sphinx_gallery', 'numpydoc', 'pydata_sphinx_theme',
+            'mne_bids', 'pytest')
+    for mod_name in use_mod_names:
         if mod_name == '':
             out += '\n'
             continue
@@ -549,7 +562,7 @@ def sys_info(fid=None, show_paths=False):
         except Exception:
             out += 'Not found\n'
         else:
-            extra = (' (%s)' % op.dirname(mod.__file__)) if show_paths else ''
+            extra = ''
             if mod_name == 'numpy':
                 extra += ' {%s}%s' % (libs, extra)
             elif mod_name == 'matplotlib':
@@ -584,5 +597,7 @@ def sys_info(fid=None, show_paths=False):
                 version = _check_pyqt5_version()
             else:
                 version = mod.__version__
+            if show_paths:
+                extra += f'\n{" " * ljust}•{op.dirname(mod.__file__)}'
             out += '%s%s\n' % (version, extra)
     print(out, end='', file=fid)

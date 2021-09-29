@@ -4,6 +4,7 @@
 #
 # License: BSD-3-Clause
 
+import importlib
 from builtins import input  # no-op here but facilitates testing
 from difflib import get_close_matches
 from distutils.version import LooseVersion
@@ -253,43 +254,43 @@ def _check_compensation_grade(info1, info2, name1,
             % (name1, grade1, name2, grade2))
 
 
-def _check_pylsl_installed(strict=True):
-    """Aux function."""
+def _soft_import(name, purpose, strict=True):
+    """Import soft dependencies, providing informative errors on failure.
+
+    Parameters
+    ----------
+    name : str
+        Name of the module to be imported. For example, 'pandas'.
+    purpose : str
+        A very brief statement (formulated as a noun phrase) explaining what
+        functionality the package provides to MNE-Python.
+    strict : bool
+        Whether to raise an error if module import fails.
+    """
     try:
-        import pylsl
-        return pylsl
-    except ImportError:
-        if strict is True:
-            raise RuntimeError('For this functionality to work, the pylsl '
-                               'library is required.')
+        mod = importlib.import_module(name)
+        return mod
+    except (ImportError, ModuleNotFoundError):
+        if strict:
+            raise RuntimeError(f'For {purpose} to work, the {name} module is '
+                               'needed, but it could not be imported.')
         else:
             return False
 
 
 def _check_pandas_installed(strict=True):
     """Aux function."""
-    try:
-        import pandas
-        return pandas
-    except ImportError:
-        if strict is True:
-            raise RuntimeError('For this functionality to work, the Pandas '
-                               'library is required.')
-        else:
-            return False
+    return _soft_import('pandas', 'dataframe integration', strict=strict)
 
 
 def _check_eeglabio_installed(strict=True):
     """Aux function."""
-    try:
-        import eeglabio
-        return eeglabio
-    except ImportError:
-        if strict is True:
-            raise RuntimeError('For this functionality to work, the eeglabio '
-                               'library is required.')
-        else:
-            return False
+    return _soft_import('eeglabio', 'exporting to EEGLab', strict=strict)
+
+
+def _check_edflib_installed(strict=True):
+    """Aux function."""
+    return _soft_import('EDFlib', 'exporting to EDF', strict=strict)
 
 
 def _check_pandas_index_arguments(index, valid):
@@ -566,6 +567,41 @@ def _check_depth(depth, kind='depth_mne'):
     return _handle_default(kind, depth)
 
 
+def _check_dict_keys(mapping, valid_keys,
+                     key_description, valid_key_source):
+    """Check that the keys in dictionary are valid against a set list.
+
+    Return the input dictionary if it is valid,
+    otherwise raise a ValueError with a readable error message.
+
+    Parameters
+    ----------
+    mapping : dict
+        The user-provided dict whose keys we want to check.
+    valid_keys : iterable
+        The valid keys.
+    key_description : str
+        Description of the keys in ``mapping``, e.g., "channel name(s)" or
+        "annotation(s)".
+    valid_key_source : str
+        Description of the ``valid_keys`` source, e.g., "info dict" or
+        "annotations in the data".
+
+    Returns
+    -------
+    mapping
+        If all keys are valid the input dict is returned unmodified.
+    """
+    missing = set(mapping) - set(valid_keys)
+    if len(missing):
+        _is = 'are' if len(missing) > 1 else 'is'
+        msg = (f'Invalid {key_description} {missing} {_is} not present in '
+               f'{valid_key_source}')
+        raise ValueError(msg)
+
+    return mapping
+
+
 def _check_option(parameter, value, allowed_values, extra=''):
     """Check the value of a parameter against a list of valid options.
 
@@ -779,3 +815,15 @@ def _ensure_events(events):
         raise ValueError(
             f'events must be of shape (N, 3), got {events.shape}')
     return events
+
+
+def _to_rgb(*args, name='color', alpha=False):
+    from matplotlib.colors import colorConverter
+    func = colorConverter.to_rgba if alpha else colorConverter.to_rgb
+    try:
+        return func(*args)
+    except ValueError:
+        args = args[0] if len(args) == 1 else args
+        raise ValueError(
+            f'Invalid RGB{"A" if alpha else ""} argument(s) for {name}: '
+            f'{repr(args)}') from None

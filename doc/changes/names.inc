@@ -62,7 +62,7 @@
 
 .. _Hari Bharadwaj: http://www.haribharadwaj.com
 
-.. _Chris Holdgraf: http://chrisholdgraf.com
+.. _Chris Holdgraf: https://chrisholdgraf.com
 
 .. _Jaakko Leppakangas: https://github.com/jaeilepp
 
@@ -403,3 +403,11 @@
 .. _Pierre-Antoine Bannier: https://github.com/PABannier
 
 .. _Darin Erat Sleiter: https://github.com/dsleiter
+
+.. _Mathieu Scheltienne: https://github.com/mscheltienne
+
+.. _Timothy Gates: https://github.com/timgates42
+
+.. _Reza Shoorangiz: https://github.com/rezashr
+
+.. _Evgeny Goldstein: https://github.com/evgenygoldstein

@@ -95,6 +95,9 @@ class _Surface(object):
 
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         self.data_path = path.join(subjects_dir, subject_id)
+        if surf == 'seghead':
+            raise ValueError('`surf` cannot be seghead, use '
+                             '`mne.viz.Brain.add_head` to plot the seghead')
 
     def load_geometry(self):
         """Load geometry of the surface.

@@ -17,10 +17,16 @@ import pytest
 import numpy as np
 
 import mne
+from mne import read_events, pick_types, Epochs
+from mne.channels import read_layout
 from mne.datasets import testing
 from mne.fixes import has_numba
+from mne.io import read_raw_fif, read_raw_ctf
 from mne.stats import cluster_level
 from mne.utils import _pl, _assert_no_instances, numerics
+
+# data from sample dataset
+from mne.viz._figure import use_browser_backend
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -33,12 +39,21 @@ fname_bem = op.join(bem_path, 'sample-1280-bem.fif')
 fname_aseg = op.join(test_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
 subjects_dir = op.join(test_path, 'subjects')
 fname_src = op.join(bem_path, 'sample-oct-4-src.fif')
-subjects_dir = op.join(test_path, 'subjects')
-fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
 fname_trans = op.join(s_path, 'sample_audvis_trunc-trans.fif')
 
+ctf_dir = op.join(test_path, 'CTF')
+fname_ctf_continuous = op.join(ctf_dir, 'testdata_ctf.ds')
 
-collect_ignore = ['export/_eeglab.py']
+# data from mne.io.tests.data
+base_dir = op.join(op.dirname(__file__), 'io', 'tests', 'data')
+fname_raw_io = op.join(base_dir, 'test_raw.fif')
+fname_event_io = op.join(base_dir, 'test-eve.fif')
+fname_cov_io = op.join(base_dir, 'test-cov.fif')
+fname_evoked_io = op.join(base_dir, 'test-ave.fif')
+event_id, tmin, tmax = 1, -0.1, 1.0
+vv_layout = read_layout('Vectorview-all')
+
+collect_ignore = ['export/_eeglab.py', 'export/_edf.py']
 
 
 def pytest_configure(config):
@@ -104,6 +119,13 @@ def pytest_configure(config):
     ignore:Call to deprecated method.*Deprecated since.*:DeprecationWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     ignore:.*rcParams is deprecated.*global_theme.*:DeprecationWarning
+    ignore:.*distutils\.sysconfig module is deprecated.*:DeprecationWarning
+    ignore:.*moved to a new package \(mne-connectivity\).*:DeprecationWarning
+    ignore:.*numpy\.dual is deprecated.*:DeprecationWarning
+    ignore:.*`np.typeDict` is a deprecated.*:DeprecationWarning
+    ignore:.*Creating an ndarray from ragged.*:numpy.VisibleDeprecationWarning
+    ignore:^Please use.*scipy\..*:DeprecationWarning
+    ignore:.*Found the following unknown channel type.*:RuntimeWarning
     always::ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
@@ -178,7 +200,10 @@ def matplotlib_config():
     except Exception:
         pass
     else:
-        ETSConfig.toolkit = 'qt4'
+        try:
+            ETSConfig.toolkit = 'qt4'
+        except Exception:
+            pass  # 'null' might be the only option in some configs
 
     # Make sure that we always reraise exceptions in handlers
     orig = cbook.CallbackRegistry
@@ -214,6 +239,79 @@ def check_gui_ci(ci_macos, azure_windows):
         pytest.skip('Skipping GUI tests on MacOS CIs and Azure Windows')
 
 
+@pytest.fixture(scope='function')
+def raw_orig():
+    """Get raw data without any change to it from mne.io.tests.data."""
+    raw = read_raw_fif(fname_raw_io, preload=True)
+    return raw
+
+
+@pytest.fixture(scope='function')
+def raw():
+    """
+    Get raw data and pick channels to reduce load for testing.
+
+    (from mne.io.tests.data)
+    """
+    raw = read_raw_fif(fname_raw_io, preload=True)
+    # Throws a warning about a changed unit.
+    with pytest.warns(RuntimeWarning, match='unit'):
+        raw.set_channel_types({raw.ch_names[0]: 'ias'})
+    raw.pick_channels(raw.ch_names[:9])
+    raw.info.normalize_proj()  # Fix projectors after subselection
+    return raw
+
+
+@pytest.fixture(scope='function')
+def raw_ctf():
+    """Get ctf raw data from mne.io.tests.data."""
+    raw_ctf = read_raw_ctf(fname_ctf_continuous, preload=True)
+    return raw_ctf
+
+
+@pytest.fixture(scope='function')
+def events():
+    """Get events from mne.io.tests.data."""
+    return read_events(fname_event_io)
+
+
+def _get_epochs(stop=5, meg=True, eeg=False, n_chan=20):
+    """Get epochs."""
+    raw = read_raw_fif(fname_raw_io)
+    events = read_events(fname_event_io)
+    picks = pick_types(raw.info, meg=meg, eeg=eeg, stim=False,
+                       ecg=False, eog=False, exclude='bads')
+    # Use a subset of channels for plotting speed
+    picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
+    with pytest.warns(RuntimeWarning, match='projection'):
+        epochs = Epochs(raw, events[:stop], event_id, tmin, tmax, picks=picks,
+                        proj=False, preload=False)
+    epochs.info.normalize_proj()  # avoid warnings
+    return epochs
+
+
+@pytest.fixture()
+def epochs():
+    """
+    Get minimal, pre-loaded epochs data suitable for most tests.
+
+    (from mne.io.tests.data)
+    """
+    return _get_epochs().load_data()
+
+
+@pytest.fixture()
+def epochs_unloaded():
+    """Get minimal, unloaded epochs data from mne.io.tests.data."""
+    return _get_epochs()
+
+
+@pytest.fixture()
+def epochs_full():
+    """Get full, preloaded epochs from mne.io.tests.data."""
+    return _get_epochs(None).load_data()
+
+
 @pytest.fixture(scope='session', params=[testing._pytest_param()])
 def _evoked():
     # This one is session scoped, so be sure not to modify it (use evoked
@@ -234,6 +332,12 @@ def evoked(_evoked):
 def noise_cov():
     """Get a noise cov from the testing dataset."""
     return mne.read_cov(fname_cov)
+
+
+@pytest.fixture
+def noise_cov_io():
+    """Get noise-covariance (from mne.io.tests.data)."""
+    return mne.read_cov(fname_cov_io)
 
 
 @pytest.fixture(scope='function')
@@ -285,6 +389,13 @@ def garbage_collect():
     """Garbage collect on exit."""
     yield
     gc.collect()
+
+
+@pytest.fixture(params=['matplotlib'])
+def browse_backend(request, garbage_collect):
+    """Parametrizes the name of the browser backend."""
+    with use_browser_backend(request.param) as backend:
+        yield backend
 
 
 @pytest.fixture(params=["mayavi", "pyvistaqt"])
@@ -505,7 +616,8 @@ def _fail(*args, **kwargs):
 @pytest.fixture(scope='function')
 def download_is_error(monkeypatch):
     """Prevent downloading by raising an error when it's attempted."""
-    monkeypatch.setattr(mne.utils.fetching, '_get_http', _fail)
+    import pooch
+    monkeypatch.setattr(pooch, 'retrieve', _fail)
 
 
 @pytest.fixture()

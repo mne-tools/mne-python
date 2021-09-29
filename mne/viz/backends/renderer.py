@@ -41,7 +41,7 @@ def _get_renderer(*args, **kwargs):
     return backend._Renderer(*args, **kwargs)
 
 
-def _check_backend_name(backend_name):
+def _check_3d_backend_name(backend_name):
     _validate_type(backend_name, str, 'backend_name')
     backend_name = 'pyvistaqt' if backend_name == 'pyvista' else backend_name
     _check_option('backend_name', backend_name, VALID_3D_BACKENDS)
@@ -50,7 +50,7 @@ def _check_backend_name(backend_name):
 
 @verbose
 def set_3d_backend(backend_name, verbose=None):
-    """Set the backend for MNE.
+    """Set the 3D backend for MNE.
 
     The backend will be set as specified and operations will use
     that backend.
@@ -124,7 +124,7 @@ def set_3d_backend(backend_name, verbose=None):
     """
     global MNE_3D_BACKEND
     old_backend_name = MNE_3D_BACKEND
-    backend_name = _check_backend_name(backend_name)
+    backend_name = _check_3d_backend_name(backend_name)
     if MNE_3D_BACKEND != backend_name:
         _reload_backend(backend_name)
         MNE_3D_BACKEND = backend_name
@@ -136,7 +136,7 @@ def set_3d_backend(backend_name, verbose=None):
 
 
 def get_3d_backend():
-    """Return the backend currently used.
+    """Return the 3D backend currently used.
 
     Returns
     -------
@@ -177,9 +177,9 @@ def _get_3d_backend():
                     'Could not load any valid 3D backend:\n' +
                     "\n".join(f'{key}: {val}' for key, val in errors.items()))
         else:
-            MNE_3D_BACKEND = _check_backend_name(MNE_3D_BACKEND)
+            MNE_3D_BACKEND = _check_3d_backend_name(MNE_3D_BACKEND)
             _reload_backend(MNE_3D_BACKEND)
-    MNE_3D_BACKEND = _check_backend_name(MNE_3D_BACKEND)
+    MNE_3D_BACKEND = _check_3d_backend_name(MNE_3D_BACKEND)
     return MNE_3D_BACKEND
 
 

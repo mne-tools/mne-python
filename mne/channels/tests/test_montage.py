@@ -26,7 +26,7 @@ from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
                           make_standard_montage, read_custom_montage,
                           compute_dev_head_t, make_dig_montage,
                           read_dig_polhemus_isotrak, compute_native_head_t,
-                          read_polhemus_fastscan,
+                          read_polhemus_fastscan, read_dig_localite,
                           read_dig_hpts)
 from mne.channels.montage import transform_to_head, _check_get_coord_frame
 from mne.utils import assert_dig_allclose
@@ -1362,10 +1362,8 @@ def test_montage_head_frame(ch_type):
     # gh-9446
     data = np.random.randn(2, 100)
     info = create_info(['a', 'b'], 512, ch_type)
-    coord_frame = getattr(
-        FIFF, f'FIFFV_COORD_{"HEAD" if ch_type == "eeg" else "UNKNOWN"}')
     for ch in info['chs']:
-        assert ch['coord_frame'] == coord_frame
+        assert ch['coord_frame'] == FIFF.FIFFV_COORD_HEAD
     raw = RawArray(data, info)
     ch_pos = dict(a=[-0.00250136, 0.04913788, 0.05047056],
                   b=[-0.00528394, 0.05066484, 0.05061559])
@@ -1562,7 +1560,7 @@ def test_plot_montage():
 
 
 @testing.requires_testing_data
-def test_montage_add_estimated_fiducials():
+def test_montage_add_fiducials():
     """Test montage can add estimated fiducials for rpa, lpa, nas."""
     # get the fiducials from test file
     subjects_dir = op.join(data_path, 'subjects')
@@ -1577,6 +1575,11 @@ def test_montage_add_estimated_fiducials():
     montage = make_dig_montage(ch_pos=test_ch_pos, coord_frame='mri')
     montage.add_estimated_fiducials(subject=subject, subjects_dir=subjects_dir)
 
+    # check that adding MNI fiducials fails because we're in MRI
+    with pytest.raises(RuntimeError, match='Montage should be in the '
+                                           '"mni_tal" coordinate frame'):
+        montage.add_mni_fiducials(subjects_dir=subjects_dir)
+
     # check that these fiducials are close to the estimated fiducials
     ch_pos = montage.get_positions()
     fids_est = [ch_pos['lpa'], ch_pos['nasion'], ch_pos['rpa']]
@@ -1587,7 +1590,49 @@ def test_montage_add_estimated_fiducials():
     # an error should be raised if the montage is not in `mri` coord_frame
     # which is the FreeSurfer RAS
     montage = make_dig_montage(ch_pos=test_ch_pos, coord_frame='mni_tal')
-    with pytest.raises(RuntimeError, match='Montage should be in mri '
-                                           'coordinate frame'):
+    with pytest.raises(RuntimeError, match='Montage should be in the '
+                                           '"mri" coordinate frame'):
         montage.add_estimated_fiducials(subject=subject,
                                         subjects_dir=subjects_dir)
+
+    # test that adding MNI fiducials works
+    montage.add_mni_fiducials(subjects_dir=subjects_dir)
+    test_fids = get_mni_fiducials('fsaverage', subjects_dir=subjects_dir)
+    for fid, test_fid in zip(montage.dig[:3], test_fids):
+        assert_array_equal(fid['r'], test_fid['r'])
+
+    # test remove fiducials
+    montage.remove_fiducials()
+    assert all([d['kind'] != FIFF.FIFFV_POINT_CARDINAL for d in montage.dig])
+
+
+def test_read_dig_localite(tmpdir):
+    """Test reading Localite .csv file."""
+    contents = """#,id,x,y,z
+                  1,Nasion,-2.016253511,6.243001715,34.63167712
+                  2,LPA,71.96698724,-29.88835576,113.6703679
+                  3,RPA,-82.77279316,-22.45928121,116.4005828
+                  4,ch01,53.62814378,-91.37837488,29.69071863
+                  5,ch02,54.02504821,-59.96228146,23.21714217
+                  6,ch03,47.93261613,-29.99373786,24.56468867
+                  7,ch04,29.04824633,-86.60006321,13.5073523
+                  8,ch05,25.76285783,-58.1658606,3.854848377
+                  9,ch06,25.39636794,-27.28186717,9.78490351
+                  10,ch07,-5.181242819,-85.52115113,7.201882904
+                  11,ch08,-4.995704801,-60.47053977,0.998486757
+                  12,ch09,-2.680020493,-31.14357171,6.114621138
+                  13,ch10,-33.65019131,-92.34198454,13.2326512
+                  14,ch11,-36.22420417,-61.23822776,6.028649571
+                  15,ch12,-33.21551039,-31.21772978,8.458854072
+                  16,ch13,-61.38400606,-92.67546012,29.5783456
+                  17,ch14,-61.16539571,-61.86866187,26.23986153
+                  18,ch15,-55.82855386,-34.77319103,25.8083942"""
+
+    fname = tmpdir / 'localite.csv'
+    with open(fname, 'w') as f:
+        for row in contents.split('\n'):
+            f.write(f'{row.lstrip()}\n')
+    montage = read_dig_localite(fname, nasion="Nasion", lpa="LPA", rpa="RPA")
+    s = '<DigMontage | 0 extras (headshape), 0 HPIs, 3 fiducials, 15 channels>'
+    assert repr(montage) == s
+    assert montage.ch_names == [f'ch{i:02}' for i in range(1, 16)]

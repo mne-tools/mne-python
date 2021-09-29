@@ -124,11 +124,11 @@ print(np.array(raw.ch_names)[np.setdiff1d(all_eeg, good_eeg)])
 # you can note them in your experiment log or protocol sheet. If your system
 # computes online averages, these can be a good way to spot bad channels as
 # well. After the data has been collected, you can do a more thorough check for
-# bad channels by browsing the raw data using :meth:`mne.io.Raw.plot`, with any
-# projectors or ICA applied. Finally, you can compute offline averages (again
-# with projectors, ICA, and EEG referencing disabled) to look for channels with
-# unusual properties. Here's an example of ERP/F plots where the bad channels
-# were not properly marked:
+# bad channels by browsing the raw data using :meth:`mne.io.Raw.plot`, without
+# any projectors or ICA applied. Finally, you can compute offline averages
+# (again with projectors, ICA, and EEG referencing disabled) to look for
+# channels with unusual properties. Here's an example of ERP/F plots where the
+# bad channels were not properly marked:
 
 raw2 = raw.copy()
 raw2.info['bads'] = []

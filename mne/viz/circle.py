@@ -13,7 +13,7 @@ from functools import partial
 import numpy as np
 
 from .utils import plt_show
-from ..utils import _validate_type
+from ..utils import _validate_type, deprecated, CONNECTIVITY_DEPRECATION_MSG
 
 
 def circular_layout(node_names, node_order, start_pos=90, start_between=True,
@@ -119,6 +119,7 @@ def _plot_connectivity_circle_onpick(event, fig=None, axes=None, indices=None,
         fig.canvas.draw()
 
 
+@deprecated(CONNECTIVITY_DEPRECATION_MSG)
 def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                              node_angles=None, node_width=None,
                              node_colors=None, facecolor='black',
@@ -221,6 +222,25 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     If ``facecolor`` is not set via :func:`matplotlib.pyplot.savefig`, the
     figure labels, title, and legend may be cut off in the output figure.
     """
+    return _plot_connectivity_circle(
+        con, node_names, indices, n_lines, node_angles, node_width,
+        node_colors, facecolor, textcolor, node_edgecolor, linewidth, colormap,
+        vmin, vmax, colorbar, title, colorbar_size, colorbar_pos,
+        fontsize_title, fontsize_names, fontsize_colorbar, padding,
+        fig, subplot, interactive, node_linewidth, show)
+
+
+def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
+                              node_angles=None, node_width=None,
+                              node_colors=None, facecolor='black',
+                              textcolor='white', node_edgecolor='black',
+                              linewidth=1.5, colormap='hot', vmin=None,
+                              vmax=None, colorbar=True, title=None,
+                              colorbar_size=0.2, colorbar_pos=(-0.3, 0.1),
+                              fontsize_title=12, fontsize_names=8,
+                              fontsize_colorbar=8, padding=6.,
+                              fig=None, subplot=111, interactive=True,
+                              node_linewidth=2., show=True):
     import matplotlib.pyplot as plt
     import matplotlib.path as m_path
     import matplotlib.patches as m_patches
@@ -443,7 +463,7 @@ def plot_channel_labels_circle(labels, colors=None, picks=None, **kwargs):
     picks : list | tuple
         The channels to consider.
     **kwargs : kwargs
-        Keyword arguments for :func:`mne.viz.plot_connectivity_circle`.
+        Keyword arguments for ``plot_connectivity_circle``.
 
     Returns
     -------
@@ -502,4 +522,4 @@ def plot_channel_labels_circle(labels, colors=None, picks=None, **kwargs):
         kwargs.update(vmax=1)
     if 'colormap' not in kwargs:
         kwargs.update(colormap=label_cmap)
-    return plot_connectivity_circle(con, node_names, **kwargs)
+    return _plot_connectivity_circle(con, node_names, **kwargs)

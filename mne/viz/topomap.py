@@ -728,15 +728,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         List of channel names. If None, channel names are not plotted.
     %(topomap_show_names)s
         If ``True``, a list of names must be provided (see ``names`` keyword).
-    mask : ndarray of bool, shape (n_channels, n_times) | None
-        The channels to be marked as significant at a given time point.
-        Indices set to ``True`` will be considered. Defaults to None.
-    mask_params : dict | None
-        Additional plotting parameters for plotting significant sensors.
-        Default (None) equals::
-
-           dict(marker='o', markerfacecolor='w', markeredgecolor='k',
-                linewidth=0, markersize=4)
+    %(topomap_mask)s
+    %(topomap_mask_params)s
     %(topomap_outlines)s
     contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
@@ -758,8 +751,6 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     %(topomap_sphere)s
     %(topomap_border)s
     %(topomap_ch_type)s
-
-        .. versionadded:: 0.24.0
     cnorm : matplotlib.colors.Normalize | None
         Colormap normalization, default None means linear normalization. If not
         None, ``vmin`` and ``vmax`` arguments are ignored. See Notes for more
@@ -985,6 +976,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                 col.set_clip_path(patch_)
 
     pos_x, pos_y = pos.T
+    mask = mask.astype(bool, copy=False) if mask is not None else None
     if sensors is not False and mask is None:
         _topomap_plot_sensors(pos_x, pos_y, sensors=sensors, ax=ax)
     elif sensors and mask is not None:
@@ -1505,7 +1497,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         automatically by checking for local maxima in global field power. If
         "interactive", the time can be set interactively at run-time by using a
         slider.
-    %(topomap_ch_type)s
+    %(evoked_topomap_ch_type)s
     %(topomap_vmin_vmax)s
     %(topomap_cmap)s
     %(topomap_sensors)s
@@ -1527,7 +1519,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     %(show)s
     %(topomap_show_names)s
     %(title_None)s
-    %(topomap_mask)s
+    %(evoked_topomap_mask)s
     %(topomap_mask_params)s
     %(topomap_outlines)s
     %(topomap_contours)s
@@ -1690,6 +1682,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
             merge_channels = False
     # apply mask if requested
     if mask is not None:
+        mask = mask.astype(bool, copy=False)
         if ch_type == 'grad':
             mask_ = (mask[np.ix_(picks[::2], time_idx)] |
                      mask[np.ix_(picks[1::2], time_idx)])
@@ -2516,15 +2509,8 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
         List of channel names. If None, channel names are not plotted.
     %(topomap_show_names)s
         If ``True``, a list of names must be provided (see ``names`` keyword).
-    mask : ndarray of bool, shape (n_channels, n_times) | None
-        The channels to be marked as significant at a given time point.
-        Indices set to ``True`` will be considered. Defaults to None.
-    mask_params : dict | None
-        Additional plotting parameters for plotting significant sensors.
-        Default (None) equals::
-
-            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
-                 linewidth=0, markersize=4)
+    %(topomap_mask)s
+    %(topomap_mask_params)s
     %(topomap_outlines)s
     contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.

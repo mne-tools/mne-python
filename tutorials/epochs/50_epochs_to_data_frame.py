@@ -107,8 +107,8 @@ df.iloc[:5, :10]
 # Wide- versus long-format DataFrames
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# Another parameter, ``long_format``, determines whether each channel's data is
-# in a separate column of the :class:`~pandas.DataFrame`
+# Another parameter, ``long_format``, determines whether each channel's data
+# is in a separate column of the :class:`~pandas.DataFrame`
 # (``long_format=False``), or whether the measured values are pivoted into a
 # single ``'value'`` column with an extra indicator column for the channel name
 # (``long_format=True``). Passing ``long_format=True`` will also create an
