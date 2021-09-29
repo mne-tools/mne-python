@@ -744,3 +744,8 @@ def test_deprecated_methods(tmpdir):
         with pytest.warns(DeprecationWarning, match='Use `Report.add_image`'):
             r.add_images_to_section(fnames=[img_fname, img_fname],
                                     captions='H')
+
+    with pytest.warns(DeprecationWarning, match='Use `Report.add_bem`'):
+        r.add_bem_to_section(
+            subject='sample', subjects_dir=subjects_dir, decim=100
+        )
