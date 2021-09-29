@@ -245,20 +245,12 @@ report.save('report_forward_sol.html', overwrite=True)
 # An inverse operator can be added via :meth:`mne.Report.add_inverse_operator`.
 # The method expects an `~mne.minimum_norm.InverseOperator` object or a path to
 # one stored on disk, and a title.
-#
-# Optionally, you may pass the corresponding FreeSurfer subject name, subjects
-# directory, and a ``head -> mri`` transformation, either as a
-# `~mne.transforms.Transform` object or as a path to a ``trans.fif`` file to
-# add a visualization of the source space the provided inverse operator is
-# based on.
 
 inverse_op_path = sample_dir / 'sample_audvis-meg-oct-6-meg-inv.fif'
 
 report = mne.Report()
 report.add_inverse_operator(
-    inverse_operator=inverse_op_path, title='Inverse operator',
-    subject='sample', subjects_dir=subjects_dir,
-    trans=trans_path
+    inverse_operator=inverse_op_path, title='Inverse operator'
 )
 report.save('report_inverse_op.html', overwrite=True)
 
