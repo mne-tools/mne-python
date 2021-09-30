@@ -73,22 +73,6 @@ def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
         The output data.
     active_set : array of bool, shape (n_sources, )
         Mask of active sources
-
-    Examples
-    --------
-    >>> Y = np.tile(np.array([0, 4, 3, 0, 0], dtype=np.float64), (2, 1))
-    >>> Y = np.r_[Y, np.zeros_like(Y)]
-    >>> print(Y)  # doctest:+SKIP
-    [[ 0.  4.  3.  0.  0.]
-     [ 0.  4.  3.  0.  0.]
-     [ 0.  0.  0.  0.  0.]
-     [ 0.  0.  0.  0.  0.]]
-    >>> Yp, active_set = prox_l21(Y, 2, 2)
-    >>> print(Yp)  # doctest:+SKIP
-    [[0.         2.86862915 2.15147186 0.         0.        ]
-     [0.         2.86862915 2.15147186 0.         0.        ]]
-    >>> print(active_set)
-    [ True  True False False]
     """
     if len(Y) == 0:
         return np.zeros_like(Y), np.zeros((0,), dtype=bool)
