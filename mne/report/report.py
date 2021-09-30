@@ -1363,8 +1363,8 @@ class Report(object):
             The code to add to the report as a string, or the path to a file
             as a `pathlib.Path` object.
 
-            .. note:: Paths must be passed as `pathlib.Path` object, as strings
-                      will be treated as literal code.
+            .. note:: Paths must be passed as `pathlib.Path` object, since
+                      strings will be treated as literal code.
         title : str
             The title corresponding to the code.
         language : str
