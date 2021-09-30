@@ -12,14 +12,13 @@ PHANTOM_MANIFEST_PATH = op.dirname(__file__)
 
 
 @verbose
-def fetch_phantom(kind='vectorview', subjects_dir=None, *, verbose=None):
+def fetch_phantom(kind, subjects_dir=None, *, verbose=None):
     """Fetch and update a phantom subject.
 
     Parameters
     ----------
     kind : str
-        The kind of phantom to fetch. Can be ``'vectorview'`` (default) or
-        ``'otaniemi'``.
+        The kind of phantom to fetch. Can only be ``'otaniemi'`` (default).
     %(subjects_dir)s
     %(verbose)s
 
@@ -35,13 +34,16 @@ def fetch_phantom(kind='vectorview', subjects_dir=None, *, verbose=None):
     Notes
     -----
     This function is designed to provide a head surface and T1.mgz for
-    the 32-dipole VectorView phantom.
+    the 32-dipole Otaniemi phantom. The VectorView/TRIUX phantom has the same
+    basic outside geometry, but different internal dipole positions.
+
+    Unlike most FreeSurfer subjects, the Otaniemi phantom scan was aligned
+    to the "head" coordinate frame, so an identity head<->MRI :term:`trans`
+    is appropriate.
 
     .. versionadded:: 0.24
     """
     phantoms = dict(
-        vectorview=dict(url='',
-                        hash=''),
         otaniemi=dict(url='https://osf.io/j5czy/download?revision=1',
                       hash='42d17db5b1db3e30327ffb4cf2649de8'),
     )
