@@ -202,10 +202,14 @@ def has_dataset(name):
 
     Parameters
     ----------
-    name : str
-        The dataset name.
-        For brainstorm datasets, should be formatted like
-        "brainstorm.bst_raw".
+    name : str | dict
+        If it is a string, then it refers to an internal MNE dataset
+        name (e.g. 'sample' dataset). For brainstorm datasets, should
+        be formatted like "brainstorm.bst_raw".
+        If it is a a dictionary, then it is a dictionary of dataset
+        parameters. Each dataset parameter consists of the following
+        keys: ``dataset_name``, ``archive_name``, ``url``,
+        ``folder_name``, ``hash``, ``config_key``.
 
     Returns
     -------
@@ -214,10 +218,15 @@ def has_dataset(name):
     """
     from mne.datasets._fetch import fetch_dataset
 
-    name = 'spm' if name == 'spm_face' else name
-    dataset_params = MNE_DATASETS[name]
-    dataset_params['dataset_name'] = name
-    config_key = MNE_DATASETS[name]['config_key']
+    if isinstance(name, dict):
+        dataset_name = name['dataset_name']
+        dataset_params = name
+    else:
+        dataset_name = 'spm' if name == 'spm_face' else name
+        dataset_params = MNE_DATASETS[dataset_name]
+        dataset_params['dataset_name'] = name
+
+    config_key = dataset_params['config_key']
 
     # get download path for specific dataset
     path = _get_path(path=None, key=config_key, name=name)
