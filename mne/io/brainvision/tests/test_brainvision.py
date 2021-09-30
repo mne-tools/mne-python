@@ -236,7 +236,7 @@ def test_vhdr_versions(tmpdir, header):
     assert_allclose(data_new, data_expected, atol=1e-15)
 
 
-@pytest.mark.parametrize('data_sep', (b' ', b',', b';'))
+@pytest.mark.parametrize('data_sep', (b' ', b',', b'+'))
 def test_ascii(tmpdir, data_sep):
     """Test ASCII BV reading."""
     raw = read_raw_brainvision(vhdr_path)
