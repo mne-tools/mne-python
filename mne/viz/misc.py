@@ -337,7 +337,16 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
 
     n_slices = data.shape[axis]
     if slices is None:
-        slices = np.round(np.linspace(0, n_slices - 1, 14)).astype(int)[1:-1]
+        slices = np.round(
+            np.linspace(
+                start=0, 
+                stop=n_slices - 1,
+                num=14
+            )
+        ).astype(int)
+
+        # omit first and last one (no much brain visible there anyway)
+        slices = slices[1:-1]
 
     slices = np.atleast_1d(slices).copy()
     slices[slices < 0] += n_slices  # allow negative indexing
@@ -474,7 +483,8 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     orientation : str
         'coronal' or 'axial' or 'sagittal'.
     slices : list of int | None
-        Slice indices.
+        The indices of the MRI slices to plot. If ``None``, automatically
+        pick 12 equally-spaced slices.
     brain_surfaces : None | str | list of str
         One or more brain surface to plot (optional). Entries should correspond
         to files in the subject's ``surf`` directory (e.g. ``"white"``).
