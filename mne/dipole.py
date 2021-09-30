@@ -1519,6 +1519,10 @@ def get_phantom_dipoles(kind='vectorview'):
     ori : ndarray, shape (n_dipoles, 3)
         The dipole orientations.
 
+    See Also
+    --------
+    mne.datasets.fetch_phantom
+
     Notes
     -----
     The Elekta phantoms have a radius of 79.5mm, and HPI coil locations
