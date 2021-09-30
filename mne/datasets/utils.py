@@ -224,19 +224,19 @@ def has_dataset(name):
     else:
         dataset_name = 'spm' if name == 'spm_face' else name
         dataset_params = MNE_DATASETS[dataset_name]
-        dataset_params['dataset_name'] = name
+        dataset_params['dataset_name'] = dataset_name
 
     config_key = dataset_params['config_key']
 
     # get download path for specific dataset
-    path = _get_path(path=None, key=config_key, name=name)
+    path = _get_path(path=None, key=config_key, name=dataset_name)
 
     dp = fetch_dataset(dataset_params, path=path, download=False,
                        check_version=False)
-    if name.startswith('bst_'):
-        check = name
+    if dataset_name.startswith('bst_'):
+        check = dataset_name
     else:
-        check = MNE_DATASETS[name]['folder_name']
+        check = MNE_DATASETS[dataset_name]['folder_name']
     return dp.endswith(check)
 
 
