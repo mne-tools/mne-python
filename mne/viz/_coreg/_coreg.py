@@ -104,7 +104,7 @@ class CoregistrationUI(HasTraits):
     def _on_pick(self, vtk_picker, event):
         if self._lock_fids:
             return
-        if len(self._fid_to_pick) == 0:
+        if len(self._fids_to_pick) == 0:
             return
         # XXX: taken from Brain, can be refactored
         cell_id = vtk_picker.GetCellId()
@@ -119,12 +119,12 @@ class CoregistrationUI(HasTraits):
         idx = np.argmin(abs(vertices - pos), axis=0)
         vertex_id = cell[idx[0]]
         # XXX: for debug only
-        fid = self._fid_to_pick.pop()
+        fid = self._fids_to_pick.pop()
         print(fid, vertex_id)
-        if len(self._fid_to_pick) == 0:
+        if len(self._fids_to_pick) == 0:
             self._actors["msg"].SetInput("")
         else:
-            next_fid = self._fid_to_pick[-1].upper()
+            next_fid = self._fids_to_pick[-1].upper()
             self._actors["msg"].SetInput(f"Picking {next_fid}...")
         self._renderer._update()
 
@@ -214,8 +214,8 @@ class CoregistrationUI(HasTraits):
             else:
                 self._widgets["show_hsp"].set_value(False)
                 self._widgets["show_hsp"].set_enabled(False)
-                self._fid_to_pick = ["lpa", "nasion", "rpa"]
-                next_fid = self._fid_to_pick[-1].upper()
+                self._fids_to_pick = ["lpa", "nasion", "rpa"]
+                next_fid = self._fids_to_pick[-1].upper()
                 self._actors["msg"].SetInput(f"Picking {next_fid}...")
                 self._renderer._update()
         if "lock_fids" in self._widgets:
