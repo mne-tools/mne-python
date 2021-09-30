@@ -235,7 +235,7 @@ class MNEAnnotationFigure(MNEFigure):
         # https://github.com/matplotlib/matplotlib/issues/20618
         with warnings.catch_warnings(record=True):
             warnings.simplefilter('ignore', DeprecationWarning)
-            selector.rect.set_color(color)
+            # selector.rect.set_color(color)
             selector.rectprops.update(dict(facecolor=color))
 
     def _click_override(self, event):
@@ -396,6 +396,7 @@ class MNEBrowseFigure(MNEFigure):
         self.mne.annotation_segment_colors = dict()
         self.mne.annotation_hover_line = None
         self.mne.draggable_annotations = False
+        self.mne.channelwise_annotations = False
         # lines
         self.mne.event_lines = None
         self.mne.event_texts = list()
@@ -775,6 +776,12 @@ class MNEBrowseFigure(MNEFigure):
                 checkbox = self.mne.fig_annotation.mne.drag_checkbox
                 with _events_off(checkbox):
                     checkbox.set_active(0)
+        elif key == "c":
+            self._toggle_channelwise_annotations(event)
+            if self.mne.fig_annotation is not None:
+                checkbox = self.mne.fig_annotation.mne.channel_checkbox
+                with _events_off(checkbox):
+                    checkbox.set_active(0)
         elif key == 's':  # scalebars
             self._toggle_scalebars(event)
         elif key == 'w':  # toggle noise cov whitening
@@ -830,17 +837,31 @@ class MNEBrowseFigure(MNEFigure):
             elif event.inaxes == self.mne.ax_help:
                 self._toggle_help_fig(event)
         else:  # right-click (secondary)
-            if annotating:
+            if annotating:                
                 if any(c.contains(event)[0] for c in ax_main.collections):
+                    texts = self.mne.ax_main.yaxis.get_ticklabels()
                     xdata = event.xdata - self.mne.first_time
                     start = _sync_onset(inst, inst.annotations.onset)
-                    end = start + inst.annotations.duration
-                    ann_idx = np.where((xdata > start) & (xdata < end))[0]
-                    for idx in sorted(ann_idx)[::-1]:
-                        # only remove visible annotation spans
+                    end = start + inst.annotations.duration                    
+                    ann_idx = np.where((xdata > start) & (xdata < end))[0]   
+                    if self.mne.channelwise_annotations:
+                        dists = np.array([abs(text.get_position()[1]-event.ydata) for text in texts])
+                        idxen = dists.argmin()        
+                        channel = texts[idxen].get_text()                    
+                        ann_ch = [a.split(",")[-1]==channel for a in self.mne.inst.annotations[ann_idx].description]
+                        idx = ann_idx[ann_ch.index(True)]
+                        # for idx in sorted(ann_idx)[::-1]:
+                            # only remove visible annotation spans
                         descr = inst.annotations[idx]['description']
-                        if self.mne.visible_annotations[descr]:
+                        if self.mne.visible_annotations[descr.split(",")[0]]:
                             inst.annotations.delete(idx)
+                    else:
+                        for idx in sorted(ann_idx)[::-1]:
+                            # only remove visible annotation spans
+                            descr = inst.annotations[idx]['description']
+                            if self.mne.visible_annotations[descr.split(",")[0]]:
+                                inst.annotations.delete(idx)
+                                
                 self._remove_annotation_hover_line()
                 self._draw_annotations()
                 self.canvas.draw_idle()
@@ -1107,7 +1128,7 @@ class MNEBrowseFigure(MNEFigure):
 
     def _create_annotation_fig(self):
         """Create the annotation dialog window."""
-        from matplotlib.widgets import Button, SpanSelector, CheckButtons
+        from matplotlib.widgets import Button,RectangleSelector, SpanSelector, CheckButtons
         from mpl_toolkits.axes_grid1.axes_size import Fixed
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
         # make figure
@@ -1130,7 +1151,7 @@ class MNEBrowseFigure(MNEFigure):
         fig.mne.show_hide_ax = div.append_axes(
             position='right', size=Fixed(ANNOTATION_FIG_CHECKBOX_COLUMN_W),
             pad=Fixed(ANNOTATION_FIG_PAD), aspect='equal',
-            sharey=fig.mne.radio_ax)
+            sharey=fig.mne.radio_ax)        
         # populate w/ radio buttons & labels
         self._update_annotation_fig()
         # append instructions at top
@@ -1176,9 +1197,10 @@ class MNEBrowseFigure(MNEFigure):
                                   pad=Fixed(ANNOTATION_FIG_PAD),
                                   aspect='equal')
         checkbox = CheckButtons(drag_ax, labels=('Draggable edges?',),
-                                actives=(self.mne.draggable_annotations,))
-        checkbox.on_clicked(self._toggle_draggable_annotations)
+                                actives=(self.mne.draggable_annotations,))        
+        checkbox.on_clicked(self._toggle_draggable_annotations)        
         fig.mne.drag_checkbox = checkbox
+               
         # reposition & resize axes
         width_in, height_in = fig.get_size_inches()
         width_ax = fig._inch_to_rel(width_in
@@ -1186,7 +1208,7 @@ class MNEBrowseFigure(MNEFigure):
                                     - 3 * ANNOTATION_FIG_PAD)
         aspect = width_ax / fig._inch_to_rel(drag_ax_height)
         drag_ax.set_xlim(0, aspect)
-        drag_ax.set_axis_off()
+        drag_ax.set_axis_off()        
         # reposition & resize checkbox & label
         rect = checkbox.rectangles[0]
         _pad, _size = (0.2, 0.6)
@@ -1199,15 +1221,58 @@ class MNEBrowseFigure(MNEFigure):
         text.set(position=(3 * _pad + _size, 0.45), va='center')
         for artist in lines + (rect, text):
             artist.set_transform(drag_ax.transData)
+            
+        # add "channelswise" checkbox
+        channel_ax_height = 3 * ANNOTATION_FIG_PAD
+        channel_ax = div.append_axes('bottom', size=Fixed(channel_ax_height),
+                                  pad=Fixed(ANNOTATION_FIG_PAD),
+                                  aspect='equal')
+        checkbox_ch = CheckButtons(channel_ax, labels=('channelwise?',),
+                                actives=(self.mne.channelwise_annotations,))        
+        checkbox_ch.on_clicked(self._toggle_channelwise_annotations)        
+        fig.mne.channel_checkbox = checkbox_ch
+               
+        # reposition & resize axes
+        width_in, height_in = fig.get_size_inches()
+        width_ax = fig._inch_to_rel(width_in
+                                    - ANNOTATION_FIG_CHECKBOX_COLUMN_W
+                                    - 3 * ANNOTATION_FIG_PAD)
+        aspect = width_ax / fig._inch_to_rel(channel_ax_height)
+        channel_ax.set_xlim(0, aspect)
+        channel_ax.set_axis_off()        
+        # reposition & resize checkbox & label
+        rect = checkbox_ch.rectangles[0]
+        _pad, _size = (0.2, 0.6)
+        rect.set_bounds(_pad, _pad, _size, _size)
+        lines = checkbox_ch.lines[0]
+        for line, direction in zip(lines, (1, -1)):
+            line.set_xdata((_pad, _pad + _size)[::direction])
+            line.set_ydata((_pad, _pad + _size))
+        text = checkbox_ch.labels[0]
+        text.set(position=(3 * _pad + _size, 0.45), va='center')
+        for artist in lines + (rect, text):
+            artist.set_transform(channel_ax.transData)
+            
+        
         # setup interactivity in plot window
         col = ('#ff0000' if len(fig.mne.radio_ax.buttons.circles) < 1 else
                fig.mne.radio_ax.buttons.circles[0].get_edgecolor())
         # TODO: we would like useblit=True here, but it behaves oddly when the
         # first span is dragged (subsequent spans seem to work OK)
-        rect_kw = _prop_kw('rect', dict(alpha=0.5, facecolor=col))
-        selector = SpanSelector(self.mne.ax_main, self._select_annotation_span,
-                                'horizontal', minspan=0.1, useblit=False,
-                                **rect_kw)
+        # rect_kw = _prop_kw('rect', dict(alpha=0.5, facecolor=col))
+        if self.mne.channelwise_annotations:
+            rect_kw = _prop_kw("rect",dict(facecolor=col, edgecolor="black", alpha=0.2, fill=False))
+            selector = RectangleSelector(self.mne.ax_main, self._select_annotation_span_rect,
+                                         drawtype='box', useblit=True,
+                                            button=[1, 3],  # disable middle button
+                                            minspanx=0.1, minspany=0.1,                                        
+                                            **rect_kw)
+        else:
+            rect_kw = _prop_kw('rect', dict(alpha=0.5, facecolor=col))
+            selector = SpanSelector(self.mne.ax_main, self._select_annotation_span,
+                                    'horizontal', minspan=0.1, useblit=False,
+                                    **rect_kw)
+            
         self.mne.ax_main.selector = selector
         self.mne._callback_ids['motion_notify_event'] = \
             self.canvas.mpl_connect('motion_notify_event', self._hover)
@@ -1223,7 +1288,27 @@ class MNEBrowseFigure(MNEFigure):
     def _toggle_draggable_annotations(self, event):
         """Enable/disable draggable annotation edges."""
         self.mne.draggable_annotations = not self.mne.draggable_annotations
-
+        
+    def _toggle_channelwise_annotations(self,event):
+        from matplotlib.widgets import RectangleSelector, SpanSelector
+        fig = self.mne.fig_annotation
+        self.mne.channelwise_annotations = not self.mne.channelwise_annotations
+        col = ('#ff0000' if len(fig.mne.radio_ax.buttons.circles) < 1 else
+               fig.mne.radio_ax.buttons.circles[0].get_edgecolor())
+        if self.mne.channelwise_annotations:
+            rect_kw = _prop_kw("rect",dict(facecolor=col, edgecolor="black", alpha=0.2, fill=False))
+            selector = RectangleSelector(self.mne.ax_main, self._select_annotation_span_rect,
+                                         drawtype='box', useblit=True,
+                                            button=[1, 3],  # disable middle button
+                                            minspanx=0.1, minspany=0.1,                                        
+                                            **rect_kw)
+        else:
+            rect_kw = _prop_kw('rect', dict(alpha=0.5, facecolor=col))
+            selector = SpanSelector(self.mne.ax_main, self._select_annotation_span,
+                                    'horizontal', minspan=0.1, useblit=False,
+                                    **rect_kw)
+        self.mne.ax_main.selector = selector
+        
     def _get_annotation_labels(self):
         """Get the unique labels in the raw object and added in the UI."""
         return sorted(set(np.array([desc.split(",")[0]\
@@ -1307,6 +1392,7 @@ class MNEBrowseFigure(MNEFigure):
         for line in np.array(checkboxes.lines).ravel():
             line.set_transform(show_hide_ax.transData)
             line.set_xdata(aspect + 0.05 - np.array(line.get_xdata()))
+                    
         # store state
         self.mne.visible_annotations = check_values
         self.mne.show_hide_annotation_checkboxes = checkboxes
@@ -1391,7 +1477,51 @@ class MNEBrowseFigure(MNEFigure):
         if not self.mne.visible_annotations[buttons.value_selected]:
             self.mne.show_hide_annotation_checkboxes.set_active(active_idx)
         self._redraw(update_data=False, annotations=True)
-
+        
+    def _select_annotation_span_rect(self, eclick, erelease):
+        """Handle annotation span selector."""
+        x1, y1 = eclick.xdata, eclick.ydata
+        x2, y2 = erelease.xdata, erelease.ydata
+        texts = self.mne.ax_main.yaxis.get_ticklabels()
+        dists = np.array([abs(text.get_position()[1]-y1) for text in texts]) 
+        idxst = dists.argmin()
+        dists = np.array([abs(text.get_position()[1]-y2) for text in texts]) 
+        idxen = dists.argmin()        
+        channels = texts[idxst:idxen]                                
+        
+        print(f"({x1:3.2f}, {y1:3.2f}) --> ({x2:3.2f}, {y2:3.2f})")
+        print(f" The buttons you used were: {eclick.button} {erelease.button}")
+        onset = _sync_onset(self.mne.inst, x1, True) - self.mne.first_time
+        duration = x2 - x1        
+        buttons = self.mne.fig_annotation.mne.radio_ax.buttons
+        labels = [label.get_text() for label in buttons.labels]
+        active_idx = labels.index(buttons.value_selected)    
+        # if eclick.button==1:
+        for channel in channels:            
+            _merge_annotations(onset, onset + duration, labels[active_idx]+","+channel.get_text(),
+                               self.mne.inst.annotations)
+        # if adding a span with an annotation label that is hidden, show it
+        if not self.mne.visible_annotations[buttons.value_selected]:
+            self.mne.show_hide_annotation_checkboxes.set_active(active_idx)
+        self._redraw(update_data=False, annotations=True)
+        # elif eclick.button==3:            
+        #     if any(c.contains(eclick)[0] for c in self.mne.ax_main.collections):
+        #         texts = self.mne.ax_main.yaxis.get_ticklabels()
+        #         xdata = eclick.xdata - self.mne.first_time
+        #         start = _sync_onset(inst, inst.annotations.onset)
+        #         end = start + inst.annotations.duration                
+        #         ann_idx = np.where((xdata > start) & (xdata < end))[0]
+        #         # idx = np.where((xdata > start) & (xdata < end))[0][channtorem]
+        #         dists = np.array([abs(text.get_position()[1]-eclick.ydata) for text in texts])                                
+        #         ann_ch = [a.split(",")[-1]in channels for a in self.mne.inst.annotations[ann_idx].description]
+        #         idx = ann_idx[ann_ch.index(True)]
+        #         # for idx in sorted(ann_idx)[::-1]:
+        #             # only remove visible annotation spans
+        #         descr = inst.annotations[idx]['description']
+        #         if self.mne.visible_annotations[descr.split(",")[0]]:
+        #             inst.annotations.delete(idx)
+        #         self._redraw(update_data=False, annotations=True)
+        
     def _remove_annotation_hover_line(self):
         """Remove annotation line from the plot and reactivate selector."""
         if self.mne.annotation_hover_line is not None:
