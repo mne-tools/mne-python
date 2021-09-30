@@ -471,14 +471,14 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
     return figs if slices_as_figures else fig
 
 
-def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
+def plot_bem(subject, subjects_dir=None, orientation='coronal',
              slices=None, brain_surfaces=None, src=None, show=True,
              show_indices=True, mri='T1.mgz', show_orientation=True):
     """Plot BEM contours on anatomical MRI slices.
 
     Parameters
     ----------
-    %(subject_none)s
+    %(subject)s
     %(subjects_dir)s
     orientation : str
         'coronal' or 'axial' or 'sagittal'.
