@@ -6,7 +6,8 @@ from ...defaults import DEFAULTS
 from ...io import read_info, read_fiducials
 from ...coreg import Coregistration, _is_mri_subject
 from ...viz._3d import (_plot_head_surface, _plot_head_fiducials,
-                        _plot_head_shape_points, _plot_mri_fiducials)
+                        _plot_head_shape_points, _plot_mri_fiducials,
+                        _plot_hpi_coils)
 from ...transforms import (read_trans, write_trans, _ensure_trans,
                            rotation_angles, _get_transforms_to_coord_frame)
 from ...utils import get_subjects_dir
@@ -21,6 +22,7 @@ class CoregistrationUI(HasTraits):
     _current_fiducial = Unicode()
     _info_file = Unicode()
     _coreg_modified = Bool()
+    _hpi_coils = Bool()
     _head_shape_point = Bool()
     _head_resolution = Bool()
     _head_transparency = Bool()
@@ -63,6 +65,7 @@ class CoregistrationUI(HasTraits):
         self._subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                               raise_error=True)
         self._subject = subject if subject is not None else self._subjects[0]
+        self._hpi_coils = True
         self._head_shape_point = True
         self._head_resolution = True
         self._icp_n_iterations = self._default_icp_n_iterations
@@ -152,9 +155,11 @@ class CoregistrationUI(HasTraits):
     def _set_omit_hsp_distance(self, distance):
         self._omit_hsp_distance = distance / 1000.0
 
+    def _set_hpi_coils(self, state):
+        self._hpi_coils = bool(state)
+
     def _set_head_shape_points(self, state):
         self._head_shape_point = bool(state)
-        self._emit_coreg_modified()
 
     def _set_head_resolution(self, state):
         self._head_resolution = bool(state)
@@ -260,9 +265,14 @@ class CoregistrationUI(HasTraits):
 
     @observe("_coreg_modified")
     def _update(self, change=None):
+        self._add_hpi_coils()
         self._add_head_shape_points()
         self._add_head_fiducials()
         self._add_mri_fiducials()
+
+    @observe("_hpi_coils")
+    def _hpi_coils_changed(self, change=None):
+        self._add_hpi_coils()
 
     @observe("_head_shape_point")
     def _head_shape_point_changed(self, change=None):
@@ -329,6 +339,7 @@ class CoregistrationUI(HasTraits):
     def _update_actor(self, actor_name, actor):
         self._renderer.plotter.remove_actor(self._actors.get(actor_name))
         self._actors[actor_name] = actor
+        self._renderer._update()
 
     def _add_mri_fiducials(self):
         to_cf_t = _get_transforms_to_coord_frame(
@@ -344,6 +355,16 @@ class CoregistrationUI(HasTraits):
         head_fids_actors = _plot_head_fiducials(
             self._renderer, self._info, to_cf_t, self._fid_colors)
         self._update_actor("head_fiducials", head_fids_actors)
+
+    def _add_hpi_coils(self):
+        if self._hpi_coils:
+            to_cf_t = _get_transforms_to_coord_frame(
+                self._info, self._coreg.trans, coord_frame=self._coord_frame)
+            hpi_actors = _plot_hpi_coils(
+                self._renderer, self._info, to_cf_t)
+        else:
+            hpi_actors = None
+        self._update_actor("hpi_coils", hpi_actors)
 
     def _add_head_shape_points(self):
         if self._head_shape_point:
@@ -511,6 +532,12 @@ class CoregistrationUI(HasTraits):
         self._renderer._layout_add_widget(layout, hlayout)
 
         layout = self._renderer._dock_add_group_box("View")
+        self._widgets["show_hpi"] = self._renderer._dock_add_check_box(
+            name="Show HPI Coils",
+            value=True,
+            callback=self._set_hpi_coils,
+            layout=layout
+        )
         self._widgets["show_hsp"] = self._renderer._dock_add_check_box(
             name="Show Head Shape Points",
             value=True,
