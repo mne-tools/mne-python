@@ -1529,6 +1529,7 @@ class Report(object):
             If True, the plots are closed during the generation of the report.
             Defaults to True.
         """
+        from matplotlib.figure import Figure
         figs, captions, comments = self._validate_input(
             figs, captions, section, comments
         )
@@ -1579,7 +1580,6 @@ class Report(object):
         for fig, title, caption in zip(figs, captions, comments):
             if scale is not None:
                 _scale_mpl_figure(fig, scale)
-            tight_layout(fig=fig)
 
             self.add_figure(
                 fig=fig, title=title, caption=caption,
@@ -1941,7 +1941,6 @@ class Report(object):
         for fig in figs:
             if scale is not None:
                 _scale_mpl_figure(fig, scale)
-            tight_layout(fig=fig)
 
         html, dom_id = self._render_slider(
             figs=figs, title=title, captions=captions, start_idx=0,
