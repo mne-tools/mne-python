@@ -119,15 +119,17 @@ class CoregistrationUI(HasTraits):
         idx = np.argmin(abs(vertices - pos), axis=0)
         vertex_id = cell[idx[0]]
 
-        fid = self._fids_to_pick.pop()
-        # XXX: for debug only
-        print(fid, vertex_id)
+        fid = self._fids_to_pick.pop(0)  # guaranteed previously
+        idx = self._default_fiducials.index(fid)
+        # XXX: add coreg.set_fids
+        self._coreg._fid_points[idx] = self._surfaces["head"].points[vertex_id]
+        self._coreg._reset_fiducials()
         if len(self._fids_to_pick) == 0:
             self._actors["msg"].SetInput("")
         else:
-            next_fid = self._fids_to_pick[-1]
+            next_fid = self._fids_to_pick[0]
             self._actors["msg"].SetInput(f"Picking {next_fid}...")
-        self._renderer._update()
+        self._emit_coreg_modified()
 
     def _set_subjects_dir(self, subjects_dir):
         self._subjects_dir = subjects_dir
@@ -216,7 +218,7 @@ class CoregistrationUI(HasTraits):
                 self._widgets["show_hsp"].set_value(False)
                 self._widgets["show_hsp"].set_enabled(False)
                 self._fids_to_pick = list(self._default_fiducials)
-                next_fid = self._fids_to_pick[-1]
+                next_fid = self._fids_to_pick[0]
                 self._actors["msg"].SetInput(f"Picking {next_fid}...")
                 self._renderer._update()
         if "lock_fids" in self._widgets:
