@@ -126,8 +126,28 @@ class RawBrainVision(BaseRaw):
                 block = np.empty((n_data_ch, stop - start))
                 for ii in range(stop - start):
                     line = fid.readline().decode('ASCII')
-                    line = line.strip().replace(',', '.').split()
-                    block[:n_data_ch, ii] = [float(part) for part in line]
+                    line = line.strip()
+
+                    # Not sure why we special-handle the "," character here,
+                    # but let's just keep this for historical and backward-
+                    # compat reasons
+                    if (isinstance(fmt, dict) and
+                            'decimalsymbol' in fmt and
+                            fmt['decimalsymbol'] != '.'):
+                        line = line.replace(',', '.')
+
+                    if ' ' in line:
+                        line_data = line.split()
+                    elif ',' in line:
+                        # likely exported from BrainVision Analyzer?
+                        line_data = line.split(',')
+                    else:
+                        raise RuntimeError(
+                            'Unknown BrainVision data format encountered. '
+                            'Please contact the MNE-Python developers.'
+                        )
+
+                    block[:n_data_ch, ii] = [float(part) for part in line_data]
             _mult_cal_one(data, block, idx, cals, mult)
 
 

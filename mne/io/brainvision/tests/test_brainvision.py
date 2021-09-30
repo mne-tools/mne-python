@@ -236,7 +236,8 @@ def test_vhdr_versions(tmpdir, header):
     assert_allclose(data_new, data_expected, atol=1e-15)
 
 
-def test_ascii(tmpdir):
+@pytest.mark.parametrize('data_sep', (b' ', b',', b'+'))
+def test_ascii(tmpdir, data_sep):
     """Test ASCII BV reading."""
     raw = read_raw_brainvision(vhdr_path)
     ascii_vhdr_path = op.join(tmpdir, op.split(vhdr_path)[-1])
@@ -265,10 +266,16 @@ def test_ascii(tmpdir):
     # create the .dat file
     data, times = raw[:]
     with open(ascii_vhdr_path.replace('.vhdr', '.dat'), 'wb') as fid:
-        fid.write(b' '.join(ch_name.encode('ASCII')
-                            for ch_name in raw.ch_names) + b'\n')
+        fid.write(data_sep.join(ch_name.encode('ASCII')
+                                for ch_name in raw.ch_names) + b'\n')
         fid.write(b'\n'.join(b' '.join(b'%.3f' % dd for dd in d)
                              for d in data.T / raw._cals))
+
+    if data_sep == b';':
+        with pytest.raises(RuntimeError, match='Unknown.*data format'):
+            read_raw_brainvision(ascii_vhdr_path)
+        return
+
     raw = read_raw_brainvision(ascii_vhdr_path)
     data_new, times_new = raw[:]
     assert_allclose(data_new, data, atol=1e-15)
