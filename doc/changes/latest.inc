@@ -175,6 +175,8 @@ Enhancements
 
 - Add full ECoG dataset to MNE-misc-data and demonstrate its use in :ref:`ex-electrode-pos-2d` and :ref:`tut-ieeg-localize` (:gh:`9784` by `Alex Rockhill`_)
 
+- `mne.io.read_raw_brainvision` now handles ASCII data with comma-separated values, as may be exported from BrainVision Analyzer (:gh:`9795` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 - Fix bug in :meth:`mne.io.Raw.pick` and related functions when parameter list contains channels which are not in info instance (:gh:`9708` **by new contributor** |Evgeny Goldstein|_)
