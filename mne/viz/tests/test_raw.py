@@ -40,8 +40,8 @@ def _annotation_helper(raw, browse_backend, events=False):
     # ToDo: This will be different in pyqtgraph because it handles annotations
     #  from the toolbar.
     assert browse_backend._get_n_figs() == 2
-    # +4 from the scale bars
-    n_scale = 4
+    # +3 from the scale bars
+    n_scale = 3
     assert len(data_ax.texts) == n_anns + n_events + n_scale
     # modify description to create label "BAD test"
     ann_fig = fig.mne.fig_annotation
