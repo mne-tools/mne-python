@@ -128,8 +128,8 @@ class RawBrainVision(BaseRaw):
                     line = fid.readline().decode('ASCII')
                     line = line.strip()
 
-                    # Not sure why we special-handle the "," separator, but
-                    # let's just keep this here for historical and backward-
+                    # Not sure why we special-handle the "," character here,
+                    # but let's just keep this for historical and backward-
                     # compat reasons
                     if (isinstance(fmt, dict) and
                             'decimalsymbol' in fmt and
@@ -139,6 +139,7 @@ class RawBrainVision(BaseRaw):
                     if ' ' in line:
                         line_data = line.split()
                     elif ',' in line:
+                        # likely exported from BrainVision Analyzer?
                         line_data = line.split(',')
                     else:
                         raise RuntimeError(
