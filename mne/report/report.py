@@ -1529,7 +1529,6 @@ class Report(object):
             If True, the plots are closed during the generation of the report.
             Defaults to True.
         """
-        from matplotlib.figure import Figure
         figs, captions, comments = self._validate_input(
             figs, captions, section, comments
         )
