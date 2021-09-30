@@ -14,6 +14,7 @@ import webbrowser
 
 from ..defaults import HEAD_SIZE_DEFAULT
 from ..externals.doccer import indentcount_lines
+from ..externals.decorator import FunctionMaker
 
 
 ##############################################################################
@@ -3058,32 +3059,14 @@ def open_docs(kind=None, version=None):
 warnings.filterwarnings('always', category=DeprecationWarning, module='mne')
 
 
-class deprecated(object):
+class deprecated:
     """Mark a function or class as deprecated (decorator).
 
-    Issue a warning when the function is called/the class is instantiated and
-    adds a warning to the docstring.
-
-    The optional extra argument will be appended to the deprecation message
-    and the docstring. Note: to use this with the default value for extra, put
-    in an empty of parentheses::
-
-        >>> from mne.utils import deprecated
-        >>> deprecated() # doctest: +ELLIPSIS
-        <mne.utils.docs.deprecated object at ...>
-
-        >>> @deprecated()
-        ... def some_function(): pass
-
-
-    Parameters
-    ----------
-    extra: string
-        To be added to the deprecation messages.
+    Originally adapted from sklearn and
+    http://wiki.python.org/moin/PythonDecoratorLibrary, then modified to make
+    arguments populate properly following our verbose decorator methods based
+    on externals.decorator.
     """
-
-    # Adapted from http://wiki.python.org/moin/PythonDecoratorLibrary,
-    # but with many changes.
 
     def __init__(self, extra=''):  # noqa: D102
         self.extra = extra
@@ -3102,44 +3085,39 @@ class deprecated(object):
             return self._decorate_fun(obj)
 
     def _decorate_class(self, cls):
-        msg = "Class %s is deprecated" % cls.__name__
-        if self.extra:
-            msg += "; %s" % self.extra
-
-        # FIXME: we should probably reset __new__ for full generality
-        init = cls.__init__
-
-        def deprecation_wrapped(*args, **kwargs):
-            warnings.warn(msg, category=DeprecationWarning)
-            return init(*args, **kwargs)
-        cls.__init__ = deprecation_wrapped
-
-        deprecation_wrapped.__name__ = '__init__'
-        deprecation_wrapped.__doc__ = self._update_doc(init.__doc__)
-        deprecation_wrapped.deprecated_original = init
-
+        msg = f"Class {cls.__name__} is deprecated"
+        cls.__init__ = self._make_fun(cls.__init__, msg)
         return cls
 
     def _decorate_fun(self, fun):
         """Decorate function fun."""
-        msg = "Function %s is deprecated" % fun.__name__
+        msg = f"Function {fun.__name__} is deprecated"
+        return self._make_fun(fun, msg)
+
+    def _make_fun(self, function, msg):
         if self.extra:
             msg += "; %s" % self.extra
 
-        def deprecation_wrapped(*args, **kwargs):
-            warnings.warn(msg, category=DeprecationWarning)
-            return fun(*args, **kwargs)
-
-        deprecation_wrapped.__name__ = fun.__name__
-        deprecation_wrapped.__dict__ = fun.__dict__
-        deprecation_wrapped.__doc__ = self._update_doc(fun.__doc__)
-
-        return deprecation_wrapped
+        body = f"""\
+def %(name)s(%(signature)s):\n
+    import warnings
+    warnings.warn({repr(msg)}, category=DeprecationWarning)
+    return _function_(%(shortsignature)s)"""
+        evaldict = dict(_function_=function)
+        fm = FunctionMaker(
+            function, None, None, None, None, function.__module__)
+        attrs = dict(__wrapped__=function, __qualname__=function.__qualname__,
+                     __globals__=function.__globals__)
+        dep = fm.make(body, evaldict, addsource=True, **attrs)
+        dep.__doc__ = self._update_doc(dep.__doc__)
+        dep._deprecated_original = function
+        return dep
 
     def _update_doc(self, olddoc):
         newdoc = ".. warning:: DEPRECATED"
         if self.extra:
             newdoc = "%s: %s" % (newdoc, self.extra)
+        newdoc += '.'
         if olddoc:
             # Get the spacing right to avoid sphinx warnings
             n_space = 4
