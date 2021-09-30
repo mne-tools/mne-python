@@ -251,6 +251,8 @@ Bugs
 
 - Fix bug where `mne.Annotations` were not appending channel names when being added together (:gh:`9780` by `Adam Li`_)
 
+- `mne.io.read_raw_brainvision` now handles ASCII data with comma-separated values correctly (:gh:`9795` by `Richard Höchenberger`_)
+
 API changes
 ~~~~~~~~~~~
 - In `mne.compute_source_morph`, the ``niter_affine`` and ``niter_sdr`` parameters have been replaced by ``niter`` and ``pipeline`` parameters for more consistent and finer-grained control of registration/warping steps and iteration (:gh:`9505` by `Alex Rockhill`_ and `Eric Larson`_)
