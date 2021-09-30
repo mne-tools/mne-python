@@ -339,7 +339,7 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
     if slices is None:
         slices = np.round(
             np.linspace(
-                start=0, 
+                start=0,
                 stop=n_slices - 1,
                 num=14
             )
