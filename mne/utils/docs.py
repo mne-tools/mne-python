@@ -1390,19 +1390,11 @@ info : mne.Info | str
 """
 docdict['subject'] = """
 subject : str
-    The FreeSurfer subject name (will be used to set the FreeSurfer
-    environment variable ``SUBJECT``).
+    The FreeSurfer subject name.
 """
 docdict['subject_none'] = """
 subject : str | None
-    The FreeSurfer subject name. If ``None``, the value of the environment
-    variable ``SUBJECT`` will be used.
-"""
-docdict['stc_subject'] = """
-subject : str | None
-    The FreeSurfer subject name. If ``None``, ``stc.subject`` will be used.
-    If that is ``None`` too, the value of the environment variable ``SUBJECT``
-    will be used.
+    The FreeSurfer subject name.
 """
 docdict['label_subject'] = """\
 subject : str | None

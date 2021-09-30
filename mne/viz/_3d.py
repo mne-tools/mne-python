@@ -1644,7 +1644,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     ----------
     stc : SourceEstimate
         The source estimates to plot.
-    %(stc_subject)s
+    %(subject_none)s
+        If ``None``, ``stc.subject`` will be used.
     surface : str
         The type of surface (inflated, white etc.).
     hemi : str
@@ -2033,7 +2034,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
         .. versionchanged:: 0.18
            Support for :class:`~nibabel.spatialimages.SpatialImage`.
-    %(stc_subject)s
+    %(subject_none)s
+        If ``None``, ``stc.subject`` will be used.
     %(subjects_dir)s
     mode : str
         The plotting mode to use. Either 'stat_map' (default) or 'glass_brain'.
@@ -2489,7 +2491,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     ----------
     stc : VectorSourceEstimate | MixedVectorSourceEstimate
         The vector source estimate to plot.
-    %(stc_subject)s
+    %(subject_none)s
+        If ``None``, ``stc.subject`` will be used.
     hemi : str, 'lh' | 'rh' | 'split' | 'both'
         The hemisphere to display.
     %(colormap)s
