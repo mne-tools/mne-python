@@ -36,7 +36,7 @@ from ..utils import (logger, verbose, warn, _check_option, get_subjects_dir,
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
 from .utils import (tight_layout, _get_color_list, _prepare_trellis, plt_show,
-                    _figure_agg)
+                    _figure_agg, _validate_type)
 
 
 def _index_info_cov(info, cov, exclude):
@@ -321,6 +321,9 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
     # For ease of plotting, we will do everything in voxel coordinates.
+    _validate_type(show_orientation, (bool, str), 'show_orientation')
+    _check_option('show_orientation', show_orientation, ('alwways',),
+                  extra='when str')
     _check_option('orientation', orientation, ('coronal', 'axial', 'sagittal'))
 
     # Load the T1 data
@@ -432,17 +435,18 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
         kwargs = dict(
             color='#66CCEE', fontsize='medium', path_effects=path_effects,
             family='monospace', clip_on=False, zorder=5, weight='bold')
+        always = (show_orientation == 'always')
         if show_orientation:
-            if ai % n_col == 0:  # left
+            if ai % n_col == 0 or always:  # left
                 ax.text(0, dat.shape[0] / 2., xlabels[0],
                         va='center', ha='left', **kwargs)
-            if ai % n_col == n_col - 1 or ai == n_axes - 1:  # right
+            if ai % n_col == n_col - 1 or ai == n_axes - 1 or always:  # right
                 ax.text(dat.shape[1] - 1, dat.shape[0] / 2., xlabels[1],
                         va='center', ha='right', **kwargs)
-            if ai >= n_axes - n_col:  # bottom
+            if ai >= n_axes - n_col or always:  # bottom
                 ax.text(dat.shape[1] / 2., 0, ylabels[0],
                         ha='center', va='bottom', **kwargs)
-            if ai < n_col or n_col == 1:  # top
+            if ai < n_col or n_col == 1 or always:  # top
                 ax.text(dat.shape[1] / 2., dat.shape[0] - 1, ylabels[1],
                         ha='center', va='top', **kwargs)
 
@@ -497,10 +501,15 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
         ``'T1.mgz'``, or a full path to a custom MRI file.
 
         .. versionadded:: 0.21
-    show_orientation : str
+    show_orientation : bool | str
         Show the orientation (L/R, P/A, I/S) of the data slices.
+        True (default) will only show it on the outside most edges of the
+        figure, False will never show labels, and "always" will label each
+        plot.
 
         .. versionadded:: 0.21
+        .. versionchanged:: 0.24
+           Added support for "always".
 
     Returns
     -------

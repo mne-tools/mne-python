@@ -2409,7 +2409,7 @@ class Report(object):
         figs = _get_mri_contour_figs(
             sl=sl, n_jobs=n_jobs, mri_fname=mri_fname, surfaces=surfaces,
             orientation=orientation, src=None, show=False,
-            show_orientation=True, width=width, slices_as_figures=True
+            show_orientation='always', width=width, slices_as_figures=True
         )
 
         # Render the slider
