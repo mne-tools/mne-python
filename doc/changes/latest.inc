@@ -273,20 +273,22 @@ API changes
 
 - :func:`mne.inverse_sparse.mixed_norm` now simply warns when source estimates contain no dipole, e.g. if data are too noisy and alpha is based on SURE (:gh:`9685` by `Alex Gramfort`_)
 
+- :class:`mne.Report` modernization has led to multiple deprecations (:gh:`9754` by `Richard Höchenberger`_):
+
+  - :meth:`mne.Report.add_figs_to_section` and :meth:`mne.Report.add_slider_to_section` have been deprecated in favor of :meth:`mne.Report.add_figure`
+
+  - :meth:`mne.Report.add_images_to_section` has been deprecated in favor of :meth:`mne.Report.add_image`
+
+  - :meth:`mne.Report.add_bem_to_section` has been deprecated in favor of :meth:`mne.Report.add_bem`
+
+  - :meth:`mne.Report.add_htmls_to_section` has been deprecated in favor of :meth:`mne.Report.add_html`
+
+  - In :meth:`mne.Report.parse_folder`, the ``sort_sections`` parameter has been deprecated in favor of ``sort_content``
+
+  - In :meth:`mne.Report.remove`, the ``caption`` and ``section`` parameters have been deprecated in favor of ``title`` and ``tags``, respectively
+
+  - The ``mne.Report.sections`` attribute has been deprecated in favor of ``mne.Report.tags``
+
+  - The ``mne.Report.fnames`` attribute has been deprecated without replacement
+
 - The output folder name for HF_SEF datasets is now ``hf_sef`` instead of ``HF_SEF`` (:gh:`9763` by `Adam Li`_)
-
-- :meth:`mne.Report.add_figs_to_section` and :meth:`mne.Report.add_slider_to_section` have been deprecated in favor of :meth:`mne.Report.add_figure` (:gh:`9754` by `Richard Höchenberger`_)
-
-- :meth:`mne.Report.add_images_to_section` has been deprecated in favor of :meth:`mne.Report.add_image` (:gh:`9754` by `Richard Höchenberger`_)
-
-- :meth:`mne.Report.add_bem_to_section` has been deprecated in favor of :meth:`mne.Report.add_bem` (:gh:`9754` by `Richard Höchenberger`_)
-
-- :meth:`mne.Report.add_htmls_to_section` has been deprecated in favor of :meth:`mne.Report.add_html` (:gh:`9754` by `Richard Höchenberger`_)
-
-- In :meth:`mne.Report.parse_folder`, the ``sort_sections`` parameter has been deprecated in favor of ``sort_content`` (:gh:`9754` by `Richard Höchenberger`_)
-
-- In :meth:`mne.Report.remove`, the ``caption`` and ``section`` parameters have been deprecated in favor of ``title`` and ``tags``, respectively (:gh:`9754` by `Richard Höchenberger`_)
-
-- The ``mne.Report.sections`` attribute has been deprecated in favor of ``mne.Report.tags`` (:gh:`9754` by `Richard Höchenberger`_)
-
-- The ``mne.Report.fnames`` attribute has been deprecated without replacement (:gh:`9754` by `Richard Höchenberger`_)

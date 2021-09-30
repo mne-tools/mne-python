@@ -1493,7 +1493,7 @@ class Report(object):
             replace=replace
         )
 
-    @deprecated('Use ``Report.add_figure`` instead')
+    @deprecated('Use :meth:`~mne.Report.add_figure` instead')
     @fill_doc
     def add_figs_to_section(self, figs, captions, section='custom',
                             scale=None, image_format=None, comments=None,
@@ -1630,7 +1630,7 @@ class Report(object):
             replace=replace
         )
 
-    @deprecated('Use ``Report.add_image`` instead')
+    @deprecated('Use :meth:`~mne.Report.add_image` instead')
     def add_images_to_section(self, fnames, captions, scale=None,
                               section='custom', comments=None, replace=False):
         """Append custom user-defined images.
@@ -1727,7 +1727,7 @@ class Report(object):
             replace=replace
         )
 
-    @deprecated('Use ``Report.add_html`` instead')
+    @deprecated('Use :meth:`~mne.Report.add_html` instead')
     def add_htmls_to_section(self, htmls, captions, section='custom',
                              replace=False):
         """Append htmls to the report.
@@ -1771,7 +1771,7 @@ class Report(object):
         for html, title in zip(htmls, captions):
             self.add_html(html=html, title=title, tags=tags, replace=replace)
 
-    @deprecated('Use ``Report.add_bem`` instead')
+    @deprecated('Use :meth:`~mne.Report.add_bem` instead')
     @verbose
     def add_bem_to_section(self, subject, caption='BEM', section='bem',
                            decim=2, n_jobs=1, subjects_dir=None,
@@ -1888,7 +1888,7 @@ class Report(object):
 
         return html, dom_id
 
-    @deprecated('Use ``Report.add_figure`` instead')
+    @deprecated('Use :meth:`~mne.Report.add_figure` instead')
     @fill_doc
     def add_slider_to_section(self, figs, captions=None, section='custom',
                               title='Slider', scale=None, image_format=None,
