@@ -27,7 +27,8 @@ from .config import (set_config, get_config, get_config_path, set_cache_dir,
                      _get_numpy_libs)
 from .docs import (copy_function_doc_to_method_doc, copy_doc, linkcode_resolve,
                    open_docs, deprecated, fill_doc, deprecated_alias,
-                   copy_base_doc_to_subclass_doc, docdict as _docdict)
+                   copy_base_doc_to_subclass_doc, docdict as _docdict,
+                   _add_deprecation_warning_to_doc)
 from .fetching import _url_to_local_path
 from ._logging import (verbose, logger, set_log_level, set_log_file,
                        use_log_level, catch_logging, warn, filter_out_warnings,

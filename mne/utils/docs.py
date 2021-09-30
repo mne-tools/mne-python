@@ -3058,6 +3058,35 @@ def open_docs(kind=None, version=None):
 warnings.filterwarnings('always', category=DeprecationWarning, module='mne')
 
 
+def _add_deprecation_warning_to_doc(olddoc, extra=''):
+    """Inject a deprecation warning into an existing docstring.
+
+    Parameters
+    ----------
+    olddoc : str
+        The existing docstring.
+    extra : str
+        Additional string to add after the deprecation warning.
+
+    Returns
+    -------
+    newdoc : str
+        The updated docstring.
+    """
+    newdoc = ".. warning:: DEPRECATED"
+    if extra:
+        newdoc = "%s: %s" % (newdoc, extra)
+    if olddoc:
+        # Get the spacing right to avoid sphinx warnings
+        n_space = 4
+        for li, line in enumerate(olddoc.split('\n')):
+            if li > 0 and len(line.strip()):
+                n_space = len(line) - len(line.lstrip())
+                break
+        newdoc = "%s\n\n%s%s" % (newdoc, ' ' * n_space, olddoc)
+
+    return newdoc
+
 class deprecated(object):
     """Mark a function or class as deprecated (decorator).
 
@@ -3132,24 +3161,11 @@ class deprecated(object):
 
         deprecation_wrapped.__name__ = fun.__name__
         deprecation_wrapped.__dict__ = fun.__dict__
-        deprecation_wrapped.__doc__ = self._update_doc(fun.__doc__)
-
+        deprecation_wrapped.__doc__ = _add_deprecation_warning_to_doc(
+            olddoc=fun.__doc__,
+            extra=self.extra
+        )
         return deprecation_wrapped
-
-    def _update_doc(self, olddoc):
-        newdoc = ".. warning:: DEPRECATED"
-        if self.extra:
-            newdoc = "%s: %s" % (newdoc, self.extra)
-        if olddoc:
-            # Get the spacing right to avoid sphinx warnings
-            n_space = 4
-            for li, line in enumerate(olddoc.split('\n')):
-                if li > 0 and len(line.strip()):
-                    n_space = len(line) - len(line.lstrip())
-                    break
-            newdoc = "%s\n\n%s%s" % (newdoc, ' ' * n_space, olddoc)
-
-        return newdoc
 
 
 def deprecated_alias(dep_name, func, removed_in=None):

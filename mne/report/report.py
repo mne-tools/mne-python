@@ -36,7 +36,8 @@ from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
-                     _check_path_like, use_log_level)
+                     _check_path_like, use_log_level,
+                     _add_deprecation_warning_to_doc)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
@@ -1589,6 +1590,10 @@ class Report(object):
                 fig=fig, title=title, caption=caption,
                 image_format=image_format, tags=tags, replace=replace
             )
+    add_figs_to_section.__doc__ = _add_deprecation_warning_to_doc(
+        olddoc=add_figs_to_section.__doc__,
+        extra='Use `Report.add_figure` instead'
+    )
 
     @fill_doc
     def add_image(self, image, title, *, caption=None, tags=('custom-image',),
@@ -1704,6 +1709,11 @@ class Report(object):
             self.add_image(image=image, title=title, caption=caption,
                            tags=tags, replace=replace)
 
+    add_images_to_section.__doc__ = _add_deprecation_warning_to_doc(
+        olddoc=add_images_to_section.__doc__,
+        extra='Use `Report.add_image` instead'
+    )
+
     @fill_doc
     def add_html(self, html, title, *, tags=('custom-html',),  replace=False):
         """Add HTML content to the report.
@@ -1784,6 +1794,11 @@ class Report(object):
         for html, title in zip(htmls, captions):
             self.add_html(html=html, title=title, tags=tags, replace=replace)
 
+    add_htmls_to_section.__doc__ = _add_deprecation_warning_to_doc(
+        olddoc=add_htmls_to_section.__doc__,
+        extra='Use `Report.add_html` instead'
+    )
+
     @verbose
     def add_bem_to_section(self, subject, caption='BEM', section='bem',
                            decim=2, n_jobs=1, subjects_dir=None,
@@ -1831,6 +1846,11 @@ class Report(object):
             subject=subject, subjects_dir=subjects_dir, title=caption,
             decim=decim, width=width, n_jobs=n_jobs, tags=tags, replace=replace
         )
+
+    add_bem_to_section.__doc__ = _add_deprecation_warning_to_doc(
+        olddoc=add_bem_to_section.__doc__,
+        extra='Use `Report.add_bem` instead'
+    )
 
     @fill_doc
     def add_bem(self, subject, title, *, subjects_dir=None, decim=2, width=512,
@@ -1977,6 +1997,11 @@ class Report(object):
             html=html,
             replace=replace
         )
+
+    add_slider_to_section.__doc__ = _add_deprecation_warning_to_doc(
+        olddoc=add_slider_to_section.__doc__,
+        extra='Use `Report.add_figure` instead'
+    )
 
     ###########################################################################
     # global rendering functions
