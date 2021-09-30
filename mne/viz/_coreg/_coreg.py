@@ -125,7 +125,7 @@ class CoregistrationUI(HasTraits):
         if len(self._fids_to_pick) == 0:
             self._actors["msg"].SetInput("")
         else:
-            next_fid = self._fids_to_pick[-1].upper()
+            next_fid = self._fids_to_pick[-1]
             self._actors["msg"].SetInput(f"Picking {next_fid}...")
         self._renderer._update()
 
@@ -215,8 +215,8 @@ class CoregistrationUI(HasTraits):
             else:
                 self._widgets["show_hsp"].set_value(False)
                 self._widgets["show_hsp"].set_enabled(False)
-                self._fids_to_pick = ["lpa", "nasion", "rpa"]
-                next_fid = self._fids_to_pick[-1].upper()
+                self._fids_to_pick = list(self._default_fiducials)
+                next_fid = self._fids_to_pick[-1]
                 self._actors["msg"].SetInput(f"Picking {next_fid}...")
                 self._renderer._update()
         if "lock_fids" in self._widgets:
