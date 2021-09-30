@@ -31,6 +31,7 @@ class CoregistrationUI(HasTraits):
     def __init__(self, info, subject=None, subjects_dir=None, fids='auto'):
         from ..backends.renderer import _get_renderer
         self._widgets = dict()
+        self._fids_to_pick = list()
         self._verbose = True
         self._coord_frame = "mri"
         self._mouse_no_mvt = -1
@@ -81,6 +82,7 @@ class CoregistrationUI(HasTraits):
             self._on_button_release,
             self._on_pick
         )
+        self._actors["msg"] = self._renderer.text2d(0, 0, "")
 
     def _on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
@@ -102,6 +104,8 @@ class CoregistrationUI(HasTraits):
     def _on_pick(self, vtk_picker, event):
         if self._lock_fids:
             return
+        if len(self._fid_to_pick) == 0:
+            return
         # XXX: taken from Brain, can be refactored
         cell_id = vtk_picker.GetCellId()
         mesh = vtk_picker.GetDataSet()
@@ -115,7 +119,14 @@ class CoregistrationUI(HasTraits):
         idx = np.argmin(abs(vertices - pos), axis=0)
         vertex_id = cell[idx[0]]
         # XXX: for debug only
-        print(vertex_id)
+        fid = self._fid_to_pick.pop()
+        print(fid, vertex_id)
+        if len(self._fid_to_pick) == 0:
+            self._actors["msg"].SetInput("")
+        else:
+            next_fid = self._fid_to_pick[-1].upper()
+            self._actors["msg"].SetInput(f"Picking {next_fid}...")
+        self._renderer._update()
 
     def _set_subjects_dir(self, subjects_dir):
         self._subjects_dir = subjects_dir
@@ -203,6 +214,10 @@ class CoregistrationUI(HasTraits):
             else:
                 self._widgets["show_hsp"].set_value(False)
                 self._widgets["show_hsp"].set_enabled(False)
+                self._fid_to_pick = ["lpa", "nasion", "rpa"]
+                next_fid = self._fid_to_pick[-1].upper()
+                self._actors["msg"].SetInput(f"Picking {next_fid}...")
+                self._renderer._update()
         if "lock_fids" in self._widgets:
             self._widgets["lock_fids"].set_value(self._lock_fids)
         if "fid_file" in self._widgets:
