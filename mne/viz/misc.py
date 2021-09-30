@@ -322,7 +322,7 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
     from matplotlib import patheffects
     # For ease of plotting, we will do everything in voxel coordinates.
     _validate_type(show_orientation, (bool, str), 'show_orientation')
-    _check_option('show_orientation', show_orientation, ('alwways',),
+    _check_option('show_orientation', show_orientation, ('always',),
                   extra='when str')
     _check_option('orientation', orientation, ('coronal', 'axial', 'sagittal'))
 
