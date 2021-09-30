@@ -1,3 +1,4 @@
+from functools import partial
 import os
 from os import path as op
 import re
@@ -7,9 +8,10 @@ import zipfile
 import pytest
 
 from mne import datasets, read_labels_from_annot, write_labels_to_annot
-from mne.datasets import testing, fetch_infant_template
-from mne.datasets._infant import base as infant_base
+from mne.datasets import testing, fetch_infant_template, fetch_phantom
 from mne.datasets._fsaverage.base import _set_montage_coreg_path
+from mne.datasets._infant import base as infant_base
+from mne.datasets._phantom import base as phantom_base
 from mne.datasets.utils import _manifest_check_download
 
 from mne.utils import (requires_good_network,
@@ -209,12 +211,24 @@ def test_manifest_check_download(tmpdir, n_have, monkeypatch):
         assert op.isfile(op.join(destination, fname))
 
 
-def _fake_mcd(manifest_path, destination, url, hash_):
-    name = url.split('/')[-1].split('.')[0]
+def _fake_mcd(manifest_path, destination, url, hash_, name=None,
+              fake_files=False):
+    if name is None:
+        name = url.split('/')[-1].split('.')[0]
+        assert name in url
+        assert name in destination
     assert name in manifest_path
-    assert name in destination
-    assert name in url
     assert len(hash_) == 32
+    if fake_files:
+        with open(manifest_path) as fid:
+            for path in fid:
+                path = path.strip()
+                if not path:
+                    continue
+                fname = op.join(destination, path)
+                os.makedirs(op.dirname(fname), exist_ok=True)
+                with open(fname, 'wb'):
+                    pass
 
 
 def test_infant(tmpdir, monkeypatch):
@@ -223,3 +237,16 @@ def test_infant(tmpdir, monkeypatch):
     fetch_infant_template('12mo', subjects_dir=tmpdir)
     with pytest.raises(ValueError, match='Invalid value for'):
         fetch_infant_template('0mo', subjects_dir=tmpdir)
+
+
+def test_phantom(tmpdir, monkeypatch):
+    """Test phantom data downloading."""
+    # The Otaniemi file is only ~6MB, so in principle maybe we could test
+    # an actual download here. But it doesn't seem worth it given that
+    # CircleCI will at least test the VectorView one, and this file should
+    # not change often.
+    monkeypatch.setattr(phantom_base, '_manifest_check_download',
+                        partial(_fake_mcd, name='phantom_otaniemi',
+                                fake_files=True))
+    fetch_phantom('otaniemi', subjects_dir=tmpdir)
+    assert op.isfile(tmpdir / 'phantom_otaniemi' / 'mri' / 'T1.mgz')
