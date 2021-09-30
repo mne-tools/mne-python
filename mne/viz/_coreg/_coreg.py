@@ -128,7 +128,7 @@ class CoregistrationUI(HasTraits):
         self._coreg._fid_points[idx] = self._surfaces["head"].points[vertex_id]
         self._coreg._reset_fiducials()
         if len(self._fids_to_pick) == 0:
-            self._actors["msg"].SetInput("")
+            self._lock_fids = True
         else:
             next_fid = self._fids_to_pick[0]
             self._actors["msg"].SetInput(f"Picking {next_fid}...")
