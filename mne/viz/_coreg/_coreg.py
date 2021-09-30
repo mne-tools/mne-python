@@ -32,6 +32,8 @@ class CoregistrationUI(HasTraits):
 
     def __init__(self, info, subject=None, subjects_dir=None, fids='auto'):
         from ..backends.renderer import _get_renderer
+        self._actors = dict()
+        self._surfaces = dict()
         self._widgets = dict()
         self._fids_to_pick = list()
         self._verbose = True
@@ -55,8 +57,6 @@ class CoregistrationUI(HasTraits):
             "hpi": 1.0,
         }
 
-        self._actors = dict()
-        self._surfaces = dict()
         self._renderer = _get_renderer(bgcolor="grey")
         self._renderer._window_close_connect(self._clean)
         self._coreg = Coregistration(info, subject, subjects_dir, fids)
@@ -695,5 +695,6 @@ class CoregistrationUI(HasTraits):
 
     def _clean(self):
         self._renderer = None
+        self._widgets.clear()
         self._actors.clear()
         self._surfaces.clear()
