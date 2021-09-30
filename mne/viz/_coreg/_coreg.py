@@ -118,8 +118,9 @@ class CoregistrationUI(HasTraits):
         vertices = mesh.points[cell]
         idx = np.argmin(abs(vertices - pos), axis=0)
         vertex_id = cell[idx[0]]
-        # XXX: for debug only
+
         fid = self._fids_to_pick.pop()
+        # XXX: for debug only
         print(fid, vertex_id)
         if len(self._fids_to_pick) == 0:
             self._actors["msg"].SetInput("")
