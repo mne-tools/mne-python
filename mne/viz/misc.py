@@ -464,15 +464,12 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
 def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
              slices=None, brain_surfaces=None, src=None, show=True,
              show_indices=True, mri='T1.mgz', show_orientation=True):
-    """Plot BEM contours on anatomical slices.
+    """Plot BEM contours on anatomical MRI slices.
 
     Parameters
     ----------
-    subject : str | None
-        Subject name.
-    subjects_dir : str | None
-        Path to the SUBJECTS_DIR. If None, the path is obtained by using
-        the environment variable SUBJECTS_DIR.
+    %(subject_none)s
+    %(subjects_dir)s
     orientation : str
         'coronal' or 'axial' or 'sagittal'.
     slices : list of int | None

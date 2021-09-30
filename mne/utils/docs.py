@@ -1369,8 +1369,9 @@ trans : str | dict | instance of Transform | None
 """ % (_trans_base,)
 docdict['subjects_dir'] = """
 subjects_dir : str | pathlib.Path | None
-    The path to the FreeSurfer subjects reconstructions.
-    If None, defaults to the ``SUBJECTS_DIR`` environment variable.
+    The path to the directory containing the FreeSurfer subjects
+    reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+    variable.
 """
 _info_base = ('The :class:`mne.Info` object with information about the '
               'sensors and methods of measurement.')
@@ -1389,7 +1390,19 @@ info : mne.Info | str
 """
 docdict['subject'] = """
 subject : str
-    The FreeSurfer subject name.
+    The FreeSurfer subject name (will be used to set the FreeSurfer
+    environment variable ``SUBJECT``).
+"""
+docdict['subject_none'] = """
+subject : str | None
+    The FreeSurfer subject name. If ``None``, the value of the environment
+    variable ``SUBJECT`` will be used.
+"""
+docdict['stc_subject'] = """
+subject : str | None
+    The FreeSurfer subject name. If ``None``, ``stc.subject`` will be used.
+    If that is ``None`` too, the value of the environment variable ``SUBJECT``
+    will be used.
 """
 docdict['label_subject'] = """\
 subject : str | None
