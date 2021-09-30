@@ -214,9 +214,11 @@ class CoregistrationUI(HasTraits):
         if "show_hsp" in self._widgets:
             if self._lock_fids:
                 self._widgets["show_hsp"].set_enabled(True)
+                self._widgets["high_res_head"].set_enabled(True)
             else:
                 self._widgets["show_hsp"].set_value(False)
                 self._widgets["show_hsp"].set_enabled(False)
+                self._widgets["high_res_head"].set_enabled(False)
                 self._fids_to_pick = list(self._default_fiducials)
                 next_fid = self._fids_to_pick[0]
                 self._actors["msg"].SetInput(f"Picking {next_fid}...")
