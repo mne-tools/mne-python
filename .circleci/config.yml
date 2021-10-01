@@ -120,7 +120,7 @@ jobs:
             name: Check installation
             command: |
                which python
-               QT_DEBUG_PLUGINS=1 mne sys_info
+               QT_DEBUG_PLUGINS=1 mne sys_info -pd
                python -c "import numpy; numpy.show_config()"
                LIBGL_DEBUG=verbose python -c "import pyvistaqt; pyvistaqt.BackgroundPlotter(show=True)"
                python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
@@ -378,7 +378,7 @@ jobs:
         - run:
             name: Check installation
             command: |
-              mne sys_info
+              mne sys_info -pd
         - run:
             name: make linkcheck
             command: |
@@ -490,7 +490,7 @@ jobs:
         - run:
             name: Check installation
             command: |
-              mne sys_info
+              mne sys_info -pd
         - restore_cache:
             keys:
               - data-cache-testing

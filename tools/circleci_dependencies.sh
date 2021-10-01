@@ -24,11 +24,9 @@ if [[ "$CIRCLE_JOB" == "interactive_test" ]]; then
 	python -m pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/main
 	python -m pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/main
 	python -m pip install --progress-bar off --upgrade -r requirements_testing.txt -r requirements_testing_extra.txt
-	python -m pip install -e .
 elif [[ "$CIRCLE_JOB" == "linkcheck"* ]]; then
 	echo "Installing minimal linkcheck dependencies"
 	python -m pip install --progress-bar off numpy scipy matplotlib pillow pytest
-	python -m pip install -e .
 	python -m pip install --progress-bar off -r requirements_doc.txt
 else  # standard doc build
 	echo "Installing doc build dependencies"
@@ -38,5 +36,5 @@ else  # standard doc build
 	# deal with comparisons and escapes (https://app.circleci.com/pipelines/github/mne-tools/mne-python/9686/workflows/3fd32b47-3254-4812-8b9a-8bab0d646d18/jobs/32934)
 	python -m pip install --upgrade quantities
 	python -m pip install https://github.com/nilearn/nilearn/zipball/cb5329d89bad6554f036c84634702cb67eb7d5ea
-	python -m pip install -e .
 fi
+python -m pip install -e .

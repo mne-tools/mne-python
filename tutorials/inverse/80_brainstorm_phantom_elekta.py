@@ -25,6 +25,7 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne import find_events, fit_dipole
+from mne.datasets import fetch_phantom
 from mne.datasets.brainstorm import bst_phantom_elekta
 from mne.io import read_raw_fif
 
@@ -35,7 +36,6 @@ print(__doc__)
 # and low-pass filtered at 330 Hz. Here the medium-amplitude (200 nAm) data
 # are read to construct instances of :class:`mne.io.Raw`.
 data_path = bst_phantom_elekta.data_path(verbose=True)
-subject = 'sample'
 
 raw_fname = op.join(data_path, 'kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif')
 raw = read_raw_fif(raw_fname)
@@ -79,10 +79,23 @@ epochs['1'].average().plot(time_unit='s')
 # Let's use a :ref:`sphere head geometry model <eeg_sphere_model>`
 # and let's see the coordinate alignment and the sphere location. The phantom
 # is properly modeled by a single-shell sphere with origin (0., 0., 0.).
-sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.08)
+#
+# Even though this is a VectorView/TRIUX phantom, we can use the Otaniemi
+# phantom subject as a surrogate because the "head" surface (hemisphere outer
+# shell) has the same geometry for both phantoms, even though the internal
+# dipole locations differ. The phantom_otaniemi scan was aligned to the
+# phantom's head coordinate frame, so an identity ``trans`` is appropriate
+# here.
 
-mne.viz.plot_alignment(epochs.info, subject=subject, show_axes=True,
-                       bem=sphere, dig=True, surfaces='head')
+subjects_dir = data_path
+fetch_phantom('otaniemi', subjects_dir=subjects_dir)
+sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.08)
+subject = 'phantom_otaniemi'
+trans = mne.transforms.Transform('head', 'mri', np.eye(4))
+mne.viz.plot_alignment(
+    epochs.info, subject=subject, show_axes=True, bem=sphere, dig=True,
+    surfaces=('head-dense', 'inner_skull'), trans=trans, mri_fiducials=True,
+    subjects_dir=subjects_dir)
 
 # %%
 # Let's do some dipole fits. We first compute the noise covariance,
@@ -156,8 +169,10 @@ actual_gof = np.ones(len(dip))  # misc GOF to create Dipole instance
 dip_true = \
     mne.Dipole(dip.times, actual_pos, actual_amp, actual_ori, actual_gof)
 
-fig = mne.viz.plot_alignment(evoked.info, bem=sphere, surfaces='inner_skull',
-                             coord_frame='head', meg='helmet', show_axes=True)
+fig = mne.viz.plot_alignment(
+    evoked.info, trans, subject, bem=sphere, surfaces={'head-dense': 0.2},
+    coord_frame='head', meg='helmet', show_axes=True,
+    subjects_dir=subjects_dir)
 
 # Plot the position and the orientation of the actual dipole
 fig = mne.viz.plot_dipole_locations(dipoles=dip_true, mode='arrow',

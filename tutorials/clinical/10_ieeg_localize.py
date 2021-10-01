@@ -278,6 +278,8 @@ subj_trans = mne.coreg.estimate_head_mri_t(
 #   .. note:: If "Snap to Center" is on, this will use the radius so be
 #             sure to set it properly.
 
+# sphinx_gallery_thumbnail_number = 5
+
 # load electrophysiology data to find channel locations for
 # (the channels are already located in the example)
 raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
@@ -288,6 +290,30 @@ gui = mne.gui.locate_ieeg(raw.info, subj_trans, CT_aligned,
 # The `raw` object is modified to contain the channel locations
 # after closing the GUI and can now be saved
 gui.close()  # close when done
+
+# %%
+# Let's do a quick sidebar and show what this looks like for ECoG as well.
+
+T1_ecog = nib.load(op.join(misc_path, 'ecog', 'sample_ecog', 'mri', 'T1.mgz'))
+CT_orig_ecog = nib.load(op.join(misc_path, 'ecog', 'sample_ecog_CT.mgz'))
+
+# pre-computed affine from `mne.transforms.compute_volume_registration`
+reg_affine = np.array([
+    [0.99982382, -0.00414586, -0.01830679, 0.15413965],
+    [0.00549597, 0.99721885, 0.07432601, -1.54316131],
+    [0.01794773, -0.07441352, 0.99706595, -1.84162514],
+    [0., 0., 0., 1.]])
+# align CT
+CT_aligned_ecog = mne.transforms.apply_volume_registration(
+    CT_orig_ecog, T1_ecog, reg_affine)
+
+raw_ecog = mne.io.read_raw(op.join(misc_path, 'ecog', 'sample_ecog_ieeg.fif'))
+# use estimated `trans` which was used when the locations were found previously
+subj_trans_ecog = mne.coreg.estimate_head_mri_t(
+    'sample_ecog', op.join(misc_path, 'ecog'))
+gui = mne.gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
+                          subject='sample_ecog',
+                          subjects_dir=op.join(misc_path, 'ecog'))
 
 # %%
 # Let's plot the electrode contact locations on the subject's brain.
@@ -395,8 +421,6 @@ del CT_aligned
 # By accounting for the shape of this particular subject's brain using the
 # SDR to warp the positions of the electrode contacts, the position in the
 # template brain is able to be more accurately estimated.
-
-# sphinx_gallery_thumbnail_number = 8
 
 # first we need to add fiducials so that we can define the "head" coordinate
 # frame in terms of them (with the origin at the center between LPA and RPA)

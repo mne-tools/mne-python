@@ -359,8 +359,11 @@ else:
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             import pyvista
         pyvista.OFF_SCREEN = False
-        brain_scraper = mne.viz._brain._BrainScraper()
-        scrapers += (brain_scraper, 'pyvista')
+        scrapers += (
+            mne.gui._LocateScraper(),
+            mne.viz._brain._BrainScraper(),
+            'pyvista',
+        )
     report_scraper = mne.report._ReportScraper()
     scrapers += (report_scraper,)
     del backend
@@ -473,6 +476,11 @@ linkcheck_ignore = [  # will be compiled to regex
     'https://docs.python.org/3/library/.*',  # noqa ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
     'https://hal.archives-ouvertes.fr/hal-01848442.*',  # noqa Sometimes: 503 Server Error: Service Unavailable for url: https://hal.archives-ouvertes.fr/hal-01848442/
     'http://www.cs.ucl.ac.uk/staff/d.barber/brml.*',  # noqa Sometimes: Read timed out
+    'https://compumedicsneuroscan.com/scan-acquire-configuration-files.*',  # noqa SSL certificate error as of 2021/09/28
+    'https://chrisholdgraf.com',  # noqa Max retries exceeded sometimes
+    'https://www.dtu.dk/english/service/phonebook/person.*',  # noqa Too slow
+    'https://speakerdeck.com/dengemann/eeg-sensor-covariance-using-cross-validation',  # noqa Too slow
+    'https://doi.org/10.1002/hbm.10024',  # noqa Too slow sometimes
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
@@ -1145,4 +1153,7 @@ def setup(app):
         report_scraper.app = app
         app.config.rst_prolog = prolog
         app.connect('builder-inited', report_scraper.copyfiles)
+    sphinx_logger = sphinx.util.logging.getLogger('mne')
+    sphinx_logger.info(
+        f'Building documentation for MNE {release} ({mne.__file__})')
     app.connect('build-finished', make_redirects)

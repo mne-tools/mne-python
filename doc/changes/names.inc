@@ -62,7 +62,7 @@
 
 .. _Hari Bharadwaj: http://www.haribharadwaj.com
 
-.. _Chris Holdgraf: http://chrisholdgraf.com
+.. _Chris Holdgraf: https://chrisholdgraf.com
 
 .. _Jaakko Leppakangas: https://github.com/jaeilepp
 
