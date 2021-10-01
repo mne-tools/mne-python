@@ -177,8 +177,7 @@ def fetch_dataset(
             f"latest version is {want_version}"
         )
 
-    # return empty string if outdated dataset and we don't want
-    # to download
+    # return empty string if outdated dataset and we don't want to download
     if (not force_update) and outdated and not download:
         return ("", data_version) if return_version else ""
 
@@ -209,7 +208,6 @@ def fetch_dataset(
                 raise RuntimeError(
                     "You must agree to the license to use this " "dataset"
                 )
-
     # downloader & processors
     download_params = dict(progressbar=True)  # use tqdm
     if name == "fake":
@@ -220,27 +218,18 @@ def fetch_dataset(
         download_params["headers"] = {"Authorization": f"token {token}"}
     downloader = pooch.HTTPDownloader(**download_params)
 
-    # construct the mapping needed by pooch from archive names
-    # to urls
+    # make mappings from archive names to urls and to checksums
     pooch_urls = dict()
-
-    # construct the mapping needed by pooch for the hash checking
     pooch_hash_mapping = dict()
-
-    # write all pooch urls - possibly multiple
     for idx, this_name in enumerate(names):
         this_dataset = dataset_params[idx]
         archive_name = this_dataset["archive_name"]
         dataset_url = this_dataset["url"]
         dataset_hash = this_dataset["hash"]
-
-        # write to pooch url
         pooch_urls[archive_name] = dataset_url
         pooch_hash_mapping[archive_name] = dataset_hash
 
     # create the download manager
-    import pooch
-
     fetcher = pooch.create(
         path=path,
         base_url="",  # Full URLs are given in the `urls` dict.
