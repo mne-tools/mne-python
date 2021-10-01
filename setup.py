@@ -110,6 +110,7 @@ if __name__ == "__main__":
               op.join('datasets', 'sleep_physionet', 'SHA1SUMS'),
               op.join('datasets', '_fsaverage', '*.txt'),
               op.join('datasets', '_infant', '*.txt'),
+              op.join('datasets', '_phantom', '*.txt'),
               op.join('gui', 'help', '*.json'),
               op.join('html', '*.js'),
               op.join('html', '*.css'),
