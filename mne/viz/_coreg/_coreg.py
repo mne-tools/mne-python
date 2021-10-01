@@ -371,11 +371,16 @@ class CoregistrationUI(HasTraits):
         self._update_actor("hpi_coils", hpi_actors)
 
     def _add_head_shape_points(self):
+        rr = (self._coreg._processed_low_res_mri_points *
+              self._coreg._scale)
+        surf = dict(rr=rr, tris=self._coreg._bem_low_res["tris"],
+                    nn=self._coreg._bem_low_res["nn"])
         if self._head_shape_point:
             to_cf_t = _get_transforms_to_coord_frame(
                 self._info, self._coreg.trans, coord_frame=self._coord_frame)
             hsp_actors = _plot_head_shape_points(
-                self._renderer, self._info, to_cf_t)
+                self._renderer, self._info, to_cf_t, mode="cylinder",
+                surf=surf, rr=rr)
         else:
             hsp_actors = None
         self._update_actor("head_shape_points", hsp_actors)

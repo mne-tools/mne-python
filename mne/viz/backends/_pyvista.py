@@ -465,6 +465,8 @@ class _PyVistaRenderer(_AbstractRenderer):
             if scale_mode == 'scalar':
                 _point_data(grid)['mag'] = np.array(scalars)
                 scale = 'mag'
+            elif scale_mode == 'vector':
+                scale = True
             else:
                 scale = False
             if mode == '2darrow':

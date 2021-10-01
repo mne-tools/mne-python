@@ -32,7 +32,7 @@ from ..source_space import (_ensure_src, _create_surf_spacing, _check_spacing,
                             SourceSpaces, read_freesurfer_lut)
 
 from ..surface import (get_meg_helmet_surf, _read_mri_surface, _DistanceQuery,
-                       _project_onto_surface, _reorder_ccw)
+                       _project_onto_surface, _reorder_ccw, _CheckInside)
 from ..transforms import (apply_trans, rot_to_quat, combine_transforms,
                           _get_trans, _ensure_trans, Transform, rotation,
                           read_ras_mni_t, _print_coord_trans, _find_trans,
@@ -987,16 +987,65 @@ def _plot_hpi_coils(renderer, info, to_cf_t):
     return actor
 
 
-def _plot_head_shape_points(renderer, info, to_cf_t):
+def _get_nearest(nearest, check_inside, project_to_trans, proj_rr):
+    idx = nearest.query(proj_rr)[1]
+    proj_pts = apply_trans(
+        project_to_trans, nearest.data[idx])
+    proj_nn = apply_trans(
+        project_to_trans, check_inside.surf['nn'][idx],
+        move=False)
+    return proj_pts, proj_nn
+
+
+def _plot_head_shape_points(renderer, info, to_cf_t, mode="sphere",
+                            surf=None, rr=None):
     defaults = DEFAULTS['coreg']
     ext_loc = np.array([
         d['r'] for d in (info['dig'] or [])
         if (d['kind'] == FIFF.FIFFV_POINT_EXTRA and
             d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
     ext_loc = apply_trans(to_cf_t['head'], ext_loc)
-    actor, _ = renderer.sphere(center=ext_loc, color=defaults['extra_color'],
-                               scale=defaults['extra_scale'], opacity=0.25,
-                               backface_culling=True)
+    if mode == "sphere":
+        actor, _ = renderer.sphere(center=ext_loc,
+                                   color=defaults['extra_color'],
+                                   scale=defaults['extra_scale'], opacity=0.25,
+                                   backface_culling=True)
+    else:
+        mark_inside = True
+        project_to_surface = False
+        check_inside = _CheckInside(surf)
+        nearest = _DistanceQuery(rr)
+        project_to_trans = np.eye(4)
+        glyph_height = defaults['eegp_height']
+        glyph_center = (0., -defaults['eegp_height'], 0)
+        glyph_resolution = 16
+
+        pts = ext_loc
+        inv_trans = np.linalg.inv(project_to_trans)
+        proj_rr = apply_trans(inv_trans, pts)
+        proj_pts, proj_nn = _get_nearest(
+            nearest, check_inside, project_to_trans, proj_rr)
+        vec = pts - proj_pts  # point to the surface
+        nn = proj_nn
+        if mark_inside and not project_to_surface:
+            scalars = (~check_inside(proj_rr, verbose=False)).astype(int)
+        else:
+            scalars = np.ones(len(pts))
+        dist = np.linalg.norm(vec, axis=-1, keepdims=True)
+        vectors = (250 * dist + 1) * nn
+
+        scale = 0.005
+        color = "white"
+        x, y, z = ext_loc.T
+        u, v, w = vectors.T
+        actor, _ = renderer.quiver3d(
+            x, y, z, u, v, w, color, scale, mode, resolution=8,
+            glyph_height=glyph_height, glyph_center=glyph_center,
+            glyph_resolution=glyph_resolution,
+            opacity=1.0, scale_mode='vector', scalars=scalars,
+            backface_culling=False, line_width=2., name=None,
+            glyph_width=None, glyph_depth=None,
+            solid_transform=None)
     return actor
 
 
