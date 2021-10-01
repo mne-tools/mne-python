@@ -315,6 +315,24 @@ gui = mne.gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
                           subject='sample_ecog',
                           subjects_dir=op.join(misc_path, 'ecog'))
 
+# for ECoG, we typically want to account for "brain shift" or shrinking of the
+# brain away from the skull/dura due to changes in pressure during the
+# craniotomy
+# Note: this requires the BEM surfaces to have been computed e.g. using
+# `mne watershed_bem` or `mne flash_bem`
+mne.project_sensors_onto_surface(raw_ecog.info, subj_trans_ecog, 'sample_ecog',
+                                 subjects_dir=op.join(misc_path, 'ecog'),
+                                 surface='brain', picks='ecog')
+
+# plot projected sensors
+brain_kwargs = dict(cortex='low_contrast', alpha=0.2, background='white')
+brain = mne.viz.Brain('sample_ecog', subjects_dir=op.join(misc_path, 'ecog'),
+                      **brain_kwargs)
+brain.add_sensors(raw_ecog.info, trans=subj_trans_ecog)
+view_kwargs = dict(azimuth=60, elevation=100, distance=350,
+                   focalpoint=(0, 0, -15))
+brain.show_view(**view_kwargs)
+
 # %%
 # Let's plot the electrode contact locations on the subject's brain.
 #
@@ -328,12 +346,9 @@ gui = mne.gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
 # when the electrode contacts were localized so we need to use it again here.
 
 # plot the alignment
-brain_kwargs = dict(cortex='low_contrast', alpha=0.2, background='white')
 brain = mne.viz.Brain('sample_seeg', subjects_dir=op.join(misc_path, 'seeg'),
                       **brain_kwargs)
 brain.add_sensors(raw.info, trans=subj_trans)
-view_kwargs = dict(azimuth=60, elevation=100, distance=350,
-                   focalpoint=(0, 0, -15))
 brain.show_view(**view_kwargs)
 
 # %%

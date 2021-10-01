@@ -18,7 +18,8 @@ from mne.io.constants import FIFF
 from mne.surface import (_compute_nearest, _tessellate_sphere, fast_cross_3d,
                          get_head_surf, read_curvature, get_meg_helmet_surf,
                          _normal_orth, _read_patch, _marching_cubes,
-                         _voxel_neighbors, warp_montage_volume)
+                         _voxel_neighbors, warp_montage_volume,
+                         project_sensors_onto_surface)
 from mne.transforms import _get_trans, compute_volume_registration, apply_trans
 from mne.utils import (requires_vtk, catch_logging, object_diff,
                        requires_freesurfer, requires_nibabel, requires_dipy)
@@ -395,3 +396,16 @@ def test_warp_montage_volume():
         warp_montage_volume(doubled_montage, CT, reg_affine,
                             sdr_morph, 'sample',
                             subjects_dir_from=subjects_dir)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('surface', ('inner_skull', 'head'))
+def test_project_sensors_onto_surface(surface):
+    """Test projecting sensors onto a surface."""
+    info = read_info(fname_raw)
+    trans = _get_trans(fname_trans)[0]
+    project_sensors_onto_surface(info, trans, 'sample',
+                                 subjects_dir=subjects_dir, surface=surface)
+    assert_allclose(info['chs'][0]['loc'][:3], dict(
+        inner_skull=[-0.076268, 0.01304, -0.012832],
+        head=[-0.074613, 0.036421, -0.049965])[surface], rtol=1e-4)
