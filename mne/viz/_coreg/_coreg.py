@@ -378,7 +378,7 @@ class CoregistrationUI(HasTraits):
             to_cf_t = _get_transforms_to_coord_frame(
                 self._info, self._coreg.trans, coord_frame=self._coord_frame)
             hpi_actors = _plot_hpi_coils(
-                self._renderer, self._info, to_cf_t)
+                self._renderer, self._info, to_cf_t, opacity=1.0)
         else:
             hpi_actors = None
         self._update_actor("hpi_coils", hpi_actors)
@@ -392,8 +392,8 @@ class CoregistrationUI(HasTraits):
             to_cf_t = _get_transforms_to_coord_frame(
                 self._info, self._coreg.trans, coord_frame=self._coord_frame)
             hsp_actors = _plot_head_shape_points(
-                self._renderer, self._info, to_cf_t, mode=self._glyph_mode,
-                surf=surf, rr=rr)
+                self._renderer, self._info, to_cf_t, opacity=1.0,
+                mode=self._glyph_mode, surf=surf, rr=rr)
         else:
             hsp_actors = None
         self._update_actor("head_shape_points", hsp_actors)

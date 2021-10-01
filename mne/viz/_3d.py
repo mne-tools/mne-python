@@ -974,7 +974,7 @@ def _plot_mri_fiducials(renderer, mri_fiducials, subjects_dir, subject,
     return actors
 
 
-def _plot_hpi_coils(renderer, info, to_cf_t):
+def _plot_hpi_coils(renderer, info, to_cf_t, opacity=0.5):
     defaults = DEFAULTS['coreg']
     hpi_loc = np.array([
         d['r'] for d in (info['dig'] or [])
@@ -982,7 +982,7 @@ def _plot_hpi_coils(renderer, info, to_cf_t):
             d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
     hpi_loc = apply_trans(to_cf_t['head'], hpi_loc)
     actor, _ = renderer.sphere(center=hpi_loc, color=defaults['hpi_color'],
-                               scale=defaults['hpi_scale'], opacity=0.5,
+                               scale=defaults['hpi_scale'], opacity=opacity,
                                backface_culling=True)
     return actor
 
@@ -997,8 +997,8 @@ def _get_nearest(nearest, check_inside, project_to_trans, proj_rr):
     return proj_pts, proj_nn
 
 
-def _plot_head_shape_points(renderer, info, to_cf_t, mode="sphere",
-                            surf=None, rr=None):
+def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
+                            mode="sphere", surf=None, rr=None):
     defaults = DEFAULTS['coreg']
     ext_loc = np.array([
         d['r'] for d in (info['dig'] or [])
@@ -1007,7 +1007,6 @@ def _plot_head_shape_points(renderer, info, to_cf_t, mode="sphere",
     ext_loc = apply_trans(to_cf_t['head'], ext_loc)
     color = defaults['extra_color']
     scale = defaults['extra_scale']
-    opacity = 0.25
     if mode == "sphere":
         actor, _ = renderer.sphere(center=ext_loc, color=color,
                                    scale=scale, opacity=opacity,
