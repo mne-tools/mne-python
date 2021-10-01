@@ -168,11 +168,10 @@ def fetch_dataset(
 
     # get the version of the dataset and then check if the version is outdated
     data_version = _dataset_version(final_path, name)
-    outdated_dataset = want_version is not None and LooseVersion(
-        want_version
-    ) > LooseVersion(data_version)
+    outdated = (want_version is not None and
+                LooseVersion(want_version) > LooseVersion(data_version))
 
-    if outdated_dataset:
+    if outdated:
         logger.info(
             f"Dataset {name} version {data_version} out of date, "
             f"latest version is {want_version}"
@@ -180,13 +179,13 @@ def fetch_dataset(
 
     # return empty string if outdated dataset and we don't want
     # to download
-    if (not force_update) and outdated_dataset and not download:
+    if (not force_update) and outdated and not download:
         return ("", data_version) if return_version else ""
 
     # reasons to bail early (hf_sef has separate code for this):
     if (
         (not force_update)
-        and (not outdated_dataset)
+        and (not outdated)
         and (not name.startswith("hf_sef_"))
     ):
         # if target folder exists (otherwise pooch downloads every time,
