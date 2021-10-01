@@ -38,6 +38,7 @@ class CoregistrationUI(HasTraits):
         self._widgets = dict()
         self._fids_to_pick = list()
         self._verbose = True
+        self._head_geo = None
         self._coord_frame = "mri"
         self._mouse_no_mvt = -1
         self._omit_hsp_distance = 0.0
@@ -220,6 +221,10 @@ class CoregistrationUI(HasTraits):
         self._coreg._setup_bem()
         self._coreg._setup_fiducials(self._fids)
         self._reset()
+        rr = (self._coreg._processed_low_res_mri_points *
+              self._coreg._scale)
+        self._head_geo = dict(rr=rr, tris=self._coreg._bem_low_res["tris"],
+                              nn=self._coreg._bem_low_res["nn"])
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
@@ -376,31 +381,23 @@ class CoregistrationUI(HasTraits):
         self._update_actor("head_fiducials", head_fids_actors)
 
     def _add_hpi_coils(self):
-        rr = (self._coreg._processed_low_res_mri_points *
-              self._coreg._scale)
-        surf = dict(rr=rr, tris=self._coreg._bem_low_res["tris"],
-                    nn=self._coreg._bem_low_res["nn"])
         if self._hpi_coils:
             to_cf_t = _get_transforms_to_coord_frame(
                 self._info, self._coreg.trans, coord_frame=self._coord_frame)
             hpi_actors = _plot_hpi_coils(
                 self._renderer, self._info, to_cf_t, opacity=1.0,
-                orient_glyphs=self._orient_glyphs, surf=surf)
+                orient_glyphs=self._orient_glyphs, surf=self._head_geo)
         else:
             hpi_actors = None
         self._update_actor("hpi_coils", hpi_actors)
 
     def _add_head_shape_points(self):
-        rr = (self._coreg._processed_low_res_mri_points *
-              self._coreg._scale)
-        surf = dict(rr=rr, tris=self._coreg._bem_low_res["tris"],
-                    nn=self._coreg._bem_low_res["nn"])
         if self._head_shape_point:
             to_cf_t = _get_transforms_to_coord_frame(
                 self._info, self._coreg.trans, coord_frame=self._coord_frame)
             hsp_actors = _plot_head_shape_points(
                 self._renderer, self._info, to_cf_t, opacity=1.0,
-                orient_glyphs=self._orient_glyphs, surf=surf)
+                orient_glyphs=self._orient_glyphs, surf=self._head_geo)
         else:
             hsp_actors = None
         self._update_actor("head_shape_points", hsp_actors)
