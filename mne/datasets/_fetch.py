@@ -187,15 +187,16 @@ def fetch_dataset(
         and (not outdated)
         and (not name.startswith("hf_sef_"))
     ):
-        # if target folder exists (otherwise pooch downloads every time,
-        # because we don't save the archive files after unpacking)
+        # ...if target folder exists (otherwise pooch downloads every
+        # time because we don't save the archive files after unpacking, so
+        # pooch can't check its checksum)
         if op.isdir(final_path):
             _do_path_update(path, update_path, config_key, name)
             return (final_path, data_version) if return_version else final_path
-        # if download=False (useful for debugging)
+        # ...if download=False (useful for debugging)
         elif not download:
             return ("", data_version) if return_version else ""
-        # if user didn't accept the license
+        # ...if user didn't accept the license
         elif name.startswith("bst_"):
             if accept or "--accept-brainstorm-license" in sys.argv:
                 answer = "y"
