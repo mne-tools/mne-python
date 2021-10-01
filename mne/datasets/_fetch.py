@@ -124,7 +124,7 @@ def fetch_dataset(
 
     Fetching datasets downloads files over HTTP/HTTPS. One can fetch private
     datasets by passing in authorization to the ``auth`` argument.
-    """  # noqa
+    """  # noqa E501
     # import pooch library for handling the dataset downloading
     pooch = _soft_import("pooch", "dataset downloading", strict=True)
 
