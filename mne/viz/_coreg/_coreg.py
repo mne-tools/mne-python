@@ -38,7 +38,6 @@ class CoregistrationUI(HasTraits):
         self._widgets = dict()
         self._fids_to_pick = list()
         self._verbose = True
-        self._glyph_mode = "sphere"
         self._coord_frame = "mri"
         self._mouse_no_mvt = -1
         self._omit_hsp_distance = 0.0
@@ -284,7 +283,7 @@ class CoregistrationUI(HasTraits):
 
     @observe("_orient_glyphs")
     def _orient_glyphs_changed(self, change=None):
-        self._glyph_mode = "cylinder" if self._orient_glyphs else "sphere"
+        self._add_hpi_coils()
         self._add_head_shape_points()
 
     @observe("_hpi_coils")
@@ -374,11 +373,16 @@ class CoregistrationUI(HasTraits):
         self._update_actor("head_fiducials", head_fids_actors)
 
     def _add_hpi_coils(self):
+        rr = (self._coreg._processed_low_res_mri_points *
+              self._coreg._scale)
+        surf = dict(rr=rr, tris=self._coreg._bem_low_res["tris"],
+                    nn=self._coreg._bem_low_res["nn"])
         if self._hpi_coils:
             to_cf_t = _get_transforms_to_coord_frame(
                 self._info, self._coreg.trans, coord_frame=self._coord_frame)
             hpi_actors = _plot_hpi_coils(
-                self._renderer, self._info, to_cf_t, opacity=1.0)
+                self._renderer, self._info, to_cf_t, opacity=1.0,
+                orient_glyphs=self._orient_glyphs, surf=surf)
         else:
             hpi_actors = None
         self._update_actor("hpi_coils", hpi_actors)
@@ -393,7 +397,7 @@ class CoregistrationUI(HasTraits):
                 self._info, self._coreg.trans, coord_frame=self._coord_frame)
             hsp_actors = _plot_head_shape_points(
                 self._renderer, self._info, to_cf_t, opacity=1.0,
-                mode=self._glyph_mode, surf=surf, rr=rr)
+                orient_glyphs=self._orient_glyphs, surf=surf)
         else:
             hsp_actors = None
         self._update_actor("head_shape_points", hsp_actors)

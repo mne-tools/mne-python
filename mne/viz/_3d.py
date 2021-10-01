@@ -974,16 +974,31 @@ def _plot_mri_fiducials(renderer, mri_fiducials, subjects_dir, subject,
     return actors
 
 
-def _plot_hpi_coils(renderer, info, to_cf_t, opacity=0.5):
+def _plot_hpi_coils(renderer, info, to_cf_t, opacity=0.5,
+                    orient_glyphs=False, surf=None):
     defaults = DEFAULTS['coreg']
     hpi_loc = np.array([
         d['r'] for d in (info['dig'] or [])
         if (d['kind'] == FIFF.FIFFV_POINT_HPI and
             d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
     hpi_loc = apply_trans(to_cf_t['head'], hpi_loc)
-    actor, _ = renderer.sphere(center=hpi_loc, color=defaults['hpi_color'],
-                               scale=defaults['hpi_scale'], opacity=opacity,
-                               backface_culling=True)
+    color = defaults['hpi_color']
+    scale = defaults['hpi_scale']
+    if orient_glyphs:
+        glyph_height = defaults['eegp_height']
+        glyph_center = (0., -defaults['eegp_height'], 0)
+        resolution = glyph_resolution = 16
+        scalars, vectors = _orient_glyphs(hpi_loc, surf)
+        x, y, z = hpi_loc.T
+        u, v, w = vectors.T
+        actor, _ = renderer.quiver3d(
+            x, y, z, u, v, w, color=color, scale=scale, mode="cylinder",
+            glyph_height=glyph_height, glyph_center=glyph_center,
+            resolution=resolution, glyph_resolution=glyph_resolution,
+            opacity=opacity, scale_mode='vector', scalars=scalars)
+    else:
+        actor, _ = renderer.sphere(center=hpi_loc, color=color, scale=scale,
+                                   opacity=opacity, backface_culling=True)
     return actor
 
 
@@ -997,8 +1012,31 @@ def _get_nearest(nearest, check_inside, project_to_trans, proj_rr):
     return proj_pts, proj_nn
 
 
+def _orient_glyphs(pts, surf):
+    mark_inside = True
+    project_to_surface = False
+    rr = surf["rr"]
+    check_inside = _CheckInside(surf)
+    nearest = _DistanceQuery(rr)
+    project_to_trans = np.eye(4)
+
+    inv_trans = np.linalg.inv(project_to_trans)
+    proj_rr = apply_trans(inv_trans, pts)
+    proj_pts, proj_nn = _get_nearest(
+        nearest, check_inside, project_to_trans, proj_rr)
+    vec = pts - proj_pts  # point to the surface
+    nn = proj_nn
+    if mark_inside and not project_to_surface:
+        scalars = (~check_inside(proj_rr, verbose=False)).astype(int)
+    else:
+        scalars = np.ones(len(pts))
+    dist = np.linalg.norm(vec, axis=-1, keepdims=True)
+    vectors = (250 * dist + 1) * nn
+    return scalars, vectors
+
+
 def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
-                            mode="sphere", surf=None, rr=None):
+                            orient_glyphs=False, surf=None):
     defaults = DEFAULTS['coreg']
     ext_loc = np.array([
         d['r'] for d in (info['dig'] or [])
@@ -1007,41 +1045,22 @@ def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
     ext_loc = apply_trans(to_cf_t['head'], ext_loc)
     color = defaults['extra_color']
     scale = defaults['extra_scale']
-    if mode == "sphere":
-        actor, _ = renderer.sphere(center=ext_loc, color=color,
-                                   scale=scale, opacity=opacity,
-                                   backface_culling=True)
-    else:
-        mark_inside = True
-        project_to_surface = False
-        check_inside = _CheckInside(surf)
-        nearest = _DistanceQuery(rr)
-        project_to_trans = np.eye(4)
+    if orient_glyphs:
         glyph_height = defaults['eegp_height']
         glyph_center = (0., -defaults['eegp_height'], 0)
         resolution = glyph_resolution = 16
-
-        pts = ext_loc
-        inv_trans = np.linalg.inv(project_to_trans)
-        proj_rr = apply_trans(inv_trans, pts)
-        proj_pts, proj_nn = _get_nearest(
-            nearest, check_inside, project_to_trans, proj_rr)
-        vec = pts - proj_pts  # point to the surface
-        nn = proj_nn
-        if mark_inside and not project_to_surface:
-            scalars = (~check_inside(proj_rr, verbose=False)).astype(int)
-        else:
-            scalars = np.ones(len(pts))
-        dist = np.linalg.norm(vec, axis=-1, keepdims=True)
-        vectors = (250 * dist + 1) * nn
-
+        scalars, vectors = _orient_glyphs(ext_loc, surf)
         x, y, z = ext_loc.T
         u, v, w = vectors.T
         actor, _ = renderer.quiver3d(
-            x, y, z, u, v, w, color=color, scale=scale, mode=mode,
+            x, y, z, u, v, w, color=color, scale=scale, mode="cylinder",
             glyph_height=glyph_height, glyph_center=glyph_center,
             resolution=resolution, glyph_resolution=glyph_resolution,
             opacity=opacity, scale_mode='vector', scalars=scalars)
+    else:
+        actor, _ = renderer.sphere(center=ext_loc, color=color,
+                                   scale=scale, opacity=opacity,
+                                   backface_culling=True)
     return actor
 
 
