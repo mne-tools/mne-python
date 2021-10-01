@@ -219,24 +219,24 @@ def fetch_dataset(
     downloader = pooch.HTTPDownloader(**download_params)
 
     # make mappings from archive names to urls and to checksums
-    pooch_urls = dict()
-    pooch_hash_mapping = dict()
+    urls = dict()
+    registry = dict()
     for idx, this_name in enumerate(names):
         this_dataset = dataset_params[idx]
         archive_name = this_dataset["archive_name"]
         dataset_url = this_dataset["url"]
         dataset_hash = this_dataset["hash"]
-        pooch_urls[archive_name] = dataset_url
-        pooch_hash_mapping[archive_name] = dataset_hash
+        urls[archive_name] = dataset_url
+        registry[archive_name] = dataset_hash
 
     # create the download manager
     fetcher = pooch.create(
         path=path,
         base_url="",  # Full URLs are given in the `urls` dict.
         version=None,  # Data versioning is decoupled from MNE-Python version.
-        urls=pooch_urls,
+        urls=urls,
+        registry=registry,
         retry_if_failed=2,  # 2 retries = 3 total attempts
-        registry=pooch_hash_mapping,
     )
 
     # use our logger level for pooch's logger too
