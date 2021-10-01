@@ -82,7 +82,7 @@ def _dataset_version(path, name):
         # Sample dataset versioning was introduced after 0.3
         # SPM dataset was introduced with 0.7
         versions = dict(sample='0.7', spm='0.3')
-        version = versions.get(name, 'unknown')
+        version = versions.get(name, '0.0')
     return version
 
 
