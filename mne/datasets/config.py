@@ -88,25 +88,23 @@ I agree to the following:
 # update the checksum in the MNE_DATASETS dict below, and change version
 # here:                  ↓↓↓↓↓         ↓↓↓
 RELEASES = dict(testing='0.123', misc='0.23')
-
-# To update any other dataset besides `testing` or `misc`, upload the new
-# version of the data archive itself (e.g., to https://osf.io or wherever) and
-# then update the corresponding checksum in `mne/data/dataset_checksums.txt`.
 TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
 MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
 
-# Define all internal MNE datasets here.
-# Note: That all dictionary keys are equal to the name of the variable
-# to make things easier to reference
+# To update any other dataset besides `testing` or `misc`, upload the new
+# version of the data archive itself (e.g., to https://osf.io or wherever) and
+# then update the corresponding checksum in the MNE_DATASETS dict entry below.
 MNE_DATASETS = dict()
 
-# Each dataset should contain minimally:
+# MANDATORY KEYS:
 # - archive_name : the name of the compressed file that is downloaded
-# - hash : the cryptographic hash type of the file followed by a colon and then
-#          the hash value (examples: "sha256:19uheid...", "md5:upodh2io...")
+# - hash : the checksum type followed by a colon and then the checksum value
+#          (examples: "sha256:19uheid...", "md5:upodh2io...")
 # - url : URL from which the file can be downloaded
 # - folder_name : the subfolder within the MNE data folder in which to save and
 #                 uncompress (if needed) the file(s)
+#
+# OPTIONAL KEYS:
 # - config_key : key to use with `mne.set_config` to store the on-disk location
 #                of the downloaded dataset (ex: "MNE_DATASETS_EEGBCI_PATH").
 MNE_DATASETS['fnirs_motor'] = dict(
