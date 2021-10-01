@@ -148,7 +148,7 @@ def fetch_dataset(
     names = [params["dataset_name"] for params in dataset_params]
     name = names[0]
     dataset_dict = dataset_params[0]
-    config_key = dataset_dict["config_key"]
+    config_key = dataset_dict.get('config_key', None)
     folder_name = dataset_dict["folder_name"]
 
     # get download path for specific dataset
