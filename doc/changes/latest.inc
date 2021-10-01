@@ -45,6 +45,8 @@ Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
 
+- Add `pooch` to system information reports (:gh `9798` **by new contributor** |Joshua Teves|_)
+
 - Get annotation descriptions from the name field of SNIRF stimulus groups when reading SNIRF files via `mne.io.read_raw_snirf` (:gh:`9575` **by new contributor** |Darin Erat Sleiter|_)
 
 - Add support for NIRSport and NIRSport2 devices to `mne.io.read_raw_nirx` (:gh:`9348` and :gh:`9401` **by new contributor** |David Julien|_, **new contributor** |Romain Derollepot|_, `Robert Luke`_, and `Eric Larson`_)
