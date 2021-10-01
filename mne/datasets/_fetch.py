@@ -231,7 +231,7 @@ def fetch_dataset(
 
     # create the download manager
     fetcher = pooch.create(
-        path=path,
+        path=final_path if processor is None else path,
         base_url="",  # Full URLs are given in the `urls` dict.
         version=None,  # Data versioning is decoupled from MNE-Python version.
         urls=urls,
