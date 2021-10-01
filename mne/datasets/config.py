@@ -85,9 +85,9 @@ I agree to the following:
 
 # To update the `testing` or `misc` datasets, push or merge commits to their
 # respective repos, and make a new release of the dataset on GitHub. Then
-# update the checksum in `mne/data/dataset_checksums.txt` and change version
+# update the checksum in the MNE_DATASETS dict below, and change version
 # here:                  ↓↓↓↓↓         ↓↓↓
-RELEASES = dict(testing='0.123', misc='0.22')
+RELEASES = dict(testing='0.123', misc='0.23')
 
 # To update any other dataset besides `testing` or `misc`, upload the new
 # version of the data archive itself (e.g., to https://osf.io or wherever) and
@@ -317,7 +317,7 @@ MNE_DATASETS['testing'] = dict(
 )
 MNE_DATASETS['misc'] = dict(
     archive_name=f'{MISC_VERSIONED}.tar.gz',  # 'mne-misc-data',
-    hash='md5:e0df1b4112cf13b668a7d9c1daf62e44',
+    hash='md5:01e409d82ff11ca8b19a27c4f7ee6794',
     url=('https://codeload.github.com/mne-tools/mne-misc-data/tar.gz/'
          f'{RELEASES["misc"]}'),
     folder_name='MNE-misc-data',
