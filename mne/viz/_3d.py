@@ -1005,10 +1005,12 @@ def _plot_head_shape_points(renderer, info, to_cf_t, mode="sphere",
         if (d['kind'] == FIFF.FIFFV_POINT_EXTRA and
             d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
     ext_loc = apply_trans(to_cf_t['head'], ext_loc)
+    color = defaults['extra_color']
+    scale = defaults['extra_scale']
+    opacity = 0.25
     if mode == "sphere":
-        actor, _ = renderer.sphere(center=ext_loc,
-                                   color=defaults['extra_color'],
-                                   scale=defaults['extra_scale'], opacity=0.25,
+        actor, _ = renderer.sphere(center=ext_loc, color=color,
+                                   scale=scale, opacity=opacity,
                                    backface_culling=True)
     else:
         mark_inside = True
@@ -1018,7 +1020,7 @@ def _plot_head_shape_points(renderer, info, to_cf_t, mode="sphere",
         project_to_trans = np.eye(4)
         glyph_height = defaults['eegp_height']
         glyph_center = (0., -defaults['eegp_height'], 0)
-        glyph_resolution = 16
+        resolution = glyph_resolution = 16
 
         pts = ext_loc
         inv_trans = np.linalg.inv(project_to_trans)
@@ -1034,18 +1036,13 @@ def _plot_head_shape_points(renderer, info, to_cf_t, mode="sphere",
         dist = np.linalg.norm(vec, axis=-1, keepdims=True)
         vectors = (250 * dist + 1) * nn
 
-        scale = 0.005
-        color = "white"
         x, y, z = ext_loc.T
         u, v, w = vectors.T
         actor, _ = renderer.quiver3d(
-            x, y, z, u, v, w, color, scale, mode, resolution=8,
+            x, y, z, u, v, w, color=color, scale=scale, mode=mode,
             glyph_height=glyph_height, glyph_center=glyph_center,
-            glyph_resolution=glyph_resolution,
-            opacity=1.0, scale_mode='vector', scalars=scalars,
-            backface_culling=False, line_width=2., name=None,
-            glyph_width=None, glyph_depth=None,
-            solid_transform=None)
+            resolution=resolution, glyph_resolution=glyph_resolution,
+            opacity=opacity, scale_mode='vector', scalars=scalars)
     return actor
 
 

@@ -22,6 +22,7 @@ class CoregistrationUI(HasTraits):
     _current_fiducial = Unicode()
     _info_file = Unicode()
     _coreg_modified = Bool()
+    _orient_glyphs = Bool()
     _hpi_coils = Bool()
     _head_shape_point = Bool()
     _head_resolution = Bool()
@@ -37,6 +38,7 @@ class CoregistrationUI(HasTraits):
         self._widgets = dict()
         self._fids_to_pick = list()
         self._verbose = True
+        self._glyph_mode = "sphere"
         self._coord_frame = "mri"
         self._mouse_no_mvt = -1
         self._omit_hsp_distance = 0.0
@@ -65,6 +67,7 @@ class CoregistrationUI(HasTraits):
         self._subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                               raise_error=True)
         self._subject = subject if subject is not None else self._subjects[0]
+        self._orient_glyphs = False
         self._hpi_coils = True
         self._head_shape_point = True
         self._head_resolution = True
@@ -154,6 +157,9 @@ class CoregistrationUI(HasTraits):
 
     def _set_omit_hsp_distance(self, distance):
         self._omit_hsp_distance = distance / 1000.0
+
+    def _set_orient_glyphs(self, state):
+        self._orient_glyphs = bool(state)
 
     def _set_hpi_coils(self, state):
         self._hpi_coils = bool(state)
@@ -274,6 +280,11 @@ class CoregistrationUI(HasTraits):
         self._add_head_fiducials()
         self._add_mri_fiducials()
 
+    @observe("_orient_glyphs")
+    def _orient_glyphs_changed(self, change=None):
+        self._glyph_mode = "cylinder" if self._orient_glyphs else "sphere"
+        self._add_head_shape_points()
+
     @observe("_hpi_coils")
     def _hpi_coils_changed(self, change=None):
         self._add_hpi_coils()
@@ -379,7 +390,7 @@ class CoregistrationUI(HasTraits):
             to_cf_t = _get_transforms_to_coord_frame(
                 self._info, self._coreg.trans, coord_frame=self._coord_frame)
             hsp_actors = _plot_head_shape_points(
-                self._renderer, self._info, to_cf_t, mode="cylinder",
+                self._renderer, self._info, to_cf_t, mode=self._glyph_mode,
                 surf=surf, rr=rr)
         else:
             hsp_actors = None
@@ -541,6 +552,12 @@ class CoregistrationUI(HasTraits):
         self._renderer._layout_add_widget(layout, hlayout)
 
         layout = self._renderer._dock_add_group_box("View")
+        self._widgets["orient_glyphs"] = self._renderer._dock_add_check_box(
+            name="Orient glyphs",
+            value=False,
+            callback=self._set_orient_glyphs,
+            layout=layout
+        )
         self._widgets["show_hpi"] = self._renderer._dock_add_check_box(
             name="Show HPI Coils",
             value=True,
