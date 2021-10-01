@@ -260,7 +260,8 @@ def fetch_dataset(
             fname=archive_name, downloader=downloader, processor=processor
         )
         # after unpacking, remove the archive file
-        os.remove(op.join(path, archive_name))
+        if processor is not None:
+            os.remove(op.join(path, archive_name))
 
     # remove version number from "misc" and "testing" datasets folder names
     if name == "misc":
