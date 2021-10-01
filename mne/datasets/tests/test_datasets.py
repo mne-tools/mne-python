@@ -84,8 +84,7 @@ def test_downloads(tmpdir, monkeypatch, capsys):
     assert 'Downloading' not in out
     # No version: shown as existing but unknown version
     assert datasets.utils.has_dataset('fake')
-    # XXX logic bug, should be "unknown"
-    assert datasets._fake.get_version() == '0.7'
+    assert datasets._fake.get_version() == 'unknown'
     # With a version but no required one: shown as existing and gives version
     fname = tmpdir / 'foo' / 'version.txt'
     with open(fname, 'w') as fid:
