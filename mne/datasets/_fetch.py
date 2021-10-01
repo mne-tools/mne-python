@@ -272,8 +272,9 @@ def fetch_dataset(
         os.replace(op.join(path, TESTING_VERSIONED), final_path)
 
     # maybe update the config
-    old_name = "brainstorm" if name.startswith("bst_") else name
-    _do_path_update(path, update_path, config_key, old_name)
+    if config_key is not None:
+        old_name = "brainstorm" if name.startswith("bst_") else name
+        _do_path_update(path, update_path, config_key, old_name)
 
     # compare the version of the dataset and mne
     data_version = _dataset_version(path, name)
