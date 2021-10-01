@@ -23,7 +23,6 @@ Step by step instructions for using :func:`gui.coregistration`:
    create_default_subject
    head_to_mni
    head_to_mri
-   project_sensors_onto_surface
    read_freesurfer_lut
    read_talxfm
    scale_mri

@@ -183,7 +183,7 @@ Enhancements
 
 - `mne.io.read_raw_brainvision` now handles ASCII data with comma-separated values, as may be exported from BrainVision Analyzer (:gh:`9795` by `Richard Höchenberger`_)
 
-- Add :func:`mne.project_sensors_onto_surface` to project ECoG sensors onto the pial surface to compensate for brain shift (:gh:`9800` by `Alex Rockhill`_)
+- Add :func:`mne.preprocessing.ieeg.project_sensors_onto_brain` to project ECoG sensors onto the pial surface to compensate for brain shift (:gh:`9800` by `Alex Rockhill`_)
 
 Bugs
 ~~~~

@@ -23,11 +23,11 @@ from .channels.channels import _get_meg_system
 from .fixes import (_serialize_volume_info, _get_read_geometry, jit,
                     prange, bincount)
 from .io.constants import FIFF
-from .io.pick import pick_types, _picks_to_idx
+from .io.pick import pick_types
 from .parallel import parallel_func
 from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
                          _get_trans, apply_trans, Transform, _frame_to_str,
-                         apply_volume_registration, invert_transform)
+                         apply_volume_registration)
 from .utils import (logger, verbose, get_subjects_dir, warn, _check_fname,
                     _check_option, _ensure_int, _TempDir, run_subprocess,
                     _check_freesurfer_home, _hashable_ndarray, fill_doc,
@@ -63,11 +63,11 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
     surf : dict
         The head surface.
     """
-    return _get_head_surface_fif(subject=subject, source=source,
-                                 subjects_dir=subjects_dir)
+    return _get_head_surface(subject=subject, source=source,
+                             subjects_dir=subjects_dir)
 
 
-def _get_head_surface_fif(subject, source, subjects_dir, raise_error=True):
+def _get_head_surface(subject, source, subjects_dir, raise_error=True):
     """Load the subject head surface."""
     from .bem import read_bem_surfaces
     # Load the head surface from the BEM
@@ -2082,73 +2082,3 @@ def _voxel_neighbors(seed, image, thresh=None, max_peak_dist=1,
             next_neighbors = next_neighbors.union(voxel_neighbors)
         neighbors = next_neighbors
     return voxels
-
-
-@verbose
-def project_sensors_onto_surface(info, trans, subject, subjects_dir=None,
-                                 surface='brain', picks=None,
-                                 method='accurate', verbose=None):
-    """Project sensors onto a surface.
-
-    .. note:: This is useful in ECoG analysis for compensating for
-              "brain shift" or shrinking of the brain away from the
-              skull due to changes in pressure during the craniotomy.
-
-    .. note:: To use the skull surfaces, a BEM model must be created
-              e.g. using ``mne watershed_bem`` using the T1 or
-              ``mne flash_bem`` using a FLASH scan.
-
-    Parameters
-    ----------
-    %(info_not_none)s Note, ``info`` is modified in place.
-    %(trans_not_none)s
-    %(subject)s
-    %(subjects_dir)s
-    surface : str
-        The surface to project to. Supported values:
-
-        * scalp: one of 'head', 'outer_skin' (alias for 'head'),
-          'head-dense' or 'seghead' (alias for 'head-dense')
-        * skull: 'outer_skull', 'inner_skull'
-        * brain: one of 'pial', 'white', 'inflated', 'brain'
-
-    %(picks_all_data)s
-    method : str
-        Can be ``accurate`` to use a more accurate geometric estimation
-        or ``nearest`` to use the nearest point.
-    %(verbose)s
-    """
-    from ._freesurfer import _get_head_surface, _get_skull_surface
-    _check_option('method', method, ('nearest', 'accurate'))
-    _check_option('surface', surface,
-                  ('outer_skull', 'inner_skull',
-                   'head', 'outer_skin', 'head-dense', 'seghead',
-                   'pial', 'white', 'inflated', 'brain'))
-    if surface in ('outer_skull', 'inner_skull'):
-        surf = _get_skull_surface(
-            surface.replace('_skull', ''), subject, subjects_dir)
-    elif surface in ('head', 'outer_skin', 'head-dense', 'seghead'):
-        surf = _get_head_surface(surface, subject, subjects_dir)
-    else:  # surface in ('pial', 'white', 'inflated', 'brain')
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        if surface == 'brain':
-            surf = _read_mri_surface(op.join(
-                subjects_dir, subject, 'bem', 'brain.surf'))
-        else:
-            lh_surf = _read_mri_surface(
-                op.join(subjects_dir, subject, 'surf', f'lh.{surface}'))
-            rh_surf = _read_mri_surface(
-                op.join(subjects_dir, subject, 'surf', f'rh.{surface}'))
-            surf = dict(rr=np.concatenate([lh_surf['rr'], rh_surf['rr']]),
-                        tris=np.concatenate(
-                            [lh_surf['tris'],
-                             lh_surf['tris'].shape[0] + rh_surf['tris']]))
-    picks_idx = _picks_to_idx(info, picks)
-    locs = np.array([info['chs'][idx]['loc'][:3] for idx in picks_idx])
-    locs = apply_trans(trans, locs)
-    proj_locs = _project_onto_surface(
-        locs, surf, project_rrs=True, method=method)[2]
-    # back to head
-    proj_locs = apply_trans(invert_transform(trans), proj_locs)
-    for idx, loc in zip(picks_idx, proj_locs):
-        info['chs'][idx]['loc'][:3] = loc
