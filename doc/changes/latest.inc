@@ -41,6 +41,8 @@ Current (0.24.dev0)
 
 .. |Evgeny Goldstein| replace:: **Evgeny Goldstein**
 
+.. |Joshua Teves| replace:: **Joshua Teves**
+
 Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
