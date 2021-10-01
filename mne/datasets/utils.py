@@ -81,8 +81,8 @@ def _dataset_version(path, name):
     else:
         # Sample dataset versioning was introduced after 0.3
         # SPM dataset was introduced with 0.7
-        version = '0.3' if name == 'sample' else '0.7'
-
+        versions = dict(sample='0.7', spm='0.3')
+        version = versions.get(name, '0.0')
     return version
 
 
