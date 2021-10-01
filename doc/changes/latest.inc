@@ -253,6 +253,8 @@ Bugs
 
 - Fix bug where :func:`mne.io.read_raw_persyst` was lower-casing events it found in the ``.lay`` file (:gh:`9746` by `Adam Li`_)
 
+- Fix bug with Qhull when plotting OPM sensors in :func:`mne.viz.plot_alignment` (:gh:`9799` by `Eric Larson`_)
+
 - Fix bug where :func:`mne.io.read_raw_snirf` was including the landmark index as a spatial coordinate (:gh:`9777` by `Robert luke`_)
 
 - Fix bug where `mne.Annotations` were not appending channel names when being added together (:gh:`9780` by `Adam Li`_)
