@@ -224,11 +224,13 @@ class CoregistrationUI(HasTraits):
     def _lock_fids_changed(self, change=None):
         if "show_hsp" in self._widgets:
             if self._lock_fids:
+                self._widgets["orient_glyphs"].set_enabled(True)
                 self._widgets["show_hpi"].set_enabled(True)
                 self._widgets["show_hsp"].set_enabled(True)
                 self._widgets["high_res_head"].set_enabled(True)
                 self._actors["msg"].SetInput("")
             else:
+                self._widgets["orient_glyphs"].set_enabled(False)
                 self._widgets["show_hpi"].set_value(False)
                 self._widgets["show_hpi"].set_enabled(False)
                 self._widgets["show_hsp"].set_value(False)
