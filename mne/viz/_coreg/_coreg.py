@@ -217,6 +217,8 @@ class CoregistrationUI(HasTraits):
     def _subject_changed(self, changed=None):
         # XXX: add coreg.set_subject()
         self._coreg._subject = self._subject
+        self._coreg._setup_bem()
+        self._coreg._setup_fiducials(self._fids)
         self._reset()
 
     @observe("_lock_fids")
@@ -276,6 +278,7 @@ class CoregistrationUI(HasTraits):
 
     @observe("_coreg_modified")
     def _update(self, change=None):
+        self._add_head_surface()
         self._add_hpi_coils()
         self._add_head_shape_points()
         self._add_head_fiducials()
