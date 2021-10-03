@@ -16,7 +16,8 @@ from ...utils import verbose, get_subjects_dir, _validate_type
 
 @verbose
 def project_sensors_onto_brain(info, trans, subject, subjects_dir=None,
-                               picks=None, n_neighbors=10, verbose=None):
+                               picks=None, n_neighbors=10, copy=False,
+                               verbose=None):
     """Project sensors onto the brain surface.
 
     .. note:: This is useful in ECoG analysis for compensating for
@@ -29,7 +30,7 @@ def project_sensors_onto_brain(info, trans, subject, subjects_dir=None,
 
     Parameters
     ----------
-    %(info_not_none)s Note, ``info`` is modified in place.
+    %(info_not_none)s
     %(trans_not_none)s
     %(subject)s
     %(subjects_dir)s
@@ -40,10 +41,20 @@ def project_sensors_onto_brain(info, trans, subject, subjects_dir=None,
         a normal vector with greater averaging which preserves the grid
         structure. Fewer neighbors has less averaging which better
         preserves contours in the grid.
+    copy : bool
+        If ``True``, return a new instance of ``info``, if ``False``
+        ``info`` is modified in place.
     %(verbose)s
+
+    Returns
+    -------
+    %(info_not_none)s
     """
     from scipy.spatial import distance_matrix
     _validate_type(n_neighbors, int, 'n_neighbors')
+    _validate_type(copy, bool, 'copy')
+    if copy:
+        info = info.copy()
     if n_neighbors < 2:
         raise ValueError(
             f'n_neighbors must be 2 or greater, got {n_neighbors}')
@@ -88,3 +99,4 @@ def project_sensors_onto_brain(info, trans, subject, subjects_dir=None,
     proj_locs = apply_trans(invert_transform(trans), proj_locs)
     for idx, loc in zip(picks_idx, proj_locs):
         info['chs'][idx]['loc'][:3] = loc
+    return info
