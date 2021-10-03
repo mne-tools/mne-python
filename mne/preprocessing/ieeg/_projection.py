@@ -16,7 +16,7 @@ from ...utils import verbose, get_subjects_dir, _validate_type
 
 @verbose
 def project_sensors_onto_brain(info, trans, subject, subjects_dir=None,
-                               picks=None, n_neighbors=10, copy=False,
+                               picks=None, n_neighbors=10, copy=True,
                                verbose=None):
     """Project sensors onto the brain surface.
 

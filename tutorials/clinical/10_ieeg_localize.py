@@ -320,9 +320,9 @@ gui = mne.gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
 # craniotomy
 # Note: this requires the BEM surfaces to have been computed e.g. using
 # :ref:`mne watershed_bem` or :ref:`mne flash_bem`
-mne.preprocessing.ieeg.project_sensors_onto_brain(
+raw_ecog.info = mne.preprocessing.ieeg.project_sensors_onto_brain(
     raw_ecog.info, subj_trans_ecog, 'sample_ecog',
-    subjects_dir=op.join(misc_path, 'ecog'), picks='ecog')
+    subjects_dir=op.join(misc_path, 'ecog'))
 
 # plot projected sensors
 brain_kwargs = dict(cortex='low_contrast', alpha=0.2, background='white')
