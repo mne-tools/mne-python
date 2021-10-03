@@ -35,7 +35,11 @@ def project_sensors_onto_brain(info, trans, subject, subjects_dir=None,
     %(subjects_dir)s
     %(picks_base)s only ``ecog`` channels.
     n_neighbors : int
-
+        The number of neighbors to use to compute the normal vectors
+        for the projection. Must be 2 or greater. More neighbors makes
+        a normal vector with greater averaging which preserves the grid
+        structure. Fewer neighbors has less averaging which better
+        preserves contours in the grid.
     %(verbose)s
     """
     from scipy.spatial import distance_matrix
