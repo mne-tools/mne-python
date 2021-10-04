@@ -103,20 +103,23 @@ CSS = (html_include_dir / 'report.sass').read_text(encoding='utf-8')
 
 def _html_header_element(*, lang, include, js, css, title, tags, mne_logo_img):
     template_path = template_dir / 'header.html'
+
+    if title is not None:
+        title = stdlib_html.escape(title)
     t = Template(template_path.read_text(encoding='utf-8'))
     t = t.substitute(lang=lang, include=include, js=js, css=css, title=title,
                      tags=tags, mne_logo_img=mne_logo_img)
     return t
 
 
-def _html_footer_element(*, mne_version, date, current_year):
+def _html_footer_element(*, mne_version, date):
     template_path = template_dir / 'footer.html'
     t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(mne_version=mne_version, date=date,
-                     current_year=current_year)
+    t = t.substitute(mne_version=mne_version, date=date)
     return t
 
 
+# XXX
 def _html_toc_element(*, content_elements):
     template_path = template_dir / 'toc.html'
     t = Template(template_path.read_text(encoding='utf-8'))
@@ -126,6 +129,8 @@ def _html_toc_element(*, content_elements):
 
 def _html_raw_element(*, id, repr, psd, butterfly, ssp_projs, title, tags):
     template_path = template_dir / 'raw.html'
+
+    title = stdlib_html.escape(title)
     t = Template(template_path.read_text(encoding='utf-8'))
     t = t.substitute(id=id, repr=repr, psd=psd, butterfly=butterfly,
                      ssp_projs=ssp_projs, tags=tags, title=title)
@@ -134,6 +139,8 @@ def _html_raw_element(*, id, repr, psd, butterfly, ssp_projs, title, tags):
 
 def _html_epochs_element(*, id, repr, drop_log, psd, ssp_projs, title, tags):
     template_path = template_dir / 'epochs.html'
+
+    title = stdlib_html.escape(title)
     t = Template(template_path.read_text(encoding='utf-8'))
     t = t.substitute(id=id, repr=repr, drop_log=drop_log, psd=psd,
                      ssp_projs=ssp_projs, tags=tags, title=title)
@@ -143,6 +150,8 @@ def _html_epochs_element(*, id, repr, drop_log, psd, ssp_projs, title, tags):
 def _html_evoked_element(*, id, joint, slider, gfp, whitened, ssp_projs, title,
                          tags):
     template_path = template_dir / 'evoked.html'
+
+    title = stdlib_html.escape(title)
     t = Template(template_path.read_text(encoding='utf-8'))
     t = t.substitute(id=id, joint=joint, slider=slider, gfp=gfp,
                      whitened=whitened, ssp_projs=ssp_projs, tags=tags,
@@ -152,6 +161,8 @@ def _html_evoked_element(*, id, joint, slider, gfp, whitened, ssp_projs, title,
 
 def _html_cov_element(*, id, matrix, svd, title, tags):
     template_path = template_dir / 'cov.html'
+
+    title = stdlib_html.escape(title)
     t = Template(template_path.read_text(encoding='utf-8'))
     t = t.substitute(id=id, matrix=matrix, svd=svd, tags=tags, title=title)
     return t
@@ -159,6 +170,8 @@ def _html_cov_element(*, id, matrix, svd, title, tags):
 
 def _html_forward_sol_element(*, id, repr, sensitivity_maps, title, tags):
     template_path = template_dir / 'forward.html'
+
+    title = stdlib_html.escape(title)
     t = Template(template_path.read_text(encoding='utf-8'))
     t = t.substitute(id=id, repr=repr, sensitivity_maps=sensitivity_maps,
                      tags=tags, title=title)
@@ -167,6 +180,8 @@ def _html_forward_sol_element(*, id, repr, sensitivity_maps, title, tags):
 
 def _html_inverse_operator_element(*, id, repr, source_space, title, tags):
     template_path = template_dir / 'inverse.html'
+
+    title = stdlib_html.escape(title)
     t = Template(template_path.read_text(encoding='utf-8'))
     t = t.substitute(id=id, repr=repr, source_space=source_space, tags=tags,
                      title=title)
@@ -176,6 +191,9 @@ def _html_inverse_operator_element(*, id, repr, source_space, title, tags):
 def _html_slider_element(*, id, images, captions, start_idx, image_format,
                          title, tags, klass=''):
     template_path = template_dir / 'slider.html'
+
+    title = stdlib_html.escape(title)
+    captions = [stdlib_html.escape(caption) for caption in captions]
     t = Template(template_path.read_text(encoding='utf-8'))
     t = t.substitute(id=id, images=images, captions=captions, tags=tags,
                      title=title, start_idx=start_idx,
@@ -186,6 +204,9 @@ def _html_slider_element(*, id, images, captions, start_idx, image_format,
 def _html_image_element(*, id, img, image_format, caption, show, div_klass,
                         img_klass, title, tags):
     template_path = template_dir / 'image.html'
+
+    title = stdlib_html.escape(title)
+    caption = stdlib_html.escape(caption)
     t = Template(template_path.read_text(encoding='utf-8'))
     t = t.substitute(id=id, img=img, caption=caption, tags=tags, title=title,
                      image_format=image_format, div_klass=div_klass,
@@ -195,6 +216,8 @@ def _html_image_element(*, id, img, image_format, caption, show, div_klass,
 
 def _html_code_element(*, id, code, language, title, tags):
     template_path = template_dir / 'code.html'
+
+    title = stdlib_html.escape(title)
     t = Template(template_path.read_text(encoding='utf-8'))
     t = t.substitute(id=id, code=code, language=language, title=title,
                      tags=tags)
@@ -203,6 +226,8 @@ def _html_code_element(*, id, code, language, title, tags):
 
 def _html_element(*, id, div_klass, html, title, tags):
     template_path = template_dir / 'html.html'
+
+    title = stdlib_html.escape(title)
     t = Template(template_path.read_text(encoding='utf-8'))
     t = t.substitute(id=id, div_klass=div_klass, html=html, title=title,
                      tags=tags)
@@ -212,6 +237,7 @@ def _html_element(*, id, div_klass, html, title, tags):
 @dataclass
 class _ContentElement:
     name: str
+    name_html_escaped: str
     dom_id: str
     tags: Tuple[str]
     html: str
@@ -1318,6 +1344,7 @@ class Report(object):
 
         new_content = _ContentElement(
             name=name,
+            name_html_escaped=stdlib_html.escape(name),
             dom_id=dom_id,
             tags=tags,
             html=html
@@ -1338,8 +1365,6 @@ class Report(object):
     def _render_code(self, *, code, title, language, tags):
         if isinstance(code, Path):
             code = Path(code).read_text()
-
-        code = stdlib_html.escape(code)
 
         dom_id = self._get_dom_id()
         html = _html_code_element(
@@ -2345,8 +2370,7 @@ class Report(object):
                     warnings.simplefilter('ignore')
                     footer_html = _html_footer_element(
                         mne_version=MNE_VERSION,
-                        date=time.strftime("%B %d, %Y"),
-                        current_year=time.strftime("%Y")
+                        date=time.strftime("%B %d, %Y")
                     )
 
                 html = [header_html, toc_html, *self.html, footer_html]

@@ -5,7 +5,7 @@
       <nav class="nav nav-pills flex-column lh-sm" id="toc-navbar">
         {{for element in content_elements}}
         <a class="nav-link list-group-item list-group-item-action text-break" href="#{{element.dom_id}}"
-          data-mne-tags="{{for tag in element.tags}} {{tag}} {{endfor}}">{{element.name}}</a>
+          data-mne-tags="{{for tag in element.tags}} {{tag}} {{endfor}}">{{element.name_html_escaped}}</a>
         {{endfor}}
       </nav>
     </div>
