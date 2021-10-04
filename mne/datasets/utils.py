@@ -81,8 +81,8 @@ def _dataset_version(path, name):
     else:
         # Sample dataset versioning was introduced after 0.3
         # SPM dataset was introduced with 0.7
-        version = '0.3' if name == 'sample' else '0.7'
-
+        versions = dict(sample='0.7', spm='0.3')
+        version = versions.get(name, '0.0')
     return version
 
 
@@ -93,9 +93,9 @@ def _get_path(path, key, name):
         if not isinstance(path, str):
             raise ValueError('path must be a string or None')
         return path
-    # 2. get_config(key)
+    # 2. get_config(key) — unless key is None or "" (special get_config values)
     # 3. get_config('MNE_DATA')
-    path = get_config(key, get_config('MNE_DATA'))
+    path = get_config(key or 'MNE_DATA', get_config('MNE_DATA'))
     if path is not None:
         if not op.exists(path):
             msg = (f"Download location {path} as specified by MNE_DATA does "
