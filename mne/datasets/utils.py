@@ -204,12 +204,11 @@ def has_dataset(name):
     ----------
     name : str | dict
         If it is a string, then it refers to an internal MNE dataset
-        name (e.g. 'sample' dataset). For brainstorm datasets, should
-        be formatted like "brainstorm.bst_raw".
-        If it is a dictionary, then it is a dictionary of dataset
-        parameters. Each dataset parameter consists of the following
-        keys: ``dataset_name``, ``archive_name``, ``url``,
-        ``folder_name``, ``hash``, ``config_key``.
+        name (e.g. 'sample' dataset). If it is a dictionary, then
+        it is a dictionary of dataset parameters. Each dataset
+        parameter consists of the following keys: ``dataset_name``,
+        ``archive_name``, ``url``, ``folder_name``, ``hash``,
+        ``config_key``.
 
     Returns
     -------
