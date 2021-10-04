@@ -36,7 +36,6 @@ class CoregistrationUI(HasTraits):
         self._actors = dict()
         self._surfaces = dict()
         self._widgets = dict()
-        self._fids_to_pick = list()
         self._verbose = True
         self._head_geo = None
         self._coord_frame = "mri"
@@ -110,8 +109,6 @@ class CoregistrationUI(HasTraits):
     def _on_pick(self, vtk_picker, event):
         if self._lock_fids:
             return
-        if len(self._fids_to_pick) == 0:
-            return
         # XXX: taken from Brain, can be refactored
         cell_id = vtk_picker.GetCellId()
         mesh = vtk_picker.GetDataSet()
@@ -125,16 +122,11 @@ class CoregistrationUI(HasTraits):
         idx = np.argmin(abs(vertices - pos), axis=0)
         vertex_id = cell[idx[0]]
 
-        fid = self._fids_to_pick.pop(0)  # guaranteed previously
-        idx = self._default_fiducials.index(fid)
+        default_fiducials = [s.lower() for s in self._default_fiducials]
+        idx = default_fiducials.index(self._current_fiducial)
         # XXX: add coreg.set_fids
         self._coreg._fid_points[idx] = self._surfaces["head"].points[vertex_id]
         self._coreg._reset_fiducials()
-        if len(self._fids_to_pick) == 0:
-            self._lock_fids = True
-        else:
-            next_fid = self._fids_to_pick[0]
-            self._actors["msg"].SetInput(f"Picking {next_fid}...")
         self._emit_coreg_modified()
 
     def _set_subjects_dir(self, subjects_dir):
@@ -242,9 +234,7 @@ class CoregistrationUI(HasTraits):
                 self._widgets["show_hsp"].set_value(False)
                 self._widgets["show_hsp"].set_enabled(False)
                 self._widgets["high_res_head"].set_enabled(False)
-                self._fids_to_pick = list(self._default_fiducials)
-                next_fid = self._fids_to_pick[0]
-                self._actors["msg"].SetInput(f"Picking {next_fid}...")
+                self._actors["msg"].SetInput("Picking fiducials...")
             self._renderer._update()
         if "lock_fids" in self._widgets:
             self._widgets["lock_fids"].set_value(self._lock_fids)
