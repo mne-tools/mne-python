@@ -471,6 +471,7 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
     return figs if slices_as_figures else fig
 
 
+@fill_doc
 def plot_bem(subject, subjects_dir=None, orientation='coronal',
              slices=None, brain_surfaces=None, src=None, show=True,
              show_indices=True, mri='T1.mgz', show_orientation=True):
