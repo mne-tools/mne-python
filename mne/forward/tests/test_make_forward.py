@@ -16,10 +16,11 @@ from mne import (read_forward_solution, write_forward_solution,
                  make_sphere_model, pick_types_forward, pick_info, pick_types,
                  read_evokeds, read_cov, read_dipole,
                  get_volume_labels_from_aseg)
+from mne.transforms import Transform
 from mne.utils import requires_mne, requires_nibabel, run_subprocess
 from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
 from mne.forward._compute_forward import _magnetic_dipole_field_vec
-from mne.forward import Forward, _do_forward_solution
+from mne.forward import Forward, _do_forward_solution, use_coil_def
 from mne.dipole import Dipole, fit_dipole
 from mne.simulation import simulate_evoked
 from mne.source_estimate import VolSourceEstimate
@@ -468,3 +469,36 @@ def test_make_forward_no_meg(tmpdir):
     write_forward_solution(fname, fwd)
     fwd_read = read_forward_solution(fname)
     assert_allclose(fwd['sol']['data'], fwd_read['sol']['data'])
+
+
+def test_use_coil_def(tmpdir):
+    """Test use_coil_def."""
+    info = create_info(1, 1000., 'mag')
+    info['chs'][0]['coil_type'] = 9999
+    info['chs'][0]['loc'][:] = [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]
+    sphere = make_sphere_model((0., 0., 0.), 0.01)
+    src = setup_volume_source_space(pos=5, sphere=sphere)
+    trans = Transform('head', 'mri', None)
+    with pytest.raises(RuntimeError, match='coil definition not found'):
+        make_forward_solution(info, trans, src, sphere)
+    coil_fname = tmpdir.join('coil_def.dat')
+    with open(coil_fname, 'w') as fid:
+        fid.write("""# custom cube coil def
+1   9999    2   8  3e-03  0.000e+00     "Test"
+  0.1250 -0.750e-03 -0.750e-03 -0.750e-03  0.000  0.000""")
+    with pytest.raises(RuntimeError, match='Could not interpret'):
+        with use_coil_def(coil_fname):
+            make_forward_solution(info, trans, src, sphere)
+    with open(coil_fname, 'w') as fid:
+        fid.write("""# custom cube coil def
+1   9999    2   8  3e-03  0.000e+00     "Test"
+  0.1250 -0.750e-03 -0.750e-03 -0.750e-03  0.000  0.000  1.000
+  0.1250 -0.750e-03  0.750e-03 -0.750e-03  0.000  0.000  1.000
+  0.1250  0.750e-03 -0.750e-03 -0.750e-03  0.000  0.000  1.000
+  0.1250  0.750e-03  0.750e-03 -0.750e-03  0.000  0.000  1.000
+  0.1250 -0.750e-03 -0.750e-03  0.750e-03  0.000  0.000  1.000
+  0.1250 -0.750e-03  0.750e-03  0.750e-03  0.000  0.000  1.000
+  0.1250  0.750e-03 -0.750e-03  0.750e-03  0.000  0.000  1.000
+  0.1250  0.750e-03  0.750e-03  0.750e-03  0.000  0.000  1.000""")
+    with use_coil_def(coil_fname):
+        make_forward_solution(info, trans, src, sphere)
