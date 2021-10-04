@@ -21,6 +21,7 @@ recursive-include mne/data/fsaverage *
 include mne/datasets/_fsaverage/root.txt
 include mne/datasets/_fsaverage/bem.txt
 include mne/datasets/_infant/*.txt
+include mne/datasets/_phantom/*.txt
 include mne/data/dataset_checksums.txt
 include mne/data/eegbci_checksums.txt
 

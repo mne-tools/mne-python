@@ -510,6 +510,8 @@ def test_plot_misc_auto(browse_backend):
     data = np.random.RandomState(0).randn(1, 1000)
     raw = RawArray(data, create_info(1, 1000., 'misc'))
     raw.plot()
+    raw = RawArray(data, create_info(1, 1000., 'dipole'))
+    raw.plot(order=[0])  # plot, even though it's not "data"
     browse_backend._close_all()
 
 
