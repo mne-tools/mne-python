@@ -93,9 +93,9 @@ def _get_path(path, key, name):
         if not isinstance(path, str):
             raise ValueError('path must be a string or None')
         return path
-    # 2. get_config(key)
+    # 2. get_config(key) — unless key is None or "" (special get_config values)
     # 3. get_config('MNE_DATA')
-    path = get_config(key or 'MNE_DATA')
+    path = get_config(key or 'MNE_DATA', get_config('MNE_DATA'))
     if path is not None:
         if not op.exists(path):
             msg = (f"Download location {path} as specified by MNE_DATA does "
