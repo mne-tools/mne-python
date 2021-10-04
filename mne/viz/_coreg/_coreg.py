@@ -272,20 +272,6 @@ class CoregistrationUI(HasTraits):
         self._coreg._info = self._info
         self._reset()
 
-    def _update(self, change="all"):
-        if not isinstance(change, list):
-            change = [change]
-        forced = "all" in change
-        if "head" in change or forced:
-            self._add_head_surface()
-        if "hsp" in change or forced:
-            self._add_head_shape_points()
-        if "hpi" in change or forced:
-            self._add_hpi_coils()
-        if "fids" in change or forced:
-            self._add_head_fiducials()
-            self._add_mri_fiducials()
-
     @observe("_orient_glyphs")
     def _orient_glyphs_changed(self, change=None):
         self._add_hpi_coils()
@@ -351,6 +337,20 @@ class CoregistrationUI(HasTraits):
 
     def _omit_hsp(self):
         self._coreg.omit_head_shape_points(self._omit_hsp_distance)
+
+    def _update(self, change="all"):
+        if not isinstance(change, list):
+            change = [change]
+        forced = "all" in change
+        if "head" in change or forced:
+            self._add_head_surface()
+        if "hsp" in change or forced:
+            self._add_head_shape_points()
+        if "hpi" in change or forced:
+            self._add_hpi_coils()
+        if "fids" in change or forced:
+            self._add_head_fiducials()
+            self._add_mri_fiducials()
 
     def _reset(self):
         self._reset_fitting_parameters()
