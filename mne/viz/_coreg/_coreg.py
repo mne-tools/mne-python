@@ -129,7 +129,7 @@ class CoregistrationUI(HasTraits):
         # XXX: add coreg.set_fids
         self._coreg._fid_points[idx] = self._surfaces["head"].points[vertex_id]
         self._coreg._reset_fiducials()
-        self._emit_coreg_modified()
+        self._update("fids")
 
     def _set_subjects_dir(self, subjects_dir):
         self._subjects_dir = subjects_dir
@@ -189,7 +189,6 @@ class CoregistrationUI(HasTraits):
             tra=params["translation"],
             sca=params["scale"],
         )
-        self._update(update_parameters=False)
 
     def _set_icp_n_iterations(self, n_iterations):
         self._icp_n_iterations = n_iterations
@@ -273,13 +272,19 @@ class CoregistrationUI(HasTraits):
         self._coreg._info = self._info
         self._reset()
 
-    @observe("_coreg_modified")
-    def _update(self, change=None):
-        self._add_head_surface()
-        self._add_hpi_coils()
-        self._add_head_shape_points()
-        self._add_head_fiducials()
-        self._add_mri_fiducials()
+    def _update(self, change="all"):
+        if not isinstance(change, list):
+            change = [change]
+        forced = "all" in change
+        if "head" in change or forced:
+            self._add_head_surface()
+        if "hsp" in change or forced:
+            self._add_head_shape_points()
+        if "hpi" in change or forced:
+            self._add_hpi_coils()
+        if "fids" in change or forced:
+            self._add_head_fiducials()
+            self._add_mri_fiducials()
 
     @observe("_orient_glyphs")
     def _orient_glyphs_changed(self, change=None):
@@ -351,10 +356,7 @@ class CoregistrationUI(HasTraits):
         self._reset_fitting_parameters()
         self._reset_fiducials()
         self._coreg.reset()
-        self._emit_coreg_modified()
-
-    def _emit_coreg_modified(self):
-        self._coreg_modified = not self._coreg_modified
+        self._update()
 
     def _update_actor(self, actor_name, actor):
         self._renderer.plotter.remove_actor(self._actors.get(actor_name))
@@ -421,7 +423,7 @@ class CoregistrationUI(HasTraits):
             rpa_weight=self._rpa_weight,
             verbose=self._verbose,
         )
-        self._emit_coreg_modified()
+        self._update(["hsp", "hpi", "fids"])
 
     def _fit_icp(self):
         self._coreg.fit_icp(
@@ -431,7 +433,7 @@ class CoregistrationUI(HasTraits):
             rpa_weight=self._rpa_weight,
             verbose=self._verbose,
         )
-        self._emit_coreg_modified()
+        self._update(["hsp", "hpi", "fids"])
 
     def _save_trans(self, fname):
         write_trans(fname, self._coreg.trans)
@@ -445,7 +447,7 @@ class CoregistrationUI(HasTraits):
             rot=[rot_x, rot_y, rot_z],
             tra=[x, y, z],
         )
-        self._emit_coreg_modified()
+        self._update(["hsp", "hpi", "fids"])
 
     def _get_subjects(self):
         # XXX: would be nice to move this function to util
