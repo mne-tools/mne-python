@@ -193,7 +193,8 @@ def _html_slider_element(*, id, images, captions, start_idx, image_format,
     template_path = template_dir / 'slider.html'
 
     title = stdlib_html.escape(title)
-    captions = [stdlib_html.escape(caption) for caption in captions]
+    captions = [stdlib_html.escape(caption) for caption in captions
+                if caption is not None]
     t = Template(template_path.read_text(encoding='utf-8'))
     t = t.substitute(id=id, images=images, captions=captions, tags=tags,
                      title=title, start_idx=start_idx,
@@ -206,7 +207,8 @@ def _html_image_element(*, id, img, image_format, caption, show, div_klass,
     template_path = template_dir / 'image.html'
 
     title = stdlib_html.escape(title)
-    caption = stdlib_html.escape(caption)
+    if caption is not None:
+        caption = stdlib_html.escape(caption)
     t = Template(template_path.read_text(encoding='utf-8'))
     t = t.substitute(id=id, img=img, caption=caption, tags=tags, title=title,
                      image_format=image_format, div_klass=div_klass,
