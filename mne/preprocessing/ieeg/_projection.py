@@ -11,7 +11,7 @@ from ...io.pick import _picks_to_idx
 from ...surface import _read_mri_surface
 from ...transforms import (apply_trans, invert_transform, _cart_to_sph,
                            _ensure_trans)
-from ...utils import verbose, get_subjects_dir, _validate_type
+from ...utils import verbose, get_subjects_dir, _validate_type, _ensure_int
 
 
 @verbose
@@ -19,14 +19,6 @@ def project_sensors_onto_brain(info, trans, subject, subjects_dir=None,
                                picks=None, n_neighbors=10, copy=True,
                                verbose=None):
     """Project sensors onto the brain surface.
-
-    .. note:: This is useful in ECoG analysis for compensating for
-              "brain shift" or shrinking of the brain away from the
-              skull due to changes in pressure during the craniotomy.
-
-    .. note:: To use the brain surface, a BEM model must be created
-              e.g. using :ref:`mne watershed_bem` using the T1 or
-              :ref:`mne flash_bem` using a FLASH scan.
 
     Parameters
     ----------
@@ -49,9 +41,19 @@ def project_sensors_onto_brain(info, trans, subject, subjects_dir=None,
     Returns
     -------
     %(info_not_none)s
+
+    Notes
+    -----
+    This is useful in ECoG analysis for compensating for "brain shift"
+    or shrinking of the brain away from the skull due to changes
+    in pressure during the craniotomy.
+
+    To use the brain surface, a BEM model must be created e.g. using
+    :ref:`mne watershed_bem` using the T1 or :ref:`mne flash_bem`
+    using a FLASH scan.
     """
-    from scipy.spatial import distance_matrix
-    _validate_type(n_neighbors, int, 'n_neighbors')
+    from scipy.spatial.distance import pdist, squareform
+    n_neighbors = _ensure_int(n_neighbors, 'n_neighbors')
     _validate_type(copy, bool, 'copy')
     if copy:
         info = info.copy()
@@ -66,14 +68,14 @@ def project_sensors_onto_brain(info, trans, subject, subjects_dir=None,
         raise RuntimeError(f'{err}\n\nThe brain surface requires generating '
                            'a BEM using `mne flash_bem` (if you have '
                            'the FLASH scan) or `mne watershed_bem` (to '
-                           'use the T1)')
+                           'use the T1)') from None
     # get channel locations
     picks_idx = _picks_to_idx(info, 'ecog' if picks is None else picks)
     locs = np.array([info['chs'][idx]['loc'][:3] for idx in picks_idx])
     trans = _ensure_trans(trans, 'head', 'mri')
     locs = apply_trans(trans, locs)
     # compute distances for nearest neighbors
-    dists = distance_matrix(locs, locs)
+    dists = squareform(pdist(locs))
     # find angles for brain surface and points
     angles = _cart_to_sph(locs)
     surf_angles = _cart_to_sph(surf['rr'])
