@@ -322,7 +322,7 @@ class CoregistrationUI(HasTraits):
         for coord in ("X", "Y", "Z"):
             name = f"s{coord}"
             if name in self._widgets:
-                self._widgets[name].set_enabled(mode is None)
+                self._widgets[name].set_enabled(mode is not None)
 
     @observe("_icp_fid_match")
     def _icp_fid_match_changed(self, change=None):
