@@ -721,7 +721,7 @@ def test_deprecated_methods(tmpdir):
     with pytest.warns(DeprecationWarning, match='use .* instead'):
         r.remove(caption='SSP Projectors', tags=('mytag',))
 
-    with pytest.warns(DeprecationWarning, match='Use `Report.add_figure`'):
+    with pytest.warns(DeprecationWarning, match='Use.*Report.add_figure'):
         with pytest.raises(TypeError, match='It seems you passed a path'):
             r.add_figs_to_section(['foo'], 'caption', 'section')
 
@@ -729,11 +729,11 @@ def test_deprecated_methods(tmpdir):
         ValueError,
         match='Number of "captions" and report items must be equal'
     ):
-        with pytest.warns(DeprecationWarning, match='Use `Report.add_figure`'):
+        with pytest.warns(DeprecationWarning, match='Use.*Report.add_figure'):
             r.add_figs_to_section(figs=[fig, fig], captions='H')
 
     # Passing lists should work
-    with pytest.warns(DeprecationWarning, match='Use `Report.add_image`'):
+    with pytest.warns(DeprecationWarning, match='Use.*Report.add_image'):
         r.add_images_to_section(fnames=[img_fname],
                                 captions=['evoked response'])
 
@@ -741,11 +741,11 @@ def test_deprecated_methods(tmpdir):
         ValueError,
         match='Number of "captions" and report items must be equal'
     ):
-        with pytest.warns(DeprecationWarning, match='Use `Report.add_image`'):
+        with pytest.warns(DeprecationWarning, match='Use.*Report.add_image'):
             r.add_images_to_section(fnames=[img_fname, img_fname],
                                     captions='H')
 
-    with pytest.warns(DeprecationWarning, match='Use `Report.add_bem`'):
+    with pytest.warns(DeprecationWarning, match='Use.*Report.add_bem'):
         r.add_bem_to_section(
             subject='sample', subjects_dir=subjects_dir, decim=100
         )
