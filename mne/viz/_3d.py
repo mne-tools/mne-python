@@ -995,7 +995,8 @@ def _plot_hpi_coils(renderer, info, to_cf_t, opacity=0.5,
             x, y, z, u, v, w, color=color, scale=scale, mode="cylinder",
             glyph_height=glyph_height, glyph_center=glyph_center,
             resolution=resolution, glyph_resolution=glyph_resolution,
-            opacity=opacity, scale_mode='vector', scalars=scalars)
+            glyph_radius=None, opacity=opacity, scale_mode='vector',
+            scalars=scalars)
     else:
         actor, _ = renderer.sphere(center=hpi_loc, color=color, scale=scale,
                                    opacity=opacity, backface_culling=True)
@@ -1056,7 +1057,8 @@ def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
             x, y, z, u, v, w, color=color, scale=scale, mode="cylinder",
             glyph_height=glyph_height, glyph_center=glyph_center,
             resolution=resolution, glyph_resolution=glyph_resolution,
-            opacity=opacity, scale_mode='vector', scalars=scalars)
+            glyph_radius=None, opacity=opacity, scale_mode='vector',
+            scalars=scalars)
     else:
         actor, _ = renderer.sphere(center=ext_loc, color=color,
                                    scale=scale, opacity=opacity,
