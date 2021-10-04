@@ -80,6 +80,8 @@ class CoregistrationUI(HasTraits):
         self._configure_picking()
         self._renderer.show()
 
+        self._scale_mode = "None"
+
     def _configure_picking(self):
         self._renderer._update_picking_callback(
             self._on_mouse_move,
@@ -317,6 +319,10 @@ class CoregistrationUI(HasTraits):
     def _scale_mode_changed(self, change=None):
         mode = None if self._scale_mode == "None" else self._scale_mode
         self._coreg.set_scale_mode(mode)
+        for coord in ("X", "Y", "Z"):
+            name = f"s{coord}"
+            if name in self._widgets:
+                self._widgets[name].set_enabled(mode is None)
 
     @observe("_icp_fid_match")
     def _icp_fid_match_changed(self, change=None):
