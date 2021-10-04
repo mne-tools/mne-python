@@ -126,6 +126,7 @@ def pytest_configure(config):
     ignore:.*Creating an ndarray from ragged.*:numpy.VisibleDeprecationWarning
     ignore:^Please use.*scipy\..*:DeprecationWarning
     ignore:.*Found the following unknown channel type.*:RuntimeWarning
+    ignore:.*Passing a schema to Validator.*:DeprecationWarning
     always::ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
