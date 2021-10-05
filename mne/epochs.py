@@ -59,7 +59,8 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_combine, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_index_arguments, _convert_times,
                     _scale_dataframe_data, _check_time_format, object_size,
-                    _on_missing, _validate_type, _ensure_events)
+                    _on_missing, _validate_type, _ensure_events,
+                    _check_path_like)
 from .utils.docs import fill_doc
 from .data.html_templates import epochs_template
 
@@ -3114,7 +3115,7 @@ class EpochsFIF(BaseEpochs):
     @verbose
     def __init__(self, fname, proj=True, preload=True,
                  verbose=None):  # noqa: D102
-        if isinstance(fname, str):
+        if _check_path_like(fname):
             check_fname(
                 fname=fname, filetype='epochs',
                 endings=('-epo.fif', '-epo.fif.gz', '_epo.fif', '_epo.fif.gz')
