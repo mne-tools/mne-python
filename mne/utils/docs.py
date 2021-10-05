@@ -268,8 +268,7 @@ proj : bool | 'delayed'
     recommended value if SSPs are not used for cleaning the data.
 """
 docdict['epochs_fname'] = """
-fname : str | file-like
-
+fname : path-like | file-like
     The epochs to load. If a filename, should end with ``-epo.fif`` or
     ``-epo.fif.gz``. If a file-like object, preloading must be used.
 """
