@@ -5,6 +5,7 @@
 # License: BSD-3-Clause
 
 from copy import deepcopy
+from pathlib import Path
 from functools import partial
 from io import BytesIO
 import os
@@ -1789,15 +1790,17 @@ def test_corrupted(tmpdir):
 
 
 @testing.requires_testing_data
-def test_expand_user():
+def test_expand_user(tmp_path, monkeypatch):
     """Test that we're expanding `~` before reading and writing."""
-    dir_sample = pathlib.Path('~/mne_data/MNE-testing-data/MEG/sample/')
-    fname_in = dir_sample / 'sample_audvis_trunc_raw.fif'
-    dir_out = dir_sample / 'tmp'
-    dir_out.expanduser().mkdir(exist_ok=True)
-    fname_out = dir_out / 'raw.fif'
+    monkeypatch.setenv('HOME', str(tmp_path))
 
-    raw = read_raw_fif(fname=fname_in, preload=True)
-    raw.save(fname=fname_out, overwrite=True)
+    path_in = Path(fif_fname)
+    path_out = tmp_path / path_in.name
 
-    shutil.rmtree(dir_out.expanduser())
+    shutil.copyfile(
+        src=path_in,
+        dst=path_out
+    )
+
+    raw = read_raw_fif(fname=path_in, preload=True)
+    raw.save(fname=path_out, overwrite=True)
