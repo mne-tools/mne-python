@@ -233,6 +233,7 @@ class CoregistrationUI(HasTraits):
                 self._widgets["orient_glyphs"].set_enabled(True)
                 self._widgets["show_hpi"].set_enabled(True)
                 self._widgets["show_hsp"].set_enabled(True)
+                self._widgets["show_eeg"].set_enabled(True)
                 self._widgets["high_res_head"].set_enabled(True)
                 self._actors["msg"].SetInput("")
             else:
@@ -241,6 +242,8 @@ class CoregistrationUI(HasTraits):
                 self._widgets["show_hpi"].set_enabled(False)
                 self._widgets["show_hsp"].set_value(False)
                 self._widgets["show_hsp"].set_enabled(False)
+                self._widgets["show_eeg"].set_value(False)
+                self._widgets["show_eeg"].set_enabled(False)
                 self._widgets["high_res_head"].set_enabled(False)
                 self._actors["msg"].SetInput("Picking fiducials...")
             self._renderer._update()
