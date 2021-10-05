@@ -280,9 +280,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     def save(self, fname):
         """Save evoked data to a file.
 
-        .. note:: To write multiple conditions into a single file, use
-                  `mne.write_evokeds` instead.
-
         Parameters
         ----------
         fname : str
@@ -291,6 +288,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Notes
         -----
+        To write multiple conditions into a single file, use
+        `mne.write_evokeds`.
+
         .. versionchanged:: 0.23
             Information on baseline correction will be stored with the data,
             and will be restored when reading again via `mne.read_evokeds`.
