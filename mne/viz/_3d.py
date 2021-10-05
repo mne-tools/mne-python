@@ -1044,7 +1044,7 @@ def _orient_glyphs(pts, surf):
 
 
 def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
-                            orient_glyphs=False, surf=None):
+                            orient_glyphs=False, surf=None, mask=None):
     defaults = DEFAULTS['coreg']
     ext_loc = np.array([
         d['r'] for d in (info['dig'] or [])
@@ -1053,6 +1053,7 @@ def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
     ext_loc = apply_trans(to_cf_t['head'], ext_loc)
     color = defaults['extra_color']
     scale = defaults['extra_scale']
+    ext_loc = ext_loc[mask] if mask is not None else ext_loc
     if orient_glyphs:
         glyph_height = defaults['eegp_height']
         glyph_center = (0., -defaults['eegp_height'], 0)

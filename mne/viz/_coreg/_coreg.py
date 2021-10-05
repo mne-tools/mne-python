@@ -338,6 +338,7 @@ class CoregistrationUI(HasTraits):
 
     def _omit_hsp(self):
         self._coreg.omit_head_shape_points(self._omit_hsp_distance / 1000.)
+        self._update_plot("hsp")
 
     def _update_plot(self, changes="all"):
         if not isinstance(changes, list):
@@ -396,7 +397,8 @@ class CoregistrationUI(HasTraits):
                 self._info, self._coreg.trans, coord_frame=self._coord_frame)
             hsp_actors = _plot_head_shape_points(
                 self._renderer, self._info, to_cf_t, opacity=1.0,
-                orient_glyphs=self._orient_glyphs, surf=self._head_geo)
+                orient_glyphs=self._orient_glyphs, surf=self._head_geo,
+                mask=self._coreg._extra_points_filter)
         else:
             hsp_actors = None
         self._update_actor("head_shape_points", hsp_actors)
