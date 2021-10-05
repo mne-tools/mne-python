@@ -637,6 +637,7 @@ def test_full_report(tmpdir, actors_invisible):
     events = read_events(events_fname)
     epochs = Epochs(raw=raw, events=events)
     evokeds = read_evokeds(evoked_fname)
+    evoked = evokeds[0].pick('eeg')
 
     r.add_raw(raw=raw_fname, title='my raw data', tags=('raw',), psd=False,
               projs=False)
@@ -644,7 +645,7 @@ def test_full_report(tmpdir, actors_invisible):
                  sfreq=raw.info['sfreq'])
     r.add_epochs(epochs=epochs, title='my epochs', tags=('epochs',), psd=False,
                  projs=False)
-    r.add_evokeds(evokeds=evokeds[0], noise_cov=cov_fname,
+    r.add_evokeds(evokeds=evoked, noise_cov=cov_fname,
                   titles=['my evoked 1'], tags=('evoked',), projs=False,
                   n_time_points=2)
     r.add_projs(info=raw_fname, projs=ecg_proj_fname, title='my proj',
