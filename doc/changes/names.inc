@@ -411,3 +411,5 @@
 .. _Reza Shoorangiz: https://github.com/rezashr
 
 .. _Evgeny Goldstein: https://github.com/evgenygoldstein
+
+.. _Joshua Teves: https://github.com/jbteves

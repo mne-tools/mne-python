@@ -41,9 +41,13 @@ Current (0.24.dev0)
 
 .. |Evgeny Goldstein| replace:: **Evgeny Goldstein**
 
+.. |Joshua Teves| replace:: **Joshua Teves**
+
 Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
+
+- Add `pooch` to system information reports (:gh:`9801` **by new contributor** |Joshua Teves|_)
 
 - Get annotation descriptions from the name field of SNIRF stimulus groups when reading SNIRF files via `mne.io.read_raw_snirf` (:gh:`9575` **by new contributor** |Darin Erat Sleiter|_)
 
@@ -252,6 +256,8 @@ Bugs
 - Fix bug where channels with a dollar sign ($) were not being labeled "misc" in :func:`mne.io.read_raw_nihon` (:gh:`9695` by `Adam Li`_)
 
 - Fix bug where :func:`mne.io.read_raw_persyst` was lower-casing events it found in the ``.lay`` file (:gh:`9746` by `Adam Li`_)
+
+- Fix bug with Qhull when plotting OPM sensors in :func:`mne.viz.plot_alignment` (:gh:`9799` by `Eric Larson`_)
 
 - Fix bug where :func:`mne.io.read_raw_snirf` was including the landmark index as a spatial coordinate (:gh:`9777` by `Robert luke`_)
 

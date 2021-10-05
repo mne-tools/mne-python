@@ -846,7 +846,14 @@ def _ch_pos_in_coord_frame(info, to_cf_t, warn_meg=True, verbose=None):
         for type_name, type_slice in type_slices.items():
             if ch_type in _MEG_CH_TYPES_SPLIT + ('ref_meg',):
                 coil_trans = _loc_to_coil_trans(info['chs'][idx]['loc'])
-                coil = _create_meg_coils([info['chs'][idx]], acc='normal')[0]
+                # Here we prefer accurate geometry in case we need to
+                # ConvexHull the coil, we want true 3D geometry (and not, for
+                # example, a straight line / 1D geometry)
+                this_coil = [info['chs'][idx]]
+                try:
+                    coil = _create_meg_coils(this_coil, acc='accurate')[0]
+                except RuntimeError:  # we don't have an accurate one
+                    coil = _create_meg_coils(this_coil, acc='normal')[0]
                 # store verts as ch_coord
                 ch_coord, triangles = _sensor_shape(coil)
                 ch_coord = apply_trans(coil_trans, ch_coord)
