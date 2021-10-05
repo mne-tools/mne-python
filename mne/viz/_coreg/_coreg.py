@@ -25,6 +25,7 @@ class CoregistrationUI(HasTraits):
     _orient_glyphs = Bool()
     _hpi_coils = Bool()
     _head_shape_point = Bool()
+    _eeg_channels = Bool()
     _head_resolution = Bool()
     _head_transparency = Bool()
     _grow_hair = Float()
@@ -69,6 +70,7 @@ class CoregistrationUI(HasTraits):
         self._orient_glyphs = False
         self._hpi_coils = True
         self._head_shape_point = True
+        self._eeg_channels = True
         self._head_resolution = True
         self._omit_hsp_distance = 10.0
         self._icp_n_iterations = self._default_icp_n_iterations
@@ -161,6 +163,9 @@ class CoregistrationUI(HasTraits):
 
     def _set_head_shape_points(self, state):
         self._head_shape_point = bool(state)
+
+    def _set_eeg_channels(self, state):
+        self._eeg_channels = bool(state)
 
     def _set_head_resolution(self, state):
         self._head_resolution = bool(state)
@@ -286,6 +291,10 @@ class CoregistrationUI(HasTraits):
     def _head_shape_point_changed(self, change=None):
         self._add_head_shape_points()
 
+    @observe("_eeg_channels")
+    def _eeg_channels_changed(self, change=None):
+        self._add_eeg_channels()
+
     @observe("_head_resolution")
     def _head_resolution_changed(self, change=None):
         self._surface = "head-dense" if self._head_resolution else "head"
@@ -406,6 +415,9 @@ class CoregistrationUI(HasTraits):
         else:
             hsp_actors = None
         self._update_actor("head_shape_points", hsp_actors)
+
+    def _add_eeg_channels(self):
+        pass
 
     def _add_head_surface(self):
         bem = None
@@ -584,6 +596,12 @@ class CoregistrationUI(HasTraits):
             name="Show Head Shape Points",
             value=True,
             callback=self._set_head_shape_points,
+            layout=layout
+        )
+        self._widgets["show_eeg"] = self._renderer._dock_add_check_box(
+            name="Show EEG Channels",
+            value=True,
+            callback=self._set_eeg_channels,
             layout=layout
         )
         self._widgets["high_res_head"] = self._renderer._dock_add_check_box(
