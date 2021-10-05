@@ -503,6 +503,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         pyvista:       0.25.3 {pyvistaqt=0.1.1, OpenGL 3.3 (Core Profile) Mesa 18.3.6 via llvmpipe (LLVM 7.0, 256 bits)}
         vtk:           9.0.1
         PyQt5:         5.15.0
+        pooch:         v1.5.1
     """  # noqa: E501
     _validate_type(dependencies, str)
     _check_option('dependencies', dependencies, ('user', 'developer'))
@@ -542,7 +543,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     has_3d = False
     use_mod_names = ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
                      'numba', 'nibabel', 'nilearn', 'dipy', 'cupy', 'pandas',
-                     'mayavi', 'pyvista', 'vtk', 'PyQt5')
+                     'mayavi', 'pyvista', 'vtk', 'PyQt5', 'pooch')
     if dependencies == 'developer':
         use_mod_names += (
             '', 'sphinx', 'sphinx_gallery', 'numpydoc', 'pydata_sphinx_theme',

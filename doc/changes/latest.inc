@@ -41,9 +41,13 @@ Current (0.24.dev0)
 
 .. |Evgeny Goldstein| replace:: **Evgeny Goldstein**
 
+.. |Joshua Teves| replace:: **Joshua Teves**
+
 Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
+
+- Add `pooch` to system information reports (:gh:`9801` **by new contributor** |Joshua Teves|_)
 
 - Get annotation descriptions from the name field of SNIRF stimulus groups when reading SNIRF files via `mne.io.read_raw_snirf` (:gh:`9575` **by new contributor** |Darin Erat Sleiter|_)
 
@@ -171,9 +175,13 @@ Enhancements
 
 - All data fetching code now relies on ``pooch``, which is an added optional requirement for dataset fetchers (:gh:`9742` by `Adam Li`_ and `Daniel McCloy`_)
 
+- Add phantom FreeSurfer subject fetcher :func:`mne.datasets.fetch_phantom` to allow fetching the Otaniemi phantom (:gh:`9796` by `Eric Larson`_)
+
 - Add :func:`mne.datasets.fetch_dataset` to allow packages to fetch datasets in a similar fashion to MNE (:gh:`9763` by `Adam Li`_)
 
 - Add full ECoG dataset to MNE-misc-data and demonstrate its use in :ref:`ex-electrode-pos-2d` and :ref:`tut-ieeg-localize` (:gh:`9784` by `Alex Rockhill`_)
+
+- `mne.io.read_raw_brainvision` now handles ASCII data with comma-separated values, as may be exported from BrainVision Analyzer (:gh:`9795` by `Richard Höchenberger`_)
 
 - All functions for reading and writing files should now automatically handle ``~`` correctly on Linux and macOS machines and expand it to the user's home directory. Should you come across any function that doesn't do it, please do let us know! (:gh:`9613` by `Richard Höchenberger`_)
 
@@ -231,6 +239,8 @@ Bugs
 
 - Prevent :meth:`mne.io.Raw.plot` windows from spawning at sizes too small to properly render (:gh:`9629` by `Daniel McCloy`_)
 
+- Fix bug where :meth:`mne.io.Raw.plot` raised an error when plotting raw dipole data (:gh:`9771` by `Eric Larson`_)
+
 - Fix bug in ::meth:`mne.preprocessing.ICA.find_bads_ecg` where passing ``start`` and ``stop`` lead to erroneous data windows depending on the combination of Raw, Epochs, Evoked, and the type (int, float, None) of ``start`` and ``stop`` (:gh:`9556` by `Stefan Appelhoff`_)
 
 - Fix bug in :func:`mne.viz.set_3d_backend` and :func:`mne.viz.get_3d_backend` where the PyVistaQt-based backend was ambiguously named ``'pyvista'`` instead of ``'pyvistaqt'``; use ``set_3d_backend('pyvistaqt')`` and expect ``'pyvistaqt'`` as the output of :func:`mne.viz.get_3d_backend` instead of ``'pyvista'``, and consider using ``get_3d_backend().startswith('pyvista')`` for example for backward-compatible conditionals (:gh:`9607` by `Guillaume Favelier`_)
@@ -248,6 +258,8 @@ Bugs
 - Fix bug where channels with a dollar sign ($) were not being labeled "misc" in :func:`mne.io.read_raw_nihon` (:gh:`9695` by `Adam Li`_)
 
 - Fix bug where :func:`mne.io.read_raw_persyst` was lower-casing events it found in the ``.lay`` file (:gh:`9746` by `Adam Li`_)
+
+- Fix bug with Qhull when plotting OPM sensors in :func:`mne.viz.plot_alignment` (:gh:`9799` by `Eric Larson`_)
 
 - Fix bug where :func:`mne.io.read_raw_snirf` was including the landmark index as a spatial coordinate (:gh:`9777` by `Robert luke`_)
 

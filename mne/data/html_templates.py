@@ -71,7 +71,7 @@ raw_template = Template("""
     {{if filenames}}
     <tr>
         <th>Filenames</th>
-        <td>{{', '.join(filenames)}}</td>
+        <td>{{'<br>'.join(filenames)}}</td>
     </tr>
     {{endif}}
     <tr>

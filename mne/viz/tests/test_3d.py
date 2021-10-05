@@ -349,7 +349,7 @@ def test_plot_alignment_basic(tmpdir, renderer, mixed_fwd_cov_evoked):
         import mayavi  # noqa: F401 analysis:ignore
         assert isinstance(fig, mayavi.core.scene.Scene)
     # 3D coil with no defined draw (ConvexHull)
-    info_cube = pick_info(info, [0])
+    info_cube = pick_info(info, np.arange(5))
     info['dig'] = None
     info_cube['chs'][0]['coil_type'] = 9999
     with pytest.raises(RuntimeError, match='coil definition not found'):
@@ -357,6 +357,12 @@ def test_plot_alignment_basic(tmpdir, renderer, mixed_fwd_cov_evoked):
     coil_def_fname = op.join(tempdir, 'temp')
     with open(coil_def_fname, 'w') as fid:
         fid.write(coil_3d)
+    # make sure our other OPMs can be plotted, too
+    for ii, kind in enumerate(('QUSPIN_ZFOPM_MAG', 'QUSPIN_ZFOPM_MAG2',
+                               'FIELDLINE_OPM_MAG_GEN1',
+                               'KERNEL_OPM_MAG_GEN1'), 1):
+        info_cube['chs'][ii]['coil_type'] = getattr(
+            FIFF, f'FIFFV_COIL_{kind}')
     with use_coil_def(coil_def_fname):
         plot_alignment(info_cube, meg='sensors', surfaces=(), dig=True)
 

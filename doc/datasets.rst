@@ -12,7 +12,7 @@ Datasets
 
 .. autosummary::
    :toctree: generated/
-   
+
    fetch_dataset
    brainstorm.bst_auditory.data_path
    brainstorm.bst_resting.data_path
@@ -23,6 +23,7 @@ Datasets
    fetch_fsaverage
    fetch_hcp_mmp_parcellation
    fetch_infant_template
+   fetch_phantom
    fnirs_motor.data_path
    hf_sef.data_path
    kiloword.data_path
