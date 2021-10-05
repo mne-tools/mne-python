@@ -25,7 +25,8 @@ else
 	echo "PyVista"
 	pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/main
 	echo "pyvistaqt"
-	pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/main
+	# Temporarily use a branch that fixes a bug
+	pip install --progress-bar off https://github.com/larsoner/pyvistaqt/zipball/close
 	echo "imageio-ffmpeg, xlrd, mffpy"
 	pip install --progress-bar off --pre imageio-ffmpeg xlrd mffpy
 fi
