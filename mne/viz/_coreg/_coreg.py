@@ -151,7 +151,7 @@ class CoregistrationUI(HasTraits):
         self._info_file = fname
 
     def _set_omit_hsp_distance(self, distance):
-        self._omit_hsp_distance = distance / 1000.0
+        self._omit_hsp_distance = distance
 
     def _set_orient_glyphs(self, state):
         self._orient_glyphs = bool(state)
@@ -338,6 +338,10 @@ class CoregistrationUI(HasTraits):
 
     def _omit_hsp(self):
         self._coreg.omit_head_shape_points(self._omit_hsp_distance / 1000.)
+        self._update_plot("hsp")
+
+    def _reset_omit_hsp_filter(self):
+        self._coreg._extra_points_filter = None
         self._update_plot("hsp")
 
     def _update_plot(self, changes="all"):
@@ -554,6 +558,11 @@ class CoregistrationUI(HasTraits):
         self._widgets["omit"] = self._renderer._dock_add_button(
             name="Omit",
             callback=self._omit_hsp,
+            layout=hlayout,
+        )
+        self._widgets["reset_omit"] = self._renderer._dock_add_button(
+            name="Reset",
+            callback=self._reset_omit_hsp_filter,
             layout=hlayout,
         )
         self._renderer._layout_add_widget(layout, hlayout)
