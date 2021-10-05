@@ -187,6 +187,8 @@ Enhancements
 
 - `mne.io.read_raw_brainvision` now handles ASCII data with comma-separated values, as may be exported from BrainVision Analyzer (:gh:`9795` by `Richard Höchenberger`_)
 
+- Add :func:`mne.preprocessing.ieeg.project_sensors_onto_brain` to project ECoG sensors onto the pial surface to compensate for brain shift (:gh:`9800` by `Alex Rockhill`_)
+
 Bugs
 ~~~~
 - Fix bug in :meth:`mne.io.Raw.pick` and related functions when parameter list contains channels which are not in info instance (:gh:`9708` **by new contributor** |Evgeny Goldstein|_)
@@ -261,7 +263,7 @@ Bugs
 
 - Fix bug where :func:`mne.io.read_raw_persyst` was lower-casing events it found in the ``.lay`` file (:gh:`9746` by `Adam Li`_)
 
-- Fix bug with Qhull when plotting OPM sensors in :func:`mne.viz.plot_alignment` (:gh:`9799` by `Eric Larson`_)
+- Fix bug with Qhull when plotting OPM sensors in :func:`mne.viz.plot_alignment` (:gh:`9799` and :gh:`9804` by `Eric Larson`_)
 
 - Fix bug where :func:`mne.io.read_raw_snirf` was including the landmark index as a spatial coordinate (:gh:`9777` by `Robert luke`_)
 

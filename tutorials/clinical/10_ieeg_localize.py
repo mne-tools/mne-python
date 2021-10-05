@@ -316,6 +316,37 @@ gui = mne.gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
                           subjects_dir=op.join(misc_path, 'ecog'))
 
 # %%
+# for ECoG, we typically want to account for "brain shift" or shrinking of the
+# brain away from the skull/dura due to changes in pressure during the
+# craniotomy
+# Note: this requires the BEM surfaces to have been computed e.g. using
+# :ref:`mne watershed_bem` or :ref:`mne flash_bem`.
+# First, let's plot the localized sensor positions without modification.
+
+# plot projected sensors
+brain_kwargs = dict(cortex='low_contrast', alpha=0.2, background='white')
+brain = mne.viz.Brain('sample_ecog', subjects_dir=op.join(misc_path, 'ecog'),
+                      title='Before Projection', **brain_kwargs)
+brain.add_sensors(raw_ecog.info, trans=subj_trans_ecog)
+view_kwargs = dict(azimuth=60, elevation=100, distance=350,
+                   focalpoint=(0, 0, -15))
+brain.show_view(**view_kwargs)
+
+# %%
+# Now, let's project the sensors to the brain surface and re-plot them.
+
+# project sensors to the brain surface
+raw_ecog.info = mne.preprocessing.ieeg.project_sensors_onto_brain(
+    raw_ecog.info, subj_trans_ecog, 'sample_ecog',
+    subjects_dir=op.join(misc_path, 'ecog'))
+
+# plot projected sensors
+brain = mne.viz.Brain('sample_ecog', subjects_dir=op.join(misc_path, 'ecog'),
+                      title='After Projection', **brain_kwargs)
+brain.add_sensors(raw_ecog.info, trans=subj_trans_ecog)
+brain.show_view(**view_kwargs)
+
+# %%
 # Let's plot the electrode contact locations on the subject's brain.
 #
 # MNE stores digitization montages in a coordinate frame called "head"
@@ -328,12 +359,9 @@ gui = mne.gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
 # when the electrode contacts were localized so we need to use it again here.
 
 # plot the alignment
-brain_kwargs = dict(cortex='low_contrast', alpha=0.2, background='white')
 brain = mne.viz.Brain('sample_seeg', subjects_dir=op.join(misc_path, 'seeg'),
                       **brain_kwargs)
 brain.add_sensors(raw.info, trans=subj_trans)
-view_kwargs = dict(azimuth=60, elevation=100, distance=350,
-                   focalpoint=(0, 0, -15))
 brain.show_view(**view_kwargs)
 
 # %%
