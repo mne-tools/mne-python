@@ -105,7 +105,10 @@ def _read_coil_def_file(fname, use_registry=True):
                 while(line[0] == '#'):
                     line = lines.pop()
                 vals = np.fromstring(line, sep=' ')
-                assert len(vals) == 7
+                if len(vals) != 7:
+                    raise RuntimeError(
+                        f'Could not interpret line {p + 1} as 7 points:\n'
+                        f'{line}')
                 # Read and verify data for each integration point
                 w.append(vals[0])
                 rmag.append(vals[[1, 2, 3]])
