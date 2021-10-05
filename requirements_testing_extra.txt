@@ -1,6 +1,7 @@
 # requirements for full testing (on top of environment.yml/requirements.txt)
 nitime
 nbclient
+jsonschema < 4  # https://github.com/jupyter/nbformat/issues/232
 sphinx-gallery
 eeglabio
 EDFlib-Python
