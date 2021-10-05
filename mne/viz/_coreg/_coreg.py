@@ -70,6 +70,7 @@ class CoregistrationUI(HasTraits):
         self._hpi_coils = True
         self._head_shape_point = True
         self._head_resolution = True
+        self._omit_hsp_distance = 10.0
         self._icp_n_iterations = self._default_icp_n_iterations
         self._icp_fid_match = self._default_icp_fid_matches[0]
         for fid in self._default_weights.keys():
@@ -336,7 +337,7 @@ class CoregistrationUI(HasTraits):
         self._set_current_fiducial(self._default_fiducials[0])
 
     def _omit_hsp(self):
-        self._coreg.omit_head_shape_points(self._omit_hsp_distance)
+        self._coreg.omit_head_shape_points(self._omit_hsp_distance / 1000.)
 
     def _update_plot(self, changes="all"):
         if not isinstance(changes, list):
@@ -542,7 +543,7 @@ class CoregistrationUI(HasTraits):
         hlayout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["omit_distance"] = self._renderer._dock_add_spin_box(
             name="Omit Distance",
-            value=10.,
+            value=self._omit_hsp_distance,
             rng=[0.0, 100.0],
             callback=self._set_omit_hsp_distance,
             decimals=1,
