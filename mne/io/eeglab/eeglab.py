@@ -446,7 +446,8 @@ class EpochsEEGLAB(BaseEpochs):
                  baseline=None, reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, eog=(), verbose=None,
                  uint16_codec=None):  # noqa: D102
-        input_fname = _check_fname(fname=input_fname, must_exist=True)
+        input_fname = _check_fname(fname=input_fname, must_exist=True,
+                                   overwrite='read')
         eeg = _check_load_mat(input_fname, uint16_codec)
 
         if not ((events is None and event_id is None) or
