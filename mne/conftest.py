@@ -125,6 +125,7 @@ def pytest_configure(config):
     ignore:.*`np.typeDict` is a deprecated.*:DeprecationWarning
     ignore:.*Creating an ndarray from ragged.*:numpy.VisibleDeprecationWarning
     ignore:^Please use.*scipy\..*:DeprecationWarning
+    ignore:.*Passing a schema to Validator.*:DeprecationWarning
     ignore:.*Found the following unknown channel type.*:RuntimeWarning
     ignore:.*Passing a schema to Validator.*:DeprecationWarning
     always::ResourceWarning

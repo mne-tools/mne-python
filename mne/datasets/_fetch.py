@@ -124,7 +124,7 @@ def fetch_dataset(
 
     Fetching datasets downloads files over HTTP/HTTPS. One can fetch private
     datasets by passing in authorization to the ``auth`` argument.
-    """  # noqa
+    """  # noqa E501
     # import pooch library for handling the dataset downloading
     pooch = _soft_import("pooch", "dataset downloading", strict=True)
 
@@ -148,7 +148,7 @@ def fetch_dataset(
     names = [params["dataset_name"] for params in dataset_params]
     name = names[0]
     dataset_dict = dataset_params[0]
-    config_key = dataset_dict["config_key"]
+    config_key = dataset_dict.get('config_key', None)
     folder_name = dataset_dict["folder_name"]
 
     # get download path for specific dataset
@@ -168,36 +168,35 @@ def fetch_dataset(
 
     # get the version of the dataset and then check if the version is outdated
     data_version = _dataset_version(final_path, name)
-    outdated_dataset = want_version is not None and LooseVersion(
-        want_version
-    ) > LooseVersion(data_version)
+    outdated = (want_version is not None and
+                LooseVersion(want_version) > LooseVersion(data_version))
 
-    if outdated_dataset:
+    if outdated:
         logger.info(
             f"Dataset {name} version {data_version} out of date, "
             f"latest version is {want_version}"
         )
 
-    # return empty string if outdated dataset and we don't want
-    # to download
-    if (not force_update) and outdated_dataset and not download:
+    # return empty string if outdated dataset and we don't want to download
+    if (not force_update) and outdated and not download:
         return ("", data_version) if return_version else ""
 
     # reasons to bail early (hf_sef has separate code for this):
     if (
         (not force_update)
-        and (not outdated_dataset)
+        and (not outdated)
         and (not name.startswith("hf_sef_"))
     ):
-        # if target folder exists (otherwise pooch downloads every time,
-        # because we don't save the archive files after unpacking)
+        # ...if target folder exists (otherwise pooch downloads every
+        # time because we don't save the archive files after unpacking, so
+        # pooch can't check its checksum)
         if op.isdir(final_path):
             _do_path_update(path, update_path, config_key, name)
             return (final_path, data_version) if return_version else final_path
-        # if download=False (useful for debugging)
+        # ...if download=False (useful for debugging)
         elif not download:
             return ("", data_version) if return_version else ""
-        # if user didn't accept the license
+        # ...if user didn't accept the license
         elif name.startswith("bst_"):
             if accept or "--accept-brainstorm-license" in sys.argv:
                 answer = "y"
@@ -210,7 +209,6 @@ def fetch_dataset(
                 raise RuntimeError(
                     "You must agree to the license to use this " "dataset"
                 )
-
     # downloader & processors
     download_params = dict(progressbar=True)  # use tqdm
     if name == "fake":
@@ -221,34 +219,25 @@ def fetch_dataset(
         download_params["headers"] = {"Authorization": f"token {token}"}
     downloader = pooch.HTTPDownloader(**download_params)
 
-    # construct the mapping needed by pooch from archive names
-    # to urls
-    pooch_urls = dict()
-
-    # construct the mapping needed by pooch for the hash checking
-    pooch_hash_mapping = dict()
-
-    # write all pooch urls - possibly multiple
+    # make mappings from archive names to urls and to checksums
+    urls = dict()
+    registry = dict()
     for idx, this_name in enumerate(names):
         this_dataset = dataset_params[idx]
         archive_name = this_dataset["archive_name"]
         dataset_url = this_dataset["url"]
         dataset_hash = this_dataset["hash"]
-
-        # write to pooch url
-        pooch_urls[archive_name] = dataset_url
-        pooch_hash_mapping[archive_name] = dataset_hash
+        urls[archive_name] = dataset_url
+        registry[archive_name] = dataset_hash
 
     # create the download manager
-    import pooch
-
     fetcher = pooch.create(
-        path=path,
+        path=final_path if processor is None else path,
         base_url="",  # Full URLs are given in the `urls` dict.
         version=None,  # Data versioning is decoupled from MNE-Python version.
-        urls=pooch_urls,
+        urls=urls,
+        registry=registry,
         retry_if_failed=2,  # 2 retries = 3 total attempts
-        registry=pooch_hash_mapping,
     )
 
     # use our logger level for pooch's logger too
@@ -261,7 +250,8 @@ def fetch_dataset(
             fname=archive_name, downloader=downloader, processor=processor
         )
         # after unpacking, remove the archive file
-        os.remove(op.join(path, archive_name))
+        if processor is not None:
+            os.remove(op.join(path, archive_name))
 
     # remove version number from "misc" and "testing" datasets folder names
     if name == "misc":
@@ -272,8 +262,9 @@ def fetch_dataset(
         os.replace(op.join(path, TESTING_VERSIONED), final_path)
 
     # maybe update the config
-    old_name = "brainstorm" if name.startswith("bst_") else name
-    _do_path_update(path, update_path, config_key, old_name)
+    if config_key is not None:
+        old_name = "brainstorm" if name.startswith("bst_") else name
+        _do_path_update(path, update_path, config_key, old_name)
 
     # compare the version of the dataset and mne
     data_version = _dataset_version(path, name)
