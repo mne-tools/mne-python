@@ -630,7 +630,7 @@ def test_survive_pickle(tmpdir):
 
 
 @testing.requires_testing_data
-def test_full_report(tmpdir):
+def test_full_report(tmpdir, actors_invisible):
     """Simulate user manually creating report by adding one file at a time."""
     r = Report(title='My Report')
     raw = read_raw_fif(raw_fname)
