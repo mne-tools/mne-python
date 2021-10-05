@@ -4,10 +4,11 @@ import numpy as np
 from functools import partial
 from ...defaults import DEFAULTS
 from ...io import read_info, read_fiducials
+from ...io.pick import pick_types
 from ...coreg import Coregistration, _is_mri_subject
 from ...viz._3d import (_plot_head_surface, _plot_head_fiducials,
                         _plot_head_shape_points, _plot_mri_fiducials,
-                        _plot_hpi_coils)
+                        _plot_hpi_coils, _plot_sensors)
 from ...transforms import (read_trans, write_trans, _ensure_trans,
                            rotation_angles, _get_transforms_to_coord_frame)
 from ...utils import get_subjects_dir
@@ -363,6 +364,8 @@ class CoregistrationUI(HasTraits):
             self._add_head_shape_points()
         if "hpi" in changes or forced:
             self._add_hpi_coils()
+        if "eeg" in changes or forced:
+            self._add_eeg_channels()
         if "fids" in changes or forced:
             self._add_head_fiducials()
             self._add_mri_fiducials()
@@ -417,7 +420,19 @@ class CoregistrationUI(HasTraits):
         self._update_actor("head_shape_points", hsp_actors)
 
     def _add_eeg_channels(self):
-        pass
+        if self._eeg_channels:
+            eeg = ["original"]
+            to_cf_t = _get_transforms_to_coord_frame(
+                self._info, self._coreg.trans, coord_frame=self._coord_frame)
+            picks = pick_types(self._info, eeg=(len(eeg) > 0))
+            eeg_actors = _plot_sensors(
+                self._renderer, self._info, to_cf_t, picks, meg=False,
+                eeg=eeg, fnirs=False, warn_meg=False,
+                head_surf=self._head_geo, units='m')
+            eeg_actors = eeg_actors["eeg"]
+        else:
+            eeg_actors = None
+        self._update_actor("eeg_channels", eeg_actors)
 
     def _add_head_surface(self):
         bem = None
