@@ -1118,7 +1118,8 @@ def _make_tris_fan(n_vert):
 
 def _sensor_shape(coil):
     """Get the sensor shape vertices."""
-    from scipy.spatial import ConvexHull
+    from scipy.spatial import ConvexHull, Delaunay
+    from scipy.spatial.qhull import QhullError
     id_ = coil['type'] & 0xFFFF
     pad = True
     # Square figure eight
@@ -1191,11 +1192,19 @@ def _sensor_shape(coil):
             np.concatenate([circle.imag, -circle.imag])]).T
         tris = np.concatenate([_make_tris_fan(n_pts + 1),
                                _make_tris_fan(n_pts + 1) + n_pts + 1])
-    # 3D convex hull (will fail for 2D geometry, can extend later if needed)
     else:
+        # 3D convex hull (will fail for 2D geometry)
         rrs = coil['rmag_orig'].copy()
+        try:
+            tris = _reorder_ccw(rrs, ConvexHull(rrs).simplices)
+        except QhullError:  # 2D geometry likely
+            logger.debug('Falling back to planar geometry')
+            u, _, _ = np.linalg.svd(rrs.T, full_matrices=False)
+            u[:, 2] = 0
+            rr_rot = rrs @ u
+            tris = Delaunay(rr_rot[:, :2]).simplices
+            tris = np.concatenate((tris, tris[:, ::-1]))
         pad = False
-        tris = _reorder_ccw(rrs, ConvexHull(rrs).simplices)
 
     # Go from (x,y) -> (x,y,z)
     if pad:
