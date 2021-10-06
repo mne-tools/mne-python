@@ -22,7 +22,6 @@ class CoregistrationUI(HasTraits):
     _fiducials_file = Unicode()
     _current_fiducial = Unicode()
     _info_file = Unicode()
-    _coreg_modified = Bool()
     _orient_glyphs = Bool()
     _hpi_coils = Bool()
     _head_shape_point = Bool()
@@ -437,8 +436,8 @@ class CoregistrationUI(HasTraits):
         self._update_actor("eeg_channels", eeg_actors)
 
     def _add_head_surface(self):
-        surface = "head-dense" if self._head_resolution else "head"
         bem = None
+        surface = "head-dense" if self._head_resolution else "head"
         to_cf_t = _get_transforms_to_coord_frame(
             self._info, self._coreg.trans, coord_frame=self._coord_frame)
         try:
@@ -571,7 +570,7 @@ class CoregistrationUI(HasTraits):
         )
         self._widgets["grow_hair"] = self._renderer._dock_add_spin_box(
             name="Grow Hair",
-            value=0.0,
+            value=self._grow_hair,
             rng=[0.0, 10.0],
             callback=self._set_grow_hair,
             layout=layout,
