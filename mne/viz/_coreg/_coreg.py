@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import os
 import os.path as op
 import numpy as np
@@ -38,6 +39,7 @@ class CoregistrationUI(HasTraits):
         self._surfaces = dict()
         self._widgets = dict()
         self._verbose = True
+        self._plot_locked = False
         self._head_geo = None
         self._coord_frame = "mri"
         self._mouse_no_mvt = -1
@@ -151,6 +153,7 @@ class CoregistrationUI(HasTraits):
             tra=params["translation"],
             sca=params["scale"],
         )
+        self._update_plot("sensors")
 
     def _set_icp_n_iterations(self, n_iterations):
         self._icp_n_iterations = n_iterations
@@ -367,6 +370,8 @@ class CoregistrationUI(HasTraits):
         self._update_plot("hsp")
 
     def _update_plot(self, changes="all"):
+        if self._plot_locked:
+            return
         if not isinstance(changes, list):
             changes = [changes]
         forced = "all" in changes
@@ -383,25 +388,35 @@ class CoregistrationUI(HasTraits):
             self._add_head_fiducials()
             self._add_mri_fiducials()
 
+    @contextmanager
+    def _lock_plot(self):
+        old_plot_locked = self._plot_locked
+        self._plot_locked = True
+        try:
+            yield
+        finally:
+            self._plot_locked = old_plot_locked
+
     def _update_parameters(self):
-        # rotation
-        for idx, name in enumerate(("rX", "rY", "rZ")):
-            if name in self._widgets:
-                val = np.rad2deg(self._coreg._rotation[idx])
-                if val != self._widgets[name].get_value():
-                    self._widgets[name].set_value(val)
-        # translation
-        for idx, name in enumerate(("tX", "tY", "tZ")):
-            if name in self._widgets:
-                val = self._coreg._translation[idx] * 1e3
-                if val != self._widgets[name].get_value():
-                    self._widgets[name].set_value(val)
-        # scale
-        for idx, name in enumerate(("sX", "sY", "sZ")):
-            if name in self._widgets:
-                val = self._coreg._scale[idx] * 1e2
-                if val != self._widgets[name].get_value():
-                    self._widgets[name].set_value(val)
+        with self._lock_plot():
+            # rotation
+            for idx, name in enumerate(("rX", "rY", "rZ")):
+                if name in self._widgets:
+                    val = np.rad2deg(self._coreg._rotation[idx])
+                    if val != self._widgets[name].get_value():
+                        self._widgets[name].set_value(val)
+            # translation
+            for idx, name in enumerate(("tX", "tY", "tZ")):
+                if name in self._widgets:
+                    val = self._coreg._translation[idx] * 1e3
+                    if val != self._widgets[name].get_value():
+                        self._widgets[name].set_value(val)
+            # scale
+            for idx, name in enumerate(("sX", "sY", "sZ")):
+                if name in self._widgets:
+                    val = self._coreg._scale[idx] * 1e2
+                    if val != self._widgets[name].get_value():
+                        self._widgets[name].set_value(val)
 
     def _reset(self):
         self._reset_fitting_parameters()

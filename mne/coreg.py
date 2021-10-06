@@ -1927,11 +1927,9 @@ class Coregistration(object):
             The modified Coregistration object.
         """
         self._grow_hair = 0.
-        self._update_params(
-            rot=self._default_parameters[:3],
-            tra=self._default_parameters[3:6],
-            sca=self._default_parameters[6:9],
-        )
+        self.set_rotation(self._default_parameters[:3])
+        self.set_translation(self._default_parameters[3:6])
+        self.set_scale(self._default_parameters[6:9])
         self._extra_points_filter = None
         self._update_nearest_calc()
         return self
