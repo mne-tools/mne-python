@@ -51,17 +51,24 @@ nirsport2 = op.join(data_path(download=False), 'NIRx', 'nirsport_v2',
                     'aurora_recording _w_short_and_acc')
 nirsport2_snirf = op.join(data_path(download=False), 'SNIRF', 'NIRx',
                           'NIRSport2', '1.0.3', '2021-05-05_001.snirf')
+
 nirsport2_2021_9 = op.join(data_path(download=False), 'NIRx', 'nirsport_v2',
                     'aurora_2021_9')
-
+snirf_nirsport2_20219 = op.join(data_path(download=False),
+                                'SNIRF', 'NIRx', 'NIRSport2', '2021.9',
+                                '2021-10-01_002.snirf')
 
 @requires_h5py
 @requires_testing_data
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
-def test_nirsport_v2_matches_snirf():
+@pytest.mark.parametrize('fname_nirx, fname_snirf', (
+        [nirsport2, nirsport2_snirf],
+        [nirsport2_2021_9, snirf_nirsport2_20219],
+))
+def test_nirsport_v2_matches_snirf(fname_nirx, fname_snirf):
     """Test NIRSport2 raw files return same data as snirf."""
-    raw = read_raw_nirx(nirsport2, preload=True)
-    raw_snirf = read_raw_snirf(nirsport2_snirf, preload=True)
+    raw = read_raw_nirx(fname_nirx, preload=True)
+    raw_snirf = read_raw_snirf(fname_snirf, preload=True)
 
     assert_allclose(raw._data, raw_snirf._data)
 
@@ -73,6 +80,7 @@ def test_nirsport_v2_matches_snirf():
     # This test fails as snirf encodes name incorrectly.
     # assert raw.info["subject_info"]["first_name"] ==
     # raw_snirf.info["subject_info"]["first_name"]
+
 
 
 @requires_testing_data
