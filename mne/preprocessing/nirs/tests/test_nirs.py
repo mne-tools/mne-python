@@ -31,15 +31,6 @@ fname_nirx_15_2_short = op.join(data_path(download=False),
                                 'nirx_15_2_recording_w_short')
 
 
-
-
-@testing.requires_testing_data
-def test_fnirs_pickst():
-    """Test picking of fnirs types after different conversions."""
-    raw = read_raw_nirx(fname_nirx_15_0)
-    raw.plot()
-
-
 @testing.requires_testing_data
 def test_fnirs_picks():
     """Test picking of fnirs types after different conversions."""
