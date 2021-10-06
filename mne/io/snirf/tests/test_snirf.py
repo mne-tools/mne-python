@@ -37,10 +37,10 @@ nirx_nirsport2_103_2 = op.join(data_path(download=False),
                                'SNIRF', 'NIRx', 'NIRSport2', '1.0.3',
                                '2021-05-05_001.snirf')
 snirf_nirsport2_20219 = op.join(data_path(download=False),
-                             'SNIRF', 'NIRx', 'NIRSport2', '2021.9',
-                             '2021-10-01_002.snirf')
-nirx_nirsport2_20219 = op.join(data_path(download=False), 'NIRx', 'nirsport_v2',
-                           'aurora_2021_9')
+                                'SNIRF', 'NIRx', 'NIRSport2', '2021.9',
+                                '2021-10-01_002.snirf')
+nirx_nirsport2_20219 = op.join(data_path(download=False), 'NIRx',
+                               'nirsport_v2', 'aurora_2021_9')
 
 
 @requires_h5py
@@ -291,10 +291,10 @@ def test_snirf_nirsport2_w_positions():
 @requires_testing_data
 @requires_h5py
 @pytest.mark.parametrize('fname, boundary_decimal', (
-        [sfnirs_homer_103_wShort, 0],
-        [nirx_nirsport2_103, 0],
-        [nirx_nirsport2_103_2, 0],
-        [snirf_nirsport2_20219, 0],
+    [sfnirs_homer_103_wShort, 0],
+    [nirx_nirsport2_103, 0],
+    [nirx_nirsport2_103_2, 0],
+    [snirf_nirsport2_20219, 0],
 ))
 def test_snirf_standard(fname, boundary_decimal):
     """Test standard operations."""
