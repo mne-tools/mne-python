@@ -134,7 +134,14 @@ class CoregistrationUI(HasTraits):
     def _set_scale_mode(self, mode):
         self._scale_mode = mode
 
-    def _set_parameter(self, x, mode_name, coord):
+    def _set_fiducial(self, value, coord):
+        fid = self._current_fiducial.lower()
+        coords = ["X", "Y", "Z"]
+        idx = coords.index(coord)
+        getattr(self._coreg, f"_{fid}")[0][idx] = value / 1e3
+        self._update_plot("fids")
+
+    def _set_parameter(self, value, mode_name, coord):
         params = dict(
             rotation=self._coreg._rotation,
             translation=self._coreg._translation,
@@ -142,12 +149,12 @@ class CoregistrationUI(HasTraits):
         )
         idx = ["X", "Y", "Z"].index(coord)
         if mode_name == "rotation":
-            params[mode_name][idx] = np.deg2rad(x)
+            params[mode_name][idx] = np.deg2rad(value)
         elif mode_name == "translation":
-            params[mode_name][idx] = x / 1000.0
+            params[mode_name][idx] = value / 1e3
         else:
             assert mode_name == "scale"
-            params[mode_name][idx] = x / 100.0
+            params[mode_name][idx] = value / 1e2
         self._coreg._update_params(
             rot=params["rotation"],
             tra=params["translation"],
@@ -224,20 +231,8 @@ class CoregistrationUI(HasTraits):
 
     @observe("_current_fiducial")
     def _current_fiducial_changed(self, change=None):
-        fid = self._current_fiducial.lower()
-        val = getattr(self._coreg, f"_{fid}")[0] * 1000.0
-        coords = ["X", "Y", "Z"]
-        for coord in coords:
-            name = f"fid_{coord}"
-            idx = coords.index(coord)
-            if name in self._widgets:
-                self._widgets[name].set_value(val[idx])
-        view = dict(lpa='left', rpa='right', nasion='front')
-        kwargs = dict(front=(90., 90.), left=(180, 90), right=(0., 90))
-        kwargs = dict(zip(('azimuth', 'elevation'), kwargs[view[fid]]))
-        if not self._lock_fids:
-            self._renderer.set_camera(
-                distance=None, **kwargs)
+        self._update_fiducials()
+        self._follow_fiducial_view()
 
     @observe("_info_file")
     def _info_file_changed(self, change=None):
@@ -343,6 +338,7 @@ class CoregistrationUI(HasTraits):
         # XXX: add coreg.set_fids
         self._coreg._fid_points[idx] = self._surfaces["head"].points[vertex_id]
         self._coreg._reset_fiducials()
+        self._update_fiducials()
         self._update_plot("fids")
 
     def _reset_fitting_parameters(self):
@@ -362,7 +358,7 @@ class CoregistrationUI(HasTraits):
         self._set_current_fiducial(self._default_fiducials[0])
 
     def _omit_hsp(self):
-        self._coreg.omit_head_shape_points(self._omit_hsp_distance / 1000.)
+        self._coreg.omit_head_shape_points(self._omit_hsp_distance / 1e3)
         self._update_plot("hsp")
 
     def _reset_omit_hsp_filter(self):
@@ -396,6 +392,26 @@ class CoregistrationUI(HasTraits):
             yield
         finally:
             self._plot_locked = old_plot_locked
+
+    def _follow_fiducial_view(self):
+        fid = self._current_fiducial.lower()
+        view = dict(lpa='left', rpa='right', nasion='front')
+        kwargs = dict(front=(90., 90.), left=(180, 90), right=(0., 90))
+        kwargs = dict(zip(('azimuth', 'elevation'), kwargs[view[fid]]))
+        if not self._lock_fids:
+            self._renderer.set_camera(
+                distance=None, **kwargs)
+
+    def _update_fiducials(self):
+        fid = self._current_fiducial.lower()
+        val = getattr(self._coreg, f"_{fid}")[0] * 1e3
+        coords = ["X", "Y", "Z"]
+        with self._lock_plot():
+            for coord in coords:
+                name = f"fid_{coord}"
+                idx = coords.index(coord)
+                if name in self._widgets:
+                    self._widgets[name].set_value(val[idx])
 
     def _update_parameters(self):
         with self._lock_plot():
@@ -550,9 +566,6 @@ class CoregistrationUI(HasTraits):
         return sorted(subjects)
 
     def _configure_dock(self):
-        def noop(x):
-            del x
-
         self._renderer._dock_initialize(name="Input", area="left")
         layout = self._renderer._dock_add_group_box("MRI Subject")
         self._widgets["subjects_dir"] = self._renderer._dock_add_file_button(
@@ -600,8 +613,11 @@ class CoregistrationUI(HasTraits):
             self._widgets[name] = self._renderer._dock_add_spin_box(
                 name=coord,
                 value=0.,
-                rng=[-100., 100.],
-                callback=noop,
+                rng=[-1e3, 1e3],
+                callback=partial(
+                    self._set_fiducial,
+                    coord=coord,
+                ),
                 compact=True,
                 double=True,
                 decimals=1,
@@ -700,7 +716,7 @@ class CoregistrationUI(HasTraits):
             self._widgets[name] = self._renderer._dock_add_spin_box(
                 name=name,
                 value=0.,
-                rng=[-100., 100.],
+                rng=[-1e3, 1e3],
                 callback=partial(
                     self._set_parameter,
                     mode_name="scale",
@@ -720,7 +736,7 @@ class CoregistrationUI(HasTraits):
                 self._widgets[name] = self._renderer._dock_add_spin_box(
                     name=name,
                     value=0.,
-                    rng=[-1000., 1000.],
+                    rng=[-1e3, 1e3],
                     callback=partial(
                         self._set_parameter,
                         mode_name=mode_name.lower(),
