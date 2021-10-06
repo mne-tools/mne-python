@@ -6,7 +6,8 @@ import os
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_equal
+from numpy.testing import (assert_allclose, assert_array_equal,
+                           assert_array_less)
 import matplotlib.pyplot as plt
 import pytest
 
@@ -96,7 +97,8 @@ def test_dipole_fitting_ctf():
     # for now our CTF phantom fitting tutorials will have to do
     # (otherwise we need to add that to the testing dataset, which is
     # a bit too big)
-    fit_dipole(evoked, cov, sphere, rank=dict(meg=len(evoked.data)))
+    fit_dipole(evoked, cov, sphere, rank=dict(meg=len(evoked.data)),
+               tol=1e-3, accuracy='accurate')
 
 
 @pytest.mark.slowtest
@@ -310,7 +312,7 @@ def test_min_distance_fit_dipole():
 
     bem = read_bem_solution(fname_bem)
     dip, residual = fit_dipole(evoked, cov, bem, fname_trans,
-                               min_dist=min_dist)
+                               min_dist=min_dist, tol=1e-3)
     assert isinstance(residual, Evoked)
 
     dist = _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir)
@@ -318,8 +320,8 @@ def test_min_distance_fit_dipole():
     # Constraints are not exact, so bump the minimum slightly
     assert (min_dist - 0.1 < (dist[0] * 1000.) < (min_dist + 1.))
 
-    pytest.raises(ValueError, fit_dipole, evoked, cov, fname_bem, fname_trans,
-                  -1.)
+    with pytest.raises(ValueError, match='min_dist should be positive'):
+        fit_dipole(evoked, cov, fname_bem, fname_trans, -1.)
 
 
 def _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir):
@@ -374,7 +376,7 @@ def test_accuracy():
         # make sure that our median is sub-mm and the large majority are very
         # close (we expect some to be off by a bit e.g. because they are
         # radial)
-        assert ((np.percentile(ds, [50, 90]) < [0.0005, perc_90]).all())
+        assert_array_less(np.percentile(ds, [50, 90]), [0.0005, perc_90])
 
 
 @testing.requires_testing_data
