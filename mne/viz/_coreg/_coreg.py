@@ -58,7 +58,7 @@ class CoregistrationUI(HasTraits):
             "hpi": 1.0,
         }
 
-        self._renderer = _get_renderer(bgcolor="grey")
+        self._renderer = _get_renderer(bgcolor="grey", toolbar=True)
         self._renderer._window_close_connect(self._clean)
         self._coreg = Coregistration(info, subject, subjects_dir, fids)
         self._fids = fids
