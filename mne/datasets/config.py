@@ -307,7 +307,7 @@ MNE_DATASETS['fake'] = dict(
 
 MNE_DATASETS['testing'] = dict(
     archive_name=f'{TESTING_VERSIONED}.tar.gz',  # 'mne-testing-data',
-    hash='md5:edfe392d2da2cd368d4ecb024e6c87d0',
+    hash='md5:0871ae325805a9cd2cdfb2fc74327abb',
     url=('https://codeload.github.com/mne-tools/mne-testing-data/'
          f'tar.gz/{RELEASES["testing"]}'),
     folder_name='MNE-testing-data',
