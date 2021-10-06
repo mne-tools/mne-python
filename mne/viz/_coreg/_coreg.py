@@ -179,6 +179,26 @@ class CoregistrationUI(HasTraits):
     def _set_scale_mode(self, mode):
         self._scale_mode = mode
 
+    def _update_parameters(self):
+        # rotation
+        for idx, name in enumerate(("rX", "rY", "rZ")):
+            if name in self._widgets:
+                val = np.rad2deg(self._coreg._rotation[idx])
+                if val != self._widgets[name].get_value():
+                    self._widgets[name].set_value(val)
+        # translation
+        for idx, name in enumerate(("tX", "tY", "tZ")):
+            if name in self._widgets:
+                val = self._coreg._translation[idx] * 1e3
+                if val != self._widgets[name].get_value():
+                    self._widgets[name].set_value(val)
+        # scale
+        for idx, name in enumerate(("sX", "sY", "sZ")):
+            if name in self._widgets:
+                val = self._coreg._scale[idx] * 1e2
+                if val != self._widgets[name].get_value():
+                    self._widgets[name].set_value(val)
+
     def _set_parameter(self, x, mode_name, coord):
         params = dict(
             rotation=self._coreg._rotation,
@@ -188,8 +208,11 @@ class CoregistrationUI(HasTraits):
         idx = ["X", "Y", "Z"].index(coord)
         if mode_name == "rotation":
             params[mode_name][idx] = np.deg2rad(x)
-        else:
+        elif mode_name == "translation":
             params[mode_name][idx] = x / 1000.0
+        else:
+            assert mode_name == "scale"
+            params[mode_name][idx] = x / 100.0
         self._coreg._update_params(
             rot=params["rotation"],
             tra=params["translation"],
@@ -376,6 +399,7 @@ class CoregistrationUI(HasTraits):
         self._reset_fiducials()
         self._coreg.reset()
         self._update_plot()
+        self._update_parameters()
 
     def _update_actor(self, actor_name, actor):
         self._renderer.plotter.remove_actor(self._actors.get(actor_name))
@@ -460,6 +484,7 @@ class CoregistrationUI(HasTraits):
             verbose=self._verbose,
         )
         self._update_plot(["hsp", "hpi", "fids"])
+        self._update_parameters()
 
     def _fit_icp(self):
         self._coreg.fit_icp(
@@ -470,6 +495,7 @@ class CoregistrationUI(HasTraits):
             verbose=self._verbose,
         )
         self._update_plot(["hsp", "hpi", "fids"])
+        self._update_parameters()
 
     def _save_trans(self, fname):
         write_trans(fname, self._coreg.trans)
