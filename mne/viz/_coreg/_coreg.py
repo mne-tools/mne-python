@@ -686,7 +686,11 @@ class CoregistrationUI(HasTraits):
                 name=name,
                 value=0.,
                 rng=[-100., 100.],
-                callback=noop,
+                callback=partial(
+                    self._set_parameter,
+                    mode_name="scale",
+                    coord=coord,
+                ),
                 compact=True,
                 double=True,
                 decimals=1,
