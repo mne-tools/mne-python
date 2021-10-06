@@ -83,6 +83,8 @@ class CoregistrationUI(HasTraits):
         self._configure_picking()
         self._renderer.show()
 
+        self._current_fiducial = self._default_fiducials[0]
+        self._lock_fids = True
         self._scale_mode = "None"
 
     def _set_subjects_dir(self, subjects_dir):
@@ -219,7 +221,7 @@ class CoregistrationUI(HasTraits):
 
     @observe("_current_fiducial")
     def _current_fiducial_changed(self, change=None):
-        fid = self._current_fiducial
+        fid = self._current_fiducial.lower()
         val = getattr(self._coreg, f"_{fid}")[0] * 1000.0
         coords = ["X", "Y", "Z"]
         for coord in coords:
@@ -551,7 +553,7 @@ class CoregistrationUI(HasTraits):
         layout = self._renderer._dock_add_group_box("MRI Fiducials")
         self._widgets["lock_fids"] = self._renderer._dock_add_check_box(
             name="Lock fiducials",
-            value=False,
+            value=self._lock_fids,
             callback=self._set_lock_fids,
             layout=layout
         )
@@ -582,9 +584,7 @@ class CoregistrationUI(HasTraits):
                 decimals=1,
                 layout=hlayout
             )
-        self._set_current_fiducial(self._default_fiducials[0])  # init
         self._renderer._layout_add_widget(layout, hlayout)
-        self._set_lock_fids(True)  # init
 
         layout = self._renderer._dock_add_group_box("Digitization Source")
         self._widgets["info_file"] = self._renderer._dock_add_file_button(
