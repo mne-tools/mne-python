@@ -334,7 +334,7 @@ class CoregistrationUI(HasTraits):
         vertex_id = cell[idx[0]]
 
         default_fiducials = [s.lower() for s in self._default_fiducials]
-        idx = default_fiducials.index(self._current_fiducial)
+        idx = default_fiducials.index(self._current_fiducial.lower())
         # XXX: add coreg.set_fids
         self._coreg._fid_points[idx] = self._surfaces["head"].points[vertex_id]
         self._coreg._reset_fiducials()
@@ -435,7 +435,6 @@ class CoregistrationUI(HasTraits):
 
     def _reset(self):
         self._reset_fitting_parameters()
-        self._reset_fiducials()
         self._coreg.reset()
         self._update_plot()
         self._update_parameters()
