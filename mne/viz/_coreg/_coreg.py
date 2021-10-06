@@ -43,7 +43,6 @@ class CoregistrationUI(HasTraits):
         self._coord_frame = "mri"
         self._mouse_no_mvt = -1
         self._omit_hsp_distance = 0.0
-        self._surface = "head-dense"
         self._opacity = 1.0
         self._fid_colors = tuple(
             DEFAULTS['coreg'][f'{key}_color'] for key in
@@ -73,6 +72,7 @@ class CoregistrationUI(HasTraits):
         self._head_shape_point = True
         self._eeg_channels = False
         self._head_resolution = False
+        self._head_transparency = False
         self._omit_hsp_distance = 10.0
         self._icp_n_iterations = self._default_icp_n_iterations
         self._icp_fid_match = self._default_icp_fid_matches[0]
@@ -301,7 +301,6 @@ class CoregistrationUI(HasTraits):
 
     @observe("_head_resolution")
     def _head_resolution_changed(self, change=None):
-        self._surface = "head-dense" if self._head_resolution else "head"
         self._add_head_surface()
         self._grow_hair_changed()
 
@@ -438,12 +437,13 @@ class CoregistrationUI(HasTraits):
         self._update_actor("eeg_channels", eeg_actors)
 
     def _add_head_surface(self):
+        surface = "head-dense" if self._head_resolution else "head"
         bem = None
         to_cf_t = _get_transforms_to_coord_frame(
             self._info, self._coreg.trans, coord_frame=self._coord_frame)
         try:
             head_actor, head_surf = _plot_head_surface(
-                self._renderer, self._surface, self._subject,
+                self._renderer, surface, self._subject,
                 self._subjects_dir, bem, self._coord_frame, to_cf_t,
                 alpha=self._opacity)
         except IOError:
@@ -600,37 +600,37 @@ class CoregistrationUI(HasTraits):
         layout = self._renderer._dock_add_group_box("View")
         self._widgets["orient_glyphs"] = self._renderer._dock_add_check_box(
             name="Orient glyphs",
-            value=False,
+            value=self._orient_glyphs,
             callback=self._set_orient_glyphs,
             layout=layout
         )
         self._widgets["show_hpi"] = self._renderer._dock_add_check_box(
             name="Show HPI Coils",
-            value=True,
+            value=self._hpi_coils,
             callback=self._set_hpi_coils,
             layout=layout
         )
         self._widgets["show_hsp"] = self._renderer._dock_add_check_box(
             name="Show Head Shape Points",
-            value=True,
+            value=self._head_shape_point,
             callback=self._set_head_shape_points,
             layout=layout
         )
         self._widgets["show_eeg"] = self._renderer._dock_add_check_box(
             name="Show EEG Channels",
-            value=True,
+            value=self._eeg_channels,
             callback=self._set_eeg_channels,
             layout=layout
         )
         self._widgets["high_res_head"] = self._renderer._dock_add_check_box(
             name="Show High Resolution Head",
-            value=True,
+            value=self._head_resolution,
             callback=self._set_head_resolution,
             layout=layout
         )
         self._widgets["make_transparent"] = self._renderer._dock_add_check_box(
             name="Make skin surface transparent",
-            value=False,
+            value=self._head_transparency,
             callback=self._set_head_transparency,
             layout=layout
         )
