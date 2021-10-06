@@ -1793,6 +1793,7 @@ def test_corrupted(tmpdir):
 def test_expand_user(tmp_path, monkeypatch):
     """Test that we're expanding `~` before reading and writing."""
     monkeypatch.setenv('HOME', str(tmp_path))
+    monkeypatch.setenv('USERPROFILE', str(tmp_path))  # Windows
 
     path_in = Path(fif_fname)
     path_out = tmp_path / path_in.name
