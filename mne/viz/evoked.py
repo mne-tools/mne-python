@@ -1490,6 +1490,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
     if topomap_args.get('colorbar', True):
         from matplotlib import ticker
+        cbar_ax.grid(False)  # auto-removal deprecated as of 2021/10/05
         cbar = plt.colorbar(map_ax[0].images[0], cax=cbar_ax)
         if isinstance(contours, (list, np.ndarray)):
             cbar.set_ticks(contours)

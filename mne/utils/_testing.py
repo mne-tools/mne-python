@@ -227,13 +227,16 @@ def _import_mlab():
 @contextmanager
 def traits_test_context():
     """Context to raise errors in trait handlers."""
-    from traits.api import push_exception_handler
-
-    push_exception_handler(reraise_exceptions=True)
     try:
+        from traits.api import push_exception_handler
+    except Exception:
         yield
-    finally:
-        push_exception_handler(reraise_exceptions=False)
+    else:
+        push_exception_handler(reraise_exceptions=True)
+        try:
+            yield
+        finally:
+            push_exception_handler(reraise_exceptions=False)
 
 
 def traits_test(test_func):
