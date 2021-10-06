@@ -1105,7 +1105,7 @@ def _plot_forward(renderer, fwd, to_cf_t):
 
 
 def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
-                  warn_meg, head_surf, units):
+                  warn_meg, head_surf, units, sensor_opacity=0.8):
     """Render sensors in a 3D scene."""
     defaults = DEFAULTS['coreg']
     ch_pos, sources, detectors = _ch_pos_in_coord_frame(
@@ -1136,19 +1136,22 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
             if plot_sensors:
                 actor, _ = renderer.sphere(
                     center=tuple(ch_coord * scalar), color=color,
-                    scale=defaults[ch_type + '_scale'] * scalar, opacity=0.8)
+                    scale=defaults[ch_type + '_scale'] * scalar,
+                    opacity=sensor_opacity)
                 actors[ch_type].append(actor)
         if ch_name in sources and 'sources' in fnirs:
             actor, _ = renderer.sphere(
                 center=tuple(sources[ch_name] * scalar),
                 color=defaults['source_color'],
-                scale=defaults['source_scale'] * scalar, opacity=0.8)
+                scale=defaults['source_scale'] * scalar,
+                opacity=sensor_opacity)
             actors[ch_type].append(actor)
         if ch_name in detectors and 'detectors' in fnirs:
             actor, _ = renderer.sphere(
                 center=tuple(detectors[ch_name] * scalar),
                 color=defaults['detector_color'],
-                scale=defaults['detector_scale'] * scalar, opacity=0.8)
+                scale=defaults['detector_scale'] * scalar,
+                opacity=sensor_opacity)
             actors[ch_type].append(actor)
         if ch_name in sources and ch_name in detectors and \
                 'pairs' in fnirs:

@@ -455,8 +455,8 @@ class CoregistrationUI(HasTraits):
             picks = pick_types(self._info, eeg=(len(eeg) > 0))
             eeg_actors = _plot_sensors(
                 self._renderer, self._info, to_cf_t, picks, meg=False,
-                eeg=eeg, fnirs=False, warn_meg=False,
-                head_surf=self._head_geo, units='m')
+                eeg=eeg, fnirs=False, warn_meg=False, head_surf=self._head_geo,
+                units='m', sensor_opacity=1.0)
             eeg_actors = eeg_actors["eeg"]
         else:
             eeg_actors = None
