@@ -229,6 +229,12 @@ class CoregistrationUI(HasTraits):
             idx = coords.index(coord)
             if name in self._widgets:
                 self._widgets[name].set_value(val[idx])
+        view = dict(lpa='left', rpa='right', nasion='front')
+        kwargs = dict(front=(90., 90.), left=(180, 90), right=(0., 90))
+        kwargs = dict(zip(('azimuth', 'elevation'), kwargs[view[fid]]))
+        if not self._lock_fids:
+            self._renderer.set_camera(
+                distance=None, **kwargs)
 
     @observe("_info_file")
     def _info_file_changed(self, change=None):
