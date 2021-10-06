@@ -2273,6 +2273,18 @@ projs : bool | None
     Whether to add SSP projector plots if projectors are present in
     the data. If ``None``, use ``projs`` from `~mne.Report` creation.
 """
+docdict['report_stc_plot_kwargs'] = """
+stc_plot_kwargs : dict
+    Dictionary of keyword arguments to pass to
+    :class:`mne.SourceEstimate.plot`. Only used when plotting in 3D
+    mode.
+"""
+docdict['topomap_kwargs'] = """
+topomap_kwargs : dict | None
+    Keyword arguments to pass to topomap functions (
+    :func:`mne.viz.plot_evoked_topomap`, :func:`mne.viz.plot_projs_topomap`,
+    etc.).
+"""
 
 # Epochs
 docdict['epochs_tmin_tmax'] = """

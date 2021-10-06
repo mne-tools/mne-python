@@ -30,6 +30,7 @@ from ..fixes import _compare_version
 from .. import (read_evokeds, read_events, pick_types, read_cov,
                 read_source_estimate, read_trans, sys_info,
                 Evoked, SourceEstimate, Covariance, Info, Transform)
+from ..defaults import _handle_default
 from ..io import read_raw, read_info, BaseRaw
 from ..io._read_raw import supported as extension_reader_map
 from ..proj import read_proj
@@ -633,6 +634,11 @@ class Report(object):
         self._dom_id += 1
         return f'global{self._dom_id}'
 
+    def _validate_topomap_kwargs(self, topomap_kwargs):
+        _validate_type(topomap_kwargs, (dict, None), 'topomap_kwargs')
+        topomap_kwargs = dict() if topomap_kwargs is None else topomap_kwargs
+        return topomap_kwargs
+
     def _validate_input(self, items, captions, tag, comments=None):
         """Validate input."""
         if not isinstance(items, (list, tuple)):
@@ -718,7 +724,7 @@ class Report(object):
 
     @fill_doc
     def add_epochs(self, epochs, title, *, psd=True, projs=None,
-                   tags=('epochs',), replace=False):
+                   tags=('epochs',), replace=False, topomap_kwargs=None):
         """Add `~mne.Epochs` to the report.
 
         Parameters
@@ -732,6 +738,7 @@ class Report(object):
         %(report_projs)s
         %(report_tags)s
         %(report_replace)s
+        %(topomap_kwargs)s
 
         Notes
         -----
@@ -746,7 +753,8 @@ class Report(object):
             add_psd=psd,
             add_projs=add_projs,
             tags=tags,
-            image_format=self.image_format
+            image_format=self.image_format,
+            topomap_kwargs=topomap_kwargs,
         )
         repr_html, drop_log_html, psd_html, ssp_projs_html = htmls
 
@@ -770,7 +778,8 @@ class Report(object):
 
     @fill_doc
     def add_evokeds(self, evokeds, *, titles=None, noise_cov=None, projs=None,
-                    n_time_points=None, tags=('evoked',), replace=False):
+                    n_time_points=None, tags=('evoked',), replace=False,
+                    topomap_kwargs=None):
         """Add `~mne.Evoked` objects to the report.
 
         Parameters
@@ -794,6 +803,7 @@ class Report(object):
             contains fewer time points, in which case all will be rendered.
         %(report_tags)s
         %(report_replace)s
+        %(topomap_kwargs)s
 
         Notes
         -----
@@ -838,7 +848,8 @@ class Report(object):
                 image_format=self.image_format,
                 add_projs=add_projs,
                 n_time_points=n_time_points,
-                tags=tags
+                tags=tags,
+                topomap_kwargs=topomap_kwargs
             )
 
             (joint_html, slider_html, gfp_html, whitened_html,
@@ -865,7 +876,7 @@ class Report(object):
 
     @fill_doc
     def add_raw(self, raw, title, *, psd=None, projs=None, butterfly=True,
-                tags=('raw',), replace=False):
+                tags=('raw',), replace=False, topomap_kwargs=None):
         """Add `~mne.io.Raw` objects to the report.
 
         Parameters
@@ -884,6 +895,7 @@ class Report(object):
             useful to spot segments marked as "bad" and problematic channels.
         %(report_tags)s
         %(report_replace)s
+        %(topomap_kwargs)s
 
         Notes
         -----
@@ -906,7 +918,8 @@ class Report(object):
             add_projs=add_projs,
             add_butterfly=butterfly,
             image_format=self.image_format,
-            tags=tags
+            tags=tags,
+            topomap_kwargs=topomap_kwargs,
         )
         repr_html, psd_img_html, butterfly_img_html, ssp_proj_img_html = htmls
         dom_id = self._get_dom_id()
@@ -929,7 +942,8 @@ class Report(object):
 
     @fill_doc
     def add_stc(self, stc, title, *, subject=None, subjects_dir=None,
-                n_time_points=None, tags=('source-estimate',), replace=False):
+                n_time_points=None, tags=('source-estimate',), replace=False,
+                stc_plot_kwargs=None):
         """Add a `~mne.SourceEstimate` (STC) to the report.
 
         Parameters
@@ -951,6 +965,7 @@ class Report(object):
             contains fewer time points, in which case all will be rendered.
         %(report_tags)s
         %(report_replace)s
+        %(report_stc_plot_kwargs)s
 
         Notes
         -----
@@ -965,7 +980,8 @@ class Report(object):
             image_format=self.image_format,
             subject=subject,
             subjects_dir=subjects_dir,
-            n_time_points=n_time_points
+            n_time_points=n_time_points,
+            stc_plot_kwargs=stc_plot_kwargs
         )
         self._add_or_replace(
             dom_id=dom_id,
@@ -1199,7 +1215,7 @@ class Report(object):
 
     @fill_doc
     def add_projs(self, *, info, projs=None, title, tags=('ssp',),
-                  replace=False):
+                  replace=False, topomap_kwargs=None):
         """Render (SSP) projection vectors.
 
         Parameters
@@ -1215,6 +1231,7 @@ class Report(object):
             The title corresponding to the `~mne.Projection` object.
         %(report_tags)s
         %(report_replace)s
+        %(topomap_kwargs)s
 
         Notes
         -----
@@ -1223,7 +1240,8 @@ class Report(object):
         tags = tuple(tags)
         output = self._render_ssp_projs(
             info=info, projs=projs, title=title,
-            image_format=self.image_format, tags=tags
+            image_format=self.image_format, tags=tags,
+            topomap_kwargs=topomap_kwargs,
         )
         if output is None:
             raise ValueError(
@@ -2013,7 +2031,8 @@ class Report(object):
         self.include = ''.join(include)
 
     def _iterate_files(self, *, fnames, cov, sfreq, raw_butterfly,
-                       n_time_points_evokeds, n_time_points_stcs, on_error):
+                       n_time_points_evokeds, n_time_points_stcs, on_error,
+                       stc_plot_kwargs, topomap_kwargs):
         """Parallel process in batch mode."""
         assert self.data_path is not None
 
@@ -2047,7 +2066,8 @@ class Report(object):
                     ]
                     self.add_evokeds(
                         evokeds=fname, titles=titles, noise_cov=cov,
-                        n_time_points=n_time_points_evokeds
+                        n_time_points=n_time_points_evokeds,
+                        topomap_kwargs=topomap_kwargs,
                     )
                 elif _endswith(fname, 'eve'):
                     if self.info_fname is not None:
@@ -2062,7 +2082,7 @@ class Report(object):
                                         title=title)
                 elif _endswith(fname, 'proj') and self.info_fname is not None:
                     self.add_projs(info=self.info_fname, projs=fname,
-                                   title=title)
+                                   title=title, topomap_kwargs=topomap_kwargs)
                 elif (_endswith(fname, 'trans') and
                         self.info_fname is not None and
                         self.subjects_dir is not None and
@@ -2080,7 +2100,8 @@ class Report(object):
                     self.add_stc(
                         stc=fname, title=title, subject=self.subject,
                         subjects_dir=self.subjects_dir,
-                        n_time_points=n_time_points_stcs
+                        n_time_points=n_time_points_stcs,
+                        stc_plot_kwargs=stc_plot_kwargs
                     )
             except Exception as e:
                 if on_error == 'warn':
@@ -2093,7 +2114,8 @@ class Report(object):
                      sort_content=True, sort_sections=None, on_error='warn',
                      image_format=None, render_bem=True, *,
                      n_time_points_evokeds=None, n_time_points_stcs=None,
-                     raw_butterfly=True, verbose=None):
+                     raw_butterfly=True, stc_plot_kwargs=None,
+                     topomap_kwargs=None, verbose=None):
         r"""Render all the files in the folder.
 
         Parameters
@@ -2148,6 +2170,12 @@ class Report(object):
         raw_butterfly : bool
             Whether to render butterfly plots for (decimated) `~mne.io.Raw`
             data.
+
+            .. versionadded:: 0.24.0
+        %(report_stc_plot_kwargs)s
+
+            .. versionadded:: 0.24.0
+        %(topomap_kwargs)s
 
             .. versionadded:: 0.24.0
         %(verbose_meth)s
@@ -2247,7 +2275,8 @@ class Report(object):
                 fnames=fname, cov=cov, sfreq=sfreq,
                 raw_butterfly=raw_butterfly,
                 n_time_points_evokeds=n_time_points_evokeds,
-                n_time_points_stcs=n_time_points_stcs, on_error=on_error
+                n_time_points_stcs=n_time_points_stcs, on_error=on_error,
+                stc_plot_kwargs=stc_plot_kwargs, topomap_kwargs=topomap_kwargs,
             ) for fname in np.array_split(fnames, use_jobs)
         )
 
@@ -2453,7 +2482,7 @@ class Report(object):
         return html
 
     def _render_raw(self, *, raw, add_psd, add_projs, add_butterfly,
-                    image_format, tags):
+                    image_format, tags, topomap_kwargs):
         """Render raw."""
         if isinstance(raw, BaseRaw):
             fname = raw.filenames[0]
@@ -2533,11 +2562,19 @@ class Report(object):
         else:
             psd_img_html = ''
 
-        # SSP projectors
+        ssp_projs_html = self._ssp_projs_html(
+            add_projs=add_projs, info=raw, image_format=image_format,
+            tags=tags, topomap_kwargs=topomap_kwargs)
+
+        return [repr_html, psd_img_html, butterfly_img_html, ssp_projs_html]
+
+    def _ssp_projs_html(self, *, add_projs, info, image_format, tags,
+                        topomap_kwargs):
         if add_projs:
             output = self._render_ssp_projs(
-                info=raw, projs=None, title='SSP Projectors',
-                image_format=image_format, tags=tags
+                info=info, projs=None, title='SSP Projectors',
+                image_format=image_format, tags=tags,
+                topomap_kwargs=topomap_kwargs,
             )
             if output is None:
                 ssp_projs_html = ''
@@ -2545,10 +2582,10 @@ class Report(object):
                 ssp_projs_html, _ = output
         else:
             ssp_projs_html = ''
+        return ssp_projs_html
 
-        return [repr_html, psd_img_html, butterfly_img_html, ssp_projs_html]
-
-    def _render_ssp_projs(self, *, info, projs, title, image_format, tags):
+    def _render_ssp_projs(self, *, info, projs, title, image_format, tags,
+                          topomap_kwargs):
         if isinstance(info, Info):  # no-op
             pass
         elif hasattr(info, 'info'):  # try to get the file name
@@ -2575,13 +2612,17 @@ class Report(object):
         if info['dig'] is None:  # We cannot proceed without digpoints either
             return None
 
+        topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
         fig = plot_projs_topomap(
             projs=projs, info=info, colorbar=True, vlim='joint',
-            show=False
+            show=False, **topomap_kwargs
         )
+        # TODO This seems like a bad idea, better to provide a way to set a
+        # desired size in plot_projs_topomap, but that uses prepare_trellis...
+        # hard to see how (6, 4) could work in all number-of-projs by
+        # number-of-channel-types conditions...
         fig.set_size_inches((6, 4))
         tight_layout(fig=fig)
-
         img = _fig_to_img(fig=fig, image_format=image_format)
 
         dom_id = self._get_dom_id()
@@ -2670,7 +2711,8 @@ class Report(object):
         )
         return html, dom_id
 
-    def _render_evoked_joint(self, evoked, ch_types, image_format, tags):
+    def _render_evoked_joint(self, evoked, ch_types, image_format, tags,
+                             topomap_kwargs):
         ch_type_to_caption_map = {
             'mag': 'magnetometers',
             'grad': 'gradiometers',
@@ -2683,7 +2725,8 @@ class Report(object):
                 fig = evoked.copy().pick(ch_type, verbose=False).plot_joint(
                     ts_args=dict(gfp=True),
                     title=None,
-                    show=False
+                    show=False,
+                    topomap_args=topomap_kwargs,
                 )
 
             img = _fig_to_img(fig=fig, image_format=image_format)
@@ -2707,8 +2750,8 @@ class Report(object):
         html = '\n'.join(htmls)
         return html
 
-    def _render_evoked_topo_slider(self, *, evoked, ch_types, n_time_points,
-                                   image_format, tags):
+    def _render_evoked_topomap_slider(self, *, evoked, ch_types, n_time_points,
+                                      image_format, tags, topomap_kwargs):
         import matplotlib.pyplot as plt
 
         if n_time_points is None:
@@ -2747,6 +2790,7 @@ class Report(object):
                 vmin[ch_type] = -vmax[ch_type]
 
         figs = []
+        topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
 
         for t in times:
             with warnings.catch_warnings():
@@ -2772,7 +2816,8 @@ class Report(object):
                     evoked.plot_topomap(
                         times=[t], ch_type=ch_type,
                         vmin=vmin[ch_type], vmax=vmax[ch_type],
-                        axes=ch_type_ax_map[ch_type], show=False
+                        axes=ch_type_ax_map[ch_type], show=False,
+                        **topomap_kwargs
                     )
                     ch_type_ax_map[ch_type][0].set_title(ch_type)
                 tight_layout(fig=fig)
@@ -2857,7 +2902,7 @@ class Report(object):
         return html
 
     def _render_evoked(self, evoked, noise_cov, add_projs, n_time_points,
-                       image_format, tags):
+                       image_format, tags, topomap_kwargs):
         def _get_ch_types(ev):
             has_types = []
             if len(pick_types(ev.info, meg=False, eeg=True)) > 0:
@@ -2870,46 +2915,39 @@ class Report(object):
             return has_types
 
         ch_types = _get_ch_types(evoked)
-        html_joint = self._render_evoked_joint(
+        joint_html = self._render_evoked_joint(
             evoked=evoked, ch_types=ch_types,
-            image_format=image_format, tags=tags
+            image_format=image_format, tags=tags,
+            topomap_kwargs=topomap_kwargs,
         )
-        html_slider, _ = self._render_evoked_topo_slider(
+        slider_html, _ = self._render_evoked_topomap_slider(
             evoked=evoked, ch_types=ch_types,
             n_time_points=n_time_points,
             image_format=image_format,
-            tags=tags
+            tags=tags, topomap_kwargs=topomap_kwargs,
         )
-        html_gfp = self._render_evoked_gfp(
+        gfp_html = self._render_evoked_gfp(
             evoked=evoked, ch_types=ch_types, image_format=image_format,
             tags=tags
         )
 
         if noise_cov is not None:
-            html_whitened = self._render_evoked_whitened(
+            whitened_html = self._render_evoked_whitened(
                 evoked=evoked,
                 noise_cov=noise_cov,
                 image_format=image_format,
                 tags=tags
             )
         else:
-            html_whitened = ''
+            whitened_html = ''
 
         # SSP projectors
-        if add_projs:
-            output = self._render_ssp_projs(
-                info=evoked, projs=None, title='SSP Projectors',
-                image_format=image_format, tags=tags
-            )
-            if output is None:
-                html_ssp_projs = ''
-            else:
-                html_ssp_projs, _ = output
-        else:
-            html_ssp_projs = ''
+        ssp_projs_html = self._ssp_projs_html(
+            add_projs=add_projs, info=evoked, image_format=image_format,
+            tags=tags, topomap_kwargs=topomap_kwargs)
 
         logger.debug('Evoked: done')
-        return html_joint, html_slider, html_gfp, html_whitened, html_ssp_projs
+        return joint_html, slider_html, gfp_html, whitened_html, ssp_projs_html
 
     def _render_events(self, events, *, event_id, sfreq, first_samp, title,
                        image_format, tags):
@@ -2945,7 +2983,7 @@ class Report(object):
         return html, dom_id
 
     def _render_epochs(self, *, epochs, add_psd, add_projs, image_format,
-                       tags):
+                       tags, topomap_kwargs):
         """Render epochs."""
         if isinstance(epochs, BaseEpochs):
             fname = epochs.filename
@@ -3008,18 +3046,9 @@ class Report(object):
         else:
             psd_img_html = ''
 
-        # SSP projectors
-        if add_projs:
-            output = self._render_ssp_projs(
-                info=epochs, projs=None, title='SSP Projectors',
-                image_format=image_format, tags=tags
-            )
-            if output is None:
-                ssp_projs_html = ''
-            else:
-                ssp_projs_html, _ = output
-        else:
-            ssp_projs_html = ''
+        ssp_projs_html = self._ssp_projs_html(
+            add_projs=add_projs, info=epochs, image_format=image_format,
+            tags=tags, topomap_kwargs=topomap_kwargs)
 
         return repr_html, drop_log_img_html, psd_img_html, ssp_projs_html
 
@@ -3062,7 +3091,7 @@ class Report(object):
 
         kwargs = dict(info=info, trans=trans, subject=subject,
                       subjects_dir=subjects_dir, dig=True,
-                      meg=['helmet', 'sensors'],
+                      meg=['helmet', 'sensors'], show_axes=True,
                       coord_frame='mri')
         try:
             img, caption = _iterate_trans_views(
@@ -3082,7 +3111,7 @@ class Report(object):
         return html, dom_id
 
     def _render_stc(self, *, stc, title, subject, subjects_dir, n_time_points,
-                    image_format, tags):
+                    image_format, tags, stc_plot_kwargs):
         """Render STC."""
         if isinstance(stc, SourceEstimate):
             if subject is None:
@@ -3125,21 +3154,12 @@ class Report(object):
         # Plot using 3d backend if available, and use Matplotlib
         # otherwise.
         import matplotlib.pyplot as plt
+        stc_plot_kwargs = _handle_default(
+            'report_stc_plot_kwargs', stc_plot_kwargs)
+        stc_plot_kwargs.update(subject=subject, subjects_dir=subjects_dir)
 
         if get_3d_backend() is not None:
-            brain = stc.plot(
-                views=('lateral', 'medial'),
-                hemi='split',
-                backend='pyvistaqt',
-                time_viewer=True,
-                show_traces=False,
-                subject=subject,
-                subjects_dir=subjects_dir,
-                size=(450, 450),
-                background='white'
-            )
-            brain.toggle_interface()
-            brain.time_actor.SetVisibility(0)  # don't print the time
+            brain = stc.plot(**stc_plot_kwargs)
             brain._renderer.plotter.subplot(0, 0)
             backend_is_3d = True
         else:

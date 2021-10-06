@@ -14,20 +14,19 @@ import os
 import os.path as op
 import re
 import shutil
-import pathlib
 
 import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 
-from mne import Epochs, read_events, read_evokeds
+from mne import Epochs, read_events, read_evokeds, read_cov, pick_channels_cov
 from mne.report import report as report_mod
 from mne.report.report import CONTENT_ORDER
 from mne.io import read_raw_fif
 from mne.datasets import testing
-from mne.report import Report, open_report, _ReportScraper
+from mne.report import Report, open_report, _ReportScraper, report
 from mne.utils import requires_nibabel, Bunch, requires_h5py
-from mne.viz import plot_alignment, get_3d_backend
+from mne.viz import plot_alignment
 from mne.io.write import DATE_NONE
 
 data_dir = testing.data_path(download=False)
@@ -60,6 +59,9 @@ evoked_fname = op.join(base_dir, 'test-ave.fif')
 
 nirs_fname = op.join(data_dir, 'SNIRF', 'NIRx', 'NIRSport2', '1.0.3',
                      '2021-05-05_001.snirf')
+stc_plot_kwargs = dict(  # for speed
+    smoothing_steps=1, size=(300, 300), views='lat', hemi='lh')
+topomap_kwargs = dict(res=8, contours=0, sensors=False)
 
 
 def _get_example_figures():
@@ -69,9 +71,28 @@ def _get_example_figures():
     return [fig1, fig2]
 
 
+@pytest.fixture
+def invisible_fig(monkeypatch):
+    """Make objects invisible to speed up draws."""
+    orig = report._fig_to_img
+
+    def _make_invisible(fig, **kwargs):
+        if isinstance(fig, plt.Figure):
+            for ax in fig.axes:
+                for attr in ('lines', 'collections', 'patches', 'images',
+                             'texts'):
+                    for item in getattr(ax, attr):
+                        item.set_visible(False)
+                ax.axis('off')
+        return orig(fig, **kwargs)
+
+    monkeypatch.setattr(report, '_fig_to_img', _make_invisible)
+    yield
+
+
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_render_report(renderer, tmpdir):
+def test_render_report(renderer_pyvistaqt, tmpdir, invisible_fig):
     """Test rendering *.fif files for mne report."""
     tempdir = str(tmpdir)
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
@@ -98,10 +119,10 @@ def test_render_report(renderer, tmpdir):
     epochs_fname = op.join(tempdir, 'temp-epo.fif')
     evoked_fname = op.join(tempdir, 'temp-ave.fif')
     # Speed it up by picking channels
-    raw = read_raw_fif(raw_fname_new, preload=True)
+    raw = read_raw_fif(raw_fname_new)
     raw.pick_channels(['MEG 0111', 'MEG 0121', 'EEG 001', 'EEG 002'])
     raw.del_proj()
-    raw.set_eeg_reference(projection=True)
+    raw.set_eeg_reference(projection=True).load_data()
     epochs = Epochs(raw, read_events(events_fname), 1, -0.2, 0.2)
     epochs.save(epochs_fname, overwrite=True)
     # This can take forever, so let's make it fast
@@ -112,10 +133,12 @@ def test_render_report(renderer, tmpdir):
     evoked.save(evoked_fname)
 
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
-                    projs=True)
+                    projs=False, image_format='png')
     with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
         report.parse_folder(data_path=tempdir, on_error='raise',
-                            n_time_points_evokeds=2, raw_butterfly=False)
+                            n_time_points_evokeds=2, raw_butterfly=False,
+                            stc_plot_kwargs=stc_plot_kwargs,
+                            topomap_kwargs=topomap_kwargs)
     assert repr(report)
 
     # Check correct paths and filenames
@@ -138,8 +161,6 @@ def test_render_report(renderer, tmpdir):
     report.save(fname=fname, open_browser=False)
     assert (op.isfile(fname))
     html = Path(fname).read_text(encoding='utf-8')
-    # Projectors in Raw.info
-    assert 'SSP Projectors' in html
     # Evoked in `evoked_fname`
     assert f'{op.basename(evoked_fname)}: {evoked.comment}' in html
     assert 'Topographies' in html
@@ -157,7 +178,7 @@ def test_render_report(renderer, tmpdir):
     assert (op.isfile(op.join(tempdir, 'report.html')))
 
     # Check pattern matching with multiple patterns
-    pattern = ['*raw.fif', '*eve.fif']
+    pattern = ['*proj.fif', '*eve.fif']
     with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
         report.parse_folder(data_path=tempdir, pattern=pattern,
                             raw_butterfly=False)
@@ -172,22 +193,40 @@ def test_render_report(renderer, tmpdir):
                 [op.basename(x) for x in content_names])
         assert (''.join(report.html).find(op.basename(fname)) != -1)
 
-    pytest.raises(ValueError, Report, image_format='foo')
-    pytest.raises(ValueError, Report, image_format=None)
-
-    # SVG rendering
-    report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
-                    image_format='svg')
-    tempdir = pathlib.Path(tempdir)  # test using pathlib.Path
-    with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
-        report.parse_folder(data_path=tempdir, on_error='raise',
-                            raw_butterfly=False)
+    with pytest.raises(ValueError, match='Invalid value'):
+        Report(image_format='foo')
+    with pytest.raises(ValueError, match='Invalid value'):
+        Report(image_format=None)
 
     # ndarray support smoke test
     report.add_figure(fig=np.zeros((2, 3, 3)), title='title')
 
     with pytest.raises(TypeError, match='It seems you passed a path'):
         report.add_figure(fig='foo', title='title')
+
+
+@testing.requires_testing_data
+def test_render_report_extra(renderer_pyvistaqt, tmpdir, invisible_fig):
+    """Test SVG and projector rendering separately."""
+    # ... otherwise things are very slow
+    tempdir = str(tmpdir)
+    raw_fname_new = op.join(tempdir, 'temp_raw.fif')
+    shutil.copyfile(raw_fname, raw_fname_new)
+    report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
+                    projs=True, image_format='svg')
+    with pytest.warns(RuntimeWarning, match='Cannot render MRI'):
+        report.parse_folder(data_path=tempdir, on_error='raise',
+                            n_time_points_evokeds=2, raw_butterfly=False,
+                            stc_plot_kwargs=stc_plot_kwargs,
+                            topomap_kwargs=topomap_kwargs)
+    assert repr(report)
+    report.data_path = tempdir
+    fname = op.join(tempdir, 'report.html')
+    report.save(fname=fname, open_browser=False)
+    assert op.isfile(fname)
+    html = Path(fname).read_text(encoding='utf-8')
+    # Projectors in Raw.info
+    assert 'SSP Projectors' in html
 
 
 def test_add_custom_css(tmpdir):
@@ -371,7 +410,6 @@ def test_render_mri(renderer, tmpdir):
 ])
 def test_add_bem_n_jobs(n_jobs, monkeypatch):
     """Test add_bem with n_jobs."""
-    from matplotlib.pyplot import imread
     if n_jobs == 1:  # in one case, do at init -- in the other, pass in
         use_subjects_dir = None
     else:
@@ -386,7 +424,7 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
         n_jobs=n_jobs, subjects_dir=subjects_dir
     )
     assert len(report.html) == 1
-    imgs = np.array([imread(BytesIO(base64.b64decode(b)), 'png')
+    imgs = np.array([plt.imread(BytesIO(base64.b64decode(b)), 'png')
                      for b in re.findall(r'data:image/png;base64,(\S*)">',
                                          report.html[0])])
     assert imgs.ndim == 4  # images, h, w, rgba
@@ -630,16 +668,20 @@ def test_survive_pickle(tmpdir):
 
 
 @testing.requires_testing_data
-def test_full_report(tmpdir, actors_invisible):
+def test_manual_report_2d(tmpdir, invisible_fig):
     """Simulate user manually creating report by adding one file at a time."""
     r = Report(title='My Report')
     raw = read_raw_fif(raw_fname)
+    raw.pick_channels(raw.ch_names[:6]).crop(0, 10)
+    raw.info.normalize_proj()
+    cov = read_cov(cov_fname)
+    cov = pick_channels_cov(cov, raw.ch_names)
     events = read_events(events_fname)
     epochs = Epochs(raw=raw, events=events)
     evokeds = read_evokeds(evoked_fname)
     evoked = evokeds[0].pick('eeg')
 
-    r.add_raw(raw=raw_fname, title='my raw data', tags=('raw',), psd=False,
+    r.add_raw(raw=raw, title='my raw data', tags=('raw',), psd=True,
               projs=False)
     r.add_events(events=events_fname, title='my events',
                  sfreq=raw.info['sfreq'])
@@ -650,28 +692,33 @@ def test_full_report(tmpdir, actors_invisible):
                   n_time_points=2)
     r.add_projs(info=raw_fname, projs=ecg_proj_fname, title='my proj',
                 tags=('ssp', 'ecg'))
-    r.add_covariance(cov=cov_fname, info=raw_fname, title='my cov')
+    r.add_covariance(cov=cov, info=raw_fname, title='my cov')
     r.add_forward(forward=fwd_fname, title='my forward', subject='sample',
                   subjects_dir=subjects_dir)
-
-    if get_3d_backend() is not None:
-        r.add_trans(trans=trans_fname, info=raw_fname, title='my coreg',
-                    subject='sample', subjects_dir=subjects_dir)
-        r.add_bem(subject='sample', subjects_dir=subjects_dir, title='my bem',
-                  decim=100)
-        r.add_inverse_operator(
-            inverse_operator=inv_fname, title='my inverse', subject='sample',
-            subjects_dir=subjects_dir, trans=trans_fname
-        )
-        r.add_stc(
-            stc=stc_fname, title='my stc', subject='sample',
-            subjects_dir=subjects_dir, n_time_points=2
-        )
-
     r.add_html(html='<strong>Hello</strong>', title='Bold')
     r.add_code(code=__file__, title='my code')
     r.add_sys_info(title='my sysinfo')
+    fname = op.join(tmpdir, 'report.html')
+    r.save(fname=fname, open_browser=False)
 
+
+@testing.requires_testing_data
+def test_manual_report_3d(tmpdir, renderer_pyvistaqt):
+    """Simulate adding 3D sections."""
+    r = Report(title='My Report')
+    r.add_trans(trans=trans_fname, info=raw_fname, title='my coreg',
+                subject='sample', subjects_dir=subjects_dir)
+    r.add_bem(subject='sample', subjects_dir=subjects_dir, title='my bem',
+              decim=100)
+    r.add_inverse_operator(
+        inverse_operator=inv_fname, title='my inverse', subject='sample',
+        subjects_dir=subjects_dir, trans=trans_fname
+    )
+    r.add_stc(
+        stc=stc_fname, title='my stc', subject='sample',
+        subjects_dir=subjects_dir, n_time_points=2,
+        stc_plot_kwargs=stc_plot_kwargs,
+    )
     fname = op.join(tmpdir, 'report.html')
     r.save(fname=fname, open_browser=False)
 

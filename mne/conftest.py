@@ -452,17 +452,6 @@ def _use_backend(backend_name, interactive):
             renderer.backend._close_all()
 
 
-@pytest.fixture()
-def actors_invisible():
-    """Set 3D actors invisible for speed."""
-    # In principle most tests that use this should use renderer, but in case
-    # they don't require a 3D renderer (like in test_report.py) we can
-    # just do this directly.
-    from mne.viz.backends.renderer import _actors_invisible
-    with _actors_invisible():
-        yield
-
-
 def _check_skip_backend(name):
     from mne.viz.backends.tests._utils import (has_mayavi, has_pyvista,
                                                has_pyqt5, has_imageio_ffmpeg,
