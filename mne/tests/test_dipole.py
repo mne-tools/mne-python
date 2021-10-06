@@ -312,7 +312,7 @@ def test_min_distance_fit_dipole():
 
     bem = read_bem_solution(fname_bem)
     dip, residual = fit_dipole(evoked, cov, bem, fname_trans,
-                               min_dist=min_dist, tol=1e-3)
+                               min_dist=min_dist, tol=1e-4)
     assert isinstance(residual, Evoked)
 
     dist = _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir)
