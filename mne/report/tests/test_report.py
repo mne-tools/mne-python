@@ -442,6 +442,7 @@ def test_add_htmls_to_section():
     assert (repr(report))
 
 
+@testing.requires_testing_data
 def test_add_slider_to_section(tmpdir):
     """Test adding a slider with a series of images to mne report."""
     tempdir = str(tmpdir)

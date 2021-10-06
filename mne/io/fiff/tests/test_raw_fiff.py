@@ -1796,11 +1796,12 @@ def test_expand_user(tmp_path, monkeypatch):
 
     path_in = Path(fif_fname)
     path_out = tmp_path / path_in.name
+    path_home = f'~/{path_in.name}'
 
     shutil.copyfile(
         src=path_in,
         dst=path_out
     )
 
-    raw = read_raw_fif(fname=path_in, preload=True)
-    raw.save(fname=path_out, overwrite=True)
+    raw = read_raw_fif(fname=path_home, preload=True)
+    raw.save(fname=path_home, overwrite=True)
