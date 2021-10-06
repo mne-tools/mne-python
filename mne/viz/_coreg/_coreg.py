@@ -399,8 +399,7 @@ class CoregistrationUI(HasTraits):
         kwargs = dict(front=(90., 90.), left=(180, 90), right=(0., 90))
         kwargs = dict(zip(('azimuth', 'elevation'), kwargs[view[fid]]))
         if not self._lock_fids:
-            self._renderer.set_camera(
-                distance=None, **kwargs)
+            self._renderer.set_camera(distance=None, **kwargs)
 
     def _update_fiducials(self):
         fid = self._current_fiducial.lower()
