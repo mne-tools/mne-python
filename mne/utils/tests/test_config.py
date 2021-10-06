@@ -107,4 +107,5 @@ def test_get_subjects_dir(tmp_path, monkeypatch):
 
     # Expand `~`
     monkeypatch.setenv('HOME', str(tmp_path))
+    monkeypatch.setenv('USERPROFILE', str(tmp_path))  # Windows
     assert get_subjects_dir('~/foo') == str(subjects_dir)

@@ -1796,7 +1796,7 @@ def test_expand_user(tmp_path, monkeypatch):
 
     path_in = Path(fif_fname)
     path_out = tmp_path / path_in.name
-    path_home = f'~/{path_in.name}'
+    path_home = Path('~') / path_in.name
 
     shutil.copyfile(
         src=path_in,
