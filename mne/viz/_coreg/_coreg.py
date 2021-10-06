@@ -71,8 +71,8 @@ class CoregistrationUI(HasTraits):
         self._orient_glyphs = False
         self._hpi_coils = True
         self._head_shape_point = True
-        self._eeg_channels = True
-        self._head_resolution = True
+        self._eeg_channels = False
+        self._head_resolution = False
         self._omit_hsp_distance = 10.0
         self._icp_n_iterations = self._default_icp_n_iterations
         self._icp_fid_match = self._default_icp_fid_matches[0]
