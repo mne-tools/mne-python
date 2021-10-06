@@ -51,6 +51,8 @@ nirsport2 = op.join(data_path(download=False), 'NIRx', 'nirsport_v2',
                     'aurora_recording _w_short_and_acc')
 nirsport2_snirf = op.join(data_path(download=False), 'SNIRF', 'NIRx',
                           'NIRSport2', '1.0.3', '2021-05-05_001.snirf')
+nirsport2_2021_9 = op.join(data_path(download=False), 'NIRx', 'nirsport_v2',
+                    'aurora_2021_9')
 
 
 @requires_h5py
@@ -559,7 +561,8 @@ def test_nirx_15_0():
 @pytest.mark.parametrize('fname, boundary_decimal', (
     [fname_nirx_15_2_short, 1],
     [fname_nirx_15_2, 0],
-    [fname_nirx_15_0, 0]
+    [fname_nirx_15_2, 0],
+    [nirsport2_2021_9, 0]
 ))
 def test_nirx_standard(fname, boundary_decimal):
     """Test standard operations."""
