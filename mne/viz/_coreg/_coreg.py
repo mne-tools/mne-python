@@ -364,15 +364,16 @@ class CoregistrationUI(HasTraits):
         if not isinstance(changes, list):
             changes = [changes]
         forced = "all" in changes
+        sensors = "sensors" in changes
         if "head" in changes or forced:
             self._add_head_surface()
-        if "hsp" in changes or forced:
+        if "hsp" in changes or forced or sensors:
             self._add_head_shape_points()
-        if "hpi" in changes or forced:
+        if "hpi" in changes or forced or sensors:
             self._add_hpi_coils()
-        if "eeg" in changes or forced:
+        if "eeg" in changes or forced or sensors:
             self._add_eeg_channels()
-        if "fids" in changes or forced:
+        if "fids" in changes or forced or sensors:
             self._add_head_fiducials()
             self._add_mri_fiducials()
 
@@ -485,7 +486,7 @@ class CoregistrationUI(HasTraits):
             rpa_weight=self._rpa_weight,
             verbose=self._verbose,
         )
-        self._update_plot(["hsp", "hpi", "fids"])
+        self._update_plot("sensors")
         self._update_parameters()
 
     def _fit_icp(self):
@@ -496,7 +497,7 @@ class CoregistrationUI(HasTraits):
             rpa_weight=self._rpa_weight,
             verbose=self._verbose,
         )
-        self._update_plot(["hsp", "hpi", "fids"])
+        self._update_plot("sensors")
         self._update_parameters()
 
     def _save_trans(self, fname):
@@ -511,7 +512,8 @@ class CoregistrationUI(HasTraits):
             rot=[rot_x, rot_y, rot_z],
             tra=[x, y, z],
         )
-        self._update_plot(["hsp", "hpi", "fids"])
+        self._update_plot("sensors")
+        self._update_parameters()
 
     def _get_subjects(self):
         # XXX: would be nice to move this function to util
