@@ -85,55 +85,6 @@ class CoregistrationUI(HasTraits):
 
         self._scale_mode = "None"
 
-    def _configure_picking(self):
-        self._renderer._update_picking_callback(
-            self._on_mouse_move,
-            self._on_button_press,
-            self._on_button_release,
-            self._on_pick
-        )
-        self._actors["msg"] = self._renderer.text2d(0, 0, "")
-
-    def _on_mouse_move(self, vtk_picker, event):
-        if self._mouse_no_mvt:
-            self._mouse_no_mvt -= 1
-
-    def _on_button_press(self, vtk_picker, event):
-        self._mouse_no_mvt = 2
-
-    def _on_button_release(self, vtk_picker, event):
-        if self._mouse_no_mvt > 0:
-            x, y = vtk_picker.GetEventPosition()
-            # XXX: plotter/renderer should not be exposed if possible
-            plotter = self._renderer.figure.plotter
-            picked_renderer = self._renderer.figure.plotter.renderer
-            # trigger the pick
-            plotter.picker.Pick(x, y, 0, picked_renderer)
-        self._mouse_no_mvt = 0
-
-    def _on_pick(self, vtk_picker, event):
-        if self._lock_fids:
-            return
-        # XXX: taken from Brain, can be refactored
-        cell_id = vtk_picker.GetCellId()
-        mesh = vtk_picker.GetDataSet()
-        if mesh is None or cell_id == -1 or not self._mouse_no_mvt:
-            return
-        pos = np.array(vtk_picker.GetPickPosition())
-        vtk_cell = mesh.GetCell(cell_id)
-        cell = [vtk_cell.GetPointId(point_id) for point_id
-                in range(vtk_cell.GetNumberOfPoints())]
-        vertices = mesh.points[cell]
-        idx = np.argmin(abs(vertices - pos), axis=0)
-        vertex_id = cell[idx[0]]
-
-        default_fiducials = [s.lower() for s in self._default_fiducials]
-        idx = default_fiducials.index(self._current_fiducial)
-        # XXX: add coreg.set_fids
-        self._coreg._fid_points[idx] = self._surfaces["head"].points[vertex_id]
-        self._coreg._reset_fiducials()
-        self._update_plot("fids")
-
     def _set_subjects_dir(self, subjects_dir):
         self._subjects_dir = subjects_dir
 
@@ -178,26 +129,6 @@ class CoregistrationUI(HasTraits):
 
     def _set_scale_mode(self, mode):
         self._scale_mode = mode
-
-    def _update_parameters(self):
-        # rotation
-        for idx, name in enumerate(("rX", "rY", "rZ")):
-            if name in self._widgets:
-                val = np.rad2deg(self._coreg._rotation[idx])
-                if val != self._widgets[name].get_value():
-                    self._widgets[name].set_value(val)
-        # translation
-        for idx, name in enumerate(("tX", "tY", "tZ")):
-            if name in self._widgets:
-                val = self._coreg._translation[idx] * 1e3
-                if val != self._widgets[name].get_value():
-                    self._widgets[name].set_value(val)
-        # scale
-        for idx, name in enumerate(("sX", "sY", "sZ")):
-            if name in self._widgets:
-                val = self._coreg._scale[idx] * 1e2
-                if val != self._widgets[name].get_value():
-                    self._widgets[name].set_value(val)
 
     def _set_parameter(self, x, mode_name, coord):
         params = dict(
@@ -354,6 +285,55 @@ class CoregistrationUI(HasTraits):
     def _icp_fid_match_changed(self, change=None):
         self._coreg.set_fid_match(self._icp_fid_match)
 
+    def _configure_picking(self):
+        self._renderer._update_picking_callback(
+            self._on_mouse_move,
+            self._on_button_press,
+            self._on_button_release,
+            self._on_pick
+        )
+        self._actors["msg"] = self._renderer.text2d(0, 0, "")
+
+    def _on_mouse_move(self, vtk_picker, event):
+        if self._mouse_no_mvt:
+            self._mouse_no_mvt -= 1
+
+    def _on_button_press(self, vtk_picker, event):
+        self._mouse_no_mvt = 2
+
+    def _on_button_release(self, vtk_picker, event):
+        if self._mouse_no_mvt > 0:
+            x, y = vtk_picker.GetEventPosition()
+            # XXX: plotter/renderer should not be exposed if possible
+            plotter = self._renderer.figure.plotter
+            picked_renderer = self._renderer.figure.plotter.renderer
+            # trigger the pick
+            plotter.picker.Pick(x, y, 0, picked_renderer)
+        self._mouse_no_mvt = 0
+
+    def _on_pick(self, vtk_picker, event):
+        if self._lock_fids:
+            return
+        # XXX: taken from Brain, can be refactored
+        cell_id = vtk_picker.GetCellId()
+        mesh = vtk_picker.GetDataSet()
+        if mesh is None or cell_id == -1 or not self._mouse_no_mvt:
+            return
+        pos = np.array(vtk_picker.GetPickPosition())
+        vtk_cell = mesh.GetCell(cell_id)
+        cell = [vtk_cell.GetPointId(point_id) for point_id
+                in range(vtk_cell.GetNumberOfPoints())]
+        vertices = mesh.points[cell]
+        idx = np.argmin(abs(vertices - pos), axis=0)
+        vertex_id = cell[idx[0]]
+
+        default_fiducials = [s.lower() for s in self._default_fiducials]
+        idx = default_fiducials.index(self._current_fiducial)
+        # XXX: add coreg.set_fids
+        self._coreg._fid_points[idx] = self._surfaces["head"].points[vertex_id]
+        self._coreg._reset_fiducials()
+        self._update_plot("fids")
+
     def _reset_fitting_parameters(self):
         if "icp_n_iterations" in self._widgets:
             self._widgets["icp_n_iterations"].set_value(
@@ -393,6 +373,26 @@ class CoregistrationUI(HasTraits):
         if "fids" in changes or forced:
             self._add_head_fiducials()
             self._add_mri_fiducials()
+
+    def _update_parameters(self):
+        # rotation
+        for idx, name in enumerate(("rX", "rY", "rZ")):
+            if name in self._widgets:
+                val = np.rad2deg(self._coreg._rotation[idx])
+                if val != self._widgets[name].get_value():
+                    self._widgets[name].set_value(val)
+        # translation
+        for idx, name in enumerate(("tX", "tY", "tZ")):
+            if name in self._widgets:
+                val = self._coreg._translation[idx] * 1e3
+                if val != self._widgets[name].get_value():
+                    self._widgets[name].set_value(val)
+        # scale
+        for idx, name in enumerate(("sX", "sY", "sZ")):
+            if name in self._widgets:
+                val = self._coreg._scale[idx] * 1e2
+                if val != self._widgets[name].get_value():
+                    self._widgets[name].set_value(val)
 
     def _reset(self):
         self._reset_fitting_parameters()
