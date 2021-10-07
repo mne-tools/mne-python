@@ -284,8 +284,11 @@ def test_plot_raw_selection(raw, browse_backend):
         xy = sel_fig.mne.radio_ax.buttons.circles[0].center
         fig._fake_click(xy, fig=sel_fig, ax=sel_fig.mne.radio_ax, xform='data')
     else:
-        chkbx = sel_fig.chkbxs[list(sel_fig.chkbxs.keys())[0]]
-        fig._fake_click((0, 1), fig=chkbx)
+        # For an unknown reason test-clicking on checkboxes is inconsistent
+        # across platforms.
+        # (QTest.mouseClick works isolated on all platforms but somehow
+        # not in this context. _fake_click isn't working on linux)
+        sel_fig._chkbx_changed(list(sel_fig.chkbxs.keys())[0])
     assert len(fig.mne.traces) == len(sel_dict['Left-temporal'])  # 6
     assert not fig.mne.butterfly
     # test clicking on "custom" when not defined: should be no-op
