@@ -384,25 +384,21 @@ class CoregistrationUI(HasTraits):
     def _update_fiducials(self):
         fid = self._current_fiducial.lower()
         val = getattr(self._coreg, f"_{fid}")[0] * 1e3
-        coords = ["X", "Y", "Z"]
         with self._lock_plot():
-            for coord in coords:
-                name = f"fid_{coord}"
-                idx = coords.index(coord)
-                if name in self._widgets:
-                    self._widgets[name].set_value(val[idx])
+            self._forward_widget_command(
+                ["fid_X", "fid_Y", "fid_Z"], "set_value", val)
 
     def _update_parameters(self):
         with self._lock_plot():
             # rotation
             self._forward_widget_command(["rX", "rY", "rZ"], "set_value",
-                                         list(np.rad2deg(self._coreg._rotation)))
+                                         np.rad2deg(self._coreg._rotation))
             # translation
             self._forward_widget_command(["tX", "tY", "tZ"], "set_value",
-                                         list(self._coreg._translation * 1e3))
+                                         self._coreg._translation * 1e3)
             # scale
             self._forward_widget_command(["sX", "sY", "sZ"], "set_value",
-                                         list(self._coreg._scale * 1e2))
+                                         self._coreg._scale * 1e2)
 
     def _reset(self):
         self._reset_fitting_parameters()
@@ -411,8 +407,8 @@ class CoregistrationUI(HasTraits):
         self._update_parameters()
 
     def _forward_widget_command(self, names, command, value):
-        if not isinstance(names, list):
-            names = [names]
+        names = [names] if not isinstance(names, list) else names
+        value = list(value) if isinstance(value, np.ndarray) else value
         for idx, name in enumerate(names):
             val = value[idx] if isinstance(value, list) else value
             if name in self._widgets:
