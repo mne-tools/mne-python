@@ -85,26 +85,28 @@ I agree to the following:
 
 # To update the `testing` or `misc` datasets, push or merge commits to their
 # respective repos, and make a new release of the dataset on GitHub. Then
-# update the checksum in the MNE_DATASETS dict below, and change version
+# update the checksum in `mne/data/dataset_checksums.txt` and change version
 # here:                  ↓↓↓↓↓         ↓↓↓
-RELEASES = dict(testing='0.123', misc='0.23')
-TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
-MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
+RELEASES = dict(testing='0.123', misc='0.22')
 
 # To update any other dataset besides `testing` or `misc`, upload the new
 # version of the data archive itself (e.g., to https://osf.io or wherever) and
-# then update the corresponding checksum in the MNE_DATASETS dict entry below.
+# then update the corresponding checksum in `mne/data/dataset_checksums.txt`.
+TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
+MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
+
+# Define all internal MNE datasets here.
+# Note: That all dictionary keys are equal to the name of the variable
+# to make things easier to reference
 MNE_DATASETS = dict()
 
-# MANDATORY KEYS:
+# Each dataset should contain minimally:
 # - archive_name : the name of the compressed file that is downloaded
-# - hash : the checksum type followed by a colon and then the checksum value
-#          (examples: "sha256:19uheid...", "md5:upodh2io...")
+# - hash : the cryptographic hash type of the file followed by a colon and then
+#          the hash value (examples: "sha256:19uheid...", "md5:upodh2io...")
 # - url : URL from which the file can be downloaded
 # - folder_name : the subfolder within the MNE data folder in which to save and
 #                 uncompress (if needed) the file(s)
-#
-# OPTIONAL KEYS:
 # - config_key : key to use with `mne.set_config` to store the on-disk location
 #                of the downloaded dataset (ex: "MNE_DATASETS_EEGBCI_PATH").
 MNE_DATASETS['fnirs_motor'] = dict(
@@ -315,7 +317,7 @@ MNE_DATASETS['testing'] = dict(
 )
 MNE_DATASETS['misc'] = dict(
     archive_name=f'{MISC_VERSIONED}.tar.gz',  # 'mne-misc-data',
-    hash='md5:01e409d82ff11ca8b19a27c4f7ee6794',
+    hash='md5:e0df1b4112cf13b668a7d9c1daf62e44',
     url=('https://codeload.github.com/mne-tools/mne-misc-data/tar.gz/'
          f'{RELEASES["misc"]}'),
     folder_name='MNE-misc-data',

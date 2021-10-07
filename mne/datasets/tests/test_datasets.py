@@ -8,8 +8,7 @@ import zipfile
 import pytest
 
 from mne import datasets, read_labels_from_annot, write_labels_to_annot
-from mne.datasets import (testing, fetch_infant_template, fetch_phantom,
-                          fetch_dataset)
+from mne.datasets import testing, fetch_infant_template, fetch_phantom
 from mne.datasets._fsaverage.base import _set_montage_coreg_path
 from mne.datasets._infant import base as infant_base
 from mne.datasets._phantom import base as phantom_base
@@ -86,7 +85,7 @@ def test_downloads(tmpdir, monkeypatch, capsys):
     # No version: shown as existing but unknown version
     assert datasets.utils.has_dataset('fake')
     # XXX logic bug, should be "unknown"
-    assert datasets._fake.get_version() == '0.0'
+    assert datasets._fake.get_version() == '0.7'
     # With a version but no required one: shown as existing and gives version
     fname = tmpdir / 'foo' / 'version.txt'
     with open(fname, 'w') as fid:
@@ -251,16 +250,3 @@ def test_phantom(tmpdir, monkeypatch):
                                 fake_files=True))
     fetch_phantom('otaniemi', subjects_dir=tmpdir)
     assert op.isfile(tmpdir / 'phantom_otaniemi' / 'mri' / 'T1.mgz')
-
-
-def test_fetch_uncompressed_file(tmpdir):
-    """Test downloading an uncompressed file with our fetch function."""
-    dataset_dict = dict(
-        dataset_name='license',
-        url=('https://raw.githubusercontent.com/mne-tools/mne-python/main/'
-             'LICENSE.txt'),
-        archive_name='LICENSE.foo',
-        folder_name=op.join(tmpdir, 'foo'),
-        hash=None)
-    fetch_dataset(dataset_dict, path=None, force_update=True)
-    assert op.isfile(op.join(tmpdir, 'foo', 'LICENSE.foo'))
