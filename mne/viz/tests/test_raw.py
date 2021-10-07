@@ -174,12 +174,12 @@ def _proj_click(idx, fig, browse_backend):
 
         fig._fake_click(pos, fig=ssp_fig, ax=ssp_fig.mne.proj_checkboxes.ax,
                         xform='data')
-    elif not _proj_label(ssp_fig,
-                         browse_backend)[idx].endswith('(already applied)'):
+    else:
         # _fake_click on QCheckBox is inconsistent across platforms
         # (also see comment in test_plot_raw_selection).
-        chkbx = ssp_fig.checkboxes[idx]
-        chkbx.setChecked(not chkbx.isChecked())
+        ssp_fig._proj_changed(not fig.mne.projs_on[idx], idx)
+        # Update Checkbox
+        ssp_fig.checkboxes[idx].setChecked(fig.mne.projs_on[idx])
 
 
 def _proj_click_all(fig, browse_backend):
