@@ -349,11 +349,22 @@ def _get_mri_contour_figs(*, sl, n_jobs, mri_fname, surfaces,
 
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
-    import matplotlib.pyplot as plt
-    from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
-    from ..viz._brain.view import views_dicts
+    from ..viz import create_3d_figure
+    fig = create_3d_figure((800, 800), bgcolor=(0.5, 0.5, 0.5))
+    from ..viz.backends.renderer import backend
+    try:
+        try:
+            return _itv(function, fig, surfaces=['head-dense'], **kwargs)
+        except IOError:
+            return _itv(function, fig, surfaces=['head'], **kwargs)
+    finally:
+        backend._close_3d_figure(fig)
 
-    fig = function(**kwargs)
+
+def _itv(function, fig, **kwargs):
+    from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING, backend
+    from ..viz._brain.view import views_dicts
+    function(fig=fig, **kwargs)
 
     views = (
         'frontal', 'lateral', 'medial',
@@ -363,7 +374,6 @@ def _iterate_trans_views(function, **kwargs):
     images = []
     for view in views:
         if not MNE_3D_BACKEND_TESTING:
-            from ..viz.backends.renderer import backend
             set_3d_view(fig, **views_dicts['both'][view])
             backend._check_3d_figure(fig)
             im = backend._take_3d_screenshot(figure=fig)
@@ -381,16 +391,7 @@ def _iterate_trans_views(function, **kwargs):
                               subject=kwargs['subject'],
                               subjects_dir=kwargs['subjects_dir'])
 
-    fig2, ax = plt.subplots()
-    ax.imshow(images)
-    ax.axis('off')
-    tight_layout(fig=fig2)
-
-    if not MNE_3D_BACKEND_TESTING:
-        backend._close_all()
-
-    img = _fig_to_img(fig=fig2, image_format='png')
-    plt.close(fig2)
+    img = _fig_to_img(images, image_format='png')
 
     caption = (f'Average distance from {len(dists)} digitized points to '
                f'head: {1e3 * np.mean(dists):.2f} mm')
@@ -3093,14 +3094,8 @@ class Report(object):
                       subjects_dir=subjects_dir, dig=True,
                       meg=['helmet', 'sensors'], show_axes=True,
                       coord_frame='mri')
-        try:
-            img, caption = _iterate_trans_views(
-                function=plot_alignment, surfaces=['head-dense'], **kwargs
-            )
-        except IOError:
-            img, caption = _iterate_trans_views(
-                function=plot_alignment, surfaces=['head'], **kwargs
-            )
+        img, caption = _iterate_trans_views(
+            function=plot_alignment, **kwargs)
 
         dom_id = self._get_dom_id()
         html = _html_image_element(
