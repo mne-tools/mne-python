@@ -415,7 +415,8 @@ class CoregistrationUI(HasTraits):
                 getattr(self._widgets[name], command)(val)
 
     def _set_sensors_visibility(self, state):
-        sensors = ["hpi_coils", "head_shape_points", "eeg_channels"]
+        sensors = ["head_fiducials", "hpi_coils", "head_shape_points",
+                   "eeg_channels"]
         for sensor in sensors:
             if sensor in self._actors and self._actors[sensor] is not None:
                 actors = self._actors[sensor]
