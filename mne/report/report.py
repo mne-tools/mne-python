@@ -6,38 +6,49 @@
 #
 # License: BSD-3-Clause
 
+import dataclasses
+from dataclasses import dataclass
+from typing import Tuple
 import base64
-from io import BytesIO
-from mne.proj import read_proj
+from io import BytesIO, StringIO
+import contextlib
 import os
 import os.path as op
+from pathlib import Path
 import fnmatch
 import re
-import codecs
 from shutil import copyfile
 import time
 import warnings
 import webbrowser
+import html as stdlib_html  # avoid namespace confusion!
+
 import numpy as np
 
-from .. import read_evokeds, read_events, pick_types, read_cov
-from ..io import read_raw, read_info
+from .. import __version__ as MNE_VERSION
+from ..fixes import _compare_version
+from .. import (read_evokeds, read_events, pick_types, read_cov,
+                read_source_estimate, read_trans, sys_info,
+                Evoked, SourceEstimate, Covariance, Info, Transform)
+from ..defaults import _handle_default
+from ..io import read_raw, read_info, BaseRaw
 from ..io._read_raw import supported as extension_reader_map
-from ..io.pick import _DATA_CH_TYPES_SPLIT
+from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
-                     fill_doc, _check_option, _validate_type, _safe_input)
+                     fill_doc, _check_option, _validate_type, _safe_input,
+                     _check_path_like, use_log_level, deprecated)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
-                   plot_compare_evokeds, set_3d_view)
+                   plot_compare_evokeds, set_3d_view, get_3d_backend)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
-from ..viz.utils import _ndarray_to_fig, _figure_agg
-from ..forward import read_forward_solution
-from ..epochs import read_epochs
+from ..viz.utils import _ndarray_to_fig, tight_layout
+from ..forward import read_forward_solution, Forward
+from ..epochs import read_epochs, BaseEpochs
 from .. import dig_mri_distances
-from ..minimum_norm import read_inverse_operator
+from ..minimum_norm import read_inverse_operator, InverseOperator
 from ..parallel import parallel_func, check_n_jobs
 
-from ..externals.tempita import HTMLTemplate, Template
+from ..externals.tempita import Template
 from ..externals.h5io import read_hdf5, write_hdf5
 
 _BEM_VIEWS = ('axial', 'sagittal', 'coronal')
@@ -68,26 +79,183 @@ VALID_EXTENSIONS = ('sss.fif', 'sss.fif.gz',
                     'T1.mgz') + tuple(RAW_EXTENSIONS)
 del RAW_EXTENSIONS
 
-SECTION_ORDER = ('raw', 'events', 'epochs', 'ssp', 'evoked', 'covariance',
-                 'trans', 'mri', 'forward', 'inverse')
+CONTENT_ORDER = (
+    'raw',
+    'events',
+    'epochs',
+    'ssp-projectors',
+    'evoked',
+    'covariance',
+    'coregistration',
+    'bem',
+    'forward-solution',
+    'inverse-operator',
+    'source-estimate'
+)
+
+html_include_dir = Path(__file__).parent / 'js_and_css'
+template_dir = Path(__file__).parent / 'templates'
+JAVASCRIPT = (html_include_dir / 'report.js').read_text(encoding='utf-8')
+CSS = (html_include_dir / 'report.sass').read_text(encoding='utf-8')
+
+###############################################################################
+# HTML generation
+
+
+def _html_header_element(*, lang, include, js, css, title, tags, mne_logo_img):
+    template_path = template_dir / 'header.html'
+
+    if title is not None:
+        title = stdlib_html.escape(title)
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(lang=lang, include=include, js=js, css=css, title=title,
+                     tags=tags, mne_logo_img=mne_logo_img)
+    return t
+
+
+def _html_footer_element(*, mne_version, date):
+    template_path = template_dir / 'footer.html'
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(mne_version=mne_version, date=date)
+    return t
+
+
+# XXX
+def _html_toc_element(*, content_elements):
+    template_path = template_dir / 'toc.html'
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(content_elements=content_elements)
+    return t
+
+
+def _html_raw_element(*, id, repr, psd, butterfly, ssp_projs, title, tags):
+    template_path = template_dir / 'raw.html'
+
+    title = stdlib_html.escape(title)
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, repr=repr, psd=psd, butterfly=butterfly,
+                     ssp_projs=ssp_projs, tags=tags, title=title)
+    return t
+
+
+def _html_epochs_element(*, id, repr, drop_log, psd, ssp_projs, title, tags):
+    template_path = template_dir / 'epochs.html'
+
+    title = stdlib_html.escape(title)
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, repr=repr, drop_log=drop_log, psd=psd,
+                     ssp_projs=ssp_projs, tags=tags, title=title)
+    return t
+
+
+def _html_evoked_element(*, id, joint, slider, gfp, whitened, ssp_projs, title,
+                         tags):
+    template_path = template_dir / 'evoked.html'
+
+    title = stdlib_html.escape(title)
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, joint=joint, slider=slider, gfp=gfp,
+                     whitened=whitened, ssp_projs=ssp_projs, tags=tags,
+                     title=title)
+    return t
+
+
+def _html_cov_element(*, id, matrix, svd, title, tags):
+    template_path = template_dir / 'cov.html'
+
+    title = stdlib_html.escape(title)
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, matrix=matrix, svd=svd, tags=tags, title=title)
+    return t
+
+
+def _html_forward_sol_element(*, id, repr, sensitivity_maps, title, tags):
+    template_path = template_dir / 'forward.html'
+
+    title = stdlib_html.escape(title)
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, repr=repr, sensitivity_maps=sensitivity_maps,
+                     tags=tags, title=title)
+    return t
+
+
+def _html_inverse_operator_element(*, id, repr, source_space, title, tags):
+    template_path = template_dir / 'inverse.html'
+
+    title = stdlib_html.escape(title)
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, repr=repr, source_space=source_space, tags=tags,
+                     title=title)
+    return t
+
+
+def _html_slider_element(*, id, images, captions, start_idx, image_format,
+                         title, tags, klass=''):
+    template_path = template_dir / 'slider.html'
+
+    title = stdlib_html.escape(title)
+    captions = [stdlib_html.escape(caption) for caption in captions
+                if caption is not None]
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, images=images, captions=captions, tags=tags,
+                     title=title, start_idx=start_idx,
+                     image_format=image_format, klass=klass)
+    return t
+
+
+def _html_image_element(*, id, img, image_format, caption, show, div_klass,
+                        img_klass, title, tags):
+    template_path = template_dir / 'image.html'
+
+    title = stdlib_html.escape(title)
+    if caption is not None:
+        caption = stdlib_html.escape(caption)
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, img=img, caption=caption, tags=tags, title=title,
+                     image_format=image_format, div_klass=div_klass,
+                     img_klass=img_klass, show=show)
+    return t
+
+
+def _html_code_element(*, id, code, language, title, tags):
+    template_path = template_dir / 'code.html'
+
+    title = stdlib_html.escape(title)
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, code=code, language=language, title=title,
+                     tags=tags)
+    return t
+
+
+def _html_element(*, id, div_klass, html, title, tags):
+    template_path = template_dir / 'html.html'
+
+    title = stdlib_html.escape(title)
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, div_klass=div_klass, html=html, title=title,
+                     tags=tags)
+    return t
+
+
+@dataclass
+class _ContentElement:
+    name: str
+    name_html_escaped: str
+    dom_id: str
+    tags: Tuple[str]
+    html: str
 
 
 ###############################################################################
 # PLOTTING FUNCTIONS
 
-def _fig_to_img(fig, image_format='png', scale=None, auto_close=True,
-                **kwargs):
+def _fig_to_img(fig, *, image_format='png', auto_close=True):
     """Plot figure and create a binary image."""
-    # fig can be ndarray, mpl Figure, Mayavi Figure, or callable that produces
-    # a mpl Figure
+    # fig can be ndarray, mpl Figure, Mayavi Figure
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
     if isinstance(fig, np.ndarray):
         fig = _ndarray_to_fig(fig)
-    elif callable(fig):
-        if auto_close:
-            plt.close('all')
-        fig = fig(**kwargs)
     elif not isinstance(fig, Figure):
         from ..viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
         backend._check_3d_figure(figure=fig)
@@ -101,15 +269,20 @@ def _fig_to_img(fig, image_format='png', scale=None, auto_close=True,
         fig = _ndarray_to_fig(img)
 
     output = BytesIO()
-    if scale is not None:
-        _scale_mpl_figure(fig, scale)
     logger.debug('Saving figure %s with dpi %s'
                  % (fig.get_size_inches(), fig.get_dpi()))
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('ignore')  # incompatible axes
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            action='ignore',
+            message='.*Axes that are not compatible with tight_layout.*',
+            category=UserWarning
+        )
         fig.savefig(output, format=image_format, dpi=fig.get_dpi(),
-                    bbox_to_inches='tight')
-    plt.close(fig)
+                    bbox_inches='tight', pad_inches=0)
+
+    if auto_close:
+        plt.close(fig)
     output = output.getvalue()
     return (output.decode('utf-8') if image_format == 'svg' else
             base64.b64encode(output).decode('ascii'))
@@ -118,7 +291,7 @@ def _fig_to_img(fig, image_format='png', scale=None, auto_close=True,
 def _scale_mpl_figure(fig, scale):
     """Magic scaling helper.
 
-    Keeps font-size and artist sizes constant
+    Keeps font size and artist sizes constant
     0.5 : current font - 4pt
     2.0 : current font + 4pt
 
@@ -143,13 +316,31 @@ def _scale_mpl_figure(fig, scale):
     fig.canvas.draw()
 
 
-def _figs_to_mrislices(sl, n_jobs, **kwargs):
+def _get_mri_contour_figs(*, sl, n_jobs, mri_fname, surfaces,
+                          orientation, src, show, show_orientation, width,
+                          slices_as_figures):
     import matplotlib.pyplot as plt
+
+    # Matplotlib <3.2 doesn't work nicely with process-based parallelization
+    from matplotlib import __version__ as MPL_VERSION
+    if _compare_version(MPL_VERSION, '>=', '3.2'):
+        prefer = 'processes'
+    else:
+        prefer = 'threads'
+
     plt.close('all')
     use_jobs = min(n_jobs, max(1, len(sl)))
-    parallel, p_fun, _ = parallel_func(_plot_mri_contours, use_jobs)
-    outs = parallel(p_fun(slices=s, **kwargs)
-                    for s in np.array_split(sl, use_jobs))
+    parallel, p_fun, _ = parallel_func(_plot_mri_contours, use_jobs,
+                                       prefer=prefer)
+    outs = parallel(
+        p_fun(
+            slices=s, mri_fname=mri_fname, surfaces=surfaces,
+            orientation=orientation, src=src, show=show,
+            show_orientation=show_orientation, width=width,
+            slices_as_figures=slices_as_figures
+        )
+        for s in np.array_split(sl, use_jobs)
+    )
     out = list()
     for o in outs:
         out.extend(o)
@@ -164,8 +355,10 @@ def _iterate_trans_views(function, **kwargs):
 
     fig = function(**kwargs)
 
-    views = ['frontal', 'lateral', 'medial']
-    views += ['axial', 'rostral', 'coronal']
+    views = (
+        'frontal', 'lateral', 'medial',
+        'axial', 'rostral', 'coronal'
+    )
 
     images = []
     for view in views:
@@ -190,41 +383,23 @@ def _iterate_trans_views(function, **kwargs):
 
     fig2, ax = plt.subplots()
     ax.imshow(images)
-    ax.set_title(f'Average distance from {len(dists)} digitized points to '
-                 f'head: {1e3 * np.mean(dists):.2f} mm')
     ax.axis('off')
+    tight_layout(fig=fig2)
 
     if not MNE_3D_BACKEND_TESTING:
         backend._close_all()
 
-    img = _fig_to_img(fig2, image_format='png')
+    img = _fig_to_img(fig=fig2, image_format='png')
     plt.close(fig2)
-    return img
+
+    caption = (f'Average distance from {len(dists)} digitized points to '
+               f'head: {1e3 * np.mean(dists):.2f} mm')
+
+    return img, caption
+
 
 ###############################################################################
 # TOC FUNCTIONS
-
-
-def _is_bad_fname(fname):
-    """Identify bad file naming patterns and highlight them in the TOC."""
-    if fname.endswith('(whitened)'):
-        fname = fname[:-11]
-
-    if not fname.endswith(VALID_EXTENSIONS + ('bem', 'custom')):
-        return 'red'
-    else:
-        return ''
-
-
-def _get_fname(fname):
-    """Get fname without -#-."""
-    if '-#-' in fname:
-        fname = fname.split('-#-')[0]
-    else:
-        fname = op.basename(fname)
-    fname = ' ... %s' % fname
-    return fname
-
 
 def _endswith(fname, suffixes):
     """Aux function to test if file name includes the specified suffixes."""
@@ -236,160 +411,6 @@ def _endswith(fname, suffixes):
                                f'_{suffix}{ext}', f'_{suffix}{ext}')):
                 return True
     return False
-
-
-def _get_toc_property(fname):
-    """Assign class names to TOC elements to allow button-based toggling."""
-    if _endswith(fname, 'eve'):
-        div_klass = 'events'
-        tooltip = fname
-        text = op.basename(fname)
-    elif _endswith(fname, 'ave'):
-        div_klass = 'evoked'
-        tooltip = fname
-        text = op.basename(fname)
-    elif _endswith(fname, 'cov'):
-        div_klass = 'covariance'
-        tooltip = fname
-        text = op.basename(fname)
-    elif _endswith(fname, 'proj'):
-        div_klass = 'ssp'
-        tooltip = fname
-        text = op.basename(fname)
-    elif _endswith(fname, ['raw', 'sss', 'meg', 'nirs']):
-        div_klass = 'raw'
-        tooltip = fname
-        text = op.basename(fname)
-    elif _endswith(fname, 'trans'):
-        div_klass = 'trans'
-        tooltip = fname
-        text = op.basename(fname)
-    elif _endswith(fname, 'fwd'):
-        div_klass = 'forward'
-        tooltip = fname
-        text = op.basename(fname)
-    elif _endswith(fname, 'inv'):
-        div_klass = 'inverse'
-        tooltip = fname
-        text = op.basename(fname)
-    elif _endswith(fname, 'epo'):
-        div_klass = 'epochs'
-        tooltip = fname
-        text = op.basename(fname)
-    elif fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz')):
-        div_klass = 'mri'
-        tooltip = 'MRI'
-        text = 'MRI'
-    elif fname.endswith(('bem')):
-        div_klass = 'bem'
-        tooltip = 'BEM'
-        text = 'BEM'
-    elif fname.endswith('(whitened)'):
-        div_klass = 'evoked'
-        tooltip = fname
-        text = op.basename(fname[:-11]) + '(whitened)'
-    else:
-        div_klass = fname.split('-#-')[1]
-        tooltip = fname.split('-#-')[0]
-        text = fname.split('-#-')[0]
-
-    return div_klass, tooltip, text
-
-
-def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
-                   image_format, data_path):
-    """Parallel process in batch mode."""
-    htmls, report_fnames, report_sectionlabels = [], [], []
-
-    def _update_html(html, report_fname, report_sectionlabel):
-        """Update the lists above."""
-        htmls.append(html)
-        report_fnames.append(report_fname)
-        report_sectionlabels.append(report_sectionlabel)
-
-    for fname in fnames:
-        logger.info("Rendering : %s"
-                    % op.join('...' + report.data_path[-20:],
-                              fname))
-        try:
-            if _endswith(fname, ['raw', 'sss', 'meg', 'nirs']):
-                html = report._render_raw(fname, data_path)
-                report_fname = fname
-                report_sectionlabel = 'raw'
-            elif _endswith(fname, 'fwd'):
-                html = report._render_forward(fname, data_path)
-                report_fname = fname
-                report_sectionlabel = 'forward'
-            elif _endswith(fname, 'inv'):
-                html = report._render_inverse(fname, data_path)
-                report_fname = fname
-                report_sectionlabel = 'inverse'
-            elif _endswith(fname, 'ave'):
-                if cov is not None:
-                    html = report._render_whitened_evoked(fname, cov, baseline,
-                                                          image_format,
-                                                          data_path)
-                    report_fname = fname + ' (whitened)'
-                    report_sectionlabel = 'evoked'
-                    _update_html(html, report_fname, report_sectionlabel)
-
-                html = report._render_evoked(fname, baseline, image_format,
-                                             data_path)
-                report_fname = fname
-                report_sectionlabel = 'evoked'
-            elif _endswith(fname, 'eve'):
-                html = report._render_eve(fname, sfreq, image_format,
-                                          data_path)
-                report_fname = fname
-                report_sectionlabel = 'events'
-            elif _endswith(fname, 'epo'):
-                html = report._render_epochs(fname, image_format, data_path)
-                report_fname = fname
-                report_sectionlabel = 'epochs'
-            elif _endswith(fname, 'cov') and report.info_fname is not None:
-                html = report._render_cov(fname, info, image_format, data_path)
-                report_fname = fname
-                report_sectionlabel = 'covariance'
-            elif _endswith(fname, 'proj') and report.info_fname is not None:
-                html = report._render_projs(proj_fname=fname,
-                                            info_fname=report.info_fname,
-                                            data_path=data_path)
-                report_fname = fname
-                report_sectionlabel = 'ssp'
-            elif (_endswith(fname, 'trans') and
-                  report.info_fname is not None and report.subjects_dir
-                  is not None and report.subject is not None):
-                html = report._render_trans(fname, report.data_path, info,
-                                            report.subject,
-                                            report.subjects_dir,
-                                            data_path)
-                report_fname = fname
-                report_sectionlabel = 'trans'
-            else:
-                html = None
-                report_fname = None
-                report_sectionlabel = None
-        except Exception as e:
-            if on_error == 'warn':
-                warn('Failed to process file %s:\n"%s"' % (fname, e))
-            elif on_error == 'raise':
-                raise
-            html = None
-            report_fname = None
-            report_sectionlabel = None
-
-        # Add SSP projectors found in the currently processed file, if any.
-        if (report.projs and report_fname is not None and
-                _endswith(fname, ['raw', 'sss', 'meg', 'epo', 'ave'])
-                and read_info(fname).get('projs')):
-            projs_html = report._render_projs(info_fname=fname,
-                                              data_path=data_path,
-                                              div_klass=report_sectionlabel)
-            html += f'\n\n{projs_html}'
-
-        _update_html(html, report_fname, report_sectionlabel)
-
-    return htmls, report_fnames, report_sectionlabels
 
 
 def open_report(fname, **params):
@@ -431,417 +452,15 @@ def open_report(fname, **params):
         report = Report(**params)
     # Keep track of the filename in case the Report object is used as a context
     # manager.
-    report._fname = fname
+    report.fname = fname
     return report
-
-
-###############################################################################
-# IMAGE FUNCTIONS
-
-def _build_image_png(data, cmap='gray'):
-    """Build an image encoded in base64."""
-    import matplotlib.pyplot as plt
-
-    figsize = data.shape[::-1]
-    if figsize[0] == 1:
-        figsize = tuple(figsize[1:])
-        data = data[:, :, 0]
-    fig = _figure_agg(figsize=figsize, dpi=100, frameon=False)
-    cmap = getattr(plt.cm, cmap, plt.cm.gray)
-    fig.figimage(data, cmap=cmap)
-    output = BytesIO()
-    fig.savefig(output, dpi=fig.get_dpi(), format='png')
-    return base64.b64encode(output.getvalue()).decode('ascii')
-
-
-def _iterate_mri_slices(name, ind, global_id, slides_klass, data, cmap):
-    """Auxiliary function for parallel processing of mri slices."""
-    img_klass = 'slideimg-%s' % name
-
-    caption = u'Slice %s %s' % (name, ind)
-    slice_id = '%s-%s-%s' % (name, global_id, ind)
-    div_klass = 'span12 %s' % slides_klass
-    img = _build_image_png(data, cmap=cmap)
-    first = True if ind == 0 else False
-    html = _build_html_image(img, slice_id, div_klass, img_klass, caption,
-                             first, image_format='png')
-    return ind, html
-
-
-###############################################################################
-# HTML functions
-
-def _build_html_image(img, id, div_klass, img_klass, caption=None,
-                      show=True, image_format='png'):
-    """Build a html image from a slice array."""
-    html = []
-    add_style = u'' if show else u'style="display: none"'
-    html.append(u'<li class="%s" id="%s" %s>' % (div_klass, id, add_style))
-    html.append(u'<div class="thumbnail">')
-    if image_format == 'png':
-        html.append(u'<img class="%s" alt="" src="data:image/png;base64,%s">'
-                    % (img_klass, img))
-    else:
-        html.append(u'<div style="text-align:center;" class="%s">%s</div>'
-                    % (img_klass, img))
-    html.append(u'</div>')
-    if caption:
-        html.append(u'<h4>%s</h4>' % caption)
-    html.append(u'</li>')
-    return u'\n'.join(html)
-
-
-slider_template = HTMLTemplate(u"""
-<script>$("#{{slider_id}}").slider({
-                       range: "min",
-                       /*orientation: "vertical",*/
-                       min: {{minvalue}},
-                       max: {{maxvalue}},
-                       step: {{step}},
-                       value: {{startvalue}},
-                       animate: true,
-                       create: function(event, ui) {
-                         $(".{{klass}}").hide();
-                         $("#{{klass}}-{{startvalue}}").show();
-                       },
-                       slide: function(event, ui) {
-                         $(".{{klass}}").hide();
-                         $("#{{klass}}-" + ui.value).show();
-                       }
-                       })</script>
-""")
-
-slider_full_template = Template(u"""
-<li class="{{div_klass}}" id="{{id}}">
-<h4>{{title}}</h4>
-<div class="thumbnail">
-    <ul><li class="slider">
-        <div class="row">
-            <div class="col-lg-10 col-lg-offset-1 col-xs-12">
-                <div id="{{slider_id}}"></div>
-                <ul class="thumbnail">
-                    {{image_html}}
-                </ul>
-                {{html}}
-            </div>
-        </div>
-    </li></ul>
-</div>
-</li>
-""")
-
-
-def _build_html_slider(slices_range, slides_klass, slider_id,
-                       start_value=None):
-    """Build an html slider for a given slices range and a slices klass."""
-    if start_value is None:
-        start_value = slices_range[len(slices_range) // 2]
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('ignore')
-        out = slider_template.substitute(
-            slider_id=slider_id, klass=slides_klass,
-            step=slices_range[1] - slices_range[0],
-            minvalue=slices_range[0], maxvalue=slices_range[-1],
-            startvalue=start_value)
-    return out
 
 
 ###############################################################################
 # HTML scan renderer
 
-header_template = Template(u"""
-<!DOCTYPE html>
-<html lang="{{lang}}">
-<head>
-<meta charset="UTF-8">
-{{include}}
-<script type="text/javascript">
-
-        function getAllOnOff() {
-            const all = $('.has_toggle');
-            const on = all.parent('.active').children('.has_toggle');
-            const off = all.not(on);
-            return [all, on, off];
-        }
-
-        function toggleAll(){
-            const [all, on, off] = getAllOnOff();
-            if (all.length == on.length)
-                on.trigger('click');
-            else
-                off.trigger('click');
-            updateToggleAllButton();
-        }
-
-        function updateToggleAllButton() {
-            const [all, on, off] = getAllOnOff();
-            const a = $('.mnetoggleall-btn').children();
-            if (all.length == on.length)
-                /* If this character is changed, it should be changed in the HTML below as well */
-                a.html('☒')
-            else
-                a.html('☑')
-        }
-
-        $(document).on('keydown', function (event) {
-            if (event.which == 84){
-                toggleAll();
-            }
-        });
-
-        function toggleButton(class_name){
-            if (class_name.includes('mnetoggleall'))
-                toggleAll();
-            else {
-                $(class_name).toggle();
-                if ($(class_name + '-btn').hasClass('active'))
-                    $(class_name + '-btn').removeClass('active');
-                else
-                    $(class_name + '-btn').addClass('active');
-                updateToggleAllButton();
-            }
-        }
-
-        /* Scroll down on click to #id so that caption is not hidden by navbar */
-        var shiftWindow = function() { scrollBy(0, -60) };
-        if (location.hash) shiftWindow();
-        window.addEventListener("hashchange", shiftWindow);
-
-        /* Prevent navbar from covering content */
-        function fixNavbarPadding() {
-            $('body').css('padding-top', parseInt($('#main-navbar').css("height"))-30);
-        }
-        $(window).resize(function () { fixNavbarPadding(); });
-        $(window).load(function () { fixNavbarPadding(); });
-        var observer = new MutationObserver(function(mutations) {
-          mutations.forEach(function(mutation) {
-            if (mutation.attributeName === "class") {
-              var attributeValue = $(mutation.target).prop(mutation.attributeName);
-              if (attributeValue.includes(" in") || attributeValue.includes(" collapse")) {
-                fixNavbarPadding();
-              }
-            }
-          });
-        });
-
-        /* Update things when document is ready */
-        $( document ).ready(function() {
-            updateToggleAllButton();
-            observer.observe($("#viewnavbar")[0], {attributes: true});
-        });
-        </script>
-<style type="text/css">
-
-body {
-    line-height: 1.5em;
-    font-family: arial, sans-serif;
-}
-
-h1 {
-    font-size: 30px;
-    text-align: center;
-}
-
-h4 {
-    text-align: center;
-}
-
-@link-color:       @brand-primary;
-@link-hover-color: darken(@link-color, 15%);
-
-a{
-    color: @link-color;
-    &:hover {
-        color: @link-hover-color;
-        text-decoration: underline;
-  }
-}
-
-li{
-    list-style-type:none;
-}
-
-#wrapper {
-    text-align: left;
-    margin: 5em auto;
-    width: 700px;
-}
-
-#container{
-    position: relative;
-}
-
-#content{
-    margin-left: 22%;
-    margin-top: 60px;
-    width: 75%;
-}
-
-#toc {
-  position: fixed;
-  width: 20%;
-  height: 90%;
-  overflow: auto;
-}
-
-#toc li {
-    overflow: hidden;
-    padding-bottom: 2px;
-    margin-left: 20px;
-}
-
-#toc span {
-    float: left;
-    padding: 0 2px 3px 0;
-}
-
-#godown{
-   height: 0px;
-}
-
-.navbar-toggle:after {
-    content: "▲";
-}
-.navbar-toggle.collapsed:after {
-    content: "▼";
-}
-footer .navbar-fixed-bottom {
-    min-height: 0px;
-}
-footer .navbar-text {
-    margin-top: 5px;
-    margin-bottom: 5px;
-}
-
-.w-100 {
-    width: 100%;
-}
-
-</style>
-</head>
-<body>
-
-<nav class="navbar navbar-inverse navbar-fixed-top navbar-static-top" role="navigation" id="main-navbar">
-    <div class="container-fluid">
-        <div class="navbar-header navbar-left">
-            <ul class="nav nav-pills"><li class="active">
-                <a class="navbar-toggle" data-toggle="collapse" data-target="#viewnavbar" href="javascript:void(0)"></a>
-            </li></ul>
-        </div>
-        <h3 class="navbar-text" style="color:white">{{title}}</h3>
-        <div class="nav-collapse navbar-right in" id="viewnavbar">
-            <ul class="nav nav-pills">
-
-            {{for section in sections}}
-
-            <li class="active {{sectionvars[section]}}-btn">
-               <a href="javascript:void(0)" onclick="toggleButton('.{{sectionvars[section]}}')" class="has_toggle">
-                   {{section}}
-               </a>
-            </li>
-
-            {{endfor}}
-
-            <li class="active mnetoggleall-btn">
-               <a href="javascript:void(0)" onclick="toggleButton('.mnetoggleall')">☒</a>
-            </li>
-
-            </ul>
-        </div>
-    </div>
-</nav>
-""")  # noqa: E501
-
-footer_template = HTMLTemplate(u"""
-</div>
-<footer>
-<div class="navbar navbar-default navbar-fixed-bottom text-center"><p class="navbar-text col-md-12">
-Created on {{date}}.
-</p></div></div>
-</footer>
-</body>
-</html>
-""")  # noqa: E501
-
-html_template = Template(u"""
-<li class="{{div_klass}}" id="{{id}}">
-    <h4>{{caption}}</h4>
-    <div class="thumbnail">{{html}}</div>
-</li>
-""")
-
-image_template = Template(u"""
-
-{{default interactive = False}}
-{{default width = 50}}
-{{default id = False}}
-{{default image_format = 'png'}}
-{{default scale = None}}
-{{default comment = None}}
-
-<li class="{{div_klass}}" {{if id}}id="{{id}}"{{endif}}
-{{if not show}}style="display: none"{{endif}}>
-
-{{if caption}}
-<h4>{{caption}}</h4>
-{{endif}}
-<div class="thumbnail">
-{{if not interactive}}
-    {{if image_format == 'png'}}
-        {{if scale is not None}}
-            <img alt="" style="width:{{width}}%;"
-             src="data:image/png;base64,{{img}}">
-        {{else}}
-            <img alt=""
-             src="data:image/png;base64,{{img}}">
-        {{endif}}
-    {{elif image_format == 'gif'}}
-        {{if scale is not None}}
-            <img alt="" style="width:{{width}}%;"
-             src="data:image/gif;base64,{{img}}">
-        {{else}}
-            <img alt=""
-             src="data:image/gif;base64,{{img}}">
-        {{endif}}
-    {{elif image_format == 'svg'}}
-        <div style="text-align:center;">
-            {{img}}
-        </div>
-    {{endif}}
-    {{if comment is not None}}
-        <br><br>
-        <div style="text-align:center;">
-            <style>
-                p.test {word-wrap: break-word;}
-            </style>
-            <p class="test">
-                {{comment}}
-            </p>
-        </div>
-    {{endif}}
-{{else}}
-    <center>{{interactive}}</center>
-{{endif}}
-</div>
-</li>
-""")
-
-repr_template = Template(u"""
-<li class="{{div_klass}}" id="{{id}}">
-<h4>{{caption}}</h4><hr>
-{{repr}}
-<hr></li>
-""")
-
-toc_list = Template(u"""
-<li class="{{div_klass}}">
-    {{if id}}
-        <a href="javascript:void(0)" onclick="window.location.hash={{id}};">
-    {{endif}}
-<span title="{{tooltip}}" style="color:{{color}}"> {{text}}</span>
-{{if id}}</a>{{endif}}
-</li>
-""")
+mne_logo_path = Path(__file__).parents[1] / 'icons' / 'mne_icon-cropped.png'
+mne_logo = base64.b64encode(mne_logo_path.read_bytes()).decode('ascii')
 
 
 def _check_scale(scale):
@@ -852,11 +471,10 @@ def _check_scale(scale):
 
 def _check_image_format(rep, image_format):
     """Ensure fmt is valid."""
-    if rep is None:
-        _check_option('image_format', image_format, ['png', 'svg'])
-    elif image_format is not None:
-        _check_option('image_format', image_format, ['png', 'svg', None])
-    else:  # rep is not None and image_format is None
+    if rep is None or image_format is not None:
+        _check_option('image_format', image_format,
+                      allowed_values=('png', 'svg', 'gif'))
+    else:
         image_format = rep.image_format
     return image_format
 
@@ -878,9 +496,9 @@ class Report(object):
         Name of the file containing the noise covariance.
     %(baseline_report)s
         Defaults to ``None``, i.e. no baseline correction.
-    image_format : str
-        Default image format to use (default is 'png').
-        SVG uses vector graphics, so fidelity is higher but can increase
+    image_format : 'png' | 'svg' | 'gif'
+        Default image format to use (default is ``'png'``).
+        ``'svg'`` uses vector graphics, so fidelity is higher but can increase
         file size and browser image rendering time as well.
 
         .. versionadded:: 0.15
@@ -912,9 +530,7 @@ class Report(object):
     %(baseline_report)s
         Defaults to ``None``, i.e. no baseline correction.
     image_format : str
-        Default image format to use (default is 'png').
-        SVG uses vector graphics, so fidelity is higher but can increase
-        file size and browser image rendering time as well.
+        Default image format to use.
 
         .. versionadded:: 0.15
 
@@ -963,35 +579,34 @@ class Report(object):
         self.projs = projs
         self.verbose = verbose
 
-        self._initial_id = 0
-        self.html = []
+        self._dom_id = 0
+        self._content = []
         self.include = []
-        self.fnames = []  # List of file names rendered
-        self.sections = []  # List of sections
         self.lang = 'en-us'  # language setting for the HTML file
-        self._sectionlabels = []  # Section labels
-        self._sectionvars = {}  # Section variable names in js
-        # boolean to specify if sections should be ordered in natural
-        # order of processing (raw -> events ... -> inverse)
-        self._sort_sections = False
         if not isinstance(raw_psd, bool) and not isinstance(raw_psd, dict):
             raise TypeError('raw_psd must be bool or dict, got %s'
                             % (type(raw_psd),))
         self.raw_psd = raw_psd
         self._init_render()  # Initialize the renderer
 
+        self.fname = None  # The name of the saved report
+        self.data_path = None
+
     def __repr__(self):
         """Print useful info about report."""
-        s = '<Report | %d items' % len(self.fnames)
+        s = f'<Report | {len(self._content)} items'
         if self.title is not None:
-            s += ' | %s' % self.title
-        fnames = [_get_fname(f) for f in self.fnames]
-        if len(self.fnames) > 4:
-            s += '\n%s' % '\n'.join(fnames[:2])
+            s += f' | {self.title}'
+        content_element_names = [element.name for element in self._content]
+        if len(content_element_names) > 4:
+            first_entries = '\n'.join(content_element_names[:2])
+            last_entries = '\n'.join(content_element_names[-2:])
+            s += f'\n{first_entries}'
             s += '\n ...\n'
-            s += '\n'.join(fnames[-2:])
-        elif len(self.fnames) > 0:
-            s += '\n%s' % '\n'.join(fnames)
+            s += last_entries
+        elif len(content_element_names) > 0:
+            entries = '\n'.join(content_element_names)
+            s += f'\n{entries}'
         s += '\n>'
         return s
 
@@ -1003,39 +618,77 @@ class Report(object):
         n_files : int
             The number of files processed.
         """
-        return len(self.fnames)
+        return len(self._content)
 
-    def _get_id(self):
+    @staticmethod
+    def _get_state_params():
+        # Which attributes to store in and read from HDF5 files
+        return (
+            'baseline', 'cov_fname',  'include', '_content', 'image_format',
+            'info_fname', '_dom_id', 'raw_psd', 'projs',
+            'subjects_dir', 'subject', 'title', 'data_path', 'lang', 'verbose'
+        )
+
+    def _get_dom_id(self):
         """Get id of plot."""
-        self._initial_id += 1
-        return self._initial_id
+        self._dom_id += 1
+        return f'global{self._dom_id}'
 
-    def _validate_input(self, items, captions, section, comments=None):
+    def _validate_topomap_kwargs(self, topomap_kwargs):
+        _validate_type(topomap_kwargs, (dict, None), 'topomap_kwargs')
+        topomap_kwargs = dict() if topomap_kwargs is None else topomap_kwargs
+        return topomap_kwargs
+
+    def _validate_input(self, items, captions, tag, comments=None):
         """Validate input."""
         if not isinstance(items, (list, tuple)):
             items = [items]
         if not isinstance(captions, (list, tuple)):
             captions = [captions]
-        if not isinstance(comments, (list, tuple)):
-            if comments is None:
-                comments = [comments] * len(captions)
-            else:
-                comments = [comments]
-        if len(comments) != len(items):
-            raise ValueError('Comments and report items must have the same '
-                             'length or comments should be None, got %d and %d'
-                             % (len(comments), len(items)))
-        elif len(captions) != len(items):
-            raise ValueError('Captions and report items must have the same '
-                             'length, got %d and %d'
-                             % (len(captions), len(items)))
-
-        # Book-keeping of section names
-        if section not in self.sections:
-            self.sections.append(section)
-            self._sectionvars[section] = _clean_varnames(section)
-
+        if not isinstance(comments, (list, tuple)) and comments is not None:
+            comments = [comments]
+        if comments is not None and len(comments) != len(items):
+            raise ValueError(
+                f'Number of "comments" and report items must be equal, '
+                f'or comments should be None; got '
+                f'{len(comments)} and {len(items)}'
+            )
+        elif captions is not None and len(captions) != len(items):
+            raise ValueError(
+                f'Number of "captions" and report items must be equal; '
+                f'got {len(captions)} and {len(items)}'
+            )
         return items, captions, comments
+
+    @property
+    def html(self):
+        return [element.html for element in self._content]
+
+    @property
+    def fnames(self):
+        warn(
+            message='Report.fnames is deprecated',
+            category=DeprecationWarning
+        )
+        return [element.name for element in self._content]
+
+    @property
+    def sections(self):
+        warn(
+            message='Report.sections is deprecated. Use Reports.tags instead',
+            category=DeprecationWarning
+        )
+        return self.tags
+
+    @property
+    def tags(self):
+        """All tags currently used in the report."""
+        tags = []
+        for c in self._content:
+            tags.extend(c.tags)
+
+        tags = tuple(sorted(set(tags)))
+        return tags
 
     def add_custom_css(self, css):
         """Add custom CSS to the report.
@@ -1069,92 +722,824 @@ class Report(object):
         script = f'\n<script type="text/javascript">\n{js}\n</script>'
         self.include += script
 
-    def remove(self, caption, section=None):
-        """Remove a figure from the report.
+    @fill_doc
+    def add_epochs(self, epochs, title, *, psd=True, projs=None,
+                   tags=('epochs',), replace=False, topomap_kwargs=None):
+        """Add `~mne.Epochs` to the report.
 
-        The figure to remove is searched for by its caption. When searching by
-        caption, the section label can be specified as well to narrow down the
-        search. If multiple figures match the search criteria, the last one
-        will be removed.
+        Parameters
+        ----------
+        epochs : path-like | instance of mne.Epochs
+            The epochs to add to the report.
+        title : str
+            The title to add.
+        psd : bool | None
+            Whether to add PSD plots.
+        %(report_projs)s
+        %(report_tags)s
+        %(report_replace)s
+        %(topomap_kwargs)s
 
-        Any empty sections will be removed as well.
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        tags = tuple(tags)
+
+        add_projs = self.projs if projs is None else projs
+
+        htmls = self._render_epochs(
+            epochs=epochs,
+            add_psd=psd,
+            add_projs=add_projs,
+            tags=tags,
+            image_format=self.image_format,
+            topomap_kwargs=topomap_kwargs,
+        )
+        repr_html, drop_log_html, psd_html, ssp_projs_html = htmls
+
+        dom_id = self._get_dom_id()
+        html = _html_epochs_element(
+            repr=repr_html,
+            drop_log=drop_log_html,
+            psd=psd_html,
+            ssp_projs=ssp_projs_html,
+            tags=tags,
+            title=title,
+            id=dom_id,
+        )
+        self._add_or_replace(
+            name=title,
+            dom_id=dom_id,
+            tags=tags,
+            html=html,
+            replace=replace
+        )
+
+    @fill_doc
+    def add_evokeds(self, evokeds, *, titles=None, noise_cov=None, projs=None,
+                    n_time_points=None, tags=('evoked',), replace=False,
+                    topomap_kwargs=None):
+        """Add `~mne.Evoked` objects to the report.
+
+        Parameters
+        ----------
+        evokeds : path-like | instance of mne.Evoked | list of mne.Evoked
+            The evoked data to add to the report. Multiple `~mne.Evoked`
+            objects – as returned from `mne.read_evokeds` – can be passed as
+            a list.
+        titles : str | list of str | None
+            The titles corresponding to the evoked data. If ``None``, the
+            content of ``evoked.comment`` from each evoked will be used as
+            title.
+        noise_cov : path-like | instance of Covariance | None
+            A noise covariance matrix. If provided, will be used to whiten
+            the ``evokeds``. If ``None``, will fall back to the ``cov_fname``
+            provided upon report creation.
+        %(report_projs)s
+        n_time_points : int | None
+            The number of equidistant time points to render. If ``None``,
+            will render each `~mne.Evoked` at 21 time points, unless the data
+            contains fewer time points, in which case all will be rendered.
+        %(report_tags)s
+        %(report_replace)s
+        %(topomap_kwargs)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        if isinstance(evokeds, Evoked):
+            evokeds = [evokeds]
+        elif isinstance(evokeds, list):
+            pass
+        else:
+            evoked_fname = evokeds
+            logger.debug(f'Evoked: Reading {evoked_fname}')
+            evokeds = read_evokeds(evoked_fname, verbose=False)
+
+        if self.baseline is not None:
+            evokeds = [e.copy().apply_baseline(self.baseline)
+                       for e in evokeds]
+
+        if titles is None:
+            titles = [e.comment for e in evokeds]
+        elif isinstance(titles, str):
+            titles = [titles]
+
+        if len(evokeds) != len(titles):
+            raise ValueError(
+                f'Number of evoked objects ({len(evokeds)}) must '
+                f'match number of captions ({len(titles)})'
+            )
+
+        if noise_cov is None:
+            noise_cov = self.cov_fname
+        if noise_cov is not None and not isinstance(noise_cov, Covariance):
+            noise_cov = read_cov(fname=noise_cov)
+        tags = tuple(tags)
+
+        add_projs = self.projs if projs is None else projs
+
+        for evoked, title in zip(evokeds, titles):
+            evoked_htmls = self._render_evoked(
+                evoked=evoked,
+                noise_cov=noise_cov,
+                image_format=self.image_format,
+                add_projs=add_projs,
+                n_time_points=n_time_points,
+                tags=tags,
+                topomap_kwargs=topomap_kwargs
+            )
+
+            (joint_html, slider_html, gfp_html, whitened_html,
+             ssp_projs_html) = evoked_htmls
+
+            dom_id = self._get_dom_id()
+            html = _html_evoked_element(
+                id=dom_id,
+                joint=joint_html,
+                slider=slider_html,
+                gfp=gfp_html,
+                whitened=whitened_html,
+                ssp_projs=ssp_projs_html,
+                title=title,
+                tags=tags
+            )
+            self._add_or_replace(
+                dom_id=dom_id,
+                name=title,
+                tags=tags,
+                html=html,
+                replace=replace
+            )
+
+    @fill_doc
+    def add_raw(self, raw, title, *, psd=None, projs=None, butterfly=True,
+                tags=('raw',), replace=False, topomap_kwargs=None):
+        """Add `~mne.io.Raw` objects to the report.
+
+        Parameters
+        ----------
+        raw : path-like | instance of mne.io.BaseRaw
+            The data to add to the report.
+        title : str
+            The title corresponding to the ``raw`` object.
+        psd : bool | None
+            Whether to add PSD plots. Overrides the ``raw_psd`` parameter
+            passed when initializing the `~mne.Report`. If ``None``, use
+            ``raw_psd`` from `~mne.Report` creation.
+        %(report_projs)s
+        butterfly : bool
+            Whether to add a butterfly plot of the (decimated) data. Can be
+            useful to spot segments marked as "bad" and problematic channels.
+        %(report_tags)s
+        %(report_replace)s
+        %(topomap_kwargs)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        tags = tuple(tags)
+
+        if psd is None:
+            add_psd = dict() if self.raw_psd is True else self.raw_psd
+        elif psd is True:
+            add_psd = dict()
+        else:
+            add_psd = False
+
+        add_projs = self.projs if projs is None else projs
+
+        htmls  = self._render_raw(
+            raw=raw,
+            add_psd=add_psd,
+            add_projs=add_projs,
+            add_butterfly=butterfly,
+            image_format=self.image_format,
+            tags=tags,
+            topomap_kwargs=topomap_kwargs,
+        )
+        repr_html, psd_img_html, butterfly_img_html, ssp_proj_img_html = htmls
+        dom_id = self._get_dom_id()
+        html = _html_raw_element(
+            repr=repr_html,
+            psd=psd_img_html,
+            butterfly=butterfly_img_html,
+            ssp_projs=ssp_proj_img_html,
+            tags=tags,
+            title=title,
+            id=dom_id,
+        )
+        self._add_or_replace(
+            dom_id=dom_id,
+            name=title,
+            tags=tags,
+            html=html,
+            replace=replace
+        )
+
+    @fill_doc
+    def add_stc(self, stc, title, *, subject=None, subjects_dir=None,
+                n_time_points=None, tags=('source-estimate',), replace=False,
+                stc_plot_kwargs=None):
+        """Add a `~mne.SourceEstimate` (STC) to the report.
+
+        Parameters
+        ----------
+        stc : path-like | instance of mne.SourceEstimate
+            The `~mne.SourceEstimate` to add to the report.
+        title : str
+            The title to add.
+        subject : str | None
+            The name of the FreeSurfer subject the STC belongs to. The name is
+            not stored with the STC data and therefore needs to be specified.
+            If ``None``, will use the value of ``subject`` passed on report
+            creation.
+        subjects_dir : path-like | None
+            The FreeSurfer ``SUBJECTS_DIR``.
+        n_time_points : int | None
+            The number of equidistant time points to render. If ``None``,
+            will render ``stc`` at 51 time points, unless the data
+            contains fewer time points, in which case all will be rendered.
+        %(report_tags)s
+        %(report_replace)s
+        %(report_stc_plot_kwargs)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        tags = tuple(tags)
+
+        html, dom_id = self._render_stc(
+            stc=stc,
+            title=title,
+            tags=tags,
+            image_format=self.image_format,
+            subject=subject,
+            subjects_dir=subjects_dir,
+            n_time_points=n_time_points,
+            stc_plot_kwargs=stc_plot_kwargs
+        )
+        self._add_or_replace(
+            dom_id=dom_id,
+            name=title,
+            tags=tags,
+            html=html,
+            replace=replace
+        )
+
+    @fill_doc
+    def add_forward(self, forward, title, *, subject=None, subjects_dir=None,
+                    tags=('forward-solution',), replace=False):
+        """Add a forward solution.
+
+        Parameters
+        ----------
+        forward : instance of mne.Forward | path-like
+            The forward solution to add to the report.
+        title : str
+            The title corresponding to forward solution.
+        subject : str | None
+            The name of the FreeSurfer subject ``forward`` belongs to. If
+            provided, the sensitivity maps of the forward solution will
+            be visualized. If ``None``, will use the value of ``subject``
+            passed on report creation. If supplied, also pass ``subjects_dir``.
+        subjects_dir : path-like | None
+            The FreeSurfer ``SUBJECTS_DIR``.
+        %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        tags = tuple(tags)
+
+        html, dom_id = self._render_forward(
+            forward=forward, subject=subject, subjects_dir=subjects_dir,
+            title=title, image_format=self.image_format, tags=tags
+        )
+        self._add_or_replace(
+            dom_id=dom_id,
+            name=title,
+            tags=tags,
+            html=html,
+            replace=replace
+        )
+
+    @fill_doc
+    def add_inverse_operator(self, inverse_operator, title, *, subject=None,
+                             subjects_dir=None, trans=None,
+                             tags=('inverse-operator',), replace=False):
+        """Add an inverse operator.
+
+        Parameters
+        ----------
+        inverse_operator : instance of mne.minimum_norm.InverseOperator |
+                           path-like
+
+            The inverse operator to add to the report.
+        title : str
+            The title corresponding to the inverse operator object.
+        subject : str | None
+            The name of the FreeSurfer subject ``inverse_op`` belongs to. If
+            provided, the source space the inverse solution is based on will
+            be visualized. If ``None``, will use the value of ``subject``
+            passed on report creation. If supplied, also pass ``subjects_dir``
+            and ``trans``.
+        subjects_dir : path-like | None
+            The FreeSurfer ``SUBJECTS_DIR``.
+        trans : path-like | instance of mne.transforms.Transform | None
+            The ``head -> MRI`` transformation for ``subject``.
+        %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        tags = tuple(tags)
+
+        if ((subject is not None and trans is None) or
+                (trans is not None and subject is None)):
+            raise ValueError('Please pass subject AND trans, or neither.')
+
+        html, dom_id = self._render_inverse_operator(
+            inverse_operator=inverse_operator, subject=subject,
+            subjects_dir=subjects_dir, trans=trans, title=title,
+            image_format=self.image_format, tags=tags
+        )
+        self._add_or_replace(
+            dom_id=dom_id,
+            name=title,
+            tags=tags,
+            html=html,
+            replace=replace
+        )
+
+    @fill_doc
+    def add_trans(self, trans, *, info, title, subject=None, subjects_dir=None,
+                  tags=('coregistration',), replace=False):
+        """Add a coregistration visualization to the report.
+
+        Parameters
+        ----------
+        trans : path-like | instance of mne.transforms.Transform
+            The ``head -> MRI`` transformation to render.
+        info : path-like | instance of mne.Info
+            The `~mne.Info` corresponding to ``trans``.
+        title : str
+            The title to add.
+        subject : str | None
+            The name of the FreeSurfer subject the ``trans```` belong to. The
+            name is not stored with the ``trans`` and therefore needs to be
+            specified. If ``None``, will use the value of ``subject`` passed on
+            report creation.
+        subjects_dir : path-like | None
+            The FreeSurfer ``SUBJECTS_DIR``.
+        %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        tags = tuple(tags)
+
+        html, dom_id = self._render_trans(
+            trans=trans,
+            info=info,
+            subject=subject,
+            subjects_dir=subjects_dir,
+            title=title,
+            tags=tags
+        )
+        self._add_or_replace(
+            dom_id=dom_id,
+            name=title,
+            tags=tags,
+            html=html,
+            replace=replace
+        )
+
+    @fill_doc
+    def add_covariance(self, cov, *, info, title, tags=('covariance',),
+                       replace=False):
+        """Add covariance to the report.
+
+        Parameters
+        ----------
+        cov : path-like | instance of mne.Covariance
+            The `~mne.Covariance` to add to the report.
+        info : path-like | instance of mne.Info
+            The `~mne.Info` corresponding to ``cov``.
+        title : str
+            The title corresponding to the `~mne.Covariance` object.
+        %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        tags = tuple(tags)
+        htmls = self._render_cov(
+            cov=cov,
+            info=info,
+            image_format=self.image_format,
+            tags=tags
+        )
+        cov_matrix_html, cov_svd_html = htmls
+
+        dom_id = self._get_dom_id()
+        html = _html_cov_element(
+            matrix=cov_matrix_html,
+            svd=cov_svd_html,
+            tags=tags,
+            title=title,
+            id=dom_id
+        )
+        self._add_or_replace(
+            dom_id=dom_id,
+            name=title,
+            tags=tags,
+            html=html,
+            replace=replace
+        )
+
+    @fill_doc
+    def add_events(self, events, title, *, event_id=None, sfreq, first_samp=0,
+                   tags=('events',), replace=False):
+        """Add events to the report.
+
+        Parameters
+        ----------
+        events : path-like | array, shape (n_events, 3)
+            An MNE-Python events array.
+        title : str
+            The title corresponding to the events.
+        event_id : dict
+            A dictionary mapping event names (keys) to event codes (values).
+        sfreq : float
+            The sampling frequency used while recording.
+        first_samp : int
+            The first sample point in the recording. This corresponds to
+            ``raw.first_samp`` on files created with Elekta/Neuromag systems.
+        %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        tags = tuple(tags)
+        html, dom_id = self._render_events(
+            events=events,
+            event_id=event_id,
+            sfreq=sfreq,
+            first_samp=first_samp,
+            title=title,
+            image_format=self.image_format,
+            tags=tags
+        )
+        self._add_or_replace(
+            dom_id=dom_id,
+            name=title,
+            tags=tags,
+            html=html,
+            replace=replace
+        )
+
+    @fill_doc
+    def add_projs(self, *, info, projs=None, title, tags=('ssp',),
+                  replace=False, topomap_kwargs=None):
+        """Render (SSP) projection vectors.
+
+        Parameters
+        ----------
+        info : instance of mne.Info | path-like
+            An `~mne.Info` structure or the path of a file containing one. This
+            is required to create the topographic plots.
+        projs : iterable of mne.Projection | path-like | None
+            The projection vectors to add to the report. Can be the path to a
+            file that will be loaded via `mne.read_proj`. If ``None``, the
+            projectors are taken from ``info['projs']``.
+        title : str
+            The title corresponding to the `~mne.Projection` object.
+        %(report_tags)s
+        %(report_replace)s
+        %(topomap_kwargs)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        tags = tuple(tags)
+        output = self._render_ssp_projs(
+            info=info, projs=projs, title=title,
+            image_format=self.image_format, tags=tags,
+            topomap_kwargs=topomap_kwargs,
+        )
+        if output is None:
+            raise ValueError(
+                'The provided data does not contain digitization information. '
+                'However, this is required for rendering the SSP projectors.'
+            )
+        else:
+            html, dom_id = output
+
+        self._add_or_replace(
+            dom_id=dom_id,
+            name=title,
+            tags=tags,
+            html=html,
+            replace=replace
+        )
+
+    def remove(self, caption=None, section=None, *, title=None, tags=None,
+               remove_all=False):
+        """Remove elements from the report.
+
+        The element to remove is searched for by its title. Optionally, tags
+        may be specified as well to narrow down the search to elements that
+        have the supplied tags.
 
         Parameters
         ----------
         caption : str
-            If set, search for the figure by caption.
+            Remove content based on its caption.
+
+            .. deprecated:: 0.24.0
+               This parameter is scheduled for removal. Use ``title`` instead.
         section : str | None
-            If set, limit the search to the section with the given label.
+            If supplied, restrict the operation to elements within the supplied
+            section.
+
+            .. deprecated:: 0.24.0
+               This parameter is scheduled for removal. Use ``tags`` instead.
+        title : str
+            The title of the element(s) to remove.
+
+            .. versionadded:: 0.24.0
+        tags : collection of str | None
+             If supplied, restrict the operation to elements with the supplied
+             tags.
+
+            .. versionadded:: 0.24.0
+        remove_all : bool
+            Controls the behavior if multiple elements match the search
+            criteria. If ``False`` (default) only the element last added to the
+            report will be removed. If ``True``, all matches will be removed.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
-        removed_index : int | None
-            The integer index of the figure that was removed, or ``None`` if no
-            figure matched the search criteria.
+        removed_index : int | tuple of int | None
+            The indices of the elements that were removed, or ``None`` if no
+            element matched the search criteria. A tuple will always be
+            returned if ``remove_all`` was set to ``True`` and at least one
+            element was removed.
+
+            .. versionchanged:: 0.24.0
+               Returns tuple if ``remove_all`` is ``True``.
         """
-        # Construct the search pattern
-        pattern = r'^%s-#-.*-#-custom$' % caption
-
-        # Search for figures matching the search pattern, regardless of
-        # section
-        matches = [i for i, fname_ in enumerate(self.fnames)
-                   if re.match(pattern, fname_)]
+        if caption is not None:
+            warn(
+                message='The "caption" parameter has been deprecated. Please '
+                        'use "title" instead',
+                category=DeprecationWarning
+            )
+            title = caption
         if section is not None:
-            # Narrow down the search to the given section
-            svar = self._sectionvars[section]
-            matches = [i for i in matches
-                       if self._sectionlabels[i] == svar]
-        if len(matches) == 0:
-            return None
+            warn(
+                message='The "section" parameter has been deprecated. Please '
+                        'use "tags" instead',
+                category=DeprecationWarning
+            )
+            tags = _clean_tags(section)
 
-        # Remove last occurrence
-        index = max(matches)
+        remove_idx = []
+        for idx, element in enumerate(self._content):
+            if element.name == title:
+                if (tags is not None and
+                        not all(t in element.tags for t in tags)):
+                    continue
+                remove_idx.append(idx)
 
-        # Remove the figure
-        del self.fnames[index]
-        del self._sectionlabels[index]
-        del self.html[index]
+        if not remove_idx:
+            remove_idx = None
+        elif not remove_all:  # only remove last occurrence
+            remove_idx = remove_idx[-1]
+            del self._content[remove_idx]
+        else:  # remove all occurrences
+            remove_idx = tuple(remove_idx)
+            self._content = [e for idx, e in enumerate(self._content)
+                             if idx not in remove_idx]
 
-        # Remove any (now) empty sections.
-        # We use a list() to copy the _sectionvars dictionary, since we are
-        # removing elements during the loop.
-        for section_, sectionlabel_ in list(self._sectionvars.items()):
-            if sectionlabel_ not in self._sectionlabels:
-                self.sections.remove(section_)
-                del self._sectionvars[section_]
+        return remove_idx
 
-        return index
-
-    def _add_or_replace(self, fname, sectionlabel, html, replace=False):
-        """Append a figure to the report, or replace it if it already exists.
+    def _add_or_replace(self, *, name, dom_id, tags, html, replace=False):
+        """Append HTML content report, or replace it if it already exists.
 
         Parameters
         ----------
-        fname : str
-            A unique identifier for the figure. If a figure with this
-            identifier has already been added, it will be replaced.
-        sectionlabel : str
-            The section to place the figure in.
+        name : str
+            The entry under which the content shall be listed in the table of
+            contents. If it already exists, the content will be replaced if
+            ``replace`` is ``True``
+        dom_id : str
+            A unique element ``id`` in the DOM.
+        tags : tuple of str
+            The tags associated with the added element.
         html : str
-            The HTML that contains the figure.
+            The HTML.
         replace : bool
-            Existing figures are only replaced if this is set to ``True``.
-            Defaults to ``False``.
+            Whether to replace existing content.
         """
         assert isinstance(html, str)  # otherwise later will break
-        if replace and fname in self.fnames:
-            # Find last occurrence of the figure
-            ind = max([i for i, existing in enumerate(self.fnames)
-                       if existing == fname])
-            self.fnames[ind] = fname
-            self._sectionlabels[ind] = sectionlabel
-            self.html[ind] = html
-        else:
-            # Append new record
-            self.fnames.append(fname)
-            self._sectionlabels.append(sectionlabel)
-            self.html.append(html)
 
+        new_content = _ContentElement(
+            name=name,
+            name_html_escaped=stdlib_html.escape(name),
+            dom_id=dom_id,
+            tags=tags,
+            html=html
+        )
+
+        existing_names = [element.name for element in self._content]
+        if name in existing_names and replace:
+            # Find and replace existing content, starting from the last element
+            for idx, content_element in enumerate(self._content[::-1]):
+                if content_element.name == name:
+                    self._content[idx] = new_content
+                    return
+            raise RuntimeError('This should never happen')
+        else:
+            # Append new content
+            self._content.append(new_content)
+
+    def _render_code(self, *, code, title, language, tags):
+        if isinstance(code, Path):
+            code = Path(code).read_text()
+
+        dom_id = self._get_dom_id()
+        html = _html_code_element(
+            tags=tags,
+            title=title,
+            id=dom_id,
+            code=code,
+            language=language
+        )
+        return html, dom_id
+
+    @fill_doc
+    def add_code(self, code, title, *, language='python', tags=('code',),
+                 replace=False):
+        """Add a code snippet (e.g., an analysis script) to the report.
+
+        Parameters
+        ----------
+        code : str | pathlib.Path
+            The code to add to the report as a string, or the path to a file
+            as a `pathlib.Path` object.
+
+            .. note:: Paths must be passed as `pathlib.Path` object, since
+                      strings will be treated as literal code.
+        title : str
+            The title corresponding to the code.
+        language : str
+            The programming language of ``code``. This will be used for syntax
+            highlighting. Can be ``'auto'`` to try to auto-detect the language.
+        %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        tags = tuple(tags)
+        language = language.lower()
+        html, dom_id = self._render_code(
+            code=code, title=title, language=language, tags=tags
+        )
+        self._add_or_replace(
+            dom_id=dom_id,
+            name=title,
+            tags=tags,
+            html=html,
+            replace=replace
+        )
+
+    @fill_doc
+    def add_sys_info(self, title, *, tags=('mne-sysinfo',)):
+        """Add a MNE-Python system information to the report.
+
+        This is a convenience method that captures the output of
+        `mne.sys_info` and adds it to the report.
+
+        Parameters
+        ----------
+        title : str
+            The title to assign.
+        %(report_tags)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        tags = tuple(tags)
+
+        with contextlib.redirect_stdout(StringIO()) as f:
+            sys_info()
+
+        info = f.getvalue()
+        self.add_code(code=info, title=title, language='shell', tags=tags)
+
+    @fill_doc
+    def add_figure(self, fig, title, *, caption=None, image_format=None,
+                   tags=('custom-figure',), replace=False):
+        """Add figures to the report.
+
+        Parameters
+        ----------
+        fig : matplotlib.figure.Figure | mlab.Figure | array |
+              collection of matplotlib.figure.Figure |
+              collection of mlab.Figure | collection of array
+
+            One or more figures to add to the report. All figures must be an
+            instance of :class:`matplotlib.figure.Figure`,
+            :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`. If
+            multiple figures are passed, they will be added as "slides"
+            that can be navigated using buttons and a slider element.
+        title : str
+            The title corresponding to the figure(s).
+        caption : str | collection of str | None
+            The caption(s) to add to the figure(s).
+        %(report_image_format)s
+        %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        tags = tuple(tags)
+        if image_format is None:
+            image_format = self.image_format
+
+        if hasattr(fig, '__len__') and not isinstance(fig, np.ndarray):
+            figs = tuple(fig)
+        else:
+            figs = (fig,)
+
+        for fig in figs:
+            if _check_path_like(fig):
+                raise TypeError(
+                    f'It seems you passed a path to `add_figure`. However, '
+                    f'only Matplotlib figures, Mayavi scenes, and NumPy '
+                    f'arrays are accepted. You may want to try `add_image` '
+                    f'instead. The provided path was: {fig}'
+                )
+        del fig
+
+        if isinstance(caption, str):
+            captions = (caption,)
+        elif caption is None:
+            captions = [f'Figure {i+1}' for i in range(len(figs))]
+        else:
+            captions = tuple(caption)
+
+        del caption
+
+        assert figs
+        if len(figs) == 1:
+            img = _fig_to_img(fig=figs[0], image_format=image_format)
+            dom_id = self._get_dom_id()
+            html = _html_image_element(
+                img=img, div_klass='custom-image', img_klass='custom-image',
+                title=title, caption=captions[0], show=True,
+                image_format=image_format, id=dom_id, tags=tags
+            )
+        else:
+            html, dom_id = self._render_slider(
+                figs=figs, title=title, captions=captions, start_idx=0,
+                image_format=image_format, tags=tags
+            )
+
+        self._add_or_replace(
+            dom_id=dom_id,
+            name=title,
+            tags=tags,
+            html=html,
+            replace=replace
+        )
+
+    @deprecated('Use :meth:`~mne.Report.add_figure` instead')
+    @fill_doc
     def add_figs_to_section(self, figs, captions, section='custom',
                             scale=None, image_format=None, comments=None,
                             replace=False, auto_close=True):
@@ -1169,18 +1554,16 @@ class Report(object):
         captions : str | list of str
             A caption or a list of captions to the figures.
         section : str
-            Name of the section to place the figure in. If section already
-            exists, the figures will be appended to the end of the section.
+            Name of the section to place the figures in. If it already
+            exists, the figures will be appended to the end of the existing
+            section.
         scale : float | None | callable
             Scale the images maintaining the aspect ratio.
             If None, no scaling is applied. If float, scale will determine
             the relative scaling (might not work for scale <= 1 depending on
             font sizes). If function, should take a figure object as input
             parameter. Defaults to None.
-        image_format : str | None
-            The image format to be used for the report, can be 'png' or 'svd'.
-            None (default) will use the default specified during Report
-            class construction.
+        %(report_image_format)s
         comments : None | str | list of str
             A string of text or a list of strings of text to be appended after
             the figure.
@@ -1191,28 +1574,107 @@ class Report(object):
             If True, the plots are closed during the generation of the report.
             Defaults to True.
         """
-        figs, captions, comments = self._validate_input(figs, captions,
-                                                        section, comments)
+        figs, captions, comments = self._validate_input(
+            figs, captions, section, comments
+        )
         image_format = _check_image_format(self, image_format)
         _check_scale(scale)
-        for fig, caption, comment in zip(figs, captions, comments):
-            caption = 'custom plot' if caption == '' else caption
-            sectionvar = self._sectionvars[section]
-            global_id = self._get_id()
-            div_klass = self._sectionvars[section]
-            img_klass = self._sectionvars[section]
 
-            img = _fig_to_img(fig, image_format, scale, auto_close)
-            html = image_template.substitute(img=img, id=global_id,
-                                             div_klass=div_klass,
-                                             img_klass=img_klass,
-                                             caption=caption,
-                                             show=True,
-                                             image_format=image_format,
-                                             comment=comment)
-            self._add_or_replace('%s-#-%s-#-custom' % (caption, sectionvar),
-                                 sectionvar, html, replace)
+        if (
+            _check_path_like(figs) or
+            (hasattr(figs, '__iter__') and
+             any(_check_path_like(f) for f in figs))
+        ):
+            raise TypeError(
+                'It seems you passed a path to `add_figs_to_section`. '
+                'However, only Matplotlib figures, Mayavi scenes, and NumPy '
+                'arrays are accepted. You may want to try `add_image` instead.'
+            )
 
+        if hasattr(figs, '__len__') and not isinstance(figs, np.ndarray):
+            figs = tuple(figs)
+        else:
+            figs = (figs,)
+
+        if isinstance(captions, str):
+            captions = (captions,)
+        else:
+            captions = tuple(captions)
+
+        if isinstance(comments, str):
+            comments = (comments,)
+        elif comments is None:
+            comments = (None,) * len(figs)
+        else:
+            comments = tuple(comments)
+
+        if len(figs) != len(captions):
+            raise ValueError(
+                f'Number of figs ({len(figs)}) must equal number of captions '
+                f'({len(captions)})'
+            )
+        if len(figs) != len(comments):
+            raise ValueError(
+                f'Number of figs ({len(figs)}) must equal number of comments '
+                f'({len(comments)})'
+            )
+
+        tags = _clean_tags(section)
+
+        for fig, title, caption in zip(figs, captions, comments):
+            if scale is not None:
+                _scale_mpl_figure(fig, scale)
+
+            self.add_figure(
+                fig=fig, title=title, caption=caption,
+                image_format=image_format, tags=tags, replace=replace
+            )
+
+    @fill_doc
+    def add_image(self, image, title, *, caption=None, tags=('custom-image',),
+                  replace=False):
+        """Add an image (e.g., PNG or JPEG pictures) to the report.
+
+        Parameters
+        ----------
+        image : path-like
+            The image to add.
+        title : str
+            Title corresponding to the images.
+        caption : str | None
+            If not ``None``, the caption to add to the image.
+        %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        tags = tuple(tags)
+        img_bytes = Path(image).expanduser().read_bytes()
+        img_base64 = base64.b64encode(img_bytes).decode('ascii')
+        del img_bytes  # Free memory
+
+        img_format = Path(image).suffix.lower()[1:]  # omit leading period
+        _check_option('Image format', value=img_format,
+                      allowed_values=('png', 'gif', 'svg'))
+
+        dom_id = self._get_dom_id()
+        img_html = _html_image_element(
+            img=img_base64, div_klass='custom-image',
+            img_klass='custom-image', title=title, caption=caption,
+            show=True,  image_format=img_format, id=dom_id,
+            tags=tags
+        )
+        self._add_or_replace(
+            dom_id=dom_id,
+            name=title,
+            tags=tags,
+            html=img_html,
+            replace=replace
+        )
+
+    @deprecated('Use :meth:`~mne.Report.add_image` instead')
     def add_images_to_section(self, fnames, captions, scale=None,
                               section='custom', comments=None, replace=False):
         """Append custom user-defined images.
@@ -1244,33 +1706,72 @@ class Report(object):
                                                           section, comments)
         _check_scale(scale)
 
-        for fname, caption, comment in zip(fnames, captions, comments):
-            caption = 'custom plot' if caption == '' else caption
-            sectionvar = self._sectionvars[section]
-            global_id = self._get_id()
-            div_klass = self._sectionvars[section]
-            img_klass = self._sectionvars[section]
+        if isinstance(fnames, str):
+            fnames = (fnames,)
+        else:
+            fnames = tuple(fnames)
 
-            image_format = os.path.splitext(fname)[1][1:]
-            image_format = image_format.lower()
+        if isinstance(captions, str):
+            captions = (captions,)
+        else:
+            captions = tuple(captions)
 
-            _check_option('image_format', image_format, ['png', 'gif', 'svg'])
+        if isinstance(comments, str):
+            comments = (comments,)
+        elif comments is None:
+            comments = (None,) * len(fnames)
+        else:
+            comments = tuple(comments)
 
-            # Convert image to binary string.
-            with open(fname, 'rb') as f:
-                img = base64.b64encode(f.read()).decode('ascii')
-            html = image_template.substitute(img=img, id=global_id,
-                                             image_format=image_format,
-                                             div_klass=div_klass,
-                                             img_klass=img_klass,
-                                             caption=caption,
-                                             width=scale,
-                                             comment=comment,
-                                             show=True)
+        if len(fnames) != len(captions):
+            raise ValueError(
+                f'Number of fnames ({len(fnames)}) must equal number of '
+                f'captions ({len(captions)})'
+            )
+        if len(fnames) != len(comments):
+            raise ValueError(
+                f'Number of fnames ({len(fnames)}) must equal number of '
+                f'comments ({len(comments)})'
+            )
 
-            self._add_or_replace('%s-#-%s-#-custom' % (caption, sectionvar),
-                                 sectionvar, html, replace)
+        tags = _clean_tags(section)
 
+        for image, title, caption in zip(fnames, captions, comments):
+            self.add_image(image=image, title=title, caption=caption,
+                           tags=tags, replace=replace)
+
+    @fill_doc
+    def add_html(self, html, title, *, tags=('custom-html',),  replace=False):
+        """Add HTML content to the report.
+
+        Parameters
+        ----------
+        html : str
+            The HTML content to add.
+        title : str
+            The title corresponding to ``html``.
+        %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        tags = tuple(tags)
+        dom_id = self._get_dom_id()
+        html_element = _html_element(
+            id=dom_id, html=html, title=title, tags=tags,
+            div_klass='custom-html'
+        )
+        self._add_or_replace(
+            dom_id=dom_id,
+            name=title,
+            tags=tags,
+            html=html_element,
+            replace=replace
+        )
+
+    @deprecated('Use :meth:`~mne.Report.add_html` instead')
     def add_htmls_to_section(self, htmls, captions, section='custom',
                              replace=False):
         """Append htmls to the report.
@@ -1293,17 +1794,28 @@ class Report(object):
         .. versionadded:: 0.9.0
         """
         htmls, captions, _ = self._validate_input(htmls, captions, section)
-        for html, caption in zip(htmls, captions):
-            caption = 'custom plot' if caption == '' else caption
-            sectionvar = self._sectionvars[section]
-            global_id = self._get_id()
-            div_klass = self._sectionvars[section]
 
-            self._add_or_replace(
-                '%s-#-%s-#-custom' % (caption, sectionvar), sectionvar,
-                html_template.substitute(div_klass=div_klass, id=global_id,
-                                         caption=caption, html=html), replace)
+        if isinstance(htmls, str):
+            htmls = (htmls,)
+        else:
+            htmls = tuple(htmls)
 
+        if isinstance(captions, str):
+            captions = (captions,)
+        else:
+            captions = tuple(captions)
+
+        if len(htmls) != len(captions):
+            raise ValueError(
+                f'Number of htmls ({len(htmls)}) must equal number of '
+                f'captions ({len(captions)})'
+            )
+
+        tags = _clean_tags(section)
+        for html, title in zip(htmls, captions):
+            self.add_html(html=html, title=title, tags=tags, replace=replace)
+
+    @deprecated('Use :meth:`~mne.Report.add_bem` instead')
     @verbose
     def add_bem_to_section(self, subject, caption='BEM', section='bem',
                            decim=2, n_jobs=1, subjects_dir=None,
@@ -1315,10 +1827,10 @@ class Report(object):
         subject : str
             Subject name.
         caption : str
-            A caption for the bem.
+            A caption for the BEM.
         section : str
-            Name of the section. If section already exists, the bem
-            will be appended to the end of the section.
+            Name of the section. If it already exists, the BEM
+            will be appended to the end of the existing section.
         decim : int
             Use this decimation factor for generating MRI/BEM images
             (since it can be time consuming).
@@ -1340,19 +1852,88 @@ class Report(object):
         -----
         .. versionadded:: 0.9.0
         """
-        width = _ensure_int(width, 'width')
-        caption = 'custom plot' if caption == '' else caption
-        html = self._render_bem(subject=subject, subjects_dir=subjects_dir,
-                                decim=decim, n_jobs=n_jobs, section=section,
-                                caption=caption, width=width)
-        html, caption, _ = self._validate_input(html, caption, section)
-        sectionvar = self._sectionvars[section]
-        # convert list->str
-        assert isinstance(html, list)
-        html = u''.join(html)
-        self._add_or_replace('%s-#-%s-#-custom' % (caption[0], sectionvar),
-                             sectionvar, html, replace=replace)
+        tags = _clean_tags(section)
+        self.add_bem(
+            subject=subject, subjects_dir=subjects_dir, title=caption,
+            decim=decim, width=width, n_jobs=n_jobs, tags=tags, replace=replace
+        )
 
+    @fill_doc
+    def add_bem(self, subject, title, *, subjects_dir=None, decim=2, width=512,
+                n_jobs=1, tags=('bem',), replace=False):
+        """Render a visualization of the boundary element model (BEM) surfaces.
+
+        Parameters
+        ----------
+        subject : str
+            The FreeSurfer subject name.
+        title : str
+            The title corresponding to the BEM image.
+        %(subjects_dir)s
+        decim : int
+            Use this decimation factor for generating MRI/BEM images
+            (since it can be time consuming).
+        width : int
+            The width of the MRI images (in pixels). Larger values will have
+            clearer surface lines, but will create larger HTML files.
+            Typically a factor of 2 more than the number of MRI voxels along
+            each dimension (typically 512, default) is reasonable.
+        %(n_jobs)s
+        %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        tags = tuple(tags)
+        width = _ensure_int(width, 'width')
+        html = self._render_bem(subject=subject, subjects_dir=subjects_dir,
+                                decim=decim, n_jobs=n_jobs, width=width,
+                                image_format=self.image_format, tags=tags)
+
+        dom_id = self._get_dom_id()
+        html = _html_element(
+            div_klass='bem',
+            id=dom_id,
+            tags=tags,
+            title=title,
+            html=html,
+        )
+        self._add_or_replace(
+            dom_id=dom_id,
+            name=title,
+            tags=tags,
+            html=html,
+            replace=replace
+        )
+
+    def _render_slider(self, *, figs, title, captions, start_idx, image_format,
+                       tags, klass=''):
+        if len(figs) != len(captions):
+            raise ValueError(
+                f'Number of captions ({len(captions)}) must be equal to the '
+                f'number of figures ({len(figs)})'
+            )
+        images = [_fig_to_img(fig=fig, image_format=image_format)
+                  for fig in figs]
+
+        dom_id = self._get_dom_id()
+        html = _html_slider_element(
+            id=dom_id,
+            title=title,
+            captions=captions,
+            tags=tags,
+            images=images,
+            image_format=image_format,
+            start_idx=start_idx,
+            klass=klass
+        )
+
+        return html, dom_id
+
+    @deprecated('Use :meth:`~mne.Report.add_figure` instead')
+    @fill_doc
     def add_slider_to_section(self, figs, captions=None, section='custom',
                               title='Slider', scale=None, image_format=None,
                               replace=False, auto_close=True):
@@ -1364,11 +1945,9 @@ class Report(object):
             Each figure in the list can be an instance of
             :class:`matplotlib.figure.Figure`,
             :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
-            Must have at least 2 elements.
         captions : list of str | list of float | None
-            A list of captions to the figures. If float, a str will be
-            constructed as ``%f s``. If None, it will default to
-            ``Data slice %d``.
+            A list of captions to the figures. If ``None``, it will default to
+            ``Data slice [i]``.
         section : str
             Name of the section. If section already exists, the figures
             will be appended to the end of the section.
@@ -1380,10 +1959,7 @@ class Report(object):
             the relative scaling (might not work for scale <= 1 depending on
             font sizes). If function, should take a figure object as input
             parameter. Defaults to None.
-        image_format : str | None
-            The image format to be used for the report, can be 'png' or 'svd'.
-            None (default) will use the default specified during Report
-            class construction.
+        %(report_image_format)s
         replace : bool
             If ``True``, figures already present that have the same caption
             will be replaced. Defaults to ``False``.
@@ -1397,120 +1973,149 @@ class Report(object):
         -----
         .. versionadded:: 0.10.0
         """
-        _check_scale(scale)
-        image_format = _check_image_format(self, image_format)
-        if isinstance(figs[0], list):
-            raise NotImplementedError('`add_slider_to_section` '
-                                      'can only add one slider at a time.')
-        if len(figs) < 2:
-            raise ValueError('figs must be at least length 2, got %s'
-                             % (len(figs),))
-        figs = [figs]
-        figs, _, _ = self._validate_input(figs, section, section)
-        figs = figs[0]
-
-        sectionvar = self._sectionvars[section]
-        global_id = self._get_id()
-        name = 'slider'
-
-        html = []
-        slides_klass = '%s-%s' % (name, global_id)
-        div_klass = 'span12 %s' % slides_klass
-
-        sl = np.arange(0, len(figs))
-        slices = []
-        img_klass = 'slideimg-%s' % name
+        tags = _clean_tags(section)
 
         if captions is None:
-            captions = ['Data slice %d' % ii for ii in sl]
-        elif isinstance(captions, (list, tuple, np.ndarray)):
-            if len(figs) != len(captions):
-                raise ValueError('Captions must be the same length as the '
-                                 'number of slides.')
-            if isinstance(captions[0], (float, int)):
-                captions = ['%0.3f s' % caption for caption in captions]
-        else:
-            raise TypeError('Captions must be None or an iterable of '
-                            'float, int, str, Got %s' % type(captions))
-        for ii, (fig, caption) in enumerate(zip(figs, captions)):
-            img = _fig_to_img(fig, image_format, scale, auto_close)
-            slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
-            first = True if ii == 0 else False
-            slices.append(_build_html_image(img, slice_id, div_klass,
-                                            img_klass, caption, first,
-                                            image_format=image_format))
-        # Render the slider
-        slider_id = 'select-%s-%s' % (name, global_id)
-        # Render the slices
-        image_html = u'\n'.join(slices)
-        html.append(_build_html_slider(sl, slides_klass, slider_id,
-                                       start_value=0))
-        html = '\n'.join(html)
+            captions = [f'Figure {i+1} of {len(figs)}'
+                        for i in range(len(figs))]
 
-        slider_klass = sectionvar
+        if image_format is None:
+            image_format = self.image_format
 
+        for fig in figs:
+            if scale is not None:
+                _scale_mpl_figure(fig, scale)
+
+        html, dom_id = self._render_slider(
+            figs=figs, title=title, captions=captions, start_idx=0,
+            image_format=image_format, tags=tags
+        )
         self._add_or_replace(
-            '%s-#-%s-#-custom' % (title, sectionvar), sectionvar,
-            slider_full_template.substitute(id=global_id, title=title,
-                                            div_klass=slider_klass,
-                                            slider_id=slider_id, html=html,
-                                            image_html=image_html),
-            replace=replace)
-
-    ###########################################################################
-    # HTML rendering
-    def _render_one_axis(self, slices_iter, name, global_id, cmap,
-                         n_elements, n_jobs):
-        """Render one axis of the array."""
-        global_id = global_id or name
-        html = []
-        html.append(u'<div class="col-xs-6 col-md-4">')
-        slides_klass = '%s-%s' % (name, global_id)
-
-        use_jobs = min(n_jobs, max(1, n_elements))
-        parallel, p_fun, _ = parallel_func(_iterate_mri_slices, use_jobs)
-        r = parallel(p_fun(name, ind, global_id, slides_klass, data, cmap)
-                     for ind, data in slices_iter)
-        slices_range, slices = zip(*r)
-
-        # Render the slider
-        slider_id = 'select-%s-%s' % (name, global_id)
-        html.append(u'<div id="%s"></div>' % slider_id)
-        html.append(u'<ul class="thumbnail">')
-        # Render the slices
-        html.append(u'\n'.join(slices))
-        html.append(u'</ul>')
-        html.append(_build_html_slider(slices_range, slides_klass, slider_id))
-        html.append(u'</div>')
-        return '\n'.join(html)
+            dom_id=dom_id,
+            name=title,
+            tags=tags,
+            html=html,
+            replace=replace
+        )
 
     ###########################################################################
     # global rendering functions
     @verbose
     def _init_render(self, verbose=None):
         """Initialize the renderer."""
-        inc_fnames = ['jquery.js', 'jquery-ui.min.js',
-                      'bootstrap.min.js', 'jquery-ui.min.css',
-                      'bootstrap.min.css']
+        inc_fnames = [
+            'jquery-3.6.0.min.js',
+            'bootstrap.bundle.min.js', 'bootstrap.min.css',
+            'highlightjs/highlight.min.js',
+            'highlightjs/atom-one-dark-reasonable.min.css'
+        ]
 
         include = list()
         for inc_fname in inc_fnames:
-            logger.info('Embedding : %s' % inc_fname)
-            fname = op.join(op.dirname(__file__), '..', 'html', inc_fname)
-            with open(fname, 'rb') as fid:
-                file_content = fid.read().decode('utf-8')
+            logger.info(f'Embedding : {inc_fname}')
+            fname = html_include_dir / inc_fname
+            file_content = fname.read_text(encoding='utf-8')
+
             if inc_fname.endswith('.js'):
-                include.append(u'<script type="text/javascript">' +
-                               file_content + u'</script>')
+                include.append(
+                    f'<script type="text/javascript">\n'
+                    f'{file_content}\n'
+                    f'</script>'
+                )
             elif inc_fname.endswith('.css'):
-                include.append(u'<style type="text/css">' +
-                               file_content + u'</style>')
+                include.append(
+                    f'<style type="text/css">\n'
+                    f'{file_content}\n'
+                    f'</style>'
+                )
         self.include = ''.join(include)
+
+    def _iterate_files(self, *, fnames, cov, sfreq, raw_butterfly,
+                       n_time_points_evokeds, n_time_points_stcs, on_error,
+                       stc_plot_kwargs, topomap_kwargs):
+        """Parallel process in batch mode."""
+        assert self.data_path is not None
+
+        for fname in fnames:
+            logger.info(
+                f"Rendering : {op.join('…' + self.data_path[-20:], fname)}"
+            )
+
+            title = Path(fname).name
+            try:
+                if _endswith(fname, ['raw', 'sss', 'meg', 'nirs']):
+                    self.add_raw(
+                        raw=fname, title=title, psd=self.raw_psd,
+                        projs=self.projs, butterfly=raw_butterfly
+                    )
+                elif _endswith(fname, 'fwd'):
+                    self.add_forward(
+                        forward=fname, title=title, subject=self.subject,
+                        subjects_dir=self.subjects_dir
+                    )
+                elif _endswith(fname, 'inv'):
+                    # XXX if we pass trans, we can plot the source space, too…
+                    self.add_inverse_operator(
+                        inverse_operator=fname, title=title
+                    )
+                elif _endswith(fname, 'ave'):
+                    evokeds = read_evokeds(fname)
+                    titles = [
+                        f'{Path(fname).name}: {e.comment}'
+                        for e in evokeds
+                    ]
+                    self.add_evokeds(
+                        evokeds=fname, titles=titles, noise_cov=cov,
+                        n_time_points=n_time_points_evokeds,
+                        topomap_kwargs=topomap_kwargs,
+                    )
+                elif _endswith(fname, 'eve'):
+                    if self.info_fname is not None:
+                        sfreq = read_info(self.info_fname)['sfreq']
+                    else:
+                        sfreq = None
+                    self.add_events(events=fname, title=title, sfreq=sfreq)
+                elif _endswith(fname, 'epo'):
+                    self.add_epochs(epochs=fname, title=title)
+                elif _endswith(fname, 'cov') and self.info_fname is not None:
+                    self.add_covariance(cov=fname, info=self.info_fname,
+                                        title=title)
+                elif _endswith(fname, 'proj') and self.info_fname is not None:
+                    self.add_projs(info=self.info_fname, projs=fname,
+                                   title=title, topomap_kwargs=topomap_kwargs)
+                elif (_endswith(fname, 'trans') and
+                        self.info_fname is not None and
+                        self.subjects_dir is not None and
+                        self.subject is not None):
+                    self.add_trans(
+                        trans=fname, info=self.info_fname,
+                        subject=self.subject, subjects_dir=self.subjects_dir,
+                        title=title
+                    )
+                elif (fname.endswith('-lh.stc') or
+                        fname.endswith('-rh.stc') and
+                        self.info_fname is not None and
+                        self.subjects_dir is not None and
+                        self.subject is not None):
+                    self.add_stc(
+                        stc=fname, title=title, subject=self.subject,
+                        subjects_dir=self.subjects_dir,
+                        n_time_points=n_time_points_stcs,
+                        stc_plot_kwargs=stc_plot_kwargs
+                    )
+            except Exception as e:
+                if on_error == 'warn':
+                    warn(f'Failed to process file {fname}:\n"{e}"')
+                elif on_error == 'raise':
+                    raise
 
     @verbose
     def parse_folder(self, data_path, pattern=None, n_jobs=1, mri_decim=2,
-                     sort_sections=True, on_error='warn', image_format=None,
-                     render_bem=True, verbose=None):
+                     sort_content=True, sort_sections=None, on_error='warn',
+                     image_format=None, render_bem=True, *,
+                     n_time_points_evokeds=None, n_time_points_stcs=None,
+                     raw_butterfly=True, stc_plot_kwargs=None,
+                     topomap_kwargs=None, verbose=None):
         r"""Render all the files in the folder.
 
         Parameters
@@ -1520,8 +2125,9 @@ class Report(object):
             created.
         pattern : None | str | list of str
             Filename pattern(s) to include in the report.
-            Example: [\*raw.fif, \*ave.fif] will include Raw as well as Evoked
-            files. If ``None``, include all supported file formats.
+            For example, ``[\*raw.fif, \*ave.fif]`` will include `~mne.io.Raw`
+            as well as `~mne.Evoked` files. If ``None``, include all supported
+            file formats.
 
             .. versionchanged:: 0.23
                Include supported non-FIFF files by default.
@@ -1529,35 +2135,69 @@ class Report(object):
         mri_decim : int
             Use this decimation factor for generating MRI/BEM images
             (since it can be time consuming).
+        sort_content : bool
+            If ``True``, sort the content based on tags in the order:
+            raw -> events -> epochs -> evoked -> covariance -> coregistration
+            -> bem -> forward-solution -> inverse-operator -> source-estimate.
+
+            .. versionadded:: 0.24.0
         sort_sections : bool
-            If True, sort sections in the order: raw -> events -> epochs
-             -> evoked -> covariance -> trans -> mri -> forward -> inverse.
+            If ``True``, sort the content based on tags in the order:
+            raw -> events -> epochs -> evoked -> covariance -> coregistration
+            -> bem -> forward-solution -> inverse-operator -> source-estimate.
+
+            .. deprecated:: 0.24.0
+               This parameter is scheduled for removal. Use ``sort_content``
+               instead.
         on_error : str
             What to do if a file cannot be rendered. Can be 'ignore',
             'warn' (default), or 'raise'.
-        image_format : str | None
-            The image format to be used for the report, can be 'png' or 'svd'.
-            None (default) will use the default specified during Report
-            class construction.
+        %(report_image_format)s
 
             .. versionadded:: 0.15
         render_bem : bool
             If True (default), try to render the BEM.
 
             .. versionadded:: 0.16
+        n_time_points_evokeds, n_time_points_stcs : int | None
+            The number of equidistant time points to render for `~mne.Evoked`
+            and `~mne.SourceEstimate` data, respectively. If ``None``,
+            will render each `~mne.Evoked` at 21 and each `~mne.SourceEstimate`
+            at 51 time points, unless the respective data contains fewer time
+            points, in which call all will be rendered.
+
+            .. versionadded:: 0.24.0
+        raw_butterfly : bool
+            Whether to render butterfly plots for (decimated) `~mne.io.Raw`
+            data.
+
+            .. versionadded:: 0.24.0
+        %(report_stc_plot_kwargs)s
+
+            .. versionadded:: 0.24.0
+        %(topomap_kwargs)s
+
+            .. versionadded:: 0.24.0
         %(verbose_meth)s
         """
         _validate_type(data_path, 'path-like', 'data_path')
         data_path = str(data_path)
         image_format = _check_image_format(self, image_format)
         _check_option('on_error', on_error, ['ignore', 'warn', 'raise'])
-        self._sort = sort_sections
+
+        if sort_sections is not None:
+            warn(
+                message='The "sort_sections" parameter has been deprecated. '
+                        'Please use "sort_content" instead',
+                category=DeprecationWarning
+            )
+            sort_content = sort_sections
 
         n_jobs = check_n_jobs(n_jobs)
         self.data_path = data_path
 
         if self.title is None:
-            self.title = 'MNE Report for ...%s' % self.data_path[-20:]
+            self.title = f'MNE Report for {self.data_path[-20:]}'
 
         if pattern is None:
             pattern = [f'*{ext}' for ext in SUPPORTED_READ_RAW_EXTENSIONS]
@@ -1572,19 +2212,32 @@ class Report(object):
         if not fnames and not render_bem:
             raise RuntimeError(f'No matching files found in {self.data_path}')
 
-        # For split files, only keep the first one.
         fnames_to_remove = []
         for fname in fnames:
+            # For split files, only keep the first one.
             if _endswith(fname, ('raw', 'sss', 'meg')):
                 kwargs = dict(fname=fname, preload=False)
                 if fname.endswith(('.fif', '.fif.gz')):
                     kwargs['allow_maxshield'] = True
                 inst = read_raw(**kwargs)
+
+                if len(inst.filenames) > 1:
+                    fnames_to_remove.extend(inst.filenames[1:])
+            # For STCs, only keep one hemisphere
+            elif fname.endswith('-lh.stc') or fname.endswith('-rh.stc'):
+                first_hemi_fname = fname
+                if first_hemi_fname.endswidth('-lh.stc'):
+                    second_hemi_fname = (first_hemi_fname
+                                         .replace('-lh.stc', '-rh.stc'))
+                else:
+                    second_hemi_fname = (first_hemi_fname
+                                         .replace('-rh.stc', '-lh.stc'))
+
+                if (second_hemi_fname in fnames and
+                        first_hemi_fname not in fnames_to_remove):
+                    fnames_to_remove.extend(first_hemi_fname)
             else:
                 continue
-
-            if len(inst.filenames) > 1:
-                fnames_to_remove.extend(inst.filenames[1:])
 
         fnames_to_remove = list(set(fnames_to_remove))  # Drop duplicates
         for fname in fnames_to_remove:
@@ -1611,99 +2264,92 @@ class Report(object):
         cov = None
         if self.cov_fname is not None:
             cov = read_cov(self.cov_fname)
-        baseline = self.baseline
 
         # render plots in parallel; check that n_jobs <= # of files
-        logger.info('Iterating over %s potential files (this may take some '
-                    'time)' % len(fnames))
+        logger.info(f'Iterating over {len(fnames)} potential files '
+                    f'(this may take some ')
         use_jobs = min(n_jobs, max(1, len(fnames)))
-        parallel, p_fun, _ = parallel_func(_iterate_files, use_jobs)
-        r = parallel(p_fun(self, fname, info, cov, baseline, sfreq, on_error,
-                           image_format, self.data_path)
-                     for fname in np.array_split(fnames, use_jobs))
-        htmls, report_fnames, report_sectionlabels = zip(*r)
+        parallel, p_fun, _ = parallel_func(self._iterate_files, use_jobs)
+        parallel(
+            p_fun(
+                fnames=fname, cov=cov, sfreq=sfreq,
+                raw_butterfly=raw_butterfly,
+                n_time_points_evokeds=n_time_points_evokeds,
+                n_time_points_stcs=n_time_points_stcs, on_error=on_error,
+                stc_plot_kwargs=stc_plot_kwargs, topomap_kwargs=topomap_kwargs,
+            ) for fname in np.array_split(fnames, use_jobs)
+        )
 
-        # combine results from n_jobs discarding plots not rendered
-        self.html = [html for html in sum(htmls, []) if html is not None]
-        self.fnames = [fname for fname in sum(report_fnames, []) if
-                       fname is not None]
-        self._sectionlabels = [slabel for slabel in
-                               sum(report_sectionlabels, [])
-                               if slabel is not None]
-
-        # find unique section labels
-        self.sections = sorted(set(self._sectionlabels))
-        self._sectionvars = dict(zip(self.sections, self.sections))
-
-        # render mri
+        # Render BEM
         if render_bem:
             if self.subjects_dir is not None and self.subject is not None:
                 logger.info('Rendering BEM')
-                self.fnames.append('bem')
-                self.add_bem_to_section(
-                    self.subject, decim=mri_decim, n_jobs=n_jobs,
-                    subjects_dir=self.subjects_dir)
+                self.add_bem(
+                    subject=self.subject, subjects_dir=self.subjects_dir,
+                    title='BEM surfaces', decim=mri_decim, n_jobs=n_jobs
+                )
             else:
                 warn('`subjects_dir` and `subject` not provided. Cannot '
                      'render MRI and -trans.fif(.gz) files.')
 
-    def _get_state_params(self):
-        """Obtain all fields that are in the state dictionary of this object.
-
-        Returns
-        -------
-        non_opt_params : list of str
-            All parameters that must be present in the state dictionary.
-        opt_params : list of str
-            All parameters that are optionally present in the state dictionary.
-        """
-        # Note: self._fname is not part of the state
-        return (['baseline', 'cov_fname', 'fnames', 'html', 'include',
-                 'image_format', 'info_fname', '_initial_id', 'raw_psd',
-                 '_sectionlabels', 'sections', '_sectionvars', 'projs',
-                 '_sort_sections', 'subjects_dir', 'subject', 'title',
-                 'verbose'],
-                ['data_path', 'lang', '_sort'])
+        if sort_content:
+            self._content = self._sort(
+                content=self._content, order=CONTENT_ORDER
+            )
 
     def __getstate__(self):
         """Get the state of the report as a dictionary."""
         state = dict()
-        non_opt_params, opt_params = self._get_state_params()
-        for param in non_opt_params:
-            state[param] = getattr(self, param)
-        for param in opt_params:
-            if hasattr(self, param):
-                state[param] = getattr(self, param)
+        for param_name in self._get_state_params():
+            param_val = getattr(self, param_name)
+
+            # Workaround as h5io doesn't support dataclasses
+            if param_name == '_content':
+                assert all(dataclasses.is_dataclass(val) for val in param_val)
+                param_val = [dataclasses.asdict(val) for val in param_val]
+
+            state[param_name] = param_val
         return state
 
     def __setstate__(self, state):
         """Set the state of the report."""
-        non_opt_params, opt_params = self._get_state_params()
-        for param in non_opt_params:
-            setattr(self, param, state[param])
-        for param in opt_params:
-            if param in state:
-                setattr(self, param, state[param])
+        for param_name in self._get_state_params():
+            param_val = state[param_name]
+
+            # Workaround as h5io doesn't support dataclasses
+            if param_name == '_content':
+                param_val = [_ContentElement(**val) for val in param_val]
+            setattr(self, param_name, param_val)
         return state
 
     @verbose
-    def save(self, fname=None, open_browser=True, overwrite=False, *,
-             verbose=None):
+    def save(self, fname=None, open_browser=True, overwrite=False,
+             sort_content=False, *, verbose=None):
         """Save the report and optionally open it in browser.
 
         Parameters
         ----------
-        fname : str | None
-            File name of the report. If the file name ends in '.h5' or '.hdf5',
-            the report is saved in HDF5 format, so it can later be loaded again
-            with :func:`open_report`. If the file name ends in anything else,
-            the report is rendered to HTML. If ``None``, the report is saved to
-            'report.html' in the current working directory.
-            Defaults to ``None``.
+        fname : path-like | None
+            Output filename. If the name ends with ``.h5`` or ``.hdf5``, the
+            report is saved in HDF5 format, so it can later be loaded again
+            with :func:`open_report`. For any other suffix, the report will be
+            saved in HTML format. If ``None`` and :meth:`Report.parse_folder`
+            was **not** called, the report is saved as ``report.html`` in the
+            current working directory. If ``None`` and
+            :meth:`Report.parse_folder` **was** used, the report is saved as
+            ``report.html`` inside the ``data_path`` supplied to
+            :meth:`Report.parse_folder`.
         open_browser : bool
-            When saving to HTML, open the rendered HTML file browser after
-            saving if True. Defaults to True.
+            Whether to open the rendered HTML report in the default web browser
+            after saving. This is ignored when writing an HDF5 file.
         %(overwrite)s
+        sort_content : bool
+            If ``True``, sort the content based on tags before saving in the
+            order:
+            raw -> events -> epochs -> evoked -> covariance -> coregistration
+            -> bem -> forward-solution -> inverse-operator -> source-estimate.
+
+            .. versionadded:: 0.24.0
         %(verbose_meth)s
 
         Returns
@@ -1712,18 +2358,22 @@ class Report(object):
             The file name to which the report was saved.
         """
         if fname is None:
-            if not hasattr(self, 'data_path'):
+            if self.data_path is None:
                 self.data_path = os.getcwd()
-                warn('`data_path` not provided. Using %s instead'
-                     % self.data_path)
+                warn(f'`data_path` not provided. Using {self.data_path} '
+                     f'instead')
             fname = op.realpath(op.join(self.data_path, 'report.html'))
         else:
             fname = op.realpath(fname)
 
+        if sort_content:
+            self._content = self._sort(
+                content=self._content, order=CONTENT_ORDER
+            )
+
         if not overwrite and op.isfile(fname):
-            msg = ('Report already exists at location %s. '
-                   'Overwrite it (y/[n])? '
-                   % fname)
+            msg = (f'Report already exists at location {fname}. '
+                   f'Overwrite it (y/[n])? ')
             answer = _safe_input(msg, alt='pass overwrite=True')
             if answer.lower() == 'y':
                 overwrite = True
@@ -1732,33 +2382,30 @@ class Report(object):
         is_hdf5 = ext.lower() in ['.h5', '.hdf5']
 
         if overwrite or not op.isfile(fname):
-            logger.info('Saving report to location %s' % fname)
+            logger.info(f'Saving report to : {fname}')
 
             if is_hdf5:
                 write_hdf5(fname, self.__getstate__(), overwrite=overwrite,
                            title='mnepython')
             else:
-                self._render_toc()
+                # Add header, TOC, and footer.
+                header_html = _html_header_element(
+                    title=self.title, include=self.include, lang=self.lang,
+                    tags=self.tags, js=JAVASCRIPT, css=CSS,
+                    mne_logo_img=mne_logo
+                )
 
-                # Annotate the HTML with a TOC and footer.
+                toc_html = _html_toc_element(content_elements=self._content)
+
                 with warnings.catch_warnings(record=True):
                     warnings.simplefilter('ignore')
-                    html = footer_template.substitute(
-                        date=time.strftime("%B %d, %Y"),
-                        current_year=time.strftime("%Y"))
-                self.html.append(html)
+                    footer_html = _html_footer_element(
+                        mne_version=MNE_VERSION,
+                        date=time.strftime("%B %d, %Y")
+                    )
 
-                # Writing to disk may fail. However, we need to make sure that
-                # the TOC and footer are removed regardless, otherwise they
-                # will be duplicated when the user attempts to save again.
-                try:
-                    # Write HTML
-                    with codecs.open(fname, 'w', 'utf-8') as fobj:
-                        fobj.write(_fix_global_ids(u''.join(self.html)))
-                finally:
-                    self.html.pop(0)
-                    self.html.pop(0)
-                    self.html.pop()
+                html = [header_html, toc_html, *self.html, footer_html]
+                Path(fname).write_text(data=''.join(html), encoding='utf-8')
 
         building_doc = os.getenv('_MNE_BUILDING_DOC', '').lower() == 'true'
         if open_browser and not is_hdf5 and not building_doc:
@@ -1773,266 +2420,490 @@ class Report(object):
 
     def __exit__(self, type, value, traceback):
         """Save the report when leaving the context block."""
-        if self._fname is not None:
-            self.save(self._fname, open_browser=False, overwrite=True)
+        if self.fname is not None:
+            self.save(self.fname, open_browser=False, overwrite=True)
 
     @staticmethod
-    def _gen_caption(prefix, fname, data_path, suffix=''):
-        if data_path is not None:
-            fname = op.relpath(fname, start=data_path)
+    def _sort(content, order):
+        """Reorder content to reflect "natural" ordering."""
+        content_unsorted = content.copy()
+        content_sorted = []
+        content_sorted_idx = []
+        del content
 
-        caption = f'{prefix}: {fname} {suffix}'
-        return caption.strip()
+        # First arrange content with known tags in the predefined order
+        for tag in order:
+            for idx, content in enumerate(content_unsorted):
+                if tag in content.tags:
+                    content_sorted_idx.append(idx)
+                    content_sorted.append(content)
 
-    @verbose
-    def _render_toc(self, verbose=None):
-        """Render the Table of Contents."""
-        logger.info('Rendering : Table of Contents')
+        # Now simply append the rest (custom tags)
+        content_remaining = [
+            content for idx, content in enumerate(content_unsorted)
+            if idx not in content_sorted_idx
+        ]
 
-        html_toc = u'<div id="container">'
-        html_toc += u'<div id="toc"><center><h4>CONTENTS</h4></center>'
+        content_sorted = [*content_sorted, *content_remaining]
+        return content_sorted
 
-        global_id = 1
-
-        # Reorder self.sections to reflect natural ordering
-        if self._sort_sections:
-            sections = list(set(self.sections) & set(SECTION_ORDER))
-            custom = [section for section in self.sections if section
-                      not in SECTION_ORDER]
-            order = [sections.index(section) for section in SECTION_ORDER if
-                     section in sections]
-            self.sections = np.array(sections)[order].tolist() + custom
-
-        # Sort by section
-        html, fnames, sectionlabels = [], [], []
-        for section in self.sections:
-            logger.info('%s' % section)
-            for sectionlabel, this_html, fname in (zip(self._sectionlabels,
-                                                   self.html, self.fnames)):
-                if self._sectionvars[section] == sectionlabel:
-                    html.append(this_html)
-                    fnames.append(fname)
-                    sectionlabels.append(sectionlabel)
-                    logger.info(_get_fname(fname))
-                    color = _is_bad_fname(fname)
-                    div_klass, tooltip, text = _get_toc_property(fname)
-
-                    # loop through conditions for evoked
-                    if _endswith(fname, 'ave') or fname.endswith('(whitened)'):
-                        text = os.path.basename(fname)
-                        if fname.endswith('(whitened)'):
-                            fname = fname[:-11]
-                        # This is a redundant read but should have minor cost
-                        evokeds = read_evokeds(fname, verbose=False)
-
-                        html_toc += toc_list.substitute(
-                            div_klass=div_klass, id=None, tooltip=fname,
-                            color='#428bca', text=text)
-
-                        html_toc += u'<li class="evoked"><ul>'
-                        for ev in evokeds:
-                            html_toc += toc_list.substitute(
-                                div_klass=div_klass, id=global_id,
-                                tooltip=fname, color=color, text=ev.comment)
-                            global_id += 1
-                        html_toc += toc_list.substitute(
-                            div_klass=div_klass, id=global_id,
-                            tooltip=fname, color=color, text='GFP')
-                        global_id += 1
-                        html_toc += u'</ul></li>'
-
-                    elif fname.endswith(VALID_EXTENSIONS + ('bem', 'custom')):
-                        html_toc += toc_list.substitute(div_klass=div_klass,
-                                                        id=global_id,
-                                                        tooltip=tooltip,
-                                                        color=color,
-                                                        text=text)
-                        global_id += 1
-
-        html_toc += u'\n</ul></div>'
-        html_toc += u'<div id="content">'
-
-        # The sorted html (according to section)
-        self.html = html
-        self.fnames = fnames
-        self._sectionlabels = sectionlabels
-
-        lang = getattr(self, 'lang', 'en-us')
-        sections = [section if section != 'mri' else 'MRI'
-                    for section in self.sections]
-        html_header = header_template.substitute(
-            title=self.title, include=self.include, lang=lang,
-            sections=sections, sectionvars=self._sectionvars)
-        self.html.insert(0, html_header)  # Insert header at position 0
-        self.html.insert(1, html_toc)  # insert TOC
-
-    def _render_one_bem_axis(self, mri_fname, surfaces, global_id,
-                             orientation='coronal', decim=2, n_jobs=1,
-                             width=512):
+    def _render_one_bem_axis(self, *, mri_fname, surfaces,
+                             image_format, orientation, decim=2, n_jobs=1,
+                             width=512, tags):
         """Render one axis of bem contours (only PNG)."""
         import nibabel as nib
+
         nim = nib.load(mri_fname)
         data = _reorient_image(nim)[0]
         axis = _mri_orientation(orientation)[0]
         n_slices = data.shape[axis]
 
-        name = orientation
-        html = []
-        html.append(u'<div class="col-xs-6 col-md-4">')
-        slides_klass = '%s-%s' % (name, global_id)
-
         sl = np.arange(0, n_slices, decim)
         logger.debug(f'Rendering BEM {orientation} with {len(sl)} slices')
-        kwargs = dict(mri_fname=mri_fname, surfaces=surfaces, show=False,
-                      orientation=orientation, img_output=True, src=None,
-                      show_orientation=True, width=width)
-        imgs = _figs_to_mrislices(sl, n_jobs, **kwargs)
-        slices = []
-        img_klass = 'slideimg-%s w-100' % name
-        div_klass = 'span12 %s' % slides_klass
-        for ii, img in enumerate(imgs):
-            slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
-            caption = u'Slice %s %s' % (name, sl[ii])
-            first = True if ii == 0 else False
-            slices.append(_build_html_image(img, slice_id, div_klass,
-                                            img_klass, caption, first,
-                                            image_format='png'))
+        figs = _get_mri_contour_figs(
+            sl=sl, n_jobs=n_jobs, mri_fname=mri_fname, surfaces=surfaces,
+            orientation=orientation, src=None, show=False,
+            show_orientation='always', width=width, slices_as_figures=True
+        )
 
         # Render the slider
-        slider_id = 'select-%s-%s' % (name, global_id)
-        html.append(u'<div id="%s"></div>' % slider_id)
-        html.append(u'<ul class="thumbnail">')
-        # Render the slices
-        html.append(u'\n'.join(slices))
-        html.append(u'</ul>')
-        html.append(_build_html_slider(sl, slides_klass, slider_id))
-        html.append(u'</div>')
-        return '\n'.join(html)
+        captions = [f'Slice index: {i * decim}' for i in range(len(figs))]
+        start_idx = int(round(len(figs) / 2))
+        html, _ = self._render_slider(
+            figs=figs,
+            captions=captions,
+            title=orientation,
+            image_format=image_format,
+            start_idx=start_idx,
+            tags=tags,
+            klass='bem col-md'
+        )
 
-    def _render_raw(self, raw_fname, data_path):
-        """Render raw (only text)."""
-        global_id = self._get_id()
-
-        kwargs = dict(fname=raw_fname, preload=False)
-        if raw_fname.endswith(('.fif', '.fif.gz')):
-            kwargs['allow_maxshield'] = True
-        raw = read_raw(**kwargs)
-        extra = '(MaxShield on)' if raw.info.get('maxshield', False) else ''
-        caption = self._gen_caption(prefix='Raw', suffix=extra,
-                                    fname=raw_fname, data_path=data_path)
-        html = """<li class="raw" id="%s">""" % (global_id)
-        html += raw._repr_html_(caption=caption)
-        html += "</li>"
-
-        raw_psd = {} if self.raw_psd is True else self.raw_psd
-        if isinstance(raw_psd, dict):
-            n_ax = sum(kind in raw for kind in _DATA_CH_TYPES_SPLIT)
-            fig = _figure_agg(figsize=(6, 1 + 1.5 * n_ax), dpi=92)
-            axes = [fig.add_subplot(1, n_ax, ii + 1) for ii in range(n_ax)]
-            img = _fig_to_img(raw.plot_psd, self.image_format,
-                              ax=axes, **raw_psd)
-            new_html = image_template.substitute(
-                img=img, div_klass='raw', img_klass='raw',
-                caption='PSD', show=True, image_format=self.image_format)
-            html += '\n\n' + new_html
         return html
 
-    def _render_projs(self, *, info_fname, data_path, proj_fname=None,
-                      div_klass='ssp'):
-        """Render SSP projectors.
+    def _render_raw(self, *, raw, add_psd, add_projs, add_butterfly,
+                    image_format, tags, topomap_kwargs):
+        """Render raw."""
+        if isinstance(raw, BaseRaw):
+            fname = raw.filenames[0]
+        else:
+            fname = str(raw)  # could e.g. be a Path!
+            kwargs = dict(fname=fname, preload=False)
+            if fname.endswith(('.fif', '.fif.gz')):
+                kwargs['allow_maxshield'] = True
+            raw = read_raw(**kwargs)
 
-        Parameters
-        ----------
-        info_fname : str
-            Path of a file containing the `~mne.Info` structure, which is
-            required to create the topographic plots.
-        data_path : str
-            The "base" directory of the data. This path will me omitted from
-            the captions.
-        proj_fname : str | None
-            Path of projectors file to load. If ``None``, read projectors from
-            the `~mne.Info` structure in ``info_fname``.
-        div_klass : str
-            The class of the generated ``<div>`` container.
+        # Summary table
+        dom_id = self._get_dom_id()
+        repr_html = _html_element(
+            div_klass='raw',
+            id=dom_id,
+            tags=tags,
+            title='Info',
+            html=raw._repr_html_()
+        )
 
-        """
-        global_id = self._get_id()
-        div_klass = div_klass
-        img_klass = 'ssp'
-        info = read_info(info_fname, verbose=False)
-        projs = info['projs'] if proj_fname is None else read_proj(proj_fname)
+        # Butterfly plot
+        if add_butterfly:
+            dom_id = self._get_dom_id()
+            # Only keep "bad" annotations
+            raw_copy = raw.copy()
+            annots_to_remove_idx = []
+            for idx, annotation in enumerate(raw.annotations):
+                if not annotation['description'].lower().startswith('bad'):
+                    annots_to_remove_idx.append(idx)
+            raw_copy.annotations.delete(annots_to_remove_idx)
 
-        if div_klass == 'ssp':  # "standalone" section
-            fname = info_fname if proj_fname is None else proj_fname
-            caption = self._gen_caption(prefix='SSP Projectors', fname=fname,
-                                        data_path=data_path)
-        else:  # Part of another section
-            caption = 'SSP Projectors'
-
-        img_kws = dict(projs=projs, info=info, colorbar=True, vlim='joint',
-                       show=False)
-        img = _fig_to_img(plot_projs_topomap, self.image_format, **img_kws)
-        html = image_template.substitute(
-            img=img, div_klass=div_klass, img_klass=img_klass,
-            caption=caption, show=True, image_format=self.image_format,
-            id=global_id)
-        return html
-
-    def _render_forward(self, fwd_fname, data_path):
-        """Render forward."""
-        div_klass = 'forward'
-        caption = self._gen_caption(prefix='Forward', fname=fwd_fname,
-                                    data_path=data_path)
-        fwd = read_forward_solution(fwd_fname)
-        repr_fwd = re.sub('>', '', re.sub('<', '', repr(fwd)))
-        global_id = self._get_id()
-        html = repr_template.substitute(div_klass=div_klass,
-                                        id=global_id,
-                                        caption=caption,
-                                        repr=repr_fwd)
-        return html
-
-    def _render_inverse(self, inv_fname, data_path):
-        """Render inverse."""
-        div_klass = 'inverse'
-        caption = self._gen_caption(prefix='Inverse', fname=inv_fname,
-                                    data_path=data_path)
-        inv = read_inverse_operator(inv_fname)
-        repr_inv = re.sub('>', '', re.sub('<', '', repr(inv)))
-        global_id = self._get_id()
-        html = repr_template.substitute(div_klass=div_klass,
-                                        id=global_id,
-                                        caption=caption,
-                                        repr=repr_inv)
-        return html
-
-    def _render_evoked(self, evoked_fname, baseline, image_format, data_path):
-        """Render evoked."""
-        logger.debug('Evoked: Reading %s' % evoked_fname)
-        evokeds = read_evokeds(evoked_fname, baseline=baseline, verbose=False)
-
-        html = []
-        for ei, ev in enumerate(evokeds):
-            global_id = self._get_id()
-            kwargs = dict(show=False)
-            logger.debug('Evoked: Plotting instance %s/%s'
-                         % (ei + 1, len(evokeds)))
             with warnings.catch_warnings():
                 warnings.filterwarnings(
-                    'ignore',
-                    message='Channel locations not available.*',
-                    category=RuntimeWarning)
-                img = _fig_to_img(ev.plot, image_format, spatial_colors=True,
-                                  **kwargs)
+                    action='ignore',
+                    message='.*can cause aliasing artifacts.*',
+                    category=RuntimeWarning
+                )
+                fig = raw_copy.plot(
+                    butterfly=True,
+                    show_scrollbars=False,
+                    duration=raw.times[-1],
+                    decim=10,
+                    show=False
+                )
 
-            caption = self._gen_caption(prefix='Evoked',
-                                        suffix=f'({ev.comment})',
-                                        fname=evoked_fname,
-                                        data_path=data_path)
-            html.append(image_template.substitute(
-                img=img, id=global_id, div_klass='evoked',
-                img_klass='evoked', caption=caption, show=True,
-                image_format=image_format))
+            tight_layout(fig=fig)
+            img = _fig_to_img(fig=fig, image_format=image_format)
+            butterfly_img_html = _html_image_element(
+                img=img, div_klass='raw', img_klass='raw',
+                title='Time course', caption=None, show=True,
+                image_format=image_format, id=dom_id, tags=tags
+            )
+            del raw_copy
+        else:
+            butterfly_img_html = ''
+
+        # PSD
+        if isinstance(add_psd, dict):
+            dom_id = self._get_dom_id()
+            if raw.info['lowpass'] is not None:
+                fmax = raw.info['lowpass'] + 15
+                # Must not exceed half the sampling frequency
+                if fmax > 0.5 * raw.info['sfreq']:
+                    fmax = np.inf
+            else:
+                fmax = np.inf
+
+            fig = raw.plot_psd(fmax=fmax, show=False, **add_psd)
+            tight_layout(fig=fig)
+
+            img = _fig_to_img(fig, image_format=image_format)
+            psd_img_html = _html_image_element(
+                img=img, div_klass='raw', img_klass='raw',
+                title='PSD', caption=None, show=True,
+                image_format=image_format, id=dom_id, tags=tags
+            )
+        else:
+            psd_img_html = ''
+
+        ssp_projs_html = self._ssp_projs_html(
+            add_projs=add_projs, info=raw, image_format=image_format,
+            tags=tags, topomap_kwargs=topomap_kwargs)
+
+        return [repr_html, psd_img_html, butterfly_img_html, ssp_projs_html]
+
+    def _ssp_projs_html(self, *, add_projs, info, image_format, tags,
+                        topomap_kwargs):
+        if add_projs:
+            output = self._render_ssp_projs(
+                info=info, projs=None, title='SSP Projectors',
+                image_format=image_format, tags=tags,
+                topomap_kwargs=topomap_kwargs,
+            )
+            if output is None:
+                ssp_projs_html = ''
+            else:
+                ssp_projs_html, _ = output
+        else:
+            ssp_projs_html = ''
+        return ssp_projs_html
+
+    def _render_ssp_projs(self, *, info, projs, title, image_format, tags,
+                          topomap_kwargs):
+        if isinstance(info, Info):  # no-op
+            pass
+        elif hasattr(info, 'info'):  # try to get the file name
+            if isinstance(info, BaseRaw):
+                fname = info.filenames[0]
+            # elif isinstance(info, (Evoked, BaseEpochs)):
+            #     fname = info.filename
+            else:
+                fname = ''
+            info = info.info
+        else:  # read from a file
+            fname = info
+            info = read_info(fname, verbose=False)
+
+        if projs is None:
+            projs = info['projs']
+        elif not isinstance(projs, list):
+            fname = projs
+            projs = read_proj(fname)
+
+        if not projs:  # Abort mission!
+            return None
+
+        if info['dig'] is None:  # We cannot proceed without digpoints either
+            return None
+
+        topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
+        fig = plot_projs_topomap(
+            projs=projs, info=info, colorbar=True, vlim='joint',
+            show=False, **topomap_kwargs
+        )
+        # TODO This seems like a bad idea, better to provide a way to set a
+        # desired size in plot_projs_topomap, but that uses prepare_trellis...
+        # hard to see how (6, 4) could work in all number-of-projs by
+        # number-of-channel-types conditions...
+        fig.set_size_inches((6, 4))
+        tight_layout(fig=fig)
+        img = _fig_to_img(fig=fig, image_format=image_format)
+
+        dom_id = self._get_dom_id()
+        html = _html_image_element(
+            img=img, div_klass='ssp', img_klass='ssp',
+            title=title, caption=None, show=True, image_format=image_format,
+            id=dom_id, tags=tags
+        )
+
+        return html, dom_id
+
+    def _render_forward(self, *, forward, subject, subjects_dir, title,
+                        image_format, tags):
+        """Render forward solution."""
+        if not isinstance(forward, Forward):
+            forward = read_forward_solution(forward)
+
+        subject = self.subject if subject is None else subject
+        subjects_dir = (self.subjects_dir if subjects_dir is None
+                        else subjects_dir)
+
+        # XXX Todo
+        # Render sensitivity maps
+        if subject is not None:
+            sensitivity_maps_html = ''
+        else:
+            sensitivity_maps_html = ''
+
+        dom_id = self._get_dom_id()
+        html = _html_forward_sol_element(
+            id=dom_id,
+            repr=forward._repr_html_(),
+            sensitivity_maps=sensitivity_maps_html,
+            title=title,
+            tags=tags
+        )
+        return html, dom_id
+
+    def _render_inverse_operator(self, *, inverse_operator, subject,
+                                 subjects_dir, trans, title, image_format,
+                                 tags):
+        """Render inverse operator."""
+        if not isinstance(inverse_operator, InverseOperator):
+            inverse_operator = read_inverse_operator(inverse_operator)
+
+        if trans is not None and not isinstance(trans, Transform):
+            trans = read_trans(trans)
+
+        subject = self.subject if subject is None else subject
+        subjects_dir = (self.subjects_dir if subjects_dir is None
+                        else subjects_dir)
+
+        # XXX Todo Render source space?
+        # if subject is not None and trans is not None:
+        #     src = inverse_operator['src']
+
+        #     fig = plot_alignment(
+        #         subject=subject,
+        #         subjects_dir=subjects_dir,
+        #         trans=trans,
+        #         surfaces='white',
+        #         src=src
+        #     )
+        #     set_3d_view(fig, focalpoint=(0., 0., 0.06))
+        #     img = _fig_to_img(fig=fig, image_format=image_format)
+
+        #     dom_id = self._get_dom_id()
+        #     src_img_html = _html_image_element(
+        #         img=img,
+        #         div_klass='inverse-operator source-space',
+        #         img_klass='inverse-operator source-space',
+        #         title='Source space', caption=None, show=True,
+        #         image_format=image_format, id=dom_id,
+        #         tags=tags
+        #     )
+        # else:
+        src_img_html = ''
+
+        dom_id = self._get_dom_id()
+        html = _html_inverse_operator_element(
+            id=dom_id,
+            repr=inverse_operator._repr_html_(),
+            source_space=src_img_html,
+            title=title,
+            tags=tags,
+        )
+        return html, dom_id
+
+    def _render_evoked_joint(self, evoked, ch_types, image_format, tags,
+                             topomap_kwargs):
+        ch_type_to_caption_map = {
+            'mag': 'magnetometers',
+            'grad': 'gradiometers',
+            'eeg': 'EEG'
+        }
+
+        htmls = []
+        for ch_type in ch_types:
+            with use_log_level(level=False):
+                fig = evoked.copy().pick(ch_type, verbose=False).plot_joint(
+                    ts_args=dict(gfp=True),
+                    title=None,
+                    show=False,
+                    topomap_args=topomap_kwargs,
+                )
+
+            img = _fig_to_img(fig=fig, image_format=image_format)
+            title = f'Time course ({ch_type_to_caption_map[ch_type]})'
+            dom_id = self._get_dom_id()
+
+            htmls.append(
+                _html_image_element(
+                    img=img,
+                    div_klass='evoked evoked-joint',
+                    img_klass='evoked evoked-joint',
+                    tags=tags,
+                    title=title,
+                    caption=None,
+                    show=True,
+                    image_format=image_format,
+                    id=dom_id
+                )
+            )
+
+        html = '\n'.join(htmls)
+        return html
+
+    def _render_evoked_topomap_slider(self, *, evoked, ch_types, n_time_points,
+                                      image_format, tags, topomap_kwargs):
+        import matplotlib.pyplot as plt
+
+        if n_time_points is None:
+            n_time_points = min(len(evoked.times), 21)
+        elif n_time_points > len(evoked.times):
+            raise ValueError(
+                f'The requested number of time points ({n_time_points}) '
+                f'exceeds the time points in the provided Evoked object '
+                f'({len(evoked.times)})'
+            )
+
+        if n_time_points == 1:  # only a single time point, pick the first one
+            times = [evoked.times[0]]
+        else:
+            times = np.linspace(
+                start=evoked.tmin,
+                stop=evoked.tmax,
+                num=n_time_points
+            )
+
+        t_zero_idx = np.abs(times).argmin()  # index closest to zero
+
+        # global min and max values for each channel type
+        scalings = dict(eeg=1e6, grad=1e13, mag=1e15)
+
+        vmax = dict()
+        vmin = dict()
+        for ch_type in ch_types:
+            vmax[ch_type] = (np.abs(evoked.copy()
+                                    .pick(ch_type, verbose=False)
+                                    .data)
+                             .max()) * scalings[ch_type]
+            if ch_type == 'grad':
+                vmin[ch_type] = 0
+            else:
+                vmin[ch_type] = -vmax[ch_type]
+
+        figs = []
+        topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
+
+        for t in times:
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    action='ignore',
+                    message='More than 20 figures have been opened',
+                    category=RuntimeWarning
+                )
+
+                # topomaps + color bars
+                fig, ax = plt.subplots(
+                    1, len(ch_types) * 2,
+                    gridspec_kw={'width_ratios': [8, 0.5] * len(ch_types)},
+                    figsize=(4 * len(ch_types), 3.5)
+                )
+                ch_type_ax_map = dict(
+                    zip(ch_types,
+                        [(ax[i], ax[i + 1]) for i in
+                         range(0, 2 * len(ch_types) - 1, 2)])
+                )
+
+                for ch_type in ch_types:
+                    evoked.plot_topomap(
+                        times=[t], ch_type=ch_type,
+                        vmin=vmin[ch_type], vmax=vmax[ch_type],
+                        axes=ch_type_ax_map[ch_type], show=False,
+                        **topomap_kwargs
+                    )
+                    ch_type_ax_map[ch_type][0].set_title(ch_type)
+                tight_layout(fig=fig)
+                figs.append(fig)
+
+        captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
+        html = self._render_slider(
+            figs=figs,
+            captions=captions,
+            title='Topographies',
+            image_format=image_format,
+            start_idx=t_zero_idx,
+            tags=tags
+        )
+
+        return html
+
+    def _render_evoked_gfp(self, evoked, ch_types, image_format, tags):
+        # Make legend labels shorter by removing the multiplicative factors
+        pattern = r'\d\.\d* × '
+        label = evoked.comment
+        if label is None:
+            label = ''
+        for match in re.findall(pattern=pattern, string=label):
+            label = label.replace(match, '')
+
+        dom_id = self._get_dom_id()
+
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(len(ch_types), 1, sharex=True)
+        if len(ch_types) == 1:
+            ax = [ax]
+        for idx, ch_type in enumerate(ch_types):
+            plot_compare_evokeds(
+                evokeds={
+                    label: evoked.copy().pick(ch_type, verbose=False)
+                },
+                ci=None, truncate_xaxis=False,
+                truncate_yaxis=False, legend=False,
+                axes=ax[idx], show=False
+            )
+            ax[idx].set_title(ch_type)
+
+            # Hide x axis label for all but the last subplot
+            if idx < len(ch_types) - 1:
+                ax[idx].set_xlabel(None)
+
+        tight_layout(fig=fig)
+        img = _fig_to_img(fig=fig, image_format=image_format)
+        title = 'Global field power'
+        html = _html_image_element(
+            img=img,
+            id=dom_id,
+            tags=tags,
+            div_klass='evoked evoked-gfp',
+            img_klass='evoked evoked-gfp',
+            title=title,
+            caption=None,
+            image_format=image_format,
+            show=True
+        )
+
+        return html
+
+    def _render_evoked_whitened(self, evoked, *, noise_cov, image_format,
+                                tags):
+        """Render whitened evoked."""
+        dom_id = self._get_dom_id()
+        fig = evoked.plot_white(
+            noise_cov=noise_cov,
+            show=False
+        )
+        tight_layout(fig=fig)
+        img = _fig_to_img(fig=fig, image_format=image_format)
+        title = 'Whitened'
+
+        html = _html_image_element(
+            img=img, id=dom_id, div_klass='evoked',
+            img_klass='evoked evoked-whitened', title=title, caption=None,
+            show=True, image_format=image_format, tags=tags
+        )
+        return html
+
+    def _render_evoked(self, evoked, noise_cov, add_projs, n_time_points,
+                       image_format, tags, topomap_kwargs):
+        def _get_ch_types(ev):
             has_types = []
             if len(pick_types(ev.info, meg=False, eeg=True)) > 0:
                 has_types.append('eeg')
@@ -2041,131 +2912,321 @@ class Report(object):
                 has_types.append('grad')
             if len(pick_types(ev.info, meg='mag', eeg=False)) > 0:
                 has_types.append('mag')
-            for ch_type in has_types:
-                logger.debug('    Topomap type %s' % ch_type)
-                img = _fig_to_img(ev.plot_topomap, image_format,
-                                  ch_type=ch_type, **kwargs)
-                caption = u'Topomap (ch_type = %s)' % ch_type
-                html.append(image_template.substitute(
-                    img=img, div_klass='evoked', img_klass='evoked',
-                    caption=caption, show=True, image_format=image_format))
+            return has_types
 
-        # Plot GFP comparison.
-        figs = plot_compare_evokeds(evokeds=evokeds, ci=None, **kwargs)
-        for fig in figs:
-            img = _fig_to_img(fig, image_format)
-            caption = self._gen_caption(prefix='Evoked',
-                                        suffix='(GFPs)',
-                                        fname=evoked_fname,
-                                        data_path=data_path)
-            global_id = self._get_id()
-            html.append(image_template.substitute(
-                img=img, id=global_id, div_klass='evoked',
-                img_klass='evoked', caption=caption, show=True,
-                image_format=image_format))
+        ch_types = _get_ch_types(evoked)
+        joint_html = self._render_evoked_joint(
+            evoked=evoked, ch_types=ch_types,
+            image_format=image_format, tags=tags,
+            topomap_kwargs=topomap_kwargs,
+        )
+        slider_html, _ = self._render_evoked_topomap_slider(
+            evoked=evoked, ch_types=ch_types,
+            n_time_points=n_time_points,
+            image_format=image_format,
+            tags=tags, topomap_kwargs=topomap_kwargs,
+        )
+        gfp_html = self._render_evoked_gfp(
+            evoked=evoked, ch_types=ch_types, image_format=image_format,
+            tags=tags
+        )
+
+        if noise_cov is not None:
+            whitened_html = self._render_evoked_whitened(
+                evoked=evoked,
+                noise_cov=noise_cov,
+                image_format=image_format,
+                tags=tags
+            )
+        else:
+            whitened_html = ''
+
+        # SSP projectors
+        ssp_projs_html = self._ssp_projs_html(
+            add_projs=add_projs, info=evoked, image_format=image_format,
+            tags=tags, topomap_kwargs=topomap_kwargs)
 
         logger.debug('Evoked: done')
-        return '\n'.join(html)
+        return joint_html, slider_html, gfp_html, whitened_html, ssp_projs_html
 
-    def _render_eve(self, eve_fname, sfreq, image_format, data_path):
+    def _render_events(self, events, *, event_id, sfreq, first_samp, title,
+                       image_format, tags):
         """Render events."""
-        global_id = self._get_id()
-        events = read_events(eve_fname)
-        kwargs = dict(events=events, sfreq=sfreq, show=False)
-        img = _fig_to_img(plot_events, image_format, **kwargs)
-        caption = self._gen_caption(prefix='Events', fname=eve_fname,
-                                    data_path=data_path)
-        html = image_template.substitute(
-            img=img, id=global_id, div_klass='events', img_klass='events',
-            caption=caption, show=True, image_format=image_format)
-        return html
+        if not isinstance(events, np.ndarray):
+            events = read_events(filename=events)
 
-    def _render_epochs(self, epo_fname, image_format, data_path):
+        fig = plot_events(
+            events=events,
+            event_id=event_id,
+            sfreq=sfreq,
+            first_samp=first_samp,
+            show=False
+        )
+
+        img = _fig_to_img(
+            fig=fig,
+            image_format=image_format,
+        )
+
+        dom_id = self._get_dom_id()
+        html = _html_image_element(
+            img=img,
+            id=dom_id,
+            div_klass='events',
+            img_klass='events',
+            tags=tags,
+            title=title,
+            caption=None,
+            show=True,
+            image_format=image_format
+        )
+        return html, dom_id
+
+    def _render_epochs(self, *, epochs, add_psd, add_projs, image_format,
+                       tags, topomap_kwargs):
         """Render epochs."""
-        global_id = self._get_id()
-        epochs = read_epochs(epo_fname)
-        kwargs = dict(subject=self.subject, show=False)
-        img = _fig_to_img(epochs.plot_drop_log, image_format, **kwargs)
-        caption = self._gen_caption(prefix='Epochs', fname=epo_fname,
-                                    data_path=data_path)
-        show = True
-        html = image_template.substitute(
-            img=img, id=global_id, div_klass='epochs', img_klass='epochs',
-            caption=caption, show=show, image_format=image_format)
-        html += epochs._repr_html_()
-        return html
+        if isinstance(epochs, BaseEpochs):
+            fname = epochs.filename
+        else:
+            fname = epochs
+            epochs = read_epochs(fname)
 
-    def _render_cov(self, cov_fname, info_fname, image_format, data_path,
-                    show_svd=True):
-        """Render cov."""
-        global_id = self._get_id()
-        cov = read_cov(cov_fname)
-        fig, svd = plot_cov(cov, info_fname, show=False, show_svd=show_svd)
-        html = []
-        figs = [fig]
-        captions = [self._gen_caption(prefix='Covariance',
-                                      suffix=f'(n_samples: {cov.nfree})',
-                                      fname=cov_fname, data_path=data_path)]
-        if svd is not None:
-            figs.append(svd)
-            captions.append('Singular values of the noise covariance')
-        for fig, caption in zip(figs, captions):
-            img = _fig_to_img(fig, image_format)
-            show = True
-            html.append(image_template.substitute(
-                img=img, id=global_id, div_klass='covariance',
-                img_klass='covariance', caption=caption, show=show,
-                image_format=image_format))
-        return '\n'.join(html)
+        # Summary table
+        dom_id = self._get_dom_id()
+        repr_html = _html_element(
+            div_klass='epochs',
+            id=dom_id,
+            tags=tags,
+            title='Info',
+            html=epochs._repr_html_()
+        )
 
-    def _render_whitened_evoked(self, evoked_fname, noise_cov, baseline,
-                                image_format, data_path):
-        """Render whitened evoked."""
-        evokeds = read_evokeds(evoked_fname, verbose=False)
-        html = []
-        for ev in evokeds:
-            ev = read_evokeds(evoked_fname, ev.comment, baseline=baseline,
-                              verbose=False)
-            global_id = self._get_id()
-            kwargs = dict(noise_cov=noise_cov, show=False)
-            img = _fig_to_img(ev.plot_white, image_format, **kwargs)
-            caption = self._gen_caption(prefix='Whitened evoked',
-                                        suffix=f'({ev.comment})',
-                                        fname=evoked_fname,
-                                        data_path=data_path)
-            show = True
-            html.append(image_template.substitute(
-                img=img, id=global_id, div_klass='evoked',
-                img_klass='evoked', caption=caption, show=show,
-                image_format=image_format))
-        return '\n'.join(html)
+        # Drop log
+        if epochs._bad_dropped:
+            title = 'Drop log'
+            dom_id = self._get_dom_id()
+            if epochs.drop_log_stats() == 0:  # No drops
+                drop_log_img_html = _html_element(
+                    html='No epochs exceeded the rejection thresholds. '
+                         'Nothing was dropped.',
+                    id=dom_id, div_klass='epochs', title=title, tags=tags
+                )
+            else:
+                fig = epochs.plot_drop_log(subject=self.subject, show=False)
+                tight_layout(fig=fig)
+                img = _fig_to_img(fig=fig, image_format=image_format)
+                drop_log_img_html = _html_image_element(
+                    img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
+                    show=True, image_format=image_format, title=title,
+                    caption=None, tags=tags
+                )
+        else:
+            drop_log_img_html = ''
 
-    def _render_trans(self, trans, path, info, subject, subjects_dir,
-                      data_path):
+        # PSD
+        if add_psd:
+            dom_id = self._get_dom_id()
+            if epochs.info['lowpass'] is not None:
+                fmax = epochs.info['lowpass'] + 15
+                # Must not exceed half the sampling frequency
+                if fmax > 0.5 * epochs.info['sfreq']:
+                    fmax = np.inf
+            else:
+                fmax = np.inf
+
+            fig = epochs.plot_psd(fmax=fmax, show=False)
+            tight_layout(fig=fig)
+
+            img = _fig_to_img(fig=fig, image_format=image_format)
+            psd_img_html = _html_image_element(
+                img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
+                show=True, image_format=image_format, title='PSD',
+                caption=None, tags=tags
+            )
+        else:
+            psd_img_html = ''
+
+        ssp_projs_html = self._ssp_projs_html(
+            add_projs=add_projs, info=epochs, image_format=image_format,
+            tags=tags, topomap_kwargs=topomap_kwargs)
+
+        return repr_html, drop_log_img_html, psd_img_html, ssp_projs_html
+
+    def _render_cov(self, cov, *, info, image_format, tags):
+        """Render covariance matrix & SVD."""
+        if not isinstance(cov, Covariance):
+            cov = read_cov(cov)
+        if not isinstance(info, Info):
+            info = read_info(info)
+
+        fig_cov, fig_svd = plot_cov(cov=cov, info=info, show=False,
+                                    show_svd=True)
+        figs = [fig_cov, fig_svd]
+        htmls = []
+
+        titles = (
+            'Covariance matrix',
+            'Singular values'
+        )
+
+        for fig, title in zip(figs, titles):
+            dom_id = self._get_dom_id()
+            img = _fig_to_img(fig=fig, image_format=image_format)
+            html = _html_image_element(
+                img=img, id=dom_id, div_klass='covariance',
+                img_klass='covariance', title=title, caption=None,
+                image_format=image_format, tags=tags, show=True
+            )
+            htmls.append(html)
+
+        return htmls
+
+    def _render_trans(self, *, trans, info, subject, subjects_dir, title,
+                      tags):
         """Render trans (only PNG)."""
+        if not isinstance(trans, Transform):
+            trans = read_trans(trans)
+        if not isinstance(info, Info):
+            info = read_info(info)
+
         kwargs = dict(info=info, trans=trans, subject=subject,
                       subjects_dir=subjects_dir, dig=True,
-                      meg=['helmet', 'sensors'],
+                      meg=['helmet', 'sensors'], show_axes=True,
                       coord_frame='mri')
         try:
-            img = _iterate_trans_views(function=plot_alignment,
-                                       surfaces=['head-dense'], **kwargs)
+            img, caption = _iterate_trans_views(
+                function=plot_alignment, surfaces=['head-dense'], **kwargs
+            )
         except IOError:
-            img = _iterate_trans_views(function=plot_alignment,
-                                       surfaces=['head'], **kwargs)
+            img, caption = _iterate_trans_views(
+                function=plot_alignment, surfaces=['head'], **kwargs
+            )
 
-        if img is not None:
-            global_id = self._get_id()
-            caption = self._gen_caption(prefix='Trans', fname=trans,
-                                        data_path=data_path)
-            html = image_template.substitute(
-                img=img, id=global_id, div_klass='trans',
-                img_klass='trans', caption=caption, width=75,
-                show=True, image_format='png')
-            return html
+        dom_id = self._get_dom_id()
+        html = _html_image_element(
+            img=img, id=dom_id, div_klass='trans',
+            img_klass='trans', title=title, caption=caption,
+            show=True, image_format='png', tags=tags
+        )
+        return html, dom_id
 
-    def _render_bem(self, subject, subjects_dir, decim, n_jobs,
-                    section='bem', caption='BEM', width=512):
+    def _render_stc(self, *, stc, title, subject, subjects_dir, n_time_points,
+                    image_format, tags, stc_plot_kwargs):
+        """Render STC."""
+        if isinstance(stc, SourceEstimate):
+            if subject is None:
+                subject = self.subject  # supplied during Report init
+                if not subject:
+                    subject = stc.subject  # supplied when loading STC
+                    if not subject:
+                        raise ValueError(
+                            'Please specify the subject name, as it  cannot '
+                            'be found in stc.subject. You may wish to pass '
+                            'the "subject" parameter to read_source_estimate()'
+                        )
+            else:
+                subject = subject
+        else:
+            fname = stc
+            stc = read_source_estimate(fname=fname, subject=subject)
+
+        subjects_dir = (self.subjects_dir if subjects_dir is None
+                        else subjects_dir)
+
+        if n_time_points is None:
+            n_time_points = min(len(stc.times), 51)
+        elif n_time_points > len(stc.times):
+            raise ValueError(
+                f'The requested number of time points ({n_time_points}) '
+                f'exceeds the time points in the provided STC object '
+                f'({len(stc.times)})'
+            )
+        if n_time_points == 1:  # only a single time point, pick the first one
+            times = [stc.times[0]]
+        else:
+            times = np.linspace(
+                start=stc.times[0],
+                stop=stc.times[-1],
+                num=n_time_points
+            )
+        t_zero_idx = np.abs(times).argmin()  # index of time closest to zero
+
+        # Plot using 3d backend if available, and use Matplotlib
+        # otherwise.
+        import matplotlib.pyplot as plt
+        stc_plot_kwargs = _handle_default(
+            'report_stc_plot_kwargs', stc_plot_kwargs)
+        stc_plot_kwargs.update(subject=subject, subjects_dir=subjects_dir)
+
+        if get_3d_backend() is not None:
+            brain = stc.plot(**stc_plot_kwargs)
+            brain._renderer.plotter.subplot(0, 0)
+            backend_is_3d = True
+        else:
+            backend_is_3d = False
+
+        figs = []
+        for t in times:
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    action='ignore',
+                    message='More than 20 figures have been opened',
+                    category=RuntimeWarning)
+
+                if backend_is_3d:
+                    brain.set_time(t)
+                    fig, ax = plt.subplots(figsize=(8, 6))
+                    ax.imshow(brain.screenshot(time_viewer=True, mode='rgb'))
+                    ax.axis('off')
+                    tight_layout(fig=fig)
+                    figs.append(fig)
+                    plt.close(fig)
+                else:
+                    fig_lh = plt.figure()
+                    fig_rh = plt.figure()
+
+                    brain_lh = stc.plot(
+                        views='lat', hemi='lh',
+                        initial_time=t,
+                        backend='matplotlib',
+                        subject=subject,
+                        subjects_dir=subjects_dir,
+                        figure=fig_lh
+                    )
+                    brain_rh = stc.plot(
+                        views='lat', hemi='rh',
+                        initial_time=t,
+                        subject=subject,
+                        subjects_dir=subjects_dir,
+                        backend='matplotlib',
+                        figure=fig_rh
+                    )
+                    tight_layout(fig=fig_lh)  # TODO is this necessary?
+                    tight_layout(fig=fig_rh)  # TODO is this necessary?
+                    figs.append(brain_lh)
+                    figs.append(brain_rh)
+                    plt.close(fig_lh)
+                    plt.close(fig_rh)
+
+        if backend_is_3d:
+            brain.close()
+        else:
+            brain_lh.close()
+            brain_rh.close()
+
+        captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
+        html, dom_id = self._render_slider(
+            figs=figs,
+            captions=captions,
+            title=title,
+            image_format=image_format,
+            start_idx=t_zero_idx,
+            tags=tags
+        )
+        return html, dom_id
+
+    def _render_bem(self, *, subject, subjects_dir, decim, n_jobs, width=512,
+                    image_format, tags):
         """Render mri+bem (only PNG)."""
         if subjects_dir is None:
             subjects_dir = self.subjects_dir
@@ -2174,41 +3235,36 @@ class Report(object):
         # Get the MRI filename
         mri_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
         if not op.isfile(mri_fname):
-            warn('MRI file "%s" does not exist' % mri_fname)
+            warn(f'MRI file "{mri_fname}" does not exist')
 
         # Get the BEM surface filenames
         bem_path = op.join(subjects_dir, subject, 'bem')
 
         surfaces = _get_bem_plotting_surfaces(bem_path)
-        if len(surfaces) == 0:
+        if not surfaces:
             warn('No BEM surfaces found, rendering empty MRI')
 
-        html = []
-
-        global_id = self._get_id()
-        klass = _clean_varnames(section)
-        if section == 'bem':  # special case for bulitin one
-            if 'bem' not in self.sections:
-                self.sections.append('bem')
-                self._sectionvars['bem'] = 'bem'
-            klass = 'bem'
-        name = caption
-        html += u'<li class="%s" id="%d">\n' % (klass, global_id)
-        html += u'<h4>%s</h4>\n' % name  # all other captions are h4
-        for view in _BEM_VIEWS:
-            html += self._render_one_bem_axis(mri_fname, surfaces, global_id,
-                                              view, decim, n_jobs, width)
-        html += u'</li>\n'
-        return ''.join(html)
+        htmls = []
+        htmls.append('<div class="row">')
+        for orientation in _BEM_VIEWS:
+            html = self._render_one_bem_axis(
+                mri_fname=mri_fname, surfaces=surfaces,
+                orientation=orientation, decim=decim, n_jobs=n_jobs,
+                width=width, image_format=image_format,
+                tags=tags
+            )
+            htmls.append(html)
+        htmls.append('</div>')
+        return '\n'.join(htmls)
 
 
-def _clean_varnames(s):
-    # Remove invalid characters
-    s = re.sub('[^0-9a-zA-Z_]', '', s)
+def _clean_tags(tags):
+    if isinstance(tags, str):
+        tags = (tags,)
 
-    # add report_ at the beginning so that the javascript class names
-    # are valid ones
-    return 'report_' + s
+    # Replace any whitespace characters with dashes
+    tags_cleaned = tuple(re.sub(r'[\s*]', '-', tag) for tag in tags)
+    return tags_cleaned
 
 
 def _recursive_search(path, pattern):
@@ -2222,16 +3278,6 @@ def _recursive_search(path, pattern):
                 filtered_files.append(op.realpath(op.join(dirpath, f)))
 
     return filtered_files
-
-
-def _fix_global_ids(html):
-    """Fix the global_ids after reordering in _render_toc()."""
-    html = re.sub(r'id="\d+"', 'id="###"', html)
-    global_id = 1
-    while len(re.findall('id="###"', html)) > 0:
-        html = re.sub('id="###"', 'id="%s"' % global_id, html, count=1)
-        global_id += 1
-    return html
 
 
 ###############################################################################
@@ -2269,7 +3315,8 @@ class _ReportScraper(object):
 
     def __call__(self, block, block_vars, gallery_conf):
         for report in block_vars['example_globals'].values():
-            if (isinstance(report, Report) and hasattr(report, 'fname') and
+            if (isinstance(report, Report) and
+                    report.fname is not None and
                     report.fname.endswith('.html') and
                     gallery_conf['builder_name'] == 'html'):
                 # Thumbnail

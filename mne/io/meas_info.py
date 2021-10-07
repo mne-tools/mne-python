@@ -818,13 +818,8 @@ class Info(dict, MontageMixin):
     def ch_names(self):
         return self['ch_names']
 
-    def _repr_html_(self, caption=None):
-        """Summarize info for HTML representation."""
+    def _get_chs_for_repr(self):
         titles = _handle_default('titles')
-        if isinstance(caption, str):
-            html = f'<h4>{caption}</h4>'
-        else:
-            html = ''
 
         # good channels
         channels = {}
@@ -857,6 +852,17 @@ class Info(dict, MontageMixin):
             bad_channels = ', '.join(self['bads'])
         else:
             bad_channels = 'None'
+
+        return good_channels, bad_channels, ecg, eog
+
+    def _repr_html_(self, caption=None):
+        """Summarize info for HTML representation."""
+        if isinstance(caption, str):
+            html = f'<h4>{caption}</h4>'
+        else:
+            html = ''
+
+        good_channels, bad_channels, ecg, eog = self._get_chs_for_repr()
 
         # meas date
         meas_date = self['meas_date']

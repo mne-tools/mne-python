@@ -1608,7 +1608,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
 
     # remove compensation matrices (safe: only plotting & already made copy)
     evoked.info['comps'] = []
-    evoked = evoked._pick_drop_channels(picks)
+    evoked = evoked._pick_drop_channels(picks, verbose=False)
     # determine which times to plot
     if isinstance(axes, plt.Axes):
         axes = [axes]

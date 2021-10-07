@@ -136,6 +136,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         # project and baseline correct
         if proj:
             self.apply_proj()
+        self.filename = fname
 
     @property
     def kind(self):
