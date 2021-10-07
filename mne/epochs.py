@@ -1108,14 +1108,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     def plot(self, picks=None, scalings=None, n_epochs=20, n_channels=20,
              title=None, events=None, event_color=None,
              order=None, show=True, block=False, decim='auto', noise_cov=None,
-             butterfly=False, show_scrollbars=True, epoch_colors=None,
-             event_id=None, group_by='type'):
+             butterfly=False, show_scrollbars=True, show_scalebars=True,
+             epoch_colors=None, event_id=None, group_by='type'):
         return plot_epochs(self, picks=picks, scalings=scalings,
                            n_epochs=n_epochs, n_channels=n_channels,
                            title=title, events=events, event_color=event_color,
                            order=order, show=show, block=block, decim=decim,
                            noise_cov=noise_cov, butterfly=butterfly,
                            show_scrollbars=show_scrollbars,
+                           show_scalebars=show_scalebars,
                            epoch_colors=epoch_colors, event_id=event_id,
                            group_by=group_by)
 
