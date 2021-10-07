@@ -10,10 +10,8 @@
 #
 # License: Simplified BSD
 
-import base64
 import copy
 from glob import glob
-from io import BytesIO
 from itertools import cycle
 import os.path as op
 import warnings
@@ -38,7 +36,7 @@ from ..utils import (logger, verbose, warn, _check_option, get_subjects_dir,
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
 from .utils import (tight_layout, _get_color_list, _prepare_trellis, plt_show,
-                    _figure_agg)
+                    _figure_agg, _validate_type)
 
 
 def _index_info_cov(info, cov, exclude):
@@ -303,13 +301,30 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
     return fig
 
 
-def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
-                       slices=None, show=True, show_indices=False,
-                       show_orientation=False, img_output=False, width=512):
-    """Plot BEM contours on anatomical slices."""
+def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
+                       slices=None, slices_as_figures=False, show=True,
+                       show_indices=False, show_orientation=False, width=512):
+    """Plot BEM contours on anatomical slices.
+
+    Parameters
+    ----------
+    slices_as_figures : bool
+        If ``True``, create one figure per slice. If ``False``, add all slices
+        as subplots to a single figure.
+
+    Returns
+    -------
+    matplotlib.figure.Figure | list of matplotlib.figure.Figure
+        The plotted slices. If ``slices_as_figures`` is ``True``, a single
+        figure. If ``False``, one figure per slice.
+    """
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
     # For ease of plotting, we will do everything in voxel coordinates.
+    _validate_type(show_orientation, (bool, str), 'show_orientation')
+    if isinstance(show_orientation, str):
+        _check_option('show_orientation', show_orientation, ('always',),
+                      extra='when str')
     _check_option('orientation', orientation, ('coronal', 'axial', 'sagittal'))
 
     # Load the T1 data
@@ -322,7 +337,17 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
 
     n_slices = data.shape[axis]
     if slices is None:
-        slices = np.round(np.linspace(0, n_slices - 1, 14)).astype(int)[1:-1]
+        slices = np.round(
+            np.linspace(
+                start=0,
+                stop=n_slices - 1,
+                num=14
+            )
+        ).astype(int)
+
+        # omit first and last one (no much brain visible there anyway)
+        slices = slices[1:-1]
+
     slices = np.atleast_1d(slices).copy()
     slices[slices < 0] += n_slices  # allow negative indexing
     if not np.array_equal(np.sort(slices), slices) or slices.ndim != 1 or \
@@ -354,40 +379,47 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
             sources.append(apply_trans(mri_rasvox_t, points * 1e3))
         sources = np.concatenate(sources, axis=0)
 
-    if img_output:
+    if slices_as_figures:
         n_col = n_axes = 1
         dpi = 96
         # 2x standard MRI resolution is probably good enough for the
         # traces
         w = width / dpi
         figsize = (w, w / data.shape[x] * data.shape[y])
-        fig = _figure_agg(figsize=figsize, dpi=dpi, facecolor='k')
-        ax = fig.add_axes([0, 0, 1, 1], frame_on=False, facecolor='k')
-        axs = [ax] * len(slices)
-        plt.close(fig)
     else:
         n_col = 4
-        fig, axs, _, _ = _prepare_trellis(len(slices), n_col)
-        fig.set_facecolor('k')
-        dpi = fig.get_dpi()
-        n_axes = len(axs)
+
+    fig, axs, _, _ = _prepare_trellis(len(slices), n_col)
+    fig.set_facecolor('k')
+    dpi = fig.get_dpi()
+    n_axes = len(axs)
+    if slices_as_figures:
+        plt.close(fig)
+
     bounds = np.concatenate(
-        [[-np.inf], slices[:-1] + np.diff(slices) / 2., [np.inf]])  # float
+        [[-np.inf], slices[:-1] + np.diff(slices) / 2.,
+         [np.inf]]
+    )  # float
     slicer = [slice(None)] * 3
     ori_labels = dict(R='LR', A='PA', S='IS')
     xlabels, ylabels = ori_labels['RAS'[x]], ori_labels['RAS'[y]]
     path_effects = [patheffects.withStroke(linewidth=4, foreground="k",
                                            alpha=0.75)]
-    out = list() if img_output else fig
-    for ai, (ax, sl, lower, upper) in enumerate(zip(
-            axs, slices, bounds[:-1], bounds[1:])):
+    figs = []
+    for ai, (sl, lower, upper) in enumerate(
+        zip(slices, bounds[:-1], bounds[1:])
+    ):
+        if slices_as_figures:
+            fig = _figure_agg(figsize=figsize, dpi=dpi, facecolor='k')
+            ax = fig.add_axes([0, 0, 1, 1], frame_on=False, facecolor='k')
+        else:
+            ax = axs[ai]
+
         # adjust the orientations for good view
         slicer[axis] = sl
         dat = data[tuple(slicer)].T
 
         # First plot the anatomical data
-        if img_output:
-            ax.clear()
         ax.imshow(dat, cmap=plt.cm.gray, origin='lower')
         ax.set_autoscale_on(False)
         ax.axis('off')
@@ -413,47 +445,47 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         kwargs = dict(
             color='#66CCEE', fontsize='medium', path_effects=path_effects,
             family='monospace', clip_on=False, zorder=5, weight='bold')
+        always = (show_orientation == 'always')
         if show_orientation:
-            if ai % n_col == 0:  # left
+            if ai % n_col == 0 or always:  # left
                 ax.text(0, dat.shape[0] / 2., xlabels[0],
                         va='center', ha='left', **kwargs)
-            if ai % n_col == n_col - 1 or ai == n_axes - 1:  # right
+            if ai % n_col == n_col - 1 or ai == n_axes - 1 or always:  # right
                 ax.text(dat.shape[1] - 1, dat.shape[0] / 2., xlabels[1],
                         va='center', ha='right', **kwargs)
-            if ai >= n_axes - n_col:  # bottom
+            if ai >= n_axes - n_col or always:  # bottom
                 ax.text(dat.shape[1] / 2., 0, ylabels[0],
                         ha='center', va='bottom', **kwargs)
-            if ai < n_col or n_col == 1:  # top
+            if ai < n_col or n_col == 1 or always:  # top
                 ax.text(dat.shape[1] / 2., dat.shape[0] - 1, ylabels[1],
                         ha='center', va='top', **kwargs)
-        if img_output:
-            output = BytesIO()
-            fig.savefig(output, bbox_inches='tight',
-                        pad_inches=0, format='png', dpi=dpi)
-            out.append(base64.b64encode(output.getvalue()).decode('ascii'))
 
-    fig.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
-                        hspace=0.)
-    plt_show(show, fig=fig)
-    return out
+        if slices_as_figures:
+            figs.append(fig)
+
+    if not slices_as_figures:
+        fig.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
+                            hspace=0.)
+        plt_show(show, fig=fig)
+
+    return figs if slices_as_figures else fig
 
 
-def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
+@fill_doc
+def plot_bem(subject, subjects_dir=None, orientation='coronal',
              slices=None, brain_surfaces=None, src=None, show=True,
              show_indices=True, mri='T1.mgz', show_orientation=True):
-    """Plot BEM contours on anatomical slices.
+    """Plot BEM contours on anatomical MRI slices.
 
     Parameters
     ----------
-    subject : str
-        Subject name.
-    subjects_dir : str | None
-        Path to the SUBJECTS_DIR. If None, the path is obtained by using
-        the environment variable SUBJECTS_DIR.
+    %(subject)s
+    %(subjects_dir)s
     orientation : str
         'coronal' or 'axial' or 'sagittal'.
-    slices : list of int
-        Slice indices.
+    slices : list of int | None
+        The indices of the MRI slices to plot. If ``None``, automatically
+        pick 12 equally-spaced slices.
     brain_surfaces : None | str | list of str
         One or more brain surface to plot (optional). Entries should correspond
         to files in the subject's ``surf`` directory (e.g. ``"white"``).
@@ -478,10 +510,15 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
         ``'T1.mgz'``, or a full path to a custom MRI file.
 
         .. versionadded:: 0.21
-    show_orientation : str
+    show_orientation : bool | str
         Show the orientation (L/R, P/A, I/S) of the data slices.
+        True (default) will only show it on the outside most edges of the
+        figure, False will never show labels, and "always" will label each
+        plot.
 
         .. versionadded:: 0.21
+        .. versionchanged:: 0.24
+           Added support for "always".
 
     Returns
     -------
@@ -545,8 +582,12 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
                       'inner_skull.surf, outer_skull.surf or outer_skin.surf')
 
     # Plot the contours
-    return _plot_mri_contours(mri_fname, surfaces, src, orientation, slices,
-                              show, show_indices, show_orientation)
+    fig =  _plot_mri_contours(
+        mri_fname=mri_fname, surfaces=surfaces, src=src,
+        orientation=orientation, slices=slices, show=show,
+        show_indices=show_indices, show_orientation=show_orientation
+    )
+    return fig
 
 
 def _get_bem_plotting_surfaces(bem_path):

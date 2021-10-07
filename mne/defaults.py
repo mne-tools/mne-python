@@ -151,6 +151,16 @@ DEFAULTS = dict(
         58,  # Right-Accumbens-area
 
         60,  # Right-VentralDC
+    ),
+    report_stc_plot_kwargs=dict(
+        views=('lateral', 'medial'),
+        hemi='split',
+        backend='pyvistaqt',
+        time_viewer=False,
+        show_traces=False,
+        size=(450, 450),
+        background='white',
+        time_label=None
     )
 )
 
