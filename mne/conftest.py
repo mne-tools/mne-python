@@ -412,7 +412,7 @@ def browse_backend(request, garbage_collect):
     backend_name = request.param
     if backend_name == 'pyqtgraph':
         try:
-            import PyQt5
+            import PyQt5  # noqa: F401
         except ModuleNotFoundError:
             pytest.skip('PyQt5 is not installed but needed for pyqtgraph!')
         try:
