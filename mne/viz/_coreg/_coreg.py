@@ -266,10 +266,8 @@ class CoregistrationUI(HasTraits):
     def _scale_mode_changed(self, change=None):
         mode = None if self._scale_mode == "None" else self._scale_mode
         self._coreg.set_scale_mode(mode)
-        for coord in ("X", "Y", "Z"):
-            name = f"s{coord}"
-            if name in self._widgets:
-                self._widgets[name].set_enabled(mode is not None)
+        self._forward_widget_command(["sX", "sY", "sZ"], "set_enabled",
+                                     mode is not None)
 
     @observe("_icp_fid_match")
     def _icp_fid_match_changed(self, change=None):
