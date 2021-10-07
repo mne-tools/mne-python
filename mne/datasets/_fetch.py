@@ -191,8 +191,7 @@ def fetch_dataset(
         # time because we don't save the archive files after unpacking, so
         # pooch can't check its checksum)
         if op.isdir(final_path):
-            if config_key is not None:
-                _do_path_update(path, update_path, config_key, name)
+            _do_path_update(path, update_path, config_key, name)
             return (final_path, data_version) if return_version else final_path
         # ...if download=False (useful for debugging)
         elif not download:
