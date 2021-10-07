@@ -489,6 +489,7 @@ class Brain(object):
         self._actors = dict()
         self._elevation_rng = [15, 165]  # range of motion of camera on theta
         self._lut_locked = None
+        self._cleaned = False
         # default values for silhouette
         self._silhouette = {
             'color': self._bg_color,
@@ -761,6 +762,7 @@ class Brain(object):
                     'picked_renderer', 'act_data_smooth', '_scalar_bar',
                     'actions', 'widgets', 'geo', '_data'):
             setattr(self, key, None)
+        self._cleaned = True
 
     def toggle_interface(self, value=None):
         """Toggle the interface.

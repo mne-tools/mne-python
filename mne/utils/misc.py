@@ -338,6 +338,8 @@ def _assert_no_instances(cls, when=''):
         except Exception:  # such as a weakref
             check = False
         if check:
+            if cls.__name__ == 'Brain':
+                ref.append(f'Brain._cleaned = {obj._cleaned}')
             rr = gc.get_referrers(obj)
             count = 0
             for r in rr:
@@ -360,7 +362,10 @@ def _assert_no_instances(cls, when=''):
                 del r
             del rr
             n += count > 0
-    assert n == 0, f'{n} {when}:\n' + '\n'.join(ref)
+        del obj
+    del objs
+    gc.collect()
+    assert n == 0, f'\n{n} {cls.__name__} @ {when}:\n' + '\n'.join(ref)
 
 
 def _resource_path(submodule, filename):
