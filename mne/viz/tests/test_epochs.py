@@ -98,7 +98,6 @@ def test_plot_epochs_colors(epochs, browse_backend):
 def test_plot_epochs_scale_bar(epochs, browse_backend):
     """Test scale bar for epochs."""
     fig = epochs.plot()
-    fig._fake_keypress('s')  # default is to not show scalebars
     ax = fig.mne.ax_main
     # only empty vline-text, mag & grad in this instance
     assert len(ax.texts) == 3
