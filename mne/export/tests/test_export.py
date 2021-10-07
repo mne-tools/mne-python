@@ -21,7 +21,7 @@ from mne.datasets import testing, misc
 from mne.export import export_evokeds, export_evokeds_mff
 from mne.io import read_raw_fif, read_raw_eeglab, read_raw_edf
 from mne.utils import (_check_eeglabio_installed, requires_version,
-                       object_diff, _check_edflib_installed, _resource_path)
+                       object_diff, _check_edflib_installed)
 from mne.tests.test_epochs import _get_data
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -233,8 +233,13 @@ def test_rawarray_edf(tmp_path):
 def test_export_raw_edf(tmp_path, dataset, format):
     """Test saving a Raw instance to EDF format."""
     if dataset == 'test':
-        fname = _resource_path('mne.io.tests.data', 'test_raw.fif')
-        raw = read_raw_fif(fname)
+        try:
+            import importlib_resources as imp_resrc  # py 3.7
+        except ImportError:
+            import importlib.resources as imp_resrc  # py 3.8+
+        import mne.io.tests.data
+        with imp_resrc.path(mne.io.tests.data, 'test_raw.fif') as fname:
+            raw = read_raw_fif(fname)
     elif dataset == 'misc':
         fname = op.join(misc.data_path(), 'ecog', 'sample_ecog.edf')
         raw = read_raw_edf(fname)

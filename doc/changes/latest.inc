@@ -173,8 +173,6 @@ Enhancements
 
 - Add :func:`mne.gui.locate_ieeg` to locate intracranial electrode contacts from a CT, an MRI (with Freesurfer ``recon-all``) and the channel names from an :class:`mne.Info` object (:gh:`9586` by `Alex Rockhill`_)
 
-- All data fetching code now relies on ``pooch``, which is an added optional requirement for dataset fetchers (:gh:`9742` by `Adam Li`_ and `Daniel McCloy`_)
-
 - Add phantom FreeSurfer subject fetcher :func:`mne.datasets.fetch_phantom` to allow fetching the Otaniemi phantom (:gh:`9796` by `Eric Larson`_)
 
 - Add full ECoG dataset to MNE-misc-data and demonstrate its use in :ref:`ex-electrode-pos-2d` and :ref:`tut-ieeg-localize` (:gh:`9784` by `Alex Rockhill`_)

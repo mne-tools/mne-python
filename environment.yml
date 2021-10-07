@@ -37,6 +37,5 @@ dependencies:
 - mne
 - mffpy>=0.5.7
 - ipywidgets
-- pooch
 - pip:
   - ipyvtklink

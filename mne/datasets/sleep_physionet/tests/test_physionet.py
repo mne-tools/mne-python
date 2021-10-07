@@ -9,6 +9,7 @@ import pytest
 
 from numpy.testing import assert_array_equal
 
+import mne
 from mne.utils import requires_good_network
 from mne.utils import requires_pandas, requires_version
 from mne.datasets.sleep_physionet import age, temazepam
@@ -16,11 +17,6 @@ from mne.datasets.sleep_physionet._utils import _update_sleep_temazepam_records
 from mne.datasets.sleep_physionet._utils import _update_sleep_age_records
 from mne.datasets.sleep_physionet._utils import AGE_SLEEP_RECORDS
 from mne.datasets.sleep_physionet._utils import TEMAZEPAM_SLEEP_RECORDS
-from mne.utils.check import _soft_import
-
-
-# import pooch library for handling the dataset downloading
-pooch = _soft_import('pooch', 'dataset downloading', strict=True)
 
 
 @pytest.fixture(scope='session')
@@ -64,13 +60,12 @@ def _check_mocked_function_calls(mocked_func, call_fname_hash_pairs,
     # Check it has been called with the right parameters in the right
     # order.
     for idx, current in enumerate(call_fname_hash_pairs):
-        _, call_kwargs = mocked_func.call_args_list[idx]
-        hash_type, hash = call_kwargs['known_hash'].split(':')
-        assert call_kwargs['url'] == _get_expected_url(current['name'])
-        assert op.join(call_kwargs['path'], call_kwargs['fname']) == \
-            _get_expected_path(base_path, current['name'])
-        assert hash == current['hash']
-        assert hash_type == 'sha1'
+        call_args, call_kwargs = mocked_func.call_args_list[idx]
+        assert call_args[0] == _get_expected_url(current['name'])
+        assert call_args[1] == _get_expected_path(base_path, current['name'])
+        assert call_kwargs['hash_'] == current['hash']
+        assert call_kwargs['hash_type'] == 'sha1'
+        assert call_kwargs['print_destination'] is False
 
 
 @pytest.mark.timeout(60)
@@ -131,7 +126,8 @@ def test_sleep_physionet_age(physionet_tmpdir, monkeypatch, download_is_error):
         age.fetch_data(subjects=[0], recording=[1], path=physionet_tmpdir)
     # then patch
     my_func = _FakeFetch()
-    monkeypatch.setattr(pooch, 'retrieve', my_func)
+    monkeypatch.setattr(
+        mne.datasets.sleep_physionet._utils, '_fetch_file', my_func)
 
     paths = age.fetch_data(subjects=[0], recording=[1], path=physionet_tmpdir)
     assert_array_equal(_keep_basename_only(paths),
@@ -192,7 +188,8 @@ def test_run_update_temazepam_records(tmpdir):
 def test_sleep_physionet_temazepam(physionet_tmpdir, monkeypatch):
     """Test Sleep Physionet URL handling."""
     my_func = _FakeFetch()
-    monkeypatch.setattr(pooch, 'retrieve', my_func)
+    monkeypatch.setattr(
+        mne.datasets.sleep_physionet._utils, '_fetch_file', my_func)
 
     paths = temazepam.fetch_data(subjects=[0], path=physionet_tmpdir)
     assert_array_equal(_keep_basename_only(paths),

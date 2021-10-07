@@ -4,10 +4,11 @@
 # License: BSD Style.
 
 
+import tarfile
 import os.path as op
 import os
-from ...utils import verbose, _check_option
-from ..utils import _get_path, _do_path_update, _data_path
+from ...utils import _fetch_file, verbose, _check_option
+from ..utils import _get_path, logger, _do_path_update
 
 
 @verbose
@@ -46,20 +47,54 @@ def data_path(dataset='evoked', path=None, force_update=False,
     ----------
     .. footbibliography::
     """
-    _check_option('dataset', dataset, ('evoked', 'raw'))
-    # check if data already exists, if so bail early
-    path = _get_path(path, 'MNE_DATASETS_HF_SEF_PATH', 'HF_SEF')
-    final_path = op.join(path, 'HF_SEF')
-    megdir = op.join(final_path, 'MEG', 'subject_a')
-    has_raw = (dataset == 'raw' and op.isdir(megdir) and
-               any('raw' in filename for filename in os.listdir(megdir)))
-    has_evoked = (dataset == 'evoked' and
-                  op.isdir(op.join(final_path, 'subjects')))
-    if has_raw or has_evoked and not force_update:
-        _do_path_update(path, update_path, 'MNE_DATASETS_HF_SEF_PATH',
-                        'HF_SEF')
-        return final_path
-    # data not there, or force_update requested:
-    name = f'hf_sef_{dataset}'
-    return _data_path(path=path, force_update=force_update,
-                      update_path=update_path, name=name)
+    key = 'MNE_DATASETS_HF_SEF_PATH'
+    name = 'HF_SEF'
+    path = _get_path(path, key, name)
+    destdir = op.join(path, 'HF_SEF')
+
+    urls = {'evoked':
+            'https://zenodo.org/record/3523071/files/hf_sef_evoked.tar.gz',
+            'raw':
+            'https://zenodo.org/record/889296/files/hf_sef_raw.tar.gz'}
+    hashes = {'evoked': '13d34cb5db584e00868677d8fb0aab2b',
+              'raw': '33934351e558542bafa9b262ac071168'}
+    _check_option('dataset', dataset, sorted(urls.keys()))
+    url = urls[dataset]
+    hash_ = hashes[dataset]
+    fn = url.split('/')[-1]  # pick the filename from the url
+    archive = op.join(destdir, fn)
+
+    # check for existence of evoked and raw sets
+    has = dict()
+    subjdir = op.join(destdir, 'subjects')
+    megdir_a = op.join(destdir, 'MEG', 'subject_a')
+    has['evoked'] = op.isdir(destdir) and op.isdir(subjdir)
+    has['raw'] = op.isdir(megdir_a) and any(['raw' in fn_ for fn_ in
+                                             os.listdir(megdir_a)])
+
+    if not has[dataset] or force_update:
+        if not op.isdir(destdir):
+            os.mkdir(destdir)
+        _fetch_file(url, archive, hash_=hash_)
+
+        with tarfile.open(archive) as tar:
+            logger.info('Decompressing %s' % archive)
+            for member in tar.getmembers():
+                # strip the leading dirname 'hf_sef/' from the archive paths
+                # this should be fixed when making next version of archives
+                member.name = member.name[7:]
+                try:
+                    tar.extract(member, destdir)
+                except IOError:
+                    # check whether file exists but could not be overwritten
+                    fn_full = op.join(destdir, member.name)
+                    if op.isfile(fn_full):
+                        os.remove(fn_full)
+                        tar.extract(member, destdir)
+                    else:  # some more sinister cause for IOError
+                        raise
+
+        os.remove(archive)
+
+    _do_path_update(path, update_path, key, name)
+    return destdir

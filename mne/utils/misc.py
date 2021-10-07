@@ -366,27 +366,3 @@ def _assert_no_instances(cls, when=''):
     del objs
     gc.collect()
     assert n == 0, f'\n{n} {cls.__name__} @ {when}:\n' + '\n'.join(ref)
-
-
-def _resource_path(submodule, filename):
-    """Return a full system path to a package resource (AKA a file).
-
-    Parameters
-    ----------
-    submodule : str
-        An import-style module or submodule name
-        (e.g., "mne.datasets.testing").
-    filename : str
-        The file whose full path you want.
-
-    Returns
-    -------
-    path : str
-        The full system path to the requested file.
-    """
-    try:
-        from importlib.resources import files
-        return files(submodule).joinpath(filename)
-    except ImportError:
-        from pkg_resources import resource_filename
-        return resource_filename(submodule, filename)

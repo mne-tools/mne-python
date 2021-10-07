@@ -15,11 +15,7 @@ from mne.io.constants import (FIFF, FWD, _coord_frame_named, _ch_kind_named,
                               _ch_coil_type_named, _dig_kind_named,
                               _dig_cardinal_named)
 from mne.forward._make_forward import _read_coil_defs
-from mne.utils import requires_good_network
-from mne.utils.check import _soft_import
-
-# import pooch library for handling the dataset downloading
-pooch = _soft_import('pooch', 'dataset downloading', strict=True)
+from mne.utils import _fetch_file, requires_good_network
 
 
 # https://github.com/mne-tools/fiff-constants/commits/master
@@ -85,15 +81,9 @@ _aliases = dict(
 def test_constants(tmpdir):
     """Test compensation."""
     tmpdir = str(tmpdir)  # old pytest...
-    fname = 'fiff.zip'
-    dest = op.join(tmpdir, fname)
-    pooch.retrieve(
-        url='https://codeload.github.com/'
-            f'{REPO}/fiff-constants/zip/{COMMIT}',
-        path=tmpdir,
-        fname=fname,
-        known_hash=None
-    )
+    dest = op.join(tmpdir, 'fiff.zip')
+    _fetch_file('https://codeload.github.com/'
+                f'{REPO}/fiff-constants/zip/{COMMIT}', dest)
     names = list()
     with zipfile.ZipFile(dest, 'r') as ff:
         for name in ff.namelist():
