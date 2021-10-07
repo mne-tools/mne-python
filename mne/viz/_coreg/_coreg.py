@@ -201,16 +201,15 @@ class CoregistrationUI(HasTraits):
                 self._widgets["show_eeg"].set_enabled(True)
                 self._widgets["high_res_head"].set_enabled(True)
                 self._actors["msg"].SetInput("")
+                self._set_sensors_visibility(True)
             else:
                 self._widgets["orient_glyphs"].set_enabled(False)
-                self._widgets["show_hpi"].set_value(False)
                 self._widgets["show_hpi"].set_enabled(False)
-                self._widgets["show_hsp"].set_value(False)
                 self._widgets["show_hsp"].set_enabled(False)
-                self._widgets["show_eeg"].set_value(False)
                 self._widgets["show_eeg"].set_enabled(False)
                 self._widgets["high_res_head"].set_enabled(False)
                 self._actors["msg"].SetInput("Picking fiducials...")
+                self._set_sensors_visibility(False)
             self._renderer._update()
         if "lock_fids" in self._widgets:
             self._widgets["lock_fids"].set_value(self._lock_fids)
@@ -438,6 +437,15 @@ class CoregistrationUI(HasTraits):
         self._coreg.reset()
         self._update_plot()
         self._update_parameters()
+
+    def _set_sensors_visibility(self, state):
+        sensors = ["hpi_coils", "head_shape_points", "eeg_channels"]
+        for sensor in sensors:
+            if sensor in self._actors and self._actors[sensor] is not None:
+                actors = self._actors[sensor]
+                actors = actors if isinstance(actors, list) else [actors]
+                for actor in actors:
+                    actor.SetVisibility(state)
 
     def _update_actor(self, actor_name, actor):
         self._renderer.plotter.remove_actor(self._actors.get(actor_name))
