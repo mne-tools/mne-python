@@ -1399,7 +1399,7 @@ def _write_evokeds(fname, evoked, check=True, *, on_mismatch='raise'):
         check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz',
                                       '_ave.fif', '_ave.fif.gz'))
 
-    if not isinstance(evoked, list):
+    if not isinstance(evoked, (list, tuple)):
         evoked = [evoked]
 
     warned = False

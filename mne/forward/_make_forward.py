@@ -266,7 +266,7 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False,
 
 
 @verbose
-def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
+def _prep_meg_channels(info, accuracy='accurate', exclude=(), ignore_ref=False,
                        head_frame=True, do_es=False, do_picking=True,
                        verbose=None):
     """Prepare MEG coil definitions for forward calculation.
@@ -274,9 +274,8 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
     Parameters
     ----------
     %(info_not_none)s
-    accurate : bool
-        If true (default) then use `accurate` coil definitions (more
-        integration points)
+    accuracy : str
+        Can be "normal" or "accurate" (default).
     exclude : list of str | str
         List of channels to exclude. If 'bads', exclude channels in
         info['bads']
@@ -301,7 +300,6 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
     meginfo : instance of Info
         Information subselected for just the set of MEG coils
     """
-    accuracy = 'accurate' if accurate else 'normal'
     info_extra = 'info'
     megnames, megcoils, compcoils = [], [], []
 
