@@ -25,7 +25,8 @@ from mne.datasets import testing
 from mne.fixes import has_numba
 from mne.io import read_raw_fif, read_raw_ctf
 from mne.stats import cluster_level
-from mne.utils import _pl, _assert_no_instances, numerics, Bunch
+from mne.utils import (_pl, _assert_no_instances, numerics, Bunch,
+                       _check_pyqt5_version)
 
 # data from sample dataset
 from mne.viz._figure import use_browser_backend
@@ -408,7 +409,18 @@ def mpl_backend(garbage_collect):
 @pytest.fixture(params=['matplotlib', 'pyqtgraph'])
 def browse_backend(request, garbage_collect):
     """Parametrizes the name of the browser backend."""
-    with use_browser_backend(request.param) as backend:
+    backend_name = request.param
+    if backend_name == 'pyqtgraph':
+        try:
+            import PyQt5
+        except ModuleNotFoundError:
+            pytest.skip('PyQt5 is not installed but needed for pyqtgraph!')
+        try:
+            assert LooseVersion(_check_pyqt5_version()) >= LooseVersion('5.12')
+        except AssertionError:
+            pytest.skip(f'PyQt5 has version {_check_pyqt5_version()}'
+                        f'but pyqtgraph needs >= 5.12!')
+    with use_browser_backend(backend_name) as backend:
         yield backend
         backend._close_all()
 
