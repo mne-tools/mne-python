@@ -10,8 +10,8 @@ This section describes how to read data for various MEG manufacturers.
 
 .. _import-neuromag:
 
-Elekta NeuroMag (.fif)
-======================
+MEGIN/Elekta Neuromag VectorView and TRIUX (.fif)
+=================================================
 
 Neuromag Raw FIF files can be loaded using :func:`mne.io.read_raw_fif`.
 

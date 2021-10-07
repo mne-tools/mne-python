@@ -1,8 +1,8 @@
 """
 .. _tut-report:
 
-Getting started with ``mne.Report``
-===================================
+Getting started with :class:`mne.Report`
+========================================
 
 `mne.Report` is a way to create interactive HTML summaries of your data. These
 reports can show many different visualizations of one or multiple subject's
@@ -273,19 +273,6 @@ report.add_stc(
     title='Source estimate', n_time_points=5
 )
 report.save('report_inverse_sol.html', overwrite=True)
-
-# %%
-# Adding system information
-# ^^^^^^^^^^^^^^^^^^^^^^^^^
-#
-# In order to improve reproducibility of results, it is useful to document some
-# key information on the system that was used to create the report. The output
-# of the helpful `mne.sys_info` command can be automatically added to a report
-# via :meth:`mne.Report.add_sys_info`.
-
-report = mne.Report()
-report.add_sys_info(title='System info')
-report.save('report_sys_info.html', overwrite=True)
 
 # %%
 # Adding source code (e.g., a Python script)
