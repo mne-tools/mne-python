@@ -395,23 +395,14 @@ class CoregistrationUI(HasTraits):
     def _update_parameters(self):
         with self._lock_plot():
             # rotation
-            for idx, name in enumerate(("rX", "rY", "rZ")):
-                if name in self._widgets:
-                    val = np.rad2deg(self._coreg._rotation[idx])
-                    if val != self._widgets[name].get_value():
-                        self._widgets[name].set_value(val)
+            self._forward_widget_command(["rX", "rY", "rZ"], "set_value",
+                                         list(np.rad2deg(self._coreg._rotation)))
             # translation
-            for idx, name in enumerate(("tX", "tY", "tZ")):
-                if name in self._widgets:
-                    val = self._coreg._translation[idx] * 1e3
-                    if val != self._widgets[name].get_value():
-                        self._widgets[name].set_value(val)
+            self._forward_widget_command(["tX", "tY", "tZ"], "set_value",
+                                         list(self._coreg._translation * 1e3))
             # scale
-            for idx, name in enumerate(("sX", "sY", "sZ")):
-                if name in self._widgets:
-                    val = self._coreg._scale[idx] * 1e2
-                    if val != self._widgets[name].get_value():
-                        self._widgets[name].set_value(val)
+            self._forward_widget_command(["sX", "sY", "sZ"], "set_value",
+                                         list(self._coreg._scale * 1e2))
 
     def _reset(self):
         self._reset_fitting_parameters()
