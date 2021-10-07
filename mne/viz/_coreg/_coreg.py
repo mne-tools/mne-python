@@ -326,17 +326,13 @@ class CoregistrationUI(HasTraits):
         self._update_plot("fids")
 
     def _reset_fitting_parameters(self):
-        if "icp_n_iterations" in self._widgets:
-            self._widgets["icp_n_iterations"].set_value(
-                self._default_icp_n_iterations)
-        if "icp_fid_match" in self._widgets:
-            self._widgets["icp_fid_match"].set_value(
-                self._default_icp_fid_matches[0])
-        for fid in self._default_weights.keys():
-            widget_name = f"{fid}_weight"
-            if widget_name in self._widgets:
-                self._widgets[widget_name].set_value(
-                    self._default_weights[fid])
+        self._forward_widget_command("icp_n_iterations", "set_value",
+                                     self._default_icp_n_iterations)
+        self._forward_widget_command("icp_fid_match", "set_value",
+                                     self._default_icp_fid_matches[0])
+        weights_widgets = [f"{w}_weight" for w in self._default_weights.keys()]
+        self._forward_widget_command(weights_widgets, "set_value",
+                                     list(self._default_weights.values()))
 
     def _reset_fiducials(self):
         self._set_current_fiducial(self._default_fiducials[0])
@@ -426,9 +422,10 @@ class CoregistrationUI(HasTraits):
     def _forward_widget_command(self, names, command, value):
         if not isinstance(names, list):
             names = [names]
-        for name in names:
+        for idx, name in enumerate(names):
+            val = value[idx] if isinstance(value, list) else value
             if name in self._widgets:
-                getattr(self._widgets[name], command)(value)
+                getattr(self._widgets[name], command)(val)
 
     def _set_sensors_visibility(self, state):
         sensors = ["hpi_coils", "head_shape_points", "eeg_channels"]
