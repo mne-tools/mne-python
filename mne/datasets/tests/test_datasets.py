@@ -96,13 +96,13 @@ def test_downloads(tmpdir, monkeypatch, capsys):
     out, _ = capsys.readouterr()
     assert 'out of date' not in out
     # With the required version: shown as existing with the required version
-    monkeypatch.setattr(datasets._fetch, '_FAKE_VERSION', '0.1')
+    monkeypatch.setattr(datasets.utils, '_FAKE_VERSION', '0.1')
     assert datasets.utils.has_dataset('fake')
     assert datasets._fake.get_version() == '0.1'
     datasets._fake.data_path(download=False, **kwargs)
     out, _ = capsys.readouterr()
     assert 'out of date' not in out
-    monkeypatch.setattr(datasets._fetch, '_FAKE_VERSION', '0.2')
+    monkeypatch.setattr(datasets.utils, '_FAKE_VERSION', '0.2')
     # With an older version:
     # 1. Marked as not actually being present
     assert not datasets.utils.has_dataset('fake')

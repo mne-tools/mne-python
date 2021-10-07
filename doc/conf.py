@@ -158,7 +158,6 @@ intersphinx_mapping = {
     'eeglabio': ('https://eeglabio.readthedocs.io/en/latest', None),
     'dipy': ('https://dipy.org/documentation/1.4.0./',
              'https://dipy.org/documentation/1.4.0./objects.inv/'),
-    'pooch': ('https://www.fatiando.org/pooch/latest/', None),
 }
 
 

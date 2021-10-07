@@ -2,11 +2,12 @@
 #          Alexandre Barachant <alexandre.barachant@gmail.com>
 #
 # License: BSD Style.
+
 from functools import partial
 
 from ...utils import verbose
-from ..utils import (has_dataset, _data_path_doc,
-                     _get_version, _version_doc, _download_mne_dataset)
+from ..utils import (has_dataset, _data_path, _data_path_doc,
+                     _get_version, _version_doc)
 
 
 data_name = "fieldtrip_cmc"
@@ -17,10 +18,9 @@ has_mtrf_data = partial(has_dataset, name=data_name)
 @verbose
 def data_path(path=None, force_update=False, update_path=True, download=True,
               verbose=None):  # noqa: D103
-    return _download_mne_dataset(
-        name='fieldtrip_cmc', processor='nested_unzip', path=path,
-        force_update=force_update, update_path=update_path,
-        download=download)
+    return _data_path(path=path, force_update=force_update,
+                      update_path=update_path, name=data_name,
+                      download=download)
 
 
 data_path.__doc__ = _data_path_doc.format(name=data_name,

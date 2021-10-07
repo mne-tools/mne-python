@@ -87,7 +87,7 @@ I agree to the following:
 # respective repos, and make a new release of the dataset on GitHub. Then
 # update the checksum in `mne/data/dataset_checksums.txt` and change version
 # here:                  ↓↓↓↓↓         ↓↓↓
-RELEASES = dict(testing='0.123', misc='0.22')
+RELEASES = dict(testing='0.123', misc='0.18')
 
 # To update any other dataset besides `testing` or `misc`, upload the new
 # version of the data archive itself (e.g., to https://osf.io or wherever) and
@@ -209,7 +209,6 @@ MNE_DATASETS['refmeg_noise'] = dict(
     folder_name='MNE-refmeg-noise-data',
     config_key='MNE_DATASETS_REFMEG_NOISE_PATH'
 )
-
 MNE_DATASETS['ssvep'] = dict(
     archive_name='ssvep_example_data.zip',
     hash='md5:af866bbc0f921114ac9d683494fe87d6',
@@ -285,7 +284,7 @@ MNE_DATASETS['hf_sef_raw'] = dict(
     archive_name='hf_sef_raw.tar.gz',
     hash='md5:33934351e558542bafa9b262ac071168',
     url='https://zenodo.org/record/889296/files/hf_sef_raw.tar.gz',
-    folder_name='hf_sef',
+    folder_name='HF_SEF',
     config_key='MNE_DATASETS_HF_SEF_PATH',
 )
 MNE_DATASETS['hf_sef_evoked'] = dict(
@@ -293,7 +292,7 @@ MNE_DATASETS['hf_sef_evoked'] = dict(
     hash='md5:13d34cb5db584e00868677d8fb0aab2b',
     url=('https://zenodo.org/record/3523071/files/'
          'hf_sef_evoked.tar.gz'),
-    folder_name='hf_sef',
+    folder_name='HF_SEF',
     config_key='MNE_DATASETS_HF_SEF_PATH',
 )
 
@@ -317,7 +316,7 @@ MNE_DATASETS['testing'] = dict(
 )
 MNE_DATASETS['misc'] = dict(
     archive_name=f'{MISC_VERSIONED}.tar.gz',  # 'mne-misc-data',
-    hash='md5:e0df1b4112cf13b668a7d9c1daf62e44',
+    hash='md5:0aa25a9bb4f204b3d4769f0b84e9b526',
     url=('https://codeload.github.com/mne-tools/mne-misc-data/tar.gz/'
          f'{RELEASES["misc"]}'),
     folder_name='MNE-misc-data',

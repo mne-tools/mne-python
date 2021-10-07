@@ -177,8 +177,6 @@ Enhancements
 
 - Add phantom FreeSurfer subject fetcher :func:`mne.datasets.fetch_phantom` to allow fetching the Otaniemi phantom (:gh:`9796` by `Eric Larson`_)
 
-- Add :func:`mne.datasets.fetch_dataset` to allow packages to fetch datasets in a similar fashion to MNE (:gh:`9763` by `Adam Li`_)
-
 - Add full ECoG dataset to MNE-misc-data and demonstrate its use in :ref:`ex-electrode-pos-2d` and :ref:`tut-ieeg-localize` (:gh:`9784` by `Alex Rockhill`_)
 
 - Add options ``tol`` and ``accuracy`` to :func:`mne.fit_dipole` to control optimization (:gh:`9810` by `Eric Larson`_)
@@ -304,5 +302,3 @@ API changes
   - The ``mne.Report.sections`` attribute has been deprecated in favor of ``mne.Report.tags``
 
   - The ``mne.Report.fnames`` attribute has been deprecated without replacement
-
-- The output folder name for HF_SEF datasets is now ``hf_sef`` instead of ``HF_SEF`` (:gh:`9763` by `Adam Li`_)
