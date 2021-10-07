@@ -703,7 +703,7 @@ def test_manual_report_2d(tmpdir, invisible_fig):
 
 
 @testing.requires_testing_data
-def test_manual_report_3d(tmpdir, renderer_pyvistaqt):
+def test_manual_report_3d(tmpdir, renderer):
     """Simulate adding 3D sections."""
     r = Report(title='My Report')
     r.add_trans(trans=trans_fname, info=raw_fname, title='my coreg',
