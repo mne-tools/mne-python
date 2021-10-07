@@ -193,34 +193,19 @@ class CoregistrationUI(HasTraits):
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
-        if "show_hsp" in self._widgets:
-            if self._lock_fids:
-                self._widgets["orient_glyphs"].set_enabled(True)
-                self._widgets["show_hpi"].set_enabled(True)
-                self._widgets["show_hsp"].set_enabled(True)
-                self._widgets["show_eeg"].set_enabled(True)
-                self._widgets["high_res_head"].set_enabled(True)
-                self._actors["msg"].SetInput("")
-                self._set_sensors_visibility(True)
-            else:
-                self._widgets["orient_glyphs"].set_enabled(False)
-                self._widgets["show_hpi"].set_enabled(False)
-                self._widgets["show_hsp"].set_enabled(False)
-                self._widgets["show_eeg"].set_enabled(False)
-                self._widgets["high_res_head"].set_enabled(False)
-                self._actors["msg"].SetInput("Picking fiducials...")
-                self._set_sensors_visibility(False)
-            self._renderer._update()
-        if "lock_fids" in self._widgets:
-            self._widgets["lock_fids"].set_value(self._lock_fids)
-        if "fid_file" in self._widgets:
-            self._widgets["fid_file"].set_enabled(not self._lock_fids)
-        if "fids" in self._widgets:
-            self._widgets["fids"].set_enabled(not self._lock_fids)
-        for coord in ("X", "Y", "Z"):
-            name = f"fid_{coord}"
-            if name in self._widgets:
-                self._widgets[name].set_enabled(not self._lock_fids)
+        view_widgets = ["orient_glyphs", "show_hpi", "show_hsp",
+                        "show_eeg", "high_res_head"]
+        fid_widgets = ["fid_X", "fid_Y", "fid_Z", "fids_file", "fids"]
+        if self._lock_fids:
+            self._forward_widget_command(view_widgets, "set_enabled", True)
+            self._actors["msg"].SetInput("")
+        else:
+            self._forward_widget_command(view_widgets, "set_enabled", False)
+            self._actors["msg"].SetInput("Picking fiducials...")
+        self._set_sensors_visibility(self._lock_fids)
+        self._forward_widget_command("lock_fids", "set_value", self._lock_fids)
+        self._forward_widget_command(fid_widgets, "set_enabled",
+                                     not self._lock_fids)
 
     @observe("_fiducials_file")
     def _fiducials_file_changed(self, change=None):
@@ -438,6 +423,13 @@ class CoregistrationUI(HasTraits):
         self._update_plot()
         self._update_parameters()
 
+    def _forward_widget_command(self, names, command, value):
+        if not isinstance(names, list):
+            names = [names]
+        for name in names:
+            if name in self._widgets:
+                getattr(self._widgets[name], command)(value)
+
     def _set_sensors_visibility(self, state):
         sensors = ["hpi_coils", "head_shape_points", "eeg_channels"]
         for sensor in sensors:
@@ -446,6 +438,7 @@ class CoregistrationUI(HasTraits):
                 actors = actors if isinstance(actors, list) else [actors]
                 for actor in actors:
                     actor.SetVisibility(state)
+        self._renderer._update()
 
     def _update_actor(self, actor_name, actor):
         self._renderer.plotter.remove_actor(self._actors.get(actor_name))
