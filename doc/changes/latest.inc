@@ -53,7 +53,7 @@ Enhancements
 
 - Add support for NIRSport and NIRSport2 devices to `mne.io.read_raw_nirx` (:gh:`9348` and :gh:`9401` **by new contributor** |David Julien|_, **new contributor** |Romain Derollepot|_, `Robert Luke`_, and `Eric Larson`_)
 
-- New function :func:`mne.Dipole.to_volume_labels` to get atlas label for MRI coordinates.  (:gh:`9376` by **by new contributor** |Marian Dovgialo|_)
+- New function :func:`mne.Dipole.to_volume_labels` to get atlas label for MRI coordinates.  (:gh:`9376` by **new contributor** |Marian Dovgialo|_)
 
 - Add support for SURE parameter selection in :func:`mne.inverse_sparse.mixed_norm` and make ``alpha`` parameter now default to ``'sure'`` (:gh:`9430` by **new contributor** |Pierre-Antoine Bannier|_ and `Alex Gramfort`_)
 
