@@ -37,7 +37,7 @@ from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
-                     _check_path_like, use_log_level, deprecated)
+                     _path_like, use_log_level, deprecated)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
@@ -1498,7 +1498,7 @@ class Report(object):
             figs = (fig,)
 
         for fig in figs:
-            if _check_path_like(fig):
+            if _path_like(fig):
                 raise TypeError(
                     f'It seems you passed a path to `add_figure`. However, '
                     f'only Matplotlib figures, Mayavi scenes, and NumPy '
@@ -1582,9 +1582,9 @@ class Report(object):
         _check_scale(scale)
 
         if (
-            _check_path_like(figs) or
+            _path_like(figs) or
             (hasattr(figs, '__iter__') and
-             any(_check_path_like(f) for f in figs))
+             any(_path_like(f) for f in figs))
         ):
             raise TypeError(
                 'It seems you passed a path to `add_figs_to_section`. '
