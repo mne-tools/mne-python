@@ -129,6 +129,12 @@ class RawSNIRF(BaseRaw):
             # Extract wavelengths
             fnirs_wavelengths = np.array(dat.get('nirs/probe/wavelengths'))
             fnirs_wavelengths = [int(w) for w in fnirs_wavelengths]
+            if len(fnirs_wavelengths) != 2:
+                raise RuntimeError(f'The data contains {len(fnirs_wavelengths)}'
+                                   f' wavelengths: {fnirs_wavelengths}. '
+                                   f'MNE only supports reading continuous'
+                                   ' wave amplitude SNIRF files '
+                                   'with two wavelengths')
 
             # Extract channels
             def atoi(text):
@@ -173,15 +179,15 @@ class RawSNIRF(BaseRaw):
                 srcPos3D = np.array(dat.get('nirs/probe/sourcePos3D'))
             elif ('detectorPos2D' in dat['nirs/probe']) &\
                     ('sourcePos2D' in dat['nirs/probe']):
-                warn('The data only contains 2D location information for the '
-                     'optode positions. '
-                     'It is highly recommended that data is used '
-                     'which contains 3D location information for the '
-                     'optode positions. With only 2D locations it can not be '
-                     'guaranteed that MNE functions will behave correctly '
-                     'and produce accurate results. If it is not possible to '
-                     'include 3D positions in your data, please consider '
-                     'using the set_montage() function.')
+                # warn('The data only contains 2D location information for the '
+                #      'optode positions. '
+                #      'It is highly recommended that data is used '
+                #      'which contains 3D location information for the '
+                #      'optode positions. With only 2D locations it can not be '
+                #      'guaranteed that MNE functions will behave correctly '
+                #      'and produce accurate results. If it is not possible to '
+                #      'include 3D positions in your data, please consider '
+                #      'using the set_montage() function.')
 
                 detPos2D = np.array(dat.get('nirs/probe/detectorPos2D'))
                 srcPos2D = np.array(dat.get('nirs/probe/sourcePos2D'))
