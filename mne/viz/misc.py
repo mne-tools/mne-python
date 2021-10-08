@@ -11,6 +11,7 @@
 # License: Simplified BSD
 
 import copy
+import io
 from glob import glob
 from itertools import cycle
 import os.path as op
@@ -302,21 +303,22 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
 
 
 def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
-                       slices=None, slices_as_figures=False, show=True,
-                       show_indices=False, show_orientation=False, width=512):
-    """Plot BEM contours on anatomical slices.
+                       slices=None, show=True, show_indices=False,
+                       show_orientation=False, width=512,
+                       slices_as_subplots=True):
+    """Plot BEM contours on anatomical MRI slices.
 
     Parameters
     ----------
-    slices_as_figures : bool
-        If ``True``, create one figure per slice. If ``False``, add all slices
-        as subplots to a single figure.
+    slices_as_subplots : bool
+        Whether to add all slices as subplots to a single figure, or to
+        create a new figure for each slice. If ``False``, return NumPy
+        arrays instead of Matplotlib figures.
 
     Returns
     -------
-    matplotlib.figure.Figure | list of matplotlib.figure.Figure
-        The plotted slices. If ``slices_as_figures`` is ``True``, a single
-        figure. If ``False``, one figure per slice.
+    matplotlib.figure.Figure | list of array
+        The plotted slices.
     """
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
@@ -336,6 +338,8 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
     axis, x, y = _mri_orientation(orientation)
 
     n_slices = data.shape[axis]
+
+    # if no slices were specified, pick some equally-spaced ones automatically
     if slices is None:
         slices = np.round(
             np.linspace(
@@ -345,7 +349,7 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
             )
         ).astype(int)
 
-        # omit first and last one (no much brain visible there anyway)
+        # omit first and last one (not much brain visible there anyway…)
         slices = slices[1:-1]
 
     slices = np.atleast_1d(slices).copy()
@@ -379,22 +383,20 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
             sources.append(apply_trans(mri_rasvox_t, points * 1e3))
         sources = np.concatenate(sources, axis=0)
 
-    if slices_as_figures:
+    # get the figure dimensions right
+    if slices_as_subplots:
+        n_col = 4
+        fig, axs, _, _ = _prepare_trellis(len(slices), n_col)
+        fig.set_facecolor('k')
+        dpi = fig.get_dpi()
+        n_axes = len(axs)
+    else:
         n_col = n_axes = 1
         dpi = 96
         # 2x standard MRI resolution is probably good enough for the
         # traces
         w = width / dpi
         figsize = (w, w / data.shape[x] * data.shape[y])
-    else:
-        n_col = 4
-
-    fig, axs, _, _ = _prepare_trellis(len(slices), n_col)
-    fig.set_facecolor('k')
-    dpi = fig.get_dpi()
-    n_axes = len(axs)
-    if slices_as_figures:
-        plt.close(fig)
 
     bounds = np.concatenate(
         [[-np.inf], slices[:-1] + np.diff(slices) / 2.,
@@ -409,11 +411,11 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
     for ai, (sl, lower, upper) in enumerate(
         zip(slices, bounds[:-1], bounds[1:])
     ):
-        if slices_as_figures:
+        if slices_as_subplots:
+            ax = axs[ai]
+        else:
             fig = _figure_agg(figsize=figsize, dpi=dpi, facecolor='k')
             ax = fig.add_axes([0, 0, 1, 1], frame_on=False, facecolor='k')
-        else:
-            ax = axs[ai]
 
         # adjust the orientations for good view
         slicer[axis] = sl
@@ -460,15 +462,28 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
                 ax.text(dat.shape[1] / 2., dat.shape[0] - 1, ylabels[1],
                         ha='center', va='top', **kwargs)
 
-        if slices_as_figures:
+        if not slices_as_subplots:
+            # convert to NumPy array
+            with io.BytesIO() as buff:
+                fig.savefig(
+                    buff, format='raw', bbox_inches='tight', pad_inches=0,
+                    dpi=dpi
+                )
+                w_, h_ = fig.canvas.get_width_height()
+                plt.close(fig)
+                buff.seek(0)
+                fig_array = np.frombuffer(buff.getvalue(), dtype=np.uint8)
+                fig = fig_array.reshape((int(h_), int(w_), -1))
+
             figs.append(fig)
 
-    if not slices_as_figures:
+    if slices_as_subplots:
         fig.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
                             hspace=0.)
         plt_show(show, fig=fig)
-
-    return figs if slices_as_figures else fig
+        return fig
+    else:
+        return figs
 
 
 @fill_doc
@@ -585,7 +600,8 @@ def plot_bem(subject, subjects_dir=None, orientation='coronal',
     fig =  _plot_mri_contours(
         mri_fname=mri_fname, surfaces=surfaces, src=src,
         orientation=orientation, slices=slices, show=show,
-        show_indices=show_indices, show_orientation=show_orientation
+        show_indices=show_indices, show_orientation=show_orientation,
+        slices_as_subplots=True
     )
     return fig
 
