@@ -437,7 +437,7 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz',
                                    '_fwd.fif', '_fwd.fif.gz'))
-
+    fname = _check_fname(fname=fname, must_exist=True, overwrite='read')
     #   Open the file, create directory
     logger.info('Reading forward solution from %s...' % fname)
     f, tree, _ = fiff_open(fname)
@@ -718,8 +718,8 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     Parameters
     ----------
     fname : str
-        File name to save the forward solution to. It should end with -fwd.fif
-        or -fwd.fif.gz.
+        File name to save the forward solution to. It should end with
+        ``-fwd.fif`` or ``-fwd.fif.gz``.
     fwd : Forward
         Forward solution.
     %(overwrite)s
@@ -747,8 +747,8 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz',
                                    '_fwd.fif', '_fwd.fif.gz'))
 
-    # check for file existence
-    _check_fname(fname, overwrite)
+    # check for file existence and expand `~` if present
+    fname = _check_fname(fname, overwrite)
     fid = start_file(fname)
     start_block(fid, FIFF.FIFFB_MNE)
 

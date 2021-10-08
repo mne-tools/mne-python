@@ -268,6 +268,11 @@ proj : bool | 'delayed'
     If proj is False no projections will be applied which is the
     recommended value if SSPs are not used for cleaning the data.
 """
+docdict['epochs_fname'] = """
+fname : path-like | file-like
+    The epochs to load. If a filename, should end with ``-epo.fif`` or
+    ``-epo.fif.gz``. If a file-like object, preloading must be used.
+"""
 
 # Reject by annotation
 docdict['reject_by_annotation_all'] = """

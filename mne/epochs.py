@@ -59,7 +59,8 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_combine, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_index_arguments, _convert_times,
                     _scale_dataframe_data, _check_time_format, object_size,
-                    _on_missing, _validate_type, _ensure_events)
+                    _on_missing, _validate_type, _ensure_events,
+                    _path_like)
 from .utils.docs import fill_doc
 from .data.html_templates import epochs_template
 
@@ -1738,8 +1739,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Parameters
         ----------
         fname : str
-            The name of the file, which should end with -epo.fif or
-            -epo.fif.gz.
+            The name of the file, which should end with ``-epo.fif`` or
+            ``-epo.fif.gz``.
         split_size : str | int
             Large raw files are automatically split into multiple pieces. This
             parameter specifies the maximum size of each piece. If the
@@ -1771,8 +1772,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz',
                                       '_epo.fif', '_epo.fif.gz'))
 
-        # check for file existence
-        _check_fname(fname, overwrite)
+        # check for file existence and expand `~` if present
+        fname = _check_fname(fname=fname, overwrite=overwrite)
 
         split_size_bytes = _get_split_size(split_size)
 
@@ -3059,14 +3060,11 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
 
     Parameters
     ----------
-    fname : str | file-like
-        The epochs filename to load. Filename should end with -epo.fif or
-        -epo.fif.gz. If a file-like object is provided, preloading must be
-        used.
+    %(epochs_fname)s
     %(proj_epochs)s
     preload : bool
-        If True, read all epochs from disk immediately. If False, epochs will
-        be read on demand.
+        If True, read all epochs from disk immediately. If ``False``, epochs
+        will be read on demand.
     %(verbose)s
 
     Returns
@@ -3100,9 +3098,7 @@ class EpochsFIF(BaseEpochs):
 
     Parameters
     ----------
-    fname : str | file-like
-        The name of the file, which should end with -epo.fif or -epo.fif.gz. If
-        a file-like object is provided, preloading must be used.
+    %(epochs_fname)s
     %(proj_epochs)s
     preload : bool
         If True, read all epochs from disk immediately. If False, epochs will
@@ -3119,9 +3115,13 @@ class EpochsFIF(BaseEpochs):
     @verbose
     def __init__(self, fname, proj=True, preload=True,
                  verbose=None):  # noqa: D102
-        if isinstance(fname, str):
-            check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz',
-                                          '_epo.fif', '_epo.fif.gz'))
+        if _path_like(fname):
+            check_fname(
+                fname=fname, filetype='epochs',
+                endings=('-epo.fif', '-epo.fif.gz', '_epo.fif', '_epo.fif.gz')
+            )
+            fname = _check_fname(fname=fname, must_exist=True,
+                                 overwrite='read')
         elif not preload:
             raise ValueError('preload must be used with file-like objects')
 

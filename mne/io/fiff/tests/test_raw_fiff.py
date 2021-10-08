@@ -5,6 +5,7 @@
 # License: BSD-3-Clause
 
 from copy import deepcopy
+from pathlib import Path
 from functools import partial
 from io import BytesIO
 import os
@@ -1786,3 +1787,22 @@ def test_corrupted(tmpdir):
     with pytest.warns(RuntimeWarning, match='.*tag directory.*corrupt.*'):
         raw_bad = read_raw_fif(bad_fname)
     assert_allclose(raw.get_data(), raw_bad.get_data())
+
+
+@testing.requires_testing_data
+def test_expand_user(tmp_path, monkeypatch):
+    """Test that we're expanding `~` before reading and writing."""
+    monkeypatch.setenv('HOME', str(tmp_path))
+    monkeypatch.setenv('USERPROFILE', str(tmp_path))  # Windows
+
+    path_in = Path(fif_fname)
+    path_out = tmp_path / path_in.name
+    path_home = Path('~') / path_in.name
+
+    shutil.copyfile(
+        src=path_in,
+        dst=path_out
+    )
+
+    raw = read_raw_fif(fname=path_home, preload=True)
+    raw.save(fname=path_home, overwrite=True)

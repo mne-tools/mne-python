@@ -459,6 +459,7 @@ class CrossSpectralDensity(object):
         if not fname.endswith('.h5'):
             fname += '.h5'
 
+        # TODO: Add `overwrite` param to method signature
         write_hdf5(fname, self.__getstate__(), overwrite=True, title='conpy')
 
     def copy(self):

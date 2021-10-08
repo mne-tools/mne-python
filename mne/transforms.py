@@ -20,7 +20,7 @@ from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
 from .defaults import _handle_default
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
-                    _check_path_like, get_subjects_dir, fill_doc, _check_fname,
+                    _path_like, get_subjects_dir, fill_doc, _check_fname,
                     _check_option, _require_version, wrapped_stdout)
 
 
@@ -450,7 +450,7 @@ def _get_trans(trans, fro='mri', to='head', allow_none=True):
     if allow_none:
         types += (None,)
     _validate_type(trans, types, 'trans')
-    if _check_path_like(trans):
+    if _path_like(trans):
         trans = str(trans)
         if trans == 'fsaverage':
             trans = op.join(op.dirname(__file__), 'data', 'fsaverage',
@@ -574,6 +574,8 @@ def write_trans(fname, trans):
     """
     check_fname(fname, 'trans', ('-trans.fif', '-trans.fif.gz',
                                  '_trans.fif', '_trans.fif.gz'))
+    # TODO: Add `overwrite` param to method signature
+    fname = _check_fname(fname=fname, overwrite=True)
     fid = start_file(fname)
     write_coord_trans(fid, trans)
     end_file(fid)
