@@ -422,7 +422,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
                         f"got {type(item)} instead.")
 
 
-def _check_path_like(item):
+def _path_like(item):
     """Validate that `item` is `path-like`.
 
     Parameters

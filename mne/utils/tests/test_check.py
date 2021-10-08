@@ -18,7 +18,7 @@ from mne.io.pick import pick_channels_cov
 from mne.utils import (check_random_state, _check_fname, check_fname,
                        _check_subject, requires_mayavi, traits_test,
                        _check_mayavi_version, _check_info_inv, _check_option,
-                       check_version, _check_path_like, _validate_type,
+                       check_version, _path_like, _validate_type,
                        _suggest, _on_missing, requires_nibabel, _safe_input)
 
 data_path = testing.data_path(download=False)
@@ -182,9 +182,9 @@ def test_check_path_like():
     pathlib_path = Path(base_dir)
     no_path = dict(foo='bar')
 
-    assert _check_path_like(str_path) is True
-    assert _check_path_like(pathlib_path) is True
-    assert _check_path_like(no_path) is False
+    assert _path_like(str_path) is True
+    assert _path_like(pathlib_path) is True
+    assert _path_like(no_path) is False
 
 
 def test_validate_type():

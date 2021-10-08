@@ -31,7 +31,7 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose, _pl,
                     fill_doc, _check_option, _validate_type, _check_src_normal,
                     _check_stc_units, _check_pandas_installed,
                     _check_pandas_index_arguments, _convert_times, _ensure_int,
-                    _build_data_frame, _check_time_format, _check_path_like,
+                    _build_data_frame, _check_time_format, _path_like,
                     sizeof_fmt, object_size, _check_fname)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
@@ -2991,7 +2991,7 @@ def _volume_labels(src, labels, mri_resolution):
     extra = ' when using a volume source space'
     _import_nibabel('use volume atlas labels')
     _validate_type(labels, ('path-like', list, tuple), 'labels' + extra)
-    if _check_path_like(labels):
+    if _path_like(labels):
         mri = labels
         infer_labels = True
     else:
