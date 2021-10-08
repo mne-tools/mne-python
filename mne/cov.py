@@ -153,6 +153,7 @@ class Covariance(dict):
         """
         check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz',
                                           '_cov.fif', '_cov.fif.gz'))
+        # TODO: Add `overwrite` param to method signature
         fname = _check_fname(fname=fname, overwrite=True)
         fid = start_file(fname)
 

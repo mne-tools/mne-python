@@ -295,6 +295,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Information on baseline correction will be stored with the data,
             and will be restored when reading again via `mne.read_evokeds`.
         """
+        # TODO: Add `overwrite` param to method signature
         fname = _check_fname(fname=fname, overwrite=True)
         write_evokeds(fname, self)
 
@@ -1399,6 +1400,7 @@ def _write_evokeds(fname, evoked, check=True, *, on_mismatch='raise'):
     if check:
         check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz',
                                       '_ave.fif', '_ave.fif.gz'))
+    # TODO: Add `overwrite` param to method signature
     fname = _check_fname(fname=fname, overwrite=True)
 
     if not isinstance(evoked, list):

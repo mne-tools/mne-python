@@ -626,6 +626,7 @@ class _BaseSourceEstimate(TimeMixin):
         %(verbose_meth)s
         """
         _validate_type(fname, 'path-like', 'fname')
+        # TODO: Add `overwrite` param to method signature
         fname = _check_fname(fname=fname, overwrite=True)
         if ftype != 'h5':
             raise ValueError('%s objects can only be written as HDF5 files.'
@@ -636,7 +637,9 @@ class _BaseSourceEstimate(TimeMixin):
                    dict(vertices=self.vertices, data=self.data,
                         tmin=self.tmin, tstep=self.tstep, subject=self.subject,
                         src_type=self._src_type),
-                   title='mnepython', overwrite=True)
+                   title='mnepython',
+                   # TODO: Add `overwrite` param to method signature
+                   overwrite=True)
 
     @copy_function_doc_to_method_doc(plot_source_estimates)
     def plot(self, subject=None, surface='inflated', hemi='lh',
@@ -1599,6 +1602,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         %(verbose_meth)s
         """
         _validate_type(fname, 'path-like', 'fname')
+        # TODO: Add `overwrite` param to method signature
         fname = _check_fname(fname=fname, overwrite=True)
         _check_option('ftype', ftype, ['stc', 'w', 'h5'])
 
@@ -2088,6 +2092,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         """
         import nibabel as nib
         _validate_type(fname, 'path-like', 'fname')
+        # TODO: Add `overwrite` param to method signature
         fname = _check_fname(fname=fname, overwrite=True)
         img = self.as_volume(src, dest=dest, mri_resolution=mri_resolution,
                              format=format)
@@ -2191,6 +2196,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         %(verbose_meth)s
         """
         _validate_type(fname, 'path-like', 'fname')
+        # TODO: Add `overwrite` param to method signature
         fname = _check_fname(fname=fname, overwrite=True)
         _check_option('ftype', ftype, ['stc', 'w', 'h5'])
         if ftype != 'h5' and len(self.vertices) != 1:

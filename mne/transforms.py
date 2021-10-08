@@ -574,6 +574,7 @@ def write_trans(fname, trans):
     """
     check_fname(fname, 'trans', ('-trans.fif', '-trans.fif.gz',
                                  '_trans.fif', '_trans.fif.gz'))
+    # TODO: Add `overwrite` param to method signature
     fname = _check_fname(fname=fname, overwrite=True)
     fid = start_file(fname)
     write_coord_trans(fid, trans)
