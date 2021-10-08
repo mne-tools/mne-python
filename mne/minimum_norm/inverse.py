@@ -42,6 +42,7 @@ from ..source_estimate import _make_stc, _get_src_type
 from ..utils import (check_fname, logger, verbose, warn, _validate_type,
                      _check_compensation_grade, _check_option,
                      _check_depth, _check_src_normal, _check_fname)
+from ..data.html_templates import inverse_operator_template
 
 
 INVERSE_METHODS = ('MNE', 'dSPM', 'sLORETA', 'eLORETA')
