@@ -17,6 +17,8 @@ def parse_requirements_file(fname):
             req = line.strip()
             if req.startswith('#'):
                 continue
+            # strip end-of-line comments
+            req = req.split('#', maxsplit=1)[0].strip()
             requirements.append(req)
     return requirements
 
@@ -70,9 +72,10 @@ if __name__ == "__main__":
         pkg = re.split(r'[<>=!;]', req, maxsplit=1)[0]
         if pkg in hard_dependencies:
             install_requires.append(req)
-            full_install_requires.remove(req)
         elif pkg in data_dependencies:
-            data_requires.append(req)  # but don't remove from full
+            data_requires.append(req)
+    for req in install_requires:
+        full_install_requires.remove(req)
 
     doc_requires = parse_requirements_file('requirements_doc.txt')
     test_requires = (parse_requirements_file('requirements_testing.txt') +
