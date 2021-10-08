@@ -5,8 +5,21 @@
 
 import os
 import os.path as op
+import re
 
 from setuptools import setup
+
+
+def parse_requirements_file(fname):
+    requirements = list()
+    with open(fname, 'r') as fid:
+        for line in fid:
+            req = line.strip()
+            if req.startswith('#'):
+                continue
+            requirements.append(req)
+    return requirements
+
 
 # get the version (don't import mne here, so dependencies are not needed)
 version = None
@@ -49,14 +62,21 @@ if __name__ == "__main__":
         long_description = fid.read()
 
     hard_dependencies = ('numpy', 'scipy')
+    data_dependencies = ('pooch', 'tqdm')
+    full_install_requires = parse_requirements_file('requirements.txt')
     install_requires = list()
-    with open('requirements.txt', 'r') as fid:
-        for line in fid:
-            req = line.strip()
-            for hard_dep in hard_dependencies:
-                if req.startswith(hard_dep):
-                    install_requires.append(req)
+    data_requires = list()
+    for req in full_install_requires:
+        pkg = re.split(r'[<>=!;]', req, maxsplit=1)[0]
+        if pkg in hard_dependencies:
+            install_requires.append(req)
+            full_install_requires.remove(req)
+        elif pkg in data_dependencies:
+            data_requires.append(req)  # but don't remove from full
 
+    doc_requires = parse_requirements_file('requirements_doc.txt')
+    test_requires = (parse_requirements_file('requirements_testing.txt') +
+                     parse_requirements_file('requirements_testing_extra.txt'))
     setup(name=DISTNAME,
           maintainer=MAINTAINER,
           include_package_data=True,
@@ -90,6 +110,12 @@ if __name__ == "__main__":
           platforms='any',
           python_requires='>=3.7',
           install_requires=install_requires,
+          extras_require={
+              'doc': doc_requires,
+              'data': data_requires,
+              'test': test_requires,
+              'full': full_install_requires
+          },
           packages=package_tree('mne'),
           package_data={'mne': [
               op.join('data', 'eegbci_checksums.txt'),
