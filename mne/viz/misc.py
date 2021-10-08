@@ -314,7 +314,7 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
         Whether to add all slices as subplots to a single figure, or to
         create a new figure for each slice.
     fig_kind : 'figure' | 'array'
-        Whether to return slices as Matlotlib figures or NumPy arrays.
+        Whether to return Matplotlib figures or NumPy arrays.
 
     Returns
     -------
