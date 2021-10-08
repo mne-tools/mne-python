@@ -717,6 +717,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         .. versionadded:: 0.18.0
     %(show_scrollbars)s
     %(show_scalebars)s
+
+        .. versionadded:: 0.24.0
     epoch_colors : list of (n_epochs) list (of n_channels) | None
         Colors to use for individual epochs. If None, use default colors.
     event_id : dict | None

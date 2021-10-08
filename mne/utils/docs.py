@@ -1481,8 +1481,6 @@ show_scalebars : bool
     Whether to show scale bars when the plot is initialized. Can be toggled
     after initialization by pressing :kbd:`s` while the plot window is focused.
     Default is ``True``.
-
-    .. versionadded:: 0.20.0
 """
 
 docdict['time_format'] = """
