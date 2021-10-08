@@ -466,6 +466,7 @@ def test_add_html():
     assert (repr(report))
 
 
+@testing.requires_testing_data
 def test_multiple_figs(tmpdir):
     """Test adding a slider with a series of figures to a Report."""
     tempdir = str(tmpdir)
