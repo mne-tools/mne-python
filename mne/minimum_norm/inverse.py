@@ -54,24 +54,43 @@ class InverseOperator(dict):
         """Return a copy of the InverseOperator."""
         return InverseOperator(deepcopy(self))
 
+    def _get_chs_and_src_info_for_repr(self):
+        n_chs_meg = len(pick_types(self['info'], meg=True, eeg=False))
+        n_chs_eeg = len(pick_types(self['info'], meg=False, eeg=True))
+
+        src_space_descr = f"{self['src'].kind} with {self['nsource']} sources"
+
+        src_ori_fiff_to_name_map = {
+            FIFF.FIFFV_MNE_UNKNOWN_ORI: 'Unknown',
+            FIFF.FIFFV_MNE_FIXED_ORI: 'Fixed',
+            FIFF.FIFFV_MNE_FREE_ORI: 'Free'
+        }
+        src_ori = src_ori_fiff_to_name_map[self['source_ori']]
+        return n_chs_meg, n_chs_eeg, src_space_descr, src_ori
+
     def __repr__(self):  # noqa: D105
         """Summarize inverse info instead of printing all."""
+        repr_info = self._get_chs_and_src_info_for_repr()
+        n_chs_meg, n_chs_eeg, src_space_descr, src_ori = repr_info
+
         entr = '<InverseOperator'
-
-        nchan = len(pick_types(self['info'], meg=True, eeg=False))
-        entr += ' | ' + 'MEG channels: %d' % nchan
-        nchan = len(pick_types(self['info'], meg=False, eeg=True))
-        entr += ' | ' + 'EEG channels: %d' % nchan
-
-        entr += (' | Source space: %s with %d sources'
-                 % (self['src'].kind, self['nsource']))
-        source_ori = {FIFF.FIFFV_MNE_UNKNOWN_ORI: 'Unknown',
-                      FIFF.FIFFV_MNE_FIXED_ORI: 'Fixed',
-                      FIFF.FIFFV_MNE_FREE_ORI: 'Free'}
-        entr += ' | Source orientation: %s' % source_ori[self['source_ori']]
+        entr += f' | MEG channels: {n_chs_meg}'
+        entr += f' | EEG channels: {n_chs_eeg}'
+        entr += f' | Source space: {src_space_descr}'
+        entr += f' | Source orientation: {src_ori}'
         entr += '>'
-
         return entr
+
+    def _repr_html_(self):
+        repr_info = self._get_chs_and_src_info_for_repr()
+        n_chs_meg, n_chs_eeg, src_space_descr, src_ori = repr_info
+
+        html = inverse_operator_template.substitute(
+            channels=f'{n_chs_meg} MEG, {n_chs_eeg} EEG',
+            source_space_descr=src_space_descr,
+            source_orientation=src_ori
+        )
+        return html
 
 
 def _pick_channels_inverse_operator(ch_names, inv):

@@ -137,6 +137,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         # project and baseline correct
         if proj:
             self.apply_proj()
+        self.filename = fname
 
     @property
     def kind(self):
@@ -1403,7 +1404,7 @@ def _write_evokeds(fname, evoked, check=True, *, on_mismatch='raise'):
     # TODO: Add `overwrite` param to method signature
     fname = _check_fname(fname=fname, overwrite=True)
 
-    if not isinstance(evoked, list):
+    if not isinstance(evoked, (list, tuple)):
         evoked = [evoked]
 
     warned = False

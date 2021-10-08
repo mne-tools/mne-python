@@ -14,6 +14,7 @@ import webbrowser
 
 from ..defaults import HEAD_SIZE_DEFAULT
 from ..externals.doccer import indentcount_lines
+from ..externals.decorator import FunctionMaker
 
 
 ##############################################################################
@@ -306,7 +307,7 @@ ch_names : list | None
 # General plotting
 docdict["show"] = """
 show : bool
-    Show figure if True.
+    Show the figure if ``True``.
 """
 docdict["title_None"] = """
 title : str | None
@@ -1373,8 +1374,9 @@ trans : str | dict | instance of Transform | None
 """ % (_trans_base,)
 docdict['subjects_dir'] = """
 subjects_dir : str | pathlib.Path | None
-    The path to the FreeSurfer subjects reconstructions.
-    If None, defaults to the ``SUBJECTS_DIR`` environment variable.
+    The path to the directory containing the FreeSurfer subjects
+    reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+    variable.
 """
 _info_base = ('The :class:`mne.Info` object with information about the '
               'sensors and methods of measurement.')
@@ -1393,6 +1395,10 @@ info : mne.Info | str
 """
 docdict['subject'] = """
 subject : str
+    The FreeSurfer subject name.
+"""
+docdict['subject_none'] = """
+subject : str | None
     The FreeSurfer subject name.
 """
 docdict['label_subject'] = """\
@@ -2250,6 +2256,40 @@ docdict['baseline_report'] = """%(rescale_baseline)s
 
     For `~mne.Epochs`, this algorithm is run **on each epoch individually.**
 """ % docdict
+docdict['report_image_format'] = """
+image_format : 'png' | 'svg' | 'gif' | None
+    The image format to be used for the report, can be ``'png'``,
+    ``'svg'``, or ``'gif'``.
+    None (default) will use the default specified during `~mne.Report`
+    instantiation.
+"""
+docdict['report_tags'] = """
+tags : collection of str
+    Tags to add for later interactive filtering.
+"""
+docdict['report_replace'] = """
+replace : bool
+    If ``True``, content already present that has the same ``title`` will be
+    replaced. Defaults to ``False``, which will cause duplicate entries in the
+    table of contents if an entry for ``title`` already exists.
+"""
+docdict['report_projs'] = """
+projs : bool | None
+    Whether to add SSP projector plots if projectors are present in
+    the data. If ``None``, use ``projs`` from `~mne.Report` creation.
+"""
+docdict['report_stc_plot_kwargs'] = """
+stc_plot_kwargs : dict
+    Dictionary of keyword arguments to pass to
+    :class:`mne.SourceEstimate.plot`. Only used when plotting in 3D
+    mode.
+"""
+docdict['topomap_kwargs'] = """
+topomap_kwargs : dict | None
+    Keyword arguments to pass to topomap functions (
+    :func:`mne.viz.plot_evoked_topomap`, :func:`mne.viz.plot_projs_topomap`,
+    etc.).
+"""
 
 # Epochs
 docdict['epochs_tmin_tmax'] = """
@@ -3041,32 +3081,14 @@ def open_docs(kind=None, version=None):
 warnings.filterwarnings('always', category=DeprecationWarning, module='mne')
 
 
-class deprecated(object):
+class deprecated:
     """Mark a function or class as deprecated (decorator).
 
-    Issue a warning when the function is called/the class is instantiated and
-    adds a warning to the docstring.
-
-    The optional extra argument will be appended to the deprecation message
-    and the docstring. Note: to use this with the default value for extra, put
-    in an empty of parentheses::
-
-        >>> from mne.utils import deprecated
-        >>> deprecated() # doctest: +ELLIPSIS
-        <mne.utils.docs.deprecated object at ...>
-
-        >>> @deprecated()
-        ... def some_function(): pass
-
-
-    Parameters
-    ----------
-    extra: string
-        To be added to the deprecation messages.
+    Originally adapted from sklearn and
+    http://wiki.python.org/moin/PythonDecoratorLibrary, then modified to make
+    arguments populate properly following our verbose decorator methods based
+    on externals.decorator.
     """
-
-    # Adapted from http://wiki.python.org/moin/PythonDecoratorLibrary,
-    # but with many changes.
 
     def __init__(self, extra=''):  # noqa: D102
         self.extra = extra
@@ -3085,44 +3107,39 @@ class deprecated(object):
             return self._decorate_fun(obj)
 
     def _decorate_class(self, cls):
-        msg = "Class %s is deprecated" % cls.__name__
-        if self.extra:
-            msg += "; %s" % self.extra
-
-        # FIXME: we should probably reset __new__ for full generality
-        init = cls.__init__
-
-        def deprecation_wrapped(*args, **kwargs):
-            warnings.warn(msg, category=DeprecationWarning)
-            return init(*args, **kwargs)
-        cls.__init__ = deprecation_wrapped
-
-        deprecation_wrapped.__name__ = '__init__'
-        deprecation_wrapped.__doc__ = self._update_doc(init.__doc__)
-        deprecation_wrapped.deprecated_original = init
-
+        msg = f"Class {cls.__name__} is deprecated"
+        cls.__init__ = self._make_fun(cls.__init__, msg)
         return cls
 
     def _decorate_fun(self, fun):
         """Decorate function fun."""
-        msg = "Function %s is deprecated" % fun.__name__
+        msg = f"Function {fun.__name__} is deprecated"
+        return self._make_fun(fun, msg)
+
+    def _make_fun(self, function, msg):
         if self.extra:
             msg += "; %s" % self.extra
 
-        def deprecation_wrapped(*args, **kwargs):
-            warnings.warn(msg, category=DeprecationWarning)
-            return fun(*args, **kwargs)
-
-        deprecation_wrapped.__name__ = fun.__name__
-        deprecation_wrapped.__dict__ = fun.__dict__
-        deprecation_wrapped.__doc__ = self._update_doc(fun.__doc__)
-
-        return deprecation_wrapped
+        body = f"""\
+def %(name)s(%(signature)s):\n
+    import warnings
+    warnings.warn({repr(msg)}, category=DeprecationWarning)
+    return _function_(%(shortsignature)s)"""
+        evaldict = dict(_function_=function)
+        fm = FunctionMaker(
+            function, None, None, None, None, function.__module__)
+        attrs = dict(__wrapped__=function, __qualname__=function.__qualname__,
+                     __globals__=function.__globals__)
+        dep = fm.make(body, evaldict, addsource=True, **attrs)
+        dep.__doc__ = self._update_doc(dep.__doc__)
+        dep._deprecated_original = function
+        return dep
 
     def _update_doc(self, olddoc):
         newdoc = ".. warning:: DEPRECATED"
         if self.extra:
             newdoc = "%s: %s" % (newdoc, self.extra)
+        newdoc += '.'
         if olddoc:
             # Get the spacing right to avoid sphinx warnings
             n_space = 4
