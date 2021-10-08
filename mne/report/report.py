@@ -342,7 +342,7 @@ def _get_bem_contour_figs_as_arrays(
             slices=s, mri_fname=mri_fname, surfaces=surfaces,
             orientation=orientation, src=src, show=show,
             show_orientation=show_orientation, width=width,
-            fig_kind='array', slices_as_subplots=False
+            slices_as_subplots=False
         )
         for s in np.array_split(sl, use_jobs)
     )

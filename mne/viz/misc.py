@@ -305,22 +305,19 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
 def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
                        slices=None, show=True, show_indices=False,
                        show_orientation=False, width=512,
-                       slices_as_subplots=True, fig_kind='figure'):
+                       slices_as_subplots=True):
     """Plot BEM contours on anatomical MRI slices.
 
     Parameters
     ----------
     slices_as_subplots : bool
         Whether to add all slices as subplots to a single figure, or to
-        create a new figure for each slice.
-    fig_kind : 'figure' | 'array'
-        Whether to return Matplotlib figures or NumPy arrays.
+        create a new figure for each slice. If ``False``, return NumPy
+        arrays instead of Matplotlib figures.
 
     Returns
     -------
-    array | list of array | matplotlib.figure.Figure |
-            list of matplotlib.figure.Figure
-
+    matplotlib.figure.Figure | list of array
         The plotted slices.
     """
     import matplotlib.pyplot as plt
@@ -400,8 +397,6 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
         # traces
         w = width / dpi
         figsize = (w, w / data.shape[x] * data.shape[y])
-        fig, axs, _, _ = _prepare_trellis(len(slices), n_col)
-        plt.close(fig)  # we'll create a figure for each slice
 
     bounds = np.concatenate(
         [[-np.inf], slices[:-1] + np.diff(slices) / 2.,
@@ -467,7 +462,8 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
                 ax.text(dat.shape[1] / 2., dat.shape[0] - 1, ylabels[1],
                         ha='center', va='top', **kwargs)
 
-        if fig_kind == 'array':
+        if not slices_as_subplots:
+            # convert to NumPy array
             with io.BytesIO() as buff:
                 fig.savefig(
                     buff, format='raw', bbox_inches='tight', pad_inches=0,
@@ -479,7 +475,6 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
                 fig_array = np.frombuffer(buff.getvalue(), dtype=np.uint8)
                 fig = fig_array.reshape((int(h_), int(w_), -1))
 
-        if not slices_as_subplots:
             figs.append(fig)
 
     if slices_as_subplots:
@@ -606,7 +601,7 @@ def plot_bem(subject, subjects_dir=None, orientation='coronal',
         mri_fname=mri_fname, surfaces=surfaces, src=src,
         orientation=orientation, slices=slices, show=show,
         show_indices=show_indices, show_orientation=show_orientation,
-        fig_kind='figure', slices_as_subplots=True
+        slices_as_subplots=True
     )
     return fig
 
