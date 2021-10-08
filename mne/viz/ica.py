@@ -764,24 +764,23 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
     ica : instance of mne.preprocessing.ICA
         The ICA object.
     inst : instance of mne.io.Raw or mne.Evoked
-        The signals to be compared given the ICA solution. If Raw input,
-        The raw data are displayed before and after cleaning. In a second
-        panel the cross channel average will be displayed. Since dipolar
-        sources will be canceled out this display is sensitive to
-        artifacts. If evoked input, butterfly plots for clean and raw
-        signals will be superimposed.
+        The signal to plot. If `~mne.io.Raw`, the raw data is displayed before
+        and after cleaning. In a second panel, the cross-channel average will
+        be displayed. Since dipolar sources will be canceled out, this
+        representation is sensitive to artifacts. If `~mne.Evoked`, butterfly
+        traces for signals before and after cleaning will be superimposed.
     exclude : array-like of int | None (default)
-        The components marked for exclusion. If None (default), ICA.exclude
+        The components marked for exclusion. If ``None`` (default), ICA.exclude
         will be used.
     %(picks_base)s all channels that were included during fitting.
-    start : int | None
-        X-axis start index. If None (default) from the beginning.
-    stop : int | None
-        X-axis stop index. If None (default) to 3.0s.
-    title : str
-        The figure title.
-    show : bool
-        Show figure if True.
+    start, stop : float | None
+       The first and last time point (in seconds) of the data to plot. If
+       ``inst`` is a `~mne.io.Raw` object, ``start=None`` and ``stop=None``
+       will be translated into ``start=0.`` and ``stop=3.``, respectively. For
+       `~mne.Evoked`, ``None`` refers to the beginning and end of the evoked
+       signal.
+    %(title_None)s
+    %(show)s
     %(n_pca_components_apply)s
 
         .. versionadded:: 0.22
