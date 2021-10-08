@@ -34,10 +34,8 @@ if version is None:
     raise RuntimeError('Could not determine version')
 
 
-descr = """MNE python project for MEG and EEG data analysis."""
-
 DISTNAME = 'mne'
-DESCRIPTION = descr
+DESCRIPTION = 'MNE-Python project for MEG and EEG data analysis.'
 MAINTAINER = 'Alexandre Gramfort'
 MAINTAINER_EMAIL = 'alexandre.gramfort@inria.fr'
 URL = 'https://mne.tools/dev/'
