@@ -316,11 +316,17 @@ def _scale_mpl_figure(fig, scale):
     fig.canvas.draw()
 
 
-def _get_mri_contour_figs(*, sl, n_jobs, mri_fname, surfaces,
-                          orientation, src, show, show_orientation, width,
-                          slices_as_figures):
-    import matplotlib.pyplot as plt
+def _get_bem_contour_figs_as_arrays(
+    *, sl, n_jobs, mri_fname, surfaces, orientation, src, show,
+    show_orientation, width
+):
+    """Render BEM surface contours on MRI slices.
 
+    Returns
+    -------
+    list of array
+        A list of NumPy arrays that represent the generated Matplotlib figures.
+    """
     # Matplotlib <3.2 doesn't work nicely with process-based parallelization
     from matplotlib import __version__ as MPL_VERSION
     if _compare_version(MPL_VERSION, '>=', '3.2'):
@@ -328,7 +334,6 @@ def _get_mri_contour_figs(*, sl, n_jobs, mri_fname, surfaces,
     else:
         prefer = 'threads'
 
-    plt.close('all')
     use_jobs = min(n_jobs, max(1, len(sl)))
     parallel, p_fun, _ = parallel_func(_plot_mri_contours, use_jobs,
                                        prefer=prefer)
@@ -337,7 +342,7 @@ def _get_mri_contour_figs(*, sl, n_jobs, mri_fname, surfaces,
             slices=s, mri_fname=mri_fname, surfaces=surfaces,
             orientation=orientation, src=src, show=show,
             show_orientation=show_orientation, width=width,
-            slices_as_figures=slices_as_figures
+            fig_kind='array', slices_as_subplots=False
         )
         for s in np.array_split(sl, use_jobs)
     )
@@ -2461,10 +2466,10 @@ class Report(object):
 
         sl = np.arange(0, n_slices, decim)
         logger.debug(f'Rendering BEM {orientation} with {len(sl)} slices')
-        figs = _get_mri_contour_figs(
+        figs = _get_bem_contour_figs_as_arrays(
             sl=sl, n_jobs=n_jobs, mri_fname=mri_fname, surfaces=surfaces,
             orientation=orientation, src=None, show=False,
-            show_orientation='always', width=width, slices_as_figures=True
+            show_orientation='always', width=width
         )
 
         # Render the slider
