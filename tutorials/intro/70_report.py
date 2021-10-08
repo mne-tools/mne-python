@@ -68,7 +68,7 @@ subjects_dir = data_path / 'subjects'
 # .. sidebar: Viewing the report
 #
 #    On successful creation of the report, the :meth:`~mne.Report.save` method
-#    will open the HTML in a new tab in the browser. To disable this, use the
+#    will open the HTML in a new tab in your browser. To disable this, use the
 #    ``open_browser=False`` parameter of :meth:`~mne.Report.save`.
 #
 # Adding `~mne.io.Raw` data
