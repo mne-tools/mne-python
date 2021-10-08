@@ -306,7 +306,8 @@ show : bool
 """
 docdict["title_None"] = """
 title : str | None
-    Title. If None (default), no title is displayed.
+    The title of the generated figure. If ``None`` (default), no title is
+    displayed.
 """
 docdict["plot_proj"] = """
 proj : bool | 'interactive' | 'reconstruct'
