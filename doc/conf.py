@@ -850,6 +850,8 @@ def reset_warnings(gallery_conf, fname):
                 r'sphinx\.util\.smartypants is deprecated',
                 'is a deprecated alias for the builtin',  # NumPy
                 'the old name will be removed',  # Jinja, via sphinx
+                r'Passing a schema to Validator\.iter_errors',  # jsonschema
+                "default value of type 'dict' in an Any trait will",  # traits
                 'rcParams is deprecated',  # PyVista rcParams -> global_theme
                 'to mean no clipping',
                 ):
