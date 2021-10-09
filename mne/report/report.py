@@ -6,6 +6,7 @@
 #
 # License: BSD-3-Clause
 
+import io
 import dataclasses
 from dataclasses import dataclass
 from typing import Tuple
@@ -44,6 +45,7 @@ from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
 from ..viz.utils import _ndarray_to_fig, tight_layout
 from ..forward import read_forward_solution, Forward
 from ..epochs import read_epochs, BaseEpochs
+from ..preprocessing.ica import read_ica
 from .. import dig_mri_distances
 from ..minimum_norm import read_inverse_operator, InverseOperator
 from ..parallel import parallel_func, check_n_jobs
@@ -120,7 +122,6 @@ def _html_footer_element(*, mne_version, date):
     return t
 
 
-# XXX
 def _html_toc_element(*, content_elements):
     template_path = template_dir / 'toc.html'
     t = Template(template_path.read_text(encoding='utf-8'))
@@ -189,15 +190,35 @@ def _html_inverse_operator_element(*, id, repr, source_space, title, tags):
     return t
 
 
+def _html_ica_element(*, id, overlay, ecg, eog, ecg_scores, eog_scores,
+                      properties, topographies, title, tags):
+    template_path = template_dir / 'ica.html'
+
+    title = stdlib_html.escape(title)
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, overlay=overlay, ecg=ecg, eog=eog,
+                     ecg_scores=ecg_scores, eog_scores=eog_scores,
+                     properties=properties, topographies=topographies,
+                     tags=tags, title=title)
+    return t
+
+
 def _html_slider_element(*, id, images, captions, start_idx, image_format,
                          title, tags, klass=''):
     template_path = template_dir / 'slider.html'
 
     title = stdlib_html.escape(title)
-    captions = [stdlib_html.escape(caption) for caption in captions
-                if caption is not None]
+    captions_ = []
+    for caption in captions:
+        if caption is None:
+            caption = ''
+        else:
+            caption = stdlib_html.escape(caption)
+        captions_.append(caption)
+    del captions
+
     t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(id=id, images=images, captions=captions, tags=tags,
+    t = t.substitute(id=id, images=images, captions=captions_, tags=tags,
                      title=title, start_idx=start_idx,
                      image_format=image_format, klass=klass)
     return t
@@ -279,7 +300,7 @@ def _fig_to_img(fig, *, image_format='png', auto_close=True):
             category=UserWarning
         )
         fig.savefig(output, format=image_format, dpi=fig.get_dpi(),
-                    bbox_inches='tight', pad_inches=0)
+                    bbox_inches='tight')
 
     if auto_close:
         plt.close(fig)
@@ -402,6 +423,47 @@ def _itv(function, fig, **kwargs):
                f'head: {1e3 * np.mean(dists):.2f} mm')
 
     return img, caption
+
+
+def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
+    """
+    Returns
+    -------
+    out : list of array
+        The properties plots as NumPy arrays.
+    """
+    import matplotlib.pyplot as plt
+
+    if picks is None:
+        picks = list(range(ica.n_components_))
+
+    def _plot_one_ica_property(*, ica, inst, pick):
+        figs = ica.plot_properties(inst=inst, picks=pick, show=False)
+        assert len(figs) == 1
+        fig = figs[0]
+
+        with io.BytesIO() as buff:
+            fig.savefig(
+                buff, format='raw',  dpi=fig.get_dpi()
+            )
+            w_, h_ = fig.canvas.get_width_height()
+            plt.close(fig)
+            buff.seek(0)
+            fig_array = np.frombuffer(buff.getvalue(), dtype=np.uint8)
+            fig_array_reshaped = fig_array.reshape((int(h_), int(w_), -1))
+            return fig_array_reshaped
+
+    use_jobs = min(n_jobs, max(1, len(picks)))
+    parallel, p_fun, _ = parallel_func(
+        func=_plot_one_ica_property,
+        n_jobs=use_jobs
+    )
+    outs = parallel(
+        p_fun(
+            ica=ica, inst=inst, pick=pick
+        ) for pick in picks
+    )
+    return outs
 
 
 ###############################################################################
@@ -1220,8 +1282,8 @@ class Report(object):
         )
 
     @fill_doc
-    def add_projs(self, *, info, projs=None, title, tags=('ssp',),
-                  replace=False, topomap_kwargs=None):
+    def add_projs(self, *, info, projs=None, title, topomap_kwargs=None,
+                  tags=('ssp',), replace=False):
         """Render (SSP) projection vectors.
 
         Parameters
@@ -1260,6 +1322,280 @@ class Report(object):
         self._add_or_replace(
             dom_id=dom_id,
             name=title,
+            tags=tags,
+            html=html,
+            replace=replace
+        )
+
+    def _render_ica_overlay(self, *, ica, inst, image_format, tags):
+        if isinstance(inst, BaseRaw):
+            inst_ = inst
+        else:  # Epochs
+            inst_ = inst.average()
+
+        fig = ica.plot_overlay(inst=inst_, show=False)
+        del inst_
+        tight_layout(fig=fig)
+        img = _fig_to_img(fig, image_format=image_format)
+        dom_id = self._get_dom_id()
+        overlay_html = _html_image_element(
+            img=img, div_klass='ica', img_klass='ica',
+            title='Original and cleaned signal', caption=None, show=True,
+            image_format=image_format, id=dom_id, tags=tags
+        )
+
+        return overlay_html
+
+    def _render_ica_properties(self, *, ica, picks, inst, n_jobs, image_format,
+                               tags):
+        figs = _plot_ica_properties_as_arrays(
+            ica=ica, inst=inst, picks=picks, n_jobs=n_jobs
+        )
+        rel_explained_var = (ica.pca_explained_variance_ /
+                             ica.pca_explained_variance_.sum())
+        cum_explained_var = np.cumsum(rel_explained_var)
+        captions = []
+        for idx, rel_var, cum_var in zip(
+            range(len(figs)),
+            rel_explained_var[:len(figs)],
+            cum_explained_var[:len(figs)]
+        ):
+            caption = (
+                f'ICA component {idx}. '
+                f'Variance explained: {round(100 * rel_var)}%'
+            )
+            if idx == 0:
+                caption += '.'
+            else:
+                caption += f' ({round(100 * cum_var)}% cumulative).'
+
+            captions.append(caption)
+
+        title = 'ICA components'
+        # Only render a slider if we have more than 1 component.
+        if len(figs) == 1:
+            img = _fig_to_img(fig=figs[0], image_format=image_format)
+            dom_id = self._get_dom_id()
+            properties_html = _html_image_element(
+                img=img, div_klass='ica', img_klass='ica',
+                title=title, caption=captions[0], show=True,
+                image_format=image_format, id=dom_id, tags=tags
+            )
+        else:
+            properties_html, _ = self._render_slider(
+                figs=figs, title=title, captions=captions, start_idx=0,
+                image_format=image_format, tags=tags
+            )
+
+        return properties_html
+
+    def _render_ica_artifact_sources(self, *, ica, inst, artifact_type,
+                                     image_format, tags):
+        fig = ica.plot_sources(inst=inst, show=False)
+        img = _fig_to_img(fig, image_format=image_format)
+        dom_id = self._get_dom_id()
+        html = _html_image_element(
+            img=img, div_klass='ica', img_klass='ica',
+            title=f'Original and cleaned {artifact_type} epochs', caption=None,
+            show=True, image_format=image_format, id=dom_id, tags=tags
+        )
+        return html
+
+    def _render_ica_artifact_scores(self, *, ica, scores, artifact_type,
+                                    image_format, tags):
+        fig = ica.plot_scores(scores=scores, title=None, show=False)
+        img = _fig_to_img(fig, image_format=image_format)
+        dom_id = self._get_dom_id()
+        html = _html_image_element(
+            img=img, div_klass='ica', img_klass='ica',
+            title=f'Scores for matching {artifact_type} patterns',
+            caption=None, show=True, image_format=image_format, id=dom_id,
+            tags=tags
+        )
+        return html
+
+    def _render_ica_components(self, *, ica, picks, image_format, tags):
+        figs = ica.plot_components(
+            picks=picks, title='', colorbar=True, show=False
+        )
+        if not isinstance(figs, list):
+            figs = [figs]
+
+        for fig in figs:
+            tight_layout(fig=fig)
+
+        title = 'ICA component topographies'
+        if len(figs) == 1:
+            img = _fig_to_img(fig=figs[0], image_format=image_format)
+            dom_id = self._get_dom_id()
+            topographies_html = _html_image_element(
+                img=img, div_klass='ica', img_klass='ica',
+                title=title, caption=None, show=True,
+                image_format=image_format, id=dom_id, tags=tags
+            )
+        else:
+            captions = [None] * len(figs)
+            topographies_html, _ = self._render_slider(
+                figs=figs, title=title, captions=captions, start_idx=0,
+                image_format=image_format, tags=tags
+            )
+
+        return topographies_html
+
+    def _render_ica(self, *, ica, inst, n_components, ecg_evoked,
+                    eog_evoked, ecg_scores, eog_scores, title, image_format,
+                    tags, n_jobs):
+        if _path_like(ica):
+            ica = read_ica(ica)
+
+        if inst is None:
+            pass  # no-op
+        elif _path_like(inst):
+            # We cannot know which data type to expect, so let's first try to
+            # read a Raw, and if that fails, try to load Epochs
+            fname = str(inst)  # could e.g. be a Path!
+            raw_kwargs = dict(fname=fname, preload=False)
+            if fname.endswith(('.fif', '.fif.gz')):
+                raw_kwargs['allow_maxshield'] = True
+
+            try:
+                inst = read_raw(**raw_kwargs)
+            except ValueError:
+                try:
+                    inst = read_epochs(fname)
+                except ValueError:
+                    raise ValueError(
+                        f'The specified file, {fname}, does not seem to '
+                        f'contain Raw data or Epochs'
+                    )
+
+        if _path_like(ecg_evoked):
+            ecg_evoked = read_evokeds(fname=ecg_evoked, condition=0)
+
+        if _path_like(eog_evoked):
+            eog_evoked = read_evokeds(fname=eog_evoked, condition=0)
+
+        # Overlay plot
+        if inst:
+            overlay_html = self._render_ica_overlay(
+                ica=ica, inst=inst, image_format=image_format, tags=tags
+            )
+        else:
+            overlay_html = ''
+
+        # ECG artifact
+        if ecg_scores is not None:
+            ecg_scores_html = self._render_ica_artifact_scores(
+                ica=ica, scores=ecg_scores, artifact_type='ECG',
+                image_format=image_format, tags=tags
+            )
+        else:
+            ecg_scores_html = ''
+
+        if ecg_evoked:
+            ecg_html = self._render_ica_artifact_sources(
+                ica=ica, inst=ecg_evoked, artifact_type='ECG',
+                image_format=image_format, tags=tags
+            )
+        else:
+            ecg_html = ''
+
+        # EOG artifact
+        if eog_scores is not None:
+            eog_scores_html = self._render_ica_artifact_scores(
+                ica=ica, scores=eog_scores, artifact_type='EOG',
+                image_format=image_format, tags=tags
+            )
+        else:
+            eog_scores_html = ''
+
+        if eog_evoked:
+            eog_html = self._render_ica_artifact_sources(
+                ica=ica, inst=eog_evoked, artifact_type='EOG',
+                image_format=image_format, tags=tags
+            )
+        else:
+            eog_html = ''
+
+        # Component topography plots
+        picks = None if n_components is None else list(range(n_components))
+        topographies_html = self._render_ica_components(
+            ica=ica, picks=picks, image_format=image_format, tags=tags
+        )
+
+        # Properties plots
+        if inst:
+            properties_html = self._render_ica_properties(
+                ica=ica, picks=picks, inst=inst, n_jobs=n_jobs,
+                image_format=image_format, tags=tags
+            )
+        else:
+            properties_html = ''
+
+        dom_id = self._get_dom_id()
+        html = _html_ica_element(
+            id=dom_id,
+            overlay=overlay_html,
+            ecg=ecg_html,
+            eog=eog_html,
+            ecg_scores=ecg_scores_html,
+            eog_scores=eog_scores_html,
+            properties=properties_html,
+            topographies=topographies_html,
+            title=title,
+            tags=tags
+        )
+        return dom_id, html
+
+    @fill_doc
+    def add_ica(
+        self, ica, title, *,  inst, n_components=None, ecg_evoked=None,
+        eog_evoked=None, ecg_scores=None, eog_scores=None, n_jobs=1,
+        tags=('ica',), replace=False
+    ):
+        """Add (a fitted) `~mne.preprocessing.ICA` to the report.
+
+        Parameters
+        ----------
+        ica : path-like | instance of mne.prepreocessing.ICA
+            The fitted ~mne.prepreocessing.ICA` to add.
+        title : str
+            The title to add.
+        inst : path-like | mne.io.Raw | mne.Epochs | None
+            The data to use for visualization of the effects of ICA cleaning.
+            To only plot the ICA component topographies, explicitly pass
+            ``None``.
+        n_components : int | None
+            The number of components for which to produce property plots. If
+            ``None``, plot all components.
+        ecg_evoked, eog_evoked : path-line | mne.Evoked | None
+            Evoked signal based on ECG and EOG epochs, respectively. If passed,
+            will be used to visualize the effects of artifact rejection.
+        ecg_scores, eog_scores : array of float | list of array of float | None
+            The scores produced by :meth:`mne.preprocessing.ICA.find_bads_ecg`
+            and :meth:`mne.preprocessing.ICA.find_bads_eog`, respectively.
+            If passed, will be used to visualize the scoring for each ICA
+            component.
+        %(n_jobs)s
+        %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        tags = tuple(tags)
+
+        dom_id, html = self._render_ica(
+            ica=ica, inst=inst, n_components=n_components,
+            ecg_evoked=ecg_evoked, eog_evoked=eog_evoked,
+            ecg_scores=ecg_scores, eog_scores=eog_scores,
+            title=title, image_format=self.image_format, tags=tags,
+            n_jobs=n_jobs
+        )
+        self._add_or_replace(
+            name=title,
+            dom_id=dom_id,
             tags=tags,
             html=html,
             replace=replace
@@ -1385,7 +1721,7 @@ class Report(object):
                     return
             raise RuntimeError('This should never happen')
         else:
-            # Append new content
+            # Simply append new content (no replace)
             self._content.append(new_content)
 
     def _render_code(self, *, code, title, language, tags):
