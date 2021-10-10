@@ -1550,11 +1550,15 @@ downsampling : str | int
 
 docdict['downsampling_method'] = """
 downsampling_method : str
-    (Only pyqtgraph) The method to use for to use (from pyqtgraph).
-    Look here in the pyqgraph-documentation
-    under "Optimization-Keywords" for more details:
-    https://pyqtgraph.readthedocs.io/en/latest/graphicsItems/
-    plotdataitem.html?#.
+    (Only pyqtgraph) The method to use for downsampling.
+    - ``'subsample'``
+        Take Only take every n-th sample.
+    - ``'mean'``
+        Take the mean of n samples
+    - ``'peak'``
+        Draw a saw wave from the minimum to the
+        maximum from a collection of n samples.
+    *(Those methods are adapted from pyqtgraph).*
     Default is ``'peak''``.
 
     .. versionadded:: 0.24
@@ -1568,16 +1572,6 @@ antialiasing : bool
     .. versionadded:: 0.24
 """
 
-docdict['scroll_sensitivity'] = """
-scroll_sensitivity : int
-    (Only pyqtgraph) Set amount of scrolling steps the visible time-window
-    is divided into.
-    ("Ctrl + <Arrow-Key>" scrolls 1 step, "<Arrow-Key>" scrolls 10 steps).
-    Default is ``100``.
-
-    .. versionadded:: 0.24
-"""
-
 docdict['overview_mode'] = """
 overview_mode : str | None
     (Only pyqtgraph) Set the mode for the display of an overview over the data:
@@ -1586,7 +1580,10 @@ overview_mode : str | None
         Display each channel with its channel-type color.
 
     - ``'zscore'``
-        Display the zscore for each channel across time.
+        Display the zscore for the data from each channel across time.
+        `Red` indicates high z-scores, `Blue` indicates low z-scores
+        while the color gradient is defined by the minimum/maximum
+        z-score.
         This only works if preload is set to ``True``
 
     Defaults to "channels".

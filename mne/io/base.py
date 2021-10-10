@@ -1523,8 +1523,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              show_scrollbars=True, show_scalebars=True, time_format='float',
              preload='auto', use_opengl=True, downsampling='auto',
              downsampling_method='peak', antialiasing=False,
-             scroll_sensitivity=100, overview_mode='channels',
-             verbose=None):
+             overview_mode='channels', verbose=None):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
@@ -1536,7 +1535,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                         downsampling=downsampling,
                         downsampling_method=downsampling_method,
                         antialiasing=antialiasing,
-                        scroll_sensitivity=scroll_sensitivity,
                         overview_mode=overview_mode,
                         verbose=verbose)
 

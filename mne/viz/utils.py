@@ -109,7 +109,7 @@ def plt_show(show=True, fig=None, **kwargs):
         (fig or plt).show(**kwargs)
 
 
-def show_browser(show=True, block=True, fig=None, **kwargs):
+def _show_browser(show=True, block=True, fig=None, **kwargs):
     """Show the browser considering different backends.
 
     Parameters
@@ -127,7 +127,7 @@ def show_browser(show=True, block=True, fig=None, **kwargs):
     from ._figure import get_browser_backend
     backend = get_browser_backend()
     if backend == 'matplotlib':
-        plt_show(show, block=block)
+        plt_show(show, block=block, **kwargs)
     else:
         from qtpy.QtWidgets import QApplication
         app = QApplication.instance() or QApplication(['MNE'])

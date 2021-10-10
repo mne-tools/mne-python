@@ -21,7 +21,7 @@ from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (plt_show, _compute_scalings, _handle_decim, _check_cov,
                     _shorten_path_from_middle,
                     _get_channel_plotting_order, _make_event_color_dict,
-                    show_browser)
+                    _show_browser)
 
 _RAW_CLIP_DEF = 1.5
 
@@ -38,8 +38,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              show_scalebars=True, time_format='float',
              preload='auto', use_opengl=True, downsampling='auto',
              downsampling_method='peak', antialiasing=False,
-             scroll_sensitivity=100, overview_mode='channels',
-             verbose=None):
+             overview_mode='channels', verbose=None):
     """Plot raw data.
 
     Parameters
@@ -178,7 +177,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     %(downsampling)s
     %(downsampling_method)s
     %(antialiasing)s
-    %(scroll_sensitivity)s
     %(overview_mode)s
     %(verbose)s
 
@@ -364,7 +362,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   downsampling=downsampling,
                   downsampling_method=downsampling_method,
                   antialiasing=antialiasing,
-                  scroll_sensitivity=scroll_sensitivity,
                   overview_mode=overview_mode)
 
     fig = _get_browser(**params)
@@ -387,7 +384,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     if show_options:
         fig._toggle_proj_fig()
 
-    show_browser(show, block=block, fig=fig)
+    _show_browser(show, block=block, fig=fig)
 
     return fig
 

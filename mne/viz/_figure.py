@@ -25,10 +25,6 @@ from .backends._utils import VALID_BROWSE_BACKENDS
 from .utils import _get_color_list, _setup_plot_projector
 
 MNE_BROWSE_BACKEND = None
-_backends = dict(
-    matplotlib='._mpl_figure',
-    # pyqtgraph='._pg_figure'
-)
 backend = None
 
 
@@ -596,7 +592,7 @@ class BrowserBase(ABC):
 def _load_backend(backend_name):
     global backend
     if backend_name == 'matplotlib':
-        backend = importlib.import_module(name=_backends[backend_name],
+        backend = importlib.import_module(name='._mpl_figure',
                                           package='mne.viz')
     else:
         repo_link = "git+https://github.com/mne-tools/" \
