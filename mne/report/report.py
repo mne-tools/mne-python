@@ -426,7 +426,8 @@ def _itv(function, fig, **kwargs):
 
 
 def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
-    """
+    """Parallelize ICA component properties plotting, and return arrays.
+
     Returns
     -------
     out : list of array
