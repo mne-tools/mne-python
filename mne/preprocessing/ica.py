@@ -11,6 +11,8 @@ from collections import namedtuple
 from copy import deepcopy
 from numbers import Integral
 from time import time
+from dataclasses import dataclass
+from typing import Optional, List, Literal
 
 import math
 import os
@@ -60,6 +62,7 @@ from ..filter import filter_data
 from .bads import _find_outliers
 from .ctps_ import ctps
 from ..io.pick import pick_channels_regexp, _picks_by_type
+from ..data.html_templates import ica_template
 
 __all__ = ('ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
            'get_score_funcs', 'read_ica', 'read_ica_eeglab')
@@ -440,27 +443,98 @@ class ICA(ContainsMixin):
         self.labels_ = dict()
         self.allow_ref_meg = allow_ref_meg
 
+    def _get_infos_for_repr(self):
+        @dataclass
+        class _InfosForRepr:
+            fit_on: Optional[Literal['raw data', 'epochs']]
+            fit_method: Literal['fastica', 'infomax', 'extended-infomax',
+                                'picard']
+            fit_n_iter: Optional[int]
+            fit_n_samples: Optional[int]
+            fit_n_components: Optional[int]
+            fit_n_pca_components: Optional[int]
+            fit_explained_variance: Optional[float]
+            ch_types: List[str]
+            excludes: List[str]
+
+        if self.current_fit == 'unfitted':
+            fit_on = None
+        elif self.current_fit == 'raw':
+            fit_on = 'raw data'
+        else:
+            fit_on = 'epochs'
+
+        fit_method = self.method
+        fit_n_iter = getattr(self, 'n_iter_', None)
+        fit_n_samples = getattr(self, 'n_samples_', None)
+        fit_n_components =  getattr(self, 'n_components_', None)
+        fit_n_pca_components =  getattr(self, 'pca_components_', None)
+        if fit_n_pca_components is not None:
+            fit_n_pca_components = len(self.pca_components_)
+        fit_explained_variance = getattr(self, 'pca_explained_variance_', None)
+        if fit_explained_variance is not None:
+            abs_vars = self.pca_explained_variance_
+            rel_vars = abs_vars / abs_vars.sum()
+            fit_explained_variance = rel_vars[:fit_n_components].sum()
+
+        if self.info is not None:
+            ch_types = [c for c in _DATA_CH_TYPES_SPLIT if c in self]
+        else:
+            ch_types = []
+
+        if self.exclude:
+            excludes = [self._ica_names[i] for i in self.exclude]
+        else:
+            excludes = []
+
+        infos_for_repr = _InfosForRepr(
+            fit_on=fit_on,
+            fit_method=fit_method,
+            fit_n_iter=fit_n_iter,
+            fit_n_samples=fit_n_samples,
+            fit_n_components=fit_n_components,
+            fit_n_pca_components=fit_n_pca_components,
+            fit_explained_variance=fit_explained_variance,
+            ch_types=ch_types,
+            excludes=excludes
+        )
+        return infos_for_repr
+
     def __repr__(self):
         """ICA fit information."""
-        if self.current_fit == 'unfitted':
-            s = 'no'
-        elif self.current_fit == 'raw':
-            s = 'raw data'
-        else:
-            s = 'epochs'
-        s += ' decomposition, '
-        s += 'fit (%s): %s samples, ' % (self.method,
-                                         str(getattr(self, 'n_samples_', '')))
-        s += ('%s components' % str(self.n_components_) if
-              hasattr(self, 'n_components_') else
-              'no dimension reduction')
-        if self.info is not None:
-            ch_fit = ['"%s"' % c for c in _DATA_CH_TYPES_SPLIT if c in self]
-            s += ', channels used: {}'.format('; '.join(ch_fit))
-        if self.exclude:
-            s += ', %i sources marked for exclusion' % len(self.exclude)
+        infos = self._get_infos_for_repr()
 
-        return '<ICA | %s>' % s
+        s = (f'{infos.fit_on or "no"} decomposition, '
+             f'method: {infos.fit_method}')
+
+        if infos.fit_on is not None:
+            s += (
+                f' (fit in {infos.fit_n_iter} iterations on '
+                f'{infos.fit_n_samples} samples), '
+                f'{infos.fit_n_components} ICA components '
+                f'explaining {round(infos.fit_explained_variance * 100, 1)} % '
+                f'of variance '
+                f'({infos.fit_n_pca_components} PCA components used), '
+                f'channel types: {", ".join(infos.ch_types)}, '
+                f'{len(infos.excludes) or "no"} sources marked for exclusion'
+            )
+
+        return f'<ICA | {s}>'
+
+    def _repr_html_(self):
+        infos = self._get_infos_for_repr()
+        html = ica_template.substitute(
+            fit_on=infos.fit_on,
+            method=infos.fit_method,
+            n_iter=infos.fit_n_iter,
+            n_samples=infos.fit_n_samples,
+            n_components=infos.fit_n_components,
+            n_pca_components=infos.fit_n_pca_components,
+            explained_variance=infos.fit_explained_variance,
+            ch_types=infos.ch_types,
+            excludes=infos.excludes
+        )
+        return html
 
     @verbose
     def fit(self, inst, picks=None, start=None, stop=None, decim=None,

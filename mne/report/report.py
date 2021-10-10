@@ -190,13 +190,13 @@ def _html_inverse_operator_element(*, id, repr, source_space, title, tags):
     return t
 
 
-def _html_ica_element(*, id, overlay, ecg, eog, ecg_scores, eog_scores,
+def _html_ica_element(*, id, repr, overlay, ecg, eog, ecg_scores, eog_scores,
                       properties, topographies, title, tags):
     template_path = template_dir / 'ica.html'
 
     title = stdlib_html.escape(title)
     t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(id=id, overlay=overlay, ecg=ecg, eog=eog,
+    t = t.substitute(id=id, repr=repr, overlay=overlay, ecg=ecg, eog=eog,
                      ecg_scores=ecg_scores, eog_scores=eog_scores,
                      properties=properties, topographies=topographies,
                      tags=tags, title=title)
@@ -1476,6 +1476,16 @@ class Report(object):
         if _path_like(eog_evoked):
             eog_evoked = read_evokeds(fname=eog_evoked, condition=0)
 
+        # Summary table
+        dom_id = self._get_dom_id()
+        repr_html = _html_element(
+            div_klass='ica',
+            id=dom_id,
+            tags=tags,
+            title='Info',
+            html=ica._repr_html_()
+        )
+
         # Overlay plot
         if inst:
             overlay_html = self._render_ica_overlay(
@@ -1536,6 +1546,7 @@ class Report(object):
         dom_id = self._get_dom_id()
         html = _html_ica_element(
             id=dom_id,
+            repr=repr_html,
             overlay=overlay_html,
             ecg=ecg_html,
             eog=eog_html,
