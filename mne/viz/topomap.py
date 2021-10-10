@@ -1082,8 +1082,8 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     ica : instance of mne.preprocessing.ICA
         The ICA solution.
     picks : int | list of int | slice | None
-        The indices ICA components to visualize. If ``None``, all are plotted
-        in batches of 20.
+        Indices of the ICA components to visualize. If ``None``, all components
+        are plotted in batches of 20.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are
         collected in pairs and the RMS for each pair is plotted.
@@ -1164,7 +1164,10 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     fig : instance of matplotlib.figure.Figure |
           list of matplotlib.figure.Figure
 
-        The figure object(s).
+        The figure object(s). Components are plotted on a grid with maximum
+        dimensions of 5⨉4. If more than 20 components are plotted, a new figure
+        will be created for each batch of 20, and a list of those figures
+        will be returned.
 
     Notes
     -----
