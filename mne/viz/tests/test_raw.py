@@ -190,8 +190,8 @@ def _proj_click_all(fig, browse_backend):
         fig._fake_click((0.5, 0.5), fig=ssp_fig, ax=ssp_fig.mne.proj_all.ax,
                         kind='release')
     else:
-        fig._fake_click((0, 0), fig=ssp_fig.toggle_all_bt,
-                        xform='none')
+        # _fake_click on QPushButton is inconsistent across platforms.
+        ssp_fig.toggle_all()
 
 
 def _child_fig_helper(fig, key, attr, browse_backend):
