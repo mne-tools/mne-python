@@ -3,12 +3,17 @@
 
 from ...utils import verbose, deprecated
 from ..utils import (has_dataset, _data_path_doc, DEPRECATION_MESSAGE_TEMPLATE,
-                     _get_version, _version_doc, _download_mne_dataset)
+                     _get_version, _version_doc, _download_mne_dataset,
+                     _HAS_DATA_DOCSTRING_TEMPLATE)
 
 
 @deprecated(extra=DEPRECATION_MESSAGE_TEMPLATE.format('fnirs_motor'))
 def has_fnirs_motor_data():
     return has_dataset(name='fnirs_motor')
+
+
+has_fnirs_motor_data.__doc__ = _HAS_DATA_DOCSTRING_TEMPLATE.format(
+    'fnirs_motor')
 
 
 @verbose

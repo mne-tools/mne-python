@@ -3,12 +3,17 @@
 
 from ...utils import verbose, deprecated
 from ..utils import (has_dataset, _data_path_doc, DEPRECATION_MESSAGE_TEMPLATE,
-                     _get_version, _version_doc, _download_mne_dataset)
+                     _get_version, _version_doc, _download_mne_dataset,
+                     _HAS_DATA_DOCSTRING_TEMPLATE)
 
 
 @deprecated(extra=DEPRECATION_MESSAGE_TEMPLATE.format('refmeg_noise'))
 def has_refmeg_noise_data():
     return has_dataset(name='refmeg_noise')
+
+
+has_refmeg_noise_data.__doc__ = _HAS_DATA_DOCSTRING_TEMPLATE.format(
+    'refmeg_noise')
 
 
 @verbose

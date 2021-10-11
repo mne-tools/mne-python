@@ -28,6 +28,15 @@ from ..externals.doccer import docformat
 
 DEPRECATION_MESSAGE_TEMPLATE = "use mne.datasets.has_dataset('{}') instead."
 
+_HAS_DATA_DOCSTRING_TEMPLATE = """\
+Check for presence of {} dataset on user's system.
+
+    Returns
+    -------
+    presence : bool
+        Whether the dataset was found.
+"""
+
 _data_path_doc = """Get path to local copy of {name} dataset.
 
     Parameters
