@@ -41,11 +41,11 @@ def test_datasets_basic(tmpdir, monkeypatch):
             dataset = getattr(datasets, dname)
         if dataset.data_path(download=False) != '':
             assert isinstance(dataset.get_version(), str)
-            assert datasets.utils.has_dataset(dname)
+            assert datasets.has_dataset(dname)
         else:
             assert dataset.get_version() is None
-            assert not datasets.utils.has_dataset(dname)
-        print('%s: %s' % (dname, datasets.utils.has_dataset(dname)))
+            assert not datasets.has_dataset(dname)
+        print('%s: %s' % (dname, datasets.has_dataset(dname)))
     tempdir = str(tmpdir)
     # don't let it read from the config file to get the directory,
     # force it to look for the default
@@ -74,7 +74,7 @@ def test_downloads(tmpdir, monkeypatch, capsys):
         path = datasets._fake.data_path(update_path=False, **kwargs)
     assert op.isdir(path)
     assert op.isfile(op.join(path, 'bar'))
-    assert not datasets.utils.has_dataset('fake')  # not in the desired path
+    assert not datasets.has_dataset('fake')  # not in the desired path
     assert datasets._fake.get_version() is None
     assert datasets.utils._get_version('fake') is None
     monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmpdir))
@@ -84,21 +84,21 @@ def test_downloads(tmpdir, monkeypatch, capsys):
     out, _ = capsys.readouterr()
     assert 'Downloading' not in out
     # No version: shown as existing but unknown version
-    assert datasets.utils.has_dataset('fake')
+    assert datasets.has_dataset('fake')
     # XXX logic bug, should be "unknown"
     assert datasets._fake.get_version() == '0.0'
     # With a version but no required one: shown as existing and gives version
     fname = tmpdir / 'foo' / 'version.txt'
     with open(fname, 'w') as fid:
         fid.write('0.1')
-    assert datasets.utils.has_dataset('fake')
+    assert datasets.has_dataset('fake')
     assert datasets._fake.get_version() == '0.1'
     datasets._fake.data_path(download=False, **kwargs)
     out, _ = capsys.readouterr()
     assert 'out of date' not in out
     # With the required version: shown as existing with the required version
     monkeypatch.setattr(datasets._fetch, '_FAKE_VERSION', '0.1')
-    assert datasets.utils.has_dataset('fake')
+    assert datasets.has_dataset('fake')
     assert datasets._fake.get_version() == '0.1'
     datasets._fake.data_path(download=False, **kwargs)
     out, _ = capsys.readouterr()
@@ -106,7 +106,7 @@ def test_downloads(tmpdir, monkeypatch, capsys):
     monkeypatch.setattr(datasets._fetch, '_FAKE_VERSION', '0.2')
     # With an older version:
     # 1. Marked as not actually being present
-    assert not datasets.utils.has_dataset('fake')
+    assert not datasets.has_dataset('fake')
     # 2. Will try to update when `data_path` gets called, with logged message
     want_msg = 'Correctly trying to download newer version'
 

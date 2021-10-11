@@ -14,6 +14,7 @@ Datasets
    :toctree: generated/
 
    fetch_dataset
+   has_dataset
    brainstorm.bst_auditory.data_path
    brainstorm.bst_resting.data_path
    brainstorm.bst_raw.data_path
