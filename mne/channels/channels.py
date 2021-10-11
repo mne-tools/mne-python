@@ -819,8 +819,8 @@ class UpdateChannelsMixin(object):
         picks = pick_channels(self.info['ch_names'], ch_names, ordered=ordered)
         return self._pick_drop_channels(picks)
 
-    @fill_doc
-    def pick(self, picks, exclude=()):
+    @verbose
+    def pick(self, picks, exclude=(), *, verbose=None):
         """Pick a subset of channels.
 
         Parameters
@@ -829,6 +829,9 @@ class UpdateChannelsMixin(object):
         exclude : list | str
             Set of channels to exclude, only used when picking based on
             types (e.g., exclude="bads" when picks="meg").
+        %(verbose)s
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -920,7 +923,8 @@ class UpdateChannelsMixin(object):
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
         return self._pick_drop_channels(idx)
 
-    def _pick_drop_channels(self, idx):
+    @verbose
+    def _pick_drop_channels(self, idx, *, verbose=None):
         # avoid circular imports
         from ..io import BaseRaw
         from ..time_frequency import AverageTFR, EpochsTFR

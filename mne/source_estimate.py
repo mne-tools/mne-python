@@ -31,8 +31,8 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose, _pl,
                     fill_doc, _check_option, _validate_type, _check_src_normal,
                     _check_stc_units, _check_pandas_installed,
                     _check_pandas_index_arguments, _convert_times, _ensure_int,
-                    _build_data_frame, _check_time_format, _check_path_like,
-                    sizeof_fmt, object_size)
+                    _build_data_frame, _check_time_format, _path_like,
+                    sizeof_fmt, object_size, _check_fname)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import TimeMixin
@@ -250,7 +250,11 @@ def read_source_estimate(fname, subject=None):
     """  # noqa: E501
     fname_arg = fname
     _validate_type(fname, 'path-like', 'fname')
-    fname = str(fname)
+
+    # expand `~` without checking whether the file actually exists – we'll
+    # take care of that later, as it's complicated by the different suffixes
+    # STC files can have
+    fname = _check_fname(fname=fname, overwrite='read', must_exist=False)
 
     # make sure corresponding file(s) can be found
     ftype = None
@@ -622,7 +626,8 @@ class _BaseSourceEstimate(TimeMixin):
         %(verbose_meth)s
         """
         _validate_type(fname, 'path-like', 'fname')
-        fname = str(fname)
+        # TODO: Add `overwrite` param to method signature
+        fname = _check_fname(fname=fname, overwrite=True)
         if ftype != 'h5':
             raise ValueError('%s objects can only be written as HDF5 files.'
                              % (self.__class__.__name__,))
@@ -632,7 +637,9 @@ class _BaseSourceEstimate(TimeMixin):
                    dict(vertices=self.vertices, data=self.data,
                         tmin=self.tmin, tstep=self.tstep, subject=self.subject,
                         src_type=self._src_type),
-                   title='mnepython', overwrite=True)
+                   title='mnepython',
+                   # TODO: Add `overwrite` param to method signature
+                   overwrite=True)
 
     @copy_function_doc_to_method_doc(plot_source_estimates)
     def plot(self, subject=None, surface='inflated', hemi='lh',
@@ -1595,7 +1602,8 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         %(verbose_meth)s
         """
         _validate_type(fname, 'path-like', 'fname')
-        fname = str(fname)
+        # TODO: Add `overwrite` param to method signature
+        fname = _check_fname(fname=fname, overwrite=True)
         _check_option('ftype', ftype, ['stc', 'w', 'h5'])
 
         lh_data = self.data[:len(self.lh_vertno)]
@@ -2084,7 +2092,8 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         """
         import nibabel as nib
         _validate_type(fname, 'path-like', 'fname')
-        fname = str(fname)
+        # TODO: Add `overwrite` param to method signature
+        fname = _check_fname(fname=fname, overwrite=True)
         img = self.as_volume(src, dest=dest, mri_resolution=mri_resolution,
                              format=format)
         nib.save(img, fname)
@@ -2187,7 +2196,8 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         %(verbose_meth)s
         """
         _validate_type(fname, 'path-like', 'fname')
-        fname = str(fname)
+        # TODO: Add `overwrite` param to method signature
+        fname = _check_fname(fname=fname, overwrite=True)
         _check_option('ftype', ftype, ['stc', 'w', 'h5'])
         if ftype != 'h5' and len(self.vertices) != 1:
             raise ValueError('Can only write to .stc or .w if a single volume '
@@ -2987,7 +2997,7 @@ def _volume_labels(src, labels, mri_resolution):
     extra = ' when using a volume source space'
     _import_nibabel('use volume atlas labels')
     _validate_type(labels, ('path-like', list, tuple), 'labels' + extra)
-    if _check_path_like(labels):
+    if _path_like(labels):
         mri = labels
         infer_labels = True
     else:

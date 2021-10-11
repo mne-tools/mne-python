@@ -648,7 +648,7 @@ def _check_destination(destination, info, head_frame):
 def _prep_mf_coils(info, ignore_ref=True, verbose=None):
     """Get all coil integration information loaded and sorted."""
     coils, comp_coils = _prep_meg_channels(
-        info, accurate=True, head_frame=False,
+        info, head_frame=False,
         ignore_ref=ignore_ref, do_picking=False, verbose=False)[:2]
     mag_mask = _get_mag_mask(coils)
     if len(comp_coils) > 0:

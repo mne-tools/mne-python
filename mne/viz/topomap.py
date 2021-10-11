@@ -1081,8 +1081,9 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     ----------
     ica : instance of mne.preprocessing.ICA
         The ICA solution.
-    %(picks_all)s
-        If None all are plotted in batches of 20.
+    picks : int | list of int | slice | None
+        Indices of the ICA components to visualize. If ``None``, all components
+        are plotted in batches of 20.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are
         collected in pairs and the RMS for each pair is plotted.
@@ -1160,8 +1161,12 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
 
     Returns
     -------
-    fig : instance of matplotlib.figure.Figure or list
-        The figure object(s).
+    fig : instance of matplotlib.figure.Figure | list of matplotlib.figure.Figure
+
+        The figure object(s). Components are plotted on a grid with maximum
+        dimensions of 5⨉4. If more than 20 components are plotted, a new figure
+        will be created for each batch of 20, and a list of those figures
+        will be returned.
 
     Notes
     -----
@@ -1171,7 +1176,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     also possible to open component properties by clicking on the component
     topomap (this option is only available when the ``inst`` argument is
     supplied).
-    """
+    """  # noqa E501
     from ..io import BaseRaw
     from ..epochs import BaseEpochs
 
@@ -1608,7 +1613,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
 
     # remove compensation matrices (safe: only plotting & already made copy)
     evoked.info['comps'] = []
-    evoked = evoked._pick_drop_channels(picks)
+    evoked = evoked._pick_drop_channels(picks, verbose=False)
     # determine which times to plot
     if isinstance(axes, plt.Axes):
         axes = [axes]

@@ -1660,10 +1660,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     ----------
     stc : SourceEstimate
         The source estimates to plot.
-    subject : str | None
-        The subject name corresponding to FreeSurfer environment
-        variable SUBJECT. If None stc.subject will be used. If that
-        is None, the environment will be used.
+    %(subject_none)s
+        If ``None``, ``stc.subject`` will be used.
     surface : str
         The type of surface (inflated, white etc.).
     hemi : str
@@ -2052,10 +2050,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
         .. versionchanged:: 0.18
            Support for :class:`~nibabel.spatialimages.SpatialImage`.
-    subject : str | None
-        The subject name corresponding to FreeSurfer environment
-        variable SUBJECT. If None stc.subject will be used. If that
-        is None, the environment will be used.
+    %(subject_none)s
+        If ``None``, ``stc.subject`` will be used.
     %(subjects_dir)s
     mode : str
         The plotting mode to use. Either 'stat_map' (default) or 'glass_brain'.
@@ -2511,10 +2507,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     ----------
     stc : VectorSourceEstimate | MixedVectorSourceEstimate
         The vector source estimate to plot.
-    subject : str | None
-        The subject name corresponding to FreeSurfer environment
-        variable SUBJECT. If None stc.subject will be used. If that
-        is None, the environment will be used.
+    %(subject_none)s
+        If ``None``, ``stc.subject`` will be used.
     hemi : str, 'lh' | 'rh' | 'split' | 'both'
         The hemisphere to display.
     %(colormap)s
@@ -2815,13 +2809,10 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
         The mri to head trans.
         Can be None with mode set to '3d'.
     subject : str | None
-        The subject name corresponding to FreeSurfer environment
-        variable SUBJECT.
-        Can be None with mode set to '3d'.
-    subjects_dir : None | str
-        The path to the freesurfer subjects reconstructions.
-        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
-        The default is None.
+        The FreeSurfer subject name (will be used to set the FreeSurfer
+        environment variable ``SUBJECT``).
+        Can be ``None`` with mode set to ``'3d'``.
+    %(subjects_dir)s
     mode : str
         Can be ``'arrow'``, ``'sphere'`` or ``'orthoview'``.
 

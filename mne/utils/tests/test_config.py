@@ -89,17 +89,23 @@ def test_sys_info():
         assert 'Platform:      macOS-' in out
 
 
-def test_get_subjects_dir(monkeypatch, tmpdir):
+def test_get_subjects_dir(tmp_path, monkeypatch):
     """Test get_subjects_dir()."""
+    subjects_dir = tmp_path / 'foo'
+    subjects_dir.mkdir()
+
     # String
-    subjects_dir = '/foo'
-    assert get_subjects_dir(subjects_dir) == subjects_dir
+    assert get_subjects_dir(str(subjects_dir)) == str(subjects_dir)
 
     # Path
-    subjects_dir = Path('/foo')
     assert get_subjects_dir(subjects_dir) == str(subjects_dir)
 
     # `None`
-    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmpdir))
+    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmp_path))
     monkeypatch.delenv('SUBJECTS_DIR', raising=False)
     assert get_subjects_dir() is None
+
+    # Expand `~`
+    monkeypatch.setenv('HOME', str(tmp_path))
+    monkeypatch.setenv('USERPROFILE', str(tmp_path))  # Windows
+    assert get_subjects_dir('~/foo') == str(subjects_dir)

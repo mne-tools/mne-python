@@ -68,7 +68,6 @@ docstring_ignores = {
     'mne.fixes',
     'mne.io.write',
     'mne.io.meas_info.Info',
-    'mne.utils.docs.deprecated',
 }
 char_limit = 800  # XX eventually we should probably get this lower
 tab_ignores = [
@@ -107,9 +106,7 @@ def check_parameters_match(func, cls=None):
     from numpydoc.validate import validate
     name = _func_name(func, cls)
     skip = (not name.startswith('mne.') or
-            any(re.match(d, name) for d in docstring_ignores) or
-            'deprecation_wrapped' in getattr(
-                getattr(func, '__code__', None), 'co_name', ''))
+            any(re.match(d, name) for d in docstring_ignores))
     if skip:
         return list()
     if cls is not None:
@@ -313,7 +310,8 @@ def test_documented():
                         not from_mod.startswith('mne.externals') and
                         not any(from_mod.startswith(x)
                                 for x in documented_ignored_mods) and
-                        name not in documented_ignored_names):
+                        name not in documented_ignored_names and
+                        not hasattr(cf, '_deprecated_original')):
                     missing.append('%s (%s.%s)' % (name, from_mod, name))
     if len(missing) > 0:
         raise AssertionError('\n\nFound new public members missing from '
