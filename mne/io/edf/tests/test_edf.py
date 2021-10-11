@@ -236,6 +236,18 @@ def test_find_events_backward_compatibility():
     assert_array_equal(events_from_EFA, EXPECTED_EVENTS)
 
 
+def test_no_data_channels():
+    """Test that we can load with no data channels."""
+    raw = read_raw_edf(edf_path, preload=True)
+    picks = pick_types(raw.info, stim=True)
+    assert list(picks) == [len(raw.ch_names) - 1]
+    stim_data = raw[picks][0]
+    raw = read_raw_edf(edf_path, exclude=raw.ch_names[:-1])
+    stim_data_2 = raw[0][0]
+    assert_array_equal(stim_data, stim_data_2)
+    raw.plot()  # smoke test
+
+
 @requires_pandas
 @pytest.mark.parametrize('fname', [edf_path, bdf_path])
 def test_to_data_frame(fname):

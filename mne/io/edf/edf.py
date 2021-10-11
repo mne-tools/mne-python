@@ -468,6 +468,8 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
 
     not_stim_ch = [x for x in range(n_samps.shape[0])
                    if x not in stim_channel_idxs]
+    if len(not_stim_ch) == 0:  # only loading stim channels
+        not_stim_ch = list(range(len(n_samps)))
     sfreq = np.take(n_samps, not_stim_ch).max() * \
         edf_info['record_length'][1] / edf_info['record_length'][0]
     info = _empty_info(sfreq)
