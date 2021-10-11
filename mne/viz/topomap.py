@@ -1161,8 +1161,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
 
     Returns
     -------
-    fig : instance of matplotlib.figure.Figure |
-          list of matplotlib.figure.Figure
+    fig : instance of matplotlib.figure.Figure | list of matplotlib.figure.Figure
 
         The figure object(s). Components are plotted on a grid with maximum
         dimensions of 5⨉4. If more than 20 components are plotted, a new figure
@@ -1177,7 +1176,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     also possible to open component properties by clicking on the component
     topomap (this option is only available when the ``inst`` argument is
     supplied).
-    """
+    """  # noqa E501
     from ..io import BaseRaw
     from ..epochs import BaseEpochs
 
