@@ -1091,21 +1091,28 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
                                default_index=default_index)
         return df
 
-    def average_freqs(self, band_name, method='mean'):
+    def average_freqs(self, method='mean'):
         """Average frequencies over a band.
 
         Averages the TFR object over the entire frequency axis.
 
         Parameters
         ----------
-        band_name : str
-            The name of the frequency band to assign to.
+        method : str | callable
+            How to combine the data. If "mean"/"median", the mean/median
+            are returned. Otherwise, must be a callable which, when passed
+            an array of shape (n_epochs, n_channels, n_freqs, n_time)
+            returns an array of shape (n_channels, n_freqs, n_time).
+            Note that due to file type limitations, the kind for all
+            these will be "average".
 
         Returns
         -------
         inst : instance of AverageTFR | EpochsTFR
             The modified instance.
         """
+        # EpochsTFR have frequency as the 3rd axis.
+        # AverageTFR has frequency as the 2nd axis.
         if self.data.ndim == 4:
             axis = 2
         elif self.data.ndim == 3:
@@ -1117,7 +1124,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         data = func(self.data)
         self._data = data
         self.freqs = np.mean(self.freqs)
-        self.band_name = band_name
+        return self
 
 
 @fill_doc
