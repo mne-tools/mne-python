@@ -290,16 +290,18 @@ def test_snirf_nirsport2_w_positions():
 
 @requires_testing_data
 @requires_h5py
-@pytest.mark.parametrize('fname, boundary_decimal', (
-    [sfnirs_homer_103_wShort, 0],
-    [nirx_nirsport2_103, 0],
-    [nirx_nirsport2_103_2, 0],
-    [snirf_nirsport2_20219, 0],
+@pytest.mark.parametrize('fname, boundary_decimal, test_scaling, test_rank', (
+    [sfnirs_homer_103_wShort, 0, True, True],
+    [nirx_nirsport2_103, 0, True, False],  # strange rank behavior
+    [nirx_nirsport2_103_2, 0, False, True],  # weirdly small values
+    [snirf_nirsport2_20219, 0, True, True],
 ))
-def test_snirf_standard(fname, boundary_decimal):
+def test_snirf_standard(fname, boundary_decimal, test_scaling, test_rank):
     """Test standard operations."""
     _test_raw_reader(read_raw_snirf, fname=fname,
-                     boundary_decimal=boundary_decimal)  # low fs
+                     boundary_decimal=boundary_decimal,
+                     test_scaling=test_scaling,
+                     test_rank=test_rank)  # low fs
 
 
 @requires_testing_data
