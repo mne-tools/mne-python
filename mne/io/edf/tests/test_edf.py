@@ -258,7 +258,6 @@ def test_no_data_channels():
     _assert_annotations_equal(annot, annot_2)
 
 
-
 @requires_pandas
 @pytest.mark.parametrize('fname', [edf_path, bdf_path])
 def test_to_data_frame(fname):
@@ -288,13 +287,6 @@ def test_read_raw_edf_stim_channel_input_parameters():
         with pytest.raises(ValueError,
                            match="stim channel is not supported"):
             read_raw_edf(edf_path, stim_channel=invalid_stim_parameter)
-
-
-def _assert_annotations_equal(a, b):
-    assert_array_equal(a.onset, b.onset)
-    assert_array_equal(a.duration, b.duration)
-    assert_array_equal(a.description, b.description)
-    assert a.orig_time == b.orig_time
 
 
 def test_read_annot(tmpdir):
