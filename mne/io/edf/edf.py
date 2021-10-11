@@ -368,7 +368,10 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         ch_types = edf_info['ch_types']  # of length len(sel)
     else:
         ch_types = [None] * len(sel)
-    n_samps = edf_info['n_samps'][sel]
+    if len(sel) == 0:  # only want stim channels
+        n_samps = edf_info['n_samps'][[0]]
+    else:
+        n_samps = edf_info['n_samps'][sel]
     nchan = edf_info['nchan']
     physical_ranges = edf_info['physical_max'] - edf_info['physical_min']
     cals = edf_info['digital_max'] - edf_info['digital_min']
@@ -456,7 +459,6 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         logger.info(msg)
 
     edf_info['stim_channel_idxs'] = stim_channel_idxs
-
     if any(pick_mask):
         picks = [item for item, mask in zip(range(nchan), pick_mask) if mask]
         edf_info['max_samp'] = max_samp = n_samps[picks].max()
@@ -472,6 +474,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         not_stim_ch = list(range(len(n_samps)))
     sfreq = np.take(n_samps, not_stim_ch).max() * \
         edf_info['record_length'][1] / edf_info['record_length'][0]
+    del n_samps
     info = _empty_info(sfreq)
     info['meas_date'] = edf_info['meas_date']
     info['chs'] = chs

@@ -21,6 +21,7 @@ from scipy.io import loadmat
 import pytest
 
 from mne import pick_types, Annotations
+from mne.annotations import events_from_annotations, read_annotations
 from mne.datasets import testing
 from mne.utils import requires_pandas
 from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf, read_raw_gdf
@@ -29,7 +30,7 @@ from mne.io.edf.edf import (_get_edf_default_event_id, _read_annotations_edf,
                             _read_ch, _parse_prefilter_string, _edf_str,
                             _read_edf_header, _read_header)
 from mne.io.pick import channel_indices_by_type, get_channel_type_constants
-from mne.annotations import events_from_annotations, read_annotations
+from mne.tests.test_annotations import _assert_annotations_equal
 
 td_mark = testing._pytest_mark()
 
@@ -238,6 +239,7 @@ def test_find_events_backward_compatibility():
 
 def test_no_data_channels():
     """Test that we can load with no data channels."""
+    # analog
     raw = read_raw_edf(edf_path, preload=True)
     picks = pick_types(raw.info, stim=True)
     assert list(picks) == [len(raw.ch_names) - 1]
@@ -246,6 +248,15 @@ def test_no_data_channels():
     stim_data_2 = raw[0][0]
     assert_array_equal(stim_data, stim_data_2)
     raw.plot()  # smoke test
+    # annotations
+    raw = read_raw_edf(edf_overlap_annot_path)
+    picks = pick_types(raw.info, stim=True)
+    assert picks.size == 0
+    annot = raw.annotations
+    raw = read_raw_edf(edf_overlap_annot_path, exclude=raw.ch_names)
+    annot_2 = raw.annotations
+    _assert_annotations_equal(annot, annot_2)
+
 
 
 @requires_pandas
