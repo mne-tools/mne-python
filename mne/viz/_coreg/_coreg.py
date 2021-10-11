@@ -34,10 +34,13 @@ class CoregistrationUI(HasTraits):
     _icp_fid_match = Unicode()
 
     def __init__(self, info_file, subject=None, subjects_dir=None,
-                 fids='auto', head_resolution=False, head_transparency=False,
-                 head_opacity=0.4, orient_glyphs=False, trans=None,
+                 fids='auto', head_resolution=None, head_transparency=None,
+                 head_opacity=None, orient_glyphs=None, trans=None,
                  standalone=False):
         from ..backends.renderer import _get_renderer
+
+        def _get_default(var, val):
+            return var if var is not None else val
         self._actors = dict()
         self._surfaces = dict()
         self._widgets = dict()
@@ -51,7 +54,7 @@ class CoregistrationUI(HasTraits):
         self._fid_colors = tuple(
             DEFAULTS['coreg'][f'{key}_color'] for key in
             ('lpa', 'nasion', 'rpa'))
-        self._default_head_opacity = head_opacity
+        self._default_head_opacity = _get_default(head_opacity, 0.4)
         self._default_fiducials = ("LPA", "Nasion", "RPA")
         self._default_icp_fid_matches = ('nearest', 'matched')
         self._default_icp_n_iterations = 20
@@ -73,12 +76,12 @@ class CoregistrationUI(HasTraits):
                                               raise_error=True)
         self._subject = subject if subject is not None else self._subjects[0]
         self._info_file = info_file
-        self._orient_glyphs = orient_glyphs
+        self._orient_glyphs = _get_default(orient_glyphs, False)
         self._hpi_coils = True
         self._head_shape_point = True
         self._eeg_channels = False
-        self._head_resolution = head_resolution
-        self._head_transparency = head_transparency
+        self._head_resolution = _get_default(head_resolution, False)
+        self._head_transparency = _get_default(head_transparency, False)
         self._omit_hsp_distance = 10.0
         self._icp_n_iterations = self._default_icp_n_iterations
         self._icp_fid_match = self._default_icp_fid_matches[0]
