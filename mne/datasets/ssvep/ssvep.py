@@ -1,14 +1,14 @@
 # Authors: Dominik Welke <dominik.welke@web.de>
 # License: BSD Style.
 
-from functools import partial
+from ...utils import verbose, deprecated
+from ..utils import (has_dataset, _data_path_doc, DEPRECATION_MESSAGE_TEMPLATE,
+                     _get_version, _version_doc, _download_mne_dataset)
 
-from ...utils import verbose
-from ..utils import (has_dataset, _data_path_doc,
-                     _get_version, _version_doc,
-                     _download_mne_dataset)
 
-has_ssvep_data = partial(has_dataset, name='ssvep')
+@deprecated(extra=DEPRECATION_MESSAGE_TEMPLATE.format('ssvep'))
+def has_ssvep_data():
+    return has_dataset(name='ssvep')
 
 
 @verbose

@@ -26,6 +26,8 @@ from ..utils.check import _soft_import
 from ..externals.doccer import docformat
 
 
+DEPRECATION_MESSAGE_TEMPLATE = "use mne.datasets.has_dataset('{}') instead."
+
 _data_path_doc = """Get path to local copy of {name} dataset.
 
     Parameters

@@ -1,14 +1,14 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 # License: BSD Style.
 
-from functools import partial
-
-from ...utils import verbose
-from ..utils import (has_dataset, _data_path_doc,
+from ...utils import verbose, deprecated
+from ..utils import (has_dataset, _data_path_doc, DEPRECATION_MESSAGE_TEMPLATE,
                      _get_version, _version_doc, _download_mne_dataset)
 
 
-has_fnirs_motor_data = partial(has_dataset, name='fnirs_motor')
+@deprecated(extra=DEPRECATION_MESSAGE_TEMPLATE.format('fnirs_motor'))
+def has_fnirs_motor_data():
+    return has_dataset(name='fnirs_motor')
 
 
 @verbose

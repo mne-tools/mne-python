@@ -2,13 +2,14 @@
 #          Alex Rockhill <aprockhill@mailbox.org>
 # License: BSD Style.
 
-from functools import partial
-
-from ...utils import verbose
-from ..utils import (has_dataset, _data_path_doc,
+from ...utils import verbose, deprecated
+from ..utils import (has_dataset, _data_path_doc, DEPRECATION_MESSAGE_TEMPLATE,
                      _get_version, _version_doc, _download_mne_dataset)
 
-has_epilepsy_ecog_data = partial(has_dataset, name='epilepsy_ecog')
+
+@deprecated(extra=DEPRECATION_MESSAGE_TEMPLATE.format('epilepsy_ecog'))
+def has_epilepsy_ecog_data():
+    return has_dataset(name='epilepsy_ecog')
 
 
 @verbose

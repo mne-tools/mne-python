@@ -1,14 +1,14 @@
 # Authors: Jeff Hanna <jeff.hanna@gmail.com>
 # License: BSD Style.
 
-from functools import partial
-
-from ...utils import verbose
-from ..utils import (has_dataset, _data_path_doc, _get_version,
-                     _version_doc, _download_mne_dataset)
+from ...utils import verbose, deprecated
+from ..utils import (has_dataset, _data_path_doc, DEPRECATION_MESSAGE_TEMPLATE,
+                     _get_version, _version_doc, _download_mne_dataset)
 
 
-has_refmeg_noise_data = partial(has_dataset, name='refmeg_noise')
+@deprecated(extra=DEPRECATION_MESSAGE_TEMPLATE.format('refmeg_noise'))
+def has_refmeg_noise_data():
+    return has_dataset(name='refmeg_noise')
 
 
 @verbose
@@ -20,8 +20,8 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
         download=download)
 
 
-data_path.__doc__ = _data_path_doc.format(name='refmeg_noise',
-                                          conf='MNE_DATASETS_REFMEG_NOISE_PATH')  # noqa
+data_path.__doc__ = _data_path_doc.format(
+    name='refmeg_noise', conf='MNE_DATASETS_REFMEG_NOISE_PATH')
 
 
 def get_version():  # noqa: D103
