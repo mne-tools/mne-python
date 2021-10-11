@@ -33,7 +33,9 @@ class CoregistrationUI(HasTraits):
     _scale_mode = Unicode()
     _icp_fid_match = Unicode()
 
-    def __init__(self, info, subject=None, subjects_dir=None, fids='auto'):
+    def __init__(self, info_file, subject=None, subjects_dir=None,
+                 fids='auto', head_resolution=False, head_transparency=False,
+                 orient_glyphs=False, standalone=False):
         from ..backends.renderer import _get_renderer
         self._actors = dict()
         self._surfaces = dict()
@@ -62,18 +64,19 @@ class CoregistrationUI(HasTraits):
 
         self._renderer = _get_renderer(bgcolor="grey", toolbar=True)
         self._renderer._window_close_connect(self._clean)
-        self._coreg = Coregistration(info, subject, subjects_dir, fids)
+        self._info = read_info(info_file)
+        self._coreg = Coregistration(self._info, subject, subjects_dir, fids)
         self._fids = fids
-        self._info = info
         self._subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                               raise_error=True)
         self._subject = subject if subject is not None else self._subjects[0]
-        self._orient_glyphs = False
+        self._info_file = info_file
+        self._orient_glyphs = orient_glyphs
         self._hpi_coils = True
         self._head_shape_point = True
         self._eeg_channels = False
-        self._head_resolution = False
-        self._head_transparency = False
+        self._head_resolution = head_resolution
+        self._head_transparency = head_transparency
         self._omit_hsp_distance = 10.0
         self._icp_n_iterations = self._default_icp_n_iterations
         self._icp_fid_match = self._default_icp_fid_matches[0]
@@ -88,6 +91,8 @@ class CoregistrationUI(HasTraits):
         self._current_fiducial = self._default_fiducials[0]
         self._lock_fids = True
         self._scale_mode = "None"
+        if standalone:
+            self._renderer.figure.store["app"].exec()
 
     def _set_subjects_dir(self, subjects_dir):
         self._subjects_dir = subjects_dir

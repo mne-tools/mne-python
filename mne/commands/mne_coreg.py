@@ -77,6 +77,9 @@ def run():
     parser.add_option('--simple-rendering', action='store_false',
                       dest='advanced_rendering',
                       help='Use simplified OpenGL rendering')
+    parser.add_option("--pyvista",
+                      action='store_true', default=False, dest="pyvista",
+                      help="Use the new PyVista/PyQt5 interface.")
     _add_verbose_flag(parser)
 
     options, args = parser.parse_args()
@@ -103,19 +106,29 @@ def run():
         faulthandler.enable()
     except ImportError:
         pass  # old Python2
-    with ETSContext():
-        mne.gui.coregistration(
-            options.tabbed, inst=options.inst, subject=options.subject,
+    if options.pyvista:
+        mne.viz._coreg.CoregistrationUI(
+            info_file=options.inst, subject=options.subject,
             subjects_dir=subjects_dir,
-            guess_mri_subject=options.guess_mri_subject,
-            head_opacity=options.head_opacity, head_high_res=head_high_res,
-            trans=trans, scrollable=True, project_eeg=options.project_eeg,
-            orient_to_surface=options.orient_to_surface,
-            scale_by_distance=options.scale_by_distance,
-            mark_inside=options.mark_inside, interaction=options.interaction,
-            scale=options.scale,
-            advanced_rendering=options.advanced_rendering,
-            verbose=options.verbose)
+            head_resolution=bool(head_high_res),
+            head_transparency=bool(options.head_opacity),
+            orient_glyphs=bool(options.orient_to_surface),
+            standalone=True,
+        )
+    else:
+        with ETSContext():
+            mne.gui.coregistration(
+                options.tabbed, inst=options.inst, subject=options.subject,
+                subjects_dir=subjects_dir,
+                guess_mri_subject=options.guess_mri_subject,
+                head_opacity=options.head_opacity, head_high_res=head_high_res,
+                trans=trans, scrollable=True, project_eeg=options.project_eeg,
+                orient_to_surface=options.orient_to_surface,
+                scale_by_distance=options.scale_by_distance,
+                mark_inside=options.mark_inside,
+                interaction=options.interaction, scale=options.scale,
+                advanced_rendering=options.advanced_rendering,
+                verbose=options.verbose)
 
 
 mne.utils.run_command_if_main()
