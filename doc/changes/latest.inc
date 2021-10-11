@@ -275,4 +275,6 @@ API changes
 
 - :func:`mne.inverse_sparse.mixed_norm` now simply warns when source estimates contain no dipole, e.g. if data are too noisy and alpha is based on SURE (:gh:`9685` by `Alex Gramfort`_)
 
+- deprecate functions :samp:`mne.datasets.{DATASET_NAME}.has_{DATASET_NAME}_data()` for these datsets: ``epilepsy_ecog``, ``fnirs_motor``, ``multimodal``, ``opm``, ``phantom_4dbti``, ``refmeg_noise``, ``sample``, ``somato``, and ``ssvep``. Use the generic :func:`mne.datasets.has_dataset` instead (:gh:`9781` by `Daniel McCloy`_ and `Adam Li`_)
+
 - The output folder name for HF_SEF datasets is now ``hf_sef`` instead of ``HF_SEF`` (:gh:`9763` by `Adam Li`_)
