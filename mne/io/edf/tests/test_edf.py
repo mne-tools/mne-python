@@ -237,6 +237,7 @@ def test_find_events_backward_compatibility():
     assert_array_equal(events_from_EFA, EXPECTED_EVENTS)
 
 
+@testing.requires_testing_data
 def test_no_data_channels():
     """Test that we can load with no data channels."""
     # analog
