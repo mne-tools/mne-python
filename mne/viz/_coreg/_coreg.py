@@ -35,7 +35,8 @@ class CoregistrationUI(HasTraits):
 
     def __init__(self, info_file, subject=None, subjects_dir=None,
                  fids='auto', head_resolution=False, head_transparency=False,
-                 head_opacity=0.4, orient_glyphs=False, standalone=False):
+                 head_opacity=0.4, orient_glyphs=False, trans=None,
+                 standalone=False):
         from ..backends.renderer import _get_renderer
         self._actors = dict()
         self._surfaces = dict()
@@ -92,6 +93,8 @@ class CoregistrationUI(HasTraits):
         self._current_fiducial = self._default_fiducials[0]
         self._lock_fids = True
         self._scale_mode = "None"
+        if trans is not None:
+            self._load_trans(trans)
         if standalone:
             self._renderer.figure.store["app"].exec()
 
@@ -535,8 +538,8 @@ class CoregistrationUI(HasTraits):
         rot_x, rot_y, rot_z = rotation_angles(mri_head_t)
         x, y, z = mri_head_t[:3, 3]
         self._coreg._update_params(
-            rot=[rot_x, rot_y, rot_z],
-            tra=[x, y, z],
+            rot=np.array([rot_x, rot_y, rot_z]),
+            tra=np.array([x, y, z]),
         )
         self._update_plot("sensors")
         self._update_parameters()

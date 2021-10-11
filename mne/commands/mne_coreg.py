@@ -113,6 +113,7 @@ def run():
             head_resolution=bool(head_high_res),
             head_opacity=options.head_opacity,
             orient_glyphs=bool(options.orient_to_surface),
+            trans=trans,
             standalone=True,
         )
     else:
