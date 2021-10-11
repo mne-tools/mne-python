@@ -617,6 +617,7 @@ class CoregistrationUI(HasTraits):
             name="info_file",
             desc="Load",
             func=self._set_info_file,
+            value=self._info_file,
             placeholder="Path to info",
             layout=layout,
         )
