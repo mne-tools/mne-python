@@ -17,7 +17,8 @@ import re
 
 import numpy as np
 
-from .check import _validate_type, _check_pyqt5_version, _check_option
+from .check import (_validate_type, _check_pyqt5_version, _check_option,
+                    _check_fname)
 from .docs import fill_doc
 from ._logging import warn, logger
 
@@ -366,7 +367,11 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
     if subjects_dir is None:
         subjects_dir = get_config('SUBJECTS_DIR', raise_error=raise_error)
     if subjects_dir is not None:
-        subjects_dir = str(subjects_dir)
+        subjects_dir = _check_fname(
+            fname=subjects_dir, overwrite='read', must_exist=True,
+            need_dir=True, name='subjects_dir'
+        )
+
     return subjects_dir
 
 

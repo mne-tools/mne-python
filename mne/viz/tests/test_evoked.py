@@ -81,7 +81,7 @@ def test_plot_evoked_cov():
         evoked.plot(noise_cov=cov, time_unit='s')
     with pytest.raises(TypeError, match='Covariance'):
         evoked.plot(noise_cov=1., time_unit='s')
-    with pytest.raises(IOError, match='No such file'):
+    with pytest.raises(FileNotFoundError, match='File does not exist'):
         evoked.plot(noise_cov='nonexistent-cov.fif', time_unit='s')
     raw = read_raw_fif(raw_sss_fname)
     events = make_fixed_length_events(raw)

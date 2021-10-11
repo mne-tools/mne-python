@@ -344,7 +344,7 @@ def test_multipolar_bases():
     # Test our basis calculations
     info = read_info(raw_fname)
     with use_coil_def(elekta_def_fname):
-        coils = _prep_meg_channels(info, accurate=True, do_es=True)[0]
+        coils = _prep_meg_channels(info, do_es=True)[0]
     # Check against a known benchmark
     sss_data = loadmat(bases_fname)
     exp = dict(int_order=int_order, ext_order=ext_order)

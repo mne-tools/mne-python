@@ -316,14 +316,15 @@ class Resetter(object):
         plt.ioff()
         plt.rcParams['animation.embed_limit'] = 30.
         gc.collect()
-        _assert_no_instances(Brain, 'Brain')  # calls gc.collect()
+        when = 'mne/conf.py:Resetter.__call__'
+        _assert_no_instances(Brain, when)  # calls gc.collect()
         if Plotter is not None:
-            _assert_no_instances(Plotter, 'Plotter')
+            _assert_no_instances(Plotter, when)
         if BackgroundPlotter is not None:
-            _assert_no_instances(BackgroundPlotter, 'BackgroundPlotter')
+            _assert_no_instances(BackgroundPlotter, when)
         if vtkPolyData is not None:
-            _assert_no_instances(vtkPolyData, 'vtkPolyData')
-        _assert_no_instances(_Renderer, '_Renderer')
+            _assert_no_instances(vtkPolyData, when)
+        _assert_no_instances(_Renderer, when)
         # This will overwrite some Sphinx printing but it's useful
         # for memory timestamps
         if os.getenv('SG_STAMP_STARTS', '').lower() == 'true':
@@ -849,6 +850,8 @@ def reset_warnings(gallery_conf, fname):
                 r'sphinx\.util\.smartypants is deprecated',
                 'is a deprecated alias for the builtin',  # NumPy
                 'the old name will be removed',  # Jinja, via sphinx
+                r'Passing a schema to Validator\.iter_errors',  # jsonschema
+                "default value of type 'dict' in an Any trait will",  # traits
                 'rcParams is deprecated',  # PyVista rcParams -> global_theme
                 'to mean no clipping',
                 ):

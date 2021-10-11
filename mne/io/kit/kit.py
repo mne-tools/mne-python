@@ -17,7 +17,7 @@ import numpy as np
 
 from ..pick import pick_types
 from ...utils import (verbose, logger, warn, fill_doc, _check_option,
-                      _stamp_to_dt)
+                      _stamp_to_dt, _check_fname)
 from ...transforms import apply_trans, als_ras_trans
 from ..base import BaseRaw
 from ..utils import _mult_cal_one
@@ -386,8 +386,9 @@ class EpochsKIT(BaseEpochs):
         if isinstance(events, str):
             events = read_events(events)
 
+        input_fname = _check_fname(fname=input_fname, must_exist=True,
+                                   overwrite='read')
         logger.info('Extracting KIT Parameters from %s...' % input_fname)
-        input_fname = op.abspath(input_fname)
         self.info, kit_info = get_kit_info(
             input_fname, allow_unknown_format, standardize_names)
         kit_info.update(filename=input_fname)

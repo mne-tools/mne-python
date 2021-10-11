@@ -446,6 +446,8 @@ class EpochsEEGLAB(BaseEpochs):
                  baseline=None, reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, eog=(), verbose=None,
                  uint16_codec=None):  # noqa: D102
+        input_fname = _check_fname(fname=input_fname, must_exist=True,
+                                   overwrite='read')
         eeg = _check_load_mat(input_fname, uint16_codec)
 
         if not ((events is None and event_id is None) or
@@ -507,7 +509,6 @@ class EpochsEEGLAB(BaseEpochs):
             events = read_events(events)
 
         logger.info('Extracting parameters from %s...' % input_fname)
-        input_fname = op.abspath(input_fname)
         info, eeg_montage, _ = _get_info(eeg, eog=eog)
 
         for key, val in event_id.items():

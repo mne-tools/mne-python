@@ -156,6 +156,12 @@ def _check_fname(fname, overwrite=False, must_exist=False, name='File',
                  need_dir=False):
     """Check for file existence, and return string of its absolute path."""
     _validate_type(fname, 'path-like', name)
+    fname = str(
+        Path(fname)
+        .expanduser()
+        .absolute()
+    )
+
     if op.exists(fname):
         if not overwrite:
             raise FileExistsError('Destination file exists. Please use option '
@@ -178,7 +184,8 @@ def _check_fname(fname, overwrite=False, must_exist=False, name='File',
                     f'{name} does not have read permissions: {fname}')
     elif must_exist:
         raise FileNotFoundError(f'{name} does not exist: {fname}')
-    return str(op.abspath(fname))
+
+    return fname
 
 
 def _check_subject(first, second, *, raise_error=True,
@@ -420,7 +427,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
                         f"got {type(item)} instead.")
 
 
-def _check_path_like(item):
+def _path_like(item):
     """Validate that `item` is `path-like`.
 
     Parameters
