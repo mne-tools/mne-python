@@ -586,6 +586,7 @@ class CoregistrationUI(HasTraits):
             name="fid_file",
             desc="Load",
             func=self._set_fiducials_file,
+            value=self._fiducials_file,
             placeholder="Path to fiducials",
             layout=layout,
         )
