@@ -111,7 +111,7 @@ def run():
             info_file=options.inst, subject=options.subject,
             subjects_dir=subjects_dir,
             head_resolution=bool(head_high_res),
-            head_transparency=bool(options.head_opacity),
+            head_opacity=options.head_opacity,
             orient_glyphs=bool(options.orient_to_surface),
             standalone=True,
         )

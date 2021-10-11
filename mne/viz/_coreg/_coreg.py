@@ -35,7 +35,7 @@ class CoregistrationUI(HasTraits):
 
     def __init__(self, info_file, subject=None, subjects_dir=None,
                  fids='auto', head_resolution=False, head_transparency=False,
-                 orient_glyphs=False, standalone=False):
+                 head_opacity=0.4, orient_glyphs=False, standalone=False):
         from ..backends.renderer import _get_renderer
         self._actors = dict()
         self._surfaces = dict()
@@ -46,10 +46,11 @@ class CoregistrationUI(HasTraits):
         self._coord_frame = "mri"
         self._mouse_no_mvt = -1
         self._omit_hsp_distance = 0.0
-        self._opacity = 1.0
+        self._head_opacity = 1.0
         self._fid_colors = tuple(
             DEFAULTS['coreg'][f'{key}_color'] for key in
             ('lpa', 'nasion', 'rpa'))
+        self._default_head_opacity = head_opacity
         self._default_fiducials = ("LPA", "Nasion", "RPA")
         self._default_icp_fid_matches = ('nearest', 'matched')
         self._default_icp_n_iterations = 20
@@ -254,8 +255,9 @@ class CoregistrationUI(HasTraits):
 
     @observe("_head_transparency")
     def _head_transparency_changed(self, change=None):
-        self._opacity = 0.4 if self._head_transparency else 1.0
-        self._actors["head"].GetProperty().SetOpacity(self._opacity)
+        self._head_opacity = self._default_head_opacity \
+            if self._head_transparency else 1.0
+        self._actors["head"].GetProperty().SetOpacity(self._head_opacity)
         self._renderer._update()
 
     @observe("_grow_hair")
@@ -495,11 +497,11 @@ class CoregistrationUI(HasTraits):
             head_actor, head_surf = _plot_head_surface(
                 self._renderer, surface, self._subject,
                 self._subjects_dir, bem, self._coord_frame, to_cf_t,
-                alpha=self._opacity)
+                alpha=self._head_opacity)
         except IOError:
             head_actor, head_surf = _plot_head_surface(
                 self._renderer, "head", self._subject, self._subjects_dir,
-                bem, self._coord_frame, to_cf_t, alpha=self._opacity)
+                bem, self._coord_frame, to_cf_t, alpha=self._head_opacity)
         self._update_actor("head", head_actor)
         self._surfaces["head"] = head_surf
 
