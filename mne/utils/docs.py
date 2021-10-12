@@ -1520,7 +1520,7 @@ docdict['preload'] = """
 preload : bool | str
     (Only pyqtgraph) Set to ``True``/``False`` to enable/disable preloading
     all data into RAM and performing most preprocessing for visualization
-    once to increase performance. 
+    once to increase performance.
     This happens in a separate thread and the effect applies
     after preloading is done.
     With 'auto' the currently available RAM space will be compared to the
@@ -1583,7 +1583,7 @@ overview_mode : str | None
     - ``'zscore'``
         Display the zscore for the data from each channel across time.
         `Red` indicates high z-scores, `Blue` indicates low z-scores
-        while the boundaries of the color gradient are defined 
+        while the boundaries of the color gradient are defined
         by the minimum/maximum z-score.
         This only works if preload is set to ``True`` or it is enabled
         with ``'auto'`` and enough free RAM.
