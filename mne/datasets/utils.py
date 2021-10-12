@@ -209,17 +209,16 @@ def _get_version(name):
 
 
 def has_dataset(name):
-    """Check for dataset presence.
+    """Check for presence of a dataset.
 
     Parameters
     ----------
     name : str | dict
-        If it is a string, then it refers to an internal MNE dataset
-        name (e.g. 'sample' dataset). If it is a user-defined dataset,
-        then a dictionary must be used. It is a dictionary of dataset
-        parameters. Each dataset parameter consists of the following
-        keys: ``dataset_name``, ``archive_name``, ``url``,
-        ``folder_name``, ``hash``. See `fetch_dataset` Notes.
+        The dataset to check. Strings refer to one of the supported datasets
+        listed :ref:`here <datasets>`. A :class:`dict` can be used to check for
+        user-defined datasets (see the Notes section of :func:`fetch_dataset`),
+        and must contain keys ``dataset_name``, ``archive_name``, ``url``,
+        ``folder_name``, ``hash``.
 
     Returns
     -------
