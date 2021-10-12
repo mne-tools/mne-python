@@ -586,6 +586,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 kwargs['always_visible'] = True
             actor = self.plotter.add_point_labels(**kwargs)
         _hide_testing_actor(actor)
+        return actor
 
     def scalarbar(self, source, color="white", title=None, n_labels=4,
                   bgcolor=None, **extra_kwargs):
