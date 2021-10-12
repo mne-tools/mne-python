@@ -246,6 +246,7 @@ filt_raw = raw.copy().load_data().filter(l_freq=1., h_freq=None)
 
 ica = ICA(n_components=15, max_iter='auto', random_state=97)
 ica.fit(filt_raw)
+ica
 
 # %%
 # Some optional parameters that we could have passed to the

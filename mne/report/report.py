@@ -1582,8 +1582,8 @@ class Report(object):
             To only plot the ICA component topographies, explicitly pass
             ``None``.
         n_components : int | None
-            The number of components for which to produce property plots. If
-            ``None``, plot all components.
+            The number of components for which to produce plots. If ``None``,
+            plot all components.
         ecg_evoked, eog_evoked : path-line | mne.Evoked | None
             Evoked signal based on ECG and EOG epochs, respectively. If passed,
             will be used to visualize the effects of artifact rejection.
