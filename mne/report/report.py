@@ -1297,9 +1297,9 @@ class Report(object):
             projectors are taken from ``info['projs']``.
         title : str
             The title corresponding to the `~mne.Projection` object.
+        %(topomap_kwargs)s
         %(report_tags)s
         %(report_replace)s
-        %(topomap_kwargs)s
 
         Notes
         -----
