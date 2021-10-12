@@ -445,15 +445,13 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
 
         with io.BytesIO() as buff:
             fig.savefig(
-                buff, format='raw',  dpi=fig.get_dpi()
+                buff, format='png',  dpi=fig.get_dpi(), bbox_inches='tight',
+                pad_inches=0
             )
-            w_, h_ = fig.canvas.get_width_height()
-            plt.close(fig)
             buff.seek(0)
-            fig_array = np.frombuffer(buff.getvalue(), dtype=np.uint8)
+            fig_array = plt.imread(buff, format='png')
 
-        fig_array_reshaped = fig_array.reshape((int(h_), int(w_), -1))
-        return fig_array_reshaped
+        return fig_array
 
     use_jobs = min(n_jobs, max(1, len(picks)))
     parallel, p_fun, _ = parallel_func(
