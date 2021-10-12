@@ -1473,6 +1473,12 @@ class Report(object):
                         f'The specified file, {fname}, does not seem to '
                         f'contain Raw data or Epochs'
                     )
+        elif not inst.preload:
+            raise RuntimeError(
+                'You passed an object to Report.add_ica() via the "inst" '
+                'parameter that was not preloaded. Please preload the data  '
+                'via the load_data() method'
+            )
 
         if _path_like(ecg_evoked):
             ecg_evoked = read_evokeds(fname=ecg_evoked, condition=0)
