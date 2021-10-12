@@ -639,7 +639,7 @@ def _read_edf_header(fname, exclude):
         record_length = float(_edf_str(fid.read(8)))
         record_length = np.array([record_length, 1.])  # in seconds
         if record_length[0] == 0:
-            record_length = record_length[0] = 1.
+            record_length[0] = 1.
             warn('Header information is incorrect for record length. Default '
                  'record length set to 1.\nIt is possible that this file only'
                  ' contains annotations and no signals. In that case, please '
