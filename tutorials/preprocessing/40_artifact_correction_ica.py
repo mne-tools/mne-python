@@ -206,8 +206,7 @@ ecg_evoked.plot_joint()
 # `~mne.io.Raw` object around so we can apply the ICA solution to it
 # later.
 
-filt_raw = raw.copy()
-filt_raw.load_data().filter(l_freq=1., h_freq=None)
+filt_raw = raw.copy().load_data().filter(l_freq=1., h_freq=None)
 
 # %%
 # Fitting and plotting the ICA solution

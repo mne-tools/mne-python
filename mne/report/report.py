@@ -799,7 +799,7 @@ class Report(object):
 
         Parameters
         ----------
-        epochs : path-like | instance of mne.Epochs
+        epochs : path-like | instance of Epochs
             The epochs to add to the report.
         title : str
             The title to add.
@@ -854,7 +854,7 @@ class Report(object):
 
         Parameters
         ----------
-        evokeds : path-like | instance of mne.Evoked | list of mne.Evoked
+        evokeds : path-like | instance of Evoked | list of Evoked
             The evoked data to add to the report. Multiple `~mne.Evoked`
             objects – as returned from `mne.read_evokeds` – can be passed as
             a list.
@@ -951,7 +951,7 @@ class Report(object):
 
         Parameters
         ----------
-        raw : path-like | instance of mne.io.BaseRaw
+        raw : path-like | instance of Raw
             The data to add to the report.
         title : str
             The title corresponding to the ``raw`` object.
@@ -1018,7 +1018,7 @@ class Report(object):
 
         Parameters
         ----------
-        stc : path-like | instance of mne.SourceEstimate
+        stc : path-like | instance of SourceEstimate
             The `~mne.SourceEstimate` to add to the report.
         title : str
             The title to add.
@@ -1068,7 +1068,7 @@ class Report(object):
 
         Parameters
         ----------
-        forward : instance of mne.Forward | path-like
+        forward : instance of Forward | path-like
             The forward solution to add to the report.
         title : str
             The title corresponding to forward solution.
@@ -1108,9 +1108,7 @@ class Report(object):
 
         Parameters
         ----------
-        inverse_operator : instance of mne.minimum_norm.InverseOperator |
-                           path-like
-
+        inverse_operator : instance of InverseOperator | path-like
             The inverse operator to add to the report.
         title : str
             The title corresponding to the inverse operator object.
@@ -1122,7 +1120,7 @@ class Report(object):
             and ``trans``.
         subjects_dir : path-like | None
             The FreeSurfer ``SUBJECTS_DIR``.
-        trans : path-like | instance of mne.transforms.Transform | None
+        trans : path-like | instance of Transform | None
             The ``head -> MRI`` transformation for ``subject``.
         %(report_tags)s
         %(report_replace)s
@@ -1157,9 +1155,9 @@ class Report(object):
 
         Parameters
         ----------
-        trans : path-like | instance of mne.transforms.Transform
+        trans : path-like | instance of Transform
             The ``head -> MRI`` transformation to render.
-        info : path-like | instance of mne.Info
+        info : path-like | instance of Info
             The `~mne.Info` corresponding to ``trans``.
         title : str
             The title to add.
@@ -1202,9 +1200,9 @@ class Report(object):
 
         Parameters
         ----------
-        cov : path-like | instance of mne.Covariance
+        cov : path-like | instance of Covariance
             The `~mne.Covariance` to add to the report.
-        info : path-like | instance of mne.Info
+        info : path-like | instance of Info
             The `~mne.Info` corresponding to ``cov``.
         title : str
             The title corresponding to the `~mne.Covariance` object.
@@ -1290,7 +1288,7 @@ class Report(object):
 
         Parameters
         ----------
-        info : instance of mne.Info | path-like
+        info : instance of Info | path-like
             An `~mne.Info` structure or the path of a file containing one. This
             is required to create the topographic plots.
         projs : iterable of mne.Projection | path-like | None
@@ -1826,10 +1824,7 @@ class Report(object):
 
         Parameters
         ----------
-        fig : matplotlib.figure.Figure | mlab.Figure | array |
-              collection of matplotlib.figure.Figure |
-              collection of mlab.Figure | collection of array
-
+        fig : matplotlib.figure.Figure | mlab.Figure | array | collection of matplotlib.figure.Figure | collection of mlab.Figure | collection of array
             One or more figures to add to the report. All figures must be an
             instance of :class:`matplotlib.figure.Figure`,
             :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`. If
@@ -1846,7 +1841,7 @@ class Report(object):
         Notes
         -----
         .. versionadded:: 0.24.0
-        """
+        """  # noqa E501
         tags = tuple(tags)
         if image_format is None:
             image_format = self.image_format

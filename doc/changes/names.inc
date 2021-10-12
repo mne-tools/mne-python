@@ -94,7 +94,7 @@
 
 .. _Asish Panda: https://github.com/kaichogami
 
-.. _Natalie Klein: http://natklein.weebly.com
+.. _Natalie Klein: https://github.com/natalieklein
 
 .. _Jon Houck: https://www.mrn.org/people/jon-m.-houck/principal-investigators
 
