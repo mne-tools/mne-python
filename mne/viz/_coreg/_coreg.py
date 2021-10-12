@@ -66,6 +66,7 @@ class CoregistrationUI(HasTraits):
             fiducials=("LPA", "Nasion", "RPA"),
             fiducial="LPA",
             lock_fids=True,
+            grow_hair=0.0,
             scale_modes=["None", "uniform", "3-axis"],
             scale_mode="None",
             icp_fid_matches=('nearest', 'matched'),
@@ -107,6 +108,7 @@ class CoregistrationUI(HasTraits):
                                   self._defaults["head_resolution"]))
         self._set_head_transparency(_get_default(head_transparency,
                                     self._defaults["head_transparency"]))
+        self._set_grow_hair(self._defaults["grow_hair"])
         self._set_omit_hsp_distance(self._defaults["omit_hsp_distance"])
         self._set_icp_n_iterations(self._defaults["icp_n_iterations"])
         self._set_icp_fid_match(self._defaults["icp_fid_match"])
