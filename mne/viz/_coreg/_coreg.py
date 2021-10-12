@@ -12,7 +12,7 @@ from ...viz._3d import (_plot_head_surface, _plot_head_fiducials,
                         _plot_hpi_coils, _plot_sensors)
 from ...transforms import (read_trans, write_trans, _ensure_trans,
                            rotation_angles, _get_transforms_to_coord_frame)
-from ...utils import get_subjects_dir
+from ...utils import get_subjects_dir, _check_fname
 from traitlets import observe, HasTraits, Unicode, Bool, Float
 
 
@@ -25,7 +25,7 @@ class CoregistrationUI(HasTraits):
     _info_file = Unicode()
     _orient_glyphs = Bool()
     _hpi_coils = Bool()
-    _head_shape_point = Bool()
+    _head_shape_points = Bool()
     _eeg_channels = Bool()
     _head_resolution = Bool()
     _head_transparency = Bool()
@@ -35,8 +35,9 @@ class CoregistrationUI(HasTraits):
 
     def __init__(self, info_file, subject=None, subjects_dir=None,
                  fids='auto', head_resolution=None, head_transparency=None,
-                 head_opacity=None, orient_glyphs=None, trans=None,
-                 standalone=False):
+                 head_opacity=None, hpi_coils=None, head_shape_points=None,
+                 eeg_channels=None, orient_glyphs=None,
+                 trans=None, standalone=False):
         from ..backends.renderer import _get_renderer
 
         def _get_default(var, val):
@@ -58,6 +59,7 @@ class CoregistrationUI(HasTraits):
         self._default_fiducials = ("LPA", "Nasion", "RPA")
         self._default_icp_fid_matches = ('nearest', 'matched')
         self._default_icp_n_iterations = 20
+        self._default_omit_hsp_distance = 10.0
         self._default_weights = {
             "lpa": 1.0,
             "nasion": 10.0,
@@ -66,43 +68,50 @@ class CoregistrationUI(HasTraits):
             "eeg": 1.0,
             "hpi": 1.0,
         }
-
-        self._renderer = _get_renderer(bgcolor="grey")
-        self._renderer._window_close_connect(self._clean)
-        self._info = read_info(info_file)
-        self._coreg = Coregistration(self._info, subject, subjects_dir, fids)
-        self._fids = fids
-        self._subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                              raise_error=True)
-        self._subject = subject if subject is not None else self._subjects[0]
-        self._info_file = info_file
-        self._orient_glyphs = _get_default(orient_glyphs, False)
-        self._hpi_coils = True
-        self._head_shape_point = True
-        self._eeg_channels = False
-        self._head_resolution = _get_default(head_resolution, False)
-        self._head_transparency = _get_default(head_transparency, False)
-        self._omit_hsp_distance = 10.0
-        self._icp_n_iterations = self._default_icp_n_iterations
-        self._icp_fid_match = self._default_icp_fid_matches[0]
         for fid in self._default_weights.keys():
             setattr(self, f"_{fid}_weight", self._default_weights[fid])
 
+        self._fids = fids
+        self._info = read_info(info_file)
+        self._renderer = _get_renderer(bgcolor="grey")
+        self._renderer._window_close_connect(self._clean)
+        self._coreg = Coregistration(self._info, subject, subjects_dir, fids)
+
+        # set main traits
+        self._set_subjects_dir(
+            get_subjects_dir(subjects_dir=subjects_dir, raise_error=True))
+        self._set_subject(_get_default(subject, self._get_subjects()[0]))
+        self._set_info_file(info_file)
+        self._set_orient_glyphs(_get_default(orient_glyphs, False))
+        self._set_hpi_coils(_get_default(hpi_coils, True))
+        self._set_head_shape_points(_get_default(head_shape_points, True))
+        self._set_eeg_channels(_get_default(eeg_channels, False))
+        self._set_head_resolution(_get_default(head_resolution, False))
+        self._set_head_transparency(_get_default(head_transparency, False))
+        self._set_omit_hsp_distance(self._default_omit_hsp_distance)
+        self._set_icp_n_iterations(self._default_icp_n_iterations)
+        self._set_icp_fid_match(self._default_icp_fid_matches[0])
+
+        # configure UI
         self._reset_fitting_parameters()
         self._configure_dock()
         self._configure_picking()
-        self._renderer.show()
 
-        self._current_fiducial = self._default_fiducials[0]
-        self._lock_fids = True
-        self._scale_mode = "None"
+        # once the docks are initialized
+        self._set_current_fiducial(self._default_fiducials[0])
+        self._set_lock_fids(True)
+        self._set_scale_mode("None")
         if trans is not None:
             self._load_trans(trans)
+
+        # must be done last
+        self._renderer.show()
         if standalone:
             self._renderer.figure.store["app"].exec()
 
     def _set_subjects_dir(self, subjects_dir):
-        self._subjects_dir = subjects_dir
+        self._subjects_dir = _check_fname(
+            subjects_dir, overwrite=True, must_exist=True, need_dir=True)
 
     def _set_subject(self, subject):
         self._subject = subject
@@ -111,13 +120,15 @@ class CoregistrationUI(HasTraits):
         self._lock_fids = bool(state)
 
     def _set_fiducials_file(self, fname):
-        self._fiducials_file = fname
+        self._fiducials_file = _check_fname(
+            fname, overwrite=True, must_exist=True, need_dir=False)
 
     def _set_current_fiducial(self, fid):
         self._current_fiducial = fid.lower()
 
     def _set_info_file(self, fname):
-        self._info_file = fname
+        self._info_file = _check_fname(
+            fname, overwrite=True, must_exist=True, need_dir=False)
 
     def _set_omit_hsp_distance(self, distance):
         self._omit_hsp_distance = distance
@@ -129,7 +140,7 @@ class CoregistrationUI(HasTraits):
         self._hpi_coils = bool(state)
 
     def _set_head_shape_points(self, state):
-        self._head_shape_point = bool(state)
+        self._head_shape_points = bool(state)
 
     def _set_eeg_channels(self, state):
         self._eeg_channels = bool(state)
@@ -246,7 +257,7 @@ class CoregistrationUI(HasTraits):
     def _hpi_coils_changed(self, change=None):
         self._add_hpi_coils()
 
-    @observe("_head_shape_point")
+    @observe("_head_shape_points")
     def _head_shape_point_changed(self, change=None):
         self._add_head_shape_points()
 
@@ -470,7 +481,7 @@ class CoregistrationUI(HasTraits):
         self._update_actor("hpi_coils", hpi_actors)
 
     def _add_head_shape_points(self):
-        if self._head_shape_point:
+        if self._head_shape_points:
             to_cf_t = _get_transforms_to_coord_frame(
                 self._info, self._coreg.trans, coord_frame=self._coord_frame)
             hsp_actors = _plot_head_shape_points(
@@ -677,7 +688,7 @@ class CoregistrationUI(HasTraits):
         )
         self._widgets["show_hsp"] = self._renderer._dock_add_check_box(
             name="Show Head Shape Points",
-            value=self._head_shape_point,
+            value=self._head_shape_points,
             callback=self._set_head_shape_points,
             layout=layout
         )
