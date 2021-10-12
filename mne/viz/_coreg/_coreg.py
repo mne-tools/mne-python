@@ -320,6 +320,8 @@ class CoregistrationUI(HasTraits):
         mesh = vtk_picker.GetDataSet()
         if mesh is None or cell_id == -1 or not self._mouse_no_mvt:
             return
+        if not getattr(mesh, "_picking_target", False):
+            return
         pos = np.array(vtk_picker.GetPickPosition())
         vtk_cell = mesh.GetCell(cell_id)
         cell = [vtk_cell.GetPointId(point_id) for point_id
@@ -508,6 +510,8 @@ class CoregistrationUI(HasTraits):
             head_actor, head_surf = _plot_head_surface(
                 self._renderer, "head", self._subject, self._subjects_dir,
                 bem, self._coord_frame, to_cf_t, alpha=self._head_opacity)
+        # mark head surface mesh to restrict picking
+        head_surf._picking_target = True
         self._update_actor("head", head_actor)
         self._surfaces["head"] = head_surf
 
