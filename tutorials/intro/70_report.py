@@ -196,7 +196,7 @@ report.save('report_projs.html', overwrite=True)
 # `~mne.preprocessing.ICA` objects can be added via
 # :meth:`mne.Report.add_ica`. Aside from the parameters ``ica`` (that accepts
 # an `~mne.preprocessing.ICA` instance or a path to an ICA object stored on
-# disk) and the ``title``, there is a third required paramer, ``inst``.
+# disk) and the ``title``, there is a third required parameter, ``inst``.
 # ``inst`` is used to specify a `~mne.io.Raw` or `~mne.io.Epochs` object for
 # producing ICA property plots and overlay plots demonstrating
 # the effects of ICA cleaning. If, instead, you only want to generate ICA
