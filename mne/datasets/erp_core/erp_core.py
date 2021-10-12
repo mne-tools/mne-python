@@ -1,10 +1,6 @@
-from functools import partial
-
 from ...utils import verbose
-from ..utils import (has_dataset, _data_path_doc,
+from ..utils import (_data_path_doc,
                      _get_version, _version_doc, _download_mne_dataset)
-
-has_erp_core_data = partial(has_dataset, name='erp_core')
 
 
 @verbose

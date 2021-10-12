@@ -3,14 +3,18 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD Style.
 
-from functools import partial
+from ...utils import verbose, deprecated
+from ..utils import (has_dataset, _data_path_doc, DEPRECATION_MESSAGE_TEMPLATE,
+                     _get_version, _version_doc, _download_mne_dataset,
+                     _HAS_DATA_DOCSTRING_TEMPLATE)
 
-from ...utils import verbose
-from ..utils import (has_dataset, _data_path_doc, _get_version,
-                     _version_doc, _download_mne_dataset)
+
+@deprecated(extra=DEPRECATION_MESSAGE_TEMPLATE.format('opm'))
+def has_opm_data():
+    return has_dataset(name='opm')
 
 
-has_opm_data = partial(has_dataset, name='opm')
+has_opm_data.__doc__ = _HAS_DATA_DOCSTRING_TEMPLATE.format('opm')
 
 
 @verbose
