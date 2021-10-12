@@ -87,7 +87,7 @@ I agree to the following:
 # respective repos, and make a new release of the dataset on GitHub. Then
 # update the checksum in the MNE_DATASETS dict below, and change version
 # here:                  ↓↓↓↓↓         ↓↓↓
-RELEASES = dict(testing='0.125', misc='0.23')
+RELEASES = dict(testing='0.127', misc='0.23')
 TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
 MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
 
@@ -107,6 +107,25 @@ MNE_DATASETS = dict()
 # OPTIONAL KEYS:
 # - config_key : key to use with `mne.set_config` to store the on-disk location
 #                of the downloaded dataset (ex: "MNE_DATASETS_EEGBCI_PATH").
+
+# Testing and misc are at the top as they're updated most often
+MNE_DATASETS['testing'] = dict(
+    archive_name=f'{TESTING_VERSIONED}.tar.gz',  # 'mne-testing-data',
+    hash='md5:1e2bb7fcffc7ed26ecbe61f11afbfbc6',
+    url=('https://codeload.github.com/mne-tools/mne-testing-data/'
+         f'tar.gz/{RELEASES["testing"]}'),
+    folder_name='MNE-testing-data',
+    config_key='MNE_DATASETS_TESTING_PATH',
+)
+MNE_DATASETS['misc'] = dict(
+    archive_name=f'{MISC_VERSIONED}.tar.gz',  # 'mne-misc-data',
+    hash='md5:01e409d82ff11ca8b19a27c4f7ee6794',
+    url=('https://codeload.github.com/mne-tools/mne-misc-data/tar.gz/'
+         f'{RELEASES["misc"]}'),
+    folder_name='MNE-misc-data',
+    config_key='MNE_DATASETS_MISC_PATH'
+)
+
 MNE_DATASETS['fnirs_motor'] = dict(
     archive_name='MNE-fNIRS-motor-data.tgz',
     hash='md5:c4935d19ddab35422a69f3326a01fef8',
@@ -303,21 +322,4 @@ MNE_DATASETS['fake'] = dict(
          'datasets/foo.tgz'),
     folder_name='foo',
     config_key='MNE_DATASETS_FAKE_PATH'
-)
-
-MNE_DATASETS['testing'] = dict(
-    archive_name=f'{TESTING_VERSIONED}.tar.gz',  # 'mne-testing-data',
-    hash='md5:0871ae325805a9cd2cdfb2fc74327abb',
-    url=('https://codeload.github.com/mne-tools/mne-testing-data/'
-         f'tar.gz/{RELEASES["testing"]}'),
-    folder_name='MNE-testing-data',
-    config_key='MNE_DATASETS_TESTING_PATH',
-)
-MNE_DATASETS['misc'] = dict(
-    archive_name=f'{MISC_VERSIONED}.tar.gz',  # 'mne-misc-data',
-    hash='md5:01e409d82ff11ca8b19a27c4f7ee6794',
-    url=('https://codeload.github.com/mne-tools/mne-misc-data/tar.gz/'
-         f'{RELEASES["misc"]}'),
-    folder_name='MNE-misc-data',
-    config_key='MNE_DATASETS_MISC_PATH'
 )

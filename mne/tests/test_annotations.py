@@ -36,6 +36,10 @@ fif_fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
 
 first_samps = pytest.mark.parametrize('first_samp', (0, 10000))
 
+data_path = testing.data_path(download=False)
+edf_reduced = op.join(data_path, 'EDF', 'test_reduced.edf')
+edf_annot_only = op.join(data_path, 'EDF', 'SC4001EC-Hypnogram.edf')
+
 
 needs_pandas = pytest.mark.skipif(
     not check_version('pandas'), reason='Needs pandas')
@@ -347,6 +351,17 @@ def test_read_brainstorm_annotations():
     assert len(annot) == 238
     assert annot.onset.min() > 40  # takes into account first_samp
     assert np.unique(annot.description).size == 5
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('fname, n_annot', [
+    (edf_annot_only, 154),
+    (edf_reduced, 5),
+])
+def test_read_edf_annotations(fname, n_annot):
+    """Test reading EDF annotations."""
+    annot = read_annotations(fname)
+    assert len(annot) == n_annot
 
 
 @first_samps
