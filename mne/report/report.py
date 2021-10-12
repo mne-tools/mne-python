@@ -1579,8 +1579,8 @@ class Report(object):
 
         Parameters
         ----------
-        ica : path-like | instance of mne.prepreocessing.ICA
-            The fitted ~mne.prepreocessing.ICA` to add.
+        ica : path-like | instance of mne.preprocessing.ICA
+            The fitted ICA to add.
         title : str
             The title to add.
         inst : path-like | mne.io.Raw | mne.Epochs | None
