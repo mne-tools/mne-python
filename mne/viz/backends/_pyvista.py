@@ -66,7 +66,7 @@ class _Figure(object):
         self.store['window_size'] = size
         self.store['shape'] = shape
         self.store['off_screen'] = off_screen
-        self.store['border'] = kwargs.get("border", False)
+        self.store['border'] = False
         # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
         self.store['multi_samples'] = 1 if sys.platform == 'darwin' else 4
 
@@ -74,8 +74,7 @@ class _Figure(object):
             self.store['show'] = show
             self.store['title'] = title
             self.store['auto_update'] = False
-            self.store['menu_bar'] = kwargs.get("menu_bar", False)
-            self.store['toolbar'] = kwargs.get("toolbar", False)
+            self.store['menu_bar'] = False
             self.store['update_app_icon'] = False
 
         self._nrows, self._ncols = self.store['shape']
@@ -149,12 +148,12 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1),
-                 notebook=None, smooth_shading=True, **kwargs):
+                 notebook=None, smooth_shading=True):
         from .renderer import MNE_3D_BACKEND_TESTING
         from .._3d import _get_3d_option
         figure = _Figure(show=show, title=name, size=size, shape=shape,
                          background_color=bgcolor, notebook=notebook,
-                         smooth_shading=smooth_shading, **kwargs)
+                         smooth_shading=smooth_shading)
         self.font_family = "arial"
         self.tube_n_sides = 20
         antialias = _get_3d_option('antialias')
