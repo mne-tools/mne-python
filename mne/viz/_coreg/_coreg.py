@@ -162,7 +162,7 @@ class CoregistrationUI(HasTraits):
         coords = ["X", "Y", "Z"]
         idx = coords.index(coord)
         getattr(self._coreg, f"_{fid}")[0][idx] = value / 1e3
-        self._update_plot("fids")
+        self._update_plot("mri_fids")
 
     def _set_parameter(self, value, mode_name, coord):
         params = dict(
@@ -347,7 +347,7 @@ class CoregistrationUI(HasTraits):
         self._coreg._fid_points[idx] = self._surfaces["head"].points[vertex_id]
         self._coreg._reset_fiducials()
         self._update_fiducials()
-        self._update_plot("fids")
+        self._update_plot("mri_fids")
 
     def _reset_fitting_parameters(self):
         self._forward_widget_command("icp_n_iterations", "set_value",
@@ -384,8 +384,9 @@ class CoregistrationUI(HasTraits):
             self._add_hpi_coils()
         if "eeg" in changes or forced or sensors:
             self._add_eeg_channels()
-        if "fids" in changes or forced or sensors:
+        if "head_fids" in changes or forced or sensors:
             self._add_head_fiducials()
+        if "mri_fids" in changes or forced or sensors:
             self._add_mri_fiducials()
 
     @contextmanager
