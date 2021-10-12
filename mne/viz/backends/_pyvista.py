@@ -911,28 +911,6 @@ def _3d_to_2d(plotter, xyz):
     return xy
 
 
-def _get_world_to_view_matrix(plotter):
-    cam = plotter.renderer.camera
-
-    scene_size = plotter.window_size
-    clip_range = cam.GetClippingRange()
-    aspect_ratio = float(scene_size[0]) / scene_size[1]
-
-    vtk_comb_trans_mat = cam.GetCompositeProjectionTransformMatrix(
-        aspect_ratio, clip_range[0], clip_range[1])
-    vtk_comb_trans_mat = _mat_to_array(vtk_comb_trans_mat)
-    return vtk_comb_trans_mat
-
-
-def _get_view_to_display_matrix(size):
-    x, y = size
-    view_to_disp_mat = np.array([[x / 2.0,       0.,   0.,   x / 2.0],
-                                 [0.,      -y / 2.0,   0.,   y / 2.0],
-                                 [0.,            0.,   1.,        0.],
-                                 [0.,            0.,   0.,        1.]])
-    return view_to_disp_mat
-
-
 def _close_all():
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=DeprecationWarning)
