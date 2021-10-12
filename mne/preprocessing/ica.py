@@ -12,7 +12,7 @@ from copy import deepcopy
 from numbers import Integral
 from time import time
 from dataclasses import dataclass
-from typing import Optional, List, Literal
+from typing import Optional, List
 
 import math
 import os
@@ -446,9 +446,12 @@ class ICA(ContainsMixin):
     def _get_infos_for_repr(self):
         @dataclass
         class _InfosForRepr:
-            fit_on: Optional[Literal['raw data', 'epochs']]
-            fit_method: Literal['fastica', 'infomax', 'extended-infomax',
-                                'picard']
+            # XXX replace with Optional[Literal['raw data', 'epochs'] once we
+            # drop support for Py 3.7
+            fit_on: Optional[str]
+            # XXX replace with fit_method: Literal['fastica', 'infomax',
+            # 'extended-infomax', 'picard'] once we drop support for Py 3.7
+            fit_method: str
             fit_n_iter: Optional[int]
             fit_n_samples: Optional[int]
             fit_n_components: Optional[int]

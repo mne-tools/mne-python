@@ -177,4 +177,4 @@ ica_template = Template("""
     </tr>
     {{endif}}
 </table>
-""")
+""")  # noqa: E501
