@@ -93,9 +93,9 @@ def fetch_dataset(
 
     See Also
     --------
-    get_config
-    set_config
-    has_dataset
+    mne.get_config
+    mne.set_config
+    mne.datasets.has_dataset
 
     Notes
     -----
