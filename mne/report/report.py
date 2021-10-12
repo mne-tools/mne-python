@@ -430,7 +430,7 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
 
     Returns
     -------
-    out : list of array
+    outs : list of array
         The properties plots as NumPy arrays.
     """
     import matplotlib.pyplot as plt
@@ -2389,7 +2389,7 @@ class Report(object):
                 )
         self.include = ''.join(include)
 
-    def _iterate_files(self, *, fnames, cov, sfreq, raw_butterfly, ica,
+    def _iterate_files(self, *, fnames, cov, sfreq, raw_butterfly,
                        n_time_points_evokeds, n_time_points_stcs, on_error,
                        stc_plot_kwargs, topomap_kwargs):
         """Parallel process in batch mode."""
@@ -2442,9 +2442,9 @@ class Report(object):
                 elif _endswith(fname, 'proj') and self.info_fname is not None:
                     self.add_projs(info=self.info_fname, projs=fname,
                                    title=title, topomap_kwargs=topomap_kwargs)
-                elif _endswith(fname, 'ica') and ica:
-                    # XXX TODO We could render ICA components here someday
-                    pass
+                # XXX TODO We could render ICA components here someday
+                # elif _endswith(fname, 'ica') and ica:
+                #     pass
                 elif (_endswith(fname, 'trans') and
                         self.info_fname is not None and
                         self.subjects_dir is not None and
@@ -2476,7 +2476,7 @@ class Report(object):
                      sort_content=True, sort_sections=None, on_error='warn',
                      image_format=None, render_bem=True, *,
                      n_time_points_evokeds=None, n_time_points_stcs=None,
-                     raw_butterfly=True, ica=True, stc_plot_kwargs=None,
+                     raw_butterfly=True, stc_plot_kwargs=None,
                      topomap_kwargs=None, verbose=None):
         r"""Render all the files in the folder.
 
@@ -2532,10 +2532,6 @@ class Report(object):
         raw_butterfly : bool
             Whether to render butterfly plots for (decimated) `~mne.io.Raw`
             data.
-
-            .. versionadded:: 0.24.0
-        ica : bool
-            Whether to render `~mne.preprocessing.ICA` component topographies.
 
             .. versionadded:: 0.24.0
         %(report_stc_plot_kwargs)s
@@ -2640,7 +2636,6 @@ class Report(object):
             p_fun(
                 fnames=fname, cov=cov, sfreq=sfreq,
                 raw_butterfly=raw_butterfly,
-                ica=ica,
                 n_time_points_evokeds=n_time_points_evokeds,
                 n_time_points_stcs=n_time_points_stcs, on_error=on_error,
                 stc_plot_kwargs=stc_plot_kwargs, topomap_kwargs=topomap_kwargs,
