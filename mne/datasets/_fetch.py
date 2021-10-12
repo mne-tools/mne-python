@@ -91,6 +91,12 @@ def fetch_dataset(
     version : str
         Only returned if ``return_version`` is True.
 
+    See Also
+    --------
+    get_config
+    set_config
+    has_dataset
+
     Notes
     -----
     The ``dataset_params`` argument must contain the following keys:
@@ -120,12 +126,6 @@ def fetch_dataset(
     pass a single :class:`dict` as ``dataset_params``. For datasets where
     multiple files must be downloaded and (optionally) uncompressed separately,
     pass a list of dicts.
-
-    See Also
-    --------
-    get_config
-    set_config
-    has_dataset
     """  # noqa E501
     # import pooch library for handling the dataset downloading
     pooch = _soft_import("pooch", "dataset downloading", strict=True)
