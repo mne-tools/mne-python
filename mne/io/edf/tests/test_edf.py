@@ -53,6 +53,7 @@ edf_stim_resamp_path = op.join(data_path, 'EDF', 'test_edf_stim_resamp.edf')
 edf_overlap_annot_path = op.join(data_path, 'EDF',
                                  'test_edf_overlapping_annotations.edf')
 edf_reduced = op.join(data_path, 'EDF', 'test_reduced.edf')
+edf_annot_only = op.join(data_path, 'EDF', 'SC4001EC-Hypnogram.edf')
 bdf_stim_channel_path = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
 bdf_multiple_annotations_path = op.join(data_path, 'BDF',
                                         'multiple_annotation_chans.bdf')
@@ -257,6 +258,9 @@ def test_no_data_channels():
     raw = read_raw_edf(edf_overlap_annot_path, exclude=raw.ch_names)
     annot_2 = raw.annotations
     _assert_annotations_equal(annot, annot_2)
+    # only annotations (should warn)
+    with pytest.warns(RuntimeWarning, match='read_annotations'):
+        read_raw_edf(edf_annot_only)
 
 
 @requires_pandas
