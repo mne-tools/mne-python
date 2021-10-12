@@ -200,15 +200,18 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         # ranks should all be reduced by 1
         if test_rank == 'less':
             cmp = np.less
-        else:
+        elif test_rank is False:
+            cmp = None
+        else:  # anything else is like True or 'equal'
+            assert test_rank is True or test_rank == 'equal', test_rank
             cmp = np.equal
         rank_load_apply_get = np.linalg.matrix_rank(data_load_apply_get)
         rank_apply_get = np.linalg.matrix_rank(data_apply_get)
         rank_apply_load_get = np.linalg.matrix_rank(data_apply_load_get)
-        rank_apply_load_get = np.linalg.matrix_rank(data_apply_load_get)
-        assert cmp(rank_load_apply_get, len(col_names) - 1)
-        assert cmp(rank_apply_get, len(col_names) - 1)
-        assert cmp(rank_apply_load_get, len(col_names) - 1)
+        if cmp is not None:
+            assert cmp(rank_load_apply_get, len(col_names) - 1)
+            assert cmp(rank_apply_get, len(col_names) - 1)
+            assert cmp(rank_apply_load_get, len(col_names) - 1)
         # and they should all match
         t_kw = dict(
             atol=atol, err_msg='before != after, likely _mult_cal_one prob')
@@ -280,7 +283,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
     assert set(raw.info.keys()) == set(raw3.info.keys())
     assert_allclose(raw3[0:20][0], full_data[0:20], rtol=1e-6,
                     atol=1e-20)  # atol is very small but > 0
-    assert_array_almost_equal(raw.times, raw3.times)
+    assert_allclose(raw.times, raw3.times, atol=1e-6, rtol=1e-6)
 
     assert not math.isnan(raw3.info['highpass'])
     assert not math.isnan(raw3.info['lowpass'])
