@@ -55,42 +55,61 @@ class CoregistrationUI(HasTraits):
         self._fid_colors = tuple(
             DEFAULTS['coreg'][f'{key}_color'] for key in
             ('lpa', 'nasion', 'rpa'))
-        self._default_head_opacity = _get_default(head_opacity, 0.4)
-        self._default_fiducials = ("LPA", "Nasion", "RPA")
-        self._default_icp_fid_matches = ('nearest', 'matched')
-        self._default_icp_n_iterations = 20
-        self._default_omit_hsp_distance = 10.0
-        self._default_weights = {
-            "lpa": 1.0,
-            "nasion": 10.0,
-            "rpa": 1.0,
-            "hsp": 1.0,
-            "eeg": 1.0,
-            "hpi": 1.0,
-        }
-        for fid in self._default_weights.keys():
-            setattr(self, f"_{fid}_weight", self._default_weights[fid])
+        self._defaults = dict(
+            orient_glyphs=False,
+            hpi_coils=True,
+            head_shape_points=True,
+            eeg_channels=False,
+            head_resolution=False,
+            head_transparency=False,
+            head_opacity=_get_default(head_opacity, 0.4),
+            fiducials=("LPA", "Nasion", "RPA"),
+            fiducial="LPA",
+            lock_fids=True,
+            scale_modes=["None", "uniform", "3-axis"],
+            scale_mode="None",
+            icp_fid_matches=('nearest', 'matched'),
+            icp_fid_match='nearest',
+            icp_n_iterations=20,
+            omit_hsp_distance=10.0,
+            weights=dict(
+                lpa=1.0,
+                nasion=10.0,
+                rpa=1.0,
+                hsp=1.0,
+                eeg=1.0,
+                hpi=1.0,
+            ),
+        )
 
         self._fids = fids
         self._info = read_info(info_file)
         self._renderer = _get_renderer(bgcolor="grey")
         self._renderer._window_close_connect(self._clean)
         self._coreg = Coregistration(self._info, subject, subjects_dir, fids)
+        for fid in self._defaults["weights"].keys():
+            setattr(self, f"_{fid}_weight", self._defaults["weights"][fid])
 
         # set main traits
         self._set_subjects_dir(
             get_subjects_dir(subjects_dir=subjects_dir, raise_error=True))
         self._set_subject(_get_default(subject, self._get_subjects()[0]))
         self._set_info_file(info_file)
-        self._set_orient_glyphs(_get_default(orient_glyphs, False))
-        self._set_hpi_coils(_get_default(hpi_coils, True))
-        self._set_head_shape_points(_get_default(head_shape_points, True))
-        self._set_eeg_channels(_get_default(eeg_channels, False))
-        self._set_head_resolution(_get_default(head_resolution, False))
-        self._set_head_transparency(_get_default(head_transparency, False))
-        self._set_omit_hsp_distance(self._default_omit_hsp_distance)
-        self._set_icp_n_iterations(self._default_icp_n_iterations)
-        self._set_icp_fid_match(self._default_icp_fid_matches[0])
+        self._set_orient_glyphs(_get_default(orient_glyphs,
+                                self._defaults["orient_glyphs"]))
+        self._set_hpi_coils(_get_default(hpi_coils,
+                            self._defaults["hpi_coils"]))
+        self._set_head_shape_points(_get_default(head_shape_points,
+                                    self._defaults["head_shape_points"]))
+        self._set_eeg_channels(_get_default(eeg_channels,
+                               self._defaults["eeg_channels"]))
+        self._set_head_resolution(_get_default(head_resolution,
+                                  self._defaults["head_resolution"]))
+        self._set_head_transparency(_get_default(head_transparency,
+                                    self._defaults["head_transparency"]))
+        self._set_omit_hsp_distance(self._defaults["omit_hsp_distance"])
+        self._set_icp_n_iterations(self._defaults["icp_n_iterations"])
+        self._set_icp_fid_match(self._defaults["icp_fid_match"])
 
         # configure UI
         self._reset_fitting_parameters()
@@ -98,9 +117,9 @@ class CoregistrationUI(HasTraits):
         self._configure_picking()
 
         # once the docks are initialized
-        self._set_current_fiducial(self._default_fiducials[0])
-        self._set_lock_fids(True)
-        self._set_scale_mode("None")
+        self._set_current_fiducial(self._defaults["fiducial"])
+        self._set_lock_fids(self._defaults["lock_fids"])
+        self._set_scale_mode(self._defaults["scale_mode"])
         if trans is not None:
             self._load_trans(trans)
 
@@ -272,7 +291,7 @@ class CoregistrationUI(HasTraits):
 
     @observe("_head_transparency")
     def _head_transparency_changed(self, change=None):
-        self._head_opacity = self._default_head_opacity \
+        self._head_opacity = self._defaults["head_opacity"] \
             if self._head_transparency else 1.0
         self._actors["head"].GetProperty().SetOpacity(self._head_opacity)
         self._renderer._update()
@@ -341,8 +360,8 @@ class CoregistrationUI(HasTraits):
         idx = np.argmin(abs(vertices - pos), axis=0)
         vertex_id = cell[idx[0]]
 
-        default_fiducials = [s.lower() for s in self._default_fiducials]
-        idx = default_fiducials.index(self._current_fiducial.lower())
+        fiducials = [s.lower() for s in self._defaults["fiducials"]]
+        idx = fiducials.index(self._current_fiducial.lower())
         # XXX: add coreg.set_fids
         self._coreg._fid_points[idx] = self._surfaces["head"].points[vertex_id]
         self._coreg._reset_fiducials()
@@ -351,15 +370,16 @@ class CoregistrationUI(HasTraits):
 
     def _reset_fitting_parameters(self):
         self._forward_widget_command("icp_n_iterations", "set_value",
-                                     self._default_icp_n_iterations)
+                                     self._defaults["icp_n_iterations"])
         self._forward_widget_command("icp_fid_match", "set_value",
-                                     self._default_icp_fid_matches[0])
-        weights_widgets = [f"{w}_weight" for w in self._default_weights.keys()]
+                                     self._defaults["icp_fid_match"])
+        weights_widgets = [f"{w}_weight"
+                           for w in self._defaults["weights"].keys()]
         self._forward_widget_command(weights_widgets, "set_value",
-                                     list(self._default_weights.values()))
+                                     list(self._defaults["weights"].values()))
 
     def _reset_fiducials(self):
-        self._set_current_fiducial(self._default_fiducials[0])
+        self._set_current_fiducial(self._defaults["fiducial"])
 
     def _omit_hsp(self):
         self._coreg.omit_head_shape_points(self._omit_hsp_distance / 1e3)
@@ -613,8 +633,8 @@ class CoregistrationUI(HasTraits):
             layout=layout,
         )
         self._widgets["fids"] = self._renderer._dock_add_radio_buttons(
-            value=self._default_fiducials[0],
-            rng=self._default_fiducials,
+            value=self._defaults["fiducial"],
+            rng=self._defaults["fiducials"],
             callback=self._set_current_fiducial,
             vertical=False,
             layout=layout,
@@ -716,8 +736,8 @@ class CoregistrationUI(HasTraits):
         self._renderer._dock_initialize(name="Parameters", area="right")
         self._widgets["scaling_mode"] = self._renderer._dock_add_combo_box(
             name="Scaling Mode",
-            value="None",
-            rng=["None", "uniform", "3-axis"],
+            value=self._defaults["scale_mode"],
+            rng=self._defaults["scale_modes"],
             callback=self._set_scale_mode,
             compact=True,
         )
@@ -776,7 +796,7 @@ class CoregistrationUI(HasTraits):
         self._renderer._layout_add_widget(layout, hlayout)
         self._widgets["icp_n_iterations"] = self._renderer._dock_add_spin_box(
             name="Number Of ICP Iterations",
-            value=self._default_icp_n_iterations,
+            value=self._defaults["icp_n_iterations"],
             rng=[1, 100],
             callback=self._set_icp_n_iterations,
             compact=True,
@@ -785,8 +805,8 @@ class CoregistrationUI(HasTraits):
         )
         self._widgets["icp_fid_match"] = self._renderer._dock_add_combo_box(
             name="Fiducial point matching",
-            value=self._default_icp_fid_matches[0],
-            rng=self._default_icp_fid_matches,
+            value=self._defaults["icp_fid_match"],
+            rng=self._defaults["icp_fid_matches"],
             callback=self._set_icp_fid_match,
             compact=True,
             layout=layout
@@ -796,7 +816,7 @@ class CoregistrationUI(HasTraits):
             layout=layout,
         )
         hlayout = self._renderer._dock_add_layout(vertical=False)
-        for fid in self._default_fiducials:
+        for fid in self._defaults["fiducials"]:
             fid_lower = fid.lower()
             name = f"{fid_lower}_weight"
             self._widgets[name] = self._renderer._dock_add_spin_box(
