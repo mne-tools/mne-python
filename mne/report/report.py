@@ -451,8 +451,9 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
             plt.close(fig)
             buff.seek(0)
             fig_array = np.frombuffer(buff.getvalue(), dtype=np.uint8)
-            fig_array_reshaped = fig_array.reshape((int(h_), int(w_), -1))
-            return fig_array_reshaped
+
+        fig_array_reshaped = fig_array.reshape((int(h_), int(w_), -1))
+        return fig_array_reshaped
 
     use_jobs = min(n_jobs, max(1, len(picks)))
     parallel, p_fun, _ = parallel_func(
