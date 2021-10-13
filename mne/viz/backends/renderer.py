@@ -170,7 +170,6 @@ def _get_3d_backend():
                     errors[name] = str(exc)
                 else:
                     MNE_3D_BACKEND = name
-                    print(MNE_3D_BACKEND)
                     break
             else:
                 raise RuntimeError(
