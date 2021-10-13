@@ -19,14 +19,16 @@ or other sensor-level analyses), you can install all you need by running
 from the Start menu, or the "CMD.exe prompt" from within the Anaconda Navigator
 GUI). This will install MNE-Python into the "base" conda environment, which
 should be active by default and should already have the necessary dependencies
-(``numpy``, ``scipy``, and ``matplotlib``).
+(``numpy``, ``scipy``, and ``matplotlib``). If you want to make use of
+MNE-Python's dataset downloading functions, run ``pip install mne[data]``
+instead.
 
 A second option is to install MNE-Python into its own virtual environment
 (instead of installing into conda's "base" environment). This can be done via::
 
     $ conda create --name=new_environment_name python=3
     $ conda activate new_environment_name
-    $ pip install mne
+    $ pip install mne matplotlib
 
 This approach is a good choice if you want to keep a separate virtual
 environment for each project. This helps with reproducibility, since each
