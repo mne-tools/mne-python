@@ -1051,9 +1051,9 @@ def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
         if (d['kind'] == FIFF.FIFFV_POINT_EXTRA and
             d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
     ext_loc = apply_trans(to_cf_t['head'], ext_loc)
+    ext_loc = ext_loc[mask] if mask is not None else ext_loc
     color = defaults['extra_color']
     scale = defaults['extra_scale']
-    ext_loc = ext_loc[mask] if mask is not None else ext_loc
     if orient_glyphs:
         glyph_height = defaults['eegp_height']
         glyph_center = (0., -defaults['eegp_height'], 0)
@@ -1105,7 +1105,8 @@ def _plot_forward(renderer, fwd, to_cf_t):
 
 
 def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
-                  warn_meg, head_surf, units, sensor_opacity=0.8):
+                  warn_meg, head_surf, units, sensor_opacity=0.8,
+                  orient_glyphs=False):
     """Render sensors in a 3D scene."""
     defaults = DEFAULTS['coreg']
     ch_pos, sources, detectors = _ch_pos_in_coord_frame(
