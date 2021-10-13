@@ -54,8 +54,7 @@ class _Figure(object):
                  background_color='black',
                  smooth_shading=True,
                  off_screen=False,
-                 notebook=False,
-                 **kwargs):
+                 notebook=False):
         self.plotter = plotter
         self.display = None
         self.background_color = background_color
@@ -75,6 +74,7 @@ class _Figure(object):
             self.store['title'] = title
             self.store['auto_update'] = False
             self.store['menu_bar'] = False
+            self.store['toolbar'] = False
             self.store['update_app_icon'] = False
 
         self._nrows, self._ncols = self.store['shape']
