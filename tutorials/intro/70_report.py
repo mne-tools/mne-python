@@ -258,7 +258,7 @@ report.add_ica(
     eog_scores=eog_scores,
     n_jobs=4
 )
-report.save('report_projs.html', overwrite=True)
+report.save('report_ica.html', overwrite=True)
 
 # %%
 # Adding MRI with BEM
