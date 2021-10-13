@@ -23,7 +23,7 @@ if [[ "$CIRCLE_JOB" == "interactive_test" ]]; then
 	python -m pip install --progress-bar off vtk-9.0.20201117-cp39-cp39-linux_x86_64.whl
 	python -m pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/main
 	python -m pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/main
-	python -m pip install --progress-bar off --upgrade -r requirements_testing.txt -r requirements_testing_extra.txt
+	python -m pip install --progress-bar off --upgrade -e .[test]
 elif [[ "$CIRCLE_JOB" == "linkcheck"* ]]; then
 	echo "Installing minimal linkcheck dependencies"
 	python -m pip install --progress-bar off numpy scipy matplotlib pillow pytest
