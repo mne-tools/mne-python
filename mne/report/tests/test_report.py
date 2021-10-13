@@ -347,6 +347,7 @@ def test_report_raw_psd_and_date(tmpdir):
     assert 'Unknown' in ''.join(report.html)
 
 
+@pytest.mark.slowtest  # slow for Mayavi on Azure
 @testing.requires_testing_data
 def test_render_add_sections(renderer, tmpdir):
     """Test adding figures/images to section."""
@@ -703,6 +704,7 @@ def test_manual_report_2d(tmpdir, invisible_fig):
     r.save(fname=fname, open_browser=False)
 
 
+@pytest.mark.slowtest  # 30 sec on Azure for Mayavi
 @testing.requires_testing_data
 def test_manual_report_3d(tmpdir, renderer):
     """Simulate adding 3D sections."""
