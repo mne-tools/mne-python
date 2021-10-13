@@ -527,11 +527,8 @@ corrmap(icas, template=(0, eog_inds[0]))
 # %%
 # The first figure shows the template map, while the second figure shows all
 # the maps that were considered a "match" for the template (including the
-# template itself). There were only three matches from the four subjects;
-# notice the output message ``No maps selected for subject(s) 1, consider a
-# more liberal threshold``.  By default the threshold is set automatically by
-# trying several values; here it may have chosen a threshold that is too high.
-# Let's take a look at the ICA sources for each subject:
+# template itself). There is one match for each subject, but it's a good idea
+# to also double-check the ICA sources for each subject:
 
 for index, (ica, raw) in enumerate(zip(icas, raws)):
     fig = ica.plot_sources(raw, show_scrollbars=False)
@@ -539,17 +536,15 @@ for index, (ica, raw) in enumerate(zip(icas, raws)):
     fig.suptitle('Subject {}'.format(index))
 
 # %%
-# Notice that subject 1 *does* seem to have an IC that looks like it reflects
-# blink artifacts (component ``ICA000``). Notice also that subject 3 appears to
-# have *two* components that are reflecting ocular artifacts (``ICA000`` and
-# ``ICA002``), but only one was caught by `~mne.preprocessing.corrmap`.
-# Let's try setting the threshold manually:
+# Notice that subjects 2 and 3 each seem to have *two* ICs that reflect ocular
+# activity (components ``ICA000`` and ``ICA002```), but only one was caught by
+# `~mne.preprocessing.corrmap`. Let's try setting the threshold manually:
 
 corrmap(icas, template=(0, eog_inds[0]), threshold=0.9)
 
 # %%
-# Now we get the message ``At least 1 IC detected for each subject`` (which is
-# good). At this point we'll re-run `~mne.preprocessing.corrmap` with
+# This time it found 2 ICs for each of subjects 2 and 3 (which is good).
+# At this point we'll re-run `~mne.preprocessing.corrmap` with
 # parameters ``label='blink', plot=False`` to *label* the ICs from each subject
 # that capture the blink artifacts (without plotting them again).
 
