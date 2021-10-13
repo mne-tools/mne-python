@@ -162,6 +162,8 @@
 .. _sphinx: https://www.sphinx-doc.org/
 .. _pandas: https://pandas.pydata.org/
 .. _PIL: https://pypi.python.org/pypi/PIL
+.. _tqdm: https://tqdm.github.io/
+.. _pooch: https://www.fatiando.org/pooch/latest/
 
 .. python editors
 
