@@ -2070,7 +2070,7 @@ class Report(object):
                     self.add_evokeds(
                         evokeds=fname, titles=titles, noise_cov=cov,
                         n_time_points=n_time_points_evokeds,
-                        topomap_kwargs=topomap_kwargs, n_jobs=n_jobs
+                        topomap_kwargs=topomap_kwargs
                     )
                 elif _endswith(fname, 'eve'):
                     if self.info_fname is not None:
@@ -2782,7 +2782,7 @@ class Report(object):
 
         with BytesIO() as buff:
             fig.savefig(
-                buff, format='png', 
+                buff, format='png',
                 dpi=fig.get_dpi(),
                 bbox_inches='tight',
                 pad_inches=0
