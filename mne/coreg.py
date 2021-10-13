@@ -1818,7 +1818,8 @@ class Coregistration(object):
             Relative weight for HPI. The default value is 1.
         callback : callable | None
             A function to call on each iteration. Useful for status message
-            updates. It will be passed the keyword argument ``iteration``.
+            updates. It will be passed the keyword arguments ``iteration``
+            and ``n_iterations``.
         %(verbose)s
 
         Returns
@@ -1858,7 +1859,7 @@ class Coregistration(object):
                     all(scale <= self._icp_scale):
                 break
             if callback is not None:
-                callback(iteration)
+                callback(iteration, n_iterations)
         self._log_dig_mri_distance('End      ')
         return self
 

@@ -420,6 +420,17 @@ class CoregistrationUI(HasTraits):
         finally:
             self._plot_locked = old_plot_locked
 
+    @contextmanager
+    def _display_message(self, msg):
+        old_msg = self._actors["msg"].GetInput()
+        self._actors["msg"].SetInput(msg)
+        self._renderer._update()
+        try:
+            yield
+        finally:
+            self._actors["msg"].SetInput(old_msg)
+            self._renderer._update()
+
     def _follow_fiducial_view(self):
         fid = self._current_fiducial.lower()
         view = dict(lpa='left', rpa='right', nasion='front')
@@ -550,24 +561,26 @@ class CoregistrationUI(HasTraits):
         self._surfaces["head"] = head_surf
 
     def _fit_fiducials(self):
-        self._coreg.fit_fiducials(
-            lpa_weight=self._lpa_weight,
-            nasion_weight=self._nasion_weight,
-            rpa_weight=self._rpa_weight,
-            verbose=self._verbose,
-        )
+        with self._display_message("Fitting..."):
+            self._coreg.fit_fiducials(
+                lpa_weight=self._lpa_weight,
+                nasion_weight=self._nasion_weight,
+                rpa_weight=self._rpa_weight,
+                verbose=self._verbose,
+            )
         self._update_plot("sensors")
         self._update_parameters()
 
     def _fit_icp(self):
-        self._coreg.fit_icp(
-            n_iterations=self._icp_n_iterations,
-            lpa_weight=self._lpa_weight,
-            nasion_weight=self._nasion_weight,
-            rpa_weight=self._rpa_weight,
-            callback=lambda x: self._update_plot("sensors"),
-            verbose=self._verbose,
-        )
+        with self._display_message("Fitting..."):
+            self._coreg.fit_icp(
+                n_iterations=self._icp_n_iterations,
+                lpa_weight=self._lpa_weight,
+                nasion_weight=self._nasion_weight,
+                rpa_weight=self._rpa_weight,
+                callback=lambda x, y: self._update_plot("sensors"),
+                verbose=self._verbose,
+            )
         self._update_parameters()
 
     def _save_trans(self, fname):
