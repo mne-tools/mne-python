@@ -15,7 +15,7 @@ from ..nirs import source_detector_distances, _channel_frequencies,\
     _check_channels_ordered, _channel_chromophore
 
 
-def beer_lambert_law(raw, ppf=0.1):
+def beer_lambert_law(raw, ppf=6):
     r"""Convert NIRS optical density data to haemoglobin concentration.
 
     Parameters
