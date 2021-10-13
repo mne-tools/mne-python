@@ -810,7 +810,8 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
 @verbose
 def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                  show_names=False, ch_groups=None, to_sphere=True, axes=None,
-                 block=False, show=True, sphere=None, verbose=None, **kwargs):
+                 block=False, show=True, sphere=None, pointsize=None,
+                 linewidth=2, verbose=None):
     """Plot sensors positions.
 
     Parameters
@@ -859,8 +860,10 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         .. versionadded:: 0.13.0
     show : bool
         Show figure if True. Defaults to True.
-    **kwargs
-        Other arguments to control the aesthetics, such as ``pointsize``.
+    pointsize : float | None
+        The size of the points. If None (default), will bet set to 75 if ``kind='3d'``, or 25 otherwise.
+    linewidth : float
+        The width of the outline. If 0, the outline will not be drawn.
     %(topomap_sphere_auto)s
     %(verbose)s
 
@@ -970,7 +973,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     title = 'Sensor positions (%s)' % ch_type if title is None else title
     fig = _plot_sensors(pos, info, picks, colors, bads, ch_names, title,
                         show_names, axes, show, kind, block,
-                        to_sphere, sphere, **kwargs)
+                        to_sphere, sphere, pointsize=pointsize, linewidth=linewidth)
     if kind == 'select':
         return fig, fig.lasso.selection
     return fig
@@ -1010,7 +1013,7 @@ def _close_event(event, fig):
 
 
 def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
-                  ax, show, kind, block, to_sphere, sphere, pointsize="default"):
+                  ax, show, kind, block, to_sphere, sphere, pointsize=None, linewidth=2):
     """Plot sensors."""
     from matplotlib import rcParams
     import matplotlib.pyplot as plt
@@ -1032,11 +1035,11 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
         fig = ax.get_figure()
 
     if kind == '3d':
-        pointsize = 75 if pointsize == "default" else pointsize
+        pointsize = 75 if pointsize is None else pointsize
         ax.text(0, 0, 0, '', zorder=1)
 
         ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors,
-                   s=pointsize, edgecolor=edgecolors, linewidth=rcParams['axes.linewidth'])
+                   s=pointsize, edgecolor=edgecolors, linewidth=linewidth)
 
         ax.azim = 90
         ax.elev = 0
@@ -1044,14 +1047,14 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
         ax.yaxis.set_label_text('y (m)')
         ax.zaxis.set_label_text('z (m)')
     else:  # kind in 'select', 'topomap'
-        pointsize = 25 if pointsize == "default" else pointsize
+        pointsize = 25 if pointsize is None else pointsize
         ax.text(0, 0, '', zorder=1)
 
         pos, outlines = _get_pos_outlines(info, picks, sphere,
                                           to_sphere=to_sphere)
         _draw_outlines(ax, outlines)
         pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, clip_on=False,
-                         c=colors, edgecolors=edgecolors, s=pointsize, lw=rcParams['axes.linewidth'])
+                         c=colors, edgecolors=edgecolors, s=pointsize, lw=linewidth)
         if kind == 'select':
             fig.lasso = SelectFromCollection(ax, pts, ch_names)
         else:
