@@ -102,19 +102,6 @@
 .. _`h5py mailing list`: https://groups.google.com/forum/#!forum/h5py
 
 
-.. marsbar
-
-.. _marsbar: http://marsbar.sourceforge.net
-.. _`marsbar github`: http://github.com/matthew-brett/marsbar
-.. _`MarsBaR mailing list`: https://lists.sourceforge.net/lists/listinfo/marsbar-users
-
-
-.. Astropy
-
-.. _Astropy: http://www.astropy.org
-.. _`Astropy GitHub`: http://github.com/astropy/astropy
-
-
 .. Pytest
 
 .. _pytest: https://docs.pytest.org/
@@ -140,21 +127,7 @@
 .. _git: https://git-scm.com/
 .. _github: https://github.com
 .. _GitHub Help: https://help.github.com
-.. _msysgit: http://code.google.com/p/msysgit/downloads/list
-.. _git-osx-installer: http://code.google.com/p/git-osx-installer/downloads/list
-.. _subversion: http://subversion.tigris.org/
-.. _git cheat sheet: http://github.com/guides/git-cheat-sheet
 .. _pro git book: https://git-scm.com/book/
-.. _git svn crash course: http://git-scm.com/course/svn.html
-.. _learn.github: http://learn.github.com/
-.. _network graph visualizer: https://github.com/blog/39-say-hello-to-the-network-graph-visualizer
-.. _git user manual: https://schacon.github.io/git/user-manual.html
-.. _git tutorial: https://schacon.github.io/git/gittutorial.html
-.. _git community book: http://book.git-scm.com/
-.. _git ready: http://www.gitready.com/
-.. _git casts: http://www.gitcasts.com/
-.. _git magic: http://www-cs-students.stanford.edu/~blynn/gitmagic/index.html
-.. _git concepts: http://www.eecs.harvard.edu/~cduan/technical/git/
 .. _git clone: http://schacon.github.com/git/git-clone.html
 .. _git checkout: https://schacon.github.io/git/git-checkout.html
 .. _git commit: https://schacon.github.io/git/git-commit.html
@@ -168,24 +141,10 @@
 .. _git remote: https://schacon.github.io/git/git-remote.html
 .. _git rebase: https://schacon.github.io/git/git-rebase.html
 .. _git config: https://schacon.github.io/git/git-config.html
-.. _git staging area: http://www.gitready.com/beginner/2009/01/18/the-staging-area.html
-.. _tangled working copy problem: http://tomayko.com/writings/the-thing-about-git
-.. _git management: http://kerneltrap.org/Linux/Git_Management
-.. _linux git workflow: http://www.mail-archive.com/dri-devel@lists.sourceforge.net/msg39091.html
-.. _git parable: http://tom.preston-werner.com/2009/05/19/the-git-parable.html
-.. _git foundation: http://matthew-brett.github.io/pydagogue/foundation.html
-.. _deleting master on github: http://matthew-brett.github.io/pydagogue/gh_delete_master.html
-.. _rebase without tears: http://matthew-brett.github.io/pydagogue/rebase_without_tears.html
-.. _resolving a merge: https://schacon.github.io/git/user-manual.html#resolving-a-merge
-.. _ipython git workflow: https://web.archive.org/web/*/http://mail.scipy.org/pipermail/ipython-dev/2010-October/006746.html
-.. _why the -a flag?: http://www.gitready.com/beginner/2009/01/18/the-staging-area.html
-.. _Fernando's git page: http://www.fperez.org/py4science/git.html
 
 .. other stuff
 
 .. _python: http://www.python.org
-.. _travis: https://travis-ci.org/
-.. _linterflake8: https://atom.io/packages/linter-flake8
 .. _Brain Imaging Data Structure: https://bids.neuroimaging.io/
 
 .. python packages
@@ -203,6 +162,8 @@
 .. _sphinx: https://www.sphinx-doc.org/
 .. _pandas: https://pandas.pydata.org/
 .. _PIL: https://pypi.python.org/pypi/PIL
+.. _tqdm: https://tqdm.github.io/
+.. _pooch: https://www.fatiando.org/pooch/latest/
 
 .. python editors
 
@@ -214,7 +175,6 @@
 .. _installation instructions for Anaconda: http://docs.continuum.io/anaconda/install
 .. _installation instructions for Miniconda: https://conda.io/projects/conda/en/latest/user-guide/install/index.html
 .. _Anaconda troubleshooting guide: http://conda.pydata.org/docs/troubleshooting.html
-.. _EPD: https://www.enthought.com/products/epd/
 .. _sublime text: http://www.sublimetext.com/
 
 .. installation links

@@ -20,4 +20,4 @@ else
 	echo "Unknown run type ${TEST_MODE}"
 	exit 1
 fi
-python -m pip install -r requirements_testing.txt -r requirements_testing_extra.txt codecov
+python -m pip install .[test] codecov
