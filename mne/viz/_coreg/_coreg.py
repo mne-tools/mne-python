@@ -654,7 +654,6 @@ class CoregistrationUI(HasTraits):
                 ),
                 compact=True,
                 double=True,
-                decimals=1,
                 layout=hlayout
             )
         self._renderer._layout_add_widget(layout, hlayout)
@@ -681,7 +680,6 @@ class CoregistrationUI(HasTraits):
             value=self._omit_hsp_distance,
             rng=[0.0, 100.0],
             callback=self._set_omit_hsp_distance,
-            decimals=1,
             layout=hlayout,
         )
         self._widgets["omit"] = self._renderer._dock_add_button(
@@ -759,7 +757,6 @@ class CoregistrationUI(HasTraits):
                 ),
                 compact=True,
                 double=True,
-                decimals=1,
                 layout=hlayout
             )
 
@@ -779,7 +776,7 @@ class CoregistrationUI(HasTraits):
                     ),
                     compact=True,
                     double=True,
-                    decimals=1,
+                    step=1,
                     layout=hlayout
                 )
 

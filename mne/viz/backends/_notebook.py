@@ -9,7 +9,7 @@ from distutils.version import LooseVersion
 
 import pyvista
 from IPython.display import display
-from ipywidgets import (Button, Dropdown, FloatSlider, FloatText, HBox,
+from ipywidgets import (Button, Dropdown, FloatSlider, BoundedFloatText, HBox,
                         IntSlider, IntText, Text, VBox, IntProgress, Play,
                         Checkbox, RadioButtons, jsdlink)
 
@@ -115,14 +115,15 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         return _IpyWidget(widget)
 
     def _dock_add_spin_box(self, name, value, rng, callback,
-                           compact=True, double=True, decimals=2,
+                           compact=True, double=True, step=None,
                            layout=None):
         layout = self._dock_named_layout(name, layout, compact)
-        klass = FloatText if double else IntText
+        klass = BoundedFloatText if double else IntText
         widget = klass(
             value=value,
             min=rng[0],
             max=rng[1],
+            step=step,
             readout=False,
         )
         widget.observe(_generate_callback(callback), names='value')
