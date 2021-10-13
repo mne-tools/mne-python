@@ -849,7 +849,7 @@ class Report(object):
     @fill_doc
     def add_evokeds(self, evokeds, *, titles=None, noise_cov=None, projs=None,
                     n_time_points=None, tags=('evoked',), replace=False,
-                    topomap_kwargs=None):
+                    topomap_kwargs=None, n_jobs=1):
         """Add `~mne.Evoked` objects to the report.
 
         Parameters
@@ -874,6 +874,7 @@ class Report(object):
         %(report_tags)s
         %(report_replace)s
         %(topomap_kwargs)s
+        %(n_jobs)s
 
         Notes
         -----
@@ -919,7 +920,8 @@ class Report(object):
                 add_projs=add_projs,
                 n_time_points=n_time_points,
                 tags=tags,
-                topomap_kwargs=topomap_kwargs
+                topomap_kwargs=topomap_kwargs,
+                n_jobs=n_jobs
             )
 
             (joint_html, slider_html, gfp_html, whitened_html,
@@ -2428,7 +2430,7 @@ class Report(object):
                     self.add_evokeds(
                         evokeds=fname, titles=titles, noise_cov=cov,
                         n_time_points=n_time_points_evokeds,
-                        topomap_kwargs=topomap_kwargs,
+                        topomap_kwargs=topomap_kwargs
                     )
                 elif _endswith(fname, 'eve'):
                     if self.info_fname is not None:
@@ -3119,10 +3121,48 @@ class Report(object):
         html = '\n'.join(htmls)
         return html
 
-    def _render_evoked_topomap_slider(self, *, evoked, ch_types, n_time_points,
-                                      image_format, tags, topomap_kwargs):
+    def _plot_one_evoked_topomap_timepoint(
+        self, *, evoked, time, ch_types, vmin, vmax, topomap_kwargs
+    ):
         import matplotlib.pyplot as plt
 
+        fig, ax = plt.subplots(
+            1, len(ch_types) * 2,
+            gridspec_kw={'width_ratios': [8, 0.5] * len(ch_types)},
+            figsize=(4 * len(ch_types), 3.5)
+        )
+        ch_type_ax_map = dict(
+            zip(ch_types,
+                [(ax[i], ax[i + 1]) for i in
+                    range(0, 2 * len(ch_types) - 1, 2)])
+        )
+
+        for ch_type in ch_types:
+            evoked.plot_topomap(
+                times=[time], ch_type=ch_type,
+                vmin=vmin[ch_type], vmax=vmax[ch_type],
+                axes=ch_type_ax_map[ch_type], show=False,
+                **topomap_kwargs
+            )
+            ch_type_ax_map[ch_type][0].set_title(ch_type)
+
+        tight_layout(fig=fig)
+
+        with BytesIO() as buff:
+            fig.savefig(
+                buff, format='png',
+                dpi=fig.get_dpi(),
+                bbox_inches='tight',
+                pad_inches=0
+            )
+            plt.close(fig)
+            buff.seek(0)
+            fig_array = plt.imread(buff, format='png')
+        return fig_array
+
+    def _render_evoked_topomap_slider(self, *, evoked, ch_types, n_time_points,
+                                      image_format, tags, topomap_kwargs,
+                                      n_jobs):
         if n_time_points is None:
             n_time_points = min(len(evoked.times), 21)
         elif n_time_points > len(evoked.times):
@@ -3158,43 +3198,23 @@ class Report(object):
             else:
                 vmin[ch_type] = -vmax[ch_type]
 
-        figs = []
         topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
 
-        for t in times:
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    action='ignore',
-                    message='More than 20 figures have been opened',
-                    category=RuntimeWarning
-                )
-
-                # topomaps + color bars
-                fig, ax = plt.subplots(
-                    1, len(ch_types) * 2,
-                    gridspec_kw={'width_ratios': [8, 0.5] * len(ch_types)},
-                    figsize=(4 * len(ch_types), 3.5)
-                )
-                ch_type_ax_map = dict(
-                    zip(ch_types,
-                        [(ax[i], ax[i + 1]) for i in
-                         range(0, 2 * len(ch_types) - 1, 2)])
-                )
-
-                for ch_type in ch_types:
-                    evoked.plot_topomap(
-                        times=[t], ch_type=ch_type,
-                        vmin=vmin[ch_type], vmax=vmax[ch_type],
-                        axes=ch_type_ax_map[ch_type], show=False,
-                        **topomap_kwargs
-                    )
-                    ch_type_ax_map[ch_type][0].set_title(ch_type)
-                tight_layout(fig=fig)
-                figs.append(fig)
+        use_jobs = min(n_jobs, max(1, len(times)))
+        parallel, p_fun, _ = parallel_func(
+            func=self._plot_one_evoked_topomap_timepoint,
+            n_jobs=use_jobs
+        )
+        fig_arrays = parallel(
+            p_fun(
+                evoked=evoked, time=time, ch_types=ch_types,
+                vmin=vmin, vmax=vmax, topomap_kwargs=topomap_kwargs
+            ) for time in times
+        )
 
         captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
         html = self._render_slider(
-            figs=figs,
+            figs=fig_arrays,
             captions=captions,
             title='Topographies',
             image_format=image_format,
@@ -3271,7 +3291,7 @@ class Report(object):
         return html
 
     def _render_evoked(self, evoked, noise_cov, add_projs, n_time_points,
-                       image_format, tags, topomap_kwargs):
+                       image_format, tags, topomap_kwargs, n_jobs):
         def _get_ch_types(ev):
             has_types = []
             if len(pick_types(ev.info, meg=False, eeg=True)) > 0:
@@ -3294,6 +3314,7 @@ class Report(object):
             n_time_points=n_time_points,
             image_format=image_format,
             tags=tags, topomap_kwargs=topomap_kwargs,
+            n_jobs=n_jobs
         )
         gfp_html = self._render_evoked_gfp(
             evoked=evoked, ch_types=ch_types, image_format=image_format,
