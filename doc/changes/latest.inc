@@ -191,6 +191,8 @@ Enhancements
 
 - Add :func:`mne.preprocessing.ieeg.project_sensors_onto_brain` to project ECoG sensors onto the pial surface to compensate for brain shift (:gh:`9800` by `Alex Rockhill`_)
 
+- Add support for data acquired with NIRx devices using Aurora software version 2021.9 (:gh:`9800` by `Robert Luke`_, and `Eric Larson`_)
+
 - All functions for reading and writing files should now automatically handle ``~`` (the tilde character) and expand it to the user's home directory. Should you come across any function that doesn't do it, please do let us know! (:gh:`9613` by `Richard Höchenberger`_)
 
 - All functions accepting a FreeSurfer subjects directory via a ``subjects_dir`` parameter can now consume :py:class:`pathlib.Path` objects too (used to be only strings) (:gh:`9613` by `Richard Höchenberger`_)
@@ -222,6 +224,8 @@ Bugs
 - Fix bug with `mne.io.read_raw_fieldtrip` and `mne.read_epochs_fieldtrip` where channel positions were not set properly (:gh:`9447` by `Eric Larson`_)
 
 - Fix bug with :func:`mne.io.read_raw_kit` where omitting HPI coils could lead to an :exc:`python:AssertionError` on reading (:gh:`9612` by `Eric Larson`_)
+
+- Fix bug with :func:`mne.io.read_raw_edf` where reading only stimulus channels would lead to an error (:gh:`9831` by `Eric Larson`_)
 
 - Fix bug with `mne.preprocessing.nirs.optical_density` where protection against zero values was not guaranteed (:gh:`9522` by `Eric Larson`_)
 
@@ -290,6 +294,8 @@ API changes
 - All ``mne.connectivity`` functions have moved to the ``mne-connectivity`` package; they are deprecated in MNE-Python and will be removed in version 0.25 (:gh:`9493` by `Adam Li`_).
 
 - :func:`mne.inverse_sparse.mixed_norm` now simply warns when source estimates contain no dipole, e.g. if data are too noisy and alpha is based on SURE (:gh:`9685` by `Alex Gramfort`_)
+
+- deprecate functions :samp:`mne.datasets.{DATASET_NAME}.has_{DATASET_NAME}_data()` for these datasets: ``epilepsy_ecog``, ``fnirs_motor``, ``multimodal``, ``opm``, ``phantom_4dbti``, ``refmeg_noise``, ``sample``, ``somato``, and ``ssvep``. Use the generic :func:`mne.datasets.has_dataset` instead (:gh:`9781` by `Daniel McCloy`_ and `Adam Li`_)
 
 - :class:`mne.Report` modernization has led to multiple deprecations (:gh:`9754` by `Richard Höchenberger`_):
 

@@ -173,6 +173,7 @@ def _assert_n_actors(fig, renderer, n_actors):
     assert len(fig.plotter.renderer.actors) == n_actors
 
 
+@pytest.mark.slowtest  # Slow for Mayavi on Azure
 @pytest.mark.parametrize('system', [
     'Neuromag',
     pytest.param('CTF', marks=testing._pytest_mark()),
@@ -641,8 +642,8 @@ def test_plot_dipole_orientations(renderer):
     renderer.backend._close_all()
 
 
+@pytest.mark.slowtest  # slow for Mayavi on Azure
 @testing.requires_testing_data
-@traits_test
 def test_snapshot_brain_montage(renderer):
     """Test snapshot brain montage."""
     info = read_info(evoked_fname)

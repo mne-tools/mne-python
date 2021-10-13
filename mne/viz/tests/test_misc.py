@@ -249,6 +249,7 @@ def test_plot_csd():
     plot_csd(csd, mode='coh')  # Plot coherence
 
 
+@pytest.mark.slowtest  # Slow on Azure
 @testing.requires_testing_data
 def test_plot_chpi_snr():
     """Test plotting cHPI SNRs."""
