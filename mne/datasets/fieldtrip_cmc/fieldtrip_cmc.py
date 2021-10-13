@@ -2,16 +2,9 @@
 #          Alexandre Barachant <alexandre.barachant@gmail.com>
 #
 # License: BSD Style.
-from functools import partial
-
 from ...utils import verbose
-from ..utils import (has_dataset, _data_path_doc,
+from ..utils import (_data_path_doc,
                      _get_version, _version_doc, _download_mne_dataset)
-
-
-data_name = "fieldtrip_cmc"
-conf_name = "MNE_DATASETS_FIELDTRIP_CMC_PATH"
-has_mtrf_data = partial(has_dataset, name=data_name)
 
 
 @verbose
@@ -23,12 +16,12 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
         download=download)
 
 
-data_path.__doc__ = _data_path_doc.format(name=data_name,
-                                          conf=conf_name)
+data_path.__doc__ = _data_path_doc.format(
+    name='fieldtrip_cmc', conf='MNE_DATASETS_FIELDTRIP_CMC_PATH')
 
 
 def get_version():  # noqa: D103
-    return _get_version(data_name)
+    return _get_version('fieldtrip_cmc')
 
 
-get_version.__doc__ = _version_doc.format(name=data_name)
+get_version.__doc__ = _version_doc.format(name='fieldtrip_cmc')

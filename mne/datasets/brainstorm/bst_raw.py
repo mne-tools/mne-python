@@ -10,7 +10,7 @@ from ..utils import (has_dataset, _get_version, _version_doc,
 
 has_brainstorm_data = partial(has_dataset, name='bst_raw')
 
-_description = u"""
+_description = """
 URL: http://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
     - One subject, one acquisition run of 6 minutes
     - Subject stimulated using Digitimer Constant Current Stimulator
