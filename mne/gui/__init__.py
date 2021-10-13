@@ -8,6 +8,7 @@ import os
 
 from ..utils import _check_mayavi_version, verbose, get_config
 from ._backend import _testing_mode
+from ._coreg import CoregistrationUI
 
 
 def _initialize_gui(frame, view=None):

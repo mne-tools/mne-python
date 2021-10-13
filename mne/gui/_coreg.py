@@ -3,16 +3,16 @@ import os
 import os.path as op
 import numpy as np
 from functools import partial
-from ...defaults import DEFAULTS
-from ...io import read_info, read_fiducials
-from ...io.pick import pick_types
-from ...coreg import Coregistration, _is_mri_subject
-from ...viz._3d import (_plot_head_surface, _plot_head_fiducials,
-                        _plot_head_shape_points, _plot_mri_fiducials,
-                        _plot_hpi_coils, _plot_sensors)
-from ...transforms import (read_trans, write_trans, _ensure_trans,
-                           rotation_angles, _get_transforms_to_coord_frame)
-from ...utils import get_subjects_dir, _check_fname
+from ..defaults import DEFAULTS
+from ..io import read_info, read_fiducials
+from ..io.pick import pick_types
+from ..coreg import Coregistration, _is_mri_subject
+from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
+                       _plot_head_shape_points, _plot_mri_fiducials,
+                       _plot_hpi_coils, _plot_sensors)
+from ..transforms import (read_trans, write_trans, _ensure_trans,
+                          rotation_angles, _get_transforms_to_coord_frame)
+from ..utils import get_subjects_dir, _check_fname
 from traitlets import observe, HasTraits, Unicode, Bool, Float
 
 
@@ -38,7 +38,7 @@ class CoregistrationUI(HasTraits):
                  head_opacity=None, hpi_coils=None, head_shape_points=None,
                  eeg_channels=None, orient_glyphs=None,
                  trans=None, standalone=False):
-        from ..backends.renderer import _get_renderer
+        from ..viz.backends.renderer import _get_renderer
 
         def _get_default(var, val):
             return var if var is not None else val

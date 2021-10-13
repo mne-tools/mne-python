@@ -107,7 +107,7 @@ def run():
     except ImportError:
         pass  # old Python2
     if options.pyvista:
-        mne.viz._coreg.CoregistrationUI(
+        mne.gui.CoregistrationUI(
             info_file=options.inst, subject=options.subject,
             subjects_dir=subjects_dir,
             head_resolution=head_high_res,
