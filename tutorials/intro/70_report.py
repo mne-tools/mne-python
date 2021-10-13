@@ -22,7 +22,6 @@ directly within the browser). This tutorial covers the basics of building a
 # %%
 
 from pathlib import Path
-import warnings
 import numpy as np
 import scipy.ndimage
 import matplotlib.pyplot as plt
@@ -220,27 +219,24 @@ report.save('report_projs.html', overwrite=True)
 #
 # .. warning::
 #    In the following example, we crop the raw data, only fit ICA on EEG
-#    channels, request a small number of ICA components to estimate, limit the
-#    number of ICA iterations to a very small amount, and only visualize 2 of
-#    the components. All of this is done to largely reduce the processing time
-#    of this tutorial, and is usually **not** recommended for an actual data
-#    analysis.
+#    channels, request a small number of ICA components to estimate, set the
+#    threshold for asssuming ICA convergence to a very liberal value, and only
+#    visualize 2 of the components. All of this is done to largely reduce the
+#    processing time of this tutorial, and is usually **not** recommended for
+#    an actual data analysis.
 
 raw_eeg_cropped = (raw
                    .copy()
                    .pick_types(meg=False, eeg=True, eog=True)
                    .crop(tmax=60)  # only keep 60 seconds
                    .load_data())
+
 ica = mne.preprocessing.ICA(
     n_components=5,  # fit 5 ICA components
-    max_iter=100  # abort after 100 iterations
+    fit_params=dict(tol=0.01)  # assume very early on that ICA has converged
 )
 
-with warnings.catch_warnings(record=True):
-    # ignore warning about ICA fit not converging – don't do this in practice!
-    warnings.simplefilter('ignore')
-
-    ica.fit(inst=raw_eeg_cropped)
+ica.fit(inst=raw_eeg_cropped)
 
 # create epochs based on EOG events, find EOG artifacts in the data via pattern
 # matching, and exclude the EOG-related ICA components

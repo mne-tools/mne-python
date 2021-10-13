@@ -160,12 +160,12 @@ ica_template = Template("""
         <td>{{n_components}}</td>
     </tr>
     <tr>
-        <th>PCA components used</th>
-        <td>{{n_pca_components}}</td>
-    </tr>
-    <tr>
         <th>Explained variance</th>
         <td>{{round(explained_variance * 100, 1)}}&nbsp;%</td>
+    </tr>
+    <tr>
+        <th>Available PCA components</th>
+        <td>{{n_pca_components}}</td>
     </tr>
     <tr>
         <th>Channel types</th>

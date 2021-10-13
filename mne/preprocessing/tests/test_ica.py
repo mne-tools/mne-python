@@ -476,7 +476,7 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components):
     repr_html_ = ica._repr_html_()
     assert 'raw data decomposition' in repr_
     assert f'{ica.n_components_} ICA components' in repr_
-    assert 'PCA components used' in repr_html_
+    assert 'Available PCA components' in repr_html_
     assert 'Explained variance' in repr_html_
 
     assert ('mag' in ica)  # should now work without error

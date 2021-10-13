@@ -517,7 +517,7 @@ class ICA(ContainsMixin):
                 f'{infos.fit_n_components} ICA components '
                 f'explaining {round(infos.fit_explained_variance * 100, 1)} % '
                 f'of variance '
-                f'({infos.fit_n_pca_components} PCA components used), '
+                f'({infos.fit_n_pca_components} PCA components available), '
                 f'channel types: {", ".join(infos.ch_types)}, '
                 f'{len(infos.excludes) or "no"} sources marked for exclusion'
             )
