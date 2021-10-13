@@ -2787,9 +2787,9 @@ class Report(object):
                 bbox_inches='tight',
                 pad_inches=0
             )
+            plt.close(fig)
             buff.seek(0)
-        plt.close(fig)
-        fig_array = plt.imread(buff, format='png')
+            fig_array = plt.imread(buff, format='png')
         return fig_array
 
     def _render_evoked_topomap_slider(self, *, evoked, ch_types, n_time_points,
