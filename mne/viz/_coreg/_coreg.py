@@ -565,9 +565,9 @@ class CoregistrationUI(HasTraits):
             lpa_weight=self._lpa_weight,
             nasion_weight=self._nasion_weight,
             rpa_weight=self._rpa_weight,
+            callback=lambda x: self._update_plot("sensors"),
             verbose=self._verbose,
         )
-        self._update_plot("sensors")
         self._update_parameters()
 
     def _save_trans(self, fname):

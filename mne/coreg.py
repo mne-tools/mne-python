@@ -1797,7 +1797,7 @@ class Coregistration(object):
     @verbose
     def fit_icp(self, n_iterations=20, lpa_weight=1., nasion_weight=10.,
                 rpa_weight=1., hsp_weight=1., eeg_weight=1., hpi_weight=1.,
-                verbose=None):
+                callback=None, verbose=None):
         """Find MRI scaling, translation, and rotation to match HSP.
 
         Parameters
@@ -1816,6 +1816,9 @@ class Coregistration(object):
             Relative weight for EEG. The default value is 1.
         hpi_weight : float
             Relative weight for HPI. The default value is 1.
+        callback : callable | None
+            A function to call on each iteration. Useful for status message
+            updates. It will be passed the keyword argument ``iteration``.
         %(verbose)s
 
         Returns
@@ -1838,7 +1841,7 @@ class Coregistration(object):
         est = est[:[6, 7, None, 9][n_scale_params]]
 
         # Do the fits, assigning and evaluating at each step
-        for ii in range(n_iterations):
+        for iteration in range(n_iterations):
             head_pts, mri_pts, weights = self._setup_icp(n_scale_params)
             est = fit_matched_points(mri_pts, head_pts, scale=n_scale_params,
                                      x0=est, out='params', weights=weights)
@@ -1850,10 +1853,12 @@ class Coregistration(object):
             else:
                 self._update_params(rot=est[:3], tra=est[3:6], sca=est[6:9])
             angle, move, scale = self._changes
-            self._log_dig_mri_distance(f'  ICP {ii + 1:2d} ')
+            self._log_dig_mri_distance(f'  ICP {iteration + 1:2d} ')
             if angle <= self._icp_angle and move <= self._icp_distance and \
                     all(scale <= self._icp_scale):
                 break
+            if callback is not None:
+                callback(iteration)
         self._log_dig_mri_distance('End      ')
         return self
 
