@@ -537,7 +537,7 @@ for index, (ica, raw) in enumerate(zip(icas, raws)):
 
 # %%
 # Notice that subjects 2 and 3 each seem to have *two* ICs that reflect ocular
-# activity (components ``ICA000`` and ``ICA002```), but only one was caught by
+# activity (components ``ICA000`` and ``ICA002``), but only one was caught by
 # `~mne.preprocessing.corrmap`. Let's try setting the threshold manually:
 
 corrmap(icas, template=(0, eog_inds[0]), threshold=0.9)
@@ -555,12 +555,12 @@ print([ica.labels_ for ica in icas])
 # %%
 # Notice that the first subject has 3 different labels for the IC at index 0:
 # "eog/0/Fpz", "eog", and "blink". The first two were added by
-# `~mne.preprocessing.ICA.find_bads_eog`; the "blink" label was added by
-# the last call to `~mne.preprocessing.corrmap`. Notice also that each
-# subject has at least one IC index labelled "blink", and subject 3 has two
+# `~mne.preprocessing.ICA.find_bads_eog`; the "blink" label was added by the
+# last call to `~mne.preprocessing.corrmap`. Notice also that each subject has
+# at least one IC index labelled "blink", and subjects 2 and 3 each have two
 # components (0 and 2) labelled "blink" (consistent with the plot of IC sources
-# above). The ``labels_`` attribute of `~mne.preprocessing.ICA` objects
-# can also be manually edited to annotate the ICs with custom labels. They also
+# above). The ``labels_`` attribute of `~mne.preprocessing.ICA` objects can
+# also be manually edited to annotate the ICs with custom labels. They also
 # come in handy when plotting:
 
 icas[3].plot_components(picks=icas[3].labels_['blink'])
