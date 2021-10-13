@@ -220,7 +220,7 @@ report.save('report_projs.html', overwrite=True)
 # .. warning::
 #    In the following example, we crop the raw data, only fit ICA on EEG
 #    channels, request a small number of ICA components to estimate, set the
-#    threshold for asssuming ICA convergence to a very liberal value, and only
+#    threshold for assuming ICA convergence to a very liberal value, and only
 #    visualize 2 of the components. All of this is done to largely reduce the
 #    processing time of this tutorial, and is usually **not** recommended for
 #    an actual data analysis.
