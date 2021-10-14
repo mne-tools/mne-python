@@ -3114,7 +3114,7 @@ class Report(object):
         html = '\n'.join(htmls)
         return html
 
-    def _render_one_evoked_topomap_timepoint(
+    def _plot_one_evoked_topomap_timepoint(
         self, *, evoked, time, ch_types, vmin, vmax, topomap_kwargs
     ):
         import matplotlib.pyplot as plt
@@ -3195,7 +3195,7 @@ class Report(object):
 
         use_jobs = min(n_jobs, max(1, len(times)))
         parallel, p_fun, _ = parallel_func(
-            func=self._render_one_evoked_topomap_timepoint,
+            func=self._plot_one_evoked_topomap_timepoint,
             n_jobs=use_jobs
         )
         fig_arrays = parallel(
