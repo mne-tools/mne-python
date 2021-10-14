@@ -494,6 +494,9 @@ class CoregistrationUI(HasTraits):
         mri_fids_actors = _plot_mri_fiducials(
             self._renderer, self._coreg._fid_points, self._subjects_dir,
             self._subject, to_cf_t, self._fid_colors)
+        # disable picking on the markers
+        for actor in mri_fids_actors:
+            actor.SetPickable(False)
         self._update_actor("mri_fiducials", mri_fids_actors)
 
     def _add_head_fiducials(self):
