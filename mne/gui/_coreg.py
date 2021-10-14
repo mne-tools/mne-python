@@ -12,11 +12,50 @@ from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_hpi_coils, _plot_sensors)
 from ..transforms import (read_trans, write_trans, _ensure_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
-from ..utils import get_subjects_dir, _check_fname
+from ..utils import get_subjects_dir, _check_fname, fill_doc
 from traitlets import observe, HasTraits, Unicode, Bool, Float
 
 
+@fill_doc
 class CoregistrationUI(HasTraits):
+    """Class for coregistration assisted by graphical interface.
+
+    Parameters
+    ----------
+    %(info_str)s
+    %(subject)s
+    %(subjects_dir)s
+    fiducials : list | dict | str
+        The fiducials given in the MRI (surface RAS) coordinate
+        system. If a dict is provided it must be a dict with 3 entries
+        with keys 'lpa', 'rpa' and 'nasion' with as values coordinates in m.
+        If a list it must be a list of DigPoint instances as returned
+        by the read_fiducials function.
+        If set to 'estimated', the fiducials are initialized
+        automatically using fiducials defined in MNI space on fsaverage
+        template. If set to 'auto', one tries to find the fiducials
+        in a file with the canonical name (``bem/{subject}-fiducials.fif``)
+        and if abstent one falls back to 'estimated'. Defaults to 'auto'.
+    head_resolution : bool
+        If True, use a high-resolution head surface. Defaults to False.
+    head_transparency : bool
+        If True, display the head surface with transparency. Defaults to False.
+    head_opacity : float
+        The opacity of the head surface between 0 and 1. Defaults to 0.4.
+    hpi_coils : bool
+        If True, display the HPI coils. Defaults to True.
+    head_shape_points : bool
+        If True, display the head shape points. Defaults to True.
+    eeg_channels : bool
+        If True, display the EEG channels. Defaults to False.
+    orient_glyphs : bool
+        If True, orient the sensors towards the head surface. Default to False.
+    trans : str
+        The path to the Head<->MRI transform FIF file ("-trans.fif").
+    standalone : bool
+        If True, start the Qt application event loop. Default to False.
+    """
+
     _subject = Unicode()
     _subjects_dir = Unicode()
     _lock_fids = Bool()
@@ -33,10 +72,10 @@ class CoregistrationUI(HasTraits):
     _scale_mode = Unicode()
     _icp_fid_match = Unicode()
 
-    def __init__(self, info_file, subject=None, subjects_dir=None,
-                 fids='auto', head_resolution=None, head_transparency=None,
-                 head_opacity=None, hpi_coils=None, head_shape_points=None,
-                 eeg_channels=None, orient_glyphs=None,
+    def __init__(self, info_str, subject=None, subjects_dir=None,
+                 fiducials='auto', head_resolution=None,
+                 head_transparency=None, head_opacity=None, hpi_coils=None,
+                 head_shape_points=None, eeg_channels=None, orient_glyphs=None,
                  trans=None, standalone=False):
         from ..viz.backends.renderer import _get_renderer
 
@@ -83,11 +122,18 @@ class CoregistrationUI(HasTraits):
             ),
         )
 
-        self._fids = fids
-        self._info = read_info(info_file)
+        if isinstance(info_str, str):
+            info_file = info_str
+            self._info = read_info(info_file)
+        else:
+            info_file = None
+            self._info = info_str
+
+        self._fiducials = fiducials
         self._renderer = _get_renderer(bgcolor="grey")
         self._renderer._window_close_connect(self._clean)
-        self._coreg = Coregistration(self._info, subject, subjects_dir, fids)
+        self._coreg = Coregistration(
+            self._info, subject, subjects_dir, fiducials)
         for fid in self._defaults["weights"].keys():
             setattr(self, f"_{fid}_weight", self._defaults["weights"][fid])
 
@@ -148,6 +194,8 @@ class CoregistrationUI(HasTraits):
         self._current_fiducial = fid.lower()
 
     def _set_info_file(self, fname):
+        if fname is None:
+            return
         self._info_file = _check_fname(
             fname, overwrite=True, must_exist=True, need_dir=False)
 
@@ -228,7 +276,7 @@ class CoregistrationUI(HasTraits):
         # XXX: add coreg.set_subject()
         self._coreg._subject = self._subject
         self._coreg._setup_bem()
-        self._coreg._setup_fiducials(self._fids)
+        self._coreg._setup_fiducials(self._fiducials)
         self._reset()
         rr = (self._coreg._processed_low_res_mri_points *
               self._coreg._scale)
