@@ -106,30 +106,19 @@ def run():
         faulthandler.enable()
     except ImportError:
         pass  # old Python2
-    if options.pyvista:
-        mne.gui.CoregistrationUI(
-            info_file=options.inst, subject=options.subject,
+    with ETSContext():
+        mne.gui.coregistration(
+            options.tabbed, inst=options.inst, subject=options.subject,
             subjects_dir=subjects_dir,
-            head_resolution=head_high_res,
-            head_opacity=options.head_opacity,
-            orient_glyphs=options.orient_to_surface,
-            trans=trans,
-            standalone=True,
-        )
-    else:
-        with ETSContext():
-            mne.gui.coregistration(
-                options.tabbed, inst=options.inst, subject=options.subject,
-                subjects_dir=subjects_dir,
-                guess_mri_subject=options.guess_mri_subject,
-                head_opacity=options.head_opacity, head_high_res=head_high_res,
-                trans=trans, scrollable=True, project_eeg=options.project_eeg,
-                orient_to_surface=options.orient_to_surface,
-                scale_by_distance=options.scale_by_distance,
-                mark_inside=options.mark_inside,
-                interaction=options.interaction, scale=options.scale,
-                advanced_rendering=options.advanced_rendering,
-                verbose=options.verbose)
+            guess_mri_subject=options.guess_mri_subject,
+            head_opacity=options.head_opacity, head_high_res=head_high_res,
+            trans=trans, scrollable=True, project_eeg=options.project_eeg,
+            orient_to_surface=options.orient_to_surface,
+            scale_by_distance=options.scale_by_distance,
+            mark_inside=options.mark_inside,
+            interaction=options.interaction, scale=options.scale,
+            advanced_rendering=options.advanced_rendering,
+            pyvista=options.pyvista, verbose=options.verbose)
 
 
 mne.utils.run_command_if_main()

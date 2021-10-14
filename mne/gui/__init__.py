@@ -8,7 +8,6 @@ import os
 
 from ..utils import _check_mayavi_version, verbose, get_config
 from ._backend import _testing_mode
-from ._coreg import CoregistrationUI
 
 
 def _initialize_gui(frame, view=None):
@@ -27,7 +26,8 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
                    trans=None, scrollable=True, project_eeg=None,
                    orient_to_surface=None, scale_by_distance=None,
                    mark_inside=None, interaction=None, scale=None,
-                   advanced_rendering=None, head_inside=True, verbose=None):
+                   advanced_rendering=None, head_inside=True,
+                   pyvista=False, verbose=None):
     """Coregister an MRI with a subject's head shape.
 
     The recommended way to use the GUI is through bash with:
@@ -114,11 +114,15 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         points behind the head.
 
         .. versionadded:: 0.23
+    pyvista : bool
+        If True, use the PyVista/PyQt5 interface. Defaults to False.
+
+        .. versionadded:: 0.23
     %(verbose)s
 
     Returns
     -------
-    frame : instance of CoregFrame
+    frame : instance of CoregFrame or CoregistrationUI
         The coregistration frame.
 
     Notes
@@ -175,20 +179,31 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     width = int(width)
     height = int(height)
     scale = float(scale)
-    _check_mayavi_version()
-    from ._backend import _check_backend
-    _check_backend()
-    from ._coreg_gui import CoregFrame, _make_view
-    view = _make_view(tabbed, split, width, height, scrollable)
-    frame = CoregFrame(inst, subject, subjects_dir, guess_mri_subject,
-                       head_opacity, head_high_res, trans, config,
-                       project_eeg=project_eeg,
-                       orient_to_surface=orient_to_surface,
-                       scale_by_distance=scale_by_distance,
-                       mark_inside=mark_inside, interaction=interaction,
-                       scale=scale, advanced_rendering=advanced_rendering,
-                       head_inside=head_inside)
-    return _initialize_gui(frame, view)
+    if pyvista:
+        from ._coreg import CoregistrationUI
+        return CoregistrationUI(
+            info_str=inst, subject=subject,
+            subjects_dir=subjects_dir,
+            head_resolution=head_high_res,
+            head_opacity=head_opacity,
+            orient_glyphs=orient_to_surface,
+            trans=trans, standalone=True,
+        )
+    else:
+        _check_mayavi_version()
+        from ._backend import _check_backend
+        _check_backend()
+        from ._coreg_gui import CoregFrame, _make_view
+        view = _make_view(tabbed, split, width, height, scrollable)
+        frame = CoregFrame(inst, subject, subjects_dir, guess_mri_subject,
+                           head_opacity, head_high_res, trans, config,
+                           project_eeg=project_eeg,
+                           orient_to_surface=orient_to_surface,
+                           scale_by_distance=scale_by_distance,
+                           mark_inside=mark_inside, interaction=interaction,
+                           scale=scale, advanced_rendering=advanced_rendering,
+                           head_inside=head_inside)
+        return _initialize_gui(frame, view)
 
 
 def fiducials(subject=None, fid_file=None, subjects_dir=None):
