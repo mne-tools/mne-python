@@ -307,6 +307,9 @@ def test_plot_ica_overlay():
     raw.info['highpass'] = 1.0  # fake high-pass filtering
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, random_state=0)
+    # overlay plotting requires a fitted ICA
+    with pytest.raises(RuntimeError, match='need to fit'):
+        ica.plot_overlay(inst=raw)
     # can't use info.normalize_proj here because of how and when ICA and Epochs
     # objects do picking of Raw data
     with pytest.warns(RuntimeWarning, match='projection'):
