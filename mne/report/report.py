@@ -504,7 +504,7 @@ def open_report(fname, **params):
     report : instance of Report
         The report.
     """
-    fname = _check_fname(fname=fname, must_exist=False)
+    fname = _check_fname(fname=fname, overwrite='read', must_exist=False)
     if op.exists(fname):
         # Check **params with the loaded report
         state = read_hdf5(fname, title='mnepython')
