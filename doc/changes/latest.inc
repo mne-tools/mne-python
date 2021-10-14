@@ -193,7 +193,7 @@ Enhancements
 
 - Add support for data acquired with NIRx devices using Aurora software version 2021.9 (:gh:`9800` by `Robert Luke`_, and `Eric Larson`_)
 
-- All functions for reading and writing files should now automatically handle ``~`` (the tilde character) and expand it to the user's home directory. Should you come across any function that doesn't do it, please do let us know! (:gh:`9613` by `Richard Höchenberger`_)
+- All functions for reading and writing files should now automatically handle ``~`` (the tilde character) and expand it to the user's home directory. Should you come across any function that doesn't do it, please do let us know! (:gh:`9613`, :gh`9845` by `Richard Höchenberger`_)
 
 - All functions accepting a FreeSurfer subjects directory via a ``subjects_dir`` parameter can now consume :py:class:`pathlib.Path` objects too (used to be only strings) (:gh:`9613` by `Richard Höchenberger`_)
 
