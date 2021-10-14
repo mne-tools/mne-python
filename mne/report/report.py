@@ -3372,7 +3372,7 @@ class Report(object):
             fname = epochs.filename
         else:
             fname = epochs
-            epochs = read_epochs(fname)
+            epochs = read_epochs(fname, preload=False)
 
         # Summary table
         dom_id = self._get_dom_id()
@@ -3418,8 +3418,8 @@ class Report(object):
                 fmax = np.inf
 
             fig = epochs.plot_psd(fmax=fmax, show=False)
-            tight_layout(fig=fig)
 
+            tight_layout(fig=fig)
             img = _fig_to_img(fig=fig, image_format=image_format)
             psd_img_html = _html_image_element(
                 img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
