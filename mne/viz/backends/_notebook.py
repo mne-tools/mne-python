@@ -123,9 +123,10 @@ class _IpyDock(_AbstractDock, _IpyLayout):
             value=value,
             min=rng[0],
             max=rng[1],
-            step=step,
             readout=False,
         )
+        if step is not None:
+            widget.step = step
         widget.observe(_generate_callback(callback), names='value')
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
