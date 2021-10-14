@@ -37,7 +37,7 @@ from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
-                     _path_like, use_log_level, deprecated)
+                     _path_like, use_log_level, deprecated, _check_fname)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
@@ -442,6 +442,7 @@ def open_report(fname, **params):
     report : instance of Report
         The report.
     """
+    fname = _check_fname(fname=fname, must_exist=False)
     if op.exists(fname):
         # Check **params with the loaded report
         state = read_hdf5(fname, title='mnepython')
@@ -2208,7 +2209,11 @@ class Report(object):
         # iterate through the possible patterns
         fnames = list()
         for p in pattern:
-            fnames.extend(sorted(_recursive_search(self.data_path, p)))
+            data_path = _check_fname(
+                fname=self.data_path, overwrite='read', must_exist=True,
+                name='Directory or folder', need_dir=True
+            )
+            fnames.extend(sorted(_recursive_search(data_path, p)))
 
         if not fnames and not render_bem:
             raise RuntimeError(f'No matching files found in {self.data_path}')
@@ -2363,9 +2368,10 @@ class Report(object):
                 self.data_path = os.getcwd()
                 warn(f'`data_path` not provided. Using {self.data_path} '
                      f'instead')
-            fname = op.realpath(op.join(self.data_path, 'report.html'))
-        else:
-            fname = op.realpath(fname)
+            fname = op.join(self.data_path, 'report.html')
+
+        fname = _check_fname(fname, overwrite=overwrite, name=fname)
+        fname = op.realpath(fname)  # resolve symlinks
 
         if sort_content:
             self._content = self._sort(
