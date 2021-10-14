@@ -115,8 +115,8 @@ def run():
             trans=trans, scrollable=True, project_eeg=options.project_eeg,
             orient_to_surface=options.orient_to_surface,
             scale_by_distance=options.scale_by_distance,
-            mark_inside=options.mark_inside,
-            interaction=options.interaction, scale=options.scale,
+            mark_inside=options.mark_inside, interaction=options.interaction,
+            scale=options.scale,
             advanced_rendering=options.advanced_rendering,
             pyvista=options.pyvista, verbose=options.verbose)
 
