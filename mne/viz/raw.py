@@ -164,8 +164,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
         .. versionadded:: 0.16.0
     %(show_scrollbars)s
-    show_scalebars : bool
-        Whether or not to show the scale bars. Defaults to True.
+    %(show_scalebars)s
 
         .. versionadded:: 0.20.0
     %(time_format)s

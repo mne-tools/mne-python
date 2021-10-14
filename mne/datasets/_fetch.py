@@ -45,18 +45,18 @@ def fetch_dataset(
         ``archive_name``, ``url``, ``folder_name``, ``hash``,
         ``config_key`` (optional). See Notes.
     processor : None | "unzip" | "untar" | instance of pooch.Unzip | instance of pooch.Untar
-        What to do after downloading the file. ``"unzip"`` and ``"untar"` will
+        What to do after downloading the file. ``"unzip"`` and ``"untar"`` will
         decompress the downloaded file in place; for custom extraction (e.g.,
         only extracting certain files from the archive) pass an instance of
         :class:`pooch.Unzip` or :class:`pooch.Untar`. If ``None`` (the
-        default), the files are left as is.
+        default), the files are left as-is.
     path : None | str
-        Location of where to look for the dataset.
-        If None, the environment variable or ``config_key`` parameter
-        is used. If it doesn't exist, the
-        "~/mne_data" directory is used. If the dataset
-        is not found under the given path, the data
-        will be automatically downloaded to the specified folder.
+        Directory in which to put the dataset. If ``None``, the dataset
+        location is determined by first checking whether
+        ``dataset_params['config_key']`` is defined, and if so, whether that
+        config key exists in the MNE-Python config file. If so, the configured
+        path is used; if not, the location is set to the value of the
+        ``MNE_DATA`` config key (if it exists), or ``~/mne_data`` otherwise.
     force_update : bool
         Force update of the dataset even if a local copy exists.
         Default is False.
@@ -64,10 +64,10 @@ def fetch_dataset(
         If True (default), set the mne-python config to the given
         path. If None, the user is prompted.
     download : bool
-        If False and the {name} dataset has not been downloaded yet,
-        it will not be downloaded and the path will be returned as
-        '' (empty string). This is mostly used for debugging purposes
-        and can be safely ignored by most users.
+        If False and the dataset has not been downloaded yet, it will not be
+        downloaded and the path will be returned as ``''`` (empty string). This
+        is mostly used for testing purposes and can be safely ignored by most
+        users.
     check_version : bool
         Whether to check the version of the dataset or not. Each version
         of the dataset is stored in the root with a ``version.txt`` file.
@@ -75,14 +75,14 @@ def fetch_dataset(
         Whether or not to return the version of the dataset or not.
         Defaults to False.
     accept : bool
-        Some MNE datasets require an acceptance of an additional license.
-        Default to False.
+        Some MNE-supplied datasets require acceptance of an additional license.
+        Default is ``False``.
     auth : tuple | None
-        Optional authorization tuple containing the username and
-        password/token. For example, ``auth=('foo', 012345)``.
-        Is passed to `pooch.HTTPDownloader`.
+        Optional authentication tuple containing the username and
+        password/token, passed to :class:`pooch.HTTPDownloader` (e.g.,
+        ``auth=('foo', 012345)``).
     token : str | None
-        Optional token to be passed to `pooch.HTTPDownloader`.
+        Optional authentication token passed to :class:`pooch.HTTPDownloader`.
 
     Returns
     -------
@@ -91,39 +91,41 @@ def fetch_dataset(
     version : str
         Only returned if ``return_version`` is True.
 
+    See Also
+    --------
+    mne.get_config
+    mne.set_config
+    mne.datasets.has_dataset
+
     Notes
     -----
-    Fetching datasets uses the :mod:`pooch` module, but imposes additional
-    structure for MNE-style datasets. The ``dataset_params`` argument takes in
-    multiple dictionaries if there are multiple files from one dataset. Each
-    dictionary corresponds to a dataset. This allows one to extract multiple
-    zipped files corresponding to one dataset. One must define the following
-    keys in the ``dataset_params`` dictionary for each dataset name:
+    The ``dataset_params`` argument must contain the following keys:
 
-    - ``archive_name``: The name of the compressed file that is downloaded
+    - ``archive_name``: The name of the (possibly compressed) file to download
     - ``url``: URL from which the file can be downloaded
-    - ``folder_name``: the subfolder within the MNE data folder in which to
+    - ``folder_name``: the subfolder within the ``MNE_DATA`` folder in which to
         save and uncompress (if needed) the file(s)
     - ``hash``: the cryptographic hash type of the file followed by a colon and
         then the hash value (examples: "sha256:19uheid...", "md5:upodh2io...")
-    - ``config_key`` (optional): key to use with `mne.set_config` to store the
-        on-disk location of the downloaded dataset (ex:
-        "MNE_DATASETS_EEGBCI_PATH"). This is only used internally by MNE
-        developers.
+    - ``config_key`` (optional): key passed to :func:`mne.set_config` to store
+        the on-disk location of the downloaded dataset (e.g.,
+        ``"MNE_DATASETS_EEGBCI_PATH"``). This will only work for the provided
+        datasets listed :ref:`here <datasets>`; do not use for user-defined
+        datasets.
 
     An example would look like::
 
-        {
-            'dataset_name'='sample',
-            'archive_name'='MNE-sample-data-processed.tar.gz',
-            'hash'='md5:12b75d1cb7df9dfb4ad73ed82f61094f',
-            'url'='https://osf.io/86qa2/download?version=5',
-            'folder_name'='MNE-sample-data',
-            'config_key'='MNE_DATASETS_SAMPLE_PATH',
-        }
+        {'dataset_name': 'sample',
+         'archive_name': 'MNE-sample-data-processed.tar.gz',
+         'hash': 'md5:12b75d1cb7df9dfb4ad73ed82f61094f',
+         'url': 'https://osf.io/86qa2/download?version=5',
+         'folder_name': 'MNE-sample-data',
+         'config_key': 'MNE_DATASETS_SAMPLE_PATH'}
 
-    Fetching datasets downloads files over HTTP/HTTPS. One can fetch private
-    datasets by passing in authorization to the ``auth`` argument.
+    For datasets where a single (possibly compressed) file must be downloaded,
+    pass a single :class:`dict` as ``dataset_params``. For datasets where
+    multiple files must be downloaded and (optionally) uncompressed separately,
+    pass a list of dicts.
     """  # noqa E501
     # import pooch library for handling the dataset downloading
     pooch = _soft_import("pooch", "dataset downloading", strict=True)
@@ -191,7 +193,8 @@ def fetch_dataset(
         # time because we don't save the archive files after unpacking, so
         # pooch can't check its checksum)
         if op.isdir(final_path):
-            _do_path_update(path, update_path, config_key, name)
+            if config_key is not None:
+                _do_path_update(path, update_path, config_key, name)
             return (final_path, data_version) if return_version else final_path
         # ...if download=False (useful for debugging)
         elif not download:

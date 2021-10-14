@@ -170,7 +170,6 @@ def _get_3d_backend():
                     errors[name] = str(exc)
                 else:
                     MNE_3D_BACKEND = name
-                    print(MNE_3D_BACKEND)
                     break
             else:
                 raise RuntimeError(
@@ -217,13 +216,19 @@ def _use_test_3d_backend(backend_name, interactive=False):
     interactive : bool
         If True, ensure interactive elements are accessible.
     """
+    with _actors_invisible():
+        with use_3d_backend(backend_name):
+            with backend._testing_context(interactive):
+                yield
+
+
+@contextmanager
+def _actors_invisible():
     global MNE_3D_BACKEND_TESTING
     orig_testing = MNE_3D_BACKEND_TESTING
     MNE_3D_BACKEND_TESTING = True
     try:
-        with use_3d_backend(backend_name):
-            with backend._testing_context(interactive):
-                yield
+        yield
     finally:
         MNE_3D_BACKEND_TESTING = orig_testing
 

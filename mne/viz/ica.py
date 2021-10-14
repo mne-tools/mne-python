@@ -45,11 +45,14 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
         The object to plot the sources from.
     %(picks_base)s all sources in the order as fitted.
-    start : int | None
-        X-axis start index. If None (default), from the beginning.
-    stop : int | None
-        X-axis stop index. If None (default), next 20 are shown, in case of
-        evoked to the end.
+    start, stop : float | int | None
+       If ``inst`` is a `~mne.io.Raw` or an `~mne.Evoked` object, the first and
+       last time point (in seconds) of the data to plot. If ``inst`` is a
+       `~mne.io.Raw` object, ``start=None`` and ``stop=None`` will be
+       translated into ``start=0.`` and ``stop=3.``, respectively. For
+       `~mne.Evoked`, ``None`` refers to the beginning and end of the evoked
+       signal. If ``inst`` is an `~mne.Epochs` object, specifies the index of
+       the first and last epoch to show.
     title : str | None
         The window title. If None a default is provided.
     show : bool
@@ -594,8 +597,10 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
 
     for exc_label, ii in zip(exclude_labels, picks):
         color, style = label_props[ii]
+        # ensure traces of excluded components are plotted on top
+        zorder = 2 if exc_label is None else 10
         lines.extend(ax.plot(times, evoked.data[ii].T, picker=True,
-                             zorder=2, color=color, linestyle=style,
+                             zorder=zorder, color=color, linestyle=style,
                              label=exc_label))
         lines[-1].set_pickradius(3.)
 
@@ -764,24 +769,23 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
     ica : instance of mne.preprocessing.ICA
         The ICA object.
     inst : instance of mne.io.Raw or mne.Evoked
-        The signals to be compared given the ICA solution. If Raw input,
-        The raw data are displayed before and after cleaning. In a second
-        panel the cross channel average will be displayed. Since dipolar
-        sources will be canceled out this display is sensitive to
-        artifacts. If evoked input, butterfly plots for clean and raw
-        signals will be superimposed.
+        The signal to plot. If `~mne.io.Raw`, the raw data is displayed before
+        and after cleaning. In a second panel, the cross-channel average will
+        be displayed. Since dipolar sources will be canceled out, this
+        representation is sensitive to artifacts. If `~mne.Evoked`, butterfly
+        traces for signals before and after cleaning will be superimposed.
     exclude : array-like of int | None (default)
-        The components marked for exclusion. If None (default), ICA.exclude
+        The components marked for exclusion. If ``None`` (default), ICA.exclude
         will be used.
     %(picks_base)s all channels that were included during fitting.
-    start : int | None
-        X-axis start index. If None (default) from the beginning.
-    stop : int | None
-        X-axis stop index. If None (default) to 3.0s.
-    title : str
-        The figure title.
-    show : bool
-        Show figure if True.
+    start, stop : float | None
+       The first and last time point (in seconds) of the data to plot. If
+       ``inst`` is a `~mne.io.Raw` object, ``start=None`` and ``stop=None``
+       will be translated into ``start=0.`` and ``stop=3.``, respectively. For
+       `~mne.Evoked`, ``None`` refers to the beginning and end of the evoked
+       signal.
+    %(title_None)s
+    %(show)s
     %(n_pca_components_apply)s
 
         .. versionadded:: 0.22
@@ -795,6 +799,9 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
     from ..io.base import BaseRaw
     from ..evoked import Evoked
     from ..preprocessing.ica import _check_start_stop
+
+    if ica.current_fit == 'unfitted':
+        raise RuntimeError('You need to fit the ICA first')
 
     _validate_type(inst, (BaseRaw, Evoked), "inst", "Raw or Evoked")
     if title is None:

@@ -21,6 +21,7 @@ from scipy.io import loadmat
 import pytest
 
 from mne import pick_types, Annotations
+from mne.annotations import events_from_annotations, read_annotations
 from mne.datasets import testing
 from mne.utils import requires_pandas
 from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf, read_raw_gdf
@@ -29,7 +30,7 @@ from mne.io.edf.edf import (_get_edf_default_event_id, _read_annotations_edf,
                             _read_ch, _parse_prefilter_string, _edf_str,
                             _read_edf_header, _read_header)
 from mne.io.pick import channel_indices_by_type, get_channel_type_constants
-from mne.annotations import events_from_annotations, read_annotations
+from mne.tests.test_annotations import _assert_annotations_equal
 
 td_mark = testing._pytest_mark()
 
@@ -52,6 +53,7 @@ edf_stim_resamp_path = op.join(data_path, 'EDF', 'test_edf_stim_resamp.edf')
 edf_overlap_annot_path = op.join(data_path, 'EDF',
                                  'test_edf_overlapping_annotations.edf')
 edf_reduced = op.join(data_path, 'EDF', 'test_reduced.edf')
+edf_annot_only = op.join(data_path, 'EDF', 'SC4001EC-Hypnogram.edf')
 bdf_stim_channel_path = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
 bdf_multiple_annotations_path = op.join(data_path, 'BDF',
                                         'multiple_annotation_chans.bdf')
@@ -236,6 +238,31 @@ def test_find_events_backward_compatibility():
     assert_array_equal(events_from_EFA, EXPECTED_EVENTS)
 
 
+@testing.requires_testing_data
+def test_no_data_channels():
+    """Test that we can load with no data channels."""
+    # analog
+    raw = read_raw_edf(edf_path, preload=True)
+    picks = pick_types(raw.info, stim=True)
+    assert list(picks) == [len(raw.ch_names) - 1]
+    stim_data = raw[picks][0]
+    raw = read_raw_edf(edf_path, exclude=raw.ch_names[:-1])
+    stim_data_2 = raw[0][0]
+    assert_array_equal(stim_data, stim_data_2)
+    raw.plot()  # smoke test
+    # annotations
+    raw = read_raw_edf(edf_overlap_annot_path)
+    picks = pick_types(raw.info, stim=True)
+    assert picks.size == 0
+    annot = raw.annotations
+    raw = read_raw_edf(edf_overlap_annot_path, exclude=raw.ch_names)
+    annot_2 = raw.annotations
+    _assert_annotations_equal(annot, annot_2)
+    # only annotations (should warn)
+    with pytest.warns(RuntimeWarning, match='read_annotations'):
+        read_raw_edf(edf_annot_only)
+
+
 @requires_pandas
 @pytest.mark.parametrize('fname', [edf_path, bdf_path])
 def test_to_data_frame(fname):
@@ -265,13 +292,6 @@ def test_read_raw_edf_stim_channel_input_parameters():
         with pytest.raises(ValueError,
                            match="stim channel is not supported"):
             read_raw_edf(edf_path, stim_channel=invalid_stim_parameter)
-
-
-def _assert_annotations_equal(a, b):
-    assert_array_equal(a.onset, b.onset)
-    assert_array_equal(a.duration, b.duration)
-    assert_array_equal(a.description, b.description)
-    assert a.orig_time == b.orig_time
 
 
 def test_read_annot(tmpdir):

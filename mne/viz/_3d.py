@@ -1198,7 +1198,8 @@ def _make_tris_fan(n_vert):
 
 def _sensor_shape(coil):
     """Get the sensor shape vertices."""
-    from scipy.spatial import ConvexHull
+    from scipy.spatial import ConvexHull, Delaunay
+    from scipy.spatial.qhull import QhullError
     id_ = coil['type'] & 0xFFFF
     pad = True
     # Square figure eight
@@ -1271,11 +1272,19 @@ def _sensor_shape(coil):
             np.concatenate([circle.imag, -circle.imag])]).T
         tris = np.concatenate([_make_tris_fan(n_pts + 1),
                                _make_tris_fan(n_pts + 1) + n_pts + 1])
-    # 3D convex hull (will fail for 2D geometry, can extend later if needed)
     else:
+        # 3D convex hull (will fail for 2D geometry)
         rrs = coil['rmag_orig'].copy()
+        try:
+            tris = _reorder_ccw(rrs, ConvexHull(rrs).simplices)
+        except QhullError:  # 2D geometry likely
+            logger.debug('Falling back to planar geometry')
+            u, _, _ = np.linalg.svd(rrs.T, full_matrices=False)
+            u[:, 2] = 0
+            rr_rot = rrs @ u
+            tris = Delaunay(rr_rot[:, :2]).simplices
+            tris = np.concatenate((tris, tris[:, ::-1]))
         pad = False
-        tris = _reorder_ccw(rrs, ConvexHull(rrs).simplices)
 
     # Go from (x,y) -> (x,y,z)
     if pad:
@@ -1731,10 +1740,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     ----------
     stc : SourceEstimate
         The source estimates to plot.
-    subject : str | None
-        The subject name corresponding to FreeSurfer environment
-        variable SUBJECT. If None stc.subject will be used. If that
-        is None, the environment will be used.
+    %(subject_none)s
+        If ``None``, ``stc.subject`` will be used.
     surface : str
         The type of surface (inflated, white etc.).
     hemi : str
@@ -2123,10 +2130,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
         .. versionchanged:: 0.18
            Support for :class:`~nibabel.spatialimages.SpatialImage`.
-    subject : str | None
-        The subject name corresponding to FreeSurfer environment
-        variable SUBJECT. If None stc.subject will be used. If that
-        is None, the environment will be used.
+    %(subject_none)s
+        If ``None``, ``stc.subject`` will be used.
     %(subjects_dir)s
     mode : str
         The plotting mode to use. Either 'stat_map' (default) or 'glass_brain'.
@@ -2582,10 +2587,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     ----------
     stc : VectorSourceEstimate | MixedVectorSourceEstimate
         The vector source estimate to plot.
-    subject : str | None
-        The subject name corresponding to FreeSurfer environment
-        variable SUBJECT. If None stc.subject will be used. If that
-        is None, the environment will be used.
+    %(subject_none)s
+        If ``None``, ``stc.subject`` will be used.
     hemi : str, 'lh' | 'rh' | 'split' | 'both'
         The hemisphere to display.
     %(colormap)s
@@ -2886,13 +2889,10 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
         The mri to head trans.
         Can be None with mode set to '3d'.
     subject : str | None
-        The subject name corresponding to FreeSurfer environment
-        variable SUBJECT.
-        Can be None with mode set to '3d'.
-    subjects_dir : None | str
-        The path to the freesurfer subjects reconstructions.
-        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
-        The default is None.
+        The FreeSurfer subject name (will be used to set the FreeSurfer
+        environment variable ``SUBJECT``).
+        Can be ``None`` with mode set to ``'3d'``.
+    %(subjects_dir)s
     mode : str
         Can be ``'arrow'``, ``'sphere'`` or ``'orthoview'``.
 

@@ -1,16 +1,11 @@
 # Authors: Mainak Jas <mainak.jas@telecom-paristech.fr>
 #
 # License: BSD-3-Clause
-from functools import partial
-
 from ...utils import verbose
-from ..utils import (has_dataset, _get_version, _version_doc,
+from ..utils import (_get_version, _version_doc,
                      _data_path_doc_accept, _download_mne_dataset)
 
-has_brainstorm_data = partial(has_dataset, name='bst_auditory')
-
-
-_description = u"""
+_description = """
 URL: http://neuroimage.usc.edu/brainstorm/DatasetAuditory
     - One subject, two acquisition runs of 6 minutes each
     - Subject stimulated binaurally with intra-aural earphones

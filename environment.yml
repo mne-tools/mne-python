@@ -29,6 +29,7 @@ dependencies:
 - qdarkstyle
 - darkdetect
 - mayavi
+- traits<6.3.0
 - PySurfer
 - dipy
 - nibabel

@@ -119,6 +119,19 @@ Projections:
    scalp_coupling_index
    temporal_derivative_distribution_repair
 
+:py:mod:`mne.preprocessing.ieeg`:
+
+.. currentmodule:: mne.preprocessing.ieeg
+
+.. automodule:: mne.preprocessing.ieeg
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: generated/
+
+   project_sensors_onto_brain
+
 EEG referencing:
 
 .. currentmodule:: mne

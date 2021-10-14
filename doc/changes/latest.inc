@@ -53,7 +53,7 @@ Enhancements
 
 - Add support for NIRSport and NIRSport2 devices to `mne.io.read_raw_nirx` (:gh:`9348` and :gh:`9401` **by new contributor** |David Julien|_, **new contributor** |Romain Derollepot|_, `Robert Luke`_, and `Eric Larson`_)
 
-- New function :func:`mne.Dipole.to_volume_labels` to get atlas label for MRI coordinates.  (:gh:`9376` by **by new contributor** |Marian Dovgialo|_)
+- New function :func:`mne.Dipole.to_volume_labels` to get atlas label for MRI coordinates.  (:gh:`9376` by **new contributor** |Marian Dovgialo|_)
 
 - Add support for SURE parameter selection in :func:`mne.inverse_sparse.mixed_norm` and make ``alpha`` parameter now default to ``'sure'`` (:gh:`9430` by **new contributor** |Pierre-Antoine Bannier|_ and `Alex Gramfort`_)
 
@@ -181,7 +181,21 @@ Enhancements
 
 - Add full ECoG dataset to MNE-misc-data and demonstrate its use in :ref:`ex-electrode-pos-2d` and :ref:`tut-ieeg-localize` (:gh:`9784` by `Alex Rockhill`_)
 
+- Add options ``tol`` and ``accuracy`` to :func:`mne.fit_dipole` to control optimization (:gh:`9810` by `Eric Larson`_)
+
+- Completely revamp the `~mne.Report` experience: new HTML layout, many new methods, more flexibility; the functionality is demonstrated in :ref:`tut-report` (:gh:`9754`, :gh:`9828` by `Richard Höchenberger`_, `Eric Larson`_, and `Alex Gramfort`_)
+
+- Add basic HTML representations of `~mne.Forward` and `~mne.minimum_norm.InverseOperator` instances for a nicer Jupyter experience (:gh:`9754` by `Richard Höchenberger`_)
+
 - `mne.io.read_raw_brainvision` now handles ASCII data with comma-separated values, as may be exported from BrainVision Analyzer (:gh:`9795` by `Richard Höchenberger`_)
+
+- Add :func:`mne.preprocessing.ieeg.project_sensors_onto_brain` to project ECoG sensors onto the pial surface to compensate for brain shift (:gh:`9800` by `Alex Rockhill`_)
+
+- Add support for data acquired with NIRx devices using Aurora software version 2021.9 (:gh:`9800` by `Robert Luke`_, and `Eric Larson`_)
+
+- All functions for reading and writing files should now automatically handle ``~`` (the tilde character) and expand it to the user's home directory. Should you come across any function that doesn't do it, please do let us know! (:gh:`9613` by `Richard Höchenberger`_)
+
+- All functions accepting a FreeSurfer subjects directory via a ``subjects_dir`` parameter can now consume :py:class:`pathlib.Path` objects too (used to be only strings) (:gh:`9613` by `Richard Höchenberger`_)
 
 Bugs
 ~~~~
@@ -210,6 +224,8 @@ Bugs
 - Fix bug with `mne.io.read_raw_fieldtrip` and `mne.read_epochs_fieldtrip` where channel positions were not set properly (:gh:`9447` by `Eric Larson`_)
 
 - Fix bug with :func:`mne.io.read_raw_kit` where omitting HPI coils could lead to an :exc:`python:AssertionError` on reading (:gh:`9612` by `Eric Larson`_)
+
+- Fix bug with :func:`mne.io.read_raw_edf` where reading only stimulus channels would lead to an error (:gh:`9831` by `Eric Larson`_)
 
 - Fix bug with `mne.preprocessing.nirs.optical_density` where protection against zero values was not guaranteed (:gh:`9522` by `Eric Larson`_)
 
@@ -257,11 +273,15 @@ Bugs
 
 - Fix bug where :func:`mne.io.read_raw_persyst` was lower-casing events it found in the ``.lay`` file (:gh:`9746` by `Adam Li`_)
 
-- Fix bug with Qhull when plotting OPM sensors in :func:`mne.viz.plot_alignment` (:gh:`9799` by `Eric Larson`_)
+- Fix bug with Qhull when plotting OPM sensors in :func:`mne.viz.plot_alignment` (:gh:`9799` and :gh:`9804` by `Eric Larson`_)
 
 - Fix bug where :func:`mne.io.read_raw_snirf` was including the landmark index as a spatial coordinate (:gh:`9777` by `Robert luke`_)
 
 - Fix bug where `mne.Annotations` were not appending channel names when being added together (:gh:`9780` by `Adam Li`_)
+
+- `mne.viz.plot_evoked_joint` now correctly handles a ``times='peaks'`` parameter value (:gh:`9754` by `Richard Höchenberger`_)
+
+- In `mne.viz.plot_compare_evokeds`, slightly adjust the x-axis limit calculation to avoid drawing an axis that is too short (:gh:`9754` by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~
@@ -274,5 +294,27 @@ API changes
 - All ``mne.connectivity`` functions have moved to the ``mne-connectivity`` package; they are deprecated in MNE-Python and will be removed in version 0.25 (:gh:`9493` by `Adam Li`_).
 
 - :func:`mne.inverse_sparse.mixed_norm` now simply warns when source estimates contain no dipole, e.g. if data are too noisy and alpha is based on SURE (:gh:`9685` by `Alex Gramfort`_)
+
+- deprecate functions :samp:`mne.datasets.{DATASET_NAME}.has_{DATASET_NAME}_data()` for these datasets: ``epilepsy_ecog``, ``fnirs_motor``, ``multimodal``, ``opm``, ``phantom_4dbti``, ``refmeg_noise``, ``sample``, ``somato``, and ``ssvep``. Use the generic :func:`mne.datasets.has_dataset` instead (:gh:`9781` by `Daniel McCloy`_ and `Adam Li`_)
+
+- :class:`mne.Report` modernization has led to multiple deprecations (:gh:`9754` by `Richard Höchenberger`_):
+
+  - :meth:`mne.Report.add_figs_to_section` and :meth:`mne.Report.add_slider_to_section` have been deprecated in favor of :meth:`mne.Report.add_figure`
+
+  - :meth:`mne.Report.add_images_to_section` has been deprecated in favor of :meth:`mne.Report.add_image`
+
+  - :meth:`mne.Report.add_bem_to_section` has been deprecated in favor of :meth:`mne.Report.add_bem`
+
+  - :meth:`mne.Report.add_htmls_to_section` has been deprecated in favor of :meth:`mne.Report.add_html`
+
+  - In :meth:`mne.Report.parse_folder`, the ``sort_sections`` parameter has been deprecated in favor of ``sort_content``
+
+  - In :meth:`mne.Report.remove`, the ``caption`` and ``section`` parameters have been deprecated in favor of ``title`` and ``tags``, respectively
+
+  - The ``mne.Report.sections`` attribute has been deprecated in favor of ``mne.Report.tags``
+
+  - The ``mne.Report.fnames`` attribute has been deprecated without replacement
+
+- :meth:`mne.Epochs.plot` and :func:`mne.viz.plot_epochs` gained parameter ``show_scalebars`` analogous to :meth:`mne.viz.plot_raw` (:gh:`9815` by `Daniel McCloy`_)
 
 - The output folder name for HF_SEF datasets is now ``hf_sef`` instead of ``HF_SEF`` (:gh:`9763` by `Adam Li`_)

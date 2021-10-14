@@ -2,7 +2,7 @@ from ..externals.tempita import Template
 
 
 info_template = Template("""
-<table class="table table-hover">
+<table class="table table-hover table-striped table-sm table-responsive small">
     <tr>
         <th>Measurement date</th>
         {{if meas_date is not None}}
@@ -82,7 +82,7 @@ raw_template = Template("""
 """)
 
 epochs_template = Template("""
-<table class="table table-hover">
+<table class="table table-hover table-striped table-sm table-responsive small">
     <tr>
         <th>Number of events</th>
         <td>{{len(epochs.events)}}</td>
@@ -105,3 +105,76 @@ epochs_template = Template("""
     </tr>
 </table>
 """)
+
+forward_template = Template("""
+<table class="table table-hover table-striped table-sm table-responsive small">
+    <tr>
+        <th>Good channels</th>
+        <td>{{good_channels}}</td>
+    </tr>
+    <tr>
+        <th>Bad channels</th>
+        <td>{{bad_channels}}</td>
+    </tr>
+    <tr>
+        <th>Source space</th>
+        <td>{{source_space_descr}}</td>
+    </tr>
+    <tr>
+        <th>Source orientation</th>
+        <td>{{source_orientation}}</td>
+    </tr>
+</table>
+""")
+
+inverse_operator_template = Template("""
+<table class="table table-hover table-striped table-sm table-responsive small">
+    <tr>
+        <th>Channels</th>
+        <td>{{channels}}</td>
+    </tr>
+    <tr>
+        <th>Source space</th>
+        <td>{{source_space_descr}}</td>
+    </tr>
+    <tr>
+        <th>Source orientation</th>
+        <td>{{source_orientation}}</td>
+    </tr>
+</table>
+""")
+
+ica_template = Template("""
+<table class="table table-hover table-striped table-sm table-responsive small">
+    <tr>
+        <th>Method</th>
+        <td>{{method}}</td>
+    </tr>
+    <tr>
+        <th>Fit</th>
+        <td>{{if fit_on}}{{n_iter}} iterations on {{fit_on}} ({{n_samples}} samples){{else}}no{{endif}}</td>
+    </tr>
+    {{if fit_on}}
+    <tr>
+        <th>ICA components</th>
+        <td>{{n_components}}</td>
+    </tr>
+    <tr>
+        <th>Explained variance</th>
+        <td>{{round(explained_variance * 100, 1)}}&nbsp;%</td>
+    </tr>
+    <tr>
+        <th>Available PCA components</th>
+        <td>{{n_pca_components}}</td>
+    </tr>
+    <tr>
+        <th>Channel types</th>
+        <td>{{", ".join(ch_types)}}</td>
+    </tr>
+    <tr>
+        <th>ICA components marked for exclusion</th>
+        <td>{{if excludes}}{{"<br />".join(excludes)}}{{else}}&mdash;{{endif}}</td>
+    </tr>
+    {{endif}}
+</table>
+""")  # noqa: E501

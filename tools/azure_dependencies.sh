@@ -13,12 +13,11 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps scipy statsmodels
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" pandas scikit-learn dipy
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py Pillow matplotlib
-	# we want --pre for VTK, but it breaks Azure as of 2021/06/14 (mayavi has problems with the 20210612 binary)
-	python -m pip install --progress-bar off --upgrade --only-binary ":all" "vtk<=9.0.1"
+	python -m pip install --progress-bar off --upgrade --pre --only-binary "vtk" vtk
 	python -m pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/main
 	python -m pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/main
 else
 	echo "Unknown run type ${TEST_MODE}"
 	exit 1
 fi
-python -m pip install -r requirements_testing.txt -r requirements_testing_extra.txt codecov
+python -m pip install .[test] codecov

@@ -77,6 +77,11 @@ coil_3d = """# custom cube coil def
   0.1250 -0.750e-03  0.750e-03  0.750e-03  0.000  0.000  1.000
   0.1250  0.750e-03 -0.750e-03  0.750e-03  0.000  0.000  1.000
   0.1250  0.750e-03  0.750e-03  0.750e-03  0.000  0.000  1.000
+1   9998    1   4  3e-03  0.000e+00     "3mm square"
+  0.1250 -0.750e-03 -0.750e-03 0.000  0.000  0.000  1.000
+  0.1250 -0.750e-03  0.750e-03 0.000  0.000  0.000  1.000
+  0.1250  0.750e-03 -0.750e-03 0.000  0.000  0.000  1.000
+  0.1250  0.750e-03  0.750e-03 0.000  0.000  0.000  1.000
 """
 
 
@@ -168,6 +173,7 @@ def _assert_n_actors(fig, renderer, n_actors):
     assert len(fig.plotter.renderer.actors) == n_actors
 
 
+@pytest.mark.slowtest  # Slow for Mayavi on Azure
 @pytest.mark.parametrize('system', [
     'Neuromag',
     pytest.param('CTF', marks=testing._pytest_mark()),
@@ -349,9 +355,10 @@ def test_plot_alignment_basic(tmpdir, renderer, mixed_fwd_cov_evoked):
         import mayavi  # noqa: F401 analysis:ignore
         assert isinstance(fig, mayavi.core.scene.Scene)
     # 3D coil with no defined draw (ConvexHull)
-    info_cube = pick_info(info, np.arange(5))
+    info_cube = pick_info(info, np.arange(6))
     info['dig'] = None
     info_cube['chs'][0]['coil_type'] = 9999
+    info_cube['chs'][1]['coil_type'] = 9998
     with pytest.raises(RuntimeError, match='coil definition not found'):
         plot_alignment(info_cube, meg='sensors', surfaces=())
     coil_def_fname = op.join(tempdir, 'temp')
@@ -360,11 +367,15 @@ def test_plot_alignment_basic(tmpdir, renderer, mixed_fwd_cov_evoked):
     # make sure our other OPMs can be plotted, too
     for ii, kind in enumerate(('QUSPIN_ZFOPM_MAG', 'QUSPIN_ZFOPM_MAG2',
                                'FIELDLINE_OPM_MAG_GEN1',
-                               'KERNEL_OPM_MAG_GEN1'), 1):
+                               'KERNEL_OPM_MAG_GEN1'), 2):
         info_cube['chs'][ii]['coil_type'] = getattr(
             FIFF, f'FIFFV_COIL_{kind}')
     with use_coil_def(coil_def_fname):
-        plot_alignment(info_cube, meg='sensors', surfaces=(), dig=True)
+        with catch_logging() as log:
+            plot_alignment(info_cube, meg='sensors', surfaces=(), dig=True,
+                           verbose='debug')
+    log = log.getvalue()
+    assert 'planar geometry' in log
 
     # one layer bem with skull surfaces:
     with pytest.raises(RuntimeError, match='Sphere model does not.*boundary'):
@@ -631,8 +642,8 @@ def test_plot_dipole_orientations(renderer):
     renderer.backend._close_all()
 
 
+@pytest.mark.slowtest  # slow for Mayavi on Azure
 @testing.requires_testing_data
-@traits_test
 def test_snapshot_brain_montage(renderer):
     """Test snapshot brain montage."""
     info = read_info(evoked_fname)

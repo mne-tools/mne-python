@@ -552,6 +552,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                     raise ValueError('Expected values for `justification`'
                                      'are `left`, `center` or `right` but '
                                      'got {} instead.'.format(justification))
+        _hide_testing_actor(actor)
         return actor
 
     def text3d(self, x, y, z, text, scale, color='white'):
@@ -568,7 +569,9 @@ class _PyVistaRenderer(_AbstractRenderer):
             )
             if 'always_visible' in _get_args(self.plotter.add_point_labels):
                 kwargs['always_visible'] = True
-            self.plotter.add_point_labels(**kwargs)
+            actor = self.plotter.add_point_labels(**kwargs)
+        _hide_testing_actor(actor)
+        return actor
 
     def scalarbar(self, source, color="white", title=None, n_labels=4,
                   bgcolor=None, **extra_kwargs):
@@ -586,7 +589,9 @@ class _PyVistaRenderer(_AbstractRenderer):
                           label_font_size=22, font_family=self.font_family,
                           background_color=bgcolor, mapper=mapper)
             kwargs.update(extra_kwargs)
-            return self.plotter.add_scalar_bar(**kwargs)
+            actor = self.plotter.add_scalar_bar(**kwargs)
+        _hide_testing_actor(actor)
+        return actor
 
     def show(self):
         self.plotter.show()
@@ -659,6 +664,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         actor = vtk.vtkActor()
         if mapper is not None:
             actor.SetMapper(mapper)
+        _hide_testing_actor(actor)
         return actor
 
     def _process_events(self):
@@ -815,7 +821,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         silhouette_mapper = vtk.vtkPolyDataMapper()
         silhouette_mapper.SetInputConnection(
             silhouette_filter.GetOutputPort())
-        _, prop = self.plotter.add_actor(
+        actor, prop = self.plotter.add_actor(
             silhouette_mapper, reset_camera=False, name=None,
             culling=False, pickable=False, render=False)
         if color is not None:
@@ -824,6 +830,8 @@ class _PyVistaRenderer(_AbstractRenderer):
             prop.SetOpacity(alpha)
         if line_width is not None:
             prop.SetLineWidth(line_width)
+        _hide_testing_actor(actor)
+        return actor
 
 
 def _compute_normals(mesh):
@@ -839,7 +847,6 @@ def _compute_normals(mesh):
 
 def _add_mesh(plotter, *args, **kwargs):
     """Patch PyVista add_mesh."""
-    from . import renderer
     _process_events(plotter)
     mesh = kwargs.get('mesh')
     if 'smooth_shading' in kwargs:
@@ -854,9 +861,14 @@ def _add_mesh(plotter, *args, **kwargs):
     if smooth_shading and 'Normals' in _point_data(mesh):
         prop = actor.GetProperty()
         prop.SetInterpolationToPhong()
+    _hide_testing_actor(actor)
+    return actor
+
+
+def _hide_testing_actor(actor):
+    from . import renderer
     if renderer.MNE_3D_BACKEND_TESTING:
         actor.SetVisibility(False)
-    return actor
 
 
 def _deg2rad(deg):
@@ -894,28 +906,6 @@ def _3d_to_2d(plotter, xyz):
         xy.append(coordinate.GetComputedLocalDisplayValue(plotter.renderer))
     xy = np.array(xy, float).reshape(-1, 2)  # in case it's empty
     return xy
-
-
-def _get_world_to_view_matrix(plotter):
-    cam = plotter.renderer.camera
-
-    scene_size = plotter.window_size
-    clip_range = cam.GetClippingRange()
-    aspect_ratio = float(scene_size[0]) / scene_size[1]
-
-    vtk_comb_trans_mat = cam.GetCompositeProjectionTransformMatrix(
-        aspect_ratio, clip_range[0], clip_range[1])
-    vtk_comb_trans_mat = _mat_to_array(vtk_comb_trans_mat)
-    return vtk_comb_trans_mat
-
-
-def _get_view_to_display_matrix(size):
-    x, y = size
-    view_to_disp_mat = np.array([[x / 2.0,       0.,   0.,   x / 2.0],
-                                 [0.,      -y / 2.0,   0.,   y / 2.0],
-                                 [0.,            0.,   1.,        0.],
-                                 [0.,            0.,   0.,        1.]])
-    return view_to_disp_mat
 
 
 def _close_all():

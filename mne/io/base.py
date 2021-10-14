@@ -1416,7 +1416,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         or all forms of SSS). It is recommended not to concatenate and
         then save raw files for this reason.
         """
-        fname = op.abspath(fname)
         endings = ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                    '_meg.fif', '_eeg.fif', '_ieeg.fif')
         endings += tuple([f'{e}.gz' for e in endings])
@@ -1447,8 +1446,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             raise ValueError('Complex data must be saved as "single" or '
                              '"double", not "short"')
 
-        # check for file existence
-        _check_fname(fname, overwrite)
+        # check for file existence and expand `~` if present
+        fname = _check_fname(fname=fname, overwrite=overwrite)
 
         if proj:
             info = deepcopy(self.info)
@@ -2148,6 +2147,9 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         raise RuntimeError('Cannot write raw file with no data: %s -> %s '
                            '(max: %s) requested' % (start, stop, n_times_max))
 
+    # Expand `~` if present
+    fname = _check_fname(fname=fname, overwrite=overwrite)
+
     base, ext = op.splitext(fname)
     if part_idx > 0:
         if split_naming == 'neuromag':
@@ -2181,7 +2183,9 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
             raw, info, picks, fid, cals, part_idx, start, stop,
             buffer_size, prev_fname, split_size, use_fname,
             projector, drop_small_buffer, fmt, fname, reserved_fname,
-            data_type, reset_range, split_naming, overwrite)
+            data_type, reset_range, split_naming,
+            overwrite=True  # we've started writing already above
+        )
     if final_fname != use_fname:
         assert split_naming == 'bids'
         logger.info(f'Renaming BIDS split file {op.basename(final_fname)}')

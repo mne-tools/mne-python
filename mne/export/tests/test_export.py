@@ -228,7 +228,7 @@ def test_rawarray_edf(tmp_path):
 @pytest.mark.parametrize(
     ['dataset', 'format'], [
         ['test', 'edf'],
-        ['misc', 'edf'],
+        pytest.param('misc', 'edf', marks=pytest.mark.slowtest),
     ])
 def test_export_raw_edf(tmp_path, dataset, format):
     """Test saving a Raw instance to EDF format."""

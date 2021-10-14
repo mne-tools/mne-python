@@ -489,6 +489,7 @@ class Brain(object):
         self._actors = dict()
         self._elevation_rng = [15, 165]  # range of motion of camera on theta
         self._lut_locked = None
+        self._cleaned = False
         # default values for silhouette
         self._silhouette = {
             'color': self._bg_color,
@@ -761,6 +762,7 @@ class Brain(object):
                     'picked_renderer', 'act_data_smooth', '_scalar_bar',
                     'actions', 'widgets', 'geo', '_data'):
             setattr(self, key, None)
+        self._cleaned = True
 
     def toggle_interface(self, value=None):
         """Toggle the interface.
@@ -2132,6 +2134,7 @@ class Brain(object):
         self._renderer._update()
 
     def _add_volume_data(self, hemi, src, volume_options):
+        from ..backends._pyvista import _hide_testing_actor
         _validate_type(src, SourceSpaces, 'src')
         _check_option('src.kind', src.kind, ('volume',))
         _validate_type(
@@ -2215,15 +2218,14 @@ class Brain(object):
         actor_pos, _ = self._renderer.plotter.add_actor(
             volume_pos, reset_camera=False, name=None, culling=False,
             render=False)
+        actor_neg = actor_mesh = None
         if volume_neg is not None:
             actor_neg, _ = self._renderer.plotter.add_actor(
                 volume_neg, reset_camera=False, name=None, culling=False,
                 render=False)
-        else:
-            actor_neg = None
         grid_mesh = self._data[hemi]['grid_mesh']
         if grid_mesh is not None:
-            _, prop = self._renderer.plotter.add_actor(
+            actor_mesh, prop = self._renderer.plotter.add_actor(
                 grid_mesh, reset_camera=False, name=None, culling=False,
                 pickable=False, render=False)
             prop.SetColor(*self._brain_color[:3])
@@ -2236,6 +2238,9 @@ class Brain(object):
                         line_width=silhouette_linewidth,
                         alpha=silhouette_alpha,
                     )
+        for actor in (actor_pos, actor_neg, actor_mesh):
+            if actor is not None:
+                _hide_testing_actor(actor)
 
         return actor_pos, actor_neg
 

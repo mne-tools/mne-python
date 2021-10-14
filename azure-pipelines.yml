@@ -107,8 +107,8 @@ stages:
       displayName: 'Spin up Xvfb'
     - bash: |
         set -e
-        python -m pip install --progress-bar off --upgrade pip setuptools wheel
-        python -m pip install --progress-bar off --upgrade numpy scipy "vtk<=9.0.1" -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt codecov
+        python -m pip install --progress-bar off --upgrade pip setuptools wheel codecov
+        python -m pip install --progress-bar off --upgrade -e .[test]
       displayName: 'Install dependencies with pip'
     - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
@@ -149,8 +149,7 @@ stages:
         conda activate base
         conda env update --file server_environment.yml
         pip uninstall -yq mne
-        pip install -ve .
-        pip install --progress-bar off -r requirements_testing.txt -r requirements_testing_extra.txt codecov
+        pip install --progress-bar off -ve .[test] codecov
         echo "##vso[task.setvariable variable=PATH]${PATH}"
         echo "##vso[task.setvariable variable=LD_LIBRARY_PATH]${LD_LIBRARY_PATH}"
       displayName: 'Install dependencies'
@@ -205,9 +204,9 @@ stages:
         3.7 pip:
           TEST_MODE: 'pip'
           PYTHON_VERSION: '3.7'
-        3.8 pip pre:
+        3.9 pip pre:
           TEST_MODE: 'pip-pre'
-          PYTHON_VERSION: '3.8'
+          PYTHON_VERSION: '3.9'
     steps:
     - task: UsePythonVersion@0
       inputs:
@@ -240,7 +239,7 @@ stages:
       displayName: Remove old MNE
     - script: pip install -e .
       displayName: 'Install MNE-Python dev'
-    - script: pip install --progress-bar off -r requirements_testing.txt -r requirements_testing_extra.txt codecov
+    - script: pip install --progress-bar off -e .[test] codecov
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Install testing requirements
     - script: mne sys_info -pd

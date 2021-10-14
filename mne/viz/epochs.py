@@ -637,7 +637,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 title=None, events=None, event_color=None,
                 order=None, show=True, block=False, decim='auto',
                 noise_cov=None, butterfly=False, show_scrollbars=True,
-                epoch_colors=None, event_id=None, group_by='type'):
+                show_scalebars=True, epoch_colors=None, event_id=None,
+                group_by='type'):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -715,6 +716,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
         .. versionadded:: 0.18.0
     %(show_scrollbars)s
+    %(show_scalebars)s
+
+        .. versionadded:: 0.24.0
     epoch_colors : list of (n_epochs) list (of n_channels) | None
         Colors to use for individual epochs. If None, use default colors.
     event_id : dict | None
@@ -891,7 +895,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   butterfly=butterfly,
                   clipping=None,
                   scrollbars_visible=show_scrollbars,
-                  scalebars_visible=False,
+                  scalebars_visible=show_scalebars,
                   window_title=title,
                   xlabel='Epoch number')
 
