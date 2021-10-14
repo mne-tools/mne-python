@@ -25,9 +25,11 @@ from mne.report.report import CONTENT_ORDER
 from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper, report
-from mne.utils import requires_nibabel, Bunch, requires_h5py
+from mne.utils import requires_nibabel, Bunch, requires_h5py, requires_sklearn
 from mne.viz import plot_alignment
 from mne.io.write import DATE_NONE
+from mne.preprocessing import ICA
+
 
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
@@ -669,19 +671,28 @@ def test_survive_pickle(tmpdir):
     report.save(fname=save_name, open_browser=False)
 
 
+@requires_sklearn
 @testing.requires_testing_data
 def test_manual_report_2d(tmpdir, invisible_fig):
     """Simulate user manually creating report by adding one file at a time."""
+    from sklearn.exceptions import ConvergenceWarning
+
     r = Report(title='My Report')
     raw = read_raw_fif(raw_fname)
-    raw.pick_channels(raw.ch_names[:6]).crop(0, 10)
+    raw.pick_channels(raw.ch_names[:6]).crop(10, None)
     raw.info.normalize_proj()
     cov = read_cov(cov_fname)
     cov = pick_channels_cov(cov, raw.ch_names)
     events = read_events(events_fname)
-    epochs = Epochs(raw=raw, events=events)
+    epochs = Epochs(raw=raw, events=events, baseline=None)
     evokeds = read_evokeds(evoked_fname)
     evoked = evokeds[0].pick('eeg')
+
+    with pytest.warns(ConvergenceWarning, match='did not converge'):
+        ica = (ICA(n_components=2, max_iter=1, random_state=42)
+               .fit(inst=raw.copy().crop(tmax=1)))
+    ica_ecg_scores = ica_eog_scores = np.array([3, 0])
+    ica_ecg_evoked = ica_eog_evoked = epochs.average()
 
     r.add_raw(raw=raw, title='my raw data', tags=('raw',), psd=True,
               projs=False)
@@ -694,6 +705,18 @@ def test_manual_report_2d(tmpdir, invisible_fig):
                   n_time_points=2)
     r.add_projs(info=raw_fname, projs=ecg_proj_fname, title='my proj',
                 tags=('ssp', 'ecg'))
+    r.add_ica(ica=ica, title='my ica', inst=None)
+    with pytest.raises(RuntimeError, match='not preloaded'):
+        r.add_ica(ica=ica, title='ica', inst=raw)
+    r.add_ica(
+        ica=ica, title='my ica with inst',
+        inst=raw.copy().load_data(),
+        n_components=1,
+        ecg_evoked=ica_ecg_evoked,
+        eog_evoked=ica_eog_evoked,
+        ecg_scores=ica_ecg_scores,
+        eog_scores=ica_eog_scores
+    )
     r.add_covariance(cov=cov, info=raw_fname, title='my cov')
     r.add_forward(forward=fwd_fname, title='my forward', subject='sample',
                   subjects_dir=subjects_dir)

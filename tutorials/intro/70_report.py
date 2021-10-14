@@ -189,6 +189,78 @@ report.add_projs(info=raw_path, projs=eog_proj_path,
 report.save('report_projs.html', overwrite=True)
 
 # %%
+# Adding `~mne.preprocessing.ICA`
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# `~mne.preprocessing.ICA` objects can be added via
+# :meth:`mne.Report.add_ica`. Aside from the parameters ``ica`` (that accepts
+# an `~mne.preprocessing.ICA` instance or a path to an ICA object stored on
+# disk) and the ``title``, there is a third required parameter, ``inst``.
+# ``inst`` is used to specify a `~mne.io.Raw` or `~mne.Epochs` object for
+# producing ICA property plots and overlay plots demonstrating
+# the effects of ICA cleaning. If, instead, you only want to generate ICA
+# component topography plots, explicitly pass ``inst=None``.
+#
+# .. note:: :meth:`mne.Report.add_ica` only works with fitted ICAs.
+#
+# You can optionally specify for many components to show in the generated
+# plots by passing ``n_components``. By default, all components will be
+# shown. It is also possible to pass evoked signals based on ECG and EOG events
+# via ``ecg_evoked`` and ``eog_evoked``. This allows you directly see the
+# effects of ICA component removal on these artifactual signals.
+# Artifact detection scores produced by
+# :meth:`~mne.preprocessing.ICA.find_bads_ecg`
+# and :meth:`~mne.preprocessing.ICA.find_bads_eog` can be passed via the
+# ``ecg_scores`` and ``eog_scores`` parameters, respectively, producing
+# visualizations of the scores for each ICA component.
+#
+# Lastly, by passing ``n_jobs``, you may largely speed up the generation of
+# the properties plots by enabling parallel execution.
+#
+# .. warning::
+#    In the following example, we crop the raw data, only fit ICA on EEG
+#    channels, request a small number of ICA components to estimate, set the
+#    threshold for assuming ICA convergence to a very liberal value, and only
+#    visualize 2 of the components. All of this is done to largely reduce the
+#    processing time of this tutorial, and is usually **not** recommended for
+#    an actual data analysis.
+
+raw_eeg_cropped = (raw
+                   .copy()
+                   .pick_types(meg=False, eeg=True, eog=True)
+                   .crop(tmax=60)  # only keep 60 seconds
+                   .load_data())
+
+ica = mne.preprocessing.ICA(
+    n_components=5,  # fit 5 ICA components
+    fit_params=dict(tol=0.01)  # assume very early on that ICA has converged
+)
+
+ica.fit(inst=raw_eeg_cropped)
+
+# create epochs based on EOG events, find EOG artifacts in the data via pattern
+# matching, and exclude the EOG-related ICA components
+eog_epochs = mne.preprocessing.create_eog_epochs(raw=raw_eeg_cropped)
+eog_components, eog_scores = ica.find_bads_eog(
+    inst=eog_epochs,
+    ch_name='EEG 001',  # a channel close to the eye
+    threshold=1  # lower than the default threshold
+)
+ica.exclude = eog_components
+
+report = mne.Report()
+report.add_ica(
+    ica=ica,
+    title='ICA cleaning',
+    n_components=2,  # only plot the first two components
+    inst=raw_eeg_cropped,
+    eog_evoked=eog_epochs.average(),
+    eog_scores=eog_scores,
+    n_jobs=4
+)
+report.save('report_ica.html', overwrite=True)
+
+# %%
 # Adding MRI with BEM
 # ^^^^^^^^^^^^^^^^^^^
 #
