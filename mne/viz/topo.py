@@ -350,10 +350,9 @@ def _imshow_tfr_unified(bn, ch_idx, tmin, tmax, vmin, vmax, onselect,
                                 vmin=vmin, vmax=vmax, cmap=cmap))
 
 
-def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
-                     times, vline=None, x_label=None, y_label=None,
-                     colorbar=False, hline=None, hvline_color='w',
-                     labels=None):
+def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data, color, times,
+                     vline=None, x_label=None, y_label=None, colorbar=False,
+                     hline=None, hvline_color='w', labels=None):
     """Show time series on topo split across multiple axes."""
     import matplotlib.pyplot as plt
     picker_flag = False
