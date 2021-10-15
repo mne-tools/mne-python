@@ -1161,14 +1161,12 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
             actor, _ = _plot_oriented_glyphs(
                 renderer, sens_loc, surf, color, defaults['eeg_scale'],
                 opacity=sensor_opacity)
-            actors['eeg'].append(actor)
         else:
-            for loc in sens_loc:
-                actor, _ = renderer.sphere(
-                    center=loc * scalar, color=color,
-                    scale=defaults['eeg_scale'] * scalar,
-                    opacity=sensor_opacity)
-                actors['eeg'].append(actor)
+            actor, _ = renderer.sphere(
+                center=sens_loc * scalar, color=color,
+                scale=defaults['eeg_scale'] * scalar,
+                opacity=sensor_opacity)
+        actors['eeg'].append(actor)
 
     # add projected eeg
     eeg_indices = pick_types(info, eeg=True)
