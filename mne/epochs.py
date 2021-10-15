@@ -941,7 +941,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return self
 
     @fill_doc
-    def average(self, picks=None, method="mean"):
+    def average(self, picks=None, method="mean", per_event_type=False):
         """Compute an average over epochs.
 
         Parameters
@@ -955,11 +955,22 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             (n_channels, n_time).
             Note that due to file type limitations, the kind for all
             these will be "average".
+        per_event_type : bool
+            When ``False`` (the default) all epochs are averaged and a single
+            :class:`Evoked` object is returned. When ``True``, epochs are first
+            grouped by event type (as specified using the ``event_id``
+            parameter) and a dictionary is returned containing a separate
+            :class:`Evoked` object for each event type.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
         evoked : instance of Evoked | dict of Evoked
-            The averaged epochs.
+            The averaged epochs. When ``per_event_type`` was specified, a
+            dictionary is returned containing a separate :class:`Evoked` object
+            for each event type. The keys of this dictionary are the string
+            labels of the event types.
 
         Notes
         -----
@@ -981,22 +992,42 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         This would compute the trimmed mean.
         """
-        return self._compute_aggregate(picks=picks, mode=method)
+        if per_event_type:
+            evokeds = dict()
+            for event_type in self.event_id.keys():
+                evokeds[event_type] = self[event_type]._compute_aggregate(
+                    picks=picks, mode=method)
+        else:
+            evokeds = self._compute_aggregate(picks=picks, mode=method)
+        return evokeds
 
     @fill_doc
-    def standard_error(self, picks=None):
+    def standard_error(self, picks=None, per_event_type=False):
         """Compute standard error over epochs.
 
         Parameters
         ----------
         %(picks_all_data)s
+        per_event_type : bool
+            When ``False`` (the default) all epochs are averaged and a single
+            :class:`Evoked` object is returned. When ``True``, epochs are first
+            grouped by event type (as specified using the ``event_id``
+            parameter) and a dictionary is returned containing a separate
+            :class:`Evoked` object for each event type. The keys of this
+            dictionary are the string labels of the event types.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
-        evoked : instance of Evoked
-            The standard error over epochs.
+        std_err : instance of Evoked | dict of Evoked
+            The standard error over epochs. When ``per_event_type`` was
+            specified, a dictionary is returned containing a separate
+            :class:`Evoked` object for each event type. The keys of this
+            dictionary are the string labels of the event types.
         """
-        return self._compute_aggregate(picks, "std")
+        return self.average(picks=picks, method="std",
+                            per_event_type=per_event_type)
 
     def _compute_aggregate(self, picks, mode='mean'):
         """Compute the mean, median, or std over epochs and return Evoked."""

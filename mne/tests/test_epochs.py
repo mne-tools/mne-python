@@ -3248,9 +3248,14 @@ def test_average_methods():
     n_epochs, n_channels, n_times = 5, 10, 20
     sfreq = 1000.
     data = rng.randn(n_epochs, n_channels, n_times)
+
     events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
+    # Add second event type
+    events[-2:, 2] = 2
+    event_id = dict(first=1, second=2)
+
     info = create_info(n_channels, sfreq, 'eeg')
-    epochs = EpochsArray(data, info, events)
+    epochs = EpochsArray(data, info, events, event_id=event_id)
 
     for method in ('mean', 'median'):
         if method == "mean":
@@ -3262,6 +3267,14 @@ def test_average_methods():
 
         evoked_data = epochs.average(method=method).data
         assert_array_equal(evoked_data, fun(data))
+
+        # Test averaging per event type
+        ev = epochs.average(method=method, per_event_type=True)
+        assert len(ev) == 2
+        assert ev['first'].comment == 'first'
+        assert_array_equal(ev['first'].data, fun(data[:-2]))
+        assert ev['second'].comment == 'second'
+        assert_array_equal(ev['second'].data, fun(data[-2:]))
 
 
 @pytest.mark.parametrize('relative', (True, False))
