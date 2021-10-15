@@ -407,7 +407,7 @@ def mpl_backend(garbage_collect):
 
 
 @pytest.fixture(params=['matplotlib', 'pyqtgraph'])
-def browse_backend(request, garbage_collect):
+def browser_backend(request, garbage_collect):
     """Parametrizes the name of the browser backend."""
     backend_name = request.param
     if backend_name == 'pyqtgraph':

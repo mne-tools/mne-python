@@ -224,9 +224,9 @@ def _child_fig_helper(fig, key, attr, browse_backend):
     assert getattr(fig.mne, attr) is None
 
 
-def test_scale_bar(browse_backend):
+def test_scale_bar(browser_backend):
     """Test scale bar for raw."""
-    ismpl = browse_backend.name == 'matplotlib'
+    ismpl = browser_backend.name == 'matplotlib'
     sfreq = 1000.
     t = np.arange(10000) / sfreq
     data = np.sin(2 * np.pi * 10. * t)
@@ -251,15 +251,15 @@ def test_scale_bar(browse_backend):
         assert_allclose(y_lims, bar_lims, atol=1e-4)
 
 
-def test_plot_raw_selection(raw, browse_backend):
+def test_plot_raw_selection(raw, browser_backend):
     """Test selection mode of plot_raw()."""
-    ismpl = browse_backend.name == 'matplotlib'
+    ismpl = browser_backend.name == 'matplotlib'
     with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
-    browse_backend._close_all()           # ensure all are closed
-    assert browse_backend._get_n_figs() == 0
+    browser_backend._close_all()           # ensure all are closed
+    assert browser_backend._get_n_figs() == 0
     fig = raw.plot(group_by='selection', proj=False)
-    assert browse_backend._get_n_figs() == 2
+    assert browser_backend._get_n_figs() == 2
     sel_fig = fig.mne.fig_selection
     assert sel_fig is not None
     # test changing selection with arrow keys
@@ -334,10 +334,10 @@ def test_plot_raw_selection(raw, browse_backend):
     # test joint closing of selection & data windows
     fig._fake_keypress(sel_fig.mne.close_key, fig=sel_fig)
     fig._close_event(sel_fig)
-    assert browse_backend._get_n_figs() == 0
+    assert browser_backend._get_n_figs() == 0
 
 
-def test_plot_raw_ssp_interaction(raw, browse_backend):
+def test_plot_raw_ssp_interaction(raw, browser_backend):
     """Test SSP projector UI of plot_raw()."""
     with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
@@ -349,73 +349,73 @@ def test_plot_raw_ssp_interaction(raw, browse_backend):
     fig = raw.plot()
     # open SSP window
     fig._fake_keypress('j')
-    assert browse_backend._get_n_figs() == 2
+    assert browser_backend._get_n_figs() == 2
     ssp_fig = fig.mne.fig_proj
-    assert _proj_status(ssp_fig, browse_backend) == [True, True, True]
+    assert _proj_status(ssp_fig, browser_backend) == [True, True, True]
     # this should have no effect (proj 0 is already applied)
     assert _proj_label(ssp_fig,
-                       browse_backend)[0].endswith('(already applied)')
-    _proj_click(0, fig, browse_backend)
-    assert _proj_status(ssp_fig, browse_backend) == [True, True, True]
+                       browser_backend)[0].endswith('(already applied)')
+    _proj_click(0, fig, browser_backend)
+    assert _proj_status(ssp_fig, browser_backend) == [True, True, True]
     # this should work (proj 1 not applied)
-    _proj_click(1, fig, browse_backend)
-    assert _proj_status(ssp_fig, browse_backend) == [True, False, True]
+    _proj_click(1, fig, browser_backend)
+    assert _proj_status(ssp_fig, browser_backend) == [True, False, True]
     # turn it back on
-    _proj_click(1, fig, browse_backend)
-    assert _proj_status(ssp_fig, browse_backend) == [True, True, True]
+    _proj_click(1, fig, browser_backend)
+    assert _proj_status(ssp_fig, browser_backend) == [True, True, True]
     # toggle all off (button axes need both press and release)
-    _proj_click_all(fig, browse_backend)
-    assert _proj_status(ssp_fig, browse_backend) == [True, False, False]
+    _proj_click_all(fig, browser_backend)
+    assert _proj_status(ssp_fig, browser_backend) == [True, False, False]
     fig._fake_keypress('J')
-    assert _proj_status(ssp_fig, browse_backend) == [True, True, True]
+    assert _proj_status(ssp_fig, browser_backend) == [True, True, True]
     fig._fake_keypress('J')
-    assert _proj_status(ssp_fig, browse_backend) == [True, False, False]
+    assert _proj_status(ssp_fig, browser_backend) == [True, False, False]
     # turn all on
-    _proj_click_all(fig, browse_backend)
+    _proj_click_all(fig, browser_backend)
     assert fig.mne.projector is not None  # on
-    assert _proj_status(ssp_fig, browse_backend) == [True, True, True]
+    assert _proj_status(ssp_fig, browser_backend) == [True, True, True]
 
 
-def test_plot_raw_child_figures(raw, browse_backend):
+def test_plot_raw_child_figures(raw, browser_backend):
     """Test spawning and closing of child figures."""
-    ismpl = browse_backend.name == 'matplotlib'
+    ismpl = browser_backend.name == 'matplotlib'
     with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
-    browse_backend._close_all()  # make sure we start clean
-    assert browse_backend._get_n_figs() == 0
+    browser_backend._close_all()  # make sure we start clean
+    assert browser_backend._get_n_figs() == 0
     fig = raw.plot()
-    assert browse_backend._get_n_figs() == 1
+    assert browser_backend._get_n_figs() == 1
     # test child fig toggles
-    _child_fig_helper(fig, '?', 'fig_help', browse_backend)
-    _child_fig_helper(fig, 'j', 'fig_proj', browse_backend)
+    _child_fig_helper(fig, '?', 'fig_help', browser_backend)
+    _child_fig_helper(fig, 'j', 'fig_proj', browser_backend)
     # In pyqtgraph, this is a dock-widget instead of a separated window.
     if ismpl:
-        _child_fig_helper(fig, 'a', 'fig_annotation', browse_backend)
+        _child_fig_helper(fig, 'a', 'fig_annotation', browser_backend)
     assert len(fig.mne.child_figs) == 0  # make sure the helper cleaned up
-    assert browse_backend._get_n_figs() == 1
+    assert browser_backend._get_n_figs() == 1
     # test right-click → channel location popup
     fig._redraw()
     fig._click_ch_name(ch_index=2, button=3)
     assert len(fig.mne.child_figs) == 1
-    assert browse_backend._get_n_figs() == 2
+    assert browser_backend._get_n_figs() == 2
     fig._fake_keypress('escape', fig=fig.mne.child_figs[0])
     if ismpl:
         fig._close_event(fig.mne.child_figs[0])
-    assert browse_backend._get_n_figs() == 1
+    assert browser_backend._get_n_figs() == 1
     # test right-click on non-data channel
     ix = raw.get_channel_types().index('ias')  # find the shielding channel
     trace_ix = fig.mne.ch_order.tolist().index(ix)  # get its plotting position
     assert len(fig.mne.child_figs) == 0
-    assert browse_backend._get_n_figs() == 1
+    assert browser_backend._get_n_figs() == 1
     fig._redraw()
     fig._click_ch_name(ch_index=trace_ix, button=3)  # should be no-op
     assert len(fig.mne.child_figs) == 0
-    assert browse_backend._get_n_figs() == 1
+    assert browser_backend._get_n_figs() == 1
     # test resize of main window
     fig._resize_by_factor(0.5)
 
 
-def test_plot_raw_keypresses(raw, browse_backend):
+def test_plot_raw_keypresses(raw, browser_backend):
     """Test keypress interactivity of plot_raw()."""
     with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
@@ -434,9 +434,9 @@ def test_plot_raw_keypresses(raw, browse_backend):
         fig._fake_keypress(key)
 
 
-def test_plot_raw_traces(raw, events, browse_backend):
+def test_plot_raw_traces(raw, events, browser_backend):
     """Test plotting of raw data."""
-    ismpl = browse_backend.name == 'matplotlib'
+    ismpl = browser_backend.name == 'matplotlib'
     with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     fig = raw.plot(events=events, order=[1, 7, 5, 2, 3], n_channels=3,
@@ -501,7 +501,7 @@ def test_plot_raw_traces(raw, events, browse_backend):
     with pytest.raises(TypeError, match='title must be None or a string, got'):
         raw.plot(title=1)
     raw.plot(show_options=True)
-    browse_backend._close_all()
+    browser_backend._close_all()
 
     # annotations outside data range
     annot = Annotations([10, 10 + raw.first_samp / raw.info['sfreq']],
@@ -518,7 +518,7 @@ def test_plot_raw_traces(raw, events, browse_backend):
 
 
 @pytest.mark.parametrize('group_by', ('position', 'selection'))
-def test_plot_raw_groupby(raw, browse_backend, group_by):
+def test_plot_raw_groupby(raw, browser_backend, group_by):
     """Test group-by plotting of raw data."""
     with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
@@ -530,7 +530,7 @@ def test_plot_raw_groupby(raw, browse_backend, group_by):
     fig._fake_keypress('down')  # change selection
     fig._fake_click((x, y), xform='data')  # mark bad
     fig._fake_click((0.5, 0.5), ax=fig.mne.ax_vscroll)  # change channels
-    if browse_backend.name == 'matplotlib':
+    if browser_backend.name == 'matplotlib':
         # Test lasso-selection
         # (test difficult with pyqtgraph-backend, set plot_raw_selection)
         sel_fig = fig.mne.fig_selection
@@ -548,7 +548,7 @@ def test_plot_raw_groupby(raw, browse_backend, group_by):
     fig._fake_scroll(0.5, 0.5, 1)  # scroll up
 
 
-def test_plot_raw_meas_date(raw, browse_backend):
+def test_plot_raw_meas_date(raw, browser_backend):
     """Test effect of mismatched meas_date in raw.plot()."""
     raw.set_meas_date(_dt_to_stamp(raw.info['meas_date'])[0])
     annot = Annotations([1 + raw.first_samp / raw.info['sfreq']], [5], ['bad'])
@@ -561,7 +561,7 @@ def test_plot_raw_meas_date(raw, browse_backend):
         fig._fake_keypress(key, fig=fig.mne.fig_selection)
 
 
-def test_plot_raw_nan(raw, browse_backend):
+def test_plot_raw_nan(raw, browser_backend):
     """Test plotting all NaNs."""
     raw._data[:] = np.nan
     # this should (at least) not die, the output should pretty clearly show
@@ -571,7 +571,7 @@ def test_plot_raw_nan(raw, browse_backend):
 
 
 @testing.requires_testing_data
-def test_plot_raw_white(raw_orig, noise_cov_io, browse_backend):
+def test_plot_raw_white(raw_orig, noise_cov_io, browser_backend):
     """Test plotting whitened raw data."""
     raw_orig.crop(0, 1)
     fig = raw_orig.plot(noise_cov=noise_cov_io)
@@ -581,36 +581,36 @@ def test_plot_raw_white(raw_orig, noise_cov_io, browse_backend):
 
 
 @testing.requires_testing_data
-def test_plot_ref_meg(raw_ctf, browse_backend):
+def test_plot_ref_meg(raw_ctf, browser_backend):
     """Test plotting ref_meg."""
     raw_ctf.crop(0, 1)
     raw_ctf.plot()
     pytest.raises(ValueError, raw_ctf.plot, group_by='selection')
 
 
-def test_plot_misc_auto(browse_backend):
+def test_plot_misc_auto(browser_backend):
     """Test plotting of data with misc auto scaling."""
     data = np.random.RandomState(0).randn(1, 1000)
     raw = RawArray(data, create_info(1, 1000., 'misc'))
     raw.plot()
     raw = RawArray(data, create_info(1, 1000., 'dipole'))
     raw.plot(order=[0])  # plot, even though it's not "data"
-    browse_backend._close_all()
+    browser_backend._close_all()
 
 
 @pytest.mark.slowtest
-def test_plot_annotations(raw, browse_backend):
+def test_plot_annotations(raw, browser_backend):
     """Test annotation mode of the plotter."""
-    ismpl = browse_backend.name == 'matplotlib'
+    ismpl = browser_backend.name == 'matplotlib'
     with raw.info._unlock():
         raw.info['lowpass'] = 10.
-    _annotation_helper(raw, browse_backend)
-    _annotation_helper(raw, browse_backend, events=True)
+    _annotation_helper(raw, browser_backend)
+    _annotation_helper(raw, browser_backend, events=True)
 
     annot = Annotations([42], [1], 'test', raw.info['meas_date'])
     with pytest.warns(RuntimeWarning, match='expanding outside'):
         raw.set_annotations(annot)
-    _annotation_helper(raw, browse_backend)
+    _annotation_helper(raw, browser_backend)
     # test annotation visibility toggle
     fig = raw.plot()
     if ismpl:
@@ -637,7 +637,7 @@ def test_plot_annotations(raw, browse_backend):
 
 
 @pytest.mark.parametrize('hide_which', ([], [0], [1], [0, 1]))
-def test_remove_annotations(raw, hide_which, browse_backend):
+def test_remove_annotations(raw, hide_which, browser_backend):
     """Test that right-click doesn't remove hidden annotation spans."""
     descriptions = ['foo', 'bar']
     ann = Annotations(onset=[2, 1], duration=[1, 3],
@@ -646,7 +646,7 @@ def test_remove_annotations(raw, hide_which, browse_backend):
     assert len(raw.annotations) == 2
     fig = raw.plot()
     fig._fake_keypress('a')  # start annotation mode
-    if browse_backend.name == 'matplotlib':
+    if browser_backend.name == 'matplotlib':
         checkboxes = fig.mne.show_hide_annotation_checkboxes
         for which in hide_which:
             checkboxes.set_active(which)
@@ -660,7 +660,7 @@ def test_remove_annotations(raw, hide_which, browse_backend):
 
 
 @pytest.mark.parametrize('filtorder', (0, 2))  # FIR, IIR
-def test_plot_raw_filtered(filtorder, raw, browse_backend):
+def test_plot_raw_filtered(filtorder, raw, browser_backend):
     """Test filtering of raw plots."""
     # Opening that many plots can cause a Segmentation fault
     # if multithreading is activated in pyqtgraph-backend
@@ -832,7 +832,7 @@ def test_plot_sensors(raw):
 
 
 @pytest.mark.parametrize('cfg_value', (None, '0.1,0.1'))
-def test_min_window_size(raw, cfg_value, browse_backend):
+def test_min_window_size(raw, cfg_value, browser_backend):
     """Test minimum window plot size."""
     old_cfg = get_config('MNE_BROWSE_RAW_SIZE')
     set_config('MNE_BROWSE_RAW_SIZE', cfg_value)
@@ -845,14 +845,14 @@ def test_min_window_size(raw, cfg_value, browse_backend):
     set_config('MNE_BROWSE_RAW_SIZE', old_cfg)
 
 
-def test_scalings_int(browse_backend):
+def test_scalings_int(browser_backend):
     """Test that auto scalings access samples using integers."""
     raw = RawArray(np.zeros((1, 500)), create_info(1, 1000., 'eeg'))
     raw.plot(scalings='auto')
 
 
 @pytest.mark.parametrize('dur, n_dec', [(20, 1), (1.8, 2), (0.01, 4)])
-def test_clock_xticks(raw, dur, n_dec, browse_backend):
+def test_clock_xticks(raw, dur, n_dec, browser_backend):
     """Test if decimal seconds of xticks have appropriate length."""
     fig = raw.plot(duration=dur, time_format='clock')
     fig._redraw()
