@@ -321,6 +321,7 @@ class CoregistrationUI(HasTraits):
     def _orient_glyphs_changed(self, change=None):
         self._add_hpi_coils()
         self._add_head_shape_points()
+        self._add_eeg_channels()
 
     @observe("_hpi_coils")
     def _hpi_coils_changed(self, change=None):
@@ -586,7 +587,8 @@ class CoregistrationUI(HasTraits):
             eeg_actors = _plot_sensors(
                 self._renderer, self._info, to_cf_t, picks, meg=False,
                 eeg=eeg, fnirs=False, warn_meg=False, head_surf=self._head_geo,
-                units='m', sensor_opacity=1.0)
+                units='m', sensor_opacity=1.0,
+                orient_glyphs=self._orient_glyphs, surf=self._head_geo)
             eeg_actors = eeg_actors["eeg"]
         else:
             eeg_actors = None

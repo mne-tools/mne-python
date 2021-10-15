@@ -1106,7 +1106,7 @@ def _plot_forward(renderer, fwd, to_cf_t):
 
 def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                   warn_meg, head_surf, units, sensor_opacity=0.8,
-                  orient_glyphs=False):
+                  orient_glyphs=False, surf=None):
     """Render sensors in a 3D scene."""
     defaults = DEFAULTS['coreg']
     ch_pos, sources, detectors = _ch_pos_in_coord_frame(
@@ -1163,13 +1163,25 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
     if len(sens_loc) > 0:
         sens_loc = np.array(sens_loc)
         if orient_glyphs:
-            pass
+            glyph_height = defaults['eegp_height']
+            glyph_center = (0., -defaults['eegp_height'], 0)
+            resolution = glyph_resolution = 16
+            scalars, vectors = _orient_glyphs(sens_loc, surf)
+            x, y, z = sens_loc.T
+            u, v, w = vectors.T
+            actor, _ = renderer.quiver3d(
+                x, y, z, u, v, w, color=color, scale=defaults['eeg_scale'],
+                mode="cylinder",
+                glyph_height=glyph_height, glyph_center=glyph_center,
+                resolution=resolution, glyph_resolution=glyph_resolution,
+                glyph_radius=None, opacity=sensor_opacity, scale_mode='vector',
+                scalars=scalars)
         else:
             actor, _ = renderer.sphere(
                 center=sens_loc * scalar, color=color,
                 scale=defaults['eeg_scale'] * scalar,
                 opacity=sensor_opacity)
-            actors['eeg'].append(actor)
+        actors['eeg'].append(actor)
 
     # add projected eeg
     eeg_indices = pick_types(info, eeg=True)
