@@ -52,6 +52,13 @@ class CoregistrationUI(HasTraits):
         If True, orient the sensors towards the head surface. Default to False.
     trans : str
         The path to the Head<->MRI transform FIF file ("-trans.fif").
+    size : tuple
+        The dimensions (width, height) of the rendering view. The default is
+        (800, 600).
+    bgcolor : tuple | str
+        The background color as a tuple (red, green, blue) of float
+        values between 0 and 1 or a valid color name (i.e. 'white'
+        or 'w'). Defaults to 'grey'.
     standalone : bool
         If True, start the Qt application event loop. Default to False.
     """
@@ -76,7 +83,7 @@ class CoregistrationUI(HasTraits):
                  fiducials='auto', head_resolution=None,
                  head_transparency=None, head_opacity=None, hpi_coils=None,
                  head_shape_points=None, eeg_channels=None, orient_glyphs=None,
-                 trans=None, standalone=False):
+                 trans=None, size=None, bgcolor=None, standalone=False):
         from ..viz.backends.renderer import _get_renderer
 
         def _get_default(var, val):
@@ -95,6 +102,8 @@ class CoregistrationUI(HasTraits):
             DEFAULTS['coreg'][f'{key}_color'] for key in
             ('lpa', 'nasion', 'rpa'))
         self._defaults = dict(
+            size=_get_default(size, (800, 600)),
+            bgcolor=_get_default(bgcolor, "grey"),
             orient_glyphs=False,
             hpi_coils=True,
             head_shape_points=True,
@@ -130,7 +139,8 @@ class CoregistrationUI(HasTraits):
             self._info = info_str
 
         self._fiducials = fiducials
-        self._renderer = _get_renderer(bgcolor="grey")
+        self._renderer = _get_renderer(
+            size=self._defaults["size"], bgcolor=self._defaults["bgcolor"])
         self._renderer._window_close_connect(self._clean)
         self._coreg = Coregistration(
             self._info, subject, subjects_dir, fiducials)
