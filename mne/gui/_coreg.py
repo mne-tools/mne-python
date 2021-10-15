@@ -47,7 +47,7 @@ class CoregistrationUI(HasTraits):
     head_shape_points : bool
         If True, display the head shape points. Defaults to True.
     eeg_channels : bool
-        If True, display the EEG channels. Defaults to False.
+        If True, display the EEG channels. Defaults to True.
     orient_glyphs : bool
         If True, orient the sensors towards the head surface. Default to False.
     trans : str
@@ -98,7 +98,7 @@ class CoregistrationUI(HasTraits):
             orient_glyphs=False,
             hpi_coils=True,
             head_shape_points=True,
-            eeg_channels=False,
+            eeg_channels=True,
             head_resolution=False,
             head_transparency=False,
             head_opacity=_get_default(head_opacity, 0.4),
