@@ -11,7 +11,6 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 
 from copy import deepcopy
 from functools import partial
-from math import exp
 
 import numpy as np
 
