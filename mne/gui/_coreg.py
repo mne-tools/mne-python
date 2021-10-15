@@ -319,25 +319,23 @@ class CoregistrationUI(HasTraits):
 
     @observe("_orient_glyphs")
     def _orient_glyphs_changed(self, change=None):
-        self._add_hpi_coils()
-        self._add_head_shape_points()
-        self._add_eeg_channels()
+        self._update_plot(["hpi", "hsp", "eeg"])
 
     @observe("_hpi_coils")
     def _hpi_coils_changed(self, change=None):
-        self._add_hpi_coils()
+        self._update_plot("hpi")
 
     @observe("_head_shape_points")
     def _head_shape_point_changed(self, change=None):
-        self._add_head_shape_points()
+        self._update_plot("hsp")
 
     @observe("_eeg_channels")
     def _eeg_channels_changed(self, change=None):
-        self._add_eeg_channels()
+        self._update_plot("eeg")
 
     @observe("_head_resolution")
     def _head_resolution_changed(self, change=None):
-        self._add_head_surface()
+        self._update_plot("head")
         self._grow_hair_changed()
 
     @observe("_head_transparency")
