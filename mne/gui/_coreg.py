@@ -888,22 +888,9 @@ class CoregistrationUI(HasTraits):
             name="Weights",
             layout=layout,
         )
-        hlayout = self._renderer._dock_add_layout(vertical=False)
-        for fid in self._defaults["fiducials"]:
-            fid_lower = fid.lower()
-            name = f"{fid_lower}_weight"
-            self._widgets[name] = self._renderer._dock_add_spin_box(
-                name=fid,
-                value=getattr(self, f"_{fid_lower}_weight"),
-                rng=[1., 100.],
-                callback=partial(self._set_point_weight, point=fid_lower),
-                compact=True,
-                double=True,
-                layout=hlayout
-            )
-        self._renderer._layout_add_widget(layout, hlayout)
-        hlayout = self._renderer._dock_add_layout(vertical=False)
-        for point in ("HSP", "EEG", "HPI"):
+        for point, fid in zip(("HSP", "EEG", "HPI"),
+                              self._defaults["fiducials"]):
+            hlayout = self._renderer._dock_add_layout(vertical=False)
             point_lower = point.lower()
             name = f"{point_lower}_weight"
             self._widgets[name] = self._renderer._dock_add_spin_box(
@@ -915,7 +902,19 @@ class CoregistrationUI(HasTraits):
                 double=True,
                 layout=hlayout
             )
-        self._renderer._layout_add_widget(layout, hlayout)
+
+            fid_lower = fid.lower()
+            name = f"{fid_lower}_weight"
+            self._widgets[name] = self._renderer._dock_add_spin_box(
+                name=fid,
+                value=getattr(self, f"_{fid_lower}_weight"),
+                rng=[1., 100.],
+                callback=partial(self._set_point_weight, point=fid_lower),
+                compact=True,
+                double=True,
+                layout=hlayout
+            )
+            self._renderer._layout_add_widget(layout, hlayout)
         self._renderer._dock_add_button(
             name="Reset Fitting Options",
             callback=self._reset_fitting_parameters,
