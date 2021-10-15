@@ -1115,6 +1115,7 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
     actors = dict(meg=list(), ref_meg=list(), eeg=list(), fnirs=list(),
                   ecog=list(), seeg=list(), dbs=list())
     scalar = 1 if units == 'm' else 1e3
+    sens_loc = list()
     for ch_name, ch_coord in ch_pos.items():
         ch_type = channel_type(info, info.ch_names.index(ch_name))
         # for default picking
@@ -1135,11 +1136,7 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
             actors[ch_type].append(actor)
         else:
             if plot_sensors:
-                actor, _ = renderer.sphere(
-                    center=tuple(ch_coord * scalar), color=color,
-                    scale=defaults[ch_type + '_scale'] * scalar,
-                    opacity=sensor_opacity)
-                actors[ch_type].append(actor)
+                sens_loc.append(ch_coord)
         if ch_name in sources and 'sources' in fnirs:
             actor, _ = renderer.sphere(
                 center=tuple(sources[ch_name] * scalar),
@@ -1161,6 +1158,18 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                 destination=detectors[ch_name][np.newaxis] * scalar,
                 radius=0.001 * scalar)
             actors[ch_type].append(actor)
+
+    # add eeg
+    if len(sens_loc) > 0:
+        sens_loc = np.array(sens_loc)
+        if orient_glyphs:
+            pass
+        else:
+            actor, _ = renderer.sphere(
+                center=sens_loc * scalar, color=color,
+                scale=defaults['eeg_scale'] * scalar,
+                opacity=sensor_opacity)
+            actors['eeg'].append(actor)
 
     # add projected eeg
     eeg_indices = pick_types(info, eeg=True)
