@@ -946,6 +946,13 @@ n_pca_components : int | float | None
     the ``ica.n_pca_components`` from initialization will be used in 0.22;
     in 0.23 all components will be used.
 """
+docdict['measure'] = """
+measure : 'zscore' | 'correlation'
+    Which method to use for finding outliers. ``'zscore'`` (default) is
+    the iterative z-scoring method, and ``'correlation'`` is an
+    absolute raw correlation threshold with a range of 0 to 1.
+
+    .. versionadded:: 0.21"""
 
 # Maxwell filtering
 docdict['maxwell_origin'] = """

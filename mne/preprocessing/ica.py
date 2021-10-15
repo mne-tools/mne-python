@@ -1346,12 +1346,7 @@ class ICA(ContainsMixin):
         %(reject_by_annotation_all)s
 
             .. versionadded:: 0.14.0
-        measure : 'zscore' | 'correlation'
-            Which method to use for finding outliers. ``'zscore'`` (default) is
-            the iterative z-scoring method, and ``'correlation'`` is an
-            absolute raw correlation threshold with a range of 0 to 1.
-
-            .. versionadded:: 0.21
+        %(measure)
         %(verbose_meth)s
 
         Returns
@@ -1458,12 +1453,7 @@ class ICA(ContainsMixin):
             Defaults to ``'together'``. See notes.
 
             .. versionadded:: 0.21
-        measure : 'zscore' | 'correlation'
-            Which method to use for finding outliers. ``'zscore'`` (default) is
-            the iterative z-scoring method, and ``'correlation'`` is an
-            absolute raw correlation threshold with a range of 0 to 1.
-
-            .. versionadded:: 0.21
+        %(measure)
         %(verbose_meth)s
 
         Returns
@@ -1584,12 +1574,7 @@ class ICA(ContainsMixin):
         %(reject_by_annotation_all)s
 
             .. versionadded:: 0.14.0
-        measure : 'zscore' | 'correlation'
-            Which method to use for finding outliers. ``'zscore'`` (default) is
-            the iterative z-scoring method, and ``'correlation'`` is an
-            absolute raw correlation threshold with a range of 0 to 1.
-
-            .. versionadded:: 0.21
+        %(measure)
         %(verbose_meth)s
 
         Returns
