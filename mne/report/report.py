@@ -1371,7 +1371,7 @@ class Report(object):
 
             captions.append(caption)
 
-        title = 'ICA components'
+        title = 'ICA component properties'
         # Only render a slider if we have more than 1 component.
         if len(figs) == 1:
             img = _fig_to_img(fig=figs[0], image_format=image_format)
@@ -1442,7 +1442,7 @@ class Report(object):
 
         return topographies_html
 
-    def _render_ica(self, *, ica, inst, n_components, ecg_evoked,
+    def _render_ica(self, *, ica, inst, picks, ecg_evoked,
                     eog_evoked, ecg_scores, eog_scores, title, image_format,
                     tags, n_jobs):
         if _path_like(ica):
@@ -1539,7 +1539,6 @@ class Report(object):
             eog_html = ''
 
         # Component topography plots
-        picks = None if n_components is None else list(range(n_components))
         topographies_html = self._render_ica_components(
             ica=ica, picks=picks, image_format=image_format, tags=tags
         )
@@ -1571,7 +1570,7 @@ class Report(object):
 
     @fill_doc
     def add_ica(
-        self, ica, title, *,  inst, n_components=None, ecg_evoked=None,
+        self, ica, title, *,  inst, picks=None, ecg_evoked=None,
         eog_evoked=None, ecg_scores=None, eog_scores=None, n_jobs=1,
         tags=('ica',), replace=False
     ):
@@ -1587,9 +1586,8 @@ class Report(object):
             The data to use for visualization of the effects of ICA cleaning.
             To only plot the ICA component topographies, explicitly pass
             ``None``.
-        n_components : int | None
-            The number of components for which to produce plots. If ``None``,
-            plot all components.
+        %(picks_ica)s  If ``None``, plot all components. This only affects
+            the behavior of the component topography and properties plots.
         ecg_evoked, eog_evoked : path-line | mne.Evoked | None
             Evoked signal based on ECG and EOG epochs, respectively. If passed,
             will be used to visualize the effects of artifact rejection.
@@ -1609,7 +1607,7 @@ class Report(object):
         tags = tuple(tags)
 
         dom_id, html = self._render_ica(
-            ica=ica, inst=inst, n_components=n_components,
+            ica=ica, inst=inst, picks=picks,
             ecg_evoked=ecg_evoked, eog_evoked=eog_evoked,
             ecg_scores=ecg_scores, eog_scores=eog_scores,
             title=title, image_format=self.image_format, tags=tags,
