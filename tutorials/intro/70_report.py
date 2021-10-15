@@ -203,8 +203,8 @@ report.save('report_projs.html', overwrite=True)
 #
 # .. note:: :meth:`mne.Report.add_ica` only works with fitted ICAs.
 #
-# You can optionally specify for many components to show in the generated
-# plots by passing ``n_components``. By default, all components will be
+# You can optionally specify for which components to produce topography and
+# properties plots by passing ``picks``. By default, all components will be
 # shown. It is also possible to pass evoked signals based on ECG and EOG events
 # via ``ecg_evoked`` and ``eog_evoked``. This allows you directly see the
 # effects of ICA component removal on these artifactual signals.
@@ -252,7 +252,7 @@ report = mne.Report()
 report.add_ica(
     ica=ica,
     title='ICA cleaning',
-    n_components=2,  # only plot the first two components
+    picks=[0, 1],  # only plot the first two components
     inst=raw_eeg_cropped,
     eog_evoked=eog_epochs.average(),
     eog_scores=eog_scores,
