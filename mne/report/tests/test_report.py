@@ -357,7 +357,12 @@ def test_render_add_sections(renderer, tmpdir):
     report = Report(subjects_dir=subjects_dir)
     # Check add_figure functionality
     fig = plt.plot([1, 2], [1, 2])[0].figure
+
     report.add_figure(fig=fig, title='evoked response', image_format='svg')
+    assert 'caption' not in report._content[-1].html
+
+    report.add_figure(fig=fig, title='evoked with caption', caption='descr')
+    assert 'caption' in report._content[-1].html
 
     # Check add_image with png
     img_fname = op.join(tempdir, 'testimage.png')
@@ -377,7 +382,7 @@ def test_render_add_sections(renderer, tmpdir):
     fname = op.join(str(tmpdir), 'test.html')
     report.save(fname, open_browser=False)
 
-    assert len(report) == 3
+    assert len(report) == 4
 
 
 @pytest.mark.slowtest
