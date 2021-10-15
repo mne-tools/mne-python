@@ -1346,7 +1346,7 @@ class ICA(ContainsMixin):
         %(reject_by_annotation_all)s
 
             .. versionadded:: 0.14.0
-        %(measure)
+        %(measure)s
         %(verbose_meth)s
 
         Returns
@@ -1453,7 +1453,7 @@ class ICA(ContainsMixin):
             Defaults to ``'together'``. See notes.
 
             .. versionadded:: 0.21
-        %(measure)
+        %(measure)s
         %(verbose_meth)s
 
         Returns
@@ -1574,7 +1574,7 @@ class ICA(ContainsMixin):
         %(reject_by_annotation_all)s
 
             .. versionadded:: 0.14.0
-        %(measure)
+        %(measure)s
         %(verbose_meth)s
 
         Returns
