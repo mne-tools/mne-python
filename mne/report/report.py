@@ -451,6 +451,7 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
             buff.seek(0)
             fig_array = plt.imread(buff, format='png')
 
+        plt.close(fig)
         return fig_array
 
     use_jobs = min(n_jobs, max(1, len(picks)))
