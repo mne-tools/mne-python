@@ -1867,7 +1867,9 @@ class Report(object):
 
         if isinstance(caption, str):
             captions = (caption,)
-        elif caption is None:
+        elif caption is None and len(figs) == 1:
+            captions = [None]
+        elif caption is None and len(figs) > 1:
             captions = [f'Figure {i+1}' for i in range(len(figs))]
         else:
             captions = tuple(caption)
