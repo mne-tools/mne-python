@@ -2286,7 +2286,6 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
             expected_shape = (n_epochs, n_channels, 1, n_times)
             error_check = data.shape != expected_shape
         elif dim == 'times':
-            print(data.shape)
             data = np.expand_dims(data, axis=axis)
             self.times = np.mean(self.times, keepdims=True)
 
