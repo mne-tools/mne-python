@@ -1312,11 +1312,12 @@ class ICA(ContainsMixin):
             The argument is mandatory if the dataset contains no ECG
             channels.
         threshold : float | str
-            The value above which a feature is classified as outlier. If 'auto'
-            and method is 'ctps', automatically compute the threshold. If
-            'auto' and method is 'correlation', defaults to 3.0. The default
-            translates to 0.25 for 'ctps' and 3.0 for 'correlation' in version
-            0.21 but will change to 'auto' in version 0.22.
+            The value above which a feature is classified as outlier. If
+            ``'auto'`` and method is ``'ctps'``, automatically compute the
+            threshold. If ``'auto'`` and method is ``'correlation'``, defaults
+            to 3.0. The default translates to 0.25 for ``'ctps'`` and 3.0 for
+            ``'correlation'`` in version 0.21 but will change to ``'auto'`` in
+            version 0.22.
 
             .. versionchanged:: 0.21
         start : int | float | None
@@ -1332,16 +1333,16 @@ class ICA(ContainsMixin):
         h_freq : float
             High pass frequency.
         method : {'ctps', 'correlation'}
-            The method used for detection. If 'ctps', cross-trial phase
+            The method used for detection. If ``'ctps'``, cross-trial phase
             statistics [1] are used to detect ECG related components.
             Thresholding is then based on the significance value of a Kuiper
             statistic.
-            If 'correlation', detection is based on Pearson correlation
+            If ``'correlation'``, detection is based on Pearson correlation
             between the filtered data and the filtered ECG channel.
             Thresholding is based on iterative z-scoring. The above
             threshold components will be masked and the z-score will
             be recomputed until no supra-threshold component remains.
-            Defaults to 'ctps'.
+            Defaults to ``'ctps'``.
         %(reject_by_annotation_all)s
 
             .. versionadded:: 0.14.0
