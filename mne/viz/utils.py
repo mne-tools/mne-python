@@ -1859,7 +1859,7 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
                        mask_style="both", mask_alpha=.25, mask_cmap="Greys",
                        yscale="linear", cnorm=None):
     """Plot a potentially masked (evoked, TFR, ...) 2D image."""
-    from matplotlib import ticker, __version__ as mpl_version
+    from matplotlib import ticker
     from matplotlib.colors import Normalize
 
     if mask_style is None and mask is not None:
@@ -1918,11 +1918,6 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
             yscale = 'log'
         else:
             yscale = 'linear'
-
-    # https://github.com/matplotlib/matplotlib/pull/9477
-    if yscale == "log" and mpl_version == "2.1.0":
-        warn("With matplotlib version 2.1.0, lines may not show up in "
-             "`AverageTFR.plot_joint`. Upgrade to a more recent version.")
 
     if yscale == "log":  # pcolormesh for log scale
         # compute bounds between time samples
