@@ -846,7 +846,7 @@ def test_averaging_epochsTFR():
         power.average(method=np.mean)
 
 
-def test_averagingfreqs_epochsTFR():
+def test_averaging_freqsandtimes_epochsTFR():
     """Test that EpochsTFR averaging freqs methods work."""
     # Setup for reading the raw data
     event_id = 1
@@ -875,15 +875,33 @@ def test_averagingfreqs_epochsTFR():
                        average=False, use_fft=True,
                        return_itc=False)
 
-    # Test average methods
-    for func, method in zip(
-            [np.mean, np.median, np.mean],
-            ['mean', 'median', lambda x: np.mean(x, axis=2)]):
-        avgpower = power.copy().average_freqs(method=method)
-        print(power.data.shape)
-        print(avgpower.data.shape)
-        assert_array_equal(func(power.data, axis=2), avgpower.data)
+    # Test average methods for freqs and times
+    for idx, (func, method) in enumerate(zip(
+            [np.mean, np.median, np.mean, np.mean],
+            ['mean', 'median', lambda x: np.mean(x, axis=2),
+             lambda x: np.mean(x, axis=3)])):
+        if idx == 3:
+            with pytest.raises(RuntimeError, match='You passed a function'):
+                avgpower = power.copy().average(method=method, dim='freqs')
+            continue
+        avgpower = power.copy().average(method=method, dim='freqs')
+        assert_array_equal(func(power.data, axis=2, keepdims=True),
+                           avgpower.data)
         assert avgpower.freqs == np.mean(power.freqs)
+
+    # Test average methods for freqs and times
+    for idx, (func, method) in enumerate(zip(
+            [np.mean, np.median, np.mean, np.mean],
+            ['mean', 'median', lambda x: np.mean(x, axis=3),
+             lambda x: np.mean(x, axis=2)])):
+        if idx == 3:
+            with pytest.raises(RuntimeError, match='You passed a function'):
+                avgpower = power.copy().average(method=method, dim='times')
+            continue
+        avgpower = power.copy().average(method=method, dim='times')
+        assert_array_equal(func(power.data, axis=-1, keepdims=True),
+                           avgpower.data)
+        assert avgpower.times == np.mean(power.times)
 
 
 @requires_pandas
