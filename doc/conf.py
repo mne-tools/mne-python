@@ -259,7 +259,7 @@ numpydoc_xref_ignore = {
     'mapping', 'to', 'any',
     # unlinkable
     'mayavi.mlab.pipeline.surface',
-    'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame', 'CoregistrationUI'
+    'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame', 'CoregistrationUI',
     'IntracranialElectrodeLocator'
 }
 numpydoc_validate = True
