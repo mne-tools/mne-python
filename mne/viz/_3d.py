@@ -992,18 +992,8 @@ def _plot_hpi_coils(renderer, info, to_cf_t, opacity=0.5,
     color = defaults['hpi_color']
     scale = defaults['hpi_scale']
     if orient_glyphs:
-        glyph_height = defaults['eegp_height']
-        glyph_center = (0., -defaults['eegp_height'], 0)
-        resolution = glyph_resolution = 16
-        scalars, vectors = _orient_glyphs(hpi_loc, surf)
-        x, y, z = hpi_loc.T
-        u, v, w = vectors.T
-        actor, _ = renderer.quiver3d(
-            x, y, z, u, v, w, color=color, scale=scale, mode="cylinder",
-            glyph_height=glyph_height, glyph_center=glyph_center,
-            resolution=resolution, glyph_resolution=glyph_resolution,
-            glyph_radius=None, opacity=opacity, scale_mode='vector',
-            scalars=scalars)
+        actor, _ = _plot_oriented_glyphs(
+            renderer, hpi_loc, surf, color, scale, opacity=opacity)
     else:
         actor, _ = renderer.sphere(center=hpi_loc, color=color, scale=scale,
                                    opacity=opacity, backface_culling=True)
@@ -1043,6 +1033,21 @@ def _orient_glyphs(pts, surf):
     return scalars, vectors
 
 
+def _plot_oriented_glyphs(renderer, loc, surf, color, scale, mode="cylinder",
+                          opacity=1):
+    defaults = DEFAULTS['coreg']
+    scalars, vectors = _orient_glyphs(loc, surf)
+    x, y, z = loc.T
+    u, v, w = vectors.T
+    return renderer.quiver3d(
+        x, y, z, u, v, w, color=color, scale=scale,
+        mode=mode, glyph_height=defaults['eegp_height'],
+        glyph_center=(0., -defaults['eegp_height'], 0),
+        resolution=16, glyph_resolution=16,
+        glyph_radius=None, opacity=opacity, scale_mode='vector',
+        scalars=scalars)
+
+
 def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
                             orient_glyphs=False, surf=None, mask=None):
     defaults = DEFAULTS['coreg']
@@ -1055,18 +1060,8 @@ def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
     color = defaults['extra_color']
     scale = defaults['extra_scale']
     if orient_glyphs:
-        glyph_height = defaults['eegp_height']
-        glyph_center = (0., -defaults['eegp_height'], 0)
-        resolution = glyph_resolution = 16
-        scalars, vectors = _orient_glyphs(ext_loc, surf)
-        x, y, z = ext_loc.T
-        u, v, w = vectors.T
-        actor, _ = renderer.quiver3d(
-            x, y, z, u, v, w, color=color, scale=scale, mode="cylinder",
-            glyph_height=glyph_height, glyph_center=glyph_center,
-            resolution=resolution, glyph_resolution=glyph_resolution,
-            glyph_radius=None, opacity=opacity, scale_mode='vector',
-            scalars=scalars)
+        actor, _ = _plot_oriented_glyphs(
+            renderer, ext_loc, surf, color, scale, opacity=opacity)
     else:
         actor, _ = renderer.sphere(center=ext_loc, color=color,
                                    scale=scale, opacity=opacity,
@@ -1163,19 +1158,9 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
     if len(sens_loc) > 0:
         sens_loc = np.array(sens_loc)
         if orient_glyphs:
-            glyph_height = defaults['eegp_height']
-            glyph_center = (0., -defaults['eegp_height'], 0)
-            resolution = glyph_resolution = 16
-            scalars, vectors = _orient_glyphs(sens_loc, surf)
-            x, y, z = sens_loc.T
-            u, v, w = vectors.T
-            actor, _ = renderer.quiver3d(
-                x, y, z, u, v, w, color=color, scale=defaults['eeg_scale'],
-                mode="cylinder",
-                glyph_height=glyph_height, glyph_center=glyph_center,
-                resolution=resolution, glyph_resolution=glyph_resolution,
-                glyph_radius=None, opacity=sensor_opacity, scale_mode='vector',
-                scalars=scalars)
+            actor, _ = _plot_oriented_glyphs(
+                renderer, sens_loc, surf, color, defaults['eeg_scale'],
+                opacity=sensor_opacity)
         else:
             actor, _ = renderer.sphere(
                 center=sens_loc * scalar, color=color,
