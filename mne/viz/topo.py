@@ -335,10 +335,10 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect,
     return t_end
 
 
-def _imshow_tfr_unified(bn, ch_idx, tmin, tmax, vmin, vmax, onselect,
-                        ylim=None, tfr=None, freq=None, vline=None,
-                        x_label=None, y_label=None, colorbar=False,
-                        picker=True, cmap='RdBu_r', title=None, hline=None):
+def _imshow_tfr_unified(bn, ch_idx, tmin, tmax, vmin, vmax, onselect, tfr=None,
+                        freq=None, vline=None, x_label=None, y_label=None,
+                        colorbar=False, picker=True, cmap='RdBu_r', title=None,
+                        hline=None):
     """Show multiple tfrs on topo using a single axes."""
     _compute_ax_scalings(bn, (tmin, tmax), (freq[0], freq[-1]))
     ax = bn.ax
