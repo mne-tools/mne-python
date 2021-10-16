@@ -6,23 +6,23 @@ Compute and visualize ERDS maps
 This example calculates and displays ERDS maps of event-related EEG data. ERDS
 (sometimes also written as ERD/ERS) is short for event-related
 desynchronization (ERD) and event-related synchronization (ERS)
-:footcite:`PfurtschellerLopesdaSilva1999`.
-Conceptually, ERD corresponds to a decrease in power in a specific frequency
-band relative to a baseline. Similarly, ERS corresponds to an increase in
-power. An ERDS map is a time/frequency representation of ERD/ERS over a range
-of frequencies :footcite:`GraimannEtAl2002`. ERDS maps are also known as ERSP
-(event-related spectral perturbation) :footcite:`Makeig1993`.
+:footcite:`PfurtschellerLopesdaSilva1999`. Conceptually, ERD corresponds to a
+decrease in power in a specific frequency band relative to a baseline.
+Similarly, ERS corresponds to an increase in power. An ERDS map is a
+time/frequency representation of ERD/ERS over a range of frequencies
+:footcite:`GraimannEtAl2002`. ERDS maps are also known as ERSP (event-related
+spectral perturbation) :footcite:`Makeig1993`.
 
-We use a public EEG BCI data set containing two different motor imagery tasks
-available at PhysioNet. The two tasks are imagined hand and feet movement. Our
-goal is to generate ERDS maps for each of the two tasks.
+In this example, we use an EEG BCI data set containing two different motor
+imagery tasks (imagined hand and feet movement). Our goal is to generate ERDS
+maps for each of the two tasks.
 
-First, we load the data and create epochs of 5s length. The data sets contain
-multiple channels, but we will only consider the three channels C3, Cz, and C4.
-We compute maps containing frequencies ranging from 2 to 35Hz. We map ERD to
-red color and ERS to blue color, which is the convention in many ERDS
-publications. Finally, we perform cluster-based permutation tests to estimate
-significant ERDS values (corrected for multiple comparisons within channels).
+First, we load the data and create epochs of 5s length. The data set contains
+multiple channels, but we will only consider C3, Cz, and C4. We compute maps
+containing frequencies ranging from 2 to 35Hz. We map ERD to red color and ERS
+to blue color, which is customary in many ERDS publications. Finally, we
+perform cluster-based permutation tests to estimate significant ERDS values
+(corrected for multiple comparisons within channels).
 """
 # Authors: Clemens Brunner <clemens.brunner@gmail.com>
 #          Felix Klotzsche <klotzsche@cbs.mpg.de>
@@ -30,9 +30,11 @@ significant ERDS values (corrected for multiple comparisons within channels).
 # License: BSD-3-Clause
 
 # %%
+# As usual, we import everything we need.
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import TwoSlopeNorm
 import pandas as pd
 import seaborn as sns
 import mne
@@ -40,46 +42,41 @@ from mne.datasets import eegbci
 from mne.io import concatenate_raws, read_raw_edf
 from mne.time_frequency import tfr_multitaper
 from mne.stats import permutation_cluster_1samp_test as pcluster_test
-from mne.viz.utils import center_cmap
 
 
-# load and preprocess data ####################################################
-subject = 1  # use data from subject 1
-runs = [6, 10, 14]  # use only hand and feet motor imagery runs
-
-fnames = eegbci.load_data(subject, runs)
-raws = [read_raw_edf(f, preload=True) for f in fnames]
-raw = concatenate_raws(raws)
+# %%
+# First, we load and preprocess the data. We use runs 6, 10, and 14 from
+# subject 1 (these runs contains hand and feet motor imagery).
+fnames = eegbci.load_data(subject=1, runs=(6, 10, 14))
+raw = concatenate_raws([read_raw_edf(f, preload=True) for f in fnames])
 
 raw.rename_channels(lambda x: x.strip('.'))  # remove dots from channel names
 
 events, _ = mne.events_from_annotations(raw, event_id=dict(T1=2, T2=3))
 
-want_chs = ['C3', 'Cz', 'C4']
-picks = mne.pick_channels(raw.info["ch_names"], want_chs)
-
-# epoch data ##################################################################
-tmin, tmax = -1, 4  # define epochs around events (in s)
+# %%
+# Now we can create 5s epochs around events of interest.
+tmin, tmax = -1, 4
 event_ids = dict(hands=2, feet=3)  # map event IDs to tasks
 
 epochs = mne.Epochs(raw, events, event_ids, tmin - 0.5, tmax + 0.5,
-                    picks=picks, baseline=None, preload=True)
+                    picks=('C3', 'Cz', 'C4'), baseline=None, preload=True)
 
-# compute ERDS maps ###########################################################
-freqs = np.arange(2, 36, 1)  # frequencies from 2-35Hz
-n_cycles = freqs  # use constant t/f resolution
+# %%
+# Here we set suitable values for computing ERDS maps.
+freqs = np.arange(2, 36)  # frequencies from 2-35Hz
 vmin, vmax = -1, 1.5  # set min and max ERDS values in plot
 baseline = [-1, 0]  # baseline interval (in s)
-cmap = center_cmap(plt.cm.RdBu, vmin, vmax)  # zero maps to white
+cnorm = TwoSlopeNorm(vmin=-1, vcenter=0, vmax=1.5)  # min, center, and max ERDS
 kwargs = dict(n_permutations=100, step_down_p=0.05, seed=1,
               buffer_size=None, out_type='mask')  # for cluster test
 
-# Run TF decomposition overall epochs
-tfr = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
-                     use_fft=True, return_itc=False, average=False,
-                     decim=2)
-tfr.crop(tmin, tmax)
-tfr.apply_baseline(baseline, mode="percent")
+# %%
+# Finally, we perform time/frequency decomposition over all epochs.
+tfr = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs, use_fft=True,
+                     return_itc=False, average=False, decim=2)
+tfr.crop(tmin, tmax).apply_baseline(baseline, mode="percent")
+
 for event in event_ids:
     # select desired epochs for visualization
     tfr_ev = tfr[event]
@@ -87,10 +84,9 @@ for event in event_ids:
                              gridspec_kw={"width_ratios": [10, 10, 10, 1]})
     for ch, ax in enumerate(axes[:-1]):  # for each channel
         # positive clusters
-        _, c1, p1, _ = pcluster_test(tfr_ev.data[:, ch, ...], tail=1, **kwargs)
+        _, c1, p1, _ = pcluster_test(tfr_ev.data[:, ch], tail=1, **kwargs)
         # negative clusters
-        _, c2, p2, _ = pcluster_test(tfr_ev.data[:, ch, ...], tail=-1,
-                                     **kwargs)
+        _, c2, p2, _ = pcluster_test(tfr_ev.data[:, ch], tail=-1, **kwargs)
 
         # note that we keep clusters with p <= 0.05 from the combined clusters
         # of two independent tests; in this example, we do not correct for
@@ -100,8 +96,8 @@ for event in event_ids:
         mask = c[..., p <= 0.05].any(axis=-1)
 
         # plot TFR (ERDS map with masking)
-        tfr_ev.average().plot([ch], vmin=vmin, vmax=vmax, cmap=(cmap, False),
-                              axes=ax, colorbar=False, show=False, mask=mask,
+        tfr_ev.average().plot([ch], cmap="RdBu", cnorm=cnorm, axes=ax,
+                              colorbar=False, show=False, mask=mask,
                               mask_style="mask")
 
         ax.set_title(epochs.ch_names[ch], fontsize=10)
@@ -110,8 +106,8 @@ for event in event_ids:
             ax.set_ylabel("")
             ax.set_yticklabels("")
     fig.colorbar(axes[0].images[-1], cax=axes[-1])
-    fig.suptitle("ERDS ({})".format(event))
-    fig.show()
+    fig.suptitle(f"ERDS ({event})")
+    plt.show()
 
 # %%
 # Similar to `~mne.Epochs` objects, we can also export data from
@@ -146,7 +142,8 @@ df = df[df.band.isin(freq_bands_of_interest)]
 df['band'] = df['band'].cat.remove_unused_categories()
 
 # Order channels for plotting:
-df['channel'] = df['channel'].cat.reorder_categories(want_chs, ordered=True)
+df['channel'] = df['channel'].cat.reorder_categories(('C3', 'Cz', 'C4'),
+                                                     ordered=True)
 
 g = sns.FacetGrid(df, row='band', col='channel', margin_titles=True)
 g.map(sns.lineplot, 'time', 'value', 'condition', n_boot=10)
