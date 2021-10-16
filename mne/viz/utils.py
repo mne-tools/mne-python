@@ -39,7 +39,7 @@ from ..rank import compute_rank
 from ..io.proj import setup_proj
 from ..utils import (verbose, get_config, warn, _check_ch_locs, _check_option,
                      logger, fill_doc, _pl, _check_sphere, _ensure_int,
-                     _validate_type, _to_rgb)
+                     _validate_type, _to_rgb, deprecated)
 from ..transforms import apply_trans
 
 
@@ -2020,6 +2020,7 @@ def _make_combine_callable(combine):
     return combine
 
 
+@deprecated
 def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
     """Center given colormap (ranging from vmin to vmax) at value 0.
 
