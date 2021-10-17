@@ -197,6 +197,8 @@ Enhancements
 
 - All functions accepting a FreeSurfer subjects directory via a ``subjects_dir`` parameter can now consume :py:class:`pathlib.Path` objects too (used to be only strings) (:gh:`9613` by `Richard Höchenberger`_)
 
+- Add support for colormap normalization in :meth:`mne.time_frequency.AverageTFR.plot` (:gh:`9851` by `Clemens Brunner`_)
+
 Bugs
 ~~~~
 - Fix bug in :meth:`mne.io.Raw.pick` and related functions when parameter list contains channels which are not in info instance (:gh:`9708` **by new contributor** |Evgeny Goldstein|_)
@@ -318,3 +320,5 @@ API changes
 - :meth:`mne.Epochs.plot` and :func:`mne.viz.plot_epochs` gained parameter ``show_scalebars`` analogous to :meth:`mne.viz.plot_raw` (:gh:`9815` by `Daniel McCloy`_)
 
 - The output folder name for HF_SEF datasets is now ``hf_sef`` instead of ``HF_SEF`` (:gh:`9763` by `Adam Li`_)
+
+- Deprecate ``mne.viz.utils.center_cmap`` (:gh:`9851` by `Clemens Brunner`_)
