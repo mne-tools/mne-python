@@ -57,7 +57,7 @@ from mne.io.pick import (_DATA_CH_TYPES_SPLIT, _DATA_CH_TYPES_ORDER_DEFAULT,
 from mne.time_frequency import psd_welch, psd_multitaper
 from mne.utils import logger, _check_option, _check_sphere, Bunch, \
     _click_ch_name
-from mne.viz import plot_sensors, plot_epochs_image, tight_layout
+from mne.viz import plot_sensors, plot_epochs_image
 from mne.viz._figure import BrowserBase
 from mne.viz.ica import (_create_properties_layout,
                          _prepare_data_ica_properties,
