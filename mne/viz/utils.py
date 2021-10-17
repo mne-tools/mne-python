@@ -2019,7 +2019,7 @@ def _make_combine_callable(combine):
     return combine
 
 
-@deprecated
+@deprecated('Use cnorm parameter instead.')
 def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
     """Center given colormap (ranging from vmin to vmax) at value 0.
 
