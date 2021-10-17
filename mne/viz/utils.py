@@ -1857,7 +1857,7 @@ def _check_time_unit(time_unit, times):
 def _plot_masked_image(ax, data, times, mask=None, yvals=None,
                        cmap="RdBu_r", vmin=None, vmax=None, ylim=None,
                        mask_style="both", mask_alpha=.25, mask_cmap="Greys",
-                       yscale="linear"):
+                       yscale="linear", cnorm=None):
     """Plot a potentially masked (evoked, TFR, ...) 2D image."""
     from matplotlib import ticker
     from matplotlib.colors import Normalize
@@ -1868,6 +1868,8 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
     draw_contour = mask_style in {"both", "contour"}
     if cmap is None:
         mask_cmap = cmap
+    if cnorm is None:
+        cnorm = Normalize(vmin=vmin, vmax=vmax)
 
     # mask param check and preparation
     if draw_mask is None:
@@ -1928,13 +1930,12 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
 
         if mask is not None:
             ax.pcolormesh(time_mesh, yval_mesh, data, cmap=mask_cmap,
-                          vmin=vmin, vmax=vmax, alpha=mask_alpha)
-            im = ax.pcolormesh(time_mesh, yval_mesh,
-                               np.ma.masked_where(~mask, data), cmap=cmap,
-                               vmin=vmin, vmax=vmax, alpha=1)
+                          norm=cnorm, alpha=mask_alpha)
+            im = ax.pcolormesh(time_mesh, yval_mesh, norm=cnorm, alpha=1,
+                               np.ma.masked_where(~mask, data), cmap=cmap)
         else:
             im = ax.pcolormesh(time_mesh, yval_mesh, data, cmap=cmap,
-                               vmin=vmin, vmax=vmax)
+                               norm=cnorm)
         if ylim is None:
             ylim = yval_lims[[0, -1]]
         if yscale == 'log':
