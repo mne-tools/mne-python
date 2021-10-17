@@ -154,23 +154,6 @@ def test_validate_if_list_of_axes():
     plt.close('all')
 
 
-def test_center_cmap():
-    """Test centering of colormap."""
-    from matplotlib.colors import LinearSegmentedColormap
-    from matplotlib.pyplot import Normalize
-    cmap = center_cmap(cm.get_cmap("RdBu"), -5, 10)
-
-    assert isinstance(cmap, LinearSegmentedColormap)
-
-    # get new colors for values -5 (red), 0 (white), and 10 (blue)
-    new_colors = cmap(Normalize(-5, 10)([-5, 0, 10]))
-    # get original colors for 0 (red), 0.5 (white), and 1 (blue)
-    reference = cm.RdBu([0., 0.5, 1.])
-    assert_allclose(new_colors, reference)
-    # new and old colors at 0.5 must be different
-    assert not np.allclose(cmap(0.5), reference[1])
-
-
 def test_centers_to_edges():
     """Test centers_to_edges."""
     assert_allclose(centers_to_edges([0, 1, 2])[0], [-0.5, 0.5, 1.5, 2.5])
