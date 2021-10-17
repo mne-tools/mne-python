@@ -8,11 +8,10 @@ import numpy as np
 from numpy.testing import assert_allclose
 import pytest
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 
 from mne.viz.utils import (compare_fiff, _fake_click, _compute_scalings,
                            _validate_if_list_of_axes, _get_color_list,
-                           _setup_vmin_vmax, center_cmap, centers_to_edges,
+                           _setup_vmin_vmax, centers_to_edges,
                            _make_event_color_dict)
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
 from mne.io import read_raw_fif
