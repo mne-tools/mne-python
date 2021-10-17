@@ -1931,8 +1931,9 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
         if mask is not None:
             ax.pcolormesh(time_mesh, yval_mesh, data, cmap=mask_cmap,
                           norm=cnorm, alpha=mask_alpha)
-            im = ax.pcolormesh(time_mesh, yval_mesh, norm=cnorm, alpha=1,
-                               np.ma.masked_where(~mask, data), cmap=cmap)
+            im = ax.pcolormesh(time_mesh, yval_mesh,
+                               np.ma.masked_where(~mask, data), cmap=cmap,
+                               norm=cnorm, alpha=1)
         else:
             im = ax.pcolormesh(time_mesh, yval_mesh, data, cmap=cmap,
                                norm=cnorm)
