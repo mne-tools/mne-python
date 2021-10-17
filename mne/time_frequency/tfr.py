@@ -2261,12 +2261,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         if dim == 'epochs':
             axis = 0
         elif dim == 'freqs':
-            # EpochsTFR have frequency as the 3rd axis.
-            # AverageTFR has frequency as the 2nd axis.
-            if self.data.ndim == 4:
-                axis = 2
-            elif self.data.ndim == 3:
-                axis = 1
+            axis = 2
         elif dim == 'times':
             axis = self.data.ndim - 1
         else:
