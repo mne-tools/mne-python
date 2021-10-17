@@ -320,3 +320,5 @@ API changes
 - :meth:`mne.Epochs.plot` and :func:`mne.viz.plot_epochs` gained parameter ``show_scalebars`` analogous to :meth:`mne.viz.plot_raw` (:gh:`9815` by `Daniel McCloy`_)
 
 - The output folder name for HF_SEF datasets is now ``hf_sef`` instead of ``HF_SEF`` (:gh:`9763` by `Adam Li`_)
+
+- Deprecate :func:`mne.viz.utils.center_cmap` (:gh:`9851` by `Clemens Brunner`_)
