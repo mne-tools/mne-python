@@ -1165,7 +1165,7 @@ class AverageTFR(_BaseTFR):
              cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
              axes=None, layout=None, yscale='auto', mask=None,
              mask_style=None, mask_cmap="Greys", mask_alpha=0.1, combine=None,
-             exclude=[], cnorm=None, verbose=None):
+             exclude=[], verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         Parameters
@@ -1290,12 +1290,6 @@ class AverageTFR(_BaseTFR):
         exclude : list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
             bad channels are excluded. Defaults to an empty list.
-        cnorm : matplotlib.colors.Normalize | None
-            Colormap normalization, default None means linear normalization. If
-            not None, ``vmin`` and ``vmax`` arguments are ignored. See
-            :func:`mne.viz.plot_topomap` for more details.
-
-            .. versionadded:: 0.24
         %(verbose_meth)s
 
         Returns
@@ -1310,7 +1304,7 @@ class AverageTFR(_BaseTFR):
                           axes=axes, layout=layout, yscale=yscale, mask=mask,
                           mask_style=mask_style, mask_cmap=mask_cmap,
                           mask_alpha=mask_alpha, combine=combine,
-                          exclude=exclude, cnorm=cnorm, verbose=verbose)
+                          exclude=exclude, verbose=verbose)
 
     @verbose
     def _plot(self, picks=None, baseline=None, mode='mean', tmin=None,
@@ -1320,7 +1314,7 @@ class AverageTFR(_BaseTFR):
               mask_style=None, mask_cmap="Greys", mask_alpha=.25,
               combine=None, exclude=None, copy=True,
               source_plot_joint=False, topomap_args=dict(), ch_type=None,
-              cnorm=None, verbose=None):
+              verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         See self.plot() for parameters description.
@@ -1380,11 +1374,11 @@ class AverageTFR(_BaseTFR):
                 topomap_args={k: v for k, v in topomap_args.items()
                               if k not in {"vmin", "vmax", "cmap", "axes"}})
             _imshow_tfr(
-                ax, 0, tmin, tmax, vmin, vmax, onselect_callback,
+                ax, 0, tmin, tmax, vmin, vmax, onselect_callback, ylim=None,
                 tfr=data[idx: idx + 1], freq=tfr.freqs, x_label='Time (s)',
                 y_label='Frequency (Hz)', colorbar=colorbar, cmap=cmap,
                 yscale=yscale, mask=mask, mask_style=mask_style,
-                mask_cmap=mask_cmap, mask_alpha=mask_alpha, cnorm=cnorm)
+                mask_cmap=mask_cmap, mask_alpha=mask_alpha)
 
             if title == 'auto':
                 if len(tfr.info['ch_names']) == 1 or combine is None:

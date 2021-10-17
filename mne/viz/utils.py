@@ -1857,7 +1857,7 @@ def _check_time_unit(time_unit, times):
 def _plot_masked_image(ax, data, times, mask=None, yvals=None,
                        cmap="RdBu_r", vmin=None, vmax=None, ylim=None,
                        mask_style="both", mask_alpha=.25, mask_cmap="Greys",
-                       yscale="linear", cnorm=None):
+                       yscale="linear"):
     """Plot a potentially masked (evoked, TFR, ...) 2D image."""
     from matplotlib import ticker
     from matplotlib.colors import Normalize
@@ -1868,9 +1868,6 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
     draw_contour = mask_style in {"both", "contour"}
     if cmap is None:
         mask_cmap = cmap
-
-    if cnorm is None:
-        cnorm = Normalize(vmin=vmin, vmax=vmax)
 
     # mask param check and preparation
     if draw_mask is None:
@@ -1931,13 +1928,13 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
 
         if mask is not None:
             ax.pcolormesh(time_mesh, yval_mesh, data, cmap=mask_cmap,
-                          alpha=mask_alpha, norm=cnorm)
+                          vmin=vmin, vmax=vmax, alpha=mask_alpha)
             im = ax.pcolormesh(time_mesh, yval_mesh,
                                np.ma.masked_where(~mask, data), cmap=cmap,
-                               norm=cnorm, alpha=1)
+                               vmin=vmin, vmax=vmax, alpha=1)
         else:
             im = ax.pcolormesh(time_mesh, yval_mesh, data, cmap=cmap,
-                               norm=cnorm)
+                               vmin=vmin, vmax=vmax)
         if ylim is None:
             ylim = yval_lims[[0, -1]]
         if yscale == 'log':
@@ -1959,7 +1956,7 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
         extent = [times[0] - dt, times[-1] + dt,
                   yvals[0] - dy, yvals[-1] + dy]
         im_args = dict(interpolation='nearest', origin='lower',
-                       extent=extent, aspect='auto', norm=cnorm)
+                       extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
 
         if draw_mask:
             ax.imshow(data, alpha=mask_alpha, cmap=mask_cmap, **im_args)
