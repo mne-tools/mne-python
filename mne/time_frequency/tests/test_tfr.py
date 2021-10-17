@@ -1,8 +1,10 @@
 from itertools import product
 import datetime
 import os.path as op
+from re import A
 
 import numpy as np
+from numpy.lib.arraysetops import isin
 from numpy.testing import (assert_array_equal, assert_equal, assert_allclose)
 import pytest
 import matplotlib.pyplot as plt
@@ -888,6 +890,11 @@ def test_averaging_freqsandtimes_epochsTFR():
         assert_array_equal(func(power.data, axis=2, keepdims=True),
                            avgpower.data)
         assert avgpower.freqs == np.mean(power.freqs)
+        assert isinstance(avgpower, EpochsTFR)
+
+        # average over epochs
+        avgpower = avgpower.average()
+        assert isinstance(avgpower, AverageTFR)
 
     # Test average methods for freqs and times
     for idx, (func, method) in enumerate(zip(
@@ -902,6 +909,11 @@ def test_averaging_freqsandtimes_epochsTFR():
         assert_array_equal(func(power.data, axis=-1, keepdims=True),
                            avgpower.data)
         assert avgpower.times == np.mean(power.times)
+        assert isinstance(avgpower, EpochsTFR)
+
+        # average over epochs
+        avgpower = avgpower.average()
+        assert isinstance(avgpower, AverageTFR)
 
 
 @requires_pandas

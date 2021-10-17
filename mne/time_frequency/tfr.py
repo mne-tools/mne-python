@@ -2279,14 +2279,15 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         data = func(self.data)
 
         n_epochs, n_channels, n_freqs, n_times = self.data.shape
+        freqs, times = self.freqs, self.times
         if dim == 'freqs':
             data = np.expand_dims(data, axis=axis)
-            self.freqs = np.mean(self.freqs, keepdims=True)
+            freqs = np.mean(self.freqs, keepdims=True)
             expected_shape = (n_epochs, n_channels, 1, n_times)
             error_check = data.shape != expected_shape
         elif dim == 'times':
             data = np.expand_dims(data, axis=axis)
-            self.times = np.mean(self.times, keepdims=True)
+            times = np.mean(self.times, keepdims=True)
 
             expected_shape = (n_epochs, n_channels, n_freqs, 1)
             error_check = data.shape != expected_shape
@@ -2296,18 +2297,17 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
         if error_check:
             raise RuntimeError(
-                'You passed a function that resulted in data of shape {}, '
-                'but it should be {}.'.format(
-                    data.shape, expected_shape))
+                f'You passed a function that resulted in data of shape '
+                f'{data.shape}, but it should be {expected_shape}.')
 
         if dim == 'epochs':
             return AverageTFR(info=self.info.copy(), data=data,
-                              times=self.times.copy(), freqs=self.freqs.copy(),
+                              times=times, freqs=freqs,
                               nave=self.data.shape[0], method=self.method,
                               comment=self.comment)
         else:
             return EpochsTFR(info=self.info.copy(), data=data,
-                             times=self.times.copy(), freqs=self.freqs.copy(),
+                             times=times, freqs=freqs,
                              method=self.method,
                              comment=self.comment, metadata=self.metadata,
                              events=self.events, event_id=self.event_id)
