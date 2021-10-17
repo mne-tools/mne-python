@@ -432,6 +432,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
 
     psd = np.zeros((x.shape[0], freq_mask.sum()))
     # Let's go in up to 50 MB chunks of signals to save memory
+    n_jobs = check_n_jobs(n_jobs)
     n_chunk = max(50000000 // (len(freq_mask) * len(eigvals) * 16), n_jobs)
     offsets = np.concatenate((np.arange(0, x.shape[0], n_chunk), [x.shape[0]]))
     for start, stop in zip(offsets[:-1], offsets[1:]):
