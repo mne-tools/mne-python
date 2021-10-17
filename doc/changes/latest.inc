@@ -283,9 +283,7 @@ Bugs
 
 - In `mne.viz.plot_compare_evokeds`, slightly adjust the x-axis limit calculation to avoid drawing an axis that is too short (:gh:`9754` by `Richard Höchenberger`_)
 
-- In `mne.viz.plot_compare_evokeds`, slightly adjust the x-axis limit calculation to avoid drawing an axis that is too short (:gh:`9754` by `Richard Höchenberger`_)
-
-- In `mne.viz.plot_raw_psd` and `mne.viz.plot_epochs_psd`, avoid overlap between subplot titles and x-axis tick labels (:gh:`9864` by `Richard Höchenberger`_)
+- In :meth:`mne.io.Raw.plot_psd` and :meth:`mne.Epochs.plot_psd`, avoid overlap between subplot titles and x-axis tick labels (:gh:`9864` by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~
