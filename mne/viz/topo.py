@@ -205,7 +205,8 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
     tmin, tmax = times[0], times[-1]
     click_func = show_func if click_func is None else click_func
     on_pick = partial(click_func, tmin=tmin, tmax=tmax, vmin=vmin,
-                      vmax=vmax, x_label=x_label, y_label=y_label)
+                      vmax=vmax, ylim=ylim, x_label=x_label,
+                      y_label=y_label)
 
     if axes is None:
         fig = plt.figure()
