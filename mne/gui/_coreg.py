@@ -81,6 +81,7 @@ class CoregistrationUI(HasTraits):
     _grow_hair = Float()
     _scale_mode = Unicode()
     _icp_fid_match = Unicode()
+    _lock_head_opacity = Bool()
 
     def __init__(self, info_file, subject=None, subjects_dir=None,
                  fiducials='auto', head_resolution=None,
@@ -127,6 +128,7 @@ class CoregistrationUI(HasTraits):
             icp_fid_match='nearest',
             icp_n_iterations=20,
             omit_hsp_distance=10.0,
+            lock_head_opacity=self._head_opacity < 1.0,
             weights=dict(
                 lpa=1.0,
                 nasion=10.0,
@@ -180,6 +182,7 @@ class CoregistrationUI(HasTraits):
         self._set_current_fiducial(self._defaults["fiducial"])
         self._set_lock_fids(self._defaults["lock_fids"])
         self._set_scale_mode(self._defaults["scale_mode"])
+        self._set_lock_head_opacity(self._defaults["lock_head_opacity"])
         if trans is not None:
             self._load_trans(trans)
 
@@ -274,6 +277,9 @@ class CoregistrationUI(HasTraits):
 
     def _set_point_weight(self, weight, point):
         setattr(self, f"_{point}_weight", weight)
+
+    def _set_lock_head_opacity(self, state):
+        self._lock_head_opacity = bool(state)
 
     @observe("_subjects_dir")
     def _subjects_dir_changed(self, change=None):
@@ -386,6 +392,11 @@ class CoregistrationUI(HasTraits):
             self._on_pick
         )
         self._actors["msg"] = self._renderer.text2d(0, 0, "")
+
+    @observe("_lock_head_opacity")
+    def _lock_head_opacity_changed(self, changes=None):
+        self._forward_widget_command(
+            "make_transparent", "set_enabled", not self._lock_head_opacity)
 
     def _on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
