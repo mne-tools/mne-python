@@ -1,10 +1,8 @@
 from itertools import product
 import datetime
 import os.path as op
-from re import A
 
 import numpy as np
-from numpy.lib.arraysetops import isin
 from numpy.testing import (assert_array_equal, assert_equal, assert_allclose)
 import pytest
 import matplotlib.pyplot as plt
