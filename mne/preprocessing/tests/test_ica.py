@@ -626,10 +626,9 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
     with pytest.warns(RuntimeWarning, match='is longer than the signal'):
         ica.find_bads_ecg(raw, threshold=0.25)
     # check invalid measure argument
-    with pytest.warns(RuntimeWarning, match='longer'):
-        with pytest.raises(ValueError, match='Invalid value'):
-            ica.find_bads_ecg(raw, method='correlation', measure='unknown',
-                              threshold='auto')
+    with pytest.raises(ValueError, match='Invalid value'):
+        ica.find_bads_ecg(raw, method='correlation', measure='unknown',
+                          threshold='auto')
     # check passing a ch_name to find_bads_ecg
     with pytest.warns(RuntimeWarning, match='longer'):
         _, scores_1 = ica.find_bads_ecg(raw, threshold='auto')
