@@ -201,6 +201,22 @@ def _check_ch_keys(ch, ci, name='info["chs"]', check_min=True):
                 f'key{_pl(bad)} missing for {name}[{ci}]: {bad}',)
 
 
+def _check_bads(bads):
+    if isinstance(bads, list):
+        return bads
+    else:
+        raise TypeError(
+            f"Key 'bads' expects a list. Provided {type(bads)}.")
+
+
+def _check_description(description):
+    if isinstance(description, str):
+        return description
+    else:
+        raise TypeError(
+            f"Key 'description' expects a str. Provided {type(description)}.")
+
+
 class Info(dict, MontageMixin):
     """Measurement information.
 
@@ -553,13 +569,13 @@ class Info(dict, MontageMixin):
     _attributes = {
         'acq_pars': '',
         'acq_stim': '',
-        'bads': '',
+        'bads': _check_bads,
         'ch_names': '',
         'chs': '',
         'comps': '',
         'ctf_head_t': '',
         'custom_ref_applied': '',
-        'description': '',
+        'description': _check_description,
         'dev_ctf_t': '',
         'dev_head_t': '',
         'dig': '',
