@@ -1350,10 +1350,6 @@ class ICA(ContainsMixin):
             statistic.
             If ``'correlation'``, detection is based on Pearson correlation
             between the filtered data and the filtered ECG channel.
-            Thresholding is based on iterative z-scoring. The above
-            threshold components will be masked and the z-score will
-            be recomputed until no supra-threshold component remains.
-            Defaults to ``'ctps'``.
         %(reject_by_annotation_all)s
 
             .. versionadded:: 0.14.0
