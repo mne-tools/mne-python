@@ -1015,7 +1015,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             When ``False`` (the default) all epochs are averaged and a single
             :class:`Evoked` object is returned. When ``True``, epochs are first
             grouped by event type (as specified using the ``event_id``
-            parameter) and a dictionary is returned containing a separate
+            parameter) and a list is returned containing a separate
             :class:`Evoked` object for each event type. The ``.comment``
             attribute is set to the label of the event type.
 
@@ -1025,9 +1025,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         -------
         std_err : instance of Evoked | list of Evoked
             The standard error over epochs. When ``by_event_type=True`` was
-            specified, a dictionary is returned containing a separate
-            :class:`Evoked` object for each event type. The list is sorted
-            alphabetically be event type.
+            specified, a list is returned containing a separate :class:`Evoked`
+            object for each event type. The list is sorted alphabetically by
+            event type.
         """
         return self.average(picks=picks, method="std",
                             per_event_type=per_event_type)
