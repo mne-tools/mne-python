@@ -1316,7 +1316,7 @@ class ICA(ContainsMixin):
 
             - If ``method`` is ``'ctps'``, threshold on the significance value
               of a Kuiper statistic.
-            - If ``'method'``is ``'correlation'`` and if ``measure`` is
+            - If ``'method'`` is ``'correlation'`` and if ``measure`` is
               ``'zscore'``, defines the threshold on the z-score used in the
               iterative z-scoring method.
             - If ``'method'`` is ``'correlation'`` and if ``'measure'`` is
@@ -1326,8 +1326,8 @@ class ICA(ContainsMixin):
               the threshold based on the threshold of pk. Kuiper statistic that
               minimizes the difference between pk and the pk threshold
               (defaults to 20 [1])
-            - If ``'auto'`` and `method`is ``'correlation'``, defaults to 3.0
-              if ``measure`` is ``zscore`` and 0.9 if ``measure`` is
+            - If ``'auto'`` and ``method`` is ``'correlation'``, defaults to
+              3.0 if ``measure`` is ``zscore`` and 0.9 if ``measure`` is
               ``correlation``.
 
             .. versionchanged:: 0.21
@@ -1451,11 +1451,11 @@ class ICA(ContainsMixin):
               z-score used in the iterative z-scoring method.
             - If ``measure`` is ``correlation``, defines the absolute threshold
               on the correlation between 0 and 1.
-            - If ``'auto'`, defaults to 3.0 if ``measure`` is ``zscore`` and
-              0.9 if ``measure`` is ``correlation``.
+            - If ``'auto'``, defaults to 3.0 if ``measure`` is ``'zscore'`` and
+              0.9 if ``measure`` is ``'correlation'``.
 
              .. warning::
-                 If ``method``is ``'together'``, the iterative z-score method
+                 If ``method`` is ``'together'``, the iterative z-score method
                  is always used.
         start : int | float | None
             First sample to include. If float, data will be interpreted as
@@ -1597,12 +1597,12 @@ class ICA(ContainsMixin):
         threshold : float | str
             Value above which a feature is classified as outlier.
 
-            - If ``measure`` is ``zscore``, defines the threshold on the
+            - If ``measure`` is ``'zscore'``, defines the threshold on the
               z-score used in the iterative z-scoring method.
-            - If ``measure`` is ``correlation``, defines the absolute threshold
-              on the correlation between 0 and 1.
-            - If ``'auto'`, defaults to 3.0 if ``measure`` is ``zscore`` and
-              0.9 if ``measure`` is ``correlation``.
+            - If ``measure`` is ``'correlation'``, defines the absolute
+              threshold on the correlation between 0 and 1.
+            - If ``'auto'``, defaults to 3.0 if ``measure`` is ``'zscore'`` and
+              0.9 if ``measure`` is ``'correlation`'`.
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
