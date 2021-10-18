@@ -7,7 +7,7 @@ import operator
 import numpy as np
 
 from ..fixes import _import_fft
-from ..parallel import parallel_func
+from ..parallel import parallel_func, check_n_jobs
 from ..utils import sum_squared, warn, verbose, logger, _check_option
 
 

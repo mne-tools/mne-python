@@ -5,7 +5,7 @@
 from functools import partial
 import numpy as np
 
-from ..parallel import parallel_func
+from ..parallel import parallel_func, check_n_jobs
 from ..io.pick import _picks_to_idx
 from ..utils import logger, verbose, _time_mask, _check_option
 from .multitaper import psd_array_multitaper
