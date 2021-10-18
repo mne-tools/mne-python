@@ -1449,8 +1449,8 @@ class ICA(ContainsMixin):
 
             - If ``measure`` is ``'zscore'``, defines the threshold on the
               z-score used in the iterative z-scoring method.
-            - If ``measure`` is ``'correlation'``, defines the absolute threshold
-              on the correlation between 0 and 1.
+            - If ``measure`` is ``'correlation'``, defines the absolute
+              threshold on the correlation between 0 and 1.
             - If ``'auto'``, defaults to 3.0 if ``measure`` is ``'zscore'`` and
               0.9 if ``measure`` is ``'correlation'``.
 
