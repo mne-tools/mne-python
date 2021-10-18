@@ -132,10 +132,13 @@ class CoregistrationUI(HasTraits):
             ),
         )
 
-        if info_file is None:
-            self._info = None
-        else:
-            self._info = read_info(info_file)
+        info = read_info(info_file) if info_file is not None else None
+        subjects_dir = get_subjects_dir(
+            subjects_dir=subjects_dir, raise_error=True)
+        subject = _get_default(subject, self._get_subjects(subjects_dir)[0])
+
+        # setup the model
+        self._info = info
         self._fiducials = fiducials
         self._renderer = _get_renderer(
             size=self._defaults["size"], bgcolor=self._defaults["bgcolor"])
@@ -146,9 +149,8 @@ class CoregistrationUI(HasTraits):
             setattr(self, f"_{fid}_weight", self._defaults["weights"][fid])
 
         # set main traits
-        self._set_subjects_dir(
-            get_subjects_dir(subjects_dir=subjects_dir, raise_error=True))
-        self._set_subject(_get_default(subject, self._get_subjects()[0]))
+        self._set_subjects_dir(subjects_dir)
+        self._set_subject(subject)
         self._set_info_file(info_file)
         self._set_orient_glyphs(_get_default(orient_glyphs,
                                 self._defaults["orient_glyphs"]))
@@ -671,9 +673,9 @@ class CoregistrationUI(HasTraits):
         self._update_plot("sensors")
         self._update_parameters()
 
-    def _get_subjects(self):
+    def _get_subjects(self, sdir=None):
         # XXX: would be nice to move this function to util
-        sdir = self._subjects_dir
+        sdir = sdir if sdir is not None else self._subjects_dir
         is_dir = sdir and op.isdir(sdir)
         if is_dir:
             dir_content = os.listdir(sdir)
