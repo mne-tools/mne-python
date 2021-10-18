@@ -948,9 +948,14 @@ n_pca_components : int | float | None
 """
 docdict['measure'] = """
 measure : 'zscore' | 'correlation'
-    Which method to use for finding outliers. ``'zscore'`` (default) is
-    the iterative z-scoring method, and ``'correlation'`` is an
-    absolute raw correlation threshold with a range of 0 to 1.
+    Which method to use for finding outliers among the components:
+
+    - ``'zscore'`` (default) is the iterative z-scoring method. This method
+      computes the z-score of the component's scores and masked the components
+      with a z-score above threshold. This process is repeated until no
+      supra-threshold component remains.
+    - ``'correlation'`` is an absolute raw correlation threshold ranging from 0
+      to 1.
 
     .. versionadded:: 0.21"""
 
