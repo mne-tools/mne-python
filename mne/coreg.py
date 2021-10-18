@@ -20,7 +20,6 @@ import numpy as np
 
 from .io import read_fiducials, write_fiducials, read_info
 from .io.constants import FIFF
-from .io.meas_info import Info
 from .io._digitization import _get_data_as_dict_from_dig
 # keep get_mni_fiducials for backward compat (no burden to keep in this
 # namespace, too)
@@ -1283,7 +1282,7 @@ class Coregistration(object):
 
     Parameters
     ----------
-    info : instance of Info
+    info : instance of Info | None
         The measurement info.
     %(subject)s
     %(subjects_dir)s
@@ -1321,7 +1320,6 @@ class Coregistration(object):
     """
 
     def __init__(self, info, subject, subjects_dir=None, fiducials='auto'):
-        _validate_type(info, Info, 'info')
         self._info = info
         self._subject = _check_subject(subject, subject)
         self._subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
@@ -1346,20 +1344,33 @@ class Coregistration(object):
         self._hsp_weight = 1.
         self._eeg_weight = 1.
         self._hpi_weight = 1.
-
         self._extra_points_filter = None
-        self._dig_dict = _get_data_as_dict_from_dig(
-            dig=self._info['dig'],
-            exclude_ref_channel=False
-        )
-        # adjustments
-        self._dig_dict['rpa'] = np.array([self._dig_dict['rpa']], float)
-        self._dig_dict['nasion'] = np.array([self._dig_dict['nasion']], float)
-        self._dig_dict['lpa'] = np.array([self._dig_dict['lpa']], float)
 
+        self._setup_digs()
         self._setup_bem()
         self._setup_fiducials(fiducials)
         self.reset()
+
+    def _setup_digs(self):
+        if self._info is None:
+            self._dig_dict = dict(
+                hpi=np.zeros((1, 3)),
+                dig_ch_pos_location=np.zeros((1, 3)),
+                hsp=np.zeros((1, 3)),
+                rpa=np.zeros((1, 3)),
+                nasion=np.zeros((1, 3)),
+                lpa=np.zeros((1, 3)),
+            )
+        else:
+            self._dig_dict = _get_data_as_dict_from_dig(
+                dig=self._info['dig'],
+                exclude_ref_channel=False
+            )
+            # adjustments
+            self._dig_dict['rpa'] = np.array([self._dig_dict['rpa']], float)
+            self._dig_dict['nasion'] = \
+                np.array([self._dig_dict['nasion']], float)
+            self._dig_dict['lpa'] = np.array([self._dig_dict['lpa']], float)
 
     def _setup_bem(self):
         # find high-res head model (if possible)

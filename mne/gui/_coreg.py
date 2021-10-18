@@ -22,7 +22,8 @@ class CoregistrationUI(HasTraits):
 
     Parameters
     ----------
-    %(info_str)s
+    info_file : None | str
+        The FIFF file with digitizer data for coregistration.
     %(subject)s
     %(subjects_dir)s
     fiducials : list | dict | str
@@ -79,7 +80,7 @@ class CoregistrationUI(HasTraits):
     _scale_mode = Unicode()
     _icp_fid_match = Unicode()
 
-    def __init__(self, info_str, subject=None, subjects_dir=None,
+    def __init__(self, info_file, subject=None, subjects_dir=None,
                  fiducials='auto', head_resolution=None,
                  head_transparency=None, head_opacity=None, hpi_coils=None,
                  head_shape_points=None, eeg_channels=None, orient_glyphs=None,
@@ -131,13 +132,10 @@ class CoregistrationUI(HasTraits):
             ),
         )
 
-        if isinstance(info_str, str):
-            info_file = info_str
-            self._info = read_info(info_file)
+        if info_file is None:
+            self._info = None
         else:
-            info_file = None
-            self._info = info_str
-
+            self._info = read_info(info_file)
         self._fiducials = fiducials
         self._renderer = _get_renderer(
             size=self._defaults["size"], bgcolor=self._defaults["bgcolor"])
@@ -325,6 +323,7 @@ class CoregistrationUI(HasTraits):
         self._info = read_info(self._info_file)
         # XXX: add coreg.set_info()
         self._coreg._info = self._info
+        self._coreg._setup_digs()
         self._reset()
 
     @observe("_orient_glyphs")
@@ -546,6 +545,8 @@ class CoregistrationUI(HasTraits):
         self._renderer._update()
 
     def _add_mri_fiducials(self):
+        if self._info is None:
+            return
         to_cf_t = _get_transforms_to_coord_frame(
             self._info, self._coreg.trans, coord_frame=self._coord_frame)
         mri_fids_actors = _plot_mri_fiducials(
@@ -557,6 +558,8 @@ class CoregistrationUI(HasTraits):
         self._update_actor("mri_fiducials", mri_fids_actors)
 
     def _add_head_fiducials(self):
+        if self._info is None:
+            return
         to_cf_t = _get_transforms_to_coord_frame(
             self._info, self._coreg.trans, coord_frame=self._coord_frame)
         head_fids_actors = _plot_head_fiducials(
@@ -564,6 +567,8 @@ class CoregistrationUI(HasTraits):
         self._update_actor("head_fiducials", head_fids_actors)
 
     def _add_hpi_coils(self):
+        if self._info is None:
+            return
         if self._hpi_coils:
             to_cf_t = _get_transforms_to_coord_frame(
                 self._info, self._coreg.trans, coord_frame=self._coord_frame)
@@ -575,6 +580,8 @@ class CoregistrationUI(HasTraits):
         self._update_actor("hpi_coils", hpi_actors)
 
     def _add_head_shape_points(self):
+        if self._info is None:
+            return
         if self._head_shape_points:
             to_cf_t = _get_transforms_to_coord_frame(
                 self._info, self._coreg.trans, coord_frame=self._coord_frame)
@@ -587,6 +594,8 @@ class CoregistrationUI(HasTraits):
         self._update_actor("head_shape_points", hsp_actors)
 
     def _add_eeg_channels(self):
+        if self._info is None:
+            return
         if self._eeg_channels:
             eeg = ["original"]
             to_cf_t = _get_transforms_to_coord_frame(
@@ -605,8 +614,11 @@ class CoregistrationUI(HasTraits):
     def _add_head_surface(self):
         bem = None
         surface = "head-dense" if self._head_resolution else "head"
-        to_cf_t = _get_transforms_to_coord_frame(
-            self._info, self._coreg.trans, coord_frame=self._coord_frame)
+        if self._info is None:
+            to_cf_t = dict(mri=np.eye(4), head=np.eye(4))
+        else:
+            to_cf_t = _get_transforms_to_coord_frame(
+                self._info, self._coreg.trans, coord_frame=self._coord_frame)
         try:
             head_actor, head_surf = _plot_head_surface(
                 self._renderer, surface, self._subject,
