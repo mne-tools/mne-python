@@ -1507,9 +1507,13 @@ class ICA(ContainsMixin):
         inst using :meth:`~mne.io.Raw.add_channels`, preferably with the prefix
         ``REF_ICA`` so that they can be automatically detected.
 
-        Thresholding in both cases is based on adaptive z-scoring:
-        The above-threshold components will be masked and the z-score will be
-        recomputed until no supra-threshold component remains.
+        With ``'together'``, thresholding is based on adaptative z-scoring.
+        With ``'separate'``:
+
+        - If ``measure`` is ``'zscore'``, thresholding is based on adaptative
+        z-scoring.
+        - If ``measure`` is ``'correlation'``, threshold defines the absolute
+        threshold on the correlation between 0 and 1.
 
         Validation and further documentation for this technique can be found
         in :footcite:`HannaEtAl2020`.
