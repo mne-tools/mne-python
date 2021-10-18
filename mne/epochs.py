@@ -970,7 +970,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         evoked : instance of Evoked | list of Evoked
             The averaged epochs. When ``by_event_type=True`` was specified, a
             list is returned containing a separate :class:`Evoked` object
-            for each event type.
+            for each event type. The list is sorted alphabetically by event
+            type.
 
         Notes
         -----
@@ -994,7 +995,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         """
         if per_event_type:
             evokeds = list()
-            for event_type in self.event_id.keys():
+            for event_type in sorted(self.event_id.keys()):
                 ev = self[event_type]._compute_aggregate(picks=picks,
                                                          mode=method)
                 ev.comment = event_type
@@ -1025,7 +1026,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         std_err : instance of Evoked | list of Evoked
             The standard error over epochs. When ``by_event_type=True`` was
             specified, a dictionary is returned containing a separate
-            :class:`Evoked` object for each event type.
+            :class:`Evoked` object for each event type. The list is sorted
+            alphabetically be event type.
         """
         return self.average(picks=picks, method="std",
                             per_event_type=per_event_type)
