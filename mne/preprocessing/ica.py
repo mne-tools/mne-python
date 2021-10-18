@@ -1492,20 +1492,20 @@ class ICA(ContainsMixin):
         ICA decomposition on MEG reference channels is used to assess external
         magnetic noise and remove it from the MEG. Two methods are supported:
 
-        With the "together" method, only one ICA fit is used, which
+        With the ``'together'`` method, only one ICA fit is used, which
         encompasses both MEG and reference channels together. Components which
         have particularly strong weights on the reference channels may be
         thresholded and marked for removal.
 
-        With "separate," selected components from a separate ICA decomposition
-        on the reference channels are used as a ground truth for identifying
-        bad components in an ICA fit done on MEG channels only. The logic here
-        is similar to an EOG/ECG, with reference components replacing the
-        EOG/ECG channels. Recommended procedure is to perform ICA separately
-        on reference channels, extract them using .get_sources(), and then
-        append them to the inst using :meth:`~mne.io.Raw.add_channels`,
-        preferably with the prefix ``REF_ICA`` so that they can be
-        automatically detected.
+        With ``'separate'`` selected components from a separate ICA
+        decomposition on the reference channels are used as a ground truth for
+        identifying bad components in an ICA fit done on MEG channels only. The
+        logic here is similar to an EOG/ECG, with reference components
+        replacing the EOG/ECG channels. Recommended procedure is to perform ICA
+        separately on reference channels, extract them using
+        :meth:`~mne.preprocessing.ICA.get_sources`, and then append them to the
+        inst using :meth:`~mne.io.Raw.add_channels`, preferably with the prefix
+        ``REF_ICA`` so that they can be automatically detected.
 
         Thresholding in both cases is based on adaptive z-scoring:
         The above-threshold components will be masked and the z-score will be
