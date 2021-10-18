@@ -552,7 +552,8 @@ class Info(dict, MontageMixin):
     """
 
     def __init__(self, *args, **kwargs):
-        super(Info, self).__init__(*args, **kwargs)
+        with self._unlock():
+            super().__init__(*args, **kwargs)
         # Deal with h5io writing things as dict
         for key in ('dev_head_t', 'ctf_head_t', 'dev_ctf_t'):
             _format_trans(self, key)
@@ -577,6 +578,20 @@ class Info(dict, MontageMixin):
             pass
         else:
             self['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
+
+    def __setitem__(self, key, val):
+        """Attribute setter."""
+        if self._unlocked:
+            super().__setitem__(key, val)
+
+    @contextlib.contextmanager
+    def _unlock(self, check_after=True):
+        """Context manager unlocking access to attributes."""
+        self._unlocked = True
+        yield
+        if check_after:
+            self._check_consistency()
+        self._unlocked = False
 
     def copy(self):
         """Copy the instance.
