@@ -102,7 +102,7 @@ class CoregistrationUI(HasTraits):
         self._mouse_no_mvt = -1
         self._to_cf_t = None
         self._omit_hsp_distance = 0.0
-        self._head_opacity = 1.0
+        self._head_opacity = _get_default(head_opacity, 1.0)
         self._fid_colors = tuple(
             DEFAULTS['coreg'][f'{key}_color'] for key in
             ('lpa', 'nasion', 'rpa'))
@@ -115,7 +115,7 @@ class CoregistrationUI(HasTraits):
             eeg_channels=_get_default(eeg_channels, True),
             head_resolution=_get_default(head_resolution, False),
             head_transparency=_get_default(head_transparency, False),
-            head_opacity=_get_default(head_opacity, 0.4),
+            head_opacity=0.5,
             sensor_opacity=_get_default(sensor_opacity, 1.0),
             fiducials=("LPA", "Nasion", "RPA"),
             fiducial="LPA",
