@@ -1315,7 +1315,7 @@ class ICA(ContainsMixin):
             Value above which a feature is classified as outlier.
 
             - If ``method`` is ``'ctps'``, threshold on the significance value
-              of a Kuiper statistic.
+              of a Kuiper statistic. ``measure`` is ignored.
             - If ``method`` is ``'correlation'`` and if ``measure`` is
               ``'zscore'``, defines the threshold on the z-score used in the
               iterative z-scoring method.
