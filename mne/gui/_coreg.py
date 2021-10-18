@@ -100,6 +100,7 @@ class CoregistrationUI(HasTraits):
         self._to_cf_t = None
         self._omit_hsp_distance = 0.0
         self._head_opacity = 1.0
+        self._sensor_opacity = 1.0
         self._fid_colors = tuple(
             DEFAULTS['coreg'][f'{key}_color'] for key in
             ('lpa', 'nasion', 'rpa'))
@@ -572,7 +573,8 @@ class CoregistrationUI(HasTraits):
     def _add_hpi_coils(self):
         if self._hpi_coils:
             hpi_actors = _plot_hpi_coils(
-                self._renderer, self._info, self._to_cf_t, opacity=1.0,
+                self._renderer, self._info, self._to_cf_t,
+                opacity=self._sensor_opacity,
                 orient_glyphs=self._orient_glyphs, surf=self._head_geo)
         else:
             hpi_actors = None
@@ -581,7 +583,8 @@ class CoregistrationUI(HasTraits):
     def _add_head_shape_points(self):
         if self._head_shape_points:
             hsp_actors = _plot_head_shape_points(
-                self._renderer, self._info, self._to_cf_t, opacity=1.0,
+                self._renderer, self._info, self._to_cf_t,
+                opacity=self._sensor_opacity,
                 orient_glyphs=self._orient_glyphs, surf=self._head_geo,
                 mask=self._coreg._extra_points_filter)
         else:
@@ -595,7 +598,7 @@ class CoregistrationUI(HasTraits):
             eeg_actors = _plot_sensors(
                 self._renderer, self._info, self._to_cf_t, picks, meg=False,
                 eeg=eeg, fnirs=False, warn_meg=False, head_surf=self._head_geo,
-                units='m', sensor_opacity=1.0,
+                units='m', sensor_opacity=self._sensor_opacity,
                 orient_glyphs=self._orient_glyphs, surf=self._head_geo)
             eeg_actors = eeg_actors["eeg"]
         else:
