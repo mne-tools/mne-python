@@ -624,13 +624,12 @@ class CoregistrationUI(HasTraits):
         self._surfaces["head"] = head_surf
 
     def _fit_fiducials(self):
-        with self._display_message("Fitting..."):
-            self._coreg.fit_fiducials(
-                lpa_weight=self._lpa_weight,
-                nasion_weight=self._nasion_weight,
-                rpa_weight=self._rpa_weight,
-                verbose=self._verbose,
-            )
+        self._coreg.fit_fiducials(
+            lpa_weight=self._lpa_weight,
+            nasion_weight=self._nasion_weight,
+            rpa_weight=self._rpa_weight,
+            verbose=self._verbose,
+        )
         self._update_plot("sensors")
         self._update_parameters()
 
