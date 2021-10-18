@@ -1553,6 +1553,10 @@ class ICA(ContainsMixin):
         elif method == 'together':
             if threshold == 'auto':
                 threshold = 3.0
+            if measure != 'zscore':
+                logger.info(
+                    "With method 'together', only 'zscore' measure is"
+                    f"supported. Using 'zscore' instead of '{measure}'.")
 
             meg_picks = pick_types(self.info, meg=True, ref_meg=False)
             ref_picks = pick_types(self.info, meg=False, ref_meg=True)
