@@ -42,7 +42,7 @@ class CoregistrationUI(HasTraits):
     head_transparency : bool
         If True, display the head surface with transparency. Defaults to False.
     head_opacity : float
-        The opacity of the head surface between 0 and 1. Defaults to 0.4.
+        The opacity of the head surface between 0 and 1. Defaults to 0.5.
     hpi_coils : bool
         If True, display the HPI coils. Defaults to True.
     head_shape_points : bool
