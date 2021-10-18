@@ -107,12 +107,12 @@ class CoregistrationUI(HasTraits):
         self._defaults = dict(
             size=_get_default(size, (800, 600)),
             bgcolor=_get_default(bgcolor, "grey"),
-            orient_glyphs=False,
-            hpi_coils=True,
-            head_shape_points=True,
-            eeg_channels=True,
-            head_resolution=False,
-            head_transparency=False,
+            orient_glyphs=_get_default(orient_glyphs, False),
+            hpi_coils=_get_default(hpi_coils, True),
+            head_shape_points=_get_default(head_shape_points, True),
+            eeg_channels=_get_default(eeg_channels, True),
+            head_resolution=_get_default(head_resolution, False),
+            head_transparency=_get_default(head_transparency, False),
             head_opacity=_get_default(head_opacity, 0.4),
             fiducials=("LPA", "Nasion", "RPA"),
             fiducial="LPA",
@@ -156,18 +156,12 @@ class CoregistrationUI(HasTraits):
         self._set_subjects_dir(subjects_dir)
         self._set_subject(subject)
         self._set_info_file(info_file)
-        self._set_orient_glyphs(_get_default(orient_glyphs,
-                                self._defaults["orient_glyphs"]))
-        self._set_hpi_coils(_get_default(hpi_coils,
-                            self._defaults["hpi_coils"]))
-        self._set_head_shape_points(_get_default(head_shape_points,
-                                    self._defaults["head_shape_points"]))
-        self._set_eeg_channels(_get_default(eeg_channels,
-                               self._defaults["eeg_channels"]))
-        self._set_head_resolution(_get_default(head_resolution,
-                                  self._defaults["head_resolution"]))
-        self._set_head_transparency(_get_default(head_transparency,
-                                    self._defaults["head_transparency"]))
+        self._set_orient_glyphs(self._defaults["orient_glyphs"])
+        self._set_hpi_coils(self._defaults["hpi_coils"])
+        self._set_head_shape_points(self._defaults["head_shape_points"])
+        self._set_eeg_channels(self._defaults["eeg_channels"])
+        self._set_head_resolution(self._defaults["head_resolution"])
+        self._set_head_transparency(self._defaults["head_transparency"])
         self._set_grow_hair(self._defaults["grow_hair"])
         self._set_omit_hsp_distance(self._defaults["omit_hsp_distance"])
         self._set_icp_n_iterations(self._defaults["icp_n_iterations"])
