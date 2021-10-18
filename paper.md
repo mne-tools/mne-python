@@ -73,9 +73,9 @@ Once the electrode locations are found both in relation to individual subject an
 
 ![Figure 6. The anatomical labels for an sEEG electrode shaft are shown as the contacts progress from deep (starting with 1) to superficial regions.](figures/Figure_6.png)
 
-![Figure 7. The anatomical surfaces that sEEG electrodes pass through are rendered along with the trajectory of the electrode shaft.](figures/Figure_7.png){ width=60% }
+![Figure 7. The anatomical surfaces that sEEG electrodes pass through are rendered along with the trajectory of the electrode shaft.](figures/Figure_7.png){ width=50% }
 
-![Figure 8. A time-frequency decomposition of the ECoG data rendered on top of a 3D image of the brain showing the location of the grid implant.](figures/Figure_8.png){ width=60% }
+![Figure 8. A time-frequency decomposition of the ECoG data rendered on top of a 3D image of the brain showing the location of the grid implant.](figures/Figure_8.png){ width=50% }
 
 # Statement of need
 
