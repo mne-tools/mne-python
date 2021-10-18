@@ -69,13 +69,9 @@ For ECoG electrodes, "brain shift", caused by changes in pressure during the cra
 
 ![Figure 5. a) A 3D rendering of an ECoG grid without correction for "brain shift". b) The same 3D rendering with the "brain shift" correction](figures/Figure_5.png)
 
-Once the electrode locations are found both in relation to individual subject anatomy and in relation to a template brain, there are several visualization functions specific to sEEG and ECoG in MNE-Python. For sEEG, plotting the anatomical labels that the electrode shaft passes through indicates which areas are being recorded from (see Figure 6). Furthermore, these areas can be rendered in different colors in 3D for precise visualization of the trajectory and location of the electrodes as shown in Figure 7. For ECoG, viewing a time series superimposed on a view of the 3D rendering enables the data to be displayed in relation to nearby channels, as shown in Figure 8.
+Once the electrode locations are found both in relation to individual subject anatomy and in relation to a template brain, there are several visualization functions specific to sEEG and ECoG in MNE-Python. For sEEG, plotting the anatomical labels that the electrode shaft passes through indicates which areas are being recorded from (see Figure 6a and 6b). Furthermore, these areas can be rendered in different colors in 3D for precise visualization of the trajectory and location of the electrodes as shown in Figure 6c. For ECoG, viewing a time series superimposed on a view of the 3D rendering enables the data to be displayed in relation to nearby channels, as shown in Figure 6d.
 
-![Figure 6. The anatomical labels for an sEEG electrode shaft are shown as the contacts progress from deep (starting with 1) to superficial regions.](figures/Figure_6.png)
-
-![Figure 7. The anatomical surfaces that sEEG electrodes pass through are rendered along with the trajectory of the electrode shaft.](figures/Figure_7.png){ width=50% }
-
-![Figure 8. A time-frequency decomposition of the ECoG data rendered on top of a 3D image of the brain showing the location of the grid implant.](figures/Figure_8.png){ width=50% }
+![Figure 6. a and b) The anatomical labels for two example sEEG electrode shafts are shown as the contacts progress from deep (starting with 1) to superficial regions. c) The anatomical surfaces that sEEG electrodes pass through are rendered along with the trajectory of the electrode shaft. d) A time-frequency decomposition of the ECoG data rendered on top of a 3D image of the brain showing the location of the grid implant.](figures/Figure_6.png)
 
 # Statement of need
 
