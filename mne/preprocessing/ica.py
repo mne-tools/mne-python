@@ -1376,6 +1376,14 @@ class ICA(ContainsMixin):
             components of neuromagnetic recordings. Biomedical
             Engineering, IEEE Transactions on 55 (10), 2353-2362.
         """
+        _validate_type(threshold, (str, 'numeric'), 'threshold')
+        if isinstance(threshold, str):
+            _check_option('threshold', threshold, ('auto',), extra='when str')
+        _validate_type(method, str, 'method')
+        _check_option('method', method, ('ctps', 'correlation'))
+        _validate_type(measure, str, 'measure')
+        _check_option('measure', measure, ('zscore', 'correlation'))
+
         idx_ecg = _get_ecg_channel_index(ch_name, inst)
 
         if idx_ecg is None:
@@ -1384,9 +1392,6 @@ class ICA(ContainsMixin):
         else:
             ecg = inst.ch_names[idx_ecg]
 
-        _validate_type(threshold, (str, 'numeric'), 'threshold')
-        if isinstance(threshold, str):
-            _check_option('threshold', threshold, ('auto',), extra='when str')
         if method == 'ctps':
             if threshold == 'auto':
                 threshold = self._get_ctps_threshold()
@@ -1425,8 +1430,7 @@ class ICA(ContainsMixin):
                 inst, [ecg], threshold=threshold, start=start, stop=stop,
                 l_freq=l_freq, h_freq=h_freq, prefix="ecg",
                 reject_by_annotation=reject_by_annotation, measure=measure)
-        else:
-            raise ValueError('Method "%s" not supported.' % method)
+
         return self.labels_['ecg'], scores
 
     @verbose
@@ -1528,6 +1532,10 @@ class ICA(ContainsMixin):
         _validate_type(threshold, (str, 'numeric'), 'threshold')
         if isinstance(threshold, str):
             _check_option('threshold', threshold, ('auto',), extra='when str')
+        _validate_type(method, str, 'method')
+        _check_option('method', method, ('together', 'separate'))
+        _validate_type(measure, str, 'measure')
+        _check_option('measure', measure, ('zscore', 'correlation'))
 
         if method == "separate":
             if threshold == 'auto' and measure == 'zscore':
@@ -1573,8 +1581,6 @@ class ICA(ContainsMixin):
             self.labels_['ref_meg'] = list(_find_outliers(scores,
                                            threshold=threshold,
                                            tail=1))
-        else:
-            raise ValueError('Method "%s" not supported.' % method)
 
         return self.labels_['ref_meg'], scores
 
@@ -1635,12 +1641,15 @@ class ICA(ContainsMixin):
         --------
         find_bads_ecg, find_bads_ref
         """
-        eog_inds = _get_eog_channel_index(ch_name, inst)
-        eog_chs = [inst.ch_names[k] for k in eog_inds]
-
         _validate_type(threshold, (str, 'numeric'), 'threshold')
         if isinstance(threshold, str):
             _check_option('threshold', threshold, ('auto',), extra='when str')
+        _validate_type(measure, str, 'measure')
+        _check_option('measure', measure, ('zscore', 'correlation'))
+
+        eog_inds = _get_eog_channel_index(ch_name, inst)
+        eog_chs = [inst.ch_names[k] for k in eog_inds]
+
         if threshold == 'auto' and measure == 'zscore':
             threshold = 3.0
         elif threshold == 'auto' and measure == 'correlation':
