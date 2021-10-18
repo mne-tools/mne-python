@@ -1556,8 +1556,8 @@ class ICA(ContainsMixin):
             meg_picks = pick_types(self.info, meg=True, ref_meg=False)
             ref_picks = pick_types(self.info, meg=False, ref_meg=True)
             if not any(meg_picks) or not any(ref_picks):
-                raise ValueError('ICA solution must contain both reference and\
-                                  MEG channels.')
+                raise ValueError('ICA solution must contain both reference and'
+                                 ' MEG channels.')
             weights = self.get_components()
             # take norm of component weights on reference channels for each
             # component, divide them by the norm on the standard channels,
