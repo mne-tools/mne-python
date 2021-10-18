@@ -650,10 +650,15 @@ class Info(dict, MontageMixin):
     def _unlock(self, check_after=True):
         """Context manager unlocking access to attributes."""
         self._unlocked = True
-        yield
-        if check_after:
-            self._check_consistency()
-        self._unlocked = False
+        try:
+            yield
+        except:
+            raise
+        else:
+            if check_after:
+                self._check_consistency()
+        finally:
+            self._unlocked = False
 
     def copy(self):
         """Copy the instance.
