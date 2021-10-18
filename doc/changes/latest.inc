@@ -197,6 +197,8 @@ Enhancements
 
 - All functions accepting a FreeSurfer subjects directory via a ``subjects_dir`` parameter can now consume :py:class:`pathlib.Path` objects too (used to be only strings) (:gh:`9613` by `Richard Höchenberger`_)
 
+- Improve documentation for arguments ``threshold``, ``method`` and ``measure`` of ICA methods `~mne.preprocessing.ICA.find_bads_ecg`, `~mne.preprocessing.ICA.find_bads_ref` and `~mne.preprocessing.ICA.find_bads_eog` (:gh:`9858` **by new contributor** |Mathieu Scheltienne|_)
+
 Bugs
 ~~~~
 - Fix bug in :meth:`mne.io.Raw.pick` and related functions when parameter list contains channels which are not in info instance (:gh:`9708` **by new contributor** |Evgeny Goldstein|_)
