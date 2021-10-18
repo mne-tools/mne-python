@@ -454,6 +454,8 @@ class CoregistrationUI(HasTraits):
     def _update_plot(self, changes="all"):
         if self._plot_locked:
             return
+        if self._info is None:
+            changes = ["head"]
         if not isinstance(changes, list):
             changes = [changes]
         forced = "all" in changes
@@ -549,8 +551,6 @@ class CoregistrationUI(HasTraits):
         self._renderer._update()
 
     def _add_mri_fiducials(self):
-        if self._info is None:
-            return
         to_cf_t = _get_transforms_to_coord_frame(
             self._info, self._coreg.trans, coord_frame=self._coord_frame)
         mri_fids_actors = _plot_mri_fiducials(
@@ -562,8 +562,6 @@ class CoregistrationUI(HasTraits):
         self._update_actor("mri_fiducials", mri_fids_actors)
 
     def _add_head_fiducials(self):
-        if self._info is None:
-            return
         to_cf_t = _get_transforms_to_coord_frame(
             self._info, self._coreg.trans, coord_frame=self._coord_frame)
         head_fids_actors = _plot_head_fiducials(
@@ -571,8 +569,6 @@ class CoregistrationUI(HasTraits):
         self._update_actor("head_fiducials", head_fids_actors)
 
     def _add_hpi_coils(self):
-        if self._info is None:
-            return
         if self._hpi_coils:
             to_cf_t = _get_transforms_to_coord_frame(
                 self._info, self._coreg.trans, coord_frame=self._coord_frame)
@@ -584,8 +580,6 @@ class CoregistrationUI(HasTraits):
         self._update_actor("hpi_coils", hpi_actors)
 
     def _add_head_shape_points(self):
-        if self._info is None:
-            return
         if self._head_shape_points:
             to_cf_t = _get_transforms_to_coord_frame(
                 self._info, self._coreg.trans, coord_frame=self._coord_frame)
@@ -598,8 +592,6 @@ class CoregistrationUI(HasTraits):
         self._update_actor("head_shape_points", hsp_actors)
 
     def _add_eeg_channels(self):
-        if self._info is None:
-            return
         if self._eeg_channels:
             eeg = ["original"]
             to_cf_t = _get_transforms_to_coord_frame(
