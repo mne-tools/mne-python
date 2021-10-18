@@ -642,8 +642,8 @@ class Info(dict, MontageMixin):
                 val = self._attributes[key](val)  # attribute checker function
                 super().__setitem__(key, val)
         else:
-            logger.warning(f'Info does not support key {key}. It might not '
-                           'survive an I/O roundtrip.')
+            warn(f'Info does not support key {key}. It might not survive an '
+                 'I/O roundtrip.')
             super().__setitem__(key, val)
 
     @contextlib.contextmanager
