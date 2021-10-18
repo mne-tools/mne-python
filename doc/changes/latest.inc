@@ -197,6 +197,8 @@ Enhancements
 
 - All functions accepting a FreeSurfer subjects directory via a ``subjects_dir`` parameter can now consume :py:class:`pathlib.Path` objects too (used to be only strings) (:gh:`9613` by `Richard Höchenberger`_)
 
+- Add ``by_event_type`` parameter to :meth:`mne.Epochs.average` to create a list containing an :class:`mne.Evoked` object for each event type (:gh:`9859` by `Marijn van Vliet`_)
+
 Bugs
 ~~~~
 - Fix bug in :meth:`mne.io.Raw.pick` and related functions when parameter list contains channels which are not in info instance (:gh:`9708` **by new contributor** |Evgeny Goldstein|_)
