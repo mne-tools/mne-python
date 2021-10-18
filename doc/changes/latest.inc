@@ -183,7 +183,7 @@ Enhancements
 
 - Add options ``tol`` and ``accuracy`` to :func:`mne.fit_dipole` to control optimization (:gh:`9810` by `Eric Larson`_)
 
-- Completely revamp the `~mne.Report` experience: new HTML layout, many new methods, more flexibility; the functionality is demonstrated in :ref:`tut-report` (:gh:`9754`, :gh:`9828`, :gh:`9847` by `Richard Höchenberger`_, `Eric Larson`_, and `Alex Gramfort`_)
+- Completely revamp the `~mne.Report` experience: new HTML layout, many new methods, more flexibility; the functionality is demonstrated in :ref:`tut-report` (:gh:`9754`, :gh:`9828`, :gh:`9847`, :gh:`9860`, :gh:`9861`, :gh:`9862`, :gh:`9863` by `Richard Höchenberger`_, `Eric Larson`_, and `Alex Gramfort`_)
 
 - Add basic HTML representations of `~mne.Forward` and `~mne.minimum_norm.InverseOperator` instances for a nicer Jupyter experience (:gh:`9754` by `Richard Höchenberger`_)
 
@@ -196,6 +196,8 @@ Enhancements
 - All functions for reading and writing files should now automatically handle ``~`` (the tilde character) and expand it to the user's home directory. Should you come across any function that doesn't do it, please do let us know! (:gh:`9613`, :gh`9845` by `Richard Höchenberger`_)
 
 - All functions accepting a FreeSurfer subjects directory via a ``subjects_dir`` parameter can now consume :py:class:`pathlib.Path` objects too (used to be only strings) (:gh:`9613` by `Richard Höchenberger`_)
+
+- Add support for colormap normalization in :meth:`mne.time_frequency.AverageTFR.plot` (:gh:`9851` by `Clemens Brunner`_)
 
 - Add ``by_event_type`` parameter to :meth:`mne.Epochs.average` to create a list containing an :class:`mne.Evoked` object for each event type (:gh:`9859` by `Marijn van Vliet`_)
 
@@ -285,6 +287,8 @@ Bugs
 
 - In `mne.viz.plot_compare_evokeds`, slightly adjust the x-axis limit calculation to avoid drawing an axis that is too short (:gh:`9754` by `Richard Höchenberger`_)
 
+- In :meth:`mne.io.Raw.plot_psd` and :meth:`mne.Epochs.plot_psd`, avoid overlap between subplot titles and x-axis tick labels (:gh:`9864` by `Richard Höchenberger`_)
+
 API changes
 ~~~~~~~~~~~
 - In `mne.compute_source_morph`, the ``niter_affine`` and ``niter_sdr`` parameters have been replaced by ``niter`` and ``pipeline`` parameters for more consistent and finer-grained control of registration/warping steps and iteration (:gh:`9505` by `Alex Rockhill`_ and `Eric Larson`_)
@@ -320,3 +324,5 @@ API changes
 - :meth:`mne.Epochs.plot` and :func:`mne.viz.plot_epochs` gained parameter ``show_scalebars`` analogous to :meth:`mne.viz.plot_raw` (:gh:`9815` by `Daniel McCloy`_)
 
 - The output folder name for HF_SEF datasets is now ``hf_sef`` instead of ``HF_SEF`` (:gh:`9763` by `Adam Li`_)
+
+- Deprecate ``mne.viz.utils.center_cmap`` (:gh:`9851` by `Clemens Brunner`_)

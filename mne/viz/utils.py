@@ -39,7 +39,7 @@ from ..rank import compute_rank
 from ..io.proj import setup_proj
 from ..utils import (verbose, get_config, warn, _check_ch_locs, _check_option,
                      logger, fill_doc, _pl, _check_sphere, _ensure_int,
-                     _validate_type, _to_rgb)
+                     _validate_type, _to_rgb, deprecated)
 from ..transforms import apply_trans
 
 
@@ -1857,9 +1857,10 @@ def _check_time_unit(time_unit, times):
 def _plot_masked_image(ax, data, times, mask=None, yvals=None,
                        cmap="RdBu_r", vmin=None, vmax=None, ylim=None,
                        mask_style="both", mask_alpha=.25, mask_cmap="Greys",
-                       yscale="linear"):
+                       yscale="linear", cnorm=None):
     """Plot a potentially masked (evoked, TFR, ...) 2D image."""
-    from matplotlib import ticker, __version__ as mpl_version
+    from matplotlib import ticker
+    from matplotlib.colors import Normalize
 
     if mask_style is None and mask is not None:
         mask_style = "both"  # default
@@ -1867,6 +1868,8 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
     draw_contour = mask_style in {"both", "contour"}
     if cmap is None:
         mask_cmap = cmap
+    if cnorm is None:
+        cnorm = Normalize(vmin=vmin, vmax=vmax)
 
     # mask param check and preparation
     if draw_mask is None:
@@ -1915,11 +1918,6 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
         else:
             yscale = 'linear'
 
-    # https://github.com/matplotlib/matplotlib/pull/9477
-    if yscale == "log" and mpl_version == "2.1.0":
-        warn("With matplotlib version 2.1.0, lines may not show up in "
-             "`AverageTFR.plot_joint`. Upgrade to a more recent version.")
-
     if yscale == "log":  # pcolormesh for log scale
         # compute bounds between time samples
         time_lims, = centers_to_edges(times)
@@ -1932,13 +1930,13 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
 
         if mask is not None:
             ax.pcolormesh(time_mesh, yval_mesh, data, cmap=mask_cmap,
-                          vmin=vmin, vmax=vmax, alpha=mask_alpha)
+                          norm=cnorm, alpha=mask_alpha)
             im = ax.pcolormesh(time_mesh, yval_mesh,
                                np.ma.masked_where(~mask, data), cmap=cmap,
-                               vmin=vmin, vmax=vmax, alpha=1)
+                               norm=cnorm, alpha=1)
         else:
             im = ax.pcolormesh(time_mesh, yval_mesh, data, cmap=cmap,
-                               vmin=vmin, vmax=vmax)
+                               norm=cnorm)
         if ylim is None:
             ylim = yval_lims[[0, -1]]
         if yscale == 'log':
@@ -2021,6 +2019,7 @@ def _make_combine_callable(combine):
     return combine
 
 
+@deprecated('Use cnorm parameter instead.')
 def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
     """Center given colormap (ranging from vmin to vmax) at value 0.
 
