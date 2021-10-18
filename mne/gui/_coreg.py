@@ -137,12 +137,14 @@ class CoregistrationUI(HasTraits):
             subjects_dir=subjects_dir, raise_error=True)
         subject = _get_default(subject, self._get_subjects(subjects_dir)[0])
 
-        # setup the model
-        self._info = info
-        self._fiducials = fiducials
+        # setup the window
         self._renderer = _get_renderer(
             size=self._defaults["size"], bgcolor=self._defaults["bgcolor"])
         self._renderer._window_close_connect(self._clean)
+
+        # setup the model
+        self._info = info
+        self._fiducials = fiducials
         self._coreg = Coregistration(
             self._info, subject, subjects_dir, fiducials)
         for fid in self._defaults["weights"].keys():
@@ -960,6 +962,9 @@ class CoregistrationUI(HasTraits):
 
     def _clean(self):
         self._renderer = None
+        self._coreg = None
         self._widgets.clear()
         self._actors.clear()
         self._surfaces.clear()
+        self._defaults.clear()
+        self._head_geo = None
