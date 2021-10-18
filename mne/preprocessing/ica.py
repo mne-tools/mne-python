@@ -1312,12 +1312,23 @@ class ICA(ContainsMixin):
             The argument is mandatory if the dataset contains no ECG
             channels.
         threshold : float | str
-            The value above which a feature is classified as outlier. If
-            ``'auto'`` and method is ``'ctps'``, automatically compute the
-            threshold. If ``'auto'`` and method is ``'correlation'``, defaults
-            to 3.0. The default translates to 0.25 for ``'ctps'`` and 3.0 for
-            ``'correlation'`` in version 0.21 but will change to ``'auto'`` in
-            version 0.22.
+            Value above which a feature is classified as outlier.
+
+            - If ``method`` is ``'ctps'``, threshold on the significance value
+              of a Kuiper statistic.
+            - If ``'method'``is ``'correlation'`` and if ``measure`` is
+              ``'zscore'``, defines the threshold on the z-score used in the
+              iterative z-scoring method.
+            - If ``'method'`` is ``'correlation'`` and if ``'measure'`` is
+              ``'correlation'``, defines the absolute threshold on the
+              correlation between 0 and 1.
+            - If ``'auto'`` and ``method`` is ``'ctps'``, automatically compute
+              the threshold based on the threshold of pk. Kuiper statistic that
+              minimizes the difference between pk and the pk threshold
+              (defaults to 20 [1])
+            - If ``'auto'`` and `method`is ``'correlation'``, defaults to 3.0
+              if ``measure`` is ``zscore`` and 0.9 if ``measure`` is
+              ``correlation``.
 
             .. versionchanged:: 0.21
         start : int | float | None
@@ -1410,8 +1421,10 @@ class ICA(ContainsMixin):
                 ch_name = 'ECG-MAG'
             self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
         elif method == 'correlation':
-            if threshold == 'auto':
+            if threshold == 'auto' and measure == 'zscore':
                 threshold = 3.0
+            elif threshold == 'auto' and measure == 'correlation':
+                threshold = 0.9
             self.labels_['ecg'], scores = self._find_bads_ch(
                 inst, [ecg], threshold=threshold, start=start, stop=stop,
                 l_freq=l_freq, h_freq=h_freq, prefix="ecg",
@@ -1435,8 +1448,19 @@ class ICA(ContainsMixin):
         ch_name : list of str
             Which MEG reference components to use. If None, then all channels
             that begin with REF_ICA.
-        threshold : int | float
-            The value above which a feature is classified as outlier.
+        threshold : float | str
+            Value above which a feature is classified as outlier.
+
+            - If ``measure`` is ``zscore``, defines the threshold on the
+              z-score used in the iterative z-scoring method.
+            - If ``measure`` is ``correlation``, defines the absolute threshold
+              on the correlation between 0 and 1.
+            - If ``'auto'`, defaults to 3.0 if ``measure`` is ``zscore`` and
+              0.9 if ``measure`` is ``correlation``.
+
+             .. warning::
+                 If ``method``is ``'together'``, the iterative z-score method
+                 is always used.
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
@@ -1500,7 +1524,16 @@ class ICA(ContainsMixin):
         ----------
         .. footbibliography::
         """
+        _validate_type(threshold, (str, 'numeric'), 'threshold')
+        if isinstance(threshold, str):
+            _check_option('threshold', threshold, ('auto',), extra='when str')
+
         if method == "separate":
+            if threshold == 'auto' and measure == 'zscore':
+                threshold = 3.0
+            elif threshold == 'auto' and measure == 'correlation':
+                threshold = 0.9
+
             if not ch_name:
                 inds = pick_channels_regexp(inst.ch_names, 'REF_ICA*')
             else:
@@ -1517,6 +1550,9 @@ class ICA(ContainsMixin):
                 reject_by_annotation=reject_by_annotation,
                 measure=measure)
         elif method == 'together':
+            if threshold == 'auto':
+                threshold = 3.0
+
             meg_picks = pick_types(self.info, meg=True, ref_meg=False)
             ref_picks = pick_types(self.info, meg=False, ref_meg=True)
             if not any(meg_picks) or not any(ref_picks):
@@ -1559,8 +1595,15 @@ class ICA(ContainsMixin):
             The name of the channel to use for EOG peak detection.
             The argument is mandatory if the dataset contains no EOG
             channels.
-        threshold : int | float
-            The value above which a feature is classified as outlier.
+        threshold : float | str
+            Value above which a feature is classified as outlier.
+
+            - If ``measure`` is ``zscore``, defines the threshold on the
+              z-score used in the iterative z-scoring method.
+            - If ``measure`` is ``correlation``, defines the absolute threshold
+              on the correlation between 0 and 1.
+            - If ``'auto'`, defaults to 3.0 if ``measure`` is ``zscore`` and
+              0.9 if ``measure`` is ``correlation``.
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
@@ -1590,6 +1633,14 @@ class ICA(ContainsMixin):
         """
         eog_inds = _get_eog_channel_index(ch_name, inst)
         eog_chs = [inst.ch_names[k] for k in eog_inds]
+
+        _validate_type(threshold, (str, 'numeric'), 'threshold')
+        if isinstance(threshold, str):
+            _check_option('threshold', threshold, ('auto',), extra='when str')
+        if threshold == 'auto' and measure == 'zscore':
+            threshold = 3.0
+        elif threshold == 'auto' and measure == 'correlation':
+            threshold = 0.9
 
         self.labels_['eog'], scores = self._find_bads_ch(
             inst, eog_chs, threshold=threshold, start=start, stop=stop,
