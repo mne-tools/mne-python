@@ -550,6 +550,42 @@ class Info(dict, MontageMixin):
         meas_date : tuple of int
             The helium level meas date.
     """
+    _attributes = {
+        'acq_pars': '',
+        'acq_stim': '',
+        'bads': '',
+        'ch_names': '',
+        'chs': '',
+        'comps': '',
+        'ctf_head_t': '',
+        'custom_ref_applied': '',
+        'description': '',
+        'dev_ctf_t': '',
+        'dev_head_t': '',
+        'dig': '',
+        'events': '',
+        'experimenter': '',
+        'file_id': '',
+        'highpass': '',
+        'hpi_meas': '',
+        'hpi_results': '',
+        'hpi_subsystem': '',
+        'line_freq': '',
+        'gantry_angle': '',
+        'lowpass': '',
+        'meas_date': '',
+        'utc_offset': '',
+        'meas_id': '',
+        'nchan': '',
+        'proc_history': '',
+        'proj_id': '',
+        'proj_name': '',
+        'projs': '',
+        'sfreq': '',
+        'subject_info': '',
+        'device_info': '',
+        'helium_info': '',
+        }
 
     def __init__(self, *args, **kwargs):
         with self._unlock():
@@ -581,7 +617,17 @@ class Info(dict, MontageMixin):
 
     def __setitem__(self, key, val):
         """Attribute setter."""
-        if self._unlocked:
+        if key in self._attributes:
+            if isinstance(self._attributes[key], str) and self._unlocked:
+                super().__setitem__(key, val)
+            elif isinstance(self._attributes[key], str) and not self._unlocked:
+                raise AttributeError(self._attributes[key])
+            else:
+                val = self._attributes[key](val)  # attribute checker function
+                super().__setitem__(key, val)
+        else:
+            logger.warning(f'Info does not support key {key}. It might not '
+                           'survive an I/O roundtrip.')
             super().__setitem__(key, val)
 
     @contextlib.contextmanager
