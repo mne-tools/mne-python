@@ -2276,6 +2276,7 @@ def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
               scalings_list, axes, make_label, color, area_mode, area_alpha,
               dB, estimate, average, spatial_colors, xscale, line_alpha,
               sphere, xlabels_list)
+    fig.subplots_adjust(hspace=0.3)
     return fig
 
 

@@ -451,6 +451,7 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
             buff.seek(0)
             fig_array = plt.imread(buff, format='png')
 
+        plt.close(fig)
         return fig_array
 
     use_jobs = min(n_jobs, max(1, len(picks)))
@@ -848,7 +849,7 @@ class Report(object):
     @fill_doc
     def add_evokeds(self, evokeds, *, titles=None, noise_cov=None, projs=None,
                     n_time_points=None, tags=('evoked',), replace=False,
-                    topomap_kwargs=None):
+                    topomap_kwargs=None, n_jobs=1):
         """Add `~mne.Evoked` objects to the report.
 
         Parameters
@@ -873,6 +874,7 @@ class Report(object):
         %(report_tags)s
         %(report_replace)s
         %(topomap_kwargs)s
+        %(n_jobs)s
 
         Notes
         -----
@@ -918,7 +920,8 @@ class Report(object):
                 add_projs=add_projs,
                 n_time_points=n_time_points,
                 tags=tags,
-                topomap_kwargs=topomap_kwargs
+                topomap_kwargs=topomap_kwargs,
+                n_jobs=n_jobs
             )
 
             (joint_html, slider_html, gfp_html, whitened_html,
@@ -1370,7 +1373,7 @@ class Report(object):
 
             captions.append(caption)
 
-        title = 'ICA components'
+        title = 'ICA component properties'
         # Only render a slider if we have more than 1 component.
         if len(figs) == 1:
             img = _fig_to_img(fig=figs[0], image_format=image_format)
@@ -1441,7 +1444,7 @@ class Report(object):
 
         return topographies_html
 
-    def _render_ica(self, *, ica, inst, n_components, ecg_evoked,
+    def _render_ica(self, *, ica, inst, picks, ecg_evoked,
                     eog_evoked, ecg_scores, eog_scores, title, image_format,
                     tags, n_jobs):
         if _path_like(ica):
@@ -1538,7 +1541,6 @@ class Report(object):
             eog_html = ''
 
         # Component topography plots
-        picks = None if n_components is None else list(range(n_components))
         topographies_html = self._render_ica_components(
             ica=ica, picks=picks, image_format=image_format, tags=tags
         )
@@ -1570,7 +1572,7 @@ class Report(object):
 
     @fill_doc
     def add_ica(
-        self, ica, title, *,  inst, n_components=None, ecg_evoked=None,
+        self, ica, title, *,  inst, picks=None, ecg_evoked=None,
         eog_evoked=None, ecg_scores=None, eog_scores=None, n_jobs=1,
         tags=('ica',), replace=False
     ):
@@ -1586,9 +1588,8 @@ class Report(object):
             The data to use for visualization of the effects of ICA cleaning.
             To only plot the ICA component topographies, explicitly pass
             ``None``.
-        n_components : int | None
-            The number of components for which to produce plots. If ``None``,
-            plot all components.
+        %(picks_ica)s  If ``None``, plot all components. This only affects
+            the behavior of the component topography and properties plots.
         ecg_evoked, eog_evoked : path-line | mne.Evoked | None
             Evoked signal based on ECG and EOG epochs, respectively. If passed,
             will be used to visualize the effects of artifact rejection.
@@ -1608,7 +1609,7 @@ class Report(object):
         tags = tuple(tags)
 
         dom_id, html = self._render_ica(
-            ica=ica, inst=inst, n_components=n_components,
+            ica=ica, inst=inst, picks=picks,
             ecg_evoked=ecg_evoked, eog_evoked=eog_evoked,
             ecg_scores=ecg_scores, eog_scores=eog_scores,
             title=title, image_format=self.image_format, tags=tags,
@@ -1868,7 +1869,9 @@ class Report(object):
 
         if isinstance(caption, str):
             captions = (caption,)
-        elif caption is None:
+        elif caption is None and len(figs) == 1:
+            captions = [None]
+        elif caption is None and len(figs) > 1:
             captions = [f'Figure {i+1}' for i in range(len(figs))]
         else:
             captions = tuple(caption)
@@ -2427,7 +2430,7 @@ class Report(object):
                     self.add_evokeds(
                         evokeds=fname, titles=titles, noise_cov=cov,
                         n_time_points=n_time_points_evokeds,
-                        topomap_kwargs=topomap_kwargs,
+                        topomap_kwargs=topomap_kwargs
                     )
                 elif _endswith(fname, 'eve'):
                     if self.info_fname is not None:
@@ -3118,10 +3121,48 @@ class Report(object):
         html = '\n'.join(htmls)
         return html
 
-    def _render_evoked_topomap_slider(self, *, evoked, ch_types, n_time_points,
-                                      image_format, tags, topomap_kwargs):
+    def _plot_one_evoked_topomap_timepoint(
+        self, *, evoked, time, ch_types, vmin, vmax, topomap_kwargs
+    ):
         import matplotlib.pyplot as plt
 
+        fig, ax = plt.subplots(
+            1, len(ch_types) * 2,
+            gridspec_kw={'width_ratios': [8, 0.5] * len(ch_types)},
+            figsize=(4 * len(ch_types), 3.5)
+        )
+        ch_type_ax_map = dict(
+            zip(ch_types,
+                [(ax[i], ax[i + 1]) for i in
+                    range(0, 2 * len(ch_types) - 1, 2)])
+        )
+
+        for ch_type in ch_types:
+            evoked.plot_topomap(
+                times=[time], ch_type=ch_type,
+                vmin=vmin[ch_type], vmax=vmax[ch_type],
+                axes=ch_type_ax_map[ch_type], show=False,
+                **topomap_kwargs
+            )
+            ch_type_ax_map[ch_type][0].set_title(ch_type)
+
+        tight_layout(fig=fig)
+
+        with BytesIO() as buff:
+            fig.savefig(
+                buff, format='png',
+                dpi=fig.get_dpi(),
+                bbox_inches='tight',
+                pad_inches=0
+            )
+            plt.close(fig)
+            buff.seek(0)
+            fig_array = plt.imread(buff, format='png')
+        return fig_array
+
+    def _render_evoked_topomap_slider(self, *, evoked, ch_types, n_time_points,
+                                      image_format, tags, topomap_kwargs,
+                                      n_jobs):
         if n_time_points is None:
             n_time_points = min(len(evoked.times), 21)
         elif n_time_points > len(evoked.times):
@@ -3157,43 +3198,23 @@ class Report(object):
             else:
                 vmin[ch_type] = -vmax[ch_type]
 
-        figs = []
         topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
 
-        for t in times:
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    action='ignore',
-                    message='More than 20 figures have been opened',
-                    category=RuntimeWarning
-                )
-
-                # topomaps + color bars
-                fig, ax = plt.subplots(
-                    1, len(ch_types) * 2,
-                    gridspec_kw={'width_ratios': [8, 0.5] * len(ch_types)},
-                    figsize=(4 * len(ch_types), 3.5)
-                )
-                ch_type_ax_map = dict(
-                    zip(ch_types,
-                        [(ax[i], ax[i + 1]) for i in
-                         range(0, 2 * len(ch_types) - 1, 2)])
-                )
-
-                for ch_type in ch_types:
-                    evoked.plot_topomap(
-                        times=[t], ch_type=ch_type,
-                        vmin=vmin[ch_type], vmax=vmax[ch_type],
-                        axes=ch_type_ax_map[ch_type], show=False,
-                        **topomap_kwargs
-                    )
-                    ch_type_ax_map[ch_type][0].set_title(ch_type)
-                tight_layout(fig=fig)
-                figs.append(fig)
+        use_jobs = min(n_jobs, max(1, len(times)))
+        parallel, p_fun, _ = parallel_func(
+            func=self._plot_one_evoked_topomap_timepoint,
+            n_jobs=use_jobs
+        )
+        fig_arrays = parallel(
+            p_fun(
+                evoked=evoked, time=time, ch_types=ch_types,
+                vmin=vmin, vmax=vmax, topomap_kwargs=topomap_kwargs
+            ) for time in times
+        )
 
         captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
         html = self._render_slider(
-            figs=figs,
+            figs=fig_arrays,
             captions=captions,
             title='Topographies',
             image_format=image_format,
@@ -3270,7 +3291,7 @@ class Report(object):
         return html
 
     def _render_evoked(self, evoked, noise_cov, add_projs, n_time_points,
-                       image_format, tags, topomap_kwargs):
+                       image_format, tags, topomap_kwargs, n_jobs):
         def _get_ch_types(ev):
             has_types = []
             if len(pick_types(ev.info, meg=False, eeg=True)) > 0:
@@ -3293,6 +3314,7 @@ class Report(object):
             n_time_points=n_time_points,
             image_format=image_format,
             tags=tags, topomap_kwargs=topomap_kwargs,
+            n_jobs=n_jobs
         )
         gfp_html = self._render_evoked_gfp(
             evoked=evoked, ch_types=ch_types, image_format=image_format,
@@ -3403,7 +3425,6 @@ class Report(object):
                 fmax = np.inf
 
             fig = epochs.plot_psd(fmax=fmax, show=False)
-            tight_layout(fig=fig)
             img = _fig_to_img(fig=fig, image_format=image_format)
             psd_img_html = _html_image_element(
                 img=img, id=dom_id, div_klass='epochs', img_klass='epochs',

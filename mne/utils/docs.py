@@ -619,6 +619,10 @@ docdict['picks_all_data_noref'] = f'{picks_base} all data channels {noref}'
 docdict['picks_good_data_noref'] = f'{picks_base} good data channels {noref}'
 docdict['picks_nostr'] = f"""picks : list | slice | None
     {picks_intro} None (default) will pick all channels. {reminder_nostr}"""
+docdict['picks_ica'] = """
+picks : int | list of int | slice | None
+    Indices of the ICA components to visualize.
+"""
 
 # Units
 docdict['units'] = """
