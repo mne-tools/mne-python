@@ -97,6 +97,7 @@ class CoregistrationUI(HasTraits):
         self._head_geo = None
         self._coord_frame = "mri"
         self._mouse_no_mvt = -1
+        self._to_cf_t = None
         self._omit_hsp_distance = 0.0
         self._head_opacity = 1.0
         self._fid_colors = tuple(
@@ -456,6 +457,10 @@ class CoregistrationUI(HasTraits):
             return
         if self._info is None:
             changes = ["head"]
+            self._to_cf_t = dict(mri=np.eye(4), head=np.eye(4))
+        else:
+            self._to_cf_t = _get_transforms_to_coord_frame(
+                self._info, self._coreg.trans, coord_frame=self._coord_frame)
         if not isinstance(changes, list):
             changes = [changes]
         forced = "all" in changes
@@ -551,29 +556,23 @@ class CoregistrationUI(HasTraits):
         self._renderer._update()
 
     def _add_mri_fiducials(self):
-        to_cf_t = _get_transforms_to_coord_frame(
-            self._info, self._coreg.trans, coord_frame=self._coord_frame)
         mri_fids_actors = _plot_mri_fiducials(
             self._renderer, self._coreg._fid_points, self._subjects_dir,
-            self._subject, to_cf_t, self._fid_colors)
+            self._subject, self._to_cf_t, self._fid_colors)
         # disable picking on the markers
         for actor in mri_fids_actors:
             actor.SetPickable(False)
         self._update_actor("mri_fiducials", mri_fids_actors)
 
     def _add_head_fiducials(self):
-        to_cf_t = _get_transforms_to_coord_frame(
-            self._info, self._coreg.trans, coord_frame=self._coord_frame)
         head_fids_actors = _plot_head_fiducials(
-            self._renderer, self._info, to_cf_t, self._fid_colors)
+            self._renderer, self._info, self._to_cf_t, self._fid_colors)
         self._update_actor("head_fiducials", head_fids_actors)
 
     def _add_hpi_coils(self):
         if self._hpi_coils:
-            to_cf_t = _get_transforms_to_coord_frame(
-                self._info, self._coreg.trans, coord_frame=self._coord_frame)
             hpi_actors = _plot_hpi_coils(
-                self._renderer, self._info, to_cf_t, opacity=1.0,
+                self._renderer, self._info, self._to_cf_t, opacity=1.0,
                 orient_glyphs=self._orient_glyphs, surf=self._head_geo)
         else:
             hpi_actors = None
@@ -581,10 +580,8 @@ class CoregistrationUI(HasTraits):
 
     def _add_head_shape_points(self):
         if self._head_shape_points:
-            to_cf_t = _get_transforms_to_coord_frame(
-                self._info, self._coreg.trans, coord_frame=self._coord_frame)
             hsp_actors = _plot_head_shape_points(
-                self._renderer, self._info, to_cf_t, opacity=1.0,
+                self._renderer, self._info, self._to_cf_t, opacity=1.0,
                 orient_glyphs=self._orient_glyphs, surf=self._head_geo,
                 mask=self._coreg._extra_points_filter)
         else:
@@ -594,11 +591,9 @@ class CoregistrationUI(HasTraits):
     def _add_eeg_channels(self):
         if self._eeg_channels:
             eeg = ["original"]
-            to_cf_t = _get_transforms_to_coord_frame(
-                self._info, self._coreg.trans, coord_frame=self._coord_frame)
             picks = pick_types(self._info, eeg=(len(eeg) > 0))
             eeg_actors = _plot_sensors(
-                self._renderer, self._info, to_cf_t, picks, meg=False,
+                self._renderer, self._info, self._to_cf_t, picks, meg=False,
                 eeg=eeg, fnirs=False, warn_meg=False, head_surf=self._head_geo,
                 units='m', sensor_opacity=1.0,
                 orient_glyphs=self._orient_glyphs, surf=self._head_geo)
@@ -610,20 +605,16 @@ class CoregistrationUI(HasTraits):
     def _add_head_surface(self):
         bem = None
         surface = "head-dense" if self._head_resolution else "head"
-        if self._info is None:
-            to_cf_t = dict(mri=np.eye(4), head=np.eye(4))
-        else:
-            to_cf_t = _get_transforms_to_coord_frame(
-                self._info, self._coreg.trans, coord_frame=self._coord_frame)
         try:
             head_actor, head_surf = _plot_head_surface(
                 self._renderer, surface, self._subject,
-                self._subjects_dir, bem, self._coord_frame, to_cf_t,
+                self._subjects_dir, bem, self._coord_frame, self._to_cf_t,
                 alpha=self._head_opacity)
         except IOError:
             head_actor, head_surf = _plot_head_surface(
                 self._renderer, "head", self._subject, self._subjects_dir,
-                bem, self._coord_frame, to_cf_t, alpha=self._head_opacity)
+                bem, self._coord_frame, self._to_cf_t,
+                alpha=self._head_opacity)
         # mark head surface mesh to restrict picking
         head_surf._picking_target = True
         self._update_actor("head", head_actor)
