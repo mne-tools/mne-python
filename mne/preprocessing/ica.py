@@ -1558,9 +1558,8 @@ class ICA(ContainsMixin):
             # take norm of component weights on reference channels for each
             # component, divide them by the norm on the standard channels,
             # log transform to approximate normal distribution
-            normrats = np.linalg.norm(weights[ref_picks],
-                                      axis=0) / np.linalg.norm(weights[meg_picks],    # noqa
-                                                               axis=0)
+            normrats = np.linalg.norm(weights[ref_picks], axis=0) \
+                / np.linalg.norm(weights[meg_picks], axis=0)
             scores = np.log(normrats)
             self.labels_['ref_meg'] = list(_find_outliers(scores,
                                            threshold=threshold,
