@@ -51,6 +51,8 @@ class CoregistrationUI(HasTraits):
         If True, display the EEG channels. Defaults to True.
     orient_glyphs : bool
         If True, orient the sensors towards the head surface. Default to False.
+    sensor_opacity : float
+        The opacity of the sensors between 0 and 1. Defaults to 1.0.
     trans : str
         The path to the Head<->MRI transform FIF file ("-trans.fif").
     size : tuple
@@ -84,7 +86,8 @@ class CoregistrationUI(HasTraits):
                  fiducials='auto', head_resolution=None,
                  head_transparency=None, head_opacity=None, hpi_coils=None,
                  head_shape_points=None, eeg_channels=None, orient_glyphs=None,
-                 trans=None, size=None, bgcolor=None, standalone=False):
+                 sensor_opacity=None, trans=None, size=None, bgcolor=None,
+                 standalone=False):
         from ..viz.backends.renderer import _get_renderer
 
         def _get_default(var, val):
@@ -100,7 +103,6 @@ class CoregistrationUI(HasTraits):
         self._to_cf_t = None
         self._omit_hsp_distance = 0.0
         self._head_opacity = 1.0
-        self._sensor_opacity = 1.0
         self._fid_colors = tuple(
             DEFAULTS['coreg'][f'{key}_color'] for key in
             ('lpa', 'nasion', 'rpa'))
@@ -114,6 +116,7 @@ class CoregistrationUI(HasTraits):
             head_resolution=_get_default(head_resolution, False),
             head_transparency=_get_default(head_transparency, False),
             head_opacity=_get_default(head_opacity, 0.4),
+            sensor_opacity=_get_default(sensor_opacity, 1.0),
             fiducials=("LPA", "Nasion", "RPA"),
             fiducial="LPA",
             lock_fids=True,
@@ -134,6 +137,7 @@ class CoregistrationUI(HasTraits):
             ),
         )
 
+        # process requirements
         info = read_info(info_file) if info_file is not None else None
         subjects_dir = get_subjects_dir(
             subjects_dir=subjects_dir, raise_error=True)
@@ -568,7 +572,7 @@ class CoregistrationUI(HasTraits):
         if self._hpi_coils:
             hpi_actors = _plot_hpi_coils(
                 self._renderer, self._info, self._to_cf_t,
-                opacity=self._sensor_opacity,
+                opacity=self._defaults["sensor_opacity"],
                 orient_glyphs=self._orient_glyphs, surf=self._head_geo)
         else:
             hpi_actors = None
@@ -578,7 +582,7 @@ class CoregistrationUI(HasTraits):
         if self._head_shape_points:
             hsp_actors = _plot_head_shape_points(
                 self._renderer, self._info, self._to_cf_t,
-                opacity=self._sensor_opacity,
+                opacity=self._defaults["sensor_opacity"],
                 orient_glyphs=self._orient_glyphs, surf=self._head_geo,
                 mask=self._coreg._extra_points_filter)
         else:
@@ -592,7 +596,7 @@ class CoregistrationUI(HasTraits):
             eeg_actors = _plot_sensors(
                 self._renderer, self._info, self._to_cf_t, picks, meg=False,
                 eeg=eeg, fnirs=False, warn_meg=False, head_surf=self._head_geo,
-                units='m', sensor_opacity=self._sensor_opacity,
+                units='m', sensor_opacity=self._defaults["sensor_opacity"],
                 orient_glyphs=self._orient_glyphs, surf=self._head_geo)
             eeg_actors = eeg_actors["eeg"]
         else:
