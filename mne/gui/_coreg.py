@@ -454,8 +454,8 @@ class CoregistrationUI(HasTraits):
         if self._plot_locked:
             return
         if self._info is None:
-            changes = ["head"]
-            self._to_cf_t = dict(mri=np.eye(4), head=np.eye(4))
+            changes = ["head", "mri_fids"]
+            self._to_cf_t = dict(mri=dict(trans=np.eye(4)), head=None)
         else:
             self._to_cf_t = _get_transforms_to_coord_frame(
                 self._info, self._coreg.trans, coord_frame=self._coord_frame)
