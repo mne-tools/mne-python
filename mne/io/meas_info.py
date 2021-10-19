@@ -580,13 +580,24 @@ class Info(dict, MontageMixin):
         meas_date : tuple of int
             The helium level meas date.
     """
+
     _attributes = {
-        'acq_pars': '',
-        'acq_stim': '',
+        'acq_pars': 'This attribute can not be directly set. '
+                    'See mne.AcqParserFIF() for details.',
+        'acq_stim': 'This attribute can not be directly set. '
+                    'Please use ...',
         'bads': _check_bads,
-        'ch_names': '',
-        'chs': '',
-        'comps': '',
+        'ch_names': 'This attribute can not be directly set. '
+                    'Please use instance methods .add_channels(), '
+                    '.drop_channels(), .pick_channels(), .rename_channels() '
+                    'and .reorder_channels() instead.',
+        'chs': 'This attribute can not be directly set. '
+               'Please use instance methods .add_channels(), '
+               '.drop_channels(), .pick_channels(), .rename_channels() '
+               'and .reorder_channels() instead.',
+        'comps': 'This attribute can not be directly set. '
+                 'Please use mne.io.Raw.apply_gradient_compensation() '
+                 'instead.',
         'ctf_head_t': '',
         'custom_ref_applied': '',
         'description': _check_description,
@@ -596,14 +607,17 @@ class Info(dict, MontageMixin):
         'events': '',
         'experimenter': _check_experimenter,
         'file_id': '',
-        'highpass': '',
+        'highpass': 'This attribute can not be directly set. '
+                    'Please use instance methods .filter() instead.',
         'hpi_meas': '',
         'hpi_results': '',
         'hpi_subsystem': '',
         'line_freq': '',
         'gantry_angle': '',
-        'lowpass': '',
-        'meas_date': '',
+        'lowpass': 'This attribute can not be directly set. '
+                   'Please use instance method .filter() instead.',
+        'meas_date': 'This attribute can not be directly set. '
+                     'Please use instance method .set_meas_date() instead.',
         'utc_offset': '',
         'meas_id': '',
         'nchan': '',
@@ -611,7 +625,8 @@ class Info(dict, MontageMixin):
         'proj_id': '',
         'proj_name': '',
         'projs': '',
-        'sfreq': '',
+        'sfreq': 'This attribute can not be directly set. '
+                 'Please use instance method .resample() instead.',
         'subject_info': _check_subject_info,
         'device_info': _check_device_info,
         'helium_info': _check_helium_info,
