@@ -209,16 +209,13 @@ class _QtDock(_AbstractDock, _QtLayout):
 
         def callback():
             if directory:
-                dname = QFileDialog.getExistingDirectory()
-                if input_text_widget:
-                    sync_text_widget(dname)
-                func(dname)
+                name = QFileDialog.getExistingDirectory()
             else:
-                fname = QFileDialog.getOpenFileName()
-                fname = fname[0] if isinstance(fname, tuple) else fname
-                if input_text_widget:
-                    sync_text_widget(fname)
-                func(fname)
+                name = QFileDialog.getOpenFileName()
+            name = name[0] if isinstance(name, tuple) else name
+            if input_text_widget:
+                sync_text_widget(name)
+            func(name)
 
         button_widget = self._dock_add_button(
             name=desc,
