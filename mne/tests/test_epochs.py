@@ -1213,7 +1213,7 @@ def test_split_saving(tmpdir, split_size, n_epochs, n_files, size, metadata,
     split_fname_neuromag_part1 = fname.replace('epo.fif',
                                                f'epo-{n_files + 1}.fif')
     split_fname_bids_part1 = fname.replace('epo',
-                                           f'_split-{n_files + 1:2d}_epo')  
+                                           f'_split-{n_files + 1:2d}_epo')
 
     epochs.save(fname, split_naming='neuromag', verbose=True)
     assert op.isfile(split_fname)
@@ -1239,7 +1239,7 @@ def test_split_saving(tmpdir, split_size, n_epochs, n_files, size, metadata,
     assert op.isfile(split_fname_neuromag_part1)
     # check that filenames are being formatted correctly for BIDS
     epochs.save(split_fname, buffer_size_sec=1.0, split_size='2MB',
-               split_naming='bids', overwrite=True, verbose=True)
+                split_naming='bids', overwrite=True, verbose=True)
     assert op.isfile(split_fname_bids_part1)
 
 

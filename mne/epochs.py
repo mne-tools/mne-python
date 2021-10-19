@@ -1772,7 +1772,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             but will change to False in 0.19.
 
             .. versionadded:: 0.18
-        split_naming : {'neuromag' | 'bids'}
+        split_naming : 'neuromag' | 'bids'
             Add the filename partition with the appropriate naming schema.
 
             .. versionadded:: 0.24
