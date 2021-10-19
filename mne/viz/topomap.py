@@ -1893,7 +1893,9 @@ def plot_epochs_psd_topomap(epochs, bands=None,
     """
     ch_type = _get_ch_type(epochs, ch_type)
     units = _handle_default('units', None)
+    scalings = _handle_default('scalings', None)
     unit = units[ch_type]
+    scaling = scalings[ch_type]
 
     picks, pos, merge_channels, names, ch_type, sphere, clip_origin = \
         _prepare_topomap_plot(epochs, ch_type, sphere=sphere)
@@ -1905,6 +1907,7 @@ def plot_epochs_psd_topomap(epochs, bands=None,
                                  normalization=normalization, picks=picks,
                                  proj=proj, n_jobs=n_jobs)
     psds = np.mean(psds, axis=0)
+    psds *= scaling**2
 
     if merge_channels:
         psds, names = _merge_ch_data(psds, ch_type, names, method='mean')

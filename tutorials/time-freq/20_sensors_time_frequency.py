@@ -63,14 +63,23 @@ epochs.resample(200., npad='auto')  # resample to reduce computation time
 epochs.plot_psd(fmin=2., fmax=40., average=True, spatial_colors=False)
 
 # %%
-# Now let's take a look at the spatial distributions of the PSD.
+# Now, let's take a look at the spatial distributions of the PSD, averaged
+# across epochs and frequency bands.
 epochs.plot_psd_topomap(ch_type='grad', normalize=True)
 
 # %%
-# Alternatively, you can also create PSDs from Epochs objects with functions
+# Alternatively, you can also create PSDs from `~mne.Epochs` with functions
 # that start with ``psd_`` such as
 # :func:`mne.time_frequency.psd_multitaper` and
 # :func:`mne.time_frequency.psd_welch`.
+#
+# .. note::
+#    In contrast to the methods for visualization, those ``psd_*`` functions do
+#    **not** scale the data from SI units to more "convenient" values. So when
+#    e.g. calculating the PSD of gradiometers via
+#    :func:`~mne.time_frequency.psd_multitaper`, you will get the power as
+#    `(T/m)²/Hz` (instead of `(fT/cm)²/Hz` via
+#    :meth:`~mne.Epochs.plot_psd_topomap`).
 
 f, ax = plt.subplots()
 psds, freqs = psd_multitaper(epochs, fmin=2, fmax=40, n_jobs=1)
