@@ -215,6 +215,9 @@ class _QtDock(_AbstractDock, _QtLayout):
             else:
                 name = QFileDialog.getOpenFileName()
             name = name[0] if isinstance(name, tuple) else name
+            # handle the cancel button
+            if len(name) == 0:
+                return
             if input_text_widget:
                 sync_text_widget(name)
             func(name)
