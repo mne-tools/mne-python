@@ -601,7 +601,7 @@ class Info(dict, MontageMixin):
         'subject_info': '',
         'device_info': '',
         'helium_info': '',
-        }
+    }
 
     def __init__(self, *args, **kwargs):
         with self._unlock():
@@ -652,7 +652,7 @@ class Info(dict, MontageMixin):
         self._unlocked = True
         try:
             yield
-        except:
+        except Exception:
             raise
         else:
             if check_after:
