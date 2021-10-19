@@ -183,9 +183,8 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         from ._coreg import CoregistrationUI
         return CoregistrationUI(
             info_file=inst, subject=subject, subjects_dir=subjects_dir,
-            head_resolution=head_high_res, head_opacity=head_opacity,
-            orient_glyphs=orient_to_surface, trans=trans,
-            size=(width, height), standalone=True,
+            head_resolution=head_high_res, orient_glyphs=orient_to_surface,
+            trans=trans, size=(width, height), standalone=True,
         )
     else:
         _check_mayavi_version()

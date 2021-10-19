@@ -41,8 +41,6 @@ class CoregistrationUI(HasTraits):
         If True, use a high-resolution head surface. Defaults to False.
     head_transparency : bool
         If True, display the head surface with transparency. Defaults to False.
-    head_opacity : float
-        The opacity of the head surface between 0 and 1. Defaults to 0.5.
     hpi_coils : bool
         If True, display the HPI coils. Defaults to True.
     head_shape_points : bool
@@ -81,11 +79,10 @@ class CoregistrationUI(HasTraits):
     _grow_hair = Float()
     _scale_mode = Unicode()
     _icp_fid_match = Unicode()
-    _lock_head_opacity = Bool()
 
     def __init__(self, info_file, subject=None, subjects_dir=None,
                  fiducials='auto', head_resolution=None,
-                 head_transparency=None, head_opacity=None, hpi_coils=None,
+                 head_transparency=None, hpi_coils=None,
                  head_shape_points=None, eeg_channels=None, orient_glyphs=None,
                  sensor_opacity=None, trans=None, size=None, bgcolor=None,
                  standalone=False):
@@ -103,7 +100,7 @@ class CoregistrationUI(HasTraits):
         self._mouse_no_mvt = -1
         self._to_cf_t = None
         self._omit_hsp_distance = 0.0
-        self._head_opacity = _get_default(head_opacity, 1.0)
+        self._head_opacity = 1.0
         self._fid_colors = tuple(
             DEFAULTS['coreg'][f'{key}_color'] for key in
             ('lpa', 'nasion', 'rpa'))
@@ -182,7 +179,6 @@ class CoregistrationUI(HasTraits):
         self._set_current_fiducial(self._defaults["fiducial"])
         self._set_lock_fids(self._defaults["lock_fids"])
         self._set_scale_mode(self._defaults["scale_mode"])
-        self._set_lock_head_opacity(self._defaults["lock_head_opacity"])
         if trans is not None:
             self._load_trans(trans)
 
@@ -277,9 +273,6 @@ class CoregistrationUI(HasTraits):
 
     def _set_point_weight(self, weight, point):
         setattr(self, f"_{point}_weight", weight)
-
-    def _set_lock_head_opacity(self, state):
-        self._lock_head_opacity = bool(state)
 
     @observe("_subjects_dir")
     def _subjects_dir_changed(self, change=None):
@@ -392,11 +385,6 @@ class CoregistrationUI(HasTraits):
             self._on_pick
         )
         self._actors["msg"] = self._renderer.text2d(0, 0, "")
-
-    @observe("_lock_head_opacity")
-    def _lock_head_opacity_changed(self, changes=None):
-        self._forward_widget_command(
-            "make_transparent", "set_enabled", not self._lock_head_opacity)
 
     def _on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
