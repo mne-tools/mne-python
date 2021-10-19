@@ -618,7 +618,7 @@ class Info(dict, MontageMixin):
         'lowpass': 'lowpass can not be directly set. '
                    'Please use <Raw | Epochs | Evoked> method .filter() '
                    'instead.',
-        'meas_date': 'meas_date can not be setdirectly. '
+        'meas_date': 'meas_date can not be set directly. '
                      'Please use <Raw | Epochs | Evoked> method '
                      '.set_meas_date() instead.',
         'utc_offset': 'utc_offset can not be set directly.',
