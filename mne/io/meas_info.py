@@ -582,54 +582,61 @@ class Info(dict, MontageMixin):
     """
 
     _attributes = {
-        'acq_pars': 'This attribute can not be directly set. '
+        'acq_pars': 'acq_pars can not be set directly. '
                     'See mne.AcqParserFIF() for details.',
-        'acq_stim': 'This attribute can not be directly set. '
+        'acq_stim': 'acq_stim can not be set directly. '
                     'Please use ...',
         'bads': _check_bads,
-        'ch_names': 'This attribute can not be directly set. '
-                    'Please use instance methods .add_channels(), '
-                    '.drop_channels(), .pick_channels(), .rename_channels() '
-                    'and .reorder_channels() instead.',
-        'chs': 'This attribute can not be directly set. '
-               'Please use instance methods .add_channels(), '
-               '.drop_channels(), .pick_channels(), .rename_channels() '
-               'and .reorder_channels() instead.',
-        'comps': 'This attribute can not be directly set. '
+        'ch_names': 'ch_names can not be set directly. '
+                    'Please use <Raw | Epochs | Evoked> methods '
+                    '.add_channels(), .drop_channels(), .pick_channels(), '
+                    '.rename_channels() and .reorder_channels() instead.',
+        'chs': 'chs can not be set directly. '
+               'Please use <Raw | Epochs | Evoked> methods '
+               '.add_channels(), .drop_channels(), .pick_channels(), '
+               '.rename_channels() and .reorder_channels() instead.',
+        'comps': 'comps can not be set directly. '
                  'Please use mne.io.Raw.apply_gradient_compensation() '
                  'instead.',
-        'ctf_head_t': '',
-        'custom_ref_applied': '',
+        'ctf_head_t': 'ctf_head_t can not be set directly.',
+        'custom_ref_applied': 'custom_ref_applied can not be set directly.',
         'description': _check_description,
-        'dev_ctf_t': '',
-        'dev_head_t': '',
-        'dig': '',
-        'events': '',
+        'dev_ctf_t': 'dev_ctf_t can not be set directly.',
+        'dev_head_t': 'dev_head_t can not be set directly.',
+        'dig': 'dig can not be set directly.',
+        'events': 'events can not be set directly.',
         'experimenter': _check_experimenter,
-        'file_id': '',
-        'highpass': 'This attribute can not be directly set. '
-                    'Please use instance methods .filter() instead.',
-        'hpi_meas': '',
-        'hpi_results': '',
-        'hpi_subsystem': '',
-        'line_freq': '',
-        'gantry_angle': '',
-        'lowpass': 'This attribute can not be directly set. '
-                   'Please use instance method .filter() instead.',
-        'meas_date': 'This attribute can not be directly set. '
-                     'Please use instance method .set_meas_date() instead.',
-        'utc_offset': '',
-        'meas_id': '',
-        'nchan': '',
-        'proc_history': '',
-        'proj_id': '',
-        'proj_name': '',
-        'projs': '',
-        'sfreq': 'This attribute can not be directly set. '
-                 'Please use instance method .resample() instead.',
+        'file_id': 'file_id can not be set directly.',
+        'highpass': 'highpass can not be set directly. '
+                    'Please use <Raw | Epochs | Evoked> methods .filter() '
+                    'instead.',
+        'hpi_meas': 'hpi_meas can not be set directly.',
+        'hpi_results': 'hpi_results can not be set directly.',
+        'hpi_subsystem': 'hpi_subsystem can not be set directly.',
+        'line_freq': 'line_freq can not be set directly.',
+        'gantry_angle': 'gantry_angle can not be set directly.',
+        'lowpass': 'lowpass can not be directly set. '
+                   'Please use <Raw | Epochs | Evoked> method .filter() '
+                   'instead.',
+        'meas_date': 'meas_date can not be setdirectly. '
+                     'Please use <Raw | Epochs | Evoked> method '
+                     '.set_meas_date() instead.',
+        'utc_offset': 'utc_offset can not be set directly.',
+        'meas_id': 'meas_id can not be set directly.',
+        'nchan': 'nchan can not be set directly.',
+        'proc_history': 'proc_history can not be set directly.',
+        'proj_id': 'proj_id can not be set directly.',
+        'proj_name': 'proj_name can not be set directly.',
+        'projs': 'projs can not be set directly.',
+        'sfreq': 'sfreq can not be set directly. '
+                 'Please use <Raw | Epochs | Evoked> method .resample() '
+                 'instead.',
         'subject_info': _check_subject_info,
         'device_info': _check_device_info,
         'helium_info': _check_helium_info,
+        # elements missing from docstring
+        'kit_system_id': 'kit_system_id can not be set directly.',
+        'xplotter_layout': 'xplotter_layout can not be set directly.'
     }
 
     def __init__(self, *args, **kwargs):
