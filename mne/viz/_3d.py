@@ -702,7 +702,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         renderer.set_interaction('terrain')
 
     # plot head
-    _, head_surf = _plot_head_surface(
+    _, _, head_surf = _plot_head_surface(
         renderer, head, subject, subjects_dir, bem, coord_frame,
         to_cf_t, alpha=head_alpha)
 
@@ -892,16 +892,16 @@ def _plot_head_surface(renderer, head, subject, subjects_dir, bem,
     """Render a head surface in a 3D scene."""
     color = DEFAULTS['coreg']['head_color'] if color is None else color
     actor = None
-    surf = None
+    src_surf = dst_surf = None
     if head is not False:
-        surf = _get_head_surface(head, subject, subjects_dir, bem=bem)
-        surf = transform_surface_to(
-            surf, coord_frame, [to_cf_t['mri'], to_cf_t['head']],
+        src_surf = _get_head_surface(head, subject, subjects_dir, bem=bem)
+        src_surf = transform_surface_to(
+            src_surf, coord_frame, [to_cf_t['mri'], to_cf_t['head']],
             copy=True)
-        actor, surf = renderer.surface(
-            surface=surf, color=color, opacity=alpha,
+        actor, dst_surf = renderer.surface(
+            surface=src_surf, color=color, opacity=alpha,
             backface_culling=False)
-    return actor, surf
+    return actor, dst_surf, src_surf
 
 
 def _plot_axes(renderer, info, to_cf_t, head_mri_t):

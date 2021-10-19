@@ -618,12 +618,12 @@ class CoregistrationUI(HasTraits):
         bem = None
         surface = "head-dense" if self._head_resolution else "head"
         try:
-            head_actor, head_surf = _plot_head_surface(
+            head_actor, head_surf, _ = _plot_head_surface(
                 self._renderer, surface, self._subject,
                 self._subjects_dir, bem, self._coord_frame, self._to_cf_t,
                 alpha=self._head_opacity)
         except IOError:
-            head_actor, head_surf = _plot_head_surface(
+            head_actor, head_surf, _ = _plot_head_surface(
                 self._renderer, "head", self._subject, self._subjects_dir,
                 bem, self._coord_frame, self._to_cf_t,
                 alpha=self._head_opacity)
