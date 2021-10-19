@@ -211,6 +211,10 @@ def _check_description(description):
     return description
 
 
+def _check_dev_head_t(dev_head_t):
+    return dev_head_t
+
+
 def _check_experimenter(experimenter):
     _validate_type(experimenter, (None, str), 'experimenter')
     return experimenter
@@ -602,7 +606,7 @@ class Info(dict, MontageMixin):
         'custom_ref_applied': 'custom_ref_applied can not be set directly.',
         'description': _check_description,
         'dev_ctf_t': 'dev_ctf_t can not be set directly.',
-        'dev_head_t': 'dev_head_t can not be set directly.',
+        'dev_head_t': _check_dev_head_t,
         'dig': 'dig can not be set directly.',
         'events': 'events can not be set directly.',
         'experimenter': _check_experimenter,
