@@ -697,7 +697,8 @@ def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
     fwd['sol']['row_names'] = ch_names
 
     # Pick the appropriate channel names from the info-dict using sel_info
-    fwd['info']['chs'] = [fwd['info']['chs'][k] for k in sel_info]
+    with fwd['info']._unlock(check_after=False):
+        fwd['info']['chs'] = [fwd['info']['chs'][k] for k in sel_info]
     fwd['info']._update_redundant()
     fwd['info']['bads'] = [b for b in fwd['info']['bads'] if b in ch_names]
 

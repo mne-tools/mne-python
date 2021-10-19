@@ -847,7 +847,8 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
 
     # The projection items have been activated
     if activate:
-        info['projs'] = activate_proj(info['projs'], copy=False)
+        with info._unlock(check_after=False):
+            info['projs'] = activate_proj(info['projs'], copy=False)
 
     return projector, info
 

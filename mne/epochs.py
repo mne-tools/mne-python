@@ -651,7 +651,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._decim *= decim
         i_start = start_idx % self._decim + offset
         decim_slice = slice(i_start, None, self._decim)
-        self.info['sfreq'] = new_sfreq
+        with self.info._unlock(check_after=False):
+            self.info['sfreq'] = new_sfreq
         if self.preload:
             if decim != 1:
                 self._data = self._data[:, :, decim_slice].copy()

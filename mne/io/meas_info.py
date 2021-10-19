@@ -637,7 +637,15 @@ class Info(dict, MontageMixin):
         'device_info': _check_device_info,
         'helium_info': _check_helium_info,
         # elements missing from docstring
+        'command_line': 'command_line can not be set directly.',
+        'filename': 'filename can not be set directly.',  # deprecated?
         'kit_system_id': 'kit_system_id can not be set directly.',
+        'maxshield': 'maxshield can not be set directly.',
+        'meas_file': 'meas_file can not be set directly.',
+        'mri_file': 'mri_file can not be set directly.',
+        'mri_head_t': 'mri_head_t can not be set directly.',
+        'mri_id': 'mri_id can not be set directly.',
+        'working_dir': 'working_dir can not be set directly.',
         'xplotter_layout': 'xplotter_layout can not be set directly.'
     }
 

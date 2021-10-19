@@ -1227,7 +1227,9 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
         my_evoked = evoked_node[condition]
 
         # Identify the aspects
-        my_aspect, info['maxshield'] = _get_aspect(my_evoked, allow_maxshield)
+        with info._unlock(check_after=False):
+            my_aspect, info['maxshield'] = _get_aspect(my_evoked,
+                                                       allow_maxshield)
 
         # Now find the data in the evoked block
         nchan = 0

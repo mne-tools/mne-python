@@ -181,8 +181,6 @@ def test_info():
     info = Info(a=7, b='aaaaa')
     assert ('a' in info)
     assert ('b' in info)
-    info[42] = 'foo'
-    assert (info[42] == 'foo')
 
     # Test info attribute in API objects
     for obj in [raw, epochs, evoked]:
@@ -207,8 +205,8 @@ def test_info():
     assert list(info['ch_names']) == ch_names
 
     # Deleting of regular fields should work
-    info['foo'] = 'bar'
-    del info['foo']
+    info['experimenter'] = 'bar'
+    del info['experimenter']
 
     # Test updating of fields
     del info['chs'][-1]
@@ -459,27 +457,32 @@ def test_check_consistency():
 
     # Bad data types
     info2 = info.copy()
-    info2['sfreq'] = 'foo'
+    with info2._unlock(check_after=False):
+        info2['sfreq'] = 'foo'
     pytest.raises(ValueError, info2._check_consistency)
 
     info2 = info.copy()
-    info2['highpass'] = 'foo'
+    with info2._unlock(check_after=False):
+        info2['highpass'] = 'foo'
     pytest.raises(ValueError, info2._check_consistency)
 
     info2 = info.copy()
-    info2['lowpass'] = 'foo'
+    with info2._unlock(check_after=False):
+        info2['lowpass'] = 'foo'
     pytest.raises(ValueError, info2._check_consistency)
 
     info2 = info.copy()
-    info2['filename'] = 'foo'
+    with info2._unlock(check_after=False):
+        info2['filename'] = 'foo'
     with pytest.warns(RuntimeWarning, match='filename'):
         info2._check_consistency()
 
     # Silent type conversion to float
     info2 = info.copy()
-    info2['sfreq'] = 1
-    info2['highpass'] = 2
-    info2['lowpass'] = 2
+    with info2._unlock(check_after=False):
+        info2['sfreq'] = 1
+        info2['highpass'] = 2
+        info2['lowpass'] = 2
     info2._check_consistency()
     assert (isinstance(info2['sfreq'], float))
     assert (isinstance(info2['highpass'], float))
@@ -487,7 +490,8 @@ def test_check_consistency():
 
     # Duplicate channel names
     info2 = info.copy()
-    info2['chs'][2]['ch_name'] = 'b'
+    with info2._unlock(check_after=False):
+        info2['chs'][2]['ch_name'] = 'b'
     pytest.raises(RuntimeError, info2._check_consistency)
 
     # Duplicates appended with running numbers
@@ -540,32 +544,33 @@ def _test_anonymize_info(base_info):
 
     # Fake some subject data
     meas_date = datetime(2010, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-    base_info['meas_date'] = meas_date
-
-    base_info['subject_info'] = dict(id=1, his_id='foobar', last_name='bar',
-                                     first_name='bar', birthday=(1987, 4, 8),
+    with base_info._unlock(check_after=False):
+        base_info['meas_date'] = meas_date
+        base_info['subject_info'] = dict(id=1, his_id='foobar', last_name='bar',
+                                         first_name='bar', birthday=(1987, 4, 8),
                                      sex=0, hand=1)
 
     # generate expected info...
     # first expected result with no options.
     # will move DOS from 2010/1/1 to 2000/1/1 which is 3653 days.
     exp_info = base_info.copy()
-    exp_info['description'] = default_desc
-    exp_info['experimenter'] = default_str
-    exp_info['proj_name'] = default_str
-    exp_info['proj_id'] = np.array([0])
-    exp_info['subject_info']['first_name'] = default_str
-    exp_info['subject_info']['last_name'] = default_str
-    exp_info['subject_info']['id'] = default_subject_id
-    exp_info['subject_info']['his_id'] = str(default_subject_id)
-    exp_info['subject_info']['sex'] = 0
-    del exp_info['subject_info']['hand']  # there's no "unknown" setting
+    with exp_info._unlock(check_after=False):
+        exp_info['description'] = default_desc
+        exp_info['experimenter'] = default_str
+        exp_info['proj_name'] = default_str
+        exp_info['proj_id'] = np.array([0])
+        exp_info['subject_info']['first_name'] = default_str
+        exp_info['subject_info']['last_name'] = default_str
+        exp_info['subject_info']['id'] = default_subject_id
+        exp_info['subject_info']['his_id'] = str(default_subject_id)
+        exp_info['subject_info']['sex'] = 0
+        del exp_info['subject_info']['hand']  # there's no "unknown" setting
 
-    # this bday is 3653 days different. the change in day is due to a
-    # different number of leap days between 1987 and 1977 than between
-    # 2010 and 2000.
-    exp_info['subject_info']['birthday'] = (1977, 4, 7)
-    exp_info['meas_date'] = default_anon_dos
+        # this bday is 3653 days different. the change in day is due to a
+        # different number of leap days between 1987 and 1977 than between
+        # 2010 and 2000.
+        exp_info['subject_info']['birthday'] = (1977, 4, 7)
+        exp_info['meas_date'] = default_anon_dos
 
     # make copies
     exp_info_3 = exp_info.copy()
@@ -584,14 +589,16 @@ def _test_anonymize_info(base_info):
 
     # exp 2 tests the keep_his option
     exp_info_2 = exp_info.copy()
-    exp_info_2['subject_info']['his_id'] = 'foobar'
-    exp_info_2['subject_info']['sex'] = 0
-    exp_info_2['subject_info']['hand'] = 1
+    with exp_info_2._unlock(check_after=False):
+        exp_info_2['subject_info']['his_id'] = 'foobar'
+        exp_info_2['subject_info']['sex'] = 0
+        exp_info_2['subject_info']['hand'] = 1
 
     # exp 3 tests is a supplied daysback
     delta_t_2 = timedelta(days=43)
-    exp_info_3['subject_info']['birthday'] = (1987, 2, 24)
-    exp_info_3['meas_date'] = meas_date - delta_t_2
+    with exp_info_3._unlock(check_after=False):
+        exp_info_3['subject_info']['birthday'] = (1987, 2, 24)
+        exp_info_3['meas_date'] = meas_date - delta_t_2
     for key in ('file_id', 'meas_id'):
         value = exp_info_3.get(key)
         if value is not None:
@@ -619,13 +626,15 @@ def _test_anonymize_info(base_info):
     # assert_object_equal(new_info, exp_info_4)
 
     # test with meas_date = None
-    base_info['meas_date'] = None
-    exp_info_3['meas_date'] = None
-    exp_info_3['file_id']['secs'] = DATE_NONE[0]
-    exp_info_3['file_id']['usecs'] = DATE_NONE[1]
-    exp_info_3['meas_id']['secs'] = DATE_NONE[0]
-    exp_info_3['meas_id']['usecs'] = DATE_NONE[1]
-    exp_info_3['subject_info'].pop('birthday', None)
+    with base_info._unlock(check_after=False):
+        base_info['meas_date'] = None
+    with exp_info_3._unlock(check_after=False):
+        exp_info_3['meas_date'] = None
+        exp_info_3['file_id']['secs'] = DATE_NONE[0]
+        exp_info_3['file_id']['usecs'] = DATE_NONE[1]
+        exp_info_3['meas_id']['secs'] = DATE_NONE[0]
+        exp_info_3['meas_id']['usecs'] = DATE_NONE[1]
+        exp_info_3['subject_info'].pop('birthday', None)
 
     if base_info['meas_date'] is None:
         with pytest.warns(RuntimeWarning, match='all information'):
@@ -715,7 +724,8 @@ def test_anonymize(tmpdir):
     stamp = _dt_to_stamp(raw.info['meas_date'])
     assert raw.annotations.orig_time == _stamp_to_dt(stamp)
 
-    raw.info['meas_date'] = None
+    with raw.info._unlock(check_after=False):
+        raw.info['meas_date'] = None
     raw.anonymize(daysback=None)
     with pytest.warns(RuntimeWarning, match='None'):
         raw.anonymize(daysback=123)

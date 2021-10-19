@@ -287,9 +287,10 @@ def _read_forward_meas_info(tree, fid):
     parent_mri = parent_mri[0]
 
     tag = find_tag(fid, parent_mri, FIFF.FIFF_MNE_FILE_NAME)
-    info['mri_file'] = tag.data if tag is not None else None
-    tag = find_tag(fid, parent_mri, FIFF.FIFF_PARENT_FILE_ID)
-    info['mri_id'] = tag.data if tag is not None else None
+    with info._unlock(check_after=False):
+        info['mri_file'] = tag.data if tag is not None else None
+        tag = find_tag(fid, parent_mri, FIFF.FIFF_PARENT_FILE_ID)
+        info['mri_id'] = tag.data if tag is not None else None
 
     # Information from the MEG file
     parent_meg = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
@@ -297,23 +298,25 @@ def _read_forward_meas_info(tree, fid):
         raise ValueError('No parent MEG information found in operator')
     parent_meg = parent_meg[0]
 
-    tag = find_tag(fid, parent_meg, FIFF.FIFF_MNE_FILE_NAME)
-    info['meas_file'] = tag.data if tag is not None else None
-    tag = find_tag(fid, parent_meg, FIFF.FIFF_PARENT_FILE_ID)
-    info['meas_id'] = tag.data if tag is not None else None
+    with info._unlock(check_after=False):
+        tag = find_tag(fid, parent_meg, FIFF.FIFF_MNE_FILE_NAME)
+        info['meas_file'] = tag.data if tag is not None else None
+        tag = find_tag(fid, parent_meg, FIFF.FIFF_PARENT_FILE_ID)
+        info['meas_id'] = tag.data if tag is not None else None
 
     # Add channel information
-    info['chs'] = chs = list()
-    for k in range(parent_meg['nent']):
-        kind = parent_meg['directory'][k].kind
-        pos = parent_meg['directory'][k].pos
-        if kind == FIFF.FIFF_CH_INFO:
-            tag = read_tag(fid, pos)
-            chs.append(tag.data)
+    with info._unlock(check_after=False):
+        info['chs'] = chs = list()
+        for k in range(parent_meg['nent']):
+            kind = parent_meg['directory'][k].kind
+            pos = parent_meg['directory'][k].pos
+            if kind == FIFF.FIFF_CH_INFO:
+                tag = read_tag(fid, pos)
+                chs.append(tag.data)
     ch_names_mapping = _read_extended_ch_info(chs, parent_meg, fid)
     info._update_redundant()
 
-    #   Get the MRI <-> head coordinate transformation
+    # Get the MRI <-> head coordinate transformation
     tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
     coord_head = FIFF.FIFFV_COORD_HEAD
     coord_mri = FIFF.FIFFV_COORD_MRI
@@ -323,21 +326,23 @@ def _read_forward_meas_info(tree, fid):
         raise ValueError('MRI/head coordinate transformation not found')
     cand = tag.data
     if cand['from'] == coord_mri and cand['to'] == coord_head:
-        info['mri_head_t'] = cand
+        with info._unlock(check_after=False):
+            info['mri_head_t'] = cand
     else:
         raise ValueError('MRI/head coordinate transformation not found')
 
-    #   Get the MEG device <-> head coordinate transformation
+    # Get the MEG device <-> head coordinate transformation
     tag = find_tag(fid, parent_meg, FIFF.FIFF_COORD_TRANS)
     if tag is None:
         raise ValueError('MEG/head coordinate transformation not found')
     cand = tag.data
-    if cand['from'] == coord_device and cand['to'] == coord_head:
-        info['dev_head_t'] = cand
-    elif cand['from'] == coord_ctf_head and cand['to'] == coord_head:
-        info['ctf_head_t'] = cand
-    else:
-        raise ValueError('MEG/head coordinate transformation not found')
+    with info._unlock(check_after=False):
+        if cand['from'] == coord_device and cand['to'] == coord_head:
+            info['dev_head_t'] = cand
+        elif cand['from'] == coord_ctf_head and cand['to'] == coord_head:
+            info['ctf_head_t'] = cand
+        else:
+            raise ValueError('MEG/head coordinate transformation not found')
 
     info['bads'] = _read_bad_channels(
         fid, parent_meg, ch_names_mapping=ch_names_mapping)
@@ -349,8 +354,9 @@ def _read_forward_meas_info(tree, fid):
     if tag is None:
         tag = find_tag(fid, parent_mri, 236)  # Constant 236 used before v0.11
 
-    info['custom_ref_applied'] = int(tag.data) if tag is not None else False
-    info._check_consistency()
+    with info._unlock(check_after=True):
+        info['custom_ref_applied'] = int(tag.data) if tag is not None \
+                                                   else False
     return info
 
 
@@ -521,10 +527,12 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
             parent_env = parent_env[0]
             tag = find_tag(fid, parent_env, FIFF.FIFF_MNE_ENV_WORKING_DIR)
             if tag is not None:
-                fwd['info']['working_dir'] = tag.data
+                with fwd['info']._unlock(check_after=False):
+                    fwd['info']['working_dir'] = tag.data
             tag = find_tag(fid, parent_env, FIFF.FIFF_MNE_ENV_COMMAND_LINE)
             if tag is not None:
-                fwd['info']['command_line'] = tag.data
+                with fwd['info']._unlock(check_after=False):
+                    fwd['info']['command_line'] = tag.data
 
     #   Transform the source spaces to the correct coordinate frame
     #   if necessary
