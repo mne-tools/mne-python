@@ -9,6 +9,7 @@ from copy import deepcopy
 from distutils.version import LooseVersion
 from functools import partial
 from io import BytesIO
+import os
 import os.path as op
 import pickle
 
@@ -1208,6 +1209,39 @@ def test_split_saving(tmpdir, split_size, n_epochs, n_files, size, metadata,
         assert_array_equal(epochs.events, epochs2.events)
 
     # test correctness of split names
+    split_fname = fname
+    split_fname_neuromag_part1 = fname.replace('epo.fif',
+                                               f'epo-{n_files + 1}.fif')
+    split_fname_bids_part1 = fname.replace('epo',
+                                           f'_split-{n_files + 1:2d}_epo')  
+
+    epochs.save(fname, split_naming='neuromag', verbose=True)
+    assert op.isfile(split_fname)
+    assert not op.isfile(split_fname_bids_part1)
+    for split_naming in ('neuromag', 'bids'):
+        with pytest.raises(FileExistsError, match='Destination file'):
+            epochs.save(split_fname, split_naming=split_naming, verbose=True)
+    os.remove(split_fname)
+    with open(split_fname_bids_part1, 'w'):
+        pass
+    with pytest.raises(FileExistsError, match='Destination file'):
+        epochs.save(split_fname, split_naming='bids', verbose=True)
+    assert not op.isfile(split_fname)
+    epochs.save(split_fname, split_naming='neuromag', verbose=True)  # okay
+    os.remove(split_fname)
+    os.remove(split_fname_bids_part1)
+
+    epochs.save(split_fname, buffer_size_sec=1.0, split_size='2MB',
+                verbose=True)
+
+    # check that the filenames match the intended pattern
+    assert op.isfile(split_fname)
+    assert op.isfile(split_fname_neuromag_part1)
+    # check that filenames are being formatted correctly for BIDS
+    epochs.save(split_fname, buffer_size_sec=1.0, split_size='2MB',
+               split_naming='bids', overwrite=True, verbose=True)
+    assert op.isfile(split_fname_bids_part1)
+
 
 def test_split_many_reset(tmpdir):
     """Test splitting with many events and using reset."""
