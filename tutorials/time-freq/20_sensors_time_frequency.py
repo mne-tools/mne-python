@@ -83,7 +83,7 @@ epochs.plot_psd_topomap(ch_type='grad', normalize=False)
 
 f, ax = plt.subplots()
 psds, freqs = psd_multitaper(epochs, fmin=2, fmax=40, n_jobs=1)
-psds = 10. * np.log10(psds)
+psds = 10 * np.log10(psds)  # convert to dB
 psds_mean = psds.mean(0).mean(0)
 psds_std = psds.mean(0).std(0)
 
