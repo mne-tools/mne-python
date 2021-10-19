@@ -1297,38 +1297,21 @@ class ICA(ContainsMixin):
                       verbose=None):
         """Detect ECG related components.
 
-        Cross-trial phase statistics (default) or Pearson correlation can be
-        used for detection.
+        Cross-trial phase statistics :footcite:`DammersEtAl2008` or Pearson
+        correlation can be used for detection.
 
         .. note:: If no ECG channel is available, routine attempts to create
                   an artificial ECG based on cross-channel averaging.
 
         Parameters
         ----------
-        inst : instance of Raw, Epochs or Evoked
-            Object to compute sources from.
+        inst : instance of Raw, Epochs or Evoked to compute sources from.
         ch_name : str
             The name of the channel to use for ECG peak detection.
             The argument is mandatory if the dataset contains no ECG
             channels.
-        threshold : float | str
-            Value above which a feature is classified as outlier.
-
-            - If ``method`` is ``'ctps'``, threshold on the significance value
-              of a Kuiper statistic. ``measure`` is ignored.
-            - If ``method`` is ``'correlation'`` and if ``measure`` is
-              ``'zscore'``, defines the threshold on the z-score used in the
-              iterative z-scoring method.
-            - If ``method`` is ``'correlation'`` and if ``measure`` is
-              ``'correlation'``, defines the absolute threshold on the
-              correlation between 0 and 1.
-            - If ``'auto'`` and ``method`` is ``'ctps'``, automatically compute
-              the threshold based on the threshold of pk. Kuiper statistic that
-              minimizes the difference between pk and the pk threshold
-              (defaults to 20 [1])
-            - If ``'auto'`` and ``method`` is ``'correlation'``, defaults to
-              3.0 if ``measure`` is ``'zscore'`` and 0.9 if ``measure`` is
-              ``'correlation'``.
+        threshold : float | 'auto'
+            Value above which a feature is classified as outlier. See Notes.
 
             .. versionchanged:: 0.21
         start : int | float | None
@@ -1343,13 +1326,10 @@ class ICA(ContainsMixin):
             Low pass frequency.
         h_freq : float
             High pass frequency.
-        method : {'ctps', 'correlation'}
+        method : 'ctps' | 'correlation'
             The method used for detection. If ``'ctps'``, cross-trial phase
-            statistics [1] are used to detect ECG related components.
-            Thresholding is then based on the significance value of a Kuiper
-            statistic.
-            If ``'correlation'``, detection is based on Pearson correlation
-            between the filtered data and the filtered ECG channel.
+            statistics :footcite:`DammersEtAl2008` are used to detect
+            ECG-related components. See Notes.
         %(reject_by_annotation_all)s
 
             .. versionadded:: 0.14.0
@@ -1368,13 +1348,25 @@ class ICA(ContainsMixin):
         --------
         find_bads_eog, find_bads_ref
 
+        Notes
+        -----
+        The ``threshold``, ``method``, and ``measure`` parameters interact in
+        the following ways:
+
+        - If ``method='ctps'``, ``threshold`` refers to the significance value
+          of a Kuiper statistic, and ``threshold='auto'`` will compute the
+          threshold automatically based on the sampling frequency.
+        - If ``method='correlation'`` and ``measure='correlation'``,
+          ``threshold`` refers to the Pearson correlation value, and
+          ``threshold='auto'`` sets the threshold to 0.9.
+        - If ``method='correlation'`` and ``measure='zscore'``, ``threshold``
+          refers to the z-score value (i.e., standard deviations) used in the
+          iterative z-scoring method, and ``threshold='auto'`` sets the
+          threshold to 3.0.
+
         References
         ----------
-        [1] Dammers, J., Schiek, M., Boers, F., Silex, C., Zvyagintsev,
-            M., Pietrzyk, U., Mathiak, K., 2008. Integration of amplitude
-            and phase statistics for complete artifact removal in independent
-            components of neuromagnetic recordings. Biomedical
-            Engineering, IEEE Transactions on 55 (10), 2353-2362.
+        .. footbibliography::
         """
         _validate_type(threshold, (str, 'numeric'), 'threshold')
         if isinstance(threshold, str):
