@@ -1172,12 +1172,8 @@ def test_epochs_io_preload(tmpdir, preload):
         not check_version('pandas'), reason='Requires Pandas'))
 ])
 @pytest.mark.parametrize('concat', (False, True))
-@pytest.mark.parametrize('mod', (
-    pytest.param('meg', marks=[pytest.mark.filterwarnings(
-        'ignore:.*naming conventions.*:RuntimeWarning')]),
-))
 def test_split_saving(tmpdir, split_size, n_epochs, n_files, size, metadata,
-                      concat, mod):
+                      concat):
     """Test saving split epochs."""
     # See gh-5102
     fs = 1000.
@@ -1215,11 +1211,11 @@ def test_split_saving(tmpdir, split_size, n_epochs, n_files, size, metadata,
 
     # Check that if BIDS is used and no split is needed it defaults to
     # simple writing without _split- entity.
-    split_fname = str(tmpdir.join(f'test_split_epo_{mod}.fif'))
+    split_fname = str(tmpdir.join('test_epo.fif'))
     split_fname_neuromag_part1 = split_fname.replace(
-        f'{mod}.fif', f'{mod}-{n_files + 1}.fif')
+        'epo.fif', f'epo-{n_files + 1}.fif')
     split_fname_bids_part1 = split_fname.replace(
-        f'{mod}', f'{mod}_split-{n_files + 1:02d}')
+        '_epo', f'_split-{n_files + 1:02d}_epo')
 
     epochs.save(split_fname, split_naming='bids', verbose=True)
     assert op.isfile(split_fname)

@@ -89,7 +89,8 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt, split_naming,
             fname = '%s-%d%s' % (base, part_idx, ext)
         else:
             assert split_naming == 'bids'
-            fname = _construct_bids_filename(base, ext, part_idx)
+            fname = _construct_bids_filename(base, ext, part_idx,
+                                             validate=False)
             _check_fname(fname, overwrite=overwrite)
 
     next_fname = None
@@ -98,7 +99,8 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt, split_naming,
             next_fname = '%s-%d%s' % (base, part_idx + 1, ext)
         else:
             assert split_naming == 'bids'
-            next_fname = _construct_bids_filename(base, ext, part_idx + 1)
+            next_fname = _construct_bids_filename(base, ext, part_idx + 1,
+                                                  validate=False)
         next_idx = part_idx + 1
     else:
         next_idx = None
