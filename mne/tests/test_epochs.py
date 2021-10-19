@@ -1225,7 +1225,7 @@ def test_split_saving(tmpdir, split_size, n_epochs, n_files, size, metadata,
             epochs.save(split_fname, split_naming=split_naming, verbose=True)
     os.remove(split_fname)
     # we don't test for reserved files as it's not implemented here
-    
+
     epochs.save(split_fname, split_size='1.4MB', verbose=True)
     # check that the filenames match the intended pattern
     assert op.isfile(split_fname)
