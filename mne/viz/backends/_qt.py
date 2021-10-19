@@ -214,13 +214,11 @@ class _QtDock(_AbstractDock, _QtLayout):
                     sync_text_widget(dname)
                 func(dname)
             else:
-                dialog = FileDialog(
-                    self.plotter.app_window,
-                    callback=func,
-                )
+                fname = QFileDialog.getOpenFileName()
+                fname = fname[0] if isinstance(fname, tuple) else fname
                 if input_text_widget:
-                    dialog.dlg_accepted.connect(sync_text_widget)
-                return dialog
+                    sync_text_widget(fname)
+                func(fname)
 
         button_widget = self._dock_add_button(
             name=desc,
