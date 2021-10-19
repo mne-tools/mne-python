@@ -120,7 +120,7 @@ class CoregistrationUI(HasTraits):
             sensor_opacity=_get_default(sensor_opacity, 1.0),
             fiducials=("LPA", "Nasion", "RPA"),
             fiducial="LPA",
-            lock_fids=True,
+            lock_fids=False,
             grow_hair=0.0,
             scale_modes=["None", "uniform", "3-axis"],
             scale_mode="None",
