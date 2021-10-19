@@ -356,7 +356,7 @@ def _read_forward_meas_info(tree, fid):
 
     with info._unlock(check_after=True):
         info['custom_ref_applied'] = int(tag.data) if tag is not None \
-                                                   else False
+            else False
     return info
 
 
