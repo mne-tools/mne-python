@@ -1109,8 +1109,7 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
 
     actors = dict(meg=list(), ref_meg=list(), eeg=list(), fnirs=list(),
                   ecog=list(), seeg=list(), dbs=list())
-    locs = dict(meg=list(), ref_meg=list(), eeg=list(), fnirs=list(),
-                ecog=list(), seeg=list(), dbs=list())
+    locs = dict(eeg=list(), fnirs=list(), source=list(), detector=list())
     scalar = 1 if units == 'm' else 1e3
     for ch_name, ch_coord in ch_pos.items():
         ch_type = channel_type(info, info.ch_names.index(ch_name))
@@ -1134,19 +1133,9 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
             if plot_sensors:
                 locs[ch_type].append(ch_coord)
         if ch_name in sources and 'sources' in fnirs:
-            actor, _ = renderer.sphere(
-                center=tuple(sources[ch_name] * scalar),
-                color=defaults['source_color'],
-                scale=defaults['source_scale'] * scalar,
-                opacity=sensor_opacity)
-            actors[ch_type].append(actor)
+            locs['source'].append(sources[ch_name])
         if ch_name in detectors and 'detectors' in fnirs:
-            actor, _ = renderer.sphere(
-                center=tuple(detectors[ch_name] * scalar),
-                color=defaults['detector_color'],
-                scale=defaults['detector_scale'] * scalar,
-                opacity=sensor_opacity)
-            actors[ch_type].append(actor)
+            locs['detector'].append(detectors[ch_name])
         if ch_name in sources and ch_name in detectors and \
                 'pairs' in fnirs:
             actor, _ = renderer.tube(  # array of origin and dest points
@@ -1156,22 +1145,23 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
             actors[ch_type].append(actor)
 
     # add sensors
-    for ch_type in locs.keys():
-        if len(locs[ch_type]) > 0:
-            sens_loc = np.array(locs[ch_type])
+    for sensor_type in locs.keys():
+        if len(locs[sensor_type]) > 0:
+            sens_loc = np.array(locs[sensor_type])
+            color = defaults[sensor_type + '_color']
+            scale = defaults[sensor_type + '_scale']
             if orient_glyphs:
                 actor, _ = _plot_oriented_glyphs(
-                    renderer, sens_loc, surf, color,
-                    defaults[f"{ch_type}_scale"],
+                    renderer, sens_loc, surf, color, scale,
                     opacity=sensor_opacity)
-                actors[ch_type].append(actor)
             else:
-                for loc in sens_loc:
-                    actor, _ = renderer.sphere(
-                        center=loc * scalar, color=color,
-                        scale=defaults[f"{ch_type}_scale"] * scalar,
-                        opacity=sensor_opacity)
-                    actors[ch_type].append(actor)
+                actor, _ = renderer.sphere(
+                    center=sens_loc * scalar, color=color,
+                    scale=scale * scalar,
+                    opacity=sensor_opacity)
+            if sensor_type in ('source', 'detector'):
+                sensor_type = 'fnirs'
+            actors[sensor_type].append(actor)
 
     # add projected eeg
     eeg_indices = pick_types(info, eeg=True)
