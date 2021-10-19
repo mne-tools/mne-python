@@ -1267,18 +1267,14 @@ class ICA(ContainsMixin):
 
         This function finds the threshold of Kuiper index based on the
         threshold of pk. Kuiper statistic that minimizes the difference between
-        pk and the pk threshold (defaults to 20 [1]) is returned. It is assumed
-        that the data are appropriately filtered and bad data are rejected at
-        least based on peak-to-peak amplitude when/before running the ICA
-        decomposition on data.
+        pk and the pk threshold (defaults to 20 :footcite:`DammersEtAl2008`)
+        is returned. It is assumed that the data are appropriately filtered and
+        bad data are rejected at least based on peak-to-peak amplitude
+        when/before running the ICA decomposition on data.
 
         References
         ----------
-        [1] Dammers, J., Schiek, M., Boers, F., Silex, C., Zvyagintsev,
-            M., Pietrzyk, U., Mathiak, K., 2008. Integration of amplitude
-            and phase statistics for complete artifact removal in independent
-            components of neuromagnetic recordings. Biomedical
-            Engineering, IEEE Transactions on 55 (10), pp.2356.
+        .. footbibliography::
         """
         N = self.info['sfreq']
         Vs = np.arange(1, 100) / 100
