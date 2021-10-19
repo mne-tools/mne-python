@@ -1629,7 +1629,9 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     with info._unlock(check_after=False):
         info['dig'] = _format_dig_points(dig)
         info['bads'] = bads
-        info._update_redundant()
+    info._update_redundant()
+
+    with info._unlock(check_after=False):
         if clean_bads:
             info['bads'] = [b for b in bads if b in info['ch_names']]
         info['projs'] = projs

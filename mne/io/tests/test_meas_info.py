@@ -791,16 +791,17 @@ def test_check_compensation_consistency():
 def test_field_round_trip(tmpdir):
     """Test round-trip for new fields."""
     info = create_info(1, 1000., 'eeg')
-    for key in ('file_id', 'meas_id'):
-        info[key] = _generate_meas_id()
-    info['device_info'] = dict(
-        type='a', model='b', serial='c', site='d')
-    info['helium_info'] = dict(
-        he_level_raw=1., helium_level=2., orig_file_guid='e', meas_date=(1, 2))
+    with info._unlock(check_after=False):
+        for key in ('file_id', 'meas_id'):
+            info[key] = _generate_meas_id()
+        info['device_info'] = dict(
+            type='a', model='b', serial='c', site='d')
+        info['helium_info'] = dict(
+            he_level_raw=1., helium_level=2.,
+            orig_file_guid='e', meas_date=(1, 2))
     fname = tmpdir.join('temp-info.fif')
     write_info(fname, info)
     info_read = read_info(fname)
-    info_read['dig'] = None  # XXX eventually this should go away
     assert_object_equal(info, info_read)
 
 
@@ -828,7 +829,8 @@ def test_repr_html():
     """Test Info HTML repr."""
     info = read_info(raw_fname)
     assert 'Projections' in info._repr_html_()
-    info['projs'] = []
+    with info._unlock(check_after=False):
+        info['projs'] = []
     assert 'Projections' not in info._repr_html_()
     info['bads'] = []
     assert 'None' in info._repr_html_()
