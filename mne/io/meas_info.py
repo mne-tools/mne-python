@@ -592,13 +592,15 @@ class Info(dict, MontageMixin):
                     'Please use ...',
         'bads': _check_bads,
         'ch_names': 'ch_names can not be set directly. '
-                    'Please use <Raw | Epochs | Evoked> methods '
-                    '.add_channels(), .drop_channels(), .pick_channels(), '
-                    '.rename_channels() and .reorder_channels() instead.',
+                    'Please use methods inst.add_channels(), '
+                    'inst.drop_channels(), inst.pick_channels(), '
+                    'inst.rename_channels() and inst.reorder_channels() '
+                    'instead.',
         'chs': 'chs can not be set directly. '
-               'Please use <Raw | Epochs | Evoked> methods '
-               '.add_channels(), .drop_channels(), .pick_channels(), '
-               '.rename_channels() and .reorder_channels() instead.',
+               'Please use methods inst.add_channels(), '
+               'inst.drop_channels(), inst.pick_channels(), '
+               'inst.rename_channels() and inst.reorder_channels() '
+               'instead.',
         'comps': 'comps can not be set directly. '
                  'Please use mne.io.Raw.apply_gradient_compensation() '
                  'instead.',
@@ -612,19 +614,16 @@ class Info(dict, MontageMixin):
         'experimenter': _check_experimenter,
         'file_id': 'file_id can not be set directly.',
         'highpass': 'highpass can not be set directly. '
-                    'Please use <Raw | Epochs | Evoked> methods .filter() '
-                    'instead.',
+                    'Please use methods inst.filter() instead.',
         'hpi_meas': 'hpi_meas can not be set directly.',
         'hpi_results': 'hpi_results can not be set directly.',
         'hpi_subsystem': 'hpi_subsystem can not be set directly.',
         'line_freq': 'line_freq can not be set directly.',
         'gantry_angle': 'gantry_angle can not be set directly.',
         'lowpass': 'lowpass can not be directly set. '
-                   'Please use <Raw | Epochs | Evoked> method .filter() '
-                   'instead.',
+                   'Please use method inst.filter() instead.',
         'meas_date': 'meas_date can not be set directly. '
-                     'Please use <Raw | Epochs | Evoked> method '
-                     '.set_meas_date() instead.',
+                     'Please use method inst.set_meas_date() instead.',
         'utc_offset': 'utc_offset can not be set directly.',
         'meas_id': 'meas_id can not be set directly.',
         'nchan': 'nchan can not be set directly.',
@@ -633,8 +632,7 @@ class Info(dict, MontageMixin):
         'proj_name': 'proj_name can not be set directly.',
         'projs': 'projs can not be set directly.',
         'sfreq': 'sfreq can not be set directly. '
-                 'Please use <Raw | Epochs | Evoked> method .resample() '
-                 'instead.',
+                 'Please use method inst.resample() instead.',
         'subject_info': _check_subject_info,
         'device_info': _check_device_info,
         'helium_info': _check_helium_info,
