@@ -202,19 +202,33 @@ def _check_ch_keys(ch, ci, name='info["chs"]', check_min=True):
 
 
 def _check_bads(bads):
-    if isinstance(bads, list):
-        return bads
-    else:
-        raise TypeError(
-            f"Key 'bads' expects a list. Provided {type(bads)}.")
+    _validate_type(bads, (list, ), 'bads')
+    return bads
 
 
 def _check_description(description):
-    if isinstance(description, str):
-        return description
-    else:
-        raise TypeError(
-            f"Key 'description' expects a str. Provided {type(description)}.")
+    _validate_type(description, (str, ), 'description')
+    return description
+
+
+def _check_experimenter(experimenter):
+    _validate_type(experimenter, (str, ), 'experimenter')
+    return experimenter
+
+
+def _check_subject_info(subject_info):
+    _validate_type(subject_info, (dict, ), 'subject_info')
+    return subject_info
+
+
+def _check_device_info(device_info):
+    _validate_type(device_info, (dict, ), 'device_info')
+    return device_info
+
+
+def _check_helium_info(helium_info):
+    _validate_type(helium_info, (dict, ), 'helium_info')
+    return helium_info
 
 
 class Info(dict, MontageMixin):
@@ -580,7 +594,7 @@ class Info(dict, MontageMixin):
         'dev_head_t': '',
         'dig': '',
         'events': '',
-        'experimenter': '',
+        'experimenter': _check_experimenter,
         'file_id': '',
         'highpass': '',
         'hpi_meas': '',
@@ -598,9 +612,9 @@ class Info(dict, MontageMixin):
         'proj_name': '',
         'projs': '',
         'sfreq': '',
-        'subject_info': '',
-        'device_info': '',
-        'helium_info': '',
+        'subject_info': _check_subject_info,
+        'device_info': _check_device_info,
+        'helium_info': _check_helium_info,
     }
 
     def __init__(self, *args, **kwargs):
