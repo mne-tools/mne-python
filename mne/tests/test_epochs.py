@@ -1172,8 +1172,13 @@ def test_epochs_io_preload(tmpdir, preload):
         not check_version('pandas'), reason='Requires Pandas'))
 ])
 @pytest.mark.parametrize('concat', (False, True))
+@pytest.mark.parametrize('mod', (
+    'meg',
+    pytest.param('epochs', marks=[pytest.mark.filterwarnings(
+        'ignore:.*naming conventions.*:RuntimeWarning')]),
+))
 def test_split_saving(tmpdir, split_size, n_epochs, n_files, size, metadata,
-                      concat):
+                      concat, mod):
     """Test saving split epochs."""
     # See gh-5102
     fs = 1000.
@@ -1209,38 +1214,29 @@ def test_split_saving(tmpdir, split_size, n_epochs, n_files, size, metadata,
         assert_array_equal(epochs.events, epochs2.events)
     os.remove(fname)
 
-    # test correctness of split names
-    split_fname = fname
+    # Check that if BIDS is used and no split is needed it defaults to
+    # simple writing without _split- entity.
+    split_fname = fname.replace('-epo', f'_epo_{mod}')
     split_fname_neuromag_part1 = fname.replace('epo.fif',
                                                f'epo-{n_files + 1}.fif')
-    split_fname_bids_part1 = fname.replace('epo',
-                                           f'_split-{n_files + 1:2d}_epo')
+    split_fname_bids_part1 = fname.replace(
+        '-epo', f'_epo_{mod}_split-{n_files + 1:02d}')
 
-    epochs.save(split_fname, split_naming='neuromag', verbose=True)
+    epochs.save(split_fname, split_naming='bids', verbose=True)
     assert op.isfile(split_fname)
     assert not op.isfile(split_fname_bids_part1)
     for split_naming in ('neuromag', 'bids'):
         with pytest.raises(FileExistsError, match='Destination file'):
             epochs.save(split_fname, split_naming=split_naming, verbose=True)
     os.remove(split_fname)
-    with open(split_fname_bids_part1, 'w'):
-        pass
-    with pytest.raises(FileExistsError, match='Destination file'):
-        epochs.save(split_fname, split_naming='bids', verbose=True)
-    assert not op.isfile(split_fname)
-    epochs.save(split_fname, split_naming='neuromag', verbose=True)  # okay
-    os.remove(split_fname)
-    os.remove(split_fname_bids_part1)
-
-    epochs.save(split_fname, buffer_size_sec=1.0, split_size='2MB',
-                verbose=True)
-
+    # we don't test for reserved files as it's not implemented
+    epochs.save(split_fname, split_size='1.4MB', verbose=True)
     # check that the filenames match the intended pattern
     assert op.isfile(split_fname)
     assert op.isfile(split_fname_neuromag_part1)
     # check that filenames are being formatted correctly for BIDS
-    epochs.save(split_fname, buffer_size_sec=1.0, split_size='2MB',
-                split_naming='bids', overwrite=True, verbose=True)
+    epochs.save(split_fname, split_size='1.4MB', split_naming='bids',
+                overwrite=True, verbose=True)
     assert op.isfile(split_fname_bids_part1)
 
 
