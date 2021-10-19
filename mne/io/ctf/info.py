@@ -429,7 +429,8 @@ def _compose_meas_info(res4, coils, trans, eeg):
             res4, coils, trans)
         if trans is not None:
             if len(info['hpi_results']) > 0:
-                info['hpi_results'][0]['coord_trans'] = trans['t_ctf_head_head']
+                info['hpi_results'][0]['coord_trans'] = \
+                    trans['t_ctf_head_head']
             if trans['t_dev_head'] is not None:
                 info['dev_head_t'] = trans['t_dev_head']
                 info['dev_ctf_t'] = combine_transforms(
