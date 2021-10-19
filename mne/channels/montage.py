@@ -1081,7 +1081,8 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
         if ref_dig_point in old_dig:
             digpoints.append(ref_dig_point)
     # Next line modifies info['dig'] in place
-    info['dig'] = _format_dig_points(digpoints, enforce_order=True)
+    with info._unlock(check_after=False):
+        info['dig'] = _format_dig_points(digpoints, enforce_order=True)
 
     # Handle fNIRS with source, detector and channel
     fnirs_picks = _picks_to_idx(info, 'fnirs', allow_empty=True)

@@ -207,27 +207,27 @@ def _check_bads(bads):
 
 
 def _check_description(description):
-    _validate_type(description, (str, ), 'description')
+    _validate_type(description, (None, str), 'description')
     return description
 
 
 def _check_experimenter(experimenter):
-    _validate_type(experimenter, (str, ), 'experimenter')
+    _validate_type(experimenter, (None, str), 'experimenter')
     return experimenter
 
 
 def _check_subject_info(subject_info):
-    _validate_type(subject_info, (dict, ), 'subject_info')
+    _validate_type(subject_info, (None, dict), 'subject_info')
     return subject_info
 
 
 def _check_device_info(device_info):
-    _validate_type(device_info, (dict, ), 'device_info')
+    _validate_type(device_info, (None, dict, ), 'device_info')
     return device_info
 
 
 def _check_helium_info(helium_info):
-    _validate_type(helium_info, (dict, ), 'helium_info')
+    _validate_type(helium_info, (None, dict, ), 'helium_info')
     return helium_info
 
 
@@ -640,7 +640,7 @@ class Info(dict, MontageMixin):
     }
 
     def __init__(self, *args, **kwargs):
-        with self._unlock():
+        with self._unlock(check_after=False):
             super().__init__(*args, **kwargs)
         # Deal with h5io writing things as dict
         for key in ('dev_head_t', 'ctf_head_t', 'dev_ctf_t'):
@@ -868,9 +868,10 @@ class Info(dict, MontageMixin):
                                % (prepend_error,))
 
         # make sure we have the proper datatypes
-        for key in ('sfreq', 'highpass', 'lowpass'):
-            if self.get(key) is not None:
-                self[key] = float(self[key])
+        with self._unlock(check_after=False):
+            for key in ('sfreq', 'highpass', 'lowpass'):
+                if self.get(key) is not None:
+                    self[key] = float(self[key])
 
         # Ensure info['chs'] has immutable entries (copies much faster)
         for ci, ch in enumerate(self['chs']):
@@ -893,9 +894,10 @@ class Info(dict, MontageMixin):
                     '12 elements, got %r' % (ci, loc))
 
         # make sure channel names are unique
-        self['ch_names'] = _unique_channel_names(self['ch_names'])
-        for idx, ch_name in enumerate(self['ch_names']):
-            self['chs'][idx]['ch_name'] = ch_name
+        with self._unlock(check_after=False):
+            self['ch_names'] = _unique_channel_names(self['ch_names'])
+            for idx, ch_name in enumerate(self['ch_names']):
+                self['chs'][idx]['ch_name'] = ch_name
 
         if 'filename' in self:
             warn('the "filename" key is misleading '
@@ -903,8 +905,9 @@ class Info(dict, MontageMixin):
 
     def _update_redundant(self):
         """Update the redundant entries."""
-        self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
-        self['nchan'] = len(self['chs'])
+        with self._unlock(check_after=False):
+            self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
+            self['nchan'] = len(self['chs'])
 
     def pick_channels(self, ch_names, ordered=False):
         """Pick channels from this Info object.
@@ -1358,7 +1361,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             elif kind == FIFF.FIFF_EVENT_LIST:
                 ev['list'] = read_tag(fid, pos).data
         evs.append(ev)
-    info['events'] = evs
+    with info._unlock(check_after=False):
+        info['events'] = evs
 
     #   Locate HPI result
     hpi_results = dir_tree_find(meas_info, FIFF.FIFFB_HPI_RESULT)
@@ -1388,7 +1392,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             elif kind == FIFF.FIFF_COORD_TRANS:
                 hr['coord_trans'] = read_tag(fid, pos).data
         hrs.append(hr)
-    info['hpi_results'] = hrs
+    with info._unlock(check_after=False):
+        info['hpi_results'] = hrs
 
     #   Locate HPI Measurement
     hpi_meass = dir_tree_find(meas_info, FIFF.FIFFB_HPI_MEAS)
@@ -1435,7 +1440,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             hcs.append(hc)
         hm['hpi_coils'] = hcs
         hms.append(hm)
-    info['hpi_meas'] = hms
+    with info._unlock(check_after=False):
+        info['hpi_meas'] = hms
     del hms
 
     subject_info = dir_tree_find(meas_info, FIFF.FIFFB_SUBJECT)
@@ -1483,7 +1489,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             elif kind == FIFF.FIFF_SUBJ_HEIGHT:
                 tag = read_tag(fid, pos)
                 si['height'] = tag.data
-    info['subject_info'] = si
+    with info._unlock(check_after=False):
+        info['subject_info'] = si
     del si
 
     device_info = dir_tree_find(meas_info, FIFF.FIFFB_DEVICE)
@@ -1506,7 +1513,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             elif kind == FIFF.FIFF_DEVICE_SITE:
                 tag = read_tag(fid, pos)
                 di['site'] = str(tag.data)
-    info['device_info'] = di
+    with info._unlock(check_after=False):
+        info['device_info'] = di
     del di
 
     helium_info = dir_tree_find(meas_info, FIFF.FIFFB_HELIUM)
@@ -1529,7 +1537,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             elif kind == FIFF.FIFF_MEAS_DATE:
                 tag = read_tag(fid, pos)
                 hi['meas_date'] = tuple(int(t) for t in tag.data)
-    info['helium_info'] = hi
+    with info._unlock(check_after=False):
+        info['helium_info'] = hi
     del hi
 
     hpi_subsystem = dir_tree_find(meas_info, FIFF.FIFFB_HPI_SUBSYSTEM)
@@ -1558,70 +1567,80 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                         this_coil['event_bits'] = np.array(tag.data)
                 hc.append(this_coil)
             hs['hpi_coils'] = hc
-    info['hpi_subsystem'] = hs
+    with info._unlock(check_after=False):
+        info['hpi_subsystem'] = hs
 
     #   Read processing history
     info['proc_history'] = _read_proc_history(fid, tree)
 
     #  Make the most appropriate selection for the measurement id
-    if meas_info['parent_id'] is None:
-        if meas_info['id'] is None:
-            if meas['id'] is None:
-                if meas['parent_id'] is None:
-                    info['meas_id'] = info['file_id']
+    with info._unlock(check_after=False):
+        if meas_info['parent_id'] is None:
+            if meas_info['id'] is None:
+                if meas['id'] is None:
+                    if meas['parent_id'] is None:
+                        info['meas_id'] = info['file_id']
+                    else:
+                        info['meas_id'] = meas['parent_id']
                 else:
-                    info['meas_id'] = meas['parent_id']
+                    info['meas_id'] = meas['id']
             else:
-                info['meas_id'] = meas['id']
+                info['meas_id'] = meas_info['id']
         else:
-            info['meas_id'] = meas_info['id']
-    else:
-        info['meas_id'] = meas_info['parent_id']
-    info['experimenter'] = experimenter
-    info['description'] = description
-    info['proj_id'] = proj_id
-    info['proj_name'] = proj_name
-    if meas_date is None:
-        meas_date = (info['meas_id']['secs'], info['meas_id']['usecs'])
-    info['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
-    info['utc_offset'] = utc_offset
+            info['meas_id'] = meas_info['parent_id']
 
-    info['sfreq'] = sfreq
-    info['highpass'] = highpass if highpass is not None else 0.
-    info['lowpass'] = lowpass if lowpass is not None else info['sfreq'] / 2.0
-    info['line_freq'] = line_freq
-    info['gantry_angle'] = gantry_angle
+    with info._unlock(check_after=False):
+        info['experimenter'] = experimenter
+        info['description'] = description
+        info['proj_id'] = proj_id
+        info['proj_name'] = proj_name
+        if meas_date is None:
+            meas_date = (info['meas_id']['secs'], info['meas_id']['usecs'])
+        info['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
+        info['utc_offset'] = utc_offset
+
+        info['sfreq'] = sfreq
+        info['highpass'] = highpass if highpass is not None else 0.
+        info['lowpass'] = lowpass if lowpass is not None \
+                                  else info['sfreq'] / 2.0
+        info['line_freq'] = line_freq
+        info['gantry_angle'] = gantry_angle
 
     #   Add the channel information and make a list of channel names
     #   for convenience
-    info['chs'] = chs
+    with info._unlock(check_after=False):
+        info['chs'] = chs
 
     #
     #  Add the coordinate transformations
     #
-    info['dev_head_t'] = dev_head_t
-    info['ctf_head_t'] = ctf_head_t
-    info['dev_ctf_t'] = dev_ctf_t
-    if dev_head_t is not None and ctf_head_t is not None and dev_ctf_t is None:
-        from ..transforms import Transform
-        head_ctf_trans = np.linalg.inv(ctf_head_t['trans'])
-        dev_ctf_trans = np.dot(head_ctf_trans, info['dev_head_t']['trans'])
-        info['dev_ctf_t'] = Transform('meg', 'ctf_head', dev_ctf_trans)
+    with info._unlock(check_after=False):
+        info['dev_head_t'] = dev_head_t
+        info['ctf_head_t'] = ctf_head_t
+        info['dev_ctf_t'] = dev_ctf_t
+        if dev_head_t is not None and \
+           ctf_head_t is not None and \
+           dev_ctf_t is None:
+            from ..transforms import Transform
+            head_ctf_trans = np.linalg.inv(ctf_head_t['trans'])
+            dev_ctf_trans = np.dot(head_ctf_trans, info['dev_head_t']['trans'])
+            info['dev_ctf_t'] = Transform('meg', 'ctf_head', dev_ctf_trans)
 
     #   All kinds of auxliary stuff
-    info['dig'] = _format_dig_points(dig)
-    info['bads'] = bads
-    info._update_redundant()
-    if clean_bads:
-        info['bads'] = [b for b in bads if b in info['ch_names']]
-    info['projs'] = projs
-    info['comps'] = comps
-    info['acq_pars'] = acq_pars
-    info['acq_stim'] = acq_stim
-    info['custom_ref_applied'] = custom_ref_applied
-    info['xplotter_layout'] = xplotter_layout
-    info['kit_system_id'] = kit_system_id
-    info._check_consistency()
+    with info._unlock(check_after=True):
+        info['dig'] = _format_dig_points(dig)
+        info['bads'] = bads
+        info._update_redundant()
+        if clean_bads:
+            info['bads'] = [b for b in bads if b in info['ch_names']]
+        info['projs'] = projs
+        info['comps'] = comps
+        info['acq_pars'] = acq_pars
+        info['acq_stim'] = acq_stim
+        info['custom_ref_applied'] = custom_ref_applied
+        info['xplotter_layout'] = xplotter_layout
+        info['kit_system_id'] = kit_system_id
+
     return info, meas
 
 
@@ -2106,10 +2125,11 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         infos = deepcopy(infos)
         _force_update_info(infos[0], infos[1:])
     info = Info()
-    info['chs'] = []
-    for this_info in infos:
-        info['chs'].extend(this_info['chs'])
-    info._update_redundant()
+    with info._unlock(check_after=False):
+        info['chs'] = []
+        for this_info in infos:
+            info['chs'].extend(this_info['chs'])
+        info._update_redundant()
     duplicates = {ch for ch in info['ch_names']
                   if info['ch_names'].count(ch) > 1}
     if len(duplicates) > 0:
@@ -2118,44 +2138,47 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         raise ValueError(msg)
 
     transforms = ['ctf_head_t', 'dev_head_t', 'dev_ctf_t']
-    for trans_name in transforms:
-        trans = [i[trans_name] for i in infos if i[trans_name]]
-        if len(trans) == 0:
-            info[trans_name] = None
-        elif len(trans) == 1:
-            info[trans_name] = trans[0]
-        elif all(np.all(trans[0]['trans'] == x['trans']) and
-                 trans[0]['from'] == x['from'] and
-                 trans[0]['to'] == x['to']
-                 for x in trans[1:]):
-            info[trans_name] = trans[0]
-        else:
-            msg = ("Measurement infos provide mutually inconsistent %s" %
-                   trans_name)
-            raise ValueError(msg)
+    with info._unlock(check_after=False):
+        for trans_name in transforms:
+            trans = [i[trans_name] for i in infos if i[trans_name]]
+            if len(trans) == 0:
+                info[trans_name] = None
+            elif len(trans) == 1:
+                info[trans_name] = trans[0]
+            elif all(np.all(trans[0]['trans'] == x['trans']) and
+                     trans[0]['from'] == x['from'] and
+                     trans[0]['to'] == x['to']
+                     for x in trans[1:]):
+                info[trans_name] = trans[0]
+            else:
+                msg = ("Measurement infos provide mutually inconsistent %s" %
+                       trans_name)
+                raise ValueError(msg)
 
     # KIT system-IDs
     kit_sys_ids = [i['kit_system_id'] for i in infos if i['kit_system_id']]
-    if len(kit_sys_ids) == 0:
-        info['kit_system_id'] = None
-    elif len(set(kit_sys_ids)) == 1:
-        info['kit_system_id'] = kit_sys_ids[0]
-    else:
-        raise ValueError("Trying to merge channels from different KIT systems")
+    with info._unlock(check_after=False):
+        if len(kit_sys_ids) == 0:
+            info['kit_system_id'] = None
+        elif len(set(kit_sys_ids)) == 1:
+            info['kit_system_id'] = kit_sys_ids[0]
+        else:
+            raise ValueError("Trying to merge channels from different KIT systems")
 
     # hpi infos and digitization data:
     fields = ['hpi_results', 'hpi_meas', 'dig']
-    for k in fields:
-        values = [i[k] for i in infos if i[k]]
-        if len(values) == 0:
-            info[k] = []
-        elif len(values) == 1:
-            info[k] = values[0]
-        elif all(object_diff(values[0], v) == '' for v in values[1:]):
-            info[k] = values[0]
-        else:
-            msg = ("Measurement infos are inconsistent for %s" % k)
-            raise ValueError(msg)
+    with info._unlock(check_after=False):
+        for k in fields:
+            values = [i[k] for i in infos if i[k]]
+            if len(values) == 0:
+                info[k] = []
+            elif len(values) == 1:
+                info[k] = values[0]
+            elif all(object_diff(values[0], v) == '' for v in values[1:]):
+                info[k] = values[0]
+            else:
+                msg = ("Measurement infos are inconsistent for %s" % k)
+                raise ValueError(msg)
 
     # other fields
     other_fields = ['acq_pars', 'acq_stim', 'bads',
@@ -2284,17 +2307,17 @@ def _empty_info(sfreq):
     _list_keys = ('bads', 'chs', 'comps', 'events', 'hpi_meas', 'hpi_results',
                   'projs', 'proc_history')
     info = Info()
-    for k in _none_keys:
-        info[k] = None
-    for k in _list_keys:
-        info[k] = list()
-    info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_OFF
-    info['highpass'] = 0.
-    info['sfreq'] = float(sfreq)
-    info['lowpass'] = info['sfreq'] / 2.
-    info['dev_head_t'] = Transform('meg', 'head')
-    info._update_redundant()
-    info._check_consistency()
+    with info._unlock():
+        for k in _none_keys:
+            info[k] = None
+        for k in _list_keys:
+            info[k] = list()
+        info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_OFF
+        info['highpass'] = 0.
+        info['sfreq'] = float(sfreq)
+        info['lowpass'] = info['sfreq'] / 2.
+        info['dev_head_t'] = Transform('meg', 'head')
+        info._update_redundant()
     return info
 
 
@@ -2320,11 +2343,12 @@ def _force_update_info(info_base, info_target):
         if not isinstance(ii, Info):
             raise ValueError('Inputs must be of type Info. '
                              'Found type %s' % type(ii))
-    for key, val in info_base.items():
-        if key in exclude_keys:
-            continue
-        for i_targ in info_target:
-            i_targ[key] = val
+    with info_target._unlock():
+        for key, val in info_base.items():
+            if key in exclude_keys:
+                continue
+            for i_targ in info_target:
+                i_targ[key] = val
 
 
 def _add_timedelta_to_stamp(meas_date_stamp, delta_t):
@@ -2383,7 +2407,8 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
             delta_t = info['meas_date'] - default_anon_dos
         else:
             delta_t = datetime.timedelta(days=daysback)
-        info['meas_date'] = info['meas_date'] - delta_t
+        with info._unlock(check_after=False):
+            info['meas_date'] = info['meas_date'] - delta_t
 
     # file_id and meas_id
     for key in ('file_id', 'meas_id'):
@@ -2440,15 +2465,16 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
             if subject_info.get(key) is not None:
                 subject_info[key] = 0
 
-    info['experimenter'] = default_str
-    info['description'] = default_desc
+    with info._unlock(check_after=False):
+        info['experimenter'] = default_str
+        info['description'] = default_desc
 
-    if info['proj_id'] is not None:
-        info['proj_id'] = np.zeros_like(info['proj_id'])
-    if info['proj_name'] is not None:
-        info['proj_name'] = default_str
-    if info['utc_offset'] is not None:
-        info['utc_offset'] = None
+        if info['proj_id'] is not None:
+            info['proj_id'] = np.zeros_like(info['proj_id'])
+        if info['proj_name'] is not None:
+            info['proj_name'] = default_str
+        if info['utc_offset'] is not None:
+            info['utc_offset'] = None
 
     proc_hist = info.get('proc_history')
     if proc_hist is not None:
