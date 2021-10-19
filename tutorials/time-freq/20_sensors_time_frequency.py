@@ -79,7 +79,7 @@ epochs.plot_psd_topomap(ch_type='grad', normalize=True)
 #    e.g. calculating the PSD of gradiometers via
 #    :func:`~mne.time_frequency.psd_multitaper`, you will get the power as
 #    `(T/m)²/Hz` (instead of `(fT/cm)²/Hz` via
-#    :meth:`~mne.Epochs.plot_psd_topomap`).
+#    :meth:`~mne.Epochs.plot_psd`).
 
 f, ax = plt.subplots()
 psds, freqs = psd_multitaper(epochs, fmin=2, fmax=40, n_jobs=1)
