@@ -1170,7 +1170,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     meas : dict
         Node in tree that contains the info.
     """
-    #   Find the desired blocks
+    # Find the desired blocks
     meas = dir_tree_find(tree, FIFF.FIFFB_MEAS)
     if len(meas) == 0:
         raise ValueError('Could not find measurement data')
@@ -1185,7 +1185,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         raise ValueError('Cannot read more that 1 measurement info')
     meas_info = meas_info[0]
 
-    #   Read measurement info
+    # Read measurement info
     dev_head_t = None
     ctf_head_t = None
     dev_ctf_t = None
@@ -1311,10 +1311,10 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                           ctf_head_t is None):
                         ctf_head_t = cand
 
-    #   Locate the Polhemus data
+    # Locate the Polhemus data
     dig = _read_dig_fif(fid, meas_info)
 
-    #   Locate the acquisition information
+    # Locate the acquisition information
     acqpars = dir_tree_find(meas_info, FIFF.FIFFB_DACQ_PARS)
     acq_pars = None
     acq_stim = None
@@ -1330,27 +1330,25 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 tag = read_tag(fid, pos)
                 acq_stim = tag.data
 
-    #   Load the SSP data
+    # Load the SSP data
     projs = _read_proj(
         fid, meas_info, ch_names_mapping=ch_names_mapping)
 
-    #   Load the CTF compensation data
+    # Load the CTF compensation data
     comps = _read_ctf_comp(
         fid, meas_info, chs, ch_names_mapping=ch_names_mapping)
 
-    #   Load the bad channel list
+    # Load the bad channel list
     bads = _read_bad_channels(
         fid, meas_info, ch_names_mapping=ch_names_mapping)
 
-    #
-    #   Put the data together
-    #
+    # Put the data together
     if tree['id'] is not None:
         info = Info(file_id=tree['id'])
     else:
         info = Info(file_id=None)
 
-    #   Locate events list
+    # Locate events list
     events = dir_tree_find(meas_info, FIFF.FIFFB_EVENTS)
     evs = list()
     for event in events:
@@ -1366,7 +1364,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     with info._unlock(check_after=False):
         info['events'] = evs
 
-    #   Locate HPI result
+    # Locate HPI result
     hpi_results = dir_tree_find(meas_info, FIFF.FIFFB_HPI_RESULT)
     hrs = list()
     for hpi_result in hpi_results:
@@ -1397,7 +1395,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     with info._unlock(check_after=False):
         info['hpi_results'] = hrs
 
-    #   Locate HPI Measurement
+    # Locate HPI Measurement
     hpi_meass = dir_tree_find(meas_info, FIFF.FIFFB_HPI_MEAS)
     hms = list()
     for hpi_meas in hpi_meass:
@@ -1572,10 +1570,11 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     with info._unlock(check_after=False):
         info['hpi_subsystem'] = hs
 
-    #   Read processing history
-    info['proc_history'] = _read_proc_history(fid, tree)
+    # Read processing history
+    with info._unlock(check_after=False):
+        info['proc_history'] = _read_proc_history(fid, tree)
 
-    #  Make the most appropriate selection for the measurement id
+    # Make the most appropriate selection for the measurement id
     with info._unlock(check_after=False):
         if meas_info['parent_id'] is None:
             if meas_info['id'] is None:
@@ -1608,14 +1607,12 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         info['line_freq'] = line_freq
         info['gantry_angle'] = gantry_angle
 
-    #   Add the channel information and make a list of channel names
-    #   for convenience
+    # Add the channel information and make a list of channel name for
+    # convenience
     with info._unlock(check_after=False):
         info['chs'] = chs
 
-    #
-    #  Add the coordinate transformations
-    #
+    # Add the coordinate transformations
     with info._unlock(check_after=False):
         info['dev_head_t'] = dev_head_t
         info['ctf_head_t'] = ctf_head_t
@@ -1628,8 +1625,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             dev_ctf_trans = np.dot(head_ctf_trans, info['dev_head_t']['trans'])
             info['dev_ctf_t'] = Transform('meg', 'ctf_head', dev_ctf_trans)
 
-    #   All kinds of auxliary stuff
-    with info._unlock(check_after=True):
+    # All kinds of auxliary stuff
+    with info._unlock(check_after=False):
         info['dig'] = _format_dig_points(dig)
         info['bads'] = bads
         info._update_redundant()
@@ -1642,6 +1639,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         info['custom_ref_applied'] = custom_ref_applied
         info['xplotter_layout'] = xplotter_layout
         info['kit_system_id'] = kit_system_id
+
+    info._check_consistency()
 
     return info, meas
 
