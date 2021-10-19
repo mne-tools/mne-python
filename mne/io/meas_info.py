@@ -2165,7 +2165,8 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         elif len(set(kit_sys_ids)) == 1:
             info['kit_system_id'] = kit_sys_ids[0]
         else:
-            raise ValueError("Trying to merge channels from different KIT systems")
+            raise ValueError(
+                "Trying to merge channels from different KIT systems")
 
     # hpi infos and digitization data:
     fields = ['hpi_results', 'hpi_meas', 'dig']
