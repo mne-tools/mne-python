@@ -1207,6 +1207,7 @@ def test_split_saving(tmpdir, split_size, n_epochs, n_files, size, metadata,
         epochs2 = mne.read_epochs(fname, preload=preload)
         assert_allclose(epochs2.get_data(), epochs_data)
         assert_array_equal(epochs.events, epochs2.events)
+    os.remove(fname)
 
     # test correctness of split names
     split_fname = fname
@@ -1215,7 +1216,7 @@ def test_split_saving(tmpdir, split_size, n_epochs, n_files, size, metadata,
     split_fname_bids_part1 = fname.replace('epo',
                                            f'_split-{n_files + 1:2d}_epo')
 
-    epochs.save(fname, split_naming='neuromag', verbose=True)
+    epochs.save(split_fname, split_naming='neuromag', verbose=True)
     assert op.isfile(split_fname)
     assert not op.isfile(split_fname_bids_part1)
     for split_naming in ('neuromag', 'bids'):

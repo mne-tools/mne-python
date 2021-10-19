@@ -86,7 +86,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt, split_naming,
     base, ext = op.splitext(fname)
     if part_idx > 0:
         if split_naming == 'neuromag':
-            fname = '%s-%d.%s' % (base, part_idx, ext)
+            fname = '%s-%d%s' % (base, part_idx, ext)
         else:
             assert split_naming == 'bids'
             fname = _construct_bids_filename(base, ext, part_idx)
@@ -95,7 +95,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt, split_naming,
     next_fname = None
     if part_idx < n_parts - 1:
         if split_naming == 'neuromag':
-            next_fname = '%s-%d.%s' % (base, part_idx + 1, ext)
+            next_fname = '%s-%d%s' % (base, part_idx + 1, ext)
         else:
             assert split_naming == 'bids'
             next_fname = _construct_bids_filename(base, ext, part_idx + 1)
