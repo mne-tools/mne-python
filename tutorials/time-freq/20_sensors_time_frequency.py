@@ -78,7 +78,7 @@ epochs.plot_psd_topomap(ch_type='grad', normalize=False)
 #    **not** scale the data from SI units to more "convenient" values. So when
 #    e.g. calculating the PSD of gradiometers via
 #    :func:`~mne.time_frequency.psd_multitaper`, you will get the power as
-#    `(T/m)²/Hz` (instead of `(fT/cm)²/Hz` via
+#    ``(T/m)²/Hz`` (instead of ``(fT/cm)²/Hz`` via
 #    :meth:`~mne.Epochs.plot_psd`).
 
 f, ax = plt.subplots()
