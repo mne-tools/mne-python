@@ -1207,6 +1207,7 @@ def test_split_saving(tmpdir, split_size, n_epochs, n_files, size, metadata,
         assert_allclose(epochs2.get_data(), epochs_data)
         assert_array_equal(epochs.events, epochs2.events)
 
+    # test correctness of split names
 
 def test_split_many_reset(tmpdir):
     """Test splitting with many events and using reset."""
