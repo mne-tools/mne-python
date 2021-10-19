@@ -1301,7 +1301,8 @@ class ICA(ContainsMixin):
 
         Parameters
         ----------
-        inst : instance of Raw, Epochs or Evoked to compute sources from.
+        inst : instance of Raw, Epochs or Evoked
+            Object to compute sources from.
         ch_name : str
             The name of the channel to use for ECG peak detection.
             The argument is mandatory if the dataset contains no ECG
