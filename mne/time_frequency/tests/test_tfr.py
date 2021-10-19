@@ -846,7 +846,8 @@ def test_averaging_epochsTFR():
         power.average(method=np.mean)
 
 
-def test_averaging_freqsandtimes_epochsTFR():
+@pytest.mark.parametrize('copy', [True, False])
+def test_averaging_freqsandtimes_epochsTFR(copy):
     """Test that EpochsTFR averaging freqs methods work."""
     # Setup for reading the raw data
     event_id = 1
@@ -882,9 +883,10 @@ def test_averaging_freqsandtimes_epochsTFR():
              lambda x: np.mean(x, axis=3)])):
         if idx == 3:
             with pytest.raises(RuntimeError, match='You passed a function'):
-                avgpower = power.copy().average(method=method, dim='freqs')
+                avgpower = power.copy().average(method=method, dim='freqs',
+                                                copy=copy)
             continue
-        avgpower = power.copy().average(method=method, dim='freqs')
+        avgpower = power.copy().average(method=method, dim='freqs', copy=copy)
         assert_array_equal(func(power.data, axis=2, keepdims=True),
                            avgpower.data)
         assert avgpower.freqs == np.mean(power.freqs)
@@ -901,9 +903,10 @@ def test_averaging_freqsandtimes_epochsTFR():
              lambda x: np.mean(x, axis=2)])):
         if idx == 3:
             with pytest.raises(RuntimeError, match='You passed a function'):
-                avgpower = power.copy().average(method=method, dim='times')
+                avgpower = power.copy().average(method=method, dim='times',
+                                                copy=copy)
             continue
-        avgpower = power.copy().average(method=method, dim='times')
+        avgpower = power.copy().average(method=method, dim='times', copy=copy)
         assert_array_equal(func(power.data, axis=-1, keepdims=True),
                            avgpower.data)
         assert avgpower.times == np.mean(power.times)

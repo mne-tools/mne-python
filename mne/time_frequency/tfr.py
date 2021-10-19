@@ -2227,7 +2227,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         epochs.data = np.abs(self.data)
         return epochs
 
-    def average(self, method='mean', dim='epochs'):
+    def average(self, method='mean', dim='epochs', copy=False):
         """Average the data across epochs.
 
         Parameters
@@ -2241,10 +2241,13 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
             these will be "average".
         dim : 'epochs' | 'freqs' | 'times'
             The dimension along which to combine the data.
+        copy : bool
+            Whether to return a copy of the modified instance,
+            or modify in place.
 
         Returns
         -------
-        ave : instance of AverageTFR
+        ave : instance of AverageTFR | EpochsTFR
             The averaged data.
 
         Notes
@@ -2301,11 +2304,17 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
                               nave=self.data.shape[0], method=self.method,
                               comment=self.comment)
         else:
-            return EpochsTFR(info=self.info.copy(), data=data,
-                             times=times, freqs=freqs,
-                             method=self.method,
-                             comment=self.comment, metadata=self.metadata,
-                             events=self.events, event_id=self.event_id)
+            if copy is True:
+                return EpochsTFR(info=self.info.copy(), data=data,
+                                 times=times, freqs=freqs,
+                                 method=self.method,
+                                 comment=self.comment, metadata=self.metadata,
+                                 events=self.events, event_id=self.event_id)
+            else:
+                self.data = data
+                self.times = times
+                self.freqs = freqs
+                return self
 
 
 def combine_tfr(all_tfr, weights='nave'):
