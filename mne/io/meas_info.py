@@ -814,36 +814,38 @@ class Info(dict, MontageMixin):
     def __deepcopy__(self, memodict):
         """Make a deepcopy."""
         result = Info.__new__(Info)
-        for k, v in self.items():
-            # chs is roughly half the time but most are immutable
-            if k == 'chs':
-                # dict shallow copy is fast, so use it then overwrite
-                result[k] = list()
-                for ch in v:
-                    ch = ch.copy()  # shallow
-                    ch['loc'] = ch['loc'].copy()
-                    result[k].append(ch)
-            elif k == 'ch_names':
-                # we know it's list of str, shallow okay and saves ~100 µs
-                result[k] = v.copy()
-            elif k == 'hpi_meas':
-                hms = list()
-                for hm in v:
-                    hm = hm.copy()
-                    # the only mutable thing here is some entries in coils
-                    hm['hpi_coils'] = [coil.copy() for coil in hm['hpi_coils']]
-                    # There is a *tiny* risk here that someone could write
-                    # raw.info['hpi_meas'][0]['hpi_coils'][1]['epoch'] = ...
-                    # and assume that info.copy() will make an actual copy,
-                    # but copying these entries has a 2x slowdown penalty so
-                    # probably not worth it for such a deep corner case:
-                    # for coil in hpi_coils:
-                    #     for key in ('epoch', 'slopes', 'corr_coeff'):
-                    #         coil[key] = coil[key].copy()
-                    hms.append(hm)
-                result[k] = hms
-            else:
-                result[k] = deepcopy(v, memodict)
+        with result._unlock(check_after=False):
+            for k, v in self.items():
+                # chs is roughly half the time but most are immutable
+                if k == 'chs':
+                    # dict shallow copy is fast, so use it then overwrite
+                    result[k] = list()
+                    for ch in v:
+                        ch = ch.copy()  # shallow
+                        ch['loc'] = ch['loc'].copy()
+                        result[k].append(ch)
+                elif k == 'ch_names':
+                    # we know it's list of str, shallow okay and saves ~100 µs
+                    result[k] = v.copy()
+                elif k == 'hpi_meas':
+                    hms = list()
+                    for hm in v:
+                        hm = hm.copy()
+                        # the only mutable thing here is some entries in coils
+                        hm['hpi_coils'] = [coil.copy()
+                                           for coil in hm['hpi_coils']]
+                        # There is a *tiny* risk here that someone could write
+                        # raw.info['hpi_meas'][0]['hpi_coils'][1]['epoch'] = ..
+                        # and assume that info.copy() will make an actual copy,
+                        # but copying these entries has a 2x slowdown penalty
+                        # so probably not worth it for such a deep corner case:
+                        # for coil in hpi_coils:
+                        #     for key in ('epoch', 'slopes', 'corr_coeff'):
+                        #         coil[key] = coil[key].copy()
+                        hms.append(hm)
+                    result[k] = hms
+                else:
+                    result[k] = deepcopy(v, memodict)
         return result
 
     def _check_consistency(self, prepend_error=''):
