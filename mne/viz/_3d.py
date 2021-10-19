@@ -1109,7 +1109,7 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
 
     actors = dict(meg=list(), ref_meg=list(), eeg=list(), fnirs=list(),
                   ecog=list(), seeg=list(), dbs=list())
-    locs = dict(eeg=list(), fnirs=list(), ecog=list(),
+    locs = dict(eeg=list(), fnirs=list(), ecog=list(), seeg=list(),
                 source=list(), detector=list())
     scalar = 1 if units == 'm' else 1e3
     for ch_name, ch_coord in ch_pos.items():
