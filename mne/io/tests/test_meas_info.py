@@ -247,8 +247,9 @@ def test_read_write_info(tmpdir):
     info['subject_info']['weight'] = 11.1
     info['subject_info']['height'] = 2.3
 
-    if info['gantry_angle'] is None:  # future testing data may include it
-        info['gantry_angle'] = 0.  # Elekta supine position
+    with info._unlock(check_after=False):
+        if info['gantry_angle'] is None:  # future testing data may include it
+            info['gantry_angle'] = 0.  # Elekta supine position
     gantry_angle = info['gantry_angle']
 
     meas_id = info['meas_id']
@@ -279,7 +280,8 @@ def test_read_write_info(tmpdir):
     assert m1 == m2
 
     info = read_info(raw_fname)
-    info['meas_date'] = None
+    with info._unlock(check_after=False):
+        info['meas_date'] = None
     anonymize_info(info, verbose='error')
     assert info['meas_date'] is None
     tmp_fname_3 = tmpdir.join('info3.fif')
@@ -289,8 +291,8 @@ def test_read_write_info(tmpdir):
     assert info2['meas_date'] is None
 
     # Check that having a very old date in fine until you try to save it to fif
-    info['meas_date'] = datetime(1800, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-    info._check_consistency()
+    with info._unlock(check_after=True):
+        info['meas_date'] = datetime(1800, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     fname = tmpdir.join('test.fif')
     with pytest.raises(RuntimeError, match='must be between '):
         write_info(fname, info)
@@ -338,7 +340,8 @@ def test_make_dig_points():
     info = create_info(ch_names=['Test Ch'], sfreq=1000.)
     assert info['dig'] is None
 
-    info['dig'] = _make_dig_points(extra_points=extra_points)
+    with info._unlock(check_after=False):
+        info['dig'] = _make_dig_points(extra_points=extra_points)
     assert (info['dig'])
     assert_allclose(info['dig'][0]['r'], [-.10693, .09980, .06881])
 
@@ -347,7 +350,8 @@ def test_make_dig_points():
     info = create_info(ch_names=['Test Ch'], sfreq=1000.)
     assert info['dig'] is None
 
-    info['dig'] = _make_dig_points(nasion, lpa, rpa, elp_points[3:], None)
+    with info._unlock(check_after=False):
+        info['dig'] = _make_dig_points(nasion, lpa, rpa, elp_points[3:], None)
     assert (info['dig'])
     idx = [d['ident'] for d in info['dig']].index(FIFF.FIFFV_POINT_NASION)
     assert_allclose(info['dig'][idx]['r'], [.0013930, .0131613, -.0046967])
@@ -651,7 +655,8 @@ def test_meas_date_convert(stamp, dt):
     assert meas_datetime == datetime(*dt, tzinfo=timezone.utc)
     # smoke test for info __repr__
     info = create_info(1, 1000., 'eeg')
-    info['meas_date'] = meas_datetime
+    with info._unlock(check_after=False):
+        info['meas_date'] = meas_datetime
     assert str(dt[0]) in repr(info)
 
 

@@ -214,9 +214,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._last_samps = np.array(last_samps)
         self._first_samps = np.array(first_samps)
         orig_ch_names = info['ch_names']
-        if isinstance(info['meas_date'], tuple):  # be permissive of old code
-            info['meas_date'] = _stamp_to_dt(info['meas_date'])
-        info._check_consistency()  # make sure subclass did a good job
+        with info._unlock(check_after=True):
+            if isinstance(info['meas_date'], tuple):  # be permissive of old code
+                info['meas_date'] = _stamp_to_dt(info['meas_date'])
         self.info = info
         self.buffer_size_sec = float(buffer_size_sec)
         cals = np.empty(info['nchan'])

@@ -142,12 +142,15 @@ class ProjMixin(object):
             if any(p['active'] for p in self.info['projs']):
                 raise ValueError('Cannot remove projectors that have '
                                  'already been applied')
-            self.info['projs'] = projs
+            with self.info._unlock(check_after=False):
+                self.info['projs'] = projs
         else:
             self.info['projs'].extend(projs)
         # We don't want to add projectors that are activated again.
-        self.info['projs'] = _uniquify_projs(self.info['projs'],
-                                             check_active=False, sort=False)
+        with self.info._unlock(check_after=False):
+            self.info['projs'] = _uniquify_projs(self.info['projs'],
+                                                 check_active=False,
+                                                 sort=False)
         return self
 
     @verbose
