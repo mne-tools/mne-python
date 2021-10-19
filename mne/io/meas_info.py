@@ -594,13 +594,13 @@ class Info(dict, MontageMixin):
         'ch_names': 'ch_names can not be set directly. '
                     'Please use methods inst.add_channels(), '
                     'inst.drop_channels(), inst.pick_channels(), '
-                    'inst.rename_channels() and inst.reorder_channels() '
-                    'instead.',
+                    'inst.rename_channels(), inst.reorder_channels() '
+                    'and inst.set_channel_types() instead.',
         'chs': 'chs can not be set directly. '
                'Please use methods inst.add_channels(), '
                'inst.drop_channels(), inst.pick_channels(), '
-               'inst.rename_channels() and inst.reorder_channels() '
-               'instead.',
+               'inst.rename_channels(), inst.reorder_channels() '
+               'and inst.set_channel_types() instead.',
         'comps': 'comps can not be set directly. '
                  'Please use mne.io.Raw.apply_gradient_compensation() '
                  'instead.',
