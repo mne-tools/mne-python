@@ -928,6 +928,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["save_trans"] = self._renderer._dock_add_file_button(
             name="save_trans",
             desc="Save...",
+            save=True,
             func=self._save_trans,
             input_text_widget=False,
             layout=hlayout,
