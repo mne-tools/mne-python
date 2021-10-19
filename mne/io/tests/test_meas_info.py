@@ -546,9 +546,12 @@ def _test_anonymize_info(base_info):
     meas_date = datetime(2010, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     with base_info._unlock(check_after=False):
         base_info['meas_date'] = meas_date
-        base_info['subject_info'] = dict(id=1, his_id='foobar', last_name='bar',
-                                         first_name='bar', birthday=(1987, 4, 8),
-                                     sex=0, hand=1)
+        base_info['subject_info'] = dict(id=1,
+                                         his_id='foobar',
+                                         last_name='bar',
+                                         first_name='bar',
+                                         birthday=(1987, 4, 8),
+                                         sex=0, hand=1)
 
     # generate expected info...
     # first expected result with no options.

@@ -1613,7 +1613,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         info['sfreq'] = sfreq
         info['highpass'] = highpass if highpass is not None else 0.
         info['lowpass'] = lowpass if lowpass is not None \
-                                  else info['sfreq'] / 2.0
+            else info['sfreq'] / 2.0
         info['line_freq'] = line_freq
         info['gantry_angle'] = gantry_angle
 
