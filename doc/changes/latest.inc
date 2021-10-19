@@ -65,6 +65,8 @@ Enhancements
 
 - Add support for changing the default event id used by :func:`mne.make_fixed_length_epochs` (:gh:`9782` **by new contributor** |Mathieu Scheltienne|_)
 
+- Improve documentation for arguments ``threshold``, ``method`` and ``measure`` of ICA methods `~mne.preprocessing.ICA.find_bads_ecg`, `~mne.preprocessing.ICA.find_bads_ref` and `~mne.preprocessing.ICA.find_bads_eog` (:gh:`9858` **by new contributor** |Mathieu Scheltienne|_)
+
 - Add support for more than 3 source estimates in :func:`mne.viz.plot_sparse_source_estimates` (:gh:`9640` **by new contributor** |Pierre-Antoine Bannier|_ and `Alex Gramfort`_)
 
 - Show all good channel types and counts when printing a :class:`mne.Info` in the notebook (:gh:`9725` by `Valerii Chirkov`_ and `Eric Larson`_)
