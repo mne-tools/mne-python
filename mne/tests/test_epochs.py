@@ -1207,7 +1207,6 @@ def test_split_saving(tmpdir, split_size, n_epochs, n_files, size, metadata,
         epochs2 = mne.read_epochs(fname, preload=preload)
         assert_allclose(epochs2.get_data(), epochs_data)
         assert_array_equal(epochs.events, epochs2.events)
-    os.remove(fname)
 
     # Check that if BIDS is used and no split is needed it defaults to
     # simple writing without _split- entity.
