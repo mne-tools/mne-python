@@ -2599,7 +2599,7 @@ docdict['split_naming'] = """
 split_naming : 'neuromag' | 'bids'
     When splitting files, append a filename partition with the appropriate
     naming schema: for ``'neuromag'``, a split file ``fname.fif`` will be named
-    ``fname.fif``, ``fname-1.fif``, ``fname-2.fif`` etc; while for ``'bids'``,
+    ``fname.fif``, ``fname-1.fif``, ``fname-2.fif`` etc.; while for ``'bids'``,
     it will be named ``fname_split-01.fif``, ``fname_split-02.fif``, etc.
 """
 docdict['ref_channels'] = """
