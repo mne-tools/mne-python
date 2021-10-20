@@ -644,7 +644,8 @@ def _setup_ext_proj(info, ext_order):
         kind=FIFF.FIFFV_PROJ_ITEM_HOMOG_FIELD, desc='SSS', active=False,
         data=dict(data=ext, ncol=info['nchan'], col_names=info['ch_names'],
                   nrow=len(ext)))
-    info['projs'] = [proj]
+    with info._unlock(check_after=False):
+        info['projs'] = [proj]
     proj_op, _ = setup_proj(
         info, add_eeg_ref=False, activate=False, verbose=False)
     assert proj_op.shape == (len(meg_picks),) * 2
@@ -1169,7 +1170,8 @@ def compute_chpi_locs(info, chpi_amplitudes, t_step_max=1., too_close='raise',
     meg_picks = pick_channels(
         info['ch_names'], proj['data']['col_names'], ordered=True)
     info = pick_info(info, meg_picks)  # makes a copy
-    info['projs'] = [proj]
+    with info._unlock(check_after=False):
+        info['projs'] = [proj]
     del meg_picks, proj
     meg_coils = _concatenate_coils(_create_meg_coils(info['chs'], 'accurate'))
 

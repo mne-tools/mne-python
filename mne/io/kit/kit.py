@@ -49,8 +49,9 @@ def _call_digitization(info, mrk, elp, hsp, kit_info):
 
     # setup digitization
     if mrk is not None and elp is not None and hsp is not None:
-        info['dig'], info['dev_head_t'], info['hpi_results'] = _set_dig_kit(
-            mrk, elp, hsp, kit_info['eeg_dig'])
+        with info._unlock(check_after=False):
+            info['dig'], info['dev_head_t'], info['hpi_results'] = \
+                _set_dig_kit(mrk, elp, hsp, kit_info['eeg_dig'])
     elif mrk is not None or elp is not None or hsp is not None:
         raise ValueError("mrk, elp and hsp need to be provided as a group "
                          "(all or none)")
@@ -789,7 +790,8 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
 
     # Creates a list of dicts of meg channels for raw.info
     logger.info('Setting channel info structure...')
-    info['chs'] = fiff_channels = []
+    with info._unlock(check_after=False):
+        info['chs'] = fiff_channels = []
     channel_index = defaultdict(lambda: 0)
     sqd['eeg_dig'] = OrderedDict()
     for idx, ch in enumerate(channels, 1):
