@@ -625,11 +625,10 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
         ica.find_bads_ecg(raw, threshold=None)
     with pytest.warns(RuntimeWarning, match='is longer than the signal'):
         ica.find_bads_ecg(raw, threshold=0.25)
-    # check invalid `measure`
-    with pytest.warns(RuntimeWarning, match='longer'):
-        with pytest.raises(ValueError, match='Unknown measure'):
-            ica.find_bads_ecg(raw, method='correlation', measure='unknown',
-                              threshold='auto')
+    # check invalid measure argument
+    with pytest.raises(ValueError, match='Invalid value'):
+        ica.find_bads_ecg(raw, method='correlation', measure='unknown',
+                          threshold='auto')
     # check passing a ch_name to find_bads_ecg
     with pytest.warns(RuntimeWarning, match='longer'):
         _, scores_1 = ica.find_bads_ecg(raw, threshold='auto')
@@ -837,7 +836,7 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
     assert_equal(len(scores), ica.n_components_)
     with pytest.raises(ValueError, match='only Raw and Epochs input'):
         ica.find_bads_ecg(epochs.average(), method='ctps', threshold='auto')
-    with pytest.raises(ValueError, match='not supported.'):
+    with pytest.raises(ValueError, match='Invalid value'):
         ica.find_bads_ecg(raw, method='crazy-coupling')
 
     with pytest.warns(RuntimeWarning, match='longer'):

@@ -5,7 +5,7 @@
 from functools import partial
 import numpy as np
 
-from ..parallel import parallel_func
+from ..parallel import parallel_func, check_n_jobs
 from ..io.pick import _picks_to_idx
 from ..utils import logger, verbose, _time_mask, _check_option
 from .multitaper import psd_array_multitaper
@@ -153,6 +153,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     freqs = freqs[freq_sl]
 
     # Parallelize across first N-1 dimensions
+    n_jobs = check_n_jobs(n_jobs)
     x_splits = np.array_split(x, n_jobs)
     logger.debug(
         f'Spectogram using {n_fft}-point FFT on {n_per_seg} samples with '
