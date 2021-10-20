@@ -320,7 +320,8 @@ def test_degenerate(raw_data):
         simulate_raw(info, stc, trans, src, sphere,
                      head_pos=head_pos_sim_err)
     raw_bad = raw.copy()
-    raw_bad.info['dig'] = None
+    with raw_bad.info._unlock(check_after=False):
+        raw_bad.info['dig'] = None
     with pytest.raises(RuntimeError, match='Cannot fit headshape'):
         add_eog(raw_bad)
 
