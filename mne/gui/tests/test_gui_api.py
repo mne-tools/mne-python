@@ -3,6 +3,7 @@
 # License: Simplified BSD
 
 def test_gui_api(renderer_interactive_pyvistaqt):
+    """Test GUI API."""
     def noop(x):
         return
 
