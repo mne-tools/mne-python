@@ -28,7 +28,7 @@ import numpy as np
 
 from .. import __version__ as MNE_VERSION
 from ..fixes import _compare_version
-from .. import (read_evokeds, read_events, pick_types, read_cov,
+from .. import (read_evokeds, read_events, read_cov,
                 read_source_estimate, read_trans, sys_info,
                 Evoked, SourceEstimate, Covariance, Info, Transform)
 from ..defaults import _handle_default
