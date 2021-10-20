@@ -1401,8 +1401,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             .. note:: Due to FIFF file limitations, the maximum split
                       size is 2GB.
-        split_naming : {'neuromag' | 'bids'}
-            Add the filename partition with the appropriate naming schema.
+        %(split_naming)s
 
             .. versionadded:: 0.17
         %(verbose_meth)s
