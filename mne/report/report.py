@@ -102,7 +102,7 @@ CSS = (html_include_dir / 'report.sass').read_text(encoding='utf-8')
 
 
 def _get_ch_types(inst):
-    return [ch_type for ch_type in ('eeg', 'grad', 'mag') if ch_type in inst]
+    return [ch_type for ch_type in _DATA_CH_TYPES_SPLIT if ch_type in inst]
 
 
 ###############################################################################
