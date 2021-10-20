@@ -100,12 +100,6 @@ template_dir = Path(__file__).parent / 'templates'
 JAVASCRIPT = (html_include_dir / 'report.js').read_text(encoding='utf-8')
 CSS = (html_include_dir / 'report.sass').read_text(encoding='utf-8')
 
-_ch_type_to_caption_map = {
-    'mag': 'magnetometers',
-    'grad': 'gradiometers',
-    'eeg': 'EEG'
-}
-
 
 def _get_ch_types(inst):
     return [ch_type for ch_type in ('eeg', 'grad', 'mag') if ch_type in inst]
@@ -3111,7 +3105,7 @@ class Report(object):
                 )
 
             img = _fig_to_img(fig=fig, image_format=image_format)
-            title = f'Time course ({_ch_type_to_caption_map[ch_type]})'
+            title = f'Time course ({_handle_default("titles")[ch_type]})'
             dom_id = self._get_dom_id()
 
             htmls.append(
@@ -3410,7 +3404,8 @@ class Report(object):
                 assert 'eeg' in ch_type
                 title_start = 'ERP image'
 
-            title = f'{title_start} ({_ch_type_to_caption_map[ch_type]})'
+            title = (f'{title_start} '
+                     f'({_handle_default("titles")[ch_type]})')
             dom_id = self._get_dom_id()
             erp_img_htmls.append(
                 _html_image_element(
@@ -3574,7 +3569,8 @@ class Report(object):
         # otherwise.
         import matplotlib.pyplot as plt
         stc_plot_kwargs = _handle_default(
-            'report_stc_plot_kwargs', stc_plot_kwargs)
+            'report_stc_plot_kwargs', stc_plot_kwargs
+        )
         stc_plot_kwargs.update(subject=subject, subjects_dir=subjects_dir)
 
         if get_3d_backend() is not None:
