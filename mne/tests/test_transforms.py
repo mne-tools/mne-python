@@ -238,7 +238,7 @@ def test_rotation():
         back = rotation_angles(m)
         assert_almost_equal(actual=back, desired=rot, decimal=12)
         back4 = rotation_angles(m4)
-        assert_equal(back4, rot)
+        assert_almost_equal(actual=back4, desired=rot, decimal=12)
 
 
 def test_rotation3d_align_z_axis():
