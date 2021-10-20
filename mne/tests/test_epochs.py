@@ -1369,7 +1369,8 @@ def test_evoked_io_from_epochs(tmpdir):
                     picks=picks, decim=5)
     evoked = epochs.average()
     with evoked.info._unlock(check_after=False):
-        evoked.info['proj_name'] = ''  # Test that empty string shortcuts to None.
+        # Test that empty string shortcuts to None.
+        evoked.info['proj_name'] = ''
     fname_temp = op.join(tempdir, 'evoked-ave.fif')
     evoked.save(fname_temp)
     evoked2 = read_evokeds(fname_temp)[0]
