@@ -695,7 +695,6 @@ class Info(dict, MontageMixin):
     @contextlib.contextmanager
     def _unlock(self, check_after=True):
         """Context manager unlocking access to attributes."""
-
         # needed for nested _unlock()
         state = self._unlocked if hasattr(self, '_unlocked') else False
 
