@@ -683,7 +683,8 @@ def test_add_channels():
 
     # Now test errors
     tfr_badsf = tfr_eeg.copy()
-    tfr_badsf.info['sfreq'] = 3.1415927
+    with tfr_badsf.info._unlock(check_after=False):
+        tfr_badsf.info['sfreq'] = 3.1415927
     tfr_eeg = tfr_eeg.crop(-.1, .1)
 
     pytest.raises(RuntimeError, tfr_meg.add_channels, [tfr_badsf])

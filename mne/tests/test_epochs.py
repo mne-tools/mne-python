@@ -2560,26 +2560,31 @@ def test_add_channels_epochs():
     pytest.raises(RuntimeError, add_channels_epochs, [epochs_meg, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.info['sfreq'] = None
+    with epochs_meg2.info._unlock(check_after=False):
+        epochs_meg2.info['sfreq'] = None
     pytest.raises(RuntimeError, add_channels_epochs, [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.info['sfreq'] += 10
+    with epochs_meg2.info._unlock(check_after=False):
+        epochs_meg2.info['sfreq'] += 10
     pytest.raises(RuntimeError, add_channels_epochs, [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.info['chs'][1]['ch_name'] = epochs_meg2.info['ch_names'][0]
+    with epochs_meg2.info._unlock(check_after=False):
+        epochs_meg2.info['chs'][1]['ch_name'] = epochs_meg2.info['ch_names'][0]
     epochs_meg2.info._update_redundant()
     with pytest.warns(RuntimeWarning, match='not unique'):
         pytest.raises(RuntimeError, add_channels_epochs,
                       [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.info['dev_head_t']['to'] += 1
+    with epochs_meg2.info._unlock(check_after=False):
+        epochs_meg2.info['dev_head_t']['to'] += 1
     pytest.raises(ValueError, add_channels_epochs, [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.info['dev_head_t']['to'] += 1
+    with epochs_meg2.info._unlock(check_after=False):
+        epochs_meg2.info['dev_head_t']['to'] += 1
     pytest.raises(ValueError, add_channels_epochs, [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
@@ -2830,7 +2835,8 @@ def test_add_channels():
 
     # Now test errors
     epoch_badsf = epoch_eeg.copy()
-    epoch_badsf.info['sfreq'] = 3.1415927
+    with epoch_badsf.info._unlock(check_after=False):
+        epoch_badsf.info['sfreq'] = 3.1415927
     epoch_eeg = epoch_eeg.crop(-.1, .1)
 
     epoch_meg.load_data()

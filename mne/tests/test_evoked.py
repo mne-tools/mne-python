@@ -113,7 +113,8 @@ def test_decim():
     raw = read_raw_fif(raw_fname)
     events = read_events(event_name)
     sfreq_new = raw.info['sfreq'] / decim
-    raw.info['lowpass'] = sfreq_new / 4.  # suppress aliasing warnings
+    with raw.info._unlock(check_after=False):
+        raw.info['lowpass'] = sfreq_new / 4.  # suppress aliasing warnings
     picks = pick_types(raw.info, meg=True, eeg=True, exclude=())
     epochs = Epochs(raw, events, 1, -0.2, 0.5, picks=picks, preload=True)
     for offset in (0, 1):
