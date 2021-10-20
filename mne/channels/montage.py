@@ -882,7 +882,8 @@ def _set_montage_fnirs(info, montage):
         info['chs'][ch_idx]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
     # Modify info['dig'] in place
-    info['dig'] = montage.dig
+    with info._unlock(check_after=False):
+        info['dig'] = montage.dig
 
 
 @fill_doc

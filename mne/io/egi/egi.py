@@ -237,7 +237,8 @@ class RawEGI(BaseRaw):
             egi_info['year'], egi_info['month'], egi_info['day'],
             egi_info['hour'], egi_info['minute'], egi_info['second'])
         my_timestamp = time.mktime(my_time.timetuple())
-        info['meas_date'] = (my_timestamp, 0)
+        with info._unlock(check_after=False):
+            info['meas_date'] = (my_timestamp, 0)
         ch_names = [channel_naming % (i + 1) for i in
                     range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))
@@ -255,7 +256,8 @@ class RawEGI(BaseRaw):
                              'kind': FIFF.FIFFV_STIM_CH,
                              'coil_type': FIFF.FIFFV_COIL_NONE,
                              'unit': FIFF.FIFF_UNIT_NONE})
-        info['chs'] = chs
+        with info._unlock(check_after=False):
+            info['chs'] = chs
         info._update_redundant()
         super(RawEGI, self).__init__(
             info, preload, orig_format=egi_info['orig_format'],

@@ -419,11 +419,12 @@ class Kit2FiffModel(HasPrivateTraits):
                      allow_unknown_format=self.allow_unknown_format)
 
         if np.any(self.fid):
-            raw.info['dig'] = _make_dig_points(self.fid[0], self.fid[1],
-                                               self.fid[2], self.elp,
-                                               self.hsp)
-            raw.info['dev_head_t'] = Transform('meg', 'head',
-                                               self.dev_head_trans)
+            with raw.info._unlock(check_after=False):
+                raw.info['dig'] = _make_dig_points(self.fid[0], self.fid[1],
+                                                   self.fid[2], self.elp,
+                                                   self.hsp)
+                raw.info['dev_head_t'] = Transform('meg', 'head',
+                                                   self.dev_head_trans)
         return raw
 
 

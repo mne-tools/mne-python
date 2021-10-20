@@ -396,7 +396,8 @@ def test_mxne_inverse_sure():
     n_dipoles = 2
     raw = mne.io.read_raw_fif(fname_raw)
     info = mne.io.read_info(fname_data)
-    info['projs'] = []
+    with info._unlock(check_after=False):
+        info['projs'] = []
     noise_cov = mne.make_ad_hoc_cov(info)
     label_names = ['Aud-lh', 'Aud-rh']
     labels = [mne.read_label(data_path + '/MEG/sample/labels/%s.label' % ln)

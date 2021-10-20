@@ -317,7 +317,8 @@ class DigSource(HasPrivateTraits):
                 info = read_info(self.file, verbose=False)
             elif len(dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)) > 0:
                 info = _empty_info(1)
-                info['dig'] = read_dig_fif(fname=self.file).dig
+                with info._unlock(check_after=False):
+                    info['dig'] = read_dig_fif(fname=self.file).dig
         else:
             info = read_raw(self.file).info
 

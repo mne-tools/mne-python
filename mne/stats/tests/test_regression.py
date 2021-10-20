@@ -88,7 +88,8 @@ def test_continuous_regression_no_overlap():
     # a sampling of frequency where rounding and truncation yield
     # different results checks conversion from samples to times is
     # consistent across Epochs and linear_regression_raw
-    raw.info['sfreq'] = 128
+    with raw.info._unlock(check_after=False):
+        raw.info['sfreq'] = 128
 
     events = mne.read_events(event_fname)
     event_id = dict(audio_l=1, audio_r=2)

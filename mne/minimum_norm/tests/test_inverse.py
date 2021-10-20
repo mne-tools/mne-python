@@ -204,7 +204,8 @@ def _compare_io(inv_op, out_file_ext='.fif', tempdir=None):
 def test_warn_inverse_operator(evoked, noise_cov):
     """Test MNE inverse warning without average EEG projection."""
     bad_info = evoked.info
-    bad_info['projs'] = list()
+    with bad_info._unlock(check_after=False):
+        bad_info['projs'] = list()
     fwd_op = convert_forward_solution(read_forward_solution(fname_fwd),
                                       surf_ori=True, copy=False)
     with pytest.raises(ValueError, match='greater than or'):
@@ -270,7 +271,8 @@ def test_inverse_operator_channel_ordering(evoked, noise_cov):
     randomiser = np.random.RandomState(42)
     randomiser.shuffle(new_order)
     evoked.data = evoked.data[new_order]
-    evoked.info['chs'] = [evoked.info['chs'][n] for n in new_order]
+    with evoked.info._unlock(check_after=False):
+        evoked.info['chs'] = [evoked.info['chs'][n] for n in new_order]
     evoked.info._update_redundant()
     evoked.info._check_consistency()
 
@@ -404,7 +406,8 @@ def test_localization_bias_free(bias_params_free, method, lower, upper,
 def test_apply_inverse_sphere(evoked, tmpdir):
     """Test applying an inverse with a sphere model (rank-deficient)."""
     evoked.pick_channels(evoked.ch_names[:306:8])
-    evoked.info['projs'] = []
+    with evoked.info._unlock(check_after=False):
+        evoked.info['projs'] = []
     cov = make_ad_hoc_cov(evoked.info)
     sphere = make_sphere_model('auto', 'auto', evoked.info)
     fwd = read_forward_solution(fname_fwd)
@@ -529,11 +532,13 @@ def test_apply_inverse_operator(evoked, inv, min_, max_):
         apply_inverse(mne.io.RawArray(evoked.data, evoked.info), inv_op)
 
     # Test we get errors when using custom ref or no average proj is present
-    evoked.info['custom_ref_applied'] = True
+    with evoked.info._unlock(check_after=False):
+        evoked.info['custom_ref_applied'] = True
     with pytest.raises(ValueError, match='Custom EEG reference'):
         apply_inverse(evoked, inv_op, lambda2, "MNE")
-    evoked.info['custom_ref_applied'] = False
-    evoked.info['projs'] = []  # remove EEG proj
+    with evoked.info._unlock(check_after=False):
+        evoked.info['custom_ref_applied'] = False
+        evoked.info['projs'] = []  # remove EEG proj
     with pytest.raises(ValueError, match='EEG average reference.*mandatory'):
         apply_inverse(evoked, inv_op, lambda2, "MNE")
 

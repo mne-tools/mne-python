@@ -1510,7 +1510,8 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
 
     sfreq = 1.0 / stc.tstep
     info, data = _fill_measurement_info(info, fwd, sfreq, data)
-    info['projs'] = []
+    with info._unlock(check_after=False):
+        info['projs'] = []
     # store sensor data in Raw object using the info
     raw = RawArray(data, info)
     raw.preload = True

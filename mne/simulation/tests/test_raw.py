@@ -184,8 +184,9 @@ def raw_data():
     raw.info.normalize_proj()
     ecg = RawArray(np.zeros((1, len(raw.times))),
                    create_info(['ECG 063'], raw.info['sfreq'], 'ecg'))
-    for key in ('dev_head_t', 'highpass', 'lowpass', 'dig'):
-        ecg.info[key] = raw.info[key]
+    with ecg.info._unlock(check_after=False):
+        for key in ('dev_head_t', 'highpass', 'lowpass', 'dig'):
+            ecg.info[key] = raw.info[key]
     raw.add_channels([ecg])
 
     src = read_source_spaces(src_fname)

@@ -476,53 +476,57 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         edf_info['record_length'][1] / edf_info['record_length'][0]
     del n_samps
     info = _empty_info(sfreq)
-    info['meas_date'] = edf_info['meas_date']
-    info['chs'] = chs
-    info['ch_names'] = ch_names
+    with info._unlock(check_after=False):
+        info['meas_date'] = edf_info['meas_date']
+        info['chs'] = chs
+        info['ch_names'] = ch_names
 
-    # Filter settings
-    highpass = edf_info['highpass']
-    lowpass = edf_info['lowpass']
-    if highpass.size == 0:
-        pass
-    elif all(highpass):
-        if highpass[0] == 'NaN':
-            pass  # Placeholder for future use. Highpass set in _empty_info.
-        elif highpass[0] == 'DC':
+        # Filter settings
+        highpass = edf_info['highpass']
+        lowpass = edf_info['lowpass']
+        if highpass.size == 0:
+            pass
+        elif all(highpass):
+            if highpass[0] == 'NaN':
+                # Placeholder for future use. Highpass set in _empty_info.
+                pass
+            elif highpass[0] == 'DC':
+                info['highpass'] = 0.
+            else:
+                hp = highpass[0]
+                try:
+                    hp = float(hp)
+                except Exception:
+                    hp = 0.
+                info['highpass'] = hp
+        else:
+            info['highpass'] = float(np.max(highpass))
+            warn('Channels contain different highpass filters. Highest filter '
+                 'setting will be stored.')
+        if np.isnan(info['highpass']):
             info['highpass'] = 0.
+        if lowpass.size == 0:
+            # Placeholder for future use. Lowpass set in _empty_info.
+            pass
+        elif all(lowpass):
+            if lowpass[0] in ('NaN', '0', '0.0'):
+                # Placeholder for future use. Lowpass set in _empty_info.
+                pass
+            else:
+                info['lowpass'] = float(lowpass[0])
         else:
-            hp = highpass[0]
-            try:
-                hp = float(hp)
-            except Exception:
-                hp = 0.
-            info['highpass'] = hp
-    else:
-        info['highpass'] = float(np.max(highpass))
-        warn('Channels contain different highpass filters. Highest filter '
-             'setting will be stored.')
-    if np.isnan(info['highpass']):
-        info['highpass'] = 0.
-    if lowpass.size == 0:
-        pass  # Placeholder for future use. Lowpass set in _empty_info.
-    elif all(lowpass):
-        if lowpass[0] in ('NaN', '0', '0.0'):
-            pass  # Placeholder for future use. Lowpass set in _empty_info.
-        else:
-            info['lowpass'] = float(lowpass[0])
-    else:
-        info['lowpass'] = float(np.min(lowpass))
-        warn('Channels contain different lowpass filters. Lowest filter '
-             'setting will be stored.')
-    if np.isnan(info['lowpass']):
-        info['lowpass'] = info['sfreq'] / 2.
+            info['lowpass'] = float(np.min(lowpass))
+            warn('Channels contain different lowpass filters. Lowest filter '
+                 'setting will be stored.')
+        if np.isnan(info['lowpass']):
+            info['lowpass'] = info['sfreq'] / 2.
 
-    if info['highpass'] > info['lowpass']:
-        warn(f'Highpass cutoff frequency {info["highpass"]} is greater than '
-             f'lowpass cutoff frequency {info["lowpass"]}, '
-             'setting values to 0 and Nyquist.')
-        info['highpass'] = 0.
-        info['lowpass'] = info['sfreq'] / 2.
+        if info['highpass'] > info['lowpass']:
+            warn(f'Highpass cutoff frequency {info["highpass"]} is greater '
+                 f'than lowpass cutoff frequency {info["lowpass"]}, '
+                 'setting values to 0 and Nyquist.')
+            info['highpass'] = 0.
+            info['lowpass'] = info['sfreq'] / 2.
 
     # Some keys to be consistent with FIF measurement info
     info['description'] = None

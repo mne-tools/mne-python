@@ -36,16 +36,17 @@ def _get_test_info():
     test_info = _empty_info(1000)
     loc = np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
                    dtype=np.float32)
-    test_info['chs'] = [
-        {'cal': 1, 'ch_name': 'ICA 001', 'coil_type': 0, 'coord_frame': 0,
-         'kind': 502, 'loc': loc.copy(), 'logno': 1, 'range': 1.0, 'scanno': 1,
-         'unit': -1, 'unit_mul': 0},
-        {'cal': 1, 'ch_name': 'ICA 002', 'coil_type': 0, 'coord_frame': 0,
-         'kind': 502, 'loc': loc.copy(), 'logno': 2, 'range': 1.0, 'scanno': 2,
-         'unit': -1, 'unit_mul': 0},
-        {'cal': 0.002142000012099743, 'ch_name': 'EOG 061', 'coil_type': 1,
-         'coord_frame': 0, 'kind': 202, 'loc': loc.copy(), 'logno': 61,
-         'range': 1.0, 'scanno': 376, 'unit': 107, 'unit_mul': 0}]
+    with test_info._unlock(check_after=False):
+        test_info['chs'] = [
+            {'cal': 1, 'ch_name': 'ICA 001', 'coil_type': 0, 'coord_frame': 0,
+             'kind': 502, 'loc': loc.copy(), 'logno': 1, 'range': 1.0,
+             'scanno': 1, 'unit': -1, 'unit_mul': 0},
+            {'cal': 1, 'ch_name': 'ICA 002', 'coil_type': 0, 'coord_frame': 0,
+             'kind': 502, 'loc': loc.copy(), 'logno': 2, 'range': 1.0,
+             'scanno': 2, 'unit': -1, 'unit_mul': 0},
+            {'cal': 0.002142000012099743, 'ch_name': 'EOG 061', 'coil_type': 1,
+             'coord_frame': 0, 'kind': 202, 'loc': loc.copy(), 'logno': 61,
+             'range': 1.0, 'scanno': 376, 'unit': 107, 'unit_mul': 0}]
     test_info._update_redundant()
     test_info._check_consistency()
     return test_info
@@ -113,25 +114,31 @@ def test_find_topomap_coords():
         _find_topomap_coords(info, picks, **kwargs)
 
     # Test function with too little EEG digitization points: it should fail
-    info['dig'] = info['dig'][:-2]
+    with info._unlock(check_after=False):
+        info['dig'] = info['dig'][:-2]
     with pytest.raises(ValueError, match='Number of EEG digitization points'):
         _find_topomap_coords(info, picks, **kwargs)
 
     # Electrode positions must be unique
-    info['dig'].append(info['dig'][-1])
+    with info._unlock(check_after=False):
+        info['dig'].append(info['dig'][-1])
     with pytest.raises(ValueError, match='overlapping positions'):
         _find_topomap_coords(info, picks, **kwargs)
 
     # Test function without EEG digitization points: it should fail
-    info['dig'] = [d for d in info['dig'] if d['kind'] != FIFF.FIFFV_POINT_EEG]
+    with info._unlock(check_after=False):
+        info['dig'] = [d for d in info['dig']
+                       if d['kind'] != FIFF.FIFFV_POINT_EEG]
     with pytest.raises(RuntimeError, match='Did not find any digitization'):
         _find_topomap_coords(info, picks, **kwargs)
 
     # Test function without any digitization points, it should fail
-    info['dig'] = None
+    with info._unlock(check_after=False):
+        info['dig'] = None
     with pytest.raises(RuntimeError, match='No digitization points found'):
         _find_topomap_coords(info, picks, **kwargs)
-    info['dig'] = []
+    with info._unlock(check_after=False):
+        info['dig'] = []
     with pytest.raises(RuntimeError, match='No digitization points found'):
         _find_topomap_coords(info, picks, **kwargs)
 
@@ -260,7 +267,8 @@ def test_find_layout():
     assert_equal(lout.kind, 'KIT-157')
     # fallback for missing IDs
     for val in (35, 52, 54, 1001):
-        raw_kit.info['kit_system_id'] = val
+        with raw_kit.info._unlock(check_after=False):
+            raw_kit.info['kit_system_id'] = val
         lout = find_layout(raw_kit.info)
         assert lout.kind == 'custom'
 
