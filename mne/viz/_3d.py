@@ -32,7 +32,7 @@ from ..source_space import (_ensure_src, _create_surf_spacing, _check_spacing,
                             SourceSpaces, read_freesurfer_lut)
 
 from ..surface import (get_meg_helmet_surf, _read_mri_surface, _DistanceQuery,
-                       _project_onto_surface, _reorder_ccw)
+                       _project_onto_surface, _reorder_ccw, _CheckInside)
 from ..transforms import (apply_trans, rot_to_quat, combine_transforms,
                           _get_trans, _ensure_trans, Transform, rotation,
                           read_ras_mni_t, _print_coord_trans, _find_trans,
@@ -702,7 +702,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         renderer.set_interaction('terrain')
 
     # plot head
-    _, head_surf = _plot_head_surface(
+    _, _, head_surf = _plot_head_surface(
         renderer, head, subject, subjects_dir, bem, coord_frame,
         to_cf_t, alpha=head_alpha)
 
@@ -720,6 +720,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     _check_option('dig', dig, (True, False, 'fiducials'))
     if dig:
         if dig is True:
+            _plot_hpi_coils(renderer, info, to_cf_t)
             _plot_head_shape_points(renderer, info, to_cf_t)
         _plot_head_fiducials(renderer, info, to_cf_t, fid_colors)
 
@@ -891,16 +892,16 @@ def _plot_head_surface(renderer, head, subject, subjects_dir, bem,
     """Render a head surface in a 3D scene."""
     color = DEFAULTS['coreg']['head_color'] if color is None else color
     actor = None
-    surf = None
+    src_surf = dst_surf = None
     if head is not False:
-        surf = _get_head_surface(head, subject, subjects_dir, bem=bem)
-        surf = transform_surface_to(
-            surf, coord_frame, [to_cf_t['mri'], to_cf_t['head']],
+        src_surf = _get_head_surface(head, subject, subjects_dir, bem=bem)
+        src_surf = transform_surface_to(
+            src_surf, coord_frame, [to_cf_t['mri'], to_cf_t['head']],
             copy=True)
-        actor, _ = renderer.surface(
-            surface=surf, color=color, opacity=alpha,
+        actor, dst_surf = renderer.surface(
+            surface=src_surf, color=color, opacity=alpha,
             backface_culling=False)
-    return actor, surf
+    return actor, dst_surf, src_surf
 
 
 def _plot_axes(renderer, info, to_cf_t, head_mri_t):
@@ -959,7 +960,10 @@ def _plot_mri_fiducials(renderer, mri_fiducials, subjects_dir, subject,
             mri_fiducials, cf = read_fiducials(mri_fiducials)
             if cf != FIFF.FIFFV_COORD_MRI:
                 raise ValueError("Fiducials are not in MRI space")
-    fid_loc = _fiducial_coords(mri_fiducials, FIFF.FIFFV_COORD_MRI)
+    if isinstance(mri_fiducials, np.ndarray):
+        fid_loc = mri_fiducials
+    else:
+        fid_loc = _fiducial_coords(mri_fiducials, FIFF.FIFFV_COORD_MRI)
     fid_loc = apply_trans(to_cf_t['mri'], fid_loc)
     transform = np.eye(4)
     transform[:3, :3] = to_cf_t['mri']['trans'][:3, :3] * \
@@ -977,24 +981,91 @@ def _plot_mri_fiducials(renderer, mri_fiducials, subjects_dir, subject,
     return actors
 
 
-def _plot_head_shape_points(renderer, info, to_cf_t):
+def _plot_hpi_coils(renderer, info, to_cf_t, opacity=0.5,
+                    orient_glyphs=False, surf=None):
     defaults = DEFAULTS['coreg']
     hpi_loc = np.array([
         d['r'] for d in (info['dig'] or [])
         if (d['kind'] == FIFF.FIFFV_POINT_HPI and
             d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
     hpi_loc = apply_trans(to_cf_t['head'], hpi_loc)
-    renderer.sphere(center=hpi_loc, color=defaults['hpi_color'],
-                    scale=defaults['hpi_scale'], opacity=0.5,
-                    backface_culling=True)
+    color = defaults['hpi_color']
+    scale = defaults['hpi_scale']
+    if orient_glyphs:
+        actor, _ = _plot_oriented_glyphs(
+            renderer, hpi_loc, surf, color, scale, opacity=opacity)
+    else:
+        actor, _ = renderer.sphere(center=hpi_loc, color=color, scale=scale,
+                                   opacity=opacity, backface_culling=True)
+    return actor
+
+
+def _get_nearest(nearest, check_inside, project_to_trans, proj_rr):
+    idx = nearest.query(proj_rr)[1]
+    proj_pts = apply_trans(
+        project_to_trans, nearest.data[idx])
+    proj_nn = apply_trans(
+        project_to_trans, check_inside.surf['nn'][idx],
+        move=False)
+    return proj_pts, proj_nn
+
+
+def _orient_glyphs(pts, surf):
+    mark_inside = True
+    project_to_surface = False
+    rr = surf["rr"]
+    check_inside = _CheckInside(surf)
+    nearest = _DistanceQuery(rr)
+    project_to_trans = np.eye(4)
+
+    inv_trans = np.linalg.inv(project_to_trans)
+    proj_rr = apply_trans(inv_trans, pts)
+    proj_pts, proj_nn = _get_nearest(
+        nearest, check_inside, project_to_trans, proj_rr)
+    vec = pts - proj_pts  # point to the surface
+    nn = proj_nn
+    if mark_inside and not project_to_surface:
+        scalars = (~check_inside(proj_rr, verbose=False)).astype(int)
+    else:
+        scalars = np.ones(len(pts))
+    dist = np.linalg.norm(vec, axis=-1, keepdims=True)
+    vectors = (250 * dist + 1) * nn
+    return scalars, vectors
+
+
+def _plot_oriented_glyphs(renderer, loc, surf, color, scale, mode="cylinder",
+                          opacity=1):
+    defaults = DEFAULTS['coreg']
+    scalars, vectors = _orient_glyphs(loc, surf)
+    x, y, z = loc.T
+    u, v, w = vectors.T
+    return renderer.quiver3d(
+        x, y, z, u, v, w, color=color, scale=scale,
+        mode=mode, glyph_height=defaults['eegp_height'],
+        glyph_center=(0., -defaults['eegp_height'], 0),
+        resolution=16, glyph_resolution=16,
+        glyph_radius=None, opacity=opacity, scale_mode='vector',
+        scalars=scalars)
+
+
+def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
+                            orient_glyphs=False, surf=None, mask=None):
+    defaults = DEFAULTS['coreg']
     ext_loc = np.array([
         d['r'] for d in (info['dig'] or [])
         if (d['kind'] == FIFF.FIFFV_POINT_EXTRA and
             d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
     ext_loc = apply_trans(to_cf_t['head'], ext_loc)
-    actor, _ = renderer.sphere(center=ext_loc, color=defaults['extra_color'],
-                               scale=defaults['extra_scale'], opacity=0.25,
-                               backface_culling=True)
+    ext_loc = ext_loc[mask] if mask is not None else ext_loc
+    color = defaults['extra_color']
+    scale = defaults['extra_scale']
+    if orient_glyphs:
+        actor, _ = _plot_oriented_glyphs(
+            renderer, ext_loc, surf, color, scale, opacity=opacity)
+    else:
+        actor, _ = renderer.sphere(center=ext_loc, color=color,
+                                   scale=scale, opacity=opacity,
+                                   backface_culling=True)
     return actor
 
 
@@ -1029,7 +1100,8 @@ def _plot_forward(renderer, fwd, to_cf_t):
 
 
 def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
-                  warn_meg, head_surf, units):
+                  warn_meg, head_surf, units, sensor_opacity=0.8,
+                  orient_glyphs=False, surf=None):
     """Render sensors in a 3D scene."""
     defaults = DEFAULTS['coreg']
     ch_pos, sources, detectors = _ch_pos_in_coord_frame(
@@ -1037,6 +1109,8 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
 
     actors = dict(meg=list(), ref_meg=list(), eeg=list(), fnirs=list(),
                   ecog=list(), seeg=list(), dbs=list())
+    locs = dict(eeg=list(), fnirs=list(), ecog=list(), seeg=list(),
+                source=list(), detector=list())
     scalar = 1 if units == 'm' else 1e3
     for ch_name, ch_coord in ch_pos.items():
         ch_type = channel_type(info, info.ch_names.index(ch_name))
@@ -1058,22 +1132,11 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
             actors[ch_type].append(actor)
         else:
             if plot_sensors:
-                actor, _ = renderer.sphere(
-                    center=tuple(ch_coord * scalar), color=color,
-                    scale=defaults[ch_type + '_scale'] * scalar, opacity=0.8)
-                actors[ch_type].append(actor)
+                locs[ch_type].append(ch_coord)
         if ch_name in sources and 'sources' in fnirs:
-            actor, _ = renderer.sphere(
-                center=tuple(sources[ch_name] * scalar),
-                color=defaults['source_color'],
-                scale=defaults['source_scale'] * scalar, opacity=0.8)
-            actors[ch_type].append(actor)
+            locs['source'].append(sources[ch_name])
         if ch_name in detectors and 'detectors' in fnirs:
-            actor, _ = renderer.sphere(
-                center=tuple(detectors[ch_name] * scalar),
-                color=defaults['detector_color'],
-                scale=defaults['detector_scale'] * scalar, opacity=0.8)
-            actors[ch_type].append(actor)
+            locs['detector'].append(detectors[ch_name])
         if ch_name in sources and ch_name in detectors and \
                 'pairs' in fnirs:
             actor, _ = renderer.tube(  # array of origin and dest points
@@ -1081,6 +1144,25 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                 destination=detectors[ch_name][np.newaxis] * scalar,
                 radius=0.001 * scalar)
             actors[ch_type].append(actor)
+
+    # add sensors
+    for sensor_type in locs.keys():
+        if len(locs[sensor_type]) > 0:
+            sens_loc = np.array(locs[sensor_type])
+            color = defaults[sensor_type + '_color']
+            scale = defaults[sensor_type + '_scale']
+            if orient_glyphs:
+                actor, _ = _plot_oriented_glyphs(
+                    renderer, sens_loc, surf, color, scale,
+                    opacity=sensor_opacity)
+            else:
+                actor, _ = renderer.sphere(
+                    center=sens_loc * scalar, color=color,
+                    scale=scale * scalar,
+                    opacity=sensor_opacity)
+            if sensor_type in ('source', 'detector'):
+                sensor_type = 'fnirs'
+            actors[sensor_type].append(actor)
 
     # add projected eeg
     eeg_indices = pick_types(info, eeg=True)
