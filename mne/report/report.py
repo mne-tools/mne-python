@@ -108,14 +108,7 @@ _ch_type_to_caption_map = {
 
 
 def _get_ch_types(inst):
-    has_types = []
-    if len(pick_types(inst.info, meg=False, eeg=True)) > 0:
-        has_types.append('eeg')
-    if len(pick_types(inst.info, meg='grad', eeg=False, ref_meg=False)) > 0:
-        has_types.append('grad')
-    if len(pick_types(inst.info, meg='mag', eeg=False)) > 0:
-        has_types.append('mag')
-    return has_types
+    return [ch_type for ch_type in ('eeg', 'grad', 'mag') if ch_type in inst]
 
 
 ###############################################################################
