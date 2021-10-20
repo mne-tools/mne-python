@@ -313,7 +313,7 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
         return renderer
 
 
-def close_3d_figure(fig):
+def close_3d_figure(figure):
     """Close the given scene.
 
     Parameters
@@ -321,7 +321,7 @@ def close_3d_figure(fig):
     figure : object
         The scene which needs to be closed.
     """
-    backend._close_3d_figure(fig)
+    backend._close_3d_figure(figure)
 
 
 def close_all_3d_figures():
