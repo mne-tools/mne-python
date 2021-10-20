@@ -991,12 +991,8 @@ def _plot_hpi_coils(renderer, info, to_cf_t, opacity=0.5,
     hpi_loc = apply_trans(to_cf_t['head'], hpi_loc)
     color = defaults['hpi_color']
     scale = defaults['hpi_scale']
-    if orient_glyphs:
-        actor, _ = _plot_oriented_glyphs(
-            renderer, hpi_loc, surf, color, scale, opacity=opacity)
-    else:
-        actor, _ = renderer.sphere(center=hpi_loc, color=color, scale=scale,
-                                   opacity=opacity, backface_culling=True)
+    actor, _ = _plot_glyphs(renderer, hpi_loc, color, scale, opacity,
+                            orient_glyphs, surf, backface_culling=True)
     return actor
 
 
@@ -1033,19 +1029,24 @@ def _orient_glyphs(pts, surf):
     return scalars, vectors
 
 
-def _plot_oriented_glyphs(renderer, loc, surf, color, scale, mode="cylinder",
-                          opacity=1):
-    defaults = DEFAULTS['coreg']
-    scalars, vectors = _orient_glyphs(loc, surf)
-    x, y, z = loc.T
-    u, v, w = vectors.T
-    return renderer.quiver3d(
-        x, y, z, u, v, w, color=color, scale=scale,
-        mode=mode, glyph_height=defaults['eegp_height'],
-        glyph_center=(0., -defaults['eegp_height'], 0),
-        resolution=16, glyph_resolution=16,
-        glyph_radius=None, opacity=opacity, scale_mode='vector',
-        scalars=scalars)
+def _plot_glyphs(renderer, loc, color, scale, opacity=1, mode="cylinder",
+                 orient_glyphs=False, surf=None, backface_culling=False):
+    if orient_glyphs:
+        defaults = DEFAULTS['coreg']
+        scalars, vectors = _orient_glyphs(loc, surf)
+        x, y, z = loc.T
+        u, v, w = vectors.T
+        return renderer.quiver3d(
+            x, y, z, u, v, w, color=color, scale=scale,
+            mode=mode, glyph_height=defaults['eegp_height'],
+            glyph_center=(0., -defaults['eegp_height'], 0),
+            resolution=16, glyph_resolution=16,
+            glyph_radius=None, opacity=opacity, scale_mode='vector',
+            scalars=scalars)
+    else:
+        return renderer.sphere(center=loc, color=color, scale=scale,
+                               opacity=opacity,
+                               backface_culling=backface_culling)
 
 
 def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
@@ -1059,13 +1060,8 @@ def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
     ext_loc = ext_loc[mask] if mask is not None else ext_loc
     color = defaults['extra_color']
     scale = defaults['extra_scale']
-    if orient_glyphs:
-        actor, _ = _plot_oriented_glyphs(
-            renderer, ext_loc, surf, color, scale, opacity=opacity)
-    else:
-        actor, _ = renderer.sphere(center=ext_loc, color=color,
-                                   scale=scale, opacity=opacity,
-                                   backface_culling=True)
+    actor, _ = _plot_glyphs(renderer, ext_loc, color, scale, opacity,
+                            orient_glyphs, surf, backface_culling=True)
     return actor
 
 
@@ -1151,15 +1147,9 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
             sens_loc = np.array(locs[sensor_type])
             color = defaults[sensor_type + '_color']
             scale = defaults[sensor_type + '_scale']
-            if orient_glyphs:
-                actor, _ = _plot_oriented_glyphs(
-                    renderer, sens_loc, surf, color, scale,
-                    opacity=sensor_opacity)
-            else:
-                actor, _ = renderer.sphere(
-                    center=sens_loc * scalar, color=color,
-                    scale=scale * scalar,
-                    opacity=sensor_opacity)
+            actor, _ = _plot_glyphs(renderer, sens_loc * scalar, color,
+                                    scale * scalar, sensor_opacity,
+                                    orient_glyphs, surf)
             if sensor_type in ('source', 'detector'):
                 sensor_type = 'fnirs'
             actors[sensor_type].append(actor)
