@@ -27,10 +27,12 @@ import html as stdlib_html  # avoid namespace confusion!
 import numpy as np
 
 from .. import __version__ as MNE_VERSION
+from .. import pick_info, pick_types
 from ..fixes import _compare_version
 from .. import (read_evokeds, read_events, read_cov,
                 read_source_estimate, read_trans, sys_info,
                 Evoked, SourceEstimate, Covariance, Info, Transform)
+from ..channels.layout import _check_ch_locs
 from ..defaults import _handle_default
 from ..io import read_raw, read_info, BaseRaw
 from ..io._read_raw import supported as extension_reader_map
@@ -274,6 +276,14 @@ class _ContentElement:
     dom_id: str
     tags: Tuple[str]
     html: str
+
+
+def _check_ch_locs_or_dig_points(info):
+    """Check whether an Info contains locations or, else, digpoints."""
+    if _check_ch_locs(info['chs']):
+        return True
+
+    return not(info['dig'] is None or len(info['dig']) == 0)
 
 
 ###############################################################################
@@ -3097,6 +3107,14 @@ class Report(object):
                              topomap_kwargs):
         htmls = []
         for ch_type in ch_types:
+            if ch_type == 'eeg':
+                eeg_picks = pick_types(info=evoked.info, eeg=True)
+                info = pick_info(info=evoked.info, sel=eeg_picks)
+                if not _check_ch_locs_or_dig_points(info):
+                    warn('Neither EEG channel locations nor digitzation '
+                         'points found, cannot create joint plot for EEG data')
+                    continue
+
             with use_log_level(level=False):
                 fig = evoked.copy().pick(ch_type, verbose=False).plot_joint(
                     ts_args=dict(gfp=True),
@@ -3194,6 +3212,15 @@ class Report(object):
         vmax = dict()
         vmin = dict()
         for ch_type in ch_types:
+            if ch_type == 'eeg':
+                eeg_picks = pick_types(info=evoked.info, eeg=True)
+                info = pick_info(info=evoked.info, sel=eeg_picks)
+                if not _check_ch_locs_or_dig_points(info):
+                    warn('Neither EEG channel locations nor digitzation '
+                         'points found, cannot create evoked topography plots '
+                         'for EEG data')
+                    continue
+
             vmax[ch_type] = (np.abs(evoked.copy()
                                     .pick(ch_type, verbose=False)
                                     .data)
@@ -3203,31 +3230,35 @@ class Report(object):
             else:
                 vmin[ch_type] = -vmax[ch_type]
 
-        topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
+        if not (vmin and vmax):  # we only had EEG data and no digpoints
+            html = ''
+            dom_id = None
+        else:
+            topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
 
-        use_jobs = min(n_jobs, max(1, len(times)))
-        parallel, p_fun, _ = parallel_func(
-            func=self._plot_one_evoked_topomap_timepoint,
-            n_jobs=use_jobs
-        )
-        fig_arrays = parallel(
-            p_fun(
-                evoked=evoked, time=time, ch_types=ch_types,
-                vmin=vmin, vmax=vmax, topomap_kwargs=topomap_kwargs
-            ) for time in times
-        )
+            use_jobs = min(n_jobs, max(1, len(times)))
+            parallel, p_fun, _ = parallel_func(
+                func=self._plot_one_evoked_topomap_timepoint,
+                n_jobs=use_jobs
+            )
+            fig_arrays = parallel(
+                p_fun(
+                    evoked=evoked, time=time, ch_types=ch_types,
+                    vmin=vmin, vmax=vmax, topomap_kwargs=topomap_kwargs
+                ) for time in times
+            )
 
-        captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
-        html = self._render_slider(
-            figs=fig_arrays,
-            captions=captions,
-            title='Topographies',
-            image_format=image_format,
-            start_idx=t_zero_idx,
-            tags=tags
-        )
+            captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
+            html, dom_id = self._render_slider(
+                figs=fig_arrays,
+                captions=captions,
+                title='Topographies',
+                image_format=image_format,
+                start_idx=t_zero_idx,
+                tags=tags
+            )
 
-        return html
+        return html, dom_id
 
     def _render_evoked_gfp(self, evoked, ch_types, image_format, tags):
         # Make legend labels shorter by removing the multiplicative factors
@@ -3468,7 +3499,8 @@ class Report(object):
 
         ssp_projs_html = self._ssp_projs_html(
             add_projs=add_projs, info=epochs, image_format=image_format,
-            tags=tags, topomap_kwargs=topomap_kwargs)
+            tags=tags, topomap_kwargs=topomap_kwargs
+        )
 
         return (repr_html, erp_imgs_html, drop_log_img_html, psd_img_html,
                 ssp_projs_html)
