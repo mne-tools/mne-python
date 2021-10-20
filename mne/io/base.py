@@ -1254,10 +1254,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         assert np.array_equal(n_news, self._last_samps - self._first_samps + 1)
         self._data = new_data
         self.preload = True
-        self.info['sfreq'] = sfreq
         lowpass = self.info.get('lowpass')
         lowpass = np.inf if lowpass is None else lowpass
-        self.info['lowpass'] = min(lowpass, sfreq / 2.)
+        with self.info._unlock(check_after=False):
+            self.info['lowpass'] = min(lowpass, sfreq / 2.)
+            self.info['sfreq'] = sfreq
 
         # See the comment above why we ignore all errors here.
         if events is None:

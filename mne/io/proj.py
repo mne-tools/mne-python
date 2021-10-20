@@ -257,7 +257,9 @@ class ProjMixin(object):
 
         keep = np.ones(len(self.info['projs']))
         keep[idx] = False  # works with negative indexing and does checks
-        self.info['projs'] = [p for p, k in zip(self.info['projs'], keep) if k]
+        with self.info._unlock(check_after=False):
+            self.info['projs'] = [p for p, k in zip(self.info['projs'], keep)
+                                  if k]
         return self
 
     @fill_doc
