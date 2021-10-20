@@ -30,6 +30,6 @@ from .ica import (plot_ica_scores, plot_ica_sources, plot_ica_overlay,
 from .montage import plot_montage
 from .backends.renderer import (set_3d_backend, get_3d_backend, use_3d_backend,
                                 set_3d_view, set_3d_title, create_3d_figure,
-                                get_brain_class)
+                                close_3d_figure, close_all_3d_figures, get_brain_class)
 from . import backends
 from ._brain import Brain
