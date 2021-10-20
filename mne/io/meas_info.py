@@ -695,6 +695,10 @@ class Info(dict, MontageMixin):
     @contextlib.contextmanager
     def _unlock(self, check_after=True):
         """Context manager unlocking access to attributes."""
+
+        # needed for nested _unlock()
+        state = self._unlocked if hasattr(self, '_unlocked') else False
+
         self._unlocked = True
         try:
             yield
@@ -704,7 +708,7 @@ class Info(dict, MontageMixin):
             if check_after:
                 self._check_consistency()
         finally:
-            self._unlocked = False
+            self._unlocked = state
 
     def copy(self):
         """Copy the instance.
