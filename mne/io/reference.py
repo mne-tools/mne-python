@@ -219,6 +219,8 @@ def add_reference_channels(inst, ref_channels, copy=True):
             # Replace the (possibly new) Ref location for each channel
             for idx in pick_types(inst.info, meg=False, eeg=True, exclude=[]):
                 inst.info['chs'][idx]['loc'][3:6] = ref_dig_loc[0]['r']
+    else:
+        ref_dig_array = np.full(12, np.nan)
 
     for ch in ref_channels:
         chan_info = {'ch_name': ch,
