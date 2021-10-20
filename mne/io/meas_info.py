@@ -652,30 +652,30 @@ class Info(dict, MontageMixin):
     def __init__(self, *args, **kwargs):
         with self._unlock(check_after=False):
             super().__init__(*args, **kwargs)
-        # Deal with h5io writing things as dict
-        for key in ('dev_head_t', 'ctf_head_t', 'dev_ctf_t'):
-            _format_trans(self, key)
-        for res in self.get('hpi_results', []):
-            _format_trans(res, 'coord_trans')
-        if self.get('dig', None) is not None and len(self['dig']):
-            if isinstance(self['dig'], dict):  # needs to be unpacked
-                self['dig'] = _dict_unpack(self['dig'], _DIG_CAST)
-            if not isinstance(self['dig'][0], DigPoint):
-                self['dig'] = _format_dig_points(self['dig'])
-        if isinstance(self.get('chs', None), dict):
-            self['chs']['ch_name'] = [str(x) for x in np.char.decode(
-                self['chs']['ch_name'], encoding='utf8')]
-            self['chs'] = _dict_unpack(self['chs'], _CH_CAST)
-        for pi, proj in enumerate(self.get('projs', [])):
-            if not isinstance(proj, Projection):
-                self['projs'][pi] = Projection(proj)
-        # Old files could have meas_date as tuple instead of datetime
-        try:
-            meas_date = self['meas_date']
-        except KeyError:
-            pass
-        else:
-            self['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
+            # Deal with h5io writing things as dict
+            for key in ('dev_head_t', 'ctf_head_t', 'dev_ctf_t'):
+                _format_trans(self, key)
+            for res in self.get('hpi_results', []):
+                _format_trans(res, 'coord_trans')
+            if self.get('dig', None) is not None and len(self['dig']):
+                if isinstance(self['dig'], dict):  # needs to be unpacked
+                    self['dig'] = _dict_unpack(self['dig'], _DIG_CAST)
+                if not isinstance(self['dig'][0], DigPoint):
+                    self['dig'] = _format_dig_points(self['dig'])
+            if isinstance(self.get('chs', None), dict):
+                self['chs']['ch_name'] = [str(x) for x in np.char.decode(
+                    self['chs']['ch_name'], encoding='utf8')]
+                self['chs'] = _dict_unpack(self['chs'], _CH_CAST)
+            for pi, proj in enumerate(self.get('projs', [])):
+                if not isinstance(proj, Projection):
+                    self['projs'][pi] = Projection(proj)
+            # Old files could have meas_date as tuple instead of datetime
+            try:
+                meas_date = self['meas_date']
+            except KeyError:
+                pass
+            else:
+                self['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
 
     def __setitem__(self, key, val):
         """Attribute setter."""

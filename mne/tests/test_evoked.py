@@ -79,7 +79,8 @@ def test_decim():
     sfreq_new = sfreq / decim
     data = rng.randn(n_channels, n_times)
     info = create_info(n_channels, sfreq, 'eeg')
-    info['lowpass'] = sfreq_new / float(decim)
+    with info._unlock(check_after=False):
+        info['lowpass'] = sfreq_new / float(decim)
     evoked = EvokedArray(data, info, tmin=-1)
     evoked_dec = evoked.copy().decimate(decim)
     evoked_dec_2 = evoked.copy().decimate(decim, offset=1)
@@ -269,7 +270,8 @@ def test_io_evoked(tmpdir):
     # MaxShield
     fname_ms = tmpdir.join('test-ave.fif')
     assert (ave.info['maxshield'] is False)
-    ave.info['maxshield'] = True
+    with ave.info._unlock(check_after=False):
+        ave.info['maxshield'] = True
     ave.save(fname_ms)
     pytest.raises(ValueError, read_evokeds, fname_ms)
     with pytest.warns(RuntimeWarning, match='Elekta'):
@@ -732,7 +734,8 @@ def test_add_channels():
     hpi_coils = [{'event_bits': []},
                  {'event_bits': np.array([256, 0, 256, 256])},
                  {'event_bits': np.array([512, 0, 512, 512])}]
-    evoked.info['hpi_subsystem'] = dict(hpi_coils=hpi_coils, ncoil=2)
+    with evoked.info._unlock(check_after=False):
+        evoked.info['hpi_subsystem'] = dict(hpi_coils=hpi_coils, ncoil=2)
     evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
     evoked_meg = evoked.copy().pick_types(meg=True)
     evoked_stim = evoked.copy().pick_types(meg=False, stim=True)
@@ -749,7 +752,8 @@ def test_add_channels():
 
     # Now test errors
     evoked_badsf = evoked_eeg.copy()
-    evoked_badsf.info['sfreq'] = 3.1415927
+    with evoked_badsf.info._unlock(check_after=False):
+        evoked_badsf.info['sfreq'] = 3.1415927
     evoked_eeg = evoked_eeg.crop(-.1, .1)
 
     pytest.raises(RuntimeError, evoked_meg.add_channels, [evoked_badsf])

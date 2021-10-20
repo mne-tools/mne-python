@@ -1328,8 +1328,9 @@ def _fill_measurement_info(info, fwd, sfreq, data):
     info['bads'] = []
 
     # this is probably correct based on what's done in meas_info.py...
-    info['meas_id'] = fwd['info']['meas_id']
-    info['file_id'] = info['meas_id']
+    with info._unlock(check_after=False):
+        info['meas_id'] = fwd['info']['meas_id']
+        info['file_id'] = info['meas_id']
 
     now = time()
     sec = np.floor(now)

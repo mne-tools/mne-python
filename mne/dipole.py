@@ -1481,22 +1481,23 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         data = np.array([out[1], out[3]])
         out_info = deepcopy(info)
         loc = np.concatenate([pos, ori, np.zeros(6)])
-        out_info['chs'] = [
-            dict(ch_name='dip 01', loc=loc, kind=FIFF.FIFFV_DIPOLE_WAVE,
-                 coord_frame=FIFF.FIFFV_COORD_UNKNOWN, unit=FIFF.FIFF_UNIT_AM,
-                 coil_type=FIFF.FIFFV_COIL_DIPOLE,
-                 unit_mul=0, range=1, cal=1., scanno=1, logno=1),
-            dict(ch_name='goodness', loc=np.full(12, np.nan),
-                 kind=FIFF.FIFFV_GOODNESS_FIT, unit=FIFF.FIFF_UNIT_AM,
-                 coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
-                 coil_type=FIFF.FIFFV_COIL_NONE,
-                 unit_mul=0, range=1., cal=1., scanno=2, logno=100)]
-        for key in ['hpi_meas', 'hpi_results', 'projs']:
-            out_info[key] = list()
-        for key in ['acq_pars', 'acq_stim', 'description', 'dig',
-                    'experimenter', 'hpi_subsystem', 'proj_id', 'proj_name',
-                    'subject_info']:
-            out_info[key] = None
+        with out_info._unlock(check_after=False):
+            out_info['chs'] = [
+                dict(ch_name='dip 01', loc=loc, kind=FIFF.FIFFV_DIPOLE_WAVE,
+                     coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                     unit=FIFF.FIFF_UNIT_AM, coil_type=FIFF.FIFFV_COIL_DIPOLE,
+                     unit_mul=0, range=1, cal=1., scanno=1, logno=1),
+                dict(ch_name='goodness', loc=np.full(12, np.nan),
+                     kind=FIFF.FIFFV_GOODNESS_FIT, unit=FIFF.FIFF_UNIT_AM,
+                     coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                     coil_type=FIFF.FIFFV_COIL_NONE,
+                     unit_mul=0, range=1., cal=1., scanno=2, logno=100)]
+            for key in ['hpi_meas', 'hpi_results', 'projs']:
+                out_info[key] = list()
+            for key in ['acq_pars', 'acq_stim', 'description', 'dig',
+                        'experimenter', 'hpi_subsystem', 'proj_id',
+                        'proj_name', 'subject_info']:
+                out_info[key] = None
         out_info['bads'] = []
         out_info._update_redundant()
         out_info._check_consistency()

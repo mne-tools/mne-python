@@ -1537,7 +1537,8 @@ def test_stc_near_sensors(tmpdir):
     picks = pick_types(info, meg=False, eeg=True, exclude=())
     picks = [pick for pick in picks if info['chs'][pick]['loc'][0] < 0]
     pick_info(info, picks, copy=False)
-    info['projs'] = []
+    with info._unlock(check_after=False):
+        info['projs'] = []
     info['bads'] = []
     assert info['nchan'] == 33
     evoked = EvokedArray(np.eye(info['nchan']), info)

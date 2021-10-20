@@ -545,7 +545,8 @@ def test_decim():
     data = rng.randn(n_epochs, n_channels, n_times)
     events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
     info = create_info(n_channels, sfreq, 'eeg')
-    info['lowpass'] = sfreq_new / float(decim)
+    with info._unlock(check_after=False):
+        info['lowpass'] = sfreq_new / float(decim)
     epochs = EpochsArray(data, info, events)
     data_epochs = epochs.copy().decimate(decim).get_data()
     data_epochs_2 = epochs.copy().decimate(decim, offset=1).get_data()
@@ -561,7 +562,8 @@ def test_decim():
     raw.info.normalize_proj()
     del picks
     sfreq_new = raw.info['sfreq'] / decim
-    raw.info['lowpass'] = sfreq_new / 12.  # suppress aliasing warnings
+    with raw.info._unlock(check_after=False):
+        raw.info['lowpass'] = sfreq_new / 12.  # suppress aliasing warnings
     pytest.raises(ValueError, epochs.decimate, -1)
     pytest.raises(ValueError, epochs.decimate, 2, offset=-1)
     pytest.raises(ValueError, epochs.decimate, 2, offset=2)
@@ -943,8 +945,9 @@ def test_io_epochs_basic(tmpdir):
         epochs_dec = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                             decim=2)
 
-    # decim without lowpass
-    epochs_dec.info['lowpass'] = None
+    # decim without
+    with epochs_dec.info._unlock(check_after=False):
+        epochs_dec.info['lowpass'] = None
     with pytest.warns(RuntimeWarning, match='aliasing'):
         epochs_dec.decimate(2)
 
@@ -1293,7 +1296,8 @@ def test_epochs_proj(tmpdir):
     assert (not _has_eeg_average_ref_proj(epochs.info['projs']))
 
     # make sure we don't add avg ref when a custom ref has been applied
-    raw.info['custom_ref_applied'] = True
+    with raw.info._unlock(check_after=False):
+        raw.info['custom_ref_applied'] = True
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     proj=True)
     assert (not _has_eeg_average_ref_proj(epochs.info['projs']))
@@ -1303,7 +1307,8 @@ def test_epochs_proj(tmpdir):
     proj = raw.info['projs']
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     proj=False)
-    epochs.info['projs'] = []
+    with epochs.info._unlock(check_after=False):
+        epochs.info['projs'] = []
     data = epochs.copy().add_proj(proj).apply_proj().get_data()
     # save and reload data
     fname_epo = op.join(tempdir, 'temp-epo.fif')
@@ -1357,12 +1362,14 @@ def test_evoked_io_from_epochs(tmpdir):
     """Test IO of evoked data made from epochs."""
     tempdir = str(tmpdir)
     raw, events, picks = _get_data()
-    raw.info['lowpass'] = 40  # avoid aliasing warnings
+    with raw.info._unlock(check_after=False):
+        raw.info['lowpass'] = 40  # avoid aliasing warnings
     # offset our tmin so we don't get exactly a zero value when decimating
     epochs = Epochs(raw, events[:4], event_id, tmin + 0.011, tmax,
                     picks=picks, decim=5)
     evoked = epochs.average()
-    evoked.info['proj_name'] = ''  # Test that empty string shortcuts to None.
+    with evoked.info._unlock(check_after=False):
+        evoked.info['proj_name'] = ''  # Test that empty string shortcuts to None.
     fname_temp = op.join(tempdir, 'evoked-ave.fif')
     evoked.save(fname_temp)
     evoked2 = read_evokeds(fname_temp)[0]
@@ -2270,7 +2277,8 @@ def test_delayed_epochs():
     raw.info.normalize_proj()
     del picks
     n_epochs = 2  # number we expect after rejection
-    raw.info['lowpass'] = 40.  # fake the LP info so no warnings
+    with raw.info._unlock(check_after=False):
+        raw.info['lowpass'] = 40.  # fake the LP info so no warnings
     for decim in (1, 3):
         proj_data = Epochs(raw, events, event_id, tmin, tmax, proj=True,
                            reject=reject, decim=decim)
@@ -2296,7 +2304,8 @@ def test_delayed_epochs():
                         epochs = EpochsArray(comp, raw.info, tmin=use_tmin,
                                              event_id=1, events=fake_events,
                                              proj=proj)
-                        epochs.info['sfreq'] /= decim
+                        with epochs.info._unlock(check_after=False):
+                            epochs.info['sfreq'] /= decim
                         assert_equal(len(epochs), n_epochs)
                     assert (raw.proj is False)
                     assert (epochs.proj is
@@ -2386,18 +2395,20 @@ def test_contains():
     # Add seeg channel
     seeg = RawArray(np.zeros((1, len(raw.times))),
                     create_info(['SEEG 001'], raw.info['sfreq'], 'seeg'))
-    for key in ('dev_head_t', 'highpass', 'lowpass',
-                'dig', 'description', 'acq_pars', 'experimenter',
-                'proj_name'):
-        seeg.info[key] = raw.info[key]
+    with seeg.info._unlock(check_after=False):
+        for key in ('dev_head_t', 'highpass', 'lowpass',
+                    'dig', 'description', 'acq_pars', 'experimenter',
+                    'proj_name'):
+            seeg.info[key] = raw.info[key]
     raw.add_channels([seeg])
     # Add dbs channel
     dbs = RawArray(np.zeros((1, len(raw.times))),
                    create_info(['DBS 001'], raw.info['sfreq'], 'dbs'))
-    for key in ('dev_head_t', 'highpass', 'lowpass',
-                'dig', 'description', 'acq_pars', 'experimenter',
-                'proj_name'):
-        dbs.info[key] = raw.info[key]
+    with dbs.info._unlock(check_after=False):
+        for key in ('dev_head_t', 'highpass', 'lowpass',
+                    'dig', 'description', 'acq_pars', 'experimenter',
+                    'proj_name'):
+            dbs.info[key] = raw.info[key]
     raw.add_channels([dbs])
     tests = [(('mag', False, False, False), ('grad', 'eeg', 'seeg', 'dbs')),
              (('grad', False, False, False), ('mag', 'eeg', 'seeg', 'dbs')),

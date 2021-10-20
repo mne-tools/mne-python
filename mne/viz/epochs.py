@@ -760,7 +760,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     projs = info['projs']
     projs_on = np.full_like(projs, epochs.proj, dtype=bool)
     if not epochs.proj:
-        info['projs'] = list()
+        with info._unlock(check_after=False):
+            info['projs'] = list()
 
     # handle defaults / check arg validity
     color = _handle_default('color', None)
