@@ -317,10 +317,12 @@ class ProjMixin(object):
                 continue
             info_from = pick_info(self.info, picks)
             info_to = info_from.copy()
-            info_to['projs'] = []
-            if kind == 'eeg' and _has_eeg_average_ref_proj(info_from['projs']):
-                info_to['projs'] = [
-                    make_eeg_average_ref_proj(info_to, verbose=False)]
+            with info_to._unlock(check_after=False):
+                info_to['projs'] = []
+                if kind == 'eeg' and _has_eeg_average_ref_proj(
+                        info_from['projs']):
+                    info_to['projs'] = [
+                        make_eeg_average_ref_proj(info_to, verbose=False)]
             mapping = _map_meg_or_eeg_channels(
                 info_from, info_to, mode=mode, origin=origin)
             self.data[..., picks, :] = np.matmul(

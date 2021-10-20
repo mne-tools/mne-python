@@ -121,7 +121,8 @@ def test_plot_evoked():
     evoked_delayed_ssp.apply_proj()
     pytest.raises(RuntimeError, evoked_delayed_ssp.plot,
                   proj='interactive', time_unit='s')
-    evoked_delayed_ssp.info['projs'] = []
+    with evoked_delayed_ssp.info._unlock(check_after=False):
+        evoked_delayed_ssp.info['projs'] = []
     pytest.raises(RuntimeError, evoked_delayed_ssp.plot,
                   proj='interactive', time_unit='s')
     pytest.raises(RuntimeError, evoked_delayed_ssp.plot,
@@ -317,7 +318,8 @@ def test_plot_white():
     # Hack to test plotting of maxfiltered data
     evoked_sss = _get_epochs(picks='meg').average()
     sss = dict(sss_info=dict(in_order=80, components=np.arange(80)))
-    evoked_sss.info['proc_history'] = [dict(max_info=sss)]
+    with evoked_sss.info._unlock(check_after=False):
+        evoked_sss.info['proc_history'] = [dict(max_info=sss)]
     evoked_sss.plot_white(cov, rank={'meg': 64})
     with pytest.raises(ValueError, match='When using SSS'):
         evoked_sss.plot_white(cov, rank={'grad': 201})

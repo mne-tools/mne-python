@@ -211,7 +211,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     projs_on = np.full_like(projs, proj, dtype=bool)
     # disable projs in info if user doesn't want to see them right away
     if not proj:
-        info['projs'] = list()
+        with info._unlock(check_after=False):
+            info['projs'] = list()
 
     # handle defaults / check arg validity
     color = _handle_default('color', color)

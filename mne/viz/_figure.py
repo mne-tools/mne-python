@@ -173,7 +173,9 @@ class BrowserBase(ABC):
         """Update the data after projectors (or bads) have changed."""
         inds = np.where(self.mne.projs_on)[0]  # doesn't include "active" projs
         # copy projs from full list (self.mne.projs) to info object
-        self.mne.info['projs'] = [deepcopy(self.mne.projs[ix]) for ix in inds]
+        with self.mne.info._unlock(check_after=False):
+            self.mne.info['projs'] = [deepcopy(self.mne.projs[ix])
+                                      for ix in inds]
         # compute the projection operator
         proj, wh_chs = _setup_plot_projector(self.mne.info, self.mne.noise_cov,
                                              True, self.mne.use_noise_cov)

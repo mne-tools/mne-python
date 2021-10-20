@@ -101,7 +101,8 @@ def _check_before_reference(inst, ref_from, ref_to, ch_type):
     # info that a non-CAR has been applied.
     ref_to_channels = pick_channels(inst.ch_names, ref_to, ordered=True)
     if len(np.intersect1d(ref_to_channels, eeg_idx)) > 0:
-        inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
+        with inst.info._unlock(check_after=False):
+            inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
 
     return ref_to
 

@@ -167,7 +167,8 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
             this_C = Covariance(this_C, [info['ch_names'][ii] for ii in idx],
                                 [], [], 0)
             this_info = pick_info(info, idx)
-            this_info['projs'] = []
+            with this_info._unlock(check_after=False):
+                this_info['projs'] = []
             this_rank = compute_rank(this_C, info=this_info)
             # Protect against true zero singular values
             s[s <= 0] = 1e-10 * s[s > 0].min()
