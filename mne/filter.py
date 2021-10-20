@@ -2322,7 +2322,9 @@ def _filt_update_info(info, update_info, l_freq, h_freq):
     if update_info:
         if h_freq is not None and (l_freq is None or l_freq < h_freq) and \
                 (info["lowpass"] is None or h_freq < info['lowpass']):
-            info['lowpass'] = float(h_freq)
+            with info._unlock(check_after=False):
+                info['lowpass'] = float(h_freq)
         if l_freq is not None and (h_freq is None or l_freq < h_freq) and \
                 (info["highpass"] is None or l_freq > info['highpass']):
-            info['highpass'] = float(l_freq)
+            with info._unlock(check_after=False):
+                info['highpass'] = float(l_freq)

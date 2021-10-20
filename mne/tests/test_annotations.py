@@ -130,7 +130,8 @@ def test_raw_array_orig_times():
     info = create_info(ch_names=['MEG1', 'MEG2'], ch_types=['grad'] * 2,
                        sfreq=sfreq)
     meas_date = _handle_meas_date(np.pi)
-    info['meas_date'] = meas_date
+    with info._unlock(check_after=False):
+        info['meas_date'] = meas_date
     raws = []
     for first_samp in [12300, 100, 12]:
         raw = RawArray(data.copy(), info, first_samp=first_samp)
@@ -262,7 +263,8 @@ def test_chunk_duration(first_samp):
     raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
                    info=create_info(ch_names=10, sfreq=1.),
                    first_samp=first_samp)
-    raw.info['meas_date'] = _handle_meas_date(0)
+    with raw.info._unlock(check_after=False):
+        raw.info['meas_date'] = _handle_meas_date(0)
     raw.set_annotations(Annotations(description='foo', onset=[0],
                                     duration=[10], orig_time=None))
     assert raw.annotations.orig_time == raw.info['meas_date']
