@@ -289,7 +289,8 @@ def _read_curry_info(curry_paths):
 
     ch_names = [chan["ch_name"] for chan in all_chans]
     info = create_info(ch_names, curry_params.sfreq)
-    info['meas_date'] = curry_params.dt_start          # for Git issue #8398
+    with info._unlock(check_after=False):
+        info['meas_date'] = curry_params.dt_start  # for Git issue #8398
     _make_trans_dig(curry_paths, info, curry_dev_dev_t)
 
     for ind, ch_dict in enumerate(info["chs"]):

@@ -104,22 +104,23 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
     date = datetime.datetime(int(date[0]), int(date[1]), int(date[2]),
                              int(time[0]), int(time[1]), int(sec), int(msec))
     info = _empty_info(header_info['sample_freq'])
-    info['meas_date'] = (calendar.timegm(date.utctimetuple()), 0)
+    with info._unlock(check_after=False):
+        info['meas_date'] = (calendar.timegm(date.utctimetuple()), 0)
 
-    if ch_type == 'eeg':
-        ch_coil = FIFF.FIFFV_COIL_EEG
-        ch_kind = FIFF.FIFFV_EEG_CH
-    elif ch_type == 'seeg':
-        ch_coil = FIFF.FIFFV_COIL_EEG
-        ch_kind = FIFF.FIFFV_SEEG_CH
-    else:
-        raise TypeError("Channel type not recognized. Available types are "
-                        "'eeg' and 'seeg'.")
-    cals = np.repeat(header_info['conversion_factor'] * 1e-6, len(ch_names))
-    info['chs'] = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg,
-                              misc)
-    info['highpass'] = 0.
-    info['lowpass'] = info['sfreq'] / 2.0
+        if ch_type == 'eeg':
+            ch_coil = FIFF.FIFFV_COIL_EEG
+            ch_kind = FIFF.FIFFV_EEG_CH
+        elif ch_type == 'seeg':
+            ch_coil = FIFF.FIFFV_COIL_EEG
+            ch_kind = FIFF.FIFFV_SEEG_CH
+        else:
+            raise TypeError("Channel type not recognized. Available types are "
+                            "'eeg' and 'seeg'.")
+        cals = np.repeat(header_info['conversion_factor'] * 1e-6, len(ch_names))
+        info['chs'] = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg,
+                                  misc)
+        info['highpass'] = 0.
+        info['lowpass'] = info['sfreq'] / 2.0
     info._update_redundant()
     return info, header_info
 

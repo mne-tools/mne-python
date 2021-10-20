@@ -144,7 +144,8 @@ class RawNedf(BaseRaw):
         # (https://www.neuroelectrics.com/resources/software/):
         for ch in info['chs'][:-1]:
             ch['cal'] = 2.4 / (6.0 * 8388607)
-        info['meas_date'] = header['meas_date']
+        with info._unlock(check_after=False):
+            info['meas_date'] = header['meas_date']
         raw_extra = dict(dt=dt, dt_last=dt_last, n_full=n_full)
         super().__init__(
             info, preload=preload, filenames=[filename], verbose=verbose,

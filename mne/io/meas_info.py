@@ -2610,17 +2610,18 @@ def _writing_info_hdf5(info):
     # Make info writing faster by packing chs and dig into numpy arrays
     orig_dig = info.get('dig', None)
     orig_chs = info['chs']
-    try:
-        if orig_dig is not None and len(orig_dig) > 0:
-            info['dig'] = _dict_pack(info['dig'], _DIG_CAST)
-        info['chs'] = _dict_pack(info['chs'], _CH_CAST)
-        info['chs']['ch_name'] = np.char.encode(
-            info['chs']['ch_name'], encoding='utf8')
-        yield
-    finally:
-        if orig_dig is not None:
-            info['dig'] = orig_dig
-        info['chs'] = orig_chs
+    with info._unlock(check_after=False):
+        try:
+            if orig_dig is not None and len(orig_dig) > 0:
+                info['dig'] = _dict_pack(info['dig'], _DIG_CAST)
+            info['chs'] = _dict_pack(info['chs'], _CH_CAST)
+            info['chs']['ch_name'] = np.char.encode(
+                info['chs']['ch_name'], encoding='utf8')
+            yield
+        finally:
+            if orig_dig is not None:
+                info['dig'] = orig_dig
+            info['chs'] = orig_chs
 
 
 def _dict_pack(obj, casts):
