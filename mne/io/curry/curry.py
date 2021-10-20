@@ -325,7 +325,8 @@ def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
     key = 'LM_REMARKS' + CHANTYPES['meg']
     remarks = _read_curry_lines(label_fname, [key])[key]
     assert len(remarks) == len(lm)
-    info['dig'] = list()
+    with info._unlock(check_after=False):
+        info['dig'] = list()
     cards = dict()
     for remark, r in zip(remarks, lm):
         kind = ident = None
@@ -340,7 +341,8 @@ def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
             info['dig'].append(dict(
                 kind=kind, ident=ident, r=r,
                 coord_frame=FIFF.FIFFV_COORD_UNKNOWN))
-    info['dig'].sort(key=lambda x: (x['kind'], x['ident']))
+    with info._unlock(check_after=False):
+        info['dig'].sort(key=lambda x: (x['kind'], x['ident']))
     has_cards = len(cards) == 3
     has_hpi = 'hpi' in curry_paths
     if has_cards and has_hpi:  # have all three
@@ -364,11 +366,12 @@ def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
                 *(cards[key] for key in (FIFF.FIFFV_POINT_NASION,
                                          FIFF.FIFFV_POINT_LPA,
                                          FIFF.FIFFV_POINT_RPA))))
-        info['dev_head_t'] = combine_transforms(
-            invert_transform(unknown_dev_t), unknown_head_t, 'meg', 'head')
-        for d in info['dig']:
-            d.update(coord_frame=FIFF.FIFFV_COORD_HEAD,
-                     r=apply_trans(unknown_head_t, d['r']))
+        with info._unlock(check_after=False):
+            info['dev_head_t'] = combine_transforms(
+                invert_transform(unknown_dev_t), unknown_head_t, 'meg', 'head')
+            for d in info['dig']:
+                d.update(coord_frame=FIFF.FIFFV_COORD_HEAD,
+                         r=apply_trans(unknown_head_t, d['r']))
     else:
         if has_cards:
             no_msg += ' (no .hpi file found)'
