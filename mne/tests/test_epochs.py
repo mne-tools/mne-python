@@ -2589,7 +2589,7 @@ def test_add_channels_epochs():
     pytest.raises(ValueError, add_channels_epochs, [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.info['expimenter'] = 'foo'
+    epochs_meg2.info['experimenter'] = 'foo'
     pytest.raises(RuntimeError, add_channels_epochs, [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()

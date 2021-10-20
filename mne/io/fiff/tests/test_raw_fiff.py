@@ -1373,7 +1373,8 @@ def test_add_channels():
 
     # Now test errors
     raw_badsf = raw_eeg.copy()
-    raw_badsf.info['sfreq'] = 3.1415927
+    with raw_badsf.info._unlock(check_after=False):
+        raw_badsf.info['sfreq'] = 3.1415927
     raw_eeg.crop(.5)
 
     pytest.raises(RuntimeError, raw_meg.add_channels, [raw_nopre])
