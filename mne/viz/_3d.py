@@ -989,10 +989,11 @@ def _plot_hpi_coils(renderer, info, to_cf_t, opacity=0.5,
         if (d['kind'] == FIFF.FIFFV_POINT_HPI and
             d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
     hpi_loc = apply_trans(to_cf_t['head'], hpi_loc)
-    color = defaults['hpi_color']
-    scale = defaults['hpi_scale']
-    actor, _ = _plot_glyphs(renderer, hpi_loc, color, scale, opacity,
-                            orient_glyphs, surf, backface_culling=True)
+    actor, _ = _plot_glyphs(renderer=renderer, loc=hpi_loc,
+                            color=defaults['hpi_color'],
+                            scale=defaults['hpi_scale'], opacity=opacity,
+                            orient_glyphs=orient_glyphs, surf=surf,
+                            backface_culling=True)
     return actor
 
 
@@ -1058,10 +1059,11 @@ def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
             d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
     ext_loc = apply_trans(to_cf_t['head'], ext_loc)
     ext_loc = ext_loc[mask] if mask is not None else ext_loc
-    color = defaults['extra_color']
-    scale = defaults['extra_scale']
-    actor, _ = _plot_glyphs(renderer, ext_loc, color, scale, opacity,
-                            orient_glyphs, surf, backface_culling=True)
+    actor, _ = _plot_glyphs(renderer=renderer, loc=ext_loc,
+                            color=defaults['extra_color'],
+                            scale=defaults['extra_scale'], opacity=opacity,
+                            orient_glyphs=orient_glyphs, surf=surf,
+                            backface_culling=True)
     return actor
 
 
@@ -1147,9 +1149,10 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
             sens_loc = np.array(locs[sensor_type])
             color = defaults[sensor_type + '_color']
             scale = defaults[sensor_type + '_scale']
-            actor, _ = _plot_glyphs(renderer, sens_loc * scalar, color,
-                                    scale * scalar, sensor_opacity,
-                                    orient_glyphs, surf)
+            actor, _ = _plot_glyphs(renderer=renderer, loc=sens_loc * scalar,
+                                    color=color, scale=scale * scalar,
+                                    opacity=sensor_opacity,
+                                    orient_glyphs=orient_glyphs, surf=surf)
             if sensor_type in ('source', 'detector'):
                 sensor_type = 'fnirs'
             actors[sensor_type].append(actor)
