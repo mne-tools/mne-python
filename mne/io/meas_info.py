@@ -2202,11 +2202,13 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
                     'line_freq', 'lowpass', 'meas_id',
                     'proj_id', 'proj_name', 'projs', 'sfreq', 'gantry_angle',
                     'subject_info', 'sfreq', 'xplotter_layout', 'proc_history']
-    for k in other_fields:
-        info[k] = _merge_info_values(infos, k)
 
-    info['meas_date'] = infos[0]['meas_date']
-    info._check_consistency()
+    with info._unlock(check_after=True):
+        for k in other_fields:
+            info[k] = _merge_info_values(infos, k)
+
+        info['meas_date'] = infos[0]['meas_date']
+
     return info
 
 
@@ -2357,11 +2359,12 @@ def _force_update_info(info_base, info_target):
         if not isinstance(ii, Info):
             raise ValueError('Inputs must be of type Info. '
                              'Found type %s' % type(ii))
-    with info_target._unlock():
-        for key, val in info_base.items():
-            if key in exclude_keys:
-                continue
-            for i_targ in info_target:
+
+    for key, val in info_base.items():
+        if key in exclude_keys:
+            continue
+        for i_targ in info_target:
+            with i_targ._unlock(check_after=False):
                 i_targ[key] = val
 
 

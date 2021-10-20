@@ -404,11 +404,14 @@ def test_merge_info():
     pytest.raises(ValueError, _force_update_info, info_a,
                   dict([('sfreq', 1000.)]))
     # KIT System-ID
-    info_a['kit_system_id'] = 50
+    with info_a._unlock(check_after=False):
+        info_a['kit_system_id'] = 50
     assert _merge_info((info_a, info_b))['kit_system_id'] == 50
-    info_b['kit_system_id'] = 50
+    with info_b._unlock(check_after=False):
+        info_b['kit_system_id'] = 50
     assert _merge_info((info_a, info_b))['kit_system_id'] == 50
-    info_b['kit_system_id'] = 60
+    with info_b._unlock(check_after=False):
+        info_b['kit_system_id'] = 60
     pytest.raises(ValueError, _merge_info, (info_a, info_b))
 
     # hpi infos
@@ -416,12 +419,15 @@ def test_merge_info():
     info_merged = _merge_info([info_a, info_d])
     assert not info_merged['hpi_meas']
     assert not info_merged['hpi_results']
-    info_a['hpi_meas'] = [{'f1': 3, 'f2': 4}]
+    with info_a._unlock(check_after=False):
+        info_a['hpi_meas'] = [{'f1': 3, 'f2': 4}]
     assert _merge_info([info_a, info_d])['hpi_meas'] == info_a['hpi_meas']
-    info_d['hpi_meas'] = [{'f1': 3, 'f2': 4}]
+    with info_d._unlock(check_after=False):
+        info_d['hpi_meas'] = [{'f1': 3, 'f2': 4}]
     assert _merge_info([info_a, info_d])['hpi_meas'] == info_d['hpi_meas']
     # This will break because of inconsistency
-    info_d['hpi_meas'] = [{'f1': 3, 'f2': 5}]
+    with info_d._unlock(check_after=False):
+        info_d['hpi_meas'] = [{'f1': 3, 'f2': 5}]
     pytest.raises(ValueError, _merge_info, [info_a, info_d])
 
     info_0 = read_info(raw_fname)
