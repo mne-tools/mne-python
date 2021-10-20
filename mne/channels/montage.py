@@ -911,7 +911,8 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
     _validate_type(montage, (DigMontage, None, str), 'montage')
     if montage is None:
         # Next line modifies info['dig'] in place
-        info['dig'] = None
+        with info._unlock(check_after=False):
+            info['dig'] = None
         for ch in info['chs']:
             # Next line modifies info['chs'][#]['loc'] in place
             ch['loc'] = np.full(12, np.nan)

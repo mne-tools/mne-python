@@ -999,19 +999,21 @@ class RawBTi(BaseRaw):
 
 def _make_bti_digitization(
         info, head_shape_fname, convert, use_hpi, bti_dev_t, dev_ctf_t):
-    if head_shape_fname:
-        logger.info('... Reading digitization points from %s' %
-                    head_shape_fname)
+    with info._unlock(check_after=False):
+        if head_shape_fname:
+            logger.info('... Reading digitization points from %s' %
+                        head_shape_fname)
 
-        nasion, lpa, rpa, hpi, dig_points = _read_head_shape(head_shape_fname)
-        info['dig'], dev_head_t, ctf_head_t = _make_bti_dig_points(
-            nasion, lpa, rpa, hpi, dig_points,
-            convert, use_hpi, bti_dev_t, dev_ctf_t)
-    else:
-        logger.info('... no headshape file supplied, doing nothing.')
-        info['dig'] = None
-        dev_head_t = Transform('meg', 'head', trans=None)
-        ctf_head_t = Transform('ctf_head', 'head', trans=None)
+            nasion, lpa, rpa, hpi, dig_points = _read_head_shape(
+                head_shape_fname)
+            info['dig'], dev_head_t, ctf_head_t = _make_bti_dig_points(
+                nasion, lpa, rpa, hpi, dig_points,
+                convert, use_hpi, bti_dev_t, dev_ctf_t)
+        else:
+            logger.info('... no headshape file supplied, doing nothing.')
+            info['dig'] = None
+            dev_head_t = Transform('meg', 'head', trans=None)
+            ctf_head_t = Transform('ctf_head', 'head', trans=None)
 
     info.update(dev_head_t=dev_head_t, dev_ctf_t=dev_ctf_t,
                 ctf_head_t=ctf_head_t)
@@ -1095,13 +1097,15 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
     if pdf_fname is not None:
         info = _empty_info(sfreq)
         date = bti_info['processes'][0]['timestamp']
-        info['meas_date'] = _stamp_to_dt((date, 0))
+        with info._unlock(check_after=False):
+            info['meas_date'] = _stamp_to_dt((date, 0))
     else:  # these cannot be guessed from config, see docstring
         info = _empty_info(1.0)
-        info['sfreq'] = None
-        info['lowpass'] = None
-        info['highpass'] = None
-        info['meas_date'] = None
+        with info._unlock(check_after=False):
+            info['sfreq'] = None
+            info['lowpass'] = None
+            info['highpass'] = None
+            info['meas_date'] = None
         bti_info['processes'] = list()
 
     # browse processing info for filter specs.
@@ -1116,8 +1120,9 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                 elif 'lp' in step['process_type']:
                     lp = step['freq']
 
-    info['highpass'] = hp
-    info['lowpass'] = lp
+    with info._unlock(check_after=False):
+        info['highpass'] = hp
+        info['lowpass'] = lp
     chs = []
 
     # Note that 'name' and 'chan_label' are not the same.
@@ -1203,7 +1208,8 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
 
         chs.append(chan_info)
 
-    info['chs'] = chs
+    with info._unlock(check_after=False):
+        info['chs'] = chs
 
     # ### Dig stuff
     info = _make_bti_digitization(

@@ -654,7 +654,8 @@ class ICA(ContainsMixin):
         self.info = pick_info(inst.info, picks)
 
         if self.info['comps']:
-            self.info['comps'] = []
+            with self.info._unlock(check_after=False):
+                self.info['comps'] = []
         self.ch_names = self.info['ch_names']
 
         if isinstance(inst, BaseRaw):

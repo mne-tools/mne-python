@@ -351,10 +351,11 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
             ecg, create_info(ch_names=['ECG-SYN'],
                              sfreq=raw.info['sfreq'], ch_types=['ecg']),
             first_samp=raw.first_samp)
-        ignore = ['ch_names', 'chs', 'nchan', 'bads']
-        for k, v in raw.info.items():
-            if k not in ignore:
-                ecg_raw.info[k] = v
+        with ecg_raw.info._unlock(check_after=False):
+            ignore = ['ch_names', 'chs', 'nchan', 'bads']
+            for k, v in raw.info.items():
+                if k not in ignore:
+                    ecg_raw.info[k] = v
         syn_epochs = Epochs(ecg_raw, events=ecg_epochs.events,
                             event_id=event_id, tmin=tmin, tmax=tmax,
                             proj=False, picks=[0], baseline=baseline,
