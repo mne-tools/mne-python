@@ -219,13 +219,6 @@ def add_reference_channels(inst, ref_channels, copy=True):
             # Replace the (possibly new) Ref location for each channel
             for idx in pick_types(inst.info, meg=False, eeg=True, exclude=[]):
                 inst.info['chs'][idx]['loc'][3:6] = ref_dig_loc[0]['r']
-    else:
-        # we should actually be able to do this from the montage, but
-        # it looks like the montage isn't stored, so we can't extract
-        # this information. The user will just have to call set_montage()
-        # by setting this to zero, we fall back to the old behavior
-        # when missing digitisation
-        ref_dig_array = np.zeros(12)
 
     for ch in ref_channels:
         chan_info = {'ch_name': ch,
