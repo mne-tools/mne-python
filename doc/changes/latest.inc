@@ -205,6 +205,8 @@ Enhancements
 
 - Add support for BIDS-compatible filenames when splitting big epochs files via the new ``split_naming`` parameter in :meth:`mne.Epochs.save` (:gh:9869 by `Denis Engemann`_)
 
+- Add ``by_event_type`` parameter to :meth:`mne.Epochs.average` to create a list containing an :class:`mne.Evoked` object for each event type (:gh:`9859` by `Marijn van Vliet`_)
+
 Bugs
 ~~~~
 - Fix bug in :meth:`mne.io.Raw.pick` and related functions when parameter list contains channels which are not in info instance (:gh:`9708` **by new contributor** |Evgeny Goldstein|_)
