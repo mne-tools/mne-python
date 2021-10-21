@@ -3272,9 +3272,9 @@ def test_average_methods():
     ev = epochs.average(by_event_type=True)
     assert len(ev) == 2
     assert ev[0].comment == 'first'
-    assert_array_equal(ev[0].data, fun(data[:-2]))
+    assert_array_equal(ev[0].data, np.mean(data[:-2], axis=0))
     assert ev[1].comment == 'second'
-    assert_array_equal(ev[1].data, fun(data[-2:]))
+    assert_array_equal(ev[1].data, np.mean(data[-2:], axis=0))
 
 
 @pytest.mark.parametrize('relative', (True, False))
