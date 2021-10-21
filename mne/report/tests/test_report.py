@@ -728,6 +728,21 @@ def test_manual_report_2d(tmpdir, invisible_fig):
     r.add_html(html='<strong>Hello</strong>', title='Bold')
     r.add_code(code=__file__, title='my code')
     r.add_sys_info(title='my sysinfo')
+
+    # drop locations for EEG
+    for ch in evoked.info['chs']:
+        ch['loc'][:3] = np.nan
+
+    with pytest.raises(RuntimeWarning, match='No EEG channel locations'):
+        r.add_evokeds(
+            evokeds=evoked, titles=['my evoked 1'], tags=('evoked',),
+            projs=True, n_time_points=1
+        )
+    assert 'Time course' not in r._content[-1].html
+    assert 'Topographies' not in r._content[-1].html
+    assert evoked.info['projs']  # only then the following test makes sense
+    assert 'SSP' not in r._content[-1].html
+
     fname = op.join(tmpdir, 'report.html')
     r.save(fname=fname, open_browser=False)
 

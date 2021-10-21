@@ -3099,7 +3099,7 @@ class Report(object):
         htmls = []
         for ch_type in ch_types:
             if not _check_ch_locs(info=evoked.info, ch_type=ch_type):
-                ch_type_name = {_handle_default("titles")[ch_type]}
+                ch_type_name = _handle_default("titles")[ch_type]
                 warn(f'No {ch_type_name} channel locations found, cannot '
                      f'create joint plot')
                 continue
@@ -3202,7 +3202,7 @@ class Report(object):
         vmin = dict()
         for ch_type in ch_types:
             if not _check_ch_locs(info=evoked.info, ch_type=ch_type):
-                ch_type_name = {_handle_default("titles")[ch_type]}
+                ch_type_name = _handle_default("titles")[ch_type]
                 warn(f'No {ch_type_name} channel locations found, cannot '
                      f'create topography plots')
                 continue
