@@ -331,14 +331,31 @@ def _check_time_format(time_format, valid, meas_date=None):
     return time_format
 
 
-def _check_ch_locs(chs):
+def _check_ch_locs(info, picks=None, ch_type=None):
     """Check if channel locations exist.
 
     Parameters
     ----------
-    chs : dict
-        The channels from info['chs']
+    info : Info | None
+        `~mne.Info` instance.
+    picks : list of int
+        Channel indices to consider. If provided, ``ch_type`` must be ``None``.
+    ch_type : str | None
+        The channel type to restrict the check to. If ``None``, check all
+        channel types. If provided, ``picks`` must be ``None``.
     """
+    from ..io.pick import _picks_to_idx, pick_info
+
+    if picks is not None and ch_type is not None:
+        raise ValueError('Either picks or ch_type may be provided, not both')
+
+    if picks is not None:
+        info = pick_info(info=info, sel=picks)
+    elif ch_type is not None:
+        picks = _picks_to_idx(info=info, picks=ch_type, none=ch_type)
+        info = pick_info(info=info, sel=picks)
+
+    chs = info['chs']
     locs3d = np.array([ch['loc'][:3] for ch in chs])
     return not ((locs3d == 0).all() or
                 (~np.isfinite(locs3d)).all() or

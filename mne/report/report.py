@@ -31,6 +31,8 @@ from ..fixes import _compare_version
 from .. import (read_evokeds, read_events, read_cov,
                 read_source_estimate, read_trans, sys_info,
                 Evoked, SourceEstimate, Covariance, Info, Transform)
+from ..channels import _get_ch_type
+from ..channels.layout import _check_ch_locs
 from ..defaults import _handle_default
 from ..io import read_raw, read_info, BaseRaw
 from ..io._read_raw import supported as extension_reader_map
@@ -1361,6 +1363,13 @@ class Report(object):
 
     def _render_ica_properties(self, *, ica, picks, inst, n_jobs, image_format,
                                tags):
+        ch_type = _get_ch_type(inst=ica.info, ch_type=None)
+        if not _check_ch_locs(info=ica.info, ch_type=ch_type):
+            ch_type_name = _handle_default("titles")[ch_type]
+            warn(f'No {ch_type_name} channel locations found, cannot '
+                 f'create ICA properties plots')
+            return ''
+
         figs = _plot_ica_properties_as_arrays(
             ica=ica, inst=inst, picks=picks, n_jobs=n_jobs
         )
@@ -1428,6 +1437,13 @@ class Report(object):
         return html
 
     def _render_ica_components(self, *, ica, picks, image_format, tags):
+        ch_type = _get_ch_type(inst=ica.info, ch_type=None)
+        if not _check_ch_locs(info=ica.info, ch_type=ch_type):
+            ch_type_name = _handle_default("titles")[ch_type]
+            warn(f'No {ch_type_name} channel locations found, cannot '
+                 f'create ICA component plots')
+            return ''
+
         figs = ica.plot_components(
             picks=picks, title='', colorbar=True, show=False
         )
@@ -2991,8 +3007,9 @@ class Report(object):
         if not projs:  # Abort mission!
             return None
 
-        if info['dig'] is None:  # We cannot proceed without digpoints either
-            return None
+        if not _check_ch_locs(info=info):
+            warn('No channel locations found, cannot create projector plots')
+            return '', None
 
         topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
         fig = plot_projs_topomap(
@@ -3097,6 +3114,12 @@ class Report(object):
                              topomap_kwargs):
         htmls = []
         for ch_type in ch_types:
+            if not _check_ch_locs(info=evoked.info, ch_type=ch_type):
+                ch_type_name = _handle_default("titles")[ch_type]
+                warn(f'No {ch_type_name} channel locations found, cannot '
+                     f'create joint plot')
+                continue
+
             with use_log_level(level=False):
                 fig = evoked.copy().pick(ch_type, verbose=False).plot_joint(
                     ts_args=dict(gfp=True),
@@ -3194,6 +3217,12 @@ class Report(object):
         vmax = dict()
         vmin = dict()
         for ch_type in ch_types:
+            if not _check_ch_locs(info=evoked.info, ch_type=ch_type):
+                ch_type_name = _handle_default("titles")[ch_type]
+                warn(f'No {ch_type_name} channel locations found, cannot '
+                     f'create topography plots')
+                continue
+
             vmax[ch_type] = (np.abs(evoked.copy()
                                     .pick(ch_type, verbose=False)
                                     .data)
@@ -3203,31 +3232,35 @@ class Report(object):
             else:
                 vmin[ch_type] = -vmax[ch_type]
 
-        topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
+        if not (vmin and vmax):  # we only had EEG data and no digpoints
+            html = ''
+            dom_id = None
+        else:
+            topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
 
-        use_jobs = min(n_jobs, max(1, len(times)))
-        parallel, p_fun, _ = parallel_func(
-            func=self._plot_one_evoked_topomap_timepoint,
-            n_jobs=use_jobs
-        )
-        fig_arrays = parallel(
-            p_fun(
-                evoked=evoked, time=time, ch_types=ch_types,
-                vmin=vmin, vmax=vmax, topomap_kwargs=topomap_kwargs
-            ) for time in times
-        )
+            use_jobs = min(n_jobs, max(1, len(times)))
+            parallel, p_fun, _ = parallel_func(
+                func=self._plot_one_evoked_topomap_timepoint,
+                n_jobs=use_jobs
+            )
+            fig_arrays = parallel(
+                p_fun(
+                    evoked=evoked, time=time, ch_types=ch_types,
+                    vmin=vmin, vmax=vmax, topomap_kwargs=topomap_kwargs
+                ) for time in times
+            )
 
-        captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
-        html = self._render_slider(
-            figs=fig_arrays,
-            captions=captions,
-            title='Topographies',
-            image_format=image_format,
-            start_idx=t_zero_idx,
-            tags=tags
-        )
+            captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
+            html, dom_id = self._render_slider(
+                figs=fig_arrays,
+                captions=captions,
+                title='Topographies',
+                image_format=image_format,
+                start_idx=t_zero_idx,
+                tags=tags
+            )
 
-        return html
+        return html, dom_id
 
     def _render_evoked_gfp(self, evoked, ch_types, image_format, tags):
         # Make legend labels shorter by removing the multiplicative factors
@@ -3468,7 +3501,8 @@ class Report(object):
 
         ssp_projs_html = self._ssp_projs_html(
             add_projs=add_projs, info=epochs, image_format=image_format,
-            tags=tags, topomap_kwargs=topomap_kwargs)
+            tags=tags, topomap_kwargs=topomap_kwargs
+        )
 
         return (repr_html, erp_imgs_html, drop_log_img_html, psd_img_html,
                 ssp_projs_html)

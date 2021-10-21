@@ -728,6 +728,48 @@ def test_manual_report_2d(tmpdir, invisible_fig):
     r.add_html(html='<strong>Hello</strong>', title='Bold')
     r.add_code(code=__file__, title='my code')
     r.add_sys_info(title='my sysinfo')
+
+    # drop locations (only EEG channels in `evoked`)
+    evoked_no_ch_locs = evoked.copy()
+    for ch in evoked_no_ch_locs.info['chs']:
+        ch['loc'][:3] = np.nan
+
+    with pytest.warns(RuntimeWarning, match='No EEG channel locations'):
+        r.add_evokeds(
+            evokeds=evoked_no_ch_locs, titles=['evoked no chan locs'],
+            tags=('evoked',), projs=True, n_time_points=1
+        )
+    assert 'Time course' not in r._content[-1].html
+    assert 'Topographies' not in r._content[-1].html
+    assert evoked.info['projs']  # only then the following test makes sense
+    assert 'SSP' not in r._content[-1].html
+    assert 'Global field power' in r._content[-1].html
+
+    # Drop locations from Info used for projs
+    info_no_ch_locs = raw.info.copy()
+    for ch in info_no_ch_locs['chs']:
+        ch['loc'][:3] = np.nan
+
+    with pytest.warns(RuntimeWarning, match='No channel locations found'):
+        r.add_projs(info=info_no_ch_locs, title='Projs no chan locs')
+
+    # Drop locations from ICA
+    ica_no_ch_locs = ica.copy()
+    for ch in ica_no_ch_locs.info['chs']:
+        ch['loc'][:3] = np.nan
+
+    with pytest.warns(
+        RuntimeWarning,
+        match='No Magnetometers channel locations'
+    ):
+        r.add_ica(
+            ica=ica_no_ch_locs, picks=[0],
+            inst=raw.copy().load_data(), title='ICA'
+        )
+    assert 'ICA component properties' not in r._content[-1].html
+    assert 'ICA component topographies' not in r._content[-1].html
+    assert 'Original and cleaned signal' in r._content[-1].html
+
     fname = op.join(tmpdir, 'report.html')
     r.save(fname=fname, open_browser=False)
 
