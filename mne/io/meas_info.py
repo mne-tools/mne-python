@@ -220,6 +220,13 @@ def _check_experimenter(experimenter):
     return experimenter
 
 
+def _check_line_freq(line_freq):
+    _validate_type(line_freq, (None, 'numeric'), 'line_freq')
+    if line_freq is not None and not isinstance(line_freq, float):
+        line_freq = float(line_freq)
+    return line_freq
+
+
 def _check_subject_info(subject_info):
     _validate_type(subject_info, (None, dict), 'subject_info')
     return subject_info
@@ -245,7 +252,8 @@ class Info(dict, MontageMixin):
     so new entries should not be manually added.
 
     .. warning:: The only entries that should be manually changed by the user
-                 are ``info['bads']`` and ``info['description']``. All other
+                 are ``info['bads']``, ``info['description']``,
+                 ``info['experimenter']`` and ``info['line_freq']``. All other
                  entries should be considered read-only, though they can be
                  modified by various MNE-Python functions or methods (which
                  have safeguards to ensure all fields remain in sync).
@@ -618,7 +626,7 @@ class Info(dict, MontageMixin):
         'hpi_meas': 'hpi_meas can not be set directly.',
         'hpi_results': 'hpi_results can not be set directly.',
         'hpi_subsystem': 'hpi_subsystem can not be set directly.',
-        'line_freq': 'line_freq can not be set directly.',
+        'line_freq': _check_line_freq,
         'gantry_angle': 'gantry_angle can not be set directly.',
         'lowpass': 'lowpass can not be directly set. '
                    'Please use method inst.filter() instead.',
