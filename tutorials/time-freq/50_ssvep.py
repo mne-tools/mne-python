@@ -82,13 +82,18 @@ raw.set_eeg_reference('average', projection=False, verbose=False)
 # Apply bandpass filter
 raw.filter(l_freq=0.1, h_freq=None, fir_design='firwin', verbose=False)
 
+# Add stim channel
+info = mne.create_info(['STI'], sfreq=raw.info['sfreq'], ch_types='stim')
+stim = mne.io.RawArray(np.zeros(shape=(1, len(raw.times))), info)
+raw.add_channels([stim], force_update_info=True)
+
 # Construct epochs
 event_id = {
     '12hz': 255,
     '15hz': 155
 }
 events, _ = mne.events_from_annotations(raw, verbose=False)
-raw.info["events"] = events
+raw.add_events(events, stim_channel='STI')
 tmin, tmax = -1., 20.  # in s
 baseline = None
 epochs = mne.Epochs(
