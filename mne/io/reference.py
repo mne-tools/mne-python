@@ -210,9 +210,8 @@ def add_reference_channels(inst, ref_channels, copy=True):
                        dl['kind'] == FIFF.FIFFV_POINT_EEG and
                        dl['ident'] == 0)]
         if len(ref_channels) > 1 or len(ref_dig_loc) != len(ref_channels):
-            ref_dig_array = np.zeros(12)
-            warn('The locations of multiple reference channels are ignored '
-                 '(set to zero).')
+            ref_dig_array = np.full(12, np.nan)
+            warn('The locations of multiple reference channels are ignored.')
         else:  # n_ref_channels == 1 and a single ref digitization exists
             ref_dig_array = np.concatenate((ref_dig_loc[0]['r'],
                                            ref_dig_loc[0]['r'], np.zeros(6)))
