@@ -32,7 +32,6 @@ from .. import (read_evokeds, read_events, read_cov,
                 read_source_estimate, read_trans, sys_info,
                 Evoked, SourceEstimate, Covariance, Info, Transform)
 from ..channels import _get_ch_type
-from ..channels.layout import _check_ch_locs
 from ..defaults import _handle_default
 from ..io import read_raw, read_info, BaseRaw
 from ..io._read_raw import supported as extension_reader_map
@@ -41,7 +40,8 @@ from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
-                     _path_like, use_log_level, deprecated, _check_fname)
+                     _path_like, use_log_level, deprecated, _check_fname,
+                     _check_ch_locs)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
