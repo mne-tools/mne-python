@@ -2243,7 +2243,8 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
             The dimension along which to combine the data.
         copy : bool
             Whether to return a copy of the modified instance,
-            or modify in place.
+            or modify in place. Ignored when ``dim='epochs'``
+            because a new instance must be returned.
 
         Returns
         -------
