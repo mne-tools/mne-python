@@ -220,6 +220,9 @@ def add_reference_channels(inst, ref_channels, copy=True):
             for idx in pick_types(inst.info, meg=False, eeg=True, exclude=[]):
                 inst.info['chs'][idx]['loc'][3:6] = ref_dig_loc[0]['r']
     else:
+        # Ideally we'd fall back on getting the location from a montage, but
+        # locations for non-present channels aren't stored, so location is
+        # unknown. User can call set_montage() again if needed.
         ref_dig_array = np.full(12, np.nan)
 
     for ch in ref_channels:
