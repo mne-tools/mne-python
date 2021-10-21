@@ -530,7 +530,7 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_named_layout(self, name, layout, compact):
+    def _dock_named_layout(self, name, layout=None, compact=True):
         pass
 
     @abstractmethod

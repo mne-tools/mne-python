@@ -93,7 +93,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
-    def _dock_named_layout(self, name, layout, compact):
+    def _dock_named_layout(self, name, layout=None, compact=True):
         layout = self._dock_layout if layout is None else layout
         if name is not None:
             hlayout = self._dock_add_layout(not compact)
@@ -585,6 +585,9 @@ class _QtWidgetList(_AbstractWidgetList):
     def set_enabled(self, state):
         for widget in self._widgets:
             widget.set_enabled(state)
+
+    def get_value(self, idx):
+        return self._widgets[idx].get_value()
 
     def set_value(self, idx, value):
         if isinstance(self._src, QButtonGroup):

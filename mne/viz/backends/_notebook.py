@@ -79,7 +79,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_named_layout(self, name, layout, compact):
+    def _dock_named_layout(self, name, layout=None, compact=True):
         layout = self._dock_layout if layout is None else layout
         if name is not None:
             hlayout = self._dock_add_layout(not compact)
