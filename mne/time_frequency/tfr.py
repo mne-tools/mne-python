@@ -2261,15 +2261,8 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
         https://github.com/scipy/scipy/pull/12676#issuecomment-783370228
         """
-        if dim == 'epochs':
-            axis = 0
-        elif dim == 'freqs':
-            axis = 2
-        elif dim == 'times':
-            axis = self.data.ndim - 1
-        else:
-            raise ValueError(
-                f'dim can only be epochs, freqs, or times, not {dim}')
+        _check_option('dim', dim, ('epochs', 'freqs', 'times'))
+        axis = dict(epochs=0, freqs=2, times=self.data.ndim - 1)[dim]
 
         # return a lambda function for computing a combination metric
         # over epochs
@@ -2278,22 +2271,20 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
         n_epochs, n_channels, n_freqs, n_times = self.data.shape
         freqs, times = self.freqs, self.times
+
         if dim == 'freqs':
-            data = np.expand_dims(data, axis=axis)
             freqs = np.mean(self.freqs, keepdims=True)
-            expected_shape = (n_epochs, n_channels, 1, n_times)
-            error_check = data.shape != expected_shape
+            n_freqs = 1
         elif dim == 'times':
-            data = np.expand_dims(data, axis=axis)
             times = np.mean(self.times, keepdims=True)
-
-            expected_shape = (n_epochs, n_channels, n_freqs, 1)
-            error_check = data.shape != expected_shape
-        else:
+            n_times = 1
+        if dim == 'epochs':
             expected_shape = self._data.shape[1:]
-            error_check = data.shape != expected_shape
+        else:
+            expected_shape = (n_epochs, n_channels, n_freqs, n_times)
+            data = np.expand_dims(data, axis=axis)
 
-        if error_check:
+        if data.shape != expected_shape:
             raise RuntimeError(
                 f'You passed a function that resulted in data of shape '
                 f'{data.shape}, but it should be {expected_shape}.')
@@ -2303,18 +2294,16 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
                               times=times, freqs=freqs,
                               nave=self.data.shape[0], method=self.method,
                               comment=self.comment)
+        elif copy:
+            return EpochsTFR(info=self.info.copy(), data=data,
+                             times=times, freqs=freqs, method=self.method,
+                             comment=self.comment, metadata=self.metadata,
+                             events=self.events, event_id=self.event_id)
         else:
-            if copy is True:
-                return EpochsTFR(info=self.info.copy(), data=data,
-                                 times=times, freqs=freqs,
-                                 method=self.method,
-                                 comment=self.comment, metadata=self.metadata,
-                                 events=self.events, event_id=self.event_id)
-            else:
-                self.data = data
-                self.times = times
-                self.freqs = freqs
-                return self
+            self.data = data
+            self.times = times
+            self.freqs = freqs
+            return self
 
 
 def combine_tfr(all_tfr, weights='nave'):
