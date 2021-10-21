@@ -187,7 +187,7 @@ Enhancements
 
 - Add options ``tol`` and ``accuracy`` to :func:`mne.fit_dipole` to control optimization (:gh:`9810` by `Eric Larson`_)
 
-- Completely revamp the `~mne.Report` experience: new HTML layout, many new methods, more flexibility; the functionality is demonstrated in :ref:`tut-report` (:gh:`9754`, :gh:`9828`, :gh:`9847`, :gh:`9860`, :gh:`9861`, :gh:`9862`, :gh:`9863` by `Richard Höchenberger`_, `Eric Larson`_, and `Alex Gramfort`_)
+- Completely revamp the `~mne.Report` experience: new HTML layout, many new methods, more flexibility; the functionality is demonstrated in :ref:`tut-report` (:gh:`9754`, :gh:`9828`, :gh:`9847`, :gh:`9860`, :gh:`9861`, :gh:`9862`, :gh:`9863`, :gh:`9871` by `Richard Höchenberger`_, `Eric Larson`_, and `Alex Gramfort`_)
 
 - Add basic HTML representations of `~mne.Forward` and `~mne.minimum_norm.InverseOperator` instances for a nicer Jupyter experience (:gh:`9754` by `Richard Höchenberger`_)
 
@@ -202,6 +202,8 @@ Enhancements
 - All functions accepting a FreeSurfer subjects directory via a ``subjects_dir`` parameter can now consume :py:class:`pathlib.Path` objects too (used to be only strings) (:gh:`9613` by `Richard Höchenberger`_)
 
 - Add support for colormap normalization in :meth:`mne.time_frequency.AverageTFR.plot` (:gh:`9851` by `Clemens Brunner`_)
+
+- Add support for BIDS-compatible filenames when splitting big epochs files via the new ``split_naming`` parameter in :meth:`mne.Epochs.save` (:gh:9869 by `Denis Engemann`_)
 
 Bugs
 ~~~~
