@@ -685,12 +685,21 @@ class Info(dict, MontageMixin):
             else:
                 self['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
 
+    def __getstate__(self):
+        return {'_unlocked': self._unlocked}
+
+    def __setstate__(self, state):
+        self._unlocked = state['_unlocked']
+
     def __setitem__(self, key, val):
         """Attribute setter."""
+        # During unpickling, the _unlocked attribute has not been set, so
+        # let __setstate__ do it later and act unlocked now
+        unlocked = getattr(self, '_unlocked', True)
         if key in self._attributes:
-            if isinstance(self._attributes[key], str) and self._unlocked:
+            if isinstance(self._attributes[key], str) and unlocked:
                 super().__setitem__(key, val)
-            elif isinstance(self._attributes[key], str) and not self._unlocked:
+            elif isinstance(self._attributes[key], str) and not unlocked:
                 raise AttributeError(self._attributes[key])
             else:
                 val = self._attributes[key](val)  # attribute checker function

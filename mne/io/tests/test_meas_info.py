@@ -1025,13 +1025,17 @@ def test_channel_name_limit(tmpdir, monkeypatch, fname):
 
 
 @pytest.mark.parametrize('fname_info', (raw_fname, 'create_info'))
-def test_pickle(fname_info):
+@pytest.mark.parametrize('unlocked', (True, False))
+def test_pickle(fname_info, unlocked):
     """Test that Info can be (un)pickled."""
     if fname_info == 'create_info':
         info = create_info(3, 1000., 'eeg')
     else:
         info = read_info(fname_info)
+    assert not info._unlocked
+    info._unlocked = unlocked
     data = pickle.dumps(info)
     info_un = pickle.loads(data)
     assert isinstance(info_un, Info)
     assert_object_equal(info, info_un)
+    assert info_un._unlocked == unlocked
