@@ -102,11 +102,11 @@ ax.set(ylabel='True label', xlabel='Predicted label')
 fig, axes = plt.subplots(nrows=len(event_id), ncols=n_filter,
                          figsize=(n_filter, len(event_id) * 2))
 fitted_xdawn = clf.steps[0][1]
-tmp_info = epochs.info.copy()
-tmp_info['sfreq'] = 1.
+tmp = epochs.copy()
+tmp.resample(1)
 for ii, cur_class in enumerate(sorted(event_id)):
     cur_patterns = fitted_xdawn.patterns_[cur_class]
-    pattern_evoked = EvokedArray(cur_patterns[:n_filter].T, tmp_info, tmin=0)
+    pattern_evoked = EvokedArray(cur_patterns[:n_filter].T, tmp.info, tmin=0)
     pattern_evoked.plot_topomap(
         times=np.arange(n_filter),
         time_format='Component %d' if ii == 0 else '', colorbar=False,
