@@ -417,6 +417,7 @@ def test_render_mri(renderer, tmpdir):
     1,
     pytest.param(2, marks=pytest.mark.slowtest),  # 1.5 sec locally
 ])
+@pytest.mark.filterwarnings('ignore:No contour levels were.*:UserWarning')
 def test_add_bem_n_jobs(n_jobs, monkeypatch):
     """Test add_bem with n_jobs."""
     if n_jobs == 1:  # in one case, do at init -- in the other, pass in
