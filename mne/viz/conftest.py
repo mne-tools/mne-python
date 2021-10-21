@@ -49,23 +49,6 @@ def fnirs_epochs():
     return epochs
 
 
-@pytest.fixture(scope='function')
-def nbexec(_nbclient):
-    """Execute Python code in a notebook."""
-    # Adapted/simplified from nbclient/client.py (BSD-3-Clause)
-    _nbclient._cleanup_kernel()
-
-    def execute(code, reset=False):
-        _nbclient.reset_execution_trackers()
-        with _nbclient.setup_kernel():
-            assert _nbclient.kc is not None
-            cell = Bunch(cell_type='code', metadata={}, source=dedent(code))
-            _nbclient.execute_cell(cell, 0, execution_count=0)
-            _nbclient.set_widgets_metadata()
-
-    yield execute
-
-
 # Create one nbclient and reuse it
 @pytest.fixture(scope='session')
 def _nbclient():
@@ -108,6 +91,23 @@ def _nbclient():
     client = NotebookClient(nb, km=km)
     yield client
     client._cleanup_kernel()
+
+
+@pytest.fixture(scope='function')
+def nbexec(_nbclient):
+    """Execute Python code in a notebook."""
+    # Adapted/simplified from nbclient/client.py (BSD-3-Clause)
+    _nbclient._cleanup_kernel()
+
+    def execute(code, reset=False):
+        _nbclient.reset_execution_trackers()
+        with _nbclient.setup_kernel():
+            assert _nbclient.kc is not None
+            cell = Bunch(cell_type='code', metadata={}, source=dedent(code))
+            _nbclient.execute_cell(cell, 0, execution_count=0)
+            _nbclient.set_widgets_metadata()
+
+    yield execute
 
 
 def pytest_runtest_call(item):
