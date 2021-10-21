@@ -686,9 +686,11 @@ class Info(dict, MontageMixin):
                 self['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
 
     def __getstate__(self):
+        """Get state (for pickling)."""
         return {'_unlocked': self._unlocked}
 
     def __setstate__(self, state):
+        """Set state (for pickling)."""
         self._unlocked = state['_unlocked']
 
     def __setitem__(self, key, val):
