@@ -18,6 +18,8 @@ def test_gui_api(renderer_interactive_pyvistaqt):
     renderer._dock_add_spin_box('', 0, [0, 1], noop, step=None)
     renderer._dock_add_spin_box('', 0, [0, 1], noop, step=0.1)
     widget = renderer._dock_add_check_box('', True, noop)
+    widget.update()
+    assert widget.get_value()
     widget.set_value(True)
     widget.set_enabled(False)
     widget = renderer._dock_add_radio_buttons('foo', ['foo', 'bar'], noop)
