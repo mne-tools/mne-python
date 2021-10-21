@@ -4,9 +4,10 @@
 #
 # License: BSD-3-Clause
 
+from datetime import datetime, timedelta, timezone, date
 import hashlib
 import os.path as op
-from datetime import datetime, timedelta, timezone, date
+import pickle
 
 import pytest
 import numpy as np
@@ -1021,3 +1022,16 @@ def test_channel_name_limit(tmpdir, monkeypatch, fname):
     for iv in (inv, inv_read):
         assert iv['info']['ch_names'] == good_long_data_names
     apply_inverse(evoked, inv)  # smoke test
+
+
+@pytest.mark.parametrize('fname_info', (raw_fname, 'create_info'))
+def test_pickle(fname_info):
+    """Test that Info can be (un)pickled."""
+    if fname_info == 'create_info':
+        info = create_info(3, 1000., 'eeg')
+    else:
+        info = read_info(fname_info)
+    data = pickle.dumps(info)
+    info_un = pickle.loads(data)
+    assert isinstance(info_un, Info)
+    assert_object_equal(info, info_un)
