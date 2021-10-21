@@ -617,7 +617,7 @@ class _QtWidget(_AbstractWidget):
         elif hasattr(self._widget, "currentText"):
             return self._widget.currentText()
         elif hasattr(self._widget, "checkState"):
-            return self._widget.checkState()
+            return bool(self._widget.checkState())
         elif hasattr(self._widget, "text"):
             return self._widget.text()
 
