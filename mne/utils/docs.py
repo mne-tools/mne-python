@@ -950,6 +950,18 @@ n_pca_components : int | float | None
     the ``ica.n_pca_components`` from initialization will be used in 0.22;
     in 0.23 all components will be used.
 """
+docdict['measure'] = """
+measure : 'zscore' | 'correlation'
+    Which method to use for finding outliers among the components:
+
+    - ``'zscore'`` (default) is the iterative z-scoring method. This method
+      computes the z-score of the component's scores and masks the components
+      with a z-score above threshold. This process is repeated until no
+      supra-threshold component remains.
+    - ``'correlation'`` is an absolute raw correlation threshold ranging from 0
+      to 1.
+
+    .. versionadded:: 0.21"""
 
 # Maxwell filtering
 docdict['maxwell_origin'] = """
@@ -2595,7 +2607,13 @@ overwrite : bool
     If True (default False), overwrite the destination file if it
     exists.
 """
-
+docdict['split_naming'] = """
+split_naming : 'neuromag' | 'bids'
+    When splitting files, append a filename partition with the appropriate
+    naming schema: for ``'neuromag'``, a split file ``fname.fif`` will be named
+    ``fname.fif``, ``fname-1.fif``, ``fname-2.fif`` etc.; while for ``'bids'``,
+    it will be named ``fname_split-01.fif``, ``fname_split-02.fif``, etc.
+"""
 docdict['ref_channels'] = """
 ref_channels : str | list of str
     Name of the electrode(s) which served as the reference in the

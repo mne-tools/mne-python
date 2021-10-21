@@ -4,7 +4,7 @@ import os.path as op
 import pytest
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_equal, assert_allclose,
-                           assert_array_less)
+                           assert_array_less, assert_almost_equal)
 import itertools
 
 import mne
@@ -236,9 +236,9 @@ def test_rotation():
         m4 = rotation(x, y, z)
         assert_array_equal(m, m4[:3, :3])
         back = rotation_angles(m)
-        assert_equal(back, rot)
+        assert_almost_equal(actual=back, desired=rot, decimal=12)
         back4 = rotation_angles(m4)
-        assert_equal(back4, rot)
+        assert_almost_equal(actual=back4, desired=rot, decimal=12)
 
 
 def test_rotation3d_align_z_axis():
