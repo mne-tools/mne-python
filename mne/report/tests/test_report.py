@@ -730,13 +730,14 @@ def test_manual_report_2d(tmpdir, invisible_fig):
     r.add_sys_info(title='my sysinfo')
 
     # drop locations for EEG
-    for ch in evoked.info['chs']:
+    evoked_no_ch_locs = evoked.copy()
+    for ch in evoked_no_ch_locs.info['chs']:
         ch['loc'][:3] = np.nan
 
     with pytest.raises(RuntimeWarning, match='No EEG channel locations'):
         r.add_evokeds(
-            evokeds=evoked, titles=['my evoked 1'], tags=('evoked',),
-            projs=True, n_time_points=1
+            evokeds=evoked_no_ch_locs, titles=['my evoked 1'],
+            tags=('evoked',), projs=True, n_time_points=1
         )
     assert 'Time course' not in r._content[-1].html
     assert 'Topographies' not in r._content[-1].html
