@@ -545,7 +545,6 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         out += '%0.1f GB\n' % (psutil.virtual_memory().total / float(2 ** 30),)
     out += '\n'
     libs = _get_numpy_libs()
-    has_3d = False
     use_mod_names = ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
                      'numba', 'nibabel', 'nilearn', 'dipy', 'cupy', 'pandas',
                      'mayavi', 'pyvista', 'vtk', 'PyQt5', 'pooch')
