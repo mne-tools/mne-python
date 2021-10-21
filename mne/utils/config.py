@@ -548,11 +548,12 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     has_3d = False
     use_mod_names = ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
                      'numba', 'nibabel', 'nilearn', 'dipy', 'cupy', 'pandas',
-                     'mayavi', 'pyvista', 'vtk', 'PyQt5', 'pooch')
+                     'mayavi', 'pyvista', 'vtk', 'PyQt5', 'ipyvtklink',
+                     'ipympl', 'nbclient')
     if dependencies == 'developer':
         use_mod_names += (
             '', 'sphinx', 'sphinx_gallery', 'numpydoc', 'pydata_sphinx_theme',
-            'mne_bids', 'pytest')
+            'mne_bids', 'pytest', 'nbclient')
     for mod_name in use_mod_names:
         if mod_name == '':
             out += '\n'

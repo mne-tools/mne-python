@@ -50,7 +50,7 @@ def fnirs_epochs():
 
 
 # Create one nbclient and reuse it
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='module')
 def _nbclient():
     try:
         import nbformat
