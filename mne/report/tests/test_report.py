@@ -751,9 +751,7 @@ def test_manual_report_2d(tmpdir, invisible_fig):
         ch['loc'][:3] = np.nan
 
     with pytest.warns(RuntimeWarning, match='No channel locations found'):
-        r.add_projs(
-            info=info_no_ch_locs, title='Projs no chan locs'
-        )
+        r.add_projs(info=info_no_ch_locs, title='Projs no chan locs')
 
     # Drop locations from ICA
     ica_no_ch_locs = ica.copy()
