@@ -729,7 +729,7 @@ def test_manual_report_2d(tmpdir, invisible_fig):
     r.add_code(code=__file__, title='my code')
     r.add_sys_info(title='my sysinfo')
 
-    # drop locations for EEG
+    # drop locations (only EEG channels in `evoked`)
     evoked_no_ch_locs = evoked.copy()
     for ch in evoked_no_ch_locs.info['chs']:
         ch['loc'][:3] = np.nan
@@ -743,6 +743,22 @@ def test_manual_report_2d(tmpdir, invisible_fig):
     assert 'Topographies' not in r._content[-1].html
     assert evoked.info['projs']  # only then the following test makes sense
     assert 'SSP' not in r._content[-1].html
+
+    # Drop locations from ICA
+    ica_no_ch_locs = ica.copy()
+    for ch in ica_no_ch_locs.info['chs']:
+        ch['loc'][:3] = np.nan
+
+    with pytest.raises(
+        RuntimeWarning,
+        match='No Magnetometers channel locations'
+    ):
+        r.add_ica(
+            ica=ica_no_ch_locs, picks=[0],
+            inst=raw.copy().load_data(), title='ICA'
+        )
+    assert 'ICA component properties' not in r._content[-1].html
+    assert 'ICA component topographies' not in r._content[-1].html
 
     fname = op.join(tmpdir, 'report.html')
     r.save(fname=fname, open_browser=False)

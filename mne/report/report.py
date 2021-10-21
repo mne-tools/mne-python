@@ -31,6 +31,7 @@ from ..fixes import _compare_version
 from .. import (read_evokeds, read_events, read_cov,
                 read_source_estimate, read_trans, sys_info,
                 Evoked, SourceEstimate, Covariance, Info, Transform)
+from ..channels import _get_ch_type
 from ..channels.layout import _check_ch_locs
 from ..defaults import _handle_default
 from ..io import read_raw, read_info, BaseRaw
@@ -1362,6 +1363,13 @@ class Report(object):
 
     def _render_ica_properties(self, *, ica, picks, inst, n_jobs, image_format,
                                tags):
+        ch_type = _get_ch_type(inst=ica.info, ch_type=None)
+        if not _check_ch_locs(info=ica.info, ch_type=ch_type):
+            ch_type_name = _handle_default("titles")[ch_type]
+            warn(f'No {ch_type_name} channel locations found, cannot '
+                 f'create ICA properties plots')
+            return ''
+
         figs = _plot_ica_properties_as_arrays(
             ica=ica, inst=inst, picks=picks, n_jobs=n_jobs
         )
@@ -1429,6 +1437,13 @@ class Report(object):
         return html
 
     def _render_ica_components(self, *, ica, picks, image_format, tags):
+        ch_type = _get_ch_type(inst=ica.info, ch_type=None)
+        if not _check_ch_locs(info=ica.info, ch_type=ch_type):
+            ch_type_name = _handle_default("titles")[ch_type]
+            warn(f'No {ch_type_name} channel locations found, cannot '
+                 f'create ICA component plots')
+            return ''
+
         figs = ica.plot_components(
             picks=picks, title='', colorbar=True, show=False
         )
