@@ -2233,7 +2233,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         epochs.data = np.abs(self.data)
         return epochs
 
-    def average(self, method='mean'):
+    def average(self, method='mean', dim='epochs', copy=False):
         """Average the data across epochs.
 
         Parameters
@@ -2245,10 +2245,16 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
             returns an array of shape (n_channels, n_freqs, n_time).
             Note that due to file type limitations, the kind for all
             these will be "average".
+        dim : 'epochs' | 'freqs' | 'times'
+            The dimension along which to combine the data.
+        copy : bool
+            Whether to return a copy of the modified instance,
+            or modify in place. Ignored when ``dim='epochs'``
+            because a new instance must be returned.
 
         Returns
         -------
-        ave : instance of AverageTFR
+        ave : instance of AverageTFR | EpochsTFR
             The averaged data.
 
         Notes
@@ -2262,21 +2268,49 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
         https://github.com/scipy/scipy/pull/12676#issuecomment-783370228
         """
+        _check_option('dim', dim, ('epochs', 'freqs', 'times'))
+        axis = dict(epochs=0, freqs=2, times=self.data.ndim - 1)[dim]
+
         # return a lambda function for computing a combination metric
         # over epochs
-        func = _check_combine(mode=method)
+        func = _check_combine(mode=method, axis=axis)
         data = func(self.data)
 
-        if data.shape != self._data.shape[1:]:
-            raise RuntimeError(
-                'You passed a function that resulted in data of shape {}, '
-                'but it should be {}.'.format(
-                    data.shape, self._data.shape[1:]))
+        n_epochs, n_channels, n_freqs, n_times = self.data.shape
+        freqs, times = self.freqs, self.times
 
-        return AverageTFR(info=self.info.copy(), data=data,
-                          times=self.times.copy(), freqs=self.freqs.copy(),
-                          nave=self.data.shape[0], method=self.method,
-                          comment=self.comment)
+        if dim == 'freqs':
+            freqs = np.mean(self.freqs, keepdims=True)
+            n_freqs = 1
+        elif dim == 'times':
+            times = np.mean(self.times, keepdims=True)
+            n_times = 1
+        if dim == 'epochs':
+            expected_shape = self._data.shape[1:]
+        else:
+            expected_shape = (n_epochs, n_channels, n_freqs, n_times)
+            data = np.expand_dims(data, axis=axis)
+
+        if data.shape != expected_shape:
+            raise RuntimeError(
+                f'You passed a function that resulted in data of shape '
+                f'{data.shape}, but it should be {expected_shape}.')
+
+        if dim == 'epochs':
+            return AverageTFR(info=self.info.copy(), data=data,
+                              times=times, freqs=freqs,
+                              nave=self.data.shape[0], method=self.method,
+                              comment=self.comment)
+        elif copy:
+            return EpochsTFR(info=self.info.copy(), data=data,
+                             times=times, freqs=freqs, method=self.method,
+                             comment=self.comment, metadata=self.metadata,
+                             events=self.events, event_id=self.event_id)
+        else:
+            self.data = data
+            self.times = times
+            self.freqs = freqs
+            return self
 
 
 def combine_tfr(all_tfr, weights='nave'):
