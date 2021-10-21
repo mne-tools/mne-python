@@ -199,10 +199,10 @@ def test_plot_alignment_meg(renderer, system):
         meg.append('ref')
     fig = plot_alignment(
         this_info, read_trans(trans_fname), subject='sample',
-        subjects_dir=subjects_dir, meg=meg, eeg=True)
+        subjects_dir=subjects_dir, meg=meg, eeg=False)
     # count the number of objects: should be n_meg_ch + 1 (helmet) + 1 (head)
     use_info = pick_info(this_info, pick_types(
-        this_info, meg=True, eeg=True, ref_meg='ref' in meg, exclude=()))
+        this_info, meg=True, eeg=False, ref_meg='ref' in meg, exclude=()))
     n_actors = use_info['nchan'] + 2
     _assert_n_actors(fig, renderer, n_actors)
 
@@ -451,7 +451,7 @@ def test_plot_alignment_fnirs(renderer, tmpdir):
 
     fig = plot_alignment(
         info, fnirs=['channels', 'sources', 'detectors'], **kwargs)
-    _assert_n_actors(fig, renderer, 3 * info['nchan'])
+    _assert_n_actors(fig, renderer, 3)
 
 
 @pytest.mark.slowtest  # can be slow on OSX

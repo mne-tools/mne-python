@@ -413,3 +413,5 @@
 .. _Evgeny Goldstein: https://github.com/evgenygoldstein
 
 .. _Joshua Teves: https://github.com/jbteves
+
+.. _Riessarius Stargardsky: https://github.com/Riessarius
