@@ -166,7 +166,7 @@ stages:
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
-    - script: pytest --tb=short --cov=mne --cov-report=xml --cov-report=html -vvv mne/viz/ -k notebook
+    - script: pytest --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne/viz
       displayName: 'Run viz tests'
     - bash: bash <(curl -s https://codecov.io/bash)
       displayName: 'Codecov'
