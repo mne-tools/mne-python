@@ -435,7 +435,8 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             if not gfp_only:
                 chs = [info['chs'][i] for i in idx]
                 locs3d = np.array([ch['loc'][:3] for ch in chs])
-                if spatial_colors is True and not _check_ch_locs(chs):
+                if (spatial_colors is True and
+                        not _check_ch_locs(info=info, picks=idx)):
                     warn('Channel locations not available. Disabling spatial '
                          'colors.')
                     spatial_colors = selectable = False
@@ -2418,7 +2419,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if show_sensors:
         _validate_type(show_sensors, (np.int64, bool, str, type(None)),
                        'show_sensors', 'numeric, str, None or bool')
-        if not _check_ch_locs(np.array(one_evoked.info['chs'])[pos_picks]):
+        if not _check_ch_locs(info=one_evoked.info, picks=pos_picks):
             warn('Cannot find channel coordinates in the supplied Evokeds. '
                  'Not showing channel locations.')
         else:

@@ -14,12 +14,13 @@ from pathlib import Path
 import mne
 from mne import read_vectorview_selection
 from mne.datasets import testing
-from mne.io.pick import pick_channels_cov
+from mne.io.pick import pick_channels_cov, _picks_to_idx
 from mne.utils import (check_random_state, _check_fname, check_fname,
                        _check_subject, requires_mayavi, traits_test,
                        _check_mayavi_version, _check_info_inv, _check_option,
                        check_version, _path_like, _validate_type,
-                       _suggest, _on_missing, requires_nibabel, _safe_input)
+                       _suggest, _on_missing, requires_nibabel, _safe_input,
+                       _check_ch_locs)
 
 data_path = testing.data_path(download=False)
 base_dir = op.join(data_path, 'MEG', 'sample')
@@ -231,3 +232,28 @@ def test_safe_input(monkeypatch):
     with pytest.raises(RuntimeError, match='Could not use input'):
         _safe_input('whatever', alt='nothing')
     assert _safe_input('whatever', use='nothing') == 'nothing'
+
+
+def test_check_ch_locs():
+    """Test _check_ch_locs behavior."""
+    info = mne.io.read_info(fname_raw)
+    assert _check_ch_locs(info=info)
+
+    for picks in ([0], [0, 1], None):
+        assert _check_ch_locs(info=info, picks=picks)
+
+    for ch_type in ('meg', 'mag', 'grad', 'eeg'):
+        assert _check_ch_locs(info=info, ch_type=ch_type)
+
+    # drop locations for EEG
+    picks_eeg = _picks_to_idx(info=info, picks='eeg')
+    for idx in picks_eeg:
+        info['chs'][idx]['loc'][:3] = np.nan
+
+    # EEG tests should fail now
+    assert _check_ch_locs(info=info, picks=picks_eeg) is False
+    assert _check_ch_locs(info=info, ch_type='eeg') is False
+
+    # tests for other (and "all") channels should still pass
+    assert _check_ch_locs(info=info)
+    assert _check_ch_locs(info=info, ch_type='mag')
