@@ -598,18 +598,18 @@ class _QtWidgetList(_AbstractWidgetList):
 
 class _QtWidget(_AbstractWidget):
     def set_value(self, value):
-        if hasattr(self._widget, "setValue"):
-            self._widget.setValue(value)
-        elif hasattr(self._widget, "setCurrentText"):
-            self._widget.setCurrentText(value)
-        elif hasattr(self._widget, "setChecked"):
-            if isinstance(self._widget, QRadioButton):
-                self._widget.click()
-            else:
-                self._widget.setChecked(value)
+        if isinstance(self._widget, (QRadioButton, QToolButton)):
+            self._widget.click()
         else:
-            assert hasattr(self._widget, "setText")
-            self._widget.setText(value)
+            if hasattr(self._widget, "setValue"):
+                self._widget.setValue(value)
+            elif hasattr(self._widget, "setCurrentText"):
+                self._widget.setCurrentText(value)
+            elif hasattr(self._widget, "setChecked"):
+                self._widget.setChecked(value)
+            else:
+                assert hasattr(self._widget, "setText")
+                self._widget.setText(value)
 
     def get_value(self):
         if hasattr(self._widget, "value"):
@@ -618,7 +618,8 @@ class _QtWidget(_AbstractWidget):
             return self._widget.currentText()
         elif hasattr(self._widget, "checkState"):
             return bool(self._widget.checkState())
-        elif hasattr(self._widget, "text"):
+        else:
+            assert hasattr(self._widget, "text")
             return self._widget.text()
 
     def set_range(self, rng):

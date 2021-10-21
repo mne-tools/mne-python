@@ -20,8 +20,9 @@ def test_gui_api(renderer_pyvistaqt):
     widget.set_enabled(False)
 
     # button
-    renderer._dock_add_button('', mock)
-    # XXX: trigger the click with set_value(True)
+    widget = renderer._dock_add_button('', mock)
+    with _check_widget_trigger(widget, mock, None, None, get_value=False):
+        widget.set_value(True)
 
     # slider
     widget = renderer._dock_add_slider('', 0, [0, 10], mock)
@@ -78,18 +79,20 @@ def test_gui_api(renderer_pyvistaqt):
 
 @contextlib.contextmanager
 def _check_widget_trigger(widget, mock, before, after, call_count=True,
-                          idx=None):
-    if idx is None:
-        assert widget.get_value() == before
-    else:
-        assert widget.get_value(idx) == before
+                          get_value=True, idx=None):
+    if get_value:
+        if idx is None:
+            assert widget.get_value() == before
+        else:
+            assert widget.get_value(idx) == before
     old_call_count = mock.call_count
     try:
         yield
     finally:
-        if idx is None:
-            assert widget.get_value() == after
-        else:
-            assert widget.get_value(idx) == after
+        if get_value:
+            if idx is None:
+                assert widget.get_value() == after
+            else:
+                assert widget.get_value(idx) == after
         if call_count:
             assert mock.call_count == old_call_count + 1
