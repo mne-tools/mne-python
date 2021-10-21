@@ -27,7 +27,6 @@ import html as stdlib_html  # avoid namespace confusion!
 import numpy as np
 
 from .. import __version__ as MNE_VERSION
-from .. import pick_info, pick_types
 from ..fixes import _compare_version
 from .. import (read_evokeds, read_events, read_cov,
                 read_source_estimate, read_trans, sys_info,
@@ -276,14 +275,6 @@ class _ContentElement:
     dom_id: str
     tags: Tuple[str]
     html: str
-
-
-def _check_ch_locs_or_dig_points(info):
-    """Check whether an Info contains locations or, else, digpoints."""
-    if _check_ch_locs(info['chs']):
-        return True
-
-    return not(info['dig'] is None or len(info['dig']) == 0)
 
 
 ###############################################################################
@@ -3107,13 +3098,11 @@ class Report(object):
                              topomap_kwargs):
         htmls = []
         for ch_type in ch_types:
-            if ch_type == 'eeg':
-                eeg_picks = pick_types(info=evoked.info, eeg=True)
-                info = pick_info(info=evoked.info, sel=eeg_picks)
-                if not _check_ch_locs_or_dig_points(info):
-                    warn('Neither EEG channel locations nor digitzation '
-                         'points found, cannot create joint plot for EEG data')
-                    continue
+            if not _check_ch_locs(info=evoked.info, ch_type=ch_type):
+                ch_type_name = {_handle_default("titles")[ch_type]}
+                warn(f'No {ch_type_name} channel locations found, cannot '
+                     f'create joint plot')
+                continue
 
             with use_log_level(level=False):
                 fig = evoked.copy().pick(ch_type, verbose=False).plot_joint(
@@ -3212,14 +3201,11 @@ class Report(object):
         vmax = dict()
         vmin = dict()
         for ch_type in ch_types:
-            if ch_type == 'eeg':
-                eeg_picks = pick_types(info=evoked.info, eeg=True)
-                info = pick_info(info=evoked.info, sel=eeg_picks)
-                if not _check_ch_locs_or_dig_points(info):
-                    warn('Neither EEG channel locations nor digitzation '
-                         'points found, cannot create evoked topography plots '
-                         'for EEG data')
-                    continue
+            if not _check_ch_locs(info=evoked.info, ch_type=ch_type):
+                ch_type_name = {_handle_default("titles")[ch_type]}
+                warn(f'No {ch_type_name} channel locations found, cannot '
+                     f'create topography plots')
+                continue
 
             vmax[ch_type] = (np.abs(evoked.copy()
                                     .pick(ch_type, verbose=False)
