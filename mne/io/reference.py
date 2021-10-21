@@ -222,8 +222,10 @@ def add_reference_channels(inst, ref_channels, copy=True):
     else:
         # Ideally we'd fall back on getting the location from a montage, but
         # locations for non-present channels aren't stored, so location is
-        # unknown. User can call set_montage() again if needed.
+        # unknown. Users can call set_montage() again if needed.
         ref_dig_array = np.full(12, np.nan)
+        logger.info('Location for this channel is unknown; consider calling '
+                    'set_montage() again if needed.')
 
     for ch in ref_channels:
         chan_info = {'ch_name': ch,
