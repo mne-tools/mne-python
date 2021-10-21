@@ -28,12 +28,13 @@ import numpy as np
 
 from .. import __version__ as MNE_VERSION
 from ..fixes import _compare_version
-from .. import (read_evokeds, read_events, pick_types, read_cov,
+from .. import (read_evokeds, read_events, read_cov,
                 read_source_estimate, read_trans, sys_info,
                 Evoked, SourceEstimate, Covariance, Info, Transform)
 from ..defaults import _handle_default
 from ..io import read_raw, read_info, BaseRaw
 from ..io._read_raw import supported as extension_reader_map
+from ..io.pick import _DATA_CH_TYPES_SPLIT
 from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
@@ -100,6 +101,11 @@ template_dir = Path(__file__).parent / 'templates'
 JAVASCRIPT = (html_include_dir / 'report.js').read_text(encoding='utf-8')
 CSS = (html_include_dir / 'report.sass').read_text(encoding='utf-8')
 
+
+def _get_ch_types(inst):
+    return [ch_type for ch_type in _DATA_CH_TYPES_SPLIT if ch_type in inst]
+
+
 ###############################################################################
 # HTML generation
 
@@ -139,13 +145,16 @@ def _html_raw_element(*, id, repr, psd, butterfly, ssp_projs, title, tags):
     return t
 
 
-def _html_epochs_element(*, id, repr, drop_log, psd, ssp_projs, title, tags):
+def _html_epochs_element(*, id, repr, erp_imgs, drop_log, psd, ssp_projs,
+                         title, tags):
     template_path = template_dir / 'epochs.html'
 
     title = stdlib_html.escape(title)
     t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(id=id, repr=repr, drop_log=drop_log, psd=psd,
-                     ssp_projs=ssp_projs, tags=tags, title=title)
+    t = t.substitute(
+        id=id, repr=repr, erp_imgs=erp_imgs, drop_log=drop_log, psd=psd,
+        ssp_projs=ssp_projs, tags=tags, title=title
+    )
     return t
 
 
@@ -826,11 +835,13 @@ class Report(object):
             image_format=self.image_format,
             topomap_kwargs=topomap_kwargs,
         )
-        repr_html, drop_log_html, psd_html, ssp_projs_html = htmls
+        (repr_html, erp_imgs_html, drop_log_html, psd_html,
+         ssp_projs_html) = htmls
 
         dom_id = self._get_dom_id()
         html = _html_epochs_element(
             repr=repr_html,
+            erp_imgs=erp_imgs_html,
             drop_log=drop_log_html,
             psd=psd_html,
             ssp_projs=ssp_projs_html,
@@ -3084,12 +3095,6 @@ class Report(object):
 
     def _render_evoked_joint(self, evoked, ch_types, image_format, tags,
                              topomap_kwargs):
-        ch_type_to_caption_map = {
-            'mag': 'magnetometers',
-            'grad': 'gradiometers',
-            'eeg': 'EEG'
-        }
-
         htmls = []
         for ch_type in ch_types:
             with use_log_level(level=False):
@@ -3101,7 +3106,7 @@ class Report(object):
                 )
 
             img = _fig_to_img(fig=fig, image_format=image_format)
-            title = f'Time course ({ch_type_to_caption_map[ch_type]})'
+            title = f'Time course ({_handle_default("titles")[ch_type]})'
             dom_id = self._get_dom_id()
 
             htmls.append(
@@ -3292,17 +3297,6 @@ class Report(object):
 
     def _render_evoked(self, evoked, noise_cov, add_projs, n_time_points,
                        image_format, tags, topomap_kwargs, n_jobs):
-        def _get_ch_types(ev):
-            has_types = []
-            if len(pick_types(ev.info, meg=False, eeg=True)) > 0:
-                has_types.append('eeg')
-            if len(pick_types(ev.info, meg='grad', eeg=False,
-                              ref_meg=False)) > 0:
-                has_types.append('grad')
-            if len(pick_types(ev.info, meg='mag', eeg=False)) > 0:
-                has_types.append('mag')
-            return has_types
-
         ch_types = _get_ch_types(evoked)
         joint_html = self._render_evoked_joint(
             evoked=evoked, ch_types=ch_types,
@@ -3391,6 +3385,44 @@ class Report(object):
             html=epochs._repr_html_()
         )
 
+        # ERP/ERF image(s)
+        ch_types = _get_ch_types(epochs)
+        erp_img_htmls = []
+        epochs.load_data()
+
+        for ch_type in ch_types:
+            with use_log_level(level=False):
+                figs = epochs.copy().pick(ch_type, verbose=False).plot_image(
+                    show=False
+                )
+
+            assert len(figs) == 1
+            fig = figs[0]
+            img = _fig_to_img(fig=fig, image_format=image_format)
+            if ch_type in ('mag', 'grad'):
+                title_start = 'ERF image'
+            else:
+                assert 'eeg' in ch_type
+                title_start = 'ERP image'
+
+            title = (f'{title_start} '
+                     f'({_handle_default("titles")[ch_type]})')
+            dom_id = self._get_dom_id()
+            erp_img_htmls.append(
+                _html_image_element(
+                    img=img,
+                    div_klass='epochs erp-image',
+                    img_klass='epochs erp-image',
+                    tags=tags,
+                    title=title,
+                    caption=None,
+                    show=True,
+                    image_format=image_format,
+                    id=dom_id
+                )
+            )
+        erp_imgs_html = '\n'.join(erp_img_htmls)
+
         # Drop log
         if epochs._bad_dropped:
             title = 'Drop log'
@@ -3438,7 +3470,8 @@ class Report(object):
             add_projs=add_projs, info=epochs, image_format=image_format,
             tags=tags, topomap_kwargs=topomap_kwargs)
 
-        return repr_html, drop_log_img_html, psd_img_html, ssp_projs_html
+        return (repr_html, erp_imgs_html, drop_log_img_html, psd_img_html,
+                ssp_projs_html)
 
     def _render_cov(self, cov, *, info, image_format, tags):
         """Render covariance matrix & SVD."""
@@ -3537,7 +3570,8 @@ class Report(object):
         # otherwise.
         import matplotlib.pyplot as plt
         stc_plot_kwargs = _handle_default(
-            'report_stc_plot_kwargs', stc_plot_kwargs)
+            'report_stc_plot_kwargs', stc_plot_kwargs
+        )
         stc_plot_kwargs.update(subject=subject, subjects_dir=subjects_dir)
 
         if get_3d_backend() is not None:

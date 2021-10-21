@@ -106,7 +106,7 @@ report.save('report_events.html', overwrite=True)
 # ^^^^^^^^^^^^^^^^^^^^
 #
 # Epochs can be added via :meth:`mne.Report.add_epochs`. Note that although
-# this methods accepts a path to an epochs file too, in the following example
+# this method accepts a path to an epochs file too, in the following example
 # we only add epochs that we create on the fly from raw data.
 
 epochs = mne.Epochs(raw=raw, events=events)
