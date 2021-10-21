@@ -3007,8 +3007,9 @@ class Report(object):
         if not projs:  # Abort mission!
             return None
 
-        if info['dig'] is None:  # We cannot proceed without digpoints either
-            return None
+        if not _check_ch_locs(info=info):
+            warn('No channel locations found, cannot create projector plots')
+            return '', None
 
         topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
         fig = plot_projs_topomap(

@@ -234,6 +234,7 @@ def test_safe_input(monkeypatch):
     assert _safe_input('whatever', use='nothing') == 'nothing'
 
 
+@testing.requires_testing_data
 def test_check_ch_locs():
     """Test _check_ch_locs behavior."""
     info = mne.io.read_info(fname_raw)
