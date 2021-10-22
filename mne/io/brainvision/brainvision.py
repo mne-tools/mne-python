@@ -489,13 +489,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
     with info._unlock(check_after=False):
         for line in lines:
             match = re.findall(regexp, line.strip())
-
             # Always take first measurement date we find
             if match:
                 date_str = match[0]
                 info['meas_date'] = _str_to_meas_date(date_str)
                 break
-
         else:
             info['meas_date'] = None
 
@@ -675,157 +673,160 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             highpass.append(line[hp_col + real_shift])
             lowpass.append(line[lp_col + real_shift])
 
-        with info._unlock(check_after=False):
-            if len(highpass) == 0:
+        if len(highpass) == 0:
+            pass
+        elif len(set(highpass)) == 1:
+            if highpass[0] in ('NaN', 'Off'):
+                # Placeholder for future use. Highpass set in _empty_info
                 pass
-            elif len(set(highpass)) == 1:
-                if highpass[0] in ('NaN', 'Off'):
-                    # Placeholder for future use. Highpass set in _empty_info
-                    pass
-                elif highpass[0] == 'DC':
-                    info['highpass'] = 0.
-                else:
-                    info['highpass'] = float(highpass[0])
-                    if hp_s:
-                        # filter time constant t [secs] to Hz
-                        # conversion: 1/2*pi*t
-                        info['highpass'] = 1. / (2 * np.pi * info['highpass'])
-
+            elif highpass[0] == 'DC':
+                highpass_ = 0.
             else:
-                heterogeneous_hp_filter = True
+                highpass_ = float(highpass[0])
                 if hp_s:
-                    # We convert channels with disabled filters to having
-                    # highpass relaxed / no filters
-                    highpass = [float(filt) if filt not in ('NaN', 'Off', 'DC')
-                                else np.Inf for filt in highpass]
-                    info['highpass'] = np.max(np.array(highpass,
-                                                       dtype=np.float64))
-                    # Coveniently enough 1 / np.Inf = 0.0, so this works for
-                    # DC / no highpass filter
-                    # filter time constant t [secs] to Hz conversion: 1/2*pi*t
-                    info['highpass'] = 1. / (2 * np.pi * info['highpass'])
+                    # filter time constant t [secs] to Hz
+                    # conversion: 1/2*pi*t
+                    highpass_ = 1. / (2 * np.pi * highpass_)
 
-                    # not exactly the cleanest use of FP, but this makes us
-                    # more conservative in *not* warning.
-                    if info['highpass'] == 0.0 and len(set(highpass)) == 1:
-                        # not actually heterogeneous in effect
-                        # ... just heterogeneously disabled
-                        heterogeneous_hp_filter = False
-                else:
-                    highpass = [float(filt) if filt not in ('NaN', 'Off', 'DC')
-                                else 0.0 for filt in highpass]
-                    info['highpass'] = np.min(np.array(highpass,
-                                                       dtype=np.float64))
-                    if info['highpass'] == 0.0 and len(set(highpass)) == 1:
-                        # not actually heterogeneous in effect
-                        # ... just heterogeneously disabled
-                        heterogeneous_hp_filter = False
+        else:
+            heterogeneous_hp_filter = True
+            if hp_s:
+                # We convert channels with disabled filters to having
+                # highpass relaxed / no filters
+                highpass = [float(filt) if filt not in ('NaN', 'Off', 'DC')
+                            else np.Inf for filt in highpass]
+                highpass_ = np.max(np.array(highpass, dtype=np.float64))
+                # Coveniently enough 1 / np.Inf = 0.0, so this works for
+                # DC / no highpass filter
+                # filter time constant t [secs] to Hz conversion: 1/2*pi*t
+                highpass_ = 1. / (2 * np.pi * highpass_)
 
-                if heterogeneous_hp_filter:
-                    warn('Channels contain different highpass filters. '
-                         'Lowest (weakest) filter setting (%0.2f Hz) '
-                         'will be stored.' % info['highpass'])
-
-            if len(lowpass) == 0:
-                pass
-            elif len(set(lowpass)) == 1:
-                if lowpass[0] in ('NaN', 'Off'):
-                    # Placeholder for future use. Lowpass set in _empty_info
-                    pass
-                else:
-                    info['lowpass'] = float(lowpass[0])
-                    if lp_s:
-                        # filter time constant t [secs] to Hz
-                        # conversion: 1/2*pi*t
-                        info['lowpass'] = 1. / (2 * np.pi * info['lowpass'])
-
+                # not exactly the cleanest use of FP, but this makes us
+                # more conservative in *not* warning.
+                if highpass_ == 0.0 and len(set(highpass)) == 1:
+                    # not actually heterogeneous in effect
+                    # ... just heterogeneously disabled
+                    heterogeneous_hp_filter = False
             else:
-                heterogeneous_lp_filter = True
+                highpass = [float(filt) if filt not in ('NaN', 'Off', 'DC')
+                            else 0.0 for filt in highpass]
+                highpass_ = np.min(np.array(highpass, dtype=np.float64))
+                if highpass_ == 0.0 and len(set(highpass)) == 1:
+                    # not actually heterogeneous in effect
+                    # ... just heterogeneously disabled
+                    heterogeneous_hp_filter = False
+
+            if heterogeneous_hp_filter:
+                warn('Channels contain different highpass filters. '
+                     'Lowest (weakest) filter setting (%0.2f Hz) '
+                     'will be stored.' % highpass_)
+
+        with info._unlock(check_after=False):
+            info['highpass'] = highpass_
+        del highpass_
+
+        if len(lowpass) == 0:
+            pass
+        elif len(set(lowpass)) == 1:
+            if lowpass[0] in ('NaN', 'Off'):
+                # Placeholder for future use. Lowpass set in _empty_info
+                pass
+            else:
+                lowpass_ = float(lowpass[0])
                 if lp_s:
-                    # We convert channels with disabled filters to having
-                    # infinitely relaxed / no filters
-                    lowpass = [float(filt) if filt not in ('NaN', 'Off')
-                               else 0.0 for filt in lowpass]
-                    info['lowpass'] = np.min(np.array(lowpass,
-                                                      dtype=np.float64))
-                    try:
-                        # filter time constant t [secs] to Hz
-                        # conversion: 1/2*pi*t
-                        info['lowpass'] = 1. / (2 * np.pi * info['lowpass'])
+                    # filter time constant t [secs] to Hz
+                    # conversion: 1/2*pi*t
+                    lowpass_ = 1. / (2 * np.pi * lowpass_)
 
-                    except ZeroDivisionError:
-                        if len(set(lowpass)) == 1:
-                            # No lowpass actually set for the weakest setting
-                            # so we set lowpass to the Nyquist frequency
-                            info['lowpass'] = info['sfreq'] / 2.
-                            # not actually heterogeneous in effect
-                            # ... just heterogeneously disabled
-                            heterogeneous_lp_filter = False
-                        else:
-                            # no lowpass filter is the weakest filter,
-                            # but it wasn't the only filter
-                            pass
-                else:
-                    # We convert channels with disabled filters to having
-                    # infinitely relaxed / no filters
-                    lowpass = [float(filt) if filt not in ('NaN', 'Off')
-                               else np.Inf for filt in lowpass]
-                    info['lowpass'] = np.max(np.array(lowpass,
-                                                      dtype=np.float64))
+        else:
+            heterogeneous_lp_filter = True
+            if lp_s:
+                # We convert channels with disabled filters to having
+                # infinitely relaxed / no filters
+                lowpass = [float(filt) if filt not in ('NaN', 'Off')
+                           else 0.0 for filt in lowpass]
+                lowpass_ = np.min(np.array(lowpass, dtype=np.float64))
+                try:
+                    # filter time constant t [secs] to Hz
+                    # conversion: 1/2*pi*t
+                    lowpass_ = 1. / (2 * np.pi * lowpass_)
 
-                    if np.isinf(info['lowpass']):
+                except ZeroDivisionError:
+                    if len(set(lowpass)) == 1:
                         # No lowpass actually set for the weakest setting
                         # so we set lowpass to the Nyquist frequency
-                        info['lowpass'] = info['sfreq'] / 2.
-                        if len(set(lowpass)) == 1:
-                            # not actually heterogeneous in effect
-                            # ... just heterogeneously disabled
-                            heterogeneous_lp_filter = False
-
-                if heterogeneous_lp_filter:
-                    # this isn't clean FP, but then again, we only want to
-                    # provide the Nyquist hint when the lowpass filter was
-                    # actually calculated from dividing the sampling frequency
-                    # by 2, so the exact/direct comparison (instead of
-                    # tolerance) makes sense
-                    if info['lowpass'] == info['sfreq'] / 2.0:
-                        nyquist = ', Nyquist limit'
+                        lowpass_ = info['sfreq'] / 2.
+                        # not actually heterogeneous in effect
+                        # ... just heterogeneously disabled
+                        heterogeneous_lp_filter = False
                     else:
-                        nyquist = ""
-                    warn('Channels contain different lowpass filters. '
-                         'Highest (weakest) filter setting (%0.2f Hz%s) '
-                         'will be stored.' % (info['lowpass'], nyquist))
+                        # no lowpass filter is the weakest filter,
+                        # but it wasn't the only filter
+                        pass
+            else:
+                # We convert channels with disabled filters to having
+                # infinitely relaxed / no filters
+                lowpass = [float(filt) if filt not in ('NaN', 'Off')
+                           else np.Inf for filt in lowpass]
+                lowpass_ = np.max(np.array(lowpass, dtype=np.float64))
+
+                if np.isinf(lowpass_):
+                    # No lowpass actually set for the weakest setting
+                    # so we set lowpass to the Nyquist frequency
+                    lowpass_ = info['sfreq'] / 2.
+                    if len(set(lowpass)) == 1:
+                        # not actually heterogeneous in effect
+                        # ... just heterogeneously disabled
+                        heterogeneous_lp_filter = False
+
+            if heterogeneous_lp_filter:
+                # this isn't clean FP, but then again, we only want to
+                # provide the Nyquist hint when the lowpass filter was
+                # actually calculated from dividing the sampling frequency
+                # by 2, so the exact/direct comparison (instead of
+                # tolerance) makes sense
+                if lowpass_ == info['sfreq'] / 2.0:
+                    nyquist = ', Nyquist limit'
+                else:
+                    nyquist = ""
+                warn('Channels contain different lowpass filters. '
+                     'Highest (weakest) filter setting (%0.2f Hz%s) '
+                     'will be stored.' % (lowpass_, nyquist))
+
+        with info._unlock(check_after=False):
+            info['lowpass'] = lowpass_
+        del lowpass_
 
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
     with info._unlock(check_after=False):
         info['chs'] = []
-        for idx, ch_name in enumerate(ch_names):
-            if ch_name in eog or idx in eog or idx - nchan in eog:
-                kind = FIFF.FIFFV_EOG_CH
-                coil_type = FIFF.FIFFV_COIL_NONE
-                unit = FIFF.FIFF_UNIT_V
-            elif ch_name in misc or idx in misc or idx - nchan in misc:
-                kind = FIFF.FIFFV_MISC_CH
-                coil_type = FIFF.FIFFV_COIL_NONE
-                if ch_name in misc_chs:
-                    unit = misc_chs[ch_name]
-                else:
-                    unit = FIFF.FIFF_UNIT_NONE
-            elif ch_name == 'STI 014':
-                kind = FIFF.FIFFV_STIM_CH
-                coil_type = FIFF.FIFFV_COIL_NONE
-                unit = FIFF.FIFF_UNIT_NONE
+    for idx, ch_name in enumerate(ch_names):
+        if ch_name in eog or idx in eog or idx - nchan in eog:
+            kind = FIFF.FIFFV_EOG_CH
+            coil_type = FIFF.FIFFV_COIL_NONE
+            unit = FIFF.FIFF_UNIT_V
+        elif ch_name in misc or idx in misc or idx - nchan in misc:
+            kind = FIFF.FIFFV_MISC_CH
+            coil_type = FIFF.FIFFV_COIL_NONE
+            if ch_name in misc_chs:
+                unit = misc_chs[ch_name]
             else:
-                kind = FIFF.FIFFV_EEG_CH
-                coil_type = FIFF.FIFFV_COIL_EEG
-                unit = FIFF.FIFF_UNIT_V
-            info['chs'].append(dict(
-                ch_name=ch_name, coil_type=coil_type, kind=kind, logno=idx + 1,
-                scanno=idx + 1, cal=cals[idx], range=ranges[idx],
-                loc=np.full(12, np.nan),
-                unit=unit, unit_mul=FIFF.FIFF_UNITM_NONE,
-                coord_frame=FIFF.FIFFV_COORD_HEAD))
+                unit = FIFF.FIFF_UNIT_NONE
+        elif ch_name == 'STI 014':
+            kind = FIFF.FIFFV_STIM_CH
+            coil_type = FIFF.FIFFV_COIL_NONE
+            unit = FIFF.FIFF_UNIT_NONE
+        else:
+            kind = FIFF.FIFFV_EEG_CH
+            coil_type = FIFF.FIFFV_COIL_EEG
+            unit = FIFF.FIFF_UNIT_V
+        info['chs'].append(dict(
+            ch_name=ch_name, coil_type=coil_type, kind=kind, logno=idx + 1,
+            scanno=idx + 1, cal=cals[idx], range=ranges[idx],
+            loc=np.full(12, np.nan),
+            unit=unit, unit_mul=FIFF.FIFF_UNITM_NONE,
+            coord_frame=FIFF.FIFFV_COORD_HEAD))
 
     info._update_redundant()
     return (info, data_fname, fmt, order, n_samples, mrk_fname, montage,

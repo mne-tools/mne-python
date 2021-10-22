@@ -542,29 +542,31 @@ def pick_info(info, sel=(), copy=True, verbose=None):
                          % (n_unique, len(sel)))
 
     # make sure required the compensation channels are present
-    with info._unlock(check_after=True):
-        if len(info.get('comps', [])) > 0:
-            ch_names = [info['ch_names'][idx] for idx in sel]
-            _, comps_missing = _bad_chans_comp(info, ch_names)
-            if len(comps_missing) > 0:
-                logger.info('Removing %d compensators from info because '
-                            'not all compensation channels were picked.'
-                            % (len(info['comps']),))
+    if len(info.get('comps', [])) > 0:
+        ch_names = [info['ch_names'][idx] for idx in sel]
+        _, comps_missing = _bad_chans_comp(info, ch_names)
+        if len(comps_missing) > 0:
+            logger.info('Removing %d compensators from info because '
+                        'not all compensation channels were picked.'
+                        % (len(info['comps']),))
+            with info._unlock(check_after=True):
                 info['comps'] = []
+    with info._unlock(check_after=True):
         info['chs'] = [info['chs'][k] for k in sel]
-        info._update_redundant()
-        info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
-        if 'comps' in info:
-            comps = deepcopy(info['comps'])
-            for c in comps:
-                row_idx = [k for k, n in enumerate(c['data']['row_names'])
-                           if n in info['ch_names']]
-                row_names = [c['data']['row_names'][i] for i in row_idx]
-                rowcals = c['rowcals'][row_idx]
-                c['rowcals'] = rowcals
-                c['data']['nrow'] = len(row_names)
-                c['data']['row_names'] = row_names
-                c['data']['data'] = c['data']['data'][row_idx]
+    info._update_redundant()
+    info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
+    if 'comps' in info:
+        comps = deepcopy(info['comps'])
+        for c in comps:
+            row_idx = [k for k, n in enumerate(c['data']['row_names'])
+                       if n in info['ch_names']]
+            row_names = [c['data']['row_names'][i] for i in row_idx]
+            rowcals = c['rowcals'][row_idx]
+            c['rowcals'] = rowcals
+            c['data']['nrow'] = len(row_names)
+            c['data']['row_names'] = row_names
+            c['data']['data'] = c['data']['data'][row_idx]
+        with info._unlock(check_after=True):
             info['comps'] = comps
 
     return info
