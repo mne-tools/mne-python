@@ -38,16 +38,17 @@ def _get_test_info():
                    dtype=np.float32)
     test_info['chs'] = [
         {'cal': 1, 'ch_name': 'ICA 001', 'coil_type': 0, 'coord_frame': 0,
-         'kind': 502, 'loc': loc.copy(), 'logno': 1, 'range': 1.0,
-         'scanno': 1, 'unit': -1, 'unit_mul': 0},
+         'kind': 502, 'loc': loc.copy(), 'logno': 1, 'range': 1.0, 'scanno': 1,
+         'unit': -1, 'unit_mul': 0},
         {'cal': 1, 'ch_name': 'ICA 002', 'coil_type': 0, 'coord_frame': 0,
-         'kind': 502, 'loc': loc.copy(), 'logno': 2, 'range': 1.0,
-         'scanno': 2, 'unit': -1, 'unit_mul': 0},
+         'kind': 502, 'loc': loc.copy(), 'logno': 2, 'range': 1.0, 'scanno': 2,
+         'unit': -1, 'unit_mul': 0},
         {'cal': 0.002142000012099743, 'ch_name': 'EOG 061', 'coil_type': 1,
          'coord_frame': 0, 'kind': 202, 'loc': loc.copy(), 'logno': 61,
          'range': 1.0, 'scanno': 376, 'unit': 107, 'unit_mul': 0}]
-    test_info._update_redundant()
     test_info._unlocked = False
+    test_info._update_redundant()
+    test_info._check_consistency()
     return test_info
 
 
