@@ -8,29 +8,6 @@ from ..utils import verbose, _validate_type
 
 
 def _temp_proj(ref_2, ref_1, raw_data, n_proj=6):
-    """Remove common signal subspace of ref_2 and ref_1 from raw_data.
-
-    Parameters
-    ----------
-    ref_2 : np.ndarray of float, shape (n_sensors_2, n_times)
-        The magnetometer data for CSS. Can use either all magnetometer data or
-        a few selected sensors close to a region to be suppressed.
-    ref_1 : np.ndarray of float, shape (n_sensors_1, n_times)
-        The gradiometer data for CSS. Can use either all gradiometer data or
-        a few selected sensors close to a region to be suppressed.
-    raw_data : np.ndarray of float, shape (n_sensors_raw, n_times)
-        The data to be filtered, typically the EEG data.
-    n_proj : int
-        The number of projection vectors.
-
-    Notes
-    -----
-    This temporal projection procedure removes the common signal subspace
-    between ref_2 and ref_1 from raw_data using n_proj number of
-    projection vectors. Normally used for cortical signal suppression, where
-    ref_1 is gradiometer data, ref_2 is magnetometer data and
-    raw_data is EEG data.
-    """
     # Orthonormalize gradiometer and magnetometer data by a QR decomposition
     ref_1_orth = np.linalg.qr(ref_1.T)[0]
     ref_2_orth = np.linalg.qr(ref_2.T)[0]
@@ -54,7 +31,7 @@ def _temp_proj(ref_2, ref_1, raw_data, n_proj=6):
 @verbose
 def cortical_signal_suppression(evoked, picks=None, mag_picks=None,
                                 grad_picks=None, n_proj=6, *, verbose=None):
-    """Apply cortical signal suppression (CSS) to Evoked data.
+    """Apply cortical signal suppression (CSS) to evoked data.
 
     Parameters
     ----------
@@ -62,10 +39,10 @@ def cortical_signal_suppression(evoked, picks=None, mag_picks=None,
         The evoked object to use for CSS. Must contain magnetometer,
         gradiometer, and EEG channels.
     %(picks_good_data)s
-    mag_picks : np.ndarray of int
+    mag_picks : array-like of int
         Array of the magnetometer channel indices that will be used to find
         the reference data. If None (default), all channels will be used.
-    grad_picks : np.ndarray of int
+    grad_picks : array-like of int
         Array of the gradiometer channel indices that will be used to find
         the reference data. If None (default), all channels will be used.
     n_proj : int
