@@ -733,8 +733,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             else:
                 lowpass_ = float(lowpass[0])
                 if lp_s:
-                    # filter time constant t [secs] to Hz
-                    # conversion: 1/2*pi*t
+                    # filter time constant t [secs] to Hz conversion: 1/2*pi*t
                     lowpass_ = 1. / (2 * np.pi * lowpass_)
 
         else:
@@ -746,8 +745,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
                            else 0.0 for filt in lowpass]
                 lowpass_ = np.min(np.array(lowpass, dtype=np.float64))
                 try:
-                    # filter time constant t [secs] to Hz
-                    # conversion: 1/2*pi*t
+                    # filter time constant t [secs] to Hz conversion: 1/2*pi*t
                     lowpass_ = 1. / (2 * np.pi * lowpass_)
 
                 except ZeroDivisionError:
@@ -779,11 +777,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
                         heterogeneous_lp_filter = False
 
             if heterogeneous_lp_filter:
-                # this isn't clean FP, but then again, we only want to
-                # provide the Nyquist hint when the lowpass filter was
-                # actually calculated from dividing the sampling frequency
-                # by 2, so the exact/direct comparison (instead of
-                # tolerance) makes sense
+                # this isn't clean FP, but then again, we only want to provide
+                # the Nyquist hint when the lowpass filter was actually
+                # calculated from dividing the sampling frequency by 2, so the
+                # exact/direct comparison (instead of tolerance) makes sense
                 if lowpass_ == info['sfreq'] / 2.0:
                     nyquist = ', Nyquist limit'
                 else:
