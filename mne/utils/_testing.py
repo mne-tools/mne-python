@@ -362,7 +362,7 @@ def _raw_annot(meas_date, orig_time):
     raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
     if meas_date is not None:
         meas_date = _handle_meas_date(meas_date)
-    with raw.info._unlock():
+    with raw.info._unlock(check_after=True):
         raw.info['meas_date'] = meas_date
     annot = Annotations([.5], [.2], ['dummy'], orig_time)
     raw.set_annotations(annotations=annot)
