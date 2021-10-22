@@ -2341,17 +2341,17 @@ def _empty_info(sfreq):
     _list_keys = ('bads', 'chs', 'comps', 'events', 'hpi_meas', 'hpi_results',
                   'projs', 'proc_history')
     info = Info()
-    with info._unlock():
-        for k in _none_keys:
-            info[k] = None
-        for k in _list_keys:
-            info[k] = list()
-        info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_OFF
-        info['highpass'] = 0.
-        info['sfreq'] = float(sfreq)
-        info['lowpass'] = info['sfreq'] / 2.
-        info['dev_head_t'] = Transform('meg', 'head')
-        info._update_redundant()
+    info._unlocked = True
+    for k in _none_keys:
+        info[k] = None
+    for k in _list_keys:
+        info[k] = list()
+    info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_OFF
+    info['highpass'] = 0.
+    info['sfreq'] = float(sfreq)
+    info['lowpass'] = info['sfreq'] / 2.
+    info['dev_head_t'] = Transform('meg', 'head')
+    info._update_redundant()
     return info
 
 
