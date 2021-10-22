@@ -42,7 +42,7 @@ def test_gui_api(renderer_notebook, nbexec):
     # --- BEGIN: dock ---
     renderer._dock_initialize(name='', area='left')
 
-    # label
+    # label (not interactive)
     widget = renderer._dock_add_label('', align=True)
     widget.update()
     widget.set_enabled(False)
@@ -79,6 +79,7 @@ def test_gui_api(renderer_notebook, nbexec):
         widget.set_value(1, 'bar')
     assert widget.get_value(0) == 'foo'
     assert widget.get_value(1) == 'bar'
+    widget.set_enabled(False)
 
     # text field
     widget = renderer._dock_add_text('', 'foo', '')
@@ -87,10 +88,13 @@ def test_gui_api(renderer_notebook, nbexec):
 
     # file button
     renderer._dock_add_file_button('', '', mock, directory=True)
-    renderer._dock_add_file_button('', '', mock, save=True)
-    widget = renderer._dock_add_file_button('', '', mock,
-                                            input_text_widget=False)
+    renderer._dock_add_file_button('', '', mock, input_text_widget=False)
+    widget = renderer._dock_add_file_button('', '', mock, save=True)
+    widget.set_value(0, 'foo')  # modify the text field (not interactive)
+    assert widget.get_value(0) == 'foo'
     # XXX: the internal file dialogs may hang without signals
+    # widget.set_value(1, 'bar')
+    widget.set_enabled(False)
 
     renderer._dock_initialize(name='', area='right')
     renderer._dock_named_layout(name='')
