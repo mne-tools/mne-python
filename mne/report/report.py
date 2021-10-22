@@ -2879,17 +2879,17 @@ class Report(object):
 
         return html
 
-    def _render_raw_butterfly_segments(self, *, raw, image_format, tags):
+    def _render_raw_butterfly_segments(self, *, raw: BaseRaw, image_format,
+                                       tags):
         # Pick 10 1-second time slices
         times = np.linspace(raw.times[0], raw.times[-1], 12)[1:-1]
         figs = []
         for t in times:
-            raw_segment = raw.copy().crop(
-                tmin=max(t - 0.5, 0),
-                tmax=min(t + 0.5, raw.times[-1])
-            )
-            fig = raw_segment.plot(butterfly=True, show_scrollbars=False,
-                                   show=False)
+            tmin = max(t - 0.5, 0)
+            tmax = min(t + 0.5, raw.times[-1])
+            duration = tmax - tmin
+            fig = raw.plot(butterfly=True, show_scrollbars=False, start=tmin,
+                           duration=duration, show=False)
             figs.append(fig)
 
         captions = [f'Segment {i+1} of {len(figs)}'
