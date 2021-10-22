@@ -628,6 +628,10 @@ class _AbstractWidgetList(ABC):
         pass
 
     @abstractmethod
+    def get_value(self, idx):
+        pass
+
+    @abstractmethod
     def set_value(self, idx, value):
         pass
 

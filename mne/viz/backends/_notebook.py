@@ -74,6 +74,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         return _IpyWidget(widget)
 
     def _dock_add_button(self, name, callback, layout=None):
+        layout = self._dock_layout if layout is None else layout
         widget = Button(description=name)
         widget.on_click(lambda x: callback())
         self._layout_add_widget(layout, widget)
@@ -123,7 +124,6 @@ class _IpyDock(_AbstractDock, _IpyLayout):
             value=value,
             min=rng[0],
             max=rng[1],
-            readout=False,
         )
         if step is not None:
             widget.step = step
@@ -389,6 +389,12 @@ class _IpyWidgetList(_AbstractWidgetList):
         else:
             for widget in self._widgets:
                 widget.set_enabled(state)
+
+    def get_value(self, idx):
+        if isinstance(self._src, RadioButtons):
+            return self._widgets.get_value()
+        else:
+            return self._widgets[idx].get_value()
 
     def set_value(self, idx, value):
         if isinstance(self._src, RadioButtons):
