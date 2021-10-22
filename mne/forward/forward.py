@@ -286,8 +286,8 @@ def _read_forward_meas_info(tree, fid):
         raise ValueError('No parent MEG information found in operator')
     parent_mri = parent_mri[0]
 
-    tag = find_tag(fid, parent_mri, FIFF.FIFF_MNE_FILE_NAME)
     with info._unlock(check_after=False):
+        tag = find_tag(fid, parent_mri, FIFF.FIFF_MNE_FILE_NAME)
         info['mri_file'] = tag.data if tag is not None else None
         tag = find_tag(fid, parent_mri, FIFF.FIFF_PARENT_FILE_ID)
         info['mri_id'] = tag.data if tag is not None else None
@@ -307,12 +307,12 @@ def _read_forward_meas_info(tree, fid):
     # Add channel information
     with info._unlock(check_after=False):
         info['chs'] = chs = list()
-        for k in range(parent_meg['nent']):
-            kind = parent_meg['directory'][k].kind
-            pos = parent_meg['directory'][k].pos
-            if kind == FIFF.FIFF_CH_INFO:
-                tag = read_tag(fid, pos)
-                chs.append(tag.data)
+    for k in range(parent_meg['nent']):
+        kind = parent_meg['directory'][k].kind
+        pos = parent_meg['directory'][k].pos
+        if kind == FIFF.FIFF_CH_INFO:
+            tag = read_tag(fid, pos)
+            chs.append(tag.data)
     ch_names_mapping = _read_extended_ch_info(chs, parent_meg, fid)
     info._update_redundant()
 
@@ -1327,17 +1327,15 @@ def _fill_measurement_info(info, fwd, sfreq, data):
     info = pick_info(info, sel)
     info['bads'] = []
 
+    now = time()
+    sec = np.floor(now)
+    usec = 1e6 * (now - sec)
+
     # this is probably correct based on what's done in meas_info.py...
     with info._unlock(check_after=True):
-        info['meas_id'] = fwd['info']['meas_id']
-        info['file_id'] = info['meas_id']
-
-        now = time()
-        sec = np.floor(now)
-        usec = 1e6 * (now - sec)
-
-        info.update(meas_date=_stamp_to_dt((int(sec), int(usec))), highpass=0.,
-                    lowpass=sfreq / 2., sfreq=sfreq, projs=[])
+        info.update(meas_id=fwd['info']['meas_id'], file_id=info['meas_id'],
+                    meas_date=_stamp_to_dt((int(sec), int(usec))),
+                    highpass=0., lowpass=sfreq / 2., sfreq=sfreq, projs=[])
 
     # reorder data (which is in fwd order) to match that of info
     order = [fwd['sol']['row_names'].index(name) for name in info['ch_names']]
