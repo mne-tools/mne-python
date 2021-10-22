@@ -486,11 +486,10 @@ def test_check_consistency():
 
     # Silent type conversion to float
     info2 = info.copy()
-    with info2._unlock(check_after=False):
+    with info2._unlock(check_after=True):
         info2['sfreq'] = 1
         info2['highpass'] = 2
         info2['lowpass'] = 2
-    info2._check_consistency()
     assert (isinstance(info2['sfreq'], float))
     assert (isinstance(info2['highpass'], float))
     assert (isinstance(info2['lowpass'], float))

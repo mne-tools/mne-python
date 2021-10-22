@@ -542,7 +542,7 @@ def pick_info(info, sel=(), copy=True, verbose=None):
                          % (n_unique, len(sel)))
 
     # make sure required the compensation channels are present
-    with info._unlock(check_after=False):
+    with info._unlock(check_after=True):
         if len(info.get('comps', [])) > 0:
             ch_names = [info['ch_names'][idx] for idx in sel]
             _, comps_missing = _bad_chans_comp(info, ch_names)
@@ -552,10 +552,8 @@ def pick_info(info, sel=(), copy=True, verbose=None):
                             % (len(info['comps']),))
                 info['comps'] = []
         info['chs'] = [info['chs'][k] for k in sel]
-    info._update_redundant()
-    info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
-
-    with info._unlock(check_after=True):
+        info._update_redundant()
+        info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
         if 'comps' in info:
             comps = deepcopy(info['comps'])
             for c in comps:

@@ -1076,7 +1076,7 @@ class ICA(ContainsMixin):
         """Aux method."""
         # set channel names and info
         ch_names = []
-        with info._unlock(check_after=False):
+        with info._unlock(check_after=True):
             ch_info = info['chs'] = []
             for ii, name in enumerate(self._ica_names):
                 ch_names.append(name)
@@ -1097,8 +1097,7 @@ class ICA(ContainsMixin):
                             add_channels]
             info['bads'] = [ch_names[k] for k in self.exclude]
             info['projs'] = []  # make sure projections are removed.
-        info._update_redundant()
-        info._check_consistency()
+            info._update_redundant()
 
     @verbose
     def score_sources(self, inst, target=None, score_func='pearsonr',

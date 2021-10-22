@@ -752,35 +752,34 @@ def _copy_preload_add_channels(raw, add_channels, copy, info):
     """Load data for processing and (maybe) add cHPI pos channels."""
     if copy:
         raw = raw.copy()
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock(check_after=True):
         raw.info['chs'] = info['chs']  # updated coil types
-    if add_channels:
-        kinds = [FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2, FIFF.FIFFV_QUAT_3,
-                 FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5, FIFF.FIFFV_QUAT_6,
-                 FIFF.FIFFV_HPI_G, FIFF.FIFFV_HPI_ERR, FIFF.FIFFV_HPI_MOV]
-        out_shape = (len(raw.ch_names) + len(kinds), len(raw.times))
-        out_data = np.zeros(out_shape, np.float64)
-        msg = '    Appending head position result channels and '
-        if raw.preload:
-            logger.info(msg + 'copying original raw data')
-            out_data[:len(raw.ch_names)] = raw._data
-            raw._data = out_data
-        else:
-            logger.info(msg + 'loading raw data from disk')
-            with use_log_level(False):
-                raw._preload_data(out_data[:len(raw.ch_names)])
-            raw._data = out_data
-        assert raw.preload is True
-        off = len(raw.ch_names)
-        chpi_chs = [
-            dict(ch_name='CHPI%03d' % (ii + 1), logno=ii + 1,
-                 scanno=off + ii + 1, unit_mul=-1, range=1., unit=-1,
-                 kind=kinds[ii], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
-                 cal=1e-4, coil_type=FWD.COIL_UNKNOWN, loc=np.zeros(12))
-            for ii in range(len(kinds))]
-        raw.info['chs'].extend(chpi_chs)
-        raw.info._update_redundant()
-        raw.info._check_consistency()
+        if add_channels:
+            kinds = [FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2, FIFF.FIFFV_QUAT_3,
+                     FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5, FIFF.FIFFV_QUAT_6,
+                     FIFF.FIFFV_HPI_G, FIFF.FIFFV_HPI_ERR, FIFF.FIFFV_HPI_MOV]
+            out_shape = (len(raw.ch_names) + len(kinds), len(raw.times))
+            out_data = np.zeros(out_shape, np.float64)
+            msg = '    Appending head position result channels and '
+            if raw.preload:
+                logger.info(msg + 'copying original raw data')
+                out_data[:len(raw.ch_names)] = raw._data
+                raw._data = out_data
+            else:
+                logger.info(msg + 'loading raw data from disk')
+                with use_log_level(False):
+                    raw._preload_data(out_data[:len(raw.ch_names)])
+                raw._data = out_data
+            assert raw.preload is True
+            off = len(raw.ch_names)
+            chpi_chs = [
+                dict(ch_name='CHPI%03d' % (ii + 1), logno=ii + 1,
+                     scanno=off + ii + 1, unit_mul=-1, range=1., unit=-1,
+                     kind=kinds[ii], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                     cal=1e-4, coil_type=FWD.COIL_UNKNOWN, loc=np.zeros(12))
+                for ii in range(len(kinds))]
+            raw.info['chs'].extend(chpi_chs)
+            raw.info._update_redundant()
         assert raw._data.shape == (raw.info['nchan'], len(raw.times))
         # Return the pos picks
         pos_picks = np.arange(len(raw.ch_names) - len(chpi_chs),

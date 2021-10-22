@@ -271,10 +271,9 @@ def test_inverse_operator_channel_ordering(evoked, noise_cov):
     randomiser = np.random.RandomState(42)
     randomiser.shuffle(new_order)
     evoked.data = evoked.data[new_order]
-    with evoked.info._unlock(check_after=False):
+    with evoked.info._unlock(check_after=True):
         evoked.info['chs'] = [evoked.info['chs'][n] for n in new_order]
-    evoked.info._update_redundant()
-    evoked.info._check_consistency()
+        evoked.info._update_redundant()
 
     cov_ch_reorder = [c for c in evoked.info['ch_names']
                       if (c in noise_cov.ch_names)]

@@ -1658,12 +1658,10 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             info['dev_ctf_t'] = Transform('meg', 'ctf_head', dev_ctf_trans)
 
     # All kinds of auxliary stuff
-    with info._unlock(check_after=False):
+    with info._unlock(check_after=True):
         info['dig'] = _format_dig_points(dig)
         info['bads'] = bads
-    info._update_redundant()
-
-    with info._unlock(check_after=False):
+        info._update_redundant()
         if clean_bads:
             info['bads'] = [b for b in bads if b in info['ch_names']]
         info['projs'] = projs
@@ -1673,8 +1671,6 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         info['custom_ref_applied'] = custom_ref_applied
         info['xplotter_layout'] = xplotter_layout
         info['kit_system_id'] = kit_system_id
-
-    info._check_consistency()
 
     return info, meas
 

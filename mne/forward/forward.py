@@ -1328,17 +1328,16 @@ def _fill_measurement_info(info, fwd, sfreq, data):
     info['bads'] = []
 
     # this is probably correct based on what's done in meas_info.py...
-    with info._unlock(check_after=False):
+    with info._unlock(check_after=True):
         info['meas_id'] = fwd['info']['meas_id']
         info['file_id'] = info['meas_id']
 
-    now = time()
-    sec = np.floor(now)
-    usec = 1e6 * (now - sec)
+        now = time()
+        sec = np.floor(now)
+        usec = 1e6 * (now - sec)
 
-    info.update(meas_date=_stamp_to_dt((int(sec), int(usec))), highpass=0.,
-                lowpass=sfreq / 2., sfreq=sfreq, projs=[])
-    info._check_consistency()
+        info.update(meas_date=_stamp_to_dt((int(sec), int(usec))), highpass=0.,
+                    lowpass=sfreq / 2., sfreq=sfreq, projs=[])
 
     # reorder data (which is in fwd order) to match that of info
     order = [fwd['sol']['row_names'].index(name) for name in info['ch_names']]

@@ -36,7 +36,7 @@ def _get_test_info():
     test_info = _empty_info(1000)
     loc = np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
                    dtype=np.float32)
-    with test_info._unlock(check_after=False):
+    with test_info._unlock(check_after=True):
         test_info['chs'] = [
             {'cal': 1, 'ch_name': 'ICA 001', 'coil_type': 0, 'coord_frame': 0,
              'kind': 502, 'loc': loc.copy(), 'logno': 1, 'range': 1.0,
@@ -47,8 +47,7 @@ def _get_test_info():
             {'cal': 0.002142000012099743, 'ch_name': 'EOG 061', 'coil_type': 1,
              'coord_frame': 0, 'kind': 202, 'loc': loc.copy(), 'logno': 61,
              'range': 1.0, 'scanno': 376, 'unit': 107, 'unit_mul': 0}]
-    test_info._update_redundant()
-    test_info._check_consistency()
+        test_info._update_redundant()
     return test_info
 
 
