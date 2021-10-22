@@ -392,7 +392,8 @@ class _IpyWidgetList(_AbstractWidgetList):
 
     def get_value(self, idx):
         if isinstance(self._src, RadioButtons):
-            return self._widgets.get_value()
+            # for consistency, we do not use get_value()
+            return self._widgets._widget.options[idx]
         else:
             return self._widgets[idx].get_value()
 

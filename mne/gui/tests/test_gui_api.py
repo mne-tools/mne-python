@@ -20,21 +20,15 @@ def test_gui_api(renderer_notebook, nbexec):
 
     @contextlib.contextmanager
     def _check_widget_trigger(widget, mock, before, after, call_count=True,
-                              get_value=True, idx=None):
+                              get_value=True):
         if get_value:
-            if idx is None:
-                assert widget.get_value() == before
-            else:
-                assert widget.get_value(idx) == before
+            assert widget.get_value() == before
         old_call_count = mock.call_count
         try:
             yield
         finally:
             if get_value:
-                if idx is None:
-                    assert widget.get_value() == after
-                else:
-                    assert widget.get_value(idx) == after
+                assert widget.get_value() == after
             if call_count:
                 assert mock.call_count == old_call_count + 1
 
@@ -72,12 +66,12 @@ def test_gui_api(renderer_notebook, nbexec):
     with _check_widget_trigger(widget, mock, 'foo', 'bar'):
         widget.set_value('bar')
 
-    # XXX: it is not stable yet
-    # # radio buttons
-    # widget = renderer._dock_add_radio_buttons('foo', ['foo', 'bar'], mock)
-    # with _check_widget_trigger(widget, mock, 'foo', 'bar', idx=0):
-    #     widget.set_value(1, 'bar')
-    # assert widget.get_value(1)
+    # radio buttons
+    widget = renderer._dock_add_radio_buttons('foo', ['foo', 'bar'], mock)
+    with _check_widget_trigger(widget, mock, 'foo', 'bar', get_value=False):
+        widget.set_value(1, 'bar')
+    assert widget.get_value(0) == 'foo'
+    assert widget.get_value(1) == 'bar'
 
     # text field
     widget = renderer._dock_add_text('', 'foo', '')
