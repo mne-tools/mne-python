@@ -1006,12 +1006,12 @@ class Report(object):
             tags=tags,
             topomap_kwargs=topomap_kwargs,
         )
-        repr_html, psd_img_html, butterfly_img_html, ssp_proj_img_html = htmls
+        repr_html, psd_img_html, butterfly_imgs_html, ssp_proj_img_html = htmls
         dom_id = self._get_dom_id()
         html = _html_raw_element(
             repr=repr_html,
             psd=psd_img_html,
-            butterfly=butterfly_img_html,
+            butterfly=butterfly_imgs_html,
             ssp_projs=ssp_proj_img_html,
             tags=tags,
             title=title,
@@ -2879,6 +2879,29 @@ class Report(object):
 
         return html
 
+    def _render_raw_butterfly_segments(self, *, raw: BaseRaw, image_format,
+                                       tags):
+        # Pick 10 1-second time slices
+        times = np.linspace(raw.times[0], raw.times[-1], 12)[1:-1]
+        figs = []
+        for t in times:
+            tmin = max(t - 0.5, 0)
+            tmax = min(t + 0.5, raw.times[-1])
+            duration = tmax - tmin
+            fig = raw.plot(butterfly=True, show_scrollbars=False, start=tmin,
+                           duration=duration, show=False)
+            figs.append(fig)
+
+        captions = [f'Segment {i+1} of {len(figs)}'
+                    for i in range(len(figs))]
+
+        html, _ = self._render_slider(
+            figs=figs, title='Time series', captions=captions,
+            start_idx=0, image_format=image_format, tags=tags
+        )
+
+        return html
+
     def _render_raw(self, *, raw, add_psd, add_projs, add_butterfly,
                     image_format, tags, topomap_kwargs):
         """Render raw."""
@@ -2903,39 +2926,11 @@ class Report(object):
 
         # Butterfly plot
         if add_butterfly:
-            dom_id = self._get_dom_id()
-            # Only keep "bad" annotations
-            raw_copy = raw.copy()
-            annots_to_remove_idx = []
-            for idx, annotation in enumerate(raw.annotations):
-                if not annotation['description'].lower().startswith('bad'):
-                    annots_to_remove_idx.append(idx)
-            raw_copy.annotations.delete(annots_to_remove_idx)
-
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    action='ignore',
-                    message='.*can cause aliasing artifacts.*',
-                    category=RuntimeWarning
-                )
-                fig = raw_copy.plot(
-                    butterfly=True,
-                    show_scrollbars=False,
-                    duration=raw.times[-1],
-                    decim=10,
-                    show=False
-                )
-
-            tight_layout(fig=fig)
-            img = _fig_to_img(fig=fig, image_format=image_format)
-            butterfly_img_html = _html_image_element(
-                img=img, div_klass='raw', img_klass='raw',
-                title='Time course', caption=None, show=True,
-                image_format=image_format, id=dom_id, tags=tags
+            butterfly_imgs_html = self._render_raw_butterfly_segments(
+                raw=raw, image_format=image_format, tags=tags
             )
-            del raw_copy
         else:
-            butterfly_img_html = ''
+            butterfly_imgs_html = ''
 
         # PSD
         if isinstance(add_psd, dict):
@@ -2964,7 +2959,7 @@ class Report(object):
             add_projs=add_projs, info=raw, image_format=image_format,
             tags=tags, topomap_kwargs=topomap_kwargs)
 
-        return [repr_html, psd_img_html, butterfly_img_html, ssp_projs_html]
+        return [repr_html, psd_img_html, butterfly_imgs_html, ssp_projs_html]
 
     def _ssp_projs_html(self, *, add_projs, info, image_format, tags,
                         topomap_kwargs):

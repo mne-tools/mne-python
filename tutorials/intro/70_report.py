@@ -75,7 +75,9 @@ subjects_dir = data_path / 'subjects'
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # Raw data can be added via the :meth:`mne.Report.add_raw` method. It can
-# operate with a path to a raw file and `~mne.io.Raw` objects:
+# operate with a path to a raw file and `~mne.io.Raw` objects, and will
+# produce – among other output – a slider that allows you to scrub through 10
+# equally-spaced 1-second segments of the data:
 
 raw_path = sample_dir / 'sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw(raw_path)
