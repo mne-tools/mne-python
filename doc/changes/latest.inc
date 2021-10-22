@@ -21,6 +21,8 @@ Current (0.24.dev0)
 
 .. |David Julien| replace:: **David Julien**
 
+.. |Dominique Makowski| replace:: **Dominique Makowski**
+
 .. |Romain Derollepot| replace:: **Romain Derollepot**
 
 .. |Jan Sosulski| replace:: **Jan Sosulski**
@@ -38,8 +40,6 @@ Current (0.24.dev0)
 .. |Timothy Gates| replace:: **Timothy Gates**
 
 .. |Reza Shoorangiz| replace:: **Reza Shoorangiz**
-
-.. |Dominique Makowski| replace:: **Dominique Makowski**
 
 .. |Evgeny Goldstein| replace:: **Evgeny Goldstein**
 
