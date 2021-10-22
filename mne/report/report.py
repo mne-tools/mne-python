@@ -2880,14 +2880,6 @@ class Report(object):
         return html
 
     def _render_raw_butterfly_segments(self, *, raw, image_format, tags):
-        # # Only keep "bad" annotations
-        # raw_copy = raw.copy()
-        # annots_to_remove_idx = []
-        # for idx, annotation in enumerate(raw.annotations):
-        #     if not annotation['description'].lower().startswith('bad'):
-        #         annots_to_remove_idx.append(idx)
-        # raw_copy.annotations.delete(annots_to_remove_idx)
-
         # Pick 10 1-second time slices
         times = np.linspace(raw.times[0], raw.times[-1], 12)[1:-1]
         figs = []
