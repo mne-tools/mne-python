@@ -4,7 +4,7 @@ import numpy as np
 
 from ..evoked import Evoked
 from ..io.pick import _picks_to_idx
-from ..utils import verbose, _validate_type
+from ..utils import verbose, _validate_type, _ensure_int
 
 
 def _temp_proj(ref_2, ref_1, raw_data, n_proj=6):
@@ -67,6 +67,7 @@ def cortical_signal_suppression(evoked, picks=None, mag_picks=None,
     .. footbibliography::
     """
     _validate_type(evoked, Evoked, 'evoked')
+    n_proj = _ensure_int(n_proj, 'n_proj')
     picks = _picks_to_idx(
         evoked.info, picks, none='data', exclude='bads')
     mag_picks = _picks_to_idx(
