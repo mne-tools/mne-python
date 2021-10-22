@@ -684,8 +684,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             else:
                 info['highpass'] = float(highpass[0])
                 if hp_s:
-                    # filter time constant t [secs] to Hz
-                    # conversion: 1/2*pi*t
+                    # filter time constant t [secs] to Hz conversion: 1/2*pi*t
                     info['highpass'] = 1. / (2 * np.pi * info['highpass'])
 
         else:
