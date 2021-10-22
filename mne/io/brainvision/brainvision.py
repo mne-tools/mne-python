@@ -677,8 +677,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             pass
         elif len(set(highpass)) == 1:
             if highpass[0] in ('NaN', 'Off'):
-                # Placeholder for future use. Highpass set in _empty_info
-                pass
+                pass  # Placeholder for future use. Highpass set in _empty_info
             elif highpass[0] == 'DC':
                 highpass_ = 0.
             else:
@@ -729,8 +728,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             pass
         elif len(set(lowpass)) == 1:
             if lowpass[0] in ('NaN', 'Off'):
-                # Placeholder for future use. Lowpass set in _empty_info
-                pass
+                pass  # Placeholder for future use. Lowpass set in _empty_info
             else:
                 lowpass_ = float(lowpass[0])
                 if lp_s:
