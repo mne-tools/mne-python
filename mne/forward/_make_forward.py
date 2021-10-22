@@ -21,13 +21,13 @@ from ..io.pick import _has_kit_refs, pick_types, pick_info
 from ..io.constants import FIFF, FWD
 from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_trans, _print_coord_trans, _coord_frame_name,
-                          Transform)
+                          Transform, invert_transform)
 from ..utils import logger, verbose, warn, _pl
 from ..parallel import check_n_jobs
 from ..source_space import (_ensure_src, _filter_source_spaces,
                             _make_discrete_source_space, _complete_vol_src)
 from ..source_estimate import VolSourceEstimate
-from ..surface import _normalize_vectors
+from ..surface import _normalize_vectors, _CheckInside
 from ..bem import read_bem_solution, _bem_find_surface, ConductorModel
 
 from .forward import Forward, _merge_meg_eeg_fwds, convert_forward_solution
@@ -482,11 +482,38 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
     bem = _setup_bem(bem, bem_extra, len(eegnames), mri_head_t,
                      allow_none=allow_bem_none)
 
-    # Circumvent numerical problems by excluding points too close to the skull
-    if bem is not None and not bem['is_sphere']:
-        inner_skull = _bem_find_surface(bem, 'inner_skull')
-        _filter_source_spaces(inner_skull, mindist, mri_head_t, src, n_jobs)
-        logger.info('')
+    # Circumvent numerical problems by excluding points too close to the skull,
+    # and check that sensors are not inside any BEM surface
+    if bem is not None:
+        if not bem['is_sphere']:
+            check_surface = 'inner skull surface'
+            inner_skull = _bem_find_surface(bem, 'inner_skull')
+            check_inside = _filter_source_spaces(
+                inner_skull, mindist, mri_head_t, src, n_jobs)
+            logger.info('')
+            if len(bem['surfs']) == 3:
+                check_surface = 'scalp surface'
+                check_inside = _CheckInside(
+                    _bem_find_surface(bem, 'head'))
+        else:
+            check_surface = 'outermost sphere shell'
+            if len(bem['layers']) == 0:
+                def check_inside(x):
+                    return np.zeros(len(x), bool)
+            else:
+                def check_inside(x):
+                    return (np.linalg.norm(x, axis=1) <
+                            bem['layers'][-1]['rad'])
+        if len(megcoils):
+            meg_loc = apply_trans(
+                invert_transform(mri_head_t),
+                np.array([coil['r0'] for coil in megcoils]))
+            n_inside = check_inside(meg_loc).sum()
+            if n_inside:
+                raise RuntimeError(
+                    f'Found {n_inside} MEG sensor{_pl(n_inside)} inside the '
+                    f'{check_surface}, perhaps coordinate frames and/or '
+                    'coregistration must be incorrect')
 
     rr = np.concatenate([s['rr'][s['vertno']] for s in src])
     if len(rr) < 1:

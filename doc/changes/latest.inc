@@ -257,6 +257,8 @@ Bugs
 
 - Fix bug in `mne.viz.plot_topomap` (and related methods) where passing ``axes`` that are part of a matplotlib figure that uses a constrained layout would emit warnings (:gh:`9558` by `Eric Larson`_)
 
+- Fix bug in :func:`mne.make_forward_solution` where impossible sensor-BEM geometries were not checked (:gh:`9893` by `Eric Larson`_)
+
 - Fix bug in :func:`mne.concatenate_epochs` when concatenating :class:`mne.Epochs` objects with 0 events (:gh:`9535` by `Marijn van Vliet`_)
 
 - Fix bug in :func:`mne.viz.Brain.screenshot` where the RGBA mode was not supported (:gh:`9564` by `Guillaume Favelier`_).
