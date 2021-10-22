@@ -5,7 +5,7 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #          Joan Massich <mailsik@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import heapq
 from collections import Counter
@@ -138,7 +138,11 @@ class DigPoint(dict):
             id_ = ('%s #%s' % (id_, self['ident']))
         id_ = id_.rjust(10)
         cf = _coord_frame_name(self['coord_frame'])
-        pos = ('(%0.1f, %0.1f, %0.1f) mm' % tuple(1000 * self['r'])).ljust(25)
+        if 'voxel' in cf:
+            pos = ('(%0.1f, %0.1f, %0.1f)' % tuple(self['r'])).ljust(25)
+        else:
+            pos = ('(%0.1f, %0.1f, %0.1f) mm' %
+                   tuple(1000 * self['r'])).ljust(25)
         return ('<DigPoint | %s : %s : %s frame>' % (id_, pos, cf))
 
     # speed up info copy by only deep copying the mutable item
@@ -229,7 +233,7 @@ _cardinal_ident_mapping = {
 # This does something really similar to _read_dig_montage_fif but:
 #   - does not check coord_frame
 #   - does not do any operation that implies assumptions with the names
-def _get_data_as_dict_from_dig(dig):
+def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
     """Obtain coordinate data from a Dig.
 
     Parameters
@@ -252,17 +256,16 @@ def _get_data_as_dict_from_dig(dig):
         elif d['kind'] == FIFF.FIFFV_POINT_HPI:
             hpi.append(d['r'])
             elp.append(d['r'])
-            # XXX: point_names.append('HPI%03d' % d['ident'])
         elif d['kind'] == FIFF.FIFFV_POINT_EXTRA:
             hsp.append(d['r'])
         elif d['kind'] == FIFF.FIFFV_POINT_EEG:
-            # XXX: dig_ch_pos['EEG%03d' % d['ident']] = d['r']
-            if d['ident'] != 0:  # ref channel
+            if d['ident'] != 0 or not exclude_ref_channel:
                 dig_ch_pos_location.append(d['r'])
 
     dig_coord_frames = set([d['coord_frame'] for d in dig])
-    assert len(dig_coord_frames) == 1, \
-        'Only single coordinate frame in dig is supported'  # XXX
+    if len(dig_coord_frames) != 1:
+        raise RuntimeError('Only single coordinate frame in dig is supported, '
+                           f'got {dig_coord_frames}')
 
     return Bunch(
         nasion=fids.get('nasion', None),
@@ -271,7 +274,7 @@ def _get_data_as_dict_from_dig(dig):
         hsp=np.array(hsp) if len(hsp) else None,
         hpi=np.array(hpi) if len(hpi) else None,
         elp=np.array(elp) if len(elp) else None,
-        dig_ch_pos_location=dig_ch_pos_location,
+        dig_ch_pos_location=np.array(dig_ch_pos_location),
         coord_frame=dig_coord_frames.pop(),
     )
 
@@ -406,7 +409,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                         'coord_frame': coord_frame})
     if extra_points is not None:
         extra_points = np.asarray(extra_points)
-        if extra_points.shape[1] != 3:
+        if len(extra_points) and extra_points.shape[1] != 3:
             raise ValueError('Points should have the shape (n_points, 3) '
                              'instead of %s' % (extra_points.shape,))
         for idx, point in enumerate(extra_points):

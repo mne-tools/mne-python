@@ -2,7 +2,7 @@
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -12,7 +12,7 @@ from ..utils import _read_segments_file, _find_channels
 from ..constants import FIFF
 from ..meas_info import create_info
 from ..base import BaseRaw
-from ...utils import logger, verbose, warn, fill_doc, Bunch
+from ...utils import logger, verbose, warn, fill_doc, Bunch, _check_fname
 from ...channels import make_dig_montage
 from ...epochs import BaseEpochs
 from ...event import read_events
@@ -22,7 +22,7 @@ from ...annotations import Annotations, read_annotations
 CAL = 1e-6
 
 
-def _check_fname(fname, dataname):
+def _check_eeglab_fname(fname, dataname):
     """Check whether the filename is valid.
 
     Check if the file extension is ``.fdt`` (older ``.dat`` being invalid) or
@@ -61,9 +61,7 @@ def _check_load_mat(fname, uint16_codec):
         raise NotImplementedError(
             'Loading an ALLEEG array is not supported. Please contact'
             'mne-python developers for more information.')
-    if 'EEG' not in eeg:
-        raise ValueError('Could not find EEG array in the .set file.')
-    else:
+    if 'EEG' in eeg:  # fields are contained in EEG structure
         eeg = eeg['EEG']
     eeg = eeg.get('EEG', eeg)  # handle nested EEG structure
     eeg = Bunch(**eeg)
@@ -316,6 +314,7 @@ class RawEEGLAB(BaseRaw):
     @verbose
     def __init__(self, input_fname, eog=(),
                  preload=False, uint16_codec=None, verbose=None):  # noqa: D102
+        input_fname = _check_fname(input_fname, 'read', True, 'input_fname')
         eeg = _check_load_mat(input_fname, uint16_codec)
         if eeg.trials != 1:
             raise TypeError('The number of trials is %d. It must be 1 for raw'
@@ -323,11 +322,11 @@ class RawEEGLAB(BaseRaw):
                             ' the .set file contains epochs.' % eeg.trials)
 
         last_samps = [eeg.pnts - 1]
-        info, eeg_montage, update_ch_names = _get_info(eeg, eog=eog)
+        info, eeg_montage, _ = _get_info(eeg, eog=eog)
 
         # read the data
         if isinstance(eeg.data, str):
-            data_fname = _check_fname(input_fname, eeg.data)
+            data_fname = _check_eeglab_fname(input_fname, eeg.data)
             logger.info('Reading %s' % data_fname)
 
             super(RawEEGLAB, self).__init__(
@@ -447,12 +446,19 @@ class EpochsEEGLAB(BaseEpochs):
                  baseline=None, reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, eog=(), verbose=None,
                  uint16_codec=None):  # noqa: D102
+        input_fname = _check_fname(fname=input_fname, must_exist=True,
+                                   overwrite='read')
         eeg = _check_load_mat(input_fname, uint16_codec)
 
         if not ((events is None and event_id is None) or
                 (events is not None and event_id is not None)):
             raise ValueError('Both `events` and `event_id` must be '
                              'None or not None')
+
+        if eeg.trials <= 1:
+            raise ValueError("The file does not seem to contain epochs "
+                             "(trials less than 2). "
+                             "You should try using read_raw_eeglab function.")
 
         if events is None and eeg.trials > 1:
             # first extract the events and construct an event_id dict
@@ -503,7 +509,6 @@ class EpochsEEGLAB(BaseEpochs):
             events = read_events(events)
 
         logger.info('Extracting parameters from %s...' % input_fname)
-        input_fname = op.abspath(input_fname)
         info, eeg_montage, _ = _get_info(eeg, eog=eog)
 
         for key, val in event_id.items():
@@ -512,7 +517,7 @@ class EpochsEEGLAB(BaseEpochs):
                                  '(event id %i)' % (key, val))
 
         if isinstance(eeg.data, str):
-            data_fname = _check_fname(input_fname, eeg.data)
+            data_fname = _check_eeglab_fname(input_fname, eeg.data)
             with open(data_fname, 'rb') as data_fid:
                 data = np.fromfile(data_fid, dtype=np.float32)
                 data = data.reshape((eeg.nbchan, eeg.pnts, eeg.trials),

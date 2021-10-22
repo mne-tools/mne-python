@@ -6,8 +6,8 @@ Datasets Overview
 .. sidebar:: Contributing datasets to MNE-Python
 
     Do not hesitate to contact MNE-Python developers on the
-    `MNE mailing list <http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`_
-    to discuss the possibility of adding more publicly available datasets.
+    `MNE Forum <https://mne.discourse.group>`_ to discuss the possibility of
+    adding more publicly available datasets.
 
 All the dataset fetchers are available in :mod:`mne.datasets`. To download any of the datasets,
 use the ``data_path`` (fetches full dataset) or the ``load_data`` (fetches dataset partially) functions.
@@ -16,11 +16,6 @@ All fetchers will check the default download location first to see if the datase
 is already on your computer, and only download it if necessary. The default
 download location is also configurable; see the documentation of any of the
 ``data_path`` functions for more information.
-
-.. contents:: Available datasets
-   :local:
-   :depth: 2
-
 
 .. _sample-dataset:
 
@@ -126,7 +121,7 @@ Details can be found at the Brainstorm `resting state dataset tutorial`_.
 
 .. topic:: Examples
 
-    * :ref:`ex-envelope-correlation`
+    * :ref:`mne-connectivity:ex-envelope-correlation`
 
 Median nerve
 ^^^^^^^^^^^^
@@ -282,7 +277,7 @@ the MEG center in La Timone hospital in Marseille.
 
 .. topic:: Examples
 
-    * :ref:`tut_phantom_4Dbti`
+    * :ref:`tut-phantom-4Dbti`
 
 OPM
 ===
@@ -333,6 +328,19 @@ data please cite :footcite:`KempEtAl2000` and :footcite:`GoldbergerEtAl2000`.
 
     * :ref:`tut-sleep-stage-classif`
 
+Reference channel noise MEG data set
+====================================
+:func:`mne.datasets.refmeg_noise.data_path`.
+
+This dataset was obtained with a 4D Neuroimaging / BTi system at
+the University Clinic - Erlangen, Germany. There are powerful bursts of
+external magnetic noise throughout the recording, which make it a good
+example for automatic noise removal techniques.
+
+.. topic:: Examples
+
+    * :ref:`ex-megnoise_processing`
+
 Miscellaneous Datasets
 ======================
 These datasets are used for specific purposes in the documentation and in
@@ -351,22 +359,37 @@ For convenience, we provide a function to separately download and extract the
 
     :ref:`tut-eeg-fsaverage-source-modeling`
 
+Infant template MRIs
+^^^^^^^^^^^^^^^^^^^^
+:func:`mne.datasets.fetch_infant_template`
+
+This function will download an infant template MRI from
+:footcite:`OReillyEtAl2021` along with MNE-specific files.
 
 ECoG Dataset
 ^^^^^^^^^^^^
-:func:`mne.datasets.misc.data_path`. Data exists at ``/ecog/sample_ecog.mat``.
+:func:`mne.datasets.misc.data_path`. Data exists at ``/ecog/``.
 
-This dataset contains a sample Electrocorticography (ECoG) dataset. It includes
-a single grid of electrodes placed over the temporal lobe during an auditory
-listening task. This dataset is primarily used to demonstrate visualization
-functions in MNE and does not contain useful metadata for analysis.
+This dataset contains a sample electrocorticography (ECoG) dataset. It includes
+two grids of electrodes and ten shaft electrodes with simulated motor data (actual data
+pending availability).
 
 .. topic:: Examples
 
-    * :ref:`How to convert 3D electrode positions to a 2D image.
-      <ex-electrode-pos-2d>`: Demonstrates
-      how to project a 3D electrode location onto a 2D image, a common procedure
-      in electrocorticography.
+    * :ref:`ex-electrode-pos-2d`: Demonstrates how to project a 3D electrode location onto a 2D image, a common procedure in ECoG analyses.
+    * :ref:`tut-ieeg-localize`: Demonstrates how to use a graphical user interface to locate electrode contacts as well as warp them to a common atlas.
+
+sEEG Dataset
+^^^^^^^^^^^^
+:func:`mne.datasets.misc.data_path`. Data exists at ``/seeg/``.
+
+This dataset contains a sample stereoelectroencephalography (sEEG) dataset.
+It includes 21 shaft electrodes during a two-choice movement task on a keyboard.
+
+.. topic:: Examples
+
+    * :ref:`tut-ieeg-localize`: Demonstrates how to use a graphical user interface to locate electrode contacts as well as warp them to a common atlas.
+    * :ref:`tut-working-with-seeg`: Demonstrates ways to plot sEEG anatomy and results.
 
 .. _limo-dataset:
 
@@ -395,6 +418,49 @@ discriminate.
       and demonstrates how to fit a single trial linear regression using the
       information contained in the metadata of the individual datasets.
 
+.. _erp-core-dataset:
+
+ERP CORE Dataset
+^^^^^^^^^^^^^^^^
+:func:`mne.datasets.erp_core.data_path`
+
+The original `ERP CORE dataset`_ :footcite:`Kappenman2021` contains data from
+40 participants who completed 6 EEG experiments, carefully crafted to evoke
+7 well-known event-related potential (ERP) components.
+
+Currently, the MNE-Python ERP CORE dataset only provides data from one
+participant (subject ``001``) of the Flankers paradigm, which elicits the
+lateralized readiness potential (LRP) and error-related negativity (ERN). The
+data provided is **not** the original data from the ERP CORE dataset, but
+rather a slightly modified version, designed to demonstrate the Epochs metadata
+functionality. For example, we already set the references and montage
+correctly, and stored events as Annotations. Data is provided in ``FIFF``
+format.
+
+.. topic:: Examples
+
+    * :ref:`tut-autogenerate-metadata`: Learn how to auto-generate
+      `~mne.Epochs` metadata, and visualize the error-related negativity (ERN)
+      ERP component.
+
+.. _ssvep-dataset:
+
+SSVEP
+=====
+:func:`mne.datasets.ssvep.data_path`
+
+This is a simple example dataset with frequency tagged visual stimulation:
+N=2 participants observed checkerboards patterns inverting with a constant
+frequency of either 12.0 Hz of 15.0 Hz. 10 trials of 20.0 s length each.
+32 channels wet EEG was recorded.
+
+Data format: BrainVision .eeg/.vhdr/.vmrk files organized according to BIDS
+standard.
+
+.. topic:: Examples
+
+    * :ref:`tut-ssvep`
+
 References
 ==========
 
@@ -407,16 +473,4 @@ References
 .. _resting state dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetResting
 .. _median nerve dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
 .. _SPM faces dataset: https://www.fil.ion.ucl.ac.uk/spm/data/mmfaces/
-
-Reference channel noise MEG data set
-====================================
-:func:`mne.datasets.refmeg_noise.data_path`.
-
-This dataset was obtained with a 4D Neuroimaging / BTi system at
-the University Clinic - Erlangen, Germany. There are powerful bursts of
-external magnetic noise throughout the recording, which make it a good
-example for automatic noise removal techniques.
-
-.. topic:: Examples
-
-    * :ref:`ex-megnoise_processing`
+.. _ERP-CORE dataset: https://erpinfo.org/erp-core

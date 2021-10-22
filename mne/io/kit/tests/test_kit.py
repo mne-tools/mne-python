@@ -1,6 +1,6 @@
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -49,6 +49,8 @@ ricoh_systems_paths += [op.join(
     data_path, 'KIT', 'Example_RICOH160-1_10020-export_anonymyze.con')]
 ricoh_systems_paths += [op.join(
     data_path, 'KIT', 'Example_RICOH160-1_10021-export_anonymyze.con')]
+ricoh_systems_paths += [op.join(
+    data_path, 'KIT', '010409_Motor_task_coregist-export_tiny_1s.con')]
 berlin_path = op.join(data_path, 'KIT', 'data_berlin.con')
 
 
@@ -330,10 +332,13 @@ def test_decimate(tmpdir):
         'RICOH MEG System (10020) V3R000 RICOH160-1', 10020),
     (ricoh_systems_paths[2],
         'RICOH MEG System (10021) V3R000 RICOH160-1', 10021),
+    (ricoh_systems_paths[3],
+        'Yokogawa Electric Corporation/MEG device for infants/151-channel MEG '
+        'System (903) V2R004 PQ1151R', 903),
 ])
-def test_ricoh_systems(tmpdir, fname, desc, system_id):
-    """Test reading channel names and dig information from Ricoh systems."""
-    raw = read_raw_kit(fname, standardize_names=False)
+def test_raw_system_id(fname, desc, system_id):
+    """Test reading basics and system IDs."""
+    raw = _test_raw_reader(read_raw_kit, input_fname=fname)
     assert raw.info['description'] == desc
     assert raw.info['kit_system_id'] == system_id
 

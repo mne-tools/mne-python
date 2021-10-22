@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 r"""Browse raw data.
 
+This uses :func:`mne.io.read_raw` so it supports the same formats
+(without keyword arguments).
+
 Examples
 --------
 .. code-block:: console
@@ -31,6 +34,9 @@ def run():
     parser.add_option("--proj", dest="proj_in",
                       help="Projector file", metavar="FILE",
                       default='')
+    parser.add_option("--projoff", dest="proj_off",
+                      help="Disable all projectors",
+                      default=False, action="store_true")
     parser.add_option("--eve", dest="eve_in",
                       help="Events file", metavar="FILE",
                       default='')
@@ -84,6 +90,7 @@ def run():
     preload = options.preload
     show_options = options.show_options
     proj_in = options.proj_in
+    proj_off = options.proj_off
     eve_in = options.eve_in
     maxshield = options.maxshield
     highpass = options.highpass
@@ -105,8 +112,10 @@ def run():
         parser.print_help()
         sys.exit(1)
 
-    raw = mne.io.read_raw_fif(raw_in, preload=preload,
-                              allow_maxshield=maxshield)
+    kwargs = dict(preload=preload)
+    if maxshield:
+        kwargs.update(allow_maxshield='yes')
+    raw = mne.io.read_raw(raw_in, **kwargs)
     if len(proj_in) > 0:
         projs = mne.read_proj(proj_in)
         raw.info['projs'] = projs
@@ -126,7 +135,7 @@ def run():
     raw.plot(duration=duration, start=start, n_channels=n_channels,
              group_by=group_by, show_options=show_options, events=events,
              highpass=highpass, lowpass=lowpass, filtorder=filtorder,
-             clipping=clipping, verbose=verbose)
+             clipping=clipping, proj=not proj_off, verbose=verbose)
     plt.show(block=True)
 
 

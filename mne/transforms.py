@@ -4,7 +4,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
 import os.path as op
@@ -12,15 +12,16 @@ import glob
 
 import numpy as np
 from copy import deepcopy
-from scipy import linalg
 
-from .fixes import einsum, jit, mean
+from .fixes import jit, mean, _get_img_fdata
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
+from .defaults import _handle_default
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
-                    _check_path_like, get_subjects_dir, fill_doc, _check_fname)
+                    _path_like, get_subjects_dir, fill_doc, _check_fname,
+                    _check_option, _require_version, wrapped_stdout)
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -63,7 +64,9 @@ def _to_const(cf):
     """Convert string or int coord frame into int."""
     if isinstance(cf, str):
         if cf not in _str_to_frame:
-            raise ValueError('Unknown cf %s' % cf)
+            raise ValueError(
+                f'Unknown coordinate frame {cf}, '
+                'expected "' + '", "'.join(_str_to_frame.keys()) + '"')
         cf = _str_to_frame[cf]
     else:
         cf = _ensure_int(cf, 'coordinate frame', 'a str or int')
@@ -96,16 +99,17 @@ class Transform(dict):
         to = _to_const(to)
         trans = np.eye(4) if trans is None else np.asarray(trans, np.float64)
         if trans.shape != (4, 4):
-            raise ValueError('Transformation must be shape (4, 4) not %s'
-                             % (trans.shape,))
+            raise ValueError(
+                f'Transformation must be shape (4, 4) not {trans.shape}')
         self['from'] = fro
         self['to'] = to
         self['trans'] = trans
 
     def __repr__(self):  # noqa: D105
-        return ('<Transform | %s->%s>\n%s'
-                % (_coord_frame_name(self['from']),
-                   _coord_frame_name(self['to']), self['trans']))
+        with np.printoptions(suppress=True):  # suppress scientific notation
+            return '<Transform | {fro}->{to}>\n{trans}'.format(
+                fro=_coord_frame_name(self['from']),
+                to=_coord_frame_name(self['to']), trans=self['trans'])
 
     def __eq__(self, other, rtol=0., atol=0.):
         """Check for equality.
@@ -183,8 +187,8 @@ def _print_coord_trans(t, prefix='Coordinate transformation: ', units='m',
                        level='info'):
     # Units gives the units of the transformation. This always prints in mm.
     log_func = getattr(logger, level)
-    log_func(prefix + '%s -> %s'
-             % (_coord_frame_name(t['from']), _coord_frame_name(t['to'])))
+    log_func(prefix + '{fro} -> {to}'.format(
+             fro=_coord_frame_name(t['from']), to=_coord_frame_name(t['to'])))
     for ti, tt in enumerate(t['trans']):
         scale = 1000. if (ti != 3 and units != 'mm') else 1.
         text = ' mm' if ti != 3 else ''
@@ -330,9 +334,9 @@ def rotation3d_align_z_axis(target_z_axis):
 
     # assert that r is a rotation matrix r^t * r = I and det(r) = 1
     assert(np.any((r.dot(r.T) - np.identity(3)) < 1E-12))
-    assert((linalg.det(r) - 1.0) < 1E-12)
+    assert((np.linalg.det(r) - 1.0) < 1E-12)
     # assert that r maps [0 0 1] on the device z axis (target_z_axis)
-    assert(linalg.norm(target_z_axis - r.dot([0, 0, 1])) < 1e-12)
+    assert(np.linalg.norm(target_z_axis - r.dot([0, 0, 1])) < 1e-12)
 
     return r
 
@@ -415,8 +419,8 @@ def _ensure_trans(trans, fro='mri', to='head'):
         to_str = _frame_to_str[to]
         to_const = to
     del to
-    err_str = ('trans must be a Transform between %s<->%s, got'
-               % (from_str, to_str))
+    err_str = 'trans must be a Transform between ' \
+        f'{from_str}<->{to_str}, got'
     if not isinstance(trans, (list, tuple)):
         trans = [trans]
     # Ensure that we have exactly one match
@@ -424,15 +428,16 @@ def _ensure_trans(trans, fro='mri', to='head'):
     misses = list()
     for ti, this_trans in enumerate(trans):
         if not isinstance(this_trans, Transform):
-            raise ValueError('%s None' % err_str)
+            raise ValueError(f'{err_str} None')
         if {this_trans['from'],
                 this_trans['to']} == {from_const, to_const}:
             idx.append(ti)
         else:
-            misses += ['%s->%s' % (_frame_to_str[this_trans['from']],
-                                   _frame_to_str[this_trans['to']])]
+            misses += ['{fro}->{to}'.format(
+                fro=_frame_to_str[this_trans['from']],
+                to=_frame_to_str[this_trans['to']])]
     if len(idx) != 1:
-        raise ValueError('%s %s' % (err_str, ', '.join(misses)))
+        raise ValueError(f'{err_str} ' + ', '.join(misses))
     trans = trans[idx[0]]
     if trans['from'] != from_const:
         trans = invert_transform(trans)
@@ -445,13 +450,13 @@ def _get_trans(trans, fro='mri', to='head', allow_none=True):
     if allow_none:
         types += (None,)
     _validate_type(trans, types, 'trans')
-    if _check_path_like(trans):
+    if _path_like(trans):
         trans = str(trans)
         if trans == 'fsaverage':
             trans = op.join(op.dirname(__file__), 'data', 'fsaverage',
                             'fsaverage-trans.fif')
         if not op.isfile(trans):
-            raise IOError('trans file "%s" not found' % trans)
+            raise IOError(f'trans file "{trans}" not found')
         if op.splitext(trans)[1] in ['.fif', '.gz']:
             fro_to_t = read_trans(trans)
         else:
@@ -459,8 +464,7 @@ def _get_trans(trans, fro='mri', to='head', allow_none=True):
             # these are usually actually in to_fro form
             t = np.genfromtxt(trans)
             if t.ndim != 2 or t.shape != (4, 4):
-                raise RuntimeError('File "%s" did not have 4x4 entries'
-                                   % trans)
+                raise RuntimeError(f'File "{trans}" did not have 4x4 entries')
             fro_to_t = Transform(to, fro, t)
     elif isinstance(trans, Transform):
         fro_to_t = trans
@@ -496,21 +500,22 @@ def combine_transforms(t_first, t_second, fro, to):
     fro = _to_const(fro)
     to = _to_const(to)
     if t_first['from'] != fro:
-        raise RuntimeError('From mismatch: %s ("%s") != %s ("%s")'
-                           % (t_first['from'],
-                              _coord_frame_name(t_first['from']),
-                              fro, _coord_frame_name(fro)))
+        raise RuntimeError(
+            'From mismatch: {fro1} ("{cf1}") != {fro2} ("{cf2}")'.format(
+                fro1=t_first['from'], cf1=_coord_frame_name(t_first['from']),
+                fro2=fro, cf2=_coord_frame_name(fro)))
     if t_first['to'] != t_second['from']:
-        raise RuntimeError('Transform mismatch: t1["to"] = %s ("%s"), '
-                           't2["from"] = %s ("%s")'
-                           % (t_first['to'], _coord_frame_name(t_first['to']),
-                              t_second['from'],
-                              _coord_frame_name(t_second['from'])))
+        raise RuntimeError('Transform mismatch: t1["to"] = {to1} ("{cf1}"), '
+                           't2["from"] = {fro2} ("{cf2}")'.format(
+                               to1=t_first['to'],
+                               cf1=_coord_frame_name(t_first['to']),
+                               fro2=t_second['from'],
+                               cf2=_coord_frame_name(t_second['from'])))
     if t_second['to'] != to:
-        raise RuntimeError('To mismatch: %s ("%s") != %s ("%s")'
-                           % (t_second['to'],
-                              _coord_frame_name(t_second['to']),
-                              to, _coord_frame_name(to)))
+        raise RuntimeError(
+            'To mismatch: {to1} ("{cf1}") != {to2} ("{cf2}")'.format(
+                to1=t_second['to'], cf1=_coord_frame_name(t_second['to']),
+                to2=to, cf2=_coord_frame_name(to)))
     return Transform(fro, to, np.dot(t_second['trans'], t_first['trans']))
 
 
@@ -569,6 +574,8 @@ def write_trans(fname, trans):
     """
     check_fname(fname, 'trans', ('-trans.fif', '-trans.fif.gz',
                                  '_trans.fif', '_trans.fif.gz'))
+    # TODO: Add `overwrite` param to method signature
+    fname = _check_fname(fname=fname, overwrite=True)
     fid = start_file(fname)
     write_coord_trans(fid, trans)
     end_file(fid)
@@ -587,7 +594,7 @@ def invert_transform(trans):
     inv_trans : dict
         Inverse transform.
     """
-    return Transform(trans['to'], trans['from'], linalg.inv(trans['trans']))
+    return Transform(trans['to'], trans['from'], np.linalg.inv(trans['trans']))
 
 
 def transform_surface_to(surf, dest, trans, copy=False):
@@ -660,12 +667,12 @@ def get_ras_to_neuromag_trans(nasion, lpa, rpa):
                              "arrays of length 3.")
 
     right = rpa - lpa
-    right_unit = right / linalg.norm(right)
+    right_unit = right / np.linalg.norm(right)
 
     origin = lpa + np.dot(nasion - lpa, right_unit) * right_unit
 
     anterior = nasion - origin
-    anterior_unit = anterior / linalg.norm(anterior)
+    anterior_unit = anterior / np.linalg.norm(anterior)
 
     superior_unit = np.cross(right_unit, anterior_unit)
 
@@ -678,6 +685,22 @@ def get_ras_to_neuromag_trans(nasion, lpa, rpa):
 
     trans = np.dot(rot_trans, origin_trans)
     return trans
+
+
+def _get_transforms_to_coord_frame(info, trans, coord_frame='mri'):
+    """Get the transforms to a coordinate frame from device, head and mri."""
+    head_mri_t = _get_trans(trans, 'head', 'mri')[0]
+    dev_head_t = _get_trans(info['dev_head_t'], 'meg', 'head')[0]
+    mri_dev_t = invert_transform(combine_transforms(
+        dev_head_t, head_mri_t, 'meg', 'mri'))
+    to_cf_t = dict(
+        meg=_ensure_trans([dev_head_t, mri_dev_t, Transform('meg', 'meg')],
+                          fro='meg', to=coord_frame),
+        head=_ensure_trans([dev_head_t, head_mri_t, Transform('head', 'head')],
+                           fro='head', to=coord_frame),
+        mri=_ensure_trans([head_mri_t, mri_dev_t, Transform('mri', 'mri')],
+                          fro='mri', to=coord_frame))
+    return to_cf_t
 
 
 ###############################################################################
@@ -734,7 +757,7 @@ def _sph_to_cart(sph_pts):
 def _get_n_moments(order):
     """Compute the number of multipolar moments (spherical harmonics).
 
-    Equivalent to [1]_ Eq. 32.
+    Equivalent to :footcite:`DarvasEtAl2006` Eq. 32.
 
     .. note:: This count excludes ``degree=0`` (for ``order=0``).
 
@@ -783,7 +806,7 @@ def _sph_to_cart_partials(az, pol, g_rad, g_az, g_pol):
     trans = np.array([[c_as * s_ps, -s_as, c_as * c_ps],
                       [s_as * s_ps, c_as, c_ps * s_as],
                       [c_ps, np.zeros_like(c_as), -s_ps]])
-    cart_grads = einsum('ijk,kj->ki', trans, sph_grads)
+    cart_grads = np.einsum('ijk,kj->ki', trans, sph_grads)
     return cart_grads
 
 
@@ -902,16 +925,16 @@ class _TPSWarp(object):
 
     Notes
     -----
-    Adapted from code by `Wang Lin <wanglin193@hotmail.com>`_.
+    Based on the method by :footcite:`Bookstein1989` and
+    adapted from code by Wang Lin (wanglin193@hotmail.com>).
 
     References
     ----------
-    .. [1] Bookstein, F. L. "Principal Warps: Thin Plate Splines and the
-           Decomposition of Deformations." IEEE Trans. Pattern Anal. Mach.
-           Intell. 11, 567-585, 1989.
+    .. footbibliography::
     """
 
     def fit(self, source, destination, reg=1e-3):
+        from scipy import linalg
         from scipy.spatial.distance import cdist
         assert source.shape[1] == destination.shape[1] == 3
         assert source.shape[0] == destination.shape[0]
@@ -980,7 +1003,9 @@ class _SphericalSurfaceWarp(object):
     Notes
     -----
     This class can be used to warp data from a source subject to
-    a destination subject, as described in [1]_. The procedure is:
+    a destination subject, as described in :footcite:`DarvasEtAl2006`.
+
+    The procedure is:
 
         1. Perform a spherical harmonic approximation to the source and
            destination surfaces, which smooths them and allows arbitrary
@@ -995,9 +1020,7 @@ class _SphericalSurfaceWarp(object):
 
     References
     ----------
-    .. [1] Darvas F, Ermer JJ, Mosher JC, Leahy RM (2006). "Generic head
-           models for atlas-based EEG source analysis."
-           Human Brain Mapping 27:129-143
+    .. footbibliography::
     """
 
     def __repr__(self):
@@ -1040,6 +1063,7 @@ class _SphericalSurfaceWarp(object):
         inst : instance of SphericalSurfaceWarp
             The warping object (for chaining).
         """
+        from scipy import linalg
         from .bem import _fit_sphere
         from .source_space import _check_spacing
         match_rr = _check_spacing(match, verbose=False)[2]['rr']
@@ -1383,6 +1407,7 @@ def _fit_matched_points(p, x, weights=None, scale=False):
 
 def _average_quats(quats, weights=None):
     """Average unit quaternions properly."""
+    from scipy import linalg
     assert quats.ndim == 2 and quats.shape[1] in (3, 4)
     if weights is None:
         weights = np.ones(quats.shape[0])
@@ -1520,3 +1545,247 @@ def _euler_to_quat(euler):
     quat[..., 2] = cphi * ctheta * spsi - sphi * stheta * cpsi
     quat *= mult
     return quat
+
+
+###############################################################################
+# Affine Registration and SDR
+
+_ORDERED_STEPS = ('translation', 'rigid', 'affine', 'sdr')
+
+
+def _validate_zooms(zooms):
+    _validate_type(zooms, (dict, list, tuple, 'numeric', None), 'zooms')
+    zooms = _handle_default('transform_zooms', zooms)
+    for key, val in zooms.items():
+        _check_option('zooms key', key, _ORDERED_STEPS)
+        if val is not None:
+            val = tuple(
+                float(x) for x in np.array(val, dtype=float).ravel())
+            _check_option(f'len(zooms[{repr(key)})', len(val), (1, 3))
+            if len(val) == 1:
+                val = val * 3
+            for this_zoom in val:
+                if this_zoom <= 1:
+                    raise ValueError(f'Zooms must be > 1, got {this_zoom}')
+            zooms[key] = val
+    return zooms
+
+
+def _validate_niter(niter):
+    _validate_type(niter, (dict, list, tuple, None), 'niter')
+    niter = _handle_default('transform_niter', niter)
+    for key, value in niter.items():
+        _check_option('niter key', key, _ORDERED_STEPS)
+        _check_option(f'len(niter[{repr(key)}])', len(value), (1, 2, 3))
+    return niter
+
+
+def _validate_pipeline(pipeline):
+    _validate_type(pipeline, (str, list, tuple), 'pipeline')
+    pipeline_defaults = dict(
+        all=_ORDERED_STEPS,
+        rigids=_ORDERED_STEPS[:_ORDERED_STEPS.index('rigid') + 1],
+        affines=_ORDERED_STEPS[:_ORDERED_STEPS.index('affine') + 1])
+    if isinstance(pipeline, str):  # use defaults
+        _check_option('pipeline', pipeline, ('all', 'rigids', 'affines'),
+                      extra='when str')
+        pipeline = pipeline_defaults[pipeline]
+    for ii, step in enumerate(pipeline):
+        name = f'pipeline[{ii}]'
+        _validate_type(step, str, name)
+        _check_option(name, step, _ORDERED_STEPS)
+    ordered_pipeline = tuple(sorted(
+        pipeline, key=lambda x: _ORDERED_STEPS.index(x)))
+    if tuple(pipeline) != ordered_pipeline:
+        raise ValueError(
+            f'Steps in pipeline are out of order, expected {ordered_pipeline} '
+            f'but got {pipeline} instead')
+    if len(set(pipeline)) != len(pipeline):
+        raise ValueError('Steps in pipeline should not be repeated')
+    return tuple(pipeline)
+
+
+def _compute_r2(a, b):
+    return 100 * (a.ravel() @ b.ravel()) / \
+        (np.linalg.norm(a) * np.linalg.norm(b))
+
+
+def _reslice_normalize(img, zooms):
+    from dipy.align.reslice import reslice
+    img_zooms = img.header.get_zooms()[:3]
+    img_affine = img.affine
+    img = _get_img_fdata(img)
+    if zooms is not None:
+        img, img_affine = reslice(img, img_affine, img_zooms, zooms)
+    img /= img.max()  # normalize
+    return img, img_affine
+
+
+@verbose
+def compute_volume_registration(moving, static, pipeline='all', zooms=None,
+                                niter=None, verbose=None):
+    """Align two volumes using an affine and, optionally, SDR.
+
+    Parameters
+    ----------
+    %(moving)s
+    %(static)s
+    %(pipeline)s
+    zooms : float | tuple | dict | None
+        The voxel size of volume for each spatial dimension in mm.
+        If None (default), MRIs won't be resliced (slow, but most accurate).
+        Can be a tuple to provide separate zooms for each dimension (X/Y/Z),
+        or a dict with keys ``['translation', 'rigid', 'affine', 'sdr']``
+        (each with values that are float`, tuple, or None) to provide separate
+        reslicing/accuracy for the steps.
+    %(niter)s
+    %(verbose)s
+
+    Returns
+    -------
+    %(reg_affine)s
+    %(sdr_morph)s
+
+    Notes
+    -----
+    This function is heavily inspired by and extends
+    :func:`dipy.align.affine_registration
+    <dipy.align._public.affine_registration>`.
+
+    .. versionadded:: 0.24
+    """
+    return _compute_volume_registration(
+        moving, static, pipeline, zooms, niter)[:2]
+
+
+def _compute_volume_registration(moving, static, pipeline, zooms, niter):
+    _require_version('nibabel', 'SDR morph', '2.1.0')
+    _require_version('dipy', 'SDR morph', '0.10.1')
+    import nibabel as nib
+    with np.testing.suppress_warnings():
+        from dipy.align import (affine_registration, center_of_mass,
+                                translation, rigid, affine, resample,
+                                imwarp, metrics)
+
+    # input validation
+    _validate_type(moving, nib.spatialimages.SpatialImage, 'moving')
+    _validate_type(static, nib.spatialimages.SpatialImage, 'static')
+    zooms = _validate_zooms(zooms)
+    niter = _validate_niter(niter)
+    pipeline = _validate_pipeline(pipeline)
+
+    logger.info('Computing registration...')
+
+    # affine optimizations
+    moving_orig = moving
+    static_orig = static
+    out_affine = np.eye(4)
+    sdr_morph = None
+    pipeline_options = dict(translation=[center_of_mass, translation],
+                            rigid=[rigid], affine=[affine])
+    sigmas = [3.0, 1.0, 0.0]
+    factors = [4, 2, 1]
+    for i, step in enumerate(pipeline):
+        # reslice image with zooms
+        if i == 0 or zooms[step] != zooms[pipeline[i - 1]]:
+            if zooms[step] is not None:
+                logger.info(f'Reslicing to zooms={zooms[step]} for {step} ...')
+            else:
+                logger.info(f'Using original zooms for {step} ...')
+            static_zoomed, static_affine = _reslice_normalize(
+                static, zooms[step])
+        # must be resliced every time because it is adjusted at every step
+        moving_zoomed, moving_affine = _reslice_normalize(moving, zooms[step])
+        logger.info(f'Optimizing {step}:')
+        if step == 'sdr':  # happens last
+            sdr = imwarp.SymmetricDiffeomorphicRegistration(
+                metrics.CCMetric(3), niter[step])
+            with wrapped_stdout(indent='    ', cull_newlines=True):
+                sdr_morph = sdr.optimize(static_zoomed, moving_zoomed,
+                                         static_affine, moving_affine)
+            moving_zoomed = sdr_morph.transform(moving_zoomed)
+        else:
+            with wrapped_stdout(indent='    ', cull_newlines=True):
+                moving_zoomed, reg_affine = affine_registration(
+                    moving_zoomed, static_zoomed, moving_affine, static_affine,
+                    nbins=32, metric='MI', pipeline=pipeline_options[step],
+                    level_iters=niter[step], sigmas=sigmas, factors=factors)
+
+            # update the overall alignment affine
+            out_affine = np.dot(out_affine, reg_affine)
+
+            # apply the current affine to the full-resolution data
+            moving = resample(np.asarray(moving_orig.dataobj),
+                              np.asarray(static_orig.dataobj),
+                              moving_orig.affine, static_orig.affine,
+                              out_affine)
+
+            # report some useful information
+            if step in ('translation', 'rigid'):
+                dist = np.linalg.norm(reg_affine[:3, 3])
+                angle = np.rad2deg(_angle_between_quats(
+                    np.zeros(3), rot_to_quat(reg_affine[:3, :3])))
+                logger.info(f'    Translation: {dist:6.1f} mm')
+                if step == 'rigid':
+                    logger.info(f'    Rotation:    {angle:6.1f}°')
+        assert moving_zoomed.shape == static_zoomed.shape, step
+        r2 = _compute_r2(static_zoomed, moving_zoomed)
+        logger.info(f'    R²:          {r2:6.1f}%')
+    return (out_affine, sdr_morph, static_zoomed.shape, static_affine,
+            moving_zoomed.shape, moving_affine)
+
+
+@verbose
+def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
+                              interpolation='linear', verbose=None):
+    """Apply volume registration.
+
+    Uses registration parameters computed by
+    :func:`~mne.transforms.compute_volume_registration`.
+
+    Parameters
+    ----------
+    %(moving)s
+    %(static)s
+    %(reg_affine)s
+    %(sdr_morph)s
+    interpolation : str
+        Interpolation to be used during the interpolation.
+        Can be "linear" (default) or "nearest".
+    %(verbose)s
+
+    Returns
+    -------
+    reg_img : instance of SpatialImage
+        The image after affine (and SDR, if provided) registration.
+
+    Notes
+    -----
+    .. versionadded:: 0.24
+    """
+    _require_version('nibabel', 'SDR morph', '2.1.0')
+    _require_version('dipy', 'SDR morph', '0.10.1')
+    from nibabel.spatialimages import SpatialImage
+    from dipy.align.imwarp import DiffeomorphicMap
+    from dipy.align.imaffine import AffineMap
+    _validate_type(moving, SpatialImage, 'moving')
+    _validate_type(static, SpatialImage, 'static')
+    _validate_type(reg_affine, np.ndarray, 'reg_affine')
+    _check_option('reg_affine.shape', reg_affine.shape, ((4, 4),))
+    _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
+    logger.info('Applying affine registration ...')
+    moving, moving_affine = np.asarray(moving.dataobj), moving.affine
+    static, static_affine = np.asarray(static.dataobj), static.affine
+    affine_map = AffineMap(reg_affine,
+                           static.shape, static_affine,
+                           moving.shape, moving_affine)
+    reg_data = affine_map.transform(moving, interpolation=interpolation)
+    if sdr_morph is not None:
+        logger.info('Appling SDR warp ...')
+        reg_data = sdr_morph.transform(
+            reg_data, interpolation=interpolation,
+            image_world2grid=np.linalg.inv(static_affine),
+            out_shape=static.shape, out_grid2world=static_affine)
+    reg_img = SpatialImage(reg_data, static_affine)
+    logger.info('[done]')
+    return reg_img

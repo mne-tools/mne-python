@@ -1,10 +1,11 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Denis Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 import itertools as itt
+import sys
 
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal, assert_allclose)
@@ -21,16 +22,15 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_covariance,
                  compute_covariance, read_evokeds, compute_proj_raw,
                  pick_channels_cov, pick_types, make_ad_hoc_cov,
-                 make_fixed_length_events, create_info)
+                 make_fixed_length_events, create_info, compute_rank)
 from mne.channels import equalize_channels
 from mne.datasets import testing
 from mne.fixes import _get_args
-from mne.io import read_raw_fif, RawArray, read_raw_ctf
-from mne.io.pick import _DATA_CH_TYPES_SPLIT
+from mne.io import read_raw_fif, RawArray, read_raw_ctf, read_info
+from mne.io.pick import _DATA_CH_TYPES_SPLIT, pick_info
 from mne.preprocessing import maxwell_filter
 from mne.rank import _compute_rank_int
-from mne.utils import (requires_sklearn, run_tests_if_main,
-                       catch_logging, assert_snr)
+from mne.utils import requires_sklearn, catch_logging, assert_snr
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 cov_fname = op.join(base_dir, 'test-cov.fif')
@@ -57,6 +57,7 @@ def test_compute_whitener(proj, pca):
         raw.del_proj()
     with pytest.warns(RuntimeWarning, match='Too few samples'):
         cov = compute_raw_covariance(raw)
+    assert cov['names'] == raw.ch_names
     W, _, C = compute_whitener(cov, raw.info, pca=pca, return_colorer=True,
                                verbose='error')
     n_channels = len(raw.ch_names)
@@ -75,6 +76,26 @@ def test_compute_whitener(proj, pca):
     else:
         assert pca is False
         assert_allclose(round_trip, np.eye(n_channels), atol=0.05)
+
+    raw.info['bads'] = [raw.ch_names[0]]
+    picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
+        cov2 = compute_raw_covariance(raw, picks=picks)
+        cov3 = compute_raw_covariance(raw, picks=None)
+    assert_allclose(cov2['data'][1:, 1:], cov3['data'])
+    W2, _, C2 = compute_whitener(cov2, raw.info, pca=pca, return_colorer=True,
+                                 picks=picks, verbose='error')
+    W3, _, C3 = compute_whitener(cov3, raw.info, pca=pca, return_colorer=True,
+                                 picks=None, verbose='error')
+    # this tol is not great, but Windows needs it
+    rtol = 1e-3 if sys.platform.startswith('win') else 1e-11
+    assert_allclose(W, W2, rtol=rtol)
+    assert_allclose(C, C2, rtol=rtol)
+    n_channels = len(raw.ch_names) - len(raw.info['bads'])
+    n_reduced = len(raw.ch_names) - len(raw.info['bads'])
+    rank = n_channels - len(raw.info['projs'])
+    n_reduced = rank if pca is True else n_channels
+    assert W3.shape == C3.shape[::-1] == (n_reduced, n_channels)
 
 
 def test_cov_mismatch():
@@ -96,8 +117,8 @@ def test_cov_mismatch():
         compute_covariance([epochs, epochs_2], on_mismatch='ignore')
         with pytest.raises(RuntimeWarning, match='transform mismatch'):
             compute_covariance([epochs, epochs_2], on_mismatch='warn')
-        pytest.raises(ValueError, compute_covariance, epochs,
-                      on_mismatch='x')
+        with pytest.raises(ValueError, match='Invalid value'):
+            compute_covariance(epochs, on_mismatch='x')
     # This should work
     epochs.info['dev_head_t'] = None
     epochs_2.info['dev_head_t'] = None
@@ -321,8 +342,7 @@ def test_cov_estimation_on_raw_reg():
     raw = RawArray(raw._data[:, ::10].copy(), raw.info)  # decimate for speed
     cov_mne = read_cov(erm_cov_fname)
     with pytest.warns(RuntimeWarning, match='Too few samples'):
-        # XXX don't use "shrunk" here, for some reason it makes Travis 2.7
-        # hang... "diagonal_fixed" is much faster. Use long epochs for speed.
+        # "diagonal_fixed" is much faster. Use long epochs for speed.
         cov = compute_raw_covariance(raw, tstep=5., method='diagonal_fixed')
     assert_snr(cov.data, cov_mne.data, 5)
 
@@ -784,4 +804,25 @@ def test_equalize_channels():
     assert cov2.ch_names == ['CH1', 'CH2']
 
 
-run_tests_if_main()
+def test_compute_whitener_rank():
+    """Test risky rank options."""
+    info = read_info(ave_fname)
+    info = pick_info(info, pick_types(info, meg=True))
+    info['projs'] = []
+    # need a square version because the diag one takes shortcuts in
+    # compute_whitener (users shouldn't even need this function so it's
+    # private)
+    cov = make_ad_hoc_cov(info)._as_square()
+    assert len(cov['names']) == 306
+    _, _, rank = compute_whitener(cov, info, rank=None, return_rank=True)
+    assert rank == 306
+    assert compute_rank(cov, info=info, verbose=True) == dict(meg=rank)
+    cov['data'][-1] *= 1e-14  # trivially rank-deficient
+    _, _, rank = compute_whitener(cov, info, rank=None, return_rank=True)
+    assert rank == 305
+    assert compute_rank(cov, info=info, verbose=True) == dict(meg=rank)
+    # this should emit a warning
+    with pytest.warns(RuntimeWarning, match='exceeds the estimated'):
+        _, _, rank = compute_whitener(cov, info, rank=dict(meg=306),
+                                      return_rank=True)
+    assert rank == 306

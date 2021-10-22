@@ -8,7 +8,7 @@
 #          Okba Bekhelifi <okba.bekhelifi@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import configparser
 import os
@@ -26,6 +26,7 @@ from ..base import BaseRaw
 from ..utils import _read_segments_file, _mult_cal_one
 from ...annotations import Annotations, read_annotations
 from ...channels import make_dig_montage
+from ...defaults import HEAD_SIZE_DEFAULT
 
 
 @fill_doc
@@ -125,8 +126,28 @@ class RawBrainVision(BaseRaw):
                 block = np.empty((n_data_ch, stop - start))
                 for ii in range(stop - start):
                     line = fid.readline().decode('ASCII')
-                    line = line.strip().replace(',', '.').split()
-                    block[:n_data_ch, ii] = [float(part) for part in line]
+                    line = line.strip()
+
+                    # Not sure why we special-handle the "," character here,
+                    # but let's just keep this for historical and backward-
+                    # compat reasons
+                    if (isinstance(fmt, dict) and
+                            'decimalsymbol' in fmt and
+                            fmt['decimalsymbol'] != '.'):
+                        line = line.replace(',', '.')
+
+                    if ' ' in line:
+                        line_data = line.split()
+                    elif ',' in line:
+                        # likely exported from BrainVision Analyzer?
+                        line_data = line.split(',')
+                    else:
+                        raise RuntimeError(
+                            'Unknown BrainVision data format encountered. '
+                            'Please contact the MNE-Python developers.'
+                        )
+
+                    block[:n_data_ch, ii] = [float(part) for part in line_data]
             _mult_cal_one(data, block, idx, cals, mult)
 
 
@@ -387,6 +408,7 @@ def _aux_vhdr_info(vhdr_fname):
     return settings, cfg, cinfostr, info
 
 
+@fill_doc
 def _get_vhdr_info(vhdr_fname, eog, misc, scale):
     """Extract all the information from the header file.
 
@@ -408,8 +430,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
 
     Returns
     -------
-    info : Info
-        The measurement info.
+    %(info_not_none)s
     data_fname : str
         Path to the binary data file.
     fmt : str
@@ -484,8 +505,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
         try:
             n_samples = cfg.getint(cinfostr, 'DataPoints')
         except configparser.NoOptionError:
-            logger.warning('No info on DataPoints found. Inferring number of '
-                           'samples from the data file size.')
+            warn('No info on DataPoints found. Inferring number of '
+                 'samples from the data file size.')
             with open(data_fname, 'rb') as fid:
                 fid.seek(0, 2)
                 n_bytes = fid.tell()
@@ -552,8 +573,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             az = np.deg2rad(phi)
             # Coordinates could be "idealized" (spherical head model)
             if rad == 1:
-                # scale up to realistic head radius (8.5cm == 85mm)
-                rad *= 85.
+                # scale up to realistic head radius: *1000 to convert m to mm
+                rad *= HEAD_SIZE_DEFAULT * 1000
             pos = _sph_to_cart(np.array([[rad, az, pol]]))[0]
             if (pos == 0).all() and ch_name not in list(eog) + misc:
                 to_misc.append(ch_name)
@@ -593,12 +614,14 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
     # But we still want to be able to double check the channel names
     # for alignment purposes, we keep track of the hardware setting idx
     idx_amp = idx
+    filter_list_has_ch_name = True
 
     if 'S o f t w a r e  F i l t e r s' in settings:
         idx = settings.index('S o f t w a r e  F i l t e r s')
         for idx, setting in enumerate(settings[idx + 1:], idx + 1):
             if re.match(r'#\s+Low Cutoff', setting):
                 hp_col, lp_col = 1, 2
+                filter_list_has_ch_name = False
                 warn('Online software filter detected. Using software '
                      'filter settings and ignoring hardware values')
                 break
@@ -641,8 +664,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
 
             # Correct shift for channel names with spaces
             # Header already gives 1 therefore has to be subtracted
-            ch_name_parts = re.split(divider, ch)
-            real_shift = shift + len(ch_name_parts) - 1
+            if filter_list_has_ch_name:
+                ch_name_parts = re.split(divider, ch)
+                real_shift = shift + len(ch_name_parts) - 1
+            else:
+                real_shift = shift
 
             line = re.split(divider, settings[idx + i])
             highpass.append(line[hp_col + real_shift])

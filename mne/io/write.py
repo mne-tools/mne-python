@@ -1,7 +1,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from gzip import GzipFile
 import os.path as op
@@ -10,7 +10,6 @@ import time
 import uuid
 
 import numpy as np
-from scipy import linalg, sparse
 
 from .constants import FIFF
 from ..utils import logger, _file_like
@@ -368,7 +367,7 @@ def write_coord_trans(fid, trans):
     fid.write(np.array(move, dtype='>f4').tobytes())
 
     #   ...and its inverse
-    trans_inv = linalg.inv(trans['trans'])
+    trans_inv = np.linalg.inv(trans['trans'])
     rot = trans_inv[:3, :3]
     move = trans_inv[:3, 3]
     fid.write(np.array(rot, dtype='>f4').tobytes())
@@ -436,6 +435,7 @@ def write_float_sparse_ccs(fid, kind, mat):
 
 def write_float_sparse(fid, kind, mat, fmt='auto'):
     """Write a single-precision floating-point sparse matrix tag."""
+    from scipy import sparse
     from .tag import _matrix_coding_CCS, _matrix_coding_RCS
     if fmt == 'auto':
         fmt = 'csr' if isinstance(mat, sparse.csr_matrix) else 'csc'

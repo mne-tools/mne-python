@@ -74,16 +74,16 @@ class CollapseNode(DivNode):
 
     OPTION_KEYS = ('title', 'id_', 'extra', 'class')
     ELEMENT = 'div'
-    BASECLASS = 'panel'
+    BASECLASS = 'card'
     HEADER_PRETITLE = """.. raw:: html
 
-    <div class="panel-heading"><h4 class="panel-title">
-    <a data-toggle="collapse" href="#collapse_{id_}">"""
+    <h5 class="card-header">
+    <a data-toggle="collapse" href="#collapse_{id_}" role="button" aria-expanded="false" aria-controls="collapse_{id_}">"""
     HEADER_POSTTITLE = """.. raw:: html
 
-    </a></h4></div>
-    <div id="collapse_{id_}" class="panel-collapse collapse{extra}">
-    <div class="panel-body">"""
+    </a></h5>
+    <div id="collapse_{id_}" class="collapse{extra}">
+    <div class="card card-body">"""
     FOOTER = """.. raw:: html
 
     </div></div>"""
@@ -112,7 +112,7 @@ class CollapseDirective(SphinxDirective):
         """Parse."""
         self.assert_has_content()
         title_text = _(self.arguments[0])
-        extra = _(' in' if 'open' in self.options else '')
+        extra = _(' show' if 'open' in self.options else '')
         class_ = {'class': self.options.get('class', 'default')}
         id_ = nodes.make_id(title_text)
         node = CollapseNode(title=title_text, id_=id_, extra=extra, **class_)

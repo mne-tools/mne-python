@@ -1,6 +1,6 @@
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
 
@@ -9,8 +9,7 @@ from numpy.testing import assert_array_equal
 
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io.kit import read_mrk
-from mne.utils import (requires_mayavi, run_tests_if_main, traits_test,
-                       modified_env)
+from mne.utils import requires_mayavi, traits_test, modified_env
 
 mrk_pre_path = os.path.join(kit_data_dir, 'test_mrk_pre.sqd')
 mrk_post_path = os.path.join(kit_data_dir, 'test_mrk_post.sqd')
@@ -77,6 +76,3 @@ def test_combine_markers_panel(check_gui_ci):
     from mne.gui._marker_gui import CombineMarkersPanel
     with modified_env(_MNE_GUI_TESTING_MODE='true'):
         CombineMarkersPanel()
-
-
-run_tests_if_main()

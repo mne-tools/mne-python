@@ -1,25 +1,33 @@
+from functools import partial
 import os
 from os import path as op
+import re
 import shutil
 import zipfile
-import sys
 
 import pytest
 
 from mne import datasets, read_labels_from_annot, write_labels_to_annot
-from mne.datasets import testing
+from mne.datasets import (testing, fetch_infant_template, fetch_phantom,
+                          fetch_dataset)
 from mne.datasets._fsaverage.base import _set_montage_coreg_path
+from mne.datasets._infant import base as infant_base
+from mne.datasets._phantom import base as phantom_base
 from mne.datasets.utils import _manifest_check_download
 
-from mne.utils import (run_tests_if_main, requires_good_network, modified_env,
+from mne.utils import (requires_good_network,
                        get_subjects_dir, ArgvSetter, _pl, use_log_level,
                        catch_logging, hashfunc)
+from mne.utils.check import _soft_import
 
+
+# import pooch library for handling the dataset downloading
+pooch = _soft_import('pooch', 'dataset downloading', strict=True)
 
 subjects_dir = op.join(testing.data_path(download=False), 'subjects')
 
 
-def test_datasets_basic(tmpdir):
+def test_datasets_basic(tmpdir, monkeypatch):
     """Test simple dataset functions."""
     # XXX 'hf_sef' and 'misc' do not conform to these standards
     for dname in ('sample', 'somato', 'spm_face', 'testing', 'opm',
@@ -29,41 +37,91 @@ def test_datasets_basic(tmpdir):
                   'visual_92_categories', 'fieldtrip_cmc'):
         if dname.startswith('bst'):
             dataset = getattr(datasets.brainstorm, dname)
-            check_name = 'brainstorm.%s' % (dname,)
         else:
             dataset = getattr(datasets, dname)
-            check_name = dname
         if dataset.data_path(download=False) != '':
             assert isinstance(dataset.get_version(), str)
-            assert datasets.utils.has_dataset(check_name)
+            assert datasets.has_dataset(dname)
         else:
             assert dataset.get_version() is None
-            assert not datasets.utils.has_dataset(check_name)
-        print('%s: %s' % (dname, datasets.utils.has_dataset(check_name)))
+            assert not datasets.has_dataset(dname)
+        print('%s: %s' % (dname, datasets.has_dataset(dname)))
     tempdir = str(tmpdir)
     # don't let it read from the config file to get the directory,
     # force it to look for the default
-    with modified_env(**{'_MNE_FAKE_HOME_DIR': tempdir, 'SUBJECTS_DIR': None}):
-        assert (datasets.utils._get_path(None, 'foo', 'bar') ==
-                op.join(tempdir, 'mne_data'))
-        assert get_subjects_dir(None) is None
-        _set_montage_coreg_path()
-        sd = get_subjects_dir()
-        assert sd.endswith('MNE-fsaverage-data')
-
-
-def _fake_fetch_file(url, destination, print_destination=False):
-    with open(destination, 'w') as fid:
-        fid.write(url)
+    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', tempdir)
+    monkeypatch.delenv('SUBJECTS_DIR', raising=False)
+    assert (datasets.utils._get_path(None, 'foo', 'bar') ==
+            op.join(tempdir, 'mne_data'))
+    assert get_subjects_dir(None) is None
+    _set_montage_coreg_path()
+    sd = get_subjects_dir()
+    assert sd.endswith('MNE-fsaverage-data')
+    monkeypatch.setenv('MNE_DATA', str(tmpdir.join('foo')))
+    with pytest.raises(FileNotFoundError, match='as specified by MNE_DAT'):
+        testing.data_path(download=False)
 
 
 @requires_good_network
-def test_downloads(tmpdir):
-    """Test dataset URL handling."""
+def test_downloads(tmpdir, monkeypatch, capsys):
+    """Test dataset URL and version handling."""
     # Try actually downloading a dataset
-    path = datasets._fake.data_path(path=str(tmpdir), update_path=False)
+    kwargs = dict(path=str(tmpdir), verbose=True)
+    # XXX we shouldn't need to disable capsys here, but there's a pytest bug
+    # that we're hitting (https://github.com/pytest-dev/pytest/issues/5997)
+    # now that we use pooch
+    with capsys.disabled():
+        path = datasets._fake.data_path(update_path=False, **kwargs)
+    assert op.isdir(path)
     assert op.isfile(op.join(path, 'bar'))
+    assert not datasets.has_dataset('fake')  # not in the desired path
     assert datasets._fake.get_version() is None
+    assert datasets.utils._get_version('fake') is None
+    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmpdir))
+    with pytest.warns(RuntimeWarning, match='non-standard config'):
+        new_path = datasets._fake.data_path(update_path=True, **kwargs)
+    assert path == new_path
+    out, _ = capsys.readouterr()
+    assert 'Downloading' not in out
+    # No version: shown as existing but unknown version
+    assert datasets.has_dataset('fake')
+    # XXX logic bug, should be "unknown"
+    assert datasets._fake.get_version() == '0.0'
+    # With a version but no required one: shown as existing and gives version
+    fname = tmpdir / 'foo' / 'version.txt'
+    with open(fname, 'w') as fid:
+        fid.write('0.1')
+    assert datasets.has_dataset('fake')
+    assert datasets._fake.get_version() == '0.1'
+    datasets._fake.data_path(download=False, **kwargs)
+    out, _ = capsys.readouterr()
+    assert 'out of date' not in out
+    # With the required version: shown as existing with the required version
+    monkeypatch.setattr(datasets._fetch, '_FAKE_VERSION', '0.1')
+    assert datasets.has_dataset('fake')
+    assert datasets._fake.get_version() == '0.1'
+    datasets._fake.data_path(download=False, **kwargs)
+    out, _ = capsys.readouterr()
+    assert 'out of date' not in out
+    monkeypatch.setattr(datasets._fetch, '_FAKE_VERSION', '0.2')
+    # With an older version:
+    # 1. Marked as not actually being present
+    assert not datasets.has_dataset('fake')
+    # 2. Will try to update when `data_path` gets called, with logged message
+    want_msg = 'Correctly trying to download newer version'
+
+    def _error_download(self, fname, downloader, processor):
+        url = self.get_url(fname)
+        full_path = self.abspath / fname
+        assert 'foo.tgz' in url
+        assert str(tmpdir) in str(full_path)
+        raise RuntimeError(want_msg)
+
+    monkeypatch.setattr(pooch.Pooch, 'fetch', _error_download)
+    with pytest.raises(RuntimeError, match=want_msg):
+        datasets._fake.data_path(**kwargs)
+    out, _ = capsys.readouterr()
+    assert re.match(r'.* 0\.1 .*out of date.* 0\.2.*', out, re.MULTILINE), out
 
 
 @pytest.mark.slowtest
@@ -106,7 +164,8 @@ def test_fetch_parcellations(tmpdir):
 _zip_fnames = ['foo/foo.txt', 'foo/bar.txt', 'foo/baz.txt']
 
 
-def _fake_zip_fetch(url, fname, hash_):
+def _fake_zip_fetch(url, path, fname, known_hash):
+    fname = op.join(path, fname)
     with zipfile.ZipFile(fname, 'w') as zipf:
         with zipf.open('foo/', 'w'):
             pass
@@ -115,12 +174,11 @@ def _fake_zip_fetch(url, fname, hash_):
                 pass
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6),
-                    reason="writing zip files requires python3.6 or higher")
 @pytest.mark.parametrize('n_have', range(len(_zip_fnames)))
 def test_manifest_check_download(tmpdir, n_have, monkeypatch):
     """Test our manifest downloader."""
-    monkeypatch.setattr(datasets.utils, '_fetch_file', _fake_zip_fetch)
+    pooch = _soft_import('pooch', 'download datasets')
+    monkeypatch.setattr(pooch, 'retrieve', _fake_zip_fetch)
     destination = op.join(str(tmpdir), 'empty')
     manifest_path = op.join(str(tmpdir), 'manifest.txt')
     with open(manifest_path, 'w') as fid:
@@ -138,7 +196,8 @@ def test_manifest_check_download(tmpdir, n_have, monkeypatch):
             pass
     with catch_logging() as log:
         with use_log_level(True):
-            url = hash_ = ''  # we mock the _fetch_file so these are not used
+            # we mock the pooch.retrieve so these are not used
+            url = hash_ = ''
             _manifest_check_download(manifest_path, destination, url, hash_)
     log = log.getvalue()
     n_missing = 3 - n_have
@@ -153,4 +212,55 @@ def test_manifest_check_download(tmpdir, n_have, monkeypatch):
         assert op.isfile(op.join(destination, fname))
 
 
-run_tests_if_main()
+def _fake_mcd(manifest_path, destination, url, hash_, name=None,
+              fake_files=False):
+    if name is None:
+        name = url.split('/')[-1].split('.')[0]
+        assert name in url
+        assert name in destination
+    assert name in manifest_path
+    assert len(hash_) == 32
+    if fake_files:
+        with open(manifest_path) as fid:
+            for path in fid:
+                path = path.strip()
+                if not path:
+                    continue
+                fname = op.join(destination, path)
+                os.makedirs(op.dirname(fname), exist_ok=True)
+                with open(fname, 'wb'):
+                    pass
+
+
+def test_infant(tmpdir, monkeypatch):
+    """Test fetch_infant_template."""
+    monkeypatch.setattr(infant_base, '_manifest_check_download', _fake_mcd)
+    fetch_infant_template('12mo', subjects_dir=tmpdir)
+    with pytest.raises(ValueError, match='Invalid value for'):
+        fetch_infant_template('0mo', subjects_dir=tmpdir)
+
+
+def test_phantom(tmpdir, monkeypatch):
+    """Test phantom data downloading."""
+    # The Otaniemi file is only ~6MB, so in principle maybe we could test
+    # an actual download here. But it doesn't seem worth it given that
+    # CircleCI will at least test the VectorView one, and this file should
+    # not change often.
+    monkeypatch.setattr(phantom_base, '_manifest_check_download',
+                        partial(_fake_mcd, name='phantom_otaniemi',
+                                fake_files=True))
+    fetch_phantom('otaniemi', subjects_dir=tmpdir)
+    assert op.isfile(tmpdir / 'phantom_otaniemi' / 'mri' / 'T1.mgz')
+
+
+def test_fetch_uncompressed_file(tmpdir):
+    """Test downloading an uncompressed file with our fetch function."""
+    dataset_dict = dict(
+        dataset_name='license',
+        url=('https://raw.githubusercontent.com/mne-tools/mne-python/main/'
+             'LICENSE.txt'),
+        archive_name='LICENSE.foo',
+        folder_name=op.join(tmpdir, 'foo'),
+        hash=None)
+    fetch_dataset(dataset_dict, path=None, force_update=True)
+    assert op.isfile(op.join(tmpdir, 'foo', 'LICENSE.foo'))

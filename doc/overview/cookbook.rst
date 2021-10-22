@@ -4,10 +4,6 @@
 The typical M/EEG workflow
 ==========================
 
-.. contents:: Contents
-   :local:
-   :depth: 2
-
 Overview
 ========
 
@@ -271,13 +267,11 @@ inside the outer skull).
 This step assigns the conductivity values to the BEM compartments.
 For the scalp and the brain compartments, the default is 0.3 S/m.
 The default skull conductivity is 50 times smaller, *i.e.*,
-0.006 S/m. Recent publications, see :ref:`CEGEGDEI`, report
-a range of skull conductivity ratios ranging from 1:15 (Oostendorp *et
-al.*, 2000) to 1:25 - 1:50 (Slew *et al.*,
-2009, Conçalves *et al.*, 2003). The
-MNE default ratio 1:50 is based on the typical values reported in
-(Conçalves *et al.*, 2003), since their
-approach is based comparison of SEF/SEP measurements in a BEM model.
+0.006 S/m. Recent publications report a range of skull conductivity ratios
+ranging from 1:15 :footcite:`OostendorpEtAl2000` to 1:25 - 1:50
+:footcite:`GoncalvesEtAl2003,LewEtAl2009`. The MNE default ratio 1:50 is based
+on the typical values reported in :footcite:`GoncalvesEtAl2003`, since their
+approach is based on comparison of SEF/SEP measurements in a BEM model.
 The variability across publications may depend on individual variations
 but, more importantly, on the precision of the skull compartment
 segmentation.
@@ -320,7 +314,7 @@ for each experimental session, *i.e.*, each time when new head
 digitization data are employed.
 
 The corregistration is stored in ``-trans.fif`` file. If is present,
-you can follow :ref:`plot_source_alignment` to validate its correctness.
+you can follow :ref:`tut-source-alignment` to validate its correctness.
 If the ``-trans.fif`` is not present or the alignment is not correct
 you need to use :func:`mne.gui.coregistration` (or its convenient command line
 equivalent :ref:`mne coreg`) to generate it.
@@ -427,3 +421,9 @@ done *e.g.*, to ``subject='fsaverage'`` as::
     >>> stc_fsaverage = morph.apply(stc)  # doctest: +SKIP
 
 See :ref:`ch_morph` for more information.
+
+
+References
+==========
+
+.. footbibliography::

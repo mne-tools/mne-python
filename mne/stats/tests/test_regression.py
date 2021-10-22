@@ -2,7 +2,7 @@
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -17,7 +17,7 @@ from mne import read_source_estimate
 from mne.datasets import testing
 from mne.stats.regression import linear_regression, linear_regression_raw
 from mne.io import RawArray
-from mne.utils import requires_sklearn, run_tests_if_main
+from mne.utils import requires_sklearn
 
 data_path = testing.data_path(download=False)
 stc_fname = op.join(data_path, 'MEG', 'sample',
@@ -151,6 +151,3 @@ def test_continuous_regression_with_overlap():
                   solver=solT)
     pytest.raises(ValueError, linear_regression_raw, raw, events, solver='err')
     pytest.raises(TypeError, linear_regression_raw, raw, events, solver=0)
-
-
-run_tests_if_main()

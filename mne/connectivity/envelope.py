@@ -2,15 +2,17 @@
 #          Sheraz Khan <sheraz@khansheraz.com>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
 from ..filter import next_fast_len
 from ..source_estimate import _BaseSourceEstimate
-from ..utils import verbose, _check_combine, _check_option
+from ..utils import (verbose, _check_combine, _check_option, deprecated,
+                     CONNECTIVITY_DEPRECATION_MSG)
 
 
+@deprecated(CONNECTIVITY_DEPRECATION_MSG)
 @verbose
 def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
                          log=False, absolute=True, verbose=None):
@@ -64,7 +66,7 @@ def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
     Notes
     -----
     This function computes the power envelope correlation between
-    orthogonalized signals [1]_ [2]_.
+    orthogonalized signals :footcite:`HippEtAl2012,KhanEtAl2018`.
 
     .. versionchanged:: 0.22
       Computations fixed for ``orthogonalize=True`` and diagonal entries are
@@ -72,12 +74,7 @@ def envelope_correlation(data, combine='mean', orthogonalize="pairwise",
 
     References
     ----------
-    .. [1] Hipp JF, Hawellek DJ, Corbetta M, Siegel M, Engel AK (2012)
-           Large-scale cortical correlation structure of spontaneous
-           oscillatory activity. Nature Neuroscience 15:884–890
-    .. [2] Khan S et al. (2018). Maturation trajectories of cortical
-           resting-state networks depend on the mediating frequency band.
-           Neuroimage 174:57–68
+    .. footbibliography::
     """
     _check_option('orthogonalize', orthogonalize, (False, 'pairwise'))
     from scipy.signal import hilbert

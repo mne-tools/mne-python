@@ -3,7 +3,7 @@
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
 
@@ -312,20 +312,10 @@ class FiducialsPanel(HasPrivateTraits):
         if not np.allclose(getattr(self, attr), self.current_pos_mm * 1e-3):
             setattr(self, attr, self.current_pos_mm * 1e-3)
 
-    @on_trait_change('model:lpa')
-    def _update_lpa(self, name):
-        if self.set == 'LPA':
-            self.current_pos_mm = self.lpa * 1000
-
-    @on_trait_change('model:nasion')
-    def _update_nasion(self, name):
-        if self.set.lower() == 'Nasion':
-            self.current_pos_mm = self.nasion * 1000
-
-    @on_trait_change('model:rpa')
-    def _update_rpa(self, name):
-        if self.set.lower() == 'RPA':
-            self.current_pos_mm = self.rpa * 1000
+    @on_trait_change('model:lpa,model:nasion,model:rpa')
+    def _update_fiducial(self, value):
+        attr = self.set.lower()
+        self.current_pos_mm = getattr(self, attr) * 1000
 
     def _reset_fid_fired(self):
         self.model.reset = True
@@ -378,6 +368,7 @@ class FiducialsPanel(HasPrivateTraits):
             pt = [picker.picked_positions[idx]]
         else:
             logger.debug("GUI: picked object other than MRI")
+            return
 
         def round_(x):
             return round(x, 3)
@@ -400,27 +391,18 @@ class FiducialsPanel(HasPrivateTraits):
             msg.append(line)
         logger.debug('\n'.join(msg))
 
-        if self.set == 'Nasion':
-            self.nasion = pt
-        elif self.set == 'LPA':
-            self.lpa = pt
-        elif self.set == 'RPA':
-            self.rpa = pt
-        else:
-            raise ValueError("set = %r" % self.set)
+        set_ = self.set.lower()
+        assert set_ in _VIEW_DICT, set_
+        setattr(self, set_, pt)
 
     @on_trait_change('set')
     def _on_set_change(self, obj, name, old, new):
-        if new == 'Nasion':
-            self.current_pos_mm = self.nasion * 1000
-            self.headview.front = True
-        elif new == 'LPA':
-            self.current_pos_mm = self.lpa * 1000
-            self.headview.left = True
-        elif new == 'RPA':
-            self.current_pos_mm = self.rpa * 1000
-            self.headview.right = True
+        new = new.lower()
+        self._update_fiducial(None)
+        setattr(self.headview, _VIEW_DICT[new], True)
 
+
+_VIEW_DICT = dict(lpa='left', nasion='front', rpa='right')
 
 # FiducialsPanel view that allows manipulating all coordinates numerically
 view2 = View(VGroup(Item('fid_file', label='Fiducials File'),
@@ -500,10 +482,6 @@ class FiducialsFrame(HasTraits):
     def _init_plot(self):
         _toggle_mlab_render(self, False)
 
-        lpa_color = defaults['lpa_color']
-        nasion_color = defaults['nasion_color']
-        rpa_color = defaults['rpa_color']
-
         # bem
         color = defaults['mri_color']
         self.mri_obj = SurfaceObject(points=self.model.points, color=color,
@@ -512,24 +490,14 @@ class FiducialsFrame(HasTraits):
         self.panel.hsp_obj = self.mri_obj
 
         # fiducials
-        self.lpa_obj = PointObject(scene=self.scene, color=lpa_color,
-                                   has_norm=True,
-                                   point_scale=self.point_scale)
-        self.panel.sync_trait('lpa', self.lpa_obj, 'points', mutual=False)
-        self.sync_trait('point_scale', self.lpa_obj, mutual=False)
-
-        self.nasion_obj = PointObject(scene=self.scene, color=nasion_color,
-                                      has_norm=True,
-                                      point_scale=self.point_scale)
-        self.panel.sync_trait('nasion', self.nasion_obj, 'points',
-                              mutual=False)
-        self.sync_trait('point_scale', self.nasion_obj, mutual=False)
-
-        self.rpa_obj = PointObject(scene=self.scene, color=rpa_color,
-                                   has_norm=True,
-                                   point_scale=self.point_scale)
-        self.panel.sync_trait('rpa', self.rpa_obj, 'points', mutual=False)
-        self.sync_trait('point_scale', self.rpa_obj, mutual=False)
+        for key in ('lpa', 'nasion', 'rpa'):
+            attr = f'{key}_obj'
+            setattr(self, attr, PointObject(
+                scene=self.scene, color=defaults[f'{key}_color'],
+                has_norm=True, point_scale=self.point_scale))
+            obj = getattr(self, attr)
+            self.panel.sync_trait(key, obj, 'points', mutual=False)
+            self.sync_trait('point_scale', obj, mutual=False)
 
         self.headview.left = True
         _toggle_mlab_render(self, True)

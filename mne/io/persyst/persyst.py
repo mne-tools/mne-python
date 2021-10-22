@@ -1,6 +1,6 @@
 # Authors: Adam Li <adam2392@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import os
 import os.path as op
 from collections import OrderedDict
@@ -13,7 +13,7 @@ from ..constants import FIFF
 from ..meas_info import create_info
 from ..utils import _mult_cal_one
 from ...annotations import Annotations
-from ...utils import logger, verbose, fill_doc, warn
+from ...utils import logger, verbose, fill_doc, warn, _check_fname
 
 
 @fill_doc
@@ -35,6 +35,14 @@ def read_raw_persyst(fname, preload=False, verbose=None):
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
+
+    Notes
+    -----
+    It is assumed that the ``.lay`` and ``.dat`` file
+    are in the same directory. To get the correct file path to the
+    ``.dat`` file, ``read_raw_persyst`` will get the corresponding dat
+    filename from the lay file, and look for that file inside the same
+    directory as the lay file.
     """
     return RawPersyst(fname, preload, verbose)
 
@@ -57,10 +65,13 @@ class RawPersyst(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
+        fname = _check_fname(fname, 'read', True, 'fname')
         logger.info('Loading %s' % fname)
 
+        # make sure filename is the Lay file
         if not fname.endswith('.lay'):
             fname = fname + '.lay'
+        # get the current directory and Lay filename
         curr_path, lay_fname = op.dirname(fname), op.basename(fname)
         if not op.exists(fname):
             raise FileNotFoundError(f'The path you specified, '
@@ -76,28 +87,35 @@ class RawPersyst(BaseRaw):
         patient_dict = OrderedDict()
         comments_dict = OrderedDict()
 
+        # keep track of total number of comments
+        num_comments = 0
+
         # loop through each line in the lay file
         for key, val, section in zip(keys, data, sections):
             if key == '':
                 continue
 
-            # make sure key are lowercase for everything, but electrodes
-            if key is not None and section != 'channelmap':
+            # Make sure key are lowercase for everything, but electrodes.
+            # We also do not want to lower-case comments because those
+            # are free-form text where casing may matter.
+            if key is not None and section not in ['channelmap',
+                                                   'comments']:
                 key = key.lower()
 
             # FileInfo
             if section == 'fileinfo':
                 # extract the .dat file name
                 if key == 'file':
-                    dat_fname = val
-                    dat_path = op.dirname(dat_fname)
+                    dat_fname = op.basename(val)
                     dat_fpath = op.join(curr_path, op.basename(dat_fname))
 
                     # determine if .dat file exists where it should
                     error_msg = f'The data path you specified ' \
-                                f'does not exist for the lay path, {lay_fname}'
-                    if op.isabs(dat_path) and not op.exists(dat_fname):
-                        raise FileNotFoundError(error_msg)
+                                f'does not exist for the lay path, ' \
+                                f'{lay_fname}. Make sure the dat file ' \
+                                f'is in the same directory as the lay ' \
+                                f'file, and the specified dat filename ' \
+                                f'matches.'
                     if not op.exists(dat_fpath):
                         raise FileNotFoundError(error_msg)
                 fileinfo_dict[key] = val
@@ -108,8 +126,10 @@ class RawPersyst(BaseRaw):
             # Patient (All optional)
             elif section == 'patient':
                 patient_dict[key] = val
+            # Comments (turned into mne.Annotations)
             elif section == 'comments':
-                comments_dict[key] = val
+                comments_dict[key] = comments_dict.get(key, list()) + [val]
+                num_comments += 1
 
         # get numerical metadata
         # datatype is either 7 for 32 bit, or 0 for 16 bit
@@ -205,17 +225,21 @@ class RawPersyst(BaseRaw):
             raw_extras=[raw_extras], verbose=verbose)
 
         # set annotations based on the comments read in
-        num_comments = len(comments_dict)
         onset = np.zeros(num_comments, float)
         duration = np.zeros(num_comments, float)
         description = [''] * num_comments
-        for t_idx, (_description, (_onset, _duration)) in \
-                enumerate(comments_dict.items()):
-            # extract the onset, duration, description to
-            # create an Annotations object
-            onset[t_idx] = _onset
-            duration[t_idx] = _duration
-            description[t_idx] = _description
+
+        # loop through comments dictionary, which may contain
+        # multiple events for the same "text" annotation
+        t_idx = 0
+        for _description, event_tuples in comments_dict.items():
+            for (_onset, _duration) in event_tuples:
+                # extract the onset, duration, description to
+                # create an Annotations object
+                onset[t_idx] = _onset
+                duration[t_idx] = _duration
+                description[t_idx] = _description
+                t_idx += 1
         annot = Annotations(onset, duration, description)
         self.set_annotations(annot)
 
@@ -365,6 +389,34 @@ def _process_lay_line(line, section):
     value : str
         The string from the line after the ``'='`` character. If section is
         "Comments", then returns the onset and duration as a tuple.
+
+    Notes
+    -----
+    The lay file comprises of multiple "sections" that are documented with
+    bracket ``[]`` characters. For example, ``[FileInfo]`` and the lines
+    afterward indicate metadata about the data file itself. Within
+    each section, there are multiple lines in the format of
+    ``<key>=<value>``.
+
+    For ``FileInfo``, ``Patient`` and ``ChannelMap``
+    each line will be denoted with a ``key`` and a ``value`` that
+    can be represented as a dictionary. The keys describe what sort
+    of data that line holds, while the values contain the corresponding
+    value. In some cases, the ``value``.
+
+    For ``SampleTimes``, the ``key`` and ``value`` pair indicate the
+    start and end time in seconds of the original data file.
+
+    For ``Comments`` section, this denotes an area where users through
+    Persyst actually annotate data in time. These are instead
+    represented as 5 data points that are ``,`` delimited. These
+    data points are ordered as:
+
+        1. time (in seconds) of the annotation
+        2. duration (in seconds) of the annotation
+        3. state (unused)
+        4. variable type (unused)
+        5. free-form text describing the annotation
     """
     key = ''  # default; only return value possibly not set
     line = line.strip()  # remove leading and trailing spaces
@@ -388,7 +440,7 @@ def _process_lay_line(line, section):
         #  Currently not used
         if section == 'comments':
             # Persyst Comments output 5 variables "," separated
-            time_sec, duration, state, var_type, text = line.split(',')
+            time_sec, duration, state, var_type, text = line.split(',', 4)
             status = 2
             key = text
             value = (time_sec, duration)

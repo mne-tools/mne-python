@@ -6,6 +6,7 @@ What's new
 .. currentmodule:: mne
 
 .. include:: changes/latest.inc
+.. include:: changes/0.23.inc
 .. include:: changes/0.22.inc
 .. include:: changes/0.21.inc
 .. include:: changes/0.20.inc
@@ -27,5 +28,6 @@ What's new
 .. include:: changes/0.4.inc
 .. include:: changes/0.3.inc
 .. include:: changes/0.2.inc
+.. include:: changes/0.1.inc
 .. include:: changes/names.inc
 .. include:: links.inc

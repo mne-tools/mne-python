@@ -3,15 +3,18 @@ import os.path as op
 import re
 import warnings
 
+import numpy as np
 import pytest
 
-from mne import read_evokeds
+from mne import read_evokeds, Epochs, create_info
+from mne.io import read_raw_fif, RawArray
 from mne.utils import (warn, set_log_level, set_log_file, filter_out_warnings,
                        verbose, _get_call_line, use_log_level, catch_logging,
-                       logger)
+                       logger, check)
 from mne.utils._logging import _frame_info
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
+fname_raw = op.join(base_dir, 'test_raw.fif')
 fname_evoked = op.join(base_dir, 'test-ave.fif')
 fname_log = op.join(base_dir, 'test-ave.log')
 fname_log_2 = op.join(base_dir, 'test-ave-2.log')
@@ -139,13 +142,58 @@ def test_logging_options(tmpdir):
     assert log.getvalue() == ''
 
 
-def test_warn(capsys):
+@pytest.mark.parametrize('verbose', (True, False))
+def test_verbose_method(verbose):
+    """Test for gh-8772."""
+    # raw
+    raw = read_raw_fif(fname_raw, verbose=verbose)
+    with catch_logging() as log:
+        raw.load_data(verbose=True)
+    log = log.getvalue()
+    assert 'Reading 0 ... 14399' in log
+    with catch_logging() as log:
+        raw.load_data(verbose=False)
+    log = log.getvalue()
+    assert log == ''
+    # epochs
+    events = np.array([[raw.first_samp + 200, 0, 1]], int)
+    epochs = Epochs(raw, events, verbose=verbose)
+    with catch_logging() as log:
+        epochs.drop_bad(verbose=True)
+    log = log.getvalue()
+    assert '0 bad epochs dropped' in log
+    epochs = Epochs(raw, events, verbose=verbose)
+    with catch_logging() as log:
+        epochs.drop_bad(verbose=False)
+    log = log.getvalue()
+    assert log == ''
+
+
+def test_warn(capsys, tmpdir, monkeypatch):
     """Test the smart warn() function."""
     with pytest.warns(RuntimeWarning, match='foo'):
         warn('foo')
     captured = capsys.readouterr()
     assert captured.out == ''  # gh-5592
     assert captured.err == ''  # this is because pytest.warns took it already
+    # test ignore_namespaces
+    bad_name = tmpdir.join('bad.fif')
+    raw = RawArray(np.zeros((1, 1)), create_info(1, 1000., 'eeg'))
+    with pytest.warns(RuntimeWarning, match='filename') as ws:
+        raw.save(bad_name)
+    assert len(ws) == 1
+    assert 'test_logging.py' in ws[0].filename  # this file (it's in tests/)
+
+    def warn_wrap(msg):
+        warn(msg, ignore_namespaces=())
+
+    monkeypatch.setattr(check, 'warn', warn_wrap)
+    with pytest.warns(RuntimeWarning, match='filename') as ws:
+        raw.save(bad_name, overwrite=True)
+
+    assert len(ws) == 1
+    assert 'test_logging.py' not in ws[0].filename  # this file
+    assert '_logging.py' in ws[0].filename  # where `mne.utils.warn` lives
 
 
 def test_get_call_line():
@@ -177,11 +225,34 @@ def test_verbose_strictness():
     class Okay:
 
         @verbose
-        def meth(self):  # allowed because it should just use self.verbose
-            pass
+        def meth_1(self):  # allowed because it should just use self.verbose
+            logger.info('meth_1')
+
+        @verbose
+        def meth_2(self, verbose=None):
+            logger.info('meth_2')
 
     o = Okay()
     with pytest.raises(RuntimeError, match=r'does not have self\.verbose'):
-        o.meth()  # should raise, no verbose attr yet
-    o.verbose = None
-    o.meth()
+        o.meth_1()  # should raise, no verbose attr yet
+    o.verbose = False
+    with catch_logging() as log:
+        o.meth_1()
+        o.meth_2()
+    log = log.getvalue()
+    assert log == ''
+    with catch_logging() as log:
+        o.meth_2(verbose=True)
+    log = log.getvalue()
+    assert 'meth_2' in log
+    o.verbose = True
+    with catch_logging() as log:
+        o.meth_1()
+        o.meth_2()
+    log = log.getvalue()
+    assert 'meth_1' in log
+    assert 'meth_2' in log
+    with catch_logging() as log:
+        o.meth_2(verbose=False)
+    log = log.getvalue()
+    assert log == ''

@@ -3,12 +3,11 @@
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from copy import deepcopy
 from math import sqrt
 import numpy as np
-from scipy import linalg
 
 from ._eloreta import _compute_eloreta
 from ..fixes import _safe_svd
@@ -42,7 +41,8 @@ from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc, _get_src_type
 from ..utils import (check_fname, logger, verbose, warn, _validate_type,
                      _check_compensation_grade, _check_option,
-                     _check_depth, _check_src_normal)
+                     _check_depth, _check_src_normal, _check_fname)
+from ..data.html_templates import inverse_operator_template
 
 
 INVERSE_METHODS = ('MNE', 'dSPM', 'sLORETA', 'eLORETA')
@@ -55,24 +55,43 @@ class InverseOperator(dict):
         """Return a copy of the InverseOperator."""
         return InverseOperator(deepcopy(self))
 
+    def _get_chs_and_src_info_for_repr(self):
+        n_chs_meg = len(pick_types(self['info'], meg=True, eeg=False))
+        n_chs_eeg = len(pick_types(self['info'], meg=False, eeg=True))
+
+        src_space_descr = f"{self['src'].kind} with {self['nsource']} sources"
+
+        src_ori_fiff_to_name_map = {
+            FIFF.FIFFV_MNE_UNKNOWN_ORI: 'Unknown',
+            FIFF.FIFFV_MNE_FIXED_ORI: 'Fixed',
+            FIFF.FIFFV_MNE_FREE_ORI: 'Free'
+        }
+        src_ori = src_ori_fiff_to_name_map[self['source_ori']]
+        return n_chs_meg, n_chs_eeg, src_space_descr, src_ori
+
     def __repr__(self):  # noqa: D105
         """Summarize inverse info instead of printing all."""
+        repr_info = self._get_chs_and_src_info_for_repr()
+        n_chs_meg, n_chs_eeg, src_space_descr, src_ori = repr_info
+
         entr = '<InverseOperator'
-
-        nchan = len(pick_types(self['info'], meg=True, eeg=False))
-        entr += ' | ' + 'MEG channels: %d' % nchan
-        nchan = len(pick_types(self['info'], meg=False, eeg=True))
-        entr += ' | ' + 'EEG channels: %d' % nchan
-
-        entr += (' | Source space: %s with %d sources'
-                 % (self['src'].kind, self['nsource']))
-        source_ori = {FIFF.FIFFV_MNE_UNKNOWN_ORI: 'Unknown',
-                      FIFF.FIFFV_MNE_FIXED_ORI: 'Fixed',
-                      FIFF.FIFFV_MNE_FREE_ORI: 'Free'}
-        entr += ' | Source orientation: %s' % source_ori[self['source_ori']]
+        entr += f' | MEG channels: {n_chs_meg}'
+        entr += f' | EEG channels: {n_chs_eeg}'
+        entr += f' | Source space: {src_space_descr}'
+        entr += f' | Source orientation: {src_ori}'
         entr += '>'
-
         return entr
+
+    def _repr_html_(self):
+        repr_info = self._get_chs_and_src_info_for_repr()
+        n_chs_meg, n_chs_eeg, src_space_descr, src_ori = repr_info
+
+        html = inverse_operator_template.substitute(
+            channels=f'{n_chs_meg} MEG, {n_chs_eeg} EEG',
+            source_space_descr=src_space_descr,
+            source_orientation=src_ori
+        )
+        return html
 
 
 def _pick_channels_inverse_operator(ch_names, inv):
@@ -114,7 +133,7 @@ def read_inverse_operator(fname, verbose=None):
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz',
                                             '_inv.fif', '_inv.fif.gz'))
-
+    fname = _check_fname(fname=fname, must_exist=True, overwrite='read')
     #
     #   Open the file, create directory
     #
@@ -332,6 +351,8 @@ def write_inverse_operator(fname, inv, verbose=None):
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz',
                                             '_inv.fif', '_inv.fif.gz'))
+    fname = _check_fname(fname=fname, overwrite=True)
+
     _validate_type(inv, InverseOperator, 'inv')
 
     #
@@ -528,6 +549,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
     inv : instance of InverseOperator
         Prepared inverse operator.
     """
+    from scipy import linalg
     if nave <= 0:
         raise ValueError('The number of averages should be positive')
 
@@ -789,7 +811,7 @@ def _check_reference(inst, ch_names=None):
         raise ValueError(
             'EEG average reference (using a projector) is mandatory for '
             'modeling, use the method set_eeg_reference(projection=True)')
-    if info['custom_ref_applied']:
+    if info.get('custom_ref_applied', False):
         raise ValueError('Custom EEG reference is not allowed for inverse '
                          'modeling.')
 
@@ -1256,8 +1278,7 @@ def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
     cov : instance of Covariance
         Covariance data, computed on the time segment for which to compute
         source power.
-    info : dict
-        The measurement info to specify the channels to include.
+    %(info_not_none)s Used specify the channels to include.
     inverse_operator : instance of InverseOperator
         Inverse operator.
     nave : int
@@ -1372,9 +1393,9 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     # Deal with "depth"
     if exp is not None:
         exp = float(exp)
-        if not (0 <= exp <= 1):
-            raise ValueError('depth exponent should be a scalar between '
-                             '0 and 1, got %s' % (exp,))
+        if exp < 0:
+            raise ValueError('depth exponent should be greater than or '
+                             f'equal to 0, got {exp}')
         exp = exp or None  # alias 0. -> None
 
     # put the forward solution in correct orientation
@@ -1384,7 +1405,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
         if not is_fixed_orient(forward):
             if allow_fixed_depth:
                 # can convert now
-                logger.info('Converting forward solution to fixed orietnation')
+                logger.info('Converting forward solution to fixed orientation')
                 convert_forward_solution(
                     forward, force_fixed=True, use_cps=True, copy=False)
         elif exp is not None and not allow_fixed_depth:
@@ -1454,7 +1475,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     # Adjusting Source Covariance matrix to make trace of G*R*G' equal
     # to number of sensors.
     logger.info('Adjusting source covariance matrix.')
-    trace_GRGT = linalg.norm(gain, ord='fro') ** 2
+    trace_GRGT = np.linalg.norm(gain, ord='fro') ** 2
     n_nzero = (noise_cov['eig'] > 0).sum()
     scale = np.sqrt(n_nzero / trace_GRGT)
     source_std *= scale
@@ -1471,9 +1492,9 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
 
     Parameters
     ----------
-    info : dict
-        The measurement info to specify the channels to include.
-        Bad channels in info['bads'] are not used.
+    %(info_not_none)s
+        Specifies the channels to include. Bad channels (in ``info['bads']``)
+        are not used.
     forward : dict
         Forward operator.
     noise_cov : instance of Covariance
@@ -1527,6 +1548,13 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     has patch statistics computed, these are used to improve the depth
     weighting. Thus slightly different results are to be expected with
     and without this information.
+
+    For depth weighting, 0.8 is generally good for MEG, and between 2 and 5
+    is good for EEG, see :footcite:`LinEtAl2006a`.
+
+    References
+    ----------
+    .. footbibliography::
     """  # noqa: E501
     # For now we always have pca='white'. It does not seem to affect
     # calculations and is also backward-compatible with MNE-C
@@ -1553,7 +1581,9 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     eigen_fields, sing, eigen_leads = _safe_svd(gain, full_matrices=False)
     del gain
     logger.info('    largest singular value = %g' % np.max(sing))
-    logger.info('    scaling factor to adjust the trace = %g' % trace_GRGT)
+    logger.info(f'    scaling factor to adjust the trace = {trace_GRGT:g} '
+                f'(nchan = {eigen_fields.shape[0]} '
+                f'nzero = {(noise_cov["eig"] <= 0).sum()})')
 
     # MNE-ify everything for output
     eigen_fields = dict(data=eigen_fields.T, col_names=gain_info['ch_names'],

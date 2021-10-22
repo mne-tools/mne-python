@@ -3,7 +3,7 @@
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
 import os.path as op
@@ -13,7 +13,7 @@ import numpy as np
 from traits.api import (Any, HasTraits, HasPrivateTraits, cached_property,
                         on_trait_change, Array, Bool, Button, DelegatesTo,
                         Directory, Enum, Event, File, Instance, Int, List,
-                        Property, Str, ArrayOrNone)
+                        Property, Str, ArrayOrNone, BaseFile)
 from traitsui.api import View, Item, VGroup
 from pyface.api import DirectoryDialog, OK, ProgressDialog, error, information
 
@@ -21,7 +21,8 @@ from ._viewer import _DIG_SOURCE_WIDTH
 
 from ..bem import read_bem_surfaces
 from ..io.constants import FIFF
-from ..io import read_info, read_fiducials
+from ..io import read_info, read_fiducials, read_raw
+from ..io._read_raw import supported
 from ..io.meas_info import _empty_info
 from ..io.open import fiff_open, dir_tree_find
 from ..surface import read_surface, complete_surface_info
@@ -29,7 +30,7 @@ from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)
 from ..utils import get_config, set_config
 from ..viz._3d import _fiducial_coords
-from ..channels import read_dig_fif, DigMontage
+from ..channels import read_dig_fif
 
 
 fid_wildcard = "*.fif"
@@ -135,6 +136,21 @@ def _mne_root_problem(mne_root):
                     "installation, consider reinstalling." % mne_root)
 
 
+class FileOrDir(File):
+    """Subclass File because *.mff files are actually directories."""
+
+    def validate(self, object, name, value):
+        """Validate that a specified value is valid for this trait."""
+        value = os.fspath(value)
+        validated_value = super(BaseFile, self).validate(object, name, value)
+        if not self.exists:
+            return validated_value
+        elif op.exists(value):
+            return validated_value
+
+        self.error(object, name, value)
+
+
 class Surf(HasTraits):
     """Expose a surface similar to the ones used elsewhere in MNE."""
 
@@ -172,7 +188,9 @@ class SurfaceSource(HasTraits):
         """Read the file."""
         if op.exists(self.file):
             if self.file.endswith('.fif'):
-                bem = read_bem_surfaces(self.file, verbose=False)[0]
+                bem = read_bem_surfaces(
+                    self.file, on_defects='warn', verbose=False
+                )[0]
             else:
                 try:
                     bem = read_surface(self.file, return_dict=True)[2]
@@ -245,7 +263,8 @@ class DigSource(HasPrivateTraits):
         Nasion, RAP, LAP. If no file is set all values are 0.
     """
 
-    file = File(exists=True, filter=['*.fif'])
+    file = FileOrDir(exists=True,
+                     filter=[' '.join([f'*{ext}' for ext in supported])])
 
     inst_fname = Property(Str, depends_on='file')
     inst_dir = Property(depends_on='file')
@@ -288,53 +307,45 @@ class DigSource(HasPrivateTraits):
 
     @cached_property
     def _get__info(self):
-        if self.file:
+        if not self.file:
+            return
+        elif self.file.endswith(('.fif', '.fif.gz')):
             info = None
             fid, tree, _ = fiff_open(self.file)
             fid.close()
             if len(dir_tree_find(tree, FIFF.FIFFB_MEAS_INFO)) > 0:
                 info = read_info(self.file, verbose=False)
             elif len(dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)) > 0:
-                info = read_dig_fif(fname=self.file)
-
-            if isinstance(info, DigMontage):
-                dig = info.dig
                 info = _empty_info(1)
-                info['dig'] = dig
-            elif info is None or info['dig'] is None:
-                error(None, "The selected FIFF file does not contain "
-                      "digitizer information. Please select a different "
-                      "file.", "Error Reading FIFF File")
+                info['dig'] = read_dig_fif(fname=self.file).dig
+        else:
+            info = read_raw(self.file).info
+
+        # check that digitizer info is present
+        if info is None or info['dig'] is None:
+            error(None, "The selected file does not contain digitization "
+                  "information. Please select a different file.",
+                  "Error Reading Digitization File")
+            self.reset_traits(['file'])
+            return
+
+        # check that all fiducial points are present
+        point_kinds = {d['kind'] for d in info['dig']}
+        missing = [key for key in ('LPA', 'Nasion', 'RPA') if
+                   getattr(FIFF, f'FIFFV_POINT_{key.upper()}') not in
+                   point_kinds]
+        if missing:
+            points = _fiducial_coords(info['dig'])
+            if len(points == 3):
+                _append_fiducials(info['dig'], *points.T)
+            else:
+                error(None, "The selected digitization file does not contain "
+                      f"all cardinal points (missing: {', '.join(missing)}). "
+                      "Please select a different file.",
+                      "Error Reading Digitization File")
                 self.reset_traits(['file'])
                 return
-            else:
-                # check that all fiducial points are present
-                has_point = {FIFF.FIFFV_POINT_LPA: False,
-                             FIFF.FIFFV_POINT_NASION: False,
-                             FIFF.FIFFV_POINT_RPA: False}
-                for d in info['dig']:
-                    if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-                        has_point[d['ident']] = True
-                if not all(has_point.values()):
-                    points = _fiducial_coords(info['dig'])
-                    if len(points) == 3:
-                        _append_fiducials(info['dig'], *points.T)
-                    else:
-                        missing = []
-                        if not has_point[FIFF.FIFFV_POINT_LPA]:
-                            missing.append('LPA')
-                        if not has_point[FIFF.FIFFV_POINT_NASION]:
-                            missing.append('Nasion')
-                        if not has_point[FIFF.FIFFV_POINT_RPA]:
-                            missing.append('RPA')
-                        error(None, "The selected FIFF file does not contain "
-                              "all cardinal points (missing: %s). Please "
-                              "select a different file." % ', '.join(missing),
-                              "Error Reading FIFF File")
-                        self.reset_traits(['file'])
-                        return
-
-            return info
+        return info
 
     @cached_property
     def _get_inst_dir(self):
@@ -349,8 +360,8 @@ class DigSource(HasPrivateTraits):
 
     @cached_property
     def _get__hsp_points(self):
-        if not self._info:
-            return np.zeros((0, 3))
+        if not self._info or not self._info['dig']:
+            return np.empty((0, 3))
 
         points = np.array([d['r'] for d in self._info['dig']
                            if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
@@ -366,11 +377,12 @@ class DigSource(HasPrivateTraits):
 
     def _cardinal_point(self, ident):
         """Coordinates for a cardinal point."""
-        if self._info:
-            for d in self._info['dig']:
-                if (d['kind'] == FIFF.FIFFV_POINT_CARDINAL and
-                        d['ident'] == ident):
-                    return d['r'][None, :]
+        if not self._info or not self._info['dig']:
+            return np.zeros((1, 3))
+
+        for d in self._info['dig']:
+            if d['kind'] == FIFF.FIFFV_POINT_CARDINAL and d['ident'] == ident:
+                return d['r'][None, :]
         return np.zeros((1, 3))
 
     @cached_property
@@ -387,25 +399,25 @@ class DigSource(HasPrivateTraits):
 
     @cached_property
     def _get_eeg_points(self):
-        if self._info:
-            out = [d['r'] for d in self._info['dig'] if
-                   d['kind'] == FIFF.FIFFV_POINT_EEG and
-                   d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
-            out = np.empty((0, 3)) if len(out) == 0 else np.array(out)
-            return out
-        else:
+        if not self._info or not self._info['dig']:
             return np.empty((0, 3))
+
+        out = [d['r'] for d in self._info['dig'] if
+               d['kind'] == FIFF.FIFFV_POINT_EEG and
+               d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
+        out = np.empty((0, 3)) if len(out) == 0 else np.array(out)
+        return out
 
     @cached_property
     def _get_hpi_points(self):
-        if self._info:
-            out = [d['r'] for d in self._info['dig'] if
-                   d['kind'] == FIFF.FIFFV_POINT_HPI and
-                   d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
-            out = np.empty((0, 3)) if len(out) == 0 else np.array(out)
-            return out
-        else:
-            return np.empty((0, 3))
+        if not self._info or not self._info['dig']:
+            return np.zeros((0, 3))
+
+        out = [d['r'] for d in self._info['dig'] if
+               d['kind'] == FIFF.FIFFV_POINT_HPI and
+               d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
+        out = np.empty((0, 3)) if len(out) == 0 else np.array(out)
+        return out
 
     def _file_changed(self):
         self.reset_traits(('points_filter',))

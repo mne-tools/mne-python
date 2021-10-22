@@ -17,12 +17,13 @@ import pytest
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from matplotlib.cm import get_cmap
+from matplotlib.collections import PolyCollection
 
 import mne
 from mne import (read_events, Epochs, read_cov, compute_covariance,
                  make_fixed_length_events, compute_proj_evoked)
 from mne.io import read_raw_fif
-from mne.utils import run_tests_if_main, catch_logging, requires_version
+from mne.utils import catch_logging, requires_version
 from mne.viz import plot_compare_evokeds, plot_evoked_white
 from mne.viz.utils import _fake_click
 from mne.datasets import testing
@@ -39,7 +40,8 @@ event_id, tmin, tmax = 1, -0.1, 0.1
 
 # Use a subset of channels for plotting speed
 # make sure we have a magnetometer and a pair of grad pairs for topomap.
-default_picks = (0, 1, 2, 3, 4, 6, 7, 61, 122, 183, 244, 305)
+default_picks = (0, 1, 2, 3, 4, 6, 7, 61, 122, 183, 244, 305,
+                 315, 316, 317, 318)  # EEG channels
 sel = (0, 7)
 
 
@@ -50,7 +52,10 @@ def _get_epochs(picks=default_picks):
     events = read_events(event_name)
     epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                     decim=10, verbose='error')
-    epochs.info['bads'] = [epochs.ch_names[-1]]
+    epochs.info['bads'] = [
+        epochs.ch_names[-5],  # MEG
+        epochs.ch_names[-1]   # EEG
+    ]
     epochs.info.normalize_proj()
     return epochs
 
@@ -72,10 +77,11 @@ def test_plot_evoked_cov():
     evoked = _get_epochs().average()
     cov = read_cov(cov_fname)
     cov['projs'] = []  # avoid warnings
-    evoked.plot(noise_cov=cov, time_unit='s')
+    with pytest.warns(RuntimeWarning, match='No average EEG reference'):
+        evoked.plot(noise_cov=cov, time_unit='s')
     with pytest.raises(TypeError, match='Covariance'):
         evoked.plot(noise_cov=1., time_unit='s')
-    with pytest.raises(IOError, match='No such file'):
+    with pytest.raises(FileNotFoundError, match='File does not exist'):
         evoked.plot(noise_cov='nonexistent-cov.fif', time_unit='s')
     raw = read_raw_fif(raw_sss_fname)
     events = make_fixed_length_events(raw)
@@ -96,7 +102,7 @@ def test_plot_evoked():
     fig = evoked.plot(proj=True, hline=[1], exclude=[], window_title='foo',
                       time_unit='s')
     amplitudes = _get_amplitudes(fig)
-    assert len(amplitudes) == 12
+    assert len(amplitudes) == len(default_picks)
     assert evoked.proj is False
     # Test a click
     ax = fig.get_axes()[0]
@@ -122,9 +128,26 @@ def test_plot_evoked():
                   proj='interactive', axes='foo', time_unit='s')
     plt.close('all')
 
-    # test GFP only
-    evoked.plot(gfp='only', time_unit='s')
-    pytest.raises(ValueError, evoked.plot, gfp='foo', time_unit='s')
+    # test `gfp='only'`: GFP (EEG) and RMS (MEG)
+    fig, ax = plt.subplots(3)
+    evoked.plot(gfp='only', time_unit='s', axes=ax)
+
+    assert len(ax[0].lines) == len(ax[1].lines) == len(ax[2].lines) == 1
+
+    assert ax[0].get_title() == 'EEG (3 channels)'
+    assert ax[0].texts[0].get_text() == 'GFP'
+
+    assert ax[1].get_title() == 'Gradiometers (9 channels)'
+    assert ax[1].texts[0].get_text() == 'RMS'
+
+    assert ax[2].get_title() == 'Magnetometers (2 channels)'
+    assert ax[1].texts[0].get_text() == 'RMS'
+
+    plt.close('all')
+
+    # Test invalid `gfp`
+    with pytest.raises(ValueError):
+        evoked.plot(gfp='foo', time_unit='s')
 
     # plot with bad channels excluded, spatial_colors, zorder & pos. layout
     evoked.rename_channels({'MEG 0133': 'MEG 0000'})
@@ -165,9 +188,9 @@ def _get_amplitudes(fig):
 
 
 @pytest.mark.parametrize('picks, rlims, avg_proj', [
-    (default_picks, (0.59, 0.61), False),  # MEG
-    (np.arange(340, 360), (0.49, 0.51), True),  # EEG
-    (np.arange(340, 360), (0.78, 0.80), False),  # EEG
+    (default_picks[:-4], (0.59, 0.61), False),  # MEG
+    (np.arange(340, 360), (0.56, 0.57), True),  # EEG
+    (np.arange(340, 360), (0.79, 0.81), False),  # EEG
 ])
 def test_plot_evoked_reconstruct(picks, rlims, avg_proj):
     """Test proj="reconstruct"."""
@@ -259,6 +282,9 @@ def test_plot_evoked_image():
         pytest.raises(ValueError, evoked.plot_image, group_by=group_by,
                       axes=axes)
 
+    with pytest.raises(ValueError, match='`clim` must be a dict.'):
+        evoked.plot_image(clim=[-4, 4])
+
 
 def test_plot_white():
     """Test plot_white."""
@@ -266,42 +292,45 @@ def test_plot_white():
     cov['method'] = 'empirical'
     cov['projs'] = []  # avoid warnings
     evoked = _get_epochs().average()
+    evoked.set_eeg_reference('average')  # Avoid warnings
+
     # test rank param.
-    evoked.plot_white(cov, rank={'mag': 101, 'grad': 201}, time_unit='s')
-    fig = evoked.plot_white(cov, rank={'mag': 101}, time_unit='s')  # test rank
-    evoked.plot_white(cov, rank={'grad': 201}, time_unit='s', axes=fig.axes)
-    with pytest.raises(ValueError, match=r'must have shape \(3,\), got \(2,'):
+    with pytest.raises(ValueError, match='exceeds'):
+        evoked.plot_white(cov, rank={'mag': 10})
+    evoked.plot_white(cov, rank={'mag': 1, 'grad': 8, 'eeg': 2}, time_unit='s')
+    fig = evoked.plot_white(cov, rank={'mag': 1}, time_unit='s')  # test rank
+    evoked.plot_white(cov, rank={'grad': 8}, time_unit='s', axes=fig.axes)
+    with pytest.raises(ValueError, match=r'must have shape \(4,\), got \(2,'):
         evoked.plot_white(cov, axes=fig.axes[:2])
     with pytest.raises(ValueError, match='When not using SSS'):
         evoked.plot_white(cov, rank={'meg': 306})
     evoked.plot_white([cov, cov], time_unit='s')
     plt.close('all')
 
-    assert 'eeg' not in evoked
     fig = plot_evoked_white(evoked, [cov, cov])
-    assert len(fig.axes) == 2 * 2
-    axes = np.array(fig.axes).reshape(2, 2)
+    assert len(fig.axes) == 3 * 2
+    axes = np.array(fig.axes).reshape(3, 2)
     plot_evoked_white(evoked, [cov, cov], axes=axes)
-    with pytest.raises(ValueError, match=r'have shape \(2, 2\), got'):
+    with pytest.raises(ValueError, match=r'have shape \(3, 2\), got'):
         plot_evoked_white(evoked, [cov, cov], axes=axes[:, :1])
 
     # Hack to test plotting of maxfiltered data
-    evoked_sss = evoked.copy()
+    evoked_sss = _get_epochs(picks='meg').average()
     sss = dict(sss_info=dict(in_order=80, components=np.arange(80)))
     evoked_sss.info['proc_history'] = [dict(max_info=sss)]
     evoked_sss.plot_white(cov, rank={'meg': 64})
     with pytest.raises(ValueError, match='When using SSS'):
         evoked_sss.plot_white(cov, rank={'grad': 201})
     evoked_sss.plot_white(cov, time_unit='s')
-    plt.close('all')
 
 
+@pytest.mark.slowtest  # slow on Azure
 def test_plot_compare_evokeds():
     """Test plot_compare_evokeds."""
     evoked = _get_epochs().average()
     # test defaults
     figs = plot_compare_evokeds(evoked)
-    assert len(figs) == 2
+    assert len(figs) == 3
     # test picks, combine, and vlines (1-channel pick also shows sensor inset)
     picks = ['MEG 0113', 'mag'] + 2 * [['MEG 0113', 'MEG 0112']] + [[0, 1]]
     vlines = [[0.1, 0.2], []] + 3 * ['auto']
@@ -331,10 +360,22 @@ def test_plot_compare_evokeds():
         assert (yvals < ylim[1]).all()
         assert (yvals > ylim[0]).all()
     plt.close('all')
+
     # test other CI args
-    for _ci in (None, False, 0.5,
-                lambda x: np.stack([x.mean(axis=0) + 1, x.mean(axis=0) - 1])):
-        plot_compare_evokeds({'cond': [blue, red, evoked]}, ci=_ci)
+    def ci_func(array):
+        return array.mean(axis=0, keepdims=True) * np.array([[0.5], [1.5]])
+
+    ci_types = (None, False, 0.5, ci_func)
+    for _ci in ci_types:
+        fig = plot_compare_evokeds({'cond': [blue, red, evoked]}, ci=_ci)[0]
+        if _ci in ci_types[2:]:
+            assert np.any([isinstance(coll, PolyCollection)
+                           for coll in fig.axes[0].collections])
+    # make sure we can get a CI even for single conditions
+    fig = plot_compare_evokeds(evoked, picks='eeg', ci=ci_func)[0]
+    assert np.any([isinstance(coll, PolyCollection)
+                   for coll in fig.axes[0].collections])
+
     with pytest.raises(TypeError, match='"ci" must be None, bool, float or'):
         plot_compare_evokeds(evoked, ci='foo')
     # test sensor inset, legend location, and axis inversion & truncation
@@ -357,6 +398,11 @@ def test_plot_compare_evokeds():
     plot_compare_evokeds(evoked_dict, cmap=cmap, colors=dict(aud=1, vis=2))
     plot_compare_evokeds(evoked_dict, cmap=('cmap title', 'inferno'),
                          linestyles=['-', ':', '--'])
+    plt.close('all')
+    # test combine
+    match = 'combine must be an instance of None, callable, or str'
+    with pytest.raises(TypeError, match=match):
+        plot_compare_evokeds(evoked, combine=["mean", "gfp"])
     plt.close('all')
     # test warnings
     with pytest.warns(RuntimeWarning, match='in "picks"; cannot combine'):
@@ -484,6 +530,3 @@ def test_plot_ctf():
                       topomap_args={'axes': topo_axes}, title=None)
     midpoints_after = get_axes_midpoints(topo_axes)
     assert (np.linalg.norm(midpoints_before - midpoints_after) < 0.1).all()
-
-
-run_tests_if_main()

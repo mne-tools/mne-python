@@ -1,10 +1,10 @@
 .. _Alex Gramfort: http://alexandre.gramfort.net
 
-.. _Martin Luessi: https://www.martinos.org/user/8245
+.. _Martin Luessi: https://github.com/mluessi
 
 .. _Yaroslav Halchenko: http://www.onerussian.com/
 
-.. _Daniel Strohmeier: http://www.tu-ilmenau.de/bmti/fachgebiete/biomedizinische-technik/dipl-ing-daniel-strohmeier/
+.. _Daniel Strohmeier: https://github.com/joewalter
 
 .. _Eric Larson: http://larsoner.com
 
@@ -16,13 +16,13 @@
 
 .. _Teon Brooks: https://teonbrooks.github.io
 
-.. _Mainak Jas: http://ltl.tkk.fi/wiki/Mainak_Jas
+.. _Mainak Jas: https://jasmainak.github.io
 
 .. _Roman Goj: http://romanmne.blogspot.co.uk
 
 .. _Andrew Dykstra: https://github.com/adykstra
 
-.. _Romain Trachel: http://www.lscp.net/braware/trachelBr.html
+.. _Romain Trachel: https://fr.linkedin.com/in/trachelr
 
 .. _Christopher Dinh: https://github.com/chdinh
 
@@ -38,7 +38,7 @@
 
 .. _Qunxi Dong: https://github.com/dongqunxi
 
-.. _Martin Billinger: https://github.com/kazemakase
+.. _Martin Billinger: https://github.com/mbillingr
 
 .. _Federico Raimondo: https://github.com/fraimondo
 
@@ -62,13 +62,13 @@
 
 .. _Hari Bharadwaj: http://www.haribharadwaj.com
 
-.. _Chris Holdgraf: http://chrisholdgraf.com
+.. _Chris Holdgraf: https://chrisholdgraf.com
 
 .. _Jaakko Leppakangas: https://github.com/jaeilepp
 
 .. _Yousra Bekhti: https://www.linkedin.com/pub/yousra-bekhti/56/886/421
 
-.. _Mark Wronkiewicz: http://ilabs.washington.edu/graduate-students/bio/i-labs-mark-wronkiewicz
+.. _Mark Wronkiewicz: https://ml.jpl.nasa.gov/people/wronkiewicz/wronkiewicz.html
 
 .. _Sébastien Marti: http://www.researchgate.net/profile/Sebastien_Marti
 
@@ -88,15 +88,15 @@
 
 .. _Jukka Nenonen: https://www.linkedin.com/pub/jukka-nenonen/28/b5a/684
 
-.. _Jussi Nurminen: https://scholar.google.fi/citations?user=R6CQz5wAAAAJ&hl=en
+.. _Jussi Nurminen: https://github.com/jjnurminen
 
-.. _Clemens Brunner: https://github.com/cle1109
+.. _Clemens Brunner: https://github.com/cbrnr
 
 .. _Asish Panda: https://github.com/kaichogami
 
-.. _Natalie Klein: http://www.stat.cmu.edu/people/students/neklein
+.. _Natalie Klein: https://github.com/natalieklein
 
-.. _Jon Houck: https://scholar.google.com/citations?user=DNoS05IAAAAJ&hl=en
+.. _Jon Houck: https://www.mrn.org/people/jon-m.-houck/principal-investigators
 
 .. _Pablo-Arias: https://github.com/Pablo-Arias
 
@@ -122,7 +122,7 @@
 
 .. _Antti Rantala: https://github.com/Odingod
 
-.. _Keith Doelling: http://science.keithdoelling.com
+.. _Keith Doelling: https://github.com/kdoelling1919
 
 .. _Paul Pasler: https://github.com/ppasler
 
@@ -130,13 +130,13 @@
 
 .. _Annalisa Pascarella: http://www.iac.rm.cnr.it/~pasca/
 
-.. _Luke Bloy: https://scholar.google.com/citations?hl=en&user=Ad_slYcAAAAJ&view_op=list_works&sortby=pubdate
+.. _Luke Bloy: https://imaging.research.chop.edu/people/dr-luke-bloy
 
 .. _Leonardo Barbosa: https://github.com/noreun
 
 .. _Erkka Heinila: https://github.com/Teekuningas
 
-.. _Andrea Brovelli: http://www.int.univ-amu.fr/_BROVELLI-Andrea_?lang=en
+.. _Andrea Brovelli: http://andrea-brovelli.net
 
 .. _Richard Höchenberger: https://github.com/hoechenberger
 
@@ -188,7 +188,7 @@
 
 .. _Thomas Hartmann: https://github.com/thht
 
-.. _Steven Gutstein: http://robust.cs.utep.edu/~gutstein
+.. _Steven Gutstein: http://vll.cs.utep.edu/people.html
 
 .. _Peter Molfese: https://github.com/pmolfese
 
@@ -232,9 +232,9 @@
 
 .. _Guillaume Favelier: https://github.com/GuillaumeFavelier
 
-.. _Katarina Slama: https://katarinaslama.github.io
+.. _Katarina Slama: https://github.com/katarinaslama
 
-.. _Bruno Nicenboim: http://nicenboim.org
+.. _Bruno Nicenboim: https://bnicenboim.github.io
 
 .. _Ivana Kojcic: https://github.com/ikojcic
 
@@ -266,6 +266,10 @@
 
 .. _Robert Luke: https://github.com/rob-luke
 
+.. _Robert Seymour: https://neurofractal.github.io
+
+.. _Matt Sanderson: https://github.com/monkeyman192
+
 .. _Mohammad Daneshzand: https://github.com/mdaneshzand
 
 .. _Fahimeh Mamashli: https://github.com/fmamashli
@@ -284,7 +288,7 @@
 
 .. _Chun-Hui Li: https://github.com/iamsc
 
-.. _Christian O'Reilly: https://scholar.google.ca/citations?user=NllRAkwAAAAJ&hl=en
+.. _Christian O'Reilly: https://github.com/christian-oreilly
 
 .. _Yu-Han Luo: https://github.com/yh-luo
 
@@ -345,3 +349,69 @@
 .. _Jeff Stout: https://megcore.nih.gov/index.php/Staff
 
 .. _Qianliang Li: https://www.dtu.dk/english/service/phonebook/person?id=126774
+
+.. _Richard Koehler: https://github.com/richardkoehler
+
+.. _Tristan Stenner: https://github.com/tstenner/
+
+.. _Anna Padee: https://github.com/apadee/
+
+.. _Andres Rodriguez: https://github.com/infinitejest/
+
+.. _Rotem Falach: https://github.com/Falach
+
+.. _Zhi Zhang: https://github.com/tczhangzhi/
+
+.. _Enrico Varano: https://github.com/enricovara/
+
+.. _Dominik Welke: https://github.com/dominikwelke/
+
+.. _Judy D Zhu: https://github.com/JD-Zhu
+
+.. _Valerii Chirkov: https://github.com/vagechirkov
+
+.. _Maggie Clarke: https://github.com/mdclarke
+
+.. _Apoorva Karekal: https://github.com/apoorva6262
+
+.. _Matteo Anelli: https://github.com/matteoanelli
+
+.. _Cora Kim: https://github.com/kimcoco
+
+.. _Silvia Cotroneo: https://github.com/sfc-neuro
+
+.. _Ram Pari: https://github.com/ramkpari
+
+.. _Erica Peterson: https://github.com/nordme
+
+.. _Sumalyo Datta: https://github.com/Sumalyo
+
+.. _Jack Zhang: https://github.com/jackz314
+
+.. _Felix Klotzsche: https://github.com/eioe
+
+.. _Jan Sosulski: https://jan-sosulski.de
+
+.. _David Julien: https://github.com/Swy7ch
+
+.. _Romain Derollepot: https://github.com/rderollepot
+
+.. _Xiaokai Xia: https://github.com/dddd1007
+
+.. _Marian Dovgialo: https://github.com/mdovgialo
+
+.. _Pierre-Antoine Bannier: https://github.com/PABannier
+
+.. _Darin Erat Sleiter: https://github.com/dsleiter
+
+.. _Mathieu Scheltienne: https://github.com/mscheltienne
+
+.. _Timothy Gates: https://github.com/timgates42
+
+.. _Reza Shoorangiz: https://github.com/rezashr
+
+.. _Evgeny Goldstein: https://github.com/evgenygoldstein
+
+.. _Joshua Teves: https://github.com/jbteves
+
+.. _Riessarius Stargardsky: https://github.com/Riessarius

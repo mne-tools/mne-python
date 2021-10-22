@@ -3,7 +3,7 @@
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
@@ -488,6 +488,7 @@ class SurfaceObject(Object):
 
     surf = Instance(Surface)
     surf_rear = Instance(Surface)
+    rear_opacity = Float(1.)
 
     view = View(HGroup(Item('visible', show_label=False),
                        Item('color', show_label=False),
@@ -532,7 +533,9 @@ class SurfaceObject(Object):
             self.sync_trait('color', self.surf_rear.actor.property,
                             mutual=False)
             self.sync_trait('visible', self.surf_rear, 'visible')
-            self.surf_rear.actor.property.opacity = 1.
+            self.surf_rear.actor.property.opacity = self.rear_opacity
+            self.sync_trait(
+                'rear_opacity', self.surf_rear.actor.property, 'opacity')
         surf = pipeline.surface(
             normals, figure=fig, color=self.color, representation=rep,
             line_width=1)

@@ -1,11 +1,12 @@
 # Authors: Robert Luke <mail@robertluke.net>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
 import pytest
 import numpy as np
+from numpy.testing import assert_allclose
 
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx
@@ -28,7 +29,12 @@ def test_temporal_derivative_distribution_repair(fname, tmpdir):
     max_shift = np.max(np.diff(raw._data[0]))
     shift_amp = 5 * max_shift
     raw._data[0, 0:30] = raw._data[0, 0:30] - (shift_amp)
+    # make one channel zero std
+    raw._data[1] = 0.
+    raw._data[2] = 1.
     assert np.max(np.diff(raw._data[0])) > shift_amp
     # Ensure that applying the algorithm reduces the step change
     raw = tddr(raw)
     assert np.max(np.diff(raw._data[0])) < shift_amp
+    assert_allclose(raw._data[1], 0.)  # unchanged
+    assert_allclose(raw._data[2], 1.)  # unchanged

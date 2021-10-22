@@ -1,8 +1,13 @@
+# Author: Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD-3-Clause
+
 import os
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_equal
+from numpy.testing import (assert_allclose, assert_array_equal,
+                           assert_array_less)
 import matplotlib.pyplot as plt
 import pytest
 
@@ -12,11 +17,11 @@ from mne import (read_dipole, read_forward_solution,
                  transform_surface_to, make_sphere_model, pick_types,
                  pick_info, EvokedArray, read_source_spaces, make_ad_hoc_cov,
                  make_forward_solution, Dipole, DipoleFixed, Epochs,
-                 make_fixed_length_events, Evoked)
+                 make_fixed_length_events, Evoked, head_to_mni)
 from mne.dipole import get_phantom_dipoles, _BDIP_ERROR_KEYS
 from mne.simulation import simulate_evoked
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, requires_mne, run_subprocess
+from mne.utils import requires_mne, run_subprocess, requires_nibabel
 from mne.proj import make_eeg_average_ref_proj
 
 from mne.io import read_raw_fif, read_raw_ctf
@@ -92,11 +97,13 @@ def test_dipole_fitting_ctf():
     # for now our CTF phantom fitting tutorials will have to do
     # (otherwise we need to add that to the testing dataset, which is
     # a bit too big)
-    fit_dipole(evoked, cov, sphere, rank=dict(meg=len(evoked.data)))
+    fit_dipole(evoked, cov, sphere, rank=dict(meg=len(evoked.data)),
+               tol=1e-3, accuracy='accurate')
 
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
+@requires_nibabel()
 @requires_mne
 def test_dipole_fitting(tmpdir):
     """Test dipole fitting."""
@@ -139,6 +146,22 @@ def test_dipole_fitting(tmpdir):
         dip, residual = fit_dipole(evoked, cov, sphere, fname_fwd,
                                    rank='info')  # just to test rank support
     assert isinstance(residual, Evoked)
+
+    # Test conversion of dip.pos to MNI coordinates.
+    dip_mni_pos = dip.to_mni('sample', fname_trans,
+                             subjects_dir=subjects_dir)
+    head_to_mni_dip_pos = head_to_mni(dip.pos, 'sample', fwd['mri_head_t'],
+                                      subjects_dir=subjects_dir)
+    assert_allclose(dip_mni_pos, head_to_mni_dip_pos, rtol=1e-3, atol=0)
+
+    # Test finding label for dip.pos in an aseg, also tests `to_mri`
+    target_labels = ['Left-Cerebral-Cortex', 'Unknown', 'Left-Cerebral-Cortex',
+                     'Right-Cerebral-Cortex', 'Left-Cerebral-Cortex',
+                     'Unknown', 'Unknown', 'Unknown',
+                     'Right-Cerebral-White-Matter', 'Right-Cerebral-Cortex']
+    labels = dip.to_volume_labels(fname_trans, subject='fsaverage',
+                                  aseg="aseg", subjects_dir=subjects_dir)
+    assert labels == target_labels
 
     # Sanity check: do our residuals have less power than orig data?
     data_rms = np.sqrt(np.sum(evoked.data ** 2, axis=0))
@@ -289,7 +312,7 @@ def test_min_distance_fit_dipole():
 
     bem = read_bem_solution(fname_bem)
     dip, residual = fit_dipole(evoked, cov, bem, fname_trans,
-                               min_dist=min_dist)
+                               min_dist=min_dist, tol=1e-4)
     assert isinstance(residual, Evoked)
 
     dist = _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir)
@@ -297,8 +320,8 @@ def test_min_distance_fit_dipole():
     # Constraints are not exact, so bump the minimum slightly
     assert (min_dist - 0.1 < (dist[0] * 1000.) < (min_dist + 1.))
 
-    pytest.raises(ValueError, fit_dipole, evoked, cov, fname_bem, fname_trans,
-                  -1.)
+    with pytest.raises(ValueError, match='min_dist should be positive'):
+        fit_dipole(evoked, cov, fname_bem, fname_trans, -1.)
 
 
 def _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir):
@@ -353,7 +376,7 @@ def test_accuracy():
         # make sure that our median is sub-mm and the large majority are very
         # close (we expect some to be off by a bit e.g. because they are
         # radial)
-        assert ((np.percentile(ds, [50, 90]) < [0.0005, perc_90]).all())
+        assert_array_less(np.percentile(ds, [50, 90]), [0.0005, perc_90])
 
 
 @testing.requires_testing_data
@@ -478,7 +501,8 @@ def test_bdip(fname_dip_, fname_bdip_, tmpdir):
                                 err_msg='%s: %s' % (kind, key))
         # Not stored
         assert this_bdip.name is None
-        assert_allclose(this_bdip.nfree, 0.)
+        assert this_bdip.nfree is None
 
-
-run_tests_if_main()
+        # Test whether indexing works
+        this_bdip0 = this_bdip[0]
+        _check_dipole(this_bdip0, 1)

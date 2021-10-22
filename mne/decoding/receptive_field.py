@@ -2,12 +2,11 @@
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numbers
 
 import numpy as np
-from scipy import linalg
 
 from .base import get_coef, BaseEstimator, _check_estimator
 from .time_delaying_ridge import TimeDelayingRidge
@@ -69,7 +68,7 @@ class ReceptiveField(BaseEstimator):
         .. versionadded:: 0.18
     verbose : bool, str, int, or None
         If not None, override default verbose level (see
-        :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+        :func:`mne.verbose` and :ref:`Logging documentation <tut-logging>`
         for more).
 
     Attributes
@@ -170,6 +169,7 @@ class ReceptiveField(BaseEstimator):
         self : instance
             The instance so you can chain operations.
         """
+        from scipy import linalg
         if self.scoring not in _SCORERS.keys():
             raise ValueError('scoring must be one of %s, got'
                              '%s ' % (sorted(_SCORERS.keys()), self.scoring))

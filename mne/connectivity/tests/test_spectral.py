@@ -1,12 +1,10 @@
 import numpy as np
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_allclose
 import pytest
 
+from mne import EpochsArray, SourceEstimate, create_info
 from mne.connectivity import spectral_connectivity
 from mne.connectivity.spectral import _CohEst, _get_n_epochs
-
-from mne import SourceEstimate
-from mne.utils import run_tests_if_main
 from mne.filter import filter_data
 
 
@@ -212,4 +210,65 @@ def test_spectral_connectivity(method, mode):
     assert (out_lens[0] == 10)
 
 
-run_tests_if_main()
+@pytest.mark.parametrize('kind', ('epochs', 'ndarray', 'stc', 'combo'))
+def test_epochs_tmin_tmax(kind):
+    """Test spectral.spectral_connectivity with epochs and arrays."""
+    rng = np.random.RandomState(0)
+    n_epochs, n_chs, n_times, sfreq, f = 10, 2, 2000, 1000., 20.
+    data = rng.randn(n_epochs, n_chs, n_times)
+    sig = np.sin(2 * np.pi * f * np.arange(1000) / sfreq) * np.hanning(1000)
+    data[:, :, 500:1500] += sig
+    info = create_info(n_chs, sfreq, 'eeg')
+    if kind == 'epochs':
+        tmin = -1
+        X = EpochsArray(data, info, tmin=tmin)
+    elif kind == 'stc':
+        tmin = -1
+        X = [SourceEstimate(d, [[0], [0]], tmin, 1. / sfreq) for d in data]
+    elif kind == 'combo':
+        tmin = -1
+        X = [(d[[0]], SourceEstimate(d[[1]], [[0], []], tmin, 1. / sfreq))
+             for d in data]
+    else:
+        assert kind == 'ndarray'
+        tmin = 0
+        X = data
+    want_times = np.arange(n_times) / sfreq + tmin
+
+    # Parameters for computing connectivity
+    fmin, fmax = f - 2, f + 2
+    kwargs = {'method': 'coh', 'mode': 'multitaper', 'sfreq': sfreq,
+              'fmin': fmin, 'fmax': fmax, 'faverage': True,
+              'mt_adaptive': False, 'n_jobs': 1}
+
+    # Check the entire interval
+    conn = spectral_connectivity(X, **kwargs)
+    assert 0.89 < conn[0][1, 0] < 0.91
+    assert_allclose(conn[2], want_times)
+    # Check a time interval before the sinusoid
+    conn = spectral_connectivity(X, tmax=tmin + 0.5, **kwargs)
+    assert 0 < conn[0][1, 0] < 0.15
+    # Check a time during the sinusoid
+    conn = spectral_connectivity(X, tmin=tmin + 0.5, tmax=tmin + 1.5, **kwargs)
+    assert 0.93 < conn[0][1, 0] <= 0.94
+    # Check a time interval after the sinusoid
+    conn = spectral_connectivity(X, tmin=tmin + 1.5, tmax=tmin + 1.9, **kwargs)
+    assert 0 < conn[0][1, 0] < 0.15
+
+    # Check for warning if tmin, tmax is outside of the time limits of data
+    with pytest.warns(RuntimeWarning, match='start time tmin'):
+        spectral_connectivity(X, **kwargs, tmin=tmin - 0.1)
+
+    with pytest.warns(RuntimeWarning, match='stop time tmax'):
+        spectral_connectivity(X, **kwargs, tmax=tmin + 2.5)
+
+    # make one with mismatched times
+    if kind != 'combo':
+        return
+    X = [(SourceEstimate(d[[0]], [[0], []], tmin - 1, 1. / sfreq),
+          SourceEstimate(d[[1]], [[0], []], tmin, 1. / sfreq)) for d in data]
+    with pytest.warns(RuntimeWarning, match='time scales of input') as w:
+        spectral_connectivity(X, **kwargs)
+
+    # increased to 2 to catch the DeprecationWarning
+    assert len(w) == 2  # just one even though there were multiple epochs

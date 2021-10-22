@@ -2,7 +2,7 @@
 """Some miscellaneous utility functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from contextlib import contextmanager
 import fnmatch
@@ -123,7 +123,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
     # non-blocking adapted from https://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python#4896288  # noqa: E501
     out_q = Queue()
     err_q = Queue()
-    with running_subprocess(command, *args, **kwargs) as p:
+    with running_subprocess(command, *args, **kwargs) as p, p.stdout, p.stderr:
         out_t = Thread(target=_enqueue_output, args=(p.stdout, out_q))
         err_t = Thread(target=_enqueue_output, args=(p.stderr, err_q))
         out_t.daemon = True
@@ -149,12 +149,16 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                     break
                 else:
                     err = err.decode('utf-8')
+                    # Leave this as logger.warning rather than warn(...) to
+                    # mirror the logger.info above for stdout. This function
+                    # is basically just a version of subprocess.call, and
+                    # shouldn't emit Python warnings due to stderr outputs
+                    # (the calling function can check for stderr output and
+                    # emit a warning if it wants).
                     logger.warning(err)
                     all_err += err
             if do_break:
                 break
-    p.stdout.close()
-    p.stderr.close()
     output = (all_out, all_err)
 
     if return_code:
@@ -334,6 +338,8 @@ def _assert_no_instances(cls, when=''):
         except Exception:  # such as a weakref
             check = False
         if check:
+            if cls.__name__ == 'Brain':
+                ref.append(f'Brain._cleaned = {obj._cleaned}')
             rr = gc.get_referrers(obj)
             count = 0
             for r in rr:
@@ -341,11 +347,46 @@ def _assert_no_instances(cls, when=''):
                         r is not globals() and \
                         r is not locals() and \
                         not inspect.isframe(r):
-                    ref.append(
-                        f'{r.__class__.__name__}: ' +
-                        repr(r)[:100].replace('\n', ' '))
+                    if isinstance(r, (list, dict)):
+                        rep = f'len={len(r)}'
+                        r_ = gc.get_referrers(r)
+                        types = (x.__class__.__name__ for x in r_)
+                        types = "/".join(sorted(set(
+                            x for x in types if x is not None)))
+                        rep += f', {len(r_)} referrers: {types}'
+                        del r_
+                    else:
+                        rep = repr(r)[:100].replace('\n', ' ')
+                    ref.append(f'{r.__class__.__name__}: {rep}')
                     count += 1
                 del r
             del rr
             n += count > 0
-    assert n == 0, f'{n} {when}:\n' + '\n'.join(ref)
+        del obj
+    del objs
+    gc.collect()
+    assert n == 0, f'\n{n} {cls.__name__} @ {when}:\n' + '\n'.join(ref)
+
+
+def _resource_path(submodule, filename):
+    """Return a full system path to a package resource (AKA a file).
+
+    Parameters
+    ----------
+    submodule : str
+        An import-style module or submodule name
+        (e.g., "mne.datasets.testing").
+    filename : str
+        The file whose full path you want.
+
+    Returns
+    -------
+    path : str
+        The full system path to the requested file.
+    """
+    try:
+        from importlib.resources import files
+        return files(submodule).joinpath(filename)
+    except ImportError:
+        from pkg_resources import resource_filename
+        return resource_filename(submodule, filename)

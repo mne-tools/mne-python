@@ -10,11 +10,22 @@ import warnings
 
 
 def has_pyvista():
-    """Check that pyvista is installed."""
+    """Check that PyVista is installed."""
     try:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             import pyvista  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+def has_pyvistaqt():
+    """Check that PyVistaQt is installed."""
+    try:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            import pyvistaqt  # noqa: F401
         return True
     except ImportError:
         return False
@@ -50,5 +61,5 @@ def has_imageio_ffmpeg():
 
 skips_if_not_mayavi = pytest.mark.skipif(
     not has_mayavi(), reason='requires mayavi')
-skips_if_not_pyvista = pytest.mark.skipif(
-    not has_pyvista(), reason='requires pyvista')
+skips_if_not_pyvistaqt = pytest.mark.skipif(
+    not has_pyvistaqt(), reason='requires pyvistaqt')

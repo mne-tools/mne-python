@@ -2,7 +2,7 @@
 # Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #         Joan Massich <mailsik@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -11,7 +11,6 @@ from numpy.testing import assert_array_equal
 import pytest
 
 from mne import pick_types
-from mne.utils import run_tests_if_main
 from mne.datasets import testing
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.cnt import read_raw_cnt
@@ -35,7 +34,7 @@ def test_data():
     assert len(eog_chs) == 2  # test eog='auto'
     assert raw.info['bads'] == ['LEFT_EAR', 'VEOGR']  # test bads
 
-    # XXX: the data has "05/10/200 17:35:31" so it is set to None
+    # the data has "05/10/200 17:35:31" so it is set to None
     assert raw.info['meas_date'] is None
 
 
@@ -54,6 +53,3 @@ def test_compare_events_and_annotations():
     assert len(annot) == 6
     assert_array_equal(annot.onset[:-1], events[:, 0] / raw.info['sfreq'])
     assert 'STI 014' not in raw.info['ch_names']
-
-
-run_tests_if_main()

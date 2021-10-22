@@ -1,13 +1,13 @@
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
 import os.path as op
 
 from numpy.testing import assert_array_equal
 
-from mne.utils import requires_mayavi, run_tests_if_main, traits_test
+from mne.utils import requires_mayavi, traits_test
 
 
 @requires_mayavi
@@ -66,6 +66,3 @@ def test_mri_model(subjects_dir_tmp):
     assert model.can_reset
     model.reset = True
     assert_array_equal(model.nasion, [[0, 1, 0]])
-
-
-run_tests_if_main()

@@ -1,6 +1,6 @@
 # Author: Mark Wronkiewicz <wronk@uw.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from contextlib import contextmanager
 import os.path as op
@@ -23,13 +23,18 @@ from mne.forward import use_coil_def
 from mne.io import (read_raw_fif, read_info, read_raw_bti, read_raw_kit,
                     BaseRaw, read_raw_ctf)
 from mne.io.constants import FIFF
+from mne.preprocessing import (maxwell_filter, find_bad_channels_maxwell,
+                               annotate_flat, compute_maxwell_basis)
 from mne.preprocessing.maxwell import (
-    maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
+    _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
-    _bases_real_to_complex, _prep_mf_coils, find_bad_channels_maxwell)
-from mne.rank import _get_rank_sss, _compute_rank_int
+    _bases_real_to_complex, _prep_mf_coils)
+from mne.rank import _get_rank_sss, _compute_rank_int, compute_rank
 from mne.utils import (assert_meg_snr, catch_logging,
                        object_diff, buggy_mkl_svd, use_log_level)
+
+io_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
+raw_small_fname = op.join(io_path, 'test_raw.fif')
 
 data_path = testing.data_path(download=False)
 sss_path = op.join(data_path, 'SSS')
@@ -243,8 +248,7 @@ def test_other_systems():
     raw_sss_auto = maxwell_filter(raw_kit, origin=(0., 0., 0.04),
                                   ignore_ref=True, mag_scale='auto')
     assert_allclose(raw_sss._data, raw_sss_auto._data)
-    # XXX this KIT origin fit is terrible! Eventually we should get a
-    # corrected HSP file with proper coverage
+    # The KIT origin fit is terrible
     with pytest.warns(RuntimeWarning, match='more than 20 mm'):
         with catch_logging() as log:
             pytest.raises(RuntimeError, maxwell_filter, raw_kit,
@@ -340,7 +344,7 @@ def test_multipolar_bases():
     # Test our basis calculations
     info = read_info(raw_fname)
     with use_coil_def(elekta_def_fname):
-        coils = _prep_meg_channels(info, accurate=True, do_es=True)[0]
+        coils = _prep_meg_channels(info, do_es=True)[0]
     # Check against a known benchmark
     sss_data = loadmat(bases_fname)
     exp = dict(int_order=int_order, ext_order=ext_order)
@@ -862,10 +866,14 @@ def test_esss(regularize, bads):
     assert 'Extending external SSS basis using 15 projection' in log
     assert_allclose(raw_sss_2._data, raw_sss._data, atol=1e-20)
 
+    # This should work, as the projectors should be a superset
+    raw_erm.info['bads'] = raw_erm.info['bads'] + ['MEG0112']
+    maxwell_filter(raw_erm, coord_frame='meg', extended_proj=proj_sss)
+
     # Degenerate condititons
     proj_sss = proj_sss[:2]
     proj_sss[0]['data']['col_names'] = proj_sss[0]['data']['col_names'][:-1]
-    with pytest.raises(ValueError, match='do not match the good MEG'):
+    with pytest.raises(ValueError, match='were missing'):
         maxwell_filter(raw_erm, coord_frame='meg', extended_proj=proj_sss)
     proj_sss[0] = 1.
     with pytest.raises(TypeError, match=r'extended_proj\[0\] must be an inst'):
@@ -1360,3 +1368,71 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
                           min(min_count, len(got_scores['bins'])))
         bads = set(got_scores['ch_names'][ch_idx])
         assert bads == set(want_bads)
+
+
+def test_find_bads_maxwell_flat():
+    """Test find_bads_maxwell when there are flat channels."""
+    # See gh-9479
+    raw = mne.io.read_raw_fif(raw_small_fname).load_data()
+    assert_allclose(raw.times[-1], 23.97, atol=1e-2)
+    noisy, flat = find_bad_channels_maxwell(raw, min_count=1)
+    assert noisy == ['MEG 1032', 'MEG 2313', 'MEG 2443']
+    assert flat == []
+    n = int(round(raw.info['sfreq'] * 10))
+    assert (len(raw.times) - n) / raw.info['sfreq'] > 10  # at least 10 sec
+    with catch_logging() as log:
+        want_noisy, want_flat = find_bad_channels_maxwell(
+            raw.copy().crop(n / raw.info['sfreq'], None), min_count=1,
+            verbose='debug')
+    log = log.getvalue()
+    assert 'in 2 intervals ' in log
+    assert want_noisy == ['MEG 2313', 'MEG 2443']
+    assert want_flat == []
+    raw._data[:, :n] = 0
+    with pytest.warns(RuntimeWarning, match='All-flat segment detected'):
+        with catch_logging() as log:
+            noisy, flat = find_bad_channels_maxwell(
+                raw, min_count=1, verbose='debug')
+    log = log.getvalue()
+    assert ' in 4 intervals ' in log
+    assert flat == raw.ch_names[:306]
+    assert noisy == []  # none found because all flat
+    # now do what we suggest in the warning
+    annot, _ = annotate_flat(raw, bad_percent=100, min_duration=1.)
+    assert_allclose(annot.duration, 10., atol=1e-2)  # not even divisor sfreq
+    raw.info['bads'] = []
+    raw.set_annotations(annot)
+    data_good = raw.get_data(reject_by_annotation='omit')
+    assert data_good.shape[1] / raw.info['sfreq'] / 5. > 2  # at least 10 sec
+    with catch_logging() as log:
+        noisy, flat = find_bad_channels_maxwell(
+            raw, min_count=1, skip_by_annotation='bad_flat', verbose='debug')
+    log = log.getvalue()
+    assert ' in 2 intervals ' in log, log
+    assert flat == want_flat
+    assert noisy == want_noisy
+
+
+@pytest.mark.parametrize('regularize, n', [
+    (None, 80),
+    ('in', 71),
+])
+def test_compute_maxwell_basis(regularize, n):
+    """Test compute_maxwell_basis."""
+    raw = read_raw_fif(raw_small_fname).crop(0, 2)
+    assert raw.info['bads'] == []
+    raw.del_proj()
+    rank = compute_rank(raw)['meg']
+    assert rank == 306
+    raw.info['bads'] = ['MEG 2443']
+    kwargs = dict(regularize=regularize, verbose=True)
+    raw_sss = maxwell_filter(raw, **kwargs)
+    want = raw_sss.get_data('meg')
+    rank = compute_rank(raw_sss)['meg']
+    assert rank == n
+    S, pS, reg_moments, n_use_in = compute_maxwell_basis(raw.info, **kwargs)
+    assert n_use_in == n
+    assert n_use_in == len(reg_moments) - 15  # no externals removed
+    xform = S[:, :n_use_in] @ pS[:n_use_in]
+    got = xform @ raw.pick_types(meg=True, exclude='bads').get_data()
+    assert_allclose(got, want)

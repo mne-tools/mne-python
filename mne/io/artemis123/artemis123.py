@@ -1,6 +1,6 @@
 # Author: Luke Bloy <bloyl@chop.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 import os.path as op
@@ -8,7 +8,7 @@ import datetime
 import calendar
 
 from .utils import _load_mne_locs, _read_pos
-from ...utils import logger, warn, verbose
+from ...utils import logger, warn, verbose, _check_fname
 from ..utils import _read_segments_file
 from ..base import BaseRaw
 from ..meas_info import _empty_info
@@ -308,6 +308,7 @@ class RawArtemis123(BaseRaw):
         from scipy.spatial.distance import cdist
         from ...chpi import (compute_chpi_amplitudes, compute_chpi_locs,
                              _fit_coil_order_dev_head_trans)
+        input_fname = _check_fname(input_fname, 'read', True, 'input_fname')
         fname, ext = op.splitext(input_fname)
         if ext == '.txt':
             input_fname = fname + '.bin'

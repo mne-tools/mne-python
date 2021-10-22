@@ -1,6 +1,6 @@
 # Authors: Britta Westner <britta.wstnr@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -14,7 +14,6 @@ from mne.datasets import testing
 from mne.beamformer import make_lcmv, apply_lcmv, apply_lcmv_cov
 from mne.beamformer.tests.test_lcmv import _get_data
 from mne.externals.pymatreader import read_mat
-from mne.utils import run_tests_if_main
 
 
 data_path = testing.data_path(download=False)
@@ -106,6 +105,3 @@ def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
         assert_allclose(np.linalg.norm(stc_mne.data, axis=1),
                         np.linalg.norm(stc_ft_data, axis=1), rtol=1e-6)
     assert_allclose(stc_mne.data, stc_ft_data, rtol=1e-6)
-
-
-run_tests_if_main()

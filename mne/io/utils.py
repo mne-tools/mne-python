@@ -8,7 +8,7 @@
 #          Mainak Jas <mainak.jas@telecom-paristech.fr>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 import os
@@ -77,8 +77,7 @@ def _find_channels(ch_names, ch_type='EOG'):
 def _mult_cal_one(data_view, one, idx, cals, mult):
     """Take a chunk of raw data, multiply by mult or cals, and store."""
     one = np.asarray(one, dtype=data_view.dtype)
-    assert data_view.shape[1] == one.shape[1], \
-        (data_view.shape[1], one.shape[1])
+    assert data_view.shape[1] == one.shape[1], (data_view.shape[1], one.shape[1])  # noqa: E501
     if mult is not None:
         mult.ndim == one.ndim == 2
         data_view[:] = mult @ one[idx]
@@ -298,18 +297,18 @@ def _synthesize_stim_channel(events, n_samples):
     return stim_channel
 
 
-def _construct_bids_filename(base, ext, part_idx):
+def _construct_bids_filename(base, ext, part_idx, validate=True):
     """Construct a BIDS compatible filename for split files."""
     # insert index in filename
     dirname = op.dirname(base)
     base = op.basename(base)
     deconstructed_base = base.split('_')
-    if len(deconstructed_base) < 2:
+    if len(deconstructed_base) < 2 and validate:
         raise ValueError('Filename base must end with an underscore followed '
                          f'by the modality (e.g., _eeg or _meg), got {base}')
-    modality = deconstructed_base[-1]
+    suffix = deconstructed_base[-1]
     base = '_'.join(deconstructed_base[:-1])
-    use_fname = '{}_split-{:02}_{}{}'.format(base, part_idx, modality, ext)
+    use_fname = '{}_split-{:02}_{}{}'.format(base, part_idx, suffix, ext)
     if dirname:
         use_fname = op.join(dirname, use_fname)
     return use_fname

@@ -1,6 +1,6 @@
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
 
@@ -10,8 +10,7 @@ from numpy.testing import assert_allclose, assert_array_equal
 import mne
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io import read_raw_fif
-from mne.utils import (requires_mayavi, run_tests_if_main, traits_test,
-                       modified_env)
+from mne.utils import requires_mayavi, traits_test, modified_env
 
 mrk_pre_path = os.path.join(kit_data_dir, 'test_mrk_pre.sqd')
 mrk_post_path = os.path.join(kit_data_dir, 'test_mrk_post.sqd')
@@ -158,6 +157,3 @@ def test_kit2fiff_gui(check_gui_ci, tmpdir):
         ui.dispose()
 
         gui.process_events()
-
-
-run_tests_if_main()

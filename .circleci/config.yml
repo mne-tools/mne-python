@@ -1,26 +1,61 @@
-# Tagging a commit with [circle front] will build the front page and perform test-doc.
-# Tagging a commit with [circle full] will build everything.
-version: 2
+# Tagging a commit with:
+# - [circle front] will build the front page and perform test-doc
+# - [circle full] will build everything
+# - [circle linkcheck] will run our linkcheck
+# - [circle interactive_test] will run our test suite (useful for debugging
+#   issues using "Rerun with SSH")
+
+version: 2.1
+
+_xvfb: &xvfb
+  name: Start Xvfb virtual framebuffer
+  command: |
+    echo "export DISPLAY=:99" >> $BASH_ENV
+    /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1280x1024x24 -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix
+
 jobs:
     build_docs:
       docker:
         - image: circleci/python:3.8.5-buster
       steps:
+        - restore_cache:
+            keys:
+              - source-cache
         - checkout
+        - run:
+            name: Complete checkout
+            command: |
+              if ! git remote -v | grep upstream; then
+                git remote add upstream git://github.com/mne-tools/mne-python.git
+              fi
+              git fetch upstream
+        - save_cache:
+            key: source-cache
+            paths:
+              - ".git"
+        - run:
+            name: Check-skip
+            command: |
+              export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
+              if [[ -v CIRCLE_PULL_REQUEST ]] && ([[ "$COMMIT_MESSAGE" == *"[skip circle]"* ]] || [[ "$COMMIT_MESSAGE" == *"[circle skip]"* ]]); then
+                echo "Skip detected, exiting job ${CIRCLE_JOB} for PR ${CIRCLE_PULL_REQUEST}."
+                circleci-agent step halt;
+              fi
         - run:
             name: Set BASH_ENV
             command: |
               set -e
               echo "set -e" >> $BASH_ENV
-              echo "export DISPLAY=:99" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
-              echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci"  >> $BASH_ENV
+              echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
+              echo "export MNE_FULL_DATE=true" >> $BASH_ENV
               source tools/get_minimal_commands.sh
-              echo "source ${PWD}/tools/get_minimal_commands.sh" >> $BASH_ENV
-              echo "export MNE_3D_BACKEND=pyvista" >> $BASH_ENV
-              echo "export PATH=~/.local/bin/:${MNE_ROOT}/bin:$PATH" >> $BASH_ENV
+              echo "export MNE_3D_BACKEND=pyvistaqt" >> $BASH_ENV
+              echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
               echo "BASH_ENV:"
               cat $BASH_ENV
+              mkdir -p ~/mne_data
+              touch pattern.txt;
         - run:
             name: check neuromag2ft
             command: |
@@ -33,96 +68,124 @@ jobs:
               echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
               if [[ $(cat merge.txt) != "" ]]; then
                 echo "Merging $(cat merge.txt)";
-                git remote add upstream git://github.com/mne-tools/mne-python.git;
                 git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
-                git fetch upstream master;
               fi
 
-        # Load our data
-        - restore_cache:
-            keys:
-              - data-cache-0
-              - data-cache-1
-              - data-cache-2
-              - data-cache-3
-              - data-cache-4
-              - data-cache-5
-              - data-cache-6
-              - data-cache-7
-              - data-cache-8
-              - pip-cache
-
         - run:
-            name: Install 3D rendering libraries \ PyQt5 dependencies \ graphviz \ optipng (for optimized images)
-            command: |
-              sudo apt-get install libosmesa6 libglx-mesa0 libopengl0 libglx0 libdbus-1-3 \
-                  libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 \
-                  graphviz \
-                  optipng
-
-        - run:
-            name: Spin up Xvfb
-            command: |
-              /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
-
-        # https://github.com/ContinuumIO/anaconda-issues/issues/9190#issuecomment-386508136
-        # https://github.com/golemfactory/golem/issues/1019
+            <<: *xvfb
 
         - run:
             name: Install fonts needed for diagrams
             command: |
               mkdir -p $HOME/.fonts
-              curl https://codeload.github.com/adobe-fonts/source-code-pro/tar.gz/2.030R-ro/1.050R-it | tar xz -C $HOME/.fonts
-              curl https://codeload.github.com/adobe-fonts/source-sans-pro/tar.gz/3.006R | tar xz -C $HOME/.fonts
+              curl https://codeload.github.com/adobe-fonts/source-code-pro/tar.gz/2.038R-ro/1.058R-it/1.018R-VAR | tar xz -C $HOME/.fonts
+              curl https://codeload.github.com/adobe-fonts/source-sans-pro/tar.gz/3.028R | tar xz -C $HOME/.fonts
               fc-cache -f
 
+        # Load pip cache
+        - restore_cache:
+            keys:
+              - pip-cache
+        - restore_cache:
+            keys:
+              - user-install-bin-cache
+
+        # Hack in uninstalls of libraries as necessary if pip doesn't do the right thing in upgrading for us...
         - run:
             name: Get Python running
             command: |
-              python -m pip install --user --upgrade --progress-bar off pip setuptools
-              python -m pip install --user --upgrade --progress-bar off --pre sphinx
-              python -m pip install --user --progress-bar off https://github.com/pyvista/pyvista/zipball/master
-              python -m pip install --user --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/master
-              python -m pip install --user --upgrade --progress-bar off -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
-              python -m pip uninstall -yq pysurfer mayavi
-              python -m pip install --user -e .
+              ./tools/circleci_dependencies.sh
 
         - save_cache:
             key: pip-cache
             paths:
               - ~/.cache/pip
+        - save_cache:
+            key: user-install-bin-cache
+            paths:
+              - ~/.local/lib/python3.8/site-packages
+              - ~/.local/bin
 
         - run:
             name: Check PyQt5
             command: LD_DEBUG=libs python -c "from PyQt5.QtWidgets import QApplication, QWidget; app = QApplication([])"
+
+        # Load tiny cache so that ~/.mne does not need to be created below
+        - restore_cache:
+            keys:
+              - data-cache-tiny-0
 
         # Look at what we have and fail early if there is some library conflict
         - run:
             name: Check installation
             command: |
                which python
-               QT_DEBUG_PLUGINS=1 mne sys_info
+               QT_DEBUG_PLUGINS=1 mne sys_info -pd
                python -c "import numpy; numpy.show_config()"
                LIBGL_DEBUG=verbose python -c "import pyvistaqt; pyvistaqt.BackgroundPlotter(show=True)"
                python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
                python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
                python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
+        - run:
+            name: List packages
+            command: python -m pip list
 
         # Figure out if we should run a full, pattern, or noplot version
+        - restore_cache:
+            keys:
+              - data-cache-tiny-1
+        - restore_cache:
+            keys:
+              - data-cache-multimodal
+        - restore_cache:
+            keys:
+              - data-cache-limo
+        - restore_cache:
+            keys:
+              - data-cache-fsaverage
+        - restore_cache:
+            keys:
+              - data-cache-bst-phantom-ctf
+        - restore_cache:
+            keys:
+              - data-cache-bst-raw
+        - restore_cache:
+            keys:
+              - data-cache-bst-phantom-elekta
+        - restore_cache:
+            keys:
+              - data-cache-bst-auditory
+        - restore_cache:
+            keys:
+              - data-cache-bst-resting
+        - restore_cache:
+            keys:
+              - data-cache-fieldtrip
+        - restore_cache:
+            keys:
+              - data-cache-somato
+        - restore_cache:
+            keys:
+              - data-cache-hf-sef
+        - restore_cache:
+            keys:
+              - data-cache-opm
+        - restore_cache:
+            keys:
+              - data-cache-sample
+        - restore_cache:
+            keys:
+              - data-cache-spm-face
+        - restore_cache:
+            keys:
+              - data-cache-testing
+        - restore_cache:
+            keys:
+              - data-cache-visual
         - run:
             name: Get data
             command: |
-              python setup.py develop --user
-              mkdir -p ~/mne_data
-              touch pattern.txt;
               ./tools/circleci_download.sh
-
-        - run:
-            name: Get data (again)
-            when: on_fail
-            command: |
-              ./tools/circleci_download.sh
-
         - run:
             name: Verify build type
             command: |
@@ -143,8 +206,7 @@ jobs:
         - run:
             name: make html
             command: |
-              cd doc;
-              PATTERN=$(cat ../pattern.txt) make $(cat ../build.txt);
+              PATTERN=$(cat pattern.txt) make -C doc $(cat build.txt);
         - run:
             name: Show profiling output
             when: always
@@ -165,15 +227,11 @@ jobs:
             name: Reduce artifact upload time
             command: |
               if grep -q html_dev-pattern-memory build.txt || grep -q html_dev-noplot build.txt; then
-                tar czf doc/_build/html/_downloads.tgz doc/_build/html/_downloads
-                rm -Rf doc/_build/html/_downloads
-                rm -f doc/auto_*/*/*.pickle
-                rm -f doc/auto_*/*/*.codeobj
-                rm -f doc/auto_*/*/*.md5
-                rm -f doc/auto_*/*/*.py
-                rm -f doc/auto_*/*/*.ipynb
-                rm -f doc/generated/*.examples
+                zip -rm doc/_build/html/_downloads.zip doc/_build/html/_downloads
               fi
+              for NAME in generated auto_tutorials auto_examples; do
+                zip -rm doc/${NAME}.zip doc/${NAME}
+              done
 
         # Save the JUnit file
         - store_test_results:
@@ -183,14 +241,11 @@ jobs:
             destination: test-results
         # Save the SG RST
         - store_artifacts:
-            path: doc/auto_examples
-            destination: auto_examples
+            path: doc/auto_examples.zip
         - store_artifacts:
-            path: doc/auto_tutorials
-            destination: auto_tutorials
+            path: doc/auto_tutorials.zip
         - store_artifacts:
-            path: doc/generated
-            destination: generated
+            path: doc/generated.zip
         # Save the HTML
         - store_artifacts:
             path: doc/_build/html/
@@ -206,77 +261,133 @@ jobs:
 
         # Keep these separate, maybe better in terms of size limitations (?)
         - save_cache:
-            key: data-cache-0
+            key: data-cache-tiny-0  # < 100 M, might as well combine
             paths:
               - ~/.mne
-              - ~/mne_data/mTRF_1.5
+              - ~/mne_data/MNE-kiloword-data  # (28 M)
+              - ~/mne_data/MNE-eegbci-data # (35 M)
+              - ~/mne_data/MNE-misc-data  # (39 M)
+              - ~/mne_data/mTRF_1.5  # (56 M)
+              - ~/mne_data/MNE-phantom-4DBTi  # (77 M)
         - save_cache:
-            key: data-cache-1
+            key: data-cache-tiny-1  # more to combine
             paths:
-              - ~/mne_data/HF_SEF
-              - ~/mne_data/MEGSIM
+              - ~/mne_data/MNE-fNIRS-motor-data  # (71 M)
+              - ~/mne_data/MNE-refmeg-noise-data  # (93 M)
+              - ~/mne_data/physionet-sleep-data  # (95 M)
         - save_cache:
-            key: data-cache-2
+            key: data-cache-multimodal
             paths:
-              - ~/mne_data/MNE-brainstorm-data
-              - ~/mne_data/MNE-eegbci-data
+              - ~/mne_data/MNE-multimodal-data  # (240 M)
         - save_cache:
-            key: data-cache-3
+            key: data-cache-limo
             paths:
-              - ~/mne_data/MNE-fieldtrip_cmc-data
-              - ~/mne_data/MNE-kiloword-data
+              - ~/mne_data/MNE-limo-data  # (244 M)
         - save_cache:
-            key: data-cache-4
+            key: data-cache-fsaverage
             paths:
-              - ~/mne_data/MNE-misc-data
-              - ~/mne_data/MNE-multimodal-data
+              - ~/mne_data/MNE-fsaverage-data  # (762 M)
         - save_cache:
-            key: data-cache-5
+            key: data-cache-bst-phantom-ctf
             paths:
-              - ~/mne_data/MNE-OPM-data
-              - ~/mne_data/MNE-phantom-4DBTi
+              - ~/mne_data/MNE-brainstorm-data/bst_phantom_ctf  # (177 M)
         - save_cache:
-            key: data-cache-6
+            key: data-cache-bst-raw
             paths:
-              - ~/mne_data/MNE-sample-data
-              - ~/mne_data/MNE-somato-data
+              - ~/mne_data/MNE-brainstorm-data/bst_raw  # (830 M)
         - save_cache:
-            key: data-cache-7
+            key: data-cache-bst-phantom-elekta
             paths:
-              - ~/mne_data/MNE-spm-face
-              - ~/mne_data/MNE-testing-ata
+              - ~/mne_data/MNE-brainstorm-data/bst_phantom_elekta  # (1.4 G)
         - save_cache:
-            key: data-cache-8
+            key: data-cache-bst-auditory
             paths:
-              - ~/mne_data/MNE-visual_92_categories-data
-              - ~/mne_data/MNE-limo-data
+              - ~/mne_data/MNE-brainstorm-data/bst_auditory  # (2.9 G)
+        - save_cache:
+            key: data-cache-bst-resting
+            paths:
+              - ~/mne_data/MNE-brainstorm-data/bst_resting  # (4.5 G)
+        - save_cache:
+            key: data-cache-fieldtrip
+            paths:
+              - ~/mne_data/MNE-fieldtrip_cmc-data  # (699 M)
+        - save_cache:
+            key: data-cache-somato
+            paths:
+              - ~/mne_data/MNE-somato-data  # (750 M)
+        - save_cache:
+            key: data-cache-hf-sef
+            paths:
+              - ~/mne_data/HF_SEF  # (1.3 G)
+        - save_cache:
+            key: data-cache-opm
+            paths:
+              - ~/mne_data/MNE-OPM-data  # (1.9 G)
+        - save_cache:
+            key: data-cache-sample
+            paths:
+              - ~/mne_data/MNE-sample-data  # (3.2 G)
+        - save_cache:
+            key: data-cache-spm-face
+            paths:
+              - ~/mne_data/MNE-spm-face  # (1.5 G)
+        - save_cache:
+            key: data-cache-testing
+            paths:
+              - ~/mne_data/MNE-testing-data  # (2.5 G)
+        - save_cache:
+            key: data-cache-visual
+            paths:
+              - ~/mne_data/MNE-visual_92_categories-data  # (6 G)
 
 
     linkcheck:
       # there are a few files excluded from this for expediency, see Makefile
+      parameters:
+        scheduled:
+          type: string
+          default: "false"
       docker:
-        - image: circleci/python:3.6-jessie
+        - image: circleci/python:3.9.2-buster
       steps:
+        - restore_cache:
+            keys:
+              - source-cache
         - checkout
         - run:
-            name: pip install dependencies
+            name: Set BASH_ENV
             command: |
-               set -e;
-               python -m pip install --user --progress-bar off numpy scipy matplotlib pillow
-               python -m pip install --user --progress-bar off -r requirements_doc.txt
-               python -m pip install --user -e .
+              set -e
+              echo "set -e" >> $BASH_ENV
+              echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
+        - run:
+            name: Check-skip
+            command: |
+              export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
+              if [[ "$COMMIT_MESSAGE" != *"[circle linkcheck]"* ]] && [ "<< parameters.scheduled >>" != "true" ]; then
+                echo "Skip detected, exiting job ${CIRCLE_JOB}."
+                circleci-agent step halt;
+              fi
+        - restore_cache:
+            keys:
+              - pip-cache
+        - run:
+            name: Get Python running
+            command: |
+              ./tools/circleci_dependencies.sh
+        - run:
+            name: Check installation
+            command: |
+              mne sys_info -pd
         - run:
             name: make linkcheck
             command: |
-              set -e
-              cd doc
-              PATH=~/.local/bin:$PATH make linkcheck
+              make -C doc linkcheck
         - run:
             name: make linkcheck-grep
             when: always
             command: |
-              cd doc
-              make linkcheck-grep
+              make -C doc linkcheck-grep
         - store_artifacts:
             path: doc/_build/linkcheck
             destination: linkcheck
@@ -284,7 +395,7 @@ jobs:
 
     deploy:
       docker:
-        - image: circleci/python:3.6-jessie
+        - image: circleci/python:3.8.5-buster
       steps:
         - attach_workspace:
             at: /tmp/build
@@ -292,9 +403,21 @@ jobs:
             keys:
               - website-cache
         - run:
-            name: Fetch docs
+            name: Set BASH_ENV
             command: |
               set -e
+              echo "set -e" >> $BASH_ENV
+        # Don't try to deploy if nothing is there or not on the right branch
+        - run:
+            name: Check docs
+            command: |
+              if [ ! -f /tmp/build/html/index.html ] && [ ! -f /tmp/build/html_stable/index.html ]; then
+                echo "No files found to upload (build: ${CIRCLE_BRANCH}).";
+                circleci-agent step halt;
+              fi;
+        - run:
+            name: Fetch docs
+            command: |
               mkdir -p ~/.ssh
               echo -e "Host *\nStrictHostKeyChecking no" > ~/.ssh/config
               chmod og= ~/.ssh/config
@@ -304,33 +427,28 @@ jobs:
         - run:
             name: Deploy docs
             command: |
-              set -e;
-              if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "maint/0.22" ]; then
-                git config --global user.email "circle@mne.com";
-                git config --global user.name "Circle CI";
-                cd ~/mne-tools.github.io;
-                git checkout master
-                git remote -v
-                git fetch origin
-                git reset --hard origin/master
-                git clean -xdf
-                if [ "${CIRCLE_BRANCH}" == "master" ]; then
-                  echo "Deploying dev docs for ${CIRCLE_BRANCH}.";
-                  rm -Rf dev;
-                  cp -a /tmp/build/html dev;
-                  git add -A;
-                  git commit -m "CircleCI update of dev docs (${CIRCLE_BUILD_NUM}).";
-                else
-                  echo "Deploying stable docs for ${CIRCLE_BRANCH}.";
-                  rm -Rf stable;
-                  cp -a /tmp/build/html_stable stable;
-                  git add -A;
-                  git commit -m "CircleCI update of stable docs (${CIRCLE_BUILD_NUM}).";
-                fi;
-                git push origin master;
+              git config --global user.email "circle@mne.com";
+              git config --global user.name "Circle CI";
+              cd ~/mne-tools.github.io;
+              git checkout main
+              git remote -v
+              git fetch origin
+              git reset --hard origin/main
+              git clean -xdf
+              if [ "${CIRCLE_BRANCH}" == "main" ]; then
+                echo "Deploying dev docs for ${CIRCLE_BRANCH}.";
+                rm -Rf dev;
+                cp -a /tmp/build/html dev;
+                git add -A;
+                git commit -m "CircleCI update of dev docs (${CIRCLE_BUILD_NUM}).";
               else
-                echo "No deployment (build: ${CIRCLE_BRANCH}).";
-              fi
+                echo "Deploying stable docs for ${CIRCLE_BRANCH}.";
+                rm -Rf stable;
+                cp -a /tmp/build/html_stable stable;
+                git add -A;
+                git commit -m "CircleCI update of stable docs (${CIRCLE_BUILD_NUM}).";
+              fi;
+              git push origin main;
         - save_cache:
             key: website-cache
             paths:
@@ -339,57 +457,71 @@ jobs:
 
     interactive_test:
       docker:
-        - image: circleci/python:3.8.5-buster
+        - image: circleci/python:3.9.2-buster
       steps:
+        - restore_cache:
+            keys:
+              - source-cache
         - checkout
+        - run:
+            name: Set BASH_ENV
+            command: |
+              set -e
+              echo "set -e" >> $BASH_ENV
+              echo "export OPENBLAS_NUM_THREADS=1" >> $BASH_ENV
+              mkdir -p ~/mne_data
+        - run:
+            name: Check-skip
+            command: |
+              export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
+              if [[ "$COMMIT_MESSAGE" != *"[circle interactive_test]"* ]]; then
+                echo "Skip detected, exiting job ${CIRCLE_JOB}."
+                circleci-agent step halt;
+              fi
+        - run:
+            <<: *xvfb
+        - restore_cache:
+            keys:
+              - pip-cache
         - run:
             name: Get Python running
             command: |
-              python -m pip install --user --upgrade --progress-bar off pip setuptools
-              python -m pip install -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" --pre numpy
-              python -m pip install -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" scipy pandas scikit-learn matplotlib h5py Pillow
-              python -m pip install -r requirements_testing.txt
-              python -m pip install --user -e .
-
-        # Look at what we have and fail early if there is some library conflict
+              ./tools/circleci_dependencies.sh
         - run:
             name: Check installation
             command: |
-              which python
-              python -c "import numpy; numpy.show_config()"
-              python -c "from numpy._pytesttester import _show_numpy_info; _show_numpy_info()"
-
-        # Figure out if we should run a full, pattern, or noplot version
+              mne sys_info -pd
+        - restore_cache:
+            keys:
+              - data-cache-testing
         - run:
             name: Get data
             command: |
               python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
-
-        # Run doctest (if it's full or front) before building the docs
         - run:
             name: pytest
             command: |
-              pytest -m "not ultraslowtest" mne -xv
+              pytest -m "not slowtest" mne -xv
 
 workflows:
-  version: 2
-
   default:
     jobs:
       - build_docs
+      - linkcheck
+      - interactive_test
       - deploy:
           requires:
             - build_docs
           filters:
             branches:
               only:
-                - master
-                - maint/0.22
-      # interactive_test
+                - main
+                - maint/0.23
 
   weekly:
     jobs:
-      - linkcheck
+      - linkcheck:
+          scheduled: "true"
     triggers:
       - schedule:
           # "At 00:00 on Sunday" should be often enough
@@ -397,4 +529,4 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main

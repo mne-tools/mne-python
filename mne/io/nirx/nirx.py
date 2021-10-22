@@ -1,12 +1,13 @@
 # Authors: Robert Luke <mail@robertluke.net>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from configparser import ConfigParser, RawConfigParser
 import glob as glob
 import re as re
 import os.path as op
 import datetime as dt
+import json
 
 import numpy as np
 
@@ -15,20 +16,21 @@ from ..utils import _mult_cal_one
 from ..constants import FIFF
 from ..meas_info import create_info, _format_dig_points
 from ...annotations import Annotations
+from ..._freesurfer import get_mni_fiducials
 from ...transforms import apply_trans, _get_trans
-from ...utils import logger, verbose, fill_doc, warn
+from ...utils import (logger, verbose, fill_doc, warn, _check_fname,
+                      _validate_type, _check_option, _mask_to_onsets_offsets)
 
 
 @fill_doc
-def read_raw_nirx(fname, preload=False, verbose=None):
+def read_raw_nirx(fname, saturated='annotate', preload=False, verbose=None):
     """Reader for a NIRX fNIRS recording.
-
-    This function has only been tested with NIRScout devices.
 
     Parameters
     ----------
     fname : str
         Path to the NIRX data folder or header file.
+    %(saturated)s
     %(preload)s
     %(verbose)s
 
@@ -40,8 +42,12 @@ def read_raw_nirx(fname, preload=False, verbose=None):
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
+
+    Notes
+    -----
+    %(nirx_notes)s
     """
-    return RawNIRX(fname, preload, verbose)
+    return RawNIRX(fname, saturated, preload, verbose)
 
 
 def _open(fname):
@@ -56,74 +62,132 @@ class RawNIRX(BaseRaw):
     ----------
     fname : str
         Path to the NIRX data folder or header file.
+    %(saturated)s
     %(preload)s
     %(verbose)s
 
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
+
+    Notes
+    -----
+    %(nirx_notes)s
     """
 
     @verbose
-    def __init__(self, fname, preload=False, verbose=None):
+    def __init__(self, fname, saturated, preload=False, verbose=None):
         from ...externals.pymatreader import read_mat
-        from ...coreg import get_mni_fiducials  # avoid circular import prob
         logger.info('Loading %s' % fname)
-
+        _validate_type(fname, 'path-like', 'fname')
+        _validate_type(saturated, str, 'saturated')
+        _check_option('saturated', saturated, ('annotate', 'nan', 'ignore'))
+        fname = str(fname)
         if fname.endswith('.hdr'):
             fname = op.dirname(op.abspath(fname))
 
-        if not op.isdir(fname):
-            raise FileNotFoundError('The path you specified does not exist.')
+        fname = _check_fname(fname, 'read', True, 'fname', need_dir=True)
+
+        json_config = glob.glob('%s/*%s' % (fname, "config.json"))
+        if len(json_config):
+            is_aurora = True
+        else:
+            is_aurora = False
+
+        if is_aurora:
+            # NIRSport2 devices using Aurora software
+            keys = ('hdr', 'config.json', 'description.json',
+                    'wl1', 'wl2', 'probeInfo.mat', 'tri')
+        else:
+            # NIRScout devices and NIRSport1 devices
+            keys = ('hdr', 'inf', 'set', 'tpl', 'wl1', 'wl2',
+                    'config.txt', 'probeInfo.mat')
+            n_dat = len(glob.glob('%s/*%s' % (fname, 'dat')))
+            if n_dat != 1:
+                warn("A single dat file was expected in the specified path, "
+                     f"but got {n_dat}. This may indicate that the file "
+                     "structure has been modified since the measurement "
+                     "was saved.")
 
         # Check if required files exist and store names for later use
         files = dict()
-        keys = ('hdr', 'inf', 'set', 'tpl', 'wl1', 'wl2',
-                'config.txt', 'probeInfo.mat')
+        nan_mask = dict()
         for key in keys:
             files[key] = glob.glob('%s/*%s' % (fname, key))
+            fidx = 0
             if len(files[key]) != 1:
-                raise RuntimeError('Expect one %s file, got %d' %
-                                   (key, len(files[key]),))
-            files[key] = files[key][0]
-        if len(glob.glob('%s/*%s' % (fname, 'dat'))) != 1:
-            warn("A single dat file was expected in the specified path, but "
-                 "got %d. This may indicate that the file structure has been "
-                 "modified since the measurement was saved." %
-                 (len(glob.glob('%s/*%s' % (fname, 'dat')))))
+                if key not in ('wl1', 'wl2'):
+                    raise RuntimeError(
+                        f'Need one {key} file, got {len(files[key])}')
+                noidx = np.where(['nosatflags_' in op.basename(x)
+                                  for x in files[key]])[0]
+                if len(noidx) != 1 or len(files[key]) != 2:
+                    raise RuntimeError(
+                        f'Need one nosatflags and one standard {key} file, '
+                        f'got {len(files[key])}')
+                # Here two files have been found, one that is called
+                # no sat flags. The nosatflag file has no NaNs in it.
+                noidx = noidx[0]
+                if saturated == 'ignore':
+                    # Ignore NaN and return values
+                    fidx = noidx
+                elif saturated == 'nan':
+                    # Return NaN
+                    fidx = 0 if noidx == 1 else 1
+                else:
+                    assert saturated == 'annotate'  # guaranteed above
+                    fidx = noidx
+                    nan_mask[key] = files[key][0 if noidx == 1 else 1]
+            files[key] = files[key][fidx]
 
         # Read number of rows/samples of wavelength data
-        last_sample = -1
         with _open(files['wl1']) as fid:
-            for line in fid:
-                last_sample += 1
+            last_sample = fid.read().count('\n') - 1
 
         # Read header file
         # The header file isn't compliant with the configparser. So all the
         # text between comments must be removed before passing to parser
         with _open(files['hdr']) as f:
-            hdr_str = f.read()
-        hdr_str = re.sub('#.*?#', '', hdr_str, flags=re.DOTALL)
+            hdr_str_all = f.read()
+        hdr_str = re.sub('#.*?#', '', hdr_str_all, flags=re.DOTALL)
+        if is_aurora:
+            hdr_str = re.sub('(\\[DataStructure].*)', '',
+                             hdr_str, flags=re.DOTALL)
         hdr = RawConfigParser()
         hdr.read_string(hdr_str)
 
         # Check that the file format version is supported
-        if hdr['GeneralInfo']['NIRStar'] not in ['"15.0"', '"15.2"', '"15.3"']:
-            raise RuntimeError('MNE does not support this NIRStar version'
-                               ' (%s)' % (hdr['GeneralInfo']['NIRStar'],))
-        if "NIRScout" not in hdr['GeneralInfo']['Device']:
-            warn("Only import of data from NIRScout devices have been "
-                 "thoroughly tested. You are using a %s device. " %
-                 hdr['GeneralInfo']['Device'])
+        if is_aurora:
+            # We may need to ease this requirement back
+            if hdr['GeneralInfo']['Version'] not in ['2021.4.0-34-ge9fdbbc8',
+                                                     '2021.9.0-5-g3eb32851']:
+                warn("MNE has not been tested with Aurora version "
+                     f"{hdr['GeneralInfo']['Version']}")
+        else:
+            if hdr['GeneralInfo']['NIRStar'] not in ['"15.0"', '"15.2"',
+                                                     '"15.3"']:
+                raise RuntimeError('MNE does not support this NIRStar version'
+                                   ' (%s)' % (hdr['GeneralInfo']['NIRStar'],))
+            if "NIRScout" not in hdr['GeneralInfo']['Device'] \
+                    and "NIRSport" not in hdr['GeneralInfo']['Device']:
+                warn("Only import of data from NIRScout devices have been "
+                     "thoroughly tested. You are using a %s device. " %
+                     hdr['GeneralInfo']['Device'])
 
         # Parse required header fields
 
         # Extract measurement date and time
-        datetime_str = hdr['GeneralInfo']['Date'] + hdr['GeneralInfo']['Time']
+        if is_aurora:
+            datetime_str = hdr['GeneralInfo']['Date']
+        else:
+            datetime_str = hdr['GeneralInfo']['Date'] + \
+                hdr['GeneralInfo']['Time']
+
         meas_date = None
         # Several formats have been observed so we try each in turn
         for dt_code in ['"%a, %b %d, %Y""%H:%M:%S.%f"',
-                        '"%a, %d %b %Y""%H:%M:%S.%f"']:
+                        '"%a, %d %b %Y""%H:%M:%S.%f"',
+                        '%Y-%m-%d %H:%M:%S.%f']:
             try:
                 meas_date = dt.datetime.strptime(datetime_str, dt_code)
                 meas_date = meas_date.replace(tzinfo=dt.timezone.utc)
@@ -140,44 +204,67 @@ class RawNIRX(BaseRaw):
                                     tzinfo=dt.timezone.utc)
 
         # Extract frequencies of light used by machine
-        fnirs_wavelengths = [int(s) for s in
-                             re.findall(r'(\d+)',
-                                        hdr['ImagingParameters'][
-                                            'Wavelengths'])]
+        if is_aurora:
+            fnirs_wavelengths = [760, 850]
+        else:
+            fnirs_wavelengths = [int(s) for s in
+                                 re.findall(r'(\d+)',
+                                            hdr['ImagingParameters'][
+                                                'Wavelengths'])]
 
         # Extract source-detectors
-        sources = np.asarray([int(s) for s in re.findall(r'(\d+)-\d+:\d+',
-                                                         hdr['DataStructure'][
-                                                             'S-D-Key'])], int)
-        detectors = np.asarray([int(s) for s in re.findall(r'\d+-(\d+):\d+',
-                                                           hdr['DataStructure']
-                                                           ['S-D-Key'])],
-                               int)
+        if is_aurora:
+            sources = re.findall(r'(\d+)-\d+', hdr_str_all.split("\n")[-2])
+            detectors = re.findall(r'\d+-(\d+)', hdr_str_all.split("\n")[-2])
+            sources = [int(s) + 1 for s in sources]
+            detectors = [int(d) + 1 for d in detectors]
+
+        else:
+            sources = np.asarray([int(s) for s in
+                                  re.findall(r'(\d+)-\d+:\d+',
+                                             hdr['DataStructure']
+                                             ['S-D-Key'])], int)
+            detectors = np.asarray([int(s) for s in
+                                    re.findall(r'\d+-(\d+):\d+',
+                                               hdr['DataStructure']
+                                               ['S-D-Key'])], int)
 
         # Extract sampling rate
-        samplingrate = float(hdr['ImagingParameters']['SamplingRate'])
+        if is_aurora:
+            samplingrate = float(hdr['GeneralInfo']['Sampling rate'])
+        else:
+            samplingrate = float(hdr['ImagingParameters']['SamplingRate'])
 
         # Read participant information file
-        inf = ConfigParser(allow_no_value=True)
-        inf.read(files['inf'])
-        inf = inf._sections['Subject Demographics']
+        if is_aurora:
+            with open(files['description.json']) as f:
+                inf = json.load(f)
+        else:
+            inf = ConfigParser(allow_no_value=True)
+            inf.read(files['inf'])
+            inf = inf._sections['Subject Demographics']
 
         # Store subject information from inf file in mne format
         # Note: NIRX also records "Study Type", "Experiment History",
         #       "Additional Notes", "Contact Information" and this information
         #       is currently discarded
         # NIRStar does not record an id, or handedness by default
+        # The name field is used to populate the his_id variable.
         subject_info = {}
-        names = inf['name'].split()
+        if is_aurora:
+            names = inf["subject"].split()
+        else:
+            names = inf['name'].replace('"', "").split()
+        subject_info['his_id'] = "_".join(names)
         if len(names) > 0:
             subject_info['first_name'] = \
-                inf['name'].split()[0].replace("\"", "")
+                names[0].replace("\"", "")
         if len(names) > 1:
             subject_info['last_name'] = \
-                inf['name'].split()[-1].replace("\"", "")
+                names[-1].replace("\"", "")
         if len(names) > 2:
             subject_info['middle_name'] = \
-                inf['name'].split()[-2].replace("\"", "")
+                names[-2].replace("\"", "")
         subject_info['sex'] = inf['gender'].replace("\"", "")
         # Recode values
         if subject_info['sex'] in {'M', 'Male', '1'}:
@@ -186,9 +273,10 @@ class RawNIRX(BaseRaw):
             subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_FEMALE
         else:
             subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_UNKNOWN
-        subject_info['birthday'] = (meas_date.year - int(inf['age']),
-                                    meas_date.month,
-                                    meas_date.day)
+        if inf['age'] != '':
+            subject_info['birthday'] = (meas_date.year - int(inf['age']),
+                                        meas_date.month,
+                                        meas_date.day)
 
         # Read information about probe/montage/optodes
         # A word on terminology used here:
@@ -205,10 +293,8 @@ class RawNIRX(BaseRaw):
 
         # These are all in MNI coordinates, so let's transform them to
         # the Neuromag head coordinate frame
-        mri_head_t, _ = _get_trans('fsaverage', 'mri', 'head')
-        src_locs = apply_trans(mri_head_t, src_locs)
-        det_locs = apply_trans(mri_head_t, det_locs)
-        ch_locs = apply_trans(mri_head_t, ch_locs)
+        src_locs, det_locs, ch_locs, mri_head_t = _convert_fnirs_to_head(
+            'fsaverage', 'mri', 'head', src_locs, det_locs, ch_locs)
 
         # Set up digitization
         dig = get_mni_fiducials('fsaverage', verbose=False)
@@ -236,14 +322,8 @@ class RawNIRX(BaseRaw):
             req_ind = np.concatenate((req_ind, sd_idx[0]))
         req_ind = req_ind.astype(int)
 
-        # Generate meaningful channel names
-        def prepend(li, str):
-            str += '{0}'
-            li = [str.format(i) for i in li]
-            return li
-
-        snames = prepend(sources[req_ind], 'S')
-        dnames = prepend(detectors[req_ind], '_D')
+        snames = [f"S{sources[idx]}" for idx in req_ind]
+        dnames = [f"_D{detectors[idx]}" for idx in req_ind]
         sdnames = [m + str(n) for m, n in zip(snames, dnames)]
         sd1 = [s + ' ' + str(fnirs_wavelengths[0]) for s in sdnames]
         sd2 = [s + ' ' + str(fnirs_wavelengths[1]) for s in sdnames]
@@ -265,18 +345,17 @@ class RawNIRX(BaseRaw):
         for ch_idx2 in range(requested_channels.shape[0]):
             # Find source and store location
             src = int(requested_channels[ch_idx2, 0]) - 1
-            info['chs'][ch_idx2 * 2]['loc'][3:6] = src_locs[src, :]
-            info['chs'][ch_idx2 * 2 + 1]['loc'][3:6] = src_locs[src, :]
             # Find detector and store location
             det = int(requested_channels[ch_idx2, 1]) - 1
-            info['chs'][ch_idx2 * 2]['loc'][6:9] = det_locs[det, :]
-            info['chs'][ch_idx2 * 2 + 1]['loc'][6:9] = det_locs[det, :]
             # Store channel location as midpoint between source and detector.
             midpoint = (src_locs[src, :] + det_locs[det, :]) / 2
-            info['chs'][ch_idx2 * 2]['loc'][:3] = midpoint
-            info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = midpoint
-            info['chs'][ch_idx2 * 2]['loc'][9] = fnirs_wavelengths[0]
-            info['chs'][ch_idx2 * 2 + 1]['loc'][9] = fnirs_wavelengths[1]
+            for ii in range(2):
+                ch_idx3 = ch_idx2 * 2 + ii
+                info['chs'][ch_idx3]['loc'][3:6] = src_locs[src, :]
+                info['chs'][ch_idx3]['loc'][6:9] = det_locs[det, :]
+                info['chs'][ch_idx3]['loc'][:3] = midpoint
+                info['chs'][ch_idx3]['loc'][9] = fnirs_wavelengths[ii]
+                info['chs'][ch_idx3]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
         # Extract the start/stop numbers for samples in the CSV. In theory the
         # sample bounds should just be 10 * the number of channels, but some
@@ -298,27 +377,62 @@ class RawNIRX(BaseRaw):
             'sd_index': req_ind,
             'files': files,
             'bounds': bounds,
+            'nan_mask': nan_mask,
         }
+        # Get our saturated mask
+        annot_mask = None
+        for ki, key in enumerate(('wl1', 'wl2')):
+            if nan_mask.get(key, None) is None:
+                continue
+            mask = np.isnan(_read_csv_rows_cols(
+                nan_mask[key], 0, last_sample + 1, req_ind, {0: 0, 1: None}).T)
+            if saturated == 'nan':
+                nan_mask[key] = mask
+            else:
+                assert saturated == 'annotate'
+                if annot_mask is None:
+                    annot_mask = np.zeros(
+                        (len(info['ch_names']) // 2, last_sample + 1), bool)
+                annot_mask |= mask
+                nan_mask[key] = None  # shouldn't need again
 
         super(RawNIRX, self).__init__(
             info, preload, filenames=[fname], last_samps=[last_sample],
             raw_extras=[raw_extras], verbose=verbose)
 
+        # make onset/duration/description
+        onset, duration, description, ch_names = list(), list(), list(), list()
+        if annot_mask is not None:
+            for ci, mask in enumerate(annot_mask):
+                on, dur = _mask_to_onsets_offsets(mask)
+                on = on / info['sfreq']
+                dur = dur / info['sfreq']
+                dur -= on
+                onset.extend(on)
+                duration.extend(dur)
+                description.extend(['BAD_SATURATED'] * len(on))
+                ch_names.extend([self.ch_names[2 * ci:2 * ci + 2]] * len(on))
+
         # Read triggers from event file
-        if op.isfile(files['hdr'][:-3] + 'evt'):
-            with _open(files['hdr'][:-3] + 'evt') as fid:
+        if not is_aurora:
+            files['tri'] = files['hdr'][:-3] + 'evt'
+        if op.isfile(files['tri']):
+            with _open(files['tri']) as fid:
                 t = [re.findall(r'(\d+)', line) for line in fid]
-            onset = np.zeros(len(t), float)
-            duration = np.zeros(len(t), float)
-            description = [''] * len(t)
-            for t_idx in range(len(t)):
-                binary_value = ''.join(t[t_idx][1:])[::-1]
-                trigger_frame = float(t[t_idx][0])
-                onset[t_idx] = (trigger_frame) * (1.0 / samplingrate)
-                duration[t_idx] = 1.0  # No duration info stored in files
-                description[t_idx] = int(binary_value, 2) * 1.
-            annot = Annotations(onset, duration, description)
-            self.set_annotations(annot)
+            for t_ in t:
+                if is_aurora:
+                    trigger_frame = float(t_[7])
+                    desc = float(t_[8])
+                else:
+                    binary_value = ''.join(t_[1:])[::-1]
+                    desc = float(int(binary_value, 2))
+                    trigger_frame = float(t_[0])
+                onset.append(trigger_frame / samplingrate)
+                duration.append(1.)  # No duration info stored in files
+                description.append(desc)
+                ch_names.append(list())
+        annot = Annotations(onset, duration, description, ch_names=ch_names)
+        self.set_annotations(annot)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.
@@ -326,15 +440,18 @@ class RawNIRX(BaseRaw):
         The NIRX machine records raw data as two different wavelengths.
         The returned data interleaves the wavelengths.
         """
-        sdindex = self._raw_extras[fi]['sd_index']
+        sd_index = self._raw_extras[fi]['sd_index']
 
-        wls = [
-            _read_csv_rows_cols(
+        wls = list()
+        for key in ('wl1', 'wl2'):
+            d = _read_csv_rows_cols(
                 self._raw_extras[fi]['files'][key],
-                start, stop, sdindex,
+                start, stop, sd_index,
                 self._raw_extras[fi]['bounds'][key]).T
-            for key in ('wl1', 'wl2')
-        ]
+            nan_mask = self._raw_extras[fi]['nan_mask'].get(key, None)
+            if nan_mask is not None:
+                d[nan_mask[:, start:stop]] = np.nan
+            wls.append(d)
 
         # TODO: Make this more efficient by only indexing above what we need.
         # For now let's just construct the full data matrix and index.
@@ -346,11 +463,25 @@ class RawNIRX(BaseRaw):
         return data
 
 
-def _read_csv_rows_cols(fname, start, stop, cols, bounds):
+def _read_csv_rows_cols(fname, start, stop, cols, bounds,
+                        sep=' ', replace=None):
     with open(fname, 'rb') as fid:
         fid.seek(bounds[start])
-        data = fid.read(bounds[stop] - bounds[start]).decode('latin-1')
-        x = np.fromstring(data, float, sep=' ')
+        args = list()
+        if bounds[1] is not None:
+            args.append(bounds[stop] - bounds[start])
+        data = fid.read(*args).decode('latin-1')
+        if replace is not None:
+            data = replace(data)
+        x = np.fromstring(data, float, sep=sep)
     x.shape = (stop - start, -1)
     x = x[:, cols]
     return x
+
+
+def _convert_fnirs_to_head(trans, fro, to, src_locs, det_locs, ch_locs):
+    mri_head_t, _ = _get_trans(trans, fro, to)
+    src_locs = apply_trans(mri_head_t, src_locs)
+    det_locs = apply_trans(mri_head_t, det_locs)
+    ch_locs = apply_trans(mri_head_t, ch_locs)
+    return src_locs, det_locs, ch_locs, mri_head_t

@@ -1,6 +1,6 @@
 # Author: Jean-Remi King <jeanremi.king@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
@@ -114,8 +114,9 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         X : array, shape (n_samples, nd_features, n_tasks)
             The training input samples. For each task, a clone estimator
             is fitted independently. The feature dimension can be
-            multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+            multidimensional, e.g.::
+
+                X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
         **fit_params : dict of string -> object

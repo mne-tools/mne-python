@@ -3,22 +3,27 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD Style.
 
-from functools import partial
+from ...utils import verbose, deprecated
+from ..utils import (has_dataset, _data_path_doc, DEPRECATION_MESSAGE_TEMPLATE,
+                     _get_version, _version_doc, _download_mne_dataset,
+                     _HAS_DATA_DOCSTRING_TEMPLATE)
 
-from ...utils import verbose
-from ..utils import (has_dataset, _data_path, _data_path_doc,
-                     _get_version, _version_doc)
+
+@deprecated(extra=DEPRECATION_MESSAGE_TEMPLATE.format('multimodal'))
+def has_multimodal_data():
+    return has_dataset(name='multimodal')
 
 
-has_multimodal_data = partial(has_dataset, name='multimodal')
+has_multimodal_data.__doc__ = _HAS_DATA_DOCSTRING_TEMPLATE.format('multimodal')
 
 
 @verbose
 def data_path(path=None, force_update=False, update_path=True, download=True,
               verbose=None):  # noqa: D103
-    return _data_path(path=path, force_update=force_update,
-                      update_path=update_path, name='multimodal',
-                      download=download)
+    return _download_mne_dataset(
+        name='multimodal', processor='untar', path=path,
+        force_update=force_update, update_path=update_path,
+        download=download)
 
 
 data_path.__doc__ = _data_path_doc.format(name='multimodal',

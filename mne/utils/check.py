@@ -2,19 +2,23 @@
 """The check functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
+import importlib
 from builtins import input  # no-op here but facilitates testing
 from difflib import get_close_matches
 from distutils.version import LooseVersion
 import operator
 import os
 import os.path as op
-import sys
 from pathlib import Path
+import sys
+import warnings
+import numbers
 
 import numpy as np
 
+from ..fixes import _median_complex
 from ._logging import warn, logger
 
 
@@ -149,38 +153,59 @@ def _check_event_id(event_id, events):
 
 
 def _check_fname(fname, overwrite=False, must_exist=False, name='File',
-                 allow_dir=False):
-    """Check for file existence."""
-    _validate_type(fname, 'path-like', 'fname')
-    if op.isfile(fname) or (allow_dir and op.isdir(fname)):
+                 need_dir=False):
+    """Check for file existence, and return string of its absolute path."""
+    _validate_type(fname, 'path-like', name)
+    fname = str(
+        Path(fname)
+        .expanduser()
+        .absolute()
+    )
+
+    if op.exists(fname):
         if not overwrite:
             raise FileExistsError('Destination file exists. Please use option '
                                   '"overwrite=True" to force overwriting.')
         elif overwrite != 'read':
             logger.info('Overwriting existing file.')
-        if must_exist and not os.access(fname, os.R_OK):
-            raise PermissionError(
-                '%s does not have read permissions: %s' % (name, fname))
+        if must_exist:
+            if need_dir:
+                if not op.isdir(fname):
+                    raise IOError(
+                        f'Need a directory for {name} but found a file '
+                        f'at {fname}')
+            else:
+                if not op.isfile(fname):
+                    raise IOError(
+                        f'Need a file for {name} but found a directory '
+                        f'at {fname}')
+            if not os.access(fname, os.R_OK):
+                raise PermissionError(
+                    f'{name} does not have read permissions: {fname}')
     elif must_exist:
-        raise FileNotFoundError('%s "%s" does not exist' % (name, fname))
-    return str(fname)
+        raise FileNotFoundError(f'{name} does not exist: {fname}')
+
+    return fname
 
 
-def _check_subject(class_subject, input_subject, raise_error=True,
-                   kind='class subject attribute'):
+def _check_subject(first, second, *, raise_error=True,
+                   first_kind='class subject attribute',
+                   second_kind='input subject'):
     """Get subject name from class."""
-    if input_subject is not None:
-        _validate_type(input_subject, 'str', "subject input")
-        if class_subject is not None and input_subject != class_subject:
-            raise ValueError('%s (%r) did not match input subject (%r)'
-                             % (kind, class_subject, input_subject))
-        return input_subject
-    elif class_subject is not None:
-        _validate_type(class_subject, 'str',
-                       "Either subject input or %s" % (kind,))
-        return class_subject
+    if second is not None:
+        _validate_type(second, 'str', "subject input")
+        if first is not None and first != second:
+            raise ValueError(
+                f'{first_kind} ({repr(first)}) did not match '
+                f'{second_kind} ({second})')
+        return second
+    elif first is not None:
+        _validate_type(
+            first, 'str', f"Either {second_kind} subject or {first_kind}")
+        return first
     elif raise_error is True:
-        raise ValueError('Neither subject input nor %s was a string' % (kind,))
+        raise ValueError(f'Neither {second_kind} subject nor {first_kind} '
+                         'was a string')
     return None
 
 
@@ -234,30 +259,43 @@ def _check_compensation_grade(info1, info2, name1,
             % (name1, grade1, name2, grade2))
 
 
-def _check_pylsl_installed(strict=True):
-    """Aux function."""
+def _soft_import(name, purpose, strict=True):
+    """Import soft dependencies, providing informative errors on failure.
+
+    Parameters
+    ----------
+    name : str
+        Name of the module to be imported. For example, 'pandas'.
+    purpose : str
+        A very brief statement (formulated as a noun phrase) explaining what
+        functionality the package provides to MNE-Python.
+    strict : bool
+        Whether to raise an error if module import fails.
+    """
     try:
-        import pylsl
-        return pylsl
-    except ImportError:
-        if strict is True:
-            raise RuntimeError('For this functionality to work, the pylsl '
-                               'library is required.')
+        mod = importlib.import_module(name)
+        return mod
+    except (ImportError, ModuleNotFoundError):
+        if strict:
+            raise RuntimeError(f'For {purpose} to work, the {name} module is '
+                               'needed, but it could not be imported.')
         else:
             return False
 
 
 def _check_pandas_installed(strict=True):
     """Aux function."""
-    try:
-        import pandas
-        return pandas
-    except ImportError:
-        if strict is True:
-            raise RuntimeError('For this functionality to work, the Pandas '
-                               'library is required.')
-        else:
-            return False
+    return _soft_import('pandas', 'dataframe integration', strict=strict)
+
+
+def _check_eeglabio_installed(strict=True):
+    """Aux function."""
+    return _soft_import('eeglabio', 'exporting to EEGLab', strict=strict)
+
+
+def _check_edflib_installed(strict=True):
+    """Aux function."""
+    return _soft_import('EDFlib', 'exporting to EDF', strict=strict)
 
 
 def _check_pandas_index_arguments(index, valid):
@@ -293,14 +331,31 @@ def _check_time_format(time_format, valid, meas_date=None):
     return time_format
 
 
-def _check_ch_locs(chs):
+def _check_ch_locs(info, picks=None, ch_type=None):
     """Check if channel locations exist.
 
     Parameters
     ----------
-    chs : dict
-        The channels from info['chs']
+    info : Info | None
+        `~mne.Info` instance.
+    picks : list of int
+        Channel indices to consider. If provided, ``ch_type`` must be ``None``.
+    ch_type : str | None
+        The channel type to restrict the check to. If ``None``, check all
+        channel types. If provided, ``picks`` must be ``None``.
     """
+    from ..io.pick import _picks_to_idx, pick_info
+
+    if picks is not None and ch_type is not None:
+        raise ValueError('Either picks or ch_type may be provided, not both')
+
+    if picks is not None:
+        info = pick_info(info=info, sel=picks)
+    elif ch_type is not None:
+        picks = _picks_to_idx(info=info, picks=ch_type, none=ch_type)
+        info = pick_info(info=info, sel=picks)
+
+    chs = info['chs']
     locs3d = np.array([ch['loc'][:3] for ch in chs])
     return not ((locs3d == 0).all() or
                 (~np.isfinite(locs3d)).all() or
@@ -308,7 +363,7 @@ def _check_ch_locs(chs):
 
 
 def _is_numeric(n):
-    return isinstance(n, (np.integer, np.floating, int, float))
+    return isinstance(n, numbers.Number)
 
 
 class _IntLike(object):
@@ -323,6 +378,7 @@ class _IntLike(object):
 
 
 int_like = _IntLike()
+path_like = (str, Path, os.PathLike)
 
 
 class _Callable(object):
@@ -334,20 +390,10 @@ class _Callable(object):
 _multi = {
     'str': (str,),
     'numeric': (np.floating, float, int_like),
-    'path-like': (str, Path),
+    'path-like': path_like,
     'int-like': (int_like,),
     'callable': (_Callable(),),
 }
-try:
-    _multi['path-like'] += (os.PathLike,)
-except AttributeError:  # only on 3.6+
-    try:
-        # At least make PyTest work
-        from py._path.common import PathBase
-    except Exception:  # no py.path
-        pass
-    else:
-        _multi['path-like'] += (PathBase,)
 
 
 def _validate_type(item, types=None, item_name=None, type_name=None):
@@ -359,7 +405,15 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
         The thing to be checked.
     types : type | str | tuple of types | tuple of str
          The types to be checked against.
-         If str, must be one of {'int', 'str', 'numeric', 'info', 'path-like'}.
+         If str, must be one of {'int', 'int-like', 'str', 'numeric', 'info',
+         'path-like', 'callable'}.
+         If a tuple of str is passed, use 'int-like' and not 'int' for
+         integers.
+    item_name : str | None
+        Name of the item to show inside the error message.
+    type_name : str | None
+        Possible types to show inside the error message that the checked item
+        can be.
     """
     if types == "int":
         _ensure_int(item, name=item_name)
@@ -385,11 +439,12 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
             else:
                 type_name[-1] = 'or ' + type_name[-1]
                 type_name = ', '.join(type_name)
-        raise TypeError('%s must be an instance of %s, got %s instead'
-                        % (item_name, type_name, type(item),))
+        _item_name = 'Item' if item_name is None else item_name
+        raise TypeError(f"{_item_name} must be an instance of {type_name}, "
+                        f"got {type(item)} instead.")
 
 
-def _check_path_like(item):
+def _path_like(item):
     """Validate that `item` is `path-like`.
 
     Parameters
@@ -534,6 +589,41 @@ def _check_depth(depth, kind='depth_mne'):
     return _handle_default(kind, depth)
 
 
+def _check_dict_keys(mapping, valid_keys,
+                     key_description, valid_key_source):
+    """Check that the keys in dictionary are valid against a set list.
+
+    Return the input dictionary if it is valid,
+    otherwise raise a ValueError with a readable error message.
+
+    Parameters
+    ----------
+    mapping : dict
+        The user-provided dict whose keys we want to check.
+    valid_keys : iterable
+        The valid keys.
+    key_description : str
+        Description of the keys in ``mapping``, e.g., "channel name(s)" or
+        "annotation(s)".
+    valid_key_source : str
+        Description of the ``valid_keys`` source, e.g., "info dict" or
+        "annotations in the data".
+
+    Returns
+    -------
+    mapping
+        If all keys are valid the input dict is returned unmodified.
+    """
+    missing = set(mapping) - set(valid_keys)
+    if len(missing):
+        _is = 'are' if len(missing) > 1 else 'is'
+        msg = (f'Invalid {key_description} {missing} {_is} not present in '
+               f'{valid_key_source}')
+        raise ValueError(msg)
+
+    return mapping
+
+
 def _check_option(parameter, value, allowed_values, extra=''):
     """Check the value of a parameter against a list of valid options.
 
@@ -589,16 +679,16 @@ def _check_all_same_channel_names(instances):
     return True
 
 
-def _check_combine(mode, valid=('mean', 'median', 'std')):
+def _check_combine(mode, valid=('mean', 'median', 'std'), axis=0):
     if mode == "mean":
         def fun(data):
-            return np.mean(data, axis=0)
+            return np.mean(data, axis=axis)
     elif mode == "std":
         def fun(data):
-            return np.std(data, axis=0)
-    elif mode == "median":
+            return np.std(data, axis=axis)
+    elif mode == "median" or mode == np.median:
         def fun(data):
-            return np.median(data, axis=0)
+            return _median_complex(data, axis=axis)
     elif callable(mode):
         fun = mode
     else:
@@ -706,30 +796,18 @@ def _suggest(val, options, cutoff=0.66):
         return ' Did you mean one of %r?' % (options,)
 
 
-def _on_missing(on_missing, msg, name='on_missing'):
-    """Raise error or print warning with a message.
-
-    Parameters
-    ----------
-    on_missing : 'raise' | 'warn' | 'ignore'
-        Whether to raise an error, print a warning or ignore. Valid keys are
-        'raise' | 'warn' | 'ignore'. Default is 'raise'. If on_missing is
-        'warn' it will proceed but warn, if 'ignore' it will proceed silently.
-    msg : str
-        Message to print along with the error or the warning. Ignore if
-        on_missing is 'ignore'.
-
-    Raises
-    ------
-    ValueError
-        When on_missing is 'raise'.
-    """
+def _check_on_missing(on_missing, name='on_missing'):
     _validate_type(on_missing, str, name)
+    _check_option(name, on_missing, ['raise', 'warn', 'ignore'])
+
+
+def _on_missing(on_missing, msg, name='on_missing', error_klass=None):
+    _check_on_missing(on_missing, name)
+    error_klass = ValueError if error_klass is None else error_klass
     on_missing = 'raise' if on_missing == 'error' else on_missing
     on_missing = 'warn' if on_missing == 'warning' else on_missing
-    _check_option(name, on_missing, ['raise', 'warn', 'ignore'])
     if on_missing == 'raise':
-        raise ValueError(msg)
+        raise error_klass(msg)
     elif on_missing == 'warn':
         warn(msg)
     else:  # Ignore
@@ -745,3 +823,29 @@ def _safe_input(msg, *, alt=None, use=None):
         raise RuntimeError(
             f'Could not use input() to get a response to:\n{msg}\n'
             f'You can {alt} to avoid this error.')
+
+
+def _ensure_events(events):
+    events_type = type(events)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')  # deprecation for object array
+        events = np.asarray(events)
+    if not np.issubdtype(events.dtype, np.integer):
+        raise TypeError('events should be a NumPy array of integers, '
+                        f'got {events_type}')
+    if events.ndim != 2 or events.shape[1] != 3:
+        raise ValueError(
+            f'events must be of shape (N, 3), got {events.shape}')
+    return events
+
+
+def _to_rgb(*args, name='color', alpha=False):
+    from matplotlib.colors import colorConverter
+    func = colorConverter.to_rgba if alpha else colorConverter.to_rgb
+    try:
+        return func(*args)
+    except ValueError:
+        args = args[0] if len(args) == 1 else args
+        raise ValueError(
+            f'Invalid RGB{"A" if alpha else ""} argument(s) for {name}: '
+            f'{repr(args)}') from None

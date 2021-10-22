@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from datetime import datetime, timezone, timedelta
 import json
@@ -11,10 +11,6 @@ from shutil import rmtree
 from os import path as op
 
 import numpy as np
-try:
-    from scipy import sparse
-except ImportError:
-    sparse = None
 
 # Adapted from six
 PY3 = sys.version_info[0] == 3
@@ -23,6 +19,14 @@ string_types = str if PY3 else basestring  # noqa
 
 special_chars = {'{FWDSLASH}': '/'}
 tab_str = '----'
+
+
+def _import_sparse():
+    try:
+        from scipy import sparse
+    except ImportError:
+        sparse = None
+    return sparse
 
 
 ##############################################################################
@@ -126,6 +130,7 @@ def write_hdf5(fname, data, overwrite=False, compression=4,
 def _triage_write(key, value, root, comp_kw, where,
                   cleanup_data, slash='error', title=None,
                   use_json=False):
+    sparse = _import_sparse()
     if key != title and '/' in key:
         if slash == 'error':
             raise ValueError('Found a key with "/", '
@@ -274,6 +279,7 @@ def _triage_read(node, slash='ignore'):
     if slash not in ['ignore', 'replace']:
         raise ValueError("slash must be one of 'replace', 'ignore'")
     h5py = _check_h5py()
+    sparse = _import_sparse()
     type_str = node.attrs['TITLE']
     if isinstance(type_str, bytes):
         type_str = type_str.decode()
@@ -382,7 +388,7 @@ def object_diff(a, b, pre=''):
     diffs : str
         A string representation of the differences.
     """
-
+    sparse = _import_sparse()
     try:
         from pandas import DataFrame, Series
     except ImportError:

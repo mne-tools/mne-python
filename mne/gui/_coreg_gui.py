@@ -55,7 +55,7 @@ multiplications / divisions.
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
 import queue
@@ -90,7 +90,7 @@ from ..transforms import (write_trans, read_trans, apply_trans, rotation,
 from ..coreg import fit_matched_points, scale_mri, _find_fiducials_files
 from ..viz.backends._pysurfer_mayavi import _toggle_mlab_render
 from ..viz._3d import _get_3d_option
-from ..utils import logger, set_config, _pl
+from ..utils import logger, set_config, _pl, warn
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import trans_wildcard, DigSource, SubjectSelectorPanel
 from ._viewer import (HeadViewController, PointObject, SurfaceObject,
@@ -895,7 +895,7 @@ class CoregFrameHandler(Handler):
             try:
                 info.object.save_config(size=size)
             except Exception as exc:
-                warnings.warn("Error saving GUI configuration:\n%s" % (exc,))
+                warn("Error saving GUI configuration:\n%s" % (exc,))
             return True
 
 
@@ -1656,6 +1656,7 @@ class ViewOptionsPanel(HasTraits):
     bgcolor = RGBColor()
     coord_frame = Enum('mri', 'head', label='Display coordinate frame')
     head_high_res = Bool(True, label='Show high-resolution head')
+    head_inside = Bool(True, label='Add opaque inner head surface')
     advanced_rendering = Bool(True, label='Use advanced OpenGL',
                               desc='Enable advanced OpenGL methods that do '
                               'not work with all renderers (e.g., depth '
@@ -1673,7 +1674,8 @@ class ViewOptionsPanel(HasTraits):
                                          format_func=_pass)),
                   Item('head_high_res'), Spring(),
                   Item('advanced_rendering'),
-                  Spring(), Spring(), columns=3, show_labels=True),
+                  Item('head_inside'), Spring(), Spring(),
+                  columns=3, show_labels=True),
             Item('hsp_cf_obj', style='custom', label='Head axes'),
             Item('mri_cf_obj', style='custom', label='MRI axes'),
             HGroup(Item('bgcolor', label='Background'), Spring()),
@@ -1756,6 +1758,7 @@ class CoregFrame(HasTraits):
     scene = Instance(MlabSceneModel, ())
     head_high_res = Bool(True)
     advanced_rendering = Bool(True)
+    head_inside = Bool(True)
 
     data_panel = Instance(DataPanel)
     coreg_panel = Instance(CoregPanel)  # right panel
@@ -1818,19 +1821,21 @@ class CoregFrame(HasTraits):
                  project_eeg=False, orient_to_surface=False,
                  scale_by_distance=False, mark_inside=False,
                  interaction='trackball', scale=0.16,
-                 advanced_rendering=True):  # noqa: D102
+                 advanced_rendering=True, head_inside=True):  # noqa: D102
         self._config = config or {}
         super(CoregFrame, self).__init__(guess_mri_subject=guess_mri_subject,
                                          head_high_res=head_high_res,
-                                         advanced_rendering=advanced_rendering)
+                                         advanced_rendering=advanced_rendering,
+                                         head_inside=head_inside)
         self._initial_kwargs = dict(project_eeg=project_eeg,
                                     orient_to_surface=orient_to_surface,
                                     scale_by_distance=scale_by_distance,
                                     mark_inside=mark_inside,
                                     head_opacity=head_opacity,
                                     interaction=interaction,
-                                    scale=scale)
+                                    scale=scale, head_inside=head_inside)
         self._locked_opacity = self._initial_kwargs['head_opacity']
+        self._locked_head_inside = self._initial_kwargs['head_inside']
         if not 0 <= head_opacity <= 1:
             raise ValueError(
                 "head_opacity needs to be a floating point number between 0 "
@@ -1891,6 +1896,7 @@ class CoregFrame(HasTraits):
             # [[0, 0, 0]] -- why??
         )
         self.mri_obj.opacity = self._initial_kwargs['head_opacity']
+        self.mri_obj.rear_opacity = float(self.head_inside)
         self.data_panel.fid_panel.hsp_obj = self.mri_obj
         self._update_mri_obj()
         self.mri_obj.plot()
@@ -2000,7 +2006,7 @@ class CoregFrame(HasTraits):
             mri_obj=self.mri_obj, hsp_obj=self.hsp_obj,
             eeg_obj=self.eeg_obj, hpi_obj=self.hpi_obj,
             hsp_cf_obj=self.hsp_cf_obj, mri_cf_obj=self.mri_cf_obj,
-            head_high_res=self.head_high_res,
+            head_high_res=self.head_high_res, head_inside=self.head_inside,
             bgcolor=self.bgcolor, advanced_rendering=self.advanced_rendering)
         self.data_panel.headview.scale = self._initial_kwargs['scale']
         self.data_panel.headview.interaction = \
@@ -2008,10 +2014,9 @@ class CoregFrame(HasTraits):
         self.data_panel.headview.left = True
         self.data_panel.view_options_panel.sync_trait(
             'coord_frame', self.model)
-        self.data_panel.view_options_panel.sync_trait('head_high_res', self)
-        self.data_panel.view_options_panel.sync_trait('advanced_rendering',
-                                                      self)
-        self.data_panel.view_options_panel.sync_trait('bgcolor', self)
+        for key in ('head_high_res', 'advanced_rendering', 'bgcolor',
+                    'head_inside'):
+            self.data_panel.view_options_panel.sync_trait(key, self)
 
     @on_trait_change('advanced_rendering')
     def _on_advanced_rendering_change(self):
@@ -2040,9 +2045,17 @@ class CoregFrame(HasTraits):
             else:
                 self._locked_opacity = self.mri_obj.opacity
                 self.mri_obj.opacity = 1.
+            self._locked_head_inside = self.head_inside
+            self.head_inside = False
         else:
             if self.mri_obj is not None:
                 self.mri_obj.opacity = self._locked_opacity
+            self.head_inside = self._locked_head_inside
+
+    @on_trait_change('head_inside')
+    def _on_head_inside_change(self):
+        if self.mri_obj is not None:
+            self.mri_obj.rear_opacity = float(self.head_inside)  # 0 or 1
 
     @cached_property
     def _get_hsp_visible(self):
@@ -2108,12 +2121,15 @@ class CoregFrame(HasTraits):
                        set_env=False)
 
         s_c('MNE_COREG_GUESS_MRI_SUBJECT', self.model.guess_mri_subject)
-        s_c('MNE_COREG_HEAD_HIGH_RES', self.head_high_res)
         s_c('MNE_COREG_ADVANCED_RENDERING', self.advanced_rendering)
+        s_c('MNE_COREG_HEAD_HIGH_RES', self.head_high_res)
         if self.lock_fiducials:
             opacity = self.mri_obj.opacity
+            head_inside = self.head_inside
         else:
             opacity = self._locked_opacity
+            head_inside = self._locked_head_inside
+        s_c('MNE_COREG_HEAD_INSIDE', head_inside)
         s_c('MNE_COREG_HEAD_OPACITY', opacity)
         if size is not None:
             s_c('MNE_COREG_WINDOW_WIDTH', size[0])

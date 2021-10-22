@@ -2,7 +2,7 @@
 """Testing functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from contextlib import contextmanager
 from distutils.version import LooseVersion
@@ -19,16 +19,9 @@ import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
-from scipy import linalg
 
 from ._logging import warn, ClosingStringIO
 from .numerics import object_diff
-
-
-def nottest(f):
-    """Mark a function as not a test (decorator)."""
-    f.__test__ = False
-    return f
 
 
 def _explain_exception(start=-1, stop=None, prefix='> '):
@@ -73,7 +66,7 @@ def requires_nibabel():
 def requires_dipy():
     """Check for dipy."""
     import pytest
-    # for some strange reason on CIs we cane get:
+    # for some strange reason on CIs we can get:
     #
     #     can get weird ImportError: dlopen: cannot load any more object
     #     with static TLS
@@ -234,13 +227,16 @@ def _import_mlab():
 @contextmanager
 def traits_test_context():
     """Context to raise errors in trait handlers."""
-    from traits.api import push_exception_handler
-
-    push_exception_handler(reraise_exceptions=True)
     try:
+        from traits.api import push_exception_handler
+    except Exception:
         yield
-    finally:
-        push_exception_handler(reraise_exceptions=False)
+    else:
+        push_exception_handler(reraise_exceptions=True)
+        try:
+            yield
+        finally:
+            push_exception_handler(reraise_exceptions=False)
 
 
 def traits_test(test_func):
@@ -250,18 +246,6 @@ def traits_test(test_func):
         with traits_test_context():
             return test_func(*args, **kwargs)
     return dec
-
-
-@nottest
-def run_tests_if_main():
-    """Run tests in a given file if it is run as a script."""
-    local_vars = inspect.currentframe().f_back.f_locals
-    if local_vars.get('__name__', '') != '__main__':
-        return
-    import pytest
-    code = pytest.main([local_vars['__file__'], '-v'])
-    if code:
-        raise AssertionError('pytest finished with errors (%d)' % (code,))
 
 
 def run_command_if_main():
@@ -449,6 +433,7 @@ def assert_meg_snr(actual, desired, min_tol, med_tol=500., chpi_med_tol=500.,
 
 def assert_snr(actual, desired, tol):
     """Assert actual and desired arrays are within some SNR tolerance."""
+    from scipy import linalg
     with np.errstate(divide='ignore'):  # allow infinite
         snr = (linalg.norm(desired, ord='fro') /
                linalg.norm(desired - actual, ord='fro'))
@@ -539,17 +524,9 @@ def _click_ch_name(fig, ch_index=0, button=1):
     """Click on a channel name in a raw/epochs/ICA browse-style plot."""
     from ..viz.utils import _fake_click
     fig.canvas.draw()
-    x, y = fig.mne.ax_main.get_yticklabels()[ch_index].get_position()
-    xrange = np.diff(fig.mne.ax_main.get_xlim())[0]
-    _fake_click(fig, fig.mne.ax_main, (x - xrange / 50, y),
-                xform='data', button=button)
-
-
-def _close_event(fig):
-    """Force calling of the MPL figure close event."""
-    # XXX workaround: plt.close() doesn't spawn close_event on Agg backend
-    # (check MPL github issue #18609; scheduled to be fixed by MPL 3.4)
-    try:
-        fig.canvas.close_event()
-    except ValueError:  # old mpl with Qt
-        pass  # pragma: no cover
+    text = fig.mne.ax_main.get_yticklabels()[ch_index]
+    bbox = text.get_window_extent()
+    x = bbox.intervalx.mean()
+    y = bbox.intervaly.mean()
+    _fake_click(fig, fig.mne.ax_main, (x, y), xform='pix',
+                button=button)

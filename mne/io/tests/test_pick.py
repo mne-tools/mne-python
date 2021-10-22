@@ -18,7 +18,7 @@ from mne.io.pick import (channel_indices_by_type, channel_type,
                          _DATA_CH_TYPES_SPLIT)
 from mne.io.constants import FIFF
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
+from mne.utils import catch_logging, assert_object_equal
 
 data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
@@ -242,6 +242,31 @@ def test_pick_seeg_ecog():
     raw = read_raw_fif(op.join(io_dir, 'tests', 'data',
                                'test_chpi_raw_sss.fif'))
     assert_equal(len(pick_types(raw.info, meg=False, seeg=True, ecog=True)), 0)
+
+
+def test_pick_dbs():
+    """Test picking with DBS."""
+    # gh-8739
+    names = 'A1 A2 Fz O OTp1 OTp2 OTp3'.split()
+    types = 'mag mag eeg eeg dbs dbs dbs'.split()
+    info = create_info(names, 1024., types)
+    picks_by_type = [('mag', [0, 1]), ('eeg', [2, 3]), ('dbs', [4, 5, 6])]
+    assert_indexing(info, picks_by_type)
+    assert_array_equal(pick_types(info, meg=False, dbs=True), [4, 5, 6])
+    for i, t in enumerate(types):
+        assert channel_type(info, i) == types[i]
+    raw = RawArray(np.zeros((len(names), 7)), info)
+    events = np.array([[1, 0, 0], [2, 0, 0]])
+    epochs = Epochs(raw, events=events, event_id={'event': 0},
+                    tmin=-1e-5, tmax=1e-5,
+                    baseline=(0, 0))  # only one sample
+    evoked = epochs.average(pick_types(epochs.info, meg=True, dbs=True))
+    e_dbs = evoked.copy().pick_types(meg=False, dbs=True)
+    for lt, rt in zip(e_dbs.ch_names, [names[4], names[5], names[6]]):
+        assert lt == rt
+    raw = read_raw_fif(op.join(io_dir, 'tests', 'data',
+                               'test_chpi_raw_sss.fif'))
+    assert len(pick_types(raw.info, meg=False, dbs=True)) == 0
 
 
 def test_pick_chpi():
@@ -591,6 +616,3 @@ def test_get_channel_types_equiv(meg, eeg, ordered):
     types = np.array(raw.get_channel_types(picks=picks))
     types_iter = np.array([channel_type(raw.info, idx) for idx in picks])
     assert_array_equal(types, types_iter)
-
-
-run_tests_if_main()

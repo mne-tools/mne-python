@@ -23,8 +23,9 @@ from mayavi.core.scene import Scene
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from tvtk.pyface.tvtk_scene import TVTKScene
 
-from .base_renderer import _BaseRenderer
+from ._abstract import _AbstractRenderer
 from ._utils import _check_color, _alpha_blend_background, ALLOWED_QUIVER_MODES
+from ..utils import _save_ndarray_img
 from ...surface import _normalize_vectors
 from ...utils import (_import_mlab, _validate_type, SilenceStdout,
                       copy_base_doc_to_subclass_doc, _check_option)
@@ -53,7 +54,7 @@ class _Projection(object):
 
 
 @copy_base_doc_to_subclass_doc
-class _Renderer(_BaseRenderer):
+class _Renderer(_AbstractRenderer):
     """Class managing rendering scene.
 
     Attributes
@@ -179,6 +180,7 @@ class _Renderer(_BaseRenderer):
             if colormap is not None:
                 surface.module_manager.scalar_lut_manager.lut.table = colormap
             surface.actor.property.backface_culling = backface_culling
+        return surface.actor, surface
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False,
@@ -191,6 +193,7 @@ class _Renderer(_BaseRenderer):
                                      scale_factor=scale, opacity=opacity,
                                      figure=self.fig)
         surface.actor.property.backface_culling = backface_culling
+        return surface.actor, surface
 
     def tube(self, origin, destination, radius=0.001, color='white',
              scalars=None, vmin=None, vmax=None, colormap='RdBu',
@@ -228,7 +231,7 @@ class _Renderer(_BaseRenderer):
                                            colormap=colormap,
                                            figure=self.fig)
         surface.module_manager.scalar_lut_manager.reverse_lut = reverse_lut
-        return surface
+        return surface.actor, surface
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
@@ -239,11 +242,11 @@ class _Renderer(_BaseRenderer):
         color = _check_color(color)
         with warnings.catch_warnings(record=True):  # traits
             if mode in ('arrow', '2darrow'):
-                self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
-                                   color=color, scale_factor=scale,
-                                   scale_mode=scale_mode,
-                                   resolution=resolution, scalars=scalars,
-                                   opacity=opacity, figure=self.fig)
+                quiv = self.mlab.quiver3d(
+                    x, y, z, u, v, w, mode=mode, color=color,
+                    scale_factor=scale, scale_mode=scale_mode,
+                    resolution=resolution, scalars=scalars,
+                    opacity=opacity, figure=self.fig)
             elif mode in ('cone', 'sphere', 'oct'):
                 use_mode = 'sphere' if mode == 'oct' else mode
                 quiv = self.mlab.quiver3d(x, y, z, u, v, w, color=color,
@@ -266,6 +269,7 @@ class _Renderer(_BaseRenderer):
                     quiv.glyph.glyph_source.glyph_source.resolution = \
                         glyph_resolution
                 quiv.actor.property.backface_culling = backface_culling
+        return quiv.actor, quiv
 
     def text2d(self, x_window, y_window, text, size=14, color='white',
                justification=None):
@@ -304,6 +308,7 @@ class _Renderer(_BaseRenderer):
             vals = _alpha_blend_background(ctable, bgcolor)
             cbar_lut.table.from_array(vals)
             cmap.scalar_bar.lookup_table = cbar_lut
+        return bar
 
     def show(self):
         if self.fig is not None:
@@ -313,10 +318,11 @@ class _Renderer(_BaseRenderer):
         _close_3d_figure(figure=self.fig)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
-                   focalpoint=None, roll=None, reset_camera=None):
+                   focalpoint=None, roll=None, reset_camera=None,
+                   rigid=None, update=True):
         _set_3d_view(figure=self.fig, azimuth=azimuth,
                      elevation=elevation, distance=distance,
-                     focalpoint=focalpoint, roll=roll)
+                     focalpoint=focalpoint, roll=roll, update=update)
 
     def reset_camera(self):
         renderer = getattr(self.fig.scene, 'renderer', None)
@@ -451,13 +457,14 @@ def _close_all():
 
 
 def _set_3d_view(figure, azimuth, elevation, focalpoint, distance, roll=None,
-                 reset_camera=True):
+                 reset_camera=True, update=True):
     from mayavi import mlab
     with warnings.catch_warnings(record=True):  # traits
         with SilenceStdout():
             mlab.view(azimuth, elevation, distance,
                       focalpoint=focalpoint, figure=figure, roll=roll)
-            mlab.draw(figure)
+            if update:
+                mlab.draw(figure)
 
 
 def _set_3d_title(figure, title, size=40):
@@ -481,12 +488,7 @@ def _check_3d_figure(figure):
 
 
 def _save_figure(img, filename):
-    from matplotlib.backends.backend_agg import FigureCanvasAgg
-    from matplotlib.figure import Figure
-    fig = Figure(frameon=False)
-    FigureCanvasAgg(fig)
-    fig.figimage(img, resize=True)
-    fig.savefig(filename)
+    _save_ndarray_img(filename, img)
 
 
 def _close_3d_figure(figure):

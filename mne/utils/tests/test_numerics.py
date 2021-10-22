@@ -21,7 +21,7 @@ from mne.utils import (_get_inst_data, hashfunc,
                        _undo_scaling_array, _PCA, requires_sklearn,
                        _array_equal_nan, _julian_to_cal, _cal_to_julian,
                        _dt_to_julian, _julian_to_dt, grand_average,
-                       _ReuseCycle, requires_version)
+                       _ReuseCycle, requires_version, numerics)
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -297,7 +297,7 @@ def test_object_size():
                               (0, 150, np.ones(0)),
                               (0, 150, np.int32(1)),
                               (150, 500, np.ones(20)),
-                              (100, 400, dict()),
+                              (30, 400, dict()),
                               (400, 1000, dict(a=np.ones(50))),
                               (200, 900, sparse.eye(20, format='csc')),
                               (200, 900, sparse.eye(20, format='csr'))):
@@ -530,3 +530,12 @@ def test_reuse_cycle():
         iterable.restore('a')
     assert ''.join(next(iterable) for _ in range(4)) == 'acde'
     assert ''.join(next(iterable) for _ in range(5)) == 'abcde'
+
+
+@pytest.mark.parametrize('n', (0, 1, 10, 1000))
+@pytest.mark.parametrize('d', (0.0001, 1, 2.5, 1000))
+def test_arange_div(numba_conditional, n, d):
+    """Test Numba arange_div."""
+    want = np.arange(n) / d
+    got = numerics._arange_div(n, d)
+    assert_allclose(got, want)

@@ -2,7 +2,7 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
 from os import path as op
@@ -13,7 +13,7 @@ from mne import read_evokeds
 from mne.datasets import testing
 from mne.minimum_norm import read_inverse_operator, estimate_snr
 
-from mne.utils import _TempDir, requires_mne, run_subprocess
+from mne.utils import requires_mne, run_subprocess
 
 s_path = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fname_inv = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
@@ -22,9 +22,9 @@ fname_evoked = op.join(s_path, 'sample_audvis-ave.fif')
 
 @testing.requires_testing_data
 @requires_mne
-def test_snr():
+def test_snr(tmpdir):
     """Test SNR calculation."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     inv = read_inverse_operator(fname_inv)
     evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0]
     snr = estimate_snr(evoked, inv)[0]

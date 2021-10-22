@@ -8,7 +8,7 @@ from itertools import product
 
 import mne
 from mne.channels import equalize_channels
-from mne.utils import sum_squared, run_tests_if_main, _TempDir, requires_h5py
+from mne.utils import sum_squared, requires_h5py
 from mne.time_frequency import (csd_fourier, csd_multitaper,
                                 csd_morlet, csd_array_fourier,
                                 csd_array_multitaper, csd_array_morlet,
@@ -221,10 +221,10 @@ def test_csd_get_data():
 
 
 @requires_h5py
-def test_csd_save():
+def test_csd_save(tmpdir):
     """Test saving and loading a CrossSpectralDensity."""
     csd = _make_csd()
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     fname = op.join(tempdir, 'csd.h5')
     csd.save(fname)
     csd2 = read_csd(fname)
@@ -236,10 +236,10 @@ def test_csd_save():
     assert csd._is_sum == csd2._is_sum
 
 
-def test_csd_pickle():
+def test_csd_pickle(tmpdir):
     """Test pickling and unpickling a CrossSpectralDensity."""
     csd = _make_csd()
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     fname = op.join(tempdir, 'csd.dat')
     with open(fname, 'wb') as f:
         pickle.dump(csd, f)
@@ -549,6 +549,3 @@ def test_equalize_channels():
 
     assert csd1.ch_names == ['CH1', 'CH2']
     assert csd2.ch_names == ['CH1', 'CH2']
-
-
-run_tests_if_main()

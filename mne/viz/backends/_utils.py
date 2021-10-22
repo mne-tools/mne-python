@@ -7,11 +7,18 @@
 #
 # License: Simplified BSD
 
+from contextlib import contextmanager
 import numpy as np
 import collections.abc
+from ...externals.decorator import decorator
+
+VALID_BROWSE_BACKENDS = (
+    'matplotlib',
+    'pyqtgraph'
+)
 
 VALID_3D_BACKENDS = (
-    'pyvista',  # default 3d backend
+    'pyvistaqt',  # default 3d backend
     'mayavi',
     'notebook',
 )
@@ -63,3 +70,27 @@ def _alpha_blend_background(ctable, background_color):
     use_table = ctable.copy()
     use_table[:, -1] = 255.
     return (use_table * alphas) + background_color * (1 - alphas)
+
+
+@decorator
+def run_once(fun, *args, **kwargs):
+    """Run the function only once."""
+    if not hasattr(fun, "_has_run"):
+        fun._has_run = True
+        return fun(*args, **kwargs)
+
+
+@run_once
+def _init_qt_resources():
+    from ...icons import resources
+    resources.qInitResources()
+
+
+@contextmanager
+def _qt_disable_paint(widget):
+    paintEvent = widget.paintEvent
+    widget.paintEvent = lambda *args, **kwargs: None
+    try:
+        yield
+    finally:
+        widget.paintEvent = paintEvent

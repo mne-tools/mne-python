@@ -1,6 +1,6 @@
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
-# License: BSD 3 clause
+# License: BSD-3-Clause
 
 from copy import deepcopy
 from os import makedirs
@@ -14,12 +14,13 @@ from numpy.testing import assert_equal, assert_allclose
 
 from mne import (make_bem_model, read_bem_surfaces, write_bem_surfaces,
                  make_bem_solution, read_bem_solution, write_bem_solution,
-                 make_sphere_model, Transform, Info, write_surface)
+                 make_sphere_model, Transform, Info, write_surface,
+                 write_head_bem)
 from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.io.constants import FIFF
 from mne.transforms import translation
 from mne.datasets import testing
-from mne.utils import (run_tests_if_main, catch_logging, requires_h5py)
+from mne.utils import catch_logging, requires_h5py
 from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
                      _assert_complete_surface, _assert_inside,
                      _check_surface_size, _bem_find_surface)
@@ -37,6 +38,8 @@ fname_bem_sol_3 = op.join(subjects_dir, 'sample', 'bem',
                           'sample-320-320-320-bem-sol.fif')
 fname_bem_sol_1 = op.join(subjects_dir, 'sample', 'bem',
                           'sample-320-bem-sol.fif')
+fname_dense_head = op.join(subjects_dir, 'sample', 'bem',
+                           'sample-head-dense.fif')
 
 
 def _compare_bem_surfaces(surfs_1, surfs_2):
@@ -99,7 +102,7 @@ def test_io_bem(tmpdir, ext):
     sol_read = read_bem_solution(temp_sol)
     _compare_bem_solutions(sol, sol_read)
     sol = read_bem_solution(fname_bem_sol_1)
-    with pytest.raises(RuntimeError, match='BEM model does not have'):
+    with pytest.raises(RuntimeError, match='BEM does not have.*triangulation'):
         _bem_find_surface(sol, 3)
 
 
@@ -135,7 +138,7 @@ def test_make_sphere_model():
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('kwargs, fname', [
-    [dict(), fname_bem_3],
+    pytest.param(dict(), fname_bem_3, marks=pytest.mark.slowtest),  # Azure
     [dict(conductivity=[0.3]), fname_bem_1],
 ])
 def test_make_bem_model(tmpdir, kwargs, fname):
@@ -180,7 +183,7 @@ def test_bem_model_topology(tmpdir):
     # Now get past this error to reach gh-6127 (not enough neighbor tris)
     rr_bad = np.concatenate([rr, np.mean(rr, axis=0, keepdims=True)], axis=0)
     write_surface(outer_fname, rr_bad, tris, overwrite=True)
-    with pytest.raises(RuntimeError, match='Surface outer skull.*triangles'):
+    with pytest.raises(ValueError, match='Surface outer skull.*triangles'):
         make_bem_model('foo', None, subjects_dir=tmpdir)
 
 
@@ -387,4 +390,26 @@ def test_fit_sphere_to_headshape():
     pytest.raises(TypeError, fit_sphere_to_headshape, 1, units='m')
 
 
-run_tests_if_main()
+@testing.requires_testing_data
+def test_io_head_bem(tmpdir):
+    """Test reading and writing of defective head surfaces."""
+    head = read_bem_surfaces(fname_dense_head)[0]
+    fname_defect = op.join(str(tmpdir), 'temp-head-defect.fif')
+    # create defects
+    head['rr'][0] = np.array([-0.01487014, -0.04563854, -0.12660208])
+    head['tris'][0] = np.array([21919, 21918, 21907])
+
+    with pytest.raises(ValueError, match='topological defects:'):
+        write_head_bem(fname_defect, head['rr'], head['tris'])
+    with pytest.warns(RuntimeWarning, match='topological defects:'):
+        write_head_bem(fname_defect, head['rr'], head['tris'],
+                       on_defects='warn')
+    # test on_defects in read_bem_surfaces
+    with pytest.raises(ValueError, match='topological defects:'):
+        read_bem_surfaces(fname_defect)
+    with pytest.warns(RuntimeWarning, match='topological defects:'):
+        head_defect = read_bem_surfaces(fname_defect, on_defects='warn')[0]
+
+    assert head['id'] == head_defect['id'] == FIFF.FIFFV_BEM_SURF_ID_HEAD
+    assert np.allclose(head['rr'], head_defect['rr'])
+    assert np.allclose(head['tris'], head_defect['tris'])

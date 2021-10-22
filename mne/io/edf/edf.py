@@ -9,7 +9,7 @@
 #          Clemens Brunner <clemens.brunner@gmail.com>
 #          Jeroen Van Der Donckt (IDlab - imec) <jeroen.vanderdonckt@ugent.be>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from datetime import datetime, timezone, timedelta
 import os
@@ -107,13 +107,12 @@ class RawEDF(BaseRaw):
     """
 
     @verbose
-    def __init__(self, input_fname, eog=None, misc=None,
-                 stim_channel='auto', exclude=(), preload=False, verbose=None):
+    def __init__(self, input_fname, eog=None, misc=None, stim_channel='auto',
+                 exclude=(), preload=False, verbose=None):
         logger.info('Extracting EDF parameters from {}...'.format(input_fname))
         input_fname = os.path.abspath(input_fname)
-        info, edf_info, orig_units = _get_info(input_fname,
-                                               stim_channel, eog, misc,
-                                               exclude, preload)
+        info, edf_info, orig_units = _get_info(input_fname, stim_channel, eog,
+                                               misc, exclude, preload)
         logger.info('Creating raw.info structure...')
 
         # Raw attributes
@@ -187,9 +186,8 @@ class RawGDF(BaseRaw):
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
         logger.info('Extracting EDF parameters from {}...'.format(input_fname))
         input_fname = os.path.abspath(input_fname)
-        info, edf_info, orig_units = _get_info(input_fname,
-                                               stim_channel, eog, misc,
-                                               exclude, preload)
+        info, edf_info, orig_units = _get_info(input_fname, stim_channel, eog,
+                                               misc, exclude, preload)
         logger.info('Creating raw.info structure...')
 
         # Raw attributes
@@ -325,15 +323,16 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
 
 
 def _read_header(fname, exclude):
-    """Unify edf, bdf and gdf _read_header call.
+    """Unify EDF, BDF and GDF _read_header call.
 
     Parameters
     ----------
     fname : str
         Path to the EDF+, BDF, or GDF file.
-    exclude : list of str
+    exclude : list of str | str
         Channel names to exclude. This can help when reading data with
-        different sampling rates to avoid unnecessary resampling.
+        different sampling rates to avoid unnecessary resampling. A str is
+        interpreted as a regular expression.
 
     Returns
     -------
@@ -351,7 +350,7 @@ def _read_header(fname, exclude):
 
 
 def _get_info(fname, stim_channel, eog, misc, exclude, preload):
-    """Extract all the information from the EDF+, BDF or GDF file."""
+    """Extract information from EDF+, BDF or GDF file."""
     eog = eog if eog is not None else []
     misc = misc if misc is not None else []
 
@@ -365,7 +364,14 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
 
     sel = edf_info['sel']  # selection of channels not excluded
     ch_names = edf_info['ch_names']  # of length len(sel)
-    n_samps = edf_info['n_samps'][sel]
+    if 'ch_types' in edf_info:
+        ch_types = edf_info['ch_types']  # of length len(sel)
+    else:
+        ch_types = [None] * len(sel)
+    if len(sel) == 0:  # only want stim channels
+        n_samps = edf_info['n_samps'][[0]]
+    else:
+        n_samps = edf_info['n_samps'][sel]
     nchan = edf_info['nchan']
     physical_ranges = edf_info['physical_max'] - edf_info['physical_min']
     cals = edf_info['digital_max'] - edf_info['digital_min']
@@ -385,6 +391,22 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     chs = list()
     pick_mask = np.ones(len(ch_names))
 
+    # common channel type names mapped to internal ch types
+    ch_type_mapping = {
+        'EEG': FIFF.FIFFV_EEG_CH,
+        'SEEG': FIFF.FIFFV_SEEG_CH,
+        'ECOG': FIFF.FIFFV_ECOG_CH,
+        'DBS': FIFF.FIFFV_DBS_CH,
+        'EOG': FIFF.FIFFV_EOG_CH,
+        'ECG': FIFF.FIFFV_ECG_CH,
+        'EMG': FIFF.FIFFV_EMG_CH,
+        'BIO': FIFF.FIFFV_BIO_CH,
+        'RESP': FIFF.FIFFV_RESP_CH,
+        'MISC': FIFF.FIFFV_MISC_CH,
+        'SAO2': FIFF.FIFFV_BIO_CH,
+    }
+    chs_without_types = list()
+
     for idx, ch_name in enumerate(ch_names):
         chan_info = {}
         chan_info['cal'] = 1.
@@ -397,7 +419,19 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
         chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
         chan_info['kind'] = FIFF.FIFFV_EEG_CH
-        chan_info['loc'] = np.zeros(12)
+        # montage can't be stored in EDF so channel locs are unknown:
+        chan_info['loc'] = np.full(12, np.nan)
+
+        # if the edf info contained channel type information
+        # set it now
+        ch_type = ch_types[idx]
+        if ch_type is not None and ch_type in ch_type_mapping:
+            chan_info['kind'] = ch_type_mapping.get(ch_type)
+            if ch_type not in ['EEG', 'ECOG', 'SEEG', 'DBS']:
+                chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+                pick_mask[idx] = False
+        # if user passes in explicit mapping for eog, misc and stim
+        # channels set them here
         if ch_name in eog or idx in eog or idx - nchan in eog:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_EOG_CH
@@ -414,10 +448,17 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             chan_info['ch_name'] = ch_name
             ch_names[idx] = chan_info['ch_name']
             edf_info['units'][idx] = 1
+        elif ch_type not in ch_type_mapping:
+            chs_without_types.append(ch_name)
         chs.append(chan_info)
 
-    edf_info['stim_channel_idxs'] = stim_channel_idxs
+    # warn if channel type was not inferable
+    if len(chs_without_types):
+        msg = ('Could not determine channel type of the following channels, '
+               f'they will be set as EEG:\n{", ".join(chs_without_types)}')
+        logger.info(msg)
 
+    edf_info['stim_channel_idxs'] = stim_channel_idxs
     if any(pick_mask):
         picks = [item for item, mask in zip(range(nchan), pick_mask) if mask]
         edf_info['max_samp'] = max_samp = n_samps[picks].max()
@@ -429,8 +470,11 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
 
     not_stim_ch = [x for x in range(n_samps.shape[0])
                    if x not in stim_channel_idxs]
+    if len(not_stim_ch) == 0:  # only loading stim channels
+        not_stim_ch = list(range(len(n_samps)))
     sfreq = np.take(n_samps, not_stim_ch).max() * \
         edf_info['record_length'][1] / edf_info['record_length'][0]
+    del n_samps
     info = _empty_info(sfreq)
     info['meas_date'] = edf_info['meas_date']
     info['chs'] = chs
@@ -595,13 +639,41 @@ def _read_edf_header(fname, exclude):
         record_length = float(_edf_str(fid.read(8)))
         record_length = np.array([record_length, 1.])  # in seconds
         if record_length[0] == 0:
-            record_length = record_length[0] = 1.
+            record_length[0] = 1.
             warn('Header information is incorrect for record length. Default '
-                 'record length set to 1.')
+                 'record length set to 1.\nIt is possible that this file only'
+                 ' contains annotations and no signals. In that case, please '
+                 'use mne.read_annotations() to load these annotations.')
 
         nchan = int(_edf_str(fid.read(4)))
         channels = list(range(nchan))
-        ch_names = [fid.read(16).strip().decode('latin-1') for ch in channels]
+
+        # read in 16 byte labels and strip any extra spaces at the end
+        ch_labels = [fid.read(16).strip().decode('latin-1')
+                     for ch in channels]
+
+        # get channel names and optionally channel type
+        # EDF specification contains 16 bytes that encode channel names,
+        # optionally prefixed by a string representing channel type separated
+        # by a space
+        ch_names = []
+        ch_types = []
+        for ch_idx, this_label in enumerate(ch_labels):
+            # if no channel type, then we will default to eeg
+            ch_type = None
+            ch_name = this_label
+
+            # space is found, so the prefix is the channel type. 'Annotations'
+            # is also a keyword we search for
+            if (this_label.count(' ') == 1) and \
+                    ('Annotations' not in this_label):
+                ch_type, ch_name = this_label.split(' ')
+
+                # channel types should be upper case for easy comparison
+                ch_type = ch_type.upper()
+
+            ch_names.append(ch_name)
+            ch_types.append(ch_type)
         exclude = _find_exclude_idx(ch_names, exclude)
         tal_idx = _find_tal_idx(ch_names)
         exclude = np.concatenate([exclude, tal_idx])
@@ -613,7 +685,8 @@ def _read_edf_header(fname, exclude):
         for i, unit in enumerate(units):
             if i in exclude:
                 continue
-            if unit == 'uV':
+            # allow both μ (greek mu) and µ (micro symbol) codepoints
+            if unit in ('\u03BCV', '\u00B5V', 'uV'):
                 edf_info['units'].append(1e-6)
             elif unit == 'mV':
                 edf_info['units'].append(1e-3)
@@ -644,7 +717,7 @@ def _read_edf_header(fname, exclude):
 
         # Populate edf_info
         edf_info.update(
-            ch_names=ch_names, data_offset=header_nbytes,
+            ch_names=ch_names, ch_types=ch_types, data_offset=header_nbytes,
             digital_max=digital_max, digital_min=digital_min,
             highpass=highpass, sel=sel, lowpass=lowpass, meas_date=meas_date,
             n_records=n_records, n_samps=n_samps, nchan=nchan,
@@ -1131,12 +1204,19 @@ def _check_stim_channel(stim_channel, ch_names,
 
 
 def _find_exclude_idx(ch_names, exclude):
-    """Find the index of all channels to exclude.
+    """Find indices of all channels to exclude.
 
-    If there are several channels called "A" and we want to exclude "A",
-    then add (the index of) all "A" channels to the exclusion list.
+    If there are several channels called "A" and we want to exclude "A", then
+    add (the index of) all "A" channels to the exclusion list.
     """
-    return [idx for idx, ch in enumerate(ch_names) if ch in exclude]
+    if isinstance(exclude, str):  # regex for channel names
+        indices = []
+        for idx, ch in enumerate(ch_names):
+            if re.match(exclude, ch):
+                indices.append(idx)
+        return indices
+    else:  # list of channel names
+        return [idx for idx, ch in enumerate(ch_names) if ch in exclude]
 
 
 def _find_tal_idx(ch_names):
@@ -1147,8 +1227,8 @@ def _find_tal_idx(ch_names):
 
 
 @fill_doc
-def read_raw_edf(input_fname, eog=None, misc=None,
-                 stim_channel='auto', exclude=(), preload=False, verbose=None):
+def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
+                 exclude=(), preload=False, verbose=None):
     """Reader function for EDF or EDF+ files.
 
     Parameters
@@ -1176,9 +1256,10 @@ def read_raw_edf(input_fname, eog=None, misc=None,
                      :func:`mne.events_from_annotations` to obtain events from
                      these annotations.
 
-    exclude : list of str
+    exclude : list of str | str
         Channel names to exclude. This can help when reading data with
-        different sampling rates to avoid unnecessary resampling.
+        different sampling rates to avoid unnecessary resampling. A str is
+        interpreted as a regular expression.
     %(preload)s
     %(verbose)s
 
@@ -1191,6 +1272,7 @@ def read_raw_edf(input_fname, eog=None, misc=None,
     --------
     mne.io.read_raw_bdf : Reader function for BDF files.
     mne.io.read_raw_gdf : Reader function for GDF files.
+    mne.export.export_raw : Export function for EDF files.
 
     Notes
     -----
@@ -1208,20 +1290,44 @@ def read_raw_edf(input_fname, eog=None, misc=None,
     If channels named 'status' or 'trigger' are present, they are considered as
     STIM channels by default. Use func:`mne.find_events` to parse events
     encoded in such analog stim channels.
+
+    The EDF specification allows optional storage of channel types in the
+    prefix of the signal label for each channel. For example, ``EEG Fz``
+    implies that ``Fz`` is an EEG channel and ``MISC E`` would imply ``E`` is
+    a MISC channel. However, there is no standard way of specifying all
+    channel types. MNE-Python will try to infer the channel type, when such a
+    string exists, defaulting to EEG, when there is no prefix or the prefix is
+    not recognized.
+
+    The following prefix strings are mapped to MNE internal types:
+
+        - 'EEG': 'eeg'
+        - 'SEEG': 'seeg'
+        - 'ECOG': 'ecog'
+        - 'DBS': 'dbs'
+        - 'EOG': 'eog'
+        - 'ECG': 'ecg'
+        - 'EMG': 'emg'
+        - 'BIO': 'bio'
+        - 'RESP': 'resp'
+        - 'MISC': 'misc'
+        - 'SAO2': 'bio'
+
+    The EDF specification allows storage of subseconds in measurement date.
+    However, this reader currently sets subseconds to 0 by default.
     """
     input_fname = os.path.abspath(input_fname)
     ext = os.path.splitext(input_fname)[1][1:].lower()
     if ext != 'edf':
-        raise NotImplementedError(
-            'Only EDF files are supported by read_raw_edf, got %s' % (ext,))
+        raise NotImplementedError(f'Only EDF files are supported, got {ext}.')
     return RawEDF(input_fname=input_fname, eog=eog, misc=misc,
                   stim_channel=stim_channel, exclude=exclude, preload=preload,
                   verbose=verbose)
 
 
 @fill_doc
-def read_raw_bdf(input_fname, eog=None, misc=None,
-                 stim_channel='auto', exclude=(), preload=False, verbose=None):
+def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
+                 exclude=(), preload=False, verbose=None):
     """Reader function for BDF files.
 
     Parameters
@@ -1249,9 +1355,10 @@ def read_raw_bdf(input_fname, eog=None, misc=None,
                      :func:`mne.events_from_annotations` to obtain events from
                      these annotations.
 
-    exclude : list of str
+    exclude : list of str | str
         Channel names to exclude. This can help when reading data with
-        different sampling rates to avoid unnecessary resampling.
+        different sampling rates to avoid unnecessary resampling. A str is
+        interpreted as a regular expression.
     %(preload)s
     %(verbose)s
 
@@ -1304,16 +1411,15 @@ def read_raw_bdf(input_fname, eog=None, misc=None,
     input_fname = os.path.abspath(input_fname)
     ext = os.path.splitext(input_fname)[1][1:].lower()
     if ext != 'bdf':
-        raise NotImplementedError('Only BDF files are supported, got '
-                                  '{}.'.format(ext))
+        raise NotImplementedError(f'Only BDF files are supported, got {ext}.')
     return RawEDF(input_fname=input_fname, eog=eog, misc=misc,
                   stim_channel=stim_channel, exclude=exclude, preload=preload,
                   verbose=verbose)
 
 
 @fill_doc
-def read_raw_gdf(input_fname, eog=None, misc=None,
-                 stim_channel='auto', exclude=(), preload=False, verbose=None):
+def read_raw_gdf(input_fname, eog=None, misc=None, stim_channel='auto',
+                 exclude=(), preload=False, verbose=None):
     """Reader function for GDF files.
 
     Parameters
@@ -1333,9 +1439,10 @@ def read_raw_gdf(input_fname, eog=None, misc=None,
         'trigger' (case insensitive) are set to STIM. If str (or list of str),
         all channels matching the name(s) are set to STIM. If int (or list of
         ints), channels corresponding to the indices are set to STIM.
-    exclude : list of str
+    exclude : list of str | str
         Channel names to exclude. This can help when reading data with
-        different sampling rates to avoid unnecessary resampling.
+        different sampling rates to avoid unnecessary resampling. A str is
+        interpreted as a regular expression.
     %(preload)s
     %(verbose)s
 
@@ -1358,8 +1465,7 @@ def read_raw_gdf(input_fname, eog=None, misc=None,
     input_fname = os.path.abspath(input_fname)
     ext = os.path.splitext(input_fname)[1][1:].lower()
     if ext != 'gdf':
-        raise NotImplementedError('Only GDF files are supported, got '
-                                  '{}.'.format(ext))
+        raise NotImplementedError(f'Only BDF files are supported, got {ext}.')
     return RawGDF(input_fname=input_fname, eog=eog, misc=misc,
                   stim_channel=stim_channel, exclude=exclude, preload=preload,
                   verbose=verbose)

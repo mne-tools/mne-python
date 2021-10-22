@@ -1,9 +1,14 @@
-sphinx
-https://github.com/numpy/numpydoc/archive/master.zip
-sphinx_fontawesome
-sphinx_bootstrap_theme
+# requirements for building docs
+sphinx!=4.1.0
+https://github.com/numpy/numpydoc/archive/main.zip
+pydata-sphinx-theme>=0.6.3
 https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip
-sphinxcontrib-bibtex>=2.0.0
+sphinxcontrib-bibtex>=2.1.2
 memory_profiler
 neo
-seaborn
+seaborn!=0.11.2
+sphinx_copybutton
+mne-bids
+pyxdf
+mne-connectivity
+pytest

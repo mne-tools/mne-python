@@ -1,6 +1,6 @@
 # Author: Joan Massich <mailsik@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from struct import Struct
 from collections import namedtuple

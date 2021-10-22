@@ -1,6 +1,6 @@
 # Author: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
 import os.path as op
@@ -16,8 +16,7 @@ from mne.datasets import testing
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.surface import dig_mri_distances
 from mne.transforms import invert_transform
-from mne.utils import (run_tests_if_main, requires_mayavi, traits_test,
-                       modified_env)
+from mne.utils import requires_mayavi, traits_test, modified_env
 
 data_path = testing.data_path(download=False)
 raw_path = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -337,6 +336,3 @@ def test_coreg_gui_automation():
     errs_nearest = np.median(
         dig_mri_distances(info, fname_trans, subject, subjects_dir))
     assert 1e-3 < errs_nearest < 2e-3
-
-
-run_tests_if_main()

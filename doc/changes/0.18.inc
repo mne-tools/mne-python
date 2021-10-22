@@ -1,7 +1,7 @@
 .. _changes_0_18:
 
-Version 0.18
-------------
+Version 0.18 (2019-05-19)
+-------------------------
 
 Changelog
 ~~~~~~~~~
@@ -48,7 +48,7 @@ Changelog
 
 - Add data fetchers for polysomnography (PSG) recordings from Physionet (:func:`mne.datasets.sleep_physionet.age.fetch_data` and :func:`mne.datasets.sleep_physionet.temazepam.fetch_data`) by `Alex Gramfort`_ and `Joan Massich`_
 
-- Add envelope correlation code in :func:`mne.connectivity.envelope_correlation` by `Denis Engemann`_, `Sheraz Khan`_, and `Eric Larson`_
+- Add envelope correlation code in ``mne.connectivity.envelope_correlation`` by `Denis Engemann`_, `Sheraz Khan`_, and `Eric Larson`_
 
 - Add option to toggle all projectors in :meth:`mne.io.Raw.plot` and related functions by `Eric Larson`_
 

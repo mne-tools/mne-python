@@ -14,7 +14,7 @@ from ..base import BaseRaw
 from ..utils import _read_segments_file, _create_chs
 from ..meas_info import _empty_info
 from ..constants import FIFF
-from ...utils import verbose, logger, warn
+from ...utils import verbose, logger, warn, _validate_type, _check_fname
 
 
 def _read_header(fid):
@@ -92,9 +92,12 @@ def read_raw_egi(input_fname, eog=None, misc=None,
                  channel_naming='E%d', verbose=None):
     """Read EGI simple binary as raw object.
 
+    .. note:: This function attempts to create a synthetic trigger channel.
+              See the Notes section below.
+
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the raw file. Files with an extension .mff are automatically
         considered to be EGI's native MFF format files.
     eog : list or tuple
@@ -135,8 +138,8 @@ def read_raw_egi(input_fname, eog=None, misc=None,
     Notes
     -----
     The trigger channel names are based on the arbitrary user dependent event
-    codes used. However this function will attempt to generate a synthetic
-    trigger channel named ``STI 014`` in accordance with the general
+    codes used. However this function will attempt to generate a **synthetic
+    trigger channel** named ``STI 014`` in accordance with the general
     Neuromag / MNE naming pattern.
 
     The event_id assignment equals ``np.arange(n_events) + 1``. The resulting
@@ -147,6 +150,8 @@ def read_raw_egi(input_fname, eog=None, misc=None,
 
     This step will fail if events are not mutually exclusive.
     """
+    _validate_type(input_fname, 'path-like', 'input_fname')
+    input_fname = str(input_fname)
     if input_fname.endswith('.mff'):
         return _read_raw_egi_mff(input_fname, eog, misc, include,
                                  exclude, preload, channel_naming, verbose)
@@ -161,6 +166,7 @@ class RawEGI(BaseRaw):
     def __init__(self, input_fname, eog=None, misc=None,
                  include=None, exclude=None, preload=False,
                  channel_naming='E%d', verbose=None):  # noqa: D102
+        input_fname = _check_fname(input_fname, 'read', True, 'input_fname')
         if eog is None:
             eog = []
         if misc is None:

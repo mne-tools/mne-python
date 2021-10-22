@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Authors: Adam Li  <adam2392@gmail.com>
-#          simplified BSD-3 license
+#
+# License: BSD-3-Clause
 
 import os
 import os.path as op
@@ -8,12 +9,11 @@ import shutil
 
 import pytest
 from numpy.testing import assert_array_equal
+import numpy as np
 
-import mne
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_persyst
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import run_tests_if_main
 
 fname_lay = op.join(
     data_path(download=False), 'Persyst',
@@ -77,10 +77,10 @@ def test_persyst_raw():
 
 
 @requires_testing_data
-def test_persyst_dates():
+def test_persyst_dates(tmpdir):
     """Test different Persyst date formats for meas date."""
     # now test what if you change contents of the lay file
-    out_dir = mne.utils._TempDir()
+    out_dir = str(tmpdir)
     new_fname_lay = op.join(out_dir, op.basename(fname_lay))
     new_fname_dat = op.join(out_dir, op.basename(fname_dat))
     shutil.copy(fname_dat, new_fname_dat)
@@ -123,7 +123,6 @@ def test_persyst_wrong_file(tmpdir):
     with pytest.raises(FileNotFoundError, match='The path you'):
         read_raw_persyst(fname_dat, preload=True)
 
-    out_dir = mne.utils._TempDir()
     out_dir = str(tmpdir)
     new_fname_lay = op.join(out_dir, op.basename(fname_lay))
     new_fname_dat = op.join(out_dir, op.basename(fname_dat))
@@ -143,15 +142,79 @@ def test_persyst_wrong_file(tmpdir):
 
 
 @requires_testing_data
+def test_persyst_moved_file(tmpdir):
+    """Test reader - Persyst files need to be in same directory."""
+    out_dir = str(tmpdir)
+    new_fname_lay = op.join(out_dir, op.basename(fname_lay))
+    new_fname_dat = op.join(out_dir, op.basename(fname_dat))
+    shutil.copy(fname_lay, new_fname_lay)
+
+    # original file read should work
+    read_raw_persyst(fname_lay)
+
+    # without a .dat file, reader should break
+    # when the lay file was moved
+    desired_err_msg = \
+        'The data path you specified does ' \
+        'not exist for the lay path, ' \
+        'sub-pt1_ses-02_task-monitor_acq-ecog_run-01_clip2.lay'
+    with pytest.raises(FileNotFoundError, match=desired_err_msg):
+        read_raw_persyst(new_fname_lay, preload=True)
+
+    # now change the file contents to point
+    # to the full path, but it should still not work
+    # as reader requires lay and dat file to be in
+    # same directory
+    with open(fname_lay, "r") as fin:
+        with open(new_fname_lay, 'w') as fout:
+            # for each line in the input file
+            for idx, line in enumerate(fin):
+                if line.startswith('File='):
+                    # give it the full path to the old data
+                    test_fpath = op.join(op.dirname(fname_dat),
+                                         line.split('=')[1])
+                    line = f'File={test_fpath}\n'
+                fout.write(line)
+    with pytest.raises(FileNotFoundError, match=desired_err_msg):
+        read_raw_persyst(new_fname_lay, preload=True)
+
+    # once we copy the dat file to the same directory, reader
+    # should work
+    shutil.copy(fname_dat, new_fname_dat)
+    read_raw_persyst(new_fname_lay, preload=True)
+
+
+@requires_testing_data
 def test_persyst_standard():
     """Test standard operations."""
     _test_raw_reader(read_raw_persyst, fname=fname_lay)
 
 
 @requires_testing_data
-def test_persyst_errors():
+def test_persyst_annotations(tmp_path):
+    """Test annotations reading in Persyst."""
+    new_fname_lay = tmp_path / op.basename(fname_lay)
+    new_fname_dat = tmp_path / op.basename(fname_dat)
+    shutil.copy(fname_dat, new_fname_dat)
+    shutil.copy(fname_lay, new_fname_lay)
+
+    raw = read_raw_persyst(new_fname_lay)
+    raw.crop(tmin=0, tmax=4)
+
+    # get the annotations and make sure that repeated annotations
+    # are in the dataset
+    annotations = raw.annotations
+    assert np.count_nonzero(annotations.description == 'seizure') == 2
+
+    # make sure annotation with a "," character is in there
+    assert 'seizure1,2' in annotations.description
+    assert 'CLip2' in annotations.description
+
+
+@requires_testing_data
+def test_persyst_errors(tmpdir):
     """Test reading Persyst files when passed in wrong file path."""
-    out_dir = mne.utils._TempDir()
+    out_dir = str(tmpdir)
     new_fname_lay = op.join(out_dir, op.basename(fname_lay))
     new_fname_dat = op.join(out_dir, op.basename(fname_dat))
     shutil.copy(fname_dat, new_fname_dat)
@@ -182,20 +245,6 @@ def test_persyst_errors():
                                            'file do not'):
         read_raw_persyst(new_fname_lay)
 
-    # reformat the lay file
-    os.remove(new_fname_lay)
-    with open(fname_lay, "r") as fin:
-        with open(new_fname_lay, 'w') as fout:
-            # for each line in the input file
-            for idx, line in enumerate(fin):
-                if line.startswith('File'):
-                    line = f'File=/{op.basename(fname_dat)}\n'
-                fout.write(line)
-    # file should break
-    with pytest.raises(FileNotFoundError, match='The data path '
-                                                'you specified'):
-        read_raw_persyst(new_fname_lay)
-
     # reformat the lay file to have testdate
     # improperly specified
     os.remove(new_fname_lay)
@@ -211,6 +260,3 @@ def test_persyst_errors():
                       match='Cannot read in the measurement date'):
         raw = read_raw_persyst(new_fname_lay)
         assert raw.info['meas_date'] is None
-
-
-run_tests_if_main()

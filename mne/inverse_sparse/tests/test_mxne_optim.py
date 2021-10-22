@@ -15,6 +15,7 @@ from mne.inverse_sparse.mxne_optim import (mixed_norm_solver,
                                            norm_epsilon_inf, norm_epsilon,
                                            _Phi, _PhiT, dgap_l21l1)
 from mne.time_frequency._stft import stft_norm2
+from mne.utils import catch_logging
 
 
 def _generate_tf_data():
@@ -46,7 +47,7 @@ def test_l21_mxne():
     M = np.dot(G, X)
 
     args = (M, G, alpha, 1000, 1e-8)
-    with pytest.warns(None):  # CD
+    with pytest.deprecated_call(match="will be solved"):  # CD
         X_hat_prox, active_set, _ = mixed_norm_solver(
             *args, active_set_size=None,
             debias=True, solver='prox')
@@ -67,7 +68,7 @@ def test_l21_mxne():
     assert_allclose(X_hat_prox, X_hat_bcd, rtol=1e-2)
     assert_allclose(X_hat_bcd, X_hat_cd, rtol=1e-2)
 
-    with pytest.warns(None):  # CD
+    with pytest.deprecated_call(match="will be solved"):  # CD
         X_hat_prox, active_set, _ = mixed_norm_solver(
             *args, active_set_size=2, debias=True, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 4])
@@ -82,7 +83,7 @@ def test_l21_mxne():
     assert_allclose(X_hat_bcd, X_hat_cd, rtol=1e-2)
     assert_allclose(X_hat_bcd, X_hat_prox, rtol=1e-2)
 
-    with pytest.warns(None):  # CD
+    with pytest.deprecated_call(match="will be solved"):  # CD
         X_hat_prox, active_set, _ = mixed_norm_solver(
             *args, active_set_size=2, debias=True, n_orient=2, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
@@ -103,7 +104,7 @@ def test_l21_mxne():
         X_hat_bcd, active_set, _ = mixed_norm_solver(
             *args, active_set_size=2, debias=True, n_orient=5, solver='bcd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
-    with pytest.warns(None):  # CD
+    with pytest.deprecated_call(match="will be solved"):  # CD
         X_hat_prox, active_set, _ = mixed_norm_solver(
             *args, active_set_size=2, debias=True, n_orient=5, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
@@ -112,8 +113,30 @@ def test_l21_mxne():
             *args, active_set_size=2, debias=True, n_orient=5, solver='cd')
 
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
-    assert_array_equal(X_hat_bcd, X_hat_cd)
+    assert_allclose(X_hat_bcd, X_hat_cd)
     assert_allclose(X_hat_bcd, X_hat_prox, rtol=1e-2)
+
+
+@pytest.mark.slowtest
+def test_non_convergence():
+    """Test non-convergence of MxNE solver to catch unexpected bugs."""
+    n, p, t, alpha = 30, 40, 20, 1.
+    rng = np.random.RandomState(0)
+    G = rng.randn(n, p)
+    G /= np.std(G, axis=0)[None, :]
+    X = np.zeros((p, t))
+    X[0] = 3
+    X[4] = -2
+    M = np.dot(G, X)
+
+    # Impossible to converge with only 1 iteration and tol 1e-12
+    # In case of non-convegence, we test that no error is returned.
+    args = (M, G, alpha, 1, 1e-12)
+    with catch_logging() as log:
+        mixed_norm_solver(*args, active_set_size=None, debias=True,
+                          solver='bcd', verbose=True)
+    log = log.getvalue()
+    assert 'Convergence reached' not in log
 
 
 def test_tf_mxne():
@@ -139,7 +162,7 @@ def test_norm_epsilon():
     n_steps = np.ceil(n_times / tstep.astype(float)).astype(int)
     n_freqs = wsize // 2 + 1
     n_coefs = n_steps * n_freqs
-    phi = _Phi(wsize, tstep, n_coefs)
+    phi = _Phi(wsize, tstep, n_coefs, n_times)
 
     Y = np.zeros(n_steps * n_freqs)
     l1_ratio = 0.03
@@ -186,7 +209,7 @@ def test_dgapl21l1():
     n_steps = np.ceil(n_times / tstep.astype(float)).astype(int)
     n_freqs = wsize // 2 + 1
     n_coefs = n_steps * n_freqs
-    phi = _Phi(wsize, tstep, n_coefs)
+    phi = _Phi(wsize, tstep, n_coefs, n_times)
     phiT = _PhiT(tstep, n_freqs, n_steps, n_times)
 
     for l1_ratio in [0.05, 0.1]:
@@ -259,14 +282,14 @@ def test_iterative_reweighted_mxne():
         X_hat_bcd, active_set, _ = iterative_mixed_norm_solver(
             M, G, alpha, 1, maxit=1000, tol=1e-8, active_set_size=None,
             debias=False, solver='bcd')
-    with pytest.warns(None):  # CD
+    with pytest.deprecated_call(match="will be solved"):  # CD
         X_hat_prox, active_set, _ = iterative_mixed_norm_solver(
             M, G, alpha, 1, maxit=1000, tol=1e-8, active_set_size=None,
             debias=False, solver='prox')
     assert_allclose(X_hat_bcd, X_hat_l21, rtol=1e-3)
     assert_allclose(X_hat_prox, X_hat_l21, rtol=1e-3)
 
-    with pytest.warns(None):  # CD
+    with pytest.deprecated_call(match="will be solved"):  # CD
         X_hat_prox, active_set, _ = iterative_mixed_norm_solver(
             M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=None,
             debias=True, solver='prox')
@@ -295,7 +318,7 @@ def test_iterative_reweighted_mxne():
             M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=2,
             debias=True, n_orient=2, solver='cd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
-    assert_array_equal(X_hat_bcd, X_hat_cd, 5)
+    assert_allclose(X_hat_bcd, X_hat_cd)
 
     X_hat_bcd, active_set, _ = iterative_mixed_norm_solver(
         M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=2, debias=True,
@@ -306,7 +329,7 @@ def test_iterative_reweighted_mxne():
             M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=2,
             debias=True, n_orient=5, solver='cd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
-    assert_array_equal(X_hat_bcd, X_hat_cd, 5)
+    assert_allclose(X_hat_bcd, X_hat_cd)
 
 
 @pytest.mark.slowtest

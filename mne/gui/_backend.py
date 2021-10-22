@@ -1,7 +1,7 @@
 """Deal with pyface backend issues."""
 # Author: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
 import sys

@@ -3,7 +3,7 @@
 # Authors: Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
 #
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 from collections import namedtuple
@@ -30,14 +30,16 @@ FILE_EXTENSIONS = {
         "info": ".dap",
         "data": ".dat",
         "labels": ".rs3",
-        "events": ".cef",
+        "events_cef": ".cef",
+        "events_ceo": ".ceo",
         "hpi": ".hpi",
     },
     "Curry 8": {
         "info": ".cdt.dpa",
         "data": ".cdt",
         "labels": ".cdt.dpa",
-        "events": ".cdt.cef",
+        "events_cef": ".cdt.cef",
+        "events_ceo": ".cdt.ceo",
         "hpi": ".cdt.hpi",
     }
 }
@@ -63,16 +65,17 @@ def _get_curry_file_structure(fname, required=()):
     """Store paths to a dict and check for required files."""
     _msg = "The following required files cannot be found: {0}.\nPlease make " \
            "sure all required files are located in the same directory as {1}."
-    _check_fname(fname, overwrite='read', must_exist=True)
+    fname = _check_fname(fname, 'read', True, 'fname')
 
     # we don't use os.path.splitext to also handle extensions like .cdt.dpa
     fname_base, ext = fname.split(".", maxsplit=1)
     version = _get_curry_version(ext)
     my_curry = dict()
-    for key in ('info', 'data', 'labels', 'events', 'hpi'):
+    for key in ('info', 'data', 'labels', 'events_cef', 'events_ceo', 'hpi'):
         fname = fname_base + FILE_EXTENSIONS[version][key]
         if op.isfile(fname):
-            my_curry[key] = fname
+            _key = 'events' if key.startswith('events') else key
+            my_curry[_key] = fname
 
     missing = [field for field in required if field not in my_curry]
     if missing:
@@ -408,8 +411,8 @@ def _read_events_curry(fname):
     events : ndarray, shape (n_events, 3)
         The array of events.
     """
-    check_fname(fname, 'curry event', ('.cef', '.cdt.cef'),
-                endings_err=('.cef', '.cdt.cef'))
+    check_fname(fname, 'curry event', ('.cef', '.ceo', '.cdt.cef', '.cdt.ceo'),
+                endings_err=('.cef', '.ceo', '.cdt.cef', '.cdt.ceo'))
 
     events_dict = _read_curry_lines(fname, ["NUMBER_LIST"])
     # The first 3 column seem to contain the event information

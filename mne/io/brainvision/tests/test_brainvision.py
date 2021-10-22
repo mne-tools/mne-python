@@ -3,7 +3,7 @@
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import os.path as op
 import re
 import shutil
@@ -14,7 +14,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 import pytest
 
 import datetime
-from mne.utils import run_tests_if_main, _stamp_to_dt, object_diff
+from mne.utils import _stamp_to_dt, object_diff
 from mne import pick_types, read_annotations, concatenate_raws
 from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
@@ -31,8 +31,10 @@ vhdr_partially_disabled_hw_filter_path = op.join(data_dir,
                                                  'test_partially_disabled'
                                                  '_hw_filter.vhdr')
 
-vhdr_old_path = op.join(data_dir,
-                        'test_old_layout_latin1_software_filter.vhdr')
+vhdr_old_path = op.join(
+    data_dir, 'test_old_layout_latin1_software_filter.vhdr')
+vhdr_old_longname_path = op.join(
+    data_dir, 'test_old_layout_latin1_software_filter_longname.vhdr')
 
 vhdr_v2_path = op.join(data_dir, 'testv2.vhdr')
 
@@ -234,7 +236,8 @@ def test_vhdr_versions(tmpdir, header):
     assert_allclose(data_new, data_expected, atol=1e-15)
 
 
-def test_ascii(tmpdir):
+@pytest.mark.parametrize('data_sep', (b' ', b',', b'+'))
+def test_ascii(tmpdir, data_sep):
     """Test ASCII BV reading."""
     raw = read_raw_brainvision(vhdr_path)
     ascii_vhdr_path = op.join(tmpdir, op.split(vhdr_path)[-1])
@@ -263,10 +266,16 @@ def test_ascii(tmpdir):
     # create the .dat file
     data, times = raw[:]
     with open(ascii_vhdr_path.replace('.vhdr', '.dat'), 'wb') as fid:
-        fid.write(b' '.join(ch_name.encode('ASCII')
-                            for ch_name in raw.ch_names) + b'\n')
+        fid.write(data_sep.join(ch_name.encode('ASCII')
+                                for ch_name in raw.ch_names) + b'\n')
         fid.write(b'\n'.join(b' '.join(b'%.3f' % dd for dd in d)
                              for d in data.T / raw._cals))
+
+    if data_sep == b';':
+        with pytest.raises(RuntimeError, match='Unknown.*data format'):
+            read_raw_brainvision(ascii_vhdr_path)
+        return
+
     raw = read_raw_brainvision(ascii_vhdr_path)
     data_new, times_new = raw[:]
     assert_allclose(data_new, data, atol=1e-15)
@@ -453,6 +462,15 @@ def test_brainvision_data_software_filters_latin1_global_units():
     with pytest.warns(RuntimeWarning, match='software filter'):
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_old_path,
+            eog=("VEOGo", "VEOGu", "HEOGli", "HEOGre"), misc=("A2",))
+
+    assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 0.9))
+    assert_equal(raw.info['lowpass'], 50.)
+
+    # test sensor name with spaces (#9299)
+    with pytest.warns(RuntimeWarning, match='software filter'):
+        raw = _test_raw_reader(
+            read_raw_brainvision, vhdr_fname=vhdr_old_longname_path,
             eog=("VEOGo", "VEOGu", "HEOGli", "HEOGre"), misc=("A2",))
 
     assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 0.9))
@@ -761,6 +779,3 @@ def test_parse_impedance():
         raw = read_raw_brainvision(vhdr_mixed_lowpass_path,
                                    eog=['HEOG', 'VEOG'], misc=['ECG'])
     assert object_diff(expected_impedances, raw.impedances) == ''
-
-
-run_tests_if_main()

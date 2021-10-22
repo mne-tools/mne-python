@@ -1,89 +1,20 @@
-{% extends "!layout.html" %}
+{%- extends 'pydata_sphinx_theme/layout.html' %}
 
 {% block extrahead %}
-
     <link rel="canonical" href="https://mne.tools/stable/index.html" />
-    <script type="text/javascript" src="{{ pathto('_static/copybutton.js', 1) }}"></script>
-
-{% if use_google_analytics|tobool %}
-    <script type="text/javascript">
-    var _gaq = _gaq || [];
-    _gaq.push(['_setAccount', 'UA-37225609-1']);
-    _gaq.push(['_trackPageview']);
-
-    (function() {
-        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-    })();
-    </script>
-{% endif %}
-
-    <link rel="stylesheet" href="{{ pathto('_static/style.css', 1) }} " type="text/css" />
-    <link rel="stylesheet" href="{{ pathto('_static/font-awesome.css', 1) }}" type="text/css" />
-    <link rel="stylesheet" href="{{ pathto('_static/font-source-code-pro.css', 1) }}" type="text/css" />
-    <link rel="stylesheet" href="{{ pathto('_static/font-source-sans-pro.css', 1) }}" type="text/css" />
-    <link rel="stylesheet" href="{{ pathto('_static/flag-icon.css', 1) }}" type="text/css" />
-
-{% if use_media_buttons|tobool %}
-    <script type="text/javascript">
-    (function() {
-    var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
-    po.src = 'https://apis.google.com/js/plusone.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
-    })();
-    </script>
-{% endif %}
-
-{{ super() }}
-
+    {{ super() }}
 {% endblock %}
 
-{% block relbar2 %}{% endblock %}
-
-{% block relbar1 %}
-{% if build_dev_html|tobool %}
-<div class="d-block devbar alert alert-danger">
-This is documentation for the <em>unstable development version</em> of MNE-Python,
-<a href="https://mne.tools/dev/install/advanced.html#using-the-development-version-of-mne-python-latest-master">available here</a>.
-Or, switch to documentation for the <a href="https://mne.tools/stable">current stable version</a>.
-
+{% block docs_body %}
+<div>
+  {% block body %} {% endblock %}
+  {% if pagename == 'index' %}
+    {%- include 'homepage.html' -%}
+  {% endif %}
 </div>
-{% endif %}
-
-{{ super() }}
 {% endblock %}
 
-{# put the sidebar before the body #}
-{% block sidebar1 %}{% endblock %}
-{% block sidebar2 %}{% endblock %}
-
-{%- block footer %}
-<footer class="footer">
-  <div class="container"><div class="row">
-    <div class="container col-md-12 institutions">
-      <ul class="list-unstyled">
-        <li><a href="https://www.massgeneral.org/"><img class="institution" src="{{ pathto('_static/institution_logos/MGH.svg', 1) }}" title="Massachusetts General Hospital" alt="Massachusetts General Hospital"/></a></li>
-        <li><a href="https://martinos.org/"><img class="institution" src="{{ pathto('_static/institution_logos/Martinos.png', 1) }}" title="Athinoula A. Martinos Center for Biomedical Imaging" alt="Athinoula A. Martinos Center for Biomedical Imaging"/></a></li>
-        <li><a href="https://hms.harvard.edu/"><img class="institution" src="{{ pathto('_static/institution_logos/Harvard.png', 1) }}" title="Harvard Medical School" alt="Harvard Medical School"/></a></li>
-        <li><a href="https://web.mit.edu/"><img class="institution" src="{{ pathto('_static/institution_logos/MIT.svg', 1) }}" title="Massachusetts Institute of Technology" alt="Massachusetts Institute of Technology"/></a></li>
-        <li><a href="https://www.nyu.edu/"><img class="institution" src="{{ pathto('_static/institution_logos/NYU.png', 1) }}" title="New York University" alt="New York University"/></a></li>
-        <li><a href="http://www.cea.fr/"><img class="institution" src="{{ pathto('_static/institution_logos/CEA.png', 1) }}" title="Commissariat à l´énergie atomique et aux énergies alternatives" alt="Commissariat à l´énergie atomique et aux énergies alternatives"/></a></li>
-        <li><a href="https://sci.aalto.fi/"><img class="institution" src="{{ pathto('_static/institution_logos/Aalto.svg', 1) }}" title="Aalto-yliopiston perustieteiden korkeakoulu" alt="Aalto-yliopiston perustieteiden korkeakoulu"/></a></li>
-        <li><a href="https://www.telecom-paris.fr/"><img class="institution" src="{{ pathto('_static/institution_logos/Telecom_Paris_Tech.png', 1) }}" title="Télécom ParisTech" alt="Télécom ParisTech"/></a></li>
-        <li><a href="https://www.washington.edu/"><img class="institution" src="{{ pathto('_static/institution_logos/Washington.png', 1) }}" title="University of Washington" alt="University of Washington"/></a></li>
-        <li><a href="https://icm-institute.org/"><img class="institution" src="{{ pathto('_static/institution_logos/ICM.jpg', 1) }}" title="Institut du Cerveau et de la Moelle épinière" alt="Institut du Cerveau et de la Moelle épinière"/></a></li>
-        <li><a href="https://www.bu.edu/"><img class="institution" src="{{ pathto('_static/institution_logos/BU.svg', 1) }}" title="Boston University" alt="Boston University"/></a></li>
-        <li><a href="https://www.inserm.fr/"><img class="institution" src="{{ pathto('_static/institution_logos/Inserm.svg', 1) }}" title="Institut national de la santé et de la recherche médicale" alt="Institut national de la santé et de la recherche médicale"/></a></li>
-        <li><a href="https://www.fz-juelich.de/"><img class="institution" src="{{ pathto('_static/institution_logos/Julich.svg', 1) }}" title="Forschungszentrum Jülich" alt="Forschungszentrum Jülich"/></a></li>
-        <li><a href="https://www.tu-ilmenau.de/"><img class="institution" src="{{ pathto('_static/institution_logos/Ilmenau.gif', 1) }}" title="Technische Universität Ilmenau" alt="Technische Universität Ilmenau"/></a></li>
-        <li><a href="https://bids.berkeley.edu/"><img class="institution" src="{{ pathto('_static/institution_logos/BIDS.png', 1) }}" title="Berkeley Institute for Data Science" alt="Berkeley Institute for Data Science"/></a></li>
-        <li><a href="https://www.inria.fr/"><img class="institution" src="{{ pathto('_static/institution_logos/inria.png', 1) }}" title="Institut national de recherche en informatique et en automatique" alt="Institut national de recherche en informatique et en automatique"/></a></li>
-        <li><a href="https://www.au.dk/"><img class="institution" src="{{ pathto('_static/institution_logos/Aarhus.png', 1) }}" title="Aarhus Universitet" alt="Aarhus Universitet"/></a></li>
-        <li><a href="https://www.uni-graz.at/"><img class="institution" src="{{ pathto('_static/institution_logos/Graz.jpg', 1) }}" title="Karl-Franzens-Universität Graz" alt="Karl-Franzens-Universität Graz"/></a></li>
-      </ul>
-      <p class="text-center text-muted small">&copy; Copyright 2012-2020, MNE Developers. Last updated on 2020-03-27.</p>
-    </div></div></div>
-  </footer>
-  <script src="https://mne.tools/versionwarning.js"></script>
+{%- block scripts_end %}
+    <script src="https://mne.tools/versionwarning.js"></script>
+    {{ super() }}
 {%- endblock %}

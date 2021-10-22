@@ -2,15 +2,15 @@
 # Authors: Thomas Hartmann <thomas.hartmann@th-ht.de>
 #          Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import numpy as np
 
-from ..meas_info import create_info
-from ...transforms import rotation3d_align_z_axis
-from ...channels import make_dig_montage
+from .._digitization import DigPoint
 from ..constants import FIFF
-from ...utils import warn, _check_pandas_installed
+from ..meas_info import create_info
 from ..pick import pick_info
+from ...transforms import rotation3d_align_z_axis
+from ...utils import warn, _check_pandas_installed
 
 _supported_megs = ['neuromag306']
 
@@ -73,12 +73,9 @@ def _create_info(ft_struct, raw_info):
         ch_idx = [info['ch_names'].index(ch) for ch in ch_names]
         pick_info(info, ch_idx, copy=False)
     else:
-        montage = _create_montage(ft_struct)
-
         info = create_info(ch_names, sfreq)
-        info.set_montage(montage)
-        chs = _create_info_chs(ft_struct)
-        info['chs'] = chs
+        chs, dig = _create_info_chs_dig(ft_struct)
+        info.update(chs=chs, dig=dig)
         info._update_redundant()
 
     return info
@@ -102,7 +99,7 @@ def _remove_missing_channels_from_trial(trial, missing_chan_idx):
     return trial
 
 
-def _create_info_chs(ft_struct):
+def _create_info_chs_dig(ft_struct):
     """Create the chs info field from the FieldTrip structure."""
     all_channels = ft_struct['label']
     ch_defaults = dict(coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
@@ -125,8 +122,16 @@ def _create_info_chs(ft_struct):
         warn('The supplied FieldTrip structure does not have an elec or grad '
              'field. No channel locations will extracted and the kind of '
              'channel might be inaccurate.')
+    if 'chanpos' not in (elec or grad or {'chanpos': None}):
+        raise RuntimeError(
+            'This file was created with an old version of FieldTrip. You can '
+            'convert the data to the new version by loading it into FieldTrip '
+            'and applying ft_selectdata with an empty cfg structure on it. '
+            'Otherwise you can supply the Info field.')
 
     chs = list()
+    dig = list()
+    counter = 0
     for idx_chan, cur_channel_label in enumerate(all_channels):
         cur_ch = ch_defaults.copy()
         cur_ch['ch_name'] = cur_channel_label
@@ -134,7 +139,12 @@ def _create_info_chs(ft_struct):
         cur_ch['scanno'] = idx_chan + 1
         if elec and cur_channel_label in elec['label']:
             cur_ch = _process_channel_eeg(cur_ch, elec)
-
+            # Ref gets ident=0 and we don't have it, so start at 1
+            counter += 1
+            d = DigPoint(
+                r=cur_ch['loc'][:3], coord_frame=FIFF.FIFFV_COORD_HEAD,
+                kind=FIFF.FIFFV_POINT_EEG, ident=counter)
+            dig.append(d)
         elif grad and cur_channel_label in grad['label']:
             cur_ch = _process_channel_meg(cur_ch, grad)
         else:
@@ -155,46 +165,7 @@ def _create_info_chs(ft_struct):
 
         chs.append(cur_ch)
 
-    return chs
-
-
-def _create_montage(ft_struct):
-    """Create a montage from the FieldTrip data."""
-    # try to create a montage
-    montage_pos, montage_ch_names = list(), list()
-
-    for cur_ch_type in ('grad', 'elec'):
-        if cur_ch_type in ft_struct:
-            cur_ch_struct = ft_struct[cur_ch_type]
-            available_channels = np.where(np.in1d(cur_ch_struct['label'],
-                                                  ft_struct['label']))[0]
-            tmp_labels = cur_ch_struct['label']
-            if not isinstance(tmp_labels, list):
-                tmp_labels = [tmp_labels]
-            cur_labels = np.asanyarray(tmp_labels)
-            montage_ch_names.extend(
-                cur_labels[available_channels])
-            try:
-                montage_pos.extend(
-                    cur_ch_struct['chanpos'][available_channels])
-            except KeyError:
-                raise RuntimeError('This file was created with an old version '
-                                   'of FieldTrip. You can convert the data to '
-                                   'the new version by loading it into '
-                                   'FieldTrip and applying ft_selectdata with '
-                                   'an empty cfg structure on it. '
-                                   'Otherwise you can supply the Info field.')
-
-    montage = None
-
-    if (len(montage_ch_names) > 0 and len(montage_pos) > 0 and
-            len(montage_ch_names) == len(montage_pos)):
-        montage = make_dig_montage(
-            ch_pos=dict(zip(montage_ch_names, montage_pos)),
-            # XXX: who grants 'head'?? this is BACKCOMPAT but seems a BUG
-            coord_frame='head',
-        )
-    return montage
+    return chs, dig
 
 
 def _set_sfreq(ft_struct):
@@ -293,14 +264,12 @@ def _process_channel_eeg(cur_ch, elec):
     all_labels = np.asanyarray(elec['label'])
     chan_idx_in_elec = np.where(all_labels == cur_ch['ch_name'])[0][0]
     position = np.squeeze(elec['chanpos'][chan_idx_in_elec, :])
-    chanunit = elec['chanunit'][chan_idx_in_elec]
+    # chanunit = elec['chanunit'][chan_idx_in_elec]  # not used/needed yet
     position_unit = elec['unit']
 
     position = position * _unit_dict[position_unit]
     cur_ch['loc'] = np.hstack((position, np.zeros((9,))))
-    cur_ch['loc'][-1] = 1
     cur_ch['unit'] = FIFF.FIFF_UNIT_V
-    cur_ch['unit_mul'] = np.log10(_unit_dict[chanunit[0]])
     cur_ch['kind'] = FIFF.FIFFV_EEG_CH
     cur_ch['coil_type'] = FIFF.FIFFV_COIL_EEG
     cur_ch['coord_frame'] = FIFF.FIFFV_COORD_HEAD
@@ -350,7 +319,7 @@ def _process_channel_meg(cur_ch, grad):
         orientation = np.eye(3)
     assert orientation.shape == (3, 3)
     orientation = orientation.flatten()
-    chanunit = grad['chanunit'][chan_idx_in_grad]
+    # chanunit = grad['chanunit'][chan_idx_in_grad]  # not used/needed yet
 
     cur_ch['loc'] = np.hstack((position, orientation))
     cur_ch['kind'] = FIFF.FIFFV_MEG_CH
@@ -373,7 +342,6 @@ def _process_channel_meg(cur_ch, grad):
         raise RuntimeError('Unexpected coil type: %s.' % (
             chantype,))
 
-    cur_ch['unit_mul'] = np.log10(_unit_dict[chanunit[0]])
     cur_ch['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
     return cur_ch

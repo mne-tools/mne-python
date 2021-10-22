@@ -10,10 +10,9 @@
 #
 # License: Simplified BSD
 
-import base64
 import copy
+import io
 from glob import glob
-from io import BytesIO
 from itertools import cycle
 import os.path as op
 import warnings
@@ -21,25 +20,24 @@ from distutils.version import LooseVersion
 from collections import defaultdict
 
 import numpy as np
-from scipy import linalg
 
 from ..defaults import DEFAULTS
-from ..fixes import _get_img_fdata
+from .._freesurfer import (_reorient_image, _read_mri_info, _check_mri,
+                           _mri_orientation)
 from ..rank import compute_rank
-from ..source_space import _mri_orientation
 from ..surface import read_surface
 from ..io.constants import FIFF
 from ..io.proj import make_projector
 from ..io.pick import (_DATA_CH_TYPES_SPLIT, pick_types, pick_info,
                        pick_channels)
-from ..source_space import (read_source_spaces, SourceSpaces, _read_mri_info,
-                            _check_mri, _ensure_src)
-from ..transforms import invert_transform, apply_trans, _frame_to_str
+from ..source_space import read_source_spaces, SourceSpaces, _ensure_src
+from ..transforms import apply_trans, _frame_to_str
 from ..utils import (logger, verbose, warn, _check_option, get_subjects_dir,
-                     _mask_to_onsets_offsets, _pl, _on_missing)
+                     _mask_to_onsets_offsets, _pl, _on_missing, fill_doc)
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
-from .utils import tight_layout, _get_color_list, _prepare_trellis, plt_show
+from .utils import (tight_layout, _get_color_list, _prepare_trellis, plt_show,
+                    _figure_agg, _validate_type)
 
 
 def _index_info_cov(info, cov, exclude):
@@ -81,8 +79,7 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
     ----------
     cov : instance of Covariance
         The covariance matrix.
-    info : dict
-        Measurement info.
+    %(info_not_none)s
     exclude : list of str | str
         List of channels to exclude. If empty do not exclude any channel.
         If 'bads', exclude info['bads'].
@@ -116,9 +113,10 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
     .. versionchanged:: 0.19
        Approximate ranks for each channel type are shown with red dashed lines.
     """
-    from ..cov import Covariance
     import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
+    from scipy import linalg
+    from ..cov import Covariance
 
     info, C, ch_names, idx_names = _index_info_cov(info, cov, exclude)
     del cov, exclude
@@ -153,6 +151,7 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
             from mpl_toolkits.axes_grid1 import make_axes_locatable
             divider = make_axes_locatable(axes[0, k])
             cax = divider.append_axes("right", size="5.5%", pad=0.05)
+            cax.grid(False)  # avoid mpl warning about auto-removal
             plt.colorbar(im, cax=cax, format='%.0e')
 
     fig_cov.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
@@ -303,32 +302,56 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
     return fig
 
 
-def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
+def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
                        slices=None, show=True, show_indices=False,
-                       show_orientation=False, img_output=False):
-    """Plot BEM contours on anatomical slices."""
+                       show_orientation=False, width=512,
+                       slices_as_subplots=True):
+    """Plot BEM contours on anatomical MRI slices.
+
+    Parameters
+    ----------
+    slices_as_subplots : bool
+        Whether to add all slices as subplots to a single figure, or to
+        create a new figure for each slice. If ``False``, return NumPy
+        arrays instead of Matplotlib figures.
+
+    Returns
+    -------
+    matplotlib.figure.Figure | list of array
+        The plotted slices.
+    """
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
     # For ease of plotting, we will do everything in voxel coordinates.
+    _validate_type(show_orientation, (bool, str), 'show_orientation')
+    if isinstance(show_orientation, str):
+        _check_option('show_orientation', show_orientation, ('always',),
+                      extra='when str')
     _check_option('orientation', orientation, ('coronal', 'axial', 'sagittal'))
 
     # Load the T1 data
-    _, vox_mri_t, _, _, _, nim = _read_mri_info(
+    _, _, _, _, _, nim = _read_mri_info(
         mri_fname, units='mm', return_img=True)
-    mri_vox_t = invert_transform(vox_mri_t)['trans']
-    del vox_mri_t
 
-    # plot axes (x, y, z) as data axes
-    (x, y, z), (flip_x, flip_y, flip_z), order = _mri_orientation(
-        nim, orientation)
-    transpose = x < y
+    data, rasvox_mri_t = _reorient_image(nim)
+    mri_rasvox_t = np.linalg.inv(rasvox_mri_t)
+    axis, x, y = _mri_orientation(orientation)
 
-    data = _get_img_fdata(nim)
-    shift_x = data.shape[x] if flip_x < 0 else 0
-    shift_y = data.shape[y] if flip_y < 0 else 0
-    n_slices = data.shape[z]
+    n_slices = data.shape[axis]
+
+    # if no slices were specified, pick some equally-spaced ones automatically
     if slices is None:
-        slices = np.round(np.linspace(0, n_slices - 1, 14)).astype(int)[1:-1]
+        slices = np.round(
+            np.linspace(
+                start=0,
+                stop=n_slices - 1,
+                num=14
+            )
+        ).astype(int)
+
+        # omit first and last one (not much brain visible there anyway…)
+        slices = slices[1:-1]
+
     slices = np.atleast_1d(slices).copy()
     slices[slices < 0] += n_slices  # allow negative indexing
     if not np.array_equal(np.sort(slices), slices) or slices.ndim != 1 or \
@@ -337,9 +360,6 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         raise ValueError('slices must be a sorted 1D array of int with unique '
                          'elements, at least one element, and no elements '
                          'greater than %d, got %s' % (n_slices - 1, slices))
-    if flip_z < 0:
-        # Proceed in the opposite order to maintain left-to-right / orientation
-        slices = slices[::-1]
 
     # create of list of surfaces
     surfs = list()
@@ -347,7 +367,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         surf = dict()
         surf['rr'], surf['tris'] = read_surface(file_name)
         # move surface to voxel coordinate system
-        surf['rr'] = apply_trans(mri_vox_t, surf['rr'])
+        surf['rr'] = apply_trans(mri_rasvox_t, surf['rr'])
         surfs.append((surf, color))
 
     sources = list()
@@ -360,41 +380,48 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
                 f'{_frame_to_str[src[0]["coord_frame"]]}')
         for src_ in src:
             points = src_['rr'][src_['inuse'].astype(bool)]
-            sources.append(apply_trans(mri_vox_t, points * 1e3))
+            sources.append(apply_trans(mri_rasvox_t, points * 1e3))
         sources = np.concatenate(sources, axis=0)
 
-    if img_output:
-        n_col = n_axes = 1
-        fig, ax = plt.subplots(1, 1, figsize=(7.0, 7.0))
-        axs = [ax] * len(slices)
-
-        w = fig.get_size_inches()[0]
-        fig.set_size_inches([w, w / data.shape[x] * data.shape[y]])
-        plt.close(fig)
-    else:
+    # get the figure dimensions right
+    if slices_as_subplots:
         n_col = 4
         fig, axs, _, _ = _prepare_trellis(len(slices), n_col)
+        fig.set_facecolor('k')
+        dpi = fig.get_dpi()
         n_axes = len(axs)
-    fig.set_facecolor('k')
+    else:
+        n_col = n_axes = 1
+        dpi = 96
+        # 2x standard MRI resolution is probably good enough for the
+        # traces
+        w = width / dpi
+        figsize = (w, w / data.shape[x] * data.shape[y])
+
     bounds = np.concatenate(
-        [[-np.inf], slices[:-1] + np.diff(slices) / 2., [np.inf]])  # float
+        [[-np.inf], slices[:-1] + np.diff(slices) / 2.,
+         [np.inf]]
+    )  # float
     slicer = [slice(None)] * 3
     ori_labels = dict(R='LR', A='PA', S='IS')
-    xlabels, ylabels = ori_labels[order[0]], ori_labels[order[1]]
+    xlabels, ylabels = ori_labels['RAS'[x]], ori_labels['RAS'[y]]
     path_effects = [patheffects.withStroke(linewidth=4, foreground="k",
                                            alpha=0.75)]
-    out = list() if img_output else fig
-    for ai, (ax, sl, lower, upper) in enumerate(zip(
-            axs, slices, bounds[:-1], bounds[1:])):
+    figs = []
+    for ai, (sl, lower, upper) in enumerate(
+        zip(slices, bounds[:-1], bounds[1:])
+    ):
+        if slices_as_subplots:
+            ax = axs[ai]
+        else:
+            fig = _figure_agg(figsize=figsize, dpi=dpi, facecolor='k')
+            ax = fig.add_axes([0, 0, 1, 1], frame_on=False, facecolor='k')
+
         # adjust the orientations for good view
-        slicer[z] = sl
-        dat = data[tuple(slicer)]
-        dat = dat.T if transpose else dat
-        dat = dat[::flip_y, ::flip_x]
+        slicer[axis] = sl
+        dat = data[tuple(slicer)].T
 
         # First plot the anatomical data
-        if img_output:
-            ax.clear()
         ax.imshow(dat, cmap=plt.cm.gray, origin='lower')
         ax.set_autoscale_on(False)
         ax.axis('off')
@@ -404,16 +431,14 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         for surf, color in surfs:
             with warnings.catch_warnings(record=True):  # ignore contour warn
                 warnings.simplefilter('ignore')
-                ax.tricontour(flip_x * surf['rr'][:, x] + shift_x,
-                              flip_y * surf['rr'][:, y] + shift_y,
-                              surf['tris'], surf['rr'][:, z],
+                ax.tricontour(surf['rr'][:, x], surf['rr'][:, y],
+                              surf['tris'], surf['rr'][:, axis],
                               levels=[sl], colors=color, linewidths=1.0,
                               zorder=1)
 
         if len(sources):
-            in_slice = (sources[:, z] >= lower) & (sources[:, z] < upper)
-            ax.scatter(flip_x * sources[in_slice, x] + shift_x,
-                       flip_y * sources[in_slice, y] + shift_y,
+            in_slice = (sources[:, axis] >= lower) & (sources[:, axis] < upper)
+            ax.scatter(sources[in_slice, x], sources[in_slice, y],
                        marker='.', color='#FF00FF', s=1, zorder=2)
         if show_indices:
             ax.text(dat.shape[1] // 8 + 0.5, 0.5, str(sl),
@@ -422,47 +447,60 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         kwargs = dict(
             color='#66CCEE', fontsize='medium', path_effects=path_effects,
             family='monospace', clip_on=False, zorder=5, weight='bold')
+        always = (show_orientation == 'always')
         if show_orientation:
-            if ai % n_col == 0:  # left
+            if ai % n_col == 0 or always:  # left
                 ax.text(0, dat.shape[0] / 2., xlabels[0],
                         va='center', ha='left', **kwargs)
-            if ai % n_col == n_col - 1 or ai == n_axes - 1:  # right
+            if ai % n_col == n_col - 1 or ai == n_axes - 1 or always:  # right
                 ax.text(dat.shape[1] - 1, dat.shape[0] / 2., xlabels[1],
                         va='center', ha='right', **kwargs)
-            if ai >= n_axes - n_col:  # bottom
+            if ai >= n_axes - n_col or always:  # bottom
                 ax.text(dat.shape[1] / 2., 0, ylabels[0],
                         ha='center', va='bottom', **kwargs)
-            if ai < n_col or n_col == 1:  # top
+            if ai < n_col or n_col == 1 or always:  # top
                 ax.text(dat.shape[1] / 2., dat.shape[0] - 1, ylabels[1],
                         ha='center', va='top', **kwargs)
-        if img_output:
-            output = BytesIO()
-            fig.savefig(output, bbox_inches='tight',
-                        pad_inches=0, format='png')
-            out.append(base64.b64encode(output.getvalue()).decode('ascii'))
 
-    fig.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
-                        hspace=0.)
-    plt_show(show, fig=fig)
-    return out
+        if not slices_as_subplots:
+            # convert to NumPy array
+            with io.BytesIO() as buff:
+                fig.savefig(
+                    buff, format='raw', bbox_inches='tight', pad_inches=0,
+                    dpi=dpi
+                )
+                w_, h_ = fig.canvas.get_width_height()
+                plt.close(fig)
+                buff.seek(0)
+                fig_array = np.frombuffer(buff.getvalue(), dtype=np.uint8)
+
+            fig = fig_array.reshape((int(h_), int(w_), -1))
+            figs.append(fig)
+
+    if slices_as_subplots:
+        fig.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
+                            hspace=0.)
+        plt_show(show, fig=fig)
+        return fig
+    else:
+        return figs
 
 
-def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
+@fill_doc
+def plot_bem(subject, subjects_dir=None, orientation='coronal',
              slices=None, brain_surfaces=None, src=None, show=True,
              show_indices=True, mri='T1.mgz', show_orientation=True):
-    """Plot BEM contours on anatomical slices.
+    """Plot BEM contours on anatomical MRI slices.
 
     Parameters
     ----------
-    subject : str
-        Subject name.
-    subjects_dir : str | None
-        Path to the SUBJECTS_DIR. If None, the path is obtained by using
-        the environment variable SUBJECTS_DIR.
+    %(subject)s
+    %(subjects_dir)s
     orientation : str
         'coronal' or 'axial' or 'sagittal'.
-    slices : list of int
-        Slice indices.
+    slices : list of int | None
+        The indices of the MRI slices to plot. If ``None``, automatically
+        pick 12 equally-spaced slices.
     brain_surfaces : None | str | list of str
         One or more brain surface to plot (optional). Entries should correspond
         to files in the subject's ``surf`` directory (e.g. ``"white"``).
@@ -487,10 +525,15 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
         ``'T1.mgz'``, or a full path to a custom MRI file.
 
         .. versionadded:: 0.21
-    show_orientation : str
+    show_orientation : bool | str
         Show the orientation (L/R, P/A, I/S) of the data slices.
+        True (default) will only show it on the outside most edges of the
+        figure, False will never show labels, and "always" will label each
+        plot.
 
         .. versionadded:: 0.21
+        .. versionchanged:: 0.24
+           Added support for "always".
 
     Returns
     -------
@@ -522,7 +565,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     bem_path = op.join(subjects_dir, subject, 'bem')
 
     if not op.isdir(bem_path):
-        raise IOError('Subject bem directory "%s" does not exist' % bem_path)
+        raise IOError(f'Subject bem directory "{bem_path}" does not exist')
 
     surfaces = _get_bem_plotting_surfaces(bem_path)
     if brain_surfaces is not None:
@@ -554,8 +597,13 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
                       'inner_skull.surf, outer_skull.surf or outer_skin.surf')
 
     # Plot the contours
-    return _plot_mri_contours(mri_fname, surfaces, src, orientation, slices,
-                              show, show_indices, show_orientation)
+    fig =  _plot_mri_contours(
+        mri_fname=mri_fname, surfaces=surfaces, src=src,
+        orientation=orientation, slices=slices, show=show,
+        show_indices=show_indices, show_orientation=show_orientation,
+        slices_as_subplots=True
+    )
+    return fig
 
 
 def _get_bem_plotting_surfaces(bem_path):
@@ -1176,6 +1224,7 @@ def _handle_event_colors(color_dict, unique_events, event_id):
     return default_colors
 
 
+@fill_doc
 def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
              n_cols=None, show=True):
     """Plot CSD matrices.
@@ -1187,8 +1236,8 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
     ----------
     csd : instance of CrossSpectralDensity
         The CSD matrix to plot.
-    info : instance of Info | None
-        To split the figure by channel-type, provide the measurement info.
+    %(info)s
+        Used to split the figure by channel-type, if provided.
         By default, the CSD matrix is plotted as a whole.
     mode : 'csd' | 'coh'
         Whether to plot the cross-spectral density ('csd', the default), or
@@ -1303,3 +1352,80 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
 
     plt_show(show)
     return figs
+
+
+def plot_chpi_snr(snr_dict, axes=None):
+    """Plot time-varying SNR estimates of the HPI coils.
+
+    Parameters
+    ----------
+    snr_dict : dict
+        The dictionary returned by `~mne.chpi.compute_chpi_snr`. Must have keys
+        ``times``, ``freqs``, ``TYPE_snr``, ``TYPE_power``, and ``TYPE_resid``
+        (where ``TYPE`` can be ``mag`` or ``grad`` or both).
+    axes : None | list of matplotlib.axes.Axes
+        Figure axes in which to draw the SNR, power, and residual plots. The
+        number of axes should be 3× the number of MEG sensor types present in
+        ``snr_dict``. If ``None`` (the default), a new
+        `~matplotlib.figure.Figure` is created with the required number of
+        axes.
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        A figure with subplots for SNR, power, and residual variance,
+        separately for magnetometers and/or gradiometers (depending on what is
+        present in ``snr_dict``).
+
+    Notes
+    -----
+    If you supply a list of existing `~matplotlib.axes.Axes`, then the figure
+    legend will not be drawn automatically. If you still want it, running
+    ``fig.legend(loc='right', title='cHPI frequencies')`` will recreate it,
+    though you may also need to manually adjust the margin to make room for it
+    (e.g., using ``fig.subplots_adjust(right=0.8)``).
+
+    .. versionadded:: 0.24
+    """
+    import matplotlib.pyplot as plt
+
+    valid_keys = list(snr_dict)[2:]
+    titles = dict(snr='SNR', power='cHPI power', resid='Residual variance')
+    full_names = dict(mag='magnetometers', grad='gradiometers')
+    axes_was_none = axes is None
+    if axes_was_none:
+        fig, axes = plt.subplots(len(valid_keys), 1, sharex=True)
+    else:
+        fig = axes[0].get_figure()
+    if len(axes) != len(valid_keys):
+        raise ValueError(f'axes must be a list of {len(valid_keys)} axes, got '
+                         f'length {len(axes)} ({axes}).')
+    fig.set_size_inches(10, 10)
+    legend_labels_exist = False
+    for key, ax in zip(valid_keys, axes):
+        ch_type, kind = key.split('_')
+        scaling = 1 if kind == 'snr' else DEFAULTS['scalings'][ch_type]
+        plot_kwargs = dict(color='k') if kind == 'resid' else dict()
+        lines = ax.plot(snr_dict['times'], snr_dict[key] * scaling ** 2,
+                        **plot_kwargs)
+        # the freqs should be the same for all sensor types (and for SNR and
+        # power subplots), so we only need to label the lines on one axes
+        # (otherwise we get duplicate legend entries).
+        if not legend_labels_exist:
+            for line, freq in zip(lines, snr_dict['freqs']):
+                line.set_label(f'{freq} Hz')
+            legend_labels_exist = True
+        unit = DEFAULTS['units'][ch_type]
+        unit = f'({unit})' if '/' in unit else unit
+        set_kwargs = dict(title=f'{titles[kind]}, {full_names[ch_type]}',
+                          ylabel='dB' if kind == 'snr' else f'{unit}²')
+        if not axes_was_none:
+            set_kwargs.update(xlabel='Time (s)')
+        ax.set(**set_kwargs)
+    if axes_was_none:
+        ax.set(xlabel='Time (s)')
+        fig.align_ylabels()
+        fig.subplots_adjust(left=0.1, right=0.825, bottom=0.075, top=0.95,
+                            hspace=0.7)
+        fig.legend(loc='right', title='cHPI frequencies')
+    return fig

@@ -3,7 +3,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larsoner@uw.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
@@ -105,7 +105,10 @@ def _read_coil_def_file(fname, use_registry=True):
                 while(line[0] == '#'):
                     line = lines.pop()
                 vals = np.fromstring(line, sep=' ')
-                assert len(vals) == 7
+                if len(vals) != 7:
+                    raise RuntimeError(
+                        f'Could not interpret line {p + 1} as 7 points:\n'
+                        f'{line}')
                 # Read and verify data for each integration point
                 w.append(vals[0])
                 rmag.append(vals[[1, 2, 3]])
@@ -263,18 +266,16 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False,
 
 
 @verbose
-def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
+def _prep_meg_channels(info, accuracy='accurate', exclude=(), ignore_ref=False,
                        head_frame=True, do_es=False, do_picking=True,
                        verbose=None):
     """Prepare MEG coil definitions for forward calculation.
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement information dictionary
-    accurate : bool
-        If true (default) then use `accurate` coil definitions (more
-        integration points)
+    %(info_not_none)s
+    accuracy : str
+        Can be "normal" or "accurate" (default).
     exclude : list of str | str
         List of channels to exclude. If 'bads', exclude channels in
         info['bads']
@@ -299,7 +300,6 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
     meginfo : instance of Info
         Information subselected for just the set of MEG coils
     """
-    accuracy = 'accurate' if accurate else 'normal'
     info_extra = 'info'
     megnames, megcoils, compcoils = [], [], []
 
@@ -378,8 +378,7 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement information dictionary
+    %(info_not_none)s
     exclude : list of str | str
         List of channels to exclude. If 'bads', exclude channels in
         info['bads']
@@ -511,10 +510,7 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
 
     Parameters
     ----------
-    info : instance of mne.Info | str
-        If str, then it should be a filename to a Raw, Epochs, or Evoked
-        file with measurement information. If dict, should be an info
-        dict (such as one from Raw, Epochs, or Evoked).
+    %(info_str)s
     %(trans)s
     src : str | instance of SourceSpaces
         If string, should be a source space filename. Can also be an

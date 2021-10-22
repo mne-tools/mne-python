@@ -3,21 +3,22 @@
 #          simplified BSD-3 license
 
 
+from pathlib import Path
 import os.path as op
 import os
 import shutil
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose, assert_equal
+from numpy.testing import assert_array_equal, assert_allclose
 import pytest
 from scipy import io as sio
 
-
 from mne import find_events, pick_types
-from mne.io import read_raw_egi, read_evokeds_mff
-from mne.io.tests.test_raw import _test_raw_reader
+from mne.io import read_raw_egi, read_evokeds_mff, read_raw_fif
+from mne.io.constants import FIFF
 from mne.io.egi.egi import _combine_triggers
-from mne.utils import run_tests_if_main, requires_version, object_diff
+from mne.io.tests.test_raw import _test_raw_reader
+from mne.utils import requires_version, object_diff
 from mne.datasets.testing import data_path, requires_testing_data
 
 base_dir = op.join(op.dirname(op.abspath(__file__)), 'data')
@@ -104,6 +105,24 @@ def test_egi_mff_pause(fname, skip_times, event_times):
 
 
 @requires_testing_data
+@pytest.mark.parametrize('fname', [
+    egi_pause_fname,
+    egi_eprime_pause_fname,
+    egi_pause_w1337_fname,
+])
+def test_egi_mff_pause_chunks(fname, tmpdir):
+    """Test that on-demand of all short segments works (via I/O)."""
+    fname_temp = tmpdir.join('test_raw.fif')
+    raw_data = read_raw_egi(fname, preload=True).get_data()
+    raw = read_raw_egi(fname)
+    with pytest.warns(RuntimeWarning, match='Acquisition skips detected'):
+        raw.save(fname_temp)
+    del raw
+    raw_data_2 = read_raw_fif(fname_temp).get_data()
+    assert_allclose(raw_data, raw_data_2)
+
+
+@requires_testing_data
 def test_io_egi_mff():
     """Test importing EGI MFF simple binary files."""
     raw = read_raw_egi(egi_mff_fname, include=None)
@@ -114,27 +133,39 @@ def test_io_egi_mff():
                            test_scaling=False,  # XXX probably some bug
                            )
     assert raw.info['sfreq'] == 1000.
+    # The ref here is redundant, but we don't currently have a way in
+    # DigMontage to mark that a given channel is actually the ref so...
+    assert len(raw.info['dig']) == 133  # 129 eeg + 1 ref + 3 cardinal points
+    assert raw.info['dig'][0]['ident'] == 1  # EEG channel E1
+    assert raw.info['dig'][3]['ident'] == 0  # Reference channel
+    assert raw.info['dig'][-1]['ident'] == 129  # Reference channel
+    ref_loc = raw.info['dig'][3]['r']
+    eeg_picks = pick_types(raw.info, eeg=True)
+    assert len(eeg_picks) == 129
+    for i in eeg_picks:
+        loc = raw.info['chs'][i]['loc']
+        assert loc[:3].any(), loc[:3]
+        assert_array_equal(loc[3:6], ref_loc, err_msg=f'{i}')
+    assert raw.info['device_info']['type'] == 'HydroCel GSN 128 1.0'
 
-    assert_equal('eeg' in raw, True)
+    assert 'eeg' in raw
     eeg_chan = [c for c in raw.ch_names if 'EEG' in c]
-    assert_equal(len(eeg_chan), 129)
-    picks = pick_types(raw.info, eeg=True)
-    assert_equal(len(picks), 129)
-    assert_equal('STI 014' in raw.ch_names, True)
+    assert len(eeg_chan) == 129
+    assert 'STI 014' in raw.ch_names
 
     events = find_events(raw, stim_channel='STI 014')
-    assert_equal(len(events), 8)
-    assert_equal(np.unique(events[:, 1])[0], 0)
-    assert (np.unique(events[:, 0])[0] != 0)
-    assert (np.unique(events[:, 2])[0] != 0)
+    assert len(events) == 8
+    assert np.unique(events[:, 1])[0] == 0
+    assert np.unique(events[:, 0])[0] != 0
+    assert np.unique(events[:, 2])[0] != 0
 
-    pytest.raises(ValueError, read_raw_egi, egi_mff_fname, include=['Foo'],
-                  preload=False)
-    pytest.raises(ValueError, read_raw_egi, egi_mff_fname, exclude=['Bar'],
-                  preload=False)
+    with pytest.raises(ValueError, match='Could not find event'):
+        read_raw_egi(egi_mff_fname, include=['Foo'])
+    with pytest.raises(ValueError, match='Could not find event'):
+        read_raw_egi(egi_mff_fname, exclude=['Bar'])
     for ii, k in enumerate(include, 1):
-        assert (k in raw.event_id)
-        assert (raw.event_id[k] == ii)
+        assert k in raw.event_id
+        assert raw.event_id[k] == ii
 
 
 def test_io_egi():
@@ -148,6 +179,11 @@ def test_io_egi():
 
     with pytest.warns(RuntimeWarning, match='Did not find any event code'):
         raw = read_raw_egi(egi_fname, include=None)
+
+    # The reader should accept a Path, too.
+    with pytest.warns(RuntimeWarning, match='Did not find any event code'):
+        raw = read_raw_egi(Path(egi_fname), include=None)
+
     assert 'RawEGI' in repr(raw)
     data_read, t_read = raw[:256]
     assert_allclose(t_read, t)
@@ -159,19 +195,19 @@ def test_io_egi():
                            test_scaling=False,  # XXX probably some bug
                            )
 
-    assert_equal('eeg' in raw, True)
+    assert 'eeg' in raw
 
     eeg_chan = [c for c in raw.ch_names if c.startswith('E')]
-    assert_equal(len(eeg_chan), 256)
+    assert len(eeg_chan) == 256
     picks = pick_types(raw.info, eeg=True)
-    assert_equal(len(picks), 256)
-    assert_equal('STI 014' in raw.ch_names, True)
+    assert len(picks) == 256
+    assert 'STI 014' in raw.ch_names
 
     events = find_events(raw, stim_channel='STI 014')
-    assert_equal(len(events), 2)  # ground truth
-    assert_equal(np.unique(events[:, 1])[0], 0)
-    assert (np.unique(events[:, 0])[0] != 0)
-    assert (np.unique(events[:, 2])[0] != 0)
+    assert len(events) == 2  # ground truth
+    assert np.unique(events[:, 1])[0] == 0
+    assert np.unique(events[:, 0])[0] != 0
+    assert np.unique(events[:, 2])[0] != 0
     triggers = np.array([[0, 1, 1, 0], [0, 0, 1, 0]])
 
     # test trigger functionality
@@ -196,30 +232,29 @@ def test_io_egi_pns_mff(tmpdir):
                        verbose='error')
     assert ('RawMff' in repr(raw))
     pns_chans = pick_types(raw.info, ecg=True, bio=True, emg=True)
-    assert_equal(len(pns_chans), 7)
+    assert len(pns_chans) == 7
     names = [raw.ch_names[x] for x in pns_chans]
-    pns_names = ['Resp. Temperature'[:15],
+    pns_names = ['Resp. Temperature',
                  'Resp. Pressure',
                  'ECG',
                  'Body Position',
-                 'Resp. Effort Chest'[:15],
-                 'Resp. Effort Abdomen'[:15],
+                 'Resp. Effort Chest',
+                 'Resp. Effort Abdomen',
                  'EMG-Leg']
     _test_raw_reader(read_raw_egi, input_fname=egi_mff_pns_fname,
                      channel_naming='EEG %03d', verbose='error',
                      test_rank='less',
                      test_scaling=False,  # XXX probably some bug
                      )
-    assert_equal(names, pns_names)
+    assert names == pns_names
     mat_names = [
-        'Resp_Temperature'[:15],
+        'Resp_Temperature',
         'Resp_Pressure',
         'ECG',
         'Body_Position',
-        'Resp_Effort_Chest'[:15],
-        'Resp_Effort_Abdomen'[:15],
+        'Resp_Effort_Chest',
+        'Resp_Effort_Abdomen',
         'EMGLeg'
-
     ]
     egi_fname_mat = op.join(data_path(), 'EGI', 'test_egi_pns.mat')
     mc = sio.loadmat(egi_fname_mat)
@@ -353,6 +388,8 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     assert evoked_cond.info['nchan'] == 259
     assert evoked_cond.info['sfreq'] == 250.0
     assert not evoked_cond.info['custom_ref_applied']
+    assert len(evoked_cond.info['dig']) == 261
+    assert evoked_cond.info['device_info']['type'] == 'HydroCel GSN 256 1.0'
 
 
 @requires_version('mffpy', '0.5.7')
@@ -372,4 +409,29 @@ def test_read_evokeds_mff_bad_input():
     assert str(exc_info.value) == message
 
 
-run_tests_if_main()
+@requires_testing_data
+def test_egi_coord_frame():
+    """Test that EGI coordinate frame is changed to head."""
+    info = read_raw_egi(egi_mff_fname).info
+    want_idents = (
+        FIFF.FIFFV_POINT_LPA,
+        FIFF.FIFFV_POINT_NASION,
+        FIFF.FIFFV_POINT_RPA,
+    )
+    for ii, want in enumerate(want_idents):
+        d = info['dig'][ii]
+        assert d['kind'] == FIFF.FIFFV_POINT_CARDINAL
+        assert d['ident'] == want
+        loc = d['r']
+        if ii == 0:
+            assert 0.05 < -loc[0] < 0.1, 'LPA'
+            assert_allclose(loc[1:], 0, atol=1e-7, err_msg='LPA')
+        elif ii == 1:
+            assert 0.05 < loc[1] < 0.11, 'Nasion'
+            assert_allclose(loc[::2], 0, atol=1e-7, err_msg='Nasion')
+        else:
+            assert ii == 2
+            assert 0.05 < loc[0] < 0.1, 'RPA'
+            assert_allclose(loc[1:], 0, atol=1e-7, err_msg='RPA')
+    for d in info['dig'][3:]:
+        assert d['kind'] == FIFF.FIFFV_POINT_EEG

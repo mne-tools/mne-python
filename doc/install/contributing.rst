@@ -1,30 +1,10 @@
-:orphan:
-
 .. _contributing:
 
-Contributing to MNE-Python
-==========================
+Contributing guide
+==================
 
-.. contents:: Page contents
-   :local:
-   :depth: 3
-
+.. include:: ../links.inc
 .. highlight:: console
-
-.. NOTE: this first section (up until "overview of contribution process") is
-   basically a copy/paste of CONTRIBUTING.rst from the repository root, with
-   one sentence deleted to avoid self-referential linking. Changes made here
-   should be mirrored there, and vice-versa.
-
-MNE-Python is maintained by a community of scientists and research labs, and
-accepts contributions in the form of bug reports, fixes, feature additions, and
-documentation improvements (even just typo corrections). The best way to start
-contributing is by `opening an issue`_ on our GitHub page to discuss your ideas
-for changes or enhancements, or to tell us about behavior that you think might
-be a bug in MNE-Python. *For general troubleshooting of scripts that use
-MNE-Python*, you should instead write to the `MNE mailing list`_ or chat with
-developers on the `MNE gitter channel`_. Users and contributors to MNE-Python
-are expected to follow our `code of conduct`_.
 
 This page has details on the preferred contribution workflow
 and how best to configure your system for a smooth experience contributing to
@@ -33,26 +13,23 @@ MNE-Python.
 .. collapse:: |rocket| Want an example to work through?
    :class: success
 
-   A great way to learn to contribute is to work through an actual example
+   A great way to learn to contribute is to work through an actual example.
    We recommend that you take a look at the `GitHub issues marked "easy"`_,
    pick one that looks interesting, and work through it while reading this
    guide!
 
-.. _`opening an issue`: https://github.com/mne-tools/mne-python/issues/new/choose
-.. _`MNE mailing list`: http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
-.. _`MNE gitter channel`: https://gitter.im/mne-tools/mne-python
-
-.. _`code of conduct`: https://github.com/mne-tools/.github/blob/master/CODE_OF_CONDUCT.md
 .. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
+
+.. note:: All contributors are expected to follow the `code of conduct`_.
 
 Overview of contribution process
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Changes to MNE-Python are typically made by `forking`_ the MNE-Python
 repository, making changes to your fork (usually by `cloning`_ it to your
-personal computer, making the changes, and then `pushing`_ the local changes up
-to your fork), and finally creating a `pull request`_ to incorporate your
-changes back into the shared "upstream" version of the codebase.
+personal computer, making the changes locally, and then `pushing`_ the local
+changes up to your fork), and finally creating a `pull request`_ to incorporate
+your changes back into the shared "upstream" version of the codebase.
 
 In general you'll be working with three different copies of the MNE-Python
 codebase: the official remote copy at https://github.com/mne-tools/mne-python
@@ -73,8 +50,8 @@ The sections :ref:`basic-git` and :ref:`github-workflow` (below) describe this
 process in more detail.
 
 
-Setting up your local environment for MNE-Python development
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Setting up your local development environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Configuring git
 ~~~~~~~~~~~~~~~
@@ -110,7 +87,7 @@ identifying yourself and your contact info::
 Make sure that the same email address is associated with your GitHub account
 and with your local git configuration. It is possible to associate multiple
 emails with a GitHub account, so if you initially set them up with different
-emails, just add the local email to the GitHub account.
+emails, you can add the local email to the GitHub account.
 
 Sooner or later, git is going to ask you what text editor you want it to use
 when writing commit messages, so you might as well configure that now too::
@@ -123,9 +100,12 @@ for more information.
 
 GNU Make
 ~~~~~~~~
-GNU Make facilitates deploying a package by executing corresponding commands
-from the ``Makefile``. For MNE-Python we have two Makefiles, one in the parent
-directory mainly for testing and one in ``/doc`` for building the documentation.
+
+We use `GNU Make`_ to organize commands or short scripts that are often needed
+in development. These are stored in files with the name :file:`Makefile`.
+MNE-Python has two Makefiles, one in the package's root directory (containing
+mainly testing commands) and one in :file:`doc/` (containing recipes for
+building our documentation pages in different ways).
 
 To check if make is already installed type ::
 
@@ -137,25 +117,26 @@ into a terminal and you should see ::
 
 If you don't see this or something similar:
 
-.. sidebar::
-   If you get:
+.. sidebar:: If you get:
 
    *bash: conda: command not found*
 
    you need to add
 
-   - ``(Anaconda-Path)``
-   - ``(Anaconda-Path)\Scripts``
+   - :file:`{path_to_Anaconda}`
+   - :file:`{path_to_Anaconda}\\Scripts`
 
    to Windows-PATH.
 
 - For Linux/MacOS, get `GNU Make`_
 - For Windows, you can install make for git BASH (which comes with `git for Windows`_):
 
-  1. Download ``make-(newest version)-without-guile-w32-bin.zip`` from `ezwinports`_
+  1. Download :file:`make-{newest.version}-without-guile-w32-bin.zip` from `ezwinports`_
   2. Extract zip-folder
-  3. Copy the contents into ``(git-path)\mingw64\`` (e.g. by merging the folders with the equivalent ones already inside)
-  4. For the first time using git BASH, you need to run once (to be able to activate your mnedev-environment): ::
+  3. Copy the contents into :file:`{path_to_git}\\mingw64\\` (e.g. by merging the
+     folders with the equivalent ones already inside)
+  4. For the first time using git BASH, you need to run once (to be able to
+     activate your mnedev-environment): ::
 
       $ conda init bash
 
@@ -181,8 +162,8 @@ of how that structure is set up is given here:
    :align: left
 
 
-Setting up the development environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Creating the virtual environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. sidebar:: Supported Python environments
 
@@ -196,7 +177,7 @@ Setting up the development environment
 These instructions will set up a Python environment that is separated from your
 system-level Python and any other managed Python environments on your computer.
 This lets you switch between different versions of Python (MNE-Python requires
-version 3.6 or higher) and also switch between the stable and development
+version 3.7 or higher) and also switch between the stable and development
 versions of MNE-Python (so you can, for example, use the same computer to
 analyze your data with the stable release, and also work with the latest
 development version to fix bugs or add new features). Even if you've already
@@ -205,11 +186,11 @@ version of MNE-Python, you should now repeat that process to create a new,
 separate environment for MNE-Python development (here we'll give it the name
 ``mnedev``)::
 
-    $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+    $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/environment.yml
     $ conda env create --file environment.yml --name mnedev
     $ conda activate mnedev
 
-Now you'll have *two* MNE-Python environments: ``base`` (or whatever custom
+Now you'll have *two* MNE-Python environments: ``mne`` (or whatever custom
 name you used when installing the stable version of MNE-Python) and ``mnedev``
 that we just created. At this point ``mnedev`` also has the stable version of
 MNE-Python (that's what the :file:`environment.yml` file installs), but we're
@@ -252,15 +233,15 @@ Finally, set up a link between your local clone and the official repository
 
 Now we'll remove the *stable* version of MNE-Python and replace it with the
 *development* version (the clone we just created with git). Make sure you're in
-the correct environment first (:samp:`conda activate mnedev`), and then do::
+the correct environment first (``conda activate mnedev``), and then do::
 
     $ cd $INSTALL_LOCATION/mne-python    # make sure we're in the right folder
     $ pip uninstall -y mne
     $ pip install -e .
 
 The command ``pip install -e .`` installs a python module into the current
-environment by creating a link to the source code directory (instead of
-copying the code to pip's ``site_packages`` directory, which is what normally
+environment by creating a link to the source code directory (instead of copying
+the code to pip's :file:`site_packages` directory, which is what normally
 happens). This means that any edits you make to the MNE-Python source code will
 be reflected the next time you open a Python interpreter and ``import mne``
 (the ``-e`` flag of ``pip`` stands for an "editable" installation).
@@ -290,7 +271,8 @@ To build documentation, you will also require `optipng`_:
 
 - On MacOS, optipng can be installed using Homebrew.
 
-- On Windows, unzip optipng.exe from the `optipng for Windows`_ archive into the ``doc`` folder.
+- On Windows, unzip :file:`optipng.exe` from the `optipng for Windows`_ archive
+  into the :file:`doc/` folder. This step is optional for Windows users.
 
 You can also choose to install some optional linters for reStructuredText::
 
@@ -319,22 +301,22 @@ Other commands that you will undoubtedly need relate to `branches`_. Branches
 represent multiple copies of the codebase *within a local clone or remote
 repo*. Branches are typically used to experiment with new features while still
 keeping a clean, working copy of the original codebase that you can switch back
-to at any time. The default branch of any repo is always called ``master``, and
-it is recommended that you reserve the ``master`` branch to be that clean copy
+to at any time. The default branch of any repo is called ``main``, and
+it is recommended that you reserve the ``main`` branch to be that clean copy
 of the working ``upstream`` codebase. Therefore, if you want to add a new
-feature, you should first synchronize your local ``master`` branch with the
-``upstream`` repository, then create a new branch based off of ``master`` and
+feature, you should first synchronize your local ``main`` branch with the
+``upstream`` repository, then create a new branch based off of ``main`` and
 `check it out`_ so that any changes you make will exist on that new branch
-(instead of on ``master``)::
+(instead of on ``main``)::
 
-    $ git checkout master            # switch to local master branch
+    $ git checkout main            # switch to local main branch
     $ git fetch upstream             # get the current state of the remote upstream repo
-    $ git merge upstream/master      # synchronize local master branch with remote upstream master branch
+    $ git merge upstream/main      # synchronize local main branch with remote upstream main branch
     $ git checkout -b new-feature-x  # create local branch "new-feature-x" and check it out
 
 .. sidebar:: Alternative
 
-    You can save some typing by using ``git pull upstream/master`` to replace
+    You can save some typing by using ``git pull upstream/main`` to replace
     the ``fetch`` and ``merge`` lines above.
 
 Now that you're on a new branch, you can fix a bug or add a new feature, add a
@@ -446,7 +428,7 @@ General requirements
 All new functionality must have test coverage
 ---------------------------------------------
 
-For example, a new :class:`mne.Evoked` method in :file:`mne/evoked.py` should
+For example, a new `mne.Evoked` method in :file:`mne/evoked.py` should
 have a corresponding test in :file:`mne/tests/test_evoked.py`.
 
 
@@ -455,7 +437,7 @@ All new functionality must be documented
 
 This includes thorough docstring descriptions for all public API changes, as
 well as how-to examples or longer tutorials for major contributions. Docstrings
-for private functions may be more sparse, but should not be omitted.
+for private functions may be more sparse, but should usually not be omitted.
 
 
 Avoid API changes when possible
@@ -465,11 +447,11 @@ Changes to the public API (e.g., class/function/method names and signatures)
 should not be made lightly, as they can break existing user scripts. Changes to
 the API require a deprecation cycle (with warnings) so that users have time to
 adapt their code before API changes become default behavior. See :ref:`the
-deprecation section <deprecating>` and :class:`mne.utils.deprecated` for
+deprecation section <deprecating>` and `mne.utils.deprecated` for
 instructions. Bug fixes (when something isn't doing what it says it will do) do
 not require a deprecation cycle.
 
-Note that any new API elements should be added to the master reference;
+Note that any new API elements should be added to the main reference;
 classes, functions, methods, and attributes cannot be cross-referenced unless
 they are included in the :doc:`python_reference`
 (:file:`doc/python_reference.rst`).
@@ -574,7 +556,7 @@ new feature etc.):
   .. |Your Name| replace:: **Your Name**
 
   - Short description of the changes (:gh:`0000` **by new contributor** |Your Name|_)
-  
+
   - ...
 
 where ``0000`` must be replaced with the respective GitHub pull request (PR)
@@ -635,11 +617,11 @@ Make tests fast and thorough
 
 Whenever possible, use the testing dataset rather than one of the sample
 datasets when writing tests; it includes small versions of most MNE-Python
-objects (e.g., :class:`~mne.io.Raw` objects with short durations and few
+objects (e.g., `~mne.io.Raw` objects with short durations and few
 channels). You can also check which lines are missed by the tests, then modify
 existing tests (or write new ones) to target the missed lines. Here's an
 example that reports which lines within ``mne.viz`` are missed when running
-``test_evoked.py`` and ``test_topo.py``::
+:file:`test_evoked.py` and :file:`test_topo.py`::
 
     $ pytest --cov=mne.viz --cov-report=term-missing mne/viz/tests/test_evoked.py mne/viz/tests/test_topo.py
 
@@ -678,12 +660,33 @@ single-character variable names, unless inside a :term:`comprehension <list
 comprehension>` or :ref:`generator <tut-generators>`.
 
 
-Follow NumPy style for docstrings
----------------------------------
+We (mostly) follow NumPy style for docstrings
+---------------------------------------------
 
-In most cases imitating existing docstrings will be sufficient, but consult the
-`Numpy docstring style guidelines`_ for more complicated formatting such as
-embedding example code, citing references, or including rendered mathematics.
+In most cases you can look at existing MNE-Python docstrings to figure out how
+yours should be formatted. If you can't find a relevant example, consult the
+`Numpy docstring style guidelines`_ for examples of more complicated formatting
+such as embedding example code, citing references, or including rendered
+mathematics.  Note that we diverge from the NumPy docstring standard in a few
+ways:
+
+1. We use a module called ``sphinxcontrib-bibtex`` to render citations. Search
+   our source code (``git grep footcite`` and ``git grep footbibliography``) to
+   see examples of how to add in-text citations and formatted references to
+   your docstrings, examples, or tutorials. The structured bibliographic data
+   lives in :file:`doc/references.bib`; please follow the existing key scheme
+   when adding new references (e.g., ``Singleauthor2019``,
+   ``AuthoroneAuthortwo2020``, ``FirstauthorEtAl2021a``,
+   ``FirstauthorEtAl2021b``).
+2. We don't explicitly say "optional" for optional keyword parameters (because
+   it's clear from the function or method signature which parameters have
+   default values).
+3. For parameters that may take multiple types, we use pipe characters instead
+   of the word "or", like this: ``param_name : str | None``.
+4. We don't include a ``Raises`` or ``Warns`` section describing
+   errors/warnings that might occur.
+
+
 Private function/method docstrings may be brief for simple functions/methods,
 but complete docstrings are appropriate when private functions/methods are
 relatively complex. To run some basic tests on documentation, you can use::
@@ -698,7 +701,7 @@ Cross-reference everywhere
 Both the docstrings and dedicated documentation pages (tutorials, how-to
 examples, discussions, and glossary) should include cross-references to any
 mentioned module, class, function, method, attribute, or documentation page.
-There are sphinx directives for all of these (``:mod:``, ``:class:``,
+There are sphinx roles for all of these (``:mod:``, ``:class:``,
 ``:func:``, ``:meth:``, ``:attr:``, ``:doc:``) as well as a generic
 cross-reference directive (``:ref:``) for linking to specific sections of a
 documentation page.
@@ -719,6 +722,12 @@ we link to. Their inventories can be examined using a tool like `sphobjinv`_ or
 dumped to file with commands like::
 
     $ python -m sphinx.ext.intersphinx https://docs.python.org/3/objects.inv > python.txt
+
+Note that anything surrounded by single backticks that is *not* preceded by one
+of the API roles (``:class:``, ``:func:``, etc) will be assumed to be
+in the MNE-Python namespace. This can save some typing especially in
+tutorials; instead of ``see :func:`mne.io.Raw.plot_psd` for details`` you can
+instead type ``see `mne.io.Raw.plot_psd` for details``.
 
 
 Other style guidance
@@ -746,17 +755,17 @@ Code organization
 Importing
 ---------
 
-Import modules in this order:
+Import modules in this order, preferably alphabetized within each subsection:
 
-1. Python built-in (``os``, ``copy``, ``functools``, etc)
-2. standard scientific (``numpy as np``, ``scipy.signal``, etc)
-3. others
-4. MNE-Python imports (e.g., ``from .pick import pick_types``)
+1. Python built-in (``copy``, ``functools``, ``os``, etc.)
+2. NumPy (``numpy as np``) and, in test files, pytest (``pytest``)
+3. MNE-Python imports (e.g., ``from .pick import pick_types``)
 
 When importing from other parts of MNE-Python, use relative imports in the main
 codebase and absolute imports in tests, tutorials, and how-to examples. Imports
-for ``matplotlib`` and optional modules (``sklearn``, ``pandas``, etc.) should
-be nested (i.e., within a function or method, not at the top of a file).
+for ``matplotlib``, ``scipy``, and optional modules (``sklearn``, ``pandas``,
+etc.) should be nested (i.e., within a function or method, not at the top of a
+file). This helps reduce import time and limit hard requirements for using MNE.
 
 
 Return types
@@ -875,7 +884,7 @@ These are typically used with a call like::
     $ mne browse_raw ~/mne_data/MNE-sample-data/MEG/sample/sample_audvis_raw.fif
 
 These are generally available for convenience, and can be useful for quick
-debugging (in this case, for :class:`mne.io.Raw.plot`).
+debugging (in this case, for `mne.io.Raw.plot`).
 
 If a given command-line function fails, they can also be executed as part of
 the ``mne`` module with ``python -m``. For example::
@@ -915,13 +924,13 @@ down the road. Here are the guidelines:
   doing this. Avoid purely cosmetic changes to the code; they make PRs harder
   to review.
 
-- It is usually better to make PRs *from* branches other than your master
-  branch, so that you can use your master branch to easily get back to a
+- It is usually better to make PRs *from* branches other than your main
+  branch, so that you can use your main branch to easily get back to a
   working state of the code if needed (e.g., if you're working on multiple
   changes at once, or need to pull in recent changes from someone else to get
   your new feature to work properly).
 
-- In most cases you should make PRs *into* the upstream's master branch, unless
+- In most cases you should make PRs *into* the upstream's main branch, unless
   you are specifically asked by a maintainer to PR into another branch (e.g.,
   for backports or maintenance bugfixes to the current stable version).
 
@@ -948,16 +957,16 @@ down the road. Here are the guidelines:
     `continuous integration`_ (CI) providers. Use them judiciously; *do not
     skip tests simply because they are failing*:
 
-    - ``[skip circle]`` Skip `circle`_, which tests successful building of our
-      documentation.
+    - ``[skip circle]`` Skip `CircleCI`_, which tests successful building of
+      our documentation.
 
-    - ``[skip travis]`` Skip `travis`_, which tests installation and execution
-      on Linux and macOS systems.
+    - ``[skip actions]`` Skip our `GitHub Actions`_, which test installation
+      and execution on Linux and macOS systems.
 
     - ``[skip azp]`` Skip `azure`_ which tests installation and execution on
       Windows systems.
 
-    - ``[ci skip]`` is an alias for ``[skip travis][skip azp][skip circle]``.
+    - ``[ci skip]`` is an alias for ``[skip actions][skip azp][skip circle]``.
       Notice that ``[skip ci]`` is not a valid tag.
 
     - ``[circle full]`` triggers a "full" documentation build, i.e., all code
@@ -967,8 +976,8 @@ down the road. Here are the guidelines:
 
 `This sample pull request`_ exemplifies many of the conventions listed above:
 it addresses only one problem; it started with an issue to discuss the problem
-and some possible solutions; it is a PR from the user's non-master branch into
-the upstream master branch; it separates different kinds of changes into
+and some possible solutions; it is a PR from the user's non-main branch into
+the upstream main branch; it separates different kinds of changes into
 separate commits and uses labels like ``DOC``, ``FIX``, and ``STY`` to make it
 easier for maintainers to review the changeset; etc. If you are new to GitHub
 it can serve as a useful example of what to expect from the PR review process.
@@ -1019,36 +1028,32 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. git book
 
-.. _pro git book: https://git-scm.com/book/
 .. _stage: https://git-scm.com/book/en/v2/Git-Tools-Interactive-Staging
 .. _configuring git: https://www.git-scm.com/book/en/v2/Customizing-Git-Git-Configuration
 
 .. sphinx
 
-.. _sphinx: http://www.sphinx-doc.org
 .. _sphinx-gallery: https://sphinx-gallery.github.io
-.. _reStructuredText: http://sphinx-doc.org/rest.html
-.. _intersphinx: http://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
+.. _reStructuredText: https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
+.. _intersphinx: https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
 .. _sphobjinv: https://sphobjinv.readthedocs.io/en/latest/
 
 .. linting
 
 .. _NumPy docstring style guidelines: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 .. _PEP 8: https://www.python.org/dev/peps/pep-0008/
-.. _pep8: https://pypi.org/project/pep8
 .. _pyflakes: https://pypi.org/project/pyflakes
 .. _Flake8: http://flake8.pycqa.org/
 
 .. misc
 
-.. _anaconda: https://www.anaconda.com/distribution/
 .. _miniconda: https://conda.io/en/latest/miniconda.html
 .. _Spyder: https://www.spyder-ide.org/
 .. _continuous integration: https://en.wikipedia.org/wiki/Continuous_integration
 .. _matplotlib: https://matplotlib.org/
-.. _travis: https://travis-ci.org/mne-tools/mne-python/branches
-.. _azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=master
-.. _circle: https://circleci.com/gh/mne-tools/mne-python
+.. _github actions: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions
+.. _azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=main
+.. _CircleCI: https://circleci.com/gh/mne-tools/mne-python
 
 .. optipng
 

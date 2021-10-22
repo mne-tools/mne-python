@@ -1,10 +1,10 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
-from .fixes import rfft, irfft
+from .fixes import _import_fft
 from .utils import (sizeof_fmt, logger, get_config, warn, _explain_exception,
                     verbose)
 
@@ -154,6 +154,7 @@ def _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft,
     -----
     This function is designed to be used with fft_multiply_repeated().
     """
+    rfft, irfft = _import_fft(('rfft', 'irfft'))
     cuda_dict = dict(n_fft=n_fft, rfft=rfft, irfft=irfft,
                      h_fft=rfft(h, n=n_fft))
     if n_jobs == 'cuda':
@@ -246,6 +247,7 @@ def _setup_cuda_fft_resample(n_jobs, W, new_len):
     -----
     This function is designed to be used with fft_resample().
     """
+    rfft, irfft = _import_fft(('rfft', 'irfft'))
     cuda_dict = dict(use_cuda=False, rfft=rfft, irfft=irfft)
     rfft_len_x = len(W) // 2 + 1
     # fold the window onto inself (should be symmetric) and truncate

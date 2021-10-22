@@ -19,7 +19,6 @@ from mne import (read_events, Epochs, pick_channels_evoked, read_cov,
 from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFR
-from mne.utils import run_tests_if_main
 
 from mne.viz import (plot_topo_image_epochs, _get_presser,
                      mne_analyze_colormap, plot_evoked_topo)
@@ -84,13 +83,13 @@ def test_plot_joint():
                                                       time_unit='ms'),
                       ts_args=dict(spatial_colors=True, zorder=return_inds,
                                    time_unit='s'))
-    pytest.raises(ValueError, evoked.plot_joint, ts_args=dict(axes=True,
-                                                              time_unit='s'))
+    with pytest.raises(ValueError, match='If one of `ts_args` and'):
+        evoked.plot_joint(ts_args=dict(axes=True, time_unit='s'))
 
     axes = plt.subplots(nrows=3)[-1].flatten().tolist()
     evoked.plot_joint(times=[0], picks=[6, 7, 8], ts_args=dict(axes=axes[0]),
                       topomap_args={"axes": axes[1:], "time_unit": "s"})
-    with pytest.raises(ValueError, match='array of length 6'):
+    with pytest.raises(ValueError, match='array of length 4'):
         evoked.plot_joint(picks=[6, 7, 8], ts_args=dict(axes=axes[0]),
                           topomap_args=dict(axes=axes[2:]))
     plt.close('all')
@@ -106,6 +105,21 @@ def test_plot_joint():
                           topomap_args=dict(proj=False))
     evoked.plot_joint(ts_args=dict(proj='reconstruct'),
                       topomap_args=dict(proj='reconstruct'))
+    plt.close('all')
+
+    # test sEEG (gh:8733)
+    evoked.del_proj().pick_types('mag')  # avoid overlapping positions error
+    mapping = {ch_name: 'seeg' for ch_name in evoked.ch_names}
+    with pytest.warns(RuntimeWarning, match='The unit .* has changed from .*'):
+        evoked.set_channel_types(mapping)
+    evoked.plot_joint()
+
+    # test DBS (gh:8739)
+    evoked = _get_epochs().average().pick_types('mag')
+    mapping = {ch_name: 'dbs' for ch_name in evoked.ch_names}
+    with pytest.warns(RuntimeWarning, match='The unit for'):
+        evoked.set_channel_types(mapping)
+    evoked.plot_joint()
     plt.close('all')
 
 
@@ -165,6 +179,13 @@ def test_plot_topo():
     cov['projs'] = []
     evoked.pick_types(meg=True).plot_topo(noise_cov=cov)
     plt.close('all')
+
+    # Test exclude parameter
+    exclude = ['MEG 0112']
+    fig = picked_evoked.plot_topo(exclude=exclude)
+    n_axes_expected = len(picked_evoked.info['ch_names']) - len(exclude)
+    n_axes_found = len(fig.axes[0].lines)
+    assert n_axes_found == n_axes_expected
 
     # test plot_topo
     evoked.plot_topo()  # should auto-find layout
@@ -228,10 +249,13 @@ def test_plot_topo_image_epochs():
     fig = plot_topo_image_epochs(ep, vmin=None, vmax=None, colorbar=None,
                                  cmap=cmap)
     ax = [x for x in fig.get_children() if isinstance(x, matplotlib.axes.Axes)]
+    # include inset axes (newer MPL)
+    ax.extend(y for x in ax for y in x.get_children()
+              if isinstance(y, matplotlib.axes.Axes))
     qm_cmap = [y.cmap for x in ax for y in x.get_children()
                if isinstance(y, matplotlib.collections.QuadMesh)]
+    assert len(qm_cmap) >= 1
     assert qm_cmap[0] is cmap
-    plt.close('all')
 
 
 def test_plot_tfr_topo():
@@ -261,7 +285,7 @@ def test_plot_tfr_topo():
     freqs = np.logspace(*np.log10([3, 10]), num=3)
     tfr = AverageTFR(epochs.info, data, epochs.times, freqs, nave)
     fig = tfr.plot([4], baseline=(None, 0), mode='mean', vmax=14., show=False)
-    assert fig.axes[0].get_yaxis().get_scale() == 'log'
+    assert fig[0].axes[0].get_yaxis().get_scale() == 'log'
 
     # one timesample
     tfr = AverageTFR(epochs.info, data[:, :, [0]], epochs.times[[1]],
@@ -289,6 +313,3 @@ def test_plot_tfr_topo():
                       None, tfr=data[:, :3, :], freq=these_freqs, x_label=None,
                       y_label=None, colorbar=False, cmap=('RdBu_r', True),
                       yscale='log')
-
-
-run_tests_if_main()

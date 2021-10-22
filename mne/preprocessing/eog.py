@@ -2,13 +2,13 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
 from ._peak_finder import peak_finder
 from .. import pick_types, pick_channels
-from ..utils import logger, verbose, _pl
+from ..utils import logger, verbose, _pl, warn, _validate_type
 from ..filter import filter_data
 from ..epochs import Epochs
 
@@ -18,6 +18,9 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
                     filter_length='10s', ch_name=None, tstart=0,
                     reject_by_annotation=False, thresh=None, verbose=None):
     """Locate EOG artifacts.
+
+    .. note:: To control true-positive and true-negative detection rates, you
+              may adjust the ``thresh`` parameter.
 
     Parameters
     ----------
@@ -31,14 +34,17 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
         High cut-off frequency to apply to the EOG channel in Hz.
     filter_length : str | int | None
         Number of taps to use for filtering.
-    ch_name : str | None
-        If not None, use specified channel(s) for EOG.
+    %(eog_ch_name)s
     tstart : float
         Start detection after tstart seconds.
     reject_by_annotation : bool
         Whether to omit data that is annotated as bad.
-    thresh : float
-        Threshold to trigger EOG event.
+    thresh : float | None
+        Threshold to trigger the detection of an EOG event. This controls the
+        thresholding of the underlying peak-finding algorithm. Larger values
+        mean that fewer peaks (i.e., fewer EOG events) will be detected.
+        If ``None``, use the default of ``(max(eog) - min(eog)) / 4``,
+        with ``eog`` being the filtered EOG signal.
     %(verbose)s
 
     Returns
@@ -116,7 +122,7 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
 
     eog_events += n_samples_start
     n_events = len(eog_events)
-    logger.info("Number of EOG events detected : %d" % n_events)
+    logger.info(f'Number of EOG events detected: {n_events}')
     eog_events = np.array([eog_events + first_samp,
                            np.zeros(n_events, int),
                            event_id * np.ones(n_events, int)]).T
@@ -125,37 +131,39 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
 
 
 def _get_eog_channel_index(ch_name, inst):
-    """Get EOG channel index."""
-    if isinstance(ch_name, str):
-        # Check if multiple EOG Channels
-        if ',' in ch_name:
-            ch_name = ch_name.split(',')
-        else:
-            ch_name = [ch_name]
+    """Get EOG channel indices."""
+    _validate_type(ch_name, types=(None, str, list), item_name='ch_name')
 
-        eog_inds = pick_channels(inst.ch_names, include=ch_name)
-
-        if len(eog_inds) == 0:
-            raise ValueError('%s not in channel list' % ch_name)
-        else:
-            logger.info('Using channel %s as EOG channel%s' % (
-                        " and ".join(ch_name), _pl(eog_inds)))
-    elif ch_name is None:
-
+    if ch_name is None:
         eog_inds = pick_types(inst.info, meg=False, eeg=False, stim=False,
                               eog=True, ecg=False, emg=False, ref_meg=False,
                               exclude='bads')
-
-        if len(eog_inds) == 0:
-            logger.info('No EOG channels found')
-            logger.info('Trying with EEG 061 and EEG 062')
+        if eog_inds.size == 0:
+            warn('No EOG channel found. Trying with EEG 061 and EEG 062. '
+                 'This functionality will be removed in version 0.24',
+                 DeprecationWarning)
             eog_inds = pick_channels(inst.ch_names,
                                      include=['EEG 061', 'EEG 062'])
-            if len(eog_inds) != 2:
-                raise RuntimeError('EEG 61 or EEG 62 channel not found !!')
+            if eog_inds.size == 0:
+                raise ValueError('Could not find any EOG channels.')
 
-    else:
-        raise ValueError('Could not find EOG channel.')
+        ch_names = [inst.ch_names[i] for i in eog_inds]
+    elif isinstance(ch_name, str):
+        ch_names = [ch_name]
+    else:  # it's a list
+        ch_names = ch_name.copy()
+
+    # ensure the specified channels are present in the data
+    if ch_name is not None:
+        not_found = [ch_name for ch_name in ch_names
+                     if ch_name not in inst.ch_names]
+        if not_found:
+            raise ValueError(f'The specified EOG channel{_pl(not_found)} '
+                             f'cannot be found: {", ".join(not_found)}')
+
+        eog_inds = pick_channels(inst.ch_names, include=ch_names)
+
+    logger.info(f'Using EOG channel{_pl(ch_names)}: {", ".join(ch_names)}')
     return eog_inds
 
 
@@ -172,9 +180,7 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
     ----------
     raw : instance of Raw
         The raw data.
-    ch_name : str
-        The name of the channel to use for EOG peak detection.
-        The argument is mandatory if the dataset contains no EOG channels.
+    %(eog_ch_name)s
     event_id : int
         The index to assign to found events.
     %(picks_all)s

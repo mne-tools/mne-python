@@ -1,6 +1,6 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 import numpy as np
@@ -10,7 +10,7 @@ import pytest
 from mne import Epochs, read_evokeds, pick_types
 from mne.io.compensator import make_compensator, get_current_comp
 from mne.io import read_raw_fif
-from mne.utils import requires_mne, run_subprocess, run_tests_if_main
+from mne.utils import requires_mne, run_subprocess
 
 base_dir = op.join(op.dirname(__file__), 'data')
 ctf_comp_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
@@ -107,6 +107,3 @@ def test_compensation_mne(tmpdir):
         chs_c = [evoked_c.info['chs'][ii] for ii in picks_c]
         for ch_py, ch_c in zip(chs_py, chs_c):
             assert ch_py['coil_type'] == ch_c['coil_type']
-
-
-run_tests_if_main()

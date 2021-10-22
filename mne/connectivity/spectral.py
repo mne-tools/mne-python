@@ -1,7 +1,7 @@
 # Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from functools import partial
 from inspect import getmembers
@@ -9,8 +9,8 @@ from inspect import getmembers
 import numpy as np
 
 from .utils import check_indices
-from ..utils import _check_option
-from ..fixes import _get_args, rfftfreq
+from ..utils import _check_option, CONNECTIVITY_DEPRECATION_MSG
+from ..fixes import _get_args, _import_fft
 from ..parallel import parallel_func
 from ..source_estimate import _BaseSourceEstimate
 from ..epochs import BaseEpochs
@@ -18,7 +18,7 @@ from ..time_frequency.multitaper import (_mt_spectra, _compute_mt_params,
                                          _psd_from_mt, _csd_from_mt,
                                          _psd_from_mt_adaptive)
 from ..time_frequency.tfr import morlet, cwt
-from ..utils import logger, verbose, _time_mask, warn
+from ..utils import logger, verbose, _time_mask, warn, _arange_div, deprecated
 
 ########################################################################
 # Various connectivity estimators
@@ -475,11 +475,15 @@ def _check_method(method):
     return True, None
 
 
-def _get_and_verify_data_sizes(data, n_signals=None, n_times=None, times=None):
+def _get_and_verify_data_sizes(data, sfreq, n_signals=None, n_times=None,
+                               times=None, warn_times=True):
     """Get and/or verify the data sizes and time scales."""
     if not isinstance(data, (list, tuple)):
         raise ValueError('data has to be a list or tuple')
     n_signals_tot = 0
+    # Sometimes data can be (ndarray, SourceEstimate) groups so in the case
+    # where ndarray comes first, don't use it for times
+    times_inferred = False
     for this_data in data:
         this_n_signals, this_n_times = this_data.shape
         if n_times is not None:
@@ -491,12 +495,19 @@ def _get_and_verify_data_sizes(data, n_signals=None, n_times=None, times=None):
         n_signals_tot += this_n_signals
 
         if hasattr(this_data, 'times'):
+            assert isinstance(this_data, _BaseSourceEstimate)
             this_times = this_data.times
-            if times is not None:
-                if np.any(times != this_times):
-                    warn('time scales of input time series do not match')
+            if times is not None and not times_inferred:
+                if warn_times and not np.allclose(times, this_times):
+                    with np.printoptions(threshold=4, linewidth=120):
+                        warn('time scales of input time series do not match:\n'
+                             f'{this_times}\n{times}')
+                    warn_times = False
             else:
                 times = this_times
+        elif times is None:
+            times_inferred = True
+            times = _arange_div(n_times, sfreq)
 
     if n_signals is not None:
         if n_signals != n_signals_tot:
@@ -504,7 +515,7 @@ def _get_and_verify_data_sizes(data, n_signals=None, n_times=None, times=None):
                              'each epoch')
     n_signals = n_signals_tot
 
-    return n_signals, n_times, times
+    return n_signals, n_times, times, warn_times
 
 
 # map names to estimator types
@@ -545,6 +556,7 @@ def _check_estimators(method, mode):
     return con_method_types, n_methods, accumulate_psd, n_comp_args
 
 
+@deprecated(CONNECTIVITY_DEPRECATION_MSG)
 @verbose
 def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                           mode='multitaper', fmin=None, fmax=np.inf,
@@ -688,60 +700,47 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             C = ---------------------
                 sqrt(E[Sxx] * E[Syy])
 
-        'imcoh' : Imaginary coherence [1]_ given by::
+        'imcoh' : Imaginary coherence :footcite:`NolteEtAl2004` given by::
 
                       Im(E[Sxy])
             C = ----------------------
                 sqrt(E[Sxx] * E[Syy])
 
-        'plv' : Phase-Locking Value (PLV) [2]_ given by::
+        'plv' : Phase-Locking Value (PLV) :footcite:`LachauxEtAl1999` given
+        by::
 
             PLV = |E[Sxy/|Sxy|]|
 
-        'ciplv' : corrected imaginary PLV (icPLV) [3]_ given by::
+        'ciplv' : corrected imaginary PLV (icPLV)
+        :footcite:`BrunaEtAl2018` given by::
 
                              |E[Im(Sxy/|Sxy|)]|
             ciPLV = ------------------------------------
                      sqrt(1 - |E[real(Sxy/|Sxy|)]| ** 2)
 
         'ppc' : Pairwise Phase Consistency (PPC), an unbiased estimator
-        of squared PLV [4]_.
+        of squared PLV :footcite:`VinckEtAl2010`.
 
-        'pli' : Phase Lag Index (PLI) [5]_ given by::
+        'pli' : Phase Lag Index (PLI) :footcite:`StamEtAl2007` given by::
 
             PLI = |E[sign(Im(Sxy))]|
 
-        'pli2_unbiased' : Unbiased estimator of squared PLI [6]_.
+        'pli2_unbiased' : Unbiased estimator of squared PLI
+        :footcite:`VinckEtAl2011`.
 
-        'wpli' : Weighted Phase Lag Index (WPLI) [6]_ given by::
+        'wpli' : Weighted Phase Lag Index (WPLI) :footcite:`VinckEtAl2011`
+        given by::
 
                       |E[Im(Sxy)]|
             WPLI = ------------------
                       E[|Im(Sxy)|]
 
-        'wpli2_debiased' : Debiased estimator of squared WPLI [6]_.
+        'wpli2_debiased' : Debiased estimator of squared WPLI
+        :footcite:`VinckEtAl2011`.
 
     References
     ----------
-    .. [1] Nolte et al. "Identifying true brain interaction from EEG data using
-           the imaginary part of coherency" Clinical neurophysiology, vol. 115,
-           no. 10, pp. 2292-2307, Oct. 2004.
-    .. [2] Lachaux et al. "Measuring phase synchrony in brain signals" Human
-           brain mapping, vol. 8, no. 4, pp. 194-208, Jan. 1999.
-    .. [3] Bruña et al. "Phase locking value revisited: teaching new tricks to
-           an old dog" Journal of Neural Engineering, vol. 15, no. 5, pp.
-           056011 , Jul. 2018.
-    .. [4] Vinck et al. "The pairwise phase consistency: a bias-free measure of
-           rhythmic neuronal synchronization" NeuroImage, vol. 51, no. 1,
-           pp. 112-122, May 2010.
-    .. [5] Stam et al. "Phase lag index: assessment of functional connectivity
-           from multi channel EEG and MEG with diminished bias from common
-           sources" Human brain mapping, vol. 28, no. 11, pp. 1178-1193,
-           Nov. 2007.
-    .. [6] Vinck et al. "An improved index of phase-synchronization for
-           electro-physiological data in the presence of volume-conduction,
-           noise and sample-size bias" NeuroImage, vol. 55, no. 4,
-           pp. 1548-1565, Apr. 2011.
+    .. footbibliography::
     """
     if n_jobs != 1:
         parallel, my_epoch_spectral_connectivity, _ = \
@@ -772,20 +771,23 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     if isinstance(data, BaseEpochs):
         times_in = data.times  # input times for Epochs input type
         sfreq = data.info['sfreq']
+    else:
+        times_in = None
 
     # loop over data; it could be a generator that returns
     # (n_signals x n_times) arrays or SourceEstimates
     epoch_idx = 0
     logger.info('Connectivity computation...')
+    warn_times = True
     for epoch_block in _get_n_epochs(data, n_jobs):
         if epoch_idx == 0:
             # initialize everything times and frequencies
             (n_cons, times, n_times, times_in, n_times_in, tmin_idx,
              tmax_idx, n_freqs, freq_mask, freqs, freqs_bands, freq_idx_bands,
-             n_signals, indices_use) = _prepare_connectivity(
-                epoch_block=epoch_block, tmin=tmin, tmax=tmax, fmin=fmin,
-                fmax=fmax, sfreq=sfreq, indices=indices, mode=mode,
-                fskip=fskip, n_bands=n_bands,
+             n_signals, indices_use, warn_times) = _prepare_connectivity(
+                epoch_block=epoch_block, times_in=times_in,
+                tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, sfreq=sfreq,
+                indices=indices, mode=mode, fskip=fskip, n_bands=n_bands,
                 cwt_freqs=cwt_freqs, faverage=faverage)
 
             # get the window function, wavelets, etc for different modes
@@ -823,8 +825,9 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
         # check dimensions and time scale
         for this_epoch in epoch_block:
-            _get_and_verify_data_sizes(this_epoch, n_signals, n_times_in,
-                                       times_in)
+            _, _, _, warn_times = _get_and_verify_data_sizes(
+                this_epoch, sfreq, n_signals, n_times_in, times_in,
+                warn_times=warn_times)
 
         call_params = dict(
             sig_idx=sig_idx, tmin_idx=tmin_idx,
@@ -906,8 +909,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
     if indices is None:
         # return all-to-all connectivity matrices
-        logger.info('    assembling connectivity matrix '
-                    '(filling the upper triangular region of the matrix)')
+        logger.info('    assembling connectivity matrix')
         con_flat = con
         con = list()
         for this_con_flat in con_flat:
@@ -930,21 +932,27 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     return con, freqs, times, n_epochs, n_tapers
 
 
-def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
+def _prepare_connectivity(epoch_block, times_in, tmin, tmax,
+                          fmin, fmax, sfreq, indices,
                           mode, fskip, n_bands,
                           cwt_freqs, faverage):
     """Check and precompute dimensions of results data."""
+    rfftfreq = _import_fft('rfftfreq')
     first_epoch = epoch_block[0]
 
     # get the data size and time scale
-    n_signals, n_times_in, times_in = _get_and_verify_data_sizes(first_epoch)
-
-    if times_in is None:
-        # we are not using Epochs or SourceEstimate(s) as input
-        times_in = np.linspace(0.0, n_times_in / sfreq, n_times_in,
-                               endpoint=False)
+    n_signals, n_times_in, times_in, warn_times = _get_and_verify_data_sizes(
+        first_epoch, sfreq, times=times_in)
 
     n_times_in = len(times_in)
+
+    if tmin is not None and tmin < times_in[0]:
+        warn('start time tmin=%0.2f s outside of the time scope of the data '
+             '[%0.2f s, %0.2f s]' % (tmin, times_in[0], times_in[-1]))
+    if tmax is not None and tmax > times_in[-1]:
+        warn('stop time tmax=%0.2f s outside of the time scope of the data '
+             '[%0.2f s, %0.2f s]' % (tmax, times_in[0], times_in[-1]))
+
     mask = _time_mask(times_in, tmin, tmax, sfreq=sfreq)
     tmin_idx, tmax_idx = np.where(mask)[0][[0, -1]]
     tmax_idx += 1
@@ -1044,7 +1052,7 @@ def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
 
     return (n_cons, times, n_times, times_in, n_times_in, tmin_idx,
             tmax_idx, n_freqs, freq_mask, freqs, freqs_bands, freq_idx_bands,
-            n_signals, indices_use)
+            n_signals, indices_use, warn_times)
 
 
 def _assemble_spectral_params(mode, n_times, mt_adaptive, mt_bandwidth, sfreq,

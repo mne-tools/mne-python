@@ -2,15 +2,16 @@
 """Compute resolution matrix for beamformers."""
 # Authors: olaf.hauk@mrc-cbu.cam.ac.uk
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import numpy as np
 
 from ..io.pick import pick_channels, pick_info, pick_channels_forward
 from ..evoked import EvokedArray
-from ..utils import logger
+from ..utils import logger, fill_doc
 from ._lcmv import apply_lcmv
 
 
+@fill_doc
 def make_lcmv_resolution_matrix(filters, forward, info):
     """Compute resolution matrix for LCMV beamformer.
 
@@ -21,8 +22,7 @@ def make_lcmv_resolution_matrix(filters, forward, info):
          (see mne.beamformer.make_lcmv).
     forward : instance of Forward
         Forward Solution with leadfield matrix.
-    info : instance of Info
-        Measurement info used to compute LCMV filters.
+    %(info_not_none)s Used to compute LCMV filters.
 
     Returns
     -------
@@ -69,8 +69,7 @@ def _get_matrix_from_lcmv(filters, forward, info, max_ori_out='signed',
         LCMV spatial filter.
     forward : instance of Forward
         The forward solution.
-    info : instance of Info
-        Measurement info used to compute the LCMV filters.
+    %(info_not_none)s Used to compute the LCMV filters.
     max_ori_out : str
         As for beamformer.apply_lcmv(). Default 'signed'.
     verbose : bool, str, int, or None

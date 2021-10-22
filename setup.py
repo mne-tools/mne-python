@@ -5,8 +5,23 @@
 
 import os
 import os.path as op
+import re
 
 from setuptools import setup
+
+
+def parse_requirements_file(fname):
+    requirements = list()
+    with open(fname, 'r') as fid:
+        for line in fid:
+            req = line.strip()
+            if req.startswith('#'):
+                continue
+            # strip end-of-line comments
+            req = req.split('#', maxsplit=1)[0].strip()
+            requirements.append(req)
+    return requirements
+
 
 # get the version (don't import mne here, so dependencies are not needed)
 version = None
@@ -19,14 +34,12 @@ if version is None:
     raise RuntimeError('Could not determine version')
 
 
-descr = """MNE python project for MEG and EEG data analysis."""
-
 DISTNAME = 'mne'
-DESCRIPTION = descr
+DESCRIPTION = 'MNE-Python project for MEG and EEG data analysis.'
 MAINTAINER = 'Alexandre Gramfort'
 MAINTAINER_EMAIL = 'alexandre.gramfort@inria.fr'
 URL = 'https://mne.tools/dev/'
-LICENSE = 'BSD (3-clause)'
+LICENSE = 'BSD-3-Clause'
 DOWNLOAD_URL = 'http://github.com/mne-tools/mne-python'
 VERSION = version
 
@@ -48,6 +61,19 @@ if __name__ == "__main__":
     with open('README.rst', 'r') as fid:
         long_description = fid.read()
 
+    hard_dependencies = ('numpy', 'scipy')
+    data_dependencies = ('pooch', 'tqdm')
+    install_requires = list()
+    data_requires = list()
+    for req in parse_requirements_file('requirements.txt'):
+        pkg = re.split(r'[~<>=!;]', req, maxsplit=1)[0]
+        if pkg in hard_dependencies:
+            install_requires.append(req)
+        elif pkg in data_dependencies:
+            data_requires.append(req)
+
+    test_requires = (parse_requirements_file('requirements_testing.txt') +
+                     parse_requirements_file('requirements_testing_extra.txt'))
     setup(name=DISTNAME,
           maintainer=MAINTAINER,
           include_package_data=True,
@@ -79,10 +105,15 @@ if __name__ == "__main__":
               'Tracker': 'https://github.com/mne-tools/mne-python/issues/',
           },
           platforms='any',
-          python_requires='>=3.6',
-          install_requires=['numpy>=1.11.3', 'scipy>=0.17.1'],
+          python_requires='>=3.7',
+          install_requires=install_requires,
+          extras_require={
+              'data': data_requires,
+              'test': test_requires,
+          },
           packages=package_tree('mne'),
           package_data={'mne': [
+              op.join('data', 'eegbci_checksums.txt'),
               op.join('data', '*.sel'),
               op.join('data', 'icos.fif.gz'),
               op.join('data', 'coil_def*.dat'),
@@ -98,6 +129,9 @@ if __name__ == "__main__":
               op.join('channels', 'data', 'montages', '*.elc'),
               op.join('channels', 'data', 'neighbors', '*.mat'),
               op.join('datasets', 'sleep_physionet', 'SHA1SUMS'),
+              op.join('datasets', '_fsaverage', '*.txt'),
+              op.join('datasets', '_infant', '*.txt'),
+              op.join('datasets', '_phantom', '*.txt'),
               op.join('gui', 'help', '*.json'),
               op.join('html', '*.js'),
               op.join('html', '*.css'),

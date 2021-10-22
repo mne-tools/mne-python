@@ -4,11 +4,11 @@
 # License: BSD Style.
 
 
-import tarfile
 import os.path as op
 import os
-from ...utils import _fetch_file, verbose, _check_option
-from ..utils import _get_path, logger, _do_path_update
+from ...utils import verbose, _check_option
+from ..utils import _get_path, _do_path_update, _download_mne_dataset
+from ..config import MNE_DATASETS
 
 
 @verbose
@@ -16,7 +16,8 @@ def data_path(dataset='evoked', path=None, force_update=False,
               update_path=True, verbose=None):
     u"""Get path to local copy of the high frequency SEF dataset.
 
-    Gets a local copy of the high frequency SEF MEG dataset [1]_.
+    Gets a local copy of the high frequency SEF MEG dataset
+    :footcite:`NurminenEtAl2017`.
 
     Parameters
     ----------
@@ -44,57 +45,35 @@ def data_path(dataset='evoked', path=None, force_update=False,
 
     References
     ----------
-    .. [1] Nurminen, J., Paananen, H., Mäkelä, J. (2017): High frequency
-           somatosensory MEG dataset. https://doi.org/10.5281/zenodo.889234
+    .. footbibliography::
     """
-    key = 'MNE_DATASETS_HF_SEF_PATH'
-    name = 'HF_SEF'
-    path = _get_path(path, key, name)
-    destdir = op.join(path, 'HF_SEF')
+    _check_option('dataset', dataset, ('evoked', 'raw'))
+    if dataset == 'raw':
+        data_dict = MNE_DATASETS['hf_sef_raw']
+        data_dict['dataset_name'] = 'hf_sef_raw'
+    else:
+        data_dict = MNE_DATASETS['hf_sef_evoked']
+        data_dict['dataset_name'] = 'hf_sef_evoked'
+    config_key = data_dict['config_key']
+    folder_name = data_dict['folder_name']
 
-    urls = {'evoked':
-            'https://zenodo.org/record/3523071/files/hf_sef_evoked.tar.gz',
-            'raw':
-            'https://zenodo.org/record/889296/files/hf_sef_raw.tar.gz'}
-    hashes = {'evoked': '13d34cb5db584e00868677d8fb0aab2b',
-              'raw': '33934351e558542bafa9b262ac071168'}
-    _check_option('dataset', dataset, sorted(urls.keys()))
-    url = urls[dataset]
-    hash_ = hashes[dataset]
-    fn = url.split('/')[-1]  # pick the filename from the url
-    archive = op.join(destdir, fn)
+    # get download path for specific dataset
+    path = _get_path(path=path, key=config_key, name=folder_name)
+    final_path = op.join(path, folder_name)
+    megdir = op.join(final_path, 'MEG', 'subject_a')
+    has_raw = (dataset == 'raw' and op.isdir(megdir) and
+               any('raw' in filename for filename in os.listdir(megdir)))
+    has_evoked = (dataset == 'evoked' and
+                  op.isdir(op.join(final_path, 'subjects')))
+    # data not there, or force_update requested:
+    if has_raw or has_evoked and not force_update:
+        _do_path_update(path, update_path, config_key,
+                        folder_name)
+        return final_path
 
-    # check for existence of evoked and raw sets
-    has = dict()
-    subjdir = op.join(destdir, 'subjects')
-    megdir_a = op.join(destdir, 'MEG', 'subject_a')
-    has['evoked'] = op.isdir(destdir) and op.isdir(subjdir)
-    has['raw'] = op.isdir(megdir_a) and any(['raw' in fn_ for fn_ in
-                                             os.listdir(megdir_a)])
-
-    if not has[dataset] or force_update:
-        if not op.isdir(destdir):
-            os.mkdir(destdir)
-        _fetch_file(url, archive, hash_=hash_)
-
-        with tarfile.open(archive) as tar:
-            logger.info('Decompressing %s' % archive)
-            for member in tar.getmembers():
-                # strip the leading dirname 'hf_sef/' from the archive paths
-                # this should be fixed when making next version of archives
-                member.name = member.name[7:]
-                try:
-                    tar.extract(member, destdir)
-                except IOError:
-                    # check whether file exists but could not be overwritten
-                    fn_full = op.join(destdir, member.name)
-                    if op.isfile(fn_full):
-                        os.remove(fn_full)
-                        tar.extract(member, destdir)
-                    else:  # some more sinister cause for IOError
-                        raise
-
-        os.remove(archive)
-
-    _do_path_update(path, update_path, key, name)
-    return destdir
+    # instantiate processor that unzips file
+    data_path = _download_mne_dataset(name=data_dict['dataset_name'],
+                                      processor='untar', path=path,
+                                      force_update=force_update,
+                                      update_path=update_path, download=True)
+    return data_path

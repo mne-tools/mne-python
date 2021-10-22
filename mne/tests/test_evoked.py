@@ -3,7 +3,7 @@
 #         Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #         Mads Jensen <mje.mads@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from copy import deepcopy
 import os.path as op
@@ -21,14 +21,52 @@ from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
 from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.io import read_raw_fif
 from mne.io.constants import FIFF
-from mne.utils import (_TempDir, requires_pandas,
-                       run_tests_if_main, grand_average)
+from mne.utils import requires_pandas, grand_average
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname = op.join(base_dir, 'test-ave.fif')
 fname_gz = op.join(base_dir, 'test-ave.fif.gz')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
+
+
+def test_get_data():
+    """Test the get_data method for Evoked."""
+    evoked = read_evokeds(fname, 0)
+    d1 = evoked.get_data()
+    d2 = evoked.data
+    assert_array_equal(d1, d2)
+
+    eeg_idxs = np.array([i == "eeg" for i in evoked.get_channel_types()])
+    assert_array_equal(
+        evoked.data[eeg_idxs],
+        evoked.get_data(picks="eeg")
+    )
+
+    # Get a specific time window using tmin and tmax
+    d3 = evoked.get_data(tmin=0)
+    assert np.all(d3.shape[1] ==
+                  evoked.data.shape[1] -
+                  np.nonzero(evoked.times == 0)[0])
+
+    assert evoked.get_data(tmin=0, tmax=0).size == 0
+
+    with pytest.raises(TypeError, match='tmin .* float, None'):
+        evoked.get_data(tmin=[1], tmax=1)
+
+    with pytest.raises(TypeError, match='tmax .* float, None'):
+        evoked.get_data(tmin=1, tmax=np.ones(5))
+
+    # Test units
+    # more tests in mne/io/tests/test_raw.py::test_get_data_units
+    # EEG is already in V, so no conversion should take place
+    d1 = evoked.get_data(picks="eeg", units=None)
+    d2 = evoked.get_data(picks="eeg", units="V")
+    assert_array_equal(d1, d2)
+
+    # Convert to µV
+    d3 = evoked.get_data(picks="eeg", units="µV")
+    assert_array_equal(d1 * 1e6, d3)
 
 
 def test_decim():
@@ -241,9 +279,9 @@ def test_io_evoked(tmpdir):
     assert (all(ave.info['maxshield'] is True for ave in aves))
 
 
-def test_shift_time_evoked():
+def test_shift_time_evoked(tmpdir):
     """Test for shifting of time scale."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     # Shift backward
     ave = read_evokeds(fname, 0).shift_time(-0.1, relative=True)
     write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
@@ -308,9 +346,9 @@ def test_tmin_tmax():
     assert evoked.times[-1] == evoked.tmax
 
 
-def test_evoked_resample():
+def test_evoked_resample(tmpdir):
     """Test resampling evoked data."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     # upsample, write it out, read it in
     ave = read_evokeds(fname, 0)
     orig_lp = ave.info['lowpass']
@@ -586,8 +624,7 @@ def test_arithmetic():
     ev20.comment = None
     ev = combine_evoked([ev20, -ev30], weights=[1, -1])
     assert_equal(ev.comment.count('unknown'), 2)
-    assert ('-unknown' in ev.comment)
-    assert (' + ' in ev.comment)
+    assert ev.comment == 'unknown + unknown'
     ev20.comment = old_comment1
 
     with pytest.raises(ValueError, match="Invalid value for the 'weights'"):
@@ -623,9 +660,9 @@ def test_arithmetic():
     assert evoked1.ch_names == evoked3.ch_names
 
 
-def test_array_epochs():
+def test_array_epochs(tmpdir):
     """Test creating evoked from array."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
 
     # creating
     rng = np.random.RandomState(42)
@@ -681,7 +718,11 @@ def test_time_as_index_and_crop():
     assert_allclose(evoked.times[[0, -1]], [tmin, tmax], atol=atol)
     assert_array_equal(evoked.time_as_index([-.1, .1], use_rounding=True),
                        [0, len(evoked.times) - 1])
-    evoked.crop(tmin, tmax, include_tmax=False)
+    evoked.crop(evoked.tmin, evoked.tmax, include_tmax=False)
+    n_times = len(evoked.times)
+    with pytest.warns(RuntimeWarning, match='tmax is set to'):
+        evoked.crop(tmin, tmax, include_tmax=False)
+    assert len(evoked.times) == n_times
     assert_allclose(evoked.times[[0, -1]], [tmin, tmax - delta], atol=atol)
 
 
@@ -717,19 +758,61 @@ def test_add_channels():
     pytest.raises(TypeError, evoked_meg.add_channels, evoked_badsf)
 
 
-def test_evoked_baseline():
+def test_evoked_baseline(tmpdir):
     """Test evoked baseline."""
     evoked = read_evokeds(fname, condition=0, baseline=None)
 
     # Here we create a data_set with constant data.
     evoked = EvokedArray(np.ones_like(evoked.data), evoked.info,
                          evoked.times[0])
+    assert evoked.baseline is None
+
+    evoked_baselined = EvokedArray(np.ones_like(evoked.data), evoked.info,
+                                   evoked.times[0], baseline=(None, 0))
+    assert_allclose(evoked_baselined.baseline, (evoked_baselined.tmin, 0))
+    del evoked_baselined
 
     # Mean baseline correction is applied, since the data is equal to its mean
     # the resulting data should be a matrix of zeroes.
-    evoked.apply_baseline((None, None))
-
+    baseline = (None, None)
+    evoked.apply_baseline(baseline)
+    assert_allclose(evoked.baseline, (evoked.tmin, evoked.tmax))
     assert_allclose(evoked.data, np.zeros_like(evoked.data))
+
+    # Test that the .baseline attribute changes if we apply a different
+    # baseline now.
+    baseline = (None, 0)
+    evoked.apply_baseline(baseline)
+    assert_allclose(evoked.baseline, (evoked.tmin, 0))
+
+    # By default for our test file, no baseline should be set upon reading
+    evoked = read_evokeds(fname, condition=0)
+    assert evoked.baseline is None
+
+    # Test that the .baseline attribute is set when we call read_evokeds()
+    # with a `baseline` parameter.
+    baseline = (-0.2, -0.1)
+    evoked = read_evokeds(fname, condition=0, baseline=baseline)
+    assert_allclose(evoked.baseline, baseline)
+
+    # Test that the .baseline attribute survives an I/O roundtrip.
+    evoked = read_evokeds(fname, condition=0)
+    baseline = (-0.2, -0.1)
+    evoked.apply_baseline(baseline)
+    assert_allclose(evoked.baseline, baseline)
+
+    tmp_fname = tmpdir / 'test-ave.fif'
+    evoked.save(tmp_fname)
+    evoked_read = read_evokeds(tmp_fname, condition=0)
+    assert_allclose(evoked_read.baseline, evoked.baseline)
+
+    # We shouldn't be able to remove a baseline correction after it has been
+    # applied.
+    evoked = read_evokeds(fname, condition=0)
+    baseline = (-0.2, -0.1)
+    evoked.apply_baseline(baseline)
+    with pytest.raises(ValueError, match='already been baseline-corrected'):
+        evoked.apply_baseline(None)
 
 
 def test_hilbert():
@@ -758,4 +841,19 @@ def test_hilbert():
     assert_allclose(evoked_hilb_env.data, np.abs(evoked_hilb.data))
 
 
-run_tests_if_main()
+def test_apply_function_evk():
+    """Check the apply_function method for evoked data."""
+    # create fake evoked data to use for checking apply_function
+    data = np.random.rand(10, 1000)
+    info = create_info(10, 1000., 'eeg')
+    evoked = EvokedArray(data, info)
+    evoked_data = evoked.data.copy()
+    # check apply_function channel-wise
+
+    def fun(data, multiplier):
+        return data * multiplier
+
+    mult = -1
+    applied = evoked.apply_function(fun, n_jobs=1, multiplier=mult)
+    assert np.shape(applied.data) == np.shape(evoked_data)
+    assert np.equal(applied.data, evoked_data * mult).all()

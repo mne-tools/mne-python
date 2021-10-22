@@ -6,8 +6,9 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #          Joan Massich <mailsik@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
+from contextlib import nullcontext
 from functools import partial
 import os.path as op
 import inspect
@@ -20,8 +21,8 @@ from scipy.io import loadmat
 import pytest
 
 from mne import pick_types, Annotations
+from mne.annotations import events_from_annotations, read_annotations
 from mne.datasets import testing
-from mne.fixes import nullcontext
 from mne.utils import requires_pandas
 from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf, read_raw_gdf
 from mne.io.tests.test_raw import _test_raw_reader
@@ -29,7 +30,7 @@ from mne.io.edf.edf import (_get_edf_default_event_id, _read_annotations_edf,
                             _read_ch, _parse_prefilter_string, _edf_str,
                             _read_edf_header, _read_header)
 from mne.io.pick import channel_indices_by_type, get_channel_type_constants
-from mne.annotations import events_from_annotations, read_annotations
+from mne.tests.test_annotations import _assert_annotations_equal
 
 td_mark = testing._pytest_mark()
 
@@ -52,12 +53,14 @@ edf_stim_resamp_path = op.join(data_path, 'EDF', 'test_edf_stim_resamp.edf')
 edf_overlap_annot_path = op.join(data_path, 'EDF',
                                  'test_edf_overlapping_annotations.edf')
 edf_reduced = op.join(data_path, 'EDF', 'test_reduced.edf')
+edf_annot_only = op.join(data_path, 'EDF', 'SC4001EC-Hypnogram.edf')
 bdf_stim_channel_path = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
 bdf_multiple_annotations_path = op.join(data_path, 'BDF',
                                         'multiple_annotation_chans.bdf')
 test_generator_bdf = op.join(data_path, 'BDF', 'test_generator_2.bdf')
 test_generator_edf = op.join(data_path, 'EDF', 'test_generator_2.edf')
 edf_annot_sub_s_path = op.join(data_path, 'EDF', 'subsecond_starttime.edf')
+edf_chtypes_path = op.join(data_path, 'EDF', 'chtypes_edf.edf')
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
@@ -178,7 +181,7 @@ def test_edf_data_broken(tmpdir):
 
 def test_duplicate_channel_labels_edf():
     """Test reading edf file with duplicate channel names."""
-    EXPECTED_CHANNEL_NAMES = ['EEG F1-Ref-0', 'EEG F2-Ref', 'EEG F1-Ref-1']
+    EXPECTED_CHANNEL_NAMES = ['F1-Ref-0', 'F2-Ref', 'F1-Ref-1']
     with pytest.warns(RuntimeWarning, match='Channel names are not unique'):
         raw = read_raw_edf(duplicate_channel_labels_path, preload=False)
 
@@ -208,12 +211,15 @@ def test_parse_annotation(tmpdir):
                                  samp=(len(annot) - 1) // 2,
                                  dtype_byte='This_parameter_is_not_used')
 
+    want_onset, want_duration, want_description = zip(
+        *[[180., 0., 'Lights off'], [180., 0., 'Close door'],
+          [180., 0., 'Lights off'], [180., 0., 'Close door'],
+          [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']])
     for tal_channel in [tal_channel_A, tal_channel_B]:
         onset, duration, description = _read_annotations_edf([tal_channel])
-        assert_equal(np.column_stack((onset, duration, description)),
-                     [[180., 0., 'Lights off'], [180., 0., 'Close door'],
-                      [180., 0., 'Lights off'], [180., 0., 'Close door'],
-                      [3.14, 4.2, 'nothing'], [1800.2, 25.5, 'Apnea']])
+        assert_allclose(onset, want_onset)
+        assert_allclose(duration, want_duration)
+        assert description == want_description
 
 
 def test_find_events_backward_compatibility():
@@ -230,6 +236,31 @@ def test_find_events_backward_compatibility():
                                                  use_rounding=False)
 
     assert_array_equal(events_from_EFA, EXPECTED_EVENTS)
+
+
+@testing.requires_testing_data
+def test_no_data_channels():
+    """Test that we can load with no data channels."""
+    # analog
+    raw = read_raw_edf(edf_path, preload=True)
+    picks = pick_types(raw.info, stim=True)
+    assert list(picks) == [len(raw.ch_names) - 1]
+    stim_data = raw[picks][0]
+    raw = read_raw_edf(edf_path, exclude=raw.ch_names[:-1])
+    stim_data_2 = raw[0][0]
+    assert_array_equal(stim_data, stim_data_2)
+    raw.plot()  # smoke test
+    # annotations
+    raw = read_raw_edf(edf_overlap_annot_path)
+    picks = pick_types(raw.info, stim=True)
+    assert picks.size == 0
+    annot = raw.annotations
+    raw = read_raw_edf(edf_overlap_annot_path, exclude=raw.ch_names)
+    annot_2 = raw.annotations
+    _assert_annotations_equal(annot, annot_2)
+    # only annotations (should warn)
+    with pytest.warns(RuntimeWarning, match='read_annotations'):
+        read_raw_edf(edf_annot_only)
 
 
 @requires_pandas
@@ -261,13 +292,6 @@ def test_read_raw_edf_stim_channel_input_parameters():
         with pytest.raises(ValueError,
                            match="stim channel is not supported"):
             read_raw_edf(edf_path, stim_channel=invalid_stim_parameter)
-
-
-def _assert_annotations_equal(a, b):
-    assert_array_equal(a.onset, b.onset)
-    assert_array_equal(a.duration, b.duration)
-    assert_array_equal(a.description, b.description)
-    assert a.orig_time == b.orig_time
 
 
 def test_read_annot(tmpdir):
@@ -404,8 +428,8 @@ def test_bdf_multiple_annotation_channels():
 @testing.requires_testing_data
 def test_edf_lowpass_zero():
     """Test if a lowpass filter of 0Hz is mapped to the Nyquist frequency."""
-    with pytest.warns(RuntimeWarning, match='too long.*truncated'):
-        raw = read_raw_edf(edf_stim_resamp_path)
+    raw = read_raw_edf(edf_stim_resamp_path)
+    assert raw.ch_names[100] == 'LDAMT_01-REF'
     assert_allclose(raw.info["lowpass"], raw.info["sfreq"] / 2)
 
 
@@ -508,3 +532,32 @@ def test_degenerate():
                  partial(_read_header, exclude=())):
         with pytest.raises(NotImplementedError, match='Only.*txt.*'):
             func(edf_txt_stim_channel_path)
+
+
+def test_exclude():
+    """Test exclude parameter."""
+    exclude = ["I1", "I2", "I3", "I4"]  # list of excluded channels
+
+    raw = read_raw_edf(edf_path, exclude=["I1", "I2", "I3", "I4"])
+    for ch in exclude:
+        assert ch not in raw.ch_names
+
+    raw = read_raw_edf(edf_path, exclude="I[1-4]")
+    for ch in exclude:
+        assert ch not in raw.ch_names
+
+
+@testing.requires_testing_data
+def test_ch_types():
+    """Test reading of channel types from EDF channel label."""
+    raw = read_raw_edf(edf_chtypes_path)
+
+    # get the channel types for all channels
+    ch_types = raw.get_channel_types()
+    assert all(x in ch_types for x in ['eeg', 'ecg'])
+
+    # test certain channels were correctly detected as a channel type
+    test_ch_names = {"Fp1-Ref": "eeg", "P10-Ref": "eeg", "DC01": "eeg",
+                     "ECG1": "ecg", "ECG2": "ecg"}
+    assert all(raw.get_channel_types(picks=pick)[0] == ch_type
+               for pick, ch_type in test_ch_names.items())

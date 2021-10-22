@@ -8,7 +8,7 @@ This script makes the logo for MNE.
 """
 # @author: drmccloy
 # Created on Mon Jul 20 11:28:16 2015
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 import os.path as op

@@ -18,11 +18,9 @@ from mne.channels import (make_eeg_layout, make_grid_layout, read_layout,
                           find_layout, HEAD_SIZE_DEFAULT)
 from mne.channels.layout import (_box_size, _find_topomap_coords,
                                  generate_2d_layout)
-from mne.utils import run_tests_if_main
 from mne import pick_types, pick_info
 from mne.io import read_raw_kit, _empty_info, read_info
 from mne.io.constants import FIFF
-from mne.utils import _TempDir
 
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
@@ -53,9 +51,9 @@ def _get_test_info():
     return test_info
 
 
-def test_io_layout_lout():
+def test_io_layout_lout(tmpdir):
     """Test IO with .lout files."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     layout = read_layout('Vectorview-all', scale=False)
     layout.save(op.join(tempdir, 'foobar.lout'))
     layout_read = read_layout(op.join(tempdir, 'foobar.lout'), path='./',
@@ -65,9 +63,9 @@ def test_io_layout_lout():
     print(layout)  # test repr
 
 
-def test_io_layout_lay():
+def test_io_layout_lay(tmpdir):
     """Test IO with .lay files."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     layout = read_layout('CTF151', scale=False)
     layout.save(op.join(tempdir, 'foobar.lay'))
     layout_read = read_layout(op.join(tempdir, 'foobar.lay'), path='./',
@@ -100,7 +98,7 @@ def test_find_topomap_coords():
 
     for z_pt in ((HEAD_SIZE_DEFAULT, 0., 0.),
                  (0., HEAD_SIZE_DEFAULT, 0.)):
-        info['dig'][-1]['r'] = z_pt
+        info['dig'][-1]['r'] = np.array(z_pt)
         l1 = _find_topomap_coords(info, picks, **kwargs)
         assert_allclose(l1[-1], z_pt[:2], err_msg='Z=0 point moved', atol=1e-6)
 
@@ -138,9 +136,9 @@ def test_find_topomap_coords():
         _find_topomap_coords(info, picks, **kwargs)
 
 
-def test_make_eeg_layout():
+def test_make_eeg_layout(tmpdir):
     """Test creation of EEG layout."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     tmp_name = 'foo'
     lout_name = 'test_raw'
     lout_orig = read_layout(kind=lout_name, path=lout_path)
@@ -164,9 +162,9 @@ def test_make_eeg_layout():
     pytest.raises(ValueError, make_eeg_layout, info, height=1.1)
 
 
-def test_make_grid_layout():
+def test_make_grid_layout(tmpdir):
     """Test creation of grid layout."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     tmp_name = 'bar'
     lout_name = 'test_ica'
     lout_orig = read_layout(kind=lout_name, path=lout_path)
@@ -367,6 +365,3 @@ def test_generate_2d_layout():
     # Make sure background image normalizing is correct
     lt_bg = generate_2d_layout(xy, bg_image=bg_image)
     assert_allclose(lt_bg.pos[:, :2].max(), xy.max() / float(sbg))
-
-
-run_tests_if_main()
