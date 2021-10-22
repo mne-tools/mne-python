@@ -455,6 +455,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
                       "not a file with extension '%s'." % ext)
 
     settings, cfg, cinfostr, info = _aux_vhdr_info(vhdr_fname)
+    info._unlocked = True
 
     order = cfg.get(cinfostr, 'DataOrientation')
     if order not in _orientation_dict:
@@ -487,16 +488,15 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
     with open(mrk_fname, 'r') as tmp_mrk_f:
         lines = tmp_mrk_f.readlines()
 
-    with info._unlock(check_after=False):
-        for line in lines:
-            match = re.findall(regexp, line.strip())
-            # Always take first measurement date we find
-            if match:
-                date_str = match[0]
-                info['meas_date'] = _str_to_meas_date(date_str)
-                break
-        else:
-            info['meas_date'] = None
+    for line in lines:
+        match = re.findall(regexp, line.strip())
+        # Always take first measurement date we find
+        if match:
+            date_str = match[0]
+            info['meas_date'] = _str_to_meas_date(date_str)
+            break
+    else:
+        info['meas_date'] = None
 
     # load channel labels
     nchan = cfg.getint(cinfostr, 'NumberOfChannels')
@@ -680,13 +680,13 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             if highpass[0] in ('NaN', 'Off'):
                 pass  # Placeholder for future use. Highpass set in _empty_info
             elif highpass[0] == 'DC':
-                highpass_ = 0.
+                info['highpass'] = 0.
             else:
-                highpass_ = float(highpass[0])
+                info['highpass'] = float(highpass[0])
                 if hp_s:
                     # filter time constant t [secs] to Hz
                     # conversion: 1/2*pi*t
-                    highpass_ = 1. / (2 * np.pi * highpass_)
+                    info['highpass'] = 1. / (2 * np.pi * info['highpass'])
 
         else:
             heterogeneous_hp_filter = True
@@ -695,23 +695,23 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
                 # highpass relaxed / no filters
                 highpass = [float(filt) if filt not in ('NaN', 'Off', 'DC')
                             else np.Inf for filt in highpass]
-                highpass_ = np.max(np.array(highpass, dtype=np.float64))
+                info['highpass'] = np.max(np.array(highpass, dtype=np.float64))
                 # Coveniently enough 1 / np.Inf = 0.0, so this works for
                 # DC / no highpass filter
                 # filter time constant t [secs] to Hz conversion: 1/2*pi*t
-                highpass_ = 1. / (2 * np.pi * highpass_)
+                info['highpass'] = 1. / (2 * np.pi * info['highpass'])
 
                 # not exactly the cleanest use of FP, but this makes us
                 # more conservative in *not* warning.
-                if highpass_ == 0.0 and len(set(highpass)) == 1:
+                if info['highpass'] == 0.0 and len(set(highpass)) == 1:
                     # not actually heterogeneous in effect
                     # ... just heterogeneously disabled
                     heterogeneous_hp_filter = False
             else:
                 highpass = [float(filt) if filt not in ('NaN', 'Off', 'DC')
                             else 0.0 for filt in highpass]
-                highpass_ = np.min(np.array(highpass, dtype=np.float64))
-                if highpass_ == 0.0 and len(set(highpass)) == 1:
+                info['highpass'] = np.min(np.array(highpass, dtype=np.float64))
+                if info['highpass'] == 0.0 and len(set(highpass)) == 1:
                     # not actually heterogeneous in effect
                     # ... just heterogeneously disabled
                     heterogeneous_hp_filter = False
@@ -719,11 +719,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             if heterogeneous_hp_filter:
                 warn('Channels contain different highpass filters. '
                      'Lowest (weakest) filter setting (%0.2f Hz) '
-                     'will be stored.' % highpass_)
-
-        with info._unlock(check_after=False):
-            info['highpass'] = highpass_
-        del highpass_
+                     'will be stored.' % info['highpass'])
 
         if len(lowpass) == 0:
             pass
@@ -731,10 +727,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             if lowpass[0] in ('NaN', 'Off'):
                 pass  # Placeholder for future use. Lowpass set in _empty_info
             else:
-                lowpass_ = float(lowpass[0])
+                info['lowpass'] = float(lowpass[0])
                 if lp_s:
                     # filter time constant t [secs] to Hz conversion: 1/2*pi*t
-                    lowpass_ = 1. / (2 * np.pi * lowpass_)
+                    info['lowpass'] = 1. / (2 * np.pi * info['lowpass'])
 
         else:
             heterogeneous_lp_filter = True
@@ -743,16 +739,16 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
                 # infinitely relaxed / no filters
                 lowpass = [float(filt) if filt not in ('NaN', 'Off')
                            else 0.0 for filt in lowpass]
-                lowpass_ = np.min(np.array(lowpass, dtype=np.float64))
+                info['lowpass'] = np.min(np.array(lowpass, dtype=np.float64))
                 try:
                     # filter time constant t [secs] to Hz conversion: 1/2*pi*t
-                    lowpass_ = 1. / (2 * np.pi * lowpass_)
+                    info['lowpass'] = 1. / (2 * np.pi * info['lowpass'])
 
                 except ZeroDivisionError:
                     if len(set(lowpass)) == 1:
                         # No lowpass actually set for the weakest setting
                         # so we set lowpass to the Nyquist frequency
-                        lowpass_ = info['sfreq'] / 2.
+                        info['lowpass'] = info['sfreq'] / 2.
                         # not actually heterogeneous in effect
                         # ... just heterogeneously disabled
                         heterogeneous_lp_filter = False
@@ -765,12 +761,12 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
                 # infinitely relaxed / no filters
                 lowpass = [float(filt) if filt not in ('NaN', 'Off')
                            else np.Inf for filt in lowpass]
-                lowpass_ = np.max(np.array(lowpass, dtype=np.float64))
+                info['lowpass'] = np.max(np.array(lowpass, dtype=np.float64))
 
-                if np.isinf(lowpass_):
+                if np.isinf(info['lowpass']):
                     # No lowpass actually set for the weakest setting
                     # so we set lowpass to the Nyquist frequency
-                    lowpass_ = info['sfreq'] / 2.
+                    info['lowpass'] = info['sfreq'] / 2.
                     if len(set(lowpass)) == 1:
                         # not actually heterogeneous in effect
                         # ... just heterogeneously disabled
@@ -781,22 +777,17 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
                 # the Nyquist hint when the lowpass filter was actually
                 # calculated from dividing the sampling frequency by 2, so the
                 # exact/direct comparison (instead of tolerance) makes sense
-                if lowpass_ == info['sfreq'] / 2.0:
+                if info['lowpass'] == info['sfreq'] / 2.0:
                     nyquist = ', Nyquist limit'
                 else:
                     nyquist = ""
                 warn('Channels contain different lowpass filters. '
                      'Highest (weakest) filter setting (%0.2f Hz%s) '
-                     'will be stored.' % (lowpass_, nyquist))
-
-        with info._unlock(check_after=False):
-            info['lowpass'] = lowpass_
-        del lowpass_
+                     'will be stored.' % (info['lowpass'], nyquist))
 
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
-    with info._unlock(check_after=False):
-        info['chs'] = []
+    info['chs'] = []
     for idx, ch_name in enumerate(ch_names):
         if ch_name in eog or idx in eog or idx - nchan in eog:
             kind = FIFF.FIFFV_EOG_CH
@@ -824,6 +815,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             unit=unit, unit_mul=FIFF.FIFF_UNITM_NONE,
             coord_frame=FIFF.FIFFV_COORD_HEAD))
 
+    info._unlocked = False
     info._update_redundant()
     return (info, data_fname, fmt, order, n_samples, mrk_fname, montage,
             orig_units)
