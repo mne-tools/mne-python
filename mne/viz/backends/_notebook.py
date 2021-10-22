@@ -405,7 +405,10 @@ class _IpyWidgetList(_AbstractWidgetList):
 
 class _IpyWidget(_AbstractWidget):
     def set_value(self, value):
-        self._widget.value = value
+        if isinstance(self._widget, Button):
+            self._widget.click()
+        else:
+            self._widget.value = value
 
     def get_value(self):
         return self._widget.value

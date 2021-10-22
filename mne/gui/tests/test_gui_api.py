@@ -46,11 +46,10 @@ def test_gui_api(renderer_notebook, nbexec):
     widget.update()
     widget.set_enabled(False)
 
-    # XXX: it is not stable yet
     # button
-    # widget = renderer._dock_add_button('', mock)
-    # with _check_widget_trigger(widget, mock, None, None, get_value=False):
-    #     widget.set_value(True)
+    widget = renderer._dock_add_button('', mock)
+    with _check_widget_trigger(widget, mock, None, None, get_value=False):
+        widget.set_value(True)
 
     # slider
     widget = renderer._dock_add_slider('', 0, [0, 10], mock)
