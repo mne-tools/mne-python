@@ -71,7 +71,7 @@ Enhancements
 
 - Add support for more than 3 source estimates in :func:`mne.viz.plot_sparse_source_estimates` (:gh:`9640` **by new contributor** |Pierre-Antoine Bannier|_ and `Alex Gramfort`_)
 
-- Add cortical signal suppression (CSS) :func:`mne.preprocessing.cortical_signal_suppression` (:gh:`6888` **by new contributor** |John Samuelsson|_ and `Eric Larson`_)
+- Add cortical signal suppression (CSS) :func:`mne.preprocessing.cortical_signal_suppression` (:gh:`6888`, :gh:`9892` **by new contributor** |John Samuelsson|_ and `Eric Larson`_)
 
 - Show all good channel types and counts when printing a :class:`mne.Info` in the notebook (:gh:`9725` by `Valerii Chirkov`_ and `Eric Larson`_)
 
