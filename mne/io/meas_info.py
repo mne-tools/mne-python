@@ -712,7 +712,7 @@ class Info(dict, MontageMixin):
             super().__setitem__(key, val)
 
     @contextlib.contextmanager
-    def _unlock(self, check_after=True):
+    def _unlock(self, check_after=False):
         """Context manager unlocking access to attributes."""
         # needed for nested _unlock()
         state = self._unlocked if hasattr(self, '_unlocked') else False
