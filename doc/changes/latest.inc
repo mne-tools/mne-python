@@ -39,6 +39,8 @@ Current (0.24.dev0)
 
 .. |Reza Shoorangiz| replace:: **Reza Shoorangiz**
 
+.. |Dominique Makowski| replace:: **Dominique Makowski**
+
 .. |Evgeny Goldstein| replace:: **Evgeny Goldstein**
 
 .. |Joshua Teves| replace:: **Joshua Teves**
@@ -60,6 +62,8 @@ Enhancements
 - Speed up BCD solver in :func:`mne.inverse_sparse.mixed_norm` by adding Anderson acceleration (:gh:`9481` by **new contributor** |Pierre-Antoine Bannier|_ and `Alex Gramfort`_)
 
 - Add support for list of channel types for EEG/sEEG/ECoG/DBS referencing (:gh:`9637` **by new contributor** |Mathieu Scheltienne|_)
+
+- Add the ability to set point size and line width in :func:`mne.viz.plot_sensors` and related functions (:gH:`9872` **by new contributor** |Dominique Makowski|_)
 
 - Add support for changing the default event id used by :func:`mne.make_fixed_length_epochs` (:gh:`9782` **by new contributor** |Mathieu Scheltienne|_)
 
@@ -166,8 +170,6 @@ Enhancements
 - Add remove methods for mesh objects in :class:`mne.viz.Brain` (:gh:`9688` by `Alex Rockhill`_)
 
 - Add ``--show-paths`` and ``--developer`` options to :ref:`mne sys_info` (:gh:`9789` by `Eric Larson`_)
-
-- Add the ability to set point size and line width in :func:`mne.viz.plot_sensors` and related functions (:gH:`9872` by `Dominique Makowski'_)
 
 - Add ability to export EDF+ files using :func:`mne.export.export_raw` (:gh:`9643` by `Adam Li`_)
 
