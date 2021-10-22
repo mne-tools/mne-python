@@ -1220,6 +1220,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
     # check that the info is complete
     info._unlocked = False
     info._update_redundant()
+    info._check_consistency()
     return info, bti_info
 
 
