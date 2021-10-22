@@ -1,10 +1,10 @@
 # Author: John Samuelsson <johnsam@mit.edu>
 
 import numpy as np
-from ..utils import logger
-from ..evoked import EvokedArray, Evoked
-from .. import pick_types
-from numpy import linalg
+
+from ..evoked import Evoked
+from ..io.pick import _picks_to_idx
+from ..utils import verbose, _validate_type
 
 
 def _temp_proj(ref_2, ref_1, raw_data, n_proj=6):
@@ -23,11 +23,6 @@ def _temp_proj(ref_2, ref_1, raw_data, n_proj=6):
     n_proj : int
         The number of projection vectors.
 
-    Returns
-    -------
-    filtered_data : np.ndarray of float, shape (n_sensors_raw, n_times)
-        The filtered data.
-
     Notes
     -----
     This temporal projection procedure removes the common signal subspace
@@ -35,48 +30,47 @@ def _temp_proj(ref_2, ref_1, raw_data, n_proj=6):
     projection vectors. Normally used for cortical signal suppression, where
     ref_1 is gradiometer data, ref_2 is magnetometer data and
     raw_data is EEG data.
-
     """
     # Orthonormalize gradiometer and magnetometer data by a QR decomposition
-    ref_1_orth = linalg.qr(ref_1.T)[0]
-    ref_2_orth = linalg.qr(ref_2.T)[0]
+    ref_1_orth = np.linalg.qr(ref_1.T)[0]
+    ref_2_orth = np.linalg.qr(ref_2.T)[0]
 
     # Calculate cross-correlation
     cross_corr = np.dot(ref_1_orth.T, ref_2_orth)
 
     # Channel weights for common temporal subspace by SVD of cross-correlation
-    ref_1_ch_weights, sing_vals, ref_2_ch_weights = linalg.svd(cross_corr)
+    ref_1_ch_weights, _, _ = np.linalg.svd(cross_corr)
 
     # Get temporal signals from channel weights
-    proj_mat = np.dot(ref_1_orth, ref_1_ch_weights)
+    proj_mat = ref_1_orth @ ref_1_ch_weights
 
     # Project out common subspace
     filtered_data = raw_data
-    for i in range(n_proj):
-        proj_vec = proj_mat[:, i].reshape(proj_mat.shape[0], 1)
-        weights = np.dot(filtered_data, proj_vec)
-        filtered_data = filtered_data - np.dot(weights, proj_vec.T)
-
-    return filtered_data
+    proj_vec = proj_mat[:, :n_proj]
+    weights = filtered_data @ proj_vec
+    filtered_data -= weights @ proj_vec.T
 
 
-def cortical_signal_suppression(evoked, mag_inds=None, grad_inds=None,
-                                n_proj=6):
-    """Remove the cortical signals in EEG by cortical signal suppression (CSS).
+@verbose
+def cortical_signal_suppression(evoked, picks=None, mag_picks=None,
+                                grad_picks=None, n_proj=6, *, verbose=None):
+    """Apply cortical signal suppression (CSS) to Evoked data.
 
     Parameters
     ----------
     evoked : instance of Evoked
         The evoked object to use for CSS. Must contain magnetometer,
         gradiometer, and EEG channels.
-    mag_inds : np.ndarray of int
+    %(picks_good_data)s
+    mag_picks : np.ndarray of int
         Array of the magnetometer channel indices that will be used to find
         the reference data. If None (default), all channels will be used.
-    grad_inds : np.ndarray of int
+    grad_picks : np.ndarray of int
         Array of the gradiometer channel indices that will be used to find
         the reference data. If None (default), all channels will be used.
     n_proj : int
         The number of projection vectors.
+    %(verbose)s
 
     Returns
     -------
@@ -95,29 +89,23 @@ def cortical_signal_suppression(evoked, mag_inds=None, grad_inds=None,
     ----------
     .. footbibliography::
     """
-    if not isinstance(evoked, (EvokedArray, Evoked)):
-        raise ValueError('evoked needs to an instance of Evoked, however type \
-                         {} was passed'.format(type(evoked)))
-    if mag_inds is None:
-        mag_inds = pick_types(evoked.info, meg='mag')
-    if grad_inds is None:
-        grad_inds = pick_types(evoked.info, meg='grad')
+    _validate_type(evoked, Evoked, 'evoked')
+    picks = _picks_to_idx(
+        evoked.info, picks, none='data', exclude='bads')
+    mag_picks = _picks_to_idx(
+        evoked.info, mag_picks, none='mag', exclude='bads')
+    grad_picks = _picks_to_idx(
+        evoked.info, grad_picks, none='grad', exclude='bads')
     evoked_subcortical = evoked.copy()
 
-    # Load data if not preloaded
-    if not evoked.preload:
-        logger.info('Data not preloaded. Loading data now...')
-        evoked.load_data()
-
     # Get data
-    eeg_inds = pick_types(evoked.info, meg=False, eeg=True)
     all_data = evoked.data
-    mag_data = all_data[mag_inds]
-    grad_data = all_data[grad_inds]
+    mag_data = all_data[mag_picks]
+    grad_data = all_data[grad_picks]
 
     # Process data with temporal projection algorithm
-    eeg_data = all_data[eeg_inds]
-    eeg_subcortical = _temp_proj(mag_data, grad_data, eeg_data, n_proj=n_proj)
-    evoked_subcortical.data[eeg_inds, :] = eeg_subcortical
+    data = all_data[picks]
+    _temp_proj(mag_data, grad_data, data, n_proj=n_proj)
+    evoked_subcortical.data[picks, :] = data
 
     return evoked_subcortical

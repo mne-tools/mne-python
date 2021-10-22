@@ -2,18 +2,20 @@
 
 from mne.preprocessing._css import cortical_signal_suppression
 from mne import pick_types, read_evokeds
-from mne.datasets import sample
+from mne.datasets import testing
 import numpy as np
-import pytest
+
+data_path = testing.data_path()
+fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
 
+@testing.requires_testing_data
 def test_cortical_signal_suppression():
     """Test that CSS is dampening the cortical signal and has right shape."""
-    data_path = sample.data_path()
-    ave = read_evokeds(data_path + '/MEG/sample/sample_audvis-ave.fif')[0]
-    eeg_ind = pick_types(ave.info, meg=False, eeg=True)
-    mag_ind = pick_types(ave.info, meg='mag', eeg=False)
-    grad_ind = pick_types(ave.info, meg='grad', eeg=False)
+    ave = read_evokeds(fname_evoked)[0]
+    eeg_ind = pick_types(ave.info, eeg=True)
+    mag_ind = pick_types(ave.info, meg='mag')
+    grad_ind = pick_types(ave.info, meg='grad')
     ave.data[mag_ind][0, :] = np.sin(2 * np.pi * 40 * ave.times) * \
         np.mean(np.abs(ave.data[mag_ind][0, :]))
     ave.data[mag_ind][1, :] = np.sin(2 * np.pi * 239 * ave.times) * \
@@ -32,4 +34,3 @@ def test_cortical_signal_suppression():
     rel_SNR_gain = (deep_power_f / deep_power) / (cort_power_f / cort_power)
     assert rel_SNR_gain > 0
     assert ave_f.data.shape == ave.data.shape
-    pytest.raises(ValueError, cortical_signal_suppression, mag_ind)

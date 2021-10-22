@@ -51,10 +51,12 @@ hiplab, postcenlab = labels
 
 
 def cortical_waveform(times):
+    """Create a cortical waveform."""
     return 10e-9 * np.cos(times * 2 * np.pi * 40)
 
 
 def subcortical_waveform(times):
+    """Create a subcortical waveform."""
     return 10e-9 * np.cos(times * 2 * np.pi * 239)
 
 
