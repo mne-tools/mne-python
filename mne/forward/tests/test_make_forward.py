@@ -16,6 +16,7 @@ from mne import (read_forward_solution, write_forward_solution,
                  make_sphere_model, pick_types_forward, pick_info, pick_types,
                  read_evokeds, read_cov, read_dipole,
                  get_volume_labels_from_aseg)
+from mne.surface import _get_ico_surface
 from mne.transforms import Transform
 from mne.utils import requires_mne, requires_nibabel, run_subprocess
 from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
@@ -475,7 +476,7 @@ def test_use_coil_def(tmpdir):
     """Test use_coil_def."""
     info = create_info(1, 1000., 'mag')
     info['chs'][0]['coil_type'] = 9999
-    info['chs'][0]['loc'][:] = [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]
+    info['chs'][0]['loc'][:] = [0, 0, 0.02, 1, 0, 0, 0, 1, 0, 0, 0, 1]
     sphere = make_sphere_model((0., 0., 0.), 0.01)
     src = setup_volume_source_space(pos=5, sphere=sphere)
     trans = Transform('head', 'mri', None)
@@ -502,3 +503,30 @@ def test_use_coil_def(tmpdir):
   0.1250  0.750e-03  0.750e-03  0.750e-03  0.000  0.000  1.000""")
     with use_coil_def(coil_fname):
         make_forward_solution(info, trans, src, sphere)
+
+
+@testing.requires_testing_data
+def test_sensors_inside_bem():
+    """Test that sensors inside the BEM are problematic."""
+    rr = _get_ico_surface(1)['rr']
+    rr /= np.linalg.norm(rr, axis=1, keepdims=True)
+    rr *= 0.1
+    assert len(rr) == 42
+    info = create_info(len(rr), 1000., 'mag')
+    info['dev_head_t'] = Transform('meg', 'head', np.eye(4))
+    for ii, ch in enumerate(info['chs']):
+        ch['loc'][:] = np.concatenate((rr[ii], np.eye(3).ravel()))
+    trans = Transform('head', 'mri', np.eye(4))
+    trans['trans'][2, 3] = 0.03
+    sphere_noshell = make_sphere_model((0., 0., 0.), None)
+    sphere = make_sphere_model((0., 0., 0.), 1.01)
+    with pytest.raises(RuntimeError, match='.* 15 MEG.*inside the scalp.*'):
+        make_forward_solution(info, trans, fname_src, fname_bem)
+    make_forward_solution(info, trans, fname_src, fname_bem_meg)  # okay
+    make_forward_solution(info, trans, fname_src, sphere_noshell)  # okay
+    with pytest.raises(RuntimeError, match='.* 42 MEG.*outermost sphere sh.*'):
+        make_forward_solution(info, trans, fname_src, sphere)
+    for ch in info['chs']:
+        ch['loc'][:3] *= 0.1
+    with pytest.raises(RuntimeError, match='.* 42 MEG.*the inner skull.*'):
+        make_forward_solution(info, trans, fname_src, fname_bem_meg)
