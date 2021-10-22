@@ -906,10 +906,11 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     if len(picks) == 0:
         raise ValueError('Could not find any channels of type %s.' % ch_type)
 
-    chs = [info['chs'][pick] for pick in picks]
-    if not _check_ch_locs(chs):
+    if not _check_ch_locs(info=info, picks=picks):
         raise RuntimeError('No valid channel positions found')
+
     dev_head_t = info['dev_head_t']
+    chs = [info['chs'][pick] for pick in picks]
     pos = np.empty((len(chs), 3))
     for ci, ch in enumerate(chs):
         pos[ci] = ch['loc'][:3]

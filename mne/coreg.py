@@ -20,6 +20,7 @@ import numpy as np
 
 from .io import read_fiducials, write_fiducials, read_info
 from .io.constants import FIFF
+from .io.meas_info import Info
 from .io._digitization import _get_data_as_dict_from_dig
 # keep get_mni_fiducials for backward compat (no burden to keep in this
 # namespace, too)
@@ -1320,6 +1321,7 @@ class Coregistration(object):
     """
 
     def __init__(self, info, subject, subjects_dir=None, fiducials='auto'):
+        _validate_type(info, (Info, None), 'info')
         self._info = info
         self._subject = _check_subject(subject, subject)
         self._subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)

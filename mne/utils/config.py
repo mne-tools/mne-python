@@ -545,19 +545,17 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         out += '%0.1f GB\n' % (psutil.virtual_memory().total / float(2 ** 30),)
     out += '\n'
     libs = _get_numpy_libs()
-    has_3d = False
     use_mod_names = ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
                      'numba', 'nibabel', 'nilearn', 'dipy', 'cupy', 'pandas',
-                     'mayavi', 'pyvista', 'vtk', 'PyQt5', 'pooch')
+                     'mayavi', 'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk',
+                     'PyQt5', 'ipympl')
     if dependencies == 'developer':
         use_mod_names += (
             '', 'sphinx', 'sphinx_gallery', 'numpydoc', 'pydata_sphinx_theme',
-            'mne_bids', 'pytest')
+            'mne_bids', 'pytest', 'nbclient')
     for mod_name in use_mod_names:
         if mod_name == '':
             out += '\n'
-            continue
-        if mod_name == 'PyQt5' and not has_3d:
             continue
         out += ('%s:' % mod_name).ljust(ljust)
         try:
@@ -574,24 +572,13 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
             elif mod_name == 'matplotlib':
                 extra += ' {backend=%s}%s' % (mod.get_backend(), extra)
             elif mod_name == 'pyvista':
-                extras = list()
-                try:
-                    from pyvistaqt import __version__
-                except Exception:
-                    extras += ['pyvistaqt not found']
-                else:
-                    extras += [f'pyvistaqt={__version__}']
                 try:
                     from pyvista import GPUInfo
                 except ImportError:
                     pass
                 else:
                     gi = GPUInfo()
-                    extras += [f'OpenGL {gi.version} via {gi.renderer}']
-                if extras:
-                    extra += f' {{{", ".join(extras)}}}'
-            elif mod_name in ('mayavi', 'vtk'):
-                has_3d = True
+                    extra += f' {{OpenGL {gi.version} via {gi.renderer}}}'
             if mod_name == 'vtk':
                 version = mod.vtkVersion()
                 # 9.0 dev has VersionFull but 9.0 doesn't

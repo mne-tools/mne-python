@@ -846,6 +846,77 @@ def test_averaging_epochsTFR():
         power.average(method=np.mean)
 
 
+@pytest.mark.parametrize('copy', [True, False])
+def test_averaging_freqsandtimes_epochsTFR(copy):
+    """Test that EpochsTFR averaging freqs methods work."""
+    # Setup for reading the raw data
+    event_id = 1
+    tmin = -0.2
+    tmax = 0.498  # Allows exhaustive decimation testing
+
+    freqs = np.arange(6, 20, 5)  # define frequencies of interest
+    n_cycles = freqs / 4.
+
+    raw = read_raw_fif(raw_fname)
+    # only pick a few events for speed
+    events = read_events(event_fname)[:4]
+
+    include = []
+    exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
+
+    # picks MEG gradiometers
+    picks = pick_types(raw.info, meg='grad', eeg=False,
+                       stim=False, include=include, exclude=exclude)
+    picks = picks[:2]
+
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks)
+
+    # Obtain EpochsTFR
+    power = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
+                       average=False, use_fft=True,
+                       return_itc=False)
+
+    # Test average methods for freqs and times
+    for idx, (func, method) in enumerate(zip(
+            [np.mean, np.median, np.mean, np.mean],
+            ['mean', 'median', lambda x: np.mean(x, axis=2),
+             lambda x: np.mean(x, axis=3)])):
+        if idx == 3:
+            with pytest.raises(RuntimeError, match='You passed a function'):
+                avgpower = power.copy().average(method=method, dim='freqs',
+                                                copy=copy)
+            continue
+        avgpower = power.copy().average(method=method, dim='freqs', copy=copy)
+        assert_array_equal(func(power.data, axis=2, keepdims=True),
+                           avgpower.data)
+        assert avgpower.freqs == np.mean(power.freqs)
+        assert isinstance(avgpower, EpochsTFR)
+
+        # average over epochs
+        avgpower = avgpower.average()
+        assert isinstance(avgpower, AverageTFR)
+
+    # Test average methods for freqs and times
+    for idx, (func, method) in enumerate(zip(
+            [np.mean, np.median, np.mean, np.mean],
+            ['mean', 'median', lambda x: np.mean(x, axis=3),
+             lambda x: np.mean(x, axis=2)])):
+        if idx == 3:
+            with pytest.raises(RuntimeError, match='You passed a function'):
+                avgpower = power.copy().average(method=method, dim='times',
+                                                copy=copy)
+            continue
+        avgpower = power.copy().average(method=method, dim='times', copy=copy)
+        assert_array_equal(func(power.data, axis=-1, keepdims=True),
+                           avgpower.data)
+        assert avgpower.times == np.mean(power.times)
+        assert isinstance(avgpower, EpochsTFR)
+
+        # average over epochs
+        avgpower = avgpower.average()
+        assert isinstance(avgpower, AverageTFR)
+
+
 @requires_pandas
 def test_getitem_epochsTFR():
     """Test GetEpochsMixin in the context of EpochsTFR."""
@@ -1005,7 +1076,7 @@ def test_to_data_frame():
                        data[0, :, :].reshape(1, -1).squeeze())
     # compare arbitrary observation:
     assert df.loc[(freqs[1], times[2] * srate), ch_names[3]] == \
-           data[3, 1, 2]
+        data[3, 1, 2]
 
 
 @requires_pandas
