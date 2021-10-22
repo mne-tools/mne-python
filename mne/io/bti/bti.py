@@ -1097,15 +1097,13 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
     if pdf_fname is not None:
         info = _empty_info(sfreq)
         date = bti_info['processes'][0]['timestamp']
-        with info._unlock(check_after=False):
-            info['meas_date'] = _stamp_to_dt((date, 0))
+        info['meas_date'] = _stamp_to_dt((date, 0))
     else:  # these cannot be guessed from config, see docstring
         info = _empty_info(1.0)
-        with info._unlock(check_after=False):
-            info['sfreq'] = None
-            info['lowpass'] = None
-            info['highpass'] = None
-            info['meas_date'] = None
+        info['sfreq'] = None
+        info['lowpass'] = None
+        info['highpass'] = None
+        info['meas_date'] = None
         bti_info['processes'] = list()
 
     # browse processing info for filter specs.
@@ -1120,9 +1118,8 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                 elif 'lp' in step['process_type']:
                     lp = step['freq']
 
-    with info._unlock(check_after=False):
-        info['highpass'] = hp
-        info['lowpass'] = lp
+    info['highpass'] = hp
+    info['lowpass'] = lp
     chs = []
 
     # Note that 'name' and 'chan_label' are not the same.
@@ -1208,21 +1205,21 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
 
         chs.append(chan_info)
 
-    with info._unlock(check_after=True):
-        info['chs'] = chs
+    info['chs'] = chs
 
-        # ### Dig stuff
-        info = _make_bti_digitization(
-            info, head_shape_fname, convert, use_hpi, bti_dev_t, dev_ctf_t)
+    # ### Dig stuff
+    info = _make_bti_digitization(
+        info, head_shape_fname, convert, use_hpi, bti_dev_t, dev_ctf_t)
 
-        logger.info(
-            'Currently direct inclusion of 4D weight tables is not supported.'
-            ' For critical use cases please take into account the MNE command'
-            ' "mne_create_comp_data" to include weights as printed out by '
-            'the 4D "print_table" routine.')
+    logger.info(
+        'Currently direct inclusion of 4D weight tables is not supported.'
+        ' For critical use cases please take into account the MNE command'
+        ' "mne_create_comp_data" to include weights as printed out by '
+        'the 4D "print_table" routine.')
 
-        # check that the info is complete
-        info._update_redundant()
+    # check that the info is complete
+    info._unlocked = False
+    info._update_redundant()
     return info, bti_info
 
 

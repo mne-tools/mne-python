@@ -790,8 +790,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
 
     # Creates a list of dicts of meg channels for raw.info
     logger.info('Setting channel info structure...')
-    with info._unlock(check_after=False):
-        info['chs'] = fiff_channels = []
+    info['chs'] = fiff_channels = []
     channel_index = defaultdict(lambda: 0)
     sqd['eeg_dig'] = OrderedDict()
     for idx, ch in enumerate(channels, 1):
@@ -844,6 +843,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             coord_frame=FIFF.FIFFV_COORD_DEVICE,
             coil_type=KIT.CH_TO_FIFF_COIL[ch['type']],
             kind=KIT.CH_TO_FIFF_KIND[ch['type']], loc=loc))
+    info._unlocked = False
     info._update_redundant()
     return info, sqd
 

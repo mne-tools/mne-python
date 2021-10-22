@@ -413,39 +413,39 @@ def _compose_meas_info(res4, coils, trans, eeg):
     info = _empty_info(res4['sfreq'])
 
     # Collect all the necessary data from the structures read
-    with info._unlock(check_after=False):
-        info['meas_id'] = get_new_file_id()
-        info['meas_id']['usecs'] = 0
-        info['meas_id']['secs'] = _convert_time(res4['data_date'],
-                                                res4['data_time'])
+    info['meas_id'] = get_new_file_id()
+    info['meas_id']['usecs'] = 0
+    info['meas_id']['secs'] = _convert_time(res4['data_date'],
+                                            res4['data_time'])
 
-        info['meas_date'] = (info['meas_id']['secs'], info['meas_id']['usecs'])
-        info['experimenter'] = res4['nf_operator']
-        info['subject_info'] = dict(his_id=res4['nf_subject_id'])
-        for filt in res4['filters']:
-            if filt['type'] in _filt_map:
-                info[_filt_map[filt['type']]] = filt['freq']
-        info['dig'], info['hpi_results'] = _pick_isotrak_and_hpi_coils(
-            res4, coils, trans)
-        if trans is not None:
-            if len(info['hpi_results']) > 0:
-                info['hpi_results'][0]['coord_trans'] = \
-                    trans['t_ctf_head_head']
-            if trans['t_dev_head'] is not None:
-                info['dev_head_t'] = trans['t_dev_head']
-                info['dev_ctf_t'] = combine_transforms(
-                    trans['t_dev_head'],
-                    invert_transform(trans['t_ctf_head_head']),
-                    FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_MNE_COORD_CTF_HEAD)
-            if trans['t_ctf_head_head'] is not None:
-                info['ctf_head_t'] = trans['t_ctf_head_head']
-        info['chs'] = _convert_channel_info(res4, trans, eeg is None)
-        info['comps'] = _convert_comp_data(res4)
+    info['meas_date'] = (info['meas_id']['secs'], info['meas_id']['usecs'])
+    info['experimenter'] = res4['nf_operator']
+    info['subject_info'] = dict(his_id=res4['nf_subject_id'])
+    for filt in res4['filters']:
+        if filt['type'] in _filt_map:
+            info[_filt_map[filt['type']]] = filt['freq']
+    info['dig'], info['hpi_results'] = _pick_isotrak_and_hpi_coils(
+        res4, coils, trans)
+    if trans is not None:
+        if len(info['hpi_results']) > 0:
+            info['hpi_results'][0]['coord_trans'] = \
+                trans['t_ctf_head_head']
+        if trans['t_dev_head'] is not None:
+            info['dev_head_t'] = trans['t_dev_head']
+            info['dev_ctf_t'] = combine_transforms(
+                trans['t_dev_head'],
+                invert_transform(trans['t_ctf_head_head']),
+                FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_MNE_COORD_CTF_HEAD)
+        if trans['t_ctf_head_head'] is not None:
+            info['ctf_head_t'] = trans['t_ctf_head_head']
+    info['chs'] = _convert_channel_info(res4, trans, eeg is None)
+    info['comps'] = _convert_comp_data(res4)
     if eeg is None:
         # Pick EEG locations from chan info if not read from a separate file
         eeg = _pick_eeg_pos(info)
     _add_eeg_pos(eeg, trans, info)
     logger.info('    Measurement info composed.')
+    info._unlocked = False
     info._update_redundant()
     return info
 

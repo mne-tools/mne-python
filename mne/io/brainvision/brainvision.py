@@ -405,6 +405,7 @@ def _aux_vhdr_info(vhdr_fname):
     # Sampling interval is given in microsec
     sfreq = 1e6 / cfg.getfloat(cinfostr, 'SamplingInterval')
     info = _empty_info(sfreq)
+    info._unlocked = False
     return settings, cfg, cinfostr, info
 
 

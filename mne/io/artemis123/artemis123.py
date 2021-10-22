@@ -167,8 +167,7 @@ def _get_artemis123_info(fname, pos_fname=None):
 
     # load mne loc dictionary
     loc_dict = _load_mne_locs()
-    with info._unlock(check_after=False):
-        info['chs'] = []
+    info['chs'] = []
     info['bads'] = []
 
     for i, chan in enumerate(header_info['channels']):
@@ -275,15 +274,15 @@ def _get_artemis123_info(fname, pos_fname=None):
         else:
             hpi_sub['hpi_coils'][i]['event_bits'] = [256]
 
-    with info._unlock(check_after=False):
-        info['hpi_subsystem'] = hpi_sub
-        info['hpi_meas'] = [{'hpi_coils': hpi_coils}]
-        # read in digitized points if supplied
-        if pos_fname is not None:
-            info['dig'] = _read_pos(pos_fname)
-        else:
-            info['dig'] = []
+    info['hpi_subsystem'] = hpi_sub
+    info['hpi_meas'] = [{'hpi_coils': hpi_coils}]
+    # read in digitized points if supplied
+    if pos_fname is not None:
+        info['dig'] = _read_pos(pos_fname)
+    else:
+        info['dig'] = []
 
+    info._unlocked = False
     info._update_redundant()
     return info, header_info
 

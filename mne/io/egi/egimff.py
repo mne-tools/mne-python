@@ -457,9 +457,8 @@ class RawMff(BaseRaw):
             egi_info['year'], egi_info['month'], egi_info['day'],
             egi_info['hour'], egi_info['minute'], egi_info['second'])
         my_timestamp = time.mktime(my_time.timetuple())
-        with info._unlock(check_after=False):
-            info['meas_date'] = _ensure_meas_date_none_or_dt((my_timestamp, 0))
-            info['device_info'] = dict(type=egi_info['device'])
+        info['meas_date'] = _ensure_meas_date_none_or_dt((my_timestamp, 0))
+        info['device_info'] = dict(type=egi_info['device'])
 
         # First: EEG
         ch_names = [channel_naming % (i + 1) for i in
@@ -491,8 +490,8 @@ class RawMff(BaseRaw):
                              'coil_type': FIFF.FIFFV_COIL_NONE,
                              'unit': FIFF.FIFF_UNIT_NONE})
         chs = _add_pns_channel_info(chs, egi_info, ch_names)
-        with info._unlock(check_after=False):
-            info['chs'] = chs
+        info['chs'] = chs
+        info._unlocked = False
         info._update_redundant()
         if mon is not None:
             info.set_montage(mon, on_missing='ignore')

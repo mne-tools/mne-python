@@ -2315,6 +2315,7 @@ def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
 
     info._update_redundant()
     info._check_consistency()
+    info._unlocked = False
     return info
 
 
