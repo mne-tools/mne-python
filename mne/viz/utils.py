@@ -974,7 +974,8 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     title = 'Sensor positions (%s)' % ch_type if title is None else title
     fig = _plot_sensors(pos, info, picks, colors, bads, ch_names, title,
                         show_names, axes, show, kind, block,
-                        to_sphere, sphere, pointsize=pointsize, linewidth=linewidth)
+                        to_sphere, sphere, pointsize=pointsize,
+                        linewidth=linewidth)
     if kind == 'select':
         return fig, fig.lasso.selection
     return fig
@@ -1014,7 +1015,8 @@ def _close_event(event, fig):
 
 
 def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
-                  ax, show, kind, block, to_sphere, sphere, pointsize=None, linewidth=2):
+                  ax, show, kind, block, to_sphere, sphere, pointsize=None,
+                  linewidth=2):
     """Plot sensors."""
     from matplotlib import rcParams
     import matplotlib.pyplot as plt
@@ -1055,7 +1057,8 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
                                           to_sphere=to_sphere)
         _draw_outlines(ax, outlines)
         pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, clip_on=False,
-                         c=colors, edgecolors=edgecolors, s=pointsize, lw=linewidth)
+                         c=colors, edgecolors=edgecolors, s=pointsize,
+                         lw=linewidth)
         if kind == 'select':
             fig.lasso = SelectFromCollection(ax, pts, ch_names)
         else:

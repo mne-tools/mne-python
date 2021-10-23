@@ -366,7 +366,7 @@
 
 .. _Dominik Welke: https://github.com/dominikwelke/
 
-.. Dominique Makowski: hhttps://dominiquemakowski.github.io/
+.. _Dominique Makowski: https://dominiquemakowski.github.io/
 
 .. _Judy D Zhu: https://github.com/JD-Zhu
 
