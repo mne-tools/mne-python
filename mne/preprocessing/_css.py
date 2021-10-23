@@ -41,10 +41,12 @@ def cortical_signal_suppression(evoked, picks=None, mag_picks=None,
     %(picks_good_data)s
     mag_picks : array-like of int
         Array of the magnetometer channel indices that will be used to find
-        the reference data. If None (default), all channels will be used.
+        the reference data. If None (default), all magnetometers will
+        be used.
     grad_picks : array-like of int
         Array of the gradiometer channel indices that will be used to find
-        the reference data. If None (default), all channels will be used.
+        the reference data. If None (default), all gradiometers will
+        be used.
     n_proj : int
         The number of projection vectors.
     %(verbose)s

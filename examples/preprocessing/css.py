@@ -16,10 +16,11 @@ density of the raw and processed data.
 # Author: John G Samuelsson <johnsam@mit.edu>
 
 import numpy as np
+import matplotlib.pyplot as plt
+
 import mne
 from mne.datasets import sample
 from mne.simulation import simulate_sparse_stc, simulate_evoked
-import matplotlib.pyplot as plt
 
 ###############################################################################
 # Load sample subject data

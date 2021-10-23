@@ -1,9 +1,10 @@
 # Author: John G Samuelsson <johnsam@mit.edu>
 
+import numpy as np
+
 from mne.preprocessing._css import cortical_signal_suppression
 from mne import pick_types, read_evokeds
 from mne.datasets import testing
-import numpy as np
 
 data_path = testing.data_path(download=False)
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
