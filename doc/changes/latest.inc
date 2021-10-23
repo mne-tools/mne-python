@@ -45,6 +45,8 @@ Current (0.24.dev0)
 
 .. |Riessarius Stargardsky| replace:: **Riessarius Stargardsky**
 
+.. |John Samuelsson| replace:: **John Samuelsson**
+
 Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
@@ -68,6 +70,8 @@ Enhancements
 - Improve documentation for arguments ``threshold``, ``method`` and ``measure`` of ICA methods `~mne.preprocessing.ICA.find_bads_ecg`, `~mne.preprocessing.ICA.find_bads_ref` and `~mne.preprocessing.ICA.find_bads_eog` (:gh:`9858` **by new contributor** |Mathieu Scheltienne|_)
 
 - Add support for more than 3 source estimates in :func:`mne.viz.plot_sparse_source_estimates` (:gh:`9640` **by new contributor** |Pierre-Antoine Bannier|_ and `Alex Gramfort`_)
+
+- Add cortical signal suppression (CSS) :func:`mne.preprocessing.cortical_signal_suppression` (:gh:`6888`, :gh:`9892` **by new contributor** |John Samuelsson|_ and `Eric Larson`_)
 
 - Show all good channel types and counts when printing a :class:`mne.Info` in the notebook (:gh:`9725` by `Valerii Chirkov`_ and `Eric Larson`_)
 

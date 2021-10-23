@@ -120,6 +120,8 @@
 
 .. _Sheraz Khan: https://github.com/SherazKhan
 
+.. _John Samuelsson: https://github.com/johnsam7
+
 .. _Antti Rantala: https://github.com/Odingod
 
 .. _Keith Doelling: https://github.com/kdoelling1919
