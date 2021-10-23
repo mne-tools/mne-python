@@ -93,7 +93,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
-    def _dock_named_layout(self, name, layout, compact):
+    def _dock_named_layout(self, name, layout=None, compact=True):
         layout = self._dock_layout if layout is None else layout
         if name is not None:
             hlayout = self._dock_add_layout(not compact)
@@ -586,6 +586,9 @@ class _QtWidgetList(_AbstractWidgetList):
         for widget in self._widgets:
             widget.set_enabled(state)
 
+    def get_value(self, idx):
+        return self._widgets[idx].get_value()
+
     def set_value(self, idx, value):
         if isinstance(self._src, QButtonGroup):
             self._widgets[idx].set_value(True)
@@ -595,18 +598,18 @@ class _QtWidgetList(_AbstractWidgetList):
 
 class _QtWidget(_AbstractWidget):
     def set_value(self, value):
-        if hasattr(self._widget, "setValue"):
-            self._widget.setValue(value)
-        elif hasattr(self._widget, "setCurrentText"):
-            self._widget.setCurrentText(value)
-        elif hasattr(self._widget, "setChecked"):
-            if isinstance(self._widget, QRadioButton):
-                self._widget.click()
-            else:
-                self._widget.setChecked(value)
+        if isinstance(self._widget, (QRadioButton, QToolButton)):
+            self._widget.click()
         else:
-            assert hasattr(self._widget, "setText")
-            self._widget.setText(value)
+            if hasattr(self._widget, "setValue"):
+                self._widget.setValue(value)
+            elif hasattr(self._widget, "setCurrentText"):
+                self._widget.setCurrentText(value)
+            elif hasattr(self._widget, "setChecked"):
+                self._widget.setChecked(value)
+            else:
+                assert hasattr(self._widget, "setText")
+                self._widget.setText(value)
 
     def get_value(self):
         if hasattr(self._widget, "value"):
@@ -614,8 +617,9 @@ class _QtWidget(_AbstractWidget):
         elif hasattr(self._widget, "currentText"):
             return self._widget.currentText()
         elif hasattr(self._widget, "checkState"):
-            return self._widget.checkState()
-        elif hasattr(self._widget, "text"):
+            return bool(self._widget.checkState())
+        else:
+            assert hasattr(self._widget, "text")
             return self._widget.text()
 
     def set_range(self, rng):

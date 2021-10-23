@@ -530,7 +530,7 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_named_layout(self, name, layout, compact):
+    def _dock_named_layout(self, name, layout=None, compact=True):
         pass
 
     @abstractmethod
@@ -625,6 +625,10 @@ class _AbstractLayout(ABC):
 class _AbstractWidgetList(ABC):
     @abstractmethod
     def set_enabled(self, state):
+        pass
+
+    @abstractmethod
+    def get_value(self, idx):
         pass
 
     @abstractmethod

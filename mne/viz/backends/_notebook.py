@@ -74,12 +74,13 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         return _IpyWidget(widget)
 
     def _dock_add_button(self, name, callback, layout=None):
+        layout = self._dock_layout if layout is None else layout
         widget = Button(description=name)
         widget.on_click(lambda x: callback())
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_named_layout(self, name, layout, compact):
+    def _dock_named_layout(self, name, layout=None, compact=True):
         layout = self._dock_layout if layout is None else layout
         if name is not None:
             hlayout = self._dock_add_layout(not compact)
@@ -123,7 +124,6 @@ class _IpyDock(_AbstractDock, _IpyLayout):
             value=value,
             min=rng[0],
             max=rng[1],
-            readout=False,
         )
         if step is not None:
             widget.step = step
@@ -390,6 +390,13 @@ class _IpyWidgetList(_AbstractWidgetList):
             for widget in self._widgets:
                 widget.set_enabled(state)
 
+    def get_value(self, idx):
+        if isinstance(self._src, RadioButtons):
+            # for consistency, we do not use get_value()
+            return self._widgets._widget.options[idx]
+        else:
+            return self._widgets[idx].get_value()
+
     def set_value(self, idx, value):
         if isinstance(self._src, RadioButtons):
             self._widgets.set_value(value)
@@ -399,7 +406,10 @@ class _IpyWidgetList(_AbstractWidgetList):
 
 class _IpyWidget(_AbstractWidget):
     def set_value(self, value):
-        self._widget.value = value
+        if isinstance(self._widget, Button):
+            self._widget.click()
+        else:
+            self._widget.value = value
 
     def get_value(self):
         return self._widget.value
