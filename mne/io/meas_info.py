@@ -658,32 +658,33 @@ class Info(dict, MontageMixin):
     }
 
     def __init__(self, *args, **kwargs):
-        with self._unlock():
-            super().__init__(*args, **kwargs)
-            # Deal with h5io writing things as dict
-            for key in ('dev_head_t', 'ctf_head_t', 'dev_ctf_t'):
-                _format_trans(self, key)
-            for res in self.get('hpi_results', []):
-                _format_trans(res, 'coord_trans')
-            if self.get('dig', None) is not None and len(self['dig']):
-                if isinstance(self['dig'], dict):  # needs to be unpacked
-                    self['dig'] = _dict_unpack(self['dig'], _DIG_CAST)
-                if not isinstance(self['dig'][0], DigPoint):
-                    self['dig'] = _format_dig_points(self['dig'])
-            if isinstance(self.get('chs', None), dict):
-                self['chs']['ch_name'] = [str(x) for x in np.char.decode(
-                    self['chs']['ch_name'], encoding='utf8')]
-                self['chs'] = _dict_unpack(self['chs'], _CH_CAST)
-            for pi, proj in enumerate(self.get('projs', [])):
-                if not isinstance(proj, Projection):
-                    self['projs'][pi] = Projection(proj)
-            # Old files could have meas_date as tuple instead of datetime
-            try:
-                meas_date = self['meas_date']
-            except KeyError:
-                pass
-            else:
-                self['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
+        self._unlocked = True
+        super().__init__(*args, **kwargs)
+        # Deal with h5io writing things as dict
+        for key in ('dev_head_t', 'ctf_head_t', 'dev_ctf_t'):
+            _format_trans(self, key)
+        for res in self.get('hpi_results', []):
+            _format_trans(res, 'coord_trans')
+        if self.get('dig', None) is not None and len(self['dig']):
+            if isinstance(self['dig'], dict):  # needs to be unpacked
+                self['dig'] = _dict_unpack(self['dig'], _DIG_CAST)
+            if not isinstance(self['dig'][0], DigPoint):
+                self['dig'] = _format_dig_points(self['dig'])
+        if isinstance(self.get('chs', None), dict):
+            self['chs']['ch_name'] = [str(x) for x in np.char.decode(
+                self['chs']['ch_name'], encoding='utf8')]
+            self['chs'] = _dict_unpack(self['chs'], _CH_CAST)
+        for pi, proj in enumerate(self.get('projs', [])):
+            if not isinstance(proj, Projection):
+                self['projs'][pi] = Projection(proj)
+        # Old files could have meas_date as tuple instead of datetime
+        try:
+            meas_date = self['meas_date']
+        except KeyError:
+            pass
+        else:
+            self['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
+        self._unlocked = False
 
     def __getstate__(self):
         """Get state (for pickling)."""
@@ -866,10 +867,10 @@ class Info(dict, MontageMixin):
                     # the only mutable thing here is some entries in coils
                     hm['hpi_coils'] = [coil.copy() for coil in hm['hpi_coils']]
                     # There is a *tiny* risk here that someone could write
-                    # raw.info['hpi_meas'][0]['hpi_coils'][1]['epoch'] = ..
+                    # raw.info['hpi_meas'][0]['hpi_coils'][1]['epoch'] = ...
                     # and assume that info.copy() will make an actual copy,
-                    # but copying these entries has a 2x slowdown penalty
-                    # so probably not worth it for such a deep corner case:
+                    # but copying these entries has a 2x slowdown penalty so
+                    # probably not worth it for such a deep corner case:
                     # for coil in hpi_coils:
                     #     for key in ('epoch', 'slopes', 'corr_coeff'):
                     #         coil[key] = coil[key].copy()
@@ -1204,7 +1205,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     meas : dict
         Node in tree that contains the info.
     """
-    # Find the desired blocks
+    #   Find the desired blocks
     meas = dir_tree_find(tree, FIFF.FIFFB_MEAS)
     if len(meas) == 0:
         raise ValueError('Could not find measurement data')
@@ -1219,7 +1220,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         raise ValueError('Cannot read more that 1 measurement info')
     meas_info = meas_info[0]
 
-    # Read measurement info
+    #   Read measurement info
     dev_head_t = None
     ctf_head_t = None
     dev_ctf_t = None
@@ -1345,10 +1346,10 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                           ctf_head_t is None):
                         ctf_head_t = cand
 
-    # Locate the Polhemus data
+    #   Locate the Polhemus data
     dig = _read_dig_fif(fid, meas_info)
 
-    # Locate the acquisition information
+    #   Locate the acquisition information
     acqpars = dir_tree_find(meas_info, FIFF.FIFFB_DACQ_PARS)
     acq_pars = None
     acq_stim = None
@@ -1364,23 +1365,25 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 tag = read_tag(fid, pos)
                 acq_stim = tag.data
 
-    # Load the SSP data
+    #   Load the SSP data
     projs = _read_proj(
         fid, meas_info, ch_names_mapping=ch_names_mapping)
 
-    # Load the CTF compensation data
+    #   Load the CTF compensation data
     comps = _read_ctf_comp(
         fid, meas_info, chs, ch_names_mapping=ch_names_mapping)
 
-    # Load the bad channel list
+    #   Load the bad channel list
     bads = _read_bad_channels(
         fid, meas_info, ch_names_mapping=ch_names_mapping)
 
-    # Put the data together
+    #
+    #   Put the data together
+    #
     info = Info(file_id=tree['id'])
     info._unlocked = True
 
-    # Locate events list
+    #   Locate events list
     events = dir_tree_find(meas_info, FIFF.FIFFB_EVENTS)
     evs = list()
     for event in events:
@@ -1395,7 +1398,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         evs.append(ev)
     info['events'] = evs
 
-    # Locate HPI result
+    #   Locate HPI result
     hpi_results = dir_tree_find(meas_info, FIFF.FIFFB_HPI_RESULT)
     hrs = list()
     for hpi_result in hpi_results:
@@ -1425,7 +1428,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         hrs.append(hr)
     info['hpi_results'] = hrs
 
-    # Locate HPI Measurement
+    #   Locate HPI Measurement
     hpi_meass = dir_tree_find(meas_info, FIFF.FIFFB_HPI_MEAS)
     hms = list()
     for hpi_meas in hpi_meass:
@@ -1595,10 +1598,10 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             hs['hpi_coils'] = hc
     info['hpi_subsystem'] = hs
 
-    # Read processing history
+    #   Read processing history
     info['proc_history'] = _read_proc_history(fid, tree)
 
-    # Make the most appropriate selection for the measurement id
+    #  Make the most appropriate selection for the measurement id
     if meas_info['parent_id'] is None:
         if meas_info['id'] is None:
             if meas['id'] is None:
@@ -1612,7 +1615,6 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             info['meas_id'] = meas_info['id']
     else:
         info['meas_id'] = meas_info['parent_id']
-
     info['experimenter'] = experimenter
     info['description'] = description
     info['proj_id'] = proj_id
@@ -1624,28 +1626,27 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
 
     info['sfreq'] = sfreq
     info['highpass'] = highpass if highpass is not None else 0.
-    info['lowpass'] = lowpass if lowpass is not None \
-        else info['sfreq'] / 2.0
+    info['lowpass'] = lowpass if lowpass is not None else info['sfreq'] / 2.0
     info['line_freq'] = line_freq
     info['gantry_angle'] = gantry_angle
 
-    # Add the channel information and make a list of channel name for
-    # convenience
+    #   Add the channel information and make a list of channel names
+    #   for convenience
     info['chs'] = chs
 
-    # Add the coordinate transformations
+    #
+    #   Add the coordinate transformations
+    #
     info['dev_head_t'] = dev_head_t
     info['ctf_head_t'] = ctf_head_t
     info['dev_ctf_t'] = dev_ctf_t
-    if dev_head_t is not None and \
-            ctf_head_t is not None and \
-            dev_ctf_t is None:
+    if dev_head_t is not None and ctf_head_t is not None and dev_ctf_t is None:
         from ..transforms import Transform
         head_ctf_trans = np.linalg.inv(ctf_head_t['trans'])
         dev_ctf_trans = np.dot(head_ctf_trans, info['dev_head_t']['trans'])
         info['dev_ctf_t'] = Transform('meg', 'ctf_head', dev_ctf_trans)
 
-    # All kinds of auxliary stuff
+    #   All kinds of auxliary stuff
     info['dig'] = _format_dig_points(dig)
     info['bads'] = bads
     info._update_redundant()
@@ -2145,11 +2146,11 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         infos = deepcopy(infos)
         _force_update_info(infos[0], infos[1:])
     info = Info()
-    with info._unlock():
-        info['chs'] = []
-        for this_info in infos:
-            info['chs'].extend(this_info['chs'])
-        info._update_redundant()
+    info._unlocked = True
+    info['chs'] = []
+    for this_info in infos:
+        info['chs'].extend(this_info['chs'])
+    info._update_redundant()
     duplicates = {ch for ch in info['ch_names']
                   if info['ch_names'].count(ch) > 1}
     if len(duplicates) > 0:
@@ -2158,48 +2159,45 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         raise ValueError(msg)
 
     transforms = ['ctf_head_t', 'dev_head_t', 'dev_ctf_t']
-    with info._unlock():
-        for trans_name in transforms:
-            trans = [i[trans_name] for i in infos if i[trans_name]]
-            if len(trans) == 0:
-                info[trans_name] = None
-            elif len(trans) == 1:
-                info[trans_name] = trans[0]
-            elif all(np.all(trans[0]['trans'] == x['trans']) and
-                     trans[0]['from'] == x['from'] and
-                     trans[0]['to'] == x['to']
-                     for x in trans[1:]):
-                info[trans_name] = trans[0]
-            else:
-                msg = ("Measurement infos provide mutually inconsistent %s" %
-                       trans_name)
-                raise ValueError(msg)
+    for trans_name in transforms:
+        trans = [i[trans_name] for i in infos if i[trans_name]]
+        if len(trans) == 0:
+            info[trans_name] = None
+        elif len(trans) == 1:
+            info[trans_name] = trans[0]
+        elif all(np.all(trans[0]['trans'] == x['trans']) and
+                 trans[0]['from'] == x['from'] and
+                 trans[0]['to'] == x['to']
+                 for x in trans[1:]):
+            info[trans_name] = trans[0]
+        else:
+            msg = ("Measurement infos provide mutually inconsistent %s" %
+                   trans_name)
+            raise ValueError(msg)
 
     # KIT system-IDs
     kit_sys_ids = [i['kit_system_id'] for i in infos if i['kit_system_id']]
-    with info._unlock():
-        if len(kit_sys_ids) == 0:
-            info['kit_system_id'] = None
-        elif len(set(kit_sys_ids)) == 1:
-            info['kit_system_id'] = kit_sys_ids[0]
-        else:
-            raise ValueError(
-                "Trying to merge channels from different KIT systems")
+    if len(kit_sys_ids) == 0:
+        info['kit_system_id'] = None
+    elif len(set(kit_sys_ids)) == 1:
+        info['kit_system_id'] = kit_sys_ids[0]
+    else:
+        raise ValueError(
+            "Trying to merge channels from different KIT systems")
 
     # hpi infos and digitization data:
     fields = ['hpi_results', 'hpi_meas', 'dig']
-    with info._unlock():
-        for k in fields:
-            values = [i[k] for i in infos if i[k]]
-            if len(values) == 0:
-                info[k] = []
-            elif len(values) == 1:
-                info[k] = values[0]
-            elif all(object_diff(values[0], v) == '' for v in values[1:]):
-                info[k] = values[0]
-            else:
-                msg = ("Measurement infos are inconsistent for %s" % k)
-                raise ValueError(msg)
+    for k in fields:
+        values = [i[k] for i in infos if i[k]]
+        if len(values) == 0:
+            info[k] = []
+        elif len(values) == 1:
+            info[k] = values[0]
+        elif all(object_diff(values[0], v) == '' for v in values[1:]):
+            info[k] = values[0]
+        else:
+            msg = ("Measurement infos are inconsistent for %s" % k)
+            raise ValueError(msg)
 
     # other fields
     other_fields = ['acq_pars', 'acq_stim', 'bads',
@@ -2210,11 +2208,11 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
                     'proj_id', 'proj_name', 'projs', 'sfreq', 'gantry_angle',
                     'subject_info', 'sfreq', 'xplotter_layout', 'proc_history']
 
-    with info._unlock(check_after=True):
-        for k in other_fields:
-            info[k] = _merge_info_values(infos, k)
+    for k in other_fields:
+        info[k] = _merge_info_values(infos, k)
 
-        info['meas_date'] = infos[0]['meas_date']
+    info['meas_date'] = infos[0]['meas_date']
+    info._unlocked = False
 
     return info
 
