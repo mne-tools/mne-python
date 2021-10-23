@@ -102,7 +102,7 @@ ax.set(ylabel='True label', xlabel='Predicted label')
 fig, axes = plt.subplots(nrows=len(event_id), ncols=n_filter,
                          figsize=(n_filter, len(event_id) * 2))
 fitted_xdawn = clf.steps[0][1]
-tmp = epochs.copy()
+tmp = epochs[:1]
 tmp.resample(1)
 for ii, cur_class in enumerate(sorted(event_id)):
     cur_patterns = fitted_xdawn.patterns_[cur_class]
