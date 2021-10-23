@@ -712,7 +712,7 @@ class Info(dict, MontageMixin):
             super().__setitem__(key, val)
 
     @contextlib.contextmanager
-    def _unlock(self, check_after=False):
+    def _unlock(self, *, check_after=False):
         """Context manager unlocking access to attributes."""
         # needed for nested _unlock()
         state = self._unlocked if hasattr(self, '_unlocked') else False
@@ -1375,10 +1375,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         fid, meas_info, ch_names_mapping=ch_names_mapping)
 
     # Put the data together
-    if tree['id'] is not None:
-        info = Info(file_id=tree['id'])
-    else:
-        info = Info(file_id=None)
+    info = Info(file_id=tree['id'])
+    info._unlocked = True
 
     # Locate events list
     events = dir_tree_find(meas_info, FIFF.FIFFB_EVENTS)
@@ -1393,8 +1391,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             elif kind == FIFF.FIFF_EVENT_LIST:
                 ev['list'] = read_tag(fid, pos).data
         evs.append(ev)
-    with info._unlock(check_after=False):
-        info['events'] = evs
+    info['events'] = evs
 
     # Locate HPI result
     hpi_results = dir_tree_find(meas_info, FIFF.FIFFB_HPI_RESULT)
@@ -1424,8 +1421,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             elif kind == FIFF.FIFF_COORD_TRANS:
                 hr['coord_trans'] = read_tag(fid, pos).data
         hrs.append(hr)
-    with info._unlock(check_after=False):
-        info['hpi_results'] = hrs
+    info['hpi_results'] = hrs
 
     # Locate HPI Measurement
     hpi_meass = dir_tree_find(meas_info, FIFF.FIFFB_HPI_MEAS)
@@ -1472,8 +1468,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             hcs.append(hc)
         hm['hpi_coils'] = hcs
         hms.append(hm)
-    with info._unlock(check_after=False):
-        info['hpi_meas'] = hms
+    info['hpi_meas'] = hms
     del hms
 
     subject_info = dir_tree_find(meas_info, FIFF.FIFFB_SUBJECT)
@@ -1521,8 +1516,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             elif kind == FIFF.FIFF_SUBJ_HEIGHT:
                 tag = read_tag(fid, pos)
                 si['height'] = tag.data
-    with info._unlock(check_after=False):
-        info['subject_info'] = si
+    info['subject_info'] = si
     del si
 
     device_info = dir_tree_find(meas_info, FIFF.FIFFB_DEVICE)
@@ -1545,8 +1539,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             elif kind == FIFF.FIFF_DEVICE_SITE:
                 tag = read_tag(fid, pos)
                 di['site'] = str(tag.data)
-    with info._unlock(check_after=False):
-        info['device_info'] = di
+    info['device_info'] = di
     del di
 
     helium_info = dir_tree_find(meas_info, FIFF.FIFFB_HELIUM)
@@ -1569,8 +1562,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             elif kind == FIFF.FIFF_MEAS_DATE:
                 tag = read_tag(fid, pos)
                 hi['meas_date'] = tuple(int(t) for t in tag.data)
-    with info._unlock(check_after=False):
-        info['helium_info'] = hi
+    info['helium_info'] = hi
     del hi
 
     hpi_subsystem = dir_tree_find(meas_info, FIFF.FIFFB_HPI_SUBSYSTEM)
@@ -1599,78 +1591,73 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                         this_coil['event_bits'] = np.array(tag.data)
                 hc.append(this_coil)
             hs['hpi_coils'] = hc
-    with info._unlock(check_after=False):
-        info['hpi_subsystem'] = hs
+    info['hpi_subsystem'] = hs
 
     # Read processing history
-    with info._unlock(check_after=False):
-        info['proc_history'] = _read_proc_history(fid, tree)
+    info['proc_history'] = _read_proc_history(fid, tree)
 
     # Make the most appropriate selection for the measurement id
-    with info._unlock(check_after=False):
-        if meas_info['parent_id'] is None:
-            if meas_info['id'] is None:
-                if meas['id'] is None:
-                    if meas['parent_id'] is None:
-                        info['meas_id'] = info['file_id']
-                    else:
-                        info['meas_id'] = meas['parent_id']
+    if meas_info['parent_id'] is None:
+        if meas_info['id'] is None:
+            if meas['id'] is None:
+                if meas['parent_id'] is None:
+                    info['meas_id'] = info['file_id']
                 else:
-                    info['meas_id'] = meas['id']
+                    info['meas_id'] = meas['parent_id']
             else:
-                info['meas_id'] = meas_info['id']
+                info['meas_id'] = meas['id']
         else:
-            info['meas_id'] = meas_info['parent_id']
+            info['meas_id'] = meas_info['id']
+    else:
+        info['meas_id'] = meas_info['parent_id']
 
-    with info._unlock(check_after=False):
-        info['experimenter'] = experimenter
-        info['description'] = description
-        info['proj_id'] = proj_id
-        info['proj_name'] = proj_name
-        if meas_date is None:
-            meas_date = (info['meas_id']['secs'], info['meas_id']['usecs'])
-        info['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
-        info['utc_offset'] = utc_offset
+    info['experimenter'] = experimenter
+    info['description'] = description
+    info['proj_id'] = proj_id
+    info['proj_name'] = proj_name
+    if meas_date is None:
+        meas_date = (info['meas_id']['secs'], info['meas_id']['usecs'])
+    info['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
+    info['utc_offset'] = utc_offset
 
-        info['sfreq'] = sfreq
-        info['highpass'] = highpass if highpass is not None else 0.
-        info['lowpass'] = lowpass if lowpass is not None \
-            else info['sfreq'] / 2.0
-        info['line_freq'] = line_freq
-        info['gantry_angle'] = gantry_angle
+    info['sfreq'] = sfreq
+    info['highpass'] = highpass if highpass is not None else 0.
+    info['lowpass'] = lowpass if lowpass is not None \
+        else info['sfreq'] / 2.0
+    info['line_freq'] = line_freq
+    info['gantry_angle'] = gantry_angle
 
     # Add the channel information and make a list of channel name for
     # convenience
-    with info._unlock(check_after=False):
-        info['chs'] = chs
+    info['chs'] = chs
 
     # Add the coordinate transformations
-    with info._unlock(check_after=False):
-        info['dev_head_t'] = dev_head_t
-        info['ctf_head_t'] = ctf_head_t
-        info['dev_ctf_t'] = dev_ctf_t
-        if dev_head_t is not None and \
-           ctf_head_t is not None and \
-           dev_ctf_t is None:
-            from ..transforms import Transform
-            head_ctf_trans = np.linalg.inv(ctf_head_t['trans'])
-            dev_ctf_trans = np.dot(head_ctf_trans, info['dev_head_t']['trans'])
-            info['dev_ctf_t'] = Transform('meg', 'ctf_head', dev_ctf_trans)
+    info['dev_head_t'] = dev_head_t
+    info['ctf_head_t'] = ctf_head_t
+    info['dev_ctf_t'] = dev_ctf_t
+    if dev_head_t is not None and \
+            ctf_head_t is not None and \
+            dev_ctf_t is None:
+        from ..transforms import Transform
+        head_ctf_trans = np.linalg.inv(ctf_head_t['trans'])
+        dev_ctf_trans = np.dot(head_ctf_trans, info['dev_head_t']['trans'])
+        info['dev_ctf_t'] = Transform('meg', 'ctf_head', dev_ctf_trans)
 
     # All kinds of auxliary stuff
-    with info._unlock(check_after=True):
-        info['dig'] = _format_dig_points(dig)
-        info['bads'] = bads
-        info._update_redundant()
-        if clean_bads:
-            info['bads'] = [b for b in bads if b in info['ch_names']]
-        info['projs'] = projs
-        info['comps'] = comps
-        info['acq_pars'] = acq_pars
-        info['acq_stim'] = acq_stim
-        info['custom_ref_applied'] = custom_ref_applied
-        info['xplotter_layout'] = xplotter_layout
-        info['kit_system_id'] = kit_system_id
+    info['dig'] = _format_dig_points(dig)
+    info['bads'] = bads
+    info._update_redundant()
+    if clean_bads:
+        info['bads'] = [b for b in bads if b in info['ch_names']]
+    info['projs'] = projs
+    info['comps'] = comps
+    info['acq_pars'] = acq_pars
+    info['acq_stim'] = acq_stim
+    info['custom_ref_applied'] = custom_ref_applied
+    info['xplotter_layout'] = xplotter_layout
+    info['kit_system_id'] = kit_system_id
+
+    info._unlocked = False
 
     return info, meas
 

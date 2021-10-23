@@ -551,7 +551,7 @@ def pick_info(info, sel=(), copy=True, verbose=None):
                         % (len(info['comps']),))
             with info._unlock(check_after=True):
                 info['comps'] = []
-    with info._unlock(check_after=True):
+    with info._unlock():
         info['chs'] = [info['chs'][k] for k in sel]
     info._update_redundant()
     info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
@@ -566,8 +566,9 @@ def pick_info(info, sel=(), copy=True, verbose=None):
             c['data']['nrow'] = len(row_names)
             c['data']['row_names'] = row_names
             c['data']['data'] = c['data']['data'][row_idx]
-        with info._unlock(check_after=True):
+        with info._unlock():
             info['comps'] = comps
+    info._check_consistency()
 
     return info
 
