@@ -419,7 +419,7 @@ class Kit2FiffModel(HasPrivateTraits):
                      allow_unknown_format=self.allow_unknown_format)
 
         if np.any(self.fid):
-            with raw.info._unlock(check_after=False):
+            with raw.info._unlock():
                 raw.info['dig'] = _make_dig_points(self.fid[0], self.fid[1],
                                                    self.fid[2], self.elp,
                                                    self.hsp)

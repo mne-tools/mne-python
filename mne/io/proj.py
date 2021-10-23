@@ -142,12 +142,12 @@ class ProjMixin(object):
             if any(p['active'] for p in self.info['projs']):
                 raise ValueError('Cannot remove projectors that have '
                                  'already been applied')
-            with self.info._unlock(check_after=False):
+            with self.info._unlock():
                 self.info['projs'] = projs
         else:
             self.info['projs'].extend(projs)
         # We don't want to add projectors that are activated again.
-        with self.info._unlock(check_after=False):
+        with self.info._unlock():
             self.info['projs'] = _uniquify_projs(self.info['projs'],
                                                  check_active=False,
                                                  sort=False)
@@ -257,7 +257,7 @@ class ProjMixin(object):
 
         keep = np.ones(len(self.info['projs']))
         keep[idx] = False  # works with negative indexing and does checks
-        with self.info._unlock(check_after=False):
+        with self.info._unlock():
             self.info['projs'] = [p for p, k in zip(self.info['projs'], keep)
                                   if k]
         return self
@@ -317,7 +317,7 @@ class ProjMixin(object):
                 continue
             info_from = pick_info(self.info, picks)
             info_to = info_from.copy()
-            with info_to._unlock(check_after=False):
+            with info_to._unlock():
                 info_to['projs'] = []
                 if kind == 'eeg' and _has_eeg_average_ref_proj(
                         info_from['projs']):
@@ -851,7 +851,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
 
     # The projection items have been activated
     if activate:
-        with info._unlock(check_after=False):
+        with info._unlock():
             info['projs'] = activate_proj(info['projs'], copy=False)
 
     return projector, info

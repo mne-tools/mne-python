@@ -192,7 +192,7 @@ def test_compute_proj_epochs(tmpdir):
     assert U.shape[1] == 2
 
     # test that you can save them
-    with epochs.info._unlock(check_after=False):
+    with epochs.info._unlock():
         epochs.info['projs'] += projs
     evoked = epochs.average()
     evoked.save(op.join(tempdir, 'foo-ave.fif'))
@@ -247,7 +247,7 @@ def test_compute_proj_raw(tmpdir):
         assert U.shape[1] == 2
 
         # test that you can save them
-        with raw.info._unlock(check_after=False):
+        with raw.info._unlock():
             raw.info['projs'] += projs
         raw.save(op.join(tempdir, 'foo_%d_raw.fif' % ii), overwrite=True)
 
@@ -264,7 +264,7 @@ def test_compute_proj_raw(tmpdir):
     assert U.shape[1] == 2
 
     # test that you can save them
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['projs'] += projs
     raw.save(op.join(tempdir, 'foo_rawproj_continuous_raw.fif'))
 
@@ -339,7 +339,7 @@ def test_make_eeg_average_ref_proj():
     assert_array_almost_equal(reref._data[eeg].mean(axis=0), 0, decimal=19)
 
     # Error when custom reference has already been applied
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['custom_ref_applied'] = True
     pytest.raises(RuntimeError, make_eeg_average_ref_proj, raw.info)
 
@@ -377,7 +377,7 @@ def test_needs_eeg_average_ref_proj():
 
     # Custom ref flag set
     raw = read_raw_fif(raw_fname)
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['custom_ref_applied'] = True
     assert not _needs_eeg_average_ref_proj(raw.info)
 

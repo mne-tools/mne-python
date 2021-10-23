@@ -30,7 +30,7 @@ def test_plot_epochs_basic(epochs, epochs_full, noise_cov_io, capsys,
                            browse_backend):
     """Test epoch plotting."""
     assert len(epochs.events) == 1
-    with epochs.info._unlock(check_after=False):
+    with epochs.info._unlock():
         epochs.info['lowpass'] = 10.  # allow heavy decim during plotting
     fig = epochs.plot(scalings=None, title='Epochs')
     # ToDo: The ticks will be fetched differently with pyqtgraph.

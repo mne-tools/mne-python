@@ -217,7 +217,7 @@ def test_find_events():
 
     # Reset some data for ease of comparison
     raw._first_samps[0] = 0
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['sfreq'] = 1000
 
     stim_channel = 'STI 014'

@@ -174,7 +174,7 @@ def test_csd_fif():
 
     # reset the only things that should change, and assert objects are the same
     assert raw_csd.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_CSD
-    with raw_csd.info._unlock(check_after=False):
+    with raw_csd.info._unlock():
         raw_csd.info['custom_ref_applied'] = 0
     for pick in picks:
         ch = raw_csd.info['chs'][pick]

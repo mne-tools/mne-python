@@ -98,7 +98,7 @@ def _compute_residual(forward, evoked, X, active_set, info):
             non_active_projs.append(p)
 
     if len(active_projs) > 0:
-        with r_tmp.info._unlock(check_after=False):
+        with r_tmp.info._unlock():
             r_tmp.info['projs'] = deactivate_proj(active_projs, copy=True,
                                                   verbose=False)
         r_tmp.apply_proj(verbose=False)

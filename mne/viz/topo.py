@@ -685,10 +685,9 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
             ch = info['chs'][pick]
             ch['ch_name'] = ch['ch_name'][:-1] + 'X'
             chs.append(ch)
-        with info._unlock(check_after=True):
+        with info._unlock(update_redundant=True, check_after=True):
             info['chs'] = chs
             info['bads'] = list()   # Bads handled by pair_grad_sensors
-            info._update_redundant()
         new_picks = list()
         for e in evoked:
             data, _ = _merge_ch_data(e.data[picks], 'grad', [])

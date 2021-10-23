@@ -245,7 +245,7 @@ def _check_compensation_grade(info1, info2, name1,
         # pick channels
         for t_info in [info1, info2]:
             if t_info['comps']:
-                with t_info._unlock(check_after=False):
+                with t_info._unlock():
                     t_info['comps'] = []
             picks = pick_channels(t_info['ch_names'], ch_names)
             pick_info(t_info, picks, copy=False)

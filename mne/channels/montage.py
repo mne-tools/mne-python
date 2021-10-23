@@ -882,7 +882,7 @@ def _set_montage_fnirs(info, montage):
         info['chs'][ch_idx]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
     # Modify info['dig'] in place
-    with info._unlock(check_after=False):
+    with info._unlock():
         info['dig'] = montage.dig
 
 
@@ -912,7 +912,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
     _validate_type(montage, (DigMontage, None, str), 'montage')
     if montage is None:
         # Next line modifies info['dig'] in place
-        with info._unlock(check_after=False):
+        with info._unlock():
             info['dig'] = None
         for ch in info['chs']:
             # Next line modifies info['chs'][#]['loc'] in place
@@ -1083,7 +1083,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
         if ref_dig_point in old_dig:
             digpoints.append(ref_dig_point)
     # Next line modifies info['dig'] in place
-    with info._unlock(check_after=False):
+    with info._unlock():
         info['dig'] = _format_dig_points(digpoints, enforce_order=True)
 
     # Handle fNIRS with source, detector and channel

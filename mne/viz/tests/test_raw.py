@@ -197,7 +197,7 @@ def test_scale_bar(browse_backend):
 
 def test_plot_raw_selection(raw, browse_backend):
     """Test selection mode of plot_raw()."""
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     browse_backend._close_all()           # ensure all are closed
     assert browse_backend._get_n_figs() == 0
@@ -259,7 +259,7 @@ def test_plot_raw_selection(raw, browse_backend):
 
 def test_plot_raw_ssp_interaction(raw, browse_backend):
     """Test SSP projector UI of plot_raw()."""
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     # apply some (not all) projs to test our proj UI (greyed out applied projs)
     projs = raw.info['projs'][-2:]
@@ -306,7 +306,7 @@ def test_plot_raw_ssp_interaction(raw, browse_backend):
 
 def test_plot_raw_child_figures(raw, browse_backend):
     """Test spawning and closing of child figures."""
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     browse_backend._close_all()  # make sure we start clean
     assert browse_backend._get_n_figs() == 0
@@ -342,7 +342,7 @@ def test_plot_raw_child_figures(raw, browse_backend):
 
 def test_plot_raw_keypresses(raw, browse_backend):
     """Test keypress interactivity of plot_raw()."""
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     fig = raw.plot()
     # test twice → once in normal, once in butterfly view.
@@ -361,7 +361,7 @@ def test_plot_raw_keypresses(raw, browse_backend):
 
 def test_plot_raw_traces(raw, events, browse_backend):
     """Test plotting of raw data."""
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     fig = raw.plot(events=events, order=[1, 7, 5, 2, 3], n_channels=3,
                    group_by='original')
@@ -440,7 +440,7 @@ def test_plot_raw_traces(raw, events, browse_backend):
 @pytest.mark.parametrize('group_by', ('position', 'selection'))
 def test_plot_raw_groupby(raw, browse_backend, group_by):
     """Test group-by plotting of raw data."""
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     order = (np.arange(len(raw.ch_names))[::-3] if group_by == 'position' else
              [1, 2, 4, 6])
@@ -524,7 +524,7 @@ def test_plot_misc_auto(browse_backend):
 @pytest.mark.slowtest
 def test_plot_annotations(raw, browse_backend):
     """Test annotation mode of the plotter."""
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['lowpass'] = 10.
     _annotation_helper(raw, browse_backend)
     _annotation_helper(raw, browse_backend, events=True)

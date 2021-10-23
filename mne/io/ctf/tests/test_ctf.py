@@ -184,7 +184,7 @@ def test_read_ctf(tmpdir):
                 'dig points must be in FIFF.FIFFV_COORD_HEAD'
 
         if fname.endswith('catch-alp-good-f.ds'):  # omit points from .pos file
-            with raw.info._unlock(check_after=False):
+            with raw.info._unlock():
                 raw.info['dig'] = raw.info['dig'][:-10]
 
         # XXX: Next test would fail because c-tools assign the fiducials from

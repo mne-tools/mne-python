@@ -184,7 +184,7 @@ def raw_data():
     raw.info.normalize_proj()
     ecg = RawArray(np.zeros((1, len(raw.times))),
                    create_info(['ECG 063'], raw.info['sfreq'], 'ecg'))
-    with ecg.info._unlock(check_after=False):
+    with ecg.info._unlock():
         for key in ('dev_head_t', 'highpass', 'lowpass', 'dig'):
             ecg.info[key] = raw.info[key]
     raw.add_channels([ecg])
@@ -320,7 +320,7 @@ def test_degenerate(raw_data):
         simulate_raw(info, stc, trans, src, sphere,
                      head_pos=head_pos_sim_err)
     raw_bad = raw.copy()
-    with raw_bad.info._unlock(check_after=False):
+    with raw_bad.info._unlock():
         raw_bad.info['dig'] = None
     with pytest.raises(RuntimeError, match='Cannot fit headshape'):
         add_eog(raw_bad)

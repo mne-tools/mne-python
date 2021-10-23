@@ -652,7 +652,7 @@ class SetChannelsMixin(MontageMixin):
         """
         from ..annotations import _handle_meas_date
         meas_date = _handle_meas_date(meas_date)
-        with self.info._unlock(check_after=False):
+        with self.info._unlock():
             self.info['meas_date'] = meas_date
 
         # clear file_id and meas_id if needed

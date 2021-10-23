@@ -752,7 +752,7 @@ def _copy_preload_add_channels(raw, add_channels, copy, info):
     """Load data for processing and (maybe) add cHPI pos channels."""
     if copy:
         raw = raw.copy()
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['chs'] = info['chs']  # updated coil types
     if add_channels:
         kinds = [FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2, FIFF.FIFFV_QUAT_3,
@@ -1510,7 +1510,7 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
         Extended external bases.
     """
     n_in, n_out = _get_n_moments([int_order, ext_order])
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['maxshield'] = False
     components = np.zeros(n_in + n_out + len(extended_proj)).astype('int32')
     components[reg_moments] = 1
@@ -1529,10 +1529,10 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
         # Reset 'bads' for any MEG channels since they've been reconstructed
         _reset_meg_bads(raw.info)
         # set the reconstruction transform
-        with raw.info._unlock(check_after=False):
+        with raw.info._unlock():
             raw.info['dev_head_t'] = recon_trans
     block_id = _generate_meas_id()
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['proc_history'].insert(0, dict(
             max_info=max_info_dict, block_id=block_id, date=DATE_NONE,
             creator='mne-python v%s' % __version__, experimenter=''))

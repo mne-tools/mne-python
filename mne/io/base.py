@@ -1256,7 +1256,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self.preload = True
         lowpass = self.info.get('lowpass')
         lowpass = np.inf if lowpass is None else lowpass
-        with self.info._unlock(check_after=False):
+        with self.info._unlock():
             self.info['lowpass'] = min(lowpass, sfreq / 2.)
             self.info['sfreq'] = sfreq
 

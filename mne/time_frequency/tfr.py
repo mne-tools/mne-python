@@ -640,7 +640,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     out = _compute_tfr(data, freqs, info['sfreq'], method=method,
                        output=output, decim=decim, **tfr_params)
     times = inst.times[decim].copy()
-    with info._unlock(check_after=False):
+    with info._unlock():
         info['sfreq'] /= decim.step
 
     if average:

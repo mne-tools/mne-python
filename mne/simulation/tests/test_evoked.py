@@ -142,7 +142,7 @@ def test_rank_deficiency():
     # See gh-5940
     evoked = read_evokeds(ave_fname, 0, baseline=(None, 0))
     evoked.info['bads'] = ['MEG 2443']
-    with evoked.info._unlock(check_after=False):
+    with evoked.info._unlock():
         evoked.info['lowpass'] = 20  # fake for decim
     picks = pick_types(evoked.info, meg=True, eeg=False)
     picks = picks[::16]

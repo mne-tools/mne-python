@@ -73,8 +73,7 @@ def test_find_ecg():
     assert 'MEG 2641' in ecg_epochs.ch_names
 
     # test with user provided ecg channel
-    with raw.info._unlock(check_after=False):
-        raw.info['projs'] = list()
+    raw.del_proj()
     assert 'MEG 2641' in raw.ch_names
     with pytest.warns(RuntimeWarning, match='unit for channel'):
         raw.set_channel_types({'MEG 2641': 'ecg'})

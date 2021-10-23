@@ -77,7 +77,7 @@ def test_ica_full_data_recovery(method):
     # Most basic recovery
     _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['projs'] = []
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
@@ -170,20 +170,20 @@ def test_warnings():
     ica = ICA(n_components=2, max_iter=1, method='infomax', random_state=0)
 
     # not high-passed
-    with epochs.info._unlock(check_after=False):
+    with epochs.info._unlock():
         epochs.info['highpass'] = 0.
     with pytest.warns(RuntimeWarning, match='should be high-pass filtered'):
         ica.fit(epochs)
 
     # baselined
-    with epochs.info._unlock(check_after=False):
+    with epochs.info._unlock():
         epochs.info['highpass'] = 1.
     epochs.baseline = (epochs.tmin, 0)
     with pytest.warns(RuntimeWarning, match='epochs.*were baseline-corrected'):
         ica.fit(epochs)
 
     # cleaning baseline-corrected data
-    with epochs.info._unlock(check_after=False):
+    with epochs.info._unlock():
         epochs.info['highpass'] = 1.
     epochs.baseline = None
     ica.fit(epochs)
@@ -204,7 +204,7 @@ def test_ica_noop(n_components, n_pca_components, tmpdir):
     info = create_info(10, 1000., 'eeg')
     raw = RawArray(data, info)
     raw.set_eeg_reference()
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['highpass'] = 1.0  # fake high-pass filtering
     assert np.linalg.matrix_rank(raw.get_data()) == 9
     kwargs = dict(n_components=n_components, verbose=True)
@@ -1146,9 +1146,9 @@ def test_bad_channels(method, allow_ref_meg):
     epochs = EpochsArray(data, info)
 
     # fake high-pass filtering
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['highpass'] = 1.0
-    with epochs.info._unlock(check_after=False):
+    with epochs.info._unlock():
         epochs.info['highpass'] = 1.0
 
     n_components = 0.9

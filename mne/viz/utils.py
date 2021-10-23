@@ -1674,7 +1674,7 @@ def _handle_decim(info, decim, lowpass):
     if isinstance(decim, str) and decim == 'auto':
         lp = info['sfreq'] if info['lowpass'] is None else info['lowpass']
         lp = min(lp, info['sfreq'] if lowpass is None else lowpass)
-        with info._unlock(check_after=False):
+        with info._unlock():
             info['lowpass'] = lp
         decim = max(int(info['sfreq'] / (lp * 3) + 1e-6), 1)
     decim = _ensure_int(decim, 'decim', must_be='an int or "auto"')
@@ -1780,7 +1780,7 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
         # we risk the rank estimates being incorrect (i.e., if the projectors
         # do not match).
         info_proj = info.copy()
-        with info_proj._unlock(check_after=False):
+        with info_proj._unlock():
             info_proj['projs'] += cov['projs']
         this_rank = {}
         # assemble rank dict for this cov, such that we have meg
@@ -2179,7 +2179,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         # Needed because the data do not match the info anymore.
         info = create_info([inst.ch_names[p] for p in picks],
                            inst.info['sfreq'], types)
-        with info._unlock(check_after=False):
+        with info._unlock():
             info['chs'] = [inst.info['chs'][p] for p in picks]
             info['dev_head_t'] = inst.info['dev_head_t']
         ch_types_used = list()

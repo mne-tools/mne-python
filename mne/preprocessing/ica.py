@@ -654,7 +654,7 @@ class ICA(ContainsMixin):
         self.info = pick_info(inst.info, picks)
 
         if self.info['comps']:
-            with self.info._unlock(check_after=False):
+            with self.info._unlock():
                 self.info['comps'] = []
         self.ch_names = self.info['ch_names']
 
@@ -1076,28 +1076,28 @@ class ICA(ContainsMixin):
         """Aux method."""
         # set channel names and info
         ch_names = []
-        with info._unlock(check_after=True):
-            ch_info = info['chs'] = []
-            for ii, name in enumerate(self._ica_names):
-                ch_names.append(name)
-                ch_info.append(dict(
-                    ch_name=name, cal=1, logno=ii + 1,
-                    coil_type=FIFF.FIFFV_COIL_NONE,
-                    kind=FIFF.FIFFV_MISC_CH,
-                    coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
-                    unit=FIFF.FIFF_UNIT_NONE,
-                    loc=np.zeros(12, dtype='f4'),
-                    range=1.0, scanno=ii + 1, unit_mul=0))
+        ch_info = []
+        for ii, name in enumerate(self._ica_names):
+            ch_names.append(name)
+            ch_info.append(dict(
+                ch_name=name, cal=1, logno=ii + 1,
+                coil_type=FIFF.FIFFV_COIL_NONE,
+                kind=FIFF.FIFFV_MISC_CH,
+                coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                unit=FIFF.FIFF_UNIT_NONE,
+                loc=np.zeros(12, dtype='f4'),
+                range=1.0, scanno=ii + 1, unit_mul=0))
 
-            if add_channels is not None:
-                # re-append additionally picked ch_names
-                ch_names += add_channels
-                # re-append additionally picked ch_info
-                ch_info += [k for k in container.info['chs'] if k['ch_name'] in
-                            add_channels]
+        if add_channels is not None:
+            # re-append additionally picked ch_names
+            ch_names += add_channels
+            # re-append additionally picked ch_info
+            ch_info += [k for k in container.info['chs'] if k['ch_name'] in
+                        add_channels]
+        with info._unlock(update_redundant=True, check_after=True):
+            info['chs'] = ch_info
             info['bads'] = [ch_names[k] for k in self.exclude]
             info['projs'] = []  # make sure projections are removed.
-            info._update_redundant()
 
     @verbose
     def score_sources(self, inst, target=None, score_func='pearsonr',

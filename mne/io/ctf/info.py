@@ -417,7 +417,6 @@ def _compose_meas_info(res4, coils, trans, eeg):
     info['meas_id']['usecs'] = 0
     info['meas_id']['secs'] = _convert_time(res4['data_date'],
                                             res4['data_time'])
-
     info['meas_date'] = (info['meas_id']['secs'], info['meas_id']['usecs'])
     info['experimenter'] = res4['nf_operator']
     info['subject_info'] = dict(his_id=res4['nf_subject_id'])
@@ -428,8 +427,7 @@ def _compose_meas_info(res4, coils, trans, eeg):
         res4, coils, trans)
     if trans is not None:
         if len(info['hpi_results']) > 0:
-            info['hpi_results'][0]['coord_trans'] = \
-                trans['t_ctf_head_head']
+            info['hpi_results'][0]['coord_trans'] = trans['t_ctf_head_head']
         if trans['t_dev_head'] is not None:
             info['dev_head_t'] = trans['t_dev_head']
             info['dev_ctf_t'] = combine_transforms(

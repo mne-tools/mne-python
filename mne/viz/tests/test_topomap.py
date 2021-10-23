@@ -54,7 +54,7 @@ def test_plot_topomap_interactive(constrained_layout):
     """Test interactive topomap projection plotting."""
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
     evoked.pick_types(meg='mag')
-    with evoked.info._unlock(check_after=False):
+    with evoked.info._unlock():
         evoked.info['projs'] = []
     assert not evoked.proj
     evoked.add_proj(compute_proj_evoked(evoked, n_mag=1))
@@ -406,7 +406,7 @@ def test_plot_topomap_basic(monkeypatch):
                         **fast_test)
 
     # Remove digitization points. Now topomap should fail
-    with evoked.info._unlock(check_after=False):
+    with evoked.info._unlock():
         evoked.info['dig'] = None
     pytest.raises(RuntimeError, plot_evoked_topomap, evoked,
                   times, ch_type='eeg', time_unit='s')
@@ -621,7 +621,7 @@ def test_plot_topomap_nirs_ica(fnirs_epochs):
 
     # fake high-pass filtering and hide the fact that the epochs were
     # baseline corrected
-    with fnirs_epochs.info._unlock(check_after=False):
+    with fnirs_epochs.info._unlock():
         fnirs_epochs.info['highpass'] = 1.0
     fnirs_epochs.baseline = None
 

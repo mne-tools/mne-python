@@ -353,7 +353,7 @@ class RawNihon(BaseRaw):
         n_samples = header['n_samples']
 
         if 'meas_date' in metadata:
-            with info._unlock(check_after=False):
+            with info._unlock():
                 info['meas_date'] = metadata['meas_date']
         chs = {x: _map_ch_to_specs(x) for x in ch_names}
 

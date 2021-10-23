@@ -229,7 +229,7 @@ class RawHitachi(BaseRaw):
         # Create mne structure
         info = create_info(ch_names, sfreq, ch_types=ch_types)
         info.update(info_extra)
-        with info._unlock(check_after=False):
+        with info._unlock():
             info['meas_date'] = meas_date
             for li, loc in enumerate(locs):
                 info['chs'][li]['loc'][:] = loc

@@ -167,7 +167,7 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
     epochs = [inst._data] if not isinstance(inst, BaseEpochs) else inst._data
     for epo in epochs:
         epo[picks] = np.dot(trans_csd, epo[picks])
-    with inst.info._unlock(check_after=False):
+    with inst.info._unlock():
         inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_CSD
     for pick in picks:
         inst.info['chs'][pick].update(coil_type=FIFF.FIFFV_COIL_EEG_CSD,

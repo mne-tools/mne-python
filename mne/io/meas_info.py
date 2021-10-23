@@ -658,7 +658,7 @@ class Info(dict, MontageMixin):
     }
 
     def __init__(self, *args, **kwargs):
-        with self._unlock(check_after=False):
+        with self._unlock():
             super().__init__(*args, **kwargs)
             # Deal with h5io writing things as dict
             for key in ('dev_head_t', 'ctf_head_t', 'dev_ctf_t'):
@@ -712,7 +712,7 @@ class Info(dict, MontageMixin):
             super().__setitem__(key, val)
 
     @contextlib.contextmanager
-    def _unlock(self, *, check_after=False):
+    def _unlock(self, *, update_redundant=False, check_after=False):
         """Context manager unlocking access to attributes."""
         # needed for nested _unlock()
         state = self._unlocked if hasattr(self, '_unlocked') else False
@@ -723,6 +723,8 @@ class Info(dict, MontageMixin):
         except Exception:
             raise
         else:
+            if update_redundant:
+                self._update_redundant()
             if check_after:
                 self._check_consistency()
         finally:
@@ -844,38 +846,38 @@ class Info(dict, MontageMixin):
     def __deepcopy__(self, memodict):
         """Make a deepcopy."""
         result = Info.__new__(Info)
-        with result._unlock(check_after=False):
-            for k, v in self.items():
-                # chs is roughly half the time but most are immutable
-                if k == 'chs':
-                    # dict shallow copy is fast, so use it then overwrite
-                    result[k] = list()
-                    for ch in v:
-                        ch = ch.copy()  # shallow
-                        ch['loc'] = ch['loc'].copy()
-                        result[k].append(ch)
-                elif k == 'ch_names':
-                    # we know it's list of str, shallow okay and saves ~100 µs
-                    result[k] = v.copy()
-                elif k == 'hpi_meas':
-                    hms = list()
-                    for hm in v:
-                        hm = hm.copy()
-                        # the only mutable thing here is some entries in coils
-                        hm['hpi_coils'] = [coil.copy()
-                                           for coil in hm['hpi_coils']]
-                        # There is a *tiny* risk here that someone could write
-                        # raw.info['hpi_meas'][0]['hpi_coils'][1]['epoch'] = ..
-                        # and assume that info.copy() will make an actual copy,
-                        # but copying these entries has a 2x slowdown penalty
-                        # so probably not worth it for such a deep corner case:
-                        # for coil in hpi_coils:
-                        #     for key in ('epoch', 'slopes', 'corr_coeff'):
-                        #         coil[key] = coil[key].copy()
-                        hms.append(hm)
-                    result[k] = hms
-                else:
-                    result[k] = deepcopy(v, memodict)
+        result._unlocked = True
+        for k, v in self.items():
+            # chs is roughly half the time but most are immutable
+            if k == 'chs':
+                # dict shallow copy is fast, so use it then overwrite
+                result[k] = list()
+                for ch in v:
+                    ch = ch.copy()  # shallow
+                    ch['loc'] = ch['loc'].copy()
+                    result[k].append(ch)
+            elif k == 'ch_names':
+                # we know it's list of str, shallow okay and saves ~100 µs
+                result[k] = v.copy()
+            elif k == 'hpi_meas':
+                hms = list()
+                for hm in v:
+                    hm = hm.copy()
+                    # the only mutable thing here is some entries in coils
+                    hm['hpi_coils'] = [coil.copy() for coil in hm['hpi_coils']]
+                    # There is a *tiny* risk here that someone could write
+                    # raw.info['hpi_meas'][0]['hpi_coils'][1]['epoch'] = ..
+                    # and assume that info.copy() will make an actual copy,
+                    # but copying these entries has a 2x slowdown penalty
+                    # so probably not worth it for such a deep corner case:
+                    # for coil in hpi_coils:
+                    #     for key in ('epoch', 'slopes', 'corr_coeff'):
+                    #         coil[key] = coil[key].copy()
+                    hms.append(hm)
+                result[k] = hms
+            else:
+                result[k] = deepcopy(v, memodict)
+        result._unlocked = False
         return result
 
     def _check_consistency(self, prepend_error=''):
@@ -902,7 +904,7 @@ class Info(dict, MontageMixin):
                                % (prepend_error,))
 
         # make sure we have the proper datatypes
-        with self._unlock(check_after=False):
+        with self._unlock():
             for key in ('sfreq', 'highpass', 'lowpass'):
                 if self.get(key) is not None:
                     self[key] = float(self[key])
@@ -928,7 +930,7 @@ class Info(dict, MontageMixin):
                     '12 elements, got %r' % (ci, loc))
 
         # make sure channel names are unique
-        with self._unlock(check_after=False):
+        with self._unlock():
             self['ch_names'] = _unique_channel_names(self['ch_names'])
             for idx, ch_name in enumerate(self['ch_names']):
                 self['chs'][idx]['ch_name'] = ch_name
@@ -939,7 +941,7 @@ class Info(dict, MontageMixin):
 
     def _update_redundant(self):
         """Update the redundant entries."""
-        with self._unlock(check_after=False):
+        with self._unlock():
             self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
             self['nchan'] = len(self['chs'])
 
@@ -2143,7 +2145,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         infos = deepcopy(infos)
         _force_update_info(infos[0], infos[1:])
     info = Info()
-    with info._unlock(check_after=False):
+    with info._unlock():
         info['chs'] = []
         for this_info in infos:
             info['chs'].extend(this_info['chs'])
@@ -2156,7 +2158,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         raise ValueError(msg)
 
     transforms = ['ctf_head_t', 'dev_head_t', 'dev_ctf_t']
-    with info._unlock(check_after=False):
+    with info._unlock():
         for trans_name in transforms:
             trans = [i[trans_name] for i in infos if i[trans_name]]
             if len(trans) == 0:
@@ -2175,7 +2177,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
 
     # KIT system-IDs
     kit_sys_ids = [i['kit_system_id'] for i in infos if i['kit_system_id']]
-    with info._unlock(check_after=False):
+    with info._unlock():
         if len(kit_sys_ids) == 0:
             info['kit_system_id'] = None
         elif len(set(kit_sys_ids)) == 1:
@@ -2186,7 +2188,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
 
     # hpi infos and digitization data:
     fields = ['hpi_results', 'hpi_meas', 'dig']
-    with info._unlock(check_after=False):
+    with info._unlock():
         for k in fields:
             values = [i[k] for i in infos if i[k]]
             if len(values) == 0:
@@ -2370,7 +2372,7 @@ def _force_update_info(info_base, info_target):
         if key in exclude_keys:
             continue
         for i_targ in info_target:
-            with i_targ._unlock(check_after=False):
+            with i_targ._unlock():
                 i_targ[key] = val
 
 
@@ -2430,7 +2432,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
             delta_t = info['meas_date'] - default_anon_dos
         else:
             delta_t = datetime.timedelta(days=daysback)
-        with info._unlock(check_after=False):
+        with info._unlock():
             info['meas_date'] = info['meas_date'] - delta_t
 
     # file_id and meas_id
@@ -2488,7 +2490,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
             if subject_info.get(key) is not None:
                 subject_info[key] = 0
 
-    with info._unlock(check_after=False):
+    with info._unlock():
         info['experimenter'] = default_str
         info['description'] = default_desc
 
@@ -2619,7 +2621,7 @@ def _writing_info_hdf5(info):
     # Make info writing faster by packing chs and dig into numpy arrays
     orig_dig = info.get('dig', None)
     orig_chs = info['chs']
-    with info._unlock(check_after=False):
+    with info._unlock():
         try:
             if orig_dig is not None and len(orig_dig) > 0:
                 info['dig'] = _dict_pack(info['dig'], _DIG_CAST)

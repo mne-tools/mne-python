@@ -549,7 +549,7 @@ def pick_info(info, sel=(), copy=True, verbose=None):
             logger.info('Removing %d compensators from info because '
                         'not all compensation channels were picked.'
                         % (len(info['comps']),))
-            with info._unlock(check_after=True):
+            with info._unlock():
                 info['comps'] = []
     with info._unlock():
         info['chs'] = [info['chs'][k] for k in sel]
@@ -698,7 +698,7 @@ def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
     fwd['sol']['row_names'] = ch_names
 
     # Pick the appropriate channel names from the info-dict using sel_info
-    with fwd['info']._unlock(check_after=False):
+    with fwd['info']._unlock():
         fwd['info']['chs'] = [fwd['info']['chs'][k] for k in sel_info]
     fwd['info']._update_redundant()
     fwd['info']['bads'] = [b for b in fwd['info']['bads'] if b in ch_names]

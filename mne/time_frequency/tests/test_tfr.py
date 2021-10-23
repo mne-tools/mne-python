@@ -437,7 +437,7 @@ def test_io(tmpdir):
 
     tfr.comment = None
     # test old meas_date
-    with info._unlock(check_after=False):
+    with info._unlock():
         info['meas_date'] = (1, 2)
     tfr.save(fname, overwrite=True)
     assert_equal(read_tfrs(fname, condition=0).comment, tfr.comment)
@@ -683,7 +683,7 @@ def test_add_channels():
 
     # Now test errors
     tfr_badsf = tfr_eeg.copy()
-    with tfr_badsf.info._unlock(check_after=False):
+    with tfr_badsf.info._unlock():
         tfr_badsf.info['sfreq'] = 3.1415927
     tfr_eeg = tfr_eeg.crop(-.1, .1)
 

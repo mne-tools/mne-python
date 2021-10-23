@@ -198,7 +198,7 @@ def _plot_update_evoked_topomap(params, bools):
 
     params['proj_bools'] = bools
     new_evoked = params['evoked'].copy()
-    with new_evoked.info._unlock(check_after=False):
+    with new_evoked.info._unlock():
         new_evoked.info['projs'] = []
     new_evoked.add_proj(projs)
     new_evoked.apply_proj()
@@ -1611,7 +1611,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     data = evoked.data
 
     # remove compensation matrices (safe: only plotting & already made copy)
-    with evoked.info._unlock(check_after=False):
+    with evoked.info._unlock():
         evoked.info['comps'] = []
     evoked = evoked._pick_drop_channels(picks, verbose=False)
     # determine which times to plot

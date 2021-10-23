@@ -79,7 +79,7 @@ def test_decim():
     sfreq_new = sfreq / decim
     data = rng.randn(n_channels, n_times)
     info = create_info(n_channels, sfreq, 'eeg')
-    with info._unlock(check_after=False):
+    with info._unlock():
         info['lowpass'] = sfreq_new / float(decim)
     evoked = EvokedArray(data, info, tmin=-1)
     evoked_dec = evoked.copy().decimate(decim)
@@ -113,7 +113,7 @@ def test_decim():
     raw = read_raw_fif(raw_fname)
     events = read_events(event_name)
     sfreq_new = raw.info['sfreq'] / decim
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['lowpass'] = sfreq_new / 4.  # suppress aliasing warnings
     picks = pick_types(raw.info, meg=True, eeg=True, exclude=())
     epochs = Epochs(raw, events, 1, -0.2, 0.5, picks=picks, preload=True)
@@ -271,7 +271,7 @@ def test_io_evoked(tmpdir):
     # MaxShield
     fname_ms = tmpdir.join('test-ave.fif')
     assert (ave.info['maxshield'] is False)
-    with ave.info._unlock(check_after=False):
+    with ave.info._unlock():
         ave.info['maxshield'] = True
     ave.save(fname_ms)
     pytest.raises(ValueError, read_evokeds, fname_ms)
@@ -735,7 +735,7 @@ def test_add_channels():
     hpi_coils = [{'event_bits': []},
                  {'event_bits': np.array([256, 0, 256, 256])},
                  {'event_bits': np.array([512, 0, 512, 512])}]
-    with evoked.info._unlock(check_after=False):
+    with evoked.info._unlock():
         evoked.info['hpi_subsystem'] = dict(hpi_coils=hpi_coils, ncoil=2)
     evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
     evoked_meg = evoked.copy().pick_types(meg=True)
@@ -753,7 +753,7 @@ def test_add_channels():
 
     # Now test errors
     evoked_badsf = evoked_eeg.copy()
-    with evoked_badsf.info._unlock(check_after=False):
+    with evoked_badsf.info._unlock():
         evoked_badsf.info['sfreq'] = 3.1415927
     evoked_eeg = evoked_eeg.crop(-.1, .1)
 

@@ -246,7 +246,7 @@ def test_read_write_info(tmpdir):
     info['subject_info']['weight'] = 11.1
     info['subject_info']['height'] = 2.3
 
-    with info._unlock(check_after=False):
+    with info._unlock():
         if info['gantry_angle'] is None:  # future testing data may include it
             info['gantry_angle'] = 0.  # Elekta supine position
     gantry_angle = info['gantry_angle']
@@ -279,7 +279,7 @@ def test_read_write_info(tmpdir):
     assert m1 == m2
 
     info = read_info(raw_fname)
-    with info._unlock(check_after=False):
+    with info._unlock():
         info['meas_date'] = None
     anonymize_info(info, verbose='error')
     assert info['meas_date'] is None
@@ -339,7 +339,7 @@ def test_make_dig_points():
     info = create_info(ch_names=['Test Ch'], sfreq=1000.)
     assert info['dig'] is None
 
-    with info._unlock(check_after=False):
+    with info._unlock():
         info['dig'] = _make_dig_points(extra_points=extra_points)
     assert (info['dig'])
     assert_allclose(info['dig'][0]['r'], [-.10693, .09980, .06881])
@@ -349,7 +349,7 @@ def test_make_dig_points():
     info = create_info(ch_names=['Test Ch'], sfreq=1000.)
     assert info['dig'] is None
 
-    with info._unlock(check_after=False):
+    with info._unlock():
         info['dig'] = _make_dig_points(nasion, lpa, rpa, elp_points[3:], None)
     assert (info['dig'])
     idx = [d['ident'] for d in info['dig']].index(FIFF.FIFFV_POINT_NASION)
@@ -405,14 +405,12 @@ def test_merge_info():
     pytest.raises(ValueError, _force_update_info, info_a,
                   dict([('sfreq', 1000.)]))
     # KIT System-ID
-    with info_a._unlock(check_after=False):
-        info_a['kit_system_id'] = 50
+    info_a._unlocked = info_b._unlocked = True
+    info_a['kit_system_id'] = 50
     assert _merge_info((info_a, info_b))['kit_system_id'] == 50
-    with info_b._unlock(check_after=False):
-        info_b['kit_system_id'] = 50
+    info_b['kit_system_id'] = 50
     assert _merge_info((info_a, info_b))['kit_system_id'] == 50
-    with info_b._unlock(check_after=False):
-        info_b['kit_system_id'] = 60
+    info_b['kit_system_id'] = 60
     pytest.raises(ValueError, _merge_info, (info_a, info_b))
 
     # hpi infos
@@ -420,15 +418,13 @@ def test_merge_info():
     info_merged = _merge_info([info_a, info_d])
     assert not info_merged['hpi_meas']
     assert not info_merged['hpi_results']
-    with info_a._unlock(check_after=False):
-        info_a['hpi_meas'] = [{'f1': 3, 'f2': 4}]
+    info_a['hpi_meas'] = [{'f1': 3, 'f2': 4}]
     assert _merge_info([info_a, info_d])['hpi_meas'] == info_a['hpi_meas']
-    with info_d._unlock(check_after=False):
-        info_d['hpi_meas'] = [{'f1': 3, 'f2': 4}]
+    info_d._unlocked = True
+    info_d['hpi_meas'] = [{'f1': 3, 'f2': 4}]
     assert _merge_info([info_a, info_d])['hpi_meas'] == info_d['hpi_meas']
     # This will break because of inconsistency
-    with info_d._unlock(check_after=False):
-        info_d['hpi_meas'] = [{'f1': 3, 'f2': 5}]
+    info_d['hpi_meas'] = [{'f1': 3, 'f2': 5}]
     pytest.raises(ValueError, _merge_info, [info_a, info_d])
 
     info_0 = read_info(raw_fname)
@@ -464,22 +460,22 @@ def test_check_consistency():
 
     # Bad data types
     info2 = info.copy()
-    with info2._unlock(check_after=False):
+    with info2._unlock():
         info2['sfreq'] = 'foo'
     pytest.raises(ValueError, info2._check_consistency)
 
     info2 = info.copy()
-    with info2._unlock(check_after=False):
+    with info2._unlock():
         info2['highpass'] = 'foo'
     pytest.raises(ValueError, info2._check_consistency)
 
     info2 = info.copy()
-    with info2._unlock(check_after=False):
+    with info2._unlock():
         info2['lowpass'] = 'foo'
     pytest.raises(ValueError, info2._check_consistency)
 
     info2 = info.copy()
-    with info2._unlock(check_after=False):
+    with info2._unlock():
         info2['filename'] = 'foo'
     with pytest.warns(RuntimeWarning, match='filename'):
         info2._check_consistency()
@@ -496,7 +492,7 @@ def test_check_consistency():
 
     # Duplicate channel names
     info2 = info.copy()
-    with info2._unlock(check_after=False):
+    with info2._unlock():
         info2['chs'][2]['ch_name'] = 'b'
     pytest.raises(RuntimeError, info2._check_consistency)
 
@@ -550,7 +546,7 @@ def _test_anonymize_info(base_info):
 
     # Fake some subject data
     meas_date = datetime(2010, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-    with base_info._unlock(check_after=False):
+    with base_info._unlock():
         base_info['meas_date'] = meas_date
         base_info['subject_info'] = dict(id=1,
                                          his_id='foobar',
@@ -563,7 +559,7 @@ def _test_anonymize_info(base_info):
     # first expected result with no options.
     # will move DOS from 2010/1/1 to 2000/1/1 which is 3653 days.
     exp_info = base_info.copy()
-    with exp_info._unlock(check_after=False):
+    with exp_info._unlock():
         exp_info['description'] = default_desc
         exp_info['experimenter'] = default_str
         exp_info['proj_name'] = default_str
@@ -598,14 +594,14 @@ def _test_anonymize_info(base_info):
 
     # exp 2 tests the keep_his option
     exp_info_2 = exp_info.copy()
-    with exp_info_2._unlock(check_after=False):
+    with exp_info_2._unlock():
         exp_info_2['subject_info']['his_id'] = 'foobar'
         exp_info_2['subject_info']['sex'] = 0
         exp_info_2['subject_info']['hand'] = 1
 
     # exp 3 tests is a supplied daysback
     delta_t_2 = timedelta(days=43)
-    with exp_info_3._unlock(check_after=False):
+    with exp_info_3._unlock():
         exp_info_3['subject_info']['birthday'] = (1987, 2, 24)
         exp_info_3['meas_date'] = meas_date - delta_t_2
     for key in ('file_id', 'meas_id'):
@@ -635,9 +631,9 @@ def _test_anonymize_info(base_info):
     # assert_object_equal(new_info, exp_info_4)
 
     # test with meas_date = None
-    with base_info._unlock(check_after=False):
+    with base_info._unlock():
         base_info['meas_date'] = None
-    with exp_info_3._unlock(check_after=False):
+    with exp_info_3._unlock():
         exp_info_3['meas_date'] = None
         exp_info_3['file_id']['secs'] = DATE_NONE[0]
         exp_info_3['file_id']['usecs'] = DATE_NONE[1]
@@ -673,7 +669,7 @@ def test_meas_date_convert(stamp, dt):
     assert meas_datetime == datetime(*dt, tzinfo=timezone.utc)
     # smoke test for info __repr__
     info = create_info(1, 1000., 'eeg')
-    with info._unlock(check_after=False):
+    with info._unlock():
         info['meas_date'] = meas_datetime
     assert str(dt[0]) in repr(info)
 
@@ -733,7 +729,7 @@ def test_anonymize(tmpdir):
     stamp = _dt_to_stamp(raw.info['meas_date'])
     assert raw.annotations.orig_time == _stamp_to_dt(stamp)
 
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['meas_date'] = None
     raw.anonymize(daysback=None)
     with pytest.warns(RuntimeWarning, match='None'):
@@ -815,7 +811,7 @@ def test_check_compensation_consistency():
 def test_field_round_trip(tmpdir):
     """Test round-trip for new fields."""
     info = create_info(1, 1000., 'eeg')
-    with info._unlock(check_after=False):
+    with info._unlock():
         for key in ('file_id', 'meas_id'):
             info[key] = _generate_meas_id()
         info['device_info'] = dict(
@@ -853,7 +849,7 @@ def test_repr_html():
     """Test Info HTML repr."""
     info = read_info(raw_fname)
     assert 'Projections' in info._repr_html_()
-    with info._unlock(check_after=False):
+    with info._unlock():
         info['projs'] = []
     assert 'Projections' not in info._repr_html_()
     info['bads'] = []

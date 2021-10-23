@@ -335,7 +335,7 @@ def test_report_raw_psd_and_date(tmpdir):
     # DATE_NONE functionality
     report = Report()
     # old style (pre 0.20) date anonymization
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['meas_date'] = None
     for key in ('file_id', 'meas_id'):
         value = raw.info.get(key)

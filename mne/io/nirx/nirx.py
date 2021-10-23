@@ -334,7 +334,7 @@ class RawNIRX(BaseRaw):
                            samplingrate,
                            ch_types='fnirs_cw_amplitude')
         info.update(subject_info=subject_info, dig=dig)
-        with info._unlock(check_after=False):
+        with info._unlock():
             info['meas_date'] = meas_date
 
         # Store channel, source, and detector locations

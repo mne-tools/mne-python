@@ -339,7 +339,7 @@ class RawArtemis123(BaseRaw):
                      'head localization\n *NO* head localization performed')
             else:
                 # Localized HPIs using the 1st 250 milliseconds of data.
-                with info._unlock(check_after=False):
+                with info._unlock():
                     info['hpi_results'] = [dict(
                         dig_points=[dict(
                             r=np.zeros(3),
@@ -350,7 +350,7 @@ class RawArtemis123(BaseRaw):
                     self, tmin=0, tmax=0.25, t_window=0.25, t_step_min=0.25)
                 assert len(coil_amplitudes['times']) == 1
                 coil_locs = compute_chpi_locs(self.info, coil_amplitudes)
-                with info._unlock(check_after=False):
+                with info._unlock():
                     info['hpi_results'] = None
                 hpi_g = coil_locs['gofs'][0]
                 hpi_dev = coil_locs['rrs'][0]
@@ -412,7 +412,7 @@ class RawArtemis123(BaseRaw):
                     lpa = hpi_dev[2]
                     rpa = hpi_dev[1]
                     t = get_ras_to_neuromag_trans(nas, lpa, rpa)
-                    with self.info._unlock(check_after=False):
+                    with self.info._unlock():
                         self.info['dev_head_t'] = \
                             Transform(FIFF.FIFFV_COORD_DEVICE,
                                       FIFF.FIFFV_COORD_HEAD, t)
@@ -423,7 +423,7 @@ class RawArtemis123(BaseRaw):
                     rpa = apply_trans(t, rpa)
 
                     hpi = apply_trans(self.info['dev_head_t'], hpi_dev)
-                    with self.info._unlock(check_after=False):
+                    with self.info._unlock():
                         self.info['dig'] = _make_dig_points(nasion=nas,
                                                             lpa=lpa,
                                                             rpa=rpa,
@@ -460,7 +460,7 @@ class RawArtemis123(BaseRaw):
                          'beware of *POOR* head localization')
 
                 # store it
-                with self.info._unlock(check_after=False):
+                with self.info._unlock():
                     self.info['hpi_results'] = [hpi_result]
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):

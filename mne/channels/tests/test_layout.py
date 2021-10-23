@@ -114,31 +114,27 @@ def test_find_topomap_coords():
         _find_topomap_coords(info, picks, **kwargs)
 
     # Test function with too little EEG digitization points: it should fail
-    with info._unlock(check_after=False):
-        info['dig'] = info['dig'][:-2]
+    info._unlocked = True
+    info['dig'] = info['dig'][:-2]
     with pytest.raises(ValueError, match='Number of EEG digitization points'):
         _find_topomap_coords(info, picks, **kwargs)
 
     # Electrode positions must be unique
-    with info._unlock(check_after=False):
-        info['dig'].append(info['dig'][-1])
+    info['dig'].append(info['dig'][-1])
     with pytest.raises(ValueError, match='overlapping positions'):
         _find_topomap_coords(info, picks, **kwargs)
 
     # Test function without EEG digitization points: it should fail
-    with info._unlock(check_after=False):
-        info['dig'] = [d for d in info['dig']
-                       if d['kind'] != FIFF.FIFFV_POINT_EEG]
+    info['dig'] = [d for d in info['dig']
+                   if d['kind'] != FIFF.FIFFV_POINT_EEG]
     with pytest.raises(RuntimeError, match='Did not find any digitization'):
         _find_topomap_coords(info, picks, **kwargs)
 
     # Test function without any digitization points, it should fail
-    with info._unlock(check_after=False):
-        info['dig'] = None
+    info['dig'] = None
     with pytest.raises(RuntimeError, match='No digitization points found'):
         _find_topomap_coords(info, picks, **kwargs)
-    with info._unlock(check_after=False):
-        info['dig'] = []
+    info['dig'] = []
     with pytest.raises(RuntimeError, match='No digitization points found'):
         _find_topomap_coords(info, picks, **kwargs)
 
@@ -267,7 +263,7 @@ def test_find_layout():
     assert_equal(lout.kind, 'KIT-157')
     # fallback for missing IDs
     for val in (35, 52, 54, 1001):
-        with raw_kit.info._unlock(check_after=False):
+        with raw_kit.info._unlock():
             raw_kit.info['kit_system_id'] = val
         lout = find_layout(raw_kit.info)
         assert lout.kind == 'custom'

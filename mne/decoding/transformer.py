@@ -524,7 +524,7 @@ class FilterEstimator(TransformerMixin):
                                              self.l_freq < self.h_freq) and
                                             self.h_freq <
                                             self.info['lowpass']):
-            with self.info._unlock(check_after=False):
+            with self.info._unlock():
                 self.info['lowpass'] = self.h_freq
 
         if self.info['highpass'] is None or (self.l_freq is not None and
@@ -532,7 +532,7 @@ class FilterEstimator(TransformerMixin):
                                               self.l_freq < self.h_freq) and
                                              self.l_freq >
                                              self.info['highpass']):
-            with self.info._unlock(check_after=False):
+            with self.info._unlock():
                 self.info['highpass'] = self.l_freq
 
         return self

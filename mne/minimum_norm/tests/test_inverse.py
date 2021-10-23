@@ -204,7 +204,7 @@ def _compare_io(inv_op, out_file_ext='.fif', tempdir=None):
 def test_warn_inverse_operator(evoked, noise_cov):
     """Test MNE inverse warning without average EEG projection."""
     bad_info = evoked.info
-    with bad_info._unlock(check_after=False):
+    with bad_info._unlock():
         bad_info['projs'] = list()
     fwd_op = convert_forward_solution(read_forward_solution(fname_fwd),
                                       surf_ori=True, copy=False)
@@ -405,7 +405,7 @@ def test_localization_bias_free(bias_params_free, method, lower, upper,
 def test_apply_inverse_sphere(evoked, tmpdir):
     """Test applying an inverse with a sphere model (rank-deficient)."""
     evoked.pick_channels(evoked.ch_names[:306:8])
-    with evoked.info._unlock(check_after=False):
+    with evoked.info._unlock():
         evoked.info['projs'] = []
     cov = make_ad_hoc_cov(evoked.info)
     sphere = make_sphere_model('auto', 'auto', evoked.info)
@@ -531,11 +531,11 @@ def test_apply_inverse_operator(evoked, inv, min_, max_):
         apply_inverse(mne.io.RawArray(evoked.data, evoked.info), inv_op)
 
     # Test we get errors when using custom ref or no average proj is present
-    with evoked.info._unlock(check_after=False):
+    with evoked.info._unlock():
         evoked.info['custom_ref_applied'] = True
     with pytest.raises(ValueError, match='Custom EEG reference'):
         apply_inverse(evoked, inv_op, lambda2, "MNE")
-    with evoked.info._unlock(check_after=False):
+    with evoked.info._unlock():
         evoked.info['custom_ref_applied'] = False
         evoked.info['projs'] = []  # remove EEG proj
     with pytest.raises(ValueError, match='EEG average reference.*mandatory'):

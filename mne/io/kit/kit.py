@@ -49,7 +49,7 @@ def _call_digitization(info, mrk, elp, hsp, kit_info):
 
     # setup digitization
     if mrk is not None and elp is not None and hsp is not None:
-        with info._unlock(check_after=False):
+        with info._unlock():
             info['dig'], info['dev_head_t'], info['hpi_results'] = \
                 _set_dig_kit(mrk, elp, hsp, kit_info['eeg_dig'])
     elif mrk is not None or elp is not None or hsp is not None:

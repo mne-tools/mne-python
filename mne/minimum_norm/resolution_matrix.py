@@ -322,7 +322,7 @@ def _prepare_info(inverse_operator):
     # it's an epoch, see in loop below), uses 'info' from inverse solution
     # because this has all the correct projector information
     info = deepcopy(inverse_operator['info'])
-    with info._unlock(check_after=False):
+    with info._unlock():
         info['sfreq'] = 1000.  # necessary
         info['projs'] = inverse_operator['projs']
     return info

@@ -999,7 +999,7 @@ class RawBTi(BaseRaw):
 
 def _make_bti_digitization(
         info, head_shape_fname, convert, use_hpi, bti_dev_t, dev_ctf_t):
-    with info._unlock(check_after=False):
+    with info._unlock():
         if head_shape_fname:
             logger.info('... Reading digitization points from %s' %
                         head_shape_fname)

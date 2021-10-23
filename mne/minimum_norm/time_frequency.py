@@ -620,7 +620,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         if k == 0:
             freq_mask = (freqs >= fmin) & (freqs <= fmax)
             fstep = np.mean(np.diff(freqs))
-            with evoked_info._unlock(check_after=False):
+            with evoked_info._unlock():
                 evoked_info['sfreq'] = 1. / fstep
         freqs = freqs[freq_mask]
 

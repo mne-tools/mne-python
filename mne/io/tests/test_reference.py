@@ -142,7 +142,7 @@ def test_apply_reference():
     _apply_reference(raw, ['EEG 003'], ['EEG 004'])
 
     # CSD cannot be rereferenced
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_CSD
     with pytest.raises(RuntimeError, match="Cannot set.* type 'CSD'"):
         raw.set_eeg_reference()
@@ -152,7 +152,7 @@ def test_apply_reference():
 def test_set_eeg_reference():
     """Test rereference eeg data."""
     raw = read_raw_fif(fif_fname, preload=True)
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['projs'] = []
 
     # Test setting an average reference projection
@@ -174,7 +174,7 @@ def test_set_eeg_reference():
 
     # Test setting an average reference on non-preloaded data
     raw_nopreload = read_raw_fif(fif_fname, preload=False)
-    with raw_nopreload.info._unlock(check_after=False):
+    with raw_nopreload.info._unlock():
         raw_nopreload.info['projs'] = []
     reref, ref_data = set_eeg_reference(raw_nopreload, projection=True)
     assert _has_eeg_average_ref_proj(reref.info['projs'])
@@ -199,7 +199,7 @@ def test_set_eeg_reference():
     # When creating an average reference fails, make sure the
     # custom_ref_applied flag remains untouched.
     reref = raw.copy()
-    with reref.info._unlock(check_after=False):
+    with reref.info._unlock():
         reref.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
     reref.pick_types(meg=True, eeg=False)  # Cause making average ref fail
     pytest.raises(ValueError, set_eeg_reference, reref, projection=True)
@@ -225,7 +225,7 @@ def test_set_eeg_reference():
 
     # Test that average reference gives identical results when calculated
     # via SSP projection (projection=True) or directly (projection=False)
-    with raw.info._unlock(check_after=False):
+    with raw.info._unlock():
         raw.info['projs'] = []
     reref_1, _ = set_eeg_reference(raw.copy(), projection=True)
     reref_1.apply_proj()

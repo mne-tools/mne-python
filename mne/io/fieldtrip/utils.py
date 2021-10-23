@@ -69,7 +69,7 @@ def _create_info(ft_struct, raw_info):
                                                  missing_chan_idx,
                                                  axis=0)
 
-        with info._unlock(check_after=False):
+        with info._unlock():
             info['sfreq'] = sfreq
         ch_idx = [info['ch_names'].index(ch) for ch in ch_names]
         pick_info(info, ch_idx, copy=False)

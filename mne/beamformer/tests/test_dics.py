@@ -538,8 +538,7 @@ def test_apply_dics_timeseries(_load_forward, idx):
     evoked_proj = evoked.copy()
     p = compute_proj_evoked(evoked_proj, n_grad=1, n_mag=0, n_eeg=0)
     proj_matrix = make_projector(p, evoked_proj.ch_names)[0]
-    with evoked_proj.info._unlock(check_after=False):
-        evoked_proj.info['projs'] += p
+    evoked_proj.add_proj(p)
     filters_proj = make_dics(evoked_proj.info, fwd_surf, csd20, label=label)
     assert_array_equal(filters_proj['proj'], proj_matrix)
     stc_proj = apply_dics(evoked_proj, filters_proj)
