@@ -21,6 +21,8 @@ Current (0.24.dev0)
 
 .. |David Julien| replace:: **David Julien**
 
+.. |Dominique Makowski| replace:: **Dominique Makowski**
+
 .. |Romain Derollepot| replace:: **Romain Derollepot**
 
 .. |Jan Sosulski| replace:: **Jan Sosulski**
@@ -64,6 +66,8 @@ Enhancements
 - Speed up BCD solver in :func:`mne.inverse_sparse.mixed_norm` by adding Anderson acceleration (:gh:`9481` by **new contributor** |Pierre-Antoine Bannier|_ and `Alex Gramfort`_)
 
 - Add support for list of channel types for EEG/sEEG/ECoG/DBS referencing (:gh:`9637` **by new contributor** |Mathieu Scheltienne|_)
+
+- Add the ability to set point size and line width in :func:`mne.viz.plot_sensors` and related functions (:gH:`9872` **by new contributor** |Dominique Makowski|_)
 
 - Add support for changing the default event id used by :func:`mne.make_fixed_length_epochs` (:gh:`9782` **by new contributor** |Mathieu Scheltienne|_)
 

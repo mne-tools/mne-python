@@ -368,6 +368,8 @@
 
 .. _Dominik Welke: https://github.com/dominikwelke/
 
+.. _Dominique Makowski: https://dominiquemakowski.github.io/
+
 .. _Judy D Zhu: https://github.com/JD-Zhu
 
 .. _Valerii Chirkov: https://github.com/vagechirkov
