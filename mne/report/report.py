@@ -6,6 +6,7 @@
 #
 # License: BSD-3-Clause
 
+import io
 import dataclasses
 from dataclasses import dataclass
 from typing import Tuple
@@ -27,23 +28,27 @@ import numpy as np
 
 from .. import __version__ as MNE_VERSION
 from ..fixes import _compare_version
-from .. import (read_evokeds, read_events, pick_types, read_cov,
+from .. import (read_evokeds, read_events, read_cov,
                 read_source_estimate, read_trans, sys_info,
                 Evoked, SourceEstimate, Covariance, Info, Transform)
+from ..channels import _get_ch_type
 from ..defaults import _handle_default
 from ..io import read_raw, read_info, BaseRaw
 from ..io._read_raw import supported as extension_reader_map
+from ..io.pick import _DATA_CH_TYPES_SPLIT
 from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
-                     _path_like, use_log_level, deprecated)
+                     _path_like, use_log_level, deprecated, _check_fname,
+                     _check_ch_locs)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
 from ..viz.utils import _ndarray_to_fig, tight_layout
 from ..forward import read_forward_solution, Forward
 from ..epochs import read_epochs, BaseEpochs
+from ..preprocessing.ica import read_ica
 from .. import dig_mri_distances
 from ..minimum_norm import read_inverse_operator, InverseOperator
 from ..parallel import parallel_func, check_n_jobs
@@ -98,6 +103,11 @@ template_dir = Path(__file__).parent / 'templates'
 JAVASCRIPT = (html_include_dir / 'report.js').read_text(encoding='utf-8')
 CSS = (html_include_dir / 'report.sass').read_text(encoding='utf-8')
 
+
+def _get_ch_types(inst):
+    return [ch_type for ch_type in _DATA_CH_TYPES_SPLIT if ch_type in inst]
+
+
 ###############################################################################
 # HTML generation
 
@@ -120,7 +130,6 @@ def _html_footer_element(*, mne_version, date):
     return t
 
 
-# XXX
 def _html_toc_element(*, content_elements):
     template_path = template_dir / 'toc.html'
     t = Template(template_path.read_text(encoding='utf-8'))
@@ -138,13 +147,16 @@ def _html_raw_element(*, id, repr, psd, butterfly, ssp_projs, title, tags):
     return t
 
 
-def _html_epochs_element(*, id, repr, drop_log, psd, ssp_projs, title, tags):
+def _html_epochs_element(*, id, repr, erp_imgs, drop_log, psd, ssp_projs,
+                         title, tags):
     template_path = template_dir / 'epochs.html'
 
     title = stdlib_html.escape(title)
     t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(id=id, repr=repr, drop_log=drop_log, psd=psd,
-                     ssp_projs=ssp_projs, tags=tags, title=title)
+    t = t.substitute(
+        id=id, repr=repr, erp_imgs=erp_imgs, drop_log=drop_log, psd=psd,
+        ssp_projs=ssp_projs, tags=tags, title=title
+    )
     return t
 
 
@@ -189,15 +201,35 @@ def _html_inverse_operator_element(*, id, repr, source_space, title, tags):
     return t
 
 
+def _html_ica_element(*, id, repr, overlay, ecg, eog, ecg_scores, eog_scores,
+                      properties, topographies, title, tags):
+    template_path = template_dir / 'ica.html'
+
+    title = stdlib_html.escape(title)
+    t = Template(template_path.read_text(encoding='utf-8'))
+    t = t.substitute(id=id, repr=repr, overlay=overlay, ecg=ecg, eog=eog,
+                     ecg_scores=ecg_scores, eog_scores=eog_scores,
+                     properties=properties, topographies=topographies,
+                     tags=tags, title=title)
+    return t
+
+
 def _html_slider_element(*, id, images, captions, start_idx, image_format,
                          title, tags, klass=''):
     template_path = template_dir / 'slider.html'
 
     title = stdlib_html.escape(title)
-    captions = [stdlib_html.escape(caption) for caption in captions
-                if caption is not None]
+    captions_ = []
+    for caption in captions:
+        if caption is None:
+            caption = ''
+        else:
+            caption = stdlib_html.escape(caption)
+        captions_.append(caption)
+    del captions
+
     t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(id=id, images=images, captions=captions, tags=tags,
+    t = t.substitute(id=id, images=images, captions=captions_, tags=tags,
                      title=title, start_idx=start_idx,
                      image_format=image_format, klass=klass)
     return t
@@ -279,7 +311,7 @@ def _fig_to_img(fig, *, image_format='png', auto_close=True):
             category=UserWarning
         )
         fig.savefig(output, format=image_format, dpi=fig.get_dpi(),
-                    bbox_inches='tight', pad_inches=0)
+                    bbox_inches='tight')
 
     if auto_close:
         plt.close(fig)
@@ -404,6 +436,48 @@ def _itv(function, fig, **kwargs):
     return img, caption
 
 
+def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
+    """Parallelize ICA component properties plotting, and return arrays.
+
+    Returns
+    -------
+    outs : list of array
+        The properties plots as NumPy arrays.
+    """
+    import matplotlib.pyplot as plt
+
+    if picks is None:
+        picks = list(range(ica.n_components_))
+
+    def _plot_one_ica_property(*, ica, inst, pick):
+        figs = ica.plot_properties(inst=inst, picks=pick, show=False)
+        assert len(figs) == 1
+        fig = figs[0]
+
+        with io.BytesIO() as buff:
+            fig.savefig(
+                buff, format='png',  dpi=fig.get_dpi(), bbox_inches='tight',
+                pad_inches=0
+            )
+            buff.seek(0)
+            fig_array = plt.imread(buff, format='png')
+
+        plt.close(fig)
+        return fig_array
+
+    use_jobs = min(n_jobs, max(1, len(picks)))
+    parallel, p_fun, _ = parallel_func(
+        func=_plot_one_ica_property,
+        n_jobs=use_jobs
+    )
+    outs = parallel(
+        p_fun(
+            ica=ica, inst=inst, pick=pick
+        ) for pick in picks
+    )
+    return outs
+
+
 ###############################################################################
 # TOC FUNCTIONS
 
@@ -442,6 +516,7 @@ def open_report(fname, **params):
     report : instance of Report
         The report.
     """
+    fname = _check_fname(fname=fname, overwrite='read', must_exist=False)
     if op.exists(fname):
         # Check **params with the loaded report
         state = read_hdf5(fname, title='mnepython')
@@ -762,11 +837,13 @@ class Report(object):
             image_format=self.image_format,
             topomap_kwargs=topomap_kwargs,
         )
-        repr_html, drop_log_html, psd_html, ssp_projs_html = htmls
+        (repr_html, erp_imgs_html, drop_log_html, psd_html,
+         ssp_projs_html) = htmls
 
         dom_id = self._get_dom_id()
         html = _html_epochs_element(
             repr=repr_html,
+            erp_imgs=erp_imgs_html,
             drop_log=drop_log_html,
             psd=psd_html,
             ssp_projs=ssp_projs_html,
@@ -785,7 +862,7 @@ class Report(object):
     @fill_doc
     def add_evokeds(self, evokeds, *, titles=None, noise_cov=None, projs=None,
                     n_time_points=None, tags=('evoked',), replace=False,
-                    topomap_kwargs=None):
+                    topomap_kwargs=None, n_jobs=1):
         """Add `~mne.Evoked` objects to the report.
 
         Parameters
@@ -810,6 +887,7 @@ class Report(object):
         %(report_tags)s
         %(report_replace)s
         %(topomap_kwargs)s
+        %(n_jobs)s
 
         Notes
         -----
@@ -855,7 +933,8 @@ class Report(object):
                 add_projs=add_projs,
                 n_time_points=n_time_points,
                 tags=tags,
-                topomap_kwargs=topomap_kwargs
+                topomap_kwargs=topomap_kwargs,
+                n_jobs=n_jobs
             )
 
             (joint_html, slider_html, gfp_html, whitened_html,
@@ -927,12 +1006,12 @@ class Report(object):
             tags=tags,
             topomap_kwargs=topomap_kwargs,
         )
-        repr_html, psd_img_html, butterfly_img_html, ssp_proj_img_html = htmls
+        repr_html, psd_img_html, butterfly_imgs_html, ssp_proj_img_html = htmls
         dom_id = self._get_dom_id()
         html = _html_raw_element(
             repr=repr_html,
             psd=psd_img_html,
-            butterfly=butterfly_img_html,
+            butterfly=butterfly_imgs_html,
             ssp_projs=ssp_proj_img_html,
             tags=tags,
             title=title,
@@ -1218,8 +1297,8 @@ class Report(object):
         )
 
     @fill_doc
-    def add_projs(self, *, info, projs=None, title, tags=('ssp',),
-                  replace=False, topomap_kwargs=None):
+    def add_projs(self, *, info, projs=None, title, topomap_kwargs=None,
+                  tags=('ssp',), replace=False):
         """Render (SSP) projection vectors.
 
         Parameters
@@ -1233,9 +1312,9 @@ class Report(object):
             projectors are taken from ``info['projs']``.
         title : str
             The title corresponding to the `~mne.Projection` object.
+        %(topomap_kwargs)s
         %(report_tags)s
         %(report_replace)s
-        %(topomap_kwargs)s
 
         Notes
         -----
@@ -1258,6 +1337,314 @@ class Report(object):
         self._add_or_replace(
             dom_id=dom_id,
             name=title,
+            tags=tags,
+            html=html,
+            replace=replace
+        )
+
+    def _render_ica_overlay(self, *, ica, inst, image_format, tags):
+        if isinstance(inst, BaseRaw):
+            inst_ = inst
+        else:  # Epochs
+            inst_ = inst.average()
+
+        fig = ica.plot_overlay(inst=inst_, show=False)
+        del inst_
+        tight_layout(fig=fig)
+        img = _fig_to_img(fig, image_format=image_format)
+        dom_id = self._get_dom_id()
+        overlay_html = _html_image_element(
+            img=img, div_klass='ica', img_klass='ica',
+            title='Original and cleaned signal', caption=None, show=True,
+            image_format=image_format, id=dom_id, tags=tags
+        )
+
+        return overlay_html
+
+    def _render_ica_properties(self, *, ica, picks, inst, n_jobs, image_format,
+                               tags):
+        ch_type = _get_ch_type(inst=ica.info, ch_type=None)
+        if not _check_ch_locs(info=ica.info, ch_type=ch_type):
+            ch_type_name = _handle_default("titles")[ch_type]
+            warn(f'No {ch_type_name} channel locations found, cannot '
+                 f'create ICA properties plots')
+            return ''
+
+        figs = _plot_ica_properties_as_arrays(
+            ica=ica, inst=inst, picks=picks, n_jobs=n_jobs
+        )
+        rel_explained_var = (ica.pca_explained_variance_ /
+                             ica.pca_explained_variance_.sum())
+        cum_explained_var = np.cumsum(rel_explained_var)
+        captions = []
+        for idx, rel_var, cum_var in zip(
+            range(len(figs)),
+            rel_explained_var[:len(figs)],
+            cum_explained_var[:len(figs)]
+        ):
+            caption = (
+                f'ICA component {idx}. '
+                f'Variance explained: {round(100 * rel_var)}%'
+            )
+            if idx == 0:
+                caption += '.'
+            else:
+                caption += f' ({round(100 * cum_var)}% cumulative).'
+
+            captions.append(caption)
+
+        title = 'ICA component properties'
+        # Only render a slider if we have more than 1 component.
+        if len(figs) == 1:
+            img = _fig_to_img(fig=figs[0], image_format=image_format)
+            dom_id = self._get_dom_id()
+            properties_html = _html_image_element(
+                img=img, div_klass='ica', img_klass='ica',
+                title=title, caption=captions[0], show=True,
+                image_format=image_format, id=dom_id, tags=tags
+            )
+        else:
+            properties_html, _ = self._render_slider(
+                figs=figs, title=title, captions=captions, start_idx=0,
+                image_format=image_format, tags=tags
+            )
+
+        return properties_html
+
+    def _render_ica_artifact_sources(self, *, ica, inst, artifact_type,
+                                     image_format, tags):
+        fig = ica.plot_sources(inst=inst, show=False)
+        img = _fig_to_img(fig, image_format=image_format)
+        dom_id = self._get_dom_id()
+        html = _html_image_element(
+            img=img, div_klass='ica', img_klass='ica',
+            title=f'Original and cleaned {artifact_type} epochs', caption=None,
+            show=True, image_format=image_format, id=dom_id, tags=tags
+        )
+        return html
+
+    def _render_ica_artifact_scores(self, *, ica, scores, artifact_type,
+                                    image_format, tags):
+        fig = ica.plot_scores(scores=scores, title=None, show=False)
+        img = _fig_to_img(fig, image_format=image_format)
+        dom_id = self._get_dom_id()
+        html = _html_image_element(
+            img=img, div_klass='ica', img_klass='ica',
+            title=f'Scores for matching {artifact_type} patterns',
+            caption=None, show=True, image_format=image_format, id=dom_id,
+            tags=tags
+        )
+        return html
+
+    def _render_ica_components(self, *, ica, picks, image_format, tags):
+        ch_type = _get_ch_type(inst=ica.info, ch_type=None)
+        if not _check_ch_locs(info=ica.info, ch_type=ch_type):
+            ch_type_name = _handle_default("titles")[ch_type]
+            warn(f'No {ch_type_name} channel locations found, cannot '
+                 f'create ICA component plots')
+            return ''
+
+        figs = ica.plot_components(
+            picks=picks, title='', colorbar=True, show=False
+        )
+        if not isinstance(figs, list):
+            figs = [figs]
+
+        for fig in figs:
+            tight_layout(fig=fig)
+
+        title = 'ICA component topographies'
+        if len(figs) == 1:
+            img = _fig_to_img(fig=figs[0], image_format=image_format)
+            dom_id = self._get_dom_id()
+            topographies_html = _html_image_element(
+                img=img, div_klass='ica', img_klass='ica',
+                title=title, caption=None, show=True,
+                image_format=image_format, id=dom_id, tags=tags
+            )
+        else:
+            captions = [None] * len(figs)
+            topographies_html, _ = self._render_slider(
+                figs=figs, title=title, captions=captions, start_idx=0,
+                image_format=image_format, tags=tags
+            )
+
+        return topographies_html
+
+    def _render_ica(self, *, ica, inst, picks, ecg_evoked,
+                    eog_evoked, ecg_scores, eog_scores, title, image_format,
+                    tags, n_jobs):
+        if _path_like(ica):
+            ica = read_ica(ica)
+
+        if ica.current_fit == 'unfitted':
+            raise RuntimeError(
+                'ICA must be fitted before it can be added to the report.'
+            )
+
+        if inst is None:
+            pass  # no-op
+        elif _path_like(inst):
+            # We cannot know which data type to expect, so let's first try to
+            # read a Raw, and if that fails, try to load Epochs
+            fname = str(inst)  # could e.g. be a Path!
+            raw_kwargs = dict(fname=fname, preload=False)
+            if fname.endswith(('.fif', '.fif.gz')):
+                raw_kwargs['allow_maxshield'] = True
+
+            try:
+                inst = read_raw(**raw_kwargs)
+            except ValueError:
+                try:
+                    inst = read_epochs(fname)
+                except ValueError:
+                    raise ValueError(
+                        f'The specified file, {fname}, does not seem to '
+                        f'contain Raw data or Epochs'
+                    )
+        elif not inst.preload:
+            raise RuntimeError(
+                'You passed an object to Report.add_ica() via the "inst" '
+                'parameter that was not preloaded. Please preload the data  '
+                'via the load_data() method'
+            )
+
+        if _path_like(ecg_evoked):
+            ecg_evoked = read_evokeds(fname=ecg_evoked, condition=0)
+
+        if _path_like(eog_evoked):
+            eog_evoked = read_evokeds(fname=eog_evoked, condition=0)
+
+        # Summary table
+        dom_id = self._get_dom_id()
+        repr_html = _html_element(
+            div_klass='ica',
+            id=dom_id,
+            tags=tags,
+            title='Info',
+            html=ica._repr_html_()
+        )
+
+        # Overlay plot
+        if inst:
+            overlay_html = self._render_ica_overlay(
+                ica=ica, inst=inst, image_format=image_format, tags=tags
+            )
+        else:
+            overlay_html = ''
+
+        # ECG artifact
+        if ecg_scores is not None:
+            ecg_scores_html = self._render_ica_artifact_scores(
+                ica=ica, scores=ecg_scores, artifact_type='ECG',
+                image_format=image_format, tags=tags
+            )
+        else:
+            ecg_scores_html = ''
+
+        if ecg_evoked:
+            ecg_html = self._render_ica_artifact_sources(
+                ica=ica, inst=ecg_evoked, artifact_type='ECG',
+                image_format=image_format, tags=tags
+            )
+        else:
+            ecg_html = ''
+
+        # EOG artifact
+        if eog_scores is not None:
+            eog_scores_html = self._render_ica_artifact_scores(
+                ica=ica, scores=eog_scores, artifact_type='EOG',
+                image_format=image_format, tags=tags
+            )
+        else:
+            eog_scores_html = ''
+
+        if eog_evoked:
+            eog_html = self._render_ica_artifact_sources(
+                ica=ica, inst=eog_evoked, artifact_type='EOG',
+                image_format=image_format, tags=tags
+            )
+        else:
+            eog_html = ''
+
+        # Component topography plots
+        topographies_html = self._render_ica_components(
+            ica=ica, picks=picks, image_format=image_format, tags=tags
+        )
+
+        # Properties plots
+        if inst:
+            properties_html = self._render_ica_properties(
+                ica=ica, picks=picks, inst=inst, n_jobs=n_jobs,
+                image_format=image_format, tags=tags
+            )
+        else:
+            properties_html = ''
+
+        dom_id = self._get_dom_id()
+        html = _html_ica_element(
+            id=dom_id,
+            repr=repr_html,
+            overlay=overlay_html,
+            ecg=ecg_html,
+            eog=eog_html,
+            ecg_scores=ecg_scores_html,
+            eog_scores=eog_scores_html,
+            properties=properties_html,
+            topographies=topographies_html,
+            title=title,
+            tags=tags
+        )
+        return dom_id, html
+
+    @fill_doc
+    def add_ica(
+        self, ica, title, *,  inst, picks=None, ecg_evoked=None,
+        eog_evoked=None, ecg_scores=None, eog_scores=None, n_jobs=1,
+        tags=('ica',), replace=False
+    ):
+        """Add (a fitted) `~mne.preprocessing.ICA` to the report.
+
+        Parameters
+        ----------
+        ica : path-like | instance of mne.preprocessing.ICA
+            The fitted ICA to add.
+        title : str
+            The title to add.
+        inst : path-like | mne.io.Raw | mne.Epochs | None
+            The data to use for visualization of the effects of ICA cleaning.
+            To only plot the ICA component topographies, explicitly pass
+            ``None``.
+        %(picks_ica)s  If ``None``, plot all components. This only affects
+            the behavior of the component topography and properties plots.
+        ecg_evoked, eog_evoked : path-line | mne.Evoked | None
+            Evoked signal based on ECG and EOG epochs, respectively. If passed,
+            will be used to visualize the effects of artifact rejection.
+        ecg_scores, eog_scores : array of float | list of array of float | None
+            The scores produced by :meth:`mne.preprocessing.ICA.find_bads_ecg`
+            and :meth:`mne.preprocessing.ICA.find_bads_eog`, respectively.
+            If passed, will be used to visualize the scoring for each ICA
+            component.
+        %(n_jobs)s
+        %(report_tags)s
+        %(report_replace)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24.0
+        """
+        tags = tuple(tags)
+
+        dom_id, html = self._render_ica(
+            ica=ica, inst=inst, picks=picks,
+            ecg_evoked=ecg_evoked, eog_evoked=eog_evoked,
+            ecg_scores=ecg_scores, eog_scores=eog_scores,
+            title=title, image_format=self.image_format, tags=tags,
+            n_jobs=n_jobs
+        )
+        self._add_or_replace(
+            name=title,
+            dom_id=dom_id,
             tags=tags,
             html=html,
             replace=replace
@@ -1383,7 +1770,7 @@ class Report(object):
                     return
             raise RuntimeError('This should never happen')
         else:
-            # Append new content
+            # Simply append new content (no replace)
             self._content.append(new_content)
 
     def _render_code(self, *, code, title, language, tags):
@@ -1509,7 +1896,9 @@ class Report(object):
 
         if isinstance(caption, str):
             captions = (caption,)
-        elif caption is None:
+        elif caption is None and len(figs) == 1:
+            captions = [None]
+        elif caption is None and len(figs) > 1:
             captions = [f'Figure {i+1}' for i in range(len(figs))]
         else:
             captions = tuple(caption)
@@ -2068,7 +2457,7 @@ class Report(object):
                     self.add_evokeds(
                         evokeds=fname, titles=titles, noise_cov=cov,
                         n_time_points=n_time_points_evokeds,
-                        topomap_kwargs=topomap_kwargs,
+                        topomap_kwargs=topomap_kwargs
                     )
                 elif _endswith(fname, 'eve'):
                     if self.info_fname is not None:
@@ -2084,6 +2473,9 @@ class Report(object):
                 elif _endswith(fname, 'proj') and self.info_fname is not None:
                     self.add_projs(info=self.info_fname, projs=fname,
                                    title=title, topomap_kwargs=topomap_kwargs)
+                # XXX TODO We could render ICA components here someday
+                # elif _endswith(fname, 'ica') and ica:
+                #     pass
                 elif (_endswith(fname, 'trans') and
                         self.info_fname is not None and
                         self.subjects_dir is not None and
@@ -2208,7 +2600,11 @@ class Report(object):
         # iterate through the possible patterns
         fnames = list()
         for p in pattern:
-            fnames.extend(sorted(_recursive_search(self.data_path, p)))
+            data_path = _check_fname(
+                fname=self.data_path, overwrite='read', must_exist=True,
+                name='Directory or folder', need_dir=True
+            )
+            fnames.extend(sorted(_recursive_search(data_path, p)))
 
         if not fnames and not render_bem:
             raise RuntimeError(f'No matching files found in {self.data_path}')
@@ -2363,9 +2759,10 @@ class Report(object):
                 self.data_path = os.getcwd()
                 warn(f'`data_path` not provided. Using {self.data_path} '
                      f'instead')
-            fname = op.realpath(op.join(self.data_path, 'report.html'))
-        else:
-            fname = op.realpath(fname)
+            fname = op.join(self.data_path, 'report.html')
+
+        fname = _check_fname(fname, overwrite=overwrite, name=fname)
+        fname = op.realpath(fname)  # resolve symlinks
 
         if sort_content:
             self._content = self._sort(
@@ -2482,6 +2879,29 @@ class Report(object):
 
         return html
 
+    def _render_raw_butterfly_segments(self, *, raw: BaseRaw, image_format,
+                                       tags):
+        # Pick 10 1-second time slices
+        times = np.linspace(raw.times[0], raw.times[-1], 12)[1:-1]
+        figs = []
+        for t in times:
+            tmin = max(t - 0.5, 0)
+            tmax = min(t + 0.5, raw.times[-1])
+            duration = tmax - tmin
+            fig = raw.plot(butterfly=True, show_scrollbars=False, start=tmin,
+                           duration=duration, show=False)
+            figs.append(fig)
+
+        captions = [f'Segment {i+1} of {len(figs)}'
+                    for i in range(len(figs))]
+
+        html, _ = self._render_slider(
+            figs=figs, title='Time series', captions=captions,
+            start_idx=0, image_format=image_format, tags=tags
+        )
+
+        return html
+
     def _render_raw(self, *, raw, add_psd, add_projs, add_butterfly,
                     image_format, tags, topomap_kwargs):
         """Render raw."""
@@ -2506,39 +2926,11 @@ class Report(object):
 
         # Butterfly plot
         if add_butterfly:
-            dom_id = self._get_dom_id()
-            # Only keep "bad" annotations
-            raw_copy = raw.copy()
-            annots_to_remove_idx = []
-            for idx, annotation in enumerate(raw.annotations):
-                if not annotation['description'].lower().startswith('bad'):
-                    annots_to_remove_idx.append(idx)
-            raw_copy.annotations.delete(annots_to_remove_idx)
-
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    action='ignore',
-                    message='.*can cause aliasing artifacts.*',
-                    category=RuntimeWarning
-                )
-                fig = raw_copy.plot(
-                    butterfly=True,
-                    show_scrollbars=False,
-                    duration=raw.times[-1],
-                    decim=10,
-                    show=False
-                )
-
-            tight_layout(fig=fig)
-            img = _fig_to_img(fig=fig, image_format=image_format)
-            butterfly_img_html = _html_image_element(
-                img=img, div_klass='raw', img_klass='raw',
-                title='Time course', caption=None, show=True,
-                image_format=image_format, id=dom_id, tags=tags
+            butterfly_imgs_html = self._render_raw_butterfly_segments(
+                raw=raw, image_format=image_format, tags=tags
             )
-            del raw_copy
         else:
-            butterfly_img_html = ''
+            butterfly_imgs_html = ''
 
         # PSD
         if isinstance(add_psd, dict):
@@ -2567,7 +2959,7 @@ class Report(object):
             add_projs=add_projs, info=raw, image_format=image_format,
             tags=tags, topomap_kwargs=topomap_kwargs)
 
-        return [repr_html, psd_img_html, butterfly_img_html, ssp_projs_html]
+        return [repr_html, psd_img_html, butterfly_imgs_html, ssp_projs_html]
 
     def _ssp_projs_html(self, *, add_projs, info, image_format, tags,
                         topomap_kwargs):
@@ -2610,8 +3002,9 @@ class Report(object):
         if not projs:  # Abort mission!
             return None
 
-        if info['dig'] is None:  # We cannot proceed without digpoints either
-            return None
+        if not _check_ch_locs(info=info):
+            warn('No channel locations found, cannot create projector plots')
+            return '', None
 
         topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
         fig = plot_projs_topomap(
@@ -2714,14 +3107,14 @@ class Report(object):
 
     def _render_evoked_joint(self, evoked, ch_types, image_format, tags,
                              topomap_kwargs):
-        ch_type_to_caption_map = {
-            'mag': 'magnetometers',
-            'grad': 'gradiometers',
-            'eeg': 'EEG'
-        }
-
         htmls = []
         for ch_type in ch_types:
+            if not _check_ch_locs(info=evoked.info, ch_type=ch_type):
+                ch_type_name = _handle_default("titles")[ch_type]
+                warn(f'No {ch_type_name} channel locations found, cannot '
+                     f'create joint plot')
+                continue
+
             with use_log_level(level=False):
                 fig = evoked.copy().pick(ch_type, verbose=False).plot_joint(
                     ts_args=dict(gfp=True),
@@ -2731,7 +3124,7 @@ class Report(object):
                 )
 
             img = _fig_to_img(fig=fig, image_format=image_format)
-            title = f'Time course ({ch_type_to_caption_map[ch_type]})'
+            title = f'Time course ({_handle_default("titles")[ch_type]})'
             dom_id = self._get_dom_id()
 
             htmls.append(
@@ -2751,10 +3144,48 @@ class Report(object):
         html = '\n'.join(htmls)
         return html
 
-    def _render_evoked_topomap_slider(self, *, evoked, ch_types, n_time_points,
-                                      image_format, tags, topomap_kwargs):
+    def _plot_one_evoked_topomap_timepoint(
+        self, *, evoked, time, ch_types, vmin, vmax, topomap_kwargs
+    ):
         import matplotlib.pyplot as plt
 
+        fig, ax = plt.subplots(
+            1, len(ch_types) * 2,
+            gridspec_kw={'width_ratios': [8, 0.5] * len(ch_types)},
+            figsize=(4 * len(ch_types), 3.5)
+        )
+        ch_type_ax_map = dict(
+            zip(ch_types,
+                [(ax[i], ax[i + 1]) for i in
+                    range(0, 2 * len(ch_types) - 1, 2)])
+        )
+
+        for ch_type in ch_types:
+            evoked.plot_topomap(
+                times=[time], ch_type=ch_type,
+                vmin=vmin[ch_type], vmax=vmax[ch_type],
+                axes=ch_type_ax_map[ch_type], show=False,
+                **topomap_kwargs
+            )
+            ch_type_ax_map[ch_type][0].set_title(ch_type)
+
+        tight_layout(fig=fig)
+
+        with BytesIO() as buff:
+            fig.savefig(
+                buff, format='png',
+                dpi=fig.get_dpi(),
+                bbox_inches='tight',
+                pad_inches=0
+            )
+            plt.close(fig)
+            buff.seek(0)
+            fig_array = plt.imread(buff, format='png')
+        return fig_array
+
+    def _render_evoked_topomap_slider(self, *, evoked, ch_types, n_time_points,
+                                      image_format, tags, topomap_kwargs,
+                                      n_jobs):
         if n_time_points is None:
             n_time_points = min(len(evoked.times), 21)
         elif n_time_points > len(evoked.times):
@@ -2781,6 +3212,12 @@ class Report(object):
         vmax = dict()
         vmin = dict()
         for ch_type in ch_types:
+            if not _check_ch_locs(info=evoked.info, ch_type=ch_type):
+                ch_type_name = _handle_default("titles")[ch_type]
+                warn(f'No {ch_type_name} channel locations found, cannot '
+                     f'create topography plots')
+                continue
+
             vmax[ch_type] = (np.abs(evoked.copy()
                                     .pick(ch_type, verbose=False)
                                     .data)
@@ -2790,51 +3227,35 @@ class Report(object):
             else:
                 vmin[ch_type] = -vmax[ch_type]
 
-        figs = []
-        topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
+        if not (vmin and vmax):  # we only had EEG data and no digpoints
+            html = ''
+            dom_id = None
+        else:
+            topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
 
-        for t in times:
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    action='ignore',
-                    message='More than 20 figures have been opened',
-                    category=RuntimeWarning
-                )
+            use_jobs = min(n_jobs, max(1, len(times)))
+            parallel, p_fun, _ = parallel_func(
+                func=self._plot_one_evoked_topomap_timepoint,
+                n_jobs=use_jobs
+            )
+            fig_arrays = parallel(
+                p_fun(
+                    evoked=evoked, time=time, ch_types=ch_types,
+                    vmin=vmin, vmax=vmax, topomap_kwargs=topomap_kwargs
+                ) for time in times
+            )
 
-                # topomaps + color bars
-                fig, ax = plt.subplots(
-                    1, len(ch_types) * 2,
-                    gridspec_kw={'width_ratios': [8, 0.5] * len(ch_types)},
-                    figsize=(4 * len(ch_types), 3.5)
-                )
-                ch_type_ax_map = dict(
-                    zip(ch_types,
-                        [(ax[i], ax[i + 1]) for i in
-                         range(0, 2 * len(ch_types) - 1, 2)])
-                )
+            captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
+            html, dom_id = self._render_slider(
+                figs=fig_arrays,
+                captions=captions,
+                title='Topographies',
+                image_format=image_format,
+                start_idx=t_zero_idx,
+                tags=tags
+            )
 
-                for ch_type in ch_types:
-                    evoked.plot_topomap(
-                        times=[t], ch_type=ch_type,
-                        vmin=vmin[ch_type], vmax=vmax[ch_type],
-                        axes=ch_type_ax_map[ch_type], show=False,
-                        **topomap_kwargs
-                    )
-                    ch_type_ax_map[ch_type][0].set_title(ch_type)
-                tight_layout(fig=fig)
-                figs.append(fig)
-
-        captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
-        html = self._render_slider(
-            figs=figs,
-            captions=captions,
-            title='Topographies',
-            image_format=image_format,
-            start_idx=t_zero_idx,
-            tags=tags
-        )
-
-        return html
+        return html, dom_id
 
     def _render_evoked_gfp(self, evoked, ch_types, image_format, tags):
         # Make legend labels shorter by removing the multiplicative factors
@@ -2903,18 +3324,7 @@ class Report(object):
         return html
 
     def _render_evoked(self, evoked, noise_cov, add_projs, n_time_points,
-                       image_format, tags, topomap_kwargs):
-        def _get_ch_types(ev):
-            has_types = []
-            if len(pick_types(ev.info, meg=False, eeg=True)) > 0:
-                has_types.append('eeg')
-            if len(pick_types(ev.info, meg='grad', eeg=False,
-                              ref_meg=False)) > 0:
-                has_types.append('grad')
-            if len(pick_types(ev.info, meg='mag', eeg=False)) > 0:
-                has_types.append('mag')
-            return has_types
-
+                       image_format, tags, topomap_kwargs, n_jobs):
         ch_types = _get_ch_types(evoked)
         joint_html = self._render_evoked_joint(
             evoked=evoked, ch_types=ch_types,
@@ -2926,6 +3336,7 @@ class Report(object):
             n_time_points=n_time_points,
             image_format=image_format,
             tags=tags, topomap_kwargs=topomap_kwargs,
+            n_jobs=n_jobs
         )
         gfp_html = self._render_evoked_gfp(
             evoked=evoked, ch_types=ch_types, image_format=image_format,
@@ -2990,7 +3401,7 @@ class Report(object):
             fname = epochs.filename
         else:
             fname = epochs
-            epochs = read_epochs(fname)
+            epochs = read_epochs(fname, preload=False)
 
         # Summary table
         dom_id = self._get_dom_id()
@@ -3001,6 +3412,44 @@ class Report(object):
             title='Info',
             html=epochs._repr_html_()
         )
+
+        # ERP/ERF image(s)
+        ch_types = _get_ch_types(epochs)
+        erp_img_htmls = []
+        epochs.load_data()
+
+        for ch_type in ch_types:
+            with use_log_level(level=False):
+                figs = epochs.copy().pick(ch_type, verbose=False).plot_image(
+                    show=False
+                )
+
+            assert len(figs) == 1
+            fig = figs[0]
+            img = _fig_to_img(fig=fig, image_format=image_format)
+            if ch_type in ('mag', 'grad'):
+                title_start = 'ERF image'
+            else:
+                assert 'eeg' in ch_type
+                title_start = 'ERP image'
+
+            title = (f'{title_start} '
+                     f'({_handle_default("titles")[ch_type]})')
+            dom_id = self._get_dom_id()
+            erp_img_htmls.append(
+                _html_image_element(
+                    img=img,
+                    div_klass='epochs erp-image',
+                    img_klass='epochs erp-image',
+                    tags=tags,
+                    title=title,
+                    caption=None,
+                    show=True,
+                    image_format=image_format,
+                    id=dom_id
+                )
+            )
+        erp_imgs_html = '\n'.join(erp_img_htmls)
 
         # Drop log
         if epochs._bad_dropped:
@@ -3036,8 +3485,6 @@ class Report(object):
                 fmax = np.inf
 
             fig = epochs.plot_psd(fmax=fmax, show=False)
-            tight_layout(fig=fig)
-
             img = _fig_to_img(fig=fig, image_format=image_format)
             psd_img_html = _html_image_element(
                 img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
@@ -3049,9 +3496,11 @@ class Report(object):
 
         ssp_projs_html = self._ssp_projs_html(
             add_projs=add_projs, info=epochs, image_format=image_format,
-            tags=tags, topomap_kwargs=topomap_kwargs)
+            tags=tags, topomap_kwargs=topomap_kwargs
+        )
 
-        return repr_html, drop_log_img_html, psd_img_html, ssp_projs_html
+        return (repr_html, erp_imgs_html, drop_log_img_html, psd_img_html,
+                ssp_projs_html)
 
     def _render_cov(self, cov, *, info, image_format, tags):
         """Render covariance matrix & SVD."""
@@ -3150,7 +3599,8 @@ class Report(object):
         # otherwise.
         import matplotlib.pyplot as plt
         stc_plot_kwargs = _handle_default(
-            'report_stc_plot_kwargs', stc_plot_kwargs)
+            'report_stc_plot_kwargs', stc_plot_kwargs
+        )
         stc_plot_kwargs.update(subject=subject, subjects_dir=subjects_dir)
 
         if get_3d_backend() is not None:

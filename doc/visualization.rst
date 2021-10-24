@@ -76,4 +76,6 @@ Visualization
    set_3d_view
    set_3d_title
    create_3d_figure
+   close_3d_figure
+   close_all_3d_figures
    get_brain_class

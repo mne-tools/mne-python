@@ -2167,6 +2167,7 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
         # Adjust the patch inds as well if necessary
         if omit_limit + omit_outside > 0:
             _adjust_patch_info(s)
+    return check_inside
 
 
 @verbose

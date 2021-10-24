@@ -80,6 +80,7 @@ Projections:
    compute_maxwell_basis
    compute_proj_ecg
    compute_proj_eog
+   cortical_signal_suppression
    create_ecg_epochs
    create_eog_epochs
    find_bad_channels_maxwell

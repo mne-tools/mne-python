@@ -9,6 +9,7 @@ from copy import deepcopy
 from distutils.version import LooseVersion
 from functools import partial
 from io import BytesIO
+import os
 import os.path as op
 import pickle
 
@@ -1206,6 +1207,32 @@ def test_split_saving(tmpdir, split_size, n_epochs, n_files, size, metadata,
         epochs2 = mne.read_epochs(fname, preload=preload)
         assert_allclose(epochs2.get_data(), epochs_data)
         assert_array_equal(epochs.events, epochs2.events)
+
+    # Check that if BIDS is used and no split is needed it defaults to
+    # simple writing without _split- entity.
+    split_fname = str(tmpdir.join('test_epo.fif'))
+    split_fname_neuromag_part1 = split_fname.replace(
+        'epo.fif', f'epo-{n_files + 1}.fif')
+    split_fname_bids_part1 = split_fname.replace(
+        '_epo', f'_split-{n_files + 1:02d}_epo')
+
+    epochs.save(split_fname, split_naming='bids', verbose=True)
+    assert op.isfile(split_fname)
+    assert not op.isfile(split_fname_bids_part1)
+    for split_naming in ('neuromag', 'bids'):
+        with pytest.raises(FileExistsError, match='Destination file'):
+            epochs.save(split_fname, split_naming=split_naming, verbose=True)
+    os.remove(split_fname)
+    # we don't test for reserved files as it's not implemented here
+
+    epochs.save(split_fname, split_size='1.4MB', verbose=True)
+    # check that the filenames match the intended pattern
+    assert op.isfile(split_fname)
+    assert op.isfile(split_fname_neuromag_part1)
+    # check that filenames are being formatted correctly for BIDS
+    epochs.save(split_fname, split_size='1.4MB', split_naming='bids',
+                overwrite=True, verbose=True)
+    assert op.isfile(split_fname_bids_part1)
 
 
 def test_split_many_reset(tmpdir):
@@ -3248,9 +3275,14 @@ def test_average_methods():
     n_epochs, n_channels, n_times = 5, 10, 20
     sfreq = 1000.
     data = rng.randn(n_epochs, n_channels, n_times)
+
     events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
+    # Add second event type
+    events[-2:, 2] = 2
+    event_id = dict(first=1, second=2)
+
     info = create_info(n_channels, sfreq, 'eeg')
-    epochs = EpochsArray(data, info, events)
+    epochs = EpochsArray(data, info, events, event_id=event_id)
 
     for method in ('mean', 'median'):
         if method == "mean":
@@ -3262,6 +3294,14 @@ def test_average_methods():
 
         evoked_data = epochs.average(method=method).data
         assert_array_equal(evoked_data, fun(data))
+
+    # Test averaging by event type
+    ev = epochs.average(by_event_type=True)
+    assert len(ev) == 2
+    assert ev[0].comment == 'first'
+    assert_array_equal(ev[0].data, np.mean(data[:-2], axis=0))
+    assert ev[1].comment == 'second'
+    assert_array_equal(ev[1].data, np.mean(data[-2:], axis=0))
 
 
 @pytest.mark.parametrize('relative', (True, False))

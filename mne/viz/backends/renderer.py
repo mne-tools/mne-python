@@ -313,6 +313,22 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
         return renderer
 
 
+def close_3d_figure(figure):
+    """Close the given scene.
+
+    Parameters
+    ----------
+    figure : object
+        The scene which needs to be closed.
+    """
+    backend._close_3d_figure(figure)
+
+
+def close_all_3d_figures():
+    """Close all the scenes of the current 3d backend."""
+    backend._close_all()
+
+
 def get_brain_class():
     """Return the proper Brain class based on the current 3d backend.
 

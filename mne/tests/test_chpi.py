@@ -539,7 +539,9 @@ def test_calculate_chpi_coil_locs_artemis():
     times, cHPI_digs = _calculate_chpi_coil_locs(raw, verbose='debug')
 
     assert len(np.setdiff1d(times, raw.times + raw.first_time)) == 0
-    assert_allclose(times[5], 1.5, atol=1e-3)
+    # Should be somewhere around 1.5 sec, depending on coil GOF values
+    # around 0.98 it can change
+    assert_allclose(times[5], 1.5, atol=2e-1)
     assert_allclose(cHPI_digs[5][0]['gof'], 0.995, atol=5e-3)
     assert_allclose(cHPI_digs[5][0]['r'],
                     [-0.0157, 0.0655, 0.0018], atol=1e-3)

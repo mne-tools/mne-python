@@ -1283,7 +1283,7 @@ class Coregistration(object):
 
     Parameters
     ----------
-    info : instance of Info
+    info : instance of Info | None
         The measurement info.
     %(subject)s
     %(subjects_dir)s
@@ -1321,7 +1321,7 @@ class Coregistration(object):
     """
 
     def __init__(self, info, subject, subjects_dir=None, fiducials='auto'):
-        _validate_type(info, Info, 'info')
+        _validate_type(info, (Info, None), 'info')
         self._info = info
         self._subject = _check_subject(subject, subject)
         self._subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
@@ -1331,6 +1331,9 @@ class Coregistration(object):
         self._default_parameters = \
             np.array([0., 0., 0., 0., 0., 0., 1., 1., 1.])
 
+        self._rotation = self._default_parameters[:3]
+        self._translation = self._default_parameters[3:6]
+        self._scale = self._default_parameters[6:9]
         self._icp_iterations = 20
         self._icp_angle = 0.2
         self._icp_distance = 0.2
@@ -1343,25 +1346,33 @@ class Coregistration(object):
         self._hsp_weight = 1.
         self._eeg_weight = 1.
         self._hpi_weight = 1.
-
         self._extra_points_filter = None
-        self._dig_dict = _get_data_as_dict_from_dig(
-            dig=self._info['dig'],
-            exclude_ref_channel=False
-        )
-        # adjustments
-        self._dig_dict['rpa'] = np.array([self._dig_dict['rpa']], float)
-        self._dig_dict['nasion'] = np.array([self._dig_dict['nasion']], float)
-        self._dig_dict['lpa'] = np.array([self._dig_dict['lpa']], float)
 
+        self._setup_digs()
         self._setup_bem()
         self._setup_fiducials(fiducials)
         self.reset()
-        self._update_params(
-            rot=self._default_parameters[:3],
-            tra=self._default_parameters[3:6],
-            sca=self._default_parameters[6:9],
-        )
+
+    def _setup_digs(self):
+        if self._info is None:
+            self._dig_dict = dict(
+                hpi=np.zeros((1, 3)),
+                dig_ch_pos_location=np.zeros((1, 3)),
+                hsp=np.zeros((1, 3)),
+                rpa=np.zeros((1, 3)),
+                nasion=np.zeros((1, 3)),
+                lpa=np.zeros((1, 3)),
+            )
+        else:
+            self._dig_dict = _get_data_as_dict_from_dig(
+                dig=self._info['dig'],
+                exclude_ref_channel=False
+            )
+            # adjustments
+            self._dig_dict['rpa'] = np.array([self._dig_dict['rpa']], float)
+            self._dig_dict['nasion'] = \
+                np.array([self._dig_dict['nasion']], float)
+            self._dig_dict['lpa'] = np.array([self._dig_dict['lpa']], float)
 
     def _setup_bem(self):
         # find high-res head model (if possible)
@@ -1437,14 +1448,14 @@ class Coregistration(object):
         rot_changed = False
         if rot is not None:
             rot_changed = True
-            self._last_rotation = self._rotation
+            self._last_rotation = self._rotation.copy()
             self._rotation = rot
         tra_changed = False
         if rot_changed or tra is not None:
             if tra is None:
                 tra = self._translation
             tra_changed = True
-            self._last_translation = self._translation
+            self._last_translation = self._translation.copy()
             self._translation = tra
             self._head_mri_t = rotation(*self._rotation).T
             self._head_mri_t[:3, 3] = \
@@ -1464,7 +1475,7 @@ class Coregistration(object):
         if tra_changed or sca is not None:
             if sca is None:
                 sca = self._scale
-            self._last_scale = self._scale
+            self._last_scale = self._scale.copy()
             self._scale = sca
             self._mri_trans = np.eye(4)
             self._mri_trans[:, :3] *= sca
@@ -1798,7 +1809,8 @@ class Coregistration(object):
 
     @verbose
     def fit_icp(self, n_iterations=20, lpa_weight=1., nasion_weight=10.,
-                rpa_weight=1., verbose=None):
+                rpa_weight=1., hsp_weight=1., eeg_weight=1., hpi_weight=1.,
+                callback=None, verbose=None):
         """Find MRI scaling, translation, and rotation to match HSP.
 
         Parameters
@@ -1811,6 +1823,16 @@ class Coregistration(object):
             Relative weight for nasion. The default value is 10.
         rpa_weight : float
             Relative weight for RPA. The default value is 1.
+        hsp_weight : float
+            Relative weight for HSP. The default value is 1.
+        eeg_weight : float
+            Relative weight for EEG. The default value is 1.
+        hpi_weight : float
+            Relative weight for HPI. The default value is 1.
+        callback : callable | None
+            A function to call on each iteration. Useful for status message
+            updates. It will be passed the keyword arguments ``iteration``
+            and ``n_iterations``.
         %(verbose)s
 
         Returns
@@ -1824,13 +1846,16 @@ class Coregistration(object):
         self._lpa_weight = lpa_weight
         self._nasion_weight = nasion_weight
         self._rpa_weight = rpa_weight
+        self._hsp_weight = hsp_weight
+        self._eeg_weight = eeg_weight
+        self._hsp_weight = hpi_weight
 
         # Initial guess (current state)
         est = self._parameters
         est = est[:[6, 7, None, 9][n_scale_params]]
 
         # Do the fits, assigning and evaluating at each step
-        for ii in range(n_iterations):
+        for iteration in range(n_iterations):
             head_pts, mri_pts, weights = self._setup_icp(n_scale_params)
             est = fit_matched_points(mri_pts, head_pts, scale=n_scale_params,
                                      x0=est, out='params', weights=weights)
@@ -1842,10 +1867,12 @@ class Coregistration(object):
             else:
                 self._update_params(rot=est[:3], tra=est[3:6], sca=est[6:9])
             angle, move, scale = self._changes
-            self._log_dig_mri_distance(f'  ICP {ii + 1:2d} ')
+            self._log_dig_mri_distance(f'  ICP {iteration + 1:2d} ')
             if angle <= self._icp_angle and move <= self._icp_distance and \
                     all(scale <= self._icp_scale):
                 break
+            if callback is not None:
+                callback(iteration, n_iterations)
         self._log_dig_mri_distance('End      ')
         return self
 
@@ -1919,12 +1946,9 @@ class Coregistration(object):
             The modified Coregistration object.
         """
         self._grow_hair = 0.
-        self._rotation = self._default_parameters[:3]
-        self._translation = self._default_parameters[3:6]
-        self._scale = self._default_parameters[6:9]
-        self._last_rotation = self._rotation.copy()
-        self._last_translation = self._translation.copy()
-        self._last_scale = self._scale.copy()
+        self.set_rotation(self._default_parameters[:3])
+        self.set_translation(self._default_parameters[3:6])
+        self.set_scale(self._default_parameters[6:9])
         self._extra_points_filter = None
         self._update_nearest_calc()
         return self

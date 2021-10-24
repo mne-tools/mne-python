@@ -20,6 +20,7 @@ import os.path as op
 
 import numpy as np
 
+from .io.utils import _construct_bids_filename
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_float, write_float_matrix,
                        write_double_matrix, write_complex_float_matrix,
@@ -74,23 +75,32 @@ def _pack_reject_params(epochs):
     return reject_params
 
 
-def _save_split(epochs, fname, part_idx, n_parts, fmt):
+def _save_split(epochs, fname, part_idx, n_parts, fmt, split_naming,
+                overwrite):
     """Split epochs.
 
     Anything new added to this function also needs to be added to
     BaseEpochs.save to account for new file sizes.
     """
     # insert index in filename
-    path, base = op.split(fname)
-    idx = base.find('.')
+    base, ext = op.splitext(fname)
     if part_idx > 0:
-        fname = op.join(path, '%s-%d.%s' % (base[:idx], part_idx,
-                                            base[idx + 1:]))
+        if split_naming == 'neuromag':
+            fname = '%s-%d%s' % (base, part_idx, ext)
+        else:
+            assert split_naming == 'bids'
+            fname = _construct_bids_filename(base, ext, part_idx,
+                                             validate=False)
+            _check_fname(fname, overwrite=overwrite)
 
     next_fname = None
     if part_idx < n_parts - 1:
-        next_fname = op.join(path, '%s-%d.%s' % (base[:idx], part_idx + 1,
-                                                 base[idx + 1:]))
+        if split_naming == 'neuromag':
+            next_fname = '%s-%d%s' % (base, part_idx + 1, ext)
+        else:
+            assert split_naming == 'bids'
+            next_fname = _construct_bids_filename(base, ext, part_idx + 1,
+                                                  validate=False)
         next_idx = part_idx + 1
     else:
         next_idx = None
@@ -941,7 +951,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return self
 
     @fill_doc
-    def average(self, picks=None, method="mean"):
+    def average(self, picks=None, method="mean", by_event_type=False):
         """Compute an average over epochs.
 
         Parameters
@@ -955,11 +965,23 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             (n_channels, n_time).
             Note that due to file type limitations, the kind for all
             these will be "average".
+        by_event_type : bool
+            When ``False`` (the default) all epochs are averaged and a single
+            :class:`Evoked` object is returned. When ``True``, epochs are first
+            grouped by event type (as specified using the ``event_id``
+            parameter) and a list is returned containing a separate
+            :class:`Evoked` object for each event type. The ``.comment``
+            attribute is set to the label of the event type.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
-        evoked : instance of Evoked | dict of Evoked
-            The averaged epochs.
+        evoked : instance of Evoked | list of Evoked
+            The averaged epochs. When ``by_event_type=True`` was specified, a
+            list is returned containing a separate :class:`Evoked` object
+            for each event type. The list has the same order as the event types
+            as specified in the ``event_id`` dictionary.
 
         Notes
         -----
@@ -981,22 +1003,44 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         This would compute the trimmed mean.
         """
-        return self._compute_aggregate(picks=picks, mode=method)
+        if by_event_type:
+            evokeds = list()
+            for event_type in self.event_id.keys():
+                ev = self[event_type]._compute_aggregate(picks=picks,
+                                                         mode=method)
+                ev.comment = event_type
+                evokeds.append(ev)
+        else:
+            evokeds = self._compute_aggregate(picks=picks, mode=method)
+        return evokeds
 
     @fill_doc
-    def standard_error(self, picks=None):
+    def standard_error(self, picks=None, by_event_type=False):
         """Compute standard error over epochs.
 
         Parameters
         ----------
         %(picks_all_data)s
+        by_event_type : bool
+            When ``False`` (the default) all epochs are averaged and a single
+            :class:`Evoked` object is returned. When ``True``, epochs are first
+            grouped by event type (as specified using the ``event_id``
+            parameter) and a list is returned containing a separate
+            :class:`Evoked` object for each event type. The ``.comment``
+            attribute is set to the label of the event type.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
-        evoked : instance of Evoked
-            The standard error over epochs.
+        std_err : instance of Evoked | list of Evoked
+            The standard error over epochs. When ``by_event_type=True`` was
+            specified, a list is returned containing a separate :class:`Evoked`
+            object for each event type. The list has the same order as the
+            event types as specified in the ``event_id`` dictionary.
         """
-        return self._compute_aggregate(picks, "std")
+        return self.average(picks=picks, method="std",
+                            by_event_type=by_event_type)
 
     def _compute_aggregate(self, picks, mode='mean'):
         """Compute the mean, median, or std over epochs and return Evoked."""
@@ -1734,7 +1778,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
     @verbose
     def save(self, fname, split_size='2GB', fmt='single', overwrite=False,
-             verbose=True):
+             split_naming='neuromag', verbose=True):
         """Save epochs in a fif file.
 
         Parameters
@@ -1764,6 +1808,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             but will change to False in 0.19.
 
             .. versionadded:: 0.18
+        %(split_naming)s
+
+            .. versionadded:: 0.24
         %(verbose_meth)s
 
         Notes
@@ -1862,7 +1909,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             this_epochs = self[epoch_idx] if n_parts > 1 else self
             # avoid missing event_ids in splits
             this_epochs.event_id = self.event_id
-            _save_split(this_epochs, fname, part_idx, n_parts, fmt)
+            _save_split(this_epochs, fname, part_idx, n_parts, fmt,
+                        split_naming, overwrite)
 
     @verbose
     def export(self, fname, fmt='auto', verbose=None):
