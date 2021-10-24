@@ -800,6 +800,9 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
     from ..evoked import Evoked
     from ..preprocessing.ica import _check_start_stop
 
+    if ica.current_fit == 'unfitted':
+        raise RuntimeError('You need to fit the ICA first')
+
     _validate_type(inst, (BaseRaw, Evoked), "inst", "Raw or Evoked")
     if title is None:
         title = 'Signals before (red) and after (black) cleaning'

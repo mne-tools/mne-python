@@ -537,7 +537,7 @@ def test_add_reference():
     # create epochs in delayed mode, allowing removal of CAR when re-reffing
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
                     picks=picks_eeg, preload=True, proj='delayed')
-    with pytest.warns(RuntimeWarning, match='ignored .set to zero.'):
+    with pytest.warns(RuntimeWarning, match='reference channels are ignored'):
         epochs_ref = add_reference_channels(epochs, ['M1', 'M2'], copy=True)
     assert_equal(epochs_ref._data.shape[1], epochs._data.shape[1] + 2)
     _check_channel_names(epochs_ref, ['M1', 'M2'])
@@ -577,7 +577,7 @@ def test_add_reference():
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
                     picks=picks_eeg, preload=True, proj='delayed')
     evoked = epochs.average()
-    with pytest.warns(RuntimeWarning, match='ignored .set to zero.'):
+    with pytest.warns(RuntimeWarning, match='reference channels are ignored'):
         evoked_ref = add_reference_channels(evoked, ['M1', 'M2'], copy=True)
     assert_equal(evoked_ref.data.shape[0], evoked.data.shape[0] + 2)
     _check_channel_names(evoked_ref, ['M1', 'M2'])

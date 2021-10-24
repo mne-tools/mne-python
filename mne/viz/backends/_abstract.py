@@ -497,7 +497,8 @@ class _AbstractToolBar(ABC):
 
 class _AbstractDock(ABC):
     @abstractmethod
-    def _dock_initialize(self, window=None):
+    def _dock_initialize(self, window=None, name="Controls",
+                         area="left"):
         pass
 
     @abstractmethod
@@ -513,7 +514,7 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_stretch(self, layout):
+    def _dock_add_stretch(self, layout=None):
         pass
 
     @abstractmethod
@@ -529,7 +530,7 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_named_layout(self, name, layout, compact):
+    def _dock_named_layout(self, name, layout=None, compact=True):
         pass
 
     @abstractmethod
@@ -538,8 +539,13 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
+    def _dock_add_check_box(self, name, value, callback, layout=None):
+        pass
+
+    @abstractmethod
     def _dock_add_spin_box(self, name, value, rng, callback,
-                           compact=True, double=True, layout=None):
+                           compact=True, double=True, step=None,
+                           layout=None):
         pass
 
     @abstractmethod
@@ -548,7 +554,22 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
+    def _dock_add_radio_buttons(self, value, rng, callback, vertical=True,
+                                layout=None):
+        pass
+
+    @abstractmethod
     def _dock_add_group_box(self, name, layout=None):
+        pass
+
+    @abstractmethod
+    def _dock_add_text(self, name, value, placeholder, layout=None):
+        pass
+
+    @abstractmethod
+    def _dock_add_file_button(self, name, desc, func, value=None, save=False,
+                              directory=False, input_text_widget=True,
+                              placeholder="Type a file name", layout=None):
         pass
 
 
@@ -601,6 +622,20 @@ class _AbstractLayout(ABC):
         pass
 
 
+class _AbstractWidgetList(ABC):
+    @abstractmethod
+    def set_enabled(self, state):
+        pass
+
+    @abstractmethod
+    def get_value(self, idx):
+        pass
+
+    @abstractmethod
+    def set_value(self, idx, value):
+        pass
+
+
 class _AbstractWidget(ABC):
     def __init__(self, widget):
         self._widget = widget
@@ -627,6 +662,10 @@ class _AbstractWidget(ABC):
 
     @abstractmethod
     def hide(self):
+        pass
+
+    @abstractmethod
+    def set_enabled(self, state):
         pass
 
     @abstractmethod

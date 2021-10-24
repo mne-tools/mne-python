@@ -4,9 +4,6 @@
 #
 # License: BSD-3-Clause
 
-import inspect
-from textwrap import dedent
-
 import pytest
 import numpy as np
 import os.path as op
@@ -16,7 +13,6 @@ from mne.channels import make_standard_montage
 from mne.datasets.testing import data_path, _pytest_param
 from mne.preprocessing.nirs import optical_density, beer_lambert_law
 from mne.io import read_raw_nirx
-from mne.utils import Bunch
 
 
 @pytest.fixture()
@@ -47,83 +43,3 @@ def fnirs_epochs():
     tn, tx = -1, 2
     epochs = Epochs(raw_haemo, evts, event_id=evts_dct, tmin=tn, tmax=tx)
     return epochs
-
-
-# Create one nbclient and reuse it
-@pytest.fixture(scope='session')
-def _nbclient():
-    try:
-        import nbformat
-        from jupyter_client import AsyncKernelManager
-        from nbclient import NotebookClient
-        from ipywidgets import Button  # noqa
-        import ipyvtklink  # noqa
-    except Exception as exc:
-        return pytest.skip(f'Skipping Notebook test: {exc}')
-    km = AsyncKernelManager(config=None)
-    nb = nbformat.reads("""
-{
- "cells": [
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "metadata":{},
-   "outputs": [],
-   "source":[]
-  }
- ],
- "metadata": {
-  "language_info": {
-   "codemirror_mode": {
-    "name": "ipython",
-    "version":3},
-   "file_extension": ".py",
-   "mimetype": "text/x-python",
-   "name": "python",
-   "nbconvert_exporter": "python",
-   "pygments_lexer": "ipython3",
-   "version": "3.7.5"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 4
-}""", as_version=4)
-    client = NotebookClient(nb, km=km)
-    yield client
-    client._cleanup_kernel()
-
-
-@pytest.fixture(scope='function')
-def nbexec(_nbclient):
-    """Execute Python code in a notebook."""
-    # Adapted/simplified from nbclient/client.py (BSD-3-Clause)
-    _nbclient._cleanup_kernel()
-
-    def execute(code, reset=False):
-        _nbclient.reset_execution_trackers()
-        with _nbclient.setup_kernel():
-            assert _nbclient.kc is not None
-            cell = Bunch(cell_type='code', metadata={}, source=dedent(code))
-            _nbclient.execute_cell(cell, 0, execution_count=0)
-            _nbclient.set_widgets_metadata()
-
-    yield execute
-
-
-def pytest_runtest_call(item):
-    """Run notebook code written in Python."""
-    if 'nbexec' in getattr(item, 'fixturenames', ()):
-        nbexec = item.funcargs['nbexec']
-        code = inspect.getsource(getattr(item.module, item.name.split('[')[0]))
-        code = code.splitlines()
-        ci = 0
-        for ci, c in enumerate(code):
-            if c.startswith('    '):  # actual content
-                break
-        code = '\n'.join(code[ci:])
-
-        def run(nbexec=nbexec, code=code):
-            nbexec(code)
-
-        item.runtest = run
-    return

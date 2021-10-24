@@ -46,11 +46,12 @@ def test_3d_functions(renderer):
     wrap_renderer = renderer.backend._Renderer(fig=fig)
     wrap_renderer.sphere(np.array([0., 0., 0.]), 'w', 1.)
     renderer.backend._check_3d_figure(fig)
-    renderer.backend._set_3d_view(figure=fig, azimuth=None, elevation=None,
-                                  focalpoint=(0., 0., 0.), distance=None)
-    renderer.backend._set_3d_title(figure=fig, title='foo')
+    renderer.set_3d_view(figure=fig, azimuth=None, elevation=None,
+                         focalpoint=(0., 0., 0.), distance=None)
+    renderer.set_3d_title(figure=fig, title='foo')
     renderer.backend._take_3d_screenshot(figure=fig)
-    renderer.backend._close_all()
+    renderer.close_3d_figure(fig)
+    renderer.close_all_3d_figures()
 
 
 def test_3d_backend(renderer):

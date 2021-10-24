@@ -473,8 +473,8 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
                 plt.close(fig)
                 buff.seek(0)
                 fig_array = np.frombuffer(buff.getvalue(), dtype=np.uint8)
-                fig = fig_array.reshape((int(h_), int(w_), -1))
 
+            fig = fig_array.reshape((int(h_), int(w_), -1))
             figs.append(fig)
 
     if slices_as_subplots:

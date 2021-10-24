@@ -36,8 +36,8 @@ def beer_lambert_law(raw, ppf=None):
 
     if ppf is None:
         ppf = 0.1
-        warn('The default value of ppf=0.1 in v0.24 will change to ppf=6 in '
-             'the next MNE-Python release. To utilise the future default '
+        warn('The default value of ppf=0.1 will change to ppf=6 in '
+             'v0.25. To utilise the future default '
              'value set ppf=6.', DeprecationWarning)
 
     freqs = np.unique(_channel_frequencies(raw.info, nominal=True))

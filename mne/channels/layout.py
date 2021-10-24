@@ -667,7 +667,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
     locs3d = np.array([ch['loc'][:3] for ch in chs])
 
     # If electrode locations are not available, use digization points
-    if not _check_ch_locs(chs):
+    if not _check_ch_locs(info=info, picks=picks):
         logging.warning('Did not find any electrode locations (in the info '
                         'object), will attempt to use digitization points '
                         'instead. However, if digitization points do not '

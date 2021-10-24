@@ -11,6 +11,8 @@ from collections import namedtuple
 from copy import deepcopy
 from numbers import Integral
 from time import time
+from dataclasses import dataclass
+from typing import Optional, List
 
 import math
 import os
@@ -60,6 +62,7 @@ from ..filter import filter_data
 from .bads import _find_outliers
 from .ctps_ import ctps
 from ..io.pick import pick_channels_regexp, _picks_by_type
+from ..data.html_templates import ica_template
 
 __all__ = ('ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
            'get_score_funcs', 'read_ica', 'read_ica_eeglab')
@@ -440,27 +443,101 @@ class ICA(ContainsMixin):
         self.labels_ = dict()
         self.allow_ref_meg = allow_ref_meg
 
+    def _get_infos_for_repr(self):
+        @dataclass
+        class _InfosForRepr:
+            # XXX replace with Optional[Literal['raw data', 'epochs'] once we
+            # drop support for Py 3.7
+            fit_on: Optional[str]
+            # XXX replace with fit_method: Literal['fastica', 'infomax',
+            # 'extended-infomax', 'picard'] once we drop support for Py 3.7
+            fit_method: str
+            fit_n_iter: Optional[int]
+            fit_n_samples: Optional[int]
+            fit_n_components: Optional[int]
+            fit_n_pca_components: Optional[int]
+            fit_explained_variance: Optional[float]
+            ch_types: List[str]
+            excludes: List[str]
+
+        if self.current_fit == 'unfitted':
+            fit_on = None
+        elif self.current_fit == 'raw':
+            fit_on = 'raw data'
+        else:
+            fit_on = 'epochs'
+
+        fit_method = self.method
+        fit_n_iter = getattr(self, 'n_iter_', None)
+        fit_n_samples = getattr(self, 'n_samples_', None)
+        fit_n_components =  getattr(self, 'n_components_', None)
+        fit_n_pca_components =  getattr(self, 'pca_components_', None)
+        if fit_n_pca_components is not None:
+            fit_n_pca_components = len(self.pca_components_)
+        fit_explained_variance = getattr(self, 'pca_explained_variance_', None)
+        if fit_explained_variance is not None:
+            abs_vars = self.pca_explained_variance_
+            rel_vars = abs_vars / abs_vars.sum()
+            fit_explained_variance = rel_vars[:fit_n_components].sum()
+
+        if self.info is not None:
+            ch_types = [c for c in _DATA_CH_TYPES_SPLIT if c in self]
+        else:
+            ch_types = []
+
+        if self.exclude:
+            excludes = [self._ica_names[i] for i in self.exclude]
+        else:
+            excludes = []
+
+        infos_for_repr = _InfosForRepr(
+            fit_on=fit_on,
+            fit_method=fit_method,
+            fit_n_iter=fit_n_iter,
+            fit_n_samples=fit_n_samples,
+            fit_n_components=fit_n_components,
+            fit_n_pca_components=fit_n_pca_components,
+            fit_explained_variance=fit_explained_variance,
+            ch_types=ch_types,
+            excludes=excludes
+        )
+        return infos_for_repr
+
     def __repr__(self):
         """ICA fit information."""
-        if self.current_fit == 'unfitted':
-            s = 'no'
-        elif self.current_fit == 'raw':
-            s = 'raw data'
-        else:
-            s = 'epochs'
-        s += ' decomposition, '
-        s += 'fit (%s): %s samples, ' % (self.method,
-                                         str(getattr(self, 'n_samples_', '')))
-        s += ('%s components' % str(self.n_components_) if
-              hasattr(self, 'n_components_') else
-              'no dimension reduction')
-        if self.info is not None:
-            ch_fit = ['"%s"' % c for c in _DATA_CH_TYPES_SPLIT if c in self]
-            s += ', channels used: {}'.format('; '.join(ch_fit))
-        if self.exclude:
-            s += ', %i sources marked for exclusion' % len(self.exclude)
+        infos = self._get_infos_for_repr()
 
-        return '<ICA | %s>' % s
+        s = (f'{infos.fit_on or "no"} decomposition, '
+             f'method: {infos.fit_method}')
+
+        if infos.fit_on is not None:
+            s += (
+                f' (fit in {infos.fit_n_iter} iterations on '
+                f'{infos.fit_n_samples} samples), '
+                f'{infos.fit_n_components} ICA components '
+                f'explaining {round(infos.fit_explained_variance * 100, 1)} % '
+                f'of variance '
+                f'({infos.fit_n_pca_components} PCA components available), '
+                f'channel types: {", ".join(infos.ch_types)}, '
+                f'{len(infos.excludes) or "no"} sources marked for exclusion'
+            )
+
+        return f'<ICA | {s}>'
+
+    def _repr_html_(self):
+        infos = self._get_infos_for_repr()
+        html = ica_template.substitute(
+            fit_on=infos.fit_on,
+            method=infos.fit_method,
+            n_iter=infos.fit_n_iter,
+            n_samples=infos.fit_n_samples,
+            n_components=infos.fit_n_components,
+            n_pca_components=infos.fit_n_pca_components,
+            explained_variance=infos.fit_explained_variance,
+            ch_types=infos.ch_types,
+            excludes=infos.excludes
+        )
+        return html
 
     @verbose
     def fit(self, inst, picks=None, start=None, stop=None, decim=None,
@@ -1190,18 +1267,14 @@ class ICA(ContainsMixin):
 
         This function finds the threshold of Kuiper index based on the
         threshold of pk. Kuiper statistic that minimizes the difference between
-        pk and the pk threshold (defaults to 20 [1]) is returned. It is assumed
-        that the data are appropriately filtered and bad data are rejected at
-        least based on peak-to-peak amplitude when/before running the ICA
-        decomposition on data.
+        pk and the pk threshold (defaults to 20 :footcite:`DammersEtAl2008`)
+        is returned. It is assumed that the data are appropriately filtered and
+        bad data are rejected at least based on peak-to-peak amplitude
+        when/before running the ICA decomposition on data.
 
         References
         ----------
-        [1] Dammers, J., Schiek, M., Boers, F., Silex, C., Zvyagintsev,
-            M., Pietrzyk, U., Mathiak, K., 2008. Integration of amplitude
-            and phase statistics for complete artifact removal in independent
-            components of neuromagnetic recordings. Biomedical
-            Engineering, IEEE Transactions on 55 (10), pp.2356.
+        .. footbibliography::
         """
         N = self.info['sfreq']
         Vs = np.arange(1, 100) / 100
@@ -1220,8 +1293,8 @@ class ICA(ContainsMixin):
                       verbose=None):
         """Detect ECG related components.
 
-        Cross-trial phase statistics (default) or Pearson correlation can be
-        used for detection.
+        Cross-trial phase statistics :footcite:`DammersEtAl2008` or Pearson
+        correlation can be used for detection.
 
         .. note:: If no ECG channel is available, routine attempts to create
                   an artificial ECG based on cross-channel averaging.
@@ -1234,12 +1307,8 @@ class ICA(ContainsMixin):
             The name of the channel to use for ECG peak detection.
             The argument is mandatory if the dataset contains no ECG
             channels.
-        threshold : float | str
-            The value above which a feature is classified as outlier. If 'auto'
-            and method is 'ctps', automatically compute the threshold. If
-            'auto' and method is 'correlation', defaults to 3.0. The default
-            translates to 0.25 for 'ctps' and 3.0 for 'correlation' in version
-            0.21 but will change to 'auto' in version 0.22.
+        threshold : float | 'auto'
+            Value above which a feature is classified as outlier. See Notes.
 
             .. versionchanged:: 0.21
         start : int | float | None
@@ -1254,26 +1323,14 @@ class ICA(ContainsMixin):
             Low pass frequency.
         h_freq : float
             High pass frequency.
-        method : {'ctps', 'correlation'}
-            The method used for detection. If 'ctps', cross-trial phase
-            statistics [1] are used to detect ECG related components.
-            Thresholding is then based on the significance value of a Kuiper
-            statistic.
-            If 'correlation', detection is based on Pearson correlation
-            between the filtered data and the filtered ECG channel.
-            Thresholding is based on iterative z-scoring. The above
-            threshold components will be masked and the z-score will
-            be recomputed until no supra-threshold component remains.
-            Defaults to 'ctps'.
+        method : 'ctps' | 'correlation'
+            The method used for detection. If ``'ctps'``, cross-trial phase
+            statistics :footcite:`DammersEtAl2008` are used to detect
+            ECG-related components. See Notes.
         %(reject_by_annotation_all)s
 
             .. versionadded:: 0.14.0
-        measure : 'zscore' | 'correlation'
-            Which method to use for finding outliers. ``'zscore'`` (default) is
-            the iterated Z-scoring method, and ``'correlation'`` is an absolute
-            raw correlation threshold with a range of 0 to 1.
-
-            .. versionadded:: 0.21
+        %(measure)s
         %(verbose_meth)s
 
         Returns
@@ -1288,14 +1345,34 @@ class ICA(ContainsMixin):
         --------
         find_bads_eog, find_bads_ref
 
+        Notes
+        -----
+        The ``threshold``, ``method``, and ``measure`` parameters interact in
+        the following ways:
+
+        - If ``method='ctps'``, ``threshold`` refers to the significance value
+          of a Kuiper statistic, and ``threshold='auto'`` will compute the
+          threshold automatically based on the sampling frequency.
+        - If ``method='correlation'`` and ``measure='correlation'``,
+          ``threshold`` refers to the Pearson correlation value, and
+          ``threshold='auto'`` sets the threshold to 0.9.
+        - If ``method='correlation'`` and ``measure='zscore'``, ``threshold``
+          refers to the z-score value (i.e., standard deviations) used in the
+          iterative z-scoring method, and ``threshold='auto'`` sets the
+          threshold to 3.0.
+
         References
         ----------
-        [1] Dammers, J., Schiek, M., Boers, F., Silex, C., Zvyagintsev,
-            M., Pietrzyk, U., Mathiak, K., 2008. Integration of amplitude
-            and phase statistics for complete artifact removal in independent
-            components of neuromagnetic recordings. Biomedical
-            Engineering, IEEE Transactions on 55 (10), 2353-2362.
+        .. footbibliography::
         """
+        _validate_type(threshold, (str, 'numeric'), 'threshold')
+        if isinstance(threshold, str):
+            _check_option('threshold', threshold, ('auto',), extra='when str')
+        _validate_type(method, str, 'method')
+        _check_option('method', method, ('ctps', 'correlation'))
+        _validate_type(measure, str, 'measure')
+        _check_option('measure', measure, ('zscore', 'correlation'))
+
         idx_ecg = _get_ecg_channel_index(ch_name, inst)
 
         if idx_ecg is None:
@@ -1304,9 +1381,6 @@ class ICA(ContainsMixin):
         else:
             ecg = inst.ch_names[idx_ecg]
 
-        _validate_type(threshold, (str, 'numeric'), 'threshold')
-        if isinstance(threshold, str):
-            _check_option('threshold', threshold, ('auto',), extra='when str')
         if method == 'ctps':
             if threshold == 'auto':
                 threshold = self._get_ctps_threshold()
@@ -1337,14 +1411,15 @@ class ICA(ContainsMixin):
                 ch_name = 'ECG-MAG'
             self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
         elif method == 'correlation':
-            if threshold == 'auto':
+            if threshold == 'auto' and measure == 'zscore':
                 threshold = 3.0
+            elif threshold == 'auto' and measure == 'correlation':
+                threshold = 0.9
             self.labels_['ecg'], scores = self._find_bads_ch(
                 inst, [ecg], threshold=threshold, start=start, stop=stop,
                 l_freq=l_freq, h_freq=h_freq, prefix="ecg",
                 reject_by_annotation=reject_by_annotation, measure=measure)
-        else:
-            raise ValueError('Method "%s" not supported.' % method)
+
         return self.labels_['ecg'], scores
 
     @verbose
@@ -1362,8 +1437,19 @@ class ICA(ContainsMixin):
         ch_name : list of str
             Which MEG reference components to use. If None, then all channels
             that begin with REF_ICA.
-        threshold : int | float
-            The value above which a feature is classified as outlier.
+        threshold : float | str
+            Value above which a feature is classified as outlier.
+
+            - If ``measure`` is ``'zscore'``, defines the threshold on the
+              z-score used in the iterative z-scoring method.
+            - If ``measure`` is ``'correlation'``, defines the absolute
+              threshold on the correlation between 0 and 1.
+            - If ``'auto'``, defaults to 3.0 if ``measure`` is ``'zscore'`` and
+              0.9 if ``measure`` is ``'correlation'``.
+
+             .. warning::
+                 If ``method`` is ``'together'``, the iterative z-score method
+                 is always used.
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
@@ -1380,12 +1466,7 @@ class ICA(ContainsMixin):
             Defaults to ``'together'``. See notes.
 
             .. versionadded:: 0.21
-        measure : 'zscore' | 'correlation'
-            Which method to use for finding outliers. ``'zscore'`` (default) is
-            the iterated Z-scoring method, and ``'correlation'`` is an absolute
-            raw correlation threshold with a range of 0 to 1.
-
-            .. versionadded:: 0.21
+        %(measure)s
         %(verbose_meth)s
 
         Returns
@@ -1404,24 +1485,29 @@ class ICA(ContainsMixin):
         ICA decomposition on MEG reference channels is used to assess external
         magnetic noise and remove it from the MEG. Two methods are supported:
 
-        With the "together" method, only one ICA fit is used, which
+        With the ``'together'`` method, only one ICA fit is used, which
         encompasses both MEG and reference channels together. Components which
         have particularly strong weights on the reference channels may be
         thresholded and marked for removal.
 
-        With "separate," selected components from a separate ICA decomposition
-        on the reference channels are used as a ground truth for identifying
-        bad components in an ICA fit done on MEG channels only. The logic here
-        is similar to an EOG/ECG, with reference components replacing the
-        EOG/ECG channels. Recommended procedure is to perform ICA separately
-        on reference channels, extract them using .get_sources(), and then
-        append them to the inst using :meth:`~mne.io.Raw.add_channels`,
-        preferably with the prefix ``REF_ICA`` so that they can be
-        automatically detected.
+        With ``'separate'`` selected components from a separate ICA
+        decomposition on the reference channels are used as a ground truth for
+        identifying bad components in an ICA fit done on MEG channels only. The
+        logic here is similar to an EOG/ECG, with reference components
+        replacing the EOG/ECG channels. Recommended procedure is to perform ICA
+        separately on reference channels, extract them using
+        :meth:`~mne.preprocessing.ICA.get_sources`, and then append them to the
+        inst using :meth:`~mne.io.Raw.add_channels`, preferably with the prefix
+        ``REF_ICA`` so that they can be automatically detected.
 
-        Thresholding in both cases is based on adaptive z-scoring:
-        The above-threshold components will be masked and the z-score will be
-        recomputed until no supra-threshold component remains.
+        With ``'together'``, thresholding is based on adaptative z-scoring.
+
+        With ``'separate'``:
+
+        - If ``measure`` is ``'zscore'``, thresholding is based on adaptative
+          z-scoring.
+        - If ``measure`` is ``'correlation'``, threshold defines the absolute
+          threshold on the correlation between 0 and 1.
 
         Validation and further documentation for this technique can be found
         in :footcite:`HannaEtAl2020`.
@@ -1432,7 +1518,20 @@ class ICA(ContainsMixin):
         ----------
         .. footbibliography::
         """
+        _validate_type(threshold, (str, 'numeric'), 'threshold')
+        if isinstance(threshold, str):
+            _check_option('threshold', threshold, ('auto',), extra='when str')
+        _validate_type(method, str, 'method')
+        _check_option('method', method, ('together', 'separate'))
+        _validate_type(measure, str, 'measure')
+        _check_option('measure', measure, ('zscore', 'correlation'))
+
         if method == "separate":
+            if threshold == 'auto' and measure == 'zscore':
+                threshold = 3.0
+            elif threshold == 'auto' and measure == 'correlation':
+                threshold = 0.9
+
             if not ch_name:
                 inds = pick_channels_regexp(inst.ch_names, 'REF_ICA*')
             else:
@@ -1449,24 +1548,28 @@ class ICA(ContainsMixin):
                 reject_by_annotation=reject_by_annotation,
                 measure=measure)
         elif method == 'together':
+            if threshold == 'auto':
+                threshold = 3.0
+            if measure != 'zscore':
+                logger.info(
+                    "With method 'together', only 'zscore' measure is"
+                    f"supported. Using 'zscore' instead of '{measure}'.")
+
             meg_picks = pick_types(self.info, meg=True, ref_meg=False)
             ref_picks = pick_types(self.info, meg=False, ref_meg=True)
             if not any(meg_picks) or not any(ref_picks):
-                raise ValueError('ICA solution must contain both reference and\
-                                  MEG channels.')
+                raise ValueError('ICA solution must contain both reference and'
+                                 ' MEG channels.')
             weights = self.get_components()
             # take norm of component weights on reference channels for each
             # component, divide them by the norm on the standard channels,
             # log transform to approximate normal distribution
-            normrats = np.linalg.norm(weights[ref_picks],
-                                      axis=0) / np.linalg.norm(weights[meg_picks],    # noqa
-                                                               axis=0)
+            normrats = np.linalg.norm(weights[ref_picks], axis=0) \
+                / np.linalg.norm(weights[meg_picks], axis=0)
             scores = np.log(normrats)
             self.labels_['ref_meg'] = list(_find_outliers(scores,
                                            threshold=threshold,
                                            tail=1))
-        else:
-            raise ValueError('Method "%s" not supported.' % method)
 
         return self.labels_['ref_meg'], scores
 
@@ -1491,8 +1594,15 @@ class ICA(ContainsMixin):
             The name of the channel to use for EOG peak detection.
             The argument is mandatory if the dataset contains no EOG
             channels.
-        threshold : int | float
-            The value above which a feature is classified as outlier.
+        threshold : float | str
+            Value above which a feature is classified as outlier.
+
+            - If ``measure`` is ``'zscore'``, defines the threshold on the
+              z-score used in the iterative z-scoring method.
+            - If ``measure`` is ``'correlation'``, defines the absolute
+              threshold on the correlation between 0 and 1.
+            - If ``'auto'``, defaults to 3.0 if ``measure`` is ``'zscore'`` and
+              0.9 if ``measure`` is ``'correlation'``.
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
@@ -1506,12 +1616,7 @@ class ICA(ContainsMixin):
         %(reject_by_annotation_all)s
 
             .. versionadded:: 0.14.0
-        measure : 'zscore' | 'correlation'
-            Which method to use for finding outliers. ``'zscore'`` (default) is
-            the iterated Z-scoring method, and ``'correlation'`` is an absolute
-            raw correlation threshold with a range of 0 to 1.
-
-            .. versionadded:: 0.21
+        %(measure)s
         %(verbose_meth)s
 
         Returns
@@ -1525,8 +1630,19 @@ class ICA(ContainsMixin):
         --------
         find_bads_ecg, find_bads_ref
         """
+        _validate_type(threshold, (str, 'numeric'), 'threshold')
+        if isinstance(threshold, str):
+            _check_option('threshold', threshold, ('auto',), extra='when str')
+        _validate_type(measure, str, 'measure')
+        _check_option('measure', measure, ('zscore', 'correlation'))
+
         eog_inds = _get_eog_channel_index(ch_name, inst)
         eog_chs = [inst.ch_names[k] for k in eog_inds]
+
+        if threshold == 'auto' and measure == 'zscore':
+            threshold = 3.0
+        elif threshold == 'auto' and measure == 'correlation':
+            threshold = 0.9
 
         self.labels_['eog'], scores = self._find_bads_ch(
             inst, eog_chs, threshold=threshold, start=start, stop=stop,

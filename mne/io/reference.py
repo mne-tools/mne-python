@@ -210,9 +210,8 @@ def add_reference_channels(inst, ref_channels, copy=True):
                        dl['kind'] == FIFF.FIFFV_POINT_EEG and
                        dl['ident'] == 0)]
         if len(ref_channels) > 1 or len(ref_dig_loc) != len(ref_channels):
-            ref_dig_array = np.zeros(12)
-            warn('The locations of multiple reference channels are ignored '
-                 '(set to zero).')
+            ref_dig_array = np.full(12, np.nan)
+            warn('The locations of multiple reference channels are ignored.')
         else:  # n_ref_channels == 1 and a single ref digitization exists
             ref_dig_array = np.concatenate((ref_dig_loc[0]['r'],
                                            ref_dig_loc[0]['r'], np.zeros(6)))
@@ -220,12 +219,12 @@ def add_reference_channels(inst, ref_channels, copy=True):
             for idx in pick_types(inst.info, meg=False, eeg=True, exclude=[]):
                 inst.info['chs'][idx]['loc'][3:6] = ref_dig_loc[0]['r']
     else:
-        # we should actually be able to do this from the montage, but
-        # it looks like the montage isn't stored, so we can't extract
-        # this information. The user will just have to call set_montage()
-        # by setting this to zero, we fall back to the old behavior
-        # when missing digitisation
-        ref_dig_array = np.zeros(12)
+        # Ideally we'd fall back on getting the location from a montage, but
+        # locations for non-present channels aren't stored, so location is
+        # unknown. Users can call set_montage() again if needed.
+        ref_dig_array = np.full(12, np.nan)
+        logger.info('Location for this channel is unknown; consider calling '
+                    'set_montage() again if needed.')
 
     for ch in ref_channels:
         chan_info = {'ch_name': ch,

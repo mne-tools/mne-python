@@ -98,7 +98,7 @@ def test_find_topomap_coords():
 
     for z_pt in ((HEAD_SIZE_DEFAULT, 0., 0.),
                  (0., HEAD_SIZE_DEFAULT, 0.)):
-        info['dig'][-1]['r'] = z_pt
+        info['dig'][-1]['r'] = np.array(z_pt)
         l1 = _find_topomap_coords(info, picks, **kwargs)
         assert_allclose(l1[-1], z_pt[:2], err_msg='Z=0 point moved', atol=1e-6)
 
