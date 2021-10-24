@@ -260,9 +260,9 @@ def _read_vmrk(fname):
 
 
 def _read_annotations_brainvision(fname, sfreq='auto'):
-    """Create Annotations from BrainVision vrmk.
+    """Create Annotations from BrainVision vmrk.
 
-    This function reads a .vrmk file and makes an
+    This function reads a .vmrk file and makes an
     :class:`mne.Annotations` object.
 
     Parameters
@@ -275,7 +275,7 @@ def _read_annotations_brainvision(fname, sfreq='auto'):
         files are in samples. If set to 'auto' then
         the sfreq is taken from the .vhdr file that
         has the same name (without file extension). So
-        data.vrmk looks for sfreq in data.vhdr.
+        data.vmrk looks for sfreq in data.vhdr.
 
     Returns
     -------
