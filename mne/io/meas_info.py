@@ -1661,6 +1661,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['custom_ref_applied'] = custom_ref_applied
     info['xplotter_layout'] = xplotter_layout
     info['kit_system_id'] = kit_system_id
+    info._check_consistency()
 
     info._unlocked = False
 
