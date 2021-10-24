@@ -594,67 +594,69 @@ class Info(dict, MontageMixin):
     """
 
     _attributes = {
-        'acq_pars': 'acq_pars can not be set directly. '
+        'acq_pars': 'acq_pars cannot be set directly. '
                     'See mne.AcqParserFIF() for details.',
-        'acq_stim': 'acq_stim can not be set directly. '
+        'acq_stim': 'acq_stim cannot be set directly. '
                     'Please use ...',
         'bads': _check_bads,
-        'ch_names': 'ch_names can not be set directly. '
+        'ch_names': 'ch_names cannot be set directly. '
                     'Please use methods inst.add_channels(), '
                     'inst.drop_channels(), inst.pick_channels(), '
                     'inst.rename_channels(), inst.reorder_channels() '
                     'and inst.set_channel_types() instead.',
-        'chs': 'chs can not be set directly. '
+        'chs': 'chs cannot be set directly. '
                'Please use methods inst.add_channels(), '
                'inst.drop_channels(), inst.pick_channels(), '
                'inst.rename_channels(), inst.reorder_channels() '
                'and inst.set_channel_types() instead.',
-        'comps': 'comps can not be set directly. '
+        'comps': 'comps cannot be set directly. '
                  'Please use mne.io.Raw.apply_gradient_compensation() '
                  'instead.',
-        'ctf_head_t': 'ctf_head_t can not be set directly.',
-        'custom_ref_applied': 'custom_ref_applied can not be set directly.',
+        'ctf_head_t': 'ctf_head_t cannot be set directly.',
+        'custom_ref_applied': 'custom_ref_applied cannot be set directly. '
+                              'Please use inst.set_eeg_reference() instead.',
         'description': _check_description,
-        'dev_ctf_t': 'dev_ctf_t can not be set directly.',
+        'dev_ctf_t': 'dev_ctf_t cannot be set directly.',
         'dev_head_t': _check_dev_head_t,
-        'dig': 'dig can not be set directly.',
-        'events': 'events can not be set directly.',
+        'dig': 'dig cannot be set directly. Please use inst.set_montage() '
+               'instead.',
+        'events': 'events cannot be set directly.',
         'experimenter': _check_experimenter,
-        'file_id': 'file_id can not be set directly.',
-        'highpass': 'highpass can not be set directly. '
+        'file_id': 'file_id cannot be set directly.',
+        'highpass': 'highpass cannot be set directly. '
                     'Please use methods inst.filter() instead.',
         'hpi_meas': 'hpi_meas can not be set directly.',
-        'hpi_results': 'hpi_results can not be set directly.',
-        'hpi_subsystem': 'hpi_subsystem can not be set directly.',
+        'hpi_results': 'hpi_results cannot be set directly.',
+        'hpi_subsystem': 'hpi_subsystem cannot be set directly.',
         'line_freq': _check_line_freq,
-        'gantry_angle': 'gantry_angle can not be set directly.',
-        'lowpass': 'lowpass can not be directly set. '
+        'gantry_angle': 'gantry_angle cannot be set directly.',
+        'lowpass': 'lowpass cannot be set directly. '
                    'Please use method inst.filter() instead.',
-        'meas_date': 'meas_date can not be set directly. '
+        'meas_date': 'meas_date cannot be set directly. '
                      'Please use method inst.set_meas_date() instead.',
-        'utc_offset': 'utc_offset can not be set directly.',
-        'meas_id': 'meas_id can not be set directly.',
-        'nchan': 'nchan can not be set directly.',
-        'proc_history': 'proc_history can not be set directly.',
-        'proj_id': 'proj_id can not be set directly.',
-        'proj_name': 'proj_name can not be set directly.',
-        'projs': 'projs can not be set directly.',
-        'sfreq': 'sfreq can not be set directly. '
+        'utc_offset': 'utc_offset cannot be set directly.',
+        'meas_id': 'meas_id cannot be set directly.',
+        'nchan': 'nchan cannot be set directly.',
+        'proc_history': 'proc_history cannot be set directly.',
+        'proj_id': 'proj_id cannot be set directly.',
+        'proj_name': 'proj_name cannot be set directly.',
+        'projs': 'projs cannot be set directly.',
+        'sfreq': 'sfreq cannot be set directly. '
                  'Please use method inst.resample() instead.',
         'subject_info': _check_subject_info,
         'device_info': _check_device_info,
         'helium_info': _check_helium_info,
         # elements missing from docstring
-        'command_line': 'command_line can not be set directly.',
-        'filename': 'filename can not be set directly.',  # deprecated?
-        'kit_system_id': 'kit_system_id can not be set directly.',
-        'maxshield': 'maxshield can not be set directly.',
-        'meas_file': 'meas_file can not be set directly.',
-        'mri_file': 'mri_file can not be set directly.',
-        'mri_head_t': 'mri_head_t can not be set directly.',
-        'mri_id': 'mri_id can not be set directly.',
-        'working_dir': 'working_dir can not be set directly.',
-        'xplotter_layout': 'xplotter_layout can not be set directly.'
+        'command_line': 'command_line cannot be set directly.',
+        'filename': 'filename cannot be set directly.',  # deprecated?
+        'kit_system_id': 'kit_system_id cannot be set directly.',
+        'maxshield': 'maxshield cannot be set directly.',
+        'meas_file': 'meas_file cannot be set directly.',
+        'mri_file': 'mri_file cannot be set directly.',
+        'mri_head_t': 'mri_head_t cannot be set directly.',
+        'mri_id': 'mri_id cannot be set directly.',
+        'working_dir': 'working_dir cannot be set directly.',
+        'xplotter_layout': 'xplotter_layout cannot be set directly.'
     }
 
     def __init__(self, *args, **kwargs):
