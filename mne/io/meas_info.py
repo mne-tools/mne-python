@@ -1662,9 +1662,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['xplotter_layout'] = xplotter_layout
     info['kit_system_id'] = kit_system_id
     info._check_consistency()
-
     info._unlocked = False
-
     return info, meas
 
 
@@ -2185,8 +2183,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
     elif len(set(kit_sys_ids)) == 1:
         info['kit_system_id'] = kit_sys_ids[0]
     else:
-        raise ValueError(
-            "Trying to merge channels from different KIT systems")
+        raise ValueError("Trying to merge channels from different KIT systems")
 
     # hpi infos and digitization data:
     fields = ['hpi_results', 'hpi_meas', 'dig']
@@ -2343,6 +2340,7 @@ def _empty_info(sfreq):
     info['lowpass'] = info['sfreq'] / 2.
     info['dev_head_t'] = Transform('meg', 'head')
     info._update_redundant()
+    info._check_consistency()
     return info
 
 
@@ -2368,7 +2366,6 @@ def _force_update_info(info_base, info_target):
         if not isinstance(ii, Info):
             raise ValueError('Inputs must be of type Info. '
                              'Found type %s' % type(ii))
-
     for key, val in info_base.items():
         if key in exclude_keys:
             continue
@@ -2491,10 +2488,9 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
             if subject_info.get(key) is not None:
                 subject_info[key] = 0
 
+    info['experimenter'] = default_str
+    info['description'] = default_desc
     with info._unlock():
-        info['experimenter'] = default_str
-        info['description'] = default_desc
-
         if info['proj_id'] is not None:
             info['proj_id'] = np.zeros_like(info['proj_id'])
         if info['proj_name'] is not None:

@@ -115,10 +115,9 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
     else:
         raise TypeError("Channel type not recognized. Available types are "
                         "'eeg' and 'seeg'.")
-    cals = np.repeat(header_info['conversion_factor'] * 1e-6,
-                     len(ch_names))
-    info['chs'] = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg,
-                              emg, misc)
+    cals = np.repeat(header_info['conversion_factor'] * 1e-6, len(ch_names))
+    info['chs'] = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg,
+                              misc)
     info['highpass'] = 0.
     info['lowpass'] = info['sfreq'] / 2.0
     info._unlocked = False
