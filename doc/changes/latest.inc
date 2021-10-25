@@ -309,6 +309,8 @@ Bugs
 
 - In :meth:`mne.Epochs.plot_psd_topomap`, the data is now scaled to match the output of :meth:`mne.Epochs.plot_psd` (:gh:`9873` by `Richard Höchenberger`_)
 
+- Fix bug where resampling returns empty instances (:gh:`9897` by `Eric Larson`_)
+
 API changes
 ~~~~~~~~~~~
 - In `mne.compute_source_morph`, the ``niter_affine`` and ``niter_sdr`` parameters have been replaced by ``niter`` and ``pipeline`` parameters for more consistent and finer-grained control of registration/warping steps and iteration (:gh:`9505` by `Alex Rockhill`_ and `Eric Larson`_)
