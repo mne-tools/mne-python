@@ -190,7 +190,7 @@
 
 .. _Thomas Hartmann: https://github.com/thht
 
-.. _Steven Gutstein: http://vll.cs.utep.edu/people.html
+.. _Steven Gutstein: https://github.com/smgutstein
 
 .. _Peter Molfese: https://github.com/pmolfese
 
