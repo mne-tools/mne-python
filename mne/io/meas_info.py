@@ -31,7 +31,8 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian, write_float_matrix, write_id, DATE_NONE)
 from .proc_history import _read_proc_history, _write_proc_history
-from ..transforms import invert_transform, Transform, _coord_frame_name
+from ..transforms import (invert_transform, Transform, _coord_frame_name,
+                          _ensure_trans)
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
                      _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric,
                      _check_option, _on_missing, _check_on_missing, fill_doc)
@@ -213,7 +214,9 @@ def _check_description(description):
 
 
 def _check_dev_head_t(dev_head_t):
-    _validate_type(dev_head_t, Transform, "info['dev_head_t']")
+    _validate_type(dev_head_t, (Transform, None), "info['dev_head_t']")
+    if dev_head_t is not None:
+        dev_head_t = _ensure_trans(dev_head_t, 'meg', 'head')
     return dev_head_t
 
 

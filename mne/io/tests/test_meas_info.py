@@ -1055,3 +1055,5 @@ def test_info_bad():
             ('chs', r'inst\.add_channels')]):
         with check(klass, match=match):
             info[key] = info[key]
+    with pytest.raises(ValueError, match='between meg<->head'):
+        info['dev_head_t'] = Transform('mri', 'head', np.eye(4))
