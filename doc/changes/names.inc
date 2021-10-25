@@ -120,6 +120,8 @@
 
 .. _Sheraz Khan: https://github.com/SherazKhan
 
+.. _John Samuelsson: https://github.com/johnsam7
+
 .. _Antti Rantala: https://github.com/Odingod
 
 .. _Keith Doelling: https://github.com/kdoelling1919
@@ -365,6 +367,8 @@
 .. _Enrico Varano: https://github.com/enricovara/
 
 .. _Dominik Welke: https://github.com/dominikwelke/
+
+.. _Dominique Makowski: https://dominiquemakowski.github.io/
 
 .. _Judy D Zhu: https://github.com/JD-Zhu
 
