@@ -2,7 +2,6 @@ import pytest
 import os
 import os.path as op
 from mne.datasets import testing
-from mne.gui._coreg import CoregistrationUI
 
 data_path = testing.data_path(download=False)
 subjects_dir = os.path.join(data_path, 'subjects')
@@ -46,6 +45,7 @@ class TstVTKPicker(object):
 @testing.requires_testing_data
 def test_coregistration_ui(tmpdir):
     """Test that using CoregistrationUI matches mne coreg."""
+    from mne.gui._coreg import CoregistrationUI
     tempdir = str(tmpdir)
     tmp_trans = op.join(tempdir, 'tmp-trans.fif')
     coreg = CoregistrationUI(info_file=None, subject='sample',
