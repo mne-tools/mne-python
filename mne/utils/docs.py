@@ -2480,29 +2480,33 @@ tstart : float
     Start ECG detection after ``tstart`` seconds. Useful when the beginning
     of the run is noisy.
 """
-docdict['create_ecg_epochs'] = """This function will:
+
+ecg_epoch_or_proj = """This function will:
 
 #. Filter the ECG data channel.
 
 #. Find ECG R wave peaks using :func:`mne.preprocessing.find_ecg_events`.
-
-#. Filter the raw data.
-
+{filter_step}
 #. Create `~mne.Epochs` around the R wave peaks, capturing the heartbeats.
-"""
+{extra_steps}"""
+
+docdict['create_ecg_epochs'] = ecg_epoch_or_proj.format(filter_step='',
+                                                        extra_steps='')
 
 # EOG detection
-docdict['create_eog_epochs'] = """This function will:
+eog_epoch_or_proj = """This function will:
 
 #. Filter the EOG data channel.
 
 #. Find the peaks of eyeblinks in the EOG data using
    :func:`mne.preprocessing.find_eog_events`.
-
-#. Filter the raw data.
-
+{filter_step}
 #. Create `~mne.Epochs` around the eyeblinks.
-"""
+{extra_steps}"""
+
+docdict['create_eog_epochs'] = eog_epoch_or_proj.format(filter_step='',
+                                                        extra_steps='')
+
 docdict['eog_ch_name'] = """
 ch_name : str | list of str | None
     The name of the channel(s) to use for EOG peak detection. If a string,
@@ -2522,15 +2526,21 @@ specified sensor type. Consequently, if the provided input data contains high
 levels of noise, the produced SSP vectors can then be used to eliminate that
 noise from the data.
 """
-compute_proj_common = """
+proj_filter_step = """
+#. Filter the raw data.
+"""
+
+proj_extra_steps = """
 #. Optionally average the `~mne.Epochs` to produce an `~mne.Evoked` if
    ``average=True`` was passed (default).
 
 #. Calculate SSP projection vectors on that data to capture the artifacts."""
-docdict['compute_proj_ecg'] = f"""%(create_ecg_epochs)s {compute_proj_common}
-""" % docdict
-docdict['compute_proj_eog'] = f"""%(create_eog_epochs)s {compute_proj_common}
-""" % docdict
+
+docdict['compute_proj_ecg'] = ecg_epoch_or_proj.format(
+    filter_step=proj_filter_step, extra_steps=proj_extra_steps)
+
+docdict['compute_proj_eog'] = eog_epoch_or_proj.format(
+    filter_step=proj_filter_step, extra_steps=proj_extra_steps)
 
 # BEM
 docdict['on_defects'] = f"""
