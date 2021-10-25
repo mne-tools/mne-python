@@ -1,8 +1,11 @@
 from contextlib import contextmanager
+from functools import partial
 import os
 import os.path as op
+
 import numpy as np
-from functools import partial
+from traitlets import observe, HasTraits, Unicode, Bool, Float
+
 from ..defaults import DEFAULTS
 from ..io import read_info, read_fiducials
 from ..io.pick import pick_types
@@ -13,7 +16,6 @@ from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
 from ..transforms import (read_trans, write_trans, _ensure_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
 from ..utils import get_subjects_dir, _check_fname, fill_doc
-from traitlets import observe, HasTraits, Unicode, Bool, Float
 
 
 @fill_doc
