@@ -7,7 +7,7 @@ from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
 import pytest
 from scipy.signal import resample as sp_resample, butter, freqz, sosfreqz
 
-from mne import create_info
+from mne import create_info, read_events, Epochs
 from numpy.fft import fft, fftfreq
 from mne.io import RawArray, read_raw_fif
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
@@ -16,7 +16,7 @@ from mne.filter import (filter_data, resample, _resample_stim_channels,
                         _overlap_add_filter, _smart_pad, design_mne_c_filter,
                         estimate_ringing_samples, create_filter,
                         _length_factors)
-
+from mne.datasets import sample
 from mne.utils import sum_squared, catch_logging, requires_mne, run_subprocess
 
 
@@ -325,6 +325,28 @@ def test_resample_raw():
     raw.resample(128, npad=10)
     data = raw.get_data()
     assert data.shape == (1, 63)
+
+
+def test_resample_to_1_sample():
+    """Test resampling to 1 sample."""
+    # Raw
+    x = np.zeros((1, 1001))
+    sfreq = 2048.
+    raw = RawArray(x, create_info(1, sfreq, 'eeg'))
+    raw.resample(1)
+    assert len(raw.times) != 0
+
+    # Epochs - xdawn decoding example
+    data_path = sample.data_path()
+    raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+    event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+    raw = read_raw_fif(raw_fname, preload=True)
+    events = read_events(event_fname)
+    epochs = Epochs(raw, events, {'Auditory/Left': 1}, -0.1, 0.3, proj=False,
+                    picks='eeg', baseline=None, preload=True,
+                    verbose=False)
+    epochs.resample(1)
+    assert len(epochs.times) != 0
 
 
 @pytest.mark.slowtest
