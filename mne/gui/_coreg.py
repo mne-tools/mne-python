@@ -66,6 +66,7 @@ class CoregistrationUI(HasTraits):
         Display the window as soon as it is ready. Defaults to True.
     standalone : bool
         If True, start the Qt application event loop. Default to False.
+    %(verbose)s
     """
 
     _subject = Unicode()
@@ -89,7 +90,7 @@ class CoregistrationUI(HasTraits):
                  head_transparency=None, hpi_coils=None,
                  head_shape_points=None, eeg_channels=None, orient_glyphs=None,
                  sensor_opacity=None, trans=None, size=None, bgcolor=None,
-                 show=True, standalone=False):
+                 show=True, standalone=False, verbose=None):
         from ..viz.backends.renderer import _get_renderer
 
         def _get_default(var, val):
@@ -97,7 +98,7 @@ class CoregistrationUI(HasTraits):
         self._actors = dict()
         self._surfaces = dict()
         self._widgets = dict()
-        self._verbose = True
+        self._verbose = verbose
         self._plot_locked = False
         self._head_geo = None
         self._coord_frame = "mri"
