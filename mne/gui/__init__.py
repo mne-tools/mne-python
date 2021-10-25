@@ -6,7 +6,7 @@
 
 import os
 
-from ..utils import _check_mayavi_version, verbose, get_config
+from ..utils import _check_mayavi_version, verbose, get_config, warn
 from ._backend import _testing_mode
 
 
@@ -133,6 +133,31 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
     from ..viz.backends.renderer import _get_3d_backend
+    pyvistaqt = _get_3d_backend() == 'pyvistaqt'
+    if pyvistaqt:
+        # unsupported parameters
+        params = {
+            'tabbed': (tabbed, False),
+            'split': (split, True),
+            'scrollable': (scrollable, True),
+            'head_inside': (head_inside, True),
+            'guess_mri_subject': guess_mri_subject,
+            'head_opacity': head_opacity,
+            'project_eeg': project_eeg,
+            'scale_by_distance': scale_by_distance,
+            'mark_inside': mark_inside,
+            'interaction': interaction,
+            'scale': scale,
+            'advanced_rendering': advanced_rendering,
+        }
+        for key, val in params.items():
+            if isinstance(val, tuple):
+                to_raise = val[0] != val[1]
+            else:
+                to_raise = val is not None
+            if to_raise:
+                warn(f"The parameter {key} is not supported with"
+                      " the pyvistaqt 3d backend. It will be ignored.")
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     if guess_mri_subject is None:
         guess_mri_subject = config.get(
@@ -175,7 +200,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     width = int(width)
     height = int(height)
     scale = float(scale)
-    if _get_3d_backend() == 'pyvistaqt':
+    if pyvistaqt:
         from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
         from ._coreg import CoregistrationUI
         show = not MNE_3D_BACKEND_TESTING
