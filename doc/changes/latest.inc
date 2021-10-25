@@ -231,6 +231,8 @@ Bugs
 
 - Fix bug where :func:`mne.time_frequency.psd_array_welch` and :func:`mne.time_frequency.psd_array_multitaper` failed to handle negative integer for ``n_jobs`` argument (:gh:`9849` **by new contributor** |Riessarius Stargardsky|_)
 
+- Fix bug where resampling returns empty instances (:gh:`9897` **by new contributor** |Mathieu Scheltienne|_ and `Eric Larson`_)
+
 - Fix bug with :func:`mne.io.read_raw_nihon` where latin-1 annotations could not be read (:gh:`9384` by `Alex Gramfort`_)
 
 - Fix bug when printing a :class:`mne.io.RawArray` in the notebook (:gh:`9404` by `Alex Gramfort`_)
@@ -347,4 +349,4 @@ API changes
 
 - Deprecate ``mne.viz.utils.center_cmap`` (:gh:`9851` by `Clemens Brunner`_)
 
-- Add depreciation warning for the default partial pathlength factor of :func:`mne.preprocessing.nirs.beer_lambert_law` from 0.1 to 6 (:gh:`9843` by `Robert Luke`_)
+- The default partial pathlength factor of :func:`mne.preprocessing.nirs.beer_lambert_law` will change from 0.1 in 0.24 to 6.0 in the next release (:gh:`9843` by `Robert Luke`_)
