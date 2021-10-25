@@ -60,6 +60,8 @@ class CoregistrationUI(HasTraits):
         The background color as a tuple (red, green, blue) of float
         values between 0 and 1 or a valid color name (i.e. 'white'
         or 'w'). Defaults to 'grey'.
+    show : bool
+        Display the window as soon as it is ready. Defaults to True.
     standalone : bool
         If True, start the Qt application event loop. Default to False.
     """
@@ -85,7 +87,7 @@ class CoregistrationUI(HasTraits):
                  head_transparency=None, hpi_coils=None,
                  head_shape_points=None, eeg_channels=None, orient_glyphs=None,
                  sensor_opacity=None, trans=None, size=None, bgcolor=None,
-                 standalone=False):
+                 show=True, standalone=False):
         from ..viz.backends.renderer import _get_renderer
 
         def _get_default(var, val):
@@ -183,7 +185,8 @@ class CoregistrationUI(HasTraits):
             self._load_trans(trans)
 
         # must be done last
-        self._renderer.show()
+        if show:
+            self._renderer.show()
         if standalone:
             self._renderer.figure.store["app"].exec()
 
