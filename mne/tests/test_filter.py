@@ -1,4 +1,3 @@
-import re
 import os.path as op
 
 import numpy as np
@@ -334,9 +333,9 @@ def test_resample_below_1_sample():
     x = np.zeros((1, 100))
     sfreq = 1000.
     raw = RawArray(x, create_info(1, sfreq, 'eeg'))
-    with pytest.raises(ValueError, match=re.escape(
-            'Invalid number of FFT data points (0)')):
-        raw.resample(5)
+    raw.resample(5)
+    assert len(raw.times) == 1
+    assert raw.get_data().shape[1] == 1
 
     # Epochs
     x = np.zeros((1, 10000))
@@ -348,9 +347,9 @@ def test_resample_below_1_sample():
     epochs = Epochs(raw, events, {'test': 1}, 0, 0.2, proj=False,
                     picks='eeg', baseline=None, preload=True,
                     verbose=False)
-    with pytest.raises(ValueError, match=re.escape(
-            'Invalid number of FFT data points (0)')):
-        epochs.resample(1)
+    epochs.resample(1)
+    assert len(epochs.times) == 1
+    assert epochs.get_data().shape[2] == 1
 
 
 @pytest.mark.slowtest

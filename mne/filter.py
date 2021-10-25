@@ -1380,7 +1380,7 @@ def _check_filterable(x, kind='filtered'):
 
 def _resamp_ratio_len(up, down, n):
     ratio = float(up) / down
-    return ratio, int(round(ratio * n))
+    return ratio, max(int(round(ratio * n)), 1)
 
 
 @verbose
@@ -2064,10 +2064,6 @@ class FilterMixin(object):
         o_sfreq = self.info['sfreq']
         self._data = resample(self._data, sfreq, o_sfreq, npad, window=window,
                               n_jobs=n_jobs, pad=pad)
-        if self._data.shape[-1] == 0:
-            raise ValueError(
-                'Invalid number of FFT data points (0) specified. Please '
-                'change the desired sample rate.')
         self.info['sfreq'] = float(sfreq)
         lowpass = self.info.get('lowpass')
         lowpass = np.inf if lowpass is None else lowpass
