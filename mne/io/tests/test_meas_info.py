@@ -842,9 +842,9 @@ def test_repr():
     info = create_info(1, 1000, 'eeg')
     assert '7 non-empty values' in repr(info)
 
-    t = Transform(1, 2, np.ones((4, 4)))
+    t = Transform('meg', 'head', np.ones((4, 4)))
     info['dev_head_t'] = t
-    assert 'dev_head_t: MEG device -> isotrak transform' in repr(info)
+    assert 'dev_head_t: MEG device -> head transform' in repr(info)
 
 
 def test_repr_html():
