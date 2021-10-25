@@ -1218,9 +1218,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ratio, n_news = ratio[0], np.array(n_news, int)
         new_offsets = np.cumsum([0] + list(n_news))
         if new_offsets[-1] == 0:
-            raise RuntimeError(
-                'Resampling yielded 0 data point. Please change the desired '
-                'sample rate.')
+            raise ValueError(
+                'Invalid number of FFT data points (0) specified. Please '
+                'change the desired sample rate.')
         if self.preload:
             new_data = np.empty(
                 (len(self.ch_names), new_offsets[-1]), self._data.dtype)
