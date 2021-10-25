@@ -1066,7 +1066,6 @@ def _is_last_row(ax):
 
 def pinvh(a, rtol=None):
     """Compute a pseudo-inverse of a Hermitian matrix."""
-    from scipy.linalg.decomp import _asarray_validated
     s, u = np.linalg.eigh(a)
     del a
     if rtol is None:
