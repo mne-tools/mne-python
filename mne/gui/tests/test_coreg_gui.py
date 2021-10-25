@@ -408,10 +408,21 @@ def test_coreg_gui_pyvista(tmpdir, renderer_interactive_pyvistaqt):
     assert coreg._coreg._extra_points_filter is not None
     coreg._reset_omit_hsp_filter()
     assert coreg._coreg._extra_points_filter is None
+    assert coreg._grow_hair == 0
+    coreg._set_grow_hair(0.1)
+    assert coreg._grow_hair == 0.1
+    assert coreg._hpi_coils
+    assert coreg._eeg_channels
+    assert coreg._head_shape_points
+    assert coreg._scale_mode == 'None'
+    assert coreg._icp_fid_match == 'nearest'
+    assert not coreg._orient_glyphs
     coreg._set_orient_glyphs(True)
     assert coreg._orient_glyphs
+    assert not coreg._head_resolution
     coreg._set_head_resolution(True)
     assert coreg._head_resolution
+    assert not coreg._head_transparency
     coreg._set_head_transparency(True)
     assert coreg._head_transparency
     coreg._save_trans(tmp_trans)
