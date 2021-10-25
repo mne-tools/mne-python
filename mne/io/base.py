@@ -1217,6 +1217,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                               for old_len in self._raw_lengths))
         ratio, n_news = ratio[0], np.array(n_news, int)
         new_offsets = np.cumsum([0] + list(n_news))
+        if new_offsets[-1] == 0:
+            raise RuntimeError(
+                'Resampling yielded 0 data point. Please change the desired '
+                'sample rate.')
         if self.preload:
             new_data = np.empty(
                 (len(self.ch_names), new_offsets[-1]), self._data.dtype)

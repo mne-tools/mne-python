@@ -2064,6 +2064,10 @@ class FilterMixin(object):
         o_sfreq = self.info['sfreq']
         self._data = resample(self._data, sfreq, o_sfreq, npad, window=window,
                               n_jobs=n_jobs, pad=pad)
+        if self._data.shape[-1] == 0:
+            raise RuntimeError(
+                'Resampling yielded 0 data point. Please change the desired '
+                'sample rate.')
         self.info['sfreq'] = float(sfreq)
         lowpass = self.info.get('lowpass')
         lowpass = np.inf if lowpass is None else lowpass
