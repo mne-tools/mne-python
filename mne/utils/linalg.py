@@ -52,7 +52,7 @@ def _svd_lwork(shape, dtype=np.float64):
     from scipy import linalg
     try:
         ds = linalg._decomp_svd
-    except ImportError:  # < 1.8.0
+    except AttributeError:  # < 1.8.0
         ds = linalg.decomp_svd
     gesdd_lwork, gesvd_lwork = _get_lapack_funcs(
         dtype, ('gesdd_lwork', 'gesvd_lwork'))
