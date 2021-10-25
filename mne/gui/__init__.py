@@ -26,8 +26,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
                    trans=None, scrollable=True, project_eeg=None,
                    orient_to_surface=None, scale_by_distance=None,
                    mark_inside=None, interaction=None, scale=None,
-                   advanced_rendering=None, head_inside=True,
-                   verbose=None):
+                   advanced_rendering=None, head_inside=True, verbose=None):
     """Coregister an MRI with a subject's head shape.
 
     The recommended way to use the GUI is through bash with:
