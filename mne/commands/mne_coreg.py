@@ -77,9 +77,6 @@ def run():
     parser.add_option('--simple-rendering', action='store_false',
                       dest='advanced_rendering',
                       help='Use simplified OpenGL rendering')
-    parser.add_option("--pyvista",
-                      action='store_true', default=False, dest="pyvista",
-                      help="Use the new PyVista/PyQt5 interface.")
     _add_verbose_flag(parser)
 
     options, args = parser.parse_args()
@@ -118,7 +115,7 @@ def run():
             mark_inside=options.mark_inside, interaction=options.interaction,
             scale=options.scale,
             advanced_rendering=options.advanced_rendering,
-            pyvista=options.pyvista, verbose=options.verbose)
+            verbose=options.verbose)
 
 
 mne.utils.run_command_if_main()

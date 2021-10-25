@@ -114,10 +114,6 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         points behind the head.
 
         .. versionadded:: 0.23
-    pyvista : bool
-        If True, use the PyVista/PyQt5 interface. Defaults to False.
-
-        .. versionadded:: 0.23
     %(verbose)s
 
     Returns
@@ -137,6 +133,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     subjects for which no MRI is available
     <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
+    from ..viz.backends.renderer import _get_3d_backend
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     if guess_mri_subject is None:
         guess_mri_subject = config.get(
@@ -179,7 +176,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     width = int(width)
     height = int(height)
     scale = float(scale)
-    if pyvista:
+    if _get_3d_backend() == 'pyvistaqt':
         from ._coreg import CoregistrationUI
         return CoregistrationUI(
             info_file=inst, subject=subject, subjects_dir=subjects_dir,
