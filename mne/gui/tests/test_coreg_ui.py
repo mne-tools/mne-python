@@ -44,12 +44,14 @@ class TstVTKPicker(object):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_coregistration_gui(tmpdir):
-    """Test that using Coregistration matches mne coreg."""
+def test_coregistration_ui(tmpdir):
+    """Test that using CoregistrationUI matches mne coreg."""
     tempdir = str(tmpdir)
     tmp_trans = op.join(tempdir, 'tmp-trans.fif')
-    CoregistrationUI(info_file=None, subject='sample',
-                     subjects_dir=subjects_dir, trans=trans_fname, show=False)
+    coreg = CoregistrationUI(info_file=None, subject='sample',
+                             subjects_dir=subjects_dir, trans=trans_fname,
+                             show=False)
+    coreg.close()
     coreg = CoregistrationUI(info_file=raw_fname, subject='sample',
                              subjects_dir=subjects_dir, show=False)
     coreg._set_fiducials_file(fid_fname)
@@ -84,4 +86,4 @@ def test_coregistration_gui(tmpdir):
     assert coreg._head_transparency
     coreg._save_trans(tmp_trans)
     assert op.isfile(tmp_trans)
-    coreg._clean()
+    coreg.close()

@@ -954,3 +954,7 @@ class CoregistrationUI(HasTraits):
         self._surfaces.clear()
         self._defaults.clear()
         self._head_geo = None
+
+    def close(self):
+        """Close interface and cleanup data structure."""
+        self._renderer.close()
