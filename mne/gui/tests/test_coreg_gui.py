@@ -373,16 +373,15 @@ class TstVTKPicker(object):
 @testing.requires_testing_data
 def test_coreg_gui_pyvista(tmpdir, renderer_interactive_pyvistaqt):
     """Test that using CoregistrationUI matches mne coreg."""
-    from mne.gui._coreg import CoregistrationUI
+    from mne.gui import coregistration
     tempdir = str(tmpdir)
     tmp_trans = op.join(tempdir, 'tmp-trans.fif')
-    coreg = CoregistrationUI(info_file=None, subject='sample',
-                             subjects_dir=subjects_dir, trans=fname_trans,
-                             show=False)
+    coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
+                           trans=fname_trans)
     coreg._reset_fiducials()
     coreg.close()
-    coreg = CoregistrationUI(info_file=raw_path, subject='sample',
-                             subjects_dir=subjects_dir, show=False)
+    coreg = coregistration(inst=raw_path, subject='sample',
+                           subjects_dir=subjects_dir)
     coreg._set_fiducials_file(fid_fname)
     assert coreg._fiducials_file == fid_fname
     # picking
@@ -411,14 +410,12 @@ def test_coreg_gui_pyvista(tmpdir, renderer_interactive_pyvistaqt):
     assert coreg._grow_hair == 0
     coreg._set_grow_hair(0.1)
     assert coreg._grow_hair == 0.1
+    assert coreg._orient_glyphs
     assert coreg._hpi_coils
     assert coreg._eeg_channels
     assert coreg._head_shape_points
     assert coreg._scale_mode == 'None'
     assert coreg._icp_fid_match == 'nearest'
-    assert not coreg._orient_glyphs
-    coreg._set_orient_glyphs(True)
-    assert coreg._orient_glyphs
     assert not coreg._head_resolution
     coreg._set_head_resolution(True)
     assert coreg._head_resolution

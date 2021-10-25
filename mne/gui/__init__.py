@@ -177,11 +177,14 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     height = int(height)
     scale = float(scale)
     if _get_3d_backend() == 'pyvistaqt':
+        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
         from ._coreg import CoregistrationUI
+        show = not MNE_3D_BACKEND_TESTING
+        standalone = not MNE_3D_BACKEND_TESTING
         return CoregistrationUI(
             info_file=inst, subject=subject, subjects_dir=subjects_dir,
             head_resolution=head_high_res, orient_glyphs=orient_to_surface,
-            trans=trans, size=(width, height), standalone=True,
+            trans=trans, size=(width, height), show=show, standalone=standalone,
         )
     else:
         _check_mayavi_version()
