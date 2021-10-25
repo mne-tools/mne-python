@@ -184,6 +184,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
             info_file=inst, subject=subject, subjects_dir=subjects_dir,
             head_resolution=head_high_res, orient_glyphs=orient_to_surface,
             trans=trans, size=(width, height), show=show, standalone=standalone,
+            verbose=verbose
         )
     else:
         _check_mayavi_version()
