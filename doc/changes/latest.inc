@@ -349,4 +349,4 @@ API changes
 
 - Deprecate ``mne.viz.utils.center_cmap`` (:gh:`9851` by `Clemens Brunner`_)
 
-- Add depreciation warning for the default partial pathlength factor of :func:`mne.preprocessing.nirs.beer_lambert_law` from 0.1 to 6 (:gh:`9843` by `Robert Luke`_)
+- The default partial pathlength factor of :func:`mne.preprocessing.nirs.beer_lambert_law` will change from 0.1 in 0.24 to 6.0 in the next release (:gh:`9843` by `Robert Luke`_)
