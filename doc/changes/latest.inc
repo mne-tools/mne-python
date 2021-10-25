@@ -346,3 +346,5 @@ API changes
 - The output folder name for HF_SEF datasets is now ``hf_sef`` instead of ``HF_SEF`` (:gh:`9763` by `Adam Li`_)
 
 - Deprecate ``mne.viz.utils.center_cmap`` (:gh:`9851` by `Clemens Brunner`_)
+
+- Add depreciation warning for the default partial pathlength factor of :func:`mne.preprocessing.nirs.beer_lambert_law` from 0.1 to 6 (:gh:`9843` by `Robert Luke`_)
