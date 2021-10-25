@@ -559,23 +559,24 @@ def _test_anonymize_info(base_info):
     # first expected result with no options.
     # will move DOS from 2010/1/1 to 2000/1/1 which is 3653 days.
     exp_info = base_info.copy()
-    with exp_info._unlock():
-        exp_info['description'] = default_desc
-        exp_info['experimenter'] = default_str
-        exp_info['proj_name'] = default_str
-        exp_info['proj_id'] = np.array([0])
-        exp_info['subject_info']['first_name'] = default_str
-        exp_info['subject_info']['last_name'] = default_str
-        exp_info['subject_info']['id'] = default_subject_id
-        exp_info['subject_info']['his_id'] = str(default_subject_id)
-        exp_info['subject_info']['sex'] = 0
-        del exp_info['subject_info']['hand']  # there's no "unknown" setting
+    exp_info._unlocked = True
+    exp_info['description'] = default_desc
+    exp_info['experimenter'] = default_str
+    exp_info['proj_name'] = default_str
+    exp_info['proj_id'] = np.array([0])
+    exp_info['subject_info']['first_name'] = default_str
+    exp_info['subject_info']['last_name'] = default_str
+    exp_info['subject_info']['id'] = default_subject_id
+    exp_info['subject_info']['his_id'] = str(default_subject_id)
+    exp_info['subject_info']['sex'] = 0
+    del exp_info['subject_info']['hand']  # there's no "unknown" setting
 
-        # this bday is 3653 days different. the change in day is due to a
-        # different number of leap days between 1987 and 1977 than between
-        # 2010 and 2000.
-        exp_info['subject_info']['birthday'] = (1977, 4, 7)
-        exp_info['meas_date'] = default_anon_dos
+    # this bday is 3653 days different. the change in day is due to a
+    # different number of leap days between 1987 and 1977 than between
+    # 2010 and 2000.
+    exp_info['subject_info']['birthday'] = (1977, 4, 7)
+    exp_info['meas_date'] = default_anon_dos
+    exp_info._unlocked = False
 
     # make copies
     exp_info_3 = exp_info.copy()
@@ -633,13 +634,14 @@ def _test_anonymize_info(base_info):
     # test with meas_date = None
     with base_info._unlock():
         base_info['meas_date'] = None
-    with exp_info_3._unlock():
-        exp_info_3['meas_date'] = None
-        exp_info_3['file_id']['secs'] = DATE_NONE[0]
-        exp_info_3['file_id']['usecs'] = DATE_NONE[1]
-        exp_info_3['meas_id']['secs'] = DATE_NONE[0]
-        exp_info_3['meas_id']['usecs'] = DATE_NONE[1]
-        exp_info_3['subject_info'].pop('birthday', None)
+    exp_info_3._unlocked = True
+    exp_info_3['meas_date'] = None
+    exp_info_3['file_id']['secs'] = DATE_NONE[0]
+    exp_info_3['file_id']['usecs'] = DATE_NONE[1]
+    exp_info_3['meas_id']['secs'] = DATE_NONE[0]
+    exp_info_3['meas_id']['usecs'] = DATE_NONE[1]
+    exp_info_3['subject_info'].pop('birthday', None)
+    exp_info_3._unlocked = False
 
     if base_info['meas_date'] is None:
         with pytest.warns(RuntimeWarning, match='all information'):
@@ -1034,3 +1036,22 @@ def test_pickle(fname_info, unlocked):
     assert isinstance(info_un, Info)
     assert_object_equal(info, info_un)
     assert info_un._unlocked == unlocked
+
+
+def test_info_bad():
+    """Test our info sanity checkers."""
+    info = create_info(2, 1000., 'eeg')
+    info['description'] = 'foo'
+    info['experimenter'] = 'bar'
+    info['line_freq'] = 50.
+    info['bads'] = info['ch_names'][:1]
+    info['temp'] = ('whatever', 1.)
+    # After 0.24 these should be pytest.raises calls
+    check, klass = pytest.warns, DeprecationWarning
+    with check(klass, match=r"info\['temp'\]"):
+        info['bad_key'] = 1.
+    for (key, match) in ([
+            ('sfreq', r'inst\.resample'),
+            ('chs', r'inst\.add_channels')]):
+        with check(klass, match=match):
+            info[key] = info[key]

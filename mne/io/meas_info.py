@@ -201,17 +201,19 @@ def _check_ch_keys(ch, ci, name='info["chs"]', check_min=True):
                 f'key{_pl(bad)} missing for {name}[{ci}]: {bad}',)
 
 
+# As options are added here, test_meas_info.py:test_info_bad should be updated
 def _check_bads(bads):
-    _validate_type(bads, (list, ), 'bads')
+    _validate_type(bads, list, 'bads')
     return bads
 
 
 def _check_description(description):
-    _validate_type(description, (None, str), 'description')
+    _validate_type(description, (None, str), "info['description']")
     return description
 
 
 def _check_dev_head_t(dev_head_t):
+    _validate_type(dev_head_t, Transform, "info['dev_head_t']")
     return dev_head_t
 
 
@@ -222,8 +224,7 @@ def _check_experimenter(experimenter):
 
 def _check_line_freq(line_freq):
     _validate_type(line_freq, (None, 'numeric'), 'line_freq')
-    if line_freq is not None and not isinstance(line_freq, float):
-        line_freq = float(line_freq)
+    line_freq = float(line_freq) if line_freq is not None else line_freq
     return line_freq
 
 
@@ -661,6 +662,7 @@ class Info(dict, MontageMixin):
         'mri_head_t': 'mri_head_t cannot be set directly.',
         'mri_id': 'mri_id cannot be set directly.',
         'working_dir': 'working_dir cannot be set directly.',
+        'temp': lambda x: x,
         'xplotter_layout': 'xplotter_layout cannot be set directly.'
     }
 
@@ -707,20 +709,19 @@ class Info(dict, MontageMixin):
         # let __setstate__ do it later and act unlocked now
         unlocked = getattr(self, '_unlocked', True)
         if key in self._attributes:
-            if isinstance(self._attributes[key], str) and unlocked:
-                super().__setitem__(key, val)
-            elif isinstance(self._attributes[key], str) and not unlocked:
-                raise AttributeError(self._attributes[key])
+            if isinstance(self._attributes[key], str):
+                if not unlocked:
+                    warn(f'{self._attributes[key]} This warning will turn '
+                         'into an error after 0.24', DeprecationWarning)
             else:
                 val = self._attributes[key](val)  # attribute checker function
-                super().__setitem__(key, val)
-        elif key == 'temp':
-            super().__setitem__(key, val)
         else:
-            warn(f"Info does not support key {key}. It might not survive an "
-                 "I/O roundtrip. You can use key 'temp' to store temporary "
-                 "objects in an Info instance.")
-            super().__setitem__(key, val)
+            warn(f"Info does not support directly setting the key {repr(key)},"
+                 " this warning will turn into an error after 0.24. You can "
+                 "set info['temp'] to store temporary objects in an Info "
+                 "instance, but these will not survive an I/O round-trip.",
+                 DeprecationWarning)
+        super().__setitem__(key, val)
 
     @contextlib.contextmanager
     def _unlock(self, *, update_redundant=False, check_after=False):
