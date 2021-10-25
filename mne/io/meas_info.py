@@ -373,6 +373,11 @@ class Info(dict, MontageMixin):
         Information about the device helium. See Notes for details.
 
         .. versionadded:: 0.19
+    temp : object | None
+        Can be used to store temporary objects in an Info instance. It will not
+        survive an I/O roundtrip.
+
+        .. versionadded:: 0.24
 
     See Also
     --------
@@ -709,9 +714,12 @@ class Info(dict, MontageMixin):
             else:
                 val = self._attributes[key](val)  # attribute checker function
                 super().__setitem__(key, val)
+        elif key == 'temp':
+            super().__setitem__(key, val)
         else:
-            warn(f'Info does not support key {key}. It might not survive an '
-                 'I/O roundtrip.')
+            warn(f"Info does not support key {key}. It might not survive an "
+                 "I/O roundtrip. You can use key 'temp' to store temporary "
+                 "objects in an Info instance.")
             super().__setitem__(key, val)
 
     @contextlib.contextmanager
