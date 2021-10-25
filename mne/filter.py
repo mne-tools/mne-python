@@ -1469,7 +1469,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
     # prep for resampling now
     x_flat = x.reshape((-1, x_len))
     orig_len = x_len + npads.sum()  # length after padding
-    new_len = int(round(ratio * orig_len))  # length after resampling
+    new_len = max(int(round(ratio * orig_len)), 1)  # length after resampling
     to_removes = [int(round(ratio * npads[0]))]
     to_removes.append(new_len - final_len - to_removes[0])
     to_removes = np.array(to_removes)
