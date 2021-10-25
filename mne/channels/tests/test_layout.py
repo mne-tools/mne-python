@@ -46,6 +46,7 @@ def _get_test_info():
         {'cal': 0.002142000012099743, 'ch_name': 'EOG 061', 'coil_type': 1,
          'coord_frame': 0, 'kind': 202, 'loc': loc.copy(), 'logno': 61,
          'range': 1.0, 'scanno': 376, 'unit': 107, 'unit_mul': 0}]
+    test_info._unlocked = False
     test_info._update_redundant()
     test_info._check_consistency()
     return test_info
@@ -113,6 +114,7 @@ def test_find_topomap_coords():
         _find_topomap_coords(info, picks, **kwargs)
 
     # Test function with too little EEG digitization points: it should fail
+    info._unlocked = True
     info['dig'] = info['dig'][:-2]
     with pytest.raises(ValueError, match='Number of EEG digitization points'):
         _find_topomap_coords(info, picks, **kwargs)
@@ -123,7 +125,8 @@ def test_find_topomap_coords():
         _find_topomap_coords(info, picks, **kwargs)
 
     # Test function without EEG digitization points: it should fail
-    info['dig'] = [d for d in info['dig'] if d['kind'] != FIFF.FIFFV_POINT_EEG]
+    info['dig'] = [d for d in info['dig']
+                   if d['kind'] != FIFF.FIFFV_POINT_EEG]
     with pytest.raises(RuntimeError, match='Did not find any digitization'):
         _find_topomap_coords(info, picks, **kwargs)
 
@@ -260,7 +263,8 @@ def test_find_layout():
     assert_equal(lout.kind, 'KIT-157')
     # fallback for missing IDs
     for val in (35, 52, 54, 1001):
-        raw_kit.info['kit_system_id'] = val
+        with raw_kit.info._unlock():
+            raw_kit.info['kit_system_id'] = val
         lout = find_layout(raw_kit.info)
         assert lout.kind == 'custom'
 

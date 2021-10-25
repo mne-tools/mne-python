@@ -273,7 +273,8 @@ def test_plot_alignment_basic(tmpdir, renderer, mixed_fwd_cov_evoked):
     renderer.backend._close_all()
     # EEG only with strange options
     evoked_eeg_ecog_seeg = evoked.copy().pick_types(meg=False, eeg=True)
-    evoked_eeg_ecog_seeg.info['projs'] = []  # "remove" avg proj
+    with evoked_eeg_ecog_seeg.info._unlock():
+        evoked_eeg_ecog_seeg.info['projs'] = []  # "remove" avg proj
     evoked_eeg_ecog_seeg.set_channel_types({'EEG 001': 'ecog',
                                             'EEG 002': 'seeg'})
     with catch_logging() as log:
@@ -356,7 +357,8 @@ def test_plot_alignment_basic(tmpdir, renderer, mixed_fwd_cov_evoked):
         assert isinstance(fig, mayavi.core.scene.Scene)
     # 3D coil with no defined draw (ConvexHull)
     info_cube = pick_info(info, np.arange(6))
-    info['dig'] = None
+    with info._unlock():
+        info['dig'] = None
     info_cube['chs'][0]['coil_type'] = 9999
     info_cube['chs'][1]['coil_type'] = 9998
     with pytest.raises(RuntimeError, match='coil definition not found'):

@@ -443,6 +443,7 @@ def _compose_meas_info(res4, coils, trans, eeg):
         eeg = _pick_eeg_pos(info)
     _add_eeg_pos(eeg, trans, info)
     logger.info('    Measurement info composed.')
+    info._unlocked = False
     info._update_redundant()
     return info
 

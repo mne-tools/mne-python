@@ -833,7 +833,8 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         assert isinstance(inst, Evoked)
         inst = inst.copy().crop(start, stop)
         if picks is not None:
-            inst.info['comps'] = []  # can be safely disabled
+            with inst.info._unlock():
+                inst.info['comps'] = []  # can be safely disabled
             inst.pick_channels([inst.ch_names[p] for p in picks])
         evoked_cln = ica.apply(inst.copy(), exclude=exclude,
                                n_pca_components=n_pca_components)
@@ -994,7 +995,8 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
 
     # create info
     info = create_info(ch_names_picked, sfreq, ch_types=ch_types)
-    info['meas_date'] = inst.info['meas_date']
+    with info._unlock():
+        info['meas_date'] = inst.info['meas_date']
     info['bads'] = [ch_names[x] for x in exclude if x in picks]
     if is_raw:
         inst_array = RawArray(data, info, inst.first_samp)

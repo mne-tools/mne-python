@@ -417,9 +417,9 @@ def test_io(tmpdir):
 
     info = mne.create_info(['MEG 001', 'MEG 002', 'MEG 003'], 1000.,
                            ['mag', 'mag', 'mag'])
-    info['meas_date'] = datetime.datetime(year=2020, month=2, day=5,
-                                          tzinfo=datetime.timezone.utc)
-    info._check_consistency()
+    with info._unlock(check_after=True):
+        info['meas_date'] = datetime.datetime(year=2020, month=2, day=5,
+                                              tzinfo=datetime.timezone.utc)
     tfr = AverageTFR(info, data=data, times=times, freqs=freqs,
                      nave=20, comment='test', method='crazy-tfr')
     tfr.save(fname)
@@ -437,7 +437,8 @@ def test_io(tmpdir):
 
     tfr.comment = None
     # test old meas_date
-    info['meas_date'] = (1, 2)
+    with info._unlock():
+        info['meas_date'] = (1, 2)
     tfr.save(fname, overwrite=True)
     assert_equal(read_tfrs(fname, condition=0).comment, tfr.comment)
     tfr.comment = 'test-A'
@@ -682,7 +683,8 @@ def test_add_channels():
 
     # Now test errors
     tfr_badsf = tfr_eeg.copy()
-    tfr_badsf.info['sfreq'] = 3.1415927
+    with tfr_badsf.info._unlock():
+        tfr_badsf.info['sfreq'] = 3.1415927
     tfr_eeg = tfr_eeg.crop(-.1, .1)
 
     pytest.raises(RuntimeError, tfr_meg.add_channels, [tfr_badsf])

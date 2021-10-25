@@ -882,7 +882,8 @@ def _set_montage_fnirs(info, montage):
         info['chs'][ch_idx]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
     # Modify info['dig'] in place
-    info['dig'] = montage.dig
+    with info._unlock():
+        info['dig'] = montage.dig
 
 
 @fill_doc
@@ -911,7 +912,8 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
     _validate_type(montage, (DigMontage, None, str), 'montage')
     if montage is None:
         # Next line modifies info['dig'] in place
-        info['dig'] = None
+        with info._unlock():
+            info['dig'] = None
         for ch in info['chs']:
             # Next line modifies info['chs'][#]['loc'] in place
             ch['loc'] = np.full(12, np.nan)
@@ -1081,7 +1083,8 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
         if ref_dig_point in old_dig:
             digpoints.append(ref_dig_point)
     # Next line modifies info['dig'] in place
-    info['dig'] = _format_dig_points(digpoints, enforce_order=True)
+    with info._unlock():
+        info['dig'] = _format_dig_points(digpoints, enforce_order=True)
 
     # Handle fNIRS with source, detector and channel
     fnirs_picks = _picks_to_idx(info, 'fnirs', allow_empty=True)

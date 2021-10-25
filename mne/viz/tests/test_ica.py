@@ -116,7 +116,8 @@ def test_plot_ica_properties():
     """Test plotting of ICA properties."""
     raw = _get_raw(preload=True).crop(0, 5)
     raw.add_proj([], remove_existing=True)
-    raw.info['highpass'] = 1.0  # fake high-pass filtering
+    with raw.info._unlock():
+        raw.info['highpass'] = 1.0  # fake high-pass filtering
     events = make_fixed_length_events(raw)
     picks = _get_picks(raw)[:6]
     pick_names = [raw.ch_names[k] for k in picks]
@@ -304,7 +305,8 @@ def test_plot_ica_sources(raw_orig, browse_backend):
 def test_plot_ica_overlay():
     """Test plotting of ICA cleaning."""
     raw = _get_raw(preload=True)
-    raw.info['highpass'] = 1.0  # fake high-pass filtering
+    with raw.info._unlock():
+        raw.info['highpass'] = 1.0  # fake high-pass filtering
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, random_state=0)
     # overlay plotting requires a fitted ICA
@@ -329,7 +331,8 @@ def test_plot_ica_overlay():
     # smoke test for CTF
     raw = read_raw_fif(raw_ctf_fname)
     raw.apply_gradient_compensation(3)
-    raw.info['highpass'] = 1.0  # fake high-pass filtering
+    with raw.info._unlock():
+        raw.info['highpass'] = 1.0  # fake high-pass filtering
     picks = pick_types(raw.info, meg=True, ref_meg=False)
     ica = ICA(n_components=2, )
     ica.fit(raw, picks=picks)

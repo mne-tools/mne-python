@@ -491,6 +491,7 @@ class RawMff(BaseRaw):
                              'unit': FIFF.FIFF_UNIT_NONE})
         chs = _add_pns_channel_info(chs, egi_info, ch_names)
         info['chs'] = chs
+        info._unlocked = False
         info._update_redundant()
         if mon is not None:
             info.set_montage(mon, on_missing='ignore')
@@ -860,8 +861,9 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
                 range(mff.num_channels['EEG'])]
     ch_names.extend(egi_info['pns_names'])
     info = create_info(ch_names, mff.sampling_rates['EEG'], ch_types)
-    info['device_info'] = dict(type=egi_info['device'])
-    info['nchan'] = sum(mff.num_channels.values())
+    with info._unlock():
+        info['device_info'] = dict(type=egi_info['device'])
+        info['nchan'] = sum(mff.num_channels.values())
 
     # Add individual channel info
     # Get calibration info for EEG channels
@@ -874,7 +876,8 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     chs, mon = _read_locs(fname, chs, egi_info)
     # Update PNS channel info
     chs = _add_pns_channel_info(chs, egi_info, ch_names)
-    info['chs'] = chs
+    with info._unlock():
+        info['chs'] = chs
     if mon is not None:
         info.set_montage(mon, on_missing='ignore')
 
@@ -902,7 +905,8 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
 
     # Add EEG reference to info
     # Initialize 'custom_ref_applied' to False
-    info['custom_ref_applied'] = False
+    with info._unlock():
+        info['custom_ref_applied'] = False
     try:
         fp = mff.directory.filepointer('history')
     except (ValueError, FileNotFoundError):  # old (<=0.6.3) vs new mffpy

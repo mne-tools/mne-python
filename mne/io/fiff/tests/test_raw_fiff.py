@@ -842,7 +842,7 @@ def test_proj(tmpdir):
     raw = read_raw_fif(test_fif_fname, preload=True).crop(0, 0.002)
     proj = raw.info['projs'][-1]
     raw.pick_types(meg=False, eeg=True)
-    raw.info['projs'] = [proj]  # Restore, because picking removed it!
+    raw.add_proj(proj)  # Restore, because picking removed it!
     raw._data.fill(0)
     raw._data[-1] = 1.
     raw.save(out_fname)
@@ -963,7 +963,8 @@ def test_filter():
     # filter should set the "lowpass" and "highpass" parameters
     raw = RawArray(np.random.randn(3, 1000),
                    create_info(3, 1000., ['eeg'] * 2 + ['stim']))
-    raw.info['lowpass'] = raw.info['highpass'] = None
+    with raw.info._unlock():
+        raw.info['lowpass'] = raw.info['highpass'] = None
     for kind in ('none', 'lowpass', 'highpass', 'bandpass', 'bandstop'):
         print(kind)
         h_freq = l_freq = None
@@ -1217,7 +1218,8 @@ def test_resample(tmpdir, preload, n, npad):
 
     # resample should still work even when no stim channel is present
     raw = RawArray(np.random.randn(1, 100), create_info(1, 100, ['eeg']))
-    raw.info['lowpass'] = 50.
+    with raw.info._unlock():
+        raw.info['lowpass'] = 50.
     raw.resample(10, npad=npad)
     assert raw.info['lowpass'] == 5.
     assert len(raw) == 10
@@ -1370,7 +1372,8 @@ def test_add_channels():
 
     # Now test errors
     raw_badsf = raw_eeg.copy()
-    raw_badsf.info['sfreq'] = 3.1415927
+    with raw_badsf.info._unlock():
+        raw_badsf.info['sfreq'] = 3.1415927
     raw_eeg.crop(.5)
 
     pytest.raises(RuntimeError, raw_meg.add_channels, [raw_nopre])

@@ -29,7 +29,8 @@ def _get_data(ch_decim=1):
     # Read evoked
     evoked = mne.read_evokeds(fname_ave, 0, baseline=(None, 0))
     evoked.info['bads'] = ['MEG 2443']
-    evoked.info['lowpass'] = 16  # fake for decim
+    with evoked.info._unlock():
+        evoked.info['lowpass'] = 16  # fake for decim
     evoked.decimate(12)
     evoked.crop(0.0, 0.3)
     picks = mne.pick_types(evoked.info, meg=True, eeg=False)

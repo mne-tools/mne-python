@@ -2064,10 +2064,11 @@ class FilterMixin(object):
         o_sfreq = self.info['sfreq']
         self._data = resample(self._data, sfreq, o_sfreq, npad, window=window,
                               n_jobs=n_jobs, pad=pad)
-        self.info['sfreq'] = float(sfreq)
         lowpass = self.info.get('lowpass')
         lowpass = np.inf if lowpass is None else lowpass
-        self.info['lowpass'] = min(lowpass, sfreq / 2.)
+        with self.info._unlock():
+            self.info['lowpass'] = min(lowpass, sfreq / 2.)
+            self.info['sfreq'] = float(sfreq)
         new_times = (np.arange(self._data.shape[-1], dtype=np.float64) /
                      sfreq + self.times[0])
         # adjust indirectly affected variables
@@ -2322,7 +2323,9 @@ def _filt_update_info(info, update_info, l_freq, h_freq):
     if update_info:
         if h_freq is not None and (l_freq is None or l_freq < h_freq) and \
                 (info["lowpass"] is None or h_freq < info['lowpass']):
-            info['lowpass'] = float(h_freq)
+            with info._unlock():
+                info['lowpass'] = float(h_freq)
         if l_freq is not None and (h_freq is None or l_freq < h_freq) and \
                 (info["highpass"] is None or l_freq > info['highpass']):
-            info['highpass'] = float(l_freq)
+            with info._unlock():
+                info['highpass'] = float(l_freq)

@@ -279,6 +279,7 @@ def _read_forward_meas_info(tree, fid):
     """
     # This function assumes fid is being used as a context manager
     info = Info()
+    info._unlocked = True
 
     # Information from the MRI file
     parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
@@ -313,7 +314,7 @@ def _read_forward_meas_info(tree, fid):
     ch_names_mapping = _read_extended_ch_info(chs, parent_meg, fid)
     info._update_redundant()
 
-    #   Get the MRI <-> head coordinate transformation
+    # Get the MRI <-> head coordinate transformation
     tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
     coord_head = FIFF.FIFFV_COORD_HEAD
     coord_mri = FIFF.FIFFV_COORD_MRI
@@ -327,7 +328,7 @@ def _read_forward_meas_info(tree, fid):
     else:
         raise ValueError('MRI/head coordinate transformation not found')
 
-    #   Get the MEG device <-> head coordinate transformation
+    # Get the MEG device <-> head coordinate transformation
     tag = find_tag(fid, parent_meg, FIFF.FIFF_COORD_TRANS)
     if tag is None:
         raise ValueError('MEG/head coordinate transformation not found')
@@ -350,7 +351,7 @@ def _read_forward_meas_info(tree, fid):
         tag = find_tag(fid, parent_mri, 236)  # Constant 236 used before v0.11
 
     info['custom_ref_applied'] = int(tag.data) if tag is not None else False
-    info._check_consistency()
+    info._unlocked = False
     return info
 
 
@@ -521,10 +522,12 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
             parent_env = parent_env[0]
             tag = find_tag(fid, parent_env, FIFF.FIFF_MNE_ENV_WORKING_DIR)
             if tag is not None:
-                fwd['info']['working_dir'] = tag.data
+                with fwd['info']._unlock():
+                    fwd['info']['working_dir'] = tag.data
             tag = find_tag(fid, parent_env, FIFF.FIFF_MNE_ENV_COMMAND_LINE)
             if tag is not None:
-                fwd['info']['command_line'] = tag.data
+                with fwd['info']._unlock():
+                    fwd['info']['command_line'] = tag.data
 
     #   Transform the source spaces to the correct coordinate frame
     #   if necessary
@@ -1319,17 +1322,15 @@ def _fill_measurement_info(info, fwd, sfreq, data):
     info = pick_info(info, sel)
     info['bads'] = []
 
-    # this is probably correct based on what's done in meas_info.py...
-    info['meas_id'] = fwd['info']['meas_id']
-    info['file_id'] = info['meas_id']
-
     now = time()
     sec = np.floor(now)
     usec = 1e6 * (now - sec)
 
-    info.update(meas_date=_stamp_to_dt((int(sec), int(usec))), highpass=0.,
-                lowpass=sfreq / 2., sfreq=sfreq, projs=[])
-    info._check_consistency()
+    # this is probably correct based on what's done in meas_info.py...
+    with info._unlock(check_after=True):
+        info.update(meas_id=fwd['info']['meas_id'], file_id=info['meas_id'],
+                    meas_date=_stamp_to_dt((int(sec), int(usec))),
+                    highpass=0., lowpass=sfreq / 2., sfreq=sfreq, projs=[])
 
     # reorder data (which is in fwd order) to match that of info
     order = [fwd['sol']['row_names'].index(name) for name in info['ch_names']]
@@ -1501,7 +1502,8 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
 
     sfreq = 1.0 / stc.tstep
     info, data = _fill_measurement_info(info, fwd, sfreq, data)
-    info['projs'] = []
+    with info._unlock():
+        info['projs'] = []
     # store sensor data in Raw object using the info
     raw = RawArray(data, info)
     raw.preload = True

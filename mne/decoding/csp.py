@@ -338,7 +338,8 @@ class CSP(TransformerMixin, BaseEstimator):
 
         # set sampling frequency to have 1 component per time point
         info = cp.deepcopy(info)
-        info['sfreq'] = 1.
+        with info._unlock():
+            info['sfreq'] = 1.
         # create an evoked
         patterns = EvokedArray(self.patterns_.T, info, tmin=0)
         # the call plot_topomap
@@ -464,7 +465,8 @@ class CSP(TransformerMixin, BaseEstimator):
 
         # set sampling frequency to have 1 component per time point
         info = cp.deepcopy(info)
-        info['sfreq'] = 1.
+        with info._unlock():
+            info['sfreq'] = 1.
         # create an evoked
         filters = EvokedArray(self.filters_.T, info, tmin=0)
         # the call plot_topomap
