@@ -916,6 +916,9 @@ FIFF.FIFFV_COIL_FNIRS_OD              = 303  # fNIRS optical density
 FIFF.FIFFV_COIL_FNIRS_FD_AC_AMPLITUDE = 304  # fNIRS frequency domain AC amplitude
 FIFF.FIFFV_COIL_FNIRS_FD_PHASE        = 305  # fNIRS frequency domain phase
 FIFF.FIFFV_COIL_FNIRS_RAW = FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE  # old alias
+FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE   = 306 # fNIRS time-domain gated amplitude
+FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_AMPLITUDE = 307 # fNIRS time-domain moments amplitude
+FIFF.FIFFV_COIL_FNIRS_PROCESSED            = 308 # fNIRS processed data
 
 FIFF.FIFFV_COIL_MCG_42             = 1000  # For testing the MCG software
 
@@ -1002,7 +1005,9 @@ _ch_coil_type_named = {key: key for key in (
     FIFF.FIFFV_COIL_DIPOLE, FIFF.FIFFV_COIL_FNIRS_HBO,
     FIFF.FIFFV_COIL_FNIRS_HBR, FIFF.FIFFV_COIL_FNIRS_RAW,
     FIFF.FIFFV_COIL_FNIRS_OD, FIFF.FIFFV_COIL_FNIRS_FD_AC_AMPLITUDE,
-    FIFF.FIFFV_COIL_FNIRS_FD_PHASE, FIFF.FIFFV_COIL_MCG_42,
+    FIFF.FIFFV_COIL_FNIRS_FD_PHASE, FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE,
+    FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_AMPLITUDE, FIFF.FIFFV_COIL_FNIRS_PROCESSED,
+    FIFF.FIFFV_COIL_MCG_42,
     FIFF.FIFFV_COIL_POINT_MAGNETOMETER, FIFF.FIFFV_COIL_AXIAL_GRAD_5CM,
     FIFF.FIFFV_COIL_VV_PLANAR_W, FIFF.FIFFV_COIL_VV_PLANAR_T1,
     FIFF.FIFFV_COIL_VV_PLANAR_T2, FIFF.FIFFV_COIL_VV_PLANAR_T3,
@@ -1058,4 +1063,23 @@ CHANNEL_LOC_ALIASES = {
     'M2': 'TP10'
     # add a comment here (with doi of a published source) above any new
     # aliases, as they are added
+}
+
+# SNIRF: Supported measurementList(k).dataTypeLabel values in dataTimeSeries
+FNIRS_SNIRF_DATATYPELABELS = {
+    # These types are specified `here <https://github.com/fNIRS/snirf/blob/master/snirf_specification.md#supported-measurementlistkdatatypelabel-values-in-datatimeseries>`_ 
+    "HbO": 1, #	Oxygenated hemoglobin (oxyhemoglobin) concentration
+    "HbR": 2, #	Deoxygenated hemoglobin (deoxyhemoglobin) concentration
+    "HbT": 3, #	Total hemoglobin concentration
+    "dOD": 4, #	Change in optical density
+    "mua": 5, #	Absorption coefficient
+    "musp": 6, #	Scattering coefficient
+    "H2O": 7, #	Water content
+    "Lipid": 8, #	Lipid concentration
+    "BFi": 9, #	Blood flow index
+    "HRF dOD": 10, #	Hemodynamic response function for change in optical density
+    "HRF HbO": 11, #	Hemodynamic response function for oxyhemoglobin concentration
+    "HRF HbR": 12, #	Hemodynamic response function for deoxyhemoglobin concentration
+    "HRF HbT": 13, #	Hemodynamic response function for total hemoglobin concentration
+    "HRF BFi": 14, #	Hemodynamic response function for blood flow index
 }

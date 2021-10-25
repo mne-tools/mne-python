@@ -76,6 +76,18 @@ def get_channel_type_constants(include_defaults=False):
                     kind=FIFF.FIFFV_FNIRS_CH,
                     unit=FIFF.FIFF_UNIT_V,
                     coil_type=FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE),
+                fnirs_td_gated_amplitude=dict(
+                    kind=FIFF.FIFFV_FNIRS_CH,
+                    unit=FIFF.FIFF_UNIT_V,
+                    coil_type=FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE),
+                fnirs_td_moments_amplitude=dict(
+                    kind=FIFF.FIFFV_FNIRS_CH,
+                    unit=FIFF.FIFF_UNIT_V,
+                    coil_type=FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_AMPLITUDE),
+                fnirs_processed=dict(
+                    kind=FIFF.FIFFV_FNIRS_CH,
+                    unit=FIFF.FIFF_UNIT_V,
+                    coil_type=FIFF.FIFFV_COIL_FNIRS_PROCESSED),
                 fnirs_fd_ac_amplitude=dict(
                     kind=FIFF.FIFFV_FNIRS_CH,
                     unit=FIFF.FIFF_UNIT_V,
@@ -160,6 +172,12 @@ _second_rules = {
                             FIFF.FIFFV_COIL_FNIRS_FD_PHASE:
                                 'fnirs_fd_phase',
                             FIFF.FIFFV_COIL_FNIRS_OD: 'fnirs_od',
+                            FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE:
+                                'fnirs_td_gated_amplitude',
+                            FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_AMPLITUDE:
+                                'fnirs_td_moments_amplitude',
+                            FIFF.FIFFV_COIL_FNIRS_PROCESSED:
+                                'fnirs_processed',
                             }),
     'eeg': ('coil_type', {FIFF.FIFFV_COIL_EEG: 'eeg',
                           FIFF.FIFFV_COIL_EEG_BIPOLAR: 'eeg',
@@ -966,8 +984,10 @@ _PICK_TYPES_DATA_DICT = dict(
     dbs=True)
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT) + ['ref_meg'])
 _MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
-_FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_cw_amplitude',
-                         'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', 'fnirs_od')
+_FNIRS_CH_TYPES_SPLIT = (
+    'hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_fd_ac_amplitude',
+    'fnirs_fd_phase', 'fnirs_od', 'fnirs_td_gated_amplitude',
+    'fnirs_td_moments_amplitude', 'fnirs_processed')
 _DATA_CH_TYPES_ORDER_DEFAULT = (
     'mag', 'grad', 'eeg', 'csd', 'eog', 'ecg', 'resp', 'emg', 'ref_meg',
     'misc', 'stim', 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio', 'ecog',
