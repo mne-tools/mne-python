@@ -231,6 +231,8 @@ Bugs
 
 - Fix bug where :func:`mne.time_frequency.psd_array_welch` and :func:`mne.time_frequency.psd_array_multitaper` failed to handle negative integer for ``n_jobs`` argument (:gh:`9849` **by new contributor** |Riessarius Stargardsky|_)
 
+- Fix bug where resampling returns empty instances (:gh:`9897` **by new contributor** |Mathieu Scheltienne|_ and `Eric Larson`_)
+
 - Fix bug with :func:`mne.io.read_raw_nihon` where latin-1 annotations could not be read (:gh:`9384` by `Alex Gramfort`_)
 
 - Fix bug when printing a :class:`mne.io.RawArray` in the notebook (:gh:`9404` by `Alex Gramfort`_)
@@ -308,8 +310,6 @@ Bugs
 - In :meth:`mne.io.Raw.plot_psd` and :meth:`mne.Epochs.plot_psd`, avoid overlap between subplot titles and x-axis tick labels (:gh:`9864` by `Richard Höchenberger`_)
 
 - In :meth:`mne.Epochs.plot_psd_topomap`, the data is now scaled to match the output of :meth:`mne.Epochs.plot_psd` (:gh:`9873` by `Richard Höchenberger`_)
-
-- Fix bug where resampling returns empty instances (:gh:`9897` by `Eric Larson`_)
 
 API changes
 ~~~~~~~~~~~
