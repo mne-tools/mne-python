@@ -403,6 +403,7 @@ def test_coreg_gui_pyvista(tmpdir, renderer_interactive_pyvistaqt):
     assert coreg._nasion_weight == 11.
     coreg._fit_fiducials()
     coreg._fit_icp()
+    assert coreg._coreg._extra_points_filter is None
     coreg._omit_hsp()
     assert coreg._coreg._extra_points_filter is not None
     coreg._reset_omit_hsp_filter()
