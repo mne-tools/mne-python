@@ -2395,7 +2395,7 @@ on_missing : 'raise' | 'warn' | 'ignore'
     If none of the event ids are found in the data, an error will be
     automatically generated irrespective of this parameter.
 """
-reject_common = """
+reject_common = """\
     Reject epochs based on **maximum** peak-to-peak signal amplitude (PTP),
     i.e. the absolute difference between the lowest and the highest signal
     value. In each individual epoch, the PTP is calculated for every channel.
@@ -2432,7 +2432,7 @@ reject : dict | str | None
     If ``reject`` is ``None``, no rejection is performed. If ``'existing'``
     (default), then the rejection parameters set at instantiation are used.
 """
-flat_common = """
+flat_common = """\
     Reject epochs based on **minimum** peak-to-peak signal amplitude (PTP).
     Valid **keys** can be any channel type present in the object. The
     **values** are floats that set the minimum acceptable PTP. If the PTP
