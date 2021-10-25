@@ -43,7 +43,7 @@ class TstVTKPicker(object):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_coregistration_ui(tmpdir):
+def test_coregistration_ui(tmpdir, renderer_interactive_pyvistaqt):
     """Test that using CoregistrationUI matches mne coreg."""
     from mne.gui._coreg import CoregistrationUI
     tempdir = str(tmpdir)
