@@ -412,14 +412,14 @@ def test_coreg_gui_pyvista(tmpdir, renderer_interactive_pyvistaqt):
     coreg._set_grow_hair(0.1)
     assert coreg._grow_hair == 0.1
     assert coreg._orient_glyphs == \
-        config.get('MNE_COREG_ORIENT_TO_SURFACE', '') == 'true'
+        (config.get('MNE_COREG_ORIENT_TO_SURFACE', '') == 'true')
     assert coreg._hpi_coils
     assert coreg._eeg_channels
     assert coreg._head_shape_points
     assert coreg._scale_mode == 'None'
     assert coreg._icp_fid_match == 'nearest'
     assert coreg._head_resolution == \
-        config.get('MNE_COREG_HEAD_HIGH_RES', 'true') == 'true'
+        (config.get('MNE_COREG_HEAD_HIGH_RES', 'true') == 'true')
     assert not coreg._head_transparency
     coreg._set_head_transparency(True)
     assert coreg._head_transparency
