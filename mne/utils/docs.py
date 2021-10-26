@@ -2756,6 +2756,7 @@ base_estimator : object
 
 docdict_indented = {}
 
+
 def fill_doc(f):
     """Fill a docstring with docdict entries.
 
