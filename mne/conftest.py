@@ -406,20 +406,33 @@ def mpl_backend(garbage_collect):
         backend._close_all()
 
 
+def _check_pyqt():
+    try:
+        import PyQt5  # noqa: F401
+    except ModuleNotFoundError:
+        pytest.skip('PyQt5 is not installed but needed for pyqtgraph!')
+    try:
+        assert LooseVersion(_check_pyqt5_version()) >= LooseVersion('5.12')
+    except AssertionError:
+        pytest.skip(f'PyQt5 has version {_check_pyqt5_version()}'
+                    f'but pyqtgraph needs >= 5.12!')
+
+
+@pytest.fixture
+def pg_backend(garbage_collect):
+    """Use for pyqtgraph-specific test-functions."""
+    _check_pyqt()
+    with use_browser_backend('pyqtgraph') as backend:
+        yield backend
+        backend._close_all()
+
+
 @pytest.fixture(params=['matplotlib', 'pyqtgraph'])
 def browser_backend(request, garbage_collect):
     """Parametrizes the name of the browser backend."""
     backend_name = request.param
     if backend_name == 'pyqtgraph':
-        try:
-            import PyQt5  # noqa: F401
-        except ModuleNotFoundError:
-            pytest.skip('PyQt5 is not installed but needed for pyqtgraph!')
-        try:
-            assert LooseVersion(_check_pyqt5_version()) >= LooseVersion('5.12')
-        except AssertionError:
-            pytest.skip(f'PyQt5 has version {_check_pyqt5_version()}'
-                        f'but pyqtgraph needs >= 5.12!')
+        _check_pyqt()
     with use_browser_backend(backend_name) as backend:
         yield backend
         backend._close_all()
