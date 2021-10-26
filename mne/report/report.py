@@ -456,7 +456,7 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
 
         with io.BytesIO() as buff:
             fig.savefig(
-                buff, format='png',  dpi=fig.get_dpi(), bbox_inches='tight',
+                buff, format='png', dpi=fig.get_dpi(), bbox_inches='tight',
                 pad_inches=0
             )
             buff.seek(0)
@@ -705,7 +705,7 @@ class Report(object):
     def _get_state_params():
         # Which attributes to store in and read from HDF5 files
         return (
-            'baseline', 'cov_fname',  'include', '_content', 'image_format',
+            'baseline', 'cov_fname', 'include', '_content', 'image_format',
             'info_fname', '_dom_id', 'raw_psd', 'projs',
             'subjects_dir', 'subject', 'title', 'data_path', 'lang', 'verbose'
         )
@@ -997,7 +997,7 @@ class Report(object):
 
         add_projs = self.projs if projs is None else projs
 
-        htmls  = self._render_raw(
+        htmls = self._render_raw(
             raw=raw,
             add_psd=add_psd,
             add_projs=add_projs,
@@ -1599,7 +1599,7 @@ class Report(object):
 
     @fill_doc
     def add_ica(
-        self, ica, title, *,  inst, picks=None, ecg_evoked=None,
+        self, ica, title, *, inst, picks=None, ecg_evoked=None,
         eog_evoked=None, ecg_scores=None, eog_scores=None, n_jobs=1,
         tags=('ica',), replace=False
     ):
@@ -2053,7 +2053,7 @@ class Report(object):
         img_html = _html_image_element(
             img=img_base64, div_klass='custom-image',
             img_klass='custom-image', title=title, caption=caption,
-            show=True,  image_format=img_format, id=dom_id,
+            show=True, image_format=img_format, id=dom_id,
             tags=tags
         )
         self._add_or_replace(
@@ -2131,7 +2131,7 @@ class Report(object):
                            tags=tags, replace=replace)
 
     @fill_doc
-    def add_html(self, html, title, *, tags=('custom-html',),  replace=False):
+    def add_html(self, html, title, *, tags=('custom-html',), replace=False):
         """Add HTML content to the report.
 
         Parameters

@@ -598,7 +598,7 @@ def plot_bem(subject, subjects_dir=None, orientation='coronal',
                       'inner_skull.surf, outer_skull.surf or outer_skin.surf')
 
     # Plot the contours
-    fig =  _plot_mri_contours(
+    fig = _plot_mri_contours(
         mri_fname=mri_fname, surfaces=surfaces, src=src,
         orientation=orientation, slices=slices, show=show,
         show_indices=show_indices, show_orientation=show_orientation,
