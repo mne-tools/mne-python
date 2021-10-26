@@ -329,11 +329,11 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
 
     Notes
     -----
-    If you want to use a different algorithm for detecting the R-peaks of the
-    heartbeat, the recommended approach is to compute the R-peaks outside of
-    MNE-Python, and then call the :class:`~mne.Epochs` constructor directly,
-    with your R-peaks formatted as an :term:`events` array (here we also
-    demonstrate the relevant default values)::
+    If you already have a list of R-peak times, or want to compute R-peaks
+    outside MNE-Python using a different algorithm, the recommended approach is
+    to call the :class:`~mne.Epochs` constructor directly, with your R-peaks
+    formatted as an :term:`events` array (here we also demonstrate the relevant
+    default values)::
 
         mne.Epochs(raw, r_peak_events_array, tmin=-0.5, tmax=0.5,
                    baseline=None, preload=True, proj=False)  # doctest: +SKIP
