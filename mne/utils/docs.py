@@ -1458,8 +1458,8 @@ head_pos : None | str | dict | tuple | array
 """
 docdict['n_jobs'] = """
 n_jobs : int
-    The number of jobs to run in parallel (default 1).
-    Requires the joblib package.
+    The number of jobs to run in parallel (default 1). If ``-1``, it is set to
+    the number of CPU cores. Requires the ``joblib`` package.
 """
 
 # Random state
@@ -2737,8 +2737,24 @@ docdict['dbs'] = """
 dbs : bool
     If True (default), show DBS (deep brain stimulation) electrodes.
 """
-docdict_indented = {}
 
+# Decoding
+docdict['scoring'] = """
+scoring : callable | str | None
+    Score function (or loss function) with signature
+    ``score_func(y, y_pred, **kwargs)``.
+    Note that the "predict" method is automatically identified if scoring is
+    a string (e.g. ``scoring='roc_auc'`` calls ``predict_proba``), but is
+    **not**  automatically set if ``scoring`` is a callable (e.g.
+    ``scoring=sklearn.metrics.roc_auc_score``).
+"""
+docdict['base_estimator'] = """
+base_estimator : object
+    The base estimator to iteratively fit on a subset of the dataset.
+"""
+
+
+docdict_indented = {}
 
 def fill_doc(f):
     """Fill a docstring with docdict entries.
