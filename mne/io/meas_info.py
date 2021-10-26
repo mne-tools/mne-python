@@ -31,7 +31,8 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian, write_float_matrix, write_id, DATE_NONE)
 from .proc_history import _read_proc_history, _write_proc_history
-from ..transforms import invert_transform, Transform, _coord_frame_name
+from ..transforms import (invert_transform, Transform, _coord_frame_name,
+                          _ensure_trans)
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
                      _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric,
                      _check_option, _on_missing, _check_on_missing, fill_doc)
@@ -201,6 +202,50 @@ def _check_ch_keys(ch, ci, name='info["chs"]', check_min=True):
                 f'key{_pl(bad)} missing for {name}[{ci}]: {bad}',)
 
 
+# As options are added here, test_meas_info.py:test_info_bad should be updated
+def _check_bads(bads):
+    _validate_type(bads, list, 'bads')
+    return bads
+
+
+def _check_description(description):
+    _validate_type(description, (None, str), "info['description']")
+    return description
+
+
+def _check_dev_head_t(dev_head_t):
+    _validate_type(dev_head_t, (Transform, None), "info['dev_head_t']")
+    if dev_head_t is not None:
+        dev_head_t = _ensure_trans(dev_head_t, 'meg', 'head')
+    return dev_head_t
+
+
+def _check_experimenter(experimenter):
+    _validate_type(experimenter, (None, str), 'experimenter')
+    return experimenter
+
+
+def _check_line_freq(line_freq):
+    _validate_type(line_freq, (None, 'numeric'), 'line_freq')
+    line_freq = float(line_freq) if line_freq is not None else line_freq
+    return line_freq
+
+
+def _check_subject_info(subject_info):
+    _validate_type(subject_info, (None, dict), 'subject_info')
+    return subject_info
+
+
+def _check_device_info(device_info):
+    _validate_type(device_info, (None, dict, ), 'device_info')
+    return device_info
+
+
+def _check_helium_info(helium_info):
+    _validate_type(helium_info, (None, dict, ), 'helium_info')
+    return helium_info
+
+
 class Info(dict, MontageMixin):
     """Measurement information.
 
@@ -211,7 +256,8 @@ class Info(dict, MontageMixin):
     so new entries should not be manually added.
 
     .. warning:: The only entries that should be manually changed by the user
-                 are ``info['bads']`` and ``info['description']``. All other
+                 are ``info['bads']``, ``info['description']``,
+                 ``info['experimenter']`` and ``info['line_freq']``. All other
                  entries should be considered read-only, though they can be
                  modified by various MNE-Python functions or methods (which
                  have safeguards to ensure all fields remain in sync).
@@ -331,6 +377,11 @@ class Info(dict, MontageMixin):
         Information about the device helium. See Notes for details.
 
         .. versionadded:: 0.19
+    temp : object | None
+        Can be used to store temporary objects in an Info instance. It will not
+        survive an I/O roundtrip.
+
+        .. versionadded:: 0.24
 
     See Also
     --------
@@ -551,8 +602,76 @@ class Info(dict, MontageMixin):
             The helium level meas date.
     """
 
+    _attributes = {
+        'acq_pars': 'acq_pars cannot be set directly. '
+                    'See mne.AcqParserFIF() for details.',
+        'acq_stim': 'acq_stim cannot be set directly. '
+                    'Please use ...',
+        'bads': _check_bads,
+        'ch_names': 'ch_names cannot be set directly. '
+                    'Please use methods inst.add_channels(), '
+                    'inst.drop_channels(), inst.pick_channels(), '
+                    'inst.rename_channels(), inst.reorder_channels() '
+                    'and inst.set_channel_types() instead.',
+        'chs': 'chs cannot be set directly. '
+               'Please use methods inst.add_channels(), '
+               'inst.drop_channels(), inst.pick_channels(), '
+               'inst.rename_channels(), inst.reorder_channels() '
+               'and inst.set_channel_types() instead.',
+        'comps': 'comps cannot be set directly. '
+                 'Please use mne.io.Raw.apply_gradient_compensation() '
+                 'instead.',
+        'ctf_head_t': 'ctf_head_t cannot be set directly.',
+        'custom_ref_applied': 'custom_ref_applied cannot be set directly. '
+                              'Please use inst.set_eeg_reference() instead.',
+        'description': _check_description,
+        'dev_ctf_t': 'dev_ctf_t cannot be set directly.',
+        'dev_head_t': _check_dev_head_t,
+        'dig': 'dig cannot be set directly. Please use inst.set_montage() '
+               'instead.',
+        'events': 'events cannot be set directly.',
+        'experimenter': _check_experimenter,
+        'file_id': 'file_id cannot be set directly.',
+        'highpass': 'highpass cannot be set directly. '
+                    'Please use methods inst.filter() instead.',
+        'hpi_meas': 'hpi_meas can not be set directly.',
+        'hpi_results': 'hpi_results cannot be set directly.',
+        'hpi_subsystem': 'hpi_subsystem cannot be set directly.',
+        'line_freq': _check_line_freq,
+        'gantry_angle': 'gantry_angle cannot be set directly.',
+        'lowpass': 'lowpass cannot be set directly. '
+                   'Please use method inst.filter() instead.',
+        'meas_date': 'meas_date cannot be set directly. '
+                     'Please use method inst.set_meas_date() instead.',
+        'utc_offset': 'utc_offset cannot be set directly.',
+        'meas_id': 'meas_id cannot be set directly.',
+        'nchan': 'nchan cannot be set directly.',
+        'proc_history': 'proc_history cannot be set directly.',
+        'proj_id': 'proj_id cannot be set directly.',
+        'proj_name': 'proj_name cannot be set directly.',
+        'projs': 'projs cannot be set directly.',
+        'sfreq': 'sfreq cannot be set directly. '
+                 'Please use method inst.resample() instead.',
+        'subject_info': _check_subject_info,
+        'device_info': _check_device_info,
+        'helium_info': _check_helium_info,
+        # elements missing from docstring
+        'command_line': 'command_line cannot be set directly.',
+        'filename': 'filename cannot be set directly.',  # deprecated?
+        'kit_system_id': 'kit_system_id cannot be set directly.',
+        'maxshield': 'maxshield cannot be set directly.',
+        'meas_file': 'meas_file cannot be set directly.',
+        'mri_file': 'mri_file cannot be set directly.',
+        'mri_head_t': 'mri_head_t cannot be set directly.',
+        'mri_id': 'mri_id cannot be set directly.',
+        'working_dir': 'working_dir cannot be set directly.',
+        'temp': lambda x: x,
+        'xplotter_layout': 'xplotter_layout cannot be set directly.'
+    }
+
     def __init__(self, *args, **kwargs):
-        super(Info, self).__init__(*args, **kwargs)
+        self._unlocked = True
+        super().__init__(*args, **kwargs)
         # Deal with h5io writing things as dict
         for key in ('dev_head_t', 'ctf_head_t', 'dev_ctf_t'):
             _format_trans(self, key)
@@ -577,6 +696,54 @@ class Info(dict, MontageMixin):
             pass
         else:
             self['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
+        self._unlocked = False
+
+    def __getstate__(self):
+        """Get state (for pickling)."""
+        return {'_unlocked': self._unlocked}
+
+    def __setstate__(self, state):
+        """Set state (for pickling)."""
+        self._unlocked = state['_unlocked']
+
+    def __setitem__(self, key, val):
+        """Attribute setter."""
+        # During unpickling, the _unlocked attribute has not been set, so
+        # let __setstate__ do it later and act unlocked now
+        unlocked = getattr(self, '_unlocked', True)
+        if key in self._attributes:
+            if isinstance(self._attributes[key], str):
+                if not unlocked:
+                    warn(f'{self._attributes[key]} This warning will turn '
+                         'into an error after 0.24', DeprecationWarning)
+            else:
+                val = self._attributes[key](val)  # attribute checker function
+        else:
+            warn(f"Info does not support directly setting the key {repr(key)},"
+                 " this warning will turn into an error after 0.24. You can "
+                 "set info['temp'] to store temporary objects in an Info "
+                 "instance, but these will not survive an I/O round-trip.",
+                 DeprecationWarning)
+        super().__setitem__(key, val)
+
+    @contextlib.contextmanager
+    def _unlock(self, *, update_redundant=False, check_after=False):
+        """Context manager unlocking access to attributes."""
+        # needed for nested _unlock()
+        state = self._unlocked if hasattr(self, '_unlocked') else False
+
+        self._unlocked = True
+        try:
+            yield
+        except Exception:
+            raise
+        else:
+            if update_redundant:
+                self._update_redundant()
+            if check_after:
+                self._check_consistency()
+        finally:
+            self._unlocked = state
 
     def copy(self):
         """Copy the instance.
@@ -694,6 +861,7 @@ class Info(dict, MontageMixin):
     def __deepcopy__(self, memodict):
         """Make a deepcopy."""
         result = Info.__new__(Info)
+        result._unlocked = True
         for k, v in self.items():
             # chs is roughly half the time but most are immutable
             if k == 'chs':
@@ -724,6 +892,7 @@ class Info(dict, MontageMixin):
                 result[k] = hms
             else:
                 result[k] = deepcopy(v, memodict)
+        result._unlocked = False
         return result
 
     def _check_consistency(self, prepend_error=''):
@@ -750,9 +919,10 @@ class Info(dict, MontageMixin):
                                % (prepend_error,))
 
         # make sure we have the proper datatypes
-        for key in ('sfreq', 'highpass', 'lowpass'):
-            if self.get(key) is not None:
-                self[key] = float(self[key])
+        with self._unlock():
+            for key in ('sfreq', 'highpass', 'lowpass'):
+                if self.get(key) is not None:
+                    self[key] = float(self[key])
 
         # Ensure info['chs'] has immutable entries (copies much faster)
         for ci, ch in enumerate(self['chs']):
@@ -775,9 +945,10 @@ class Info(dict, MontageMixin):
                     '12 elements, got %r' % (ci, loc))
 
         # make sure channel names are unique
-        self['ch_names'] = _unique_channel_names(self['ch_names'])
-        for idx, ch_name in enumerate(self['ch_names']):
-            self['chs'][idx]['ch_name'] = ch_name
+        with self._unlock():
+            self['ch_names'] = _unique_channel_names(self['ch_names'])
+            for idx, ch_name in enumerate(self['ch_names']):
+                self['chs'][idx]['ch_name'] = ch_name
 
         if 'filename' in self:
             warn('the "filename" key is misleading '
@@ -785,8 +956,9 @@ class Info(dict, MontageMixin):
 
     def _update_redundant(self):
         """Update the redundant entries."""
-        self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
-        self['nchan'] = len(self['chs'])
+        with self._unlock():
+            self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
+            self['nchan'] = len(self['chs'])
 
     def pick_channels(self, ch_names, ordered=False):
         """Pick channels from this Info object.
@@ -1222,10 +1394,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     #
     #   Put the data together
     #
-    if tree['id'] is not None:
-        info = Info(file_id=tree['id'])
-    else:
-        info = Info(file_id=None)
+    info = Info(file_id=tree['id'])
+    info._unlocked = True
 
     #   Locate events list
     events = dir_tree_find(meas_info, FIFF.FIFFB_EVENTS)
@@ -1479,7 +1649,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['chs'] = chs
 
     #
-    #  Add the coordinate transformations
+    #   Add the coordinate transformations
     #
     info['dev_head_t'] = dev_head_t
     info['ctf_head_t'] = ctf_head_t
@@ -1504,6 +1674,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['xplotter_layout'] = xplotter_layout
     info['kit_system_id'] = kit_system_id
     info._check_consistency()
+    info._unlocked = False
     return info, meas
 
 
@@ -1988,6 +2159,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         infos = deepcopy(infos)
         _force_update_info(infos[0], infos[1:])
     info = Info()
+    info._unlocked = True
     info['chs'] = []
     for this_info in infos:
         info['chs'].extend(this_info['chs'])
@@ -2047,11 +2219,13 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
                     'line_freq', 'lowpass', 'meas_id',
                     'proj_id', 'proj_name', 'projs', 'sfreq', 'gantry_angle',
                     'subject_info', 'sfreq', 'xplotter_layout', 'proc_history']
+
     for k in other_fields:
         info[k] = _merge_info_values(infos, k)
 
     info['meas_date'] = infos[0]['meas_date']
-    info._check_consistency()
+    info._unlocked = False
+
     return info
 
 
@@ -2140,6 +2314,7 @@ def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
 
     info._update_redundant()
     info._check_consistency()
+    info._unlocked = False
     return info
 
 
@@ -2166,6 +2341,7 @@ def _empty_info(sfreq):
     _list_keys = ('bads', 'chs', 'comps', 'events', 'hpi_meas', 'hpi_results',
                   'projs', 'proc_history')
     info = Info()
+    info._unlocked = True
     for k in _none_keys:
         info[k] = None
     for k in _list_keys:
@@ -2206,7 +2382,8 @@ def _force_update_info(info_base, info_target):
         if key in exclude_keys:
             continue
         for i_targ in info_target:
-            i_targ[key] = val
+            with i_targ._unlock():
+                i_targ[key] = val
 
 
 def _add_timedelta_to_stamp(meas_date_stamp, delta_t):
@@ -2265,7 +2442,8 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
             delta_t = info['meas_date'] - default_anon_dos
         else:
             delta_t = datetime.timedelta(days=daysback)
-        info['meas_date'] = info['meas_date'] - delta_t
+        with info._unlock():
+            info['meas_date'] = info['meas_date'] - delta_t
 
     # file_id and meas_id
     for key in ('file_id', 'meas_id'):
@@ -2324,13 +2502,13 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
 
     info['experimenter'] = default_str
     info['description'] = default_desc
-
-    if info['proj_id'] is not None:
-        info['proj_id'] = np.zeros_like(info['proj_id'])
-    if info['proj_name'] is not None:
-        info['proj_name'] = default_str
-    if info['utc_offset'] is not None:
-        info['utc_offset'] = None
+    with info._unlock():
+        if info['proj_id'] is not None:
+            info['proj_id'] = np.zeros_like(info['proj_id'])
+        if info['proj_name'] is not None:
+            info['proj_name'] = default_str
+        if info['utc_offset'] is not None:
+            info['utc_offset'] = None
 
     proc_hist = info.get('proc_history')
     if proc_hist is not None:
@@ -2452,17 +2630,18 @@ def _writing_info_hdf5(info):
     # Make info writing faster by packing chs and dig into numpy arrays
     orig_dig = info.get('dig', None)
     orig_chs = info['chs']
-    try:
-        if orig_dig is not None and len(orig_dig) > 0:
-            info['dig'] = _dict_pack(info['dig'], _DIG_CAST)
-        info['chs'] = _dict_pack(info['chs'], _CH_CAST)
-        info['chs']['ch_name'] = np.char.encode(
-            info['chs']['ch_name'], encoding='utf8')
-        yield
-    finally:
-        if orig_dig is not None:
-            info['dig'] = orig_dig
-        info['chs'] = orig_chs
+    with info._unlock():
+        try:
+            if orig_dig is not None and len(orig_dig) > 0:
+                info['dig'] = _dict_pack(info['dig'], _DIG_CAST)
+            info['chs'] = _dict_pack(info['chs'], _CH_CAST)
+            info['chs']['ch_name'] = np.char.encode(
+                info['chs']['ch_name'], encoding='utf8')
+            yield
+        finally:
+            if orig_dig is not None:
+                info['dig'] = orig_dig
+            info['chs'] = orig_chs
 
 
 def _dict_pack(obj, casts):

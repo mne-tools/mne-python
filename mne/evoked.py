@@ -413,7 +413,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         start_idx = int(round(self.times[0] * (self.info['sfreq'] * decim)))
         i_start = start_idx % decim + offset
         decim_slice = slice(i_start, None, decim)
-        self.info['sfreq'] = new_sfreq
+        with self.info._unlock():
+            self.info['sfreq'] = new_sfreq
         self.data = self.data[:, decim_slice].copy()
         self.times = self.times[decim_slice].copy()
         self._update_first_last()
@@ -1227,7 +1228,9 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
         my_evoked = evoked_node[condition]
 
         # Identify the aspects
-        my_aspect, info['maxshield'] = _get_aspect(my_evoked, allow_maxshield)
+        with info._unlock():
+            my_aspect, info['maxshield'] = _get_aspect(my_evoked,
+                                                       allow_maxshield)
 
         # Now find the data in the evoked block
         nchan = 0

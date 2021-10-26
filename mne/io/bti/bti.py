@@ -999,19 +999,21 @@ class RawBTi(BaseRaw):
 
 def _make_bti_digitization(
         info, head_shape_fname, convert, use_hpi, bti_dev_t, dev_ctf_t):
-    if head_shape_fname:
-        logger.info('... Reading digitization points from %s' %
-                    head_shape_fname)
+    with info._unlock():
+        if head_shape_fname:
+            logger.info('... Reading digitization points from %s' %
+                        head_shape_fname)
 
-        nasion, lpa, rpa, hpi, dig_points = _read_head_shape(head_shape_fname)
-        info['dig'], dev_head_t, ctf_head_t = _make_bti_dig_points(
-            nasion, lpa, rpa, hpi, dig_points,
-            convert, use_hpi, bti_dev_t, dev_ctf_t)
-    else:
-        logger.info('... no headshape file supplied, doing nothing.')
-        info['dig'] = None
-        dev_head_t = Transform('meg', 'head', trans=None)
-        ctf_head_t = Transform('ctf_head', 'head', trans=None)
+            nasion, lpa, rpa, hpi, dig_points = _read_head_shape(
+                head_shape_fname)
+            info['dig'], dev_head_t, ctf_head_t = _make_bti_dig_points(
+                nasion, lpa, rpa, hpi, dig_points,
+                convert, use_hpi, bti_dev_t, dev_ctf_t)
+        else:
+            logger.info('... no headshape file supplied, doing nothing.')
+            info['dig'] = None
+            dev_head_t = Transform('meg', 'head', trans=None)
+            ctf_head_t = Transform('ctf_head', 'head', trans=None)
 
     info.update(dev_head_t=dev_head_t, dev_ctf_t=dev_ctf_t,
                 ctf_head_t=ctf_head_t)
@@ -1216,6 +1218,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
         'the 4D "print_table" routine.')
 
     # check that the info is complete
+    info._unlocked = False
     info._update_redundant()
     info._check_consistency()
     return info, bti_info

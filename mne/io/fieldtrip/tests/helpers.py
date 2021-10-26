@@ -84,9 +84,10 @@ def _remove_bad_dig_fields(info):
     # Similarly, fiducial locations do not appear to be stored, so we
     # cannot add those, either. Same with HPI coils.
     if info['dig'] is not None:
-        info['dig'] = [d for d in info['dig']
-                       if d['kind'] == FIFF.FIFFV_POINT_EEG and
-                       d['ident'] != 0]  # ref
+        with info._unlock():
+            info['dig'] = [d for d in info['dig']
+                           if d['kind'] == FIFF.FIFFV_POINT_EEG and
+                           d['ident'] != 0]  # ref
 
 
 def get_data_paths(system):
@@ -115,7 +116,8 @@ def get_raw_info(system):
     reader_function = system_to_reader_fn_dict[system]
 
     info = reader_function(raw_data_file, preload=False).info
-    info['comps'] = []
+    with info._unlock():
+        info['comps'] = []
     return info
 
 
@@ -133,7 +135,8 @@ def get_raw_data(system, drop_extra_chs=False):
         crop -= 0.5 * (1.0 / raw_data.info['sfreq'])
     raw_data.crop(0, crop)
     raw_data.del_proj('all')
-    raw_data.info['comps'] = []
+    with raw_data.info._unlock():
+        raw_data.info['comps'] = []
     raw_data.drop_channels(cfg_local['removed_chan_names'])
 
     if system in ['EGI']:
@@ -209,7 +212,8 @@ def check_info_fields(expected, actual, has_raw_info, ignore_long=True):
     # an empty list here
     for obj in (expected, actual):
         if obj['dig'] is None:
-            obj['dig'] = []
+            with obj._unlock():
+                obj['dig'] = []
 
     d = object_diff(actual, expected, allclose=True)
     assert d == '', d

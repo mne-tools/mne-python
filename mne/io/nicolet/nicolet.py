@@ -120,6 +120,7 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
                               misc)
     info['highpass'] = 0.
     info['lowpass'] = info['sfreq'] / 2.0
+    info._unlocked = False
     info._update_redundant()
     return info, header_info
 

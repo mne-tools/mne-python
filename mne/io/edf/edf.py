@@ -487,7 +487,8 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         pass
     elif all(highpass):
         if highpass[0] == 'NaN':
-            pass  # Placeholder for future use. Highpass set in _empty_info.
+            # Placeholder for future use. Highpass set in _empty_info.
+            pass
         elif highpass[0] == 'DC':
             info['highpass'] = 0.
         else:
@@ -504,10 +505,12 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     if np.isnan(info['highpass']):
         info['highpass'] = 0.
     if lowpass.size == 0:
-        pass  # Placeholder for future use. Lowpass set in _empty_info.
+        # Placeholder for future use. Lowpass set in _empty_info.
+        pass
     elif all(lowpass):
         if lowpass[0] in ('NaN', '0', '0.0'):
-            pass  # Placeholder for future use. Lowpass set in _empty_info.
+            # Placeholder for future use. Lowpass set in _empty_info.
+            pass
         else:
             info['lowpass'] = float(lowpass[0])
     else:
@@ -518,8 +521,8 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         info['lowpass'] = info['sfreq'] / 2.
 
     if info['highpass'] > info['lowpass']:
-        warn(f'Highpass cutoff frequency {info["highpass"]} is greater than '
-             f'lowpass cutoff frequency {info["lowpass"]}, '
+        warn(f'Highpass cutoff frequency {info["highpass"]} is greater '
+             f'than lowpass cutoff frequency {info["lowpass"]}, '
              'setting values to 0 and Nyquist.')
         info['highpass'] = 0.
         info['lowpass'] = info['sfreq'] / 2.
@@ -528,6 +531,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     info['description'] = None
     edf_info['nsamples'] = int(edf_info['n_records'] * max_samp)
 
+    info._unlocked = False
     info._update_redundant()
 
     # Later used for reading

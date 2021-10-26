@@ -37,7 +37,7 @@ def fnirs_epochs():
                     'NIRx', 'nirscout', 'nirx_15_2_recording_w_overlap')
     raw_intensity = read_raw_nirx(fname, preload=False)
     raw_od = optical_density(raw_intensity)
-    raw_haemo = beer_lambert_law(raw_od)
+    raw_haemo = beer_lambert_law(raw_od, ppf=6.)
     evts, _ = events_from_annotations(raw_haemo, event_id={'1.0': 1})
     evts_dct = {'A': 1}
     tn, tx = -1, 2

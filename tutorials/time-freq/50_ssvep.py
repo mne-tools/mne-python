@@ -88,7 +88,6 @@ event_id = {
     '15hz': 155
 }
 events, _ = mne.events_from_annotations(raw, verbose=False)
-raw.info["events"] = events
 tmin, tmax = -1., 20.  # in s
 baseline = None
 epochs = mne.Epochs(

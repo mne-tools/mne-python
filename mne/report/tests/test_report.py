@@ -335,7 +335,8 @@ def test_report_raw_psd_and_date(tmpdir):
     # DATE_NONE functionality
     report = Report()
     # old style (pre 0.20) date anonymization
-    raw.info['meas_date'] = None
+    with raw.info._unlock():
+        raw.info['meas_date'] = None
     for key in ('file_id', 'meas_id'):
         value = raw.info.get(key)
         if value is not None:
@@ -416,6 +417,7 @@ def test_render_mri(renderer, tmpdir):
     1,
     pytest.param(2, marks=pytest.mark.slowtest),  # 1.5 sec locally
 ])
+@pytest.mark.filterwarnings('ignore:No contour levels were.*:UserWarning')
 def test_add_bem_n_jobs(n_jobs, monkeypatch):
     """Test add_bem with n_jobs."""
     if n_jobs == 1:  # in one case, do at init -- in the other, pass in

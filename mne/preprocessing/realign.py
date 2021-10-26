@@ -97,7 +97,8 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
     logger.info('Resampling other')
     sfreq_new = raw.info['sfreq'] * first_ord
     other.load_data().resample(sfreq_new, verbose=True)
-    other.info['sfreq'] = raw.info['sfreq']
+    with other.info._unlock():
+        other.info['sfreq'] = raw.info['sfreq']
 
     # 4. Crop the end of one of the recordings if necessary
     delta = raw.times[-1] - other.times[-1]

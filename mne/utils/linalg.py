@@ -50,11 +50,15 @@ def _get_lapack_funcs(dtype, names):
 def _svd_lwork(shape, dtype=np.float64):
     """Set up SVD calculations on identical-shape float64/complex128 arrays."""
     from scipy import linalg
+    try:
+        ds = linalg._decomp_svd
+    except AttributeError:  # < 1.8.0
+        ds = linalg.decomp_svd
     gesdd_lwork, gesvd_lwork = _get_lapack_funcs(
         dtype, ('gesdd_lwork', 'gesvd_lwork'))
-    sdd_lwork = linalg.decomp_svd._compute_lwork(
+    sdd_lwork = ds._compute_lwork(
         gesdd_lwork, *shape, compute_uv=True, full_matrices=False)
-    svd_lwork = linalg.decomp_svd._compute_lwork(
+    svd_lwork = ds._compute_lwork(
         gesvd_lwork, *shape, compute_uv=True, full_matrices=False)
     return sdd_lwork, svd_lwork
 

@@ -49,8 +49,9 @@ def _call_digitization(info, mrk, elp, hsp, kit_info):
 
     # setup digitization
     if mrk is not None and elp is not None and hsp is not None:
-        info['dig'], info['dev_head_t'], info['hpi_results'] = _set_dig_kit(
-            mrk, elp, hsp, kit_info['eeg_dig'])
+        with info._unlock():
+            info['dig'], info['dev_head_t'], info['hpi_results'] = \
+                _set_dig_kit(mrk, elp, hsp, kit_info['eeg_dig'])
     elif mrk is not None or elp is not None or hsp is not None:
         raise ValueError("mrk, elp and hsp need to be provided as a group "
                          "(all or none)")
@@ -842,6 +843,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             coord_frame=FIFF.FIFFV_COORD_DEVICE,
             coil_type=KIT.CH_TO_FIFF_COIL[ch['type']],
             kind=KIT.CH_TO_FIFF_KIND[ch['type']], loc=loc))
+    info._unlocked = False
     info._update_redundant()
     return info, sqd
 

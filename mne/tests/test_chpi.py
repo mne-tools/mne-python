@@ -138,9 +138,10 @@ def test_hpi_info(tmpdir):
     assert_allclose(hpi_on_codes, np.array([256, 512, 1024, 2048, 4096]))
 
     # test get_chpi_info() if no proper cHPI info is available
-    info['hpi_subsystem'] = None
-    info['hpi_meas'] = []
-    info['hpi_results'] = []
+    with info._unlock():
+        info['hpi_subsystem'] = None
+        info['hpi_meas'] = []
+        info['hpi_results'] = []
 
     with pytest.raises(ValueError, match='No appropriate cHPI information'):
         get_chpi_info(info)
@@ -220,7 +221,8 @@ def _decimate_chpi(raw, decim=4):
     """Decimate raw data (with aliasing) in cHPI-fitting compatible way."""
     raw_dec = RawArray(
         raw._data[:, ::decim], raw.info, first_samp=raw.first_samp // decim)
-    raw_dec.info['sfreq'] /= decim
+    with raw_dec.info._unlock():
+        raw_dec.info['sfreq'] /= decim
     for coil in raw_dec.info['hpi_meas'][0]['hpi_coils']:
         if coil['coil_freq'] > raw_dec.info['sfreq']:
             coil['coil_freq'] = np.mod(coil['coil_freq'],
@@ -303,7 +305,8 @@ def test_calculate_chpi_positions_vv():
     assert '0/5 good HPI fits' in log_file.getvalue()
 
     # half the rate cuts off cHPI coils
-    raw.info['lowpass'] /= 2.
+    with raw.info._unlock():
+        raw.info['lowpass'] /= 2.
     with pytest.raises(RuntimeError, match='above the'):
         _calculate_chpi_positions(raw)
 
@@ -435,15 +438,17 @@ def test_simulate_calculate_head_pos_chpi():
                                                 dtype=np.int32)}],
                      'ncoil': ncoil}
 
-    info['hpi_subsystem'] = hpi_subsystem
-    for fi, freq in enumerate(coil_freq):
-        info['hpi_meas'][0]['hpi_coils'][fi]['coil_freq'] = freq
+    with info._unlock():
+        info['hpi_subsystem'] = hpi_subsystem
+        for fi, freq in enumerate(coil_freq):
+            info['hpi_meas'][0]['hpi_coils'][fi]['coil_freq'] = freq
+        info['sfreq'] = 100.  # this will speed it up a lot
     picks = pick_types(info, meg=True, stim=True, eeg=False, exclude=[])
-    info['sfreq'] = 100.  # this will speed it up a lot
     info = pick_info(info, picks)
     info['chs'][info['ch_names'].index('STI 001')]['ch_name'] = 'STI201'
     info._update_redundant()
-    info['projs'] = []
+    with info._unlock():
+        info['projs'] = []
 
     info_trans = info['dev_head_t']['trans'].copy()
 
@@ -624,7 +629,8 @@ def test_chpi_subtraction_filter_chpi():
     assert raw.info['line_freq'] is None
     with pytest.raises(RuntimeError, match='line_freq.*consider setting it'):
         filter_chpi(raw, t_window=0.2)
-    raw.info['line_freq'] = 60.
+    with raw.info._unlock():
+        raw.info['line_freq'] = 60.
     with pytest.raises(ValueError, match='No appropriate cHPI information'):
         filter_chpi(raw, t_window=0.2)
     # but this is allowed
@@ -642,10 +648,11 @@ def test_chpi_subtraction_filter_chpi():
     # it can strip out some values of info, which we emulate here:
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
     raw = raw.crop(0, 1).load_data().resample(600., npad='auto')
-    raw.info['lowpass'] = 200.
-    del raw.info['maxshield']
-    del raw.info['hpi_results'][0]['moments']
-    del raw.info['hpi_subsystem']['event_channel']
+    with raw.info._unlock():
+        raw.info['lowpass'] = 200.
+        del raw.info['maxshield']
+        del raw.info['hpi_results'][0]['moments']
+        del raw.info['hpi_subsystem']['event_channel']
     with catch_logging() as log:
         filter_chpi(raw, t_window='auto', verbose=True)
     with pytest.raises(ValueError, match='must be > 0'):

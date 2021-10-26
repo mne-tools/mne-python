@@ -195,7 +195,7 @@ Enhancements
 
 - Add options ``tol`` and ``accuracy`` to :func:`mne.fit_dipole` to control optimization (:gh:`9810` by `Eric Larson`_)
 
-- Completely revamp the `~mne.Report` experience: new HTML layout, many new methods, more flexibility; the functionality is demonstrated in :ref:`tut-report` (:gh:`9754`, :gh:`9828`, :gh:`9847`, :gh:`9860`, :gh:`9861`, :gh:`9862`, :gh:`9863`, :gh:`9871`, :gh:`9881`, :gh:`9891` by `Richard Höchenberger`_, `Eric Larson`_, and `Alex Gramfort`_)
+- Completely revamp the `~mne.Report` experience: new HTML layout, many new methods, more flexibility; the functionality is demonstrated in :ref:`tut-report` (:gh:`9754`, :gh:`9828`, :gh:`9847`, :gh:`9860`, :gh:`9861`, :gh:`9862`, :gh:`9863`, :gh:`9871`, :gh:`9881`, :gh:`9891`, :gh:`9901` by `Richard Höchenberger`_, `Eric Larson`_, and `Alex Gramfort`_)
 
 - Add basic HTML representations of `~mne.Forward` and `~mne.minimum_norm.InverseOperator` instances for a nicer Jupyter experience (:gh:`9754` by `Richard Höchenberger`_)
 
@@ -230,6 +230,8 @@ Bugs
 - Fix bug with :func:`mne.concatenate_epochs` where the concatenated events could end up in non-chronological order. (:gh:`9765` **by new contributor** |Jan Sosulski|_)
 
 - Fix bug where :func:`mne.time_frequency.psd_array_welch` and :func:`mne.time_frequency.psd_array_multitaper` failed to handle negative integer for ``n_jobs`` argument (:gh:`9849` **by new contributor** |Riessarius Stargardsky|_)
+
+- Fix bug where resampling returns empty instances (:gh:`9897` **by new contributor** |Mathieu Scheltienne|_ and `Eric Larson`_)
 
 - Fix bug with :func:`mne.io.read_raw_nihon` where latin-1 annotations could not be read (:gh:`9384` by `Alex Gramfort`_)
 
@@ -311,6 +313,8 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
+- The :class:`mne.Info` class is now more strictly checked when attributes are set. Setting most attributes directly will lead to an error in the next release. See the docstring of :class:`mne.Info` for more information (:gh:`9867` **by new contributor** |Mathieu Scheltienne|_)
+
 - In `mne.compute_source_morph`, the ``niter_affine`` and ``niter_sdr`` parameters have been replaced by ``niter`` and ``pipeline`` parameters for more consistent and finer-grained control of registration/warping steps and iteration (:gh:`9505` by `Alex Rockhill`_ and `Eric Larson`_)
 
 - Split :func:`mne.viz.Brain.show_view` argument ``view`` into ``azimuth``, ``elevation`` and ``focalpoint`` for clearer view setting and make the default for ``row`` and ``col`` apply to all rows and columns (:gh:`9596` by `Alex Rockhill`_)
@@ -346,3 +350,5 @@ API changes
 - The output folder name for HF_SEF datasets is now ``hf_sef`` instead of ``HF_SEF`` (:gh:`9763` by `Adam Li`_)
 
 - Deprecate ``mne.viz.utils.center_cmap`` (:gh:`9851` by `Clemens Brunner`_)
+
+- The default partial pathlength factor of :func:`mne.preprocessing.nirs.beer_lambert_law` will change from 0.1 in 0.24 to 6.0 in the next release (:gh:`9843` by `Robert Luke`_)
