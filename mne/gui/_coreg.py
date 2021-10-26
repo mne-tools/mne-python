@@ -15,7 +15,7 @@ from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_hpi_coils, _plot_sensors)
 from ..transforms import (read_trans, write_trans, _ensure_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
-from ..utils import get_subjects_dir, _check_fname, fill_doc
+from ..utils import get_subjects_dir, check_fname, _check_fname, fill_doc, warn
 
 
 @fill_doc
@@ -204,6 +204,8 @@ class CoregistrationUI(HasTraits):
         self._lock_fids = bool(state)
 
     def _set_fiducials_file(self, fname):
+        if self._check_fif('fiducials', fname):
+            return
         self._fiducials_file = _check_fname(
             fname, overwrite=True, must_exist=True, need_dir=False)
 
@@ -212,6 +214,8 @@ class CoregistrationUI(HasTraits):
 
     def _set_info_file(self, fname):
         if fname is None:
+            return
+        if self._check_fif('info', fname):
             return
         self._info_file = _check_fname(
             fname, overwrite=True, must_exist=True, need_dir=False)
@@ -676,6 +680,15 @@ class CoregistrationUI(HasTraits):
             subjects = ['']
         return sorted(subjects)
 
+    def _check_fif(self, filetype, fname):
+        try:
+            check_fname(fname, filetype, ('.fif'), ('.fif'))
+        except IOError:
+            warn(f"The filename {fname} for {filetype} must end with '.fif'.")
+            self._widgets[f"{filetype}_file"].set_value(0, '')
+            return True
+        return False
+
     def _configure_dock(self):
         self._renderer._dock_initialize(name="Input", area="left")
         layout = self._renderer._dock_add_group_box("MRI Subject")
@@ -704,8 +717,8 @@ class CoregistrationUI(HasTraits):
             callback=self._set_lock_fids,
             layout=layout
         )
-        self._widgets["fid_file"] = self._renderer._dock_add_file_button(
-            name="fid_file",
+        self._widgets["fiducials_file"] = self._renderer._dock_add_file_button(
+            name="fiducials_file",
             desc="Load",
             func=self._set_fiducials_file,
             value=self._fiducials_file,
