@@ -573,7 +573,8 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
                     if ii in indices:
                         annot.append(this_label)
 
-                line_label += (' - ' + ', '.join(annot))
+                if annot:
+                    line_label += (' – ' + ', '.join(annot))  # Unicode en-dash
             exclude_labels.append(line_label)
         else:
             exclude_labels.append(None)
@@ -584,16 +585,29 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
         # differentiate categories by linestyle and components by color
         col_lbs = [it for it in exclude_labels if it is not None]
         cmap = plt.get_cmap('tab10', len(col_lbs))
-        unique_labels = {k.split(' - ')[1] for k in exclude_labels if k}
+
+        unique_labels = set()
+        for label in exclude_labels:
+            if label is None:
+                continue
+            elif ' – ' in label:
+                unique_labels.add(label.split(' – ')[1])
+            else:
+                unique_labels.add('')
+
         # Determine up to 4 different styles for n categories
         cat_styles = dict(zip(unique_labels,
                               map(lambda ux: styles[int(ux % len(styles))],
                                   range(len(unique_labels)))))
-        for lb_idx, lb in enumerate(exclude_labels):
-            if lb is not None:
-                color = cmap(col_lbs.index(lb))
-                style = cat_styles[lb[lb.find(' - ') + 3:]]
-                label_props[lb_idx] = (color, style)
+        for label_idx, label in enumerate(exclude_labels):
+            if label is not None:
+                color = cmap(col_lbs.index(label))
+                if ' – ' in label:
+                    label_name = label.split(' – ')[1]
+                else:
+                    label_name = ''
+                style = cat_styles[label_name]
+                label_props[label_idx] = (color, style)
 
     for exc_label, ii in zip(exclude_labels, picks):
         color, style = label_props[ii]
