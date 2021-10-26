@@ -36,7 +36,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              proj=True, group_by='type', butterfly=False, decim='auto',
              noise_cov=None, event_id=None, show_scrollbars=True,
              show_scalebars=True, time_format='float',
-             preload='auto', use_opengl=True, downsampling='auto',
+             precompute='auto', use_opengl=True, downsampling='auto',
              downsampling_method='peak', antialiasing=False,
              overview_mode='channels', verbose=None):
     """Plot raw data.
@@ -175,7 +175,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
         .. versionadded:: 0.20.0
     %(time_format)s
-    %(preload)s
+    %(precompute)s
     %(use_opengl)s
     %(downsampling)s
     %(downsampling_method)s
@@ -360,7 +360,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   scalebars_visible=show_scalebars,
                   window_title=title,
                   # pyqtgraph-specific
-                  preload=preload,
+                  precompute=precompute,
                   use_opengl=use_opengl,
                   downsampling=downsampling,
                   downsampling_method=downsampling_method,

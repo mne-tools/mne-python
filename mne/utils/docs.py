@@ -1516,15 +1516,15 @@ time_format : 'float' | 'clock'
 """
 
 # Visualization with pyqtgraph
-docdict['preload'] = """
-preload : bool | str
-    (Only pyqtgraph) Set to ``True``/``False`` to enable/disable preloading
+docdict['precompute'] = """
+precompute : bool | str
+    (Only pyqtgraph) Set to ``True``/``False`` to enable/disable loading
     all data into RAM and performing most preprocessing for visualization
     once to increase performance.
     This happens in a separate thread and the effect applies
-    after preloading is done.
+    after precomputing is done.
     With 'auto' the currently available RAM space will be compared to the
-    expected size of the preloaded data in RAM.
+    expected size of the precomputed data in RAM.
     Default is ``'auto'``.
 
     .. versionadded:: 0.24

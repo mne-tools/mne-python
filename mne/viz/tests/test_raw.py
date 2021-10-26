@@ -668,7 +668,7 @@ def test_plot_raw_filtered(filtorder, raw, browser_backend):
     """Test filtering of raw plots."""
     # Opening that many plots can cause a Segmentation fault
     # if multithreading is activated in pyqtgraph-backend
-    pg_kwargs = {'preload': False}
+    pg_kwargs = {'precompute': False}
     with pytest.raises(ValueError, match='lowpass.*Nyquist'):
         raw.plot(lowpass=raw.info['sfreq'] / 2., filtorder=filtorder,
                  **pg_kwargs)
@@ -878,8 +878,8 @@ v_last_time = None
                                              {'use_opengl': True},
                                              {'antialiasing': False},
                                              {'antialiasing': True},
-                                             {'preload': False},
-                                             {'preload': True}])
+                                             {'precompute': False},
+                                             {'precompute': True}])
 def test_scroll_speed(raw_orig, benchmark_param, pg_backend):
     """Test the speed of a parameter."""
     # Remove spaces and get params with values
