@@ -204,7 +204,7 @@ class CoregistrationUI(HasTraits):
         self._lock_fids = bool(state)
 
     def _set_fiducials_file(self, fname):
-        if self._check_fif('fiducials', fname):
+        if not self._check_fif('fiducials', fname):
             return
         self._fiducials_file = _check_fname(
             fname, overwrite=True, must_exist=True, need_dir=False)
@@ -215,7 +215,7 @@ class CoregistrationUI(HasTraits):
     def _set_info_file(self, fname):
         if fname is None:
             return
-        if self._check_fif('info', fname):
+        if not self._check_fif('info', fname):
             return
         self._info_file = _check_fname(
             fname, overwrite=True, must_exist=True, need_dir=False)
@@ -686,8 +686,8 @@ class CoregistrationUI(HasTraits):
         except IOError:
             warn(f"The filename {fname} for {filetype} must end with '.fif'.")
             self._widgets[f"{filetype}_file"].set_value(0, '')
-            return True
-        return False
+            return False
+        return True
 
     def _configure_dock(self):
         self._renderer._dock_initialize(name="Input", area="left")
