@@ -5,7 +5,6 @@
 import itertools
 import os
 import sys
-from ast import literal_eval
 from copy import copy
 from functools import partial
 
