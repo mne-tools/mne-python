@@ -597,7 +597,7 @@ def test_add_or_replace():
     r.add_figure(
         fig=fig2, title='duplicate', tags=('foo',), replace=True
     )
-    assert len(r._content)  == len(r.html) == 4
+    assert len(r._content) == len(r.html) == 4
     assert r.html[1] != old_r.html[1]  # This figure should have changed
     # All other figures should be the same
     assert r.html[0] == old_r.html[0]
