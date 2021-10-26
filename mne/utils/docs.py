@@ -2763,8 +2763,8 @@ base_estimator : object
     The base estimator to iteratively fit on a subset of the dataset.
 """
 
-
 docdict_indented = {}
+
 
 def fill_doc(f):
     """Fill a docstring with docdict entries.
