@@ -16,7 +16,7 @@ from mne.datasets import testing
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.surface import dig_mri_distances
 from mne.transforms import invert_transform
-from mne.utils import requires_mayavi, traits_test, modified_env
+from mne.utils import requires_mayavi, traits_test, modified_env, get_config
 
 data_path = testing.data_path(download=False)
 raw_path = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -375,6 +375,7 @@ def test_coreg_gui_pyvista(tmpdir, renderer_interactive_pyvistaqt):
     """Test that using CoregistrationUI matches mne coreg."""
     from mne.gui import coregistration
     tempdir = str(tmpdir)
+    config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     tmp_trans = op.join(tempdir, 'tmp-trans.fif')
     coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
                            trans=fname_trans)
@@ -410,7 +411,9 @@ def test_coreg_gui_pyvista(tmpdir, renderer_interactive_pyvistaqt):
     assert coreg._grow_hair == 0
     coreg._set_grow_hair(0.1)
     assert coreg._grow_hair == 0.1
-    assert coreg._orient_glyphs
+    orient_to_surface = (config.get('MNE_COREG_ORIENT_TO_SURFACE', '') ==
+                         'true')
+    assert coreg._orient_glyphs == orient_to_surface
     assert coreg._hpi_coils
     assert coreg._eeg_channels
     assert coreg._head_shape_points
