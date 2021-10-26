@@ -130,6 +130,7 @@ def pytest_configure(config):
     ignore:.*Passing a schema to Validator.*:DeprecationWarning
     ignore:.*Found the following unknown channel type.*:RuntimeWarning
     ignore:.*in an Any trait will be shared.*:DeprecationWarning
+    ignore:.*Mayavi 3D backend is deprecated.*:DeprecationWarning
     always::ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):

@@ -315,6 +315,10 @@ API changes
 ~~~~~~~~~~~
 - The :class:`mne.Info` class is now more strictly checked when attributes are set. Setting most attributes directly will lead to an error in the next release. See the docstring of :class:`mne.Info` for more information (:gh:`9867` **by new contributor** |Mathieu Scheltienne|_)
 
+- The Mayavi 3D backend has been deprecated in favor of PyVista-based backends (``'pyvistaqt'`` and ``'notebook'``) will be removed in the next version (:gh:`9904` by `Eric Larson`_)
+
+- The :ref:`mne kit2fiff` command-line GUI will require the separate ``mne-kit-gui`` module in the next version (:gh:`9904` by `Eric Larson`_)
+
 - In `mne.compute_source_morph`, the ``niter_affine`` and ``niter_sdr`` parameters have been replaced by ``niter`` and ``pipeline`` parameters for more consistent and finer-grained control of registration/warping steps and iteration (:gh:`9505` by `Alex Rockhill`_ and `Eric Larson`_)
 
 - Split :func:`mne.viz.Brain.show_view` argument ``view`` into ``azimuth``, ``elevation`` and ``focalpoint`` for clearer view setting and make the default for ``row`` and ``col`` apply to all rows and columns (:gh:`9596` by `Alex Rockhill`_)

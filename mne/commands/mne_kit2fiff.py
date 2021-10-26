@@ -17,6 +17,7 @@ Use without arguments to invoke GUI:
 
 """
 
+from contextlib import nullcontext
 import sys
 
 import mne
@@ -60,8 +61,14 @@ def run():
 
     input_fname = options.input_fname
     if input_fname is None:
-        with ETSContext():
-            mne.gui.kit2fiff()
+        ctx = nullcontext()
+        try:
+            from mne_kit_gui import kit2fiff  # noqa
+        except ImportError:
+            kit2fiff = mne.gui.kit2fiff
+            ctx = ETSContext()
+        with ctx:
+            kit2fiff()
         sys.exit(0)
 
     hsp_fname = options.hsp_fname
