@@ -290,12 +290,19 @@ def test_plot_ica_sources(raw_orig, browse_backend):
                 [line.get_xdata()[0], line.get_ydata()[0]], 'data')
     _fake_click(fig, ax,
                 [ax.get_xlim()[0], ax.get_ylim()[1]], 'data')
+
     # plot with bad channels excluded
     ica.exclude = [0]
     ica.plot_sources(evoked)
-    ica.labels_ = dict(eog=[0])
-    ica.labels_['eog/0/crazy-channel'] = [0]
+
+    # pretend find_bads_eog() yielded some results
+    ica.labels_ = {
+        'eog': [0],
+        'eog/0/crazy-channel': [0]
+    }
     ica.plot_sources(evoked)  # now with labels
+
+    # pass an invalid inst
     with pytest.raises(ValueError, match='must be of Raw or Epochs type'):
         ica.plot_sources('meeow')
 

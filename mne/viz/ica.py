@@ -590,7 +590,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
         for label in exclude_labels:
             if label is None:
                 continue
-            elif ' - ' in label:
+            elif ' – ' in label:
                 unique_labels.add(label.split(' – ')[1])
             else:
                 unique_labels.add('')
@@ -602,7 +602,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
         for label_idx, label in enumerate(exclude_labels):
             if label is not None:
                 color = cmap(col_lbs.index(label))
-                if ' - ' in label:
+                if ' – ' in label:
                     label_name = label.split(' – ')[1]
                 else:
                     label_name = ''
