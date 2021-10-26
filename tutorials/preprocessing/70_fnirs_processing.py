@@ -42,8 +42,8 @@ raw_intensity.annotations.set_durations(5)
 raw_intensity.annotations.rename({'1.0': 'Control',
                                   '2.0': 'Tapping/Left',
                                   '3.0': 'Tapping/Right'})
-raw_intensity.annotations.delete(
-    raw_intensity.annotations.description == '15.0')
+unwanted = np.nonzero(raw_intensity.annotations.description == '15.0')
+raw_intensity.annotations.delete(unwanted)
 
 
 # %%
@@ -135,7 +135,7 @@ raw_od.info['bads'] = list(compress(raw_od.ch_names, sci < 0.5))
 # Next we convert the optical density data to haemoglobin concentration using
 # the modified Beer-Lambert law.
 
-raw_haemo = mne.preprocessing.nirs.beer_lambert_law(raw_od)
+raw_haemo = mne.preprocessing.nirs.beer_lambert_law(raw_od, ppf=6)
 raw_haemo.plot(n_channels=len(raw_haemo.ch_names),
                duration=500, show_scrollbars=False)
 

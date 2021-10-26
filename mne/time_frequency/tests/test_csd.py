@@ -536,7 +536,8 @@ def test_csd_morlet():
     # Test baselining warning
     epochs_nobase = epochs.copy()
     epochs_nobase.baseline = None
-    epochs_nobase.info['highpass'] = 0
+    with epochs_nobase.info._unlock():
+        epochs_nobase.info['highpass'] = 0
     with pytest.warns(RuntimeWarning, match='baseline'):
         csd = csd_morlet(epochs_nobase, frequencies=[10], decim=20)
 

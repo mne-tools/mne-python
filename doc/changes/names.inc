@@ -120,6 +120,8 @@
 
 .. _Sheraz Khan: https://github.com/SherazKhan
 
+.. _John Samuelsson: https://github.com/johnsam7
+
 .. _Antti Rantala: https://github.com/Odingod
 
 .. _Keith Doelling: https://github.com/kdoelling1919
@@ -188,7 +190,7 @@
 
 .. _Thomas Hartmann: https://github.com/thht
 
-.. _Steven Gutstein: http://vll.cs.utep.edu/people.html
+.. _Steven Gutstein: https://github.com/smgutstein
 
 .. _Peter Molfese: https://github.com/pmolfese
 
@@ -366,6 +368,8 @@
 
 .. _Dominik Welke: https://github.com/dominikwelke/
 
+.. _Dominique Makowski: https://dominiquemakowski.github.io/
+
 .. _Judy D Zhu: https://github.com/JD-Zhu
 
 .. _Valerii Chirkov: https://github.com/vagechirkov
@@ -413,3 +417,5 @@
 .. _Evgeny Goldstein: https://github.com/evgenygoldstein
 
 .. _Joshua Teves: https://github.com/jbteves
+
+.. _Riessarius Stargardsky: https://github.com/Riessarius

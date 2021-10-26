@@ -138,7 +138,7 @@ def test_make_sphere_model():
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('kwargs, fname', [
-    [dict(), fname_bem_3],
+    pytest.param(dict(), fname_bem_3, marks=pytest.mark.slowtest),  # Azure
     [dict(conductivity=[0.3]), fname_bem_1],
 ])
 def test_make_bem_model(tmpdir, kwargs, fname):

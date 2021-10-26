@@ -288,7 +288,8 @@ def _prepare_rerp_data(raw, events, picks=None, decim=1):
     picks = _picks_to_idx(raw.info, picks)
     info = pick_info(raw.info, picks)
     decim = int(decim)
-    info["sfreq"] /= decim
+    with info._unlock():
+        info["sfreq"] /= decim
     data, times = raw[:]
     data = data[picks, ::decim]
     if len(set(events[:, 0])) < len(events[:, 0]):

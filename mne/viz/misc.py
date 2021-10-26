@@ -167,7 +167,8 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
             this_C = Covariance(this_C, [info['ch_names'][ii] for ii in idx],
                                 [], [], 0)
             this_info = pick_info(info, idx)
-            this_info['projs'] = []
+            with this_info._unlock():
+                this_info['projs'] = []
             this_rank = compute_rank(this_C, info=this_info)
             # Protect against true zero singular values
             s[s <= 0] = 1e-10 * s[s > 0].min()
@@ -473,8 +474,8 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
                 plt.close(fig)
                 buff.seek(0)
                 fig_array = np.frombuffer(buff.getvalue(), dtype=np.uint8)
-                fig = fig_array.reshape((int(h_), int(w_), -1))
 
+            fig = fig_array.reshape((int(h_), int(w_), -1))
             figs.append(fig)
 
     if slices_as_subplots:

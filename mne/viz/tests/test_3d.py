@@ -173,6 +173,7 @@ def _assert_n_actors(fig, renderer, n_actors):
     assert len(fig.plotter.renderer.actors) == n_actors
 
 
+@pytest.mark.slowtest  # Slow for Mayavi on Azure
 @pytest.mark.parametrize('system', [
     'Neuromag',
     pytest.param('CTF', marks=testing._pytest_mark()),
@@ -198,10 +199,10 @@ def test_plot_alignment_meg(renderer, system):
         meg.append('ref')
     fig = plot_alignment(
         this_info, read_trans(trans_fname), subject='sample',
-        subjects_dir=subjects_dir, meg=meg, eeg=True)
+        subjects_dir=subjects_dir, meg=meg, eeg=False)
     # count the number of objects: should be n_meg_ch + 1 (helmet) + 1 (head)
     use_info = pick_info(this_info, pick_types(
-        this_info, meg=True, eeg=True, ref_meg='ref' in meg, exclude=()))
+        this_info, meg=True, eeg=False, ref_meg='ref' in meg, exclude=()))
     n_actors = use_info['nchan'] + 2
     _assert_n_actors(fig, renderer, n_actors)
 
@@ -272,7 +273,8 @@ def test_plot_alignment_basic(tmpdir, renderer, mixed_fwd_cov_evoked):
     renderer.backend._close_all()
     # EEG only with strange options
     evoked_eeg_ecog_seeg = evoked.copy().pick_types(meg=False, eeg=True)
-    evoked_eeg_ecog_seeg.info['projs'] = []  # "remove" avg proj
+    with evoked_eeg_ecog_seeg.info._unlock():
+        evoked_eeg_ecog_seeg.info['projs'] = []  # "remove" avg proj
     evoked_eeg_ecog_seeg.set_channel_types({'EEG 001': 'ecog',
                                             'EEG 002': 'seeg'})
     with catch_logging() as log:
@@ -355,7 +357,8 @@ def test_plot_alignment_basic(tmpdir, renderer, mixed_fwd_cov_evoked):
         assert isinstance(fig, mayavi.core.scene.Scene)
     # 3D coil with no defined draw (ConvexHull)
     info_cube = pick_info(info, np.arange(6))
-    info['dig'] = None
+    with info._unlock():
+        info['dig'] = None
     info_cube['chs'][0]['coil_type'] = 9999
     info_cube['chs'][1]['coil_type'] = 9998
     with pytest.raises(RuntimeError, match='coil definition not found'):
@@ -448,7 +451,7 @@ def test_plot_alignment_fnirs(renderer, tmpdir):
 
     fig = plot_alignment(
         info, fnirs=['channels', 'sources', 'detectors'], **kwargs)
-    _assert_n_actors(fig, renderer, 3 * info['nchan'])
+    _assert_n_actors(fig, renderer, 3)
 
 
 @pytest.mark.slowtest  # can be slow on OSX
@@ -641,8 +644,8 @@ def test_plot_dipole_orientations(renderer):
     renderer.backend._close_all()
 
 
+@pytest.mark.slowtest  # slow for Mayavi on Azure
 @testing.requires_testing_data
-@traits_test
 def test_snapshot_brain_montage(renderer):
     """Test snapshot brain montage."""
     info = read_info(evoked_fname)

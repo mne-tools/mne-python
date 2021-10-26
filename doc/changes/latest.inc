@@ -21,6 +21,8 @@ Current (0.24.dev0)
 
 .. |David Julien| replace:: **David Julien**
 
+.. |Dominique Makowski| replace:: **Dominique Makowski**
+
 .. |Romain Derollepot| replace:: **Romain Derollepot**
 
 .. |Jan Sosulski| replace:: **Jan Sosulski**
@@ -43,6 +45,10 @@ Current (0.24.dev0)
 
 .. |Joshua Teves| replace:: **Joshua Teves**
 
+.. |Riessarius Stargardsky| replace:: **Riessarius Stargardsky**
+
+.. |John Samuelsson| replace:: **John Samuelsson**
+
 Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
@@ -61,9 +67,15 @@ Enhancements
 
 - Add support for list of channel types for EEG/sEEG/ECoG/DBS referencing (:gh:`9637` **by new contributor** |Mathieu Scheltienne|_)
 
+- Add the ability to set point size and line width in :func:`mne.viz.plot_sensors` and related functions (:gH:`9872` **by new contributor** |Dominique Makowski|_)
+
 - Add support for changing the default event id used by :func:`mne.make_fixed_length_epochs` (:gh:`9782` **by new contributor** |Mathieu Scheltienne|_)
 
+- Improve documentation for arguments ``threshold``, ``method`` and ``measure`` of ICA methods `~mne.preprocessing.ICA.find_bads_ecg`, `~mne.preprocessing.ICA.find_bads_ref` and `~mne.preprocessing.ICA.find_bads_eog` (:gh:`9858` **by new contributor** |Mathieu Scheltienne|_)
+
 - Add support for more than 3 source estimates in :func:`mne.viz.plot_sparse_source_estimates` (:gh:`9640` **by new contributor** |Pierre-Antoine Bannier|_ and `Alex Gramfort`_)
+
+- Add cortical signal suppression (CSS) :func:`mne.preprocessing.cortical_signal_suppression` (:gh:`6888`, :gh:`9892` **by new contributor** |John Samuelsson|_ and `Eric Larson`_)
 
 - Show all good channel types and counts when printing a :class:`mne.Info` in the notebook (:gh:`9725` by `Valerii Chirkov`_ and `Eric Larson`_)
 
@@ -183,7 +195,7 @@ Enhancements
 
 - Add options ``tol`` and ``accuracy`` to :func:`mne.fit_dipole` to control optimization (:gh:`9810` by `Eric Larson`_)
 
-- Completely revamp the `~mne.Report` experience: new HTML layout, many new methods, more flexibility; the functionality is demonstrated in :ref:`tut-report` (:gh:`9754` by `Richard Höchenberger`_, `Eric Larson`_, and `Alex Gramfort`_)
+- Completely revamp the `~mne.Report` experience: new HTML layout, many new methods, more flexibility; the functionality is demonstrated in :ref:`tut-report` (:gh:`9754`, :gh:`9828`, :gh:`9847`, :gh:`9860`, :gh:`9861`, :gh:`9862`, :gh:`9863`, :gh:`9871`, :gh:`9881`, :gh:`9891`, :gh:`9901` by `Richard Höchenberger`_, `Eric Larson`_, and `Alex Gramfort`_)
 
 - Add basic HTML representations of `~mne.Forward` and `~mne.minimum_norm.InverseOperator` instances for a nicer Jupyter experience (:gh:`9754` by `Richard Höchenberger`_)
 
@@ -193,9 +205,15 @@ Enhancements
 
 - Add support for data acquired with NIRx devices using Aurora software version 2021.9 (:gh:`9800` by `Robert Luke`_, and `Eric Larson`_)
 
-- All functions for reading and writing files should now automatically handle ``~`` (the tilde character) and expand it to the user's home directory. Should you come across any function that doesn't do it, please do let us know! (:gh:`9613` by `Richard Höchenberger`_)
+- All functions for reading and writing files should now automatically handle ``~`` (the tilde character) and expand it to the user's home directory. Should you come across any function that doesn't do it, please do let us know! (:gh:`9613`, :gh`9845` by `Richard Höchenberger`_)
 
 - All functions accepting a FreeSurfer subjects directory via a ``subjects_dir`` parameter can now consume :py:class:`pathlib.Path` objects too (used to be only strings) (:gh:`9613` by `Richard Höchenberger`_)
+
+- Add support for colormap normalization in :meth:`mne.time_frequency.AverageTFR.plot` (:gh:`9851` by `Clemens Brunner`_)
+
+- Add support for BIDS-compatible filenames when splitting big epochs files via the new ``split_naming`` parameter in :meth:`mne.Epochs.save` (:gh:9869 by `Denis Engemann`_)
+
+- Add ``by_event_type`` parameter to :meth:`mne.Epochs.average` to create a list containing an :class:`mne.Evoked` object for each event type (:gh:`9859` by `Marijn van Vliet`_)
 
 Bugs
 ~~~~
@@ -210,6 +228,10 @@ Bugs
 - Fix bug with `mne.compute_rank`, `mne.cov.compute_whitener` and `mne.preprocessing.ICA.fit` when explicit picks including bad channels are provided (:gh:`9719` **by new contributor** |Mathieu Scheltienne|_)
 
 - Fix bug with :func:`mne.concatenate_epochs` where the concatenated events could end up in non-chronological order. (:gh:`9765` **by new contributor** |Jan Sosulski|_)
+
+- Fix bug where :func:`mne.time_frequency.psd_array_welch` and :func:`mne.time_frequency.psd_array_multitaper` failed to handle negative integer for ``n_jobs`` argument (:gh:`9849` **by new contributor** |Riessarius Stargardsky|_)
+
+- Fix bug where resampling returns empty instances (:gh:`9897` **by new contributor** |Mathieu Scheltienne|_ and `Eric Larson`_)
 
 - Fix bug with :func:`mne.io.read_raw_nihon` where latin-1 annotations could not be read (:gh:`9384` by `Alex Gramfort`_)
 
@@ -244,6 +266,8 @@ Bugs
 - Fix bug in :func:`mne.viz.plot_topomap` (and related methods like :meth:`mne.Evoked.plot_topomap`) where large distances between electrodes (higher than head radius) would lead to an error (:gh:`9528` by `Mikołaj Magnuski`_).
 
 - Fix bug in `mne.viz.plot_topomap` (and related methods) where passing ``axes`` that are part of a matplotlib figure that uses a constrained layout would emit warnings (:gh:`9558` by `Eric Larson`_)
+
+- Fix bug in :func:`mne.make_forward_solution` where impossible sensor-BEM geometries were not checked (:gh:`9893` by `Eric Larson`_)
 
 - Fix bug in :func:`mne.concatenate_epochs` when concatenating :class:`mne.Epochs` objects with 0 events (:gh:`9535` by `Marijn van Vliet`_)
 
@@ -283,8 +307,14 @@ Bugs
 
 - In `mne.viz.plot_compare_evokeds`, slightly adjust the x-axis limit calculation to avoid drawing an axis that is too short (:gh:`9754` by `Richard Höchenberger`_)
 
+- In :meth:`mne.io.Raw.plot_psd` and :meth:`mne.Epochs.plot_psd`, avoid overlap between subplot titles and x-axis tick labels (:gh:`9864` by `Richard Höchenberger`_)
+
+- In :meth:`mne.Epochs.plot_psd_topomap`, the data is now scaled to match the output of :meth:`mne.Epochs.plot_psd` (:gh:`9873` by `Richard Höchenberger`_)
+
 API changes
 ~~~~~~~~~~~
+- The :class:`mne.Info` class is now more strictly checked when attributes are set. Setting most attributes directly will lead to an error in the next release. See the docstring of :class:`mne.Info` for more information (:gh:`9867` **by new contributor** |Mathieu Scheltienne|_)
+
 - In `mne.compute_source_morph`, the ``niter_affine`` and ``niter_sdr`` parameters have been replaced by ``niter`` and ``pipeline`` parameters for more consistent and finer-grained control of registration/warping steps and iteration (:gh:`9505` by `Alex Rockhill`_ and `Eric Larson`_)
 
 - Split :func:`mne.viz.Brain.show_view` argument ``view`` into ``azimuth``, ``elevation`` and ``focalpoint`` for clearer view setting and make the default for ``row`` and ``col`` apply to all rows and columns (:gh:`9596` by `Alex Rockhill`_)
@@ -318,3 +348,7 @@ API changes
 - :meth:`mne.Epochs.plot` and :func:`mne.viz.plot_epochs` gained parameter ``show_scalebars`` analogous to :meth:`mne.viz.plot_raw` (:gh:`9815` by `Daniel McCloy`_)
 
 - The output folder name for HF_SEF datasets is now ``hf_sef`` instead of ``HF_SEF`` (:gh:`9763` by `Adam Li`_)
+
+- Deprecate ``mne.viz.utils.center_cmap`` (:gh:`9851` by `Clemens Brunner`_)
+
+- The default partial pathlength factor of :func:`mne.preprocessing.nirs.beer_lambert_law` will change from 0.1 in 0.24 to 6.0 in the next release (:gh:`9843` by `Robert Luke`_)

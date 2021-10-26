@@ -75,12 +75,14 @@ subjects_dir = data_path / 'subjects'
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # Raw data can be added via the :meth:`mne.Report.add_raw` method. It can
-# operate with a path to a raw file and `~mne.io.Raw` objects:
+# operate with a path to a raw file and `~mne.io.Raw` objects, and will
+# produce – among other output – a slider that allows you to scrub through 10
+# equally-spaced 1-second segments of the data:
 
 raw_path = sample_dir / 'sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw(raw_path)
 
-report = mne.Report()
+report = mne.Report(title='Raw example')
 report.add_raw(raw=raw_path, title='Raw from Path')
 report.add_raw(raw=raw, title='Raw from "raw"', psd=False)  # omit PSD plot
 report.save('report_raw.html', overwrite=True)
@@ -96,7 +98,7 @@ events_path = sample_dir / 'sample_audvis_filt-0-40_raw-eve.fif'
 events = mne.read_events(events_path)
 sfreq = raw.info['sfreq']
 
-report = mne.Report()
+report = mne.Report(title='Events example')
 report.add_events(events=events_path, title='Events from Path', sfreq=sfreq)
 report.add_events(events=events, title='Events from "events"', sfreq=sfreq)
 report.save('report_events.html', overwrite=True)
@@ -106,12 +108,12 @@ report.save('report_events.html', overwrite=True)
 # ^^^^^^^^^^^^^^^^^^^^
 #
 # Epochs can be added via :meth:`mne.Report.add_epochs`. Note that although
-# this methods accepts a path to an epochs file too, in the following example
+# this method accepts a path to an epochs file too, in the following example
 # we only add epochs that we create on the fly from raw data.
 
 epochs = mne.Epochs(raw=raw, events=events)
 
-report = mne.Report()
+report = mne.Report(title='Epochs example')
 report.add_epochs(epochs=epochs, title='Epochs from "epochs"')
 report.save('report_epochs.html', overwrite=True)
 
@@ -139,7 +141,7 @@ cov_path = sample_dir / 'sample_audvis-cov.fif'
 evokeds = mne.read_evokeds(evoked_path, baseline=(None, 0))
 evokeds_subset = evokeds[:2]  # The first two
 
-report = mne.Report()
+report = mne.Report(title='Evoked example')
 report.add_evokeds(
     evokeds=evokeds_subset,
     titles=['evoked 1',  # Manually specify titles
@@ -161,7 +163,7 @@ report.save('report_evoked.html', overwrite=True)
 
 cov_path = sample_dir / 'sample_audvis-cov.fif'
 
-report = mne.Report()
+report = mne.Report(title='Covariance example')
 report.add_covariance(cov=cov_path, info=raw_path, title='Covariance')
 report.save('report_cov.html', overwrite=True)
 
@@ -180,13 +182,85 @@ report.save('report_cov.html', overwrite=True)
 ecg_proj_path = sample_dir / 'sample_audvis_ecg-proj.fif'
 eog_proj_path = sample_dir / 'sample_audvis_eog-proj.fif'
 
-report = mne.Report()
+report = mne.Report(title='Projectors example')
 report.add_projs(info=raw_path, title='Projs from info')
 report.add_projs(info=raw_path, projs=ecg_proj_path,
                  title='ECG projs from path')
 report.add_projs(info=raw_path, projs=eog_proj_path,
                  title='EOG projs from path')
 report.save('report_projs.html', overwrite=True)
+
+# %%
+# Adding `~mne.preprocessing.ICA`
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# `~mne.preprocessing.ICA` objects can be added via
+# :meth:`mne.Report.add_ica`. Aside from the parameters ``ica`` (that accepts
+# an `~mne.preprocessing.ICA` instance or a path to an ICA object stored on
+# disk) and the ``title``, there is a third required parameter, ``inst``.
+# ``inst`` is used to specify a `~mne.io.Raw` or `~mne.Epochs` object for
+# producing ICA property plots and overlay plots demonstrating
+# the effects of ICA cleaning. If, instead, you only want to generate ICA
+# component topography plots, explicitly pass ``inst=None``.
+#
+# .. note:: :meth:`mne.Report.add_ica` only works with fitted ICAs.
+#
+# You can optionally specify for which components to produce topography and
+# properties plots by passing ``picks``. By default, all components will be
+# shown. It is also possible to pass evoked signals based on ECG and EOG events
+# via ``ecg_evoked`` and ``eog_evoked``. This allows you directly see the
+# effects of ICA component removal on these artifactual signals.
+# Artifact detection scores produced by
+# :meth:`~mne.preprocessing.ICA.find_bads_ecg`
+# and :meth:`~mne.preprocessing.ICA.find_bads_eog` can be passed via the
+# ``ecg_scores`` and ``eog_scores`` parameters, respectively, producing
+# visualizations of the scores for each ICA component.
+#
+# Lastly, by passing ``n_jobs``, you may largely speed up the generation of
+# the properties plots by enabling parallel execution.
+#
+# .. warning::
+#    In the following example, we crop the raw data, only fit ICA on EEG
+#    channels, request a small number of ICA components to estimate, set the
+#    threshold for assuming ICA convergence to a very liberal value, and only
+#    visualize 2 of the components. All of this is done to largely reduce the
+#    processing time of this tutorial, and is usually **not** recommended for
+#    an actual data analysis.
+
+raw_eeg_cropped = (raw
+                   .copy()
+                   .pick_types(meg=False, eeg=True, eog=True)
+                   .crop(tmax=60)  # only keep 60 seconds
+                   .load_data())
+
+ica = mne.preprocessing.ICA(
+    n_components=5,  # fit 5 ICA components
+    fit_params=dict(tol=0.01)  # assume very early on that ICA has converged
+)
+
+ica.fit(inst=raw_eeg_cropped)
+
+# create epochs based on EOG events, find EOG artifacts in the data via pattern
+# matching, and exclude the EOG-related ICA components
+eog_epochs = mne.preprocessing.create_eog_epochs(raw=raw_eeg_cropped)
+eog_components, eog_scores = ica.find_bads_eog(
+    inst=eog_epochs,
+    ch_name='EEG 001',  # a channel close to the eye
+    threshold=1  # lower than the default threshold
+)
+ica.exclude = eog_components
+
+report = mne.Report(title='ICA example')
+report.add_ica(
+    ica=ica,
+    title='ICA cleaning',
+    picks=[0, 1],  # only plot the first two components
+    inst=raw_eeg_cropped,
+    eog_evoked=eog_epochs.average(),
+    eog_scores=eog_scores,
+    n_jobs=4
+)
+report.save('report_ica.html', overwrite=True)
 
 # %%
 # Adding MRI with BEM
@@ -198,7 +272,7 @@ report.save('report_projs.html', overwrite=True)
 # the resulting file size, you may pass the ``decim`` parameter to only include
 # every n-th volume slice.
 
-report = mne.Report()
+report = mne.Report(title='BEM example')
 report.add_bem(
     subject='sample', subjects_dir=subjects_dir, title='MRI & BEM',
     decim=10
@@ -217,7 +291,7 @@ report.save('report_mri_and_bem.html', overwrite=True)
 
 trans_path = sample_dir / 'sample_audvis_raw-trans.fif'
 
-report = mne.Report()
+report = mne.Report(title='Coregistration example')
 report.add_trans(
     trans=trans_path, info=raw_path, subject='sample',
     subjects_dir=subjects_dir, title='Coregistration'
@@ -234,7 +308,7 @@ report.save('report_coregistration.html', overwrite=True)
 
 fwd_path = sample_dir / 'sample_audvis-meg-oct-6-fwd.fif'
 
-report = mne.Report()
+report = mne.Report(title='Forward solution example')
 report.add_forward(forward=fwd_path, title='Forward solution')
 report.save('report_forward_sol.html', overwrite=True)
 
@@ -248,7 +322,7 @@ report.save('report_forward_sol.html', overwrite=True)
 
 inverse_op_path = sample_dir / 'sample_audvis-meg-oct-6-meg-inv.fif'
 
-report = mne.Report()
+report = mne.Report(title='Inverse operator example')
 report.add_inverse_operator(
     inverse_operator=inverse_op_path, title='Inverse operator'
 )
@@ -267,7 +341,7 @@ report.save('report_inverse_op.html', overwrite=True)
 
 stc_path = sample_dir / 'sample_audvis-meg'
 
-report = mne.Report()
+report = mne.Report(title='Source estimate example')
 report.add_stc(
     stc=stc_path, subject='sample', subjects_dir=subjects_dir,
     title='Source estimate', n_time_points=5
@@ -292,7 +366,7 @@ report.save('report_inverse_sol.html', overwrite=True)
 mne_init_py_path = Path(mne.__file__)  # __init__.py in the MNE-Python root
 mne_init_py_content = mne_init_py_path.read_text(encoding='utf-8')
 
-report = mne.Report()
+report = mne.Report(title='Code example')
 report.add_code(
     code=mne_init_py_path,
     title="Code from Path"
@@ -323,7 +397,7 @@ ax.set_xlabel('x')
 ax.set_ylabel('f(x)')
 ax.legend()
 
-report = mne.Report()
+report = mne.Report(title='Figure example')
 report.add_figure(
     fig=fig, title='A custom figure',
     caption='A blue dashed line reaches up into the sky …',
@@ -361,7 +435,7 @@ for angle in rotation_angles:
     figs.append(fig)
     captions.append(f'Rotation angle: {round(angle, 1)}°')
 
-report = mne.Report()
+report = mne.Report(title='Multiple figures example')
 report.add_figure(fig=figs, title='Fun with figures! 🥳', caption=captions)
 report.save('report_custom_figures.html', overwrite=True)
 
@@ -374,7 +448,7 @@ report.save('report_custom_figures.html', overwrite=True)
 # include JPEG, PNG, GIF, and SVG (and possibly others). Like with Matplotlib
 # figures, you can specify a caption to appear below the image.
 
-report = mne.Report()
+report = mne.Report(title='Image example')
 report.add_image(
     image=mne_logo_path, title='MNE',
     caption='Powered by 🧠 🧠 🧠 around the world!'
@@ -398,7 +472,7 @@ report.save('report_custom_image.html', overwrite=True)
 # To toggle the visibility of **all** tags, use the respective checkbox in the
 # ``Filter by tags`` dropdown menu, or press :kbd:`T`.
 
-report = mne.Report()
+report = mne.Report(title='Tags example')
 report.add_image(
     image=mne_logo_path,
     title='MNE Logo',
@@ -415,7 +489,7 @@ report.save('report_tags.html', overwrite=True)
 # to edit a report once it's no longer in-memory in an active Python session,
 # save it as an HDF5 file instead of HTML:
 
-report = mne.Report(verbose=True)
+report = mne.Report(title='Saved report example', verbose=True)
 report.add_image(image=mne_logo_path, title='MNE 1')
 report.save('report_partial.hdf5', overwrite=True)
 
@@ -463,7 +537,7 @@ with mne.open_report('report_partial.hdf5') as report:
 # :meth:`~mne.Report.parse_folder` and also the ``subject`` and
 # ``subjects_dir`` parameters provided to the :class:`~mne.Report` constructor.
 
-report = mne.Report()
+report = mne.Report(title='parse_folder example')
 report.parse_folder(
     data_path=data_path, pattern='*raw.fif', render_bem=False,
     raw_butterfly=False
@@ -480,7 +554,7 @@ report.save('report_parse_folder_basic.html', overwrite=True)
 # the unfiltered data and the empty-room noise recordings).
 
 pattern = 'sample_audvis_filt-0-40_raw.fif'
-report = mne.Report(raw_psd=True, projs=True)
+report = mne.Report(title='parse_folder example 2', raw_psd=True, projs=True)
 report.parse_folder(
     data_path=data_path, pattern=pattern, render_bem=False, raw_butterfly=False
 )
@@ -494,7 +568,9 @@ report.save('report_parse_folder_raw_psd_projs.html', overwrite=True)
 # expensive, we'll also pass the ``mri_decim`` parameter for the benefit of our
 # documentation servers, and skip processing the :file:`.fif` files.
 
-report = mne.Report(subject='sample', subjects_dir=subjects_dir)
+report = mne.Report(
+    title='parse_folder example 3', subject='sample', subjects_dir=subjects_dir
+)
 report.parse_folder(data_path=data_path, pattern='', mri_decim=25)
 report.save('report_parse_folder_mri_bem.html', overwrite=True)
 
@@ -522,7 +598,9 @@ baseline = (None, 0)
 cov_fname = sample_dir / 'sample_audvis-cov.fif'
 pattern = 'sample_audvis-no-filter-ave.fif'
 
-report = mne.Report(baseline=baseline, cov_fname=cov_fname)
+report = mne.Report(
+    title='parse_folder example 4', baseline=baseline, cov_fname=cov_fname
+)
 report.parse_folder(
     data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=5
 )
@@ -538,7 +616,7 @@ report.save('report_parse_folder_evoked.html', overwrite=True)
 
 pattern = 'sample_audvis-cov.fif'
 info_fname = sample_dir / 'sample_audvis-ave.fif'
-report = mne.Report(info_fname=info_fname)
+report = mne.Report(title='parse_folder example 5', info_fname=info_fname)
 report.parse_folder(
     data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=5
 )

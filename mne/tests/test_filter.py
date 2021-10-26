@@ -7,7 +7,7 @@ from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
 import pytest
 from scipy.signal import resample as sp_resample, butter, freqz, sosfreqz
 
-from mne import create_info
+from mne import create_info, Epochs
 from numpy.fft import fft, fftfreq
 from mne.io import RawArray, read_raw_fif
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
@@ -325,6 +325,31 @@ def test_resample_raw():
     raw.resample(128, npad=10)
     data = raw.get_data()
     assert data.shape == (1, 63)
+
+
+def test_resample_below_1_sample():
+    """Test resampling doesn't yield datapoints."""
+    # Raw
+    x = np.zeros((1, 100))
+    sfreq = 1000.
+    raw = RawArray(x, create_info(1, sfreq, 'eeg'))
+    raw.resample(5)
+    assert len(raw.times) == 1
+    assert raw.get_data().shape[1] == 1
+
+    # Epochs
+    x = np.zeros((1, 10000))
+    sfreq = 1000.
+    raw = RawArray(x, create_info(1, sfreq, 'eeg'))
+    events = np.array([[400, 0, 1],
+                      [2000, 0, 1],
+                      [3000, 0, 1]])
+    epochs = Epochs(raw, events, {'test': 1}, 0, 0.2, proj=False,
+                    picks='eeg', baseline=None, preload=True,
+                    verbose=False)
+    epochs.resample(1)
+    assert len(epochs.times) == 1
+    assert epochs.get_data().shape[2] == 1
 
 
 @pytest.mark.slowtest

@@ -245,7 +245,8 @@ def _check_compensation_grade(info1, info2, name1,
         # pick channels
         for t_info in [info1, info2]:
             if t_info['comps']:
-                t_info['comps'] = []
+                with t_info._unlock():
+                    t_info['comps'] = []
             picks = pick_channels(t_info['ch_names'], ch_names)
             pick_info(t_info, picks, copy=False)
     # "or 0" here aliases None -> 0, as they are equivalent
@@ -331,14 +332,31 @@ def _check_time_format(time_format, valid, meas_date=None):
     return time_format
 
 
-def _check_ch_locs(chs):
+def _check_ch_locs(info, picks=None, ch_type=None):
     """Check if channel locations exist.
 
     Parameters
     ----------
-    chs : dict
-        The channels from info['chs']
+    info : Info | None
+        `~mne.Info` instance.
+    picks : list of int
+        Channel indices to consider. If provided, ``ch_type`` must be ``None``.
+    ch_type : str | None
+        The channel type to restrict the check to. If ``None``, check all
+        channel types. If provided, ``picks`` must be ``None``.
     """
+    from ..io.pick import _picks_to_idx, pick_info
+
+    if picks is not None and ch_type is not None:
+        raise ValueError('Either picks or ch_type may be provided, not both')
+
+    if picks is not None:
+        info = pick_info(info=info, sel=picks)
+    elif ch_type is not None:
+        picks = _picks_to_idx(info=info, picks=ch_type, none=ch_type)
+        info = pick_info(info=info, sel=picks)
+
+    chs = info['chs']
     locs3d = np.array([ch['loc'][:3] for ch in chs])
     return not ((locs3d == 0).all() or
                 (~np.isfinite(locs3d)).all() or
@@ -662,16 +680,16 @@ def _check_all_same_channel_names(instances):
     return True
 
 
-def _check_combine(mode, valid=('mean', 'median', 'std')):
+def _check_combine(mode, valid=('mean', 'median', 'std'), axis=0):
     if mode == "mean":
         def fun(data):
-            return np.mean(data, axis=0)
+            return np.mean(data, axis=axis)
     elif mode == "std":
         def fun(data):
-            return np.std(data, axis=0)
+            return np.std(data, axis=axis)
     elif mode == "median" or mode == np.median:
         def fun(data):
-            return _median_complex(data, axis=0)
+            return _median_complex(data, axis=axis)
     elif callable(mode):
         fun = mode
     else:

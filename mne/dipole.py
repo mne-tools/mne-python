@@ -1481,6 +1481,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         data = np.array([out[1], out[3]])
         out_info = deepcopy(info)
         loc = np.concatenate([pos, ori, np.zeros(6)])
+        out_info._unlocked = True
         out_info['chs'] = [
             dict(ch_name='dip 01', loc=loc, kind=FIFF.FIFFV_DIPOLE_WAVE,
                  coord_frame=FIFF.FIFFV_COORD_UNKNOWN, unit=FIFF.FIFF_UNIT_AM,
@@ -1497,6 +1498,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
                     'experimenter', 'hpi_subsystem', 'proj_id', 'proj_name',
                     'subject_info']:
             out_info[key] = None
+        out_info._unlocked = False
         out_info['bads'] = []
         out_info._update_redundant()
         out_info._check_consistency()

@@ -142,7 +142,8 @@ def test_apply_reference():
     _apply_reference(raw, ['EEG 003'], ['EEG 004'])
 
     # CSD cannot be rereferenced
-    raw.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_CSD
+    with raw.info._unlock():
+        raw.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_CSD
     with pytest.raises(RuntimeError, match="Cannot set.* type 'CSD'"):
         raw.set_eeg_reference()
 
@@ -151,7 +152,8 @@ def test_apply_reference():
 def test_set_eeg_reference():
     """Test rereference eeg data."""
     raw = read_raw_fif(fif_fname, preload=True)
-    raw.info['projs'] = []
+    with raw.info._unlock():
+        raw.info['projs'] = []
 
     # Test setting an average reference projection
     assert (not _has_eeg_average_ref_proj(raw.info['projs']))
@@ -172,7 +174,8 @@ def test_set_eeg_reference():
 
     # Test setting an average reference on non-preloaded data
     raw_nopreload = read_raw_fif(fif_fname, preload=False)
-    raw_nopreload.info['projs'] = []
+    with raw_nopreload.info._unlock():
+        raw_nopreload.info['projs'] = []
     reref, ref_data = set_eeg_reference(raw_nopreload, projection=True)
     assert _has_eeg_average_ref_proj(reref.info['projs'])
     assert not reref.info['projs'][0]['active']
@@ -196,7 +199,8 @@ def test_set_eeg_reference():
     # When creating an average reference fails, make sure the
     # custom_ref_applied flag remains untouched.
     reref = raw.copy()
-    reref.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
+    with reref.info._unlock():
+        reref.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
     reref.pick_types(meg=True, eeg=False)  # Cause making average ref fail
     pytest.raises(ValueError, set_eeg_reference, reref, projection=True)
     assert reref.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_ON
@@ -221,7 +225,8 @@ def test_set_eeg_reference():
 
     # Test that average reference gives identical results when calculated
     # via SSP projection (projection=True) or directly (projection=False)
-    raw.info['projs'] = []
+    with raw.info._unlock():
+        raw.info['projs'] = []
     reref_1, _ = set_eeg_reference(raw.copy(), projection=True)
     reref_1.apply_proj()
     reref_2, _ = set_eeg_reference(raw.copy(), projection=False)
@@ -537,7 +542,7 @@ def test_add_reference():
     # create epochs in delayed mode, allowing removal of CAR when re-reffing
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
                     picks=picks_eeg, preload=True, proj='delayed')
-    with pytest.warns(RuntimeWarning, match='ignored .set to zero.'):
+    with pytest.warns(RuntimeWarning, match='reference channels are ignored'):
         epochs_ref = add_reference_channels(epochs, ['M1', 'M2'], copy=True)
     assert_equal(epochs_ref._data.shape[1], epochs._data.shape[1] + 2)
     _check_channel_names(epochs_ref, ['M1', 'M2'])
@@ -577,7 +582,7 @@ def test_add_reference():
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
                     picks=picks_eeg, preload=True, proj='delayed')
     evoked = epochs.average()
-    with pytest.warns(RuntimeWarning, match='ignored .set to zero.'):
+    with pytest.warns(RuntimeWarning, match='reference channels are ignored'):
         evoked_ref = add_reference_channels(evoked, ['M1', 'M2'], copy=True)
     assert_equal(evoked_ref.data.shape[0], evoked.data.shape[0] + 2)
     _check_channel_names(evoked_ref, ['M1', 'M2'])

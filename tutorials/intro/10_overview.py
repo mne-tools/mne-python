@@ -75,7 +75,7 @@ print(raw.info)
 # `~mne.io.Raw.plot`. In the PSD plot, we'll only plot frequencies below 50 Hz
 # (since our data are low-pass filtered at 40 Hz). In interactive Python
 # sessions, `~mne.io.Raw.plot` is interactive and allows scrolling, scaling,
-# bad channel marking, annotation, projector toggling, etc.
+# bad channel marking, annotations, projector toggling, etc.
 
 raw.plot_psd(fmax=50)
 raw.plot(duration=5, n_channels=30)

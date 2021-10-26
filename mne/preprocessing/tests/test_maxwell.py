@@ -1287,7 +1287,8 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
     if add_ch:
         raw_eeg = read_raw_fif(fname)
         raw_eeg.pick_types(meg=False, eeg=True, exclude=()).load_data()
-        raw_eeg.info['lowpass'] = 40.
+        with raw_eeg.info._unlock():
+            raw_eeg.info['lowpass'] = 40.
         raw = raw_eeg.add_channels([raw])  # prepend the EEG channels
         assert 0 in pick_types(raw.info, meg=False, eeg=True)
     if ignore_ref:

@@ -4,9 +4,10 @@
 #
 # License: BSD-3-Clause
 
+from datetime import datetime, timedelta, timezone, date
 import hashlib
 import os.path as op
-from datetime import datetime, timedelta, timezone, date
+import pickle
 
 import pytest
 import numpy as np
@@ -181,8 +182,6 @@ def test_info():
     info = Info(a=7, b='aaaaa')
     assert ('a' in info)
     assert ('b' in info)
-    info[42] = 'foo'
-    assert (info[42] == 'foo')
 
     # Test info attribute in API objects
     for obj in [raw, epochs, evoked]:
@@ -207,8 +206,8 @@ def test_info():
     assert list(info['ch_names']) == ch_names
 
     # Deleting of regular fields should work
-    info['foo'] = 'bar'
-    del info['foo']
+    info['experimenter'] = 'bar'
+    del info['experimenter']
 
     # Test updating of fields
     del info['chs'][-1]
@@ -247,8 +246,9 @@ def test_read_write_info(tmpdir):
     info['subject_info']['weight'] = 11.1
     info['subject_info']['height'] = 2.3
 
-    if info['gantry_angle'] is None:  # future testing data may include it
-        info['gantry_angle'] = 0.  # Elekta supine position
+    with info._unlock():
+        if info['gantry_angle'] is None:  # future testing data may include it
+            info['gantry_angle'] = 0.  # Elekta supine position
     gantry_angle = info['gantry_angle']
 
     meas_id = info['meas_id']
@@ -279,7 +279,8 @@ def test_read_write_info(tmpdir):
     assert m1 == m2
 
     info = read_info(raw_fname)
-    info['meas_date'] = None
+    with info._unlock():
+        info['meas_date'] = None
     anonymize_info(info, verbose='error')
     assert info['meas_date'] is None
     tmp_fname_3 = tmpdir.join('info3.fif')
@@ -289,8 +290,8 @@ def test_read_write_info(tmpdir):
     assert info2['meas_date'] is None
 
     # Check that having a very old date in fine until you try to save it to fif
-    info['meas_date'] = datetime(1800, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-    info._check_consistency()
+    with info._unlock(check_after=True):
+        info['meas_date'] = datetime(1800, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     fname = tmpdir.join('test.fif')
     with pytest.raises(RuntimeError, match='must be between '):
         write_info(fname, info)
@@ -338,7 +339,8 @@ def test_make_dig_points():
     info = create_info(ch_names=['Test Ch'], sfreq=1000.)
     assert info['dig'] is None
 
-    info['dig'] = _make_dig_points(extra_points=extra_points)
+    with info._unlock():
+        info['dig'] = _make_dig_points(extra_points=extra_points)
     assert (info['dig'])
     assert_allclose(info['dig'][0]['r'], [-.10693, .09980, .06881])
 
@@ -347,7 +349,8 @@ def test_make_dig_points():
     info = create_info(ch_names=['Test Ch'], sfreq=1000.)
     assert info['dig'] is None
 
-    info['dig'] = _make_dig_points(nasion, lpa, rpa, elp_points[3:], None)
+    with info._unlock():
+        info['dig'] = _make_dig_points(nasion, lpa, rpa, elp_points[3:], None)
     assert (info['dig'])
     idx = [d['ident'] for d in info['dig']].index(FIFF.FIFFV_POINT_NASION)
     assert_allclose(info['dig'][idx]['r'], [.0013930, .0131613, -.0046967])
@@ -402,6 +405,7 @@ def test_merge_info():
     pytest.raises(ValueError, _force_update_info, info_a,
                   dict([('sfreq', 1000.)]))
     # KIT System-ID
+    info_a._unlocked = info_b._unlocked = True
     info_a['kit_system_id'] = 50
     assert _merge_info((info_a, info_b))['kit_system_id'] == 50
     info_b['kit_system_id'] = 50
@@ -416,6 +420,7 @@ def test_merge_info():
     assert not info_merged['hpi_results']
     info_a['hpi_meas'] = [{'f1': 3, 'f2': 4}]
     assert _merge_info([info_a, info_d])['hpi_meas'] == info_a['hpi_meas']
+    info_d._unlocked = True
     info_d['hpi_meas'] = [{'f1': 3, 'f2': 4}]
     assert _merge_info([info_a, info_d])['hpi_meas'] == info_d['hpi_meas']
     # This will break because of inconsistency
@@ -455,35 +460,40 @@ def test_check_consistency():
 
     # Bad data types
     info2 = info.copy()
-    info2['sfreq'] = 'foo'
+    with info2._unlock():
+        info2['sfreq'] = 'foo'
     pytest.raises(ValueError, info2._check_consistency)
 
     info2 = info.copy()
-    info2['highpass'] = 'foo'
+    with info2._unlock():
+        info2['highpass'] = 'foo'
     pytest.raises(ValueError, info2._check_consistency)
 
     info2 = info.copy()
-    info2['lowpass'] = 'foo'
+    with info2._unlock():
+        info2['lowpass'] = 'foo'
     pytest.raises(ValueError, info2._check_consistency)
 
     info2 = info.copy()
-    info2['filename'] = 'foo'
+    with info2._unlock():
+        info2['filename'] = 'foo'
     with pytest.warns(RuntimeWarning, match='filename'):
         info2._check_consistency()
 
     # Silent type conversion to float
     info2 = info.copy()
-    info2['sfreq'] = 1
-    info2['highpass'] = 2
-    info2['lowpass'] = 2
-    info2._check_consistency()
+    with info2._unlock(check_after=True):
+        info2['sfreq'] = 1
+        info2['highpass'] = 2
+        info2['lowpass'] = 2
     assert (isinstance(info2['sfreq'], float))
     assert (isinstance(info2['highpass'], float))
     assert (isinstance(info2['lowpass'], float))
 
     # Duplicate channel names
     info2 = info.copy()
-    info2['chs'][2]['ch_name'] = 'b'
+    with info2._unlock():
+        info2['chs'][2]['ch_name'] = 'b'
     pytest.raises(RuntimeError, info2._check_consistency)
 
     # Duplicates appended with running numbers
@@ -536,16 +546,20 @@ def _test_anonymize_info(base_info):
 
     # Fake some subject data
     meas_date = datetime(2010, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-    base_info['meas_date'] = meas_date
-
-    base_info['subject_info'] = dict(id=1, his_id='foobar', last_name='bar',
-                                     first_name='bar', birthday=(1987, 4, 8),
-                                     sex=0, hand=1)
+    with base_info._unlock():
+        base_info['meas_date'] = meas_date
+        base_info['subject_info'] = dict(id=1,
+                                         his_id='foobar',
+                                         last_name='bar',
+                                         first_name='bar',
+                                         birthday=(1987, 4, 8),
+                                         sex=0, hand=1)
 
     # generate expected info...
     # first expected result with no options.
     # will move DOS from 2010/1/1 to 2000/1/1 which is 3653 days.
     exp_info = base_info.copy()
+    exp_info._unlocked = True
     exp_info['description'] = default_desc
     exp_info['experimenter'] = default_str
     exp_info['proj_name'] = default_str
@@ -562,6 +576,7 @@ def _test_anonymize_info(base_info):
     # 2010 and 2000.
     exp_info['subject_info']['birthday'] = (1977, 4, 7)
     exp_info['meas_date'] = default_anon_dos
+    exp_info._unlocked = False
 
     # make copies
     exp_info_3 = exp_info.copy()
@@ -580,14 +595,16 @@ def _test_anonymize_info(base_info):
 
     # exp 2 tests the keep_his option
     exp_info_2 = exp_info.copy()
-    exp_info_2['subject_info']['his_id'] = 'foobar'
-    exp_info_2['subject_info']['sex'] = 0
-    exp_info_2['subject_info']['hand'] = 1
+    with exp_info_2._unlock():
+        exp_info_2['subject_info']['his_id'] = 'foobar'
+        exp_info_2['subject_info']['sex'] = 0
+        exp_info_2['subject_info']['hand'] = 1
 
     # exp 3 tests is a supplied daysback
     delta_t_2 = timedelta(days=43)
-    exp_info_3['subject_info']['birthday'] = (1987, 2, 24)
-    exp_info_3['meas_date'] = meas_date - delta_t_2
+    with exp_info_3._unlock():
+        exp_info_3['subject_info']['birthday'] = (1987, 2, 24)
+        exp_info_3['meas_date'] = meas_date - delta_t_2
     for key in ('file_id', 'meas_id'):
         value = exp_info_3.get(key)
         if value is not None:
@@ -615,13 +632,16 @@ def _test_anonymize_info(base_info):
     # assert_object_equal(new_info, exp_info_4)
 
     # test with meas_date = None
-    base_info['meas_date'] = None
+    with base_info._unlock():
+        base_info['meas_date'] = None
+    exp_info_3._unlocked = True
     exp_info_3['meas_date'] = None
     exp_info_3['file_id']['secs'] = DATE_NONE[0]
     exp_info_3['file_id']['usecs'] = DATE_NONE[1]
     exp_info_3['meas_id']['secs'] = DATE_NONE[0]
     exp_info_3['meas_id']['usecs'] = DATE_NONE[1]
     exp_info_3['subject_info'].pop('birthday', None)
+    exp_info_3._unlocked = False
 
     if base_info['meas_date'] is None:
         with pytest.warns(RuntimeWarning, match='all information'):
@@ -651,7 +671,8 @@ def test_meas_date_convert(stamp, dt):
     assert meas_datetime == datetime(*dt, tzinfo=timezone.utc)
     # smoke test for info __repr__
     info = create_info(1, 1000., 'eeg')
-    info['meas_date'] = meas_datetime
+    with info._unlock():
+        info['meas_date'] = meas_datetime
     assert str(dt[0]) in repr(info)
 
 
@@ -710,7 +731,8 @@ def test_anonymize(tmpdir):
     stamp = _dt_to_stamp(raw.info['meas_date'])
     assert raw.annotations.orig_time == _stamp_to_dt(stamp)
 
-    raw.info['meas_date'] = None
+    with raw.info._unlock():
+        raw.info['meas_date'] = None
     raw.anonymize(daysback=None)
     with pytest.warns(RuntimeWarning, match='None'):
         raw.anonymize(daysback=123)
@@ -791,16 +813,17 @@ def test_check_compensation_consistency():
 def test_field_round_trip(tmpdir):
     """Test round-trip for new fields."""
     info = create_info(1, 1000., 'eeg')
-    for key in ('file_id', 'meas_id'):
-        info[key] = _generate_meas_id()
-    info['device_info'] = dict(
-        type='a', model='b', serial='c', site='d')
-    info['helium_info'] = dict(
-        he_level_raw=1., helium_level=2., orig_file_guid='e', meas_date=(1, 2))
+    with info._unlock():
+        for key in ('file_id', 'meas_id'):
+            info[key] = _generate_meas_id()
+        info['device_info'] = dict(
+            type='a', model='b', serial='c', site='d')
+        info['helium_info'] = dict(
+            he_level_raw=1., helium_level=2.,
+            orig_file_guid='e', meas_date=(1, 2))
     fname = tmpdir.join('temp-info.fif')
     write_info(fname, info)
     info_read = read_info(fname)
-    info_read['dig'] = None  # XXX eventually this should go away
     assert_object_equal(info, info_read)
 
 
@@ -819,16 +842,17 @@ def test_repr():
     info = create_info(1, 1000, 'eeg')
     assert '7 non-empty values' in repr(info)
 
-    t = Transform(1, 2, np.ones((4, 4)))
+    t = Transform('meg', 'head', np.ones((4, 4)))
     info['dev_head_t'] = t
-    assert 'dev_head_t: MEG device -> isotrak transform' in repr(info)
+    assert 'dev_head_t: MEG device -> head transform' in repr(info)
 
 
 def test_repr_html():
     """Test Info HTML repr."""
     info = read_info(raw_fname)
     assert 'Projections' in info._repr_html_()
-    info['projs'] = []
+    with info._unlock():
+        info['projs'] = []
     assert 'Projections' not in info._repr_html_()
     info['bads'] = []
     assert 'None' in info._repr_html_()
@@ -995,3 +1019,41 @@ def test_channel_name_limit(tmpdir, monkeypatch, fname):
     for iv in (inv, inv_read):
         assert iv['info']['ch_names'] == good_long_data_names
     apply_inverse(evoked, inv)  # smoke test
+
+
+@pytest.mark.parametrize('fname_info', (raw_fname, 'create_info'))
+@pytest.mark.parametrize('unlocked', (True, False))
+def test_pickle(fname_info, unlocked):
+    """Test that Info can be (un)pickled."""
+    if fname_info == 'create_info':
+        info = create_info(3, 1000., 'eeg')
+    else:
+        info = read_info(fname_info)
+    assert not info._unlocked
+    info._unlocked = unlocked
+    data = pickle.dumps(info)
+    info_un = pickle.loads(data)
+    assert isinstance(info_un, Info)
+    assert_object_equal(info, info_un)
+    assert info_un._unlocked == unlocked
+
+
+def test_info_bad():
+    """Test our info sanity checkers."""
+    info = create_info(2, 1000., 'eeg')
+    info['description'] = 'foo'
+    info['experimenter'] = 'bar'
+    info['line_freq'] = 50.
+    info['bads'] = info['ch_names'][:1]
+    info['temp'] = ('whatever', 1.)
+    # After 0.24 these should be pytest.raises calls
+    check, klass = pytest.warns, DeprecationWarning
+    with check(klass, match=r"info\['temp'\]"):
+        info['bad_key'] = 1.
+    for (key, match) in ([
+            ('sfreq', r'inst\.resample'),
+            ('chs', r'inst\.add_channels')]):
+        with check(klass, match=match):
+            info[key] = info[key]
+    with pytest.raises(ValueError, match='between meg<->head'):
+        info['dev_head_t'] = Transform('mri', 'head', np.eye(4))

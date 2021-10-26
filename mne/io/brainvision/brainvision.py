@@ -260,9 +260,9 @@ def _read_vmrk(fname):
 
 
 def _read_annotations_brainvision(fname, sfreq='auto'):
-    """Create Annotations from BrainVision vrmk.
+    """Create Annotations from BrainVision vmrk.
 
-    This function reads a .vrmk file and makes an
+    This function reads a .vmrk file and makes an
     :class:`mne.Annotations` object.
 
     Parameters
@@ -275,7 +275,7 @@ def _read_annotations_brainvision(fname, sfreq='auto'):
         files are in samples. If set to 'auto' then
         the sfreq is taken from the .vhdr file that
         has the same name (without file extension). So
-        data.vrmk looks for sfreq in data.vhdr.
+        data.vmrk looks for sfreq in data.vhdr.
 
     Returns
     -------
@@ -405,6 +405,7 @@ def _aux_vhdr_info(vhdr_fname):
     # Sampling interval is given in microsec
     sfreq = 1e6 / cfg.getfloat(cinfostr, 'SamplingInterval')
     info = _empty_info(sfreq)
+    info._unlocked = False
     return settings, cfg, cinfostr, info
 
 
@@ -454,6 +455,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
                       "not a file with extension '%s'." % ext)
 
     settings, cfg, cinfostr, info = _aux_vhdr_info(vhdr_fname)
+    info._unlocked = True
 
     order = cfg.get(cinfostr, 'DataOrientation')
     if order not in _orientation_dict:
@@ -488,13 +490,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
 
     for line in lines:
         match = re.findall(regexp, line.strip())
-
         # Always take first measurement date we find
         if match:
             date_str = match[0]
             info['meas_date'] = _str_to_meas_date(date_str)
             break
-
     else:
         info['meas_date'] = None
 
@@ -673,6 +673,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             line = re.split(divider, settings[idx + i])
             highpass.append(line[hp_col + real_shift])
             lowpass.append(line[lp_col + real_shift])
+
         if len(highpass) == 0:
             pass
         elif len(set(highpass)) == 1:
@@ -813,6 +814,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             unit=unit, unit_mul=FIFF.FIFF_UNITM_NONE,
             coord_frame=FIFF.FIFFV_COORD_HEAD))
 
+    info._unlocked = False
     info._update_redundant()
     return (info, data_fname, fmt, order, n_samples, mrk_fname, montage,
             orig_units)

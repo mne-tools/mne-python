@@ -214,9 +214,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._last_samps = np.array(last_samps)
         self._first_samps = np.array(first_samps)
         orig_ch_names = info['ch_names']
-        if isinstance(info['meas_date'], tuple):  # be permissive of old code
-            info['meas_date'] = _stamp_to_dt(info['meas_date'])
-        info._check_consistency()  # make sure subclass did a good job
+        with info._unlock(check_after=True):
+            # be permissive of old code
+            if isinstance(info['meas_date'], tuple):
+                info['meas_date'] = _stamp_to_dt(info['meas_date'])
         self.info = info
         self.buffer_size_sec = float(buffer_size_sec)
         cals = np.empty(info['nchan'])
@@ -1253,10 +1254,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         assert np.array_equal(n_news, self._last_samps - self._first_samps + 1)
         self._data = new_data
         self.preload = True
-        self.info['sfreq'] = sfreq
         lowpass = self.info.get('lowpass')
         lowpass = np.inf if lowpass is None else lowpass
-        self.info['lowpass'] = min(lowpass, sfreq / 2.)
+        with self.info._unlock():
+            self.info['lowpass'] = min(lowpass, sfreq / 2.)
+            self.info['sfreq'] = sfreq
 
         # See the comment above why we ignore all errors here.
         if events is None:
@@ -1401,8 +1403,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             .. note:: Due to FIFF file limitations, the maximum split
                       size is 2GB.
-        split_naming : {'neuromag' | 'bids'}
-            Add the filename partition with the appropriate naming schema.
+        %(split_naming)s
 
             .. versionadded:: 0.17
         %(verbose_meth)s
@@ -1934,11 +1935,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
               f"{'name':<{lens['name']}}  "
               f"{'type':<{lens['type']}}  "
               f"{'unit':<{lens['unit']}}  "
-              f"{'min':>8}  "
-              f"{'Q1':>8}  "
-              f"{'median':>8}  "
-              f"{'Q3':>8}  "
-              f"{'max':>8}")
+              f"{'min':>9}  "
+              f"{'Q1':>9}  "
+              f"{'median':>9}  "
+              f"{'Q3':>9}  "
+              f"{'max':>9}")
         # print description for each channel
         for i in range(nchan):
             msg = (f"{i:>{lens['ch']}}  "
@@ -1946,8 +1947,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    f"{cols['type'][i].upper():<{lens['type']}}  "
                    f"{cols['unit'][i]:<{lens['unit']}}  ")
             for col in ["min", "Q1", "median", "Q3"]:
-                msg += f"{cols[col][i]:>8.2f}  "
-            msg += f"{cols['max'][i]:>8.2f}"
+                msg += f"{cols[col][i]:>9.2f}  "
+            msg += f"{cols['max'][i]:>9.2f}"
             print(msg)
 
 

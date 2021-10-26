@@ -39,7 +39,7 @@ from ..rank import compute_rank
 from ..io.proj import setup_proj
 from ..utils import (verbose, get_config, warn, _check_ch_locs, _check_option,
                      logger, fill_doc, _pl, _check_sphere, _ensure_int,
-                     _validate_type, _to_rgb)
+                     _validate_type, _to_rgb, deprecated)
 from ..transforms import apply_trans
 
 
@@ -810,7 +810,8 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
 @verbose
 def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                  show_names=False, ch_groups=None, to_sphere=True, axes=None,
-                 block=False, show=True, sphere=None, verbose=None):
+                 block=False, show=True, sphere=None, pointsize=None,
+                 linewidth=2, verbose=None):
     """Plot sensors positions.
 
     Parameters
@@ -860,6 +861,11 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     show : bool
         Show figure if True. Defaults to True.
     %(topomap_sphere_auto)s
+    pointsize : float | None
+        The size of the points. If None (default), will bet set to 75 if
+        ``kind='3d'``, or 25 otherwise.
+    linewidth : float
+        The width of the outline. If 0, the outline will not be drawn.
     %(verbose)s
 
     Returns
@@ -906,10 +912,11 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     if len(picks) == 0:
         raise ValueError('Could not find any channels of type %s.' % ch_type)
 
-    chs = [info['chs'][pick] for pick in picks]
-    if not _check_ch_locs(chs):
+    if not _check_ch_locs(info=info, picks=picks):
         raise RuntimeError('No valid channel positions found')
+
     dev_head_t = info['dev_head_t']
+    chs = [info['chs'][pick] for pick in picks]
     pos = np.empty((len(chs), 3))
     for ci, ch in enumerate(chs):
         pos[ci] = ch['loc'][:3]
@@ -968,7 +975,8 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     title = 'Sensor positions (%s)' % ch_type if title is None else title
     fig = _plot_sensors(pos, info, picks, colors, bads, ch_names, title,
                         show_names, axes, show, kind, block,
-                        to_sphere, sphere)
+                        to_sphere, sphere, pointsize=pointsize,
+                        linewidth=linewidth)
     if kind == 'select':
         return fig, fig.lasso.selection
     return fig
@@ -1008,7 +1016,8 @@ def _close_event(event, fig):
 
 
 def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
-                  ax, show, kind, block, to_sphere, sphere):
+                  ax, show, kind, block, to_sphere, sphere, pointsize=None,
+                  linewidth=2):
     """Plot sensors."""
     from matplotlib import rcParams
     import matplotlib.pyplot as plt
@@ -1030,9 +1039,11 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
         fig = ax.get_figure()
 
     if kind == '3d':
+        pointsize = 75 if pointsize is None else pointsize
         ax.text(0, 0, 0, '', zorder=1)
+
         ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors,
-                   s=75, edgecolor=edgecolors, linewidth=2)
+                   s=pointsize, edgecolor=edgecolors, linewidth=linewidth)
 
         ax.azim = 90
         ax.elev = 0
@@ -1040,13 +1051,15 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
         ax.yaxis.set_label_text('y (m)')
         ax.zaxis.set_label_text('z (m)')
     else:  # kind in 'select', 'topomap'
+        pointsize = 25 if pointsize is None else pointsize
         ax.text(0, 0, '', zorder=1)
 
         pos, outlines = _get_pos_outlines(info, picks, sphere,
                                           to_sphere=to_sphere)
         _draw_outlines(ax, outlines)
         pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, clip_on=False,
-                         c=colors, edgecolors=edgecolors, s=25, lw=2)
+                         c=colors, edgecolors=edgecolors, s=pointsize,
+                         lw=linewidth)
         if kind == 'select':
             fig.lasso = SelectFromCollection(ax, pts, ch_names)
         else:
@@ -1674,7 +1687,8 @@ def _handle_decim(info, decim, lowpass):
     if isinstance(decim, str) and decim == 'auto':
         lp = info['sfreq'] if info['lowpass'] is None else info['lowpass']
         lp = min(lp, info['sfreq'] if lowpass is None else lowpass)
-        info['lowpass'] = lp
+        with info._unlock():
+            info['lowpass'] = lp
         decim = max(int(info['sfreq'] / (lp * 3) + 1e-6), 1)
     decim = _ensure_int(decim, 'decim', must_be='an int or "auto"')
     if decim <= 0:
@@ -1779,7 +1793,8 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
         # we risk the rank estimates being incorrect (i.e., if the projectors
         # do not match).
         info_proj = info.copy()
-        info_proj['projs'] += cov['projs']
+        with info_proj._unlock():
+            info_proj['projs'] += cov['projs']
         this_rank = {}
         # assemble rank dict for this cov, such that we have meg
         for ch_type, this_picks in picks_list2:
@@ -1857,9 +1872,10 @@ def _check_time_unit(time_unit, times):
 def _plot_masked_image(ax, data, times, mask=None, yvals=None,
                        cmap="RdBu_r", vmin=None, vmax=None, ylim=None,
                        mask_style="both", mask_alpha=.25, mask_cmap="Greys",
-                       yscale="linear"):
+                       yscale="linear", cnorm=None):
     """Plot a potentially masked (evoked, TFR, ...) 2D image."""
-    from matplotlib import ticker, __version__ as mpl_version
+    from matplotlib import ticker
+    from matplotlib.colors import Normalize
 
     if mask_style is None and mask is not None:
         mask_style = "both"  # default
@@ -1867,6 +1883,8 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
     draw_contour = mask_style in {"both", "contour"}
     if cmap is None:
         mask_cmap = cmap
+    if cnorm is None:
+        cnorm = Normalize(vmin=vmin, vmax=vmax)
 
     # mask param check and preparation
     if draw_mask is None:
@@ -1915,11 +1933,6 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
         else:
             yscale = 'linear'
 
-    # https://github.com/matplotlib/matplotlib/pull/9477
-    if yscale == "log" and mpl_version == "2.1.0":
-        warn("With matplotlib version 2.1.0, lines may not show up in "
-             "`AverageTFR.plot_joint`. Upgrade to a more recent version.")
-
     if yscale == "log":  # pcolormesh for log scale
         # compute bounds between time samples
         time_lims, = centers_to_edges(times)
@@ -1932,13 +1945,13 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
 
         if mask is not None:
             ax.pcolormesh(time_mesh, yval_mesh, data, cmap=mask_cmap,
-                          vmin=vmin, vmax=vmax, alpha=mask_alpha)
+                          norm=cnorm, alpha=mask_alpha)
             im = ax.pcolormesh(time_mesh, yval_mesh,
                                np.ma.masked_where(~mask, data), cmap=cmap,
-                               vmin=vmin, vmax=vmax, alpha=1)
+                               norm=cnorm, alpha=1)
         else:
             im = ax.pcolormesh(time_mesh, yval_mesh, data, cmap=cmap,
-                               vmin=vmin, vmax=vmax)
+                               norm=cnorm)
         if ylim is None:
             ylim = yval_lims[[0, -1]]
         if yscale == 'log':
@@ -2021,6 +2034,7 @@ def _make_combine_callable(combine):
     return combine
 
 
+@deprecated('Use cnorm parameter instead.')
 def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
     """Center given colormap (ranging from vmin to vmax) at value 0.
 
@@ -2178,8 +2192,9 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         # Needed because the data do not match the info anymore.
         info = create_info([inst.ch_names[p] for p in picks],
                            inst.info['sfreq'], types)
-        info['chs'] = [inst.info['chs'][p] for p in picks]
-        info['dev_head_t'] = inst.info['dev_head_t']
+        with info._unlock():
+            info['chs'] = [inst.info['chs'][p] for p in picks]
+            info['dev_head_t'] = inst.info['dev_head_t']
         ch_types_used = list()
         for this_type in _VALID_CHANNEL_TYPES:
             if this_type in types:

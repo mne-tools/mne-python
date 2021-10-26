@@ -198,7 +198,8 @@ def _plot_update_evoked_topomap(params, bools):
 
     params['proj_bools'] = bools
     new_evoked = params['evoked'].copy()
-    new_evoked.info['projs'] = []
+    with new_evoked.info._unlock():
+        new_evoked.info['projs'] = []
     new_evoked.add_proj(projs)
     new_evoked.apply_proj()
 
@@ -1081,9 +1082,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     ----------
     ica : instance of mne.preprocessing.ICA
         The ICA solution.
-    picks : int | list of int | slice | None
-        Indices of the ICA components to visualize. If ``None``, all components
-        are plotted in batches of 20.
+    %(picks_ica)s  If ``None``, all components are plotted in batches of 20.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are
         collected in pairs and the RMS for each pair is plotted.
@@ -1612,7 +1611,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     data = evoked.data
 
     # remove compensation matrices (safe: only plotting & already made copy)
-    evoked.info['comps'] = []
+    with evoked.info._unlock():
+        evoked.info['comps'] = []
     evoked = evoked._pick_drop_channels(picks, verbose=False)
     # determine which times to plot
     if isinstance(axes, plt.Axes):
@@ -1895,7 +1895,9 @@ def plot_epochs_psd_topomap(epochs, bands=None,
     """
     ch_type = _get_ch_type(epochs, ch_type)
     units = _handle_default('units', None)
+    scalings = _handle_default('scalings', None)
     unit = units[ch_type]
+    scaling = scalings[ch_type]
 
     picks, pos, merge_channels, names, ch_type, sphere, clip_origin = \
         _prepare_topomap_plot(epochs, ch_type, sphere=sphere)
@@ -1907,6 +1909,7 @@ def plot_epochs_psd_topomap(epochs, bands=None,
                                  normalization=normalization, picks=picks,
                                  proj=proj, n_jobs=n_jobs)
     psds = np.mean(psds, axis=0)
+    psds *= scaling**2
 
     if merge_channels:
         psds, names = _merge_ch_data(psds, ch_type, names, method='mean')

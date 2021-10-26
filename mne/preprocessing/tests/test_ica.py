@@ -77,7 +77,8 @@ def test_ica_full_data_recovery(method):
     # Most basic recovery
     _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
-    raw.info['projs'] = []
+    with raw.info._unlock():
+        raw.info['projs'] = []
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')[:10]
@@ -169,18 +170,21 @@ def test_warnings():
     ica = ICA(n_components=2, max_iter=1, method='infomax', random_state=0)
 
     # not high-passed
-    epochs.info['highpass'] = 0.
+    with epochs.info._unlock():
+        epochs.info['highpass'] = 0.
     with pytest.warns(RuntimeWarning, match='should be high-pass filtered'):
         ica.fit(epochs)
 
     # baselined
-    epochs.info['highpass'] = 1.
+    with epochs.info._unlock():
+        epochs.info['highpass'] = 1.
     epochs.baseline = (epochs.tmin, 0)
     with pytest.warns(RuntimeWarning, match='epochs.*were baseline-corrected'):
         ica.fit(epochs)
 
     # cleaning baseline-corrected data
-    epochs.info['highpass'] = 1.
+    with epochs.info._unlock():
+        epochs.info['highpass'] = 1.
     epochs.baseline = None
     ica.fit(epochs)
 
@@ -200,7 +204,8 @@ def test_ica_noop(n_components, n_pca_components, tmpdir):
     info = create_info(10, 1000., 'eeg')
     raw = RawArray(data, info)
     raw.set_eeg_reference()
-    raw.info['highpass'] = 1.0  # fake high-pass filtering
+    with raw.info._unlock():
+        raw.info['highpass'] = 1.0  # fake high-pass filtering
     assert np.linalg.matrix_rank(raw.get_data()) == 9
     kwargs = dict(n_components=n_components, verbose=True)
     if isinstance(n_components, int) and \
@@ -453,6 +458,10 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components):
         'meg' in ica
 
     print(ica)  # to test repr
+    repr_ = ica.__repr__()
+    repr_html_ = ica._repr_html_()
+    assert repr_ == f'<ICA | no decomposition, method: {method}>'
+    assert method in repr_html_
 
     # test fit checker
     with pytest.raises(RuntimeError, match='No fit available'):
@@ -468,6 +477,13 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components):
     with pytest.warns(UserWarning, match='did not converge'):
         ica.fit(raw)
     repr(ica)  # to test repr
+    repr_ = ica.__repr__()
+    repr_html_ = ica._repr_html_()
+    assert 'raw data decomposition' in repr_
+    assert f'{ica.n_components_} ICA components' in repr_
+    assert 'Available PCA components' in repr_html_
+    assert 'Explained variance' in repr_html_
+
     assert ('mag' in ica)  # should now work without error
 
     # test re-fit
@@ -614,11 +630,10 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
         ica.find_bads_ecg(raw, threshold=None)
     with pytest.warns(RuntimeWarning, match='is longer than the signal'):
         ica.find_bads_ecg(raw, threshold=0.25)
-    # check invalid `measure`
-    with pytest.warns(RuntimeWarning, match='longer'):
-        with pytest.raises(ValueError, match='Unknown measure'):
-            ica.find_bads_ecg(raw, method='correlation', measure='unknown',
-                              threshold='auto')
+    # check invalid measure argument
+    with pytest.raises(ValueError, match='Invalid value'):
+        ica.find_bads_ecg(raw, method='correlation', measure='unknown',
+                          threshold='auto')
     # check passing a ch_name to find_bads_ecg
     with pytest.warns(RuntimeWarning, match='longer'):
         _, scores_1 = ica.find_bads_ecg(raw, threshold='auto')
@@ -826,7 +841,7 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
     assert_equal(len(scores), ica.n_components_)
     with pytest.raises(ValueError, match='only Raw and Epochs input'):
         ica.find_bads_ecg(epochs.average(), method='ctps', threshold='auto')
-    with pytest.raises(ValueError, match='not supported.'):
+    with pytest.raises(ValueError, match='Invalid value'):
         ica.find_bads_ecg(raw, method='crazy-coupling')
 
     with pytest.warns(RuntimeWarning, match='longer'):
@@ -1131,8 +1146,10 @@ def test_bad_channels(method, allow_ref_meg):
     epochs = EpochsArray(data, info)
 
     # fake high-pass filtering
-    raw.info['highpass'] = 1.0
-    epochs.info['highpass'] = 1.0
+    with raw.info._unlock():
+        raw.info['highpass'] = 1.0
+    with epochs.info._unlock():
+        epochs.info['highpass'] = 1.0
 
     n_components = 0.9
     data_chs = list(_DATA_CH_TYPES_SPLIT + ('eog',))

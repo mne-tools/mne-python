@@ -171,7 +171,7 @@ event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
 
 epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=-0.3, tmax=0.7,
                     preload=True)
-fig = epochs.plot()
+fig = epochs.plot(events=events)
 
 # %%
 # It is also possible to automatically drop epochs, when first creating them or

@@ -9,6 +9,7 @@ from copy import deepcopy
 from distutils.version import LooseVersion
 from functools import partial
 from io import BytesIO
+import os
 import os.path as op
 import pickle
 
@@ -545,7 +546,8 @@ def test_decim():
     data = rng.randn(n_epochs, n_channels, n_times)
     events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
     info = create_info(n_channels, sfreq, 'eeg')
-    info['lowpass'] = sfreq_new / float(decim)
+    with info._unlock():
+        info['lowpass'] = sfreq_new / float(decim)
     epochs = EpochsArray(data, info, events)
     data_epochs = epochs.copy().decimate(decim).get_data()
     data_epochs_2 = epochs.copy().decimate(decim, offset=1).get_data()
@@ -561,7 +563,8 @@ def test_decim():
     raw.info.normalize_proj()
     del picks
     sfreq_new = raw.info['sfreq'] / decim
-    raw.info['lowpass'] = sfreq_new / 12.  # suppress aliasing warnings
+    with raw.info._unlock():
+        raw.info['lowpass'] = sfreq_new / 12.  # suppress aliasing warnings
     pytest.raises(ValueError, epochs.decimate, -1)
     pytest.raises(ValueError, epochs.decimate, 2, offset=-1)
     pytest.raises(ValueError, epochs.decimate, 2, offset=2)
@@ -943,8 +946,9 @@ def test_io_epochs_basic(tmpdir):
         epochs_dec = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                             decim=2)
 
-    # decim without lowpass
-    epochs_dec.info['lowpass'] = None
+    # decim without
+    with epochs_dec.info._unlock():
+        epochs_dec.info['lowpass'] = None
     with pytest.warns(RuntimeWarning, match='aliasing'):
         epochs_dec.decimate(2)
 
@@ -1207,6 +1211,32 @@ def test_split_saving(tmpdir, split_size, n_epochs, n_files, size, metadata,
         assert_allclose(epochs2.get_data(), epochs_data)
         assert_array_equal(epochs.events, epochs2.events)
 
+    # Check that if BIDS is used and no split is needed it defaults to
+    # simple writing without _split- entity.
+    split_fname = str(tmpdir.join('test_epo.fif'))
+    split_fname_neuromag_part1 = split_fname.replace(
+        'epo.fif', f'epo-{n_files + 1}.fif')
+    split_fname_bids_part1 = split_fname.replace(
+        '_epo', f'_split-{n_files + 1:02d}_epo')
+
+    epochs.save(split_fname, split_naming='bids', verbose=True)
+    assert op.isfile(split_fname)
+    assert not op.isfile(split_fname_bids_part1)
+    for split_naming in ('neuromag', 'bids'):
+        with pytest.raises(FileExistsError, match='Destination file'):
+            epochs.save(split_fname, split_naming=split_naming, verbose=True)
+    os.remove(split_fname)
+    # we don't test for reserved files as it's not implemented here
+
+    epochs.save(split_fname, split_size='1.4MB', verbose=True)
+    # check that the filenames match the intended pattern
+    assert op.isfile(split_fname)
+    assert op.isfile(split_fname_neuromag_part1)
+    # check that filenames are being formatted correctly for BIDS
+    epochs.save(split_fname, split_size='1.4MB', split_naming='bids',
+                overwrite=True, verbose=True)
+    assert op.isfile(split_fname_bids_part1)
+
 
 def test_split_many_reset(tmpdir):
     """Test splitting with many events and using reset."""
@@ -1293,7 +1323,8 @@ def test_epochs_proj(tmpdir):
     assert (not _has_eeg_average_ref_proj(epochs.info['projs']))
 
     # make sure we don't add avg ref when a custom ref has been applied
-    raw.info['custom_ref_applied'] = True
+    with raw.info._unlock():
+        raw.info['custom_ref_applied'] = True
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     proj=True)
     assert (not _has_eeg_average_ref_proj(epochs.info['projs']))
@@ -1303,7 +1334,8 @@ def test_epochs_proj(tmpdir):
     proj = raw.info['projs']
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     proj=False)
-    epochs.info['projs'] = []
+    with epochs.info._unlock():
+        epochs.info['projs'] = []
     data = epochs.copy().add_proj(proj).apply_proj().get_data()
     # save and reload data
     fname_epo = op.join(tempdir, 'temp-epo.fif')
@@ -1357,12 +1389,15 @@ def test_evoked_io_from_epochs(tmpdir):
     """Test IO of evoked data made from epochs."""
     tempdir = str(tmpdir)
     raw, events, picks = _get_data()
-    raw.info['lowpass'] = 40  # avoid aliasing warnings
+    with raw.info._unlock():
+        raw.info['lowpass'] = 40  # avoid aliasing warnings
     # offset our tmin so we don't get exactly a zero value when decimating
     epochs = Epochs(raw, events[:4], event_id, tmin + 0.011, tmax,
                     picks=picks, decim=5)
     evoked = epochs.average()
-    evoked.info['proj_name'] = ''  # Test that empty string shortcuts to None.
+    with evoked.info._unlock():
+        # Test that empty string shortcuts to None.
+        evoked.info['proj_name'] = ''
     fname_temp = op.join(tempdir, 'evoked-ave.fif')
     evoked.save(fname_temp)
     evoked2 = read_evokeds(fname_temp)[0]
@@ -2270,7 +2305,8 @@ def test_delayed_epochs():
     raw.info.normalize_proj()
     del picks
     n_epochs = 2  # number we expect after rejection
-    raw.info['lowpass'] = 40.  # fake the LP info so no warnings
+    with raw.info._unlock():
+        raw.info['lowpass'] = 40.  # fake the LP info so no warnings
     for decim in (1, 3):
         proj_data = Epochs(raw, events, event_id, tmin, tmax, proj=True,
                            reject=reject, decim=decim)
@@ -2296,7 +2332,8 @@ def test_delayed_epochs():
                         epochs = EpochsArray(comp, raw.info, tmin=use_tmin,
                                              event_id=1, events=fake_events,
                                              proj=proj)
-                        epochs.info['sfreq'] /= decim
+                        with epochs.info._unlock():
+                            epochs.info['sfreq'] /= decim
                         assert_equal(len(epochs), n_epochs)
                     assert (raw.proj is False)
                     assert (epochs.proj is
@@ -2386,18 +2423,20 @@ def test_contains():
     # Add seeg channel
     seeg = RawArray(np.zeros((1, len(raw.times))),
                     create_info(['SEEG 001'], raw.info['sfreq'], 'seeg'))
-    for key in ('dev_head_t', 'highpass', 'lowpass',
-                'dig', 'description', 'acq_pars', 'experimenter',
-                'proj_name'):
-        seeg.info[key] = raw.info[key]
+    with seeg.info._unlock():
+        for key in ('dev_head_t', 'highpass', 'lowpass',
+                    'dig', 'description', 'acq_pars', 'experimenter',
+                    'proj_name'):
+            seeg.info[key] = raw.info[key]
     raw.add_channels([seeg])
     # Add dbs channel
     dbs = RawArray(np.zeros((1, len(raw.times))),
                    create_info(['DBS 001'], raw.info['sfreq'], 'dbs'))
-    for key in ('dev_head_t', 'highpass', 'lowpass',
-                'dig', 'description', 'acq_pars', 'experimenter',
-                'proj_name'):
-        dbs.info[key] = raw.info[key]
+    with dbs.info._unlock():
+        for key in ('dev_head_t', 'highpass', 'lowpass',
+                    'dig', 'description', 'acq_pars', 'experimenter',
+                    'proj_name'):
+            dbs.info[key] = raw.info[key]
     raw.add_channels([dbs])
     tests = [(('mag', False, False, False), ('grad', 'eeg', 'seeg', 'dbs')),
              (('grad', False, False, False), ('mag', 'eeg', 'seeg', 'dbs')),
@@ -2549,30 +2588,35 @@ def test_add_channels_epochs():
     pytest.raises(RuntimeError, add_channels_epochs, [epochs_meg, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.info['sfreq'] = None
+    with epochs_meg2.info._unlock():
+        epochs_meg2.info['sfreq'] = None
     pytest.raises(RuntimeError, add_channels_epochs, [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.info['sfreq'] += 10
+    with epochs_meg2.info._unlock():
+        epochs_meg2.info['sfreq'] += 10
     pytest.raises(RuntimeError, add_channels_epochs, [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.info['chs'][1]['ch_name'] = epochs_meg2.info['ch_names'][0]
+    with epochs_meg2.info._unlock():
+        epochs_meg2.info['chs'][1]['ch_name'] = epochs_meg2.info['ch_names'][0]
     epochs_meg2.info._update_redundant()
     with pytest.warns(RuntimeWarning, match='not unique'):
         pytest.raises(RuntimeError, add_channels_epochs,
                       [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.info['dev_head_t']['to'] += 1
+    with epochs_meg2.info._unlock():
+        epochs_meg2.info['dev_head_t']['to'] += 1
     pytest.raises(ValueError, add_channels_epochs, [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.info['dev_head_t']['to'] += 1
+    with epochs_meg2.info._unlock():
+        epochs_meg2.info['dev_head_t']['to'] += 1
     pytest.raises(ValueError, add_channels_epochs, [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.info['expimenter'] = 'foo'
+    epochs_meg2.info['experimenter'] = 'foo'
     pytest.raises(RuntimeError, add_channels_epochs, [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
@@ -2819,7 +2863,8 @@ def test_add_channels():
 
     # Now test errors
     epoch_badsf = epoch_eeg.copy()
-    epoch_badsf.info['sfreq'] = 3.1415927
+    with epoch_badsf.info._unlock():
+        epoch_badsf.info['sfreq'] = 3.1415927
     epoch_eeg = epoch_eeg.crop(-.1, .1)
 
     epoch_meg.load_data()
@@ -3248,9 +3293,14 @@ def test_average_methods():
     n_epochs, n_channels, n_times = 5, 10, 20
     sfreq = 1000.
     data = rng.randn(n_epochs, n_channels, n_times)
+
     events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
+    # Add second event type
+    events[-2:, 2] = 2
+    event_id = dict(first=1, second=2)
+
     info = create_info(n_channels, sfreq, 'eeg')
-    epochs = EpochsArray(data, info, events)
+    epochs = EpochsArray(data, info, events, event_id=event_id)
 
     for method in ('mean', 'median'):
         if method == "mean":
@@ -3262,6 +3312,14 @@ def test_average_methods():
 
         evoked_data = epochs.average(method=method).data
         assert_array_equal(evoked_data, fun(data))
+
+    # Test averaging by event type
+    ev = epochs.average(by_event_type=True)
+    assert len(ev) == 2
+    assert ev[0].comment == 'first'
+    assert_array_equal(ev[0].data, np.mean(data[:-2], axis=0))
+    assert ev[1].comment == 'second'
+    assert_array_equal(ev[1].data, np.mean(data[-2:], axis=0))
 
 
 @pytest.mark.parametrize('relative', (True, False))

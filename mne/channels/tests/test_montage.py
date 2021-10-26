@@ -1523,7 +1523,8 @@ def test_get_montage():
     assert_dig_allclose(raw_bv2.info, raw_bv.info)
 
     # if dig is not set in the info, then montage returns None
-    raw.info['dig'] = None
+    with raw.info._unlock():
+        raw.info['dig'] = None
     assert raw.get_montage() is None
 
     # the montage should fulfill a roundtrip with make_dig_montage

@@ -256,6 +256,7 @@ class RawEGI(BaseRaw):
                              'coil_type': FIFF.FIFFV_COIL_NONE,
                              'unit': FIFF.FIFF_UNIT_NONE})
         info['chs'] = chs
+        info._unlocked = False
         info._update_redundant()
         super(RawEGI, self).__init__(
             info, preload, orig_format=egi_info['orig_format'],

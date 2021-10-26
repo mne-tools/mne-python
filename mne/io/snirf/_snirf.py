@@ -303,12 +303,12 @@ class RawSNIRF(BaseRaw):
                     elif dign == b'RPA':
                         rpa = diglocs[idx, :3]
                     else:
-                        extra_ps[f'EEG{len(extra_ps) + 1:03d}'] = diglocs[idx]
-                info['dig'] = _make_dig_points(nasion=nasion, lpa=lpa, rpa=rpa,
-                                               hpi=hpi, dig_ch_pos=extra_ps,
-                                               coord_frame=_frame_to_str[
-                                                   coord_frame])
-
+                        extra_ps[f'EEG{len(extra_ps) + 1:03d}'] = \
+                            diglocs[idx]
+                dig = _make_dig_points(
+                    nasion=nasion, lpa=lpa, rpa=rpa, hpi=hpi,
+                    dig_ch_pos=extra_ps,
+                    coord_frame=_frame_to_str[coord_frame])
             else:
                 ch_locs = [info['chs'][idx]['loc'][0:3]
                            for idx in range(len(channels))]
@@ -319,13 +319,15 @@ class RawSNIRF(BaseRaw):
                     fid['coord_frame'] = FIFF.FIFFV_COORD_HEAD
                 for ii, ch_loc in enumerate(ch_locs, 1):
                     dig.append(dict(
-                        kind=FIFF.FIFFV_POINT_EEG,  # misnomer probably okay
+                        kind=FIFF.FIFFV_POINT_EEG,  # misnomer prob okay
                         r=ch_loc,
                         ident=ii,
                         coord_frame=FIFF.FIFFV_COORD_HEAD,
                     ))
-                info['dig'] = _format_dig_points(dig)
+                dig = _format_dig_points(dig)
                 del head_t
+            with info._unlock():
+                info['dig'] = dig
 
             str_date = np.array((dat.get(
                 '/nirs/metaDataTags/MeasurementDate')))[0].decode('UTF-8')
@@ -349,17 +351,19 @@ class RawSNIRF(BaseRaw):
                      f"instead of {str_datetime}")
                 meas_date = datetime.datetime(2000, 1, 1, 0, 0, 0)
             meas_date = meas_date.replace(tzinfo=datetime.timezone.utc)
-            info['meas_date'] = meas_date
+            with info._unlock():
+                info['meas_date'] = meas_date
 
             if 'DateOfBirth' in dat.get('nirs/metaDataTags/'):
                 str_birth = np.array((dat.get('/nirs/metaDataTags/'
                                               'DateOfBirth')))[0].decode()
                 birth_matched = re.fullmatch(r'(\d+)-(\d+)-(\d+)', str_birth)
                 if birth_matched is not None:
-                    info["subject_info"]['birthday'] = (
-                        int(birth_matched.groups()[0]),
-                        int(birth_matched.groups()[1]),
-                        int(birth_matched.groups()[2]))
+                    birthday = (int(birth_matched.groups()[0]),
+                                int(birth_matched.groups()[1]),
+                                int(birth_matched.groups()[2]))
+                    with info._unlock():
+                        info["subject_info"]['birthday'] = birthday
 
             super(RawSNIRF, self).__init__(info, preload, filenames=[fname],
                                            last_samps=[last_samps],

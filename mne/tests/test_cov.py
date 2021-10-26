@@ -338,7 +338,8 @@ def test_cov_estimation_on_raw(method, tmpdir):
 def test_cov_estimation_on_raw_reg():
     """Test estimation from raw with regularization."""
     raw = read_raw_fif(raw_fname, preload=True)
-    raw.info['sfreq'] /= 10.
+    with raw.info._unlock():
+        raw.info['sfreq'] /= 10.
     raw = RawArray(raw._data[:, ::10].copy(), raw.info)  # decimate for speed
     cov_mne = read_cov(erm_cov_fname)
     with pytest.warns(RuntimeWarning, match='Too few samples'):
@@ -808,7 +809,8 @@ def test_compute_whitener_rank():
     """Test risky rank options."""
     info = read_info(ave_fname)
     info = pick_info(info, pick_types(info, meg=True))
-    info['projs'] = []
+    with info._unlock():
+        info['projs'] = []
     # need a square version because the diag one takes shortcuts in
     # compute_whitener (users shouldn't even need this function so it's
     # private)

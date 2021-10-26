@@ -44,7 +44,7 @@ raw_empty_room_fname = op.join(
 raw_empty_room = mne.io.read_raw_fif(raw_empty_room_fname)
 raw_empty_room.crop(0, 60)
 raw_empty_room.info['bads'] = ['MEG 2443']
-raw_empty_room.info['projs'] = raw.info['projs']
+raw_empty_room.add_proj(raw.info['projs'])
 noise_cov = mne.compute_raw_covariance(
     raw_empty_room, method=['empirical', 'shrunk'])
 del raw_empty_room
