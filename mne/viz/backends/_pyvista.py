@@ -191,7 +191,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             if not hasattr(self.plotter, "iren"):
                 self.plotter.iren = None
 
-        self.plotter.enable_3_lights()
+        self.update_lighting()
 
     @property
     def _all_plotters(self):
@@ -234,6 +234,25 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def scene(self):
         return self.figure
+
+    def update_lighting(self):
+        # Inspired from Mayavi's version of Raymond Maple 3-lights illumination
+        for renderer in self._all_renderers:
+            lights = list(renderer.GetLights())
+            headlight = lights.pop(0)
+            headlight.SetSwitch(False)
+            # below and centered, left and above, right and above
+            az_el_in = ((0, -45, 0.7), (-60, 30, 0.7), (60, 30, 0.7))
+            for li, light in enumerate(lights):
+                if li < len(az_el_in):
+                    light.SetSwitch(True)
+                    light.SetPosition(_to_pos(*az_el_in[li][:2]))
+                    light.SetIntensity(az_el_in[li][2])
+                else:
+                    light.SetSwitch(False)
+                    light.SetPosition(_to_pos(0.0, 0.0))
+                    light.SetIntensity(0.0)
+                light.SetColor(1.0, 1.0, 1.0)
 
     def set_interaction(self, interaction):
         if not hasattr(self.plotter, "iren") or self.plotter.iren is None:
