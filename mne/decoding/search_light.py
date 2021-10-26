@@ -295,7 +295,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         return self.estimators_[0].classes_
 
 
-@fill_doc()
+@fill_doc
 def _sl_fit(estimator, X, y, pb, **fit_params):
     """Aux. function to fit SlidingEstimator in parallel.
 
