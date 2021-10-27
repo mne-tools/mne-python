@@ -28,23 +28,35 @@ def test_deprecated_alias():
     assert 'deprecated' not in new_func.__doc__
 
 
-@deprecated('message')
+@deprecated('bad func')
 def deprecated_func():
     """Do something."""
     pass
 
 
-@deprecated('message')
+@deprecated('bad class')
 class deprecated_class(object):
 
     def __init__(self):
         pass
 
+    @deprecated('bad method')
+    def bad(self):
+        pass
+
 
 def test_deprecated():
     """Test deprecated function."""
-    pytest.deprecated_call(deprecated_func)
-    pytest.deprecated_call(deprecated_class)
+    assert 'DEPRECATED' in deprecated_func.__doc__
+    with pytest.deprecated_call(match='bad func'):
+        deprecated_func()
+    assert 'DEPRECATED' in deprecated_class.__init__.__doc__
+    with pytest.deprecated_call(match='bad class'):
+        dep = deprecated_class()
+    assert 'DEPRECATED' in deprecated_class.bad.__doc__
+    assert 'DEPRECATED' in dep.bad.__doc__
+    with pytest.deprecated_call(match='bad method'):
+        dep.bad()
 
 
 def test_copy_doc():

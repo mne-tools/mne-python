@@ -55,7 +55,7 @@ from ..utils import (check_version, logger, check_fname, verbose,
                      copy_function_doc_to_method_doc, _pl, warn, Bunch,
                      _check_preload, _check_compensation_grade, fill_doc,
                      _check_option, _PCA, int_like,
-                     _check_all_same_channel_names)
+                     _check_all_same_channel_names, deprecated)
 
 from ..fixes import _get_args, _safe_svd
 from ..filter import filter_data
@@ -1978,6 +1978,7 @@ class ICA(ContainsMixin):
                                 start=start, stop=stop, title=title, show=show,
                                 n_pca_components=n_pca_components)
 
+    @deprecated(extra='Use ICA.find_bads_eog and ICA.find_bads_ecg instead.')
     def detect_artifacts(self, raw, start_find=None, stop_find=None,
                          ecg_ch=None, ecg_score_func='pearsonr',
                          ecg_criterion=0.1, eog_ch=None,
