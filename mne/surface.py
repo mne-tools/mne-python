@@ -2080,5 +2080,5 @@ def _voxel_neighbors(seed, image, thresh=None, max_peak_dist=1,
             if len(voxels) > voxels_max:
                 break
             next_neighbors = next_neighbors.union(voxel_neighbors)
-        neighbors = next_neighbors
+        neighbors = next_neighbors.difference(voxels)
     return voxels
