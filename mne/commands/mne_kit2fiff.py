@@ -19,6 +19,7 @@ Use without arguments to invoke GUI:
 
 from contextlib import nullcontext
 import sys
+import warnings
 
 import mne
 from mne.io import read_raw_kit
@@ -67,7 +68,8 @@ def run():
         except ImportError:
             kit2fiff = mne.gui.kit2fiff
             ctx = ETSContext()
-        with ctx:
+        with ctx, warnings.catch_warnings():
+            warnings.simplefilter('always', DeprecationWarning)
             kit2fiff()
         sys.exit(0)
 
