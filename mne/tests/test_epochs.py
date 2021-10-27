@@ -2387,34 +2387,38 @@ def test_drop_epochs():
     assert_array_equal(events[epochs['1'].selection], events1[[0, 1, 3, 5, 6]])
 
 
-def test_drop_epochs_mult():
-    """Test that subselecting epochs or making less epochs is equivalent."""
+@pytest.mark.parametrize('preload', (True, False))
+def test_drop_epochs_mult(preload):
+    """Test that subselecting epochs or making fewer epochs is similar."""
     raw, events, picks = _get_data()
-    for preload in [True, False]:
-        epochs1 = Epochs(raw, events, {'a': 1, 'b': 2},
-                         tmin, tmax, picks=picks, reject=reject,
-                         preload=preload)['a']
-        epochs2 = Epochs(raw, events, {'a': 1},
-                         tmin, tmax, picks=picks, reject=reject,
-                         preload=preload)
+    assert_array_equal(events[14], [33712, 0, 1])  # event type a
+    epochs1 = Epochs(raw, events, {'a': 1, 'b': 2},
+                     tmin, tmax, picks=picks, reject=reject,
+                     preload=preload)
+    epochs2 = Epochs(raw, events, {'a': 1},
+                     tmin, tmax, picks=picks, reject=reject,
+                     preload=preload)
+    epochs1 = epochs1['a']
+    assert_array_equal(epochs1.events, epochs2.events)
+    assert_array_equal(epochs1.selection, epochs2.selection)
 
-        if preload:
-            # In the preload case you cannot know the bads if already ignored
-            assert_equal(len(epochs1.drop_log), len(epochs2.drop_log))
-            for d1, d2 in zip(epochs1.drop_log, epochs2.drop_log):
-                if d1 == ('IGNORED',):
-                    assert (d2 == ('IGNORED',))
-                if d1 != ('IGNORED',) and d1 != []:
-                    assert ((d2 == d1) or (d2 == ('IGNORED',)))
-                if d1 == []:
-                    assert (d2 == [])
-            assert_array_equal(epochs1.events, epochs2.events)
-            assert_array_equal(epochs1.selection, epochs2.selection)
-        else:
-            # In the non preload is should be exactly the same
-            assert_equal(epochs1.drop_log, epochs2.drop_log)
-            assert_array_equal(epochs1.events, epochs2.events)
-            assert_array_equal(epochs1.selection, epochs2.selection)
+    if preload:
+        # In the preload case you cannot know the bads if already ignored
+        assert len(epochs1.drop_log) == len(epochs2.drop_log)
+        for di, (d1, d2) in enumerate(zip(epochs1.drop_log, epochs2.drop_log)):
+            assert isinstance(d1, tuple)
+            assert isinstance(d2, tuple)
+            msg = (f'\nepochs1.drop_log[{di}] = {d1}, '
+                   f'\nepochs2.drop_log[{di}] = {d2}')
+            if 'IGNORED' in d1:
+                assert 'IGNORED' in d2, msg
+            if 'IGNORED' not in d1 and d1 != ():
+                assert ((d2 == d1) or (d2 == ('IGNORED',))), msg
+            if d1 == ():
+                assert (d2 == ()), msg
+    else:
+        # In the non preload is should be exactly the same
+        assert epochs1.drop_log == epochs2.drop_log
 
 
 def test_contains():

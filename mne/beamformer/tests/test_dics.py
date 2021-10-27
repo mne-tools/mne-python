@@ -711,7 +711,7 @@ def test_make_dics_rank(_load_forward, idx, whiten):
     assert f'Computing rank from covariance with rank={use_rank}' in log, log
     stc_2, _ = apply_dics_csd(csd, filters_2)
     corr = np.corrcoef(stc_2.data.ravel(), stc.data.ravel())[0, 1]
-    assert 0.8 < corr < 0.99999
+    assert 0.8 < corr < 0.999999
 
     # degenerate conditions
     if whiten:

@@ -470,8 +470,8 @@ class ICA(ContainsMixin):
         fit_method = self.method
         fit_n_iter = getattr(self, 'n_iter_', None)
         fit_n_samples = getattr(self, 'n_samples_', None)
-        fit_n_components =  getattr(self, 'n_components_', None)
-        fit_n_pca_components =  getattr(self, 'pca_components_', None)
+        fit_n_components = getattr(self, 'n_components_', None)
+        fit_n_pca_components = getattr(self, 'pca_components_', None)
         if fit_n_pca_components is not None:
             fit_n_pca_components = len(self.pca_components_)
         fit_explained_variance = getattr(self, 'pca_explained_variance_', None)

@@ -109,9 +109,13 @@ general neuroimaging concepts. If you think a term is missing, please consider
     events
         Events correspond to specific time points in raw data; e.g.,
         triggers, experimental condition events, etc. MNE represents events with
-        integers that are stored in numpy arrays of shape (n_events, 3). Such arrays
-        are classically obtained from a trigger channel, also referred to as
-        stim channel.
+        integers that are stored in numpy arrays of shape (n_events, 3), with
+        time (represented as an integer sample number) in the first column and
+        integer event code in the last column (the middle column represents the
+        signal value of the immediately previous sample, and reflects the
+        fact that event arrays sometimes come directly from analog voltage
+        channels, AKA "trigger channels" or "stim channels"). In most
+        situations the middle column can safely be set to all zeros and ignored.
 
     evoked
         Evoked data are obtained by averaging epochs. Typically, an evoked object
