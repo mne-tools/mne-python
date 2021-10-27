@@ -98,7 +98,7 @@ plt.legend()
 plt.show()
 
 # %%
-# plot brain in 3D with PySurfer if available
+# plot brain in 3D with mne.viz.Brain if available
 brain = stc_mean.plot(hemi='lh', subjects_dir=subjects_dir)
 brain.show_view('lateral')
 
