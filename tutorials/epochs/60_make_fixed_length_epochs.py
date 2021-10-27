@@ -2,12 +2,13 @@
 """
 .. _tut-fixed-length-epochs:
 
-Divide continuous data into consecutive epochs
-==============================================
+Divide continuous data into equally-spaced epochs
+=================================================
 
-This tutorial shows how to segment continuous data into a set of consecutive
-epochs of equal length. The epochs will not be created based on experimental
-events; instead, the continuous data will be "chunked" into consecutive epochs.
+This tutorial shows how to segment continuous data into a set of epochs spaced
+equidistantly in time. The epochs will not be created based on experimental
+events; instead, the continuous data will be "chunked" into consecutive epochs
+(which may be temporally overlapping, adjacent, or separated).
 We will also briefly demonstrate how to use these epochs in connectivity
 analysis.
 
