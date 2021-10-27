@@ -1147,6 +1147,7 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
     for sensor_type in locs.keys():
         if len(locs[sensor_type]) > 0:
             sens_loc = np.array(locs[sensor_type])
+            sens_loc = sens_loc[~np.isnan(sens_loc).any(axis=1)]
             color = defaults[sensor_type + '_color']
             scale = defaults[sensor_type + '_scale']
             actor, _ = _plot_glyphs(renderer=renderer, loc=sens_loc * scalar,
@@ -1163,6 +1164,7 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
         logger.info('Projecting sensors to the head surface')
         eeg_loc = np.array([
             ch_pos[info.ch_names[idx]] for idx in eeg_indices])
+        eeg_loc = eeg_loc[~np.isnan(eeg_loc).any(axis=1)]
         eegp_loc, eegp_nn = _project_onto_surface(
             eeg_loc, head_surf, project_rrs=True,
             return_nn=True)[2:4]
