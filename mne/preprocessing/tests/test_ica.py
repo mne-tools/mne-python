@@ -799,7 +799,7 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
     params += [(None, -1, slice(2), [0, 1])]  # variance, kurtosis params
     params += [(None, 'MEG 1531')]  # ECG / EOG channel params
     for idx, ch_name in product(*params):
-        with pytest.warns(DeprecationWarning, match='scheduled for removal'):
+        with pytest.warns(DeprecationWarning, match='detect_artifacts is dep'):
             ica.detect_artifacts(
                 raw, start_find=0, stop_find=50, ecg_ch=ch_name,
                 eog_ch=ch_name, skew_criterion=idx,
@@ -811,7 +811,7 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
     # sources with the highest score". Assert that's what it does.
     # Only test for skew, since it's always the same code.
     ica.exclude = []
-    with pytest.warns(DeprecationWarning, match='scheduled for removal'):
+    with pytest.warns(DeprecationWarning, match='detect_artifacts is depreca'):
         ica.detect_artifacts(
             raw, start_find=0, stop_find=50, ecg_ch=None,
             eog_ch=None, skew_criterion=0,
@@ -1025,7 +1025,7 @@ def test_detect_artifacts_replacement_of_run_ica(method, idx, ch_name):
     ica = ICA(n_components=2, method=method)
     ica.fit(raw)
 
-    with pytest.warns(DeprecationWarning, match='scheduled for removal'):
+    with pytest.warns(DeprecationWarning, match='detect_artifacts is depreca'):
         ica.detect_artifacts(
             raw, start_find=0, stop_find=5, ecg_ch=ch_name,
             eog_ch=ch_name, skew_criterion=idx,

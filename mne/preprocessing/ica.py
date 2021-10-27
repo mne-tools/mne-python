@@ -2083,12 +2083,6 @@ class ICA(ContainsMixin):
             The ICA object with the detected artifact indices marked for
             exclusion.
         """
-        warn(
-            'ICA.detect_artifacts has been deprecated and is scheduled for '
-            'removal. Please use ICA.find_bads_eog and ICA.find_bads_ecg '
-            'instead.',
-            category=DeprecationWarning
-        )
         logger.info('    Searching for artifacts...')
         _detect_artifacts(self, raw=raw, start_find=start_find,
                           stop_find=stop_find, ecg_ch=ecg_ch,
