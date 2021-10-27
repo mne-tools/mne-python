@@ -799,18 +799,24 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
     params += [(None, -1, slice(2), [0, 1])]  # variance, kurtosis params
     params += [(None, 'MEG 1531')]  # ECG / EOG channel params
     for idx, ch_name in product(*params):
-        ica.detect_artifacts(raw, start_find=0, stop_find=50, ecg_ch=ch_name,
-                             eog_ch=ch_name, skew_criterion=idx,
-                             var_criterion=idx, kurt_criterion=idx)
+        with pytest.warns(DeprecationWarning, match='scheduled for removal'):
+            ica.detect_artifacts(
+                raw, start_find=0, stop_find=50, ecg_ch=ch_name,
+                eog_ch=ch_name, skew_criterion=idx,
+                var_criterion=idx, kurt_criterion=idx
+            )
 
     # Make sure detect_artifacts marks the right components.
     # For int criterion, the doc says "E.g. range(2) would return the two
     # sources with the highest score". Assert that's what it does.
     # Only test for skew, since it's always the same code.
     ica.exclude = []
-    ica.detect_artifacts(raw, start_find=0, stop_find=50, ecg_ch=None,
-                         eog_ch=None, skew_criterion=0,
-                         var_criterion=None, kurt_criterion=None)
+    with pytest.warns(DeprecationWarning, match='scheduled for removal'):
+        ica.detect_artifacts(
+            raw, start_find=0, stop_find=50, ecg_ch=None,
+            eog_ch=None, skew_criterion=0,
+            var_criterion=None, kurt_criterion=None
+        )
     assert np.abs(scores[ica.exclude]) == np.max(np.abs(scores))
 
     evoked = epochs.average()
@@ -1018,9 +1024,13 @@ def test_detect_artifacts_replacement_of_run_ica(method, idx, ch_name):
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     ica = ICA(n_components=2, method=method)
     ica.fit(raw)
-    ica.detect_artifacts(raw, start_find=0, stop_find=5, ecg_ch=ch_name,
-                         eog_ch=ch_name, skew_criterion=idx,
-                         var_criterion=idx, kurt_criterion=idx)
+
+    with pytest.warns(DeprecationWarning, match='scheduled for removal'):
+        ica.detect_artifacts(
+            raw, start_find=0, stop_find=5, ecg_ch=ch_name,
+            eog_ch=ch_name, skew_criterion=idx,
+            var_criterion=idx, kurt_criterion=idx
+        )
 
 
 @requires_sklearn

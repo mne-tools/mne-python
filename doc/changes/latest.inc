@@ -325,7 +325,7 @@ API changes
 
 - :func:`mne.inverse_sparse.mixed_norm` now simply warns when source estimates contain no dipole, e.g. if data are too noisy and alpha is based on SURE (:gh:`9685` by `Alex Gramfort`_)
 
-- deprecate functions :samp:`mne.datasets.{DATASET_NAME}.has_{DATASET_NAME}_data()` for these datasets: ``epilepsy_ecog``, ``fnirs_motor``, ``multimodal``, ``opm``, ``phantom_4dbti``, ``refmeg_noise``, ``sample``, ``somato``, and ``ssvep``. Use the generic :func:`mne.datasets.has_dataset` instead (:gh:`9781` by `Daniel McCloy`_ and `Adam Li`_)
+- Deprecate functions :samp:`mne.datasets.{DATASET_NAME}.has_{DATASET_NAME}_data()` for these datasets: ``epilepsy_ecog``, ``fnirs_motor``, ``multimodal``, ``opm``, ``phantom_4dbti``, ``refmeg_noise``, ``sample``, ``somato``, and ``ssvep``. Use the generic :func:`mne.datasets.has_dataset` instead (:gh:`9781` by `Daniel McCloy`_ and `Adam Li`_)
 
 - :class:`mne.Report` modernization has led to multiple deprecations (:gh:`9754` by `Richard Höchenberger`_):
 
@@ -352,3 +352,5 @@ API changes
 - Deprecate ``mne.viz.utils.center_cmap`` (:gh:`9851` by `Clemens Brunner`_)
 
 - The default partial pathlength factor of :func:`mne.preprocessing.nirs.beer_lambert_law` will change from 0.1 in 0.24 to 6.0 in the next release (:gh:`9843` by `Robert Luke`_)
+
+- :meth:`mne.preprocessing.ICA.detect_artifacts` has been deprecated. Please use `~mne.preprocessing.ICA.find_bads_eog` and `~mne.preprocessing.ICA.find_bads_ecg` instead (:gh:`9909` by `Richard Höchenberger`_)
