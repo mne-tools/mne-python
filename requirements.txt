@@ -29,6 +29,7 @@ nilearn
 xlrd
 imageio>=2.6.1
 imageio-ffmpeg>=0.4.1
+traitlets
 pyvista>=0.30
 pyvistaqt>=0.4
 tqdm

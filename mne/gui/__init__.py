@@ -6,7 +6,7 @@
 
 import os
 
-from ..utils import _check_mayavi_version, verbose, get_config
+from ..utils import _check_mayavi_version, verbose, get_config, warn
 from ._backend import _testing_mode
 
 
@@ -117,7 +117,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
     Returns
     -------
-    frame : instance of CoregFrame
+    frame : instance of CoregFrame or CoregistrationUI
         The coregistration frame.
 
     Notes
@@ -132,6 +132,32 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     subjects for which no MRI is available
     <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
+    from ..viz.backends.renderer import _get_3d_backend
+    pyvistaqt = _get_3d_backend() == 'pyvistaqt'
+    if pyvistaqt:
+        # unsupported parameters
+        params = {
+            'tabbed': (tabbed, False),
+            'split': (split, True),
+            'scrollable': (scrollable, True),
+            'head_inside': (head_inside, True),
+            'guess_mri_subject': guess_mri_subject,
+            'head_opacity': head_opacity,
+            'project_eeg': project_eeg,
+            'scale_by_distance': scale_by_distance,
+            'mark_inside': mark_inside,
+            'interaction': interaction,
+            'scale': scale,
+            'advanced_rendering': advanced_rendering,
+        }
+        for key, val in params.items():
+            if isinstance(val, tuple):
+                to_raise = val[0] != val[1]
+            else:
+                to_raise = val is not None
+            if to_raise:
+                warn(f"The parameter {key} is not supported with"
+                      " the pyvistaqt 3d backend. It will be ignored.")
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     if guess_mri_subject is None:
         guess_mri_subject = config.get(
@@ -174,20 +200,32 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     width = int(width)
     height = int(height)
     scale = float(scale)
-    _check_mayavi_version()
-    from ._backend import _check_backend
-    _check_backend()
-    from ._coreg_gui import CoregFrame, _make_view
-    view = _make_view(tabbed, split, width, height, scrollable)
-    frame = CoregFrame(inst, subject, subjects_dir, guess_mri_subject,
-                       head_opacity, head_high_res, trans, config,
-                       project_eeg=project_eeg,
-                       orient_to_surface=orient_to_surface,
-                       scale_by_distance=scale_by_distance,
-                       mark_inside=mark_inside, interaction=interaction,
-                       scale=scale, advanced_rendering=advanced_rendering,
-                       head_inside=head_inside)
-    return _initialize_gui(frame, view)
+    if pyvistaqt:
+        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+        from ._coreg import CoregistrationUI
+        show = not MNE_3D_BACKEND_TESTING
+        standalone = not MNE_3D_BACKEND_TESTING
+        return CoregistrationUI(
+            info_file=inst, subject=subject, subjects_dir=subjects_dir,
+            head_resolution=head_high_res, orient_glyphs=orient_to_surface,
+            trans=trans, size=(width, height), show=show, standalone=standalone,
+            verbose=verbose
+        )
+    else:
+        _check_mayavi_version()
+        from ._backend import _check_backend
+        _check_backend()
+        from ._coreg_gui import CoregFrame, _make_view
+        view = _make_view(tabbed, split, width, height, scrollable)
+        frame = CoregFrame(inst, subject, subjects_dir, guess_mri_subject,
+                           head_opacity, head_high_res, trans, config,
+                           project_eeg=project_eeg,
+                           orient_to_surface=orient_to_surface,
+                           scale_by_distance=scale_by_distance,
+                           mark_inside=mark_inside, interaction=interaction,
+                           scale=scale, advanced_rendering=advanced_rendering,
+                           head_inside=head_inside)
+        return _initialize_gui(frame, view)
 
 
 def fiducials(subject=None, fid_file=None, subjects_dir=None):

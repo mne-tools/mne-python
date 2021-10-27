@@ -16,7 +16,7 @@ from mne.datasets import testing
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.surface import dig_mri_distances
 from mne.transforms import invert_transform
-from mne.utils import requires_mayavi, traits_test, modified_env
+from mne.utils import requires_mayavi, traits_test, modified_env, get_config
 
 data_path = testing.data_path(download=False)
 raw_path = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -24,6 +24,7 @@ fname_trans = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc-trans.fif')
 kit_raw_path = op.join(kit_data_dir, 'test_bin_raw.fif')
 subjects_dir = op.join(data_path, 'subjects')
+fid_fname = op.join(subjects_dir, 'sample', 'bem', 'sample-fiducials.fif')
 
 
 @testing.requires_testing_data
@@ -336,3 +337,92 @@ def test_coreg_gui_automation():
     errs_nearest = np.median(
         dig_mri_distances(info, fname_trans, subject, subjects_dir))
     assert 1e-3 < errs_nearest < 2e-3
+
+
+class TstVTKPicker(object):
+    """Class to test cell picking."""
+
+    def __init__(self, mesh, cell_id, event_pos):
+        self.mesh = mesh
+        self.cell_id = cell_id
+        self.point_id = None
+        self.event_pos = event_pos
+
+    def GetCellId(self):
+        """Return the picked cell."""
+        return self.cell_id
+
+    def GetDataSet(self):
+        """Return the picked mesh."""
+        return self.mesh
+
+    def GetPickPosition(self):
+        """Return the picked position."""
+        vtk_cell = self.mesh.GetCell(self.cell_id)
+        cell = [vtk_cell.GetPointId(point_id) for point_id
+                in range(vtk_cell.GetNumberOfPoints())]
+        self.point_id = cell[0]
+        return self.mesh.points[self.point_id]
+
+    def GetEventPosition(self):
+        """Return event position."""
+        return self.event_pos
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_coreg_gui_pyvista(tmpdir, renderer_interactive_pyvistaqt):
+    """Test that using CoregistrationUI matches mne coreg."""
+    from mne.gui import coregistration
+    tempdir = str(tmpdir)
+    config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
+    tmp_trans = op.join(tempdir, 'tmp-trans.fif')
+    coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
+                           trans=fname_trans)
+    coreg._reset_fiducials()
+    coreg.close()
+    coreg = coregistration(inst=raw_path, subject='sample',
+                           subjects_dir=subjects_dir)
+    coreg._set_fiducials_file(fid_fname)
+    assert coreg._fiducials_file == fid_fname
+    # picking
+    vtk_picker = TstVTKPicker(coreg._surfaces['head'], 0, (0, 0))
+    coreg._on_mouse_move(vtk_picker, None)
+    coreg._on_button_press(vtk_picker, None)
+    coreg._on_pick(vtk_picker, None)
+    coreg._on_button_release(vtk_picker, None)
+    coreg._set_lock_fids(True)
+    assert coreg._lock_fids
+    coreg._on_pick(vtk_picker, None)  # also pick when locked
+    coreg._set_lock_fids(False)
+    assert not coreg._lock_fids
+    coreg._set_lock_fids(True)
+    assert coreg._lock_fids
+    assert coreg._nasion_weight == 10.
+    coreg._set_point_weight(11., 'nasion')
+    assert coreg._nasion_weight == 11.
+    coreg._fit_fiducials()
+    coreg._fit_icp()
+    assert coreg._coreg._extra_points_filter is None
+    coreg._omit_hsp()
+    assert coreg._coreg._extra_points_filter is not None
+    coreg._reset_omit_hsp_filter()
+    assert coreg._coreg._extra_points_filter is None
+    assert coreg._grow_hair == 0
+    coreg._set_grow_hair(0.1)
+    assert coreg._grow_hair == 0.1
+    assert coreg._orient_glyphs == \
+        (config.get('MNE_COREG_ORIENT_TO_SURFACE', '') == 'true')
+    assert coreg._hpi_coils
+    assert coreg._eeg_channels
+    assert coreg._head_shape_points
+    assert coreg._scale_mode == 'None'
+    assert coreg._icp_fid_match == 'nearest'
+    assert coreg._head_resolution == \
+        (config.get('MNE_COREG_HEAD_HIGH_RES', 'true') == 'true')
+    assert not coreg._head_transparency
+    coreg._set_head_transparency(True)
+    assert coreg._head_transparency
+    coreg._save_trans(tmp_trans)
+    assert op.isfile(tmp_trans)
+    coreg.close()

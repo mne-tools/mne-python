@@ -465,7 +465,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False, line_width=2., name=None,
-                 glyph_width=None, glyph_depth=None,
+                 glyph_width=None, glyph_depth=None, glyph_radius=0.15,
                  solid_transform=None):
         _check_option('mode', mode, ALLOWED_QUIVER_MODES)
         with warnings.catch_warnings():
@@ -484,6 +484,8 @@ class _PyVistaRenderer(_AbstractRenderer):
             if scale_mode == 'scalar':
                 _point_data(grid)['mag'] = np.array(scalars)
                 scale = 'mag'
+            elif scale_mode == 'vector':
+                scale = True
             else:
                 scale = False
             if mode == '2darrow':
@@ -501,10 +503,12 @@ class _PyVistaRenderer(_AbstractRenderer):
                 if mode == 'cone':
                     glyph = vtk.vtkConeSource()
                     glyph.SetCenter(0.5, 0, 0)
-                    glyph.SetRadius(0.15)
+                    if glyph_radius is not None:
+                        glyph.SetRadius(glyph_radius)
                 elif mode == 'cylinder':
                     glyph = vtk.vtkCylinderSource()
-                    glyph.SetRadius(0.15)
+                    if glyph_radius is not None:
+                        glyph.SetRadius(glyph_radius)
                 elif mode == 'oct':
                     glyph = vtk.vtkPlatonicSolidSource()
                     glyph.SetSolidTypeToOctahedron()
