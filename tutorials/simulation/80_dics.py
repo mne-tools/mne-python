@@ -155,9 +155,7 @@ snr = 1.  # Signal-to-noise ratio. Decrease to add more noise.
 
 # Read the info from the sample dataset. This defines the location of the
 # sensors and such.
-raw = mne.io.read_raw(raw_fname)
-info = mne.create_info(raw.ch_names, sfreq, raw.get_channel_types())
-info['dev_head_t'] = raw.info['dev_head_t']
+info = mne.io.read_raw(raw_fname).crop(0, 1).resample(50).info
 
 # Only use gradiometers
 picks = mne.pick_types(info, meg='grad', stim=True, exclude=())
