@@ -307,7 +307,7 @@ stages:
       displayName: Add graphviz dot
     - script: |
         conda activate base
-        conda remove mne
+        conda remove --force mne
       displayName: Remove old MNE
     - script: pip install -e .
       displayName: Install dev MNE
