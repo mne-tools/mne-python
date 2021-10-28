@@ -721,7 +721,8 @@ def test_low_rank_cov(raw_epochs_events):
     # test that rank=306 is same as rank='full'
     epochs_meg = epochs.copy().pick_types(meg=True)
     assert len(epochs_meg.ch_names) == 306
-    epochs_meg.info.update(bads=[], projs=[])
+    with epochs_meg.info._unlock():
+        epochs_meg.info.update(bads=[], projs=[])
     cov_full = compute_covariance(epochs_meg, method='oas',
                                   rank='full', verbose='error')
     assert _cov_rank(cov_full, epochs_meg.info) == 306
