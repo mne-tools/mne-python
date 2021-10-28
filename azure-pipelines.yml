@@ -186,7 +186,7 @@ stages:
 
   - job: Windows
     pool:
-      vmImage: 'VS2017-Win2016'
+      vmImage: 'windows-latest'
     variables:
       MNE_LOGGING_LEVEL: 'warning'
       MNE_FORCE_SERIAL: 'true'
@@ -276,7 +276,7 @@ stages:
 
   - job: SphinxWindows
     pool:
-      vmImage: 'VS2017-Win2016'
+      vmImage: 'windows-latest'
     variables:
       AZURE_CI_WINDOWS: 'true'
       PYTHON_ARCH: 'x64'
