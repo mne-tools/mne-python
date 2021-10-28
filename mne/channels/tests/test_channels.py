@@ -532,7 +532,7 @@ def test_get_montage():
                 'P5', 'P1', 'P2', 'P6', 'PO5', 'PO3', 'PO4', 'PO6',
                 'FT7', 'FT8', 'TP7', 'TP8', 'PO7', 'PO8', 'Oz', 'CPz']
     sfreq = 512
-    data = np.zeros((len(ch_names), sfreq*2))
+    data = np.zeros((len(ch_names), sfreq * 2))
     raw = RawArray(data, create_info(ch_names, sfreq, 'eeg'))
     raw.set_montage('standard_1020')
 
