@@ -311,6 +311,8 @@ Bugs
 
 - In :meth:`mne.Epochs.plot_psd_topomap`, the data is now scaled to match the output of :meth:`mne.Epochs.plot_psd` (:gh:`9873` by `Richard Höchenberger`_)
 
+- Fix channel locations with ``NaN`` values causing all channel locations not to be plotted in :func:`mne.viz.Brain.add_sensors` (:gh:`9908` by `Alex Rockhill`_)
+
 API changes
 ~~~~~~~~~~~
 - The :class:`mne.Info` class is now more strictly checked when attributes are set. Setting most attributes directly will lead to an error in the next release. See the docstring of :class:`mne.Info` for more information (:gh:`9867` **by new contributor** |Mathieu Scheltienne|_)
