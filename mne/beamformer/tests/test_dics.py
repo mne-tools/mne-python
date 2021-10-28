@@ -74,7 +74,8 @@ def _simulate_data(fwd, idx):  # Somewhere on the frontal lobe by default
 
     # Create an info object that holds information about the sensors
     info = mne.create_info(fwd['info']['ch_names'], sfreq, ch_types='grad')
-    info.update(fwd['info'])  # Merge in sensor position information
+    with info._unlock():
+        info.update(fwd['info'])  # Merge in sensor position information
     # heavily decimate sensors to make it much faster
     info = mne.pick_info(info, np.arange(info['nchan'])[::5])
     fwd = mne.pick_channels_forward(fwd, info['ch_names'])

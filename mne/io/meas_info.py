@@ -7,6 +7,7 @@
 # License: BSD-3-Clause
 
 from collections import Counter, OrderedDict
+from collections.abc import Mapping
 import contextlib
 from copy import deepcopy
 import datetime
@@ -725,6 +726,15 @@ class Info(dict, MontageMixin):
                  "instance, but these will not survive an I/O round-trip.",
                  DeprecationWarning)
         super().__setitem__(key, val)
+
+    def update(self, other=None, **kwargs):
+        """Update method using __setitem__()."""
+        iterable = other.items() if isinstance(other, Mapping) else other
+        if other is not None:
+            for key, val in iterable:
+                self[key] = val
+        for key, val in kwargs.items():
+            self[key] = val
 
     @contextlib.contextmanager
     def _unlock(self, *, update_redundant=False, check_after=False):

@@ -125,7 +125,8 @@ def test_lcmv_vector():
     # For speed and for rank-deficiency calculation simplicity,
     # just use grads
     info = mne.pick_info(info, mne.pick_types(info, meg='grad', exclude=()))
-    info.update(bads=[], projs=[])
+    with info._unlock():
+        info.update(bads=[], projs=[])
 
     forward = mne.read_forward_solution(fname_fwd)
     forward = mne.pick_channels_forward(forward, info['ch_names'])
