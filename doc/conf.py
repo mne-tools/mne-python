@@ -530,6 +530,7 @@ html_theme = 'pydata_sphinx_theme'
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
+switcher_version_match = 'dev' if release.endswith('dev0') else version
 html_theme_options = {
     'icon_links': [
         dict(name='GitHub',
@@ -552,6 +553,9 @@ html_theme_options = {
     'navbar_end': ['version-switcher', 'navbar-icon-links'],
     'footer_items': ['copyright'],
     'google_analytics_id': 'UA-37225609-1',
+    'switcher_json_url': 'https://mne.tools/dev/_static/versions.json',
+    'switcher_url_template': 'https://mne.tools/{version}/',
+    'switcher_version_match': switcher_version_match,
 }
 
 # The name of an image file (relative to this directory) to place at the top
@@ -623,6 +627,7 @@ html_context = {
     },
     'switcher_json_url': 'https://mne.tools/dev/_static/versions.json',
     'switcher_template_url': 'https://mne.tools/{version}/',
+    'switcher_version_match': switcher_version_match,
     'funders': [
         dict(img='nih.png', size='3', title='National Institutes of Health'),
         dict(img='nsf.png', size='3.5',
