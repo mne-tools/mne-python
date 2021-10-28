@@ -76,8 +76,8 @@ def _create_info(ft_struct, raw_info):
     else:
         info = create_info(ch_names, sfreq)
         chs, dig = _create_info_chs_dig(ft_struct)
-        info.update(chs=chs, dig=dig)
-        info._update_redundant()
+        with info._unlock(update_redundant=True):
+            info.update(chs=chs, dig=dig)
 
     return info
 
