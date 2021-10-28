@@ -622,7 +622,7 @@ html_context = {
         '0.11': 'v0.11',
     },
     'switcher_json_url': 'https://mne.tools/dev/_static/versions.json',
-    'switcher_template_url': 'https://mne/tools/{version}/',
+    'switcher_template_url': 'https://mne.tools/{version}/',
     'funders': [
         dict(img='nih.png', size='3', title='National Institutes of Health'),
         dict(img='nsf.png', size='3.5',
