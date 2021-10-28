@@ -75,7 +75,7 @@ stages:
       displayName: make check-readme
       condition: always()
 
-- stage: Tests
+- stage: Test
   condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
   dependsOn: Check
   variables:
@@ -237,7 +237,7 @@ stages:
       condition: in(variables['TEST_MODE'], 'pip', 'pip-pre')
       displayName: Install dependencies with pip
     - script: |
-        conda activate base
+        call activate base
         conda env update --name base --file environment.yml
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Setup MNE environment
@@ -302,11 +302,11 @@ stages:
         conda env update --name base --file environment.yml
       displayName: Setup MNE environment
     - script: |
-        conda activate base
+        call activate base
         conda install -c conda-forge graphviz
       displayName: Add graphviz dot
     - script: |
-        conda activate base
+        call activate base
         conda remove --force mne
       displayName: Remove old MNE
     - script: pip install -e .
