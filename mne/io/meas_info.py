@@ -7,6 +7,7 @@
 # License: BSD-3-Clause
 
 from collections import Counter, OrderedDict
+from collections.abc import Mapping
 import contextlib
 from copy import deepcopy
 import datetime
@@ -728,8 +729,9 @@ class Info(dict, MontageMixin):
 
     def update(self, other=None, **kwargs):
         """Update method using __setitem__()."""
+        iterable = other.items() if isinstance(other, Mapping) else other
         if other is not None:
-            for key, val in other.items():
+            for key, val in iterable:
                 self[key] = val
         for key, val in kwargs.items():
             self[key] = val
