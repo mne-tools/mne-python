@@ -233,7 +233,7 @@ Bugs
 
 - Fix bug where resampling returns empty instances (:gh:`9897` **by new contributor** |Mathieu Scheltienne|_ and `Eric Larson`_)
 
-- Fix bug with `mne.io.Raw.get_montage` now returning both good and bad channels in the montage. (:gh:`9719` **by new contributor** |Mathieu Scheltienne|_)
+- Fix bug with `mne.io.Raw.get_montage` now returning both good and bad channels in the montage. (:gh:`9920` **by new contributor** |Mathieu Scheltienne|_)
 
 - Fix bug with :func:`mne.io.read_raw_nihon` where latin-1 annotations could not be read (:gh:`9384` by `Alex Gramfort`_)
 
