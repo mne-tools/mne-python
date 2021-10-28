@@ -17,7 +17,7 @@ stages:
   jobs:
     - job: Skip
       pool:
-        vmImage: 'ubuntu-18.04'
+        vmImage: 'ubuntu-latest'
       variables:
         DECODE_PERCENTS: 'false'
         RET: 'true'
@@ -35,9 +35,9 @@ stages:
   variables:
     AZURE_CI: 'true'
   jobs:
-  - job: Style
+  - job: All
     pool:
-      vmImage: 'ubuntu-18.04'
+      vmImage: 'ubuntu-latest'
     variables:
       PYTHON_VERSION: '3.9'
       PYTHON_ARCH: 'x64'
@@ -75,7 +75,7 @@ stages:
       displayName: make check-readme
       condition: always()
 
-- stage: Main
+- stage: Tests
   condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
   dependsOn: Check
   variables:
@@ -144,7 +144,7 @@ stages:
 
   - job: Notebook
     pool:
-      vmImage: 'ubuntu-18.04'
+      vmImage: 'ubuntu-latest'
     steps:
     - bash: |
         set -e
@@ -236,7 +236,9 @@ stages:
         ./tools/azure_dependencies.sh
       condition: in(variables['TEST_MODE'], 'pip', 'pip-pre')
       displayName: Install dependencies with pip
-    - script: conda env update --name base --file environment.yml
+    - script: |
+        conda activate base
+        conda env update --name base --file environment.yml
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Setup MNE environment
     - script: conda remove mne
@@ -291,15 +293,21 @@ stages:
         git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
         powershell gl-ci-helpers/appveyor/install_opengl.ps1
       displayName: Install OpenGL
-    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%CONDA%\Library\bin\graphviz;"
+    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%CONDA%\Library\bin\graphviz;"
       displayName: Add conda to PATH, deal with Qt linking bug
     - script: conda update -n base -c defaults conda
       displayName: Update conda
-    - script: conda env update --name base --file environment.yml
+    - script: |
+        conda activate base
+        conda env update --name base --file environment.yml
       displayName: Setup MNE environment
-    - script: conda install -c conda-forge graphviz
+    - script: |
+        conda activate base
+        conda install -c conda-forge graphviz
       displayName: Add graphviz dot
-    - script: conda remove mne
+    - script: |
+        conda activate base
+        conda remove mne
       displayName: Remove old MNE
     - script: pip install -e .
       displayName: Install dev MNE
