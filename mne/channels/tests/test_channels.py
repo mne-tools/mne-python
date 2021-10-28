@@ -15,7 +15,8 @@ from numpy.testing import assert_array_equal, assert_equal, assert_allclose
 
 from mne.channels import (rename_channels, read_ch_adjacency, combine_channels,
                           find_ch_adjacency, make_1020_channel_selections,
-                          read_custom_montage, equalize_channels)
+                          read_custom_montage, equalize_channels,
+                          make_standard_montage)
 from mne.channels.channels import (_ch_neighbor_adjacency,
                                    _compute_ch_adjacency)
 from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
@@ -523,14 +524,7 @@ def test_combine_channels():
 
 def test_get_montage():
     """Test ContainsMixin.get_montage()."""
-    ch_names = ['Fp1', 'Fpz', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8',
-                'FC5', 'FC1', 'FC2', 'FC6', 'M1', 'T7', 'C3', 'Cz',
-                'C4', 'T8', 'M2', 'CP5', 'CP1', 'CP2', 'CP6', 'P7',
-                'P3', 'Pz', 'P4', 'P8', 'POz', 'O1', 'O2',  'AF7',
-                'AF3', 'AF4', 'AF8', 'F5', 'F1', 'F2', 'F6', 'FC3',
-                'FCz', 'FC4', 'C5', 'C1', 'C2', 'C6', 'CP3', 'CP4',
-                'P5', 'P1', 'P2', 'P6', 'PO5', 'PO3', 'PO4', 'PO6',
-                'FT7', 'FT8', 'TP7', 'TP8', 'PO7', 'PO8', 'Oz', 'CPz']
+    ch_names = make_standard_montage('standard_1020').ch_names
     sfreq = 512
     data = np.zeros((len(ch_names), sfreq * 2))
     raw = RawArray(data, create_info(ch_names, sfreq, 'eeg'))
