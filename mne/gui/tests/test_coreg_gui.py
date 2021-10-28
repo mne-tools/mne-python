@@ -377,8 +377,9 @@ def test_coreg_gui_pyvista(tmpdir, renderer_interactive_pyvistaqt):
     tempdir = str(tmpdir)
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     tmp_trans = op.join(tempdir, 'tmp-trans.fif')
-    coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
-                           trans=fname_trans)
+    coreg = coregistration(inst=None, subject='sample',
+                           subjects_dir=subjects_dir, trans=fname_trans)
+    assert not coreg._lock_fids
     coreg._reset_fiducials()
     coreg.close()
     coreg = coregistration(inst=raw_path, subject='sample',
@@ -391,7 +392,6 @@ def test_coreg_gui_pyvista(tmpdir, renderer_interactive_pyvistaqt):
     coreg._on_button_press(vtk_picker, None)
     coreg._on_pick(vtk_picker, None)
     coreg._on_button_release(vtk_picker, None)
-    coreg._set_lock_fids(True)
     assert coreg._lock_fids
     coreg._on_pick(vtk_picker, None)  # also pick when locked
     coreg._set_lock_fids(False)

@@ -146,6 +146,7 @@ class CoregistrationUI(HasTraits):
         subjects_dir = get_subjects_dir(
             subjects_dir=subjects_dir, raise_error=True)
         subject = _get_default(subject, self._get_subjects(subjects_dir)[0])
+        lock_fids = info is not None
 
         # setup the window
         self._renderer = _get_renderer(
@@ -182,8 +183,8 @@ class CoregistrationUI(HasTraits):
 
         # once the docks are initialized
         self._set_current_fiducial(self._defaults["fiducial"])
-        self._set_lock_fids(self._defaults["lock_fids"])
         self._set_scale_mode(self._defaults["scale_mode"])
+        self._set_lock_fids(lock_fids)
         if trans is not None:
             self._load_trans(trans)
 
