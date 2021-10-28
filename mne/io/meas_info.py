@@ -726,6 +726,14 @@ class Info(dict, MontageMixin):
                  DeprecationWarning)
         super().__setitem__(key, val)
 
+    def update(self, other=None, **kwargs):
+        """Update method using __setitem__()."""
+        if other is not None:
+            for key, val in other.items():
+                self[key] = val
+        for key, val in kwargs.items():
+            self[key] = val
+
     @contextlib.contextmanager
     def _unlock(self, *, update_redundant=False, check_after=False):
         """Context manager unlocking access to attributes."""
