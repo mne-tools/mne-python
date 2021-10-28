@@ -519,3 +519,23 @@ def test_combine_channels():
         combine_channels(raw, warn2)
         combine_channels(raw_ch_bad, warn3, drop_bad=True)
     assert len(record) == 3
+
+
+def test_get_montage():
+    """Test ContainsMixin.get_montage()."""
+    ch_names = ['Fp1', 'Fpz', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8',
+                'FC5', 'FC1', 'FC2', 'FC6', 'M1', 'T7', 'C3', 'Cz',
+                'C4', 'T8', 'M2', 'CP5', 'CP1', 'CP2', 'CP6', 'P7',
+                'P3', 'Pz', 'P4', 'P8', 'POz', 'O1', 'O2',  'AF7',
+                'AF3', 'AF4', 'AF8', 'F5', 'F1', 'F2', 'F6', 'FC3',
+                'FCz', 'FC4', 'C5', 'C1', 'C2', 'C6', 'CP3', 'CP4',
+                'P5', 'P1', 'P2', 'P6', 'PO5', 'PO3', 'PO4', 'PO6',
+                'FT7', 'FT8', 'TP7', 'TP8', 'PO7', 'PO8', 'Oz', 'CPz']
+    sfreq = 512
+    data = np.zeros((len(ch_names), sfreq*2))
+    raw = RawArray(data, create_info(ch_names, sfreq, 'eeg'))
+    raw.set_montage('standard_1020')
+
+    assert len(raw.get_montage().ch_names) == len(ch_names)
+    raw.info['bads'] = [ch_names[0]]
+    assert len(raw.get_montage().ch_names) == len(ch_names)
