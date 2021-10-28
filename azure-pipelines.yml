@@ -220,7 +220,7 @@ stages:
     # https://docs.microsoft.com/en-us/azure/devops/pipelines/ecosystems/anaconda
     # https://github.com/MicrosoftDocs/pipelines-anaconda
     # https://github.com/ContinuumIO/anaconda-issues/issues/10949
-    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;"
+    - script: echo "##vso[task.prependpath]%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32"
       condition: in(variables['TEST_MODE'], 'conda')
       displayName: Add conda to PATH, deal with Qt linking bug
     - bash: |

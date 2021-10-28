@@ -67,6 +67,7 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
                              subjects_dir=subjects_dir)
 
 
+# TODO this should be refactored with mne._freesurfer._get_head_surface
 def _get_head_surface(subject, source, subjects_dir, raise_error=True):
     """Load the subject head surface."""
     from .bem import read_bem_surfaces
