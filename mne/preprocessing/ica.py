@@ -270,10 +270,9 @@ class ICA(ContainsMixin):
     .. versionchanged:: 0.23
         Warn if `~mne.Epochs` were baseline-corrected.
 
-    .. note:: If you intend to clean fit ICA on `~mne.Epochs`, it is
-              recommended to high-pass filter, but **not** baseline correct the
-              data for good ICA performance. A warning will be emitted
-              otherwise.
+    .. note:: If you intend to fit ICA on `~mne.Epochs`, it is  recommended to
+              high-pass filter, but **not** baseline correct the data for good
+              ICA performance. A warning will be emitted otherwise.
 
     A trailing ``_`` in an attribute name signifies that the attribute was
     added to the object during fitting, consistent with standard scikit-learn
