@@ -196,7 +196,9 @@ class ICA(ContainsMixin):
         For reference, see :footcite:`Hyvarinen1999,BellSejnowski1995,LeeEtAl1999,AblinEtAl2018`.
     fit_params : dict | None
         Additional parameters passed to the ICA estimator as specified by
-        ``method``.
+        ``method``. Allowed entries are determined by the various algorithm
+        implementations: see :class:`~sklearn.decomposition.FastICA`,
+        :func:`~picard.picard`, :func:`~mne.preprocessing.infomax`.
     max_iter : int | 'auto'
         Maximum number of iterations during fit. If ``'auto'``, it
         will set maximum iterations to ``1000`` for ``'fastica'``
