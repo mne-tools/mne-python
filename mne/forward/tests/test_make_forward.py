@@ -482,7 +482,7 @@ def test_use_coil_def(tmp_path):
     trans = Transform('head', 'mri', None)
     with pytest.raises(RuntimeError, match='coil definition not found'):
         make_forward_solution(info, trans, src, sphere)
-    coil_fname = tmp_path.join('coil_def.dat')
+    coil_fname = tmp_path / 'coil_def.dat'
     with open(coil_fname, 'w') as fid:
         fid.write("""# custom cube coil def
 1   9999    2   8  3e-03  0.000e+00     "Test"

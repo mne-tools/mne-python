@@ -85,7 +85,7 @@ def test_subject_info(tmp_path):
     want = {'id': 'X', 'sex': 'X', 'birthday': 'X', 'name': 'X'}
     for key, val in want.items():
         assert edf_info['subject_info'][key] == val, key
-    fname = tmp_path.join('test_raw.fif')
+    fname = tmp_path / 'test_raw.fif'
     raw.save(fname)
     raw = read_raw_fif(fname)
     assert raw.info['subject_info'] is None  # XXX should eventually round-trip
@@ -197,7 +197,7 @@ def test_parse_annotation(tmp_path):
              b'+3.14\x1504.20\x14nothing\x14\x00\x00\x00\x00'
              b'+1800.2\x1525.5\x14Apnea\x14\x00\x00\x00\x00\x00\x00\x00'
              b'+123\x14\x14\x00\x00\x00\x00\x00\x00\x00')
-    annot_file = tmp_path.join('annotations.txt')
+    annot_file = tmp_path / 'annotations.txt'
     annot_file.write(annot)
 
     annot = [a for a in bytes(annot)]
@@ -315,7 +315,7 @@ def test_read_annot(tmp_path):
              b'+3.14\x1504.20\x14nothing\x14\x00\x00\x00\x00'
              b'+1800.2\x1525.5\x14Apnea\x14\x00\x00\x00\x00\x00\x00\x00'
              b'+123\x14\x14\x00\x00\x00\x00\x00\x00\x00')
-    annot_file = tmp_path.join('annotations.txt')
+    annot_file = tmp_path / 'annotations.txt'
     annot_file.write(annot)
 
     onset, duration, desc = _read_annotations_edf(annotations=str(annot_file))

@@ -151,7 +151,7 @@ def test_fiducials_io(tmp_path):
     assert pts[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI
     assert pts[0]['ident'] == FIFF.FIFFV_POINT_CARDINAL
 
-    temp_fname = tmp_path.join('test.fif')
+    temp_fname = tmp_path / 'test.fif'
     write_fiducials(temp_fname, pts, coord_frame)
     pts_1, coord_frame_1 = read_fiducials(temp_fname)
     assert coord_frame == coord_frame_1
@@ -228,7 +228,7 @@ def test_info():
 def test_read_write_info(tmp_path):
     """Test IO of info."""
     info = read_info(raw_fname)
-    temp_file = str(tmp_path.join('info.fif'))
+    temp_file = tmp_path / 'info.fif'
     # check for bug `#1198`
     info['dev_head_t']['trans'] = np.eye(4)
     t1 = info['dev_head_t']['trans']
@@ -301,8 +301,8 @@ def test_io_dig_points(tmp_path):
     """Test Writing for dig files."""
     points = read_polhemus_fastscan(hsp_fname, on_header_missing='ignore')
 
-    dest = str(tmp_path.join('test.txt'))
-    dest_bad = str(tmp_path.join('test.mne'))
+    dest = tmp_path / 'test.txt'
+    dest_bad = tmp_path / 'test.mne'
     with pytest.raises(ValueError, match='must be of shape'):
         _write_dig_points(dest, points[:, :2])
     with pytest.raises(ValueError, match='extension'):
@@ -322,7 +322,7 @@ def test_io_dig_points(tmp_path):
 
 def test_io_coord_frame(tmp_path):
     """Test round trip for coordinate frame."""
-    fname = tmp_path.join('test.fif')
+    fname = tmp_path / 'test.fif'
     for ch_type in ('eeg', 'seeg', 'ecog', 'dbs', 'hbo', 'hbr'):
         info = create_info(
             ch_names=['Test Ch'], sfreq=1000., ch_types=[ch_type])
@@ -716,7 +716,7 @@ def test_anonymize(tmp_path):
         # write to disk & read back
         inst_type = 'raw' if isinstance(inst, BaseRaw) else 'epo'
         fname = 'tmp_raw.fif' if inst_type == 'raw' else 'tmp_epo.fif'
-        out_path = tmp_path.join(fname)
+        out_path = tmp_path / fname
         inst.save(out_path, overwrite=True)
         if inst_type == 'raw':
             read_raw_fif(out_path)
@@ -745,7 +745,7 @@ def test_anonymize_with_io(tmp_path):
     """Test that IO does not break anonymization."""
     raw = read_raw_fif(raw_fname)
 
-    temp_path = tmp_path.join('tmp_raw.fif')
+    temp_path = tmp_path / 'tmp_raw.fif'
     raw.save(temp_path)
 
     raw2 = read_raw_fif(temp_path)
@@ -821,7 +821,7 @@ def test_field_round_trip(tmp_path):
         info['helium_info'] = dict(
             he_level_raw=1., helium_level=2.,
             orig_file_guid='e', meas_date=(1, 2))
-    fname = tmp_path.join('temp-info.fif')
+    fname = tmp_path / 'temp-info.fif'
     write_info(fname, info)
     info_read = read_info(fname)
     assert_object_equal(info, info_read)
@@ -902,7 +902,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     raw.info.normalize_proj()
     raw.pick_channels(data_names + ref_names).crop(0, 2)
     long_names = ['123456789abcdefg' + name for name in raw.ch_names]
-    fname = tmp_path.join('test-raw.fif')
+    fname = tmp_path / 'test-raw.fif'
     with catch_logging() as log:
         raw.save(fname)
     log = log.getvalue()

@@ -195,7 +195,7 @@ def _assert_reorder(cov_new, cov_orig, order):
 
 def test_ad_hoc_cov(tmp_path):
     """Test ad hoc cov creation and I/O."""
-    out_fname = tmp_path.join('test-cov.fif')
+    out_fname = tmp_path / 'test-cov.fif'
     evoked = read_evokeds(ave_fname)[0]
     cov = make_ad_hoc_cov(evoked.info)
     cov.save(out_fname)
@@ -223,8 +223,8 @@ def test_io_cov(tmp_path):
     cov = read_cov(cov_fname)
     cov['method'] = 'empirical'
     cov['loglik'] = -np.inf
-    cov.save(tmp_path.join('test-cov.fif'))
-    cov2 = read_cov(tmp_path.join('test-cov.fif'))
+    cov.save(tmp_path / 'test-cov.fif')
+    cov2 = read_cov(tmp_path / 'test-cov.fif')
     assert_array_almost_equal(cov.data, cov2.data)
     assert_equal(cov['method'], cov2['method'])
     assert_equal(cov['loglik'], cov2['loglik'])
@@ -232,24 +232,24 @@ def test_io_cov(tmp_path):
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
-    cov2.save(tmp_path.join('test-cov.fif.gz'))
-    cov2 = read_cov(tmp_path.join('test-cov.fif.gz'))
+    cov2.save(tmp_path / 'test-cov.fif.gz')
+    cov2 = read_cov(tmp_path / 'test-cov.fif.gz')
     assert_array_almost_equal(cov.data, cov2.data)
 
     cov['bads'] = ['EEG 039']
     cov_sel = pick_channels_cov(cov, exclude=cov['bads'])
     assert cov_sel['dim'] == (len(cov['data']) - len(cov['bads']))
     assert cov_sel['data'].shape == (cov_sel['dim'], cov_sel['dim'])
-    cov_sel.save(tmp_path.join('test-cov.fif'))
+    cov_sel.save(tmp_path / 'test-cov.fif')
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
-    cov2.save(tmp_path.join('test-cov.fif.gz'))
-    cov2 = read_cov(tmp_path.join('test-cov.fif.gz'))
+    cov2.save(tmp_path / 'test-cov.fif.gz')
+    cov2 = read_cov(tmp_path / 'test-cov.fif.gz')
     assert_array_almost_equal(cov.data, cov2.data)
 
     # test warnings on bad filenames
-    cov_badname = tmp_path.join('test-bad-name.fif.gz')
+    cov_badname = tmp_path / 'test-bad-name.fif.gz'
     with pytest.warns(RuntimeWarning, match='-cov.fif'):
         write_cov(cov_badname, cov)
     with pytest.warns(RuntimeWarning, match='-cov.fif'):
@@ -301,8 +301,8 @@ def test_cov_estimation_on_raw(method, tmp_path):
     assert_snr(cov.data, cov_mne.data, 170)
 
     # test IO when computation done in Python
-    cov.save(tmp_path.join('test-cov.fif'))  # test saving
-    cov_read = read_cov(tmp_path.join('test-cov.fif'))
+    cov.save(tmp_path / 'test-cov.fif')  # test saving
+    cov_read = read_cov(tmp_path / 'test-cov.fif')
     assert cov_read.ch_names == cov.ch_names
     assert cov_read.nfree == cov.nfree
     assert_array_almost_equal(cov.data, cov_read.data)
@@ -406,7 +406,7 @@ def test_cov_estimation_with_triggers(rank, tmp_path):
                   keep_sample_mean=False, method='shrunk', rank=rank)
 
     # test IO when computation done in Python
-    cov.save(tmp_path.join('test-cov.fif'))  # test saving
+    cov.save(tmp_path / 'test-cov.fif')  # test saving
     cov_read = read_cov(tmp_path.join('test-cov.fif'))
     _assert_cov(cov, cov_read, 1e-5)
 

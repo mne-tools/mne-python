@@ -173,7 +173,7 @@ def test_volume_stc(tmp_path):
             stc = VolVectorSourceEstimate(data, [vertno], 0, 1)
             ext = 'h5'
             klass = VolVectorSourceEstimate
-        fname_temp = tmp_path.join('temp-vl.' + ext)
+        fname_temp = tmp_path / 'temp-vl.' + ext
         stc_new = stc
         n = 3 if ext == 'h5' else 2
         for ii in range(n):
@@ -204,7 +204,7 @@ def test_volume_stc(tmp_path):
     pytest.raises(ValueError, stc.save, fname_vol, ftype='whatever')
     for ftype in ['w', 'h5']:
         for _ in range(2):
-            fname_temp = tmp_path.join('temp-vol.%s' % ftype)
+            fname_temp = tmp_path / ('temp-vol.%s' % ftype)
             stc_new.save(fname_temp, ftype=ftype)
             stc_new = read_source_estimate(fname_temp)
             assert (isinstance(stc_new, VolSourceEstimate))
@@ -244,7 +244,7 @@ def test_save_vol_stc_as_nifti(tmp_path):
     """Save the stc as a nifti file and export."""
     import nibabel as nib
     src = read_source_spaces(fname_vsrc)
-    vol_fname = tmp_path.join('stc.nii.gz')
+    vol_fname = tmp_path / 'stc.nii.gz'
 
     # now let's actually read a MNE-C processed file
     stc = read_source_estimate(fname_vol, 'sample')
@@ -258,7 +258,7 @@ def test_save_vol_stc_as_nifti(tmp_path):
 
     with pytest.warns(None):  # nib<->numpy
         t1_img = nib.load(fname_t1)
-    stc.save_as_volume(tmp_path.join('stc.nii.gz'), src,
+    stc.save_as_volume(tmp_path / 'stc.nii.gz', src,
                        dest='mri', mri_resolution=True)
     with pytest.warns(None):  # nib<->numpy
         img = nib.load(str(vol_fname))
@@ -413,8 +413,8 @@ def test_stc_attributes():
 def test_io_stc(tmp_path):
     """Test IO for STC files."""
     stc = _fake_stc()
-    stc.save(tmp_path.join("tmp.stc"))
-    stc2 = read_source_estimate(tmp_path.join("tmp.stc"))
+    stc.save(tmp_path / "tmp.stc")
+    stc2 = read_source_estimate(tmp_path / "tmp.stc")
 
     assert_array_almost_equal(stc.data, stc2.data)
     assert_array_almost_equal(stc.tmin, stc2.tmin)
@@ -425,7 +425,7 @@ def test_io_stc(tmp_path):
     # test warning for complex data
     stc2.data = stc2.data.astype(np.complex128)
     with pytest.raises(ValueError, match='Cannot save complex-valued STC'):
-        stc2.save(tmp_path.join('complex.stc'))
+        stc2.save(tmp_path / 'complex.stc')
 
 
 @requires_h5py
@@ -437,9 +437,8 @@ def test_io_stc_h5(tmp_path, is_complex, vector):
         stc = _fake_vec_stc(is_complex=is_complex)
     else:
         stc = _fake_stc(is_complex=is_complex)
-    pytest.raises(ValueError, stc.save, tmp_path.join('tmp'),
-                  ftype='foo')
-    out_name = tmp_path.join('tmp')
+    pytest.raises(ValueError, stc.save, tmp_path / 'tmp', ftype='foo')
+    out_name = tmp_path / 'tmp'
     stc.save(out_name, ftype='h5')
     stc.save(out_name, ftype='h5')  # test overwrite
     stc3 = read_source_estimate(out_name)
@@ -460,11 +459,11 @@ def test_io_stc_h5(tmp_path, is_complex, vector):
 def test_io_w(tmp_path):
     """Test IO for w files."""
     stc = _fake_stc(n_time=1)
-    w_fname = tmp_path.join('fake')
+    w_fname = tmp_path / 'fake'
     stc.save(w_fname, ftype='w')
     src = read_source_estimate(w_fname)
-    src.save(tmp_path.join('tmp'), ftype='w')
-    src2 = read_source_estimate(tmp_path.join('tmp-lh.w'))
+    src.save(tmp_path / 'tmp', ftype='w')
+    src2 = read_source_estimate(tmp_path / 'tmp-lh.w')
     assert_array_almost_equal(src.data, src2.data)
     assert_array_almost_equal(src.lh_vertno, src2.lh_vertno)
     assert_array_almost_equal(src.rh_vertno, src2.rh_vertno)
@@ -1186,7 +1185,7 @@ def test_mixed_stc(tmp_path):
     stc = MixedSourceEstimate(data, vertno, 0, 1)
 
     # make sure error is raised for plotting surface with volume source
-    fname = tmp_path.join('mixed-stc.h5')
+    fname = tmp_path / 'mixed-stc.h5'
     stc.save(fname)
     stc_out = read_source_estimate(fname)
     assert_array_equal(stc_out.vertices, vertno)
@@ -1278,7 +1277,7 @@ def test_vec_stc_basic(tmp_path, klass, kind, dtype):
     assert_allclose(got_directions, directions * flips)
     assert_allclose(projected.data, amplitudes * flips)
 
-    out_name = tmp_path.join('temp.h5')
+    out_name = tmp_path / 'temp.h5'
     stc.save(out_name)
     stc_read = read_source_estimate(out_name)
     assert_allclose(stc.data, stc_read.data)

@@ -57,7 +57,7 @@ def test_datasets_basic(tmp_path, monkeypatch):
     _set_montage_coreg_path()
     sd = get_subjects_dir()
     assert sd.endswith('MNE-fsaverage-data')
-    monkeypatch.setenv('MNE_DATA', tmp_path / 'foo')
+    monkeypatch.setenv('MNE_DATA', str(tmp_path / 'foo'))
     with pytest.raises(FileNotFoundError, match='as specified by MNE_DAT'):
         testing.data_path(download=False)
 

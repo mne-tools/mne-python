@@ -198,7 +198,7 @@ def test_io_evoked(tmp_path):
     ave_double.comment = ave.comment + ' doubled nave'
     ave_double.nave = ave.nave * 2
 
-    write_evokeds(tmp_path.join('evoked-ave.fif'), [ave, ave_double])
+    write_evokeds(tmp_path / 'evoked-ave.fif', [ave, ave_double])
     ave2, ave_double = read_evokeds(op.join(tmp_path, 'evoked-ave.fif'))
     assert ave2.nave * 2 == ave_double.nave
 

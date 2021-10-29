@@ -1205,7 +1205,7 @@ def test_split_saving(tmp_path, split_size, n_epochs, n_files, size, metadata,
         epochs = concatenate_epochs([epochs[ii] for ii in range(len(epochs))])
     epochs_data = epochs.get_data()
     assert len(epochs) == n_epochs
-    fname = str(tmp_path.join('test-epo.fif'))
+    fname = tmp_path / 'test-epo.fif'
     epochs.save(fname, split_size=split_size, overwrite=True)
     got_size = _get_split_size(split_size)
     assert got_size == size
@@ -1218,7 +1218,7 @@ def test_split_saving(tmp_path, split_size, n_epochs, n_files, size, metadata,
 
     # Check that if BIDS is used and no split is needed it defaults to
     # simple writing without _split- entity.
-    split_fname = str(tmp_path.join('test_epo.fif'))
+    split_fname = tmp_path / 'test_epo.fif'
     split_fname_neuromag_part1 = split_fname.replace(
         'epo.fif', f'epo-{n_files + 1}.fif')
     split_fname_bids_part1 = split_fname.replace(
@@ -1257,7 +1257,7 @@ def test_split_many_reset(tmp_path):
     epochs = EpochsArray(data, info, tmin=0., selection=selection)
     assert len(epochs.drop_log) == 101000
     assert len(epochs) == len(data) == len(epochs.events)
-    fname = str(tmp_path.join('temp-epo.fif'))
+    fname = tmp_path / 'temp-epo.fif'
     for split_size in ('0.5MB', '1MB', '2MB'):  # tons of overhead from sel
         with pytest.raises(ValueError, match='too small to safely'):
             epochs.save(fname, split_size=split_size, verbose='debug')
@@ -3526,7 +3526,7 @@ def test_epochs_huge_events(tmp_path):
     epochs = EpochsArray(data, info)
     epochs.events = events
     with pytest.raises(TypeError, match='exceeds maximum'):
-        epochs.save(tmp_path.join('temp-epo.fif'))
+        epochs.save(tmp_path / 'temp-epo.fif')
 
 
 def _old_bad_write(fid, kind, arr):
@@ -3546,7 +3546,7 @@ def test_concat_overflow(tmp_path, monkeypatch):
     with pytest.warns(RuntimeWarning, match='consecutive increasing'):
         epochs = mne.concatenate_epochs((epochs_1, epochs_2))
     assert_array_less(0, epochs.events[:, 0])
-    fname = tmp_path.join('temp-epo.fif')
+    fname = tmp_path / 'temp-epo.fif'
     epochs.save(fname)
     epochs = read_epochs(fname)
     assert_array_less(0, epochs.events[:, 0])
@@ -3600,7 +3600,7 @@ def test_epochs_baseline_after_cropping(tmp_path):
                  epochs_orig.get_data().squeeze()[200:])
 
     # Test I/O roundtrip.
-    epochs_fname = tmp_path.join('temp-cropped-epo.fif')
+    epochs_fname = tmp_path / 'temp-cropped-epo.fif'
     epochs_cropped.save(epochs_fname)
     epochs_cropped_read = mne.read_epochs(epochs_fname)
 

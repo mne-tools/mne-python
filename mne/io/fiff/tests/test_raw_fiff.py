@@ -134,7 +134,7 @@ def test_concat(tmp_path):
     # we trim the file to save lots of memory and some time
     raw = read_raw_fif(test_fif_fname)
     raw.crop(0, 2.)
-    test_name = tmp_path.join('test_raw.fif')
+    test_name = tmp_path / 'test_raw.fif'
     raw.save(test_name)
     # now run the standard test
     _test_concat(partial(read_raw_fif), test_name)
@@ -540,7 +540,7 @@ def test_split_numbers(tmp_path, monkeypatch):
     monkeypatch.setattr(base, 'write_string', _no_write_file_name)
     raw = read_raw_fif(test_fif_fname).pick('eeg')
     # gh-8339
-    dashes_fname = tmp_path.join('sub-1_ses-2_task-3_raw.fif')
+    dashes_fname = tmp_path / 'sub-1_ses-2_task-3_raw.fif'
     raw.save(dashes_fname, split_size='5MB',
              buffer_size_sec=1.)
     assert op.isfile(dashes_fname)
@@ -563,7 +563,7 @@ def test_load_bad_channels(tmp_path):
     # Test normal case
     raw.load_bad_channels(bad_file_works)
     # Write it out, read it in, and check
-    raw.save(tmp_path.join('foo_raw.fif'))
+    raw.save(tmp_path / 'foo_raw.fif')
     raw_new = read_raw_fif(tmp_path.join('foo_raw.fif'))
     assert correct_bads == raw_new.info['bads']
     # Reset it
@@ -628,7 +628,7 @@ def test_io_raw(tmp_path):
     (ctf_fname, 'raw.fif')])
 def test_io_raw_additional(fname_in, fname_out, tmp_path):
     """Test IO for raw data (Neuromag + CTF + gz)."""
-    fname_out = tmp_path.join(fname_out)
+    fname_out = tmp_path / fname_out
     raw = read_raw_fif(fname_in).crop(0, 2)
 
     nchan = raw.info['nchan']
@@ -1514,7 +1514,7 @@ def test_compensation_raw(tmp_path):
             assert_allclose(data_3, data_3_new, **tols)
 
     # Try IO with compensation
-    temp_file = tmp_path.join('raw.fif')
+    temp_file = tmp_path / 'raw.fif'
     raw_3.save(temp_file, overwrite=True)
     for preload in (True, False):
         raw_read = read_raw_fif(temp_file, preload=preload)
@@ -1644,7 +1644,7 @@ def test_equalize_channels():
 def test_memmap(tmp_path):
     """Test some interesting memmapping cases."""
     # concatenate_raw
-    memmaps = [tmp_path.join(str(ii)) for ii in range(3)]
+    memmaps = [tmp_path / str(ii) for ii in range(3)]
     raw_0 = read_raw_fif(test_fif_fname, preload=memmaps[0])
     assert raw_0._data.filename == memmaps[0]
     raw_1 = read_raw_fif(test_fif_fname, preload=memmaps[1])

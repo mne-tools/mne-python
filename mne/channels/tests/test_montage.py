@@ -579,7 +579,7 @@ def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmp_path):
     with open(op.join(kit_dir, 'test_elp.txt')) as fid:
         content = fid.read().replace('FastSCAN', 'XxxxXXXX')
 
-    fname = str(tmp_path).join('faulty_FastSCAN.txt')
+    fname = tmp_path / 'faulty_FastSCAN.txt'
     with open(fname, 'w') as fid:
         fid.write(content)
 

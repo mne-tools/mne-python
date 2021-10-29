@@ -177,7 +177,7 @@ def test_warn(capsys, tmp_path, monkeypatch):
     assert captured.out == ''  # gh-5592
     assert captured.err == ''  # this is because pytest.warns took it already
     # test ignore_namespaces
-    bad_name = tmp_path.join('bad.fif')
+    bad_name = tmp_path / 'bad.fif'
     raw = RawArray(np.zeros((1, 1)), create_info(1, 1000., 'eeg'))
     with pytest.warns(RuntimeWarning, match='filename') as ws:
         raw.save(bad_name)
