@@ -269,7 +269,7 @@ def test_read_write_info(tmp_path):
     with open(temp_file, 'rb') as fid:
         m1.update(fid.read())
     m1 = m1.hexdigest()
-    temp_file_2 = tmp_path.join('info2.fif')
+    temp_file_2 = tmp_path / 'info2.fif'
     assert temp_file_2 != temp_file
     write_info(temp_file_2, info)
     m2 = hashlib.md5()
@@ -283,7 +283,7 @@ def test_read_write_info(tmp_path):
         info['meas_date'] = None
     anonymize_info(info, verbose='error')
     assert info['meas_date'] is None
-    tmp_fname_3 = tmp_path.join('info3.fif')
+    tmp_fname_3 = tmp_path / 'info3.fif'
     write_info(tmp_fname_3, info)
     assert info['meas_date'] is None
     info2 = read_info(tmp_fname_3)
@@ -292,7 +292,7 @@ def test_read_write_info(tmp_path):
     # Check that having a very old date in fine until you try to save it to fif
     with info._unlock(check_after=True):
         info['meas_date'] = datetime(1800, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-    fname = tmp_path.join('test.fif')
+    fname = tmp_path / 'test.fif'
     with pytest.raises(RuntimeError, match='must be between '):
         write_info(fname, info)
 
@@ -763,7 +763,7 @@ def test_csr_csc(tmp_path):
     ct = sss_ctc['decoupler'].copy()
     # CSC
     assert isinstance(ct, sparse.csc_matrix)
-    fname = tmp_path.join('test.fif')
+    fname = tmp_path / 'test.fif'
     write_info(fname, info)
     info_read = read_info(fname)
     ct_read = info_read['proc_history'][0]['max_info']['sss_ctc']['decoupler']
@@ -774,7 +774,7 @@ def test_csr_csc(tmp_path):
     assert isinstance(csr, sparse.csr_matrix)
     assert_array_equal(csr.toarray(), ct.toarray())
     info['proc_history'][0]['max_info']['sss_ctc']['decoupler'] = csr
-    fname = tmp_path.join('test1.fif')
+    fname = tmp_path / 'test1.fif'
     write_info(fname, info)
     info_read = read_info(fname)
     ct_read = info_read['proc_history'][0]['max_info']['sss_ctc']['decoupler']
@@ -960,7 +960,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     # epochs
     #
     epochs = Epochs(raw, make_fixed_length_events(raw))
-    fname = tmp_path.join('test-epo.fif')
+    fname = tmp_path / 'test-epo.fif'
     epochs.save(fname)
     epochs_read = read_epochs(fname)
     for ep in (epochs, epochs_read):
@@ -970,7 +970,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     # cov
     epochs.info['bads'] = []
     cov = compute_covariance(epochs, verbose='error')
-    fname = tmp_path.join('test-cov.fif')
+    fname = tmp_path / 'test-cov.fif'
     write_cov(fname, cov)
     cov_read = read_cov(fname)
     for co in (cov, cov_read):
@@ -984,7 +984,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     evoked = epochs.average()
     evoked.info['bads'] = bads
     assert evoked.nave == 1
-    fname = tmp_path.join('test-ave.fif')
+    fname = tmp_path / 'test-ave.fif'
     evoked.save(fname)
     evoked_read = read_evokeds(fname)[0]
     for ev in (evoked, evoked_read):
@@ -1000,7 +1000,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     src = setup_volume_source_space(
         pos=dict(rr=[[0, 0, 0.04]], nn=[[0, 1., 0.]]))
     fwd = make_forward_solution(evoked.info, None, src, sphere)
-    fname = tmp_path.join('temp-fwd.fif')
+    fname = tmp_path / 'temp-fwd.fif'
     write_forward_solution(fname, fwd)
     fwd_read = read_forward_solution(fname)
     for fw in (fwd, fwd_read):

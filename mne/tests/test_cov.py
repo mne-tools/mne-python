@@ -407,7 +407,7 @@ def test_cov_estimation_with_triggers(rank, tmp_path):
 
     # test IO when computation done in Python
     cov.save(tmp_path / 'test-cov.fif')  # test saving
-    cov_read = read_cov(tmp_path.join('test-cov.fif'))
+    cov_read = read_cov(tmp_path / 'test-cov.fif')
     _assert_cov(cov, cov_read, 1e-5)
 
     # cov with list of epochs with different projectors

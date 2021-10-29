@@ -122,7 +122,7 @@ def test_io_events(tmp_path):
     # Test binary fif.gz IO
     events2 = read_events(fname_gz)  # Use as the gold standard
     assert_array_almost_equal(events, events2)
-    fname_temp += '.gz'
+    fname_temp = str(fname_temp) + '.gz'
     write_events(fname_temp, events2)
     events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)

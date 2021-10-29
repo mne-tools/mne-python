@@ -1282,8 +1282,8 @@ def test_split_many_reset(tmp_path):
 def _assert_splits(fname, n, size):
     __tracebackhide__ = True
     assert n >= 0
-    next_fnames = [fname] + [
-        fname[:-4] + '-%d.fif' % ii for ii in range(1, n + 2)]
+    next_fnames = [str(fname)] + [
+        str(fname)[:-4] + '-%d.fif' % ii for ii in range(1, n + 2)]
     bad_fname = next_fnames.pop(-1)
     for ii, this_fname in enumerate(next_fnames[:-1]):
         assert op.isfile(this_fname), f'Missing file: {this_fname}'

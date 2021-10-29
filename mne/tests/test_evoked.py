@@ -228,8 +228,8 @@ def test_io_evoked(tmp_path):
     aves1 = read_evokeds(fname)[1::2]
     aves2 = read_evokeds(fname, [1, 3])
     aves3 = read_evokeds(fname, ['Right Auditory', 'Right visual'])
-    write_evokeds(tmp_path.join('evoked-ave.fif'), aves1)
-    aves4 = read_evokeds(tmp_path.join('evoked-ave.fif'))
+    write_evokeds(tmp_path / 'evoked-ave.fif', aves1)
+    aves4 = read_evokeds(tmp_path / 'evoked-ave.fif')
     for aves in [aves2, aves3, aves4]:
         for [av1, av2] in zip(aves1, aves):
             assert_array_almost_equal(av1.data, av2.data)
@@ -244,20 +244,20 @@ def test_io_evoked(tmp_path):
     # test saving and reading complex numbers in evokeds
     ave_complex = ave.copy()
     ave_complex._data = 1j * ave_complex.data
-    fname_temp = str(tmp_path.join('complex-ave.fif'))
+    fname_temp = str(tmp_path / 'complex-ave.fif')
     ave_complex.save(fname_temp)
     ave_complex = read_evokeds(fname_temp)[0]
     assert_allclose(ave.data, ave_complex.data.imag)
 
     # test warnings on bad filenames
-    fname2 = tmp_path.join('test-bad-name.fif')
+    fname2 = tmp_path / 'test-bad-name.fif'
     with pytest.warns(RuntimeWarning, match='-ave.fif'):
         write_evokeds(fname2, ave)
     with pytest.warns(RuntimeWarning, match='-ave.fif'):
         read_evokeds(fname2)
 
     # test writing when order of bads doesn't match
-    fname3 = tmp_path.join('test-bad-order-ave.fif')
+    fname3 = tmp_path / 'test-bad-order-ave.fif'
     condition = 'Left Auditory'
     ave4 = read_evokeds(fname, condition)
     ave4.info['bads'] = ave4.ch_names[:3]
@@ -269,7 +269,7 @@ def test_io_evoked(tmp_path):
     pytest.raises(TypeError, Evoked, fname)
 
     # MaxShield
-    fname_ms = tmp_path.join('test-ave.fif')
+    fname_ms = tmp_path / 'test-ave.fif'
     assert (ave.info['maxshield'] is False)
     with ave.info._unlock():
         ave.info['maxshield'] = True

@@ -588,7 +588,7 @@ def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmp_path):
 
     EXPECTED_ERR_MSG = "allowed value is '.txt', but got '.bar' instead"
     with pytest.raises(ValueError, match=EXPECTED_ERR_MSG):
-        _ = read_polhemus_fastscan(fname=tmp_path.join('foo.bar'))
+        _ = read_polhemus_fastscan(fname=tmp_path / 'foo.bar')
 
 
 def test_read_dig_polhemus_isotrak_hsp():

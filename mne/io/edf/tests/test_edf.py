@@ -198,14 +198,15 @@ def test_parse_annotation(tmp_path):
              b'+1800.2\x1525.5\x14Apnea\x14\x00\x00\x00\x00\x00\x00\x00'
              b'+123\x14\x14\x00\x00\x00\x00\x00\x00\x00')
     annot_file = tmp_path / 'annotations.txt'
-    annot_file.write(annot)
+    with open(annot_file, "w") as f:
+        f.write(annot)
 
     annot = [a for a in bytes(annot)]
     annot[1::2] = [a * 256 for a in annot[1::2]]
     tal_channel_A = np.array(list(map(sum, zip(annot[0::2], annot[1::2]))),
                              dtype=np.int64)
 
-    with open(str(annot_file), 'rb') as fid:
+    with open(annot_file, 'rb') as fid:
         # ch_data = np.fromfile(fid, dtype='<i2', count=len(annot))
         tal_channel_B = _read_ch(fid, subtype='EDF', dtype='<i2',
                                  samp=(len(annot) - 1) // 2,
@@ -316,7 +317,8 @@ def test_read_annot(tmp_path):
              b'+1800.2\x1525.5\x14Apnea\x14\x00\x00\x00\x00\x00\x00\x00'
              b'+123\x14\x14\x00\x00\x00\x00\x00\x00\x00')
     annot_file = tmp_path / 'annotations.txt'
-    annot_file.write(annot)
+    with open(annot_file, "w") as f:
+        f.write(annot)
 
     onset, duration, desc = _read_annotations_edf(annotations=str(annot_file))
     annotation = Annotations(onset=onset, duration=duration, description=desc,
@@ -324,7 +326,7 @@ def test_read_annot(tmp_path):
     _assert_annotations_equal(annotation, EXPECTED_ANNOTATIONS)
 
     # Now test when reading from buffer of data
-    with open(str(annot_file), 'rb') as fid:
+    with open(annot_file, 'rb') as fid:
         ch_data = np.fromfile(fid, dtype='<i2', count=len(annot))
     onset, duration, desc = _read_annotations_edf([ch_data])
     annotation = Annotations(onset=onset, duration=duration, description=desc,

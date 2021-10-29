@@ -83,7 +83,7 @@ def test_acq_skip(tmp_path):
     assert_allclose(data, np.concatenate(expected_data, axis=-1), atol=1e-22)
 
     # Check that acquisition skips are handled properly during I/O
-    fname = tmp_path.join('test_raw.fif')
+    fname = tmp_path / 'test_raw.fif'
     raw.save(fname, fmt=raw.orig_format)
     # first: file size should not increase much (orig data is missing
     # 7 of 17 buffers, so if we write them out it should increase the file
@@ -181,7 +181,7 @@ def test_subject_info(tmp_path):
     for key, val in zip(keys, vals):
         subject_info[key] = val
     raw.info['subject_info'] = subject_info
-    out_fname = tmp_path.join('test_subj_info_raw.fif')
+    out_fname = tmp_path / 'test_subj_info_raw.fif'
     raw.save(out_fname, overwrite=True)
     raw_read = read_raw_fif(out_fname)
     for key in keys:
@@ -213,7 +213,7 @@ def test_output_formats(tmp_path):
     # let's fake a raw file with different formats
     raw = read_raw_fif(test_fif_fname).crop(0, 1)
 
-    temp_file = tmp_path.join('raw.fif')
+    temp_file = tmp_path / 'raw.fif'
     for ii, (fmt, tol) in enumerate(zip(formats, tols)):
         # Let's test the overwriting error throwing while we're at it
         if ii > 0:
@@ -253,7 +253,7 @@ def test_multiple_files(tmp_path):
     # going in reverse order so the last fname is the first file (need later)
     raws = [None] * len(tmins)
     for ri in range(len(tmins) - 1, -1, -1):
-        fname = tmp_path.join('test_raw_split-%d_raw.fif' % ri)
+        fname = tmp_path / ('test_raw_split-%d_raw.fif' % ri)
         raw.save(fname, tmin=tmins[ri], tmax=tmaxs[ri])
         raws[ri] = read_raw_fif(fname)
         assert (len(raws[ri].times) ==
@@ -393,11 +393,11 @@ def test_split_files(tmp_path, mod, monkeypatch):
     # Test a very close corner case
 
     assert_allclose(raw_1.buffer_size_sec, 10., atol=1e-2)  # samp rate
-    split_fname = tmp_path.join(f'split_raw_{mod}.fif')
+    split_fname = tmp_path / f'split_raw_{mod}.fif'
     # intended filenames
-    split_fname_elekta_part2 = tmp_path.join(f'split_raw_{mod}-1.fif')
-    split_fname_bids_part1 = tmp_path.join(f'split_raw_split-01_{mod}.fif')
-    split_fname_bids_part2 = tmp_path.join(f'split_raw_split-02_{mod}.fif')
+    split_fname_elekta_part2 = tmp_path / f'split_raw_{mod}-1.fif'
+    split_fname_bids_part1 = tmp_path / f'split_raw_split-01_{mod}.fif'
+    split_fname_bids_part2 = tmp_path / f'split_raw_split-02_{mod}.fif'
     raw_1.set_annotations(Annotations([2.], [5.5], 'test'))
 
     # Check that if BIDS is used and no split is needed it defaults to
@@ -515,15 +515,15 @@ def test_split_files(tmp_path, mod, monkeypatch):
     assert op.isdir(tmp_path)
     with pytest.raises(ValueError, match='must end with an underscore'):
         raw_crop.save(
-            tmp_path.join('test.fif'), split_naming='bids', verbose='error')
+            tmp_path / 'test.fif', split_naming='bids', verbose='error')
 
     # reserved file is deleted
-    fname = tmp_path.join('test_raw.fif')
+    fname = tmp_path / 'test_raw.fif'
     monkeypatch.setattr(base, '_write_raw_fid', _err)
     with pytest.raises(RuntimeError, match='Killed mid-write'):
         raw_1.save(fname, split_size='10MB', split_naming='bids')
     assert op.isfile(fname)
-    assert not op.isfile(tmp_path.join('test_split-01_raw.fif'))
+    assert not op.isfile(tmp_path / 'test_split-01_raw.fif')
 
 
 def _err(*args, **kwargs):
@@ -564,7 +564,7 @@ def test_load_bad_channels(tmp_path):
     raw.load_bad_channels(bad_file_works)
     # Write it out, read it in, and check
     raw.save(tmp_path / 'foo_raw.fif')
-    raw_new = read_raw_fif(tmp_path.join('foo_raw.fif'))
+    raw_new = read_raw_fif(tmp_path / 'foo_raw.fif')
     assert correct_bads == raw_new.info['bads']
     # Reset it
     raw.info['bads'] = []
@@ -576,14 +576,14 @@ def test_load_bad_channels(tmp_path):
     with pytest.warns(RuntimeWarning, match='1 bad channel'):
         raw.load_bad_channels(bad_file_wrong, force=True)
         # write it out, read it in, and check
-    raw.save(tmp_path.join('foo_raw.fif'), overwrite=True)
-    raw_new = read_raw_fif(tmp_path.join('foo_raw.fif'))
+    raw.save(tmp_path / 'foo_raw.fif', overwrite=True)
+    raw_new = read_raw_fif(tmp_path / 'foo_raw.fif')
     assert correct_bads == raw_new.info['bads']
 
     # Check that bad channels are cleared
     raw.load_bad_channels(None)
-    raw.save(tmp_path.join('foo_raw.fif'), overwrite=True)
-    raw_new = read_raw_fif(tmp_path.join('foo_raw.fif'))
+    raw.save(tmp_path / 'foo_raw.fif', overwrite=True)
+    raw_new = read_raw_fif(tmp_path / 'foo_raw.fif')
     assert raw_new.info['bads'] == []
 
 
@@ -598,7 +598,7 @@ def test_io_raw(tmp_path):
             assert ('Raw' in repr(r))
             assert (op.basename(fif_fname) in repr(r))
             r.info['description'] = chars
-            temp_file = tmp_path.join('raw.fif')
+            temp_file = tmp_path / 'raw.fif'
             r.save(temp_file, overwrite=True)
             with read_raw_fif(temp_file) as r2:
                 desc2 = r2.info['description']
@@ -611,7 +611,7 @@ def test_io_raw(tmp_path):
     data = rng.randn(raw._data.shape[0], raw._data.shape[1])
     raw._data[:, :] = data
     # save it somewhere
-    fname = tmp_path.join('test_copy_raw.fif')
+    fname = tmp_path / 'test_copy_raw.fif'
     raw.save(fname, buffer_size_sec=1.0)
     # read it in, make sure the whole thing matches
     raw = read_raw_fif(fname)
@@ -697,7 +697,7 @@ def test_io_raw_additional(fname_in, fname_out, tmp_path):
         assert_allclose(raw.info['dig'][0]['r'], raw2.info['dig'][0]['r'])
 
     # test warnings on bad filenames
-    raw_badname = tmp_path.join('test-bad-name.fif.gz')
+    raw_badname = tmp_path / 'test-bad-name.fif.gz'
     with pytest.warns(RuntimeWarning, match='raw.fif'):
         raw.save(raw_badname)
     with pytest.warns(RuntimeWarning, match='raw.fif'):
@@ -796,8 +796,8 @@ def test_proj(tmp_path):
         raw = read_raw_fif(fif_fname, preload=preload)
 
         # write the file with proj. activated, make sure proj has been applied
-        raw.save(tmp_path.join('raw.fif'), proj=True, overwrite=True)
-        raw2 = read_raw_fif(tmp_path.join('raw.fif'))
+        raw.save(tmp_path / 'raw.fif', proj=True, overwrite=True)
+        raw2 = read_raw_fif(tmp_path / 'raw.fif')
         data_proj_2, _ = raw2[:, 0:2]
         assert_allclose(data_proj_1, data_proj_2)
         assert (all(p['active'] for p in raw2.info['projs']))
@@ -829,7 +829,7 @@ def test_proj(tmp_path):
 
     # I/O roundtrip of an MEG projector with a Raw that only contains EEG
     # data.
-    out_fname = tmp_path.join('test_raw.fif')
+    out_fname = tmp_path / 'test_raw.fif'
     raw = read_raw_fif(test_fif_fname, preload=True).crop(0, 0.002)
     proj = raw.info['projs'][-1]
     raw.pick_types(meg=False, eeg=True)
@@ -862,7 +862,7 @@ def test_preload_modify(preload, tmp_path):
         else:
             raise
 
-    tmp_fname = tmp_path.join('raw.fif')
+    tmp_fname = tmp_path / 'raw.fif'
     raw.save(tmp_fname, overwrite=True)
 
     raw_new = read_raw_fif(tmp_fname)
@@ -1098,9 +1098,8 @@ def test_resample(tmp_path, preload, n, npad):
     # test parallel on upsample
     raw_resamp.resample(sfreq * 2, n_jobs=2, npad=npad)
     assert raw_resamp.n_times == len(raw_resamp.times)
-    raw_resamp.save(tmp_path.join('raw_resamp-raw.fif'))
-    raw_resamp = read_raw_fif(tmp_path.join('raw_resamp-raw.fif'),
-                              preload=True)
+    raw_resamp.save(tmp_path / 'raw_resamp-raw.fif')
+    raw_resamp = read_raw_fif(tmp_path / 'raw_resamp-raw.fif', preload=True)
     assert sfreq == raw_resamp.info['sfreq'] / 2
     assert raw.n_times == raw_resamp.n_times // 2
     assert raw_resamp.get_data().shape[1] == raw_resamp.n_times
@@ -1378,7 +1377,7 @@ def test_add_channels():
 @testing.requires_testing_data
 def test_save(tmp_path):
     """Test saving raw."""
-    temp_fname = tmp_path.join('test_raw.fif')
+    temp_fname = tmp_path / 'test_raw.fif'
     shutil.copyfile(fif_fname, temp_fname)
     raw = read_raw_fif(temp_fname, preload=False)
     # can't write over file being read
@@ -1394,7 +1393,7 @@ def test_save(tmp_path):
     annot = Annotations([10], [5], ['test'], orig_time=orig_time)
     raw.set_annotations(annot)
     annot = raw.annotations
-    new_fname = tmp_path.join('break_raw.fif')
+    new_fname = tmp_path / 'break_raw.fif'
     raw.save(new_fname, overwrite=True)
     new_raw = read_raw_fif(new_fname, preload=False)
     pytest.raises(ValueError, new_raw.save, new_fname)
@@ -1437,7 +1436,7 @@ def test_annotation_crop(tmp_path):
                     [1., 1. + 1. / raw.info['sfreq']], atol=1e-3)
 
     # make sure we can overwrite the file we loaded when preload=True
-    new_fname = tmp_path.join('break_raw.fif')
+    new_fname = tmp_path / 'break_raw.fif'
     raw.save(new_fname)
     new_raw = read_raw_fif(new_fname, preload=True)
     new_raw.save(new_fname, overwrite=True)
@@ -1553,7 +1552,7 @@ def test_compensation_raw(tmp_path):
 def test_compensation_raw_mne(tmp_path):
     """Test Raw compensation by comparing with MNE-C."""
     def compensate_mne(fname, grad):
-        tmp_fname = tmp_path.join('mne_ctf_test_raw.fif')
+        tmp_fname = tmp_path / 'mne_ctf_test_raw.fif'
         cmd = ['mne_process_raw', '--raw', fname, '--save', tmp_fname,
                '--grad', str(grad), '--projoff', '--filteroff']
         run_subprocess(cmd)
@@ -1786,7 +1785,7 @@ def test_corrupted(tmp_path):
         assert dirpos == 12641532
         fid.seek(0)
         data = fid.read(dirpos)
-    bad_fname = tmp_path.join('test_raw.fif')
+    bad_fname = tmp_path / 'test_raw.fif'
     with open(bad_fname, 'wb') as fid:
         fid.write(data)
     with pytest.warns(RuntimeWarning, match='.*tag directory.*corrupt.*'):
