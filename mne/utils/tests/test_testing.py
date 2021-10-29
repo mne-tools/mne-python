@@ -35,7 +35,8 @@ def test_tempdir():
 def test_datasets(monkeypatch, tmp_path):
     """Test dataset config."""
     # gh-4192
-    fake_path = (tmp_path / 'MNE-testing-data').mkdir()
+    fake_path = tmp_path / 'MNE-testing-data'
+    fake_path.mkdir()
     with open(fake_path / 'version.txt', 'w') as fid:
         fid.write('9999.9999')
     monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmp_path))

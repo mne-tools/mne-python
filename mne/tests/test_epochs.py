@@ -1218,7 +1218,7 @@ def test_split_saving(tmp_path, split_size, n_epochs, n_files, size, metadata,
 
     # Check that if BIDS is used and no split is needed it defaults to
     # simple writing without _split- entity.
-    split_fname = tmp_path / 'test_epo.fif'
+    split_fname = str(tmp_path / 'test_epo.fif')
     split_fname_neuromag_part1 = split_fname.replace(
         'epo.fif', f'epo-{n_files + 1}.fif')
     split_fname_bids_part1 = split_fname.replace(
