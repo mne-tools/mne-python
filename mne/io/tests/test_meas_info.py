@@ -1013,7 +1013,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     # inv
     #
     inv = make_inverse_operator(evoked.info, fwd, cov)
-    fname = tmp_path.join('test-inv.fif')
+    fname = tmp_path / 'test-inv.fif'
     write_inverse_operator(fname, inv)
     inv_read = read_inverse_operator(fname)
     for iv in (inv, inv_read):

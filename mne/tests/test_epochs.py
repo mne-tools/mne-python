@@ -1210,7 +1210,7 @@ def test_split_saving(tmp_path, split_size, n_epochs, n_files, size, metadata,
     got_size = _get_split_size(split_size)
     assert got_size == size
     _assert_splits(fname, n_files, size)
-    assert not op.isfile(f'{fname[:-4]}-{n_files + 1}.fif')
+    assert not op.isfile(f'{str(fname)[:-4]}-{n_files + 1}.fif')
     for preload in (True, False):
         epochs2 = mne.read_epochs(fname, preload=preload)
         assert_allclose(epochs2.get_data(), epochs_data)
@@ -1271,7 +1271,7 @@ def test_split_many_reset(tmp_path):
     mb = 3 * 1024 * 1024
     _assert_splits(fname, 6, mb)
     # reset, then it should work
-    fname = str(tmp_path.join('temp-reset-epo.fif'))
+    fname = tmp_path / 'temp-reset-epo.fif'
     epochs.reset_drop_log_selection()
     epochs.save(fname, split_size=split_size, verbose='debug')
     _assert_splits(fname, 4, mb)

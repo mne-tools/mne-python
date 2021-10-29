@@ -1643,7 +1643,7 @@ def test_equalize_channels():
 def test_memmap(tmp_path):
     """Test some interesting memmapping cases."""
     # concatenate_raw
-    memmaps = [tmp_path / str(ii) for ii in range(3)]
+    memmaps = [str(tmp_path / str(ii)) for ii in range(3)]
     raw_0 = read_raw_fif(test_fif_fname, preload=memmaps[0])
     assert raw_0._data.filename == memmaps[0]
     raw_1 = read_raw_fif(test_fif_fname, preload=memmaps[1])

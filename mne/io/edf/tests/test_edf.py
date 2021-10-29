@@ -198,7 +198,7 @@ def test_parse_annotation(tmp_path):
              b'+1800.2\x1525.5\x14Apnea\x14\x00\x00\x00\x00\x00\x00\x00'
              b'+123\x14\x14\x00\x00\x00\x00\x00\x00\x00')
     annot_file = tmp_path / 'annotations.txt'
-    with open(annot_file, "w") as f:
+    with open(annot_file, "wb") as f:
         f.write(annot)
 
     annot = [a for a in bytes(annot)]
@@ -317,7 +317,7 @@ def test_read_annot(tmp_path):
              b'+1800.2\x1525.5\x14Apnea\x14\x00\x00\x00\x00\x00\x00\x00'
              b'+123\x14\x14\x00\x00\x00\x00\x00\x00\x00')
     annot_file = tmp_path / 'annotations.txt'
-    with open(annot_file, "w") as f:
+    with open(annot_file, "wb") as f:
         f.write(annot)
 
     onset, duration, desc = _read_annotations_edf(annotations=str(annot_file))
