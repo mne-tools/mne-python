@@ -306,6 +306,10 @@ class Info(dict, MontageMixin):
         This is only present in 4D/CTF data.
     dev_head_t : dict | None
         The device to head transformation.
+    device_info : dict | None
+        Information about the acquisition device. See Notes for details.
+
+        .. versionadded:: 0.19
     dig : list of dict | None
         The Polhemus digitization data in head coordinates.
         See Notes for more information.
@@ -318,6 +322,12 @@ class Info(dict, MontageMixin):
         Name of the person that ran the experiment.
     file_id : dict | None
         The FIF globally unique ID. See Notes for more information.
+    gantry_angle : float | None
+        Tilt angle of the gantry in degrees.
+    helium_info : dict | None
+        Information about the device helium. See Notes for details.
+
+        .. versionadded:: 0.19
     highpass : float
         Highpass corner frequency in Hertz. Zero indicates a DC recording.
     hpi_meas : list of dict
@@ -334,8 +344,6 @@ class Info(dict, MontageMixin):
         See Notes for details.
     line_freq : float | None
         Frequency of the power line in Hertz.
-    gantry_angle : float | None
-        Tilt angle of the gantry in degrees.
     lowpass : float
         Lowpass corner frequency in Hertz.
         It is automatically set to half the sampling rate if there is
@@ -346,10 +354,6 @@ class Info(dict, MontageMixin):
         .. versionchanged:: 0.20
            This is stored as a :class:`~python:datetime.datetime` object
            instead of a tuple of seconds/microseconds.
-    utc_offset : str
-        "UTC offset of related meas_date (sHH:MM).
-
-        .. versionadded:: 0.19
     meas_id : dict | None
         The ID assigned to this measurement by the acquisition system or
         during file conversion. Follows the same format as ``file_id``.
@@ -370,19 +374,15 @@ class Info(dict, MontageMixin):
     subject_info : dict | None
         Information about the subject.
         See Notes for details.
-    device_info : dict | None
-        Information about the acquisition device. See Notes for details.
-
-        .. versionadded:: 0.19
-    helium_info : dict | None
-        Information about the device helium. See Notes for details.
-
-        .. versionadded:: 0.19
     temp : object | None
         Can be used to store temporary objects in an Info instance. It will not
         survive an I/O roundtrip.
 
         .. versionadded:: 0.24
+    utc_offset : str
+        "UTC offset of related meas_date (sHH:MM).
+
+        .. versionadded:: 0.19
 
     See Also
     --------
