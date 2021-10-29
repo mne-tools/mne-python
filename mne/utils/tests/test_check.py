@@ -68,8 +68,7 @@ def test_check(tmp_path):
                           '_meg.fif.gz', '_eeg.fif.gz', '_ieeg.fif.gz'))
 def test_check_fname_suffixes(suffix, tmp_path):
     """Test checking for valid filename suffixes."""
-    new_fname = str(tmp_path.join(op.basename(fname_raw).replace('_raw.fif',
-                                                                 suffix)))
+    new_fname = tmp_path / op.basename(fname_raw).replace('_raw.fif', suffix)
     raw = mne.io.read_raw_fif(fname_raw).crop(0, 0.1)
     raw.save(new_fname)
     mne.io.read_raw_fif(new_fname)

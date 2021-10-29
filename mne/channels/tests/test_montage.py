@@ -113,7 +113,7 @@ def test_dig_montage_trans(tmp_path):
     trans = compute_native_head_t(montage)
     _ensure_trans(trans)
     # ensure that we can save and load it, too
-    fname = tmp_path.join('temp-mon.fif')
+    fname = tmp_path / 'temp-mon.fif'
     _check_roundtrip(montage, fname, 'mri')
     # test applying a trans
     position1 = montage.get_positions()
@@ -579,7 +579,7 @@ def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmp_path):
     with open(op.join(kit_dir, 'test_elp.txt')) as fid:
         content = fid.read().replace('FastSCAN', 'XxxxXXXX')
 
-    fname = str(tmp_path.join('faulty_FastSCAN.txt'))
+    fname = str(tmp_path).join('faulty_FastSCAN.txt')
     with open(fname, 'w') as fid:
         fid.write(content)
 
@@ -639,7 +639,7 @@ def isotrak_eeg(tmp_path_factory):
     N_ROWS, N_COLS = 5, 3
     content = np.random.RandomState(_SEED).randn(N_ROWS, N_COLS)
 
-    fname = tmp_path_factory.mktemp('data').join('test.eeg')
+    fname = tmp_path_factory.mktemp('data') / 'test.eeg'
     with open(str(fname), 'w') as fid:
         fid.write((
             '3	200\n'

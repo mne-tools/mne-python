@@ -852,7 +852,7 @@ def dummy_annotation_file(tmp_path_factory, ch_names, fmt):
             content[-1] += ',MEG0111:MEG2563'
             content = '\n'.join(content)
 
-    fname = tmp_path_factory.mktemp('data').join(f'annotations-annot.{fmt}')
+    fname = tmp_path_factory.mktemp('data') / f'annotations-annot.{fmt}'
     if isinstance(content, str):
         fname.write(content)
     else:
@@ -916,7 +916,7 @@ def dummy_annotation_txt_file(tmp_path_factory, ch_names):
         content[1] = content[1].strip() + ', MEG0111:MEG2563'
         content = '\n'.join(content)
 
-    fname = tmp_path_factory.mktemp('data').join('annotations.txt')
+    fname = tmp_path_factory.mktemp('data') / 'annotations.txt'
     fname.write(content)
     return fname
 
@@ -934,7 +934,7 @@ def test_io_annotation_txt(dummy_annotation_txt_file, tmp_path_factory,
         annot, Annotations([3.14, 6.28], [42., 48], ['AA', 'BB'], **kwargs))
 
     # Now test writing
-    fname = str(tmp_path_factory.mktemp('data').join('annotations.txt'))
+    fname = tmp_path_factory.mktemp('data') / 'annotations.txt'
     annot.save(fname)
     annot2 = read_annotations(fname)
     _assert_annotations_equal(annot, annot2)
