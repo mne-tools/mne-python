@@ -3138,12 +3138,18 @@ warnings.filterwarnings('always', category=DeprecationWarning, module='mne')
 
 
 class deprecated:
-    """Mark a function or class as deprecated (decorator).
+    """Mark a function, class, or method as deprecated (decorator).
 
     Originally adapted from sklearn and
     http://wiki.python.org/moin/PythonDecoratorLibrary, then modified to make
     arguments populate properly following our verbose decorator methods based
     on externals.decorator.
+
+    Parameters
+    ----------
+    extra : str
+        Extra information beyond just saying the class/function/method
+        is deprecated.
     """
 
     def __init__(self, extra=''):  # noqa: D102
@@ -3156,6 +3162,11 @@ class deprecated:
         ----------
         obj : object
             Object to call.
+
+        Returns
+        -------
+        obj : object
+            The modified object.
         """
         if isinstance(obj, type):
             return self._decorate_class(obj)

@@ -528,7 +528,8 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     # Set other info-keys from original instance.
     pick_info = {k: v for k, v in inst.info.items() if k not in
                  ['chs', 'ch_names', 'bads', 'nchan', 'sfreq']}
-    ref_info.update(pick_info)
+    with ref_info._unlock():
+        ref_info.update(pick_info)
 
     # Rereferencing of data.
     ref_data = multiplier @ inst._data

@@ -233,6 +233,8 @@ Bugs
 
 - Fix bug where resampling returns empty instances (:gh:`9897` **by new contributor** |Mathieu Scheltienne|_ and `Eric Larson`_)
 
+- Fix bug with `mne.io.Raw.get_montage` now returning both good and bad channels in the montage. (:gh:`9920` **by new contributor** |Mathieu Scheltienne|_)
+
 - Fix bug with :func:`mne.io.read_raw_nihon` where latin-1 annotations could not be read (:gh:`9384` by `Alex Gramfort`_)
 
 - Fix bug when printing a :class:`mne.io.RawArray` in the notebook (:gh:`9404` by `Alex Gramfort`_)
@@ -316,6 +318,14 @@ Bugs
 API changes
 ~~~~~~~~~~~
 - The :class:`mne.Info` class is now more strictly checked when attributes are set. Setting most attributes directly will lead to an error in the next release. See the docstring of :class:`mne.Info` for more information (:gh:`9867` **by new contributor** |Mathieu Scheltienne|_)
+
+- The Mayavi 3D backend has been deprecated (:gh:`9904` by `Eric Larson`_):
+
+  - In 3D plotting functions, use PyVista-based backends (``'pyvistaqt'`` and ``'notebook'``) as PySurfer/Mayavi will be removed in the next version
+
+  - To use the :ref:`mne kit2fiff` command-line GUI for fiducial markers, install the separate ``mne-kit-gui`` module, which can still be launched via ``$ mne kit2fiff``
+
+  - The ``mne.gui.fiducials`` GUI has been deprecated, use :ref:`mne coreg` or ``mne_kit_gui.fiducials()`` to set MRI fiducials instead
 
 - In `mne.compute_source_morph`, the ``niter_affine`` and ``niter_sdr`` parameters have been replaced by ``niter`` and ``pipeline`` parameters for more consistent and finer-grained control of registration/warping steps and iteration (:gh:`9505` by `Alex Rockhill`_ and `Eric Larson`_)
 

@@ -6,7 +6,8 @@
 
 import os
 
-from ..utils import _check_mayavi_version, verbose, get_config, warn
+from ..utils import (_check_mayavi_version, verbose, get_config, warn,
+                     deprecated)
 from ._backend import _testing_mode
 
 
@@ -228,6 +229,8 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         return _initialize_gui(frame, view)
 
 
+@deprecated('The `fiducials` function has moved to the separate mne-kit-gui '
+            'module and will be removed from mne after 0.24.')
 def fiducials(subject=None, fid_file=None, subjects_dir=None):
     """Set the fiducials for an MRI subject.
 
@@ -259,6 +262,9 @@ def fiducials(subject=None, fid_file=None, subjects_dir=None):
     return _initialize_gui(frame)
 
 
+@deprecated('The `mne kit2fiff` command will require the mne-kit-gui '
+            'module after 0.24, install it using conda-forge or pip to '
+            'continue using this utility.')
 def kit2fiff():
     """Convert KIT files to the fiff format.
 
