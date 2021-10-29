@@ -440,6 +440,17 @@ class Info(dict, MontageMixin):
         save_calibrated : bool
             Were the compensation data saved in calibrated form.
 
+    * ``device_info`` dict:
+
+        type : str
+            Device type.
+        model : str
+            Device model.
+        serial : str
+            Device serial.
+        site : str
+            Device site.
+
     * ``dig`` list of dict:
 
         kind : int
@@ -471,6 +482,17 @@ class Info(dict, MontageMixin):
             Time in seconds.
         usecs : int
             Time in microseconds.
+
+    * ``helium_info`` dict:
+
+        he_level_raw : float
+            Helium level (%) before position correction.
+        helium_level : float
+            Helium level (%) after position correction.
+        orig_file_guid : str
+            Original file GUID.
+        meas_date : tuple of int
+            The helium level meas date.
 
     * ``hpi_meas`` list of dict:
 
@@ -579,28 +601,6 @@ class Info(dict, MontageMixin):
             Subject sex (0=unknown, 1=male, 2=female).
         hand : int
             Handedness (1=right, 2=left, 3=ambidextrous).
-
-    * ``device_info`` dict:
-
-        type : str
-            Device type.
-        model : str
-            Device model.
-        serial : str
-            Device serial.
-        site : str
-            Device site.
-
-    * ``helium_info`` dict:
-
-        he_level_raw : float
-            Helium level (%) before position correction.
-        helium_level : float
-            Helium level (%) after position correction.
-        orig_file_guid : str
-            Original file GUID.
-        meas_date : tuple of int
-            The helium level meas date.
     """
 
     _attributes = {
