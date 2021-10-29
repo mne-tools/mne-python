@@ -113,7 +113,7 @@ def test_basics():
 def test_annot_sanitizing(tmp_path):
     """Test description sanitizing."""
     annot = Annotations([0], [1], ['a;:b'])
-    fname = str(tmp_path.join('custom-annot.fif'))
+    fname = tmp_path / 'custom-annot.fif'
     annot.save(fname)
     annot_read = read_annotations(fname)
     _assert_annotations_equal(annot, annot_read)
@@ -854,7 +854,8 @@ def dummy_annotation_file(tmp_path_factory, ch_names, fmt):
 
     fname = tmp_path_factory.mktemp('data') / f'annotations-annot.{fmt}'
     if isinstance(content, str):
-        fname.write(content)
+        with open(fname, "w") as f:
+            f.write(content)
     else:
         content.save(fname)
     return fname
@@ -878,7 +879,7 @@ def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names):
         tol=1e-6)
 
     # Now test writing
-    fname = tmp_path.join(f'annotations-annot.{fmt}')
+    fname = tmp_path / f'annotations-annot.{fmt}'
     annot.save(fname)
     annot2 = read_annotations(fname)
     _assert_annotations_equal(annot, annot2)
@@ -897,8 +898,9 @@ def test_broken_csv(tmp_path):
                "1.,1.0,AA\n"
                "3.,2.425,BB")
 
-    fname = tmp_path.join('annotations_broken.csv')
-    fname.write(content)
+    fname = tmp_path / 'annotations_broken.csv'
+    with open(fname, "w") as f:
+        f.write(content)
     with pytest.warns(RuntimeWarning, match='save your CSV as a TXT'):
         read_annotations(fname)
 
@@ -917,7 +919,8 @@ def dummy_annotation_txt_file(tmp_path_factory, ch_names):
         content = '\n'.join(content)
 
     fname = tmp_path_factory.mktemp('data') / 'annotations.txt'
-    fname.write(content)
+    with open(fname, "w") as f:
+        f.write(content)
     return fname
 
 
@@ -975,8 +978,9 @@ def test_read_annotation_txt_header(tmp_path):
                "# orig_time : 42\n"
                "# C\n"
                "Done")
-    fname = tmp_path.join('header.txt')
-    fname.write(content)
+    fname = tmp_path / 'header.txt'
+    with open(fname, "w") as f:
+        f.write(content)
     orig_time = _read_annotations_txt_parse_header(fname)
     want = datetime.fromtimestamp(1038942071.7201, timezone.utc)
     assert orig_time == want
@@ -987,8 +991,9 @@ def test_read_annotation_txt_one_segment(tmp_path):
     content = ("# MNE-Annotations\n"
                "# onset, duration, description\n"
                "3.14, 42, AA")
-    fname = tmp_path.join('one-annotations.txt')
-    fname.write(content)
+    fname = tmp_path / 'one-annotations.txt'
+    with open(fname, "w") as f:
+        f.write(content)
     annot = read_annotations(fname)
     _assert_annotations_equal(annot, Annotations(3.14, 42, ['AA']))
 
@@ -997,8 +1002,9 @@ def test_read_annotation_txt_empty(tmp_path):
     """Test empty TXT input/output."""
     content = ("# MNE-Annotations\n"
                "# onset, duration, description\n")
-    fname = tmp_path.join('empty-annotations.txt')
-    fname.write(content)
+    fname = tmp_path / 'empty-annotations.txt'
+    with open(fname, "w") as f:
+        f.write(content)
     annot = read_annotations(fname)
     _assert_annotations_equal(annot, Annotations([], [], []))
 
