@@ -207,6 +207,7 @@ coords, faces = mne.read_surface(op.join(conv_dir, 'sample-head.obj'))
 # mne.write_head_bem(op.join(head_dir, 'sample-head.fif'), coords, faces,
 #                    overwrite=True)
 
+# %%
 # Blender editing tips
 # ~~~~~~~~~~~~~~~~~~~~
 #
