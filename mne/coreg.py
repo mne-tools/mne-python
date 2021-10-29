@@ -1373,6 +1373,9 @@ class Coregistration(object):
             self._dig_dict['nasion'] = \
                 np.array([self._dig_dict['nasion']], float)
             self._dig_dict['lpa'] = np.array([self._dig_dict['lpa']], float)
+            if self._dig_dict['hpi'] is None:
+                self._dig_dict['hpi'] = np.zeros((1, 3))
+                self._hpi_weight = 0
 
     def _setup_bem(self):
         # find high-res head model (if possible)
