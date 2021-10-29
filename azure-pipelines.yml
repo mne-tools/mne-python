@@ -223,11 +223,14 @@ stages:
     # https://docs.microsoft.com/en-us/azure/devops/pipelines/ecosystems/anaconda
     # https://github.com/MicrosoftDocs/pipelines-anaconda
     # https://github.com/ContinuumIO/anaconda-issues/issues/10949
-    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin"
+    - script: |
+        where bash
+        echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%PROGRAMFILES%\Git\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%PROGRAMFILES%\Git\usr\bin"
       condition: in(variables['TEST_MODE'], 'conda')
       displayName: Add conda to PATH, deal with Qt linking bug
     - bash: |
         set -e
+        which bash
         git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
         powershell gl-ci-helpers/appveyor/install_opengl.ps1
       displayName: Install OpenGL
@@ -236,10 +239,7 @@ stages:
         ./tools/azure_dependencies.sh
       condition: in(variables['TEST_MODE'], 'pip', 'pip-pre')
       displayName: Install dependencies with pip
-    - script: |
-        set PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%PATH%
-        echo %PATH%
-        conda env update --name base --file environment.yml
+    - script: conda env update --name base --file environment.yml
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Setup MNE environment
     - script: conda remove mne
@@ -294,14 +294,11 @@ stages:
         git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
         powershell gl-ci-helpers/appveyor/install_opengl.ps1
       displayName: Install OpenGL
-    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%CONDA%\Library\bin\graphviz"
+    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%PROGRAMFILES%\Git\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%PROGRAMFILES%\Git\usr\bin"
       displayName: Add conda to PATH, deal with Qt linking bug
     - script: conda update -n base -c defaults conda
       displayName: Update conda
-    - script: |
-        set PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%PATH%
-        echo %PATH%
-        conda env update --name base --file environment.yml
+    - script: conda env update --name base --file environment.yml
       displayName: Setup MNE environment
     - script: conda install -c conda-forge graphviz
       displayName: Add graphviz dot
