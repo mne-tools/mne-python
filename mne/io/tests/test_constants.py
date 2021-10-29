@@ -100,7 +100,8 @@ def test_constants(tmp_path):
             if 'Dictionary' in name:
                 ff.extract(name, tmp_path)
                 names.append(op.basename(name))
-                shutil.move(op.join(tmp_path, name), op.join(tmp_path, names[-1]))
+                shutil.move(op.join(tmp_path, name),
+                            op.join(tmp_path, names[-1]))
     names = sorted(names)
     assert names == ['DictionaryIOD.txt', 'DictionaryIOD_MNE.txt',
                      'DictionaryStructures.txt',

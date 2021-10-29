@@ -1006,7 +1006,8 @@ def test_read_dig_captrak(tmp_path):
     )
 
     montage = transform_to_head(montage)  # transform_to_head has to be tested
-    _check_roundtrip(montage=montage, fname=str(tmp_path.join('bvct_test.fif')))
+    _check_roundtrip(montage=montage,
+                     fname=str(tmp_path.join('bvct_test.fif')))
 
     fid, _ = _get_fid_coords(montage.dig)
     assert_allclose(

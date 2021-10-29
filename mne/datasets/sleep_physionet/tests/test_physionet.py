@@ -24,7 +24,7 @@ pooch = _soft_import('pooch', 'dataset downloading', strict=True)
 
 
 @pytest.fixture(scope='session')
-def physionet_tmp_path(tmp_path_factory):
+def physionet_tmpdir(tmp_path_factory):
     """Fixture exposing a temporary directory for testing."""
     return str(tmp_path_factory.mktemp('physionet_files'))
 
@@ -88,63 +88,63 @@ def test_run_update_age_records(tmp_path):
 
 
 @pytest.mark.parametrize('subject', [39, 68, 69, 78, 79, 83])
-def test_sleep_physionet_age_missing_subjects(physionet_tmp_path, subject,
+def test_sleep_physionet_age_missing_subjects(physionet_tmpdir, subject,
                                               download_is_error):
     """Test handling of missing subjects in Sleep Physionet age fetcher."""
     with pytest.raises(
             ValueError, match='This dataset contains subjects 0 to 82'):
         age.fetch_data(
             subjects=[subject], recording=[1], on_missing='raise',
-            path=physionet_tmp_path)
+            path=physionet_tmpdir)
     with pytest.warns(RuntimeWarning,
                       match='This dataset contains subjects 0 to 82'):
         age.fetch_data(
             subjects=[subject], recording=[1], on_missing='warn',
-            path=physionet_tmp_path)
+            path=physionet_tmpdir)
     paths = age.fetch_data(
         subjects=[subject], recording=[1], on_missing='ignore',
-        path=physionet_tmp_path)
+        path=physionet_tmpdir)
     assert paths == []
 
 
 @pytest.mark.parametrize('subject,recording', [(13, 2), (36, 1), (52, 1)])
-def test_sleep_physionet_age_missing_recordings(physionet_tmp_path, subject,
+def test_sleep_physionet_age_missing_recordings(physionet_tmpdir, subject,
                                                 recording, download_is_error):
     """Test handling of missing recordings in Sleep Physionet age fetcher."""
     with pytest.raises(
             ValueError, match=f'Requested recording {recording} for subject'):
         age.fetch_data(subjects=[subject], recording=[recording],
-                       on_missing='raise', path=physionet_tmp_path)
+                       on_missing='raise', path=physionet_tmpdir)
     with pytest.warns(RuntimeWarning,
                       match=f'Requested recording {recording} for subject'):
         age.fetch_data(subjects=[subject], recording=[recording],
-                       on_missing='warn', path=physionet_tmp_path)
+                       on_missing='warn', path=physionet_tmpdir)
     paths = age.fetch_data(subjects=[subject], recording=[recording],
-                           on_missing='ignore', path=physionet_tmp_path)
+                           on_missing='ignore', path=physionet_tmpdir)
     assert paths == []
 
 
-def test_sleep_physionet_age(physionet_tmp_path, monkeypatch, download_is_error):
+def test_sleep_physionet_age(physionet_tmpdir, monkeypatch, download_is_error):
     """Test Sleep Physionet URL handling."""
     # check download_is_error patching
     with pytest.raises(AssertionError, match='Test should not download'):
-        age.fetch_data(subjects=[0], recording=[1], path=physionet_tmp_path)
+        age.fetch_data(subjects=[0], recording=[1], path=physionet_tmpdir)
     # then patch
     my_func = _FakeFetch()
     monkeypatch.setattr(pooch, 'retrieve', my_func)
 
-    paths = age.fetch_data(subjects=[0], recording=[1], path=physionet_tmp_path)
+    paths = age.fetch_data(subjects=[0], recording=[1], path=physionet_tmpdir)
     assert_array_equal(_keep_basename_only(paths),
                        [['SC4001E0-PSG.edf', 'SC4001EC-Hypnogram.edf']])
 
     paths = age.fetch_data(subjects=[0, 1], recording=[1],
-                           path=physionet_tmp_path)
+                           path=physionet_tmpdir)
     assert_array_equal(_keep_basename_only(paths),
                        [['SC4001E0-PSG.edf', 'SC4001EC-Hypnogram.edf'],
                         ['SC4011E0-PSG.edf', 'SC4011EH-Hypnogram.edf']])
 
     paths = age.fetch_data(subjects=[0], recording=[1, 2],
-                           path=physionet_tmp_path)
+                           path=physionet_tmpdir)
     assert_array_equal(_keep_basename_only(paths),
                        [['SC4001E0-PSG.edf', 'SC4001EC-Hypnogram.edf'],
                         ['SC4002E0-PSG.edf', 'SC4002EC-Hypnogram.edf']])
@@ -170,7 +170,7 @@ def test_sleep_physionet_age(physionet_tmp_path, monkeypatch, download_is_error)
          'hash': 'c6b6d7a8605cc7e7602b6028ee77f6fbf5f7581d'},
         {'name': 'SC4002EC-Hypnogram.edf',
          'hash': '386230188a3552b1fc90bba0fb7476ceaca174b6'})
-    base_path = age.data_path(path=physionet_tmp_path)
+    base_path = age.data_path(path=physionet_tmpdir)
     _check_mocked_function_calls(my_func, EXPECTED_CALLS, base_path)
 
 
@@ -189,12 +189,12 @@ def test_run_update_temazepam_records(tmp_path):
         data, pd.read_csv(TEMAZEPAM_SLEEP_RECORDS))
 
 
-def test_sleep_physionet_temazepam(physionet_tmp_path, monkeypatch):
+def test_sleep_physionet_temazepam(physionet_tmpdir, monkeypatch):
     """Test Sleep Physionet URL handling."""
     my_func = _FakeFetch()
     monkeypatch.setattr(pooch, 'retrieve', my_func)
 
-    paths = temazepam.fetch_data(subjects=[0], path=physionet_tmp_path)
+    paths = temazepam.fetch_data(subjects=[0], path=physionet_tmpdir)
     assert_array_equal(_keep_basename_only(paths),
                        [['ST7011J0-PSG.edf', 'ST7011JP-Hypnogram.edf']])
 
@@ -203,9 +203,9 @@ def test_sleep_physionet_temazepam(physionet_tmp_path, monkeypatch):
          'hash': 'b9d11484126ebff1884034396d6a20c62c0ef48d'},
         {'name': 'ST7011JP-Hypnogram.edf',
          'hash': 'ff28e5e01296cefed49ae0c27cfb3ebc42e710bf'})
-    base_path = temazepam.data_path(path=physionet_tmp_path)
+    base_path = temazepam.data_path(path=physionet_tmpdir)
     _check_mocked_function_calls(my_func, EXPECTED_CALLS, base_path)
 
     with pytest.raises(
             ValueError, match='This dataset contains subjects 0 to 21'):
-        paths = temazepam.fetch_data(subjects=[22], path=physionet_tmp_path)
+        paths = temazepam.fetch_data(subjects=[22], path=physionet_tmpdir)

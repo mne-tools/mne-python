@@ -774,7 +774,8 @@ def test_make_inverse_operator_vector(evoked, noise_cov):
                     atol=1e-20)
 
 
-def test_make_inverse_operator_diag(evoked, noise_cov, tmp_path, azure_windows):
+def test_make_inverse_operator_diag(evoked, noise_cov, tmp_path,
+                                    azure_windows):
     """Test MNE inverse computation with diagonal noise cov."""
     noise_cov = noise_cov.as_diag()
     fwd_op = convert_forward_solution(read_forward_solution(fname_fwd),
