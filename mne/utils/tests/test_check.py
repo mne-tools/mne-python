@@ -32,12 +32,12 @@ reject = dict(grad=4000e-13, mag=4e-12)
 
 
 @testing.requires_testing_data
-def test_check(tmpdir):
+def test_check(tmp_path):
     """Test checking functions."""
     pytest.raises(ValueError, check_random_state, 'foo')
     pytest.raises(TypeError, _check_fname, 1)
     _check_fname(Path('./foo'))
-    fname = str(tmpdir.join('foo'))
+    fname = str(tmp_path.join('foo'))
     with open(fname, 'wb'):
         pass
     assert op.isfile(fname)
@@ -66,9 +66,9 @@ def test_check(tmpdir):
 @pytest.mark.parametrize('suffix',
                          ('_meg.fif', '_eeg.fif', '_ieeg.fif',
                           '_meg.fif.gz', '_eeg.fif.gz', '_ieeg.fif.gz'))
-def test_check_fname_suffixes(suffix, tmpdir):
+def test_check_fname_suffixes(suffix, tmp_path):
     """Test checking for valid filename suffixes."""
-    new_fname = str(tmpdir.join(op.basename(fname_raw)
+    new_fname = str(tmp_path.join(op.basename(fname_raw)
                                 .replace('_raw.fif', suffix)))
     raw = mne.io.read_raw_fif(fname_raw).crop(0, 0.1)
     raw.save(new_fname)

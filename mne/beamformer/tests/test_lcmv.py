@@ -214,7 +214,7 @@ def test_lcmv_vector():
     (0.01, False, 'surface'),
     (0., True, 'surface'),
 ])
-def test_make_lcmv_bem(tmpdir, reg, proj, kind):
+def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     """Test LCMV with evoked data and single trials."""
     raw, epochs, evoked, data_cov, noise_cov, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = _get_data(proj=proj)
@@ -304,7 +304,7 @@ def test_make_lcmv_bem(tmpdir, reg, proj, kind):
     assert 'rank %s' % rank in repr(filters)
 
     # I/O
-    fname = op.join(str(tmpdir), 'filters.h5')
+    fname = op.join(str(tmp_path), 'filters.h5')
     with pytest.warns(RuntimeWarning, match='-lcmv.h5'):
         filters.save(fname)
     filters_read = read_beamformer(fname)

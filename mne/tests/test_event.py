@@ -110,11 +110,11 @@ def test_merge_events():
         assert_array_equal(events, events_good)
 
 
-def test_io_events(tmpdir):
+def test_io_events(tmp_path):
     """Test IO for events."""
     # Test binary fif IO
     events = read_events(fname)  # Use as the gold standard
-    fname_temp = tmpdir.join('events-eve.fif')
+    fname_temp = tmp_path.join('events-eve.fif')
     write_events(fname_temp, events)
     events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
@@ -128,7 +128,7 @@ def test_io_events(tmpdir):
     assert_array_almost_equal(events, events2)
 
     # Test new format text file IO
-    fname_temp = str(tmpdir.join('events.eve'))
+    fname_temp = str(tmp_path.join('events.eve'))
     write_events(fname_temp, events)
     events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
@@ -144,7 +144,7 @@ def test_io_events(tmpdir):
     assert_array_almost_equal(events, events2)
 
     # Test event selection
-    fname_temp = tmpdir.join('events-eve.fif')
+    fname_temp = tmp_path.join('events-eve.fif')
     a = read_events(fname_temp, include=1)
     b = read_events(fname_temp, include=[1])
     c = read_events(fname_temp, exclude=[2, 3, 4, 5, 32])
@@ -167,13 +167,13 @@ def test_io_events(tmpdir):
     assert_array_almost_equal(events, events2)
 
     # Test text file IO for 1 event
-    fname_temp = str(tmpdir.join('events.eve'))
+    fname_temp = str(tmp_path.join('events.eve'))
     write_events(fname_temp, events)
     events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
 
     # test warnings on bad filenames
-    fname2 = tmpdir.join('test-bad-name.fif')
+    fname2 = tmp_path.join('test-bad-name.fif')
     with pytest.warns(RuntimeWarning, match='-eve.fif'):
         write_events(fname2, events)
     with pytest.warns(RuntimeWarning, match='-eve.fif'):

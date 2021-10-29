@@ -8,9 +8,9 @@ from mne.utils import (set_config, get_config, get_config_path,
                        ClosingStringIO, get_subjects_dir)
 
 
-def test_config(tmpdir):
+def test_config(tmp_path):
     """Test mne-python config file support."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     key = '_MNE_PYTHON_CONFIG_TESTING'
     value = '123456'
     value2 = '123'

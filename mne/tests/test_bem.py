@@ -71,10 +71,10 @@ def _compare_bem_solutions(sol_a, sol_b):
 @testing.requires_testing_data
 @requires_h5py
 @pytest.mark.parametrize('ext', ('fif', 'h5'))
-def test_io_bem(tmpdir, ext):
+def test_io_bem(tmp_path, ext):
     """Test reading and writing of bem surfaces and solutions."""
     import h5py
-    temp_bem = op.join(str(tmpdir), f'temp-bem.{ext}')
+    temp_bem = op.join(str(tmp_path), f'temp-bem.{ext}')
     # model
     with pytest.raises(ValueError, match='BEM data not found'):
         read_bem_surfaces(fname_raw)
@@ -95,7 +95,7 @@ def test_io_bem(tmpdir, ext):
     # solution
     with pytest.raises(RuntimeError, match='No BEM solution found'):
         read_bem_solution(fname_bem_3)
-    temp_sol = op.join(str(tmpdir), f'temp-sol.{ext}')
+    temp_sol = op.join(str(tmp_path), f'temp-sol.{ext}')
     sol = read_bem_solution(fname_bem_sol_3)
     assert 'BEM' in repr(sol)
     write_bem_solution(temp_sol, sol)
@@ -141,9 +141,9 @@ def test_make_sphere_model():
     pytest.param(dict(), fname_bem_3, marks=pytest.mark.slowtest),  # Azure
     [dict(conductivity=[0.3]), fname_bem_1],
 ])
-def test_make_bem_model(tmpdir, kwargs, fname):
+def test_make_bem_model(tmp_path, kwargs, fname):
     """Test BEM model creation from Python with I/O."""
-    fname_temp = tmpdir.join('temp-bem.fif')
+    fname_temp = tmp_path.join('temp-bem.fif')
     with catch_logging() as log:
         model = make_bem_model('sample', ico=2, subjects_dir=subjects_dir,
                                verbose=True, **kwargs)
@@ -166,25 +166,25 @@ def test_make_bem_model(tmpdir, kwargs, fname):
 
 
 @testing.requires_testing_data
-def test_bem_model_topology(tmpdir):
+def test_bem_model_topology(tmp_path):
     """Test BEM model topological checks."""
     # bad topology (not enough neighboring tris)
-    makedirs(tmpdir.join('foo', 'bem'))
+    makedirs(tmp_path.join('foo', 'bem'))
     for fname in ('inner_skull', 'outer_skull', 'outer_skin'):
         fname += '.surf'
         copy(op.join(subjects_dir, 'sample', 'bem', fname),
-             str(tmpdir.join('foo', 'bem', fname)))
-    outer_fname = tmpdir.join('foo', 'bem', 'outer_skull.surf')
+             str(tmp_path.join('foo', 'bem', fname)))
+    outer_fname = tmp_path.join('foo', 'bem', 'outer_skull.surf')
     rr, tris = read_surface(outer_fname)
     tris = tris[:-1]
     write_surface(outer_fname, rr, tris[:-1], overwrite=True)
     with pytest.raises(RuntimeError, match='Surface outer skull is not compl'):
-        make_bem_model('foo', None, subjects_dir=tmpdir)
+        make_bem_model('foo', None, subjects_dir=tmp_path)
     # Now get past this error to reach gh-6127 (not enough neighbor tris)
     rr_bad = np.concatenate([rr, np.mean(rr, axis=0, keepdims=True)], axis=0)
     write_surface(outer_fname, rr_bad, tris, overwrite=True)
     with pytest.raises(ValueError, match='Surface outer skull.*triangles'):
-        make_bem_model('foo', None, subjects_dir=tmpdir)
+        make_bem_model('foo', None, subjects_dir=tmp_path)
 
 
 @pytest.mark.slowtest
@@ -193,7 +193,7 @@ def test_bem_model_topology(tmpdir):
     [(0.3,), fname_bem_sol_1],
     [(0.3, 0.006, 0.3), fname_bem_sol_3],
 ])
-def test_bem_solution(tmpdir, cond, fname):
+def test_bem_solution(tmp_path, cond, fname):
     """Test making a BEM solution from Python with I/O."""
     # test degenerate conditions
     surf = read_bem_surfaces(fname_bem_1)[0]
@@ -218,7 +218,7 @@ def test_bem_solution(tmpdir, cond, fname):
     pytest.raises(RuntimeError, _check_surface_size, surfs[1])
 
     # actually test functionality
-    fname_temp = op.join(str(tmpdir), 'temp-bem-sol.fif')
+    fname_temp = op.join(str(tmp_path), 'temp-bem-sol.fif')
     # use a model and solution made in Python
     for model_type in ('python', 'c'):
         if model_type == 'python':
@@ -392,10 +392,10 @@ def test_fit_sphere_to_headshape():
 
 @pytest.mark.slowtest  # ~2 min on Azure Windows
 @testing.requires_testing_data
-def test_io_head_bem(tmpdir):
+def test_io_head_bem(tmp_path):
     """Test reading and writing of defective head surfaces."""
     head = read_bem_surfaces(fname_dense_head)[0]
-    fname_defect = op.join(str(tmpdir), 'temp-head-defect.fif')
+    fname_defect = op.join(str(tmp_path), 'temp-head-defect.fif')
     # create defects
     head['rr'][0] = np.array([-0.01487014, -0.04563854, -0.12660208])
     head['tris'][0] = np.array([21919, 21918, 21907])

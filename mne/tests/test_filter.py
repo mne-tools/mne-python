@@ -28,9 +28,9 @@ def test_filter_array():
 
 
 @requires_mne
-def test_mne_c_design(tmpdir):
+def test_mne_c_design(tmp_path):
     """Test MNE-C filter design."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     temp_fname = op.join(tempdir, 'test_raw.fif')
     out_fname = op.join(tempdir, 'test_c_raw.fif')
     x = np.zeros((1, 10001))

@@ -102,7 +102,7 @@ def test_vertex_to_mni_fs_nibabel(monkeypatch):
     None,
     op.join(op.dirname(mne.__file__), 'data', 'FreeSurferColorLUT.txt'),
 ])
-def test_read_freesurfer_lut(fname, tmpdir):
+def test_read_freesurfer_lut(fname, tmp_path):
     """Test reading volume label names."""
     atlas_ids, colors = read_freesurfer_lut(fname)
     assert list(atlas_ids).count('Brain-Stem') == 1
@@ -125,7 +125,7 @@ def test_read_freesurfer_lut(fname, tmpdir):
     # long name (only test on one run)
     if fname is not None:
         return
-    fname = str(tmpdir.join('long.txt'))
+    fname = str(tmp_path.join('long.txt'))
     names = ['Anterior_Cingulate_and_Medial_Prefrontal_Cortex-' + hemi
              for hemi in ('lh', 'rh')]
     ids = np.arange(1, len(names) + 1)

@@ -27,9 +27,9 @@ fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 
 
 @testing.requires_testing_data
-def test_project_sensors_onto_brain(tmpdir):
+def test_project_sensors_onto_brain(tmp_path):
     """Test projecting sensors onto the brain surface."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     raw = mne.io.read_raw_fif(fname_raw)
     trans = _get_trans(fname_trans)[0]
     # test informative error for no surface first

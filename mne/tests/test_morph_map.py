@@ -21,10 +21,10 @@ subjects_dir = op.join(data_path, 'subjects')
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_make_morph_maps(tmpdir):
+def test_make_morph_maps(tmp_path):
     """Test reading and creating morph maps."""
     # make a new fake subjects_dir
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     for subject in ('sample', 'sample_ds', 'fsaverage_ds'):
         os.mkdir(op.join(tempdir, subject))
         os.mkdir(op.join(tempdir, subject, 'surf'))

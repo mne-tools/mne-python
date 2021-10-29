@@ -23,10 +23,10 @@ fif_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
 
 @requires_mayavi
 @traits_test
-def test_kit2fiff_model(tmpdir):
+def test_kit2fiff_model(tmp_path):
     """Test Kit2Fiff model."""
     from mne.gui._kit2fiff_gui import Kit2FiffModel
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     tgt_fname = os.path.join(tempdir, 'test-raw.fif')
 
     model = Kit2FiffModel()
@@ -115,9 +115,9 @@ def test_kit2fiff_model(tmpdir):
 
 @requires_mayavi
 @traits_test
-def test_kit2fiff_gui(check_gui_ci, tmpdir):
+def test_kit2fiff_gui(check_gui_ci, tmp_path):
     """Test Kit2Fiff GUI."""
-    home_dir = str(tmpdir)
+    home_dir = str(tmp_path)
     with modified_env(_MNE_GUI_TESTING_MODE='true',
                       _MNE_FAKE_HOME_DIR=home_dir):
         from pyface.api import GUI

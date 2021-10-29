@@ -32,14 +32,14 @@ def test_tempdir():
     assert (not op.isdir(x))
 
 
-def test_datasets(monkeypatch, tmpdir):
+def test_datasets(monkeypatch, tmp_path):
     """Test dataset config."""
     # gh-4192
-    fake_path = tmpdir.mkdir('MNE-testing-data')
+    fake_path = tmp_path.mkdir('MNE-testing-data')
     with open(fake_path.join('version.txt'), 'w') as fid:
         fid.write('9999.9999')
-    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmpdir))
-    monkeypatch.setenv('MNE_DATASETS_TESTING_PATH', str(tmpdir))
+    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmp_path))
+    monkeypatch.setenv('MNE_DATASETS_TESTING_PATH', str(tmp_path))
     assert testing.data_path(download=False, verbose='debug') == str(fake_path)
 
 

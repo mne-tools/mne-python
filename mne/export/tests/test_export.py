@@ -33,13 +33,13 @@ egi_evoked_fname = op.join(data_path, 'EGI', 'test_egi_evoked.mff')
 
 @pytest.mark.skipif(not _check_eeglabio_installed(strict=False),
                     reason='eeglabio not installed')
-def test_export_raw_eeglab(tmpdir):
+def test_export_raw_eeglab(tmp_path):
     """Test saving a Raw instance to EEGLAB's set format."""
     fname = (Path(__file__).parent.parent.parent /
              "io" / "tests" / "data" / "test_raw.fif")
     raw = read_raw_fif(fname)
     raw.load_data()
-    temp_fname = op.join(str(tmpdir), 'test.set')
+    temp_fname = op.join(str(tmp_path), 'test.set')
     raw.export(temp_fname)
     raw.drop_channels([ch for ch in ['epoc']
                        if ch in raw.ch_names])
@@ -291,12 +291,12 @@ def test_export_raw_edf(tmp_path, dataset, format):
 @pytest.mark.skipif(not _check_eeglabio_installed(strict=False),
                     reason='eeglabio not installed')
 @pytest.mark.parametrize('preload', (True, False))
-def test_export_epochs_eeglab(tmpdir, preload):
+def test_export_epochs_eeglab(tmp_path, preload):
     """Test saving an Epochs instance to EEGLAB's set format."""
     raw, events = _get_data()[:2]
     raw.load_data()
     epochs = Epochs(raw, events, preload=preload)
-    temp_fname = op.join(str(tmpdir), 'test.set')
+    temp_fname = op.join(str(tmp_path), 'test.set')
     epochs.export(temp_fname)
     epochs.drop_channels([ch for ch in ['epoc', 'STI 014']
                           if ch in epochs.ch_names])
@@ -318,10 +318,10 @@ def test_export_epochs_eeglab(tmpdir, preload):
 @testing.requires_testing_data
 @pytest.mark.parametrize('fmt', ('auto', 'mff'))
 @pytest.mark.parametrize('do_history', (True, False))
-def test_export_evokeds_to_mff(tmpdir, fmt, do_history):
+def test_export_evokeds_to_mff(tmp_path, fmt, do_history):
     """Test exporting evoked dataset to MFF."""
     evoked = read_evokeds_mff(egi_evoked_fname)
-    export_fname = op.join(str(tmpdir), 'evoked.mff')
+    export_fname = op.join(str(tmp_path), 'evoked.mff')
     history = [
         {
             'name': 'Test Segmentation',

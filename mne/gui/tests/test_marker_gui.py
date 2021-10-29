@@ -18,10 +18,10 @@ mrk_avg_path = os.path.join(kit_data_dir, 'test_mrk.sqd')
 
 @requires_mayavi
 @traits_test
-def test_combine_markers_model(tmpdir):
+def test_combine_markers_model(tmp_path):
     """Test CombineMarkersModel Traits Model."""
     from mne.gui._marker_gui import CombineMarkersModel
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     tgt_fname = os.path.join(tempdir, 'test.txt')
 
     model = CombineMarkersModel()

@@ -68,11 +68,11 @@ def test_coregister_fiducials():
 @pytest.mark.slowtest  # can take forever on OSX Travis
 @testing.requires_testing_data
 @pytest.mark.parametrize('scale', (.9, [1, .2, .8]))
-def test_scale_mri(tmpdir, few_surfaces, scale):
+def test_scale_mri(tmp_path, few_surfaces, scale):
     """Test creating fsaverage and scaling it."""
     # create fsaverage using the testing "fsaverage" instead of the FreeSurfer
     # one
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fake_home = testing.data_path()
     create_default_subject(subjects_dir=tempdir, fs_home=fake_home,
                            verbose=True)
@@ -167,10 +167,10 @@ def test_scale_mri(tmpdir, few_surfaces, scale):
 @pytest.mark.slowtest  # can take forever on OSX Travis
 @testing.requires_testing_data
 @requires_nibabel()
-def test_scale_mri_xfm(tmpdir, few_surfaces):
+def test_scale_mri_xfm(tmp_path, few_surfaces):
     """Test scale_mri transforms and MRI scaling."""
     # scale fsaverage
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fake_home = testing.data_path()
     # add fsaverage
     create_default_subject(subjects_dir=tempdir, fs_home=fake_home,

@@ -188,7 +188,7 @@ def test_renderer(renderer, monkeypatch):
     run_subprocess(cmd)
 
 
-def test_set_3d_backend_bad(monkeypatch, tmpdir):
+def test_set_3d_backend_bad(monkeypatch, tmp_path):
     """Test that the error emitted when a bad backend name is used."""
     match = "Allowed values are 'pyvistaqt', 'mayavi', and 'notebook'"
     with pytest.raises(ValueError, match=match):
@@ -201,7 +201,7 @@ def test_set_3d_backend_bad(monkeypatch, tmpdir):
     monkeypatch.setattr(
         'mne.viz.backends.renderer.MNE_3D_BACKEND', None)
     # avoid using the config
-    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmpdir))
+    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmp_path))
     match = 'Could not load any valid 3D.*\npyvistaqt: .*'
     assert get_3d_backend() is None
     with pytest.raises(RuntimeError, match=match):

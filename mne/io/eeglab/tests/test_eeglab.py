@@ -101,14 +101,14 @@ def test_io_set_raw(fname):
 
 
 @testing.requires_testing_data
-def test_io_set_raw_more(tmpdir):
+def test_io_set_raw_more(tmp_path):
     """Test importing EEGLAB .set files."""
-    tmpdir = str(tmpdir)
+    tmp_path = str(tmp_path)
     eeg = io.loadmat(raw_fname_mat, struct_as_record=False,
                      squeeze_me=True)['EEG']
 
     # test reading file with one event (read old version)
-    negative_latency_fname = op.join(tmpdir, 'test_negative_latency.set')
+    negative_latency_fname = op.join(tmp_path, 'test_negative_latency.set')
     evnts = deepcopy(eeg.event[0])
     evnts.latency = 0
     io.savemat(negative_latency_fname,
@@ -137,7 +137,7 @@ def test_io_set_raw_more(tmpdir):
             read_raw_eeglab(input_fname=negative_latency_fname, preload=True)
 
     # test overlapping events
-    overlap_fname = op.join(tmpdir, 'test_overlap_event.set')
+    overlap_fname = op.join(tmp_path, 'test_overlap_event.set')
     io.savemat(overlap_fname,
                {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
                         'nbchan': eeg.nbchan, 'data': 'test_overlap_event.fdt',
@@ -150,7 +150,7 @@ def test_io_set_raw_more(tmpdir):
     read_raw_eeglab(input_fname=overlap_fname, preload=True)
 
     # test reading file with empty event durations
-    empty_dur_fname = op.join(tmpdir, 'test_empty_durations.set')
+    empty_dur_fname = op.join(tmp_path, 'test_empty_durations.set')
     evnts = deepcopy(eeg.event)
     for ev in evnts:
         ev.duration = np.array([], dtype='float')
@@ -179,7 +179,7 @@ def test_io_set_raw_more(tmpdir):
         read_raw_eeglab(input_fname=overlap_fname, preload=True)
 
     # raise error when both EEG.data and fdt name from set are wrong
-    overlap_fname = op.join(tmpdir, 'test_ovrlap_event.set')
+    overlap_fname = op.join(tmp_path, 'test_ovrlap_event.set')
     io.savemat(overlap_fname,
                {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
                         'nbchan': eeg.nbchan, 'data': 'test_overla_event.fdt',
@@ -191,7 +191,7 @@ def test_io_set_raw_more(tmpdir):
         read_raw_eeglab(input_fname=overlap_fname, preload=True)
 
     # test reading file with one channel
-    one_chan_fname = op.join(tmpdir, 'test_one_channel.set')
+    one_chan_fname = op.join(tmp_path, 'test_one_channel.set')
     io.savemat(one_chan_fname,
                {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
                         'nbchan': 1, 'data': np.random.random((1, 3)),
@@ -226,7 +226,7 @@ def test_io_set_raw_more(tmpdir):
 
     # test reading channel names but not positions when there is no X (only Z)
     # field in the EEG.chanlocs structure
-    nopos_fname = op.join(tmpdir, 'test_no_chanpos.set')
+    nopos_fname = op.join(tmp_path, 'test_no_chanpos.set')
     io.savemat(nopos_fname,
                {'EEG': {'trials': eeg.trials, 'srate': eeg.srate, 'nbchan': 3,
                         'data': np.random.random((3, 2)), 'epoch': eeg.epoch,
@@ -262,14 +262,14 @@ def test_io_set_epochs(fnames):
 
 
 @testing.requires_testing_data
-def test_io_set_epochs_events(tmpdir):
+def test_io_set_epochs_events(tmp_path):
     """Test different combinations of events and event_ids."""
-    tmpdir = str(tmpdir)
-    out_fname = op.join(tmpdir, 'test-eve.fif')
+    tmp_path = str(tmp_path)
+    out_fname = op.join(tmp_path, 'test-eve.fif')
     events = np.array([[4, 0, 1], [12, 0, 2], [20, 0, 3], [26, 0, 3]])
     write_events(out_fname, events)
     event_id = {'S255/S8': 1, 'S8': 2, 'S255/S9': 3}
-    out_fname = op.join(tmpdir, 'test-eve.fif')
+    out_fname = op.join(tmp_path, 'test-eve.fif')
     epochs = read_epochs_eeglab(epochs_fname_mat, events, event_id)
     assert_equal(len(epochs.events), 4)
     assert epochs.preload
@@ -282,14 +282,14 @@ def test_io_set_epochs_events(tmpdir):
 
 
 @testing.requires_testing_data
-def test_degenerate(tmpdir):
+def test_degenerate(tmp_path):
     """Test some degenerate conditions."""
     # test if .dat file raises an error
-    tmpdir = str(tmpdir)
+    tmp_path = str(tmp_path)
     eeg = io.loadmat(epochs_fname_mat, struct_as_record=False,
                      squeeze_me=True)['EEG']
     eeg.data = 'epochs_fname.dat'
-    bad_epochs_fname = op.join(tmpdir, 'test_epochs.set')
+    bad_epochs_fname = op.join(tmp_path, 'test_epochs.set')
     io.savemat(bad_epochs_fname,
                {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
                         'nbchan': eeg.nbchan, 'data': eeg.data,
@@ -297,7 +297,7 @@ def test_degenerate(tmpdir):
                         'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
                appendmat=False, oned_as='row')
     shutil.copyfile(op.join(base_dir, 'test_epochs.fdt'),
-                    op.join(tmpdir, 'test_epochs.dat'))
+                    op.join(tmp_path, 'test_epochs.dat'))
     with pytest.warns(RuntimeWarning, match='multiple events'):
         pytest.raises(NotImplementedError, read_epochs_eeglab,
                       bad_epochs_fname)
@@ -358,7 +358,7 @@ def _assert_array_allclose_nan(left, right):
 
 
 @pytest.fixture(scope='session')
-def one_chanpos_fname(tmpdir_factory):
+def one_chanpos_fname(tmp_path_factory):
     """Test file with 3 channels to exercise EEGLAB reader.
 
     File characteristics
@@ -369,7 +369,7 @@ def one_chanpos_fname(tmpdir_factory):
     Notes from when this code was factorized:
     # test reading file with one event (read old version)
     """
-    fname = str(tmpdir_factory.mktemp('data').join('test_chanpos.set'))
+    fname = str(tmp_path_factory.mktemp('data').join('test_chanpos.set'))
     file_conent = dict(EEG={
         'trials': 1, 'nbchan': 3, 'pnts': 3, 'epoch': [], 'event': [],
         'srate': 128, 'times': np.array([0., 0.1, 0.2]),

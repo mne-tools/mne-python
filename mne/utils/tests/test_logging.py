@@ -63,12 +63,12 @@ def clean_lines(lines=[]):
             for line in lines]
 
 
-def test_logging_options(tmpdir):
+def test_logging_options(tmp_path):
     """Test logging (to file)."""
     with use_log_level(None):  # just ensure it's set back
         with pytest.raises(ValueError, match="Invalid value for the 'verbose"):
             set_log_level('foo')
-        tempdir = str(tmpdir)
+        tempdir = str(tmp_path)
         test_name = op.join(tempdir, 'test.log')
         with open(fname_log, 'r') as old_log_file:
             # [:-1] used to strip an extra "No baseline correction applied"
@@ -169,7 +169,7 @@ def test_verbose_method(verbose):
     assert log == ''
 
 
-def test_warn(capsys, tmpdir, monkeypatch):
+def test_warn(capsys, tmp_path, monkeypatch):
     """Test the smart warn() function."""
     with pytest.warns(RuntimeWarning, match='foo'):
         warn('foo')
@@ -177,7 +177,7 @@ def test_warn(capsys, tmpdir, monkeypatch):
     assert captured.out == ''  # gh-5592
     assert captured.err == ''  # this is because pytest.warns took it already
     # test ignore_namespaces
-    bad_name = tmpdir.join('bad.fif')
+    bad_name = tmp_path.join('bad.fif')
     raw = RawArray(np.zeros((1, 1)), create_info(1, 1000., 'eeg'))
     with pytest.warns(RuntimeWarning, match='filename') as ws:
         raw.save(bad_name)

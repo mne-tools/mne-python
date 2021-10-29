@@ -187,9 +187,9 @@ Probe1,CH1(703.6),CH1(829.0),CH2(703.9),CH2(829.3),CH3(703.9),CH3(829.3),CH4(703
     ('1.25', 108, 10, 5., 1, (2020, 2, 2, 11, 20, 0, 0), b'\r\n'),
 ])
 def test_hitachi_basic(preload, version, n_ch, n_times, lowpass, sex, date,
-                       end, tmpdir):
+                       end, tmp_path):
     """Test NIRSport1 file with no saturation."""
-    fname = str(tmpdir.join('test.csv'))
+    fname = str(tmp_path.join('test.csv'))
     contents = CONTENTS[version]
     if end is not None:
         contents = contents.replace(b'\r', b'\n').replace(b'\n\n', b'\n')

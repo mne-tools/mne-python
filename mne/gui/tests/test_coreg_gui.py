@@ -245,9 +245,9 @@ def test_coreg_gui_display(subjects_dir_tmp, check_gui_ci):
 @testing.requires_testing_data
 @requires_mayavi
 @traits_test
-def test_coreg_model_with_fsaverage(tmpdir):
+def test_coreg_model_with_fsaverage(tmp_path):
     """Test CoregModel with the fsaverage brain data."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     from mne.gui._coreg_gui import CoregModel
 
     mne.create_default_subject(subjects_dir=tempdir,
