@@ -606,8 +606,7 @@ class Info(dict, MontageMixin):
     _attributes = {
         'acq_pars': 'acq_pars cannot be set directly. '
                     'See mne.AcqParserFIF() for details.',
-        'acq_stim': 'acq_stim cannot be set directly. '
-                    'Please use ...',
+        'acq_stim': 'acq_stim cannot be set directly.',
         'bads': _check_bads,
         'ch_names': 'ch_names cannot be set directly. '
                     'Please use methods inst.add_channels(), '
