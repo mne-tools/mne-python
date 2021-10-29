@@ -216,7 +216,7 @@ coords, faces = mne.read_surface(op.join(conv_dir, 'sample-head.obj'))
 #
 # (1) Select the surface that is creating the problem. (2) In *Edit Mode*,
 # press :kbd:`C` to use the circle selection tool to select the vertices that
-# are outside.(3-5) In the *Object Data Properties* tab use the ``+`` button to
+# are outside. (3-5) In the *Object Data Properties* tab use the ``+`` button to
 # add a *Vertex Group* and click *Assign* to assign the current selection to
 # the group. (6-8) In the *Modifiers* tab go to *Add Modifier* add a
 # *Shrinkwrap* modifier and set it to snap *Inside* with the outer surface as
