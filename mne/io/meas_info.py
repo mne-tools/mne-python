@@ -619,6 +619,7 @@ class Info(dict, MontageMixin):
                'inst.drop_channels(), inst.pick_channels(), '
                'inst.rename_channels(), inst.reorder_channels() '
                'and inst.set_channel_types() instead.',
+        'command_line': 'command_line cannot be set directly.',  # doc?
         'comps': 'comps cannot be set directly. '
                  'Please use mne.io.Raw.apply_gradient_compensation() '
                  'instead.',
@@ -628,24 +629,32 @@ class Info(dict, MontageMixin):
         'description': _check_description,
         'dev_ctf_t': 'dev_ctf_t cannot be set directly.',
         'dev_head_t': _check_dev_head_t,
+        'device_info': _check_device_info,
         'dig': 'dig cannot be set directly. Please use inst.set_montage() '
                'instead.',
         'events': 'events cannot be set directly.',
         'experimenter': _check_experimenter,
         'file_id': 'file_id cannot be set directly.',
+        'filename': 'filename cannot be set directly.',  # deprecated? doc?
+        'gantry_angle': 'gantry_angle cannot be set directly.',
+        'helium_info': _check_helium_info,
         'highpass': 'highpass cannot be set directly. '
                     'Please use methods inst.filter() instead.',
         'hpi_meas': 'hpi_meas can not be set directly.',
         'hpi_results': 'hpi_results cannot be set directly.',
         'hpi_subsystem': 'hpi_subsystem cannot be set directly.',
+        'kit_system_id': 'kit_system_id cannot be set directly.',  # doc?
         'line_freq': _check_line_freq,
-        'gantry_angle': 'gantry_angle cannot be set directly.',
         'lowpass': 'lowpass cannot be set directly. '
                    'Please use method inst.filter() instead.',
+        'maxshield': 'maxshield cannot be set directly.',  # doc?
         'meas_date': 'meas_date cannot be set directly. '
                      'Please use method inst.set_meas_date() instead.',
-        'utc_offset': 'utc_offset cannot be set directly.',
+        'meas_file': 'meas_file cannot be set directly.',  # doc?
         'meas_id': 'meas_id cannot be set directly.',
+        'mri_file': 'mri_file cannot be set directly.',  # doc?
+        'mri_head_t': 'mri_head_t cannot be set directly.',  # doc?
+        'mri_id': 'mri_id cannot be set directly.',  # doc?
         'nchan': 'nchan cannot be set directly.',
         'proc_history': 'proc_history cannot be set directly.',
         'proj_id': 'proj_id cannot be set directly.',
@@ -654,20 +663,10 @@ class Info(dict, MontageMixin):
         'sfreq': 'sfreq cannot be set directly. '
                  'Please use method inst.resample() instead.',
         'subject_info': _check_subject_info,
-        'device_info': _check_device_info,
-        'helium_info': _check_helium_info,
-        # elements missing from docstring
-        'command_line': 'command_line cannot be set directly.',
-        'filename': 'filename cannot be set directly.',  # deprecated?
-        'kit_system_id': 'kit_system_id cannot be set directly.',
-        'maxshield': 'maxshield cannot be set directly.',
-        'meas_file': 'meas_file cannot be set directly.',
-        'mri_file': 'mri_file cannot be set directly.',
-        'mri_head_t': 'mri_head_t cannot be set directly.',
-        'mri_id': 'mri_id cannot be set directly.',
-        'working_dir': 'working_dir cannot be set directly.',
-        'temp': lambda x: x,
-        'xplotter_layout': 'xplotter_layout cannot be set directly.'
+        'temp': lambda x: x,  # doc?
+        'utc_offset': 'utc_offset cannot be set directly.',
+        'working_dir': 'working_dir cannot be set directly.',  # doc?
+        'xplotter_layout': 'xplotter_layout cannot be set directly.'  # doc?
     }
 
     def __init__(self, *args, **kwargs):
