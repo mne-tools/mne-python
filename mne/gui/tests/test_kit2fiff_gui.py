@@ -4,6 +4,7 @@
 
 import os
 
+import pytest
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 
@@ -123,7 +124,8 @@ def test_kit2fiff_gui(check_gui_ci, tmpdir):
         gui = GUI()
         gui.process_events()
 
-        ui, frame = mne.gui.kit2fiff()
+        with pytest.deprecated_call(match='mne-kit-gui'):
+            ui, frame = mne.gui.kit2fiff()
         assert not frame.model.can_save
         assert frame.model.stim_threshold == 1.
         frame.model.stim_threshold = 10.
@@ -134,7 +136,8 @@ def test_kit2fiff_gui(check_gui_ci, tmpdir):
         gui.process_events()
 
         # test setting persistence
-        ui, frame = mne.gui.kit2fiff()
+        with pytest.deprecated_call(match='mne-kit-gui'):
+            ui, frame = mne.gui.kit2fiff()
         assert frame.model.stim_threshold == 10.
         assert frame.model.stim_chs == 'save this!'
 

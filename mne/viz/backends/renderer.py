@@ -13,7 +13,7 @@ from contextlib import contextmanager
 import importlib
 
 from ._utils import VALID_3D_BACKENDS
-from ...utils import (logger, verbose, get_config, _check_option,
+from ...utils import (logger, verbose, get_config, _check_option, warn,
                       _require_version, fill_doc, _validate_type)
 
 MNE_3D_BACKEND = None
@@ -179,6 +179,10 @@ def _get_3d_backend():
             MNE_3D_BACKEND = _check_3d_backend_name(MNE_3D_BACKEND)
             _reload_backend(MNE_3D_BACKEND)
     MNE_3D_BACKEND = _check_3d_backend_name(MNE_3D_BACKEND)
+    if MNE_3D_BACKEND == 'mayavi':
+        warn('The Mayavi 3D backend is deprecated in 0.24 and will be removed '
+             'in the next version of MNE-Python. Use the pyvistaqt or '
+             'notebook backends instead', DeprecationWarning)
     return MNE_3D_BACKEND
 
 

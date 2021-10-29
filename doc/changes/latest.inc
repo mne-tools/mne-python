@@ -319,6 +319,14 @@ API changes
 ~~~~~~~~~~~
 - The :class:`mne.Info` class is now more strictly checked when attributes are set. Setting most attributes directly will lead to an error in the next release. See the docstring of :class:`mne.Info` for more information (:gh:`9867` **by new contributor** |Mathieu Scheltienne|_)
 
+- The Mayavi 3D backend has been deprecated (:gh:`9904` by `Eric Larson`_):
+
+  - In 3D plotting functions, use PyVista-based backends (``'pyvistaqt'`` and ``'notebook'``) as PySurfer/Mayavi will be removed in the next version
+
+  - To use the :ref:`mne kit2fiff` command-line GUI for fiducial markers, install the separate ``mne-kit-gui`` module, which can still be launched via ``$ mne kit2fiff``
+
+  - The ``mne.gui.fiducials`` GUI has been deprecated, use :ref:`mne coreg` or ``mne_kit_gui.fiducials()`` to set MRI fiducials instead
+
 - In `mne.compute_source_morph`, the ``niter_affine`` and ``niter_sdr`` parameters have been replaced by ``niter`` and ``pipeline`` parameters for more consistent and finer-grained control of registration/warping steps and iteration (:gh:`9505` by `Alex Rockhill`_ and `Eric Larson`_)
 
 - Split :func:`mne.viz.Brain.show_view` argument ``view`` into ``azimuth``, ``elevation`` and ``focalpoint`` for clearer view setting and make the default for ``row`` and ``col`` apply to all rows and columns (:gh:`9596` by `Alex Rockhill`_)
