@@ -11,7 +11,7 @@
 #          Daniel McCloy <dan@mccloy.info>
 #
 # License: Simplified BSD
-
+import sys
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import partial
@@ -130,7 +130,8 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
         plt_show(show, block=block, **kwargs)
     else:
         from qtpy.QtWidgets import QApplication
-        app = QApplication.instance() or QApplication(['MNE'])
+        app = QApplication.instance() or QApplication(sys.argv)
+        app.setApplicationName('MNE-Python')
         if show:
             fig.show()
         # If block=False, a Qt-Event-Loop has to be started

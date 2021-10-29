@@ -1521,9 +1521,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
              show_scrollbars=True, show_scalebars=True, time_format='float',
-             precompute='auto', use_opengl=True, downsampling='auto',
-             downsampling_method='peak', antialiasing=False,
-             overview_mode='channels', verbose=None):
+             precompute='auto', use_opengl=True, verbose=None):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
@@ -1532,10 +1530,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                         event_id=event_id, show_scrollbars=show_scrollbars,
                         show_scalebars=show_scalebars, time_format=time_format,
                         precompute=precompute, use_opengl=use_opengl,
-                        downsampling=downsampling,
-                        downsampling_method=downsampling_method,
-                        antialiasing=antialiasing,
-                        overview_mode=overview_mode,
                         verbose=verbose)
 
     @verbose

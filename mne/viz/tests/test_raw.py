@@ -875,8 +875,6 @@ v_last_time = None
 
 @pytest.mark.parametrize('benchmark_param', [{'use_opengl': False},
                                              {'use_opengl': True},
-                                             {'antialiasing': False},
-                                             {'antialiasing': True},
                                              {'precompute': False},
                                              {'precompute': True}])
 def test_scroll_speed(raw_orig, benchmark_param, pg_backend):

@@ -1527,7 +1527,7 @@ precompute : bool | str
     expected size of the precomputed data in RAM.
     Default is ``'auto'``.
 
-    .. versionadded:: 0.24
+    .. versionadded:: 1.0
 """
 
 docdict['use_opengl'] = """
@@ -1536,61 +1536,7 @@ use_opengl : bool
     (requires pyopengl to be installed).
     Default is ``True``.
 
-    .. versionadded:: 0.24
-"""
-
-docdict['downsampling'] = """
-downsampling : str | int
-    (Only pyqtgraph) Set an integer as the downsampling factor
-    or 'auto' to get the factor from the visible range.
-    Setting the factor 1 means no downsampling.
-    Default is ``'auto'``.
-
-    .. versionadded:: 0.24
-"""
-
-docdict['downsampling_method'] = """
-downsampling_method : str
-    (Only pyqtgraph) The method to use for downsampling.
-    - ``'subsample'``
-        Take Only take every n-th sample.
-    - ``'mean'``
-        Take the mean of n samples
-    - ``'peak'``
-        Draw a saw wave from the minimum to the
-        maximum from a collection of n samples.
-    *(Those methods are adapted from pyqtgraph).*
-    Default is ``'peak''``.
-
-    .. versionadded:: 0.24
-"""
-
-docdict['antialiasing'] = """
-antialiasing : bool
-    (Only pyqtgraph) Enable Antialiasing.
-    Default is ``False``.
-
-    .. versionadded:: 0.24
-"""
-
-docdict['overview_mode'] = """
-overview_mode : str | None
-    (Only pyqtgraph) Set the mode for the display of an overview over the data:
-
-    - ``'channels'``
-        Display each channel with its channel-type color.
-
-    - ``'zscore'``
-        Display the zscore for the data from each channel across time.
-        `Red` indicates high z-scores, `Blue` indicates low z-scores
-        while the boundaries of the color gradient are defined
-        by the minimum/maximum z-score.
-        This only works if preload is set to ``True`` or it is enabled
-        with ``'auto'`` and enough free RAM.
-
-    Defaults to "channels".
-
-    .. versionadded:: 0.24
+    .. versionadded:: 1.0
 """
 
 # PSD plotting
