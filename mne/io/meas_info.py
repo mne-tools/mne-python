@@ -620,17 +620,18 @@ class Info(dict, MontageMixin):
                'and inst.set_channel_types() instead.',
         'command_line': 'command_line cannot be set directly.',  # doc?
         'comps': 'comps cannot be set directly. '
-                 'Please use mne.io.Raw.apply_gradient_compensation() '
+                 'Please use method Raw.apply_gradient_compensation() '
                  'instead.',
         'ctf_head_t': 'ctf_head_t cannot be set directly.',
         'custom_ref_applied': 'custom_ref_applied cannot be set directly. '
-                              'Please use inst.set_eeg_reference() instead.',
+                              'Please use method inst.set_eeg_reference() '
+                              'instead.',
         'description': _check_description,
         'dev_ctf_t': 'dev_ctf_t cannot be set directly.',
         'dev_head_t': _check_dev_head_t,
         'device_info': _check_device_info,
-        'dig': 'dig cannot be set directly. Please use inst.set_montage() '
-               'instead.',
+        'dig': 'dig cannot be set directly. '
+               'Please use method inst.set_montage() instead.',
         'events': 'events cannot be set directly.',
         'experimenter': _check_experimenter,
         'file_id': 'file_id cannot be set directly.',
@@ -638,7 +639,7 @@ class Info(dict, MontageMixin):
         'gantry_angle': 'gantry_angle cannot be set directly.',
         'helium_info': _check_helium_info,
         'highpass': 'highpass cannot be set directly. '
-                    'Please use methods inst.filter() instead.',
+                    'Please use method inst.filter() instead.',
         'hpi_meas': 'hpi_meas can not be set directly.',
         'hpi_results': 'hpi_results cannot be set directly.',
         'hpi_subsystem': 'hpi_subsystem cannot be set directly.',
@@ -654,11 +655,15 @@ class Info(dict, MontageMixin):
         'mri_file': 'mri_file cannot be set directly.',  # doc?
         'mri_head_t': 'mri_head_t cannot be set directly.',  # doc?
         'mri_id': 'mri_id cannot be set directly.',  # doc?
-        'nchan': 'nchan cannot be set directly.',
+        'nchan': 'nchan cannot be set directly. '
+                 'Please use methods inst.add_channels(), '
+                 'inst.drop_channels(), and inst.pick_channels() instead.',
         'proc_history': 'proc_history cannot be set directly.',
         'proj_id': 'proj_id cannot be set directly.',
         'proj_name': 'proj_name cannot be set directly.',
-        'projs': 'projs cannot be set directly.',
+        'projs': 'projs cannot be set directly. '
+                 'Please use methods inst.add_proj() and inst.del_proj() '
+                 'instead.',
         'sfreq': 'sfreq cannot be set directly. '
                  'Please use method inst.resample() instead.',
         'subject_info': _check_subject_info,
