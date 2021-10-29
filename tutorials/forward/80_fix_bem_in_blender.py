@@ -208,6 +208,28 @@ coords, faces = mne.read_surface(op.join(conv_dir, 'sample-head.obj'))
 #                    overwrite=True)
 
 # %%
+# Blender editing tips
+# ~~~~~~~~~~~~~~~~~~~~
+#
+# A particularly useful operation is the *Shrinkwrap* functionality, that will
+# restrict one surface inside another surface (for example the Skull inside the
+# Outer Skin). Here is how to use it:
+#
+# (1) Select the surface that is creating the problem. (2) In *Edit Mode*,
+# press :kbd:`C` to use the circle selection tool to select the vertices that
+# are outside. (3-5) In the *Object Data Properties* tab use the ``+`` button
+# to add a *Vertex Group* and click *Assign* to assign the current selection to
+# the group. (6-8) In the *Modifiers* tab go to *Add Modifier* add a
+# *Shrinkwrap* modifier and set it to snap *Inside* with the outer surface as
+# the *Target* and the *Group* that you created before as the *Vertex Group*.
+# You can then use the *Offset* parameter to adjust the distance. (9) In
+# *Object Mode* click on the down-pointing arrow of the *Shrinkwrap* modifier
+# and click on *Apply*.
+#
+# .. image:: ../../_static/blender_import_obj/blender_import_obj4.jpg
+#    :alt: Shrinkwrap functionality in Blender
+
+# %%
 # That's it! You are ready to continue with your analysis pipeline (e.g.
 # running :func:`mne.make_bem_model`).
 #
