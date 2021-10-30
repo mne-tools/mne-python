@@ -496,7 +496,7 @@ def test_setup_source_space_spacing(tmp_path, spacing):
     with modified_env(SUBJECTS_DIR=str(tmp_path), SUBJECT='sample'):
         run_subprocess(['mne_setup_source_space'] + args)
     src = read_source_spaces(
-        tmp_path / 'sample' / 'bem' / 'sample-%d-src.fif' % spacing
+        tmp_path / 'sample' / 'bem' / ('sample-%d-src.fif' % spacing)
     )
     src_new = setup_source_space('sample', spacing=spacing, add_dist=False,
                                  subjects_dir=subjects_dir)

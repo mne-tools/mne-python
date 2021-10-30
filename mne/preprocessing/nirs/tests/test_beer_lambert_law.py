@@ -38,8 +38,8 @@ def test_beer_lambert(fname, fmt, tmp_path):
     assert fmt in ('nirx', 'fif')
     raw = read_raw_nirx(fname)
     if fmt == 'fif':
-        raw.save(tmp_path.join('test_raw.fif'))
-        raw = read_raw_fif(tmp_path.join('test_raw.fif'))
+        raw.save(tmp_path / 'test_raw.fif')
+        raw = read_raw_fif(tmp_path / 'test_raw.fif')
     assert 'fnirs_cw_amplitude' in raw
     assert 'fnirs_od' not in raw
     raw = optical_density(raw)
