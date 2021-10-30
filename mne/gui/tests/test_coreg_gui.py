@@ -10,13 +10,17 @@ import shutil
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_almost_equal
 import pytest
+import warnings
 
 import mne
 from mne.datasets import testing
+from mne.io import read_info
 from mne.io.kit.tests import data_dir as kit_data_dir
+from mne.io.constants import FIFF
 from mne.surface import dig_mri_distances
 from mne.transforms import invert_transform
 from mne.utils import requires_mayavi, traits_test, modified_env, get_config
+from mne.channels import DigMontage
 
 data_path = testing.data_path(download=False)
 raw_path = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -25,6 +29,7 @@ fname_trans = op.join(data_path, 'MEG', 'sample',
 kit_raw_path = op.join(kit_data_dir, 'test_bin_raw.fif')
 subjects_dir = op.join(data_path, 'subjects')
 fid_fname = op.join(subjects_dir, 'sample', 'bem', 'sample-fiducials.fif')
+ctf_raw_path = op.join(data_path, 'CTF', 'catch-alp-good-f.ds')
 
 
 @testing.requires_testing_data
@@ -371,18 +376,41 @@ class TstVTKPicker(object):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_coreg_gui_pyvista(tmpdir, renderer_interactive_pyvistaqt):
+@pytest.mark.parametrize(
+    'inst_path', (raw_path, 'gen_montage', ctf_raw_path))
+def test_coreg_gui_pyvista(inst_path, tmpdir, renderer_interactive_pyvistaqt):
     """Test that using CoregistrationUI matches mne coreg."""
     from mne.gui import coregistration
+
     tempdir = str(tmpdir)
+    if inst_path == 'gen_montage':
+        # generate a montage fig to use as inst.
+        tmp_info = read_info(raw_path)
+        eeg_chans = []
+        for pt in tmp_info['dig']:
+            if pt['kind'] == FIFF.FIFFV_POINT_EEG:
+                eeg_chans.append(f"EEG {pt['ident']:03d}")
+
+        dig = DigMontage(dig=tmp_info['dig'],
+                         ch_names=eeg_chans)
+        inst_path = op.join(tempdir, 'tmp-dig.fif')
+        dig.save(inst_path)
+
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     tmp_trans = op.join(tempdir, 'tmp-trans.fif')
     coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
                            trans=fname_trans)
     coreg._reset_fiducials()
     coreg.close()
-    coreg = coregistration(inst=raw_path, subject='sample',
-                           subjects_dir=subjects_dir)
+
+    # Suppressing warnings here is not ideal.
+    # However ctf_raw_path (catch-alp-good-f.ds) is poorly formed and causes
+    # mne.io.read_raw to issue warning.
+    # XXX consider replacing ctf_raw_path and removing warning ignore filter.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        coreg = coregistration(inst=inst_path, subject='sample',
+                               subjects_dir=subjects_dir)
     coreg._set_fiducials_file(fid_fname)
     assert coreg._fiducials_file == fid_fname
     # picking

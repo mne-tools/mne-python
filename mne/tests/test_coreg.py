@@ -451,7 +451,7 @@ def test_coreg_class_gui_match():
     'drop_point_kind', (FIFF.FIFFV_POINT_CARDINAL, FIFF.FIFFV_POINT_HPI,
                         FIFF.FIFFV_POINT_EXTRA, FIFF.FIFFV_POINT_EEG))
 def test_coreg_class_init(drop_point_kind):
-    """Test that Coregistration can be instantiation with various digs."""
+    """Test that Coregistration can be instantiated with various digs."""
     fiducials, _ = read_fiducials(fid_fname)
     info = read_info(raw_fname)
 

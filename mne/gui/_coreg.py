@@ -12,6 +12,7 @@ from ..io import read_info, read_fiducials, read_raw
 from ..io.pick import pick_types
 from ..io.open import fiff_open, dir_tree_find
 from ..io.meas_info import _empty_info
+from ..io._read_raw import supported as raw_supported_types
 from ..coreg import Coregistration, _is_mri_subject
 from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_head_shape_points, _plot_mri_fiducials,
@@ -219,10 +220,23 @@ class CoregistrationUI(HasTraits):
     def _set_info_file(self, fname):
         if fname is None:
             return
-        if not self._check_fif('info', fname):
+
+        # info file can be anything supported by read_raw
+        try:
+            check_fname(fname, 'info', tuple(raw_supported_types.keys()),
+                        endings_err=tuple(raw_supported_types.keys()))
+        except IOError as e:
+            warn(e)
+            self._widgets["info_file"].set_value(0, '')
             return
-        self._info_file = _check_fname(
-            fname, overwrite=True, must_exist=True, need_dir=False)
+
+        # ctf ds `files` are actually directories
+        if fname.endswith(('.ds',)):
+            self._info_file = _check_fname(
+                fname, overwrite=True, must_exist=True, need_dir=True)
+        else:
+            self._info_file = _check_fname(
+                fname, overwrite=True, must_exist=True, need_dir=False)
 
     def _set_omit_hsp_distance(self, distance):
         self._omit_hsp_distance = distance
