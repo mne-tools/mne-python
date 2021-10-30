@@ -188,7 +188,8 @@ def _validate_nirs_info(info, throw_errors=True):
         picks = _check_channels_ordered(info, freqs, throw_errors=throw_errors)
     else:
         picks = _check_channels_ordered(info,
-                                        np.unique(_channel_chromophore(info)), throw_errors=throw_errors)
+                                        np.unique(_channel_chromophore(info)),
+                                        throw_errors=throw_errors)
     return picks
 
 
