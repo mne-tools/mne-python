@@ -169,7 +169,7 @@ def test_make_bem_model(tmp_path, kwargs, fname):
 def test_bem_model_topology(tmp_path):
     """Test BEM model topological checks."""
     # bad topology (not enough neighboring tris)
-    makedirs(tmp_path / 'foo' / 'bem'
+    makedirs(tmp_path / 'foo' / 'bem')
     for fname in ('inner_skull', 'outer_skull', 'outer_skin'):
         fname += '.surf'
         copy(op.join(subjects_dir, 'sample', 'bem', fname),
