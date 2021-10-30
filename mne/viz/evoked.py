@@ -2364,7 +2364,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         # compute scale. Use less of vertical height (leave room for title)
         w_scale = (0.95 - 2 * w_margin) / (right_edge - left_edge)
         h_scale = (0.9 - 2 * h_margin) / (top_edge - bottom_edge)
-        # apply tranformation
+        # apply transformation
         layout.pos[:, 0] = ((layout.pos[:, 0] - left_edge) * w_scale
                             + w_margin + 0.025)
         layout.pos[:, 1] = ((layout.pos[:, 1] - bottom_edge) * h_scale
