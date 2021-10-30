@@ -256,9 +256,9 @@ def test_surface_vector_source_morph(tmp_path):
     assert 'surface' in repr(source_morph_surf)
 
     # check loading and saving for surf
-    source_morph_surf.save(tmp_path.join('42.h5'))
+    source_morph_surf.save(tmp_path / '42.h5')
 
-    source_morph_surf_r = read_source_morph(tmp_path.join('42.h5'))
+    source_morph_surf_r = read_source_morph(tmp_path / '42.h5')
 
     assert (all([read == saved for read, saved in
                  zip(sorted(source_morph_surf_r.__dict__),
@@ -342,14 +342,14 @@ def test_volume_source_morph_basic(tmp_path):
                              subjects_dir=subjects_dir)
 
     # two different ways of saving
-    source_morph_vol.save(tmp_path.join('vol'))
+    source_morph_vol.save(tmp_path / 'vol')
 
     # check loading
-    source_morph_vol_r = read_source_morph(tmp_path.join('vol-morph.h5'))
+    source_morph_vol_r = read_source_morph(tmp_path / 'vol-morph.h5')
 
     # check for invalid file name handling ()
     with pytest.raises(IOError, match='not found'):
-        read_source_morph(tmp_path.join('42'))
+        read_source_morph(tmp_path / '42')
 
     # check morph
     stc_vol_morphed = source_morph_vol.apply(stc_vol)
@@ -563,7 +563,7 @@ def test_volume_source_morph_round_trip(
     stc_from_unit_rt = morph_to_from.apply(morph_from_to.apply(stc_from_unit))
     assert_power_preserved(stc_from_unit, stc_from_unit_rt, limits=limits)
     if morph_mat:
-        fname = tmp_path.join('temp-morph.h5')
+        fname = tmp_path / 'temp-morph.h5'
         morph_to_from.save(fname)
         morph_to_from = read_source_morph(fname)
         assert morph_to_from.vol_morph_mat is None

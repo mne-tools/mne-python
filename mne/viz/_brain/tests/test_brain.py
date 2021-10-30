@@ -474,8 +474,10 @@ def tiny(tmp_path):
     # This is a minimal version of what we need for our viz-with-timeviewer
     # support currently
     subject = 'test'
-    subject_dir = tmp_path.mkdir(subject)
-    surf_dir = subject_dir.mkdir('surf')
+    (tmp_path / subject).mkdir()
+    subject_dir = tmp_path / subject
+    (subject_dir / 'surf').mkdir()
+    surf_dir = subject_dir / 'surf'
     rng = np.random.RandomState(0)
     rr = rng.randn(4, 3)
     tris = np.array([[0, 1, 2], [2, 1, 3]])
@@ -796,7 +798,7 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path,
             check_version('sphinx_gallery')):
         brain.close()
         return
-    fnames = [str(tmp_path.join(f'temp_{ii}.png')) for ii in range(2)]
+    fnames = [str(tmp_path / f'temp_{ii}.png') for ii in range(2)]
     block_vars = dict(image_path_iterator=iter(fnames),
                       example_globals=dict(brain=brain))
     block = ('code', """

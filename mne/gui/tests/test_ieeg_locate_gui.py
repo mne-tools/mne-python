@@ -112,8 +112,8 @@ def test_locate_scraper(_locate_ieeg, _fake_CT_coords, tmp_path):
     with pytest.warns(RuntimeWarning, match='`pial` surface not found'):
         gui = _locate_ieeg(raw.info, trans, aligned_ct,
                            subject=subject, subjects_dir=subjects_dir)
-    tmp_path.mkdir('_images')
-    image_path = str(tmp_path.join('_images', 'temp.png'))
+    (tmp_path / '_images').mkdir()
+    image_path = str(tmp_path / '_images' / 'temp.png')
     gallery_conf = dict(builder_name='html', src_dir=str(tmp_path))
     block_vars = dict(
         example_globals=dict(gui=gui),
