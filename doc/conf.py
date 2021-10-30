@@ -853,6 +853,7 @@ def reset_warnings(gallery_conf, fname):
                 r'Passing a schema to Validator\.iter_errors',  # jsonschema
                 "default value of type 'dict' in an Any trait will",  # traits
                 'rcParams is deprecated',  # PyVista rcParams -> global_theme
+                '`np.MachAr` is deprecated',  # via statsmodels (yule-walker)
                 'to mean no clipping',
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
