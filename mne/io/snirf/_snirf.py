@@ -102,7 +102,7 @@ class RawSNIRF(BaseRaw):
                                                '/dataType'))
             if np.array(dat.get('nirs/data1/measurementList1/dataType')) \
                     not in [1, 99999]:
-                # 1 = Continous Wave
+                # 1 = Continuous Wave
                 # 99999 = Processed
                 raise RuntimeError('MNE only supports reading continuous'
                                    ' wave amplitude and processed haemoglobin'
