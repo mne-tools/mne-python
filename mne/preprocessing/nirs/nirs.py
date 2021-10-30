@@ -84,8 +84,16 @@ def _channel_chromophore(info):
     return chroma
 
 
-def _check_channels_ordered(info, pair_vals):
-    """Check channels follow expected fNIRS format."""
+def _check_channels_ordered(info, pair_vals, throw_errors=True):
+    """Check channels follow expected fNIRS format.
+
+    If the channels are correctly ordered then an array of valid picks
+    will be returned.
+
+    If throw_errors is True then any errors in fNIRS formatting will be
+    thrown to inform the user. If throw_errors is False then an empty array
+    will be returned if the channels are not sufficiently formatted.
+    """
     # Every second channel should be same SD pair
     # and have the specified light frequencies.
 
@@ -96,27 +104,29 @@ def _check_channels_ordered(info, pair_vals):
     picks_chroma = _picks_to_idx(info, ['hbo', 'hbr'],
                                  exclude=[], allow_empty=True)
     # All continuous wave fNIRS data
-    picks_cw = np.hstack([picks_chroma, picks_wave])
+    picks = np.hstack([picks_chroma, picks_wave])
 
     if (len(picks_wave) > 0) & (len(picks_chroma) > 0):
-        raise ValueError(
+        picks = _throw_or_return_empty(
             'MNE does not support a combination of amplitude, optical '
-            'density, and haemoglobin data in the same raw structure.')
+            'density, and haemoglobin data in the same raw structure.',
+            throw_errors)
 
-    if len(picks_cw) % 2 != 0:
-        raise ValueError(
+    if len(picks) % 2 != 0:
+        picks = _throw_or_return_empty(
             'NIRS channels not ordered correctly. An even number of NIRS '
-            f'channels is required. {len(info.ch_names)} channels were'
-            f'provided: {info.ch_names}')
+            f'channels is required.  {len(info.ch_names)} channels were'
+            f'provided: {info.ch_names}', throw_errors)
 
     # Ensure wavelength info exists for waveform data
     all_freqs = [info["chs"][ii]["loc"][9] for ii in picks_wave]
     if np.any(np.isnan(all_freqs)):
-        raise ValueError(
-            'NIRS channels is missing wavelength information in the'
-            f'info["chs"] structure. The encoded wavelengths are {all_freqs}.')
+        picks = _throw_or_return_empty(
+            f'NIRS channels is missing wavelength information in the '
+            f'info["chs"] structure. The encoded wavelengths are {all_freqs}.',
+            throw_errors)
 
-    for ii in picks_cw[::2]:
+    for ii in picks[::2]:
         ch1_name_info = _S_D_F_RE.match(info['chs'][ii]['ch_name'])
         ch2_name_info = _S_D_F_RE.match(info['chs'][ii + 1]['ch_name'])
 
@@ -138,40 +148,47 @@ def _check_channels_ordered(info, pair_vals):
 
                 if (first_value not in ["hbo", "hbr"] or
                         second_value not in ["hbo", "hbr"]):
-                    raise ValueError(
+                    picks = _throw_or_return_empty(
                         "NIRS channels have specified naming conventions."
-                        "Chromophore data must be labeled either hbo or hbr."
-                        "Failing channels are "
-                        f"{info['chs'][ii]['ch_name']}, "
-                        f"{info['chs'][ii + 1]['ch_name']}")
+                        "Chromophore data must be labeled either hbo or hbr. "
+                        f"Failing channels are {info['chs'][ii]['ch_name']}, "
+                        f"{info['chs'][ii + 1]['ch_name']}", throw_errors)
 
             else:
-                raise ValueError(
-                    'NIRS channels have specified naming conventions.'
+                picks = _throw_or_return_empty(
+                    'NIRS channels have specified naming conventions. '
                     'The provided channel names can not be parsed.'
-                    f'Channels are {info.ch_names}')
+                    f'Channels are {info.ch_names}', throw_errors)
 
         if (ch1_name_info.groups()[0] != ch2_name_info.groups()[0]) or \
            (ch1_name_info.groups()[1] != ch2_name_info.groups()[1]) or \
            (first_value != pair_vals[0]) or \
            (second_value != pair_vals[1]):
-            raise ValueError(
-                'NIRS channels not ordered correctly. Channels must be ordered'
-                ' as source detector pairs with alternating'
-                f' {error_word}: {pair_vals[0]} & {pair_vals[1]}')
+            picks = _throw_or_return_empty(
+                'NIRS channels not ordered correctly. Channels must be'
+                'ordered as source detector pairs with alternating'
+                f' {error_word}: {pair_vals[0]} & {pair_vals[1]}',
+                throw_errors)
 
     _fnirs_check_bads(info)
-    return picks_cw
+    return picks
 
 
-def _validate_nirs_info(info):
+def _throw_or_return_empty(msg, throw_errors):
+    if throw_errors:
+        raise ValueError(msg)
+    else:
+        return []
+
+
+def _validate_nirs_info(info, throw_errors=True):
     """Apply all checks to fNIRS info. Works on all continuous wave types."""
     freqs = np.unique(_channel_frequencies(info, nominal=True))
     if freqs.size > 0:
-        picks = _check_channels_ordered(info, freqs)
+        picks = _check_channels_ordered(info, freqs, throw_errors=throw_errors)
     else:
         picks = _check_channels_ordered(info,
-                                        np.unique(_channel_chromophore(info)))
+                                        np.unique(_channel_chromophore(info)), throw_errors=throw_errors)
     return picks
 
 

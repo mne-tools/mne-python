@@ -42,6 +42,11 @@ snirf_nirsport2_20219 = op.join(data_path(download=False),
 nirx_nirsport2_20219 = op.join(data_path(download=False), 'NIRx',
                                'nirsport_v2', 'aurora_2021_9')
 
+# Kernel
+# kernel_hb = '/Volumes/MassStorage2TB/rluke/Repositories/' \
+#             'kernel-flow-tools/' \
+#             'pitch_sub010_ft_ses01_1017-1706_kp-snf-hbm.snirf'
+
 
 @requires_h5py
 @requires_testing_data
@@ -51,7 +56,9 @@ nirx_nirsport2_20219 = op.join(data_path(download=False), 'NIRx',
                                     sfnirs_homer_103_153,
                                     nirx_nirsport2_103,
                                     nirx_nirsport2_103_2,
-                                    snirf_nirsport2_20219]))
+                                    nirx_nirsport2_103_2,
+                                    # kernel_hb
+                                    ]))
 def test_basic_reading_and_min_process(fname):
     """Test reading SNIRF files and minimum typical processing."""
     raw = read_raw_snirf(fname, preload=True)
@@ -61,6 +68,7 @@ def test_basic_reading_and_min_process(fname):
     if 'fnirs_od' in raw:
         raw = beer_lambert_law(raw, ppf=6)
     assert 'hbo' in raw
+    assert 'hbr' in raw
 
 
 @requires_testing_data
@@ -295,6 +303,7 @@ def test_snirf_nirsport2_w_positions():
     [nirx_nirsport2_103, 0, True, False],  # strange rank behavior
     [nirx_nirsport2_103_2, 0, False, True],  # weirdly small values
     [snirf_nirsport2_20219, 0, True, True],
+    # [kernel_hb, 0, False, False],  # weirdly small values
 ))
 def test_snirf_standard(fname, boundary_decimal, test_scaling, test_rank):
     """Test standard operations."""

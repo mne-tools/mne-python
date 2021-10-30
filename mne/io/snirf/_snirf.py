@@ -98,14 +98,17 @@ class RawSNIRF(BaseRaw):
                      "MNE does not support this feature. "
                      "Only the first dataset will be processed.")
 
-            if np.array(dat.get('nirs/data1/measurementList1/dataType')) != 1:
-                raise RuntimeError('File does not contain continuous wave '
-                                   'data. MNE only supports reading continuous'
-                                   ' wave amplitude SNIRF files. Expected type'
-                                   ' code 1 but received type code %d' %
-                                   (np.array(dat.get(
-                                       'nirs/data1/measurementList1/dataType'
-                                   ))))
+            snirf_data_type = np.array(dat.get('nirs/data1/measurementList1'
+                                               '/dataType'))
+            if np.array(dat.get('nirs/data1/measurementList1/dataType')) \
+                    not in [1, 99999]:
+                # 1 = Continous Wave
+                # 99999 = Processed
+                raise RuntimeError('MNE only supports reading continuous'
+                                   ' wave amplitude and processed haemoglobin'
+                                   ' SNIRF files. Expected type'
+                                   ' code 1 or 99999 but received type '
+                                   f'code {snirf_data_type}')
 
             last_samps = dat.get('/nirs/data1/dataTimeSeries').shape[0] - 1
 
@@ -151,24 +154,29 @@ class RawSNIRF(BaseRaw):
 
             # Source and detector labels are optional fields.
             # Use S1, S2, S3, etc if not specified.
-            if 'sourceLabels' in dat['nirs/probe']:
+            if 'sourceLabels_disabled' in dat['nirs/probe']:
+                # This is disabled as
+                # MNE-Python does not currently support custom source names.
+                # Instead, sources must be integer values.
                 sources = np.array(dat.get('nirs/probe/sourceLabels'))
                 sources = [s.decode('UTF-8') for s in sources]
             else:
-                sources = np.unique([dat.get('nirs/data1/' + c +
-                                             '/sourceIndex')[0]
-                                     for c in channels])
-                sources = [f"S{s}" for s in sources]
+                sources = np.unique([_correct_shape(np.array(dat.get(
+                    'nirs/data1/' + c + '/sourceIndex')))[0]
+                    for c in channels])
+                sources = [f"S{int(s)}" for s in sources]
 
-            if 'detectorLabels' in dat['nirs/probe']:
+            if 'detectorLabels_disabled' in dat['nirs/probe']:
+                # This is disabled as
+                # MNE-Python does not currently support custom detector names.
+                # Instead, detector must be integer values.
                 detectors = np.array(dat.get('nirs/probe/detectorLabels'))
                 detectors = [d.decode('UTF-8') for d in detectors]
-
             else:
-                detectors = np.unique([dat.get('nirs/data1/' + c +
-                                               '/detectorIndex')[0]
-                                       for c in channels])
-                detectors = [f"D{d}" for d in detectors]
+                detectors = np.unique([_correct_shape(np.array(dat.get(
+                    'nirs/data1/' + c + '/detectorIndex')))[0]
+                    for c in channels])
+                detectors = [f"D{int(d)}" for d in detectors]
 
             # Extract source and detector locations
             # 3D positions are optional in SNIRF,
@@ -207,26 +215,42 @@ class RawSNIRF(BaseRaw):
             assert len(detectors) == detPos3D.shape[0]
 
             chnames = []
+            ch_types = []
             for chan in channels:
-                src_idx = int(np.array(dat.get('nirs/data1/' +
-                                               chan + '/sourceIndex'))[0])
-                det_idx = int(np.array(dat.get('nirs/data1/' +
-                                               chan + '/detectorIndex'))[0])
-                wve_idx = int(np.array(dat.get('nirs/data1/' +
-                                               chan + '/wavelengthIndex'))[0])
-                ch_name = sources[src_idx - 1] + '_' +\
-                    detectors[det_idx - 1] + ' ' +\
-                    str(fnirs_wavelengths[wve_idx - 1])
-                chnames.append(ch_name)
+                src_idx = int(_correct_shape(np.array(dat.get('nirs/data1/' +
+                                             chan + '/sourceIndex')))[0])
+                det_idx = int(_correct_shape(np.array(dat.get('nirs/data1/' +
+                                             chan + '/detectorIndex')))[0])
+
+                if snirf_data_type == 1:
+                    wve_idx = int(_correct_shape(np.array(
+                        dat.get('nirs/data1/' + chan +
+                                '/wavelengthIndex')))[0])
+                    ch_name = sources[src_idx - 1] + '_' +\
+                        detectors[det_idx - 1] + ' ' +\
+                        str(fnirs_wavelengths[wve_idx - 1])
+                    chnames.append(ch_name)
+                    ch_types.append('fnirs_cw_amplitude')
+
+                elif snirf_data_type == 99999:
+                    hb_id = _correct_shape(
+                        np.array(dat.get('nirs/data1/' + chan +
+                                         '/dataTypeLabel')))[0].decode('UTF-8')
+                    ch_name = sources[src_idx - 1] + '_' + \
+                        detectors[det_idx - 1] + ' ' + \
+                        hb_id.lower()
+                    chnames.append(ch_name)
+                    ch_types.append(hb_id.lower())
 
             # Create mne structure
             info = create_info(chnames,
                                sampling_rate,
-                               ch_types='fnirs_cw_amplitude')
+                               ch_types=ch_types)
 
             subject_info = {}
             names = np.array(dat.get('nirs/metaDataTags/SubjectID'))
-            subject_info['first_name'] = names[0].decode('UTF-8')
+            subject_info['first_name'] = \
+                _correct_shape(names)[0].decode('UTF-8')
             # Read non standard (but allowed) custom metadata tags
             if 'lastName' in dat.get('nirs/metaDataTags/'):
                 ln = dat.get('/nirs/metaDataTags/lastName')[0].decode('UTF-8')
@@ -247,7 +271,7 @@ class RawSNIRF(BaseRaw):
             info.update(subject_info=subject_info)
 
             LengthUnit = np.array(dat.get('/nirs/metaDataTags/LengthUnit'))
-            LengthUnit = LengthUnit[0].decode('UTF-8')
+            LengthUnit = _correct_shape(LengthUnit)[0].decode('UTF-8')
             scal = 1
             if "cm" in LengthUnit:
                 scal = 100
@@ -275,20 +299,23 @@ class RawSNIRF(BaseRaw):
                 coord_frame = FIFF.FIFFV_COORD_UNKNOWN
 
             for idx, chan in enumerate(channels):
-                src_idx = int(np.array(dat.get('nirs/data1/' +
-                                               chan + '/sourceIndex'))[0])
-                det_idx = int(np.array(dat.get('nirs/data1/' +
-                                               chan + '/detectorIndex'))[0])
-                wve_idx = int(np.array(dat.get('nirs/data1/' +
-                                               chan + '/wavelengthIndex'))[0])
+                src_idx = int(_correct_shape(np.array(dat.get('nirs/data1/' +
+                                             chan + '/sourceIndex')))[0])
+                det_idx = int(_correct_shape(np.array(dat.get('nirs/data1/' +
+                                             chan + '/detectorIndex')))[0])
+
                 info['chs'][idx]['loc'][3:6] = srcPos3D[src_idx - 1, :]
                 info['chs'][idx]['loc'][6:9] = detPos3D[det_idx - 1, :]
                 # Store channel as mid point
                 midpoint = (info['chs'][idx]['loc'][3:6] +
                             info['chs'][idx]['loc'][6:9]) / 2
                 info['chs'][idx]['loc'][0:3] = midpoint
-                info['chs'][idx]['loc'][9] = fnirs_wavelengths[wve_idx - 1]
                 info['chs'][idx]['coord_frame'] = coord_frame
+
+                if snirf_data_type in [1]:
+                    wve_idx = int(_correct_shape(np.array(dat.get(
+                        'nirs/data1/' + chan + '/wavelengthIndex')))[0])
+                    info['chs'][idx]['loc'][9] = fnirs_wavelengths[wve_idx - 1]
 
             if 'landmarkPos3D' in dat.get('nirs/probe/'):
                 diglocs = np.array(dat.get('/nirs/probe/landmarkPos3D'))
@@ -329,10 +356,10 @@ class RawSNIRF(BaseRaw):
             with info._unlock():
                 info['dig'] = dig
 
-            str_date = np.array((dat.get(
-                '/nirs/metaDataTags/MeasurementDate')))[0].decode('UTF-8')
-            str_time = np.array((dat.get(
-                '/nirs/metaDataTags/MeasurementTime')))[0].decode('UTF-8')
+            str_date = _correct_shape(np.array((dat.get(
+                '/nirs/metaDataTags/MeasurementDate'))))[0].decode('UTF-8')
+            str_time = _correct_shape(np.array((dat.get(
+                '/nirs/metaDataTags/MeasurementTime'))))[0].decode('UTF-8')
             str_datetime = str_date + str_time
 
             # Several formats have been observed so we try each in turn
@@ -376,17 +403,19 @@ class RawSNIRF(BaseRaw):
                     data = np.atleast_2d(np.array(
                         dat.get('/nirs/' + key + '/data')))
                     if data.size > 0:
-                        desc = dat.get('/nirs/' + key + '/name')[0]
+                        desc = _correct_shape(np.array(dat.get(
+                            '/nirs/' + key + '/name')))[0]
                         annot.append(data[:, 0], 1.0, desc.decode('UTF-8'))
             self.set_annotations(annot)
 
-            # Reorder channels to match expected ordering in MNE
-            num_chans = len(self.ch_names)
-            chans = []
-            for idx in range(num_chans // 2):
-                chans.append(idx)
-                chans.append(idx + num_chans // 2)
-            self.pick(picks=chans)
+            # Reorder channels to match expected ordering in MNE if required'
+            if len(_validate_nirs_info(self.info, throw_errors=False)) == 0:
+                num_chans = len(self.ch_names)
+                chans = []
+                for idx in range(num_chans // 2):
+                    chans.append(idx)
+                    chans.append(idx + num_chans // 2)
+                self.pick(picks=chans)
 
         # Validate that the fNIRS info is correctly formatted
         _validate_nirs_info(self.info)
@@ -399,3 +428,10 @@ class RawSNIRF(BaseRaw):
             one = dat['/nirs/data1/dataTimeSeries'][start:stop].T
 
         _mult_cal_one(data, one, idx, cals, mult)
+
+
+# Helper function for when the numpy array has shape (), i.e. just one element.
+def _correct_shape(arr):
+    if arr.shape == ():
+        arr = arr[np.newaxis]
+    return arr

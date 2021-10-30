@@ -46,7 +46,7 @@ using :func:`mne.io.read_raw_snirf`.
 
 .. note:: The SNIRF format has provisions for many different types of fNIRS
           recordings. MNE-Python currently only supports reading continuous
-          wave data stored in the .snirf format.
+          wave or haemoglobin data stored in the .snirf format.
 
 
 ***********************
