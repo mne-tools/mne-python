@@ -60,7 +60,7 @@ def test_gdf_data():
 @testing.requires_testing_data
 def test_gdf2_birthday(tmp_path):
     """Test reading raw GDF 2.x files."""
-    new_fname = str(tmp_path.join('temp.gdf'))
+    new_fname = tmp_path / 'temp.gdf'
     shutil.copyfile(gdf2_path + '.gdf', new_fname)
     # go back 44.5 years so the subject should show up as 44
     offset_edf = (  # to their ref

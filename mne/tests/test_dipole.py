@@ -466,7 +466,7 @@ def test_bdip(fname_dip_, fname_bdip_, tmp_path):
     orig_size = os.stat(fname_bdip_).st_size
     bdip = read_dipole(fname_bdip_)
     # test round-trip by writing and reading, too
-    fname = tmp_path.join('test.bdip')
+    fname = tmp_path / 'test.bdip'
     bdip.save(fname)
     bdip_read = read_dipole(fname)
     write_size = os.stat(str(fname)).st_size

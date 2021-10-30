@@ -128,7 +128,7 @@ def test_bdf_data():
 def test_bdf_crop_save_stim_channel(tmp_path):
     """Test EDF with various sampling rates."""
     raw = read_raw_bdf(bdf_stim_channel_path)
-    raw.save(tmp_path.join('test-raw.fif'), tmin=1.2, tmax=4.0, overwrite=True)
+    raw.save(tmp_path / 'test-raw.fif', tmin=1.2, tmax=4.0, overwrite=True)
 
 
 @testing.requires_testing_data

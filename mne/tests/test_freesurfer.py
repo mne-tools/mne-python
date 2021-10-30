@@ -125,7 +125,7 @@ def test_read_freesurfer_lut(fname, tmp_path):
     # long name (only test on one run)
     if fname is not None:
         return
-    fname = str(tmp_path.join('long.txt'))
+    fname = tmp_path / 'long.txt'
     names = ['Anterior_Cingulate_and_Medial_Prefrontal_Cortex-' + hemi
              for hemi in ('lh', 'rh')]
     ids = np.arange(1, len(names) + 1)

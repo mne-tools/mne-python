@@ -336,7 +336,7 @@ def sfreq_testing_data(tmp_path, request):
     sfreq, time_step = request.param['sfreq'], request.param['time_step']
 
     in_base_name = curry7_bdf_file.strip('dat')
-    out_base_name = str(tmp_path.join('curry.'))
+    out_base_name = str(tmp_path / 'curry.')
 
     # create dummy empty files for 'dat' and 'rs3'
     for fname in [out_base_name + ext for ext in ['dat', 'rs3']]:
@@ -391,7 +391,7 @@ def _get_read_annotations_mock_info(name_part, mock_dir):
     version = _get_curry_version(ext)
     original['info'] = original['base'] + FILE_EXTENSIONS[version]["info"]
 
-    modified['base'] = str(mock_dir.join('curry'))
+    modified['base'] = str(mock_dir / 'curry')
     modified['event'] = (modified['base'] +
                          FILE_EXTENSIONS[version]["events_cef"])
     modified['info'] = modified['base'] + FILE_EXTENSIONS[version]["info"]

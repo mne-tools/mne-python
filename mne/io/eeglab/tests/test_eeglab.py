@@ -369,7 +369,7 @@ def one_chanpos_fname(tmp_path_factory):
     Notes from when this code was factorized:
     # test reading file with one event (read old version)
     """
-    fname = str(tmp_path_factory.mktemp('data').join('test_chanpos.set'))
+    fname = str(tmp_path_factory.mktemp('data') / 'test_chanpos.set')
     file_conent = dict(EEG={
         'trials': 1, 'nbchan': 3, 'pnts': 3, 'epoch': [], 'event': [],
         'srate': 128, 'times': np.array([0., 0.1, 0.2]),

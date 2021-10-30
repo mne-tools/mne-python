@@ -143,7 +143,7 @@ def test_make_sphere_model():
 ])
 def test_make_bem_model(tmp_path, kwargs, fname):
     """Test BEM model creation from Python with I/O."""
-    fname_temp = tmp_path.join('temp-bem.fif')
+    fname_temp = tmp_path / 'temp-bem.fif'
     with catch_logging() as log:
         model = make_bem_model('sample', ico=2, subjects_dir=subjects_dir,
                                verbose=True, **kwargs)
@@ -169,12 +169,12 @@ def test_make_bem_model(tmp_path, kwargs, fname):
 def test_bem_model_topology(tmp_path):
     """Test BEM model topological checks."""
     # bad topology (not enough neighboring tris)
-    makedirs(tmp_path.join('foo', 'bem'))
+    makedirs(tmp_path / 'foo' / 'bem'
     for fname in ('inner_skull', 'outer_skull', 'outer_skin'):
         fname += '.surf'
         copy(op.join(subjects_dir, 'sample', 'bem', fname),
-             str(tmp_path.join('foo', 'bem', fname)))
-    outer_fname = tmp_path.join('foo', 'bem', 'outer_skull.surf')
+             tmp_path / 'foo' / 'bem' / fname)
+    outer_fname = tmp_path / 'foo' / 'bem' / 'outer_skull.surf'
     rr, tris = read_surface(outer_fname)
     tris = tris[:-1]
     write_surface(outer_fname, rr, tris[:-1], overwrite=True)

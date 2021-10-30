@@ -147,7 +147,7 @@ def test_make_forward_solution_kit(tmp_path):
                             'data', 'test_ctf_comp_raw.fif')
 
     # first set up a small testing source space
-    fname_src_small = tmp_path.join('sample-oct-2-src.fif')
+    fname_src_small = tmp_path / 'sample-oct-2-src.fif'
     src = setup_source_space('sample', 'oct2', subjects_dir=subjects_dir,
                              add_dist=False)
     write_source_spaces(fname_src_small, src)  # to enable working with MNE-C
@@ -212,7 +212,7 @@ def test_make_forward_solution_kit(tmp_path):
                                subjects_dir=subjects_dir)
     _compare_forwards(fwd, fwd_py, 274, n_src)
 
-    fname_temp = tmp_path.join('test-ctf-fwd.fif')
+    fname_temp = tmp_path / 'test-ctf-fwd.fif'
     write_forward_solution(fname_temp, fwd_py)
     fwd_py2 = read_forward_solution(fname_temp)
     _compare_forwards(fwd_py, fwd_py2, 274, n_src)
@@ -255,11 +255,11 @@ def test_make_forward_solution_discrete(tmp_path):
 @pytest.mark.timeout(90)  # can take longer than 60 sec on Travis
 def test_make_forward_solution_sphere(tmp_path):
     """Test making a forward solution with a sphere model."""
-    fname_src_small = tmp_path.join('sample-oct-2-src.fif')
+    fname_src_small = tmp_path / 'sample-oct-2-src.fif'
     src = setup_source_space('sample', 'oct2', subjects_dir=subjects_dir,
                              add_dist=False)
     write_source_spaces(fname_src_small, src)  # to enable working with MNE-C
-    out_name = tmp_path.join('tmp-fwd.fif')
+    out_name = tmp_path / 'tmp-fwd.fif'
     run_subprocess(['mne_forward_solution', '--meg', '--eeg',
                     '--meas', fname_raw, '--src', fname_src_small,
                     '--mri', fname_trans, '--fwd', out_name])
@@ -331,7 +331,7 @@ def test_forward_mixed_source_space(tmp_path):
     assert ((coord_frames == FIFF.FIFFV_COORD_HEAD).all())
 
     # run tests for SourceSpaces.export_volume
-    fname_img = tmp_path.join('temp-image.mgz')
+    fname_img = tmp_path / 'temp-image.mgz'
 
     # head coordinates and mri_resolution, but trans file
     with pytest.raises(ValueError, match='trans containing mri to head'):
@@ -443,7 +443,7 @@ def test_make_forward_dipole(tmp_path):
     dip_even_samp = Dipole(times, pos, amplitude, ori, gof)
 
     # I/O round-trip
-    fname = str(tmp_path.join('test-fwd.fif'))
+    fname = str(tmp_path / 'test-fwd.fif')
     with pytest.warns(RuntimeWarning, match='free orientation'):
         write_forward_solution(fname, fwd)
     fwd_read = convert_forward_solution(
@@ -466,7 +466,7 @@ def test_make_forward_no_meg(tmp_path):
     montage = make_standard_montage('standard_1020')
     info = create_info(['Cz'], 1000., 'eeg').set_montage(montage)
     fwd = make_forward_solution(info, trans, src, bem)
-    fname = tmp_path.join('test-fwd.fif')
+    fname = tmp_path / 'test-fwd.fif'
     write_forward_solution(fname, fwd)
     fwd_read = read_forward_solution(fname)
     assert_allclose(fwd['sol']['data'], fwd_read['sol']['data'])

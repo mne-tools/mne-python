@@ -628,7 +628,7 @@ def test_read_vmrk_annotations(tmp_path):
     # delete=False is for Windows compatibility
     with open(vmrk_path) as myfile:
         head = [next(myfile) for x in range(6)]
-    fname = tmp_path.join('temp.vmrk')
+    fname = tmp_path / 'temp.vmrk'
     with open(str(fname), 'w') as temp:
         for item in head:
             temp.write(item)

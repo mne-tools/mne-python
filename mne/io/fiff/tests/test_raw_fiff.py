@@ -1756,14 +1756,17 @@ def test_bad_acq(fname):
 def test_split_symlink(tmp_path):
     """Test split files with symlinks."""
     # regression test for gh-9221
-    first = str(tmp_path.mkdir('first').join('test_raw.fif'))
+    (tmp_path / 'first').mkdir()
+    first = tmp_path / 'first' / 'test_raw.fif'
     raw = read_raw_fif(fif_fname).pick('meg').load_data()
     raw.save(first, buffer_size_sec=1, split_size='10MB', verbose=True)
-    second = first[:-4] + '-1.fif'
+    second = str(first)[:-4] + '-1.fif'
     assert op.isfile(second)
-    assert not op.isfile(first[:-4] + '-2.fif')
-    new_first = tmp_path.mkdir('a').join('test_raw.fif')
-    new_second = tmp_path.mkdir('b').join('test_raw-1.fif')
+    assert not op.isfile(str(first)[:-4] + '-2.fif')
+    (tmp_path / 'a').mkdir()
+    (tmp_path / 'b').mkdir()
+    new_first = tmp_path / 'a' / 'test_raw.fif'
+    new_second = tmp_path / 'b' / 'test_raw-1.fif'
     shutil.move(first, new_first)
     shutil.move(second, new_second)
     os.symlink(new_first, first)

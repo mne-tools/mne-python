@@ -451,7 +451,7 @@ def test_nirx_15_3_short():
 @requires_testing_data
 def test_encoding(tmp_path):
     """Test NIRx encoding."""
-    fname = str(tmp_path.join('latin'))
+    fname = tmp_path / 'latin'
     shutil.copytree(fname_nirx_15_2, fname)
     hdr_fname = op.join(fname, 'NIRS-2019-10-02_003.hdr')
     hdr = list()

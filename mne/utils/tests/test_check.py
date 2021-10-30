@@ -37,7 +37,7 @@ def test_check(tmp_path):
     pytest.raises(ValueError, check_random_state, 'foo')
     pytest.raises(TypeError, _check_fname, 1)
     _check_fname(Path('./foo'))
-    fname = str(tmp_path.join('foo'))
+    fname = tmp_path / 'foo'
     with open(fname, 'wb'):
         pass
     assert op.isfile(fname)

@@ -112,7 +112,7 @@ def test_egi_mff_pause(fname, skip_times, event_times):
 ])
 def test_egi_mff_pause_chunks(fname, tmp_path):
     """Test that on-demand of all short segments works (via I/O)."""
-    fname_temp = tmp_path.join('test_raw.fif')
+    fname_temp = tmp_path / 'test_raw.fif'
     raw_data = read_raw_egi(fname, preload=True).get_data()
     raw = read_raw_egi(fname)
     with pytest.warns(RuntimeWarning, match='Acquisition skips detected'):
@@ -267,7 +267,7 @@ def test_io_egi_pns_mff(tmp_path):
         assert_array_equal(mat_data, raw_data)
 
     # EEG missing
-    new_mff = str(tmp_path.join('temp.mff'))
+    new_mff = tmp_path / 'temp.mff'
     shutil.copytree(egi_mff_pns_fname, new_mff)
     read_raw_egi(new_mff, verbose='error')
     os.remove(op.join(new_mff, 'info1.xml'))

@@ -957,7 +957,7 @@ def test_egi_dig_montage(tmp_path):
     )
 
     # test round-trip IO
-    fname_temp = tmp_path.join('egi_test.fif')
+    fname_temp = tmp_path / 'egi_test.fif'
     _check_roundtrip(dig_montage, fname_temp, 'unknown')
     _check_roundtrip(dig_montage_in_head, fname_temp)
 
@@ -1007,7 +1007,7 @@ def test_read_dig_captrak(tmp_path):
 
     montage = transform_to_head(montage)  # transform_to_head has to be tested
     _check_roundtrip(montage=montage,
-                     fname=str(tmp_path.join('bvct_test.fif')))
+                     fname=str(tmp_path / 'bvct_test.fif'))
 
     fid, _ = _get_fid_coords(montage.dig)
     assert_allclose(
