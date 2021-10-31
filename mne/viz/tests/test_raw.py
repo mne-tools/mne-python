@@ -4,9 +4,6 @@
 
 import itertools
 import os
-import sys
-from copy import copy
-from functools import partial
 
 import numpy as np
 from numpy.testing import assert_allclose
