@@ -30,6 +30,12 @@ kit_raw_path = op.join(kit_data_dir, 'test_bin_raw.fif')
 subjects_dir = op.join(data_path, 'subjects')
 fid_fname = op.join(subjects_dir, 'sample', 'bem', 'sample-fiducials.fif')
 ctf_raw_path = op.join(data_path, 'CTF', 'catch-alp-good-f.ds')
+nirx_15_0_raw_path = op.join(data_path, 'NIRx', 'nirscout',
+                             'nirx_15_0_recording', 'NIRS-2019-10-27_003.hdr')
+nirsport2_raw_path = op.join(data_path, 'NIRx', 'nirsport_v2', 'aurora_2021_9',
+                             '2021-10-01_002_config.hdr')
+snirf_nirsport2_raw_path = op.join(data_path, 'SNIRF', 'NIRx', 'NIRSport2',
+                                   '1.0.3', '2021-05-05_001.snirf')
 
 
 @testing.requires_testing_data
@@ -377,9 +383,11 @@ class TstVTKPicker(object):
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize(
-    'inst_path', (raw_path, 'gen_montage', ctf_raw_path))
-def test_coreg_gui_pyvista(inst_path, tmpdir, renderer_interactive_pyvistaqt):
-    """Test that using CoregistrationUI matches mne coreg."""
+    'inst_path', (raw_path, 'gen_montage', ctf_raw_path, nirx_15_0_raw_path,
+                  nirsport2_raw_path, snirf_nirsport2_raw_path))
+def test_coreg_gui_pyvista_file_support(inst_path, tmpdir,
+                                        renderer_interactive_pyvistaqt):
+    """Test reading supported files."""
     from mne.gui import coregistration
 
     tempdir = str(tmpdir)
@@ -396,21 +404,30 @@ def test_coreg_gui_pyvista(inst_path, tmpdir, renderer_interactive_pyvistaqt):
         inst_path = op.join(tempdir, 'tmp-dig.fif')
         dig.save(inst_path)
 
-    config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
-    tmp_trans = op.join(tempdir, 'tmp-trans.fif')
-    coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
-                           trans=fname_trans)
-    coreg._reset_fiducials()
-    coreg.close()
-
     # Suppressing warnings here is not ideal.
     # However ctf_raw_path (catch-alp-good-f.ds) is poorly formed and causes
     # mne.io.read_raw to issue warning.
     # XXX consider replacing ctf_raw_path and removing warning ignore filter.
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        coreg = coregistration(inst=inst_path, subject='sample',
-                               subjects_dir=subjects_dir)
+        coregistration(inst=inst_path, subject='sample',
+                       subjects_dir=subjects_dir)
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_coreg_gui_pyvista(tmpdir, renderer_interactive_pyvistaqt):
+    """Test that using CoregistrationUI matches mne coreg."""
+    from mne.gui import coregistration
+    tempdir = str(tmpdir)
+    config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
+    tmp_trans = op.join(tempdir, 'tmp-trans.fif')
+    coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
+                           trans=fname_trans)
+    coreg._reset_fiducials()
+    coreg.close()
+    coreg = coregistration(inst=raw_path, subject='sample',
+                           subjects_dir=subjects_dir)
     coreg._set_fiducials_file(fid_fname)
     assert coreg._fiducials_file == fid_fname
     # picking
