@@ -52,7 +52,7 @@ using :func:`mne.io.read_raw_snirf`.
 Specifying the coordinate system
 --------------------------------
 
-There is a variety of coordinate systems used to specify the location of
+There are a variety of coordinate systems used to specify the location of
 sensors (see :ref:`tut-source-alignment` for details). Where possible the
 coordinate system will be determined automatically when reading a SNIRF file.
 However, sometimes this is not possible and you must manually specify the
@@ -60,10 +60,10 @@ coordinate frame the optodes are in. This is done using the ``optode_frame``
 argument when loading data.
 
 =======  ==================  =================
-Vendor   Coordinate Frame    ``optode_frame``
+Vendor   Model               ``optode_frame``
 =======  ==================  =================
 NIRx     ICBM-152 MNI        mri
-Kernel   Freesurfer MRI      mri
+Kernel   ICBM 2009b          mri
 =======  ==================  =================
 
 
