@@ -6,6 +6,8 @@
 #
 # License: Simplified BSD
 import importlib
+import subprocess
+import sys
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -593,7 +595,24 @@ def _load_backend(backend_name):
         backend = importlib.import_module(name='._mpl_figure',
                                           package='mne.viz')
     else:
-        from mne_qt_browser import _pg_figure as backend
+        repo_link = "git+https://github.com/mne-tools/" \
+                    "mne-qt-browser.git#egg=mne-qt-browser"
+        try:
+            from mne_qt_browser import _pg_figure as backend
+        except ModuleNotFoundError:
+            try:
+                subprocess.run(
+                    [sys.executable, "-m", "pip", "install",
+                     repo_link],
+                    check=True)
+            except subprocess.CalledProcessError:
+                print('Installation of pyqtgraph-backend failed!\n'
+                      f'You can try to install the pyqtgraph-backend '
+                      f'manually with:\n'
+                      f'"pip install {repo_link}"')
+                return _load_backend('matplotlib')
+            else:
+                from mne_qt_browser import _pg_figure as backend
 
     logger.info(f'Using {backend_name} as 2D backend.')
 
