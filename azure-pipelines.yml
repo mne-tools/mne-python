@@ -195,6 +195,9 @@ stages:
       MNE_FORCE_SERIAL: 'true'
       OPENBLAS_NUM_THREADS: 1
       OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 2
+      OMP_DYNAMIC: 'false'
+      MKL_DYNAMIC: 'false'
       PYTHONUNBUFFERED: 1
       PYTHONIOENCODING: 'utf-8'
       AZURE_CI_WINDOWS: 'true'
@@ -223,9 +226,16 @@ stages:
     # https://docs.microsoft.com/en-us/azure/devops/pipelines/ecosystems/anaconda
     # https://github.com/MicrosoftDocs/pipelines-anaconda
     # https://github.com/ContinuumIO/anaconda-issues/issues/10949
-    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%PROGRAMFILES%\Git\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%PROGRAMFILES%\Git\usr\bin"
+    - script: |
+        echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%PROGRAMFILES%\Git\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%PROGRAMFILES%\Git\usr\bin"
       condition: in(variables['TEST_MODE'], 'conda')
       displayName: Add conda to PATH, deal with Qt linking bug
+    - task: Cache@2
+      displayName: Cache conda packages
+      inputs:
+        key: '"conda" | "$(Agent.OS)" | "${PYTHON_VERSION}"'
+        path: /usr/share/miniconda/envs/pkgs
+      condition: in(variables['TEST_MODE'], 'conda')
     - bash: |
         set -e
         which bash
