@@ -234,11 +234,10 @@ stages:
       displayName: Cache conda packages
       inputs:
         key: '"conda" | "$(Agent.OS)" | "$(PYTHON_VERSION)"'
-        path: /usr/share/miniconda/envs/pkgs
+        path: /Miniconda/pkgs
       condition: in(variables['TEST_MODE'], 'conda')
     - bash: |
         set -e
-        echo "$PATH"
         git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
         powershell gl-ci-helpers/appveyor/install_opengl.ps1
       displayName: Install OpenGL
