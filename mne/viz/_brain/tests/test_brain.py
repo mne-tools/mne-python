@@ -482,12 +482,12 @@ def tiny(tmp_path):
     rr = rng.randn(4, 3)
     tris = np.array([[0, 1, 2], [2, 1, 3]])
     curv = rng.randn(len(rr))
-    with open(surf_dir.join('lh.curv'), 'wb') as fid:
+    with open(surf_dir / 'lh.curv', 'wb') as fid:
         fid.write(np.array([255, 255, 255], dtype=np.uint8))
         fid.write(np.array([len(rr), 0, 1], dtype='>i4'))
         fid.write(curv.astype('>f4'))
-    write_surface(surf_dir.join('lh.white'), rr, tris)
-    write_surface(surf_dir.join('rh.white'), rr, tris)  # needed for vertex tc
+    write_surface(surf_dir / 'lh.white', rr, tris)
+    write_surface(surf_dir / 'rh.white', rr, tris)  # needed for vertex tc
     vertices = [np.arange(len(rr)), []]
     data = rng.randn(len(rr), 10)
     stc = SourceEstimate(data, vertices, 0, 1, subject)

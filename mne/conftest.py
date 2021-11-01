@@ -493,7 +493,7 @@ def pixel_ratio():
 def subjects_dir_tmp(tmp_path):
     """Copy MNE-testing-data subjects_dir to a temp dir for manipulation."""
     for key in ('sample', 'fsaverage'):
-        shutil.copytree(op.join(subjects_dir, key), str(tmp_path.join(key)))
+        shutil.copytree(op.join(subjects_dir, key), str(tmp_path / key))
     return str(tmp_path)
 
 
