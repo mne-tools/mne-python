@@ -25,9 +25,10 @@ docdict = dict()
 # Verbose
 docdict['verbose'] = """
 verbose : bool | str | int | None
-    If not None, override default verbose level (see :func:`mne.verbose`
-    and :ref:`Logging documentation <python:tut-logging>` for more).
-    If used, it should be passed as a keyword-argument only."""
+    Control verbosity of the logging output. If ``None``, use the default
+    verbosity level. See the :ref:`logging documentation <tut-logging>` and
+    :func:`mne.verbose` for details. Should only be passed as a keyword
+    argument."""
 docdict['verbose_meth'] = (docdict['verbose'] + ' Defaults to self.verbose.')
 
 # Preload
