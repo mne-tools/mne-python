@@ -1368,11 +1368,17 @@ class Coregistration(object):
                 dig=self._info['dig'],
                 exclude_ref_channel=False
             )
-            # adjustments
-            self._dig_dict['rpa'] = np.array([self._dig_dict['rpa']], float)
-            self._dig_dict['nasion'] = \
-                np.array([self._dig_dict['nasion']], float)
-            self._dig_dict['lpa'] = np.array([self._dig_dict['lpa']], float)
+            # adjustments:
+            # set weights to 0 for None input
+            # convert fids to float arrays
+            for k, w_atr in zip(['nasion', 'lpa', 'rpa', 'hsp', 'hpi'],
+                                ['_nasion_weight', '_lpa_weight',
+                                 '_rpa_weight', '_hsp_weight', '_hpi_weight']):
+                if self._dig_dict[k] is None:
+                    self._dig_dict[k] = np.zeros((0, 3))
+                    setattr(self, w_atr, 0)
+                elif k in ['rpa', 'nasion', 'lpa']:
+                    self._dig_dict[k] = np.array([self._dig_dict[k]], float)
 
     def _setup_bem(self):
         # find high-res head model (if possible)

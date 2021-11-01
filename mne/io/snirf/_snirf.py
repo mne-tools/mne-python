@@ -304,7 +304,7 @@ class RawSNIRF(BaseRaw):
                         rpa = diglocs[idx, :3]
                     else:
                         extra_ps[f'EEG{len(extra_ps) + 1:03d}'] = \
-                            diglocs[idx]
+                            diglocs[idx, :3]
                 dig = _make_dig_points(
                     nasion=nasion, lpa=lpa, rpa=rpa, hpi=hpi,
                     dig_ch_pos=extra_ps,

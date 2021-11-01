@@ -1032,7 +1032,7 @@ def _orient_glyphs(pts, surf):
 
 def _plot_glyphs(renderer, loc, color, scale, opacity=1, mode="cylinder",
                  orient_glyphs=False, surf=None, backface_culling=False):
-    if orient_glyphs:
+    if orient_glyphs and len(loc) > 0:
         defaults = DEFAULTS['coreg']
         scalars, vectors = _orient_glyphs(loc, surf)
         x, y, z = loc.T

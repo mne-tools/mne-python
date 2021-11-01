@@ -22,6 +22,7 @@ from mne.io.constants import FIFF
 from mne.utils import (requires_nibabel, modified_env, check_version,
                        catch_logging)
 from mne.source_space import write_source_spaces
+from mne.channels import DigMontage
 
 data_path = testing.data_path(download=False)
 subjects_dir = os.path.join(data_path, 'subjects')
@@ -443,3 +444,27 @@ def test_coreg_class_gui_match():
         [0, 0, 0, 1]]
     assert_allclose(coreg.scale, want_scale, atol=5e-4)
     assert_allclose(coreg.trans['trans'], want_trans, atol=1e-6)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    'drop_point_kind', (FIFF.FIFFV_POINT_CARDINAL, FIFF.FIFFV_POINT_HPI,
+                        FIFF.FIFFV_POINT_EXTRA, FIFF.FIFFV_POINT_EEG))
+def test_coreg_class_init(drop_point_kind):
+    """Test that Coregistration can be instantiated with various digs."""
+    fiducials, _ = read_fiducials(fid_fname)
+    info = read_info(raw_fname)
+
+    dig_list = []
+    eeg_chans = []
+    for pt in info['dig']:
+        if pt['kind'] != drop_point_kind:
+            dig_list.append(pt)
+            if pt['kind'] == FIFF.FIFFV_POINT_EEG:
+                eeg_chans.append(f"EEG {pt['ident']:03d}")
+
+    this_info = info.copy()
+    this_info.set_montage(DigMontage(dig=dig_list, ch_names=eeg_chans),
+                          on_missing='ignore')
+    Coregistration(this_info, subject='sample',
+                   subjects_dir=subjects_dir, fiducials=fiducials)
