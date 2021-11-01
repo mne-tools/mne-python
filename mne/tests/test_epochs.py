@@ -1012,6 +1012,7 @@ def test_epochs_io_proj(tmpdir, proj):
     del epochs_copy
 
 
+@pytest.mark.slowtest
 @pytest.mark.parametrize('preload', (False, True))
 def test_epochs_io_preload(tmpdir, preload):
     """Test epochs I/O with preloading."""
@@ -2153,6 +2154,7 @@ def test_access_by_name(tmpdir):
     assert_equal(epochs[['a', 'b']]['a']._name, 'a')
 
 
+@pytest.mark.slowtest
 @requires_pandas
 def test_to_data_frame():
     """Test epochs Pandas exporter."""
@@ -2821,6 +2823,7 @@ def test_concatenate_epochs():
     concatenate_epochs([epochs, epochs2], add_offset=True)
 
 
+@pytest.mark.slowtest
 def test_concatenate_epochs_large():
     """Test concatenating epochs on large data."""
     raw, events, picks = _get_data()

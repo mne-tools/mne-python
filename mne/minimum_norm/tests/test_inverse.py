@@ -1079,6 +1079,7 @@ def test_make_inverse_operator_bads(evoked, noise_cov):
     assert len(set(inv_['info']['bads']) - union_bads) == 0
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_inverse_ctf_comp():
     """Test interpolation with compensated CTF data."""
@@ -1135,6 +1136,7 @@ def test_inverse_mixed(all_src_types_inv_evoked):
         stcs['surface'].project('normal', surf_src)[0].data)
 
 
+@pytest.mark.slowtest  # slow on Azure
 def test_inverse_mixed_loose(mixed_fwd_cov_evoked):
     """Test loose mixed source spaces."""
     fwd, cov, evoked = mixed_fwd_cov_evoked

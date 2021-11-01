@@ -187,6 +187,7 @@ def test_cov_rank_estimation(rank_method, proj, meg):
             assert rank[ch_type] == expected_rank
 
 
+@pytest.mark.slowtest  # ~3 sec apiece on Azure means overall it's slow
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname, rank_orig', ((hp_fif_fname, 120),
                                               (mf_fif_fname, 67)))
