@@ -177,7 +177,7 @@ for i, pos in enumerate(xy_pts):
 # this example short time section. This dataset is available using
 # :func:`mne.datasets.epilepsy_ecog.data_path` for you to examine.
 
-# sphinx_gallery_thumbnail_number = 5
+# sphinx_gallery_thumbnail_number = 3
 
 xyz_pts = np.array([dig['r'] for dig in evoked.info['dig']])
 
