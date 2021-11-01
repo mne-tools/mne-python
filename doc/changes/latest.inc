@@ -211,9 +211,11 @@ Enhancements
 
 - Add support for colormap normalization in :meth:`mne.time_frequency.AverageTFR.plot` (:gh:`9851` by `Clemens Brunner`_)
 
-- Add support for BIDS-compatible filenames when splitting big epochs files via the new ``split_naming`` parameter in :meth:`mne.Epochs.save` (:gh:9869 by `Denis Engemann`_)
+- Add support for BIDS-compatible filenames when splitting big epochs files via the new ``split_naming`` parameter in :meth:`mne.Epochs.save` (:gh:`9869` by `Denis Engemann`_)
 
 - Add ``by_event_type`` parameter to :meth:`mne.Epochs.average` to create a list containing an :class:`mne.Evoked` object for each event type (:gh:`9859` by `Marijn van Vliet`_)
+
+- Add mne-qt-browser (using pyqtgraph and PyQt) as a new backend for :meth:`mne.Raw.plot` (:gh:`9687` by `Martin Schulz`_)
 
 Bugs
 ~~~~
