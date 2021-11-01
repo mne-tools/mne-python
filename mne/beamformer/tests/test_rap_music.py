@@ -4,9 +4,10 @@
 # License: BSD-3-Clause
 
 import os.path as op
+
+import pytest
 import numpy as np
 from scipy import linalg
-
 from numpy.testing import assert_allclose
 
 import mne
