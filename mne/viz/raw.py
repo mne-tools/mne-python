@@ -209,10 +209,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     By default, the channel means are removed when ``remove_dc`` is set to
     ``True``. This flag can be toggled by pressing 'd'.
 
-    IPython + pyqtgraph:
+    IPython + pyqtgraph
     You need to set the magic command ``%%gui qt5`` in IPython for
     the pyqtgraph-backend to work.
-
     """
     from ..io.base import BaseRaw
     from ._figure import _get_browser
