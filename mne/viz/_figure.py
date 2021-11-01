@@ -6,8 +6,6 @@
 #
 # License: Simplified BSD
 import importlib
-import subprocess
-import sys
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from contextlib import contextmanager

@@ -21,7 +21,6 @@ import mne
 
 def run():
     """Run command."""
-    import matplotlib.pyplot as plt
     from mne.commands.utils import get_optparser, _add_verbose_flag
     from mne.viz import _RAW_CLIP_DEF
 
