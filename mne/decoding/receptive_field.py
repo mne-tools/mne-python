@@ -11,9 +11,10 @@ import numpy as np
 from .base import get_coef, BaseEstimator, _check_estimator
 from .time_delaying_ridge import TimeDelayingRidge
 from ..fixes import is_regressor
-from ..utils import _validate_type, verbose
+from ..utils import _validate_type, verbose, fill_doc
 
 
+@fill_doc
 class ReceptiveField(BaseEstimator):
     """Fit a receptive field model.
 
