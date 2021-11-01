@@ -78,9 +78,10 @@ def verbose(function: _FuncT) -> _FuncT:
     -----
     This decorator is used to set the verbose level during a function or method
     call, such as :func:`mne.compute_covariance`. The `verbose` keyword
-    argument can be 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', True (an
-    alias for 'INFO'), or False (an alias for 'WARNING'). To set the global
-    verbosity level for all functions, use :func:`mne.set_log_level`.
+    argument can be ``'debug'``, ``'info'``, ``'warning'``, ``'error'``,
+    ``'critical``', ``True`` (an alias for ``'info'``), or ``False`` (an alias
+    for ``'warning'``). To set the global verbosity level for all functions,
+    use :func:`mne.set_log_level`.
 
     This function also serves as a docstring filler.
 
@@ -89,8 +90,8 @@ def verbose(function: _FuncT) -> _FuncT:
     You can use the ``verbose`` argument to set the verbose level on the fly::
 
         >>> import mne
-        >>> cov = mne.compute_raw_covariance(raw, verbose='WARNING')  # doctest: +SKIP
-        >>> cov = mne.compute_raw_covariance(raw, verbose='INFO')  # doctest: +SKIP
+        >>> cov = mne.compute_raw_covariance(raw, verbose='warning')  # doctest: +SKIP
+        >>> cov = mne.compute_raw_covariance(raw, verbose='info')  # doctest: +SKIP
         Using up to 49 segments
         Number of samples used : 5880
         [done]

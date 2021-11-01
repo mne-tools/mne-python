@@ -24,10 +24,20 @@ docdict = dict()
 
 # Verbose
 docdict['verbose'] = """
-verbose : bool | str | int | None
-    If not None, override default verbose level (see :func:`mne.verbose`
-    and :ref:`Logging documentation <python:tut-logging>` for more).
-    If used, it should be passed as a keyword-argument only."""
+verbose : bool | 'debug' | 'info' | 'warning' | 'error' | 'critical' | int | None
+    Controls the verbosity of the generated logging output. Logging messages
+    below the specified level will not be emitted. For example, if you specify
+    ``verbose='warning'``, all ``debug`` and ``info`` messages will be hidden.
+
+    You may also pass a boolean, where ``True`` is an alias for ``'info'`` and
+    ``False`` is an alias for ``'warning'``. See also :func:`mne.verbose`.
+
+    If ``None``, use the default logging level.
+
+    Integers are accepted for consistency with the underlying Python logging
+    system.
+
+    If used, it should be passed as a keyword-argument only."""  # noqa: E501
 docdict['verbose_meth'] = (docdict['verbose'] + ' Defaults to self.verbose.')
 
 # Preload
