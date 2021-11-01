@@ -173,7 +173,7 @@ def test_volume_stc(tmp_path):
             stc = VolVectorSourceEstimate(data, [vertno], 0, 1)
             ext = 'h5'
             klass = VolVectorSourceEstimate
-        fname_temp = tmp_path / 'temp-vl.' + ext
+        fname_temp = tmp_path / ('temp-vl.' + ext)
         stc_new = stc
         n = 3 if ext == 'h5' else 2
         for ii in range(n):
