@@ -66,10 +66,7 @@ class ReceptiveField(BaseEstimator):
         duration. Only used if ``estimator`` is float or None.
 
         .. versionadded:: 0.18
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see
-        :func:`mne.verbose` and :ref:`Logging documentation <tut-logging>`
-        for more).
+    %(verbose)s
 
     Attributes
     ----------
