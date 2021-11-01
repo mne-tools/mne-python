@@ -1421,7 +1421,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    '_meg.fif', '_eeg.fif', '_ieeg.fif')
         endings += tuple([f'{e}.gz' for e in endings])
         endings_err = ('.fif', '.fif.gz')
-        fname = _check_fname(fname)
+
+        # convert to str, check for overwrite a few lines later
+        fname = _check_fname(fname, overwrite=True)
         check_fname(fname, 'raw', endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)
