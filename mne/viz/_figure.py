@@ -621,8 +621,6 @@ def _check_browser_backend_name(backend_name):
     return backend_name
 
 
-# ToDo: This won't appear in documentation, has to be adjusted to the current
-#  state of the pyqtgraph backend.
 @verbose
 def set_browser_backend(backend_name, verbose=None):
     """Set the 2D browser backend for MNE.

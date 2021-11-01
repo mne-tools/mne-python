@@ -215,7 +215,7 @@ Enhancements
 
 - Add ``by_event_type`` parameter to :meth:`mne.Epochs.average` to create a list containing an :class:`mne.Evoked` object for each event type (:gh:`9859` by `Marijn van Vliet`_)
 
-- Add mne-qt-browser (using pyqtgraph and PyQt) as a new backend for :meth:`mne.Raw.plot` (:gh:`9687` by `Martin Schulz`_)
+- Add mne-qt-browser (using pyqtgraph and PyQt) as a new backend for :meth:`mne.io.Raw.plot` (:gh:`9687` by `Martin Schulz`_)
 
 Bugs
 ~~~~
