@@ -135,8 +135,8 @@ def run():
     raw.plot(duration=duration, start=start, n_channels=n_channels,
              group_by=group_by, show_options=show_options, events=events,
              highpass=highpass, lowpass=lowpass, filtorder=filtorder,
-             clipping=clipping, proj=not proj_off, verbose=verbose)
-    plt.show(block=True)
+             clipping=clipping, proj=not proj_off, verbose=verbose,
+             show=True, block=True)
 
 
 mne.utils.run_command_if_main()
