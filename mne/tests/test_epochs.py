@@ -967,7 +967,11 @@ def test_io_epochs_basic(tmpdir):
     assert (evoked_dec.info['sfreq'] == evoked.info['sfreq'] / 4)
 
 
-@pytest.mark.parametrize('proj', (True, 'delayed', False))
+@pytest.mark.parametrize('proj', [
+    pytest.param(True, marks=pytest.mark.slowtest),
+    pytest.param('delayed', marks=pytest.mark.slowtest),
+    False,
+])
 def test_epochs_io_proj(tmpdir, proj):
     """Test epochs I/O with projection."""
     # Test event access on non-preloaded data (#2345)

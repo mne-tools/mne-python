@@ -154,6 +154,7 @@ def test_rap_music_simulated():
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_rap_music_sphere():
     """Test RAP-MUSIC with real data, sphere model, MEG only."""
