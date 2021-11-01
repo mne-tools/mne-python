@@ -210,7 +210,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     ``True``. This flag can be toggled by pressing 'd'.
 
     IPython + pyqtgraph:
-    You need to set the magic command ``%gui qt5`` in IPython for
+    You need to set the magic command ``%%gui qt5`` in IPython for
     the pyqtgraph-backend to work.
 
     """
