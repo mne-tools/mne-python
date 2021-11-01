@@ -186,7 +186,7 @@ class ICA(ContainsMixin):
         are scaled to unit variance ("z-standardized") as a group by channel
         type prior to the whitening by PCA.
     %(random_state)s
-    method : 'fastica' | 'infomax' |'picard'
+    method : 'fastica' | 'infomax' | 'picard'
         The ICA method to use in the fit method. Use the ``fit_params`` argument
         to set additional parameters. Specifically, if you want Extended
         Infomax, set ``method='infomax'`` and ``fit_params=dict(extended=True)``
