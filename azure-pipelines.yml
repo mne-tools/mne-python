@@ -238,7 +238,7 @@ stages:
       condition: in(variables['TEST_MODE'], 'conda')
     - bash: |
         set -e
-        which bash
+        echo "$PATH"
         git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
         powershell gl-ci-helpers/appveyor/install_opengl.ps1
       displayName: Install OpenGL
