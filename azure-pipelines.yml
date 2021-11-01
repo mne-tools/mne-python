@@ -233,7 +233,7 @@ stages:
     - task: Cache@2
       displayName: Cache conda packages
       inputs:
-        key: '"conda" | "$(Agent.OS)" | "${PYTHON_VERSION}"'
+        key: '"conda" | "$(Agent.OS)" | "$(PYTHON_VERSION)"'
         path: /usr/share/miniconda/envs/pkgs
       condition: in(variables['TEST_MODE'], 'conda')
     - bash: |
