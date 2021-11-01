@@ -309,6 +309,8 @@ Bugs
 
 - In `mne.viz.plot_compare_evokeds`, slightly adjust the x-axis limit calculation to avoid drawing an axis that is too short (:gh:`9754` by `Richard Höchenberger`_)
 
+- Fix a bug with :func:`mne.viz.snapshot_brain_montage` with the Mayavi backend where electrodes were shown in the wrong positions, and with the PyVista backend where the snapshot always contained the electrodes but could be missing a hemisphere (:gh:`9933` by `Eric Larson`_)
+
 - In :meth:`mne.io.Raw.plot_psd` and :meth:`mne.Epochs.plot_psd`, avoid overlap between subplot titles and x-axis tick labels (:gh:`9864` by `Richard Höchenberger`_)
 
 - In :meth:`mne.Epochs.plot_psd_topomap`, the data is now scaled to match the output of :meth:`mne.Epochs.plot_psd` (:gh:`9873` by `Richard Höchenberger`_)

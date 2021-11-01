@@ -19,10 +19,6 @@ from contextlib import contextmanager
 import warnings
 import numpy as np
 
-from mayavi.core.scene import Scene
-from mayavi.core.ui.mayavi_scene import MayaviScene
-from tvtk.pyface.tvtk_scene import TVTKScene
-
 from ._abstract import _AbstractRenderer
 from ._utils import _check_color, _alpha_blend_background, ALLOWED_QUIVER_MODES
 from ..utils import _save_ndarray_img
@@ -390,65 +386,21 @@ def _create_mesh_surf(surf, fig=None, scalars=None, vtk_normals=True):
 
 def _3d_to_2d(fig, xyz):
     """Convert 3d points to a 2d perspective using a Mayavi Scene."""
+    from mayavi.core.scene import Scene
+    from pyface.api import GUI
+    from tvtk.api import tvtk
     _validate_type(fig, Scene, "fig", "Scene")
-    xyz = np.column_stack([xyz, np.ones(xyz.shape[0])])
-
-    # Transform points into 'unnormalized' view coordinates
-    comb_trans_mat = _get_world_to_view_matrix(fig.scene)
-    view_coords = np.dot(comb_trans_mat, xyz.T).T
-
-    # Divide through by the fourth element for normalized view coords
-    norm_view_coords = view_coords / (view_coords[:, 3].reshape(-1, 1))
-
-    # Transform from normalized view coordinates to display coordinates.
-    view_to_disp_mat = _get_view_to_display_matrix(fig.scene)
-    xy = np.dot(view_to_disp_mat, norm_view_coords.T).T
-
-    # Pull the first two columns since they're meaningful for 2d plotting
-    xy = xy[:, :2]
+    gui = GUI()
+    gui.process_events()
+    coordinate = tvtk.Coordinate()
+    coordinate.coordinate_system = 'world'
+    xy = list()
+    for coord in xyz:
+        coordinate.value = coord
+        xy.append(
+            coordinate.get_computed_local_display_value(fig.scene.renderer))
+    xy = np.array(xy, float).reshape(-1, 2)  # in case it's empty
     return xy
-
-
-def _get_world_to_view_matrix(scene):
-    """Return the 4x4 matrix to transform xyz space to the current view.
-
-    This is a concatenation of the model view and perspective transforms.
-    """
-    _validate_type(scene, (MayaviScene, TVTKScene), "scene",
-                   "TVTKScene/MayaviScene")
-    cam = scene.camera
-
-    # The VTK method needs the aspect ratio and near and far
-    # clipping planes in order to return the proper transform.
-    scene_size = tuple(scene.get_size())
-    clip_range = cam.clipping_range
-    aspect_ratio = float(scene_size[0]) / scene_size[1]
-
-    # Get the vtk matrix object using the aspect ratio we defined
-    vtk_comb_trans_mat = cam.get_composite_projection_transform_matrix(
-        aspect_ratio, clip_range[0], clip_range[1])
-    vtk_comb_trans_mat = vtk_comb_trans_mat.to_array()
-    return vtk_comb_trans_mat
-
-
-def _get_view_to_display_matrix(scene):
-    """Return the 4x4 matrix to convert view coordinates to display coords.
-
-    It's assumed that the view should take up the entire window and that the
-    origin of the window is in the upper left corner.
-    """
-    _validate_type(scene, (MayaviScene, TVTKScene), "scene",
-                   "TVTKScene/MayaviScene")
-
-    # normalized view coordinates have the origin in the middle of the space
-    # so we need to scale by width and height of the display window and shift
-    # by half width and half height. The matrix accomplishes that.
-    x, y = tuple(scene.get_size())
-    view_to_disp_mat = np.array([[x / 2.0,       0.,   0.,   x / 2.0],
-                                 [0.,      -y / 2.0,   0.,   y / 2.0],
-                                 [0.,            0.,   1.,        0.],
-                                 [0.,            0.,   0.,        1.]])
-    return view_to_disp_mat
 
 
 def _close_all():
