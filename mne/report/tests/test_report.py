@@ -660,6 +660,7 @@ def test_split_files(tmpdir, split_naming):
     assert len(report._content) == 1
 
 
+@pytest.mark.slowtest  # ~40 sec on Azure Windows
 @testing.requires_testing_data
 def test_survive_pickle(tmpdir):
     """Testing functionality of Report-Object after pickling."""
@@ -678,6 +679,7 @@ def test_survive_pickle(tmpdir):
     report.save(fname=save_name, open_browser=False)
 
 
+@pytest.mark.slowtest  # ~30 sec on Azure Windows
 @requires_sklearn
 @testing.requires_testing_data
 def test_manual_report_2d(tmpdir, invisible_fig):

@@ -606,6 +606,7 @@ def test_stc_mpl():
                   time_unit='ss', subject='sample', backend='matplotlib')
 
 
+@pytest.mark.slowtest
 @pytest.mark.timeout(60)  # can sometimes take > 60 sec
 @testing.requires_testing_data
 @requires_nibabel()

@@ -17,7 +17,7 @@ stages:
   jobs:
     - job: Skip
       pool:
-        vmImage: 'ubuntu-18.04'
+        vmImage: 'ubuntu-latest'
       variables:
         DECODE_PERCENTS: 'false'
         RET: 'true'
@@ -35,9 +35,9 @@ stages:
   variables:
     AZURE_CI: 'true'
   jobs:
-  - job: Style
+  - job: All
     pool:
-      vmImage: 'ubuntu-18.04'
+      vmImage: 'ubuntu-latest'
     variables:
       PYTHON_VERSION: '3.9'
       PYTHON_ARCH: 'x64'
@@ -75,7 +75,7 @@ stages:
       displayName: make check-readme
       condition: always()
 
-- stage: Main
+- stage: Test
   condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
   dependsOn: Check
   variables:
@@ -144,7 +144,7 @@ stages:
 
   - job: Notebook
     pool:
-      vmImage: 'ubuntu-18.04'
+      vmImage: 'ubuntu-latest'
     steps:
     - bash: |
         set -e
@@ -189,12 +189,15 @@ stages:
 
   - job: Windows
     pool:
-      vmImage: 'VS2017-Win2016'
+      vmImage: 'windows-latest'
     variables:
       MNE_LOGGING_LEVEL: 'warning'
       MNE_FORCE_SERIAL: 'true'
       OPENBLAS_NUM_THREADS: 1
       OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 2
+      OMP_DYNAMIC: 'false'
+      MKL_DYNAMIC: 'false'
       PYTHONUNBUFFERED: 1
       PYTHONIOENCODING: 'utf-8'
       AZURE_CI_WINDOWS: 'true'
@@ -223,7 +226,8 @@ stages:
     # https://docs.microsoft.com/en-us/azure/devops/pipelines/ecosystems/anaconda
     # https://github.com/MicrosoftDocs/pipelines-anaconda
     # https://github.com/ContinuumIO/anaconda-issues/issues/10949
-    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;"
+    - script: |
+        echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%PROGRAMFILES%\Git\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%PROGRAMFILES%\Git\usr\bin"
       condition: in(variables['TEST_MODE'], 'conda')
       displayName: Add conda to PATH, deal with Qt linking bug
     - bash: |
@@ -239,7 +243,7 @@ stages:
     - script: conda env update --name base --file environment.yml
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Setup MNE environment
-    - script: conda remove mne
+    - script: conda remove -c conda-forge -yq mne
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Remove old MNE
     - script: pip install -e .
@@ -279,7 +283,7 @@ stages:
 
   - job: SphinxWindows
     pool:
-      vmImage: 'VS2017-Win2016'
+      vmImage: 'windows-latest'
     variables:
       AZURE_CI_WINDOWS: 'true'
       PYTHON_ARCH: 'x64'
@@ -291,7 +295,7 @@ stages:
         git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
         powershell gl-ci-helpers/appveyor/install_opengl.ps1
       displayName: Install OpenGL
-    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%CONDA%\Library\bin\graphviz;"
+    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%CONDA%\Library\bin\graphviz;%PROGRAMFILES%\Git\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%PROGRAMFILES%\Git\usr\bin"
       displayName: Add conda to PATH, deal with Qt linking bug
     - script: conda update -n base -c defaults conda
       displayName: Update conda
@@ -299,7 +303,7 @@ stages:
       displayName: Setup MNE environment
     - script: conda install -c conda-forge graphviz
       displayName: Add graphviz dot
-    - script: conda remove mne
+    - script: conda remove -c conda-forge -yq mne
       displayName: Remove old MNE
     - script: pip install -e .
       displayName: Install dev MNE

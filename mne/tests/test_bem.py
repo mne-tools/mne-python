@@ -390,6 +390,7 @@ def test_fit_sphere_to_headshape():
     pytest.raises(TypeError, fit_sphere_to_headshape, 1, units='m')
 
 
+@pytest.mark.slowtest  # ~2 min on Azure Windows
 @testing.requires_testing_data
 def test_io_head_bem(tmpdir):
     """Test reading and writing of defective head surfaces."""
