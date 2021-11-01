@@ -708,9 +708,10 @@ def test_io_raw_additional(fname_in, fname_out, tmpdir):
 def test_io_complex(tmpdir, dtype):
     """Test IO with complex data types."""
     rng = np.random.RandomState(0)
-    raw = read_raw_fif(fif_fname).crop(0, 1).pick(np.arange(5)).load_data()
+    n_ch = 5
+    raw = read_raw_fif(fif_fname).crop(0, 1).pick(np.arange(n_ch)).load_data()
     data_orig = raw.get_data()
-    imag_rand = np.array(1j * rng.randn(*data_orig.shape), dtype=dtype)
+    imag_rand = np.array(1j * rng.randn(n_ch, len(raw.times)), dtype=dtype)
     raw_cp = raw.copy()
     raw_cp._data = np.array(raw_cp._data, dtype)
     raw_cp._data += imag_rand
@@ -719,12 +720,12 @@ def test_io_complex(tmpdir, dtype):
 
     raw2 = read_raw_fif(tmpdir.join('raw.fif'))
     raw2_data, _ = raw2[:]
-    n_samp = raw2_data.shape[1]
-    assert_allclose(raw2_data[:], raw_cp._data[:])
+    assert_allclose(raw2_data, raw_cp._data)
     # with preloading
     raw2 = read_raw_fif(tmpdir.join('raw.fif'), preload=True)
     raw2_data, _ = raw2[:]
     assert_allclose(raw2_data, raw_cp._data)
+    assert_allclose(data_orig, raw_cp._data.real)
 
 
 @testing.requires_testing_data

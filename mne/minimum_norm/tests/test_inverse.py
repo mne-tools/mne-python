@@ -544,6 +544,7 @@ def test_apply_inverse_operator(evoked, inv, min_, max_):
     apply_inverse(evoked, inv_op_meg, 1. / 9.)
 
 
+@pytest.mark.slowtest  # lots of params here, adds up
 @pytest.mark.parametrize('method', INVERSE_METHODS)
 @pytest.mark.parametrize('looses, vmin, vmax, nmin, nmax', [
     ((1., 0.8), 0.87, 0.94, 0.9, 1.1),  # almost the same as free
@@ -725,6 +726,7 @@ def test_make_inverse_operator_free(evoked, noise_cov):
         assert_allclose(stc_surf.data, stc.data, atol=1e-2)
 
 
+@pytest.mark.slowtest
 def test_make_inverse_operator_vector(evoked, noise_cov):
     """Test MNE inverse computation (vector result)."""
     fwd_surf = read_forward_solution_meg(fname_fwd, surf_ori=True)
