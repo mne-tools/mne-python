@@ -13,7 +13,7 @@ def test_doc_filling(obj):
     doc = obj.__doc__
     assert 'verbose : ' in doc
     if obj is add_channels_epochs:
-        assert 'keyword-argument only. Defaults to True if' in doc
+        assert 'passed as a keyword' in doc
 
 
 def test_deprecated_alias():
