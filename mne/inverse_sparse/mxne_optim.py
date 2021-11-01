@@ -1557,9 +1557,7 @@ def iterative_tf_mixed_norm_solver(M, G, alpha_space, alpha_time,
         The number of orientation (1 : fixed or 3 : free or loose).
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut-logging>` for more).
+    %(verbose)s
 
     Returns
     -------
