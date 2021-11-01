@@ -105,9 +105,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Whether to halt program execution until the figure is closed.
         Useful for setting bad channels on the fly by clicking on a line.
         May not work on all systems / platforms.
-        For the pyqtgraph-backend this needs to be True or a Qt-eventloop
-        needs to be started somewhere else in the code (e.g. if you want
-        to implement the browser inside another Qt-Application).
+        (Only pyqtgraph) If you run from a script, this needs to
+        be ``True`` or a Qt-eventloop needs to be started somewhere
+        else in the script (e.g. if you want to implement the browser
+        inside another Qt-Application).
     highpass : float | None
         Highpass to apply when displaying data.
     lowpass : float | None
@@ -207,6 +208,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     'b', and whitening mode (when ``noise_cov is not None``) by pressing 'w'.
     By default, the channel means are removed when ``remove_dc`` is set to
     ``True``. This flag can be toggled by pressing 'd'.
+
+    IPython + pyqtgraph:
+    You need to set the magic command ``%gui qt5`` in IPython for
+    the pyqtgraph-backend to work.
+
     """
     from ..io.base import BaseRaw
     from ._figure import _get_browser
