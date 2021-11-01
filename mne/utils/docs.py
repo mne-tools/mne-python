@@ -1401,11 +1401,11 @@ docdict['info_not_none'] = f"""
 info : mne.Info
     {_info_base}
 """
-docdict['info'] = """
+docdict['info'] = f"""
 info : mne.Info | None
     {_info_base}
 """
-docdict['info_str'] = """
+docdict['info_str'] = f"""
 info : mne.Info | str
     {_info_base} If ``str``, then it should be a filepath to a file with
     measurement information (e.g. :class:`mne.io.Raw`).
@@ -1458,27 +1458,26 @@ head_pos : None | str | dict | tuple | array
 """
 docdict['n_jobs'] = """
 n_jobs : int
-    The number of jobs to run in parallel (default 1). If ``-1``, it is set to
-    the number of CPU cores. Requires the ``joblib`` package.
+    The number of jobs to run in parallel (default ``1``). If ``-1``, it is set
+    to the number of CPU cores. Requires the ``joblib`` package.
 """
 
 # Random state
-docdict['random_state'] = """
-random_state : None | int | instance of ~numpy.random.RandomState
-    If ``random_state`` is an :class:`int`, it will be used as a seed for
-    :class:`~numpy.random.RandomState`. If ``None``, the seed will be
-    obtained from the operating system (see
-    :class:`~numpy.random.RandomState` for details). Default is
-    ``None``.
+random_state_common = """\
+    A seed for the NumPy random number generator (RNG). If ``None`` (default),
+    the seed will be  obtained from the operating system
+    (see  :class:`~numpy.random.RandomState` for details), meaning it will most
+    likely produce different output every time this function or method is run.
+    To achieve reproducible results, pass a value here to explicitly initialize
+    the RNG with a defined state.\
 """
-
-docdict['seed'] = """
+docdict['random_state'] = f"""
+random_state : None | int | instance of ~numpy.random.RandomState
+{random_state_common}
+"""
+docdict['seed'] = f"""
 seed : None | int | instance of ~numpy.random.RandomState
-    If ``seed`` is an :class:`int`, it will be used as a seed for
-    :class:`~numpy.random.RandomState`. If ``None``, the seed will be
-    obtained from the operating system (see
-    :class:`~numpy.random.RandomState` for details). Default is
-    ``None``.
+{random_state_common}
 """
 
 # Visualization
