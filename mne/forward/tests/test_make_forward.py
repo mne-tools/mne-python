@@ -505,6 +505,7 @@ def test_use_coil_def(tmpdir):
         make_forward_solution(info, trans, src, sphere)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_sensors_inside_bem():
     """Test that sensors inside the BEM are problematic."""

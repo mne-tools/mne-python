@@ -230,12 +230,6 @@ stages:
         echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%PROGRAMFILES%\Git\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%PROGRAMFILES%\Git\usr\bin"
       condition: in(variables['TEST_MODE'], 'conda')
       displayName: Add conda to PATH, deal with Qt linking bug
-    - task: Cache@2
-      displayName: Cache conda packages
-      inputs:
-        key: '"conda" | "$(Agent.OS)" | "$(PYTHON_VERSION)"'
-        path: /Miniconda/pkgs
-      condition: in(variables['TEST_MODE'], 'conda')
     - bash: |
         set -e
         git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
