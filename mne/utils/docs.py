@@ -1469,7 +1469,7 @@ random_state_common = """\
     (see  :class:`~numpy.random.RandomState` for details), meaning it will most
     likely produce different output every time this function or method is run.
     To achieve reproducible results, pass a value here to explicitly initialize
-    the RNG with a defined state.
+    the RNG with a defined state.\
 """
 docdict['random_state'] = f"""
 random_state : None | int | instance of ~numpy.random.RandomState
