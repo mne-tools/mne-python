@@ -212,23 +212,11 @@ Then make a local clone of your remote fork (``origin``)::
     $ cd $INSTALL_LOCATION
     $ git clone https://github.com/$GITHUB_USERNAME/mne-python.git
 
-.. sidebar:: Remote URLs in git
-
-    Here we use ``git://`` instead of ``https://`` in the URL for the
-    ``upstream`` remote repository. ``git://`` URLs are read-only, so you can
-    *pull* changes from ``upstream`` into your local copy (to stay up-to-date
-    with changes from other contributors) but you cannot *push* changes from
-    your computer into the ``upstream`` remote. Instead, you must push your
-    changes to your own remote fork (``origin``) first, and then create a pull
-    request from your remote into the upstream remote. In :ref:`a later section
-    <github-ssh>` you'll see a third kind of remote URL for connecting to
-    GitHub using SSH.
-
 Finally, set up a link between your local clone and the official repository
 (``upstream``)::
 
     $ cd mne-python
-    $ git remote add upstream git://github.com/mne-tools/mne-python.git
+    $ git remote add upstream https://github.com/mne-tools/mne-python.git
     $ git fetch --all
 
 Now we'll remove the *stable* version of MNE-Python and replace it with the

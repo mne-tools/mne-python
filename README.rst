@@ -78,7 +78,7 @@ To get the latest code using `git <https://git-scm.com/>`__, open a terminal and
 
 .. code-block:: bash
 
-    git clone git://github.com/mne-tools/mne-python.git
+    git clone https://github.com/mne-tools/mne-python.git
 
 Alternatively, you can also download a
 `zip file of the latest development version <https://github.com/mne-tools/mne-python/archive/main.zip>`__.
