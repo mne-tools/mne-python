@@ -230,7 +230,7 @@ class CoregistrationUI(HasTraits):
             self._widgets["info_file"].set_value(0, '')
             return
 
-        fname = _check_fname(fname)  # convert to str
+        fname = _check_fname(fname, overwrite=True)  # convert to str
 
         # ctf ds `files` are actually directories
         if fname.endswith(('.ds',)):
