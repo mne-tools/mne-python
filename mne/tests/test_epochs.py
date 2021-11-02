@@ -1243,12 +1243,8 @@ def test_split_saving(tmp_path, split_size, n_epochs, n_files, size, metadata,
     assert op.isfile(split_fname_bids_part1)
 
 
-<<<<<<< HEAD
 @pytest.mark.slowtest
-def test_split_many_reset(tmpdir):
-=======
 def test_split_many_reset(tmp_path):
->>>>>>> 50051e845 (Replace tmpdir with tmp_path)
     """Test splitting with many events and using reset."""
     data = np.zeros((1000, 1, 1024))  # 1 ch, 1024 samples
     assert data[0, 0].nbytes == 8192  # 8 kB per epoch
