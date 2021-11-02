@@ -2077,9 +2077,13 @@ def _voxel_neighbors(seed, image, thresh=None, max_peak_dist=1,
         for next_loc in neighbors:
             voxel_neighbors = _get_neighbors(next_loc, image, voxels,
                                              thresh, dist_params)
+            # prevent looping back to already visited voxels
+            voxel_neighbors = voxel_neighbors.difference(voxels)
+            # add voxels not already visited to search next
+            next_neighbors = next_neighbors.union(voxel_neighbors)
+            # add new voxels that match the criteria to the overall set
             voxels = voxels.union(voxel_neighbors)
             if len(voxels) > voxels_max:
                 break
-            next_neighbors = next_neighbors.union(voxel_neighbors)
-        neighbors = next_neighbors.difference(voxels)
+        neighbors = next_neighbors  # start again checking all new neighbors
     return voxels
