@@ -169,7 +169,7 @@ def test_brain_routines(renderer, brain_gc):
 
 
 @testing.requires_testing_data
-def test_brain_init(renderer_pyvistaqt, tmpdir, pixel_ratio, brain_gc):
+def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     """Test initialization of the Brain instance."""
     from mne.source_estimate import _BaseSourceEstimate
 
@@ -388,7 +388,7 @@ def test_brain_init(renderer_pyvistaqt, tmpdir, pixel_ratio, brain_gc):
         brain.show_view(view=dict(azimuth=180., elevation=90.))
 
     # image and screenshot
-    fname = op.join(str(tmpdir), 'test.png')
+    fname = op.join(str(tmp_path), 'test.png')
     assert not op.isfile(fname)
     brain.save_image(fname)
     assert op.isfile(fname)
@@ -435,14 +435,14 @@ def test_single_hemi(hemi, renderer_interactive_pyvistaqt, brain_gc):
 
 @testing.requires_testing_data
 @pytest.mark.slowtest
-def test_brain_save_movie(tmpdir, renderer, brain_gc):
+def test_brain_save_movie(tmp_path, renderer, brain_gc):
     """Test saving a movie of a Brain instance."""
     if renderer._get_3d_backend() == "mayavi":
         pytest.skip('Save movie only supported on PyVista')
     from imageio_ffmpeg import count_frames_and_secs
     brain = _create_testing_brain(hemi='lh', time_viewer=False,
                                   cortex=['r', 'b'])  # custom binarized
-    filename = str(op.join(tmpdir, "brain_test.mov"))
+    filename = str(op.join(tmp_path, "brain_test.mov"))
     for interactive_state in (False, True):
         # for coverage, we set interactivity
         if interactive_state:
@@ -469,27 +469,29 @@ def test_brain_save_movie(tmpdir, renderer, brain_gc):
 _TINY_SIZE = (350, 300)
 
 
-def tiny(tmpdir):
+def tiny(tmp_path):
     """Create a tiny fake brain."""
     # This is a minimal version of what we need for our viz-with-timeviewer
     # support currently
     subject = 'test'
-    subject_dir = tmpdir.mkdir(subject)
-    surf_dir = subject_dir.mkdir('surf')
+    (tmp_path / subject).mkdir()
+    subject_dir = tmp_path / subject
+    (subject_dir / 'surf').mkdir()
+    surf_dir = subject_dir / 'surf'
     rng = np.random.RandomState(0)
     rr = rng.randn(4, 3)
     tris = np.array([[0, 1, 2], [2, 1, 3]])
     curv = rng.randn(len(rr))
-    with open(surf_dir.join('lh.curv'), 'wb') as fid:
+    with open(surf_dir / 'lh.curv', 'wb') as fid:
         fid.write(np.array([255, 255, 255], dtype=np.uint8))
         fid.write(np.array([len(rr), 0, 1], dtype='>i4'))
         fid.write(curv.astype('>f4'))
-    write_surface(surf_dir.join('lh.white'), rr, tris)
-    write_surface(surf_dir.join('rh.white'), rr, tris)  # needed for vertex tc
+    write_surface(surf_dir / 'lh.white', rr, tris)
+    write_surface(surf_dir / 'rh.white', rr, tris)  # needed for vertex tc
     vertices = [np.arange(len(rr)), []]
     data = rng.randn(len(rr), 10)
     stc = SourceEstimate(data, vertices, 0, 1, subject)
-    brain = stc.plot(subjects_dir=tmpdir, hemi='lh', surface='white',
+    brain = stc.plot(subjects_dir=tmp_path, hemi='lh', surface='white',
                      size=_TINY_SIZE)
     # in principle this should be sufficient:
     #
@@ -504,12 +506,12 @@ def tiny(tmpdir):
 
 
 @pytest.mark.filterwarnings('ignore:.*constrained_layout not applied.*:')
-def test_brain_screenshot(renderer_interactive_pyvistaqt, tmpdir, brain_gc):
+def test_brain_screenshot(renderer_interactive_pyvistaqt, tmp_path, brain_gc):
     """Test time viewer screenshot."""
     # XXX disable for sprint because it's too unreliable
     if sys.platform == 'darwin' and os.getenv('GITHUB_ACTIONS', '') == 'true':
         pytest.skip('Test is unreliable on GitHub Actions macOS')
-    tiny_brain, ratio = tiny(tmpdir)
+    tiny_brain, ratio = tiny(tmp_path)
     img_nv = tiny_brain.screenshot(time_viewer=False)
     want = (_TINY_SIZE[1] * ratio, _TINY_SIZE[0] * ratio, 3)
     assert img_nv.shape == want
@@ -625,7 +627,7 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio,
     pytest.param('mixed', marks=pytest.mark.slowtest),
 ])
 @pytest.mark.slowtest
-def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmpdir,
+def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path,
                       brain_gc):
     """Test brain traces."""
     hemi_str = list()
@@ -796,7 +798,7 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmpdir,
             check_version('sphinx_gallery')):
         brain.close()
         return
-    fnames = [str(tmpdir.join(f'temp_{ii}.png')) for ii in range(2)]
+    fnames = [str(tmp_path / f'temp_{ii}.png') for ii in range(2)]
     block_vars = dict(image_path_iterator=iter(fnames),
                       example_globals=dict(brain=brain))
     block = ('code', """
@@ -805,7 +807,7 @@ something
 #                  interpolation='linear', time_viewer=True)
 #
 """, 1)
-    gallery_conf = dict(src_dir=str(tmpdir), compress_images=[])
+    gallery_conf = dict(src_dir=str(tmp_path), compress_images=[])
     scraper = _BrainScraper()
     rst = scraper(block, block_vars, gallery_conf)
     assert brain.plotter is None  # closed

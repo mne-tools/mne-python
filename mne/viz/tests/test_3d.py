@@ -221,10 +221,10 @@ def test_plot_alignment_surf(renderer):
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @traits_test
-def test_plot_alignment_basic(tmpdir, renderer, mixed_fwd_cov_evoked):
+def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
     """Test plotting of -trans.fif files and MEG sensor layouts."""
     # generate fiducials file for testing
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fiducials_path = op.join(tempdir, 'fiducials.fif')
     fid = [{'coord_frame': 5, 'ident': 1, 'kind': 1,
             'r': [-0.08061612, -0.02908875, -0.04131077]},
@@ -433,16 +433,16 @@ def test_plot_alignment_basic(tmpdir, renderer, mixed_fwd_cov_evoked):
 
 
 @testing.requires_testing_data
-def test_plot_alignment_fnirs(renderer, tmpdir):
+def test_plot_alignment_fnirs(renderer, tmp_path):
     """Test fNIRS plotting."""
-    # Here we use subjects_dir=tmpdir, since no surfaces should actually
+    # Here we use subjects_dir=tmp_path, since no surfaces should actually
     # be loaded!
 
     # fNIRS (default is pairs)
     info = read_raw_nirx(nirx_fname).info
     assert info['nchan'] == 26
     kwargs = dict(trans='fsaverage', subject='fsaverage', surfaces=(),
-                  verbose=True, subjects_dir=tmpdir)
+                  verbose=True, subjects_dir=tmp_path)
     with catch_logging() as log:
         fig = plot_alignment(info, **kwargs)
     log = log.getvalue()

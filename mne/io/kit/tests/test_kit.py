@@ -55,7 +55,7 @@ berlin_path = op.join(data_path, 'KIT', 'data_berlin.con')
 
 
 @requires_testing_data
-def test_data(tmpdir):
+def test_data(tmp_path):
     """Test reading raw kit files."""
     pytest.raises(TypeError, read_raw_kit, epochs_path)
     pytest.raises(TypeError, read_epochs_kit, sqd_path)
@@ -162,7 +162,7 @@ def _assert_sinusoid(data, t, freq, amp, msg):
     (yokogawa_path, 'Meg160/Analysis (1001) V3R000 PQA160C'),
     (ricoh_path, 'Meg160/Analysis (1001) V3R000 PQA160C'),
 ])
-def test_ricoh_data(tmpdir, fname, desc):
+def test_ricoh_data(tmp_path, fname, desc):
     """Test reading channel names and dig information from Ricoh systems."""
     raw = read_raw_kit(fname, standardize_names=True)
     assert raw.ch_names[0] == 'MEG 001'
@@ -295,14 +295,14 @@ def test_hsp_elp():
     assert_array_almost_equal(pts_elp_in_dev, pts_txt_in_dev, decimal=5)
 
 
-def test_decimate(tmpdir):
+def test_decimate(tmp_path):
     """Test decimation of digitizer headshapes with too many points."""
     # load headshape and convert to meters
     hsp_mm = _get_ico_surface(5)['rr'] * 100
     hsp_m = hsp_mm / 1000.
 
     # save headshape to a file in mm in temporary directory
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     sphere_hsp_path = op.join(tempdir, 'test_sphere.txt')
     np.savetxt(sphere_hsp_path, hsp_mm)
 

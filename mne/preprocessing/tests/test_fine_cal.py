@@ -31,9 +31,9 @@ cal_mf_fname = op.join(data_path, 'SSS', '141027.dat')
 @pytest.mark.parametrize('fname', (cal_mf_fname, fine_cal_fname,
                                    fine_cal_fname_3d))
 @testing.requires_testing_data
-def test_fine_cal_io(tmpdir, fname):
+def test_fine_cal_io(tmp_path, fname):
     """Test round trip reading/writing of fine calibration .dat file."""
-    temp_fname = op.join(str(tmpdir), 'fine_cal_temp.dat')
+    temp_fname = op.join(str(tmp_path), 'fine_cal_temp.dat')
     # Load fine calibration file
     fine_cal_dict = read_fine_calibration(fname)
 

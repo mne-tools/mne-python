@@ -77,10 +77,10 @@ def test_persyst_raw():
 
 
 @requires_testing_data
-def test_persyst_dates(tmpdir):
+def test_persyst_dates(tmp_path):
     """Test different Persyst date formats for meas date."""
     # now test what if you change contents of the lay file
-    out_dir = str(tmpdir)
+    out_dir = str(tmp_path)
     new_fname_lay = op.join(out_dir, op.basename(fname_lay))
     new_fname_dat = op.join(out_dir, op.basename(fname_dat))
     shutil.copy(fname_dat, new_fname_dat)
@@ -118,12 +118,12 @@ def test_persyst_dates(tmpdir):
 
 
 @requires_testing_data
-def test_persyst_wrong_file(tmpdir):
+def test_persyst_wrong_file(tmp_path):
     """Test reading Persyst files when passed in wrong file path."""
     with pytest.raises(FileNotFoundError, match='The path you'):
         read_raw_persyst(fname_dat, preload=True)
 
-    out_dir = str(tmpdir)
+    out_dir = str(tmp_path)
     new_fname_lay = op.join(out_dir, op.basename(fname_lay))
     new_fname_dat = op.join(out_dir, op.basename(fname_dat))
     shutil.copy(fname_lay, new_fname_lay)
@@ -142,9 +142,9 @@ def test_persyst_wrong_file(tmpdir):
 
 
 @requires_testing_data
-def test_persyst_moved_file(tmpdir):
+def test_persyst_moved_file(tmp_path):
     """Test reader - Persyst files need to be in same directory."""
-    out_dir = str(tmpdir)
+    out_dir = str(tmp_path)
     new_fname_lay = op.join(out_dir, op.basename(fname_lay))
     new_fname_dat = op.join(out_dir, op.basename(fname_dat))
     shutil.copy(fname_lay, new_fname_lay)
@@ -212,9 +212,9 @@ def test_persyst_annotations(tmp_path):
 
 
 @requires_testing_data
-def test_persyst_errors(tmpdir):
+def test_persyst_errors(tmp_path):
     """Test reading Persyst files when passed in wrong file path."""
-    out_dir = str(tmpdir)
+    out_dir = str(tmp_path)
     new_fname_lay = op.join(out_dir, op.basename(fname_lay))
     new_fname_dat = op.join(out_dir, op.basename(fname_dat))
     shutil.copy(fname_dat, new_fname_dat)

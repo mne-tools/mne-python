@@ -58,10 +58,10 @@ def test_fiducials_source():
 @testing.requires_testing_data
 @requires_mayavi
 @traits_test
-def test_digitization_source(tmpdir):
+def test_digitization_source(tmp_path):
     """Test DigSource."""
     from mne.gui._file_traits import DigSource
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
 
     inst = DigSource()
     assert inst.inst_fname == '-'
@@ -119,10 +119,10 @@ def test_subject_source():
 @testing.requires_testing_data
 @requires_mayavi
 @traits_test
-def test_subject_source_with_fsaverage(tmpdir):
+def test_subject_source_with_fsaverage(tmp_path):
     """Test SubjectSelector."""
     from mne.gui._file_traits import MRISubjectSource
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
 
     mri = MRISubjectSource()
     assert not mri.can_create_fsaverage

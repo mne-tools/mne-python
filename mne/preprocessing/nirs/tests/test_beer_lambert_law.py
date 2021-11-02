@@ -33,13 +33,13 @@ fname_nirx_15_2_short = op.join(data_path(download=False),
 @pytest.mark.parametrize('fname', ([fname_nirx_15_2_short, fname_nirx_15_2,
                                     fname_nirx_15_0]))
 @pytest.mark.parametrize('fmt', ('nirx', 'fif'))
-def test_beer_lambert(fname, fmt, tmpdir):
+def test_beer_lambert(fname, fmt, tmp_path):
     """Test converting NIRX files."""
     assert fmt in ('nirx', 'fif')
     raw = read_raw_nirx(fname)
     if fmt == 'fif':
-        raw.save(tmpdir.join('test_raw.fif'))
-        raw = read_raw_fif(tmpdir.join('test_raw.fif'))
+        raw.save(tmp_path / 'test_raw.fif')
+        raw = read_raw_fif(tmp_path / 'test_raw.fif')
     assert 'fnirs_cw_amplitude' in raw
     assert 'fnirs_od' not in raw
     raw = optical_density(raw)

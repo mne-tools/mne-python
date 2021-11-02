@@ -102,10 +102,10 @@ def test_dev_head_t():
     assert_equal(raw.info['sfreq'], 1000.0)
 
 
-def test_utils(tmpdir):
+def test_utils(tmp_path):
     """Test artemis123 utils."""
     # make a tempfile
-    tmp_dir = str(tmpdir)
+    tmp_dir = str(tmp_path)
     tmp_fname = op.join(tmp_dir, 'test_gen_mne_locs.csv')
     _generate_mne_locs_file(tmp_fname)
     installed_locs = _load_mne_locs()

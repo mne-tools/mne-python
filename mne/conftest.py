@@ -497,11 +497,11 @@ def pixel_ratio():
 
 
 @pytest.fixture(scope='function', params=[testing._pytest_param()])
-def subjects_dir_tmp(tmpdir):
+def subjects_dir_tmp(tmp_path):
     """Copy MNE-testing-data subjects_dir to a temp dir for manipulation."""
     for key in ('sample', 'fsaverage'):
-        shutil.copytree(op.join(subjects_dir, key), str(tmpdir.join(key)))
-    return str(tmpdir)
+        shutil.copytree(op.join(subjects_dir, key), str(tmp_path / key))
+    return str(tmp_path)
 
 
 # Scoping these as session will make things faster, but need to make sure
