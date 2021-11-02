@@ -1518,9 +1518,9 @@ time_format : 'float' | 'clock'
 # Visualization with pyqtgraph
 docdict['precompute'] = """
 precompute : bool | str
-    Whether to load all data (not just the visible portion) into RAM and 
+    Whether to load all data (not just the visible portion) into RAM and
     apply preprocessing (e.g., projectors) to the full data array in a separate
-    processor thread, instead of window-by-window during scrolling. The default 
+    processor thread, instead of window-by-window during scrolling. The default
     ``'auto'`` compares available RAM space to the expected size of the
     precomputed data, and precomputes only if enough RAM is available. ``True``
     and ``'auto'`` only work if using the pyQtGraph backend.
