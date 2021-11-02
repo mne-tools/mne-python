@@ -437,7 +437,9 @@ def test_io_stc_h5(tmp_path, is_complex, vector):
         stc = _fake_vec_stc(is_complex=is_complex)
     else:
         stc = _fake_stc(is_complex=is_complex)
-    pytest.raises(ValueError, stc.save, tmp_path / 'tmp', ftype='foo')
+    match = 'can only be written' if vector else "Invalid value for the 'ftype"
+    with pytest.raises(ValueError, match=match):
+        stc.save(tmp_path / 'tmp.h5', ftype='foo')
     out_name = str(tmp_path / 'tmp')
     stc.save(out_name, ftype='h5')
     stc.save(out_name, ftype='h5')  # test overwrite
