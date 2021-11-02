@@ -385,12 +385,11 @@ class TstVTKPicker(object):
 @pytest.mark.parametrize(
     'inst_path', (raw_path, 'gen_montage', ctf_raw_path, nirx_15_0_raw_path,
                   nirsport2_raw_path, snirf_nirsport2_raw_path))
-def test_coreg_gui_pyvista_file_support(inst_path, tmpdir,
+def test_coreg_gui_pyvista_file_support(inst_path, tmp_path,
                                         renderer_interactive_pyvistaqt):
     """Test reading supported files."""
     from mne.gui import coregistration
 
-    tempdir = str(tmpdir)
     if inst_path == 'gen_montage':
         # generate a montage fig to use as inst.
         tmp_info = read_info(raw_path)
@@ -401,7 +400,7 @@ def test_coreg_gui_pyvista_file_support(inst_path, tmpdir,
 
         dig = DigMontage(dig=tmp_info['dig'],
                          ch_names=eeg_chans)
-        inst_path = op.join(tempdir, 'tmp-dig.fif')
+        inst_path = tmp_path / 'tmp-dig.fif'
         dig.save(inst_path)
 
     # Suppressing warnings here is not ideal.
@@ -416,13 +415,11 @@ def test_coreg_gui_pyvista_file_support(inst_path, tmpdir,
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_coreg_gui_pyvista(tmpdir, renderer_interactive_pyvistaqt):
+def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     """Test that using CoregistrationUI matches mne coreg."""
     from mne.gui import coregistration
-    tempdir = str(tmpdir)
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
-    tmp_trans = op.join(tempdir, 'tmp-trans.fif')
-
+    tmp_trans = tmp_path / 'tmp-trans.fif'
     coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
                            trans=fname_trans)
     assert not coreg._lock_fids
