@@ -1532,8 +1532,10 @@ precompute : bool | str
 
 docdict['use_opengl'] = """
 use_opengl : bool
-    Enables enhanced performance with OpenGL
+    (Only pyqtgraph) Enables OpenGL with usually enhanced performance
     (requires pyopengl to be installed).
+    It may depend on your system (CPU, Graphics-Card) if and how much
+    OpenGL enhances the performance.
     Default is ``True``.
 
     .. versionadded:: 1.0
