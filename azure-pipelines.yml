@@ -81,7 +81,7 @@ stages:
   variables:
     AZURE_CI: 'true'
   jobs:
-  - job: Ultraslow
+  - job: Ultraslow+PG
     pool:
       vmImage: 'ubuntu-20.04'
     variables:
