@@ -1413,6 +1413,7 @@ class Coregistration(object):
     def _setup_fiducials(self, fids):
         _validate_type(fids, (str, dict, list))
         # find fiducials file
+        fid_accurate = None
         if fids == 'auto':
             fid_files = _find_fiducials_files(self._subject,
                                               self._subjects_dir)
@@ -1422,13 +1423,16 @@ class Coregistration(object):
                     subjects_dir=self._subjects_dir, subject=self._subject)
                 logger.info(f'Using fiducials from: {fid_filename}.')
                 fids, _ = read_fiducials(fid_filename)
+                fid_accurate = True
             else:
                 fids = 'estimated'
 
         if fids == 'estimated':
             logger.info('Estimating fiducials from fsaverage.')
+            fid_accurate = False
             fids = get_mni_fiducials(self._subject, self._subjects_dir)
 
+        fid_accurate = True if fid_accurate is None else fid_accurate
         if isinstance(fids, list):
             fid_coords = _fiducial_coords(fids)
         else:
@@ -1437,6 +1441,7 @@ class Coregistration(object):
                                   dtype=float)
 
         self._fid_points = fid_coords
+        self._fid_accurate = fid_accurate
 
         # does not seem to happen by itself ... so hard code it:
         self._reset_fiducials()

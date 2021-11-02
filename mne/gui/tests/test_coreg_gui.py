@@ -171,7 +171,7 @@ def test_coreg_model(subjects_dir_tmp):
 
 @requires_mayavi
 @traits_test
-def test_coreg_gui_display(subjects_dir_tmp, check_gui_ci):
+def test_coreg_gui_display(subjects_dir_tmp, check_gui_ci, renderer_mayavi):
     """Test CoregFrame."""
     from mayavi import mlab
     from tvtk.api import tvtk
@@ -420,9 +420,12 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     from mne.gui import coregistration
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     tmp_trans = tmp_path / 'tmp-trans.fif'
+    # the sample subject in testing has MRI fids
+    assert op.isfile(op.join(
+        subjects_dir, 'sample', 'bem', 'sample-fiducials.fif'))
     coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
                            trans=fname_trans)
-    assert not coreg._lock_fids
+    assert coreg._lock_fids
     coreg._reset_fiducials()
     coreg.close()
 
