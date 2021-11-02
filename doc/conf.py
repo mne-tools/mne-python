@@ -355,6 +355,8 @@ else:
     report_scraper = mne.report._ReportScraper()
     scrapers += (report_scraper,)
     del backend
+if mne.viz.get_browser_backend() == 'pyqtgraph':
+    scrapers += (mne.viz._scraper._PyQtGraphScraper(),)
 
 compress_images = ('images', 'thumbnails')
 # let's make things easier on Windows users
@@ -1145,5 +1147,6 @@ def setup(app):
     sphinx_logger = sphinx.util.logging.getLogger('mne')
     sphinx_logger.info(
         f'Building documentation for MNE {release} ({mne.__file__})')
+    sphinx_logger.info(f'Building with scrapers={scrapers}')
     app.connect('build-finished', make_redirects)
     app.connect('build-finished', make_version)
