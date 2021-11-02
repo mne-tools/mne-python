@@ -457,6 +457,13 @@ def renderer_pyvistaqt(request, garbage_collect):
         yield renderer
 
 
+@pytest.fixture(params=["mayavi"])
+def renderer_mayavi(request, garbage_collect):
+    """Yield the mayavi backend."""
+    with _use_backend(request.param, interactive=False) as renderer:
+        yield renderer
+
+
 @pytest.fixture(params=["notebook"])
 def renderer_notebook(request):
     """Yield the 3D notebook renderer."""
