@@ -81,6 +81,112 @@ stages:
   variables:
     AZURE_CI: 'true'
   jobs:
+  - job: Ultraslow
+    pool:
+      vmImage: 'ubuntu-20.04'
+    variables:
+      DISPLAY: ':99'
+      OPENBLAS_NUM_THREADS: '1'
+    steps:
+    - bash: |
+        sudo apt install libxkbcommon-x11-0 xvfb tcsh libxcb*
+      displayName: 'Install Ubuntu dependencies'
+    - bash: |
+        source tools/get_minimal_commands.sh
+      displayName: 'Install minimal commands'
+    - bash: |
+        echo $PATH
+        mne_surf2bem --version
+        fsl_rigid_register --version
+      displayName: 'Test minimal commands'
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.8'
+        architecture: 'x64'
+        addToPath: true
+      displayName: 'Get Python'
+    - bash: |
+        /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+      displayName: 'Spin up Xvfb'
+    - bash: |
+        set -e
+        python -m pip install --progress-bar off --upgrade pip setuptools wheel codecov
+        python -m pip install --progress-bar off --upgrade -e .[test]
+      displayName: 'Install dependencies with pip'
+    - script: mne sys_info -pd
+      displayName: Print config
+    - bash: source tools/get_testing_version.sh
+      displayName: 'Get testing version'
+    - task: Cache@2
+      inputs:
+        key: $(testing_version)
+        path: /home/vsts/mne_data
+      displayName: 'Cache testing data'
+    - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+      displayName: 'Get test data'
+    - script: pytest -m "ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
+      displayName: 'Run ultraslow tests'
+    - bash: bash <(curl -s https://codecov.io/bash)
+      displayName: 'Codecov'
+      condition: succeededOrFailed()
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFiles: '**/junit-*.xml'
+        testRunTitle: 'Publish test results for $(Agent.JobName)'
+        failTaskOnFailedTests: true
+      condition: succeededOrFailed()
+    - task: PublishCodeCoverageResults@1
+      inputs:
+        codeCoverageTool: Cobertura
+        summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+        reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
+
+
+  - job: Notebook
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - bash: |
+        set -e
+        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh --progress=dot:mega
+        bash miniconda.sh -b -p ~/miniconda
+        source ~/miniconda/etc/profile.d/conda.sh
+        conda activate base
+        conda env update --file server_environment.yml
+        pip uninstall -yq mne
+        pip install --progress-bar off -ve .[test] codecov
+        echo "##vso[task.setvariable variable=PATH]${PATH}"
+        echo "##vso[task.setvariable variable=LD_LIBRARY_PATH]${LD_LIBRARY_PATH}"
+      displayName: 'Install dependencies'
+    - script: mne sys_info -pd
+      displayName: 'Print config'
+    - bash: source tools/get_testing_version.sh
+      displayName: 'Get testing version'
+    - task: Cache@2
+      inputs:
+        key: $(testing_version)
+        path: /home/vsts/mne_data
+      displayName: 'Cache testing data'
+    - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+      displayName: 'Get test data'
+    - script: pytest --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne/viz
+      displayName: 'Run viz tests'
+    - bash: bash <(curl -s https://codecov.io/bash)
+      displayName: 'Codecov'
+      condition: succeededOrFailed()
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFiles: '**/junit-*.xml'
+        testRunTitle: 'Publish test results for $(Agent.JobName)'
+        failTaskOnFailedTests: true
+      condition: succeededOrFailed()
+    - task: PublishCodeCoverageResults@1
+      inputs:
+        codeCoverageTool: Cobertura
+        summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+        reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
+
+
   - job: Windows
     pool:
       vmImage: 'windows-latest'
@@ -158,7 +264,7 @@ stages:
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
-    - script: pytest -m "not slowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne/tests/test_epochs.py mne/minimum_norm/tests mne/beamformer/tests mne/io/fiff mne/preprocessing/tests/test_ica.py mne/tests/test_rank.py
+    - script: pytest -m "not slowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
       displayName: 'Run tests'
     - bash: bash <(curl -s https://codecov.io/bash)
       displayName: 'Codecov'
@@ -174,3 +280,38 @@ stages:
         codeCoverageTool: Cobertura
         summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
         reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
+
+  - job: SphinxWindows
+    pool:
+      vmImage: 'windows-latest'
+    variables:
+      AZURE_CI_WINDOWS: 'true'
+      PYTHON_ARCH: 'x64'
+      PLATFORM: 'x86-64'
+      PYTHON_VERSION: '3.9'
+    steps:
+    - bash: |
+        set -e
+        git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
+        powershell gl-ci-helpers/appveyor/install_opengl.ps1
+      displayName: Install OpenGL
+    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%CONDA%\Library\bin\graphviz;%PROGRAMFILES%\Git\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%PROGRAMFILES%\Git\usr\bin"
+      displayName: Add conda to PATH, deal with Qt linking bug
+    - script: conda update -n base -c defaults conda
+      displayName: Update conda
+    - script: conda env update --name base --file environment.yml
+      displayName: Setup MNE environment
+    - script: conda install -c conda-forge graphviz
+      displayName: Add graphviz dot
+    - script: conda remove -c conda-forge -yq mne
+      displayName: Remove old MNE
+    - script: pip install -e .
+      displayName: Install dev MNE
+    - script: pip install --progress-bar off -r requirements_doc.txt
+      displayName: Install documentation dependencies
+    - script: mne sys_info -pd
+      displayName: Print config and test access to commands
+    - script: python -c "import numpy; numpy.show_config()"
+      displayName: Print NumPy config
+    - bash: make -C doc html_dev-noplot
+      displayName: 'Build doc'

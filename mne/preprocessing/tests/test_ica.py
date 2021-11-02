@@ -1255,6 +1255,7 @@ def test_n_components_none(method, tmpdir):
     assert ica.n_components_ == len(picks)
 
 
+@pytest.mark.slowtest
 @requires_sklearn
 @testing.requires_testing_data
 def test_ica_ctf():
