@@ -317,7 +317,7 @@ Bugs
 
 - Fix channel locations with ``NaN`` values causing all channel locations not to be plotted in :func:`mne.viz.Brain.add_sensors` (:gh:`9911` by `Alex Rockhill`_)
 
-- Fix infinite loop bug in :func:`mne.get_montage_volume_labels` (:gh:`9907` by `Alex Rockhill`_)
+- Fix infinite loop bug in :func:`mne.get_montage_volume_labels` (:gh:`9940` by `Alex Rockhill`_)
 
 API changes
 ~~~~~~~~~~~
