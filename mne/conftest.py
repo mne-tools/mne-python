@@ -406,7 +406,7 @@ def mpl_backend(garbage_collect):
         backend._close_all()
 
 
-def _check_pyqt():
+def _check_pyqtgraph():
     try:
         import PyQt5  # noqa: F401
     except ModuleNotFoundError:
@@ -416,13 +416,17 @@ def _check_pyqt():
     except AssertionError:
         pytest.skip(f'PyQt5 has version {_check_pyqt5_version()}'
                     f'but pyqtgraph needs >= 5.12!')
+    try:
+        import mne_qt_browser
+    except Exception:
+        pytest.skip('Requires mne_qt_browser')
 
 
 @pytest.mark.pgtest
 @pytest.fixture
 def pg_backend(garbage_collect):
     """Use for pyqtgraph-specific test-functions."""
-    _check_pyqt()
+    _check_pyqtgraph()
     with use_browser_backend('pyqtgraph') as backend:
         yield backend
         backend._close_all()
@@ -433,7 +437,7 @@ def browser_backend(request, garbage_collect):
     """Parametrizes the name of the browser backend."""
     backend_name = request.param
     if backend_name == 'pyqtgraph':
-        _check_pyqt()
+        _check_pyqtgraph()
     with use_browser_backend(backend_name) as backend:
         yield backend
         backend._close_all()
