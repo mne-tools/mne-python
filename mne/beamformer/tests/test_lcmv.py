@@ -117,6 +117,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
         forward_surf_ori, forward_fixed, forward_vol
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_lcmv_vector():
     """Test vector LCMV solutions."""
@@ -546,12 +547,13 @@ def test_lcmv_ctf_comp():
         make_lcmv(info_comp, fwd, data_cov)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize('proj, weight_norm', [
     (True, 'unit-noise-gain'),
     (False, 'unit-noise-gain'),
-    pytest.param(True, None, marks=pytest.mark.slowtest),
-    pytest.param(True, 'nai', marks=pytest.mark.slowtest),
+    (True, None),
+    (True, 'nai'),
 ])
 def test_lcmv_reg_proj(proj, weight_norm):
     """Test LCMV with and without proj."""

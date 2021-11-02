@@ -382,14 +382,15 @@ def test_concatenate_raws(on_mismatch):
 @testing.requires_testing_data
 @pytest.mark.parametrize('mod', (
     'meg',
-    pytest.param('raw', marks=[pytest.mark.filterwarnings(
-        'ignore:.*naming conventions.*:RuntimeWarning')]),
+    pytest.param('raw', marks=[
+        pytest.mark.filterwarnings(
+            'ignore:.*naming conventions.*:RuntimeWarning'),
+        pytest.mark.slowtest]),
 ))
 def test_split_files(tmpdir, mod, monkeypatch):
     """Test writing and reading of split raw files."""
     raw_1 = read_raw_fif(fif_fname, preload=True)
     # Test a very close corner case
-    raw_crop = raw_1.copy().crop(0, 1.)
 
     assert_allclose(raw_1.buffer_size_sec, 10., atol=1e-2)  # samp rate
     split_fname = tmpdir.join(f'split_raw_{mod}.fif')
@@ -623,7 +624,7 @@ def test_io_raw(tmpdir):
 
 @pytest.mark.parametrize('fname_in, fname_out', [
     (test_fif_fname, 'raw.fif'),
-    (test_fif_gz_fname, 'raw.fif.gz'),
+    pytest.param(test_fif_gz_fname, 'raw.fif.gz', marks=pytest.mark.slowtest),
     (ctf_fname, 'raw.fif')])
 def test_io_raw_additional(fname_in, fname_out, tmpdir):
     """Test IO for raw data (Neuromag + CTF + gz)."""
@@ -704,38 +705,28 @@ def test_io_raw_additional(fname_in, fname_out, tmpdir):
 
 
 @testing.requires_testing_data
-def test_io_complex(tmpdir):
+@pytest.mark.parametrize('dtype', ('complex128', 'complex64'))
+def test_io_complex(tmpdir, dtype):
     """Test IO with complex data types."""
     rng = np.random.RandomState(0)
-    dtypes = [np.complex64, np.complex128]
+    n_ch = 5
+    raw = read_raw_fif(fif_fname).crop(0, 1).pick(np.arange(n_ch)).load_data()
+    data_orig = raw.get_data()
+    imag_rand = np.array(1j * rng.randn(n_ch, len(raw.times)), dtype=dtype)
+    raw_cp = raw.copy()
+    raw_cp._data = np.array(raw_cp._data, dtype)
+    raw_cp._data += imag_rand
+    with pytest.warns(RuntimeWarning, match='Saving .* complex data.'):
+        raw_cp.save(tmpdir.join('raw.fif'), overwrite=True)
 
-    raw = _test_raw_reader(partial(read_raw_fif),
-                           fname=fif_fname)
-    picks = np.arange(5)
-    start, stop = raw.time_as_index([0, 5])
-
-    data_orig, _ = raw[picks, start:stop]
-
-    for di, dtype in enumerate(dtypes):
-        imag_rand = np.array(1j * rng.randn(data_orig.shape[0],
-                                            data_orig.shape[1]), dtype)
-
-        raw_cp = raw.copy()
-        raw_cp._data = np.array(raw_cp._data, dtype)
-        raw_cp._data[picks, start:stop] += imag_rand
-        with pytest.warns(RuntimeWarning, match='Saving .* complex data.'):
-            raw_cp.save(tmpdir.join('raw.fif'), picks, tmin=0, tmax=5,
-                        overwrite=True)
-
-        raw2 = read_raw_fif(tmpdir.join('raw.fif'))
-        raw2_data, _ = raw2[picks, :]
-        n_samp = raw2_data.shape[1]
-        assert_allclose(raw2_data[:, :n_samp], raw_cp._data[picks, :n_samp])
-        # with preloading
-        raw2 = read_raw_fif(tmpdir.join('raw.fif'), preload=True)
-        raw2_data, _ = raw2[picks, :]
-        n_samp = raw2_data.shape[1]
-        assert_allclose(raw2_data[:, :n_samp], raw_cp._data[picks, :n_samp])
+    raw2 = read_raw_fif(tmpdir.join('raw.fif'))
+    raw2_data, _ = raw2[:]
+    assert_allclose(raw2_data, raw_cp._data)
+    # with preloading
+    raw2 = read_raw_fif(tmpdir.join('raw.fif'), preload=True)
+    raw2_data, _ = raw2[:]
+    assert_allclose(raw2_data, raw_cp._data)
+    assert_allclose(data_orig, raw_cp._data.real)
 
 
 @testing.requires_testing_data
@@ -1089,6 +1080,7 @@ def test_resample_equiv():
     assert_allclose(raw._data, raw_preload._data)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize('preload, n, npad', [
     (True, 512, 'auto'),
@@ -1287,7 +1279,7 @@ def test_raw_copy():
 def test_to_data_frame():
     """Test raw Pandas exporter."""
     from pandas import Timedelta
-    raw = read_raw_fif(test_fif_fname, preload=True)
+    raw = read_raw_fif(test_fif_fname).crop(0, 1).load_data()
     _, times = raw[0, :10]
     df = raw.to_data_frame(index='time')
     assert ((df.columns == raw.ch_names).all())
@@ -1691,9 +1683,19 @@ def test_memmap(tmpdir):
     # require them.
 
 
-@pytest.mark.parametrize('split', (False, True))
-@pytest.mark.parametrize('kind', ('file', 'bytes'))
-@pytest.mark.parametrize('preload', (True, str))
+# These are slow on Azure Windows so let's do a subset
+@pytest.mark.parametrize('kind', [
+    'file',
+    pytest.param('bytes', marks=pytest.mark.slowtest),
+])
+@pytest.mark.parametrize('preload', [
+    True,
+    pytest.param(str, marks=pytest.mark.slowtest),
+])
+@pytest.mark.parametrize('split', [
+    False,
+    pytest.param(True, marks=pytest.mark.slowtest),
+])
 def test_file_like(kind, preload, split, tmpdir):
     """Test handling with file-like objects."""
     if split:

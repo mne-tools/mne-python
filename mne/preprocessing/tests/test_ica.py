@@ -1255,12 +1255,13 @@ def test_n_components_none(method, tmpdir):
     assert ica.n_components_ == len(picks)
 
 
+@pytest.mark.slowtest
 @requires_sklearn
 @testing.requires_testing_data
 def test_ica_ctf():
     """Test run ICA computation on ctf data with/without compensation."""
     method = 'fastica'
-    raw = read_raw_ctf(ctf_fname, preload=True)
+    raw = read_raw_ctf(ctf_fname).crop(0, 3).load_data()
     picks = sorted(set(range(0, len(raw.ch_names), 10)) |
                    set(pick_types(raw.info, ref_meg=True)))
     raw.pick(picks)
@@ -1274,7 +1275,7 @@ def test_ica_ctf():
         # test fit
         for inst in [raw, epochs]:
             ica = ICA(n_components=2, max_iter=2, method=method)
-            with pytest.warns(UserWarning, match='did not converge'):
+            with pytest.warns(None):  # convergence sometimes
                 ica.fit(inst)
             _assert_ica_attributes(ica)
 
@@ -1286,7 +1287,7 @@ def test_ica_ctf():
     # test mixed compensation case
     raw.apply_gradient_compensation(0)
     ica = ICA(n_components=2, max_iter=2, method=method)
-    with pytest.warns(UserWarning, match='did not converge'):
+    with pytest.warns(None):  # convergence sometimes
         ica.fit(raw)
     _assert_ica_attributes(ica)
     raw.apply_gradient_compensation(1)

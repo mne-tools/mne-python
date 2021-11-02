@@ -967,7 +967,11 @@ def test_io_epochs_basic(tmpdir):
     assert (evoked_dec.info['sfreq'] == evoked.info['sfreq'] / 4)
 
 
-@pytest.mark.parametrize('proj', (True, 'delayed', False))
+@pytest.mark.parametrize('proj', [
+    pytest.param(True, marks=pytest.mark.slowtest),
+    pytest.param('delayed', marks=pytest.mark.slowtest),
+    False,
+])
 def test_epochs_io_proj(tmpdir, proj):
     """Test epochs I/O with projection."""
     # Test event access on non-preloaded data (#2345)
@@ -1012,6 +1016,7 @@ def test_epochs_io_proj(tmpdir, proj):
     del epochs_copy
 
 
+@pytest.mark.slowtest
 @pytest.mark.parametrize('preload', (False, True))
 def test_epochs_io_preload(tmpdir, preload):
     """Test epochs I/O with preloading."""
@@ -1238,6 +1243,7 @@ def test_split_saving(tmpdir, split_size, n_epochs, n_files, size, metadata,
     assert op.isfile(split_fname_bids_part1)
 
 
+@pytest.mark.slowtest
 def test_split_many_reset(tmpdir):
     """Test splitting with many events and using reset."""
     data = np.zeros((1000, 1, 1024))  # 1 ch, 1024 samples
@@ -2153,6 +2159,7 @@ def test_access_by_name(tmpdir):
     assert_equal(epochs[['a', 'b']]['a']._name, 'a')
 
 
+@pytest.mark.slowtest
 @requires_pandas
 def test_to_data_frame():
     """Test epochs Pandas exporter."""
@@ -2821,6 +2828,7 @@ def test_concatenate_epochs():
     concatenate_epochs([epochs, epochs2], add_offset=True)
 
 
+@pytest.mark.slowtest
 def test_concatenate_epochs_large():
     """Test concatenating epochs on large data."""
     raw, events, picks = _get_data()

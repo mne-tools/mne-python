@@ -187,6 +187,7 @@ def test_cov_rank_estimation(rank_method, proj, meg):
             assert rank[ch_type] == expected_rank
 
 
+@pytest.mark.slowtest  # ~3 sec apiece on Azure means overall it's slow
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname, rank_orig', ((hp_fif_fname, 120),
                                               (mf_fif_fname, 67)))
@@ -265,7 +266,7 @@ def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg, tol_kind, tol):
 
 def test_explicit_bads_pick():
     """Test when bads channels are explicitly passed + default picks=None."""
-    raw = read_raw_fif(raw_fname, preload=True)
+    raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
     raw.pick_types(eeg=True, meg=True, ref_meg=True)
 
     # Covariance
