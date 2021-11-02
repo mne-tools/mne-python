@@ -171,7 +171,7 @@ def test_coreg_model(subjects_dir_tmp):
 
 @requires_mayavi
 @traits_test
-def test_coreg_gui_display(subjects_dir_tmp, check_gui_ci):
+def test_coreg_gui_display(subjects_dir_tmp, check_gui_ci, renderer_mayavi):
     """Test CoregFrame."""
     from mayavi import mlab
     from tvtk.api import tvtk
