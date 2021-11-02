@@ -674,6 +674,8 @@ def set_browser_backend(backend_name, verbose=None):
        +--------------------------------------+------------+-----------+
        | Overview-Bar (with Z-Score-Mode)     |            | ✓         |
        +--------------------------------------+------------+-----------+
+
+       .. versionadded:: 0.24
     """
     global MNE_BROWSE_BACKEND
     old_backend_name = MNE_BROWSE_BACKEND
