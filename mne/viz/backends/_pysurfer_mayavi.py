@@ -61,6 +61,8 @@ class _Renderer(_AbstractRenderer):
         Mayavi scene handle.
     """
 
+    _kind = 'mayavi'
+
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name=None, show=False, shape=(1, 1), smooth_shading=True):
         if bgcolor is not None:

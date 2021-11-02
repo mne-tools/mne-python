@@ -642,6 +642,8 @@ class _QtWidget(_AbstractWidget):
 
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
                 _QtStatusBar, _QtWindow, _QtPlayback):
+    _kind = 'qt'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._window_initialize()
@@ -653,10 +655,7 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
                 self.plotter.app_window.show()
         self._update()
         for plotter in self._all_plotters:
-            # After being shown, the sizes can be wrong for example if a
-            # dock is added. Let's send the actual size to each plotter
-            sz = plotter.size()
-            plotter.window_size = (sz.width(), sz.height())
+            plotter.updateGeometry()
             plotter._render()
         self._process_events()
 

@@ -117,11 +117,11 @@ class CoregistrationUI(HasTraits):
         self._defaults = dict(
             size=_get_default(size, (800, 600)),
             bgcolor=_get_default(bgcolor, "grey"),
-            orient_glyphs=_get_default(orient_glyphs, False),
+            orient_glyphs=_get_default(orient_glyphs, True),
             hpi_coils=_get_default(hpi_coils, True),
             head_shape_points=_get_default(head_shape_points, True),
             eeg_channels=_get_default(eeg_channels, True),
-            head_resolution=_get_default(head_resolution, False),
+            head_resolution=_get_default(head_resolution, True),
             head_transparency=_get_default(head_transparency, False),
             head_opacity=0.5,
             sensor_opacity=_get_default(sensor_opacity, 1.0),
@@ -199,6 +199,10 @@ class CoregistrationUI(HasTraits):
         # must be done last
         if show:
             self._renderer.show()
+        # update the view once shown
+        views = {True: dict(azimuth=90, elevation=90),  # front
+                 False: dict(azimuth=180, elevation=90)}  # left
+        self._renderer.set_camera(distance=None, **views[self._lock_fids])
         if standalone:
             self._renderer.figure.store["app"].exec()
 
