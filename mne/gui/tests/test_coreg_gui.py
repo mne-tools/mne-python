@@ -422,27 +422,36 @@ def test_coreg_gui_pyvista(tmpdir, renderer_interactive_pyvistaqt):
     tempdir = str(tmpdir)
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     tmp_trans = op.join(tempdir, 'tmp-trans.fif')
+
     coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
                            trans=fname_trans)
+    assert not coreg._lock_fids
     coreg._reset_fiducials()
     coreg.close()
+
     coreg = coregistration(inst=raw_path, subject='sample',
                            subjects_dir=subjects_dir)
     coreg._set_fiducials_file(fid_fname)
     assert coreg._fiducials_file == fid_fname
+
+    # unlock fiducials
+    assert coreg._lock_fids
+    coreg._set_lock_fids(False)
+    assert not coreg._lock_fids
+
     # picking
     vtk_picker = TstVTKPicker(coreg._surfaces['head'], 0, (0, 0))
     coreg._on_mouse_move(vtk_picker, None)
     coreg._on_button_press(vtk_picker, None)
     coreg._on_pick(vtk_picker, None)
     coreg._on_button_release(vtk_picker, None)
-    coreg._set_lock_fids(True)
-    assert coreg._lock_fids
     coreg._on_pick(vtk_picker, None)  # also pick when locked
-    coreg._set_lock_fids(False)
-    assert not coreg._lock_fids
+
+    # lock fiducials
     coreg._set_lock_fids(True)
     assert coreg._lock_fids
+
+    # fitting
     assert coreg._nasion_weight == 10.
     coreg._set_point_weight(11., 'nasion')
     assert coreg._nasion_weight == 11.
@@ -453,9 +462,12 @@ def test_coreg_gui_pyvista(tmpdir, renderer_interactive_pyvistaqt):
     assert coreg._coreg._extra_points_filter is not None
     coreg._reset_omit_hsp_filter()
     assert coreg._coreg._extra_points_filter is None
+
     assert coreg._grow_hair == 0
     coreg._set_grow_hair(0.1)
     assert coreg._grow_hair == 0.1
+
+    # visualization
     assert coreg._orient_glyphs == \
         (config.get('MNE_COREG_ORIENT_TO_SURFACE', '') == 'true')
     assert coreg._hpi_coils
@@ -468,6 +480,8 @@ def test_coreg_gui_pyvista(tmpdir, renderer_interactive_pyvistaqt):
     assert not coreg._head_transparency
     coreg._set_head_transparency(True)
     assert coreg._head_transparency
+
     coreg._save_trans(tmp_trans)
     assert op.isfile(tmp_trans)
+
     coreg.close()

@@ -187,8 +187,8 @@ class CoregistrationUI(HasTraits):
 
         # once the docks are initialized
         self._set_current_fiducial(self._defaults["fiducial"])
-        self._set_lock_fids(self._defaults["lock_fids"])
         self._set_scale_mode(self._defaults["scale_mode"])
+        self._set_lock_fids(info is not None)
         if trans is not None:
             self._load_trans(trans)
 
