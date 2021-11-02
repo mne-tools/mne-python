@@ -211,6 +211,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     .. note:: For the pyqtgraph-backend to run in IPython with ``block=False``
               you need to enter the magic command ``%%gui qt5`` once before.
+    .. note:: To report issues with the pyqtgraph-backend, please use the
+              `issues <https://github.com/mne-tools/mne-qt-browser/issues>`_
+              of ``mne-qt-browser``.
     """
     from ..io.base import BaseRaw
     from ._figure import _get_browser
