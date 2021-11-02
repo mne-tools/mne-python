@@ -13,10 +13,16 @@ from ..utils import tight_layout
 
 
 class _AbstractRenderer(ABC):
+
     @abstractclassmethod
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name=None, show=False, shape=(1, 1)):
         """Set up the scene."""
+        pass
+
+    @property
+    @abstractmethod
+    def _kind(self):
         pass
 
     @abstractclassmethod
