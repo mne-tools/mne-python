@@ -728,11 +728,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         _plot_mri_fiducials(renderer, mri_fiducials, subjects_dir, subject,
                             to_cf_t, fid_colors)
 
-    # plot sensors
-    if picks.size > 0:
-        _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
-                      warn_meg, head_surf, 'm')
-
     for key, surf in surfs.items():
         # Surfs can sometimes be in head coords (e.g., if coming from sphere)
         assert isinstance(surf, dict), f'{key}: {type(surf)}'
@@ -741,6 +736,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         renderer.surface(surface=surf, color=colors[key],
                          opacity=alphas[key],
                          backface_culling=(key != 'helmet'))
+
+    # plot sensors (NB snapshot_brain_montage relies on the last thing being
+    # plotted being the sensors, so we need to do this after the surfaces)
+    if picks.size > 0:
+        _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
+                      warn_meg, head_surf, 'm')
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
@@ -3012,6 +3013,8 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         field of ``chs``. dict should have ch:xyz mappings.
     hide_sensors : bool
         Whether to remove the spheres in the scene before taking a snapshot.
+        The sensors will always be shown in the final figure. If you want an
+        image of just the brain, use :class:`mne.viz.Brain` instead.
 
     Returns
     -------

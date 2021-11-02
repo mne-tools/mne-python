@@ -32,8 +32,6 @@ import mne
 from mne.viz import ClickableImage  # noqa: F401
 from mne.viz import (plot_alignment, snapshot_brain_montage, set_3d_view)
 
-print(__doc__)
-
 misc_path = mne.datasets.misc.data_path()
 ecog_data_fname = op.join(misc_path, 'ecog', 'sample_ecog_ieeg.fif')
 subjects_dir = op.join(misc_path, 'ecog')
