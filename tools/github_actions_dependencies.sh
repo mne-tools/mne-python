@@ -30,6 +30,7 @@ else
 	pip install --progress-bar off --pre imageio-ffmpeg xlrd mffpy
 	echo "mne-qt-browser"
 	pip install --progress-bar off --pre mne-qt-browser
+	pip uninstall -yq mne  # mne-qt-browser reinstalls stable
 fi
 pip install --progress-bar off --upgrade -r requirements_testing.txt
 if [ "${DEPS}" != "minimal" ]; then
