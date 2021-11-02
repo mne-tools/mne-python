@@ -432,7 +432,10 @@ def pg_backend(garbage_collect):
         backend._close_all()
 
 
-@pytest.fixture(params=['matplotlib', 'pyqtgraph'])
+@pytest.fixture(params=[
+    'matplotlib',
+    pytest.param('pyqtgraph', marks=pytest.mark.pgtest),
+])
 def browser_backend(request, garbage_collect):
     """Parametrizes the name of the browser backend."""
     backend_name = request.param
