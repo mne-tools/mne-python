@@ -62,7 +62,7 @@ collect_ignore = ['export/_eeglab.py', 'export/_edf.py']
 def pytest_configure(config):
     """Configure pytest options."""
     # Markers
-    for marker in ('slowtest', 'ultraslowtest'):
+    for marker in ('slowtest', 'ultraslowtest', 'pgtest'):
         config.addinivalue_line('markers', marker)
 
     # Fixtures
@@ -418,6 +418,7 @@ def _check_pyqt():
                     f'but pyqtgraph needs >= 5.12!')
 
 
+@pytest.mark.pgtest
 @pytest.fixture
 def pg_backend(garbage_collect):
     """Use for pyqtgraph-specific test-functions."""
