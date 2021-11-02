@@ -417,7 +417,7 @@ def _check_pyqtgraph():
         pytest.skip(f'PyQt5 has version {_check_pyqt5_version()}'
                     f'but pyqtgraph needs >= 5.12!')
     try:
-        import mne_qt_browser
+        import mne_qt_browser  # noqa: F401
     except Exception:
         pytest.skip('Requires mne_qt_browser')
 
@@ -485,7 +485,7 @@ def renderer_interactive(request):
         if renderer._get_3d_backend() == 'mayavi':
             with warnings.catch_warnings(record=True):
                 try:
-                    from surfer import Brain  # noqa: 401 analysis:ignore
+                    from surfer import Brain  # noqa: F401 analysis:ignore
                 except Exception:
                     pytest.skip('Requires PySurfer')
         yield renderer
