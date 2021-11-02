@@ -423,9 +423,12 @@ def test_coreg_gui_pyvista(tmpdir, renderer_interactive_pyvistaqt):
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     tmp_trans = op.join(tempdir, 'tmp-trans.fif')
 
+    # the sample subject in testing has MRI fids
+    assert op.isfile(op.join(
+        subjects_dir, 'sample', 'bem', 'sample-fiducials.fif'))
     coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
                            trans=fname_trans)
-    assert not coreg._lock_fids
+    assert coreg._lock_fids
     coreg._reset_fiducials()
     coreg.close()
 

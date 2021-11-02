@@ -127,7 +127,7 @@ class CoregistrationUI(HasTraits):
             sensor_opacity=_get_default(sensor_opacity, 1.0),
             fiducials=("LPA", "Nasion", "RPA"),
             fiducial="LPA",
-            lock_fids=False,
+            lock_fids=True,
             grow_hair=0.0,
             scale_modes=["None", "uniform", "3-axis"],
             scale_mode="None",
@@ -162,6 +162,7 @@ class CoregistrationUI(HasTraits):
         self._fiducials = fiducials
         self._coreg = Coregistration(
             self._info, subject, subjects_dir, fiducials)
+        fid_accurate = self._coreg._fid_accurate
         for fid in self._defaults["weights"].keys():
             setattr(self, f"_{fid}_weight", self._defaults["weights"][fid])
 
@@ -188,9 +189,12 @@ class CoregistrationUI(HasTraits):
         # once the docks are initialized
         self._set_current_fiducial(self._defaults["fiducial"])
         self._set_scale_mode(self._defaults["scale_mode"])
-        self._set_lock_fids(info is not None)
         if trans is not None:
             self._load_trans(trans)
+        if not fid_accurate:
+            self._set_head_resolution('high')
+            self._set_lock_fids(True)  # hack to make the dig disappear
+        self._set_lock_fids(fid_accurate)
 
         # must be done last
         if show:
@@ -343,6 +347,7 @@ class CoregistrationUI(HasTraits):
         fids, _ = read_fiducials(self._fiducials_file)
         self._coreg._setup_fiducials(fids)
         self._reset()
+        self._set_lock_fids(True)
 
     @observe("_current_fiducial")
     def _current_fiducial_changed(self, change=None):

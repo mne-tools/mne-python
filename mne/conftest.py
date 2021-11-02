@@ -420,7 +420,7 @@ def renderer_pyvistaqt(request, garbage_collect):
 
 @pytest.fixture(params=["mayavi"])
 def renderer_mayavi(request, garbage_collect):
-    """Yield the PyVista backend."""
+    """Yield the mayavi backend."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
