@@ -562,7 +562,7 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
 
 
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown subj',
-                  color=(0.8, 0.8, 0.8), width=0.8, ignore=('IGNORED',),
+                  color='lightgray', width=0.8, ignore=('IGNORED',),
                   show=True):
     """Show the channel stats based on a drop_log from Epochs.
 
@@ -889,7 +889,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   units=units,
                   unit_scalings=unit_scalings,
                   # colors
-                  ch_color_bad=(0.8, 0.8, 0.8),
+                  ch_color_bad='lightgray',
                   ch_color_dict=color,
                   epoch_color_bad=(1, 0, 0),
                   epoch_colors=epoch_colors,

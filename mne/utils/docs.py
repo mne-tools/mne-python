@@ -1527,7 +1527,7 @@ precompute : bool | str
     expected size of the precomputed data in RAM.
     Default is ``'auto'``.
 
-    .. versionadded:: 1.0
+    .. versionadded:: 0.24
 """
 
 docdict['use_opengl'] = """
@@ -1538,7 +1538,7 @@ use_opengl : bool
     OpenGL enhances the performance.
     Default is ``True``.
 
-    .. versionadded:: 1.0
+    .. versionadded:: 0.24
 """
 
 # PSD plotting

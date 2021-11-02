@@ -28,7 +28,7 @@ _RAW_CLIP_DEF = 1.5
 
 @verbose
 def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
-             bgcolor='w', color=None, bad_color='#CCCCCC',
+             bgcolor='w', color=None, bad_color='lightgray',
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4,
@@ -61,8 +61,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     color : dict | color object | None
         Color for the data traces. If None, defaults to::
 
-            dict(mag='#00008B', grad='b', eeg='k', eog='k', ecg='m',
-                 emg='k', ref_meg='#4682B4', misc='k', stim='k',
+            dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='m',
+                 emg='k', ref_meg='steelblue', misc='k', stim='k',
                  resp='k', chpi='k')
 
     bad_color : color object

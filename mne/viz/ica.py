@@ -1042,7 +1042,7 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
         raise RuntimeError('Stop must be larger than start.')
 
     # misc
-    bad_color = '#CCCCCC'
+    bad_color = 'lightgray'
     title = 'ICA components' if title is None else title
 
     params = dict(inst=inst_array,
