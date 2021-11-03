@@ -80,7 +80,6 @@ def pytest_configure(config):
     ignore::ImportWarning
     ignore:the matrix subclass:PendingDeprecationWarning
     ignore:numpy.dtype size changed:RuntimeWarning
-    ignore:.*HasTraits.trait_.*:DeprecationWarning
     ignore:.*takes no parameters:DeprecationWarning
     ignore:joblib not installed:RuntimeWarning
     ignore:Using a non-tuple sequence for multidimensional indexing:FutureWarning
@@ -102,7 +101,6 @@ def pytest_configure(config):
     ignore:scipy\.gradient is deprecated.*:DeprecationWarning
     ignore:sklearn\.externals\.joblib is deprecated.*:FutureWarning
     ignore:The sklearn.*module.*deprecated.*:FutureWarning
-    ignore:.*trait.*handler.*deprecated.*:DeprecationWarning
     ignore:.*rich_compare.*metadata.*deprecated.*:DeprecationWarning
     ignore:.*In future, it will be an error for 'np.bool_'.*:DeprecationWarning
     ignore:.*`np.bool` is a deprecated alias.*:DeprecationWarning
@@ -118,8 +116,6 @@ def pytest_configure(config):
     ignore:Unable to enable faulthandler.*:UserWarning
     ignore:Fetchers from the nilearn.*:FutureWarning
     ignore:SelectableGroups dict interface is deprecated\. Use select\.:DeprecationWarning
-    ignore:Call to deprecated class vtk.*:DeprecationWarning
-    ignore:Call to deprecated method.*Deprecated since.*:DeprecationWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     ignore:.*rcParams is deprecated.*global_theme.*:DeprecationWarning
     ignore:.*distutils\.sysconfig module is deprecated.*:DeprecationWarning
@@ -129,8 +125,6 @@ def pytest_configure(config):
     ignore:^Please use.*scipy\..*:DeprecationWarning
     ignore:.*Passing a schema to Validator.*:DeprecationWarning
     ignore:.*Found the following unknown channel type.*:RuntimeWarning
-    ignore:.*in an Any trait will be shared.*:DeprecationWarning
-    ignore:.*Mayavi 3D backend is deprecated.*:DeprecationWarning
     ignore:.*np\.MachAr.*:DeprecationWarning
     always::ResourceWarning
     """  # noqa: E501
@@ -201,15 +195,6 @@ def matplotlib_config():
     # functionality)
     plt.ioff()
     plt.rcParams['figure.dpi'] = 100
-    try:
-        from traits.etsconfig.api import ETSConfig
-    except Exception:
-        pass
-    else:
-        try:
-            ETSConfig.toolkit = 'qt4'
-        except Exception:
-            pass  # 'null' might be the only option in some configs
 
     # Make sure that we always reraise exceptions in handlers
     orig = cbook.CallbackRegistry
@@ -445,7 +430,7 @@ def browser_backend(request, garbage_collect):
         backend._close_all()
 
 
-@pytest.fixture(params=["mayavi", "pyvistaqt"])
+@pytest.fixture(params=["pyvistaqt"])
 def renderer(request, garbage_collect):
     """Yield the 3D backends."""
     with _use_backend(request.param, interactive=False) as renderer:
@@ -455,13 +440,6 @@ def renderer(request, garbage_collect):
 @pytest.fixture(params=["pyvistaqt"])
 def renderer_pyvistaqt(request, garbage_collect):
     """Yield the PyVista backend."""
-    with _use_backend(request.param, interactive=False) as renderer:
-        yield renderer
-
-
-@pytest.fixture(params=["mayavi"])
-def renderer_mayavi(request, garbage_collect):
-    """Yield the mayavi backend."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
@@ -480,16 +458,10 @@ def renderer_interactive_pyvistaqt(request):
         yield renderer
 
 
-@pytest.fixture(scope="module", params=["pyvistaqt", "mayavi"])
+@pytest.fixture(scope="module", params=["pyvistaqt"])
 def renderer_interactive(request):
     """Yield the interactive 3D backends."""
     with _use_backend(request.param, interactive=True) as renderer:
-        if renderer._get_3d_backend() == 'mayavi':
-            with warnings.catch_warnings(record=True):
-                try:
-                    from surfer import Brain  # noqa: F401 analysis:ignore
-                except Exception:
-                    pytest.skip('Requires PySurfer')
         yield renderer
 
 
@@ -506,7 +478,7 @@ def _use_backend(backend_name, interactive):
 
 
 def _check_skip_backend(name):
-    from mne.viz.backends.tests._utils import (has_mayavi, has_pyvista,
+    from mne.viz.backends.tests._utils import (has_pyvista,
                                                has_pyqt5, has_imageio_ffmpeg,
                                                has_pyvistaqt)
     if name in ('pyvistaqt', 'notebook'):
@@ -514,10 +486,8 @@ def _check_skip_backend(name):
             pytest.skip("Test skipped, requires pyvista.")
         if not has_imageio_ffmpeg():
             pytest.skip("Test skipped, requires imageio-ffmpeg")
-    if name in ('pyvistaqt', 'mayavi') and not has_pyqt5():
+    if name == 'pyvistaqt' and not has_pyqt5():
         pytest.skip("Test skipped, requires PyQt5.")
-    if name == 'mayavi' and not has_mayavi():
-        pytest.skip("Test skipped, requires mayavi.")
     if name == 'pyvistaqt' and not has_pyvistaqt():
         pytest.skip("Test skipped, requires pyvistaqt")
 
@@ -525,9 +495,8 @@ def _check_skip_backend(name):
 @pytest.fixture(scope='session')
 def pixel_ratio():
     """Get the pixel ratio."""
-    from mne.viz.backends.tests._utils import (has_mayavi, has_pyvista,
-                                               has_pyqt5)
-    if not (has_mayavi() or has_pyvista()) or not has_pyqt5():
+    from mne.viz.backends.tests._utils import has_pyvista, has_pyqt5
+    if not has_pyvista() or not has_pyqt5():
         return 1.
     from PyQt5.QtWidgets import QApplication, QMainWindow
     _ = QApplication.instance() or QApplication([])
@@ -680,7 +649,6 @@ def brain_gc(request):
     keys = (
         'renderer_interactive',
         'renderer_interactive_pyvistaqt',
-        'renderer_interactive_pysurfer',
         'renderer',
         'renderer_pyvistaqt',
         'renderer_notebook',
@@ -711,7 +679,7 @@ def brain_gc(request):
     if outcome != 'passed':
         return
     _assert_no_instances(Brain, 'after')
-    # We only check VTK for PyVista -- Mayavi/PySurfer is not as strict
+    # Check VTK
     objs = gc.get_objects()
     bad = list()
     for o in objs:

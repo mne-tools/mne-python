@@ -14,13 +14,11 @@ import numpy as np
 from mne.utils import run_subprocess
 from mne.viz import set_3d_backend, get_3d_backend
 from mne.viz.backends.renderer import _get_renderer
-from mne.viz.backends.tests._utils import (skips_if_not_mayavi,
-                                           skips_if_not_pyvistaqt)
+from mne.viz.backends.tests._utils import skips_if_not_pyvistaqt
 from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
 
 
 @pytest.mark.parametrize('backend', [
-    pytest.param('mayavi', marks=skips_if_not_mayavi),
     pytest.param('pyvistaqt', marks=skips_if_not_pyvistaqt),
     pytest.param('foo', marks=pytest.mark.xfail(raises=ValueError)),
 ])
@@ -42,7 +40,6 @@ def test_backend_environment_setup(backend, monkeypatch):
 def test_3d_functions(renderer):
     """Test figure management functions."""
     fig = renderer.create_3d_figure((300, 300))
-    # Mayavi actually needs something in the display to set the title
     wrap_renderer = renderer.backend._Renderer(fig=fig)
     wrap_renderer.sphere(np.array([0., 0., 0.]), 'w', 1.)
     renderer.backend._check_3d_figure(fig)
@@ -190,7 +187,7 @@ def test_renderer(renderer, monkeypatch):
 
 def test_set_3d_backend_bad(monkeypatch, tmp_path):
     """Test that the error emitted when a bad backend name is used."""
-    match = "Allowed values are 'pyvistaqt', 'mayavi', and 'notebook'"
+    match = "Allowed values are 'pyvistaqt' and 'notebook'"
     with pytest.raises(ValueError, match=match):
         set_3d_backend('invalid')
 

@@ -197,7 +197,7 @@ class _AbstractRenderer(ABC):
             If True, enable backface culling on the sphere(s).
         radius : float | None
             Replace the glyph scaling by a fixed radius value for each
-            sphere (not supported by mayavi).
+            sphere.
         """
         pass
 

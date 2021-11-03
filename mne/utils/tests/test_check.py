@@ -15,12 +15,10 @@ import mne
 from mne import read_vectorview_selection
 from mne.datasets import testing
 from mne.io.pick import pick_channels_cov, _picks_to_idx
-from mne.utils import (check_random_state, _check_fname, check_fname,
-                       _check_subject, requires_mayavi, traits_test,
-                       _check_mayavi_version, _check_info_inv, _check_option,
-                       check_version, _path_like, _validate_type,
-                       _suggest, _on_missing, requires_nibabel, _safe_input,
-                       _check_ch_locs)
+from mne.utils import (check_random_state, _check_fname, check_fname, _suggest,
+                       _check_subject, _check_info_inv, _check_option,
+                       check_version, _path_like, _validate_type, _on_missing,
+                       requires_nibabel, _safe_input, _check_ch_locs)
 
 data_path = testing.data_path(download=False)
 base_dir = op.join(data_path, 'MEG', 'sample')
@@ -72,13 +70,6 @@ def test_check_fname_suffixes(suffix, tmp_path):
     raw = mne.io.read_raw_fif(fname_raw).crop(0, 0.1)
     raw.save(new_fname)
     mne.io.read_raw_fif(new_fname)
-
-
-@requires_mayavi
-@traits_test
-def test_check_mayavi():
-    """Test mayavi version check."""
-    pytest.raises(RuntimeError, _check_mayavi_version, '100.0.0')
 
 
 def _get_data():

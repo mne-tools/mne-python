@@ -31,16 +31,6 @@ def has_pyvistaqt():
         return False
 
 
-def has_mayavi():
-    """Check that mayavi is installed."""
-    try:
-        with warnings.catch_warnings(record=True):  # traits
-            from mayavi import mlab  # noqa: F401
-        return True
-    except ImportError:
-        return False
-
-
 def has_pyqt5():
     """Check if PyQt5 is installed."""
     try:
@@ -59,7 +49,5 @@ def has_imageio_ffmpeg():
         return False
 
 
-skips_if_not_mayavi = pytest.mark.skipif(
-    not has_mayavi(), reason='requires mayavi')
 skips_if_not_pyvistaqt = pytest.mark.skipif(
     not has_pyvistaqt(), reason='requires pyvistaqt')

@@ -29,6 +29,7 @@ public_modules = [
     'mne.export',
     'mne.filter',
     'mne.forward',
+    'mne.gui',
     'mne.inverse_sparse',
     'mne.io',
     'mne.io.kit',
@@ -124,16 +125,9 @@ def check_parameters_match(func, cls=None):
 def test_docstring_parameters():
     """Test module docstring formatting."""
     from numpydoc import docscrape
-    # skip modules that require mayavi if mayavi is not installed
-    public_modules_ = public_modules[:]
-    try:
-        import mayavi  # noqa: F401 analysis:ignore
-        public_modules_.append('mne.gui')
-    except ImportError:
-        pass
 
     incorrect = []
-    for name in public_modules_:
+    for name in public_modules:
         # Assert that by default we import all public names with `import mne`
         if name not in ('mne', 'mne.gui'):
             extra = name.split('.')[1]
@@ -168,18 +162,9 @@ def test_docstring_parameters():
 
 def test_tabs():
     """Test that there are no tabs in our source files."""
-    # avoid importing modules that require mayavi if mayavi is not installed
-    ignore = tab_ignores[:]
-    try:
-        import mayavi  # noqa: F401 analysis:ignore
-    except ImportError:
-        ignore.extend('mne.gui.' + name for name in
-                      ('_coreg_gui', '_fiducials_gui', '_file_traits', '_help',
-                       '_kit2fiff_gui', '_marker_gui', '_viewer'))
-
     for _, modname, ispkg in walk_packages(mne.__path__, prefix='mne.'):
         # because we don't import e.g. mne.tests w/mne
-        if not ispkg and modname not in ignore:
+        if not ispkg and modname not in tab_ignores:
             # mod = importlib.import_module(modname)  # not py26 compatible!
             try:
                 with pytest.warns(None):
@@ -262,15 +247,6 @@ write_info
 
 def test_documented():
     """Test that public functions and classes are documented."""
-    # skip modules that require mayavi if mayavi is not installed
-    public_modules_ = public_modules[:]
-    try:
-        import mayavi  # noqa: F401, analysis:ignore
-    except ImportError:
-        pass
-    else:
-        public_modules_.append('mne.gui')
-
     doc_dir = op.abspath(op.join(op.dirname(__file__), '..', '..', 'doc'))
     doc_file = op.join(doc_dir, 'python_reference.rst')
     if not op.isfile(doc_file):
@@ -294,7 +270,7 @@ def test_documented():
     known_names = set(known_names)
 
     missing = []
-    for name in public_modules_:
+    for name in public_modules:
         with pytest.warns(None):  # traits warnings
             module = __import__(name, globals())
         for submod in name.split('.')[1:]:

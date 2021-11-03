@@ -1725,7 +1725,14 @@ def _marching_cubes(image, level, smooth=0):
     geometry.SetInputConnection(selector.GetOutputPort())
     out = list()
     for val in level:
-        selector.ThresholdBetween(val, val)
+        try:
+            selector.SetLowerThreshold
+        except AttributeError:
+            selector.ThresholdBetween(val, val)
+        else:
+            # default SetThresholdFunction is between, so:
+            selector.SetLowerThreshold(val)
+            selector.SetUpperThreshold(val)
         geometry.Update()
         polydata = geometry.GetOutput()
         rr = numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())

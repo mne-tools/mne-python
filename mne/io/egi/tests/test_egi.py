@@ -350,7 +350,7 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     with pytest.raises(ValueError) as exc_info:
         read_evokeds_mff(egi_mff_evoked_fname, condition='Invalid Condition')
     message = "Invalid value for the 'condition' parameter provided as " \
-              "category name. Allowed values are 'Category 1', and " \
+              "category name. Allowed values are 'Category 1' and " \
               "'Category 2', but got 'Invalid Condition' instead."
     assert str(exc_info.value) == message
     with pytest.raises(ValueError) as exc_info:
