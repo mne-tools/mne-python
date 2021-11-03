@@ -2150,8 +2150,8 @@ class Report(object):
 
     @verbose
     def parse_folder(self, data_path, pattern=None, n_jobs=1, mri_decim=2,
-                     sort_content=True, sort_sections=None, on_error='warn',
-                     image_format=None, render_bem=True, *,
+                     sort_content=True, *, on_error='warn',
+                     image_format=None, render_bem=True,
                      n_time_points_evokeds=None, n_time_points_stcs=None,
                      raw_butterfly=True, stc_plot_kwargs=None,
                      topomap_kwargs=None, verbose=None):

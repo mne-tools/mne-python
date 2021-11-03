@@ -37,9 +37,9 @@ from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
 from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
-from ..utils import (verbose, get_config, warn, _check_ch_locs, _check_option,
+from ..utils import (verbose, get_config, _check_ch_locs, _check_option,
                      logger, fill_doc, _pl, _check_sphere, _ensure_int,
-                     _validate_type, _to_rgb, deprecated)
+                     _validate_type, _to_rgb, warn)
 from ..transforms import apply_trans
 
 

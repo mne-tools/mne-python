@@ -4,7 +4,6 @@
 # License: BSD-3-Clause
 
 from contextlib import nullcontext
-from itertools import product
 import os
 import os.path as op
 import shutil

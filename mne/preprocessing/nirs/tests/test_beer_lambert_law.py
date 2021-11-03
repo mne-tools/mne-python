@@ -4,7 +4,6 @@
 #
 # License: BSD-3-Clause
 
-from functools import partial
 import os.path as op
 
 import pytest
