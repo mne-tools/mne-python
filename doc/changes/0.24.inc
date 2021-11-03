@@ -347,13 +347,13 @@ API changes
 
 - :class:`mne.Report` modernization has led to multiple deprecations (:gh:`9754` by `Richard Höchenberger`_):
 
-  - :meth:`mne.Report.add_figs_to_section` and :meth:`mne.Report.add_slider_to_section` have been deprecated in favor of :meth:`mne.Report.add_figure`
+  - ``mne.Report.add_figs_to_section`` and ``mne.Report.add_slider_to_section`` have been deprecated in favor of :meth:`mne.Report.add_figure`
 
-  - :meth:`mne.Report.add_images_to_section` has been deprecated in favor of :meth:`mne.Report.add_image`
+  - ``mne.Report.add_images_to_section`` has been deprecated in favor of :meth:`mne.Report.add_image`
 
-  - :meth:`mne.Report.add_bem_to_section` has been deprecated in favor of :meth:`mne.Report.add_bem`
+  - ``mne.Report.add_bem_to_section`` has been deprecated in favor of :meth:`mne.Report.add_bem`
 
-  - :meth:`mne.Report.add_htmls_to_section` has been deprecated in favor of :meth:`mne.Report.add_html`
+  - ``mne.Report.add_htmls_to_section`` has been deprecated in favor of :meth:`mne.Report.add_html`
 
   - In :meth:`mne.Report.parse_folder`, the ``sort_sections`` parameter has been deprecated in favor of ``sort_content``
 
@@ -371,7 +371,7 @@ API changes
 
 - The default partial pathlength factor of :func:`mne.preprocessing.nirs.beer_lambert_law` will change from 0.1 in 0.24 to 6.0 in the next release (:gh:`9843` by `Robert Luke`_)
 
-- :meth:`mne.preprocessing.ICA.detect_artifacts` has been deprecated. Please use `~mne.preprocessing.ICA.find_bads_eog` and `~mne.preprocessing.ICA.find_bads_ecg` instead (:gh:`9909` by `Richard Höchenberger`_)
+- ``mne.preprocessing.ICA.detect_artifacts`` has been deprecated. Please use `~mne.preprocessing.ICA.find_bads_eog` and `~mne.preprocessing.ICA.find_bads_ecg` instead (:gh:`9909` by `Richard Höchenberger`_)
 
 Authors
 ~~~~~~~
