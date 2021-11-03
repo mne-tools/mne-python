@@ -7,7 +7,6 @@ import os.path as op
 import pytest
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
-from scipy.stats import multivariate_normal
 
 from mne import (read_surface, write_surface, decimate_surface, pick_types,
                  dig_mri_distances, get_montage_volume_labels)
