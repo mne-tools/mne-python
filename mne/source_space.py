@@ -140,7 +140,7 @@ class SourceSpaces(list):
 
         Returns
         -------
-        fig : instance of mayavi.mlab.Figure
+        fig : instance of PyVista renderer
             The figure.
         """
         from .viz import plot_alignment
@@ -782,7 +782,7 @@ def _read_one_source_space(fid, this):
     if tag is None:
         raise ValueError('Vertex data not found')
 
-    res['rr'] = tag.data.astype(np.float64)  # double precision for mayavi
+    res['rr'] = tag.data.astype(np.float64)
     if res['rr'].shape[0] != res['np']:
         raise ValueError('Vertex information is incorrect')
 

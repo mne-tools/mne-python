@@ -150,12 +150,6 @@ class IntracranialElectrodeLocator(QMainWindow):
         plt_grid.addWidget(plts[2][0], 1, 0)
         self._renderer = _get_renderer(
             name='IEEG Locator', size=(400, 400), bgcolor='w')
-        # TODO: should eventually make sure the renderer here is actually
-        # some PyVista(Qt) variant, not mayavi, otherwise the following
-        # call will fail (hopefully it's rare that people who want to use this
-        # have also set their MNE_3D_BACKEND=mayavi and/or don't have a working
-        # pyvistaqt setup; also hopefully the refactoring to use the
-        # Qt/notebook abstraction will make this easier, too):
         plt_grid.addWidget(self._renderer.plotter)
 
         # Channel selector

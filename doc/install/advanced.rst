@@ -36,7 +36,7 @@ display, MNE-Python will work with the standard "inline" magic:
 
     In [1]: %matplotlib inline
 
-but some functionality will be lost. For example, mayavi scenes will still
+but some functionality will be lost. For example, PyVista scenes will still
 pop-up a separate window, but only one window at a time is possible, and
 interactivity within the scene is limited in non-blocking plot calls.
 
@@ -44,13 +44,11 @@ interactivity within the scene is limited in non-blocking plot calls.
   :class: note
 
   If you are using MNE-Python on Windows through IPython or Jupyter, you might
-  also have to use the IPython magic command ``%gui qt`` after importing
-  MNE-Python, Mayavi or PySurfer (see `here
+  also have to use the IPython magic command ``%gui qt`` (see `here
   <https://github.com/ipython/ipython/issues/10384>`_). For example:
 
   .. code-block:: ipython
 
-     In [1]: from mayavi import mlab
      In [2]: %gui qt
 
 If you installed the ``nb_conda_kernels`` package into your ``base``
@@ -247,23 +245,3 @@ of VTK and/or QT are incompatible. This series of commands should fix it:
 
 If you installed VTK using ``pip`` rather than ``conda``, substitute the first
 line for ``pip uninstall -y vtk``.
-
-
-Trouble using mayavi backend
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If you run into trouble when visualizing source estimates (or anything else)
-using mayavi, you can try setting a couple of environment variables at the
-beginning of your script, session, or notebook::
-
-    >>> import os
-    >>> os.environ['ETS_TOOLKIT'] = 'qt4'
-    >>> os.environ['QT_API'] = 'pyqt5'
-
-And for macOS users, it might be helpful to also add the following::
-
-    >>> os.environ['MNE_3D_OPTION_ANTIALIAS'] = 'false'
-
-This will tell mayavi to use Qt backend with PyQt bindings, instead of the
-default PySide. For more information, see
-http://docs.enthought.com/mayavi/mayavi/building_applications.html#integrating-in-a-qt-application.

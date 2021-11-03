@@ -26,7 +26,7 @@ from mne.source_space import (read_source_spaces,
 from mne.datasets import testing
 from mne.fixes import _cell_data
 from mne.io import read_info
-from mne.utils import check_version, requires_pysurfer
+from mne.utils import check_version
 from mne.label import read_label
 from mne.viz._brain import Brain, _LinkViewer, _BrainScraper, _LayeredMesh
 from mne.viz._brain.colormap import calculate_lut
@@ -156,15 +156,11 @@ def test_brain_gc(renderer_pyvistaqt, brain_gc):
     brain.close()
 
 
-@requires_pysurfer
 @testing.requires_testing_data
 def test_brain_routines(renderer, brain_gc):
     """Test backend agnostic Brain routines."""
     brain_klass = renderer.get_brain_class()
-    if renderer.get_3d_backend() == "mayavi":
-        from surfer import Brain
-    else:  # PyVista
-        from mne.viz._brain import Brain
+    from mne.viz._brain import Brain
     assert brain_klass == Brain
 
 
@@ -434,8 +430,6 @@ def test_single_hemi(hemi, renderer_interactive_pyvistaqt, brain_gc):
 @pytest.mark.slowtest
 def test_brain_save_movie(tmp_path, renderer, brain_gc):
     """Test saving a movie of a Brain instance."""
-    if renderer._get_3d_backend() == "mayavi":
-        pytest.skip('Save movie only supported on PyVista')
     from imageio_ffmpeg import count_frames_and_secs
     brain = _create_testing_brain(hemi='lh', time_viewer=False,
                                   cortex=['r', 'b'])  # custom binarized

@@ -11,7 +11,7 @@ create scatterplots on top of a brain, with each point representing an
 electrode.
 
 In this example, we'll show two ways of doing this in MNE-Python. First,
-if we have the 3D locations of each electrode then we can use Mayavi to
+if we have the 3D locations of each electrode then we can use PyVista to
 take a snapshot of a view of the brain. If we do not have these 3D locations,
 and only have a 2D image of the electrodes on the brain, we can use the
 :class:`mne.viz.ClickableImage` class to choose our own electrode positions

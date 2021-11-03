@@ -283,7 +283,7 @@ class _ContentElement:
 
 def _fig_to_img(fig, *, image_format='png', auto_close=True):
     """Plot figure and create a binary image."""
-    # fig can be ndarray, mpl Figure, Mayavi Figure
+    # fig can be ndarray, mpl Figure, PyVista Figure
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
     if isinstance(fig, np.ndarray):
@@ -1814,10 +1814,10 @@ class Report(object):
 
         Parameters
         ----------
-        fig : matplotlib.figure.Figure | mlab.Figure | array | collection of matplotlib.figure.Figure | collection of mlab.Figure | collection of array
+        fig : matplotlib.figure.Figure | PyVista renderer | array | collection of matplotlib.figure.Figure | collection of PyVista renderer | collection of array
             One or more figures to add to the report. All figures must be an
             instance of :class:`matplotlib.figure.Figure`,
-            :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`. If
+            PyVista renderer, or :class:`numpy.ndarray`. If
             multiple figures are passed, they will be added as "slides"
             that can be navigated using buttons and a slider element.
         title : str
@@ -1845,7 +1845,7 @@ class Report(object):
             if _path_like(fig):
                 raise TypeError(
                     f'It seems you passed a path to `add_figure`. However, '
-                    f'only Matplotlib figures, Mayavi scenes, and NumPy '
+                    f'only Matplotlib figures, PyVista scenes, and NumPy '
                     f'arrays are accepted. You may want to try `add_image` '
                     f'instead. The provided path was: {fig}'
                 )
