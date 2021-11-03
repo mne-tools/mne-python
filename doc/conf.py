@@ -257,7 +257,7 @@ numpydoc_xref_ignore = {
     'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame', 'CoregistrationUI',
     'IntracranialElectrodeLocator'
     # We need to fix these: "PyVista renderer" and "PyVista surface"
-    'renderer', 'surface',
+    'PyVista', 'renderer', 'surface',
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)
