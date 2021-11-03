@@ -617,7 +617,7 @@ xxl = '6'
 html_context = {
     'build_dev_html': bool(int(os.environ.get('BUILD_DEV_HTML', False))),
     'versions_dropdown': {
-        'dev': 'v0.25 (devel)',
+        'dev': 'v1.0 (devel)',
         'stable': 'v0.24 (stable)',
         '0.23': 'v0.23',
         '0.22': 'v0.22',
