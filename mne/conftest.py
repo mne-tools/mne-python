@@ -119,6 +119,7 @@ def pytest_configure(config):
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     ignore:.*rcParams is deprecated.*global_theme.*:DeprecationWarning
     ignore:.*distutils\.sysconfig module is deprecated.*:DeprecationWarning
+    ignore:.*moved to a new package \(mne-connectivity\).*:DeprecationWarning
     ignore:.*numpy\.dual is deprecated.*:DeprecationWarning
     ignore:.*`np.typeDict` is a deprecated.*:DeprecationWarning
     ignore:.*Creating an ndarray from ragged.*:numpy.VisibleDeprecationWarning
