@@ -507,7 +507,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     Returns
     -------
-    fig : instance of PyVista renderer.mlab.Figure
+    fig : instance of PyVista renderer
         The figure.
 
     See Also
@@ -2667,7 +2667,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         List of floating point scale factors for the markers.
     %(verbose)s
     **kwargs : kwargs
-        Keyword arguments to pass to mlab.triangular_mesh.
+        Keyword arguments to pass to renderer.mesh.
 
     Returns
     -------

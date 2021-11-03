@@ -2783,7 +2783,7 @@ class Brain(object):
                 self._vertex_to_label_id[hemi][label.vertices] = idx
 
     def add_annotation(self, annot, borders=True, alpha=1, hemi=None,
-                       remove_existing=True, color=None, **kwargs):
+                       remove_existing=True, color=None):
         """Add an annotation file.
 
         Parameters

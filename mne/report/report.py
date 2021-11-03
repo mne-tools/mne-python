@@ -1857,7 +1857,7 @@ class Report(object):
 
         Parameters
         ----------
-        fig : matplotlib.figure.Figure | mlab.Figure | array | collection of matplotlib.figure.Figure | collection of mlab.Figure | collection of array
+        fig : matplotlib.figure.Figure | PyVista renderer | array | collection of matplotlib.figure.Figure | collection of PyVista renderer | collection of array
             One or more figures to add to the report. All figures must be an
             instance of :class:`matplotlib.figure.Figure`,
             PyVista renderer, or :class:`numpy.ndarray`. If
@@ -1937,7 +1937,7 @@ class Report(object):
 
         Parameters
         ----------
-        figs : matplotlib.figure.Figure | mlab.Figure | array | list
+        figs : matplotlib.figure.Figure | PyVista renderer | array | list
             A figure or a list of figures to add to the report. Each figure in
             the list can be an instance of :class:`matplotlib.figure.Figure`,
             PyVista renderer, or :class:`numpy.ndarray`.
