@@ -719,11 +719,10 @@ class Info(dict, MontageMixin):
             else:
                 val = self._attributes[key](val)  # attribute checker function
         else:
-            warn(f"Info does not support directly setting the key {repr(key)},"
-                 " this warning will turn into an error after 0.24. You can "
-                 "set info['temp'] to store temporary objects in an Info "
-                 "instance, but these will not survive an I/O round-trip.",
-                 DeprecationWarning)
+            raise RuntimeError(
+                f"Info does not support directly setting the key {repr(key)}. "
+                "You can set info['temp'] to store temporary objects in an "
+                "Info instance, but these will not survive an I/O round-trip.")
         super().__setitem__(key, val)
 
     def update(self, other=None, **kwargs):
