@@ -18,7 +18,6 @@ public_modules = [
     'mne.beamformer',
     'mne.channels',
     'mne.chpi',
-    'mne.connectivity',
     'mne.cov',
     'mne.cuda',
     'mne.datasets',
@@ -277,7 +276,7 @@ def test_documented():
     if not op.isfile(doc_file):
         raise SkipTest('Documentation file not found: %s' % doc_file)
     api_files = (
-        'connectivity', 'covariance', 'creating_from_arrays', 'datasets',
+        'covariance', 'creating_from_arrays', 'datasets',
         'decoding', 'events', 'file_io', 'forward', 'inverse', 'logging',
         'most_used_classes', 'mri', 'preprocessing', 'reading_raw_data',
         'realtime', 'report', 'sensor_space', 'simulation', 'source_space',
