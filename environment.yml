@@ -40,6 +40,5 @@ dependencies:
 - mffpy>=0.5.7
 - ipywidgets
 - pooch
-- pip:
-  - ipyvtklink
-  - mne-qt-browser
+- ipyvtklink
+- mne-qt-browser
