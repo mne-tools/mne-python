@@ -111,7 +111,7 @@ stages:
     - bash: |
         set -e
         python -m pip install --progress-bar off --upgrade pip setuptools wheel codecov
-        python -m pip install --progress-bar off mne-qt-browser
+        python -m pip install --progress-bar off mne-qt-browser[opengl]
         python -m pip uninstall -yq mne
         python -m pip install --progress-bar off --upgrade -e .[test]
       displayName: 'Install dependencies with pip'
