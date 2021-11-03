@@ -254,8 +254,8 @@ numpydoc_xref_ignore = {
     # sklearn subclasses
     'mapping', 'to', 'any',
     # unlinkable
-    'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame', 'CoregistrationUI',
-    'IntracranialElectrodeLocator'
+    'CoregistrationUI',
+    'IntracranialElectrodeLocator',
     # We need to fix these: "PyVista renderer" and "PyVista surface"
     'PyVista', 'renderer', 'surface',
 }
