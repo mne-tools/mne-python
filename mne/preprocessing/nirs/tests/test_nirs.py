@@ -14,7 +14,7 @@ from numpy.testing import assert_array_equal
 from mne import create_info
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx, RawArray
-from mne.preprocessing.nirs import (optical_density, beer_lambert_law as _bll,
+from mne.preprocessing.nirs import (optical_density, beer_lambert_law,
                                     _fnirs_check_bads, _fnirs_spread_bads,
                                     _check_channels_ordered,
                                     _channel_frequencies, _channel_chromophore)
@@ -22,8 +22,6 @@ from mne.io.pick import _picks_to_idx
 
 from mne.datasets import testing
 from mne.io.constants import FIFF
-
-beer_lambert_law = partial(_bll, ppf=6)  # temporary deprecation wrapper
 
 fname_nirx_15_0 = op.join(data_path(download=False),
                           'NIRx', 'nirscout', 'nirx_15_0_recording')

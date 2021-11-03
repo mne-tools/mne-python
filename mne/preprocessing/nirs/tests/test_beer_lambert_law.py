@@ -12,13 +12,10 @@ import numpy as np
 
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx, BaseRaw, read_raw_fif
-from mne.preprocessing.nirs import (optical_density,
-                                    beer_lambert_law as _bll)
+from mne.preprocessing.nirs import optical_density, beer_lambert_law
 from mne.utils import _validate_type
 from mne.datasets import testing
 from mne.externals.pymatreader import read_mat
-
-beer_lambert_law = partial(_bll, ppf=6)  # temporary deprecation wrapper
 
 fname_nirx_15_0 = op.join(data_path(download=False),
                           'NIRx', 'nirscout', 'nirx_15_0_recording')

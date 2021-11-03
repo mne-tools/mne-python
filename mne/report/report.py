@@ -40,7 +40,7 @@ from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
-                     _path_like, use_log_level, deprecated, _check_fname,
+                     _path_like, use_log_level, _check_fname,
                      _check_ch_locs)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend)
@@ -744,22 +744,6 @@ class Report(object):
     @property
     def html(self):
         return [element.html for element in self._content]
-
-    @property
-    def fnames(self):
-        warn(
-            message='Report.fnames is deprecated',
-            category=DeprecationWarning
-        )
-        return [element.name for element in self._content]
-
-    @property
-    def sections(self):
-        warn(
-            message='Report.sections is deprecated. Use Reports.tags instead',
-            category=DeprecationWarning
-        )
-        return self.tags
 
     @property
     def tags(self):
@@ -1650,8 +1634,7 @@ class Report(object):
             replace=replace
         )
 
-    def remove(self, caption=None, section=None, *, title=None, tags=None,
-               remove_all=False):
+    def remove(self, *, title=None, tags=None, remove_all=False):
         """Remove elements from the report.
 
         The element to remove is searched for by its title. Optionally, tags
@@ -1660,17 +1643,6 @@ class Report(object):
 
         Parameters
         ----------
-        caption : str
-            Remove content based on its caption.
-
-            .. deprecated:: 0.24.0
-               This parameter is scheduled for removal. Use ``title`` instead.
-        section : str | None
-            If supplied, restrict the operation to elements within the supplied
-            section.
-
-            .. deprecated:: 0.24.0
-               This parameter is scheduled for removal. Use ``tags`` instead.
         title : str
             The title of the element(s) to remove.
 
@@ -1698,21 +1670,6 @@ class Report(object):
             .. versionchanged:: 0.24.0
                Returns tuple if ``remove_all`` is ``True``.
         """
-        if caption is not None:
-            warn(
-                message='The "caption" parameter has been deprecated. Please '
-                        'use "title" instead',
-                category=DeprecationWarning
-            )
-            title = caption
-        if section is not None:
-            warn(
-                message='The "section" parameter has been deprecated. Please '
-                        'use "tags" instead',
-                category=DeprecationWarning
-            )
-            tags = _clean_tags(section)
-
         remove_idx = []
         for idx, element in enumerate(self._content):
             if element.name == title:
@@ -1928,98 +1885,6 @@ class Report(object):
             replace=replace
         )
 
-    @deprecated('Use :meth:`~mne.Report.add_figure` instead')
-    @fill_doc
-    def add_figs_to_section(self, figs, captions, section='custom',
-                            scale=None, image_format=None, comments=None,
-                            replace=False, auto_close=True):
-        """Append custom user-defined figures.
-
-        Parameters
-        ----------
-        figs : matplotlib.figure.Figure | mlab.Figure | array | list
-            A figure or a list of figures to add to the report. Each figure in
-            the list can be an instance of :class:`matplotlib.figure.Figure`,
-            :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
-        captions : str | list of str
-            A caption or a list of captions to the figures.
-        section : str
-            Name of the section to place the figures in. If it already
-            exists, the figures will be appended to the end of the existing
-            section.
-        scale : float | None | callable
-            Scale the images maintaining the aspect ratio.
-            If None, no scaling is applied. If float, scale will determine
-            the relative scaling (might not work for scale <= 1 depending on
-            font sizes). If function, should take a figure object as input
-            parameter. Defaults to None.
-        %(report_image_format)s
-        comments : None | str | list of str
-            A string of text or a list of strings of text to be appended after
-            the figure.
-        replace : bool
-            If ``True``, figures already present that have the same caption
-            will be replaced. Defaults to ``False``.
-        auto_close : bool
-            If True, the plots are closed during the generation of the report.
-            Defaults to True.
-        """
-        figs, captions, comments = self._validate_input(
-            figs, captions, section, comments
-        )
-        image_format = _check_image_format(self, image_format)
-        _check_scale(scale)
-
-        if (
-            _path_like(figs) or
-            (hasattr(figs, '__iter__') and
-             any(_path_like(f) for f in figs))
-        ):
-            raise TypeError(
-                'It seems you passed a path to `add_figs_to_section`. '
-                'However, only Matplotlib figures, Mayavi scenes, and NumPy '
-                'arrays are accepted. You may want to try `add_image` instead.'
-            )
-
-        if hasattr(figs, '__len__') and not isinstance(figs, np.ndarray):
-            figs = tuple(figs)
-        else:
-            figs = (figs,)
-
-        if isinstance(captions, str):
-            captions = (captions,)
-        else:
-            captions = tuple(captions)
-
-        if isinstance(comments, str):
-            comments = (comments,)
-        elif comments is None:
-            comments = (None,) * len(figs)
-        else:
-            comments = tuple(comments)
-
-        if len(figs) != len(captions):
-            raise ValueError(
-                f'Number of figs ({len(figs)}) must equal number of captions '
-                f'({len(captions)})'
-            )
-        if len(figs) != len(comments):
-            raise ValueError(
-                f'Number of figs ({len(figs)}) must equal number of comments '
-                f'({len(comments)})'
-            )
-
-        tags = _clean_tags(section)
-
-        for fig, title, caption in zip(figs, captions, comments):
-            if scale is not None:
-                _scale_mpl_figure(fig, scale)
-
-            self.add_figure(
-                fig=fig, title=title, caption=caption,
-                image_format=image_format, tags=tags, replace=replace
-            )
-
     @fill_doc
     def add_image(self, image, title, *, caption=None, tags=('custom-image',),
                   replace=False):
@@ -2064,72 +1929,6 @@ class Report(object):
             replace=replace
         )
 
-    @deprecated('Use :meth:`~mne.Report.add_image` instead')
-    def add_images_to_section(self, fnames, captions, scale=None,
-                              section='custom', comments=None, replace=False):
-        """Append custom user-defined images.
-
-        Parameters
-        ----------
-        fnames : str | list of str
-            A filename or a list of filenames from which images are read.
-            Images can be PNG, GIF or SVG.
-        captions : str | list of str
-            A caption or a list of captions to the images.
-        scale : float | None
-            Scale the images maintaining the aspect ratio.
-            Defaults to None. If None, no scaling will be applied.
-        section : str
-            Name of the section. If section already exists, the images
-            will be appended to the end of the section.
-        comments : None | str | list of str
-            A string of text or a list of strings of text to be appended after
-            the image.
-        replace : bool
-            If ``True``, figures already present that have the same caption
-            will be replaced. Defaults to ``False``.
-        """
-        # Note: using scipy.misc is equivalent because scipy internally
-        # imports PIL anyway. It's not possible to redirect image output
-        # to binary string using scipy.misc.
-        fnames, captions, comments = self._validate_input(fnames, captions,
-                                                          section, comments)
-        _check_scale(scale)
-
-        if isinstance(fnames, str):
-            fnames = (fnames,)
-        else:
-            fnames = tuple(fnames)
-
-        if isinstance(captions, str):
-            captions = (captions,)
-        else:
-            captions = tuple(captions)
-
-        if isinstance(comments, str):
-            comments = (comments,)
-        elif comments is None:
-            comments = (None,) * len(fnames)
-        else:
-            comments = tuple(comments)
-
-        if len(fnames) != len(captions):
-            raise ValueError(
-                f'Number of fnames ({len(fnames)}) must equal number of '
-                f'captions ({len(captions)})'
-            )
-        if len(fnames) != len(comments):
-            raise ValueError(
-                f'Number of fnames ({len(fnames)}) must equal number of '
-                f'comments ({len(comments)})'
-            )
-
-        tags = _clean_tags(section)
-
-        for image, title, caption in zip(fnames, captions, comments):
-            self.add_image(image=image, title=title, caption=caption,
-                           tags=tags, replace=replace)
-
     @fill_doc
     def add_html(self, html, title, *, tags=('custom-html',), replace=False):
         """Add HTML content to the report.
@@ -2159,93 +1958,6 @@ class Report(object):
             tags=tags,
             html=html_element,
             replace=replace
-        )
-
-    @deprecated('Use :meth:`~mne.Report.add_html` instead')
-    def add_htmls_to_section(self, htmls, captions, section='custom',
-                             replace=False):
-        """Append htmls to the report.
-
-        Parameters
-        ----------
-        htmls : str | list of str
-            An html str or a list of html str.
-        captions : str | list of str
-            A caption or a list of captions to the htmls.
-        section : str
-            Name of the section. If section already exists, the images
-            will be appended to the end of the section.
-        replace : bool
-            If ``True``, figures already present that have the same caption
-            will be replaced. Defaults to ``False``.
-
-        Notes
-        -----
-        .. versionadded:: 0.9.0
-        """
-        htmls, captions, _ = self._validate_input(htmls, captions, section)
-
-        if isinstance(htmls, str):
-            htmls = (htmls,)
-        else:
-            htmls = tuple(htmls)
-
-        if isinstance(captions, str):
-            captions = (captions,)
-        else:
-            captions = tuple(captions)
-
-        if len(htmls) != len(captions):
-            raise ValueError(
-                f'Number of htmls ({len(htmls)}) must equal number of '
-                f'captions ({len(captions)})'
-            )
-
-        tags = _clean_tags(section)
-        for html, title in zip(htmls, captions):
-            self.add_html(html=html, title=title, tags=tags, replace=replace)
-
-    @deprecated('Use :meth:`~mne.Report.add_bem` instead')
-    @verbose
-    def add_bem_to_section(self, subject, caption='BEM', section='bem',
-                           decim=2, n_jobs=1, subjects_dir=None,
-                           replace=False, width=512, verbose=None):
-        """Render a bem slider html str.
-
-        Parameters
-        ----------
-        subject : str
-            Subject name.
-        caption : str
-            A caption for the BEM.
-        section : str
-            Name of the section. If it already exists, the BEM
-            will be appended to the end of the existing section.
-        decim : int
-            Use this decimation factor for generating MRI/BEM images
-            (since it can be time consuming).
-        %(n_jobs)s
-        %(subjects_dir)s
-        replace : bool
-            If ``True``, figures already present that have the same caption
-            will be replaced. Defaults to ``False``.
-        width : int
-            The width of the MRI images (in pixels). Larger values will have
-            clearer surface lines, but will create larger HTML files.
-            Typically a factor of 2 more than the number of MRI voxels along
-            each dimension (typically 512, default) is reasonable.
-
-            .. versionadded:: 0.23
-        %(verbose_meth)s
-
-        Notes
-        -----
-        .. versionadded:: 0.9.0
-        """
-        tags = _clean_tags(section)
-        self.add_bem(
-            subject=subject, subjects_dir=subjects_dir, title=caption,
-            decim=decim, width=width, n_jobs=n_jobs, tags=tags, replace=replace
         )
 
     @fill_doc
@@ -2321,72 +2033,6 @@ class Report(object):
         )
 
         return html, dom_id
-
-    @deprecated('Use :meth:`~mne.Report.add_figure` instead')
-    @fill_doc
-    def add_slider_to_section(self, figs, captions=None, section='custom',
-                              title='Slider', scale=None, image_format=None,
-                              replace=False, auto_close=True):
-        """Render a slider of figs to the report.
-
-        Parameters
-        ----------
-        figs : list of Figure
-            Each figure in the list can be an instance of
-            :class:`matplotlib.figure.Figure`,
-            :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
-        captions : list of str | list of float | None
-            A list of captions to the figures. If ``None``, it will default to
-            ``Data slice [i]``.
-        section : str
-            Name of the section. If section already exists, the figures
-            will be appended to the end of the section.
-        title : str
-            The title of the slider.
-        scale : float | None | callable
-            Scale the images maintaining the aspect ratio.
-            If None, no scaling is applied. If float, scale will determine
-            the relative scaling (might not work for scale <= 1 depending on
-            font sizes). If function, should take a figure object as input
-            parameter. Defaults to None.
-        %(report_image_format)s
-        replace : bool
-            If ``True``, figures already present that have the same caption
-            will be replaced. Defaults to ``False``.
-        auto_close : bool
-            If True, the plots are closed during the generation of the report.
-            Defaults to True.
-
-            .. versionadded:: 0.23
-
-        Notes
-        -----
-        .. versionadded:: 0.10.0
-        """
-        tags = _clean_tags(section)
-
-        if captions is None:
-            captions = [f'Figure {i+1} of {len(figs)}'
-                        for i in range(len(figs))]
-
-        if image_format is None:
-            image_format = self.image_format
-
-        for fig in figs:
-            if scale is not None:
-                _scale_mpl_figure(fig, scale)
-
-        html, dom_id = self._render_slider(
-            figs=figs, title=title, captions=captions, start_idx=0,
-            image_format=image_format, tags=tags
-        )
-        self._add_or_replace(
-            dom_id=dom_id,
-            name=title,
-            tags=tags,
-            html=html,
-            replace=replace
-        )
 
     ###########################################################################
     # global rendering functions
@@ -2534,14 +2180,6 @@ class Report(object):
             -> bem -> forward-solution -> inverse-operator -> source-estimate.
 
             .. versionadded:: 0.24.0
-        sort_sections : bool
-            If ``True``, sort the content based on tags in the order:
-            raw -> events -> epochs -> evoked -> covariance -> coregistration
-            -> bem -> forward-solution -> inverse-operator -> source-estimate.
-
-            .. deprecated:: 0.24.0
-               This parameter is scheduled for removal. Use ``sort_content``
-               instead.
         on_error : str
             What to do if a file cannot be rendered. Can be 'ignore',
             'warn' (default), or 'raise'.
@@ -2577,14 +2215,6 @@ class Report(object):
         data_path = str(data_path)
         image_format = _check_image_format(self, image_format)
         _check_option('on_error', on_error, ['ignore', 'warn', 'raise'])
-
-        if sort_sections is not None:
-            warn(
-                message='The "sort_sections" parameter has been deprecated. '
-                        'Please use "sort_content" instead',
-                category=DeprecationWarning
-            )
-            sort_content = sort_sections
 
         n_jobs = check_n_jobs(n_jobs)
         self.data_path = data_path

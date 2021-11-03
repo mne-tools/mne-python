@@ -795,30 +795,6 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     with pytest.raises(ValueError, match='Sources and target do not have'):
         ica.score_sources(raw, target=np.arange(1))
 
-    params = []
-    params += [(None, -1, slice(2), [0, 1])]  # variance, kurtosis params
-    params += [(None, 'MEG 1531')]  # ECG / EOG channel params
-    for idx, ch_name in product(*params):
-        with pytest.warns(DeprecationWarning, match='detect_artifacts is dep'):
-            ica.detect_artifacts(
-                raw, start_find=0, stop_find=50, ecg_ch=ch_name,
-                eog_ch=ch_name, skew_criterion=idx,
-                var_criterion=idx, kurt_criterion=idx
-            )
-
-    # Make sure detect_artifacts marks the right components.
-    # For int criterion, the doc says "E.g. range(2) would return the two
-    # sources with the highest score". Assert that's what it does.
-    # Only test for skew, since it's always the same code.
-    ica.exclude = []
-    with pytest.warns(DeprecationWarning, match='detect_artifacts is depreca'):
-        ica.detect_artifacts(
-            raw, start_find=0, stop_find=50, ecg_ch=None,
-            eog_ch=None, skew_criterion=0,
-            var_criterion=None, kurt_criterion=None
-        )
-    assert np.abs(scores[ica.exclude]) == np.max(np.abs(scores))
-
     evoked = epochs.average()
     evoked_data = evoked.data.copy()
     raw_data = raw[:][0].copy()
@@ -1012,25 +988,6 @@ def test_ica_cov(method, cov, tmp_path, short_raw_epochs):
         ica_raw = ica.get_sources(raw)
         assert (ica.exclude == [ica_raw.ch_names.index(e) for e in
                                 ica_raw.info['bads']])
-
-
-@requires_sklearn
-@pytest.mark.parametrize("method", ("fastica", "picard", "infomax"))
-@pytest.mark.parametrize("idx", (None, -1, slice(2), [0, 1]))
-@pytest.mark.parametrize("ch_name", (None, 'MEG 1531'))
-def test_detect_artifacts_replacement_of_run_ica(method, idx, ch_name):
-    """Test replacement workflow for run_ica() function."""
-    _skip_check_picard(method)
-    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
-    ica = ICA(n_components=2, method=method)
-    ica.fit(raw)
-
-    with pytest.warns(DeprecationWarning, match='detect_artifacts is depreca'):
-        ica.detect_artifacts(
-            raw, start_find=0, stop_find=5, ecg_ch=ch_name,
-            eog_ch=ch_name, skew_criterion=idx,
-            var_criterion=idx, kurt_criterion=idx
-        )
 
 
 @requires_sklearn

@@ -2911,8 +2911,8 @@ class Brain(object):
         self._renderer.show()
 
     @fill_doc
-    def show_view(self, view=None, roll=None, distance=None,
-                  row='deprecated', col='deprecated', hemi=None, align=True,
+    def show_view(self, view=None, roll=None, distance=None, *,
+                  row=None, col=None, hemi=None, align=True,
                   azimuth=None, elevation=None, focalpoint=None):
         """Orient camera to display view.
 
@@ -2936,6 +2936,8 @@ class Brain(object):
         %(elevation)s
         %(focalpoint)s
         """
+        _validate_type(row, ('int-like', None), 'row')
+        _validate_type(col, ('int-like', None), 'col')
         hemi = self._hemi if hemi is None else hemi
         if hemi == 'split':
             if (self._view_layout == 'vertical' and col == 1 or
@@ -2952,16 +2954,6 @@ class Brain(object):
             if elevation is None and 'elevation' in view:
                 elevation = view['elevation']
             view = None
-        if (row == 'deprecated' or col == 'deprecated') and \
-                len(set([_ for h in self._hemis
-                         for _ in self._iter_views(h)])) > 1:
-            warn('`row` and `col` default behavior is changing, in version '
-                 '0.25 the default behavior will be to apply `show_view` to '
-                 'all views', DeprecationWarning)
-        if row == 'deprecated':
-            row = None
-        if col == 'deprecated':
-            col = None
         view_params = dict(azimuth=azimuth, elevation=elevation, roll=roll,
                            distance=distance, focalpoint=focalpoint)
         if view is not None:  # view string takes precedence

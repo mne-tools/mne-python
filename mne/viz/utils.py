@@ -2065,52 +2065,6 @@ def _make_combine_callable(combine):
     return combine
 
 
-@deprecated('Use cnorm parameter instead.')
-def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
-    """Center given colormap (ranging from vmin to vmax) at value 0.
-
-    Parameters
-    ----------
-    cmap : matplotlib.colors.Colormap
-        The colormap to center around 0.
-    vmin : float
-        Minimum value in the data to map to the lower end of the colormap.
-    vmax : float
-        Maximum value in the data to map to the upper end of the colormap.
-    name : str
-        Name of the new colormap. Defaults to 'cmap_centered'.
-
-    Returns
-    -------
-    cmap_centered : matplotlib.colors.Colormap
-        The new colormap centered around 0.
-
-    Notes
-    -----
-    This function can be used in situations where vmin and vmax are not
-    symmetric around zero. Normally, this results in the value zero not being
-    mapped to white anymore in many colormaps. Using this function, the value
-    zero will be mapped to white even for asymmetric positive and negative
-    value ranges. Note that this could also be achieved by re-normalizing a
-    given colormap by subclassing matplotlib.colors.Normalize as described
-    here:
-    https://matplotlib.org/users/colormapnorms.html#custom-normalization-two-linear-ranges
-    """  # noqa: E501
-    from matplotlib.colors import LinearSegmentedColormap
-
-    vzero = abs(vmin) / float(vmax - vmin)
-    index_old = np.linspace(0, 1, cmap.N)
-    index_new = np.hstack([np.linspace(0, vzero, cmap.N // 2, endpoint=False),
-                           np.linspace(vzero, 1, cmap.N // 2)])
-
-    colors = "red", "green", "blue", "alpha"
-    cdict = {name: [] for name in colors}
-    for old, new in zip(index_old, index_new):
-        for color, name in zip(cmap(old), colors):
-            cdict[name].append((new, color, color))
-    return LinearSegmentedColormap(name, cdict)
-
-
 def _convert_psds(psds, dB, estimate, scaling, unit, ch_names=None,
                   first_dim='channel'):
     """Convert PSDs to dB (if necessary) and appropriate units.
