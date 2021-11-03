@@ -11,7 +11,7 @@
 #          Daniel McCloy <dan@mccloy.info>
 #
 # License: Simplified BSD
-
+import sys
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import partial
@@ -107,6 +107,37 @@ def plt_show(show=True, fig=None, **kwargs):
     import matplotlib.pyplot as plt
     if show and get_backend() != 'agg':
         (fig or plt).show(**kwargs)
+
+
+def _show_browser(show=True, block=True, fig=None, **kwargs):
+    """Show the browser considering different backends.
+
+    Parameters
+    ----------
+    show : bool
+        Show the figure.
+    block : bool
+        If to block execution on showing.
+    fig : instance of Figure | None
+        Needs to be passed for pyqtgraph backend,
+         optional for matplotlib.
+    **kwargs : dict
+        Extra arguments for :func:`matplotlib.pyplot.show`.
+    """
+    from ._figure import get_browser_backend
+    backend = get_browser_backend()
+    if backend == 'matplotlib':
+        plt_show(show, block=block, **kwargs)
+    else:
+        from qtpy.QtWidgets import QApplication
+        app = QApplication.instance() or QApplication(sys.argv)
+        app.setApplicationName('MNE-Python')
+        if show:
+            fig.show()
+        # If block=False, a Qt-Event-Loop has to be started
+        # somewhere else in the calling code.
+        if block:
+            app.exec()
 
 
 def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):

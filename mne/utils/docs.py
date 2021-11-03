@@ -1515,6 +1515,29 @@ time_format : 'float' | 'clock'
     .. versionadded:: 0.24
 """
 
+# Visualization with pyqtgraph
+docdict['precompute'] = """
+precompute : bool | str
+    Whether to load all data (not just the visible portion) into RAM and
+    apply preprocessing (e.g., projectors) to the full data array in a separate
+    processor thread, instead of window-by-window during scrolling. The default
+    ``'auto'`` compares available RAM space to the expected size of the
+    precomputed data, and precomputes only if enough RAM is available. ``True``
+    and ``'auto'`` only work if using the pyQtGraph backend.
+
+    .. versionadded:: 0.24
+"""
+
+docdict['use_opengl'] = """
+use_opengl : bool
+    Whether to use OpenGL when rendering the plot (requires ``pyopengl``).
+    May increase performance, but effect is dependent on system CPU and
+    graphics hardware. Only works if using the pyQtGraph backend. Default is
+    ``True``.
+
+    .. versionadded:: 0.24
+"""
+
 # PSD plotting
 docdict["plot_psd_doc"] = """
 Plot the power spectral density across channels.

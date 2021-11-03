@@ -25,7 +25,8 @@ from mne.datasets import testing
 from mne.fixes import has_numba
 from mne.io import read_raw_fif, read_raw_ctf
 from mne.stats import cluster_level
-from mne.utils import _pl, _assert_no_instances, numerics, Bunch
+from mne.utils import (_pl, _assert_no_instances, numerics, Bunch,
+                       _check_pyqt5_version)
 
 # data from sample dataset
 from mne.viz._figure import use_browser_backend
@@ -61,7 +62,7 @@ collect_ignore = ['export/_eeglab.py', 'export/_edf.py']
 def pytest_configure(config):
     """Configure pytest options."""
     # Markers
-    for marker in ('slowtest', 'ultraslowtest'):
+    for marker in ('slowtest', 'ultraslowtest', 'pgtest'):
         config.addinivalue_line('markers', marker)
 
     # Fixtures
@@ -397,11 +398,52 @@ def garbage_collect():
     gc.collect()
 
 
-@pytest.fixture(params=['matplotlib'])
-def browse_backend(request, garbage_collect):
-    """Parametrizes the name of the browser backend."""
-    with use_browser_backend(request.param) as backend:
+@pytest.fixture
+def mpl_backend(garbage_collect):
+    """Use for epochs/ica when not implemented with pyqtgraph yet."""
+    with use_browser_backend('matplotlib') as backend:
         yield backend
+        backend._close_all()
+
+
+def _check_pyqtgraph():
+    try:
+        import PyQt5  # noqa: F401
+    except ModuleNotFoundError:
+        pytest.skip('PyQt5 is not installed but needed for pyqtgraph!')
+    try:
+        assert LooseVersion(_check_pyqt5_version()) >= LooseVersion('5.12')
+    except AssertionError:
+        pytest.skip(f'PyQt5 has version {_check_pyqt5_version()}'
+                    f'but pyqtgraph needs >= 5.12!')
+    try:
+        import mne_qt_browser  # noqa: F401
+    except Exception:
+        pytest.skip('Requires mne_qt_browser')
+
+
+@pytest.mark.pgtest
+@pytest.fixture
+def pg_backend(garbage_collect):
+    """Use for pyqtgraph-specific test-functions."""
+    _check_pyqtgraph()
+    with use_browser_backend('pyqtgraph') as backend:
+        yield backend
+        backend._close_all()
+
+
+@pytest.fixture(params=[
+    'matplotlib',
+    pytest.param('pyqtgraph', marks=pytest.mark.pgtest),
+])
+def browser_backend(request, garbage_collect):
+    """Parametrizes the name of the browser backend."""
+    backend_name = request.param
+    if backend_name == 'pyqtgraph':
+        _check_pyqtgraph()
+    with use_browser_backend(backend_name) as backend:
+        yield backend
+        backend._close_all()
 
 
 @pytest.fixture(params=["mayavi", "pyvistaqt"])
@@ -446,7 +488,7 @@ def renderer_interactive(request):
         if renderer._get_3d_backend() == 'mayavi':
             with warnings.catch_warnings(record=True):
                 try:
-                    from surfer import Brain  # noqa: 401 analysis:ignore
+                    from surfer import Brain  # noqa: F401 analysis:ignore
                 except Exception:
                     pytest.skip('Requires PySurfer')
         yield renderer

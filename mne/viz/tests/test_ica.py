@@ -208,7 +208,7 @@ def test_plot_ica_properties():
 
 
 @requires_sklearn
-def test_plot_ica_sources(raw_orig, browse_backend):
+def test_plot_ica_sources(raw_orig, mpl_backend):
     """Test plotting of ICA panel."""
     raw = raw_orig.copy().crop(0, 1)
     picks = _get_picks(raw)
@@ -220,7 +220,7 @@ def test_plot_ica_sources(raw_orig, browse_backend):
     ica.fit(raw, picks=ica_picks)
     ica.exclude = [1]
     fig = ica.plot_sources(raw)
-    assert browse_backend._get_n_figs() == 1
+    assert mpl_backend._get_n_figs() == 1
     # change which component is in ICA.exclude (click data trace to remove
     # current one; click name to add other one)
     fig._redraw()
@@ -231,12 +231,12 @@ def test_plot_ica_sources(raw_orig, browse_backend):
     _click_ch_name(fig, ch_index=0, button=1)                # exclude = [0]
     fig._fake_keypress(fig.mne.close_key)
     fig._close_event()
-    assert browse_backend._get_n_figs() == 0
+    assert mpl_backend._get_n_figs() == 0
     assert_array_equal(ica.exclude, [0])
     # test when picks does not include ica.exclude.
     fig = ica.plot_sources(raw, picks=[1])
     assert len(plt.get_fignums()) == 1
-    browse_backend._close_all()
+    mpl_backend._close_all()
 
     # dtype can change int->np.int64 after load, test it explicitly
     ica.n_components_ = np.int64(ica.n_components_)

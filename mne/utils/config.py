@@ -512,7 +512,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     """  # noqa: E501
     _validate_type(dependencies, str)
     _check_option('dependencies', dependencies, ('user', 'developer'))
-    ljust = 21 if dependencies == 'developer' else 15
+    ljust = 21 if dependencies == 'developer' else 16
     platform_str = platform.platform()
     if platform.system() == 'Darwin' and sys.version_info[:2] < (3, 8):
         # platform.platform() in Python < 3.8 doesn't call
@@ -548,7 +548,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     use_mod_names = ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
                      'numba', 'nibabel', 'nilearn', 'dipy', 'cupy', 'pandas',
                      'mayavi', 'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk',
-                     'PyQt5', 'ipympl')
+                     'PyQt5', 'ipympl', 'mne_qt_browser')
     if dependencies == 'developer':
         use_mod_names += (
             '', 'sphinx', 'sphinx_gallery', 'numpydoc', 'pydata_sphinx_theme',

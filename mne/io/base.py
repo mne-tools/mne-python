@@ -1517,22 +1517,23 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @copy_function_doc_to_method_doc(plot_raw)
     def plot(self, events=None, duration=10.0, start=0.0, n_channels=20,
-             bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
+             bgcolor='w', color=None, bad_color='lightgray',
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=_RAW_CLIP_DEF,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
              show_scrollbars=True, show_scalebars=True, time_format='float',
-             verbose=None):
+             precompute='auto', use_opengl=True, verbose=None):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
                         lowpass, filtorder, clipping, show_first_samp,
                         proj, group_by, butterfly, decim, noise_cov=noise_cov,
                         event_id=event_id, show_scrollbars=show_scrollbars,
-                        show_scalebars=show_scalebars,
-                        time_format=time_format, verbose=verbose)
+                        show_scalebars=show_scalebars, time_format=time_format,
+                        precompute=precompute, use_opengl=use_opengl,
+                        verbose=verbose)
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)
