@@ -584,7 +584,7 @@ class SetChannelsMixin(MontageMixin):
         Notes
         -----
         This function plots the sensor locations from the info structure using
-        matplotlib. For drawing the sensors using mayavi see
+        matplotlib. For drawing the sensors using PyVista see
         :func:`mne.viz.plot_alignment`.
 
         .. versionadded:: 0.12.0

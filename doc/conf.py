@@ -140,7 +140,6 @@ intersphinx_mapping = {
     'sklearn': ('https://scikit-learn.org/stable', None),
     'numba': ('https://numba.pydata.org/numba-doc/latest', None),
     'joblib': ('https://joblib.readthedocs.io/en/latest', None),
-    'mayavi': ('http://docs.enthought.com/mayavi/mayavi', None),
     'nibabel': ('https://nipy.org/nibabel', None),
     'nilearn': ('http://nilearn.github.io', None),
     'surfer': ('https://pysurfer.github.io/', None),
@@ -180,9 +179,6 @@ numpydoc_xref_aliases = {
     'Figure': 'matplotlib.figure.Figure',
     'Axes3D': 'mpl_toolkits.mplot3d.axes3d.Axes3D',
     'ColorbarBase': 'matplotlib.colorbar.ColorbarBase',
-    # Mayavi
-    'mayavi.mlab.Figure': 'mayavi.core.api.Scene',
-    'mlab.Figure': 'mayavi.core.api.Scene',
     # sklearn
     'LeaveOneOut': 'sklearn.model_selection.LeaveOneOut',
     # joblib
@@ -258,9 +254,10 @@ numpydoc_xref_ignore = {
     # sklearn subclasses
     'mapping', 'to', 'any',
     # unlinkable
-    'mayavi.mlab.pipeline.surface',
     'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame', 'CoregistrationUI',
     'IntracranialElectrodeLocator'
+    # We need to fix these: "PyVista renderer" and "PyVista surface"
+    'renderer', 'surface',
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)
@@ -344,18 +341,7 @@ except Exception:
     report_scraper = None
 else:
     backend = mne.viz.get_3d_backend()
-    if backend == 'mayavi':
-        from traits.api import push_exception_handler
-        mlab = mne.utils._import_mlab()
-        # Do not pop up any mayavi windows while running the
-        # examples. These are very annoying since they steal the focus.
-        mlab.options.offscreen = True
-        # hack to initialize the Mayavi Engine
-        mlab.test_plot3d()
-        mlab.close()
-        scrapers += ('mayavi',)
-        push_exception_handler(reraise_exceptions=True)
-    elif backend in ('notebook', 'pyvistaqt'):
+    if backend in ('notebook', 'pyvistaqt'):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             import pyvista

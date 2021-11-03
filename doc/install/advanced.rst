@@ -44,13 +44,11 @@ interactivity within the scene is limited in non-blocking plot calls.
   :class: note
 
   If you are using MNE-Python on Windows through IPython or Jupyter, you might
-  also have to use the IPython magic command ``%gui qt`` after importing
-  MNE-Python, Mayavi or PySurfer (see `here
+  also have to use the IPython magic command ``%gui qt`` (see `here
   <https://github.com/ipython/ipython/issues/10384>`_). For example:
 
   .. code-block:: ipython
 
-     In [1]: from mayavi import mlab
      In [2]: %gui qt
 
 If you installed the ``nb_conda_kernels`` package into your ``base``

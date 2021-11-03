@@ -226,7 +226,7 @@ def _validate_if_list_of_axes(axes, obligatory_len=None):
                          ' length is %d' % (obligatory_len, len(axes)))
 
 
-def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
+def mne_analyze_colormap(limits=[5, 10, 15], format='vtk'):
     """Return a colormap similar to that used by mne_analyze.
 
     Parameters
@@ -236,7 +236,7 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
         3, or completely specified (and potentially asymmetric) if length 6.
     format : str
         Type of colormap to return. If 'matplotlib', will return a
-        matplotlib.colors.LinearSegmentedColormap. If 'mayavi', will
+        matplotlib.colors.LinearSegmentedColormap. If 'vtk', will
         return an RGBA array of shape (256, 4).
 
     Returns
@@ -294,7 +294,7 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
                            (limits[5], 1.0, 1.0)),
                  }
         return colors.LinearSegmentedColormap('mne_analyze', cdict)
-    elif format == 'mayavi':
+    elif format in ('vtk', 'mayavi'):
         if len(limits) == 3:
             limits = np.concatenate((-np.flipud(limits), [0], limits)) /\
                 limits[-1]
@@ -310,7 +310,9 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
                           for c in [r, g, b, a]]].T
         return colormap
     else:
-        raise ValueError('format must be either matplotlib or mayavi')
+        # Use this instead of check_option because we have a hidden option
+        raise ValueError(
+            f'format must be either matplotlib or vtk, got {repr(format)}')
 
 
 @contextmanager
@@ -913,7 +915,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     Notes
     -----
     This function plots the sensor locations from the info structure using
-    matplotlib. For drawing the sensors using mayavi see
+    matplotlib. For drawing the sensors using PyVista see
     :func:`mne.viz.plot_alignment`.
 
     .. versionadded:: 0.12.0
