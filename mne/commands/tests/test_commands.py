@@ -22,9 +22,8 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_prepare_bem_model, mne_sys_info)
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_info
-from mne.utils import (requires_mne,
-                       requires_mayavi, requires_vtk, requires_freesurfer,
-                       requires_nibabel, traits_test, ArgvSetter, modified_env,
+from mne.utils import (requires_mne, requires_vtk, requires_freesurfer,
+                       requires_nibabel, ArgvSetter, modified_env,
                        _stamp_to_dt)
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -187,8 +186,6 @@ def test_maxfilter():
 
 
 @pytest.mark.slowtest
-@requires_mayavi
-@traits_test
 @testing.requires_testing_data
 def test_report(tmp_path):
     """Test mne report."""

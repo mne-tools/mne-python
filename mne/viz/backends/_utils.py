@@ -19,7 +19,6 @@ VALID_BROWSE_BACKENDS = (
 
 VALID_3D_BACKENDS = (
     'pyvistaqt',  # default 3d backend
-    'mayavi',
     'notebook',
 )
 ALLOWED_QUIVER_MODES = ('2darrow', 'arrow', 'cone', 'cylinder', 'sphere',

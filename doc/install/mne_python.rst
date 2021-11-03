@@ -51,12 +51,6 @@ your operating system.
 
        $ conda create --name=mne --channel=conda-forge mne
 
-   .. collapse:: |hand-paper| If you get errors building mayavi...
-       :class: danger
-
-       Installing `mayavi`_ needs OpenGL support. On debian-like systems this
-       means installing ``libopengl0``, i.e., ``sudo apt install libopengl0``.
-
 .. collapse:: |apple| macOS
 
     Install MNE-Python into a new environment (here called ``mne``, but you can
@@ -121,20 +115,6 @@ Installing to a headless server
         $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
         $ conda create --name=mne --file=server_environment.yml
 
-    With `mayavi`_:
-    Installing `mayavi`_ requires a running `X server`_. If you are installing
-    MNE-Python into a computer with no display connected to it, you can try
-    downloading the :file:`environment.yml` file and removing `mayavi`_ from it
-    before running :samp:`conda create --name mne --file environment.yml`, then
-    activating the new environment, and then installing `mayavi`_ using `xvfb`_
-    (e.g., :samp:`xvfb-run pip install mayavi`). Be sure to read Mayavi's
-    instructions on `off-screen rendering`_ and `rendering with a virtual
-    framebuffer`_.
-
-    Note: if :samp:`xvfb` is not already installed on your server, you will
-    need administrator privileges to install it.
-
-
 Testing your installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -163,7 +143,6 @@ MNE-Python and its dependencies. Typical output looks like this::
     cupy:          Not found
     pandas:        1.0.3
     dipy:          1.1.1
-    mayavi:        4.7.2.dev0
     pyvista:       0.25.2 {pyvistaqt=0.1.0}
     vtk:           9.0.0
     PyQt5:         5.14.1
@@ -250,12 +229,9 @@ Python development are:
 
 .. _environment file: https://raw.githubusercontent.com/mne-tools/mne-python/main/environment.yml
 .. _server environment file: https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
-.. _`mayavi`: https://docs.enthought.com/mayavi/mayavi/
 .. _`pyvista`: https://docs.pyvista.org/
 .. _`X server`: https://en.wikipedia.org/wiki/X_Window_System
 .. _`xvfb`: https://en.wikipedia.org/wiki/Xvfb
-.. _`off-screen rendering`: https://docs.enthought.com/mayavi/mayavi/tips.html#off-screen-rendering
-.. _`rendering with a virtual framebuffer`: https://docs.enthought.com/mayavi/mayavi/tips.html#rendering-using-the-virtual-framebuffer
 .. _`integrated development environment`: https://en.wikipedia.org/wiki/Integrated_development_environment
 .. _`spyder`: https://www.spyder-ide.org/
 .. _`visual studio code`: https://code.visualstudio.com/

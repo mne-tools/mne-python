@@ -17,13 +17,10 @@ Use without arguments to invoke GUI:
 
 """
 
-from contextlib import nullcontext
 import sys
-import warnings
 
 import mne
 from mne.io import read_raw_kit
-from mne.utils import ETSContext
 
 
 def run():
@@ -62,15 +59,13 @@ def run():
 
     input_fname = options.input_fname
     if input_fname is None:
-        ctx = nullcontext()
         try:
             from mne_kit_gui import kit2fiff  # noqa
         except ImportError:
-            kit2fiff = mne.gui.kit2fiff
-            ctx = ETSContext()
-        with ctx, warnings.catch_warnings():
-            warnings.simplefilter('always', DeprecationWarning)
-            kit2fiff()
+            raise ImportError(
+                'The mne_kit_gui package is required, install it using '
+                'conda or pip') from None
+        kit2fiff()
         sys.exit(0)
 
     hsp_fname = options.hsp_fname

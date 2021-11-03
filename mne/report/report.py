@@ -283,7 +283,7 @@ class _ContentElement:
 
 def _fig_to_img(fig, *, image_format='png', auto_close=True):
     """Plot figure and create a binary image."""
-    # fig can be ndarray, mpl Figure, Mayavi Figure
+    # fig can be ndarray, mpl Figure, PyVista Figure
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
     if isinstance(fig, np.ndarray):
@@ -1857,10 +1857,10 @@ class Report(object):
 
         Parameters
         ----------
-        fig : matplotlib.figure.Figure | mlab.Figure | array | collection of matplotlib.figure.Figure | collection of mlab.Figure | collection of array
+        fig : matplotlib.figure.Figure | PyVista renderer | array | collection of matplotlib.figure.Figure | collection of PyVista renderer | collection of array
             One or more figures to add to the report. All figures must be an
             instance of :class:`matplotlib.figure.Figure`,
-            :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`. If
+            PyVista renderer, or :class:`numpy.ndarray`. If
             multiple figures are passed, they will be added as "slides"
             that can be navigated using buttons and a slider element.
         title : str
@@ -1888,7 +1888,7 @@ class Report(object):
             if _path_like(fig):
                 raise TypeError(
                     f'It seems you passed a path to `add_figure`. However, '
-                    f'only Matplotlib figures, Mayavi scenes, and NumPy '
+                    f'only Matplotlib figures, PyVista scenes, and NumPy '
                     f'arrays are accepted. You may want to try `add_image` '
                     f'instead. The provided path was: {fig}'
                 )
@@ -1937,10 +1937,10 @@ class Report(object):
 
         Parameters
         ----------
-        figs : matplotlib.figure.Figure | mlab.Figure | array | list
+        figs : matplotlib.figure.Figure | PyVista renderer | array | list
             A figure or a list of figures to add to the report. Each figure in
             the list can be an instance of :class:`matplotlib.figure.Figure`,
-            :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
+            PyVista renderer, or :class:`numpy.ndarray`.
         captions : str | list of str
             A caption or a list of captions to the figures.
         section : str
@@ -1977,7 +1977,7 @@ class Report(object):
         ):
             raise TypeError(
                 'It seems you passed a path to `add_figs_to_section`. '
-                'However, only Matplotlib figures, Mayavi scenes, and NumPy '
+                'However, only Matplotlib figures, PyVista scenes, and NumPy '
                 'arrays are accepted. You may want to try `add_image` instead.'
             )
 
@@ -2334,7 +2334,7 @@ class Report(object):
         figs : list of Figure
             Each figure in the list can be an instance of
             :class:`matplotlib.figure.Figure`,
-            :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
+            PyVista renderer, or :class:`numpy.ndarray`.
         captions : list of str | list of float | None
             A list of captions to the figures. If ``None``, it will default to
             ``Data slice [i]``.

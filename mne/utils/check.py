@@ -101,12 +101,6 @@ def _require_version(lib, what, version='0.0'):
         raise ImportError(f'The {lib} package{extra} is required to {what}')
 
 
-def _check_mayavi_version(min_version='4.3.0'):
-    """Check mayavi version."""
-    if not check_version('mayavi', min_version):
-        raise RuntimeError("Need mayavi >= %s" % min_version)
-
-
 # adapted from scikit-learn utils/validation.py
 def check_random_state(seed):
     """Turn seed into a numpy.random.mtrand.RandomState instance.
@@ -665,8 +659,11 @@ def _check_option(parameter, value, allowed_values, extra=''):
         options = f'The only allowed value is {repr(allowed_values[0])}'
     else:
         options = 'Allowed values are '
-        options += ', '.join([f'{repr(v)}' for v in allowed_values[:-1]])
-        options += f', and {repr(allowed_values[-1])}'
+        if len(allowed_values) == 2:
+            options += ' and '.join(repr(v) for v in allowed_values)
+        else:
+            options += ', '.join(repr(v) for v in allowed_values[:-1])
+            options += f', and {repr(allowed_values[-1])}'
     raise ValueError(msg.format(parameter=parameter, options=options,
                                 value=value, extra=extra))
 

@@ -289,10 +289,9 @@ class Brain(object):
         Color of the foreground (will be used for colorbars and text).
         None (default) will use black or white depending on the value
         of ``background``.
-    figure : list of Figure | None | int
+    figure : list of Figure | None
         If None (default), a new window will be created with the appropriate
-        views. For single view plots, the figure can be specified as int to
-        retrieve the corresponding Mayavi window.
+        views.
     subjects_dir : str | None
         If not None, this directory will be used as the subjects directory
         instead of the value set using the SUBJECTS_DIR environment
@@ -336,7 +335,7 @@ class Brain(object):
     Attributes
     ----------
     geo : dict
-        A dictionary of pysurfer.Surface objects for each hemisphere.
+        A dictionary of PyVista surface objects for each hemisphere.
     overlays : dict
         The overlays.
 
@@ -1943,7 +1942,7 @@ class Brain(object):
         in which case only as many smoothing steps are applied until the whole
         surface is filled with non-zeros.
 
-        Due to a Mayavi (or VTK) alpha rendering bug, ``vector_alpha`` is
+        Due to a VTK alpha rendering bug, ``vector_alpha`` is
         clamped to be strictly < 1.
         """
         _validate_type(transparent, bool, 'transparent')
@@ -2784,7 +2783,7 @@ class Brain(object):
                 self._vertex_to_label_id[hemi][label.vertices] = idx
 
     def add_annotation(self, annot, borders=True, alpha=1, hemi=None,
-                       remove_existing=True, color=None, **kwargs):
+                       remove_existing=True, color=None):
         """Add an annotation file.
 
         Parameters
@@ -2812,9 +2811,6 @@ class Brain(object):
         color : matplotlib-style color code
             If used, show all annotations in the same (specified) color.
             Probably useful only when showing annotation borders.
-        **kwargs : dict
-            These are passed to the underlying
-            ``mayavi.mlab.pipeline.surface`` call.
         """
         from ...label import _read_annot
         hemis = self._check_hemis(hemi)

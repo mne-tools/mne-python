@@ -31,7 +31,7 @@ elif [[ "$CIRCLE_JOB" == "linkcheck"* ]]; then
 else  # standard doc build
 	echo "Installing doc build dependencies"
 	python -m pip uninstall -y pydata-sphinx-theme
-	python -m pip install --upgrade --progress-bar off --only-binary matplotlib -r <(grep -Ev "mayavi|PySurfer" requirements.txt) -r requirements_testing.txt -r requirements_doc.txt
+	python -m pip install --upgrade --progress-bar off --only-binary matplotlib -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
 	python -m pip install --progress-bar off https://github.com/sphinx-gallery/sphinx-gallery/zipball/master https://github.com/pyvista/pyvista/zipball/main https://github.com/pyvista/pyvistaqt/zipball/main
 	# deal with comparisons and escapes (https://app.circleci.com/pipelines/github/mne-tools/mne-python/9686/workflows/3fd32b47-3254-4812-8b9a-8bab0d646d18/jobs/32934)
 	python -m pip install --upgrade quantities
