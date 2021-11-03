@@ -66,7 +66,7 @@ brain = stc_fs.plot(subjects_dir=subjects_dir, initial_time=initial_time,
 
 # to help orient us, let's add a parcellation (red=auditory, green=motor,
 # blue=visual)
-brain.add_annotation('HCPMMP1_combined', borders=2, subjects_dir=subjects_dir)
+brain.add_annotation('HCPMMP1_combined', borders=2)
 
 # You can save a movie like the one on our documentation website with:
 # brain.save_movie(time_dilation=20, tmin=0.05, tmax=0.16,
