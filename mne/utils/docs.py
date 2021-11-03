@@ -1725,7 +1725,7 @@ allow_duplicates : bool
 
 # Brain plotting
 docdict["view"] = """
-view : str
+view : str | None
     The name of the view to show (e.g. "lateral"). Other arguments
     take precedence and modify the camera starting from the ``view``.
 """
