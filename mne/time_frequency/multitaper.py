@@ -6,7 +6,6 @@
 import operator
 import numpy as np
 
-from ..fixes import _import_fft
 from ..parallel import parallel_func, check_n_jobs
 from ..utils import sum_squared, warn, verbose, logger, _check_option
 
@@ -60,9 +59,9 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     .. footbibliography::
     """
     from scipy import interpolate
+    from scipy.fft import rfft, irfft
     from scipy.signal.windows import dpss as sp_dpss
     from ..filter import next_fast_len
-    rfft, irfft = _import_fft(('rfft', 'irfft'))
     # This np.int32 business works around a weird Windows bug, see
     # gh-5039 and https://github.com/scipy/scipy/pull/8608
     Kmax = np.int32(operator.index(Kmax))
@@ -300,7 +299,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
     freqs : array
         The frequency points in Hz of the spectra
     """
-    rfft, rfftfreq = _import_fft(('rfft', 'rfftfreq'))
+    from scipy.fft import rfft, rfftfreq
     if n_fft is None:
         n_fft = x.shape[-1]
 
@@ -412,7 +411,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     -----
     .. versionadded:: 0.14.0
     """
-    rfftfreq = _import_fft('rfftfreq')
+    from scipy.fft import rfftfreq
     _check_option('normalization', normalization, ['length', 'full'])
 
     # Reshape data so its 2-D for parallelization

@@ -17,7 +17,6 @@ import numpy as np
 from .multitaper import dpss_windows
 
 from ..baseline import rescale
-from ..fixes import _import_fft
 from ..filter import next_fast_len
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
@@ -219,7 +218,7 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
     out : array, shape (n_signals, n_freqs, n_time_decim)
         The time-frequency transform of the signals.
     """
-    fft, ifft = _import_fft(('fft', 'ifft'))
+    from scipy.fft import fft, ifft
     _check_option('mode', mode, ['same', 'valid', 'full'])
     decim = _check_decim(decim)
     X = np.asarray(X)
