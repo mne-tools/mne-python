@@ -20,7 +20,7 @@ from functools import partial
 import numpy as np
 
 from ..defaults import DEFAULTS
-from ..fixes import _crop_colorbar, _get_img_fdata, _get_args
+from ..fixes import _crop_colorbar, _get_img_fdata
 from .._freesurfer import (_read_mri_info, _check_mri, _get_head_surface,
                            _get_skull_surface)
 from ..io import _loc_to_coil_trans
@@ -1950,7 +1950,6 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     if transparent is None:
         transparent = True
     center = 0. if diverging else None
-    sd_kwargs = dict(transparent=transparent, center=center, verbose=False)
     kwargs = {
         "array": stc,
         "colormap": colormap,

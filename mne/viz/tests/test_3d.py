@@ -139,8 +139,9 @@ def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     stc_data[1, 4] = 2.
     vertices = [vertices[inds], np.empty(0, dtype=np.int64)]
     stc = SourceEstimate(stc_data, vertices, 1, 1)
-    surf = plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
-                                        opacity=0.5, high_resolution=False)
+    plot_sparse_source_estimates(
+        sample_src, stc, bgcolor=(1, 1, 1), opacity=0.5,
+        high_resolution=False)
 
 
 @testing.requires_testing_data
@@ -155,7 +156,7 @@ def test_plot_evoked_field(renderer):
             maps = make_field_map(evoked, trans_fname, subject='sample',
                                   subjects_dir=subjects_dir, n_jobs=1,
                                   ch_type=t)
-        fig = evoked.plot_field(maps, time=0.1)
+        evoked.plot_field(maps, time=0.1)
 
 
 def _assert_n_actors(fig, renderer, n_actors):
@@ -255,10 +256,10 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
     # all coord frames
     plot_alignment(info)  # works: surfaces='auto' default
     for coord_frame in ('meg', 'head', 'mri'):
-        fig = plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
-                             coord_frame=coord_frame, trans=Path(trans_fname),
-                             subject='sample', mri_fiducials=fiducials_path,
-                             subjects_dir=subjects_dir, src=src_fname)
+        plot_alignment(
+            info, meg=['helmet', 'sensors'], dig=True, coord_frame=coord_frame,
+            trans=Path(trans_fname), subject='sample', src=src_fname,
+            mri_fiducials=fiducials_path, subjects_dir=subjects_dir)
     renderer.backend._close_all()
     # EEG only with strange options
     evoked_eeg_ecog_seeg = evoked.copy().pick_types(meg=False, eeg=True)
@@ -332,14 +333,15 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
     sphere = make_sphere_model('auto', None, info)  # one layer
     # if you ask for a brain surface with a 1-layer sphere model it's an error
     with pytest.raises(RuntimeError, match='Sphere model does not have'):
-        fig = plot_alignment(trans=trans_fname, subject='sample',
-                             subjects_dir=subjects_dir,
-                             surfaces=['brain'], bem=sphere)
+        plot_alignment(
+            trans=trans_fname, subject='sample', subjects_dir=subjects_dir,
+            surfaces=['brain'], bem=sphere)
     # but you can ask for a specific brain surface, and
     # no info is permitted
-    fig = plot_alignment(trans=trans_fname, subject='sample', meg=False,
-                         coord_frame='mri', subjects_dir=subjects_dir,
-                         surfaces=['white'], bem=sphere, show_axes=True)
+    plot_alignment(
+        trans=trans_fname, subject='sample', meg=False, coord_frame='mri',
+        subjects_dir=subjects_dir, surfaces=['white'], bem=sphere,
+        show_axes=True)
     renderer.backend._close_all()
     # TODO: We need to make this class public and document it properly
     # assert isinstance(fig, some_public_class)
@@ -702,15 +704,12 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
         these_kwargs = kwargs.copy()
         these_kwargs.update(show_traces=True, time_viewer=False)
         meth(**these_kwargs)
-    if not is_pyvista:
-        with pytest.raises(ValueError, match='view_layout must be'):
-            meth(view_layout='horizontal', **kwargs)
 
     # flatmaps (mostly a lot of error checking)
     these_kwargs = kwargs.copy()
     these_kwargs.update(surface='flat', views='auto', hemi='both',
                         verbose='debug')
-    if kind == 'surface' and pick_ori != 'vector' and is_pyvista:
+    if kind == 'surface' and pick_ori != 'vector':
         with catch_logging() as log:
             with pytest.raises(FileNotFoundError, match='flatmap'):
                 meth(**these_kwargs)  # sample does not have them
@@ -725,9 +724,6 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     elif kind != 'surface':
         with pytest.raises(TypeError, match='SourceEstimate when a flatmap'):
             flat_meth(**these_kwargs)
-    elif not is_pyvista:
-        with pytest.raises(RuntimeError, match='PyVista 3D backend.*flatmap'):
-            flat_meth(**these_kwargs)
     else:
         brain = flat_meth(**these_kwargs)
         brain.close()
@@ -739,7 +735,6 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     # just test one for speed
     if kind != 'mixed':
         return
-    assert is_pyvista
     brain = meth(
         views=['lat', 'med', 'ven'], hemi='lh',
         view_layout='horizontal', **kwargs)

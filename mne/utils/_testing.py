@@ -15,7 +15,6 @@ import sys
 import tempfile
 import traceback
 from unittest import SkipTest
-import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose

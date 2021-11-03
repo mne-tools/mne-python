@@ -13,8 +13,8 @@ from contextlib import contextmanager
 import importlib
 
 from ._utils import VALID_3D_BACKENDS
-from ...utils import (logger, verbose, get_config, _check_option, warn,
-                      _require_version, fill_doc, _validate_type)
+from ...utils import (logger, verbose, get_config, _check_option, fill_doc,
+                      _validate_type)
 
 MNE_3D_BACKEND = None
 MNE_3D_BACKEND_TESTING = False

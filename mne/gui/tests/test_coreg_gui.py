@@ -4,22 +4,15 @@
 
 import os
 import os.path as op
-import re
-import shutil
 
-import numpy as np
-from numpy.testing import assert_allclose, assert_array_almost_equal
 import pytest
 import warnings
 
-import mne
 from mne.datasets import testing
 from mne.io import read_info
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io.constants import FIFF
-from mne.surface import dig_mri_distances
-from mne.transforms import invert_transform
-from mne.utils import modified_env, get_config
+from mne.utils import get_config
 from mne.channels import DigMontage
 
 data_path = testing.data_path(download=False)
