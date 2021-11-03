@@ -107,7 +107,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
     Returns
     -------
-    frame : instance of CoregFrame or CoregistrationUI
+    frame : instance of CoregistrationUI
         The coregistration frame.
 
     Notes

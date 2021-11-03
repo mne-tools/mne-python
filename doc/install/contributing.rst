@@ -777,7 +777,7 @@ method :meth:`mne.Epochs.plot` internally calls the function
 All visualization functions must accept a boolean ``show`` parameter and
 typically return a :class:`matplotlib.figure.Figure` (or a list of
 :class:`~matplotlib.figure.Figure` objects). 3D visualization functions return
-a :class:`mayavi.core.api.Scene`, :class:`surfer.Brain`, or other return type
+a PyVista renderer, :class:`surfer.Brain`, or other return type
 as appropriate.
 
 Visualization functions should default to the colormap ``RdBu_r`` for signed
