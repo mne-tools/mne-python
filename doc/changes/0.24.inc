@@ -12,10 +12,10 @@
    like this (where xxxx is the pull request number):
    - description of enhancement/bugfix/API change (:gh:`xxxx` **by new contributor** |Firstname Lastname|_)
 
-.. _current:
+.. _changes_0_24_0:
 
-Current (0.24.dev0)
--------------------
+Version 0.24.0 (2021-11-03)
+---------------------------
 
 .. |New Contributor| replace:: **New Contributor**
 
@@ -374,3 +374,54 @@ API changes
 - The default partial pathlength factor of :func:`mne.preprocessing.nirs.beer_lambert_law` will change from 0.1 in 0.24 to 6.0 in the next release (:gh:`9843` by `Robert Luke`_)
 
 - :meth:`mne.preprocessing.ICA.detect_artifacts` has been deprecated. Please use `~mne.preprocessing.ICA.find_bads_eog` and `~mne.preprocessing.ICA.find_bads_ecg` instead (:gh:`9909` by `Richard Höchenberger`_)
+
+Authors
+~~~~~~~
+People who contributed to this release in alphabetical order
+(people with a + are first time contributors):
+
+* Adam Li
+* Alex Rockhill
+* Alexandre Gramfort
+* Britta Westner
+* Clemens Brunner
+* Daniel McCloy
+* Darin Erat Sleiter+
+* David Julien+
+* Denis A. Engemann
+* Dominique Makowski+
+* Eric Larson
+* Erica Peterson
+* Evan Hathaway
+* Evgeny Goldstein+
+* Fede Raimondo
+* Gansheng Tan+
+* Guillaume Favelier
+* Hubert Banville
+* Jan Sosulski+
+* Jean-Remi King
+* Jeff Stout
+* Johann Benerradi
+* John Samuelsson+
+* Josh Koen+
+* Joshua Teves+
+* Lukas Hecker+
+* Luke Bloy
+* Marian Dovgialo+
+* Marijn van Vliet
+* Martin Schulz
+* Mathieu Scheltienne+
+* Mikołaj Magnuski
+* Pierre-Antoine Bannier+
+* Reza Shoorangiz+
+* Richard Höchenberger
+* Riessarius Stargardsky+
+* Robert Luke
+* Romain Derollepot+
+* Ross Maddox
+* Ryan Law+
+* Stefan Appelhoff
+* Steve Matindi+
+* Timothy Gates+
+* Valerii Chirkov
+* Xiaokai Xia+

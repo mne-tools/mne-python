@@ -517,7 +517,7 @@ workflows:
             branches:
               only:
                 - main
-                - maint/0.23
+                - maint/0.24
 
   weekly:
     jobs:
