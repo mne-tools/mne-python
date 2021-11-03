@@ -17,8 +17,6 @@
 Version 0.24.0 (2021-11-03)
 ---------------------------
 
-.. |New Contributor| replace:: **New Contributor**
-
 .. |David Julien| replace:: **David Julien**
 
 .. |Dominique Makowski| replace:: **Dominique Makowski**
