@@ -553,9 +553,11 @@ html_theme_options = {
     'navbar_end': ['version-switcher', 'navbar-icon-links'],
     'footer_items': ['copyright'],
     'google_analytics_id': 'UA-37225609-1',
-    'switcher_json_url': 'https://mne.tools/dev/_static/versions.json',
-    'switcher_url_template': 'https://mne.tools/{version}/',
-    'switcher_version_match': switcher_version_match,
+    'switcher': {
+        'json_url': 'https://mne.tools/dev/_static/versions.json',
+        'url_template': 'https://mne.tools/{version}/',
+        'version_match': switcher_version_match,
+    }
 }
 
 # The name of an image file (relative to this directory) to place at the top
