@@ -24,7 +24,7 @@ Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
 
-- Added show local maxima toggling button to :func:`mne.gui.locate_ieeg` (:gh:XXX by `Alex Rockhill`_)
+- Add show local maxima toggling button to :func:`mne.gui.locate_ieeg` (:gh:`9952` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
