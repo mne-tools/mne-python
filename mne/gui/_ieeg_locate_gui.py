@@ -773,6 +773,7 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._radius = np.round(self._radius_slider.value()).astype(int)
         if self._toggle_show_max_button.text() == 'Hide Maxima':
             self._update_ct_maxima()
+            self._update_ct_images()
         else:
             self._ct_maxima = None  # signals ct max is out-of-date
         self._update_ch_images(draw=True)
