@@ -1047,7 +1047,7 @@ def test_info_bad():
     info['bads'] = info['ch_names'][:1]
     info['temp'] = ('whatever', 1.)
     # After 0.24 these should be pytest.raises calls
-    check, klass = pytest.warns, DeprecationWarning
+    check, klass = pytest.raises, RuntimeError
     with check(klass, match=r"info\['temp'\]"):
         info['bad_key'] = 1.
     for (key, match) in ([

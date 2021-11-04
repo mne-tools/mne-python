@@ -8,7 +8,7 @@ import numpy as np
 
 from ._peak_finder import peak_finder
 from .. import pick_types, pick_channels
-from ..utils import logger, verbose, _pl, warn, _validate_type
+from ..utils import logger, verbose, _pl, _validate_type
 from ..filter import filter_data
 from ..epochs import Epochs
 
@@ -139,14 +139,7 @@ def _get_eog_channel_index(ch_name, inst):
                               eog=True, ecg=False, emg=False, ref_meg=False,
                               exclude='bads')
         if eog_inds.size == 0:
-            warn('No EOG channel found. Trying with EEG 061 and EEG 062. '
-                 'This functionality will be removed in version 0.24',
-                 DeprecationWarning)
-            eog_inds = pick_channels(inst.ch_names,
-                                     include=['EEG 061', 'EEG 062'])
-            if eog_inds.size == 0:
-                raise ValueError('Could not find any EOG channels.')
-
+            raise RuntimeError('No EOG channel(s) found')
         ch_names = [inst.ch_names[i] for i in eog_inds]
     elif isinstance(ch_name, str):
         ch_names = [ch_name]
