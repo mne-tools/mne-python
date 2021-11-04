@@ -186,5 +186,6 @@ def test_ieeg_elec_locate_gui_display(_locate_ieeg, _fake_CT_coords):
     # test buttons
     gui._toggle_show_brain()
     assert 'mri' in gui._images
+    assert 'local_max' not in gui._images
     gui._toggle_show_max()
     assert 'local_max' in gui._images
