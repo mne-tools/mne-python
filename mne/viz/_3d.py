@@ -24,7 +24,7 @@ from ..fixes import _crop_colorbar, _get_img_fdata
 from .._freesurfer import (_read_mri_info, _check_mri, _get_head_surface,
                            _get_skull_surface)
 from ..io import _loc_to_coil_trans
-from ..io.pick import (pick_types, _picks_to_idx, channel_type, pick_info,
+from ..io.pick import (pick_types, channel_type, pick_info,
                        _FNIRS_CH_TYPES_SPLIT, _MEG_CH_TYPES_SPLIT)
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials, create_info
@@ -40,8 +40,7 @@ from ..transforms import (apply_trans, rot_to_quat, combine_transforms,
                           _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version, fill_doc, _pl, get_config,
-                     _ensure_int, _validate_type, _check_option, deprecated,
-                     CONNECTIVITY_DEPRECATION_MSG, _to_rgb)
+                     _ensure_int, _validate_type, _check_option, _to_rgb)
 from .utils import (mne_analyze_colormap, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
 from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
@@ -2988,93 +2987,6 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     im = renderer.screenshot()
     proj.visible(True)
     return proj.xy, im
-
-
-@deprecated(CONNECTIVITY_DEPRECATION_MSG)
-@fill_doc
-def plot_sensors_connectivity(info, con, picks=None,
-                              cbar_label='Connectivity'):
-    """Visualize the sensor connectivity in 3D.
-
-    Parameters
-    ----------
-    %(info_not_none)s
-    con : array, shape (n_channels, n_channels)
-        The computed connectivity measure(s).
-    %(picks_good_data)s
-        Indices of selected channels.
-    cbar_label : str
-        Label for the colorbar.
-
-    Returns
-    -------
-    fig : instance of PyVista renderer
-        The figure.
-    """
-    _validate_type(info, "info")
-
-    from .backends.renderer import _get_renderer
-
-    renderer = _get_renderer(size=(600, 600), bgcolor=(0.5, 0.5, 0.5))
-
-    picks = _picks_to_idx(info, picks)
-    if len(picks) != len(con):
-        raise ValueError('The number of channels picked (%s) does not '
-                         'correspond to the size of the connectivity data '
-                         '(%s)' % (len(picks), len(con)))
-
-    # Plot the sensor locations
-    sens_loc = [info['chs'][k]['loc'][:3] for k in picks]
-    sens_loc = np.array(sens_loc)
-
-    renderer.sphere(np.c_[sens_loc[:, 0], sens_loc[:, 1], sens_loc[:, 2]],
-                    color=(1, 1, 1), opacity=1, scale=0.005)
-
-    # Get the strongest connections
-    n_con = 20  # show up to 20 connections
-    min_dist = 0.05  # exclude sensors that are less than 5cm apart
-    threshold = np.sort(con, axis=None)[-n_con]
-    ii, jj = np.where(con >= threshold)
-
-    # Remove close connections
-    con_nodes = list()
-    con_val = list()
-    for i, j in zip(ii, jj):
-        if np.linalg.norm(sens_loc[i] - sens_loc[j]) > min_dist:
-            con_nodes.append((i, j))
-            con_val.append(con[i, j])
-
-    con_val = np.array(con_val)
-
-    # Show the connections as tubes between sensors
-    vmax = np.max(con_val)
-    vmin = np.min(con_val)
-    for val, nodes in zip(con_val, con_nodes):
-        x1, y1, z1 = sens_loc[nodes[0]]
-        x2, y2, z2 = sens_loc[nodes[1]]
-        _, tube = renderer.tube(origin=np.c_[x1, y1, z1],
-                                destination=np.c_[x2, y2, z2],
-                                scalars=np.c_[val, val],
-                                vmin=vmin, vmax=vmax,
-                                reverse_lut=True)
-
-    renderer.scalarbar(source=tube, title=cbar_label)
-
-    # Add the sensor names for the connections shown
-    nodes_shown = list(set([n[0] for n in con_nodes] +
-                           [n[1] for n in con_nodes]))
-
-    for node in nodes_shown:
-        x, y, z = sens_loc[node]
-        renderer.text3d(x, y, z, text=info['ch_names'][picks[node]],
-                        scale=0.005,
-                        color=(0, 0, 0))
-
-    renderer.set_camera(azimuth=-88.7, elevation=40.8,
-                        distance=0.76,
-                        focalpoint=np.array([-3.9e-4, -8.5e-3, -1e-2]))
-    renderer.show()
-    return renderer.scene()
 
 
 def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
