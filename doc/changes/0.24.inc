@@ -14,10 +14,15 @@
 
 .. _changes_0_24_0:
 
-Version 0.24.0 (2021-11-03)
+Version 0.24.1 (Unreleased)
 ---------------------------
 
-.. |New Contributor| replace:: **New Contributor**
+- Fix default of :func:`mne.io.Raw.plot` to be ``use_opengl=None``, which will act like False unless ``MNE_BROWSE_USE_OPENGL=true`` is set in the user configuration (:gh:`9957` by `Eric Larson`_)
+
+.. _changes_0_24_0:
+
+Version 0.24.0 (2021-11-03)
+---------------------------
 
 .. |David Julien| replace:: **David Julien**
 

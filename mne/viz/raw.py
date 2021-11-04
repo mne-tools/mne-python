@@ -316,6 +316,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         raise TypeError(f'title must be None or a string, got a {type(title)}')
 
     # gather parameters and initialize figure
+    _validate_type(use_opengl, (bool, None), 'use_opengl')
     params = dict(inst=raw,
                   info=info,
                   # channels and channel order
