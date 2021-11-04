@@ -80,11 +80,6 @@ def test_mxne_inverse_standard(forward):
     # MxNE tests
     alpha = 70  # spatial regularization parameter
 
-    with pytest.deprecated_call(match="will be solved"):
-        stc_prox = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                              depth=depth, maxit=300, tol=1e-8,
-                              active_set_size=10, weights=stc_dspm,
-                              weights_min=weights_min, solver='prox')
     with pytest.warns(None):  # CD
         stc_cd = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                             depth=depth, maxit=300, tol=1e-8,
@@ -94,13 +89,9 @@ def test_mxne_inverse_standard(forward):
                          depth=depth, maxit=300, tol=1e-8, active_set_size=10,
                          weights=stc_dspm, weights_min=weights_min,
                          solver='bcd')
-    assert_array_almost_equal(stc_prox.times, evoked_l21.times, 5)
     assert_array_almost_equal(stc_cd.times, evoked_l21.times, 5)
     assert_array_almost_equal(stc_bcd.times, evoked_l21.times, 5)
-    assert_allclose(stc_prox.data, stc_cd.data, rtol=1e-3, atol=0.0)
-    assert_allclose(stc_prox.data, stc_bcd.data, rtol=1e-3, atol=0.0)
     assert_allclose(stc_cd.data, stc_bcd.data, rtol=1e-3, atol=0.0)
-    assert stc_prox.vertices[1][0] in label.vertices
     assert stc_cd.vertices[1][0] in label.vertices
     assert stc_bcd.vertices[1][0] in label.vertices
 

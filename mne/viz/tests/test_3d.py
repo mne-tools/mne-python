@@ -30,7 +30,7 @@ from mne.io.constants import FIFF
 from mne.minimum_norm import apply_inverse
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
-                     plot_alignment, plot_sensors_connectivity,
+                     plot_alignment,
                      plot_brain_colorbar, link_brains, mne_analyze_colormap)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click
@@ -753,32 +753,6 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     brain = meth(**these_kwargs)
     brain.close()
     del brain
-
-
-@pytest.mark.slowtest
-@testing.requires_testing_data
-def test_plot_sensors_connectivity(renderer):
-    """Test plotting of sensors connectivity."""
-    from mne import io, pick_types
-
-    data_path = data_dir
-    raw_fname = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis_trunc_raw.fif')
-
-    raw = io.read_raw_fif(raw_fname)
-    picks = pick_types(raw.info, meg='grad', eeg=False, stim=False,
-                       eog=True, exclude='bads')
-    n_channels = len(picks)
-    con = np.random.RandomState(42).randn(n_channels, n_channels)
-    info = raw.info
-    with pytest.raises(TypeError, match='must be an instance of Info'):
-        plot_sensors_connectivity(info='foo', con=con, picks=picks)
-    with pytest.raises(ValueError, match='does not correspond to the size'):
-        plot_sensors_connectivity(info=info, con=con[::2, ::2], picks=picks)
-
-    fig = plot_sensors_connectivity(info=info, con=con, picks=picks)
-    title = list(fig.plotter.scalar_bars.values())[0].GetTitle()
-    assert title == 'Connectivity'
 
 
 @pytest.mark.parametrize('orientation', ('horizontal', 'vertical'))

@@ -101,12 +101,9 @@ def _safe_svd(A, **kwargs):
         return linalg.svd(A, **kwargs)
     except np.linalg.LinAlgError as exp:
         from .utils import warn
-        if 'lapack_driver' in _get_args(linalg.svd):
-            warn('SVD error (%s), attempting to use GESVD instead of GESDD'
-                 % (exp,))
-            return linalg.svd(A, lapack_driver='gesvd', **kwargs)
-        else:
-            raise
+        warn('SVD error (%s), attempting to use GESVD instead of GESDD'
+                % (exp,))
+        return linalg.svd(A, lapack_driver='gesvd', **kwargs)
 
 
 def _csc_matrix_cast(x):
@@ -190,27 +187,6 @@ def _read_geometry(filepath, read_metadata=False, read_stamp=False):
         ret += (create_stamp,)
 
     return ret
-
-
-###############################################################################
-# Triaging FFT functions to get fast pocketfft (SciPy 1.4)
-
-@functools.lru_cache(None)
-def _import_fft(name):
-    single = False
-    if not isinstance(name, tuple):
-        name = (name,)
-        single = True
-    try:
-        from scipy.fft import rfft  # noqa analysis:ignore
-    except ImportError:
-        from numpy import fft  # noqa
-    else:
-        from scipy import fft  # noqa
-    out = [getattr(fft, n) for n in name]
-    if single:
-        out = out[0]
-    return out
 
 
 ###############################################################################
@@ -991,7 +967,7 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
 # Here we choose different defaults to speed things up by default
 try:
     import numba
-    if _compare_version(numba.__version__, '<', '0.40'):
+    if _compare_version(numba.__version__, '<', '0.48'):
         raise ImportError
     prange = numba.prange
     def jit(nopython=True, nogil=True, fastmath=True, cache=True,
