@@ -28,7 +28,7 @@ Enhancements
 
 Bugs
 ~~~~
-- Nothing yet
+- Fix default of :func:`mne.io.Raw.plot` to be ``use_opengl=None``, which will act like False unless ``MNE_BROWSE_USE_OPENGL=true`` is set in the user configuration (:gh:`9957` by `Eric Larson`_)
 
 API changes
 ~~~~~~~~~~~
