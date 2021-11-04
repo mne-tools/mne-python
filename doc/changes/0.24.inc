@@ -12,7 +12,7 @@
    like this (where xxxx is the pull request number):
    - description of enhancement/bugfix/API change (:gh:`xxxx` **by new contributor** |Firstname Lastname|_)
 
-.. _changes_0_24_0:
+.. _changes_0_24_1:
 
 Version 0.24.1 (Unreleased)
 ---------------------------
