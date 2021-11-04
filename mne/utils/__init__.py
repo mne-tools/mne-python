@@ -68,10 +68,3 @@ from .linalg import (_svd_lwork, _repeated_svd, _sym_mat_pow, sqrtm_sym, eigh,
                      _get_blas_funcs)
 from .dataframe import (_set_pandas_dtype, _scale_dataframe_data,
                         _convert_times, _build_data_frame)
-
-CONNECTIVITY_DEPRECATION_MSG = (
-    'Functions in the ``mne.connectivity`` sub-module have moved to a new '
-    'package (mne-connectivity) and will be removed in MNE-Python version '
-    '0.25. Install the new connectivity package by running '
-    '``pip install mne-connectivity`` in a system terminal or anaconda '
-    'prompt.')
