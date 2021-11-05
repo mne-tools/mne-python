@@ -661,7 +661,6 @@ class Info(dict, MontageMixin):
         'events': 'events cannot be set directly.',
         'experimenter': _check_experimenter,
         'file_id': 'file_id cannot be set directly.',
-        'filename': 'filename cannot be set directly.',  # deprecated? doc?
         'gantry_angle': 'gantry_angle cannot be set directly.',
         'helium_info': _check_helium_info,
         'highpass': 'highpass cannot be set directly. '
