@@ -258,7 +258,9 @@ class Info(dict, MontageMixin):
 
     .. warning:: The only entries that should be manually changed by the user
                  are ``info['bads']``, ``info['description']``,
-                 ``info['experimenter']`` and ``info['line_freq']``. All other
+                 ``info['device_info']``, ``info['dev_head_t']``,
+                 ``info['experimenter']``, info['helium_info'],
+                 ``info['line_freq']``, and ``info['subject_info']``. All other
                  entries should be considered read-only, though they can be
                  modified by various MNE-Python functions or methods (which
                  have safeguards to ensure all fields remain in sync).
