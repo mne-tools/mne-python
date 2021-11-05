@@ -678,7 +678,7 @@ class Info(dict, MontageMixin):
         'meas_id': 'meas_id cannot be set directly.',
         'mri_file': 'mri_file cannot be set directly.',
         'mri_head_t': 'mri_head_t cannot be set directly.',
-        'mri_id': 'mri_id cannot be set directly.',  # doc?
+        'mri_id': 'mri_id cannot be set directly.',
         'nchan': 'nchan cannot be set directly. '
                  'Please use methods inst.add_channels(), '
                  'inst.drop_channels(), and inst.pick_channels() instead.',
