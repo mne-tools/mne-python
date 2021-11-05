@@ -359,6 +359,8 @@ class Info(dict, MontageMixin):
     meas_id : dict | None
         The ID assigned to this measurement by the acquisition system or
         during file conversion. Follows the same format as ``file_id``.
+    mri_head_t : dict | None
+        Transformation from MRI to head coordinates.
     nchan : int
         Number of channels.
     proc_history : list of dict
@@ -655,7 +657,7 @@ class Info(dict, MontageMixin):
         'meas_file': 'meas_file cannot be set directly.',  # doc?
         'meas_id': 'meas_id cannot be set directly.',
         'mri_file': 'mri_file cannot be set directly.',  # doc?
-        'mri_head_t': 'mri_head_t cannot be set directly.',  # doc?
+        'mri_head_t': 'mri_head_t cannot be set directly.',
         'mri_id': 'mri_id cannot be set directly.',  # doc?
         'nchan': 'nchan cannot be set directly. '
                  'Please use methods inst.add_channels(), '
