@@ -17,6 +17,7 @@ from copy import deepcopy
 import json
 import operator
 import os.path as op
+from datetime import timedelta
 
 import numpy as np
 
@@ -64,6 +65,7 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _path_like)
 from .utils.docs import fill_doc
 from .data.html_templates import epochs_template
+from .annotations import _handle_meas_date, Annotations
 
 
 def _pack_reject_params(epochs):
@@ -386,6 +388,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  filename=None, metadata=None, event_repeated='error',
                  verbose=None):  # noqa: D102
         self.verbose = verbose
+        self._annotations = None
 
         if events is not None:  # RtEpochs can have events=None
             events = _ensure_events(events)
@@ -2163,6 +2166,72 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         """
         from .forward import _as_meg_type_inst
         return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
+
+    @property
+    def annotations(self):  # noqa: D102
+        return self._annotations
+
+    @verbose
+    def set_annotations(self, annotations, emit_warning=True,
+                        on_missing='raise', *, verbose=None):
+        """Setter for annotations.
+
+        This setter checks if they are inside the data range.
+
+        Parameters
+        ----------
+        annotations : instance of mne.Annotations | None
+            Annotations to set. If None, the annotations is defined
+            but empty.
+        emit_warning : bool
+            Whether to emit warnings when cropping or omitting annotations.
+        %(on_missing_ch_names)s
+        %(verbose_meth)s
+
+        Returns
+        -------
+        self : instance of Raw
+            The raw object with annotations.
+        """
+        meas_date = _handle_meas_date(self.info['meas_date'])
+        if annotations is None:
+            self._annotations = Annotations([], [], [], meas_date)
+        else:
+            _validate_type(annotations, Annotations, 'annotations')
+
+            if meas_date is None and annotations.orig_time is not None:
+                raise RuntimeError('Ambiguous operation. Setting an Annotation'
+                                   ' object with known ``orig_time`` to a raw'
+                                   ' object which has ``meas_date`` set to'
+                                   ' None is ambiguous. Please, either set a'
+                                   ' meaningful ``meas_date`` to the raw'
+                                   ' object; or set ``orig_time`` to None in'
+                                   ' which case the annotation onsets would be'
+                                   ' taken in reference to the first sample of'
+                                   ' the raw object.')
+
+            delta = 1. / self.info['sfreq']
+            new_annotations = annotations.copy()
+            new_annotations._prune_ch_names(self.info, on_missing)
+
+            # get the first time in continuous time in Raw
+
+            if annotations.orig_time is None:
+                # new_annotations.crop(0, self.times[-1] + delta,
+                #                      emit_warning=emit_warning)
+                new_annotations.onset += self._first_time
+            else:
+                tmin = meas_date + timedelta(0, self._first_time)
+                tmax = tmin + timedelta(seconds=self.times[-1] + delta)
+                # new_annotations.crop(tmin=tmin, tmax=tmax,
+                #                      emit_warning=emit_warning)
+                new_annotations.onset -= (
+                    meas_date - new_annotations.orig_time).total_seconds()
+            new_annotations._orig_time = meas_date
+
+            self._annotations = new_annotations
+
+        return self
 
 
 def _drop_log_stats(drop_log, ignore=('IGNORED',)):

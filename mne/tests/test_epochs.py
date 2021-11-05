@@ -3660,3 +3660,19 @@ def test_add_channels_picks():
     epochs_bis = epochs.copy().rename_channels(lambda ch: ch + '_bis')
     epochs_final.add_channels([epochs_bis], force_update_info=True)
     epochs_final.drop_channels(epochs.ch_names)
+
+
+def test_set_annotations():
+    """Check that set_annotations properly deals with picks."""
+    raw = mne.io.read_raw_fif(raw_fname, verbose=False)
+    raw.pick([2, 3, 310])  # take some MEG and EEG
+    raw.info.normalize_proj()
+
+    events = mne.make_fixed_length_events(raw, id=3000, start=0)
+    epochs = mne.Epochs(raw, events, event_id=3000, tmin=1, tmax=2,
+                        proj=True, baseline=None, reject=None, preload=True,
+                        decim=1)
+    annots = Annotations(onset=[2, 4], duration=[3, 2], 
+                         description="bad")
+    epochs.set_annotations(annots)
+    assert epochs.annotations.onset == 1
