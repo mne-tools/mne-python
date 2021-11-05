@@ -280,7 +280,7 @@ class _ContentElement:
 
 
 def _check_tags(tags) -> Tuple[str]:
-    # Must be iterable, not not a string
+    # Must be iterable, but not a string
     if (isinstance(tags, str) or not isinstance(tags, (Sequence, np.ndarray))):
         raise TypeError(
             f'tags must be a collection of str, but got {type(tags)} '
