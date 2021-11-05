@@ -32,6 +32,8 @@ Bugs
 
 - Fix bug with :class:`mne.Report` where figures were saved with ``bbox_inches='tight'``, which led to inconsistent sizes in sliders (:gh:`9966` by `Eric Larson`_)
 
+- Fix bug in :func:`mne.make_forward_solution` where sensor-sphere geometry check was incorrect (:gh:`9968` by `Eric Larson`_)
+￼
 API changes
 ~~~~~~~~~~~
 - Nothing yet
