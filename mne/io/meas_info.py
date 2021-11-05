@@ -368,6 +368,8 @@ class Info(dict, MontageMixin):
         estimation).
     mri_head_t : dict | None
         Transformation from MRI to head coordinates.
+    mri_id : dict | None
+        MRI unique ID (used for source estimation).
     nchan : int
         Number of channels.
     proc_history : list of dict
@@ -567,6 +569,17 @@ class Info(dict, MontageMixin):
             event bits used on the event channel to indicate cHPI status
             (using the first element of these arrays is typically
             sufficient).
+
+    * ``mri_id`` dict:
+
+        version : int
+            FIF format version, i.e. ``FIFFC_VERSION``.
+        machid : ndarray, shape (2,)
+            Unique machine ID, usually derived from the MAC address.
+        secs : int
+            Time in seconds.
+        usecs : int
+            Time in microseconds.
 
     * ``proc_history`` list of dict:
 
