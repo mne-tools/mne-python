@@ -248,7 +248,7 @@ stages:
     - script: conda remove -c conda-forge --force -yq mne
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Remove old MNE
-    - script: pip install -e .
+    - script: pip install --user -e .
       displayName: 'Install MNE-Python dev'
     - script: pip install --progress-bar off -e .[test] codecov
       condition: eq(variables['TEST_MODE'], 'conda')
@@ -307,7 +307,7 @@ stages:
       displayName: Add graphviz dot
     - script: conda remove -c conda-forge --force -yq mne
       displayName: Remove old MNE
-    - script: pip install -e .
+    - script: pip install --user -e .
       displayName: Install dev MNE
     - script: pip install --progress-bar off -r requirements_doc.txt
       displayName: Install documentation dependencies
