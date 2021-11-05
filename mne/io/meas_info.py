@@ -342,6 +342,8 @@ class Info(dict, MontageMixin):
         Information about the HPI subsystem that was used (e.g., event
         channel used for cHPI measurements).
         See Notes for details.
+    kit_system_id : int
+        Identifies the KIT system.
     line_freq : float | None
         Frequency of the power line in Hertz.
     lowpass : float
@@ -647,7 +649,7 @@ class Info(dict, MontageMixin):
         'hpi_meas': 'hpi_meas can not be set directly.',
         'hpi_results': 'hpi_results cannot be set directly.',
         'hpi_subsystem': 'hpi_subsystem cannot be set directly.',
-        'kit_system_id': 'kit_system_id cannot be set directly.',  # doc?
+        'kit_system_id': 'kit_system_id cannot be set directly.',
         'line_freq': _check_line_freq,
         'lowpass': 'lowpass cannot be set directly. '
                    'Please use method inst.filter() instead.',
