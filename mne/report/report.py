@@ -310,8 +310,7 @@ def _fig_to_img(fig, *, image_format='png', auto_close=True):
             message='.*Axes that are not compatible with tight_layout.*',
             category=UserWarning
         )
-        fig.savefig(output, format=image_format, dpi=fig.get_dpi(),
-                    bbox_inches='tight')
+        fig.savefig(output, format=image_format, dpi=fig.get_dpi())
 
     if auto_close:
         plt.close(fig)
@@ -456,8 +455,7 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
 
         with io.BytesIO() as buff:
             fig.savefig(
-                buff, format='png', dpi=fig.get_dpi(), bbox_inches='tight',
-                pad_inches=0
+                buff, format='png', dpi=fig.get_dpi(), pad_inches=0,
             )
             buff.seek(0)
             fig_array = plt.imread(buff, format='png')
@@ -2805,7 +2803,6 @@ class Report(object):
             fig.savefig(
                 buff, format='png',
                 dpi=fig.get_dpi(),
-                bbox_inches='tight',
                 pad_inches=0
             )
             plt.close(fig)

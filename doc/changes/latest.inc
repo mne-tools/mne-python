@@ -30,6 +30,8 @@ Bugs
 ~~~~
 - Fix default of :func:`mne.io.Raw.plot` to be ``use_opengl=None``, which will act like False unless ``MNE_BROWSE_USE_OPENGL=true`` is set in the user configuration (:gh:`9957` by `Eric Larson`_)
 
+- Fix bug with :class:`mne.Report` where figures were saved with ``bbox_inches='tight'``, which led to inconsistent sizes in sliders (:gh:`9966` by `Eric Larson`_)
+
 API changes
 ~~~~~~~~~~~
 - Nothing yet
