@@ -8,6 +8,7 @@
 import os.path as op
 import numpy as np
 from functools import partial
+from scipy.ndimage import maximum_filter
 
 from matplotlib.colors import LinearSegmentedColormap
 
@@ -115,12 +116,14 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._info = info
         self._verbose = verbose
 
+        # channel plotting default parameters
+        self._ch_alpha = 0.5
+        self._radius = int(_CH_PLOT_SIZE // 100)  # starting 1/100 of image
+
         # load imaging data
         self._subject_dir = _check_subject_dir(subject, subjects_dir)
         self._load_image_data(aligned_ct)
 
-        self._ch_alpha = 0.5
-        self._radius = int(_CH_PLOT_SIZE // 100)  # starting 1/200 of image
         # initialize channel data
         self._ch_index = 0
         # load data, apply trans
@@ -206,6 +209,7 @@ class IntracranialElectrodeLocator(QMainWindow):
                              f'MRI shape={self._mri_data.shape}, '
                              f'CT affine={vox_ras_t} and '
                              f'MRI affine={self._vox_ras_t}')
+        self._ct_maxima = None  # don't compute until turned on
 
         if op.exists(op.join(self._subject_dir, 'surf', 'lh.seghead')):
             self._head = _read_mri_surface(
@@ -484,7 +488,12 @@ class IntracranialElectrodeLocator(QMainWindow):
         """Make a bar at the bottom with information in it."""
         hbox = QHBoxLayout()
 
-        hbox.addStretch(10)
+        hbox.addStretch(7)
+
+        self._toggle_show_max_button = QPushButton('Show Maxima')
+        self._toggle_show_max_button.released.connect(
+            self._toggle_show_max)
+        hbox.addWidget(self._toggle_show_max_button)
 
         self._intensity_label = QLabel('')  # update later
         hbox.addWidget(self._intensity_label)
@@ -725,6 +734,10 @@ class IntracranialElectrodeLocator(QMainWindow):
             ct_data[ct_data < self._ct_min_slider.value()] = np.nan
             ct_data[ct_data > self._ct_max_slider.value()] = np.nan
             self._images['ct'][axis].set_data(ct_data)
+            if 'local_max' in self._images:
+                ct_max_data = np.take(
+                    self._ct_maxima, self._current_slice[axis], axis=axis).T
+                self._images['local_max'][axis].set_data(ct_max_data)
             if draw:
                 self._draw(axis)
 
@@ -758,6 +771,11 @@ class IntracranialElectrodeLocator(QMainWindow):
     def _update_radius(self):
         """Update channel plot radius."""
         self._radius = np.round(self._radius_slider.value()).astype(int)
+        if self._toggle_show_max_button.text() == 'Hide Maxima':
+            self._update_ct_maxima()
+            self._update_ct_images()
+        else:
+            self._ct_maxima = None  # signals ct max is out-of-date
         self._update_ch_images(draw=True)
         self._plot_3d_ch_pos(render=True)
         self._ch_list.setFocus()  # remove focus from 3d plotter
@@ -804,6 +822,36 @@ class IntracranialElectrodeLocator(QMainWindow):
             "'+'/'-': zoom\nleft/right arrow: left/right\n"
             "up/down arrow: superior/inferior\n"
             "page up/page down arrow: anterior/posterior")
+
+    def _update_ct_maxima(self):
+        """Compute the maximum voxels based on the current radius."""
+        self._ct_maxima = maximum_filter(
+            self._ct_data, (self._radius,) * 3) == self._ct_data
+        self._ct_maxima[self._ct_data <= np.median(self._ct_data)] = \
+            False
+        self._ct_maxima = np.where(self._ct_maxima, 1, np.nan)  # transparent
+
+    def _toggle_show_max(self):
+        """Toggle whether to color local maxima differently."""
+        if self._toggle_show_max_button.text() == 'Show Maxima':
+            self._toggle_show_max_button.setText('Hide Maxima')
+            # happens on initiation or if the radius is changed with it off
+            if self._ct_maxima is None:  # otherwise don't recompute
+                self._update_ct_maxima()
+            self._images['local_max'] = list()
+            for axis in range(3):
+                ct_max_data = np.take(self._ct_maxima,
+                                      self._current_slice[axis], axis=axis).T
+                self._images['local_max'].append(
+                    self._figs[axis].axes[0].imshow(
+                        ct_max_data, cmap='autumn', aspect='auto',
+                        vmin=0, vmax=1))
+        else:
+            for img in self._images['local_max']:
+                img.remove()
+            self._images.pop('local_max')
+            self._toggle_show_max_button.setText('Show Maxima')
+        self._draw()
 
     def _toggle_show_brain(self):
         """Toggle whether the brain/MRI is being shown."""
