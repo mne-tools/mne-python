@@ -291,6 +291,9 @@ class Info(dict, MontageMixin):
     chs : list of dict
         A list of channel information dictionaries, one per channel.
         See Notes for more information.
+    command_line : str
+        Contains the command and arguments used to create the source space
+        (used for source estimation).
     comps : list of dict
         CTF software gradient compensation data.
         See Notes for more information.
@@ -398,6 +401,9 @@ class Info(dict, MontageMixin):
         "UTC offset of related meas_date (sHH:MM).
 
         .. versionadded:: 0.19
+    working_dir : str
+        Working directory used when the source space was created (used for
+        source estimation).
 
     See Also
     --------
