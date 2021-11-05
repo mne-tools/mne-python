@@ -359,12 +359,13 @@ class Info(dict, MontageMixin):
            This is stored as a :class:`~python:datetime.datetime` object
            instead of a tuple of seconds/microseconds.
     meas_file : str | None
-        Measurement file (used for source estimation).
+        Raw measurement file (used for source estimation).
     meas_id : dict | None
         The ID assigned to this measurement by the acquisition system or
         during file conversion. Follows the same format as ``file_id``.
     mri_file : str | None
-        MRI file (used for source estimation).
+        File containing the MRI to head transformation (used for source
+        estimation).
     mri_head_t : dict | None
         Transformation from MRI to head coordinates.
     nchan : int
