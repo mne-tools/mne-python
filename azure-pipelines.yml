@@ -245,10 +245,13 @@ stages:
     - script: conda env update --name base --file environment.yml
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Setup MNE environment
-    - script: conda remove -c conda-forge --force -yq mne
+    - bash: |
+        set -e
+        conda remove -c conda-forge --force -yq mne
+        rm /Conda/Scripts/mne.exe
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Remove old MNE
-    - script: pip install --user -e .
+    - script: pip install -e .
       displayName: 'Install MNE-Python dev'
     - script: pip install --progress-bar off -e .[test] codecov
       condition: eq(variables['TEST_MODE'], 'conda')
@@ -305,9 +308,14 @@ stages:
       displayName: Setup MNE environment
     - script: conda install -c conda-forge graphviz
       displayName: Add graphviz dot
-    - script: conda remove -c conda-forge --force -yq mne
+    - bash: |
+        set -e
+        conda remove -c conda-forge --force -yq mne
+        echo $PATH
+        which mne
+        rm /c/Conda/Scripts/mne.exe
       displayName: Remove old MNE
-    - script: pip install --user -e .
+    - script: pip install -e .
       displayName: Install dev MNE
     - script: pip install --progress-bar off -r requirements_doc.txt
       displayName: Install documentation dependencies
