@@ -248,7 +248,7 @@ stages:
     - bash: |
         set -e
         conda remove -c conda-forge --force -yq mne
-        rm /Conda/Scripts/mne.exe
+        rm /Miniconda/Scripts/mne.exe
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Remove old MNE
     - script: pip install -e .
@@ -313,7 +313,7 @@ stages:
         conda remove -c conda-forge --force -yq mne
         echo $PATH
         which mne
-        rm /c/Conda/Scripts/mne.exe
+        rm /c/Miniconda/Scripts/mne.exe
       displayName: Remove old MNE
     - script: pip install -e .
       displayName: Install dev MNE
