@@ -989,10 +989,6 @@ class Info(dict, MontageMixin):
             for idx, ch_name in enumerate(self['ch_names']):
                 self['chs'][idx]['ch_name'] = ch_name
 
-        if 'filename' in self:
-            warn('the "filename" key is misleading '
-                 'and info should not have it')
-
     def _update_redundant(self):
         """Update the redundant entries."""
         with self._unlock():
