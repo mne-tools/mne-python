@@ -348,6 +348,8 @@ class Info(dict, MontageMixin):
         Lowpass corner frequency in Hertz.
         It is automatically set to half the sampling rate if there is
         otherwise no low-pass applied to the data.
+    maxshield : bool
+        True if active shielding (IAS) was active during recording.
     meas_date : datetime
         The time (UTC) of the recording.
 
@@ -647,7 +649,7 @@ class Info(dict, MontageMixin):
         'line_freq': _check_line_freq,
         'lowpass': 'lowpass cannot be set directly. '
                    'Please use method inst.filter() instead.',
-        'maxshield': 'maxshield cannot be set directly.',  # doc?
+        'maxshield': 'maxshield cannot be set directly.',
         'meas_date': 'meas_date cannot be set directly. '
                      'Please use method inst.set_meas_date() instead.',
         'meas_file': 'meas_file cannot be set directly.',  # doc?
