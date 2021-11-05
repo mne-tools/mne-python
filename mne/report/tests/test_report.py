@@ -823,3 +823,39 @@ def test_sorting(tmp_path):
 
     r.save(fname=op.join(tmp_path, 'report.html'), sort_content=True,
            open_browser=False)
+
+
+@pytest.mark.parametrize(
+    ('tags', 'not_a_collection', 'wrong_dtype', 'invalid_chars'),
+    [
+        # not a collection
+        ('foo', True, False, False),
+        (123, True, False, False),
+        # wrong dtype
+        ([1, 2, 3], False, True, False),
+        (['foo', 1], False, True, False),
+        # invalid characters
+        (['foo bar'], False, False, True),
+        (['foo"'], False, False, True),
+        (['foo\n'], False, False, True),
+        # all good
+        (['foo'], False, False, False),
+        (['foo', 'bar'], False, False, False),
+        (np.array(['foo', 'bar']), False, False, False)
+    ]
+)
+def test_tags(tags, not_a_collection, wrong_dtype, invalid_chars):
+    """Test handling of invalid tags."""
+    r = Report()
+
+    if not_a_collection:
+        with pytest.raises(TypeError, match='must be a collection of str'):
+            r.add_code(code='foo', title='bar', tags=tags)
+    elif wrong_dtype:
+        with pytest.raises(TypeError, match='must be strings'):
+            r.add_code(code='foo', title='bar', tags=tags)
+    elif invalid_chars:
+        with pytest.raises(ValueError, match='contained invalid characters'):
+            r.add_code(code='foo', title='bar', tags=tags)
+    else:
+        r.add_code(code='foo', title='bar', tags=tags)
