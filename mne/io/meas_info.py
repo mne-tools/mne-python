@@ -691,7 +691,7 @@ class Info(dict, MontageMixin):
         'sfreq': 'sfreq cannot be set directly. '
                  'Please use method inst.resample() instead.',
         'subject_info': _check_subject_info,
-        'temp': lambda x: x,  # doc?
+        'temp': lambda x: x,
         'utc_offset': 'utc_offset cannot be set directly.',
         'working_dir': 'working_dir cannot be set directly.',  # doc?
         'xplotter_layout': 'xplotter_layout cannot be set directly.'  # doc?
