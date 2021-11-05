@@ -182,3 +182,10 @@ def test_ieeg_elec_locate_gui_display(_locate_ieeg, _fake_CT_coords):
     ct_sum_before = np.nansum(gui._images['ct'][0].get_array().data)
     gui._ct_min_slider.setValue(500)
     assert np.nansum(gui._images['ct'][0].get_array().data) < ct_sum_before
+
+    # test buttons
+    gui._toggle_show_brain()
+    assert 'mri' in gui._images
+    assert 'local_max' not in gui._images
+    gui._toggle_show_max()
+    assert 'local_max' in gui._images
