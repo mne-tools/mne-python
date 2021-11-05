@@ -17,7 +17,7 @@ stages:
   jobs:
     - job: Skip
       pool:
-        vmImage: 'ubuntu-18.04'
+        vmImage: 'ubuntu-latest'
       variables:
         DECODE_PERCENTS: 'false'
         RET: 'true'
@@ -35,9 +35,9 @@ stages:
   variables:
     AZURE_CI: 'true'
   jobs:
-  - job: Style
+  - job: All
     pool:
-      vmImage: 'ubuntu-18.04'
+      vmImage: 'ubuntu-latest'
     variables:
       PYTHON_VERSION: '3.9'
       PYTHON_ARCH: 'x64'
@@ -75,13 +75,13 @@ stages:
       displayName: make check-readme
       condition: always()
 
-- stage: Main
+- stage: Test
   condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
   dependsOn: Check
   variables:
     AZURE_CI: 'true'
   jobs:
-  - job: Ultraslow
+  - job: Ultraslow_PG
     pool:
       vmImage: 'ubuntu-20.04'
     variables:
@@ -111,6 +111,8 @@ stages:
     - bash: |
         set -e
         python -m pip install --progress-bar off --upgrade pip setuptools wheel codecov
+        python -m pip install --progress-bar off mne-qt-browser[opengl]
+        python -m pip uninstall -yq mne
         python -m pip install --progress-bar off --upgrade -e .[test]
       displayName: 'Install dependencies with pip'
     - script: mne sys_info -pd
@@ -124,8 +126,8 @@ stages:
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
-    - script: pytest -m "ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
-      displayName: 'Run ultraslow tests'
+    - script: pytest -m "ultraslowtest or pgtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
+      displayName: 'Run ultraslow and PyQtGraph mne-qt-browser tests'
     - bash: bash <(curl -s https://codecov.io/bash)
       displayName: 'Codecov'
       condition: succeededOrFailed()
@@ -144,7 +146,7 @@ stages:
 
   - job: Notebook
     pool:
-      vmImage: 'ubuntu-18.04'
+      vmImage: 'ubuntu-latest'
     steps:
     - bash: |
         set -e
@@ -169,7 +171,7 @@ stages:
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
-    - script: pytest --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne/viz
+    - script: pytest --tb=short -m "not pgtest" --cov=mne --cov-report=xml --cov-report=html -vv mne/viz
       displayName: 'Run viz tests'
     - bash: bash <(curl -s https://codecov.io/bash)
       displayName: 'Codecov'
@@ -189,12 +191,15 @@ stages:
 
   - job: Windows
     pool:
-      vmImage: 'VS2017-Win2016'
+      vmImage: 'windows-latest'
     variables:
       MNE_LOGGING_LEVEL: 'warning'
       MNE_FORCE_SERIAL: 'true'
       OPENBLAS_NUM_THREADS: 1
       OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 2
+      OMP_DYNAMIC: 'false'
+      MKL_DYNAMIC: 'false'
       PYTHONUNBUFFERED: 1
       PYTHONIOENCODING: 'utf-8'
       AZURE_CI_WINDOWS: 'true'
@@ -223,12 +228,13 @@ stages:
     # https://docs.microsoft.com/en-us/azure/devops/pipelines/ecosystems/anaconda
     # https://github.com/MicrosoftDocs/pipelines-anaconda
     # https://github.com/ContinuumIO/anaconda-issues/issues/10949
-    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;"
+    - script: |
+        echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%PROGRAMFILES%\Git\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%PROGRAMFILES%\Git\usr\bin"
       condition: in(variables['TEST_MODE'], 'conda')
       displayName: Add conda to PATH, deal with Qt linking bug
     - bash: |
         set -e
-        git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
+        git clone --depth 1 https://github.com/pyvista/gl-ci-helpers.git
         powershell gl-ci-helpers/appveyor/install_opengl.ps1
       displayName: Install OpenGL
     - bash: |
@@ -239,7 +245,7 @@ stages:
     - script: conda env update --name base --file environment.yml
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Setup MNE environment
-    - script: conda remove mne
+    - script: conda remove -c conda-forge -yq mne
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Remove old MNE
     - script: pip install -e .
@@ -260,7 +266,7 @@ stages:
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
-    - script: pytest -m "not slowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
+    - script: pytest -m "not (slowtest or pgtest)" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
       displayName: 'Run tests'
     - bash: bash <(curl -s https://codecov.io/bash)
       displayName: 'Codecov'
@@ -279,7 +285,7 @@ stages:
 
   - job: SphinxWindows
     pool:
-      vmImage: 'VS2017-Win2016'
+      vmImage: 'windows-latest'
     variables:
       AZURE_CI_WINDOWS: 'true'
       PYTHON_ARCH: 'x64'
@@ -288,10 +294,10 @@ stages:
     steps:
     - bash: |
         set -e
-        git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
+        git clone --depth 1 https://github.com/pyvista/gl-ci-helpers.git
         powershell gl-ci-helpers/appveyor/install_opengl.ps1
       displayName: Install OpenGL
-    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%CONDA%\Library\bin\graphviz;"
+    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%CONDA%\Library\bin\graphviz;%PROGRAMFILES%\Git\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%PROGRAMFILES%\Git\usr\bin"
       displayName: Add conda to PATH, deal with Qt linking bug
     - script: conda update -n base -c defaults conda
       displayName: Update conda
@@ -299,7 +305,7 @@ stages:
       displayName: Setup MNE environment
     - script: conda install -c conda-forge graphviz
       displayName: Add graphviz dot
-    - script: conda remove mne
+    - script: conda remove -c conda-forge -yq mne
       displayName: Remove old MNE
     - script: pip install -e .
       displayName: Install dev MNE

@@ -4,7 +4,6 @@
 # License: BSD-3-Clause
 
 from contextlib import nullcontext
-from itertools import product
 import os
 import os.path as op
 import shutil
@@ -198,7 +197,7 @@ def test_warnings():
 @pytest.mark.parametrize('n_components', (None, 0.9999, 8, 9, 10))
 @pytest.mark.parametrize('n_pca_components', [8, 9, 0.9999, 10])
 @pytest.mark.filterwarnings('ignore:FastICA did not converge.*:UserWarning')
-def test_ica_noop(n_components, n_pca_components, tmpdir):
+def test_ica_noop(n_components, n_pca_components, tmp_path):
     """Test that our ICA is stable even with a bad max_pca_components."""
     data = np.random.RandomState(0).randn(10, 1000)
     info = create_info(10, 1000., 'eeg')
@@ -241,7 +240,7 @@ def test_ica_noop(n_components, n_pca_components, tmpdir):
     assert_allclose(raw.get_data(), raw_new.get_data(), err_msg='Id failure')
     _assert_ica_attributes(ica, data)
     # and with I/O
-    fname = tmpdir.join('temp-ica.fif')
+    fname = tmp_path / 'temp-ica.fif'
     ica.save(fname)
     ica = read_ica(fname)
     raw_new = ica.apply(raw.copy())
@@ -269,7 +268,7 @@ def test_ica_max_iter_(method, max_iter_default):
 
 @requires_sklearn
 @pytest.mark.parametrize("method", ["infomax", "fastica", "picard"])
-def test_ica_n_iter_(method, tmpdir):
+def test_ica_n_iter_(method, tmp_path):
     """Test that ICA.n_iter_ is set after fitting."""
     _skip_check_picard(method)
 
@@ -289,7 +288,7 @@ def test_ica_n_iter_(method, tmpdir):
     assert_equal(ica.n_iter_, max_iter)
 
     # Test I/O roundtrip.
-    output_fname = tmpdir.join('test_ica-ica.fif')
+    output_fname = tmp_path / 'test_ica-ica.fif'
     _assert_ica_attributes(ica, raw.get_data('data'), limits=(5, 110))
     ica.save(output_fname)
     ica = read_ica(output_fname)
@@ -594,7 +593,7 @@ def short_raw_epochs():
 @requires_sklearn
 @pytest.mark.slowtest
 @pytest.mark.parametrize("method", ["picard", "fastica"])
-def test_ica_additional(method, tmpdir, short_raw_epochs):
+def test_ica_additional(method, tmp_path, short_raw_epochs):
     """Test additional ICA functionality."""
     _skip_check_picard(method)
     raw, epochs, epochs_eog = short_raw_epochs
@@ -683,7 +682,7 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
         corrmap([ica_different_channels, ica], (0, 0))
 
     # test warnings on bad filenames
-    ica_badname = tmpdir.join('test-bad-name.fif.gz')
+    ica_badname = tmp_path / 'test-bad-name.fif.gz'
     with pytest.warns(RuntimeWarning, match='-ica.fif'):
         ica.save(ica_badname)
     with pytest.warns(RuntimeWarning, match='-ica.fif'):
@@ -736,7 +735,7 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
     ica_raw.notch_filter([10], trans_bandwidth=10, fir_design='firwin')
     assert ((d1 != ica_raw._data[0]).any())
 
-    test_ica_fname = tmpdir.join('test-ica.fif')
+    test_ica_fname = tmp_path / 'test-ica.fif'
     ica.n_pca_components = 2
     ica.method = 'fake'
     ica.save(test_ica_fname)
@@ -794,30 +793,6 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
     # check exception handling
     with pytest.raises(ValueError, match='Sources and target do not have'):
         ica.score_sources(raw, target=np.arange(1))
-
-    params = []
-    params += [(None, -1, slice(2), [0, 1])]  # variance, kurtosis params
-    params += [(None, 'MEG 1531')]  # ECG / EOG channel params
-    for idx, ch_name in product(*params):
-        with pytest.warns(DeprecationWarning, match='detect_artifacts is dep'):
-            ica.detect_artifacts(
-                raw, start_find=0, stop_find=50, ecg_ch=ch_name,
-                eog_ch=ch_name, skew_criterion=idx,
-                var_criterion=idx, kurt_criterion=idx
-            )
-
-    # Make sure detect_artifacts marks the right components.
-    # For int criterion, the doc says "E.g. range(2) would return the two
-    # sources with the highest score". Assert that's what it does.
-    # Only test for skew, since it's always the same code.
-    ica.exclude = []
-    with pytest.warns(DeprecationWarning, match='detect_artifacts is depreca'):
-        ica.detect_artifacts(
-            raw, start_find=0, stop_find=50, ecg_ch=None,
-            eog_ch=None, skew_criterion=0,
-            var_criterion=None, kurt_criterion=None
-        )
-    assert np.abs(scores[ica.exclude]) == np.max(np.abs(scores))
 
     evoked = epochs.average()
     evoked_data = evoked.data.copy()
@@ -972,7 +947,7 @@ def test_ica_additional(method, tmpdir, short_raw_epochs):
     ('picard', test_cov_name),
     ('fastica', None),
 ])
-def test_ica_cov(method, cov, tmpdir, short_raw_epochs):
+def test_ica_cov(method, cov, tmp_path, short_raw_epochs):
     """Test ICA with cov."""
     _skip_check_picard(method)
     raw, epochs, epochs_eog = short_raw_epochs
@@ -980,7 +955,7 @@ def test_ica_cov(method, cov, tmpdir, short_raw_epochs):
         cov = read_cov(cov)
 
     # test reading and writing
-    test_ica_fname = tmpdir.join('test-ica.fif')
+    test_ica_fname = tmp_path / 'test-ica.fif'
     kwargs = dict(n_pca_components=4)
 
     ica = ICA(noise_cov=cov, n_components=2, method=method, max_iter=1)
@@ -1012,25 +987,6 @@ def test_ica_cov(method, cov, tmpdir, short_raw_epochs):
         ica_raw = ica.get_sources(raw)
         assert (ica.exclude == [ica_raw.ch_names.index(e) for e in
                                 ica_raw.info['bads']])
-
-
-@requires_sklearn
-@pytest.mark.parametrize("method", ("fastica", "picard", "infomax"))
-@pytest.mark.parametrize("idx", (None, -1, slice(2), [0, 1]))
-@pytest.mark.parametrize("ch_name", (None, 'MEG 1531'))
-def test_detect_artifacts_replacement_of_run_ica(method, idx, ch_name):
-    """Test replacement workflow for run_ica() function."""
-    _skip_check_picard(method)
-    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
-    ica = ICA(n_components=2, method=method)
-    ica.fit(raw)
-
-    with pytest.warns(DeprecationWarning, match='detect_artifacts is depreca'):
-        ica.detect_artifacts(
-            raw, start_find=0, stop_find=5, ecg_ch=ch_name,
-            eog_ch=ch_name, skew_criterion=idx,
-            var_criterion=idx, kurt_criterion=idx
-        )
 
 
 @requires_sklearn
@@ -1080,7 +1036,7 @@ def test_ica_twice(method):
 
 @requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard", "infomax"])
-def test_fit_methods(method, tmpdir):
+def test_fit_methods(method, tmp_path):
     """Test fit_params for ICA."""
     _skip_check_picard(method)
     fit_params = {}
@@ -1092,8 +1048,8 @@ def test_fit_methods(method, tmpdir):
     # Only picard and infomax support the "extended" keyword, so limit the
     # tests to those.
     if method in ['picard', 'infomax']:
-        tmpdir = str(tmpdir)
-        output_fname = op.join(tmpdir, 'test_ica-ica.fif')
+        tmp_path = str(tmp_path)
+        output_fname = op.join(tmp_path, 'test_ica-ica.fif')
 
         raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
         n_components = 3
@@ -1228,7 +1184,7 @@ def test_eog_channel(method):
 
 @requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard"])
-def test_n_components_none(method, tmpdir):
+def test_n_components_none(method, tmp_path):
     """Test n_components=None."""
     _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
@@ -1240,7 +1196,7 @@ def test_n_components_none(method, tmpdir):
     n_components = None
     random_state = 12345
 
-    output_fname = tmpdir.join('test_ica-ica.fif')
+    output_fname = tmp_path / 'test_ica-ica.fif'
     ica = ICA(method=method, n_components=n_components,
               random_state=random_state)
     with pytest.warns(None):
@@ -1255,12 +1211,13 @@ def test_n_components_none(method, tmpdir):
     assert ica.n_components_ == len(picks)
 
 
+@pytest.mark.slowtest
 @requires_sklearn
 @testing.requires_testing_data
 def test_ica_ctf():
     """Test run ICA computation on ctf data with/without compensation."""
     method = 'fastica'
-    raw = read_raw_ctf(ctf_fname, preload=True)
+    raw = read_raw_ctf(ctf_fname).crop(0, 3).load_data()
     picks = sorted(set(range(0, len(raw.ch_names), 10)) |
                    set(pick_types(raw.info, ref_meg=True)))
     raw.pick(picks)
@@ -1274,7 +1231,7 @@ def test_ica_ctf():
         # test fit
         for inst in [raw, epochs]:
             ica = ICA(n_components=2, max_iter=2, method=method)
-            with pytest.warns(UserWarning, match='did not converge'):
+            with pytest.warns(None):  # convergence sometimes
                 ica.fit(inst)
             _assert_ica_attributes(ica)
 
@@ -1286,7 +1243,7 @@ def test_ica_ctf():
     # test mixed compensation case
     raw.apply_gradient_compensation(0)
     ica = ICA(n_components=2, max_iter=2, method=method)
-    with pytest.warns(UserWarning, match='did not converge'):
+    with pytest.warns(None):  # convergence sometimes
         ica.fit(raw)
     _assert_ica_attributes(ica)
     raw.apply_gradient_compensation(1)
@@ -1447,12 +1404,12 @@ def test_read_ica_eeglab():
 
 
 @testing.requires_testing_data
-def test_read_ica_eeglab_mismatch(tmpdir):
+def test_read_ica_eeglab_mismatch(tmp_path):
     """Test read_ica_eeglab function when there is a mismatch."""
     fname_orig = op.join(test_base_dir, "EEGLAB", "test_raw.set")
     base = op.basename(fname_orig)[:-3]
-    shutil.copyfile(fname_orig[:-3] + 'fdt', tmpdir.join(base + 'fdt'))
-    fname = tmpdir.join(base)
+    shutil.copyfile(fname_orig[:-3] + 'fdt', tmp_path / (base + 'fdt'))
+    fname = tmp_path / base
     data = loadmat(fname_orig)
     w = data['EEG']['icaweights'][0][0]
     w[:] = np.random.RandomState(0).randn(*w.shape)

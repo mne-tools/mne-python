@@ -136,12 +136,12 @@ def test_snirf_against_nirx():
 
 @requires_h5py
 @requires_testing_data
-def test_snirf_nonstandard(tmpdir):
+def test_snirf_nonstandard(tmp_path):
     """Test custom tags."""
     from mne.externals.pymatreader.utils import _import_h5py
     h5py = _import_h5py()
-    shutil.copy(sfnirs_homer_103_wShort, str(tmpdir) + "/mod.snirf")
-    fname = str(tmpdir) + "/mod.snirf"
+    shutil.copy(sfnirs_homer_103_wShort, str(tmp_path) + "/mod.snirf")
+    fname = str(tmp_path) + "/mod.snirf"
     # Manually mark up the file to match MNE-NIRS custom tags
     with h5py.File(fname, "r+") as f:
         f.create_dataset("nirs/metaDataTags/middleName",

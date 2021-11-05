@@ -406,10 +406,10 @@ def test_crop():
 
 @requires_h5py
 @requires_pandas
-def test_io(tmpdir):
+def test_io(tmp_path):
     """Test TFR IO capacities."""
     from pandas import DataFrame
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fname = op.join(tempdir, 'test-tfr.h5')
     data = np.zeros((3, 2, 3))
     times = np.array([.1, .2, .3])

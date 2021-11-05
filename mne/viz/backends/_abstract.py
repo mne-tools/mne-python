@@ -13,10 +13,16 @@ from ..utils import tight_layout
 
 
 class _AbstractRenderer(ABC):
+
     @abstractclassmethod
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name=None, show=False, shape=(1, 1)):
         """Set up the scene."""
+        pass
+
+    @property
+    @abstractmethod
+    def _kind(self):
         pass
 
     @abstractclassmethod
@@ -191,7 +197,7 @@ class _AbstractRenderer(ABC):
             If True, enable backface culling on the sphere(s).
         radius : float | None
             Replace the glyph scaling by a fixed radius value for each
-            sphere (not supported by mayavi).
+            sphere.
         """
         pass
 

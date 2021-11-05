@@ -26,8 +26,9 @@ jobs:
             name: Complete checkout
             command: |
               if ! git remote -v | grep upstream; then
-                git remote add upstream git://github.com/mne-tools/mne-python.git
+                git remote add upstream https://github.com/mne-tools/mne-python.git
               fi
+              git remote set-url upstream https://github.com/mne-tools/mne-python.git
               git fetch upstream
         - save_cache:
             key: source-cache
@@ -516,7 +517,7 @@ workflows:
             branches:
               only:
                 - main
-                - maint/0.23
+                - maint/0.24
 
   weekly:
     jobs:

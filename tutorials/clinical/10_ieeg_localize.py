@@ -394,8 +394,8 @@ plot_overlay(template_brain, subject_brain,
 #
 # .. warning:: Here we use ``zooms=5`` just for speed, in general we recommend
 #              using ``zooms=None``` (default) for highest accuracy. To deal
-#              with this coarseness, we also use a threshold of 0.8 for the CT
-#              electrodes rather than 0.95. This coarse zoom and low threshold
+#              with this coarseness, we also use a threshold of 0.1 for the CT
+#              electrodes rather than 0.5. This coarse zoom and low threshold
 #              is useful for getting a quick view of the data, but finalized
 #              pipelines should use ``zooms=None`` instead!
 

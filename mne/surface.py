@@ -67,6 +67,7 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
                              subjects_dir=subjects_dir)
 
 
+# TODO this should be refactored with mne._freesurfer._get_head_surface
 def _get_head_surface(subject, source, subjects_dir, raise_error=True):
     """Load the subject head surface."""
     from .bem import read_bem_surfaces
@@ -1724,7 +1725,14 @@ def _marching_cubes(image, level, smooth=0):
     geometry.SetInputConnection(selector.GetOutputPort())
     out = list()
     for val in level:
-        selector.ThresholdBetween(val, val)
+        try:
+            selector.SetLowerThreshold
+        except AttributeError:
+            selector.ThresholdBetween(val, val)
+        else:
+            # default SetThresholdFunction is between, so:
+            selector.SetLowerThreshold(val)
+            selector.SetUpperThreshold(val)
         geometry.Update()
         polydata = geometry.GetOutput()
         rr = numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())
@@ -1922,7 +1930,7 @@ _VOXELS_MAX = 100  # define constant to avoid runtime issues
 
 @fill_doc
 def get_montage_volume_labels(montage, subject, subjects_dir=None,
-                              aseg='aparc+aseg', dist=5):
+                              aseg='aparc+aseg', dist=2):
     """Get regions of interest near channels from a Freesurfer parcellation.
 
     .. note:: This is applicable for channels inside the brain
@@ -2076,9 +2084,13 @@ def _voxel_neighbors(seed, image, thresh=None, max_peak_dist=1,
         for next_loc in neighbors:
             voxel_neighbors = _get_neighbors(next_loc, image, voxels,
                                              thresh, dist_params)
+            # prevent looping back to already visited voxels
+            voxel_neighbors = voxel_neighbors.difference(voxels)
+            # add voxels not already visited to search next
+            next_neighbors = next_neighbors.union(voxel_neighbors)
+            # add new voxels that match the criteria to the overall set
             voxels = voxels.union(voxel_neighbors)
             if len(voxels) > voxels_max:
                 break
-            next_neighbors = next_neighbors.union(voxel_neighbors)
-        neighbors = next_neighbors
+        neighbors = next_neighbors  # start again checking all new neighbors
     return voxels

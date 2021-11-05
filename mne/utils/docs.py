@@ -25,9 +25,10 @@ docdict = dict()
 # Verbose
 docdict['verbose'] = """
 verbose : bool | str | int | None
-    If not None, override default verbose level (see :func:`mne.verbose`
-    and :ref:`Logging documentation <python:tut-logging>` for more).
-    If used, it should be passed as a keyword-argument only."""
+    Control verbosity of the logging output. If ``None``, use the default
+    verbosity level. See the :ref:`logging documentation <tut-logging>` and
+    :func:`mne.verbose` for details. Should only be passed as a keyword
+    argument."""
 docdict['verbose_meth'] = (docdict['verbose'] + ' Defaults to self.verbose.')
 
 # Preload
@@ -1401,11 +1402,11 @@ docdict['info_not_none'] = f"""
 info : mne.Info
     {_info_base}
 """
-docdict['info'] = """
+docdict['info'] = f"""
 info : mne.Info | None
     {_info_base}
 """
-docdict['info_str'] = """
+docdict['info_str'] = f"""
 info : mne.Info | str
     {_info_base} If ``str``, then it should be a filepath to a file with
     measurement information (e.g. :class:`mne.io.Raw`).
@@ -1458,27 +1459,26 @@ head_pos : None | str | dict | tuple | array
 """
 docdict['n_jobs'] = """
 n_jobs : int
-    The number of jobs to run in parallel (default 1). If ``-1``, it is set to
-    the number of CPU cores. Requires the ``joblib`` package.
+    The number of jobs to run in parallel (default ``1``). If ``-1``, it is set
+    to the number of CPU cores. Requires the ``joblib`` package.
 """
 
 # Random state
-docdict['random_state'] = """
-random_state : None | int | instance of ~numpy.random.RandomState
-    If ``random_state`` is an :class:`int`, it will be used as a seed for
-    :class:`~numpy.random.RandomState`. If ``None``, the seed will be
-    obtained from the operating system (see
-    :class:`~numpy.random.RandomState` for details). Default is
-    ``None``.
+random_state_common = """\
+    A seed for the NumPy random number generator (RNG). If ``None`` (default),
+    the seed will be  obtained from the operating system
+    (see  :class:`~numpy.random.RandomState` for details), meaning it will most
+    likely produce different output every time this function or method is run.
+    To achieve reproducible results, pass a value here to explicitly initialize
+    the RNG with a defined state.\
 """
-
-docdict['seed'] = """
+docdict['random_state'] = f"""
+random_state : None | int | instance of ~numpy.random.RandomState
+{random_state_common}
+"""
+docdict['seed'] = f"""
 seed : None | int | instance of ~numpy.random.RandomState
-    If ``seed`` is an :class:`int`, it will be used as a seed for
-    :class:`~numpy.random.RandomState`. If ``None``, the seed will be
-    obtained from the operating system (see
-    :class:`~numpy.random.RandomState` for details). Default is
-    ``None``.
+{random_state_common}
 """
 
 # Visualization
@@ -1511,6 +1511,30 @@ time_format : 'float' | 'clock'
     number of seconds from the start of the recording. If ``'clock'``,
     labels will show "clock time" (hours/minutes/seconds) inferred from
     ``raw.info['meas_date']``. Default is ``'float'``.
+
+    .. versionadded:: 0.24
+"""
+
+# Visualization with pyqtgraph
+docdict['precompute'] = """
+precompute : bool | str
+    Whether to load all data (not just the visible portion) into RAM and
+    apply preprocessing (e.g., projectors) to the full data array in a separate
+    processor thread, instead of window-by-window during scrolling. The default
+    ``'auto'`` compares available RAM space to the expected size of the
+    precomputed data, and precomputes only if enough RAM is available. ``True``
+    and ``'auto'`` only work if using the pyQtGraph backend.
+
+    .. versionadded:: 0.24
+"""
+
+docdict['use_opengl'] = """
+use_opengl : bool | None
+    Whether to use OpenGL when rendering the plot (requires ``pyopengl``).
+    May increase performance, but effect is dependent on system CPU and
+    graphics hardware. Only works if using the PyQtGraph backend. Default is
+    None, which will use False unless the user configuration variable
+    ``MNE_BROWSE_USE_OPENGL`` is set to ``'true'``, see :func:`mne.set_config`.
 
     .. versionadded:: 0.24
 """
@@ -1702,7 +1726,7 @@ allow_duplicates : bool
 
 # Brain plotting
 docdict["view"] = """
-view : str
+view : str | None
     The name of the view to show (e.g. "lateral"). Other arguments
     take precedence and modify the camera starting from the ``view``.
 """
@@ -3138,12 +3162,18 @@ warnings.filterwarnings('always', category=DeprecationWarning, module='mne')
 
 
 class deprecated:
-    """Mark a function or class as deprecated (decorator).
+    """Mark a function, class, or method as deprecated (decorator).
 
     Originally adapted from sklearn and
     http://wiki.python.org/moin/PythonDecoratorLibrary, then modified to make
     arguments populate properly following our verbose decorator methods based
     on externals.decorator.
+
+    Parameters
+    ----------
+    extra : str
+        Extra information beyond just saying the class/function/method
+        is deprecated.
     """
 
     def __init__(self, extra=''):  # noqa: D102
@@ -3156,6 +3186,11 @@ class deprecated:
         ----------
         obj : object
             Object to call.
+
+        Returns
+        -------
+        obj : object
+            The modified object.
         """
         if isinstance(obj, type):
             return self._decorate_class(obj)

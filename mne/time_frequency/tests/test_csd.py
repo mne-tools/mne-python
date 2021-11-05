@@ -221,10 +221,10 @@ def test_csd_get_data():
 
 
 @requires_h5py
-def test_csd_save(tmpdir):
+def test_csd_save(tmp_path):
     """Test saving and loading a CrossSpectralDensity."""
     csd = _make_csd()
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fname = op.join(tempdir, 'csd.h5')
     csd.save(fname)
     csd2 = read_csd(fname)
@@ -236,10 +236,10 @@ def test_csd_save(tmpdir):
     assert csd._is_sum == csd2._is_sum
 
 
-def test_csd_pickle(tmpdir):
+def test_csd_pickle(tmp_path):
     """Test pickling and unpickling a CrossSpectralDensity."""
     csd = _make_csd()
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fname = op.join(tempdir, 'csd.dat')
     with open(fname, 'wb') as f:
         pickle.dump(csd, f)

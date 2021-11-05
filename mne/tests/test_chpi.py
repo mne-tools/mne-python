@@ -99,9 +99,9 @@ def test_chpi_adjust():
 
 
 @testing.requires_testing_data
-def test_read_write_head_pos(tmpdir):
+def test_read_write_head_pos(tmp_path):
     """Test reading and writing head position quaternion parameters."""
-    temp_name = op.join(str(tmpdir), 'temp.pos')
+    temp_name = op.join(str(tmp_path), 'temp.pos')
     # This isn't a 100% valid quat matrix but it should be okay for tests
     head_pos_rand = np.random.RandomState(0).randn(20, 10)
     # This one is valid
@@ -119,9 +119,9 @@ def test_read_write_head_pos(tmpdir):
 
 
 @testing.requires_testing_data
-def test_hpi_info(tmpdir):
+def test_hpi_info(tmp_path):
     """Test getting HPI info."""
-    temp_name = op.join(str(tmpdir), 'temp_raw.fif')
+    temp_name = op.join(str(tmp_path), 'temp_raw.fif')
     for fname in (chpi_fif_fname, sss_fif_fname):
         raw = read_raw_fif(fname, allow_maxshield='yes').crop(0, 0.1)
         assert len(raw.info['hpi_subsystem']) > 0

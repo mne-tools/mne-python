@@ -117,9 +117,9 @@ def test_compute_nearest():
 
 
 @testing.requires_testing_data
-def test_io_surface(tmpdir):
+def test_io_surface(tmp_path):
     """Test reading and writing of Freesurfer surface mesh files."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fname_quad = op.join(data_path, 'subjects', 'bert', 'surf',
                          'lh.inflated.nofix')
     fname_tri = op.join(data_path, 'subjects', 'sample', 'bem',

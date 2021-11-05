@@ -135,7 +135,7 @@ Bug
 
 - Fix bug in :class:`mne.Epochs` when passing events as list with ``event_id=None``  by `Alex Gramfort`_
 
-- Fix bug in :meth:`mne.Report.add_figs_to_section` when passing :class:`numpy.ndarray` by `Eric Larson`_
+- Fix bug in ``mne.Report.add_figs_to_section`` when passing :class:`numpy.ndarray` by `Eric Larson`_
 
 - Fix bug in CSS class setting in `mne.Report` BEM section by `Eric Larson`_
 

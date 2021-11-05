@@ -28,9 +28,6 @@ dependencies:
 - pyvistaqt>=0.4
 - qdarkstyle
 - darkdetect
-- mayavi
-- traits<6.3.0
-- PySurfer
 - dipy
 - nibabel
 - nilearn
@@ -42,3 +39,4 @@ dependencies:
 - pooch
 - pip:
   - ipyvtklink
+  - mne-qt-browser

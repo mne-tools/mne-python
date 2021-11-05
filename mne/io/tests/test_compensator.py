@@ -41,7 +41,7 @@ def test_compensation_identity():
 
 @pytest.mark.parametrize('preload', (True, False))
 @pytest.mark.parametrize('pick', (False, True))
-def test_compensation_apply(tmpdir, preload, pick):
+def test_compensation_apply(tmp_path, preload, pick):
     """Test applying compensation."""
     # make sure that changing the comp doesn't modify the original data
     raw = read_raw_fif(ctf_comp_fname, preload=preload)
@@ -56,7 +56,7 @@ def test_compensation_apply(tmpdir, preload, pick):
         assert raw2._comp is None
     else:
         assert raw2._comp.shape == (len(raw2.ch_names),) * 2
-    fname = op.join(tmpdir, 'ctf-raw.fif')
+    fname = op.join(tmp_path, 'ctf-raw.fif')
     raw2.save(fname)
     raw2 = read_raw_fif(fname)
     assert raw2.compensation_grade == 2
@@ -71,7 +71,7 @@ def test_compensation_apply(tmpdir, preload, pick):
 
 
 @requires_mne
-def test_compensation_mne(tmpdir):
+def test_compensation_mne(tmp_path):
     """Test comensation by comparing with MNE."""
     def make_evoked(fname, comp):
         """Make evoked data."""
@@ -93,7 +93,7 @@ def test_compensation_mne(tmpdir):
         return read_evokeds(tmp_fname)[0]
 
     # save evoked response with default compensation
-    fname_default = op.join(tmpdir, 'ctf_default-ave.fif')
+    fname_default = op.join(tmp_path, 'ctf_default-ave.fif')
     make_evoked(ctf_comp_fname, None).save(fname_default)
 
     for comp in [0, 1, 2, 3]:

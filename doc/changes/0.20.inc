@@ -356,7 +356,7 @@ API
 
 - Drop ``unit`` keyword argument from :func:`mne.channels.read_custom_montage`, as it was unused by `Richard Höchenberger`_
 
-- Deprecate ``mne.preprocessing.run_ica``, use :meth:`mne.preprocessing.ICA.detect_artifacts` instead by `Richard Höchenberger`_
+- Deprecate ``mne.preprocessing.run_ica``, use ``mne.preprocessing.ICA.detect_artifacts`` instead by `Richard Höchenberger`_
 
 Authors
 ~~~~~~~

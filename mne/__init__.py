@@ -104,7 +104,6 @@ from . import beamformer
 from . import channels
 from . import chpi
 from . import commands
-from . import connectivity
 from . import coreg
 from . import cuda
 from . import datasets

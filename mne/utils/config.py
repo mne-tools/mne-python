@@ -70,6 +70,7 @@ known_config_types = (
     'MNE_3D_OPTION_ANTIALIAS',
     'MNE_BROWSE_RAW_SIZE',
     'MNE_BROWSE_BACKEND',
+    'MNE_BROWSE_USE_OPENGL',
     'MNE_CACHE_DIR',
     'MNE_COREG_ADVANCED_RENDERING',
     'MNE_COREG_COPY_ANNOT',
@@ -504,7 +505,6 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         dipy:          1.1.1
         cupy:          Not found
         pandas:        1.0.5
-        mayavi:        Not found
         pyvista:       0.25.3 {pyvistaqt=0.1.1, OpenGL 3.3 (Core Profile) Mesa 18.3.6 via llvmpipe (LLVM 7.0, 256 bits)}
         vtk:           9.0.1
         PyQt5:         5.15.0
@@ -512,7 +512,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     """  # noqa: E501
     _validate_type(dependencies, str)
     _check_option('dependencies', dependencies, ('user', 'developer'))
-    ljust = 21 if dependencies == 'developer' else 15
+    ljust = 21 if dependencies == 'developer' else 16
     platform_str = platform.platform()
     if platform.system() == 'Darwin' and sys.version_info[:2] < (3, 8):
         # platform.platform() in Python < 3.8 doesn't call
@@ -547,8 +547,8 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     libs = _get_numpy_libs()
     use_mod_names = ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
                      'numba', 'nibabel', 'nilearn', 'dipy', 'cupy', 'pandas',
-                     'mayavi', 'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk',
-                     'PyQt5', 'ipympl')
+                     'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk',
+                     'PyQt5', 'ipympl', 'mne_qt_browser')
     if dependencies == 'developer':
         use_mod_names += (
             '', 'sphinx', 'sphinx_gallery', 'numpydoc', 'pydata_sphinx_theme',
@@ -560,9 +560,6 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         out += ('%s:' % mod_name).ljust(ljust)
         try:
             mod = __import__(mod_name)
-            if mod_name == 'mayavi':
-                # the real test
-                from mayavi import mlab  # noqa, analysis:ignore
         except Exception:
             out += 'Not found\n'
         else:

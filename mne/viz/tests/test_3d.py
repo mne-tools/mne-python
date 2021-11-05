@@ -30,11 +30,11 @@ from mne.io.constants import FIFF
 from mne.minimum_norm import apply_inverse
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
-                     plot_alignment, plot_sensors_connectivity,
+                     plot_alignment,
                      plot_brain_colorbar, link_brains, mne_analyze_colormap)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click
-from mne.utils import requires_nibabel, traits_test, catch_logging
+from mne.utils import requires_nibabel, catch_logging
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 from mne.transforms import Transform
@@ -104,7 +104,6 @@ def test_plot_head_positions():
 
 
 @testing.requires_testing_data
-@traits_test
 @pytest.mark.slowtest
 def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     """Test plotting of (sparse) source estimates."""
@@ -140,15 +139,12 @@ def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     stc_data[1, 4] = 2.
     vertices = [vertices[inds], np.empty(0, dtype=np.int64)]
     stc = SourceEstimate(stc_data, vertices, 1, 1)
-    surf = plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
-                                        opacity=0.5, high_resolution=False)
-    if renderer_interactive._get_3d_backend() == 'mayavi':
-        import mayavi  # noqa: F401 analysis:ignore
-        assert isinstance(surf, mayavi.modules.surface.Surface)
+    plot_sparse_source_estimates(
+        sample_src, stc, bgcolor=(1, 1, 1), opacity=0.5,
+        high_resolution=False)
 
 
 @testing.requires_testing_data
-@traits_test
 @pytest.mark.slowtest
 def test_plot_evoked_field(renderer):
     """Test plotting evoked field."""
@@ -160,20 +156,15 @@ def test_plot_evoked_field(renderer):
             maps = make_field_map(evoked, trans_fname, subject='sample',
                                   subjects_dir=subjects_dir, n_jobs=1,
                                   ch_type=t)
-        fig = evoked.plot_field(maps, time=0.1)
-        if renderer._get_3d_backend() == 'mayavi':
-            import mayavi  # noqa: F401 analysis:ignore
-            assert isinstance(fig, mayavi.core.scene.Scene)
+        evoked.plot_field(maps, time=0.1)
 
 
 def _assert_n_actors(fig, renderer, n_actors):
     __tracebackhide__ = True
-    if renderer._get_3d_backend() == 'mayavi':
-        return
     assert len(fig.plotter.renderer.actors) == n_actors
 
 
-@pytest.mark.slowtest  # Slow for Mayavi on Azure
+@pytest.mark.slowtest  # Slow on Azure
 @pytest.mark.parametrize('system', [
     'Neuromag',
     pytest.param('CTF', marks=testing._pytest_mark()),
@@ -220,11 +211,10 @@ def test_plot_alignment_surf(renderer):
 
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
-@traits_test
-def test_plot_alignment_basic(tmpdir, renderer, mixed_fwd_cov_evoked):
+def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
     """Test plotting of -trans.fif files and MEG sensor layouts."""
     # generate fiducials file for testing
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fiducials_path = op.join(tempdir, 'fiducials.fif')
     fid = [{'coord_frame': 5, 'ident': 1, 'kind': 1,
             'r': [-0.08061612, -0.02908875, -0.04131077]},
@@ -266,10 +256,10 @@ def test_plot_alignment_basic(tmpdir, renderer, mixed_fwd_cov_evoked):
     # all coord frames
     plot_alignment(info)  # works: surfaces='auto' default
     for coord_frame in ('meg', 'head', 'mri'):
-        fig = plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
-                             coord_frame=coord_frame, trans=Path(trans_fname),
-                             subject='sample', mri_fiducials=fiducials_path,
-                             subjects_dir=subjects_dir, src=src_fname)
+        plot_alignment(
+            info, meg=['helmet', 'sensors'], dig=True, coord_frame=coord_frame,
+            trans=Path(trans_fname), subject='sample', src=src_fname,
+            mri_fiducials=fiducials_path, subjects_dir=subjects_dir)
     renderer.backend._close_all()
     # EEG only with strange options
     evoked_eeg_ecog_seeg = evoked.copy().pick_types(meg=False, eeg=True)
@@ -343,18 +333,18 @@ def test_plot_alignment_basic(tmpdir, renderer, mixed_fwd_cov_evoked):
     sphere = make_sphere_model('auto', None, info)  # one layer
     # if you ask for a brain surface with a 1-layer sphere model it's an error
     with pytest.raises(RuntimeError, match='Sphere model does not have'):
-        fig = plot_alignment(trans=trans_fname, subject='sample',
-                             subjects_dir=subjects_dir,
-                             surfaces=['brain'], bem=sphere)
+        plot_alignment(
+            trans=trans_fname, subject='sample', subjects_dir=subjects_dir,
+            surfaces=['brain'], bem=sphere)
     # but you can ask for a specific brain surface, and
     # no info is permitted
-    fig = plot_alignment(trans=trans_fname, subject='sample', meg=False,
-                         coord_frame='mri', subjects_dir=subjects_dir,
-                         surfaces=['white'], bem=sphere, show_axes=True)
+    plot_alignment(
+        trans=trans_fname, subject='sample', meg=False, coord_frame='mri',
+        subjects_dir=subjects_dir, surfaces=['white'], bem=sphere,
+        show_axes=True)
     renderer.backend._close_all()
-    if renderer._get_3d_backend() == 'mayavi':
-        import mayavi  # noqa: F401 analysis:ignore
-        assert isinstance(fig, mayavi.core.scene.Scene)
+    # TODO: We need to make this class public and document it properly
+    # assert isinstance(fig, some_public_class)
     # 3D coil with no defined draw (ConvexHull)
     info_cube = pick_info(info, np.arange(6))
     with info._unlock():
@@ -433,16 +423,16 @@ def test_plot_alignment_basic(tmpdir, renderer, mixed_fwd_cov_evoked):
 
 
 @testing.requires_testing_data
-def test_plot_alignment_fnirs(renderer, tmpdir):
+def test_plot_alignment_fnirs(renderer, tmp_path):
     """Test fNIRS plotting."""
-    # Here we use subjects_dir=tmpdir, since no surfaces should actually
+    # Here we use subjects_dir=tmp_path, since no surfaces should actually
     # be loaded!
 
     # fNIRS (default is pairs)
     info = read_raw_nirx(nirx_fname).info
     assert info['nchan'] == 26
     kwargs = dict(trans='fsaverage', subject='fsaverage', surfaces=(),
-                  verbose=True, subjects_dir=tmpdir)
+                  verbose=True, subjects_dir=tmp_path)
     with catch_logging() as log:
         fig = plot_alignment(info, **kwargs)
     log = log.getvalue()
@@ -456,7 +446,6 @@ def test_plot_alignment_fnirs(renderer, tmpdir):
 
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
-@traits_test
 def test_process_clim_plot(renderer_interactive, brain_gc):
     """Test functionality for determining control points with stc.plot."""
     sample_src = read_source_spaces(src_fname)
@@ -606,6 +595,7 @@ def test_stc_mpl():
                   time_unit='ss', subject='sample', backend='matplotlib')
 
 
+@pytest.mark.slowtest
 @pytest.mark.timeout(60)  # can sometimes take > 60 sec
 @testing.requires_testing_data
 @requires_nibabel()
@@ -644,7 +634,7 @@ def test_plot_dipole_orientations(renderer):
     renderer.backend._close_all()
 
 
-@pytest.mark.slowtest  # slow for Mayavi on Azure
+@pytest.mark.slowtest  # slow on Azure
 @testing.requires_testing_data
 def test_snapshot_brain_montage(renderer):
     """Test snapshot brain montage."""
@@ -676,7 +666,6 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
                                pick_ori, kind, brain_gc):
     """Test plotting of scalar and vector source estimates."""
     backend = renderer_interactive._get_3d_backend()
-    is_pyvista = backend != 'mayavi'
     invs, evoked = all_src_types_inv_evoked
     inv = invs[kind]
     with pytest.warns(None):  # PCA mag
@@ -693,11 +682,6 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     if pick_ori != 'vector':
         kwargs['surface'] = 'white'
         kwargs['backend'] = backend
-    # Mayavi can't handle non-surface
-    if kind != 'surface' and not is_pyvista:
-        with pytest.raises(RuntimeError, match='PyVista'):
-            meth(**kwargs)
-        return
     brain = meth(**kwargs)
     brain.close()
     del brain
@@ -720,15 +704,12 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
         these_kwargs = kwargs.copy()
         these_kwargs.update(show_traces=True, time_viewer=False)
         meth(**these_kwargs)
-    if not is_pyvista:
-        with pytest.raises(ValueError, match='view_layout must be'):
-            meth(view_layout='horizontal', **kwargs)
 
     # flatmaps (mostly a lot of error checking)
     these_kwargs = kwargs.copy()
     these_kwargs.update(surface='flat', views='auto', hemi='both',
                         verbose='debug')
-    if kind == 'surface' and pick_ori != 'vector' and is_pyvista:
+    if kind == 'surface' and pick_ori != 'vector':
         with catch_logging() as log:
             with pytest.raises(FileNotFoundError, match='flatmap'):
                 meth(**these_kwargs)  # sample does not have them
@@ -743,9 +724,6 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     elif kind != 'surface':
         with pytest.raises(TypeError, match='SourceEstimate when a flatmap'):
             flat_meth(**these_kwargs)
-    elif not is_pyvista:
-        with pytest.raises(RuntimeError, match='PyVista 3D backend.*flatmap'):
-            flat_meth(**these_kwargs)
     else:
         brain = flat_meth(**these_kwargs)
         brain.close()
@@ -757,7 +735,6 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     # just test one for speed
     if kind != 'mixed':
         return
-    assert is_pyvista
     brain = meth(
         views=['lat', 'med', 'ven'], hemi='lh',
         view_layout='horizontal', **kwargs)
@@ -776,39 +753,6 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     brain = meth(**these_kwargs)
     brain.close()
     del brain
-
-
-@pytest.mark.slowtest
-@testing.requires_testing_data
-def test_plot_sensors_connectivity(renderer):
-    """Test plotting of sensors connectivity."""
-    from mne import io, pick_types
-
-    data_path = data_dir
-    raw_fname = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis_trunc_raw.fif')
-
-    raw = io.read_raw_fif(raw_fname)
-    picks = pick_types(raw.info, meg='grad', eeg=False, stim=False,
-                       eog=True, exclude='bads')
-    n_channels = len(picks)
-    con = np.random.RandomState(42).randn(n_channels, n_channels)
-    info = raw.info
-    with pytest.raises(TypeError, match='must be an instance of Info'):
-        plot_sensors_connectivity(info='foo', con=con, picks=picks)
-    with pytest.raises(ValueError, match='does not correspond to the size'):
-        plot_sensors_connectivity(info=info, con=con[::2, ::2], picks=picks)
-
-    fig = plot_sensors_connectivity(info=info, con=con, picks=picks)
-    if renderer._get_3d_backend() == 'pyvistaqt':
-        title = list(fig.plotter.scalar_bars.values())[0].GetTitle()
-    else:
-        assert renderer._get_3d_backend() == 'mayavi'
-        # the last thing we add is the Tube, so we need to go
-        # vtkDataSource->Stripper->Tube->ModuleManager
-        mod_man = fig.children[-1].children[0].children[0].children[0]
-        title = mod_man.scalar_lut_manager.scalar_bar.title
-    assert title == 'Connectivity'
 
 
 @pytest.mark.parametrize('orientation', ('horizontal', 'vertical'))
@@ -843,7 +787,6 @@ def test_brain_colorbar(orientation, diverging, lims):
 
 @pytest.mark.slowtest  # slow-ish on Travis OSX
 @testing.requires_testing_data
-@traits_test
 def test_mixed_sources_plot_surface(renderer_interactive):
     """Test plot_surface() for mixed source space."""
     src = read_source_spaces(fwd_fname2)
@@ -866,7 +809,6 @@ def test_mixed_sources_plot_surface(renderer_interactive):
 
 
 @testing.requires_testing_data
-@traits_test
 @pytest.mark.slowtest
 def test_link_brains(renderer_interactive):
     """Test plotting linked brains."""
@@ -888,12 +830,8 @@ def test_link_brains(renderer_interactive):
         subjects_dir=subjects_dir, colorbar=True,
         clim='auto'
     )
-    if renderer_interactive._get_3d_backend() == 'mayavi':
-        with pytest.raises(NotImplementedError, match='backend is pyvistaqt'):
-            link_brains(brain)
-    else:
-        with pytest.raises(ValueError, match='is empty'):
-            link_brains([])
-        with pytest.raises(TypeError, match='type is Brain'):
-            link_brains('foo')
-        link_brains(brain, time=True, camera=True)
+    with pytest.raises(ValueError, match='is empty'):
+        link_brains([])
+    with pytest.raises(TypeError, match='type is Brain'):
+        link_brains('foo')
+    link_brains(brain, time=True, camera=True)

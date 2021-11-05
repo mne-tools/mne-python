@@ -94,9 +94,9 @@ def invisible_fig(monkeypatch):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_render_report(renderer_pyvistaqt, tmpdir, invisible_fig):
+def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
     """Test rendering *.fif files for mne report."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
     raw_fname_new_bids = op.join(tempdir, 'temp_meg.fif')
     ms_fname_new = op.join(tempdir, 'temp_ms_raw.fif')
@@ -208,10 +208,10 @@ def test_render_report(renderer_pyvistaqt, tmpdir, invisible_fig):
 
 
 @testing.requires_testing_data
-def test_render_report_extra(renderer_pyvistaqt, tmpdir, invisible_fig):
+def test_render_report_extra(renderer_pyvistaqt, tmp_path, invisible_fig):
     """Test SVG and projector rendering separately."""
     # ... otherwise things are very slow
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
     shutil.copyfile(raw_fname, raw_fname_new)
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
@@ -231,9 +231,9 @@ def test_render_report_extra(renderer_pyvistaqt, tmpdir, invisible_fig):
     assert 'SSP Projectors' in html
 
 
-def test_add_custom_css(tmpdir):
+def test_add_custom_css(tmp_path):
     """Test adding custom CSS rules to the report."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fname = op.join(tempdir, 'report.html')
     fig = plt.figure()  # Empty figure
 
@@ -248,9 +248,9 @@ def test_add_custom_css(tmpdir):
     assert custom_css in html
 
 
-def test_add_custom_js(tmpdir):
+def test_add_custom_js(tmp_path):
     """Test adding custom JavaScript to the report."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fname = op.join(tempdir, 'report.html')
     fig = plt.figure()  # Empty figure
 
@@ -268,9 +268,9 @@ def test_add_custom_js(tmpdir):
 
 
 @testing.requires_testing_data
-def test_render_non_fiff(tmpdir):
+def test_render_non_fiff(tmp_path):
     """Test rendering non-FIFF files for mne report."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fnames_in = [bdf_fname, edf_fname]
     fnames_out = []
     for fname in fnames_in:
@@ -303,12 +303,12 @@ def test_render_non_fiff(tmpdir):
 
 
 @testing.requires_testing_data
-def test_report_raw_psd_and_date(tmpdir):
+def test_report_raw_psd_and_date(tmp_path):
     """Test report raw PSD and DATE_NONE functionality."""
     with pytest.raises(TypeError, match='dict'):
         Report(raw_psd='foo')
 
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     raw = read_raw_fif(raw_fname).crop(0, 1.).load_data()
     raw.info['experimenter'] = 'mne test'
     raw.info['subject_info'] = dict(id=123, his_id='sample')
@@ -350,11 +350,11 @@ def test_report_raw_psd_and_date(tmpdir):
     assert 'Unknown' in ''.join(report.html)
 
 
-@pytest.mark.slowtest  # slow for Mayavi on Azure
+@pytest.mark.slowtest  # slow on Azure
 @testing.requires_testing_data
-def test_render_add_sections(renderer, tmpdir):
+def test_render_add_sections(renderer, tmp_path):
     """Test adding figures/images to section."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     report = Report(subjects_dir=subjects_dir)
     # Check add_figure functionality
     fig = plt.plot([1, 2], [1, 2])[0].figure
@@ -380,7 +380,7 @@ def test_render_add_sections(renderer, tmpdir):
 
     report.add_figure(fig=fig, title='random image')
     assert (repr(report))
-    fname = op.join(str(tmpdir), 'test.html')
+    fname = op.join(str(tmp_path), 'test.html')
     report.save(fname, open_browser=False)
 
     assert len(report) == 4
@@ -389,9 +389,9 @@ def test_render_add_sections(renderer, tmpdir):
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_nibabel()
-def test_render_mri(renderer, tmpdir):
+def test_render_mri(renderer, tmp_path):
     """Test rendering MRI for mne report."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     trans_fname_new = op.join(tempdir, 'temp-trans.fif')
     for a, b in [[trans_fname, trans_fname_new]]:
         shutil.copyfile(a, b)
@@ -448,9 +448,9 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
 
 @testing.requires_testing_data
 @requires_nibabel()
-def test_render_mri_without_bem(tmpdir):
+def test_render_mri_without_bem(tmp_path):
     """Test rendering MRI without BEM for mne report."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     os.mkdir(op.join(tempdir, 'sample'))
     os.mkdir(op.join(tempdir, 'sample', 'mri'))
     shutil.copyfile(mri_fname, op.join(tempdir, 'sample', 'mri', 'T1.mgz'))
@@ -477,9 +477,9 @@ def test_add_html():
 
 
 @testing.requires_testing_data
-def test_multiple_figs(tmpdir):
+def test_multiple_figs(tmp_path):
     """Test adding a slider with a series of figures to a Report."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
     figs = _get_example_figures()
@@ -519,9 +519,9 @@ def test_validate_input():
 
 
 @requires_h5py
-def test_open_report(tmpdir):
+def test_open_report(tmp_path):
     """Test the open_report function."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     hdf5 = op.join(tempdir, 'report.h5')
 
     # Test creating a new report through the open_report function
@@ -605,15 +605,15 @@ def test_add_or_replace():
     assert r.html[3] == old_r.html[3]
 
 
-def test_scraper(tmpdir):
+def test_scraper(tmp_path):
     """Test report scraping."""
     r = Report()
     fig1, fig2 = _get_example_figures()
     r.add_figure(fig=fig1, title='a')
     r.add_figure(fig=fig2, title='b')
     # Mock a Sphinx + sphinx_gallery config
-    app = Bunch(builder=Bunch(srcdir=str(tmpdir),
-                              outdir=op.join(str(tmpdir), '_build', 'html')))
+    app = Bunch(builder=Bunch(srcdir=str(tmp_path),
+                              outdir=op.join(str(tmp_path), '_build', 'html')))
     scraper = _ReportScraper()
     scraper.app = app
     gallery_conf = dict(src_dir=app.builder.srcdir, builder_name='html')
@@ -633,7 +633,7 @@ def test_scraper(tmpdir):
     rst = scraper(block, block_vars, gallery_conf)
     # Once it's saved, add it
     assert rst == ''
-    fname = op.join(str(tmpdir), 'my_html.html')
+    fname = op.join(str(tmp_path), 'my_html.html')
     r.save(fname, open_browser=False)
     rst = scraper(block, block_vars, gallery_conf)
     out_html = op.join(app.builder.outdir, 'auto_examples', 'my_html.html')
@@ -647,23 +647,24 @@ def test_scraper(tmpdir):
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('split_naming', ('neuromag', 'bids',))
-def test_split_files(tmpdir, split_naming):
+def test_split_files(tmp_path, split_naming):
     """Test that in the case of split files, we only parse the first."""
     raw = read_raw_fif(raw_fname)
     split_size = '7MB'  # Should produce 3 files
     buffer_size_sec = 1  # Tiny buffer so it's smaller than the split size
-    raw.save(op.join(tmpdir, 'raw_meg.fif'), split_size=split_size,
+    raw.save(op.join(tmp_path, 'raw_meg.fif'), split_size=split_size,
              split_naming=split_naming, buffer_size_sec=buffer_size_sec)
 
     report = Report()
-    report.parse_folder(tmpdir, render_bem=False, raw_butterfly=False)
+    report.parse_folder(tmp_path, render_bem=False, raw_butterfly=False)
     assert len(report._content) == 1
 
 
+@pytest.mark.slowtest  # ~40 sec on Azure Windows
 @testing.requires_testing_data
-def test_survive_pickle(tmpdir):
+def test_survive_pickle(tmp_path):
     """Testing functionality of Report-Object after pickling."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
     shutil.copyfile(raw_fname, raw_fname_new)
 
@@ -678,9 +679,10 @@ def test_survive_pickle(tmpdir):
     report.save(fname=save_name, open_browser=False)
 
 
+@pytest.mark.slowtest  # ~30 sec on Azure Windows
 @requires_sklearn
 @testing.requires_testing_data
-def test_manual_report_2d(tmpdir, invisible_fig):
+def test_manual_report_2d(tmp_path, invisible_fig):
     """Simulate user manually creating report by adding one file at a time."""
     from sklearn.exceptions import ConvergenceWarning
 
@@ -772,13 +774,13 @@ def test_manual_report_2d(tmpdir, invisible_fig):
     assert 'ICA component topographies' not in r._content[-1].html
     assert 'Original and cleaned signal' in r._content[-1].html
 
-    fname = op.join(tmpdir, 'report.html')
+    fname = op.join(tmp_path, 'report.html')
     r.save(fname=fname, open_browser=False)
 
 
-@pytest.mark.slowtest  # 30 sec on Azure for Mayavi
+@pytest.mark.slowtest  # 30 sec on Azure
 @testing.requires_testing_data
-def test_manual_report_3d(tmpdir, renderer):
+def test_manual_report_3d(tmp_path, renderer):
     """Simulate adding 3D sections."""
     r = Report(title='My Report')
     r.add_trans(trans=trans_fname, info=raw_fname, title='my coreg',
@@ -794,11 +796,11 @@ def test_manual_report_3d(tmpdir, renderer):
         subjects_dir=subjects_dir, n_time_points=2,
         stc_plot_kwargs=stc_plot_kwargs,
     )
-    fname = op.join(tmpdir, 'report.html')
+    fname = op.join(tmp_path, 'report.html')
     r.save(fname=fname, open_browser=False)
 
 
-def test_sorting(tmpdir):
+def test_sorting(tmp_path):
     """Test that automated ordering based on tags works."""
     r = Report()
 
@@ -819,56 +821,5 @@ def test_sorting(tmpdir):
     assert content_sorted != r._content
     assert [c.tags[0] for c in content_sorted] == expected_order
 
-    r.save(fname=op.join(tmpdir, 'report.html'), sort_content=True,
+    r.save(fname=op.join(tmp_path, 'report.html'), sort_content=True,
            open_browser=False)
-
-
-@testing.requires_testing_data
-def test_deprecated_methods(tmpdir):
-    """Test methods that are scheduled for removal after 0.24."""
-    r = Report()
-    r.add_projs(info=raw_fname, title='SSP Projectors', tags=('mytag',))
-    fig = plt.figure()  # Empty figure
-    img_fname = op.join(tmpdir, 'testimage.png')
-    fig.savefig(img_fname)
-
-    with pytest.warns(DeprecationWarning, match='Report.fnames'):
-        assert len(r.fnames) == 1
-
-    with pytest.warns(DeprecationWarning, match='Report.sections'):
-        assert len(r.sections) == 1
-
-    with pytest.warns(DeprecationWarning, match='use "title" instead'):
-        r.remove(caption='SSP Projectors')
-
-    with pytest.warns(DeprecationWarning, match='use .* instead'):
-        r.remove(caption='SSP Projectors', tags=('mytag',))
-
-    with pytest.warns(DeprecationWarning, match='Use.*Report.add_figure'):
-        with pytest.raises(TypeError, match='It seems you passed a path'):
-            r.add_figs_to_section(['foo'], 'caption', 'section')
-
-    with pytest.raises(
-        ValueError,
-        match='Number of "captions" and report items must be equal'
-    ):
-        with pytest.warns(DeprecationWarning, match='Use.*Report.add_figure'):
-            r.add_figs_to_section(figs=[fig, fig], captions='H')
-
-    # Passing lists should work
-    with pytest.warns(DeprecationWarning, match='Use.*Report.add_image'):
-        r.add_images_to_section(fnames=[img_fname],
-                                captions=['evoked response'])
-
-    with pytest.raises(
-        ValueError,
-        match='Number of "captions" and report items must be equal'
-    ):
-        with pytest.warns(DeprecationWarning, match='Use.*Report.add_image'):
-            r.add_images_to_section(fnames=[img_fname, img_fname],
-                                    captions='H')
-
-    with pytest.warns(DeprecationWarning, match='Use.*Report.add_bem'):
-        r.add_bem_to_section(
-            subject='sample', subjects_dir=subjects_dir, decim=100
-        )

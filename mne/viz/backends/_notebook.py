@@ -433,6 +433,8 @@ class _IpyWidget(_AbstractWidget):
 
 class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
                 _IpyStatusBar, _IpyWindow, _IpyPlayback):
+    _kind = 'notebook'
+
     def __init__(self, *args, **kwargs):
         self._dock = None
         self._tool_bar = None

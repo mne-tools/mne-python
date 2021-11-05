@@ -156,7 +156,6 @@
 .. _nitime: http://nipy.org/nitime/
 .. _joblib: https://pypi.python.org/pypi/joblib
 .. _scikit-learn: https://scikit-learn.org/stable/
-.. _pysurfer: https://pysurfer.github.io/
 .. _pyDICOM: https://pypi.python.org/pypi/pydicom/
 .. _matplotlib: https://matplotlib.org/
 .. _sphinx: https://www.sphinx-doc.org/

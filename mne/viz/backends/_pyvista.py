@@ -124,14 +124,16 @@ class _Projection(object):
         Scene sensors handle.
     """
 
-    def __init__(self, xy=None, pts=None):
+    def __init__(self, *, xy, pts, plotter):
         """Store input projection information into attributes."""
         self.xy = xy
         self.pts = pts
+        self.plotter = plotter
 
     def visible(self, state):
         """Modify visibility attribute of the sensors."""
         self.pts.SetVisibility(state)
+        self.plotter.render()
 
 
 @copy_base_doc_to_subclass_doc
@@ -638,7 +640,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         # pts = self.fig.children[-1]
         pts = self.plotter.renderer.GetActors().GetLastItem()
 
-        return _Projection(xy=xy, pts=pts)
+        return _Projection(xy=xy, pts=pts, plotter=self.plotter)
 
     def enable_depth_peeling(self):
         if not self.figure.store['off_screen']:

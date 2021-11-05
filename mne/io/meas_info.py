@@ -752,16 +752,14 @@ class Info(dict, MontageMixin):
         if key in self._attributes:
             if isinstance(self._attributes[key], str):
                 if not unlocked:
-                    warn(f'{self._attributes[key]} This warning will turn '
-                         'into an error after 0.24', DeprecationWarning)
+                    raise RuntimeError(self._attributes[key])
             else:
                 val = self._attributes[key](val)  # attribute checker function
         else:
-            warn(f"Info does not support directly setting the key {repr(key)},"
-                 " this warning will turn into an error after 0.24. You can "
-                 "set info['temp'] to store temporary objects in an Info "
-                 "instance, but these will not survive an I/O round-trip.",
-                 DeprecationWarning)
+            raise RuntimeError(
+                f"Info does not support directly setting the key {repr(key)}. "
+                "You can set info['temp'] to store temporary objects in an "
+                "Info instance, but these will not survive an I/O round-trip.")
         super().__setitem__(key, val)
 
     def update(self, other=None, **kwargs):

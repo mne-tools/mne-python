@@ -21,7 +21,6 @@ import sys
 
 import mne
 from mne.io import read_raw_kit
-from mne.utils import ETSContext
 
 
 def run():
@@ -60,8 +59,13 @@ def run():
 
     input_fname = options.input_fname
     if input_fname is None:
-        with ETSContext():
-            mne.gui.kit2fiff()
+        try:
+            from mne_kit_gui import kit2fiff  # noqa
+        except ImportError:
+            raise ImportError(
+                'The mne_kit_gui package is required, install it using '
+                'conda or pip') from None
+        kit2fiff()
         sys.exit(0)
 
     hsp_fname = options.hsp_fname

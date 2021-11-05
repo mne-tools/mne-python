@@ -139,9 +139,9 @@ def read_crop(fname, lims=(0, None)):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_movement_compensation(tmpdir):
+def test_movement_compensation(tmp_path):
     """Test movement compensation."""
-    temp_dir = str(tmpdir)
+    temp_dir = str(tmp_path)
     lims = (0, 4)
     raw = read_crop(raw_fname, lims).load_data()
     head_pos = read_head_pos(pos_fname)
@@ -482,7 +482,7 @@ def test_basic():
 
 
 @testing.requires_testing_data
-def test_maxwell_filter_additional(tmpdir):
+def test_maxwell_filter_additional(tmp_path):
     """Test processing of Maxwell filtered data."""
     # TODO: Future tests integrate with mne/io/tests/test_proc_history
 
@@ -504,7 +504,7 @@ def test_maxwell_filter_additional(tmpdir):
                              bad_condition='ignore')
 
     # Test io on processed data
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     test_outname = op.join(tempdir, 'test_raw_sss.fif')
     raw_sss.save(test_outname)
     raw_sss_loaded = read_crop(test_outname).load_data()
@@ -734,7 +734,7 @@ def _check_reg_match(sss_py, sss_mf, comp_tol):
 
 
 @testing.requires_testing_data
-def test_cross_talk(tmpdir):
+def test_cross_talk(tmp_path):
     """Test Maxwell filter cross-talk cancellation."""
     raw = read_crop(raw_fname, (0., 1.))
     raw.info['bads'] = bads
@@ -756,7 +756,7 @@ def test_cross_talk(tmpdir):
     assert_array_equal(py_ctc['decoupler'].toarray(),
                        mf_ctc['decoupler'].toarray())
     # I/O roundtrip
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fname = op.join(tempdir, 'test_sss_raw.fif')
     sss_ctc.save(fname)
     sss_ctc_read = read_raw_fif(fname)
@@ -902,7 +902,7 @@ def get_n_projected():
 @buggy_mkl_svd
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_shielding_factor(tmpdir):
+def test_shielding_factor(tmp_path):
     """Test Maxwell filter shielding factor using empty room."""
     raw_erm = read_crop(erm_fname).load_data().pick_types(meg=True)
     erm_power = raw_erm[pick_types(raw_erm.info, meg='mag')][0]
@@ -1084,7 +1084,7 @@ def test_shielding_factor(tmpdir):
     _assert_shielding(raw_sss, erm_power, 57, 58)
     assert counts[0] == 3
     # Show it by rewriting the 3D as 1D and testing it
-    temp_dir = str(tmpdir)
+    temp_dir = str(tmp_path)
     temp_fname = op.join(temp_dir, 'test_cal.dat')
     with open(fine_cal_fname_3d, 'r') as fid:
         with open(temp_fname, 'w') as fid_out:

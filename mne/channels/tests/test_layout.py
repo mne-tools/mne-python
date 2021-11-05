@@ -52,9 +52,9 @@ def _get_test_info():
     return test_info
 
 
-def test_io_layout_lout(tmpdir):
+def test_io_layout_lout(tmp_path):
     """Test IO with .lout files."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     layout = read_layout('Vectorview-all', scale=False)
     layout.save(op.join(tempdir, 'foobar.lout'))
     layout_read = read_layout(op.join(tempdir, 'foobar.lout'), path='./',
@@ -64,9 +64,9 @@ def test_io_layout_lout(tmpdir):
     print(layout)  # test repr
 
 
-def test_io_layout_lay(tmpdir):
+def test_io_layout_lay(tmp_path):
     """Test IO with .lay files."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     layout = read_layout('CTF151', scale=False)
     layout.save(op.join(tempdir, 'foobar.lay'))
     layout_read = read_layout(op.join(tempdir, 'foobar.lay'), path='./',
@@ -139,9 +139,9 @@ def test_find_topomap_coords():
         _find_topomap_coords(info, picks, **kwargs)
 
 
-def test_make_eeg_layout(tmpdir):
+def test_make_eeg_layout(tmp_path):
     """Test creation of EEG layout."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     tmp_name = 'foo'
     lout_name = 'test_raw'
     lout_orig = read_layout(kind=lout_name, path=lout_path)
@@ -165,9 +165,9 @@ def test_make_eeg_layout(tmpdir):
     pytest.raises(ValueError, make_eeg_layout, info, height=1.1)
 
 
-def test_make_grid_layout(tmpdir):
+def test_make_grid_layout(tmp_path):
     """Test creation of grid layout."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     tmp_name = 'bar'
     lout_name = 'test_ica'
     lout_orig = read_layout(kind=lout_name, path=lout_path)

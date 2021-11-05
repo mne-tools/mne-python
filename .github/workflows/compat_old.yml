@@ -19,7 +19,7 @@ jobs:
       run:
         shell: bash
     env:
-      CONDA_DEPENDENCIES: 'numpy=1.16 scipy=1.2 matplotlib=3.1 pandas=0.24 scikit-learn=0.21'
+      CONDA_DEPENDENCIES: 'numpy=1.18 scipy=1.4 matplotlib=3.1 pandas=1.0 scikit-learn=0.22'
       DISPLAY: ':99.0'
       MNE_LOGGING_LEVEL: 'warning'
       OPENBLAS_NUM_THREADS: '1'

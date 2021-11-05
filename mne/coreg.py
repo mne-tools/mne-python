@@ -1368,11 +1368,17 @@ class Coregistration(object):
                 dig=self._info['dig'],
                 exclude_ref_channel=False
             )
-            # adjustments
-            self._dig_dict['rpa'] = np.array([self._dig_dict['rpa']], float)
-            self._dig_dict['nasion'] = \
-                np.array([self._dig_dict['nasion']], float)
-            self._dig_dict['lpa'] = np.array([self._dig_dict['lpa']], float)
+            # adjustments:
+            # set weights to 0 for None input
+            # convert fids to float arrays
+            for k, w_atr in zip(['nasion', 'lpa', 'rpa', 'hsp', 'hpi'],
+                                ['_nasion_weight', '_lpa_weight',
+                                 '_rpa_weight', '_hsp_weight', '_hpi_weight']):
+                if self._dig_dict[k] is None:
+                    self._dig_dict[k] = np.zeros((0, 3))
+                    setattr(self, w_atr, 0)
+                elif k in ['rpa', 'nasion', 'lpa']:
+                    self._dig_dict[k] = np.array([self._dig_dict[k]], float)
 
     def _setup_bem(self):
         # find high-res head model (if possible)
@@ -1407,6 +1413,7 @@ class Coregistration(object):
     def _setup_fiducials(self, fids):
         _validate_type(fids, (str, dict, list))
         # find fiducials file
+        fid_accurate = None
         if fids == 'auto':
             fid_files = _find_fiducials_files(self._subject,
                                               self._subjects_dir)
@@ -1416,13 +1423,16 @@ class Coregistration(object):
                     subjects_dir=self._subjects_dir, subject=self._subject)
                 logger.info(f'Using fiducials from: {fid_filename}.')
                 fids, _ = read_fiducials(fid_filename)
+                fid_accurate = True
             else:
                 fids = 'estimated'
 
         if fids == 'estimated':
             logger.info('Estimating fiducials from fsaverage.')
+            fid_accurate = False
             fids = get_mni_fiducials(self._subject, self._subjects_dir)
 
+        fid_accurate = True if fid_accurate is None else fid_accurate
         if isinstance(fids, list):
             fid_coords = _fiducial_coords(fids)
         else:
@@ -1431,6 +1441,7 @@ class Coregistration(object):
                                   dtype=float)
 
         self._fid_points = fid_coords
+        self._fid_accurate = fid_accurate
 
         # does not seem to happen by itself ... so hard code it:
         self._reset_fiducials()
