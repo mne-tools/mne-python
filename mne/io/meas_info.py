@@ -260,10 +260,11 @@ class Info(dict, MontageMixin):
                  are ``info['bads']``, ``info['description']``,
                  ``info['device_info']``, ``info['dev_head_t']``,
                  ``info['experimenter']``, info['helium_info'],
-                 ``info['line_freq']``, and ``info['subject_info']``. All other
-                 entries should be considered read-only, though they can be
-                 modified by various MNE-Python functions or methods (which
-                 have safeguards to ensure all fields remain in sync).
+                 ``info['line_freq']``, ``info['temp']`` and
+                 ``info['subject_info']``. All other entries should be
+                 considered read-only, though they can be modified by various
+                 MNE-Python functions or methods (which have safeguards to
+                 ensure all fields remain in sync).
 
     .. warning:: This class should not be instantiated directly. To create a
                  measurement information structure, use
@@ -372,7 +373,8 @@ class Info(dict, MontageMixin):
         File containing the MRI to head transformation (used for source
         estimation).
     mri_head_t : dict | None
-        Transformation from MRI to head coordinates.
+        Transformation from MRI to head coordinates (used for source
+        estimation).
     mri_id : dict | None
         MRI unique ID (used for source estimation).
     nchan : int
@@ -401,7 +403,6 @@ class Info(dict, MontageMixin):
         "UTC offset of related meas_date (sHH:MM).
 
         .. versionadded:: 0.19
-
     working_dir : str
         Working directory used when the source space was created (used for
         source estimation).
