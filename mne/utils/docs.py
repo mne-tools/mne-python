@@ -1913,7 +1913,7 @@ scene_interaction_common = """\
     fixed, enabling "turntable-style" rotations. If ``'trackball'``,
     movement along all axes is possible, which provides more freedom of
     movement, but you may incidentally perform unintentional rotations along
-    some axes.
+    some axes.\
 """
 docdict['scene_interaction'] = f"""
 interaction : 'trackball' | 'terrain'
@@ -1922,7 +1922,8 @@ interaction : 'trackball' | 'terrain'
 docdict['scene_interaction_None'] = f"""
 interaction : 'trackball' | 'terrain' | None
 {scene_interaction_common}
-If ``None``, the setting stored in the MNE-Python configuration file is used.
+    If ``None``, the setting stored in the MNE-Python configuration file is
+    used.
 """
 
 # STC label time course
