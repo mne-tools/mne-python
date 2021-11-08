@@ -51,6 +51,11 @@ def test_export_raw_eeglab(tmp_path):
     assert_allclose(raw.times, raw_read.times)
     assert_allclose(raw.get_data(), raw_read.get_data())
 
+    # test overwrite
+    with pytest.raises(FileExistsError, match='Destination file exists'):
+        raw.export(temp_fname, overwrite=False)
+    raw.export(temp_fname, overwrite=True)
+
 
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')
@@ -312,6 +317,11 @@ def test_export_epochs_eeglab(tmp_path, preload):
     assert epochs.event_id.keys() == epochs_read.event_id.keys()  # just keys
     assert_allclose(epochs.times, epochs_read.times)
     assert_allclose(epochs.get_data(), epochs_read.get_data())
+
+    # test overwrite
+    with pytest.raises(FileExistsError, match='Destination file exists'):
+        epochs.export(temp_fname, overwrite=False)
+    epochs.export(temp_fname, overwrite=True)
 
 
 @requires_version('mffpy', '0.5.7')
