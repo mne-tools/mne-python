@@ -80,13 +80,15 @@ def _to_loc(ll):
 
 
 def _eeg_has_montage_information(eeg):
-    from scipy import io
-
+    try:
+        from scipy.io._matlab.mio5_params import mat_struct
+    except ImportError:  # SciPy < 1.8
+        from scipy.io.matlab.mio5_params import mat_struct
     if not len(eeg.chanlocs):
         has_pos = False
     else:
         pos_fields = ['X', 'Y', 'Z']
-        if isinstance(eeg.chanlocs[0], io.matlab.mio5_params.mat_struct):
+        if isinstance(eeg.chanlocs[0], mat_struct):
             has_pos = all(hasattr(eeg.chanlocs[0], fld)
                           for fld in pos_fields)
         elif isinstance(eeg.chanlocs[0], np.ndarray):

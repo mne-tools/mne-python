@@ -33,6 +33,15 @@ from warnings import warn
 import numpy
 import scipy.io
 
+try:
+    from scipy.io.matlab.miobase import get_matfile_version
+    from scipy.io.matlab.mio5_params import MatlabOpaque
+    from scipy.io.matlab.mio5 import MatlabFunction
+except ModuleNotFoundError:  # scipy 1.8
+    from scipy.io._matlab.miobase import get_matfile_version
+    from scipy.io._matlab.mio5_params import MatlabOpaque
+    from scipy.io._matlab.mio5 import MatlabFunction
+
 if sys.version_info <= (2, 7):
     chr = unichr  # noqa This is needed for python 2 and 3 compatibility
 
@@ -209,7 +218,7 @@ def _check_for_scipy_mat_struct(data):
         for key in data:
             data[key] = _check_for_scipy_mat_struct(data[key])
 
-    if isinstance(data, scipy.io.matlab.mio5_params.MatlabOpaque):
+    if isinstance(data, MatlabOpaque):
         warn('Complex objects (like classes) are not supported. '
              'They are imported on a best effort base '
              'but your mileage will vary.')
@@ -222,7 +231,7 @@ def _check_for_scipy_mat_struct(data):
 
 def _handle_scipy_ndarray(data):
     if data.dtype == numpy.dtype('object') and not \
-            isinstance(data, scipy.io.matlab.mio5.MatlabFunction):
+            isinstance(data, MatlabFunction):
         as_list = []
         for element in data:
             as_list.append(_check_for_scipy_mat_struct(element))

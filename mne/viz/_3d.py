@@ -1193,7 +1193,10 @@ def _make_tris_fan(n_vert):
 def _sensor_shape(coil):
     """Get the sensor shape vertices."""
     from scipy.spatial import ConvexHull, Delaunay
-    from scipy.spatial.qhull import QhullError
+    try:
+        from scipy.spatial import QhullError
+    except ImportError:  # scipy < 1.8
+        from scipy.spatial.qhull import QhullError
     id_ = coil['type'] & 0xFFFF
     pad = True
     # Square figure eight
