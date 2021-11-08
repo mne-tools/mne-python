@@ -94,12 +94,9 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
         .. versionadded:: 0.16
     %(scene_interaction_None)s
-        Defaults to ``'terrain'``.
+        Defaults to ``'trackball'``.
 
         .. versionadded:: 0.16
-        .. versionchanged:: 1.0
-           Default interaction mode if ``None`` and no config setting found
-           changed from ``'trackball'`` to ``'terrain'``.
     scale : float | None
         The scaling for the scene.
 
@@ -191,7 +188,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         scale_by_distance = (config.get('MNE_COREG_SCALE_BY_DISTANCE', '') ==
                              'true')
     if interaction is None:
-        interaction = config.get('MNE_COREG_INTERACTION', 'terrain')
+        interaction = config.get('MNE_COREG_INTERACTION', 'trackball')
     if mark_inside is None:
         mark_inside = config.get('MNE_COREG_MARK_INSIDE', '') == 'true'
     if scale is None:

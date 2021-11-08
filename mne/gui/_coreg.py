@@ -72,9 +72,9 @@ class CoregistrationUI(HasTraits):
     standalone : bool
         If True, start the Qt application event loop. Default to False.
     %(scene_interaction)s
-        Defaults to ``'terrain'``.
+        Defaults to ``'trackball'``.
 
-        .. versionadded:: 1.0
+        .. versionadded:: 0.24.1
     %(verbose)s
     """
 
@@ -99,7 +99,7 @@ class CoregistrationUI(HasTraits):
                  head_transparency=None, hpi_coils=None,
                  head_shape_points=None, eeg_channels=None, orient_glyphs=None,
                  sensor_opacity=None, trans=None, size=None, bgcolor=None,
-                 show=True, standalone=False, interaction='terrain',
+                 show=True, standalone=False, interaction='trackball',
                  verbose=None):
         from ..viz.backends.renderer import _get_renderer
 
