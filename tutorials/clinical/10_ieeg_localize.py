@@ -195,9 +195,9 @@ del CT_orig
 # .. note::
 #     Alignment failures sometimes occur which requires manual alignment.
 #     This can be done using Freesurfer's ``freeview`` to align manually
-#         - Load the two scans from the command line:
-#         ``freeview $MISC_PATH/seeg/sample_seeg/mri/T1.mgz
-#         $MISC_PATH/seeg/sample_seeg_CT.mgz``
+#         - Load the two scans from the command line using
+#           ``freeview $MISC_PATH/seeg/sample_seeg/mri/T1.mgz
+#           $MISC_PATH/seeg/sample_seeg_CT.mgz``
 #         - Navigate to the upper toolbar, go to ``Tools>>Transform Volume...``
 #         - Use the rotation and translation slide bars to align the CT
 #           to the MR (be sure to have the CT selected in the upper left menu)
