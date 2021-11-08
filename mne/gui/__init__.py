@@ -93,12 +93,13 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         different color.
 
         .. versionadded:: 0.16
-    interaction : str | None
-        Can be 'terrain' (default None), use terrain-style interaction (where
-        "up" is the Z/superior direction), or 'trackball' to use
-        orientationless interactions.
+    %(scene_interaction_None)s
+        Defaults to ``'terrain'``.
 
         .. versionadded:: 0.16
+        .. versionchanged:: 1.0
+           Default interaction mode if ``None`` and no config setting found
+           changed from ``'trackball'`` to ``'terrain'``.
     scale : float | None
         The scaling for the scene.
 
@@ -147,7 +148,6 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
             'project_eeg': project_eeg,
             'scale_by_distance': scale_by_distance,
             'mark_inside': mark_inside,
-            'interaction': interaction,
             'scale': scale,
             'advanced_rendering': advanced_rendering,
         }
@@ -191,7 +191,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         scale_by_distance = (config.get('MNE_COREG_SCALE_BY_DISTANCE', '') ==
                              'true')
     if interaction is None:
-        interaction = config.get('MNE_COREG_INTERACTION', 'trackball')
+        interaction = config.get('MNE_COREG_INTERACTION', 'terrain')
     if mark_inside is None:
         mark_inside = config.get('MNE_COREG_MARK_INSIDE', '') == 'true'
     if scale is None:

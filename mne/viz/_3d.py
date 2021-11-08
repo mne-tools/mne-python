@@ -498,9 +498,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         If ``None``, creates a new 600x600 pixel figure with black background.
 
         .. versionadded:: 0.16
-    interaction : str
-        Can be "trackball" (default) or "terrain", i.e. a turntable-style
-        camera.
+    %(scene_interaction)s
 
         .. versionadded:: 0.16
     %(verbose)s
@@ -698,8 +696,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     # initialize figure
     renderer = _get_renderer(fig, name=f'Sensor alignment: {subject}',
                              bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
-    if interaction == 'terrain':
-        renderer.set_interaction('terrain')
+    renderer.set_interaction(interaction)
 
     # plot head
     _, _, head_surf = _plot_head_surface(

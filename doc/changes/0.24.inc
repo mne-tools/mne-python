@@ -21,6 +21,8 @@ Version 0.24.1 (Unreleased)
 
 - Fix bug with :class:`mne.Report` where figures were saved with ``bbox_inches='tight'``, which led to inconsistent sizes in sliders (:gh:`9966` by `Eric Larson`_)
 
+- :func:`mne.gui.coregistration` and the ``mne coreg`` command didn't respect the ``inspect`` parameter (:gh:`9972` by `Richard Höchenberger`_)
+
 .. _changes_0_24_0:
 
 Version 0.24.0 (2021-11-03)
