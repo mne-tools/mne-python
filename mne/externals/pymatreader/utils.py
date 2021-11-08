@@ -51,6 +51,15 @@ def _import_h5py():
     return h5py
 
 
+def get_matfile_version():
+    """Triage import path based on SciPy version."""
+    try:
+        from scipy.io.matlab.miobase import get_matfile_version
+    except ModuleNotFoundError:  # scipy 1.8
+        from scipy.io._matlab.miobase import get_matfile_version
+    return get_matfile_version
+
+
 def _hdf5todict(hdf5_object, variable_names=None, ignore_fields=None):
     """
     Recursively converts a hdf5 object to a python dictionary,
