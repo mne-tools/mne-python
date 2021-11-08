@@ -3351,13 +3351,14 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if src is None:  # fake a full surface one
         _validate_type(surface, str, 'surface', extra='when src is None')
-        rrs = [read_surface(op.join(subjects_dir, subject,
-                                    'surf', f'{hemi}.{surface}'))[0]
-               for hemi in ('lh', 'rh')]
+        rrs = [read_surface(op.join(
+            subjects_dir, subject, 'surf', f'{hemi}.{surface}'))[0]
+            for hemi in ('lh', 'rh')]
         src = SourceSpaces([
             dict(rr=rr / 1000., vertno=np.arange(len(rr)), type='surf',
                  coord_frame=FIFF.FIFFV_COORD_MRI)
             for rr in rrs])
+        rrs = np.concatenate(rrs, axis=0)
         keep_all = False
     else:
         if surface is None:
@@ -3365,9 +3366,9 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
             if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
                 rrs = apply_trans(trans, rrs)
         else:
-            rrs = [read_surface(op.join(subjects_dir, subject,
-                                        'surf', f'{hemi}.{surface}'))[0]
-                   for hemi in ('lh', 'rh')]
+            rrs = np.concatenate([read_surface(op.join(
+                subjects_dir, subject, 'surf', f'{hemi}.{surface}'))[0]
+                for hemi in ('lh', 'rh')], axis=0)
         keep_all = True
     # ensure it's a usable one
     klass = dict(
