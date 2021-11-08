@@ -29,7 +29,7 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
     %(export_params_add_ch_type)s
     %(overwrite)s
 
-    .. versionadded:: 1.0
+        .. versionadded:: 1.0
     %(verbose)s
 
     Notes
@@ -70,7 +70,7 @@ def export_epochs(fname, epochs, fmt='auto', overwrite=False, verbose=None):
     %(export_params_fmt)s
     %(overwrite)s
 
-    .. versionadded:: 1.0
+        .. versionadded:: 1.0
     %(verbose)s
 
     Notes
