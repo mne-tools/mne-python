@@ -36,7 +36,6 @@ Bugs
 
 - Add argument ``overwrite`` to :func:`mne.export.export_raw` and :func:`mne.export.export_epochs` (:gh:`9975` by `Mathieu Scheltienne`_)
 
-
 API changes
 ~~~~~~~~~~~
 - Nothing yet
