@@ -3261,12 +3261,14 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         The source space.
 
         .. warning:: If a surface source space is used, make sure that
-                     ``surface='pial'`` was used during construction.
+                     ``surface='pial'`` was used during construction,
+                     or that you set ``surface='pial'`` here.
     %(picks_base)s good sEEG, ECoG, and DBS channels.
 
         .. versionadded:: 0.24
-    surface : str
+    surface : str | None
         The surface to use if ``src=None``. Default is the pial surface.
+        If None, the source space surface will be used.
     %(verbose)s
 
     Returns
@@ -3348,6 +3350,7 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     subject = _check_subject(None, subject, raise_error=False)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if src is None:  # fake a full surface one
+        _validate_type(surface, str, 'surface', extra='when src is None')
         rrs = [read_surface(op.join(subjects_dir, subject,
                                     'surf', f'{hemi}.{surface}'))[0]
                for hemi in ('lh', 'rh')]
@@ -3355,9 +3358,16 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
             dict(rr=rr / 1000., vertno=np.arange(len(rr)), type='surf',
                  coord_frame=FIFF.FIFFV_COORD_MRI)
             for rr in rrs])
-        del rrs
         keep_all = False
     else:
+        if surface is None:
+            rrs = np.concatenate([s['rr'][s['vertno']] for s in src])
+            if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
+                rrs = apply_trans(trans, rrs)
+        else:
+            rrs = [read_surface(op.join(subjects_dir, subject,
+                                        'surf', f'{hemi}.{surface}'))[0]
+                   for hemi in ('lh', 'rh')]
         keep_all = True
     # ensure it's a usable one
     klass = dict(
@@ -3367,9 +3377,6 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     )
     _check_option('src.kind', src.kind, sorted(klass.keys()))
     klass = klass[src.kind]
-    rrs = np.concatenate([s['rr'][s['vertno']] for s in src])
-    if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
-        rrs = apply_trans(trans, rrs)
     # projection will only occur with surfaces
     logger.info(
         f'Projecting data from {len(pos)} sensor{_pl(pos)} onto {len(rrs)} '
