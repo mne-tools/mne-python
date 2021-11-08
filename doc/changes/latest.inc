@@ -26,6 +26,8 @@ Enhancements
 
 - Add show local maxima toggling button to :func:`mne.gui.locate_ieeg` (:gh:`9952` by `Alex Rockhill`_)
 
+- Add argment ``overwrite`` to :func:`mne.export.export_raw` and :func:`mne.export.export_epochs` (:gh:`9975` by `Mathieu Scheltienne`_)
+
 Bugs
 ~~~~
 - Fix default of :func:`mne.io.Raw.plot` to be ``use_opengl=None``, which will act like False unless ``MNE_BROWSE_USE_OPENGL=true`` is set in the user configuration (:gh:`9957` by `Eric Larson`_)
