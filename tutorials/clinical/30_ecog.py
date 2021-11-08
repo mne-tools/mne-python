@@ -181,12 +181,12 @@ for i, pos in enumerate(xy_pts):
 
 xyz_pts = np.array([dig['r'] for dig in evoked.info['dig']])
 
-src = mne.read_source_spaces(
-    op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
+# use `src=None` for default source space, to specify spacing use
+# `src = mne.setup_source_space('fsaverage', subjects_dir=subjects_dir,
+#                               spacing='ico5', surface='pial')`
 stc = mne.stc_near_sensors(gamma_power_t, trans='fsaverage',
-                           subject='fsaverage', src=src,
-                           mode='nearest', subjects_dir=subjects_dir,
-                           distance=0.02)
+                           subject='fsaverage', subjects_dir=subjects_dir,
+                           src=None, mode='nearest', distance=0.02)
 vmin, vmid, vmax = np.percentile(gamma_power_t.data, [10, 25, 90])
 clim = dict(kind='value', lims=[vmin, vmid, vmax])
 brain = stc.plot(surface='pial', hemi='rh', colormap='inferno', colorbar=False,

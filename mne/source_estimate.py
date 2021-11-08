@@ -3231,7 +3231,7 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
 @verbose
 def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
                      project=True, subjects_dir=None, src=None, picks=None,
-                     verbose=None):
+                     surface='pial', verbose=None):
     """Create a STC from ECoG, sEEG and DBS sensor data.
 
     Parameters
@@ -3261,10 +3261,12 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         The source space.
 
         .. warning:: If a surface source space is used, make sure that
-                     ``surf='pial'`` was used during construction.
+                     ``surface='pial'`` was used during construction.
     %(picks_base)s good sEEG, ECoG, and DBS channels.
 
         .. versionadded:: 0.24
+    surface : str
+        The surface to use if ``src=None``. Default is the pial surface.
     %(verbose)s
 
     Returns
@@ -3347,7 +3349,7 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if src is None:  # fake a full surface one
         rrs = [read_surface(op.join(subjects_dir, subject,
-                                    'surf', f'{hemi}.pial'))[0]
+                                    'surf', f'{hemi}.{surface}'))[0]
                for hemi in ('lh', 'rh')]
         src = SourceSpaces([
             dict(rr=rr / 1000., vertno=np.arange(len(rr)), type='surf',
