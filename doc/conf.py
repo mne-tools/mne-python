@@ -155,8 +155,8 @@ intersphinx_mapping = {
     'picard': ('https://pierreablin.github.io/picard/', None),
     'qdarkstyle': ('https://qdarkstylesheet.readthedocs.io/en/latest', None),
     'eeglabio': ('https://eeglabio.readthedocs.io/en/latest', None),
-    'dipy': ('https://dipy.org/documentation/1.4.0./',
-             'https://dipy.org/documentation/1.4.0./objects.inv/'),
+    'dipy': ('https://dipy.org/documentation/latest/documentation',
+             'https://dipy.org/documentation/latest/objects.inv/'),
     'pooch': ('https://www.fatiando.org/pooch/latest/', None),
 }
 
