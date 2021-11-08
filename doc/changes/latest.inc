@@ -36,6 +36,8 @@ Bugs
 
 - Fix bug in :func:`mne.make_forward_solution` where sensor-sphere geometry check was incorrect (:gh:`9968` by `Eric Larson`_)
 
+- :func:`mne.gui.coregistration` and the ``mne coreg`` command didn't respect the ``inspect`` parameter (:gh:`9972` by `Richard Höchenberger`_)
+
 API changes
 ~~~~~~~~~~~
 - Nothing yet
