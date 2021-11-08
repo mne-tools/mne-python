@@ -56,7 +56,7 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
 
 
 @verbose
-def export_epochs(fname, epochs, fmt='auto', verbose=None):
+def export_epochs(fname, epochs, fmt='auto', overwrite=False, verbose=None):
     """Export Epochs to external formats.
 
     Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
@@ -68,12 +68,16 @@ def export_epochs(fname, epochs, fmt='auto', verbose=None):
     epochs : instance of Epochs
         The epochs to export.
     %(export_params_fmt)s
+    %(overwrite)s
+
+    .. versionadded:: 1.0
     %(verbose)s
 
     Notes
     -----
     %(export_eeglab_note)s
     """
+    fname = _check_fname(fname, overwrite=overwrite)
     supported_export_formats = {
         'eeglab': ('set',),
         'edf': ('edf',),
