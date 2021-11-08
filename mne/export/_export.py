@@ -6,12 +6,12 @@
 import os.path as op
 
 from ._egimff import export_evokeds_mff
-from ..utils import verbose, logger, _validate_type
+from ..utils import verbose, logger, _validate_type, _check_fname
 
 
 @verbose
 def export_raw(fname, raw, fmt='auto', physical_range='auto',
-               add_ch_type=False, verbose=None):
+               add_ch_type=False, overwrite=False, verbose=None):
     """Export Raw to external formats.
 
     Supported formats:
@@ -27,6 +27,9 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
     %(export_params_fmt)s
     %(export_params_physical_range)s
     %(export_params_add_ch_type)s
+    %(overwrite)s
+
+    .. versionadded:: 1.0
     %(verbose)s
 
     Notes
@@ -34,6 +37,7 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
     %(export_eeglab_note)s
     %(export_edf_note)s
     """
+    fname = _check_fname(fname, overwrite=overwrite)
     supported_export_formats = {  # format : extensions
         'eeglab': ('set',),
         'edf': ('edf',),
