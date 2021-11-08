@@ -22,7 +22,7 @@ from ..io.pick import _DATA_CH_TYPES_SPLIT
 from .backends._utils import VALID_BROWSE_BACKENDS
 from .utils import _get_color_list, _setup_plot_projector
 
-MNE_BROWSE_BACKEND = None
+MNE_BROWSER_BACKEND = None
 backend = None
 
 
@@ -406,7 +406,7 @@ class BrowserBase(ABC):
                                     for ch in self.mne.info['bads']]
         # write window size to config
         str_size = ','.join([str(i) for i in self._get_size()])
-        set_config('MNE_BROWSE_RAW_SIZE', str_size, set_env=False)
+        set_config('MNE_BROWSER_SIZE', str_size, set_env=False)
         # Clean up child figures (don't pop(), child figs remove themselves)
         while len(self.mne.child_figs):
             fig = self.mne.child_figs[-1]
@@ -677,25 +677,25 @@ def set_browser_backend(backend_name, verbose=None):
 
     .. versionadded:: 0.24
     """
-    global MNE_BROWSE_BACKEND
-    old_backend_name = MNE_BROWSE_BACKEND
+    global MNE_BROWSER_BACKEND
+    old_backend_name = MNE_BROWSER_BACKEND
     backend_name = _check_browser_backend_name(backend_name)
-    if MNE_BROWSE_BACKEND != backend_name:
+    if MNE_BROWSER_BACKEND != backend_name:
         _load_backend(backend_name)
-        MNE_BROWSE_BACKEND = backend_name
+        MNE_BROWSER_BACKEND = backend_name
 
     return old_backend_name
 
 
 def _init_browser_backend():
-    global MNE_BROWSE_BACKEND
+    global MNE_BROWSER_BACKEND
 
-    # check if MNE_BROWSE_BACKEND is not None and valid or get it from config
-    loaded_backend = (MNE_BROWSE_BACKEND or
-                      get_config(key='MNE_BROWSE_BACKEND', default=None))
+    # check if MNE_BROWSER_BACKEND is not None and valid or get it from config
+    loaded_backend = (MNE_BROWSER_BACKEND or
+                      get_config(key='MNE_BROWSER_BACKEND', default=None))
     if loaded_backend is not None:
         set_browser_backend(loaded_backend)
-        return MNE_BROWSE_BACKEND
+        return MNE_BROWSER_BACKEND
     else:
         errors = dict()
         # Try import of valid browser backends
@@ -705,14 +705,14 @@ def _init_browser_backend():
             except ImportError as exc:
                 errors[name] = str(exc)
             else:
-                MNE_BROWSE_BACKEND = name
+                MNE_BROWSER_BACKEND = name
                 break
         else:
             raise RuntimeError(
                 'Could not load any valid 2D backend:\n' +
                 '\n'.join(f'{key}: {val}' for key, val in errors.items()))
 
-        return MNE_BROWSE_BACKEND
+        return MNE_BROWSER_BACKEND
 
 
 def get_browser_backend():
