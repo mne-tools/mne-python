@@ -244,8 +244,6 @@
 
 .. _Quentin Bertrand: https://github.com/QB3
 
-.. _Alexander Kovrig: https://github.com/OpenSatori
-
 .. _Kostiantyn Maksymenko: https://github.com/makkostya
 
 .. _Thomas Radman: https://github.com/tradman
