@@ -26,6 +26,8 @@ Enhancements
 
 - Add show local maxima toggling button to :func:`mne.gui.locate_ieeg` (:gh:`9952` by `Alex Rockhill`_)
 
+- Improve docstring of :class:`mne.Info` and add attributes that were not covered (:gh:`9922` by `Mathieu Scheltienne`_)
+
 Bugs
 ~~~~
 - Fix default of :func:`mne.io.Raw.plot` to be ``use_opengl=None``, which will act like False unless ``MNE_BROWSE_USE_OPENGL=true`` is set in the user configuration (:gh:`9957` by `Eric Larson`_)
