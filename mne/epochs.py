@@ -1926,7 +1926,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         %(export_params_fmt)s
         %(overwrite)s
 
-            .. versionadded:: 1.0
+            .. versionadded:: 0.24.1
         %(verbose)s
 
         Notes

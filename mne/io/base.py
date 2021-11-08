@@ -1492,7 +1492,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(export_params_add_ch_type)s
         %(overwrite)s
 
-            .. versionadded:: 1.0
+            .. versionadded:: 0.24.1
         %(verbose)s
 
         Notes
