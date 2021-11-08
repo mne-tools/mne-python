@@ -195,6 +195,7 @@ del CT_orig
 # .. note::
 #     Alignment failures sometimes occur which requires manual alignment.
 #     This can be done using Freesurfer's ``freeview`` to align manually
+#
 #         - Load the two scans from the command line using
 #           ``freeview $MISC_PATH/seeg/sample_seeg/mri/T1.mgz
 #           $MISC_PATH/seeg/sample_seeg_CT.mgz``
