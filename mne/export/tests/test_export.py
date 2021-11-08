@@ -365,6 +365,20 @@ def test_export_evokeds_to_mff(tmp_path, fmt, do_history):
         assert ave_exported.comment == ave.comment
         assert_allclose(ave_exported.times, ave.times)
 
+    # test overwrite
+    with pytest.raises(FileExistsError, match='Destination file exists'):
+        if do_history:
+            export_evokeds_mff(export_fname, evoked, history=history,
+                               overwrite=False)
+        else:
+            export_evokeds(export_fname, evoked, overwrite=False)
+
+    if do_history:
+        export_evokeds_mff(export_fname, evoked, history=history,
+                           overwrite=True)
+    else:
+        export_evokeds(export_fname, evoked, overwrite=True)
+
 
 @requires_version('mffpy', '0.5.7')
 @testing.requires_testing_data

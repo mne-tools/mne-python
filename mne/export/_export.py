@@ -95,7 +95,7 @@ def export_epochs(fname, epochs, fmt='auto', overwrite=False, verbose=None):
 
 
 @verbose
-def export_evokeds(fname, evoked, fmt='auto', verbose=None):
+def export_evokeds(fname, evoked, fmt='auto', overwrite=False, verbose=None):
     """Export evoked dataset to external formats.
 
     This function is a wrapper for format-specific export functions. The export
@@ -117,6 +117,9 @@ def export_evokeds(fname, evoked, fmt='auto', verbose=None):
         Format of the export. Defaults to ``'auto'``, which will infer the
         format from the filename extension. See supported formats above for
         more information.
+    %(overwrite)s
+
+        .. versionadded:: 0.24.1
     %(verbose)s
 
     See Also
@@ -128,6 +131,7 @@ def export_evokeds(fname, evoked, fmt='auto', verbose=None):
     -----
     .. versionadded:: 0.24
     """
+    fname = _check_fname(fname, overwrite=overwrite)
     supported_export_formats = {
         'mff': ('mff',),
         'eeglab': ('set',),
@@ -142,7 +146,7 @@ def export_evokeds(fname, evoked, fmt='auto', verbose=None):
     logger.info(f'Exporting evoked dataset to {fname}...')
 
     if fmt == 'mff':
-        export_evokeds_mff(fname, evoked)
+        export_evokeds_mff(fname, evoked, overwrite=overwrite)
     elif fmt == 'eeglab':
         raise NotImplementedError('Export to EEGLAB not implemented.')
     elif fmt == 'edf':
