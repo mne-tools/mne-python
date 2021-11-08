@@ -134,7 +134,6 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         'project_eeg': project_eeg,
         'scale_by_distance': scale_by_distance,
         'mark_inside': mark_inside,
-        'interaction': interaction,
         'scale': scale,
         'advanced_rendering': advanced_rendering,
     }
@@ -145,7 +144,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
             to_raise = val is not None
         if to_raise:
             warn(f"The parameter {key} is not supported with"
-                    " the pyvistaqt 3d backend. It will be ignored.")
+                  " the pyvistaqt 3d backend. It will be ignored.")
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     if guess_mri_subject is None:
         guess_mri_subject = config.get(
