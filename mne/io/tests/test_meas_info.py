@@ -474,12 +474,6 @@ def test_check_consistency():
         info2['lowpass'] = 'foo'
     pytest.raises(ValueError, info2._check_consistency)
 
-    info2 = info.copy()
-    with info2._unlock():
-        info2['filename'] = 'foo'
-    with pytest.warns(RuntimeWarning, match='filename'):
-        info2._check_consistency()
-
     # Silent type conversion to float
     info2 = info.copy()
     with info2._unlock(check_after=True):

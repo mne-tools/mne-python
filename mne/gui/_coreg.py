@@ -71,6 +71,10 @@ class CoregistrationUI(HasTraits):
         Display the window as soon as it is ready. Defaults to True.
     standalone : bool
         If True, start the Qt application event loop. Default to False.
+    %(scene_interaction)s
+        Defaults to ``'terrain'``.
+
+        .. versionadded:: 1.0
     %(verbose)s
     """
 
@@ -95,7 +99,8 @@ class CoregistrationUI(HasTraits):
                  head_transparency=None, hpi_coils=None,
                  head_shape_points=None, eeg_channels=None, orient_glyphs=None,
                  sensor_opacity=None, trans=None, size=None, bgcolor=None,
-                 show=True, standalone=False, verbose=None):
+                 show=True, standalone=False, interaction='terrain',
+                 verbose=None):
         from ..viz.backends.renderer import _get_renderer
 
         def _get_default(var, val):
@@ -156,6 +161,7 @@ class CoregistrationUI(HasTraits):
         self._renderer = _get_renderer(
             size=self._defaults["size"], bgcolor=self._defaults["bgcolor"])
         self._renderer._window_close_connect(self._clean)
+        self._renderer.set_interaction(interaction)
 
         # setup the model
         self._info = info
