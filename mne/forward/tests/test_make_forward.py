@@ -527,6 +527,8 @@ def test_sensors_inside_bem():
     make_forward_solution(info, trans, fname_src, sphere_noshell)  # okay
     with pytest.raises(RuntimeError, match='.* 42 MEG.*outermost sphere sh.*'):
         make_forward_solution(info, trans, fname_src, sphere)
+    sphere = make_sphere_model((0., 0., 2.0), 1.01)  # weird, but okay
+    make_forward_solution(info, trans, fname_src, sphere)
     for ch in info['chs']:
         ch['loc'][:3] *= 0.1
     with pytest.raises(RuntimeError, match='.* 42 MEG.*the inner skull.*'):
