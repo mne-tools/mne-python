@@ -133,8 +133,8 @@ viewer.figs[0].axes[0].annotate(
 # =========================
 #
 # Let's load our T1 and CT images and visualize them. You can hardly
-# see the CT, it's so misaligned that it is mostly out of view but there is a
-# part of the skull upsidedown and way off center in the middle plot.
+# see the CT, it's so misaligned that all you can see is part of the
+# stereotactic frame that is anteriolateral to the skull in the middle plot.
 # Clearly, we need to align the CT to the T1 image.
 
 def plot_overlay(image, compare, title, thresh=None):
@@ -190,6 +190,31 @@ reg_affine = np.array([
 CT_aligned = mne.transforms.apply_volume_registration(CT_orig, T1, reg_affine)
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 del CT_orig
+
+# %%
+# .. note::
+#     Alignment failures sometimes occur which requires manual alignment.
+#     This can be done using Freesurfer's ``freeview`` to align manually
+#
+#         - Load the two scans from the command line using
+#           ``freeview $MISC_PATH/seeg/sample_seeg/mri/T1.mgz
+#           $MISC_PATH/seeg/sample_seeg_CT.mgz``
+#         - Navigate to the upper toolbar, go to ``Tools>>Transform Volume...``
+#         - Use the rotation and translation slide bars to align the CT
+#           to the MR (be sure to have the CT selected in the upper left menu)
+#         - Save the modified volume using the ``Save Volume As...`` button
+#         - Resample to the T1 shape and affine using::
+#
+#               CT_aligned_pre = nib.load(op.join(misc_path, 'seeg',
+#                                                 'sample_seeg_CT_aligned.mgz'))
+#               CT_aligned = resample(
+#                   moving=np.asarray(CT_aligned_pre.dataobj),
+#                   static=np.asarray(T1.dataobj),
+#                   moving_affine=CT_aligned_pre.affine,
+#                   static_affine=T1.affine)
+#
+#     The rest of the tutorial can then be completed using ``CT_aligned``
+#     from this point on.
 
 # %%
 # We can now see how the CT image looks properly aligned to the T1 image.
