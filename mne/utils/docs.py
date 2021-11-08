@@ -1906,6 +1906,26 @@ views : str | list
     Using multiple views (list) is not supported for mpl backend.
 """
 
+# Coregistration
+scene_interaction_common = """\
+    How interactions with the scene via an input device (e.g., mouse or
+    trackpad) modify the camera position. If ``'terrain'``, one axis is
+    fixed, enabling "turntable-style" rotations. If ``'trackball'``,
+    movement along all axes is possible, which provides more freedom of
+    movement, but you may incidentally perform unintentional rotations along
+    some axes.\
+"""
+docdict['scene_interaction'] = f"""
+interaction : 'trackball' | 'terrain'
+{scene_interaction_common}
+"""
+docdict['scene_interaction_None'] = f"""
+interaction : 'trackball' | 'terrain' | None
+{scene_interaction_common}
+    If ``None``, the setting stored in the MNE-Python configuration file is
+    used.
+"""
+
 # STC label time course
 docdict['eltc_labels'] = """
 labels : Label | BiHemiLabel | list | tuple | str
