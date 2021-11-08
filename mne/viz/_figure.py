@@ -406,7 +406,7 @@ class BrowserBase(ABC):
                                     for ch in self.mne.info['bads']]
         # write window size to config
         str_size = ','.join([str(i) for i in self._get_size()])
-        set_config('MNE_BROWSER_SIZE', str_size, set_env=False)
+        set_config('MNE_BROWSE_RAW_SIZE', str_size, set_env=False)
         # Clean up child figures (don't pop(), child figs remove themselves)
         while len(self.mne.child_figs):
             fig = self.mne.child_figs[-1]

@@ -505,7 +505,7 @@ def _simplify_float(label):
 
 def _get_figsize_from_config():
     """Get default / most recent figure size from config."""
-    figsize = get_config('MNE_BROWSER_SIZE')
+    figsize = get_config('MNE_BROWSE_RAW_SIZE')
     if figsize is not None:
         figsize = figsize.split(',')
         figsize = tuple([float(s) for s in figsize])

@@ -834,15 +834,15 @@ def test_plot_sensors(raw):
 @pytest.mark.parametrize('cfg_value', (None, '0.1,0.1'))
 def test_min_window_size(raw, cfg_value, browser_backend):
     """Test minimum window plot size."""
-    old_cfg = get_config('MNE_BROWSER_SIZE')
-    set_config('MNE_BROWSER_SIZE', cfg_value)
+    old_cfg = get_config('MNE_BROWSE_RAW_SIZE')
+    set_config('MNE_BROWSE_RAW_SIZE', cfg_value)
     fig = raw.plot()
     # For an unknown reason, the Windows-CI is a bit off
     # (on local Windows 10 the size is exactly as expected).
     atol = 0 if not os.name == 'nt' else 0.2
     # 8 × 8 inches is default minimum size.
     assert_allclose(fig._get_size(), (8, 8), atol=atol)
-    set_config('MNE_BROWSER_SIZE', old_cfg)
+    set_config('MNE_BROWSE_RAW_SIZE', old_cfg)
 
 
 def test_scalings_int(browser_backend):

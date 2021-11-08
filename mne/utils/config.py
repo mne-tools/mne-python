@@ -68,7 +68,7 @@ def set_memmap_min_size(memmap_min_size):
 # List the known configuration values
 known_config_types = (
     'MNE_3D_OPTION_ANTIALIAS',
-    'MNE_BROWSER_SIZE',
+    'MNE_BROWSE_RAW_SIZE',
     'MNE_BROWSER_BACKEND',
     'MNE_BROWSER_USE_OPENGL',
     'MNE_CACHE_DIR',
