@@ -1914,7 +1914,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                         split_naming, overwrite)
 
     @verbose
-    def export(self, fname, fmt='auto', overwrite=False, verbose=None):
+    def export(self, fname, fmt='auto', *, overwrite=False, verbose=None):
         """Export Epochs to external formats.
 
         Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
