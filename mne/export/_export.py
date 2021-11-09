@@ -11,7 +11,7 @@ from ..utils import verbose, logger, _validate_type, _check_fname
 
 @verbose
 def export_raw(fname, raw, fmt='auto', physical_range='auto',
-               add_ch_type=False, overwrite=False, verbose=None):
+               add_ch_type=False, *, overwrite=False, verbose=None):
     """Export Raw to external formats.
 
     Supported formats:
