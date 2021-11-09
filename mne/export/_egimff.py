@@ -14,7 +14,7 @@ from ..utils import verbose, _check_fname
 
 
 @verbose
-def export_evokeds_mff(fname, evoked, history=None, overwrite=False, *,
+def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False,
                        verbose=None):
     """Export evoked dataset to MFF.
 
