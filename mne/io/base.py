@@ -1478,7 +1478,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     def export(self, fname, fmt='auto', physical_range='auto',
-               add_ch_type=False, overwrite=False, verbose=None):
+               add_ch_type=False, *, overwrite=False, verbose=None):
         """Export Raw to external formats.
 
         Supported formats: EEGLAB (set, uses :mod:`eeglabio`)

@@ -1934,7 +1934,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         %(export_eeglab_note)s
         """
         from .export import export_epochs
-        export_epochs(fname, self, fmt, overwrite, verbose)
+        export_epochs(fname, self, fmt, overwrite=overwrite, verbose=verbose)
 
     def equalize_event_counts(self, event_ids=None, method='mintime'):
         """Equalize the number of trials in each condition.
