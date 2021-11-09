@@ -1937,8 +1937,6 @@ class FilterMixin(object):
 
             .. versionadded:: 0.16.
         %(pad-fir)s
-            The default is ``'edge'``, which pads with the edge values of each
-            vector.
         %(verbose_meth)s
 
         Returns
