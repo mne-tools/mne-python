@@ -95,7 +95,7 @@ def export_epochs(fname, epochs, fmt='auto', *, overwrite=False, verbose=None):
 
 
 @verbose
-def export_evokeds(fname, evoked, fmt='auto', overwrite=False, verbose=None):
+def export_evokeds(fname, evoked, fmt='auto', *, overwrite=False, verbose=None):
     """Export evoked dataset to external formats.
 
     This function is a wrapper for format-specific export functions. The export
