@@ -3,7 +3,7 @@
 .. _tut-ieeg-localize:
 
 ========================================
-Locating Intracranial Electrode Contacts
+Locating intracranial electrode contacts
 ========================================
 
 Analysis of intracranial electrophysiology recordings typically involves
