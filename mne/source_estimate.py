@@ -3353,23 +3353,25 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if surface is not None:
         surf_rr = [read_surface(op.join(subjects_dir, subject, 'surf',
-                                        f'{hemi}.{surface}'))[0]
+                                        f'{hemi}.{surface}'))[0] / 1000.
                    for hemi in ('lh', 'rh')]
     if src is None:  # fake a full surface one
         _validate_type(surface, str, 'surface', 'when src is None')
         src = SourceSpaces([
-            dict(rr=rr / 1000., vertno=np.arange(len(rr)), type='surf',
+            dict(rr=rr, vertno=np.arange(len(rr)), type='surf',
                  coord_frame=FIFF.FIFFV_COORD_MRI)
             for rr in surf_rr])
-        rrs = np.concatenate(surf_rr)
+        rrs = np.concatenate([s_rr[s['vertno']] for s_rr, s in
+                              zip(surf_rr, src)])
         keep_all = False
     else:
-        if surface is not None:
-            rrs = np.concatenate(surf_rr)
-        else:
+        if surface is None:
             rrs = np.concatenate([s['rr'][s['vertno']] for s in src])
             if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
                 rrs = apply_trans(trans, rrs)
+        else:
+            rrs = np.concatenate([s_rr[s['vertno']] for s_rr, s in
+                                  zip(surf_rr, src)])
         keep_all = True
     # ensure it's a usable one
     klass = dict(
@@ -3419,18 +3421,18 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
              f'{", ".join(evoked.ch_names[mi] for mi in missing)}')
 
     nz_data = w @ evoked.data
-    if not keep_all:
-        assert src.kind == 'surface'
-        data = nz_data
-        offset = len(src[0]['vertno'])
-        vertices = [vertices[vertices < offset],
-                    vertices[vertices >= offset] - offset]
-    else:
+    if keep_all:
         data = np.zeros(
             (sum(len(s['vertno']) for s in src), len(evoked.times)),
             dtype=nz_data.dtype)
         data[vertices] = nz_data
         vertices = [s['vertno'].copy() for s in src]
+    else:
+        assert src.kind == 'surface'
+        data = nz_data
+        offset = len(src[0]['vertno'])
+        vertices = [vertices[vertices < offset],
+                    vertices[vertices >= offset] - offset]
 
     return klass(data, vertices, evoked.times[0], 1. / evoked.info['sfreq'],
                  subject=subject, verbose=verbose)

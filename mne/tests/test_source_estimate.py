@@ -1560,7 +1560,7 @@ def test_stc_near_sensors(tmp_path):
     with catch_logging() as log:
         stc = stc_near_sensors(evoked, **kwargs)
     log = log.getvalue()
-    assert 'Minimum projected intra-sensor distance: 0.' in log  # 0.0
+    assert 'Minimum projected intra-sensor distance: 7.' in log  # 7.4
     # this should be left-hemisphere dominant
     assert 5000 > len(stc.vertices[0]) > 4000
     assert 200 > len(stc.vertices[1]) > 100
@@ -1611,9 +1611,9 @@ def test_stc_near_sensors(tmp_path):
     # and now with volumetric projection
     src = read_source_spaces(fname_vsrc)
     with catch_logging() as log:
-        stc_vol = stc_near_sensors(evoked, trans, 'sample', src=src,
-                                   subjects_dir=subjects_dir, verbose=True,
-                                   distance=0.033)
+        stc_vol = stc_near_sensors(
+            evoked, trans, 'sample', src=src, surface=None,
+            subjects_dir=subjects_dir, distance=0.033, verbose=True)
     assert isinstance(stc_vol, VolSourceEstimate)
     log = log.getvalue()
     assert '4157 volume vertices' in log
@@ -1627,7 +1627,7 @@ def test_stc_near_sensors_picks():
     src = mne.read_source_spaces(fname_src_fs)
     kwargs = dict(
         evoked=evoked, subject='fsaverage', trans='fsaverage',
-        subjects_dir=subjects_dir, src=src, project=True)
+        subjects_dir=subjects_dir, src=src, surface=None, project=True)
     with pytest.raises(ValueError, match='No appropriate channels'):
         stc_near_sensors(**kwargs)
     picks = np.arange(len(info['ch_names']))
