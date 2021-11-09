@@ -1160,7 +1160,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             An optional event matrix. When specified, the onsets of the events
             are resampled jointly with the data. NB: The input events are not
             modified, but a new array is returned with the raw instead.
-        %(pad-fir)s
+        %(pad)s
             The default is ``'reflect_limited'``.
 
             .. versionadded:: 0.15

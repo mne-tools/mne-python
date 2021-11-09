@@ -730,13 +730,15 @@ fir_window : str
 
     .. versionadded:: 0.15
 """
-docdict['pad-fir'] = """
+docdict['pad'] = """
 pad : str
     The type of padding to use. Supports all :func:`numpy.pad` ``mode``
-    options. Can also be "reflect_limited", which pads with a
-    reflected version of each vector mirrored on the first and last
-    values of the vector, followed by zeros. Only used for ``method='fir'``.
+    options. Can also be ``"reflect_limited"``, which pads with a
+    reflected version of each vector mirrored on the first and last values
+    of the vector, followed by zeros.
 """
+docdict['pad-fir'] = docdict['pad'].rstrip() + \
+    " Only used for ``method='fir'``."
 docdict['method-fir'] = """
 method : str
     'fir' will use overlap-add FIR filtering, 'iir' will use IIR
