@@ -55,13 +55,9 @@ def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False,
     # Initialize writer
     # Future changes: conditions based on version or mffpy requirement if
     # https://github.com/BEL-Public/mffpy/pull/92 is merged and released.
-    try:
-        fname = _check_fname(fname, overwrite=False)
-    except FileExistsError:
-        if overwrite:
-            shutil.rmtree(fname)
-        else:
-            raise
+    fname = _check_fname(fname, overwrite=overwrite)
+    if op.exists(fname):
+        os.remove(fname) if op.isfile(fname) else shutil.rmtree(fname)
     writer = mffpy.Writer(fname)
     current_time = pytz.utc.localize(datetime.datetime.utcnow())
     writer.addxml('fileInfo', recordTime=current_time)
