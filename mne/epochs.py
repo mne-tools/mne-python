@@ -1914,7 +1914,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                         split_naming, overwrite)
 
     @verbose
-    def export(self, fname, fmt='auto', verbose=None):
+    def export(self, fname, fmt='auto', *, overwrite=False, verbose=None):
         """Export Epochs to external formats.
 
         Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
@@ -1924,6 +1924,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         ----------
         %(export_params_fname)s
         %(export_params_fmt)s
+        %(overwrite)s
+
+            .. versionadded:: 0.24.1
         %(verbose)s
 
         Notes
@@ -1931,7 +1934,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         %(export_eeglab_note)s
         """
         from .export import export_epochs
-        export_epochs(fname, self, fmt, verbose)
+        export_epochs(fname, self, fmt, overwrite=overwrite, verbose=verbose)
 
     def equalize_event_counts(self, event_ids=None, method='mintime'):
         """Equalize the number of trials in each condition.
