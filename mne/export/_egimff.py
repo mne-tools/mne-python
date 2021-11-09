@@ -3,7 +3,7 @@
 #
 # License: BSD-3-Clause
 
-import os
+import shutil
 import datetime
 
 import numpy as np
@@ -59,7 +59,7 @@ def export_evokeds_mff(fname, evoked, history=None, overwrite=False, *,
         fname = _check_fname(fname, overwrite=False)
     except FileExistsError:
         if overwrite:
-            os.remove(fname)
+            shutil.rmtree(fname)
         else:
             raise
     finally:
