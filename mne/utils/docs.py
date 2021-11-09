@@ -733,7 +733,7 @@ fir_window : str
 docdict['pad'] = """
 pad : str
     The type of padding to use. Supports all :func:`numpy.pad` ``mode``
-    options. Can also be "reflect_limited" (default), which pads with a
+    options. Can also be "reflect_limited", which pads with a
     reflected version of each vector mirrored on the first and last values
     of the vector, followed by zeros.
 """

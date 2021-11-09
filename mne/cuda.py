@@ -5,7 +5,7 @@
 import numpy as np
 
 from .utils import (sizeof_fmt, logger, get_config, warn, _explain_exception,
-                    verbose)
+                    verbose, fill_doc)
 
 
 _cuda_capable = False
@@ -289,6 +289,7 @@ def _cuda_irfft_get(x, n, axis=-1):
     return cupy.fft.irfft(x, n=n, axis=axis).get()
 
 
+@fill_doc
 def _fft_resample(x, new_len, npads, to_removes, cuda_dict=None,
                   pad='reflect_limited'):
     """Do FFT resampling with a filter function (possibly using CUDA).
@@ -306,11 +307,7 @@ def _fft_resample(x, new_len, npads, to_removes, cuda_dict=None,
         Number of samples to remove after resampling.
     cuda_dict : dict
         Dictionary constructed using setup_cuda_multiply_repeated().
-    pad : str
-        The type of padding to use. Supports all :func:`np.pad` ``mode``
-        options. Can also be "reflect_limited" (default), which pads with a
-        reflected version of each vector mirrored on the first and last values
-        of the vector, followed by zeros.
+    %(pad)s
 
         .. versionadded:: 0.15
 

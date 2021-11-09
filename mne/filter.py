@@ -772,7 +772,6 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     %(fir_window)s
     %(fir_design)s
     %(pad-fir)s
-        The default is ``'reflect_limited'``.
 
         .. versionadded:: 0.15
     %(verbose)s
@@ -1402,8 +1401,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
         Axis along which to resample (default is the last axis).
     %(window-resample)s
     %(n_jobs-cuda)s
-    %(pad-fir)s
-        The default is ``'reflect_limited'``.
+    %(pad)s
 
         .. versionadded:: 0.15
     %(verbose)s
@@ -2030,7 +2028,7 @@ class FilterMixin(object):
         %(npad)s
         %(window-resample)s
         %(n_jobs-cuda)s
-        %(pad-fir)s
+        %(pad)s
             The default is ``'edge'``, which pads with the edge values of each
             vector.
 
