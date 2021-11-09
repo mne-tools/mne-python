@@ -53,8 +53,8 @@ def export_evokeds_mff(fname, evoked, history=None, overwrite=False, *,
     sampling_rate = int(info['sfreq'])
 
     # Initialize writer
-    # Conditions to be changed based on version if
-    # https://github.com/BEL-Public/mffpy/pull/92 is merged and release.
+    # Future changes: conditions based on version or mffpy requirement if
+    # https://github.com/BEL-Public/mffpy/pull/92 is merged and released.
     try:
         fname = _check_fname(fname, overwrite=False)
     except FileExistsError:
