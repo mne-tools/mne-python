@@ -40,6 +40,8 @@ Bugs
 
 - :func:`mne.gui.coregistration` and the ``mne coreg`` command didn't respect the ``inspect`` parameter (:gh:`9972` by `Richard Höchenberger`_)
 
+- Fix incorrect projection of source space onto white matter surface instead of pial in :ref:`tut-working-with-ecog` (:gh:`9980` by `Alex Rockhill`_)
+
 API changes
 ~~~~~~~~~~~
 - Nothing yet
