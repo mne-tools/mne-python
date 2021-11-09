@@ -308,6 +308,7 @@ def _fft_resample(x, new_len, npads, to_removes, cuda_dict=None,
     cuda_dict : dict
         Dictionary constructed using setup_cuda_multiply_repeated().
     %(pad)s
+        The default is ``'reflect_limited'``.
 
         .. versionadded:: 0.15
 

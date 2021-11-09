@@ -1076,6 +1076,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(fir_window)s
         %(fir_design)s
         %(pad-fir)s
+            The default is ``'reflect_limited'``.
 
             .. versionadded:: 0.15
         %(verbose_meth)s

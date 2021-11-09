@@ -772,6 +772,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     %(fir_window)s
     %(fir_design)s
     %(pad-fir)s
+        The default is ``'reflect_limited'``.
 
         .. versionadded:: 0.15
     %(verbose)s
@@ -1121,6 +1122,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
     %(fir_window)s
     %(fir_design)s
     %(pad-fir)s
+        The default is ``'reflect_limited'``.
     %(verbose)s
 
     Returns
@@ -1402,6 +1404,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
     %(window-resample)s
     %(n_jobs-cuda)s
     %(pad)s
+        The default is ``'reflect_limited'``.
 
         .. versionadded:: 0.15
     %(verbose)s
@@ -1934,6 +1937,8 @@ class FilterMixin(object):
 
             .. versionadded:: 0.16.
         %(pad-fir)s
+            The default is ``'edge'``, which pads with the edge values of each
+            vector.
         %(verbose_meth)s
 
         Returns
