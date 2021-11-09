@@ -62,7 +62,7 @@ def export_evokeds_mff(fname, evoked, history=None, overwrite=False, *,
             os.remove(fname)
         else:
             raise
-    else:
+    finally:
         writer = mffpy.Writer(fname)
     current_time = pytz.utc.localize(datetime.datetime.utcnow())
     writer.addxml('fileInfo', recordTime=current_time)
