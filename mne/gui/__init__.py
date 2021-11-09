@@ -93,10 +93,8 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         different color.
 
         .. versionadded:: 0.16
-    interaction : str | None
-        Can be 'terrain' (default None), use terrain-style interaction (where
-        "up" is the Z/superior direction), or 'trackball' to use
-        orientationless interactions.
+    %(scene_interaction_None)s
+        Defaults to ``'trackball'``.
 
         .. versionadded:: 0.16
     scale : float | None
@@ -147,7 +145,6 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
             'project_eeg': project_eeg,
             'scale_by_distance': scale_by_distance,
             'mark_inside': mark_inside,
-            'interaction': interaction,
             'scale': scale,
             'advanced_rendering': advanced_rendering,
         }

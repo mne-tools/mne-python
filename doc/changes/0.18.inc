@@ -145,7 +145,7 @@ Bug
 
 - Fix :func:`mne.gui.coregistration` and :ref:`mne coreg` crashing with segmentation fault when switching subjects by `Eric Larson`_
 
-- Fix :func:`mne.io.read_raw_brainvision` to accommodate vmrk files which do not have any annotations by `Alexander Kovrig`_
+- Fix :func:`mne.io.read_raw_brainvision` to accommodate vmrk files which do not have any annotations by Alexander Kovrig
 
 - Fix :meth:`mne.io.Raw.plot` and :meth:`mne.Epochs.plot` to auto-scale ``misc`` channel types by default by `Eric Larson`_
 

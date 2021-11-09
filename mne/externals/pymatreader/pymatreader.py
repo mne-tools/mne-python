@@ -31,9 +31,8 @@
 import scipy.io
 import os
 
-from scipy.io.matlab.miobase import get_matfile_version
-
-from .utils import _import_h5py, _hdf5todict, _check_for_scipy_mat_struct
+from .utils import (_import_h5py, _hdf5todict, _check_for_scipy_mat_struct,
+                    get_matfile_version)
 
 __all__ = 'read_mat'
 
