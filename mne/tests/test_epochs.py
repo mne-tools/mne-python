@@ -6,6 +6,7 @@
 # License: BSD-3-Clause
 
 from copy import deepcopy
+from datetime import timedelta
 from distutils.version import LooseVersion
 from functools import partial
 from io import BytesIO
@@ -3667,12 +3668,37 @@ def test_set_annotations():
     raw = mne.io.read_raw_fif(raw_fname, verbose=False)
     raw.pick([2, 3, 310])  # take some MEG and EEG
     raw.info.normalize_proj()
+    raw = raw.resample(sfreq=100)
 
-    events = mne.make_fixed_length_events(raw, id=3000, start=0)
+    events = mne.make_fixed_length_events(raw, id=3000, start=0,
+                                          stop=5, duration=1)
     epochs = mne.Epochs(raw, events, event_id=3000, tmin=1, tmax=2,
                         proj=True, baseline=None, reject=None, preload=True,
                         decim=1)
-    annots = Annotations(onset=[2, 4], duration=[3, 2], 
+    annots = Annotations(onset=[2, 4], duration=[3, 2],
                          description="bad")
     epochs.set_annotations(annots)
-    assert epochs.annotations.onset == 1
+
+    # Annotations without an original time should be set to
+    # exactly what Raw had
+    assert epochs.annotations.onset[0] == raw.first_time + 2
+    assert epochs.annotations.orig_time == raw.info['meas_date']
+
+    # Annotations with an original time should be offset
+    orig_time = raw.info['meas_date'] + timedelta(seconds=5)
+    annots_with_orig = Annotations(onset=[2, 4], duration=[3, 2],
+                                   description="bad", orig_time=orig_time)
+    epochs.set_annotations(annots_with_orig)
+    assert epochs.annotations.orig_time == raw.info['meas_date']
+
+    # XXX: Why doesn't this include an offset with raw.first_time?
+    assert epochs.annotations.onset[0] == 7
+
+    # Removing measurement date
+    raw = raw.set_meas_date(None)
+    epochs = mne.Epochs(raw, events, event_id=3000, tmin=1, tmax=2,
+                        proj=True, baseline=None, reject=None, preload=True,
+                        decim=1)
+    epochs.set_annotations(annots)
+    assert epochs.annotations.onset[0] == raw.first_time + 2
+    assert epochs.annotations.orig_time == raw.info['meas_date']

@@ -17,7 +17,6 @@ from copy import deepcopy
 import json
 import operator
 import os.path as op
-from datetime import timedelta
 
 import numpy as np
 
@@ -1106,6 +1105,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         return self._evoked_from_epoch_data(data, self.info, picks, n_events,
                                             kind, self._name)
+
+    @property
+    def annotations(self):  # noqa: D102
+        return self._annotations
 
     @property
     def _name(self):
@@ -2659,13 +2662,9 @@ class Epochs(BaseEpochs):
                                             self.reject_by_annotation)
         return data
 
-    @property
-    def annotations(self):  # noqa: D102
-        return self._annotations
-
     @verbose
-    def set_annotations(self, annotations, emit_warning=True,
-                        on_missing='raise', *, verbose=None):
+    def set_annotations(self, annotations, on_missing='raise', *,
+                        verbose=None):
         """Setter for annotations.
 
         This setter checks if they are inside the data range.
@@ -2675,8 +2674,6 @@ class Epochs(BaseEpochs):
         annotations : instance of mne.Annotations | None
             Annotations to set. If None, the annotations is defined
             but empty.
-        emit_warning : bool
-            Whether to emit warnings when cropping or omitting annotations.
         %(on_missing_ch_names)s
         %(verbose_meth)s
 
@@ -2702,20 +2699,13 @@ class Epochs(BaseEpochs):
                                    ' taken in reference to the first sample of'
                                    ' the raw object.')
 
-            delta = 1. / self._raw_sfreq
             new_annotations = annotations.copy()
             new_annotations._prune_ch_names(self.info, on_missing)
 
             # get the first time in continuous time in Raw
             if annotations.orig_time is None:
-                # new_annotations.crop(0, self.times[-1] + delta,
-                #                      emit_warning=emit_warning)
                 new_annotations.onset += self._first_time
             else:
-                tmin = meas_date + timedelta(0, self._first_time)
-                tmax = tmin + timedelta(seconds=self.times[-1] + delta)
-                # new_annotations.crop(tmin=tmin, tmax=tmax,
-                #                      emit_warning=emit_warning)
                 new_annotations.onset -= (
                     meas_date - new_annotations.orig_time).total_seconds()
             new_annotations._orig_time = meas_date
@@ -2723,7 +2713,6 @@ class Epochs(BaseEpochs):
             self._annotations = new_annotations
 
         return self
-
 
 
 @fill_doc
@@ -3473,6 +3462,12 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
         if not isinstance(epochs, BaseEpochs):
             raise TypeError('epochs_list[%d] must be an instance of Epochs, '
                             'got %s' % (ei, type(epochs)))
+
+        if epochs.annotations is not None:
+            warn('Concatenation of Annotations within Epochs '
+                 'is not supported yet. Annotations within these Epochs will '
+                 'be dropped.')
+            epochs.set_annotations(None)
     out = epochs_list[0]
     offsets = [0]
     if with_data:
