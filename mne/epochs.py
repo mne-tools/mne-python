@@ -2714,6 +2714,41 @@ class Epochs(BaseEpochs):
 
         return self
 
+    def map_annots_to_metadata(self):
+        # check if annotations exist
+        if self.annotations is None:
+            return self
+
+        events = self.events
+
+        # loop through each annotations and add to the metadata
+        metadata = self._metadata
+        for annot in self.annotations:
+            onset_ = annot.onset
+            duration_ = annot.duration
+            description_ = annot.description
+
+            # convert onset to samples and account for first time
+            onset_samp = onset_ * self._raw_sfreq + self._first_time
+            duration_samp = duration_ * self._raw_sfreq
+
+            # loop through events to see which Epochs this annotation
+            # belongs to based on the onset and duration
+            epoch_index = _check_annot_in_events(
+                events, onset_samp, duration_samp)
+
+            # modify the metadata by first adding the new columns
+            metadata[f'Annotation_{description_}_onset'] = None
+            metadata[f'Annotation_{description_}_duration'] = None
+
+            # then modify those specific epochs with the annotation
+            metadata[epoch_index][f'Annotation_{description_}_onset'] = onset_
+            metadata[epoch_index][f'Annotation_{description_}_duration'] = duration_
+
+        # reset the metadata
+        self.metadata(metadata)
+        return self
+
 
 @fill_doc
 class EpochsArray(BaseEpochs):
