@@ -1560,7 +1560,7 @@ def test_stc_near_sensors(tmp_path):
     with catch_logging() as log:
         stc = stc_near_sensors(evoked, **kwargs)
     log = log.getvalue()
-    assert 'Minimum projected intra-sensor distance: 7.' in log  # 7.4
+    assert 'Minimum projected intra-sensor distance: 0.' in log  # 0.0
     # this should be left-hemisphere dominant
     assert 5000 > len(stc.vertices[0]) > 4000
     assert 200 > len(stc.vertices[1]) > 100
