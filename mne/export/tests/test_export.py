@@ -56,6 +56,9 @@ def test_export_raw_eeglab(tmp_path):
         raw.export(temp_fname, overwrite=False)
     raw.export(temp_fname, overwrite=True)
 
+    # test pathlib.Path files
+    raw.export(Path(temp_fname), overwrite=True)
+
 
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')

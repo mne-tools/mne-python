@@ -27,7 +27,7 @@ def _export_raw(fname, raw):
                    raw.annotations.onset,
                    raw.annotations.duration]
     eeglabio.raw.export_set(
-        fname, data=raw.get_data(picks=ch_names), sfreq=raw.info['sfreq'],
+        str(fname), data=raw.get_data(picks=ch_names), sfreq=raw.info['sfreq'],
         ch_names=ch_names, ch_locs=cart_coords, annotations=annotations)
 
 
@@ -42,7 +42,7 @@ def _export_epochs(fname, epochs):
     cart_coords = _get_als_coords_from_chs(epochs.info['chs'], drop_chs)
 
     eeglabio.epochs.export_set(
-        fname, data=epochs.get_data(picks=ch_names),
+        str(fname), data=epochs.get_data(picks=ch_names),
         sfreq=epochs.info['sfreq'], events=epochs.events,
         tmin=epochs.tmin, tmax=epochs.tmax, ch_names=ch_names,
         event_id=epochs.event_id, ch_locs=cart_coords)
