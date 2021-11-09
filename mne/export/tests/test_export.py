@@ -326,6 +326,9 @@ def test_export_epochs_eeglab(tmp_path, preload):
         epochs.export(temp_fname, overwrite=False)
     epochs.export(temp_fname, overwrite=True)
 
+    # test pathlib.Path files
+    epochs.export(Path(temp_fname), overwrite=True)
+
 
 @requires_version('mffpy', '0.5.7')
 @testing.requires_testing_data
