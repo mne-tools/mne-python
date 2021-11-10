@@ -453,3 +453,13 @@ def test_get_montage_info_with_ch_type():
     assert len(ch_names) == len(ch_types) == n
     assert ch_types == ['eeg'] * (n - 2) + ['eog'] + ['stim']
     assert montage is None
+
+    # test unknown type warning
+    mat = read_mat(raw_fname_onefile_mat, uint16_codec=None)
+    n = len(mat['EEG']['chanlocs']['labels'])
+    mat['EEG']['chanlocs']['type'] = ['eeg'] * (n - 2) + ['eog'] + ['unknown']
+    mat['EEG']['chanlocs'] = _dol_to_lod(mat['EEG']['chanlocs'])
+    mat['EEG'] = Bunch(**mat['EEG'])
+    with pytest.warns(RuntimeWarning, match='Unknown types found'):
+        ch_names, ch_types, montage = \
+            _get_montage_information(mat['EEG'], False)
