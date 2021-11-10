@@ -19,10 +19,12 @@ from scipy import io
 from mne import write_events, read_epochs_eeglab
 from mne.channels import read_custom_montage
 from mne.io import read_raw_eeglab
+from mne.io.eeglab.eeglab import _get_montage_information, _dol_to_lod
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
-from mne.utils import check_version
+from mne.utils import check_version, Bunch
 from mne.annotations import events_from_annotations, read_annotations
+from mne.externals.pymatreader import read_mat
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 
@@ -437,3 +439,18 @@ def test_read_single_epoch():
     """Test reading raw set file as an Epochs instance."""
     with pytest.raises(ValueError, match='trials less than 2'):
         read_epochs_eeglab(raw_fname_mat)
+
+
+@testing.requires_testing_data
+def test_get_montage_info_with_ch_type():
+    """Test that the channel types are properly returned."""
+    mat = read_mat(raw_fname_onefile_mat, uint16_codec=None)
+    n = len(mat['EEG']['chanlocs']['labels'])
+    mat['EEG']['chanlocs']['type'] = ['eeg'] * (n-2) + ['eog'] + ['stim']
+    mat['EEG']['chanlocs'] = _dol_to_lod(mat['EEG']['chanlocs'])
+    mat['EEG'] = Bunch(**mat['EEG'])
+    ch_names, ch_types, montage = _get_montage_information(mat['EEG'], False)
+    assert len(ch_names) == len(ch_types)
+    assert n == len(ch_names)
+    assert ch_types == ['eeg'] * (n-2) + ['eog'] + ['stim']
+    assert montage is None
