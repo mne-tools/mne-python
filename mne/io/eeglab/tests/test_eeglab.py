@@ -446,11 +446,11 @@ def test_get_montage_info_with_ch_type():
     """Test that the channel types are properly returned."""
     mat = read_mat(raw_fname_onefile_mat, uint16_codec=None)
     n = len(mat['EEG']['chanlocs']['labels'])
-    mat['EEG']['chanlocs']['type'] = ['eeg'] * (n-2) + ['eog'] + ['stim']
+    mat['EEG']['chanlocs']['type'] = ['eeg'] * (n - 2) + ['eog'] + ['stim']
     mat['EEG']['chanlocs'] = _dol_to_lod(mat['EEG']['chanlocs'])
     mat['EEG'] = Bunch(**mat['EEG'])
     ch_names, ch_types, montage = _get_montage_information(mat['EEG'], False)
     assert len(ch_names) == len(ch_types)
     assert n == len(ch_names)
-    assert ch_types == ['eeg'] * (n-2) + ['eog'] + ['stim']
+    assert ch_types == ['eeg'] * (n - 2) + ['eog'] + ['stim']
     assert montage is None
