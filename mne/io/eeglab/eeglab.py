@@ -146,8 +146,7 @@ def _get_montage_information(eeg, get_pos):
     if pos_ch_names:
         montage = make_dig_montage(
             ch_pos=dict(zip(ch_names, np.array(pos))),
-            coord_frame='head',
-        )
+            coord_frame='head')
     else:
         montage = None
 
