@@ -139,7 +139,7 @@ def _get_montage_information(eeg, get_pos):
 
     # warn if unknown types were provided
     if len(unknown_types):
-        warn('Unknown types found, setting as type EEG:\n' +\
+        warn('Unknown types found, setting as type EEG:\n' +
              '\n'.join([f'{key}: {sorted(unknown_types[key])}'
                         for key in sorted(unknown_types)]))
 
