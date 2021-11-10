@@ -7,7 +7,6 @@
 import importlib
 from builtins import input  # no-op here but facilitates testing
 from difflib import get_close_matches
-from distutils.version import LooseVersion
 import operator
 import os
 import os.path as op
@@ -18,7 +17,7 @@ import numbers
 
 import numpy as np
 
-from ..fixes import _median_complex
+from ..fixes import _median_complex, _compare_version
 from ._logging import warn, logger
 
 
@@ -88,8 +87,10 @@ def check_version(library, min_version='0.0'):
     except ImportError:
         ok = False
     else:
-        if min_version and \
-                LooseVersion(library.__version__) < LooseVersion(min_version):
+        if (
+            min_version and
+            _compare_version(library.__version__, '<', min_version)
+        ):
             ok = False
     return ok
 
