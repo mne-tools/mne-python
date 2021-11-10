@@ -723,7 +723,7 @@ def _check_pyqt5_version():
     except Exception:
         version = 'unknown'
     else:
-        if LooseVersion(version) >= LooseVersion('5.10'):
+        if _compare_version(version, '>=', '5.10'):
             bad = False
     bad &= sys.platform == 'darwin'
     if bad:
