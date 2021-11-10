@@ -1664,7 +1664,7 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
     import nibabel as nib
     with np.testing.suppress_warnings():
         from dipy.align import (affine_registration, center_of_mass,
-                                translation, rigid, affine, resample,
+                                translation, rigid, affine,
                                 imwarp, metrics)
 
     # input validation
