@@ -8,6 +8,7 @@ import os.path as op
 
 import numpy as np
 
+from ..pick import _PICK_TYPES_KEYS
 from ..utils import _read_segments_file, _find_channels
 from ..constants import FIFF
 from ..meas_info import create_info
@@ -104,11 +105,26 @@ def _eeg_has_montage_information(eeg):
     return has_pos
 
 
-def _get_eeg_montage_information(eeg, get_pos):
-
-    pos_ch_names, ch_names, pos = list(), list(), list()
+def _get_montage_information(eeg, get_pos):
+    """Get channel name, type and montage information from ['chanlocs']."""
+    ch_names, ch_types, pos_ch_names, pos = list(), list(), list(), list()
     for chanloc in eeg.chanlocs:
+        # channel name
         ch_names.append(chanloc['labels'])
+
+        # channel type
+        if 'type' in chanloc:
+            ch_type = chanloc['type']
+            if isinstance(ch_type, str) and 0 < len(ch_type):
+                ch_type = ch_type.strip().lower()
+                ch_types.append(ch_type if ch_type in _PICK_TYPES_KEYS
+                                else 'eeg')
+            else:
+                ch_types.append('eeg')  # guarantee same size as ch_names
+        else:
+            ch_types.append('eeg')  # guarantee same size as ch_names
+
+        # channel loc
         if get_pos:
             loc_x = _to_loc(chanloc['X'])
             loc_y = _to_loc(chanloc['Y'])
@@ -126,7 +142,7 @@ def _get_eeg_montage_information(eeg, get_pos):
     else:
         montage = None
 
-    return ch_names, montage
+    return ch_names, ch_types, montage
 
 
 def _get_info(eeg, eog=()):
@@ -142,14 +158,16 @@ def _get_info(eeg, eog=()):
 
     if eeg_has_ch_names_info:
         has_pos = _eeg_has_montage_information(eeg)
-        ch_names, eeg_montage = _get_eeg_montage_information(eeg, has_pos)
+        ch_names, ch_types, eeg_montage = \
+            _get_montage_information(eeg, has_pos)
         update_ch_names = False
     else:  # if eeg.chanlocs is empty, we still need default chan names
         ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
+        ch_types = 'eeg'
         eeg_montage = None
         update_ch_names = True
 
-    info = create_info(ch_names, sfreq=eeg.srate, ch_types='eeg')
+    info = create_info(ch_names, sfreq=eeg.srate, ch_types=ch_types)
 
     eog = _find_channels(ch_names, ch_type='EOG') if eog == 'auto' else eog
     for idx, ch in enumerate(info['chs']):
