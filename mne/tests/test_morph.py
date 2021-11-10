@@ -873,7 +873,7 @@ def test_mixed_source_morph(_mixed_morph_srcs, vector):
         stc_fs.volume().as_volume(src, mri_resolution=False)
     img = _get_img_fdata(
         stc_fs.volume().as_volume(src_fs, mri_resolution=False))
-    assert img.astype(bool).sum() > n_want * 0.5 # most voxels get mapped
+    assert img.astype(bool).sum() > n_want * 0.5  # most voxels get mapped
 
     # Morph separate parts and compare to morphing the entire one
     stc_fs_surf = morph.apply(stc.surface())
