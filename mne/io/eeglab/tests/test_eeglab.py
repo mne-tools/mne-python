@@ -450,7 +450,6 @@ def test_get_montage_info_with_ch_type():
     mat['EEG']['chanlocs'] = _dol_to_lod(mat['EEG']['chanlocs'])
     mat['EEG'] = Bunch(**mat['EEG'])
     ch_names, ch_types, montage = _get_montage_information(mat['EEG'], False)
-    assert len(ch_names) == len(ch_types)
-    assert n == len(ch_names)
+    assert len(ch_names) == len(ch_types) == n
     assert ch_types == ['eeg'] * (n - 2) + ['eog'] + ['stim']
     assert montage is None
