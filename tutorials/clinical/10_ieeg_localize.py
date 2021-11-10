@@ -417,7 +417,7 @@ plot_overlay(template_brain, subject_brain,
 # This aligns the two brains, preparing the subject's brain to be warped
 # to the template.
 #
-# .. warning:: Here we use ``zooms=5`` just for speed, in general we recommend
+# .. warning:: Here we use ``zooms=4`` just for speed, in general we recommend
 #              using ``zooms=None``` (default) for highest accuracy. To deal
 #              with this coarseness, we also use a threshold of 0.1 for the CT
 #              electrodes rather than 0.5. This coarse zoom and low threshold
@@ -425,7 +425,7 @@ plot_overlay(template_brain, subject_brain,
 #              pipelines should use ``zooms=None`` instead!
 
 reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
-    subject_brain, template_brain, zooms=5, verbose=True)
+    subject_brain, template_brain, zooms=4, verbose=True)
 subject_brain_sdr = mne.transforms.apply_volume_registration(
     subject_brain, template_brain, reg_affine, sdr_morph)
 

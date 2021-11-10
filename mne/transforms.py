@@ -1664,7 +1664,7 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
     import nibabel as nib
     with np.testing.suppress_warnings():
         from dipy.align import (affine_registration, center_of_mass,
-                                translation, rigid, affine,
+                                translation, rigid, affine, resample,
                                 imwarp, metrics)
 
     # input validation
@@ -1696,12 +1696,15 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
                 moving, zooms[step])
         logger.info(f'Optimizing {step}:')
         if step == 'sdr':  # happens last
+            # apply the current registration affine
+            moving_zoomed = np.asarray(resample(
+                moving_zoomed, static_zoomed, moving_affine, static_affine,
+                reg_affine).dataobj)
             sdr = imwarp.SymmetricDiffeomorphicRegistration(
                 metrics.CCMetric(3), niter[step])
             with wrapped_stdout(indent='    ', cull_newlines=True):
                 sdr_morph = sdr.optimize(static_zoomed, moving_zoomed,
-                                         static_affine, moving_affine,
-                                         reg_affine)
+                                         static_affine, moving_affine)
             moved_zoomed = sdr_morph.transform(moving_zoomed)
         else:
             with wrapped_stdout(indent='    ', cull_newlines=True):
@@ -1766,16 +1769,15 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
     moving, moving_affine = np.asarray(moving.dataobj), moving.affine
     static, static_affine = np.asarray(static.dataobj), static.affine
-    if sdr_morph is None:
-        logger.info('Applying affine registration ...')
-        affine_map = AffineMap(reg_affine,
-                               static.shape, static_affine,
-                               moving.shape, moving_affine)
-        reg_data = affine_map.transform(moving, interpolation=interpolation)
-    else:
+    logger.info('Applying affine registration ...')
+    affine_map = AffineMap(reg_affine,
+                           static.shape, static_affine,
+                           moving.shape, moving_affine)
+    reg_data = affine_map.transform(moving, interpolation=interpolation)
+    if sdr_morph is not None:
         logger.info('Appling SDR warp ...')
         reg_data = sdr_morph.transform(
-            moving, interpolation=interpolation,
+            reg_data, interpolation=interpolation,
             image_world2grid=np.linalg.inv(static_affine),
             out_shape=static.shape, out_grid2world=static_affine)
     reg_img = SpatialImage(reg_data, static_affine)
