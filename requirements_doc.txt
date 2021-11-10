@@ -1,5 +1,5 @@
 # requirements for building docs
-sphinx!=4.1.0
+sphinx!=4.1.0, !=4.3.0
 https://github.com/numpy/numpydoc/archive/main.zip
 pydata-sphinx-theme>=0.6.3
 https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip
