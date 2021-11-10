@@ -113,16 +113,13 @@ def _get_montage_information(eeg, get_pos):
         ch_names.append(chanloc['labels'])
 
         # channel type
-        if 'type' in chanloc:
-            ch_type = chanloc['type']
-            if isinstance(ch_type, str) and 0 < len(ch_type):
-                ch_type = ch_type.strip().lower()
-                ch_types.append(ch_type if ch_type in _PICK_TYPES_KEYS
-                                else 'eeg')
-            else:
-                ch_types.append('eeg')  # guarantee same size as ch_names
-        else:
-            ch_types.append('eeg')  # guarantee same size as ch_names
+        ch_type = 'eeg'
+        try_type = chanloc.get('type', None)
+        if isinstance(try_type, str):
+            try_type = try_type.strip().lower()
+            if try_type in _PICK_TYPES_KEYS:
+                ch_type = try_type
+        ch_types.append(ch_type)
 
         # channel loc
         if get_pos:
