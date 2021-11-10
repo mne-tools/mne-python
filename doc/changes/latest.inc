@@ -44,7 +44,7 @@ Bugs
 
 - Fix incorrect projection of source space onto white matter surface instead of pial in :ref:`tut-working-with-ecog` (:gh:`9980` by `Alex Rockhill`_)
 
-- Add channel type support when reading from EEGLAB ``.set`` format with :func:`mne.io.read_raw_eeglab` and :func:`mne.io.read_epochs_eeglab` (:gh:`9990` by `Mathieu Scheltienne`_)
+- Fix channel type support when reading from EEGLAB ``.set`` format with :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` (:gh:`9990` by `Mathieu Scheltienne`_)
 
 API changes
 ~~~~~~~~~~~
