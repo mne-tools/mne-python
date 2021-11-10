@@ -108,7 +108,7 @@ def _eeg_has_montage_information(eeg):
 def _get_montage_information(eeg, get_pos):
     """Get channel name, type and montage information from ['chanlocs']."""
     ch_names, ch_types, pos_ch_names, pos = list(), list(), list(), list()
-    unknown_types = set()
+    unknown_types = dict()
     for chanloc in eeg.chanlocs:
         # channel name
         ch_names.append(chanloc['labels'])
@@ -121,7 +121,10 @@ def _get_montage_information(eeg, get_pos):
             if try_type in _PICK_TYPES_KEYS:
                 ch_type = try_type
             else:
-                unknown_types.add(try_type)
+                if try_type in unknown_types:
+                    unknown_types[try_type].append(chanloc['labels'])
+                else:
+                    unknown_types[try_type] = [chanloc['labels']]
         ch_types.append(ch_type)
 
         # channel loc
@@ -136,8 +139,9 @@ def _get_montage_information(eeg, get_pos):
 
     # warn if unknown types were provided
     if len(unknown_types):
-        warn('Unknown types found, setting as type EEG: %s'
-             % sorted(unknown_types))
+        warn('Unknown types found, setting as type EEG:\n' +\
+             '\n'.join([f'{key}: {sorted(unknown_types[key])}'
+                        for key in sorted(unknown_types)]))
 
     if pos_ch_names:
         montage = make_dig_montage(
