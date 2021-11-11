@@ -21,7 +21,6 @@ def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False,
     """Export evoked dataset to MFF.
 
     %(export_warning)s :func:`mne.write_evokeds` instead.
-
     .. warning::
         Export does not apply projector. Unapplied projectors will be lost.
         Consider using :meth:`mne.Evoked.apply_proj` before exporting.
