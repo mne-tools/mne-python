@@ -387,7 +387,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  filename=None, metadata=None, event_repeated='error',
                  verbose=None):  # noqa: D102
         self.verbose = verbose
-        self._annotations = None
 
         if events is not None:  # RtEpochs can have events=None
             events = _ensure_events(events)
@@ -570,6 +569,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             for ii, epoch in enumerate(self._data):
                 self._data[ii] = np.dot(self._projector, epoch)
         self._filename = str(filename) if filename is not None else filename
+
+        # set blank annotations initially
+        self.set_annotations(None)
+
         self._check_consistency()
 
     def _check_consistency(self):
@@ -2497,6 +2500,50 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     return metadata, events, event_id
 
 
+def _get_epoch_index_of_annot(epochs, annot_onset_samp, annot_duration_samp):
+    """Get index of Epochs that an annotation belongs to.
+
+    Parameters
+    ----------
+    epochs : instance of Epochs
+        The Epochs to search over.
+    annot_onset_samp : int
+        The sample onset of the annotation to index over.
+    annot_duration_samp : int
+        The sample duration of the annotation.
+
+    Returns
+    -------
+    epoch_indices : np.ndarray
+        The epoch indices that the annotation overlaps in.
+    """
+    events = epochs.events
+    times = epochs.times
+    raw_sfreq = epochs._raw_sfreq
+
+    # convert to a 2D array of onset offset of each epoch
+    epoch_wins = np.zeros((len(events), 2))
+    for idx in range(len(events)):
+        # get the beginning and end sample of the epoch window
+        onset_samp = events[idx, 0] - times[0] * raw_sfreq
+        offset_samp = events[idx, 0] + times[-1] * raw_sfreq
+
+        epoch_wins[idx, :] = [onset_samp, offset_samp]
+
+    # get all the indices of onset within Epoch windows
+    onset_indices = np.argwhere((epoch_wins[:, 0] < annot_onset_samp) &
+                                (epoch_wins[:, 1] > annot_onset_samp))
+
+    # get all the indices of offset within Epoch windows
+    annot_offset_samp = annot_onset_samp + annot_duration_samp
+    offset_indices = np.argwhere((epoch_wins[:, 0] < annot_offset_samp) &
+                                 (epoch_wins[:, 1] > annot_offset_samp))
+
+    # get the set of all indices
+    epoch_indices = np.unique(np.concatenate((onset_indices, offset_indices)))
+    return epoch_indices
+
+
 @fill_doc
 class Epochs(BaseEpochs):
     """Epochs extracted from a Raw instance.
@@ -2715,18 +2762,27 @@ class Epochs(BaseEpochs):
         return self
 
     def map_annots_to_metadata(self):
+        """Map annotations into the Epochs metadata."""
+        pd = _check_pandas_installed()
+
         # check if annotations exist
         if self.annotations is None:
             return self
 
-        events = self.events
+        # create a list of annotations for each epoch
+        epoch_annot_list = [[] for _ in range(len(self))]
 
         # loop through each annotations and add to the metadata
-        metadata = self._metadata
+        if self._metadata is not None:
+            metadata = self._metadata
+        else:
+            data = np.empty((len(self), 0))
+            metadata = pd.DataFrame(data=data)
+
         for annot in self.annotations:
-            onset_ = annot.onset
-            duration_ = annot.duration
-            description_ = annot.description
+            onset_ = annot['onset']
+            duration_ = annot['duration']
+            description_ = annot['description']
 
             # convert onset to samples and account for first time
             onset_samp = onset_ * self._raw_sfreq + self._first_time
@@ -2734,19 +2790,19 @@ class Epochs(BaseEpochs):
 
             # loop through events to see which Epochs this annotation
             # belongs to based on the onset and duration
-            epoch_index = _check_annot_in_events(
-                events, onset_samp, duration_samp)
+            epoch_index = _get_epoch_index_of_annot(
+                self, onset_samp, duration_samp)
+            for idx in epoch_index:
+                epoch_annot_list[idx].append((onset_, duration_, description_))
 
-            # modify the metadata by first adding the new columns
-            metadata[f'Annotation_{description_}_onset'] = None
-            metadata[f'Annotation_{description_}_duration'] = None
-
-            # then modify those specific epochs with the annotation
-            metadata[epoch_index][f'Annotation_{description_}_onset'] = onset_
-            metadata[epoch_index][f'Annotation_{description_}_duration'] = duration_
+        # create a new Annotations column
+        metadata['Annotations'] = [[] for _ in range(metadata.shape[0])]
+        for idx in range(len(self)):
+            # set the Annotations as a tuple of (onset, duration, description)
+            metadata['Annotations'][idx] = epoch_annot_list[idx]
 
         # reset the metadata
-        self.metadata(metadata)
+        self.metadata = metadata
         return self
 
 

@@ -3702,3 +3702,9 @@ def test_set_annotations():
     epochs.set_annotations(annots)
     assert epochs.annotations.onset[0] == raw.first_time + 2
     assert epochs.annotations.orig_time == raw.info['meas_date']
+
+    # map annotations onto the metadata
+    old_metadata = epochs.metadata
+    print(old_metadata)
+    epochs = epochs.map_annots_to_metadata()
+    print(epochs.metadata.to_string())
