@@ -1663,8 +1663,9 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
     _require_version('dipy', 'SDR morph', '0.10.1')
     import nibabel as nib
     with np.testing.suppress_warnings():
+        from dipy.align.imaffine import AffineMap
         from dipy.align import (affine_registration, center_of_mass,
-                                translation, rigid, affine, resample,
+                                translation, rigid, affine,
                                 imwarp, metrics)
 
     # input validation
@@ -1696,15 +1697,15 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
                 moving, zooms[step])
         logger.info(f'Optimizing {step}:')
         if step == 'sdr':  # happens last
-            # apply the current registration affine
-            moving_zoomed = np.asarray(resample(
-                moving_zoomed, static_zoomed, moving_affine, static_affine,
-                reg_affine).dataobj)
+            affine_map = AffineMap(reg_affine,  # apply registration here
+                                   static_zoomed.shape, static_affine,
+                                   moving_zoomed.shape, moving_affine)
+            moving_zoomed = affine_map.transform(moving_zoomed)
             sdr = imwarp.SymmetricDiffeomorphicRegistration(
                 metrics.CCMetric(3), niter[step])
             with wrapped_stdout(indent='    ', cull_newlines=True):
                 sdr_morph = sdr.optimize(static_zoomed, moving_zoomed,
-                                         static_affine, moving_affine)
+                                         static_affine, static_affine)
             moved_zoomed = sdr_morph.transform(moving_zoomed)
         else:
             with wrapped_stdout(indent='    ', cull_newlines=True):
@@ -1767,9 +1768,9 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     _validate_type(reg_affine, np.ndarray, 'reg_affine')
     _check_option('reg_affine.shape', reg_affine.shape, ((4, 4),))
     _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
+    logger.info('Applying affine registration ...')
     moving, moving_affine = np.asarray(moving.dataobj), moving.affine
     static, static_affine = np.asarray(static.dataobj), static.affine
-    logger.info('Applying affine registration ...')
     affine_map = AffineMap(reg_affine,
                            static.shape, static_affine,
                            moving.shape, moving_affine)

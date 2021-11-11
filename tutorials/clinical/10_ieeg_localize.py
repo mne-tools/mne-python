@@ -418,11 +418,7 @@ plot_overlay(template_brain, subject_brain,
 # to the template.
 #
 # .. warning:: Here we use ``zooms=4`` just for speed, in general we recommend
-#              using ``zooms=None``` (default) for highest accuracy. To deal
-#              with this coarseness, we also use a threshold of 0.1 for the CT
-#              electrodes rather than 0.5. This coarse zoom and low threshold
-#              is useful for getting a quick view of the data, but finalized
-#              pipelines should use ``zooms=None`` instead!
+#              using ``zooms=None`` (default) for highest accuracy!
 
 reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
     subject_brain, template_brain, zooms=4, verbose=True)
@@ -451,9 +447,8 @@ del subject_brain, template_brain
 montage = raw.get_montage()
 montage.apply_trans(subj_trans)
 
-# higher thresh such as 0.5 (default) works when `zooms=None`
 montage_warped, elec_image, warped_elec_image = mne.warp_montage_volume(
-    montage, CT_aligned, reg_affine, sdr_morph, thresh=0.1,
+    montage, CT_aligned, reg_affine, sdr_morph, thresh=0.5,
     subject_from='sample_seeg', subjects_dir_from=op.join(misc_path, 'seeg'),
     subject_to='fsaverage', subjects_dir_to=subjects_dir)
 
