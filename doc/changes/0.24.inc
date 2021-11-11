@@ -27,6 +27,8 @@ Version 0.24.1 (Unreleased)
 
 - Fix channel type support when reading from EEGLAB ``.set`` format with :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` (:gh:`9990` by `Mathieu Scheltienne`_)
 
+- Fix suboptimal alignment using :func:`mne.transforms.compute_volume_registration` (:gh:`9991` by `Alex Rockhill`_)
+
 .. _changes_0_24_0:
 
 Version 0.24.0 (2021-11-03)

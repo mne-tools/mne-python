@@ -466,11 +466,11 @@ def test_volume_source_morph_basic(tmp_path):
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     'subject_from, subject_to, lower, upper, dtype, morph_mat', [
-        ('sample', 'fsaverage', 10.0, 10.4, float, False),
+        ('sample', 'fsaverage', 5.9, 6.1, float, False),
         ('fsaverage', 'fsaverage', 0., 0.1, float, False),
         ('sample', 'sample', 0., 0.1, complex, False),
         ('sample', 'sample', 0., 0.1, float, True),  # morph_mat
-        ('sample', 'fsaverage', 7.0, 7.4, float, True),  # morph_mat
+        ('sample', 'fsaverage', 10, 12, float, True),  # morph_mat
     ])
 def test_volume_source_morph_round_trip(
         tmp_path, subject_from, subject_to, lower, upper, dtype, morph_mat,
@@ -553,7 +553,7 @@ def test_volume_source_morph_round_trip(
     # check that power is more or less preserved (labelizing messes with this)
     if morph_mat:
         if subject_to == 'fsaverage':
-            limits = (14.0, 14.2)
+            limits = (18, 18.5)
         else:
             limits = (7, 7.5)
     else:
@@ -866,7 +866,6 @@ def test_mixed_source_morph(_mixed_morph_srcs, vector):
 
     # Now actually morph
     stc_fs = morph.apply(stc)
-    img = stc_fs.volume().as_volume(src_fs, mri_resolution=False)
     vol_info = _get_mri_info_data(fname_aseg_fs, data=True)
     rrs = np.concatenate([src_fs[2]['rr'][sp['vertno']] for sp in src_fs[2:]])
     n_want = np.in1d(_get_atlas_values(vol_info, rrs), ids).sum()
