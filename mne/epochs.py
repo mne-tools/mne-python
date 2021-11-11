@@ -3552,7 +3552,7 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
             raise TypeError('epochs_list[%d] must be an instance of Epochs, '
                             'got %s' % (ei, type(epochs)))
 
-        if epochs.annotations is not None:
+        if hasattr(epochs, 'annotations'):
             warn('Concatenation of Annotations within Epochs '
                  'is not supported yet. Annotations within these Epochs will '
                  'be dropped.')
