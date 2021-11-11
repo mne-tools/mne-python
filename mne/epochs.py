@@ -1919,6 +1919,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
         %(export_warning)s :meth:`save` instead.
+        %(export_warning_proj)s :meth:`apply_proj`.
 
         Parameters
         ----------

@@ -2606,6 +2606,11 @@ docdict['export_warning'] = """
     the info will be preserved in the external format. To save in native MNE
     format (``.fif``) without information loss, use
 """
+docdict['export_warning_proj'] = """
+.. warning::
+    Export does not apply projector. Unapplied projectors will be lost.
+    Consider applying projectors before exporting with
+"""
 docdict['export_params_fname'] = """
 fname : str
     Name of the output file.

@@ -18,9 +18,7 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
         - EEGLAB (.set, uses :mod:`eeglabio`)
         - EDF (.edf, uses ``EDFlib-Python``)
     %(export_warning)s :meth:`mne.io.Raw.save` instead.
-    .. warning::
-        Export does not apply projector. Unapplied projectors will be lost.
-        Consider using :meth:`mne.io.Raw.apply_proj` before exporting.
+    %(export_warning_proj)s :meth:`mne.io.Raw.apply_proj`.
 
     Parameters
     ----------
@@ -69,9 +67,7 @@ def export_epochs(fname, epochs, fmt='auto', *, overwrite=False, verbose=None):
 
     Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
     %(export_warning)s :meth:`mne.Epochs.save` instead.
-    .. warning::
-        Export does not apply projector. Unapplied projectors will be lost.
-        Consider using :meth:`mne.Epochs.apply_proj` before exporting.
+    %(export_warning_proj)s :meth:`mne.Epochs.apply_proj`.
 
     Parameters
     ----------
@@ -122,9 +118,7 @@ def export_evokeds(fname, evoked, fmt='auto', *, overwrite=False,
     Supported formats
         MFF (mff, uses :func:`mne.export.export_evokeds_mff`)
     %(export_warning)s :func:`mne.write_evokeds` instead.
-    .. warning::
-        Export does not apply projector. Unapplied projectors will be lost.
-        Consider using :meth:`mne.Evoked.apply_proj` before exporting.
+    %(export_warning_proj)s :meth:`mne.Evoked.apply_proj`.
 
     Parameters
     ----------
