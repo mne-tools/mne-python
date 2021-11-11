@@ -55,7 +55,7 @@ def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False,
     sampling_rate = int(info['sfreq'])
 
     # check for unapplied projectors
-    if any(not proj['active'] for proj in evoked.info['projs']):
+    if any(not proj['active'] for proj in evoked[0].info['projs']):
         warn('Evoked instance has unapplied projectors. Consider applying '
              'them before exporting with evoked.apply_proj().')
 
