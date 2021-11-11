@@ -12,7 +12,7 @@ import numpy as np
 
 from ..io.egi.egimff import _import_mffpy
 from ..io.pick import pick_types, pick_channels
-from ..utils import verbose, _check_fname
+from ..utils import verbose, warn, _check_fname
 
 
 @verbose
@@ -53,6 +53,11 @@ def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False,
         raise ValueError('Sampling frequency must be a whole number. '
                          f'sfreq: {info["sfreq"]}')
     sampling_rate = int(info['sfreq'])
+
+    # check for unapplied projectors
+    if any(not proj['active'] for proj in evoked.info['projs']):
+        warn('Evoked instance has unapplied projectors. Consider applying '
+             'them before exporting with evoked.apply_proj().')
 
     # Initialize writer
     # Future changes: conditions based on version or mffpy requirement if

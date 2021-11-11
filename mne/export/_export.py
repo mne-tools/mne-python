@@ -6,7 +6,7 @@
 import os.path as op
 
 from ._egimff import export_evokeds_mff
-from ..utils import verbose, logger, _validate_type, _check_fname
+from ..utils import logger, verbose, warn, _check_fname, _validate_type
 
 
 @verbose
@@ -44,6 +44,11 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
         'brainvision': ('eeg', 'vmrk', 'vhdr',)
     }
     fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
+
+    # check for unapplied projectors
+    if any(not proj['active'] for proj in raw.info['projs']):
+        warn('Raw instance has unapplied projectors. Consider applying '
+             'them before exporting with raw.apply_proj().')
 
     if fmt == 'eeglab':
         from ._eeglab import _export_raw
@@ -84,6 +89,11 @@ def export_epochs(fname, epochs, fmt='auto', *, overwrite=False, verbose=None):
         'brainvision': ('eeg', 'vmrk', 'vhdr',)
     }
     fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
+
+    # check for unapplied projectors
+    if any(not proj['active'] for proj in epochs.info['projs']):
+        warn('Epochs instance has unapplied projectors. Consider applying '
+             'them before exporting with epochs.apply_proj().')
 
     if fmt == 'eeglab':
         from ._eeglab import _export_epochs
