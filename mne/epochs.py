@@ -569,10 +569,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             for ii, epoch in enumerate(self._data):
                 self._data[ii] = np.dot(self._projector, epoch)
         self._filename = str(filename) if filename is not None else filename
-
-        # set blank annotations initially
-        self.set_annotations(None)
-
         self._check_consistency()
 
     def _check_consistency(self):
@@ -1108,10 +1104,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         return self._evoked_from_epoch_data(data, self.info, picks, n_events,
                                             kind, self._name)
-
-    @property
-    def annotations(self):  # noqa: D102
-        return self._annotations
 
     @property
     def _name(self):
@@ -2665,6 +2657,8 @@ class Epochs(BaseEpochs):
             proj=proj, on_missing=on_missing, preload_at_end=preload,
             event_repeated=event_repeated, verbose=verbose)
 
+        self.set_annotations(None)
+
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
         """Load one epoch from disk.
@@ -2708,6 +2702,10 @@ class Epochs(BaseEpochs):
                                             reject_start, reject_stop,
                                             self.reject_by_annotation)
         return data
+
+    @property
+    def annotations(self):  # noqa: D102
+        return self._annotations
 
     @verbose
     def set_annotations(self, annotations, on_missing='raise', *,
