@@ -48,6 +48,8 @@ Bugs
 
 - Fix suboptimal alignment using :func:`mne.transforms.compute_volume_registration` (:gh:`9991` by `Alex Rockhill`_)
 
+- Only warn if header is missing in BrainVision files instead of raising an error (:gh:`10001` by `Clemens Brunner`_)
+
 API changes
 ~~~~~~~~~~~
 - Nothing yet

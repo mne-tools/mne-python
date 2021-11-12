@@ -299,22 +299,24 @@ def _read_annotations_brainvision(fname, sfreq='auto'):
     return annotations
 
 
-_data_err = """\
-MNE-Python currently only supports %s versions 1.0 and 2.0, got unparsable \
-%r. Contact MNE-Python developers for support."""
-# optional space, optional Core, Version/Header, optional comma, 1/2
-_data_re = r'Brain ?Vision( Core)? Data Exchange %s File,? Version %s\.0'
-
-
 def _check_bv_version(header, kind):
     """Check the header version."""
+    _data_err = """\
+    MNE-Python currently only supports %s versions 1.0 and 2.0, got unparsable\
+     %r. Contact MNE-Python developers for support."""
+    # optional space, optional Core, Version/Header, optional comma, 1/2
+    _data_re = r'Brain ?Vision( Core)? Data Exchange %s File,? Version %s\.0'
+
     assert kind in ('header', 'marker')
+
+    if header == '':
+        warn(f'Missing header in {kind} file.')
     for version in range(1, 3):
         this_re = _data_re % (kind.capitalize(), version)
         if re.search(this_re, header) is not None:
             return version
     else:
-        raise ValueError(_data_err % (kind, header))
+        warn(_data_err % (kind, header))
 
 
 _orientation_dict = dict(MULTIPLEXED='F', VECTORIZED='C')
