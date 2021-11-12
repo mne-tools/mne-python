@@ -2437,7 +2437,8 @@ class Report(object):
         if open_browser and not is_hdf5 and not building_doc:
             webbrowser.open_new_tab('file://' + fname)
 
-        self.fname = fname
+        if self.fname is None:
+            self.fname = fname
         return fname
 
     def __enter__(self):
