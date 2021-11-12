@@ -2635,8 +2635,7 @@ instance. To save in native MNE format (``.fif``) without information loss,
 use :meth:`mne.{0}.save` instead.
 Export does not apply projector(s). Unapplied projector(s) will be lost.
 Consider applying projector(s) before exporting with
-:meth:`mne.{0}.apply_proj`.
-"""
+:meth:`mne.{0}.apply_proj`."""
 docdict['export_warning_note_raw'] = \
     docdict['export_warning_note'].format('io.Raw')
 docdict['export_warning_note_epochs'] = \
