@@ -1918,6 +1918,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         """Export Epochs to external formats.
 
         Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
+
         %(export_warning)s
 
         Parameters
@@ -1932,6 +1933,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Notes
         -----
         .. versionadded:: 0.24
+
         %(export_warning_note_epochs)s
         %(export_eeglab_note)s
         """

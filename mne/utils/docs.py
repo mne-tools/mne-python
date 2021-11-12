@@ -2600,7 +2600,7 @@ on_defects : 'raise' | 'warn' | 'ignore'
 """
 
 # Export
-docdict['export_warning'] = """
+docdict['export_warning'] = """\
 .. warning::
     Since we are exporting to external formats, there's no guarantee that all
     the info will be preserved in the external format. See Notes for details.
@@ -2629,8 +2629,8 @@ add_ch_type : bool
     to store channel "Fz" as "EEG Fz"). Only used for EDF format. Default is
     ``False``.
 """
-docdict['export_warning_note'] = \
-"""Export to external format may not preserve all the information from the
+docdict['export_warning_note'] = """\
+Export to external format may not preserve all the information from the
 instance. To save in native MNE format (``.fif``) without information loss,
 use :meth:`mne.{0}.save` instead.
 Export does not apply projector(s). Unapplied projector(s) will be lost.
