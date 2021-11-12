@@ -469,7 +469,7 @@ def _draw_outlines(ax, outlines):
 
 def _get_extra_points(pos, extrapolate, origin, radii):
     """Get coordinates of additinal interpolation points."""
-    from scipy.spatial.qhull import Delaunay
+    from scipy.spatial import Delaunay
     radii = np.array(radii, float)
     assert radii.shape == (2,)
     x, y = origin

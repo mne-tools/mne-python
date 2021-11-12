@@ -3,17 +3,21 @@
 #
 # License: BSD-3-Clause
 
+import os
+import shutil
 import datetime
+import os.path as op
 
 import numpy as np
 
 from ..io.egi.egimff import _import_mffpy
 from ..io.pick import pick_types, pick_channels
-from ..utils import verbose
+from ..utils import verbose, _check_fname
 
 
 @verbose
-def export_evokeds_mff(fname, evoked, history=None, *, verbose=None):
+def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False,
+                       verbose=None):
     """Export evoked dataset to MFF.
 
     Parameters
@@ -28,6 +32,9 @@ def export_evokeds_mff(fname, evoked, history=None, *, verbose=None):
         history.xml. This must adhere to the format described in
         mffpy.xml_files.History.content. If None, no history.xml will be
         written.
+    %(overwrite)s
+
+        .. versionadded:: 0.24.1
     %(verbose)s
 
     Notes
@@ -48,6 +55,11 @@ def export_evokeds_mff(fname, evoked, history=None, *, verbose=None):
     sampling_rate = int(info['sfreq'])
 
     # Initialize writer
+    # Future changes: conditions based on version or mffpy requirement if
+    # https://github.com/BEL-Public/mffpy/pull/92 is merged and released.
+    fname = _check_fname(fname, overwrite=overwrite)
+    if op.exists(fname):
+        os.remove(fname) if op.isfile(fname) else shutil.rmtree(fname)
     writer = mffpy.Writer(fname)
     current_time = pytz.utc.localize(datetime.datetime.utcnow())
     writer.addxml('fileInfo', recordTime=current_time)

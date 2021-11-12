@@ -730,13 +730,15 @@ fir_window : str
 
     .. versionadded:: 0.15
 """
-docdict['pad-fir'] = """
+docdict['pad'] = """
 pad : str
     The type of padding to use. Supports all :func:`numpy.pad` ``mode``
-    options. Can also be "reflect_limited", which pads with a
-    reflected version of each vector mirrored on the first and last
-    values of the vector, followed by zeros. Only used for ``method='fir'``.
+    options. Can also be ``"reflect_limited"``, which pads with a
+    reflected version of each vector mirrored on the first and last values
+    of the vector, followed by zeros.
 """
+docdict['pad-fir'] = docdict['pad'].rstrip() + \
+    " Only used for ``method='fir'``."
 docdict['method-fir'] = """
 method : str
     'fir' will use overlap-add FIR filtering, 'iir' will use IIR
@@ -1904,6 +1906,26 @@ views : str | list
 
     Three letter abbreviations (e.g., ``'lat'``) are also supported.
     Using multiple views (list) is not supported for mpl backend.
+"""
+
+# Coregistration
+scene_interaction_common = """\
+    How interactions with the scene via an input device (e.g., mouse or
+    trackpad) modify the camera position. If ``'terrain'``, one axis is
+    fixed, enabling "turntable-style" rotations. If ``'trackball'``,
+    movement along all axes is possible, which provides more freedom of
+    movement, but you may incidentally perform unintentional rotations along
+    some axes.\
+"""
+docdict['scene_interaction'] = f"""
+interaction : 'trackball' | 'terrain'
+{scene_interaction_common}
+"""
+docdict['scene_interaction_None'] = f"""
+interaction : 'trackball' | 'terrain' | None
+{scene_interaction_common}
+    If ``None``, the setting stored in the MNE-Python configuration file is
+    used.
 """
 
 # STC label time course

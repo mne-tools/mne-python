@@ -184,8 +184,8 @@ xyz_pts = np.array([dig['r'] for dig in evoked.info['dig']])
 src = mne.read_source_spaces(
     op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
 stc = mne.stc_near_sensors(gamma_power_t, trans='fsaverage',
-                           subject='fsaverage', src=src,
-                           mode='nearest', subjects_dir=subjects_dir,
+                           subject='fsaverage', subjects_dir=subjects_dir,
+                           src=src, surface='pial', mode='nearest',
                            distance=0.02)
 vmin, vmid, vmax = np.percentile(gamma_power_t.data, [10, 25, 90])
 clim = dict(kind='value', lims=[vmin, vmid, vmax])

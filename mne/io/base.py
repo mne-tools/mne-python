@@ -1160,7 +1160,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             An optional event matrix. When specified, the onsets of the events
             are resampled jointly with the data. NB: The input events are not
             modified, but a new array is returned with the raw instead.
-        %(pad-fir)s
+        %(pad)s
             The default is ``'reflect_limited'``.
 
             .. versionadded:: 0.15
@@ -1478,7 +1478,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     def export(self, fname, fmt='auto', physical_range='auto',
-               add_ch_type=False, verbose=None):
+               add_ch_type=False, *, overwrite=False, verbose=None):
         """Export Raw to external formats.
 
         Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
@@ -1490,6 +1490,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(export_params_fmt)s
         %(export_params_physical_range)s
         %(export_params_add_ch_type)s
+        %(overwrite)s
+
+            .. versionadded:: 0.24.1
         %(verbose)s
 
         Notes
@@ -1499,7 +1502,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         from ..export import export_raw
         export_raw(fname, self, fmt, physical_range=physical_range,
-                   add_ch_type=add_ch_type, verbose=verbose)
+                   add_ch_type=add_ch_type, overwrite=overwrite,
+                   verbose=verbose)
 
     def _tmin_tmax_to_start_stop(self, tmin, tmax):
         start = int(np.floor(tmin * self.info['sfreq']))

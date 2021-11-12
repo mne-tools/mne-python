@@ -51,6 +51,14 @@ def test_export_raw_eeglab(tmp_path):
     assert_allclose(raw.times, raw_read.times)
     assert_allclose(raw.get_data(), raw_read.get_data())
 
+    # test overwrite
+    with pytest.raises(FileExistsError, match='Destination file exists'):
+        raw.export(temp_fname, overwrite=False)
+    raw.export(temp_fname, overwrite=True)
+
+    # test pathlib.Path files
+    raw.export(Path(temp_fname), overwrite=True)
+
 
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')
@@ -78,7 +86,7 @@ def test_double_export_edf(tmp_path):
 
     # export again
     raw_read.load_data()
-    raw_read.export(temp_fname, add_ch_type=True)
+    raw_read.export(temp_fname, add_ch_type=True, overwrite=True)
     raw_read = read_raw_edf(temp_fname, preload=True)
 
     # stim channel should be dropped
@@ -180,28 +188,28 @@ def test_rawarray_edf(tmp_path):
     raw_bad.rename_channels({'1': 'abcdefghijklmnopqrstuvwxyz'})
     with pytest.raises(RuntimeError, match='Signal label'), \
             pytest.warns(RuntimeWarning, match='Data has a non-integer'):
-        raw_bad.export(temp_fname)
+        raw_bad.export(temp_fname, overwrite=True)
 
     # include bad birthday that is non-EDF compliant
     bad_info = info.copy()
     bad_info['subject_info']['birthday'] = (1700, 1, 20)
     raw = RawArray(data, bad_info)
     with pytest.raises(RuntimeError, match='Setting patient birth date'):
-        raw.export(temp_fname)
+        raw.export(temp_fname, overwrite=True)
 
     # include bad measurement date that is non-EDF compliant
     raw = RawArray(data, info)
     meas_date = datetime(year=1984, month=1, day=1, tzinfo=timezone.utc)
     raw.set_meas_date(meas_date)
     with pytest.raises(RuntimeError, match='Setting start date time'):
-        raw.export(temp_fname)
+        raw.export(temp_fname, overwrite=True)
 
     # test that warning is raised if there are non-voltage based channels
     raw = RawArray(data, info)
     with pytest.warns(RuntimeWarning, match='The unit'):
         raw.set_channel_types({'9': 'hbr'})
     with pytest.warns(RuntimeWarning, match='Non-voltage channels'):
-        raw.export(temp_fname)
+        raw.export(temp_fname, overwrite=True)
 
     # data should match up to the non-accepted channel
     raw_read = read_raw_edf(temp_fname, preload=True)
@@ -313,6 +321,14 @@ def test_export_epochs_eeglab(tmp_path, preload):
     assert_allclose(epochs.times, epochs_read.times)
     assert_allclose(epochs.get_data(), epochs_read.get_data())
 
+    # test overwrite
+    with pytest.raises(FileExistsError, match='Destination file exists'):
+        epochs.export(temp_fname, overwrite=False)
+    epochs.export(temp_fname, overwrite=True)
+
+    # test pathlib.Path files
+    epochs.export(Path(temp_fname), overwrite=True)
+
 
 @requires_version('mffpy', '0.5.7')
 @testing.requires_testing_data
@@ -354,6 +370,20 @@ def test_export_evokeds_to_mff(tmp_path, fmt, do_history):
         assert ave_exported.kind == ave.kind
         assert ave_exported.comment == ave.comment
         assert_allclose(ave_exported.times, ave.times)
+
+    # test overwrite
+    with pytest.raises(FileExistsError, match='Destination file exists'):
+        if do_history:
+            export_evokeds_mff(export_fname, evoked, history=history,
+                               overwrite=False)
+        else:
+            export_evokeds(export_fname, evoked, overwrite=False)
+
+    if do_history:
+        export_evokeds_mff(export_fname, evoked, history=history,
+                           overwrite=True)
+    else:
+        export_evokeds(export_fname, evoked, overwrite=True)
 
 
 @requires_version('mffpy', '0.5.7')
