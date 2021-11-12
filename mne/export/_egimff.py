@@ -42,6 +42,7 @@ def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False,
     Notes
     -----
     .. versionadded:: 0.24
+
     %(export_warning_note_evoked)s
 
     Only EEG channels are written to the output file.
