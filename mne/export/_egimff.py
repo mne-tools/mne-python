@@ -12,13 +12,15 @@ import numpy as np
 
 from ..io.egi.egimff import _import_mffpy
 from ..io.pick import pick_types, pick_channels
-from ..utils import verbose, _check_fname
+from ..utils import verbose, warn, _check_fname
 
 
 @verbose
 def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False,
                        verbose=None):
     """Export evoked dataset to MFF.
+
+    %(export_warning)s
 
     Parameters
     ----------
@@ -41,6 +43,8 @@ def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False,
     -----
     .. versionadded:: 0.24
 
+    %(export_warning_note_evoked)s
+
     Only EEG channels are written to the output file.
     ``info['device_info']['type']`` must be a valid MFF recording device
     (e.g. 'HydroCel GSN 256 1.0'). This field is automatically populated when
@@ -53,6 +57,11 @@ def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False,
         raise ValueError('Sampling frequency must be a whole number. '
                          f'sfreq: {info["sfreq"]}')
     sampling_rate = int(info['sfreq'])
+
+    # check for unapplied projectors
+    if any(not proj['active'] for proj in evoked[0].info['projs']):
+        warn('Evoked instance has unapplied projectors. Consider applying '
+             'them before exporting with evoked.apply_proj().')
 
     # Initialize writer
     # Future changes: conditions based on version or mffpy requirement if

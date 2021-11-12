@@ -29,6 +29,8 @@ Version 0.24.1 (Unreleased)
 
 - Fix suboptimal alignment using :func:`mne.transforms.compute_volume_registration` (:gh:`9991` by `Alex Rockhill`_)
 
+- Improve docstring of export functions :func:`mne.export.export_raw`, :func:`mne.export.export_epochs`, :func:`mne.export.export_evokeds`, :func:`mne.export.export_evokeds_mff` and issue a warning when there are unapplied projectors (:gh:`9994` by `Mathieu Scheltienne`_)
+
 .. _changes_0_24_0:
 
 Version 0.24.0 (2021-11-03)
