@@ -37,8 +37,8 @@ def test_export_raw_eeglab(tmp_path):
     """Test saving a Raw instance to EEGLAB's set format."""
     fname = (Path(__file__).parent.parent.parent /
              "io" / "tests" / "data" / "test_raw.fif")
-    raw = read_raw_fif(fname)
-    raw.load_data()
+    raw = read_raw_fif(fname, preload=True)
+    raw.apply_proj()
     temp_fname = op.join(str(tmp_path), 'test.set')
     raw.export(temp_fname)
     raw.drop_channels([ch for ch in ['epoc']
@@ -58,6 +58,12 @@ def test_export_raw_eeglab(tmp_path):
 
     # test pathlib.Path files
     raw.export(Path(temp_fname), overwrite=True)
+
+    # test warning with unapplied projectors
+    raw = read_raw_fif(fname, preload=True)
+    with pytest.warns(RuntimeWarning,
+                      match='Raw instance has unapplied projectors.'):
+        raw.export(temp_fname, overwrite=True)
 
 
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
@@ -328,6 +334,12 @@ def test_export_epochs_eeglab(tmp_path, preload):
 
     # test pathlib.Path files
     epochs.export(Path(temp_fname), overwrite=True)
+
+    # test warning with unapplied projectors
+    epochs = Epochs(raw, events, preload=preload, proj=False)
+    with pytest.warns(RuntimeWarning,
+                      match='Epochs instance has unapplied projectors.'):
+        epochs.export(Path(temp_fname), overwrite=True)
 
 
 @requires_version('mffpy', '0.5.7')
