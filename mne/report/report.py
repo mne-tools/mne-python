@@ -308,7 +308,7 @@ def _check_tags(tags) -> Tuple[str]:
     if bad_tags:
         raise ValueError(
             f'The following tags contained invalid characters: '
-            f'{", ".join(bad_tags)}'
+            f'{", ".join(repr(tag) for tag in bad_tags)}'
         )
 
     return tags
