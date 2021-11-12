@@ -2603,13 +2603,7 @@ on_defects : 'raise' | 'warn' | 'ignore'
 docdict['export_warning'] = """
 .. warning::
     Since we are exporting to external formats, there's no guarantee that all
-    the info will be preserved in the external format. To save in native MNE
-    format (``.fif``) without information loss, use
-"""
-docdict['export_warning_proj'] = """
-.. warning::
-    Export does not apply projector. Unapplied projectors will be lost.
-    Consider applying projectors before exporting with
+    the info will be preserved in the external format. See Notes for details.
 """
 docdict['export_params_fname'] = """
 fname : str
@@ -2635,6 +2629,20 @@ add_ch_type : bool
     to store channel "Fz" as "EEG Fz"). Only used for EDF format. Default is
     ``False``.
 """
+docdict['export_warning_note'] = """
+Export to external format may not preserve all the information from the
+instance. To save in native MNE format (``.fif``) without information loss,
+use :meth:`mne.{0}.save` instead.
+Export does not apply projector(s). Unapplied projector(s) will be lost.
+Consider applying projector(s) before exporting with
+:meth:`mne.{0}.apply_proj`.
+"""
+docdict['export_warning_note_raw'] = \
+    docdict['export_warning_note'].format('io.Raw')
+docdict['export_warning_note_epochs'] = \
+    docdict['export_warning_note'].format('Epochs')
+docdict['export_warning_note_evoked'] = \
+    docdict['export_warning_note'].format('Evoked')
 docdict['export_eeglab_note'] = """
 For EEGLAB exports, channel locations are expanded to full EEGLAB format.
 For more details see :func:`eeglabio.utils.cart_to_eeglab`.

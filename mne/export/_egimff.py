@@ -20,8 +20,7 @@ def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False,
                        verbose=None):
     """Export evoked dataset to MFF.
 
-    %(export_warning)s :func:`mne.write_evokeds` instead.
-    %(export_warning_proj)s :meth:`mne.Evoked.apply_proj`.
+    %(export_warning)s
 
     Parameters
     ----------
@@ -43,6 +42,7 @@ def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False,
     Notes
     -----
     .. versionadded:: 0.24
+    %(export_warning_note_evoked)s
 
     Only EEG channels are written to the output file.
     ``info['device_info']['type']`` must be a valid MFF recording device

@@ -17,8 +17,7 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
     Supported formats:
         - EEGLAB (.set, uses :mod:`eeglabio`)
         - EDF (.edf, uses ``EDFlib-Python``)
-    %(export_warning)s :meth:`mne.io.Raw.save` instead.
-    %(export_warning_proj)s :meth:`mne.io.Raw.apply_proj`.
+    %(export_warning)s
 
     Parameters
     ----------
@@ -35,6 +34,8 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
 
     Notes
     -----
+    .. versionadded:: 0.24
+    %(export_warning_note_raw)s
     %(export_eeglab_note)s
     %(export_edf_note)s
     """
@@ -66,8 +67,7 @@ def export_epochs(fname, epochs, fmt='auto', *, overwrite=False, verbose=None):
     """Export Epochs to external formats.
 
     Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
-    %(export_warning)s :meth:`mne.Epochs.save` instead.
-    %(export_warning_proj)s :meth:`mne.Epochs.apply_proj`.
+    %(export_warning)s
 
     Parameters
     ----------
@@ -82,6 +82,8 @@ def export_epochs(fname, epochs, fmt='auto', *, overwrite=False, verbose=None):
 
     Notes
     -----
+    .. versionadded:: 0.24
+    %(export_warning_note_epochs)s
     %(export_eeglab_note)s
     """
     fname = _check_fname(fname, overwrite=overwrite)
@@ -117,8 +119,7 @@ def export_evokeds(fname, evoked, fmt='auto', *, overwrite=False,
 
     Supported formats
         MFF (mff, uses :func:`mne.export.export_evokeds_mff`)
-    %(export_warning)s :func:`mne.write_evokeds` instead.
-    %(export_warning_proj)s :meth:`mne.Evoked.apply_proj`.
+    %(export_warning)s
 
     Parameters
     ----------
@@ -144,6 +145,7 @@ def export_evokeds(fname, evoked, fmt='auto', *, overwrite=False,
     Notes
     -----
     .. versionadded:: 0.24
+    %(export_warning_note_evoked)s
     """
     fname = _check_fname(fname, overwrite=overwrite)
     supported_export_formats = {
