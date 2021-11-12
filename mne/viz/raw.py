@@ -180,7 +180,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     Returns
     -------
-    fig : instance of matplotlib.figure.Figure
+    fig : instance of matplotlib.figure.Figure | QWidget
         Raw traces.
 
     Notes
