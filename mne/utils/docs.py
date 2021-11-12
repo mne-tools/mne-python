@@ -1525,7 +1525,7 @@ precompute : bool | str
     processor thread, instead of window-by-window during scrolling. The default
     ``'auto'`` compares available RAM space to the expected size of the
     precomputed data, and precomputes only if enough RAM is available. ``True``
-    and ``'auto'`` only work if using the pyQtGraph backend.
+    and ``'auto'`` only work if using the PyQtGraph backend.
 
     .. versionadded:: 0.24
 """
