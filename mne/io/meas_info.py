@@ -109,6 +109,7 @@ def _get_valid_units():
 @verbose
 def _unique_channel_names(ch_names, max_length=None, verbose=None):
     """Ensure unique channel names."""
+    suffixes = tuple('abcdefghijklmnopqrstuvwxyz')
     if max_length is not None:
         ch_names[:] = [name[:max_length] for name in ch_names]
     unique_ids = np.unique(ch_names, return_index=True)[1]
@@ -129,14 +130,17 @@ def _unique_channel_names(ch_names, max_length=None, verbose=None):
             n_keep = min(len(ch_stem), n_keep)
             ch_stem = ch_stem[:n_keep]
             for idx, ch_idx in enumerate(overlaps):
-                ch_name = ch_stem + '-%s' % idx
+                # try idx first, then loop through lower case chars
+                for suffix in (idx,) + suffixes:
+                    ch_name = ch_stem + '-%s' % suffix
+                    if ch_name not in ch_names:
+                        break
                 if ch_name not in ch_names:
                     ch_names[ch_idx] = ch_name
                 else:
-                    raise ValueError('Adding a running number for a '
+                    raise ValueError('Adding a single alphanumeric for a '
                                      'duplicate resulted in another '
                                      'duplicate name %s' % ch_name)
-
     return ch_names
 
 

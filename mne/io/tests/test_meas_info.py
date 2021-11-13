@@ -140,10 +140,6 @@ def test_duplicate_name_correction():
     info = create_info(['A', 'A', 'A'], 1000., verbose='error')
     assert info['ch_names'] == ['A-0', 'A-1', 'A-2']
 
-    # When running number is not possible
-    with pytest.raises(ValueError, match='Adding a running number'):
-        create_info(['A', 'A', 'A-0'], 1000., verbose='error')
-
 
 def test_fiducials_io(tmp_path):
     """Test fiducials i/o."""
