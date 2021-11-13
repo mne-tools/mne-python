@@ -705,7 +705,8 @@ class Report(object):
         return (
             'baseline', 'cov_fname', 'include', '_content', 'image_format',
             'info_fname', '_dom_id', 'raw_psd', 'projs',
-            'subjects_dir', 'subject', 'title', 'data_path', 'lang', 'verbose'
+            'subjects_dir', 'subject', 'title', 'data_path', 'lang', 'verbose',
+            'fname'
         )
 
     def _get_dom_id(self):
