@@ -25,7 +25,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
         Something that acts like – or can be converted to – a
         :class:`NumPy array <numpy.ndarray>`.
         This includes (but is not limited to) an
-        :class:`array <numpy.ndarray>` (obviously), a `list`, and a
+        :class:`array <numpy.ndarray>`, a `list`, and a
         `tuple`.
 
     beamformer
