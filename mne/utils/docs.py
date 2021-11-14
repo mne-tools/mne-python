@@ -1393,7 +1393,7 @@ trans : str | dict | instance of Transform | None
        Support for 'fsaverage' argument.
 """ % (_trans_base,)
 docdict['subjects_dir'] = """
-subjects_dir : str | pathlib.Path | None
+subjects_dir : path-like | None
     The path to the directory containing the FreeSurfer subjects
     reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
     variable.
@@ -2334,7 +2334,7 @@ image_format : 'png' | 'svg' | 'gif' | None
     instantiation.
 """
 docdict['report_tags'] = """
-tags : collection of str
+tags : array-like of str
     Tags to add for later interactive filtering.
 """
 docdict['report_replace'] = """
