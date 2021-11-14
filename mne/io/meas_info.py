@@ -14,6 +14,7 @@ import datetime
 from io import BytesIO
 import operator
 from textwrap import shorten
+import string
 
 import numpy as np
 
@@ -109,7 +110,7 @@ def _get_valid_units():
 @verbose
 def _unique_channel_names(ch_names, max_length=None, verbose=None):
     """Ensure unique channel names."""
-    suffixes = tuple('abcdefghijklmnopqrstuvwxyz')
+    suffixes = tuple(string.ascii_lowercase)
     if max_length is not None:
         ch_names[:] = [name[:max_length] for name in ch_names]
     unique_ids = np.unique(ch_names, return_index=True)[1]
