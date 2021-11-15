@@ -6,18 +6,19 @@
 import os.path as op
 
 from ._egimff import export_evokeds_mff
-from ..utils import verbose, logger, _validate_type
+from ..utils import logger, verbose, warn, _check_fname, _validate_type
 
 
 @verbose
 def export_raw(fname, raw, fmt='auto', physical_range='auto',
-               add_ch_type=False, verbose=None):
+               add_ch_type=False, *, overwrite=False, verbose=None):
     """Export Raw to external formats.
 
     Supported formats:
         - EEGLAB (.set, uses :mod:`eeglabio`)
         - EDF (.edf, uses ``EDFlib-Python``)
-    %(export_warning)s :meth:`mne.io.Raw.save` instead.
+
+    %(export_warning)s
 
     Parameters
     ----------
@@ -27,19 +28,31 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
     %(export_params_fmt)s
     %(export_params_physical_range)s
     %(export_params_add_ch_type)s
+    %(overwrite)s
+
+        .. versionadded:: 0.24.1
     %(verbose)s
 
     Notes
     -----
+    .. versionadded:: 0.24
+
+    %(export_warning_note_raw)s
     %(export_eeglab_note)s
     %(export_edf_note)s
     """
+    fname = _check_fname(fname, overwrite=overwrite)
     supported_export_formats = {  # format : extensions
         'eeglab': ('set',),
         'edf': ('edf',),
         'brainvision': ('eeg', 'vmrk', 'vhdr',)
     }
     fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
+
+    # check for unapplied projectors
+    if any(not proj['active'] for proj in raw.info['projs']):
+        warn('Raw instance has unapplied projectors. Consider applying '
+             'them before exporting with raw.apply_proj().')
 
     if fmt == 'eeglab':
         from ._eeglab import _export_raw
@@ -52,10 +65,11 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
 
 
 @verbose
-def export_epochs(fname, epochs, fmt='auto', verbose=None):
+def export_epochs(fname, epochs, fmt='auto', *, overwrite=False, verbose=None):
     """Export Epochs to external formats.
 
     Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
+
     %(export_warning)s
 
     Parameters
@@ -64,18 +78,30 @@ def export_epochs(fname, epochs, fmt='auto', verbose=None):
     epochs : instance of Epochs
         The epochs to export.
     %(export_params_fmt)s
+    %(overwrite)s
+
+        .. versionadded:: 0.24.1
     %(verbose)s
 
     Notes
     -----
+    .. versionadded:: 0.24
+
+    %(export_warning_note_epochs)s
     %(export_eeglab_note)s
     """
+    fname = _check_fname(fname, overwrite=overwrite)
     supported_export_formats = {
         'eeglab': ('set',),
         'edf': ('edf',),
         'brainvision': ('eeg', 'vmrk', 'vhdr',)
     }
     fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
+
+    # check for unapplied projectors
+    if any(not proj['active'] for proj in epochs.info['projs']):
+        warn('Epochs instance has unapplied projectors. Consider applying '
+             'them before exporting with epochs.apply_proj().')
 
     if fmt == 'eeglab':
         from ._eeglab import _export_epochs
@@ -87,7 +113,8 @@ def export_epochs(fname, epochs, fmt='auto', verbose=None):
 
 
 @verbose
-def export_evokeds(fname, evoked, fmt='auto', verbose=None):
+def export_evokeds(fname, evoked, fmt='auto', *, overwrite=False,
+                   verbose=None):
     """Export evoked dataset to external formats.
 
     This function is a wrapper for format-specific export functions. The export
@@ -96,7 +123,8 @@ def export_evokeds(fname, evoked, fmt='auto', verbose=None):
 
     Supported formats
         MFF (mff, uses :func:`mne.export.export_evokeds_mff`)
-    %(export_warning)s :func:`mne.write_evokeds` instead.
+
+    %(export_warning)s
 
     Parameters
     ----------
@@ -109,6 +137,9 @@ def export_evokeds(fname, evoked, fmt='auto', verbose=None):
         Format of the export. Defaults to ``'auto'``, which will infer the
         format from the filename extension. See supported formats above for
         more information.
+    %(overwrite)s
+
+        .. versionadded:: 0.24.1
     %(verbose)s
 
     See Also
@@ -119,7 +150,10 @@ def export_evokeds(fname, evoked, fmt='auto', verbose=None):
     Notes
     -----
     .. versionadded:: 0.24
+
+    %(export_warning_note_evoked)s
     """
+    fname = _check_fname(fname, overwrite=overwrite)
     supported_export_formats = {
         'mff': ('mff',),
         'eeglab': ('set',),
@@ -134,7 +168,7 @@ def export_evokeds(fname, evoked, fmt='auto', verbose=None):
     logger.info(f'Exporting evoked dataset to {fname}...')
 
     if fmt == 'mff':
-        export_evokeds_mff(fname, evoked)
+        export_evokeds_mff(fname, evoked, overwrite=overwrite)
     elif fmt == 'eeglab':
         raise NotImplementedError('Export to EEGLAB not implemented.')
     elif fmt == 'edf':

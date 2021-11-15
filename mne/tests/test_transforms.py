@@ -533,7 +533,7 @@ def test_volume_registration():
     for pipeline in ('rigids', ('translation', 'sdr')):
         reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
             T1_resampled, T1, pipeline=pipeline, zooms=10, niter=[5])
-        assert_allclose(affine, reg_affine, atol=0.25)
+        assert_allclose(affine, reg_affine, atol=0.01)
         T1_aligned = mne.transforms.apply_volume_registration(
             T1_resampled, T1, reg_affine, sdr_morph)
         r2 = _compute_r2(_get_img_fdata(T1_aligned), _get_img_fdata(T1))

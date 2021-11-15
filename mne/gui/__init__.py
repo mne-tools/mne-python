@@ -82,12 +82,13 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         different color.
 
         .. versionadded:: 0.16
-    interaction : str | None
-        Can be 'terrain' (default None), use terrain-style interaction (where
-        "up" is the Z/superior direction), or 'trackball' to use
-        orientationless interactions.
+    %(scene_interaction_None)s
+        Defaults to ``'terrain'``.
 
         .. versionadded:: 0.16
+        .. versionchanged:: 1.0
+           Default interaction mode if ``None`` and no config setting found
+           changed from ``'trackball'`` to ``'terrain'``.
     scale : float | None
         The scaling for the scene.
 
@@ -133,7 +134,6 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         'project_eeg': project_eeg,
         'scale_by_distance': scale_by_distance,
         'mark_inside': mark_inside,
-        'interaction': interaction,
         'scale': scale,
         'advanced_rendering': advanced_rendering,
     }
@@ -144,7 +144,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
             to_raise = val is not None
         if to_raise:
             warn(f"The parameter {key} is not supported with"
-                    " the pyvistaqt 3d backend. It will be ignored.")
+                  " the pyvistaqt 3d backend. It will be ignored.")
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     if guess_mri_subject is None:
         guess_mri_subject = config.get(
@@ -177,7 +177,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         scale_by_distance = (config.get('MNE_COREG_SCALE_BY_DISTANCE', '') ==
                              'true')
     if interaction is None:
-        interaction = config.get('MNE_COREG_INTERACTION', 'trackball')
+        interaction = config.get('MNE_COREG_INTERACTION', 'terrain')
     if mark_inside is None:
         mark_inside = config.get('MNE_COREG_MARK_INSIDE', '') == 'true'
     if scale is None:
@@ -196,7 +196,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         info_file=inst, subject=subject, subjects_dir=subjects_dir,
         head_resolution=head_high_res, orient_glyphs=orient_to_surface,
         trans=trans, size=(width, height), show=show, standalone=standalone,
-        verbose=verbose
+        interaction=interaction, verbose=verbose
     )
 
 
@@ -209,7 +209,7 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     ----------
     %(info_not_none)s
     %(trans_not_none)s
-    aligned_ct : str | pathlib.Path | nibabel.spatialimages.SpatialImage
+    aligned_ct : path-like | nibabel.spatialimages.SpatialImage
         The CT image that has been aligned to the Freesurfer T1. Path-like
         inputs and nibabel image objects are supported.
     %(subject)s

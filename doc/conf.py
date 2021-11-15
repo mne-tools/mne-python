@@ -155,8 +155,8 @@ intersphinx_mapping = {
     'picard': ('https://pierreablin.github.io/picard/', None),
     'qdarkstyle': ('https://qdarkstylesheet.readthedocs.io/en/latest', None),
     'eeglabio': ('https://eeglabio.readthedocs.io/en/latest', None),
-    'dipy': ('https://dipy.org/documentation/1.4.0./',
-             'https://dipy.org/documentation/1.4.0./objects.inv/'),
+    'dipy': ('https://dipy.org/documentation/latest/',
+             'https://dipy.org/documentation/latest/objects.inv/'),
     'pooch': ('https://www.fatiando.org/pooch/latest/', None),
 }
 
@@ -171,10 +171,11 @@ numpydoc_xref_param_type = True
 numpydoc_xref_aliases = {
     # Python
     'file-like': ':term:`file-like <python:file object>`',
+    'path-like': ':term:`path-like`',
+    'array-like': ':term:`array-like`',
     # Matplotlib
     'colormap': ':doc:`colormap <matplotlib:tutorials/colors/colormaps>`',
     'color': ':doc:`color <matplotlib:api/colors_api>`',
-    'collection': ':doc:`collections <matplotlib:api/collections_api>`',
     'Axes': 'matplotlib.axes.Axes',
     'Figure': 'matplotlib.figure.Figure',
     'Axes3D': 'mpl_toolkits.mplot3d.axes3d.Axes3D',

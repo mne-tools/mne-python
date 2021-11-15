@@ -392,7 +392,7 @@ class EpochsKIT(BaseEpochs):
         logger.info('Extracting KIT Parameters from %s...' % input_fname)
         self.info, kit_info = get_kit_info(
             input_fname, allow_unknown_format, standardize_names)
-        kit_info.update(filename=input_fname)
+        kit_info.update(input_fname=input_fname)
         self._raw_extras = [kit_info]
         self._filenames = []
         if len(events) != self._raw_extras[0]['n_epochs']:
@@ -439,11 +439,11 @@ class EpochsKIT(BaseEpochs):
         epoch_length = info['frame_length']
         n_epochs = info['n_epochs']
         n_samples = info['n_samples']
-        filename = info['filename']
+        input_fname = info['input_fname']
         dtype = info['dtype']
         nchan = info['nchan']
 
-        with open(filename, 'rb', buffering=0) as fid:
+        with open(input_fname, 'rb', buffering=0) as fid:
             fid.seek(info['dirs'][KIT.DIR_INDEX_RAW_DATA]['offset'])
             count = n_samples * nchan
             data = np.fromfile(fid, dtype=dtype, count=count)

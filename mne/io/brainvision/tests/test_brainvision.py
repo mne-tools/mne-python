@@ -201,8 +201,10 @@ def test_vhdr_codepage_ansi(tmp_path):
     b'BrainVision Data Exchange %s File Version 1.0\n',
     # 2.0, space, core, comma
     b'Brain Vision Core Data Exchange %s File, Version 2.0\n',
-    # bad
+    # unsupported version
     b'Brain Vision Core Data Exchange %s File, Version 3.0\n',
+    # missing header
+    b'\n',
 ])
 def test_vhdr_versions(tmp_path, header):
     """Test BV reading with different header variants."""
@@ -217,23 +219,34 @@ def test_vhdr_versions(tmp_path, header):
             for line in fin:
                 # Common Infos section
                 if line.startswith(b'Brain'):
-                    line = header % b'Header'
+                    if header != b'\n':
+                        line = header % b'Header'
+                    else:
+                        line = header
                 fout.write(line)
     with open(use_vmrk_path, 'wb') as fout:
         with open(vmrk_path, 'rb') as fin:
             for line in fin:
                 # Common Infos section
                 if line.startswith(b'Brain'):
-                    line = header % b'Marker'
+                    if header != b'\n':
+                        line = header % b'Marker'
+                    else:
+                        line = header
                 fout.write(line)
 
-    if b'3.0' in header:  # bad case
-        with pytest.raises(ValueError, match=r'3\.0.*Contact MNE-Python'):
+    if (b'3.0' in header):  # unsupported version
+        with pytest.warns(RuntimeWarning, match=r'3\.0.*Contact MNE-Python'):
             read_raw_brainvision(use_vhdr_path)
         return
-    raw = read_raw_brainvision(use_vhdr_path)
-    data_new, _ = raw[:]
-    assert_allclose(data_new, data_expected, atol=1e-15)
+    elif header == b'\n':  # no version header
+        with pytest.warns(RuntimeWarning, match='Missing header'):
+            read_raw_brainvision(use_vhdr_path)
+        return
+    else:
+        raw = read_raw_brainvision(use_vhdr_path)
+        data_new, _ = raw[:]
+        assert_allclose(data_new, data_expected, atol=1e-15)
 
 
 @pytest.mark.parametrize('data_sep', (b' ', b',', b'+'))

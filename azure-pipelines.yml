@@ -245,7 +245,10 @@ stages:
     - script: conda env update --name base --file environment.yml
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Setup MNE environment
-    - script: conda remove -c conda-forge -yq mne
+    - bash: |
+        set -e
+        conda remove -c conda-forge --force -yq mne
+        rm /c/Miniconda/Scripts/mne.exe
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Remove old MNE
     - script: pip install -e .
@@ -305,7 +308,10 @@ stages:
       displayName: Setup MNE environment
     - script: conda install -c conda-forge graphviz
       displayName: Add graphviz dot
-    - script: conda remove -c conda-forge -yq mne
+    - bash: |
+        set -e
+        conda remove -c conda-forge --force -yq mne
+        rm /c/Miniconda/Scripts/mne.exe
       displayName: Remove old MNE
     - script: pip install -e .
       displayName: Install dev MNE
