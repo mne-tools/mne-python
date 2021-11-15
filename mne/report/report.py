@@ -10,6 +10,7 @@ import io
 import dataclasses
 from dataclasses import dataclass
 from typing import Tuple
+from collections.abc import Sequence
 import base64
 from io import BytesIO, StringIO
 import contextlib
@@ -276,6 +277,41 @@ class _ContentElement:
     dom_id: str
     tags: Tuple[str]
     html: str
+
+
+def _check_tags(tags) -> Tuple[str]:
+    # Must be iterable, but not a string
+    if (isinstance(tags, str) or not isinstance(tags, (Sequence, np.ndarray))):
+        raise TypeError(
+            f'tags must be a collection of str, but got {type(tags)} '
+            f'instead: {tags}'
+        )
+    tags = tuple(tags)
+
+    # Check for invalid dtypes
+    bad_tags = [tag for tag in tags
+                if not isinstance(tag, str)]
+    if bad_tags:
+        raise TypeError(
+            f'tags must be strings, but got the following instead: '
+            f'{", ".join([str(tag) for tag in bad_tags])}'
+        )
+
+    # Check for invalid characters
+    invalid_chars = (' ', '"', '\n')  # we'll probably find more :-)
+    bad_tags = []
+    for tag in tags:
+        for invalid_char in invalid_chars:
+            if invalid_char in tag:
+                bad_tags.append(tag)
+                break
+    if bad_tags:
+        raise ValueError(
+            f'The following tags contained invalid characters: '
+            f'{", ".join(repr(tag) for tag in bad_tags)}'
+        )
+
+    return tags
 
 
 ###############################################################################
@@ -808,7 +844,7 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        tags = tuple(tags)
+        tags = _check_tags(tags)
 
         add_projs = self.projs if projs is None else projs
 
@@ -904,7 +940,7 @@ class Report(object):
             noise_cov = self.cov_fname
         if noise_cov is not None and not isinstance(noise_cov, Covariance):
             noise_cov = read_cov(fname=noise_cov)
-        tags = tuple(tags)
+        tags = _check_tags(tags)
 
         add_projs = self.projs if projs is None else projs
 
@@ -969,7 +1005,7 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        tags = tuple(tags)
+        tags = _check_tags(tags)
 
         if psd is None:
             add_psd = dict() if self.raw_psd is True else self.raw_psd
@@ -1039,7 +1075,7 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        tags = tuple(tags)
+        tags = _check_tags(tags)
 
         html, dom_id = self._render_stc(
             stc=stc,
@@ -1084,7 +1120,7 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        tags = tuple(tags)
+        tags = _check_tags(tags)
 
         html, dom_id = self._render_forward(
             forward=forward, subject=subject, subjects_dir=subjects_dir,
@@ -1127,7 +1163,7 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        tags = tuple(tags)
+        tags = _check_tags(tags)
 
         if ((subject is not None and trans is None) or
                 (trans is not None and subject is None)):
@@ -1173,7 +1209,7 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        tags = tuple(tags)
+        tags = _check_tags(tags)
 
         html, dom_id = self._render_trans(
             trans=trans,
@@ -1211,7 +1247,7 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        tags = tuple(tags)
+        tags = _check_tags(tags)
         htmls = self._render_cov(
             cov=cov,
             info=info,
@@ -1261,7 +1297,7 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        tags = tuple(tags)
+        tags = _check_tags(tags)
         html, dom_id = self._render_events(
             events=events,
             event_id=event_id,
@@ -1303,7 +1339,7 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        tags = tuple(tags)
+        tags = _check_tags(tags)
         output = self._render_ssp_projs(
             info=info, projs=projs, title=title,
             image_format=self.image_format, tags=tags,
@@ -1616,7 +1652,7 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        tags = tuple(tags)
+        tags = _check_tags(tags)
 
         dom_id, html = self._render_ica(
             ica=ica, inst=inst, picks=picks,
@@ -1768,7 +1804,7 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        tags = tuple(tags)
+        tags = _check_tags(tags)
         language = language.lower()
         html, dom_id = self._render_code(
             code=code, title=title, language=language, tags=tags
@@ -1798,7 +1834,7 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        tags = tuple(tags)
+        tags = _check_tags(tags)
 
         with contextlib.redirect_stdout(StringIO()) as f:
             sys_info()
@@ -1831,7 +1867,7 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """  # noqa E501
-        tags = tuple(tags)
+        tags = _check_tags(tags)
         if image_format is None:
             image_format = self.image_format
 
@@ -1904,7 +1940,7 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        tags = tuple(tags)
+        tags = _check_tags(tags)
         img_bytes = Path(image).expanduser().read_bytes()
         img_base64 = base64.b64encode(img_bytes).decode('ascii')
         del img_bytes  # Free memory
@@ -1945,7 +1981,7 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        tags = tuple(tags)
+        tags = _check_tags(tags)
         dom_id = self._get_dom_id()
         html_element = _html_element(
             id=dom_id, html=html, title=title, tags=tags,
@@ -1987,7 +2023,7 @@ class Report(object):
         -----
         .. versionadded:: 0.24.0
         """
-        tags = tuple(tags)
+        tags = _check_tags(tags)
         width = _ensure_int(width, 'width')
         html = self._render_bem(subject=subject, subjects_dir=subjects_dir,
                                 decim=decim, n_jobs=n_jobs, width=width,
