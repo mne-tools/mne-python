@@ -32,8 +32,6 @@ Enhancements
 
 - Improve docstring of export functions :func:`mne.export.export_raw`, :func:`mne.export.export_epochs`, :func:`mne.export.export_evokeds`, :func:`mne.export.export_evokeds_mff` and issue a warning when there are unapplied projectors (:gh:`9994` by `Mathieu Scheltienne`_)
 
-- Add argument ``overwrite`` to `mne.preprocessing.ICA.save` to check for existing files (:gh:`10004` by `Mathieu Scheltienne`_)
-
 Bugs
 ~~~~
 - Fix default of :func:`mne.io.Raw.plot` to be ``use_opengl=None``, which will act like False unless ``MNE_BROWSE_USE_OPENGL=true`` is set in the user configuration (:gh:`9957` by `Eric Larson`_)
@@ -55,6 +53,8 @@ Bugs
 - Fix suboptimal alignment using :func:`mne.transforms.compute_volume_registration` (:gh:`9991` by `Alex Rockhill`_)
 
 - Only warn if header is missing in BrainVision files instead of raising an error (:gh:`10001` by `Clemens Brunner`_)
+
+- Add argument ``overwrite`` to `mne.preprocessing.ICA.save` to check for existing file (:gh:`10004` by `Mathieu Scheltienne`_)
 
 API changes
 ~~~~~~~~~~~
