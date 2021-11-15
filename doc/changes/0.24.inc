@@ -35,6 +35,8 @@ Version 0.24.1 (Unreleased)
 
 - :class:`mne.Report` now raises an exception if invalid tags were passed (:gh:`9970` by `Richard Höchenberger`_)
 
+- Use single char alphanumeric suffix when renaming long channel names (over 15-characters) when writing to FIF format. (:gh:`10002` by `Luke Bloy`_)
+
 .. _changes_0_24_0:
 
 Version 0.24.0 (2021-11-03)

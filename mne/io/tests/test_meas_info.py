@@ -13,6 +13,7 @@ import pytest
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 from scipy import sparse
+import string
 
 from mne import (Epochs, read_events, pick_info, pick_types, Annotations,
                  read_evokeds, make_forward_solution, make_sphere_model,
@@ -140,9 +141,16 @@ def test_duplicate_name_correction():
     info = create_info(['A', 'A', 'A'], 1000., verbose='error')
     assert info['ch_names'] == ['A-0', 'A-1', 'A-2']
 
-    # When running number is not possible
-    with pytest.raises(ValueError, match='Adding a running number'):
-        create_info(['A', 'A', 'A-0'], 1000., verbose='error')
+    # When running number is not possible but alpha numeric is
+    info = create_info(['A', 'A', 'A-0'], 1000., verbose='error')
+    assert info['ch_names'] == ['A-a', 'A-1', 'A-0']
+
+    # When a single addition is not sufficient
+    with pytest.raises(ValueError, match='Adding a single alphanumeric'):
+        ch_n = ['A', 'A']
+        # add all options for first duplicate channel (0)
+        ch_n.extend([f'{ch_n[0]}-{c}' for c in string.ascii_lowercase + '0'])
+        create_info(ch_n, 1000., verbose='error')
 
 
 def test_fiducials_io(tmp_path):
