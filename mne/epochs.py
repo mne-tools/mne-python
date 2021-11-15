@@ -2657,7 +2657,7 @@ class Epochs(BaseEpochs):
             proj=proj, on_missing=on_missing, preload_at_end=preload,
             event_repeated=event_repeated, verbose=verbose)
 
-        self.set_annotations(None)
+        self._set_annotations(raw.annotations)
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
@@ -2704,11 +2704,11 @@ class Epochs(BaseEpochs):
         return data
 
     @property
-    def annotations(self):  # noqa: D102
+    def raw_annotations(self):  # noqa: D102
         return self._annotations
 
     @verbose
-    def set_annotations(self, annotations, on_missing='raise', *,
+    def _set_annotations(self, annotations, on_missing='raise', *,
                         verbose=None):
         """Setter for annotations.
 
@@ -2758,6 +2758,50 @@ class Epochs(BaseEpochs):
             self._annotations = new_annotations
 
         return self
+
+    def get_epoch_annotations(self):
+        """Return a list of annotations per epoch.
+        
+        Returns
+        -------
+        epoch_annots : list
+            A list (with length equal to number of epochs) of annotations per
+            epoch. Each annotation is stored as (onset, duration, description),
+            where the onset is now relative to the epoch, rather then in
+            continuous time.
+        """
+        # check if annotations exist
+        if self.raw_annotations is None:
+            return self
+
+        events = self.events
+
+        # create a list of annotations for each epoch
+        epoch_annot_list = [[] for _ in range(len(events))]
+
+        for annot in self.raw_annotations:
+            onset_ = annot['onset']
+            duration_ = annot['duration']
+            description_ = annot['description']
+
+            # convert onset to samples and account for first time
+            onset_samp = onset_ * self._raw_sfreq + self._first_time
+            duration_samp = duration_ * self._raw_sfreq
+
+            # loop through events to see which Epochs this annotation
+            # belongs to based on the onset and duration
+            epoch_index = _get_epoch_index_of_annot(
+                self, onset_samp, duration_samp)
+            
+            for idx in epoch_index:
+                # now convert onset sample relative to the Epoch and convert
+                # back to seconds relative to the Epoch
+                onset_samp = onset_samp - events[idx, 0]
+                onset_ = onset_samp / self._raw_sfreq
+
+                epoch_annot_list[idx].append((onset_, duration_, description_))
+        return epoch_annot_list
+
 
     def map_annots_to_metadata(self):
         """Map annotations into the Epochs metadata."""
