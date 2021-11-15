@@ -34,13 +34,11 @@ import numpy
 import scipy.io
 
 try:
-    from scipy.io.matlab.miobase import get_matfile_version
+    from scipy.io.matlab import matfile_version, MatlabOpaque, MatlabFunction
+except Exception:  # scipy < 1.8
+    from scipy.io.matlab.miobase import get_matfile_version as matfile_version
     from scipy.io.matlab.mio5_params import MatlabOpaque
     from scipy.io.matlab.mio5 import MatlabFunction
-except ModuleNotFoundError:  # scipy 1.8
-    from scipy.io._matlab.miobase import get_matfile_version
-    from scipy.io._matlab.mio5_params import MatlabOpaque
-    from scipy.io._matlab.mio5 import MatlabFunction
 
 if sys.version_info <= (2, 7):
     chr = unichr  # noqa This is needed for python 2 and 3 compatibility
