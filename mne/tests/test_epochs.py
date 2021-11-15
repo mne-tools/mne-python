@@ -3711,18 +3711,14 @@ def test_set_annotations():
     print(epochs.metadata.to_string())
 
 
-@pytest.mark.parametrize('first_samp',
-                         [
-                             0,
-                             100
-                         ]
-                         )
+@pytest.mark.parametrize(
+    'first_samp', [0, 10])
 def test_epoch_annotations_with_first_samp(first_samp):
     """Test Epoch Annotations from RawArray.
 
     Tests with/without first_samp, meas_date and orig_time.
     """
-    data = np.random.randn(2, 500) * 10e-12
+    data = np.random.randn(2, 400) * 10e-12
     sfreq = 100.
     info = create_info(ch_names=['MEG1', 'MEG2'], ch_types=['grad'] * 2,
                        sfreq=sfreq)
@@ -3731,19 +3727,20 @@ def test_epoch_annotations_with_first_samp(first_samp):
     raw = RawArray(data.copy(), info, first_samp=first_samp)
 
     # create annotations without orig time
-    ant_dur = 0.5
-    ants = Annotations([1., 1.25, 2.], [ant_dur, ant_dur, ant_dur], 'x')
+    ant_dur = 0.1
+    ants = Annotations([1.1, 1.2, 2.1], [ant_dur, ant_dur, ant_dur],
+                       ['x', 'y', 'z'])
 
     # first set annotations without measurement date
     raw.set_annotations(ants)
     epochs = make_fixed_length_epochs(raw, duration=1, overlap=0.5)
 
     # check that the annotations themselves should be equivalent
-    # XXX: Not sure why this fails for first_samp being set to 1
-    # assert_array_equal(
-    #     raw.annotations.onset,
-    #     epochs.raw_annotations.onset + raw.first_time
-    #     )
+    # because first_samp offseting occurs in Raw
+    assert_array_equal(
+        raw.annotations.onset,
+        epochs.raw_annotations.onset
+    )
     assert_array_equal(raw.annotations.duration,
                        epochs.raw_annotations.duration)
     assert_array_equal(raw.annotations.description,
@@ -3754,38 +3751,23 @@ def test_epoch_annotations_with_first_samp(first_samp):
     # relative to the Epoch times
     epoch_ants = epochs.get_epoch_annotations()
 
-    onset_times = []
-    for ant in epoch_ants:
-        if ant != []:
-            # check that all durations should stay the same as original
-            assert all(event[1] == ant_dur for event in ant)
+    expected_annot_times = [
+        [],
+        [(.6, ant_dur, 'x'), (.7, ant_dur, 'y')],
+        [(.1, ant_dur, 'x'), (.2, ant_dur, 'y')],
+        [(.6, ant_dur, 'z')],
+        [(.1, ant_dur, 'z')],
+        [],
+        []
+    ]
+    assert len(expected_annot_times) == len(epoch_ants)
+    for x, y in zip(epoch_ants, expected_annot_times):
+        assert_array_equal(x, y)
 
-            # check that all descriptions stay the same as original
-            assert all(event[-1] == 'x' for event in ant)
 
-            # accumulate onset times
-            onset_times.append([event[0] for event in ant])
-
-    expected_shift_times = [[0.5, 0.75],
-         [-0.5, -0.25],
-         [-1.75, 0.5],
-         [-1.5]
-         ]
-        
-    shift = first_samp / raw.info['sfreq'] 
-    expected_shift_times = [[v+shift for v in r] for r in expected_shift_times] 
-    assert_array_equal(onset_times, expected_shift_times)
-
-    # assert False
-
-@pytest.mark.parametrize('first_samp',
-                         [
-                             0,
-                             100
-                         ]
-                         )
+@pytest.mark.parametrize('first_samp', [0, 10])
 def test_epoch_annotations_with_meas_date(first_samp):
-    data = np.random.randn(2, 500) * 10e-12
+    data = np.random.randn(2, 400) * 10e-12
     sfreq = 100.
     info = create_info(ch_names=['MEG1', 'MEG2'], ch_types=['grad'] * 2,
                        sfreq=sfreq)
@@ -3794,21 +3776,22 @@ def test_epoch_annotations_with_meas_date(first_samp):
     raw = RawArray(data.copy(), info, first_samp=first_samp)
     meas_date = _handle_meas_date(np.pi)
     raw.set_meas_date(meas_date)
-    
+
     # create annotations without orig time
-    ant_dur = 0.5
-    ants = Annotations([1., 1.25, 2.], [ant_dur, ant_dur, ant_dur], 'x')
+    ant_dur = 0.1
+    ants = Annotations([1.1, 1.2, 2.1], [ant_dur, ant_dur, ant_dur],
+                       ['x', 'y', 'z'])
 
     # first set annotations without measurement date
     raw.set_annotations(ants)
     epochs = make_fixed_length_epochs(raw, duration=1, overlap=0.5)
 
     # check that the annotations themselves should be equivalent
-    # XXX: Not sure why this fails for first_samp being set to 1
-    # assert_array_equal(
-    #     raw.annotations.onset,
-    #     epochs.raw_annotations.onset + raw.first_time
-    #     )
+    # because first_samp offseting occurs in Raw
+    assert_array_equal(
+        raw.annotations.onset,
+        epochs.raw_annotations.onset
+    )
     assert_array_equal(raw.annotations.duration,
                        epochs.raw_annotations.duration)
     assert_array_equal(raw.annotations.description,
@@ -3819,25 +3802,15 @@ def test_epoch_annotations_with_meas_date(first_samp):
     # relative to the Epoch times
     epoch_ants = epochs.get_epoch_annotations()
 
-    onset_times = []
-    for ant in epoch_ants:
-        if ant != []:
-            # check that all durations should stay the same as original
-            assert all(event[1] == ant_dur for event in ant)
-
-            # check that all descriptions stay the same as original
-            assert all(event[-1] == 'x' for event in ant)
-
-            # accumulate onset times
-            onset_times.append([event[0] for event in ant])
-
-    expected_shift_times = [[0.5, 0.75],
-         [-0.5, -0.25],
-         [-1.75, 0.5],
-         [-1.5]
-         ]
-        
-    shift = first_samp / raw.info['sfreq'] 
-    expected_shift_times = [[v+shift for v in r] for r in expected_shift_times] 
-    assert_array_equal(onset_times, expected_shift_times)
-
+    expected_annot_times = [
+        [],
+        [(.6, ant_dur, 'x'), (.7, ant_dur, 'y')],
+        [(.1, ant_dur, 'x'), (.2, ant_dur, 'y')],
+        [(.6, ant_dur, 'z')],
+        [(.1, ant_dur, 'z')],
+        [],
+        []
+    ]
+    assert len(expected_annot_times) == len(epoch_ants)
+    for x, y in zip(epoch_ants, expected_annot_times):
+        assert_array_equal(x, y)

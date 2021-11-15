@@ -19,6 +19,7 @@ import operator
 import os.path as op
 
 import numpy as np
+import pytest
 
 from .io.utils import _construct_bids_filename
 from .io.write import (start_file, start_block, end_file, end_block,
@@ -2716,7 +2717,7 @@ class Epochs(BaseEpochs):
 
     @verbose
     def _set_annotations(self, annotations, on_missing='raise', *,
-                        verbose=None):
+                         verbose=None):
         """Setter for annotations.
 
         This setter checks if they are inside the data range.
@@ -2740,35 +2741,15 @@ class Epochs(BaseEpochs):
         else:
             _validate_type(annotations, Annotations, 'annotations')
 
-            if meas_date is None and annotations.orig_time is not None:
-                raise RuntimeError('Ambiguous operation. Setting an Annotation'
-                                   ' object with known ``orig_time`` to a raw'
-                                   ' object which has ``meas_date`` set to'
-                                   ' None is ambiguous. Please, either set a'
-                                   ' meaningful ``meas_date`` to the raw'
-                                   ' object; or set ``orig_time`` to None in'
-                                   ' which case the annotation onsets would be'
-                                   ' taken in reference to the first sample of'
-                                   ' the raw object.')
-
             new_annotations = annotations.copy()
             new_annotations._prune_ch_names(self.info, on_missing)
-
-            # get the first time in continuous time in Raw
-            if annotations.orig_time is None:
-                new_annotations.onset += self._first_time
-            else:
-                new_annotations.onset -= (
-                    meas_date - new_annotations.orig_time).total_seconds()
-            new_annotations._orig_time = meas_date
-
             self._annotations = new_annotations
 
         return self
 
     def get_epoch_annotations(self):
         """Return a list of annotations per epoch.
-        
+
         Returns
         -------
         epoch_annots : list
@@ -2792,23 +2773,23 @@ class Epochs(BaseEpochs):
             description_ = annot['description']
 
             # convert onset to samples and account for first time
-            onset_samp = onset_ * self._raw_sfreq + self._first_time
-            duration_samp = duration_ * self._raw_sfreq
+            onset_samp = int(onset_ * self._raw_sfreq + self._first_time)
+            duration_samp = int(duration_ * self._raw_sfreq)
 
             # loop through events to see which Epochs this annotation
             # belongs to based on the onset and duration
             epoch_index = _get_epoch_index_of_annot(
                 self, onset_samp, duration_samp)
-            
-            for idx in epoch_index:
+
+            for eidx in epoch_index:
                 # now convert onset sample relative to the Epoch and convert
                 # back to seconds relative to the Epoch
-                onset_samp = onset_samp - events[idx, 0]
-                onset_ = onset_samp / self._raw_sfreq
+                onset_samp_ = onset_samp - events[eidx, 0]
+                onset_ = onset_samp_ / self._raw_sfreq
 
-                epoch_annot_list[idx].append((onset_, duration_, description_))
+                epoch_annot_list[eidx].append(
+                    (onset_, duration_, description_))
         return epoch_annot_list
-
 
     def map_annots_to_metadata(self):
         """Map annotations into the Epochs metadata."""
