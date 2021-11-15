@@ -2718,9 +2718,12 @@ class Epochs(BaseEpochs):
     @verbose
     def _set_annotations(self, annotations, on_missing='raise', *,
                          verbose=None):
-        """Setter for annotations.
+        """Setter for Epoch annotations from Raw.
 
-        This setter checks if they are inside the data range.
+        This private function simply copies over Raw annotations, and
+        does not handle offsetting the times based on first_samp
+        or measurement dates, since that is expected to occur in
+        Raw set_annotations.
 
         Parameters
         ----------
