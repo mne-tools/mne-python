@@ -1523,7 +1523,7 @@ precompute : bool | str
     processor thread, instead of window-by-window during scrolling. The default
     ``'auto'`` compares available RAM space to the expected size of the
     precomputed data, and precomputes only if enough RAM is available. ``True``
-    and ``'auto'`` only work if using the pyQtGraph backend.
+    and ``'auto'`` only work if using the PyQtGraph backend.
 
     .. versionadded:: 0.24
 """
@@ -1534,7 +1534,8 @@ use_opengl : bool | None
     May increase performance, but effect is dependent on system CPU and
     graphics hardware. Only works if using the PyQtGraph backend. Default is
     None, which will use False unless the user configuration variable
-    ``MNE_BROWSE_USE_OPENGL`` is set to ``'true'``, see :func:`mne.set_config`.
+    ``MNE_BROWSER_USE_OPENGL`` is set to ``'true'``,
+    see :func:`mne.set_config`.
 
     .. versionadded:: 0.24
 """
