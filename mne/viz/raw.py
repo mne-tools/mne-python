@@ -180,8 +180,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     Returns
     -------
-    fig : instance of matplotlib.figure.Figure
-        Raw traces.
+    fig : matplotlib.figure.Figure | ``PyQt5.QtWidgets.QMainWindow``
+        Browser instance.
 
     Notes
     -----

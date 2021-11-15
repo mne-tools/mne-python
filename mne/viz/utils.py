@@ -131,7 +131,6 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
     else:
         from qtpy.QtWidgets import QApplication
         app = QApplication.instance() or QApplication(sys.argv)
-        app.setApplicationName('MNE-Python')
         if show:
             fig.show()
         # If block=False, a Qt-Event-Loop has to be started
