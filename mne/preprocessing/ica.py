@@ -49,7 +49,7 @@ from ..viz.topomap import _plot_corrmap
 
 from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
-from ..utils import (check_version, logger, check_fname, verbose,
+from ..utils import (check_version, logger, check_fname, _check_fname, verbose,
                      _reject_data_segments, check_random_state, _validate_type,
                      compute_corr, _get_inst_data, _ensure_int,
                      copy_function_doc_to_method_doc, _pl, warn, Bunch,
@@ -1869,7 +1869,7 @@ class ICA(ContainsMixin):
         return data
 
     @verbose
-    def save(self, fname, verbose=None):
+    def save(self, fname, *, overwrite=False, verbose=None):
         """Store ICA solution into a fiff file.
 
         Parameters
@@ -1877,6 +1877,9 @@ class ICA(ContainsMixin):
         fname : str
             The absolute path of the file name to save the ICA solution into.
             The file name should end with -ica.fif or -ica.fif.gz.
+        %(overwrite)s
+
+            .. versionadded:: 1.0
         %(verbose_meth)s
 
         Returns
@@ -1893,6 +1896,7 @@ class ICA(ContainsMixin):
 
         check_fname(fname, 'ICA', ('-ica.fif', '-ica.fif.gz',
                                    '_ica.fif', '_ica.fif.gz'))
+        fname = _check_fname(fname, overwrite=overwrite)
 
         logger.info('Writing ICA solution to %s...' % fname)
         fid = start_file(fname)
