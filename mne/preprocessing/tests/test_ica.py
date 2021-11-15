@@ -759,7 +759,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     ica_read.n_pca_components = 4
 
     ica.exclude = []
-    ica.save(test_ica_fname)
+    ica.save(test_ica_fname, overwrite=True)  # also testing overwrite
     ica_read = read_ica(test_ica_fname)
     for attr in ['mixing_matrix_', 'unmixing_matrix_', 'pca_components_',
                  'pca_mean_', 'pca_explained_variance_',
@@ -996,7 +996,7 @@ def test_ica_cov(method, cov, tmp_path, short_raw_epochs):
     for exclude in [[], [0], np.array([1, 2, 3])]:
         ica.exclude = exclude
         ica.labels_ = {'foo': [0]}
-        ica.save(test_ica_fname)
+        ica.save(test_ica_fname, overwrite=True)
         ica_read = read_ica(test_ica_fname)
         assert (list(ica.exclude) == ica_read.exclude)
         assert_equal(ica.labels_, ica_read.labels_)

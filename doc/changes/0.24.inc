@@ -31,6 +31,10 @@ Version 0.24.1 (Unreleased)
 
 - Improve docstring of export functions :func:`mne.export.export_raw`, :func:`mne.export.export_epochs`, :func:`mne.export.export_evokeds`, :func:`mne.export.export_evokeds_mff` and issue a warning when there are unapplied projectors (:gh:`9994` by `Mathieu Scheltienne`_)
 
+- Add argument ``overwrite`` to `mne.preprocessing.ICA.save` to check for existing file (:gh:`10004` by `Mathieu Scheltienne`_)
+
+- :class:`mne.Report` now raises an exception if invalid tags were passed (:gh:`9970` by `Richard Höchenberger`_)
+
 .. _changes_0_24_0:
 
 Version 0.24.0 (2021-11-03)
