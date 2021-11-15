@@ -209,7 +209,7 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     ----------
     %(info_not_none)s
     %(trans_not_none)s
-    aligned_ct : str | pathlib.Path | nibabel.spatialimages.SpatialImage
+    aligned_ct : path-like | nibabel.spatialimages.SpatialImage
         The CT image that has been aligned to the Freesurfer T1. Path-like
         inputs and nibabel image objects are supported.
     %(subject)s

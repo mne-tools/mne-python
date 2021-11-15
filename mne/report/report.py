@@ -1646,7 +1646,7 @@ class Report(object):
             The title of the element(s) to remove.
 
             .. versionadded:: 0.24.0
-        tags : collection of str | None
+        tags : array-like of str | None
              If supplied, restrict the operation to elements with the supplied
              tags.
 
@@ -1750,7 +1750,7 @@ class Report(object):
 
         Parameters
         ----------
-        code : str | pathlib.Path
+        code : path-like
             The code to add to the report as a string, or the path to a file
             as a `pathlib.Path` object.
 
@@ -1813,7 +1813,7 @@ class Report(object):
 
         Parameters
         ----------
-        fig : matplotlib.figure.Figure | PyVista renderer | array | collection of matplotlib.figure.Figure | collection of PyVista renderer | collection of array
+        fig : matplotlib.figure.Figure | PyVista renderer | array | array-like of matplotlib.figure.Figure | array-like of PyVista renderer | array-like of array
             One or more figures to add to the report. All figures must be an
             instance of :class:`matplotlib.figure.Figure`,
             PyVista renderer, or :class:`numpy.ndarray`. If
@@ -1821,7 +1821,7 @@ class Report(object):
             that can be navigated using buttons and a slider element.
         title : str
             The title corresponding to the figure(s).
-        caption : str | collection of str | None
+        caption : str | array-like of str | None
             The caption(s) to add to the figure(s).
         %(report_image_format)s
         %(report_tags)s
