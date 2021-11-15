@@ -32,7 +32,7 @@ Enhancements
 
 - Improve docstring of export functions :func:`mne.export.export_raw`, :func:`mne.export.export_epochs`, :func:`mne.export.export_evokeds`, :func:`mne.export.export_evokeds_mff` and issue a warning when there are unapplied projectors (:gh:`9994` by `Mathieu Scheltienne`_)
 
-- Add argument ``overwrite`` to `mne.preprocessing.ICA.save` to check for existing files (:gh:`xxxx` by `Mathieu Scheltienne`_)
+- Add argument ``overwrite`` to `mne.preprocessing.ICA.save` to check for existing files (:gh:`10004` by `Mathieu Scheltienne`_)
 
 Bugs
 ~~~~
