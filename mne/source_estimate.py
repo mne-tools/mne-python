@@ -3253,7 +3253,7 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         .. versionchanged:: 0.24
            Added "weighted" option.
     project : bool
-        If True, project the electrodes to the nearest ``'pial`` surface
+        If True, project the sensors to the nearest ``'pial`` surface
         vertex before computing distances. Only used when doing a
         surface projection.
     %(subjects_dir)s
@@ -3295,11 +3295,11 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         Activation is the sum across each sensor weighted by the fractional
         ``distance`` from each sensor. A sensor with zero distance gets weight
         1 and a sensor at ``distance`` meters away (or larger) gets weight 0.
-        If ``distance`` is less than the distance between any two electrodes,
-        this will be the same as ``'nearest'``.
+        If ``distance`` is less than half the distance between any two
+        sensors, this will be the same as ``'single'``.
     - ``'single'``
-        Same as ``'sum'`` except that only the nearest electrode is used,
-        rather than summing across electrodes within the ``distance`` radius.
+        Same as ``'sum'`` except that only the nearest sensor is used,
+        rather than summing across sensors within the ``distance`` radius.
         As ``'nearest'`` for vertices with distance zero to the projected
         sensor.
     - ``'nearest'``
@@ -3386,7 +3386,7 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         f'Projecting data from {len(pos)} sensor{_pl(pos)} onto {len(rrs)} '
         f'{src.kind} vertices: {mode} mode')
     if project and src.kind == 'surface':
-        logger.info('    Projecting electrodes onto surface')
+        logger.info('    Projecting sensors onto surface')
         pos = _project_onto_surface(pos, dict(rr=rrs), project_rrs=True,
                                     method='nearest')[2]
 
