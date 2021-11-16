@@ -5,7 +5,6 @@ const refreshScrollSpy = () =>{
     bootstrap.ScrollSpy.getInstance(dataSpyEl)
     .refresh()
   })
-  console.log('scrollspy refreshed!');  // TODO remove debugging output
 }
 
 /* Show or hide elements based on their tag */
@@ -58,7 +57,6 @@ const toggleTagVisibility = (tagName) => {
 
   refreshScrollSpy();
 }
-
 
 /* Gather all available tags and expose them in the global namespace */
 let tags = [];  // array of objects
@@ -149,6 +147,8 @@ const addFilterByTagsCheckboxEventHandlers = () => {
   });
 }
 
+/* Avoid top of content getting hidden behind navbar after clicking on a TOC
+   link */
 const _handleTocLinkClick = (e) => {
     e.preventDefault();
 
@@ -186,6 +186,7 @@ const addSliderEventHandlers = () => {
   })
 }
 
+/* Avoid top of content gets hidden behind the top navbar */
 const fixTopMargin = () => {
   const topBarHeight = document.querySelector('#top-bar').scrollHeight
   const margin = 30 + topBarHeight;
