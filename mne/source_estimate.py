@@ -3295,8 +3295,8 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         Activation is the sum across each sensor weighted by the fractional
         ``distance`` from each sensor. A sensor with zero distance gets weight
         1 and a sensor at ``distance`` meters away (or larger) gets weight 0.
-        If ``distance`` is less than the distance between any two electrodes,
-        this will be the same as ``'nearest'``.
+        If ``distance`` is less than half the distance between any two 
+        electrodes, this will be the same as ``'single'``.
     - ``'single'``
         Same as ``'sum'`` except that only the nearest electrode is used,
         rather than summing across electrodes within the ``distance`` radius.
