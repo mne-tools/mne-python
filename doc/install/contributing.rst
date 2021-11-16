@@ -441,7 +441,7 @@ not require a deprecation cycle.
 
 Note that any new API elements should be added to the main reference;
 classes, functions, methods, and attributes cannot be cross-referenced unless
-they are included in the :doc:`python_reference`
+they are included in the :ref:`api_reference`
 (:file:`doc/python_reference.rst`).
 
 
@@ -923,7 +923,7 @@ down the road. Here are the guidelines:
   for backports or maintenance bugfixes to the current stable version).
 
 - Don't forget to include in your PR a brief description of the change in the
-  :doc:`changelog <whats_new>` (:file:`doc/whats_new.rst`).
+  :ref:`changelog <whats_new>` (:file:`doc/whats_new.rst`).
 
 - Our community uses the following commit tags and conventions:
 

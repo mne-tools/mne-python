@@ -66,7 +66,7 @@ def pytest_configure(config):
         config.addinivalue_line('markers', marker)
 
     # Fixtures
-    for fixture in ('matplotlib_config',):
+    for fixture in ('matplotlib_config', 'close_all', 'check_verbose'):
         config.addinivalue_line('usefixtures', fixture)
 
     # Warnings
@@ -633,6 +633,7 @@ def src_volume_labels():
 
 
 def _fail(*args, **kwargs):
+    __tracebackhide__ = True
     raise AssertionError('Test should not download')
 
 
