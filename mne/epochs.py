@@ -2795,7 +2795,13 @@ class Epochs(BaseEpochs):
         return epoch_annot_list
 
     def map_annots_to_metadata(self):
-        """Map annotations into the Epochs metadata."""
+        """Map annotations into the Epochs metadata.
+        
+        Returns
+        -------
+        self : instance of Epochs
+            The modified instance (instance is also modified inplace).
+        """
         pd = _check_pandas_installed()
 
         # check if annotations exist

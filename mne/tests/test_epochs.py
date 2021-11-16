@@ -3664,53 +3664,6 @@ def test_add_channels_picks():
     epochs_final.drop_channels(epochs.ch_names)
 
 
-def test_set_annotations():
-    """Check that set_annotations properly deals with picks."""
-    raw = mne.io.read_raw_fif(raw_fname, verbose=False)
-    raw.pick([2, 3, 310])  # take some MEG and EEG
-    raw.info.normalize_proj()
-    raw = raw.resample(sfreq=100)
-
-    events = mne.make_fixed_length_events(raw, id=3000, start=0,
-                                          stop=5, duration=1)
-    epochs = mne.Epochs(raw, events, event_id=3000, tmin=1, tmax=2,
-                        proj=True, baseline=None, reject=None, preload=True,
-                        decim=1)
-    annots = Annotations(onset=[2, 4], duration=[3, 2],
-                         description="bad")
-    epochs.set_annotations(annots)
-
-    # Annotations without an original time should be set to
-    # exactly what Raw had
-    assert epochs.annotations.onset[0] == raw.first_time + 2
-    assert epochs.annotations.orig_time == raw.info['meas_date']
-
-    # Annotations with an original time should be offset
-    orig_time = raw.info['meas_date'] + timedelta(seconds=5)
-    annots_with_orig = Annotations(onset=[2, 4], duration=[3, 2],
-                                   description="bad", orig_time=orig_time)
-    epochs.set_annotations(annots_with_orig)
-    assert epochs.annotations.orig_time == raw.info['meas_date']
-
-    # XXX: Why doesn't this include an offset with raw.first_time?
-    assert epochs.annotations.onset[0] == 7
-
-    # Removing measurement date
-    raw = raw.set_meas_date(None)
-    epochs = mne.Epochs(raw, events, event_id=3000, tmin=1, tmax=2,
-                        proj=True, baseline=None, reject=None, preload=True,
-                        decim=1)
-    epochs.set_annotations(annots)
-    assert epochs.annotations.onset[0] == raw.first_time + 2
-    assert epochs.annotations.orig_time == raw.info['meas_date']
-
-    # map annotations onto the metadata
-    old_metadata = epochs.metadata
-    print(old_metadata)
-    epochs = epochs.map_annots_to_metadata()
-    print(epochs.metadata.to_string())
-
-
 @pytest.mark.parametrize(
     'first_samp', [0, 10])
 def test_epoch_annotations_with_first_samp(first_samp):
