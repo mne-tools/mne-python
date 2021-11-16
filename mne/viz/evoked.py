@@ -2015,11 +2015,13 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         indicating steps or percentiles (respectively) along the colormap. If
         ``cmap`` is ``None``, list elements or dict values of ``colors`` must
         be :class:`ints <int>` or valid :doc:`matplotlib colors
-        <tutorials/colors/colors>`; lists are cycled through sequentially,
+        <matplotlib:tutorials/colors/colors>`; lists are cycled through
+        sequentially,
         while dicts must have keys matching the keys or conditions of an
         ``evokeds`` dict (see Notes for details). If ``None``, the current
-        :doc:`matplotlib color cycle <gallery/color/color_cycle_default>` is
-        used. Defaults to ``None``.
+        :doc:`matplotlib color cycle
+        <matplotlib:gallery/color/color_cycle_default>`
+        is used. Defaults to ``None``.
     linestyles : list | dict | None
         Styles to use when plotting the ERP/F lines. If a :class:`list` or
         :class:`dict`, elements must be valid :doc:`matplotlib linestyles
