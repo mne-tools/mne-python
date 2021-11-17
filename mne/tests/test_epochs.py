@@ -3739,6 +3739,7 @@ def test_epoch_annotations_with_first_samp(first_samp):
 
 @pytest.mark.parametrize('first_samp', [0, 10])
 def test_epoch_annotations_with_meas_date(first_samp):
+    """Test Epoch sets annotations when a measurement date is present."""
     data = np.random.randn(2, 400) * 10e-12
     sfreq = 100.
     info = create_info(ch_names=['MEG1', 'MEG2'], ch_types=['grad'] * 2,
