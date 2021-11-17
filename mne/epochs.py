@@ -19,7 +19,6 @@ import operator
 import os.path as op
 
 import numpy as np
-import pytest
 
 from .io.utils import _construct_bids_filename
 from .io.write import (start_file, start_block, end_file, end_block,
@@ -2796,7 +2795,7 @@ class Epochs(BaseEpochs):
 
     def map_annots_to_metadata(self):
         """Map annotations into the Epochs metadata.
-        
+
         Returns
         -------
         self : instance of Epochs

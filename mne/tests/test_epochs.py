@@ -6,7 +6,6 @@
 # License: BSD-3-Clause
 
 from copy import deepcopy
-from datetime import timedelta
 from distutils.version import LooseVersion
 from functools import partial
 from io import BytesIO
