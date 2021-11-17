@@ -3688,7 +3688,7 @@ def test_epoch_annotations_with_first_samp(first_samp):
     epochs = make_fixed_length_epochs(raw, duration=1, overlap=0.5)
 
     # check that the annotations themselves should be equivalent
-    # because first_samp offseting occurs in Raw
+    # because first_samp offsetting occurs in Raw
     assert_array_equal(
         raw.annotations.onset,
         epochs.raw_annotations.onset
@@ -3739,7 +3739,7 @@ def test_epoch_annotations_with_meas_date(first_samp):
     epochs = make_fixed_length_epochs(raw, duration=1, overlap=0.5)
 
     # check that the annotations themselves should be equivalent
-    # because first_samp offseting occurs in Raw
+    # because first_samp offsetting occurs in Raw
     assert_array_equal(
         raw.annotations.onset,
         epochs.raw_annotations.onset
