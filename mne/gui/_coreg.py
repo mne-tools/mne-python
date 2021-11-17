@@ -56,6 +56,15 @@ class CoregistrationUI(HasTraits):
         If True, display the EEG channels. Defaults to True.
     orient_glyphs : bool
         If True, orient the sensors towards the head surface. Default to False.
+    scale_by_distance : bool
+        If True, scale the sensors based on their distance to the head surface.
+        Defaults to True.
+    project_eeg : bool
+        If True, project the EEG channels onto the head surface. Defaults to
+        True.
+    mark_inside : bool
+        If True, mark the head shape points that are inside the head surface
+        with a different color. Defaults to True.
     sensor_opacity : float
         The opacity of the sensors between 0 and 1. Defaults to 1.0.
     trans : str
