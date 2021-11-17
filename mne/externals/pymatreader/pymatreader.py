@@ -31,8 +31,12 @@
 import scipy.io
 import os
 
-from .utils import (_import_h5py, _hdf5todict, _check_for_scipy_mat_struct,
-                    matfile_version)
+try:
+    from scipy.io.matlab import matfile_version
+except ImportError:
+    from scipy.io.matlab.miobase import get_matfile_version as matfile_version
+
+from .utils import _import_h5py, _hdf5todict, _check_for_scipy_mat_struct
 
 __all__ = 'read_mat'
 
