@@ -131,7 +131,6 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         'head_inside': (head_inside, True),
         'guess_mri_subject': guess_mri_subject,
         'head_opacity': head_opacity,
-        'mark_inside': mark_inside,
         'scale': scale,
         'advanced_rendering': advanced_rendering,
     }
