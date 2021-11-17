@@ -2817,21 +2817,8 @@ class Epochs(BaseEpochs):
             data = np.empty((len(self), 0))
             metadata = pd.DataFrame(data=data)
 
-        for annot in self.annotations:
-            onset_ = annot['onset']
-            duration_ = annot['duration']
-            description_ = annot['description']
-
-            # convert onset to samples and account for first time
-            onset_samp = onset_ * self._raw_sfreq + self._first_time
-            duration_samp = duration_ * self._raw_sfreq
-
-            # loop through events to see which Epochs this annotation
-            # belongs to based on the onset and duration
-            epoch_index = _get_epoch_index_of_annot(
-                self, onset_samp, duration_samp)
-            for idx in epoch_index:
-                epoch_annot_list[idx].append((onset_, duration_, description_))
+        # get the Epoch annotations
+        epoch_annot_list = self.get_epoch_annotations()
 
         # create a new Annotations column
         metadata['Annotations'] = [[] for _ in range(metadata.shape[0])]

@@ -3716,6 +3716,26 @@ def test_epoch_annotations_with_first_samp(first_samp):
     for x, y in zip(epoch_ants, expected_annot_times):
         assert_array_equal(x, y)
 
+    # do a more complicated case
+    ant_dur = 0.5
+    ants = Annotations([1.1, 1.2, 2.1], [ant_dur, ant_dur, ant_dur],
+                       ['x', 'y', 'z'])
+    raw.set_annotations(ants)
+    epochs = make_fixed_length_epochs(raw, duration=1, overlap=0.5)
+    epoch_ants = epochs.get_epoch_annotations()
+    expected_annot_times = [
+        [],
+        [(0.6, 0.5, 'x'), (0.7, 0.5, 'y')],
+        [(0.1, 0.5, 'x'), (0.2, 0.5, 'y')],
+        [(-0.4, 0.5, 'x'), (-0.3, 0.5, 'y'), (0.6, 0.5, 'z')],
+        [(0.1, 0.5, 'z')],
+        [(-0.4, 0.5, 'z')],
+        []
+    ]
+    assert len(expected_annot_times) == len(epoch_ants)
+    for x, y in zip(epoch_ants, expected_annot_times):
+        assert_array_equal(x, y)
+
 
 @pytest.mark.parametrize('first_samp', [0, 10])
 def test_epoch_annotations_with_meas_date(first_samp):
