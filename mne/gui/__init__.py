@@ -131,8 +131,6 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         'head_inside': (head_inside, True),
         'guess_mri_subject': guess_mri_subject,
         'head_opacity': head_opacity,
-        'project_eeg': project_eeg,
-        'scale_by_distance': scale_by_distance,
         'mark_inside': mark_inside,
         'scale': scale,
         'advanced_rendering': advanced_rendering,
@@ -195,6 +193,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     return CoregistrationUI(
         info_file=inst, subject=subject, subjects_dir=subjects_dir,
         head_resolution=head_high_res, orient_glyphs=orient_to_surface,
+        scale_by_distance=scale_by_distance, project_eeg=project_eeg,
         trans=trans, size=(width, height), show=show, standalone=standalone,
         interaction=interaction, verbose=verbose
     )

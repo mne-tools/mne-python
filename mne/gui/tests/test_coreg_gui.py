@@ -151,6 +151,10 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     # visualization
     assert coreg._orient_glyphs == \
         (config.get('MNE_COREG_ORIENT_TO_SURFACE', '') == 'true')
+    assert coreg._scale_by_distance == \
+        (config.get('MNE_COREG_SCALE_BY_DISTANCE', '') == 'true')
+    assert coreg._project_eeg == \
+        (config.get('MNE_COREG_PROJECT_EEG', '') == 'true')
     assert coreg._hpi_coils
     assert coreg._eeg_channels
     assert coreg._head_shape_points

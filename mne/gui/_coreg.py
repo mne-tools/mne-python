@@ -85,6 +85,8 @@ class CoregistrationUI(HasTraits):
     _current_fiducial = Unicode()
     _info_file = Unicode()
     _orient_glyphs = Bool()
+    _scale_by_distance = Bool()
+    _project_eeg = Bool()
     _hpi_coils = Bool()
     _head_shape_points = Bool()
     _eeg_channels = Bool()
@@ -98,9 +100,9 @@ class CoregistrationUI(HasTraits):
                  fiducials='auto', head_resolution=None,
                  head_transparency=None, hpi_coils=None,
                  head_shape_points=None, eeg_channels=None, orient_glyphs=None,
-                 sensor_opacity=None, trans=None, size=None, bgcolor=None,
-                 show=True, standalone=False, interaction='terrain',
-                 verbose=None):
+                 scale_by_distance=None, project_eeg=None, sensor_opacity=None,
+                 trans=None, size=None, bgcolor=None, show=True,
+                 standalone=False, interaction='terrain', verbose=None):
         from ..viz.backends.renderer import _get_renderer
 
         def _get_default(var, val):
@@ -123,6 +125,8 @@ class CoregistrationUI(HasTraits):
             size=_get_default(size, (800, 600)),
             bgcolor=_get_default(bgcolor, "grey"),
             orient_glyphs=_get_default(orient_glyphs, True),
+            scale_by_distance=_get_default(scale_by_distance, True),
+            project_eeg=_get_default(project_eeg, True),
             hpi_coils=_get_default(hpi_coils, True),
             head_shape_points=_get_default(head_shape_points, True),
             eeg_channels=_get_default(eeg_channels, True),
@@ -177,6 +181,8 @@ class CoregistrationUI(HasTraits):
         self._set_subject(subject)
         self._set_info_file(info_file)
         self._set_orient_glyphs(self._defaults["orient_glyphs"])
+        self._set_scale_by_distance(self._defaults["scale_by_distance"])
+        self._set_project_eeg(self._defaults["project_eeg"])
         self._set_hpi_coils(self._defaults["hpi_coils"])
         self._set_head_shape_points(self._defaults["head_shape_points"])
         self._set_eeg_channels(self._defaults["eeg_channels"])
@@ -260,6 +266,12 @@ class CoregistrationUI(HasTraits):
     def _set_orient_glyphs(self, state):
         self._orient_glyphs = bool(state)
 
+    def _set_scale_by_distance(self, state):
+        self._scale_by_distance = bool(state)
+
+    def _set_project_eeg(self, state):
+        self._project_eeg = bool(state)
+
     def _set_hpi_coils(self, state):
         self._hpi_coils = bool(state)
 
@@ -340,8 +352,8 @@ class CoregistrationUI(HasTraits):
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
-        view_widgets = ["orient_glyphs", "show_hpi", "show_hsp",
-                        "show_eeg", "high_res_head"]
+        view_widgets = ["orient_glyphs", "scale_by_distance", "project_eeg",
+                        "show_hpi", "show_hsp", "show_eeg", "high_res_head"]
         fid_widgets = ["fid_X", "fid_Y", "fid_Z", "fids_file", "fids"]
         if self._lock_fids:
             self._forward_widget_command(view_widgets, "set_enabled", True)
@@ -389,6 +401,14 @@ class CoregistrationUI(HasTraits):
     @observe("_orient_glyphs")
     def _orient_glyphs_changed(self, change=None):
         self._update_plot(["hpi", "hsp", "eeg"])
+
+    @observe("_scale_by_distance")
+    def _scale_by_distance_changed(self, change=None):
+        self._update_plot(["hpi", "hsp", "eeg"])
+
+    @observe("_project_eeg")
+    def _project_eeg_changed(self, change=None):
+        self._update_plot("eeg")
 
     @observe("_hpi_coils")
     def _hpi_coils_changed(self, change=None):
@@ -629,7 +649,9 @@ class CoregistrationUI(HasTraits):
             hpi_actors = _plot_hpi_coils(
                 self._renderer, self._info, self._to_cf_t,
                 opacity=self._defaults["sensor_opacity"],
-                orient_glyphs=self._orient_glyphs, surf=self._head_geo)
+                orient_glyphs=self._orient_glyphs,
+                scale_by_distance=self._scale_by_distance,
+                surf=self._head_geo)
         else:
             hpi_actors = None
         self._update_actor("hpi_coils", hpi_actors)
@@ -639,7 +661,9 @@ class CoregistrationUI(HasTraits):
             hsp_actors = _plot_head_shape_points(
                 self._renderer, self._info, self._to_cf_t,
                 opacity=self._defaults["sensor_opacity"],
-                orient_glyphs=self._orient_glyphs, surf=self._head_geo,
+                orient_glyphs=self._orient_glyphs,
+                scale_by_distance=self._scale_by_distance,
+                surf=self._head_geo,
                 mask=self._coreg._extra_points_filter)
         else:
             hsp_actors = None
@@ -655,7 +679,10 @@ class CoregistrationUI(HasTraits):
                     meg=False, eeg=eeg, fnirs=False, warn_meg=False,
                     head_surf=self._head_geo, units='m',
                     sensor_opacity=self._defaults["sensor_opacity"],
-                    orient_glyphs=self._orient_glyphs, surf=self._head_geo)
+                    orient_glyphs=self._orient_glyphs,
+                    scale_by_distance=self._scale_by_distance,
+                    project_points=self._project_eeg,
+                    surf=self._head_geo)
                 eeg_actors = eeg_actors["eeg"]
             else:
                 eeg_actors = None
@@ -841,6 +868,19 @@ class CoregistrationUI(HasTraits):
             name="Orient glyphs",
             value=self._orient_glyphs,
             callback=self._set_orient_glyphs,
+            layout=layout
+        )
+        self._widgets["scale_by_distance"] = \
+            self._renderer._dock_add_check_box(
+            name="Scale glyphs",
+            value=self._scale_by_distance,
+            callback=self._set_scale_by_distance,
+            layout=layout
+        )
+        self._widgets["project_eeg"] = self._renderer._dock_add_check_box(
+            name="Project EEG",
+            value=self._project_eeg,
+            callback=self._set_project_eeg,
             layout=layout
         )
         self._widgets["show_hpi"] = self._renderer._dock_add_check_box(

@@ -979,7 +979,8 @@ def _plot_mri_fiducials(renderer, mri_fiducials, subjects_dir, subject,
 
 
 def _plot_hpi_coils(renderer, info, to_cf_t, opacity=0.5,
-                    orient_glyphs=False, surf=None):
+                    orient_glyphs=False, scale_by_distance=False,
+                    surf=None):
     defaults = DEFAULTS['coreg']
     hpi_loc = np.array([
         d['r'] for d in (info['dig'] or [])
@@ -989,7 +990,8 @@ def _plot_hpi_coils(renderer, info, to_cf_t, opacity=0.5,
     actor, _ = _plot_glyphs(renderer=renderer, loc=hpi_loc,
                             color=defaults['hpi_color'],
                             scale=defaults['hpi_scale'], opacity=opacity,
-                            orient_glyphs=orient_glyphs, surf=surf,
+                            orient_glyphs=orient_glyphs,
+                            scale_by_distance=scale_by_distance, surf=surf,
                             backface_culling=True)
     return actor
 
@@ -1004,14 +1006,11 @@ def _get_nearest(nearest, check_inside, project_to_trans, proj_rr):
     return proj_pts, proj_nn
 
 
-def _orient_glyphs(pts, surf):
-    mark_inside = True
-    project_to_surface = False
+def _orient_glyphs(pts, surf, project_to_surface=False, mark_inside=False):
     rr = surf["rr"]
     check_inside = _CheckInside(surf)
     nearest = _DistanceQuery(rr)
     project_to_trans = np.eye(4)
-
     inv_trans = np.linalg.inv(project_to_trans)
     proj_rr = apply_trans(inv_trans, pts)
     proj_pts, proj_nn = _get_nearest(
@@ -1024,22 +1023,26 @@ def _orient_glyphs(pts, surf):
         scalars = np.ones(len(pts))
     dist = np.linalg.norm(vec, axis=-1, keepdims=True)
     vectors = (250 * dist + 1) * nn
-    return scalars, vectors
+    return scalars, vectors, proj_pts
 
 
 def _plot_glyphs(renderer, loc, color, scale, opacity=1, mode="cylinder",
-                 orient_glyphs=False, surf=None, backface_culling=False):
-    if orient_glyphs and len(loc) > 0:
+                 orient_glyphs=False, scale_by_distance=False,
+                 project_points=False, surf=None,
+                 backface_culling=False):
+    if surf is not None and len(loc) > 0:
         defaults = DEFAULTS['coreg']
-        scalars, vectors = _orient_glyphs(loc, surf)
-        x, y, z = loc.T
+        scalars, vectors, proj_pts = _orient_glyphs(loc, surf, project_points)
+        mode = 'cylinder' if orient_glyphs else 'sphere'
+        scale_mode = 'vector' if scale_by_distance else 'none'
+        x, y, z = proj_pts.T if project_points else loc.T
         u, v, w = vectors.T
         return renderer.quiver3d(
             x, y, z, u, v, w, color=color, scale=scale,
             mode=mode, glyph_height=defaults['eegp_height'],
             glyph_center=(0., -defaults['eegp_height'], 0),
             resolution=16, glyph_resolution=16,
-            glyph_radius=None, opacity=opacity, scale_mode='vector',
+            glyph_radius=None, opacity=opacity, scale_mode=scale_mode,
             scalars=scalars)
     else:
         return renderer.sphere(center=loc, color=color, scale=scale,
@@ -1048,7 +1051,8 @@ def _plot_glyphs(renderer, loc, color, scale, opacity=1, mode="cylinder",
 
 
 def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
-                            orient_glyphs=False, surf=None, mask=None):
+                            orient_glyphs=False, scale_by_distance=False,
+                            surf=None, mask=None):
     defaults = DEFAULTS['coreg']
     ext_loc = np.array([
         d['r'] for d in (info['dig'] or [])
@@ -1059,7 +1063,8 @@ def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
     actor, _ = _plot_glyphs(renderer=renderer, loc=ext_loc,
                             color=defaults['extra_color'],
                             scale=defaults['extra_scale'], opacity=opacity,
-                            orient_glyphs=orient_glyphs, surf=surf,
+                            orient_glyphs=orient_glyphs,
+                            scale_by_distance=scale_by_distance, surf=surf,
                             backface_culling=True)
     return actor
 
@@ -1096,7 +1101,8 @@ def _plot_forward(renderer, fwd, to_cf_t):
 
 def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                   warn_meg, head_surf, units, sensor_opacity=0.8,
-                  orient_glyphs=False, surf=None):
+                  orient_glyphs=False, scale_by_distance=False,
+                  project_points=False, surf=None):
     """Render sensors in a 3D scene."""
     defaults = DEFAULTS['coreg']
     ch_pos, sources, detectors = _ch_pos_in_coord_frame(
@@ -1150,7 +1156,10 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
             actor, _ = _plot_glyphs(renderer=renderer, loc=sens_loc * scalar,
                                     color=color, scale=scale * scalar,
                                     opacity=sensor_opacity,
-                                    orient_glyphs=orient_glyphs, surf=surf)
+                                    orient_glyphs=orient_glyphs,
+                                    scale_by_distance=scale_by_distance,
+                                    project_points=project_points,
+                                    surf=surf)
             if sensor_type in ('source', 'detector'):
                 sensor_type = 'fnirs'
             actors[sensor_type].append(actor)
