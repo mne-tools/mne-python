@@ -465,7 +465,7 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
-                 opacity=1.0, scale_mode='none', scalars=None,
+                 opacity=1.0, scale_mode='none', scalars=None, colormap=None,
                  backface_culling=False, line_width=2., name=None,
                  glyph_width=None, glyph_depth=None, glyph_radius=0.15,
                  solid_transform=None):
@@ -482,10 +482,12 @@ class _PyVistaRenderer(_AbstractRenderer):
             if not VTK9:
                 args = (np.arange(n_points) * 3,) + args
             grid = UnstructuredGrid(*args)
+            if scalars is not None:
+                _point_data(grid)['scalars'] = np.array(scalars)
+                scalars = 'scalars'
             _point_data(grid)['vec'] = vectors
             if scale_mode == 'scalar':
-                _point_data(grid)['mag'] = np.array(scalars)
-                scale = 'mag'
+                scale = 'scalars'
             elif scale_mode == 'vector':
                 scale = True
             else:
@@ -548,6 +550,9 @@ class _PyVistaRenderer(_AbstractRenderer):
                 mesh=mesh,
                 color=color,
                 opacity=opacity,
+                scalars=scalars,
+                colormap=colormap,
+                show_scalar_bar=False,
                 backface_culling=backface_culling
             )
         return actor, mesh

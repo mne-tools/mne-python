@@ -1028,11 +1028,20 @@ def _orient_glyphs(pts, surf, project_to_surface=False, mark_inside=False):
 
 def _plot_glyphs(renderer, loc, color, scale, opacity=1, mode="cylinder",
                  orient_glyphs=False, scale_by_distance=False,
-                 project_points=False, surf=None,
+                 project_points=False, mark_inside=False, surf=None,
                  backface_culling=False):
     if surf is not None and len(loc) > 0:
         defaults = DEFAULTS['coreg']
-        scalars, vectors, proj_pts = _orient_glyphs(loc, surf, project_points)
+        scalars, vectors, proj_pts = _orient_glyphs(loc, surf, project_points,
+                                                    mark_inside)
+        if mark_inside:
+            from matplotlib.colors import ListedColormap
+            color = np.append(color, 1)
+            colormap = ListedColormap(np.array([(0, 0, 0, 1,), color]))
+            color = None
+        else:
+            scalars = None
+            colormap = None
         mode = 'cylinder' if orient_glyphs else 'sphere'
         scale_mode = 'vector' if scale_by_distance else 'none'
         x, y, z = proj_pts.T if project_points else loc.T
@@ -1043,7 +1052,7 @@ def _plot_glyphs(renderer, loc, color, scale, opacity=1, mode="cylinder",
             glyph_center=(0., -defaults['eegp_height'], 0),
             resolution=16, glyph_resolution=16,
             glyph_radius=None, opacity=opacity, scale_mode=scale_mode,
-            scalars=scalars)
+            scalars=scalars, colormap=colormap)
     else:
         return renderer.sphere(center=loc, color=color, scale=scale,
                                opacity=opacity,
@@ -1052,7 +1061,7 @@ def _plot_glyphs(renderer, loc, color, scale, opacity=1, mode="cylinder",
 
 def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
                             orient_glyphs=False, scale_by_distance=False,
-                            surf=None, mask=None):
+                            mark_inside=False, surf=None, mask=None):
     defaults = DEFAULTS['coreg']
     ext_loc = np.array([
         d['r'] for d in (info['dig'] or [])
@@ -1064,7 +1073,8 @@ def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
                             color=defaults['extra_color'],
                             scale=defaults['extra_scale'], opacity=opacity,
                             orient_glyphs=orient_glyphs,
-                            scale_by_distance=scale_by_distance, surf=surf,
+                            scale_by_distance=scale_by_distance,
+                            mark_inside=mark_inside, surf=surf,
                             backface_culling=True)
     return actor
 
