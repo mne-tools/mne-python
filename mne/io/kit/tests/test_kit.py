@@ -150,6 +150,7 @@ def test_data(tmp_path):
     assert_array_equal(find_events(raw), [[91, 0, 2]])
 
 
+@requires_testing_data
 def test_unknown_format(tmp_path):
     """Test our warning about an unknown format."""
     fname = tmp_path / op.basename(ricoh_path)
