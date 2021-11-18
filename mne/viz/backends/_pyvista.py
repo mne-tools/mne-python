@@ -487,7 +487,8 @@ class _PyVistaRenderer(_AbstractRenderer):
                 scalars = 'scalars'
             _point_data(grid)['vec'] = vectors
             if scale_mode == 'scalar':
-                scale = 'scalars'
+                scale = scalars
+                scalars = None
             elif scale_mode == 'vector':
                 scale = True
             else:
