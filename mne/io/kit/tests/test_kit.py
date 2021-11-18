@@ -18,6 +18,7 @@ from mne.transforms import apply_trans
 from mne.utils import assert_dig_allclose
 from mne.io import read_raw_fif, read_raw_kit, read_epochs_kit
 from mne.io.constants import FIFF
+from mne.io.kit.kit import get_kit_info
 from mne.io.kit.coreg import read_sns
 from mne.io.kit.constants import KIT
 from mne.io.tests.test_raw import _test_raw_reader
@@ -147,6 +148,29 @@ def test_data(tmp_path):
     assert_equal(raw.info['chs'][160]['kind'], FIFF.FIFFV_EEG_CH)
     assert_equal(raw.info['chs'][160]['coil_type'], FIFF.FIFFV_COIL_EEG)
     assert_array_equal(find_events(raw), [[91, 0, 2]])
+
+
+@requires_testing_data
+def test_unknown_format(tmp_path):
+    """Test our warning about an unknown format."""
+    fname = tmp_path / op.basename(ricoh_path)
+    _, kit_info = get_kit_info(ricoh_path, allow_unknown_format=False)
+    n_before = kit_info['dirs'][KIT.DIR_INDEX_SYSTEM]['offset']
+    with open(fname, 'wb') as fout:
+        with open(ricoh_path, 'rb') as fin:
+            fout.write(fin.read(n_before))
+            version, revision = np.fromfile(fin, '<i4', 2)
+            assert version > 2  # good
+            version = 1  # bad
+            np.array([version, revision], '<i4').tofile(fout)
+            fout.write(fin.read())
+    with pytest.raises(ValueError, match='SQD file format V1R000 is not offi'):
+        read_raw_kit(fname)
+    # it's not actually an old file, so it actually raises an exception later
+    # about an unknown datatype
+    with pytest.raises(Exception):
+        with pytest.warns(RuntimeWarning, match='Force loading'):
+            read_raw_kit(fname, allow_unknown_format=True)
 
 
 def _assert_sinusoid(data, t, freq, amp, msg):
