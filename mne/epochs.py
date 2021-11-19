@@ -65,7 +65,7 @@ from .utils import (_check_fname, check_fname, logger, verbose,
 from .utils.docs import fill_doc
 from .data.html_templates import epochs_template
 from .annotations import (_handle_meas_date, Annotations,
-                          _write_annotations)
+                          _write_annotations, _read_annotations_fif)
 
 
 def _pack_reject_params(epochs):
@@ -3162,6 +3162,9 @@ def _read_one_epoch_file(f, tree, preload):
         #   Read the measurement info
         info, meas = read_meas_info(fid, tree, clean_bads=True)
 
+        # read in the Annotations if they exist
+        annotations = _read_annotations_fif(fid, tree)
+
         events, mappings = _read_events_fif(fid, tree)
 
         #   Metadata
@@ -3299,7 +3302,7 @@ def _read_one_epoch_file(f, tree, preload):
 
     return (info, data, data_tag, events, event_id, metadata, tmin, tmax,
             baseline, selection, drop_log, epoch_shape, cals, reject_params,
-            fmt)
+            fmt, annotations)
 
 
 @verbose
@@ -3383,7 +3386,7 @@ class EpochsFIF(BaseEpochs):
             next_fname = _get_next_fname(fid, fname, tree)
             (info, data, data_tag, events, event_id, metadata, tmin, tmax,
              baseline, selection, drop_log, epoch_shape, cals,
-             reject_params, fmt) = \
+             reject_params, fmt, annotations) = \
                 _read_one_epoch_file(fid, tree, preload)
 
             if (events[:, 0] < 0).any():
@@ -3447,6 +3450,9 @@ class EpochsFIF(BaseEpochs):
         # use the private property instead of drop_bad so that epochs
         # are not all read from disk for preload=False
         self._bad_dropped = True
+
+        # set annotations
+        self._set_annotations(annotations)
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
