@@ -304,6 +304,9 @@ def test_snirf_kernel_hb():
 
     # Test data import
     assert raw._data.shape == (180 * 2, 14)
+    assert raw.copy().pick('hbo')._data.shape == (180, 14)
+    assert raw.copy().pick('hbr')._data.shape == (180, 14)
+
     assert_almost_equal(raw.info['sfreq'], 8.256, decimal=2)
 
     bad_nans = np.isnan(raw.get_data()).any(axis=1)
