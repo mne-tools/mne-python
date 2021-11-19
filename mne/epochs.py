@@ -3583,7 +3583,7 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
             warn('Concatenation of Annotations within Epochs '
                  'is not supported yet. Annotations within these Epochs will '
                  'be dropped.')
-            epochs.set_annotations(None)
+            epochs._set_annotations(None)
     out = epochs_list[0]
     offsets = [0]
     if with_data:
