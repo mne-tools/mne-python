@@ -406,7 +406,7 @@ class RawSNIRF(BaseRaw):
                         desc = _correct_shape(np.array(dat.get(
                             '/nirs/' + key + '/name')))[0]
                         annot.append(data[:, 0], 1.0, desc.decode('UTF-8'))
-            self.set_annotations(annot)
+            self.set_annotations(annot, emit_warning=False)
 
             # Reorder channels to match expected ordering in MNE if required'
             if len(_validate_nirs_info(self.info, throw_errors=False)) == 0:

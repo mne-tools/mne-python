@@ -3,6 +3,7 @@
 #          simplified BSD-3 license
 
 import os.path as op
+import numpy as np
 from numpy.testing import assert_allclose, assert_almost_equal, assert_equal
 import shutil
 import pytest
@@ -43,9 +44,8 @@ nirx_nirsport2_20219 = op.join(data_path(download=False), 'NIRx',
                                'nirsport_v2', 'aurora_2021_9')
 
 # Kernel
-# kernel_hb = '/Volumes/MassStorage2TB/rluke/Repositories/' \
-#             'kernel-flow-tools/' \
-#             'pitch_sub010_ft_ses01_1017-1706_kp-snf-hbm.snirf'
+kernel_hb = op.join(data_path(download=False), 'SNIRF', 'Kernel', 'Flow50',
+                    'Portal_2021_11', 'hb.snirf')
 
 
 @requires_h5py
@@ -57,7 +57,7 @@ nirx_nirsport2_20219 = op.join(data_path(download=False), 'NIRx',
                                     nirx_nirsport2_103,
                                     nirx_nirsport2_103_2,
                                     nirx_nirsport2_103_2,
-                                    # kernel_hb
+                                    kernel_hb
                                     ]))
 def test_basic_reading_and_min_process(fname):
     """Test reading SNIRF files and minimum typical processing."""
@@ -298,12 +298,31 @@ def test_snirf_nirsport2_w_positions():
 
 @requires_testing_data
 @requires_h5py
+def test_snirf_kernel_hb():
+    """Test reading Kernel SNIRF files with haemoglobin data."""
+    raw = read_raw_snirf(kernel_hb, preload=True)
+
+    # Test data import
+    assert raw._data.shape == (180*2, 14)
+    assert_almost_equal(raw.info['sfreq'], 8.256, decimal=2)
+
+    bad_nans = np.isnan(raw.get_data()).any(axis=1)
+    assert np.sum(bad_nans) == 20
+
+    assert len(raw.annotations.description) == 2
+    assert raw.annotations.onset[0] == 0.036939
+    assert raw.annotations.onset[1] == 0.874633
+    assert raw.annotations.description[0] == "StartTrial"
+    assert raw.annotations.description[1] == "StartIti"
+
+
+@requires_testing_data
+@requires_h5py
 @pytest.mark.parametrize('fname, boundary_decimal, test_scaling, test_rank', (
     [sfnirs_homer_103_wShort, 0, True, True],
     [nirx_nirsport2_103, 0, True, False],  # strange rank behavior
     [nirx_nirsport2_103_2, 0, False, True],  # weirdly small values
     [snirf_nirsport2_20219, 0, True, True],
-    # [kernel_hb, 0, False, False],  # weirdly small values
 ))
 def test_snirf_standard(fname, boundary_decimal, test_scaling, test_rank):
     """Test standard operations."""
