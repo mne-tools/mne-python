@@ -64,7 +64,8 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _path_like)
 from .utils.docs import fill_doc
 from .data.html_templates import epochs_template
-from .annotations import _handle_meas_date, Annotations
+from .annotations import (_handle_meas_date, Annotations,
+                          _write_annotations)
 
 
 def _pack_reject_params(epochs):
@@ -142,6 +143,24 @@ def _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx):
         elif fmt == 'double':
             write_function = write_double_matrix
 
+    # write raw-related annotations data
+    start_block(fid, FIFF.FIFF_FIRST_TIME)
+    write_int(fid, FIFF.FIFF_FIRST_TIME, epochs._first_time)
+    end_block(fid, FIFF.FIFF_FIRST_TIME)
+
+    # write raw-related annotations data
+    start_block(fid, FIFF.FIFF_MNE_EPOCHS_RAW_SFREQ)
+    write_int(fid, FIFF.FIFF_MNE_EPOCHS_RAW_SFREQ, epochs._raw_sfreq)
+    end_block(fid, FIFF.FIFF_MNE_EPOCHS_RAW_SFREQ)
+
+    #
+    # Epoch annotations
+    #
+    annotations = epochs.get_epoch_annotations()
+    if len(annotations) > 0:  # don't save empty annot
+        _write_annotations(fid, annotations)
+
+    # write Epoch event windows
     start_block(fid, FIFF.FIFFB_MNE_EVENTS)
     write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, epochs.events.T)
     write_string(fid, FIFF.FIFF_DESCRIPTION, _event_id_string(epochs.event_id))
