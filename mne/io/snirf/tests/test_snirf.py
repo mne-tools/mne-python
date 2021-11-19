@@ -303,7 +303,7 @@ def test_snirf_kernel_hb():
     raw = read_raw_snirf(kernel_hb, preload=True)
 
     # Test data import
-    assert raw._data.shape == (180*2, 14)
+    assert raw._data.shape == (180 * 2, 14)
     assert_almost_equal(raw.info['sfreq'], 8.256, decimal=2)
 
     bad_nans = np.isnan(raw.get_data()).any(axis=1)
