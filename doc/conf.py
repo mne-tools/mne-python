@@ -883,13 +883,23 @@ reset_warnings(None, None)
 # to look in). "fw-" prefix indicates fixed width.
 icons = {
     'apple': 'b',
+    'discourse': 'b',
     'linux': 'b',
+    'python': 'b',
     'windows': 'b',
+    'book': 's',
+    'bug': 's',
     'hand-paper': 's',
+    'hand-sparkles': 's',
+    'magic': 's',
+    'pencil-alt': 's',
     'question': 's',
     'quote-left': 's',
+    'remove-format': 's',
     'rocket': 's',
+    'search': 's',
     'server': 's',
+    'universal-access': 's',
     'fw-book': 's',
     'fw-code-branch': 's',
     'fw-newspaper': 's',
@@ -904,6 +914,15 @@ for icon, cls in icons.items():
 .. |{icon}| raw:: html
 
     <i class="fa{cls} fa-{icon[3:] if fw else icon}{fw}"></i>
+'''
+
+prolog += '''
+.. |fix-bug| raw:: html
+
+    <span class="fa-stack">
+        <i class="fas fa-bug fa-stack-1x"></i>
+        <i class="fas fa-ban fa-stack-2x"></i>
+    </span>
 '''
 
 # -- Dependency info ----------------------------------------------------------

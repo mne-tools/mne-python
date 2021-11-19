@@ -6,24 +6,60 @@ Contributing guide
 .. include:: ../links.inc
 .. highlight:: console
 
-This page has details on the preferred contribution workflow
-and how best to configure your system for a smooth experience contributing to
-MNE-Python.
+Thanks for taking the time to contribute! MNE-Python is an open-source project
+sustained mostly by volunteer effort. We welcome contributions from anyone as
+long as they abide by our `Code of Conduct`_.
+
+There are lots of ways to contribute, such as:
+
+- Use the software, and when you find bugs, tell us about them! We only fix the
+  bugs we know about. |bug|
+- Answer questions on `our user forum`_. |discourse|
+- Tell us about parts of the documentation that you find confusing or unclear.
+  |book|
+- Tell us about things you wish MNE-Python could do, or things it can do but
+  you wish they were easier. |hand-sparkles|
+- Improve the accessibility of our website. |universal-access|
+- Fix bugs. |fix-bug|
+- Fix mistakes in our function docstrings. |remove-format|
+- Implement new features. |magic|
+- Improve existing tutorials or write new ones. |pencil-alt|
+- Contribute to one of the many Python packages that MNE-Python depends on.
+  |python|
+
+To *report* bugs, *request* new features, or *ask about* confusing
+documentation, it's usually best to open a new issue on `our user forum`_
+first; you'll probably get help fastest that way, and it helps keep our GitHub
+issue tracker focused on things that we *know* will require changes to our
+software (as opposed to problems that can be fixed in the user's code). We may
+ultimately ask you to open an issue on GitHub too, but starting on the forum
+helps us keep things organized. For fastest results, be sure to include
+information about your operating system and MNE-Python version, and (if
+applicable) include a reproducible code sample that is as short as possible and
+ideally uses one of :ref:`our example datasets <datasets>`.
+
+If you want to *fix* bugs, *add* new features, or *improve* our
+docstrings/tutorials/website, those kinds of contributions are made through
+`our GitHub repository <MNE-Python GitHub>`_. The rest of this page explains
+how to set up your workflow to make contributing via GitHub as easy as
+possible.
 
 .. collapse:: |rocket| Want an example to work through?
    :class: success
 
-   A great way to learn to contribute is to work through an actual example.
-   We recommend that you take a look at the `GitHub issues marked "easy"`_,
-   pick one that looks interesting, and work through it while reading this
-   guide!
+   Feel free to just read through the rest of the page, but if you find it
+   easier to "learn by doing", take a look at our
+   `GitHub issues marked "easy"`_, pick one that looks interesting, and work
+   through it while reading this guide!
 
 .. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
 
-.. note:: All contributors are expected to follow the `code of conduct`_.
 
 Overview of contribution process
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. note:: Reminder: all contributors are expected to follow our
+          `code of conduct`_.
 
 Changes to MNE-Python are typically made by `forking`_ the MNE-Python
 repository, making changes to your fork (usually by `cloning`_ it to your
@@ -977,6 +1013,7 @@ it can serve as a useful example of what to expect from the PR review process.
 .. _MNE-Python issues page: https://github.com/mne-tools/mne-python/issues
 .. _open a new issue: https://github.com/mne-tools/mne-python/issues/new/choose
 .. _This sample pull request: https://github.com/mne-tools/mne-python/pull/6230
+.. _our user forum: https://mne.discourse.group
 
 .. git installation
 

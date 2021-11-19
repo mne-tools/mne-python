@@ -176,7 +176,9 @@ i.fa-discourse:before {
 i.fa-discord:before {
     color: #7289da;  /* 99aab5 is also in-brand for discord */
 }
-
+i.fa-ban:before {
+    color: rgb(204, 0, 0);
+}
 /* ************************************************* Previous / Next buttons */
 .prev-next-bottom a.left-prev:before {
     content:"❮\00A0"
