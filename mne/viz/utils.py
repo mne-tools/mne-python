@@ -11,7 +11,7 @@
 #          Daniel McCloy <dan@mccloy.info>
 #
 # License: Simplified BSD
-
+import sys
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import partial
@@ -37,9 +37,9 @@ from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
 from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
-from ..utils import (verbose, get_config, warn, _check_ch_locs, _check_option,
+from ..utils import (verbose, get_config, _check_ch_locs, _check_option,
                      logger, fill_doc, _pl, _check_sphere, _ensure_int,
-                     _validate_type, _to_rgb, deprecated)
+                     _validate_type, _to_rgb, warn)
 from ..transforms import apply_trans
 
 
@@ -107,6 +107,36 @@ def plt_show(show=True, fig=None, **kwargs):
     import matplotlib.pyplot as plt
     if show and get_backend() != 'agg':
         (fig or plt).show(**kwargs)
+
+
+def _show_browser(show=True, block=True, fig=None, **kwargs):
+    """Show the browser considering different backends.
+
+    Parameters
+    ----------
+    show : bool
+        Show the figure.
+    block : bool
+        If to block execution on showing.
+    fig : instance of Figure | None
+        Needs to be passed for pyqtgraph backend,
+         optional for matplotlib.
+    **kwargs : dict
+        Extra arguments for :func:`matplotlib.pyplot.show`.
+    """
+    from ._figure import get_browser_backend
+    backend = get_browser_backend()
+    if backend == 'matplotlib':
+        plt_show(show, block=block, **kwargs)
+    else:
+        from qtpy.QtWidgets import QApplication
+        app = QApplication.instance() or QApplication(sys.argv)
+        if show:
+            fig.show()
+        # If block=False, a Qt-Event-Loop has to be started
+        # somewhere else in the calling code.
+        if block:
+            app.exec()
 
 
 def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
@@ -195,7 +225,7 @@ def _validate_if_list_of_axes(axes, obligatory_len=None):
                          ' length is %d' % (obligatory_len, len(axes)))
 
 
-def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
+def mne_analyze_colormap(limits=[5, 10, 15], format='vtk'):
     """Return a colormap similar to that used by mne_analyze.
 
     Parameters
@@ -205,7 +235,7 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
         3, or completely specified (and potentially asymmetric) if length 6.
     format : str
         Type of colormap to return. If 'matplotlib', will return a
-        matplotlib.colors.LinearSegmentedColormap. If 'mayavi', will
+        matplotlib.colors.LinearSegmentedColormap. If 'vtk', will
         return an RGBA array of shape (256, 4).
 
     Returns
@@ -263,7 +293,7 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
                            (limits[5], 1.0, 1.0)),
                  }
         return colors.LinearSegmentedColormap('mne_analyze', cdict)
-    elif format == 'mayavi':
+    elif format in ('vtk', 'mayavi'):
         if len(limits) == 3:
             limits = np.concatenate((-np.flipud(limits), [0], limits)) /\
                 limits[-1]
@@ -279,7 +309,9 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
                           for c in [r, g, b, a]]].T
         return colormap
     else:
-        raise ValueError('format must be either matplotlib or mayavi')
+        # Use this instead of check_option because we have a hidden option
+        raise ValueError(
+            f'format must be either matplotlib or vtk, got {repr(format)}')
 
 
 @contextmanager
@@ -882,7 +914,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     Notes
     -----
     This function plots the sensor locations from the info structure using
-    matplotlib. For drawing the sensors using mayavi see
+    matplotlib. For drawing the sensors using PyVista see
     :func:`mne.viz.plot_alignment`.
 
     .. versionadded:: 0.12.0
@@ -2032,52 +2064,6 @@ def _make_combine_callable(combine):
                              '"mean", "median", "std", or "gfp"; got {}'
                              ''.format(combine))
     return combine
-
-
-@deprecated('Use cnorm parameter instead.')
-def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
-    """Center given colormap (ranging from vmin to vmax) at value 0.
-
-    Parameters
-    ----------
-    cmap : matplotlib.colors.Colormap
-        The colormap to center around 0.
-    vmin : float
-        Minimum value in the data to map to the lower end of the colormap.
-    vmax : float
-        Maximum value in the data to map to the upper end of the colormap.
-    name : str
-        Name of the new colormap. Defaults to 'cmap_centered'.
-
-    Returns
-    -------
-    cmap_centered : matplotlib.colors.Colormap
-        The new colormap centered around 0.
-
-    Notes
-    -----
-    This function can be used in situations where vmin and vmax are not
-    symmetric around zero. Normally, this results in the value zero not being
-    mapped to white anymore in many colormaps. Using this function, the value
-    zero will be mapped to white even for asymmetric positive and negative
-    value ranges. Note that this could also be achieved by re-normalizing a
-    given colormap by subclassing matplotlib.colors.Normalize as described
-    here:
-    https://matplotlib.org/users/colormapnorms.html#custom-normalization-two-linear-ranges
-    """  # noqa: E501
-    from matplotlib.colors import LinearSegmentedColormap
-
-    vzero = abs(vmin) / float(vmax - vmin)
-    index_old = np.linspace(0, 1, cmap.N)
-    index_new = np.hstack([np.linspace(0, vzero, cmap.N // 2, endpoint=False),
-                           np.linspace(vzero, 1, cmap.N // 2)])
-
-    colors = "red", "green", "blue", "alpha"
-    cdict = {name: [] for name in colors}
-    for old, new in zip(index_old, index_new):
-        for color, name in zip(cmap(old), colors):
-            cdict[name].append((new, color, color))
-    return LinearSegmentedColormap(name, cdict)
 
 
 def _convert_psds(psds, dB, estimate, scaling, unit, ch_names=None,

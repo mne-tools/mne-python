@@ -56,7 +56,6 @@ Visualization
    plot_raw
    plot_raw_psd
    plot_sensors
-   plot_sensors_connectivity
    plot_snr_estimate
    plot_source_estimates
    link_brains
@@ -79,3 +78,6 @@ Visualization
    close_3d_figure
    close_all_3d_figures
    get_brain_class
+   set_browser_backend
+   get_browser_backend
+   use_browser_backend

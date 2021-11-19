@@ -502,7 +502,7 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
                     return np.zeros(len(x), bool)
             else:
                 def check_inside(x):
-                    return (np.linalg.norm(x, axis=1) <
+                    return (np.linalg.norm(x - bem['r0'], axis=1) <
                             bem['layers'][-1]['rad'])
         if len(megcoils):
             meg_loc = apply_trans(

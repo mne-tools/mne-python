@@ -7,7 +7,6 @@ from copy import deepcopy
 
 import numpy as np
 
-from ..fixes import _import_fft
 from ..io.pick import _pick_data_channels, pick_info
 from ..utils import verbose, warn, fill_doc, _validate_type
 from ..parallel import parallel_func, check_n_jobs
@@ -41,7 +40,7 @@ def _check_input_st(x_in, n_fft):
 
 def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
     """Precompute stockwell Gaussian windows (in the freq domain)."""
-    fft, fftfreq = _import_fft(('fft', 'fftfreq'))
+    from scipy.fft import fft, fftfreq
     tw = fftfreq(n_samp, 1. / sfreq) / n_samp
     tw = np.r_[tw[:1], tw[1:][::-1]]
 
@@ -61,7 +60,7 @@ def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
 
 def _st(x, start_f, windows):
     """Compute ST based on Ali Moukadem MATLAB code (used in tests)."""
-    fft, ifft = _import_fft(('fft', 'ifft'))
+    from scipy.fft import fft, ifft
     n_samp = x.shape[-1]
     ST = np.empty(x.shape[:-1] + (len(windows), n_samp), dtype=np.complex128)
     # do the work
@@ -75,7 +74,7 @@ def _st(x, start_f, windows):
 
 def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     """Aux function."""
-    fft, ifft = _import_fft(('fft', 'ifft'))
+    from scipy.fft import fft, ifft
     n_samp = x.shape[-1]
     n_out = (n_samp - zero_pad)
     n_out = n_out // decim + bool(n_out % decim)
@@ -157,7 +156,7 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
     ----------
     .. footbibliography::
     """
-    fftfreq = _import_fft('fftfreq')
+    from scipy.fft import fftfreq
     _validate_type(data, np.ndarray, 'data')
     if data.ndim != 3:
         raise ValueError(

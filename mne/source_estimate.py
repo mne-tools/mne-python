@@ -3231,7 +3231,7 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
 @verbose
 def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
                      project=True, subjects_dir=None, src=None, picks=None,
-                     verbose=None):
+                     surface='pial', verbose=None):
     """Create a STC from ECoG, sEEG and DBS sensor data.
 
     Parameters
@@ -3253,7 +3253,7 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         .. versionchanged:: 0.24
            Added "weighted" option.
     project : bool
-        If True, project the electrodes to the nearest ``'pial`` surface
+        If True, project the sensors to the nearest ``'pial`` surface
         vertex before computing distances. Only used when doing a
         surface projection.
     %(subjects_dir)s
@@ -3261,10 +3261,16 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         The source space.
 
         .. warning:: If a surface source space is used, make sure that
-                     ``surf='pial'`` was used during construction.
+                     ``surface='pial'`` was used during construction,
+                     or that you set ``surface='pial'`` here.
     %(picks_base)s good sEEG, ECoG, and DBS channels.
 
         .. versionadded:: 0.24
+    surface : str | None
+        The surface to use if ``src=None``. Default is the pial surface.
+        If None, the source space surface will be used.
+
+        .. versionadded:: 0.24.1
     %(verbose)s
 
     Returns
@@ -3289,11 +3295,11 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
         Activation is the sum across each sensor weighted by the fractional
         ``distance`` from each sensor. A sensor with zero distance gets weight
         1 and a sensor at ``distance`` meters away (or larger) gets weight 0.
-        If ``distance`` is less than the distance between any two electrodes,
-        this will be the same as ``'nearest'``.
+        If ``distance`` is less than half the distance between any two
+        sensors, this will be the same as ``'single'``.
     - ``'single'``
-        Same as ``'sum'`` except that only the nearest electrode is used,
-        rather than summing across electrodes within the ``distance`` radius.
+        Same as ``'sum'`` except that only the nearest sensor is used,
+        rather than summing across sensors within the ``distance`` radius.
         As ``'nearest'`` for vertices with distance zero to the projected
         sensor.
     - ``'nearest'``
@@ -3345,17 +3351,27 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
 
     subject = _check_subject(None, subject, raise_error=False)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    if surface is not None:
+        surf_rr = [read_surface(op.join(subjects_dir, subject, 'surf',
+                                        f'{hemi}.{surface}'))[0] / 1000.
+                   for hemi in ('lh', 'rh')]
     if src is None:  # fake a full surface one
-        rrs = [read_surface(op.join(subjects_dir, subject,
-                                    'surf', f'{hemi}.pial'))[0]
-               for hemi in ('lh', 'rh')]
+        _validate_type(surface, str, 'surface', 'when src is None')
         src = SourceSpaces([
-            dict(rr=rr / 1000., vertno=np.arange(len(rr)), type='surf',
+            dict(rr=rr, vertno=np.arange(len(rr)), type='surf',
                  coord_frame=FIFF.FIFFV_COORD_MRI)
-            for rr in rrs])
-        del rrs
+            for rr in surf_rr])
+        rrs = np.concatenate([s_rr[s['vertno']] for s_rr, s in
+                              zip(surf_rr, src)])
         keep_all = False
     else:
+        if surface is None:
+            rrs = np.concatenate([s['rr'][s['vertno']] for s in src])
+            if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
+                rrs = apply_trans(trans, rrs)
+        else:
+            rrs = np.concatenate([s_rr[s['vertno']] for s_rr, s in
+                                  zip(surf_rr, src)])
         keep_all = True
     # ensure it's a usable one
     klass = dict(
@@ -3365,15 +3381,12 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     )
     _check_option('src.kind', src.kind, sorted(klass.keys()))
     klass = klass[src.kind]
-    rrs = np.concatenate([s['rr'][s['vertno']] for s in src])
-    if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
-        rrs = apply_trans(trans, rrs)
     # projection will only occur with surfaces
     logger.info(
         f'Projecting data from {len(pos)} sensor{_pl(pos)} onto {len(rrs)} '
         f'{src.kind} vertices: {mode} mode')
     if project and src.kind == 'surface':
-        logger.info('    Projecting electrodes onto surface')
+        logger.info('    Projecting sensors onto surface')
         pos = _project_onto_surface(pos, dict(rr=rrs), project_rrs=True,
                                     method='nearest')[2]
 
@@ -3408,18 +3421,18 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
              f'{", ".join(evoked.ch_names[mi] for mi in missing)}')
 
     nz_data = w @ evoked.data
-    if not keep_all:
-        assert src.kind == 'surface'
-        data = nz_data
-        offset = len(src[0]['vertno'])
-        vertices = [vertices[vertices < offset],
-                    vertices[vertices >= offset] - offset]
-    else:
+    if keep_all:
         data = np.zeros(
             (sum(len(s['vertno']) for s in src), len(evoked.times)),
             dtype=nz_data.dtype)
         data[vertices] = nz_data
         vertices = [s['vertno'].copy() for s in src]
+    else:
+        assert src.kind == 'surface'
+        data = nz_data
+        offset = len(src[0]['vertno'])
+        vertices = [vertices[vertices < offset],
+                    vertices[vertices >= offset] - offset]
 
     return klass(data, vertices, evoked.times[0], 1. / evoked.info['sfreq'],
                  subject=subject, verbose=verbose)

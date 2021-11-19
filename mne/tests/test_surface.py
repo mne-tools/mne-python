@@ -117,9 +117,9 @@ def test_compute_nearest():
 
 
 @testing.requires_testing_data
-def test_io_surface(tmpdir):
+def test_io_surface(tmp_path):
     """Test reading and writing of Freesurfer surface mesh files."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fname_quad = op.join(data_path, 'subjects', 'bert', 'surf',
                          'lh.inflated.nofix')
     fname_tri = op.join(data_path, 'subjects', 'sample', 'bem',
@@ -286,13 +286,13 @@ def test_get_montage_volume_labels():
 
 def test_voxel_neighbors():
     """Test finding points above a threshold near a seed location."""
-    image = np.zeros((10, 10, 10))
-    image[4:7, 4:7, 4:7] = 3
-    image[5, 5, 5] = 4
+    locs = np.array(np.meshgrid(*[np.linspace(-1, 1, 101)] * 3))
+    image = 1 - np.linalg.norm(locs, axis=0)
+    true_volume = set([tuple(coord) for coord in
+                       np.array(np.where(image > 0.95)).T])
     volume = _voxel_neighbors(
-        (5.5, 5.1, 4.9), image, thresh=2, max_peak_dist=1, use_relative=False)
-    true_volume = set([(5, 4, 5), (5, 5, 4), (5, 5, 5), (6, 5, 5),
-                       (5, 6, 5), (5, 5, 6), (4, 5, 5)])
+        np.array([-0.3, 0.6, 0.5]) + (np.array(image.shape[0]) - 1) / 2,
+        image, thresh=0.95, use_relative=False)
     assert volume.difference(true_volume) == set()
     assert true_volume.difference(volume) == set()
 

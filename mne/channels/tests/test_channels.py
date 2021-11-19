@@ -178,9 +178,9 @@ def test_set_channel_types():
     pytest.raises(ValueError, raw.set_channel_types, ch_types)
 
 
-def test_read_ch_adjacency(tmpdir):
+def test_read_ch_adjacency(tmp_path):
     """Test reading channel adjacency templates."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     a = partial(np.array, dtype='<U7')
     # no pep8
     nbh = np.array([[(['MEG0111'], [[a(['MEG0131'])]]),

@@ -4,9 +4,10 @@
 # License: BSD-3-Clause
 
 import os.path as op
+
+import pytest
 import numpy as np
 from scipy import linalg
-
 from numpy.testing import assert_allclose
 
 import mne
@@ -154,6 +155,7 @@ def test_rap_music_simulated():
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_rap_music_sphere():
     """Test RAP-MUSIC with real data, sphere model, MEG only."""

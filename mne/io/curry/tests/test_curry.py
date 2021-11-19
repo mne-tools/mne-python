@@ -205,21 +205,21 @@ WANT_TRANS = np.array(
     pytest.param(curry8_rfDC_file, 1e-3, id='curry 8'),
 ])
 @pytest.mark.parametrize('mock_dev_head_t', [True, False])
-def test_read_raw_curry_rfDC(fname, tol, mock_dev_head_t, tmpdir):
+def test_read_raw_curry_rfDC(fname, tol, mock_dev_head_t, tmp_path):
     """Test reading CURRY files."""
     if mock_dev_head_t:
         if 'Curry 7' in fname:  # not supported yet
             return
-        # copy files to tmpdir
+        # copy files to tmp_path
         base = op.splitext(fname)[0]
         for ext in ('.cdt', '.cdt.dpa'):
             src = base + ext
-            dst = op.join(tmpdir, op.basename(base) + ext)
+            dst = op.join(tmp_path, op.basename(base) + ext)
             copyfile(src, dst)
             if ext == '.cdt.dpa':
                 with open(dst, 'a') as fid:
                     fid.write(LM_CONTENT)
-        fname = op.join(tmpdir, op.basename(fname))
+        fname = op.join(tmp_path, op.basename(fname))
         with open(fname + '.hpi', 'w') as fid:
             fid.write(HPI_CONTENT)
 
@@ -331,12 +331,12 @@ def _mock_info_file(src, dst, sfreq, time_step):
     pytest.param(dict(sfreq=500, time_step=42), id='mismatch',
                  marks=pytest.mark.xfail(raises=ValueError)),
 ])
-def sfreq_testing_data(tmpdir, request):
+def sfreq_testing_data(tmp_path, request):
     """Generate different sfreq, time_step scenarios to be tested."""
     sfreq, time_step = request.param['sfreq'], request.param['time_step']
 
     in_base_name = curry7_bdf_file.strip('dat')
-    out_base_name = str(tmpdir.join('curry.'))
+    out_base_name = str(tmp_path / 'curry.')
 
     # create dummy empty files for 'dat' and 'rs3'
     for fname in [out_base_name + ext for ext in ['dat', 'rs3']]:
@@ -391,7 +391,7 @@ def _get_read_annotations_mock_info(name_part, mock_dir):
     version = _get_curry_version(ext)
     original['info'] = original['base'] + FILE_EXTENSIONS[version]["info"]
 
-    modified['base'] = str(mock_dir.join('curry'))
+    modified['base'] = str(mock_dir / 'curry')
     modified['event'] = (modified['base'] +
                          FILE_EXTENSIONS[version]["events_cef"])
     modified['info'] = modified['base'] + FILE_EXTENSIONS[version]["info"]
@@ -406,7 +406,7 @@ def _get_read_annotations_mock_info(name_part, mock_dir):
     pytest.param('7 ASCII.cef', id='7 (ascii)'),
     pytest.param('8 ASCII.cdt.cef', id='8 (ascii)'),
 ])
-def test_read_curry_annotations_using_mocked_info(tmpdir, name_part):
+def test_read_curry_annotations_using_mocked_info(tmp_path, name_part):
     """Test reading for Curry events file."""
     EXPECTED_ONSET = [0.484, 0.486, 0.62, 0.622, 1.904, 1.906, 3.212, 3.214,
                       4.498, 4.5, 5.8, 5.802, 7.074, 7.076, 8.324, 8.326, 9.58,
@@ -417,7 +417,7 @@ def test_read_curry_annotations_using_mocked_info(tmpdir, name_part):
                             '1', '50000', '1', '50000']
 
     original, fname = _get_read_annotations_mock_info("Curry " + name_part,
-                                                      tmpdir)
+                                                      tmp_path)
     copyfile(src=original['event'], dst=fname['event'])
 
     _msg = 'required files cannot be found'

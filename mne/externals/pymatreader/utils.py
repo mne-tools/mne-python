@@ -31,7 +31,11 @@ import sys
 from warnings import warn
 
 import numpy
-import scipy.io
+try:
+    from scipy.io.matlab import MatlabOpaque, MatlabFunction
+except ImportError:  # scipy < 1.8
+    from scipy.io.matlab.mio5_params import MatlabOpaque
+    from scipy.io.matlab.mio5 import MatlabFunction
 
 if sys.version_info <= (2, 7):
     chr = unichr  # noqa This is needed for python 2 and 3 compatibility
@@ -95,7 +99,7 @@ def _handle_hdf5_group(hdf5_object, variable_names=None, ignore_fields=None):
     if variable_names:
         all_keys = all_keys & set(variable_names)
 
-    return_dict = dict()
+    return_dict = {}
 
     for key in all_keys:
         return_dict[key] = _hdf5todict(hdf5_object[key],
@@ -167,7 +171,7 @@ def _handle_ndarray(values):
     values = numpy.squeeze(values).T
     if (isinstance(values, numpy.ndarray) and
             values.dtype.names == ('real', 'imag')):
-        values = numpy.array(values.view(numpy.complex))
+        values = numpy.array(values.view(complex))
 
     if isinstance(values, numpy.ndarray) and \
             values.size == 1:
@@ -209,7 +213,7 @@ def _check_for_scipy_mat_struct(data):
         for key in data:
             data[key] = _check_for_scipy_mat_struct(data[key])
 
-    if isinstance(data, scipy.io.matlab.mio5_params.MatlabOpaque):
+    if isinstance(data, MatlabOpaque):
         warn('Complex objects (like classes) are not supported. '
              'They are imported on a best effort base '
              'but your mileage will vary.')
@@ -222,7 +226,7 @@ def _check_for_scipy_mat_struct(data):
 
 def _handle_scipy_ndarray(data):
     if data.dtype == numpy.dtype('object') and not \
-            isinstance(data, scipy.io.matlab.mio5.MatlabFunction):
+            isinstance(data, MatlabFunction):
         as_list = []
         for element in data:
             as_list.append(_check_for_scipy_mat_struct(element))
@@ -238,12 +242,12 @@ def _handle_scipy_ndarray(data):
 
 
 def _todict_from_np_struct(data):
-    data_dict = dict()
+    data_dict = {}
 
     for cur_field_name in data.dtype.names:
         try:
             n_items = len(data[cur_field_name])
-            cur_list = list()
+            cur_list = []
 
             for idx in numpy.arange(n_items):
                 cur_value = data[cur_field_name].item(idx)

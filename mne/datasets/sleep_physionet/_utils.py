@@ -92,13 +92,12 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
     tmp = _TempDir()
 
     # Download subjects info.
-    fname = 'ST-subjects.xls'
-    subjects_fname = op.join(tmp, fname)
+    subjects_fname = op.join(tmp, 'ST-subjects.xls')
     pooch.retrieve(
         url=TEMAZEPAM_RECORDS_URL,
         known_hash=f"sha1:{TEMAZEPAM_RECORDS_URL_SHA1}",
         path=tmp,
-        fname=fname
+        fname=op.basename(subjects_fname)
     )
 
     # Load and Massage the checksums.
@@ -158,13 +157,12 @@ def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
     tmp = _TempDir()
 
     # Download subjects info.
-    fname = 'SC-subjects.xls'
-    subjects_fname = op.join(tmp, fname)
+    subjects_fname = op.join(tmp, 'SC-subjects.xls')
     pooch.retrieve(
         url=AGE_RECORDS_URL,
         known_hash=f"sha1:{AGE_RECORDS_URL_SHA1}",
         path=tmp,
-        fname=fname
+        fname=op.basename(subjects_fname)
     )
 
     # Load and Massage the checksums.

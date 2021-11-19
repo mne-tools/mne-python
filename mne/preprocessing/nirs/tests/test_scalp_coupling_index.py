@@ -29,7 +29,7 @@ fname_nirx_15_2_short = op.join(data_path(download=False),
 @pytest.mark.parametrize('fname', ([fname_nirx_15_2_short, fname_nirx_15_2,
                                     fname_nirx_15_0]))
 @pytest.mark.parametrize('fmt', ('nirx', 'fif'))
-def test_scalp_coupling_index(fname, fmt, tmpdir):
+def test_scalp_coupling_index(fname, fmt, tmp_path):
     """Test converting NIRX files."""
     assert fmt in ('nirx', 'fif')
     raw = read_raw_nirx(fname)

@@ -143,9 +143,9 @@ def test_sensitivity_maps():
     sensitivity_map(fwd)
 
 
-def test_compute_proj_epochs(tmpdir):
+def test_compute_proj_epochs(tmp_path):
     """Test SSP computation on epochs."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     event_id, tmin, tmax = 1, -0.2, 0.3
 
     raw = read_raw_fif(raw_fname, preload=True)
@@ -227,9 +227,9 @@ def test_compute_proj_epochs(tmpdir):
 
 
 @pytest.mark.slowtest
-def test_compute_proj_raw(tmpdir):
+def test_compute_proj_raw(tmp_path):
     """Test SSP computation on raw."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     # Test that the raw projectors work
     raw_time = 2.5  # Do shorter amount for speed
     raw = read_raw_fif(raw_fname).crop(0, raw_time)

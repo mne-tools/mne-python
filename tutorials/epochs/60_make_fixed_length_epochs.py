@@ -20,8 +20,8 @@ create 30 second epochs that allow us to perform non-event-related analyses of
 the signal.
 
 .. note::
-    Starting in version 0.25, all functions in the ``mne.connectivity``
-    sub-module will be housed in a separate package called
+    Starting in version 1.0, all functions in the ``mne.connectivity``
+    sub-module are housed in a separate package called
     :mod:`mne-connectivity <mne_connectivity>`. Download it by  running:
 
     .. code-block:: console

@@ -1,8 +1,9 @@
 name: 'codespell_and_flake'
 # https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#concurrency
 # https://docs.github.com/en/developers/webhooks-and-events/events/github-event-types#pullrequestevent
+# workflow name, PR number (empty on push), push ref (empty on PR)
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.number }}
+  group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
   cancel-in-progress: true
 on:
   push:

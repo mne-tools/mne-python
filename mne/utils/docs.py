@@ -25,9 +25,10 @@ docdict = dict()
 # Verbose
 docdict['verbose'] = """
 verbose : bool | str | int | None
-    If not None, override default verbose level (see :func:`mne.verbose`
-    and :ref:`Logging documentation <python:tut-logging>` for more).
-    If used, it should be passed as a keyword-argument only."""
+    Control verbosity of the logging output. If ``None``, use the default
+    verbosity level. See the :ref:`logging documentation <tut-logging>` and
+    :func:`mne.verbose` for details. Should only be passed as a keyword
+    argument."""
 docdict['verbose_meth'] = (docdict['verbose'] + ' Defaults to self.verbose.')
 
 # Preload
@@ -729,13 +730,15 @@ fir_window : str
 
     .. versionadded:: 0.15
 """
-docdict['pad-fir'] = """
+docdict['pad'] = """
 pad : str
     The type of padding to use. Supports all :func:`numpy.pad` ``mode``
-    options. Can also be "reflect_limited", which pads with a
-    reflected version of each vector mirrored on the first and last
-    values of the vector, followed by zeros. Only used for ``method='fir'``.
+    options. Can also be ``"reflect_limited"``, which pads with a
+    reflected version of each vector mirrored on the first and last values
+    of the vector, followed by zeros.
 """
+docdict['pad-fir'] = docdict['pad'].rstrip() + \
+    " Only used for ``method='fir'``."
 docdict['method-fir'] = """
 method : str
     'fir' will use overlap-add FIR filtering, 'iir' will use IIR
@@ -1390,7 +1393,7 @@ trans : str | dict | instance of Transform | None
        Support for 'fsaverage' argument.
 """ % (_trans_base,)
 docdict['subjects_dir'] = """
-subjects_dir : str | pathlib.Path | None
+subjects_dir : path-like | None
     The path to the directory containing the FreeSurfer subjects
     reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
     variable.
@@ -1401,11 +1404,11 @@ docdict['info_not_none'] = f"""
 info : mne.Info
     {_info_base}
 """
-docdict['info'] = """
+docdict['info'] = f"""
 info : mne.Info | None
     {_info_base}
 """
-docdict['info_str'] = """
+docdict['info_str'] = f"""
 info : mne.Info | str
     {_info_base} If ``str``, then it should be a filepath to a file with
     measurement information (e.g. :class:`mne.io.Raw`).
@@ -1458,27 +1461,26 @@ head_pos : None | str | dict | tuple | array
 """
 docdict['n_jobs'] = """
 n_jobs : int
-    The number of jobs to run in parallel (default 1). If ``-1``, it is set to
-    the number of CPU cores. Requires the ``joblib`` package.
+    The number of jobs to run in parallel (default ``1``). If ``-1``, it is set
+    to the number of CPU cores. Requires the ``joblib`` package.
 """
 
 # Random state
-docdict['random_state'] = """
-random_state : None | int | instance of ~numpy.random.RandomState
-    If ``random_state`` is an :class:`int`, it will be used as a seed for
-    :class:`~numpy.random.RandomState`. If ``None``, the seed will be
-    obtained from the operating system (see
-    :class:`~numpy.random.RandomState` for details). Default is
-    ``None``.
+random_state_common = """\
+    A seed for the NumPy random number generator (RNG). If ``None`` (default),
+    the seed will be  obtained from the operating system
+    (see  :class:`~numpy.random.RandomState` for details), meaning it will most
+    likely produce different output every time this function or method is run.
+    To achieve reproducible results, pass a value here to explicitly initialize
+    the RNG with a defined state.\
 """
-
-docdict['seed'] = """
+docdict['random_state'] = f"""
+random_state : None | int | instance of ~numpy.random.RandomState
+{random_state_common}
+"""
+docdict['seed'] = f"""
 seed : None | int | instance of ~numpy.random.RandomState
-    If ``seed`` is an :class:`int`, it will be used as a seed for
-    :class:`~numpy.random.RandomState`. If ``None``, the seed will be
-    obtained from the operating system (see
-    :class:`~numpy.random.RandomState` for details). Default is
-    ``None``.
+{random_state_common}
 """
 
 # Visualization
@@ -1511,6 +1513,31 @@ time_format : 'float' | 'clock'
     number of seconds from the start of the recording. If ``'clock'``,
     labels will show "clock time" (hours/minutes/seconds) inferred from
     ``raw.info['meas_date']``. Default is ``'float'``.
+
+    .. versionadded:: 0.24
+"""
+
+# Visualization with pyqtgraph
+docdict['precompute'] = """
+precompute : bool | str
+    Whether to load all data (not just the visible portion) into RAM and
+    apply preprocessing (e.g., projectors) to the full data array in a separate
+    processor thread, instead of window-by-window during scrolling. The default
+    ``'auto'`` compares available RAM space to the expected size of the
+    precomputed data, and precomputes only if enough RAM is available. ``True``
+    and ``'auto'`` only work if using the PyQtGraph backend.
+
+    .. versionadded:: 0.24
+"""
+
+docdict['use_opengl'] = """
+use_opengl : bool | None
+    Whether to use OpenGL when rendering the plot (requires ``pyopengl``).
+    May increase performance, but effect is dependent on system CPU and
+    graphics hardware. Only works if using the PyQtGraph backend. Default is
+    None, which will use False unless the user configuration variable
+    ``MNE_BROWSER_USE_OPENGL`` is set to ``'true'``,
+    see :func:`mne.set_config`.
 
     .. versionadded:: 0.24
 """
@@ -1702,7 +1729,7 @@ allow_duplicates : bool
 
 # Brain plotting
 docdict["view"] = """
-view : str
+view : str | None
     The name of the view to show (e.g. "lateral"). Other arguments
     take precedence and modify the camera starting from the ``view``.
 """
@@ -1880,6 +1907,26 @@ views : str | list
 
     Three letter abbreviations (e.g., ``'lat'``) are also supported.
     Using multiple views (list) is not supported for mpl backend.
+"""
+
+# Coregistration
+scene_interaction_common = """\
+    How interactions with the scene via an input device (e.g., mouse or
+    trackpad) modify the camera position. If ``'terrain'``, one axis is
+    fixed, enabling "turntable-style" rotations. If ``'trackball'``,
+    movement along all axes is possible, which provides more freedom of
+    movement, but you may incidentally perform unintentional rotations along
+    some axes.\
+"""
+docdict['scene_interaction'] = f"""
+interaction : 'trackball' | 'terrain'
+{scene_interaction_common}
+"""
+docdict['scene_interaction_None'] = f"""
+interaction : 'trackball' | 'terrain' | None
+{scene_interaction_common}
+    If ``None``, the setting stored in the MNE-Python configuration file is
+    used.
 """
 
 # STC label time course
@@ -2288,7 +2335,7 @@ image_format : 'png' | 'svg' | 'gif' | None
     instantiation.
 """
 docdict['report_tags'] = """
-tags : collection of str
+tags : array-like of str
     Tags to add for later interactive filtering.
 """
 docdict['report_replace'] = """
@@ -2554,11 +2601,10 @@ on_defects : 'raise' | 'warn' | 'ignore'
 """
 
 # Export
-docdict['export_warning'] = """
+docdict['export_warning'] = """\
 .. warning::
     Since we are exporting to external formats, there's no guarantee that all
-    the info will be preserved in the external format. To save in native MNE
-    format (``.fif``) without information loss, use
+    the info will be preserved in the external format. See Notes for details.
 """
 docdict['export_params_fname'] = """
 fname : str
@@ -2584,6 +2630,19 @@ add_ch_type : bool
     to store channel "Fz" as "EEG Fz"). Only used for EDF format. Default is
     ``False``.
 """
+docdict['export_warning_note'] = """\
+Export to external format may not preserve all the information from the
+instance. To save in native MNE format (``.fif``) without information loss,
+use :meth:`mne.{0}.save` instead.
+Export does not apply projector(s). Unapplied projector(s) will be lost.
+Consider applying projector(s) before exporting with
+:meth:`mne.{0}.apply_proj`."""
+docdict['export_warning_note_raw'] = \
+    docdict['export_warning_note'].format('io.Raw')
+docdict['export_warning_note_epochs'] = \
+    docdict['export_warning_note'].format('Epochs')
+docdict['export_warning_note_evoked'] = \
+    docdict['export_warning_note'].format('Evoked')
 docdict['export_eeglab_note'] = """
 For EEGLAB exports, channel locations are expanded to full EEGLAB format.
 For more details see :func:`eeglabio.utils.cart_to_eeglab`.

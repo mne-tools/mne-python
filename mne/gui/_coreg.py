@@ -6,9 +6,13 @@ import os.path as op
 import numpy as np
 from traitlets import observe, HasTraits, Unicode, Bool, Float
 
+from ..io.constants import FIFF
 from ..defaults import DEFAULTS
-from ..io import read_info, read_fiducials
+from ..io import read_info, read_fiducials, read_raw
 from ..io.pick import pick_types
+from ..io.open import fiff_open, dir_tree_find
+from ..io.meas_info import _empty_info
+from ..io._read_raw import supported as raw_supported_types
 from ..coreg import Coregistration, _is_mri_subject
 from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_head_shape_points, _plot_mri_fiducials,
@@ -16,6 +20,7 @@ from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
 from ..transforms import (read_trans, write_trans, _ensure_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
 from ..utils import get_subjects_dir, check_fname, _check_fname, fill_doc, warn
+from ..channels import read_dig_fif
 
 
 @fill_doc
@@ -66,6 +71,10 @@ class CoregistrationUI(HasTraits):
         Display the window as soon as it is ready. Defaults to True.
     standalone : bool
         If True, start the Qt application event loop. Default to False.
+    %(scene_interaction)s
+        Defaults to ``'terrain'``.
+
+        .. versionadded:: 1.0
     %(verbose)s
     """
 
@@ -90,7 +99,8 @@ class CoregistrationUI(HasTraits):
                  head_transparency=None, hpi_coils=None,
                  head_shape_points=None, eeg_channels=None, orient_glyphs=None,
                  sensor_opacity=None, trans=None, size=None, bgcolor=None,
-                 show=True, standalone=False, verbose=None):
+                 show=True, standalone=False, interaction='terrain',
+                 verbose=None):
         from ..viz.backends.renderer import _get_renderer
 
         def _get_default(var, val):
@@ -112,17 +122,17 @@ class CoregistrationUI(HasTraits):
         self._defaults = dict(
             size=_get_default(size, (800, 600)),
             bgcolor=_get_default(bgcolor, "grey"),
-            orient_glyphs=_get_default(orient_glyphs, False),
+            orient_glyphs=_get_default(orient_glyphs, True),
             hpi_coils=_get_default(hpi_coils, True),
             head_shape_points=_get_default(head_shape_points, True),
             eeg_channels=_get_default(eeg_channels, True),
-            head_resolution=_get_default(head_resolution, False),
+            head_resolution=_get_default(head_resolution, True),
             head_transparency=_get_default(head_transparency, False),
             head_opacity=0.5,
             sensor_opacity=_get_default(sensor_opacity, 1.0),
             fiducials=("LPA", "Nasion", "RPA"),
             fiducial="LPA",
-            lock_fids=False,
+            lock_fids=True,
             grow_hair=0.0,
             scale_modes=["None", "uniform", "3-axis"],
             scale_mode="None",
@@ -142,7 +152,7 @@ class CoregistrationUI(HasTraits):
         )
 
         # process requirements
-        info = read_info(info_file) if info_file is not None else None
+        info = None
         subjects_dir = get_subjects_dir(
             subjects_dir=subjects_dir, raise_error=True)
         subject = _get_default(subject, self._get_subjects(subjects_dir)[0])
@@ -151,12 +161,14 @@ class CoregistrationUI(HasTraits):
         self._renderer = _get_renderer(
             size=self._defaults["size"], bgcolor=self._defaults["bgcolor"])
         self._renderer._window_close_connect(self._clean)
+        self._renderer.set_interaction(interaction)
 
         # setup the model
         self._info = info
         self._fiducials = fiducials
         self._coreg = Coregistration(
             self._info, subject, subjects_dir, fiducials)
+        fid_accurate = self._coreg._fid_accurate
         for fid in self._defaults["weights"].keys():
             setattr(self, f"_{fid}_weight", self._defaults["weights"][fid])
 
@@ -182,14 +194,21 @@ class CoregistrationUI(HasTraits):
 
         # once the docks are initialized
         self._set_current_fiducial(self._defaults["fiducial"])
-        self._set_lock_fids(self._defaults["lock_fids"])
         self._set_scale_mode(self._defaults["scale_mode"])
         if trans is not None:
             self._load_trans(trans)
+        if not fid_accurate:
+            self._set_head_resolution('high')
+            self._set_lock_fids(True)  # hack to make the dig disappear
+        self._set_lock_fids(fid_accurate)
 
         # must be done last
         if show:
             self._renderer.show()
+        # update the view once shown
+        views = {True: dict(azimuth=90, elevation=90),  # front
+                 False: dict(azimuth=180, elevation=90)}  # left
+        self._renderer.set_camera(distance=None, **views[self._lock_fids])
         if standalone:
             self._renderer.figure.store["app"].exec()
 
@@ -215,10 +234,25 @@ class CoregistrationUI(HasTraits):
     def _set_info_file(self, fname):
         if fname is None:
             return
-        if not self._check_fif('info', fname):
+
+        # info file can be anything supported by read_raw
+        try:
+            check_fname(fname, 'info', tuple(raw_supported_types.keys()),
+                        endings_err=tuple(raw_supported_types.keys()))
+        except IOError as e:
+            warn(e)
+            self._widgets["info_file"].set_value(0, '')
             return
-        self._info_file = _check_fname(
-            fname, overwrite=True, must_exist=True, need_dir=False)
+
+        fname = _check_fname(fname, overwrite=True)  # convert to str
+
+        # ctf ds `files` are actually directories
+        if fname.endswith(('.ds',)):
+            self._info_file = _check_fname(
+                fname, overwrite=True, must_exist=True, need_dir=True)
+        else:
+            self._info_file = _check_fname(
+                fname, overwrite=True, must_exist=True, need_dir=False)
 
     def _set_omit_hsp_distance(self, distance):
         self._omit_hsp_distance = distance
@@ -325,6 +359,7 @@ class CoregistrationUI(HasTraits):
         fids, _ = read_fiducials(self._fiducials_file)
         self._coreg._setup_fiducials(fids)
         self._reset()
+        self._set_lock_fids(True)
 
     @observe("_current_fiducial")
     def _current_fiducial_changed(self, change=None):
@@ -333,7 +368,19 @@ class CoregistrationUI(HasTraits):
 
     @observe("_info_file")
     def _info_file_changed(self, change=None):
-        self._info = read_info(self._info_file)
+        if not self._info_file:
+            return
+        elif self._info_file.endswith(('.fif', '.fif.gz')):
+            fid, tree, _ = fiff_open(self._info_file)
+            fid.close()
+            if len(dir_tree_find(tree, FIFF.FIFFB_MEAS_INFO)) > 0:
+                self._info = read_info(self._info_file, verbose=False)
+            elif len(dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)) > 0:
+                self._info = _empty_info(1)
+                self._info['dig'] = read_dig_fif(fname=self._info_file).dig
+                self._info._unlocked = False
+        else:
+            self._info = read_raw(self._info_file).info
         # XXX: add coreg.set_info()
         self._coreg._info = self._info
         self._coreg._setup_digs()
@@ -602,12 +649,16 @@ class CoregistrationUI(HasTraits):
         if self._eeg_channels:
             eeg = ["original"]
             picks = pick_types(self._info, eeg=(len(eeg) > 0))
-            eeg_actors = _plot_sensors(
-                self._renderer, self._info, self._to_cf_t, picks, meg=False,
-                eeg=eeg, fnirs=False, warn_meg=False, head_surf=self._head_geo,
-                units='m', sensor_opacity=self._defaults["sensor_opacity"],
-                orient_glyphs=self._orient_glyphs, surf=self._head_geo)
-            eeg_actors = eeg_actors["eeg"]
+            if len(picks) > 0:
+                eeg_actors = _plot_sensors(
+                    self._renderer, self._info, self._to_cf_t, picks,
+                    meg=False, eeg=eeg, fnirs=False, warn_meg=False,
+                    head_surf=self._head_geo, units='m',
+                    sensor_opacity=self._defaults["sensor_opacity"],
+                    orient_glyphs=self._orient_glyphs, surf=self._head_geo)
+                eeg_actors = eeg_actors["eeg"]
+            else:
+                eeg_actors = None
         else:
             eeg_actors = None
         self._update_actor("eeg_channels", eeg_actors)

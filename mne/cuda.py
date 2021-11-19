@@ -4,9 +4,8 @@
 
 import numpy as np
 
-from .fixes import _import_fft
 from .utils import (sizeof_fmt, logger, get_config, warn, _explain_exception,
-                    verbose)
+                    verbose, fill_doc)
 
 
 _cuda_capable = False
@@ -154,7 +153,7 @@ def _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft,
     -----
     This function is designed to be used with fft_multiply_repeated().
     """
-    rfft, irfft = _import_fft(('rfft', 'irfft'))
+    from scipy.fft import rfft, irfft
     cuda_dict = dict(n_fft=n_fft, rfft=rfft, irfft=irfft,
                      h_fft=rfft(h, n=n_fft))
     if n_jobs == 'cuda':
@@ -247,7 +246,7 @@ def _setup_cuda_fft_resample(n_jobs, W, new_len):
     -----
     This function is designed to be used with fft_resample().
     """
-    rfft, irfft = _import_fft(('rfft', 'irfft'))
+    from scipy.fft import rfft, irfft
     cuda_dict = dict(use_cuda=False, rfft=rfft, irfft=irfft)
     rfft_len_x = len(W) // 2 + 1
     # fold the window onto inself (should be symmetric) and truncate
@@ -290,6 +289,7 @@ def _cuda_irfft_get(x, n, axis=-1):
     return cupy.fft.irfft(x, n=n, axis=axis).get()
 
 
+@fill_doc
 def _fft_resample(x, new_len, npads, to_removes, cuda_dict=None,
                   pad='reflect_limited'):
     """Do FFT resampling with a filter function (possibly using CUDA).
@@ -307,11 +307,8 @@ def _fft_resample(x, new_len, npads, to_removes, cuda_dict=None,
         Number of samples to remove after resampling.
     cuda_dict : dict
         Dictionary constructed using setup_cuda_multiply_repeated().
-    pad : str
-        The type of padding to use. Supports all :func:`np.pad` ``mode``
-        options. Can also be "reflect_limited" (default), which pads with a
-        reflected version of each vector mirrored on the first and last values
-        of the vector, followed by zeros.
+    %(pad)s
+        The default is ``'reflect_limited'``.
 
         .. versionadded:: 0.15
 

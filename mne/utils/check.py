@@ -7,7 +7,6 @@
 import importlib
 from builtins import input  # no-op here but facilitates testing
 from difflib import get_close_matches
-from distutils.version import LooseVersion
 import operator
 import os
 import os.path as op
@@ -18,7 +17,7 @@ import numbers
 
 import numpy as np
 
-from ..fixes import _median_complex
+from ..fixes import _median_complex, _compare_version
 from ._logging import warn, logger
 
 
@@ -88,8 +87,10 @@ def check_version(library, min_version='0.0'):
     except ImportError:
         ok = False
     else:
-        if min_version and \
-                LooseVersion(library.__version__) < LooseVersion(min_version):
+        if (
+            min_version and
+            _compare_version(library.__version__, '<', min_version)
+        ):
             ok = False
     return ok
 
@@ -99,12 +100,6 @@ def _require_version(lib, what, version='0.0'):
     if not check_version(lib, version):
         extra = f' (version >= {version})' if version != '0.0' else ''
         raise ImportError(f'The {lib} package{extra} is required to {what}')
-
-
-def _check_mayavi_version(min_version='4.3.0'):
-    """Check mayavi version."""
-    if not check_version('mayavi', min_version):
-        raise RuntimeError("Need mayavi >= %s" % min_version)
 
 
 # adapted from scikit-learn utils/validation.py
@@ -665,8 +660,11 @@ def _check_option(parameter, value, allowed_values, extra=''):
         options = f'The only allowed value is {repr(allowed_values[0])}'
     else:
         options = 'Allowed values are '
-        options += ', '.join([f'{repr(v)}' for v in allowed_values[:-1]])
-        options += f', and {repr(allowed_values[-1])}'
+        if len(allowed_values) == 2:
+            options += ' and '.join(repr(v) for v in allowed_values)
+        else:
+            options += ', '.join(repr(v) for v in allowed_values[:-1])
+            options += f', and {repr(allowed_values[-1])}'
     raise ValueError(msg.format(parameter=parameter, options=options,
                                 value=value, extra=extra))
 
@@ -725,7 +723,7 @@ def _check_pyqt5_version():
     except Exception:
         version = 'unknown'
     else:
-        if LooseVersion(version) >= LooseVersion('5.10'):
+        if _compare_version(version, '>=', '5.10'):
             bad = False
     bad &= sys.platform == 'darwin'
     if bad:
