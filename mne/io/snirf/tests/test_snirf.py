@@ -17,34 +17,32 @@ from mne.preprocessing.nirs import (optical_density, beer_lambert_law,
 from mne.transforms import apply_trans, _get_trans
 from mne.io.constants import FIFF
 
+
+testing_path = data_path(download=False)
+
 # SfNIRS files
-sfnirs_homer_103_wShort = op.join(data_path(download=False),
-                                  'SNIRF', 'SfNIRS', 'snirf_homer3', '1.0.3',
+sfnirs_homer_103_wShort = op.join(testing_path, 'SNIRF', 'SfNIRS',
+                                  'snirf_homer3', '1.0.3',
                                   'snirf_1_3_nirx_15_2_'
                                   'recording_w_short.snirf')
-sfnirs_homer_103_wShort_original = op.join(data_path(download=False),
-                                           'NIRx', 'nirscout',
+sfnirs_homer_103_wShort_original = op.join(testing_path, 'NIRx', 'nirscout',
                                            'nirx_15_2_recording_w_short')
 
-sfnirs_homer_103_153 = op.join(data_path(download=False),
-                               'SNIRF', 'SfNIRS', 'snirf_homer3', '1.0.3',
-                               'nirx_15_3_recording.snirf')
+sfnirs_homer_103_153 = op.join(testing_path, 'SNIRF', 'SfNIRS', 'snirf_homer3',
+                               '1.0.3', 'nirx_15_3_recording.snirf')
 
 # NIRSport2 files
-nirx_nirsport2_103 = op.join(data_path(download=False),
-                             'SNIRF', 'NIRx', 'NIRSport2', '1.0.3',
-                             '2021-04-23_005.snirf')
-nirx_nirsport2_103_2 = op.join(data_path(download=False),
-                               'SNIRF', 'NIRx', 'NIRSport2', '1.0.3',
-                               '2021-05-05_001.snirf')
-snirf_nirsport2_20219 = op.join(data_path(download=False),
-                                'SNIRF', 'NIRx', 'NIRSport2', '2021.9',
-                                '2021-10-01_002.snirf')
-nirx_nirsport2_20219 = op.join(data_path(download=False), 'NIRx',
-                               'nirsport_v2', 'aurora_2021_9')
+nirx_nirsport2_103 = op.join(testing_path, 'SNIRF', 'NIRx', 'NIRSport2',
+                             '1.0.3', '2021-04-23_005.snirf')
+nirx_nirsport2_103_2 = op.join(testing_path, 'SNIRF', 'NIRx', 'NIRSport2',
+                               '1.0.3', '2021-05-05_001.snirf')
+snirf_nirsport2_20219 = op.join(testing_path, 'SNIRF', 'NIRx', 'NIRSport2',
+                                '2021.9', '2021-10-01_002.snirf')
+nirx_nirsport2_20219 = op.join(testing_path, 'NIRx', 'nirsport_v2',
+                               'aurora_2021_9')
 
 # Kernel
-kernel_hb = op.join(data_path(download=False), 'SNIRF', 'Kernel', 'Flow50',
+kernel_hb = op.join(testing_path, 'SNIRF', 'Kernel', 'Flow50',
                     'Portal_2021_11', 'hb.snirf')
 
 
@@ -307,7 +305,7 @@ def test_snirf_kernel_hb():
     assert raw.copy().pick('hbo')._data.shape == (180, 14)
     assert raw.copy().pick('hbr')._data.shape == (180, 14)
 
-    assert_almost_equal(raw.info['sfreq'], 8.256, decimal=2)
+    assert_allclose(raw.info['sfreq'], 8.257638)
 
     bad_nans = np.isnan(raw.get_data()).any(axis=1)
     assert np.sum(bad_nans) == 20

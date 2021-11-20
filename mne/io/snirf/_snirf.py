@@ -99,9 +99,8 @@ class RawSNIRF(BaseRaw):
                      "Only the first dataset will be processed.")
 
             snirf_data_type = np.array(dat.get('nirs/data1/measurementList1'
-                                               '/dataType'))
-            if np.array(dat.get('nirs/data1/measurementList1/dataType')) \
-                    not in [1, 99999]:
+                                               '/dataType')).item()
+            if snirf_data_type not in [1, 99999]:
                 # 1 = Continuous Wave
                 # 99999 = Processed
                 raise RuntimeError('MNE only supports reading continuous'
