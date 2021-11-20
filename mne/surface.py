@@ -1925,7 +1925,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     return montage_warped, image_from, image_to
 
 
-_VOXELS_MAX = 1024  # define constant to avoid runtime issues
+_VOXELS_MAX = 3 ** 8  # define constant to avoid runtime issues
 
 
 @fill_doc
