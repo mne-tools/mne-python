@@ -282,6 +282,8 @@ def test_get_montage_volume_labels():
                        match='Coordinate frame not supported'):
         get_montage_volume_labels(
             fail_montage, 'sample', subjects_dir, aseg='aseg')
+    with pytest.raises(ValueError, match='between 0 and 10'):
+        get_montage_volume_labels(montage, 'sample', subjects_dir, dist=11)
 
 
 def test_voxel_neighbors():
