@@ -12,20 +12,20 @@ long as they abide by our `Code of Conduct`_.
 
 There are lots of ways to contribute, such as:
 
-- Use the software, and when you find bugs, tell us about them! We only fix the
-  bugs we know about. |bug|
-- Answer questions on `our user forum`_. |discourse|
-- Tell us about parts of the documentation that you find confusing or unclear.
-  |book|
-- Tell us about things you wish MNE-Python could do, or things it can do but
-  you wish they were easier. |hand-sparkles|
-- Improve the accessibility of our website. |universal-access|
-- Fix bugs. |fix-bug|
-- Fix mistakes in our function docstrings. |remove-format|
-- Implement new features. |magic|
-- Improve existing tutorials or write new ones. |pencil-alt|
-- Contribute to one of the many Python packages that MNE-Python depends on.
-  |python|
+- |bug| Use the software, and when you find bugs, tell us about them! We can
+  only fix the bugs we know about.
+- |discourse| Answer questions on `our user forum`_.
+- |book| Tell us about parts of the documentation that you find confusing or
+  unclear.
+- |hand-sparkles| Tell us about things you wish MNE-Python could do, or things
+  it can do but you wish they were easier.
+- |universal-access| Improve the accessibility of our website.
+- |fix-bug| Fix bugs.
+- |remove-format| Fix mistakes in our function documentation strings.
+- |magic| Implement new features.
+- |pencil-alt| Improve existing tutorials or write new ones.
+- |python| Contribute to one of the many Python packages that MNE-Python
+  depends on.
 
 To *report* bugs, *request* new features, or *ask about* confusing
 documentation, it's usually best to open a new issue on `our user forum`_
