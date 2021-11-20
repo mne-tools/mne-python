@@ -1657,7 +1657,7 @@ def _mesh_borders(tris, mask):
     return np.unique(edges.row[border_edges])
 
 
-def _marching_cubes(image, level, smooth=0):
+def _marching_cubes(image, level, smooth=0, remove_holes=True):
     """Compute marching cubes on a 3D image."""
     # vtkDiscreteMarchingCubes would be another option, but it merges
     # values at boundaries which is not what we want
@@ -1667,7 +1667,8 @@ def _marching_cubes(image, level, smooth=0):
     # we should probably use vtkFlyingEdges3D rather than vtkMarchingCubes.
     from vtk import (vtkImageData, vtkThreshold,
                      vtkWindowedSincPolyDataFilter, vtkDiscreteFlyingEdges3D,
-                     vtkGeometryFilter, vtkDataSetAttributes, VTK_DOUBLE)
+                     vtkGeometryFilter, vtkDataSetAttributes, VTK_DOUBLE,
+                     vtkImageDilateErode3D)
     from vtk.util import numpy_support
     _validate_type(smooth, 'numeric', smooth)
     smooth = float(smooth)
@@ -1696,6 +1697,15 @@ def _marching_cubes(image, level, smooth=0):
     imdata.SetOrigin([0, 0, 0])
     imdata.GetPointData().SetScalars(data_vtk)
 
+    if remove_holes:
+        filler = vtkImageDilateErode3D()
+        filler.SetInputData(imdata)
+        filler.SetDilateValue(-1.0)
+        filler.SetErodeValue(1.0)
+        filler.SetKernelSize(3, 3, 3)
+        filler.Update()
+        imdata = filler.GetOutput()
+
     # compute marching cubes
     mc.SetNumberOfContours(len(level))
     for li, lev in enumerate(level):
@@ -1704,7 +1714,7 @@ def _marching_cubes(image, level, smooth=0):
     sel_input = mc
     if smooth:
         smoother = vtkWindowedSincPolyDataFilter()
-        smoother.SetInputConnection(mc.GetOutputPort())
+        smoother.SetInputConnection(sel_input.GetOutputPort())
         smoother.SetNumberOfIterations(100)
         smoother.BoundarySmoothingOff()
         smoother.FeatureEdgeSmoothingOff()
