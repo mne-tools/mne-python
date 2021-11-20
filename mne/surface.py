@@ -1657,7 +1657,7 @@ def _mesh_borders(tris, mask):
     return np.unique(edges.row[border_edges])
 
 
-def _marching_cubes(image, level, smooth=0, remove_holes=True):
+def _marching_cubes(image, level, smooth=0, fill_holes=True):
     """Compute marching cubes on a 3D image."""
     # vtkDiscreteMarchingCubes would be another option, but it merges
     # values at boundaries which is not what we want
@@ -1697,7 +1697,7 @@ def _marching_cubes(image, level, smooth=0, remove_holes=True):
     imdata.SetOrigin([0, 0, 0])
     imdata.GetPointData().SetScalars(data_vtk)
 
-    if remove_holes:
+    if fill_holes:
         filler = vtkImageDilateErode3D()
         filler.SetInputData(imdata)
         filler.SetDilateValue(-1.0)
