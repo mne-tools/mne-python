@@ -890,7 +890,7 @@ class CoregistrationUI(HasTraits):
         )
         self._renderer._layout_add_widget(layout, hlayout)
 
-        layout = self._renderer._dock_add_group_box("View")
+        layout = self._renderer._dock_add_group_box("View options")
         self._widgets["orient_glyphs"] = self._renderer._dock_add_check_box(
             name="Orient glyphs",
             value=self._orient_glyphs,
