@@ -37,6 +37,5 @@ else  # standard doc build
 	python -m pip install --progress-bar off https://github.com/sphinx-gallery/sphinx-gallery/zipball/master https://github.com/pyvista/pyvista/zipball/main https://github.com/pyvista/pyvistaqt/zipball/main
 	# deal with comparisons and escapes (https://app.circleci.com/pipelines/github/mne-tools/mne-python/9686/workflows/3fd32b47-3254-4812-8b9a-8bab0d646d18/jobs/32934)
 	python -m pip install --upgrade quantities
-	python -m pip install https://github.com/nilearn/nilearn/zipball/cb5329d89bad6554f036c84634702cb67eb7d5ea
 fi
 python -m pip install -e .
