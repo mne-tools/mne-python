@@ -123,6 +123,7 @@ class CoregistrationUI(HasTraits):
         self._widgets = dict()
         self._verbose = verbose
         self._plot_locked = False
+        self._sync_locked = False
         self._head_geo = None
         self._coord_frame = "mri"
         self._mouse_no_mvt = -1
@@ -317,6 +318,10 @@ class CoregistrationUI(HasTraits):
         self._update_plot("mri_fids")
 
     def _set_parameter(self, value, mode_name, coord):
+        if self._sync_locked:
+            return
+        else:
+            self._sync_locked = True
         params = dict(
             rotation=self._coreg._rotation,
             translation=self._coreg._translation,
@@ -336,6 +341,7 @@ class CoregistrationUI(HasTraits):
             sca=params["scale"],
         )
         self._update_plot("sensors")
+        self._sync_locked = False
 
     def _set_icp_n_iterations(self, n_iterations):
         self._icp_n_iterations = n_iterations
