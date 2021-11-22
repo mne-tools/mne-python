@@ -61,7 +61,7 @@ class CoregistrationUI(HasTraits):
         Defaults to True.
     project_eeg : bool
         If True, project the EEG channels onto the head surface. Defaults to
-        True.
+        False.
     mark_inside : bool
         If True, mark the head shape points that are inside the head surface
         with a different color. Defaults to True.
@@ -137,7 +137,7 @@ class CoregistrationUI(HasTraits):
             bgcolor=_get_default(bgcolor, "grey"),
             orient_glyphs=_get_default(orient_glyphs, True),
             scale_by_distance=_get_default(scale_by_distance, True),
-            project_eeg=_get_default(project_eeg, True),
+            project_eeg=_get_default(project_eeg, False),
             mark_inside=_get_default(mark_inside, True),
             hpi_coils=_get_default(hpi_coils, True),
             head_shape_points=_get_default(head_shape_points, True),
