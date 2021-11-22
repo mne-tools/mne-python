@@ -12,10 +12,12 @@ long as they abide by our `Code of Conduct`_.
 
 There are lots of ways to contribute, such as:
 
+.. rst-class:: icon-bullets
+
 - |bug| Use the software, and when you find bugs, tell us about them! We can
   only fix the bugs we know about.
 - |discourse| Answer questions on `our user forum`_.
-- |book| Tell us about parts of the documentation that you find confusing or
+- |comment| Tell us about parts of the documentation that you find confusing or
   unclear.
 - |hand-sparkles| Tell us about things you wish MNE-Python could do, or things
   it can do but you wish they were easier.
