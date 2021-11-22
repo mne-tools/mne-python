@@ -8,7 +8,9 @@ sudo apt install libosmesa6 libglx-mesa0 libopengl0 libglx0 libdbus-1-3 \
 	libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
 	libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 \
 	graphviz optipng
-sudo ln -s /usr/lib/x86_64-linux-gnu/libxcb-util.so.0 /usr/lib/x86_64-linux-gnu/libxcb-util.so.1
+if [ ! -f /usr/lib/x86_64-linux-gnu/libxcb-util.so.1 ]; then
+	sudo ln -s /usr/lib/x86_64-linux-gnu/libxcb-util.so.0 /usr/lib/x86_64-linux-gnu/libxcb-util.so.1
+fi
 
 echo "Installing setuptools and sphinx"
 python -m pip install --progress-bar off --upgrade "pip!=20.3.0" setuptools wheel
