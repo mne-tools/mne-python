@@ -46,9 +46,7 @@ jobs:
             name: Set BASH_ENV
             command: |
               set -e
-              python3 -m venv /home/circleci/python_env
-              source /home/circleci/python_env/bin/activate
-              echo "source /home/circleci/python_env/bin/activate" >> $BASH_ENV
+              python3 -m venv ~/python_env --upgrade-deps
               echo "set -e" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
               echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
@@ -56,6 +54,8 @@ jobs:
               source tools/get_minimal_commands.sh
               echo "export MNE_3D_BACKEND=pyvistaqt" >> $BASH_ENV
               echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
+              echo "source ~/python_env/bin/activate" >> $BASH_ENV
+              ln -s ~/.local/bin/python ~/python_env/bin/python
               echo "BASH_ENV:"
               cat $BASH_ENV
               mkdir -p ~/mne_data
