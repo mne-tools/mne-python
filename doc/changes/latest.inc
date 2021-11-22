@@ -60,6 +60,8 @@ Bugs
 
 - :class:`mne.Report` now raises an exception if invalid tags were passed (:gh:`9970` by `Richard Höchenberger`_)
 
+- Fix bug in :func:`mne.get_montage_volume_labels` that set the maximum number of voxels to be included too low causing unwanted capping of the included voxel labels (:gh:`10021` by `Alex Rockhill`_)
+
 API changes
 ~~~~~~~~~~~
 - Nothing yet
