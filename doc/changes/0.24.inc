@@ -37,6 +37,8 @@ Version 0.24.1 (Unreleased)
 
 - Use single char alphanumeric suffix when renaming long channel names (over 15-characters) when writing to FIF format. (:gh:`10002` by `Luke Bloy`_)
 
+- Fix bug in :func:`mne.get_montage_volume_labels` that set the maximum number of voxels to be included too low causing unwanted capping of the included voxel labels (:gh:`10021` by `Alex Rockhill`_)
+
 .. _changes_0_24_0:
 
 Version 0.24.0 (2021-11-03)
