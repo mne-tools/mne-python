@@ -1247,7 +1247,7 @@ weight_norm : str | None
         The Neural Activity Index :footcite:`VanVeenEtAl1997` will be computed,
         which simply scales all values from ``'unit-noise-gain'`` by a fixed
         value.
-    - ``'unit-noise-gain-invariante'``
+    - ``'unit-noise-gain-invariant'``
         Compute a rotation-invariant normalization using the matrix square
         root. This differs from ``'unit-noise-gain'`` only when
         ``pick_ori='vector'``, creating a solution that:
