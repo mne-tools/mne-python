@@ -354,7 +354,7 @@ class PSDEstimator(TransformerMixin):
     normalization : str
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
-        the signal (as in nitime).
+        the signal (as in nitime package).
     %(verbose)s
 
     See Also
