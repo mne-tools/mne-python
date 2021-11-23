@@ -66,7 +66,7 @@ Overview of contribution process
 Changes to MNE-Python are typically made by `forking`_ the MNE-Python
 repository, making changes to your fork (usually by `cloning`_ it to your
 personal computer, making the changes locally, and then `pushing`_ the local
-changes up to your fork), and finally creating a `pull request`_ to incorporate
+changes up to your fork on GitHub), and finally creating a `pull request`_ to incorporate
 your changes back into the shared "upstream" version of the codebase.
 
 In general you'll be working with three different copies of the MNE-Python
@@ -357,7 +357,7 @@ related changes that are grouped together based on common goals (so that it's
 easier for their colleagues to understand and review the changes). For example,
 you might want to group all the code changes together in one commit, put new
 unit tests in another commit, and changes to the documentation in a third
-commit.  Git makes this easy(ish) with something called the `stage`_ (or
+commit.  Git makes this possible with something called the `stage`_ (or
 *staging area*). After you've made some changes to the codebase, you'll have
 what git calls "unstaged changes", which will show up with the `status`_
 command::
@@ -594,7 +594,7 @@ almost every PR).
 
 Lastly, make sure that your name is included in the list of authors in
 :file:`doc/changes/names.inc`, otherwise the documentation build will fail.
-To add an author name, simply append a line with the following pattern (note
+To add an author name, append a line with the following pattern (note
 how the syntax is different from that used in the changelog):
 
 .. code-block:: rst
@@ -618,7 +618,7 @@ where ``0000`` must be replaced with the respective GitHub pull request (PR)
 number. Mind the Oxford comma in the case of multiple contributors.
 
 Sometimes, changes that shall appear as a single changelog entry are spread out
-across multiple PRs. In this case, simply name all relevant PRs, separated by
+across multiple PRs. In this case, name all relevant PRs, separated by
 commas:
 
 .. code-block:: rst
@@ -828,22 +828,18 @@ to both visualization functions and tutorials/examples.
 Running the test suite
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Running the full test suite is as simple as running ::
-
-    $ make test
-
 .. sidebar:: pytest flags
 
-    The ``-x`` flag exits the pytest run as soon as the first test fails; this
-    can save some time if you are running an entire file's or module's worth of
-    tests instead of selecting just a single test as shown here.
+    The ``-x`` flag exits the pytest run when any test fails; this can speed
+    up debugging when running all tests in a file or module. 
 
     The ``--pdb`` flag will automatically start the python debugger upon test
     failure.
 
-from the ``mne-python`` root folder. Testing the entire module can be quite
+The full test suite can be run by calling ``make test`` from the
+``mne-python`` root folder. Testing the entire module can be quite
 slow, however, so to run individual tests while working on a new feature, you
-can run, e.g.::
+can run the following line::
 
     $ pytest mne/tests/test_evoked.py::test_io_evoked --verbose
 
