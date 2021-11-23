@@ -1611,8 +1611,8 @@ spatial_colors : bool
 docdict['normalization'] = """\
 normalization : 'full' | 'length'
     Normalization strategy. If "full", the PSD will be normalized by the
-    sampling rate as well as the length of the signal (as in :mod:`nitime`).
-    Default is ``'length'``.\
+    sampling rate as well as the length of the signal (as in
+    :ref:`Nitime <nitime:users-guide>`). Default is ``'length'``.\
 """
 
 # plot_projs_topomap
