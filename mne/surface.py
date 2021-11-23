@@ -1925,7 +1925,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     return montage_warped, image_from, image_to
 
 
-_VOXELS_MAX = 100  # define constant to avoid runtime issues
+_VOXELS_MAX = 1000  # define constant to avoid runtime issues
 
 
 @fill_doc
@@ -1957,6 +1957,9 @@ def get_montage_volume_labels(montage, subject, subjects_dir=None,
 
     _validate_type(montage, DigMontage, 'montage')
     _validate_type(dist, (int, float), 'dist')
+
+    if dist < 0 or dist > 10:
+        raise ValueError('`dist` must be between 0 and 10')
 
     aseg, aseg_data = _get_aseg(aseg, subject, subjects_dir)
 
