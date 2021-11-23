@@ -378,6 +378,7 @@ class CoregistrationUI(HasTraits):
                         "mark_inside", "show_hpi", "show_hsp", "show_eeg",
                         "high_res_head"]
         fid_widgets = ["fid_X", "fid_Y", "fid_Z", "fids_file", "fids"]
+        self._set_head_transparency(self._lock_fids)
         if self._lock_fids:
             self._forward_widget_command(view_widgets, "set_enabled", True)
             self._actors["msg"].SetInput("")
@@ -919,12 +920,6 @@ class CoregistrationUI(HasTraits):
             name="Show High Resolution Head",
             value=self._head_resolution,
             callback=self._set_head_resolution,
-            layout=layout
-        )
-        self._widgets["make_transparent"] = self._renderer._dock_add_check_box(
-            name="Make skin surface transparent",
-            value=self._head_transparency,
-            callback=self._set_head_transparency,
             layout=layout
         )
         self._renderer._dock_add_stretch()
