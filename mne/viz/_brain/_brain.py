@@ -2483,9 +2483,11 @@ class Brain(object):
         alpha : float in [0, 1]
             Alpha level to control opacity.
         %(smooth)s
-        fill_hole_size : float | None
-            The size of holes to remove in the mesh in mm. Default is None, no
-            holes are removed.
+        fill_hole_size : int | None
+            The size of holes to remove in the mesh in voxels. Default is None,
+            no holes are removed. Warning, this dilates the boundaries of the
+            surface by `fill_hole_size` number of voxels so use the minimal
+            size.
         legend : bool | None | dict
             Add a legend displaying the names of the ``labels``. Default (None)
             is ``True`` if the number of ``labels`` is 10 or fewer.
@@ -2519,7 +2521,7 @@ class Brain(object):
             lut_r = {v: k for k, v in lut.items()}
             labels = [lut_r[idx] for idx in DEFAULTS['volume_label_indices']]
 
-        _validate_type(fill_hole_size, (float, int, None), 'fill_hole_size')
+        _validate_type(fill_hole_size, (int, None), 'fill_hole_size')
         _validate_type(legend, (bool, None), 'legend')
         if legend is None:
             legend = len(labels) < 11

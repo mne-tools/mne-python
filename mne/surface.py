@@ -1657,7 +1657,7 @@ def _mesh_borders(tris, mask):
     return np.unique(edges.row[border_edges])
 
 
-def _marching_cubes(image, level, smooth=0, fill_hole_size=True):
+def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
     """Compute marching cubes on a 3D image."""
     # vtkDiscreteMarchingCubes would be another option, but it merges
     # values at boundaries which is not what we want
@@ -1665,10 +1665,11 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=True):
     # Also vtkDiscreteFlyingEdges3D should be faster.
     # If we ever want not-discrete (continuous/float) marching cubes,
     # we should probably use vtkFlyingEdges3D rather than vtkMarchingCubes.
-    from vtk import (vtkImageData, vtkThreshold, vtkFillHolesFilter,
+    from vtk import (vtkImageData, vtkThreshold,
                      vtkWindowedSincPolyDataFilter, vtkDiscreteFlyingEdges3D,
                      vtkGeometryFilter, vtkDataSetAttributes, VTK_DOUBLE)
     from vtk.util import numpy_support
+    from scipy.ndimage.morphology import binary_dilation
     _validate_type(smooth, 'numeric', smooth)
     smooth = float(smooth)
     if not 0 <= smooth < 1:
@@ -1677,17 +1678,30 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=True):
 
     if image.ndim != 3:
         raise ValueError(f'3D data must be supplied, got {image.shape}')
-    # force double as passing integer types directly can be problematic!
-    image_shape = image.shape
-    data_vtk = numpy_support.numpy_to_vtk(
-        image.ravel(), deep=True, array_type=VTK_DOUBLE)
-    del image
+
     level = np.array(level)
     if level.ndim != 1 or level.size == 0 or level.dtype.kind not in 'ui':
         raise TypeError(
             'level must be non-empty numeric or 1D array-like of int, '
             f'got {level.ndim}D array-like of {level.dtype} with '
             f'{level.size} elements')
+
+    # fill holes
+    if fill_hole_size is not None:
+        image = image.copy()  # don't modify original
+        for val in level:
+            bin_image = image == val
+            mask = image == 0  # don't go into other areas
+            bin_image = binary_dilation(bin_image, iterations=fill_hole_size,
+                                        mask=mask)
+            image[bin_image] = val
+
+    # force double as passing integer types directly can be problematic!
+    image_shape = image.shape
+    data_vtk = numpy_support.numpy_to_vtk(
+        image.ravel(), deep=True, array_type=VTK_DOUBLE)
+    del image
+
     mc = vtkDiscreteFlyingEdges3D()
     # create image
     imdata = vtkImageData()
@@ -1723,8 +1737,6 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=True):
         0, 0, 0, imdata.FIELD_ASSOCIATION_POINTS, dsa.SCALARS)
     geometry = vtkGeometryFilter()
     geometry.SetInputConnection(selector.GetOutputPort())
-    if fill_hole_size is not None:  # prep to fill holes
-        filler = vtkFillHolesFilter()
 
     out = list()
     for val in level:
@@ -1738,11 +1750,6 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=True):
             selector.SetUpperThreshold(val)
         geometry.Update()
         polydata = geometry.GetOutput()
-        if fill_hole_size is not None:
-            filler.SetInputData(polydata)
-            filler.SetHoleSize(fill_hole_size)
-            filler.Update()
-            polydata = filler.GetOutput()
         rr = numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())
         tris = numpy_support.vtk_to_numpy(
             polydata.GetPolys().GetConnectivityArray()).reshape(-1, 3)

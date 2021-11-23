@@ -241,13 +241,11 @@ def test_marching_cubes(dtype, value, smooth):
     assert_allclose(verts.sum(axis=0), [14700, 14700, 14700], rtol=rtol)
     assert_allclose(triangles.sum(axis=0), [363402, 360865, 350588])
     # test fill holes
-    data[24:26, 24:26, 24:26] = 0
+    data[24:27, 24:27, 24:27] = 0
     verts, triangles = _marching_cubes(data, level, smooth=smooth,
                                        fill_hole_size=2)[0]
-    # verts and faces are rather large so use checksum
-    rtol = 1e-2 if smooth else 1e-9
-    assert_allclose(verts.sum(axis=0), [14700, 14700, 14700], rtol=rtol)
-    assert_allclose(triangles.sum(axis=0), [363402, 360865, 350588])
+    # check that no surfaces in the middle
+    assert np.linalg.norm(verts - np.array([25, 25, 25]), axis=1).min() > 4
     # problematic values
     with pytest.raises(TypeError, match='1D array-like'):
         _marching_cubes(data, ['foo'])
