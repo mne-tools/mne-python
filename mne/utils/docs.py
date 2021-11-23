@@ -1608,6 +1608,12 @@ docdict["plot_psd_spatial_colors"] = """
 spatial_colors : bool
     Whether to use spatial colors. Only used when ``average=False``.
 """
+docdict['normalization'] = """\
+normalization : 'full' | 'length'
+    Normalization strategy. If "full", the PSD will be normalized by the
+    sampling rate as well as the length of the signal (as in :mod:`nitime`).
+    Default is `'length'`.\
+"""
 
 # plot_projs_topomap
 docdict["proj_topomap_kwargs"] = """
