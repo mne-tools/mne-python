@@ -2465,7 +2465,7 @@ class Brain(object):
 
     @fill_doc
     def add_volume_labels(self, aseg='aparc+aseg', labels=None, colors=None,
-                          alpha=0.5, smooth=0.9, fill_holes=False,
+                          alpha=0.5, smooth=0.9, fill_hole_size=None,
                           legend=None):
         """Add labels to the rendering from an anatomical segmentation.
 
@@ -2483,9 +2483,9 @@ class Brain(object):
         alpha : float in [0, 1]
             Alpha level to control opacity.
         %(smooth)s
-        fill_holes : bool
-            Whether to use binary opening and closing to remove holes.
-            Default False.
+        fill_hole_size : float | None
+            The size of holes to remove in the mesh in mm. Default is None, no
+            holes are removed.
         legend : bool | None | dict
             Add a legend displaying the names of the ``labels``. Default (None)
             is ``True`` if the number of ``labels`` is 10 or fewer.
@@ -2519,6 +2519,7 @@ class Brain(object):
             lut_r = {v: k for k, v in lut.items()}
             labels = [lut_r[idx] for idx in DEFAULTS['volume_label_indices']]
 
+        _validate_type(fill_hole_size, (float, int, None), 'fill_hole_size')
         _validate_type(legend, (bool, None), 'legend')
         if legend is None:
             legend = len(labels) < 11
@@ -2531,7 +2532,7 @@ class Brain(object):
                   for ci, color in enumerate(colors)]
         surfs = _marching_cubes(
             aseg_data, [lut[label] for label in labels], smooth=smooth,
-            fill_holes=fill_holes)
+            fill_hole_size=fill_hole_size)
         for label, color, (verts, triangles) in zip(labels, colors, surfs):
             if len(verts) == 0:  # not in aseg vals
                 warn(f'Value {lut[label]} not found for label '

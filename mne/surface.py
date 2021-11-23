@@ -1657,7 +1657,7 @@ def _mesh_borders(tris, mask):
     return np.unique(edges.row[border_edges])
 
 
-def _marching_cubes(image, level, smooth=0, fill_holes=True):
+def _marching_cubes(image, level, smooth=0, fill_hole_size=True):
     """Compute marching cubes on a 3D image."""
     # vtkDiscreteMarchingCubes would be another option, but it merges
     # values at boundaries which is not what we want
@@ -1665,10 +1665,9 @@ def _marching_cubes(image, level, smooth=0, fill_holes=True):
     # Also vtkDiscreteFlyingEdges3D should be faster.
     # If we ever want not-discrete (continuous/float) marching cubes,
     # we should probably use vtkFlyingEdges3D rather than vtkMarchingCubes.
-    from vtk import (vtkImageData, vtkThreshold,
+    from vtk import (vtkImageData, vtkThreshold, vtkFillHolesFilter,
                      vtkWindowedSincPolyDataFilter, vtkDiscreteFlyingEdges3D,
-                     vtkGeometryFilter, vtkDataSetAttributes, VTK_DOUBLE,
-                     vtkImageDilateErode3D)
+                     vtkGeometryFilter, vtkDataSetAttributes, VTK_DOUBLE)
     from vtk.util import numpy_support
     _validate_type(smooth, 'numeric', smooth)
     smooth = float(smooth)
@@ -1697,15 +1696,6 @@ def _marching_cubes(image, level, smooth=0, fill_holes=True):
     imdata.SetOrigin([0, 0, 0])
     imdata.GetPointData().SetScalars(data_vtk)
 
-    if fill_holes:
-        filler = vtkImageDilateErode3D()
-        filler.SetInputData(imdata)
-        filler.SetDilateValue(-1.0)
-        filler.SetErodeValue(1.0)
-        filler.SetKernelSize(3, 3, 3)
-        filler.Update()
-        imdata = filler.GetOutput()
-
     # compute marching cubes
     mc.SetNumberOfContours(len(level))
     for li, lev in enumerate(level):
@@ -1733,6 +1723,9 @@ def _marching_cubes(image, level, smooth=0, fill_holes=True):
         0, 0, 0, imdata.FIELD_ASSOCIATION_POINTS, dsa.SCALARS)
     geometry = vtkGeometryFilter()
     geometry.SetInputConnection(selector.GetOutputPort())
+    if fill_hole_size is not None:  # prep to fill holes
+        filler = vtkFillHolesFilter()
+
     out = list()
     for val in level:
         try:
@@ -1745,6 +1738,11 @@ def _marching_cubes(image, level, smooth=0, fill_holes=True):
             selector.SetUpperThreshold(val)
         geometry.Update()
         polydata = geometry.GetOutput()
+        if fill_hole_size is not None:
+            filler.SetInputData(polydata)
+            filler.SetHoleSize(fill_hole_size)
+            filler.Update()
+            polydata = filler.GetOutput()
         rr = numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())
         tris = numpy_support.vtk_to_numpy(
             polydata.GetPolys().GetConnectivityArray()).reshape(-1, 3)
