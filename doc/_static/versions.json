@@ -1,0 +1,46 @@
+[
+    {
+        "name": "v0.24 (devel)",
+        "version": "dev"
+    },
+    {
+        "name": "v0.23 (stable)",
+        "version": "stable"
+    },
+    {
+        "version": "0.22"
+    },
+    {
+        "version": "0.21"
+    },
+    {
+        "version": "0.20"
+    },
+    {
+        "version": "0.19"
+    },
+    {
+        "version": "0.18"
+    },
+    {
+        "version": "0.17"
+    },
+    {
+        "version": "0.16"
+    },
+    {
+        "version": "0.15"
+    },
+    {
+        "version": "0.14"
+    },
+    {
+        "version": "0.13"
+    },
+    {
+        "version": "0.12"
+    },
+    {
+        "version": "0.11"
+    }
+]

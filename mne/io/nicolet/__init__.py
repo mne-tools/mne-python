@@ -2,6 +2,6 @@
 
 # Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from .nicolet import read_raw_nicolet

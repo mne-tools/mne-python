@@ -3,11 +3,12 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Lorenzo De Santis <lorenzo.de-santis@u-psud.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
 
+from collections import OrderedDict
 from functools import partial
 import glob
 import os
@@ -16,7 +17,6 @@ import shutil
 from copy import deepcopy
 
 import numpy as np
-from scipy import linalg
 
 from .io.constants import FIFF, FWD
 from .io._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
@@ -28,12 +28,13 @@ from .io.tree import dir_tree_find
 from .io.open import fiff_open
 from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri,
-                      _fast_cross_nd_sum, _get_solids)
+                      _fast_cross_nd_sum, _get_solids, _complete_sphere_surf,
+                      decimate_surface)
 from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
-                    _check_fname, has_nibabel, _check_option)
-from .fixes import einsum
+                    _check_fname, has_nibabel, _check_option, path_like,
+                    _on_missing)
 from .externals.h5io import write_hdf5, read_hdf5
 
 
@@ -103,9 +104,9 @@ def _lin_pot_coeff(fros, tri_rr, tri_nn, tri_area):
     l2 = np.linalg.norm(v2, axis=1)
     l3 = np.linalg.norm(v3, axis=1)
     ss = l1 * l2 * l3
-    ss += einsum('ij,ij,i->i', v1, v2, l3)
-    ss += einsum('ij,ij,i->i', v1, v3, l2)
-    ss += einsum('ij,ij,i->i', v2, v3, l1)
+    ss += np.einsum('ij,ij,i->i', v1, v2, l3)
+    ss += np.einsum('ij,ij,i->i', v1, v3, l2)
+    ss += np.einsum('ij,ij,i->i', v2, v3, l1)
     solids = np.arctan2(triples, ss)
 
     # We *could* subselect the good points from v1, v2, v3, triples, solids,
@@ -177,8 +178,8 @@ def _fwd_bem_lin_pot_coeff(surfs):
         rr_ord = np.arange(nps[si_1])
         for si_2, surf2 in enumerate(surfs):
             logger.info("        %s (%d) -> %s (%d) ..." %
-                        (_surf_name[surf1['id']], nps[si_1],
-                         _surf_name[surf2['id']], nps[si_2]))
+                        (_bem_surf_name[surf1['id']], nps[si_1],
+                         _bem_surf_name[surf2['id']], nps[si_2]))
             tri_rr = surf2['rr'][surf2['tris']]
             tri_nn = surf2['tri_nn']
             tri_area = surf2['tri_area']
@@ -228,7 +229,7 @@ def _fwd_bem_multi_solution(solids, gamma, nps):
             slice_k = slice(offsets[si_2], offsets[si_2 + 1])
             solids[slice_j, slice_k] = defl - solids[slice_j, slice_k] * mult
     solids += np.eye(n_tot)
-    return linalg.inv(solids, overwrite_a=True)
+    return np.linalg.inv(solids)
 
 
 def _fwd_bem_homog_solution(solids, nps):
@@ -264,12 +265,9 @@ def _check_complete_surface(surf, copy=False, incomplete='raise', extra=''):
     if len(fewer) > 0:
         msg = ('Surface {} has topological defects: {:.0f} / {:.0f} vertices '
                'have fewer than three neighboring triangles [{}]{}'
-               .format(_surf_name[surf['id']], len(fewer), surf['ntri'],
+               .format(_bem_surf_name[surf['id']], len(fewer), surf['ntri'],
                        ', '.join(str(f) for f in fewer), extra))
-        if incomplete == 'raise':
-            raise RuntimeError(msg)
-        else:
-            warn(msg)
+        _on_missing(on_missing=incomplete, msg=msg, name='on_defects')
     return surf
 
 
@@ -331,11 +329,7 @@ def make_bem_solution(surfs, verbose=None):
     .. versionadded:: 0.10.0
     """
     logger.info('Approximation method : Linear collocation\n')
-    if isinstance(surfs, str):
-        # Load the surfaces
-        logger.info('Loading surfaces...')
-        surfs = read_bem_surfaces(surfs)
-    bem = ConductorModel(is_sphere=False, surfs=surfs)
+    bem = _ensure_bem_surfaces(surfs)
     _add_gamma_multipliers(bem)
     if len(bem['surfs']) == 3:
         logger.info('Three-layer model surfaces loaded.')
@@ -421,35 +415,28 @@ def _assert_complete_surface(surf, incomplete='raise'):
     # Center of mass....
     cm = surf['rr'].mean(axis=0)
     logger.info('%s CM is %6.2f %6.2f %6.2f mm' %
-                (_surf_name[surf['id']],
+                (_bem_surf_name[surf['id']],
                  1000 * cm[0], 1000 * cm[1], 1000 * cm[2]))
     tot_angle = _get_solids(surf['rr'][surf['tris']], cm[np.newaxis, :])[0]
     prop = tot_angle / (2 * np.pi)
     if np.abs(prop - 1.0) > 1e-5:
-        msg = ('Surface %s is not complete (sum of solid angles '
-               'yielded %g, should be 1.)'
-               % (_surf_name[surf['id']], prop))
-        if incomplete == 'raise':
-            raise RuntimeError(msg)
-        else:
-            warn(msg)
-
-
-_surf_name = {
-    FIFF.FIFFV_BEM_SURF_ID_HEAD: 'outer skin ',
-    FIFF.FIFFV_BEM_SURF_ID_SKULL: 'outer skull',
-    FIFF.FIFFV_BEM_SURF_ID_BRAIN: 'inner skull',
-    FIFF.FIFFV_BEM_SURF_ID_UNKNOWN: 'unknown    ',
-}
+        msg = (f'Surface {_bem_surf_name[surf["id"]]} is not complete (sum of '
+               f'solid angles yielded {prop}, should be 1.)')
+        _on_missing(
+            incomplete, msg, name='incomplete', error_klass=RuntimeError)
 
 
 def _assert_inside(fro, to):
     """Check one set of points is inside a surface."""
     # this is "is_inside" in surface_checks.c
+    fro_name = _bem_surf_name[fro["id"]]
+    to_name = _bem_surf_name[to["id"]]
+    logger.info(
+        f'Checking that surface {fro_name} is inside surface {to_name} ...')
     tot_angle = _get_solids(to['rr'][to['tris']], fro['rr'])
     if (np.abs(tot_angle / (2 * np.pi) - 1.0) > 1e-5).any():
-        raise RuntimeError('Surface %s is not completely inside surface %s'
-                           % (_surf_name[fro['id']], _surf_name[to['id']]))
+        raise RuntimeError(
+            f'Surface {fro_name} is not completely inside surface {to_name}')
 
 
 def _check_surfaces(surfs, incomplete='raise'):
@@ -458,8 +445,6 @@ def _check_surfaces(surfs, incomplete='raise'):
         _assert_complete_surface(surf, incomplete=incomplete)
     # Then check the topology
     for surf_1, surf_2 in zip(surfs[:-1], surfs[1:]):
-        logger.info('Checking that %s surface is inside %s surface...' %
-                    (_surf_name[surf_2['id']], _surf_name[surf_1['id']]))
         _assert_inside(surf_2, surf_1)
 
 
@@ -467,10 +452,10 @@ def _check_surface_size(surf):
     """Check that the coordinate limits are reasonable."""
     sizes = surf['rr'].max(axis=0) - surf['rr'].min(axis=0)
     if (sizes < 0.05).any():
-        raise RuntimeError('Dimensions of the surface %s seem too small '
-                           '(%9.5f mm). Maybe the the unit of measure is '
-                           'meters instead of mm' %
-                           (_surf_name[surf['id']], 1000 * sizes.min()))
+        raise RuntimeError(
+            f'Dimensions of the surface {_bem_surf_name[surf["id"]]} seem too '
+            f'small ({1000 * sizes.min():9.5f}). Maybe the unit of measure'
+            ' is meters instead of mm')
 
 
 def _check_thicknesses(surfs):
@@ -479,12 +464,11 @@ def _check_thicknesses(surfs):
         min_dist = _compute_nearest(surf_1['rr'], surf_2['rr'],
                                     return_dists=True)[1]
         min_dist = min_dist.min()
-        logger.info('Checking distance between %s and %s surfaces...' %
-                    (_surf_name[surf_1['id']], _surf_name[surf_2['id']]))
-        logger.info('Minimum distance between the %s and %s surfaces is '
-                    'approximately %6.1f mm' %
-                    (_surf_name[surf_1['id']], _surf_name[surf_2['id']],
-                     1000 * min_dist))
+        fro = _bem_surf_name[surf_1['id']]
+        to = _bem_surf_name[surf_2['id']]
+        logger.info(f'Checking distance between {fro} and {to} surfaces...')
+        logger.info(f'Minimum distance between the {fro} and {to} surfaces is '
+                    f'approximately {1000 * min_dist:6.1f} mm')
 
 
 def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
@@ -634,6 +618,7 @@ def _fwd_eeg_get_multi_sphere_model_coeffs(m, n_terms):
 
 def _compose_linear_fitting_data(mu, u):
     """Get the linear fitting data."""
+    from scipy import linalg
     k1 = np.arange(1, u['nterms'])
     mu1ns = mu[0] ** k1
     # data to be fitted
@@ -731,9 +716,7 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
         If float, compute spherical shells for EEG using the given radius.
         If 'auto', estimate an appropriate radius from the dig points in Info,
         If None, exclude shells (single layer sphere model).
-    info : instance of Info | None
-        Measurement info. Only needed if ``r0`` or ``head_radius`` are
-        ``'auto'``.
+    %(info)s Only needed if ``r0`` or ``head_radius`` are ``'auto'``.
     relative_radii : array-like
         Relative radii for the spherical shells.
     sigmas : array-like
@@ -839,18 +822,12 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
 
     Parameters
     ----------
-    info : instance of Info
-        Measurement info.
+    %(info_not_none)s
     %(dig_kinds)s
     units : str
         Can be "m" (default) or "mm".
 
         .. versionadded:: 0.12
-    move_origin : bool
-        If True, allow the origin to vary. Otherwise, fix it at (0, 0, 0).
-
-        .. versionadded:: 0.20
-
     %(verbose)s
 
     Returns
@@ -885,8 +862,7 @@ def get_fitting_dig(info, dig_kinds='auto', exclude_frontal=True,
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
     %(dig_kinds)s
     %(exclude_frontal)s
         Default is True.
@@ -1053,8 +1029,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     subject : str
         Subject name.
     %(subjects_dir)s
-    overwrite : bool
-        Write over existing files.
+    %(overwrite)s
     volume : str
         Defaults to T1.
     atlas : bool
@@ -1062,7 +1037,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     gcaatlas : bool
         Specify the --brain_atlas option for mri_watershed.
     preflood : int
-        Change the preflood height
+        Change the preflood height.
     show : bool
         Show surfaces to visually inspect all three BEM surfaces (recommended).
 
@@ -1231,7 +1206,8 @@ def _extract_volume_info(mgz):
 # Read
 
 @verbose
-def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
+def read_bem_surfaces(fname, patch_stats=False, s_id=None, on_defects='raise',
+                      verbose=None):
     """Read the BEM surfaces from a FIF file.
 
     Parameters
@@ -1244,6 +1220,9 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
         If int, only read and return the surface with the given s_id.
         An error will be raised if it doesn't exist. If None, all
         surfaces are read and returned.
+    %(on_defects)s
+
+        .. versionadded:: 0.23
     %(verbose)s
 
     Returns
@@ -1267,7 +1246,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
         raise ValueError('surface with id %d not found' % s_id)
     for this in surf:
         if patch_stats or this['nn'] is None:
-            _check_complete_surface(this)
+            _check_complete_surface(this, incomplete=on_defects)
     return surf[0] if s_id is not None else surf
 
 
@@ -1364,7 +1343,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     if tag is None:
         raise ValueError('Vertex data not found')
 
-    res['rr'] = tag.data.astype(np.float64)  # XXX : double because of mayavi
+    res['rr'] = tag.data.astype(np.float64)
     if res['rr'].shape[0] != res['np']:
         raise ValueError('Vertex information is incorrect')
 
@@ -1374,7 +1353,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     if tag is None:
         res['nn'] = None
     else:
-        res['nn'] = tag.data.copy()
+        res['nn'] = tag.data.astype(np.float64)
         if res['nn'].shape[0] != res['np']:
             raise ValueError('Vertex normal information is incorrect')
 
@@ -1504,22 +1483,56 @@ def _add_gamma_multipliers(bem):
                     (sigma[1:] + sigma[:-1])[:, np.newaxis])
 
 
-_surf_dict = {'inner_skull': FIFF.FIFFV_BEM_SURF_ID_BRAIN,
-              'outer_skull': FIFF.FIFFV_BEM_SURF_ID_SKULL,
-              'head': FIFF.FIFFV_BEM_SURF_ID_HEAD}
+# In our BEM code we do not model the CSF so we assign the innermost surface
+# the id BRAIN. Our 4-layer sphere we model CSF (at least by default), so when
+# searching for and referring to surfaces we need to keep track of this.
+_sm_surf_dict = OrderedDict([
+    ('brain', FIFF.FIFFV_BEM_SURF_ID_BRAIN),
+    ('inner_skull', FIFF.FIFFV_BEM_SURF_ID_CSF),
+    ('outer_skull', FIFF.FIFFV_BEM_SURF_ID_SKULL),
+    ('head', FIFF.FIFFV_BEM_SURF_ID_HEAD),
+])
+_bem_surf_dict = {
+    'inner_skull': FIFF.FIFFV_BEM_SURF_ID_BRAIN,
+    'outer_skull': FIFF.FIFFV_BEM_SURF_ID_SKULL,
+    'head': FIFF.FIFFV_BEM_SURF_ID_HEAD,
+}
+_bem_surf_name = {
+    FIFF.FIFFV_BEM_SURF_ID_BRAIN: 'inner skull',
+    FIFF.FIFFV_BEM_SURF_ID_SKULL: 'outer skull',
+    FIFF.FIFFV_BEM_SURF_ID_HEAD: 'outer skin ',
+    FIFF.FIFFV_BEM_SURF_ID_UNKNOWN: 'unknown    ',
+}
+_sm_surf_name = {
+    FIFF.FIFFV_BEM_SURF_ID_BRAIN: 'brain',
+    FIFF.FIFFV_BEM_SURF_ID_CSF: 'csf',
+    FIFF.FIFFV_BEM_SURF_ID_SKULL: 'outer skull',
+    FIFF.FIFFV_BEM_SURF_ID_HEAD: 'outer skin ',
+    FIFF.FIFFV_BEM_SURF_ID_UNKNOWN: 'unknown    ',
+}
 
 
 def _bem_find_surface(bem, id_):
-    """Find surface from already-loaded BEM."""
+    """Find surface from already-loaded conductor model."""
+    if bem['is_sphere']:
+        _surf_dict = _sm_surf_dict
+        _name_dict = _sm_surf_name
+        kind = 'Sphere model'
+        tri = 'boundary'
+    else:
+        _surf_dict = _bem_surf_dict
+        _name_dict = _bem_surf_name
+        kind = 'BEM'
+        tri = 'triangulation'
     if isinstance(id_, str):
         name = id_
         id_ = _surf_dict[id_]
     else:
-        name = _surf_name[id_]
+        name = _name_dict[id_]
+    kind = 'Sphere model' if bem['is_sphere'] else 'BEM'
     idx = np.where(np.array([s['id'] for s in bem['surfs']]) == id_)[0]
     if len(idx) != 1:
-        raise RuntimeError('BEM model does not have the %s triangulation'
-                           % name.replace('_', ' '))
+        raise RuntimeError(f'{kind} does not have the {name} {tri}')
     return bem['surfs'][idx[0]]
 
 
@@ -1537,8 +1550,7 @@ def write_bem_surfaces(fname, surfs, overwrite=False, verbose=None):
         Filename to write. Can end with ``.h5`` to write using HDF5.
     surfs : dict | list of dict
         The surfaces, or a single surface.
-    overwrite : bool
-        If True (default False), overwrite the file.
+    %(overwrite)s
     %(verbose)s
     """
     if isinstance(surfs, dict):
@@ -1554,6 +1566,30 @@ def write_bem_surfaces(fname, surfs, overwrite=False, verbose=None):
             _write_bem_surfaces_block(fid, surfs)
             end_block(fid, FIFF.FIFFB_BEM)
             end_file(fid)
+
+
+@verbose
+def write_head_bem(fname, rr, tris, on_defects='raise', overwrite=False,
+                   verbose=None):
+    """Write a head surface to a fiff file.
+
+    Parameters
+    ----------
+    fname : str
+        Filename to write.
+    rr : array, shape (n_vertices, 3)
+        Coordinate points in the MRI coordinate system.
+    tris : ndarray of int, shape (n_tris, 3)
+        Triangulation (each line contains indices for three points which
+        together form a face).
+    %(on_defects)s
+    %(overwrite)s
+    %(verbose)s
+    """
+    surf = _surfaces_to_bem([dict(rr=rr, tris=tris)],
+                            [FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], rescale=False,
+                            incomplete=on_defects)
+    write_bem_surfaces(fname, surf, overwrite=overwrite)
 
 
 def _write_bem_surfaces_block(fid, surfs):
@@ -1584,8 +1620,7 @@ def write_bem_solution(fname, bem, overwrite=False, verbose=None):
         The filename to use. Can end with ``.h5`` to write using HDF5.
     bem : instance of ConductorModel
         The BEM model with solution to save.
-    overwrite : bool
-        If True (default False), overwrite the file.
+    %(overwrite)s
     %(verbose)s
 
     See Also
@@ -1826,6 +1861,10 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         .. versionadded:: 0.18
     %(verbose)s
 
+    See Also
+    --------
+    convert_flash_mris
+
     Notes
     -----
     This program assumes that FreeSurfer is installed and sourced properly.
@@ -1833,10 +1872,6 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     This function extracts the BEM surfaces (outer skull, inner skull, and
     outer skin) from multiecho FLASH MRI data with spin angles of 5 and 30
     degrees, in mgz format.
-
-    See Also
-    --------
-    convert_flash_mris
     """
     from .viz.misc import plot_bem
 
@@ -1990,3 +2025,131 @@ def _symlink(src, dest, copy=False):
             copy = True
     if copy:
         shutil.copy(src, dest)
+
+
+def _ensure_bem_surfaces(bem, extra_allow=(), name='bem'):
+    # by default only allow path-like and list, but handle None and
+    # ConductorModel properly if need be. Always return a ConductorModel
+    # even though it's incomplete (and might have is_sphere=True).
+    assert all(extra in (None, ConductorModel) for extra in extra_allow)
+    allowed = ('path-like', list) + extra_allow
+    _validate_type(bem, allowed, name)
+    if isinstance(bem, path_like):
+        # Load the surfaces
+        logger.info(f'Loading BEM surfaces from {str(bem)}...')
+        bem = read_bem_surfaces(bem)
+        bem = ConductorModel(is_sphere=False, surfs=bem)
+    elif isinstance(bem, list):
+        for ii, this_surf in enumerate(bem):
+            _validate_type(this_surf, dict, f'{name}[{ii}]')
+    if isinstance(bem, list):
+        bem = ConductorModel(is_sphere=False, surfs=bem)
+    # add surfaces in the spherical case
+    if isinstance(bem, ConductorModel) and bem['is_sphere']:
+        bem = bem.copy()
+        bem['surfs'] = []
+        if len(bem['layers']) == 4:
+            for idx, id_ in enumerate(_sm_surf_dict.values()):
+                bem['surfs'].append(_complete_sphere_surf(
+                    bem, idx, 4, complete=False))
+                bem['surfs'][-1]['id'] = id_
+
+    return bem
+
+
+def _check_file(fname, overwrite):
+    """Prevent overwrites."""
+    if op.isfile(fname) and not overwrite:
+        raise IOError(f'File {fname} exists, use --overwrite to overwrite it')
+
+
+@verbose
+def make_scalp_surfaces(subject, subjects_dir=None, force=True,
+                        overwrite=False, no_decimate=False, verbose=None):
+    """Create surfaces of the scalp and neck.
+
+    The scalp surfaces are required for using the MNE coregistration GUI, and
+    allow for a visualization of the alignment between anatomy and channel
+    locations.
+
+    Parameters
+    ----------
+    %(subject)s
+    %(subjects_dir)s
+    force : bool
+        Force creation of the surface even if it has some topological defects.
+        Defaults to ``True``.
+    %(overwrite)s
+    no_decimate : bool
+        Disable the "medium" and "sparse" decimations. In this case, only
+        a "dense" surface will be generated. Defaults to ``False``, i.e.,
+        create surfaces for all three types of decimations.
+    %(verbose)s
+    """
+    this_env = deepcopy(os.environ)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    this_env['SUBJECTS_DIR'] = subjects_dir
+    this_env['SUBJECT'] = subject
+    if 'FREESURFER_HOME' not in this_env:
+        raise RuntimeError('The FreeSurfer environment needs to be set up '
+                           'for this script')
+    incomplete = 'warn' if force else 'raise'
+    subj_path = op.join(subjects_dir, subject)
+    if not op.exists(subj_path):
+        raise RuntimeError('%s does not exist. Please check your subject '
+                           'directory path.' % subj_path)
+
+    mri = 'T1.mgz' if op.exists(op.join(subj_path, 'mri', 'T1.mgz')) else 'T1'
+
+    logger.info('1. Creating a dense scalp tessellation with mkheadsurf...')
+
+    def check_seghead(surf_path=op.join(subj_path, 'surf')):
+        surf = None
+        for k in ['lh.seghead', 'lh.smseghead']:
+            this_surf = op.join(surf_path, k)
+            if op.exists(this_surf):
+                surf = this_surf
+                break
+        return surf
+
+    my_seghead = check_seghead()
+    if my_seghead is None:
+        run_subprocess(['mkheadsurf', '-subjid', subject, '-srcvol', mri],
+                       env=this_env)
+
+    surf = check_seghead()
+    if surf is None:
+        raise RuntimeError('mkheadsurf did not produce the standard output '
+                           'file.')
+
+    bem_dir = op.join(subjects_dir, subject, 'bem')
+    if not op.isdir(bem_dir):
+        os.mkdir(bem_dir)
+    fname_template = op.join(bem_dir, '%s-head-{}.fif' % subject)
+    dense_fname = fname_template.format('dense')
+    logger.info('2. Creating %s ...' % dense_fname)
+    _check_file(dense_fname, overwrite)
+    # Helpful message if we get a topology error
+    msg = '\n\nConsider using --force as an additional input parameter.'
+    surf = _surfaces_to_bem(
+        [surf], [FIFF.FIFFV_BEM_SURF_ID_HEAD], [1],
+        incomplete=incomplete, extra=msg)[0]
+    write_bem_surfaces(dense_fname, surf, overwrite=overwrite)
+    levels = 'medium', 'sparse'
+    tris = [] if no_decimate else [30000, 2500]
+    if os.getenv('_MNE_TESTING_SCALP', 'false') == 'true':
+        tris = [len(surf['tris'])]  # don't actually decimate
+    for ii, (n_tri, level) in enumerate(zip(tris, levels), 3):
+        logger.info('%i. Creating %s tessellation...' % (ii, level))
+        logger.info('%i.1 Decimating the dense tessellation...' % ii)
+        points, tris = decimate_surface(points=surf['rr'],
+                                        triangles=surf['tris'],
+                                        n_triangles=n_tri)
+        dec_fname = fname_template.format(level)
+        logger.info('%i.2 Creating %s' % (ii, dec_fname))
+        _check_file(dec_fname, overwrite)
+        dec_surf = _surfaces_to_bem(
+            [dict(rr=points, tris=tris)],
+            [FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], rescale=False,
+            incomplete=incomplete, extra=msg)
+        write_bem_surfaces(dec_fname, dec_surf, overwrite=overwrite)

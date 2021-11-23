@@ -11,10 +11,11 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     ----------
     x0 : 1d array
         A real vector from the maxima will be found (required).
-    thresh : float
+    thresh : float | None
         The amount above surrounding data for a peak to be
-        identified (default = (max(x0)-min(x0))/4). Larger values mean
-        the algorithm is more selective in finding peaks.
+        identified. Larger values mean the algorithm is more selective in
+        finding peaks. If ``None``, use the default of
+        ``(max(x0) - min(x0)) / 4``.
     extrema : {-1, 1}
         1 if maxima are desired, -1 if minima are desired
         (default = maxima, 1).

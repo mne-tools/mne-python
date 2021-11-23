@@ -1,29 +1,30 @@
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Britta Westner <britta.wstnr@gmail.com>
 #
-# License: BSD 3 clause
+# License: BSD-3-Clause
 
 import copy as cp
 import os.path as op
 
 import pytest
-from numpy.testing import assert_array_equal, assert_allclose
+from numpy.testing import (assert_array_equal, assert_allclose,
+                           assert_array_less)
 import numpy as np
 
 import mne
-from mne.datasets import testing
 from mne.beamformer import (make_dics, apply_dics, apply_dics_epochs,
-                            apply_dics_csd, tf_dics, read_beamformer,
-                            Beamformer)
+                            apply_dics_csd, read_beamformer, Beamformer)
 from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.beamformer._dics import _prepare_noise_csd
-from mne.time_frequency import csd_morlet
-from mne.utils import object_diff, requires_h5py, catch_logging
+from mne.beamformer.tests.test_lcmv import _assert_weight_norm
+from mne.datasets import testing
+from mne.io.constants import FIFF
 from mne.proj import compute_proj_evoked, make_projector
 from mne.surface import _compute_nearest
-from mne.beamformer.tests.test_lcmv import _assert_weight_norm
-from mne.time_frequency import CrossSpectralDensity
+from mne.time_frequency import CrossSpectralDensity, csd_morlet
 from mne.time_frequency.csd import _sym_mat_to_vector
+from mne.transforms import invert_transform, apply_trans
+from mne.utils import object_diff, requires_h5py, catch_logging
 
 data_path = testing.data_path(download=False)
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -73,7 +74,8 @@ def _simulate_data(fwd, idx):  # Somewhere on the frontal lobe by default
 
     # Create an info object that holds information about the sensors
     info = mne.create_info(fwd['info']['ch_names'], sfreq, ch_types='grad')
-    info.update(fwd['info'])  # Merge in sensor position information
+    with info._unlock():
+        info.update(fwd['info'])  # Merge in sensor position information
     # heavily decimate sensors to make it much faster
     info = mne.pick_info(info, np.arange(info['nchan'])[::5])
     fwd = mne.pick_channels_forward(fwd, info['ch_names'])
@@ -107,7 +109,12 @@ def _simulate_data(fwd, idx):  # Somewhere on the frontal lobe by default
     return epochs, evoked, csd, source_vertno, label, vertices, source_ind
 
 
-idx_param = pytest.mark.parametrize('idx', [0, 100, 200, 233])
+idx_param = pytest.mark.parametrize('idx', [
+    0,
+    pytest.param(100, marks=pytest.mark.slowtest),
+    200,
+    pytest.param(233, marks=pytest.mark.slowtest),
+])
 
 
 def _rand_csd(rng, info):
@@ -139,8 +146,11 @@ def _make_rand_csd(info, csd):
 @testing.requires_testing_data
 @requires_h5py
 @idx_param
-@pytest.mark.parametrize('whiten', (False, True))
-def test_make_dics(tmpdir, _load_forward, idx, whiten):
+@pytest.mark.parametrize('whiten', [
+    pytest.param(False, marks=pytest.mark.slowtest),
+    True,
+])
+def test_make_dics(tmp_path, _load_forward, idx, whiten):
     """Test making DICS beamformer filters."""
     # We only test proper handling of parameters here. Testing the results is
     # done in test_apply_dics_timeseries and test_apply_dics_csd.
@@ -203,7 +213,7 @@ def test_make_dics(tmpdir, _load_forward, idx, whiten):
     weight_norm = 'unit-noise-gain'
     inversion = 'single'
     filters = make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None,
-                        weight_norm=weight_norm, depth=None,
+                        weight_norm=weight_norm, depth=None, real_filter=False,
                         noise_csd=noise_csd, inversion=inversion)
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
     assert np.iscomplexobj(filters['weights'])
@@ -309,7 +319,7 @@ def test_make_dics(tmpdir, _load_forward, idx, whiten):
     # Test whether spatial filter contains src_type
     assert 'src_type' in filters
 
-    fname = op.join(str(tmpdir), 'filters-dics.h5')
+    fname = op.join(str(tmp_path), 'filters-dics.h5')
     filters.save(fname)
     filters_read = read_beamformer(fname)
     assert isinstance(filters, Beamformer)
@@ -529,7 +539,7 @@ def test_apply_dics_timeseries(_load_forward, idx):
     evoked_proj = evoked.copy()
     p = compute_proj_evoked(evoked_proj, n_grad=1, n_mag=0, n_eeg=0)
     proj_matrix = make_projector(p, evoked_proj.ch_names)[0]
-    evoked_proj.info['projs'] += p
+    evoked_proj.add_proj(p)
     filters_proj = make_dics(evoked_proj.info, fwd_surf, csd20, label=label)
     assert_array_equal(filters_proj['proj'], proj_matrix)
     stc_proj = apply_dics(evoked_proj, filters_proj)
@@ -564,127 +574,6 @@ def test_apply_dics_timeseries(_load_forward, idx):
         apply_dics_epochs(epochs, filters_vol)
 
 
-@pytest.mark.slowtest
-@testing.requires_testing_data
-def test_tf_dics(_load_forward):
-    """Test 5D time-frequency beamforming based on DICS."""
-    fwd_free, fwd_surf, fwd_fixed, _ = _load_forward
-    # idx isn't really used so let's just simulate one
-    epochs, _, _, source_vertno, label, vertices, source_ind = \
-        _simulate_data(fwd_fixed, idx=0)
-    reg = 1  # Lots of regularization for our toy dataset
-
-    tmin = 0
-    tmax = 9
-    tstep = 4
-    win_lengths = [5, 5]
-    frequencies = [10, 20]
-    freq_bins = [(8, 12), (18, 22)]
-
-    with pytest.raises(ValueError, match='several sensor types'):
-        stcs = tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
-                       freq_bins=freq_bins, frequencies=frequencies,
-                       decim=10, reg=reg, label=label)
-    epochs.pick_types(meg='grad')
-    # Compute DICS for two time windows and two frequencies
-    for mode in ['fourier', 'multitaper', 'cwt_morlet']:
-        stcs = tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
-                       mode=mode, freq_bins=freq_bins, frequencies=frequencies,
-                       decim=10, reg=reg, label=label)
-
-        # Did we find the true source at 20 Hz?
-        dist = _fwd_dist(stcs[1], fwd_surf, vertices, source_ind, tidx=0)
-        assert dist == 0
-        dist = _fwd_dist(stcs[1], fwd_surf, vertices, source_ind, tidx=1)
-        assert dist == 0
-
-        # 20 Hz power should decrease over time
-        assert stcs[1].data[source_ind, 0] > stcs[1].data[source_ind, 1]
-
-        # 20 Hz power should be more than 10 Hz power at the true source
-        assert stcs[1].data[source_ind, 0] > stcs[0].data[source_ind, 0]
-
-    # Manually compute source power and compare with the last tf_dics result.
-    source_power = []
-    time_windows = [(0, 5), (4, 9)]
-    for time_window in time_windows:
-        csd = csd_morlet(epochs, frequencies=[frequencies[1]],
-                         tmin=time_window[0], tmax=time_window[1], decim=10)
-        csd = csd.sum()
-        csd._data /= csd.n_fft
-        filters = make_dics(epochs.info, fwd_surf, csd, reg=reg, label=label,
-                            inversion='single')
-        stc_source_power, _ = apply_dics_csd(csd, filters)
-        source_power.append(stc_source_power.data)
-
-    # Comparing tf_dics results with dics_source_power results
-    assert_allclose(stcs[1].data, np.array(source_power).squeeze().T, atol=0)
-
-    # Test using noise csds. We're going to use identity matrices. That way,
-    # since we're using unit-noise-gain weight normalization, there should be
-    # no effect.
-    stcs = tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
-                   mode='cwt_morlet', frequencies=frequencies, decim=10,
-                   reg=reg, label=label, depth=None,
-                   weight_norm='unit-noise-gain')
-    noise_csd = csd.copy()
-    inds = np.triu_indices(csd.n_channels)
-    # Using [:, :] syntax for in-place broadcasting
-    noise_csd._data[:, :] = 2 * np.eye(csd.n_channels)[inds][:, np.newaxis]
-    noise_csd.n_fft = 2  # Dividing by n_fft should yield an identity CSD
-    noise_csds = [noise_csd, noise_csd]  # Two frequency bins
-    stcs_norm = tf_dics(epochs, fwd_surf, noise_csds, tmin, tmax, tstep,
-                        win_lengths, mode='cwt_morlet',
-                        frequencies=frequencies, decim=10, reg=reg,
-                        label=label, depth=None,
-                        weight_norm='unit-noise-gain')
-    assert_allclose(3 * stcs_norm[0].data, stcs[0].data, atol=0)
-    assert_allclose(3 * stcs_norm[1].data, stcs[1].data, atol=0)
-
-    # Test invalid parameter combinations
-    with pytest.raises(ValueError, match='fourier.*freq_bins" parameter'):
-        tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
-                mode='fourier', freq_bins=None)
-    with pytest.raises(ValueError, match='cwt_morlet.*frequencies" param'):
-        tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
-                mode='cwt_morlet', frequencies=None)
-
-    # Test if incorrect number of noise CSDs is detected
-    with pytest.raises(ValueError, match='One noise CSD object expected per'):
-        tf_dics(epochs, fwd_surf, [noise_csds[0]], tmin, tmax, tstep,
-                win_lengths, freq_bins=freq_bins)
-
-    # Test if freq_bins and win_lengths incompatibility is detected
-    with pytest.raises(ValueError, match='One time window length expected'):
-        tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep,
-                win_lengths=[0, 1, 2], freq_bins=freq_bins)
-
-    # Test if time step exceeding window lengths is detected
-    with pytest.raises(ValueError, match='Time step should not be larger'):
-        tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep=0.15,
-                win_lengths=[0.2, 0.1], freq_bins=freq_bins)
-
-    # Test if incorrect number of n_ffts is detected
-    with pytest.raises(ValueError, match='When specifying number of FFT'):
-        tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep,
-                win_lengths, freq_bins=freq_bins, n_ffts=[1])
-
-    # Test if incorrect number of mt_bandwidths is detected
-    with pytest.raises(ValueError, match='When using multitaper mode and'):
-        tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep,
-                win_lengths=win_lengths, freq_bins=freq_bins,
-                mode='multitaper', mt_bandwidths=[20])
-
-    # Test if subtracting evoked responses yields NaN's, since we only have one
-    # epoch. Suppress division warnings.
-    assert len(epochs) == 1, len(epochs)
-    with np.errstate(invalid='ignore'):
-        stcs = tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
-                       mode='cwt_morlet', frequencies=frequencies,
-                       subtract_evoked=True, reg=reg, label=label, decim=20)
-    assert np.all(np.isnan(stcs[0].data))
-
-
 def _cov_as_csd(cov, info):
     rng = np.random.RandomState(0)
     assert cov['data'].ndim == 2
@@ -697,6 +586,7 @@ def _cov_as_csd(cov, info):
 
 # Just test free ori here (assume fixed is same as LCMV if these are)
 # Changes here should be synced with test_lcmv.py
+@pytest.mark.slowtest
 @pytest.mark.parametrize(
     'reg, pick_ori, weight_norm, use_cov, depth, lower, upper, real_filter', [
         (0.05, None, 'unit-noise-gain-invariant', False, None, 26, 28, False),
@@ -728,13 +618,60 @@ def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
     if not use_cov:
         evoked.pick_types(meg='grad')
         noise_csd = None
-    loc = apply_dics(evoked, make_dics(
+    filters = make_dics(
         evoked.info, fwd, data_csd, reg, noise_csd, pick_ori=pick_ori,
-        weight_norm=weight_norm, depth=depth, real_filter=real_filter)).data
+        weight_norm=weight_norm, depth=depth, real_filter=real_filter)
+    loc = apply_dics(evoked, filters).data
     loc = np.linalg.norm(loc, axis=1) if pick_ori == 'vector' else np.abs(loc)
     # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100
     assert lower <= perc <= upper
+
+
+@pytest.mark.parametrize(
+    'weight_norm, lower, upper, lower_ori, upper_ori, real_filter', [
+        ('unit-noise-gain-invariant', 57, 58, 0.60, 0.61, False),
+        ('unit-noise-gain', 57, 58, 0.60, 0.61, False),
+        ('unit-noise-gain', 57, 58, 0.60, 0.61, True),
+        (None, 27, 28, 0.56, 0.57, False),
+    ])
+def test_orientation_max_power(bias_params_fixed, bias_params_free,
+                               weight_norm, lower, upper, lower_ori, upper_ori,
+                               real_filter):
+    """Test orientation selection for bias for max-power DICS."""
+    # we simulate data for the fixed orientation forward and beamform using
+    # the free orientation forward, and check the orientation match at the end
+    evoked, _, noise_cov, data_cov, want = bias_params_fixed
+    noise_csd = _cov_as_csd(noise_cov, evoked.info)
+    data_csd = _cov_as_csd(data_cov, evoked.info)
+    del data_cov, noise_cov
+    fwd = bias_params_free[1]
+    filters = make_dics(evoked.info, fwd, data_csd, 0.05, noise_csd,
+                        pick_ori='max-power', weight_norm=weight_norm,
+                        depth=None, real_filter=real_filter)
+    loc = np.abs(apply_dics(evoked, filters).data)
+    ori = filters['max_power_ori'][0]
+    assert ori.shape == (246, 3)
+    loc = np.abs(loc)
+    # Compute the percentage of sources for which there is no loc bias:
+    max_idx = np.argmax(loc, axis=0)
+    mask = want == max_idx  # ones that localized properly
+    perc = mask.mean() * 100
+    assert lower <= perc <= upper
+    # Compute the dot products of our forward normals and
+    # assert we get some hopefully reasonable agreement
+    assert fwd['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+    nn = np.concatenate(
+        [s['nn'][v] for s, v in zip(fwd['src'], filters['vertices'])])
+    nn = nn[want]
+    nn = apply_trans(invert_transform(fwd['mri_head_t']), nn, move=False)
+    assert_allclose(np.linalg.norm(nn, axis=1), 1, atol=1e-6)
+    assert_allclose(np.linalg.norm(ori, axis=1), 1, atol=1e-12)
+    dots = np.abs((nn[mask] * ori[mask]).sum(-1))
+    assert_array_less(dots, 1)
+    assert_array_less(0, dots)
+    got = np.mean(dots)
+    assert lower_ori < got < upper_ori
 
 
 @testing.requires_testing_data
@@ -775,7 +712,7 @@ def test_make_dics_rank(_load_forward, idx, whiten):
     assert f'Computing rank from covariance with rank={use_rank}' in log, log
     stc_2, _ = apply_dics_csd(csd, filters_2)
     corr = np.corrcoef(stc_2.data.ravel(), stc.data.ravel())[0, 1]
-    assert 0.8 < corr < 0.99999
+    assert 0.8 < corr < 0.999999
 
     # degenerate conditions
     if whiten:

@@ -32,10 +32,6 @@ header = """\
 Command line tools using Python
 ===============================
 
-.. contents:: Page contents
-   :local:
-   :depth: 1
-
 """
 
 command_rst = """

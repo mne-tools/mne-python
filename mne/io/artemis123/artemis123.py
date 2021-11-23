@@ -1,6 +1,6 @@
 # Author: Luke Bloy <bloyl@chop.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 import os.path as op
@@ -8,7 +8,7 @@ import datetime
 import calendar
 
 from .utils import _load_mne_locs, _read_pos
-from ...utils import logger, warn, verbose
+from ...utils import logger, warn, verbose, _check_fname
 from ..utils import _read_segments_file
 from ..base import BaseRaw
 from ..meas_info import _empty_info
@@ -276,13 +276,13 @@ def _get_artemis123_info(fname, pos_fname=None):
 
     info['hpi_subsystem'] = hpi_sub
     info['hpi_meas'] = [{'hpi_coils': hpi_coils}]
-
     # read in digitized points if supplied
     if pos_fname is not None:
         info['dig'] = _read_pos(pos_fname)
     else:
         info['dig'] = []
 
+    info._unlocked = False
     info._update_redundant()
     return info, header_info
 
@@ -308,6 +308,7 @@ class RawArtemis123(BaseRaw):
         from scipy.spatial.distance import cdist
         from ...chpi import (compute_chpi_amplitudes, compute_chpi_locs,
                              _fit_coil_order_dev_head_trans)
+        input_fname = _check_fname(input_fname, 'read', True, 'input_fname')
         fname, ext = op.splitext(input_fname)
         if ext == '.txt':
             input_fname = fname + '.bin'
@@ -338,17 +339,19 @@ class RawArtemis123(BaseRaw):
                      'head localization\n *NO* head localization performed')
             else:
                 # Localized HPIs using the 1st 250 milliseconds of data.
-                info['hpi_results'] = [
-                    dict(
+                with info._unlock():
+                    info['hpi_results'] = [dict(
                         dig_points=[dict(
-                            r=np.zeros(3), coord_frame=FIFF.FIFFV_COORD_DEVICE,
+                            r=np.zeros(3),
+                            coord_frame=FIFF.FIFFV_COORD_DEVICE,
                             ident=ii + 1) for ii in range(n_hpis)],
                         coord_trans=Transform('meg', 'head'))]
                 coil_amplitudes = compute_chpi_amplitudes(
                     self, tmin=0, tmax=0.25, t_window=0.25, t_step_min=0.25)
                 assert len(coil_amplitudes['times']) == 1
                 coil_locs = compute_chpi_locs(self.info, coil_amplitudes)
-                info['hpi_results'] = None
+                with info._unlock():
+                    info['hpi_results'] = None
                 hpi_g = coil_locs['gofs'][0]
                 hpi_dev = coil_locs['rrs'][0]
 
@@ -409,9 +412,10 @@ class RawArtemis123(BaseRaw):
                     lpa = hpi_dev[2]
                     rpa = hpi_dev[1]
                     t = get_ras_to_neuromag_trans(nas, lpa, rpa)
-                    self.info['dev_head_t'] = \
-                        Transform(FIFF.FIFFV_COORD_DEVICE,
-                                  FIFF.FIFFV_COORD_HEAD, t)
+                    with self.info._unlock():
+                        self.info['dev_head_t'] = \
+                            Transform(FIFF.FIFFV_COORD_DEVICE,
+                                      FIFF.FIFFV_COORD_HEAD, t)
 
                     # transform fiducial points
                     nas = apply_trans(t, nas)
@@ -419,8 +423,11 @@ class RawArtemis123(BaseRaw):
                     rpa = apply_trans(t, rpa)
 
                     hpi = apply_trans(self.info['dev_head_t'], hpi_dev)
-                    self.info['dig'] = _make_dig_points(nasion=nas, lpa=lpa,
-                                                        rpa=rpa, hpi=hpi)
+                    with self.info._unlock():
+                        self.info['dig'] = _make_dig_points(nasion=nas,
+                                                            lpa=lpa,
+                                                            rpa=rpa,
+                                                            hpi=hpi)
                     order = np.array([0, 1, 2])
                     dist_limit = 0.005
 
@@ -453,7 +460,8 @@ class RawArtemis123(BaseRaw):
                          'beware of *POOR* head localization')
 
                 # store it
-                self.info['hpi_results'] = [hpi_result]
+                with self.info._unlock():
+                    self.info['hpi_results'] = [hpi_result]
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""

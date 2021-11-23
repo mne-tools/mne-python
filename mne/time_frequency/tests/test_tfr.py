@@ -11,8 +11,8 @@ import mne
 from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
                  Info, Transform)
 from mne.io import read_raw_fif
-from mne.utils import (_TempDir, run_tests_if_main, requires_h5py,
-                       requires_pandas, grand_average, catch_logging)
+from mne.utils import (requires_h5py, requires_pandas, grand_average,
+                       catch_logging)
 from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     tfr_multitaper, AverageTFR, read_tfrs,
                                     write_tfrs, combine_tfr, cwt, _compute_tfr,
@@ -78,6 +78,7 @@ def test_time_frequency():
     # Test first with a single epoch
     power, itc = tfr_morlet(epochs[0], freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, return_itc=True)
+
     # Now compute evoked
     evoked = epochs.average()
     pytest.raises(ValueError, tfr_morlet, evoked, freqs, 1., return_itc=True)
@@ -405,10 +406,10 @@ def test_crop():
 
 @requires_h5py
 @requires_pandas
-def test_io():
+def test_io(tmp_path):
     """Test TFR IO capacities."""
     from pandas import DataFrame
-    tempdir = _TempDir()
+    tempdir = str(tmp_path)
     fname = op.join(tempdir, 'test-tfr.h5')
     data = np.zeros((3, 2, 3))
     times = np.array([.1, .2, .3])
@@ -416,9 +417,9 @@ def test_io():
 
     info = mne.create_info(['MEG 001', 'MEG 002', 'MEG 003'], 1000.,
                            ['mag', 'mag', 'mag'])
-    info['meas_date'] = datetime.datetime(year=2020, month=2, day=5,
-                                          tzinfo=datetime.timezone.utc)
-    info._check_consistency()
+    with info._unlock(check_after=True):
+        info['meas_date'] = datetime.datetime(year=2020, month=2, day=5,
+                                              tzinfo=datetime.timezone.utc)
     tfr = AverageTFR(info, data=data, times=times, freqs=freqs,
                      nave=20, comment='test', method='crazy-tfr')
     tfr.save(fname)
@@ -436,7 +437,8 @@ def test_io():
 
     tfr.comment = None
     # test old meas_date
-    info['meas_date'] = (1, 2)
+    with info._unlock():
+        info['meas_date'] = (1, 2)
     tfr.save(fname, overwrite=True)
     assert_equal(read_tfrs(fname, condition=0).comment, tfr.comment)
     tfr.comment = 'test-A'
@@ -470,16 +472,53 @@ def test_io():
     events[:, 0] = np.arange(n_events)
     events[:, 2] = np.ones(n_events)
     event_id = {'a/b': 1}
+    # fake selection
+    n_dropped_epochs = 3
+    selection = np.arange(n_events + n_dropped_epochs)[n_dropped_epochs:]
+    drop_log = tuple([('IGNORED',) for i in range(n_dropped_epochs)] +
+                     [() for i in range(n_events)])
 
     tfr = EpochsTFR(info, data=data, times=times, freqs=freqs,
                     comment='test', method='crazy-tfr', events=events,
-                    event_id=event_id, metadata=meta)
-    tfr.save(fname, True)
-    read_tfr = read_tfrs(fname)[0]
-    assert_array_equal(tfr.data, read_tfr.data)
-    assert_metadata_equal(tfr.metadata, read_tfr.metadata)
-    assert_array_equal(tfr.events, read_tfr.events)
-    assert tfr.event_id == read_tfr.event_id
+                    event_id=event_id, selection=selection, drop_log=drop_log,
+                    metadata=meta)
+    fname_save = fname
+    tfr.save(fname_save, True)
+    fname_write = op.join(tempdir, 'test3-tfr.h5')
+    write_tfrs(fname_write, tfr, overwrite=True)
+    for fname in [fname_save, fname_write]:
+        read_tfr = read_tfrs(fname)[0]
+        assert_array_equal(tfr.data, read_tfr.data)
+        assert_metadata_equal(tfr.metadata, read_tfr.metadata)
+        assert_array_equal(tfr.events, read_tfr.events)
+        assert tfr.event_id == read_tfr.event_id
+        assert_array_equal(tfr.selection, read_tfr.selection)
+        assert tfr.drop_log == read_tfr.drop_log
+    with pytest.raises(NotImplementedError, match='condition not supported'):
+        tfr = read_tfrs(fname, condition='a')
+
+
+def test_init_EpochsTFR():
+    """Test __init__ for EpochsTFR."""
+    # Create fake data:
+    data = np.zeros((3, 3, 3, 3))
+    times = np.array([.1, .2, .3])
+    freqs = np.array([.10, .20, .30])
+    info = mne.create_info(['MEG 001', 'MEG 002', 'MEG 003'], 1000.,
+                           ['mag', 'mag', 'mag'])
+    data_x = data[:, :, :, 0]
+    with pytest.raises(ValueError, match='data should be 4d. Got 3'):
+        tfr = EpochsTFR(info, data=data_x, times=times, freqs=freqs)
+    data_x = data[:, :-1, :, :]
+    with pytest.raises(ValueError, match="channels and data size don't"):
+        tfr = EpochsTFR(info, data=data_x, times=times, freqs=freqs)
+    times_x = times[:-1]
+    with pytest.raises(ValueError, match="times and data size don't match"):
+        tfr = EpochsTFR(info, data=data, times=times_x, freqs=freqs)
+    freqs_x = freqs[:-1]
+    with pytest.raises(ValueError, match="frequencies and data size don't"):
+        tfr = EpochsTFR(info, data=data, times=times_x, freqs=freqs_x)
+        del(tfr)
 
 
 def test_plot():
@@ -491,22 +530,55 @@ def test_plot():
                            ['mag', 'mag', 'mag'])
     tfr = AverageTFR(info, data=data, times=times, freqs=freqs,
                      nave=20, comment='test', method='crazy-tfr')
-    tfr.plot([1, 2], title='title', colorbar=False,
-             mask=np.ones(tfr.data.shape[1:], bool))
-    plt.close('all')
-    ax = plt.subplot2grid((2, 2), (0, 0))
-    ax2 = plt.subplot2grid((2, 2), (1, 1))
-    ax3 = plt.subplot2grid((2, 2), (0, 1))
-    tfr.plot(picks=[0, 1, 2], axes=[ax, ax2, ax3])
+
+    # test title=auto, combine=None, and correct length of figure list
+    picks = [1, 2]
+    figs = tfr.plot(picks, title='auto', colorbar=False,
+                    mask=np.ones(tfr.data.shape[1:], bool))
+    assert len(figs) == len(picks)
+    assert 'MEG' in figs[0].texts[0].get_text()
     plt.close('all')
 
-    tfr.plot([1, 2], title='title', colorbar=False, exclude='bads')
+    # test combine and title keyword
+    figs = tfr.plot(picks, title='title', colorbar=False, combine='rms',
+                    mask=np.ones(tfr.data.shape[1:], bool))
+    assert len(figs) == 1
+    assert figs[0].texts[0].get_text() == 'title'
+    figs = tfr.plot(picks, title='auto', colorbar=False, combine='mean',
+                    mask=np.ones(tfr.data.shape[1:], bool))
+    assert len(figs) == 1
+    assert figs[0].texts[0].get_text() == 'Mean of 2 sensors'
+
+    with pytest.raises(ValueError, match='combine must be None'):
+        tfr.plot(picks, colorbar=False, combine='something',
+                 mask=np.ones(tfr.data.shape[1:], bool))
     plt.close('all')
+
+    # test axes argument - first with list of axes
+    ax = plt.subplot2grid((2, 2), (0, 0))
+    ax2 = plt.subplot2grid((2, 2), (0, 1))
+    ax3 = plt.subplot2grid((2, 2), (1, 0))
+    figs = tfr.plot(picks=[0, 1, 2], axes=[ax, ax2, ax3])
+    assert len(figs) == len([ax, ax2, ax3])
+    # and as a single axes
+    figs = tfr.plot(picks=[0], axes=ax)
+    assert len(figs) == 1
+    plt.close('all')
+    # and invalid inputs
+    with pytest.raises(ValueError, match='axes must be None'):
+        tfr.plot(picks, colorbar=False, axes={},
+                 mask=np.ones(tfr.data.shape[1:], bool))
+
+    # different number of axes and picks should throw a RuntimeError
+    with pytest.raises(RuntimeError, match='There must be an axes'):
+        tfr.plot(picks=[0], colorbar=False, axes=[ax, ax2],
+                 mask=np.ones(tfr.data.shape[1:], bool))
 
     tfr.plot_topo(picks=[1, 2])
     plt.close('all')
 
-    fig = tfr.plot(picks=[1], cmap='RdBu_r')  # interactive mode on by default
+    # interactive mode on by default
+    fig = tfr.plot(picks=[1], cmap='RdBu_r')[0]
     fig.canvas.key_press_event('up')
     fig.canvas.key_press_event(' ')
     fig.canvas.key_press_event('down')
@@ -547,7 +619,7 @@ def test_plot_joint():
 
     topomap_args = {'res': 8, 'contours': 0, 'sensors': False}
 
-    for combine in ('mean', 'rms', None):
+    for combine in ('mean', 'rms'):
         with catch_logging() as log:
             tfr.plot_joint(title='auto', colorbar=True,
                            combine=combine, topomap_args=topomap_args,
@@ -611,7 +683,8 @@ def test_add_channels():
 
     # Now test errors
     tfr_badsf = tfr_eeg.copy()
-    tfr_badsf.info['sfreq'] = 3.1415927
+    with tfr_badsf.info._unlock():
+        tfr_badsf.info['sfreq'] = 3.1415927
     tfr_eeg = tfr_eeg.crop(-.1, .1)
 
     pytest.raises(RuntimeError, tfr_meg.add_channels, [tfr_badsf])
@@ -735,6 +808,117 @@ def test_compute_tfr_correct(method, decim):
     assert freqs[np.argmax(np.abs(tfr).mean(-1))] == f
 
 
+def test_averaging_epochsTFR():
+    """Test that EpochsTFR averaging methods work."""
+    # Setup for reading the raw data
+    event_id = 1
+    tmin = -0.2
+    tmax = 0.498  # Allows exhaustive decimation testing
+
+    freqs = np.arange(6, 20, 5)  # define frequencies of interest
+    n_cycles = freqs / 4.
+
+    raw = read_raw_fif(raw_fname)
+    # only pick a few events for speed
+    events = read_events(event_fname)[:4]
+
+    include = []
+    exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
+
+    # picks MEG gradiometers
+    picks = pick_types(raw.info, meg='grad', eeg=False,
+                       stim=False, include=include, exclude=exclude)
+    picks = picks[:2]
+
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks)
+
+    # Obtain EpochsTFR
+    power = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
+                       average=False, use_fft=True,
+                       return_itc=False)
+
+    # Test average methods
+    for func, method in zip(
+            [np.mean, np.median, np.mean],
+            ['mean', 'median', lambda x: np.mean(x, axis=0)]):
+        avgpower = power.average(method=method)
+        assert_array_equal(func(power.data, axis=0), avgpower.data)
+    with pytest.raises(RuntimeError, match='You passed a function that '
+                                           'resulted in data'):
+        power.average(method=np.mean)
+
+
+@pytest.mark.parametrize('copy', [True, False])
+def test_averaging_freqsandtimes_epochsTFR(copy):
+    """Test that EpochsTFR averaging freqs methods work."""
+    # Setup for reading the raw data
+    event_id = 1
+    tmin = -0.2
+    tmax = 0.498  # Allows exhaustive decimation testing
+
+    freqs = np.arange(6, 20, 5)  # define frequencies of interest
+    n_cycles = freqs / 4.
+
+    raw = read_raw_fif(raw_fname)
+    # only pick a few events for speed
+    events = read_events(event_fname)[:4]
+
+    include = []
+    exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
+
+    # picks MEG gradiometers
+    picks = pick_types(raw.info, meg='grad', eeg=False,
+                       stim=False, include=include, exclude=exclude)
+    picks = picks[:2]
+
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks)
+
+    # Obtain EpochsTFR
+    power = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
+                       average=False, use_fft=True,
+                       return_itc=False)
+
+    # Test average methods for freqs and times
+    for idx, (func, method) in enumerate(zip(
+            [np.mean, np.median, np.mean, np.mean],
+            ['mean', 'median', lambda x: np.mean(x, axis=2),
+             lambda x: np.mean(x, axis=3)])):
+        if idx == 3:
+            with pytest.raises(RuntimeError, match='You passed a function'):
+                avgpower = power.copy().average(method=method, dim='freqs',
+                                                copy=copy)
+            continue
+        avgpower = power.copy().average(method=method, dim='freqs', copy=copy)
+        assert_array_equal(func(power.data, axis=2, keepdims=True),
+                           avgpower.data)
+        assert avgpower.freqs == np.mean(power.freqs)
+        assert isinstance(avgpower, EpochsTFR)
+
+        # average over epochs
+        avgpower = avgpower.average()
+        assert isinstance(avgpower, AverageTFR)
+
+    # Test average methods for freqs and times
+    for idx, (func, method) in enumerate(zip(
+            [np.mean, np.median, np.mean, np.mean],
+            ['mean', 'median', lambda x: np.mean(x, axis=3),
+             lambda x: np.mean(x, axis=2)])):
+        if idx == 3:
+            with pytest.raises(RuntimeError, match='You passed a function'):
+                avgpower = power.copy().average(method=method, dim='times',
+                                                copy=copy)
+            continue
+        avgpower = power.copy().average(method=method, dim='times', copy=copy)
+        assert_array_equal(func(power.data, axis=-1, keepdims=True),
+                           avgpower.data)
+        assert avgpower.times == np.mean(power.times)
+        assert isinstance(avgpower, EpochsTFR)
+
+        # average over epochs
+        avgpower = avgpower.average()
+        assert isinstance(avgpower, AverageTFR)
+
+
 @requires_pandas
 def test_getitem_epochsTFR():
     """Test GetEpochsMixin in the context of EpochsTFR."""
@@ -742,69 +926,216 @@ def test_getitem_epochsTFR():
     # Setup for reading the raw data and select a few trials
     raw = read_raw_fif(raw_fname)
     events = read_events(event_fname)
-    n_events = 10
+    # create fake data, test with and without dropping epochs
+    for n_drop_epochs in [0, 2]:
+        n_events = 12
+        # create fake metadata
+        rng = np.random.RandomState(42)
+        rt = rng.uniform(size=(n_events,))
+        trialtypes = np.array(['face', 'place'])
+        trial = trialtypes[(rng.uniform(size=(n_events,)) > .5).astype(int)]
+        meta = DataFrame(dict(RT=rt, Trial=trial))
+        event_id = dict(a=1, b=2, c=3, d=4)
+        epochs = Epochs(raw, events[:n_events], event_id=event_id,
+                        metadata=meta, decim=1)
+        epochs.drop(np.arange(n_drop_epochs))
+        n_events -= n_drop_epochs
 
-    # create fake metadata
-    rng = np.random.RandomState(42)
-    rt = rng.uniform(size=(n_events,))
-    trialtypes = np.array(['face', 'place'])
-    trial = trialtypes[(rng.uniform(size=(n_events,)) > .5).astype(int)]
-    meta = DataFrame(dict(RT=rt, Trial=trial))
-    event_id = dict(a=1, b=2, c=3, d=4)
-    epochs = Epochs(raw, events[:n_events], event_id=event_id, metadata=meta,
-                    decim=1)
+        freqs = np.arange(12., 17., 2.)  # define frequencies of interest
+        n_cycles = freqs / 2.  # 0.5 second time windows for all frequencies
 
-    freqs = np.arange(12., 17., 2.)  # define frequencies of interest
-    n_cycles = freqs / 2.  # 0.5 second time windows for all frequencies
+        # Choose time x (full) bandwidth product
+        time_bandwidth = 4.0
+        # With 0.5 s time windows, this gives 8 Hz smoothing
+        kwargs = dict(freqs=freqs, n_cycles=n_cycles, use_fft=True,
+                      time_bandwidth=time_bandwidth, return_itc=False,
+                      average=False, n_jobs=1)
+        power = tfr_multitaper(epochs, **kwargs)
 
-    # Choose time x (full) bandwidth product
-    time_bandwidth = 4.0  # With 0.5 s time windows, this gives 8 Hz smoothing
-    kwargs = dict(freqs=freqs, n_cycles=n_cycles, use_fft=True,
-                  time_bandwidth=time_bandwidth, return_itc=False,
-                  average=False, n_jobs=1)
-    power = tfr_multitaper(epochs, **kwargs)
+        # Check that power and epochs metadata is the same
+        assert_metadata_equal(epochs.metadata, power.metadata)
+        assert_metadata_equal(epochs[::2].metadata, power[::2].metadata)
+        assert_metadata_equal(epochs['RT < .5'].metadata,
+                              power['RT < .5'].metadata)
+        assert_array_equal(epochs.selection, power.selection)
+        assert epochs.drop_log == power.drop_log
+
+        # Check that get power is functioning
+        assert_array_equal(power[3:6].data, power.data[3:6])
+        assert_array_equal(power[3:6].events, power.events[3:6])
+        assert_array_equal(epochs.selection[3:6], power.selection[3:6])
+
+        indx_check = (power.metadata['Trial'] == 'face')
+        try:
+            indx_check = indx_check.to_numpy()
+        except Exception:
+            pass  # older Pandas
+        indx_check = indx_check.nonzero()
+        assert_array_equal(power['Trial == "face"'].events,
+                           power.events[indx_check])
+        assert_array_equal(power['Trial == "face"'].data,
+                           power.data[indx_check])
+
+        # Check that the wrong Key generates a Key Error for Metadata search
+        with pytest.raises(KeyError):
+            power['Trialz == "place"']
+
+        # Test length function
+        assert len(power) == n_events
+        assert len(power[3:6]) == 3
+
+        # Test iteration function
+        for ind, power_ep in enumerate(power):
+            assert_array_equal(power_ep, power.data[ind])
+            if ind == 5:
+                break
+
+        # Test that current state is maintained
+        assert_array_equal(power.next(), power.data[ind + 1])
 
     # Check decim affects sfreq
     power_decim = tfr_multitaper(epochs, decim=2, **kwargs)
     assert power.info['sfreq'] / 2. == power_decim.info['sfreq']
 
-    # Check that power and epochs metadata is the same
-    assert_metadata_equal(epochs.metadata, power.metadata)
-    assert_metadata_equal(epochs[::2].metadata, power[::2].metadata)
-    assert_metadata_equal(epochs['RT < .5'].metadata,
-                          power['RT < .5'].metadata)
 
-    # Check that get power is functioning
-    assert_array_equal(power[3:6].data, power.data[3:6])
-    assert_array_equal(power[3:6].events, power.events[3:6])
+@requires_pandas
+def test_to_data_frame():
+    """Test EpochsTFR Pandas exporter."""
+    # Create fake EpochsTFR data:
+    n_epos = 3
+    ch_names = ['EEG 001', 'EEG 002', 'EEG 003', 'EEG 004']
+    n_picks = len(ch_names)
+    ch_types = ['eeg'] * n_picks
+    n_freqs = 5
+    n_times = 6
+    data = np.random.rand(n_epos, n_picks, n_freqs, n_times)
+    times = np.arange(6)
+    srate = 1000.
+    freqs = np.arange(5)
+    events = np.zeros((n_epos, 3), dtype=int)
+    events[:, 0] = np.arange(n_epos)
+    events[:, 2] = np.arange(5, 5 + n_epos)
+    event_id = {k: v for v, k in zip(events[:, 2], ['ha', 'he', 'hu'])}
+    info = mne.create_info(ch_names, srate, ch_types)
+    tfr = mne.time_frequency.EpochsTFR(info, data, times, freqs,
+                                       events=events, event_id=event_id)
+    # test index checking
+    with pytest.raises(ValueError, match='options. Valid index options are'):
+        tfr.to_data_frame(index=['foo', 'bar'])
+    with pytest.raises(ValueError, match='"qux" is not a valid option'):
+        tfr.to_data_frame(index='qux')
+    with pytest.raises(TypeError, match='index must be `None` or a string '):
+        tfr.to_data_frame(index=np.arange(400))
+    # test wide format
+    df_wide = tfr.to_data_frame()
+    assert all(np.in1d(tfr.ch_names, df_wide.columns))
+    assert all(np.in1d(['time', 'condition', 'freq', 'epoch'],
+                       df_wide.columns))
+    # test long format
+    df_long = tfr.to_data_frame(long_format=True)
+    expected = ('condition', 'epoch', 'freq', 'time', 'channel', 'ch_type',
+                'value')
+    assert set(expected) == set(df_long.columns)
+    assert set(tfr.ch_names) == set(df_long['channel'])
+    assert(len(df_long) == tfr.data.size)
+    # test long format w/ index
+    df_long = tfr.to_data_frame(long_format=True, index=['freq'])
+    del df_wide, df_long
+    # test whether data is in correct shape
+    df = tfr.to_data_frame(index=['condition', 'epoch', 'freq', 'time'])
+    data = tfr.data
+    assert_array_equal(df.values[:, 0],
+                       data[:, 0, :, :].reshape(1, -1).squeeze())
+    # compare arbitrary observation:
+    assert df.loc[('he', slice(None), freqs[1], times[2] * srate),
+                  ch_names[3]].iloc[0] == data[1, 3, 1, 2]
 
-    indx_check = (power.metadata['Trial'] == 'face')
-    try:
-        indx_check = indx_check.to_numpy()
-    except Exception:
-        pass  # older Pandas
-    indx_check = indx_check.nonzero()
-    assert_array_equal(power['Trial == "face"'].events,
-                       power.events[indx_check])
-    assert_array_equal(power['Trial == "face"'].data,
-                       power.data[indx_check])
+    # Check also for AverageTFR:
+    tfr = tfr.average()
+    with pytest.raises(ValueError, match='options. Valid index options are'):
+        tfr.to_data_frame(index=['epoch', 'condition'])
+    with pytest.raises(ValueError, match='"epoch" is not a valid option'):
+        tfr.to_data_frame(index='epoch')
+    with pytest.raises(TypeError, match='index must be `None` or a string '):
+        tfr.to_data_frame(index=np.arange(400))
+    # test wide format
+    df_wide = tfr.to_data_frame()
+    assert all(np.in1d(tfr.ch_names, df_wide.columns))
+    assert all(np.in1d(['time', 'freq'], df_wide.columns))
+    # test long format
+    df_long = tfr.to_data_frame(long_format=True)
+    expected = ('freq', 'time', 'channel', 'ch_type', 'value')
+    assert set(expected) == set(df_long.columns)
+    assert set(tfr.ch_names) == set(df_long['channel'])
+    assert(len(df_long) == tfr.data.size)
+    # test long format w/ index
+    df_long = tfr.to_data_frame(long_format=True, index=['freq'])
+    del df_wide, df_long
+    # test whether data is in correct shape
+    df = tfr.to_data_frame(index=['freq', 'time'])
+    data = tfr.data
+    assert_array_equal(df.values[:, 0],
+                       data[0, :, :].reshape(1, -1).squeeze())
+    # compare arbitrary observation:
+    assert df.loc[(freqs[1], times[2] * srate), ch_names[3]] == \
+        data[3, 1, 2]
 
-    # Check that the wrong Key generates a Key Error for Metadata search
-    with pytest.raises(KeyError):
-        power['Trialz == "place"']
 
-    # Test length function
-    assert len(power) == n_events
-    assert len(power[3:6]) == 3
+@requires_pandas
+@pytest.mark.parametrize('index', ('time', ['condition', 'time', 'freq'],
+                                   ['freq', 'time'], ['time', 'freq'], None))
+def test_to_data_frame_index(index):
+    """Test index creation in epochs Pandas exporter."""
+    # Create fake EpochsTFR data:
+    n_epos = 3
+    ch_names = ['EEG 001', 'EEG 002', 'EEG 003', 'EEG 004']
+    n_picks = len(ch_names)
+    ch_types = ['eeg'] * n_picks
+    n_freqs = 5
+    n_times = 6
+    data = np.random.rand(n_epos, n_picks, n_freqs, n_times)
+    times = np.arange(6)
+    freqs = np.arange(5)
+    events = np.zeros((n_epos, 3), dtype=int)
+    events[:, 0] = np.arange(n_epos)
+    events[:, 2] = np.arange(5, 8)
+    event_id = {k: v for v, k in zip(events[:, 2], ['ha', 'he', 'hu'])}
+    info = mne.create_info(ch_names, 1000., ch_types)
+    tfr = mne.time_frequency.EpochsTFR(info, data, times, freqs,
+                                       events=events, event_id=event_id)
+    df = tfr.to_data_frame(picks=[0, 2, 3], index=index)
+    # test index order/hierarchy preservation
+    if not isinstance(index, list):
+        index = [index]
+    assert (df.index.names == index)
+    # test that non-indexed data were present as columns
+    non_index = list(set(['condition', 'time', 'freq', 'epoch']) - set(index))
+    if len(non_index):
+        assert all(np.in1d(non_index, df.columns))
 
-    # Test iteration function
-    for ind, power_ep in enumerate(power):
-        assert_array_equal(power_ep, power.data[ind])
-        if ind == 5:
-            break
 
-    # Test that current state is maintained
-    assert_array_equal(power.next(), power.data[ind + 1])
-
-
-run_tests_if_main()
+@requires_pandas
+@pytest.mark.parametrize('time_format', (None, 'ms', 'timedelta'))
+def test_to_data_frame_time_format(time_format):
+    """Test time conversion in epochs Pandas exporter."""
+    from pandas import Timedelta
+    n_epos = 3
+    ch_names = ['EEG 001', 'EEG 002', 'EEG 003', 'EEG 004']
+    n_picks = len(ch_names)
+    ch_types = ['eeg'] * n_picks
+    n_freqs = 5
+    n_times = 6
+    data = np.random.rand(n_epos, n_picks, n_freqs, n_times)
+    times = np.arange(6)
+    freqs = np.arange(5)
+    events = np.zeros((n_epos, 3), dtype=int)
+    events[:, 0] = np.arange(n_epos)
+    events[:, 2] = np.arange(5, 8)
+    event_id = {k: v for v, k in zip(events[:, 2], ['ha', 'he', 'hu'])}
+    info = mne.create_info(ch_names, 1000., ch_types)
+    tfr = mne.time_frequency.EpochsTFR(info, data, times, freqs,
+                                       events=events, event_id=event_id)
+    # test time_format
+    df = tfr.to_data_frame(time_format=time_format)
+    dtypes = {None: np.float64, 'ms': np.int64, 'timedelta': Timedelta}
+    assert isinstance(df['time'].iloc[0], dtypes[time_format])

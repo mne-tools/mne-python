@@ -1,6 +1,6 @@
 $(document).ready(function () {
     if(location.hash != null && location.hash != ""){
-        $('.collapse').removeClass('in');
-        $(location.hash + '.collapse').addClass('in');
+        $('.collapse').removeClass('show');
+        $(location.hash + '.collapse').addClass('show');
     }
 });

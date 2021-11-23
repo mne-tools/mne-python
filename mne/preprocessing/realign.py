@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
+from numpy.polynomial.polynomial import Polynomial
 
 from ..io import BaseRaw
 from ..utils import _validate_type, warn, logger, verbose
@@ -62,7 +63,11 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
         warn('Fewer than 20 times passed, results may be unreliable')
 
     # 1. Compute correction factors
-    coef = np.polyfit(t_other, t_raw, deg=1)
+    poly = Polynomial.fit(x=t_other, y=t_raw, deg=1)
+    converted = poly.convert(domain=(-1, 1))
+    [zero_ord, first_ord] = converted.coef
+    logger.info(f'Zero order coefficient: {zero_ord} \n'
+                f'First order coefficient: {first_ord}')
     r, p = stats.pearsonr(t_other, t_raw)
     msg = f'Linear correlation computed as R={r:0.3f} and p={p:0.2e}'
     if p > 0.05 or r <= 0:
@@ -71,30 +76,29 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
         warn(msg + ', results may be unreliable')
     else:
         logger.info(msg)
-    dr_ms_s = 1000 * abs(1 - coef[0])
+    dr_ms_s = 1000 * abs(1 - first_ord)
     logger.info(
         f'Drift rate: {1000 * dr_ms_s:0.1f} μs/sec '
         f'(total drift over {raw.times[-1]:0.1f} sec recording: '
         f'{raw.times[-1] * dr_ms_s:0.1f} ms)')
 
     # 2. Crop start of recordings to match using the zero-order term
-    msg = f'Cropping {coef[1]:0.3f} sec from the start of '
-    if coef[1] > 0:  # need to crop start of raw to match other
+    msg = f'Cropping {zero_ord:0.3f} sec from the start of '
+    if zero_ord > 0:  # need to crop start of raw to match other
         logger.info(msg + 'raw')
-        raw.crop(coef[1], None)
-        t_raw -= coef[1]
+        raw.crop(zero_ord, None)
+        t_raw -= zero_ord
     else:  # need to crop start of other to match raw
         logger.info(msg + 'other')
-        other.crop(-coef[1], None)
-        t_other += coef[1]
+        other.crop(-zero_ord, None)
+        t_other += zero_ord
 
     # 3. Resample data using the first-order term
     logger.info('Resampling other')
-    coef = coef[0]
-    sfreq_new = raw.info['sfreq'] * coef
+    sfreq_new = raw.info['sfreq'] * first_ord
     other.load_data().resample(sfreq_new, verbose=True)
-    other.info['sfreq'] = raw.info['sfreq']
-    other._update_times()
+    with other.info._unlock():
+        other.info['sfreq'] = raw.info['sfreq']
 
     # 4. Crop the end of one of the recordings if necessary
     delta = raw.times[-1] - other.times[-1]

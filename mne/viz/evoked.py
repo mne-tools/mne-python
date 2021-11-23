@@ -17,6 +17,7 @@ from numbers import Integral
 
 import numpy as np
 
+from ..fixes import _is_last_row
 from ..io.pick import (channel_type,
                        _VALID_CHANNEL_TYPES, channel_indices_by_type,
                        _DATA_CH_TYPES_SPLIT, _pick_inst, _get_channel_types,
@@ -29,9 +30,11 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _connection_line, _get_color_list, _setup_ax_spines,
                     _setup_plot_projector, _prepare_joint_axes, _check_option,
                     _set_title_multiple_electrodes, _check_time_unit,
-                    _plot_masked_image, _trim_ticks, _set_window_title)
+                    _plot_masked_image, _trim_ticks, _set_window_title,
+                    _prop_kw)
 from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
-                     _check_if_nan, _check_ch_locs, fill_doc, _is_numeric)
+                     _check_if_nan, _check_ch_locs, fill_doc, _is_numeric,
+                     _to_rgb)
 
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topomap_plot, plot_topomap, _get_pos_outlines,
@@ -273,6 +276,13 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     titles = _handle_default('titles', titles)
     units = _handle_default('units', units)
 
+    if plot_type == "image":
+        if ylim is not None and not isinstance(ylim, dict):
+            # The user called Evoked.plot_image() or plot_evoked_image(), the
+            # clim parameters of those functions end up to be the ylim here.
+            raise ValueError("`clim` must be a dict. "
+                             "E.g. clim = dict(eeg=[-20, 20])")
+
     picks = _picks_to_idx(info, picks, none='all', exclude=())
     if len(picks) != len(set(picks)):
         raise ValueError("`picks` are not unique. Please remove duplicates.")
@@ -368,13 +378,6 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     return fig
 
 
-def _is_last_row(ax):
-    try:
-        return ax.get_subplotspec().is_last_row()
-    except AttributeError:  # XXX old mpl
-        return ax.is_last_row()
-
-
 def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 scalings, hline, gfp, types, zorder, xlim, ylim, times,
                 bad_ch_idx, titles, ch_types_used, selectable, psd,
@@ -432,7 +435,8 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             if not gfp_only:
                 chs = [info['chs'][i] for i in idx]
                 locs3d = np.array([ch['loc'][:3] for ch in chs])
-                if spatial_colors is True and not _check_ch_locs(chs):
+                if (spatial_colors is True and
+                        not _check_ch_locs(info=info, picks=idx)):
                     warn('Channel locations not available. Disabling spatial '
                          'colors.')
                     spatial_colors = selectable = False
@@ -479,7 +483,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                         this_gfp = D.std(axis=0, ddof=0)
                         label = 'GFP'
                     else:
-                        this_gfp = np.sqrt((D ** 2).mean(axis=0))
+                        this_gfp = np.linalg.norm(D, axis=0) / np.sqrt(len(D))
                         label = 'RMS'
 
                 gfp_color = 3 * (0.,) if spatial_colors is True else (0., 1.,
@@ -541,9 +545,10 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                                         sphere=sphere)
             blit = False if plt.get_backend() == 'MacOSX' else True
             minspan = 0 if len(times) < 2 else times[1] - times[0]
+            rect_kw = _prop_kw('rect', dict(alpha=0.5, facecolor='red'))
             ax._span_selector = SpanSelector(
                 ax, callback_onselect, 'horizontal', minspan=minspan,
-                useblit=blit, rectprops=dict(alpha=0.5, facecolor='red'))
+                useblit=blit, **rect_kw)
 
 
 def _add_nave(ax, nave):
@@ -763,11 +768,12 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         time_unit=time_unit, sphere=sphere)
 
 
-def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
-                     border='none', ylim=None, scalings=None, title=None,
-                     proj=False, vline=[0.0], fig_background=None,
+def plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
+                     color=None, border='none', ylim=None, scalings=None,
+                     title=None, proj=False, vline=[0.0], fig_background=None,
                      merge_grads=False, legend=True, axes=None,
-                     background_color='w', noise_cov=None, show=True):
+                     background_color='w', noise_cov=None, exclude='bads',
+                     show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -794,8 +800,8 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Y limits for plots (after scaling has been applied). The value
         determines the upper and lower subplot limits. e.g.
         ylim = dict(eeg=[-20, 20]). Valid keys are eeg, mag, grad, misc.
-        If None, the ylim parameter for each channel is determined by
-        the maximum absolute peak.
+        If None, the ylim parameter for each channel type is determined by
+        the minimum and maximum peak.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`
         defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
@@ -833,6 +839,9 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Can be a string to load a covariance from disk.
 
         .. versionadded:: 0.16.0
+    exclude : list of str | 'bads'
+        Channels names to exclude from the plot. If 'bads', the
+        bad channels are excluded. By default, exclude is set to 'bads'.
     show : bool
         Show figure if True.
 
@@ -841,13 +850,11 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     fig : instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations.
     """
-    from matplotlib.colors import colorConverter
-
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
 
-    dark_background = \
-        np.mean(colorConverter.to_rgb(background_color)) < 0.5
+    background_color = _to_rgb(background_color, name='background_color')
+    dark_background = np.mean(background_color) < 0.5
     if dark_background:
         fig_facecolor = background_color
         axis_facecolor = background_color
@@ -872,8 +879,8 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              axis_facecolor=axis_facecolor,
                              font_color=font_color,
                              merge_channels=merge_grads,
-                             legend=legend, axes=axes, show=show,
-                             noise_cov=noise_cov)
+                             legend=legend, axes=axes, exclude=exclude,
+                             show=show, noise_cov=noise_cov)
 
 
 @fill_doc
@@ -1036,9 +1043,10 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
     """Plot whitened evoked response.
 
     Plots the whitened evoked response and the whitened GFP as described in
-    [1]_. This function is especially useful for investigating noise
-    covariance properties to determine if data are properly whitened (e.g.,
-    achieving expected values in line with model assumptions, see Notes below).
+    :footcite:`EngemannGramfort2015`. This function is especially useful for
+    investigating noise covariance properties to determine if data are
+    properly whitened (e.g., achieving expected values in line with model
+    assumptions, see Notes below).
 
     Parameters
     ----------
@@ -1374,7 +1382,13 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
             raise ValueError("If one of `ts_args` and `topomap_args` contains "
                              "'axes', the other must, too.")
         _validate_if_list_of_axes([ts_args["axes"]], 1)
-        n_topomaps = (3 if times is None else len(times)) + 1
+
+        if times in (None, 'peaks'):
+            n_topomaps = 3 + 1
+        else:
+            assert not isinstance(times, str)
+            n_topomaps = len(times) + 1
+
         _validate_if_list_of_axes(list(topomap_args["axes"]), n_topomaps)
         got_axes = True
 
@@ -1451,6 +1465,8 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     # we use a new axis for the title to handle scaling of plots
     old_title = ts_ax.get_title()
     ts_ax.set_title('')
+
+    # XXX BUG destroys ax -> fig assignment if title & axes are passed
     if title is not None:
         title_ax = plt.subplot(4, 3, 2)
         if title == '':
@@ -1483,6 +1499,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
     if topomap_args.get('colorbar', True):
         from matplotlib import ticker
+        cbar_ax.grid(False)  # auto-removal deprecated as of 2021/10/05
         cbar = plt.colorbar(map_ax[0].images[0], cax=cbar_ax)
         if isinstance(contours, (list, np.ndarray)):
             cbar.set_ticks(contours)
@@ -1939,6 +1956,23 @@ def _title_helper_pce(title, picked_types, picks, ch_names, combine):
     return title
 
 
+def _ascii_minus_to_unicode(s):
+    """Replace ASCII-encoded "minus-hyphen" characters with Unicode minus.
+
+    Aux function for ``plot_compare_evokeds`` to prettify ``Evoked.comment``.
+    """
+    if s is None:
+        return
+
+    # replace ASCII minus operators with Unicode minus characters
+    s = s.replace(' - ', ' − ')
+    # replace leading minus operator if present
+    if s.startswith('-'):
+        s = f'−{s[1:]}'
+
+    return s
+
+
 @fill_doc
 def plot_compare_evokeds(evokeds, picks=None, colors=None,
                          linestyles=None, styles=None, cmap=None,
@@ -1981,11 +2015,13 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         indicating steps or percentiles (respectively) along the colormap. If
         ``cmap`` is ``None``, list elements or dict values of ``colors`` must
         be :class:`ints <int>` or valid :doc:`matplotlib colors
-        <tutorials/colors/colors>`; lists are cycled through sequentially,
+        <matplotlib:tutorials/colors/colors>`; lists are cycled through
+        sequentially,
         while dicts must have keys matching the keys or conditions of an
         ``evokeds`` dict (see Notes for details). If ``None``, the current
-        :doc:`matplotlib color cycle <gallery/color/color_cycle_default>` is
-        used. Defaults to ``None``.
+        :doc:`matplotlib color cycle
+        <matplotlib:gallery/color/color_cycle_default>`
+        is used. Defaults to ``None``.
     linestyles : list | dict | None
         Styles to use when plotting the ERP/F lines. If a :class:`list` or
         :class:`dict`, elements must be valid :doc:`matplotlib linestyles
@@ -2163,7 +2199,10 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if isinstance(evokeds, (list, tuple)):
         evokeds_copy = evokeds.copy()
         evokeds = dict()
-        comments = [getattr(_evk, 'comment', None) for _evk in evokeds_copy]
+
+        comments = [_ascii_minus_to_unicode(getattr(_evk, 'comment', None))
+                    for _evk in evokeds_copy]
+
         for idx, (comment, _evoked) in enumerate(zip(comments, evokeds_copy)):
             key = str(idx + 1)
             if comment:  # only update key if comment is non-empty
@@ -2217,12 +2256,14 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if show_sensors is None:
         show_sensors = (len(picks) == 1)
 
+    _validate_type(combine, types=(None, 'callable', str), item_name='combine')
     # cannot combine a single channel
     if (len(picks) < 2) and combine is not None:
         warn('Only {} channel in "picks"; cannot combine by method "{}".'
              .format(len(picks), combine))
     # `combine` defaults to GFP unless picked a single channel or axes='topo'
-    if combine is None and len(picks) > 1 and axes != 'topo':
+    do_topo = isinstance(axes, str) and axes == 'topo'
+    if combine is None and len(picks) > 1 and not do_topo:
         combine = 'gfp'
     # convert `combine` into callable (if None or str)
     combine_func = _make_combine_callable(combine)
@@ -2232,7 +2273,6 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
                               ch_names=ch_names, combine=combine)
 
     # setup axes
-    do_topo = (axes == 'topo')
     if do_topo:
         show_sensors = False
         if len(picks) > 70:
@@ -2332,9 +2372,11 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         ci_dict = dict()
         for cond in conditions:
             this_evokeds = evokeds[cond]
-            # skip CIs when possible; assign ci_fun first to get arg checking
+            # assign ci_fun first to get arg checking
             ci_fun = _get_ci_function_pce(ci, do_topo=do_topo)
-            ci_fun = ci_fun if len(this_evokeds) > 1 else None
+            # for bootstrap or parametric CIs, skip when only 1 observation
+            if not callable(ci):
+                ci_fun = ci_fun if len(this_evokeds) > 1 else None
             res = _get_data_and_ci(this_evokeds, combine, c_func, picks=_picks,
                                    scaling=scalings, ci_fun=ci_fun)
             data_dict[cond] = res[0]
@@ -2379,7 +2421,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if show_sensors:
         _validate_type(show_sensors, (np.int64, bool, str, type(None)),
                        'show_sensors', 'numeric, str, None or bool')
-        if not _check_ch_locs(np.array(one_evoked.info['chs'])[pos_picks]):
+        if not _check_ch_locs(info=one_evoked.info, picks=pos_picks):
             warn('Cannot find channel coordinates in the supplied Evokeds. '
                  'Not showing channel locations.')
         else:

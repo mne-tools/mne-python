@@ -12,5 +12,6 @@
     <file alias="screenshot.svg">screenshot-black-18dp.svg</file>
     <file alias="movie.svg">movie-black-18dp.svg</file>
     <file alias="mne-icon.png">mne-circle-black.png</file>
+    <file alias="mne-bigsur-icon.png">mne-bigsur-white.png</file>
 </qresource>
 </RCC>

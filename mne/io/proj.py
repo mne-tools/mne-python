@@ -3,17 +3,16 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from copy import deepcopy
 from itertools import count
 from math import sqrt
 
 import numpy as np
-from scipy import linalg
 
 from .tree import dir_tree_find
-from .tag import find_tag
+from .tag import find_tag, _rename_list
 from .constants import FIFF
 from .pick import pick_types, pick_info
 from .write import (write_int, write_float, write_string, write_name_list,
@@ -58,8 +57,7 @@ class Projection(dict):
 
         Parameters
         ----------
-        info : instance of Info | None
-            The measurement information to use to determine the layout.
+        %(info_not_none)s Used to determine the layout.
         %(proj_topomap_kwargs)s
         %(topomap_sphere_auto)s
         %(topomap_border)s
@@ -144,12 +142,15 @@ class ProjMixin(object):
             if any(p['active'] for p in self.info['projs']):
                 raise ValueError('Cannot remove projectors that have '
                                  'already been applied')
-            self.info['projs'] = projs
+            with self.info._unlock():
+                self.info['projs'] = projs
         else:
             self.info['projs'].extend(projs)
         # We don't want to add projectors that are activated again.
-        self.info['projs'] = _uniquify_projs(self.info['projs'],
-                                             check_active=False, sort=False)
+        with self.info._unlock():
+            self.info['projs'] = _uniquify_projs(self.info['projs'],
+                                                 check_active=False,
+                                                 sort=False)
         return self
 
     @verbose
@@ -256,7 +257,9 @@ class ProjMixin(object):
 
         keep = np.ones(len(self.info['projs']))
         keep[idx] = False  # works with negative indexing and does checks
-        self.info['projs'] = [p for p, k in zip(self.info['projs'], keep) if k]
+        with self.info._unlock():
+            self.info['projs'] = [p for p, k in zip(self.info['projs'], keep)
+                                  if k]
         return self
 
     @fill_doc
@@ -314,10 +317,12 @@ class ProjMixin(object):
                 continue
             info_from = pick_info(self.info, picks)
             info_to = info_from.copy()
-            info_to['projs'] = []
-            if kind == 'eeg' and _has_eeg_average_ref_proj(info_from['projs']):
-                info_to['projs'] = [
-                    make_eeg_average_ref_proj(info_to, verbose=False)]
+            with info_to._unlock():
+                info_to['projs'] = []
+                if kind == 'eeg' and _has_eeg_average_ref_proj(
+                        info_from['projs']):
+                    info_to['projs'] = [
+                        make_eeg_average_ref_proj(info_to, verbose=False)]
             mapping = _map_meg_or_eeg_channels(
                 info_from, info_to, mode=mode, origin=origin)
             self.data[..., picks, :] = np.matmul(
@@ -339,22 +344,8 @@ def _proj_equal(a, b, check_active=True):
 
 
 @verbose
-def _read_proj(fid, node, verbose=None):
-    """Read spatial projections from a FIF file.
-
-    Parameters
-    ----------
-    fid : file
-        The file descriptor of the open file.
-    node : tree node
-        The node of the tree where to look.
-    %(verbose)s
-
-    Returns
-    -------
-    projs : list of Projection
-        The list of projections.
-    """
+def _read_proj(fid, node, *, ch_names_mapping=None, verbose=None):
+    ch_names_mapping = {} if ch_names_mapping is None else ch_names_mapping
     projs = list()
 
     #   Locate the projection data
@@ -437,6 +428,7 @@ def _read_proj(fid, node, verbose=None):
         # just always use this, we used to have bugs with writing the
         # number correctly...
         nchan = len(names)
+        names[:] = _rename_list(names, ch_names_mapping)
         #   Use exactly the same fields in data as in a named matrix
         one = Projection(kind=kind, active=active, desc=desc,
                          data=dict(nrow=nvec, ncol=nchan, row_names=None,
@@ -459,7 +451,7 @@ def _read_proj(fid, node, verbose=None):
 ###############################################################################
 # Write
 
-def _write_proj(fid, projs):
+def _write_proj(fid, projs, *, ch_names_mapping=None):
     """Write a projection operator to a file.
 
     Parameters
@@ -472,6 +464,7 @@ def _write_proj(fid, projs):
     if len(projs) == 0:
         return
 
+    ch_names_mapping = dict() if ch_names_mapping is None else ch_names_mapping
     # validation
     _validate_type(projs, (list, tuple), 'projs')
     for pi, proj in enumerate(projs):
@@ -482,8 +475,8 @@ def _write_proj(fid, projs):
     for proj in projs:
         start_block(fid, FIFF.FIFFB_PROJ_ITEM)
         write_int(fid, FIFF.FIFF_NCHAN, len(proj['data']['col_names']))
-        write_name_list(fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST,
-                        proj['data']['col_names'])
+        names = _rename_list(proj['data']['col_names'], ch_names_mapping)
+        write_name_list(fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST, names)
         write_string(fid, FIFF.FIFF_NAME, proj['desc'])
         write_int(fid, FIFF.FIFF_PROJ_ITEM_KIND, proj['kind'])
         if proj['kind'] == FIFF.FIFFV_PROJ_ITEM_FIELD:
@@ -554,6 +547,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
     warning will be raised next time projectors are constructed with
     the given inputs. If inplace=True, no meaningful data are returned.
     """
+    from scipy import linalg
     nchan = len(ch_names)
     if nchan == 0:
         raise ValueError('No channel names specified')
@@ -635,7 +629,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
         return default_return
 
     # Reorthogonalize the vectors
-    U, S, V = linalg.svd(vecs[:, :nvec], full_matrices=False)
+    U, S, _ = linalg.svd(vecs[:, :nvec], full_matrices=False)
 
     # Throw away the linearly dependent guys
     nproj = np.sum((S / S[0]) > 1e-2)
@@ -662,6 +656,7 @@ def _normalize_proj(info):
                     info['bads'], include_active=True, inplace=True)
 
 
+@fill_doc
 def make_projector_info(info, include_active=True):
     """Make an SSP operator using the measurement info.
 
@@ -669,8 +664,7 @@ def make_projector_info(info, include_active=True):
 
     Parameters
     ----------
-    info : dict
-        Measurement info.
+    %(info_not_none)s
     include_active : bool
         Also include projectors that are already active.
 
@@ -754,8 +748,7 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
 
     Parameters
     ----------
-    info : dict
-        Measurement info.
+    %(info_not_none)s
     activate : bool
         If True projections are activated.
     %(verbose)s
@@ -825,8 +818,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
 
     Parameters
     ----------
-    info : dict
-        The measurement info.
+    %(info_not_none)s Warning: will be modified in-place.
     add_eeg_ref : bool
         If True, an EEG average reference will be added (unless one
         already exists).
@@ -838,8 +830,8 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
     -------
     projector : array of shape [n_channels, n_channels]
         The projection operator to apply to the data.
-    info : dict
-        The modified measurement info (Warning: info is modified inplace).
+    info : mne.Info
+        The modified measurement info.
     """
     # Add EEG ref reference proj if necessary
     if add_eeg_ref and _needs_eeg_average_ref_proj(info):
@@ -859,7 +851,8 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
 
     # The projection items have been activated
     if activate:
-        info['projs'] = activate_proj(info['projs'], copy=False)
+        with info._unlock():
+            info['projs'] = activate_proj(info['projs'], copy=False)
 
     return projector, info
 

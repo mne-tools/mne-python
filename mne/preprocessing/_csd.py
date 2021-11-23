@@ -9,12 +9,10 @@
 # Authors: Denis A. Engeman <denis.engemann@gmail.com>
 #          Alex Rockhill <aprockhill@mailbox.org>
 #
-# License: Relicensed under BSD (3-clause) and adapted with
+# License: Relicensed under BSD-3-Clause and adapted with
 #          permission from authors of original GPL code
 
 import numpy as np
-
-from scipy import linalg
 
 from .. import pick_types
 from ..utils import _validate_type, _ensure_int, _check_preload
@@ -29,7 +27,7 @@ from ..channels.interpolation import _calc_g, _calc_h
 def _prepare_G(G, lambda2):
     G.flat[::len(G) + 1] += lambda2
     # compute the CSD
-    Gi = linalg.inv(G)
+    Gi = np.linalg.inv(G)
 
     TC = Gi.sum(0)
     sgi = np.sum(TC)  # compute sum total
@@ -85,9 +83,6 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
 
     Notes
     -----
-    This function applies an average reference to the data if copy is False.
-    Do not transform CSD data to source space.
-
     .. versionadded:: 0.20
 
     References
@@ -100,6 +95,7 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
     if inst.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_CSD:
         raise ValueError('CSD already applied, should not be reapplied')
 
+    _validate_type(copy, (bool), 'copy')
     inst = inst.copy() if copy else inst
 
     picks = pick_types(inst.info, meg=False, eeg=True, exclude=[])
@@ -145,8 +141,6 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
         raise ValueError('sphere radius must be greater than 0, '
                          'got %s' % radius)
 
-    _validate_type(copy, (bool), 'copy')
-
     pos = np.array([inst.info['chs'][pick]['loc'][:3] for pick in picks])
     if not np.isfinite(pos).all() or np.isclose(pos, 0.).all(1).any():
         raise ValueError('Zero or infinite position found in chs')
@@ -173,7 +167,8 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
     epochs = [inst._data] if not isinstance(inst, BaseEpochs) else inst._data
     for epo in epochs:
         epo[picks] = np.dot(trans_csd, epo[picks])
-    inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_CSD
+    with inst.info._unlock():
+        inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_CSD
     for pick in picks:
         inst.info['chs'][pick].update(coil_type=FIFF.FIFFV_COIL_EEG_CSD,
                                       unit=FIFF.FIFF_UNIT_V_M2)

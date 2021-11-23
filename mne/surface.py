@@ -3,39 +3,35 @@
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # Many of the computations in this code were derived from Matti Hämäläinen's
 # C code.
 
 from copy import deepcopy
 from distutils.version import LooseVersion
+from functools import partial, lru_cache
+from collections import OrderedDict
 from glob import glob
-from functools import partial
-import os
 from os import path as op
-import warnings
 from struct import pack
+import warnings
 
 import numpy as np
-from scipy.sparse import coo_matrix, csr_matrix, eye as speye
 
-from .io.constants import FIFF
-from .io.open import fiff_open
-from .io.pick import pick_types
-from .io.tree import dir_tree_find
-from .io.tag import find_tag
-from .io.write import (write_int, start_file, end_block, start_block, end_file,
-                       write_string, write_float_sparse_rcs)
 from .channels.channels import _get_meg_system
+from .fixes import (_serialize_volume_info, _get_read_geometry, jit,
+                    prange, bincount)
+from .io.constants import FIFF
+from .io.pick import pick_types
 from .parallel import parallel_func
 from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
-                         _get_trans, apply_trans, Transform)
+                         _get_trans, apply_trans, Transform, _frame_to_str,
+                         apply_volume_registration)
 from .utils import (logger, verbose, get_subjects_dir, warn, _check_fname,
                     _check_option, _ensure_int, _TempDir, run_subprocess,
-                    _check_freesurfer_home)
-from .fixes import (_serialize_volume_info, _get_read_geometry, einsum, jit,
-                    prange, bincount)
+                    _check_freesurfer_home, _hashable_ndarray, fill_doc,
+                    _validate_type, _require_version)
 
 
 ###############################################################################
@@ -71,6 +67,7 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
                              subjects_dir=subjects_dir)
 
 
+# TODO this should be refactored with mne._freesurfer._get_head_surface
 def _get_head_surface(subject, source, subjects_dir, raise_error=True):
     """Load the subject head surface."""
     from .bem import read_bem_surfaces
@@ -125,8 +122,7 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
 
     Parameters
     ----------
-    info : instance of Info
-        Measurement info.
+    %(info_not_none)s
     trans : dict
         The head<->MRI transformation, usually obtained using
         read_trans(). Can be None, in which case the surface will
@@ -279,6 +275,7 @@ def _triangle_neighbors(tris, npts):
     # for ti, tri in enumerate(tris):
     #     for t in tri:
     #         neighbor_tri[t].append(ti)
+    from scipy.sparse import coo_matrix
     rows = tris.ravel()
     cols = np.repeat(np.arange(len(tris)), 3)
     data = np.ones(len(cols))
@@ -319,8 +316,8 @@ def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False,
         out = _find_nearest_tri_pts(rrs, pt_tris, pt_lens,
                                     reproject=True, **surf_geom)
         if project_rrs:  #
-            out += (einsum('ij,ijk->ik', out[0],
-                           surf['rr'][surf['tris'][out[1]]]),)
+            out += (np.einsum('ij,ijk->ik', out[0],
+                              surf['rr'][surf['tris'][out[1]]]),)
         if return_nn:
             out += (surf_geom['nn'][out[1]],)
     else:  # nearest neighbor
@@ -349,7 +346,7 @@ def _normal_orth(nn):
 
 @verbose
 def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
-                          verbose=None):
+                          do_neighbor_tri=True, *, verbose=None):
     """Complete surface information.
 
     Parameters
@@ -357,9 +354,11 @@ def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
     surf : dict
         The surface.
     do_neighbor_vert : bool
-        If True, add neighbor vertex information.
+        If True (default False), add neighbor vertex information.
     copy : bool
         If True (default), make a copy. If False, operate in-place.
+    do_neighbor_tri : bool
+        If True (default), compute triangle neighbors.
     %(verbose)s
 
     Returns
@@ -389,27 +388,28 @@ def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
 
     #    Find neighboring triangles, accumulate vertex normals, normalize
     logger.info('    Triangle neighbors and vertex normals...')
-    surf['neighbor_tri'] = _triangle_neighbors(surf['tris'], surf['np'])
     surf['nn'] = _accumulate_normals(surf['tris'].astype(int),
                                      surf['tri_nn'], surf['np'])
     _normalize_vectors(surf['nn'])
 
     #   Check for topological defects
-    zero, fewer = list(), list()
-    for ni, n in enumerate(surf['neighbor_tri']):
-        if len(n) < 3:
-            if len(n) == 0:
-                zero.append(ni)
-            else:
-                fewer.append(ni)
-                surf['neighbor_tri'][ni] = np.array([], int)
-    if len(zero) > 0:
-        logger.info('    Vertices do not have any neighboring '
-                    'triangles: [%s]' % ', '.join(str(z) for z in zero))
-    if len(fewer) > 0:
-        logger.info('    Vertices have fewer than three neighboring '
-                    'triangles, removing neighbors: [%s]'
-                    % ', '.join(str(f) for f in fewer))
+    if do_neighbor_tri:
+        surf['neighbor_tri'] = _triangle_neighbors(surf['tris'], surf['np'])
+        zero, fewer = list(), list()
+        for ni, n in enumerate(surf['neighbor_tri']):
+            if len(n) < 3:
+                if len(n) == 0:
+                    zero.append(ni)
+                else:
+                    fewer.append(ni)
+                    surf['neighbor_tri'][ni] = np.array([], int)
+        if len(zero) > 0:
+            logger.info('    Vertices do not have any neighboring '
+                        'triangles: [%s]' % ', '.join(str(z) for z in zero))
+        if len(fewer) > 0:
+            logger.info('    Vertices have fewer than three neighboring '
+                        'triangles, removing neighbors: [%s]'
+                        % ', '.join(str(f) for f in fewer))
 
     #   Determine the neighboring vertices and fix errors
     if do_neighbor_vert is True:
@@ -738,6 +738,13 @@ def read_surface(fname, read_metadata=False, return_dict=False,
     return ret
 
 
+def _read_mri_surface(fname):
+    surf = read_surface(fname, return_dict=True)[2]
+    surf['rr'] /= 1000.
+    surf.update(coord_frame=FIFF.FIFFV_COORD_MRI)
+    return surf
+
+
 def _read_wavefront_obj(fname):
     """Read a surface form a Wavefront .obj file.
 
@@ -1032,8 +1039,9 @@ def _decimate_surface_spacing(surf, spacing):
     return surf
 
 
+@verbose
 def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
-                  file_format='auto', overwrite=False):
+                  file_format='auto', overwrite=False, *, verbose=None):
     """Write a triangular Freesurfer surface mesh.
 
     Accepts the same data format as is returned by read_surface().
@@ -1072,8 +1080,8 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
         file name. Defaults to 'auto'.
 
         .. versionadded:: 0.21.0
-    overwrite : bool
-        If True, overwrite the file if it exists.
+    %(overwrite)s
+    %(verbose)s
 
     See Also
     --------
@@ -1283,147 +1291,7 @@ def decimate_surface(points, triangles, n_triangles, method='quadric',
 
 
 ###############################################################################
-# Morph maps
-
-# XXX this morphing related code should probably be moved to morph.py
-
-@verbose
-def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
-                   verbose=None):
-    """Read morph map.
-
-    Morph maps can be generated with mne_make_morph_maps. If one isn't
-    available, it will be generated automatically and saved to the
-    ``subjects_dir/morph_maps`` directory.
-
-    Parameters
-    ----------
-    subject_from : str
-        Name of the original subject as named in the SUBJECTS_DIR.
-    subject_to : str
-        Name of the subject on which to morph as named in the SUBJECTS_DIR.
-    subjects_dir : str
-        Path to SUBJECTS_DIR is not set in the environment.
-    xhemi : bool
-        Morph across hemisphere. Currently only implemented for
-        ``subject_to == subject_from``. See notes of
-        :func:`mne.compute_source_morph`.
-    %(verbose)s
-
-    Returns
-    -------
-    left_map, right_map : ~scipy.sparse.csr_matrix
-        The morph maps for the 2 hemispheres.
-    """
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-
-    # First check for morph-map dir existence
-    mmap_dir = op.join(subjects_dir, 'morph-maps')
-    if not op.isdir(mmap_dir):
-        try:
-            os.mkdir(mmap_dir)
-        except Exception:
-            warn('Could not find or make morph map directory "%s"' % mmap_dir)
-
-    # filename components
-    if xhemi:
-        if subject_to != subject_from:
-            raise NotImplementedError(
-                "Morph-maps between hemispheres are currently only "
-                "implemented for subject_to == subject_from")
-        map_name_temp = '%s-%s-xhemi'
-        log_msg = 'Creating morph map %s -> %s xhemi'
-    else:
-        map_name_temp = '%s-%s'
-        log_msg = 'Creating morph map %s -> %s'
-
-    map_names = [map_name_temp % (subject_from, subject_to),
-                 map_name_temp % (subject_to, subject_from)]
-
-    # find existing file
-    for map_name in map_names:
-        fname = op.join(mmap_dir, '%s-morph.fif' % map_name)
-        if op.exists(fname):
-            return _read_morph_map(fname, subject_from, subject_to)
-    # if file does not exist, make it
-    logger.info('Morph map "%s" does not exist, creating it and saving it to '
-                'disk' % fname)
-    logger.info(log_msg % (subject_from, subject_to))
-    mmap_1 = _make_morph_map(subject_from, subject_to, subjects_dir, xhemi)
-    if subject_to == subject_from:
-        mmap_2 = None
-    else:
-        logger.info(log_msg % (subject_to, subject_from))
-        mmap_2 = _make_morph_map(subject_to, subject_from, subjects_dir,
-                                 xhemi)
-    _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2)
-    return mmap_1
-
-
-def _read_morph_map(fname, subject_from, subject_to):
-    """Read a morph map from disk."""
-    f, tree, _ = fiff_open(fname)
-    with f as fid:
-        # Locate all maps
-        maps = dir_tree_find(tree, FIFF.FIFFB_MNE_MORPH_MAP)
-        if len(maps) == 0:
-            raise ValueError('Morphing map data not found')
-
-        # Find the correct ones
-        left_map = None
-        right_map = None
-        for m in maps:
-            tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_FROM)
-            if tag.data == subject_from:
-                tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_TO)
-                if tag.data == subject_to:
-                    #  Names match: which hemishere is this?
-                    tag = find_tag(fid, m, FIFF.FIFF_MNE_HEMI)
-                    if tag.data == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
-                        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
-                        left_map = tag.data
-                        logger.info('    Left-hemisphere map read.')
-                    elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
-                        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
-                        right_map = tag.data
-                        logger.info('    Right-hemisphere map read.')
-
-    if left_map is None or right_map is None:
-        raise ValueError('Could not find both hemispheres in %s' % fname)
-
-    return left_map, right_map
-
-
-def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
-    """Write a morph map to disk."""
-    try:
-        fid = start_file(fname)
-    except Exception as exp:
-        warn('Could not write morph-map file "%s" (error: %s)'
-             % (fname, exp))
-        return
-
-    assert len(mmap_1) == 2
-    hemis = [FIFF.FIFFV_MNE_SURF_LEFT_HEMI, FIFF.FIFFV_MNE_SURF_RIGHT_HEMI]
-    for m, hemi in zip(mmap_1, hemis):
-        start_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
-        write_string(fid, FIFF.FIFF_MNE_MORPH_MAP_FROM, subject_from)
-        write_string(fid, FIFF.FIFF_MNE_MORPH_MAP_TO, subject_to)
-        write_int(fid, FIFF.FIFF_MNE_HEMI, hemi)
-        write_float_sparse_rcs(fid, FIFF.FIFF_MNE_MORPH_MAP, m)
-        end_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
-    # don't write mmap_2 if it is identical (subject_to == subject_from)
-    if mmap_2 is not None:
-        assert len(mmap_2) == 2
-        for m, hemi in zip(mmap_2, hemis):
-            start_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
-            write_string(fid, FIFF.FIFF_MNE_MORPH_MAP_FROM, subject_to)
-            write_string(fid, FIFF.FIFF_MNE_MORPH_MAP_TO, subject_from)
-            write_int(fid, FIFF.FIFF_MNE_HEMI, hemi)
-            write_float_sparse_rcs(fid, FIFF.FIFF_MNE_MORPH_MAP, m)
-            end_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
-    end_file(fid)
-
+# Geometry
 
 @jit()
 def _get_tri_dist(p, q, p0, q0, a, b, c, dist):  # pragma: no cover
@@ -1443,9 +1311,9 @@ def _get_tri_supp_geom(surf):
     r12 = surf['rr'][surf['tris'][:, 1], :] - r1
     r13 = surf['rr'][surf['tris'][:, 2], :] - r1
     r1213 = np.ascontiguousarray(np.array([r12, r13]).swapaxes(0, 1))
-    a = einsum('ij,ij->i', r12, r12)
-    b = einsum('ij,ij->i', r13, r13)
-    c = einsum('ij,ij->i', r12, r13)
+    a = np.einsum('ij,ij->i', r12, r12)
+    b = np.einsum('ij,ij->i', r13, r13)
+    c = np.einsum('ij,ij->i', r12, r13)
     mat = np.ascontiguousarray(np.rollaxis(np.array([[b, -c], [-c, a]]), 2))
     norm = (a * b - c * c)
     norm[norm == 0] = 1.  # avoid divide by zero
@@ -1454,73 +1322,6 @@ def _get_tri_supp_geom(surf):
     _normalize_vectors(nn)
     return dict(r1=r1, r12=r12, r13=r13, r1213=r1213,
                 a=a, b=b, c=c, mat=mat, nn=nn)
-
-
-def _make_morph_map(subject_from, subject_to, subjects_dir, xhemi):
-    """Construct morph map from one subject to another.
-
-    Note that this is close, but not exactly like the C version.
-    For example, parts are more accurate due to double precision,
-    so expect some small morph-map differences!
-
-    Note: This seems easily parallelizable, but the overhead
-    of pickling all the data structures makes it less efficient
-    than just running on a single core :(
-    """
-    subjects_dir = get_subjects_dir(subjects_dir)
-    if xhemi:
-        reg = '%s.sphere.left_right'
-        hemis = (('lh', 'rh'), ('rh', 'lh'))
-    else:
-        reg = '%s.sphere.reg'
-        hemis = (('lh', 'lh'), ('rh', 'rh'))
-
-    return [_make_morph_map_hemi(subject_from, subject_to, subjects_dir,
-                                 reg % hemi_from, reg % hemi_to)
-            for hemi_from, hemi_to in hemis]
-
-
-def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from,
-                         reg_to):
-    """Construct morph map for one hemisphere."""
-    # add speedy short-circuit for self-maps
-    if subject_from == subject_to and reg_from == reg_to:
-        fname = op.join(subjects_dir, subject_from, 'surf', reg_from)
-        n_pts = len(read_surface(fname, verbose=False)[0])
-        return speye(n_pts, n_pts, format='csr')
-
-    # load surfaces and normalize points to be on unit sphere
-    fname = op.join(subjects_dir, subject_from, 'surf', reg_from)
-    from_rr, from_tri = read_surface(fname, verbose=False)
-    fname = op.join(subjects_dir, subject_to, 'surf', reg_to)
-    to_rr = read_surface(fname, verbose=False)[0]
-    _normalize_vectors(from_rr)
-    _normalize_vectors(to_rr)
-
-    # from surface: get nearest neighbors, find triangles for each vertex
-    nn_pts_idx = _compute_nearest(from_rr, to_rr, method='cKDTree')
-    from_pt_tris = _triangle_neighbors(from_tri, len(from_rr))
-    from_pt_tris = [from_pt_tris[pt_idx].astype(int) for pt_idx in nn_pts_idx]
-    from_pt_lens = np.cumsum([0] + [len(x) for x in from_pt_tris])
-    from_pt_tris = np.concatenate(from_pt_tris)
-    assert from_pt_tris.ndim == 1
-    assert from_pt_lens[-1] == len(from_pt_tris)
-
-    # find triangle in which point lies and assoc. weights
-    tri_inds = []
-    weights = []
-    tri_geom = _get_tri_supp_geom(dict(rr=from_rr, tris=from_tri))
-    weights, tri_inds = _find_nearest_tri_pts(
-        to_rr, from_pt_tris, from_pt_lens, run_all=False, reproject=False,
-        **tri_geom)
-
-    nn_idx = from_tri[tri_inds]
-    weights = np.array(weights)
-
-    row_ind = np.repeat(np.arange(len(to_rr)), 3)
-    this_map = csr_matrix((weights.ravel(), (row_ind, nn_idx.ravel())),
-                          shape=(len(to_rr), len(from_rr)))
-    return this_map
 
 
 @jit(parallel=True)
@@ -1656,6 +1457,13 @@ def mesh_edges(tris):
     edges : sparse matrix
         The adjacency matrix.
     """
+    tris = _hashable_ndarray(tris)
+    return _mesh_edges(tris=tris)
+
+
+@lru_cache(maxsize=10)
+def _mesh_edges(tris=None):
+    from scipy.sparse import coo_matrix
     if np.max(tris) > len(np.unique(tris)):
         raise ValueError(
             'Cannot compute adjacency on a selection of triangles.')
@@ -1690,6 +1498,7 @@ def mesh_dist(tris, vert):
     dist_matrix : scipy.sparse.csr_matrix
         Sparse matrix with distances between adjacent vertices.
     """
+    from scipy.sparse import csr_matrix
     edges = mesh_edges(tris).tocoo()
 
     # Euclidean distances between neighboring vertices
@@ -1802,9 +1611,7 @@ def dig_mri_distances(info, trans, subject, subjects_dir=None,
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement info that contains the head shape
-        points in ``info['dig']``.
+    %(info_not_none)s Must contain the head shape points in ``info['dig']``.
     trans : str | instance of Transform
         The head<->MRI transform. If str is passed it is the
         path to file on disk.
@@ -1840,3 +1647,450 @@ def dig_mri_distances(info, trans, subject, subjects_dir=None,
         info, dig_kinds, exclude_frontal=exclude_frontal)
     dists = _compute_nearest(pts, info_dig, return_dists=True)[1]
     return dists
+
+
+def _mesh_borders(tris, mask):
+    assert isinstance(mask, np.ndarray) and mask.ndim == 1
+    edges = mesh_edges(tris)
+    edges = edges.tocoo()
+    border_edges = mask[edges.row] != mask[edges.col]
+    return np.unique(edges.row[border_edges])
+
+
+def _marching_cubes(image, level, smooth=0):
+    """Compute marching cubes on a 3D image."""
+    # vtkDiscreteMarchingCubes would be another option, but it merges
+    # values at boundaries which is not what we want
+    # https://kitware.github.io/vtk-examples/site/Cxx/Medical/GenerateModelsFromLabels/  # noqa: E501
+    # Also vtkDiscreteFlyingEdges3D should be faster.
+    # If we ever want not-discrete (continuous/float) marching cubes,
+    # we should probably use vtkFlyingEdges3D rather than vtkMarchingCubes.
+    from vtk import (vtkImageData, vtkThreshold,
+                     vtkWindowedSincPolyDataFilter, vtkDiscreteFlyingEdges3D,
+                     vtkGeometryFilter, vtkDataSetAttributes, VTK_DOUBLE)
+    from vtk.util import numpy_support
+    _validate_type(smooth, 'numeric', smooth)
+    smooth = float(smooth)
+    if not 0 <= smooth < 1:
+        raise ValueError('smooth must be between 0 (inclusive) and 1 '
+                         f'(exclusive), got {smooth}')
+
+    if image.ndim != 3:
+        raise ValueError(f'3D data must be supplied, got {image.shape}')
+    # force double as passing integer types directly can be problematic!
+    image_shape = image.shape
+    data_vtk = numpy_support.numpy_to_vtk(
+        image.ravel(), deep=True, array_type=VTK_DOUBLE)
+    del image
+    level = np.array(level)
+    if level.ndim != 1 or level.size == 0 or level.dtype.kind not in 'ui':
+        raise TypeError(
+            'level must be non-empty numeric or 1D array-like of int, '
+            f'got {level.ndim}D array-like of {level.dtype} with '
+            f'{level.size} elements')
+    mc = vtkDiscreteFlyingEdges3D()
+    # create image
+    imdata = vtkImageData()
+    imdata.SetDimensions(image_shape)
+    imdata.SetSpacing([1, 1, 1])
+    imdata.SetOrigin([0, 0, 0])
+    imdata.GetPointData().SetScalars(data_vtk)
+
+    # compute marching cubes
+    mc.SetNumberOfContours(len(level))
+    for li, lev in enumerate(level):
+        mc.SetValue(li, lev)
+    mc.SetInputData(imdata)
+    sel_input = mc
+    if smooth:
+        smoother = vtkWindowedSincPolyDataFilter()
+        smoother.SetInputConnection(mc.GetOutputPort())
+        smoother.SetNumberOfIterations(100)
+        smoother.BoundarySmoothingOff()
+        smoother.FeatureEdgeSmoothingOff()
+        smoother.SetFeatureAngle(120.0)
+        smoother.SetPassBand(1 - smooth)
+        smoother.NonManifoldSmoothingOn()
+        smoother.NormalizeCoordinatesOff()
+        sel_input = smoother
+    sel_input.Update()
+
+    # get verts and triangles
+    selector = vtkThreshold()
+    selector.SetInputConnection(sel_input.GetOutputPort())
+    dsa = vtkDataSetAttributes()
+    selector.SetInputArrayToProcess(
+        0, 0, 0, imdata.FIELD_ASSOCIATION_POINTS, dsa.SCALARS)
+    geometry = vtkGeometryFilter()
+    geometry.SetInputConnection(selector.GetOutputPort())
+    out = list()
+    for val in level:
+        try:
+            selector.SetLowerThreshold
+        except AttributeError:
+            selector.ThresholdBetween(val, val)
+        else:
+            # default SetThresholdFunction is between, so:
+            selector.SetLowerThreshold(val)
+            selector.SetUpperThreshold(val)
+        geometry.Update()
+        polydata = geometry.GetOutput()
+        rr = numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())
+        tris = numpy_support.vtk_to_numpy(
+            polydata.GetPolys().GetConnectivityArray()).reshape(-1, 3)
+        rr = np.ascontiguousarray(rr[:, ::-1])
+        tris = np.ascontiguousarray(tris[:, ::-1])
+        out.append((rr, tris))
+    return out
+
+
+def _warn_missing_chs(info, dig_image, after_warp, verbose=None):
+    """Warn that channels are missing."""
+    # ensure that each electrode contact was marked in at least one voxel
+    missing = set(np.arange(1, len(info.ch_names) + 1)).difference(
+        set(np.unique(np.array(dig_image.dataobj))))
+    missing_ch = [info.ch_names[idx - 1] for idx in missing]
+    if missing_ch and verbose != 'error':
+        warn('Channels ' + ', '.join(missing_ch) + ' were not assigned '
+             'voxels' + (' after applying SDR warp' if after_warp else ''))
+
+
+@verbose
+def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
+                        subject_from, subject_to='fsaverage',
+                        subjects_dir_from=None, subjects_dir_to=None,
+                        thresh=0.5, max_peak_dist=1, voxels_max=100,
+                        use_min=False, verbose=None):
+    """Warp a montage to a template with image volumes using SDR.
+
+    Find areas of the input volume with intensity greater than
+    a threshold surrounding local extrema near the channel location.
+    Monotonicity from the peak is enforced to prevent channels
+    bleeding into each other.
+
+    .. note:: This is likely only applicable for channels inside the brain
+              (intracranial electrodes).
+
+    Parameters
+    ----------
+    montage : instance of mne.channels.DigMontage
+        The montage object containing the channels.
+    base_image : path-like | nibabel.spatialimages.SpatialImage
+        Path to a volumetric scan (e.g. CT) of the subject. Can be in any
+        format readable by nibabel. Can also be a nibabel image object.
+        Local extrema (max or min) should be nearby montage channel locations.
+    %(reg_affine)s
+    %(sdr_morph)s
+    subject_from : str
+        The name of the subject used for the Freesurfer reconstruction.
+    subject_to : str
+        The name of the subject to use as a template to morph to
+        (e.g. 'fsaverage').
+    subjects_dir_from : path-like | None
+        The path to the Freesurfer ``recon-all`` directory for the
+        ``subject_from`` subject. The ``SUBJECTS_DIR`` environment
+        variable will be used when ``None``.
+    subjects_dir_to : path-like | None
+        The path to the Freesurfer ``recon-all`` directory for the
+        ``subject_to`` subject. ``subject_dir_from`` will be used
+        when ``None``.
+    thresh : float
+        The threshold relative to the peak to determine the size
+        of the sensors on the volume.
+    max_peak_dist : int
+        The number of voxels away from the channel location to
+        look in the ``image``. This will depend on the accuracy of
+        the channel locations, the default (one voxel in all directions)
+        will work only with localizations that are that accurate.
+    voxels_max : int
+        The maximum number of voxels for each channel.
+    use_min : bool
+        Whether to hypointensities in the volume as channel locations.
+        Default False uses hyperintensities.
+    %(verbose)s
+
+    Returns
+    -------
+    montage_warped : mne.channels.DigMontage
+        The modified montage object containing the channels.
+    image_from : nibabel.spatialimages.SpatialImage
+        An image in Freesurfer surface RAS space with voxel values
+        corresponding to the index of the channel. The background
+        is 0s and this index starts at 1.
+    image_to : nibabel.spatialimages.SpatialImage
+        The warped image with voxel values corresponding to the index
+        of the channel. The background is 0s and this index starts at 1.
+    """
+    _require_version('nibabel', 'SDR morph', '2.1.0')
+    _require_version('dipy', 'SDR morph', '0.10.1')
+    from .channels import DigMontage, make_dig_montage
+    from ._freesurfer import _check_subject_dir
+    import nibabel as nib
+
+    _validate_type(montage, DigMontage, 'montage')
+    _validate_type(base_image, nib.spatialimages.SpatialImage, 'base_image')
+    _validate_type(thresh, float, 'thresh')
+    if thresh < 0 or thresh >= 1:
+        raise ValueError(f'`thresh` must be between 0 and 1, got {thresh}')
+    _validate_type(max_peak_dist, int, 'max_peak_dist')
+    _validate_type(voxels_max, int, 'voxels_max')
+    _validate_type(use_min, bool, 'use_min')
+
+    # first, make sure we have the necessary freesurfer surfaces
+    _check_subject_dir(subject_from, subjects_dir_from)
+    if subjects_dir_to is None:  # assume shared
+        subjects_dir_to = subjects_dir_from
+    _check_subject_dir(subject_to, subjects_dir_to)
+
+    # load image and make sure it's in surface RAS
+    if not isinstance(base_image, nib.spatialimages.SpatialImage):
+        base_image = nib.load(base_image)
+    fs_from_img = nib.load(
+        op.join(subjects_dir_from, subject_from, 'mri', 'brain.mgz'))
+    if not np.allclose(base_image.affine, fs_from_img.affine, atol=1e-6):
+        raise RuntimeError('The `base_image` is not aligned to Freesurfer '
+                           'surface RAS space. This space is required as '
+                           'it is the space where the anatomical '
+                           'segmentation and reconstructed surfaces are')
+
+    # get montage channel coordinates
+    ch_dict = montage.get_positions()
+    if ch_dict['coord_frame'] != 'mri':
+        bad_coord_frames = np.unique([d['coord_frame'] for d in montage.dig])
+        bad_coord_frames = ', '.join([
+            _frame_to_str[cf] if cf in _frame_to_str else str(cf)
+            for cf in bad_coord_frames])
+        raise RuntimeError('Coordinate frame not supported, expected '
+                           f'"mri", got {bad_coord_frames}')
+    ch_names = list(ch_dict['ch_pos'].keys())
+    ch_coords = np.array([ch_dict['ch_pos'][name] for name in ch_names])
+
+    # convert to freesurfer voxel space
+    ch_coords = apply_trans(
+        np.linalg.inv(fs_from_img.header.get_vox2ras_tkr()), ch_coords * 1000)
+
+    # take channel coordinates and use the image to transform them
+    # into a volume where all the voxels over a threshold nearby
+    # are labeled with an index
+    image_data = np.array(base_image.dataobj)
+    if use_min:
+        image_data *= -1
+    image_from = np.zeros(base_image.shape, dtype=int)
+    for i, ch_coord in enumerate(ch_coords):
+        if np.isnan(ch_coord).any():
+            continue
+        # this looks up to a voxel away, it may be marked imperfectly
+        volume = _voxel_neighbors(ch_coord, image_data, thresh=thresh,
+                                  max_peak_dist=max_peak_dist,
+                                  voxels_max=voxels_max)
+        for voxel in volume:
+            if image_from[voxel] != 0:
+                # some voxels ambiguous because the contacts are bridged on
+                # the image so assign the voxel to the nearest contact location
+                dist_old = np.sqrt(
+                    (ch_coords[image_from[voxel] - 1] - voxel)**2).sum()
+                dist_new = np.sqrt((ch_coord - voxel)**2).sum()
+                if dist_new < dist_old:
+                    image_from[voxel] = i + 1
+            else:
+                image_from[voxel] = i + 1
+
+    # apply the mapping
+    image_from = nib.Nifti1Image(image_from, fs_from_img.affine)
+    _warn_missing_chs(montage, image_from, after_warp=False)
+
+    template_brain = nib.load(
+        op.join(subjects_dir_to, subject_to, 'mri', 'brain.mgz'))
+
+    image_to = apply_volume_registration(
+        image_from, template_brain, reg_affine, sdr_morph,
+        interpolation='nearest')
+
+    _warn_missing_chs(montage, image_to, after_warp=True)
+
+    # recover the contact positions as the center of mass
+    warped_data = np.asanyarray(image_to.dataobj)
+    for val, ch_coord in enumerate(ch_coords, 1):
+        ch_coord[:] = np.mean(np.where(warped_data == val), axis=1)
+
+    # convert back to surface RAS of the template
+    fs_to_img = nib.load(
+        op.join(subjects_dir_to, subject_to, 'mri', 'brain.mgz'))
+    ch_coords = apply_trans(
+        fs_to_img.header.get_vox2ras_tkr(), ch_coords) / 1000
+
+    # make warped montage
+    montage_warped = make_dig_montage(
+        dict(zip(ch_names, ch_coords)), coord_frame='mri')
+    return montage_warped, image_from, image_to
+
+
+_VOXELS_MAX = 100  # define constant to avoid runtime issues
+
+
+@fill_doc
+def get_montage_volume_labels(montage, subject, subjects_dir=None,
+                              aseg='aparc+aseg', dist=2):
+    """Get regions of interest near channels from a Freesurfer parcellation.
+
+    .. note:: This is applicable for channels inside the brain
+              (intracranial electrodes).
+
+    Parameters
+    ----------
+    %(montage)s
+    %(subject)s
+    %(subjects_dir)s
+    %(aseg)s
+    dist : float
+        The distance in mm to use for identifying regions of interest.
+
+    Returns
+    -------
+    labels : dict
+        The regions of interest labels within ``dist`` of each channel.
+    colors : dict
+        The Freesurfer lookup table colors for the labels.
+    """
+    from .channels import DigMontage
+    from ._freesurfer import read_freesurfer_lut, _get_aseg
+
+    _validate_type(montage, DigMontage, 'montage')
+    _validate_type(dist, (int, float), 'dist')
+
+    aseg, aseg_data = _get_aseg(aseg, subject, subjects_dir)
+
+    # read freesurfer lookup table
+    lut, fs_colors = read_freesurfer_lut()
+    label_lut = {v: k for k, v in lut.items()}
+
+    # assert that all the values in the aseg are in the labels
+    assert all([idx in label_lut for idx in np.unique(aseg_data)])
+
+    # get transform to surface RAS for distance units instead of voxels
+    vox2ras_tkr = aseg.header.get_vox2ras_tkr()
+
+    ch_dict = montage.get_positions()
+    if ch_dict['coord_frame'] != 'mri':
+        raise RuntimeError('Coordinate frame not supported, expected '
+                           '"mri", got ' + str(ch_dict['coord_frame']))
+    ch_coords = np.array(list(ch_dict['ch_pos'].values()))
+
+    # convert to freesurfer voxel space
+    ch_coords = apply_trans(
+        np.linalg.inv(aseg.header.get_vox2ras_tkr()), ch_coords * 1000)
+    labels = OrderedDict()
+    for ch_name, ch_coord in zip(montage.ch_names, ch_coords):
+        if np.isnan(ch_coord).any():
+            labels[ch_name] = list()
+        else:
+            voxels = _voxel_neighbors(
+                ch_coord, aseg_data, dist=dist, vox2ras_tkr=vox2ras_tkr,
+                voxels_max=_VOXELS_MAX)
+            label_idxs = set([aseg_data[tuple(voxel)].astype(int)
+                              for voxel in voxels])
+            labels[ch_name] = [label_lut[idx] for idx in label_idxs]
+
+    all_labels = set([label for val in labels.values() for label in val])
+    colors = {label: tuple(fs_colors[label][:3] / 255) + (1.,)
+              for label in all_labels}
+    return labels, colors
+
+
+def _get_neighbors(loc, image, voxels, thresh, dist_params):
+    """Find all the neighbors above a threshold near a voxel."""
+    neighbors = set()
+    for axis in range(len(loc)):
+        for i in (-1, 1):
+            next_loc = np.array(loc)
+            next_loc[axis] += i
+            if thresh is not None:
+                assert dist_params is None
+                # must be above thresh, monotonically decreasing from
+                # the peak and not already found
+                next_loc = tuple(next_loc)
+                if image[next_loc] > thresh and \
+                        image[next_loc] < image[loc] and \
+                        next_loc not in voxels:
+                    neighbors.add(next_loc)
+            else:
+                assert thresh is None
+                dist, seed_fs_ras, vox2ras_tkr = dist_params
+                next_loc_fs_ras = apply_trans(vox2ras_tkr, next_loc + 0.5)
+                if np.linalg.norm(seed_fs_ras - next_loc_fs_ras) <= dist:
+                    neighbors.add(tuple(next_loc))
+    return neighbors
+
+
+def _voxel_neighbors(seed, image, thresh=None, max_peak_dist=1,
+                     use_relative=True, dist=None, vox2ras_tkr=None,
+                     voxels_max=100):
+    """Find voxels above a threshold contiguous with a seed location.
+
+    Parameters
+    ----------
+    seed : tuple | ndarray
+        The location in image coordinated to seed the algorithm.
+    image : ndarray
+        The image to search.
+    thresh : float
+        The threshold to use as a cutoff for what qualifies as a neighbor.
+        Will be relative to the peak if ``use_relative`` or absolute if not.
+    max_peak_dist : int
+        The maximum number of voxels to search for the peak near
+        the seed location.
+    use_relative : bool
+        If ``True``, the threshold will be relative to the peak, if
+        ``False``, the threshold will be absolute.
+    dist : float
+        The distance in mm to include surrounding voxels.
+    vox2ras_tkr : ndarray
+        The voxel to surface RAS affine. Must not be None if ``dist``
+        if not None.
+    voxels_max : int
+        The maximum size of the output ``voxels``.
+
+    Returns
+    -------
+    voxels : set
+        The set of locations including the ``seed`` voxel and
+        surrounding that meet the criteria.
+
+    .. note:: Either ``dist`` or ``thesh`` may be used but not both.
+              When ``thresh`` is used, first a peak nearby the seed
+              location is found and then voxels are only included if they
+              decrease monotonically from the peak. When ``dist`` is used,
+              only voxels within ``dist`` mm of the seed are included.
+    """
+    seed = np.array(seed).round().astype(int)
+    assert ((dist is not None) + (thresh is not None)) == 1
+    if thresh is not None:
+        dist_params = None
+        check_grid = image[tuple([
+            slice(idx - max_peak_dist, idx + max_peak_dist + 1)
+            for idx in seed])]
+        peak = np.array(np.unravel_index(
+            np.argmax(check_grid), check_grid.shape)) - max_peak_dist + seed
+        voxels = neighbors = set([tuple(peak)])
+        if use_relative:
+            thresh *= image[tuple(peak)]
+    else:
+        assert vox2ras_tkr is not None
+        seed_fs_ras = apply_trans(vox2ras_tkr, seed + 0.5)  # center of voxel
+        dist_params = (dist, seed_fs_ras, vox2ras_tkr)
+        voxels = neighbors = set([tuple(seed)])
+    while neighbors and len(voxels) <= voxels_max:
+        next_neighbors = set()
+        for next_loc in neighbors:
+            voxel_neighbors = _get_neighbors(next_loc, image, voxels,
+                                             thresh, dist_params)
+            # prevent looping back to already visited voxels
+            voxel_neighbors = voxel_neighbors.difference(voxels)
+            # add voxels not already visited to search next
+            next_neighbors = next_neighbors.union(voxel_neighbors)
+            # add new voxels that match the criteria to the overall set
+            voxels = voxels.union(voxel_neighbors)
+            if len(voxels) > voxels_max:
+                break
+        neighbors = next_neighbors  # start again checking all new neighbors
+    return voxels

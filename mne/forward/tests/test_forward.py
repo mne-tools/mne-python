@@ -13,8 +13,7 @@ from mne import (read_forward_solution, apply_forward, apply_forward_raw,
                  read_evokeds, VectorSourceEstimate)
 from mne.io import read_info
 from mne.label import read_label
-from mne.utils import (requires_mne, run_subprocess,
-                       run_tests_if_main)
+from mne.utils import requires_mne, run_subprocess
 from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
                          Forward, is_fixed_orient, compute_orient_prior,
                          compute_depth_prior)
@@ -87,7 +86,7 @@ def test_convert_forward():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_io_forward(tmpdir):
+def test_io_forward(tmp_path):
     """Test IO for forward solutions."""
     # do extensive tests with MEEG + grad
     n_channels, n_src = 366, 108
@@ -98,7 +97,7 @@ def test_io_forward(tmpdir):
     leadfield = fwd['sol']['data']
     assert_equal(leadfield.shape, (n_channels, n_src))
     assert_equal(len(fwd['sol']['row_names']), n_channels)
-    fname_temp = tmpdir.join('test-fwd.fif')
+    fname_temp = tmp_path / 'test-fwd.fif'
     with pytest.warns(RuntimeWarning, match='stored on disk'):
         write_forward_solution(fname_temp, fwd, overwrite=True)
 
@@ -168,7 +167,7 @@ def test_io_forward(tmpdir):
 
     # test warnings on bad filenames
     fwd = read_forward_solution(fname_meeg_grad)
-    fwd_badname = tmpdir.join('test-bad-name.fif.gz')
+    fwd_badname = tmp_path / 'test-bad-name.fif.gz'
     with pytest.warns(RuntimeWarning, match='end with'):
         write_forward_solution(fwd_badname, fwd)
     with pytest.warns(RuntimeWarning, match='end with'):
@@ -240,7 +239,7 @@ def test_apply_forward():
 
 
 @testing.requires_testing_data
-def test_restrict_forward_to_stc(tmpdir):
+def test_restrict_forward_to_stc(tmp_path):
     """Test restriction of source space to source SourceEstimate."""
     start = 0
     stop = 5
@@ -284,7 +283,7 @@ def test_restrict_forward_to_stc(tmpdir):
 
     # Test saving the restricted forward object. This only works if all fields
     # are properly accounted for.
-    fname_copy = tmpdir.join('copy-fwd.fif')
+    fname_copy = tmp_path / 'copy-fwd.fif'
     with pytest.warns(RuntimeWarning, match='stored on disk'):
         write_forward_solution(fname_copy, fwd_out, overwrite=True)
     fwd_out_read = read_forward_solution(fname_copy)
@@ -294,7 +293,7 @@ def test_restrict_forward_to_stc(tmpdir):
 
 
 @testing.requires_testing_data
-def test_restrict_forward_to_label(tmpdir):
+def test_restrict_forward_to_label(tmp_path):
     """Test restriction of source space to label."""
     fwd = read_forward_solution(fname_meeg)
     fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
@@ -353,7 +352,7 @@ def test_restrict_forward_to_label(tmpdir):
 
     # Test saving the restricted forward object. This only works if all fields
     # are properly accounted for.
-    fname_copy = tmpdir.join('copy-fwd.fif')
+    fname_copy = tmp_path / 'copy-fwd.fif'
     write_forward_solution(fname_copy, fwd_out, overwrite=True)
     fwd_out_read = read_forward_solution(fname_copy)
     assert_forward_allclose(fwd_out, fwd_out_read)
@@ -361,7 +360,7 @@ def test_restrict_forward_to_label(tmpdir):
 
 @testing.requires_testing_data
 @requires_mne
-def test_average_forward_solution(tmpdir):
+def test_average_forward_solution(tmp_path):
     """Test averaging forward solutions."""
     fwd = read_forward_solution(fname_meeg)
     # input not a list
@@ -384,7 +383,7 @@ def test_average_forward_solution(tmpdir):
 
     # modify a fwd solution, save it, use MNE to average with old one
     fwd_copy['sol']['data'] *= 0.5
-    fname_copy = str(tmpdir.join('copy-fwd.fif'))
+    fname_copy = str(tmp_path / 'copy-fwd.fif')
     write_forward_solution(fname_copy, fwd_copy, overwrite=True)
     cmd = ('mne_average_forward_solutions', '--fwd', fname_meeg, '--fwd',
            fname_copy, '--out', fname_copy)
@@ -446,6 +445,3 @@ def test_equalize_channels():
     fwd1, fwd2 = equalize_channels([fwd1, fwd2])
     assert fwd1.ch_names == ['EEG 001', 'EEG 002']
     assert fwd2.ch_names == ['EEG 001', 'EEG 002']
-
-
-run_tests_if_main()

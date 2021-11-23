@@ -10,7 +10,6 @@ from .annotations import _annotations_starts_stops
 from .io.pick import _picks_to_idx
 from .cuda import (_setup_cuda_fft_multiply_repeated, _fft_multiply_repeated,
                    _setup_cuda_fft_resample, _fft_resample, _smart_pad)
-from .fixes import irfft, ifftshift, fftfreq
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
 from .utils import (logger, verbose, sum_squared, warn, _pl,
@@ -1123,6 +1122,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
     %(fir_window)s
     %(fir_design)s
     %(pad-fir)s
+        The default is ``'reflect_limited'``.
     %(verbose)s
 
     Returns
@@ -1380,7 +1380,7 @@ def _check_filterable(x, kind='filtered'):
 
 def _resamp_ratio_len(up, down, n):
     ratio = float(up) / down
-    return ratio, int(round(ratio * n))
+    return ratio, max(int(round(ratio * n)), 1)
 
 
 @verbose
@@ -1403,7 +1403,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
         Axis along which to resample (default is the last axis).
     %(window-resample)s
     %(n_jobs-cuda)s
-    %(pad-fir)s
+    %(pad)s
         The default is ``'reflect_limited'``.
 
         .. versionadded:: 0.15
@@ -1428,6 +1428,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
     up=up/down and down=1.
     """
     from scipy.signal import get_window
+    from scipy.fft import ifftshift, fftfreq
     # check explicitly for backwards compatibility
     if not isinstance(axis, int):
         err = ("The axis parameter needs to be an integer (got %s). "
@@ -1468,7 +1469,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
     # prep for resampling now
     x_flat = x.reshape((-1, x_len))
     orig_len = x_len + npads.sum()  # length after padding
-    new_len = int(round(ratio * orig_len))  # length after resampling
+    new_len = max(int(round(ratio * orig_len)), 1)  # length after resampling
     to_removes = [int(round(ratio * npads[0]))]
     to_removes.append(new_len - final_len - to_removes[0])
     to_removes = np.array(to_removes)
@@ -2030,7 +2031,7 @@ class FilterMixin(object):
         %(npad)s
         %(window-resample)s
         %(n_jobs-cuda)s
-        %(pad-fir)s
+        %(pad)s
             The default is ``'edge'``, which pads with the edge values of each
             vector.
 
@@ -2063,10 +2064,11 @@ class FilterMixin(object):
         o_sfreq = self.info['sfreq']
         self._data = resample(self._data, sfreq, o_sfreq, npad, window=window,
                               n_jobs=n_jobs, pad=pad)
-        self.info['sfreq'] = float(sfreq)
         lowpass = self.info.get('lowpass')
         lowpass = np.inf if lowpass is None else lowpass
-        self.info['lowpass'] = min(lowpass, sfreq / 2.)
+        with self.info._unlock():
+            self.info['lowpass'] = min(lowpass, sfreq / 2.)
+            self.info['sfreq'] = float(sfreq)
         new_times = (np.arange(self._data.shape[-1], dtype=np.float64) /
                      sfreq + self.times[0])
         # adjust indirectly affected variables
@@ -2255,6 +2257,7 @@ def design_mne_c_filter(sfreq, l_freq=None, h_freq=40.,
     4197 frequencies are directly constructed, with zeroes in the stop-band
     and ones in the passband, with squared cosine ramps in between.
     """
+    from scipy.fft import irfft
     n_freqs = (4096 + 2 * 2048) // 2 + 1
     freq_resp = np.ones(n_freqs)
     l_freq = 0 if l_freq is None else float(l_freq)
@@ -2320,7 +2323,9 @@ def _filt_update_info(info, update_info, l_freq, h_freq):
     if update_info:
         if h_freq is not None and (l_freq is None or l_freq < h_freq) and \
                 (info["lowpass"] is None or h_freq < info['lowpass']):
-            info['lowpass'] = float(h_freq)
+            with info._unlock():
+                info['lowpass'] = float(h_freq)
         if l_freq is not None and (h_freq is None or l_freq < h_freq) and \
                 (info["highpass"] is None or l_freq > info['highpass']):
-            info['highpass'] = float(l_freq)
+            with info._unlock():
+                info['highpass'] = float(l_freq)

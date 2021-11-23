@@ -1,6 +1,6 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from numpy.testing import assert_array_equal, assert_allclose
 import numpy as np
@@ -9,7 +9,7 @@ from scipy import stats, sparse
 from mne.stats import permutation_cluster_1samp_test
 from mne.stats.permutations import (permutation_t_test, _ci,
                                     bootstrap_confidence_interval)
-from mne.utils import run_tests_if_main, check_version
+from mne.utils import check_version
 
 
 def test_permutation_t_test():
@@ -79,6 +79,3 @@ def test_ci():
     if check_version('numpy', '1.17'):
         random_state = np.random.default_rng(0)
         bootstrap_confidence_interval(arr, random_state=random_state)
-
-
-run_tests_if_main()

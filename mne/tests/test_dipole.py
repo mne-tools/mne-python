@@ -1,8 +1,13 @@
+# Author: Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD-3-Clause
+
 import os
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_equal
+from numpy.testing import (assert_allclose, assert_array_equal,
+                           assert_array_less)
 import matplotlib.pyplot as plt
 import pytest
 
@@ -12,11 +17,11 @@ from mne import (read_dipole, read_forward_solution,
                  transform_surface_to, make_sphere_model, pick_types,
                  pick_info, EvokedArray, read_source_spaces, make_ad_hoc_cov,
                  make_forward_solution, Dipole, DipoleFixed, Epochs,
-                 make_fixed_length_events, Evoked)
+                 make_fixed_length_events, Evoked, head_to_mni)
 from mne.dipole import get_phantom_dipoles, _BDIP_ERROR_KEYS
 from mne.simulation import simulate_evoked
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, requires_mne, run_subprocess
+from mne.utils import requires_mne, run_subprocess, requires_nibabel
 from mne.proj import make_eeg_average_ref_proj
 
 from mne.io import read_raw_fif, read_raw_ctf
@@ -70,11 +75,11 @@ def _check_dipole(dip, n_dipoles):
 
 
 @testing.requires_testing_data
-def test_io_dipoles(tmpdir):
+def test_io_dipoles(tmp_path):
     """Test IO for .dip files."""
     dipole = read_dipole(fname_dip)
     assert 'Dipole ' in repr(dipole)  # test repr
-    out_fname = op.join(str(tmpdir), 'temp.dip')
+    out_fname = op.join(str(tmp_path), 'temp.dip')
     dipole.save(out_fname)
     dipole_new = read_dipole(out_fname)
     _compare_dipoles(dipole, dipole_new)
@@ -92,16 +97,18 @@ def test_dipole_fitting_ctf():
     # for now our CTF phantom fitting tutorials will have to do
     # (otherwise we need to add that to the testing dataset, which is
     # a bit too big)
-    fit_dipole(evoked, cov, sphere, rank=dict(meg=len(evoked.data)))
+    fit_dipole(evoked, cov, sphere, rank=dict(meg=len(evoked.data)),
+               tol=1e-3, accuracy='accurate')
 
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
+@requires_nibabel()
 @requires_mne
-def test_dipole_fitting(tmpdir):
+def test_dipole_fitting(tmp_path):
     """Test dipole fitting."""
     amp = 100e-9
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     rng = np.random.RandomState(0)
     fname_dtemp = op.join(tempdir, 'test.dip')
     fname_sim = op.join(tempdir, 'test-ave.fif')
@@ -139,6 +146,22 @@ def test_dipole_fitting(tmpdir):
         dip, residual = fit_dipole(evoked, cov, sphere, fname_fwd,
                                    rank='info')  # just to test rank support
     assert isinstance(residual, Evoked)
+
+    # Test conversion of dip.pos to MNI coordinates.
+    dip_mni_pos = dip.to_mni('sample', fname_trans,
+                             subjects_dir=subjects_dir)
+    head_to_mni_dip_pos = head_to_mni(dip.pos, 'sample', fwd['mri_head_t'],
+                                      subjects_dir=subjects_dir)
+    assert_allclose(dip_mni_pos, head_to_mni_dip_pos, rtol=1e-3, atol=0)
+
+    # Test finding label for dip.pos in an aseg, also tests `to_mri`
+    target_labels = ['Left-Cerebral-Cortex', 'Unknown', 'Left-Cerebral-Cortex',
+                     'Right-Cerebral-Cortex', 'Left-Cerebral-Cortex',
+                     'Unknown', 'Unknown', 'Unknown',
+                     'Right-Cerebral-White-Matter', 'Right-Cerebral-Cortex']
+    labels = dip.to_volume_labels(fname_trans, subject='fsaverage',
+                                  aseg="aseg", subjects_dir=subjects_dir)
+    assert labels == target_labels
 
     # Sanity check: do our residuals have less power than orig data?
     data_rms = np.sqrt(np.sum(evoked.data ** 2, axis=0))
@@ -185,7 +208,7 @@ def test_dipole_fitting(tmpdir):
 
 
 @testing.requires_testing_data
-def test_dipole_fitting_fixed(tmpdir):
+def test_dipole_fitting_fixed(tmp_path):
     """Test dipole fitting with a fixed position."""
     tpeak = 0.073
     sphere = make_sphere_model(head_radius=0.1)
@@ -221,7 +244,7 @@ def test_dipole_fitting_fixed(tmpdir):
     assert_allclose(dip_fixed.info['chs'][0]['loc'][3:6], ori)
     assert_allclose(dip_fixed.data[1, t_idx], gof)
     assert_allclose(resid.data, resid_fixed.data[:, [t_idx]])
-    _check_roundtrip_fixed(dip_fixed, tmpdir)
+    _check_roundtrip_fixed(dip_fixed, tmp_path)
     # bad resetting
     evoked.info['bads'] = [evoked.ch_names[3]]
     dip_fixed, resid_fixed = fit_dipole(evoked, cov, sphere, pos=pos, ori=ori)
@@ -289,7 +312,7 @@ def test_min_distance_fit_dipole():
 
     bem = read_bem_solution(fname_bem)
     dip, residual = fit_dipole(evoked, cov, bem, fname_trans,
-                               min_dist=min_dist)
+                               min_dist=min_dist, tol=1e-4)
     assert isinstance(residual, Evoked)
 
     dist = _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir)
@@ -297,8 +320,8 @@ def test_min_distance_fit_dipole():
     # Constraints are not exact, so bump the minimum slightly
     assert (min_dist - 0.1 < (dist[0] * 1000.) < (min_dist + 1.))
 
-    pytest.raises(ValueError, fit_dipole, evoked, cov, fname_bem, fname_trans,
-                  -1.)
+    with pytest.raises(ValueError, match='min_dist should be positive'):
+        fit_dipole(evoked, cov, fname_bem, fname_trans, -1.)
 
 
 def _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir):
@@ -353,17 +376,17 @@ def test_accuracy():
         # make sure that our median is sub-mm and the large majority are very
         # close (we expect some to be off by a bit e.g. because they are
         # radial)
-        assert ((np.percentile(ds, [50, 90]) < [0.0005, perc_90]).all())
+        assert_array_less(np.percentile(ds, [50, 90]), [0.0005, perc_90])
 
 
 @testing.requires_testing_data
-def test_dipole_fixed(tmpdir):
+def test_dipole_fixed(tmp_path):
     """Test reading a fixed-position dipole (from Xfit)."""
     dip = read_dipole(fname_xfit_dip)
     # print the representation of the object DipoleFixed
     assert 'DipoleFixed ' in repr(dip)
 
-    _check_roundtrip_fixed(dip, tmpdir)
+    _check_roundtrip_fixed(dip, tmp_path)
     with pytest.warns(RuntimeWarning, match='extra fields'):
         dip_txt = read_dipole(fname_xfit_dip_txt)
     assert_allclose(dip.info['chs'][0]['loc'][:3], dip_txt.pos[0])
@@ -373,9 +396,9 @@ def test_dipole_fixed(tmpdir):
     assert_allclose(dip_txt_seq.gof, [27.3, 46.4, 43.7, 41., 37.3, 32.5])
 
 
-def _check_roundtrip_fixed(dip, tmpdir):
+def _check_roundtrip_fixed(dip, tmp_path):
     """Check roundtrip IO for fixed dipoles."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     dip.save(op.join(tempdir, 'test-dip.fif.gz'))
     dip_read = read_dipole(op.join(tempdir, 'test-dip.fif.gz'))
     assert_allclose(dip_read.data, dip_read.data)
@@ -400,14 +423,14 @@ def test_get_phantom_dipoles():
 
 
 @testing.requires_testing_data
-def test_confidence(tmpdir):
+def test_confidence(tmp_path):
     """Test confidence limits."""
     evoked = read_evokeds(fname_evo_full, 'Left Auditory', baseline=(None, 0))
     evoked.crop(0.08, 0.08).pick_types(meg=True)  # MEG-only
     cov = make_ad_hoc_cov(evoked.info)
     sphere = make_sphere_model((0., 0., 0.04), 0.08)
     dip_py = fit_dipole(evoked, cov, sphere)[0]
-    fname_test = op.join(str(tmpdir), 'temp-dip.txt')
+    fname_test = op.join(str(tmp_path), 'temp-dip.txt')
     dip_py.save(fname_test)
     dip_read = read_dipole(fname_test)
     with pytest.warns(RuntimeWarning, match="'noise/ft/cm', 'prob'"):
@@ -434,7 +457,7 @@ def test_confidence(tmpdir):
     (fname_dip, fname_bdip),
     (fname_dip_xfit, fname_bdip_xfit),
 ])
-def test_bdip(fname_dip_, fname_bdip_, tmpdir):
+def test_bdip(fname_dip_, fname_bdip_, tmp_path):
     """Test bdip I/O."""
     # use text as veridical
     with pytest.warns(None):  # ignored fields
@@ -443,7 +466,7 @@ def test_bdip(fname_dip_, fname_bdip_, tmpdir):
     orig_size = os.stat(fname_bdip_).st_size
     bdip = read_dipole(fname_bdip_)
     # test round-trip by writing and reading, too
-    fname = tmpdir.join('test.bdip')
+    fname = tmp_path / 'test.bdip'
     bdip.save(fname)
     bdip_read = read_dipole(fname)
     write_size = os.stat(str(fname)).st_size
@@ -478,7 +501,8 @@ def test_bdip(fname_dip_, fname_bdip_, tmpdir):
                                 err_msg='%s: %s' % (kind, key))
         # Not stored
         assert this_bdip.name is None
-        assert_allclose(this_bdip.nfree, 0.)
+        assert this_bdip.nfree is None
 
-
-run_tests_if_main()
+        # Test whether indexing works
+        this_bdip0 = this_bdip[0]
+        _check_dipole(this_bdip0, 1)

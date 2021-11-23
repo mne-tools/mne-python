@@ -2,7 +2,7 @@
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from copy import deepcopy
 from distutils.version import LooseVersion
@@ -11,7 +11,6 @@ from math import log
 import os
 
 import numpy as np
-from scipy import linalg, sparse
 
 from .defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT, DEFAULTS
 from .io.write import start_file, end_file
@@ -25,7 +24,7 @@ from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
                       _DATA_CH_TYPES_SPLIT)
 
 from .io.constants import FIFF
-from .io.meas_info import read_bad_channels, create_info
+from .io.meas_info import _read_bad_channels, create_info
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.write import (start_block, end_block, write_int, write_name_list,
@@ -39,7 +38,7 @@ from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     warn, copy_function_doc_to_method_doc, _pl,
                     _undo_scaling_cov, _scaled_array, _validate_type,
                     _check_option, eigh, fill_doc, _on_missing,
-                    _check_on_missing)
+                    _check_on_missing, _check_fname)
 from . import viz
 
 from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
@@ -154,7 +153,8 @@ class Covariance(dict):
         """
         check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz',
                                           '_cov.fif', '_cov.fif.gz'))
-
+        # TODO: Add `overwrite` param to method signature
+        fname = _check_fname(fname=fname, overwrite=True)
         fid = start_file(fname)
 
         try:
@@ -271,8 +271,7 @@ class Covariance(dict):
 
         Parameters
         ----------
-        info : instance of Info
-            The measurement information.
+        %(info_not_none)s
         %(topomap_ch_type)s
         %(topomap_vmin_vmax)s
         %(topomap_cmap)s
@@ -386,6 +385,7 @@ def read_cov(fname, verbose=None):
     """
     check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz',
                                       '_cov.fif', '_cov.fif.gz'))
+    fname = _check_fname(fname=fname, must_exist=True, overwrite='read')
     f, tree = fiff_open(fname)[:2]
     with f as fid:
         return Covariance(**_read_cov(fid, tree, FIFF.FIFFV_MNE_NOISE_COV,
@@ -401,8 +401,7 @@ def make_ad_hoc_cov(info, std=None, verbose=None):
 
     Parameters
     ----------
-    info : instance of Info
-        Measurement info.
+    %(info_not_none)s
     std : dict of float | None
         Standard_deviation of the diagonal elements. If dict, keys should be
         ``'grad'`` for gradiometers, ``'mag'`` for magnetometers and ``'eeg'``
@@ -1105,10 +1104,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                 del sc
 
             elif method_ == 'shrunk':
-                try:
-                    from sklearn.model_selection import GridSearchCV
-                except Exception:  # support sklearn < 0.18
-                    from sklearn.grid_search import GridSearchCV
+                from sklearn.model_selection import GridSearchCV
                 from sklearn.covariance import ShrunkCovariance
                 shrinkage = mp.pop('shrinkage')
                 tuned_parameters = [{'shrinkage': shrinkage}]
@@ -1184,11 +1180,7 @@ def _gaussian_loglik_scorer(est, X, y=None):
 
 def _cross_val(data, est, cv, n_jobs):
     """Compute cross validation."""
-    try:
-        from sklearn.model_selection import cross_val_score
-    except ImportError:
-        # XXX support sklearn < 0.18
-        from sklearn.cross_validation import cross_val_score
+    from sklearn.model_selection import cross_val_score
     return np.mean(cross_val_score(est, data, cv=cv, n_jobs=n_jobs,
                                    scoring=_gaussian_loglik_scorer))
 
@@ -1441,8 +1433,7 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
     ----------
     noise_cov : instance of Covariance
         The noise covariance to process.
-    info : dict
-        The measurement info (used to get channel types and bad channels).
+    %(info_not_none)s (Used to get channel types and bad channels).
     ch_names : list | None
         The channel names to be considered. Can be None to use
         ``info['ch_names']``.
@@ -1530,7 +1521,7 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
     eigvec = np.zeros((n_chan, n_chan), dtype)
     mask = np.zeros(n_chan, bool)
     for ch_type, picks in _picks_by_type(info, meg_combined=True,
-                                         ref_meg=False, exclude='bads'):
+                                         ref_meg=False, exclude=[]):
         if len(picks) == 0:
             continue
         this_C = C[np.ix_(picks, picks)]
@@ -1578,8 +1569,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     ----------
     cov : Covariance
         The noise covariance matrix.
-    info : dict
-        The measurement info (used to get channel types and bad channels).
+    %(info_not_none)s (Used to get channel types and bad channels).
     mag : float (default 0.1)
         Regularization factor for MEG magnetometers.
     grad : float (default 0.1)
@@ -1634,6 +1624,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     --------
     mne.compute_covariance
     """  # noqa: E501
+    from scipy import linalg
     cov = cov.copy()
     info._check_consistency()
     scalings = _handle_default('scalings_cov_rank', scalings)
@@ -1783,8 +1774,7 @@ def compute_whitener(noise_cov, info=None, picks=None, rank=None,
     ----------
     noise_cov : Covariance
         The noise covariance.
-    info : dict | None
-        The measurement info. Can be None if ``noise_cov`` has already been
+    %(info)s Can be None if ``noise_cov`` has already been
         prepared with :func:`prepare_noise_cov`.
     %(picks_good_data_noref)s
     %(rank_None)s
@@ -1934,6 +1924,7 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
 def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
     """Read a noise covariance matrix."""
     #   Find all covariance matrices
+    from scipy import sparse
     covs = dir_tree_find(node, FIFF.FIFFB_MNE_COV)
     if len(covs) == 0:
         raise ValueError('No covariance matrices found')
@@ -2021,7 +2012,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
             projs = _read_proj(fid, this)
 
             #   Read the bad channel list
-            bads = read_bad_channels(fid, this)
+            bads = _read_bad_channels(fid, this, None)
 
             #   Put it together
             assert dim == len(data)

@@ -2,11 +2,9 @@
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
-from copy import deepcopy
 import numpy as np
-from scipy import linalg
 
 from .constants import FIFF
 from .meas_info import _check_ch_keys
@@ -16,8 +14,9 @@ from .pick import pick_types, pick_channels, pick_channels_forward
 from .base import BaseRaw
 from ..evoked import Evoked
 from ..epochs import BaseEpochs
+from ..fixes import pinv
 from ..utils import (logger, warn, verbose, _validate_type, _check_preload,
-                     _check_option)
+                     _check_option, fill_doc)
 from ..defaults import DEFAULTS
 
 
@@ -48,14 +47,14 @@ def _copy_channel(inst, ch_name, new_ch_name):
     return inst
 
 
-def _apply_reference(inst, ref_from, ref_to=None, forward=None,
-                     ch_type='auto'):
-    """Apply a custom EEG referencing scheme."""
+def _check_before_reference(inst, ref_from, ref_to, ch_type):
+    """Prepare instance for referencing."""
     # Check to see that data is preloaded
     _check_preload(inst, "Applying a reference")
 
     ch_type = _get_ch_type(inst, ch_type)
-    ch_dict = {ch_type: True, 'meg': False, 'ref_meg': False}
+    ch_dict = {**{type_: True for type_ in ch_type},
+               'meg': False, 'ref_meg': False}
     eeg_idx = pick_types(inst.info, **ch_dict)
 
     if ref_to is None:
@@ -98,6 +97,21 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None,
     inst._projector, _ = \
         setup_proj(inst.info, add_eeg_ref=False, activate=False)
 
+    # If the reference touches EEG/ECoG/sEEG/DBS electrodes, note in the
+    # info that a non-CAR has been applied.
+    ref_to_channels = pick_channels(inst.ch_names, ref_to, ordered=True)
+    if len(np.intersect1d(ref_to_channels, eeg_idx)) > 0:
+        with inst.info._unlock():
+            inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
+
+    return ref_to
+
+
+def _apply_reference(inst, ref_from, ref_to=None, forward=None,
+                     ch_type='auto'):
+    """Apply a custom EEG referencing scheme."""
+    ref_to = _check_before_reference(inst, ref_from, ref_to, ch_type)
+
     # Compute reference
     if len(ref_from) > 0:
         # this is guaranteed below, but we should avoid the crazy pick_channels
@@ -113,10 +127,6 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None,
         data[..., ref_to, :] -= ref_data
         ref_data = ref_data[..., 0, :]
 
-        # If the reference touches EEG/ECoG/sEEG/DBS electrodes, note in the
-        # info that a non-CAR has been applied.
-        if len(np.intersect1d(ref_to, eeg_idx)) > 0:
-            inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
         # REST
         if forward is not None:
             # use ch_sel and the given forward
@@ -127,7 +137,7 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None,
             # 4. Compute the forward (G) and average-reference it (Ga):
             Ga = G - np.mean(G, axis=0, keepdims=True)
             # 5. Compute the Ga_inv by SVD
-            Ga_inv = linalg.pinv(Ga, rcond=1e-6)
+            Ga_inv = pinv(Ga, rtol=1e-6)
             # 6. Compute Ra = (G @ Ga_inv) in eq (8) from G and Ga_inv
             Ra = G @ Ga_inv
             # 7-8. Compute Vp = Ra @ Va; then Vpa=average(Vp)
@@ -139,6 +149,7 @@ def _apply_reference(inst, ref_from, ref_to=None, forward=None,
     return inst, ref_data
 
 
+@fill_doc
 def add_reference_channels(inst, ref_channels, copy=True):
     """Add reference channels to data that consists of all zeros.
 
@@ -150,10 +161,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
     ----------
     inst : instance of Raw | Epochs | Evoked
         Instance of Raw or Epochs with EEG channels and reference channel(s).
-    ref_channels : str | list of str
-        Name of the electrode(s) which served as the reference in the
-        recording. If a name is provided, a corresponding channel is added
-        and its data is set to 0. This is useful for later re-referencing.
+    %(ref_channels)s
     copy : bool
         Specifies whether the data will be copied (True) or modified in-place
         (False). Defaults to True.
@@ -203,9 +211,8 @@ def add_reference_channels(inst, ref_channels, copy=True):
                        dl['kind'] == FIFF.FIFFV_POINT_EEG and
                        dl['ident'] == 0)]
         if len(ref_channels) > 1 or len(ref_dig_loc) != len(ref_channels):
-            ref_dig_array = np.zeros(12)
-            warn('The locations of multiple reference channels are ignored '
-                 '(set to zero).')
+            ref_dig_array = np.full(12, np.nan)
+            warn('The locations of multiple reference channels are ignored.')
         else:  # n_ref_channels == 1 and a single ref digitization exists
             ref_dig_array = np.concatenate((ref_dig_loc[0]['r'],
                                            ref_dig_loc[0]['r'], np.zeros(6)))
@@ -213,12 +220,12 @@ def add_reference_channels(inst, ref_channels, copy=True):
             for idx in pick_types(inst.info, meg=False, eeg=True, exclude=[]):
                 inst.info['chs'][idx]['loc'][3:6] = ref_dig_loc[0]['r']
     else:
-        # we should actually be able to do this from the montage, but
-        # it looks like the montage isn't stored, so we can't extract
-        # this information. The user will just have to call set_montage()
-        # by setting this to zero, we fall back to the old behavior
-        # when missing digitisation
-        ref_dig_array = np.zeros(12)
+        # Ideally we'd fall back on getting the location from a montage, but
+        # locations for non-present channels aren't stored, so location is
+        # unknown. Users can call set_montage() again if needed.
+        ref_dig_array = np.full(12, np.nan)
+        logger.info('Location for this channel is unknown; consider calling '
+                    'set_montage() again if needed.')
 
     for ch in ref_channels:
         chan_info = {'ch_name': ch,
@@ -313,11 +320,14 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
             # sure that the custom_ref_applied flag is left untouched.
             custom_ref_applied = inst.info['custom_ref_applied']
             try:
-                inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_OFF
+                with inst.info._unlock():
+                    inst.info['custom_ref_applied'] = \
+                        FIFF.FIFFV_MNE_CUSTOM_REF_OFF
                 inst.add_proj(make_eeg_average_ref_proj(inst.info,
-                              activate=False))
+                                                        activate=False))
             except Exception:
-                inst.info['custom_ref_applied'] = custom_ref_applied
+                with inst.info._unlock():
+                    inst.info['custom_ref_applied'] = custom_ref_applied
                 raise
             # If the data has been preloaded, projections will no
             # longer be automatically applied.
@@ -330,9 +340,9 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
 
     inst = inst.copy() if copy else inst
     ch_type = _get_ch_type(inst, ch_type)
-    ch_dict = {ch_type: True, 'meg': False, 'ref_meg': False}
-    eeg_idx = pick_types(inst.info, **ch_dict)
-    ch_sel = [inst.ch_names[i] for i in eeg_idx]
+    ch_dict = {**{type_: True for type_ in ch_type},
+               'meg': False, 'ref_meg': False}
+    ch_sel = [inst.ch_names[i] for i in pick_types(inst.info, **ch_dict)]
 
     if ref_channels == 'REST':
         _validate_type(forward, Forward, 'forward when ref_channels="REST"')
@@ -346,22 +356,34 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     if ref_channels == []:
         logger.info('EEG data marked as already having the desired reference.')
     else:
-        logger.info('Applying a custom %s '
-                    'reference.' % DEFAULTS['titles'][ch_type])
+        logger.info(
+            'Applying a custom '
+            f"{tuple(DEFAULTS['titles'][type_] for type_ in ch_type)} "
+            'reference.')
 
     return _apply_reference(inst, ref_channels, ch_sel, forward,
                             ch_type=ch_type)
 
 
 def _get_ch_type(inst, ch_type):
-    _validate_type(ch_type, str, 'ch_type')
-    _check_option('ch_type', ch_type, ('auto', 'eeg', 'ecog', 'seeg', 'dbs'))
+    _validate_type(ch_type, (str, list, tuple), 'ch_type')
+    valid_ch_types = ('auto', 'eeg', 'ecog', 'seeg', 'dbs')
+    if isinstance(ch_type, str):
+        _check_option('ch_type', ch_type, valid_ch_types)
+        if ch_type != 'auto':
+            ch_type = [ch_type]
+    elif isinstance(ch_type, (list, tuple)):
+        for type_ in ch_type:
+            _validate_type(type_, str, 'ch_type')
+            _check_option('ch_type', type_, valid_ch_types[1:])
+        ch_type = list(ch_type)
+
     # if ch_type is 'auto', search through list to find first reasonable
     # reference-able channel type.
     if ch_type == 'auto':
         for type_ in ['eeg', 'ecog', 'seeg', 'dbs']:
             if type_ in inst:
-                ch_type = type_
+                ch_type = [type_]
                 logger.info('%s channel type selected for '
                             're-referencing' % DEFAULTS['titles'][type_])
                 break
@@ -379,15 +401,14 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     A bipolar reference takes the difference between two channels (the anode
     minus the cathode) and adds it as a new virtual channel. The original
-    channels will be dropped.
+    channels will be dropped by default.
 
     Multiple anodes and cathodes can be specified, in which case multiple
-    virtual channels will be created. The 1st anode will be subtracted from the
-    1st cathode, the 2nd anode from the 2nd cathode, etc.
+    virtual channels will be created. The 1st cathode will be subtracted
+    from the 1st anode, the 2nd cathode from the 2nd anode, etc.
 
-    By default, the virtual channels will be annotated with channel info of
-    the anodes, their locations set to (0, 0, 0) and coil types set to
-    EEG_BIPOLAR.
+    By default, the virtual channels will be annotated with channel-info and
+    -location of the anodes and coil types will be set to EEG_BIPOLAR.
 
     Parameters
     ----------
@@ -434,6 +455,11 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     .. versionadded:: 0.9.0
     """
+    from .meas_info import create_info
+    from ..io import RawArray
+    from ..epochs import EpochsArray
+    from ..evoked import EvokedArray
+
     _check_can_reref(inst)
     if not isinstance(anode, list):
         anode = [anode]
@@ -446,7 +472,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
                          'of cathodes (got %d).' % (len(anode), len(cathode)))
 
     if ch_name is None:
-        ch_name = ['%s-%s' % ac for ac in zip(anode, cathode)]
+        ch_name = [f'{a}-{c}' for (a, c) in zip(anode, cathode)]
     elif not isinstance(ch_name, list):
         ch_name = [ch_name]
     if len(ch_name) != len(anode):
@@ -469,39 +495,65 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         raise ValueError('Number of channel info dictionaries must equal the '
                          'number of anodes/cathodes.')
 
-    # Merge specified and anode channel information dictionaries
-    new_chs = []
-    for ci, (an, ch) in enumerate(zip(anode, ch_info)):
-        _check_ch_keys(ch, ci, name='ch_info', check_min=False)
-        an_idx = inst.ch_names.index(an)
-        this_chs = deepcopy(inst.info['chs'][an_idx])
-
-        # Set channel location and coil type
-        this_chs['loc'] = np.zeros(12)
-        this_chs['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
-
-        this_chs.update(ch)
-        new_chs.append(this_chs)
-
     if copy:
         inst = inst.copy()
 
-    for i, (an, ca, name, chs) in enumerate(
-            zip(anode, cathode, ch_name, new_chs)):
-        if an in anode[i + 1:] or an in cathode[i + 1:] or not drop_refs:
-            # Make a copy of the channel if it's still needed later
-            # otherwise it's modified inplace
-            _copy_channel(inst, an, 'TMP')
-            an = 'TMP'
-        _apply_reference(inst, [ca], [an])  # ensures preloaded
-        an_idx = inst.ch_names.index(an)
-        inst.info['chs'][an_idx] = chs
-        inst.info['chs'][an_idx]['ch_name'] = name
-        logger.info('Bipolar channel added as "%s".' % name)
-        inst.info._update_redundant()
+    anode = _check_before_reference(inst, ref_from=cathode,
+                                    ref_to=anode, ch_type='auto')
 
-    if getattr(inst, 'picks', None) is not None:
-        del inst.picks  # picks cannot be tracked anymore
+    # Create bipolar reference channels by multiplying the data
+    # (channels x time) with a matrix (n_virtual_channels x channels)
+    # and add them to the instance.
+    multiplier = np.zeros((len(anode), len(inst.ch_names)))
+    for idx, (a, c) in enumerate(zip(anode, cathode)):
+        multiplier[idx, inst.ch_names.index(a)] = 1
+        multiplier[idx, inst.ch_names.index(c)] = -1
+
+    ref_info = create_info(ch_names=ch_name, sfreq=inst.info['sfreq'],
+                           ch_types=inst.get_channel_types(picks=anode))
+
+    # Update "chs" in Reference-Info.
+    for ch_idx, (an, info) in enumerate(zip(anode, ch_info)):
+        _check_ch_keys(info, ch_idx, name='ch_info', check_min=False)
+        an_idx = inst.ch_names.index(an)
+        # Copy everything from anode (except ch_name).
+        an_chs = {k: v for k, v in inst.info['chs'][an_idx].items()
+                  if k != 'ch_name'}
+        ref_info['chs'][ch_idx].update(an_chs)
+        # Set coil-type to bipolar.
+        ref_info['chs'][ch_idx]['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
+        # Update with info from ch_info-parameter.
+        ref_info['chs'][ch_idx].update(info)
+
+    # Set other info-keys from original instance.
+    pick_info = {k: v for k, v in inst.info.items() if k not in
+                 ['chs', 'ch_names', 'bads', 'nchan', 'sfreq']}
+    with ref_info._unlock():
+        ref_info.update(pick_info)
+
+    # Rereferencing of data.
+    ref_data = multiplier @ inst._data
+
+    if isinstance(inst, BaseRaw):
+        ref_inst = RawArray(ref_data, ref_info, first_samp=inst.first_samp,
+                            copy=None)
+    elif isinstance(inst, BaseEpochs):
+        ref_inst = EpochsArray(ref_data, ref_info, events=inst.events,
+                               tmin=inst.tmin, event_id=inst.event_id,
+                               metadata=inst.metadata)
+    else:
+        ref_inst = EvokedArray(ref_data, ref_info, tmin=inst.tmin,
+                               comment=inst.comment, nave=inst.nave,
+                               kind='average')
+
+    # Add referenced instance to original instance.
+    inst.add_channels([ref_inst], force_update_info=True)
+
+    added_channels = ', '.join([name for name in ch_name])
+    logger.info(f'Added the following bipolar channels:\n{added_channels}')
+
+    for attr_name in ['picks', '_projector']:
+        setattr(inst, attr_name, None)
 
     # Drop remaining channels.
     if drop_refs:

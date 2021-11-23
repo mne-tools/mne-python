@@ -3,7 +3,7 @@
 # Authors: Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
 #
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 from collections import namedtuple
@@ -30,14 +30,16 @@ FILE_EXTENSIONS = {
         "info": ".dap",
         "data": ".dat",
         "labels": ".rs3",
-        "events": ".cef",
+        "events_cef": ".cef",
+        "events_ceo": ".ceo",
         "hpi": ".hpi",
     },
     "Curry 8": {
         "info": ".cdt.dpa",
         "data": ".cdt",
         "labels": ".cdt.dpa",
-        "events": ".cdt.cef",
+        "events_cef": ".cdt.cef",
+        "events_ceo": ".cdt.ceo",
         "hpi": ".cdt.hpi",
     }
 }
@@ -63,16 +65,17 @@ def _get_curry_file_structure(fname, required=()):
     """Store paths to a dict and check for required files."""
     _msg = "The following required files cannot be found: {0}.\nPlease make " \
            "sure all required files are located in the same directory as {1}."
-    _check_fname(fname, overwrite='read', must_exist=True)
+    fname = _check_fname(fname, 'read', True, 'fname')
 
     # we don't use os.path.splitext to also handle extensions like .cdt.dpa
     fname_base, ext = fname.split(".", maxsplit=1)
     version = _get_curry_version(ext)
     my_curry = dict()
-    for key in ('info', 'data', 'labels', 'events', 'hpi'):
+    for key in ('info', 'data', 'labels', 'events_cef', 'events_ceo', 'hpi'):
         fname = fname_base + FILE_EXTENSIONS[version][key]
         if op.isfile(fname):
-            my_curry[key] = fname
+            _key = 'events' if key.startswith('events') else key
+            my_curry[_key] = fname
 
     missing = [field for field in required if field not in my_curry]
     if missing:
@@ -286,7 +289,8 @@ def _read_curry_info(curry_paths):
 
     ch_names = [chan["ch_name"] for chan in all_chans]
     info = create_info(ch_names, curry_params.sfreq)
-    info['meas_date'] = curry_params.dt_start          # for Git issue #8398
+    with info._unlock():
+        info['meas_date'] = curry_params.dt_start  # for Git issue #8398
     _make_trans_dig(curry_paths, info, curry_dev_dev_t)
 
     for ind, ch_dict in enumerate(info["chs"]):
@@ -321,7 +325,8 @@ def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
     key = 'LM_REMARKS' + CHANTYPES['meg']
     remarks = _read_curry_lines(label_fname, [key])[key]
     assert len(remarks) == len(lm)
-    info['dig'] = list()
+    with info._unlock():
+        info['dig'] = list()
     cards = dict()
     for remark, r in zip(remarks, lm):
         kind = ident = None
@@ -336,7 +341,8 @@ def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
             info['dig'].append(dict(
                 kind=kind, ident=ident, r=r,
                 coord_frame=FIFF.FIFFV_COORD_UNKNOWN))
-    info['dig'].sort(key=lambda x: (x['kind'], x['ident']))
+    with info._unlock():
+        info['dig'].sort(key=lambda x: (x['kind'], x['ident']))
     has_cards = len(cards) == 3
     has_hpi = 'hpi' in curry_paths
     if has_cards and has_hpi:  # have all three
@@ -360,11 +366,12 @@ def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
                 *(cards[key] for key in (FIFF.FIFFV_POINT_NASION,
                                          FIFF.FIFFV_POINT_LPA,
                                          FIFF.FIFFV_POINT_RPA))))
-        info['dev_head_t'] = combine_transforms(
-            invert_transform(unknown_dev_t), unknown_head_t, 'meg', 'head')
-        for d in info['dig']:
-            d.update(coord_frame=FIFF.FIFFV_COORD_HEAD,
-                     r=apply_trans(unknown_head_t, d['r']))
+        with info._unlock():
+            info['dev_head_t'] = combine_transforms(
+                invert_transform(unknown_dev_t), unknown_head_t, 'meg', 'head')
+            for d in info['dig']:
+                d.update(coord_frame=FIFF.FIFFV_COORD_HEAD,
+                         r=apply_trans(unknown_head_t, d['r']))
     else:
         if has_cards:
             no_msg += ' (no .hpi file found)'
@@ -408,8 +415,8 @@ def _read_events_curry(fname):
     events : ndarray, shape (n_events, 3)
         The array of events.
     """
-    check_fname(fname, 'curry event', ('.cef', '.cdt.cef'),
-                endings_err=('.cef', '.cdt.cef'))
+    check_fname(fname, 'curry event', ('.cef', '.ceo', '.cdt.cef', '.cdt.ceo'),
+                endings_err=('.cef', '.ceo', '.cdt.cef', '.cdt.ceo'))
 
     events_dict = _read_curry_lines(fname, ["NUMBER_LIST"])
     # The first 3 column seem to contain the event information

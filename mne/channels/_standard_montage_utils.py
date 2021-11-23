@@ -1,8 +1,10 @@
 # Authors: Joan Massich <mailsik@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 from collections import OrderedDict
+import csv
+
 import os.path as op
 import numpy as np
 
@@ -71,7 +73,7 @@ def _biosemi(basename, head_size):
     return _read_theta_phi_in_degrees(fname, head_size, fid_names)
 
 
-def _mgh_or_standard(basename, head_size):
+def _mgh_or_standard(basename, head_size, coord_frame='unknown'):
     fid_names = ('Nz', 'LPA', 'RPA')
     fname = op.join(MONTAGE_PATH, basename)
 
@@ -101,7 +103,7 @@ def _mgh_or_standard(basename, head_size):
     lpa *= scale
     rpa *= scale
 
-    return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
+    return make_dig_montage(ch_pos=ch_pos, coord_frame=coord_frame,
                             nasion=nasion, lpa=lpa, rpa=rpa)
 
 
@@ -142,6 +144,10 @@ standard_montage_look_up_table = {
                                  basename='standard_prefixed.elc'),
     'standard_primed': partial(_mgh_or_standard,
                                basename='standard_primed.elc'),
+    'artinis-octamon': partial(_mgh_or_standard, coord_frame='mri',
+                               basename='artinis-octamon.elc'),
+    'artinis-brite23': partial(_mgh_or_standard, coord_frame='mri',
+                               basename='artinis-brite23.elc'),
 }
 
 
@@ -334,3 +340,42 @@ def _read_brainvision(fname, head_size):
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
     return make_dig_montage(ch_pos=_check_dupes_odict(ch_names, pos))
+
+
+def _read_xyz(fname):
+    """Import EEG channel locations from CSV, TSV, or XYZ files.
+
+    CSV and TSV files should have columns 4 columns containing
+    ch_name, x, y, and z. Each row represents one channel.
+    XYZ files should have 5 columns containing
+    count, x, y, z, and ch_name. Each row represents one channel
+    CSV files should be separated by commas, TSV and XYZ files should be
+    separated by tabs.
+
+    Parameters
+    ----------
+    fname : str
+        Name of the file to read channel locations from.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+    """
+    ch_names = []
+    pos = []
+    file_format = op.splitext(fname)[1].lower()
+    with open(fname, "r") as f:
+        if file_format != ".xyz":
+            f.readline()  # skip header
+        delimiter = "," if file_format == ".csv" else "\t"
+        for row in csv.reader(f, delimiter=delimiter):
+            if file_format == ".xyz":
+                _, x, y, z, ch_name, *_ = row
+                ch_name = ch_name.strip()  # deals with variable tab size
+            else:
+                ch_name, x, y, z, *_ = row
+            ch_names.append(ch_name)
+            pos.append((x, y, z))
+    d = _check_dupes_odict(ch_names, np.array(pos, dtype=float))
+    return make_dig_montage(ch_pos=d)

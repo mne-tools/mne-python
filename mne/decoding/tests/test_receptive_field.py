@@ -1,15 +1,16 @@
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import os.path as op
 
 import pytest
 import numpy as np
 
+from numpy import einsum
+from numpy.fft import rfft, irfft
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
-from mne.fixes import einsum, rfft, irfft
-from mne.utils import requires_sklearn, run_tests_if_main
+from mne.utils import requires_sklearn
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (_delay_time_series, _SCORERS,
                                           _times_to_delays, _delays_to_slice)
@@ -142,6 +143,7 @@ def test_time_delay():
                     assert_array_equal(X_delayed[:ii, :, idx], 0.)
 
 
+@pytest.mark.slowtest  # slow on Azure
 @pytest.mark.parametrize('n_jobs', n_jobs_test)
 @requires_sklearn
 def test_receptive_field_basic(n_jobs):
@@ -541,6 +543,3 @@ def test_linalg_warning():
         with pytest.warns((RuntimeWarning, UserWarning),
                           match='[Singular|scipy.linalg.solve]'):
             rf.fit(y, X)
-
-
-run_tests_if_main()

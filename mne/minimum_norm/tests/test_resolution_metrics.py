@@ -2,7 +2,7 @@
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #          Daniel McCloy <dan.mccloy@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 """
 Test the following properties for resolution metrics.
 
@@ -22,7 +22,6 @@ from mne.datasets import testing
 from mne.minimum_norm.resolution_matrix import make_inverse_resolution_matrix
 from mne.minimum_norm.spatial_resolution import (resolution_metrics,
                                                  _rectify_resolution_matrix)
-from mne.utils import run_tests_if_main
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -144,6 +143,3 @@ def test_resolution_metrics():
     r2 = _rectify_resolution_matrix(r1)
 
     assert_array_equal(r2, np.sqrt(2) * np.ones((4, 4)))
-
-
-run_tests_if_main()

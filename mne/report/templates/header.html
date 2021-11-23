@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="{{lang}}">
+
+<head>
+  <meta charset="UTF-8">
+  {{include}}
+  <script type="text/javascript">
+    {{js}}
+  </script>
+
+  <style type="text/css">
+    {{css}}
+  </style>
+
+  <title>{{title}}</title>
+</head>
+
+<body data-bs-spy="scroll" data-bs-target="#toc-navbar" data-bs-offset="150">
+  <nav class="navbar fixed-top navbar-light bg-light shadow-sm" id="top-bar">
+    <div class="container-fluid">
+      <a class="navbar-brand d-flex align-items-center" href="#">
+        <img src="data:image/png;base64,{{mne_logo_img}}" alt="MNE" width="80" class="d-inline-block">
+        <span class="mx-2 fs-3">{{title}}</span>
+      </a>
+
+      <div class="btn-group" role="group" aria-label="Filter by tags" id="filter-by-tags-dropdown-menu">
+        <button class="btn btn-primary dropdown-toggle" type="button" id="show-hide-tags" data-bs-toggle="dropdown"
+          aria-expanded="false">
+          Filter by tags
+        </button>
+
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm overflow-auto" aria-labelledby="show-hide-tags">
+          <li>
+            <label class="dropdown-item" id="selectAllTagsCheckboxLabel">
+              <input class="form-check-input me-1" type="checkbox" value="" checked>
+              Select all
+            </label>
+          </li>
+          <li>
+            <hr class="dropdown-divider">
+          </li>
+
+          {{for tag in sorted(tags)}}
+          <li>
+            <label class="tag dropdown-item  me-5" data-mne-tag="{{tag}}">
+              <input class="form-check-input me-1" type="checkbox" value="" checked>
+              {{tag}}
+              <span class="badge bg-primary rounded-pill float-end me-1" data-mne-tag="{{tag}}"></span>
+            </label>
+          </li>
+          {{endfor}}
+        </ul>
+
+      </div>
+    </div>
+  </nav>

@@ -95,6 +95,9 @@ class _Surface(object):
 
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         self.data_path = path.join(subjects_dir, subject_id)
+        if surf == 'seghead':
+            raise ValueError('`surf` cannot be seghead, use '
+                             '`mne.viz.Brain.add_head` to plot the seghead')
 
     def load_geometry(self):
         """Load geometry of the surface.
@@ -113,6 +116,10 @@ class _Surface(object):
             _check_fname(fname, overwrite='read', must_exist=True,
                          name='flatmap surface file')
             coords, faces, orig_faces = _read_patch(fname)
+            # rotate 90 degrees to get to a more standard orientation
+            # where X determines the distance between the hemis
+            coords = coords[:, [1, 0, 2]]
+            coords[:, 1] *= -1
         else:
             coords, faces = read_surface(
                 path.join(self.data_path, 'surf',
@@ -127,7 +134,8 @@ class _Surface(object):
             else:
                 coords -= (np.min(x_) + self.offset) * self.x_dir
         surf = dict(rr=coords, tris=faces)
-        complete_surface_info(surf, copy=False, verbose=False)
+        complete_surface_info(
+            surf, copy=False, verbose=False, do_neighbor_tri=False)
         nn = surf['nn']
         self.coords = coords
         self.faces = faces

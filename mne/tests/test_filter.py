@@ -7,8 +7,8 @@ from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
 import pytest
 from scipy.signal import resample as sp_resample, butter, freqz, sosfreqz
 
-from mne import create_info
-from mne.fixes import fft, fftfreq
+from mne import create_info, Epochs
+from numpy.fft import fft, fftfreq
 from mne.io import RawArray, read_raw_fif
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.filter import (filter_data, resample, _resample_stim_channels,
@@ -17,8 +17,7 @@ from mne.filter import (filter_data, resample, _resample_stim_channels,
                         estimate_ringing_samples, create_filter,
                         _length_factors)
 
-from mne.utils import (sum_squared, run_tests_if_main,
-                       catch_logging, requires_mne, run_subprocess)
+from mne.utils import sum_squared, catch_logging, requires_mne, run_subprocess
 
 
 def test_filter_array():
@@ -29,9 +28,9 @@ def test_filter_array():
 
 
 @requires_mne
-def test_mne_c_design(tmpdir):
+def test_mne_c_design(tmp_path):
     """Test MNE-C filter design."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     temp_fname = op.join(tempdir, 'test_raw.fif')
     out_fname = op.join(tempdir, 'test_c_raw.fif')
     x = np.zeros((1, 10001))
@@ -326,6 +325,31 @@ def test_resample_raw():
     raw.resample(128, npad=10)
     data = raw.get_data()
     assert data.shape == (1, 63)
+
+
+def test_resample_below_1_sample():
+    """Test resampling doesn't yield datapoints."""
+    # Raw
+    x = np.zeros((1, 100))
+    sfreq = 1000.
+    raw = RawArray(x, create_info(1, sfreq, 'eeg'))
+    raw.resample(5)
+    assert len(raw.times) == 1
+    assert raw.get_data().shape[1] == 1
+
+    # Epochs
+    x = np.zeros((1, 10000))
+    sfreq = 1000.
+    raw = RawArray(x, create_info(1, sfreq, 'eeg'))
+    events = np.array([[400, 0, 1],
+                      [2000, 0, 1],
+                      [3000, 0, 1]])
+    epochs = Epochs(raw, events, {'test': 1}, 0, 0.2, proj=False,
+                    picks='eeg', baseline=None, preload=True,
+                    verbose=False)
+    epochs.resample(1)
+    assert len(epochs.times) == 1
+    assert epochs.get_data().shape[2] == 1
 
 
 @pytest.mark.slowtest
@@ -760,6 +784,3 @@ def test_filter_picks():
                 raw.filter(picks=picks, **kwargs)
                 want = want[1:]
                 assert_allclose(raw.get_data(), want)
-
-
-run_tests_if_main()

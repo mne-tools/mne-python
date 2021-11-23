@@ -1,6 +1,6 @@
 # Author: Jean-Remi King <jeanremi.king@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
@@ -22,18 +22,9 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
 
     Parameters
     ----------
-    base_estimator : object
-        The base estimator to iteratively fit on a subset of the dataset.
-    scoring : callable, str, default None
-        Score function (or loss function) with signature
-        ``score_func(y, y_pred, **kwargs)``.
-        Note that the predict_method is automatically identified if scoring is
-        a string (e.g. scoring="roc_auc" calls predict_proba) but is not
-        automatically set if scoring is a callable (e.g.
-        scoring=sklearn.metrics.roc_auc_score).
+    %(base_estimator)s
+    %(scoring)s
     %(n_jobs)s
-        The number of jobs to run in parallel for both `fit` and `predict`.
-        If -1, then the number of jobs is set to the number of cores.
     %(verbose)s
 
     Attributes
@@ -114,8 +105,9 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         X : array, shape (n_samples, nd_features, n_tasks)
             The training input samples. For each task, a clone estimator
             is fitted independently. The feature dimension can be
-            multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+            multidimensional, e.g.::
+
+                X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
         **fit_params : dict of string -> object
@@ -303,6 +295,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         return self.estimators_[0].classes_
 
 
+@fill_doc
 def _sl_fit(estimator, X, y, pb, **fit_params):
     """Aux. function to fit SlidingEstimator in parallel.
 
@@ -310,8 +303,7 @@ def _sl_fit(estimator, X, y, pb, **fit_params):
 
     Parameters
     ----------
-    base_estimator : object
-        The base estimator to iteratively fit on a subset of the dataset.
+    %(base_estimator)s
     X : array, shape (n_samples, nd_features, n_estimators)
         The target data. The feature dimension can be multidimensional e.g.
         X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
@@ -426,18 +418,9 @@ class GeneralizingEstimator(SlidingEstimator):
 
     Parameters
     ----------
-    base_estimator : object
-        The base estimator to iteratively fit on a subset of the dataset.
-    scoring : callable | str | None
-        Score function (or loss function) with signature
-        ``score_func(y, y_pred, **kwargs)``.
-        Note that the predict_method is automatically identified if scoring is
-        a string (e.g. scoring="roc_auc" calls predict_proba) but is not
-        automatically set if scoring is a callable (e.g.
-        scoring=sklearn.metrics.roc_auc_score).
+    %(base_estimator)s
+    %(scoring)s
     %(n_jobs)s
-        The number of jobs to run in parallel for both `fit` and `predict`.
-        If -1, then the number of jobs is set to the number of cores.
     %(verbose)s
     """
 
@@ -520,7 +503,7 @@ class GeneralizingEstimator(SlidingEstimator):
 
         Notes
         -----
-        This requires base_estimator to have a `predict_proba` method.
+        This requires ``base_estimator`` to have a ``predict_proba`` method.
         """  # noqa: E501
         return self._transform(X, 'predict_proba')
 
@@ -543,7 +526,8 @@ class GeneralizingEstimator(SlidingEstimator):
 
         Notes
         -----
-        This requires base_estimator to have a ``decision_function`` method.
+        This requires ``base_estimator`` to have a ``decision_function``
+        method.
         """  # noqa: E501
         return self._transform(X, 'decision_function')
 

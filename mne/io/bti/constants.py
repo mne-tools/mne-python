@@ -1,6 +1,6 @@
 # Authors: Denis Engemann <denis.engemann@gmail.com?>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from ...utils import BunchConst
 

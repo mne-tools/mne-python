@@ -3,7 +3,7 @@
 # Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #         Joan Massich <mailsik@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 from os import path
 
 import numpy as np
@@ -167,8 +167,6 @@ def read_raw_cnt(input_fname, eog=(), misc=(), ecg=(),
 
 def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     """Read the cnt header."""
-    # XXX stim_channel_toggle is used because stim_channel was in use already
-
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
     # Reading only the fields of interest. Structure of the whole header at
@@ -300,7 +298,6 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
                       FIFF.FIFFV_EEG_CH, eog, ecg, emg, misc)
     eegs = [idx for idx, ch in enumerate(chs) if
             ch['coil_type'] == FIFF.FIFFV_COIL_EEG]
-    # XXX this should probably use mne.transforms._topo_to_sph and _sph_to_cart
     coords = _topo_to_sphere(pos, eegs)
     locs = np.full((len(chs), 12), np.nan)
     locs[:, :3] = coords
@@ -314,6 +311,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     info.update(meas_date=meas_date,
                 description=session_label, bads=bads,
                 subject_info=subject_info, chs=chs)
+    info._unlocked = False
     info._update_redundant()
     return info, cnt_info
 

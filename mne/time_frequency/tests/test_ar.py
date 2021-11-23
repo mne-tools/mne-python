@@ -6,7 +6,7 @@ from scipy.signal import lfilter
 
 from mne import io
 from mne.time_frequency.ar import _yule_walker, fit_iir_model_raw
-from mne.utils import requires_version, run_tests_if_main
+from mne.utils import requires_version
 
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
@@ -48,6 +48,3 @@ def test_ar_raw():
     for order in (2, 5, 10):
         coeffs = fit_iir_model_raw(raw, order)[1]
         assert_allclose(coeffs, iir + [0.] * (order - 2), atol=5e-2)
-
-
-run_tests_if_main()

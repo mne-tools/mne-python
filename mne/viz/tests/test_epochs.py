@@ -7,121 +7,83 @@
 #
 # License: Simplified BSD
 
-import os.path as op
-
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-import matplotlib.pyplot as plt
 
-from mne import (read_events, Epochs, pick_types, read_cov, create_info,
-                 EpochsArray)
-from mne.channels import read_layout
-from mne.io import read_raw_fif, read_raw_ctf
-from mne.utils import run_tests_if_main, _click_ch_name, _close_event
-from mne.viz import plot_drop_log
-from mne.viz.utils import _fake_click
+from mne import Epochs, create_info, EpochsArray
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
+from mne.utils import _click_ch_name
+from mne.viz import plot_drop_log
+from mne.viz.utils import _fake_click
 
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-evoked_fname = op.join(base_dir, 'test-ave.fif')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-cov_fname = op.join(base_dir, 'test-cov.fif')
-event_name = op.join(base_dir, 'test-eve.fif')
-event_id, tmin, tmax = 1, -0.1, 1.0
-layout = read_layout('Vectorview-all')
-test_base_dir = testing.data_path(download=False)
-ctf_fname = op.join(test_base_dir, 'CTF', 'testdata_ctf.ds')
-
-
-def _get_epochs(stop=5, meg=True, eeg=False, n_chan=20):
-    """Get epochs."""
-    raw = read_raw_fif(raw_fname)
-    events = read_events(event_name)
-    picks = pick_types(raw.info, meg=meg, eeg=eeg, stim=False,
-                       ecg=False, eog=False, exclude='bads')
-    # Use a subset of channels for plotting speed
-    picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
-    with pytest.warns(RuntimeWarning, match='projection'):
-        epochs = Epochs(raw, events[:stop], event_id, tmin, tmax, picks=picks,
-                        proj=False, preload=False)
-    epochs.info.normalize_proj()  # avoid warnings
-    return epochs
-
-
-@pytest.fixture()
-def epochs():
-    """Get minimal, pre-loaded epochs data suitable for most tests."""
-    return _get_epochs().load_data()
-
-
-def test_plot_epochs_not_preloaded():
+def test_plot_epochs_not_preloaded(epochs_unloaded, mpl_backend):
     """Test plotting non-preloaded epochs."""
-    epochs = _get_epochs()
-    assert epochs._data is None
-    epochs.plot()
-    assert epochs._data is None
+    assert epochs_unloaded._data is None
+    epochs_unloaded.plot()
+    assert epochs_unloaded._data is None
 
 
-def test_plot_epochs_basic(epochs, capsys):
+def test_plot_epochs_basic(epochs, epochs_full, noise_cov_io, capsys,
+                           mpl_backend):
     """Test epoch plotting."""
     assert len(epochs.events) == 1
-    epochs.info['lowpass'] = 10.  # allow heavy decim during plotting
+    with epochs.info._unlock():
+        epochs.info['lowpass'] = 10.  # allow heavy decim during plotting
     fig = epochs.plot(scalings=None, title='Epochs')
+    # ToDo: The ticks will be fetched differently with pyqtgraph.
     ticks = [x.get_text() for x in fig.mne.ax_main.get_xticklabels(minor=True)]
     assert ticks == ['2']
-    plt.close('all')
+    mpl_backend._close_all()
     # covariance / whitening
-    cov = read_cov(cov_fname)
-    assert len(cov['names']) == 366  # all channels
-    assert cov['bads'] == []
+    assert len(noise_cov_io['names']) == 366  # all channels
+    assert noise_cov_io['bads'] == []
     assert epochs.info['bads'] == []  # all good
     with pytest.warns(RuntimeWarning, match='projection'):
-        epochs.plot(noise_cov=cov)
-    plt.close('all')
+        epochs.plot(noise_cov=noise_cov_io)
+    mpl_backend._close_all()
     # add a channel to the epochs.info['bads']
     epochs.info['bads'] = [epochs.ch_names[0]]
     with pytest.warns(RuntimeWarning, match='projection'):
-        epochs.plot(noise_cov=cov)
-    plt.close('all')
+        epochs.plot(noise_cov=noise_cov_io)
+    mpl_backend._close_all()
     # add a channel to cov['bads']
-    cov['bads'] = [epochs.ch_names[1]]
+    noise_cov_io['bads'] = [epochs.ch_names[1]]
     with pytest.warns(RuntimeWarning, match='projection'):
-        epochs.plot(noise_cov=cov)
-    plt.close('all')
+        epochs.plot(noise_cov=noise_cov_io)
+    mpl_backend._close_all()
     # have a data channel missing from the covariance
-    cov['names'] = cov['names'][:306]
-    cov['data'] = cov['data'][:306][:306]
+    noise_cov_io['names'] = noise_cov_io['names'][:306]
+    noise_cov_io['data'] = noise_cov_io['data'][:306][:306]
     with pytest.warns(RuntimeWarning, match='projection'):
-        epochs.plot(noise_cov=cov)
-    plt.close('all')
+        epochs.plot(noise_cov=noise_cov_io)
+    mpl_backend._close_all()
     # other options
     fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
-    fig.canvas.key_press_event('escape')
+    fig._fake_keypress('escape')
     with pytest.raises(ValueError, match='No appropriate channels found'):
         epochs.plot(picks=[])
     # gh-5906
-    epochs = _get_epochs(None).load_data()
-    epochs.load_data()
-    assert len(epochs) == 7
-    epochs.info['bads'] = [epochs.ch_names[0]]
+    assert len(epochs_full) == 7
+    epochs_full.info['bads'] = [epochs_full.ch_names[0]]
     capsys.readouterr()
     # test title error handling
     with pytest.raises(TypeError, match='title must be None or a string, got'):
-        epochs.plot(title=7)
+        epochs_full.plot(title=7)
     # test auto-generated title, and selection mode
-    epochs.plot(group_by='selection', title='')
+    epochs_full.plot(group_by='selection', title='')
 
 
 @pytest.mark.parametrize('scalings', (dict(mag=1e-12, grad=1e-11, stim='auto'),
                                       None, 'auto'))
-def test_plot_epochs_scalings(epochs, scalings):
+def test_plot_epochs_scalings(epochs, scalings, mpl_backend):
     """Test the valid options for scalings."""
     epochs.plot(scalings=scalings)
 
 
-def test_plot_epochs_colors(epochs):
+def test_plot_epochs_colors(epochs, mpl_backend):
     """Test epoch_colors, for compatibility with autoreject."""
     epoch_colors = [['r'] * len(epochs.ch_names) for _ in
                     range(len(epochs.events))]
@@ -134,40 +96,42 @@ def test_plot_epochs_colors(epochs):
     epochs.plot(event_color='b')
 
 
-def test_plot_epochs_scale_bar(epochs):
+def test_plot_epochs_scale_bar(epochs, mpl_backend):
     """Test scale bar for epochs."""
     fig = epochs.plot()
-    fig.canvas.key_press_event('s')  # default is to not show scalebars
     ax = fig.mne.ax_main
-    assert len(ax.texts) == 2  # only mag & grad in this instance
+    # only empty vline-text, mag & grad in this instance
+    assert len(ax.texts) == 3
+    # ToDo: The scale-bars might be accessed differently in pyqtgraph.
     texts = tuple(t.get_text().strip() for t in ax.texts)
-    wants = ('800.0 fT/cm', '2000.0 fT')
+    wants = ('', '800.0 fT/cm', '2000.0 fT')
     assert texts == wants
 
 
-def test_plot_epochs_clicks(epochs, capsys):
+def test_plot_epochs_clicks(epochs, epochs_full, capsys,
+                            mpl_backend):
     """Test plot_epochs mouse interaction."""
     fig = epochs.plot(events=epochs.events)
-    data_ax = fig.mne.ax_main
     x = fig.mne.traces[0].get_xdata()[3]
     y = fig.mne.traces[0].get_ydata()[3]
     n_epochs = len(epochs)
     epoch_num = fig.mne.inst.selection[0]
     # test (un)marking bad epochs
-    _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad epoch
+    fig._fake_click([x, y], xform='data')  # mark a bad epoch
     assert epoch_num in fig.mne.bad_epochs
-    _fake_click(fig, data_ax, [x, y], xform='data')  # unmark it
+    fig._fake_click([x, y], xform='data')  # unmark it
     assert epoch_num not in fig.mne.bad_epochs
-    _fake_click(fig, data_ax, [x, y], xform='data')  # mark it bad again
+    fig._fake_click([x, y], xform='data')  # mark it bad again
     assert epoch_num in fig.mne.bad_epochs
     # test vline
-    fig.canvas.key_press_event('escape')  # close and drop epochs
-    _close_event(fig)  # XXX workaround, MPL Agg doesn't trigger close event
+    fig._fake_keypress('escape')  # close and drop epochs
+    fig._close_event()  # XXX workaround, MPL Agg doesn't trigger close event
     assert(n_epochs - 1 == len(epochs))
     # test marking bad channels
-    epochs = _get_epochs(None).load_data()  # need more than 1 epoch this time
-    fig = epochs.plot(n_epochs=3)
+    # need more than 1 epoch this time
+    fig = epochs_full.plot(n_epochs=3)
     data_ax = fig.mne.ax_main
+    # ToDo: Tick-Labels will be accessed differently in pyqtgraph.
     first_ch = data_ax.get_yticklabels()[0].get_text()
     assert first_ch not in fig.mne.info['bads']
     _click_ch_name(fig, ch_index=0, button=1)  # click ch name to mark bad
@@ -176,45 +140,57 @@ def test_plot_epochs_clicks(epochs, capsys):
     _fake_click(fig, fig.mne.ax_vscroll, [0.5, 0.5])
     _fake_click(fig, fig.mne.ax_hscroll, [0.5, 0.5])
     # test moving bad epoch offscreen
-    fig.canvas.key_press_event('right')  # move right
+    fig._fake_keypress('right')  # move right
     x = fig.mne.traces[0].get_xdata()[-3]
     y = fig.mne.traces[0].get_ydata()[-3]
-    _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad epoch
-    fig.canvas.key_press_event('left')  # move back
+    fig._fake_click([x, y], xform='data')  # mark a bad epoch
+    fig._fake_keypress('left')  # move back
     out, err = capsys.readouterr()
     assert 'out of bounds' not in out
     assert 'out of bounds' not in err
-    fig.canvas.key_press_event('escape')
-    _close_event(fig)  # XXX workaround, MPL Agg doesn't trigger close event
-    assert len(epochs) == 6
+    fig._fake_keypress('escape')
+    fig._close_event()  # XXX workaround, MPL Agg doesn't trigger close event
+    assert len(epochs_full) == 6
     # test rightclick → image plot
-    fig = epochs.plot()
+    fig = epochs_full.plot()
     _click_ch_name(fig, ch_index=0, button=3)  # show image plot
     assert len(fig.mne.child_figs) == 1
     # test scroll wheel
-    fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
-    fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
+    fig._fake_scroll(0.5, 0.5, -0.5)  # scroll down
+    fig._fake_scroll(0.5, 0.5, 0.5)  # scroll up
 
 
-def test_plot_epochs_keypresses():
+def test_plot_epochs_keypresses(epochs_full, mpl_backend):
     """Test plot_epochs keypress interaction."""
-    epochs = _get_epochs(stop=15).load_data()  # we need more than 1 epoch
-    epochs.drop_bad(dict(mag=4e-12))  # for histogram plot coverage
-    fig = epochs.plot(n_epochs=3)
-    data_ax = fig.mne.ax_main
+    # we need more than 1 epoch
+    epochs_full.drop_bad(dict(mag=4e-12))  # for histogram plot coverage
+    fig = epochs_full.plot(n_epochs=3)
     # make sure green vlines are visible first (for coverage)
-    sample_idx = len(epochs.times) // 2  # halfway through the first epoch
+    sample_idx = len(epochs_full.times) // 2  # halfway through the first epoch
     x = fig.mne.traces[0].get_xdata()[sample_idx]
     y = (fig.mne.traces[0].get_ydata()[sample_idx]
          + fig.mne.traces[1].get_ydata()[sample_idx]) / 2
-    _fake_click(fig, data_ax, [x, y], xform='data')  # click between traces
+    fig._fake_click([x, y], xform='data')  # click between traces
     # test keys
     keys = ('pagedown', 'down', 'up', 'down', 'right', 'left', '-', '+', '=',
             'd', 'd', 'pageup', 'home', 'shift+right', 'end', 'shift+left',
             'z', 'z', 's', 's', 'f11', '?', 'h', 'j', 'b')
     for key in keys * 2:  # test twice → once in normal, once in butterfly view
-        fig.canvas.key_press_event(key)
-    _fake_click(fig, data_ax, [x, y], xform='data', button=3)  # remove vlines
+        fig._fake_keypress(key)
+    fig._fake_click([x, y], xform='data', button=3)  # remove vlines
+
+
+def test_plot_overlapping_epochs_with_events(mpl_backend):
+    """Test drawing of event lines in overlapping epochs."""
+    data = np.zeros(shape=(3, 2, 100))  # 3 epochs, 2 channels, 100 samples
+    sfreq = 100
+    info = create_info(
+        ch_names=('a', 'b'), ch_types=('misc', 'misc'), sfreq=sfreq)
+    # 90% overlap, so all 3 events should appear in all 3 epochs when plotted:
+    events = np.column_stack(([50, 60, 70], [0, 0, 0], [1, 2, 3]))
+    epochs = EpochsArray(data, info, tmin=-0.5, events=events)
+    fig = epochs.plot(events=events, picks='misc')
+    assert len(fig.mne.event_lines.get_segments()) == 9
 
 
 def test_epochs_plot_sensors(epochs):
@@ -222,7 +198,7 @@ def test_epochs_plot_sensors(epochs):
     epochs.plot_sensors()
 
 
-def test_plot_epochs_nodata():
+def test_plot_epochs_nodata(mpl_backend):
     """Test plotting of epochs when no data channels are present."""
     data = np.random.RandomState(0).randn(10, 2, 1000)
     info = create_info(2, 1000., 'stim')
@@ -231,6 +207,7 @@ def test_plot_epochs_nodata():
         epochs.plot()
 
 
+@pytest.mark.slowtest
 def test_plot_epochs_image(epochs):
     """Test plotting of epochs image.
 
@@ -327,13 +304,12 @@ def test_plot_epochs_image(epochs):
     plt.close('all')
 
 
-def test_plot_drop_log():
+def test_plot_drop_log(epochs_unloaded):
     """Test plotting a drop log."""
-    epochs = _get_epochs()  # not loaded
     with pytest.raises(ValueError, match='bad epochs have not yet been'):
-        epochs.plot_drop_log()
-    epochs.drop_bad()
-    epochs.plot_drop_log()
+        epochs_unloaded.plot_drop_log()
+    epochs_unloaded.drop_bad()
+    epochs_unloaded.plot_drop_log()
     plot_drop_log((('One',), (), ()))
     plot_drop_log((('One',), ('Two',), ()))
     plot_drop_log((('One',), ('One', 'Two'), ()))
@@ -379,16 +355,15 @@ def test_plot_psdtopo_nirs(fnirs_epochs):
 
 
 @testing.requires_testing_data
-def test_plot_epochs_ctf():
+def test_plot_epochs_ctf(raw_ctf, mpl_backend):
     """Test of basic CTF plotting."""
-    raw = read_raw_ctf(ctf_fname, preload=True)
-    raw.pick_channels(['UDIO001', 'UPPT001', 'SCLK01-177',
-                       'BG1-4304', 'MLC11-4304', 'MLC11-4304',
-                       'EEG058', 'UADC007-4302'])
-    evts = make_fixed_length_events(raw)
-    epochs = Epochs(raw, evts, preload=True)
+    raw_ctf.pick_channels(['UDIO001', 'UPPT001', 'SCLK01-177',
+                           'BG1-4304', 'MLC11-4304', 'MLC11-4304',
+                           'EEG058', 'UADC007-4302'])
+    evts = make_fixed_length_events(raw_ctf)
+    epochs = Epochs(raw_ctf, evts, preload=True)
     epochs.plot()
-    plt.close('all')
+    mpl_backend._close_all()
 
     # test butterfly
     fig = epochs.plot(butterfly=True)
@@ -396,19 +371,19 @@ def test_plot_epochs_ctf():
             '+', '=', 'd', 'd', 'pageup', 'home', 'end', 'z', 'z', 's', 's',
             'f11', '?', 'h', 'j')
     for key in keys:
-        fig.canvas.key_press_event(key)
-    fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
-    fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
-    fig.canvas.resize_event()
-    fig.canvas.key_press_event('escape')  # close and drop epochs
+        fig._fake_keypress(key)
+    fig._fake_scroll(0.5, 0.5, -0.5)  # scroll down
+    fig._fake_scroll(0.5, 0.5, 0.5)  # scroll up
+    fig._resize_by_factor(1)
+    fig._fake_keypress('escape')  # close and drop epochs
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
-def test_plot_psd_epochs_ctf():
+def test_plot_psd_epochs_ctf(raw_ctf):
     """Test plotting CTF epochs psd (+topomap)."""
-    raw = read_raw_ctf(ctf_fname, preload=True)
-    evts = make_fixed_length_events(raw)
-    epochs = Epochs(raw, evts, preload=True)
+    evts = make_fixed_length_events(raw_ctf)
+    epochs = Epochs(raw_ctf, evts, preload=True)
     pytest.raises(RuntimeError, epochs.plot_psd_topomap,
                   bands=[(0, 0.01, 'foo')])  # no freqs in range
     epochs.plot_psd_topomap()
@@ -419,6 +394,3 @@ def test_plot_psd_epochs_ctf():
             epochs.plot_psd(dB=dB)
     epochs.drop_channels(['EEG060'])
     epochs.plot_psd(spatial_colors=False, average=False)
-
-
-run_tests_if_main()

@@ -5,7 +5,7 @@ Examples
 --------
 .. code-block:: console
 
-    $ mne compute_proj_ecg -i sample_audvis_raw.fif -c "MEG 1531" \
+    $ mne compute_proj_ecg -i sample_audvis_raw.fif -c "MEG 1531" -a \
                            --l-freq 1 --h-freq 100 \
                            --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
 
@@ -61,7 +61,7 @@ def run():
                       default=True)
     parser.add_option("-a", "--average", dest="average", action="store_true",
                       help="Compute SSP after averaging",
-                      default=False)  # XXX: change to default=True in 0.17
+                      default=False)
     parser.add_option("--proj", dest="proj",
                       help="Use SSP projections from a fif file.",
                       default=None)
@@ -182,7 +182,7 @@ def run():
     else:
         raw_event = raw
 
-    flat = None  # XXX : not exposed to the user
+    flat = None
     projs, events = mne.preprocessing.compute_proj_ecg(
         raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg, l_freq, h_freq,
         average, filter_length, n_jobs, ch_name, reject, flat, bads, avg_ref,

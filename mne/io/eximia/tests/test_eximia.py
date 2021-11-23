@@ -8,7 +8,6 @@ from scipy import io as sio
 
 from mne.io import read_raw_eximia
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import run_tests_if_main
 from mne.datasets.testing import data_path, requires_testing_data
 
 
@@ -42,6 +41,3 @@ def test_eximia_nxe():
     assert ch_types == m_ch_types
 
     assert_array_equal(m_data, raw._data)
-
-
-run_tests_if_main()

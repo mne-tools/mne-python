@@ -1,6 +1,6 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 import numpy as np
@@ -23,7 +23,8 @@ def test_annotate_flat(first_samp):
     data = np.random.RandomState(0).randn(n_ch, n_times)
     assert not (np.diff(data, axis=-1) == 0).any()  # nothing flat at first
     info = create_info(n_ch, 1000., 'eeg')
-    info['meas_date'] = (1, 2)
+    with info._unlock():
+        info['meas_date'] = (1, 2)
     # test first_samp != for gh-6295
     raw = RawArray(data, info, first_samp=first_samp)
     raw.info['bads'] = [raw.ch_names[-1]]

@@ -1,6 +1,6 @@
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from io import BytesIO
 import os
@@ -25,7 +25,7 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.pick import pick_info
 from mne.io.constants import FIFF
 from mne import pick_types
-from mne.utils import assert_dig_allclose, run_tests_if_main
+from mne.utils import assert_dig_allclose
 from mne.transforms import Transform, combine_transforms, invert_transform
 
 base_dir = op.join(op.abspath(op.dirname(__file__)), 'data')
@@ -355,6 +355,3 @@ def test_nan_trans():
 def test_bti_ch_data(fname, preload):
     """Test for gh-6048."""
     read_raw_bti(fname, preload=preload)  # used to fail with ascii decode err
-
-
-run_tests_if_main()

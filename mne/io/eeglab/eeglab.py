@@ -2,17 +2,18 @@
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
 import numpy as np
 
+from ..pick import _PICK_TYPES_KEYS
 from ..utils import _read_segments_file, _find_channels
 from ..constants import FIFF
 from ..meas_info import create_info
 from ..base import BaseRaw
-from ...utils import logger, verbose, warn, fill_doc, Bunch
+from ...utils import logger, verbose, warn, fill_doc, Bunch, _check_fname
 from ...channels import make_dig_montage
 from ...epochs import BaseEpochs
 from ...event import read_events
@@ -22,7 +23,7 @@ from ...annotations import Annotations, read_annotations
 CAL = 1e-6
 
 
-def _check_fname(fname, dataname):
+def _check_eeglab_fname(fname, dataname):
     """Check whether the filename is valid.
 
     Check if the file extension is ``.fdt`` (older ``.dat`` being invalid) or
@@ -61,9 +62,7 @@ def _check_load_mat(fname, uint16_codec):
         raise NotImplementedError(
             'Loading an ALLEEG array is not supported. Please contact'
             'mne-python developers for more information.')
-    if 'EEG' not in eeg:
-        raise ValueError('Could not find EEG array in the .set file.')
-    else:
+    if 'EEG' in eeg:  # fields are contained in EEG structure
         eeg = eeg['EEG']
     eeg = eeg.get('EEG', eeg)  # handle nested EEG structure
     eeg = Bunch(**eeg)
@@ -82,13 +81,15 @@ def _to_loc(ll):
 
 
 def _eeg_has_montage_information(eeg):
-    from scipy import io
-
+    try:
+        from scipy.io.matlab import mat_struct
+    except ImportError:  # SciPy < 1.8
+        from scipy.io.matlab.mio5_params import mat_struct
     if not len(eeg.chanlocs):
         has_pos = False
     else:
         pos_fields = ['X', 'Y', 'Z']
-        if isinstance(eeg.chanlocs[0], io.matlab.mio5_params.mat_struct):
+        if isinstance(eeg.chanlocs[0], mat_struct):
             has_pos = all(hasattr(eeg.chanlocs[0], fld)
                           for fld in pos_fields)
         elif isinstance(eeg.chanlocs[0], np.ndarray):
@@ -104,11 +105,29 @@ def _eeg_has_montage_information(eeg):
     return has_pos
 
 
-def _get_eeg_montage_information(eeg, get_pos):
-
-    pos_ch_names, ch_names, pos = list(), list(), list()
+def _get_montage_information(eeg, get_pos):
+    """Get channel name, type and montage information from ['chanlocs']."""
+    ch_names, ch_types, pos_ch_names, pos = list(), list(), list(), list()
+    unknown_types = dict()
     for chanloc in eeg.chanlocs:
+        # channel name
         ch_names.append(chanloc['labels'])
+
+        # channel type
+        ch_type = 'eeg'
+        try_type = chanloc.get('type', None)
+        if isinstance(try_type, str):
+            try_type = try_type.strip().lower()
+            if try_type in _PICK_TYPES_KEYS:
+                ch_type = try_type
+            else:
+                if try_type in unknown_types:
+                    unknown_types[try_type].append(chanloc['labels'])
+                else:
+                    unknown_types[try_type] = [chanloc['labels']]
+        ch_types.append(ch_type)
+
+        # channel loc
         if get_pos:
             loc_x = _to_loc(chanloc['X'])
             loc_y = _to_loc(chanloc['Y'])
@@ -118,15 +137,20 @@ def _get_eeg_montage_information(eeg, get_pos):
                 pos_ch_names.append(chanloc['labels'])
                 pos.append(locs)
 
+    # warn if unknown types were provided
+    if len(unknown_types):
+        warn('Unknown types found, setting as type EEG:\n' +
+             '\n'.join([f'{key}: {sorted(unknown_types[key])}'
+                        for key in sorted(unknown_types)]))
+
     if pos_ch_names:
         montage = make_dig_montage(
             ch_pos=dict(zip(ch_names, np.array(pos))),
-            coord_frame='head',
-        )
+            coord_frame='head')
     else:
         montage = None
 
-    return ch_names, montage
+    return ch_names, ch_types, montage
 
 
 def _get_info(eeg, eog=()):
@@ -142,14 +166,16 @@ def _get_info(eeg, eog=()):
 
     if eeg_has_ch_names_info:
         has_pos = _eeg_has_montage_information(eeg)
-        ch_names, eeg_montage = _get_eeg_montage_information(eeg, has_pos)
+        ch_names, ch_types, eeg_montage = \
+            _get_montage_information(eeg, has_pos)
         update_ch_names = False
     else:  # if eeg.chanlocs is empty, we still need default chan names
         ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
+        ch_types = 'eeg'
         eeg_montage = None
         update_ch_names = True
 
-    info = create_info(ch_names, sfreq=eeg.srate, ch_types='eeg')
+    info = create_info(ch_names, sfreq=eeg.srate, ch_types=ch_types)
 
     eog = _find_channels(ch_names, ch_type='EOG') if eog == 'auto' else eog
     for idx, ch in enumerate(info['chs']):
@@ -316,6 +342,7 @@ class RawEEGLAB(BaseRaw):
     @verbose
     def __init__(self, input_fname, eog=(),
                  preload=False, uint16_codec=None, verbose=None):  # noqa: D102
+        input_fname = _check_fname(input_fname, 'read', True, 'input_fname')
         eeg = _check_load_mat(input_fname, uint16_codec)
         if eeg.trials != 1:
             raise TypeError('The number of trials is %d. It must be 1 for raw'
@@ -327,7 +354,7 @@ class RawEEGLAB(BaseRaw):
 
         # read the data
         if isinstance(eeg.data, str):
-            data_fname = _check_fname(input_fname, eeg.data)
+            data_fname = _check_eeglab_fname(input_fname, eeg.data)
             logger.info('Reading %s' % data_fname)
 
             super(RawEEGLAB, self).__init__(
@@ -447,12 +474,19 @@ class EpochsEEGLAB(BaseEpochs):
                  baseline=None, reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, eog=(), verbose=None,
                  uint16_codec=None):  # noqa: D102
+        input_fname = _check_fname(fname=input_fname, must_exist=True,
+                                   overwrite='read')
         eeg = _check_load_mat(input_fname, uint16_codec)
 
         if not ((events is None and event_id is None) or
                 (events is not None and event_id is not None)):
             raise ValueError('Both `events` and `event_id` must be '
                              'None or not None')
+
+        if eeg.trials <= 1:
+            raise ValueError("The file does not seem to contain epochs "
+                             "(trials less than 2). "
+                             "You should try using read_raw_eeglab function.")
 
         if events is None and eeg.trials > 1:
             # first extract the events and construct an event_id dict
@@ -503,7 +537,6 @@ class EpochsEEGLAB(BaseEpochs):
             events = read_events(events)
 
         logger.info('Extracting parameters from %s...' % input_fname)
-        input_fname = op.abspath(input_fname)
         info, eeg_montage, _ = _get_info(eeg, eog=eog)
 
         for key, val in event_id.items():
@@ -512,7 +545,7 @@ class EpochsEEGLAB(BaseEpochs):
                                  '(event id %i)' % (key, val))
 
         if isinstance(eeg.data, str):
-            data_fname = _check_fname(input_fname, eeg.data)
+            data_fname = _check_eeglab_fname(input_fname, eeg.data)
             with open(data_fname, 'rb') as data_fid:
                 data = np.fromfile(data_fid, dtype=np.float32)
                 data = data.reshape((eeg.nbchan, eeg.pnts, eeg.trials),

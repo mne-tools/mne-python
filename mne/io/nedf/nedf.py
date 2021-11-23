@@ -10,7 +10,7 @@ import numpy as np
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ..utils import _mult_cal_one
-from ...utils import warn, verbose
+from ...utils import warn, verbose, _check_fname
 
 
 def _getsubnodetext(node, name):
@@ -131,6 +131,7 @@ class RawNedf(BaseRaw):
     """Raw object from NeuroElectrics nedf file."""
 
     def __init__(self, filename, preload=False, verbose=None):
+        filename = _check_fname(filename, 'read', True, 'filename')
         with open(filename, mode='rb') as fid:
             header = fid.read(_HDRLEN)
         header, dt, dt_last, n_samp, n_full = _parse_nedf_header(header)
@@ -143,7 +144,8 @@ class RawNedf(BaseRaw):
         # (https://www.neuroelectrics.com/resources/software/):
         for ch in info['chs'][:-1]:
             ch['cal'] = 2.4 / (6.0 * 8388607)
-        info['meas_date'] = header['meas_date']
+        with info._unlock():
+            info['meas_date'] = header['meas_date']
         raw_extra = dict(dt=dt, dt_last=dt_last, n_full=n_full)
         super().__init__(
             info, preload=preload, filenames=[filename], verbose=verbose,

@@ -3,7 +3,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Clemens Brunner <clemens.brunner@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from contextlib import contextmanager
 import hashlib
@@ -19,11 +19,11 @@ import sys
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
-from scipy import sparse
 
 from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
-from ..fixes import _infer_dimension_, svd_flip, stable_cumsum, _safe_svd
+from ..fixes import (_infer_dimension_, svd_flip, stable_cumsum, _safe_svd,
+                     jit, has_numba)
 from .docs import fill_doc
 
 
@@ -605,6 +605,18 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     return grand_average
 
 
+class _HashableNdarray(np.ndarray):
+    def __hash__(self):
+        return object_hash(self)
+
+    def __eq__(self, other):
+        return NotImplementedError  # defer to hash
+
+
+def _hashable_ndarray(x):
+    return x.view(_HashableNdarray)
+
+
 def object_hash(x, h=None):
     """Hash a reasonable python object.
 
@@ -669,6 +681,7 @@ def object_size(x, memo=None):
     size : int
         The estimated size in bytes of the object.
     """
+    from scipy import sparse
     # Note: this will not process object arrays properly (since those only)
     # hold references
     if memo is None:
@@ -712,15 +725,19 @@ def _sort_keys(x):
     return keys
 
 
-def _array_equal_nan(a, b):
+def _array_equal_nan(a, b, allclose=False):
     try:
-        np.testing.assert_array_equal(a, b)
+        if allclose:
+            func = np.testing.assert_allclose
+        else:
+            func = np.testing.assert_array_equal
+        func(a, b)
     except AssertionError:
         return False
     return True
 
 
-def object_diff(a, b, pre=''):
+def object_diff(a, b, pre='', *, allclose=False):
     """Compute all differences between two python variables.
 
     Parameters
@@ -732,12 +749,15 @@ def object_diff(a, b, pre=''):
         Must be same type as ``a``.
     pre : str
         String to prepend to each line.
+    allclose : bool
+        If True (default False), use assert_allclose.
 
     Returns
     -------
     diffs : str
         A string representation of the differences.
     """
+    from scipy import sparse
     out = ''
     if type(a) != type(b):
         # Deal with NamedInt and NamedFloat
@@ -757,15 +777,17 @@ def object_diff(a, b, pre=''):
                 out += pre + ' right missing key %s\n' % key
             else:
                 out += object_diff(a[key], b[key],
-                                   pre=(pre + '[%s]' % repr(key)))
+                                   pre=(pre + '[%s]' % repr(key)),
+                                   allclose=allclose)
     elif isinstance(a, (list, tuple)):
         if len(a) != len(b):
             out += pre + ' length mismatch (%s, %s)\n' % (len(a), len(b))
         else:
             for ii, (xx1, xx2) in enumerate(zip(a, b)):
-                out += object_diff(xx1, xx2, pre + '[%s]' % ii)
+                out += object_diff(
+                    xx1, xx2, pre + '[%s]' % ii, allclose=allclose)
     elif isinstance(a, float):
-        if not _array_equal_nan(a, b):
+        if not _array_equal_nan(a, b, allclose):
             out += pre + ' value mismatch (%s, %s)\n' % (a, b)
     elif isinstance(a, (str, int, bytes, np.generic)):
         if a != b:
@@ -774,7 +796,7 @@ def object_diff(a, b, pre=''):
         if b is not None:
             out += pre + ' left is None, right is not (%s)\n' % (b)
     elif isinstance(a, np.ndarray):
-        if not _array_equal_nan(a, b):
+        if not _array_equal_nan(a, b, allclose):
             out += pre + ' array mismatch\n'
     elif isinstance(a, (StringIO, BytesIO)):
         if a.getvalue() != b.getvalue():
@@ -794,7 +816,8 @@ def object_diff(a, b, pre=''):
                 out += pre + (' sparse matrix a and b differ on %s '
                               'elements' % c.nnz)
     elif hasattr(a, '__getstate__'):
-        out += object_diff(a.__getstate__(), b.__getstate__(), pre)
+        out += object_diff(a.__getstate__(), b.__getstate__(), pre,
+                           allclose=allclose)
     else:
         raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
     return out
@@ -1057,3 +1080,20 @@ class _ReuseCycle(object):
         else:
             loc = np.searchsorted(self.indices, idx)
             self.indices.insert(loc, idx)
+
+
+def _arange_div_fallback(n, d):
+    x = np.arange(n, dtype=np.float64)
+    x /= d
+    return x
+
+
+if has_numba:
+    @jit(fastmath=False)
+    def _arange_div(n, d):
+        out = np.empty(n, np.float64)
+        for i in range(n):
+            out[i] = i / d
+        return out
+else:  # pragma: no cover
+    _arange_div = _arange_div_fallback

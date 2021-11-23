@@ -1,4 +1,4 @@
-.. _roadmap:
+.. include:: ../links.inc
 
 Roadmap
 =======
@@ -10,12 +10,64 @@ Code projects, while others require more extensive work.
 
 .. contents:: Page contents
    :local:
-   :depth: 1
 
+Open
+----
+
+Time-frequency classes
+^^^^^^^^^^^^^^^^^^^^^^
+Our current codebase implements classes related to :term:`TFRs <tfr>` that
+remain incomplete. We should implement new classes from the ground up
+that can hold frequency data (``Spectrum``), cross-spectral data
+(``CrossSpectrum``), multitaper estimates (``MultitaperSpectrum``), and
+time-varying estimates (``Spectrogram``). These should work for
+continuous, epoched, and averaged sensor data, as well as source-space brain
+data.
+
+See related issues :gh:`6290`, :gh:`7671`, :gh:`8026`, :gh:`8724`, :gh:`9045`,
+and PRs :gh:`6609`, :gh:`6629`, :gh:`6672`, :gh:`6673`, :gh:`8397`, and
+:gh:`8892`.
+
+.. _time-frequency-viz:
+
+Time-frequency visualization
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+We should implement a viewer for interactive visualization of volumetric
+source-time-frequency (5-D) maps on MRI slices (orthogonal 2D viewer).
+`NutmegTrip <https://github.com/fieldtrip/fieldtrip/tree/master/contrib/nutmegtrip>`__
+(written by Sarang Dalal) provides similar functionality in Matlab in
+conjunction with FieldTrip. Example of NutmegTrip's source-time-frequency mode
+in action (click for link to YouTube):
+
+.. image:: https://i.ytimg.com/vi/xKdjZZphdNc/maxresdefault.jpg
+   :target: https://www.youtube.com/watch?v=xKdjZZphdNc
+   :width: 50%
+
+First-class OPM support
+^^^^^^^^^^^^^^^^^^^^^^^
+MNE-Python has support for reading some OPM data formats such as FIF, but
+support is still rudimentary. Support should be added for other manufacturers,
+and standard (and/or novel) preprocessing routines should be added to deal with
+coregistration adjustment, forward modeling, and OPM-specific artifacts.
+
+Better sEEG/ECoG/DBS support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Some support already exists for iEEG electrodes in MNE-Python thanks in part
+to standard abstractions. However, iEEG-specific pipeline steps (e.g.,
+electrode localization) and visualizations (e.g., per-shaft topo plots,
+:ref:`time-frequency-viz`) are missing. MNE-Python should work with members of
+the ECoG/sEEG community to work with or build in existing tools, and extend
+native functionality for depth electrodes.
+
+Deep source modeling
+^^^^^^^^^^^^^^^^^^^^
+Existing source modeling and inverse routines are not explicitly designed to
+deal with deep sources. Advanced algorithms exist from MGH for enhancing
+deep source localization, and these should be implemented and vetted in
+MNE-Python.
 
 Clustering statistics API
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-
 The current clustering statistics code has limited functionality. It should be
 re-worked to create a new ``cluster_based_statistic`` or similar function.
 In particular, the new API should:
@@ -32,130 +84,8 @@ In particular, the new API should:
 
 More details are in :gh:`4859`.
 
-
-3D visualization
-^^^^^^^^^^^^^^^^
-
-Historically we have used Mayavi for 3D visualization, but have faced
-limitations and challenges with it. We should work to use some other backend
-(e.g., PyVista) to get major improvements, such as:
-
-1. Proper notebook support (through vtkjs)
-2. Better interactivity with surface plots
-3. Time-frequency plotting (complementary to volume-based
-   :ref:`time-frequency-viz`)
-4. Integration of multiple functions as done in ``mne_analyze``, e.g.,
-   simultaneous source estimate viewing, field map
-   viewing, head surface display, etc. These are all currently available in
-   separate functions, but we should be able to combine them in a single plot
-   as well.
-
-One such issue for tracking TODO lists for surface plotting is :gh:`7162`.
-
-
-2D visualization
-^^^^^^^^^^^^^^^^
-
-Our 2D code has a lot of useful functionality, but suffers from several
-systemic problems:
-
-1. It was written by many people for many specific use cases over time,
-   without ensuring that code was generalized. This means that some functions
-   are available only in some plotting modes (e.g., grouping by channel types
-   to obtain a butterfly plot can be done in :func:`mne.viz.plot_raw` but not
-   :func:`mne.viz.plot_epochs`.
-2. The code base has many redundant but not identical pieces of code
-   (copy-paste-modify rather than generalize-reuse / DRY) that make maintenance
-   particularly challenging.
-
-By (extensively) refactoring our code, we would improve the end-user experience
-and decrease long-term maintenance costs.
-
-
-.. _time-frequency-viz:
-
-Time-frequency visualization
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-We should implement a viewer for interactive visualization of volumetric
-source-time-frequency (5-D) maps on MRI slices (orthogonal 2D viewer).
-`NutmegTrip <https://github.com/fieldtrip/fieldtrip/tree/master/contrib/nutmegtrip>`__
-(written by Sarang Dalal) provides similar functionality in Matlab in
-conjunction with FieldTrip. Example of NutmegTrip's source-time-frequency mode
-in action (click for link to YouTube):
-
-.. image:: https://i.ytimg.com/vi/xKdjZZphdNc/maxresdefault.jpg
-   :target: https://www.youtube.com/watch?v=xKdjZZphdNc
-   :width: 50%
-
-
-Cluster computing
-^^^^^^^^^^^^^^^^^
-
-Currently, cloud computing with M/EEG data requires multiple manual steps,
-including remote environment setup, data transfer, monitoring of remote jobs,
-and retrieval of output data/results. These steps are usually not specific to
-the analysis of interest, and thus should be something that can be taken care
-of by MNE. Subgoals consist of:
-
-- Leverage dask and joblib or other libs to allow simple integration with MNE processing steps. Ideally this would be achieved in practice by:
-
-  - One-time (or per-project) setup steps, setting up host keys, access tokens,
-    etc.
-  - In code, switch to cloud computing rather than local computing via a simple
-    change of n_jobs parameter, and/or context manager like with::
-
-        with use_dask(...):
-           ...
-
-- Develop a (short as possible) example that shows people how to run a minimal
-  task remotely, including setting up access, cluster, nodes, etc.
-- Adapt `MNE-study-template <https://github.com/mne-tools/mne-study-template>`__
-  code to use cloud computing (optionally, based on config) rather than local
-  resources.
-
-See also :gh:`6086`.
-
-
-Tutorial / example overhaul
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-We want our tutorials to get users up to speed on:
-
-1. How to do M/EEG analyses in principle, and
-2. How to do M/EEG analyses in MNE-Python in particular
-
-So far some of our tutorials have been rewritten, but we still have a long way
-to go. Relevant tracking issues can be found under the tag :gh:`labels/DOC`.
-
-
-Coregistration / 3D viewer
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-:ref:`mne coreg` is an excellent tool for coregistration, but is limited
-by being tied to Mayavi, Traits, and TraitsUI. We should first refactor in
-several (mostly) separable steps:
-
-1. Refactor code to use traitlets
-2. GUI elements to use PyQt5 (rather than TraitsUI/pyface)
-3. 3D plotting to use our abstracted 3D viz functions rather than Mayavi
-4. Refactor distance/fitting classes to public ones to enable the example
-   from :gh:`6693`.
-
-Once this is done, we can effectively switch to a PyVista backend.
-
-
-BIDS Integration
-^^^^^^^^^^^^^^^^
-
-MNE-Python should facilitate analyzing BIDS-compliant datasets thanks to
-integration with the MNE-BIDS package. For more
-information, see https://github.com/mne-tools/mne-bids.
-
-
 Access to open EEG/MEG databases
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 We should improve the access to open EEG/MEG databases via the
 :mod:`mne.datasets` module, in other words improve our dataset fetchers.
 We have physionet, but much more. Having a consistent API to access multiple
@@ -177,15 +107,11 @@ as well as:
     Kymata atlas. The participants are healthy human adults listening to the
     radio and/or watching films, and the data is comprised of (averaged) EEG
     and MEG sensor data and source current reconstructions.
-- `BrainSignals <http://www.brainsignals.de>`__
-    A website that lists a number of MEG datasets available for download.
 - `BNCI Horizon <http://bnci-horizon-2020.eu/database/data-sets>`__
     BCI datasets.
 
-
 Integrate OpenMEEG via improved Python bindings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 `OpenMEEG <http://openmeeg.github.io>`__ is a state-of-the art solver for
 forward modeling in the field of brain imaging with MEG/EEG. It solves
 numerically partial differential equations (PDE). It is written in C++ with
@@ -203,3 +129,96 @@ recordings, etc.). Some software tasks that shall be completed:
 - Help package OpenMEEG for Debian/Ubuntu
 - Help manage `the continuous integration system
   <https://ci.inria.fr/>`__
+
+
+In progress
+-----------
+
+Diversity, Equity, and Inclusion
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+MNE-Python is committed to recruiting and retaining a diverse pool of
+contributors, see :gh:`8221`.
+
+.. _bids-integration:
+
+BIDS Integration
+^^^^^^^^^^^^^^^^
+MNE-Python is in the process of providing automated analysis of BIDS-compliant
+datasets, see `MNE-BIDS-Pipeline`_. Two key goals are:
+
+1. Incorporating functionality from the
+   `mnefun <https://labsn.github.io/mnefun/overview.html>`__ pipeline,
+   which has been used extensively for pediatric data analysis at `I-LABS`_.
+   Multiple processing steps (e.g., eSSS), sanity checks (e.g., cHPI quality),
+   and reporting (e.g., SSP joint plots, SNR plots) should be ported over.
+2. Adding support for cloud computing. Currently, cloud computing with M/EEG
+   data requires multiple manual steps, including remote environment setup,
+   data transfer, monitoring of remote jobs, and retrieval of output
+   data/results. With the implementation in `MNE-Docker`_, would be achieved
+   in practice by:
+
+  - One-time (or per-project) setup steps, setting up host keys, access tokens,
+    etc.
+  - In code, switch to cloud computing rather than local computing via a simple
+    change of config parameters.
+
+   See also :gh:`6086`.
+
+Statistics efficiency
+^^^^^^^^^^^^^^^^^^^^^
+A key technique in functional neuroimaging analysis is clustering brain
+activity in adjacent regions prior to statistical analysis. An important
+clustering algorithm — threshold-free cluster enhancement (TFCE) — currently
+relies on computationally expensive permutations for hypothesis testing.
+A faster, probabilistic version of TFCE (pTFCE) is available, and we are in the
+process of implementing this new algorithm.
+
+3D visualization
+^^^^^^^^^^^^^^^^
+Historically we have used Mayavi for 3D visualization, but have faced
+limitations and challenges with it. We should work to use some other backend
+(e.g., PyVista) to get major improvements, such as:
+
+1. *Proper notebook support (through ipyvtklink)* (complete)
+2. *Better interactivity with surface plots* (complete)
+3. Time-frequency plotting (complementary to volume-based
+   :ref:`time-frequency-viz`)
+4. Integration of multiple functions as done in ``mne_analyze``, e.g.,
+   simultaneous source estimate viewing, field map
+   viewing, head surface display, etc. These are all currently available in
+   separate functions, but we should be able to combine them in a single plot
+   as well.
+
+The meta-issue for tracking to-do lists for surface plotting is :gh:`7162`.
+
+.. _documentation-updates:
+
+Documentation updates
+^^^^^^^^^^^^^^^^^^^^^
+Our documentation has many minor issues, which can be found under the tag
+:gh:`labels/DOC`.
+
+
+Completed
+---------
+
+2D visualization
+^^^^^^^^^^^^^^^^
+`This goal <https://mne.tools/0.22/overview/roadmap.html#2d-visualization>`__
+was completed under CZI `EOSS2`_. Some additional enhancements that could also
+be implemented are listed in :gh:`7751`.
+
+Tutorial / example overhaul
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+`This goal <https://mne.tools/0.22/overview/roadmap.html#tutorial-example-overhaul>`__
+was completed under CZI `EOSS2`_. Ongoing documentation needs are listed in
+:ref:`documentation-updates`.
+
+Cluster computing images
+^^^^^^^^^^^^^^^^^^^^^^^^
+As part of `this goal <https://mne.tools/0.22/overview/roadmap.html#cluster-computing>`__,
+we created docker images suitable for cloud computing via `MNE-Docker`_.
+These will be :ref:`integrated with MNE-BIDS-Pipeline <bids-integration>`
+to provide seamless cloud computing support of large datasets.
+
+.. _I-LABS: http://ilabs.washington.edu/

@@ -9,8 +9,8 @@
 
 .. _changes_0_22:
 
-Version 0.22.0
---------------
+Version 0.22.0 (2020-12-17)
+---------------------------
 
 .. |Austin Hurst| replace:: **Austin Hurst**
 
@@ -113,7 +113,7 @@ Enhancements
 
 Bugs
 ~~~~
-- Fix orthogonalization of power envelopes in :func:`mne.connectivity.envelope_correlation` (:gh:`8658` **by new contributor** |Qianliang Li|_ and `Eric Larson`_)
+- Fix orthogonalization of power envelopes in ``mne.connectivity.envelope_correlation`` (:gh:`8658` **by new contributor** |Qianliang Li|_ and `Eric Larson`_)
 
 - Fix data overwrite of cascading simulation operations :`mne.simulation.simulate_raw` (:gh:`8633` **by new contributor** |Jeff Stout|_)
 
@@ -165,7 +165,7 @@ Bugs
 
 - Fix bug with volumetric rendering alpha in :meth:`mne.VolSourceEstimate.plot_3d` and related functions (:gh:`8663` by `Eric Larson`_)
 
-- Fix missing documentation of :func:`mne.io.read_raw_nihon` in :ref:`tut-imorting-eeg-data` (:gh`8320` by `Adam Li`_)
+- Fix missing documentation of :func:`mne.io.read_raw_nihon` in :ref:`tut-imorting-eeg-data` (:gh:`8320` by `Adam Li`_)
 
 - Fix bug with :func:`mne.add_reference_channels` when :func:`mne.io.Raw.reorder_channels` or related methods are used afterward (:gh:`8303`, :gh:`#8484` by `Eric Larson`_)
 

@@ -1,6 +1,6 @@
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -18,6 +18,7 @@ from mne.transforms import apply_trans
 from mne.utils import assert_dig_allclose
 from mne.io import read_raw_fif, read_raw_kit, read_epochs_kit
 from mne.io.constants import FIFF
+from mne.io.kit.kit import get_kit_info
 from mne.io.kit.coreg import read_sns
 from mne.io.kit.constants import KIT
 from mne.io.tests.test_raw import _test_raw_reader
@@ -49,11 +50,13 @@ ricoh_systems_paths += [op.join(
     data_path, 'KIT', 'Example_RICOH160-1_10020-export_anonymyze.con')]
 ricoh_systems_paths += [op.join(
     data_path, 'KIT', 'Example_RICOH160-1_10021-export_anonymyze.con')]
+ricoh_systems_paths += [op.join(
+    data_path, 'KIT', '010409_Motor_task_coregist-export_tiny_1s.con')]
 berlin_path = op.join(data_path, 'KIT', 'data_berlin.con')
 
 
 @requires_testing_data
-def test_data(tmpdir):
+def test_data(tmp_path):
     """Test reading raw kit files."""
     pytest.raises(TypeError, read_raw_kit, epochs_path)
     pytest.raises(TypeError, read_epochs_kit, sqd_path)
@@ -147,6 +150,29 @@ def test_data(tmpdir):
     assert_array_equal(find_events(raw), [[91, 0, 2]])
 
 
+@requires_testing_data
+def test_unknown_format(tmp_path):
+    """Test our warning about an unknown format."""
+    fname = tmp_path / op.basename(ricoh_path)
+    _, kit_info = get_kit_info(ricoh_path, allow_unknown_format=False)
+    n_before = kit_info['dirs'][KIT.DIR_INDEX_SYSTEM]['offset']
+    with open(fname, 'wb') as fout:
+        with open(ricoh_path, 'rb') as fin:
+            fout.write(fin.read(n_before))
+            version, revision = np.fromfile(fin, '<i4', 2)
+            assert version > 2  # good
+            version = 1  # bad
+            np.array([version, revision], '<i4').tofile(fout)
+            fout.write(fin.read())
+    with pytest.raises(ValueError, match='SQD file format V1R000 is not offi'):
+        read_raw_kit(fname)
+    # it's not actually an old file, so it actually raises an exception later
+    # about an unknown datatype
+    with pytest.raises(Exception):
+        with pytest.warns(RuntimeWarning, match='Force loading'):
+            read_raw_kit(fname, allow_unknown_format=True)
+
+
 def _assert_sinusoid(data, t, freq, amp, msg):
     __tracebackhide__ = True
     sinusoid = np.exp(2j * np.pi * freq * t) * amp
@@ -160,7 +186,7 @@ def _assert_sinusoid(data, t, freq, amp, msg):
     (yokogawa_path, 'Meg160/Analysis (1001) V3R000 PQA160C'),
     (ricoh_path, 'Meg160/Analysis (1001) V3R000 PQA160C'),
 ])
-def test_ricoh_data(tmpdir, fname, desc):
+def test_ricoh_data(tmp_path, fname, desc):
     """Test reading channel names and dig information from Ricoh systems."""
     raw = read_raw_kit(fname, standardize_names=True)
     assert raw.ch_names[0] == 'MEG 001'
@@ -264,9 +290,11 @@ def test_ch_loc():
     # test when more than one marker file provided
     mrks = [mrk_path, mrk2_path, mrk3_path]
     read_raw_kit(sqd_path, mrks, elp_txt_path, hsp_txt_path, preload=False)
-    # this dataset does not have the equivalent set of points :(
-    raw_bin.info['dig'] = raw_bin.info['dig'][:8]
-    raw_py.info['dig'] = raw_py.info['dig'][:8]
+    # this dataset does not have the equivalent set of points
+    with raw_bin.info._unlock():
+        raw_bin.info['dig'] = raw_bin.info['dig'][:8]
+    with raw_py.info._unlock():
+        raw_py.info['dig'] = raw_py.info['dig'][:8]
     assert_dig_allclose(raw_py.info, raw_bin.info)
 
 
@@ -291,14 +319,14 @@ def test_hsp_elp():
     assert_array_almost_equal(pts_elp_in_dev, pts_txt_in_dev, decimal=5)
 
 
-def test_decimate(tmpdir):
+def test_decimate(tmp_path):
     """Test decimation of digitizer headshapes with too many points."""
     # load headshape and convert to meters
     hsp_mm = _get_ico_surface(5)['rr'] * 100
     hsp_m = hsp_mm / 1000.
 
     # save headshape to a file in mm in temporary directory
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     sphere_hsp_path = op.join(tempdir, 'test_sphere.txt')
     np.savetxt(sphere_hsp_path, hsp_mm)
 
@@ -330,10 +358,13 @@ def test_decimate(tmpdir):
         'RICOH MEG System (10020) V3R000 RICOH160-1', 10020),
     (ricoh_systems_paths[2],
         'RICOH MEG System (10021) V3R000 RICOH160-1', 10021),
+    (ricoh_systems_paths[3],
+        'Yokogawa Electric Corporation/MEG device for infants/151-channel MEG '
+        'System (903) V2R004 PQ1151R', 903),
 ])
-def test_ricoh_systems(tmpdir, fname, desc, system_id):
-    """Test reading channel names and dig information from Ricoh systems."""
-    raw = read_raw_kit(fname, standardize_names=False)
+def test_raw_system_id(fname, desc, system_id):
+    """Test reading basics and system IDs."""
+    raw = _test_raw_reader(read_raw_kit, input_fname=fname)
     assert raw.info['description'] == desc
     assert raw.info['kit_system_id'] == system_id
 

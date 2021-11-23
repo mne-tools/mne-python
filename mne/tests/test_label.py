@@ -1,6 +1,10 @@
-from itertools import product
+# Author: Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD-3-Clause
 
+from contextlib import nullcontext
 import glob
+from itertools import product
 import os
 import os.path as op
 import pickle
@@ -10,7 +14,7 @@ import numpy as np
 from scipy import sparse
 
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_equal)
+                           assert_equal, assert_allclose, assert_array_less)
 import pytest
 
 from mne.datasets import testing
@@ -20,12 +24,12 @@ from mne import (read_label, stc_to_label, read_source_estimate,
                  read_surface, random_parcellation, morph_labels,
                  labels_to_stc)
 from mne.label import (Label, _blend_colors, label_sign_flip, _load_vert_pos,
-                       select_sources)
-from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
-                       run_tests_if_main, check_version)
-from mne.label import _n_colors, _read_annot, _read_annot_cands
+                       select_sources, _n_colors, _read_annot,
+                       _read_annot_cands)
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
+from mne.surface import _mesh_borders
+from mne.utils import requires_sklearn, get_subjects_dir, check_version
 
 
 data_path = testing.data_path(download=False)
@@ -306,9 +310,9 @@ def test_label_io_and_time_course_estimates():
 
 
 @testing.requires_testing_data
-def test_label_io():
+def test_label_io(tmp_path):
     """Test IO of label files."""
-    tempdir = _TempDir()
+    tempdir = str(tmp_path)
     label = read_label(label_fname)
 
     # label attributes
@@ -341,10 +345,10 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
 
 
 @testing.requires_testing_data
-def test_annot_io():
+def test_annot_io(tmp_path):
     """Test I/O from and to *.annot files."""
     # copy necessary files from fsaverage to tempdir
-    tempdir = _TempDir()
+    tempdir = str(tmp_path)
     subject = 'fsaverage'
     label_src = os.path.join(subjects_dir, 'fsaverage', 'label')
     surf_src = os.path.join(subjects_dir, 'fsaverage', 'surf')
@@ -444,7 +448,7 @@ def test_labels_to_stc():
 
 
 @testing.requires_testing_data
-def test_read_labels_from_annot(tmpdir):
+def test_read_labels_from_annot(tmp_path):
     """Test reading labels from FreeSurfer parcellation."""
     # test some invalid inputs
     pytest.raises(ValueError, read_labels_from_annot, 'sample', hemi='bla',
@@ -454,7 +458,7 @@ def test_read_labels_from_annot(tmpdir):
     with pytest.raises(IOError, match='does not exist'):
         _read_annot_cands('foo')
     with pytest.raises(IOError, match='no candidate'):
-        _read_annot(str(tmpdir))
+        _read_annot(str(tmp_path))
 
     # read labels using hemi specification
     labels_lh = read_labels_from_annot('sample', hemi='lh',
@@ -499,9 +503,10 @@ def test_read_labels_from_annot(tmpdir):
                                    regexp='.*-.{4,}_.{3,3}-L',
                                    subjects_dir=subjects_dir)[0]
     assert (label.name == 'G_oc-temp_med-Lingual-lh')
-    pytest.raises(RuntimeError, read_labels_from_annot, 'sample', parc='aparc',
-                  annot_fname=annot_fname, regexp='JackTheRipper',
-                  subjects_dir=subjects_dir)
+    with pytest.raises(RuntimeError, match='did not match any of'):
+        read_labels_from_annot(
+            'sample', parc='aparc', annot_fname=annot_fname, regexp='foo',
+            subjects_dir=subjects_dir)
 
 
 @testing.requires_testing_data
@@ -517,9 +522,9 @@ def test_read_labels_from_annot_annot2labels():
 
 
 @testing.requires_testing_data
-def test_write_labels_to_annot():
+def test_write_labels_to_annot(tmp_path):
     """Test writing FreeSurfer parcellation from labels."""
-    tempdir = _TempDir()
+    tempdir = str(tmp_path)
 
     labels = read_labels_from_annot('sample', subjects_dir=subjects_dir)
 
@@ -845,6 +850,10 @@ def test_grow_labels():
     l1 = l11 + l12
     assert_array_equal(l1.vertices, l0.vertices)
 
+    # non-overlapping (gh-8848)
+    for overlap in (False, True):
+        grow_labels('fsaverage', [0], 1, 1, subjects_dir, overlap=overlap)
+
 
 @testing.requires_testing_data
 def test_random_parcellation():
@@ -966,9 +975,6 @@ def test_label_center_of_mass():
                   surf='foo')
 
 
-run_tests_if_main()
-
-
 @testing.requires_testing_data
 def test_select_sources():
     """Test the selection of sources for simulation."""
@@ -1015,3 +1021,51 @@ def test_select_sources():
                            name='mne')
     assert (label.name == 'mne')
     assert (label.hemi == 'rh')
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('fname, area', [
+    (real_label_fname, 0.657e-3),
+    (v1_label_fname, 3.245e-3),
+])
+def test_label_geometry(fname, area):
+    """Test label geometric computations."""
+    label = read_label(fname, subject='sample')
+    got_area = label.compute_area(subjects_dir=subjects_dir)
+    assert_allclose(got_area, area, rtol=1e-3)
+    # using a sparse label emits a warning
+    label_sparse = label.restrict(src_fname)
+    assert 0 < len(label_sparse.vertices) < len(label.vertices)
+    with pytest.warns(RuntimeWarning, match='No complete triangles'):
+        assert label_sparse.compute_area(subjects_dir=subjects_dir) == 0.
+    if not check_version('scipy', '1.3'):
+        ctx = pytest.raises(RuntimeError, match='required to calculate')
+        stop = True
+    else:
+        ctx = nullcontext()
+        stop = False
+    with ctx:
+        dist, outside = label.distances_to_outside(subjects_dir=subjects_dir)
+    if stop:
+        return
+    rr, tris = read_surface(
+        op.join(subjects_dir, 'sample', 'surf', 'lh.white'))
+    mask = np.zeros(len(rr), bool)
+    mask[label.vertices] = 1
+    border_mask = np.in1d(label.vertices, _mesh_borders(tris, mask))
+    # The distances of the border vertices is smaller than that of non-border
+    lo, mi, hi = np.percentile(dist[border_mask], (0, 50, 100))
+    assert 0.1e-3 < lo < 0.5e-3 < mi < 1.0e-3 < hi < 2.0e-3
+    lo, mi, hi = np.percentile(dist[~border_mask], (0, 50, 100))
+    assert 0.5e-3 < lo < 1.0e-3 < mi < 9.0e-3 < hi < 25e-3
+    # check that the distances are close but uniformly <= than euclidean
+    assert not np.in1d(outside, label.vertices).any()
+    border_dist = dist[border_mask]
+    border_euc = 1e-3 * np.linalg.norm(
+        rr[label.vertices[border_mask]] - rr[outside[border_mask]], axis=1)
+    assert_allclose(border_dist, border_euc, atol=1e-4)
+    inside_dist = dist[~border_mask]
+    inside_euc = 1e-3 * np.linalg.norm(
+        rr[label.vertices[~border_mask]] - rr[outside[~border_mask]], axis=1)
+    assert_array_less(inside_euc, inside_dist)
+    assert_array_less(0.25 * inside_dist, inside_euc)

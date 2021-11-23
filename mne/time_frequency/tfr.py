@@ -7,32 +7,31 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 #           Clement Moutard <clement.moutard@polytechnique.org>
 #           Jean-Remi King <jeanremi.king@gmail.com>
 #
-# License : BSD (3-clause)
+# License : BSD-3-Clause
 
 from copy import deepcopy
 from functools import partial
-from math import sqrt
 
 import numpy as np
-from scipy import linalg
 
 from .multitaper import dpss_windows
 
 from ..baseline import rescale
-from ..fixes import fft, ifft
 from ..filter import next_fast_len
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
                      sizeof_fmt, GetEpochsMixin, _prepare_read_metadata,
                      fill_doc, _prepare_write_metadata, _check_event_id,
                      _gen_events, SizeMixin, _is_numeric, _check_option,
-                     _validate_type)
+                     _validate_type, _check_combine, _check_pandas_installed,
+                     _check_pandas_index_arguments, _check_time_format,
+                     _convert_times, _build_data_frame, warn)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
                        _get_channel_types)
 from ..io.meas_info import Info
-from ..viz.utils import (figure_nobar, plt_show, _setup_cmap, warn,
+from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
                          _connection_line, _prepare_joint_axes,
                          _setup_vmin_vmax, _set_title_multiple_electrodes)
 from ..externals.h5io import write_hdf5, read_hdf5
@@ -96,7 +95,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
             real_offset = np.exp(- 2 * (np.pi * f * sigma_t) ** 2)
             oscillation -= real_offset
         W = oscillation * gaussian_enveloppe
-        W /= sqrt(0.5) * linalg.norm(W.ravel())
+        W /= np.sqrt(0.5) * np.linalg.norm(W.ravel())
         Ws.append(W)
     return Ws
 
@@ -162,7 +161,7 @@ def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
             if zero_mean:  # to make it zero mean
                 real_offset = Wk.mean()
                 Wk -= real_offset
-            Wk /= sqrt(0.5) * linalg.norm(Wk.ravel())
+            Wk /= np.sqrt(0.5) * np.linalg.norm(Wk.ravel())
 
             Wm.append(Wk)
 
@@ -219,6 +218,7 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
     out : array, shape (n_signals, n_freqs, n_time_decim)
         The time-frequency transform of the signals.
     """
+    from scipy.fft import fft, ifft
     _check_option('mode', mode, ['same', 'valid', 'full'])
     decim = _check_decim(decim)
     X = np.asarray(X)
@@ -639,7 +639,8 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     out = _compute_tfr(data, freqs, info['sfreq'], method=method,
                        output=output, decim=decim, **tfr_params)
     times = inst.times[decim].copy()
-    info['sfreq'] /= decim.step
+    with info._unlock():
+        info['sfreq'] /= decim.step
 
     if average:
         if return_itc:
@@ -658,12 +659,15 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
             meta = deepcopy(inst._metadata)
             evs = deepcopy(inst.events)
             ev_id = deepcopy(inst.event_id)
+            selection = deepcopy(inst.selection)
+            drop_log = deepcopy(inst.drop_log)
         else:
             # if the input is of class Evoked
-            meta = evs = ev_id = None
+            meta = evs = ev_id = selection = drop_log = None
 
         out = EpochsTFR(info, power, times, freqs, method='%s-power' % method,
-                        events=evs, event_id=ev_id, metadata=meta)
+                        events=evs, event_id=ev_id, selection=selection,
+                        drop_log=drop_log, metadata=meta)
 
     return out
 
@@ -996,21 +1000,96 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         rescale(self.data, self.times, baseline, mode, copy=False)
         return self
 
-    def save(self, fname, overwrite=False):
+    @verbose
+    def save(self, fname, overwrite=False, *, verbose=None):
         """Save TFR object to hdf5 file.
 
         Parameters
         ----------
         fname : str
             The file name, which should end with ``-tfr.h5``.
-        overwrite : bool
-            If True, overwrite file (if it exists). Defaults to False.
+        %(overwrite)s
+        %(verbose)s
 
         See Also
         --------
         read_tfrs, write_tfrs
         """
         write_tfrs(fname, self, overwrite=overwrite)
+
+    @fill_doc
+    def to_data_frame(self, picks=None, index=None, long_format=False,
+                      time_format='ms'):
+        """Export data in tabular structure as a pandas DataFrame.
+
+        Channels are converted to columns in the DataFrame. By default,
+        additional columns ``'time'``, ``'freq'``, ``'epoch'``, and
+        ``'condition'`` (epoch event description) are added, unless ``index``
+        is not ``None`` (in which case the columns specified in ``index`` will
+        be used to form the DataFrame's index instead). ``'epoch'``, and
+        ``'condition'`` are not supported for ``AverageTFR``.
+
+        Parameters
+        ----------
+        %(picks_all)s
+        %(df_index_epo)s
+            Valid string values are ``'time'``, ``'freq'``, ``'epoch'``, and
+            ``'condition'`` for ``EpochsTFR`` and ``'time'`` and ``'freq'``
+            for ``AverageTFR``.
+            Defaults to ``None``.
+        %(df_longform_epo)s
+        %(df_time_format)s
+
+            .. versionadded:: 0.23
+
+        Returns
+        -------
+        %(df_return)s
+        """
+        # check pandas once here, instead of in each private utils function
+        pd = _check_pandas_installed()  # noqa
+        # arg checking
+        valid_index_args = ['time', 'freq']
+        if isinstance(self, EpochsTFR):
+            valid_index_args.extend(['epoch', 'condition'])
+        valid_time_formats = ['ms', 'timedelta']
+        index = _check_pandas_index_arguments(index, valid_index_args)
+        time_format = _check_time_format(time_format, valid_time_formats)
+        # get data
+        times = self.times
+        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
+        if isinstance(self, EpochsTFR):
+            data = self.data[:, picks, :, :]
+        else:
+            data = self.data[np.newaxis, picks]  # add singleton "epochs" axis
+        n_epochs, n_picks, n_freqs, n_times = data.shape
+        # reshape to (epochs*freqs*times) x signals
+        data = np.moveaxis(data, 1, -1)
+        data = data.reshape(n_epochs * n_freqs * n_times, n_picks)
+        # prepare extra columns / multiindex
+        mindex = list()
+        times = np.tile(times, n_epochs * n_freqs)
+        times = _convert_times(self, times, time_format)
+        mindex.append(('time', times))
+        freqs = self.freqs
+        freqs = np.tile(np.repeat(freqs, n_times), n_epochs)
+        mindex.append(('freq', freqs))
+        if isinstance(self, EpochsTFR):
+            mindex.append(('epoch', np.repeat(self.selection,
+                                              n_times * n_freqs)))
+            rev_event_id = {v: k for k, v in self.event_id.items()}
+            conditions = [rev_event_id[k] for k in self.events[:, 2]]
+            mindex.append(('condition', np.repeat(conditions,
+                                                  n_times * n_freqs)))
+        assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
+        # build DataFrame
+        if isinstance(self, EpochsTFR):
+            default_index = ['condition', 'epoch', 'freq', 'time']
+        else:
+            default_index = ['freq', 'time']
+        df = _build_data_frame(self, data, picks, long_format, mindex, index,
+                               default_index=default_index)
+        return df
 
 
 @fill_doc
@@ -1022,8 +1101,7 @@ class AverageTFR(_BaseTFR):
 
     Parameters
     ----------
-    info : Info
-        The measurement info.
+    %(info_not_none)s
     data : ndarray, shape (n_channels, n_freqs, n_times)
         The data.
     times : ndarray, shape (n_times,)
@@ -1040,8 +1118,7 @@ class AverageTFR(_BaseTFR):
 
     Attributes
     ----------
-    info : instance of Info
-        Measurement info.
+    %(info_not_none)s
     ch_names : list
         The names of the channels.
     nave : int
@@ -1088,7 +1165,7 @@ class AverageTFR(_BaseTFR):
              cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
              axes=None, layout=None, yscale='auto', mask=None,
              mask_style=None, mask_cmap="Greys", mask_alpha=0.1, combine=None,
-             exclude=[], verbose=None):
+             exclude=[], cnorm=None, verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         Parameters
@@ -1105,7 +1182,7 @@ class AverageTFR(_BaseTFR):
         mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
             Perform baseline correction by
 
-            - subtracting the mean of baseline values ('mean')
+            - subtracting the mean of baseline values ('mean') (default)
             - dividing by the mean of baseline values ('ratio')
             - dividing by the mean of baseline values and taking the log
               ('logratio')
@@ -1119,22 +1196,22 @@ class AverageTFR(_BaseTFR):
 
         tmin : None | float
             The first time instant to display. If None the first time point
-            available is used.
+            available is used. Defaults to None.
         tmax : None | float
             The last time instant to display. If None the last time point
-            available is used.
+            available is used. Defaults to None.
         fmin : None | float
             The first frequency to display. If None the first frequency
-            available is used.
+            available is used. Defaults to None.
         fmax : None | float
             The last frequency to display. If None the last frequency
-            available is used.
+            available is used. Defaults to None.
         vmin : float | None
             The minimum value an the color scale. If vmin is None, the data
-            minimum value is used.
+            minimum value is used. Defaults to None.
         vmax : float | None
             The maximum value an the color scale. If vmax is None, the data
-            maximum value is used.
+            maximum value is used. Defaults to None.
         cmap : matplotlib colormap | 'interactive' | (colormap, bool)
             The colormap to use. If tuple, the first value indicates the
             colormap to use and the second value is a boolean defining
@@ -1151,19 +1228,23 @@ class AverageTFR(_BaseTFR):
 
         dB : bool
             If True, 10*log10 is applied to the data to get dB.
+            Defaults to False.
         colorbar : bool
-            If true, colorbar will be added to the plot. For user defined axes,
-            the colorbar cannot be drawn. Defaults to True.
+            If true, colorbar will be added to the plot. Defaults to True.
         show : bool
-            Call pyplot.show() at the end.
+            Call pyplot.show() at the end. Defaults to True.
         title : str | 'auto' | None
-            String for title. Defaults to None (blank/no title). If 'auto',
-            automatically create a title that lists up to 6 of the channels
-            used in the figure.
+            String for ``title``. Defaults to None (blank/no title). If
+            'auto', and ``combine`` is None, the title for each figure
+            will be the channel name. If 'auto' and ``combine`` is not None,
+            ``title`` states how many channels were combined into that figure
+            and the method that was used for ``combine``. If str, that String
+            will be the title for each figure.
         axes : instance of Axes | list | None
             The axes to plot to. If list, the list must be a list of Axes of
-            the same length as the number of channels. If instance of Axes,
-            there must be only one channel plotted.
+            the same length as ``picks``. If instance of Axes, there must be
+            only one channel plotted. If ``combine`` is not None, ``axes``
+            must either be an instance of Axes, or a list of length 1.
         layout : Layout | None
             Layout instance specifying sensor positions. Used for interactive
             plotting of topographies on rectangle selection. If possible, the
@@ -1209,12 +1290,18 @@ class AverageTFR(_BaseTFR):
         exclude : list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
             bad channels are excluded. Defaults to an empty list.
+        cnorm : matplotlib.colors.Normalize | None
+            Colormap normalization, default None means linear normalization. If
+            not None, ``vmin`` and ``vmax`` arguments are ignored. See
+            :func:`mne.viz.plot_topomap` for more details.
+
+            .. versionadded:: 0.24
         %(verbose_meth)s
 
         Returns
         -------
-        fig : matplotlib.figure.Figure
-            The figure containing the topography.
+        figs : list of instances of matplotlib.figure.Figure
+            A list of figures containing the time-frequency power.
         """  # noqa: E501
         return self._plot(picks=picks, baseline=baseline, mode=mode,
                           tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
@@ -1223,7 +1310,7 @@ class AverageTFR(_BaseTFR):
                           axes=axes, layout=layout, yscale=yscale, mask=mask,
                           mask_style=mask_style, mask_cmap=mask_cmap,
                           mask_alpha=mask_alpha, combine=combine,
-                          exclude=exclude, verbose=verbose)
+                          exclude=exclude, cnorm=cnorm, verbose=verbose)
 
     @verbose
     def _plot(self, picks=None, baseline=None, mode='mean', tmin=None,
@@ -1233,7 +1320,7 @@ class AverageTFR(_BaseTFR):
               mask_style=None, mask_cmap="Greys", mask_alpha=.25,
               combine=None, exclude=None, copy=True,
               source_plot_joint=False, topomap_args=dict(), ch_type=None,
-              verbose=None):
+              cnorm=None, verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         See self.plot() for parameters description.
@@ -1250,6 +1337,8 @@ class AverageTFR(_BaseTFR):
 
         data = tfr.data
         n_picks = len(tfr.ch_names) if combine is None else 1
+
+        # combine picks
         if combine == 'mean':
             data = data.mean(axis=0, keepdims=True)
         elif combine == 'rms':
@@ -1257,27 +1346,35 @@ class AverageTFR(_BaseTFR):
         elif combine is not None:
             raise ValueError('combine must be None, mean or rms.')
 
-        if isinstance(axes, list) or isinstance(axes, np.ndarray):
-            if len(axes) != n_picks:
-                raise RuntimeError('There must be an axes for each picked '
-                                   'channel.')
-
+        # figure overhead
+        # set plot dimension
         tmin, tmax = tfr.times[[0, -1]]
         if vmax is None:
             vmax = np.abs(data).max()
         if vmin is None:
             vmin = -np.abs(data).max()
-        if isinstance(axes, plt.Axes):
-            axes = [axes]
 
+        # set colorbar
         cmap = _setup_cmap(cmap)
-        for idx in range(len(data)):
-            if axes is None:
-                fig = plt.figure()
-                ax = fig.add_subplot(111)
-            else:
-                ax = axes[idx]
-                fig = ax.get_figure()
+
+        # make sure there are as many axes as there will be channels to plot
+        if isinstance(axes, list) or isinstance(axes, np.ndarray):
+            figs_and_axes = [(ax.get_figure(), ax) for ax in axes]
+        elif isinstance(axes, plt.Axes):
+            figs_and_axes = [(ax.get_figure(), ax) for ax in [axes]]
+        elif axes is None:
+            figs = [plt.figure() for i in range(n_picks)]
+            figs_and_axes = [(fig, fig.add_subplot(111)) for fig in figs]
+        else:
+            raise ValueError('axes must be None, plt.Axes, or list '
+                             'of plt.Axes.')
+        if len(figs_and_axes) != n_picks:
+            raise RuntimeError('There must be an axes for each picked '
+                               'channel.')
+
+        for idx in range(n_picks):
+            fig = figs_and_axes[idx][0]
+            ax = figs_and_axes[idx][1]
             onselect_callback = partial(
                 tfr._onselect, cmap=cmap, source_plot_joint=source_plot_joint,
                 topomap_args={k: v for k, v in topomap_args.items()
@@ -1287,24 +1384,21 @@ class AverageTFR(_BaseTFR):
                 tfr=data[idx: idx + 1], freq=tfr.freqs, x_label='Time (s)',
                 y_label='Frequency (Hz)', colorbar=colorbar, cmap=cmap,
                 yscale=yscale, mask=mask, mask_style=mask_style,
-                mask_cmap=mask_cmap, mask_alpha=mask_alpha)
+                mask_cmap=mask_cmap, mask_alpha=mask_alpha, cnorm=cnorm)
 
-            if title is None:
-                if combine is None or len(tfr.info['ch_names']) == 1:
-                    title = tfr.info['ch_names'][0]
+            if title == 'auto':
+                if len(tfr.info['ch_names']) == 1 or combine is None:
+                    subtitle = tfr.info['ch_names'][idx]
                 else:
-                    title = _set_title_multiple_electrodes(
-                        title, combine, tfr.info["ch_names"], all=True,
+                    subtitle = _set_title_multiple_electrodes(
+                        None, combine, tfr.info["ch_names"], all=True,
                         ch_type=ch_type)
+            else:
+                subtitle = title
+            fig.suptitle(subtitle)
 
-            if title:
-                fig.suptitle(title)
-
-            plt_show(show)
-            # XXX This is inside the loop, guaranteeing a single iter!
-            # Also there is no None-contingent behavior here so the docstring
-            # was wrong (saying it would be collapsed)
-            return fig
+        plt_show(show)
+        return [fig for (fig, ax) in figs_and_axes]
 
     @verbose
     def plot_joint(self, timefreqs=None, picks=None, baseline=None,
@@ -1500,7 +1594,7 @@ class AverageTFR(_BaseTFR):
             colorbar=False, show=False, title=title, axes=tf_ax,
             yscale=yscale, combine=combine, exclude=None, copy=False,
             source_plot_joint=True, topomap_args=topomap_args_pass,
-            ch_type=ch_type, **image_args)
+            ch_type=ch_type, **image_args)[0]
 
         # set and check time and freq limits ...
         # can only do this after the tfr plot because it may change these
@@ -1992,8 +2086,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
     Parameters
     ----------
-    info : Info
-        The measurement info.
+    %(info_not_none)s
     data : ndarray, shape (n_epochs, n_channels, n_freqs, n_times)
         The data.
     times : ndarray, shape (n_times,)
@@ -2012,6 +2105,16 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         associated events. If None, all events will be used and a dict is
         created with string integer names corresponding to the event id
         integers.
+    selection : iterable | None
+        Iterable of indices of selected epochs. If ``None``, will be
+        automatically generated, corresponding to all non-zero events.
+
+        .. versionadded:: 0.23
+    drop_log : tuple | None
+        Tuple of tuple of strings indicating which epochs have been marked to
+        be ignored.
+
+        .. versionadded:: 0.23
     metadata : instance of pandas.DataFrame | None
         A :class:`pandas.DataFrame` containing pertinent information for each
         trial. See :class:`mne.Epochs` for further details.
@@ -2019,8 +2122,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
     Attributes
     ----------
-    info : instance of Info
-        Measurement info.
+    %(info_not_none)s
     ch_names : list
         The names of the channels.
     data : ndarray, shape (n_epochs, n_channels, n_freqs, n_times)
@@ -2037,6 +2139,26 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         Array containing sample information as event_id
     event_id : dict | None
         Names of conditions correspond to event_ids
+    selection : array
+        List of indices of selected events (not dropped or ignored etc.). For
+        example, if the original event array had 4 events and the second event
+        has been dropped, this attribute would be np.array([0, 2, 3]).
+    drop_log : tuple of tuple
+        A tuple of the same length as the event array used to initialize the
+        ``EpochsTFR`` object. If the i-th original event is still part of the
+        selection, drop_log[i] will be an empty tuple; otherwise it will be
+        a tuple of the reasons the event is not longer in the selection, e.g.:
+
+        - ``'IGNORED'``
+            If it isn't part of the current subset defined by the user
+        - ``'NO_DATA'`` or ``'TOO_SHORT'``
+            If epoch didn't contain enough data names of channels that
+            exceeded the amplitude threshold
+        - ``'EQUALIZED_COUNTS'``
+            See :meth:`~mne.Epochs.equalize_event_counts`
+        - ``'USER'``
+            For user-defined reasons (see :meth:`~mne.Epochs.drop`).
+
     metadata : pandas.DataFrame, shape (n_events, n_cols) | None
         DataFrame containing pertinent information for each trial
     Notes
@@ -2046,7 +2168,8 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
     @verbose
     def __init__(self, info, data, times, freqs, comment=None, method=None,
-                 events=None, event_id=None, metadata=None, verbose=None):
+                 events=None, event_id=None, selection=None,
+                 drop_log=None, metadata=None, verbose=None):
         # noqa: D102
         self.info = info
         if data.ndim != 4:
@@ -2064,16 +2187,37 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         if events is None:
             n_epochs = len(data)
             events = _gen_events(n_epochs)
+        if selection is None:
+            n_epochs = len(data)
+            selection = np.arange(n_epochs)
+        if drop_log is None:
+            n_epochs_prerejection = max(len(events), max(selection) + 1)
+            drop_log = tuple(
+                () if k in selection else ('IGNORED',)
+                for k in range(n_epochs_prerejection))
+        else:
+            drop_log = drop_log
+        # check consistency:
+        assert len(selection) == len(events)
+        assert len(drop_log) >= len(events)
+        assert len(selection) == sum(
+            (len(dl) == 0 for dl in drop_log))
         event_id = _check_event_id(event_id, events)
         self.data = data
         self.times = np.array(times, dtype=float)
         self.freqs = np.array(freqs, dtype=float)
         self.events = events
         self.event_id = event_id
+        self.selection = selection
+        self.drop_log = drop_log
         self.comment = comment
         self.method = method
         self.preload = True
         self.metadata = metadata
+
+    @property
+    def _detrend_picks(self):
+        return list()
 
     def __repr__(self):  # noqa: D105
         s = "time : [%f, %f]" % (self.times[0], self.times[-1])
@@ -2089,19 +2233,84 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         epochs.data = np.abs(self.data)
         return epochs
 
-    def average(self):
+    def average(self, method='mean', dim='epochs', copy=False):
         """Average the data across epochs.
+
+        Parameters
+        ----------
+        method : str | callable
+            How to combine the data. If "mean"/"median", the mean/median
+            are returned. Otherwise, must be a callable which, when passed
+            an array of shape (n_epochs, n_channels, n_freqs, n_time)
+            returns an array of shape (n_channels, n_freqs, n_time).
+            Note that due to file type limitations, the kind for all
+            these will be "average".
+        dim : 'epochs' | 'freqs' | 'times'
+            The dimension along which to combine the data.
+        copy : bool
+            Whether to return a copy of the modified instance,
+            or modify in place. Ignored when ``dim='epochs'``
+            because a new instance must be returned.
 
         Returns
         -------
-        ave : instance of AverageTFR
+        ave : instance of AverageTFR | EpochsTFR
             The averaged data.
+
+        Notes
+        -----
+        Passing in ``np.median`` is considered unsafe when there is complex
+        data because NumPy doesn't compute the marginal median. Numpy currently
+        sorts the complex values by real part and return whatever value is
+        computed. Use with caution. We use the marginal median in the
+        complex case (i.e. the median of each component separately) if
+        one passes in ``median``. See a discussion in scipy:
+
+        https://github.com/scipy/scipy/pull/12676#issuecomment-783370228
         """
-        data = np.mean(self.data, axis=0)
-        return AverageTFR(info=self.info.copy(), data=data,
-                          times=self.times.copy(), freqs=self.freqs.copy(),
-                          nave=self.data.shape[0], method=self.method,
-                          comment=self.comment)
+        _check_option('dim', dim, ('epochs', 'freqs', 'times'))
+        axis = dict(epochs=0, freqs=2, times=self.data.ndim - 1)[dim]
+
+        # return a lambda function for computing a combination metric
+        # over epochs
+        func = _check_combine(mode=method, axis=axis)
+        data = func(self.data)
+
+        n_epochs, n_channels, n_freqs, n_times = self.data.shape
+        freqs, times = self.freqs, self.times
+
+        if dim == 'freqs':
+            freqs = np.mean(self.freqs, keepdims=True)
+            n_freqs = 1
+        elif dim == 'times':
+            times = np.mean(self.times, keepdims=True)
+            n_times = 1
+        if dim == 'epochs':
+            expected_shape = self._data.shape[1:]
+        else:
+            expected_shape = (n_epochs, n_channels, n_freqs, n_times)
+            data = np.expand_dims(data, axis=axis)
+
+        if data.shape != expected_shape:
+            raise RuntimeError(
+                f'You passed a function that resulted in data of shape '
+                f'{data.shape}, but it should be {expected_shape}.')
+
+        if dim == 'epochs':
+            return AverageTFR(info=self.info.copy(), data=data,
+                              times=times, freqs=freqs,
+                              nave=self.data.shape[0], method=self.method,
+                              comment=self.comment)
+        elif copy:
+            return EpochsTFR(info=self.info.copy(), data=data,
+                             times=times, freqs=freqs, method=self.method,
+                             comment=self.comment, metadata=self.metadata,
+                             events=self.events, event_id=self.event_id)
+        else:
+            self.data = data
+            self.times = times
+            self.freqs = freqs
+            return self
 
 
 def combine_tfr(all_tfr, weights='nave'):
@@ -2255,19 +2464,20 @@ def _check_decim(decim):
 # i/o
 
 
-def write_tfrs(fname, tfr, overwrite=False):
+@verbose
+def write_tfrs(fname, tfr, overwrite=False, *, verbose=None):
     """Write a TFR dataset to hdf5.
 
     Parameters
     ----------
     fname : str
         The file name, which should end with ``-tfr.h5``.
-    tfr : AverageTFR instance, or list of AverageTFR instances
+    tfr : AverageTFR | list of AverageTFR | EpochsTFR
         The TFR dataset, or list of TFR datasets, to save in one file.
         Note. If .comment is not None, a name will be generated on the fly,
         based on the order in which the TFR objects are passed.
-    overwrite : bool
-        If True, overwrite file (if it exists). Defaults to False.
+    %(overwrite)s
+    %(verbose)s
 
     See Also
     --------
@@ -2296,6 +2506,8 @@ def _prepare_write_tfr(tfr, condition):
     elif hasattr(tfr, 'events'):  # if EpochsTFR
         attributes['events'] = tfr.events
         attributes['event_id'] = tfr.event_id
+        attributes['selection'] = tfr.selection
+        attributes['drop_log'] = tfr.drop_log
         attributes['metadata'] = _prepare_write_metadata(tfr.metadata)
     return condition, attributes
 
@@ -2313,7 +2525,7 @@ def read_tfrs(fname, condition=None):
 
     Returns
     -------
-    tfrs : list of instances of AverageTFR | instance of AverageTFR
+    tfr : AverageTFR | list of AverageTFR | EpochsTFR
         Depending on ``condition`` either the TFR object or a list of multiple
         TFR objects.
 

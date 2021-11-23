@@ -3,7 +3,7 @@
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Romain Trachel <trachelr@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
@@ -65,6 +65,7 @@ def _sklearn_reshape_apply(func, return_result, X, *args, **kwargs):
         return X
 
 
+@fill_doc
 class Scaler(TransformerMixin, BaseEstimator):
     u"""Standardize channel data.
 
@@ -77,9 +78,7 @@ class Scaler(TransformerMixin, BaseEstimator):
 
     Parameters
     ----------
-    info : instance of Info | None
-        The measurement info. Only necessary if ``scalings`` is a dict or
-        None.
+    %(info)s Only necessary if ``scalings`` is a dict or None.
     scalings : dict, str, default None
         Scaling method to be applied to data channel wise.
 
@@ -440,8 +439,7 @@ class FilterEstimator(TransformerMixin):
 
     Parameters
     ----------
-    info : instance of Info
-        Measurement info.
+    %(info_not_none)s
     %(l_freq)s
     %(h_freq)s
     %(picks_good_data)s
@@ -526,14 +524,16 @@ class FilterEstimator(TransformerMixin):
                                              self.l_freq < self.h_freq) and
                                             self.h_freq <
                                             self.info['lowpass']):
-            self.info['lowpass'] = self.h_freq
+            with self.info._unlock():
+                self.info['lowpass'] = self.h_freq
 
         if self.info['highpass'] is None or (self.l_freq is not None and
                                              (self.h_freq is None or
                                               self.l_freq < self.h_freq) and
                                              self.l_freq >
                                              self.info['highpass']):
-            self.info['highpass'] = self.l_freq
+            with self.info._unlock():
+                self.info['highpass'] = self.l_freq
 
         return self
 

@@ -3,14 +3,13 @@
 #          Susanna Aro <susanna.aro@aalto.fi>
 #          Roman Goj <roman.goj@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import copy as cp
 import numbers
 
 import numpy as np
 from .tfr import _cwt_array, morlet, _get_nfft
-from ..fixes import rfftfreq
 from ..io.pick import pick_channels, _picks_to_idx
 from ..utils import (logger, verbose, warn, copy_function_doc_to_method_doc,
                      ProgressBar)
@@ -459,6 +458,7 @@ class CrossSpectralDensity(object):
         if not fname.endswith('.h5'):
             fname += '.h5'
 
+        # TODO: Add `overwrite` param to method signature
         write_hdf5(fname, self.__getstate__(), overwrite=True, title='conpy')
 
     def copy(self):
@@ -699,6 +699,7 @@ def csd_array_fourier(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
     csd_morlet
     csd_multitaper
     """
+    from scipy.fft import rfftfreq
     X, times, tmin, tmax, fmin, fmax = _prepare_csd_array(
         X, sfreq, t0, tmin, tmax, fmin, fmax)
 
@@ -846,6 +847,7 @@ def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
     csd_morlet
     csd_multitaper
     """
+    from scipy.fft import rfftfreq
     X, times, tmin, tmax, fmin, fmax = _prepare_csd_array(
         X, sfreq, t0, tmin, tmax, fmin, fmax)
 

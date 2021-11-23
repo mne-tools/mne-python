@@ -2,12 +2,11 @@
 # Authors: Samu Taulu <staulu@uw.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from functools import partial
 
 import numpy as np
-from scipy import linalg
 
 from .._ola import _COLA, _Storer
 from ..io.pick import _picks_to_idx
@@ -19,7 +18,7 @@ def _svd_cov(cov, data):
     """Use a covariance matrix to compute the SVD faster."""
     # This makes use of mathematical equivalences between PCA and SVD
     # on zero-mean data
-    s, u = linalg.eigh(cov)
+    s, u = np.linalg.eigh(cov)
     norm = np.ones((s.size,))
     mask = s > np.finfo(float).eps * s[-1]  # largest is last
     s = np.sqrt(s, out=s)
@@ -55,7 +54,8 @@ def oversampled_temporal_projection(raw, duration=10., picks=None,
     slower than realtime for conventional M/EEG datasets. It uses a
     leave-one-out procedure with parallel temporal projection to remove
     individual sensor noise under the assumption that sampled fields
-    (e.g., MEG and EEG) are oversampled by the sensor array [1]_.
+    (e.g., MEG and EEG) are oversampled by the sensor array
+    :footcite:`LarsonTaulu2018`.
 
     OTP can improve sensor noise levels (especially under visual
     inspection) and repair some bad channels. This noise reduction is known
@@ -73,9 +73,7 @@ def oversampled_temporal_projection(raw, duration=10., picks=None,
 
     References
     ----------
-    .. [1] Larson E, Taulu S (2017). Reducing Sensor Noise in MEG and EEG
-           Recordings Using Oversampled Temporal Projection.
-           IEEE Transactions on Biomedical Engineering.
+    .. footbibliography::
     """
     logger.info('Processing MEG data using oversampled temporal projection')
     picks = _picks_to_idx(raw.info, picks, exclude=())

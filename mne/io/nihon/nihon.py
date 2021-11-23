@@ -1,6 +1,6 @@
 # Authors: Federico Raimondo <federaimondo@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from collections import OrderedDict
 from datetime import datetime, timezone
@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ...utils import fill_doc, logger, verbose, warn
+from ...utils import fill_doc, logger, verbose, warn, _check_fname
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ...annotations import Annotations
@@ -215,20 +215,33 @@ def _read_nihon_header(fname):
     if header['n_ctlblocks'] != 1:
         raise NotImplementedError('I dont know how to read more than one '
                                   'control block for this type of file :(')
-    if header['controlblocks'][0]['n_datablocks'] != 1:
-        raise NotImplementedError('I dont know how to read more than one '
-                                  'data block for this type of file :(')
+    if header['controlblocks'][0]['n_datablocks'] > 1:
+        # Multiple blocks, check that they all have the same kind of data
+        datablocks = header['controlblocks'][0]['datablocks']
+        block_0 = datablocks[0]
+        for t_block in datablocks[1:]:
+            if block_0['n_channels'] != t_block['n_channels']:
+                raise ValueError(
+                    'Cannot read NK file with different number of channels '
+                    'in each datablock')
+            if block_0['channels'] != t_block['channels']:
+                raise ValueError(
+                    'Cannot read NK file with different channels in each '
+                    'datablock')
+            if block_0['sfreq'] != t_block['sfreq']:
+                raise ValueError(
+                    'Cannot read NK file with different sfreq in each '
+                    'datablock')
 
     return header
 
 
-def _read_nihon_annotations(fname, orig_time):
+def _read_nihon_annotations(fname):
     fname = _ensure_path(fname)
-    annotations = None
     log_fname = fname.with_suffix('.LOG')
     if not log_fname.exists():
         warn('No LOG file exists. Annotations will not be read')
-        return annotations
+        return dict(onset=[], duration=[], description=[])
     logger.info('Found LOG file, reading events.')
     with open(log_fname, 'r') as fid:
         version = np.fromfile(fid, '|S16', 1).astype('U16')[0]
@@ -240,15 +253,25 @@ def _read_nihon_annotations(fname, orig_time):
         n_logblocks = np.fromfile(fid, np.uint8, 1)[0]
         all_onsets = []
         all_descriptions = []
+        encodings = ('utf-8', 'latin1')
         for t_block in range(n_logblocks):
             fid.seek(0x92 + t_block * 20)
             t_blk_address = np.fromfile(fid, np.uint32, 1)[0]
             fid.seek(t_blk_address + 0x12)
             n_logs = np.fromfile(fid, np.uint8, 1)[0]
             fid.seek(t_blk_address + 0x14)
-            t_logs = np.fromfile(fid, '|S45', n_logs).astype('U45')
-
+            t_logs = np.fromfile(fid, '|S45', n_logs)
             for t_log in t_logs:
+                for enc in encodings:
+                    try:
+                        t_log = t_log.decode(enc)
+                    except UnicodeDecodeError:
+                        pass
+                    else:
+                        break
+                else:
+                    warn(f'Could not decode log as one of {encodings}')
+                    continue
                 t_desc = t_log[:20].strip('\x00')
                 t_onset = datetime.strptime(t_log[20:26], '%H%M%S')
                 t_onset = (t_onset.hour * 3600 + t_onset.minute * 60 +
@@ -256,13 +279,17 @@ def _read_nihon_annotations(fname, orig_time):
                 all_onsets.append(t_onset)
                 all_descriptions.append(t_desc)
 
-        annotations = Annotations(all_onsets, 0.0, all_descriptions, orig_time)
-    return annotations
+        annots = dict(
+            onset=all_onsets,
+            duration=[0] * len(all_onsets),
+            description=all_descriptions)
+    return annots
 
 
 def _map_ch_to_type(ch_name):
     ch_type_pattern = OrderedDict([
-        ('stim', ('Mark',)), ('misc', ('DC', 'NA', 'Z')), ('bio', ('X',))])
+        ('stim', ('Mark',)), ('misc', ('DC', 'NA', 'Z', '$')),
+        ('bio', ('X',))])
     for key, kinds in ch_type_pattern.items():
         if any(kind in ch_name for kind in kinds):
             return key
@@ -308,6 +335,7 @@ class RawNihon(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
+        fname = _check_fname(fname, 'read', True, 'fname')
         fname = _ensure_path(fname)
         data_name = fname.name
         logger.info('Loading %s' % data_name)
@@ -325,7 +353,8 @@ class RawNihon(BaseRaw):
         n_samples = header['n_samples']
 
         if 'meas_date' in metadata:
-            info['meas_date'] = metadata['meas_date']
+            with info._unlock():
+                info['meas_date'] = metadata['meas_date']
         chs = {x: _map_ch_to_specs(x) for x in ch_names}
 
         orig_ch_names = header['ch_names']
@@ -351,12 +380,30 @@ class RawNihon(BaseRaw):
             raw_extras=[raw_extras])
 
         # Get annotations from LOG file
-        annots = _read_nihon_annotations(fname, orig_time=info['meas_date'])
-        self.set_annotations(annots)
+        annots = _read_nihon_annotations(fname)
+
+        # Annotate acqusition skips
+        controlblock = self._header['controlblocks'][0]
+        cur_sample = 0
+        if controlblock['n_datablocks'] > 1:
+            for i_block in range(controlblock['n_datablocks'] - 1):
+                t_block = controlblock['datablocks'][i_block]
+                cur_sample = cur_sample + t_block['n_samples']
+                cur_tpoint = (cur_sample - 0.5) / t_block['sfreq']
+                # Add annotations as in append raw
+                annots['onset'].append(cur_tpoint)
+                annots['duration'].append(0.0)
+                annots['description'].append('BAD boundary')
+                annots['onset'].append(cur_tpoint)
+                annots['duration'].append(0.0)
+                annots['description'].append('EDGE boundary')
+
+        annotations = Annotations(**annots, orig_time=info['meas_date'])
+        self.set_annotations(annotations)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        # For now we assume one control block and one data block.
+        # For now we assume one control block
         header = self._raw_extras[fi]['header']
 
         # Get the original cal, offsets and gains
@@ -364,18 +411,56 @@ class RawNihon(BaseRaw):
         offsets = self._raw_extras[fi]['offsets']
         gains = self._raw_extras[fi]['gains']
 
-        datablock = header['controlblocks'][0]['datablocks'][0]
-        n_channels = datablock['n_channels'] + 1
-        datastart = (datablock['address'] + 0x27 +
-                     (datablock['n_channels'] * 10))
-        with open(self._filenames[fi], 'rb') as fid:
-            start_offset = datastart + start * n_channels * 2
-            to_read = (stop - start) * n_channels
-            fid.seek(start_offset)
-            block_data = np.fromfile(fid, '<u2', to_read) + 0x8000
-            block_data = block_data.astype(np.int16)
-            block_data = block_data.reshape(n_channels, -1, order='F')
-            block_data = block_data[:-1] * cal  # cast to float64
-            block_data += offsets
-            block_data *= gains
-            _mult_cal_one(data, block_data, idx, cals, mult)
+        # get the right datablock
+        datablocks = header['controlblocks'][0]['datablocks']
+        ends = np.cumsum([t['n_samples'] for t in datablocks])
+
+        start_block = np.where(start < ends)[0][0]
+        stop_block = np.where(stop <= ends)[0][0]
+
+        if start_block != stop_block:
+            # Recursive call for each block independently
+            new_start = start
+            sample_start = 0
+            for t_block_idx in range(start_block, stop_block + 1):
+                t_block = datablocks[t_block_idx]
+                if t_block == stop_block:
+                    # If its the last block, we stop on the last sample to read
+                    new_stop = stop
+                else:
+                    # Otherwise, stop on the last sample of the block
+                    new_stop = t_block['n_samples'] + new_start
+                samples_to_read = new_stop - new_start
+                sample_stop = sample_start + samples_to_read
+
+                self._read_segment_file(
+                    data[:, sample_start:sample_stop], idx, fi,
+                    new_start, new_stop, cals, mult
+                )
+
+                # Update variables for next loop
+                sample_start = sample_stop
+                new_start = new_stop
+        else:
+            datablock = datablocks[start_block]
+
+            n_channels = datablock['n_channels'] + 1
+            datastart = (datablock['address'] + 0x27 +
+                         (datablock['n_channels'] * 10))
+
+            # Compute start offset based on the beginning of the block
+            rel_start = start
+            if start_block != 0:
+                rel_start = start - ends[start_block - 1]
+            start_offset = datastart + rel_start * n_channels * 2
+
+            with open(self._filenames[fi], 'rb') as fid:
+                to_read = (stop - start) * n_channels
+                fid.seek(start_offset)
+                block_data = np.fromfile(fid, '<u2', to_read) + 0x8000
+                block_data = block_data.astype(np.int16)
+                block_data = block_data.reshape(n_channels, -1, order='F')
+                block_data = block_data[:-1] * cal  # cast to float64
+                block_data += offsets
+                block_data *= gains
+                _mult_cal_one(data, block_data, idx, cals, mult)

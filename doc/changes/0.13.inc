@@ -1,7 +1,7 @@
 .. _changes_0_13:
 
-Version 0.13
-------------
+Version 0.13 (2016-09-27)
+-------------------------
 
 Changelog
 ~~~~~~~~~
@@ -140,7 +140,7 @@ API
 
 - Multiple aspects of FIR filtering in MNE-Python has been refactored:
 
-  1. New recommended defaults for ``l_trans_bandwidth='auto'``, ``h_trans_bandwidth='auto'``, and ``filter_length='auto'``. This should generally reduce filter artifacts at the expense of slight decrease in effective filter stop-band attenuation. For details see :ref:`tut_filtering_in_python`. The default values of ``l_trans_bandwidth=h_trans_bandwidth=0.5`` and ``filter_length='10s'`` will change to ``'auto'`` in 0.14.
+  1. New recommended defaults for ``l_trans_bandwidth='auto'``, ``h_trans_bandwidth='auto'``, and ``filter_length='auto'``. This should generally reduce filter artifacts at the expense of slight decrease in effective filter stop-band attenuation. For details see :ref:`tut-filtering-in-python`. The default values of ``l_trans_bandwidth=h_trans_bandwidth=0.5`` and ``filter_length='10s'`` will change to ``'auto'`` in 0.14.
 
   2. The ``filter_length=None`` option (i.e. use ``len(x)``) has been deprecated.
 

@@ -12,7 +12,7 @@ import mne
 from mne.transforms import apply_trans, invert_transform
 from mne import (convert_forward_solution, read_forward_solution, compute_rank,
                  VolVectorSourceEstimate, VolSourceEstimate, EvokedArray,
-                 pick_channels_cov)
+                 pick_channels_cov, read_vectorview_selection)
 from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_epochs,
                             apply_lcmv_raw, Beamformer,
                             read_beamformer, apply_lcmv_cov, make_dics)
@@ -70,7 +70,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     # Setup for reading the raw data
     raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bad channels
     # Set up pick list: MEG - bad channels
-    left_temporal_channels = mne.read_selection('Left-temporal')
+    left_temporal_channels = read_vectorview_selection('Left-temporal')
     picks = mne.pick_types(raw.info, meg=True,
                            selection=left_temporal_channels)
     picks = picks[::2]  # decimate for speed
@@ -117,6 +117,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
         forward_surf_ori, forward_fixed, forward_vol
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_lcmv_vector():
     """Test vector LCMV solutions."""
@@ -125,7 +126,8 @@ def test_lcmv_vector():
     # For speed and for rank-deficiency calculation simplicity,
     # just use grads
     info = mne.pick_info(info, mne.pick_types(info, meg='grad', exclude=()))
-    info.update(bads=[], projs=[])
+    with info._unlock():
+        info.update(bads=[], projs=[])
 
     forward = mne.read_forward_solution(fname_fwd)
     forward = mne.pick_channels_forward(forward, info['ch_names'])
@@ -212,7 +214,7 @@ def test_lcmv_vector():
     (0.01, False, 'surface'),
     (0., True, 'surface'),
 ])
-def test_make_lcmv_bem(tmpdir, reg, proj, kind):
+def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     """Test LCMV with evoked data and single trials."""
     raw, epochs, evoked, data_cov, noise_cov, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = _get_data(proj=proj)
@@ -302,7 +304,7 @@ def test_make_lcmv_bem(tmpdir, reg, proj, kind):
     assert 'rank %s' % rank in repr(filters)
 
     # I/O
-    fname = op.join(str(tmpdir), 'filters.h5')
+    fname = op.join(str(tmp_path), 'filters.h5')
     with pytest.warns(RuntimeWarning, match='-lcmv.h5'):
         filters.save(fname)
     filters_read = read_beamformer(fname)
@@ -545,6 +547,7 @@ def test_lcmv_ctf_comp():
         make_lcmv(info_comp, fwd, data_cov)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize('proj, weight_norm', [
     (True, 'unit-noise-gain'),
@@ -712,16 +715,16 @@ def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
 # orientation values
 @pytest.mark.parametrize(
     'reg, weight_norm, use_cov, depth, lower, upper, lower_ori, upper_ori', [
-        (0.05, 'unit-noise-gain-invariant', False, None, 38, 40, 0.52, 0.54),
-        (0.05, 'unit-noise-gain', False, None, 38, 40, 0.52, 0.54),
-        (0.05, 'nai', True, None, 56, 57, 0.56, 0.58),
-        (0.05, None, True, None, 27, 28, 0.54, 0.56),
-        (0.05, None, True, 0.8, 42, 43, 0.54, 0.56),
+        (0.05, 'unit-noise-gain-invariant', False, None, 38, 40, 0.54, 0.55),
+        (0.05, 'unit-noise-gain', False, None, 38, 40, 0.54, 0.55),
+        (0.05, 'nai', True, None, 56, 57, 0.59, 0.61),
+        (0.05, None, True, None, 27, 28, 0.56, 0.57),
+        (0.05, None, True, 0.8, 42, 43, 0.56, 0.57),
         # no reg
-        (0.00, None, True, None, 50, 51, 0.57, 0.58),
-        (0.00, 'unit-noise-gain-invariant', True, None, 73, 75, 0.57, 0.58),
-        (0.00, 'unit-noise-gain', True, None, 73, 75, 0.57, 0.58),
-        (0.00, 'nai', True, None, 73, 75, 0.57, 0.58),
+        (0.00, None, True, None, 50, 51, 0.58, 0.59),
+        (0.00, 'unit-noise-gain-invariant', True, None, 73, 75, 0.59, 0.61),
+        (0.00, 'unit-noise-gain', True, None, 73, 75, 0.59, 0.61),
+        (0.00, 'nai', True, None, 73, 75, 0.59, 0.61),
     ])
 def test_orientation_max_power(bias_params_fixed, bias_params_free,
                                reg, weight_norm, use_cov, depth, lower, upper,
@@ -734,17 +737,18 @@ def test_orientation_max_power(bias_params_fixed, bias_params_free,
     if not use_cov:
         evoked.pick_types(meg='grad')
         noise_cov = None
-    with pytest.warns(None):  # rank deficiency of data_cov
-        filters = make_lcmv(evoked.info, fwd, data_cov, reg,
-                            noise_cov, pick_ori='max-power',
-                            weight_norm=weight_norm,
-                            depth=depth)
+    filters = make_lcmv(evoked.info, fwd, data_cov, reg,
+                        noise_cov, pick_ori='max-power',
+                        weight_norm=weight_norm,
+                        depth=depth)
     loc = apply_lcmv(evoked, filters).data
     ori = filters['max_power_ori']
+    assert ori.shape == (246, 3)
     loc = np.abs(loc)
     # Compute the percentage of sources for which there is no loc bias:
     max_idx = np.argmax(loc, axis=0)
-    perc = (want == max_idx).mean() * 100
+    mask = want == max_idx  # ones that localized properly
+    perc = mask.mean() * 100
     assert lower <= perc <= upper
     # Compute the dot products of our forward normals and
     assert fwd['coord_frame'] == FIFF.FIFFV_COORD_HEAD
@@ -754,7 +758,7 @@ def test_orientation_max_power(bias_params_fixed, bias_params_free,
     nn = apply_trans(invert_transform(fwd['mri_head_t']), nn, move=False)
     assert_allclose(np.linalg.norm(nn, axis=1), 1, atol=1e-6)
     assert_allclose(np.linalg.norm(ori, axis=1), 1, atol=1e-12)
-    dots = np.abs((nn * ori).sum(-1))
+    dots = np.abs((nn[mask] * ori[mask]).sum(-1))
     assert_array_less(dots, 1)
     assert_array_less(0, dots)
     got = np.mean(dots)
@@ -762,10 +766,10 @@ def test_orientation_max_power(bias_params_fixed, bias_params_free,
 
 
 @pytest.mark.parametrize('weight_norm, pick_ori', [
-    ('nai', 'max-power'),
+    pytest.param('nai', 'max-power', marks=pytest.mark.slowtest),
     ('unit-noise-gain', 'vector'),
     ('unit-noise-gain', 'max-power'),
-    ('unit-noise-gain', None),
+    pytest.param('unit-noise-gain', None, marks=pytest.mark.slowtest),
 ])
 def test_depth_does_not_matter(bias_params_free, weight_norm, pick_ori):
     """Test that depth weighting does not matter for normalized filters."""

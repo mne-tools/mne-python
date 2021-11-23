@@ -1,9 +1,8 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
-from scipy import linalg
 
 from .epochs import Epochs
 from .utils import check_fname, logger, verbose, _check_option
@@ -76,6 +75,7 @@ def write_proj(fname, projs):
 @verbose
 def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix,
                   meg='separate', verbose=None):
+    from scipy import linalg
     grad_ind = pick_types(info, meg='grad', ref_meg=False, exclude='bads')
     mag_ind = pick_types(info, meg='mag', ref_meg=False, exclude='bads')
     eeg_ind = pick_types(info, meg=False, eeg=True, ref_meg=False,
@@ -120,8 +120,7 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix,
             continue
         data_ind = data[ind][:, ind]
         # data is the covariance matrix: U * S**2 * Ut
-        U, Sexp2, _ = linalg.svd(data_ind, full_matrices=False,
-                                 overwrite_a=True)
+        U, Sexp2, _ = linalg.svd(data_ind, full_matrices=False)
         U = U[:, :n]
         exp_var = Sexp2 / Sexp2.sum()
         exp_var = exp_var[:n]
@@ -367,6 +366,7 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
         The sensitivity map as a SourceEstimate or VolSourceEstimate instance
         for visualization.
     """
+    from scipy import linalg
     # check strings
     _check_option('ch_type', ch_type, ['eeg', 'grad', 'mag'])
     _check_option('mode', mode, ['free', 'fixed', 'ratio', 'radiality',

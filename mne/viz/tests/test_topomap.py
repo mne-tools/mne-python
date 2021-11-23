@@ -18,13 +18,13 @@ from matplotlib.patches import Circle
 
 from mne import (read_evokeds, read_proj, make_fixed_length_events, Epochs,
                  compute_proj_evoked, find_layout, pick_types, create_info,
-                 read_cov)
+                 read_cov, EvokedArray)
 from mne.io.proj import make_eeg_average_ref_proj, Projection
 from mne.io import read_raw_fif, read_info, RawArray
 from mne.io.constants import FIFF
 from mne.io.pick import pick_info, channel_indices_by_type
 from mne.io.compensator import get_current_comp
-from mne.channels import read_layout, make_dig_montage
+from mne.channels import read_layout, make_dig_montage, make_standard_montage
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
 
@@ -32,7 +32,7 @@ from mne.viz import plot_evoked_topomap, plot_projs_topomap, topomap
 from mne.viz.topomap import (_get_pos_outlines, _onselect, plot_topomap,
                              plot_arrowmap, plot_psds_topomap)
 from mne.viz.utils import _find_peaks, _fake_click
-from mne.utils import requires_sklearn
+from mne.utils import requires_sklearn, check_version
 
 
 data_dir = testing.data_path(download=False)
@@ -49,17 +49,19 @@ layout = read_layout('Vectorview-all')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 
 
-def test_plot_topomap_interactive():
+@pytest.mark.parametrize('constrained_layout', (False, True))
+def test_plot_topomap_interactive(constrained_layout):
     """Test interactive topomap projection plotting."""
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
     evoked.pick_types(meg='mag')
-    evoked.info['projs'] = []
+    with evoked.info._unlock():
+        evoked.info['projs'] = []
     assert not evoked.proj
     evoked.add_proj(compute_proj_evoked(evoked, n_mag=1))
 
     plt.close('all')
-    fig = plt.figure()
-    ax, canvas = fig.gca(), fig.canvas
+    fig, ax = plt.subplots(constrained_layout=constrained_layout)
+    canvas = fig.canvas
 
     kwargs = dict(vmin=-240, vmax=240, times=[0.1], colorbar=False, axes=ax,
                   res=8, time_unit='s')
@@ -84,19 +86,33 @@ def test_plot_topomap_interactive():
     assert len(plt.get_fignums()) == 2
 
     proj_fig = plt.figure(plt.get_fignums()[-1])
+    assert len(proj_fig.axes[0].lines) == 2
+    for line in proj_fig.axes[0].lines:
+        assert not line.get_visible()
     _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='data')
+    assert len(proj_fig.axes[0].lines) == 2
+    for line in proj_fig.axes[0].lines:
+        assert line.get_visible()
     canvas.draw()
     image_interactive_click = np.frombuffer(
         canvas.tostring_rgb(), dtype='uint8')
-    assert_array_equal(image_proj, image_interactive_click)
-    assert not np.array_equal(image_noproj, image_interactive_click)
+    corr = np.corrcoef(
+        image_proj.ravel(), image_interactive_click.ravel())[0, 1]
+    assert 0.99 < corr <= 1
+    corr = np.corrcoef(
+        image_noproj.ravel(), image_interactive_click.ravel())[0, 1]
+    assert 0.85 < corr < 0.9
 
     _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='data')
     canvas.draw()
     image_interactive_click = np.frombuffer(
         canvas.tostring_rgb(), dtype='uint8')
-    assert_array_equal(image_noproj, image_interactive_click)
-    assert not np.array_equal(image_proj, image_interactive_click)
+    corr = np.corrcoef(
+        image_noproj.ravel(), image_interactive_click.ravel())[0, 1]
+    assert 0.99 < corr <= 1
+    corr = np.corrcoef(
+        image_proj.ravel(), image_interactive_click.ravel())[0, 1]
+    assert 0.85 < corr < 0.9
 
 
 @testing.requires_testing_data
@@ -390,7 +406,8 @@ def test_plot_topomap_basic(monkeypatch):
                         **fast_test)
 
     # Remove digitization points. Now topomap should fail
-    evoked.info['dig'] = None
+    with evoked.info._unlock():
+        evoked.info['dig'] = None
     pytest.raises(RuntimeError, plot_evoked_topomap, evoked,
                   times, ch_type='eeg', time_unit='s')
     plt.close('all')
@@ -557,6 +574,24 @@ def test_plot_topomap_bads():
     plt.close('all')
 
 
+def test_plot_topomap_channel_distance():
+    """
+    Test topomap plotting with spread out channels (gh-9511, gh-9526).
+
+    Test topomap plotting when the distance between channels is greater than
+    the head radius.
+    """
+    ch_names = ['TP9', 'AF7', 'AF8', 'TP10']
+
+    info = create_info(ch_names, 100, ch_types='eeg')
+    evoked = EvokedArray(np.random.randn(4, 10) * 1e-6, info)
+    ten_five = make_standard_montage("standard_1005")
+    evoked.set_montage(ten_five)
+
+    evoked.plot_topomap(sphere=0.05, res=8)
+    plt.close('all')
+
+
 def test_plot_topomap_bads_grad():
     """Test plotting topomap with bad gradiometer channels (gh-8802)."""
     import matplotlib.pyplot as plt
@@ -583,6 +618,13 @@ def test_plot_topomap_nirs_ica(fnirs_epochs):
     from mne.preprocessing import ICA
     fnirs_epochs = fnirs_epochs.load_data().pick(picks='hbo')
     fnirs_epochs = fnirs_epochs.pick(picks=range(30))
+
+    # fake high-pass filtering and hide the fact that the epochs were
+    # baseline corrected
+    with fnirs_epochs.info._unlock():
+        fnirs_epochs.info['highpass'] = 1.0
+    fnirs_epochs.baseline = None
+
     ica = ICA().fit(fnirs_epochs)
     fig = ica.plot_components()
     assert len(fig[0].axes) == 20
@@ -596,3 +638,32 @@ def test_plot_cov_topomap():
     cov.plot_topomap(info)
     cov.plot_topomap(info, noise_cov=cov)
     plt.close('all')
+
+
+def test_plot_topomap_cnorm():
+    """Test colormap normalization."""
+    if check_version("matplotlib", "3.2.0"):
+        from matplotlib.colors import TwoSlopeNorm
+    else:
+        from matplotlib.colors import DivergingNorm as TwoSlopeNorm
+
+    np.random.seed(42)
+    v = np.random.uniform(low=-1, high=2.5, size=64)
+    v[:3] = [-1, 0, 2.5]
+
+    montage = make_standard_montage("biosemi64")
+    info = create_info(montage.ch_names, 256, "eeg").set_montage("biosemi64")
+    cnorm = TwoSlopeNorm(vmin=-1, vcenter=0, vmax=2.5)
+
+    # pass only cnorm, no vmin/vmax
+    plot_topomap(v, info, cnorm=cnorm)
+
+    # pass cnorm and vmin
+    msg = "vmin=-1.* is implicitly defined by cnorm, ignoring vmin=-10.*"
+    with pytest.warns(RuntimeWarning, match=msg):
+        plot_topomap(v, info, vmin=-10, cnorm=cnorm)
+
+    # pass cnorm and vmax
+    msg = "vmax=2.5 is implicitly defined by cnorm, ignoring vmax=10.*"
+    with pytest.warns(RuntimeWarning, match=msg):
+        plot_topomap(v, info, vmax=10, cnorm=cnorm)

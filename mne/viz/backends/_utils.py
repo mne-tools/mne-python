@@ -7,13 +7,18 @@
 #
 # License: Simplified BSD
 
+from contextlib import contextmanager
 import numpy as np
 import collections.abc
 from ...externals.decorator import decorator
 
+VALID_BROWSE_BACKENDS = (
+    'matplotlib',
+    'pyqtgraph'
+)
+
 VALID_3D_BACKENDS = (
-    'pyvista',  # default 3d backend
-    'mayavi',
+    'pyvistaqt',  # default 3d backend
     'notebook',
 )
 ALLOWED_QUIVER_MODES = ('2darrow', 'arrow', 'cone', 'cylinder', 'sphere',
@@ -78,3 +83,13 @@ def run_once(fun, *args, **kwargs):
 def _init_qt_resources():
     from ...icons import resources
     resources.qInitResources()
+
+
+@contextmanager
+def _qt_disable_paint(widget):
+    paintEvent = widget.paintEvent
+    widget.paintEvent = lambda *args, **kwargs: None
+    try:
+        yield
+    finally:
+        widget.paintEvent = paintEvent

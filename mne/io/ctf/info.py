@@ -2,7 +2,7 @@
 
 # Author: Eric Larson <larson.eric.d<gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from time import strptime
 from calendar import timegm
@@ -245,7 +245,7 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                         warn('EEG electrode (%s) location omitted because of '
                              'missing HPI information' % ch['ch_name'])
                         ch['loc'].fill(np.nan)
-                        coord_frame = FIFF.FIFFV_COORD_CTF_HEAD
+                        coord_frame = FIFF.FIFFV_MNE_COORD_CTF_HEAD
                     else:
                         ch['loc'][:3] = apply_trans(
                             t['t_ctf_head_head'], ch['loc'][:3])
@@ -443,6 +443,7 @@ def _compose_meas_info(res4, coils, trans, eeg):
         eeg = _pick_eeg_pos(info)
     _add_eeg_pos(eeg, trans, info)
     logger.info('    Measurement info composed.')
+    info._unlocked = False
     info._update_redundant()
     return info
 

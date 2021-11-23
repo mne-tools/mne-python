@@ -2,7 +2,7 @@
 """The documentation functions."""
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from copy import deepcopy
 import inspect
@@ -12,10 +12,9 @@ import sys
 import warnings
 import webbrowser
 
-from .config import get_config
 from ..defaults import HEAD_SIZE_DEFAULT
-from ..externals.doccer import filldoc, unindent_dict
-from .check import _check_option
+from ..externals.doccer import indentcount_lines
+from ..externals.decorator import FunctionMaker
 
 
 ##############################################################################
@@ -25,10 +24,11 @@ docdict = dict()
 
 # Verbose
 docdict['verbose'] = """
-verbose : bool, str, int, or None
-    If not None, override default verbose level (see :func:`mne.verbose`
-    and :ref:`Logging documentation <tut_logging>` for more).
-    If used, it should be passed as a keyword-argument only."""
+verbose : bool | str | int | None
+    Control verbosity of the logging output. If ``None``, use the default
+    verbosity level. See the :ref:`logging documentation <tut-logging>` and
+    :func:`mne.verbose` for details. Should only be passed as a keyword
+    argument."""
 docdict['verbose_meth'] = (docdict['verbose'] + ' Defaults to self.verbose.')
 
 # Preload
@@ -60,6 +60,94 @@ on_split_missing : str
 
     .. versionadded:: 0.22
 """ % (_on_missing_base,)
+docdict['on_info_mismatch'] = f"""
+on_mismatch : 'raise' | 'warn' | 'ignore'
+    {_on_missing_base} the device-to-head transformation differs between
+    instances.
+
+    .. versionadded:: 0.24
+"""
+docdict['saturated'] = """\
+saturated : str
+    Replace saturated segments of data with NaNs, can be:
+
+    ``"ignore"``
+        The measured data is returned, even if it contains measurements
+        while the amplifier was saturated.
+    ``"nan"``
+        The returned data will contain NaNs during time segments
+        when the amplifier was saturated.
+    ``"annotate"`` (default)
+        The returned data will contain annotations specifying
+        sections the saturate segments.
+
+    This argument will only be used if there is no .nosatflags file
+    (only if a NIRSport device is used and saturation occurred).
+
+    .. versionadded:: 0.24
+"""
+docdict['nirx_notes'] = """\
+This function has only been tested with NIRScout and NIRSport1 devices.
+
+The NIRSport device can detect if the amplifier is saturated.
+Starting from NIRStar 14.2, those saturated values are replaced by NaNs
+in the standard .wlX files.
+The raw unmodified measured values are stored in another file
+called .nosatflags_wlX. As NaN values can cause unexpected behaviour with
+mathematical functions the default behaviour is to return the
+saturated data.
+"""
+docdict['hitachi_notes'] = """\
+Hitachi does not encode their channel positions, so you will need to
+create a suitable mapping using :func:`mne.channels.make_standard_montage`
+or :func:`mne.channels.make_dig_montage` like (for a 3x5/ETG-7000 example):
+
+>>> mon = mne.channels.make_standard_montage('standard_1020')
+>>> need = 'S1 D1 S2 D2 S3 D3 S4 D4 S5 D5 S6 D6 S7 D7 S8'.split()
+>>> have = 'F3 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 P7'.split()
+>>> mon.rename_channels(dict(zip(have, need)))
+>>> raw.set_montage(mon)  # doctest: +SKIP
+
+The 3x3 (ETG-100) is laid out as two separate layouts::
+
+    S1--D1--S2    S6--D6--S7
+    |   |   |     |   |   |
+    D2--S3--D3    D7--S8--D8
+    |   |   |     |   |   |
+    S4--D4--S5    S9--D9--S10
+
+The 3x5 (ETG-7000) is laid out as::
+
+    S1--D1--S2--D2--S3
+    |   |   |   |   |
+    D3--S4--D4--S5--D5
+    |   |   |   |   |
+    S6--D6--S7--D7--S8
+
+The 4x4 (ETG-7000) is laid out as::
+
+    S1--D1--S2--D2
+    |   |   |   |
+    D3--S3--D4--S4
+    |   |   |   |
+    S5--D5--S6--D6
+    |   |   |   |
+    D7--S7--D8--S8
+
+The 3x11 (ETG-4000) is laid out as::
+
+    S1--D1--S2--D2--S3--D3--S4--D4--S5--D5--S6
+    |   |   |   |   |   |   |   |   |   |   |
+    D6--S7--D7--S8--D8--S9--D9--S10-D10-S11-D11
+    |   |   |   |   |   |   |   |   |   |   |
+    S12-D12-S13-D13-S14-D14-S16-D16-S17-D17-S18
+
+For each layout, the channels come from the (left-to-right) neighboring
+source-detector pairs in the first row, then between the first and second row,
+then the second row, etc.
+
+.. versionadded:: 0.24
+"""
 
 # Cropping
 docdict['include_tmax'] = """
@@ -114,6 +202,58 @@ group_by : str
     modes are ignored when ``order`` is not ``None``. Defaults to ``'type'``.
 """
 
+# raw/epochs/evoked apply_function method
+# apply_function method summary
+applyfun_summary = """\
+The function ``fun`` is applied to the channels defined in ``picks``.
+The {} object's data is modified in-place. If the function returns a different
+data type (e.g. :py:obj:`numpy.complex128`) it must be specified
+using the ``dtype`` parameter, which causes the data type of **all** the data
+to change (even if the function is only applied to channels in ``picks``).{}
+
+.. note:: If ``n_jobs`` > 1, more memory is required as
+          ``len(picks) * n_times`` additional time points need to
+          be temporarily stored in memory.
+.. note:: If the data type changes (``dtype != None``), more memory is
+          required since the original and the converted data needs
+          to be stored in memory.
+"""
+applyfun_preload = (' The object has to have the data loaded e.g. with '
+                    '``preload=True`` or ``self.load_data()``.')
+docdict['applyfun_summary_raw'] = \
+    applyfun_summary.format('raw', applyfun_preload)
+docdict['applyfun_summary_epochs'] = \
+    applyfun_summary.format('epochs', applyfun_preload)
+docdict['applyfun_summary_evoked'] = \
+    applyfun_summary.format('evoked', '')
+# apply_function params: fun
+applyfun_fun = """
+fun : callable
+    A function to be applied to the channels. The first argument of
+    fun has to be a timeseries (:class:`numpy.ndarray`). The function must
+    operate on an array of shape ``(n_times,)`` {}.
+    The function must return an :class:`~numpy.ndarray` shaped like its input.
+"""
+docdict['applyfun_fun'] = applyfun_fun.format(
+    ' if ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise')
+docdict['applyfun_fun_evoked'] = applyfun_fun.format(
+    ' because it will apply channel-wise')
+docdict['applyfun_dtype'] = """
+dtype : numpy.dtype
+    Data type to use after applying the function. If None
+    (default) the data type is not modified.
+"""
+chwise = """
+channel_wise : bool
+    Whether to apply the function to each channel {}individually. If ``False``,
+    the function will be applied to all {}channels at once. Default ``True``.
+"""
+docdict['applyfun_chwise'] = chwise.format('', '')
+docdict['applyfun_chwise_epo'] = chwise.format('in each epoch ', 'epochs and ')
+docdict['kwarg_fun'] = """
+**kwargs : dict
+    Additional keyword arguments to pass to ``fun``.
+"""
 
 # Epochs
 docdict['proj_epochs'] = """
@@ -128,6 +268,11 @@ proj : bool | 'delayed'
     detrending and temporal decimation will be postponed.
     If proj is False no projections will be applied which is the
     recommended value if SSPs are not used for cleaning the data.
+"""
+docdict['epochs_fname'] = """
+fname : path-like | file-like
+    The epochs to load. If a filename, should end with ``-epo.fif`` or
+    ``-epo.fif.gz``. If a file-like object, preloading must be used.
 """
 
 # Reject by annotation
@@ -146,15 +291,29 @@ reject_by_annotation : bool
 docdict['reject_by_annotation_raw'] = docdict['reject_by_annotation_all'] + """
     Has no effect if ``inst`` is not a :class:`mne.io.Raw` object.
 """
+docdict['annot_ch_names'] = """
+ch_names : list | None
+    List of lists of channel names associated with the annotations.
+    Empty entries are assumed to be associated with no specific channel,
+    i.e., with all channels or with the time slice itself. None (default) is
+    the same as passing all empty lists. For example, this creates three
+    annotations, associating the first with the time interval itself, the
+    second with two channels, and the third with a single channel::
+
+        Annotations(onset=[0, 3, 10], duration=[1, 0.25, 0.5],
+                    description=['Start', 'BAD_flux', 'BAD_noise'],
+                    ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
+"""
 
 # General plotting
 docdict["show"] = """
 show : bool
-    Show figure if True.
+    Show the figure if ``True``.
 """
 docdict["title_None"] = """
 title : str | None
-    Title. If None (default), no title is displayed.
+    The title of the generated figure. If ``None`` (default), no title is
+    displayed.
 """
 docdict["plot_proj"] = """
 proj : bool | 'interactive' | 'reconstruct'
@@ -167,7 +326,7 @@ proj : bool | 'interactive' | 'reconstruct'
     .. versionchanged:: 0.21
        Support for 'reconstruct' was added.
 """
-docdict["topomap_ch_type"] = """
+docdict["evoked_topomap_ch_type"] = """
 ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
     The channel type to plot. For 'grad', the gradiometers are collected in
     pairs and the RMS for each pair is plotted.
@@ -232,11 +391,22 @@ docdict["topomap_cbar_fmt"] = """
 cbar_fmt : str
     String format for colorbar values.
 """
-docdict["topomap_mask"] = """
-mask : ndarray of bool, shape (n_channels, n_times) | None
-    The channels to be marked as significant at a given time point.
-    Indices set to ``True`` will be considered. Defaults to ``None``.
+mask_base = """
+mask : ndarray of bool, shape {shape} | None
+    Array indicating channel{shape_appendix} to highlight with a distinct
+    plotting style{example}. Array elements set to ``True`` will be plotted
+    with the parameters given in ``mask_params``. Defaults to ``None``,
+    equivalent to an array of all ``False`` elements.
 """
+docdict['topomap_mask'] = mask_base.format(
+    shape='(n_channels,)', shape_appendix='(s)', example='')
+docdict['evoked_topomap_mask'] = mask_base.format(
+    shape='(n_channels, n_times)', shape_appendix='-time combinations',
+    example=' (useful for, e.g. marking which channels at which times a '
+            'statistical test of the data reaches significance)')
+docdict['patterns_topomap_mask'] = mask_base.format(
+    shape='(n_channels, n_patterns)', shape_appendix='-pattern combinations',
+    example='')
 docdict["topomap_mask_params"] = """
 mask_params : dict | None
     Additional plotting parameters for plotting significant sensors.
@@ -450,6 +620,30 @@ docdict['picks_all_data_noref'] = f'{picks_base} all data channels {noref}'
 docdict['picks_good_data_noref'] = f'{picks_base} good data channels {noref}'
 docdict['picks_nostr'] = f"""picks : list | slice | None
     {picks_intro} None (default) will pick all channels. {reminder_nostr}"""
+docdict['picks_ica'] = """
+picks : int | list of int | slice | None
+    Indices of the ICA components to visualize.
+"""
+
+# Units
+docdict['units'] = """
+units : str | dict | None
+    Specify the unit(s) that the data should be returned in. If
+    ``None`` (default), the data is returned in the
+    channel-type-specific default units, which are SI units (see
+    :ref:`units` and :term:`data channels`). If a string, must be a
+    sub-multiple of SI units that will be used to scale the data from
+    all channels of the type associated with that unit. This only works
+    if the data contains one channel type that has a unit (unitless
+    channel types are left unchanged). For example if there are only
+    EEG and STIM channels, ``units='uV'`` will scale EEG channels to
+    micro-Volts while STIM channels will be unchanged. Finally, if a
+    dictionary is provided, keys must be channel types, and values must
+    be units to scale the data of that channel type to. For example
+    ``dict(grad='fT/cm', mag='fT')`` will scale the corresponding types
+    accordingly, but all other channel types will remain in their
+    channel-type-specific default unit.
+"""
 
 # Filtering
 docdict['l_freq'] = """
@@ -536,13 +730,15 @@ fir_window : str
 
     .. versionadded:: 0.15
 """
-docdict['pad-fir'] = """
+docdict['pad'] = """
 pad : str
     The type of padding to use. Supports all :func:`numpy.pad` ``mode``
-    options. Can also be "reflect_limited", which pads with a
-    reflected version of each vector mirrored on the first and last
-    values of the vector, followed by zeros. Only used for ``method='fir'``.
+    options. Can also be ``"reflect_limited"``, which pads with a
+    reflected version of each vector mirrored on the first and last values
+    of the vector, followed by zeros.
 """
+docdict['pad-fir'] = docdict['pad'].rstrip() + \
+    " Only used for ``method='fir'``."
 docdict['method-fir'] = """
 method : str
     'fir' will use overlap-add FIR filtering, 'iir' will use IIR
@@ -654,6 +850,12 @@ chpi_locs : dict
     The time-varying cHPI coils locations, with entries
     "times", "rrs", "moments", and "gofs".
 """
+docdict['chpi_on_missing'] = f"""
+on_missing : 'raise' | 'warn' | 'ignore'
+    {_on_missing_base} no cHPI information can be found. If ``'ignore'`` or
+    ``'warn'``, all return values will be empty arrays or ``None``. If
+    ``'raise'``, an exception will be raised.
+"""
 
 # EEG reference: set_eeg_reference
 docdict['set_eeg_reference_ref_channels'] = """
@@ -679,10 +881,11 @@ projection : bool
     must be set to ``False`` (the default in this case).
 """
 docdict['set_eeg_reference_ch_type'] = """
-ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg' | 'dbs'
-    The name of the channel type to apply the reference to. If 'auto',
-    the first channel type of eeg, ecog, seeg or dbs that is found (in that
-    order) will be selected.
+ch_type : list of str | str
+    The name of the channel type to apply the reference to.
+    Valid channel types are ``'auto'``, ``'eeg'``, ``'ecog'``, ``'seeg'``,
+    ``'dbs'``. If ``'auto'``, the first channel type of eeg, ecog, seeg or dbs
+    that is found (in that order) will be selected.
 
     .. versionadded:: 0.19
 """
@@ -750,6 +953,18 @@ n_pca_components : int | float | None
     the ``ica.n_pca_components`` from initialization will be used in 0.22;
     in 0.23 all components will be used.
 """
+docdict['measure'] = """
+measure : 'zscore' | 'correlation'
+    Which method to use for finding outliers among the components:
+
+    - ``'zscore'`` (default) is the iterative z-scoring method. This method
+      computes the z-score of the component's scores and masks the components
+      with a z-score above threshold. This process is repeated until no
+      supra-threshold component remains.
+    - ``'correlation'`` is an absolute raw correlation threshold ranging from 0
+      to 1.
+
+    .. versionadded:: 0.21"""
 
 # Maxwell filtering
 docdict['maxwell_origin'] = """
@@ -1145,7 +1360,7 @@ stcs : instance of SourceEstimate | list of instances of SourceEstimate
 
 # Forward
 docdict['on_missing_fwd'] = """
-on_missing : str
+on_missing : 'raise' | 'warn' | 'ignore'
     %s ``stc`` has vertices that are not in ``fwd``.
 """ % (_on_missing_base,)
 docdict['dig_kinds'] = """
@@ -1178,13 +1393,52 @@ trans : str | dict | instance of Transform | None
        Support for 'fsaverage' argument.
 """ % (_trans_base,)
 docdict['subjects_dir'] = """
-subjects_dir : str | None
-    The path to the FreeSurfer subjects reconstructions.
-    It corresponds to FreeSurfer environment variable ``SUBJECTS_DIR``.
+subjects_dir : path-like | None
+    The path to the directory containing the FreeSurfer subjects
+    reconstructions. If ``None``, defaults to the ``SUBJECTS_DIR`` environment
+    variable.
+"""
+_info_base = ('The :class:`mne.Info` object with information about the '
+              'sensors and methods of measurement.')
+docdict['info_not_none'] = f"""
+info : mne.Info
+    {_info_base}
+"""
+docdict['info'] = f"""
+info : mne.Info | None
+    {_info_base}
+"""
+docdict['info_str'] = f"""
+info : mne.Info | str
+    {_info_base} If ``str``, then it should be a filepath to a file with
+    measurement information (e.g. :class:`mne.io.Raw`).
 """
 docdict['subject'] = """
 subject : str
     The FreeSurfer subject name.
+"""
+docdict['subject_none'] = """
+subject : str | None
+    The FreeSurfer subject name.
+"""
+docdict['label_subject'] = """\
+subject : str | None
+    Subject which this label belongs to. Should only be specified if it is not
+    specified in the label.
+"""
+docdict['surface'] = """\
+surface : str
+    The surface along which to do the computations, defaults to ``'white'``
+    (the gray-white matter boundary).
+"""
+
+
+# Freesurfer
+docdict["aseg"] = """
+aseg : str
+    The anatomical segmentation file. Default ``aparc+aseg``. This may
+    be any anatomical segmentation file in the mri subdirectory of the
+    Freesurfer subject directory.
 """
 
 # Simulation
@@ -1207,27 +1461,26 @@ head_pos : None | str | dict | tuple | array
 """
 docdict['n_jobs'] = """
 n_jobs : int
-    The number of jobs to run in parallel (default 1).
-    Requires the joblib package.
+    The number of jobs to run in parallel (default ``1``). If ``-1``, it is set
+    to the number of CPU cores. Requires the ``joblib`` package.
 """
 
 # Random state
-docdict['random_state'] = """
-random_state : None | int | instance of ~numpy.random.RandomState
-    If ``random_state`` is an :class:`int`, it will be used as a seed for
-    :class:`~numpy.random.RandomState`. If ``None``, the seed will be
-    obtained from the operating system (see
-    :class:`~numpy.random.RandomState` for details). Default is
-    ``None``.
+random_state_common = """\
+    A seed for the NumPy random number generator (RNG). If ``None`` (default),
+    the seed will be  obtained from the operating system
+    (see  :class:`~numpy.random.RandomState` for details), meaning it will most
+    likely produce different output every time this function or method is run.
+    To achieve reproducible results, pass a value here to explicitly initialize
+    the RNG with a defined state.\
 """
-
-docdict['seed'] = """
+docdict['random_state'] = f"""
+random_state : None | int | instance of ~numpy.random.RandomState
+{random_state_common}
+"""
+docdict['seed'] = f"""
 seed : None | int | instance of ~numpy.random.RandomState
-    If ``seed`` is an :class:`int`, it will be used as a seed for
-    :class:`~numpy.random.RandomState`. If ``None``, the seed will be
-    obtained from the operating system (see
-    :class:`~numpy.random.RandomState` for details). Default is
-    ``None``.
+{random_state_common}
 """
 
 # Visualization
@@ -1245,6 +1498,48 @@ show_scrollbars : bool
     window is focused. Default is ``True``.
 
     .. versionadded:: 0.19.0
+"""
+
+docdict['show_scalebars'] = """
+show_scalebars : bool
+    Whether to show scale bars when the plot is initialized. Can be toggled
+    after initialization by pressing :kbd:`s` while the plot window is focused.
+    Default is ``True``.
+"""
+
+docdict['time_format'] = """
+time_format : 'float' | 'clock'
+    Style of time labels on the horizontal axis. If ``'float'``, labels will be
+    number of seconds from the start of the recording. If ``'clock'``,
+    labels will show "clock time" (hours/minutes/seconds) inferred from
+    ``raw.info['meas_date']``. Default is ``'float'``.
+
+    .. versionadded:: 0.24
+"""
+
+# Visualization with pyqtgraph
+docdict['precompute'] = """
+precompute : bool | str
+    Whether to load all data (not just the visible portion) into RAM and
+    apply preprocessing (e.g., projectors) to the full data array in a separate
+    processor thread, instead of window-by-window during scrolling. The default
+    ``'auto'`` compares available RAM space to the expected size of the
+    precomputed data, and precomputes only if enough RAM is available. ``True``
+    and ``'auto'`` only work if using the PyQtGraph backend.
+
+    .. versionadded:: 0.24
+"""
+
+docdict['use_opengl'] = """
+use_opengl : bool | None
+    Whether to use OpenGL when rendering the plot (requires ``pyopengl``).
+    May increase performance, but effect is dependent on system CPU and
+    graphics hardware. Only works if using the PyQtGraph backend. Default is
+    None, which will use False unless the user configuration variable
+    ``MNE_BROWSER_USE_OPENGL`` is set to ``'true'``,
+    see :func:`mne.set_config`.
+
+    .. versionadded:: 0.24
 """
 
 # PSD plotting
@@ -1369,14 +1664,26 @@ docdict["montage"] = """
 montage : None | str | DigMontage
     A montage containing channel positions. If str or DigMontage is
     specified, the channel info will be updated with the channel
-    positions. Default is None. See also the documentation of
-    :class:`mne.channels.DigMontage` for more information.
+    positions. Default is None. For valid :class:`str` values see documentation
+    of :func:`mne.channels.make_standard_montage`. See also the documentation
+    of :class:`mne.channels.DigMontage` for more information.
 """
+docdict["montage_types"] = """EEG/sEEG/ECoG/DBS/fNIRS"""
 docdict["match_case"] = """
 match_case : bool
     If True (default), channel name matching will be case sensitive.
 
     .. versionadded:: 0.20
+"""
+docdict["match_alias"] = """
+match_alias : bool | dict
+    Whether to use a lookup table to match unrecognized channel location names
+    to their known aliases. If True, uses the mapping in
+    ``mne.io.constants.CHANNEL_LOC_ALIASES``. If a :class:`dict` is passed, it
+    will be used instead, and should map from non-standard channel names to
+    names in the specified ``montage``. Default is ``False``.
+
+    .. versionadded:: 0.23
 """
 docdict['on_header_missing'] = """
 on_header_missing : str
@@ -1385,7 +1692,7 @@ on_header_missing : str
     .. versionadded:: 0.22
 """ % (_on_missing_base,)
 docdict['on_missing_events'] = """
-on_missing : str
+on_missing : 'raise' | 'warn' | 'ignore'
     %s event numbers from ``event_id`` are missing from ``events``.
     When numbers from ``events`` are missing from ``event_id`` they will be
     ignored and a warning emitted; consider using ``verbose='error'`` in
@@ -1394,12 +1701,18 @@ on_missing : str
     .. versionadded:: 0.21
 """ % (_on_missing_base,)
 docdict['on_missing_montage'] = """
-on_missing : str
+on_missing : 'raise' | 'warn' | 'ignore'
     %s channels have missing coordinates.
 
     .. versionadded:: 0.20.1
 """ % (_on_missing_base,)
-docdict['rename_channels_mapping'] = """
+docdict['on_missing_ch_names'] = """
+on_missing : 'raise' | 'warn' | 'ignore'
+    %s entries in ch_names are not present in the raw instance.
+
+    .. versionadded:: 0.23.0
+""" % (_on_missing_base,)
+docdict['rename_channels_mapping_duplicates'] = """
 mapping : dict | callable
     A dictionary mapping the old channel to a new channel name
     e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
@@ -1407,9 +1720,41 @@ mapping : dict | callable
 
     .. versionchanged:: 0.10.0
        Support for a callable function.
+allow_duplicates : bool
+    If True (default False), allow duplicates, which will automatically
+    be renamed with ``-N`` at the end.
+
+    .. versionadded:: 0.22.0
 """
 
 # Brain plotting
+docdict["view"] = """
+view : str | None
+    The name of the view to show (e.g. "lateral"). Other arguments
+    take precedence and modify the camera starting from the ``view``.
+"""
+docdict["roll"] = """
+roll : float | None
+    The roll of the camera rendering the view in degrees.
+"""
+docdict["distance"] = """
+distance : float | None
+    The distance from the camera rendering the view to the focalpoint
+    in plot units (either m or mm).
+"""
+docdict["azimuth"] = """
+azimuth : float
+    The azimuthal angle of the camera rendering the view in degrees.
+"""
+docdict["elevation"] = """
+elevation : float
+    The The zenith angle of the camera rendering the view in degrees.
+"""
+docdict["focalpoint"] = """
+focalpoint : tuple, shape (3,) | None
+    The focal point of the camera rendering the view: (x, y, z) in
+    plot units (either m or mm).
+"""
 docdict["clim"] = """
 clim : str | dict
     Colorbar properties specification. If 'auto', set clim automatically
@@ -1446,6 +1791,10 @@ colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
     Name of colormap to use or a custom look up table. If array, must
     be (n x 3) or (n x 4) array for with RGB or RGBA values between
     0 and 255.
+"""
+docdict["smooth"] = """
+smooth : float in [0, 1)
+    The smoothing factor to be applied. Default 0 is no smoothing.
 """
 docdict["transparent"] = """
 transparent : bool | None
@@ -1558,6 +1907,26 @@ views : str | list
 
     Three letter abbreviations (e.g., ``'lat'``) are also supported.
     Using multiple views (list) is not supported for mpl backend.
+"""
+
+# Coregistration
+scene_interaction_common = """\
+    How interactions with the scene via an input device (e.g., mouse or
+    trackpad) modify the camera position. If ``'terrain'``, one axis is
+    fixed, enabling "turntable-style" rotations. If ``'trackball'``,
+    movement along all axes is possible, which provides more freedom of
+    movement, but you may incidentally perform unintentional rotations along
+    some axes.\
+"""
+docdict['scene_interaction'] = f"""
+interaction : 'trackball' | 'terrain'
+{scene_interaction_common}
+"""
+docdict['scene_interaction_None'] = f"""
+interaction : 'trackball' | 'terrain' | None
+{scene_interaction_common}
+    If ``None``, the setting stored in the MNE-Python configuration file is
+    used.
 """
 
 # STC label time course
@@ -1697,7 +2066,7 @@ docdict['clust_stat'] = """
 stat_fun : callable | None
     Function called to calculate the test statistic. Must accept 1D-array as
     input and return a 1D array. If ``None`` (the default), uses
-    :func:`mne.stats.{}`.
+    `mne.stats.{}`.
 """
 docdict['clust_stat_f'] = docdict['clust_stat'].format('f_oneway')
 docdict['clust_stat_t'] = docdict['clust_stat'].format('ttest_1samp_no_p')
@@ -1718,10 +2087,11 @@ mem = (' If spatial adjacency is uniform in time, it is recommended to use '
        'a square matrix with dimension ``{x}.shape[-1]`` (n_vertices) to save '
        'memory and computation, and to use ``max_step`` to define the extent '
        'of temporal adjacency to consider when clustering.')
+comb = ' The function `mne.stats.combine_adjacency` may be useful for 4D data.'
 st = dict(sp='spatial', lastdim='', parone='(n_vertices)',
           partwo='(n_times * n_vertices)', memory=mem)
 tf = dict(sp='', lastdim=' (or the last two dimensions if ``{x}`` is 2D)',
-          parone='', partwo='', memory='')
+          parone='(for 3D data)', partwo='(for 4D data)', memory=comb)
 nogroups = dict(eachgrp='', x='X')
 groups = dict(eachgrp='each group ', x='X[k]')
 docdict['clust_adj_st1'] = docdict['clust_adj'].format(**st).format(**nogroups)
@@ -1753,22 +2123,15 @@ docdict['clust_power_t'] = docdict['clust_power'].format('t')
 docdict['clust_power_f'] = docdict['clust_power'].format('F')
 docdict['clust_out'] = """
 out_type : 'mask' | 'indices'
-    Output format of clusters. If ``'mask'``, returns boolean arrays the same
-    shape as the input data, with ``True`` values indicating locations that are
-    part of a cluster. If ``'indices'``, returns a list of lists, where each
-    sublist contains the indices of locations that together form a cluster.
-    Note that for large datasets, ``'indices'`` may use far less memory than
-    ``'mask'``. Default is ``'indices'``.
-"""
-docdict['clust_out_none'] = """
-out_type : 'mask' | 'indices'
-    Output format of clusters. If ``'mask'``, returns boolean arrays the same
-    shape as the input data, with ``True`` values indicating locations that are
-    part of a cluster. If ``'indices'``, returns a list of lists, where each
-    sublist contains the indices of locations that together form a cluster.
-    Note that for large datasets, ``'indices'`` may use far less memory than
-    ``'mask'``. The default translates to ``'mask'`` in version 0.21 but will
-    change to ``'indices'`` in version 0.22.
+    Output format of clusters within a list.
+    If ``'mask'``, returns a list of boolean arrays,
+    each with the same shape as the input data (or slices if the shape is 1D
+    and adjacency is None), with ``True`` values indicating locations that are
+    part of a cluster. If ``'indices'``, returns a list of tuple of ndarray,
+    where each ndarray contains the indices of locations that together form the
+    given cluster along the given dimension. Note that for large datasets,
+    ``'indices'`` may use far less memory than ``'mask'``.
+    Default is ``'indices'``.
 """
 docdict['clust_disjoint'] = """
 check_disjoint : bool
@@ -1964,17 +2327,130 @@ docdict['baseline_report'] = """%(rescale_baseline)s
 
     For `~mne.Epochs`, this algorithm is run **on each epoch individually.**
 """ % docdict
+docdict['report_image_format'] = """
+image_format : 'png' | 'svg' | 'gif' | None
+    The image format to be used for the report, can be ``'png'``,
+    ``'svg'``, or ``'gif'``.
+    None (default) will use the default specified during `~mne.Report`
+    instantiation.
+"""
+docdict['report_tags'] = """
+tags : array-like of str
+    Tags to add for later interactive filtering.
+"""
+docdict['report_replace'] = """
+replace : bool
+    If ``True``, content already present that has the same ``title`` will be
+    replaced. Defaults to ``False``, which will cause duplicate entries in the
+    table of contents if an entry for ``title`` already exists.
+"""
+docdict['report_projs'] = """
+projs : bool | None
+    Whether to add SSP projector plots if projectors are present in
+    the data. If ``None``, use ``projs`` from `~mne.Report` creation.
+"""
+docdict['report_stc_plot_kwargs'] = """
+stc_plot_kwargs : dict
+    Dictionary of keyword arguments to pass to
+    :class:`mne.SourceEstimate.plot`. Only used when plotting in 3D
+    mode.
+"""
+docdict['topomap_kwargs'] = """
+topomap_kwargs : dict | None
+    Keyword arguments to pass to topomap functions (
+    :func:`mne.viz.plot_evoked_topomap`, :func:`mne.viz.plot_projs_topomap`,
+    etc.).
+"""
 
 # Epochs
-reject_common = """
-    Reject epochs based on peak-to-peak signal amplitude (PTP), i.e. the
-    absolute difference between the lowest and the highest signal value. In
-    each individual epoch, the PTP is calculated for every channel. If the
-    PTP of any one channel exceeds the rejection threshold, the respective
-    epoch will be dropped.
+docdict['epochs_tmin_tmax'] = """
+tmin, tmax : float
+    Start and end time of the epochs in seconds, relative to the time-locked
+    event. Defaults to -0.2 and 0.5, respectively.
+"""
+docdict['epochs_reject_tmin_tmax'] = """
+reject_tmin, reject_tmax : float | None
+    Start and end of the time window used to reject epochs based on
+    peak-to-peak (PTP) amplitudes as specified via ``reject`` and ``flat``.
+    The default ``None`` corresponds to the first and last time points of the
+    epochs, respectively.
+
+    .. note:: This parameter controls the time period used in conjunction with
+              both, ``reject`` and ``flat``.
+"""
+docdict['epochs_events_event_id'] = """
+events : array of int, shape (n_events, 3)
+    The events typically returned by the read_events function.
+    If some events don't match the events of interest as specified
+    by event_id, they will be marked as 'IGNORED' in the drop log.
+event_id : int | list of int | dict | None
+    The id of the event to consider. If dict,
+    the keys can later be used to access associated events. Example:
+    dict(auditory=1, visual=3). If int, a dict will be created with
+    the id as string. If a list, all events with the IDs specified
+    in the list are used. If None, all events will be used with
+    and a dict is created with string integer names corresponding
+    to the event id integers.
+"""
+docdict['epochs_preload'] = """
+    Load all epochs from disk when creating the object
+    or wait before accessing each epoch (more memory
+    efficient but can be slower).
+"""
+docdict['epochs_detrend'] = """
+detrend : int | None
+    If 0 or 1, the data channels (MEG and EEG) will be detrended when
+    loaded. 0 is a constant (DC) detrend, 1 is a linear detrend. None
+    is no detrending. Note that detrending is performed before baseline
+    correction. If no DC offset is preferred (zeroth order detrending),
+    either turn off baseline correction, as this may introduce a DC
+    shift, or set baseline correction to use the entire time interval
+    (will yield equivalent results but be slower).
+"""
+docdict['epochs_metadata'] = """
+metadata : instance of pandas.DataFrame | None
+    A :class:`pandas.DataFrame` specifying metadata about each epoch.
+    If given, ``len(metadata)`` must equal ``len(events)``. The DataFrame
+    may only contain values of type (str | int | float | bool).
+    If metadata is given, then pandas-style queries may be used to select
+    subsets of data, see :meth:`mne.Epochs.__getitem__`.
+    When a subset of the epochs is created in this (or any other
+    supported) manner, the metadata object is subsetted accordingly, and
+    the row indices will be modified to match ``epochs.selection``.
+
+    .. versionadded:: 0.16
+"""
+docdict['epochs_event_repeated'] = """
+event_repeated : str
+    How to handle duplicates in ``events[:, 0]``. Can be ``'error'``
+    (default), to raise an error, 'drop' to only retain the row occurring
+    first in the ``events``, or ``'merge'`` to combine the coinciding
+    events (=duplicates) into a new event (see Notes for details).
+
+    .. versionadded:: 0.19
+"""
+docdict['epochs_raw'] = """
+raw : Raw object
+    An instance of `~mne.io.Raw`.
+"""
+docdict['epochs_on_missing'] = """
+on_missing : 'raise' | 'warn' | 'ignore'
+    What to do if one or several event ids are not found in the recording.
+    Valid keys are 'raise' | 'warn' | 'ignore'
+    Default is 'raise'. If on_missing is 'warn' it will proceed but
+    warn, if 'ignore' it will proceed silently. Note.
+    If none of the event ids are found in the data, an error will be
+    automatically generated irrespective of this parameter.
+"""
+reject_common = """\
+    Reject epochs based on **maximum** peak-to-peak signal amplitude (PTP),
+    i.e. the absolute difference between the lowest and the highest signal
+    value. In each individual epoch, the PTP is calculated for every channel.
+    If the PTP of any one channel exceeds the rejection threshold, the
+    respective epoch will be dropped.
 
     The dictionary keys correspond to the different channel types; valid
-    keys are: ``'grad'``, ``'mag'``, ``'eeg'``, ``'eog'``, and ``'ecg'``.
+    **keys** can be any channel type present in the object.
 
     Example::
 
@@ -1992,6 +2468,9 @@ reject_common = """
 docdict['reject_epochs'] = f"""
 reject : dict | None
 {reject_common}
+    .. note:: To constrain the time period used for estimation of signal
+              quality, pass the ``reject_tmin`` and ``reject_tmax`` parameters.
+
     If ``reject`` is ``None`` (default), no rejection is performed.
 """
 docdict['reject_drop_bad'] = f"""
@@ -2000,16 +2479,18 @@ reject : dict | str | None
     If ``reject`` is ``None``, no rejection is performed. If ``'existing'``
     (default), then the rejection parameters set at instantiation are used.
 """
-flat_common = """
-    Rejection parameters based on flatness of signal.
-    Valid **keys** are ``'grad'``, ``'mag'``, ``'eeg'``, ``'eog'``, ``'ecg'``.
-    The **values** are floats that set the minimum acceptable peak-to-peak
-    amplitude (PTP). If the PTP is smaller than this threshold, the epoch will
-    be dropped. If ``None`` then no rejection is performed based on flatness
-    of the signal."""
+flat_common = """\
+    Reject epochs based on **minimum** peak-to-peak signal amplitude (PTP).
+    Valid **keys** can be any channel type present in the object. The
+    **values** are floats that set the minimum acceptable PTP. If the PTP
+    is smaller than this threshold, the epoch will be dropped. If ``None``
+    then no rejection is performed based on flatness of the signal."""
 docdict['flat'] = f"""
 flat : dict | None
 {flat_common}
+
+    .. note:: To constrain the time period used for estimation of signal
+              quality, pass the ``reject_tmin`` and ``reject_tmax`` parameters.
 """
 docdict['flat_drop_bad'] = f"""
 flat : dict | str | None
@@ -2046,28 +2527,43 @@ tstart : float
     Start ECG detection after ``tstart`` seconds. Useful when the beginning
     of the run is noisy.
 """
-docdict['create_ecg_epochs'] = """This function will:
+
+ecg_epoch_or_proj = """This function will:
 
 #. Filter the ECG data channel.
 
 #. Find ECG R wave peaks using :func:`mne.preprocessing.find_ecg_events`.
-
-#. Filter the raw data.
-
+{filter_step}
 #. Create `~mne.Epochs` around the R wave peaks, capturing the heartbeats.
-"""
+{extra_steps}"""
+
+docdict['create_ecg_epochs'] = ecg_epoch_or_proj.format(filter_step='',
+                                                        extra_steps='')
 
 # EOG detection
-docdict['create_eog_epochs'] = """This function will:
+eog_epoch_or_proj = """This function will:
 
 #. Filter the EOG data channel.
 
 #. Find the peaks of eyeblinks in the EOG data using
    :func:`mne.preprocessing.find_eog_events`.
-
-#. Filter the raw data.
-
+{filter_step}
 #. Create `~mne.Epochs` around the eyeblinks.
+{extra_steps}"""
+
+docdict['create_eog_epochs'] = eog_epoch_or_proj.format(filter_step='',
+                                                        extra_steps='')
+
+docdict['eog_ch_name'] = """
+ch_name : str | list of str | None
+    The name of the channel(s) to use for EOG peak detection. If a string,
+    can be an arbitrary channel. This doesn't have to be a channel of
+    ``eog`` type; it could, for example, also be an ordinary EEG channel
+    that was placed close to the eyes, like ``Fp1`` or ``Fp2``.
+
+    Multiple channel names can be passed as a list of strings.
+
+    If ``None`` (default), use the channel(s) in ``raw`` with type ``eog``.
 """
 
 # SSP
@@ -2077,25 +2573,303 @@ specified sensor type. Consequently, if the provided input data contains high
 levels of noise, the produced SSP vectors can then be used to eliminate that
 noise from the data.
 """
-compute_proj_common = """
+proj_filter_step = """
+#. Filter the raw data.
+"""
+
+proj_extra_steps = """
 #. Optionally average the `~mne.Epochs` to produce an `~mne.Evoked` if
    ``average=True`` was passed (default).
 
 #. Calculate SSP projection vectors on that data to capture the artifacts."""
-docdict['compute_proj_ecg'] = f"""%(create_ecg_epochs)s {compute_proj_common}
-""" % docdict
-docdict['compute_proj_eog'] = f"""%(create_eog_epochs)s {compute_proj_common}
-""" % docdict
+
+docdict['compute_proj_ecg'] = ecg_epoch_or_proj.format(
+    filter_step=proj_filter_step, extra_steps=proj_extra_steps)
+
+docdict['compute_proj_eog'] = eog_epoch_or_proj.format(
+    filter_step=proj_filter_step, extra_steps=proj_extra_steps)
+
+# BEM
+docdict['on_defects'] = f"""
+on_defects : 'raise' | 'warn' | 'ignore'
+    What to do if the surface is found to have topological defects.
+    {_on_missing_base} one or more defects are found.
+    Note that a lot of computations in MNE-Python assume the surfaces to be
+    topologically correct, topological defects may still make other
+    computations (e.g., `mne.make_bem_model` and `mne.make_bem_solution`)
+    fail irrespective of this parameter.
+"""
+
+# Export
+docdict['export_warning'] = """\
+.. warning::
+    Since we are exporting to external formats, there's no guarantee that all
+    the info will be preserved in the external format. See Notes for details.
+"""
+docdict['export_params_fname'] = """
+fname : str
+    Name of the output file.
+"""
+docdict['export_params_fmt'] = """
+fmt : 'auto' | 'eeglab' | 'edf'
+    Format of the export. Defaults to ``'auto'``, which will infer the format
+    from the filename extension. See supported formats above for more
+    information.
+"""
+docdict['export_params_physical_range'] = """
+physical_range : str | tuple
+    The physical range of the data. If 'auto' (default), then
+    it will infer the physical min and max from the data itself,
+    taking the minimum and maximum values per channel type.
+    If it is a 2-tuple of minimum and maximum limit, then those
+    physical ranges will be used. Only used for exporting EDF files.
+"""
+docdict['export_params_add_ch_type'] = """
+add_ch_type : bool
+    Whether to incorporate the channel type into the signal label (e.g. whether
+    to store channel "Fz" as "EEG Fz"). Only used for EDF format. Default is
+    ``False``.
+"""
+docdict['export_warning_note'] = """\
+Export to external format may not preserve all the information from the
+instance. To save in native MNE format (``.fif``) without information loss,
+use :meth:`mne.{0}.save` instead.
+Export does not apply projector(s). Unapplied projector(s) will be lost.
+Consider applying projector(s) before exporting with
+:meth:`mne.{0}.apply_proj`."""
+docdict['export_warning_note_raw'] = \
+    docdict['export_warning_note'].format('io.Raw')
+docdict['export_warning_note_epochs'] = \
+    docdict['export_warning_note'].format('Epochs')
+docdict['export_warning_note_evoked'] = \
+    docdict['export_warning_note'].format('Evoked')
+docdict['export_eeglab_note'] = """
+For EEGLAB exports, channel locations are expanded to full EEGLAB format.
+For more details see :func:`eeglabio.utils.cart_to_eeglab`.
+"""
+docdict['export_edf_note'] = """
+For EDF exports, only channels measured in Volts are allowed; in MNE-Python
+this means channel types 'eeg', 'ecog', 'seeg', 'emg', 'eog', 'ecg', 'dbs',
+'bio', and 'misc'. 'stim' channels are dropped. Although this function
+supports storing channel types in the signal label (e.g. ``EEG Fz`` or
+``MISC E``), other software may not support this (optional) feature of
+the EDF standard.
+
+If ``add_ch_type`` is True, then channel types are written based on what
+they are currently set in MNE-Python. One should double check that all
+their channels are set correctly. You can call
+:attr:`raw.set_channel_types <mne.io.Raw.set_channel_types>` to set
+channel types.
+
+In addition, EDF does not support storing a montage. You will need
+to store the montage separately and call :attr:`raw.set_montage()
+<mne.io.Raw.set_montage>`.
+"""
 
 # Other
 docdict['accept'] = """
 accept : bool
     If True (default False), accept the license terms of this dataset.
 """
+docdict['overwrite'] = """
+overwrite : bool
+    If True (default False), overwrite the destination file if it
+    exists.
+"""
+docdict['split_naming'] = """
+split_naming : 'neuromag' | 'bids'
+    When splitting files, append a filename partition with the appropriate
+    naming schema: for ``'neuromag'``, a split file ``fname.fif`` will be named
+    ``fname.fif``, ``fname-1.fif``, ``fname-2.fif`` etc.; while for ``'bids'``,
+    it will be named ``fname_split-01.fif``, ``fname_split-02.fif``, etc.
+"""
+docdict['ref_channels'] = """
+ref_channels : str | list of str
+    Name of the electrode(s) which served as the reference in the
+    recording. If a name is provided, a corresponding channel is added
+    and its data is set to 0. This is useful for later re-referencing.
+"""
 
-# Finalize
-docdict = unindent_dict(docdict)
-fill_doc = filldoc(docdict, unindent_params=False)
+# Morphing
+docdict['reg_affine'] = """
+reg_affine : ndarray of float, shape (4, 4)
+    The affine that registers one volume to another.
+"""
+docdict['sdr_morph'] = """
+sdr_morph : instance of dipy.align.DiffeomorphicMap
+    The class that applies the the symmetric diffeomorphic registration
+    (SDR) morph.
+"""
+docdict['moving'] = """
+moving : instance of SpatialImage
+    The image to morph ("from" volume).
+"""
+docdict['static'] = """
+static : instance of SpatialImage
+    The image to align with ("to" volume).
+"""
+docdict['niter'] = """
+niter : dict | tuple | None
+    For each phase of the volume registration, ``niter`` is the number of
+    iterations per successive stage of optimization. If a tuple is
+    provided, it will be used for all steps (except center of mass, which does
+    not iterate). It should have length 3 to
+    correspond to ``sigmas=[3.0, 1.0, 0.0]`` and ``factors=[4, 2, 1]`` in
+    the pipeline (see :func:`dipy.align.affine_registration
+    <dipy.align._public.affine_registration>` for details).
+    If a dictionary is provided, number of iterations can be set for each
+    step as a key. Steps not in the dictionary will use the default value.
+    The default (None) is equivalent to:
+
+        niter=dict(translation=(100, 100, 10),
+                   rigid=(100, 100, 10),
+                   affine=(100, 100, 10),
+                   sdr=(5, 5, 3))
+"""
+docdict['pipeline'] = """
+pipeline : str | tuple
+    The volume registration steps to perform (a ``str`` for a single step,
+    or ``tuple`` for a set of sequential steps). The following steps can be
+    performed, and do so by matching mutual information between the images
+    (unless otherwise noted):
+
+    ``'translation'``
+        Translation.
+
+    ``'rigid'``
+        Rigid-body, i.e., rotation and translation.
+
+    ``'affine'``
+        A full affine transformation, which includes translation, rotation,
+        scaling, and shear.
+
+    ``'sdr'``
+        Symmetric diffeomorphic registration :footcite:`AvantsEtAl2008`, a
+        non-linear similarity-matching algorithm.
+
+    The following string shortcuts can also be used:
+
+    ``'all'`` (default)
+        All steps will be performed above in the order above, i.e.,
+        ``('translation', 'rigid', 'affine', 'sdr')``.
+
+    ``'rigids'``
+        The rigid steps (first two) will be performed, which registers
+        the volume without distorting its underlying structure, i.e.,
+        ``('translation', 'rigid')``. This is useful for
+        example when registering images from the same subject, such as
+        CT and MR images.
+
+    ``'affines'``
+        The affine steps (first three) will be performed, i.e., omitting
+        the SDR step.
+"""
+
+# 3D viewing
+docdict['meg'] = """
+meg : str | list | bool | None
+    Can be "helmet", "sensors" or "ref" to show the MEG helmet, sensors or
+    reference sensors respectively, or a combination like
+    ``('helmet', 'sensors')`` (same as None, default). True translates to
+    ``('helmet', 'sensors', 'ref')``.
+"""
+docdict['eeg'] = """
+eeg : bool | str | list
+    String options are:
+
+    - "original" (default; equivalent to ``True``)
+        Shows EEG sensors using their digitized locations (after
+        transformation to the chosen ``coord_frame``)
+    - "projected"
+        The EEG locations projected onto the scalp, as is done in
+        forward modeling
+
+    Can also be a list of these options, or an empty list (``[]``,
+    equivalent of ``False``).
+"""
+docdict['fnirs'] = """
+fnirs : str | list | bool | None
+    Can be "channels", "pairs", "detectors", and/or "sources" to show the
+    fNIRS channel locations, optode locations, or line between
+    source-detector pairs, or a combination like ``('pairs', 'channels')``.
+    True translates to ``('pairs',)``.
+"""
+docdict['ecog'] = """
+ecog : bool
+    If True (default), show ECoG sensors.
+"""
+docdict['seeg'] = """
+seeg : bool
+    If True (default), show sEEG electrodes.
+"""
+docdict['dbs'] = """
+dbs : bool
+    If True (default), show DBS (deep brain stimulation) electrodes.
+"""
+
+# Decoding
+docdict['scoring'] = """
+scoring : callable | str | None
+    Score function (or loss function) with signature
+    ``score_func(y, y_pred, **kwargs)``.
+    Note that the "predict" method is automatically identified if scoring is
+    a string (e.g. ``scoring='roc_auc'`` calls ``predict_proba``), but is
+    **not**  automatically set if ``scoring`` is a callable (e.g.
+    ``scoring=sklearn.metrics.roc_auc_score``).
+"""
+docdict['base_estimator'] = """
+base_estimator : object
+    The base estimator to iteratively fit on a subset of the dataset.
+"""
+
+docdict_indented = {}
+
+
+def fill_doc(f):
+    """Fill a docstring with docdict entries.
+
+    Parameters
+    ----------
+    f : callable
+        The function to fill the docstring of. Will be modified in place.
+
+    Returns
+    -------
+    f : callable
+        The function, potentially with an updated ``__doc__``.
+    """
+    docstring = f.__doc__
+    if not docstring:
+        return f
+    lines = docstring.splitlines()
+    # Find the minimum indent of the main docstring, after first line
+    if len(lines) < 2:
+        icount = 0
+    else:
+        icount = indentcount_lines(lines[1:])
+    # Insert this indent to dictionary docstrings
+    try:
+        indented = docdict_indented[icount]
+    except KeyError:
+        indent = ' ' * icount
+        docdict_indented[icount] = indented = {}
+        for name, dstr in docdict.items():
+            lines = dstr.splitlines()
+            try:
+                newlines = [lines[0]]
+                for line in lines[1:]:
+                    newlines.append(indent + line)
+                indented[name] = '\n'.join(newlines)
+            except IndexError:
+                indented[name] = dstr
+    try:
+        f.__doc__ = docstring % indented
+    except (TypeError, ValueError, KeyError) as exp:
+        funcname = f.__name__
+        funcname = docstring.split('\n')[0] if funcname is None else funcname
+        raise RuntimeError('Error documenting %s:\n%s'
+                           % (funcname, str(exp)))
+    return f
 
 
 ##############################################################################
@@ -2402,6 +3176,8 @@ def open_docs(kind=None, version=None):
         The default can be changed by setting the configuration value
         MNE_DOCS_VERSION.
     """
+    from .check import _check_option
+    from .config import get_config
     if kind is None:
         kind = get_config('MNE_DOCS_KIND', 'api')
     help_dict = dict(api='python_reference.html', tutorials='tutorials.html',
@@ -2420,32 +3196,20 @@ def open_docs(kind=None, version=None):
 warnings.filterwarnings('always', category=DeprecationWarning, module='mne')
 
 
-class deprecated(object):
-    """Mark a function or class as deprecated (decorator).
+class deprecated:
+    """Mark a function, class, or method as deprecated (decorator).
 
-    Issue a warning when the function is called/the class is instantiated and
-    adds a warning to the docstring.
-
-    The optional extra argument will be appended to the deprecation message
-    and the docstring. Note: to use this with the default value for extra, put
-    in an empty of parentheses::
-
-        >>> from mne.utils import deprecated
-        >>> deprecated() # doctest: +ELLIPSIS
-        <mne.utils.docs.deprecated object at ...>
-
-        >>> @deprecated()
-        ... def some_function(): pass
-
+    Originally adapted from sklearn and
+    http://wiki.python.org/moin/PythonDecoratorLibrary, then modified to make
+    arguments populate properly following our verbose decorator methods based
+    on externals.decorator.
 
     Parameters
     ----------
-    extra: string
-        To be added to the deprecation messages.
+    extra : str
+        Extra information beyond just saying the class/function/method
+        is deprecated.
     """
-
-    # Adapted from http://wiki.python.org/moin/PythonDecoratorLibrary,
-    # but with many changes.
 
     def __init__(self, extra=''):  # noqa: D102
         self.extra = extra
@@ -2457,6 +3221,11 @@ class deprecated(object):
         ----------
         obj : object
             Object to call.
+
+        Returns
+        -------
+        obj : object
+            The modified object.
         """
         if isinstance(obj, type):
             return self._decorate_class(obj)
@@ -2464,44 +3233,39 @@ class deprecated(object):
             return self._decorate_fun(obj)
 
     def _decorate_class(self, cls):
-        msg = "Class %s is deprecated" % cls.__name__
-        if self.extra:
-            msg += "; %s" % self.extra
-
-        # FIXME: we should probably reset __new__ for full generality
-        init = cls.__init__
-
-        def deprecation_wrapped(*args, **kwargs):
-            warnings.warn(msg, category=DeprecationWarning)
-            return init(*args, **kwargs)
-        cls.__init__ = deprecation_wrapped
-
-        deprecation_wrapped.__name__ = '__init__'
-        deprecation_wrapped.__doc__ = self._update_doc(init.__doc__)
-        deprecation_wrapped.deprecated_original = init
-
+        msg = f"Class {cls.__name__} is deprecated"
+        cls.__init__ = self._make_fun(cls.__init__, msg)
         return cls
 
     def _decorate_fun(self, fun):
         """Decorate function fun."""
-        msg = "Function %s is deprecated" % fun.__name__
+        msg = f"Function {fun.__name__} is deprecated"
+        return self._make_fun(fun, msg)
+
+    def _make_fun(self, function, msg):
         if self.extra:
             msg += "; %s" % self.extra
 
-        def deprecation_wrapped(*args, **kwargs):
-            warnings.warn(msg, category=DeprecationWarning)
-            return fun(*args, **kwargs)
-
-        deprecation_wrapped.__name__ = fun.__name__
-        deprecation_wrapped.__dict__ = fun.__dict__
-        deprecation_wrapped.__doc__ = self._update_doc(fun.__doc__)
-
-        return deprecation_wrapped
+        body = f"""\
+def %(name)s(%(signature)s):\n
+    import warnings
+    warnings.warn({repr(msg)}, category=DeprecationWarning)
+    return _function_(%(shortsignature)s)"""
+        evaldict = dict(_function_=function)
+        fm = FunctionMaker(
+            function, None, None, None, None, function.__module__)
+        attrs = dict(__wrapped__=function, __qualname__=function.__qualname__,
+                     __globals__=function.__globals__)
+        dep = fm.make(body, evaldict, addsource=True, **attrs)
+        dep.__doc__ = self._update_doc(dep.__doc__)
+        dep._deprecated_original = function
+        return dep
 
     def _update_doc(self, olddoc):
         newdoc = ".. warning:: DEPRECATED"
         if self.extra:
             newdoc = "%s: %s" % (newdoc, self.extra)
+        newdoc += '.'
         if olddoc:
             # Get the spacing right to avoid sphinx warnings
             n_space = 4
@@ -2524,5 +3288,5 @@ def deprecated_alias(dep_name, func, removed_in=None):
     # Inject a deprecated version into the namespace
     inspect.currentframe().f_back.f_globals[dep_name] = deprecated(
         f'{dep_name} has been deprecated in favor of {func.__name__} and will '
-        f'be removed in {removed_in}'
+        f'be removed in {removed_in}.'
     )(deepcopy(func))

@@ -14,7 +14,6 @@ Examples
 import os.path as op
 
 import mne
-from mne.utils import ETSContext
 
 
 def run():
@@ -98,24 +97,20 @@ def run():
     trans = options.trans
     if trans is not None:
         trans = op.expanduser(trans)
-    try:
-        import faulthandler
-        faulthandler.enable()
-    except ImportError:
-        pass  # old Python2
-    with ETSContext():
-        mne.gui.coregistration(
-            options.tabbed, inst=options.inst, subject=options.subject,
-            subjects_dir=subjects_dir,
-            guess_mri_subject=options.guess_mri_subject,
-            head_opacity=options.head_opacity, head_high_res=head_high_res,
-            trans=trans, scrollable=True, project_eeg=options.project_eeg,
-            orient_to_surface=options.orient_to_surface,
-            scale_by_distance=options.scale_by_distance,
-            mark_inside=options.mark_inside, interaction=options.interaction,
-            scale=options.scale,
-            advanced_rendering=options.advanced_rendering,
-            verbose=options.verbose)
+    import faulthandler
+    faulthandler.enable()
+    mne.gui.coregistration(
+        options.tabbed, inst=options.inst, subject=options.subject,
+        subjects_dir=subjects_dir,
+        guess_mri_subject=options.guess_mri_subject,
+        head_opacity=options.head_opacity, head_high_res=head_high_res,
+        trans=trans, scrollable=True, project_eeg=options.project_eeg,
+        orient_to_surface=options.orient_to_surface,
+        scale_by_distance=options.scale_by_distance,
+        mark_inside=options.mark_inside, interaction=options.interaction,
+        scale=options.scale,
+        advanced_rendering=options.advanced_rendering,
+        verbose=options.verbose)
 
 
 mne.utils.run_command_if_main()
