@@ -1823,7 +1823,7 @@ def plot_epochs_psd_topomap(epochs, bands=None,
     normalization : str
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
-        the signal (as in nitime).
+        the signal (as in nitime package).
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are collected in
         pairs and the mean for each pair is plotted. If None, then first
