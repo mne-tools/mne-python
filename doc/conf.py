@@ -879,31 +879,38 @@ reset_warnings(None, None)
 
 # -- Fontawesome support -----------------------------------------------------
 
-# here the "b" and "s" refer to "brand" and "solid" (determines which font file
-# to look in). "fw-" prefix indicates fixed width.
-icons = {
-    'apple': 'b',
-    'linux': 'b',
-    'windows': 'b',
-    'hand-paper': 's',
-    'question': 's',
-    'quote-left': 's',
-    'rocket': 's',
-    'server': 's',
-    'fw-book': 's',
-    'fw-code-branch': 's',
-    'fw-newspaper': 's',
-    'fw-question-circle': 's',
-    'fw-quote-left': 's',
-}
+# here the "fab" and "fas" refer to "brand" and "solid" (determines which font
+# file to look in). "fw" indicates fixed width.
+brand_icons = ('apple', 'linux', 'windows', 'discourse', 'python')
+fixed_icons = (
+    # homepage:
+    'book', 'code-branch', 'newspaper', 'question-circle', 'quote-left',
+    # contrib guide:
+    'bug', 'comment', 'hand-sparkles', 'magic', 'pencil-alt', 'remove-format',
+    'universal-access', 'discourse', 'python'
+)
+other_icons = ('hand-paper', 'question', 'rocket', 'server')
+icons = dict()
+for icon in brand_icons + fixed_icons + other_icons:
+    font = ('fab' if icon in brand_icons else 'fas',)  # brand or solid font
+    fw = ('fa-fw',) if icon in fixed_icons else ()     # fixed-width
+    icons[icon] = font + fw
 
 prolog = ''
-for icon, cls in icons.items():
-    fw = ' fa-fw' if icon.startswith('fw-') else ''
+for icon, classes in icons.items():
     prolog += f'''
 .. |{icon}| raw:: html
 
-    <i class="fa{cls} fa-{icon[3:] if fw else icon}{fw}"></i>
+    <i class="{' '.join(classes)} fa-{icon}"></i>
+'''
+
+prolog += '''
+.. |fix-bug| raw:: html
+
+    <span class="fa-stack small-stack">
+        <i class="fas fa-bug fa-stack-1x"></i>
+        <i class="fas fa-ban fa-stack-2x"></i>
+    </span>
 '''
 
 # -- Dependency info ----------------------------------------------------------
