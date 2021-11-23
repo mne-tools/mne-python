@@ -388,7 +388,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     normalization : str
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
-        the signal (as in nitime).
+        the signal (as in nitime package).
     %(n_jobs)s
     %(verbose)s
 
