@@ -129,8 +129,10 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     coreg._on_pick(vtk_picker, None)  # also pick when locked
 
     # lock fiducials
+    assert not coreg._head_transparency
     coreg._set_lock_fids(True)
     assert coreg._lock_fids
+    assert coreg._head_transparency
 
     # fitting
     assert coreg._nasion_weight == 10.
@@ -161,9 +163,6 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert coreg._icp_fid_match == 'nearest'
     assert coreg._head_resolution == \
         (config.get('MNE_COREG_HEAD_HIGH_RES', 'true') == 'true')
-    assert not coreg._head_transparency
-    coreg._set_head_transparency(True)
-    assert coreg._head_transparency
 
     coreg._save_trans(tmp_trans)
     assert op.isfile(tmp_trans)
