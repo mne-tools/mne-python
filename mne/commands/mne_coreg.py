@@ -54,15 +54,15 @@ def run():
                       help="Project EEG electrodes to the head surface ("
                       "for visualization purposes only)")
     parser.add_option('--orient-to-surface',
-                      action='store_true', default=None,
+                      action='store_true', default=True,
                       dest='orient_to_surface',
                       help='Orient points to the surface.')
     parser.add_option('--scale-by-distance',
-                      action='store_true', default=None,
+                      action='store_true', default=True,
                       dest='scale_by_distance',
                       help='Scale points by distance from the surface.')
     parser.add_option('--mark-inside',
-                      action='store_true', default=None,
+                      action='store_true', default=True,
                       dest='mark_inside',
                       help='Mark points inside the head using a different '
                       'color.')

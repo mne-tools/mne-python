@@ -891,29 +891,10 @@ class CoregistrationUI(HasTraits):
         self._renderer._layout_add_widget(layout, hlayout)
 
         layout = self._renderer._dock_add_group_box("View options")
-        self._widgets["orient_glyphs"] = self._renderer._dock_add_check_box(
-            name="Orient glyphs",
-            value=self._orient_glyphs,
-            callback=self._set_orient_glyphs,
-            layout=layout
-        )
-        self._widgets["scale_by_distance"] = \
-            self._renderer._dock_add_check_box(
-            name="Scale glyphs",
-            value=self._scale_by_distance,
-            callback=self._set_scale_by_distance,
-            layout=layout
-        )
         self._widgets["project_eeg"] = self._renderer._dock_add_check_box(
             name="Project EEG",
             value=self._project_eeg,
             callback=self._set_project_eeg,
-            layout=layout
-        )
-        self._widgets["mark_inside"] = self._renderer._dock_add_check_box(
-            name="Mark inside",
-            value=self._mark_inside,
-            callback=self._set_mark_inside,
             layout=layout
         )
         self._widgets["show_hpi"] = self._renderer._dock_add_check_box(
