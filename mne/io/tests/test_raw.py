@@ -128,6 +128,10 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
             meg, atol = 'grad', 1e-24
         elif 'mag' in raw:
             meg, atol = 'mag', 1e-24
+        elif 'hbo' in raw:
+            fnirs, atol = 'hbo', 1e-10
+        elif 'hbr' in raw:
+            fnirs, atol = 'hbr', 1e-10
         else:
             assert 'fnirs_cw_amplitude' in raw, 'New channel type necessary?'
             fnirs, atol = 'fnirs_cw_amplitude', 1e-10
