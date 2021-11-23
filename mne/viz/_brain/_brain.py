@@ -2486,7 +2486,7 @@ class Brain(object):
         fill_hole_size : int | None
             The size of holes to remove in the mesh in voxels. Default is None,
             no holes are removed. Warning, this dilates the boundaries of the
-            surface by `fill_hole_size` number of voxels so use the minimal
+            surface by ``fill_hole_size`` number of voxels so use the minimal
             size.
         legend : bool | None | dict
             Add a legend displaying the names of the ``labels``. Default (None)
