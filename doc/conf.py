@@ -142,6 +142,7 @@ intersphinx_mapping = {
     'joblib': ('https://joblib.readthedocs.io/en/latest', None),
     'nibabel': ('https://nipy.org/nibabel', None),
     'nilearn': ('http://nilearn.github.io', None),
+    'nitime': ('https://nipy.org/nitime/', None),
     'surfer': ('https://pysurfer.github.io/', None),
     'mne_bids': ('https://mne.tools/mne-bids/stable', None),
     'mne-connectivity': ('https://mne.tools/mne-connectivity/stable', None),

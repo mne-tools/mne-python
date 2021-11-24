@@ -1247,7 +1247,7 @@ weight_norm : str | None
         The Neural Activity Index :footcite:`VanVeenEtAl1997` will be computed,
         which simply scales all values from ``'unit-noise-gain'`` by a fixed
         value.
-    - ``'unit-noise-gain-invariante'``
+    - ``'unit-noise-gain-invariant'``
         Compute a rotation-invariant normalization using the matrix square
         root. This differs from ``'unit-noise-gain'`` only when
         ``pick_ori='vector'``, creating a solution that:
@@ -1607,6 +1607,12 @@ line_alpha : float | None
 docdict["plot_psd_spatial_colors"] = """
 spatial_colors : bool
     Whether to use spatial colors. Only used when ``average=False``.
+"""
+docdict['normalization'] = """\
+normalization : 'full' | 'length'
+    Normalization strategy. If "full", the PSD will be normalized by the
+    sampling rate as well as the length of the signal (as in
+    :ref:`Nitime <nitime:users-guide>`). Default is ``'length'``.\
 """
 
 # plot_projs_topomap

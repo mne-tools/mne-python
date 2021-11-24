@@ -287,10 +287,7 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     low_bias : bool
         Only use tapers with more than 90%% spectral concentration within
         bandwidth.
-    normalization : str
-        Either "full" or "length" (default). If "full", the PSD will
-        be normalized by the sampling rate as well as the length of
-        the signal (as in nitime package).
+    %(normalization)s
     %(picks_good_data_noref)s
     proj : bool
         Apply SSP projection vectors. If inst is ndarray this is not used.
