@@ -626,7 +626,6 @@ picks : int | list of int | slice | None
 """
 
 # Pick types
-docdict['pick_types_header'] = 'Pick some channels by type and names.'
 docdict['pick_types_parameters'] = """\
 meg : bool | str
     If True include MEG channels. If string it can be 'mag', 'grad',

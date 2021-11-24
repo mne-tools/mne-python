@@ -684,7 +684,7 @@ class UpdateChannelsMixin(object):
                    seeg=False, dipole=False, gof=False, bio=False,
                    ecog=False, fnirs=False, csd=False, dbs=False, include=(),
                    exclude='bads', selection=None, verbose=None):
-        """%(pick_types_header)s
+        """Pick some channels by type and names.
 
         Parameters
         ----------
