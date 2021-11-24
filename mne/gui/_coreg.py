@@ -351,6 +351,13 @@ class CoregistrationUI(HasTraits):
         self._icp_fid_match = method
 
     def _set_point_weight(self, weight, point):
+        funcs = {
+            'hpi': '_set_hpi_coils',
+            'hsp': '_set_head_shape_points',
+            'eeg': '_set_eeg_channels',
+        }
+        if point in funcs.keys():
+            getattr(self, funcs[point])(weight > 0)
         setattr(self, f"_{point}_weight", weight)
 
     @observe("_subjects_dir")
@@ -899,24 +906,6 @@ class CoregistrationUI(HasTraits):
             callback=self._set_project_eeg,
             layout=layout
         )
-        self._widgets["show_hpi"] = self._renderer._dock_add_check_box(
-            name="Show HPI Coils",
-            value=self._hpi_coils,
-            callback=self._set_hpi_coils,
-            layout=layout
-        )
-        self._widgets["show_hsp"] = self._renderer._dock_add_check_box(
-            name="Show Head Shape Points",
-            value=self._head_shape_points,
-            callback=self._set_head_shape_points,
-            layout=layout
-        )
-        self._widgets["show_eeg"] = self._renderer._dock_add_check_box(
-            name="Show EEG Channels",
-            value=self._eeg_channels,
-            callback=self._set_eeg_channels,
-            layout=layout
-        )
         self._widgets["high_res_head"] = self._renderer._dock_add_check_box(
             name="Show High Resolution Head",
             value=self._head_resolution,
@@ -1014,7 +1003,7 @@ class CoregistrationUI(HasTraits):
             self._widgets[name] = self._renderer._dock_add_spin_box(
                 name=point,
                 value=getattr(self, f"_{point_lower}_weight"),
-                rng=[1., 100.],
+                rng=[0., 100.],
                 callback=partial(self._set_point_weight, point=point_lower),
                 compact=True,
                 double=True,
