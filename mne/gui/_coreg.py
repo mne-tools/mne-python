@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from functools import partial
 import os
 import os.path as op
+import time
 
 import numpy as np
 from traitlets import observe, HasTraits, Unicode, Bool, Float
@@ -179,6 +180,7 @@ class CoregistrationUI(HasTraits):
             size=self._defaults["size"], bgcolor=self._defaults["bgcolor"])
         self._renderer._window_close_connect(self._clean)
         self._renderer.set_interaction(interaction)
+        self._renderer._status_bar_initialize()
 
         # setup the model
         self._info = info
@@ -744,20 +746,28 @@ class CoregistrationUI(HasTraits):
         self._surfaces["head"] = head_surf
 
     def _fit_fiducials(self):
+        start = time.time()
         self._coreg.fit_fiducials(
             lpa_weight=self._lpa_weight,
             nasion_weight=self._nasion_weight,
             rpa_weight=self._rpa_weight,
             verbose=self._verbose,
         )
+        end = time.time()
+        self._renderer._status_bar_show_message(
+            f"Fitting fiducials finished in {end - start:.2f} seconds.")
         self._update_plot("sensors")
         self._update_parameters()
 
     def _fit_icp(self):
+        self._current_icp_iterations = 0
+
         def callback(iteration, n_iterations):
             self._display_message(f"Fitting ICP - iteration {iteration + 1}")
             self._update_plot("sensors")
+            self._current_icp_iterations = iteration
 
+        start = time.time()
         self._coreg.fit_icp(
             n_iterations=self._icp_n_iterations,
             lpa_weight=self._lpa_weight,
@@ -766,8 +776,13 @@ class CoregistrationUI(HasTraits):
             callback=callback,
             verbose=self._verbose,
         )
+        end = time.time()
         self._display_message()
+        self._renderer._status_bar_show_message(
+            f"Fitting ICP finished in {end - start:.2f} seconds and "
+            f"{self._current_icp_iterations} iterations.")
         self._update_parameters()
+        del self._current_icp_iterations
 
     def _save_trans(self, fname):
         write_trans(fname, self._coreg.trans)

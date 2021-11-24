@@ -281,6 +281,9 @@ class _IpyStatusBar(_AbstractStatusBar, _IpyLayout):
         self._status_bar = self._status_bar_layout = HBox()
         self._layout_initialize(None)
 
+    def _status_bar_show_message(self, value, timeout=5000):
+        pass
+
     def _status_bar_add_label(self, value, stretch=0):
         widget = Text(value=value, disabled=True)
         self._layout_add_widget(self._status_bar_layout, widget)
