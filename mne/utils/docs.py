@@ -23,7 +23,7 @@ from ..externals.decorator import FunctionMaker
 docdict = dict()
 
 # Verbose
-docdict['verbose'] = """\
+docdict['verbose'] = """
 verbose : bool | str | int | None
     Control verbosity of the logging output. If ``None``, use the default
     verbosity level. See the :ref:`logging documentation <tut-logging>` and
