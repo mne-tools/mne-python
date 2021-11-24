@@ -34,6 +34,8 @@ Enhancements
 
 - Add support for reading haemoglobin fNIRS data to :func:`mne.io.read_raw_snirf` (:gh:`9929` by `Robert Luke`_)
 
+- Add :meth:`~mne.io.Info.pick_types` to Info instances (:gh:`xxxx` by `Mathieu Scheltienne`_)
+
 Bugs
 ~~~~
 - Fix default of :func:`mne.io.Raw.plot` to be ``use_opengl=None``, which will act like False unless ``MNE_BROWSER_USE_OPENGL=true`` is set in the user configuration (:gh:`9957` by `Eric Larson`_)
