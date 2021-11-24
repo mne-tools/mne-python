@@ -1069,5 +1069,5 @@ def test_pick_info():
     info.pick_types(eeg=True)
     assert info.ch_names == ['EEG1']
     info['bads'] = ['EEG1']
-    with pytest.raises(ValueError, 'No channels match the selection.'):
+    with pytest.raises(ValueError, match='No channels match the selection.'):
         info.pick_types(eeg=True, exclude='bads')
