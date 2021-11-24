@@ -23,7 +23,7 @@ from ..externals.decorator import FunctionMaker
 docdict = dict()
 
 # Verbose
-docdict['verbose'] = """
+docdict['verbose'] = """\
 verbose : bool | str | int | None
     Control verbosity of the logging output. If ``None``, use the default
     verbosity level. See the :ref:`logging documentation <tut-logging>` and
@@ -627,7 +627,7 @@ picks : int | list of int | slice | None
 
 # Pick types
 docdict['pick_types_header'] = 'Pick some channels by type and names.'
-docdict['pick_types_parameters'] = """
+docdict['pick_types_parameters'] = """\
 meg : bool | str
     If True include MEG channels. If string it can be 'mag', 'grad',
     'planar1' or 'planar2' to select only magnetometers, all
@@ -685,8 +685,7 @@ exclude : list of str | str
     List of channels to exclude. If 'bads' (default), exclude channels
     in ``info['bads']``.
 selection : list of str
-    Restrict sensor channels (MEG, EEG) to this list of channel names.
-"""
+    Restrict sensor channels (MEG, EEG) to this list of channel names."""
 
 # Units
 docdict['units'] = """
