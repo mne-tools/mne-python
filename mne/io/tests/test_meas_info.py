@@ -1059,3 +1059,15 @@ def test_info_bad():
             info[key] = info[key]
     with pytest.raises(ValueError, match='between meg<->head'):
         info['dev_head_t'] = Transform('mri', 'head', np.eye(4))
+
+
+def test_pick_info():
+    """Test method to pick subsets of channels from Info."""
+    info = create_info(('EEG1', 'EEG2', 'EOG1'), 1000., ('eeg', 'eeg', 'eog'))
+    info.pick_channels(('EEG1', 'EOG1'))
+    assert info.ch_names == ['EEG1', 'EOG1']
+    info.pick_types(eeg=True)
+    assert info.ch_names == ['EEG1']
+    info['bads'] = ['EEG1']
+    with pytest.raises(ValueError, 'No channels match the selection.'):
+        info.pick_types(eeg=True, exclude='bads')
