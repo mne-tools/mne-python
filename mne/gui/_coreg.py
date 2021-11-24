@@ -219,6 +219,7 @@ class CoregistrationUI(HasTraits):
             self._load_trans(trans)
         if not fid_accurate:
             self._set_head_resolution('high')
+            self._forward_widget_command('high_res_head', "set_value", True)
             self._set_lock_fids(True)  # hack to make the dig disappear
         self._set_lock_fids(fid_accurate)
 
