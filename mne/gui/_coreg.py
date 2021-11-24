@@ -392,7 +392,8 @@ class CoregistrationUI(HasTraits):
             self._display_message()
         else:
             self._forward_widget_command(view_widgets, "set_enabled", False)
-            self._display_message("Picking fiducials...")
+            self._display_message("Picking fiducials - "
+                                  f"{self._current_fiducial.upper()}")
         self._set_sensors_visibility(self._lock_fids)
         self._forward_widget_command("lock_fids", "set_value", self._lock_fids)
         self._forward_widget_command(fid_widgets, "set_enabled",
@@ -409,6 +410,9 @@ class CoregistrationUI(HasTraits):
     def _current_fiducial_changed(self, change=None):
         self._update_fiducials()
         self._follow_fiducial_view()
+        if not self._lock_fids:
+            self._display_message("Picking fiducials - "
+                                  f"{self._current_fiducial.upper()}")
 
     @observe("_info_file")
     def _info_file_changed(self, change=None):
