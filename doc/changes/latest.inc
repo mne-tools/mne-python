@@ -34,7 +34,7 @@ Enhancements
 
 - Add support for reading haemoglobin fNIRS data to :func:`mne.io.read_raw_snirf` (:gh:`9929` by `Robert Luke`_)
 
-- Add :meth:`~mne.io.Info.pick_types` to Info instances (:gh:`xxxx` by `Mathieu Scheltienne`_)
+- Add :meth:`~mne.io.Info.pick_types` to Info instances (:gh:`10035` by `Mathieu Scheltienne`_)
 
 Bugs
 ~~~~
