@@ -389,10 +389,10 @@ class CoregistrationUI(HasTraits):
         self._set_head_transparency(self._lock_fids)
         if self._lock_fids:
             self._forward_widget_command(view_widgets, "set_enabled", True)
-            self._actors["msg"].SetInput("")
+            self._display_message()
         else:
             self._forward_widget_command(view_widgets, "set_enabled", False)
-            self._actors["msg"].SetInput("Picking fiducials...")
+            self._display_message("Picking fiducials...")
         self._set_sensors_visibility(self._lock_fids)
         self._forward_widget_command("lock_fids", "set_value", self._lock_fids)
         self._forward_widget_command(fid_widgets, "set_enabled",
@@ -497,7 +497,6 @@ class CoregistrationUI(HasTraits):
             self._on_button_release,
             self._on_pick
         )
-        self._actors["msg"] = self._renderer.text2d(0, 0, "")
 
     def _on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
@@ -598,8 +597,11 @@ class CoregistrationUI(HasTraits):
         finally:
             self._plot_locked = old_plot_locked
 
-    def _display_message(self, msg):
-        self._actors["msg"].SetInput(msg)
+    def _display_message(self, msg=""):
+        if "msg" not in self._actors:
+            self._actors["msg"] = self._renderer.text2d(0, 0, msg)
+        else:
+            self._actors["msg"].SetInput(msg)
         self._renderer._update()
 
     def _follow_fiducial_view(self):
@@ -760,7 +762,7 @@ class CoregistrationUI(HasTraits):
             callback=callback,
             verbose=self._verbose,
         )
-        self._display_message("")
+        self._display_message()
         self._update_parameters()
 
     def _save_trans(self, fname):
