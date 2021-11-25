@@ -782,6 +782,20 @@ class MNEBrowseFigure(MNEFigure):
                 checkbox = self.mne.fig_annotation.mne.channel_checkbox
                 with _events_off(checkbox):
                     checkbox.set_active(0)
+        elif key == "q":
+            if self.mne.fig_annotation is not None:
+                onset = self.mne.t_start
+                duration = self.mne.duration
+                _merge_annotations(onset, onset + duration, "QS",
+                               self.mne.inst.annotations)                
+                self._redraw(update_data=False, annotations=True)
+        elif key == "e":
+            if self.mne.fig_annotation is not None:
+                onset = self.mne.t_start
+                duration = self.mne.duration
+                _merge_annotations(onset, onset + duration, "NQS",
+                               self.mne.inst.annotations)                
+                self._redraw(update_data=False, annotations=True)
         elif key == 's':  # scalebars
             self._toggle_scalebars(event)
         elif key == 'w':  # toggle noise cov whitening
@@ -1487,10 +1501,8 @@ class MNEBrowseFigure(MNEFigure):
         idxst = dists.argmin()
         dists = np.array([abs(text.get_position()[1]-y2) for text in texts]) 
         idxen = dists.argmin()        
-        channels = texts[idxst:idxen]                                
+        channels = texts[idxst:idxen+1]                                
         
-        print(f"({x1:3.2f}, {y1:3.2f}) --> ({x2:3.2f}, {y2:3.2f})")
-        print(f" The buttons you used were: {eclick.button} {erelease.button}")
         onset = _sync_onset(self.mne.inst, x1, True) - self.mne.first_time
         duration = x2 - x1        
         buttons = self.mne.fig_annotation.mne.radio_ax.buttons
@@ -1575,34 +1587,46 @@ class MNEBrowseFigure(MNEFigure):
         self._update_annotation_segments()
         segments = self.mne.annotation_segments
         times = self.mne.times
-        ax = self.mne.ax_main      
+        ax = self.mne.ax_main    
+        channelwise= False        
         for idx, (start, end) in enumerate(segments):
             ylim = ax.get_ylim()        
-            if len(self.mne.inst.annotations.description[idx].split(","))==2:                            
+            if len(self.mne.inst.annotations.description[idx].split(","))==2:
                 descr = self.mne.inst.annotations.description[idx].split(",")[0]
-                chname = self.mne.inst.annotations.description[idx].split(",")[1]                             
-                yindex = [tt.get_position()[1] for tt in ax.yaxis.get_ticklabels() \
-                          if tt.get_text()==chname][0]
-                ylim = [yindex-0.1,yindex+0.1]                
+                channelwise = True
+                chname = self.mne.inst.annotations.description[idx].split(",")[1] 
+                try:                            
+                    yindex = [tt.get_position()[1] for tt in ax.yaxis.get_ticklabels() \
+                              if tt.get_text()==chname][0]
+                    ylim = [yindex-0.1,yindex+0.1]                
+                except IndexError:
+                    pass
             else:
+                channelwise=False
                 descr = self.mne.inst.annotations.description[idx] 
             segment_color = self.mne.annotation_segment_colors[descr]
             kwargs = dict(color=segment_color, alpha=0.3,
                           zorder=self.mne.zorder['ann'])
             if self.mne.visible_annotations[descr]:
                 # draw all segments on ax_hscroll
-                # annot = self.mne.ax_hscroll.fill_betweenx((0, 1), start, end,
-                #                                           **kwargs)
-                # self.mne.hscroll_annotations.append(annot)
+                if not channelwise:
+                    annot = self.mne.ax_hscroll.fill_betweenx((0, 1), start, end,
+                                                              **kwargs)
+                    self.mne.hscroll_annotations.append(annot)
                 # draw only visible segments on ax_main
                 visible_segment = np.clip([start, end], times[0], times[-1])
                 if np.diff(visible_segment) > 0:
                     annot = ax.fill_betweenx(ylim, *visible_segment, **kwargs)
                     self.mne.annotations.append(annot)
                     xy = (visible_segment.mean(), ylim[1])
-                    text = ax.annotate(descr, xy, xytext=(0, 9),
-                                       textcoords='offset points', ha='center',
-                                       va='baseline', color=segment_color)
+                    if channelwise:
+                        text = ax.annotate("", xy, xytext=(0, 9),
+                                            textcoords='offset points', ha='center',
+                                            va='baseline', color=segment_color)
+                    else:
+                        text = ax.annotate(descr, xy, xytext=(0, 9),
+                                           textcoords='offset points', ha='center',
+                                           va='baseline', color=segment_color)
                     self.mne.annotation_texts.append(text)        
 
     def _update_annotation_segments(self):
