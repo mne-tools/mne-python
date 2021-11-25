@@ -3,6 +3,7 @@ from functools import partial
 import os
 import os.path as op
 import time
+import threading
 
 import numpy as np
 from traitlets import observe, HasTraits, Unicode, Bool, Float
@@ -106,6 +107,7 @@ class CoregistrationUI(HasTraits):
     _grow_hair = Float()
     _scale_mode = Unicode()
     _icp_fid_match = Unicode()
+    _sync_locked = Bool()
 
     def __init__(self, info_file, subject=None, subjects_dir=None,
                  fiducials='auto', head_resolution=None,
@@ -124,7 +126,8 @@ class CoregistrationUI(HasTraits):
         self._widgets = dict()
         self._verbose = verbose
         self._plot_locked = False
-        self._sync_locked = False
+        self._mutex = threading.Lock()
+        self._set_parameter_queue = list()
         self._head_geo = None
         self._coord_frame = "mri"
         self._mouse_no_mvt = -1
@@ -322,6 +325,9 @@ class CoregistrationUI(HasTraits):
 
     def _set_parameter(self, value, mode_name, coord):
         if self._sync_locked:
+            self._mutex.acquire()
+            self._set_parameter_queue.append(tuple([value, mode_name, coord]))
+            self._mutex.release()
             return
         else:
             self._sync_locked = True
@@ -493,6 +499,14 @@ class CoregistrationUI(HasTraits):
     @observe("_icp_fid_match")
     def _icp_fid_match_changed(self, change=None):
         self._coreg.set_fid_match(self._icp_fid_match)
+
+    @observe("_sync_locked")
+    def _sync_locked_changed(self, change=None):
+        if not self._sync_locked and len(self._set_parameter_queue) > 0:
+            self._mutex.acquire()
+            params = self._set_parameter_queue.pop(0)
+            self._mutex.release()
+            self._set_parameter(*params)
 
     def _configure_picking(self):
         self._renderer._update_picking_callback(
