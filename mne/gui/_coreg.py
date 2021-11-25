@@ -237,8 +237,7 @@ class CoregistrationUI(HasTraits):
         views = {True: dict(azimuth=90, elevation=90),  # front
                  False: dict(azimuth=180, elevation=90)}  # left
         self._renderer.set_camera(distance=None, **views[self._lock_fids])
-        # PyVistaQt only
-        if hasattr(self._renderer.plotter, 'add_callback'):
+        if self._renderer._kind == 'qt':
             self._renderer.plotter.add_callback(self._redraw_sensors,
                                                 self._refresh_rate_ms)
         if standalone:
@@ -355,13 +354,11 @@ class CoregistrationUI(HasTraits):
             tra=params["translation"],
             sca=params["scale"],
         )
-        self._redraw_pending = True
+        if self._renderer._kind == 'qt':
+            self._redraw_pending = True
+        else:
+            self._update_plot('sensors')
         self._sync_locked = False
-
-    def _redraw_sensors(self):
-        if self._redraw_pending:
-            self._update_plot("sensors")
-            self._redraw_pending = False
 
     def _set_icp_n_iterations(self, n_iterations):
         self._icp_n_iterations = n_iterations
@@ -526,6 +523,11 @@ class CoregistrationUI(HasTraits):
             self._on_button_release,
             self._on_pick
         )
+
+    def _redraw_sensors(self):
+        if self._redraw_pending:
+            self._update_plot("sensors")
+            self._redraw_pending = False
 
     def _on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
