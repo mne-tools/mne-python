@@ -153,6 +153,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                  notebook=None, smooth_shading=True):
         from .renderer import MNE_3D_BACKEND_TESTING
         from .._3d import _get_3d_option
+        _require_minimum_version('0.32')
         figure = _Figure(show=show, title=name, size=size, shape=shape,
                          background_color=bgcolor, notebook=notebook,
                          smooth_shading=smooth_shading)
@@ -1124,8 +1125,12 @@ def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
 
 def _require_minimum_version(version_required):
     from distutils.version import LooseVersion
-    version = LooseVersion(pyvista.__version__)
-    if version < version_required:
+    version = pyvista.__version__
+    if 'dev0' in version:
+        idx = version.find('.dev0')
+        version = version[:idx]
+        version_required = version_required[:idx]
+    if LooseVersion(version) < LooseVersion(version_required):
         raise ImportError('pyvista>={} is required for this module but the '
                           'version found is {}'.format(version_required,
                                                        version))
