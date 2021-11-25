@@ -39,7 +39,7 @@ from mne.io._digitization import _write_dig_points, _make_dig_points, DigPoint
 from mne.io import read_raw_ctf
 from mne.transforms import Transform
 from mne.utils import catch_logging, assert_object_equal
-from mne.channels import make_standard_montage, equalize_channels
+from mne.channels import make_standard_montage
 
 fiducials_fname = op.join(op.dirname(__file__), '..', '..', 'data',
                           'fsaverage', 'fsaverage-fiducials.fif')
