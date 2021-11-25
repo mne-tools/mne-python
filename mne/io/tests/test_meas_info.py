@@ -829,16 +829,6 @@ def test_field_round_trip(tmp_path):
     assert_object_equal(info, info_read)
 
 
-def test_equalize_channels():
-    """Test equalization of channels for instances of Info."""
-    info1 = create_info(['CH1', 'CH2', 'CH3'], sfreq=1.)
-    info2 = create_info(['CH4', 'CH2', 'CH1'], sfreq=1.)
-    info1, info2 = equalize_channels([info1, info2])
-
-    assert info1.ch_names == ['CH1', 'CH2']
-    assert info2.ch_names == ['CH1', 'CH2']
-
-
 def test_repr():
     """Test Info repr."""
     info = create_info(1, 1000, 'eeg')
@@ -1059,3 +1049,12 @@ def test_info_bad():
             info[key] = info[key]
     with pytest.raises(ValueError, match='between meg<->head'):
         info['dev_head_t'] = Transform('mri', 'head', np.eye(4))
+
+
+def test_info_pick_channels():
+    """Test that info.pick_channels emmits a deprecation warning."""
+    info = create_info(2, 1000., 'eeg')
+    with pytest.warns(DeprecationWarning,
+                      match='This method is deprecated and will be removed '
+                            'after 1.1. To pick channels from'):
+        info.pick_channels(['0'])

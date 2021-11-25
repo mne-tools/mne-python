@@ -138,7 +138,6 @@ def equalize_channels(instances, copy=True, verbose=None):
     """
     from ..cov import Covariance
     from ..io.base import BaseRaw
-    from ..io.meas_info import Info
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
     from ..forward import Forward
@@ -147,9 +146,9 @@ def equalize_channels(instances, copy=True, verbose=None):
     # Instances need to have a `ch_names` attribute and a `pick_channels`
     # method that supports `ordered=True`.
     allowed_types = (BaseRaw, BaseEpochs, Evoked, _BaseTFR, Forward,
-                     Covariance, CrossSpectralDensity, Info)
-    allowed_types_str = ("Raw, Epochs, Evoked, TFR, Forward, Covariance, "
-                         "CrossSpectralDensity or Info")
+                     Covariance, CrossSpectralDensity)
+    allowed_types_str = ("Raw, Epochs, Evoked, TFR, Forward, Covariance, or "
+                         "CrossSpectralDensity.")
     for inst in instances:
         _validate_type(inst, allowed_types, "Instances to be modified",
                        allowed_types_str)
