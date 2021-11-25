@@ -1029,6 +1029,11 @@ class Info(dict, MontageMixin):
 
         .. versionadded:: 0.20.0
         """
+        warn('This method is deprecated and will be removed after 1.1. To '
+             'pick channels from an instance, use '
+             'inst.pick_channels(ch_names). To pick channels from an Info, '
+             'use mne.pick_info(info, sel).', DeprecationWarning)
+
         sel = pick_channels(self.ch_names, ch_names, exclude=[],
                             ordered=ordered)
         return pick_info(self, sel, copy=False, verbose=False)
