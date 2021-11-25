@@ -384,9 +384,7 @@ class CoregistrationUI(HasTraits):
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
-        view_widgets = ["orient_glyphs", "scale_by_distance", "project_eeg",
-                        "mark_inside", "show_hpi", "show_hsp", "show_eeg",
-                        "high_res_head"]
+        view_widgets = ["project_eeg"]
         fid_widgets = ["fid_X", "fid_Y", "fid_Z", "fids_file", "fids"]
         self._set_head_transparency(self._lock_fids)
         if self._lock_fids:
