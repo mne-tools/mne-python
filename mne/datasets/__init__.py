@@ -40,5 +40,6 @@ __all__ = [
     'misc', 'mtrf', 'multimodal', 'opm', 'phantom_4dbti', 'sample',
     'sleep_physionet', 'somato', 'spm_face', 'ssvep', 'testing',
     'visual_92_categories', 'limo', 'erp_core', 'epilepsy_ecog',
-    'fetch_dataset', 'fetch_phantom', 'has_dataset'
+    'fetch_dataset', 'fetch_phantom', 'has_dataset', 'refmeg_noise',
+    'fnirs_motor'
 ]
