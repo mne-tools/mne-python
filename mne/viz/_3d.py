@@ -978,19 +978,19 @@ def _plot_mri_fiducials(renderer, mri_fiducials, subjects_dir, subject,
     return actors
 
 
-def _plot_hpi_coils(renderer, info, to_cf_t, opacity=0.5,
+def _plot_hpi_coils(renderer, info, to_cf_t, opacity=0.5, scale=None,
                     orient_glyphs=False, scale_by_distance=False,
                     surf=None):
     defaults = DEFAULTS['coreg']
+    scale = defaults['hpi_scale'] if scale is None else scale
     hpi_loc = np.array([
         d['r'] for d in (info['dig'] or [])
         if (d['kind'] == FIFF.FIFFV_POINT_HPI and
             d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
     hpi_loc = apply_trans(to_cf_t['head'], hpi_loc)
     actor, _ = _plot_glyphs(renderer=renderer, loc=hpi_loc,
-                            color=defaults['hpi_color'],
-                            scale=defaults['hpi_scale'], opacity=opacity,
-                            orient_glyphs=orient_glyphs,
+                            color=defaults['hpi_color'], scale=scale,
+                            opacity=opacity, orient_glyphs=orient_glyphs,
                             scale_by_distance=scale_by_distance, surf=surf,
                             backface_culling=True)
     return actor

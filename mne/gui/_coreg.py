@@ -684,6 +684,7 @@ class CoregistrationUI(HasTraits):
             hpi_actors = _plot_hpi_coils(
                 self._renderer, self._info, self._to_cf_t,
                 opacity=self._defaults["sensor_opacity"],
+                scale=DEFAULTS["coreg"]["extra_scale"],
                 orient_glyphs=self._orient_glyphs,
                 scale_by_distance=self._scale_by_distance,
                 surf=self._head_geo)
