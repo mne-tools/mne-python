@@ -126,6 +126,8 @@ class CoregistrationUI(HasTraits):
         self._widgets = dict()
         self._verbose = verbose
         self._plot_locked = False
+        self._refresh_rate_ms = max(int(round(1000. / 60.)), 1)
+        self._redraw_pending = False
         self._mutex = threading.Lock()
         self._set_parameter_queue = list()
         self._head_geo = None
@@ -235,6 +237,10 @@ class CoregistrationUI(HasTraits):
         views = {True: dict(azimuth=90, elevation=90),  # front
                  False: dict(azimuth=180, elevation=90)}  # left
         self._renderer.set_camera(distance=None, **views[self._lock_fids])
+        # PyVistaQt only
+        if hasattr(self._renderer.plotter, 'add_callback'):
+            self._renderer.plotter.add_callback(self._redraw_sensors,
+                                                self._refresh_rate_ms)
         if standalone:
             self._renderer.figure.store["app"].exec()
 
@@ -349,8 +355,13 @@ class CoregistrationUI(HasTraits):
             tra=params["translation"],
             sca=params["scale"],
         )
-        self._update_plot("sensors")
+        self._redraw_pending = True
         self._sync_locked = False
+
+    def _redraw_sensors(self):
+        if self._redraw_pending:
+            self._update_plot("sensors")
+            self._redraw_pending = False
 
     def _set_icp_n_iterations(self, n_iterations):
         self._icp_n_iterations = n_iterations
@@ -1091,6 +1102,7 @@ class CoregistrationUI(HasTraits):
         self._surfaces.clear()
         self._defaults.clear()
         self._head_geo = None
+        self._redraw = None
 
     def close(self):
         """Close interface and cleanup data structure."""
