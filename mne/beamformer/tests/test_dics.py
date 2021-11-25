@@ -150,7 +150,7 @@ def _make_rand_csd(info, csd):
     pytest.param(False, marks=pytest.mark.slowtest),
     True,
 ])
-def test_make_dics(tmpdir, _load_forward, idx, whiten):
+def test_make_dics(tmp_path, _load_forward, idx, whiten):
     """Test making DICS beamformer filters."""
     # We only test proper handling of parameters here. Testing the results is
     # done in test_apply_dics_timeseries and test_apply_dics_csd.
@@ -319,7 +319,7 @@ def test_make_dics(tmpdir, _load_forward, idx, whiten):
     # Test whether spatial filter contains src_type
     assert 'src_type' in filters
 
-    fname = op.join(str(tmpdir), 'filters-dics.h5')
+    fname = op.join(str(tmp_path), 'filters-dics.h5')
     filters.save(fname)
     filters_read = read_beamformer(fname)
     assert isinstance(filters, Beamformer)

@@ -11,8 +11,8 @@ electrocorticography (ECoG) data.
 
 This example shows how to use:
 
-- ECoG data (`available here <https://openneuro.org/datasets/ds003029>`__)
-  from an epilepsy patient during a seizure
+- ECoG data (`available here <https://openneuro.org/datasets/ds003029>`__) from
+  an epilepsy patient during a seizure
 - channel locations in FreeSurfer's ``fsaverage`` MRI space
 - projection onto a pial surface
 
@@ -177,15 +177,15 @@ for i, pos in enumerate(xy_pts):
 # this example short time section. This dataset is available using
 # :func:`mne.datasets.epilepsy_ecog.data_path` for you to examine.
 
-# sphinx_gallery_thumbnail_number = 5
+# sphinx_gallery_thumbnail_number = 3
 
 xyz_pts = np.array([dig['r'] for dig in evoked.info['dig']])
 
 src = mne.read_source_spaces(
     op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
 stc = mne.stc_near_sensors(gamma_power_t, trans='fsaverage',
-                           subject='fsaverage', src=src,
-                           mode='nearest', subjects_dir=subjects_dir,
+                           subject='fsaverage', subjects_dir=subjects_dir,
+                           src=src, surface='pial', mode='nearest',
                            distance=0.02)
 vmin, vmid, vmax = np.percentile(gamma_power_t.data, [10, 25, 90])
 clim = dict(kind='value', lims=[vmin, vmid, vmax])

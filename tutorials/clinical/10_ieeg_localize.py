@@ -3,7 +3,7 @@
 .. _tut-ieeg-localize:
 
 ========================================
-Locating Intracranial Electrode Contacts
+Locating intracranial electrode contacts
 ========================================
 
 Analysis of intracranial electrophysiology recordings typically involves
@@ -133,8 +133,8 @@ viewer.figs[0].axes[0].annotate(
 # =========================
 #
 # Let's load our T1 and CT images and visualize them. You can hardly
-# see the CT, it's so misaligned that it is mostly out of view but there is a
-# part of the skull upsidedown and way off center in the middle plot.
+# see the CT, it's so misaligned that all you can see is part of the
+# stereotactic frame that is anteriolateral to the skull in the middle plot.
 # Clearly, we need to align the CT to the T1 image.
 
 def plot_overlay(image, compare, title, thresh=None):
@@ -190,6 +190,31 @@ reg_affine = np.array([
 CT_aligned = mne.transforms.apply_volume_registration(CT_orig, T1, reg_affine)
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 del CT_orig
+
+# %%
+# .. note::
+#     Alignment failures sometimes occur which requires manual alignment.
+#     This can be done using Freesurfer's ``freeview`` to align manually
+#
+#         - Load the two scans from the command line using
+#           ``freeview $MISC_PATH/seeg/sample_seeg/mri/T1.mgz
+#           $MISC_PATH/seeg/sample_seeg_CT.mgz``
+#         - Navigate to the upper toolbar, go to ``Tools>>Transform Volume...``
+#         - Use the rotation and translation slide bars to align the CT
+#           to the MR (be sure to have the CT selected in the upper left menu)
+#         - Save the modified volume using the ``Save Volume As...`` button
+#         - Resample to the T1 shape and affine using::
+#
+#               CT_aligned_pre = nib.load(op.join(misc_path, 'seeg',
+#                                                 'sample_seeg_CT_aligned.mgz'))
+#               CT_aligned = resample(
+#                   moving=np.asarray(CT_aligned_pre.dataobj),
+#                   static=np.asarray(T1.dataobj),
+#                   moving_affine=CT_aligned_pre.affine,
+#                   static_affine=T1.affine)
+#
+#     The rest of the tutorial can then be completed using ``CT_aligned``
+#     from this point on.
 
 # %%
 # We can now see how the CT image looks properly aligned to the T1 image.
@@ -392,15 +417,11 @@ plot_overlay(template_brain, subject_brain,
 # This aligns the two brains, preparing the subject's brain to be warped
 # to the template.
 #
-# .. warning:: Here we use ``zooms=5`` just for speed, in general we recommend
-#              using ``zooms=None``` (default) for highest accuracy. To deal
-#              with this coarseness, we also use a threshold of 0.8 for the CT
-#              electrodes rather than 0.95. This coarse zoom and low threshold
-#              is useful for getting a quick view of the data, but finalized
-#              pipelines should use ``zooms=None`` instead!
+# .. warning:: Here we use ``zooms=4`` just for speed, in general we recommend
+#              using ``zooms=None`` (default) for highest accuracy!
 
 reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
-    subject_brain, template_brain, zooms=5, verbose=True)
+    subject_brain, template_brain, zooms=4, verbose=True)
 subject_brain_sdr = mne.transforms.apply_volume_registration(
     subject_brain, template_brain, reg_affine, sdr_morph)
 
@@ -426,9 +447,8 @@ del subject_brain, template_brain
 montage = raw.get_montage()
 montage.apply_trans(subj_trans)
 
-# higher thresh such as 0.5 (default) works when `zooms=None`
 montage_warped, elec_image, warped_elec_image = mne.warp_montage_volume(
-    montage, CT_aligned, reg_affine, sdr_morph, thresh=0.1,
+    montage, CT_aligned, reg_affine, sdr_morph, thresh=0.5,
     subject_from='sample_seeg', subjects_dir_from=op.join(misc_path, 'seeg'),
     subject_to='fsaverage', subjects_dir_to=subjects_dir)
 

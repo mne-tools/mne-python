@@ -67,6 +67,7 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
                              subjects_dir=subjects_dir)
 
 
+# TODO this should be refactored with mne._freesurfer._get_head_surface
 def _get_head_surface(subject, source, subjects_dir, raise_error=True):
     """Load the subject head surface."""
     from .bem import read_bem_surfaces
@@ -1656,7 +1657,7 @@ def _mesh_borders(tris, mask):
     return np.unique(edges.row[border_edges])
 
 
-def _marching_cubes(image, level, smooth=0):
+def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
     """Compute marching cubes on a 3D image."""
     # vtkDiscreteMarchingCubes would be another option, but it merges
     # values at boundaries which is not what we want
@@ -1668,6 +1669,7 @@ def _marching_cubes(image, level, smooth=0):
                      vtkWindowedSincPolyDataFilter, vtkDiscreteFlyingEdges3D,
                      vtkGeometryFilter, vtkDataSetAttributes, VTK_DOUBLE)
     from vtk.util import numpy_support
+    from scipy.ndimage.morphology import binary_dilation
     _validate_type(smooth, 'numeric', smooth)
     smooth = float(smooth)
     if not 0 <= smooth < 1:
@@ -1676,17 +1678,30 @@ def _marching_cubes(image, level, smooth=0):
 
     if image.ndim != 3:
         raise ValueError(f'3D data must be supplied, got {image.shape}')
-    # force double as passing integer types directly can be problematic!
-    image_shape = image.shape
-    data_vtk = numpy_support.numpy_to_vtk(
-        image.ravel(), deep=True, array_type=VTK_DOUBLE)
-    del image
+
     level = np.array(level)
     if level.ndim != 1 or level.size == 0 or level.dtype.kind not in 'ui':
         raise TypeError(
             'level must be non-empty numeric or 1D array-like of int, '
             f'got {level.ndim}D array-like of {level.dtype} with '
             f'{level.size} elements')
+
+    # fill holes
+    if fill_hole_size is not None:
+        image = image.copy()  # don't modify original
+        for val in level:
+            bin_image = image == val
+            mask = image == 0  # don't go into other areas
+            bin_image = binary_dilation(bin_image, iterations=fill_hole_size,
+                                        mask=mask)
+            image[bin_image] = val
+
+    # force double as passing integer types directly can be problematic!
+    image_shape = image.shape
+    data_vtk = numpy_support.numpy_to_vtk(
+        image.ravel(), deep=True, array_type=VTK_DOUBLE)
+    del image
+
     mc = vtkDiscreteFlyingEdges3D()
     # create image
     imdata = vtkImageData()
@@ -1703,7 +1718,7 @@ def _marching_cubes(image, level, smooth=0):
     sel_input = mc
     if smooth:
         smoother = vtkWindowedSincPolyDataFilter()
-        smoother.SetInputConnection(mc.GetOutputPort())
+        smoother.SetInputConnection(sel_input.GetOutputPort())
         smoother.SetNumberOfIterations(100)
         smoother.BoundarySmoothingOff()
         smoother.FeatureEdgeSmoothingOff()
@@ -1722,9 +1737,17 @@ def _marching_cubes(image, level, smooth=0):
         0, 0, 0, imdata.FIELD_ASSOCIATION_POINTS, dsa.SCALARS)
     geometry = vtkGeometryFilter()
     geometry.SetInputConnection(selector.GetOutputPort())
+
     out = list()
     for val in level:
-        selector.ThresholdBetween(val, val)
+        try:
+            selector.SetLowerThreshold
+        except AttributeError:
+            selector.ThresholdBetween(val, val)
+        else:
+            # default SetThresholdFunction is between, so:
+            selector.SetLowerThreshold(val)
+            selector.SetUpperThreshold(val)
         geometry.Update()
         polydata = geometry.GetOutput()
         rr = numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())
@@ -1767,7 +1790,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     ----------
     montage : instance of mne.channels.DigMontage
         The montage object containing the channels.
-    base_image : str | pathlib.Path | nibabel.spatialimages.SpatialImage
+    base_image : path-like | nibabel.spatialimages.SpatialImage
         Path to a volumetric scan (e.g. CT) of the subject. Can be in any
         format readable by nibabel. Can also be a nibabel image object.
         Local extrema (max or min) should be nearby montage channel locations.
@@ -1778,11 +1801,11 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     subject_to : str
         The name of the subject to use as a template to morph to
         (e.g. 'fsaverage').
-    subjects_dir_from : str | pathlib.Path | None
+    subjects_dir_from : path-like | None
         The path to the Freesurfer ``recon-all`` directory for the
         ``subject_from`` subject. The ``SUBJECTS_DIR`` environment
         variable will be used when ``None``.
-    subjects_dir_to : str | pathlib.Path | None
+    subjects_dir_to : path-like | None
         The path to the Freesurfer ``recon-all`` directory for the
         ``subject_to`` subject. ``subject_dir_from`` will be used
         when ``None``.
@@ -1917,12 +1940,12 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     return montage_warped, image_from, image_to
 
 
-_VOXELS_MAX = 100  # define constant to avoid runtime issues
+_VOXELS_MAX = 1000  # define constant to avoid runtime issues
 
 
 @fill_doc
 def get_montage_volume_labels(montage, subject, subjects_dir=None,
-                              aseg='aparc+aseg', dist=5):
+                              aseg='aparc+aseg', dist=2):
     """Get regions of interest near channels from a Freesurfer parcellation.
 
     .. note:: This is applicable for channels inside the brain
@@ -1949,6 +1972,9 @@ def get_montage_volume_labels(montage, subject, subjects_dir=None,
 
     _validate_type(montage, DigMontage, 'montage')
     _validate_type(dist, (int, float), 'dist')
+
+    if dist < 0 or dist > 10:
+        raise ValueError('`dist` must be between 0 and 10')
 
     aseg, aseg_data = _get_aseg(aseg, subject, subjects_dir)
 
@@ -2076,9 +2102,13 @@ def _voxel_neighbors(seed, image, thresh=None, max_peak_dist=1,
         for next_loc in neighbors:
             voxel_neighbors = _get_neighbors(next_loc, image, voxels,
                                              thresh, dist_params)
+            # prevent looping back to already visited voxels
+            voxel_neighbors = voxel_neighbors.difference(voxels)
+            # add voxels not already visited to search next
+            next_neighbors = next_neighbors.union(voxel_neighbors)
+            # add new voxels that match the criteria to the overall set
             voxels = voxels.union(voxel_neighbors)
             if len(voxels) > voxels_max:
                 break
-            next_neighbors = next_neighbors.union(voxel_neighbors)
-        neighbors = next_neighbors
+        neighbors = next_neighbors  # start again checking all new neighbors
     return voxels

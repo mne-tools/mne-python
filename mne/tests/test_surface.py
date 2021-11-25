@@ -117,9 +117,9 @@ def test_compute_nearest():
 
 
 @testing.requires_testing_data
-def test_io_surface(tmpdir):
+def test_io_surface(tmp_path):
     """Test reading and writing of Freesurfer surface mesh files."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fname_quad = op.join(data_path, 'subjects', 'bert', 'surf',
                          'lh.inflated.nofix')
     fname_tri = op.join(data_path, 'subjects', 'sample', 'bem',
@@ -240,6 +240,12 @@ def test_marching_cubes(dtype, value, smooth):
     rtol = 1e-2 if smooth else 1e-9
     assert_allclose(verts.sum(axis=0), [14700, 14700, 14700], rtol=rtol)
     assert_allclose(triangles.sum(axis=0), [363402, 360865, 350588])
+    # test fill holes
+    data[24:27, 24:27, 24:27] = 0
+    verts, triangles = _marching_cubes(data, level, smooth=smooth,
+                                       fill_hole_size=2)[0]
+    # check that no surfaces in the middle
+    assert np.linalg.norm(verts - np.array([25, 25, 25]), axis=1).min() > 4
     # problematic values
     with pytest.raises(TypeError, match='1D array-like'):
         _marching_cubes(data, ['foo'])
@@ -282,17 +288,19 @@ def test_get_montage_volume_labels():
                        match='Coordinate frame not supported'):
         get_montage_volume_labels(
             fail_montage, 'sample', subjects_dir, aseg='aseg')
+    with pytest.raises(ValueError, match='between 0 and 10'):
+        get_montage_volume_labels(montage, 'sample', subjects_dir, dist=11)
 
 
 def test_voxel_neighbors():
     """Test finding points above a threshold near a seed location."""
-    image = np.zeros((10, 10, 10))
-    image[4:7, 4:7, 4:7] = 3
-    image[5, 5, 5] = 4
+    locs = np.array(np.meshgrid(*[np.linspace(-1, 1, 101)] * 3))
+    image = 1 - np.linalg.norm(locs, axis=0)
+    true_volume = set([tuple(coord) for coord in
+                       np.array(np.where(image > 0.95)).T])
     volume = _voxel_neighbors(
-        (5.5, 5.1, 4.9), image, thresh=2, max_peak_dist=1, use_relative=False)
-    true_volume = set([(5, 4, 5), (5, 5, 4), (5, 5, 5), (6, 5, 5),
-                       (5, 6, 5), (5, 5, 6), (4, 5, 5)])
+        np.array([-0.3, 0.6, 0.5]) + (np.array(image.shape[0]) - 1) / 2,
+        image, thresh=0.95, use_relative=False)
     assert volume.difference(true_volume) == set()
     assert true_volume.difference(volume) == set()
 

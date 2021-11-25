@@ -19,9 +19,9 @@ data_dir = os.path.join(parent_dir, 'data')
 mrk_fname = os.path.join(data_dir, 'test_mrk.sqd')
 
 
-def test_io_mrk(tmpdir):
+def test_io_mrk(tmp_path):
     """Test IO for mrk files."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     pts = read_mrk(mrk_fname)
 
     # txt

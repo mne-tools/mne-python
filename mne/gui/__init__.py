@@ -6,17 +6,7 @@
 
 import os
 
-from ..utils import _check_mayavi_version, verbose, get_config, warn
-from ._backend import _testing_mode
-
-
-def _initialize_gui(frame, view=None):
-    """Initialize GUI depending on testing mode."""
-    if _testing_mode():  # open without entering mainloop
-        return frame.edit_traits(view=view), frame
-    else:
-        frame.configure_traits(view=view)
-        return frame
+from ..utils import verbose, get_config, warn
 
 
 @verbose
@@ -92,12 +82,13 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         different color.
 
         .. versionadded:: 0.16
-    interaction : str | None
-        Can be 'terrain' (default None), use terrain-style interaction (where
-        "up" is the Z/superior direction), or 'trackball' to use
-        orientationless interactions.
+    %(scene_interaction_None)s
+        Defaults to ``'terrain'``.
 
         .. versionadded:: 0.16
+        .. versionchanged:: 1.0
+           Default interaction mode if ``None`` and no config setting found
+           changed from ``'trackball'`` to ``'terrain'``.
     scale : float | None
         The scaling for the scene.
 
@@ -117,7 +108,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
     Returns
     -------
-    frame : instance of CoregFrame or CoregistrationUI
+    frame : instance of CoregistrationUI
         The coregistration frame.
 
     Notes
@@ -132,32 +123,28 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     subjects for which no MRI is available
     <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
-    from ..viz.backends.renderer import _get_3d_backend
-    pyvistaqt = _get_3d_backend() == 'pyvistaqt'
-    if pyvistaqt:
-        # unsupported parameters
-        params = {
-            'tabbed': (tabbed, False),
-            'split': (split, True),
-            'scrollable': (scrollable, True),
-            'head_inside': (head_inside, True),
-            'guess_mri_subject': guess_mri_subject,
-            'head_opacity': head_opacity,
-            'project_eeg': project_eeg,
-            'scale_by_distance': scale_by_distance,
-            'mark_inside': mark_inside,
-            'interaction': interaction,
-            'scale': scale,
-            'advanced_rendering': advanced_rendering,
-        }
-        for key, val in params.items():
-            if isinstance(val, tuple):
-                to_raise = val[0] != val[1]
-            else:
-                to_raise = val is not None
-            if to_raise:
-                warn(f"The parameter {key} is not supported with"
-                      " the pyvistaqt 3d backend. It will be ignored.")
+    # unsupported parameters
+    params = {
+        'tabbed': (tabbed, False),
+        'split': (split, True),
+        'scrollable': (scrollable, True),
+        'head_inside': (head_inside, True),
+        'guess_mri_subject': guess_mri_subject,
+        'head_opacity': head_opacity,
+        'project_eeg': project_eeg,
+        'scale_by_distance': scale_by_distance,
+        'mark_inside': mark_inside,
+        'scale': scale,
+        'advanced_rendering': advanced_rendering,
+    }
+    for key, val in params.items():
+        if isinstance(val, tuple):
+            to_raise = val[0] != val[1]
+        else:
+            to_raise = val is not None
+        if to_raise:
+            warn(f"The parameter {key} is not supported with"
+                  " the pyvistaqt 3d backend. It will be ignored.")
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     if guess_mri_subject is None:
         guess_mri_subject = config.get(
@@ -190,7 +177,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         scale_by_distance = (config.get('MNE_COREG_SCALE_BY_DISTANCE', '') ==
                              'true')
     if interaction is None:
-        interaction = config.get('MNE_COREG_INTERACTION', 'trackball')
+        interaction = config.get('MNE_COREG_INTERACTION', 'terrain')
     if mark_inside is None:
         mark_inside = config.get('MNE_COREG_MARK_INSIDE', '') == 'true'
     if scale is None:
@@ -200,83 +187,17 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     width = int(width)
     height = int(height)
     scale = float(scale)
-    if pyvistaqt:
-        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
-        from ._coreg import CoregistrationUI
-        show = not MNE_3D_BACKEND_TESTING
-        standalone = not MNE_3D_BACKEND_TESTING
-        return CoregistrationUI(
-            info_file=inst, subject=subject, subjects_dir=subjects_dir,
-            head_resolution=head_high_res, orient_glyphs=orient_to_surface,
-            trans=trans, size=(width, height), show=show, standalone=standalone,
-            verbose=verbose
-        )
-    else:
-        _check_mayavi_version()
-        from ._backend import _check_backend
-        _check_backend()
-        from ._coreg_gui import CoregFrame, _make_view
-        view = _make_view(tabbed, split, width, height, scrollable)
-        frame = CoregFrame(inst, subject, subjects_dir, guess_mri_subject,
-                           head_opacity, head_high_res, trans, config,
-                           project_eeg=project_eeg,
-                           orient_to_surface=orient_to_surface,
-                           scale_by_distance=scale_by_distance,
-                           mark_inside=mark_inside, interaction=interaction,
-                           scale=scale, advanced_rendering=advanced_rendering,
-                           head_inside=head_inside)
-        return _initialize_gui(frame, view)
 
-
-def fiducials(subject=None, fid_file=None, subjects_dir=None):
-    """Set the fiducials for an MRI subject.
-
-    Parameters
-    ----------
-    subject : str
-        Name of the mri subject.
-    fid_file : None | str
-        Load a fiducials file different form the subject's default
-        ("{subjects_dir}/{subject}/bem/{subject}-fiducials.fif").
-    subjects_dir : None | str
-        Overrule the subjects_dir environment variable.
-
-    Returns
-    -------
-    frame : instance of FiducialsFrame
-        The GUI frame.
-
-    Notes
-    -----
-    All parameters are optional, since they can be set through the GUI.
-    The functionality in this GUI is also part of :func:`coregistration`.
-    """
-    _check_mayavi_version()
-    from ._backend import _check_backend
-    _check_backend()
-    from ._fiducials_gui import FiducialsFrame
-    frame = FiducialsFrame(subject, subjects_dir, fid_file=fid_file)
-    return _initialize_gui(frame)
-
-
-def kit2fiff():
-    """Convert KIT files to the fiff format.
-
-    The recommended way to use the GUI is through bash with::
-
-        $ mne kit2fiff
-
-    Returns
-    -------
-    frame : instance of Kit2FiffFrame
-        The GUI frame.
-    """
-    _check_mayavi_version()
-    from ._backend import _check_backend
-    _check_backend()
-    from ._kit2fiff_gui import Kit2FiffFrame
-    frame = Kit2FiffFrame()
-    return _initialize_gui(frame)
+    from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+    from ._coreg import CoregistrationUI
+    show = not MNE_3D_BACKEND_TESTING
+    standalone = not MNE_3D_BACKEND_TESTING
+    return CoregistrationUI(
+        info_file=inst, subject=subject, subjects_dir=subjects_dir,
+        head_resolution=head_high_res, orient_glyphs=orient_to_surface,
+        trans=trans, size=(width, height), show=show, standalone=standalone,
+        interaction=interaction, verbose=verbose
+    )
 
 
 @verbose
@@ -288,7 +209,7 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     ----------
     %(info_not_none)s
     %(trans_not_none)s
-    aligned_ct : str | pathlib.Path | nibabel.spatialimages.SpatialImage
+    aligned_ct : path-like | nibabel.spatialimages.SpatialImage
         The CT image that has been aligned to the Freesurfer T1. Path-like
         inputs and nibabel image objects are supported.
     %(subject)s

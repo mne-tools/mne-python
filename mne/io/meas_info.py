@@ -14,6 +14,7 @@ import datetime
 from io import BytesIO
 import operator
 from textwrap import shorten
+import string
 
 import numpy as np
 
@@ -109,6 +110,7 @@ def _get_valid_units():
 @verbose
 def _unique_channel_names(ch_names, max_length=None, verbose=None):
     """Ensure unique channel names."""
+    suffixes = tuple(string.ascii_lowercase)
     if max_length is not None:
         ch_names[:] = [name[:max_length] for name in ch_names]
     unique_ids = np.unique(ch_names, return_index=True)[1]
@@ -129,14 +131,17 @@ def _unique_channel_names(ch_names, max_length=None, verbose=None):
             n_keep = min(len(ch_stem), n_keep)
             ch_stem = ch_stem[:n_keep]
             for idx, ch_idx in enumerate(overlaps):
-                ch_name = ch_stem + '-%s' % idx
+                # try idx first, then loop through lower case chars
+                for suffix in (idx,) + suffixes:
+                    ch_name = ch_stem + '-%s' % suffix
+                    if ch_name not in ch_names:
+                        break
                 if ch_name not in ch_names:
                     ch_names[ch_idx] = ch_name
                 else:
-                    raise ValueError('Adding a running number for a '
+                    raise ValueError('Adding a single alphanumeric for a '
                                      'duplicate resulted in another '
                                      'duplicate name %s' % ch_name)
-
     return ch_names
 
 
@@ -258,10 +263,13 @@ class Info(dict, MontageMixin):
 
     .. warning:: The only entries that should be manually changed by the user
                  are ``info['bads']``, ``info['description']``,
-                 ``info['experimenter']`` and ``info['line_freq']``. All other
-                 entries should be considered read-only, though they can be
-                 modified by various MNE-Python functions or methods (which
-                 have safeguards to ensure all fields remain in sync).
+                 ``info['device_info']``, ``info['dev_head_t']``,
+                 ``info['experimenter']``, info['helium_info'],
+                 ``info['line_freq']``, ``info['temp']`` and
+                 ``info['subject_info']``. All other entries should be
+                 considered read-only, though they can be modified by various
+                 MNE-Python functions or methods (which have safeguards to
+                 ensure all fields remain in sync).
 
     .. warning:: This class should not be instantiated directly. To create a
                  measurement information structure, use
@@ -289,6 +297,9 @@ class Info(dict, MontageMixin):
     chs : list of dict
         A list of channel information dictionaries, one per channel.
         See Notes for more information.
+    command_line : str
+        Contains the command and arguments used to create the source space
+        (used for source estimation).
     comps : list of dict
         CTF software gradient compensation data.
         See Notes for more information.
@@ -306,6 +317,10 @@ class Info(dict, MontageMixin):
         This is only present in 4D/CTF data.
     dev_head_t : dict | None
         The device to head transformation.
+    device_info : dict | None
+        Information about the acquisition device. See Notes for details.
+
+        .. versionadded:: 0.19
     dig : list of dict | None
         The Polhemus digitization data in head coordinates.
         See Notes for more information.
@@ -318,6 +333,12 @@ class Info(dict, MontageMixin):
         Name of the person that ran the experiment.
     file_id : dict | None
         The FIF globally unique ID. See Notes for more information.
+    gantry_angle : float | None
+        Tilt angle of the gantry in degrees.
+    helium_info : dict | None
+        Information about the device helium. See Notes for details.
+
+        .. versionadded:: 0.19
     highpass : float
         Highpass corner frequency in Hertz. Zero indicates a DC recording.
     hpi_meas : list of dict
@@ -332,27 +353,35 @@ class Info(dict, MontageMixin):
         Information about the HPI subsystem that was used (e.g., event
         channel used for cHPI measurements).
         See Notes for details.
+    kit_system_id : int
+        Identifies the KIT system.
     line_freq : float | None
         Frequency of the power line in Hertz.
-    gantry_angle : float | None
-        Tilt angle of the gantry in degrees.
     lowpass : float
         Lowpass corner frequency in Hertz.
         It is automatically set to half the sampling rate if there is
         otherwise no low-pass applied to the data.
+    maxshield : bool
+        True if active shielding (IAS) was active during recording.
     meas_date : datetime
         The time (UTC) of the recording.
 
         .. versionchanged:: 0.20
            This is stored as a :class:`~python:datetime.datetime` object
            instead of a tuple of seconds/microseconds.
-    utc_offset : str
-        "UTC offset of related meas_date (sHH:MM).
-
-        .. versionadded:: 0.19
+    meas_file : str | None
+        Raw measurement file (used for source estimation).
     meas_id : dict | None
         The ID assigned to this measurement by the acquisition system or
         during file conversion. Follows the same format as ``file_id``.
+    mri_file : str | None
+        File containing the MRI to head transformation (used for source
+        estimation).
+    mri_head_t : dict | None
+        Transformation from MRI to head coordinates (used for source
+        estimation).
+    mri_id : dict | None
+        MRI unique ID (used for source estimation).
     nchan : int
         Number of channels.
     proc_history : list of dict
@@ -370,19 +399,20 @@ class Info(dict, MontageMixin):
     subject_info : dict | None
         Information about the subject.
         See Notes for details.
-    device_info : dict | None
-        Information about the acquisition device. See Notes for details.
-
-        .. versionadded:: 0.19
-    helium_info : dict | None
-        Information about the device helium. See Notes for details.
-
-        .. versionadded:: 0.19
     temp : object | None
         Can be used to store temporary objects in an Info instance. It will not
         survive an I/O roundtrip.
 
         .. versionadded:: 0.24
+    utc_offset : str
+        "UTC offset of related meas_date (sHH:MM).
+
+        .. versionadded:: 0.19
+    working_dir : str
+        Working directory used when the source space was created (used for
+        source estimation).
+    xplotter_layout : str
+        Layout of the Xplotter (Neuromag system only).
 
     See Also
     --------
@@ -440,6 +470,17 @@ class Info(dict, MontageMixin):
         save_calibrated : bool
             Were the compensation data saved in calibrated form.
 
+    * ``device_info`` dict:
+
+        type : str
+            Device type.
+        model : str
+            Device model.
+        serial : str
+            Device serial.
+        site : str
+            Device site.
+
     * ``dig`` list of dict:
 
         kind : int
@@ -471,6 +512,17 @@ class Info(dict, MontageMixin):
             Time in seconds.
         usecs : int
             Time in microseconds.
+
+    * ``helium_info`` dict:
+
+        he_level_raw : float
+            Helium level (%) before position correction.
+        helium_level : float
+            Helium level (%) after position correction.
+        orig_file_guid : str
+            Original file GUID.
+        meas_date : tuple of int
+            The helium level meas date.
 
     * ``hpi_meas`` list of dict:
 
@@ -535,6 +587,17 @@ class Info(dict, MontageMixin):
             (using the first element of these arrays is typically
             sufficient).
 
+    * ``mri_id`` dict:
+
+        version : int
+            FIF format version, i.e. ``FIFFC_VERSION``.
+        machid : ndarray, shape (2,)
+            Unique machine ID, usually derived from the MAC address.
+        secs : int
+            Time in seconds.
+        usecs : int
+            Time in microseconds.
+
     * ``proc_history`` list of dict:
 
         block_id : dict
@@ -579,35 +642,12 @@ class Info(dict, MontageMixin):
             Subject sex (0=unknown, 1=male, 2=female).
         hand : int
             Handedness (1=right, 2=left, 3=ambidextrous).
-
-    * ``device_info`` dict:
-
-        type : str
-            Device type.
-        model : str
-            Device model.
-        serial : str
-            Device serial.
-        site : str
-            Device site.
-
-    * ``helium_info`` dict:
-
-        he_level_raw : float
-            Helium level (%) before position correction.
-        helium_level : float
-            Helium level (%) after position correction.
-        orig_file_guid : str
-            Original file GUID.
-        meas_date : tuple of int
-            The helium level meas date.
     """
 
     _attributes = {
         'acq_pars': 'acq_pars cannot be set directly. '
                     'See mne.AcqParserFIF() for details.',
-        'acq_stim': 'acq_stim cannot be set directly. '
-                    'Please use ...',
+        'acq_stim': 'acq_stim cannot be set directly.',
         'bads': _check_bads,
         'ch_names': 'ch_names cannot be set directly. '
                     'Please use methods inst.add_channels(), '
@@ -619,54 +659,57 @@ class Info(dict, MontageMixin):
                'inst.drop_channels(), inst.pick_channels(), '
                'inst.rename_channels(), inst.reorder_channels() '
                'and inst.set_channel_types() instead.',
+        'command_line': 'command_line cannot be set directly.',
         'comps': 'comps cannot be set directly. '
-                 'Please use mne.io.Raw.apply_gradient_compensation() '
+                 'Please use method Raw.apply_gradient_compensation() '
                  'instead.',
         'ctf_head_t': 'ctf_head_t cannot be set directly.',
         'custom_ref_applied': 'custom_ref_applied cannot be set directly. '
-                              'Please use inst.set_eeg_reference() instead.',
+                              'Please use method inst.set_eeg_reference() '
+                              'instead.',
         'description': _check_description,
         'dev_ctf_t': 'dev_ctf_t cannot be set directly.',
         'dev_head_t': _check_dev_head_t,
-        'dig': 'dig cannot be set directly. Please use inst.set_montage() '
-               'instead.',
+        'device_info': _check_device_info,
+        'dig': 'dig cannot be set directly. '
+               'Please use method inst.set_montage() instead.',
         'events': 'events cannot be set directly.',
         'experimenter': _check_experimenter,
         'file_id': 'file_id cannot be set directly.',
+        'gantry_angle': 'gantry_angle cannot be set directly.',
+        'helium_info': _check_helium_info,
         'highpass': 'highpass cannot be set directly. '
-                    'Please use methods inst.filter() instead.',
+                    'Please use method inst.filter() instead.',
         'hpi_meas': 'hpi_meas can not be set directly.',
         'hpi_results': 'hpi_results cannot be set directly.',
         'hpi_subsystem': 'hpi_subsystem cannot be set directly.',
+        'kit_system_id': 'kit_system_id cannot be set directly.',
         'line_freq': _check_line_freq,
-        'gantry_angle': 'gantry_angle cannot be set directly.',
         'lowpass': 'lowpass cannot be set directly. '
                    'Please use method inst.filter() instead.',
+        'maxshield': 'maxshield cannot be set directly.',
         'meas_date': 'meas_date cannot be set directly. '
                      'Please use method inst.set_meas_date() instead.',
-        'utc_offset': 'utc_offset cannot be set directly.',
-        'meas_id': 'meas_id cannot be set directly.',
-        'nchan': 'nchan cannot be set directly.',
-        'proc_history': 'proc_history cannot be set directly.',
-        'proj_id': 'proj_id cannot be set directly.',
-        'proj_name': 'proj_name cannot be set directly.',
-        'projs': 'projs cannot be set directly.',
-        'sfreq': 'sfreq cannot be set directly. '
-                 'Please use method inst.resample() instead.',
-        'subject_info': _check_subject_info,
-        'device_info': _check_device_info,
-        'helium_info': _check_helium_info,
-        # elements missing from docstring
-        'command_line': 'command_line cannot be set directly.',
-        'filename': 'filename cannot be set directly.',  # deprecated?
-        'kit_system_id': 'kit_system_id cannot be set directly.',
-        'maxshield': 'maxshield cannot be set directly.',
         'meas_file': 'meas_file cannot be set directly.',
+        'meas_id': 'meas_id cannot be set directly.',
         'mri_file': 'mri_file cannot be set directly.',
         'mri_head_t': 'mri_head_t cannot be set directly.',
         'mri_id': 'mri_id cannot be set directly.',
-        'working_dir': 'working_dir cannot be set directly.',
+        'nchan': 'nchan cannot be set directly. '
+                 'Please use methods inst.add_channels(), '
+                 'inst.drop_channels(), and inst.pick_channels() instead.',
+        'proc_history': 'proc_history cannot be set directly.',
+        'proj_id': 'proj_id cannot be set directly.',
+        'proj_name': 'proj_name cannot be set directly.',
+        'projs': 'projs cannot be set directly. '
+                 'Please use methods inst.add_proj() and inst.del_proj() '
+                 'instead.',
+        'sfreq': 'sfreq cannot be set directly. '
+                 'Please use method inst.resample() instead.',
+        'subject_info': _check_subject_info,
         'temp': lambda x: x,
+        'utc_offset': 'utc_offset cannot be set directly.',
+        'working_dir': 'working_dir cannot be set directly.',
         'xplotter_layout': 'xplotter_layout cannot be set directly.'
     }
 
@@ -715,16 +758,14 @@ class Info(dict, MontageMixin):
         if key in self._attributes:
             if isinstance(self._attributes[key], str):
                 if not unlocked:
-                    warn(f'{self._attributes[key]} This warning will turn '
-                         'into an error after 0.24', DeprecationWarning)
+                    raise RuntimeError(self._attributes[key])
             else:
                 val = self._attributes[key](val)  # attribute checker function
         else:
-            warn(f"Info does not support directly setting the key {repr(key)},"
-                 " this warning will turn into an error after 0.24. You can "
-                 "set info['temp'] to store temporary objects in an Info "
-                 "instance, but these will not survive an I/O round-trip.",
-                 DeprecationWarning)
+            raise RuntimeError(
+                f"Info does not support directly setting the key {repr(key)}. "
+                "You can set info['temp'] to store temporary objects in an "
+                "Info instance, but these will not survive an I/O round-trip.")
         super().__setitem__(key, val)
 
     def update(self, other=None, **kwargs):
@@ -959,10 +1000,6 @@ class Info(dict, MontageMixin):
             self['ch_names'] = _unique_channel_names(self['ch_names'])
             for idx, ch_name in enumerate(self['ch_names']):
                 self['chs'][idx]['ch_name'] = ch_name
-
-        if 'filename' in self:
-            warn('the "filename" key is misleading '
-                 'and info should not have it')
 
     def _update_redundant(self):
         """Update the redundant entries."""

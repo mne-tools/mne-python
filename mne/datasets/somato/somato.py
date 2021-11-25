@@ -3,18 +3,9 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD Style.
 
-from ...utils import verbose, deprecated
-from ..utils import (has_dataset, _data_path_doc, DEPRECATION_MESSAGE_TEMPLATE,
-                     _get_version, _version_doc, _download_mne_dataset,
-                     _HAS_DATA_DOCSTRING_TEMPLATE)
-
-
-@deprecated(extra=DEPRECATION_MESSAGE_TEMPLATE.format('somato'))
-def has_somato_data():
-    return has_dataset(name='somato')
-
-
-has_somato_data.__doc__ = _HAS_DATA_DOCSTRING_TEMPLATE.format('somato')
+from ...utils import verbose
+from ..utils import (_data_path_doc, _get_version, _version_doc,
+                     _download_mne_dataset)
 
 
 @verbose

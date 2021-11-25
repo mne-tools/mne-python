@@ -209,12 +209,12 @@ def _get_head_pos_sim(raw):
     return head_pos_sim
 
 
-def test_simulate_raw_sphere(raw_data, tmpdir):
+def test_simulate_raw_sphere(raw_data, tmp_path):
     """Test simulation of raw data with sphere model."""
     seed = 42
     raw, src, stc, trans, sphere = raw_data
     assert len(pick_types(raw.info, meg=False, ecg=True)) == 1
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
 
     # head pos
     head_pos_sim = _get_head_pos_sim(raw)

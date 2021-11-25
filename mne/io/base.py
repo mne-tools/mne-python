@@ -1160,7 +1160,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             An optional event matrix. When specified, the onsets of the events
             are resampled jointly with the data. NB: The input events are not
             modified, but a new array is returned with the raw instead.
-        %(pad-fir)s
+        %(pad)s
             The default is ``'reflect_limited'``.
 
             .. versionadded:: 0.15
@@ -1421,6 +1421,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    '_meg.fif', '_eeg.fif', '_ieeg.fif')
         endings += tuple([f'{e}.gz' for e in endings])
         endings_err = ('.fif', '.fif.gz')
+
+        # convert to str, check for overwrite a few lines later
+        fname = _check_fname(fname, overwrite=True)
         check_fname(fname, 'raw', endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)
@@ -1475,11 +1478,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     def export(self, fname, fmt='auto', physical_range='auto',
-               add_ch_type=False, verbose=None):
+               add_ch_type=False, *, overwrite=False, verbose=None):
         """Export Raw to external formats.
 
         Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
-        %(export_warning)s :meth:`save` instead.
+
+        %(export_warning)s
 
         Parameters
         ----------
@@ -1487,16 +1491,23 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(export_params_fmt)s
         %(export_params_physical_range)s
         %(export_params_add_ch_type)s
+        %(overwrite)s
+
+            .. versionadded:: 0.24.1
         %(verbose)s
 
         Notes
         -----
+        .. versionadded:: 0.24
+
+        %(export_warning_note_raw)s
         %(export_eeglab_note)s
         %(export_edf_note)s
         """
         from ..export import export_raw
         export_raw(fname, self, fmt, physical_range=physical_range,
-                   add_ch_type=add_ch_type, verbose=verbose)
+                   add_ch_type=add_ch_type, overwrite=overwrite,
+                   verbose=verbose)
 
     def _tmin_tmax_to_start_stop(self, tmin, tmax):
         start = int(np.floor(tmin * self.info['sfreq']))
@@ -1514,22 +1525,23 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @copy_function_doc_to_method_doc(plot_raw)
     def plot(self, events=None, duration=10.0, start=0.0, n_channels=20,
-             bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
+             bgcolor='w', color=None, bad_color='lightgray',
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=_RAW_CLIP_DEF,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
              show_scrollbars=True, show_scalebars=True, time_format='float',
-             verbose=None):
+             precompute='auto', use_opengl=None, verbose=None):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
                         lowpass, filtorder, clipping, show_first_samp,
                         proj, group_by, butterfly, decim, noise_cov=noise_cov,
                         event_id=event_id, show_scrollbars=show_scrollbars,
-                        show_scalebars=show_scalebars,
-                        time_format=time_format, verbose=verbose)
+                        show_scalebars=show_scalebars, time_format=time_format,
+                        precompute=precompute, use_opengl=use_opengl,
+                        verbose=verbose)
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)

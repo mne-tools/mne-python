@@ -92,7 +92,8 @@ report.save('report_raw.html', overwrite=True)
 # ^^^^^^^^^^^^^
 #
 # Events can be added via :meth:`mne.Report.add_events`. You also need to
-# supply the sampling frequency used during the recording.
+# supply the sampling frequency used during the recording; this information
+# is used to generate a meaningful time axis.
 
 events_path = sample_dir / 'sample_audvis_filt-0-40_raw-eve.fif'
 events = mne.read_events(events_path)

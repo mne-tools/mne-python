@@ -289,10 +289,9 @@ class Brain(object):
         Color of the foreground (will be used for colorbars and text).
         None (default) will use black or white depending on the value
         of ``background``.
-    figure : list of Figure | None | int
+    figure : list of Figure | None
         If None (default), a new window will be created with the appropriate
-        views. For single view plots, the figure can be specified as int to
-        retrieve the corresponding Mayavi window.
+        views.
     subjects_dir : str | None
         If not None, this directory will be used as the subjects directory
         instead of the value set using the SUBJECTS_DIR environment
@@ -336,7 +335,7 @@ class Brain(object):
     Attributes
     ----------
     geo : dict
-        A dictionary of pysurfer.Surface objects for each hemisphere.
+        A dictionary of PyVista surface objects for each hemisphere.
     overlays : dict
         The overlays.
 
@@ -1943,7 +1942,7 @@ class Brain(object):
         in which case only as many smoothing steps are applied until the whole
         surface is filled with non-zeros.
 
-        Due to a Mayavi (or VTK) alpha rendering bug, ``vector_alpha`` is
+        Due to a VTK alpha rendering bug, ``vector_alpha`` is
         clamped to be strictly < 1.
         """
         _validate_type(transparent, bool, 'transparent')
@@ -2466,7 +2465,8 @@ class Brain(object):
 
     @fill_doc
     def add_volume_labels(self, aseg='aparc+aseg', labels=None, colors=None,
-                          alpha=0.5, smooth=0.9, legend=None):
+                          alpha=0.5, smooth=0.9, fill_hole_size=None,
+                          legend=None):
         """Add labels to the rendering from an anatomical segmentation.
 
         Parameters
@@ -2483,6 +2483,11 @@ class Brain(object):
         alpha : float in [0, 1]
             Alpha level to control opacity.
         %(smooth)s
+        fill_hole_size : int | None
+            The size of holes to remove in the mesh in voxels. Default is None,
+            no holes are removed. Warning, this dilates the boundaries of the
+            surface by ``fill_hole_size`` number of voxels so use the minimal
+            size.
         legend : bool | None | dict
             Add a legend displaying the names of the ``labels``. Default (None)
             is ``True`` if the number of ``labels`` is 10 or fewer.
@@ -2516,6 +2521,7 @@ class Brain(object):
             lut_r = {v: k for k, v in lut.items()}
             labels = [lut_r[idx] for idx in DEFAULTS['volume_label_indices']]
 
+        _validate_type(fill_hole_size, (int, None), 'fill_hole_size')
         _validate_type(legend, (bool, None), 'legend')
         if legend is None:
             legend = len(labels) < 11
@@ -2527,7 +2533,8 @@ class Brain(object):
         colors = [_to_rgb(color, alpha, name=f'colors[{ci}]', alpha=True)
                   for ci, color in enumerate(colors)]
         surfs = _marching_cubes(
-            aseg_data, [lut[label] for label in labels], smooth=smooth)
+            aseg_data, [lut[label] for label in labels], smooth=smooth,
+            fill_hole_size=fill_hole_size)
         for label, color, (verts, triangles) in zip(labels, colors, surfs):
             if len(verts) == 0:  # not in aseg vals
                 warn(f'Value {lut[label]} not found for label '
@@ -2784,7 +2791,7 @@ class Brain(object):
                 self._vertex_to_label_id[hemi][label.vertices] = idx
 
     def add_annotation(self, annot, borders=True, alpha=1, hemi=None,
-                       remove_existing=True, color=None, **kwargs):
+                       remove_existing=True, color=None):
         """Add an annotation file.
 
         Parameters
@@ -2812,9 +2819,6 @@ class Brain(object):
         color : matplotlib-style color code
             If used, show all annotations in the same (specified) color.
             Probably useful only when showing annotation borders.
-        **kwargs : dict
-            These are passed to the underlying
-            ``mayavi.mlab.pipeline.surface`` call.
         """
         from ...label import _read_annot
         hemis = self._check_hemis(hemi)
@@ -2911,8 +2915,8 @@ class Brain(object):
         self._renderer.show()
 
     @fill_doc
-    def show_view(self, view=None, roll=None, distance=None,
-                  row='deprecated', col='deprecated', hemi=None, align=True,
+    def show_view(self, view=None, roll=None, distance=None, *,
+                  row=None, col=None, hemi=None, align=True,
                   azimuth=None, elevation=None, focalpoint=None):
         """Orient camera to display view.
 
@@ -2936,6 +2940,8 @@ class Brain(object):
         %(elevation)s
         %(focalpoint)s
         """
+        _validate_type(row, ('int-like', None), 'row')
+        _validate_type(col, ('int-like', None), 'col')
         hemi = self._hemi if hemi is None else hemi
         if hemi == 'split':
             if (self._view_layout == 'vertical' and col == 1 or
@@ -2943,28 +2949,10 @@ class Brain(object):
                 hemi = 'rh'
             else:
                 hemi = 'lh'
-        if isinstance(view, dict):  # deprecate at version 0.25
-            warn('`view` is a dict is deprecated, please use `azimuth` and '
-                 '`elevation` as arguments directly to `show_view`',
-                 DeprecationWarning)
-            if azimuth is None and 'azimuth' in view:
-                azimuth = view['azimuth']
-            if elevation is None and 'elevation' in view:
-                elevation = view['elevation']
-            view = None
-        if (row == 'deprecated' or col == 'deprecated') and \
-                len(set([_ for h in self._hemis
-                         for _ in self._iter_views(h)])) > 1:
-            warn('`row` and `col` default behavior is changing, in version '
-                 '0.25 the default behavior will be to apply `show_view` to '
-                 'all views', DeprecationWarning)
-        if row == 'deprecated':
-            row = None
-        if col == 'deprecated':
-            col = None
+        _validate_type(view, (str, None), 'view')
         view_params = dict(azimuth=azimuth, elevation=elevation, roll=roll,
                            distance=distance, focalpoint=focalpoint)
-        if view is not None:  # view string takes precedence
+        if view is not None:  # view_params take precedence
             view_params = {param: val for param, val in view_params.items()
                            if val is not None}  # no overwriting with None
             view_params = dict(views_dicts[hemi].get(view), **view_params)

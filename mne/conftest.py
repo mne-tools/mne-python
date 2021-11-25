@@ -25,7 +25,8 @@ from mne.datasets import testing
 from mne.fixes import has_numba
 from mne.io import read_raw_fif, read_raw_ctf
 from mne.stats import cluster_level
-from mne.utils import _pl, _assert_no_instances, numerics, Bunch
+from mne.utils import (_pl, _assert_no_instances, numerics, Bunch,
+                       _check_pyqt5_version)
 
 # data from sample dataset
 from mne.viz._figure import use_browser_backend
@@ -61,11 +62,11 @@ collect_ignore = ['export/_eeglab.py', 'export/_edf.py']
 def pytest_configure(config):
     """Configure pytest options."""
     # Markers
-    for marker in ('slowtest', 'ultraslowtest'):
+    for marker in ('slowtest', 'ultraslowtest', 'pgtest'):
         config.addinivalue_line('markers', marker)
 
     # Fixtures
-    for fixture in ('matplotlib_config',):
+    for fixture in ('matplotlib_config', 'close_all', 'check_verbose'):
         config.addinivalue_line('usefixtures', fixture)
 
     # Warnings
@@ -79,7 +80,6 @@ def pytest_configure(config):
     ignore::ImportWarning
     ignore:the matrix subclass:PendingDeprecationWarning
     ignore:numpy.dtype size changed:RuntimeWarning
-    ignore:.*HasTraits.trait_.*:DeprecationWarning
     ignore:.*takes no parameters:DeprecationWarning
     ignore:joblib not installed:RuntimeWarning
     ignore:Using a non-tuple sequence for multidimensional indexing:FutureWarning
@@ -101,7 +101,6 @@ def pytest_configure(config):
     ignore:scipy\.gradient is deprecated.*:DeprecationWarning
     ignore:sklearn\.externals\.joblib is deprecated.*:FutureWarning
     ignore:The sklearn.*module.*deprecated.*:FutureWarning
-    ignore:.*trait.*handler.*deprecated.*:DeprecationWarning
     ignore:.*rich_compare.*metadata.*deprecated.*:DeprecationWarning
     ignore:.*In future, it will be an error for 'np.bool_'.*:DeprecationWarning
     ignore:.*`np.bool` is a deprecated alias.*:DeprecationWarning
@@ -117,19 +116,16 @@ def pytest_configure(config):
     ignore:Unable to enable faulthandler.*:UserWarning
     ignore:Fetchers from the nilearn.*:FutureWarning
     ignore:SelectableGroups dict interface is deprecated\. Use select\.:DeprecationWarning
-    ignore:Call to deprecated class vtk.*:DeprecationWarning
-    ignore:Call to deprecated method.*Deprecated since.*:DeprecationWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     ignore:.*rcParams is deprecated.*global_theme.*:DeprecationWarning
     ignore:.*distutils\.sysconfig module is deprecated.*:DeprecationWarning
-    ignore:.*moved to a new package \(mne-connectivity\).*:DeprecationWarning
     ignore:.*numpy\.dual is deprecated.*:DeprecationWarning
     ignore:.*`np.typeDict` is a deprecated.*:DeprecationWarning
     ignore:.*Creating an ndarray from ragged.*:numpy.VisibleDeprecationWarning
     ignore:^Please use.*scipy\..*:DeprecationWarning
     ignore:.*Passing a schema to Validator.*:DeprecationWarning
     ignore:.*Found the following unknown channel type.*:RuntimeWarning
-    ignore:.*in an Any trait will be shared.*:DeprecationWarning
+    ignore:.*np\.MachAr.*:DeprecationWarning
     always::ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
@@ -199,15 +195,6 @@ def matplotlib_config():
     # functionality)
     plt.ioff()
     plt.rcParams['figure.dpi'] = 100
-    try:
-        from traits.etsconfig.api import ETSConfig
-    except Exception:
-        pass
-    else:
-        try:
-            ETSConfig.toolkit = 'qt4'
-        except Exception:
-            pass  # 'null' might be the only option in some configs
 
     # Make sure that we always reraise exceptions in handlers
     orig = cbook.CallbackRegistry
@@ -395,14 +382,55 @@ def garbage_collect():
     gc.collect()
 
 
-@pytest.fixture(params=['matplotlib'])
-def browse_backend(request, garbage_collect):
-    """Parametrizes the name of the browser backend."""
-    with use_browser_backend(request.param) as backend:
+@pytest.fixture
+def mpl_backend(garbage_collect):
+    """Use for epochs/ica when not implemented with pyqtgraph yet."""
+    with use_browser_backend('matplotlib') as backend:
         yield backend
+        backend._close_all()
 
 
-@pytest.fixture(params=["mayavi", "pyvistaqt"])
+def _check_pyqtgraph():
+    try:
+        import PyQt5  # noqa: F401
+    except ModuleNotFoundError:
+        pytest.skip('PyQt5 is not installed but needed for pyqtgraph!')
+    try:
+        assert LooseVersion(_check_pyqt5_version()) >= LooseVersion('5.12')
+    except AssertionError:
+        pytest.skip(f'PyQt5 has version {_check_pyqt5_version()}'
+                    f'but pyqtgraph needs >= 5.12!')
+    try:
+        import mne_qt_browser  # noqa: F401
+    except Exception:
+        pytest.skip('Requires mne_qt_browser')
+
+
+@pytest.mark.pgtest
+@pytest.fixture
+def pg_backend(garbage_collect):
+    """Use for pyqtgraph-specific test-functions."""
+    _check_pyqtgraph()
+    with use_browser_backend('pyqtgraph') as backend:
+        yield backend
+        backend._close_all()
+
+
+@pytest.fixture(params=[
+    'matplotlib',
+    pytest.param('pyqtgraph', marks=pytest.mark.pgtest),
+])
+def browser_backend(request, garbage_collect):
+    """Parametrizes the name of the browser backend."""
+    backend_name = request.param
+    if backend_name == 'pyqtgraph':
+        _check_pyqtgraph()
+    with use_browser_backend(backend_name) as backend:
+        yield backend
+        backend._close_all()
+
+
+@pytest.fixture(params=["pyvistaqt"])
 def renderer(request, garbage_collect):
     """Yield the 3D backends."""
     with _use_backend(request.param, interactive=False) as renderer:
@@ -430,16 +458,10 @@ def renderer_interactive_pyvistaqt(request):
         yield renderer
 
 
-@pytest.fixture(scope="module", params=["pyvistaqt", "mayavi"])
+@pytest.fixture(scope="module", params=["pyvistaqt"])
 def renderer_interactive(request):
     """Yield the interactive 3D backends."""
     with _use_backend(request.param, interactive=True) as renderer:
-        if renderer._get_3d_backend() == 'mayavi':
-            with warnings.catch_warnings(record=True):
-                try:
-                    from surfer import Brain  # noqa: 401 analysis:ignore
-                except Exception:
-                    pytest.skip('Requires PySurfer')
         yield renderer
 
 
@@ -456,7 +478,7 @@ def _use_backend(backend_name, interactive):
 
 
 def _check_skip_backend(name):
-    from mne.viz.backends.tests._utils import (has_mayavi, has_pyvista,
+    from mne.viz.backends.tests._utils import (has_pyvista,
                                                has_pyqt5, has_imageio_ffmpeg,
                                                has_pyvistaqt)
     if name in ('pyvistaqt', 'notebook'):
@@ -464,10 +486,8 @@ def _check_skip_backend(name):
             pytest.skip("Test skipped, requires pyvista.")
         if not has_imageio_ffmpeg():
             pytest.skip("Test skipped, requires imageio-ffmpeg")
-    if name in ('pyvistaqt', 'mayavi') and not has_pyqt5():
+    if name == 'pyvistaqt' and not has_pyqt5():
         pytest.skip("Test skipped, requires PyQt5.")
-    if name == 'mayavi' and not has_mayavi():
-        pytest.skip("Test skipped, requires mayavi.")
     if name == 'pyvistaqt' and not has_pyvistaqt():
         pytest.skip("Test skipped, requires pyvistaqt")
 
@@ -475,9 +495,8 @@ def _check_skip_backend(name):
 @pytest.fixture(scope='session')
 def pixel_ratio():
     """Get the pixel ratio."""
-    from mne.viz.backends.tests._utils import (has_mayavi, has_pyvista,
-                                               has_pyqt5)
-    if not (has_mayavi() or has_pyvista()) or not has_pyqt5():
+    from mne.viz.backends.tests._utils import has_pyvista, has_pyqt5
+    if not has_pyvista() or not has_pyqt5():
         return 1.
     from PyQt5.QtWidgets import QApplication, QMainWindow
     _ = QApplication.instance() or QApplication([])
@@ -488,11 +507,11 @@ def pixel_ratio():
 
 
 @pytest.fixture(scope='function', params=[testing._pytest_param()])
-def subjects_dir_tmp(tmpdir):
+def subjects_dir_tmp(tmp_path):
     """Copy MNE-testing-data subjects_dir to a temp dir for manipulation."""
     for key in ('sample', 'fsaverage'):
-        shutil.copytree(op.join(subjects_dir, key), str(tmpdir.join(key)))
-    return str(tmpdir)
+        shutil.copytree(op.join(subjects_dir, key), str(tmp_path / key))
+    return str(tmp_path)
 
 
 # Scoping these as session will make things faster, but need to make sure
@@ -614,6 +633,7 @@ def src_volume_labels():
 
 
 def _fail(*args, **kwargs):
+    __tracebackhide__ = True
     raise AssertionError('Test should not download')
 
 
@@ -630,7 +650,6 @@ def brain_gc(request):
     keys = (
         'renderer_interactive',
         'renderer_interactive_pyvistaqt',
-        'renderer_interactive_pysurfer',
         'renderer',
         'renderer_pyvistaqt',
         'renderer_notebook',
@@ -661,7 +680,7 @@ def brain_gc(request):
     if outcome != 'passed':
         return
     _assert_no_instances(Brain, 'after')
-    # We only check VTK for PyVista -- Mayavi/PySurfer is not as strict
+    # Check VTK
     objs = gc.get_objects()
     bad = list()
     for o in objs:

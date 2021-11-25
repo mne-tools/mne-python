@@ -176,7 +176,15 @@ i.fa-discourse:before {
 i.fa-discord:before {
     color: #7289da;  /* 99aab5 is also in-brand for discord */
 }
-
+/* *********************************************************** contrib guide */
+ul.icon-bullets {
+    list-style-type: none;
+    padding-left: 2em;
+    text-indent: -1.5em;
+}
+.small-stack {
+    font-size: 0.5em;
+}
 /* ************************************************* Previous / Next buttons */
 .prev-next-bottom a.left-prev:before {
     content:"❮\00A0"

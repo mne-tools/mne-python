@@ -4,7 +4,6 @@
 #
 # License: BSD-3-Clause
 
-from functools import partial
 import os.path as op
 
 import pytest
@@ -12,13 +11,10 @@ import numpy as np
 
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx, BaseRaw, read_raw_fif
-from mne.preprocessing.nirs import (optical_density,
-                                    beer_lambert_law as _bll)
+from mne.preprocessing.nirs import optical_density, beer_lambert_law
 from mne.utils import _validate_type
 from mne.datasets import testing
 from mne.externals.pymatreader import read_mat
-
-beer_lambert_law = partial(_bll, ppf=6)  # temporary deprecation wrapper
 
 fname_nirx_15_0 = op.join(data_path(download=False),
                           'NIRx', 'nirscout', 'nirx_15_0_recording')
@@ -33,13 +29,13 @@ fname_nirx_15_2_short = op.join(data_path(download=False),
 @pytest.mark.parametrize('fname', ([fname_nirx_15_2_short, fname_nirx_15_2,
                                     fname_nirx_15_0]))
 @pytest.mark.parametrize('fmt', ('nirx', 'fif'))
-def test_beer_lambert(fname, fmt, tmpdir):
+def test_beer_lambert(fname, fmt, tmp_path):
     """Test converting NIRX files."""
     assert fmt in ('nirx', 'fif')
     raw = read_raw_nirx(fname)
     if fmt == 'fif':
-        raw.save(tmpdir.join('test_raw.fif'))
-        raw = read_raw_fif(tmpdir.join('test_raw.fif'))
+        raw.save(tmp_path / 'test_raw.fif')
+        raw = read_raw_fif(tmp_path / 'test_raw.fif')
     assert 'fnirs_cw_amplitude' in raw
     assert 'fnirs_od' not in raw
     raw = optical_density(raw)

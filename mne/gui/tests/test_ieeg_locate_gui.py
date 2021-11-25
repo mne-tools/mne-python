@@ -98,7 +98,7 @@ def test_ieeg_elec_locate_gui_io(_locate_ieeg):
 
 @requires_version('sphinx_gallery')
 @testing.requires_testing_data
-def test_locate_scraper(_locate_ieeg, _fake_CT_coords, tmpdir):
+def test_locate_scraper(_locate_ieeg, _fake_CT_coords, tmp_path):
     """Test sphinx-gallery scraping of the GUI."""
     raw = mne.io.read_raw_fif(raw_path)
     raw.pick_types(eeg=True)
@@ -112,9 +112,9 @@ def test_locate_scraper(_locate_ieeg, _fake_CT_coords, tmpdir):
     with pytest.warns(RuntimeWarning, match='`pial` surface not found'):
         gui = _locate_ieeg(raw.info, trans, aligned_ct,
                            subject=subject, subjects_dir=subjects_dir)
-    tmpdir.mkdir('_images')
-    image_path = str(tmpdir.join('_images', 'temp.png'))
-    gallery_conf = dict(builder_name='html', src_dir=str(tmpdir))
+    (tmp_path / '_images').mkdir()
+    image_path = str(tmp_path / '_images' / 'temp.png')
+    gallery_conf = dict(builder_name='html', src_dir=str(tmp_path))
     block_vars = dict(
         example_globals=dict(gui=gui),
         image_path_iterator=iter([image_path]))
@@ -182,3 +182,10 @@ def test_ieeg_elec_locate_gui_display(_locate_ieeg, _fake_CT_coords):
     ct_sum_before = np.nansum(gui._images['ct'][0].get_array().data)
     gui._ct_min_slider.setValue(500)
     assert np.nansum(gui._images['ct'][0].get_array().data) < ct_sum_before
+
+    # test buttons
+    gui._toggle_show_brain()
+    assert 'mri' in gui._images
+    assert 'local_max' not in gui._images
+    gui._toggle_show_max()
+    assert 'local_max' in gui._images

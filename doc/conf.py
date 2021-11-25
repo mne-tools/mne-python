@@ -140,9 +140,9 @@ intersphinx_mapping = {
     'sklearn': ('https://scikit-learn.org/stable', None),
     'numba': ('https://numba.pydata.org/numba-doc/latest', None),
     'joblib': ('https://joblib.readthedocs.io/en/latest', None),
-    'mayavi': ('http://docs.enthought.com/mayavi/mayavi', None),
     'nibabel': ('https://nipy.org/nibabel', None),
     'nilearn': ('http://nilearn.github.io', None),
+    'nitime': ('https://nipy.org/nitime/', None),
     'surfer': ('https://pysurfer.github.io/', None),
     'mne_bids': ('https://mne.tools/mne-bids/stable', None),
     'mne-connectivity': ('https://mne.tools/mne-connectivity/stable', None),
@@ -156,8 +156,8 @@ intersphinx_mapping = {
     'picard': ('https://pierreablin.github.io/picard/', None),
     'qdarkstyle': ('https://qdarkstylesheet.readthedocs.io/en/latest', None),
     'eeglabio': ('https://eeglabio.readthedocs.io/en/latest', None),
-    'dipy': ('https://dipy.org/documentation/1.4.0./',
-             'https://dipy.org/documentation/1.4.0./objects.inv/'),
+    'dipy': ('https://dipy.org/documentation/latest/',
+             'https://dipy.org/documentation/latest/objects.inv/'),
     'pooch': ('https://www.fatiando.org/pooch/latest/', None),
 }
 
@@ -172,17 +172,15 @@ numpydoc_xref_param_type = True
 numpydoc_xref_aliases = {
     # Python
     'file-like': ':term:`file-like <python:file object>`',
+    'path-like': ':term:`path-like`',
+    'array-like': ':term:`array-like`',
     # Matplotlib
     'colormap': ':doc:`colormap <matplotlib:tutorials/colors/colormaps>`',
     'color': ':doc:`color <matplotlib:api/colors_api>`',
-    'collection': ':doc:`collections <matplotlib:api/collections_api>`',
     'Axes': 'matplotlib.axes.Axes',
     'Figure': 'matplotlib.figure.Figure',
     'Axes3D': 'mpl_toolkits.mplot3d.axes3d.Axes3D',
     'ColorbarBase': 'matplotlib.colorbar.ColorbarBase',
-    # Mayavi
-    'mayavi.mlab.Figure': 'mayavi.core.api.Scene',
-    'mlab.Figure': 'mayavi.core.api.Scene',
     # sklearn
     'LeaveOneOut': 'sklearn.model_selection.LeaveOneOut',
     # joblib
@@ -258,9 +256,10 @@ numpydoc_xref_ignore = {
     # sklearn subclasses
     'mapping', 'to', 'any',
     # unlinkable
-    'mayavi.mlab.pipeline.surface',
-    'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame', 'CoregistrationUI',
-    'IntracranialElectrodeLocator'
+    'CoregistrationUI',
+    'IntracranialElectrodeLocator',
+    # We need to fix these: "PyVista renderer" and "PyVista surface"
+    'PyVista', 'renderer', 'surface',
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)
@@ -344,18 +343,7 @@ except Exception:
     report_scraper = None
 else:
     backend = mne.viz.get_3d_backend()
-    if backend == 'mayavi':
-        from traits.api import push_exception_handler
-        mlab = mne.utils._import_mlab()
-        # Do not pop up any mayavi windows while running the
-        # examples. These are very annoying since they steal the focus.
-        mlab.options.offscreen = True
-        # hack to initialize the Mayavi Engine
-        mlab.test_plot3d()
-        mlab.close()
-        scrapers += ('mayavi',)
-        push_exception_handler(reraise_exceptions=True)
-    elif backend in ('notebook', 'pyvistaqt'):
+    if backend in ('notebook', 'pyvistaqt'):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             import pyvista
@@ -617,8 +605,9 @@ xxl = '6'
 html_context = {
     'build_dev_html': bool(int(os.environ.get('BUILD_DEV_HTML', False))),
     'versions_dropdown': {
-        'dev': 'v0.24 (devel)',
-        'stable': 'v0.23 (stable)',
+        'dev': 'v1.0 (devel)',
+        'stable': 'v0.24 (stable)',
+        '0.23': 'v0.23',
         '0.22': 'v0.22',
         '0.21': 'v0.21',
         '0.20': 'v0.20',
@@ -891,31 +880,38 @@ reset_warnings(None, None)
 
 # -- Fontawesome support -----------------------------------------------------
 
-# here the "b" and "s" refer to "brand" and "solid" (determines which font file
-# to look in). "fw-" prefix indicates fixed width.
-icons = {
-    'apple': 'b',
-    'linux': 'b',
-    'windows': 'b',
-    'hand-paper': 's',
-    'question': 's',
-    'quote-left': 's',
-    'rocket': 's',
-    'server': 's',
-    'fw-book': 's',
-    'fw-code-branch': 's',
-    'fw-newspaper': 's',
-    'fw-question-circle': 's',
-    'fw-quote-left': 's',
-}
+# here the "fab" and "fas" refer to "brand" and "solid" (determines which font
+# file to look in). "fw" indicates fixed width.
+brand_icons = ('apple', 'linux', 'windows', 'discourse', 'python')
+fixed_icons = (
+    # homepage:
+    'book', 'code-branch', 'newspaper', 'question-circle', 'quote-left',
+    # contrib guide:
+    'bug', 'comment', 'hand-sparkles', 'magic', 'pencil-alt', 'remove-format',
+    'universal-access', 'discourse', 'python'
+)
+other_icons = ('hand-paper', 'question', 'rocket', 'server')
+icons = dict()
+for icon in brand_icons + fixed_icons + other_icons:
+    font = ('fab' if icon in brand_icons else 'fas',)  # brand or solid font
+    fw = ('fa-fw',) if icon in fixed_icons else ()     # fixed-width
+    icons[icon] = font + fw
 
 prolog = ''
-for icon, cls in icons.items():
-    fw = ' fa-fw' if icon.startswith('fw-') else ''
+for icon, classes in icons.items():
     prolog += f'''
 .. |{icon}| raw:: html
 
-    <i class="fa{cls} fa-{icon[3:] if fw else icon}{fw}"></i>
+    <i class="{' '.join(classes)} fa-{icon}"></i>
+'''
+
+prolog += '''
+.. |fix-bug| raw:: html
+
+    <span class="fa-stack small-stack">
+        <i class="fas fa-bug fa-stack-1x"></i>
+        <i class="fas fa-ban fa-stack-2x"></i>
+    </span>
 '''
 
 # -- Dependency info ----------------------------------------------------------

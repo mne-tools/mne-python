@@ -191,20 +191,6 @@ limitations and challenges with it. We should work to use some other backend
 
 The meta-issue for tracking to-do lists for surface plotting is :gh:`7162`.
 
-Coregistration / 3D viewer
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-:ref:`mne coreg` is an excellent tool for coregistration, but is limited
-by being tied to Mayavi, Traits, and TraitsUI. We should first refactor in
-several (mostly) separable steps:
-
-1. Refactor code to use traitlets
-2. GUI elements to use PyQt5 (rather than TraitsUI/pyface)
-3. 3D plotting to use our abstracted 3D viz functions rather than Mayavi
-4. Refactor distance/fitting classes to public ones to enable the example
-   from :gh:`6693`.
-
-Once this is done, we can effectively switch to a PyVista backend.
-
 .. _documentation-updates:
 
 Documentation updates

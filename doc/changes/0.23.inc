@@ -103,7 +103,7 @@ Enhancements
 
 - Add channel-specific annotation support to :class:`mne.Annotations` via ``ch_names`` parameter (:gh:`8896` by `Eric Larson`_)
 
-- Add toggle-all button to :class:`mne.Report` HTML and ``width`` argument to :meth:`mne.Report.add_bem_to_section` (:gh:`8723` by `Eric Larson`_)
+- Add toggle-all button to :class:`mne.Report` HTML and ``width`` argument to ``mne.Report.add_bem_to_section`` (:gh:`8723` by `Eric Larson`_)
 
 - Add infant template MRI dataset downloader :func:`mne.datasets.fetch_infant_template` (:gh:`8738` by `Eric Larson`_ and `Christian O'Reilly`_)
 
@@ -145,7 +145,7 @@ Enhancements
 
 - Add parameter ``align=True`` to `mne.viz.Brain.show_view` to make views relative to the closest canonical (MNI) axes rather than the native MRI surface RAS coordinates (:gh:`8794` by `Eric Larson`_)
 
-- Add ``auto_close`` to `mne.Report.add_figs_to_section` and `mne.Report.add_slider_to_section` to manage closing figures (:gh:`8730` by `Guillaume Favelier`_)
+- Add ``auto_close`` to ``mne.Report.add_figs_to_section`` and ``mne.Report.add_slider_to_section`` to manage closing figures (:gh:`8730` by `Guillaume Favelier`_)
 
 - Add :func:`mne.write_head_bem` to support writing head surface files (:gh:`8841` by `Yu-Han Luo`_)
 
@@ -228,7 +228,7 @@ Bugs
 
 - Fix bug with :func:`mne.preprocessing.maxwell_filter` where the eSSS basis had to exactly match the good channels instead of being a superset (:gh:`8675` by `Eric Larson`_)
 
-- Fix bug with :meth:`mne.Report.add_bem_to_section` where ``n_jobs != 1`` would cause ``n_jobs`` subsets of MRI images in some orientations to be flipped (:gh:`8713` by `Eric Larson`_)
+- Fix bug with ``mne.Report.add_bem_to_section`` where ``n_jobs != 1`` would cause ``n_jobs`` subsets of MRI images in some orientations to be flipped (:gh:`8713` by `Eric Larson`_)
 
 - Fix bug with :meth:`raw.plot() <mne.io.Raw.plot>` where annotations didn't immediately appear when changing window duration (:gh:`8689` by `Daniel McCloy`_)
 
@@ -252,7 +252,7 @@ Bugs
 
 - Fix bug with :meth:`mne.Annotations.save` where files could be overwritten accidentally, it can now be controlled via the ``overwrite`` argument (:gh:`8896` by `Eric Larson`_)
 
-- Fix bug with ``replace`` argument of :meth:`mne.Report.add_bem_to_section` and :meth:`mne.Report.add_slider_to_section` (:gh:`8723` by `Eric Larson`_)
+- Fix bug with ``replace`` argument of ``mne.Report.add_bem_to_section`` and ``mne.Report.add_slider_to_section`` (:gh:`8723` by `Eric Larson`_)
 
 - Fix bug with :func:`mne.chpi.compute_chpi_locs` where all cHPI coils being off would lead to an empty array of the wrong dimensionality (:gh:`8956` by `Eric Larson`_)
 
@@ -324,7 +324,7 @@ API changes
 ~~~~~~~~~~~
 - Introduced new ``'auto'`` settings for ``ICA.max_iter``. The old default ``max_iter=200`` will be removed in MNE-Python 0.24 (:gh:`9099` **by new contributor** |Cora Kim|_)
 
-- `mne.viz.plot_sensors_connectivity` now allows setting the colorbar label via the ``cbar_label`` parameter (:gh:`9248` by `Daniel McCloy`_)
+- ``mne.viz.plot_sensors_connectivity`` now allows setting the colorbar label via the ``cbar_label`` parameter (:gh:`9248` by `Daniel McCloy`_)
 
 - ``mne.read_selection`` has been deprecated in favor of `mne.read_vectorview_selection`. ``mne.read_selection`` will be removed in MNE-Python 0.24 (:gh:`8870` by `Richard Höchenberger`_)
 

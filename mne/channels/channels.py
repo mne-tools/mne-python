@@ -262,8 +262,8 @@ class ContainsMixin(object):
 
         # get the channel names and chs data structure
         ch_names, chs = self.info['ch_names'], self.info['chs']
-        picks = pick_types(self.info, meg=False, eeg=True,
-                           seeg=True, ecog=True, dbs=True, fnirs=True)
+        picks = pick_types(self.info, meg=False, eeg=True, seeg=True,
+                           ecog=True, dbs=True, fnirs=True, exclude=[])
 
         # channel positions from dig do not match ch_names one to one,
         # so use loc[:3] instead
@@ -584,7 +584,7 @@ class SetChannelsMixin(MontageMixin):
         Notes
         -----
         This function plots the sensor locations from the info structure using
-        matplotlib. For drawing the sensors using mayavi see
+        matplotlib. For drawing the sensors using PyVista see
         :func:`mne.viz.plot_alignment`.
 
         .. versionadded:: 0.12.0

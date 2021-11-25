@@ -271,7 +271,7 @@ Bugs
 
 - Fix bug with :func:`mne.channels.read_custom_montage` where ``"headshape"`` points in SFP format were not read properly, by `Eric Larson`_
 
-- Fix bug with setting HTML classes when using :meth:`mne.Report.add_bem_to_section` by `Eric Larson`_
+- Fix bug with setting HTML classes when using ``mne.Report.add_bem_to_section`` by `Eric Larson`_
 
 - Fix bug with convex-hull based MEG helmet creation where the face area could be covered up, by `Eric Larson`_
 

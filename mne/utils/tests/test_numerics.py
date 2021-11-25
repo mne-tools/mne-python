@@ -53,9 +53,9 @@ def test_get_inst_data():
     pytest.raises(TypeError, _get_inst_data, 'foo')
 
 
-def test_hashfunc(tmpdir):
+def test_hashfunc(tmp_path):
     """Test md5/sha1 hash calculations."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fname1 = op.join(tempdir, 'foo')
     fname2 = op.join(tempdir, 'bar')
     with open(fname1, 'wb') as fid:

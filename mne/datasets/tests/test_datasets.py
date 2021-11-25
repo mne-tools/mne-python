@@ -27,7 +27,7 @@ pooch = _soft_import('pooch', 'dataset downloading', strict=True)
 subjects_dir = op.join(testing.data_path(download=False), 'subjects')
 
 
-def test_datasets_basic(tmpdir, monkeypatch):
+def test_datasets_basic(tmp_path, monkeypatch):
     """Test simple dataset functions."""
     # XXX 'hf_sef' and 'misc' do not conform to these standards
     for dname in ('sample', 'somato', 'spm_face', 'testing', 'opm',
@@ -46,7 +46,7 @@ def test_datasets_basic(tmpdir, monkeypatch):
             assert dataset.get_version() is None
             assert not datasets.has_dataset(dname)
         print('%s: %s' % (dname, datasets.has_dataset(dname)))
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     # don't let it read from the config file to get the directory,
     # force it to look for the default
     monkeypatch.setenv('_MNE_FAKE_HOME_DIR', tempdir)
@@ -57,16 +57,16 @@ def test_datasets_basic(tmpdir, monkeypatch):
     _set_montage_coreg_path()
     sd = get_subjects_dir()
     assert sd.endswith('MNE-fsaverage-data')
-    monkeypatch.setenv('MNE_DATA', str(tmpdir.join('foo')))
+    monkeypatch.setenv('MNE_DATA', str(tmp_path / 'foo'))
     with pytest.raises(FileNotFoundError, match='as specified by MNE_DAT'):
         testing.data_path(download=False)
 
 
 @requires_good_network
-def test_downloads(tmpdir, monkeypatch, capsys):
+def test_downloads(tmp_path, monkeypatch, capsys):
     """Test dataset URL and version handling."""
     # Try actually downloading a dataset
-    kwargs = dict(path=str(tmpdir), verbose=True)
+    kwargs = dict(path=str(tmp_path), verbose=True)
     # XXX we shouldn't need to disable capsys here, but there's a pytest bug
     # that we're hitting (https://github.com/pytest-dev/pytest/issues/5997)
     # now that we use pooch
@@ -77,7 +77,7 @@ def test_downloads(tmpdir, monkeypatch, capsys):
     assert not datasets.has_dataset('fake')  # not in the desired path
     assert datasets._fake.get_version() is None
     assert datasets.utils._get_version('fake') is None
-    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmpdir))
+    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmp_path))
     with pytest.warns(RuntimeWarning, match='non-standard config'):
         new_path = datasets._fake.data_path(update_path=True, **kwargs)
     assert path == new_path
@@ -88,7 +88,7 @@ def test_downloads(tmpdir, monkeypatch, capsys):
     # XXX logic bug, should be "unknown"
     assert datasets._fake.get_version() == '0.0'
     # With a version but no required one: shown as existing and gives version
-    fname = tmpdir / 'foo' / 'version.txt'
+    fname = tmp_path / 'foo' / 'version.txt'
     with open(fname, 'w') as fid:
         fid.write('0.1')
     assert datasets.has_dataset('fake')
@@ -114,7 +114,7 @@ def test_downloads(tmpdir, monkeypatch, capsys):
         url = self.get_url(fname)
         full_path = self.abspath / fname
         assert 'foo.tgz' in url
-        assert str(tmpdir) in str(full_path)
+        assert str(tmp_path) in str(full_path)
         raise RuntimeError(want_msg)
 
     monkeypatch.setattr(pooch.Pooch, 'fetch', _error_download)
@@ -127,9 +127,9 @@ def test_downloads(tmpdir, monkeypatch, capsys):
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_good_network
-def test_fetch_parcellations(tmpdir):
+def test_fetch_parcellations(tmp_path):
     """Test fetching parcellations."""
-    this_subjects_dir = str(tmpdir)
+    this_subjects_dir = str(tmp_path)
     os.mkdir(op.join(this_subjects_dir, 'fsaverage'))
     os.mkdir(op.join(this_subjects_dir, 'fsaverage', 'label'))
     os.mkdir(op.join(this_subjects_dir, 'fsaverage', 'surf'))
@@ -175,12 +175,12 @@ def _fake_zip_fetch(url, path, fname, known_hash):
 
 
 @pytest.mark.parametrize('n_have', range(len(_zip_fnames)))
-def test_manifest_check_download(tmpdir, n_have, monkeypatch):
+def test_manifest_check_download(tmp_path, n_have, monkeypatch):
     """Test our manifest downloader."""
     pooch = _soft_import('pooch', 'download datasets')
     monkeypatch.setattr(pooch, 'retrieve', _fake_zip_fetch)
-    destination = op.join(str(tmpdir), 'empty')
-    manifest_path = op.join(str(tmpdir), 'manifest.txt')
+    destination = op.join(str(tmp_path), 'empty')
+    manifest_path = op.join(str(tmp_path), 'manifest.txt')
     with open(manifest_path, 'w') as fid:
         for fname in _zip_fnames:
             fid.write('%s\n' % fname)
@@ -232,15 +232,15 @@ def _fake_mcd(manifest_path, destination, url, hash_, name=None,
                     pass
 
 
-def test_infant(tmpdir, monkeypatch):
+def test_infant(tmp_path, monkeypatch):
     """Test fetch_infant_template."""
     monkeypatch.setattr(infant_base, '_manifest_check_download', _fake_mcd)
-    fetch_infant_template('12mo', subjects_dir=tmpdir)
+    fetch_infant_template('12mo', subjects_dir=tmp_path)
     with pytest.raises(ValueError, match='Invalid value for'):
-        fetch_infant_template('0mo', subjects_dir=tmpdir)
+        fetch_infant_template('0mo', subjects_dir=tmp_path)
 
 
-def test_phantom(tmpdir, monkeypatch):
+def test_phantom(tmp_path, monkeypatch):
     """Test phantom data downloading."""
     # The Otaniemi file is only ~6MB, so in principle maybe we could test
     # an actual download here. But it doesn't seem worth it given that
@@ -249,18 +249,18 @@ def test_phantom(tmpdir, monkeypatch):
     monkeypatch.setattr(phantom_base, '_manifest_check_download',
                         partial(_fake_mcd, name='phantom_otaniemi',
                                 fake_files=True))
-    fetch_phantom('otaniemi', subjects_dir=tmpdir)
-    assert op.isfile(tmpdir / 'phantom_otaniemi' / 'mri' / 'T1.mgz')
+    fetch_phantom('otaniemi', subjects_dir=tmp_path)
+    assert op.isfile(tmp_path / 'phantom_otaniemi' / 'mri' / 'T1.mgz')
 
 
-def test_fetch_uncompressed_file(tmpdir):
+def test_fetch_uncompressed_file(tmp_path):
     """Test downloading an uncompressed file with our fetch function."""
     dataset_dict = dict(
         dataset_name='license',
         url=('https://raw.githubusercontent.com/mne-tools/mne-python/main/'
              'LICENSE.txt'),
         archive_name='LICENSE.foo',
-        folder_name=op.join(tmpdir, 'foo'),
+        folder_name=op.join(tmp_path, 'foo'),
         hash=None)
     fetch_dataset(dataset_dict, path=None, force_update=True)
-    assert op.isfile(op.join(tmpdir, 'foo', 'LICENSE.foo'))
+    assert op.isfile(op.join(tmp_path, 'foo', 'LICENSE.foo'))

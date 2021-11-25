@@ -19,7 +19,7 @@ else
 	echo "H5py, pillow, matplotlib"
 	pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py pillow matplotlib
 	echo "nilearn"
-	pip install --progress-bar off --upgrade --pre --only-binary ":all:" nilearn
+	pip install --progress-bar off --upgrade --pre --only-binary ":all:" https://github.com/nilearn/nilearn/zipball/main
 	echo "VTK"
 	pip install --progress-bar off --upgrade --pre --only-binary "vtk" vtk
 	echo "PyVista"

@@ -70,9 +70,9 @@ def test_get_trans():
 
 
 @testing.requires_testing_data
-def test_io_trans(tmpdir):
+def test_io_trans(tmp_path):
     """Test reading and writing of trans files."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     os.mkdir(op.join(tempdir, 'sample'))
     pytest.raises(RuntimeError, _find_trans, 'sample', subjects_dir=tempdir)
     trans0 = read_trans(fname)
@@ -371,7 +371,7 @@ def test_average_quats():
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('subject', ('fsaverage', 'sample'))
-def test_fs_xfm(subject, tmpdir):
+def test_fs_xfm(subject, tmp_path):
     """Test reading and writing of Freesurfer transforms."""
     fname = op.join(data_path, 'subjects', subject, 'mri', 'transforms',
                     'talairach.xfm')
@@ -379,7 +379,7 @@ def test_fs_xfm(subject, tmpdir):
     if subject == 'fsaverage':
         assert_allclose(xfm, np.eye(4), atol=1e-5)  # fsaverage is in MNI
     assert kind == 'MNI Transform File'
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fname_out = op.join(tempdir, 'out.xfm')
     _write_fs_xfm(fname_out, xfm, kind)
     xfm_read, kind_read = _read_fs_xfm(fname_out)
@@ -533,7 +533,7 @@ def test_volume_registration():
     for pipeline in ('rigids', ('translation', 'sdr')):
         reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
             T1_resampled, T1, pipeline=pipeline, zooms=10, niter=[5])
-        assert_allclose(affine, reg_affine, atol=0.25)
+        assert_allclose(affine, reg_affine, atol=0.01)
         T1_aligned = mne.transforms.apply_volume_registration(
             T1_resampled, T1, reg_affine, sdr_morph)
         r2 = _compute_r2(_get_img_fdata(T1_aligned), _get_img_fdata(T1))

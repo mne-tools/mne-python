@@ -333,9 +333,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
     weights_min : float
         Do not consider in the estimation sources for which weights
         is less than weights_min.
-    solver : 'prox' | 'cd' | 'bcd' | 'auto'
-        The algorithm to use for the optimization. 'prox' stands for
-        proximal iterations using the FISTA algorithm, 'cd' uses
+    solver : 'cd' | 'bcd' | 'auto'
+        The algorithm to use for the optimization. 'cd' uses
         coordinate descent, and 'bcd' applies block coordinate descent.
         'cd' is only available for fixed orientation.
     n_mxne_iter : int
@@ -780,7 +779,7 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
         Size of active set increase at each iteration.
     debias : bool
         Debias source estimates.
-    solver : 'prox' | 'cd' | 'bcd' | 'auto'
+    solver : 'cd' | 'bcd' | 'auto'
         The algorithm to use for the optimization.
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.

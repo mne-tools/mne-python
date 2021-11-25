@@ -102,9 +102,9 @@ def test_thresholds(numba_conditional):
                 buffer_size=None, out_type='mask')
 
 
-def test_cache_dir(tmpdir, numba_conditional):
+def test_cache_dir(tmp_path, numba_conditional):
     """Test use of cache dir."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     orig_dir = os.getenv('MNE_CACHE_DIR', None)
     orig_size = os.getenv('MNE_MEMMAP_MIN_SIZE', None)
     rng = np.random.RandomState(0)

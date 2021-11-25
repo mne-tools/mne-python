@@ -131,7 +131,7 @@ inverse_operator = make_inverse_operator(contrast.info, forward, noise_cov,
 stc = apply_inverse(contrast, inverse_operator, lambda2, method, pick_ori=None)
 # stc.save('spm_%s_dSPM_inverse' % contrast.comment)
 
-# Plot contrast in 3D with PySurfer if available
+# Plot contrast in 3D with mne.viz.Brain if available
 brain = stc.plot(hemi='both', subjects_dir=subjects_dir, initial_time=0.170,
                  views=['ven'], clim={'kind': 'value', 'lims': [3., 6., 9.]})
 # brain.save_image('dSPM_map.png')

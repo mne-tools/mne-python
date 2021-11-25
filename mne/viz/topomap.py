@@ -469,7 +469,7 @@ def _draw_outlines(ax, outlines):
 
 def _get_extra_points(pos, extrapolate, origin, radii):
     """Get coordinates of additinal interpolation points."""
-    from scipy.spatial.qhull import Delaunay
+    from scipy.spatial import Delaunay
     radii = np.array(radii, float)
     assert radii.shape == (2,)
     x, y = origin
@@ -1865,10 +1865,7 @@ def plot_epochs_psd_topomap(epochs, bands=None,
     low_bias : bool
         Only use tapers with more than 90%% spectral concentration within
         bandwidth.
-    normalization : str
-        Either "full" or "length" (default). If "full", the PSD will
-        be normalized by the sampling rate as well as the length of
-        the signal (as in nitime).
+    %(normalization)s
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are collected in
         pairs and the mean for each pair is plotted. If None, then first

@@ -25,7 +25,7 @@ if len(bad) > 0:
 
 # check sklearn and others
 for x in sys.modules.keys():
-    for key in ('sklearn', 'pandas', 'mayavi', 'pyvista', 'matplotlib',
+    for key in ('sklearn', 'pandas', 'pyvista', 'matplotlib',
                 'dipy', 'nibabel', 'cupy', 'picard', 'pyvistaqt', 'pooch'):
         if x.startswith(key):
             x = '.'.join(x.split('.')[:2])

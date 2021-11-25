@@ -20,7 +20,7 @@ fname_nirx_15_2 = op.join(data_path(download=False),
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname', ([fname_nirx_15_2]))
-def test_temporal_derivative_distribution_repair(fname, tmpdir):
+def test_temporal_derivative_distribution_repair(fname, tmp_path):
     """Test running artifact rejection."""
     raw = read_raw_nirx(fname)
     raw = optical_density(raw)

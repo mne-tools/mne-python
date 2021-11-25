@@ -104,7 +104,7 @@ def _get_dig_montage_pos(montage):
     return np.array([d['r'] for d in _get_dig_eeg(montage.dig)])
 
 
-def test_dig_montage_trans(tmpdir):
+def test_dig_montage_trans(tmp_path):
     """Test getting a trans from and applying a trans to a montage."""
     nasion, lpa, rpa, *ch_pos = np.random.RandomState(0).randn(10, 3)
     ch_pos = {f'EEG{ii:3d}': pos for ii, pos in enumerate(ch_pos, 1)}
@@ -113,7 +113,7 @@ def test_dig_montage_trans(tmpdir):
     trans = compute_native_head_t(montage)
     _ensure_trans(trans)
     # ensure that we can save and load it, too
-    fname = tmpdir.join('temp-mon.fif')
+    fname = tmp_path / 'temp-mon.fif'
     _check_roundtrip(montage, fname, 'mri')
     # test applying a trans
     position1 = montage.get_positions()
@@ -436,10 +436,10 @@ def test_documented():
         id='brainvision'),
 ])
 def test_montage_readers(
-    reader, file_content, expected_dig, ext, warning, tmpdir
+    reader, file_content, expected_dig, ext, warning, tmp_path
 ):
     """Test that we have an equivalent of read_montage for all file formats."""
-    fname = op.join(str(tmpdir), 'test.{ext}'.format(ext=ext))
+    fname = op.join(str(tmp_path), 'test.{ext}'.format(ext=ext))
     with open(fname, 'w') as fid:
         fid.write(file_content)
 
@@ -485,7 +485,7 @@ def test_read_locs():
     )
 
 
-def test_read_dig_dat(tmpdir):
+def test_read_dig_dat(tmp_path):
     """Test reading *.dat electrode locations."""
     rows = [
         ['Nasion', 78, 0.00, 1.00, 0.00],
@@ -496,7 +496,7 @@ def test_read_dig_dat(tmpdir):
         ['Centroid', 67, 0.00, 0.00, 0.00],
     ]
     # write mock test.dat file
-    temp_dir = str(tmpdir)
+    temp_dir = str(tmp_path)
     fname_temp = op.join(temp_dir, 'test.dat')
     with open(fname_temp, 'w') as fid:
         for row in rows:
@@ -574,12 +574,12 @@ def test_read_dig_montage_using_polhemus_fastscan():
         assert_allclose(val, EXPECTED_FID_IN_POLHEMUS[kk])
 
 
-def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmpdir):
+def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmp_path):
     """Test reading Polhemus FastSCAN errors."""
     with open(op.join(kit_dir, 'test_elp.txt')) as fid:
         content = fid.read().replace('FastSCAN', 'XxxxXXXX')
 
-    fname = str(tmpdir.join('faulty_FastSCAN.txt'))
+    fname = tmp_path / 'faulty_FastSCAN.txt'
     with open(fname, 'w') as fid:
         fid.write(content)
 
@@ -588,7 +588,7 @@ def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmpdir):
 
     EXPECTED_ERR_MSG = "allowed value is '.txt', but got '.bar' instead"
     with pytest.raises(ValueError, match=EXPECTED_ERR_MSG):
-        _ = read_polhemus_fastscan(fname=tmpdir.join('foo.bar'))
+        _ = read_polhemus_fastscan(fname=tmp_path / 'foo.bar')
 
 
 def test_read_dig_polhemus_isotrak_hsp():
@@ -633,13 +633,13 @@ def test_read_dig_polhemus_isotrak_elp():
 
 
 @pytest.fixture(scope='module')
-def isotrak_eeg(tmpdir_factory):
+def isotrak_eeg(tmp_path_factory):
     """Mock isotrak file with EEG positions."""
     _SEED = 42
     N_ROWS, N_COLS = 5, 3
     content = np.random.RandomState(_SEED).randn(N_ROWS, N_COLS)
 
-    fname = tmpdir_factory.mktemp('data').join('test.eeg')
+    fname = tmp_path_factory.mktemp('data') / 'test.eeg'
     with open(str(fname), 'w') as fid:
         fid.write((
             '3	200\n'
@@ -695,7 +695,7 @@ def test_read_dig_polhemus_isotrak_eeg(isotrak_eeg):
         assert dig_point['coord_frame'] == FIFF.FIFFV_COORD_UNKNOWN
 
 
-def test_read_dig_polhemus_isotrak_error_handling(isotrak_eeg, tmpdir):
+def test_read_dig_polhemus_isotrak_error_handling(isotrak_eeg, tmp_path):
     """Test errors in reading Polhemus IsoTrak files.
 
     1 - matching ch_names and number of points in isotrak file.
@@ -711,7 +711,7 @@ def test_read_dig_polhemus_isotrak_error_handling(isotrak_eeg, tmpdir):
         )
 
     # Check fname extensions
-    fname = op.join(tmpdir, 'foo.bar')
+    fname = op.join(tmp_path, 'foo.bar')
     with pytest.raises(
         ValueError,
         match="Allowed val.*'.hsp', '.elp', and '.eeg', but got '.bar' instead"
@@ -857,12 +857,12 @@ def test_set_dig_montage():
 
 
 @testing.requires_testing_data
-def test_fif_dig_montage(tmpdir):
+def test_fif_dig_montage(tmp_path):
     """Test FIF dig montage support."""
     dig_montage = read_dig_fif(fif_dig_montage_fname)
 
     # test round-trip IO
-    temp_dir = str(tmpdir)
+    temp_dir = str(tmp_path)
     fname_temp = op.join(temp_dir, 'test.fif')
     _check_roundtrip(dig_montage, fname_temp)
 
@@ -919,7 +919,7 @@ def test_fif_dig_montage(tmpdir):
 
 
 @testing.requires_testing_data
-def test_egi_dig_montage(tmpdir):
+def test_egi_dig_montage(tmp_path):
     """Test EGI MFF XML dig montage support."""
     dig_montage = read_dig_egi(egi_dig_montage_fname)
     fid, coord = _get_fid_coords(dig_montage.dig)
@@ -957,7 +957,7 @@ def test_egi_dig_montage(tmpdir):
     )
 
     # test round-trip IO
-    fname_temp = tmpdir.join('egi_test.fif')
+    fname_temp = tmp_path / 'egi_test.fif'
     _check_roundtrip(dig_montage, fname_temp, 'unknown')
     _check_roundtrip(dig_montage_in_head, fname_temp)
 
@@ -974,7 +974,7 @@ def _pop_montage(dig_montage, ch_name):
 
 
 @testing.requires_testing_data
-def test_read_dig_captrak(tmpdir):
+def test_read_dig_captrak(tmp_path):
     """Test reading a captrak montage file."""
     EXPECTED_CH_NAMES_OLD = [
         'AF3', 'AF4', 'AF7', 'AF8', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'CP1',
@@ -1006,7 +1006,8 @@ def test_read_dig_captrak(tmpdir):
     )
 
     montage = transform_to_head(montage)  # transform_to_head has to be tested
-    _check_roundtrip(montage=montage, fname=str(tmpdir.join('bvct_test.fif')))
+    _check_roundtrip(montage=montage,
+                     fname=str(tmp_path / 'bvct_test.fif'))
 
     fid, _ = _get_fid_coords(montage.dig)
     assert_allclose(
@@ -1607,7 +1608,7 @@ def test_montage_add_fiducials():
     assert all([d['kind'] != FIFF.FIFFV_POINT_CARDINAL for d in montage.dig])
 
 
-def test_read_dig_localite(tmpdir):
+def test_read_dig_localite(tmp_path):
     """Test reading Localite .csv file."""
     contents = """#,id,x,y,z
                   1,Nasion,-2.016253511,6.243001715,34.63167712
@@ -1629,7 +1630,7 @@ def test_read_dig_localite(tmpdir):
                   17,ch14,-61.16539571,-61.86866187,26.23986153
                   18,ch15,-55.82855386,-34.77319103,25.8083942"""
 
-    fname = tmpdir / 'localite.csv'
+    fname = tmp_path / 'localite.csv'
     with open(fname, 'w') as f:
         for row in contents.split('\n'):
             f.write(f'{row.lstrip()}\n')
