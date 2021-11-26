@@ -1667,7 +1667,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         if len(self.event_id) > 0:
             s += ',' + '\n '.join([''] + counts)
         if len(self.event_id) > max_events:
-            not_shown_events = len(self.event_id) - max_events + 1
+            not_shown_events = len(self.event_id) - max_events
             s += f"\n 'and {not_shown_events} more events ...'"
         class_name = self.__class__.__name__
         class_name = 'Epochs' if class_name == 'BaseEpochs' else class_name
