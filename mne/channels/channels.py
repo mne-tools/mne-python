@@ -138,6 +138,7 @@ def equalize_channels(instances, copy=True, verbose=None):
     """
     from ..cov import Covariance
     from ..io.base import BaseRaw
+    from ..io.meas_info import Info
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
     from ..forward import Forward
@@ -146,9 +147,9 @@ def equalize_channels(instances, copy=True, verbose=None):
     # Instances need to have a `ch_names` attribute and a `pick_channels`
     # method that supports `ordered=True`.
     allowed_types = (BaseRaw, BaseEpochs, Evoked, _BaseTFR, Forward,
-                     Covariance, CrossSpectralDensity)
-    allowed_types_str = ("Raw, Epochs, Evoked, TFR, Forward, Covariance, or "
-                         "CrossSpectralDensity.")
+                     Covariance, CrossSpectralDensity, Info)
+    allowed_types_str = ("Raw, Epochs, Evoked, TFR, Forward, Covariance, "
+                         "CrossSpectralDensity or Info.")
     for inst in instances:
         _validate_type(inst, allowed_types, "Instances to be modified",
                        allowed_types_str)
@@ -170,9 +171,14 @@ def equalize_channels(instances, copy=True, verbose=None):
     for inst in instances:
         # Only perform picking when needed
         if inst.ch_names != common_channels:
-            if copy:
-                inst = inst.copy()
-            inst.pick_channels(common_channels, ordered=True)
+            if isinstance(inst, Info):
+                sel = pick_channels(inst.ch_names, common_channels, exclude=[],
+                                    ordered=True)
+                inst = pick_info(inst, sel, copy=copy, verbose=False)
+            else:
+                if copy:
+                    inst = inst.copy()
+                inst.pick_channels(common_channels, ordered=True)
             if len(inst.ch_names) == len(common_channels):
                 reordered = True
         equalized_instances.append(inst)
