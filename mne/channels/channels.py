@@ -149,7 +149,7 @@ def equalize_channels(instances, copy=True, verbose=None):
     allowed_types = (BaseRaw, BaseEpochs, Evoked, _BaseTFR, Forward,
                      Covariance, CrossSpectralDensity, Info)
     allowed_types_str = ("Raw, Epochs, Evoked, TFR, Forward, Covariance, "
-                         "CrossSpectralDensity or Info.")
+                         "CrossSpectralDensity or Info")
     for inst in instances:
         _validate_type(inst, allowed_types, "Instances to be modified",
                        allowed_types_str)
