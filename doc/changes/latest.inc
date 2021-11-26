@@ -68,4 +68,4 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
-- Nothing yet
+- :meth:`mne.Info.pick_channels` has been deprecated. Use ``inst.pick_channels`` to pick channels from Raw|Epochs|Evoked. Use :func:`mne.pick_info` to pick channels from :class:`mne.Info` (:gh:`10039` by `Mathieu Scheltienne`_)
