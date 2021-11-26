@@ -186,6 +186,8 @@ class CoregistrationUI(HasTraits):
         self._renderer._window_close_connect(self._clean)
         self._renderer.set_interaction(interaction)
         self._renderer._status_bar_initialize()
+        self._status_msg = self._renderer._status_bar_add_label("", stretch=1)
+        self._status_msg.hide()
 
         # setup the model
         self._info = info
@@ -237,9 +239,11 @@ class CoregistrationUI(HasTraits):
         views = {True: dict(azimuth=90, elevation=90),  # front
                  False: dict(azimuth=180, elevation=90)}  # left
         self._renderer.set_camera(distance=None, **views[self._lock_fids])
+        # XXX: internal plotter/renderer should not be exposed
         if self._renderer._kind == 'qt':
             self._renderer.plotter.add_callback(self._redraw_sensors,
                                                 self._refresh_rate_ms)
+        self._renderer.plotter.show_axes()
         if standalone:
             self._renderer.figure.store["app"].exec()
 
@@ -539,7 +543,7 @@ class CoregistrationUI(HasTraits):
     def _on_button_release(self, vtk_picker, event):
         if self._mouse_no_mvt > 0:
             x, y = vtk_picker.GetEventPosition()
-            # XXX: plotter/renderer should not be exposed if possible
+            # XXX: internal plotter/renderer should not be exposed
             plotter = self._renderer.figure.plotter
             picked_renderer = self._renderer.figure.plotter.renderer
             # trigger the pick
@@ -587,11 +591,19 @@ class CoregistrationUI(HasTraits):
 
     def _omit_hsp(self):
         self._coreg.omit_head_shape_points(self._omit_hsp_distance / 1e3)
+        n_omitted = np.sum(~self._coreg._extra_points_filter)
+        n_remaining = len(self._coreg._dig_dict['hsp']) - n_omitted
         self._update_plot("hsp")
+        self._renderer._status_bar_show_message(
+            f"{n_omitted} head shape points omitted, "
+            f"{n_remaining} remaining.")
 
     def _reset_omit_hsp_filter(self):
         self._coreg._extra_points_filter = None
         self._update_plot("hsp")
+        n_total = len(self._coreg._dig_dict['hsp'])
+        self._renderer._status_bar_show_message(
+            f"No head shape point is omitted, the total is {n_total}.")
 
     def _update_plot(self, changes="all"):
         if self._plot_locked:
@@ -688,6 +700,7 @@ class CoregistrationUI(HasTraits):
         self._renderer._update()
 
     def _update_actor(self, actor_name, actor):
+        # XXX: internal plotter/renderer should not be exposed
         self._renderer.plotter.remove_actor(self._actors.get(actor_name))
         self._actors[actor_name] = actor
         self._renderer._update()
@@ -792,6 +805,15 @@ class CoregistrationUI(HasTraits):
             self._display_message(f"Fitting ICP - iteration {iteration + 1}")
             self._update_plot("sensors")
             self._current_icp_iterations = iteration
+            dists = self._coreg.compute_dig_mri_distances() * 1e3
+            self._status_msg.set_value(
+                "Distance between HSP and MRI (mean/min/max): "
+                f"{np.mean(dists):.2f} mm "
+                f"/ {np.min(dists):.2f} mm / {np.max(dists):.2f} mm"
+            )
+            self._status_msg.show()
+            self._status_msg.update()
+            self._renderer._status_bar_update()
 
         start = time.time()
         self._coreg.fit_icp(
@@ -803,6 +825,8 @@ class CoregistrationUI(HasTraits):
             verbose=self._verbose,
         )
         end = time.time()
+        self._status_msg.set_value("")
+        self._status_msg.hide()
         self._display_message()
         self._renderer._status_bar_show_message(
             f"Fitting ICP finished in {end - start:.2f} seconds and "
@@ -812,6 +836,8 @@ class CoregistrationUI(HasTraits):
 
     def _save_trans(self, fname):
         write_trans(fname, self._coreg.trans)
+        self._renderer._status_bar_show_message(
+            f"{fname} transform file is saved.")
 
     def _load_trans(self, fname):
         mri_head_t = _ensure_trans(read_trans(fname, return_all=True),
@@ -824,6 +850,8 @@ class CoregistrationUI(HasTraits):
         )
         self._update_plot("sensors")
         self._update_parameters()
+        self._renderer._status_bar_show_message(
+            f"{fname} transform file is loaded.")
 
     def _get_subjects(self, sdir=None):
         # XXX: would be nice to move this function to util
@@ -917,7 +945,7 @@ class CoregistrationUI(HasTraits):
             layout=layout,
         )
         self._widgets["grow_hair"] = self._renderer._dock_add_spin_box(
-            name="Grow Hair",
+            name="Grow Hair (mm)",
             value=self._grow_hair,
             rng=[0.0, 10.0],
             callback=self._set_grow_hair,
@@ -925,7 +953,7 @@ class CoregistrationUI(HasTraits):
         )
         hlayout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["omit_distance"] = self._renderer._dock_add_spin_box(
-            name="Omit Distance",
+            name="Omit Distance (mm)",
             value=self._omit_hsp_distance,
             rng=[0.0, 100.0],
             callback=self._set_omit_hsp_distance,
@@ -1105,6 +1133,7 @@ class CoregistrationUI(HasTraits):
         self._defaults.clear()
         self._head_geo = None
         self._redraw = None
+        self._status_msg = None
 
     def close(self):
         """Close interface and cleanup data structure."""

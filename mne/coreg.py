@@ -1963,3 +1963,24 @@ class Coregistration(object):
         self._extra_points_filter = None
         self._update_nearest_calc()
         return self
+
+    def _fiducials_estimation(self):
+        transformed_mri_lpa = apply_trans(self._mri_trans, self._lpa)
+        transformed_hsp_lpa = apply_trans(
+            self._head_mri_t, self._dig_dict['lpa'])
+        lpa_distance = np.linalg.norm(
+            np.ravel(transformed_mri_lpa - transformed_hsp_lpa))
+
+        transformed_mri_nasion = apply_trans(self._mri_trans, self._nasion)
+        transformed_hsp_nasion = apply_trans(
+            self._head_mri_t, self._dig_dict['nasion'])
+        nasion_distance = np.linalg.norm(
+            np.ravel(transformed_mri_nasion - transformed_hsp_nasion))
+
+        transformed_mri_rpa = apply_trans(self._mri_trans, self._rpa)
+        transformed_hsp_rpa = apply_trans(
+            self._head_mri_t, self._dig_dict['rpa'])
+        rpa_distance = np.linalg.norm(
+            np.ravel(transformed_mri_rpa - transformed_hsp_rpa))
+
+        return (lpa_distance * 1e3, nasion_distance * 1e3, rpa_distance * 1e3)
