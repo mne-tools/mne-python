@@ -301,7 +301,13 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         write_evokeds(fname, self)
 
     def __repr__(self):  # noqa: D105
-        s = "'%s' (%s, N=%s)" % (self.comment, self.kind, self.nave)
+        limit_comment_chars = 1000
+        if len(self.comment) > limit_comment_chars:
+            comment = self.comment[:limit_comment_chars]
+            comment += "...rest hidden. See .comment for the full description"
+        else:
+            comment = self.comment
+        s = "'%s' (%s, N=%s)" % (comment, self.kind, self.nave)
         s += ", %0.5g – %0.5g sec" % (self.times[0], self.times[-1])
         s += ', baseline '
         if self.baseline is None:
