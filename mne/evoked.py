@@ -300,10 +300,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         fname = _check_fname(fname=fname, overwrite=True)
         write_evokeds(fname, self)
 
-    def __repr__(self):  # noqa: D105
-        limit_comment_chars = 1000
-        if len(self.comment) > limit_comment_chars:
-            comment = self.comment[:limit_comment_chars]
+    def __repr__(self, limit_comment=1000):  # noqa: D105
+        if limit_comment is not None and len(self.comment) > limit_comment:
+            comment = self.comment[:limit_comment]
             comment += "...rest hidden. See .comment for the full description"
         else:
             comment = self.comment

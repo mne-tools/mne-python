@@ -1643,7 +1643,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         """Last time point."""
         return self.times[-1]
 
-    def __repr__(self, events_limit=10):
+    def __repr__(self, limit_events=10):
         """Build string representation."""
         s = ' %s events ' % len(self.events)
         s += '(all good)' if self._bad_dropped else '(good & bad)'
@@ -1663,11 +1663,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         s += ', with metadata' if self.metadata is not None else ''
 
         counts = ['%r: %i' % (k, sum(self.events[:, 2] == v))
-                  for k, v in sorted(self.event_id.items())[:events_limit]]
+                  for k, v in sorted(self.event_id.items())[:limit_events]]
         if len(self.event_id) > 0:
             s += ',' + '\n '.join([''] + counts)
-        if len(self.event_id) > events_limit:
-            not_shown_events = len(self.event_id) - events_limit + 1
+        if limit_events is not None and len(self.event_id) > limit_events:
+            not_shown_events = len(self.event_id) - limit_events + 1
             s += f"\n 'and {not_shown_events} more events ...'"
         class_name = self.__class__.__name__
         class_name = 'Epochs' if class_name == 'BaseEpochs' else class_name
