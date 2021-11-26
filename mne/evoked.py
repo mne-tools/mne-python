@@ -304,7 +304,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         max_comment_length = 1000
         if len(self.comment) > max_comment_length:
             comment = self.comment[:max_comment_length]
-            comment += "...rest hidden. See .comment for the full description"
+            comment += "..."
         else:
             comment = self.comment
         s = "'%s' (%s, N=%s)" % (comment, self.kind, self.nave)
