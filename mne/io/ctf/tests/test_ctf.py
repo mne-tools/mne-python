@@ -55,9 +55,9 @@ ctf_fnames = tuple(sorted(block_sizes.keys()))
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_read_ctf(tmpdir):
+def test_read_ctf(tmp_path):
     """Test CTF reader."""
-    temp_dir = str(tmpdir)
+    temp_dir = str(tmp_path)
     out_fname = op.join(temp_dir, 'test_py_raw.fif')
 
     # Create a dummy .eeg file so we can test our reading/application of it
@@ -184,7 +184,8 @@ def test_read_ctf(tmpdir):
                 'dig points must be in FIFF.FIFFV_COORD_HEAD'
 
         if fname.endswith('catch-alp-good-f.ds'):  # omit points from .pos file
-            raw.info['dig'] = raw.info['dig'][:-10]
+            with raw.info._unlock():
+                raw.info['dig'] = raw.info['dig'][:-10]
 
         # XXX: Next test would fail because c-tools assign the fiducials from
         # CTF data as HPI. Should eventually clarify/unify with Matti.
@@ -287,9 +288,9 @@ def test_read_spm_ctf():
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('comp_grade', [0, 1])
-def test_saving_picked(tmpdir, comp_grade):
+def test_saving_picked(tmp_path, comp_grade):
     """Test saving picked CTF instances."""
-    temp_dir = str(tmpdir)
+    temp_dir = str(tmp_path)
     out_fname = op.join(temp_dir, 'test_py_raw.fif')
     raw = read_raw_ctf(op.join(ctf_dir, ctf_fname_1_trial))
     assert raw.info['meas_date'] == _stamp_to_dt((1367228160, 0))
@@ -403,7 +404,7 @@ def _bad_res4_grad_comp(dsdir):
 
 
 @testing.requires_testing_data
-def test_read_ctf_mag_bad_comp(tmpdir, monkeypatch):
+def test_read_ctf_mag_bad_comp(tmp_path, monkeypatch):
     """Test CTF reader with mag comps and bad comps."""
     path = op.join(ctf_dir, ctf_fname_continuous)
     raw_orig = read_raw_ctf(path)

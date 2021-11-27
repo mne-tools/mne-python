@@ -8,6 +8,7 @@
 
 import gc
 import os
+import subprocess
 import sys
 import time
 import warnings
@@ -60,11 +61,10 @@ if os.getenv('MNE_FULL_DATE', 'false').lower() != 'true':
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-# The short X.Y version.
-version = mne.__version__
 # The full version, including alpha/beta/rc tags.
-release = version
-
+release = mne.__version__
+# The short X.Y version.
+version = '.'.join(release.split('.')[:2])
 
 # -- General configuration ---------------------------------------------------
 
@@ -140,11 +140,12 @@ intersphinx_mapping = {
     'sklearn': ('https://scikit-learn.org/stable', None),
     'numba': ('https://numba.pydata.org/numba-doc/latest', None),
     'joblib': ('https://joblib.readthedocs.io/en/latest', None),
-    'mayavi': ('http://docs.enthought.com/mayavi/mayavi', None),
     'nibabel': ('https://nipy.org/nibabel', None),
     'nilearn': ('http://nilearn.github.io', None),
+    'nitime': ('https://nipy.org/nitime/', None),
     'surfer': ('https://pysurfer.github.io/', None),
     'mne_bids': ('https://mne.tools/mne-bids/stable', None),
+    'mne-connectivity': ('https://mne.tools/mne-connectivity/stable', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
     'seaborn': ('https://seaborn.pydata.org/', None),
     'statsmodels': ('https://www.statsmodels.org/dev', None),
@@ -155,8 +156,9 @@ intersphinx_mapping = {
     'picard': ('https://pierreablin.github.io/picard/', None),
     'qdarkstyle': ('https://qdarkstylesheet.readthedocs.io/en/latest', None),
     'eeglabio': ('https://eeglabio.readthedocs.io/en/latest', None),
-    'dipy': ('https://dipy.org/documentation/1.4.0./',
-             'https://dipy.org/documentation/1.4.0./objects.inv/'),
+    'dipy': ('https://dipy.org/documentation/latest/',
+             'https://dipy.org/documentation/latest/objects.inv/'),
+    'pooch': ('https://www.fatiando.org/pooch/latest/', None),
 }
 
 
@@ -170,17 +172,15 @@ numpydoc_xref_param_type = True
 numpydoc_xref_aliases = {
     # Python
     'file-like': ':term:`file-like <python:file object>`',
+    'path-like': ':term:`path-like`',
+    'array-like': ':term:`array-like`',
     # Matplotlib
     'colormap': ':doc:`colormap <matplotlib:tutorials/colors/colormaps>`',
     'color': ':doc:`color <matplotlib:api/colors_api>`',
-    'collection': ':doc:`collections <matplotlib:api/collections_api>`',
     'Axes': 'matplotlib.axes.Axes',
     'Figure': 'matplotlib.figure.Figure',
     'Axes3D': 'mpl_toolkits.mplot3d.axes3d.Axes3D',
     'ColorbarBase': 'matplotlib.colorbar.ColorbarBase',
-    # Mayavi
-    'mayavi.mlab.Figure': 'mayavi.core.api.Scene',
-    'mlab.Figure': 'mayavi.core.api.Scene',
     # sklearn
     'LeaveOneOut': 'sklearn.model_selection.LeaveOneOut',
     # joblib
@@ -225,6 +225,7 @@ numpydoc_xref_aliases = {
     'EMS': 'mne.decoding.EMS', 'CSP': 'mne.decoding.CSP',
     'Beamformer': 'mne.beamformer.Beamformer',
     'Transform': 'mne.transforms.Transform',
+    'Coregistration': 'mne.coreg.Coregistration',
     # dipy
     'dipy.align.AffineMap': 'dipy.align.imaffine.AffineMap',
     'dipy.align.DiffeomorphicMap': 'dipy.align.imwarp.DiffeomorphicMap',
@@ -247,7 +248,7 @@ numpydoc_xref_ignore = {
     'n_elp', 'n_pts', 'n_tris', 'n_nodes', 'n_nonzero', 'n_events_out',
     'n_segments', 'n_orient_inv', 'n_orient_fwd', 'n_orient', 'n_dipoles_lcmv',
     'n_dipoles_fwd', 'n_picks_ref', 'n_coords', 'n_meg', 'n_good_meg',
-    'n_moments',
+    'n_moments', 'n_patterns',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
     'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF', 'RawSNIRF', 'RawBOXY',
@@ -255,8 +256,10 @@ numpydoc_xref_ignore = {
     # sklearn subclasses
     'mapping', 'to', 'any',
     # unlinkable
-    'mayavi.mlab.pipeline.surface',
-    'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame',
+    'CoregistrationUI',
+    'IntracranialElectrodeLocator',
+    # We need to fix these: "PyVista renderer" and "PyVista surface"
+    'PyVista', 'renderer', 'surface',
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)
@@ -272,6 +275,10 @@ numpydoc_validation_exclude = {  # set of regex
     r'\.__sub__', r'\.__add__', r'\.__iter__', r'\.__div__', r'\.__neg__',
     # copied from sklearn
     r'mne\.utils\.deprecated',
+    # deprecations
+    r'mne\.connectivity\.degree', r'mne\.connectivity\.seed_target_indices',
+    r'mne\.viz\.plot_sensors_connectivity',
+    r'mne\.viz\.plot_connectivity_circle',
 }
 
 
@@ -308,14 +315,15 @@ class Resetter(object):
         plt.ioff()
         plt.rcParams['animation.embed_limit'] = 30.
         gc.collect()
-        _assert_no_instances(Brain, 'Brain')  # calls gc.collect()
+        when = 'mne/conf.py:Resetter.__call__'
+        _assert_no_instances(Brain, when)  # calls gc.collect()
         if Plotter is not None:
-            _assert_no_instances(Plotter, 'Plotter')
+            _assert_no_instances(Plotter, when)
         if BackgroundPlotter is not None:
-            _assert_no_instances(BackgroundPlotter, 'BackgroundPlotter')
+            _assert_no_instances(BackgroundPlotter, when)
         if vtkPolyData is not None:
-            _assert_no_instances(vtkPolyData, 'vtkPolyData')
-        _assert_no_instances(_Renderer, '_Renderer')
+            _assert_no_instances(vtkPolyData, when)
+        _assert_no_instances(_Renderer, when)
         # This will overwrite some Sphinx printing but it's useful
         # for memory timestamps
         if os.getenv('SG_STAMP_STARTS', '').lower() == 'true':
@@ -335,27 +343,28 @@ except Exception:
     report_scraper = None
 else:
     backend = mne.viz.get_3d_backend()
-    if backend == 'mayavi':
-        from traits.api import push_exception_handler
-        mlab = mne.utils._import_mlab()
-        # Do not pop up any mayavi windows while running the
-        # examples. These are very annoying since they steal the focus.
-        mlab.options.offscreen = True
-        # hack to initialize the Mayavi Engine
-        mlab.test_plot3d()
-        mlab.close()
-        scrapers += ('mayavi',)
-        push_exception_handler(reraise_exceptions=True)
-    elif backend in ('notebook', 'pyvistaqt'):
+    if backend in ('notebook', 'pyvistaqt'):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             import pyvista
         pyvista.OFF_SCREEN = False
-        brain_scraper = mne.viz._brain._BrainScraper()
-        scrapers += (brain_scraper, 'pyvista')
+        scrapers += (
+            mne.gui._LocateScraper(),
+            mne.viz._brain._BrainScraper(),
+            'pyvista',
+        )
     report_scraper = mne.report._ReportScraper()
     scrapers += (report_scraper,)
     del backend
+
+compress_images = ('images', 'thumbnails')
+# let's make things easier on Windows users
+# (on Linux and macOS it's easy enough to require this)
+if sys.platform.startswith('win'):
+    try:
+        subprocess.check_call(['optipng', '--version'])
+    except Exception:
+        compress_images = ()
 
 sphinx_gallery_conf = {
     'doc_module': ('mne',),
@@ -405,7 +414,7 @@ sphinx_gallery_conf = {
     'capture_repr': ('_repr_html_',),
     'junit': os.path.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
     'matplotlib_animations': True,
-    'compress_images': ('images', 'thumbnails'),
+    'compress_images': compress_images,
     'filename_pattern': '^((?!sgskip).)*$',
 }
 # Files were renamed from plot_* with:
@@ -455,6 +464,12 @@ linkcheck_ignore = [  # will be compiled to regex
     'https://www.nyu.edu/',  # noqa Max retries exceeded with url: / (Caused by SSLError(SSLError(1, '[SSL: DH_KEY_TOO_SMALL] dh key too small (_ssl.c:1122)')))
     'https://docs.python.org/3/library/.*',  # noqa ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
     'https://hal.archives-ouvertes.fr/hal-01848442.*',  # noqa Sometimes: 503 Server Error: Service Unavailable for url: https://hal.archives-ouvertes.fr/hal-01848442/
+    'http://www.cs.ucl.ac.uk/staff/d.barber/brml.*',  # noqa Sometimes: Read timed out
+    'https://compumedicsneuroscan.com/scan-acquire-configuration-files.*',  # noqa SSL certificate error as of 2021/09/28
+    'https://chrisholdgraf.com',  # noqa Max retries exceeded sometimes
+    'https://www.dtu.dk/english/service/phonebook/person.*',  # noqa Too slow
+    'https://speakerdeck.com/dengemann/eeg-sensor-covariance-using-cross-validation',  # noqa Too slow
+    'https://doi.org/10.1002/hbm.10024',  # noqa Too slow sometimes
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
@@ -488,7 +503,7 @@ for key in ('AcqParserFIF', 'BiHemiLabel', 'Dipole', 'DipoleFixed', 'Label',
             'MixedSourceEstimate', 'MixedVectorSourceEstimate', 'Report',
             'SourceEstimate', 'SourceMorph', 'VectorSourceEstimate',
             'VolSourceEstimate', 'VolVectorSourceEstimate',
-            'channels.DigMontage', 'channels.Layout',
+            'channels.DigMontage', 'channels.Layout', 'coreg.Coregistration',
             'decoding.CSP', 'decoding.EMS', 'decoding.FilterEstimator',
             'decoding.GeneralizingEstimator', 'decoding.LinearModel',
             'decoding.PSDEstimator', 'decoding.ReceptiveField', 'decoding.SSD',
@@ -590,8 +605,9 @@ xxl = '6'
 html_context = {
     'build_dev_html': bool(int(os.environ.get('BUILD_DEV_HTML', False))),
     'versions_dropdown': {
-        'dev': 'v0.24 (devel)',
-        'stable': 'v0.23 (stable)',
+        'dev': 'v1.0 (devel)',
+        'stable': 'v0.24 (stable)',
+        '0.23': 'v0.23',
         '0.22': 'v0.22',
         '0.21': 'v0.21',
         '0.20': 'v0.20',
@@ -733,8 +749,8 @@ html_context = {
              alt='Clusters'),
         dict(title='Connectivity',
              text='All-to-all spectral and effective connec\u00ADtivity measures.',  # noqa E501
-             url='auto_examples/connectivity/mne_inverse_label_connectivity.html',  # noqa E501
-             img='sphx_glr_mne_inverse_label_connectivity_001.png',
+             url='https://mne.tools/mne-connectivity/stable/auto_examples/mne_inverse_label_connectivity.html',  # noqa E501
+             img='https://mne.tools/mne-connectivity/stable/_images/sphx_glr_mne_inverse_label_connectivity_001.png',  # noqa E501
              alt='Connectivity'),
         dict(title='Data Visualization',
              text='Explore your data from multiple perspectives.',
@@ -803,6 +819,14 @@ def reset_warnings(gallery_conf, fname):
         'ignore', '.*semaphore_tracker: process died unexpectedly.*')
     warnings.filterwarnings(  # needed until SciPy 1.2.0 is released
         'ignore', '.*will be interpreted as an array index.*', module='scipy')
+    warnings.filterwarnings(
+        'ignore', '.*invalid escape sequence.*', lineno=90)  # quantities
+    warnings.filterwarnings(
+        'ignore', '.*invalid escape sequence.*', lineno=14)  # mne-connectivity
+    warnings.filterwarnings(
+        'ignore', '.*invalid escape sequence.*', lineno=281)  # mne-conn
+    warnings.filterwarnings(
+        'ignore', '.*"is not" with a literal.*', module='nilearn')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
                 'Using or importing the ABCs from',  # internal modules on 3.7
                 r"it will be an error for 'np\.bool_'",  # ndimage
@@ -815,6 +839,8 @@ def reset_warnings(gallery_conf, fname):
                 r'sphinx\.util\.smartypants is deprecated',
                 'is a deprecated alias for the builtin',  # NumPy
                 'the old name will be removed',  # Jinja, via sphinx
+                r'Passing a schema to Validator\.iter_errors',  # jsonschema
+                "default value of type 'dict' in an Any trait will",  # traits
                 'rcParams is deprecated',  # PyVista rcParams -> global_theme
                 'to mean no clipping',
                 ):
@@ -840,6 +866,9 @@ def reset_warnings(gallery_conf, fname):
         'ignore', message="can't resolve package from", category=ImportWarning)
     warnings.filterwarnings(
         'ignore', message='.*mne-realtime.*', category=DeprecationWarning)
+    warnings.filterwarnings(
+        'ignore', message=r'numpy\.ndarray size changed.*',
+        category=RuntimeWarning)
 
     # In case we use np.set_printoptions in any tutorials, we only
     # want it to affect those:
@@ -851,32 +880,53 @@ reset_warnings(None, None)
 
 # -- Fontawesome support -----------------------------------------------------
 
-# here the "b" and "s" refer to "brand" and "solid" (determines which font file
-# to look in). "fw-" prefix indicates fixed width.
-icons = {
-    'apple': 'b',
-    'linux': 'b',
-    'windows': 'b',
-    'hand-paper': 's',
-    'question': 's',
-    'quote-left': 's',
-    'rocket': 's',
-    'server': 's',
-    'fw-book': 's',
-    'fw-code-branch': 's',
-    'fw-newspaper': 's',
-    'fw-question-circle': 's',
-    'fw-quote-left': 's',
-}
+# here the "fab" and "fas" refer to "brand" and "solid" (determines which font
+# file to look in). "fw" indicates fixed width.
+brand_icons = ('apple', 'linux', 'windows', 'discourse', 'python')
+fixed_icons = (
+    # homepage:
+    'book', 'code-branch', 'newspaper', 'question-circle', 'quote-left',
+    # contrib guide:
+    'bug', 'comment', 'hand-sparkles', 'magic', 'pencil-alt', 'remove-format',
+    'universal-access', 'discourse', 'python'
+)
+other_icons = ('hand-paper', 'question', 'rocket', 'server')
+icons = dict()
+for icon in brand_icons + fixed_icons + other_icons:
+    font = ('fab' if icon in brand_icons else 'fas',)  # brand or solid font
+    fw = ('fa-fw',) if icon in fixed_icons else ()     # fixed-width
+    icons[icon] = font + fw
 
 prolog = ''
-for icon, cls in icons.items():
-    fw = ' fa-fw' if icon.startswith('fw-') else ''
+for icon, classes in icons.items():
     prolog += f'''
 .. |{icon}| raw:: html
 
-    <i class="fa{cls} fa-{icon[3:] if fw else icon}{fw}"></i>
+    <i class="{' '.join(classes)} fa-{icon}"></i>
 '''
+
+prolog += '''
+.. |fix-bug| raw:: html
+
+    <span class="fa-stack small-stack">
+        <i class="fas fa-bug fa-stack-1x"></i>
+        <i class="fas fa-ban fa-stack-2x"></i>
+    </span>
+'''
+
+# -- Dependency info ----------------------------------------------------------
+
+try:
+    from importlib.metadata import metadata  # new in Python 3.8
+    min_py = metadata('mne')['Requires-Python']
+except ModuleNotFoundError:
+    from pkg_resources import get_distribution
+    info = get_distribution('mne').get_metadata_lines('PKG-INFO')
+    for line in info:
+        if line.strip().startswith('Requires-Python'):
+            min_py = line.split(':')[1]
+min_py = min_py.lstrip(' =<>')
+prolog += f'\n.. |min_python_version| replace:: {min_py}\n'
 
 # -- website redirects --------------------------------------------------------
 
@@ -904,7 +954,7 @@ needed_plot_redirects = {
     'compute_mne_inverse_epochs_in_label.py',
     'compute_mne_inverse_raw_in_label.py', 'compute_mne_inverse_volume.py',
     'compute_source_psd_epochs.py', 'covariance_whitening_dspm.py',
-    'custom_inverse_solver.py', 'cwt_sensor_connectivity.py',
+    'custom_inverse_solver.py',
     'decoding_csp_eeg.py', 'decoding_csp_timefreq.py',
     'decoding_spatio_temporal_source.py', 'decoding_spoc_CMC.py',
     'decoding_time_generalization_conditions.py',
@@ -921,12 +971,11 @@ needed_plot_redirects = {
     'left_cerebellum_volume_source.py', 'limo_data.py',
     'linear_model_patterns.py', 'linear_regression_raw.py',
     'meg_sensors.py', 'mixed_norm_inverse.py',
-    'mixed_source_space_connectivity.py', 'mixed_source_space_inverse.py',
+    'mixed_source_space_inverse.py',
     'mne_cov_power.py', 'mne_helmet.py', 'mne_inverse_coherence_epochs.py',
-    'mne_inverse_connectivity_spectrum.py',
     'mne_inverse_envelope_correlation.py',
     'mne_inverse_envelope_correlation_volume.py',
-    'mne_inverse_label_connectivity.py', 'mne_inverse_psi_visual.py',
+    'mne_inverse_psi_visual.py',
     'morph_surface_stc.py', 'morph_volume_stc.py', 'movement_compensation.py',
     'movement_detection.py', 'multidict_reweighted_tfmxne.py',
     'muscle_detection.py', 'opm_data.py', 'otp.py', 'parcellation.py',
@@ -935,7 +984,7 @@ needed_plot_redirects = {
     'read_inverse.py', 'read_neo_format.py', 'read_noise_covariance_matrix.py',
     'read_stc.py', 'receptive_field_mtrf.py', 'resolution_metrics.py',
     'resolution_metrics_eegmeg.py', 'roi_erpimage_by_rt.py',
-    'sensor_connectivity.py', 'sensor_noise_level.py',
+    'sensor_noise_level.py',
     'sensor_permutation_test.py', 'sensor_regression.py',
     'shift_evoked.py', 'simulate_evoked_data.py', 'simulate_raw_data.py',
     'simulated_raw_data_using_subject_anatomy.py', 'snr_estimate.py',
@@ -950,6 +999,9 @@ needed_plot_redirects = {
     'vector_mne_solution.py', 'virtual_evoked.py', 'xdawn_denoising.py',
     'xhemi.py',
 }
+ex = 'auto_examples'
+co = 'connectivity'
+mne_conn = 'https://mne.tools/mne-connectivity/stable'
 tu = 'auto_tutorials'
 di = 'discussions'
 sm = 'source-modeling'
@@ -1007,6 +1059,15 @@ custom_redirects = {
     f'{tu}/{si}/plot_creating_data_structures.html': f'{tu}/{si}/10_array_objs.html',  # noqa E501
     f'{tu}/{si}/plot_point_spread.html': f'{tu}/{si}/70_point_spread.html',
     f'{tu}/{si}/plot_dics.html': f'{tu}/{si}/80_dics.html',
+    f'{ex}/{co}/mne_inverse_label_connectivity.html': f'{mne_conn}/{ex}/mne_inverse_label_connectivity.html',  # noqa E501
+    f'{ex}/{co}/cwt_sensor_connectivity.html': f'{mne_conn}/{ex}/cwt_sensor_connectivity.html',  # noqa E501
+    f'{ex}/{co}/mixed_source_space_connectivity.html': f'{mne_conn}/{ex}/mixed_source_space_connectivity.html',  # noqa E501
+    f'{ex}/{co}/mne_inverse_coherence_epochs.html': f'{mne_conn}/{ex}/mne_inverse_coherence_epochs.html',  # noqa E501
+    f'{ex}/{co}/mne_inverse_connectivity_spectrum.html': f'{mne_conn}/{ex}/mne_inverse_connectivity_spectrum.html',  # noqa E501
+    f'{ex}/{co}/mne_inverse_envelope_correlation_volume.html': f'{mne_conn}/{ex}/mne_inverse_envelope_correlation_volume.html',  # noqa E501
+    f'{ex}/{co}/mne_inverse_envelope_correlation.html': f'{mne_conn}/{ex}/mne_inverse_envelope_correlation.html',  # noqa E501
+    f'{ex}/{co}/mne_inverse_psi_visual.html': f'{mne_conn}/{ex}/mne_inverse_psi_visual.html',  # noqa E501
+    f'{ex}/{co}/sensor_connectivity.html': f'{mne_conn}/{ex}/sensor_connectivity.html',  # noqa E501
 }
 
 
@@ -1014,7 +1075,9 @@ def make_redirects(app, exception):
     """Make HTML redirects."""
     # https://www.sphinx-doc.org/en/master/extdev/appapi.html
     # Adapted from sphinxcontrib/redirects (BSD-2-Clause)
-    if not isinstance(app.builder, sphinx.builders.html.StandaloneHTMLBuilder):
+    if not (isinstance(app.builder,
+                       sphinx.builders.html.StandaloneHTMLBuilder) and
+            exception is None):
         return
     logger = sphinx.util.logging.getLogger('mne')
     TEMPLATE = """\
@@ -1054,9 +1117,14 @@ def make_redirects(app, exception):
             f'Added {len(fnames):3d} HTML plot_* redirects for {out_dir}')
     # custom redirects
     for fr, to in custom_redirects.items():
-        to_path = os.path.join(app.outdir, to)
-        assert os.path.isfile(to_path), to
-        assert to_path.endswith('html'), to_path
+        if not to.startswith('http'):
+            assert os.path.isfile(os.path.join(app.outdir, to)), to
+            # handle links to sibling folders
+            path_parts = to.split('/')
+            assert tu in path_parts, path_parts  # need to refactor otherwise
+            path_parts = ['..'] + path_parts[(path_parts.index(tu) + 1):]
+            to = os.path.join(*path_parts)
+        assert to.endswith('html'), to
         fr_path = os.path.join(app.outdir, fr)
         assert fr_path.endswith('html'), fr_path
         # allow overwrite if existing file is just a redirect
@@ -1067,14 +1135,12 @@ def make_redirects(app, exception):
                 line = fid.readline()
                 assert 'Page Redirection' in line, line
         # handle folders that no longer exist
-        if fr_path.split(os.path.sep)[-2] in (
-                'misc', 'discussions', 'source-modeling', 'sample-datasets'):
+        if fr_path.split('/')[-2] in (
+                'misc', 'discussions', 'source-modeling', 'sample-datasets',
+                'connectivity'):
             os.makedirs(os.path.dirname(fr_path), exist_ok=True)
-        # handle links to sibling folders
-        path_parts = to.split(os.path.sep)
-        path_parts = ['..'] + path_parts[(path_parts.index(tu) + 1):]
         with open(fr_path, 'w') as fid:
-            fid.write(TEMPLATE.format(to=os.path.join(*path_parts)))
+            fid.write(TEMPLATE.format(to=to))
     logger.info(
         f'Added {len(custom_redirects):3d} HTML custom redirects')
 
@@ -1088,4 +1154,7 @@ def setup(app):
         report_scraper.app = app
         app.config.rst_prolog = prolog
         app.connect('builder-inited', report_scraper.copyfiles)
+    sphinx_logger = sphinx.util.logging.getLogger('mne')
+    sphinx_logger.info(
+        f'Building documentation for MNE {release} ({mne.__file__})')
     app.connect('build-finished', make_redirects)

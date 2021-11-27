@@ -128,6 +128,10 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
             meg, atol = 'grad', 1e-24
         elif 'mag' in raw:
             meg, atol = 'mag', 1e-24
+        elif 'hbo' in raw:
+            fnirs, atol = 'hbo', 1e-10
+        elif 'hbr' in raw:
+            fnirs, atol = 'hbr', 1e-10
         else:
             assert 'fnirs_cw_amplitude' in raw, 'New channel type necessary?'
             fnirs, atol = 'fnirs_cw_amplitude', 1e-10
@@ -200,15 +204,18 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         # ranks should all be reduced by 1
         if test_rank == 'less':
             cmp = np.less
-        else:
+        elif test_rank is False:
+            cmp = None
+        else:  # anything else is like True or 'equal'
+            assert test_rank is True or test_rank == 'equal', test_rank
             cmp = np.equal
         rank_load_apply_get = np.linalg.matrix_rank(data_load_apply_get)
         rank_apply_get = np.linalg.matrix_rank(data_apply_get)
         rank_apply_load_get = np.linalg.matrix_rank(data_apply_load_get)
-        rank_apply_load_get = np.linalg.matrix_rank(data_apply_load_get)
-        assert cmp(rank_load_apply_get, len(col_names) - 1)
-        assert cmp(rank_apply_get, len(col_names) - 1)
-        assert cmp(rank_apply_load_get, len(col_names) - 1)
+        if cmp is not None:
+            assert cmp(rank_load_apply_get, len(col_names) - 1)
+            assert cmp(rank_apply_get, len(col_names) - 1)
+            assert cmp(rank_apply_load_get, len(col_names) - 1)
         # and they should all match
         t_kw = dict(
             atol=atol, err_msg='before != after, likely _mult_cal_one prob')
@@ -234,6 +241,9 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
     else:
         raw = reader(**kwargs)
     assert_named_constants(raw.info)
+    # smoke test for gh #9743
+    ids = [id(ch['loc']) for ch in raw.info['chs']]
+    assert len(set(ids)) == len(ids)
 
     full_data = raw._data
     assert raw.__class__.__name__ in repr(raw)  # to test repr
@@ -252,6 +262,9 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
     # gh-5604
     meas_date = raw.info['meas_date']
     assert meas_date is None or meas_date >= _stamp_to_dt((0, 0))
+
+    # test repr_html
+    assert 'Good channels' in raw.info._repr_html_()
 
     # test resetting raw
     if test_kwargs:
@@ -274,7 +287,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
     assert set(raw.info.keys()) == set(raw3.info.keys())
     assert_allclose(raw3[0:20][0], full_data[0:20], rtol=1e-6,
                     atol=1e-20)  # atol is very small but > 0
-    assert_array_almost_equal(raw.times, raw3.times)
+    assert_allclose(raw.times, raw3.times, atol=1e-6, rtol=1e-6)
 
     assert not math.isnan(raw3.info['highpass'])
     assert not math.isnan(raw3.info['lowpass'])
@@ -597,10 +610,13 @@ def test_describe_print():
         raw.describe()
     s = f.getvalue().strip().split("\n")
     assert len(s) == 378
-    assert s[0] == "<Raw | test_raw.fif, 376 x 14400 (24.0 s), ~3.3 MB, data not loaded>"  # noqa
-    assert s[1] == " ch  name      type  unit        min        Q1    median        Q3       max"  # noqa
-    assert s[2] == "  0  MEG 0113  GRAD  fT/cm   -221.80    -38.57     -9.64     19.29    414.67"  # noqa
-    assert s[-1] == "375  EOG 061   EOG   µV      -231.41    271.28    277.16    285.66    334.69"  # noqa
+    # Can be 3.1, 3.3, etc.
+    assert re.match(
+        r'<Raw | test_raw.fif, 376 x 14400 (24\.0 s), '
+        r'~3\.. MB, data not loaded>', s[0]) is not None, s[0]
+    assert s[1] == " ch  name      type  unit         min         Q1     median         Q3        max"  # noqa
+    assert s[2] == "  0  MEG 0113  GRAD  fT/cm    -221.80     -38.57      -9.64      19.29     414.67"  # noqa
+    assert s[-1] == "375  EOG 061   EOG   µV       -231.41     271.28     277.16     285.66     334.69"  # noqa
 
 
 @requires_pandas

@@ -31,9 +31,9 @@ cal_mf_fname = op.join(data_path, 'SSS', '141027.dat')
 @pytest.mark.parametrize('fname', (cal_mf_fname, fine_cal_fname,
                                    fine_cal_fname_3d))
 @testing.requires_testing_data
-def test_fine_cal_io(tmpdir, fname):
+def test_fine_cal_io(tmp_path, fname):
     """Test round trip reading/writing of fine calibration .dat file."""
-    temp_fname = op.join(str(tmpdir), 'fine_cal_temp.dat')
+    temp_fname = op.join(str(tmp_path), 'fine_cal_temp.dat')
     # Load fine calibration file
     fine_cal_dict = read_fine_calibration(fname)
 
@@ -102,7 +102,7 @@ def test_compute_fine_cal():
             # processing a very short (one 10-sec segment), downsampled (90 Hz)
             # file
             assert 66 < want_orig_max_angle < 68, want_orig_max_angle
-            assert 56 < got_orig_max_angle < 112, got_orig_max_angle
+            assert 56 < got_orig_max_angle < 113, got_orig_max_angle
             assert 53 < got_want_max_angle < 60, got_want_max_angle
 
     kwargs = dict(bad_condition='warning', cross_talk=ctc, coord_frame='meg')

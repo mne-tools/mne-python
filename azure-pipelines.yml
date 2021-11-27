@@ -17,7 +17,7 @@ stages:
   jobs:
     - job: Skip
       pool:
-        vmImage: 'ubuntu-18.04'
+        vmImage: 'ubuntu-latest'
       variables:
         DECODE_PERCENTS: 'false'
         RET: 'true'
@@ -31,15 +31,13 @@ stages:
       - bash: echo "##vso[task.setvariable variable=start_main;isOutput=true]$RET"
         name: result
 
-- stage: Main
-  condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
-  dependsOn: Check
+- stage: Style
   variables:
     AZURE_CI: 'true'
   jobs:
-  - job: Style
+  - job: All
     pool:
-      vmImage: 'ubuntu-18.04'
+      vmImage: 'ubuntu-latest'
     variables:
       PYTHON_VERSION: '3.9'
       PYTHON_ARCH: 'x64'
@@ -53,8 +51,8 @@ stages:
       displayName: 'Get Python'
     - bash: |
         set -e
-        python -m pip install --upgrade pip setuptools
-        python -m pip install numpy scipy matplotlib -r requirements_testing.txt
+        python -m pip install --progress-bar off --upgrade pip setuptools wheel
+        python -m pip install --progress-bar off numpy scipy matplotlib -r requirements_testing.txt
       displayName: Install dependencies
       condition: always()
     - bash: |
@@ -77,8 +75,13 @@ stages:
       displayName: make check-readme
       condition: always()
 
-
-  - job: Ultraslow
+- stage: Test
+  condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
+  dependsOn: Check
+  variables:
+    AZURE_CI: 'true'
+  jobs:
+  - job: Ultraslow_PG
     pool:
       vmImage: 'ubuntu-20.04'
     variables:
@@ -107,9 +110,13 @@ stages:
       displayName: 'Spin up Xvfb'
     - bash: |
         set -e
-        python -m pip install --upgrade pip setuptools
-        python -m pip install --upgrade numpy scipy "vtk<=9.0.1" -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt codecov
+        python -m pip install --progress-bar off --upgrade pip setuptools wheel codecov
+        python -m pip install --progress-bar off mne-qt-browser[opengl]
+        python -m pip uninstall -yq mne
+        python -m pip install --progress-bar off --upgrade -e .[test]
       displayName: 'Install dependencies with pip'
+    - script: mne sys_info -pd
+      displayName: Print config
     - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
     - task: Cache@2
@@ -119,8 +126,8 @@ stages:
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
-    - script: pytest -m "ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
-      displayName: 'Run ultraslow tests'
+    - script: pytest -m "ultraslowtest or pgtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
+      displayName: 'Run ultraslow and PyQtGraph mne-qt-browser tests'
     - bash: bash <(curl -s https://codecov.io/bash)
       displayName: 'Codecov'
       condition: succeededOrFailed()
@@ -136,9 +143,10 @@ stages:
         summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
         reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
 
+
   - job: Notebook
     pool:
-      vmImage: 'ubuntu-18.04'
+      vmImage: 'ubuntu-latest'
     steps:
     - bash: |
         set -e
@@ -148,13 +156,12 @@ stages:
         conda activate base
         conda env update --file server_environment.yml
         pip uninstall -yq mne
-        pip install -ve .
-        pip install -r requirements_testing.txt -r requirements_testing_extra.txt codecov
+        pip install --progress-bar off -ve .[test] codecov
         echo "##vso[task.setvariable variable=PATH]${PATH}"
         echo "##vso[task.setvariable variable=LD_LIBRARY_PATH]${LD_LIBRARY_PATH}"
       displayName: 'Install dependencies'
-    - script: mne sys_info
-      displayName: 'Print config and test access to commands'
+    - script: mne sys_info -pd
+      displayName: 'Print config'
     - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
     - task: Cache@2
@@ -164,7 +171,7 @@ stages:
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
-    - script: pytest --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne/viz
+    - script: pytest --tb=short -m "not pgtest" --cov=mne --cov-report=xml --cov-report=html -vv mne/viz
       displayName: 'Run viz tests'
     - bash: bash <(curl -s https://codecov.io/bash)
       displayName: 'Codecov'
@@ -184,12 +191,15 @@ stages:
 
   - job: Windows
     pool:
-      vmImage: 'VS2017-Win2016'
+      vmImage: 'windows-latest'
     variables:
       MNE_LOGGING_LEVEL: 'warning'
       MNE_FORCE_SERIAL: 'true'
       OPENBLAS_NUM_THREADS: 1
       OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 2
+      OMP_DYNAMIC: 'false'
+      MKL_DYNAMIC: 'false'
       PYTHONUNBUFFERED: 1
       PYTHONIOENCODING: 'utf-8'
       AZURE_CI_WINDOWS: 'true'
@@ -204,9 +214,9 @@ stages:
         3.7 pip:
           TEST_MODE: 'pip'
           PYTHON_VERSION: '3.7'
-        3.8 pip pre:
+        3.9 pip pre:
           TEST_MODE: 'pip-pre'
-          PYTHON_VERSION: '3.8'
+          PYTHON_VERSION: '3.9'
     steps:
     - task: UsePythonVersion@0
       inputs:
@@ -217,35 +227,37 @@ stages:
       displayName: 'Get Python'
     # https://docs.microsoft.com/en-us/azure/devops/pipelines/ecosystems/anaconda
     # https://github.com/MicrosoftDocs/pipelines-anaconda
-    # Qt 5.9 post-link failure:
     # https://github.com/ContinuumIO/anaconda-issues/issues/10949
-    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;"
+    - script: |
+        echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%PROGRAMFILES%\Git\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%PROGRAMFILES%\Git\usr\bin"
       condition: in(variables['TEST_MODE'], 'conda')
-      displayName: Add conda to PATH, deal with Qt 5.9 bug
+      displayName: Add conda to PATH, deal with Qt linking bug
     - bash: |
         set -e
-        git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
+        git clone --depth 1 https://github.com/pyvista/gl-ci-helpers.git
         powershell gl-ci-helpers/appveyor/install_opengl.ps1
       displayName: Install OpenGL
     - bash: |
         set -e
         ./tools/azure_dependencies.sh
       condition: in(variables['TEST_MODE'], 'pip', 'pip-pre')
-      displayName: 'Install dependencies with pip'
-    - powershell: |
-        Set-StrictMode -Version Latest
-        $ErrorActionPreference = "Stop"
-        $PSDefaultParameterValues['*:ErrorAction']='Stop'
-        conda update -n base -c defaults conda "brotli<1.0" urllib3
-        conda env update --name base --file environment.yml
-        pip uninstall -yq mne
-        pip install -r requirements_testing.txt -r requirements_testing_extra.txt codecov
+      displayName: Install dependencies with pip
+    - script: conda env update --name base --file environment.yml
       condition: eq(variables['TEST_MODE'], 'conda')
-      displayName: 'Install dependencies with conda'
-    - script: python setup.py develop
+      displayName: Setup MNE environment
+    - bash: |
+        set -e
+        conda remove -c conda-forge --force -yq mne
+        rm /c/Miniconda/Scripts/mne.exe
+      condition: eq(variables['TEST_MODE'], 'conda')
+      displayName: Remove old MNE
+    - script: pip install -e .
       displayName: 'Install MNE-Python dev'
-    - script: mne sys_info
-      displayName: 'Print config and test access to commands'
+    - script: pip install --progress-bar off -e .[test] codecov
+      condition: eq(variables['TEST_MODE'], 'conda')
+      displayName: Install testing requirements
+    - script: mne sys_info -pd
+      displayName: 'Print config'
     - script: python -c "import numpy; numpy.show_config()"
       displayName: Print NumPy config
     - bash: source tools/get_testing_version.sh
@@ -257,7 +269,7 @@ stages:
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
-    - script: pytest -m "not slowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
+    - script: pytest -m "not (slowtest or pgtest)" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
       displayName: 'Run tests'
     - bash: bash <(curl -s https://codecov.io/bash)
       displayName: 'Codecov'
@@ -273,3 +285,41 @@ stages:
         codeCoverageTool: Cobertura
         summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
         reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
+
+  - job: SphinxWindows
+    pool:
+      vmImage: 'windows-latest'
+    variables:
+      AZURE_CI_WINDOWS: 'true'
+      PYTHON_ARCH: 'x64'
+      PLATFORM: 'x86-64'
+      PYTHON_VERSION: '3.9'
+    steps:
+    - bash: |
+        set -e
+        git clone --depth 1 https://github.com/pyvista/gl-ci-helpers.git
+        powershell gl-ci-helpers/appveyor/install_opengl.ps1
+      displayName: Install OpenGL
+    - script: echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%CONDA%\Library\bin\graphviz;%PROGRAMFILES%\Git\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%PROGRAMFILES%\Git\usr\bin"
+      displayName: Add conda to PATH, deal with Qt linking bug
+    - script: conda update -n base -c defaults conda
+      displayName: Update conda
+    - script: conda env update --name base --file environment.yml
+      displayName: Setup MNE environment
+    - script: conda install -c conda-forge graphviz
+      displayName: Add graphviz dot
+    - bash: |
+        set -e
+        conda remove -c conda-forge --force -yq mne
+        rm /c/Miniconda/Scripts/mne.exe
+      displayName: Remove old MNE
+    - script: pip install -e .
+      displayName: Install dev MNE
+    - script: pip install --progress-bar off -r requirements_doc.txt
+      displayName: Install documentation dependencies
+    - script: mne sys_info -pd
+      displayName: Print config and test access to commands
+    - script: python -c "import numpy; numpy.show_config()"
+      displayName: Print NumPy config
+    - bash: make -C doc html_dev-noplot
+      displayName: 'Build doc'

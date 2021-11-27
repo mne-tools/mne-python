@@ -326,6 +326,17 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     --------
     find_ecg_events
     compute_proj_ecg
+
+    Notes
+    -----
+    If you already have a list of R-peak times, or want to compute R-peaks
+    outside MNE-Python using a different algorithm, the recommended approach is
+    to call the :class:`~mne.Epochs` constructor directly, with your R-peaks
+    formatted as an :term:`events` array (here we also demonstrate the relevant
+    default values)::
+
+        mne.Epochs(raw, r_peak_events_array, tmin=-0.5, tmax=0.5,
+                   baseline=None, preload=True, proj=False)  # doctest: +SKIP
     """
     has_ecg = 'ecg' in raw or ch_name is not None
     if keep_ecg and (has_ecg or not preload):
@@ -351,10 +362,11 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
             ecg, create_info(ch_names=['ECG-SYN'],
                              sfreq=raw.info['sfreq'], ch_types=['ecg']),
             first_samp=raw.first_samp)
-        ignore = ['ch_names', 'chs', 'nchan', 'bads']
-        for k, v in raw.info.items():
-            if k not in ignore:
-                ecg_raw.info[k] = v
+        with ecg_raw.info._unlock():
+            ignore = ['ch_names', 'chs', 'nchan', 'bads']
+            for k, v in raw.info.items():
+                if k not in ignore:
+                    ecg_raw.info[k] = v
         syn_epochs = Epochs(ecg_raw, events=ecg_epochs.events,
                             event_id=event_id, tmin=tmin, tmax=tmax,
                             proj=False, picks=[0], baseline=baseline,

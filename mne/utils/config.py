@@ -17,7 +17,8 @@ import re
 
 import numpy as np
 
-from .check import _validate_type, _check_pyqt5_version
+from .check import (_validate_type, _check_pyqt5_version, _check_option,
+                    _check_fname)
 from .docs import fill_doc
 from ._logging import warn, logger
 
@@ -68,6 +69,8 @@ def set_memmap_min_size(memmap_min_size):
 known_config_types = (
     'MNE_3D_OPTION_ANTIALIAS',
     'MNE_BROWSE_RAW_SIZE',
+    'MNE_BROWSER_BACKEND',
+    'MNE_BROWSER_USE_OPENGL',
     'MNE_CACHE_DIR',
     'MNE_COREG_ADVANCED_RENDERING',
     'MNE_COREG_COPY_ANNOT',
@@ -365,7 +368,11 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
     if subjects_dir is None:
         subjects_dir = get_config('SUBJECTS_DIR', raise_error=raise_error)
     if subjects_dir is not None:
-        subjects_dir = str(subjects_dir)
+        subjects_dir = _check_fname(
+            fname=subjects_dir, overwrite='read', must_exist=True,
+            need_dir=True, name='subjects_dir'
+        )
+
     return subjects_dir
 
 
@@ -454,7 +461,7 @@ def _get_numpy_libs():
     return libs
 
 
-def sys_info(fid=None, show_paths=False):
+def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     """Print the system information for debugging.
 
     This function is useful for printing system information
@@ -467,6 +474,11 @@ def sys_info(fid=None, show_paths=False):
         Can be None to use :data:`sys.stdout`.
     show_paths : bool
         If True, print paths for each module.
+    dependencies : str
+        Can be "user" (default) to show user-relevant dependencies, or
+        "developer" to additionally show developer dependencies.
+
+        .. versionadded:: 0.24
 
     Examples
     --------
@@ -493,12 +505,14 @@ def sys_info(fid=None, show_paths=False):
         dipy:          1.1.1
         cupy:          Not found
         pandas:        1.0.5
-        mayavi:        Not found
         pyvista:       0.25.3 {pyvistaqt=0.1.1, OpenGL 3.3 (Core Profile) Mesa 18.3.6 via llvmpipe (LLVM 7.0, 256 bits)}
         vtk:           9.0.1
         PyQt5:         5.15.0
+        pooch:         v1.5.1
     """  # noqa: E501
-    ljust = 15
+    _validate_type(dependencies, str)
+    _check_option('dependencies', dependencies, ('user', 'developer'))
+    ljust = 21 if dependencies == 'developer' else 16
     platform_str = platform.platform()
     if platform.system() == 'Darwin' and sys.version_info[:2] < (3, 8):
         # platform.platform() in Python < 3.8 doesn't call
@@ -531,48 +545,37 @@ def sys_info(fid=None, show_paths=False):
         out += '%0.1f GB\n' % (psutil.virtual_memory().total / float(2 ** 30),)
     out += '\n'
     libs = _get_numpy_libs()
-    has_3d = False
-    for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
+    use_mod_names = ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
                      'numba', 'nibabel', 'nilearn', 'dipy', 'cupy', 'pandas',
-                     'mayavi', 'pyvista', 'vtk', 'PyQt5'):
+                     'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk',
+                     'PyQt5', 'ipympl', 'mne_qt_browser')
+    if dependencies == 'developer':
+        use_mod_names += (
+            '', 'sphinx', 'sphinx_gallery', 'numpydoc', 'pydata_sphinx_theme',
+            'mne_bids', 'pytest', 'nbclient')
+    for mod_name in use_mod_names:
         if mod_name == '':
             out += '\n'
-            continue
-        if mod_name == 'PyQt5' and not has_3d:
             continue
         out += ('%s:' % mod_name).ljust(ljust)
         try:
             mod = __import__(mod_name)
-            if mod_name == 'mayavi':
-                # the real test
-                from mayavi import mlab  # noqa, analysis:ignore
         except Exception:
             out += 'Not found\n'
         else:
-            extra = (' (%s)' % op.dirname(mod.__file__)) if show_paths else ''
+            extra = ''
             if mod_name == 'numpy':
                 extra += ' {%s}%s' % (libs, extra)
             elif mod_name == 'matplotlib':
                 extra += ' {backend=%s}%s' % (mod.get_backend(), extra)
             elif mod_name == 'pyvista':
-                extras = list()
-                try:
-                    from pyvistaqt import __version__
-                except Exception:
-                    extras += ['pyvistaqt not found']
-                else:
-                    extras += [f'pyvistaqt={__version__}']
                 try:
                     from pyvista import GPUInfo
                 except ImportError:
                     pass
                 else:
                     gi = GPUInfo()
-                    extras += [f'OpenGL {gi.version} via {gi.renderer}']
-                if extras:
-                    extra += f' {{{", ".join(extras)}}}'
-            elif mod_name in ('mayavi', 'vtk'):
-                has_3d = True
+                    extra += f' {{OpenGL {gi.version} via {gi.renderer}}}'
             if mod_name == 'vtk':
                 version = mod.vtkVersion()
                 # 9.0 dev has VersionFull but 9.0 doesn't
@@ -584,5 +587,7 @@ def sys_info(fid=None, show_paths=False):
                 version = _check_pyqt5_version()
             else:
                 version = mod.__version__
+            if show_paths:
+                extra += f'\n{" " * ljust}•{op.dirname(mod.__file__)}'
             out += '%s%s\n' % (version, extra)
     print(out, end='', file=fid)

@@ -648,7 +648,7 @@ def _check_destination(destination, info, head_frame):
 def _prep_mf_coils(info, ignore_ref=True, verbose=None):
     """Get all coil integration information loaded and sorted."""
     coils, comp_coils = _prep_meg_channels(
-        info, accurate=True, head_frame=False,
+        info, head_frame=False,
         ignore_ref=ignore_ref, do_picking=False, verbose=False)[:2]
     mag_mask = _get_mag_mask(coils)
     if len(comp_coils) > 0:
@@ -752,7 +752,8 @@ def _copy_preload_add_channels(raw, add_channels, copy, info):
     """Load data for processing and (maybe) add cHPI pos channels."""
     if copy:
         raw = raw.copy()
-    raw.info['chs'] = info['chs']  # updated coil types
+    with raw.info._unlock():
+        raw.info['chs'] = info['chs']  # updated coil types
     if add_channels:
         kinds = [FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2, FIFF.FIFFV_QUAT_3,
                  FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5, FIFF.FIFFV_QUAT_6,
@@ -1509,7 +1510,8 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
         Extended external bases.
     """
     n_in, n_out = _get_n_moments([int_order, ext_order])
-    raw.info['maxshield'] = False
+    with raw.info._unlock():
+        raw.info['maxshield'] = False
     components = np.zeros(n_in + n_out + len(extended_proj)).astype('int32')
     components[reg_moments] = 1
     sss_info_dict = dict(in_order=int_order, out_order=ext_order,
@@ -1527,11 +1529,13 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
         # Reset 'bads' for any MEG channels since they've been reconstructed
         _reset_meg_bads(raw.info)
         # set the reconstruction transform
-        raw.info['dev_head_t'] = recon_trans
+        with raw.info._unlock():
+            raw.info['dev_head_t'] = recon_trans
     block_id = _generate_meas_id()
-    raw.info['proc_history'].insert(0, dict(
-        max_info=max_info_dict, block_id=block_id, date=DATE_NONE,
-        creator='mne-python v%s' % __version__, experimenter=''))
+    with raw.info._unlock():
+        raw.info['proc_history'].insert(0, dict(
+            max_info=max_info_dict, block_id=block_id, date=DATE_NONE,
+            creator='mne-python v%s' % __version__, experimenter=''))
 
 
 def _reset_meg_bads(info):

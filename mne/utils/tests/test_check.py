@@ -14,12 +14,11 @@ from pathlib import Path
 import mne
 from mne import read_vectorview_selection
 from mne.datasets import testing
-from mne.io.pick import pick_channels_cov
-from mne.utils import (check_random_state, _check_fname, check_fname,
-                       _check_subject, requires_mayavi, traits_test,
-                       _check_mayavi_version, _check_info_inv, _check_option,
-                       check_version, _check_path_like, _validate_type,
-                       _suggest, _on_missing, requires_nibabel, _safe_input)
+from mne.io.pick import pick_channels_cov, _picks_to_idx
+from mne.utils import (check_random_state, _check_fname, check_fname, _suggest,
+                       _check_subject, _check_info_inv, _check_option,
+                       check_version, _path_like, _validate_type, _on_missing,
+                       requires_nibabel, _safe_input, _check_ch_locs)
 
 data_path = testing.data_path(download=False)
 base_dir = op.join(data_path, 'MEG', 'sample')
@@ -31,12 +30,12 @@ reject = dict(grad=4000e-13, mag=4e-12)
 
 
 @testing.requires_testing_data
-def test_check(tmpdir):
+def test_check(tmp_path):
     """Test checking functions."""
     pytest.raises(ValueError, check_random_state, 'foo')
     pytest.raises(TypeError, _check_fname, 1)
     _check_fname(Path('./foo'))
-    fname = str(tmpdir.join('foo'))
+    fname = tmp_path / 'foo'
     with open(fname, 'wb'):
         pass
     assert op.isfile(fname)
@@ -65,20 +64,12 @@ def test_check(tmpdir):
 @pytest.mark.parametrize('suffix',
                          ('_meg.fif', '_eeg.fif', '_ieeg.fif',
                           '_meg.fif.gz', '_eeg.fif.gz', '_ieeg.fif.gz'))
-def test_check_fname_suffixes(suffix, tmpdir):
+def test_check_fname_suffixes(suffix, tmp_path):
     """Test checking for valid filename suffixes."""
-    new_fname = str(tmpdir.join(op.basename(fname_raw)
-                                .replace('_raw.fif', suffix)))
+    new_fname = tmp_path / op.basename(fname_raw).replace('_raw.fif', suffix)
     raw = mne.io.read_raw_fif(fname_raw).crop(0, 0.1)
     raw.save(new_fname)
     mne.io.read_raw_fif(new_fname)
-
-
-@requires_mayavi
-@traits_test
-def test_check_mayavi():
-    """Test mayavi version check."""
-    pytest.raises(RuntimeError, _check_mayavi_version, '100.0.0')
 
 
 def _get_data():
@@ -176,15 +167,15 @@ def test_check_option():
         assert _check_option('option', 'bad', ['valid'])
 
 
-def test_check_path_like():
-    """Test _check_path_like()."""
+def test_path_like():
+    """Test _path_like()."""
     str_path = str(base_dir)
     pathlib_path = Path(base_dir)
     no_path = dict(foo='bar')
 
-    assert _check_path_like(str_path) is True
-    assert _check_path_like(pathlib_path) is True
-    assert _check_path_like(no_path) is False
+    assert _path_like(str_path) is True
+    assert _path_like(pathlib_path) is True
+    assert _path_like(no_path) is False
 
 
 def test_validate_type():
@@ -231,3 +222,29 @@ def test_safe_input(monkeypatch):
     with pytest.raises(RuntimeError, match='Could not use input'):
         _safe_input('whatever', alt='nothing')
     assert _safe_input('whatever', use='nothing') == 'nothing'
+
+
+@testing.requires_testing_data
+def test_check_ch_locs():
+    """Test _check_ch_locs behavior."""
+    info = mne.io.read_info(fname_raw)
+    assert _check_ch_locs(info=info)
+
+    for picks in ([0], [0, 1], None):
+        assert _check_ch_locs(info=info, picks=picks)
+
+    for ch_type in ('meg', 'mag', 'grad', 'eeg'):
+        assert _check_ch_locs(info=info, ch_type=ch_type)
+
+    # drop locations for EEG
+    picks_eeg = _picks_to_idx(info=info, picks='eeg')
+    for idx in picks_eeg:
+        info['chs'][idx]['loc'][:3] = np.nan
+
+    # EEG tests should fail now
+    assert _check_ch_locs(info=info, picks=picks_eeg) is False
+    assert _check_ch_locs(info=info, ch_type='eeg') is False
+
+    # tests for other (and "all") channels should still pass
+    assert _check_ch_locs(info=info)
+    assert _check_ch_locs(info=info, ch_type='mag')

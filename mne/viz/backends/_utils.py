@@ -12,9 +12,13 @@ import numpy as np
 import collections.abc
 from ...externals.decorator import decorator
 
+VALID_BROWSE_BACKENDS = (
+    'matplotlib',
+    'pyqtgraph'
+)
+
 VALID_3D_BACKENDS = (
     'pyvistaqt',  # default 3d backend
-    'mayavi',
     'notebook',
 )
 ALLOWED_QUIVER_MODES = ('2darrow', 'arrow', 'cone', 'cylinder', 'sphere',

@@ -23,12 +23,11 @@ dependencies:
 - spyder-kernels>=1.10.0
 - imageio-ffmpeg>=0.4.1
 - vtk>=9.0.1
+- traitlets
 - pyvista>=0.30
 - pyvistaqt>=0.4
 - qdarkstyle
 - darkdetect
-- mayavi
-- PySurfer
 - dipy
 - nibabel
 - nilearn
@@ -37,5 +36,6 @@ dependencies:
 - mne
 - mffpy>=0.5.7
 - ipywidgets
-- pip:
-  - ipyvtklink
+- pooch
+- ipyvtklink
+- mne-qt-browser

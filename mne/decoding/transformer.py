@@ -350,10 +350,7 @@ class PSDEstimator(TransformerMixin):
         bandwidth.
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
-    normalization : str
-        Either "full" or "length" (default). If "full", the PSD will
-        be normalized by the sampling rate as well as the length of
-        the signal (as in nitime).
+    %(normalization)s
     %(verbose)s
 
     See Also
@@ -524,14 +521,16 @@ class FilterEstimator(TransformerMixin):
                                              self.l_freq < self.h_freq) and
                                             self.h_freq <
                                             self.info['lowpass']):
-            self.info['lowpass'] = self.h_freq
+            with self.info._unlock():
+                self.info['lowpass'] = self.h_freq
 
         if self.info['highpass'] is None or (self.l_freq is not None and
                                              (self.h_freq is None or
                                               self.l_freq < self.h_freq) and
                                              self.l_freq >
                                              self.info['highpass']):
-            self.info['highpass'] = self.l_freq
+            with self.info._unlock():
+                self.info['highpass'] = self.l_freq
 
         return self
 

@@ -7,12 +7,14 @@
 # License: BSD-3-Clause
 
 from collections import Counter, OrderedDict
+from collections.abc import Mapping
 import contextlib
 from copy import deepcopy
 import datetime
 from io import BytesIO
 import operator
 from textwrap import shorten
+import string
 
 import numpy as np
 
@@ -31,7 +33,8 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian, write_float_matrix, write_id, DATE_NONE)
 from .proc_history import _read_proc_history, _write_proc_history
-from ..transforms import invert_transform, Transform, _coord_frame_name
+from ..transforms import (invert_transform, Transform, _coord_frame_name,
+                          _ensure_trans)
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
                      _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric,
                      _check_option, _on_missing, _check_on_missing, fill_doc)
@@ -40,6 +43,7 @@ from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
 from ._digitization import write_dig as _dig_write_dig
 from .compensator import get_current_comp
 from ..data.html_templates import info_template
+from ..defaults import _handle_default
 
 b = bytes  # alias
 
@@ -106,6 +110,7 @@ def _get_valid_units():
 @verbose
 def _unique_channel_names(ch_names, max_length=None, verbose=None):
     """Ensure unique channel names."""
+    suffixes = tuple(string.ascii_lowercase)
     if max_length is not None:
         ch_names[:] = [name[:max_length] for name in ch_names]
     unique_ids = np.unique(ch_names, return_index=True)[1]
@@ -126,14 +131,17 @@ def _unique_channel_names(ch_names, max_length=None, verbose=None):
             n_keep = min(len(ch_stem), n_keep)
             ch_stem = ch_stem[:n_keep]
             for idx, ch_idx in enumerate(overlaps):
-                ch_name = ch_stem + '-%s' % idx
+                # try idx first, then loop through lower case chars
+                for suffix in (idx,) + suffixes:
+                    ch_name = ch_stem + '-%s' % suffix
+                    if ch_name not in ch_names:
+                        break
                 if ch_name not in ch_names:
                     ch_names[ch_idx] = ch_name
                 else:
-                    raise ValueError('Adding a running number for a '
+                    raise ValueError('Adding a single alphanumeric for a '
                                      'duplicate resulted in another '
                                      'duplicate name %s' % ch_name)
-
     return ch_names
 
 
@@ -200,6 +208,50 @@ def _check_ch_keys(ch, ci, name='info["chs"]', check_min=True):
                 f'key{_pl(bad)} missing for {name}[{ci}]: {bad}',)
 
 
+# As options are added here, test_meas_info.py:test_info_bad should be updated
+def _check_bads(bads):
+    _validate_type(bads, list, 'bads')
+    return bads
+
+
+def _check_description(description):
+    _validate_type(description, (None, str), "info['description']")
+    return description
+
+
+def _check_dev_head_t(dev_head_t):
+    _validate_type(dev_head_t, (Transform, None), "info['dev_head_t']")
+    if dev_head_t is not None:
+        dev_head_t = _ensure_trans(dev_head_t, 'meg', 'head')
+    return dev_head_t
+
+
+def _check_experimenter(experimenter):
+    _validate_type(experimenter, (None, str), 'experimenter')
+    return experimenter
+
+
+def _check_line_freq(line_freq):
+    _validate_type(line_freq, (None, 'numeric'), 'line_freq')
+    line_freq = float(line_freq) if line_freq is not None else line_freq
+    return line_freq
+
+
+def _check_subject_info(subject_info):
+    _validate_type(subject_info, (None, dict), 'subject_info')
+    return subject_info
+
+
+def _check_device_info(device_info):
+    _validate_type(device_info, (None, dict, ), 'device_info')
+    return device_info
+
+
+def _check_helium_info(helium_info):
+    _validate_type(helium_info, (None, dict, ), 'helium_info')
+    return helium_info
+
+
 class Info(dict, MontageMixin):
     """Measurement information.
 
@@ -210,10 +262,14 @@ class Info(dict, MontageMixin):
     so new entries should not be manually added.
 
     .. warning:: The only entries that should be manually changed by the user
-                 are ``info['bads']`` and ``info['description']``. All other
-                 entries should be considered read-only, though they can be
-                 modified by various MNE-Python functions or methods (which
-                 have safeguards to ensure all fields remain in sync).
+                 are ``info['bads']``, ``info['description']``,
+                 ``info['device_info']``, ``info['dev_head_t']``,
+                 ``info['experimenter']``, info['helium_info'],
+                 ``info['line_freq']``, ``info['temp']`` and
+                 ``info['subject_info']``. All other entries should be
+                 considered read-only, though they can be modified by various
+                 MNE-Python functions or methods (which have safeguards to
+                 ensure all fields remain in sync).
 
     .. warning:: This class should not be instantiated directly. To create a
                  measurement information structure, use
@@ -229,7 +285,7 @@ class Info(dict, MontageMixin):
     Attributes
     ----------
     acq_pars : str | None
-        MEG system acquition parameters.
+        MEG system acquisition parameters.
         See :class:`mne.AcqParserFIF` for details.
     acq_stim : str | None
         MEG system stimulus parameters.
@@ -241,6 +297,9 @@ class Info(dict, MontageMixin):
     chs : list of dict
         A list of channel information dictionaries, one per channel.
         See Notes for more information.
+    command_line : str
+        Contains the command and arguments used to create the source space
+        (used for source estimation).
     comps : list of dict
         CTF software gradient compensation data.
         See Notes for more information.
@@ -258,6 +317,10 @@ class Info(dict, MontageMixin):
         This is only present in 4D/CTF data.
     dev_head_t : dict | None
         The device to head transformation.
+    device_info : dict | None
+        Information about the acquisition device. See Notes for details.
+
+        .. versionadded:: 0.19
     dig : list of dict | None
         The Polhemus digitization data in head coordinates.
         See Notes for more information.
@@ -270,6 +333,12 @@ class Info(dict, MontageMixin):
         Name of the person that ran the experiment.
     file_id : dict | None
         The FIF globally unique ID. See Notes for more information.
+    gantry_angle : float | None
+        Tilt angle of the gantry in degrees.
+    helium_info : dict | None
+        Information about the device helium. See Notes for details.
+
+        .. versionadded:: 0.19
     highpass : float
         Highpass corner frequency in Hertz. Zero indicates a DC recording.
     hpi_meas : list of dict
@@ -284,27 +353,35 @@ class Info(dict, MontageMixin):
         Information about the HPI subsystem that was used (e.g., event
         channel used for cHPI measurements).
         See Notes for details.
+    kit_system_id : int
+        Identifies the KIT system.
     line_freq : float | None
         Frequency of the power line in Hertz.
-    gantry_angle : float | None
-        Tilt angle of the gantry in degrees.
     lowpass : float
         Lowpass corner frequency in Hertz.
         It is automatically set to half the sampling rate if there is
         otherwise no low-pass applied to the data.
+    maxshield : bool
+        True if active shielding (IAS) was active during recording.
     meas_date : datetime
         The time (UTC) of the recording.
 
         .. versionchanged:: 0.20
            This is stored as a :class:`~python:datetime.datetime` object
            instead of a tuple of seconds/microseconds.
-    utc_offset : str
-        "UTC offset of related meas_date (sHH:MM).
-
-        .. versionadded:: 0.19
+    meas_file : str | None
+        Raw measurement file (used for source estimation).
     meas_id : dict | None
         The ID assigned to this measurement by the acquisition system or
         during file conversion. Follows the same format as ``file_id``.
+    mri_file : str | None
+        File containing the MRI to head transformation (used for source
+        estimation).
+    mri_head_t : dict | None
+        Transformation from MRI to head coordinates (used for source
+        estimation).
+    mri_id : dict | None
+        MRI unique ID (used for source estimation).
     nchan : int
         Number of channels.
     proc_history : list of dict
@@ -322,14 +399,20 @@ class Info(dict, MontageMixin):
     subject_info : dict | None
         Information about the subject.
         See Notes for details.
-    device_info : dict | None
-        Information about the acquisition device. See Notes for details.
+    temp : object | None
+        Can be used to store temporary objects in an Info instance. It will not
+        survive an I/O roundtrip.
+
+        .. versionadded:: 0.24
+    utc_offset : str
+        "UTC offset of related meas_date (sHH:MM).
 
         .. versionadded:: 0.19
-    helium_info : dict | None
-        Information about the device helium. See Notes for details.
-
-        .. versionadded:: 0.19
+    working_dir : str
+        Working directory used when the source space was created (used for
+        source estimation).
+    xplotter_layout : str
+        Layout of the Xplotter (Neuromag system only).
 
     See Also
     --------
@@ -387,6 +470,17 @@ class Info(dict, MontageMixin):
         save_calibrated : bool
             Were the compensation data saved in calibrated form.
 
+    * ``device_info`` dict:
+
+        type : str
+            Device type.
+        model : str
+            Device model.
+        serial : str
+            Device serial.
+        site : str
+            Device site.
+
     * ``dig`` list of dict:
 
         kind : int
@@ -418,6 +512,17 @@ class Info(dict, MontageMixin):
             Time in seconds.
         usecs : int
             Time in microseconds.
+
+    * ``helium_info`` dict:
+
+        he_level_raw : float
+            Helium level (%) before position correction.
+        helium_level : float
+            Helium level (%) after position correction.
+        orig_file_guid : str
+            Original file GUID.
+        meas_date : tuple of int
+            The helium level meas date.
 
     * ``hpi_meas`` list of dict:
 
@@ -482,6 +587,17 @@ class Info(dict, MontageMixin):
             (using the first element of these arrays is typically
             sufficient).
 
+    * ``mri_id`` dict:
+
+        version : int
+            FIF format version, i.e. ``FIFFC_VERSION``.
+        machid : ndarray, shape (2,)
+            Unique machine ID, usually derived from the MAC address.
+        secs : int
+            Time in seconds.
+        usecs : int
+            Time in microseconds.
+
     * ``proc_history`` list of dict:
 
         block_id : dict
@@ -526,32 +642,80 @@ class Info(dict, MontageMixin):
             Subject sex (0=unknown, 1=male, 2=female).
         hand : int
             Handedness (1=right, 2=left, 3=ambidextrous).
-
-    * ``device_info`` dict:
-
-        type : str
-            Device type.
-        model : str
-            Device model.
-        serial : str
-            Device serial.
-        site : str
-            Device site.
-
-    * ``helium_info`` dict:
-
-        he_level_raw : float
-            Helium level (%) before position correction.
-        helium_level : float
-            Helium level (%) after position correction.
-        orig_file_guid : str
-            Original file GUID.
-        meas_date : tuple of int
-            The helium level meas date.
     """
 
+    _attributes = {
+        'acq_pars': 'acq_pars cannot be set directly. '
+                    'See mne.AcqParserFIF() for details.',
+        'acq_stim': 'acq_stim cannot be set directly.',
+        'bads': _check_bads,
+        'ch_names': 'ch_names cannot be set directly. '
+                    'Please use methods inst.add_channels(), '
+                    'inst.drop_channels(), inst.pick_channels(), '
+                    'inst.rename_channels(), inst.reorder_channels() '
+                    'and inst.set_channel_types() instead.',
+        'chs': 'chs cannot be set directly. '
+               'Please use methods inst.add_channels(), '
+               'inst.drop_channels(), inst.pick_channels(), '
+               'inst.rename_channels(), inst.reorder_channels() '
+               'and inst.set_channel_types() instead.',
+        'command_line': 'command_line cannot be set directly.',
+        'comps': 'comps cannot be set directly. '
+                 'Please use method Raw.apply_gradient_compensation() '
+                 'instead.',
+        'ctf_head_t': 'ctf_head_t cannot be set directly.',
+        'custom_ref_applied': 'custom_ref_applied cannot be set directly. '
+                              'Please use method inst.set_eeg_reference() '
+                              'instead.',
+        'description': _check_description,
+        'dev_ctf_t': 'dev_ctf_t cannot be set directly.',
+        'dev_head_t': _check_dev_head_t,
+        'device_info': _check_device_info,
+        'dig': 'dig cannot be set directly. '
+               'Please use method inst.set_montage() instead.',
+        'events': 'events cannot be set directly.',
+        'experimenter': _check_experimenter,
+        'file_id': 'file_id cannot be set directly.',
+        'gantry_angle': 'gantry_angle cannot be set directly.',
+        'helium_info': _check_helium_info,
+        'highpass': 'highpass cannot be set directly. '
+                    'Please use method inst.filter() instead.',
+        'hpi_meas': 'hpi_meas can not be set directly.',
+        'hpi_results': 'hpi_results cannot be set directly.',
+        'hpi_subsystem': 'hpi_subsystem cannot be set directly.',
+        'kit_system_id': 'kit_system_id cannot be set directly.',
+        'line_freq': _check_line_freq,
+        'lowpass': 'lowpass cannot be set directly. '
+                   'Please use method inst.filter() instead.',
+        'maxshield': 'maxshield cannot be set directly.',
+        'meas_date': 'meas_date cannot be set directly. '
+                     'Please use method inst.set_meas_date() instead.',
+        'meas_file': 'meas_file cannot be set directly.',
+        'meas_id': 'meas_id cannot be set directly.',
+        'mri_file': 'mri_file cannot be set directly.',
+        'mri_head_t': 'mri_head_t cannot be set directly.',
+        'mri_id': 'mri_id cannot be set directly.',
+        'nchan': 'nchan cannot be set directly. '
+                 'Please use methods inst.add_channels(), '
+                 'inst.drop_channels(), and inst.pick_channels() instead.',
+        'proc_history': 'proc_history cannot be set directly.',
+        'proj_id': 'proj_id cannot be set directly.',
+        'proj_name': 'proj_name cannot be set directly.',
+        'projs': 'projs cannot be set directly. '
+                 'Please use methods inst.add_proj() and inst.del_proj() '
+                 'instead.',
+        'sfreq': 'sfreq cannot be set directly. '
+                 'Please use method inst.resample() instead.',
+        'subject_info': _check_subject_info,
+        'temp': lambda x: x,
+        'utc_offset': 'utc_offset cannot be set directly.',
+        'working_dir': 'working_dir cannot be set directly.',
+        'xplotter_layout': 'xplotter_layout cannot be set directly.'
+    }
+
     def __init__(self, *args, **kwargs):
-        super(Info, self).__init__(*args, **kwargs)
+        self._unlocked = True
+        super().__init__(*args, **kwargs)
         # Deal with h5io writing things as dict
         for key in ('dev_head_t', 'ctf_head_t', 'dev_ctf_t'):
             _format_trans(self, key)
@@ -576,6 +740,61 @@ class Info(dict, MontageMixin):
             pass
         else:
             self['meas_date'] = _ensure_meas_date_none_or_dt(meas_date)
+        self._unlocked = False
+
+    def __getstate__(self):
+        """Get state (for pickling)."""
+        return {'_unlocked': self._unlocked}
+
+    def __setstate__(self, state):
+        """Set state (for pickling)."""
+        self._unlocked = state['_unlocked']
+
+    def __setitem__(self, key, val):
+        """Attribute setter."""
+        # During unpickling, the _unlocked attribute has not been set, so
+        # let __setstate__ do it later and act unlocked now
+        unlocked = getattr(self, '_unlocked', True)
+        if key in self._attributes:
+            if isinstance(self._attributes[key], str):
+                if not unlocked:
+                    raise RuntimeError(self._attributes[key])
+            else:
+                val = self._attributes[key](val)  # attribute checker function
+        else:
+            raise RuntimeError(
+                f"Info does not support directly setting the key {repr(key)}. "
+                "You can set info['temp'] to store temporary objects in an "
+                "Info instance, but these will not survive an I/O round-trip.")
+        super().__setitem__(key, val)
+
+    def update(self, other=None, **kwargs):
+        """Update method using __setitem__()."""
+        iterable = other.items() if isinstance(other, Mapping) else other
+        if other is not None:
+            for key, val in iterable:
+                self[key] = val
+        for key, val in kwargs.items():
+            self[key] = val
+
+    @contextlib.contextmanager
+    def _unlock(self, *, update_redundant=False, check_after=False):
+        """Context manager unlocking access to attributes."""
+        # needed for nested _unlock()
+        state = self._unlocked if hasattr(self, '_unlocked') else False
+
+        self._unlocked = True
+        try:
+            yield
+        except Exception:
+            raise
+        else:
+            if update_redundant:
+                self._update_redundant()
+            if check_after:
+                self._check_consistency()
+        finally:
+            self._unlocked = state
 
     def copy(self):
         """Copy the instance.
@@ -608,6 +827,7 @@ class Info(dict, MontageMixin):
         MAX_WIDTH = 68
         strs = ['<Info | %s non-empty values']
         non_empty = 0
+        titles = _handle_default('titles')
         for k, v in self.items():
             if k == 'ch_names':
                 if v:
@@ -659,11 +879,13 @@ class Info(dict, MontageMixin):
             elif isinstance(v, str):
                 entr = shorten(v, MAX_WIDTH, placeholder=' ...')
             elif k == 'chs':
+                # TODO someday we should refactor with _repr_html_ with
+                # bad vs good
                 ch_types = [channel_type(self, idx) for idx in range(len(v))]
                 ch_counts = Counter(ch_types)
-                entr = "%s" % ', '.join("%d %s" % (count, ch_type.upper())
-                                        for ch_type, count
-                                        in ch_counts.items())
+                entr = ', '.join(
+                    f'{count} {titles.get(ch_type, ch_type.upper())}'
+                    for ch_type, count in ch_counts.items())
             elif k == 'custom_ref_applied':
                 entr = str(bool(v))
                 if not v:
@@ -690,6 +912,7 @@ class Info(dict, MontageMixin):
     def __deepcopy__(self, memodict):
         """Make a deepcopy."""
         result = Info.__new__(Info)
+        result._unlocked = True
         for k, v in self.items():
             # chs is roughly half the time but most are immutable
             if k == 'chs':
@@ -720,6 +943,7 @@ class Info(dict, MontageMixin):
                 result[k] = hms
             else:
                 result[k] = deepcopy(v, memodict)
+        result._unlocked = False
         return result
 
     def _check_consistency(self, prepend_error=''):
@@ -746,9 +970,10 @@ class Info(dict, MontageMixin):
                                % (prepend_error,))
 
         # make sure we have the proper datatypes
-        for key in ('sfreq', 'highpass', 'lowpass'):
-            if self.get(key) is not None:
-                self[key] = float(self[key])
+        with self._unlock():
+            for key in ('sfreq', 'highpass', 'lowpass'):
+                if self.get(key) is not None:
+                    self[key] = float(self[key])
 
         # Ensure info['chs'] has immutable entries (copies much faster)
         for ci, ch in enumerate(self['chs']):
@@ -771,18 +996,16 @@ class Info(dict, MontageMixin):
                     '12 elements, got %r' % (ci, loc))
 
         # make sure channel names are unique
-        self['ch_names'] = _unique_channel_names(self['ch_names'])
-        for idx, ch_name in enumerate(self['ch_names']):
-            self['chs'][idx]['ch_name'] = ch_name
-
-        if 'filename' in self:
-            warn('the "filename" key is misleading '
-                 'and info should not have it')
+        with self._unlock():
+            self['ch_names'] = _unique_channel_names(self['ch_names'])
+            for idx, ch_name in enumerate(self['ch_names']):
+                self['chs'][idx]['ch_name'] = ch_name
 
     def _update_redundant(self):
         """Update the redundant entries."""
-        self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
-        self['nchan'] = len(self['chs'])
+        with self._unlock():
+            self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
+            self['nchan'] = len(self['chs'])
 
     def pick_channels(self, ch_names, ordered=False):
         """Pick channels from this Info object.
@@ -814,25 +1037,53 @@ class Info(dict, MontageMixin):
     def ch_names(self):
         return self['ch_names']
 
+    def _get_chs_for_repr(self):
+        titles = _handle_default('titles')
+
+        # good channels
+        channels = {}
+        ch_types = [channel_type(self, idx) for idx in range(len(self['chs']))]
+        ch_counts = Counter(ch_types)
+        for ch_type, count in ch_counts.items():
+            if ch_type == 'meg':
+                channels['mag'] = len(pick_types(self, meg='mag'))
+                channels['grad'] = len(pick_types(self, meg='grad'))
+            elif ch_type == 'eog':
+                pick_eog = pick_types(self, eog=True)
+                eog = ', '.join(
+                    np.array(self['ch_names'])[pick_eog])
+            elif ch_type == 'ecg':
+                pick_ecg = pick_types(self, ecg=True)
+                ecg = ', '.join(
+                    np.array(self['ch_names'])[pick_ecg])
+            channels[ch_type] = count
+
+        good_channels = ', '.join(
+            [f'{v} {titles.get(k, k.upper())}' for k, v in channels.items()])
+
+        if 'ecg' not in channels.keys():
+            ecg = 'Not available'
+        if 'eog' not in channels.keys():
+            eog = 'Not available'
+
+        # bad channels
+        if len(self['bads']) > 0:
+            bad_channels = ', '.join(self['bads'])
+        else:
+            bad_channels = 'None'
+
+        return good_channels, bad_channels, ecg, eog
+
     def _repr_html_(self, caption=None):
+        """Summarize info for HTML representation."""
         if isinstance(caption, str):
             html = f'<h4>{caption}</h4>'
         else:
             html = ''
-        n_eeg = len(pick_types(self, meg=False, eeg=True))
-        n_grad = len(pick_types(self, meg='grad'))
-        n_mag = len(pick_types(self, meg='mag'))
-        n_fnirs = len(pick_types(self, meg=False, eeg=False, fnirs=True))
-        pick_eog = pick_types(self, meg=False, eog=True)
-        if len(pick_eog) > 0:
-            eog = ', '.join(np.array(self['ch_names'])[pick_eog])
-        else:
-            eog = 'Not available'
-        pick_ecg = pick_types(self, meg=False, ecg=True)
-        if len(pick_ecg) > 0:
-            ecg = ', '.join(np.array(self['ch_names'])[pick_ecg])
-        else:
-            ecg = 'Not available'
+
+        good_channels, bad_channels, ecg, eog = self._get_chs_for_repr()
+
+        # meas date
         meas_date = self['meas_date']
         if meas_date is not None:
             meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + ' GMT'
@@ -840,12 +1091,11 @@ class Info(dict, MontageMixin):
         if projs:
             projs = '<br/>'.join(
                 p['desc'] + ': o%s' % {0: 'ff', 1: 'n'}[p['active']]
-                for p in projs
-            )
+                for p in projs)
 
         html += info_template.substitute(
-            caption=caption, info=self, meas_date=meas_date, n_eeg=n_eeg,
-            n_grad=n_grad, n_mag=n_mag, n_fnirs=n_fnirs, eog=eog, ecg=ecg,
+            caption=caption, info=self, meas_date=meas_date, ecg=ecg,
+            eog=eog, good_channels=good_channels, bad_channels=bad_channels,
             projs=projs)
         return html
 
@@ -1191,10 +1441,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     #
     #   Put the data together
     #
-    if tree['id'] is not None:
-        info = Info(file_id=tree['id'])
-    else:
-        info = Info(file_id=None)
+    info = Info(file_id=tree['id'])
+    info._unlocked = True
 
     #   Locate events list
     events = dir_tree_find(meas_info, FIFF.FIFFB_EVENTS)
@@ -1448,7 +1696,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['chs'] = chs
 
     #
-    #  Add the coordinate transformations
+    #   Add the coordinate transformations
     #
     info['dev_head_t'] = dev_head_t
     info['ctf_head_t'] = ctf_head_t
@@ -1473,6 +1721,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['xplotter_layout'] = xplotter_layout
     info['kit_system_id'] = kit_system_id
     info._check_consistency()
+    info._unlocked = False
     return info, meas
 
 
@@ -1957,6 +2206,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         infos = deepcopy(infos)
         _force_update_info(infos[0], infos[1:])
     info = Info()
+    info._unlocked = True
     info['chs'] = []
     for this_info in infos:
         info['chs'].extend(this_info['chs'])
@@ -2016,11 +2266,13 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
                     'line_freq', 'lowpass', 'meas_id',
                     'proj_id', 'proj_name', 'projs', 'sfreq', 'gantry_angle',
                     'subject_info', 'sfreq', 'xplotter_layout', 'proc_history']
+
     for k in other_fields:
         info[k] = _merge_info_values(infos, k)
 
     info['meas_date'] = infos[0]['meas_date']
-    info._check_consistency()
+    info._unlocked = False
+
     return info
 
 
@@ -2109,6 +2361,7 @@ def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
 
     info._update_redundant()
     info._check_consistency()
+    info._unlocked = False
     return info
 
 
@@ -2135,6 +2388,7 @@ def _empty_info(sfreq):
     _list_keys = ('bads', 'chs', 'comps', 'events', 'hpi_meas', 'hpi_results',
                   'projs', 'proc_history')
     info = Info()
+    info._unlocked = True
     for k in _none_keys:
         info[k] = None
     for k in _list_keys:
@@ -2175,7 +2429,8 @@ def _force_update_info(info_base, info_target):
         if key in exclude_keys:
             continue
         for i_targ in info_target:
-            i_targ[key] = val
+            with i_targ._unlock():
+                i_targ[key] = val
 
 
 def _add_timedelta_to_stamp(meas_date_stamp, delta_t):
@@ -2234,7 +2489,8 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
             delta_t = info['meas_date'] - default_anon_dos
         else:
             delta_t = datetime.timedelta(days=daysback)
-        info['meas_date'] = info['meas_date'] - delta_t
+        with info._unlock():
+            info['meas_date'] = info['meas_date'] - delta_t
 
     # file_id and meas_id
     for key in ('file_id', 'meas_id'):
@@ -2293,13 +2549,13 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
 
     info['experimenter'] = default_str
     info['description'] = default_desc
-
-    if info['proj_id'] is not None:
-        info['proj_id'] = np.zeros_like(info['proj_id'])
-    if info['proj_name'] is not None:
-        info['proj_name'] = default_str
-    if info['utc_offset'] is not None:
-        info['utc_offset'] = None
+    with info._unlock():
+        if info['proj_id'] is not None:
+            info['proj_id'] = np.zeros_like(info['proj_id'])
+        if info['proj_name'] is not None:
+            info['proj_name'] = default_str
+        if info['utc_offset'] is not None:
+            info['utc_offset'] = None
 
     proc_hist = info.get('proc_history')
     if proc_hist is not None:
@@ -2421,17 +2677,18 @@ def _writing_info_hdf5(info):
     # Make info writing faster by packing chs and dig into numpy arrays
     orig_dig = info.get('dig', None)
     orig_chs = info['chs']
-    try:
-        if orig_dig is not None and len(orig_dig) > 0:
-            info['dig'] = _dict_pack(info['dig'], _DIG_CAST)
-        info['chs'] = _dict_pack(info['chs'], _CH_CAST)
-        info['chs']['ch_name'] = np.char.encode(
-            info['chs']['ch_name'], encoding='utf8')
-        yield
-    finally:
-        if orig_dig is not None:
-            info['dig'] = orig_dig
-        info['chs'] = orig_chs
+    with info._unlock():
+        try:
+            if orig_dig is not None and len(orig_dig) > 0:
+                info['dig'] = _dict_pack(info['dig'], _DIG_CAST)
+            info['chs'] = _dict_pack(info['chs'], _CH_CAST)
+            info['chs']['ch_name'] = np.char.encode(
+                info['chs']['ch_name'], encoding='utf8')
+            yield
+        finally:
+            if orig_dig is not None:
+                info['dig'] = orig_dig
+            info['chs'] = orig_chs
 
 
 def _dict_pack(obj, casts):

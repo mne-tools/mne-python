@@ -118,6 +118,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     read_dig_captrak
     read_dig_egi
     read_dig_fif
+    read_dig_localite
     read_dig_polhemus_isotrak
 
     Notes
@@ -160,6 +161,7 @@ class DigMontage(object):
     read_dig_egi
     read_dig_fif
     read_dig_hpts
+    read_dig_localite
     read_dig_polhemus_isotrak
     make_dig_montage
 
@@ -390,7 +392,7 @@ class DigMontage(object):
 
         See Also
         --------
-        :ref:`plot_source_alignment`
+        :ref:`tut-source-alignment`
 
         Notes
         -----
@@ -404,11 +406,11 @@ class DigMontage(object):
         # get coordframe and fiducial coordinates
         montage_bunch = _get_data_as_dict_from_dig(self.dig)
 
-        # get the coordinate frame as a string and check that it's MRI
+        # get the coordinate frame and check that it's MRI
         if montage_bunch.coord_frame != FIFF.FIFFV_COORD_MRI:
             raise RuntimeError(
-                f'Montage should be in mri coordinate frame to call '
-                f'`add_estimated_fiducials`. The current coordinate '
+                f'Montage should be in the "mri" coordinate frame '
+                f'to use `add_estimated_fiducials`. The current coordinate '
                 f'frame is {montage_bunch.coord_frame}')
 
         # estimate LPA, nasion, RPA from FreeSurfer fsaverage
@@ -416,6 +418,74 @@ class DigMontage(object):
 
         # add those digpoints to front of montage
         self.dig = fids_mri + self.dig
+        return self
+
+    @verbose
+    def add_mni_fiducials(self, subjects_dir=None, verbose=None):
+        """Add fiducials to a montage in MNI space.
+
+        Parameters
+        ----------
+        %(subjects_dir)s
+        %(verbose)s
+
+        Returns
+        -------
+        inst : instance of DigMontage
+            The instance, modified in-place.
+
+        Notes
+        -----
+        ``fsaverage`` is in MNI space and so its fiducials can be
+        added to a montage in "mni_tal". MNI is an ACPC-aligned
+        coordinate system (the posterior commissure is the origin)
+        so since BIDS requires channel locations for ECoG, sEEG and
+        DBS to be in ACPC space, this function can be used to allow
+        those coordinate to be transformed to "head" space (origin
+        between LPA and RPA).
+        """
+        montage_bunch = _get_data_as_dict_from_dig(self.dig)
+
+        # get the coordinate frame and check that it's MNI TAL
+        if montage_bunch.coord_frame != FIFF.FIFFV_MNE_COORD_MNI_TAL:
+            raise RuntimeError(
+                f'Montage should be in the "mni_tal" coordinate frame '
+                f'to use `add_estimated_fiducials`. The current coordinate '
+                f'frame is {montage_bunch.coord_frame}')
+
+        fids_mni = get_mni_fiducials('fsaverage', subjects_dir)
+        for fid in fids_mni:
+            # "mri" and "mni_tal" are equivalent for fsaverage
+            assert fid['coord_frame'] == FIFF.FIFFV_COORD_MRI
+            fid['coord_frame'] = FIFF.FIFFV_MNE_COORD_MNI_TAL
+        self.dig = fids_mni + self.dig
+        return self
+
+    @verbose
+    def remove_fiducials(self, verbose=None):
+        """Remove the fiducial points from a montage.
+
+        Parameters
+        ----------
+        %(verbose)s
+
+        Returns
+        -------
+        inst : instance of DigMontage
+            The instance, modified in-place.
+
+        Notes
+        -----
+        MNE will transform a montage to the internal "head" coordinate
+        frame if the fiducials are present. Under most circumstances, this
+        is ideal as it standardizes the coordinate frame for things like
+        plotting. However, in some circumstances, such as saving a ``raw``
+        with intracranial data to BIDS format, the coordinate frame
+        should not be changed by removing fiducials.
+        """
+        for d in self.dig.copy():
+            if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
+                self.dig.remove(d)
         return self
 
 
@@ -485,6 +555,7 @@ def read_dig_dat(fname):
     read_dig_egi
     read_dig_fif
     read_dig_hpts
+    read_dig_localite
     read_dig_polhemus_isotrak
     make_dig_montage
 
@@ -567,6 +638,7 @@ def read_dig_fif(fname):
     read_dig_captrak
     read_dig_polhemus_isotrak
     read_dig_hpts
+    read_dig_localite
     make_dig_montage
     """
     _check_fname(fname, overwrite='read', must_exist=True)
@@ -606,6 +678,7 @@ def read_dig_hpts(fname, unit='mm'):
     read_dig_dat
     read_dig_egi
     read_dig_fif
+    read_dig_localite
     read_dig_polhemus_isotrak
     make_dig_montage
 
@@ -695,6 +768,7 @@ def read_dig_egi(fname):
     read_dig_dat
     read_dig_fif
     read_dig_hpts
+    read_dig_localite
     read_dig_polhemus_isotrak
     make_dig_montage
     """
@@ -729,6 +803,7 @@ def read_dig_captrak(fname):
     read_dig_egi
     read_dig_fif
     read_dig_hpts
+    read_dig_localite
     read_dig_polhemus_isotrak
     make_dig_montage
     """
@@ -736,6 +811,53 @@ def read_dig_captrak(fname):
     data = _parse_brainvision_dig_montage(fname, scale=1e-3)
 
     return make_dig_montage(**data)
+
+
+def read_dig_localite(fname, nasion=None, lpa=None, rpa=None):
+    """Read Localite .csv file.
+
+    Parameters
+    ----------
+    fname : path-like
+        File name.
+    nasion : str | None
+        Name of nasion fiducial point.
+    lpa : str | None
+        Name of left preauricular fiducial point.
+    rpa : str | None
+        Name of right preauricular fiducial point.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    DigMontage
+    read_dig_captrak
+    read_dig_dat
+    read_dig_egi
+    read_dig_fif
+    read_dig_hpts
+    read_dig_polhemus_isotrak
+    make_dig_montage
+    """
+    ch_pos = {}
+    with open(fname) as f:
+        f.readline()  # skip first row
+        for row in f:
+            _, name, x, y, z = row.split(",")
+            ch_pos[name] = np.array((float(x), float(y), float(z))) / 1000
+
+    if nasion is not None:
+        nasion = ch_pos.pop(nasion)
+    if lpa is not None:
+        lpa = ch_pos.pop(lpa)
+    if rpa is not None:
+        rpa = ch_pos.pop(rpa)
+
+    return make_dig_montage(ch_pos, nasion, lpa, rpa)
 
 
 def _get_montage_in_head(montage):
@@ -776,7 +898,8 @@ def _set_montage_fnirs(info, montage):
         info['chs'][ch_idx]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
     # Modify info['dig'] in place
-    info['dig'] = montage.dig
+    with info._unlock():
+        info['dig'] = montage.dig
 
 
 @fill_doc
@@ -805,7 +928,8 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
     _validate_type(montage, (DigMontage, None, str), 'montage')
     if montage is None:
         # Next line modifies info['dig'] in place
-        info['dig'] = None
+        with info._unlock():
+            info['dig'] = None
         for ch in info['chs']:
             # Next line modifies info['chs'][#]['loc'] in place
             ch['loc'] = np.full(12, np.nan)
@@ -975,7 +1099,8 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
         if ref_dig_point in old_dig:
             digpoints.append(ref_dig_point)
     # Next line modifies info['dig'] in place
-    info['dig'] = _format_dig_points(digpoints, enforce_order=True)
+    with info._unlock():
+        info['dig'] = _format_dig_points(digpoints, enforce_order=True)
 
     # Handle fNIRS with source, detector and channel
     fnirs_picks = _picks_to_idx(info, 'fnirs', allow_empty=True)
@@ -1086,6 +1211,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     read_dig_dat
     read_dig_egi
     read_dig_fif
+    read_dig_localite
     """
     VALID_FILE_EXT = ('.hsp', '.elp', '.eeg')
     _scale = _check_unit_and_get_scaling(unit)

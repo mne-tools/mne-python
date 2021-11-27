@@ -310,9 +310,9 @@ def test_label_io_and_time_course_estimates():
 
 
 @testing.requires_testing_data
-def test_label_io(tmpdir):
+def test_label_io(tmp_path):
     """Test IO of label files."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     label = read_label(label_fname)
 
     # label attributes
@@ -345,10 +345,10 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
 
 
 @testing.requires_testing_data
-def test_annot_io(tmpdir):
+def test_annot_io(tmp_path):
     """Test I/O from and to *.annot files."""
     # copy necessary files from fsaverage to tempdir
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     subject = 'fsaverage'
     label_src = os.path.join(subjects_dir, 'fsaverage', 'label')
     surf_src = os.path.join(subjects_dir, 'fsaverage', 'surf')
@@ -448,7 +448,7 @@ def test_labels_to_stc():
 
 
 @testing.requires_testing_data
-def test_read_labels_from_annot(tmpdir):
+def test_read_labels_from_annot(tmp_path):
     """Test reading labels from FreeSurfer parcellation."""
     # test some invalid inputs
     pytest.raises(ValueError, read_labels_from_annot, 'sample', hemi='bla',
@@ -458,7 +458,7 @@ def test_read_labels_from_annot(tmpdir):
     with pytest.raises(IOError, match='does not exist'):
         _read_annot_cands('foo')
     with pytest.raises(IOError, match='no candidate'):
-        _read_annot(str(tmpdir))
+        _read_annot(str(tmp_path))
 
     # read labels using hemi specification
     labels_lh = read_labels_from_annot('sample', hemi='lh',
@@ -522,9 +522,9 @@ def test_read_labels_from_annot_annot2labels():
 
 
 @testing.requires_testing_data
-def test_write_labels_to_annot(tmpdir):
+def test_write_labels_to_annot(tmp_path):
     """Test writing FreeSurfer parcellation from labels."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
 
     labels = read_labels_from_annot('sample', subjects_dir=subjects_dir)
 

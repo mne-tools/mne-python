@@ -29,7 +29,7 @@ fname_nirx_15_2_short = op.join(data_path(download=False),
 @pytest.mark.parametrize('fname', ([fname_nirx_15_2_short, fname_nirx_15_2,
                                     fname_nirx_15_0]))
 @pytest.mark.parametrize('fmt', ('nirx', 'fif'))
-def test_scalp_coupling_index(fname, fmt, tmpdir):
+def test_scalp_coupling_index(fname, fmt, tmp_path):
     """Test converting NIRX files."""
     assert fmt in ('nirx', 'fif')
     raw = read_raw_nirx(fname)
@@ -71,6 +71,6 @@ def test_scalp_coupling_index(fname, fmt, tmpdir):
     assert_allclose(sci[8:12], 0, atol=1e-10)
 
     # Ensure function errors if wrong type is passed in
-    raw = beer_lambert_law(raw)
+    raw = beer_lambert_law(raw, ppf=6)
     with pytest.raises(RuntimeError, match='Scalp'):
         scalp_coupling_index(raw)

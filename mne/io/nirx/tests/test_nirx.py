@@ -52,14 +52,24 @@ nirsport2 = op.join(data_path(download=False), 'NIRx', 'nirsport_v2',
 nirsport2_snirf = op.join(data_path(download=False), 'SNIRF', 'NIRx',
                           'NIRSport2', '1.0.3', '2021-05-05_001.snirf')
 
+nirsport2_2021_9 = op.join(data_path(download=False), 'NIRx', 'nirsport_v2',
+                           'aurora_2021_9')
+snirf_nirsport2_20219 = op.join(data_path(download=False),
+                                'SNIRF', 'NIRx', 'NIRSport2', '2021.9',
+                                '2021-10-01_002.snirf')
+
 
 @requires_h5py
 @requires_testing_data
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
-def test_nirsport_v2_matches_snirf():
+@pytest.mark.parametrize('fname_nirx, fname_snirf', (
+    [nirsport2, nirsport2_snirf],
+    [nirsport2_2021_9, snirf_nirsport2_20219],
+))
+def test_nirsport_v2_matches_snirf(fname_nirx, fname_snirf):
     """Test NIRSport2 raw files return same data as snirf."""
-    raw = read_raw_nirx(nirsport2, preload=True)
-    raw_snirf = read_raw_snirf(nirsport2_snirf, preload=True)
+    raw = read_raw_nirx(fname_nirx, preload=True)
+    raw_snirf = read_raw_snirf(fname_snirf, preload=True)
 
     assert_allclose(raw._data, raw_snirf._data)
 
@@ -237,23 +247,23 @@ def test_nirx_missing_warn():
 
 
 @requires_testing_data
-def test_nirx_missing_evt(tmpdir):
+def test_nirx_missing_evt(tmp_path):
     """Test reading NIRX files when missing data."""
-    shutil.copytree(fname_nirx_15_2_short, str(tmpdir) + "/data/")
-    os.rename(str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.evt",
-              str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.xxx")
-    fname = str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.hdr"
+    shutil.copytree(fname_nirx_15_2_short, str(tmp_path) + "/data/")
+    os.rename(str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.evt",
+              str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.xxx")
+    fname = str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.hdr"
     raw = read_raw_nirx(fname, preload=True)
     assert raw.annotations.onset.shape == (0, )
 
 
 @requires_testing_data
-def test_nirx_dat_warn(tmpdir):
+def test_nirx_dat_warn(tmp_path):
     """Test reading NIRX files when missing data."""
-    shutil.copytree(fname_nirx_15_2_short, str(tmpdir) + "/data/")
-    os.rename(str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.dat",
-              str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.tmp")
-    fname = str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.hdr"
+    shutil.copytree(fname_nirx_15_2_short, str(tmp_path) + "/data/")
+    os.rename(str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.dat",
+              str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.tmp")
+    fname = str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.hdr"
     with pytest.raises(RuntimeWarning, match='A single dat'):
         read_raw_nirx(fname, preload=True)
 
@@ -439,9 +449,9 @@ def test_nirx_15_3_short():
 
 
 @requires_testing_data
-def test_encoding(tmpdir):
+def test_encoding(tmp_path):
     """Test NIRx encoding."""
-    fname = str(tmpdir.join('latin'))
+    fname = tmp_path / 'latin'
     shutil.copytree(fname_nirx_15_2, fname)
     hdr_fname = op.join(fname, 'NIRS-2019-10-02_003.hdr')
     hdr = list()
@@ -559,7 +569,8 @@ def test_nirx_15_0():
 @pytest.mark.parametrize('fname, boundary_decimal', (
     [fname_nirx_15_2_short, 1],
     [fname_nirx_15_2, 0],
-    [fname_nirx_15_0, 0]
+    [fname_nirx_15_2, 0],
+    [nirsport2_2021_9, 0]
 ))
 def test_nirx_standard(fname, boundary_decimal):
     """Test standard operations."""

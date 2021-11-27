@@ -288,7 +288,8 @@ def _read_nihon_annotations(fname):
 
 def _map_ch_to_type(ch_name):
     ch_type_pattern = OrderedDict([
-        ('stim', ('Mark',)), ('misc', ('DC', 'NA', 'Z')), ('bio', ('X',))])
+        ('stim', ('Mark',)), ('misc', ('DC', 'NA', 'Z', '$')),
+        ('bio', ('X',))])
     for key, kinds in ch_type_pattern.items():
         if any(kind in ch_name for kind in kinds):
             return key
@@ -352,7 +353,8 @@ class RawNihon(BaseRaw):
         n_samples = header['n_samples']
 
         if 'meas_date' in metadata:
-            info['meas_date'] = metadata['meas_date']
+            with info._unlock():
+                info['meas_date'] = metadata['meas_date']
         chs = {x: _map_ch_to_specs(x) for x in ch_names}
 
         orig_ch_names = header['ch_names']

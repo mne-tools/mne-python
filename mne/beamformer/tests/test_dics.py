@@ -74,7 +74,8 @@ def _simulate_data(fwd, idx):  # Somewhere on the frontal lobe by default
 
     # Create an info object that holds information about the sensors
     info = mne.create_info(fwd['info']['ch_names'], sfreq, ch_types='grad')
-    info.update(fwd['info'])  # Merge in sensor position information
+    with info._unlock():
+        info.update(fwd['info'])  # Merge in sensor position information
     # heavily decimate sensors to make it much faster
     info = mne.pick_info(info, np.arange(info['nchan'])[::5])
     fwd = mne.pick_channels_forward(fwd, info['ch_names'])
@@ -149,7 +150,7 @@ def _make_rand_csd(info, csd):
     pytest.param(False, marks=pytest.mark.slowtest),
     True,
 ])
-def test_make_dics(tmpdir, _load_forward, idx, whiten):
+def test_make_dics(tmp_path, _load_forward, idx, whiten):
     """Test making DICS beamformer filters."""
     # We only test proper handling of parameters here. Testing the results is
     # done in test_apply_dics_timeseries and test_apply_dics_csd.
@@ -318,7 +319,7 @@ def test_make_dics(tmpdir, _load_forward, idx, whiten):
     # Test whether spatial filter contains src_type
     assert 'src_type' in filters
 
-    fname = op.join(str(tmpdir), 'filters-dics.h5')
+    fname = op.join(str(tmp_path), 'filters-dics.h5')
     filters.save(fname)
     filters_read = read_beamformer(fname)
     assert isinstance(filters, Beamformer)
@@ -538,7 +539,7 @@ def test_apply_dics_timeseries(_load_forward, idx):
     evoked_proj = evoked.copy()
     p = compute_proj_evoked(evoked_proj, n_grad=1, n_mag=0, n_eeg=0)
     proj_matrix = make_projector(p, evoked_proj.ch_names)[0]
-    evoked_proj.info['projs'] += p
+    evoked_proj.add_proj(p)
     filters_proj = make_dics(evoked_proj.info, fwd_surf, csd20, label=label)
     assert_array_equal(filters_proj['proj'], proj_matrix)
     stc_proj = apply_dics(evoked_proj, filters_proj)
@@ -711,7 +712,7 @@ def test_make_dics_rank(_load_forward, idx, whiten):
     assert f'Computing rank from covariance with rank={use_rank}' in log, log
     stc_2, _ = apply_dics_csd(csd, filters_2)
     corr = np.corrcoef(stc_2.data.ravel(), stc.data.ravel())[0, 1]
-    assert 0.8 < corr < 0.99999
+    assert 0.8 < corr < 0.999999
 
     # degenerate conditions
     if whiten:

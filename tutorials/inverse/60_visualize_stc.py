@@ -4,7 +4,7 @@
 Visualize source time courses (stcs)
 ====================================
 
-This tutorial focuses on visualization of :term:`source estimates<STC>`.
+This tutorial focuses on visualization of :term:`source estimates <STC>`.
 
 Surface Source Estimates
 ------------------------
@@ -45,8 +45,8 @@ print(stc)
 #
 # We can plot the source estimate using the
 # :func:`stc.plot <mne.SourceEstimate.plot>` just as in other MNE
-# objects. Note that for this visualization to work, you must have ``mayavi``
-# and ``pysurfer`` installed on your machine.
+# objects. Note that for this visualization to work, you must have ``PyVista``
+# installed on your machine.
 initial_time = 0.1
 brain = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
                  clim=dict(kind='value', lims=[3, 6, 9]))
@@ -66,7 +66,7 @@ brain = stc_fs.plot(subjects_dir=subjects_dir, initial_time=initial_time,
 
 # to help orient us, let's add a parcellation (red=auditory, green=motor,
 # blue=visual)
-brain.add_annotation('HCPMMP1_combined', borders=2, subjects_dir=subjects_dir)
+brain.add_annotation('HCPMMP1_combined', borders=2)
 
 # You can save a movie like the one on our documentation website with:
 # brain.save_movie(time_dilation=20, tmin=0.05, tmax=0.16,
@@ -76,7 +76,7 @@ brain.add_annotation('HCPMMP1_combined', borders=2, subjects_dir=subjects_dir)
 # Note that here we used ``initial_time=0.1``, but we can also browse through
 # time using ``time_viewer=True``.
 #
-# In case ``mayavi`` is not available, we also offer a ``matplotlib``
+# In case ``PyVista`` is not available, we also offer a ``matplotlib``
 # backend. Here we use verbose='error' to ignore a warning that not all
 # vertices were used in plotting.
 mpl_fig = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,

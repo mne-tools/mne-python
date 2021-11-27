@@ -6,17 +6,7 @@
 
 import os
 
-from ..utils import _check_mayavi_version, verbose, get_config
-from ._backend import _testing_mode
-
-
-def _initialize_gui(frame, view=None):
-    """Initialize GUI depending on testing mode."""
-    if _testing_mode():  # open without entering mainloop
-        return frame.edit_traits(view=view), frame
-    else:
-        frame.configure_traits(view=view)
-        return frame
+from ..utils import verbose, get_config, warn
 
 
 @verbose
@@ -92,12 +82,13 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         different color.
 
         .. versionadded:: 0.16
-    interaction : str | None
-        Can be 'terrain' (default None), use terrain-style interaction (where
-        "up" is the Z/superior direction), or 'trackball' to use
-        orientationless interactions.
+    %(scene_interaction_None)s
+        Defaults to ``'terrain'``.
 
         .. versionadded:: 0.16
+        .. versionchanged:: 1.0
+           Default interaction mode if ``None`` and no config setting found
+           changed from ``'trackball'`` to ``'terrain'``.
     scale : float | None
         The scaling for the scene.
 
@@ -117,7 +108,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
     Returns
     -------
-    frame : instance of CoregFrame
+    frame : instance of CoregistrationUI
         The coregistration frame.
 
     Notes
@@ -132,6 +123,28 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     subjects for which no MRI is available
     <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
+    # unsupported parameters
+    params = {
+        'tabbed': (tabbed, False),
+        'split': (split, True),
+        'scrollable': (scrollable, True),
+        'head_inside': (head_inside, True),
+        'guess_mri_subject': guess_mri_subject,
+        'head_opacity': head_opacity,
+        'project_eeg': project_eeg,
+        'scale_by_distance': scale_by_distance,
+        'mark_inside': mark_inside,
+        'scale': scale,
+        'advanced_rendering': advanced_rendering,
+    }
+    for key, val in params.items():
+        if isinstance(val, tuple):
+            to_raise = val[0] != val[1]
+        else:
+            to_raise = val is not None
+        if to_raise:
+            warn(f"The parameter {key} is not supported with"
+                  " the pyvistaqt 3d backend. It will be ignored.")
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     if guess_mri_subject is None:
         guess_mri_subject = config.get(
@@ -164,7 +177,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         scale_by_distance = (config.get('MNE_COREG_SCALE_BY_DISTANCE', '') ==
                              'true')
     if interaction is None:
-        interaction = config.get('MNE_COREG_INTERACTION', 'trackball')
+        interaction = config.get('MNE_COREG_INTERACTION', 'terrain')
     if mark_inside is None:
         mark_inside = config.get('MNE_COREG_MARK_INSIDE', '') == 'true'
     if scale is None:
@@ -174,68 +187,95 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     width = int(width)
     height = int(height)
     scale = float(scale)
-    _check_mayavi_version()
-    from ._backend import _check_backend
-    _check_backend()
-    from ._coreg_gui import CoregFrame, _make_view
-    view = _make_view(tabbed, split, width, height, scrollable)
-    frame = CoregFrame(inst, subject, subjects_dir, guess_mri_subject,
-                       head_opacity, head_high_res, trans, config,
-                       project_eeg=project_eeg,
-                       orient_to_surface=orient_to_surface,
-                       scale_by_distance=scale_by_distance,
-                       mark_inside=mark_inside, interaction=interaction,
-                       scale=scale, advanced_rendering=advanced_rendering,
-                       head_inside=head_inside)
-    return _initialize_gui(frame, view)
+
+    from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+    from ._coreg import CoregistrationUI
+    show = not MNE_3D_BACKEND_TESTING
+    standalone = not MNE_3D_BACKEND_TESTING
+    return CoregistrationUI(
+        info_file=inst, subject=subject, subjects_dir=subjects_dir,
+        head_resolution=head_high_res, orient_glyphs=orient_to_surface,
+        trans=trans, size=(width, height), show=show, standalone=standalone,
+        interaction=interaction, verbose=verbose
+    )
 
 
-def fiducials(subject=None, fid_file=None, subjects_dir=None):
-    """Set the fiducials for an MRI subject.
+@verbose
+def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
+                groups=None, verbose=None):
+    """Locate intracranial electrode contacts.
 
     Parameters
     ----------
-    subject : str
-        Name of the mri subject.
-    fid_file : None | str
-        Load a fiducials file different form the subject's default
-        ("{subjects_dir}/{subject}/bem/{subject}-fiducials.fif").
-    subjects_dir : None | str
-        Overrule the subjects_dir environment variable.
+    %(info_not_none)s
+    %(trans_not_none)s
+    aligned_ct : path-like | nibabel.spatialimages.SpatialImage
+        The CT image that has been aligned to the Freesurfer T1. Path-like
+        inputs and nibabel image objects are supported.
+    %(subject)s
+    %(subjects_dir)s
+    groups : dict | None
+        A dictionary with channels as keys and their group index as values.
+        If None, the groups will be inferred by the channel names. Channel
+        names must have a format like ``LAMY 7`` where a string prefix
+        like ``LAMY`` precedes a numeric index like ``7``. If the channels
+        are formatted improperly, group plotting will work incorrectly.
+        Group assignments can be adjusted in the GUI.
+    %(verbose)s
 
     Returns
     -------
-    frame : instance of FiducialsFrame
-        The GUI frame.
-
-    Notes
-    -----
-    All parameters are optional, since they can be set through the GUI.
-    The functionality in this GUI is also part of :func:`coregistration`.
+    gui : instance of IntracranialElectrodeLocator
+        The graphical user interface (GUI) window.
     """
-    _check_mayavi_version()
-    from ._backend import _check_backend
-    _check_backend()
-    from ._fiducials_gui import FiducialsFrame
-    frame = FiducialsFrame(subject, subjects_dir, fid_file=fid_file)
-    return _initialize_gui(frame)
+    from ._ieeg_locate_gui import IntracranialElectrodeLocator
+    from PyQt5.QtWidgets import QApplication
+    # get application
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication(["Intracranial Electrode Locator"])
+    gui = IntracranialElectrodeLocator(
+        info, trans, aligned_ct, subject=subject,
+        subjects_dir=subjects_dir, groups=groups, verbose=verbose)
+    gui.show()
+    return gui
 
 
-def kit2fiff():
-    """Convert KIT files to the fiff format.
+class _LocateScraper(object):
+    """Scrape locate_ieeg outputs."""
 
-    The recommended way to use the GUI is through bash with::
+    def __repr__(self):
+        return '<LocateScraper>'
 
-        $ mne kit2fiff
-
-    Returns
-    -------
-    frame : instance of Kit2FiffFrame
-        The GUI frame.
-    """
-    _check_mayavi_version()
-    from ._backend import _check_backend
-    _check_backend()
-    from ._kit2fiff_gui import Kit2FiffFrame
-    frame = Kit2FiffFrame()
-    return _initialize_gui(frame)
+    def __call__(self, block, block_vars, gallery_conf):
+        from ._ieeg_locate_gui import IntracranialElectrodeLocator
+        from sphinx_gallery.scrapers import figure_rst
+        from PyQt5 import QtGui
+        for gui in block_vars['example_globals'].values():
+            if (isinstance(gui, IntracranialElectrodeLocator) and
+                    not getattr(gui, '_scraped', False) and
+                    gallery_conf['builder_name'] == 'html'):
+                gui._scraped = True  # monkey-patch but it's easy enough
+                img_fname = next(block_vars['image_path_iterator'])
+                # gui is QWindow
+                # https://doc.qt.io/qt-5/qwidget.html#grab
+                pixmap = gui.grab()
+                # Now the tricky part: we need to get the 3D renderer, extract
+                # the image from it, and put it in the correct place in the
+                # pixmap. The easiest way to do this is actually to save the
+                # 3D image first, then load it using QPixmap and Qt geometry.
+                plotter = gui._renderer.plotter
+                plotter.screenshot(img_fname)
+                sub_pixmap = QtGui.QPixmap(img_fname)
+                # https://doc.qt.io/qt-5/qwidget.html#mapTo
+                # https://doc.qt.io/qt-5/qpainter.html#drawPixmap-1
+                QtGui.QPainter(pixmap).drawPixmap(
+                    plotter.mapTo(gui, plotter.rect().topLeft()),
+                    sub_pixmap)
+                # https://doc.qt.io/qt-5/qpixmap.html#save
+                pixmap.save(img_fname)
+                gui._renderer.close()  # TODO should be triggered by close...
+                gui.close()
+                return figure_rst(
+                    [img_fname], gallery_conf['src_dir'], 'iEEG GUI')
+        return ''

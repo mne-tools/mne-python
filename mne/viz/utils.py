@@ -11,7 +11,7 @@
 #          Daniel McCloy <dan@mccloy.info>
 #
 # License: Simplified BSD
-
+import sys
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import partial
@@ -37,9 +37,9 @@ from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
 from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
-from ..utils import (verbose, get_config, warn, _check_ch_locs, _check_option,
+from ..utils import (verbose, get_config, _check_ch_locs, _check_option,
                      logger, fill_doc, _pl, _check_sphere, _ensure_int,
-                     _validate_type)
+                     _validate_type, _to_rgb, warn)
 from ..transforms import apply_trans
 
 
@@ -107,6 +107,36 @@ def plt_show(show=True, fig=None, **kwargs):
     import matplotlib.pyplot as plt
     if show and get_backend() != 'agg':
         (fig or plt).show(**kwargs)
+
+
+def _show_browser(show=True, block=True, fig=None, **kwargs):
+    """Show the browser considering different backends.
+
+    Parameters
+    ----------
+    show : bool
+        Show the figure.
+    block : bool
+        If to block execution on showing.
+    fig : instance of Figure | None
+        Needs to be passed for pyqtgraph backend,
+         optional for matplotlib.
+    **kwargs : dict
+        Extra arguments for :func:`matplotlib.pyplot.show`.
+    """
+    from ._figure import get_browser_backend
+    backend = get_browser_backend()
+    if backend == 'matplotlib':
+        plt_show(show, block=block, **kwargs)
+    else:
+        from qtpy.QtWidgets import QApplication
+        app = QApplication.instance() or QApplication(sys.argv)
+        if show:
+            fig.show()
+        # If block=False, a Qt-Event-Loop has to be started
+        # somewhere else in the calling code.
+        if block:
+            app.exec()
 
 
 def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
@@ -195,7 +225,7 @@ def _validate_if_list_of_axes(axes, obligatory_len=None):
                          ' length is %d' % (obligatory_len, len(axes)))
 
 
-def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
+def mne_analyze_colormap(limits=[5, 10, 15], format='vtk'):
     """Return a colormap similar to that used by mne_analyze.
 
     Parameters
@@ -205,7 +235,7 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
         3, or completely specified (and potentially asymmetric) if length 6.
     format : str
         Type of colormap to return. If 'matplotlib', will return a
-        matplotlib.colors.LinearSegmentedColormap. If 'mayavi', will
+        matplotlib.colors.LinearSegmentedColormap. If 'vtk', will
         return an RGBA array of shape (256, 4).
 
     Returns
@@ -263,7 +293,7 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
                            (limits[5], 1.0, 1.0)),
                  }
         return colors.LinearSegmentedColormap('mne_analyze', cdict)
-    elif format == 'mayavi':
+    elif format in ('vtk', 'mayavi'):
         if len(limits) == 3:
             limits = np.concatenate((-np.flipud(limits), [0], limits)) /\
                 limits[-1]
@@ -279,7 +309,9 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
                           for c in [r, g, b, a]]].T
         return colormap
     else:
-        raise ValueError('format must be either matplotlib or mayavi')
+        # Use this instead of check_option because we have a hidden option
+        raise ValueError(
+            f'format must be either matplotlib or vtk, got {repr(format)}')
 
 
 @contextmanager
@@ -365,7 +397,7 @@ def _make_event_color_dict(event_color, events=None, event_id=None):
 def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
                      size=1.3, sharex=False, sharey=False):
     from matplotlib.gridspec import GridSpec
-    from ._figure import _figure
+    from ._mpl_figure import _figure
 
     if n_cells == 1:
         nrows = ncols = 1
@@ -810,7 +842,8 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
 @verbose
 def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                  show_names=False, ch_groups=None, to_sphere=True, axes=None,
-                 block=False, show=True, sphere=None, verbose=None):
+                 block=False, show=True, sphere=None, pointsize=None,
+                 linewidth=2, verbose=None):
     """Plot sensors positions.
 
     Parameters
@@ -860,6 +893,11 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     show : bool
         Show figure if True. Defaults to True.
     %(topomap_sphere_auto)s
+    pointsize : float | None
+        The size of the points. If None (default), will bet set to 75 if
+        ``kind='3d'``, or 25 otherwise.
+    linewidth : float
+        The width of the outline. If 0, the outline will not be drawn.
     %(verbose)s
 
     Returns
@@ -876,7 +914,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     Notes
     -----
     This function plots the sensor locations from the info structure using
-    matplotlib. For drawing the sensors using mayavi see
+    matplotlib. For drawing the sensors using PyVista see
     :func:`mne.viz.plot_alignment`.
 
     .. versionadded:: 0.12.0
@@ -906,10 +944,11 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     if len(picks) == 0:
         raise ValueError('Could not find any channels of type %s.' % ch_type)
 
-    chs = [info['chs'][pick] for pick in picks]
-    if not _check_ch_locs(chs):
+    if not _check_ch_locs(info=info, picks=picks):
         raise RuntimeError('No valid channel positions found')
+
     dev_head_t = info['dev_head_t']
+    chs = [info['chs'][pick] for pick in picks]
     pos = np.empty((len(chs), 3))
     for ci, ch in enumerate(chs):
         pos[ci] = ch['loc'][:3]
@@ -968,7 +1007,8 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     title = 'Sensor positions (%s)' % ch_type if title is None else title
     fig = _plot_sensors(pos, info, picks, colors, bads, ch_names, title,
                         show_names, axes, show, kind, block,
-                        to_sphere, sphere)
+                        to_sphere, sphere, pointsize=pointsize,
+                        linewidth=linewidth)
     if kind == 'select':
         return fig, fig.lasso.selection
     return fig
@@ -1008,7 +1048,8 @@ def _close_event(event, fig):
 
 
 def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
-                  ax, show, kind, block, to_sphere, sphere):
+                  ax, show, kind, block, to_sphere, sphere, pointsize=None,
+                  linewidth=2):
     """Plot sensors."""
     from matplotlib import rcParams
     import matplotlib.pyplot as plt
@@ -1030,9 +1071,11 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
         fig = ax.get_figure()
 
     if kind == '3d':
+        pointsize = 75 if pointsize is None else pointsize
         ax.text(0, 0, 0, '', zorder=1)
+
         ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors,
-                   s=75, edgecolor=edgecolors, linewidth=2)
+                   s=pointsize, edgecolor=edgecolors, linewidth=linewidth)
 
         ax.azim = 90
         ax.elev = 0
@@ -1040,13 +1083,15 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
         ax.yaxis.set_label_text('y (m)')
         ax.zaxis.set_label_text('z (m)')
     else:  # kind in 'select', 'topomap'
+        pointsize = 25 if pointsize is None else pointsize
         ax.text(0, 0, '', zorder=1)
 
         pos, outlines = _get_pos_outlines(info, picks, sphere,
                                           to_sphere=to_sphere)
         _draw_outlines(ax, outlines)
         pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, clip_on=False,
-                         c=colors, edgecolors=edgecolors, s=25, lw=2)
+                         c=colors, edgecolors=edgecolors, s=pointsize,
+                         lw=linewidth)
         if kind == 'select':
             fig.lasso = SelectFromCollection(ax, pts, ch_names)
         else:
@@ -1609,7 +1654,7 @@ def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
     # new ticks that are nice round numbers close to (but less extreme than)
     # xmin and xmax
     vlines = [] if vlines is None else vlines
-    xticks = _trim_ticks(axes.get_xticks(), xmin, xmax)
+    xticks = _trim_ticks(axes.get_xticks(), round(xmin, 2), round(xmax, 2))
     xticks = np.array(sorted(set([x for x in xticks] + vlines)))
     if len(xticks) < 2:
         def log_fix(tval):
@@ -1674,7 +1719,8 @@ def _handle_decim(info, decim, lowpass):
     if isinstance(decim, str) and decim == 'auto':
         lp = info['sfreq'] if info['lowpass'] is None else info['lowpass']
         lp = min(lp, info['sfreq'] if lowpass is None else lowpass)
-        info['lowpass'] = lp
+        with info._unlock():
+            info['lowpass'] = lp
         decim = max(int(info['sfreq'] / (lp * 3) + 1e-6), 1)
     decim = _ensure_int(decim, 'decim', must_be='an int or "auto"')
     if decim <= 0:
@@ -1779,7 +1825,8 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
         # we risk the rank estimates being incorrect (i.e., if the projectors
         # do not match).
         info_proj = info.copy()
-        info_proj['projs'] += cov['projs']
+        with info_proj._unlock():
+            info_proj['projs'] += cov['projs']
         this_rank = {}
         # assemble rank dict for this cov, such that we have meg
         for ch_type, this_picks in picks_list2:
@@ -1857,9 +1904,10 @@ def _check_time_unit(time_unit, times):
 def _plot_masked_image(ax, data, times, mask=None, yvals=None,
                        cmap="RdBu_r", vmin=None, vmax=None, ylim=None,
                        mask_style="both", mask_alpha=.25, mask_cmap="Greys",
-                       yscale="linear"):
+                       yscale="linear", cnorm=None):
     """Plot a potentially masked (evoked, TFR, ...) 2D image."""
-    from matplotlib import ticker, __version__ as mpl_version
+    from matplotlib import ticker
+    from matplotlib.colors import Normalize
 
     if mask_style is None and mask is not None:
         mask_style = "both"  # default
@@ -1867,6 +1915,8 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
     draw_contour = mask_style in {"both", "contour"}
     if cmap is None:
         mask_cmap = cmap
+    if cnorm is None:
+        cnorm = Normalize(vmin=vmin, vmax=vmax)
 
     # mask param check and preparation
     if draw_mask is None:
@@ -1915,11 +1965,6 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
         else:
             yscale = 'linear'
 
-    # https://github.com/matplotlib/matplotlib/pull/9477
-    if yscale == "log" and mpl_version == "2.1.0":
-        warn("With matplotlib version 2.1.0, lines may not show up in "
-             "`AverageTFR.plot_joint`. Upgrade to a more recent version.")
-
     if yscale == "log":  # pcolormesh for log scale
         # compute bounds between time samples
         time_lims, = centers_to_edges(times)
@@ -1932,13 +1977,13 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
 
         if mask is not None:
             ax.pcolormesh(time_mesh, yval_mesh, data, cmap=mask_cmap,
-                          vmin=vmin, vmax=vmax, alpha=mask_alpha)
+                          norm=cnorm, alpha=mask_alpha)
             im = ax.pcolormesh(time_mesh, yval_mesh,
                                np.ma.masked_where(~mask, data), cmap=cmap,
-                               vmin=vmin, vmax=vmax, alpha=1)
+                               norm=cnorm, alpha=1)
         else:
             im = ax.pcolormesh(time_mesh, yval_mesh, data, cmap=cmap,
-                               vmin=vmin, vmax=vmax)
+                               norm=cnorm)
         if ylim is None:
             ylim = yval_lims[[0, -1]]
         if yscale == 'log':
@@ -2019,51 +2064,6 @@ def _make_combine_callable(combine):
                              '"mean", "median", "std", or "gfp"; got {}'
                              ''.format(combine))
     return combine
-
-
-def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
-    """Center given colormap (ranging from vmin to vmax) at value 0.
-
-    Parameters
-    ----------
-    cmap : matplotlib.colors.Colormap
-        The colormap to center around 0.
-    vmin : float
-        Minimum value in the data to map to the lower end of the colormap.
-    vmax : float
-        Maximum value in the data to map to the upper end of the colormap.
-    name : str
-        Name of the new colormap. Defaults to 'cmap_centered'.
-
-    Returns
-    -------
-    cmap_centered : matplotlib.colors.Colormap
-        The new colormap centered around 0.
-
-    Notes
-    -----
-    This function can be used in situations where vmin and vmax are not
-    symmetric around zero. Normally, this results in the value zero not being
-    mapped to white anymore in many colormaps. Using this function, the value
-    zero will be mapped to white even for asymmetric positive and negative
-    value ranges. Note that this could also be achieved by re-normalizing a
-    given colormap by subclassing matplotlib.colors.Normalize as described
-    here:
-    https://matplotlib.org/users/colormapnorms.html#custom-normalization-two-linear-ranges
-    """  # noqa: E501
-    from matplotlib.colors import LinearSegmentedColormap
-
-    vzero = abs(vmin) / float(vmax - vmin)
-    index_old = np.linspace(0, 1, cmap.N)
-    index_new = np.hstack([np.linspace(0, vzero, cmap.N // 2, endpoint=False),
-                           np.linspace(vzero, 1, cmap.N // 2)])
-
-    colors = "red", "green", "blue", "alpha"
-    cdict = {name: [] for name in colors}
-    for old, new in zip(index_old, index_new):
-        for color, name in zip(cmap(old), colors):
-            cdict[name].append((new, color, color))
-    return LinearSegmentedColormap(name, cdict)
 
 
 def _convert_psds(psds, dB, estimate, scaling, unit, ch_names=None,
@@ -2178,8 +2178,9 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         # Needed because the data do not match the info anymore.
         info = create_info([inst.ch_names[p] for p in picks],
                            inst.info['sfreq'], types)
-        info['chs'] = [inst.info['chs'][p] for p in picks]
-        info['dev_head_t'] = inst.info['dev_head_t']
+        with info._unlock():
+            info['chs'] = [inst.info['chs'][p] for p in picks]
+            info['dev_head_t'] = inst.info['dev_head_t']
         ch_types_used = list()
         for this_type in _VALID_CHANNEL_TYPES:
             if this_type in types:
@@ -2219,8 +2220,11 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
 
 def _trim_ticks(ticks, _min, _max):
     """Remove ticks that are more extreme than the given limits."""
-    keep = np.where(np.logical_and(ticks >= _min, ticks <= _max))
-    return ticks[keep]
+    if np.isclose(_min, _max):
+        keep_idx = 0  # ensure we always keep at least one tick
+    else:
+        keep_idx = np.where(np.logical_and(ticks >= _min, ticks <= _max))
+    return np.atleast_1d(ticks[keep_idx])
 
 
 def _set_window_title(fig, title):
@@ -2332,10 +2336,10 @@ def concatenate_images(images, axis=0, bgcolor='black', centered=True,
     img : ndarray
         The concatenated image.
     """
-    from matplotlib.colors import colorConverter
-    if isinstance(bgcolor, str):
-        func_name = 'to_rgb' if n_channels == 3 else 'to_rgba'
-        bgcolor = getattr(colorConverter, func_name)(bgcolor)
+    n_channels = _ensure_int(n_channels, 'n_channels')
+    _check_option('n_channels', n_channels, (3, 4))
+    alpha = True if n_channels == 4 else False
+    bgcolor = _to_rgb(bgcolor, name='bgcolor', alpha=alpha)
     bgcolor = np.asarray(bgcolor) * 255
     funcs = [np.sum, np.max]
     ret_shape = np.asarray([

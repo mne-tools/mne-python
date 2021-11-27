@@ -1,6 +1,6 @@
 name: 'compat / minimal'
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.number }}
+  group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
   cancel-in-progress: true
 on:
   push:
@@ -55,7 +55,7 @@ jobs:
         run: ./tools/get_testing_version.sh
         name: 'Get testing version'
       - shell: bash -el {0}
-        run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
+        run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
         name: Run tests with no testing data
       - uses: actions/cache@v2
         with:

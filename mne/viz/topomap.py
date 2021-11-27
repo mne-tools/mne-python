@@ -198,7 +198,8 @@ def _plot_update_evoked_topomap(params, bools):
 
     params['proj_bools'] = bools
     new_evoked = params['evoked'].copy()
-    new_evoked.info['projs'] = []
+    with new_evoked.info._unlock():
+        new_evoked.info['projs'] = []
     new_evoked.add_proj(projs)
     new_evoked.apply_proj()
 
@@ -468,7 +469,7 @@ def _draw_outlines(ax, outlines):
 
 def _get_extra_points(pos, extrapolate, origin, radii):
     """Get coordinates of additinal interpolation points."""
-    from scipy.spatial.qhull import Delaunay
+    from scipy.spatial import Delaunay
     radii = np.array(radii, float)
     assert radii.shape == (2,)
     x, y = origin
@@ -728,15 +729,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         List of channel names. If None, channel names are not plotted.
     %(topomap_show_names)s
         If ``True``, a list of names must be provided (see ``names`` keyword).
-    mask : ndarray of bool, shape (n_channels, n_times) | None
-        The channels to be marked as significant at a given time point.
-        Indices set to ``True`` will be considered. Defaults to None.
-    mask_params : dict | None
-        Additional plotting parameters for plotting significant sensors.
-        Default (None) equals::
-
-           dict(marker='o', markerfacecolor='w', markeredgecolor='k',
-                linewidth=0, markersize=4)
+    %(topomap_mask)s
+    %(topomap_mask_params)s
     %(topomap_outlines)s
     contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
@@ -758,8 +752,6 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     %(topomap_sphere)s
     %(topomap_border)s
     %(topomap_ch_type)s
-
-        .. versionadded:: 0.24.0
     cnorm : matplotlib.colors.Normalize | None
         Colormap normalization, default None means linear normalization. If not
         None, ``vmin`` and ``vmax`` arguments are ignored. See Notes for more
@@ -985,6 +977,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                 col.set_clip_path(patch_)
 
     pos_x, pos_y = pos.T
+    mask = mask.astype(bool, copy=False) if mask is not None else None
     if sensors is not False and mask is None:
         _topomap_plot_sensors(pos_x, pos_y, sensors=sensors, ax=ax)
     elif sensors and mask is not None:
@@ -1089,8 +1082,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     ----------
     ica : instance of mne.preprocessing.ICA
         The ICA solution.
-    %(picks_all)s
-        If None all are plotted in batches of 20.
+    %(picks_ica)s  If ``None``, all components are plotted in batches of 20.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are
         collected in pairs and the RMS for each pair is plotted.
@@ -1168,8 +1160,12 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
 
     Returns
     -------
-    fig : instance of matplotlib.figure.Figure or list
-        The figure object(s).
+    fig : instance of matplotlib.figure.Figure | list of matplotlib.figure.Figure
+
+        The figure object(s). Components are plotted on a grid with maximum
+        dimensions of 5⨉4. If more than 20 components are plotted, a new figure
+        will be created for each batch of 20, and a list of those figures
+        will be returned.
 
     Notes
     -----
@@ -1179,7 +1175,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     also possible to open component properties by clicking on the component
     topomap (this option is only available when the ``inst`` argument is
     supplied).
-    """
+    """  # noqa E501
     from ..io import BaseRaw
     from ..epochs import BaseEpochs
 
@@ -1505,7 +1501,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         automatically by checking for local maxima in global field power. If
         "interactive", the time can be set interactively at run-time by using a
         slider.
-    %(topomap_ch_type)s
+    %(evoked_topomap_ch_type)s
     %(topomap_vmin_vmax)s
     %(topomap_cmap)s
     %(topomap_sensors)s
@@ -1527,7 +1523,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     %(show)s
     %(topomap_show_names)s
     %(title_None)s
-    %(topomap_mask)s
+    %(evoked_topomap_mask)s
     %(topomap_mask_params)s
     %(topomap_outlines)s
     %(topomap_contours)s
@@ -1615,8 +1611,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     data = evoked.data
 
     # remove compensation matrices (safe: only plotting & already made copy)
-    evoked.info['comps'] = []
-    evoked = evoked._pick_drop_channels(picks)
+    with evoked.info._unlock():
+        evoked.info['comps'] = []
+    evoked = evoked._pick_drop_channels(picks, verbose=False)
     # determine which times to plot
     if isinstance(axes, plt.Axes):
         axes = [axes]
@@ -1690,6 +1687,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
             merge_channels = False
     # apply mask if requested
     if mask is not None:
+        mask = mask.astype(bool, copy=False)
         if ch_type == 'grad':
             mask_ = (mask[np.ix_(picks[::2], time_idx)] |
                      mask[np.ix_(picks[1::2], time_idx)])
@@ -1867,10 +1865,7 @@ def plot_epochs_psd_topomap(epochs, bands=None,
     low_bias : bool
         Only use tapers with more than 90%% spectral concentration within
         bandwidth.
-    normalization : str
-        Either "full" or "length" (default). If "full", the PSD will
-        be normalized by the sampling rate as well as the length of
-        the signal (as in nitime).
+    %(normalization)s
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are collected in
         pairs and the mean for each pair is plotted. If None, then first
@@ -1897,7 +1892,9 @@ def plot_epochs_psd_topomap(epochs, bands=None,
     """
     ch_type = _get_ch_type(epochs, ch_type)
     units = _handle_default('units', None)
+    scalings = _handle_default('scalings', None)
     unit = units[ch_type]
+    scaling = scalings[ch_type]
 
     picks, pos, merge_channels, names, ch_type, sphere, clip_origin = \
         _prepare_topomap_plot(epochs, ch_type, sphere=sphere)
@@ -1909,6 +1906,7 @@ def plot_epochs_psd_topomap(epochs, bands=None,
                                  normalization=normalization, picks=picks,
                                  proj=proj, n_jobs=n_jobs)
     psds = np.mean(psds, axis=0)
+    psds *= scaling**2
 
     if merge_channels:
         psds, names = _merge_ch_data(psds, ch_type, names, method='mean')
@@ -2516,15 +2514,8 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
         List of channel names. If None, channel names are not plotted.
     %(topomap_show_names)s
         If ``True``, a list of names must be provided (see ``names`` keyword).
-    mask : ndarray of bool, shape (n_channels, n_times) | None
-        The channels to be marked as significant at a given time point.
-        Indices set to ``True`` will be considered. Defaults to None.
-    mask_params : dict | None
-        Additional plotting parameters for plotting significant sensors.
-        Default (None) equals::
-
-            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
-                 linewidth=0, markersize=4)
+    %(topomap_mask)s
+    %(topomap_mask_params)s
     %(topomap_outlines)s
     contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.

@@ -10,7 +10,7 @@ import numpy as np
 
 from .mxne_debiasing import compute_bias
 from ..utils import (logger, verbose, sum_squared, warn, _get_blas_funcs,
-                     deprecated)
+                     _validate_type, _check_option)
 from ..time_frequency._stft import stft_norm1, stft_norm2, stft, istft
 
 
@@ -41,140 +41,6 @@ def norm_l21(A, n_orient, copy=True):
     if copy:
         A = A.copy()
     return np.sum(np.sqrt(groups_norm2(A, n_orient)))
-
-
-@deprecated(extra="Starting version v0.25, MxNE problems will be solved "
-                  "using exclusively (block) coordinate descent solvers. "
-                  "Prefer using solver=`bcd` or solver=`cd`.")
-def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
-    """Proximity operator for l21 norm.
-
-    L2 over columns and L1 over rows => groups contain n_orient rows.
-
-    It can eventually take into account the negative frequencies
-    when a complex value is passed and is_stft=True.
-
-    Parameters
-    ----------
-    Y : array, shape (n_sources, n_coefs)
-        The input data.
-    alpha : float
-        The regularization parameter.
-    n_orient : int
-        Number of dipoles per locations (typically 1 or 3).
-    shape : None | tuple
-        Shape of TF coefficients matrix.
-    is_stft : bool
-        If True, Y contains TF coefficients.
-
-    Returns
-    -------
-    Y : array, shape (n_sources, n_coefs)
-        The output data.
-    active_set : array of bool, shape (n_sources, )
-        Mask of active sources
-
-    Examples
-    --------
-    >>> Y = np.tile(np.array([0, 4, 3, 0, 0], dtype=np.float64), (2, 1))
-    >>> Y = np.r_[Y, np.zeros_like(Y)]
-    >>> print(Y)  # doctest:+SKIP
-    [[ 0.  4.  3.  0.  0.]
-     [ 0.  4.  3.  0.  0.]
-     [ 0.  0.  0.  0.  0.]
-     [ 0.  0.  0.  0.  0.]]
-    >>> Yp, active_set = prox_l21(Y, 2, 2)
-    >>> print(Yp)  # doctest:+SKIP
-    [[0.         2.86862915 2.15147186 0.         0.        ]
-     [0.         2.86862915 2.15147186 0.         0.        ]]
-    >>> print(active_set)
-    [ True  True False False]
-    """
-    if len(Y) == 0:
-        return np.zeros_like(Y), np.zeros((0,), dtype=bool)
-    if shape is not None:
-        shape_init = Y.shape
-        Y = Y.reshape(*shape)
-    n_positions = Y.shape[0] // n_orient
-
-    if is_stft:
-        rows_norm = np.sqrt(stft_norm2(Y).reshape(n_positions, -1).sum(axis=1))
-    else:
-        rows_norm = np.sqrt((Y * Y.conj()).real.reshape(n_positions,
-                                                        -1).sum(axis=1))
-    # Ensure shrink is >= 0 while avoiding any division by zero
-    shrink = np.maximum(1.0 - alpha / np.maximum(rows_norm, alpha), 0.0)
-    active_set = shrink > 0.0
-    if n_orient > 1:
-        active_set = np.tile(active_set[:, None], [1, n_orient]).ravel()
-        shrink = np.tile(shrink[:, None], [1, n_orient]).ravel()
-    Y = Y[active_set]
-    if shape is None:
-        Y *= shrink[active_set][:, np.newaxis]
-    else:
-        Y *= shrink[active_set][:, np.newaxis, np.newaxis]
-        Y = Y.reshape(-1, *shape_init[1:])
-    return Y, active_set
-
-
-def prox_l1(Y, alpha, n_orient):
-    """Proximity operator for l1 norm with multiple orientation support.
-
-    Please note that this function computes a soft-thresholding if
-    n_orient == 1 and a block soft-thresholding (L2 over orientation and
-    L1 over position (space + time)) if n_orient == 3. See also
-    :footcite:`GramfortEtAl2013b`.
-
-    Parameters
-    ----------
-    Y : array, shape (n_sources, n_coefs)
-        The input data.
-    alpha : float
-        The regularization parameter.
-    n_orient : int
-        Number of dipoles per locations (typically 1 or 3).
-
-    Returns
-    -------
-    Y : array, shape (n_sources, n_coefs)
-        The output data.
-    active_set : array of bool, shape (n_sources, )
-        Mask of active sources.
-
-    References
-    ----------
-    .. footbibliography::
-
-    Examples
-    --------
-    >>> Y = np.tile(np.array([1, 2, 3, 2, 0], dtype=np.float64), (2, 1))
-    >>> Y = np.r_[Y, np.zeros_like(Y)]
-    >>> print(Y)  # doctest:+SKIP
-    [[ 1.  2.  3.  2.  0.]
-     [ 1.  2.  3.  2.  0.]
-     [ 0.  0.  0.  0.  0.]
-     [ 0.  0.  0.  0.  0.]]
-    >>> Yp, active_set = prox_l1(Y, 2, 2)
-    >>> print(Yp)  # doctest:+SKIP
-    [[0.         0.58578644 1.58578644 0.58578644 0.        ]
-     [0.         0.58578644 1.58578644 0.58578644 0.        ]]
-    >>> print(active_set)
-    [ True  True False False]
-    """
-    n_positions = Y.shape[0] // n_orient
-    norms = np.sqrt((Y * Y.conj()).real.T.reshape(-1, n_orient).sum(axis=1))
-    # Ensure shrink is >= 0 while avoiding any division by zero
-    shrink = np.maximum(1.0 - alpha / np.maximum(norms, alpha), 0.0)
-    shrink = shrink.reshape(-1, n_positions).T
-    active_set = np.any(shrink > 0.0, axis=1)
-    shrink = shrink[active_set]
-    if n_orient > 1:
-        active_set = np.tile(active_set[:, None], [1, n_orient]).ravel()
-    Y = Y[active_set]
-    if len(Y) > 0:
-        for o in range(n_orient):
-            Y[o::n_orient] *= shrink
-    return Y, active_set
 
 
 def _primal_l21(M, G, X, active_set, alpha, n_orient):
@@ -259,76 +125,6 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
 
     gap = p_obj - d_obj
     return gap, p_obj, d_obj, R
-
-
-@deprecated(extra="Starting version v0.25, MxNE problems will be solved "
-                  "using exclusively (block) coordinate descent solvers. "
-                  "Prefer using solver=`bcd` or solver=`cd`.")
-@verbose
-def _mixed_norm_solver_prox(M, G, alpha, lipschitz_constant, maxit=200,
-                            tol=1e-8, verbose=None, init=None, n_orient=1,
-                            dgap_freq=10):
-    """Solve L21 inverse problem with proximal iterations and FISTA."""
-    n_sensors, n_times = M.shape
-    _, n_sources = G.shape
-
-    if n_sources < n_sensors:
-        gram = np.dot(G.T, G)
-        GTM = np.dot(G.T, M)
-    else:
-        gram = None
-
-    if init is None:
-        X = 0.0
-        R = M.copy()
-        if gram is not None:
-            R = np.dot(G.T, R)
-    else:
-        X = init
-        if gram is None:
-            R = M - np.dot(G, X)
-        else:
-            R = GTM - np.dot(gram, X)
-
-    t = 1.0
-    Y = np.zeros((n_sources, n_times))  # FISTA aux variable
-    E = []  # track primal objective function
-    highest_d_obj = - np.inf
-    active_set = np.ones(n_sources, dtype=bool)  # start with full AS
-
-    for i in range(maxit):
-        X0, active_set_0 = X, active_set  # store previous values
-        if gram is None:
-            Y += np.dot(G.T, R) / lipschitz_constant  # ISTA step
-        else:
-            Y += R / lipschitz_constant  # ISTA step
-        X, active_set = prox_l21(Y, alpha / lipschitz_constant, n_orient)
-
-        t0 = t
-        t = 0.5 * (1.0 + sqrt(1.0 + 4.0 * t ** 2))
-        Y.fill(0.0)
-        dt = ((t0 - 1.0) / t)
-        Y[active_set] = (1.0 + dt) * X
-        Y[active_set_0] -= dt * X0
-        Y_as = active_set_0 | active_set
-
-        if gram is None:
-            R = M - np.dot(G[:, Y_as], Y[Y_as])
-        else:
-            R = GTM - np.dot(gram[:, Y_as], Y[Y_as])
-
-        if (i + 1) % dgap_freq == 0:
-            _, p_obj, d_obj, _ = dgap_l21(M, G, X, active_set, alpha,
-                                          n_orient)
-            highest_d_obj = max(d_obj, highest_d_obj)
-            gap = p_obj - highest_d_obj
-            E.append(p_obj)
-            logger.debug("p_obj : %s -- gap : %s" % (p_obj, gap))
-            if gap < tol:
-                logger.debug('Convergence reached ! (gap: %s < %s)'
-                             % (gap, tol))
-                break
-    return X, active_set, E
 
 
 @verbose
@@ -545,7 +341,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         Debias source estimates.
     n_orient : int
         The number of orientation (1 : fixed or 3 : free or loose).
-    solver : 'prox' | 'cd' | 'bcd' | 'auto'
+    solver : 'cd' | 'bcd' | 'auto'
         The algorithm to use for the optimization. Block Coordinate Descent
         (BCD) uses Anderson acceleration for faster convergence.
     return_gap : bool
@@ -590,6 +386,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     except ImportError:
         has_sklearn = False
 
+    _validate_type(solver, str, 'solver')
+    _check_option('solver', solver, ('cd', 'bcd', 'auto'))
     if solver == 'auto':
         if has_sklearn and (n_orient == 1):
             solver = 'cd'
@@ -611,7 +409,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         logger.info("Using coordinate descent")
         l21_solver = _mixed_norm_solver_cd
         lc = None
-    elif solver == 'bcd':
+    else:
+        assert solver == 'bcd'
         logger.info("Using block coordinate descent")
         l21_solver = _mixed_norm_solver_bcd
         G = np.asfortranarray(G)
@@ -622,10 +421,6 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
             for j in range(n_positions):
                 G_tmp = G[:, (j * n_orient):((j + 1) * n_orient)]
                 lc[j] = np.linalg.norm(np.dot(G_tmp.T, G_tmp), ord=2)
-    else:
-        logger.info("Using proximal iterations")
-        l21_solver = _mixed_norm_solver_prox
-        lc = 1.01 * np.linalg.norm(G, ord=2) ** 2
 
     if active_set_size is not None:
         E = list()
@@ -738,7 +533,7 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
         The number of orientation (1 : fixed or 3 : free or loose).
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.
-    solver : 'prox' | 'cd' | 'bcd' | 'auto'
+    solver : 'cd' | 'bcd' | 'auto'
         The algorithm to use for the optimization.
     weight_init : array, shape (n_dipoles,) or None
         The initial weight used for reweighting the gain matrix. If None, the
@@ -1573,9 +1368,7 @@ def iterative_tf_mixed_norm_solver(M, G, alpha_space, alpha_time,
         The number of orientation (1 : fixed or 3 : free or loose).
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut-logging>` for more).
+    %(verbose)s
 
     Returns
     -------

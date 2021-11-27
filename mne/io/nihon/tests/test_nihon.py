@@ -26,7 +26,7 @@ def test_nihon_eeg():
     assert raw._data.shape == raw_edf._data.shape
     assert raw.info['sfreq'] == raw.info['sfreq']
     # ch names and order are switched in the EDF
-    edf_ch_names = {x: x.split(' ')[1].replace('-Ref', '')
+    edf_ch_names = {x: x.replace('-Ref', '')
                     for x in raw_edf.ch_names}
     raw_edf.rename_channels(edf_ch_names)
     assert raw.ch_names == raw_edf.ch_names
@@ -59,3 +59,11 @@ def test_nihon_eeg():
     with pytest.warns(RuntimeWarning, match=msg):
         annot = _read_nihon_annotations(bad_fname)
         assert all(len(x) == 0 for x in annot.values())
+
+    # the nihon test file has $A1 and $A2 in it, which are not EEG
+    assert '$A1' in raw.ch_names
+
+    # assert that channels with $ are 'misc'
+    picks = [ch for ch in raw.ch_names if ch.startswith('$')]
+    ch_types = raw.get_channel_types(picks=picks)
+    assert all(ch == 'misc' for ch in ch_types)

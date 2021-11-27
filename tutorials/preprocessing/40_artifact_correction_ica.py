@@ -206,8 +206,7 @@ ecg_evoked.plot_joint()
 # `~mne.io.Raw` object around so we can apply the ICA solution to it
 # later.
 
-filt_raw = raw.copy()
-filt_raw.load_data().filter(l_freq=1., h_freq=None)
+filt_raw = raw.copy().load_data().filter(l_freq=1., h_freq=None)
 
 # %%
 # Fitting and plotting the ICA solution
@@ -247,6 +246,7 @@ filt_raw.load_data().filter(l_freq=1., h_freq=None)
 
 ica = ICA(n_components=15, max_iter='auto', random_state=97)
 ica.fit(filt_raw)
+ica
 
 # %%
 # Some optional parameters that we could have passed to the
@@ -467,8 +467,8 @@ del raw, ica, new_ica
 # an IC for exclusion on one subject, and then use that component as a
 # *template* for selecting which ICs to exclude from other subjects' data,
 # using `mne.preprocessing.corrmap` :footcite:`CamposViolaEtAl2009`.
-# The idea behind
-# `~mne.preprocessing.corrmap` is that the artifact patterns are similar
+# The idea behind `~mne.preprocessing.corrmap` is that the artifact patterns
+# are similar
 # enough across subjects that corresponding ICs can be identified by
 # correlating the ICs from each ICA solution with a common template, and
 # picking the ICs with the highest correlation strength.
@@ -528,11 +528,8 @@ corrmap(icas, template=(0, eog_inds[0]))
 # %%
 # The first figure shows the template map, while the second figure shows all
 # the maps that were considered a "match" for the template (including the
-# template itself). There were only three matches from the four subjects;
-# notice the output message ``No maps selected for subject(s) 1, consider a
-# more liberal threshold``.  By default the threshold is set automatically by
-# trying several values; here it may have chosen a threshold that is too high.
-# Let's take a look at the ICA sources for each subject:
+# template itself). There is one match for each subject, but it's a good idea
+# to also double-check the ICA sources for each subject:
 
 for index, (ica, raw) in enumerate(zip(icas, raws)):
     fig = ica.plot_sources(raw, show_scrollbars=False)
@@ -540,17 +537,15 @@ for index, (ica, raw) in enumerate(zip(icas, raws)):
     fig.suptitle('Subject {}'.format(index))
 
 # %%
-# Notice that subject 1 *does* seem to have an IC that looks like it reflects
-# blink artifacts (component ``ICA000``). Notice also that subject 3 appears to
-# have *two* components that are reflecting ocular artifacts (``ICA000`` and
-# ``ICA002``), but only one was caught by `~mne.preprocessing.corrmap`.
-# Let's try setting the threshold manually:
+# Notice that subjects 2 and 3 each seem to have *two* ICs that reflect ocular
+# activity (components ``ICA000`` and ``ICA002``), but only one was caught by
+# `~mne.preprocessing.corrmap`. Let's try setting the threshold manually:
 
 corrmap(icas, template=(0, eog_inds[0]), threshold=0.9)
 
 # %%
-# Now we get the message ``At least 1 IC detected for each subject`` (which is
-# good). At this point we'll re-run `~mne.preprocessing.corrmap` with
+# This time it found 2 ICs for each of subjects 2 and 3 (which is good).
+# At this point we'll re-run `~mne.preprocessing.corrmap` with
 # parameters ``label='blink', plot=False`` to *label* the ICs from each subject
 # that capture the blink artifacts (without plotting them again).
 
@@ -561,12 +556,12 @@ print([ica.labels_ for ica in icas])
 # %%
 # Notice that the first subject has 3 different labels for the IC at index 0:
 # "eog/0/Fpz", "eog", and "blink". The first two were added by
-# `~mne.preprocessing.ICA.find_bads_eog`; the "blink" label was added by
-# the last call to `~mne.preprocessing.corrmap`. Notice also that each
-# subject has at least one IC index labelled "blink", and subject 3 has two
+# `~mne.preprocessing.ICA.find_bads_eog`; the "blink" label was added by the
+# last call to `~mne.preprocessing.corrmap`. Notice also that each subject has
+# at least one IC index labelled "blink", and subjects 2 and 3 each have two
 # components (0 and 2) labelled "blink" (consistent with the plot of IC sources
-# above). The ``labels_`` attribute of `~mne.preprocessing.ICA` objects
-# can also be manually edited to annotate the ICs with custom labels. They also
+# above). The ``labels_`` attribute of `~mne.preprocessing.ICA` objects can
+# also be manually edited to annotate the ICs with custom labels. They also
 # come in handy when plotting:
 
 icas[3].plot_components(picks=icas[3].labels_['blink'])

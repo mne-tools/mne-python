@@ -16,10 +16,12 @@ from mne import (read_forward_solution, write_forward_solution,
                  make_sphere_model, pick_types_forward, pick_info, pick_types,
                  read_evokeds, read_cov, read_dipole,
                  get_volume_labels_from_aseg)
+from mne.surface import _get_ico_surface
+from mne.transforms import Transform
 from mne.utils import requires_mne, requires_nibabel, run_subprocess
 from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
 from mne.forward._compute_forward import _magnetic_dipole_field_vec
-from mne.forward import Forward, _do_forward_solution
+from mne.forward import Forward, _do_forward_solution, use_coil_def
 from mne.dipole import Dipole, fit_dipole
 from mne.simulation import simulate_evoked
 from mne.source_estimate import VolSourceEstimate
@@ -123,7 +125,7 @@ def test_magnetic_dipole():
 @pytest.mark.timeout(60)  # can take longer than 30 sec on Travis
 @testing.requires_testing_data
 @requires_mne
-def test_make_forward_solution_kit(tmpdir):
+def test_make_forward_solution_kit(tmp_path):
     """Test making fwd using KIT, BTI, and CTF (compensated) files."""
     kit_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'kit',
                       'tests', 'data')
@@ -145,7 +147,7 @@ def test_make_forward_solution_kit(tmpdir):
                             'data', 'test_ctf_comp_raw.fif')
 
     # first set up a small testing source space
-    fname_src_small = tmpdir.join('sample-oct-2-src.fif')
+    fname_src_small = tmp_path / 'sample-oct-2-src.fif'
     src = setup_source_space('sample', 'oct2', subjects_dir=subjects_dir,
                              add_dist=False)
     write_source_spaces(fname_src_small, src)  # to enable working with MNE-C
@@ -210,7 +212,7 @@ def test_make_forward_solution_kit(tmpdir):
                                subjects_dir=subjects_dir)
     _compare_forwards(fwd, fwd_py, 274, n_src)
 
-    fname_temp = tmpdir.join('test-ctf-fwd.fif')
+    fname_temp = tmp_path / 'test-ctf-fwd.fif'
     write_forward_solution(fname_temp, fwd_py)
     fwd_py2 = read_forward_solution(fname_temp)
     _compare_forwards(fwd_py, fwd_py2, 274, n_src)
@@ -234,7 +236,7 @@ def test_make_forward_solution():
 
 
 @testing.requires_testing_data
-def test_make_forward_solution_discrete(tmpdir):
+def test_make_forward_solution_discrete(tmp_path):
     """Test making and converting a forward solution with discrete src."""
     # smoke test for depth weighting and discrete source spaces
     src = setup_source_space('sample', 'oct2', subjects_dir=subjects_dir,
@@ -251,13 +253,13 @@ def test_make_forward_solution_discrete(tmpdir):
 @testing.requires_testing_data
 @requires_mne
 @pytest.mark.timeout(90)  # can take longer than 60 sec on Travis
-def test_make_forward_solution_sphere(tmpdir):
+def test_make_forward_solution_sphere(tmp_path):
     """Test making a forward solution with a sphere model."""
-    fname_src_small = tmpdir.join('sample-oct-2-src.fif')
+    fname_src_small = tmp_path / 'sample-oct-2-src.fif'
     src = setup_source_space('sample', 'oct2', subjects_dir=subjects_dir,
                              add_dist=False)
     write_source_spaces(fname_src_small, src)  # to enable working with MNE-C
-    out_name = tmpdir.join('tmp-fwd.fif')
+    out_name = tmp_path / 'tmp-fwd.fif'
     run_subprocess(['mne_forward_solution', '--meg', '--eeg',
                     '--meas', fname_raw, '--src', fname_src_small,
                     '--mri', fname_trans, '--fwd', out_name])
@@ -295,7 +297,7 @@ def test_make_forward_solution_sphere(tmpdir):
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_nibabel()
-def test_forward_mixed_source_space(tmpdir):
+def test_forward_mixed_source_space(tmp_path):
     """Test making the forward solution for a mixed source space."""
     # get the surface source space
     rng = np.random.RandomState(0)
@@ -329,7 +331,7 @@ def test_forward_mixed_source_space(tmpdir):
     assert ((coord_frames == FIFF.FIFFV_COORD_HEAD).all())
 
     # run tests for SourceSpaces.export_volume
-    fname_img = tmpdir.join('temp-image.mgz')
+    fname_img = tmp_path / 'temp-image.mgz'
 
     # head coordinates and mri_resolution, but trans file
     with pytest.raises(ValueError, match='trans containing mri to head'):
@@ -344,7 +346,7 @@ def test_forward_mixed_source_space(tmpdir):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_make_forward_dipole(tmpdir):
+def test_make_forward_dipole(tmp_path):
     """Test forward-projecting dipoles."""
     rng = np.random.RandomState(0)
 
@@ -441,7 +443,7 @@ def test_make_forward_dipole(tmpdir):
     dip_even_samp = Dipole(times, pos, amplitude, ori, gof)
 
     # I/O round-trip
-    fname = str(tmpdir.join('test-fwd.fif'))
+    fname = str(tmp_path / 'test-fwd.fif')
     with pytest.warns(RuntimeWarning, match='free orientation'):
         write_forward_solution(fname, fwd)
     fwd_read = convert_forward_solution(
@@ -455,7 +457,7 @@ def test_make_forward_dipole(tmpdir):
 
 
 @testing.requires_testing_data
-def test_make_forward_no_meg(tmpdir):
+def test_make_forward_no_meg(tmp_path):
     """Test that we can make and I/O forward solution with no MEG channels."""
     pos = dict(rr=[[0.05, 0, 0]], nn=[[0, 0, 1.]])
     src = setup_volume_source_space(pos=pos)
@@ -464,7 +466,70 @@ def test_make_forward_no_meg(tmpdir):
     montage = make_standard_montage('standard_1020')
     info = create_info(['Cz'], 1000., 'eeg').set_montage(montage)
     fwd = make_forward_solution(info, trans, src, bem)
-    fname = tmpdir.join('test-fwd.fif')
+    fname = tmp_path / 'test-fwd.fif'
     write_forward_solution(fname, fwd)
     fwd_read = read_forward_solution(fname)
     assert_allclose(fwd['sol']['data'], fwd_read['sol']['data'])
+
+
+def test_use_coil_def(tmp_path):
+    """Test use_coil_def."""
+    info = create_info(1, 1000., 'mag')
+    info['chs'][0]['coil_type'] = 9999
+    info['chs'][0]['loc'][:] = [0, 0, 0.02, 1, 0, 0, 0, 1, 0, 0, 0, 1]
+    sphere = make_sphere_model((0., 0., 0.), 0.01)
+    src = setup_volume_source_space(pos=5, sphere=sphere)
+    trans = Transform('head', 'mri', None)
+    with pytest.raises(RuntimeError, match='coil definition not found'):
+        make_forward_solution(info, trans, src, sphere)
+    coil_fname = tmp_path / 'coil_def.dat'
+    with open(coil_fname, 'w') as fid:
+        fid.write("""# custom cube coil def
+1   9999    2   8  3e-03  0.000e+00     "Test"
+  0.1250 -0.750e-03 -0.750e-03 -0.750e-03  0.000  0.000""")
+    with pytest.raises(RuntimeError, match='Could not interpret'):
+        with use_coil_def(coil_fname):
+            make_forward_solution(info, trans, src, sphere)
+    with open(coil_fname, 'w') as fid:
+        fid.write("""# custom cube coil def
+1   9999    2   8  3e-03  0.000e+00     "Test"
+  0.1250 -0.750e-03 -0.750e-03 -0.750e-03  0.000  0.000  1.000
+  0.1250 -0.750e-03  0.750e-03 -0.750e-03  0.000  0.000  1.000
+  0.1250  0.750e-03 -0.750e-03 -0.750e-03  0.000  0.000  1.000
+  0.1250  0.750e-03  0.750e-03 -0.750e-03  0.000  0.000  1.000
+  0.1250 -0.750e-03 -0.750e-03  0.750e-03  0.000  0.000  1.000
+  0.1250 -0.750e-03  0.750e-03  0.750e-03  0.000  0.000  1.000
+  0.1250  0.750e-03 -0.750e-03  0.750e-03  0.000  0.000  1.000
+  0.1250  0.750e-03  0.750e-03  0.750e-03  0.000  0.000  1.000""")
+    with use_coil_def(coil_fname):
+        make_forward_solution(info, trans, src, sphere)
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_sensors_inside_bem():
+    """Test that sensors inside the BEM are problematic."""
+    rr = _get_ico_surface(1)['rr']
+    rr /= np.linalg.norm(rr, axis=1, keepdims=True)
+    rr *= 0.1
+    assert len(rr) == 42
+    info = create_info(len(rr), 1000., 'mag')
+    info['dev_head_t'] = Transform('meg', 'head', np.eye(4))
+    for ii, ch in enumerate(info['chs']):
+        ch['loc'][:] = np.concatenate((rr[ii], np.eye(3).ravel()))
+    trans = Transform('head', 'mri', np.eye(4))
+    trans['trans'][2, 3] = 0.03
+    sphere_noshell = make_sphere_model((0., 0., 0.), None)
+    sphere = make_sphere_model((0., 0., 0.), 1.01)
+    with pytest.raises(RuntimeError, match='.* 15 MEG.*inside the scalp.*'):
+        make_forward_solution(info, trans, fname_src, fname_bem)
+    make_forward_solution(info, trans, fname_src, fname_bem_meg)  # okay
+    make_forward_solution(info, trans, fname_src, sphere_noshell)  # okay
+    with pytest.raises(RuntimeError, match='.* 42 MEG.*outermost sphere sh.*'):
+        make_forward_solution(info, trans, fname_src, sphere)
+    sphere = make_sphere_model((0., 0., 2.0), 1.01)  # weird, but okay
+    make_forward_solution(info, trans, fname_src, sphere)
+    for ch in info['chs']:
+        ch['loc'][:3] *= 0.1
+    with pytest.raises(RuntimeError, match='.* 42 MEG.*the inner skull.*'):
+        make_forward_solution(info, trans, fname_src, fname_bem_meg)

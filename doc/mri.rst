@@ -15,9 +15,10 @@ Step by step instructions for using :func:`gui.coregistration`:
    :toctree: generated/
 
    coreg.get_mni_fiducials
+   coreg.estimate_head_mri_t
    get_montage_volume_labels
    gui.coregistration
-   gui.fiducials
+   gui.locate_ieeg
    create_default_subject
    head_to_mni
    head_to_mri
@@ -31,3 +32,4 @@ Step by step instructions for using :func:`gui.coregistration`:
    transforms.compute_volume_registration
    vertex_to_mni
    warp_montage_volume
+   coreg.Coregistration

@@ -22,7 +22,6 @@ import numpy as np
 from collections import OrderedDict
 
 from .colormap import calculate_lut
-from ...defaults import DEFAULTS
 from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
 from .callback import (ShowView, TimeCallBack, SmartCallBack,
@@ -30,18 +29,23 @@ from .callback import (ShowView, TimeCallBack, SmartCallBack,
 
 from ..utils import (_show_help_fig, _get_color_list, concatenate_images,
                      _generate_default_filename, _save_ndarray_img)
-from .._3d import _process_clim, _handle_time, _check_views
-
+from .._3d import (_process_clim, _handle_time, _check_views,
+                   _handle_sensor_types, _plot_sensors)
+from ...defaults import _handle_default, DEFAULTS
 from ...externals.decorator import decorator
-from ...defaults import _handle_default
+from ...fixes import _point_data, _cell_data
 from ..._freesurfer import (vertex_to_mni, read_talxfm, read_freesurfer_lut,
-                            _get_head_surface)
-from ...surface import mesh_edges, _mesh_borders, _marching_cubes
+                            _get_head_surface, _get_skull_surface)
+from ...io.pick import pick_types
+from ...io.meas_info import Info
+from ...surface import (mesh_edges, _mesh_borders, _marching_cubes,
+                        get_meg_helmet_surf)
 from ...source_space import SourceSpaces
-from ...transforms import apply_trans, invert_transform
+from ...transforms import (apply_trans, invert_transform, _get_trans,
+                           _get_transforms_to_coord_frame)
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn,
-                      get_subjects_dir, _check_fname)
+                      get_subjects_dir, _check_fname, _to_rgb)
 
 
 _ARROW_MOVE = 10  # degrees per press
@@ -67,16 +71,17 @@ class _Overlay(object):
 
     def to_colors(self):
         from .._3d import _get_cmap
-        from matplotlib.colors import ListedColormap
+        from matplotlib.colors import Colormap, ListedColormap
 
         if isinstance(self._colormap, str):
-            kind = self._colormap
             cmap = _get_cmap(self._colormap)
+        elif isinstance(self._colormap, Colormap):
+            cmap = self._colormap
         else:
-            cmap = ListedColormap(self._colormap / 255.)
-            kind = str(type(self._colormap))
+            cmap = ListedColormap(
+                self._colormap / 255., name=str(type(self._colormap)))
         logger.debug(
-            f'Color mapping {repr(self._name)} with {kind} '
+            f'Color mapping {repr(self._name)} with {cmap.name} '
             f'colormap and range {self._rng}')
 
         rng = self._rng
@@ -256,12 +261,23 @@ class Brain(object):
         FreeSurfer surface mesh name (ie 'white', 'inflated', etc.).
     title : str
         Title for the window.
-    cortex : str or None
-        Specifies how the cortical surface is rendered.
-        The name of one of the preset cortex styles can be:
-        ``'classic'`` (default), ``'high_contrast'``,
-        ``'low_contrast'``, or ``'bone'`` or a valid color name.
-        Setting this to ``None`` is equivalent to ``(0.5, 0.5, 0.5)``.
+    cortex : str, list, dict
+        Specifies how the cortical surface is rendered. Options:
+
+            1. The name of one of the preset cortex styles:
+               ``'classic'`` (default), ``'high_contrast'``,
+               ``'low_contrast'``, or ``'bone'``.
+            2. A single color-like argument to render the cortex as a single
+               color, e.g. ``'red'`` or ``(0.1, 0.4, 1.)``.
+            3. A list of two color-like used to render binarized curvature
+               values for gyral (first) and sulcal (second). regions, e.g.,
+               ``['red', 'blue']`` or ``[(1, 0, 0), (0, 0, 1)]``.
+            4. A dict containing keys ``'vmin', 'vmax', 'colormap'`` with
+               values used to render the binarized curvature (where 0 is gyral,
+               1 is sulcal).
+
+        .. versionchanged:: 0.24
+           Add support for non-string arguments.
     alpha : float in [0, 1]
         Alpha level to control opacity of the cortical surface.
     size : int | array-like, shape (2,)
@@ -273,10 +289,9 @@ class Brain(object):
         Color of the foreground (will be used for colorbars and text).
         None (default) will use black or white depending on the value
         of ``background``.
-    figure : list of Figure | None | int
+    figure : list of Figure | None
         If None (default), a new window will be created with the appropriate
-        views. For single view plots, the figure can be specified as int to
-        retrieve the corresponding Mayavi window.
+        views.
     subjects_dir : str | None
         If not None, this directory will be used as the subjects directory
         instead of the value set using the SUBJECTS_DIR environment
@@ -320,7 +335,7 @@ class Brain(object):
     Attributes
     ----------
     geo : dict
-        A dictionary of pysurfer.Surface objects for each hemisphere.
+        A dictionary of PyVista surface objects for each hemisphere.
     overlays : dict
         The overlays.
 
@@ -341,7 +356,13 @@ class Brain(object):
        +---------------------------+--------------+---------------+
        | add_foci                  | ✓            | ✓             |
        +---------------------------+--------------+---------------+
+       | add_head                  |              | ✓             |
+       +---------------------------+--------------+---------------+
        | add_label                 | ✓            | ✓             |
+       +---------------------------+--------------+---------------+
+       | add_sensors               |              | ✓             |
+       +---------------------------+--------------+---------------+
+       | add_skull                 |              | ✓             |
        +---------------------------+--------------+---------------+
        | add_text                  | ✓            | ✓             |
        +---------------------------+--------------+---------------+
@@ -355,11 +376,23 @@ class Brain(object):
        +---------------------------+--------------+---------------+
        | labels                    | ✓            | ✓             |
        +---------------------------+--------------+---------------+
+       | remove_data               |              | ✓             |
+       +---------------------------+--------------+---------------+
        | remove_foci               | ✓            |               |
+       +---------------------------+--------------+---------------+
+       | remove_head               |              | ✓             |
        +---------------------------+--------------+---------------+
        | remove_labels             | ✓            | ✓             |
        +---------------------------+--------------+---------------+
        | remove_annotations        | -            | ✓             |
+       +---------------------------+--------------+---------------+
+       | remove_sensors            |              | ✓             |
+       +---------------------------+--------------+---------------+
+       | remove_skull              |              | ✓             |
+       +---------------------------+--------------+---------------+
+       | remove_text               |              | ✓             |
+       +---------------------------+--------------+---------------+
+       | remove_volume_labels      |              | ✓             |
        +---------------------------+--------------+---------------+
        | scale_data_colormap       | ✓            |               |
        +---------------------------+--------------+---------------+
@@ -397,8 +430,6 @@ class Brain(object):
                  view_layout='vertical', silhouette=False, theme='auto',
                  show=True):
         from ..backends.renderer import backend, _get_renderer
-        from .._3d import _get_cmap
-        from matplotlib.colors import colorConverter
 
         if hemi is None:
             hemi = 'vol'
@@ -419,14 +450,11 @@ class Brain(object):
             self._title = title
         self._interaction = 'trackball'
 
-        if isinstance(background, str):
-            background = colorConverter.to_rgb(background)
-        self._bg_color = background
+        self._bg_color = _to_rgb(background, name='background')
         if foreground is None:
             foreground = 'w' if sum(self._bg_color) < 2 else 'k'
-        if isinstance(foreground, str):
-            foreground = colorConverter.to_rgb(foreground)
-        self._fg_color = foreground
+        self._fg_color = _to_rgb(foreground, name='foreground')
+        del background, foreground
         views = _check_views(surf, views, hemi)
         col_dict = dict(lh=1, rh=1, both=1, split=2, vol=1)
         shape = (len(views), col_dict[hemi])
@@ -456,9 +484,11 @@ class Brain(object):
         self._labels = {'lh': list(), 'rh': list()}
         self._unnamed_label_id = 0  # can only grow
         self._annots = {'lh': list(), 'rh': list()}
-        self._layered_meshes = {}
+        self._layered_meshes = dict()
+        self._actors = dict()
         self._elevation_rng = [15, 165]  # range of motion of camera on theta
         self._lut_locked = None
+        self._cleaned = False
         # default values for silhouette
         self._silhouette = {
             'color': self._bg_color,
@@ -484,7 +514,7 @@ class Brain(object):
         geo_kwargs = self._cortex_colormap(cortex)
         # evaluate at the midpoint of the used colormap
         val = -geo_kwargs['vmin'] / (geo_kwargs['vmax'] - geo_kwargs['vmin'])
-        self._brain_color = _get_cmap(geo_kwargs['colormap'])(val)
+        self._brain_color = geo_kwargs['colormap'](val)
 
         # load geometry for one or both hemispheres as necessary
         _validate_type(offset, (str, bool), 'offset')
@@ -495,7 +525,7 @@ class Brain(object):
         logger.debug(f'Hemi offset: {offset}')
 
         self._renderer = _get_renderer(name=self._title, size=size,
-                                       bgcolor=background,
+                                       bgcolor=self._bg_color,
                                        shape=shape,
                                        fig=figure)
         self._renderer._window_close_connect(self._clean)
@@ -515,8 +545,7 @@ class Brain(object):
             geo.load_geometry()
             geo.load_curvature()
             self.geo[h] = geo
-            for ri, ci, v in self._iter_views(h):
-                self._renderer.subplot(ri, ci)
+            for _, _, v in self._iter_views(h):
                 if self._layered_meshes.get(h) is None:
                     mesh = _LayeredMesh(
                         renderer=self._renderer,
@@ -732,6 +761,7 @@ class Brain(object):
                     'picked_renderer', 'act_data_smooth', '_scalar_bar',
                     'actions', 'widgets', 'geo', '_data'):
             setattr(self, key, None)
+        self._cleaned = True
 
     def toggle_interface(self, value=None):
         """Toggle the interface.
@@ -974,12 +1004,12 @@ class Brain(object):
             hemis_ref = self._hemis
         orientation_data = [None] * len(rends)
         for hemi in hemis_ref:
-            for ri, ci, view in self._iter_views(hemi):
+            for ri, ci, v in self._iter_views(hemi):
                 idx = self._renderer._loc_to_index((ri, ci))
-                if view == 'flat':
+                if v == 'flat':
                     _data = None
                 else:
-                    _data = dict(default=view, hemi=hemi, row=ri, col=ci)
+                    _data = dict(default=v, hemi=hemi, row=ri, col=ci)
                 orientation_data[idx] = _data
         self.callbacks["orientation"] = ShowView(
             brain=self,
@@ -1440,7 +1470,7 @@ class Brain(object):
             grid = mesh = self._data[hemi]['grid']
             vertices = self._data[hemi]['vertices']
             coords = self._data[hemi]['grid_coords'][vertices]
-            scalars = grid.cell_arrays['values'][vertices]
+            scalars = _cell_data(grid)['values'][vertices]
             spacing = np.array(grid.GetSpacing())
             max_dist = np.linalg.norm(spacing) / 2.
             origin = vtk_picker.GetRenderer().GetActiveCamera().GetPosition()
@@ -1456,7 +1486,7 @@ class Brain(object):
             # useful for debugging the ray by mapping it into the volume:
             # dists = dists - dists.min()
             # dists = (1. - dists / dists.max()) * self._cmap_range[1]
-            # grid.cell_arrays['values'][vertices] = dists * mask
+            # _cell_data(grid)['values'][vertices] = dists * mask
             idx = idx[np.argmax(np.abs(scalars[idx]))]
             vertex_id = vertices[idx]
             # Naive way: convert pos directly to idx; i.e., apply mri_src_t
@@ -1537,8 +1567,7 @@ class Brain(object):
 
         actors = list()
         spheres = list()
-        for ri, ci, _ in self._iter_views(hemi):
-            self.plotter.subplot(ri, ci)
+        for _ in self._iter_views(hemi):
             # Using _sphere() instead of renderer.sphere() for 2 reasons:
             # 1) renderer.sphere() fails on Windows in a scenario where a lot
             #    of picking requests are done in a short span of time (could be
@@ -1763,12 +1792,13 @@ class Brain(object):
         """Set the interaction style."""
         _validate_type(interaction, str, 'interaction')
         _check_option('interaction', interaction, ('trackball', 'terrain'))
-        for ri, ci, _ in self._iter_views('vol'):  # will traverse all
-            self._renderer.subplot(ri, ci)
+        for _ in self._iter_views('vol'):  # will traverse all
             self._renderer.set_interaction(interaction)
 
     def _cortex_colormap(self, cortex):
         """Return the colormap corresponding to the cortex."""
+        from .._3d import _get_cmap
+        from matplotlib.colors import ListedColormap
         colormap_map = dict(classic=dict(colormap="Greys",
                                          vmin=-1, vmax=2),
                             high_contrast=dict(colormap="Greys",
@@ -1778,7 +1808,47 @@ class Brain(object):
                             bone=dict(colormap="bone_r",
                                       vmin=-.2, vmax=2),
                             )
-        return colormap_map[cortex]
+        _validate_type(cortex, (str, dict, list, tuple), 'cortex')
+        if isinstance(cortex, str):
+            if cortex in colormap_map:
+                cortex = colormap_map[cortex]
+            else:
+                cortex = [cortex] * 2
+        if isinstance(cortex, (list, tuple)):
+            _check_option('len(cortex)', len(cortex), (2, 3),
+                          extra='when cortex is a list or tuple')
+            if len(cortex) == 3:
+                cortex = [cortex] * 2
+            cortex = list(cortex)
+            for ci, c in enumerate(cortex):
+                cortex[ci] = _to_rgb(c, name='cortex')
+            cortex = dict(
+                colormap=ListedColormap(cortex, name='custom binary'),
+                vmin=0, vmax=1)
+        cortex = dict(
+            vmin=float(cortex['vmin']),
+            vmax=float(cortex['vmax']),
+            colormap=_get_cmap(cortex['colormap']),
+        )
+        return cortex
+
+    def _remove(self, item, render=False):
+        """Remove actors from the rendered scene."""
+        if item in self._actors:
+            logger.debug(
+                f'Removing {len(self._actors[item])} {item} actor(s)')
+            for actor in self._actors[item]:
+                self._renderer.plotter.remove_actor(actor)
+            self._actors.pop(item)  # remove actor list
+            if render:
+                self._renderer._update()
+
+    def _add_actor(self, item, actor):
+        """Add an actor to the internal register."""
+        if item in self._actors:  # allows adding more than one
+            self._actors[item].append(actor)
+        else:
+            self._actors[item] = [actor]
 
     @verbose
     def add_data(self, array, fmin=None, fmid=None, fmax=None,
@@ -1859,7 +1929,7 @@ class Brain(object):
             Original clim arguments.
         %(src_volume_options)s
         colorbar_kwargs : dict | None
-            Options to pass to :meth:`pyvista.BasePlotter.add_scalar_bar`
+            Options to pass to :meth:`pyvista.Plotter.add_scalar_bar`
             (e.g., ``dict(title_font_size=10)``).
         %(verbose)s
 
@@ -1872,7 +1942,7 @@ class Brain(object):
         in which case only as many smoothing steps are applied until the whole
         surface is filled with non-zeros.
 
-        Due to a Mayavi (or VTK) alpha rendering bug, ``vector_alpha`` is
+        Due to a VTK alpha rendering bug, ``vector_alpha`` is
         clamped to be strictly < 1.
         """
         _validate_type(transparent, bool, 'transparent')
@@ -1981,14 +2051,14 @@ class Brain(object):
 
         # 1) add the surfaces first
         actor = None
-        for ri, ci, _ in self._iter_views(hemi):
-            self._renderer.subplot(ri, ci)
+        for _ in self._iter_views(hemi):
             if hemi in ('lh', 'rh'):
                 actor = self._layered_meshes[hemi]._actor
             else:
                 src_vol = src[2:] if src.kind == 'mixed' else src
                 actor, _ = self._add_volume_data(hemi, src_vol, volume_options)
         assert actor is not None  # should have added one
+        self._add_actor('data', actor)
 
         # 2) update time and smoothing properties
         # set_data_smoothing calls "set_time_point" for us, which will set
@@ -2001,7 +2071,6 @@ class Brain(object):
             # botto left by default
             colorbar = (self._subplot_shape[0] - 1, 0)
         for ri, ci, v in self._iter_views(hemi):
-            self._renderer.subplot(ri, ci)
             # Add the time label to the bottommost view
             do = (ri, ci) == colorbar
             if not self._time_label_added and time_label is not None and do:
@@ -2025,6 +2094,10 @@ class Brain(object):
         # 4) update the scalar bar and opacity
         self.update_lut(alpha=alpha)
 
+    def remove_data(self):
+        """Remove rendered data from the mesh."""
+        self._remove('data', render=True)
+
     def _iter_views(self, hemi):
         """Iterate over rows and columns that need to be added to."""
         hemi_dict = dict(lh=[0], rh=[0], vol=[0])
@@ -2039,6 +2112,7 @@ class Brain(object):
             else:
                 rows, cols = hemi_dict, view_dict  # hemis are rows, views cols
             for ri, ci in zip(rows[hemi], cols[hemi]):
+                self._renderer.subplot(ri, ci)
                 yield ri, ci, view
 
     def remove_labels(self):
@@ -2059,6 +2133,7 @@ class Brain(object):
         self._renderer._update()
 
     def _add_volume_data(self, hemi, src, volume_options):
+        from ..backends._pyvista import _hide_testing_actor
         _validate_type(src, SourceSpaces, 'src')
         _check_option('src.kind', src.kind, ('volume',))
         _validate_type(
@@ -2142,28 +2217,29 @@ class Brain(object):
         actor_pos, _ = self._renderer.plotter.add_actor(
             volume_pos, reset_camera=False, name=None, culling=False,
             render=False)
+        actor_neg = actor_mesh = None
         if volume_neg is not None:
             actor_neg, _ = self._renderer.plotter.add_actor(
                 volume_neg, reset_camera=False, name=None, culling=False,
                 render=False)
-        else:
-            actor_neg = None
         grid_mesh = self._data[hemi]['grid_mesh']
         if grid_mesh is not None:
-            _, prop = self._renderer.plotter.add_actor(
+            actor_mesh, prop = self._renderer.plotter.add_actor(
                 grid_mesh, reset_camera=False, name=None, culling=False,
                 pickable=False, render=False)
             prop.SetColor(*self._brain_color[:3])
             prop.SetOpacity(surface_alpha)
             if silhouette_alpha > 0 and silhouette_linewidth > 0:
-                for ri, ci, v in self._iter_views('vol'):
-                    self._renderer.subplot(ri, ci)
+                for _ in self._iter_views('vol'):
                     self._renderer._silhouette(
                         mesh=grid_mesh.GetInput(),
                         color=self._brain_color[:3],
                         line_width=silhouette_linewidth,
                         alpha=silhouette_alpha,
                     )
+        for actor in (actor_pos, actor_neg, actor_mesh):
+            if actor is not None:
+                _hide_testing_actor(actor)
 
         return actor_pos, actor_neg
 
@@ -2208,7 +2284,6 @@ class Brain(object):
         -----
         To remove previously added labels, run Brain.remove_labels().
         """
-        from matplotlib.colors import colorConverter
         from ...label import read_label
         if isinstance(label, str):
             if color is None:
@@ -2279,7 +2354,7 @@ class Brain(object):
             line = None
 
         orig_color = color
-        color = colorConverter.to_rgba(color, alpha)
+        color = _to_rgb(color, alpha, alpha=True)
         cmap = np.array([(0, 0, 0, 0,), color])
         ctable = np.round(cmap * 255).astype(np.uint8)
 
@@ -2298,8 +2373,7 @@ class Brain(object):
                     keep_idx = np.unique(keep_idx)
             show[keep_idx] = 1
             scalars *= show
-        for ri, ci, v in self._iter_views(hemi):
-            self._renderer.subplot(ri, ci)
+        for _, _, v in self._iter_views(hemi):
             mesh = self._layered_meshes[hemi]
             mesh.add_overlay(
                 scalars=scalars,
@@ -2318,7 +2392,7 @@ class Brain(object):
         self._renderer._update()
 
     @fill_doc
-    def add_head(self, dense=True, color=None, alpha=0.5):
+    def add_head(self, dense=True, color='gray', alpha=0.5):
         """Add a mesh to render the outer head surface.
 
         Parameters
@@ -2326,9 +2400,8 @@ class Brain(object):
         dense : bool
             Whether to plot the dense head (``seghead``) or the less dense head
             (``head``).
-        color : matplotlib-style color | None
+        color : color
             A list of anything matplotlib accepts: string, RGB, hex, etc.
-            (default: "gray").
         alpha : float in [0, 1]
             Alpha level to control opacity.
 
@@ -2336,27 +2409,64 @@ class Brain(object):
         -----
         .. versionadded:: 0.24
         """
-        from matplotlib.colors import colorConverter
-
         # load head
         surf = _get_head_surface('seghead' if dense else 'head',
                                  self._subject_id, self._subjects_dir)
         verts, triangles = surf['rr'], surf['tris']
-        if color is None:
-            color = 'gray'
-        color = colorConverter.to_rgba(color, alpha)
+        verts *= 1e3 if self._units == 'mm' else 1
+        color = _to_rgb(color, alpha, alpha=True)
 
-        for h in self._hemis:
-            for ri, ci, v in self._iter_views(h):
-                self._renderer.mesh(
-                    *verts.T, triangles=triangles, color=color,
-                    opacity=alpha, reset_camera=False, render=False)
+        for _ in self._iter_views('vol'):
+            actor, _ = self._renderer.mesh(
+                *verts.T, triangles=triangles, color=color,
+                opacity=alpha, reset_camera=False, render=False)
+            self._add_actor('head', actor)
 
         self._renderer._update()
 
+    def remove_head(self):
+        """Remove head objects from the rendered scene."""
+        self._remove('head', render=True)
+
+    @fill_doc
+    def add_skull(self, outer=True, color='gray', alpha=0.5):
+        """Add a mesh to render the skull surface.
+
+        Parameters
+        ----------
+        outer : bool
+            Adds the outer skull if ``True``, otherwise adds the inner skull.
+        color : color
+            A list of anything matplotlib accepts: string, RGB, hex, etc.
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
+
+        Notes
+        -----
+        .. versionadded:: 0.24
+        """
+        surf = _get_skull_surface('outer' if outer else 'inner',
+                                  self._subject_id, self._subjects_dir)
+        verts, triangles = surf['rr'], surf['tris']
+        verts *= 1e3 if self._units == 'mm' else 1
+        color = _to_rgb(color, alpha, alpha=True)
+
+        for _ in self._iter_views('vol'):
+            actor, _ = self._renderer.mesh(
+                *verts.T, triangles=triangles, color=color,
+                opacity=alpha, reset_camera=False, render=False)
+            self._add_actor('skull', actor)
+
+        self._renderer._update()
+
+    def remove_skull(self):
+        """Remove skull objects from the rendered scene."""
+        self._remove('skull', render=True)
+
     @fill_doc
     def add_volume_labels(self, aseg='aparc+aseg', labels=None, colors=None,
-                          alpha=0.5, smooth=0.9, legend=None):
+                          alpha=0.5, smooth=0.9, fill_hole_size=None,
+                          legend=None):
         """Add labels to the rendering from an anatomical segmentation.
 
         Parameters
@@ -2373,18 +2483,22 @@ class Brain(object):
         alpha : float in [0, 1]
             Alpha level to control opacity.
         %(smooth)s
+        fill_hole_size : int | None
+            The size of holes to remove in the mesh in voxels. Default is None,
+            no holes are removed. Warning, this dilates the boundaries of the
+            surface by ``fill_hole_size`` number of voxels so use the minimal
+            size.
         legend : bool | None | dict
             Add a legend displaying the names of the ``labels``. Default (None)
             is ``True`` if the number of ``labels`` is 10 or fewer.
             Can also be a dict of ``kwargs`` to pass to
-            :meth:`pyvista.BasePlotter.add_legend`.
+            :meth:`pyvista.Plotter.add_legend`.
 
         Notes
         -----
         .. versionadded:: 0.24
         """
         import nibabel as nib
-        from matplotlib.colors import colorConverter
 
         # load anatomical segmentation image
         if not aseg.endswith('aseg'):
@@ -2407,6 +2521,7 @@ class Brain(object):
             lut_r = {v: k for k, v in lut.items()}
             labels = [lut_r[idx] for idx in DEFAULTS['volume_label_indices']]
 
+        _validate_type(fill_hole_size, (int, None), 'fill_hole_size')
         _validate_type(legend, (bool, None), 'legend')
         if legend is None:
             legend = len(labels) < 11
@@ -2415,20 +2530,22 @@ class Brain(object):
             colors = [fs_colors[label] / 255 for label in labels]
         elif not isinstance(colors, (list, tuple)):
             colors = [colors] * len(labels)  # make into list
-        colors = [colorConverter.to_rgba(color, alpha) for color in colors]
+        colors = [_to_rgb(color, alpha, name=f'colors[{ci}]', alpha=True)
+                  for ci, color in enumerate(colors)]
         surfs = _marching_cubes(
-            aseg_data, [lut[label] for label in labels], smooth=smooth)
+            aseg_data, [lut[label] for label in labels], smooth=smooth,
+            fill_hole_size=fill_hole_size)
         for label, color, (verts, triangles) in zip(labels, colors, surfs):
             if len(verts) == 0:  # not in aseg vals
                 warn(f'Value {lut[label]} not found for label '
                      f'{repr(label)} in: {aseg_fname}')
                 continue
             verts = apply_trans(vox_mri_t, verts)
-            for h in self._hemis:
-                for ri, ci, v in self._iter_views(h):
-                    self._renderer.mesh(
-                        *verts.T, triangles=triangles, color=color,
-                        opacity=alpha, reset_camera=False, render=False)
+            for _ in self._iter_views('vol'):
+                actor, _ = self._renderer.mesh(
+                    *verts.T, triangles=triangles, color=color,
+                    opacity=alpha, reset_camera=False, render=False)
+                self._add_actor('volume_labels', actor)
 
         if legend or isinstance(legend, dict):
             # use empty kwargs for legend = True
@@ -2437,6 +2554,11 @@ class Brain(object):
                 list(zip(labels, colors)), **legend)
 
         self._renderer._update()
+
+    def remove_volume_labels(self):
+        """Remove the volume labels from the rendered scene."""
+        self._remove('volume_labels', render=True)
+        self._renderer.plotter.remove_legend()
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
                  scale_factor=1, color="white", alpha=1, name=None,
@@ -2473,7 +2595,6 @@ class Brain(object):
         resolution : int
             The resolution of the spheres.
         """
-        from matplotlib.colors import colorConverter
         hemi = self._check_hemi(hemi, extras=['vol'])
 
         # those parameters are not supported yet, only None is allowed
@@ -2484,20 +2605,99 @@ class Brain(object):
             coords = self.geo[hemi].coords[coords]
 
         # Convert the color code
-        if not isinstance(color, tuple):
-            color = colorConverter.to_rgb(color)
+        color = _to_rgb(color)
 
         if self._units == 'm':
             scale_factor = scale_factor / 1000.
-        for ri, ci, v in self._iter_views(hemi):
-            self._renderer.subplot(ri, ci)
+        for _, _, v in self._iter_views(hemi):
             self._renderer.sphere(center=coords, color=color,
                                   scale=(10. * scale_factor),
                                   opacity=alpha, resolution=resolution)
             self._renderer.set_camera(**views_dicts[hemi][v])
 
+    @verbose
+    def add_sensors(self, info, trans, meg=None, eeg='original', fnirs=True,
+                    ecog=True, seeg=True, dbs=True, verbose=None):
+        """Add mesh objects to represent sensor positions.
+
+        Parameters
+        ----------
+        %(info_not_none)s
+        %(trans_not_none)s
+        %(meg)s
+        %(eeg)s
+        %(fnirs)s
+        %(ecog)s
+        %(seeg)s
+        %(dbs)s
+        %(verbose)s
+
+        Notes
+        -----
+        .. versionadded:: 0.24
+        """
+        _validate_type(info, Info, 'info')
+        meg, eeg, fnirs, warn_meg = _handle_sensor_types(meg, eeg, fnirs)
+        picks = pick_types(info, meg=('sensors' in meg),
+                           ref_meg=('ref' in meg), eeg=(len(eeg) > 0),
+                           ecog=ecog, seeg=seeg, dbs=dbs,
+                           fnirs=(len(fnirs) > 0))
+        head_mri_t = _get_trans(trans, 'head', 'mri', allow_none=False)[0]
+        del trans
+        # get transforms to "mri"window
+        to_cf_t = _get_transforms_to_coord_frame(
+            info, head_mri_t, coord_frame='mri')
+        if pick_types(info, eeg=True, exclude=()).size > 0 and \
+                'projected' in eeg:
+            head_surf = _get_head_surface(
+                'seghead', self._subject_id, self._subjects_dir)
+        else:
+            head_surf = None
+        # Do the main plotting
+        for _ in self._iter_views('vol'):
+            if picks.size > 0:
+                sensors_actors = _plot_sensors(
+                    self._renderer, info, to_cf_t, picks, meg, eeg,
+                    fnirs, warn_meg, head_surf, self._units)
+                for item, actors in sensors_actors.items():
+                    for actor in actors:
+                        self._add_actor(item, actor)
+
+            if 'helmet' in meg and pick_types(info, meg=True).size > 0:
+                surf = get_meg_helmet_surf(info, head_mri_t)
+                verts = surf['rr'] * (1 if self._units == 'm' else 1e3)
+                actor, _ = self._renderer.mesh(
+                    *verts.T, surf['tris'],
+                    color=DEFAULTS['coreg']['helmet_color'],
+                    opacity=0.25, reset_camera=False, render=False)
+                self._add_actor('helmet', actor)
+
+        self._renderer._update()
+
+    def remove_sensors(self, kind=None):
+        """Remove sensors from the rendered scene.
+
+        Parameters
+        ----------
+        kind : str | list | None
+            If None, removes all sensor-related data including the helmet.
+            Can be "meg", "eeg", "fnirs", "ecog", "seeg", "dbs" or "helmet"
+            to remove that item.
+        """
+        all_kinds = ('meg', 'eeg', 'fnirs', 'ecog', 'seeg', 'dbs', 'helmet')
+        if kind is None:
+            for item in all_kinds:
+                self._remove(item, render=False)
+        else:
+            if isinstance(kind, str):
+                kind = [kind]
+            for this_kind in kind:
+                _check_option('kind', this_kind, all_kinds)
+            self._remove(this_kind, render=False)
+        self._renderer._update()
+
     def add_text(self, x, y, text, name=None, color=None, opacity=1.0,
-                 row=-1, col=-1, font_size=None, justification=None):
+                 row=0, col=0, font_size=None, justification=None):
         """Add a text to the visualization.
 
         Parameters
@@ -2517,7 +2717,7 @@ class Brain(object):
         opacity : float
             Opacity of the text (default 1.0).
         row : int | None
-            Row index of which brain to use. Default is the bottom row.
+            Row index of which brain to use. Default is the top row.
         col : int | None
             Column index of which brain to use. Default is the left-most
             column.
@@ -2526,17 +2726,41 @@ class Brain(object):
         justification : str | None
             The text justification.
         """
-        # XXX: support `name` should be added when update_text/remove_text
-        # are implemented
-        # _check_option('name', name, [None])
+        _validate_type(name, (str, None), 'name')
+        name = text if name is None else name
+        if 'text' in self._actors and name in self._actors['text']:
+            raise ValueError(f'Text with the name {name} already exists')
+        for ri, ci, _ in self._iter_views('vol'):
+            if (row is None or row == ri) and (col is None or col == ci):
+                actor = self._renderer.text2d(
+                    x_window=x, y_window=y, text=text, color=color,
+                    size=font_size, justification=justification)
+                if 'text' not in self._actors:
+                    self._actors['text'] = dict()
+                self._actors['text'][name] = actor
 
-        for h in self._hemis:
-            for ri, ci, v in self._iter_views(h):
-                if (row is None or row == ri) and (col is None or col == ci):
-                    self._renderer.subplot(ri, ci)
-                    self._renderer.text2d(x_window=x, y_window=y, text=text,
-                                          color=color, size=font_size,
-                                          justification=justification)
+    def remove_text(self, name=None):
+        """Remove text from the rendered scene.
+
+        Parameters
+        ----------
+        name : str | None
+            Remove specific text by name. If None, all text will be removed.
+        """
+        _validate_type(name, (str, None), 'name')
+        if name is None:
+            for actor in self._actors['text'].values():
+                self._renderer.plotter.remove_actor(actor)
+            self._actors.pop('text')
+        else:
+            names = [None]
+            if 'text' in self._actors:
+                names += list(self._actors['text'].keys())
+            _check_option('name', name, names)
+            self._renderer.plotter.remove_actor(
+                self._actors['text'][name])
+            self._actors['text'].pop(name)
+        self._renderer._update()
 
     def _configure_label_time_course(self):
         from ...label import read_labels_from_annot
@@ -2567,7 +2791,7 @@ class Brain(object):
                 self._vertex_to_label_id[hemi][label.vertices] = idx
 
     def add_annotation(self, annot, borders=True, alpha=1, hemi=None,
-                       remove_existing=True, color=None, **kwargs):
+                       remove_existing=True, color=None):
         """Add an annotation file.
 
         Parameters
@@ -2595,9 +2819,6 @@ class Brain(object):
         color : matplotlib-style color code
             If used, show all annotations in the same (specified) color.
             Probably useful only when showing annotation borders.
-        **kwargs : dict
-            These are passed to the underlying
-            ``mayavi.mlab.pipeline.surface`` call.
         """
         from ...label import _read_annot
         hemis = self._check_hemis(hemi)
@@ -2664,13 +2885,11 @@ class Brain(object):
 
             # Override the cmap when a single color is used
             if color is not None:
-                from matplotlib.colors import colorConverter
-                rgb = np.round(np.multiply(colorConverter.to_rgb(color), 255))
+                rgb = np.round(np.multiply(_to_rgb(color), 255))
                 cmap[:, :3] = rgb.astype(cmap.dtype)
 
             ctable = cmap.astype(np.float64)
-            for ri, ci, _ in self._iter_views(hemi):
-                self._renderer.subplot(ri, ci)
+            for _ in self._iter_views(hemi):
                 mesh = self._layered_meshes[hemi]
                 mesh.add_overlay(
                     scalars=ids,
@@ -2696,8 +2915,8 @@ class Brain(object):
         self._renderer.show()
 
     @fill_doc
-    def show_view(self, view=None, roll=None, distance=None,
-                  row='deprecated', col='deprecated', hemi=None, align=True,
+    def show_view(self, view=None, roll=None, distance=None, *,
+                  row=None, col=None, hemi=None, align=True,
                   azimuth=None, elevation=None, focalpoint=None):
         """Orient camera to display view.
 
@@ -2721,6 +2940,8 @@ class Brain(object):
         %(elevation)s
         %(focalpoint)s
         """
+        _validate_type(row, ('int-like', None), 'row')
+        _validate_type(col, ('int-like', None), 'col')
         hemi = self._hemi if hemi is None else hemi
         if hemi == 'split':
             if (self._view_layout == 'vertical' and col == 1 or
@@ -2728,36 +2949,17 @@ class Brain(object):
                 hemi = 'rh'
             else:
                 hemi = 'lh'
-        if isinstance(view, dict):  # deprecate at version 0.25
-            warn('`view` is a dict is deprecated, please use `azimuth` and '
-                 '`elevation` as arguments directly to `show_view`',
-                 DeprecationWarning)
-            if azimuth is None and 'azimuth' in view:
-                azimuth = view['azimuth']
-            if elevation is None and 'elevation' in view:
-                elevation = view['elevation']
-            view = None
-        if (row == 'deprecated' or col == 'deprecated') and \
-                len(set([_ for h in self._hemis
-                         for _ in self._iter_views(h)])) > 1:
-            warn('`row` and `col` default behavior is changing, in version '
-                 '0.25 the default behavior will be to apply `show_view` to '
-                 'all views', DeprecationWarning)
-        if row == 'deprecated':
-            row = None
-        if col == 'deprecated':
-            col = None
+        _validate_type(view, (str, None), 'view')
         view_params = dict(azimuth=azimuth, elevation=elevation, roll=roll,
                            distance=distance, focalpoint=focalpoint)
-        if view is not None:  # view string takes precedence
+        if view is not None:  # view_params take precedence
             view_params = {param: val for param, val in view_params.items()
                            if val is not None}  # no overwriting with None
             view_params = dict(views_dicts[hemi].get(view), **view_params)
         xfm = self._rigid if align else None
         for h in self._hemis:
-            for ri, ci, v in self._iter_views(h):
+            for ri, ci, _ in self._iter_views(h):
                 if (row is None or row == ri) and (col is None or col == ci):
-                    self._renderer.subplot(ri, ci)
                     self._renderer.set_camera(
                         **view_params, reset_camera=False, rigid=xfm)
         self._renderer._update()
@@ -2765,8 +2967,7 @@ class Brain(object):
     def reset_view(self):
         """Reset the camera."""
         for h in self._hemis:
-            for ri, ci, v in self._iter_views(h):
-                self._renderer.subplot(ri, ci)
+            for _, _, v in self._iter_views(h):
                 self._renderer.set_camera(**views_dicts[h][v],
                                           reset_camera=False)
 
@@ -3015,12 +3216,12 @@ class Brain(object):
                     values = self._current_act_data['vol']
                     rng = self._cmap_range
                     fill = 0 if self._data['center'] is not None else rng[0]
-                    grid.cell_arrays['values'].fill(fill)
+                    _cell_data(grid)['values'].fill(fill)
                     # XXX for sided data, we probably actually need two
                     # volumes as composite/MIP needs to look at two
                     # extremes... for now just use abs. Eventually we can add
                     # two volumes if we want.
-                    grid.cell_arrays['values'][vertices] = values
+                    _cell_data(grid)['values'][vertices] = values
 
                 # interpolate in space
                 smooth_mat = hemi_data.get('smooth_mat')
@@ -3082,8 +3283,7 @@ class Brain(object):
         else:
             add = False
         count = 0
-        for ri, ci, _ in self._iter_views(hemi):
-            self._renderer.subplot(ri, ci)
+        for _ in self._iter_views(hemi):
             if hemi_data['glyph_dataset'] is None:
                 glyph_mapper, glyph_dataset = self._renderer.quiver3d(
                     x, y, z,
@@ -3099,7 +3299,7 @@ class Brain(object):
                 hemi_data['glyph_mapper'] = glyph_mapper
             else:
                 glyph_dataset = hemi_data['glyph_dataset']
-                glyph_dataset.point_arrays['vec'] = vectors
+                _point_data(glyph_dataset)['vec'] = vectors
                 glyph_mapper = hemi_data['glyph_mapper']
             if add:
                 glyph_actor = self._renderer._actor(glyph_mapper)
@@ -3252,9 +3452,8 @@ class Brain(object):
 
         The movie is created through the :mod:`imageio` module. The format is
         determined by the extension, and additional options can be specified
-        through keyword arguments that depend on the format. For available
-        formats and corresponding parameters see the imageio documentation:
-        http://imageio.readthedocs.io/en/latest/formats.html#multiple-images
+        through keyword arguments that depend on the format, see
+        :doc:`imageio's format page <imageio:formats/index>`.
 
         .. Warning::
             This method assumes that time is specified in seconds when adding

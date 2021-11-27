@@ -4,7 +4,7 @@ if [ "$CIRCLE_BRANCH" == "main" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]
     echo "Doing a full dev build";
     echo html_dev-memory > build.txt;
     python -c "import mne; mne.datasets._download_all_example_data()";
-elif [ "$CIRCLE_BRANCH" == "maint/0.23" ]; then
+elif [ "$CIRCLE_BRANCH" == "maint/0.24" ]; then
     echo "Doing a full stable build";
     echo html_stable-memory > build.txt;
     python -c "import mne; mne.datasets._download_all_example_data()";
@@ -39,7 +39,7 @@ else
                 python -c "import mne; print(mne.datasets.eegbci.load_data(4, [3], update_path=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*sleep_physionet.*" | wc -l) -gt 0 ]]; then
-                python -c "import mne; print(mne.datasets.sleep_physionet.age.fetch_data([0, 1], recording=[1], update_path=True))";
+                python -c "import mne; print(mne.datasets.sleep_physionet.age.fetch_data([0, 1], recording=[1]))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*hf_sef.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.hf_sef.data_path(update_path=True))";

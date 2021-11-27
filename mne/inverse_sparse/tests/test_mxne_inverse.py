@@ -80,11 +80,6 @@ def test_mxne_inverse_standard(forward):
     # MxNE tests
     alpha = 70  # spatial regularization parameter
 
-    with pytest.deprecated_call(match="will be solved"):
-        stc_prox = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                              depth=depth, maxit=300, tol=1e-8,
-                              active_set_size=10, weights=stc_dspm,
-                              weights_min=weights_min, solver='prox')
     with pytest.warns(None):  # CD
         stc_cd = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                             depth=depth, maxit=300, tol=1e-8,
@@ -94,13 +89,9 @@ def test_mxne_inverse_standard(forward):
                          depth=depth, maxit=300, tol=1e-8, active_set_size=10,
                          weights=stc_dspm, weights_min=weights_min,
                          solver='bcd')
-    assert_array_almost_equal(stc_prox.times, evoked_l21.times, 5)
     assert_array_almost_equal(stc_cd.times, evoked_l21.times, 5)
     assert_array_almost_equal(stc_bcd.times, evoked_l21.times, 5)
-    assert_allclose(stc_prox.data, stc_cd.data, rtol=1e-3, atol=0.0)
-    assert_allclose(stc_prox.data, stc_bcd.data, rtol=1e-3, atol=0.0)
     assert_allclose(stc_cd.data, stc_bcd.data, rtol=1e-3, atol=0.0)
-    assert stc_prox.vertices[1][0] in label.vertices
     assert stc_cd.vertices[1][0] in label.vertices
     assert stc_bcd.vertices[1][0] in label.vertices
 
@@ -396,7 +387,8 @@ def test_mxne_inverse_sure():
     n_dipoles = 2
     raw = mne.io.read_raw_fif(fname_raw)
     info = mne.io.read_info(fname_data)
-    info['projs'] = []
+    with info._unlock():
+        info['projs'] = []
     noise_cov = mne.make_ad_hoc_cov(info)
     label_names = ['Aud-lh', 'Aud-rh']
     labels = [mne.read_label(data_path + '/MEG/sample/labels/%s.label' % ln)
@@ -416,3 +408,25 @@ def test_mxne_inverse_sure():
     stc_ = mixed_norm(evoked, forward, noise_cov, loose=0.9, n_mxne_iter=5,
                       depth=0.9)
     assert_array_equal(stc_.vertices, stc.vertices)
+
+
+@pytest.mark.slowtest  # slow on Azure
+@testing.requires_testing_data
+def test_mxne_inverse_empty():
+    """Tests solver with too high alpha."""
+    evoked = read_evokeds(fname_data, condition=0, baseline=(None, 0))
+    evoked.pick("grad", exclude="bads")
+    fname_fwd = op.join(data_path, 'MEG', 'sample',
+                        'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+    forward = mne.read_forward_solution(fname_fwd)
+    forward = mne.pick_types_forward(forward, meg="grad", eeg=False,
+                                     exclude=evoked.info['bads'])
+    cov = read_cov(fname_cov)
+    with pytest.warns(RuntimeWarning, match='too big'):
+        stc, residual = mixed_norm(
+            evoked, forward, cov, n_mxne_iter=3, alpha=99,
+            return_residual=True)
+        assert stc.data.size == 0
+        assert stc.vertices[0].size == 0
+        assert stc.vertices[1].size == 0
+        assert_allclose(evoked.data, residual.data)

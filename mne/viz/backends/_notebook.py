@@ -9,14 +9,15 @@ from distutils.version import LooseVersion
 
 import pyvista
 from IPython.display import display
-from ipywidgets import (Button, Dropdown, FloatSlider, FloatText, HBox,
+from ipywidgets import (Button, Dropdown, FloatSlider, BoundedFloatText, HBox,
                         IntSlider, IntText, Text, VBox, IntProgress, Play,
-                        jsdlink)
+                        Checkbox, RadioButtons, jsdlink)
 
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
-                        _AbstractBrainMplCanvas, _AbstractMplInterface)
+                        _AbstractBrainMplCanvas, _AbstractMplInterface,
+                        _AbstractWidgetList)
 from ._pyvista import _PyVistaRenderer, _close_all, _set_3d_view, _set_3d_title  # noqa: F401,E501, analysis:ignore
 
 
@@ -40,8 +41,13 @@ class _IpyLayout(_AbstractLayout):
 
 
 class _IpyDock(_AbstractDock, _IpyLayout):
-    def _dock_initialize(self, window=None):
+    def _dock_initialize(self, window=None, name="Controls",
+                         area="left"):
         self._dock_width = 300
+        # XXX: this can be improved
+        if hasattr(self, "_dock") and hasattr(self, "_dock_layout"):
+            self._dock2 = self._dock
+            self._dock_layout2 = self._dock_layout
         self._dock = self._dock_layout = VBox()
         self._dock.layout.width = f"{self._dock_width}px"
         self._layout_initialize(self._dock_width)
@@ -55,7 +61,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
     def _dock_hide(self):
         self._dock_layout.layout.visibility = "hidden"
 
-    def _dock_add_stretch(self, layout):
+    def _dock_add_stretch(self, layout=None):
         pass
 
     def _dock_add_layout(self, vertical=True):
@@ -68,12 +74,13 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         return _IpyWidget(widget)
 
     def _dock_add_button(self, name, callback, layout=None):
+        layout = self._dock_layout if layout is None else layout
         widget = Button(description=name)
         widget.on_click(lambda x: callback())
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_named_layout(self, name, layout, compact):
+    def _dock_named_layout(self, name, layout=None, compact=True):
         layout = self._dock_layout if layout is None else layout
         if name is not None:
             hlayout = self._dock_add_layout(not compact)
@@ -97,16 +104,29 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
+    def _dock_add_check_box(self, name, value, callback, layout=None):
+        layout = self._dock_layout if layout is None else layout
+        widget = Checkbox(
+            value=value,
+            description=name,
+            disabled=False
+        )
+        widget.observe(_generate_callback(callback), names='value')
+        self._layout_add_widget(layout, widget)
+        return _IpyWidget(widget)
+
     def _dock_add_spin_box(self, name, value, rng, callback,
-                           compact=True, double=True, layout=None):
+                           compact=True, double=True, step=None,
+                           layout=None):
         layout = self._dock_named_layout(name, layout, compact)
-        klass = FloatText if double else IntText
+        klass = BoundedFloatText if double else IntText
         widget = klass(
             value=value,
             min=rng[0],
             max=rng[1],
-            readout=False,
         )
+        if step is not None:
+            widget.step = step
         widget.observe(_generate_callback(callback), names='value')
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
@@ -122,11 +142,53 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
+    def _dock_add_radio_buttons(self, value, rng, callback, vertical=True,
+                                layout=None):
+        # XXX: vertical=False is not supported yet
+        layout = self._dock_layout if layout is None else layout
+        widget = RadioButtons(
+            options=rng,
+            value=value,
+            disabled=False,
+        )
+        widget.observe(_generate_callback(callback), names='value')
+        self._layout_add_widget(layout, widget)
+        return _IpyWidgetList(widget)
+
     def _dock_add_group_box(self, name, layout=None):
         layout = self._dock_layout if layout is None else layout
         hlayout = VBox()
         self._layout_add_widget(layout, hlayout)
         return hlayout
+
+    def _dock_add_text(self, name, value, placeholder, layout=None):
+        layout = self._dock_layout if layout is None else layout
+        widget = Text(value=value, placeholder=placeholder)
+        self._layout_add_widget(layout, widget)
+        return _IpyWidget(widget)
+
+    def _dock_add_file_button(self, name, desc, func, value=None, save=False,
+                              directory=False, input_text_widget=True,
+                              placeholder="Type a file name", layout=None):
+        layout = self._dock_layout if layout is None else layout
+
+        def callback():
+            fname = self.actions[f"{name}_field"].value
+            func(None if len(fname) == 0 else fname)
+        hlayout = self._dock_add_layout(vertical=False)
+        text_widget = self._dock_add_text(
+            name=f"{name}_field",
+            value=value,
+            placeholder=placeholder,
+            layout=hlayout,
+        )
+        button_widget = self._dock_add_button(
+            name=desc,
+            callback=callback,
+            layout=hlayout,
+        )
+        self._layout_add_widget(layout, hlayout)
+        return _IpyWidgetList([text_widget, button_widget])
 
 
 def _generate_callback(callback, to_float=False):
@@ -309,9 +371,45 @@ class _IpyWindow(_AbstractWindow):
         pass
 
 
+class _IpyWidgetList(_AbstractWidgetList):
+    def __init__(self, src):
+        self._src = src
+        if isinstance(self._src, RadioButtons):
+            self._widgets = _IpyWidget(self._src)
+        else:
+            self._widgets = list()
+            for widget in self._src:
+                if not isinstance(widget, _IpyWidget):
+                    widget = _IpyWidget(widget)
+                self._widgets.append(widget)
+
+    def set_enabled(self, state):
+        if isinstance(self._src, RadioButtons):
+            self._widgets.set_enabled(state)
+        else:
+            for widget in self._widgets:
+                widget.set_enabled(state)
+
+    def get_value(self, idx):
+        if isinstance(self._src, RadioButtons):
+            # for consistency, we do not use get_value()
+            return self._widgets._widget.options[idx]
+        else:
+            return self._widgets[idx].get_value()
+
+    def set_value(self, idx, value):
+        if isinstance(self._src, RadioButtons):
+            self._widgets.set_value(value)
+        else:
+            self._widgets[idx].set_value(value)
+
+
 class _IpyWidget(_AbstractWidget):
     def set_value(self, value):
-        self._widget.value = value
+        if isinstance(self._widget, Button):
+            self._widget.click()
+        else:
+            self._widget.value = value
 
     def get_value(self):
         return self._widget.value
@@ -326,12 +424,17 @@ class _IpyWidget(_AbstractWidget):
     def hide(self):
         self._widget.layout.visibility = "hidden"
 
+    def set_enabled(self, state):
+        self._widget.disabled = not state
+
     def update(self, repaint=True):
         pass
 
 
 class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
                 _IpyStatusBar, _IpyWindow, _IpyPlayback):
+    _kind = 'notebook'
+
     def __init__(self, *args, **kwargs):
         self._dock = None
         self._tool_bar = None
@@ -368,6 +471,9 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         # main widget
         if self._dock is None:
             main_widget = viewer
+        # XXX: this can be improved
+        elif hasattr(self, "_dock2"):
+            main_widget = HBox([self._dock2, viewer, self._dock])
         else:
             main_widget = HBox([self._dock, viewer])
         display(main_widget)

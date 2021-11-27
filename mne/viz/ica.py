@@ -45,11 +45,14 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
         The object to plot the sources from.
     %(picks_base)s all sources in the order as fitted.
-    start : int | None
-        X-axis start index. If None (default), from the beginning.
-    stop : int | None
-        X-axis stop index. If None (default), next 20 are shown, in case of
-        evoked to the end.
+    start, stop : float | int | None
+       If ``inst`` is a `~mne.io.Raw` or an `~mne.Evoked` object, the first and
+       last time point (in seconds) of the data to plot. If ``inst`` is a
+       `~mne.io.Raw` object, ``start=None`` and ``stop=None`` will be
+       translated into ``start=0.`` and ``stop=3.``, respectively. For
+       `~mne.Evoked`, ``None`` refers to the beginning and end of the evoked
+       signal. If ``inst`` is an `~mne.Epochs` object, specifies the index of
+       the first and last epoch to show.
     title : str | None
         The window title. If None a default is provided.
     show : bool
@@ -570,7 +573,8 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
                     if ii in indices:
                         annot.append(this_label)
 
-                line_label += (' - ' + ', '.join(annot))
+                if annot:
+                    line_label += (' – ' + ', '.join(annot))  # Unicode en-dash
             exclude_labels.append(line_label)
         else:
             exclude_labels.append(None)
@@ -581,21 +585,36 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
         # differentiate categories by linestyle and components by color
         col_lbs = [it for it in exclude_labels if it is not None]
         cmap = plt.get_cmap('tab10', len(col_lbs))
-        unique_labels = {k.split(' - ')[1] for k in exclude_labels if k}
+
+        unique_labels = set()
+        for label in exclude_labels:
+            if label is None:
+                continue
+            elif ' – ' in label:
+                unique_labels.add(label.split(' – ')[1])
+            else:
+                unique_labels.add('')
+
         # Determine up to 4 different styles for n categories
         cat_styles = dict(zip(unique_labels,
                               map(lambda ux: styles[int(ux % len(styles))],
                                   range(len(unique_labels)))))
-        for lb_idx, lb in enumerate(exclude_labels):
-            if lb is not None:
-                color = cmap(col_lbs.index(lb))
-                style = cat_styles[lb[lb.find(' - ') + 3:]]
-                label_props[lb_idx] = (color, style)
+        for label_idx, label in enumerate(exclude_labels):
+            if label is not None:
+                color = cmap(col_lbs.index(label))
+                if ' – ' in label:
+                    label_name = label.split(' – ')[1]
+                else:
+                    label_name = ''
+                style = cat_styles[label_name]
+                label_props[label_idx] = (color, style)
 
     for exc_label, ii in zip(exclude_labels, picks):
         color, style = label_props[ii]
+        # ensure traces of excluded components are plotted on top
+        zorder = 2 if exc_label is None else 10
         lines.extend(ax.plot(times, evoked.data[ii].T, picker=True,
-                             zorder=2, color=color, linestyle=style,
+                             zorder=zorder, color=color, linestyle=style,
                              label=exc_label))
         lines[-1].set_pickradius(3.)
 
@@ -764,24 +783,23 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
     ica : instance of mne.preprocessing.ICA
         The ICA object.
     inst : instance of mne.io.Raw or mne.Evoked
-        The signals to be compared given the ICA solution. If Raw input,
-        The raw data are displayed before and after cleaning. In a second
-        panel the cross channel average will be displayed. Since dipolar
-        sources will be canceled out this display is sensitive to
-        artifacts. If evoked input, butterfly plots for clean and raw
-        signals will be superimposed.
+        The signal to plot. If `~mne.io.Raw`, the raw data is displayed before
+        and after cleaning. In a second panel, the cross-channel average will
+        be displayed. Since dipolar sources will be canceled out, this
+        representation is sensitive to artifacts. If `~mne.Evoked`, butterfly
+        traces for signals before and after cleaning will be superimposed.
     exclude : array-like of int | None (default)
-        The components marked for exclusion. If None (default), ICA.exclude
+        The components marked for exclusion. If ``None`` (default), ICA.exclude
         will be used.
     %(picks_base)s all channels that were included during fitting.
-    start : int | None
-        X-axis start index. If None (default) from the beginning.
-    stop : int | None
-        X-axis stop index. If None (default) to 3.0s.
-    title : str
-        The figure title.
-    show : bool
-        Show figure if True.
+    start, stop : float | None
+       The first and last time point (in seconds) of the data to plot. If
+       ``inst`` is a `~mne.io.Raw` object, ``start=None`` and ``stop=None``
+       will be translated into ``start=0.`` and ``stop=3.``, respectively. For
+       `~mne.Evoked`, ``None`` refers to the beginning and end of the evoked
+       signal.
+    %(title_None)s
+    %(show)s
     %(n_pca_components_apply)s
 
         .. versionadded:: 0.22
@@ -795,6 +813,9 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
     from ..io.base import BaseRaw
     from ..evoked import Evoked
     from ..preprocessing.ica import _check_start_stop
+
+    if ica.current_fit == 'unfitted':
+        raise RuntimeError('You need to fit the ICA first')
 
     _validate_type(inst, (BaseRaw, Evoked), "inst", "Raw or Evoked")
     if title is None:
@@ -826,7 +847,8 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         assert isinstance(inst, Evoked)
         inst = inst.copy().crop(start, stop)
         if picks is not None:
-            inst.info['comps'] = []  # can be safely disabled
+            with inst.info._unlock():
+                inst.info['comps'] = []  # can be safely disabled
             inst.pick_channels([inst.ch_names[p] for p in picks])
         evoked_cln = ica.apply(inst.copy(), exclude=exclude,
                                n_pca_components=n_pca_components)
@@ -930,7 +952,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                   show_scrollbars, show_first_samp, time_format):
     """Plot the ICA components as a RawArray or EpochsArray."""
-    from ._figure import _browse_figure
+    from ._figure import _get_browser
     from .. import EpochsArray, BaseEpochs
     from ..io import RawArray, BaseRaw
 
@@ -987,7 +1009,8 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
 
     # create info
     info = create_info(ch_names_picked, sfreq, ch_types=ch_types)
-    info['meas_date'] = inst.info['meas_date']
+    with info._unlock():
+        info['meas_date'] = inst.info['meas_date']
     info['bads'] = [ch_names[x] for x in exclude if x in picks]
     if is_raw:
         inst_array = RawArray(data, info, inst.first_samp)
@@ -1019,7 +1042,7 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
         raise RuntimeError('Stop must be larger than start.')
 
     # misc
-    bad_color = (0.8, 0.8, 0.8)
+    bad_color = 'lightgray'
     title = 'ICA components' if title is None else title
 
     params = dict(inst=inst_array,
@@ -1072,7 +1095,9 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                       epoch_color_bad=(1, 0, 0),
                       epoch_colors=None,
                       xlabel='Epoch number')
-    fig = _browse_figure(**params)
+
+    fig = _get_browser(**params)
+
     fig._update_picks()
 
     # update data, and plot

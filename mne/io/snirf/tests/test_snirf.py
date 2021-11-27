@@ -3,6 +3,7 @@
 #          simplified BSD-3 license
 
 import os.path as op
+import numpy as np
 from numpy.testing import assert_allclose, assert_almost_equal, assert_equal
 import shutil
 import pytest
@@ -16,26 +17,33 @@ from mne.preprocessing.nirs import (optical_density, beer_lambert_law,
 from mne.transforms import apply_trans, _get_trans
 from mne.io.constants import FIFF
 
+
+testing_path = data_path(download=False)
+
 # SfNIRS files
-sfnirs_homer_103_wShort = op.join(data_path(download=False),
-                                  'SNIRF', 'SfNIRS', 'snirf_homer3', '1.0.3',
+sfnirs_homer_103_wShort = op.join(testing_path, 'SNIRF', 'SfNIRS',
+                                  'snirf_homer3', '1.0.3',
                                   'snirf_1_3_nirx_15_2_'
                                   'recording_w_short.snirf')
-sfnirs_homer_103_wShort_original = op.join(data_path(download=False),
-                                           'NIRx', 'nirscout',
+sfnirs_homer_103_wShort_original = op.join(testing_path, 'NIRx', 'nirscout',
                                            'nirx_15_2_recording_w_short')
 
-sfnirs_homer_103_153 = op.join(data_path(download=False),
-                               'SNIRF', 'SfNIRS', 'snirf_homer3', '1.0.3',
-                               'nirx_15_3_recording.snirf')
+sfnirs_homer_103_153 = op.join(testing_path, 'SNIRF', 'SfNIRS', 'snirf_homer3',
+                               '1.0.3', 'nirx_15_3_recording.snirf')
 
 # NIRSport2 files
-nirx_nirsport2_103 = op.join(data_path(download=False),
-                             'SNIRF', 'NIRx', 'NIRSport2', '1.0.3',
-                             '2021-04-23_005.snirf')
-nirx_nirsport2_103_2 = op.join(data_path(download=False),
-                               'SNIRF', 'NIRx', 'NIRSport2', '1.0.3',
-                               '2021-05-05_001.snirf')
+nirx_nirsport2_103 = op.join(testing_path, 'SNIRF', 'NIRx', 'NIRSport2',
+                             '1.0.3', '2021-04-23_005.snirf')
+nirx_nirsport2_103_2 = op.join(testing_path, 'SNIRF', 'NIRx', 'NIRSport2',
+                               '1.0.3', '2021-05-05_001.snirf')
+snirf_nirsport2_20219 = op.join(testing_path, 'SNIRF', 'NIRx', 'NIRSport2',
+                                '2021.9', '2021-10-01_002.snirf')
+nirx_nirsport2_20219 = op.join(testing_path, 'NIRx', 'nirsport_v2',
+                               'aurora_2021_9')
+
+# Kernel
+kernel_hb = op.join(testing_path, 'SNIRF', 'Kernel', 'Flow50',
+                    'Portal_2021_11', 'hb.snirf')
 
 
 @requires_h5py
@@ -45,7 +53,10 @@ nirx_nirsport2_103_2 = op.join(data_path(download=False),
                                     nirx_nirsport2_103,
                                     sfnirs_homer_103_153,
                                     nirx_nirsport2_103,
-                                    nirx_nirsport2_103_2]))
+                                    nirx_nirsport2_103_2,
+                                    nirx_nirsport2_103_2,
+                                    kernel_hb
+                                    ]))
 def test_basic_reading_and_min_process(fname):
     """Test reading SNIRF files and minimum typical processing."""
     raw = read_raw_snirf(fname, preload=True)
@@ -53,8 +64,9 @@ def test_basic_reading_and_min_process(fname):
     if 'fnirs_cw_amplitude' in raw:
         raw = optical_density(raw)
     if 'fnirs_od' in raw:
-        raw = beer_lambert_law(raw)
+        raw = beer_lambert_law(raw, ppf=6)
     assert 'hbo' in raw
+    assert 'hbr' in raw
 
 
 @requires_testing_data
@@ -130,12 +142,12 @@ def test_snirf_against_nirx():
 
 @requires_h5py
 @requires_testing_data
-def test_snirf_nonstandard(tmpdir):
+def test_snirf_nonstandard(tmp_path):
     """Test custom tags."""
     from mne.externals.pymatreader.utils import _import_h5py
     h5py = _import_h5py()
-    shutil.copy(sfnirs_homer_103_wShort, str(tmpdir) + "/mod.snirf")
-    fname = str(tmpdir) + "/mod.snirf"
+    shutil.copy(sfnirs_homer_103_wShort, str(tmp_path) + "/mod.snirf")
+    fname = str(tmp_path) + "/mod.snirf"
     # Manually mark up the file to match MNE-NIRS custom tags
     with h5py.File(fname, "r+") as f:
         f.create_dataset("nirs/metaDataTags/middleName",
@@ -284,10 +296,41 @@ def test_snirf_nirsport2_w_positions():
 
 @requires_testing_data
 @requires_h5py
-def test_snirf_standard():
+def test_snirf_kernel_hb():
+    """Test reading Kernel SNIRF files with haemoglobin data."""
+    raw = read_raw_snirf(kernel_hb, preload=True)
+
+    # Test data import
+    assert raw._data.shape == (180 * 2, 14)
+    assert raw.copy().pick('hbo')._data.shape == (180, 14)
+    assert raw.copy().pick('hbr')._data.shape == (180, 14)
+
+    assert_allclose(raw.info['sfreq'], 8.257638)
+
+    bad_nans = np.isnan(raw.get_data()).any(axis=1)
+    assert np.sum(bad_nans) == 20
+
+    assert len(raw.annotations.description) == 2
+    assert raw.annotations.onset[0] == 0.036939
+    assert raw.annotations.onset[1] == 0.874633
+    assert raw.annotations.description[0] == "StartTrial"
+    assert raw.annotations.description[1] == "StartIti"
+
+
+@requires_testing_data
+@requires_h5py
+@pytest.mark.parametrize('fname, boundary_decimal, test_scaling, test_rank', (
+    [sfnirs_homer_103_wShort, 0, True, True],
+    [nirx_nirsport2_103, 0, True, False],  # strange rank behavior
+    [nirx_nirsport2_103_2, 0, False, True],  # weirdly small values
+    [snirf_nirsport2_20219, 0, True, True],
+))
+def test_snirf_standard(fname, boundary_decimal, test_scaling, test_rank):
     """Test standard operations."""
-    _test_raw_reader(read_raw_snirf, fname=sfnirs_homer_103_wShort,
-                     boundary_decimal=0)  # low fs
+    _test_raw_reader(read_raw_snirf, fname=fname,
+                     boundary_decimal=boundary_decimal,
+                     test_scaling=test_scaling,
+                     test_rank=test_rank)  # low fs
 
 
 @requires_testing_data

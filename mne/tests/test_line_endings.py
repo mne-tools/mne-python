@@ -57,9 +57,9 @@ def _assert_line_endings(dir_):
                              % (len(report), '\n'.join(report)))
 
 
-def test_line_endings(tmpdir):
+def test_line_endings(tmp_path):
     """Test line endings of mne-python."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     with open(op.join(tempdir, 'foo'), 'wb') as fid:
         fid.write('bad\r\ngood\n'.encode('ascii'))
     _assert_line_endings(tempdir)

@@ -15,7 +15,7 @@ from ..nirs import source_detector_distances, _channel_frequencies,\
     _check_channels_ordered, _channel_chromophore
 
 
-def beer_lambert_law(raw, ppf=0.1):
+def beer_lambert_law(raw, ppf=6.):
     r"""Convert NIRS optical density data to haemoglobin concentration.
 
     Parameters
@@ -33,7 +33,8 @@ def beer_lambert_law(raw, ppf=0.1):
     from scipy import linalg
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
-
+    _validate_type(ppf, 'numeric', 'ppf')
+    ppf = float(ppf)
     freqs = np.unique(_channel_frequencies(raw.info, nominal=True))
     picks = _check_channels_ordered(raw.info, freqs)
     abs_coef = _load_absorption(freqs)

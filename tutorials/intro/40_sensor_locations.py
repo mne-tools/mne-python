@@ -203,7 +203,7 @@ ax3d.view_init(azim=70, elev=15)
 # surface rendering instead of matplotlib. This works by calling
 # `mne.viz.plot_alignment`:
 
-fig = mne.viz.plot_alignment(raw.info, trans=None, dig=False, eeg=False,
+fig = mne.viz.plot_alignment(raw.info, dig=False, eeg=False,
                              surfaces=[], meg=['helmet', 'sensors'],
                              coord_frame='meg')
 mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
@@ -213,7 +213,7 @@ mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
 # also render MRI surfaces of the scalp, skull, and brain (by passing a dict
 # with keys like ``'head'``, ``'outer_skull'`` or ``'brain'`` to the
 # ``surfaces`` parameter). This makes the function useful for
-# :ref:`assessing coordinate frame transformations <plot_source_alignment>`.
+# :ref:`assessing coordinate frame transformations <tut-source-alignment>`.
 # For examples of various uses of `~mne.viz.plot_alignment`, see
 # :ref:`plot_montage`, :ref:`ex-eeg-on-scalp`, and :ref:`ex-plot-meg-sensors`.
 #

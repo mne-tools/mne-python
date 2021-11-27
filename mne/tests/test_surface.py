@@ -11,15 +11,15 @@ from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 from mne import (read_surface, write_surface, decimate_surface, pick_types,
                  dig_mri_distances, get_montage_volume_labels)
 from mne.channels import make_dig_montage
+from mne.coreg import get_mni_fiducials
 from mne.datasets import testing
-from mne.fixes import _get_img_fdata
 from mne.io import read_info
 from mne.io.constants import FIFF
 from mne.surface import (_compute_nearest, _tessellate_sphere, fast_cross_3d,
                          get_head_surf, read_curvature, get_meg_helmet_surf,
                          _normal_orth, _read_patch, _marching_cubes,
                          _voxel_neighbors, warp_montage_volume)
-from mne.transforms import _get_trans, compute_volume_registration
+from mne.transforms import _get_trans, compute_volume_registration, apply_trans
 from mne.utils import (requires_vtk, catch_logging, object_diff,
                        requires_freesurfer, requires_nibabel, requires_dipy)
 
@@ -117,9 +117,9 @@ def test_compute_nearest():
 
 
 @testing.requires_testing_data
-def test_io_surface(tmpdir):
+def test_io_surface(tmp_path):
     """Test reading and writing of Freesurfer surface mesh files."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fname_quad = op.join(data_path, 'subjects', 'bert', 'surf',
                          'lh.inflated.nofix')
     fname_tri = op.join(data_path, 'subjects', 'sample', 'bem',
@@ -240,6 +240,12 @@ def test_marching_cubes(dtype, value, smooth):
     rtol = 1e-2 if smooth else 1e-9
     assert_allclose(verts.sum(axis=0), [14700, 14700, 14700], rtol=rtol)
     assert_allclose(triangles.sum(axis=0), [363402, 360865, 350588])
+    # test fill holes
+    data[24:27, 24:27, 24:27] = 0
+    verts, triangles = _marching_cubes(data, level, smooth=smooth,
+                                       fill_hole_size=2)[0]
+    # check that no surfaces in the middle
+    assert np.linalg.norm(verts - np.array([25, 25, 25]), axis=1).min() > 4
     # problematic values
     with pytest.raises(TypeError, match='1D array-like'):
         _marching_cubes(data, ['foo'])
@@ -282,17 +288,19 @@ def test_get_montage_volume_labels():
                        match='Coordinate frame not supported'):
         get_montage_volume_labels(
             fail_montage, 'sample', subjects_dir, aseg='aseg')
+    with pytest.raises(ValueError, match='between 0 and 10'):
+        get_montage_volume_labels(montage, 'sample', subjects_dir, dist=11)
 
 
 def test_voxel_neighbors():
     """Test finding points above a threshold near a seed location."""
-    image = np.zeros((10, 10, 10))
-    image[4:7, 4:7, 4:7] = 3
-    image[5, 5, 5] = 4
+    locs = np.array(np.meshgrid(*[np.linspace(-1, 1, 101)] * 3))
+    image = 1 - np.linalg.norm(locs, axis=0)
+    true_volume = set([tuple(coord) for coord in
+                       np.array(np.where(image > 0.95)).T])
     volume = _voxel_neighbors(
-        (5.5, 5.1, 4.9), image, thresh=2, max_peak_dist=1)
-    true_volume = set([(5, 4, 5), (5, 5, 4), (5, 5, 5), (6, 5, 5),
-                       (5, 6, 5), (5, 5, 6), (4, 5, 5)])
+        np.array([-0.3, 0.6, 0.5]) + (np.array(image.shape[0]) - 1) / 2,
+        image, thresh=0.95, use_relative=False)
     assert volume.difference(true_volume) == set()
     assert true_volume.difference(volume) == set()
 
@@ -304,8 +312,6 @@ def test_voxel_neighbors():
 def test_warp_montage_volume():
     """Test warping an montage based on intracranial electrode positions."""
     import nibabel as nib
-    subject_T1 = nib.load(
-        op.join(subjects_dir, 'sample', 'mri', 'T1.mgz'))
     subject_brain = nib.load(
         op.join(subjects_dir, 'sample', 'mri', 'brain.mgz'))
     template_brain = nib.load(
@@ -314,42 +320,49 @@ def test_warp_montage_volume():
         subject_brain, template_brain, zooms=5,
         niter=dict(translation=[5, 5, 5], rigid=[5, 5, 5],
                    sdr=[3, 3, 3]), pipeline=('translation', 'rigid', 'sdr'))
-    # make fake image with three coordinates
-    CT_data = np.zeros(subject_brain.shape)
-    # make electrode contact hyperintensities
-    CT_data[45:47, 39:41, 49:50] = 500  # surround high intensity
-    CT_data[46, 40, 49] = 1000  # center even higher intensity
-    CT_data[47:49, 39:40, 49:50] = 500
-    CT_data[48, 39, 50] = 1000
-    CT_data[50:52, 38:40, 50:51] = 500
-    CT_data[50, 39, 50] = 1000
-    CT = nib.Nifti1Image(CT_data, subject_T1.affine)
+    # make an info object with three channels with positions
     ch_coords = np.array([[-8.7040273, 17.99938754, 10.29604017],
                           [-14.03007764, 19.69978401, 12.07236939],
                           [-21.1130506, 21.98310911, 13.25658887]])
     ch_pos = dict(zip(['1', '2', '3'], ch_coords / 1000))  # mm -> m
-    montage = make_dig_montage(ch_pos, coord_frame='mri')
+    lpa, nasion, rpa = get_mni_fiducials('sample', subjects_dir)
+    montage = make_dig_montage(ch_pos, lpa=lpa['r'], nasion=nasion['r'],
+                               rpa=rpa['r'], coord_frame='mri')
+    # make fake image based on the info
+    CT_data = np.zeros(subject_brain.shape)
+    # convert to voxels
+    ch_coords_vox = apply_trans(
+        np.linalg.inv(subject_brain.header.get_vox2ras_tkr()), ch_coords)
+    for (x, y, z) in ch_coords_vox.round().astype(int):
+        # make electrode contact hyperintensities
+        # first, make the surrounding voxels high intensity
+        CT_data[x - 1:x + 2, y - 1:y + 2, z - 1:z + 2] = 500
+        # then, make the center even higher intensity
+        CT_data[x, y, z] = 1000
+    CT = nib.Nifti1Image(CT_data, subject_brain.affine)
+    ch_coords = np.array([[-8.7040273, 17.99938754, 10.29604017],
+                          [-14.03007764, 19.69978401, 12.07236939],
+                          [-21.1130506, 21.98310911, 13.25658887]])
+    ch_pos = dict(zip(['1', '2', '3'], ch_coords / 1000))  # mm -> m
+    lpa, nasion, rpa = get_mni_fiducials('sample', subjects_dir)
+    montage = make_dig_montage(ch_pos, lpa=lpa['r'], nasion=nasion['r'],
+                               rpa=rpa['r'], coord_frame='mri')
     montage_warped, image_from, image_to = warp_montage_volume(
         montage, CT, reg_affine, sdr_morph, 'sample',
-        subjects_dir=subjects_dir, thresh=0.99)
+        subjects_dir_from=subjects_dir, thresh=0.99)
     # checked with nilearn plot from `tut-ieeg-localize`
     # check montage in surface RAS
-    ground_truth_warped = np.array([[-0.27778788, 0.24251515, -0.35693939],
-                                    [-0.30033333, 0.24785714, -0.35014286],
-                                    [-0.32261947, 0.25295575, -0.34614159]])
-    for i in range(len(montage.ch_names)):
+    ground_truth_warped = np.array([[-0.009, -0.00133333, -0.033],
+                                    [-0.01445455, 0.00127273, -0.03163636],
+                                    [-0.022, 0.00285714, -0.031]])
+    for i, d in enumerate(montage_warped.dig):
         assert np.linalg.norm(  # off by less than 1.5 cm
-            montage_warped.dig[i]['r'] - ground_truth_warped[i]) < 0.015
+            d['r'] - ground_truth_warped[i]) < 0.015
     # check image_from
-    assert_array_equal(
-        np.array(np.where(_get_img_fdata(image_from) == 1)),
-        np.array([[45, 46, 46], [40, 39, 40], [49, 49, 49]]))
-    assert_array_equal(
-        np.array(np.where(_get_img_fdata(image_from) == 2)),
-        np.array([[48, 48], [39, 39], [49, 50]]))
-    assert_array_equal(
-        np.array(np.where(_get_img_fdata(image_from) == 3)),
-        np.array([[50, 50, 51], [38, 39, 39], [50, 50, 50]]))
+    for idx, contact in enumerate(range(1, len(ch_pos) + 1)):
+        voxels = np.array(np.where(np.array(image_from.dataobj) == contact)).T
+        assert ch_coords_vox.round()[idx] in voxels
+        assert ch_coords_vox.round()[idx] + 5 not in voxels
     # check image_to, too many, just check center
     ground_truth_warped_voxels = np.array(
         [[135.5959596, 161.97979798, 123.83838384],
@@ -357,7 +370,7 @@ def test_warp_montage_volume():
          [150.53982301, 158.38053097, 127.31858407]])
     for i in range(len(montage.ch_names)):
         assert np.linalg.norm(
-            np.array(np.where(_get_img_fdata(image_to) == i + 1)
+            np.array(np.where(np.array(image_to.dataobj) == i + 1)
                      ).mean(axis=1) - ground_truth_warped_voxels[i]) < 5
 
     # test inputs
@@ -367,25 +380,26 @@ def test_warp_montage_volume():
     with pytest.raises(ValueError, match='subject folder is incorrect'):
         warp_montage_volume(
             montage, CT, reg_affine, sdr_morph, subject_from='foo')
-    CT_unaligned = nib.Nifti1Image(CT_data, subject_brain.affine)
+    CT_unaligned = nib.Nifti1Image(CT_data, template_brain.affine)
     with pytest.raises(RuntimeError, match='not aligned to Freesurfer'):
         warp_montage_volume(montage, CT_unaligned, reg_affine,
-                            sdr_morph, 'sample', subjects_dir=subjects_dir)
-    bad_montage = make_dig_montage(ch_pos, coord_frame='mri')
-    bad_montage.dig[0]['coord_frame'] = 99
-    with pytest.raises(RuntimeError, match='Only single coordinate frame in '
-                                           'dig is supported'):
-        warp_montage_volume(bad_montage, CT, reg_affine,
-                            sdr_morph, 'sample', subjects_dir=subjects_dir)
-    wrong_montage = make_dig_montage(ch_pos, coord_frame='head')
+                            sdr_morph, 'sample',
+                            subjects_dir_from=subjects_dir)
+    bad_montage = montage.copy()
+    for d in bad_montage.dig:
+        d['coord_frame'] = 99
     with pytest.raises(RuntimeError, match='Coordinate frame not supported'):
-        warp_montage_volume(wrong_montage, CT, reg_affine,
-                            sdr_morph, 'sample', subjects_dir=subjects_dir)
+        warp_montage_volume(bad_montage, CT, reg_affine,
+                            sdr_morph, 'sample',
+                            subjects_dir_from=subjects_dir)
 
     # check channel not warped
     ch_pos_doubled = ch_pos.copy()
     ch_pos_doubled.update(zip(['4', '5', '6'], ch_coords / 1000))
-    doubled_montage = make_dig_montage(ch_pos_doubled, coord_frame='mri')
+    doubled_montage = make_dig_montage(
+        ch_pos_doubled, lpa=lpa['r'], nasion=nasion['r'],
+        rpa=rpa['r'], coord_frame='mri')
     with pytest.warns(RuntimeWarning, match='not assigned'):
         warp_montage_volume(doubled_montage, CT, reg_affine,
-                            sdr_morph, 'sample', subjects_dir=subjects_dir)
+                            sdr_morph, 'sample',
+                            subjects_dir_from=subjects_dir)

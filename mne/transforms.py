@@ -20,7 +20,7 @@ from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
 from .defaults import _handle_default
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
-                    _check_path_like, get_subjects_dir, fill_doc, _check_fname,
+                    _path_like, get_subjects_dir, fill_doc, _check_fname,
                     _check_option, _require_version, wrapped_stdout)
 
 
@@ -450,7 +450,7 @@ def _get_trans(trans, fro='mri', to='head', allow_none=True):
     if allow_none:
         types += (None,)
     _validate_type(trans, types, 'trans')
-    if _check_path_like(trans):
+    if _path_like(trans):
         trans = str(trans)
         if trans == 'fsaverage':
             trans = op.join(op.dirname(__file__), 'data', 'fsaverage',
@@ -574,6 +574,8 @@ def write_trans(fname, trans):
     """
     check_fname(fname, 'trans', ('-trans.fif', '-trans.fif.gz',
                                  '_trans.fif', '_trans.fif.gz'))
+    # TODO: Add `overwrite` param to method signature
+    fname = _check_fname(fname=fname, overwrite=True)
     fid = start_file(fname)
     write_coord_trans(fid, trans)
     end_file(fid)
@@ -683,6 +685,22 @@ def get_ras_to_neuromag_trans(nasion, lpa, rpa):
 
     trans = np.dot(rot_trans, origin_trans)
     return trans
+
+
+def _get_transforms_to_coord_frame(info, trans, coord_frame='mri'):
+    """Get the transforms to a coordinate frame from device, head and mri."""
+    head_mri_t = _get_trans(trans, 'head', 'mri')[0]
+    dev_head_t = _get_trans(info['dev_head_t'], 'meg', 'head')[0]
+    mri_dev_t = invert_transform(combine_transforms(
+        dev_head_t, head_mri_t, 'meg', 'mri'))
+    to_cf_t = dict(
+        meg=_ensure_trans([dev_head_t, mri_dev_t, Transform('meg', 'meg')],
+                          fro='meg', to=coord_frame),
+        head=_ensure_trans([dev_head_t, head_mri_t, Transform('head', 'head')],
+                           fro='head', to=coord_frame),
+        mri=_ensure_trans([head_mri_t, mri_dev_t, Transform('mri', 'mri')],
+                          fro='mri', to=coord_frame))
+    return to_cf_t
 
 
 ###############################################################################
@@ -1645,8 +1663,9 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
     _require_version('dipy', 'SDR morph', '0.10.1')
     import nibabel as nib
     with np.testing.suppress_warnings():
+        from dipy.align.imaffine import AffineMap
         from dipy.align import (affine_registration, center_of_mass,
-                                translation, rigid, affine, resample,
+                                translation, rigid, affine,
                                 imwarp, metrics)
 
     # input validation
@@ -1659,9 +1678,7 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
     logger.info('Computing registration...')
 
     # affine optimizations
-    moving_orig = moving
-    static_orig = static
-    out_affine = np.eye(4)
+    reg_affine = None
     sdr_morph = None
     pipeline_options = dict(translation=[center_of_mass, translation],
                             rigid=[rigid], affine=[affine])
@@ -1676,31 +1693,27 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
                 logger.info(f'Using original zooms for {step} ...')
             static_zoomed, static_affine = _reslice_normalize(
                 static, zooms[step])
-        # must be resliced every time because it is adjusted at every step
-        moving_zoomed, moving_affine = _reslice_normalize(moving, zooms[step])
+            moving_zoomed, moving_affine = _reslice_normalize(
+                moving, zooms[step])
         logger.info(f'Optimizing {step}:')
         if step == 'sdr':  # happens last
+            affine_map = AffineMap(reg_affine,  # apply registration here
+                                   static_zoomed.shape, static_affine,
+                                   moving_zoomed.shape, moving_affine)
+            moving_zoomed = affine_map.transform(moving_zoomed)
             sdr = imwarp.SymmetricDiffeomorphicRegistration(
                 metrics.CCMetric(3), niter[step])
             with wrapped_stdout(indent='    ', cull_newlines=True):
                 sdr_morph = sdr.optimize(static_zoomed, moving_zoomed,
-                                         static_affine, moving_affine)
-            moving_zoomed = sdr_morph.transform(moving_zoomed)
+                                         static_affine, static_affine)
+            moved_zoomed = sdr_morph.transform(moving_zoomed)
         else:
             with wrapped_stdout(indent='    ', cull_newlines=True):
-                moving_zoomed, reg_affine = affine_registration(
+                moved_zoomed, reg_affine = affine_registration(
                     moving_zoomed, static_zoomed, moving_affine, static_affine,
                     nbins=32, metric='MI', pipeline=pipeline_options[step],
-                    level_iters=niter[step], sigmas=sigmas, factors=factors)
-
-            # update the overall alignment affine
-            out_affine = np.dot(out_affine, reg_affine)
-
-            # apply the current affine to the full-resolution data
-            moving = resample(np.asarray(moving_orig.dataobj),
-                              np.asarray(static_orig.dataobj),
-                              moving_orig.affine, static_orig.affine,
-                              out_affine)
+                    level_iters=niter[step], sigmas=sigmas, factors=factors,
+                    starting_affine=reg_affine)
 
             # report some useful information
             if step in ('translation', 'rigid'):
@@ -1710,10 +1723,10 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
                 logger.info(f'    Translation: {dist:6.1f} mm')
                 if step == 'rigid':
                     logger.info(f'    Rotation:    {angle:6.1f}°')
-        assert moving_zoomed.shape == static_zoomed.shape, step
-        r2 = _compute_r2(static_zoomed, moving_zoomed)
+        assert moved_zoomed.shape == static_zoomed.shape, step
+        r2 = _compute_r2(static_zoomed, moved_zoomed)
         logger.info(f'    R²:          {r2:6.1f}%')
-    return (out_affine, sdr_morph, static_zoomed.shape, static_affine,
+    return (reg_affine, sdr_morph, static_zoomed.shape, static_affine,
             moving_zoomed.shape, moving_affine)
 
 

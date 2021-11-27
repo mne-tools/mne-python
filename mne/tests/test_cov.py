@@ -5,6 +5,7 @@
 
 import os.path as op
 import itertools as itt
+import sys
 
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal, assert_allclose)
@@ -56,6 +57,7 @@ def test_compute_whitener(proj, pca):
         raw.del_proj()
     with pytest.warns(RuntimeWarning, match='Too few samples'):
         cov = compute_raw_covariance(raw)
+    assert cov['names'] == raw.ch_names
     W, _, C = compute_whitener(cov, raw.info, pca=pca, return_colorer=True,
                                verbose='error')
     n_channels = len(raw.ch_names)
@@ -74,6 +76,26 @@ def test_compute_whitener(proj, pca):
     else:
         assert pca is False
         assert_allclose(round_trip, np.eye(n_channels), atol=0.05)
+
+    raw.info['bads'] = [raw.ch_names[0]]
+    picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
+        cov2 = compute_raw_covariance(raw, picks=picks)
+        cov3 = compute_raw_covariance(raw, picks=None)
+    assert_allclose(cov2['data'][1:, 1:], cov3['data'])
+    W2, _, C2 = compute_whitener(cov2, raw.info, pca=pca, return_colorer=True,
+                                 picks=picks, verbose='error')
+    W3, _, C3 = compute_whitener(cov3, raw.info, pca=pca, return_colorer=True,
+                                 picks=None, verbose='error')
+    # this tol is not great, but Windows needs it
+    rtol = 1e-3 if sys.platform.startswith('win') else 1e-11
+    assert_allclose(W, W2, rtol=rtol)
+    assert_allclose(C, C2, rtol=rtol)
+    n_channels = len(raw.ch_names) - len(raw.info['bads'])
+    n_reduced = len(raw.ch_names) - len(raw.info['bads'])
+    rank = n_channels - len(raw.info['projs'])
+    n_reduced = rank if pca is True else n_channels
+    assert W3.shape == C3.shape[::-1] == (n_reduced, n_channels)
 
 
 def test_cov_mismatch():
@@ -171,9 +193,9 @@ def _assert_reorder(cov_new, cov_orig, order):
                     cov_orig['data'], atol=1e-20)
 
 
-def test_ad_hoc_cov(tmpdir):
+def test_ad_hoc_cov(tmp_path):
     """Test ad hoc cov creation and I/O."""
-    out_fname = tmpdir.join('test-cov.fif')
+    out_fname = tmp_path / 'test-cov.fif'
     evoked = read_evokeds(ave_fname)[0]
     cov = make_ad_hoc_cov(evoked.info)
     cov.save(out_fname)
@@ -196,13 +218,13 @@ def test_ad_hoc_cov(tmpdir):
         cov._get_square()
 
 
-def test_io_cov(tmpdir):
+def test_io_cov(tmp_path):
     """Test IO for noise covariance matrices."""
     cov = read_cov(cov_fname)
     cov['method'] = 'empirical'
     cov['loglik'] = -np.inf
-    cov.save(tmpdir.join('test-cov.fif'))
-    cov2 = read_cov(tmpdir.join('test-cov.fif'))
+    cov.save(tmp_path / 'test-cov.fif')
+    cov2 = read_cov(tmp_path / 'test-cov.fif')
     assert_array_almost_equal(cov.data, cov2.data)
     assert_equal(cov['method'], cov2['method'])
     assert_equal(cov['loglik'], cov2['loglik'])
@@ -210,24 +232,24 @@ def test_io_cov(tmpdir):
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
-    cov2.save(tmpdir.join('test-cov.fif.gz'))
-    cov2 = read_cov(tmpdir.join('test-cov.fif.gz'))
+    cov2.save(tmp_path / 'test-cov.fif.gz')
+    cov2 = read_cov(tmp_path / 'test-cov.fif.gz')
     assert_array_almost_equal(cov.data, cov2.data)
 
     cov['bads'] = ['EEG 039']
     cov_sel = pick_channels_cov(cov, exclude=cov['bads'])
     assert cov_sel['dim'] == (len(cov['data']) - len(cov['bads']))
     assert cov_sel['data'].shape == (cov_sel['dim'], cov_sel['dim'])
-    cov_sel.save(tmpdir.join('test-cov.fif'))
+    cov_sel.save(tmp_path / 'test-cov.fif')
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
-    cov2.save(tmpdir.join('test-cov.fif.gz'))
-    cov2 = read_cov(tmpdir.join('test-cov.fif.gz'))
+    cov2.save(tmp_path / 'test-cov.fif.gz')
+    cov2 = read_cov(tmp_path / 'test-cov.fif.gz')
     assert_array_almost_equal(cov.data, cov2.data)
 
     # test warnings on bad filenames
-    cov_badname = tmpdir.join('test-bad-name.fif.gz')
+    cov_badname = tmp_path / 'test-bad-name.fif.gz'
     with pytest.warns(RuntimeWarning, match='-cov.fif'):
         write_cov(cov_badname, cov)
     with pytest.warns(RuntimeWarning, match='-cov.fif'):
@@ -235,7 +257,7 @@ def test_io_cov(tmpdir):
 
 
 @pytest.mark.parametrize('method', (None, 'empirical', 'shrunk'))
-def test_cov_estimation_on_raw(method, tmpdir):
+def test_cov_estimation_on_raw(method, tmp_path):
     """Test estimation from raw (typically empty room)."""
     if method == 'shrunk':
         try:
@@ -279,8 +301,8 @@ def test_cov_estimation_on_raw(method, tmpdir):
     assert_snr(cov.data, cov_mne.data, 170)
 
     # test IO when computation done in Python
-    cov.save(tmpdir.join('test-cov.fif'))  # test saving
-    cov_read = read_cov(tmpdir.join('test-cov.fif'))
+    cov.save(tmp_path / 'test-cov.fif')  # test saving
+    cov_read = read_cov(tmp_path / 'test-cov.fif')
     assert cov_read.ch_names == cov.ch_names
     assert cov_read.nfree == cov.nfree
     assert_array_almost_equal(cov.data, cov_read.data)
@@ -316,7 +338,8 @@ def test_cov_estimation_on_raw(method, tmpdir):
 def test_cov_estimation_on_raw_reg():
     """Test estimation from raw with regularization."""
     raw = read_raw_fif(raw_fname, preload=True)
-    raw.info['sfreq'] /= 10.
+    with raw.info._unlock():
+        raw.info['sfreq'] /= 10.
     raw = RawArray(raw._data[:, ::10].copy(), raw.info)  # decimate for speed
     cov_mne = read_cov(erm_cov_fname)
     with pytest.warns(RuntimeWarning, match='Too few samples'):
@@ -336,7 +359,7 @@ def _assert_cov(cov, cov_desired, tol=0.005, nfree=True):
 
 @pytest.mark.slowtest
 @pytest.mark.parametrize('rank', ('full', None))
-def test_cov_estimation_with_triggers(rank, tmpdir):
+def test_cov_estimation_with_triggers(rank, tmp_path):
     """Test estimation from raw with triggers."""
     raw = read_raw_fif(raw_fname)
     raw.set_eeg_reference(projection=True).load_data()
@@ -383,8 +406,8 @@ def test_cov_estimation_with_triggers(rank, tmpdir):
                   keep_sample_mean=False, method='shrunk', rank=rank)
 
     # test IO when computation done in Python
-    cov.save(tmpdir.join('test-cov.fif'))  # test saving
-    cov_read = read_cov(tmpdir.join('test-cov.fif'))
+    cov.save(tmp_path / 'test-cov.fif')  # test saving
+    cov_read = read_cov(tmp_path / 'test-cov.fif')
     _assert_cov(cov, cov_read, 1e-5)
 
     # cov with list of epochs with different projectors
@@ -698,7 +721,8 @@ def test_low_rank_cov(raw_epochs_events):
     # test that rank=306 is same as rank='full'
     epochs_meg = epochs.copy().pick_types(meg=True)
     assert len(epochs_meg.ch_names) == 306
-    epochs_meg.info.update(bads=[], projs=[])
+    with epochs_meg.info._unlock():
+        epochs_meg.info.update(bads=[], projs=[])
     cov_full = compute_covariance(epochs_meg, method='oas',
                                   rank='full', verbose='error')
     assert _cov_rank(cov_full, epochs_meg.info) == 306
@@ -786,7 +810,8 @@ def test_compute_whitener_rank():
     """Test risky rank options."""
     info = read_info(ave_fname)
     info = pick_info(info, pick_types(info, meg=True))
-    info['projs'] = []
+    with info._unlock():
+        info['projs'] = []
     # need a square version because the diag one takes shortcuts in
     # compute_whitener (users shouldn't even need this function so it's
     # private)

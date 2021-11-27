@@ -62,7 +62,7 @@
 
 .. _Hari Bharadwaj: http://www.haribharadwaj.com
 
-.. _Chris Holdgraf: http://chrisholdgraf.com
+.. _Chris Holdgraf: https://chrisholdgraf.com
 
 .. _Jaakko Leppakangas: https://github.com/jaeilepp
 
@@ -94,7 +94,7 @@
 
 .. _Asish Panda: https://github.com/kaichogami
 
-.. _Natalie Klein: http://natklein.weebly.com
+.. _Natalie Klein: https://github.com/natalieklein
 
 .. _Jon Houck: https://www.mrn.org/people/jon-m.-houck/principal-investigators
 
@@ -119,6 +119,8 @@
 .. _Johannes Niediek: https://github.com/jniediek
 
 .. _Sheraz Khan: https://github.com/SherazKhan
+
+.. _John Samuelsson: https://github.com/johnsam7
 
 .. _Antti Rantala: https://github.com/Odingod
 
@@ -188,7 +190,7 @@
 
 .. _Thomas Hartmann: https://github.com/thht
 
-.. _Steven Gutstein: http://vll.cs.utep.edu/people.html
+.. _Steven Gutstein: https://github.com/smgutstein
 
 .. _Peter Molfese: https://github.com/pmolfese
 
@@ -241,8 +243,6 @@
 .. _Nikolas Chalas: https://github.com/Nichalas
 
 .. _Quentin Bertrand: https://github.com/QB3
-
-.. _Alexander Kovrig: https://github.com/OpenSatori
 
 .. _Kostiantyn Maksymenko: https://github.com/makkostya
 
@@ -366,6 +366,8 @@
 
 .. _Dominik Welke: https://github.com/dominikwelke/
 
+.. _Dominique Makowski: https://dominiquemakowski.github.io/
+
 .. _Judy D Zhu: https://github.com/JD-Zhu
 
 .. _Valerii Chirkov: https://github.com/vagechirkov
@@ -403,3 +405,15 @@
 .. _Pierre-Antoine Bannier: https://github.com/PABannier
 
 .. _Darin Erat Sleiter: https://github.com/dsleiter
+
+.. _Mathieu Scheltienne: https://github.com/mscheltienne
+
+.. _Timothy Gates: https://github.com/timgates42
+
+.. _Reza Shoorangiz: https://github.com/rezashr
+
+.. _Evgeny Goldstein: https://github.com/evgenygoldstein
+
+.. _Joshua Teves: https://github.com/jbteves
+
+.. _Riessarius Stargardsky: https://github.com/Riessarius

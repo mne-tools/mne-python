@@ -21,12 +21,12 @@ import numpy as np
 
 from .channels.channels import _get_meg_system
 from .fixes import (_serialize_volume_info, _get_read_geometry, jit,
-                    prange, bincount, _get_img_fdata)
+                    prange, bincount)
 from .io.constants import FIFF
 from .io.pick import pick_types
 from .parallel import parallel_func
 from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
-                         _get_trans, apply_trans, Transform,
+                         _get_trans, apply_trans, Transform, _frame_to_str,
                          apply_volume_registration)
 from .utils import (logger, verbose, get_subjects_dir, warn, _check_fname,
                     _check_option, _ensure_int, _TempDir, run_subprocess,
@@ -67,6 +67,7 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
                              subjects_dir=subjects_dir)
 
 
+# TODO this should be refactored with mne._freesurfer._get_head_surface
 def _get_head_surface(subject, source, subjects_dir, raise_error=True):
     """Load the subject head surface."""
     from .bem import read_bem_surfaces
@@ -1656,7 +1657,7 @@ def _mesh_borders(tris, mask):
     return np.unique(edges.row[border_edges])
 
 
-def _marching_cubes(image, level, smooth=0):
+def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
     """Compute marching cubes on a 3D image."""
     # vtkDiscreteMarchingCubes would be another option, but it merges
     # values at boundaries which is not what we want
@@ -1668,6 +1669,7 @@ def _marching_cubes(image, level, smooth=0):
                      vtkWindowedSincPolyDataFilter, vtkDiscreteFlyingEdges3D,
                      vtkGeometryFilter, vtkDataSetAttributes, VTK_DOUBLE)
     from vtk.util import numpy_support
+    from scipy.ndimage.morphology import binary_dilation
     _validate_type(smooth, 'numeric', smooth)
     smooth = float(smooth)
     if not 0 <= smooth < 1:
@@ -1676,17 +1678,30 @@ def _marching_cubes(image, level, smooth=0):
 
     if image.ndim != 3:
         raise ValueError(f'3D data must be supplied, got {image.shape}')
-    # force double as passing integer types directly can be problematic!
-    image_shape = image.shape
-    data_vtk = numpy_support.numpy_to_vtk(
-        image.ravel(), deep=True, array_type=VTK_DOUBLE)
-    del image
+
     level = np.array(level)
     if level.ndim != 1 or level.size == 0 or level.dtype.kind not in 'ui':
         raise TypeError(
             'level must be non-empty numeric or 1D array-like of int, '
             f'got {level.ndim}D array-like of {level.dtype} with '
             f'{level.size} elements')
+
+    # fill holes
+    if fill_hole_size is not None:
+        image = image.copy()  # don't modify original
+        for val in level:
+            bin_image = image == val
+            mask = image == 0  # don't go into other areas
+            bin_image = binary_dilation(bin_image, iterations=fill_hole_size,
+                                        mask=mask)
+            image[bin_image] = val
+
+    # force double as passing integer types directly can be problematic!
+    image_shape = image.shape
+    data_vtk = numpy_support.numpy_to_vtk(
+        image.ravel(), deep=True, array_type=VTK_DOUBLE)
+    del image
+
     mc = vtkDiscreteFlyingEdges3D()
     # create image
     imdata = vtkImageData()
@@ -1703,7 +1718,7 @@ def _marching_cubes(image, level, smooth=0):
     sel_input = mc
     if smooth:
         smoother = vtkWindowedSincPolyDataFilter()
-        smoother.SetInputConnection(mc.GetOutputPort())
+        smoother.SetInputConnection(sel_input.GetOutputPort())
         smoother.SetNumberOfIterations(100)
         smoother.BoundarySmoothingOff()
         smoother.FeatureEdgeSmoothingOff()
@@ -1722,9 +1737,17 @@ def _marching_cubes(image, level, smooth=0):
         0, 0, 0, imdata.FIELD_ASSOCIATION_POINTS, dsa.SCALARS)
     geometry = vtkGeometryFilter()
     geometry.SetInputConnection(selector.GetOutputPort())
+
     out = list()
     for val in level:
-        selector.ThresholdBetween(val, val)
+        try:
+            selector.SetLowerThreshold
+        except AttributeError:
+            selector.ThresholdBetween(val, val)
+        else:
+            # default SetThresholdFunction is between, so:
+            selector.SetLowerThreshold(val)
+            selector.SetUpperThreshold(val)
         geometry.Update()
         polydata = geometry.GetOutput()
         rr = numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())
@@ -1736,38 +1759,23 @@ def _marching_cubes(image, level, smooth=0):
     return out
 
 
-def _get_surface_RAS_volumes(base_image, subject_from, subjects_dir):
-    """Check if the image is in Freesurfer surface RAS space."""
-    import nibabel as nib
-    if not isinstance(base_image, nib.spatialimages.SpatialImage):
-        base_image = nib.load(base_image)
-    base_image = nib.MGHImage(
-        _get_img_fdata(base_image).astype(np.float32), base_image.affine)
-    fs_t1 = nib.load(op.join(subjects_dir, subject_from, 'mri', 'T1.mgz'))
-    if not np.allclose(base_image.affine, fs_t1.affine, atol=1e-6):
-        raise RuntimeError('The `base_image` is not aligned to Freesurfer '
-                           'surface RAS space. This space is required as '
-                           'it is the space where the anatomical '
-                           'segmentation and reconstructed surfaces are')
-    return base_image, fs_t1
-
-
-def _warn_missing_chs(montage, dig_image, after_warp):
+def _warn_missing_chs(info, dig_image, after_warp, verbose=None):
     """Warn that channels are missing."""
     # ensure that each electrode contact was marked in at least one voxel
-    missing = set(np.arange(1, len(montage.ch_names) + 1)).difference(
-        set(np.unique(_get_img_fdata(dig_image))))
-    missing_ch = [montage.ch_names[idx - 1] for idx in missing]
-    if missing_ch:
+    missing = set(np.arange(1, len(info.ch_names) + 1)).difference(
+        set(np.unique(np.array(dig_image.dataobj))))
+    missing_ch = [info.ch_names[idx - 1] for idx in missing]
+    if missing_ch and verbose != 'error':
         warn('Channels ' + ', '.join(missing_ch) + ' were not assigned '
              'voxels' + (' after applying SDR warp' if after_warp else ''))
 
 
-@fill_doc
+@verbose
 def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
                         subject_from, subject_to='fsaverage',
-                        subjects_dir=None, thresh=0.95,
-                        max_peak_dist=1, voxels_max=100, use_min=False):
+                        subjects_dir_from=None, subjects_dir_to=None,
+                        thresh=0.5, max_peak_dist=1, voxels_max=100,
+                        use_min=False, verbose=None):
     """Warp a montage to a template with image volumes using SDR.
 
     Find areas of the input volume with intensity greater than
@@ -1780,9 +1788,9 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
 
     Parameters
     ----------
-    montage : mne.channels.montage.DigMontage
+    montage : instance of mne.channels.DigMontage
         The montage object containing the channels.
-    base_image : str | pathlib.Path | nibabel.spatialimages.SpatialImage
+    base_image : path-like | nibabel.spatialimages.SpatialImage
         Path to a volumetric scan (e.g. CT) of the subject. Can be in any
         format readable by nibabel. Can also be a nibabel image object.
         Local extrema (max or min) should be nearby montage channel locations.
@@ -1793,10 +1801,17 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     subject_to : str
         The name of the subject to use as a template to morph to
         (e.g. 'fsaverage').
-    %(subjects_dir)s
+    subjects_dir_from : path-like | None
+        The path to the Freesurfer ``recon-all`` directory for the
+        ``subject_from`` subject. The ``SUBJECTS_DIR`` environment
+        variable will be used when ``None``.
+    subjects_dir_to : path-like | None
+        The path to the Freesurfer ``recon-all`` directory for the
+        ``subject_to`` subject. ``subject_dir_from`` will be used
+        when ``None``.
     thresh : float
-        The quantile of the image data to use to threshold the
-        channel size on the volume.
+        The threshold relative to the peak to determine the size
+        of the sensors on the volume.
     max_peak_dist : int
         The number of voxels away from the channel location to
         look in the ``image``. This will depend on the accuracy of
@@ -1807,10 +1822,11 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     use_min : bool
         Whether to hypointensities in the volume as channel locations.
         Default False uses hyperintensities.
+    %(verbose)s
 
     Returns
     -------
-    montage_warped : mne.channels.montage.DigMontage
+    montage_warped : mne.channels.DigMontage
         The modified montage object containing the channels.
     image_from : nibabel.spatialimages.SpatialImage
         An image in Freesurfer surface RAS space with voxel values
@@ -1822,7 +1838,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     """
     _require_version('nibabel', 'SDR morph', '2.1.0')
     _require_version('dipy', 'SDR morph', '0.10.1')
-    from .channels import DigMontage
+    from .channels import DigMontage, make_dig_montage
     from ._freesurfer import _check_subject_dir
     import nibabel as nib
 
@@ -1836,33 +1852,48 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     _validate_type(use_min, bool, 'use_min')
 
     # first, make sure we have the necessary freesurfer surfaces
-    _check_subject_dir(subject_from, subjects_dir)
-    _check_subject_dir(subject_to, subjects_dir)
+    _check_subject_dir(subject_from, subjects_dir_from)
+    if subjects_dir_to is None:  # assume shared
+        subjects_dir_to = subjects_dir_from
+    _check_subject_dir(subject_to, subjects_dir_to)
 
     # load image and make sure it's in surface RAS
-    image, fs_t1 = _get_surface_RAS_volumes(
-        base_image, subject_from, subjects_dir)
+    if not isinstance(base_image, nib.spatialimages.SpatialImage):
+        base_image = nib.load(base_image)
+    fs_from_img = nib.load(
+        op.join(subjects_dir_from, subject_from, 'mri', 'brain.mgz'))
+    if not np.allclose(base_image.affine, fs_from_img.affine, atol=1e-6):
+        raise RuntimeError('The `base_image` is not aligned to Freesurfer '
+                           'surface RAS space. This space is required as '
+                           'it is the space where the anatomical '
+                           'segmentation and reconstructed surfaces are')
 
     # get montage channel coordinates
     ch_dict = montage.get_positions()
     if ch_dict['coord_frame'] != 'mri':
+        bad_coord_frames = np.unique([d['coord_frame'] for d in montage.dig])
+        bad_coord_frames = ', '.join([
+            _frame_to_str[cf] if cf in _frame_to_str else str(cf)
+            for cf in bad_coord_frames])
         raise RuntimeError('Coordinate frame not supported, expected '
-                           '"mri", got ' + str(ch_dict['coord_frame']))
-    ch_coords = np.array(list(ch_dict['ch_pos'].values()))
+                           f'"mri", got {bad_coord_frames}')
+    ch_names = list(ch_dict['ch_pos'].keys())
+    ch_coords = np.array([ch_dict['ch_pos'][name] for name in ch_names])
 
     # convert to freesurfer voxel space
     ch_coords = apply_trans(
-        np.linalg.inv(fs_t1.header.get_vox2ras_tkr()), ch_coords * 1000)
+        np.linalg.inv(fs_from_img.header.get_vox2ras_tkr()), ch_coords * 1000)
 
     # take channel coordinates and use the image to transform them
     # into a volume where all the voxels over a threshold nearby
     # are labeled with an index
-    image_data = _get_img_fdata(image)
+    image_data = np.array(base_image.dataobj)
     if use_min:
         image_data *= -1
-    thresh = np.quantile(image_data, thresh)
-    image_from = np.zeros(image.shape, dtype=int)
+    image_from = np.zeros(base_image.shape, dtype=int)
     for i, ch_coord in enumerate(ch_coords):
+        if np.isnan(ch_coord).any():
+            continue
         # this looks up to a voxel away, it may be marked imperfectly
         volume = _voxel_neighbors(ch_coord, image_data, thresh=thresh,
                                   max_peak_dist=max_peak_dist,
@@ -1880,11 +1911,11 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
                 image_from[voxel] = i + 1
 
     # apply the mapping
-    image_from = nib.Nifti1Image(image_from, fs_t1.affine)
+    image_from = nib.Nifti1Image(image_from, fs_from_img.affine)
     _warn_missing_chs(montage, image_from, after_warp=False)
 
     template_brain = nib.load(
-        op.join(subjects_dir, subject_to, 'mri', 'brain.mgz'))
+        op.join(subjects_dir_to, subject_to, 'mri', 'brain.mgz'))
 
     image_to = apply_volume_registration(
         image_from, template_brain, reg_affine, sdr_morph,
@@ -1893,34 +1924,28 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     _warn_missing_chs(montage, image_to, after_warp=True)
 
     # recover the contact positions as the center of mass
-    warped_data = _get_img_fdata(image_to)
+    warped_data = np.asanyarray(image_to.dataobj)
     for val, ch_coord in enumerate(ch_coords, 1):
-        ch_coord[:] = np.array(
-            np.where(warped_data == val), float).mean(axis=1)
+        ch_coord[:] = np.mean(np.where(warped_data == val), axis=1)
 
-    # convert back to surface RAS
+    # convert back to surface RAS of the template
+    fs_to_img = nib.load(
+        op.join(subjects_dir_to, subject_to, 'mri', 'brain.mgz'))
     ch_coords = apply_trans(
-        fs_t1.header.get_vox2ras_tkr(), ch_coords) / 1000
+        fs_to_img.header.get_vox2ras_tkr(), ch_coords) / 1000
 
-    # copy before modifying
-    montage_warped = montage.copy()
-
-    # modify montage to be returned
-    idx = 0
-    for dig_point in montage_warped.dig:
-        if dig_point['kind'] == FIFF.FIFFV_POINT_EEG:
-            assert dig_point['ident'] == idx + 1  # 1 indexed
-            dig_point['r'] = ch_coords[idx]
-            idx += 1
+    # make warped montage
+    montage_warped = make_dig_montage(
+        dict(zip(ch_names, ch_coords)), coord_frame='mri')
     return montage_warped, image_from, image_to
 
 
-_VOXELS_MAX = 100  # define constant to avoid runtime issues
+_VOXELS_MAX = 1000  # define constant to avoid runtime issues
 
 
 @fill_doc
 def get_montage_volume_labels(montage, subject, subjects_dir=None,
-                              aseg='aparc+aseg', dist=5):
+                              aseg='aparc+aseg', dist=2):
     """Get regions of interest near channels from a Freesurfer parcellation.
 
     .. note:: This is applicable for channels inside the brain
@@ -1948,6 +1973,9 @@ def get_montage_volume_labels(montage, subject, subjects_dir=None,
     _validate_type(montage, DigMontage, 'montage')
     _validate_type(dist, (int, float), 'dist')
 
+    if dist < 0 or dist > 10:
+        raise ValueError('`dist` must be between 0 and 10')
+
     aseg, aseg_data = _get_aseg(aseg, subject, subjects_dir)
 
     # read freesurfer lookup table
@@ -1970,13 +1998,16 @@ def get_montage_volume_labels(montage, subject, subjects_dir=None,
     ch_coords = apply_trans(
         np.linalg.inv(aseg.header.get_vox2ras_tkr()), ch_coords * 1000)
     labels = OrderedDict()
-    for ch_name, seed in zip(montage.ch_names, ch_coords):
-        voxels = _voxel_neighbors(
-            seed, aseg_data, dist=dist, vox2ras_tkr=vox2ras_tkr,
-            voxels_max=_VOXELS_MAX)
-        label_idxs = set([aseg_data[tuple(voxel)].astype(int)
-                          for voxel in voxels])
-        labels[ch_name] = [label_lut[idx] for idx in label_idxs]
+    for ch_name, ch_coord in zip(montage.ch_names, ch_coords):
+        if np.isnan(ch_coord).any():
+            labels[ch_name] = list()
+        else:
+            voxels = _voxel_neighbors(
+                ch_coord, aseg_data, dist=dist, vox2ras_tkr=vox2ras_tkr,
+                voxels_max=_VOXELS_MAX)
+            label_idxs = set([aseg_data[tuple(voxel)].astype(int)
+                              for voxel in voxels])
+            labels[ch_name] = [label_lut[idx] for idx in label_idxs]
 
     all_labels = set([label for val in labels.values() for label in val])
     colors = {label: tuple(fs_colors[label][:3] / 255) + (1.,)
@@ -2009,8 +2040,9 @@ def _get_neighbors(loc, image, voxels, thresh, dist_params):
     return neighbors
 
 
-def _voxel_neighbors(seed, image, thresh=None, max_peak_dist=None,
-                     dist=None, vox2ras_tkr=None, voxels_max=100):
+def _voxel_neighbors(seed, image, thresh=None, max_peak_dist=1,
+                     use_relative=True, dist=None, vox2ras_tkr=None,
+                     voxels_max=100):
     """Find voxels above a threshold contiguous with a seed location.
 
     Parameters
@@ -2020,11 +2052,14 @@ def _voxel_neighbors(seed, image, thresh=None, max_peak_dist=None,
     image : ndarray
         The image to search.
     thresh : float
-        The threshold to use as a cutoff for what qualifies as a
-        neighbor.
+        The threshold to use as a cutoff for what qualifies as a neighbor.
+        Will be relative to the peak if ``use_relative`` or absolute if not.
     max_peak_dist : int
         The maximum number of voxels to search for the peak near
         the seed location.
+    use_relative : bool
+        If ``True``, the threshold will be relative to the peak, if
+        ``False``, the threshold will be absolute.
     dist : float
         The distance in mm to include surrounding voxels.
     vox2ras_tkr : ndarray
@@ -2046,8 +2081,8 @@ def _voxel_neighbors(seed, image, thresh=None, max_peak_dist=None,
               only voxels within ``dist`` mm of the seed are included.
     """
     seed = np.array(seed).round().astype(int)
-    assert ((dist is not None) + (max_peak_dist is not None)) == 1
-    if max_peak_dist is not None:
+    assert ((dist is not None) + (thresh is not None)) == 1
+    if thresh is not None:
         dist_params = None
         check_grid = image[tuple([
             slice(idx - max_peak_dist, idx + max_peak_dist + 1)
@@ -2055,6 +2090,8 @@ def _voxel_neighbors(seed, image, thresh=None, max_peak_dist=None,
         peak = np.array(np.unravel_index(
             np.argmax(check_grid), check_grid.shape)) - max_peak_dist + seed
         voxels = neighbors = set([tuple(peak)])
+        if use_relative:
+            thresh *= image[tuple(peak)]
     else:
         assert vox2ras_tkr is not None
         seed_fs_ras = apply_trans(vox2ras_tkr, seed + 0.5)  # center of voxel
@@ -2065,9 +2102,13 @@ def _voxel_neighbors(seed, image, thresh=None, max_peak_dist=None,
         for next_loc in neighbors:
             voxel_neighbors = _get_neighbors(next_loc, image, voxels,
                                              thresh, dist_params)
+            # prevent looping back to already visited voxels
+            voxel_neighbors = voxel_neighbors.difference(voxels)
+            # add voxels not already visited to search next
+            next_neighbors = next_neighbors.union(voxel_neighbors)
+            # add new voxels that match the criteria to the overall set
             voxels = voxels.union(voxel_neighbors)
             if len(voxels) > voxels_max:
                 break
-            next_neighbors = next_neighbors.union(voxel_neighbors)
-        neighbors = next_neighbors
+        neighbors = next_neighbors  # start again checking all new neighbors
     return voxels

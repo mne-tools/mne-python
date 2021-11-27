@@ -27,7 +27,9 @@ from mne.minimum_norm import (read_inverse_operator,
                               make_inverse_resolution_matrix,
                               get_point_spread)
 
-from mne.viz import circular_layout, plot_connectivity_circle
+from mne.viz import circular_layout
+from mne_connectivity.viz import plot_connectivity_circle
+
 
 print(__doc__)
 

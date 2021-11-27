@@ -17,7 +17,6 @@ import numpy as np
 from .multitaper import dpss_windows
 
 from ..baseline import rescale
-from ..fixes import _import_fft
 from ..filter import next_fast_len
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
@@ -26,13 +25,13 @@ from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
                      _gen_events, SizeMixin, _is_numeric, _check_option,
                      _validate_type, _check_combine, _check_pandas_installed,
                      _check_pandas_index_arguments, _check_time_format,
-                     _convert_times, _build_data_frame)
+                     _convert_times, _build_data_frame, warn)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
                        _get_channel_types)
 from ..io.meas_info import Info
-from ..viz.utils import (figure_nobar, plt_show, _setup_cmap, warn,
+from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
                          _connection_line, _prepare_joint_axes,
                          _setup_vmin_vmax, _set_title_multiple_electrodes)
 from ..externals.h5io import write_hdf5, read_hdf5
@@ -219,7 +218,7 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
     out : array, shape (n_signals, n_freqs, n_time_decim)
         The time-frequency transform of the signals.
     """
-    fft, ifft = _import_fft(('fft', 'ifft'))
+    from scipy.fft import fft, ifft
     _check_option('mode', mode, ['same', 'valid', 'full'])
     decim = _check_decim(decim)
     X = np.asarray(X)
@@ -640,7 +639,8 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     out = _compute_tfr(data, freqs, info['sfreq'], method=method,
                        output=output, decim=decim, **tfr_params)
     times = inst.times[decim].copy()
-    info['sfreq'] /= decim.step
+    with info._unlock():
+        info['sfreq'] /= decim.step
 
     if average:
         if return_itc:
@@ -1165,7 +1165,7 @@ class AverageTFR(_BaseTFR):
              cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
              axes=None, layout=None, yscale='auto', mask=None,
              mask_style=None, mask_cmap="Greys", mask_alpha=0.1, combine=None,
-             exclude=[], verbose=None):
+             exclude=[], cnorm=None, verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         Parameters
@@ -1290,6 +1290,12 @@ class AverageTFR(_BaseTFR):
         exclude : list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
             bad channels are excluded. Defaults to an empty list.
+        cnorm : matplotlib.colors.Normalize | None
+            Colormap normalization, default None means linear normalization. If
+            not None, ``vmin`` and ``vmax`` arguments are ignored. See
+            :func:`mne.viz.plot_topomap` for more details.
+
+            .. versionadded:: 0.24
         %(verbose_meth)s
 
         Returns
@@ -1304,7 +1310,7 @@ class AverageTFR(_BaseTFR):
                           axes=axes, layout=layout, yscale=yscale, mask=mask,
                           mask_style=mask_style, mask_cmap=mask_cmap,
                           mask_alpha=mask_alpha, combine=combine,
-                          exclude=exclude, verbose=verbose)
+                          exclude=exclude, cnorm=cnorm, verbose=verbose)
 
     @verbose
     def _plot(self, picks=None, baseline=None, mode='mean', tmin=None,
@@ -1314,7 +1320,7 @@ class AverageTFR(_BaseTFR):
               mask_style=None, mask_cmap="Greys", mask_alpha=.25,
               combine=None, exclude=None, copy=True,
               source_plot_joint=False, topomap_args=dict(), ch_type=None,
-              verbose=None):
+              cnorm=None, verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         See self.plot() for parameters description.
@@ -1378,7 +1384,7 @@ class AverageTFR(_BaseTFR):
                 tfr=data[idx: idx + 1], freq=tfr.freqs, x_label='Time (s)',
                 y_label='Frequency (Hz)', colorbar=colorbar, cmap=cmap,
                 yscale=yscale, mask=mask, mask_style=mask_style,
-                mask_cmap=mask_cmap, mask_alpha=mask_alpha)
+                mask_cmap=mask_cmap, mask_alpha=mask_alpha, cnorm=cnorm)
 
             if title == 'auto':
                 if len(tfr.info['ch_names']) == 1 or combine is None:
@@ -2227,7 +2233,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         epochs.data = np.abs(self.data)
         return epochs
 
-    def average(self, method='mean'):
+    def average(self, method='mean', dim='epochs', copy=False):
         """Average the data across epochs.
 
         Parameters
@@ -2239,10 +2245,16 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
             returns an array of shape (n_channels, n_freqs, n_time).
             Note that due to file type limitations, the kind for all
             these will be "average".
+        dim : 'epochs' | 'freqs' | 'times'
+            The dimension along which to combine the data.
+        copy : bool
+            Whether to return a copy of the modified instance,
+            or modify in place. Ignored when ``dim='epochs'``
+            because a new instance must be returned.
 
         Returns
         -------
-        ave : instance of AverageTFR
+        ave : instance of AverageTFR | EpochsTFR
             The averaged data.
 
         Notes
@@ -2256,21 +2268,49 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
         https://github.com/scipy/scipy/pull/12676#issuecomment-783370228
         """
+        _check_option('dim', dim, ('epochs', 'freqs', 'times'))
+        axis = dict(epochs=0, freqs=2, times=self.data.ndim - 1)[dim]
+
         # return a lambda function for computing a combination metric
         # over epochs
-        func = _check_combine(mode=method)
+        func = _check_combine(mode=method, axis=axis)
         data = func(self.data)
 
-        if data.shape != self._data.shape[1:]:
-            raise RuntimeError(
-                'You passed a function that resulted in data of shape {}, '
-                'but it should be {}.'.format(
-                    data.shape, self._data.shape[1:]))
+        n_epochs, n_channels, n_freqs, n_times = self.data.shape
+        freqs, times = self.freqs, self.times
 
-        return AverageTFR(info=self.info.copy(), data=data,
-                          times=self.times.copy(), freqs=self.freqs.copy(),
-                          nave=self.data.shape[0], method=self.method,
-                          comment=self.comment)
+        if dim == 'freqs':
+            freqs = np.mean(self.freqs, keepdims=True)
+            n_freqs = 1
+        elif dim == 'times':
+            times = np.mean(self.times, keepdims=True)
+            n_times = 1
+        if dim == 'epochs':
+            expected_shape = self._data.shape[1:]
+        else:
+            expected_shape = (n_epochs, n_channels, n_freqs, n_times)
+            data = np.expand_dims(data, axis=axis)
+
+        if data.shape != expected_shape:
+            raise RuntimeError(
+                f'You passed a function that resulted in data of shape '
+                f'{data.shape}, but it should be {expected_shape}.')
+
+        if dim == 'epochs':
+            return AverageTFR(info=self.info.copy(), data=data,
+                              times=times, freqs=freqs,
+                              nave=self.data.shape[0], method=self.method,
+                              comment=self.comment)
+        elif copy:
+            return EpochsTFR(info=self.info.copy(), data=data,
+                             times=times, freqs=freqs, method=self.method,
+                             comment=self.comment, metadata=self.metadata,
+                             events=self.events, event_id=self.event_id)
+        else:
+            self.data = data
+            self.times = times
+            self.freqs = freqs
+            return self
 
 
 def combine_tfr(all_tfr, weights='nave'):

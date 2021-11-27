@@ -26,6 +26,7 @@ from ..base import BaseRaw
 from ..utils import _read_segments_file, _mult_cal_one
 from ...annotations import Annotations, read_annotations
 from ...channels import make_dig_montage
+from ...defaults import HEAD_SIZE_DEFAULT
 
 
 @fill_doc
@@ -125,8 +126,28 @@ class RawBrainVision(BaseRaw):
                 block = np.empty((n_data_ch, stop - start))
                 for ii in range(stop - start):
                     line = fid.readline().decode('ASCII')
-                    line = line.strip().replace(',', '.').split()
-                    block[:n_data_ch, ii] = [float(part) for part in line]
+                    line = line.strip()
+
+                    # Not sure why we special-handle the "," character here,
+                    # but let's just keep this for historical and backward-
+                    # compat reasons
+                    if (isinstance(fmt, dict) and
+                            'decimalsymbol' in fmt and
+                            fmt['decimalsymbol'] != '.'):
+                        line = line.replace(',', '.')
+
+                    if ' ' in line:
+                        line_data = line.split()
+                    elif ',' in line:
+                        # likely exported from BrainVision Analyzer?
+                        line_data = line.split(',')
+                    else:
+                        raise RuntimeError(
+                            'Unknown BrainVision data format encountered. '
+                            'Please contact the MNE-Python developers.'
+                        )
+
+                    block[:n_data_ch, ii] = [float(part) for part in line_data]
             _mult_cal_one(data, block, idx, cals, mult)
 
 
@@ -239,9 +260,9 @@ def _read_vmrk(fname):
 
 
 def _read_annotations_brainvision(fname, sfreq='auto'):
-    """Create Annotations from BrainVision vrmk.
+    """Create Annotations from BrainVision vmrk.
 
-    This function reads a .vrmk file and makes an
+    This function reads a .vmrk file and makes an
     :class:`mne.Annotations` object.
 
     Parameters
@@ -254,7 +275,7 @@ def _read_annotations_brainvision(fname, sfreq='auto'):
         files are in samples. If set to 'auto' then
         the sfreq is taken from the .vhdr file that
         has the same name (without file extension). So
-        data.vrmk looks for sfreq in data.vhdr.
+        data.vmrk looks for sfreq in data.vhdr.
 
     Returns
     -------
@@ -278,22 +299,24 @@ def _read_annotations_brainvision(fname, sfreq='auto'):
     return annotations
 
 
-_data_err = """\
-MNE-Python currently only supports %s versions 1.0 and 2.0, got unparsable \
-%r. Contact MNE-Python developers for support."""
-# optional space, optional Core, Version/Header, optional comma, 1/2
-_data_re = r'Brain ?Vision( Core)? Data Exchange %s File,? Version %s\.0'
-
-
 def _check_bv_version(header, kind):
     """Check the header version."""
+    _data_err = """\
+    MNE-Python currently only supports %s versions 1.0 and 2.0, got unparsable\
+     %r. Contact MNE-Python developers for support."""
+    # optional space, optional Core, Version/Header, optional comma, 1/2
+    _data_re = r'Brain ?Vision( Core)? Data Exchange %s File,? Version %s\.0'
+
     assert kind in ('header', 'marker')
+
+    if header == '':
+        warn(f'Missing header in {kind} file.')
     for version in range(1, 3):
         this_re = _data_re % (kind.capitalize(), version)
         if re.search(this_re, header) is not None:
             return version
     else:
-        raise ValueError(_data_err % (kind, header))
+        warn(_data_err % (kind, header))
 
 
 _orientation_dict = dict(MULTIPLEXED='F', VECTORIZED='C')
@@ -384,6 +407,7 @@ def _aux_vhdr_info(vhdr_fname):
     # Sampling interval is given in microsec
     sfreq = 1e6 / cfg.getfloat(cinfostr, 'SamplingInterval')
     info = _empty_info(sfreq)
+    info._unlocked = False
     return settings, cfg, cinfostr, info
 
 
@@ -433,6 +457,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
                       "not a file with extension '%s'." % ext)
 
     settings, cfg, cinfostr, info = _aux_vhdr_info(vhdr_fname)
+    info._unlocked = True
 
     order = cfg.get(cinfostr, 'DataOrientation')
     if order not in _orientation_dict:
@@ -467,13 +492,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
 
     for line in lines:
         match = re.findall(regexp, line.strip())
-
         # Always take first measurement date we find
         if match:
             date_str = match[0]
             info['meas_date'] = _str_to_meas_date(date_str)
             break
-
     else:
         info['meas_date'] = None
 
@@ -552,8 +575,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             az = np.deg2rad(phi)
             # Coordinates could be "idealized" (spherical head model)
             if rad == 1:
-                # scale up to realistic head radius (8.5cm == 85mm)
-                rad *= 85.
+                # scale up to realistic head radius: *1000 to convert m to mm
+                rad *= HEAD_SIZE_DEFAULT * 1000
             pos = _sph_to_cart(np.array([[rad, az, pol]]))[0]
             if (pos == 0).all() and ch_name not in list(eog) + misc:
                 to_misc.append(ch_name)
@@ -652,6 +675,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             line = re.split(divider, settings[idx + i])
             highpass.append(line[hp_col + real_shift])
             lowpass.append(line[lp_col + real_shift])
+
         if len(highpass) == 0:
             pass
         elif len(set(highpass)) == 1:
@@ -792,6 +816,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             unit=unit, unit_mul=FIFF.FIFF_UNITM_NONE,
             coord_frame=FIFF.FIFFV_COORD_HEAD))
 
+    info._unlocked = False
     info._update_redundant()
     return (info, data_fname, fmt, order, n_samples, mrk_fname, montage,
             orig_units)

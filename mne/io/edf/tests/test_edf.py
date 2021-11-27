@@ -21,6 +21,7 @@ from scipy.io import loadmat
 import pytest
 
 from mne import pick_types, Annotations
+from mne.annotations import events_from_annotations, read_annotations
 from mne.datasets import testing
 from mne.utils import requires_pandas
 from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf, read_raw_gdf
@@ -29,7 +30,7 @@ from mne.io.edf.edf import (_get_edf_default_event_id, _read_annotations_edf,
                             _read_ch, _parse_prefilter_string, _edf_str,
                             _read_edf_header, _read_header)
 from mne.io.pick import channel_indices_by_type, get_channel_type_constants
-from mne.annotations import events_from_annotations, read_annotations
+from mne.tests.test_annotations import _assert_annotations_equal
 
 td_mark = testing._pytest_mark()
 
@@ -52,12 +53,14 @@ edf_stim_resamp_path = op.join(data_path, 'EDF', 'test_edf_stim_resamp.edf')
 edf_overlap_annot_path = op.join(data_path, 'EDF',
                                  'test_edf_overlapping_annotations.edf')
 edf_reduced = op.join(data_path, 'EDF', 'test_reduced.edf')
+edf_annot_only = op.join(data_path, 'EDF', 'SC4001EC-Hypnogram.edf')
 bdf_stim_channel_path = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
 bdf_multiple_annotations_path = op.join(data_path, 'BDF',
                                         'multiple_annotation_chans.bdf')
 test_generator_bdf = op.join(data_path, 'BDF', 'test_generator_2.bdf')
 test_generator_edf = op.join(data_path, 'EDF', 'test_generator_2.edf')
 edf_annot_sub_s_path = op.join(data_path, 'EDF', 'subsecond_starttime.edf')
+edf_chtypes_path = op.join(data_path, 'EDF', 'chtypes_edf.edf')
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
@@ -73,7 +76,7 @@ def test_orig_units():
     assert orig_units['A1'] == 'µV'  # formerly 'uV' edit by _check_orig_units
 
 
-def test_subject_info(tmpdir):
+def test_subject_info(tmp_path):
     """Test exposure of original channel units."""
     raw = read_raw_edf(edf_path)
     assert raw.info['subject_info'] is None  # XXX this is arguably a bug
@@ -82,7 +85,7 @@ def test_subject_info(tmpdir):
     want = {'id': 'X', 'sex': 'X', 'birthday': 'X', 'name': 'X'}
     for key, val in want.items():
         assert edf_info['subject_info'][key] == val, key
-    fname = tmpdir.join('test_raw.fif')
+    fname = tmp_path / 'test_raw.fif'
     raw.save(fname)
     raw = read_raw_fif(fname)
     assert raw.info['subject_info'] is None  # XXX should eventually round-trip
@@ -122,10 +125,10 @@ def test_bdf_data():
 
 
 @testing.requires_testing_data
-def test_bdf_crop_save_stim_channel(tmpdir):
+def test_bdf_crop_save_stim_channel(tmp_path):
     """Test EDF with various sampling rates."""
     raw = read_raw_bdf(bdf_stim_channel_path)
-    raw.save(tmpdir.join('test-raw.fif'), tmin=1.2, tmax=4.0, overwrite=True)
+    raw.save(tmp_path / 'test-raw.fif', tmin=1.2, tmax=4.0, overwrite=True)
 
 
 @testing.requires_testing_data
@@ -141,7 +144,7 @@ def test_edf_others(fname, stim_channel):
         verbose='error')
 
 
-def test_edf_data_broken(tmpdir):
+def test_edf_data_broken(tmp_path):
     """Test edf files."""
     raw = _test_raw_reader(read_raw_edf, input_fname=edf_path,
                            exclude=['Ergo-Left', 'H10'], verbose='error')
@@ -150,7 +153,7 @@ def test_edf_data_broken(tmpdir):
     assert_equal(len(raw.ch_names) + 2, len(raw_py.ch_names))
 
     # Test with number of records not in header (-1).
-    broken_fname = op.join(tmpdir, 'broken.edf')
+    broken_fname = op.join(tmp_path, 'broken.edf')
     with open(edf_path, 'rb') as fid_in:
         fid_in.seek(0, 2)
         n_bytes = fid_in.tell()
@@ -178,14 +181,14 @@ def test_edf_data_broken(tmpdir):
 
 def test_duplicate_channel_labels_edf():
     """Test reading edf file with duplicate channel names."""
-    EXPECTED_CHANNEL_NAMES = ['EEG F1-Ref-0', 'EEG F2-Ref', 'EEG F1-Ref-1']
+    EXPECTED_CHANNEL_NAMES = ['F1-Ref-0', 'F2-Ref', 'F1-Ref-1']
     with pytest.warns(RuntimeWarning, match='Channel names are not unique'):
         raw = read_raw_edf(duplicate_channel_labels_path, preload=False)
 
     assert raw.ch_names == EXPECTED_CHANNEL_NAMES
 
 
-def test_parse_annotation(tmpdir):
+def test_parse_annotation(tmp_path):
     """Test parsing the tal channel."""
     # test the parser
     annot = (b'+180\x14Lights off\x14Close door\x14\x00\x00\x00\x00\x00'
@@ -194,15 +197,16 @@ def test_parse_annotation(tmpdir):
              b'+3.14\x1504.20\x14nothing\x14\x00\x00\x00\x00'
              b'+1800.2\x1525.5\x14Apnea\x14\x00\x00\x00\x00\x00\x00\x00'
              b'+123\x14\x14\x00\x00\x00\x00\x00\x00\x00')
-    annot_file = tmpdir.join('annotations.txt')
-    annot_file.write(annot)
+    annot_file = tmp_path / 'annotations.txt'
+    with open(annot_file, "wb") as f:
+        f.write(annot)
 
     annot = [a for a in bytes(annot)]
     annot[1::2] = [a * 256 for a in annot[1::2]]
     tal_channel_A = np.array(list(map(sum, zip(annot[0::2], annot[1::2]))),
                              dtype=np.int64)
 
-    with open(str(annot_file), 'rb') as fid:
+    with open(annot_file, 'rb') as fid:
         # ch_data = np.fromfile(fid, dtype='<i2', count=len(annot))
         tal_channel_B = _read_ch(fid, subtype='EDF', dtype='<i2',
                                  samp=(len(annot) - 1) // 2,
@@ -233,6 +237,31 @@ def test_find_events_backward_compatibility():
                                                  use_rounding=False)
 
     assert_array_equal(events_from_EFA, EXPECTED_EVENTS)
+
+
+@testing.requires_testing_data
+def test_no_data_channels():
+    """Test that we can load with no data channels."""
+    # analog
+    raw = read_raw_edf(edf_path, preload=True)
+    picks = pick_types(raw.info, stim=True)
+    assert list(picks) == [len(raw.ch_names) - 1]
+    stim_data = raw[picks][0]
+    raw = read_raw_edf(edf_path, exclude=raw.ch_names[:-1])
+    stim_data_2 = raw[0][0]
+    assert_array_equal(stim_data, stim_data_2)
+    raw.plot()  # smoke test
+    # annotations
+    raw = read_raw_edf(edf_overlap_annot_path)
+    picks = pick_types(raw.info, stim=True)
+    assert picks.size == 0
+    annot = raw.annotations
+    raw = read_raw_edf(edf_overlap_annot_path, exclude=raw.ch_names)
+    annot_2 = raw.annotations
+    _assert_annotations_equal(annot, annot_2)
+    # only annotations (should warn)
+    with pytest.warns(RuntimeWarning, match='read_annotations'):
+        read_raw_edf(edf_annot_only)
 
 
 @requires_pandas
@@ -266,14 +295,7 @@ def test_read_raw_edf_stim_channel_input_parameters():
             read_raw_edf(edf_path, stim_channel=invalid_stim_parameter)
 
 
-def _assert_annotations_equal(a, b):
-    assert_array_equal(a.onset, b.onset)
-    assert_array_equal(a.duration, b.duration)
-    assert_array_equal(a.description, b.description)
-    assert a.orig_time == b.orig_time
-
-
-def test_read_annot(tmpdir):
+def test_read_annot(tmp_path):
     """Test parsing the tal channel."""
     EXPECTED_ANNOTATIONS = [[180.0, 0, 'Lights off'], [180.0, 0, 'Close door'],
                             [180.0, 0, 'Lights off'], [180.0, 0, 'Close door'],
@@ -294,8 +316,9 @@ def test_read_annot(tmpdir):
              b'+3.14\x1504.20\x14nothing\x14\x00\x00\x00\x00'
              b'+1800.2\x1525.5\x14Apnea\x14\x00\x00\x00\x00\x00\x00\x00'
              b'+123\x14\x14\x00\x00\x00\x00\x00\x00\x00')
-    annot_file = tmpdir.join('annotations.txt')
-    annot_file.write(annot)
+    annot_file = tmp_path / 'annotations.txt'
+    with open(annot_file, "wb") as f:
+        f.write(annot)
 
     onset, duration, desc = _read_annotations_edf(annotations=str(annot_file))
     annotation = Annotations(onset=onset, duration=duration, description=desc,
@@ -303,7 +326,7 @@ def test_read_annot(tmpdir):
     _assert_annotations_equal(annotation, EXPECTED_ANNOTATIONS)
 
     # Now test when reading from buffer of data
-    with open(str(annot_file), 'rb') as fid:
+    with open(annot_file, 'rb') as fid:
         ch_data = np.fromfile(fid, dtype='<i2', count=len(annot))
     onset, duration, desc = _read_annotations_edf([ch_data])
     annotation = Annotations(onset=onset, duration=duration, description=desc,
@@ -408,8 +431,7 @@ def test_bdf_multiple_annotation_channels():
 def test_edf_lowpass_zero():
     """Test if a lowpass filter of 0Hz is mapped to the Nyquist frequency."""
     raw = read_raw_edf(edf_stim_resamp_path)
-    assert raw.ch_names[100] == 'EEG LDAMT_01-REF'
-    assert len(raw.ch_names[100]) > 15
+    assert raw.ch_names[100] == 'LDAMT_01-REF'
     assert_allclose(raw.info["lowpass"], raw.info["sfreq"] / 2)
 
 
@@ -420,7 +442,7 @@ def test_edf_annot_sub_s_onset():
     assert_allclose(raw.annotations.onset, [1.951172, 3.492188])
 
 
-def test_invalid_date(tmpdir):
+def test_invalid_date(tmp_path):
     """Test handling of invalid date in EDF header."""
     with open(edf_path, 'rb') as f:  # read valid test file
         edf = bytearray(f.read())
@@ -433,7 +455,7 @@ def test_invalid_date(tmpdir):
     # one wrong: no warning
     edf[101:104] = b'FEB'
     assert edf[172] == ord('4')
-    fname = op.join(str(tmpdir), "temp.edf")
+    fname = op.join(str(tmp_path), "temp.edf")
     with open(fname, "wb") as f:
         f.write(edf)
     read_raw_edf(fname)
@@ -525,3 +547,19 @@ def test_exclude():
     raw = read_raw_edf(edf_path, exclude="I[1-4]")
     for ch in exclude:
         assert ch not in raw.ch_names
+
+
+@testing.requires_testing_data
+def test_ch_types():
+    """Test reading of channel types from EDF channel label."""
+    raw = read_raw_edf(edf_chtypes_path)
+
+    # get the channel types for all channels
+    ch_types = raw.get_channel_types()
+    assert all(x in ch_types for x in ['eeg', 'ecg'])
+
+    # test certain channels were correctly detected as a channel type
+    test_ch_names = {"Fp1-Ref": "eeg", "P10-Ref": "eeg", "DC01": "eeg",
+                     "ECG1": "ecg", "ECG2": "ecg"}
+    assert all(raw.get_channel_types(picks=pick)[0] == ch_type
+               for pick, ch_type in test_ch_names.items())

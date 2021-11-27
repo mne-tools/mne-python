@@ -24,7 +24,6 @@ Visualization
    plot_bem
    plot_brain_colorbar
    plot_chpi_snr
-   plot_connectivity_circle
    plot_cov
    plot_channel_labels_circle
    plot_csd
@@ -57,7 +56,6 @@ Visualization
    plot_raw
    plot_raw_psd
    plot_sensors
-   plot_sensors_connectivity
    plot_snr_estimate
    plot_source_estimates
    link_brains
@@ -77,4 +75,9 @@ Visualization
    set_3d_view
    set_3d_title
    create_3d_figure
+   close_3d_figure
+   close_all_3d_figures
    get_brain_class
+   set_browser_backend
+   get_browser_backend
+   use_browser_backend

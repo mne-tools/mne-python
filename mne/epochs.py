@@ -20,6 +20,7 @@ import os.path as op
 
 import numpy as np
 
+from .io.utils import _construct_bids_filename
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_float, write_float_matrix,
                        write_double_matrix, write_complex_float_matrix,
@@ -46,7 +47,7 @@ from .filter import detrend, FilterMixin, _check_fun
 from .parallel import parallel_func
 
 from .event import _read_events_fif, make_fixed_length_events
-from .fixes import _get_args, rng_uniform
+from .fixes import rng_uniform
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
 from .utils import (_check_fname, check_fname, logger, verbose,
@@ -59,7 +60,8 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_combine, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_index_arguments, _convert_times,
                     _scale_dataframe_data, _check_time_format, object_size,
-                    _on_missing, _validate_type, _ensure_events)
+                    _on_missing, _validate_type, _ensure_events,
+                    _path_like)
 from .utils.docs import fill_doc
 from .data.html_templates import epochs_template
 
@@ -73,23 +75,32 @@ def _pack_reject_params(epochs):
     return reject_params
 
 
-def _save_split(epochs, fname, part_idx, n_parts, fmt):
+def _save_split(epochs, fname, part_idx, n_parts, fmt, split_naming,
+                overwrite):
     """Split epochs.
 
     Anything new added to this function also needs to be added to
     BaseEpochs.save to account for new file sizes.
     """
     # insert index in filename
-    path, base = op.split(fname)
-    idx = base.find('.')
+    base, ext = op.splitext(fname)
     if part_idx > 0:
-        fname = op.join(path, '%s-%d.%s' % (base[:idx], part_idx,
-                                            base[idx + 1:]))
+        if split_naming == 'neuromag':
+            fname = '%s-%d%s' % (base, part_idx, ext)
+        else:
+            assert split_naming == 'bids'
+            fname = _construct_bids_filename(base, ext, part_idx,
+                                             validate=False)
+            _check_fname(fname, overwrite=overwrite)
 
     next_fname = None
     if part_idx < n_parts - 1:
-        next_fname = op.join(path, '%s-%d.%s' % (base[:idx], part_idx + 1,
-                                                 base[idx + 1:]))
+        if split_naming == 'neuromag':
+            next_fname = '%s-%d%s' % (base, part_idx + 1, ext)
+        else:
+            assert split_naming == 'bids'
+            next_fname = _construct_bids_filename(base, ext, part_idx + 1,
+                                                  validate=False)
         next_idx = part_idx + 1
     else:
         next_idx = None
@@ -650,7 +661,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._decim *= decim
         i_start = start_idx % self._decim + offset
         decim_slice = slice(i_start, None, self._decim)
-        self.info['sfreq'] = new_sfreq
+        with self.info._unlock():
+            self.info['sfreq'] = new_sfreq
         if self.preload:
             if decim != 1:
                 self._data = self._data[:, :, decim_slice].copy()
@@ -940,7 +952,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return self
 
     @fill_doc
-    def average(self, picks=None, method="mean"):
+    def average(self, picks=None, method="mean", by_event_type=False):
         """Compute an average over epochs.
 
         Parameters
@@ -954,11 +966,23 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             (n_channels, n_time).
             Note that due to file type limitations, the kind for all
             these will be "average".
+        by_event_type : bool
+            When ``False`` (the default) all epochs are averaged and a single
+            :class:`Evoked` object is returned. When ``True``, epochs are first
+            grouped by event type (as specified using the ``event_id``
+            parameter) and a list is returned containing a separate
+            :class:`Evoked` object for each event type. The ``.comment``
+            attribute is set to the label of the event type.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
-        evoked : instance of Evoked | dict of Evoked
-            The averaged epochs.
+        evoked : instance of Evoked | list of Evoked
+            The averaged epochs. When ``by_event_type=True`` was specified, a
+            list is returned containing a separate :class:`Evoked` object
+            for each event type. The list has the same order as the event types
+            as specified in the ``event_id`` dictionary.
 
         Notes
         -----
@@ -980,22 +1004,44 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         This would compute the trimmed mean.
         """
-        return self._compute_aggregate(picks=picks, mode=method)
+        if by_event_type:
+            evokeds = list()
+            for event_type in self.event_id.keys():
+                ev = self[event_type]._compute_aggregate(picks=picks,
+                                                         mode=method)
+                ev.comment = event_type
+                evokeds.append(ev)
+        else:
+            evokeds = self._compute_aggregate(picks=picks, mode=method)
+        return evokeds
 
     @fill_doc
-    def standard_error(self, picks=None):
+    def standard_error(self, picks=None, by_event_type=False):
         """Compute standard error over epochs.
 
         Parameters
         ----------
         %(picks_all_data)s
+        by_event_type : bool
+            When ``False`` (the default) all epochs are averaged and a single
+            :class:`Evoked` object is returned. When ``True``, epochs are first
+            grouped by event type (as specified using the ``event_id``
+            parameter) and a list is returned containing a separate
+            :class:`Evoked` object for each event type. The ``.comment``
+            attribute is set to the label of the event type.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
-        evoked : instance of Evoked
-            The standard error over epochs.
+        std_err : instance of Evoked | list of Evoked
+            The standard error over epochs. When ``by_event_type=True`` was
+            specified, a list is returned containing a separate :class:`Evoked`
+            object for each event type. The list has the same order as the
+            event types as specified in the ``event_id`` dictionary.
         """
-        return self._compute_aggregate(picks, "std")
+        return self.average(picks=picks, method="std",
+                            by_event_type=by_event_type)
 
     def _compute_aggregate(self, picks, mode='mean'):
         """Compute the mean, median, or std over epochs and return Evoked."""
@@ -1108,14 +1154,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     def plot(self, picks=None, scalings=None, n_epochs=20, n_channels=20,
              title=None, events=None, event_color=None,
              order=None, show=True, block=False, decim='auto', noise_cov=None,
-             butterfly=False, show_scrollbars=True, epoch_colors=None,
-             event_id=None, group_by='type'):
+             butterfly=False, show_scrollbars=True, show_scalebars=True,
+             epoch_colors=None, event_id=None, group_by='type'):
         return plot_epochs(self, picks=picks, scalings=scalings,
                            n_epochs=n_epochs, n_channels=n_channels,
                            title=title, events=events, event_color=event_color,
                            order=order, show=show, block=block, decim=decim,
                            noise_cov=noise_cov, butterfly=butterfly,
                            show_scrollbars=show_scrollbars,
+                           show_scalebars=show_scalebars,
                            epoch_colors=epoch_colors, event_id=event_id,
                            group_by=group_by)
 
@@ -1732,14 +1779,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
     @verbose
     def save(self, fname, split_size='2GB', fmt='single', overwrite=False,
-             verbose=True):
+             split_naming='neuromag', verbose=True):
         """Save epochs in a fif file.
 
         Parameters
         ----------
         fname : str
-            The name of the file, which should end with -epo.fif or
-            -epo.fif.gz.
+            The name of the file, which should end with ``-epo.fif`` or
+            ``-epo.fif.gz``.
         split_size : str | int
             Large raw files are automatically split into multiple pieces. This
             parameter specifies the maximum size of each piece. If the
@@ -1762,6 +1809,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             but will change to False in 0.19.
 
             .. versionadded:: 0.18
+        %(split_naming)s
+
+            .. versionadded:: 0.24
         %(verbose_meth)s
 
         Notes
@@ -1771,8 +1821,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz',
                                       '_epo.fif', '_epo.fif.gz'))
 
-        # check for file existence
-        _check_fname(fname, overwrite)
+        # check for file existence and expand `~` if present
+        fname = _check_fname(fname=fname, overwrite=overwrite)
 
         split_size_bytes = _get_split_size(split_size)
 
@@ -1860,27 +1910,35 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             this_epochs = self[epoch_idx] if n_parts > 1 else self
             # avoid missing event_ids in splits
             this_epochs.event_id = self.event_id
-            _save_split(this_epochs, fname, part_idx, n_parts, fmt)
+            _save_split(this_epochs, fname, part_idx, n_parts, fmt,
+                        split_naming, overwrite)
 
     @verbose
-    def export(self, fname, fmt='auto', verbose=None):
+    def export(self, fname, fmt='auto', *, overwrite=False, verbose=None):
         """Export Epochs to external formats.
 
         Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
-        %(export_warning)s :meth:`save` instead.
+
+        %(export_warning)s
 
         Parameters
         ----------
         %(export_params_fname)s
         %(export_params_fmt)s
+        %(overwrite)s
+
+            .. versionadded:: 0.24.1
         %(verbose)s
 
         Notes
         -----
+        .. versionadded:: 0.24
+
+        %(export_warning_note_epochs)s
         %(export_eeglab_note)s
         """
         from .export import export_epochs
-        export_epochs(fname, self, fmt, verbose)
+        export_epochs(fname, self, fmt, overwrite=overwrite, verbose=verbose)
 
     def equalize_event_counts(self, event_ids=None, method='mintime'):
         """Equalize the number of trials in each condition.
@@ -1994,8 +2052,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                          for id_ in event_ids]
             for ii, id_ in enumerate(event_ids):
                 if len(id_) == 0:
-                    raise KeyError(orig_ids[ii] + "not found in the "
-                                   "epoch object's event_id.")
+                    raise KeyError(f"{orig_ids[ii]} not found in the epoch "
+                                   "object's event_id.")
                 elif len({sub_id in ids for sub_id in id_}) != 1:
                     err = ("Don't mix hierarchical and regular event_ids"
                            " like in \'%s\'." % ", ".join(id_))
@@ -2256,7 +2314,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     The time window used for metadata generation need not correspond to the
     time window used to create the `~mne.Epochs`, to which the metadata will
     be attached; it may well be much shorter or longer, or not overlap at all,
-    if desired. The can be useful, for example, to include events that ccurred
+    if desired. The can be useful, for example, to include events that occurred
     before or after an epoch, e.g. during the inter-trial interval.
 
     .. versionadded:: 0.23
@@ -2830,16 +2888,17 @@ def _minimize_time_diff(t_shorter, t_longer):
     """Find a boolean mask to minimize timing differences."""
     from scipy.interpolate import interp1d
     keep = np.ones((len(t_longer)), dtype=bool)
-    if len(t_shorter) == 0:
+    # special case: length zero or one
+    if len(t_shorter) < 2:  # interp1d won't work
         keep.fill(False)
+        if len(t_shorter) == 1:
+            idx = np.argmin(np.abs(t_longer - t_shorter))
+            keep[idx] = True
         return keep
     scores = np.ones((len(t_longer)))
     x1 = np.arange(len(t_shorter))
     # The first set of keep masks to test
-    kwargs = dict(copy=False, bounds_error=False)
-    # this is a speed tweak, only exists for certain versions of scipy
-    if 'assume_sorted' in _get_args(interp1d.__init__):
-        kwargs['assume_sorted'] = True
+    kwargs = dict(copy=False, bounds_error=False, assume_sorted=True)
     shorter_interp = interp1d(x1, t_shorter, fill_value=t_shorter[-1],
                               **kwargs)
     for ii in range(len(t_longer) - len(t_shorter)):
@@ -3058,14 +3117,11 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
 
     Parameters
     ----------
-    fname : str | file-like
-        The epochs filename to load. Filename should end with -epo.fif or
-        -epo.fif.gz. If a file-like object is provided, preloading must be
-        used.
+    %(epochs_fname)s
     %(proj_epochs)s
     preload : bool
-        If True, read all epochs from disk immediately. If False, epochs will
-        be read on demand.
+        If True, read all epochs from disk immediately. If ``False``, epochs
+        will be read on demand.
     %(verbose)s
 
     Returns
@@ -3099,9 +3155,7 @@ class EpochsFIF(BaseEpochs):
 
     Parameters
     ----------
-    fname : str | file-like
-        The name of the file, which should end with -epo.fif or -epo.fif.gz. If
-        a file-like object is provided, preloading must be used.
+    %(epochs_fname)s
     %(proj_epochs)s
     preload : bool
         If True, read all epochs from disk immediately. If False, epochs will
@@ -3118,9 +3172,13 @@ class EpochsFIF(BaseEpochs):
     @verbose
     def __init__(self, fname, proj=True, preload=True,
                  verbose=None):  # noqa: D102
-        if isinstance(fname, str):
-            check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz',
-                                          '_epo.fif', '_epo.fif.gz'))
+        if _path_like(fname):
+            check_fname(
+                fname=fname, filetype='epochs',
+                endings=('-epo.fif', '-epo.fif.gz', '_epo.fif', '_epo.fif.gz')
+            )
+            fname = _check_fname(fname=fname, must_exist=True,
+                                 overwrite='read')
         elif not preload:
             raise ValueError('preload must be used with file-like objects')
 
@@ -3363,8 +3421,8 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
     selection = out.selection
     # offset is the last epoch + tmax + 10 second
     shift = int((10 + tmax) * out.info['sfreq'])
-    events_offset = 0
-    events_number_overflow = False
+    events_offset = int(np.max(events[0][:, 0])) + shift
+    events_overflow = False
     for ii, epochs in enumerate(epochs_list[1:], 1):
         _ensure_infos_match(epochs.info, info, f'epochs[{ii}]',
                             on_mismatch=on_mismatch)
@@ -3391,16 +3449,17 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
         if len(epochs.events) == 0:
             warn('One of the Epochs objects to concatenate was empty.')
         elif add_offset:
-            # We need to cast to a native Python int here to prevent an
-            # overflow of a numpy int32 or int64 type.
-            events_offset += int(np.max(evs[:, 0])) + shift
+            # We need to cast to a native Python int here to detect an
+            # overflow of a numpy int32 (which is the default on windows)
+            max_timestamp = int(np.max(evs[:, 0]))
+            evs[:, 0] += events_offset
+            events_offset += max_timestamp + shift
             if events_offset > INT32_MAX:
                 warn(f'Event number greater than {INT32_MAX} created, '
                      'events[:, 0] will be assigned consecutive increasing '
                      'integer values')
-                events_number_overflow = True
-            else:
-                evs[:, 0] += events_offset
+                events_overflow = True
+                add_offset = False  # we no longer need to add offset
         events.append(evs)
         selection = np.concatenate((selection, epochs.selection))
         drop_log = drop_log + epochs.drop_log
@@ -3408,7 +3467,7 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
         metadata.append(epochs.metadata)
     events = np.concatenate(events, axis=0)
     # check to see if we exceeded our maximum event offset
-    if events_number_overflow:
+    if events_overflow:
         events[:, 0] = np.arange(1, len(events) + 1)
 
     # Create metadata object (or make it None)
@@ -3670,7 +3729,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
 @verbose
 def make_fixed_length_epochs(raw, duration=1., preload=False,
                              reject_by_annotation=True, proj=True, overlap=0.,
-                             verbose=None):
+                             id=1, verbose=None):
     """Divide continuous raw data into equal-sized consecutive epochs.
 
     Parameters
@@ -3691,6 +3750,10 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
         ``0 <= overlap < duration``. Default is 0, i.e., no overlap.
 
         .. versionadded:: 0.23.0
+    id : int
+        The id to use (default 1).
+
+        .. versionadded:: 0.24.0
     %(verbose)s
 
     Returns
@@ -3702,10 +3765,10 @@ def make_fixed_length_epochs(raw, duration=1., preload=False,
     -----
     .. versionadded:: 0.20
     """
-    events = make_fixed_length_events(raw, 1, duration=duration,
+    events = make_fixed_length_events(raw, id=id, duration=duration,
                                       overlap=overlap)
     delta = 1. / raw.info['sfreq']
-    return Epochs(raw, events, event_id=[1], tmin=0, tmax=duration - delta,
+    return Epochs(raw, events, event_id=[id], tmin=0, tmax=duration - delta,
                   baseline=None, preload=preload,
                   reject_by_annotation=reject_by_annotation, proj=proj,
                   verbose=verbose)

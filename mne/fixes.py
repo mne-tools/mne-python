@@ -12,7 +12,6 @@ at which the fix is no longer needed.
 #          Lars Buitinck <L.J.Buitinck@uva.nl>
 # License: BSD
 
-from distutils.version import LooseVersion
 import functools
 import inspect
 from math import log
@@ -21,6 +20,39 @@ from pathlib import Path
 import warnings
 
 import numpy as np
+
+
+###############################################################################
+# distutils
+
+# distutils has been deprecated since Python 3.10 and is scheduled for removal
+# from the standard library with the release of Python 3.12. For version
+# comparisons, we use setuptools's `parse_version` if available.
+
+def _compare_version(version_a, operator, version_b):
+    """Compare two version strings via a user-specified operator.
+
+    Parameters
+    ----------
+    version_a : str
+        First version string.
+    operator : '==' | '>' | '<' | '>=' | '<='
+        Operator to compare ``version_a`` and ``version_b`` in the form of
+        ``version_a operator version_b``.
+    version_b : str
+        Second version string.
+
+    Returns
+    -------
+    bool
+        The result of the version comparison.
+    """
+    try:
+        from pkg_resources import parse_version as parse
+    except ImportError:
+        from distutils.version import LooseVersion as parse
+
+    return eval(f'parse("{version_a}") {operator} parse("{version_b}")')
 
 
 ###############################################################################
@@ -69,12 +101,9 @@ def _safe_svd(A, **kwargs):
         return linalg.svd(A, **kwargs)
     except np.linalg.LinAlgError as exp:
         from .utils import warn
-        if 'lapack_driver' in _get_args(linalg.svd):
-            warn('SVD error (%s), attempting to use GESVD instead of GESDD'
-                 % (exp,))
-            return linalg.svd(A, lapack_driver='gesvd', **kwargs)
-        else:
-            raise
+        warn('SVD error (%s), attempting to use GESVD instead of GESDD'
+                % (exp,))
+        return linalg.svd(A, lapack_driver='gesvd', **kwargs)
 
 
 def _csc_matrix_cast(x):
@@ -158,27 +187,6 @@ def _read_geometry(filepath, read_metadata=False, read_stamp=False):
         ret += (create_stamp,)
 
     return ret
-
-
-###############################################################################
-# Triaging FFT functions to get fast pocketfft (SciPy 1.4)
-
-@functools.lru_cache(None)
-def _import_fft(name):
-    single = False
-    if not isinstance(name, tuple):
-        name = (name,)
-        single = True
-    try:
-        from scipy.fft import rfft  # noqa analysis:ignore
-    except ImportError:
-        from numpy import fft  # noqa
-    else:
-        from scipy import fft  # noqa
-    out = [getattr(fft, n) for n in name]
-    if single:
-        out = out[0]
-    return out
 
 
 ###############################################################################
@@ -928,7 +936,7 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
     # _outline was removed in
     # https://github.com/matplotlib/matplotlib/commit/03a542e875eba091a027046d5ec652daa8be6863
     # so we use the code from there
-    if LooseVersion(matplotlib.__version__) >= LooseVersion("3.2.0"):
+    if _compare_version(matplotlib.__version__, '>=', '3.2.0'):
         cbar.ax.set_ylim(cbar_vmin, cbar_vmax)
         X = cbar._mesh()[0]
         X = np.array([X[0], X[-1]])
@@ -959,7 +967,7 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
 # Here we choose different defaults to speed things up by default
 try:
     import numba
-    if LooseVersion(numba.__version__) < LooseVersion('0.40'):
+    if _compare_version(numba.__version__, '<', '0.48'):
         raise ImportError
     prange = numba.prange
     def jit(nopython=True, nogil=True, fastmath=True, cache=True,
@@ -1034,7 +1042,6 @@ def _is_last_row(ax):
 
 def pinvh(a, rtol=None):
     """Compute a pseudo-inverse of a Hermitian matrix."""
-    from scipy.linalg.decomp import _asarray_validated
     s, u = np.linalg.eigh(a)
     del a
     if rtol is None:
@@ -1057,3 +1064,23 @@ def pinv(a, rtol=None):
     u = u[:, :rank]
     u /= s[:rank]
     return (u @ vh[:rank]).conj().T
+
+
+###############################################################################
+# PyVista
+
+# Deal with pyvista deprecation of point_data and cell_data
+# (can be removed once we require 0.31+)
+
+def _point_data(obj):
+    try:
+        return obj.point_data
+    except AttributeError:
+        return obj.point_arrays
+
+
+def _cell_data(obj):
+    try:
+        return obj.cell_data
+    except AttributeError:
+        return obj.cell_arrays

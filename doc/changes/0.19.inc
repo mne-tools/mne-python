@@ -55,7 +55,7 @@ Changelog
 
 - Butterfly channel plots now possible for :meth:`mne.Epochs.plot_psd` with ``average=False``. Infrastructure for this function now shared with analogous Raw function, found in ``mne.viz.utils`` by `Jeff Hanna`_
 
-- Add option not to orthogonalize power envelopes with ``orthogonalize=False`` in :func:`mne.connectivity.envelope_correlation` by `Denis Engemann`_
+- Add option not to orthogonalize power envelopes with ``orthogonalize=False`` in ``mne.connectivity.envelope_correlation`` by `Denis Engemann`_
 
 - Accept filenames of raw .fif files that end in ``_meg.fif`` to enable complicance with the Brain Imaging Data Structure by `Stefan Appelhoff`_
 
@@ -85,7 +85,7 @@ Changelog
 
 - Add plotting of rank estimates in :func:`mne.viz.plot_cov` by `Eric Larson`_
 
-- Add a new :func:`mne.viz.plot_sensors_connectivity` function to visualize the sensor connectivity in 3D by `Guillaume Favelier`_ and `Alex Gramfort`_
+- Add a new ``mne.viz.plot_sensors_connectivity`` function to visualize the sensor connectivity in 3D by `Guillaume Favelier`_ and `Alex Gramfort`_
 
 - Add support for ``info['utc_offset']``, ``info['device_info']``, and ``info['helium_info']`` components of :class:`mne.Info` by `Eric Larson`_
 

@@ -277,7 +277,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         this_info = create_info(sfreq=epochs.info['sfreq'],
                                 ch_names=list(these_ch_names),
                                 ch_types=[this_ch_type] * len(these_picks))
-        this_info['chs'] = this_ch_info
+        with this_info._unlock():
+            this_info['chs'] = this_ch_info
         this_epochs = EpochsArray(this_data, this_info, tmin=epochs.times[0])
         # apply scalings (only to image, not epochs object), combine channels
         this_image = combine_func(this_data * scalings[this_ch_type])
@@ -561,7 +562,7 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
 
 
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown subj',
-                  color=(0.8, 0.8, 0.8), width=0.8, ignore=('IGNORED',),
+                  color='lightgray', width=0.8, ignore=('IGNORED',),
                   show=True):
     """Show the channel stats based on a drop_log from Epochs.
 
@@ -637,7 +638,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 title=None, events=None, event_color=None,
                 order=None, show=True, block=False, decim='auto',
                 noise_cov=None, butterfly=False, show_scrollbars=True,
-                epoch_colors=None, event_id=None, group_by='type'):
+                show_scalebars=True, epoch_colors=None, event_id=None,
+                group_by='type'):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -715,6 +717,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
         .. versionadded:: 0.18.0
     %(show_scrollbars)s
+    %(show_scalebars)s
+
+        .. versionadded:: 0.24.0
     epoch_colors : list of (n_epochs) list (of n_channels) | None
         Colors to use for individual epochs. If None, use default colors.
     event_id : dict | None
@@ -748,7 +753,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     .. versionadded:: 0.10.0
     """
-    from ._figure import _browse_figure
+    from ._figure import _get_browser
 
     epochs.drop_bad()
     info = epochs.info.copy()
@@ -756,7 +761,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     projs = info['projs']
     projs_on = np.full_like(projs, epochs.proj, dtype=bool)
     if not epochs.proj:
-        info['projs'] = list()
+        with info._unlock():
+            info['projs'] = list()
 
     # handle defaults / check arg validity
     color = _handle_default('color', None)
@@ -883,7 +889,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   units=units,
                   unit_scalings=unit_scalings,
                   # colors
-                  ch_color_bad=(0.8, 0.8, 0.8),
+                  ch_color_bad='lightgray',
                   ch_color_dict=color,
                   epoch_color_bad=(1, 0, 0),
                   epoch_colors=epoch_colors,
@@ -891,10 +897,12 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   butterfly=butterfly,
                   clipping=None,
                   scrollbars_visible=show_scrollbars,
-                  scalebars_visible=False,
+                  scalebars_visible=show_scalebars,
                   window_title=title,
                   xlabel='Epoch number')
-    fig = _browse_figure(**params)
+
+    fig = _get_browser(**params)
+
     fig._update_picks()
 
     # make channel selection dialog, if requested (doesn't work well in init)
@@ -907,6 +915,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     fig._draw_traces()
 
     plt_show(show, block=block)
+
     return fig
 
 
@@ -943,10 +952,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     low_bias : bool
         Only use tapers with more than 90%% spectral concentration within
         bandwidth.
-    normalization : str
-        Either "full" or "length" (default). If "full", the PSD will
-        be normalized by the sampling rate as well as the length of
-        the signal (as in nitime).
+    %(normalization)s
     %(plot_psd_picks_good_data)s
     ax : instance of Axes | None
         Axes to plot into. If None, axes will be created.
@@ -975,7 +981,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig : instance of Figure
         Figure with frequency spectra of the data channels.
     """
-    from ._figure import _psd_figure
+    from ._mpl_figure import _psd_figure
 
     # generate figure
     # epochs always use multitaper, not Welch, so no need to allow "window"

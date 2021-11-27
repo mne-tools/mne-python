@@ -79,7 +79,8 @@ def test_decim():
     sfreq_new = sfreq / decim
     data = rng.randn(n_channels, n_times)
     info = create_info(n_channels, sfreq, 'eeg')
-    info['lowpass'] = sfreq_new / float(decim)
+    with info._unlock():
+        info['lowpass'] = sfreq_new / float(decim)
     evoked = EvokedArray(data, info, tmin=-1)
     evoked_dec = evoked.copy().decimate(decim)
     evoked_dec_2 = evoked.copy().decimate(decim, offset=1)
@@ -112,7 +113,8 @@ def test_decim():
     raw = read_raw_fif(raw_fname)
     events = read_events(event_name)
     sfreq_new = raw.info['sfreq'] / decim
-    raw.info['lowpass'] = sfreq_new / 4.  # suppress aliasing warnings
+    with raw.info._unlock():
+        raw.info['lowpass'] = sfreq_new / 4.  # suppress aliasing warnings
     picks = pick_types(raw.info, meg=True, eeg=True, exclude=())
     epochs = Epochs(raw, events, 1, -0.2, 0.5, picks=picks, preload=True)
     for offset in (0, 1):
@@ -174,14 +176,14 @@ def _aspect_kinds():
 
 
 @pytest.mark.parametrize('aspect_kind', _aspect_kinds())
-def test_evoked_aspects(aspect_kind, tmpdir):
+def test_evoked_aspects(aspect_kind, tmp_path):
     """Test handling of evoked aspects."""
     # gh-6359
     ave = read_evokeds(fname, 0)
     ave._aspect_kind = aspect_kind
     assert 'Evoked' in repr(ave)
     # for completeness let's try a round-trip
-    temp_fname = op.join(str(tmpdir), 'test-ave.fif')
+    temp_fname = op.join(str(tmp_path), 'test-ave.fif')
     ave.save(temp_fname)
     ave_2 = read_evokeds(temp_fname, condition=0)
     assert_allclose(ave.data, ave_2.data)
@@ -189,15 +191,15 @@ def test_evoked_aspects(aspect_kind, tmpdir):
 
 
 @pytest.mark.slowtest
-def test_io_evoked(tmpdir):
+def test_io_evoked(tmp_path):
     """Test IO for evoked data (fif + gz) with integer and str args."""
     ave = read_evokeds(fname, 0)
     ave_double = ave.copy()
     ave_double.comment = ave.comment + ' doubled nave'
     ave_double.nave = ave.nave * 2
 
-    write_evokeds(tmpdir.join('evoked-ave.fif'), [ave, ave_double])
-    ave2, ave_double = read_evokeds(op.join(tmpdir, 'evoked-ave.fif'))
+    write_evokeds(tmp_path / 'evoked-ave.fif', [ave, ave_double])
+    ave2, ave_double = read_evokeds(op.join(tmp_path, 'evoked-ave.fif'))
     assert ave2.nave * 2 == ave_double.nave
 
     # This not being assert_array_equal due to windows rounding
@@ -226,8 +228,8 @@ def test_io_evoked(tmpdir):
     aves1 = read_evokeds(fname)[1::2]
     aves2 = read_evokeds(fname, [1, 3])
     aves3 = read_evokeds(fname, ['Right Auditory', 'Right visual'])
-    write_evokeds(tmpdir.join('evoked-ave.fif'), aves1)
-    aves4 = read_evokeds(tmpdir.join('evoked-ave.fif'))
+    write_evokeds(tmp_path / 'evoked-ave.fif', aves1)
+    aves4 = read_evokeds(tmp_path / 'evoked-ave.fif')
     for aves in [aves2, aves3, aves4]:
         for [av1, av2] in zip(aves1, aves):
             assert_array_almost_equal(av1.data, av2.data)
@@ -242,20 +244,20 @@ def test_io_evoked(tmpdir):
     # test saving and reading complex numbers in evokeds
     ave_complex = ave.copy()
     ave_complex._data = 1j * ave_complex.data
-    fname_temp = str(tmpdir.join('complex-ave.fif'))
+    fname_temp = str(tmp_path / 'complex-ave.fif')
     ave_complex.save(fname_temp)
     ave_complex = read_evokeds(fname_temp)[0]
     assert_allclose(ave.data, ave_complex.data.imag)
 
     # test warnings on bad filenames
-    fname2 = tmpdir.join('test-bad-name.fif')
+    fname2 = tmp_path / 'test-bad-name.fif'
     with pytest.warns(RuntimeWarning, match='-ave.fif'):
         write_evokeds(fname2, ave)
     with pytest.warns(RuntimeWarning, match='-ave.fif'):
         read_evokeds(fname2)
 
     # test writing when order of bads doesn't match
-    fname3 = tmpdir.join('test-bad-order-ave.fif')
+    fname3 = tmp_path / 'test-bad-order-ave.fif'
     condition = 'Left Auditory'
     ave4 = read_evokeds(fname, condition)
     ave4.info['bads'] = ave4.ch_names[:3]
@@ -267,9 +269,10 @@ def test_io_evoked(tmpdir):
     pytest.raises(TypeError, Evoked, fname)
 
     # MaxShield
-    fname_ms = tmpdir.join('test-ave.fif')
+    fname_ms = tmp_path / 'test-ave.fif'
     assert (ave.info['maxshield'] is False)
-    ave.info['maxshield'] = True
+    with ave.info._unlock():
+        ave.info['maxshield'] = True
     ave.save(fname_ms)
     pytest.raises(ValueError, read_evokeds, fname_ms)
     with pytest.warns(RuntimeWarning, match='Elekta'):
@@ -279,9 +282,9 @@ def test_io_evoked(tmpdir):
     assert (all(ave.info['maxshield'] is True for ave in aves))
 
 
-def test_shift_time_evoked(tmpdir):
+def test_shift_time_evoked(tmp_path):
     """Test for shifting of time scale."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     # Shift backward
     ave = read_evokeds(fname, 0).shift_time(-0.1, relative=True)
     write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
@@ -346,9 +349,9 @@ def test_tmin_tmax():
     assert evoked.times[-1] == evoked.tmax
 
 
-def test_evoked_resample(tmpdir):
+def test_evoked_resample(tmp_path):
     """Test resampling evoked data."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     # upsample, write it out, read it in
     ave = read_evokeds(fname, 0)
     orig_lp = ave.info['lowpass']
@@ -660,9 +663,9 @@ def test_arithmetic():
     assert evoked1.ch_names == evoked3.ch_names
 
 
-def test_array_epochs(tmpdir):
+def test_array_epochs(tmp_path):
     """Test creating evoked from array."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
 
     # creating
     rng = np.random.RandomState(42)
@@ -732,7 +735,8 @@ def test_add_channels():
     hpi_coils = [{'event_bits': []},
                  {'event_bits': np.array([256, 0, 256, 256])},
                  {'event_bits': np.array([512, 0, 512, 512])}]
-    evoked.info['hpi_subsystem'] = dict(hpi_coils=hpi_coils, ncoil=2)
+    with evoked.info._unlock():
+        evoked.info['hpi_subsystem'] = dict(hpi_coils=hpi_coils, ncoil=2)
     evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
     evoked_meg = evoked.copy().pick_types(meg=True)
     evoked_stim = evoked.copy().pick_types(meg=False, stim=True)
@@ -749,7 +753,8 @@ def test_add_channels():
 
     # Now test errors
     evoked_badsf = evoked_eeg.copy()
-    evoked_badsf.info['sfreq'] = 3.1415927
+    with evoked_badsf.info._unlock():
+        evoked_badsf.info['sfreq'] = 3.1415927
     evoked_eeg = evoked_eeg.crop(-.1, .1)
 
     pytest.raises(RuntimeError, evoked_meg.add_channels, [evoked_badsf])
@@ -758,7 +763,7 @@ def test_add_channels():
     pytest.raises(TypeError, evoked_meg.add_channels, evoked_badsf)
 
 
-def test_evoked_baseline(tmpdir):
+def test_evoked_baseline(tmp_path):
     """Test evoked baseline."""
     evoked = read_evokeds(fname, condition=0, baseline=None)
 
@@ -801,7 +806,7 @@ def test_evoked_baseline(tmpdir):
     evoked.apply_baseline(baseline)
     assert_allclose(evoked.baseline, baseline)
 
-    tmp_fname = tmpdir / 'test-ave.fif'
+    tmp_fname = tmp_path / 'test-ave.fif'
     evoked.save(tmp_fname)
     evoked_read = read_evokeds(tmp_fname, condition=0)
     assert_allclose(evoked_read.baseline, evoked.baseline)

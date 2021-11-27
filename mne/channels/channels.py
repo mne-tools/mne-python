@@ -22,7 +22,7 @@ from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..transforms import _frame_to_str
 from ..utils import (verbose, logger, warn,
                      _check_preload, _validate_type, fill_doc, _check_option,
-                     _get_stim_channel, _check_fname)
+                     _get_stim_channel, _check_fname, _check_dict_keys)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import (anonymize_info, Info, MontageMixin, create_info,
@@ -262,8 +262,8 @@ class ContainsMixin(object):
 
         # get the channel names and chs data structure
         ch_names, chs = self.info['ch_names'], self.info['chs']
-        picks = pick_types(self.info, meg=False, eeg=True,
-                           seeg=True, ecog=True, dbs=True, fnirs=True)
+        picks = pick_types(self.info, meg=False, eeg=True, seeg=True,
+                           ecog=True, dbs=True, fnirs=True, exclude=[])
 
         # channel positions from dig do not match ch_names one to one,
         # so use loc[:3] instead
@@ -584,7 +584,7 @@ class SetChannelsMixin(MontageMixin):
         Notes
         -----
         This function plots the sensor locations from the info structure using
-        matplotlib. For drawing the sensors using mayavi see
+        matplotlib. For drawing the sensors using PyVista see
         :func:`mne.viz.plot_alignment`.
 
         .. versionadded:: 0.12.0
@@ -652,7 +652,8 @@ class SetChannelsMixin(MontageMixin):
         """
         from ..annotations import _handle_meas_date
         meas_date = _handle_meas_date(meas_date)
-        self.info['meas_date'] = meas_date
+        with self.info._unlock():
+            self.info['meas_date'] = meas_date
 
         # clear file_id and meas_id if needed
         if meas_date is None:
@@ -819,8 +820,8 @@ class UpdateChannelsMixin(object):
         picks = pick_channels(self.info['ch_names'], ch_names, ordered=ordered)
         return self._pick_drop_channels(picks)
 
-    @fill_doc
-    def pick(self, picks, exclude=()):
+    @verbose
+    def pick(self, picks, exclude=(), *, verbose=None):
         """Pick a subset of channels.
 
         Parameters
@@ -829,6 +830,9 @@ class UpdateChannelsMixin(object):
         exclude : list | str
             Set of channels to exclude, only used when picking based on
             types (e.g., exclude="bads" when picks="meg").
+        %(verbose)s
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -920,7 +924,8 @@ class UpdateChannelsMixin(object):
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
         return self._pick_drop_channels(idx)
 
-    def _pick_drop_channels(self, idx):
+    @verbose
+    def _pick_drop_channels(self, idx, *, verbose=None):
         # avoid circular imports
         from ..io import BaseRaw
         from ..time_frequency import AverageTFR, EpochsTFR
@@ -1207,11 +1212,8 @@ def rename_channels(info, mapping, allow_duplicates=False, verbose=None):
 
     # first check and assemble clean mappings of index and name
     if isinstance(mapping, dict):
-        orig_names = sorted(list(mapping.keys()))
-        missing = [orig_name not in ch_names for orig_name in orig_names]
-        if any(missing):
-            raise ValueError("Channel name(s) in mapping missing from info: "
-                             "%s" % np.array(orig_names)[np.array(missing)])
+        _check_dict_keys(mapping, ch_names, key_description="channel name(s)",
+                         valid_key_source="info")
         new_names = [(ch_names.index(ch_name), new_name)
                      for ch_name, new_name in mapping.items()]
     elif callable(mapping):

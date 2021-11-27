@@ -13,10 +13,16 @@ from ..utils import tight_layout
 
 
 class _AbstractRenderer(ABC):
+
     @abstractclassmethod
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name=None, show=False, shape=(1, 1)):
         """Set up the scene."""
+        pass
+
+    @property
+    @abstractmethod
+    def _kind(self):
         pass
 
     @abstractclassmethod
@@ -191,7 +197,7 @@ class _AbstractRenderer(ABC):
             If True, enable backface culling on the sphere(s).
         radius : float | None
             Replace the glyph scaling by a fixed radius value for each
-            sphere (not supported by mayavi).
+            sphere.
         """
         pass
 
@@ -232,6 +238,8 @@ class _AbstractRenderer(ABC):
 
         Returns
         -------
+        actor :
+            The actor in the scene.
         surface :
             Handle of the tube in the scene.
         """
@@ -297,6 +305,13 @@ class _AbstractRenderer(ABC):
             If None, the max of the data will be used
         line_width : float
             The width of the 2d arrows.
+
+        Returns
+        -------
+        actor :
+            The actor in the scene.
+        surface :
+            Handle of the quiver in the scene.
         """
         pass
 
@@ -488,7 +503,8 @@ class _AbstractToolBar(ABC):
 
 class _AbstractDock(ABC):
     @abstractmethod
-    def _dock_initialize(self, window=None):
+    def _dock_initialize(self, window=None, name="Controls",
+                         area="left"):
         pass
 
     @abstractmethod
@@ -504,7 +520,7 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_stretch(self, layout):
+    def _dock_add_stretch(self, layout=None):
         pass
 
     @abstractmethod
@@ -520,7 +536,7 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_named_layout(self, name, layout, compact):
+    def _dock_named_layout(self, name, layout=None, compact=True):
         pass
 
     @abstractmethod
@@ -529,8 +545,13 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
+    def _dock_add_check_box(self, name, value, callback, layout=None):
+        pass
+
+    @abstractmethod
     def _dock_add_spin_box(self, name, value, rng, callback,
-                           compact=True, double=True, layout=None):
+                           compact=True, double=True, step=None,
+                           layout=None):
         pass
 
     @abstractmethod
@@ -539,7 +560,22 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
+    def _dock_add_radio_buttons(self, value, rng, callback, vertical=True,
+                                layout=None):
+        pass
+
+    @abstractmethod
     def _dock_add_group_box(self, name, layout=None):
+        pass
+
+    @abstractmethod
+    def _dock_add_text(self, name, value, placeholder, layout=None):
+        pass
+
+    @abstractmethod
+    def _dock_add_file_button(self, name, desc, func, value=None, save=False,
+                              directory=False, input_text_widget=True,
+                              placeholder="Type a file name", layout=None):
         pass
 
 
@@ -592,6 +628,20 @@ class _AbstractLayout(ABC):
         pass
 
 
+class _AbstractWidgetList(ABC):
+    @abstractmethod
+    def set_enabled(self, state):
+        pass
+
+    @abstractmethod
+    def get_value(self, idx):
+        pass
+
+    @abstractmethod
+    def set_value(self, idx, value):
+        pass
+
+
 class _AbstractWidget(ABC):
     def __init__(self, widget):
         self._widget = widget
@@ -618,6 +668,10 @@ class _AbstractWidget(ABC):
 
     @abstractmethod
     def hide(self):
+        pass
+
+    @abstractmethod
+    def set_enabled(self, state):
         pass
 
     @abstractmethod

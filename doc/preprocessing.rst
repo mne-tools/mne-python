@@ -40,6 +40,7 @@ Projections:
    read_dig_egi
    read_dig_fif
    read_dig_hpts
+   read_dig_localite
    make_standard_montage
    read_custom_montage
    compute_dev_head_t
@@ -79,6 +80,7 @@ Projections:
    compute_maxwell_basis
    compute_proj_ecg
    compute_proj_eog
+   cortical_signal_suppression
    create_ecg_epochs
    create_eog_epochs
    find_bad_channels_maxwell
@@ -117,6 +119,19 @@ Projections:
    short_channels
    scalp_coupling_index
    temporal_derivative_distribution_repair
+
+:py:mod:`mne.preprocessing.ieeg`:
+
+.. currentmodule:: mne.preprocessing.ieeg
+
+.. automodule:: mne.preprocessing.ieeg
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: generated/
+
+   project_sensors_onto_brain
 
 EEG referencing:
 

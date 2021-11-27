@@ -69,9 +69,8 @@ montage = epochs.get_montage()
 
 # first we need a head to mri transform since the data is stored in "head"
 # coordinates, let's load the mri to head transform and invert it
-mri_head_t = mne.read_trans(
-    op.join(misc_path, 'seeg', 'sample_seeg_trans.fif'))
-head_mri_t = mne.transforms.invert_transform(mri_head_t)
+this_subject_dir = op.join(misc_path, 'seeg')
+head_mri_t = mne.coreg.estimate_head_mri_t('sample_seeg', this_subject_dir)
 # apply the transform to our montage
 montage.apply_trans(head_mri_t)
 
@@ -203,5 +202,5 @@ brain = stc.plot_3d(
 #   :ref:`tut-viz-stcs`.
 # - For extracting activation within a specific FreeSurfer volume and using
 #   different FreeSurfer volumes, see: :ref:`tut-freesurfer-mne`.
-# - For working with BEM surfaces and using FreeSurfer, or mne to generate
+# - For working with BEM surfaces and using FreeSurfer, or MNE to generate
 #   them, see: :ref:`tut-forward`.

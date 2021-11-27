@@ -297,18 +297,18 @@ def _synthesize_stim_channel(events, n_samples):
     return stim_channel
 
 
-def _construct_bids_filename(base, ext, part_idx):
+def _construct_bids_filename(base, ext, part_idx, validate=True):
     """Construct a BIDS compatible filename for split files."""
     # insert index in filename
     dirname = op.dirname(base)
     base = op.basename(base)
     deconstructed_base = base.split('_')
-    if len(deconstructed_base) < 2:
+    if len(deconstructed_base) < 2 and validate:
         raise ValueError('Filename base must end with an underscore followed '
                          f'by the modality (e.g., _eeg or _meg), got {base}')
-    modality = deconstructed_base[-1]
+    suffix = deconstructed_base[-1]
     base = '_'.join(deconstructed_base[:-1])
-    use_fname = '{}_split-{:02}_{}{}'.format(base, part_idx, modality, ext)
+    use_fname = '{}_split-{:02}_{}{}'.format(base, part_idx, suffix, ext)
     if dirname:
         use_fname = op.join(dirname, use_fname)
     return use_fname

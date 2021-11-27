@@ -20,7 +20,7 @@ from .utils import (_pl, check_fname, _validate_type, verbose, warn, logger,
                     _check_pandas_installed, _mask_to_onsets_offsets,
                     _DefaultEventParser, _check_dt, _stamp_to_dt, _dt_to_stamp,
                     _check_fname, int_like, _check_option, fill_doc,
-                    _on_missing, _is_numeric)
+                    _on_missing, _is_numeric, _check_dict_keys)
 
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file, write_string)
@@ -292,7 +292,8 @@ class Annotations(object):
                              "add/concatenate 2 annotations "
                              "(got %s != %s)" % (self.orig_time,
                                                  other.orig_time))
-        return self.append(other.onset, other.duration, other.description)
+        return self.append(other.onset, other.duration, other.description,
+                           other.ch_names)
 
     def __iter__(self):
         """Iterate over the annotations."""
@@ -592,12 +593,9 @@ class Annotations(object):
         _validate_type(mapping, (int, float, dict))
 
         if isinstance(mapping, dict):
-            orig_annots = sorted(list(mapping))
-            missing = [key not in self.description for key in orig_annots]
-            if any(missing):
-                raise ValueError(
-                    "Annotation description(s) in mapping missing from data: "
-                    "%s" % np.array(orig_annots)[np.array(missing)])
+            _check_dict_keys(mapping, self.description,
+                             valid_key_source="data",
+                             key_description="Annotation description(s)")
             for stim in mapping:
                 map_idx = [desc == stim for desc in self.description]
                 self.duration[map_idx] = mapping[stim]
@@ -633,13 +631,8 @@ class Annotations(object):
         .. versionadded:: 0.24.0
         """
         _validate_type(mapping, dict)
-
-        orig_annots = sorted(mapping.keys())
-        missing = [annot not in self.description for annot in orig_annots]
-        if any(missing):
-            raise ValueError(
-                f"Annotation description(s) in mapping missing from data: "
-                f"{np.array(orig_annots)[np.array(missing)]}")
+        _check_dict_keys(mapping, self.description, valid_key_source="data",
+                         key_description="Annotation description(s)")
 
         for old, new in mapping.items():
             self.description = [d.replace(old, new) for d in self.description]
@@ -818,7 +811,7 @@ def _write_annotations_txt(fname, annot):
 def read_annotations(fname, sfreq='auto', uint16_codec=None):
     r"""Read annotations from a file.
 
-    This function reads a .fif, .fif.gz, .vrmk, .edf, .txt, .csv .cnt, .cef,
+    This function reads a .fif, .fif.gz, .vmrk, .edf, .txt, .csv .cnt, .cef,
     or .set file and makes an :class:`mne.Annotations` object.
 
     Parameters
@@ -832,7 +825,7 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
         ``sfreq`` is omitted. If set to 'auto' then the ``sfreq`` is taken
         from the respective info file of the same name with according file
         extension (\*.vhdr for brainvision; \*.dap for Curry 7; \*.cdt.dpa for
-        Curry 8). So data.vrmk looks for sfreq in data.vhdr, data.cef looks in
+        Curry 8). So data.vmrk looks for sfreq in data.vhdr, data.cef looks in
         data.dap and data.cdt.cef looks in data.cdt.dpa.
     uint16_codec : str | None
         This parameter is only used in EEGLAB (\*.set) and omitted otherwise.

@@ -15,7 +15,8 @@ from numpy.testing import assert_array_equal, assert_equal, assert_allclose
 
 from mne.channels import (rename_channels, read_ch_adjacency, combine_channels,
                           find_ch_adjacency, make_1020_channel_selections,
-                          read_custom_montage, equalize_channels)
+                          read_custom_montage, equalize_channels,
+                          make_standard_montage)
 from mne.channels.channels import (_ch_neighbor_adjacency,
                                    _compute_ch_adjacency)
 from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
@@ -177,9 +178,9 @@ def test_set_channel_types():
     pytest.raises(ValueError, raw.set_channel_types, ch_types)
 
 
-def test_read_ch_adjacency(tmpdir):
+def test_read_ch_adjacency(tmp_path):
     """Test reading channel adjacency templates."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     a = partial(np.array, dtype='<U7')
     # no pep8
     nbh = np.array([[(['MEG0111'], [[a(['MEG0131'])]]),
@@ -365,6 +366,26 @@ def test_drop_channels():
     pytest.raises(ValueError, raw.drop_channels, 5)  # must be list or str
 
 
+def test_pick_channels():
+    """Test if picking channels works with various arguments."""
+    raw = read_raw_fif(raw_fname, preload=True).crop(0, 0.1)
+
+    # selected correctly 3 channels
+    raw.pick(['MEG 0113', 'MEG 0112', 'MEG 0111'])
+    assert len(raw.ch_names) == 3
+
+    # selected correctly 3 channels and ignored 'meg', and emit warning
+    with pytest.warns(RuntimeWarning, match='not present in the info'):
+        raw.pick(['MEG 0113', "meg", 'MEG 0112', 'MEG 0111'])
+        assert len(raw.ch_names) == 3
+
+    names_len = len(raw.ch_names)
+    raw.pick(['all'])  # selected correctly all channels
+    assert len(raw.ch_names) == names_len
+    raw.pick('all')  # selected correctly all channels
+    assert len(raw.ch_names) == names_len
+
+
 def test_add_reference_channels():
     """Test if there is a new reference channel that consist of all zeros."""
     raw = read_raw_fif(raw_fname, preload=True)
@@ -499,3 +520,16 @@ def test_combine_channels():
         combine_channels(raw, warn2)
         combine_channels(raw_ch_bad, warn3, drop_bad=True)
     assert len(record) == 3
+
+
+def test_get_montage():
+    """Test ContainsMixin.get_montage()."""
+    ch_names = make_standard_montage('standard_1020').ch_names
+    sfreq = 512
+    data = np.zeros((len(ch_names), sfreq * 2))
+    raw = RawArray(data, create_info(ch_names, sfreq, 'eeg'))
+    raw.set_montage('standard_1020')
+
+    assert len(raw.get_montage().ch_names) == len(ch_names)
+    raw.info['bads'] = [ch_names[0]]
+    assert len(raw.get_montage().ch_names) == len(ch_names)

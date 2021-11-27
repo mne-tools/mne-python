@@ -33,7 +33,8 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _plot_masked_image, _trim_ticks, _set_window_title,
                     _prop_kw)
 from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
-                     _check_if_nan, _check_ch_locs, fill_doc, _is_numeric)
+                     _check_if_nan, _check_ch_locs, fill_doc, _is_numeric,
+                     _to_rgb)
 
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topomap_plot, plot_topomap, _get_pos_outlines,
@@ -434,7 +435,8 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             if not gfp_only:
                 chs = [info['chs'][i] for i in idx]
                 locs3d = np.array([ch['loc'][:3] for ch in chs])
-                if spatial_colors is True and not _check_ch_locs(chs):
+                if (spatial_colors is True and
+                        not _check_ch_locs(info=info, picks=idx)):
                     warn('Channel locations not available. Disabling spatial '
                          'colors.')
                     spatial_colors = selectable = False
@@ -848,13 +850,11 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
     fig : instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations.
     """
-    from matplotlib.colors import colorConverter
-
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
 
-    dark_background = \
-        np.mean(colorConverter.to_rgb(background_color)) < 0.5
+    background_color = _to_rgb(background_color, name='background_color')
+    dark_background = np.mean(background_color) < 0.5
     if dark_background:
         fig_facecolor = background_color
         axis_facecolor = background_color
@@ -1382,7 +1382,13 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
             raise ValueError("If one of `ts_args` and `topomap_args` contains "
                              "'axes', the other must, too.")
         _validate_if_list_of_axes([ts_args["axes"]], 1)
-        n_topomaps = (3 if times is None else len(times)) + 1
+
+        if times in (None, 'peaks'):
+            n_topomaps = 3 + 1
+        else:
+            assert not isinstance(times, str)
+            n_topomaps = len(times) + 1
+
         _validate_if_list_of_axes(list(topomap_args["axes"]), n_topomaps)
         got_axes = True
 
@@ -1459,6 +1465,8 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     # we use a new axis for the title to handle scaling of plots
     old_title = ts_ax.get_title()
     ts_ax.set_title('')
+
+    # XXX BUG destroys ax -> fig assignment if title & axes are passed
     if title is not None:
         title_ax = plt.subplot(4, 3, 2)
         if title == '':
@@ -1491,6 +1499,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
     if topomap_args.get('colorbar', True):
         from matplotlib import ticker
+        cbar_ax.grid(False)  # auto-removal deprecated as of 2021/10/05
         cbar = plt.colorbar(map_ax[0].images[0], cax=cbar_ax)
         if isinstance(contours, (list, np.ndarray)):
             cbar.set_ticks(contours)
@@ -2006,11 +2015,13 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         indicating steps or percentiles (respectively) along the colormap. If
         ``cmap`` is ``None``, list elements or dict values of ``colors`` must
         be :class:`ints <int>` or valid :doc:`matplotlib colors
-        <tutorials/colors/colors>`; lists are cycled through sequentially,
+        <matplotlib:tutorials/colors/colors>`; lists are cycled through
+        sequentially,
         while dicts must have keys matching the keys or conditions of an
         ``evokeds`` dict (see Notes for details). If ``None``, the current
-        :doc:`matplotlib color cycle <gallery/color/color_cycle_default>` is
-        used. Defaults to ``None``.
+        :doc:`matplotlib color cycle
+        <matplotlib:gallery/color/color_cycle_default>`
+        is used. Defaults to ``None``.
     linestyles : list | dict | None
         Styles to use when plotting the ERP/F lines. If a :class:`list` or
         :class:`dict`, elements must be valid :doc:`matplotlib linestyles
@@ -2361,9 +2372,11 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         ci_dict = dict()
         for cond in conditions:
             this_evokeds = evokeds[cond]
-            # skip CIs when possible; assign ci_fun first to get arg checking
+            # assign ci_fun first to get arg checking
             ci_fun = _get_ci_function_pce(ci, do_topo=do_topo)
-            ci_fun = ci_fun if len(this_evokeds) > 1 else None
+            # for bootstrap or parametric CIs, skip when only 1 observation
+            if not callable(ci):
+                ci_fun = ci_fun if len(this_evokeds) > 1 else None
             res = _get_data_and_ci(this_evokeds, combine, c_func, picks=_picks,
                                    scaling=scalings, ci_fun=ci_fun)
             data_dict[cond] = res[0]
@@ -2408,7 +2421,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     if show_sensors:
         _validate_type(show_sensors, (np.int64, bool, str, type(None)),
                        'show_sensors', 'numeric, str, None or bool')
-        if not _check_ch_locs(np.array(one_evoked.info['chs'])[pos_picks]):
+        if not _check_ch_locs(info=one_evoked.info, picks=pos_picks):
             warn('Cannot find channel coordinates in the supplied Evokeds. '
                  'Not showing channel locations.')
         else:

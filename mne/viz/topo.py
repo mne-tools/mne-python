@@ -14,7 +14,7 @@ from itertools import cycle
 import numpy as np
 
 from ..io.pick import channel_type, pick_types
-from ..utils import _clean_names, warn, _check_option, Bunch, fill_doc
+from ..utils import _clean_names, warn, _check_option, Bunch, fill_doc, _to_rgb
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, _get_color_list, _draw_proj_checkbox,
@@ -305,7 +305,7 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                 tfr=None, freq=None, x_label=None, y_label=None,
                 colorbar=False, cmap=('RdBu_r', True), yscale='auto',
                 mask=None, mask_style="both", mask_cmap="Greys",
-                mask_alpha=0.1, is_jointplot=False):
+                mask_alpha=0.1, is_jointplot=False, cnorm=None):
     """Show time-frequency map as two-dimensional image."""
     from matplotlib import pyplot as plt
     from matplotlib.widgets import RectangleSelector
@@ -318,7 +318,7 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
     img, t_end = _plot_masked_image(
         ax, tfr[ch_idx], times, mask, yvals=freq, cmap=cmap,
         vmin=vmin, vmax=vmax, mask_style=mask_style, mask_alpha=mask_alpha,
-        mask_cmap=mask_cmap, yscale=yscale)
+        mask_cmap=mask_cmap, yscale=yscale, cnorm=cnorm)
 
     if x_label is not None:
         ax.set_xlabel(x_label)
@@ -357,7 +357,6 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
                      labels=None):
     """Show time series on topo split across multiple axes."""
     import matplotlib.pyplot as plt
-    from matplotlib.colors import colorConverter
     picker_flag = False
     for data_, color_, times_ in zip(data, color, times):
         if not picker_flag:
@@ -421,11 +420,8 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
 
     ax._cursorline = None
     # choose cursor color based on perceived brightness of background
-    try:
-        facecol = colorConverter.to_rgb(ax.get_facecolor())
-    except AttributeError:  # older MPL
-        facecol = colorConverter.to_rgb(ax.get_axis_bgcolor())
-    face_brightness = np.dot(facecol, np.array([299, 587, 114]))
+    facecol = _to_rgb(ax.get_facecolor())
+    face_brightness = np.dot(facecol, [299, 587, 114])
     ax._cursorcolor = 'white' if face_brightness < 150 else 'black'
 
     plt.connect('motion_notify_event', _cursor_vline)
@@ -689,10 +685,9 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
             ch = info['chs'][pick]
             ch['ch_name'] = ch['ch_name'][:-1] + 'X'
             chs.append(ch)
-        info['chs'] = chs
-        info['bads'] = list()   # Bads handled by pair_grad_sensors
-        info._update_redundant()
-        info._check_consistency()
+        with info._unlock(update_redundant=True, check_after=True):
+            info['chs'] = chs
+            info['bads'] = list()   # Bads handled by pair_grad_sensors
         new_picks = list()
         for e in evoked:
             data, _ = _merge_ch_data(e.data[picks], 'grad', [])

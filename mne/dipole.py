@@ -36,7 +36,7 @@ from .source_space import _make_volume_source_space, SourceSpaces
 from .parallel import parallel_func
 from .utils import (logger, verbose, _time_mask, warn, _check_fname,
                     check_fname, _pl, fill_doc, _check_option, ShiftTimeMixin,
-                    _svd_lwork, _repeated_svd, _get_blas_funcs)
+                    _svd_lwork, _repeated_svd, _get_blas_funcs, _validate_type)
 
 
 @fill_doc
@@ -243,8 +243,8 @@ class Dipole(object):
             The scale of the dipoles if ``mode`` is 'arrow' or 'sphere'.
         color : tuple
             The color of the dipoles if ``mode`` is 'arrow' or 'sphere'.
-        fig : mayavi.mlab.Figure | None
-            Mayavi Scene in which to plot the alignment.
+        fig : PyVista renderer | None
+            PyVista Scene in which to plot the alignment.
             If ``None``, creates a new 600x600 pixel figure with black
             background.
 
@@ -256,8 +256,8 @@ class Dipole(object):
 
         Returns
         -------
-        fig : instance of mayavi.mlab.Figure or matplotlib.figure.Figure
-            The mayavi figure or matplotlib Figure.
+        fig : instance of PyVista renderer or matplotlib.figure.Figure
+            The PyVista figure or matplotlib Figure.
 
         Notes
         -----
@@ -899,14 +899,14 @@ def _fit_Q(fwd_data, whitener, B, B2, B_orig, rd, ori=None):
 
 
 def _fit_dipoles(fun, min_dist_to_inner_skull, data, times, guess_rrs,
-                 guess_data, fwd_data, whitener, ori, n_jobs, rank):
+                 guess_data, fwd_data, whitener, ori, n_jobs, rank, rhoend):
     """Fit a single dipole to the given whitened, projected data."""
     from scipy.optimize import fmin_cobyla
     parallel, p_fun, _ = parallel_func(fun, n_jobs)
     # parallel over time points
     res = parallel(p_fun(min_dist_to_inner_skull, B, t, guess_rrs,
                          guess_data, fwd_data, whitener,
-                         fmin_cobyla, ori, rank)
+                         fmin_cobyla, ori, rank, rhoend)
                    for B, t in zip(data.T, times))
     pos = np.array([r[0] for r in res])
     amp = np.array([r[1] for r in res])
@@ -1100,7 +1100,8 @@ def _sphere_constraint(rd, r0, R_adj):
 
 
 def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
-                guess_data, fwd_data, whitener, fmin_cobyla, ori, rank):
+                guess_data, fwd_data, whitener, fmin_cobyla, ori, rank,
+                rhoend):
     """Fit a single bit of data."""
     B = np.dot(whitener, B_orig)
 
@@ -1134,7 +1135,7 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
     # function we can use to ensure we stay inside the inner skull /
     # smallest sphere
     rd_final = fmin_cobyla(fun, x0, (constraint,), consargs=(),
-                           rhobeg=5e-2, rhoend=5e-5, disp=False)
+                           rhobeg=5e-2, rhoend=rhoend, disp=False)
 
     # simplex = _make_tetra_simplex() + x0
     # _simplex_minimize(simplex, 1e-4, 2e-4, fun)
@@ -1164,7 +1165,7 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
 
 def _fit_dipole_fixed(min_dist_to_inner_skull, B_orig, t, guess_rrs,
                       guess_data, fwd_data, whitener,
-                      fmin_cobyla, ori, rank):
+                      fmin_cobyla, ori, rank, rhoend):
     """Fit a data using a fixed position."""
     B = np.dot(whitener, B_orig)
     B2 = np.dot(B, B)
@@ -1190,7 +1191,8 @@ def _fit_dipole_fixed(min_dist_to_inner_skull, B_orig, t, guess_rrs,
 
 @verbose
 def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
-               pos=None, ori=None, rank=None, verbose=None):
+               pos=None, ori=None, rank=None, accuracy='normal', tol=5e-5,
+               verbose=None):
     """Fit a dipole.
 
     Parameters
@@ -1230,6 +1232,16 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     %(rank_None)s
 
         .. versionadded:: 0.20
+    accuracy : str
+        Can be "normal" (default) or "accurate", which gives the most accurate
+        coil definition but is typically not necessary for real-world data.
+
+        .. versionadded:: 0.24
+    tol : float
+        Final accuracy of the optimization (see ``rhoend`` argument of
+        :func:`scipy.optimize.fmin_cobyla`).
+
+        .. versionadded:: 0.24
     %(verbose)s
 
     Returns
@@ -1257,6 +1269,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     # are what is needed:
 
     evoked = evoked.copy()
+    _validate_type(accuracy, str, 'accuracy')
+    _check_option('accuracy', accuracy, ('accurate', 'normal'))
 
     # Determine if a list of projectors has an average EEG ref
     if _needs_eeg_average_ref_proj(evoked.info):
@@ -1322,7 +1336,6 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
                     % (1000 * r0[0], 1000 * r0[1], 1000 * r0[2], kind, R))
         inner_skull = dict(R=R, r0=r0)  # NB sphere model defined in head frame
         del R, r0
-    accurate = False  # can be an option later (shouldn't make big diff)
 
     # Deal with DipoleFixed cases here
     if pos is not None:
@@ -1362,8 +1375,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         if guess_exclude > 0:
             logger.info('Guess exclude     : %6.1f mm'
                         % (1000 * guess_exclude,))
-        logger.info('Using %s MEG coil definitions.'
-                    % ("accurate" if accurate else "standard"))
+        logger.info(f'Using {accuracy} MEG coil definitions.')
         fit_n_jobs = n_jobs
     if isinstance(cov, str):
         logger.info('Noise covariance  : %s' % (cov,))
@@ -1382,7 +1394,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     if 'grad' in ch_types or 'mag' in ch_types:
         megcoils, compcoils, megnames, meg_info = \
             _prep_meg_channels(info, exclude='bads',
-                               accurate=accurate, verbose=verbose)
+                               accuracy=accuracy, verbose=verbose)
     if 'eeg' in ch_types:
         eegels, eegnames = _prep_eeg_channels(info, exclude='bads',
                                               verbose=verbose)
@@ -1462,13 +1474,14 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     fun = _fit_dipole_fixed if fixed_position else _fit_dipole
     out = _fit_dipoles(
         fun, min_dist_to_inner_skull, data, times, guess_src['rr'],
-        guess_data, fwd_data, whitener, ori, n_jobs, rank)
+        guess_data, fwd_data, whitener, ori, n_jobs, rank, tol)
     assert len(out) == 8
     if fixed_position and ori is not None:
         # DipoleFixed
         data = np.array([out[1], out[3]])
         out_info = deepcopy(info)
         loc = np.concatenate([pos, ori, np.zeros(6)])
+        out_info._unlocked = True
         out_info['chs'] = [
             dict(ch_name='dip 01', loc=loc, kind=FIFF.FIFFV_DIPOLE_WAVE,
                  coord_frame=FIFF.FIFFV_COORD_UNKNOWN, unit=FIFF.FIFF_UNIT_AM,
@@ -1485,6 +1498,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
                     'experimenter', 'hpi_subsystem', 'proj_id', 'proj_name',
                     'subject_info']:
             out_info[key] = None
+        out_info._unlocked = False
         out_info['bads'] = []
         out_info._update_redundant()
         out_info._check_consistency()
@@ -1518,6 +1532,10 @@ def get_phantom_dipoles(kind='vectorview'):
         The dipole positions.
     ori : ndarray, shape (n_dipoles, 3)
         The dipole orientations.
+
+    See Also
+    --------
+    mne.datasets.fetch_phantom
 
     Notes
     -----

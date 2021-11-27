@@ -159,7 +159,8 @@ class RawNIRX(BaseRaw):
         # Check that the file format version is supported
         if is_aurora:
             # We may need to ease this requirement back
-            if hdr['GeneralInfo']['Version'] not in ['2021.4.0-34-ge9fdbbc8']:
+            if hdr['GeneralInfo']['Version'] not in ['2021.4.0-34-ge9fdbbc8',
+                                                     '2021.9.0-5-g3eb32851']:
                 warn("MNE has not been tested with Aurora version "
                      f"{hdr['GeneralInfo']['Version']}")
         else:
@@ -185,7 +186,8 @@ class RawNIRX(BaseRaw):
         meas_date = None
         # Several formats have been observed so we try each in turn
         for dt_code in ['"%a, %b %d, %Y""%H:%M:%S.%f"',
-                        '"%a, %d %b %Y""%H:%M:%S.%f"']:
+                        '"%a, %d %b %Y""%H:%M:%S.%f"',
+                        '%Y-%m-%d %H:%M:%S.%f']:
             try:
                 meas_date = dt.datetime.strptime(datetime_str, dt_code)
                 meas_date = meas_date.replace(tzinfo=dt.timezone.utc)
@@ -271,9 +273,10 @@ class RawNIRX(BaseRaw):
             subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_FEMALE
         else:
             subject_info['sex'] = FIFF.FIFFV_SUBJ_SEX_UNKNOWN
-        subject_info['birthday'] = (meas_date.year - int(inf['age']),
-                                    meas_date.month,
-                                    meas_date.day)
+        if inf['age'] != '':
+            subject_info['birthday'] = (meas_date.year - int(inf['age']),
+                                        meas_date.month,
+                                        meas_date.day)
 
         # Read information about probe/montage/optodes
         # A word on terminology used here:
@@ -330,8 +333,9 @@ class RawNIRX(BaseRaw):
         info = create_info(chnames,
                            samplingrate,
                            ch_types='fnirs_cw_amplitude')
-        info.update(subject_info=subject_info, dig=dig)
-        info['meas_date'] = meas_date
+        with info._unlock():
+            info.update(subject_info=subject_info, dig=dig)
+            info['meas_date'] = meas_date
 
         # Store channel, source, and detector locations
         # The channel location is stored in the first 3 entries of loc.

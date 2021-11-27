@@ -573,7 +573,8 @@ def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=1, verbose=None):
     sinusoids = 70e-9 * np.sin(2 * np.pi * hpi_freqs[:, np.newaxis] *
                                (np.arange(len(times)) / info['sfreq']))
     info = pick_info(info, meg_picks)
-    info.update(projs=[], bads=[])  # Ensure no 'projs' or 'bads'
+    with info._unlock():
+        info.update(projs=[], bads=[])  # Ensure no 'projs' or 'bads'
     megcoils, _, _, _ = _prep_meg_channels(info, ignore_ref=False)
     used = np.zeros(len(raw.times), bool)
     dev_head_ts.append(dev_head_ts[-1])  # ZOH after time ends
@@ -689,7 +690,8 @@ def _iter_forward_solutions(info, trans, src, bem, dev_head_ts, mindist,
     """Calculate a forward solution for a subject."""
     logger.info('Setting up forward solutions')
     info = pick_info(info, picks)
-    info.update(projs=[], bads=[])  # Ensure no 'projs' or 'bads'
+    with info._unlock():
+        info.update(projs=[], bads=[])  # Ensure no 'projs' or 'bads'
     mri_head_t, trans = _get_trans(trans)
     megcoils, meg_info, compcoils, megnames, eegels, eegnames, rr, info, \
         update_kwargs, bem = _prepare_for_forward(

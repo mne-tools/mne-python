@@ -17,6 +17,7 @@ import pytest
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from matplotlib.cm import get_cmap
+from matplotlib.collections import PolyCollection
 
 import mne
 from mne import (read_events, Epochs, read_cov, compute_covariance,
@@ -80,7 +81,7 @@ def test_plot_evoked_cov():
         evoked.plot(noise_cov=cov, time_unit='s')
     with pytest.raises(TypeError, match='Covariance'):
         evoked.plot(noise_cov=1., time_unit='s')
-    with pytest.raises(IOError, match='No such file'):
+    with pytest.raises(FileNotFoundError, match='File does not exist'):
         evoked.plot(noise_cov='nonexistent-cov.fif', time_unit='s')
     raw = read_raw_fif(raw_sss_fname)
     events = make_fixed_length_events(raw)
@@ -120,7 +121,8 @@ def test_plot_evoked():
     evoked_delayed_ssp.apply_proj()
     pytest.raises(RuntimeError, evoked_delayed_ssp.plot,
                   proj='interactive', time_unit='s')
-    evoked_delayed_ssp.info['projs'] = []
+    with evoked_delayed_ssp.info._unlock():
+        evoked_delayed_ssp.info['projs'] = []
     pytest.raises(RuntimeError, evoked_delayed_ssp.plot,
                   proj='interactive', time_unit='s')
     pytest.raises(RuntimeError, evoked_delayed_ssp.plot,
@@ -316,7 +318,8 @@ def test_plot_white():
     # Hack to test plotting of maxfiltered data
     evoked_sss = _get_epochs(picks='meg').average()
     sss = dict(sss_info=dict(in_order=80, components=np.arange(80)))
-    evoked_sss.info['proc_history'] = [dict(max_info=sss)]
+    with evoked_sss.info._unlock():
+        evoked_sss.info['proc_history'] = [dict(max_info=sss)]
     evoked_sss.plot_white(cov, rank={'meg': 64})
     with pytest.raises(ValueError, match='When using SSS'):
         evoked_sss.plot_white(cov, rank={'grad': 201})
@@ -359,10 +362,22 @@ def test_plot_compare_evokeds():
         assert (yvals < ylim[1]).all()
         assert (yvals > ylim[0]).all()
     plt.close('all')
+
     # test other CI args
-    for _ci in (None, False, 0.5,
-                lambda x: np.stack([x.mean(axis=0) + 1, x.mean(axis=0) - 1])):
-        plot_compare_evokeds({'cond': [blue, red, evoked]}, ci=_ci)
+    def ci_func(array):
+        return array.mean(axis=0, keepdims=True) * np.array([[0.5], [1.5]])
+
+    ci_types = (None, False, 0.5, ci_func)
+    for _ci in ci_types:
+        fig = plot_compare_evokeds({'cond': [blue, red, evoked]}, ci=_ci)[0]
+        if _ci in ci_types[2:]:
+            assert np.any([isinstance(coll, PolyCollection)
+                           for coll in fig.axes[0].collections])
+    # make sure we can get a CI even for single conditions
+    fig = plot_compare_evokeds(evoked, picks='eeg', ci=ci_func)[0]
+    assert np.any([isinstance(coll, PolyCollection)
+                   for coll in fig.axes[0].collections])
+
     with pytest.raises(TypeError, match='"ci" must be None, bool, float or'):
         plot_compare_evokeds(evoked, ci='foo')
     # test sensor inset, legend location, and axis inversion & truncation

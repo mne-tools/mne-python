@@ -15,8 +15,8 @@ General MNE-Python issues
 Help! I can't get Python and MNE-Python working!
 ------------------------------------------------
 
-Check out our section on how to get Anaconda up and running over at the
-:ref:`getting started page <install_python_and_mne_python>`.
+Check out our installation instructions for :ref:`Python <install-python>` and
+:ref:`MNE-Python <standard_instructions>`.
 
 
 I still can't get it to work!
@@ -25,16 +25,15 @@ I still can't get it to work!
 See :ref:`help`.
 
 
-I can't get Mayavi/3D plotting to work under Windows
-----------------------------------------------------
+I can't get PyVista/3D plotting to work under Windows
+-----------------------------------------------------
 
-If Mayavi plotting in Jupyter Notebooks doesn't work well, using the IPython
-magic ``%gui qt`` after importing MNE/Mayavi/PySurfer should `help
+If PyVista plotting in Jupyter Notebooks doesn't work well, using the IPython
+magic ``%gui qt`` should `help
 <https://github.com/ipython/ipython/issues/10384>`_.
 
 .. code-block:: ipython
 
-   from mayavi import mlab
    %gui qt
 
 Python runs on macOS extremely slow even on simple commands!

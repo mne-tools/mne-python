@@ -4,9 +4,9 @@
 #
 # License: BSD-3-Clause
 
+import importlib
 from builtins import input  # no-op here but facilitates testing
 from difflib import get_close_matches
-from distutils.version import LooseVersion
 import operator
 import os
 import os.path as op
@@ -17,7 +17,7 @@ import numbers
 
 import numpy as np
 
-from ..fixes import _median_complex
+from ..fixes import _median_complex, _compare_version
 from ._logging import warn, logger
 
 
@@ -87,8 +87,10 @@ def check_version(library, min_version='0.0'):
     except ImportError:
         ok = False
     else:
-        if min_version and \
-                LooseVersion(library.__version__) < LooseVersion(min_version):
+        if (
+            min_version and
+            _compare_version(library.__version__, '<', min_version)
+        ):
             ok = False
     return ok
 
@@ -98,12 +100,6 @@ def _require_version(lib, what, version='0.0'):
     if not check_version(lib, version):
         extra = f' (version >= {version})' if version != '0.0' else ''
         raise ImportError(f'The {lib} package{extra} is required to {what}')
-
-
-def _check_mayavi_version(min_version='4.3.0'):
-    """Check mayavi version."""
-    if not check_version('mayavi', min_version):
-        raise RuntimeError("Need mayavi >= %s" % min_version)
 
 
 # adapted from scikit-learn utils/validation.py
@@ -155,6 +151,12 @@ def _check_fname(fname, overwrite=False, must_exist=False, name='File',
                  need_dir=False):
     """Check for file existence, and return string of its absolute path."""
     _validate_type(fname, 'path-like', name)
+    fname = str(
+        Path(fname)
+        .expanduser()
+        .absolute()
+    )
+
     if op.exists(fname):
         if not overwrite:
             raise FileExistsError('Destination file exists. Please use option '
@@ -177,7 +179,8 @@ def _check_fname(fname, overwrite=False, must_exist=False, name='File',
                     f'{name} does not have read permissions: {fname}')
     elif must_exist:
         raise FileNotFoundError(f'{name} does not exist: {fname}')
-    return str(op.abspath(fname))
+
+    return fname
 
 
 def _check_subject(first, second, *, raise_error=True,
@@ -237,7 +240,8 @@ def _check_compensation_grade(info1, info2, name1,
         # pick channels
         for t_info in [info1, info2]:
             if t_info['comps']:
-                t_info['comps'] = []
+                with t_info._unlock():
+                    t_info['comps'] = []
             picks = pick_channels(t_info['ch_names'], ch_names)
             pick_info(t_info, picks, copy=False)
     # "or 0" here aliases None -> 0, as they are equivalent
@@ -251,43 +255,43 @@ def _check_compensation_grade(info1, info2, name1,
             % (name1, grade1, name2, grade2))
 
 
-def _check_pylsl_installed(strict=True):
-    """Aux function."""
+def _soft_import(name, purpose, strict=True):
+    """Import soft dependencies, providing informative errors on failure.
+
+    Parameters
+    ----------
+    name : str
+        Name of the module to be imported. For example, 'pandas'.
+    purpose : str
+        A very brief statement (formulated as a noun phrase) explaining what
+        functionality the package provides to MNE-Python.
+    strict : bool
+        Whether to raise an error if module import fails.
+    """
     try:
-        import pylsl
-        return pylsl
-    except ImportError:
-        if strict is True:
-            raise RuntimeError('For this functionality to work, the pylsl '
-                               'library is required.')
+        mod = importlib.import_module(name)
+        return mod
+    except (ImportError, ModuleNotFoundError):
+        if strict:
+            raise RuntimeError(f'For {purpose} to work, the {name} module is '
+                               'needed, but it could not be imported.')
         else:
             return False
 
 
 def _check_pandas_installed(strict=True):
     """Aux function."""
-    try:
-        import pandas
-        return pandas
-    except ImportError:
-        if strict is True:
-            raise RuntimeError('For this functionality to work, the Pandas '
-                               'library is required.')
-        else:
-            return False
+    return _soft_import('pandas', 'dataframe integration', strict=strict)
 
 
 def _check_eeglabio_installed(strict=True):
     """Aux function."""
-    try:
-        import eeglabio
-        return eeglabio
-    except ImportError:
-        if strict is True:
-            raise RuntimeError('For this functionality to work, the eeglabio '
-                               'library is required.')
-        else:
-            return False
+    return _soft_import('eeglabio', 'exporting to EEGLab', strict=strict)
+
+
+def _check_edflib_installed(strict=True):
+    """Aux function."""
+    return _soft_import('EDFlib', 'exporting to EDF', strict=strict)
 
 
 def _check_pandas_index_arguments(index, valid):
@@ -323,14 +327,31 @@ def _check_time_format(time_format, valid, meas_date=None):
     return time_format
 
 
-def _check_ch_locs(chs):
+def _check_ch_locs(info, picks=None, ch_type=None):
     """Check if channel locations exist.
 
     Parameters
     ----------
-    chs : dict
-        The channels from info['chs']
+    info : Info | None
+        `~mne.Info` instance.
+    picks : list of int
+        Channel indices to consider. If provided, ``ch_type`` must be ``None``.
+    ch_type : str | None
+        The channel type to restrict the check to. If ``None``, check all
+        channel types. If provided, ``picks`` must be ``None``.
     """
+    from ..io.pick import _picks_to_idx, pick_info
+
+    if picks is not None and ch_type is not None:
+        raise ValueError('Either picks or ch_type may be provided, not both')
+
+    if picks is not None:
+        info = pick_info(info=info, sel=picks)
+    elif ch_type is not None:
+        picks = _picks_to_idx(info=info, picks=ch_type, none=ch_type)
+        info = pick_info(info=info, sel=picks)
+
+    chs = info['chs']
     locs3d = np.array([ch['loc'][:3] for ch in chs])
     return not ((locs3d == 0).all() or
                 (~np.isfinite(locs3d)).all() or
@@ -419,7 +440,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
                         f"got {type(item)} instead.")
 
 
-def _check_path_like(item):
+def _path_like(item):
     """Validate that `item` is `path-like`.
 
     Parameters
@@ -564,6 +585,41 @@ def _check_depth(depth, kind='depth_mne'):
     return _handle_default(kind, depth)
 
 
+def _check_dict_keys(mapping, valid_keys,
+                     key_description, valid_key_source):
+    """Check that the keys in dictionary are valid against a set list.
+
+    Return the input dictionary if it is valid,
+    otherwise raise a ValueError with a readable error message.
+
+    Parameters
+    ----------
+    mapping : dict
+        The user-provided dict whose keys we want to check.
+    valid_keys : iterable
+        The valid keys.
+    key_description : str
+        Description of the keys in ``mapping``, e.g., "channel name(s)" or
+        "annotation(s)".
+    valid_key_source : str
+        Description of the ``valid_keys`` source, e.g., "info dict" or
+        "annotations in the data".
+
+    Returns
+    -------
+    mapping
+        If all keys are valid the input dict is returned unmodified.
+    """
+    missing = set(mapping) - set(valid_keys)
+    if len(missing):
+        _is = 'are' if len(missing) > 1 else 'is'
+        msg = (f'Invalid {key_description} {missing} {_is} not present in '
+               f'{valid_key_source}')
+        raise ValueError(msg)
+
+    return mapping
+
+
 def _check_option(parameter, value, allowed_values, extra=''):
     """Check the value of a parameter against a list of valid options.
 
@@ -604,8 +660,11 @@ def _check_option(parameter, value, allowed_values, extra=''):
         options = f'The only allowed value is {repr(allowed_values[0])}'
     else:
         options = 'Allowed values are '
-        options += ', '.join([f'{repr(v)}' for v in allowed_values[:-1]])
-        options += f', and {repr(allowed_values[-1])}'
+        if len(allowed_values) == 2:
+            options += ' and '.join(repr(v) for v in allowed_values)
+        else:
+            options += ', '.join(repr(v) for v in allowed_values[:-1])
+            options += f', and {repr(allowed_values[-1])}'
     raise ValueError(msg.format(parameter=parameter, options=options,
                                 value=value, extra=extra))
 
@@ -619,16 +678,16 @@ def _check_all_same_channel_names(instances):
     return True
 
 
-def _check_combine(mode, valid=('mean', 'median', 'std')):
+def _check_combine(mode, valid=('mean', 'median', 'std'), axis=0):
     if mode == "mean":
         def fun(data):
-            return np.mean(data, axis=0)
+            return np.mean(data, axis=axis)
     elif mode == "std":
         def fun(data):
-            return np.std(data, axis=0)
+            return np.std(data, axis=axis)
     elif mode == "median" or mode == np.median:
         def fun(data):
-            return _median_complex(data, axis=0)
+            return _median_complex(data, axis=axis)
     elif callable(mode):
         fun = mode
     else:
@@ -664,7 +723,7 @@ def _check_pyqt5_version():
     except Exception:
         version = 'unknown'
     else:
-        if LooseVersion(version) >= LooseVersion('5.10'):
+        if _compare_version(version, '>=', '5.10'):
             bad = False
     bad &= sys.platform == 'darwin'
     if bad:
@@ -777,3 +836,15 @@ def _ensure_events(events):
         raise ValueError(
             f'events must be of shape (N, 3), got {events.shape}')
     return events
+
+
+def _to_rgb(*args, name='color', alpha=False):
+    from matplotlib.colors import colorConverter
+    func = colorConverter.to_rgba if alpha else colorConverter.to_rgb
+    try:
+        return func(*args)
+    except ValueError:
+        args = args[0] if len(args) == 1 else args
+        raise ValueError(
+            f'Invalid RGB{"A" if alpha else ""} argument(s) for {name}: '
+            f'{repr(args)}') from None

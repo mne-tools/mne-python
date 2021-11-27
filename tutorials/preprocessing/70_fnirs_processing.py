@@ -14,7 +14,7 @@ Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 
 # %%
 
-import os
+import os.path as op
 import numpy as np
 import matplotlib.pyplot as plt
 from itertools import compress
@@ -23,7 +23,7 @@ import mne
 
 
 fnirs_data_folder = mne.datasets.fnirs_motor.data_path()
-fnirs_cw_amplitude_dir = os.path.join(fnirs_data_folder, 'Participant-1')
+fnirs_cw_amplitude_dir = op.join(fnirs_data_folder, 'Participant-1')
 raw_intensity = mne.io.read_raw_nirx(fnirs_cw_amplitude_dir, verbose=True)
 raw_intensity.load_data()
 
@@ -42,13 +42,13 @@ raw_intensity.annotations.set_durations(5)
 raw_intensity.annotations.rename({'1.0': 'Control',
                                   '2.0': 'Tapping/Left',
                                   '3.0': 'Tapping/Right'})
-raw_intensity.annotations.delete(
-    raw_intensity.annotations.description == '15.0')
+unwanted = np.nonzero(raw_intensity.annotations.description == '15.0')
+raw_intensity.annotations.delete(unwanted)
 
 
 # %%
-# View location of sensors over brain surface
-# -------------------------------------------
+# Viewing location of sensors over brain surface
+# ----------------------------------------------
 #
 # Here we validate that the location of sources-detector pairs and channels
 # are in the expected locations. Source-detector pairs are shown as lines
@@ -56,17 +56,14 @@ raw_intensity.annotations.delete(
 # optionally shown as orange dots. Source are optionally shown as red dots and
 # detectors as black.
 
-subjects_dir = mne.datasets.sample.data_path() + '/subjects'
+subjects_dir = op.join(mne.datasets.sample.data_path(), 'subjects')
 
-fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
-fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
-                             subject='fsaverage', coord_frame='mri',
-                             trans='fsaverage', surfaces=['brain'],
-                             fnirs=['channels', 'pairs',
-                                    'sources', 'detectors'],
-                             subjects_dir=subjects_dir, fig=fig)
-mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=60, distance=0.4,
-                    focalpoint=(0., -0.01, 0.02))
+brain = mne.viz.Brain(
+    'fsaverage', subjects_dir=subjects_dir, background='w', cortex='0.5')
+brain.add_sensors(
+    raw_intensity.info, trans='fsaverage',
+    fnirs=['channels', 'pairs', 'sources', 'detectors'])
+brain.show_view(azimuth=20, elevation=60, distance=400)
 
 # %%
 # Selecting channels appropriate for detecting neural responses
@@ -138,7 +135,7 @@ raw_od.info['bads'] = list(compress(raw_od.ch_names, sci < 0.5))
 # Next we convert the optical density data to haemoglobin concentration using
 # the modified Beer-Lambert law.
 
-raw_haemo = mne.preprocessing.nirs.beer_lambert_law(raw_od)
+raw_haemo = mne.preprocessing.nirs.beer_lambert_law(raw_od, ppf=0.1)
 raw_haemo.plot(n_channels=len(raw_haemo.ch_names),
                duration=500, show_scrollbars=False)
 

@@ -15,7 +15,6 @@ import sys
 import tempfile
 import traceback
 from unittest import SkipTest
-import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
@@ -66,7 +65,7 @@ def requires_nibabel():
 def requires_dipy():
     """Check for dipy."""
     import pytest
-    # for some strange reason on CIs we cane get:
+    # for some strange reason on CIs we can get:
     #
     #     can get weird ImportError: dlopen: cannot load any more object
     #     with static TLS
@@ -115,11 +114,6 @@ if version < '0.8.0':
     raise ImportError
 """
 
-_mayavi_call = """
-with warnings.catch_warnings(record=True):  # traits
-    from mayavi import mlab
-"""
-
 _mne_call = """
 if not has_mne_c():
     raise ImportError
@@ -138,7 +132,6 @@ if 'NEUROMAG2FT_ROOT' not in os.environ:
 requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
 requires_pylsl = partial(requires_module, name='pylsl')
 requires_sklearn = partial(requires_module, name='sklearn')
-requires_mayavi = partial(requires_module, name='mayavi', call=_mayavi_call)
 requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
 
 
@@ -163,10 +156,6 @@ requires_neuromag2ft = partial(requires_module, name='neuromag2ft',
                                call=_n2ft_call)
 
 requires_vtk = partial(requires_module, name='vtk')
-requires_pysurfer = partial(requires_module, name='PySurfer',
-                            call="""import warnings
-with warnings.catch_warnings(record=True):
-    from surfer import Brain""")
 requires_good_network = partial(
     requires_module, name='good network connection',
     call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
@@ -209,40 +198,6 @@ def check_version(library, min_version):
             if this_version < min_version:
                 ok = False
     return ok
-
-
-def _check_mayavi_version(min_version='4.3.0'):
-    """Check mayavi version."""
-    if not check_version('mayavi', min_version):
-        raise RuntimeError("Need mayavi >= %s" % min_version)
-
-
-def _import_mlab():
-    """Quietly import mlab."""
-    with warnings.catch_warnings(record=True):
-        from mayavi import mlab
-    return mlab
-
-
-@contextmanager
-def traits_test_context():
-    """Context to raise errors in trait handlers."""
-    from traits.api import push_exception_handler
-
-    push_exception_handler(reraise_exceptions=True)
-    try:
-        yield
-    finally:
-        push_exception_handler(reraise_exceptions=False)
-
-
-def traits_test(test_func):
-    """Raise errors in trait handlers (decorator)."""
-    @wraps(test_func)
-    def dec(*args, **kwargs):
-        with traits_test_context():
-            return test_func(*args, **kwargs)
-    return dec
 
 
 def run_command_if_main():
@@ -359,8 +314,8 @@ def _raw_annot(meas_date, orig_time):
     raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
     if meas_date is not None:
         meas_date = _handle_meas_date(meas_date)
-    raw.info['meas_date'] = meas_date
-    raw.info._check_consistency()
+    with raw.info._unlock(check_after=True):
+        raw.info['meas_date'] = meas_date
     annot = Annotations([.5], [.2], ['dummy'], orig_time)
     raw.set_annotations(annotations=annot)
     return raw

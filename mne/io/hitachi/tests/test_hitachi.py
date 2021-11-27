@@ -187,9 +187,9 @@ Probe1,CH1(703.6),CH1(829.0),CH2(703.9),CH2(829.3),CH3(703.9),CH3(829.3),CH4(703
     ('1.25', 108, 10, 5., 1, (2020, 2, 2, 11, 20, 0, 0), b'\r\n'),
 ])
 def test_hitachi_basic(preload, version, n_ch, n_times, lowpass, sex, date,
-                       end, tmpdir):
+                       end, tmp_path):
     """Test NIRSport1 file with no saturation."""
-    fname = str(tmpdir.join('test.csv'))
+    fname = tmp_path / 'test.csv'
     contents = CONTENTS[version]
     if end is not None:
         contents = contents.replace(b'\r', b'\n').replace(b'\n\n', b'\n')
@@ -210,7 +210,7 @@ def test_hitachi_basic(preload, version, n_ch, n_times, lowpass, sex, date,
     assert_allclose(distances, want, atol=0.)
     raw_od_bad = optical_density(raw)
     with pytest.warns(RuntimeWarning, match='will be zero'):
-        beer_lambert_law(raw_od_bad)
+        beer_lambert_law(raw_od_bad, ppf=6)
     # bad distances (too big)
     if version == '1.18':
         need = sum(([f'S{ii}', f'D{ii}'] for ii in range(1, 9)), [])[:-1]
@@ -221,7 +221,7 @@ def test_hitachi_basic(preload, version, n_ch, n_times, lowpass, sex, date,
         raw.set_montage(mon)
         raw_od_bad = optical_density(raw)
         with pytest.warns(RuntimeWarning, match='greater than 10 cm'):
-            beer_lambert_law(raw_od_bad)
+            beer_lambert_law(raw_od_bad, ppf=6)
     # good distances
     mon = make_standard_montage('standard_1020')
     if version == '1.18':
@@ -265,13 +265,13 @@ def test_hitachi_basic(preload, version, n_ch, n_times, lowpass, sex, date,
     assert_array_less(peaks, 1, err_msg='TDDR too big')
     # HbO/HbR
     raw_tddr.set_montage(mon)
-    raw_h = beer_lambert_law(raw_tddr)
+    raw_h = beer_lambert_law(raw_tddr, ppf=6)
     data = raw_h.get_data('fnirs')
     assert np.isfinite(data).all()
     assert data.shape == (n_ch - 4, n_times)
     peaks = np.ptp(data, axis=-1)
-    assert_array_less(1e-8, peaks, err_msg='Beer-Lambert too small')
-    assert_array_less(peaks, 1e-3, err_msg='Beer-Lambert too big')
+    assert_array_less(1e-10, peaks, err_msg='Beer-Lambert too small')
+    assert_array_less(peaks, 1e-5, err_msg='Beer-Lambert too big')
 
 
 # From Hitachi 2 Homer

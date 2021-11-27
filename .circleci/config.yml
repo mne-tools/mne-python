@@ -15,8 +15,8 @@ _xvfb: &xvfb
 
 jobs:
     build_docs:
-      docker:
-        - image: circleci/python:3.8.5-buster
+      machine:
+        image: ubuntu-2004:202111-01
       steps:
         - restore_cache:
             keys:
@@ -26,8 +26,9 @@ jobs:
             name: Complete checkout
             command: |
               if ! git remote -v | grep upstream; then
-                git remote add upstream git://github.com/mne-tools/mne-python.git
+                git remote add upstream https://github.com/mne-tools/mne-python.git
               fi
+              git remote set-url upstream https://github.com/mne-tools/mne-python.git
               git fetch upstream
         - save_cache:
             key: source-cache
@@ -45,6 +46,7 @@ jobs:
             name: Set BASH_ENV
             command: |
               set -e
+              python3 -m venv ~/python_env --upgrade-deps
               echo "set -e" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
               echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
@@ -52,10 +54,13 @@ jobs:
               source tools/get_minimal_commands.sh
               echo "export MNE_3D_BACKEND=pyvistaqt" >> $BASH_ENV
               echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
+              echo "source ~/python_env/bin/activate" >> $BASH_ENV
+              mkdir -p ~/.local/bin
+              ln -s ~/python_env/bin/python ~/.local/bin/python
               echo "BASH_ENV:"
               cat $BASH_ENV
               mkdir -p ~/mne_data
-              touch pattern.txt;
+              touch pattern.txt
         - run:
             name: check neuromag2ft
             command: |
@@ -120,12 +125,15 @@ jobs:
             name: Check installation
             command: |
                which python
-               QT_DEBUG_PLUGINS=1 mne sys_info
+               QT_DEBUG_PLUGINS=1 mne sys_info -pd
                python -c "import numpy; numpy.show_config()"
                LIBGL_DEBUG=verbose python -c "import pyvistaqt; pyvistaqt.BackgroundPlotter(show=True)"
                python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
                python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
                python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
+        - run:
+            name: List packages
+            command: python -m pip list
 
         # Figure out if we should run a full, pattern, or noplot version
         - restore_cache:
@@ -375,7 +383,7 @@ jobs:
         - run:
             name: Check installation
             command: |
-              mne sys_info
+              mne sys_info -pd
         - run:
             name: make linkcheck
             command: |
@@ -487,7 +495,7 @@ jobs:
         - run:
             name: Check installation
             command: |
-              mne sys_info
+              mne sys_info -pd
         - restore_cache:
             keys:
               - data-cache-testing
@@ -513,7 +521,7 @@ workflows:
             branches:
               only:
                 - main
-                - maint/0.23
+                - maint/0.24
 
   weekly:
     jobs:
