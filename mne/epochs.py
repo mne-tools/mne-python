@@ -3514,12 +3514,15 @@ def _finish_concat(info, data, events, event_id, tmin, tmax, metadata,
 @verbose
 def concatenate_epochs(epochs_list, add_offset=True, *, on_mismatch='raise',
                        verbose=None):
-    """Concatenate a list of epochs into one epochs object.
+    """Concatenate a list of `~mne.Epochs` into one `~mne.Epochs` object.
+
+    .. note:: Unlike `~mne.concatenate_raws`, this function does **not**
+              modify any of the input data.
 
     Parameters
     ----------
     epochs_list : list
-        List of Epochs instances to concatenate (in order).
+        List of `~mne.Epochs` instances to concatenate (in that order).
     add_offset : bool
         If True, a fixed offset is added to the event times from different
         Epochs sets, such that they are easy to distinguish after the
@@ -3533,7 +3536,7 @@ def concatenate_epochs(epochs_list, add_offset=True, *, on_mismatch='raise',
     Returns
     -------
     epochs : instance of Epochs
-        The result of the concatenation (first Epochs instance passed in).
+        The result of the concatenation.
 
     Notes
     -----

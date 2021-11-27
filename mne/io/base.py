@@ -2490,7 +2490,7 @@ def _check_raw_compatibility(raw):
 @verbose
 def concatenate_raws(raws, preload=None, events_list=None, *,
                      on_mismatch='raise', verbose=None):
-    """Concatenate raw instances as if they were continuous.
+    """Concatenate `~mne.io.Raw` instances as if they were continuous.
 
     .. note:: ``raws[0]`` is modified in-place to achieve the concatenation.
               Boundaries of the raw files are annotated bad. If you wish to use
