@@ -23,7 +23,7 @@ import vtk
 
 from ._abstract import _AbstractRenderer
 from ._utils import (_get_colormap_from_array, _alpha_blend_background,
-                     ALLOWED_QUIVER_MODES, _init_qt_resources)
+                     ALLOWED_QUIVER_MODES, _init_mne_qtapp, _init_qt_resources)
 from ...fixes import _get_args, _point_data, _cell_data
 from ...transforms import apply_trans
 from ...utils import copy_base_doc_to_subclass_doc, _check_option
@@ -88,19 +88,12 @@ class _Figure(object):
 
         if self.plotter is None:
             if not self.notebook:
-                from PyQt5.QtWidgets import QApplication
-                app = QApplication.instance()
-                if app is None:
-                    app = QApplication(["MNE"])
+                app = _init_mne_qtapp(enable_icon=hasattr(plotter_class,
+                                                          'set_icon'))
                 self.store['app'] = app
             plotter = plotter_class(**self.store)
             plotter.background_color = self.background_color
             self.plotter = plotter
-            if not self.notebook and hasattr(plotter_class, 'set_icon'):
-                _init_qt_resources()
-                _process_events(plotter)
-                kind = 'bigsur-' if platform.mac_ver()[0] >= '10.16' else ''
-                plotter.set_icon(f":/mne-{kind}icon.png")
         if self.plotter.iren is not None:
             self.plotter.iren.initialize()
         _process_events(self.plotter)

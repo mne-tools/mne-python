@@ -6,7 +6,8 @@
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
 #
 # License: Simplified BSD
-
+import platform
+import sys
 from contextlib import contextmanager
 import numpy as np
 import collections.abc
@@ -93,3 +94,41 @@ def _qt_disable_paint(widget):
         yield
     finally:
         widget.paintEvent = paintEvent
+
+
+def _init_mne_qtapp(enable_icon=True, pg_app=False):
+    """Get QApplication-instance for MNE-Python.
+
+    Parameter
+    ---------
+    enable_icon: bool
+        If to set an MNE-icon for the app.
+    pg_app: bool
+        If to create the QApplication with pyqtgraph. For an until know
+        undiscovered reason the pyqtgraph-browser won't show without
+        mkQApp from pyqtgraph.
+
+    Returns
+    -------
+    app: ``PyQt5.QtWidgets.QApplication``
+        Instance of QApplication.
+    """
+    from PyQt5.QtCore import Qt
+    from PyQt5.QtWidgets import QApplication
+    from PyQt5.QtGui import QIcon
+
+    if pg_app:
+        from pyqtgraph import mkQApp
+        app = mkQApp('MNE-Python')
+    else:
+        app = QApplication.instance() or QApplication(sys.argv or ['MNE'])
+        app.setApplicationName('MNE-Python')
+    app.setOrganizationName('MNE')
+
+    if enable_icon:
+        # Set icon
+        _init_qt_resources()
+        kind = 'bigsur-' if platform.mac_ver()[0] >= '10.16' else ''
+        app.setWindowIcon(QIcon(f":/mne-{kind}icon.png"))
+
+    return app

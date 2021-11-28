@@ -129,14 +129,13 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
     if backend == 'matplotlib':
         plt_show(show, block=block, **kwargs)
     else:
-        from qtpy.QtWidgets import QApplication
-        app = QApplication.instance() or QApplication(sys.argv)
+        from PyQt5.QtWidgets import QApplication
         if show:
             fig.show()
         # If block=False, a Qt-Event-Loop has to be started
         # somewhere else in the calling code.
         if block:
-            app.exec()
+            QApplication.instance().exec()
 
 
 def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
