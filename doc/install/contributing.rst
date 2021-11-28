@@ -42,7 +42,7 @@ ideally uses one of :ref:`our example datasets <datasets>`.
 
 If you want to *fix* bugs, *add* new features, or *improve* our
 docstrings/tutorials/website, those kinds of contributions are made through
-`our GitHub repository <MNE-Python GitHub>`_. The rest of this page explains
+`our GitHub repository <MNE-Python GitHub_>`_. The rest of this page explains
 how to set up your workflow to make contributing via GitHub as easy as
 possible.
 
@@ -831,7 +831,7 @@ Running the test suite
 .. sidebar:: pytest flags
 
     The ``-x`` flag exits the pytest run when any test fails; this can speed
-    up debugging when running all tests in a file or module. 
+    up debugging when running all tests in a file or module.
 
     The ``--pdb`` flag will automatically start the python debugger upon test
     failure.
