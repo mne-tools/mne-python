@@ -1063,7 +1063,5 @@ def test_info_bad():
 def test_info_pick_channels():
     """Test that info.pick_channels emits a deprecation warning."""
     info = create_info(2, 1000., 'eeg')
-    with pytest.warns(DeprecationWarning,
-                      match='This method is deprecated and will be removed '
-                            'after 1.1. To pick channels from'):
+    with pytest.deprecated_call(match='use inst.pick_channels instead.'):
         info.pick_channels(['0'])
