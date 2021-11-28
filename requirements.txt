@@ -33,5 +33,5 @@ tqdm
 mffpy>=0.5.7
 ipywidgets
 ipyvtklink
-pooch
+pooch >= 1.5
 mne-qt-browser
