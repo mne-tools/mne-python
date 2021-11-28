@@ -11,7 +11,6 @@
 #          Daniel McCloy <dan@mccloy.info>
 #
 # License: Simplified BSD
-import sys
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import partial

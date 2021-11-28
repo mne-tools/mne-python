@@ -14,7 +14,6 @@ Actual implementation of _Renderer and _Projection classes.
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 import os
-import platform
 import sys
 import warnings
 
@@ -23,7 +22,7 @@ import vtk
 
 from ._abstract import _AbstractRenderer
 from ._utils import (_get_colormap_from_array, _alpha_blend_background,
-                     ALLOWED_QUIVER_MODES, _init_mne_qtapp, _init_qt_resources)
+                     ALLOWED_QUIVER_MODES, _init_mne_qtapp)
 from ...fixes import _get_args, _point_data, _cell_data
 from ...transforms import apply_trans
 from ...utils import copy_base_doc_to_subclass_doc, _check_option
