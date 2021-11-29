@@ -22,13 +22,10 @@ class _PyQtGraphScraper:
                 img_fname = next(block_vars['image_path_iterator'])
                 inst = QApplication.instance()
                 assert inst is not None
-                for _ in range(30):  # max 30 sec
-                    inst.processEvents()
-                    inst.processEvents()
-                    if gui.mne.data_precomputed:
-                        inst.processEvents()
-                        break
-                    time.sleep(1.)
+            if (hasattr(self, 'load_thread')
+                    and self.load_thread is not None):
+                if self.load_thread.isRunning():
+                    gui.load_thread.wait(30000)
                 pixmap = gui.grab()
                 pixmap.save(img_fname)
                 gui.close()
