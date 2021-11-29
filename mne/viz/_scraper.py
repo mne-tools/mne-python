@@ -18,24 +18,21 @@ class _PyQtGraphScraper:
         if gallery_conf['builder_name'] != 'html':
             return ''
         img_fnames = list()
-        for gui in _pg_figure._browser_instances:
+        for gui in list(_pg_figure._browser_instances):
             if getattr(gui, '_scraped', False):
                 return
             gui._scraped = True  # monkey-patch but it's easy enough
-            img_fname = next(block_vars['image_path_iterator'])
-            inst = QApplication.instance()
-            assert inst is not None
+            img_fnames.append(next(block_vars['image_path_iterator']))
             if getattr(gui, 'load_thread', None) is not None:
                 if gui.load_thread.isRunning():
                     gui.load_thread.wait(30000)
             pixmap = gui.grab()
-            pixmap.save(img_fname)
+            pixmap.save(img_fnames[-1])
             gui.close()
-            inst.processEvents()
-            inst.processEvents()
-            img_fnames.append(img_fname)
         if not len(img_fnames):
             return ''
+        import sys
+        print(len(img_fnames), file=sys.__stdout__)
         return figure_rst(
             img_fnames, gallery_conf['src_dir'],
             f'Raw plot{_pl(len(img_fnames))}')
