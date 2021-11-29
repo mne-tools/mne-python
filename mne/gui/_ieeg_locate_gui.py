@@ -48,9 +48,8 @@ _UNIQUE_COLORS = [(0.1, 0.42, 0.43), (0.9, 0.34, 0.62), (0.47, 0.51, 0.3),
                   (0.59, 0.28, 0.74), (0.46, 0.19, 0.94), (0.37, 0.93, 0.7),
                   (0.56, 0.86, 0.55), (0.67, 0.69, 0.44)]
 _N_COLORS = len(_UNIQUE_COLORS)
-_CMAP = LinearSegmentedColormap.from_list('ch_colors', _UNIQUE_COLORS, 
+_CMAP = LinearSegmentedColormap.from_list('ch_colors', _UNIQUE_COLORS,
                                           N=_N_COLORS)
-
 
 def _load_image(img, name, verbose=True):
     """Load data from a 3D image file (e.g. CT, MR)."""
@@ -86,7 +85,7 @@ class ComboBox(QComboBox):
 
 
 def _make_slice_plot(width=4, height=4, dpi=300):
-    fig = Figure(figsize=(width, height),dpi=dpi)
+    fig = Figure(figsize=(width, height), dpi=dpi)
     canvas = FigureCanvas(fig)
     ax = fig.subplots()
     fig.subplots_adjust(bottom=0, left=0, right=1, top=1, wspace=0, hspace=0)
@@ -140,7 +139,8 @@ class IntracranialElectrodeLocator(QMainWindow):
             number = list(filter(str.isdigit, name))
             if len(number)==1:
                 name = base_name + '0' + str(number[0])
-            self._chs_pos[name] =  apply_trans(self._head_mri_t, ch['loc'][:3]) * 1000
+            self._chs_pos[name] =  apply_trans(self._head_mri_t, 
+                                               ch['loc'][:3]) * 1000
         
         self._ch_names = list(self._chs_pos.keys()) 
         self._ch_names.sort()        
@@ -779,7 +779,8 @@ class IntracranialElectrodeLocator(QMainWindow):
             ori = np.array(self._entry_pos) - np.array(self._tip_pos)
             ori = ori/np.linalg.norm(ori,2)            
             thisGroup = self._groups[self._tip_ch]
-            ch_names_thisGroup = [k for k,v in self._groups.items() if v==thisGroup]
+            ch_names_thisGroup = [k for k, v in self._groups.items() 
+                                  if v==thisGroup]
             #ch_names_thisGroup.sort()                                 
             for i in range(len(ch_names_thisGroup)):
                 pos = np.array(self._tip_pos) + i * ori * _CH_SPACING 
