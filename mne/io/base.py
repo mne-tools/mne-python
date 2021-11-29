@@ -1289,9 +1289,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """Crop raw data file.
 
         Limit the data from the raw file to go between specific times. Note
-        that the new tmin is assumed to be t=0 for all subsequently called
-        functions (e.g., time_as_index, or Epochs). New first_samp and
-        last_samp are set accordingly.
+        that the new ``tmin`` is assumed to be ``t=0`` for all subsequently
+        called functions (e.g., :meth:`~mne.io.Raw.time_as_index`, or
+        `mne.Epochs`). New ``first_samp`` and ``last_samp`` are set
+        accordingly.
 
         Thus function operates in-place on the instance.
         Use :meth:`mne.io.Raw.copy` if operation on a copy is desired.

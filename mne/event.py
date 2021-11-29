@@ -865,7 +865,7 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
     duration : float
         The duration to separate events by (in seconds).
     first_samp : bool
-        If True (default), times will have raw.first_samp added to them, as
+        If True (default), times will have ``raw.first_samp`` added to them, as
         in :func:`mne.find_events`. This behavior is not desirable if the
         returned events will be combined with event times that already
         have ``raw.first_samp`` added to them, e.g. event times that come
