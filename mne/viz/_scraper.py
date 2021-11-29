@@ -12,14 +12,14 @@ class _PyQtGraphScraper:
         return '<PyQtGraphScraper>'
 
     def __call__(self, block, block_vars, gallery_conf):
-        from mne_qt_browser import _pg_figure
+        import mne_qt_browser
         from sphinx_gallery.scrapers import figure_rst
         from PyQt5.QtWidgets import QApplication
         if gallery_conf['builder_name'] != 'html':
             return ''
         img_fnames = list()
         inst = None
-        for gui in list(_pg_figure._browser_instances):
+        for gui in list(mne_qt_browser._browser_instances):
             if getattr(gui, '_scraped', False):
                 return
             gui._scraped = True  # monkey-patch but it's easy enough
