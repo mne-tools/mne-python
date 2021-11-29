@@ -36,7 +36,7 @@ _IMG_LABELS = [['S', 'A', 'I', 'P'],
                ['A', 'R', 'P', 'L']]
 _CH_PLOT_SIZE = 1024
 _ZOOM_STEP_SIZE = 5
-_CH_SPACING = 3.5 # mm
+_CH_SPACING = 3.5  #mm
 
 # 20 colors generated to be evenly spaced in a cube, worked better than
 # matplotlib color cycle
