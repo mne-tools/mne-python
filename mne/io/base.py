@@ -1416,6 +1416,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         work properly on a saved concatenated file (e.g., probably some
         or all forms of SSS). It is recommended not to concatenate and
         then save raw files for this reason.
+
+        Samples annotated ``BAD_ACQ_SKIP`` are not stored in order to optimize
+        memory. Whatever values, they will be loaded as 0s when reading file.
         """
         endings = ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                    '_meg.fif', '_eeg.fif', '_ieeg.fif')
