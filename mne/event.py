@@ -298,7 +298,8 @@ def read_events(filename, include=None, exclude=None, mask=None,
     return out
 
 
-def write_events(filename, event_list):
+@verbose
+def write_events(filename, events, *,  event_list=None, verbose=None):
     """Write :term:`events` to file.
 
     Parameters
@@ -310,13 +311,21 @@ def write_events(filename, event_list):
         .txt) events are written as plain text.
         Note that new format event files do not contain
         the "time" column (used to be the second column).
+    %(events)s
     event_list : array, shape (n_events, 3)
-        The list of events.
+        Deprecated, use argument events instead.
+    %(verbose)s
 
     See Also
     --------
     read_events
     """
+    if event_list is not None:
+        warn('Argument "event_list" is deprecated, use "events" instead.',
+             DeprecationWarning)
+        events = event_list
+    del event_list
+
     check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
                                      '-eve.lst', '-eve.txt', '_eve.fif',
                                      '_eve.fif.gz', '_eve.lst', '_eve.txt'))
@@ -327,13 +336,13 @@ def write_events(filename, event_list):
         fid = start_file(filename)
 
         start_block(fid, FIFF.FIFFB_MNE_EVENTS)
-        write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, event_list.T)
+        write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, events.T)
         end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
         end_file(fid)
     else:
         f = open(filename, 'w')
-        for e in event_list:
+        for e in events:
             f.write('%6d %6d %3d\n' % tuple(e))
         f.close()
 
