@@ -2386,8 +2386,10 @@ reject_tmin, reject_tmax : float | None
 """
 docdict['epochs_events_event_id'] = """
 events : array of int, shape (n_events, 3)
-    The events typically returned by the read_events function.
-    If some events don't match the events of interest as specified
+    The array of events returned by `mne.read_events` or `mne.find_events`. The
+    first column contains the event time in samples, with ``first_samp``
+    included. The second column contains [...]. The third column contains the
+    event id. If some events don't match the events of interest as specified
     by event_id, they will be marked as 'IGNORED' in the drop log.
 event_id : int | list of int | dict | None
     The id of the event to consider. If dict,
