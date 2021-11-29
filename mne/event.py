@@ -229,7 +229,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
 
     Returns
     -------
-    events: array, shape (n_events, 3)
+    events : array, shape (n_events, 3)
         The array of events. The first column contains the event time in
         samples, with ``first_samp`` included. The second column contains
         [...]. The third column contains the event id.
