@@ -2427,6 +2427,32 @@ event_repeated : str
 
     .. versionadded:: 0.19
 """
+docdict['by_event_type'] = """
+by_event_type : bool
+    When ``False`` (the default) all epochs are processed together and a single
+    :class:`~mne.Evoked` object is returned. When ``True``, epochs are first
+    grouped by event type (as specified using the ``event_id`` parameter) and a
+    list is returned containing a separate :class:`~mne.Evoked` object for each
+    event type. The ``.comment`` attribute is set to the label of the event
+    type.
+
+    .. versionadded:: 0.24.0
+"""
+_by_event_type_return_base = """\
+When ``by_event_type=True`` was specified, a list is returned containing a
+    separate :class:`~mne.Evoked` object for each event type. The list has the
+    same order as the event types as specified in the ``event_id``
+    dictionary."""
+docdict['by_event_type_returns_average'] = f"""
+evoked : instance of Evoked | list of Evoked
+    The averaged epochs.
+    {_by_event_type_return_base}
+"""
+docdict['by_event_type_returns_stderr'] = f"""
+std_err : instance of Evoked | list of Evoked
+    The standard error over epochs.
+    {_by_event_type_return_base}
+"""
 docdict['epochs_raw'] = """
 raw : Raw object
     An instance of `~mne.io.Raw`.

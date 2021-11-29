@@ -966,23 +966,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             (n_channels, n_time).
             Note that due to file type limitations, the kind for all
             these will be "average".
-        by_event_type : bool
-            When ``False`` (the default) all epochs are averaged and a single
-            :class:`Evoked` object is returned. When ``True``, epochs are first
-            grouped by event type (as specified using the ``event_id``
-            parameter) and a list is returned containing a separate
-            :class:`Evoked` object for each event type. The ``.comment``
-            attribute is set to the label of the event type.
-
-            .. versionadded:: 0.24.0
+        %(by_event_type)s
 
         Returns
         -------
-        evoked : instance of Evoked | list of Evoked
-            The averaged epochs. When ``by_event_type=True`` was specified, a
-            list is returned containing a separate :class:`Evoked` object
-            for each event type. The list has the same order as the event types
-            as specified in the ``event_id`` dictionary.
+        %(by_event_type_returns_average)s
 
         Notes
         -----
@@ -1022,23 +1010,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Parameters
         ----------
         %(picks_all_data)s
-        by_event_type : bool
-            When ``False`` (the default) all epochs are averaged and a single
-            :class:`Evoked` object is returned. When ``True``, epochs are first
-            grouped by event type (as specified using the ``event_id``
-            parameter) and a list is returned containing a separate
-            :class:`Evoked` object for each event type. The ``.comment``
-            attribute is set to the label of the event type.
-
-            .. versionadded:: 0.24.0
+        %(by_event_type)s
 
         Returns
         -------
-        std_err : instance of Evoked | list of Evoked
-            The standard error over epochs. When ``by_event_type=True`` was
-            specified, a list is returned containing a separate :class:`Evoked`
-            object for each event type. The list has the same order as the
-            event types as specified in the ``event_id`` dictionary.
+        %(by_event_type_returns_stderr)s
         """
         return self.average(picks=picks, method="std",
                             by_event_type=by_event_type)
