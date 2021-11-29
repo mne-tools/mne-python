@@ -298,7 +298,6 @@ def read_events(filename, include=None, exclude=None, mask=None,
     return out
 
 
-@fill_doc
 def write_events(filename, event_list):
     """Write :term:`events` to file.
 
@@ -311,7 +310,8 @@ def write_events(filename, event_list):
         .txt) events are written as plain text.
         Note that new format event files do not contain
         the "time" column (used to be the second column).
-    %(events)s
+    event_list : array, shape (n_events, 3)
+        The list of events.
 
     See Also
     --------
