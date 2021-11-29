@@ -15,8 +15,8 @@ _xvfb: &xvfb
 
 jobs:
     build_docs:
-      machine:
-        image: ubuntu-2004:202111-01
+      docker:
+        - image: circleci/python:3.8.5-buster
       steps:
         - restore_cache:
             keys:
