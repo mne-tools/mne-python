@@ -2384,23 +2384,22 @@ reject_tmin, reject_tmax : float | None
     .. note:: This parameter controls the time period used in conjunction with
               both, ``reject`` and ``flat``.
 """
-docdict['epochs_events_event_id'] = """
+docdict['events'] = """
 events : array of int, shape (n_events, 3)
-    The array of events returned by `mne.read_events`, `mne.find_events` or
-    `mne.make_fixed_length_events`. The first column contains the event time in
-    samples, with ``first_samp`` included. The second column contains [...].
-    The third column contains the event id. If some events don't match the
-    events of interest as specified by event_id, they will be marked as
-    'IGNORED' in the drop log.
+    The array of :term:`events`. The first column contains the event time in
+    samples, with :term:`first_samp` included. The third column contains the
+    event id."""
+docdict['events_epochs'] = """%s
+    If some events don’t match the events of interest as specified by event_id,
+    they will be marked as ‘IGNORED’ in the drop log.""" % docdict['events']
+docdict['event_id'] = """
 event_id : int | list of int | dict | None
-    The id of the event to consider. If dict,
-    the keys can later be used to access associated events. Example:
-    dict(auditory=1, visual=3). If int, a dict will be created with
-    the id as string. If a list, all events with the IDs specified
-    in the list are used. If None, all events will be used with
-    and a dict is created with string integer names corresponding
-    to the event id integers.
-"""
+    The id of the :term:`events` to consider. If dict, the keys can later be
+    used to access associated :term:`events`. Example:
+    dict(auditory=1, visual=3). If int, a dict will be created with the id as
+    string. If a list, all :term:`events` with the IDs specified in the list
+    are used. If None, all :term:`events` will be used and a dict is created
+    with string integer names corresponding to the event id integers."""
 docdict['epochs_preload'] = """
     Load all epochs from disk when creating the object
     or wait before accessing each epoch (more memory

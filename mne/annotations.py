@@ -1167,7 +1167,7 @@ def events_from_annotations(raw, event_id="auto",
                             regexp=r'^(?![Bb][Aa][Dd]|[Ee][Dd][Gg][Ee]).*$',
                             use_rounding=True, chunk_duration=None,
                             verbose=None):
-    """Get events and event_id from an Annotations object.
+    """Get :term:`events` and ``event_id`` from an Annotations object.
 
     Parameters
     ----------
@@ -1212,10 +1212,9 @@ def events_from_annotations(raw, event_id="auto",
 
     Returns
     -------
-    events : ndarray, shape (n_events, 3)
-        The events.
+    %(events)s
     event_id : dict
-        The event_id variable that can be passed to Epochs.
+        The event_id variable that can be passed to `mne.Epochs`.
 
     See Also
     --------

@@ -1291,7 +1291,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Limit the data from the raw file to go between specific times. Note
         that the new ``tmin`` is assumed to be ``t=0`` for all subsequently
         called functions (e.g., :meth:`~mne.io.Raw.time_as_index`, or
-        `mne.Epochs`). New ``first_samp`` and ``last_samp`` are set
+        `mne.Epochs`). New :term:`first_samp` and ``last_samp`` are set
         accordingly.
 
         Thus function operates in-place on the instance.
