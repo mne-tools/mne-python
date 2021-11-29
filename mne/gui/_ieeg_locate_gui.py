@@ -31,7 +31,9 @@ from ..transforms import (apply_trans, _frame_to_str, _get_trans,
                           invert_transform)
 from ..utils import logger, _check_fname, _validate_type, verbose, warn
 
-_IMG_LABELS = [['S','A','I','P'], ['S','R','I','L'], ['A','R','P','L']]
+_IMG_LABELS = [['S', 'A', 'I', 'P'], 
+               ['S', 'R', 'I', 'L'], 
+               ['A', 'R', 'P', 'L']]
 _CH_PLOT_SIZE = 1024
 _ZOOM_STEP_SIZE = 5
 _CH_SPACING = 3.5 # mm
