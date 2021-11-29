@@ -236,7 +236,6 @@ class Annotations(object):
     ``BAD_ACQ_SKIP`` annotation leads to specific reading/writing file
     behaviours. See :meth:`mne.io.read_raw_fif` and
     :meth:`Raw.save() <mne.io.Raw.save>` notes for details.
-
     """  # noqa: E501
 
     def __init__(self, onset, duration, description,
