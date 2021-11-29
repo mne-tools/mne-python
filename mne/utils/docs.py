@@ -1247,7 +1247,7 @@ weight_norm : str | None
         The Neural Activity Index :footcite:`VanVeenEtAl1997` will be computed,
         which simply scales all values from ``'unit-noise-gain'`` by a fixed
         value.
-    - ``'unit-noise-gain-invariante'``
+    - ``'unit-noise-gain-invariant'``
         Compute a rotation-invariant normalization using the matrix square
         root. This differs from ``'unit-noise-gain'`` only when
         ``pick_ori='vector'``, creating a solution that:
@@ -1607,6 +1607,12 @@ line_alpha : float | None
 docdict["plot_psd_spatial_colors"] = """
 spatial_colors : bool
     Whether to use spatial colors. Only used when ``average=False``.
+"""
+docdict['normalization'] = """\
+normalization : 'full' | 'length'
+    Normalization strategy. If "full", the PSD will be normalized by the
+    sampling rate as well as the length of the signal (as in
+    :ref:`Nitime <nitime:users-guide>`). Default is ``'length'``.\
 """
 
 # plot_projs_topomap
@@ -2428,6 +2434,32 @@ event_repeated : str
     events (=duplicates) into a new event (see Notes for details).
 
     .. versionadded:: 0.19
+"""
+docdict['by_event_type'] = """
+by_event_type : bool
+    When ``False`` (the default) all epochs are processed together and a single
+    :class:`~mne.Evoked` object is returned. When ``True``, epochs are first
+    grouped by event type (as specified using the ``event_id`` parameter) and a
+    list is returned containing a separate :class:`~mne.Evoked` object for each
+    event type. The ``.comment`` attribute is set to the label of the event
+    type.
+
+    .. versionadded:: 0.24.0
+"""
+_by_event_type_return_base = """\
+When ``by_event_type=True`` was specified, a list is returned containing a
+    separate :class:`~mne.Evoked` object for each event type. The list has the
+    same order as the event types as specified in the ``event_id``
+    dictionary."""
+docdict['by_event_type_returns_average'] = f"""
+evoked : instance of Evoked | list of Evoked
+    The averaged epochs.
+    {_by_event_type_return_base}
+"""
+docdict['by_event_type_returns_stderr'] = f"""
+std_err : instance of Evoked | list of Evoked
+    The standard error over epochs.
+    {_by_event_type_return_base}
 """
 docdict['epochs_raw'] = """
 raw : Raw object

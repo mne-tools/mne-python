@@ -6,29 +6,67 @@ Contributing guide
 .. include:: ../links.inc
 .. highlight:: console
 
-This page has details on the preferred contribution workflow
-and how best to configure your system for a smooth experience contributing to
-MNE-Python.
+Thanks for taking the time to contribute! MNE-Python is an open-source project
+sustained mostly by volunteer effort. We welcome contributions from anyone as
+long as they abide by our `Code of Conduct`_.
+
+There are lots of ways to contribute, such as:
+
+.. rst-class:: icon-bullets
+
+- |bug| Use the software, and when you find bugs, tell us about them! We can
+  only fix the bugs we know about.
+- |discourse| Answer questions on `our user forum`_.
+- |comment| Tell us about parts of the documentation that you find confusing or
+  unclear.
+- |hand-sparkles| Tell us about things you wish MNE-Python could do, or things
+  it can do but you wish they were easier.
+- |universal-access| Improve the accessibility of our website.
+- |fix-bug| Fix bugs.
+- |remove-format| Fix mistakes in our function documentation strings.
+- |magic| Implement new features.
+- |pencil-alt| Improve existing tutorials or write new ones.
+- |python| Contribute to one of the many Python packages that MNE-Python
+  depends on.
+
+To *report* bugs, *request* new features, or *ask about* confusing
+documentation, it's usually best to open a new issue on `our user forum`_
+first; you'll probably get help fastest that way, and it helps keep our GitHub
+issue tracker focused on things that we *know* will require changes to our
+software (as opposed to problems that can be fixed in the user's code). We may
+ultimately ask you to open an issue on GitHub too, but starting on the forum
+helps us keep things organized. For fastest results, be sure to include
+information about your operating system and MNE-Python version, and (if
+applicable) include a reproducible code sample that is as short as possible and
+ideally uses one of :ref:`our example datasets <datasets>`.
+
+If you want to *fix* bugs, *add* new features, or *improve* our
+docstrings/tutorials/website, those kinds of contributions are made through
+`our GitHub repository <MNE-Python GitHub_>`_. The rest of this page explains
+how to set up your workflow to make contributing via GitHub as easy as
+possible.
 
 .. collapse:: |rocket| Want an example to work through?
    :class: success
 
-   A great way to learn to contribute is to work through an actual example.
-   We recommend that you take a look at the `GitHub issues marked "easy"`_,
-   pick one that looks interesting, and work through it while reading this
-   guide!
+   Feel free to just read through the rest of the page, but if you find it
+   easier to "learn by doing", take a look at our
+   `GitHub issues marked "easy"`_, pick one that looks interesting, and work
+   through it while reading this guide!
 
 .. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
 
-.. note:: All contributors are expected to follow the `code of conduct`_.
 
 Overview of contribution process
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. note:: Reminder: all contributors are expected to follow our
+          `code of conduct`_.
+
 Changes to MNE-Python are typically made by `forking`_ the MNE-Python
 repository, making changes to your fork (usually by `cloning`_ it to your
 personal computer, making the changes locally, and then `pushing`_ the local
-changes up to your fork), and finally creating a `pull request`_ to incorporate
+changes up to your fork on GitHub), and finally creating a `pull request`_ to incorporate
 your changes back into the shared "upstream" version of the codebase.
 
 In general you'll be working with three different copies of the MNE-Python
@@ -319,7 +357,7 @@ related changes that are grouped together based on common goals (so that it's
 easier for their colleagues to understand and review the changes). For example,
 you might want to group all the code changes together in one commit, put new
 unit tests in another commit, and changes to the documentation in a third
-commit.  Git makes this easy(ish) with something called the `stage`_ (or
+commit.  Git makes this possible with something called the `stage`_ (or
 *staging area*). After you've made some changes to the codebase, you'll have
 what git calls "unstaged changes", which will show up with the `status`_
 command::
@@ -556,7 +594,7 @@ almost every PR).
 
 Lastly, make sure that your name is included in the list of authors in
 :file:`doc/changes/names.inc`, otherwise the documentation build will fail.
-To add an author name, simply append a line with the following pattern (note
+To add an author name, append a line with the following pattern (note
 how the syntax is different from that used in the changelog):
 
 .. code-block:: rst
@@ -580,7 +618,7 @@ where ``0000`` must be replaced with the respective GitHub pull request (PR)
 number. Mind the Oxford comma in the case of multiple contributors.
 
 Sometimes, changes that shall appear as a single changelog entry are spread out
-across multiple PRs. In this case, simply name all relevant PRs, separated by
+across multiple PRs. In this case, name all relevant PRs, separated by
 commas:
 
 .. code-block:: rst
@@ -790,22 +828,18 @@ to both visualization functions and tutorials/examples.
 Running the test suite
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Running the full test suite is as simple as running ::
-
-    $ make test
-
 .. sidebar:: pytest flags
 
-    The ``-x`` flag exits the pytest run as soon as the first test fails; this
-    can save some time if you are running an entire file's or module's worth of
-    tests instead of selecting just a single test as shown here.
+    The ``-x`` flag exits the pytest run when any test fails; this can speed
+    up debugging when running all tests in a file or module.
 
     The ``--pdb`` flag will automatically start the python debugger upon test
     failure.
 
-from the ``mne-python`` root folder. Testing the entire module can be quite
+The full test suite can be run by calling ``make test`` from the
+``mne-python`` root folder. Testing the entire module can be quite
 slow, however, so to run individual tests while working on a new feature, you
-can run, e.g.::
+can run the following line::
 
     $ pytest mne/tests/test_evoked.py::test_io_evoked --verbose
 
@@ -977,6 +1011,7 @@ it can serve as a useful example of what to expect from the PR review process.
 .. _MNE-Python issues page: https://github.com/mne-tools/mne-python/issues
 .. _open a new issue: https://github.com/mne-tools/mne-python/issues/new/choose
 .. _This sample pull request: https://github.com/mne-tools/mne-python/pull/6230
+.. _our user forum: https://mne.discourse.group
 
 .. git installation
 

@@ -32,6 +32,12 @@ Enhancements
 
 - Improve docstring of export functions :func:`mne.export.export_raw`, :func:`mne.export.export_epochs`, :func:`mne.export.export_evokeds`, :func:`mne.export.export_evokeds_mff` and issue a warning when there are unapplied projectors (:gh:`9994` by `Mathieu Scheltienne`_)
 
+- Add support for reading haemoglobin fNIRS data to :func:`mne.io.read_raw_snirf` (:gh:`9929` by `Robert Luke`_)
+
+- Add ``fill_hole_size`` keyword argument to :func:`mne.viz.Brain.add_volume_labels` to close holes in the mesh (:gh:`10024` by `Alex Rockhill`_)
+
+- Changed :class:`mne.Epochs` and :class:`mne.Evoked` to have a more concise ``__repr__`` to improve interactive MNE usage in Python Interactive Console, IDEs, and debuggers when many events are handled. (:gh:`10042` by `Jan Sosulski`_)
+
 Bugs
 ~~~~
 - Fix default of :func:`mne.io.Raw.plot` to be ``use_opengl=None``, which will act like False unless ``MNE_BROWSER_USE_OPENGL=true`` is set in the user configuration (:gh:`9957` by `Eric Larson`_)
@@ -60,6 +66,10 @@ Bugs
 
 - :class:`mne.Report` now raises an exception if invalid tags were passed (:gh:`9970` by `Richard Höchenberger`_)
 
+- Fix bug in :func:`mne.get_montage_volume_labels` that set the maximum number of voxels to be included too low causing unwanted capping of the included voxel labels (:gh:`10021` by `Alex Rockhill`_)
+
+- :func:`~mne.sys_info` output now contains the installed version of ``pooch``, too; this output had been accidentally removed previously (:gh:`10047` by `Richard Höchenberger`_)
+
 API changes
 ~~~~~~~~~~~
-- Nothing yet
+- ``mne.Info.pick_channels`` has been deprecated. Use ``inst.pick_channels`` to pick channels from Raw|Epochs|Evoked. Use :func:`mne.pick_info` to pick channels from :class:`mne.Info` (:gh:`10039` by `Mathieu Scheltienne`_)

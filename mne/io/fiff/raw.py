@@ -469,6 +469,11 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False,
     Notes
     -----
     .. versionadded:: 0.9.0
+
+    When reading a FIF file, note that the first N seconds annotated
+    ``BAD_ACQ_SKIP`` are **skipped**. They are removed from ``raw.times`` and
+    ``raw.n_times`` parameters but ``raw.first_samp`` and ``raw.first_time``
+    are updated accordingly.
     """
     return Raw(fname=fname, allow_maxshield=allow_maxshield,
                preload=preload, verbose=verbose,

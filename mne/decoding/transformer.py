@@ -350,10 +350,7 @@ class PSDEstimator(TransformerMixin):
         bandwidth.
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
-    normalization : str
-        Either "full" or "length" (default). If "full", the PSD will
-        be normalized by the sampling rate as well as the length of
-        the signal (as in nitime).
+    %(normalization)s
     %(verbose)s
 
     See Also
