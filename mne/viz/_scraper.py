@@ -2,8 +2,6 @@
 #
 # License: Simplified BSD
 
-import time
-
 
 class _PyQtGraphScraper:
 
@@ -22,10 +20,9 @@ class _PyQtGraphScraper:
                 img_fname = next(block_vars['image_path_iterator'])
                 inst = QApplication.instance()
                 assert inst is not None
-            if (hasattr(self, 'load_thread')
-                    and self.load_thread is not None):
-                if self.load_thread.isRunning():
-                    gui.load_thread.wait(30000)
+                if getattr(gui, 'load_thread', None) is not None:
+                    if gui.load_thread.isRunning():
+                        gui.load_thread.wait(30000)
                 pixmap = gui.grab()
                 pixmap.save(img_fname)
                 gui.close()
