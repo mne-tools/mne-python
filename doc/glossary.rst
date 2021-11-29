@@ -162,7 +162,8 @@ general neuroimaging concepts. If you think a term is missing, please consider
         consistency it is present in all :class:`~io.Raw` objects
         regardless of the source of the data. In other words,
         :attr:`~io.Raw.first_samp` will be ``0`` in :class:`~io.Raw`
-        objects loaded from non-VectorView data files.
+        objects loaded from non-VectorView data files. See also
+        :term:`last_samp`.
 
     forward
     forward solution
@@ -223,6 +224,15 @@ general neuroimaging concepts. If you think a term is missing, please consider
         a region of interest (ROI) in the literature. Labels can be defined
         anatomically (based on physical structure of the cortex) or functionally
         (based on cortical response to specific stimuli).
+
+    last_samp
+        The :attr:`~io.Raw.last_samp` attribute of :class:`~io.Raw`
+        objects is an integer representing the number of time samples that
+        passed between the onset of the hardware acquisition system and the
+        time when data stopped to be recorded to disk. This approach to sample
+        numbering is a peculiarity of VectorView MEG systems, but for
+        consistency it is present in all :class:`~io.Raw` objects
+        regardless of the source of the data. See also :term:`first_samp`.
 
     layout
         A :class:`~channels.Layout` gives sensor positions in 2
