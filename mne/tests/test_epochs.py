@@ -6,6 +6,7 @@
 # License: BSD-3-Clause
 
 from copy import deepcopy
+from datetime import timedelta
 from distutils.version import LooseVersion
 from functools import partial
 from io import BytesIO
@@ -3668,7 +3669,8 @@ def test_add_channels_picks():
 def test_epoch_annotations_with_first_samp(first_samp):
     """Test Epoch Annotations from RawArray.
 
-    Tests with/without first_samp, meas_date and orig_time.
+    Tests with/without first_samp. By setting
+    first_samp, the annotations are essentially cropped.
     """
     data = np.random.randn(2, 400) * 10e-12
     sfreq = 100.
@@ -3739,7 +3741,12 @@ def test_epoch_annotations_with_first_samp(first_samp):
 
 @pytest.mark.parametrize('first_samp', [0, 10])
 def test_epoch_annotations_with_meas_date(first_samp):
-    """Test Epoch sets annotations when a measurement date is present."""
+    """Test Epoch sets annotations when a measurement date is present.
+
+    Tests with/without first_samp, and orig_time when measurement date
+    is present. By setting first_samp, the annotations are essentially
+    cropped.
+    """
     data = np.random.randn(2, 400) * 10e-12
     sfreq = 100.
     info = create_info(ch_names=['MEG1', 'MEG2'], ch_types=['grad'] * 2,
@@ -3786,4 +3793,35 @@ def test_epoch_annotations_with_meas_date(first_samp):
     ]
     assert len(expected_annot_times) == len(epoch_ants)
     for x, y in zip(epoch_ants, expected_annot_times):
+        assert_array_equal(x, y)
+
+    # If orig_time is set, then essentially the annotations will be
+    # cropped during the Raw Annotation setting based on first_time,
+    # and also shifted relative to the orig_date of Annotations and
+    # meas_date of Raw
+    orig_date = meas_date + timedelta(seconds=1)
+    ants = Annotations([1.1, 1.2, 2.1], [ant_dur, ant_dur, ant_dur],
+                       ['x', 'y', 'z'], orig_time=orig_date)
+    # first set annotations without measurement date
+    raw.set_annotations(ants)
+    epochs = make_fixed_length_epochs(raw, duration=1, overlap=0.5)
+    epoch_ants = epochs.get_epoch_annotations()
+
+    expected_annot_times = [
+        [],
+        [],
+        [],
+        [[.6, ant_dur, 'x'], [.7, ant_dur, 'y']],
+        [[.1, ant_dur, 'x'], [.2, ant_dur, 'y']],
+        [[.6, ant_dur, 'z']],
+        [[.1, ant_dur, 'z']],
+    ]
+    assert len(expected_annot_times) == len(epoch_ants)
+    for x, y in zip(epoch_ants, expected_annot_times):
+        # when orig_date is set + first_samp, those will offset
+        # the onset when Raw sets annotations. These should
+        # then be offset accordingly when Epochs look for annotations
+        if y != []:
+            for _x in y:
+                _x[0] = _x[0] - epochs._first_time
         assert_array_equal(x, y)

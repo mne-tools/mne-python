@@ -2695,8 +2695,7 @@ class Epochs(BaseEpochs):
         return self._annotations
 
     @verbose
-    def _set_annotations(self, annotations, on_missing='raise', *,
-                         verbose=None):
+    def _set_annotations(self, annotations, on_missing='raise'):
         """Setter for Epoch annotations from Raw.
 
         This private function simply copies over Raw annotations, and
@@ -2710,7 +2709,6 @@ class Epochs(BaseEpochs):
             Annotations to set. If None, the annotations is defined
             but empty.
         %(on_missing_ch_names)s
-        %(verbose_meth)s
 
         Returns
         -------
@@ -2723,6 +2721,16 @@ class Epochs(BaseEpochs):
         else:
             _validate_type(annotations, Annotations, 'annotations')
 
+            if meas_date is None and annotations.orig_time is not None:
+                raise RuntimeError('Ambiguous operation. Setting an Annotation'
+                                   ' object with known ``orig_time`` to a raw'
+                                   ' object which has ``meas_date`` set to'
+                                   ' None is ambiguous. Please, either set a'
+                                   ' meaningful ``meas_date`` to the raw'
+                                   ' object; or set ``orig_time`` to None in'
+                                   ' which case the annotation onsets would be'
+                                   ' taken in reference to the first sample of'
+                                   ' the raw object.')
             new_annotations = annotations.copy()
             new_annotations._prune_ch_names(self.info, on_missing)
             self._annotations = new_annotations
@@ -2730,7 +2738,7 @@ class Epochs(BaseEpochs):
         return self
 
     def get_epoch_annotations(self):
-        """Return a list of annotations per epoch.
+        """Return a list of raw annotations per epoch.
 
         Returns
         -------
@@ -2774,7 +2782,7 @@ class Epochs(BaseEpochs):
         return epoch_annot_list
 
     def map_annots_to_metadata(self):
-        """Map annotations into the Epochs metadata.
+        """Map raw annotations into the Epochs metadata.
 
         Returns
         -------
