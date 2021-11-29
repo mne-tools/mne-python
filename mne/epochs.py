@@ -2486,7 +2486,8 @@ class Epochs(BaseEpochs):
     Parameters
     ----------
     %(epochs_raw)s
-    %(epochs_events_event_id)s
+    %(events_epochs)s
+    %(event_id)s
     %(epochs_tmin_tmax)s
     %(baseline_epochs)s
         Defaults to ``(None, 0)``, i.e. beginning of the the data until
