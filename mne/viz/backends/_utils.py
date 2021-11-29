@@ -135,10 +135,13 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False):
 
     # Fix from cbrnr/mnelab for app name in menu bar
     if sys.platform.startswith("darwin"):
-        # set bundle name on macOS (app name shown in the menu bar)
-        from Foundation import NSBundle
-        bundle = NSBundle.mainBundle()
-        info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
-        info["CFBundleName"] = app_name
+        try:
+            # set bundle name on macOS (app name shown in the menu bar)
+            from Foundation import NSBundle
+            bundle = NSBundle.mainBundle()
+            info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
+            info["CFBundleName"] = app_name
+        except ModuleNotFoundError:
+            pass
 
     return app
