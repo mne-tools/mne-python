@@ -53,7 +53,6 @@ jobs:
               echo "export MNE_FULL_DATE=true" >> $BASH_ENV
               echo "export MNE_3D_OPTION_ANTIALIAS=false" >> $BASH_ENV
               source tools/get_minimal_commands.sh
-              echo "export MESA_GL_VERSION_OVERRIDE=3.3" >> $BASH_ENV
               echo "export MNE_3D_BACKEND=pyvistaqt" >> $BASH_ENV
               echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
               echo "source ~/python_env/bin/activate" >> $BASH_ENV
