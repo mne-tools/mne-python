@@ -72,28 +72,25 @@ def test_double_export_edf(tmp_path):
     """Test exporting an EDF file multiple times."""
     rng = np.random.RandomState(123456)
     format = 'edf'
-    ch_types = ['eeg', 'eeg', 'stim', 'ecog', 'ecog', 'seeg',
-                'eog', 'ecg', 'emg', 'dbs', 'bio']
-    ch_names = np.arange(len(ch_types)).astype(str).tolist()
-    info = create_info(ch_names, sfreq=1000,
-                       ch_types=ch_types)
-    data = rng.random(size=(len(ch_names), 1000)) * 1.e-5
+    ch_types = ['eeg', 'eeg', 'stim', 'ecog', 'ecog', 'seeg', 'eog', 'ecg',
+                'emg', 'dbs', 'bio']
+    info = create_info(len(ch_types), sfreq=1000, ch_types=ch_types)
+    data = rng.random(size=(len(ch_types), 1000)) * 1e-5
 
     # include subject info and measurement date
-    subject_info = dict(first_name='mne', last_name='python',
-                        birthday=(1992, 1, 20), sex=1, hand=3)
-    info['subject_info'] = subject_info
+    info['subject_info'] = dict(first_name='mne', last_name='python',
+                                birthday=(1992, 1, 20), sex=1, hand=3)
     raw = RawArray(data, info)
 
     # export once
-    temp_fname = op.join(str(tmp_path), f'test.{format}')
+    temp_fname = tmp_path / f'test.{format}'
     raw.export(temp_fname, add_ch_type=True)
-    raw_read = read_raw_edf(temp_fname, preload=True)
+    raw_read = read_raw_edf(temp_fname, infer_types=True, preload=True)
 
     # export again
     raw_read.load_data()
     raw_read.export(temp_fname, add_ch_type=True, overwrite=True)
-    raw_read = read_raw_edf(temp_fname, preload=True)
+    raw_read = read_raw_edf(temp_fname, infer_types=True, preload=True)
 
     # stim channel should be dropped
     raw.drop_channels('2')

@@ -181,10 +181,9 @@ def test_edf_data_broken(tmp_path):
 
 def test_duplicate_channel_labels_edf():
     """Test reading edf file with duplicate channel names."""
-    EXPECTED_CHANNEL_NAMES = ['F1-Ref-0', 'F2-Ref', 'F1-Ref-1']
+    EXPECTED_CHANNEL_NAMES = ['EEG F1-Ref-0', 'EEG F2-Ref', 'EEG F1-Ref-1']
     with pytest.warns(RuntimeWarning, match='Channel names are not unique'):
-        raw = read_raw_edf(duplicate_channel_labels_path, infer_types=True,
-                           preload=False)
+        raw = read_raw_edf(duplicate_channel_labels_path, preload=False)
 
     assert raw.ch_names == EXPECTED_CHANNEL_NAMES
 
@@ -432,7 +431,7 @@ def test_bdf_multiple_annotation_channels():
 def test_edf_lowpass_zero():
     """Test if a lowpass filter of 0Hz is mapped to the Nyquist frequency."""
     raw = read_raw_edf(edf_stim_resamp_path)
-    assert raw.ch_names[100] == 'LDAMT_01-REF'
+    assert raw.ch_names[100] == 'EEG LDAMT_01-REF'
     assert_allclose(raw.info["lowpass"], raw.info["sfreq"] / 2)
 
 
