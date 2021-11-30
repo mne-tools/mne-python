@@ -121,8 +121,8 @@ general neuroimaging concepts. If you think a term is missing, please consider
         included. The last column contains the event integer code. The second
         column contains the signal value of the immediately preceding sample,
         and reflects the fact that event arrays sometimes come directly from
-        analg voltage channels, AKA "trigger channels" or "stim channels". In
-        most cases, the second column is equal to zeros and can be ignored.
+        analog voltage channels, AKA "trigger channels" or "stim channels". In
+        most cases, the second column is all zeros and can be ignored.
         Event arrays can be created with :func:`mne.make_fixed_length_events`,
         :func:`mne.read_events`, and :func:`mne.find_events`.
 
