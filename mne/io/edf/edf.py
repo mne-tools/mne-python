@@ -214,7 +214,7 @@ class RawGDF(BaseRaw):
         logger.info('Extracting EDF parameters from {}...'.format(input_fname))
         input_fname = os.path.abspath(input_fname)
         info, edf_info, orig_units = _get_info(input_fname, stim_channel, eog,
-                                               misc, exclude, preload)
+                                               misc, exclude, True, preload)
         logger.info('Creating raw.info structure...')
 
         # Raw attributes
