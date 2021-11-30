@@ -18,6 +18,7 @@ class _PyQtGraphScraper:
         if gallery_conf['builder_name'] != 'html':
             return ''
         img_fnames = list()
+        inst = None
         for gui in list(_pg_figure._browser_instances):
             if getattr(gui, '_scraped', False):
                 return
@@ -26,15 +27,18 @@ class _PyQtGraphScraper:
             if getattr(gui, 'load_thread', None) is not None:
                 if gui.load_thread.isRunning():
                     gui.load_thread.wait(30000)
-            inst = QApplication.instance()
-            # processEvents to make sure our progressBar is updated
-            for _ in range(1):  # iterate in case we need more at some point
-                inst.processEvents()
+            if inst is None:
+                inst = QApplication.instance()
+                # processEvents to make sure our progressBar is updated
+                for _ in range(2):
+                    inst.processEvents()
             pixmap = gui.grab()
             pixmap.save(img_fnames[-1])
             gui.close()
         if not len(img_fnames):
             return ''
+        for _ in range(2):
+            inst.processEvents()
         return figure_rst(
             img_fnames, gallery_conf['src_dir'],
             f'Raw plot{_pl(len(img_fnames))}')
