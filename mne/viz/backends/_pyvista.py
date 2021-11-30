@@ -151,6 +151,9 @@ class _PyVistaRenderer(_AbstractRenderer):
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1),
                  notebook=None, smooth_shading=True):
+        self.plotter = BackgroundPlotter(line_smoothing=True)
+        return
+
         from .renderer import MNE_3D_BACKEND_TESTING
         from .._3d import _get_3d_option
         figure = _Figure(show=show, title=name, size=size, shape=shape,
