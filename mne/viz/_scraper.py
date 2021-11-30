@@ -28,9 +28,9 @@ class _PyQtGraphScraper:
                     gui.load_thread.wait(30000)
             if inst is None:
                 inst = QApplication.instance()
-                # processEvents to make sure our progressBar is updated
-                for _ in range(2):
-                    inst.processEvents()
+            # processEvents to make sure our progressBar is updated
+            for _ in range(2):
+                inst.processEvents()
             pixmap = gui.grab()
             pixmap.save(img_fnames[-1])
             gui.close()
