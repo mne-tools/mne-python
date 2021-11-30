@@ -1220,7 +1220,7 @@ def events_from_annotations(raw, event_id="auto",
     -------
     %(events)s
     event_id : dict
-        The event_id variable that can be passed to `mne.Epochs`.
+        The event_id variable that can be passed to :class:`~mne.Epochs`.
 
     See Also
     --------
