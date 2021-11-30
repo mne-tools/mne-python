@@ -608,14 +608,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             times to indices. This can help avoid non-unique indices.
         origin : datetime | float | int | None
             Time reference for times. If None, ``times`` are assumed to be
-            relative to ``first_samp``.
+            relative to :term:`first_samp`.
 
             .. versionadded:: 0.17.0
 
         Returns
         -------
         index : ndarray
-            Indices relative to ``first_samp`` corresponding to the times
+            Indices relative to :term:`first_samp` corresponding to the times
             supplied.
         """
         origin = _handle_meas_date(origin)
@@ -1289,9 +1289,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """Crop raw data file.
 
         Limit the data from the raw file to go between specific times. Note
-        that the new tmin is assumed to be t=0 for all subsequently called
-        functions (e.g., time_as_index, or Epochs). New first_samp and
-        last_samp are set accordingly.
+        that the new ``tmin`` is assumed to be ``t=0`` for all subsequently
+        called functions (e.g., :meth:`~mne.io.Raw.time_as_index`, or
+        :class:`~mne.Epochs`). New :term:`first_samp` and :term:`last_samp`
+        are set accordingly.
 
         Thus function operates in-place on the instance.
         Use :meth:`mne.io.Raw.copy` if operation on a copy is desired.

@@ -342,7 +342,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     data : ndarray | None
         If ``None``, data will be read from the Raw object. If ndarray, must be
         of shape (n_epochs, n_channels, n_times).
-    %(epochs_events_event_id)s
+    %(events_epochs)s
+    %(event_id)s
     %(epochs_tmin_tmax)s
     %(baseline_epochs)s
         Defaults to ``(None, 0)``, i.e. beginning of the the data until
@@ -2485,7 +2486,8 @@ class Epochs(BaseEpochs):
     Parameters
     ----------
     %(epochs_raw)s
-    %(epochs_events_event_id)s
+    %(events_epochs)s
+    %(event_id)s
     %(epochs_tmin_tmax)s
     %(baseline_epochs)s
         Defaults to ``(None, 0)``, i.e. beginning of the the data until

@@ -248,7 +248,7 @@ numpydoc_xref_ignore = {
     'n_elp', 'n_pts', 'n_tris', 'n_nodes', 'n_nonzero', 'n_events_out',
     'n_segments', 'n_orient_inv', 'n_orient_fwd', 'n_orient', 'n_dipoles_lcmv',
     'n_dipoles_fwd', 'n_picks_ref', 'n_coords', 'n_meg', 'n_good_meg',
-    'n_moments', 'n_patterns',
+    'n_moments', 'n_patterns', 'n_new_events',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
     'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF', 'RawSNIRF', 'RawBOXY',
