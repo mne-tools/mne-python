@@ -40,6 +40,8 @@ Enhancements
 
 - Improve docstring of ``events`` arguments and cross-referencing to :term:`events` (:gh:`10056` by `Mathieu Scheltienne`_)
 
+- Add ``infer_type`` argument to :func:`mne.io.read_raw_edf` and :func:`mne.io.read_raw_bdf` to automatically infer channel types from channel labels (:gh:`10058` by `Clemens Brunner`_)
+
 Bugs
 ~~~~
 - Fix default of :func:`mne.io.Raw.plot` to be ``use_opengl=None``, which will act like False unless ``MNE_BROWSER_USE_OPENGL=true`` is set in the user configuration (:gh:`9957` by `Eric Larson`_)
@@ -71,6 +73,8 @@ Bugs
 - Fix bug in :func:`mne.get_montage_volume_labels` that set the maximum number of voxels to be included too low causing unwanted capping of the included voxel labels (:gh:`10021` by `Alex Rockhill`_)
 
 - :func:`~mne.sys_info` output now contains the installed version of ``pooch``, too; this output had been accidentally removed previously (:gh:`10047` by `Richard Höchenberger`_)
+
+- Fix automatic channel type detection from channel labels in :func:`mne.io.read_raw_edf` and :func:`mne.io.read_raw_bdf` (and disable this functionality from :func:`mne.io.read_raw_gdf`) (:gh:`10058` by `Clemens Brunner`_)
 
 API changes
 ~~~~~~~~~~~

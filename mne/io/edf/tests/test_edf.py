@@ -181,7 +181,7 @@ def test_edf_data_broken(tmp_path):
 
 def test_duplicate_channel_labels_edf():
     """Test reading edf file with duplicate channel names."""
-    EXPECTED_CHANNEL_NAMES = ['F1-Ref-0', 'F2-Ref', 'F1-Ref-1']
+    EXPECTED_CHANNEL_NAMES = ['EEG F1-Ref-0', 'EEG F2-Ref', 'EEG F1-Ref-1']
     with pytest.warns(RuntimeWarning, match='Channel names are not unique'):
         raw = read_raw_edf(duplicate_channel_labels_path, preload=False)
 
@@ -431,7 +431,7 @@ def test_bdf_multiple_annotation_channels():
 def test_edf_lowpass_zero():
     """Test if a lowpass filter of 0Hz is mapped to the Nyquist frequency."""
     raw = read_raw_edf(edf_stim_resamp_path)
-    assert raw.ch_names[100] == 'LDAMT_01-REF'
+    assert raw.ch_names[100] == 'EEG LDAMT_01-REF'
     assert_allclose(raw.info["lowpass"], raw.info["sfreq"] / 2)
 
 
@@ -531,7 +531,7 @@ def test_hp_lp_reversed(fname, lo, hi, warns, monkeypatch):
 def test_degenerate():
     """Test checking of some bad inputs."""
     for func in (read_raw_edf, read_raw_bdf, read_raw_gdf,
-                 partial(_read_header, exclude=())):
+                 partial(_read_header, exclude=(), infer_types=False)):
         with pytest.raises(NotImplementedError, match='Only.*txt.*'):
             func(edf_txt_stim_channel_path)
 
@@ -552,14 +552,37 @@ def test_exclude():
 @testing.requires_testing_data
 def test_ch_types():
     """Test reading of channel types from EDF channel label."""
-    raw = read_raw_edf(edf_chtypes_path)
+    raw = read_raw_edf(edf_chtypes_path)  # infer_types=False
 
-    # get the channel types for all channels
-    ch_types = raw.get_channel_types()
-    assert all(x in ch_types for x in ['eeg', 'ecg'])
+    labels = ['EEG Fp1-Ref', 'EEG Fp2-Ref', 'EEG F3-Ref', 'EEG F4-Ref',
+              'EEG C3-Ref', 'EEG C4-Ref', 'EEG P3-Ref', 'EEG P4-Ref',
+              'EEG O1-Ref', 'EEG O2-Ref', 'EEG F7-Ref', 'EEG F8-Ref',
+              'EEG T7-Ref', 'EEG T8-Ref', 'EEG P7-Ref', 'EEG P8-Ref',
+              'EEG Fz-Ref', 'EEG Cz-Ref', 'EEG Pz-Ref', 'POL E', 'POL PG1',
+              'POL PG2', 'EEG A1-Ref', 'EEG A2-Ref', 'POL T1', 'POL T2',
+              'ECG ECG1', 'ECG ECG2', 'EEG F9-Ref', 'EEG T9-Ref', 'EEG P9-Ref',
+              'EEG F10-Ref', 'EEG T10-Ref', 'EEG P10-Ref', 'SaO2 X9',
+              'SaO2 X10', 'POL DC01', 'POL DC02', 'POL DC03', 'POL DC04',
+              'POL $A1', 'POL $A2']
 
-    # test certain channels were correctly detected as a channel type
-    test_ch_names = {"Fp1-Ref": "eeg", "P10-Ref": "eeg", "DC01": "eeg",
-                     "ECG1": "ecg", "ECG2": "ecg"}
-    assert all(raw.get_channel_types(picks=pick)[0] == ch_type
-               for pick, ch_type in test_ch_names.items())
+    # by default all types are 'eeg'
+    assert(all(t == 'eeg' for t in raw.get_channel_types()))
+    assert raw.ch_names == labels
+
+    raw = read_raw_edf(edf_chtypes_path, infer_types=True)
+
+    labels = ['Fp1-Ref', 'Fp2-Ref', 'F3-Ref', 'F4-Ref', 'C3-Ref', 'C4-Ref',
+              'P3-Ref', 'P4-Ref', 'O1-Ref', 'O2-Ref', 'F7-Ref', 'F8-Ref',
+              'T7-Ref', 'T8-Ref', 'P7-Ref', 'P8-Ref', 'Fz-Ref', 'Cz-Ref',
+              'Pz-Ref', 'POL E', 'POL PG1', 'POL PG2', 'A1-Ref', 'A2-Ref',
+              'POL T1', 'POL T2', 'ECG1', 'ECG2', 'F9-Ref', 'T9-Ref', 'P9-Ref',
+              'F10-Ref', 'T10-Ref', 'P10-Ref', 'X9', 'X10', 'POL DC01',
+              'POL DC02', 'POL DC03', 'POL DC04', 'POL $A1', 'POL $A2']
+    types = ['eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg',
+             'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg',
+             'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'ecg',
+             'ecg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'bio', 'bio',
+             'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg']
+
+    assert raw.get_channel_types() == types
+    assert raw.ch_names == labels
