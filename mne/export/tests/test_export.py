@@ -167,7 +167,7 @@ def test_rawarray_edf(tmp_path):
     temp_fname = op.join(str(tmp_path), f'test.{format}')
 
     raw.export(temp_fname, add_ch_type=True)
-    raw_read = read_raw_edf(temp_fname, preload=True)
+    raw_read = read_raw_edf(temp_fname, infer_types=True, preload=True)
 
     # stim channel should be dropped
     raw.drop_channels('2')
@@ -251,8 +251,7 @@ def test_export_raw_edf(tmp_path, dataset, format):
         raw = read_raw_fif(fname)
 
     # only test with EEG channels
-    raw.pick_types(eeg=True, ecog=True, seeg=True,
-                   eog=True, ecg=True, emg=True)
+    raw.pick_types(eeg=True, ecog=True, seeg=True)
     raw.load_data()
     orig_ch_names = raw.ch_names
     temp_fname = op.join(str(tmp_path), f'test.{format}')
@@ -266,9 +265,8 @@ def test_export_raw_edf(tmp_path, dataset, format):
         raw.export(temp_fname, physical_range=(0, 1e6))
 
     if dataset == 'test':
-        orig_ch_names = [ch.split(' ')[1] for ch in raw.ch_names]
         with pytest.warns(RuntimeWarning, match='Data has a non-integer'):
-            raw.export(temp_fname, add_ch_type=False)
+            raw.export(temp_fname)
     elif dataset == 'misc':
         with pytest.warns(RuntimeWarning, match='EDF format requires'):
             raw.export(temp_fname)
