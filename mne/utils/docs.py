@@ -2391,7 +2391,7 @@ events : array of int, shape (n_events, 3)
     samples, with :term:`first_samp` included. The third column contains the
     event id."""
 docdict['events_epochs'] = """%s
-    If some events don’t match the events of interest as specified by event_id,
+    If some events don't match the events of interest as specified by event_id,
     they will be marked as ``IGNORED`` in the drop log.""" % docdict['events']
 docdict['event_id'] = """
 event_id : int | list of int | dict | None
