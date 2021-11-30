@@ -26,13 +26,15 @@ class _PyQtGraphScraper:
             if getattr(gui, 'load_thread', None) is not None:
                 if gui.load_thread.isRunning():
                     gui.load_thread.wait(30000)
+            inst = QApplication.instance()
+            # processEvents to make sure our progressBar is updated
+            for _ in range(1):  # iterate in case we need more at some point
+                inst.processEvents()
             pixmap = gui.grab()
             pixmap.save(img_fnames[-1])
             gui.close()
         if not len(img_fnames):
             return ''
-        import sys
-        print(len(img_fnames), file=sys.__stdout__)
         return figure_rst(
             img_fnames, gallery_conf['src_dir'],
             f'Raw plot{_pl(len(img_fnames))}')
