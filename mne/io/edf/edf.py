@@ -27,6 +27,22 @@ from ...utils import fill_doc
 from ...annotations import Annotations
 
 
+# common channel type names mapped to internal ch types
+CH_TYPE_MAPPING = {
+    'EEG': FIFF.FIFFV_EEG_CH,
+    'SEEG': FIFF.FIFFV_SEEG_CH,
+    'ECOG': FIFF.FIFFV_ECOG_CH,
+    'DBS': FIFF.FIFFV_DBS_CH,
+    'EOG': FIFF.FIFFV_EOG_CH,
+    'ECG': FIFF.FIFFV_ECG_CH,
+    'EMG': FIFF.FIFFV_EMG_CH,
+    'BIO': FIFF.FIFFV_BIO_CH,
+    'RESP': FIFF.FIFFV_RESP_CH,
+    'MISC': FIFF.FIFFV_MISC_CH,
+    'SAO2': FIFF.FIFFV_BIO_CH,
+}
+
+
 @fill_doc
 class RawEDF(BaseRaw):
     """Raw object from EDF, EDF+ or BDF file.
@@ -59,6 +75,16 @@ class RawEDF(BaseRaw):
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
+    infer_types : bool
+        If True, try to infer channel types from channel labels. If a channel
+        label starts with a known type (such as 'EEG') followed by a space and
+        a name (such as 'Fp1'), the channel type will be set accordingly, and
+        the channel will be renamed to the original label without the prefix.
+        For unknown prefixes, the type will be 'EEG' and the name will not be
+        modified. If False, do not infer types and assume all channels are of
+        type 'EEG'.
+
+    .. versionadded:: 1.0
     %(preload)s
     %(verbose)s
 
@@ -108,11 +134,12 @@ class RawEDF(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, eog=None, misc=None, stim_channel='auto',
-                 exclude=(), preload=False, verbose=None):
+                 exclude=(), infer_types=False, preload=False, verbose=None):
         logger.info('Extracting EDF parameters from {}...'.format(input_fname))
         input_fname = os.path.abspath(input_fname)
         info, edf_info, orig_units = _get_info(input_fname, stim_channel, eog,
-                                               misc, exclude, preload)
+                                               misc, exclude, infer_types,
+                                               preload)
         logger.info('Creating raw.info structure...')
 
         # Raw attributes
@@ -322,7 +349,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
     return tal_data
 
 
-def _read_header(fname, exclude):
+def _read_header(fname, exclude, infer_types):
     """Unify EDF, BDF and GDF _read_header call.
 
     Parameters
@@ -341,7 +368,7 @@ def _read_header(fname, exclude):
     ext = os.path.splitext(fname)[1][1:].lower()
     logger.info('%s file detected' % ext.upper())
     if ext in ('bdf', 'edf'):
-        return _read_edf_header(fname, exclude)
+        return _read_edf_header(fname, exclude, infer_types)
     elif ext == 'gdf':
         return _read_gdf_header(fname, exclude), None
     else:
@@ -349,12 +376,12 @@ def _read_header(fname, exclude):
             f'Only GDF, EDF, and BDF files are supported, got {ext}.')
 
 
-def _get_info(fname, stim_channel, eog, misc, exclude, preload):
+def _get_info(fname, stim_channel, eog, misc, exclude, infer_types, preload):
     """Extract information from EDF+, BDF or GDF file."""
     eog = eog if eog is not None else []
     misc = misc if misc is not None else []
 
-    edf_info, orig_units = _read_header(fname, exclude)
+    edf_info, orig_units = _read_header(fname, exclude, infer_types)
 
     # XXX: `tal_ch_names` to pass to `_check_stim_channel` should be computed
     #      from `edf_info['ch_names']` and `edf_info['tal_idx']` but 'tal_idx'
@@ -391,20 +418,6 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     chs = list()
     pick_mask = np.ones(len(ch_names))
 
-    # common channel type names mapped to internal ch types
-    ch_type_mapping = {
-        'EEG': FIFF.FIFFV_EEG_CH,
-        'SEEG': FIFF.FIFFV_SEEG_CH,
-        'ECOG': FIFF.FIFFV_ECOG_CH,
-        'DBS': FIFF.FIFFV_DBS_CH,
-        'EOG': FIFF.FIFFV_EOG_CH,
-        'ECG': FIFF.FIFFV_ECG_CH,
-        'EMG': FIFF.FIFFV_EMG_CH,
-        'BIO': FIFF.FIFFV_BIO_CH,
-        'RESP': FIFF.FIFFV_RESP_CH,
-        'MISC': FIFF.FIFFV_MISC_CH,
-        'SAO2': FIFF.FIFFV_BIO_CH,
-    }
     chs_without_types = list()
 
     for idx, ch_name in enumerate(ch_names):
@@ -425,8 +438,8 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
         # if the edf info contained channel type information
         # set it now
         ch_type = ch_types[idx]
-        if ch_type is not None and ch_type in ch_type_mapping:
-            chan_info['kind'] = ch_type_mapping.get(ch_type)
+        if ch_type is not None and ch_type in CH_TYPE_MAPPING:
+            chan_info['kind'] = CH_TYPE_MAPPING.get(ch_type)
             if ch_type not in ['EEG', 'ECOG', 'SEEG', 'DBS']:
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
                 pick_mask[idx] = False
@@ -448,7 +461,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
             chan_info['ch_name'] = ch_name
             ch_names[idx] = chan_info['ch_name']
             edf_info['units'][idx] = 1
-        elif ch_type not in ch_type_mapping:
+        elif ch_type not in CH_TYPE_MAPPING:
             chs_without_types.append(ch_name)
         chs.append(chan_info)
 
@@ -568,7 +581,7 @@ def _edf_str(x):
     return x.decode('latin-1').split('\x00')[0]
 
 
-def _read_edf_header(fname, exclude):
+def _read_edf_header(fname, exclude, infer_types):
     """Read header information from EDF+ or BDF file."""
     edf_info = {'events': []}
 
@@ -653,31 +666,28 @@ def _read_edf_header(fname, exclude):
         channels = list(range(nchan))
 
         # read in 16 byte labels and strip any extra spaces at the end
-        ch_labels = [fid.read(16).strip().decode('latin-1')
-                     for ch in channels]
+        ch_labels = [fid.read(16).strip().decode('latin-1') for _ in channels]
 
         # get channel names and optionally channel type
         # EDF specification contains 16 bytes that encode channel names,
         # optionally prefixed by a string representing channel type separated
         # by a space
-        ch_names = []
-        ch_types = []
-        for ch_idx, this_label in enumerate(ch_labels):
-            # if no channel type, then we will default to eeg
-            ch_type = None
-            ch_name = this_label
+        if infer_types:
+            ch_types, ch_names = [], []
+            for ch_label in ch_labels:
+                ch_type, ch_name = 'EEG', ch_label  # default to EEG
+                parts = ch_label.split(' ')
+                if len(parts) > 1:
+                    if parts[0].upper() in CH_TYPE_MAPPING:
+                        ch_type = parts[0].upper()
+                        ch_name = ' '.join(parts[1:])
+                        logger.info(f"Channel '{ch_label}' recognized as type "
+                                    f"{ch_type} (renamed to '{ch_name}').")
+                ch_types.append(ch_type)
+                ch_names.append(ch_name)
+        else:
+            ch_types, ch_names = ['EEG'] * nchan, ch_labels
 
-            # space is found, so the prefix is the channel type. 'Annotations'
-            # is also a keyword we search for
-            if (this_label.count(' ') == 1) and \
-                    ('Annotations' not in this_label):
-                ch_type, ch_name = this_label.split(' ')
-
-                # channel types should be upper case for easy comparison
-                ch_type = ch_type.upper()
-
-            ch_names.append(ch_name)
-            ch_types.append(ch_type)
         exclude = _find_exclude_idx(ch_names, exclude)
         tal_idx = _find_tal_idx(ch_names)
         exclude = np.concatenate([exclude, tal_idx])
@@ -1232,7 +1242,7 @@ def _find_tal_idx(ch_names):
 
 @fill_doc
 def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
-                 exclude=(), preload=False, verbose=None):
+                 exclude=(), infer_types=False, preload=False, verbose=None):
     """Reader function for EDF or EDF+ files.
 
     Parameters
@@ -1264,6 +1274,16 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling. A str is
         interpreted as a regular expression.
+    infer_types : bool
+        If True, try to infer channel types from channel labels. If a channel
+        label starts with a known type (such as 'EEG') followed by a space and
+        a name (such as 'Fp1'), the channel type will be set accordingly, and
+        the channel will be renamed to the original label without the prefix.
+        For unknown prefixes, the type will be 'EEG' and the name will not be
+        modified. If False, do not infer types and assume all channels are of
+        type 'EEG'.
+
+    .. versionadded:: 1.0
     %(preload)s
     %(verbose)s
 
@@ -1325,13 +1345,13 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
     if ext != 'edf':
         raise NotImplementedError(f'Only EDF files are supported, got {ext}.')
     return RawEDF(input_fname=input_fname, eog=eog, misc=misc,
-                  stim_channel=stim_channel, exclude=exclude, preload=preload,
-                  verbose=verbose)
+                  stim_channel=stim_channel, exclude=exclude,
+                  infer_types=infer_types, preload=preload, verbose=verbose)
 
 
 @fill_doc
 def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
-                 exclude=(), preload=False, verbose=None):
+                 exclude=(), infer_types=False, preload=False, verbose=None):
     """Reader function for BDF files.
 
     Parameters
@@ -1363,6 +1383,16 @@ def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling. A str is
         interpreted as a regular expression.
+    infer_types : bool
+        If True, try to infer channel types from channel labels. If a channel
+        label starts with a known type (such as 'EEG') followed by a space and
+        a name (such as 'Fp1'), the channel type will be set accordingly, and
+        the channel will be renamed to the original label without the prefix.
+        For unknown prefixes, the type will be 'EEG' and the name will not be
+        modified. If False, do not infer types and assume all channels are of
+        type 'EEG'.
+
+    .. versionadded:: 1.0
     %(preload)s
     %(verbose)s
 
@@ -1417,8 +1447,8 @@ def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
     if ext != 'bdf':
         raise NotImplementedError(f'Only BDF files are supported, got {ext}.')
     return RawEDF(input_fname=input_fname, eog=eog, misc=misc,
-                  stim_channel=stim_channel, exclude=exclude, preload=preload,
-                  verbose=verbose)
+                  stim_channel=stim_channel, exclude=exclude,
+                  infer_types=infer_types, preload=preload, verbose=verbose)
 
 
 @fill_doc
