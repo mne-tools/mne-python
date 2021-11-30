@@ -174,8 +174,8 @@ class _PyVistaRenderer(_AbstractRenderer):
             self.figure = fig
 
         # Enable off_screen if sphinx-gallery or testing
-        if pyvista.OFF_SCREEN:
-            self.figure.store['off_screen'] = True
+        # if pyvista.OFF_SCREEN:
+        #     self.figure.store['off_screen'] = True
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
