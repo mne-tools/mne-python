@@ -183,8 +183,8 @@ class _PyVistaRenderer(_AbstractRenderer):
                 self.tube_n_sides = 3
                 # smooth_shading=True fails on MacOS CIs
                 self.figure.smooth_shading = False
-            # with _disabled_depth_peeling():
-            self.plotter = self.figure.build()
+            with _disabled_depth_peeling():
+                self.plotter = self.figure.build()
             self._hide_axes()
             # self._enable_aa()
 
