@@ -177,16 +177,16 @@ class _PyVistaRenderer(_AbstractRenderer):
         # if pyvista.OFF_SCREEN:
         #     self.figure.store['off_screen'] = True
 
-        # with warnings.catch_warnings():
-        #     warnings.filterwarnings("ignore", category=FutureWarning)
-        #     if MNE_3D_BACKEND_TESTING:
-        #         self.tube_n_sides = 3
-        #         # smooth_shading=True fails on MacOS CIs
-        #         self.figure.smooth_shading = False
-        #     with _disabled_depth_peeling():
-        #         self.plotter = self.figure.build()
-        #     self._hide_axes()
-        #     self._enable_aa()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            if MNE_3D_BACKEND_TESTING:
+                self.tube_n_sides = 3
+                # smooth_shading=True fails on MacOS CIs
+                self.figure.smooth_shading = False
+            with _disabled_depth_peeling():
+                self.plotter = self.figure.build()
+            self._hide_axes()
+            self._enable_aa()
 
         # # FIX: https://github.com/pyvista/pyvistaqt/pull/68
         # if LooseVersion(pyvista.__version__) >= '0.27.0':
@@ -194,8 +194,6 @@ class _PyVistaRenderer(_AbstractRenderer):
         #         self.plotter.iren = None
 
         # self.update_lighting()
-
-        self.plotter = self.figure.build()
 
     @property
     def _all_plotters(self):
