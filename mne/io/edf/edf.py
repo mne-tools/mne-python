@@ -84,7 +84,7 @@ class RawEDF(BaseRaw):
         modified. If False, do not infer types and assume all channels are of
         type 'EEG'.
 
-    .. versionadded:: 1.0
+        .. versionadded:: 1.0
     %(preload)s
     %(verbose)s
 
@@ -1283,7 +1283,7 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
         modified. If False, do not infer types and assume all channels are of
         type 'EEG'.
 
-    .. versionadded:: 1.0
+        .. versionadded:: 1.0
     %(preload)s
     %(verbose)s
 
@@ -1392,7 +1392,7 @@ def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
         modified. If False, do not infer types and assume all channels are of
         type 'EEG'.
 
-    .. versionadded:: 1.0
+        .. versionadded:: 1.0
     %(preload)s
     %(verbose)s
 
