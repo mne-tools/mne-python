@@ -182,11 +182,12 @@ standardize_names : bool
 
 docdict['event_color'] = """
 event_color : color object | dict | None
-    Color(s) to use for events. To show all events in the same color, pass any
-    matplotlib-compatible color. To color events differently, pass a `dict`
-    that maps event names or integer event numbers to colors (must include
-    entries for *all* events, or include a "fallback" entry with key ``-1``).
-    If ``None``, colors are chosen from the current Matplotlib color cycle.
+    Color(s) to use for :term:`events`. To show all :term:`events` in the same
+    color, pass any matplotlib-compatible color. To color events differently,
+    pass a `dict` that maps event names or integer event numbers to colors
+    (must include entries for *all* events, or include a "fallback" entry with
+    key ``-1``). If ``None``, colors are chosen from the current Matplotlib
+    color cycle.
 """
 
 docdict['browse_group_by'] = """
@@ -1699,8 +1700,8 @@ on_header_missing : str
 """ % (_on_missing_base,)
 docdict['on_missing_events'] = """
 on_missing : 'raise' | 'warn' | 'ignore'
-    %s event numbers from ``event_id`` are missing from ``events``.
-    When numbers from ``events`` are missing from ``event_id`` they will be
+    %s event numbers from ``event_id`` are missing from :term:`events`.
+    When numbers from :term:`events` are missing from ``event_id`` they will be
     ignored and a warning emitted; consider using ``verbose='error'`` in
     this case.
 
@@ -2391,7 +2392,7 @@ events : array of int, shape (n_events, 3)
     event id."""
 docdict['events_epochs'] = """%s
     If some events don’t match the events of interest as specified by event_id,
-    they will be marked as ‘IGNORED’ in the drop log.""" % docdict['events']
+    they will be marked as ``IGNORED`` in the drop log.""" % docdict['events']
 docdict['event_id'] = """
 event_id : int | list of int | dict | None
     The id of the :term:`events` to consider. If dict, the keys can later be
@@ -2432,7 +2433,7 @@ docdict['epochs_event_repeated'] = """
 event_repeated : str
     How to handle duplicates in ``events[:, 0]``. Can be ``'error'``
     (default), to raise an error, 'drop' to only retain the row occurring
-    first in the ``events``, or ``'merge'`` to combine the coinciding
+    first in the :term:`events`, or ``'merge'`` to combine the coinciding
     events (=duplicates) into a new event (see Notes for details).
 
     .. versionadded:: 0.19
