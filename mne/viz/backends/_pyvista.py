@@ -186,7 +186,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             with _disabled_depth_peeling():
                 self.plotter = self.figure.build()
             self._hide_axes()
-            # self._enable_aa()
+            self._enable_aa()
 
         # FIX: https://github.com/pyvista/pyvistaqt/pull/68
         if LooseVersion(pyvista.__version__) >= '0.27.0':
@@ -658,6 +658,8 @@ class _PyVistaRenderer(_AbstractRenderer):
         # For Mayavi we have an "on activated" event or so, we should look into
         # using this for Azure at some point, too.
         if os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true':
+            return
+        if os.getenv('GITHUB_ACTIONS', 'false').lower() == 'true':
             return
         if self.figure.is_active():
             if sys.platform != 'darwin':
