@@ -119,6 +119,21 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False):
     app_name = 'MNE-Python'
     organization_name = 'MNE'
 
+    # Fix from cbrnr/mnelab for app name in menu bar
+    # This has to come *before* the creation of the QApplication to work.
+    # It also only affects the title bar, not the application dock.
+    # There seems to be no way to change the application dock from "python"
+    # at runtime.
+    if sys.platform.startswith("darwin"):
+        try:
+            # set bundle name on macOS (app name shown in the menu bar)
+            from Foundation import NSBundle
+            bundle = NSBundle.mainBundle()
+            info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
+            info["CFBundleName"] = app_name
+        except ModuleNotFoundError:
+            pass
+
     if pg_app:
         from pyqtgraph import mkQApp
         app = mkQApp(app_name)
@@ -132,16 +147,5 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False):
         _init_qt_resources()
         kind = 'bigsur-' if platform.mac_ver()[0] >= '10.16' else ''
         app.setWindowIcon(QIcon(f":/mne-{kind}icon.png"))
-
-    # Fix from cbrnr/mnelab for app name in menu bar
-    if sys.platform.startswith("darwin"):
-        try:
-            # set bundle name on macOS (app name shown in the menu bar)
-            from Foundation import NSBundle
-            bundle = NSBundle.mainBundle()
-            info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
-            info["CFBundleName"] = app_name
-        except ModuleNotFoundError:
-            pass
 
     return app
