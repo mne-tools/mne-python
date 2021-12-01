@@ -131,12 +131,12 @@ for elec in electrodes:
 # Now, let's the electrodes and a few regions of interest that the contacts
 # of the electrode are proximal to.
 
-picks = [ch_name for ch_name in epochs.ch_names if
+picks = [ii for ii, ch_name in enumerate(epochs.ch_names) if
          any([elec in ch_name for elec in electrodes])]
 labels = ('ctx-lh-caudalmiddlefrontal', 'ctx-lh-precentral',
           'ctx-lh-superiorfrontal', 'Left-Putamen')
 
-fig = mne.viz.plot_alignment(epochs.info.copy().pick_channels(picks), trans,
+fig = mne.viz.plot_alignment(mne.pick_info(epochs.info, picks), trans,
                              'fsaverage', subjects_dir=subjects_dir,
                              surfaces=[], coord_frame='mri')
 

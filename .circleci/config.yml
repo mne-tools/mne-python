@@ -2,8 +2,8 @@
 # - [circle front] will build the front page and perform test-doc
 # - [circle full] will build everything
 # - [circle linkcheck] will run our linkcheck
-# - [circle interactive_test] will run our test suite (useful for debugging
-#   issues using "Rerun with SSH")
+# - [circle deploy] on a main or maint/* commit will try to immediately build
+#   and deploy docs rather than waiting for the nightly build
 
 version: 2.1
 
@@ -15,6 +15,10 @@ _xvfb: &xvfb
 
 jobs:
     build_docs:
+      parameters:
+        scheduled:
+          type: string
+          default: "false"
       machine:
         image: ubuntu-2004:202111-01
       steps:
@@ -25,6 +29,7 @@ jobs:
         - run:
             name: Complete checkout
             command: |
+              set -e
               if ! git remote -v | grep upstream; then
                 git remote add upstream https://github.com/mne-tools/mne-python.git
               fi
@@ -37,11 +42,49 @@ jobs:
         - run:
             name: Check-skip
             command: |
+              set -e
               export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
               if [[ -v CIRCLE_PULL_REQUEST ]] && ([[ "$COMMIT_MESSAGE" == *"[skip circle]"* ]] || [[ "$COMMIT_MESSAGE" == *"[circle skip]"* ]]); then
                 echo "Skip detected, exiting job ${CIRCLE_JOB} for PR ${CIRCLE_PULL_REQUEST}."
                 circleci-agent step halt;
               fi
+        - run:
+            name: Merge with upstream and triage run
+            command: |
+              set -e
+              echo $(git log -1 --pretty=%B) | tee gitlog.txt
+              echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
+              if [[ $(cat merge.txt) != "" ]]; then
+                echo "Merging $(cat merge.txt)";
+                git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
+              else
+                if [ "$CIRCLE_BRANCH" == "main" ]; then
+                  KIND=dev
+                else:
+                  KIND=stable
+                fi
+                export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
+                if [[ "$COMMIT_MESSAGE" == *"[circle deploy]"* ]]; then
+                  echo "Forced deployed build detected";
+                elif [ "<< parameters.scheduled >>" != "true" ]; then
+                  echo "Waiting until scheduled run to build ${KIND} docs, exiting job ${CIRCLE_JOB}."
+                  circleci-agent step halt;
+                else
+                  echo "Scheduled full build detected, checking if it's required."
+                  wget https://mne.tools/${KIND}/_version.txt;
+                  REMOTE_VERSION=$(cat _version.txt)
+                  THIS_VERSION=$(git rev-parse HEAD)
+                  echo "Current ${KIND} SHA: ${REMOTE_VERSION}"
+                  echo "This    ${KIND} SHA: ${THIS_VERSION}"
+                  if [[ "${THIS_VERSION}" != "${REMOTE_VERSION}" ]]; then
+                    echo "Rebuild required."
+                  else
+                    echo "Rebuild skipped."
+                    circleci-agent step halt;
+                  fi
+                fi
+              fi
+
         - run:
             name: Set BASH_ENV
             command: |
@@ -66,16 +109,6 @@ jobs:
             name: check neuromag2ft
             command: |
               neuromag2ft --version
-
-        - run:
-            name: Merge with upstream
-            command: |
-              echo $(git log -1 --pretty=%B) | tee gitlog.txt
-              echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
-              if [[ $(cat merge.txt) != "" ]]; then
-                echo "Merging $(cat merge.txt)";
-                git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
-              fi
 
         - run:
             <<: *xvfb
@@ -400,8 +433,8 @@ jobs:
 
 
     deploy:
-      docker:
-        - image: circleci/python:3.8.5-buster
+      machine:
+        image: ubuntu-2004:202111-01
       steps:
         - attach_workspace:
             at: /tmp/build
@@ -460,64 +493,24 @@ jobs:
             paths:
               - ~/mne_data/MNE-visual_92_categories-data
 
-
-    interactive_test:
-      docker:
-        - image: circleci/python:3.9.2-buster
-      steps:
-        - restore_cache:
-            keys:
-              - source-cache
-        - checkout
-        - run:
-            name: Set BASH_ENV
-            command: |
-              set -e
-              echo "set -e" >> $BASH_ENV
-              echo "export OPENBLAS_NUM_THREADS=1" >> $BASH_ENV
-              mkdir -p ~/mne_data
-        - run:
-            name: Check-skip
-            command: |
-              export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
-              if [[ "$COMMIT_MESSAGE" != *"[circle interactive_test]"* ]]; then
-                echo "Skip detected, exiting job ${CIRCLE_JOB}."
-                circleci-agent step halt;
-              fi
-        - run:
-            <<: *xvfb
-        - restore_cache:
-            keys:
-              - pip-cache
-        - run:
-            name: Get Python running
-            command: |
-              ./tools/circleci_dependencies.sh
-        - run:
-            name: Check installation
-            command: |
-              mne sys_info -pd
-        - restore_cache:
-            keys:
-              - data-cache-testing
-        - run:
-            name: Get data
-            command: |
-              python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
-        - run:
-            name: pytest
-            command: |
-              pytest -m "not slowtest" mne -xv
-
 workflows:
   default:
     jobs:
       - build_docs
       - linkcheck
-      - interactive_test
+
+  nightly:
+    jobs:
+      - build_docs:
+          scheduled: "true"
       - deploy:
           requires:
             - build_docs
+    triggers:
+      - schedule:
+          # "At 00:00" (once a day) should be enough "0 0 * * *",
+          # But for testing at first, let's do once an hour
+          cron: "15 * * * *"
           filters:
             branches:
               only:

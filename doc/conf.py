@@ -25,7 +25,7 @@ from numpydoc import docscrape
 import mne
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (linkcode_resolve, # noqa, analysis:ignore
-                       _assert_no_instances, sizeof_fmt)
+                       _assert_no_instances, sizeof_fmt, run_subprocess)
 from mne.viz import Brain  # noqa
 
 if LooseVersion(sphinx_gallery.__version__) < LooseVersion('0.2'):
@@ -1145,6 +1145,23 @@ def make_redirects(app, exception):
         f'Added {len(custom_redirects):3d} HTML custom redirects')
 
 
+def make_version(app, exception):
+    """Make a text file with the git version."""
+    if not (isinstance(app.builder,
+                       sphinx.builders.html.StandaloneHTMLBuilder) and
+            exception is None):
+        return
+    logger = sphinx.util.logging.getLogger('mne')
+    try:
+        stdout, _ = run_subprocess(['git', 'rev-parse', 'HEAD'], verbose=False)
+    except Exception as exc:
+        logger.warning(f'Failed to write _version.txt: {exc}')
+        return
+    with open(os.path.join(app.outdir, '_version.txt'), 'w') as fid:
+        fid.write(stdout)
+    logger.info(f'Added "{stdout.rstrip()}" > _version.txt')
+
+
 # -- Connect our handlers to the main Sphinx app ---------------------------
 
 def setup(app):
@@ -1158,3 +1175,4 @@ def setup(app):
     sphinx_logger.info(
         f'Building documentation for MNE {release} ({mne.__file__})')
     app.connect('build-finished', make_redirects)
+    app.connect('build-finished', make_version)
