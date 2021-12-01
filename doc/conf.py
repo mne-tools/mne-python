@@ -1145,7 +1145,6 @@ def make_redirects(app, exception):
         f'Added {len(custom_redirects):3d} HTML custom redirects')
 
 
-
 def make_version(app, exception):
     """Make a text file with the git version."""
     if not (isinstance(app.builder,
