@@ -2,8 +2,8 @@
 # - [circle front] will build the front page and perform test-doc
 # - [circle full] will build everything
 # - [circle linkcheck] will run our linkcheck
-# - [circle interactive_test] will run our test suite (useful for debugging
-#   issues using "Rerun with SSH")
+# - [circle deploy] on a main or maint/* commit will try to immediately build
+#   and deploy docs rather than waiting for the nightly build
 
 version: 2.1
 
@@ -498,7 +498,6 @@ workflows:
     jobs:
       - build_docs
       - linkcheck
-      - interactive_test
 
   nightly:
     jobs:
@@ -511,7 +510,7 @@ workflows:
       - schedule:
           # "At 00:00" (once a day) should be enough "0 0 * * *",
           # But for testing at first, let's do once an hour
-          cron: "0 * * * *"
+          cron: "10 * * * *"
           filters:
             branches:
               only:
