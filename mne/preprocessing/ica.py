@@ -617,8 +617,8 @@ class ICA(ContainsMixin):
         if not isinstance(inst, BaseRaw):
             ignored_params = [
                 param_name for param_name, param_val in zip(
-                    ('start', 'stop', 'decim', 'reject', 'flat'),
-                    (start, stop, decim, reject, flat)
+                    ('start', 'stop', 'reject', 'flat'),
+                    (start, stop, reject, flat)
                 )
                 if param_val is not None
             ]
