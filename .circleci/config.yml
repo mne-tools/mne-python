@@ -60,7 +60,7 @@ jobs:
               else
                 if [ "$CIRCLE_BRANCH" == "main" ]; then
                   KIND=dev
-                else:
+                else
                   KIND=stable
                 fi
                 export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
