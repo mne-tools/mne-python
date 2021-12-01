@@ -565,9 +565,6 @@ class ICA(ContainsMixin):
         decim : int | None
             Increment for selecting only each n-th sampling point. If ``None``,
             all samples  between ``start`` and ``stop`` (inclusive) are used.
-
-            .. note:: This parameter only has an effect if ``inst`` is
-                      `~mne.io.Raw` data.
         reject, flat : dict | None
             Rejection parameters based on peak-to-peak amplitude (PTP)
             in the continuous data. Signal periods exceeding the thresholds
@@ -620,8 +617,8 @@ class ICA(ContainsMixin):
         if not isinstance(inst, BaseRaw):
             ignored_params = [
                 param_name for param_name, param_val in zip(
-                    ('start', 'stop', 'decim', 'reject', 'flat'),
-                    (start, stop, decim, reject, flat)
+                    ('start', 'stop', 'reject', 'flat'),
+                    (start, stop, reject, flat)
                 )
                 if param_val is not None
             ]
