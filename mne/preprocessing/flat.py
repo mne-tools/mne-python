@@ -100,6 +100,5 @@ def annotate_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
     starts, stops = np.array(starts), np.array(stops)
     onsets = (starts + raw.first_samp) / raw.info['sfreq']
     durations = (stops - starts) / raw.info['sfreq']
-    annot = Annotations(onsets, durations, ['BAD_flat'] * len(onsets),
-                        orig_time=raw.annotations.orig_time)
+    annot = Annotations(onsets, durations, ['BAD_flat'] * len(onsets))
     return annot, bads

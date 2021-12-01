@@ -540,8 +540,7 @@ def annotate_break(raw, events=None,
     break_annotations = Annotations(
         onset=break_onsets,
         duration=break_durations,
-        description=['BAD_break'],
-        orig_time=raw.info['meas_date']
+        description=['BAD_break']
     )
 
     # Log some info
