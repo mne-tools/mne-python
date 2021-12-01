@@ -8,7 +8,7 @@ This tutorial focuses on visualization of :term:`source estimates <STC>`.
 
 Surface Source Estimates
 ------------------------
-First, we get the paths for the evoked data and the time courses (stcs).
+First, we get the paths for the evoked data and the source time courses (stcs).
 """
 
 # %%
@@ -49,7 +49,8 @@ print(stc)
 # and ``pysurfer`` installed on your machine.
 initial_time = 0.1
 brain = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
-                 clim=dict(kind='value', lims=[3, 6, 9]))
+                 clim=dict(kind='value', lims=[3, 6, 9]),
+                 smoothing_steps=7)
 
 # %%
 # You can also morph it to fsaverage and visualize it using a flatmap.
@@ -80,7 +81,7 @@ brain.add_annotation('HCPMMP1_combined', borders=2, subjects_dir=subjects_dir)
 # backend. Here we use verbose='error' to ignore a warning that not all
 # vertices were used in plotting.
 mpl_fig = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
-                   backend='matplotlib', verbose='error')
+                   backend='matplotlib', verbose='error', smoothing_steps=7)
 
 # %%
 #
@@ -135,9 +136,9 @@ stc.plot(src, subject='sample', subjects_dir=subjects_dir, mode='glass_brain')
 
 # %%
 # You can also extract label time courses using volumetric atlases. Here we'll
-# use the built-in ``aparc.a2009s+aseg.mgz``:
+# use the built-in ``aparc+aseg.mgz``:
 
-fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aparc.a2009s+aseg.mgz')
+fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aparc+aseg.mgz')
 label_names = mne.get_volume_labels_from_aseg(fname_aseg)
 label_tc = stc.extract_label_time_course(fname_aseg, src=src)
 
@@ -160,7 +161,7 @@ labels = [label_names[idx] for idx in np.argsort(label_tc.max(axis=1))[:7]
           if 'unknown' not in label_names[idx].lower()]  # remove catch-all
 brain = mne.viz.Brain('sample', hemi='both', surf='pial', alpha=0.5,
                       cortex='low_contrast', subjects_dir=subjects_dir)
-brain.add_volume_labels(aseg='aparc.a2009s+aseg', labels=labels)
+brain.add_volume_labels(aseg='aparc+aseg', labels=labels)
 brain.show_view(azimuth=250, elevation=40, distance=400)
 brain.enable_depth_peeling()
 
@@ -182,7 +183,7 @@ inv = read_inverse_operator(fname_inv)
 stc = apply_inverse(evoked, inv, lambda2, 'dSPM', pick_ori='vector')
 brain = stc.plot(subject='sample', subjects_dir=subjects_dir,
                  initial_time=initial_time, brain_kwargs=dict(
-                     silhouette=True))
+                     silhouette=True), smoothing_steps=7)
 
 # %%
 # Dipole fits
