@@ -741,7 +741,8 @@ class Report(object):
         return (
             'baseline', 'cov_fname', 'include', '_content', 'image_format',
             'info_fname', '_dom_id', 'raw_psd', 'projs',
-            'subjects_dir', 'subject', 'title', 'data_path', 'lang', 'verbose'
+            'subjects_dir', 'subject', 'title', 'data_path', 'lang', 'verbose',
+            'fname'
         )
 
     def _get_dom_id(self):
@@ -2843,7 +2844,8 @@ class Report(object):
         if open_browser and not is_hdf5 and not building_doc:
             webbrowser.open_new_tab('file://' + fname)
 
-        self.fname = fname
+        if self.fname is None:
+            self.fname = fname
         return fname
 
     def __enter__(self):

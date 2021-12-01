@@ -45,6 +45,8 @@ Version 0.24.1 (2021-12-01)
 
 - Fix automatic channel type detection from channel labels in :func:`mne.io.read_raw_edf` and :func:`mne.io.read_raw_bdf` (and disable this functionality from :func:`mne.io.read_raw_gdf`) (:gh:`10058` by `Clemens Brunner`_)
 
+- When opening a saved report and saving it to a different filename again, don't change ``Report.fname`` to avoid a regression when using :func:`~mne.open_report` as a context manager (:gh:`9998` by `Marijn van Vliet`_)
+
 .. _changes_0_24_0:
 
 Version 0.24.0 (2021-11-03)
