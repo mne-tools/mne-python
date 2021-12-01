@@ -502,7 +502,7 @@ workflows:
 
   nightly:
     jobs:
-      - build_docs
+      - build_docs:
           scheduled: "true"
       - deploy:
           requires:
