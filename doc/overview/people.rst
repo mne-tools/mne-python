@@ -30,6 +30,7 @@ Steering Council
 * `Richard Höchenberger`_
 * `Robert Luke`_
 * `Stefan Appelhoff`_
+* `Adam Li`_
 
 Institutional Partners
 ----------------------
