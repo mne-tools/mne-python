@@ -68,7 +68,9 @@ from mne.preprocessing import (create_eog_epochs, create_ecg_epochs,
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(sample_data_raw_file)
+# here we crop and resample just for speed
+raw = mne.io.read_raw_fif(sample_data_raw_file).crop(0, 60)
+raw.load_data().resample(100)
 
 # %%
 # The :ref:`example data <sample-dataset>` also includes an "empty room"
@@ -84,7 +86,8 @@ system_projs = raw.info['projs']
 raw.del_proj()
 empty_room_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                'ernoise_raw.fif')
-empty_room_raw = mne.io.read_raw_fif(empty_room_file)
+# cropped to 60 sec just for speed
+empty_room_raw = mne.io.read_raw_fif(empty_room_file).crop(0, 30)
 
 # %%
 # Notice that the empty room recording itself has the system-provided SSP
@@ -425,19 +428,16 @@ for title in ('Without', 'With'):
 # source amplitudes. However, for sensor space analyses, it can be useful to
 # visualize the extent to which SSP projection has biased the data. This can be
 # explored by using ``proj='reconstruct'`` in evoked plotting functions, for
-# example via `evoked.plot() <mne.Evoked.plot>`:
+# example via `evoked.plot() <mne.Evoked.plot>`, here restricted to just
+# EEG channels for speed:
 
-evoked = epochs.average()
-# Apply the average ref first:
-# It's how we typically view EEG data, and here we're really just interested
-# in the effect of the EOG+ECG SSPs
-evoked.del_proj().set_eeg_reference(projection=True).apply_proj()
-evoked.add_proj(ecg_projs).add_proj(eog_projs)
-fig, axes = plt.subplots(3, 3, figsize=(8, 6))
-for ii in range(3):
+evoked_eeg = epochs.average().pick('eeg')
+evoked_eeg.del_proj().add_proj(ecg_projs).add_proj(eog_projs)
+fig, axes = plt.subplots(1, 3, figsize=(8, 6), squeeze=False)
+for ii in range(axes.shape[0]):
     axes[ii, 0].get_shared_y_axes().join(*axes[ii])
 for pi, proj in enumerate((False, True, 'reconstruct')):
-    evoked.plot(proj=proj, axes=axes[:, pi], spatial_colors=True)
+    evoked_eeg.plot(proj=proj, axes=axes[:, pi], spatial_colors=True)
     if pi == 0:
         for ax in axes[:, pi]:
             parts = ax.get_title().split('(')

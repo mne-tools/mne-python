@@ -42,27 +42,26 @@ raw = mne.io.read_raw_fif(raw_fname)
 raw_empty_room_fname = op.join(
     data_path, 'MEG', 'sample', 'ernoise_raw.fif')
 raw_empty_room = mne.io.read_raw_fif(raw_empty_room_fname)
-raw_empty_room.crop(0, 60)
+raw_empty_room.crop(0, 30)  # cropped just for speed
 raw_empty_room.info['bads'] = ['MEG 2443']
 raw_empty_room.add_proj(raw.info['projs'])
-noise_cov = mne.compute_raw_covariance(
-    raw_empty_room, method=['empirical', 'shrunk'])
+noise_cov = mne.compute_raw_covariance(raw_empty_room, method='shrunk')
 del raw_empty_room
 
 # %%
 # Epoch the data
 # --------------
 
-raw.info['bads'] = ['MEG 2443', 'EEG 053']
-raw.load_data().filter(4, 12)
+raw.pick(['meg', 'stim', 'eog']).load_data().filter(4, 12)
+raw.info['bads'] = ['MEG 2443']
 events = mne.find_events(raw, stim_channel='STI 014')
 event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
 tmin, tmax = -0.2, 0.5
 baseline = (None, 0)  # means from the first instant to t = 0
 reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
-epochs = mne.Epochs(raw.copy().filter(4, 12), events, event_id, tmin, tmax,
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
                     proj=True, picks=('meg', 'eog'), baseline=None,
-                    reject=reject, preload=True)
+                    reject=reject, preload=True, decim=5)
 del raw
 
 # %%
@@ -78,11 +77,9 @@ del raw
 #    to noise sources).
 
 base_cov = mne.compute_covariance(
-    epochs, tmin=-0.2, tmax=0, method=['shrunk', 'empirical'], rank=None,
-    verbose=True)
+    epochs, tmin=-0.2, tmax=0, method='shrunk', verbose=True)
 data_cov = mne.compute_covariance(
-    epochs, tmin=0., tmax=0.2, method=['shrunk', 'empirical'], rank=None,
-    verbose=True)
+    epochs, tmin=0., tmax=0.2, method='shrunk', verbose=True)
 
 fig_noise_cov = mne.viz.plot_cov(noise_cov, epochs.info, show_svd=False)
 fig_base_cov = mne.viz.plot_cov(base_cov, epochs.info, show_svd=False)
@@ -131,4 +128,5 @@ stc_base = apply_inverse_cov(base_cov, evoked.info, inverse_operator,
 
 stc_data /= stc_base
 brain = stc_data.plot(subject='sample', subjects_dir=subjects_dir,
-                      clim=dict(kind='percent', lims=(50, 90, 98)))
+                      clim=dict(kind='percent', lims=(50, 90, 98)),
+                      smoothing_steps=7)
