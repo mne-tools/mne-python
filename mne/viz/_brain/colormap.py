@@ -140,7 +140,7 @@ def calculate_lut(lut_table, alpha, fmin, fmid, fmax, center=None,
         lut_table[:, -1] = np.round(lut_table[:, -1] * alpha)
 
     if divergent:
-        if fmax == fmin:
+        if np.isclose(fmax, fmin):
             lut_table = np.r_[
                 lut_table[:1],
                 get_fill_colors(
