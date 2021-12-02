@@ -497,8 +497,17 @@ workflows:
   default:
     jobs:
       - build_docs:
-          name: build_docs_pr
+          name: build_docs
       - linkcheck
+      - deploy:
+          name: deploy
+          requires:
+            - build_docs
+          filters:
+            branches:
+              only:
+                - main
+                - maint/0.24
 
   nightly:
     jobs:
@@ -506,6 +515,7 @@ workflows:
           scheduled: "true"
           name: build_docs_nightly
       - deploy:
+          name: deploy_nightly
           requires:
             - build_docs_nightly
     triggers:
