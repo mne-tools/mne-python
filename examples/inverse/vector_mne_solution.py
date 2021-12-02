@@ -35,7 +35,7 @@ print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
-smoothing_steps = 5
+smoothing_steps = 7
 
 # Read evoked data
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
@@ -76,7 +76,7 @@ print('Absolute cosine similarity between source normals and directions: '
       f'{np.abs(np.sum(directions * inv["source_nn"][2::3], axis=-1)).mean()}')
 brain_max = stc_max.plot(
     initial_time=peak_time, hemi='lh', subjects_dir=subjects_dir,
-    time_label='Max power', smoothing_steps=5)
+    time_label='Max power', smoothing_steps=smoothing_steps)
 
 # %%
 # The normal is very similar:
