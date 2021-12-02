@@ -22,7 +22,7 @@ The steps we use are:
 Preprocessing
 -------------
 """
-# sphinx_gallery_thumbnail_number = 13
+# sphinx_gallery_thumbnail_number = 11
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Luke Bloy <luke.bloy@gmail.com>
@@ -151,8 +151,7 @@ del src, bem
 # independently. This makes the value of each sensor point and source location
 # in each frequency band the percentage of the PSD accounted for by that band.
 
-freq_bands = dict(
-    delta=(2, 4), theta=(5, 7), alpha=(8, 12), beta=(15, 29), gamma=(30, 45))
+freq_bands = dict(alpha=(8, 12), beta=(15, 29), gamma=(30, 45))
 topos = dict(vv=dict(), opm=dict())
 stcs = dict(vv=dict(), opm=dict())
 
@@ -183,7 +182,7 @@ del fwd, raws, raw_erms
 # coverage is only over right motor cortex, so only localization
 # of beta is likely to be worthwhile.
 #
-# Theta
+# Alpha
 # -----
 
 def plot_band(kind, band):
@@ -200,12 +199,6 @@ def plot_band(kind, band):
     brain.show_view(azimuth=0, elevation=0, roll=0)
     return fig, brain
 
-
-fig_theta, brain_theta = plot_band('vv', 'theta')
-
-# %%
-# Alpha
-# -----
 
 fig_alpha, brain_alpha = plot_band('vv', 'alpha')
 

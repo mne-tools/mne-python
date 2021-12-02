@@ -21,7 +21,6 @@ jobs:
           default: "false"
       machine:
         image: ubuntu-2004:202111-01
-      resource_class: large
       steps:
         - restore_cache:
             keys:

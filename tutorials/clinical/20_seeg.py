@@ -187,8 +187,8 @@ brain = stc.plot_3d(
     add_data_kwargs=dict(colorbar_kwargs=dict(label_font_size=8)))
 
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(time_dilation=3, interpolation='linear', framerate=10,
-#                  time_viewer=True, filename='./mne-test-seeg.m4')
+brain.save_movie(time_dilation=3, interpolation='linear', framerate=5,
+                 time_viewer=True, filename='./mne-test-seeg.m4')
 
 # %%
 # In this tutorial, we used a BEM surface for the ``fsaverage`` subject from
