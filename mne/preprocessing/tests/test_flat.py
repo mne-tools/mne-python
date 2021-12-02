@@ -41,7 +41,7 @@ def test_annotate_flat(first_samp):
             (dict(), [raw.ch_names[0]], n_times)]:  # default (1)
         raw_time = raw_0.copy()
         annot, got_bads = annotate_flat(raw_0, verbose='debug', **kwargs)
-        assert annot.orig_time == raw.info["meas_time"]
+        assert annot.orig_time == raw.info["meas_date"]
         assert got_bads == bads
         raw_time.set_annotations(raw_time.annotations + annot)
         raw_time.info['bads'] += got_bads
