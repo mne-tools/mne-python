@@ -8,7 +8,7 @@ This tutorial focuses on visualization of :term:`source estimates <STC>`.
 
 Surface Source Estimates
 ------------------------
-First, we get the paths for the evoked data and the time courses (stcs).
+First, we get the paths for the evoked data and the source time courses (stcs).
 """
 
 # %%

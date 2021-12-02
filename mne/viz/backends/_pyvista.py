@@ -637,6 +637,7 @@ class _PyVistaRenderer(_AbstractRenderer):
     def enable_depth_peeling(self):
         if not self.figure.store['off_screen']:
             for renderer in self._all_renderers:
+                return  # TODO remove
                 renderer.enable_depth_peeling()
 
     def _enable_aa(self):
