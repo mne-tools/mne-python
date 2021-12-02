@@ -511,7 +511,7 @@ workflows:
       - schedule:
           # "At 00:00" (once a day) should be enough "0 0 * * *",
           # But for testing at first, let's do once an hour
-          cron: "30 * * * *"
+          cron: "0 0 * * *"
           filters:
             branches:
               only:
