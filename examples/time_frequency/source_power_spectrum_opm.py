@@ -22,8 +22,6 @@ The steps we use are:
 Preprocessing
 -------------
 """
-# sphinx_gallery_thumbnail_number = 11
-
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Luke Bloy <luke.bloy@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -63,7 +61,7 @@ opm_coil_def_fname = op.join(data_path, 'MEG', 'OPM', 'coil_def.dat')
 
 raws = dict()
 raw_erms = dict()
-new_sfreq = 90.  # Nyquist frequency (45 Hz) < line noise freq (50 Hz)
+new_sfreq = 60.  # Nyquist frequency (30 Hz) < line noise freq (50 Hz)
 raws['vv'] = mne.io.read_raw_fif(vv_fname, verbose='error')  # ignore naming
 raws['vv'].load_data().resample(new_sfreq)
 raws['vv'].info['bads'] = ['MEG2233', 'MEG1842']
@@ -79,27 +77,9 @@ raw_erms['opm'].load_data().resample(new_sfreq)
 assert raws['opm'].info['sfreq'] == raws['vv'].info['sfreq']
 
 ##############################################################################
-# Do some minimal artifact rejection just for VectorView data
-
-titles = dict(vv='VectorView', opm='OPM')
-ssp_ecg, _ = mne.preprocessing.compute_proj_ecg(
-    raws['vv'], tmin=-0.1, tmax=0.1, n_grad=1, n_mag=1)
-raws['vv'].add_proj(ssp_ecg, remove_existing=True)
-# due to how compute_proj_eog works, it keeps the old projectors, so
-# the output contains both projector types (and also the original empty-room
-# projectors)
-ssp_ecg_eog, _ = mne.preprocessing.compute_proj_eog(
-    raws['vv'], n_grad=1, n_mag=1, ch_name='MEG0112')
-raws['vv'].add_proj(ssp_ecg_eog, remove_existing=True)
-raw_erms['vv'].add_proj(ssp_ecg_eog)
-fig = mne.viz.plot_projs_topomap(raws['vv'].info['projs'][-4:],
-                                 info=raws['vv'].info)
-fig.suptitle(titles['vv'])
-fig.subplots_adjust(0.05, 0.05, 0.95, 0.85)
-
-##############################################################################
 # Explore data
 
+titles = dict(vv='VectorView', opm='OPM')
 kinds = ('vv', 'opm')
 n_fft = next_fast_len(int(round(4 * new_sfreq)))
 print('Using n_fft=%d (%0.1f sec)' % (n_fft, n_fft / raws['vv'].info['sfreq']))
@@ -119,6 +99,8 @@ src = mne.setup_source_space(
 # We only do it here to save a bit of memory, in general this is not required.
 del src[0]['dist'], src[1]['dist']
 bem = mne.read_bem_solution(bem_fname)
+# For speed, let's just use a 1-layer BEM
+bem = mne.make_bem_solution(bem['surfs'][-1:])
 fwd = dict()
 
 # check alignment and generate forward for VectorView
@@ -151,7 +133,7 @@ del src, bem
 # independently. This makes the value of each sensor point and source location
 # in each frequency band the percentage of the PSD accounted for by that band.
 
-freq_bands = dict(alpha=(8, 12), beta=(15, 29), gamma=(30, 45))
+freq_bands = dict(alpha=(8, 12), beta=(15, 29))
 topos = dict(vv=dict(), opm=dict())
 stcs = dict(vv=dict(), opm=dict())
 
@@ -212,13 +194,9 @@ fig_beta, brain_beta = plot_band('vv', 'beta')
 
 # %%
 # Then OPM:
+
+# sphinx_gallery_thumbnail_number = 10
 fig_beta_opm, brain_beta_opm = plot_band('opm', 'beta')
-
-# %%
-# Gamma
-# -----
-
-fig_gamma, brain_gamma = plot_band('vv', 'gamma')
 
 # %%
 # References

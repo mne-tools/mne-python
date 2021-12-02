@@ -506,15 +506,15 @@ icas = list()
 for subj in range(4):
     # EEGBCI subjects are 1-indexed; run 3 is a left/right hand movement task
     fname = mne.datasets.eegbci.load_data(subj + 1, runs=[3])[0]
-    raw = mne.io.read_raw_edf(fname).crop(tmax=30)
+    raw = mne.io.read_raw_edf(fname).load_data().resample(50)
     # remove trailing `.` from channel names so we can set montage
     raw.rename_channels(mapping)
     raw.set_montage('standard_1005')
     # high-pass filter
     raw_filt = raw.copy().load_data().filter(l_freq=1., h_freq=None)
-    # fit ICA
-    ica = ICA(n_components=30, max_iter='auto', random_state=97)
-    ica.fit(raw_filt, decim=2, verbose='error')
+    # fit ICA, using low max_iter for speed
+    ica = ICA(n_components=30, max_iter=100, random_state=97)
+    ica.fit(raw_filt, verbose='error')
     raws.append(raw)
     icas.append(ica)
 

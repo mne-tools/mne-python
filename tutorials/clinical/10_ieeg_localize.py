@@ -417,11 +417,12 @@ plot_overlay(template_brain, subject_brain,
 # This aligns the two brains, preparing the subject's brain to be warped
 # to the template.
 #
-# .. warning:: Here we use ``zooms=6`` just for speed, in general we recommend
-#              using ``zooms=None`` (default) for highest accuracy!
+# .. warning:: Here we use custom ``zooms`` just for speed, in general we
+#              recommend using ``zooms=None`` (default) for highest accuracy!
 
+zooms = dict(translation=4, rigid=4, affine=6, sdr=6)
 reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
-    subject_brain, template_brain, zooms=6, verbose=True)
+    subject_brain, template_brain, zooms=zooms, verbose=True)
 subject_brain_sdr = mne.transforms.apply_volume_registration(
     subject_brain, template_brain, reg_affine, sdr_morph)
 
@@ -448,7 +449,7 @@ montage = raw.get_montage()
 montage.apply_trans(subj_trans)
 
 montage_warped, elec_image, warped_elec_image = mne.warp_montage_volume(
-    montage, CT_aligned, reg_affine, sdr_morph, thresh=0.5,
+    montage, CT_aligned, reg_affine, sdr_morph, thresh=0.25,
     subject_from='sample_seeg', subjects_dir_from=op.join(misc_path, 'seeg'),
     subject_to='fsaverage', subjects_dir_to=subjects_dir)
 

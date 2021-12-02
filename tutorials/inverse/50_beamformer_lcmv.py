@@ -233,11 +233,11 @@ stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
 # sphinx_gallery_thumbnail_number = 7
 
 brain = stc_vec.plot_3d(
-    clim=dict(kind='value', lims=lims), hemi='both',
-    views=['coronal', 'sagittal', 'axial'], size=(800, 300),
-    view_layout='horizontal', show_traces=0.3,
+    clim=dict(kind='value', lims=lims), hemi='both', size=(600, 600),
+    views=['sagittal'],
+    # Could do this for a 3-panel figure:
+    # view_layout='horizontal', views=['coronal', 'sagittal', 'axial'],
     brain_kwargs=dict(silhouette=True),
-    add_data_kwargs=dict(volume_options=dict(resolution=None)),
     **kwargs)
 
 # %%
@@ -275,7 +275,7 @@ fname_fs_src = subjects_dir + '/fsaverage/bem/fsaverage-vol-5-src.fif'
 src_fs = mne.read_source_spaces(fname_fs_src)
 morph = mne.compute_source_morph(
     src, subject_from='sample', src_to=src_fs, subjects_dir=subjects_dir,
-    niter_sdr=[10, 10, 5], niter_affine=[10, 10, 5],  # just for speed
+    niter_sdr=[5, 5, 2], niter_affine=[5, 5, 2], zooms=7, # just for speed
     verbose=True)
 stc_fs = morph.apply(stc)
 del stc
