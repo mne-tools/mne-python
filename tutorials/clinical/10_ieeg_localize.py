@@ -490,8 +490,7 @@ brain.show_view(**view_kwargs)
 # %%
 # This pipeline was developed based on previous work
 # :footcite:`HamiltonEtAl2017`.
-
-# %%
+#
 # References
 # ==========
 #
