@@ -2374,7 +2374,7 @@ docdict['epochs_tmin_tmax'] = """
 tmin, tmax : float
     Start and end time of the epochs in seconds, relative to the time-locked
     event. The closest or matching samples corresponding to the start and end
-    time are included. Defaults to -0.2 and 0.5, respectively.
+    time are included. Defaults to ``-0.2`` and ``0.5``, respectively.
 """
 docdict['epochs_reject_tmin_tmax'] = """
 reject_tmin, reject_tmax : float | None
