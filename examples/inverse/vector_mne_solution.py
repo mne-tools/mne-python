@@ -35,7 +35,7 @@ print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
-smoothing_steps = 'nearest'
+smoothing_steps = 5
 
 # Read evoked data
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
