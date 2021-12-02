@@ -496,15 +496,15 @@ jobs:
 workflows:
   default:
     jobs:
-      - build_docs
-          name: 'build_docs'
+      - build_docs:
+          name: build_docs_pr
       - linkcheck
 
   nightly:
     jobs:
       - build_docs:
           scheduled: "true"
-          name: 'build_docs_nightly'
+          name: build_docs_nightly
       - deploy:
           requires:
             - build_docs_nightly
