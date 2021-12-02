@@ -651,11 +651,29 @@ def test_permutation_test_H0(numba_conditional):
         assert_equal(len(h0), 2 ** (7 - (tail == 0)))  # exact test
 
 
-def test_tfce_thresholds(numba_conditional):
-    """Test TFCE thresholds."""
+def _gen_tfce_data(n_dims):
     rng = np.random.RandomState(0)
-    data = rng.randn(7, 10, 1) - 0.5
 
+    if n_dims == 2:
+        data = rng.randn(7, 10)
+    elif n_dims == 3:
+        data = rng.randn(7, 10, 1)
+    else:
+        raise ValueError('Only 2D and 3D arrays supported in the test')
+
+    data -= 0.5
+    return data
+
+
+@pytest.mark.parametrize(
+    'data',
+    (
+        _gen_tfce_data(n_dims=3),
+        _gen_tfce_data(n_dims=2)
+    )
+)
+def test_tfce_thresholds(numba_conditional, data):
+    """Test TFCE thresholds."""
     # if tail==-1, step must also be negative
     with pytest.raises(ValueError, match='must be < 0 for tail == -1'):
         permutation_cluster_1samp_test(
@@ -668,6 +686,12 @@ def test_tfce_thresholds(numba_conditional):
     with pytest.raises(ValueError, match='must be monotonically increasing'):
         permutation_cluster_1samp_test(
             data, tail=1, out_type='mask', threshold=dict(start=1, step=-0.5))
+
+    # Should work with 2D and 3D data
+    permutation_cluster_1samp_test(
+        X=data,
+        threshold=dict(start=0, step=0.2)
+    )
 
 
 # 1D gives slices, 2D+ gives boolean masks
