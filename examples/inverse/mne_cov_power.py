@@ -61,7 +61,7 @@ baseline = (None, 0)  # means from the first instant to t = 0
 reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
                     proj=True, picks=('meg', 'eog'), baseline=None,
-                    reject=reject, preload=True, decim=5)
+                    reject=reject, preload=True, decim=5, verbose='error')
 del raw
 
 # %%
