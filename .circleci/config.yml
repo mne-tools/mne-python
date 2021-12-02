@@ -21,6 +21,7 @@ jobs:
           default: "false"
       machine:
         image: ubuntu-2004:202111-01
+      resource_class: large
       steps:
         - restore_cache:
             keys:
@@ -510,7 +511,7 @@ workflows:
       - schedule:
           # "At 00:00" (once a day) should be enough "0 0 * * *",
           # But for testing at first, let's do once an hour
-          cron: "20 * * * *"
+          cron: "30 * * * *"
           filters:
             branches:
               only:
