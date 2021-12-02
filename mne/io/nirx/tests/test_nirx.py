@@ -220,7 +220,9 @@ def test_nirsport_v1_w_bad_sat(preload):
     assert np.isnan(data_nan).any()
     assert not np.allclose(raw_nan.get_data(), data)
     raw_nan_annot = raw_ignore.copy()
-    raw_nan_annot.set_annotations(annotate_nan(raw_nan))
+    nan_annots = annotate_nan(raw_nan)
+    assert nan_annots.orig_time == raw_nan.info["meas_date"]
+    raw_nan_annot.set_annotations(nan_annots)
     use_mask = np.where(raw.annotations.description == 'BAD_SATURATED')
     for key in ('onset', 'duration'):
         a = getattr(raw_nan_annot.annotations, key)[::2]  # one ch in each

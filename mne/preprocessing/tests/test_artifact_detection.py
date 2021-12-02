@@ -28,6 +28,7 @@ def test_movement_annotation_head_correction():
 
     # Check 5 rotation segments are detected
     annot_rot, [] = annotate_movement(raw, pos, rotation_velocity_limit=5)
+    assert annot_rot.orig_time == raw.info["meas_time"]
     assert(annot_rot.duration.size == 5)
 
     # Check 2 translation vel. segments are detected
@@ -64,6 +65,7 @@ def test_muscle_annotation():
     # Check 2 muscle segments are detected
     annot_muscle, scores = annotate_muscle_zscore(raw, ch_type='mag',
                                                   threshold=10)
+    assert annot_muscle.orig_time == raw.info["meas_time"]
     onset = annot_muscle.onset * raw.info['sfreq']
     onset = onset.astype(int)
     np.testing.assert_array_equal(scores[onset].astype(int), np.array([23,
@@ -121,6 +123,7 @@ def test_annotate_breaks():
         t_stop_before_next=t_stop_before_next
     )
 
+    assert break_annots.orig_time == raw.info["meas_time"]
     assert_allclose(break_annots.onset, expected_onsets)
     assert_allclose(break_annots.duration, expected_durations)
     assert all(description == 'BAD_break'
