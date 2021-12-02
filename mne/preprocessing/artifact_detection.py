@@ -4,6 +4,8 @@
 
 
 import numpy as np
+
+import mne
 from ..io.base import BaseRaw
 from ..annotations import (Annotations, _annotations_starts_stops,
                            annotations_from_events)
@@ -115,7 +117,8 @@ def annotate_muscle_zscore(raw, threshold=4, ch_type=None, min_length_good=0.1,
         if len(l_idx) < min_samps:
             art_mask[l_idx] = True
 
-    annot = _annotations_from_mask(raw_copy.times, art_mask, 'BAD_muscle')
+    annot = mne.Annotations([], [], [], orig_time=raw.info['meas_date'])
+    annot += _annotations_from_mask(raw_copy.times, art_mask, 'BAD_muscle')
 
     return annot, scores_muscle
 
@@ -166,7 +169,7 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
     dt = np.diff(hp_ts)
     hp_ts = np.concatenate([hp_ts, [hp_ts[-1] + 1. / sfreq]])
 
-    annot = Annotations([], [], [], orig_time=None)  # rel to data start
+    annot = Annotations([], [], [], orig_time=raw.info['meas_date'])
 
     # Annotate based on rotational velocity
     t_tot = raw.times[-1]
@@ -540,7 +543,8 @@ def annotate_break(raw, events=None,
     break_annotations = Annotations(
         onset=break_onsets,
         duration=break_durations,
-        description=['BAD_break']
+        description=['BAD_break'],
+        orig_time=raw.info['meas_date'],
     )
 
     # Log some info
