@@ -96,7 +96,7 @@ jobs:
               echo "export MNE_FULL_DATE=true" >> $BASH_ENV
               echo "export MNE_3D_OPTION_ANTIALIAS=false" >> $BASH_ENV
               echo "export MESA_GL_VERSION_OVERRIDE=3.3" >> $BASH_ENV
-              echo "export GALLIUM_DRIVER=swr" >> $BASH_ENV
+              echo "export GALLIUM_DRIVER=llvmpipe" >> $BASH_ENV
               echo "export MESA_GLX_ALPHA_BITS=8" >> $BASH_ENV
               echo 'export MESA_RGB_VISUAL="TrueColor 8"' >> $BASH_ENV
               source tools/get_minimal_commands.sh
