@@ -433,7 +433,7 @@ for title in ('Without', 'With'):
 
 evoked_eeg = epochs.average().pick('eeg')
 evoked_eeg.del_proj().add_proj(ecg_projs).add_proj(eog_projs)
-fig, axes = plt.subplots(1, 3, figsize=(8, 6), squeeze=False)
+fig, axes = plt.subplots(1, 3, figsize=(8, 3), squeeze=False)
 for ii in range(axes.shape[0]):
     axes[ii, 0].get_shared_y_axes().join(*axes[ii])
 for pi, proj in enumerate((False, True, 'reconstruct')):
