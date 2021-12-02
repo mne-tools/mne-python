@@ -670,11 +670,8 @@ def test_tfce_thresholds(numba_conditional):
             data, tail=1, out_type='mask', threshold=dict(start=1, step=-0.5))
 
     # Should work with 2D data too
-    data = rng.randn(7, 10) - 0.5
-    permutation_cluster_1samp_test(
-        X=data,
-        threshold=dict(start=0, step=0.2)
-    )
+    permutation_cluster_1samp_test(X=data[..., 0],
+                                   threshold=dict(start=0, step=0.2))
 
 
 # 1D gives slices, 2D+ gives boolean masks
