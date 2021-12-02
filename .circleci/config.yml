@@ -496,16 +496,28 @@ jobs:
 workflows:
   default:
     jobs:
-      - build_docs
+      - build_docs:
+          name: build_docs
       - linkcheck
+      - deploy:
+          name: deploy
+          requires:
+            - build_docs
+          filters:
+            branches:
+              only:
+                - main
+                - maint/0.24
 
   nightly:
     jobs:
       - build_docs:
           scheduled: "true"
+          name: build_docs_nightly
       - deploy:
+          name: deploy_nightly
           requires:
-            - build_docs
+            - build_docs_nightly
     triggers:
       - schedule:
           # "At 00:00" (once a day) should be enough "0 0 * * *",
