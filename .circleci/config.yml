@@ -2,8 +2,8 @@
 # - [circle front] will build the front page and perform test-doc
 # - [circle full] will build everything
 # - [circle linkcheck] will run our linkcheck
-# - [circle interactive_test] will run our test suite (useful for debugging
-#   issues using "Rerun with SSH")
+# - [circle deploy] on a main or maint/* commit will try to immediately build
+#   and deploy docs rather than waiting for the nightly build
 
 version: 2.1
 
@@ -15,8 +15,14 @@ _xvfb: &xvfb
 
 jobs:
     build_docs:
-      machine:
-        image: ubuntu-2004:202111-01
+      parameters:
+        scheduled:
+          type: string
+          default: "false"
+      docker:
+        # Use 18.04 rather than 20.04 because MESA 20.0.8 on 18.04 has working
+        # transparency but 21.0.3 on 20.04 does not!
+        - image: cimg/base:stable-18.04
       steps:
         - restore_cache:
             keys:
@@ -25,6 +31,7 @@ jobs:
         - run:
             name: Complete checkout
             command: |
+              set -e
               if ! git remote -v | grep upstream; then
                 git remote add upstream https://github.com/mne-tools/mne-python.git
               fi
@@ -37,20 +44,66 @@ jobs:
         - run:
             name: Check-skip
             command: |
+              set -e
               export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
               if [[ -v CIRCLE_PULL_REQUEST ]] && ([[ "$COMMIT_MESSAGE" == *"[skip circle]"* ]] || [[ "$COMMIT_MESSAGE" == *"[circle skip]"* ]]); then
                 echo "Skip detected, exiting job ${CIRCLE_JOB} for PR ${CIRCLE_PULL_REQUEST}."
                 circleci-agent step halt;
               fi
         - run:
+            name: Merge with upstream and triage run
+            command: |
+              set -e
+              echo $(git log -1 --pretty=%B) | tee gitlog.txt
+              echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
+              if [[ $(cat merge.txt) != "" ]]; then
+                echo "Merging $(cat merge.txt)";
+                git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
+              else
+                if [[ "$CIRCLE_BRANCH" == "main" ]]; then
+                  KIND=dev
+                else
+                  KIND=stable
+                fi
+                export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
+                if [[ "<< parameters.scheduled >>" == "true" ]]; then
+                  echo "Scheduled full build detected, checking if it's required."
+                  wget https://mne.tools/${KIND}/_version.txt;
+                  REMOTE_VERSION=$(cat _version.txt)
+                  THIS_VERSION=$(git rev-parse HEAD)
+                  echo "Current ${KIND} SHA: ${REMOTE_VERSION}"
+                  echo "This    ${KIND} SHA: ${THIS_VERSION}"
+                  if [[ "${THIS_VERSION}" != "${REMOTE_VERSION}" ]]; then
+                    echo "Rebuild required."
+                  else
+                    echo "Rebuild skipped."
+                    circleci-agent step halt;
+                  fi
+                elif [[ "$COMMIT_MESSAGE" == *"[circle deploy]"* ]]; then
+                  echo "Forced deployed build detected, building and deploying docs";
+                else
+                  echo "Waiting until scheduled run to build ${KIND} docs, exiting job ${CIRCLE_JOB}."
+                  circleci-agent step halt;
+                fi
+              fi
+
+        - run:
             name: Set BASH_ENV
             command: |
               set -e
-              python3 -m venv ~/python_env --upgrade-deps
+              sudo apt update -qq
+              sudo apt install -qq libosmesa6 libglx-mesa0 libopengl0 libglx0 libdbus-1-3 \
+                libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+                libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 \
+                graphviz optipng \
+                python3.8-venv python3-venv \
+                xvfb libxft2 ffmpeg
+              python3.8 -m venv ~/python_env
               echo "set -e" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
               echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
               echo "export MNE_FULL_DATE=true" >> $BASH_ENV
+              echo "export MNE_3D_OPTION_ANTIALIAS=false" >> $BASH_ENV
               source tools/get_minimal_commands.sh
               echo "export MNE_3D_BACKEND=pyvistaqt" >> $BASH_ENV
               echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
@@ -65,16 +118,6 @@ jobs:
             name: check neuromag2ft
             command: |
               neuromag2ft --version
-
-        - run:
-            name: Merge with upstream
-            command: |
-              echo $(git log -1 --pretty=%B) | tee gitlog.txt
-              echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
-              if [[ $(cat merge.txt) != "" ]]; then
-                echo "Merging $(cat merge.txt)";
-                git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
-              fi
 
         - run:
             <<: *xvfb
@@ -399,8 +442,8 @@ jobs:
 
 
     deploy:
-      docker:
-        - image: circleci/python:3.8.5-buster
+      machine:
+        image: ubuntu-2004:202111-01
       steps:
         - attach_workspace:
             at: /tmp/build
@@ -459,62 +502,15 @@ jobs:
             paths:
               - ~/mne_data/MNE-visual_92_categories-data
 
-
-    interactive_test:
-      docker:
-        - image: circleci/python:3.9.2-buster
-      steps:
-        - restore_cache:
-            keys:
-              - source-cache
-        - checkout
-        - run:
-            name: Set BASH_ENV
-            command: |
-              set -e
-              echo "set -e" >> $BASH_ENV
-              echo "export OPENBLAS_NUM_THREADS=1" >> $BASH_ENV
-              mkdir -p ~/mne_data
-        - run:
-            name: Check-skip
-            command: |
-              export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
-              if [[ "$COMMIT_MESSAGE" != *"[circle interactive_test]"* ]]; then
-                echo "Skip detected, exiting job ${CIRCLE_JOB}."
-                circleci-agent step halt;
-              fi
-        - run:
-            <<: *xvfb
-        - restore_cache:
-            keys:
-              - pip-cache
-        - run:
-            name: Get Python running
-            command: |
-              ./tools/circleci_dependencies.sh
-        - run:
-            name: Check installation
-            command: |
-              mne sys_info -pd
-        - restore_cache:
-            keys:
-              - data-cache-testing
-        - run:
-            name: Get data
-            command: |
-              python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
-        - run:
-            name: pytest
-            command: |
-              pytest -m "not slowtest" mne -xv
-
 workflows:
   default:
     jobs:
-      - build_docs
-      - linkcheck
-      - interactive_test
+      - build_docs:
+          name: build_docs
+      - linkcheck:
+          name: linkcheck
       - deploy:
+          name: deploy
           requires:
             - build_docs
           filters:
@@ -523,9 +519,29 @@ workflows:
                 - main
                 - maint/0.24
 
+  nightly:
+    jobs:
+      - build_docs:
+          scheduled: "true"
+          name: build_docs_nightly
+      - deploy:
+          name: deploy_nightly
+          requires:
+            - build_docs_nightly
+    triggers:
+      - schedule:
+          # "At 00:00" (once a day) should be enough "0 0 * * *",
+          # But for testing at first, let's do once an hour (6 AM GMT)
+          cron: "0 6 * * *"
+          filters:
+            branches:
+              only:
+                - main
+
   weekly:
     jobs:
       - linkcheck:
+          name: linkcheck_weekly
           scheduled: "true"
     triggers:
       - schedule:

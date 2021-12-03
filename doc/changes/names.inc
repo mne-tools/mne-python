@@ -417,3 +417,5 @@
 .. _Joshua Teves: https://github.com/jbteves
 
 .. _Riessarius Stargardsky: https://github.com/Riessarius
+
+.. _Jan Zerfowski: https://github.com/jzerfowski

@@ -36,7 +36,7 @@ from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import (invert_transform, Transform, _coord_frame_name,
                           _ensure_trans)
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
-                     _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric,
+                     _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric, deprecated,
                      _check_option, _on_missing, _check_on_missing, fill_doc)
 from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
@@ -1007,6 +1007,7 @@ class Info(dict, MontageMixin):
             self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
             self['nchan'] = len(self['chs'])
 
+    @deprecated('use inst.pick_channels instead.')
     def pick_channels(self, ch_names, ordered=False):
         """Pick channels from this Info object.
 

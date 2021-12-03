@@ -163,7 +163,8 @@ def _split_gof(M, X, gain):
     assert gain.shape[0] == M.shape[0], (gain.shape, M.shape)
     # find an orthonormal basis for our matrices that spans the actual data
     U, s, _ = np.linalg.svd(gain, full_matrices=False)
-    U = U[:, s >= s[0] * 1e-6]
+    if U.shape[1] > 0:
+        U = U[:, s >= s[0] * 1e-6]
     # the part that gets explained
     fit_orth = U.T @ M
     # the part that got over-explained (landed in residual)
