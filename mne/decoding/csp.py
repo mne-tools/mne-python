@@ -232,7 +232,7 @@ class CSP(TransformerMixin, BaseEstimator):
         return X
 
     @copy_doc(TransformerMixin.fit_transform)
-    def fit_transform(self, X, y, **fit_params):
+    def fit_transform(self, X, y, **fit_params):  # noqa: D102
         return super().fit_transform(X, y=y, **fit_params)
 
     @fill_doc
