@@ -52,15 +52,15 @@ raw.load_data()
 # Assemble the classifier using scikit-learn pipeline
 clf = make_pipeline(CSP(n_components=4, reg=None, log=True, norm_trace=False),
                     LinearDiscriminantAnalysis())
-n_splits = 5  # how many folds to use for cross-validation
+n_splits = 3  # for cross-validation, 5 is better, here we use 3 for speed
 cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
 
 # Classification & time-frequency parameters
 tmin, tmax = -.200, 2.000
 n_cycles = 10.  # how many complete cycles: used to define window size
-min_freq = 5.
-max_freq = 25.
-n_freqs = 8  # how many frequency bins to use
+min_freq = 8.
+max_freq = 20.
+n_freqs = 6  # how many frequency bins to use
 
 # Assemble list of frequency range tuples
 freqs = np.linspace(min_freq, max_freq, n_freqs)  # assemble frequencies

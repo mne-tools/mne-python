@@ -797,8 +797,7 @@ def _write_annotations_txt(fname, annot):
     content = "# MNE-Annotations\n"
     if annot.orig_time is not None:
         # for backward compat, we do not write tzinfo (assumed UTC)
-        content += ("# orig_time : %s   \n"
-                    % annot.orig_time.replace(tzinfo=None))
+        content += f"# orig_time : {annot.orig_time.replace(tzinfo=None)}\n"
     content += "# onset, duration, description"
     data = [annot.onset, annot.duration, annot.description]
     if annot._any_ch_names():
