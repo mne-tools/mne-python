@@ -5,8 +5,8 @@
 Working with sEEG data
 ======================
 
-MNE supports working with more than just MEG and EEG data. Here we show some
-of the functions that can be used to facilitate working with
+MNE-Python supports working with more than just MEG and EEG data. Here we show
+some of the functions that can be used to facilitate working with
 stereoelectroencephalography (sEEG) data.
 
 This example shows how to use:

@@ -19,8 +19,10 @@ jobs:
         scheduled:
           type: string
           default: "false"
-      machine:
-        image: ubuntu-2004:202111-01
+      docker:
+        # Use 18.04 rather than 20.04 because MESA 20.0.8 on 18.04 has working
+        # transparency but 21.0.3 on 20.04 does not!
+        - image: cimg/base:stable-18.04
       steps:
         - restore_cache:
             keys:
@@ -58,18 +60,13 @@ jobs:
                 echo "Merging $(cat merge.txt)";
                 git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
               else
-                if [ "$CIRCLE_BRANCH" == "main" ]; then
+                if [[ "$CIRCLE_BRANCH" == "main" ]]; then
                   KIND=dev
                 else
                   KIND=stable
                 fi
                 export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
-                if [[ "$COMMIT_MESSAGE" == *"[circle deploy]"* ]]; then
-                  echo "Forced deployed build detected";
-                elif [ "<< parameters.scheduled >>" != "true" ]; then
-                  echo "Waiting until scheduled run to build ${KIND} docs, exiting job ${CIRCLE_JOB}."
-                  circleci-agent step halt;
-                else
+                if [[ "<< parameters.scheduled >>" == "true" ]]; then
                   echo "Scheduled full build detected, checking if it's required."
                   wget https://mne.tools/${KIND}/_version.txt;
                   REMOTE_VERSION=$(cat _version.txt)
@@ -82,6 +79,11 @@ jobs:
                     echo "Rebuild skipped."
                     circleci-agent step halt;
                   fi
+                elif [[ "$COMMIT_MESSAGE" == *"[circle deploy]"* ]]; then
+                  echo "Forced deployed build detected, building and deploying docs";
+                else
+                  echo "Waiting until scheduled run to build ${KIND} docs, exiting job ${CIRCLE_JOB}."
+                  circleci-agent step halt;
                 fi
               fi
 
@@ -89,7 +91,14 @@ jobs:
             name: Set BASH_ENV
             command: |
               set -e
-              python3 -m venv ~/python_env --upgrade-deps
+              sudo apt update -qq
+              sudo apt install -qq libosmesa6 libglx-mesa0 libopengl0 libglx0 libdbus-1-3 \
+                libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+                libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 \
+                graphviz optipng \
+                python3.8-venv python3-venv \
+                xvfb libxft2 ffmpeg
+              python3.8 -m venv ~/python_env
               echo "set -e" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
               echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
@@ -498,7 +507,8 @@ workflows:
     jobs:
       - build_docs:
           name: build_docs
-      - linkcheck
+      - linkcheck:
+          name: linkcheck
       - deploy:
           name: deploy
           requires:
@@ -521,8 +531,8 @@ workflows:
     triggers:
       - schedule:
           # "At 00:00" (once a day) should be enough "0 0 * * *",
-          # But for testing at first, let's do once an hour
-          cron: "0 0 * * *"
+          # But for testing at first, let's do once an hour (6 AM GMT)
+          cron: "0 6 * * *"
           filters:
             branches:
               only:
@@ -532,6 +542,7 @@ workflows:
   weekly:
     jobs:
       - linkcheck:
+          name: linkcheck_weekly
           scheduled: "true"
     triggers:
       - schedule:
