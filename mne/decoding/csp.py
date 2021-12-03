@@ -15,7 +15,7 @@ from .base import BaseEstimator
 from .mixin import TransformerMixin
 from ..cov import _regularized_covariance
 from ..fixes import pinv
-from ..utils import fill_doc, _check_option, _validate_type
+from ..utils import fill_doc, _check_option, _validate_type, copy_doc
 
 
 @fill_doc
@@ -230,6 +230,10 @@ class CSP(TransformerMixin, BaseEstimator):
                 X -= self.mean_
                 X /= self.std_
         return X
+
+    @copy_doc(TransformerMixin.fit_transform)
+    def fit_transform(self, X, y, **fit_params):
+        return super().fit_transform(X, y=y, **fit_params)
 
     @fill_doc
     def plot_patterns(self, info, components=None, ch_type=None,
