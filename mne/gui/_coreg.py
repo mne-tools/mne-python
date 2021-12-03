@@ -697,7 +697,7 @@ class CoregistrationUI(HasTraits):
                     actor.SetVisibility(state)
         self._renderer._update()
 
-    def _update_actor(self, actor_name, actor, *, update=True):
+    def _update_actor(self, actor_name, actor):
         self._renderer.plotter.remove_actor(self._actors.get(actor_name))
         self._actors[actor_name] = actor
 
