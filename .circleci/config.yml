@@ -84,7 +84,6 @@ jobs:
                 else
                   echo "Waiting until scheduled run to build ${KIND} docs, exiting job ${CIRCLE_JOB}."
                   circleci-agent step halt;
-                else
                 fi
               fi
 
