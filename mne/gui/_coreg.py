@@ -162,7 +162,7 @@ class CoregistrationUI(HasTraits):
             scale_modes=["None", "uniform", "3-axis"],
             scale_mode="None",
             icp_fid_matches=('nearest', 'matched'),
-            icp_fid_match='nearest',
+            icp_fid_match='matched',
             icp_n_iterations=20,
             omit_hsp_distance=10.0,
             lock_head_opacity=self._head_opacity < 1.0,
