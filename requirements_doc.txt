@@ -1,7 +1,7 @@
 # requirements for building docs
 sphinx!=4.1.0
 https://github.com/numpy/numpydoc/archive/main.zip
-https://github.com/drammock/pydata-sphinx-theme/archive/redo-switcher.zip
+https://github.com/pydata/pydata-sphinx-theme/archive/af02a6a5fe5c8f322f148274c5eeb4204638a7f4.zip
 https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip
 sphinxcontrib-bibtex>=2.1.2
 memory_profiler
