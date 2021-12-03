@@ -20,7 +20,7 @@ jobs:
           type: string
           default: "false"
       machine:
-        image: ubuntu-2004:202111-01
+        image: ubuntu-1604:202111-01
       steps:
         - restore_cache:
             keys:
