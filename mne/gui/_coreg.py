@@ -711,7 +711,6 @@ class CoregistrationUI(HasTraits):
         self._update_actor("mri_fiducials", mri_fids_actors)
 
     def _add_head_fiducials(self):
-        # _plot_head_fiducials will not automatically call a render
         head_fids_actors = _plot_head_fiducials(
             self._renderer, self._info, self._to_cf_t, self._fid_colors)
         self._update_actor("head_fiducials", head_fids_actors)
