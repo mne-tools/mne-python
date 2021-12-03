@@ -82,6 +82,8 @@ Bugs
 
 - Fix bug that appears during automatic calculation of the colormap of `mne.viz.Brain` when data values of ``fmin`` and ``fmax`` are too close (:gh:`10074` by `Guillaume Favelier`_)
 
+- We now display a scrollbar in the tags dropdown of a `~mne.Report` if many tags have been added, granting access to all tags instead of "hiding" them below the bottom of the page (:gh:`10082` by `Richard Höchenberger`_)
+
 API changes
 ~~~~~~~~~~~
 - ``mne.Info.pick_channels`` has been deprecated. Use ``inst.pick_channels`` to pick channels from Raw|Epochs|Evoked. Use :func:`mne.pick_info` to pick channels from :class:`mne.Info` (:gh:`10039` by `Mathieu Scheltienne`_)
