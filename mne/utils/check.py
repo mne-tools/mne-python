@@ -64,7 +64,7 @@ def check_fname(fname, filetype, endings, endings_err=()):
              % (fname, filetype, print_endings))
 
 
-def check_version(library, min_version='0.0'):
+def check_version(library, min_version='0.0', *, return_version=False):
     r"""Check minimum library version required.
 
     Parameters
@@ -75,31 +75,41 @@ def check_version(library, min_version='0.0'):
         The minimum version string. Anything that matches
         ``'(\d+ | [a-z]+ | \.)'``. Can also be empty to skip version
         check (just check for library presence).
+    return_version : bool
+        If True (default False), also return the version (can be None if the
+        library is missing).
+
+        .. versionadded:: 1.0
 
     Returns
     -------
     ok : bool
         True if the library exists with at least the specified version.
+    version : str | None
+        The version. Only returned when ``return_version=True``.
     """
     ok = True
+    version = None
     try:
         library = __import__(library)
     except ImportError:
         ok = False
     else:
-        if (
-            min_version and
-            _compare_version(library.__version__, '<', min_version)
-        ):
+        version = library.__version__
+        if min_version and _compare_version(version, '<', min_version):
             ok = False
-    return ok
+    out = (ok, version) if return_version else ok
+    return out
 
 
 def _require_version(lib, what, version='0.0'):
     """Require library for a purpose."""
-    if not check_version(lib, version):
+    ok, got = check_version(lib, version, return_version=True)
+    if not ok:
         extra = f' (version >= {version})' if version != '0.0' else ''
-        raise ImportError(f'The {lib} package{extra} is required to {what}')
+        why = 'package was not found' if got is None else f'got {repr(got)}'
+        raise ImportError(f'The {lib} package{extra} is required to {what}, '
+                          f'{why}')
 
 
 # adapted from scikit-learn utils/validation.py

@@ -23,7 +23,7 @@ else
 	echo "VTK"
 	pip install --progress-bar off --upgrade --pre --only-binary "vtk" vtk
 	echo "PyVista"
-	pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/main
+	pip install --progress-bar off https://github.com/larsoner/pyvista/zipball/version
 	echo "pyvistaqt"
 	pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/main
 	echo "imageio-ffmpeg, xlrd, mffpy"
