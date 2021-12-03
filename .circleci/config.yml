@@ -20,7 +20,7 @@ jobs:
           type: string
           default: "false"
       docker:
-        image: cimg/base:stable-18.04
+        - image: cimg/base:stable-18.04
       steps:
         - restore_cache:
             keys:
