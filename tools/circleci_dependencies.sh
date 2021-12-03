@@ -13,7 +13,8 @@ if [ ! -f /usr/lib/x86_64-linux-gnu/libxcb-util.so.1 ]; then
 fi
 
 echo "Installing setuptools and sphinx"
-python -m pip install --progress-bar off --upgrade "pip!=20.3.0" setuptools wheel
+python -m pip install --upgrade "pip!=20.3.0"
+python -m pip install --progress-bar off setuptools wheel
 python -m pip install --upgrade --progress-bar off --pre sphinx
 if [[ "$CIRCLE_JOB" == "linkcheck"* ]]; then
 	echo "Installing minimal linkcheck dependencies"
