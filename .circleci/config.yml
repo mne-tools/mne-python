@@ -531,8 +531,8 @@ workflows:
     triggers:
       - schedule:
           # "At 00:00" (once a day) should be enough "0 0 * * *",
-          # But for testing at first, let's do once an hour
-          cron: "0 0 * * *"
+          # But for testing at first, let's do once an hour (6 AM GMT)
+          cron: "0 6 * * *"
           filters:
             branches:
               only:
