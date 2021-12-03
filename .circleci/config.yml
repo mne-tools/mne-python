@@ -89,7 +89,7 @@ jobs:
             name: Set BASH_ENV
             command: |
               set -e
-              python3 -m venv ~/python_env --upgrade-deps
+              python3 -m venv ~/python_env
               echo "set -e" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
               echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
