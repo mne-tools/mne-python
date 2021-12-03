@@ -160,7 +160,7 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert coreg._eeg_channels
     assert coreg._head_shape_points
     assert coreg._scale_mode == 'None'
-    assert coreg._icp_fid_match == 'nearest'
+    assert coreg._icp_fid_match == 'matched'
     assert coreg._head_resolution == \
         (config.get('MNE_COREG_HEAD_HIGH_RES', 'true') == 'true')
 
