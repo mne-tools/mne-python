@@ -20,6 +20,8 @@ jobs:
           type: string
           default: "false"
       docker:
+        # Use 18.04 rather than 20.04 because MESA 20.0.8 on 18.04 has working
+        # transparency but 21.0.3 on 20.04 does not!
         - image: cimg/base:stable-18.04
       steps:
         - restore_cache:
@@ -58,18 +60,13 @@ jobs:
                 echo "Merging $(cat merge.txt)";
                 git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
               else
-                if [ "$CIRCLE_BRANCH" == "main" ]; then
+                if [[ "$CIRCLE_BRANCH" == "main" ]]; then
                   KIND=dev
                 else
                   KIND=stable
                 fi
                 export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
-                if [[ "$COMMIT_MESSAGE" == *"[circle deploy]"* ]]; then
-                  echo "Forced deployed build detected";
-                elif [ "<< parameters.scheduled >>" != "true" ]; then
-                  echo "Waiting until scheduled run to build ${KIND} docs, exiting job ${CIRCLE_JOB}."
-                  circleci-agent step halt;
-                else
+                if [[ "<< parameters.scheduled >>" == "true" ]]; then
                   echo "Scheduled full build detected, checking if it's required."
                   wget https://mne.tools/${KIND}/_version.txt;
                   REMOTE_VERSION=$(cat _version.txt)
@@ -82,6 +79,12 @@ jobs:
                     echo "Rebuild skipped."
                     circleci-agent step halt;
                   fi
+                elif [[ "$COMMIT_MESSAGE" == *"[circle deploy]"* ]]; then
+                  echo "Forced deployed build detected, building and deploying docs";
+                else
+                  echo "Waiting until scheduled run to build ${KIND} docs, exiting job ${CIRCLE_JOB}."
+                  circleci-agent step halt;
+                else
                 fi
               fi
 
@@ -102,9 +105,6 @@ jobs:
               echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
               echo "export MNE_FULL_DATE=true" >> $BASH_ENV
               echo "export MNE_3D_OPTION_ANTIALIAS=false" >> $BASH_ENV
-              echo "export MESA_GL_VERSION_OVERRIDE=3.3" >> $BASH_ENV
-              echo "export MESA_GLX_ALPHA_BITS=8" >> $BASH_ENV
-              echo 'export MESA_RGB_VISUAL="TrueColor 8"' >> $BASH_ENV
               source tools/get_minimal_commands.sh
               echo "export MNE_3D_BACKEND=pyvistaqt" >> $BASH_ENV
               echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
@@ -508,7 +508,8 @@ workflows:
     jobs:
       - build_docs:
           name: build_docs
-      - linkcheck
+      - linkcheck:
+          name: linkcheck
       - deploy:
           name: deploy
           requires:
@@ -542,6 +543,7 @@ workflows:
   weekly:
     jobs:
       - linkcheck:
+          name: linkcheck_weekly
           scheduled: "true"
     triggers:
       - schedule:
