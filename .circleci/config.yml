@@ -19,8 +19,8 @@ jobs:
         scheduled:
           type: string
           default: "false"
-      machine:
-        image: ubuntu-1604:202111-01
+      docker:
+        image: cimg/base:stable-18.04
       steps:
         - restore_cache:
             keys:
