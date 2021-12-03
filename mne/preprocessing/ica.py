@@ -1668,12 +1668,12 @@ class ICA(ContainsMixin):
             The indices referring to columns in the ummixing matrix. The
             components to be kept. If ``None`` (default), all components
             will be included (minus those defined in ``ica.exclude``
-            and the `exclude` parameter, see below).
+            and the ``exclude`` parameter, see below).
         exclude : array_like of int
             The indices referring to columns in the ummixing matrix. The
             components to be zeroed out. If ``None`` (default) or an
             empty list, only components from ``ica.exclude`` will be
-            excluded. Else, the union of `exclude` and ``ica.exclude``
+            excluded. Else, the union of ``exclude`` and ``ica.exclude``
             will be excluded.
         %(n_pca_components_apply)s
         start : int | float | None
