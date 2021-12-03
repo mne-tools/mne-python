@@ -95,7 +95,7 @@ jobs:
                 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 \
                 graphviz optipng \
                 python3.8-venv python3-venv \
-                xvfb
+                xvfb libxft2
               python3.8 -m venv ~/python_env
               echo "set -e" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
