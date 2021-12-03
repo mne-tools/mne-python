@@ -1717,6 +1717,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         picks = self.mne.picks
         ch_names = self.mne.ch_names[picks]
         ch_types = self.mne.ch_types[picks]
+        offset_ixs = picks if self.mne.butterfly else slice(None)
+        offsets = self.mne.trace_offsets[offset_ixs]
         bad_bool = np.in1d(ch_names, self.mne.info['bads'])
         # colors
         good_ch_colors = [self.mne.ch_color_dict[_type] for _type in ch_types]
@@ -1785,7 +1787,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         for ii, line in enumerate(self.mne.traces):
             this_name = ch_names[ii]
             this_type = ch_types[ii]
-            this_offset = self.mne.trace_offsets[ii]
+            this_offset = offsets[ii]
             this_times = decim_times[decim[ii]]
             this_data = this_offset - self.mne.data[ii] * self.mne.scale_factor
             this_data = this_data[..., ::decim[ii]]
