@@ -24,6 +24,8 @@ Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
 
+- Fix some unused variables in time_frequency_erds.py example (:gh:`10076` **by new contributor** `Jan Zerfowski`_)
+
 - Add show local maxima toggling button to :func:`mne.gui.locate_ieeg` (:gh:`9952` by `Alex Rockhill`_)
 
 - Improve docstring of :class:`mne.Info` and add attributes that were not covered (:gh:`9922` by `Mathieu Scheltienne`_)
