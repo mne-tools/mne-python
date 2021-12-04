@@ -2612,6 +2612,10 @@ class Epochs(BaseEpochs):
     For example with the event_id ``{'aud': 1, 'vis': 2}`` and the events
     ``[[0, 0, 1], [0, 0, 2]]``, the "merge" behavior will update both event_id
     and events to be: ``{'aud/vis': 3}`` and ``[[0, 0, 3]]`` respectively.
+
+    `Annotations` are preserved from the original `Raw` object. One cannot
+    add `Annotations` to the Epochs object directly, but should add them to
+    `Raw` before converting to Epochs.
     """
 
     @verbose
@@ -2781,8 +2785,8 @@ class Epochs(BaseEpochs):
                     (onset_, duration_, description_))
         return epoch_annot_list
 
-    def map_annots_to_metadata(self):
-        """Map raw annotations into the Epochs metadata.
+    def add_annotations_to_metadata(self):
+        """Add raw annotations into the Epochs metadata data frame.
 
         Returns
         -------
@@ -2887,6 +2891,10 @@ class EpochsArray(BaseEpochs):
     * M: hbo, hbr
     * Am: dipole
     * AU: misc
+
+    EpochsArray does not support `Annotations`. If you would like to create
+    simulated data with Annotations, you would use `mne.io.RawArray` first
+    and then create an `mne.Epochs` object.
     """
 
     @verbose
