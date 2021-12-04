@@ -327,18 +327,17 @@ def _annotations_from_mask(times, mask, annot_name):
     midpoint_index = find_peaks(mask_tf)[0]
     onsets_index = midpoint_index - mask_tf[midpoint_index].astype(int) + 1
     ends_index = midpoint_index + mask_tf[midpoint_index].astype(int) - 1
-    
-    # Ensure onsets_index >= 0, otherwise the duration starts from the beginning
+    # Ensure onsets_index >= 0,
+    # otherwise the duration starts from the beginning
     onsets_index[onsets_index < 0] = 0
-    # Ensure ends_index < len(times), otherwise the duration is to the end of times
+    # Ensure ends_index < len(times),
+    # otherwise the duration is to the end of times
     ends_index[ends_index >= len(times)] = len(times) - 1
-
     onsets = times[onsets_index]
     ends = times[ends_index]
     durations = ends - onsets
-    desc = [annot_name]*len(durations)
+    desc = [annot_name] * len(durations)
     return Annotations(onsets, durations, desc)
-
 
 
 @verbose
