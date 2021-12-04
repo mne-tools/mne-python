@@ -19,7 +19,7 @@ from .source_space import SourceSpaces, _ensure_src, _grid_interp
 from .surface import mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, fill_doc, _check_option, _validate_type,
-                    BunchConst, _check_fname, warn,
+                    BunchConst, _check_fname, warn, _custom_lru_cache,
                     _ensure_int, ProgressBar, use_log_level)
 from .externals.h5io import read_hdf5, write_hdf5
 
@@ -1074,7 +1074,11 @@ def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
                       extra=' when used as a string.')
         mm = _surf_nearest(vertices_from, e).tocsr()
     else:
-        mm = _surf_upsampling_mat(vertices_from, e, smooth, warn=warn)
+        mm, n_missing, n_iter = _surf_upsampling_mat(vertices_from, e, smooth)
+        if n_missing and warn:
+            warn_(f'{n_missing}/{e.shape[0]} vertices not included in '
+                  'smoothing, consider increasing the number of steps')
+        logger.info(f'    {n_iter} smooth iterations done.')
     assert mm.shape == (n_vertices, len(vertices_from))
     if maps is not None:
         mm = maps[vertices_to] * mm
@@ -1158,6 +1162,8 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
     return vertices
 
 
+# Takes ~20 ms to hash, ~100 ms to compute (5x speedup)
+@_custom_lru_cache(20)
 def _surf_nearest(vertices, adj_mat):
     from scipy import sparse
     from scipy.sparse.csgraph import dijkstra
@@ -1185,7 +1191,12 @@ def _csr_row_norm(data, row_norm):
     data.data /= np.where(row_norm, row_norm, 1).repeat(np.diff(data.indptr))
 
 
-def _surf_upsampling_mat(idx_from, e, smooth, warn=True):
+# upsamplers are generally not very big (< 1 MB), and users might have a lot
+# For 5 smoothing steps for example:
+# smoothing_steps=5 takes ~20 ms to hash, ~100 ms to compute (5x speedup)
+# smoothing_steps=None takes ~20 ms to hash, ~400 ms to compute (20x speedup)
+@_custom_lru_cache(20)
+def _surf_upsampling_mat(idx_from, e, smooth):
     """Upsample data on a subject's surface given mesh edges."""
     # we're in CSR format and it's to==from
     from scipy import sparse
@@ -1236,11 +1247,9 @@ def _surf_upsampling_mat(idx_from, e, smooth, warn=True):
         if k == smooth or (smooth is None and len(idx) == n_tot):
             break  # last iteration / done
     assert data.shape == (n_tot, len(idx_from))
-    if len(idx) != n_tot and warn:
-        warn_(f'{n_tot-len(idx)}/{n_tot} vertices not included in smoothing, '
-              'consider increasing the number of steps')
-    logger.info(f'    {k + 1} smooth iterations done.')
-    return data
+    n_missing = n_tot - len(idx)
+    n_iter = k + 1
+    return data, n_missing, n_iter
 
 
 def _sparse_argmax_nnz_row(csr_mat):

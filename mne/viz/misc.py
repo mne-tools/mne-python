@@ -624,12 +624,11 @@ def _get_bem_plotting_surfaces(bem_path):
 def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
                 axes=None, equal_spacing=True, show=True, on_missing='raise',
                 verbose=None):
-    """Plot events to get a visual display of the paradigm.
+    """Plot :term:`events` to get a visual display of the paradigm.
 
     Parameters
     ----------
-    events : array, shape (n_events, 3)
-        The events.
+    %(events)s
     sfreq : float | None
         The sample frequency. If None, data will be displayed in samples (not
         seconds).

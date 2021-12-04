@@ -67,7 +67,8 @@ epochs = mne.Epochs(raw, events, event_ids, tmin - 0.5, tmax + 0.5,
 freqs = np.arange(2, 36)  # frequencies from 2-35Hz
 vmin, vmax = -1, 1.5  # set min and max ERDS values in plot
 baseline = [-1, 0]  # baseline interval (in s)
-cnorm = TwoSlopeNorm(vmin=-1, vcenter=0, vmax=1.5)  # min, center, and max ERDS
+cnorm = TwoSlopeNorm(vmin=vmin, vcenter=0, vmax=vmax)  # min, center & max ERDS
+
 kwargs = dict(n_permutations=100, step_down_p=0.05, seed=1,
               buffer_size=None, out_type='mask')  # for cluster test
 

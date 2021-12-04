@@ -1786,7 +1786,7 @@ class Report(object):
 
         Parameters
         ----------
-        code : path-like
+        code : str | pathlib.Path
             The code to add to the report as a string, or the path to a file
             as a `pathlib.Path` object.
 

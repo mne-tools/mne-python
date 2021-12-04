@@ -21,7 +21,9 @@ from mne.utils import (_get_inst_data, hashfunc,
                        _undo_scaling_array, _PCA, requires_sklearn,
                        _array_equal_nan, _julian_to_cal, _cal_to_julian,
                        _dt_to_julian, _julian_to_dt, grand_average,
-                       _ReuseCycle, requires_version, numerics)
+                       _ReuseCycle, requires_version, numerics,
+                       _custom_lru_cache)
+from mne.utils.numerics import _LRU_CACHES, _LRU_CACHE_MAXSIZES
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -539,3 +541,50 @@ def test_arange_div(numba_conditional, n, d):
     want = np.arange(n) / d
     got = numerics._arange_div(n, d)
     assert_allclose(got, want)
+
+
+def test_custom_lru_cache():
+    """Test our _custom_lru_cache implementation."""
+    n_calls = [0, 0]
+    start_size = len(_LRU_CACHES)
+
+    @_custom_lru_cache(2)
+    def my_fun(*args):
+        n_calls[0] += 1
+        return ', '.join(arg.__class__.__name__ for arg in args)
+
+    assert len(_LRU_CACHES) == start_size + 1
+    fun_hash = list(_LRU_CACHES)[-1]
+    assert _LRU_CACHE_MAXSIZES[fun_hash] == 2
+
+    @_custom_lru_cache(1)
+    def my_fun_2(*args):
+        n_calls[1] += 1
+        return ', '.join(arg.__class__.__name__ for arg in args)
+
+    assert len(_LRU_CACHES) == start_size + 2
+    fun_2_hash = list(_LRU_CACHES)[-1]
+    assert _LRU_CACHE_MAXSIZES[fun_2_hash] == 1
+
+    assert n_calls == [0, 0]
+    assert my_fun(1, 2, 3) == 'int, int, int'
+    assert n_calls == [1, 0]
+    assert my_fun_2(1, 2, 3.) == 'int, int, float'
+    assert n_calls == [1, 1]
+    # repeated calls use cached version
+    assert my_fun(1, 2, 3) == 'int, int, int'
+    assert n_calls == [1, 1]
+    assert my_fun_2(1, 2, 3.) == 'int, int, float'
+    assert n_calls == [1, 1]
+    assert len(_LRU_CACHES[fun_hash]) == 1
+    assert len(_LRU_CACHES[fun_2_hash]) == 1
+    assert my_fun(1, np.array([2]), 3) == 'int, ndarray, int'
+    assert n_calls == [2, 1]
+    assert len(_LRU_CACHES[fun_hash]) == 2
+    assert my_fun_2(1, sparse.eye(1, format='csc')) == 'int, csc_matrix'
+    assert n_calls == [2, 2]
+    assert len(_LRU_CACHES[fun_2_hash]) == 1  # other got popped
+    # we could add support for this eventually, but don't bother for now
+    with pytest.raises(RuntimeError, match='Unsupported sparse type'):
+        my_fun_2(1, sparse.eye(1, format='coo'))
+    assert n_calls == [2, 2]  # never did any computation

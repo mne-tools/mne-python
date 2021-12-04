@@ -38,23 +38,23 @@ from sklearn.model_selection import KFold, cross_val_predict
 # Define parameters
 fname = data_path() + '/SubjectCMC.ds'
 raw = mne.io.read_raw_ctf(fname)
-raw.crop(50., 250.)  # crop for memory purposes
+raw.crop(50., 200.)  # crop for memory purposes
 
 # Filter muscular activity to only keep high frequencies
 emg = raw.copy().pick_channels(['EMGlft']).load_data()
-emg.filter(20., None, fir_design='firwin')
+emg.filter(20., None)
 
 # Filter MEG data to focus on beta band
 raw.pick_types(meg=True, ref_meg=True, eeg=False, eog=False).load_data()
-raw.filter(15., 30., fir_design='firwin')
+raw.filter(15., 30.)
 
 # Build epochs as sliding windows over the continuous raw file
-events = mne.make_fixed_length_events(raw, id=1, duration=.250)
+events = mne.make_fixed_length_events(raw, id=1, duration=0.75)
 
 # Epoch length is 1.5 second
-meg_epochs = Epochs(raw, events, tmin=0., tmax=1.500, baseline=None,
-                    detrend=1, decim=8)
-emg_epochs = Epochs(emg, events, tmin=0., tmax=1.500, baseline=None)
+meg_epochs = Epochs(raw, events, tmin=0., tmax=1.5, baseline=None,
+                    detrend=1, decim=12)
+emg_epochs = Epochs(emg, events, tmin=0., tmax=1.5, baseline=None)
 
 # Prepare classification
 X = meg_epochs.get_data()
