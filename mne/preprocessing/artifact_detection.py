@@ -330,7 +330,8 @@ def _annotations_from_mask(times, mask, annot_name):
     # rear, then subtracting in index
     ins_mask_tf = np.concatenate((np.zeros(1), mask_tf, np.zeros(1)))
     left_midpt_index = find_peaks(ins_mask_tf)[0] - 1
-    right_midpt_index = np.flip(len(times) - find_peaks(ins_mask_tf[::-1])[0])
+    right_midpt_index = np.flip(len(ins_mask_tf) - 1 - find_peaks(
+        ins_mask_tf[::-1])[0]) - 1
     onsets_index = left_midpt_index - mask_tf[left_midpt_index].astype(int) + 1
     ends_index = right_midpt_index + mask_tf[right_midpt_index].astype(int)
     # Ensure onsets_index >= 0,
