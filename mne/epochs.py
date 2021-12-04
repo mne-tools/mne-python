@@ -2615,9 +2615,9 @@ class Epochs(BaseEpochs):
     ``[[0, 0, 1], [0, 0, 2]]``, the "merge" behavior will update both event_id
     and events to be: ``{'aud/vis': 3}`` and ``[[0, 0, 3]]`` respectively.
 
-    `Annotations` are preserved from the original `Raw` object. One cannot
-    add `Annotations` to the Epochs object directly, but should add them to
-    `Raw` before converting to Epochs.
+    `Annotations` are preserved from the original `mne.io.Raw` object. One
+    cannot add `Annotations` to the Epochs object directly, but should add
+    them to `mne.io.Raw` before converting to Epochs.
     """
 
     @verbose
