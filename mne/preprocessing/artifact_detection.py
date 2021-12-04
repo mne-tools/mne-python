@@ -324,9 +324,15 @@ def _annotations_from_mask(times, mask, annot_name):
     from scipy.ndimage.morphology import distance_transform_edt
     from scipy.signal import find_peaks
     mask_tf = distance_transform_edt(mask)
-    midpoint_index = find_peaks(mask_tf)[0]
-    onsets_index = midpoint_index - mask_tf[midpoint_index].astype(int) + 1
-    ends_index = midpoint_index + mask_tf[midpoint_index].astype(int) - 1
+    # Overcome the shortcoming of find_peaks
+    # in finding a marginal peak, by
+    # inserting 0s at the front and the
+    # rear, then subtracting in index
+    ins_mask_tf = np.concatenate((np.zeros(1), mask_tf, np.zeros(1)))
+    left_midpt_index = find_peaks(ins_mask_tf)[0] - 1
+    right_midpt_index = np.flip(len(times) - find_peaks(ins_mask_tf[::-1])[0])
+    onsets_index = left_midpt_index - mask_tf[left_midpt_index].astype(int) + 1
+    ends_index = right_midpt_index + mask_tf[right_midpt_index].astype(int)
     # Ensure onsets_index >= 0,
     # otherwise the duration starts from the beginning
     onsets_index[onsets_index < 0] = 0
