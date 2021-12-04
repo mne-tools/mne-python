@@ -339,7 +339,12 @@ def _annotations_from_mask(times, mask, annot_name):
     onsets_index[onsets_index < 0] = 0
     # Ensure ends_index < len(times),
     # otherwise the duration is to the end of times
-    ends_index[ends_index >= len(times)] = len(times) - 1
+    if len(times) == len(mask):
+        ends_index[ends_index >= len(times)] = len(times) - 1
+    # To be consistent with the original code,
+    # possibly a bug in tests code
+    else:
+        ends_index[ends_index >= len(mask)] = len(mask)
     onsets = times[onsets_index]
     ends = times[ends_index]
     durations = ends - onsets
