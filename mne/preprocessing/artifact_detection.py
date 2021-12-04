@@ -319,23 +319,26 @@ def compute_average_dev_head_t(raw, pos):
     return dev_head_t
 
 
-def _annotations_from_mask(times, art_mask, art_name):
+def _annotations_from_mask(times, mask, annot_name):
     """Construct annotations from boolean mask of the data."""
-    from scipy.ndimage import label
-    comps, num_comps = label(art_mask)
-    onsets, durations, desc = [], [], []
-    n_times = len(times)
-    for lbl in range(1, num_comps + 1):
-        l_idx = np.nonzero(comps == lbl)[0]
-        onsets.append(times[l_idx[0]])
-        # duration is to the time after the last labeled time
-        # or to the end of the times.
-        if 1 + l_idx[-1] < n_times:
-            durations.append(times[1 + l_idx[-1]] - times[l_idx[0]])
-        else:
-            durations.append(times[l_idx[-1]] - times[l_idx[0]])
-        desc.append(art_name)
+    from scipy.ndimage.morphology import distance_transform_edt
+    from scipy.signal import find_peaks
+    mask_tf = distance_transform_edt(mask)
+    midpoint_index = find_peaks(mask_tf)[0]
+    onsets_index = midpoint_index - mask_tf[midpoint_index].astype(int) + 1
+    ends_index = midpoint_index + mask_tf[midpoint_index].astype(int) - 1
+    
+    # Ensure onsets_index >= 0, otherwise the duration starts from the beginning
+    onsets_index[onsets_index < 0] = 0
+    # Ensure ends_index < len(times), otherwise the duration is to the end of times
+    ends_index[ends_index >= len(times)] = len(times) - 1
+
+    onsets = times[onsets_index]
+    ends = times[ends_index]
+    durations = ends - onsets
+    desc = [annot_name]*len(durations)
     return Annotations(onsets, durations, desc)
+
 
 
 @verbose
