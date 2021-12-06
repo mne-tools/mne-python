@@ -476,7 +476,9 @@ class CoregistrationUI(HasTraits):
 
     @observe("_head_resolution")
     def _head_resolution_changed(self, change=None):
-        self._update_plot(["head", "hair"])
+        self._update_plot(["head"])
+        if self._grow_hair > 0:
+            self._update_plot(["hair"])
 
     @observe("_head_transparency")
     def _head_transparency_changed(self, change=None):
