@@ -1646,21 +1646,18 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             count_diff = len(bad_names) - len(new_bads)
 
             if count_diff > 0:
+                msg = (f'{count_diff} bad channels from:'
+                       f'\n{bad_file}\nnot found in:\n{self.filenames[0]}')
                 if not force:
-                    raise ValueError(
-                        f'Bad channels from:\n{bad_file}\n not found '
-                        f'in:\n{self.filenames[0]}'
-                        )
+                    raise ValueError(msg)
                 else:
-                    logger.warning(
-                        f'{count_diff} bad channels from:'
-                        f'\n{bad_file}\nnot found in:\n{self.filenames[0]}'
-                    )
+                    logger.warning(msg)
 
         if prev_bads != new_bads:
-            logger.info(f'Updating bads: {prev_bads} -> {new_bads}')
+            logger.info(f'Updating bad channels: {prev_bads} -> {new_bads}')
             self.info['bads'] = new_bads
-
+        else:
+            logger.info(f'No channels updated. Bads are: {prev_bads}')
 
     @fill_doc
     def append(self, raws, preload=None):
