@@ -48,7 +48,10 @@ Enhancements
 
 Bugs
 ~~~~
-- Teach :func:`mne.io.read_raw_bti` to use its ``eog_ch`` parameter (:gh:`10093` **by new contributor** `Adina Wagner`_)
+
+.. |Adina Wagter| replace:: **Adina Wagner**
+
+- Teach :func:`mne.io.read_raw_bti` to use its ``eog_ch`` parameter (:gh:`10093` **by new contributor** |Adina Wagner|_)
 
 - Fix default of :func:`mne.io.Raw.plot` to be ``use_opengl=None``, which will act like False unless ``MNE_BROWSER_USE_OPENGL=true`` is set in the user configuration (:gh:`9957` by `Eric Larson`_)
 
