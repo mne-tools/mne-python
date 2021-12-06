@@ -394,3 +394,11 @@ def test_plot_psd_epochs_ctf(raw_ctf):
             epochs.plot_psd(dB=dB)
     epochs.drop_channels(['EEG060'])
     epochs.plot_psd(spatial_colors=False, average=False)
+
+
+def test_plot_epochs_selection_butterfly(raw):
+    """Test that using selection and butterfly works."""
+    events = make_fixed_length_events(raw)[:1]
+    epochs = Epochs(raw, events, tmin=0, tmax=0.5, preload=True, baseline=None)
+    assert len(epochs) == 1
+    epochs.plot(group_by='selection', butterfly=True)
