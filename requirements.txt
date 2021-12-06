@@ -20,9 +20,7 @@ statsmodels
 joblib
 psutil
 dipy
-vtk; platform_system == "Darwin"
-vtk; platform_system == "Linux"
-vtk<=9.0.1; platform_system == "Windows"
+vtk
 nilearn
 xlrd
 imageio>=2.6.1
