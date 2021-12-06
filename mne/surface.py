@@ -20,7 +20,7 @@ import numpy as np
 
 from .channels.channels import _get_meg_system
 from .fixes import (_serialize_volume_info, _get_read_geometry, jit,
-                    prange, bincount, _compare_version)
+                    prange, bincount)
 from .io.constants import FIFF
 from .io.pick import pick_types
 from .parallel import parallel_func
@@ -1100,7 +1100,7 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
     if file_format == 'freesurfer':
         try:
             import nibabel as nib
-            has_nibabel = _compare_version(nib.__version__, '>', '2.1.0')
+            has_nibabel = True
         except ImportError:
             has_nibabel = False
         if has_nibabel:

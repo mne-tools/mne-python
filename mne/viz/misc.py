@@ -37,7 +37,6 @@ from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
 from .utils import (tight_layout, _get_color_list, _prepare_trellis, plt_show,
                     _figure_agg, _validate_type)
-from ..fixes import _compare_version
 
 
 def _index_info_cov(info, cov, exclude):
@@ -761,14 +760,10 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
 
 def _get_presser(fig):
     """Get our press callback."""
-    import matplotlib
     callbacks = fig.canvas.callbacks.callbacks['button_press_event']
     func = None
     for key, val in callbacks.items():
-        if _compare_version(matplotlib.__version__, '>=', '3'):
-            func = val()
-        else:
-            func = val.func
+        func = val()
         if func.__class__.__name__ == 'partial':
             break
         else:

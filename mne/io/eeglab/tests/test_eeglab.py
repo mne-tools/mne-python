@@ -7,7 +7,6 @@
 from copy import deepcopy
 import os.path as op
 import shutil
-from unittest import SkipTest
 
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
@@ -24,7 +23,6 @@ from mne.datasets import testing
 from mne.utils import check_version, Bunch
 from mne.annotations import events_from_annotations, read_annotations
 from mne.externals.pymatreader import read_mat
-from mne.fixes import _compare_version
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 
@@ -220,11 +218,6 @@ def test_io_set_raw_more(tmp_path):
     # In theory this should work and be simpler, but there is an obscure
     # SciPy writing bug that pops up sometimes:
     # nopos_chanlocs = np.array(chanlocs[['labels', 'Z']])
-
-    if _compare_version(np.__version__, '==', '1.14.0'):
-        # There is a bug in 1.14.0 (or maybe with SciPy 1.0.0?) that causes
-        # this write to fail!
-        raise SkipTest('Need to fix bug in NumPy 1.14.0!')
 
     # test reading channel names but not positions when there is no X (only Z)
     # field in the EEG.chanlocs structure

@@ -41,7 +41,7 @@ from .utils import (check_fname, logger, verbose, check_version, _time_mask,
 from . import viz
 
 from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
-                    empirical_covariance, log_likelihood, _compare_version)
+                    empirical_covariance, log_likelihood)
 
 
 def _check_covs_algebra(cov1, cov2):
@@ -1016,14 +1016,6 @@ def _eigvec_subspace(eig, eigvec, mask):
     return eig, eigvec
 
 
-def _get_iid_kwargs():
-    import sklearn
-    kwargs = dict()
-    if _compare_version(sklearn.__version__, '<', '0.22'):
-        kwargs['iid'] = False
-    return kwargs
-
-
 def _compute_covariance_auto(data, method, info, method_params, cv,
                              scalings, n_jobs, stop_early, picks_list, rank):
     """Compute covariance auto mode."""
@@ -1109,7 +1101,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                 tuned_parameters = [{'shrinkage': shrinkage}]
                 shrinkages = []
                 gs = GridSearchCV(ShrunkCovariance(**mp),
-                                  tuned_parameters, cv=cv, **_get_iid_kwargs())
+                                  tuned_parameters, cv=cv)
                 for ch_type, picks in sub_picks_list:
                     gs.fit(data_[:, picks])
                     shrinkages.append((ch_type, gs.best_estimator_.shrinkage,

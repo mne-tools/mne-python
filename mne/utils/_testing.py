@@ -107,13 +107,6 @@ def requires_module(function, name, call=None):
     return pytest.mark.skipif(skip, reason=reason)(function)
 
 
-_pandas_call = """
-import pandas
-version = pandas.__version__
-if _compare_version(version, '<', '0.8.0'):
-    raise ImportError
-"""
-
 _mne_call = """
 if not has_mne_c():
     raise ImportError
@@ -129,7 +122,7 @@ if 'NEUROMAG2FT_ROOT' not in os.environ:
     raise ImportError
 """
 
-requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
+requires_pandas = partial(requires_module, name='pandas')
 requires_pylsl = partial(requires_module, name='pylsl')
 requires_sklearn = partial(requires_module, name='sklearn')
 requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)

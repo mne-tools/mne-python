@@ -6,7 +6,6 @@ from mne.time_frequency import psd_multitaper
 from mne.time_frequency.multitaper import dpss_windows
 from mne.utils import requires_nitime
 from mne.io import RawArray
-from mne.fixes import _compare_version
 from mne import create_info
 
 
@@ -47,8 +46,7 @@ def test_multitaper_psd():
         raw = RawArray(data, info)
         pytest.raises(ValueError, psd_multitaper, raw, sfreq,
                       normalization='foo')
-        ni_5 = _compare_version(ni.__version__, '>=', '0.5')
-        norm = 'full' if ni_5 else 'length'
+        norm = 'full'
         for adaptive, n_jobs in zip((False, True, True), (1, 1, 2)):
             psd, freqs = psd_multitaper(raw, adaptive=adaptive,
                                         n_jobs=n_jobs,

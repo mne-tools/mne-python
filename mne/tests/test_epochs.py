@@ -41,7 +41,6 @@ from mne.epochs import (
 from mne.utils import (requires_pandas, object_diff,
                        catch_logging, _FakeNoPandas,
                        assert_meg_snr, check_version, _dt_to_stamp)
-from mne.fixes import _compare_version
 
 data_path = testing.data_path(download=False)
 fname_raw_testing = op.join(data_path, 'MEG', 'sample',
@@ -3106,9 +3105,6 @@ def assert_metadata_equal(got, exp):
         assert isinstance(exp, pandas.DataFrame)
         assert isinstance(got, pandas.DataFrame)
         assert set(got.columns) == set(exp.columns)
-        if _compare_version(pandas.__version__, '<', '0.25'):
-            # Old Pandas does not necessarily order them properly
-            got = got[exp.columns]
         check = (got == exp)
         assert check.all().all()
 
