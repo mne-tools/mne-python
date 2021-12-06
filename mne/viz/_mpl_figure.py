@@ -1718,7 +1718,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         ch_names = self.mne.ch_names[picks]
         ch_types = self.mne.ch_types[picks]
         offset_ixs = (picks
-                      if self.mne.ch_selections is None and self.mne.butterfly
+                      if self.mne.butterfly and self.mne.ch_selections is None
                       else slice(None))
         offsets = self.mne.trace_offsets[offset_ixs]
         bad_bool = np.in1d(ch_names, self.mne.info['bads'])
