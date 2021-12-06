@@ -104,7 +104,7 @@ For full functionality, some functions require:
 - CuPy >= 7.1.1 (for NVIDIA CUDA acceleration)
 - DIPY >= 1.1.0
 - Imageio >= 2.6.1
-- PyVista >= 0.30
+- PyVista >= 0.32
 - pyvistaqt >= 0.4
 - mffpy >= 0.5.7
 

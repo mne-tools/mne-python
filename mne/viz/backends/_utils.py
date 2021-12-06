@@ -11,6 +11,7 @@ import sys
 from contextlib import contextmanager
 import numpy as np
 import collections.abc
+import signal
 from ...externals.decorator import decorator
 
 VALID_BROWSE_BACKENDS = (
@@ -149,3 +150,18 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False):
         app.setWindowIcon(QIcon(f":/mne-{kind}icon.png"))
 
     return app
+
+
+# https://stackoverflow.com/questions/5160577/ctrl-c-doesnt-work-with-pyqt
+def _qt_app_exec(app):
+    # adapted from matplotlib
+    old_signal = signal.getsignal(signal.SIGINT)
+    is_python_signal_handler = old_signal is not None
+    if is_python_signal_handler:
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+    try:
+        app.exec_()
+    finally:
+        # reset the SIGINT exception handler
+        if is_python_signal_handler:
+            signal.signal(signal.SIGINT, old_signal)

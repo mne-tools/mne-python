@@ -14,8 +14,8 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
                    subject=None, subjects_dir=None, guess_mri_subject=None,
                    height=None, head_opacity=None, head_high_res=None,
                    trans=None, scrollable=True, project_eeg=None,
-                   orient_to_surface=None, scale_by_distance=None,
-                   mark_inside=None, interaction=None, scale=None,
+                   orient_to_surface=True, scale_by_distance=True,
+                   mark_inside=True, interaction=None, scale=None,
                    advanced_rendering=None, head_inside=True, verbose=None):
     """Coregister an MRI with a subject's head shape.
 
@@ -68,17 +68,17 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
         .. versionadded:: 0.16
     orient_to_surface : bool | None
-        If True (default None), orient EEG electrode and head shape points
+        If True (default), orient EEG electrode and head shape points
         to the head surface.
 
         .. versionadded:: 0.16
     scale_by_distance : bool | None
-        If True (default None), scale the digitization points by their
+        If True (default), scale the digitization points by their
         distance from the scalp surface.
 
         .. versionadded:: 0.16
     mark_inside : bool | None
-        If True (default None), mark points inside the head surface in a
+        If True (default), mark points inside the head surface in a
         different color.
 
         .. versionadded:: 0.16
@@ -131,9 +131,6 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         'head_inside': (head_inside, True),
         'guess_mri_subject': guess_mri_subject,
         'head_opacity': head_opacity,
-        'project_eeg': project_eeg,
-        'scale_by_distance': scale_by_distance,
-        'mark_inside': mark_inside,
         'scale': scale,
         'advanced_rendering': advanced_rendering,
     }
@@ -195,8 +192,10 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     return CoregistrationUI(
         info_file=inst, subject=subject, subjects_dir=subjects_dir,
         head_resolution=head_high_res, orient_glyphs=orient_to_surface,
-        trans=trans, size=(width, height), show=show, standalone=standalone,
-        interaction=interaction, verbose=verbose
+        scale_by_distance=scale_by_distance, project_eeg=project_eeg,
+        mark_inside=mark_inside, trans=trans, size=(width, height),
+        show=show, standalone=standalone, interaction=interaction,
+        verbose=verbose
     )
 
 

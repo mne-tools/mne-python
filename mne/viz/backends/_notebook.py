@@ -6,13 +6,11 @@
 
 from contextlib import contextmanager, nullcontext
 
-import pyvista
 from IPython.display import display
 from ipywidgets import (Button, Dropdown, FloatSlider, BoundedFloatText, HBox,
                         IntSlider, IntText, Text, VBox, IntProgress, Play,
                         Checkbox, RadioButtons, jsdlink)
 
-from ...fixes import _compare_version
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
@@ -281,6 +279,9 @@ class _IpyStatusBar(_AbstractStatusBar, _IpyLayout):
         self._status_bar = self._status_bar_layout = HBox()
         self._layout_initialize(None)
 
+    def _status_bar_show_message(self, value, timeout=5000):
+        pass
+
     def _status_bar_add_label(self, value, stretch=0):
         widget = Text(value=value, disabled=True)
         self._layout_add_widget(self._status_bar_layout, widget)
@@ -461,12 +462,8 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
             self._create_default_tool_bar()
         display(self._tool_bar)
         # viewer
-        if _compare_version(pyvista.__version__, '<', '0.30'):
-            viewer = self.plotter.show(
-                use_ipyvtk=True, return_viewer=True)
-        else:  # pyvista>=0.30.0
-            viewer = self.plotter.show(
-                jupyter_backend="ipyvtklink", return_viewer=True)
+        viewer = self.plotter.show(
+            jupyter_backend="ipyvtklink", return_viewer=True)
         viewer.layout.width = None  # unlock the fixed layout
         # main widget
         if self._dock is None:

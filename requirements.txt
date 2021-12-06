@@ -28,7 +28,7 @@ xlrd
 imageio>=2.6.1
 imageio-ffmpeg>=0.4.1
 traitlets
-pyvista>=0.30
+pyvista>=0.32
 pyvistaqt>=0.4
 tqdm
 mffpy>=0.5.7
