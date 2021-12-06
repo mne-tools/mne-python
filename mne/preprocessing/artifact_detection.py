@@ -319,22 +319,36 @@ def compute_average_dev_head_t(raw, pos):
     return dev_head_t
 
 
-def _annotations_from_mask(times, art_mask, art_name):
+def _annotations_from_mask(times, mask, annot_name):
     """Construct annotations from boolean mask of the data."""
-    from scipy.ndimage import label
-    comps, num_comps = label(art_mask)
-    onsets, durations, desc = [], [], []
-    n_times = len(times)
-    for lbl in range(1, num_comps + 1):
-        l_idx = np.nonzero(comps == lbl)[0]
-        onsets.append(times[l_idx[0]])
-        # duration is to the time after the last labeled time
-        # or to the end of the times.
-        if 1 + l_idx[-1] < n_times:
-            durations.append(times[1 + l_idx[-1]] - times[l_idx[0]])
-        else:
-            durations.append(times[l_idx[-1]] - times[l_idx[0]])
-        desc.append(art_name)
+    from scipy.ndimage.morphology import distance_transform_edt
+    from scipy.signal import find_peaks
+    mask_tf = distance_transform_edt(mask)
+    # Overcome the shortcoming of find_peaks
+    # in finding a marginal peak, by
+    # inserting 0s at the front and the
+    # rear, then subtracting in index
+    ins_mask_tf = np.concatenate((np.zeros(1), mask_tf, np.zeros(1)))
+    left_midpt_index = find_peaks(ins_mask_tf)[0] - 1
+    right_midpt_index = np.flip(len(ins_mask_tf) - 1 - find_peaks(
+        ins_mask_tf[::-1])[0]) - 1
+    onsets_index = left_midpt_index - mask_tf[left_midpt_index].astype(int) + 1
+    ends_index = right_midpt_index + mask_tf[right_midpt_index].astype(int)
+    # Ensure onsets_index >= 0,
+    # otherwise the duration starts from the beginning
+    onsets_index[onsets_index < 0] = 0
+    # Ensure ends_index < len(times),
+    # otherwise the duration is to the end of times
+    if len(times) == len(mask):
+        ends_index[ends_index >= len(times)] = len(times) - 1
+    # To be consistent with the original code,
+    # possibly a bug in tests code
+    else:
+        ends_index[ends_index >= len(mask)] = len(mask)
+    onsets = times[onsets_index]
+    ends = times[ends_index]
+    durations = ends - onsets
+    desc = [annot_name] * len(durations)
     return Annotations(onsets, durations, desc)
 
 
