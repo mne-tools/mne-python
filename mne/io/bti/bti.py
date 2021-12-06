@@ -1194,7 +1194,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
         elif chan_4d == 'TRIGGER':
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
-        elif chan_4d.startswith('EOG'):
+        elif chan_4d.startswith('EOG') or chan_4d in eog_ch:
             chan_info['kind'] = FIFF.FIFFV_EOG_CH
         elif chan_4d == ecg_ch:
             chan_info['kind'] = FIFF.FIFFV_ECG_CH
