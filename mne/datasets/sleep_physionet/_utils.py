@@ -7,13 +7,12 @@
 import os
 import os.path as op
 import numpy as np
-from distutils.version import LooseVersion
 
 from ...utils import (verbose, _TempDir, _check_pandas_installed,
                       _on_missing)
 from ...utils.check import _soft_import
 from ..utils import _get_path
-
+from ...fixes import _compare_version
 
 AGE_SLEEP_RECORDS = op.join(op.dirname(__file__), 'age_records.csv')
 TEMAZEPAM_SLEEP_RECORDS = op.join(op.dirname(__file__),
@@ -110,7 +109,7 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
 
     # Load and massage the data.
     data = pd.read_excel(subjects_fname, header=[0, 1])
-    if LooseVersion(pd.__version__) >= LooseVersion('0.24.0'):
+    if _compare_version(pd.__version__, '>=', '0.24.0'):
         data = data.set_index(('Subject - age - sex', 'Nr'))
     data.index.name = 'subject'
     data.columns.names = [None, None]
@@ -132,7 +131,7 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
     data = data.set_index(['id', 'subject', 'age', 'sex', 'drug',
                            'lights off', 'night nr', 'record type']).unstack()
     data.columns = [l1 + '_' + l2 for l1, l2 in data.columns]
-    if LooseVersion(pd.__version__) < LooseVersion('0.21.0'):
+    if _compare_version(pd.__version__, '<' '0.21.0'):
         data = data.reset_index().drop(labels=['id'], axis=1)
     else:
         data = data.reset_index().drop(columns=['id'])
@@ -189,7 +188,7 @@ def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
                                      .str.split('.', expand=True)[0]
                                      .astype('category'))
 
-    if LooseVersion(pd.__version__) < LooseVersion('0.21.0'):
+    if _compare_version(pd.__version__, '<', '0.21.0'):
         data = data.reset_index().drop(labels=['id'], axis=1)
     else:
         data = data.reset_index().drop(columns=['id'])

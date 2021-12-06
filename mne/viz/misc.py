@@ -16,7 +16,6 @@ from glob import glob
 from itertools import cycle
 import os.path as op
 import warnings
-from distutils.version import LooseVersion
 from collections import defaultdict
 
 import numpy as np
@@ -38,6 +37,7 @@ from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
 from .utils import (tight_layout, _get_color_list, _prepare_trellis, plt_show,
                     _figure_agg, _validate_type)
+from ..fixes import _compare_version
 
 
 def _index_info_cov(info, cov, exclude):
@@ -765,7 +765,7 @@ def _get_presser(fig):
     callbacks = fig.canvas.callbacks.callbacks['button_press_event']
     func = None
     for key, val in callbacks.items():
-        if LooseVersion(matplotlib.__version__) >= '3':
+        if _compare_version(matplotlib.__version__, '>=', '3'):
             func = val()
         else:
             func = val.func

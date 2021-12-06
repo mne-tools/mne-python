@@ -5,7 +5,6 @@
 # License: BSD-3-Clause
 
 from copy import deepcopy
-from distutils.version import LooseVersion
 import itertools as itt
 from math import log
 import os
@@ -42,7 +41,7 @@ from .utils import (check_fname, logger, verbose, check_version, _time_mask,
 from . import viz
 
 from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
-                    empirical_covariance, log_likelihood)
+                    empirical_covariance, log_likelihood, _compare_version)
 
 
 def _check_covs_algebra(cov1, cov2):
@@ -1020,7 +1019,7 @@ def _eigvec_subspace(eig, eigvec, mask):
 def _get_iid_kwargs():
     import sklearn
     kwargs = dict()
-    if LooseVersion(sklearn.__version__) < LooseVersion('0.22'):
+    if _compare_version(sklearn.__version__, '<', '0.22'):
         kwargs['iid'] = False
     return kwargs
 

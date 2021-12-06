@@ -4,7 +4,6 @@
 # License: BSD-3-Clause
 
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 import inspect
 from textwrap import dedent
 import gc
@@ -22,7 +21,7 @@ import mne
 from mne import read_events, pick_types, Epochs
 from mne.channels import read_layout
 from mne.datasets import testing
-from mne.fixes import has_numba
+from mne.fixes import has_numba, _compare_version
 from mne.io import read_raw_fif, read_raw_ctf
 from mne.stats import cluster_level
 from mne.utils import (_pl, _assert_no_instances, numerics, Bunch,
@@ -202,7 +201,7 @@ def matplotlib_config():
     class CallbackRegistryReraise(orig):
         def __init__(self, exception_handler=None):
             args = ()
-            if LooseVersion(matplotlib.__version__) >= LooseVersion('2.1'):
+            if _compare_version(matplotlib.__version__, '>=', '2.1'):
                 args += (exception_handler,)
             super(CallbackRegistryReraise, self).__init__(*args)
 
@@ -396,7 +395,7 @@ def _check_pyqtgraph():
     except ModuleNotFoundError:
         pytest.skip('PyQt5 is not installed but needed for pyqtgraph!')
     try:
-        assert LooseVersion(_check_pyqt5_version()) >= LooseVersion('5.12')
+        assert _compare_version(_check_pyqt5_version(), '>=', '5.12')
     except AssertionError:
         pytest.skip(f'PyQt5 has version {_check_pyqt5_version()}'
                     f'but pyqtgraph needs >= 5.12!')
@@ -665,7 +664,7 @@ def brain_gc(request):
         yield
         return
     import pyvista
-    if LooseVersion(pyvista.__version__) <= LooseVersion('0.26.1'):
+    if _compare_version(pyvista.__version__, '<=', '0.26.1'):
         yield
         return
     from mne.viz import Brain
