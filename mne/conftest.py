@@ -200,10 +200,7 @@ def matplotlib_config():
 
     class CallbackRegistryReraise(orig):
         def __init__(self, exception_handler=None):
-            args = ()
-            if _compare_version(matplotlib.__version__, '>=', '2.1'):
-                args += (exception_handler,)
-            super(CallbackRegistryReraise, self).__init__(*args)
+            super(CallbackRegistryReraise, self).__init__(exception_handler)
 
     cbook.CallbackRegistry = CallbackRegistryReraise
 
@@ -394,9 +391,7 @@ def _check_pyqtgraph():
         import PyQt5  # noqa: F401
     except ModuleNotFoundError:
         pytest.skip('PyQt5 is not installed but needed for pyqtgraph!')
-    try:
-        assert _compare_version(_check_pyqt5_version(), '>=', '5.12')
-    except AssertionError:
+    if not _compare_version(_check_pyqt5_version(), '>=', '5.12'):
         pytest.skip(f'PyQt5 has version {_check_pyqt5_version()}'
                     f'but pyqtgraph needs >= 5.12!')
     try:
@@ -661,10 +656,6 @@ def brain_gc(request):
             close_func = request.getfixturevalue(key).backend._close_all
             break
     if not is_pv:
-        yield
-        return
-    import pyvista
-    if _compare_version(pyvista.__version__, '<=', '0.26.1'):
         yield
         return
     from mne.viz import Brain

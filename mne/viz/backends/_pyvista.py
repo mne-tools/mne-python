@@ -182,9 +182,8 @@ class _PyVistaRenderer(_AbstractRenderer):
             self._enable_aa()
 
         # FIX: https://github.com/pyvista/pyvistaqt/pull/68
-        if _compare_version(pyvista.__version__, '>=', '0.27.0'):
-            if not hasattr(self.plotter, "iren"):
-                self.plotter.iren = None
+        if not hasattr(self.plotter, "iren"):
+            self.plotter.iren = None
 
         self.update_lighting()
 
