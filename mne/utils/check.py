@@ -149,7 +149,7 @@ def _check_event_id(event_id, events):
 
 @verbose
 def _check_fname(fname, overwrite=False, must_exist=False, name='File',
-                 need_dir=False, *, verbose=True):
+                 need_dir=False, *, verbose=None):
     """Check for file existence, and return string of its absolute path."""
     _validate_type(fname, 'path-like', name)
     fname = str(
