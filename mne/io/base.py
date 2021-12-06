@@ -1615,7 +1615,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         return self.n_times
 
-    def load_bad_channels(self, bad_file=None, force=False):
+    @verbose
+    def load_bad_channels(self, bad_file=None, force=False, verbose=None):
         """Mark channels as bad from a text file.
 
         This function operates mostly in the style of the C function
@@ -1632,26 +1633,34 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Whether or not to force bad channel marking (of those
             that exist) if channels are not found, instead of
             raising an error.
+        %(verbose)s
         """
+        prev_bads = self.info['bads']
+        new_bads = []
         if bad_file is not None:
             # Check to make sure bad channels are there
             names = frozenset(self.info['ch_names'])
             with open(bad_file) as fid:
                 bad_names = [line for line in fid.read().splitlines() if line]
-            names_there = [ci for ci in bad_names if ci in names]
-            count_diff = len(bad_names) - len(names_there)
+            new_bads = [ci for ci in bad_names if ci in names]
+            count_diff = len(bad_names) - len(new_bads)
 
             if count_diff > 0:
                 if not force:
-                    raise ValueError('Bad channels from:\n%s\n not found '
-                                     'in:\n%s' % (bad_file,
-                                                  self.filenames[0]))
+                    raise ValueError(
+                        f'Bad channels from:\n{bad_file}\n not found '
+                        f'in:\n{self.filenames[0]}'
+                        )
                 else:
-                    warn('%d bad channels from:\n%s\nnot found in:\n%s'
-                         % (count_diff, bad_file, self.filenames[0]))
-            self.info['bads'] = names_there
-        else:
-            self.info['bads'] = []
+                    logger.warning(
+                        f'{count_diff} bad channels from:'
+                        f'\n{bad_file}\nnot found in:\n{self.filenames[0]}'
+                    )
+
+        if prev_bads != new_bads:
+            logger.info(f'Updating bads: {prev_bads} -> {new_bads}')
+            self.info['bads'] = new_bads
+
 
     @fill_doc
     def append(self, raws, preload=None):
