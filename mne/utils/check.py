@@ -18,7 +18,7 @@ import numbers
 import numpy as np
 
 from ..fixes import _median_complex, _compare_version
-from ._logging import warn, logger
+from ._logging import warn, logger, verbose
 
 
 def _ensure_int(x, name='unknown', must_be='an int'):
@@ -147,8 +147,9 @@ def _check_event_id(event_id, events):
     return event_id
 
 
+@verbose
 def _check_fname(fname, overwrite=False, must_exist=False, name='File',
-                 need_dir=False):
+                 need_dir=False, *, verbose=True):
     """Check for file existence, and return string of its absolute path."""
     _validate_type(fname, 'path-like', name)
     fname = str(

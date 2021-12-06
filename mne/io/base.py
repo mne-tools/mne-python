@@ -1427,7 +1427,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         endings_err = ('.fif', '.fif.gz')
 
         # convert to str, check for overwrite a few lines later
-        fname = _check_fname(fname, overwrite=True)
+        fname = _check_fname(fname, overwrite=True, verbose="error")
         check_fname(fname, 'raw', endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)
@@ -1455,7 +1455,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                              '"double", not "short"')
 
         # check for file existence and expand `~` if present
-        fname = _check_fname(fname=fname, overwrite=overwrite)
+        fname = _check_fname(fname=fname, overwrite=overwrite,
+                             verbose="error")
 
         if proj:
             info = deepcopy(self.info)
