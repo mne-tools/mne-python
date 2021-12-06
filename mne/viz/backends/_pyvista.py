@@ -12,7 +12,6 @@ Actual implementation of _Renderer and _Projection classes.
 # License: Simplified BSD
 
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 import os
 import sys
 import warnings
@@ -23,7 +22,7 @@ import vtk
 from ._abstract import _AbstractRenderer
 from ._utils import (_get_colormap_from_array, _alpha_blend_background,
                      ALLOWED_QUIVER_MODES, _init_mne_qtapp)
-from ...fixes import _get_args, _point_data, _cell_data
+from ...fixes import _get_args, _point_data, _cell_data, _compare_version
 from ...transforms import apply_trans
 from ...utils import copy_base_doc_to_subclass_doc, _check_option
 
@@ -37,7 +36,7 @@ with warnings.catch_warnings():
     except ImportError:
         from pyvista import BackgroundPlotter
     from pyvista.plotting.plotting import _ALL_PLOTTERS
-VTK9 = LooseVersion(getattr(vtk, 'VTK_VERSION', '9.0')) >= LooseVersion('9.0')
+VTK9 = _compare_version(getattr(vtk, 'VTK_VERSION', '9.0'), '>=', '9.0')
 
 
 _FIGURES = dict()
@@ -181,7 +180,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             self._enable_aa()
 
         # FIX: https://github.com/pyvista/pyvistaqt/pull/68
-        if LooseVersion(pyvista.__version__) >= '0.27.0':
+        if _compare_version(pyvista.__version__, '>=', '0.27.0'):
             if not hasattr(self.plotter, "iren"):
                 self.plotter.iren = None
 
@@ -1109,9 +1108,8 @@ def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
 
 
 def _require_minimum_version(version_required):
-    from distutils.version import LooseVersion
-    version = LooseVersion(pyvista.__version__)
-    if version < version_required:
+    version = pyvista.__version__
+    if _compare_version(version, '<', version_required):
         raise ImportError('pyvista>={} is required for this module but the '
                           'version found is {}'.format(version_required,
                                                        version))
