@@ -1625,14 +1625,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        bad_file : str
-            File name of the text file containing bad channels
-            If bad_file = None, bad channels are cleared, but this
-            is more easily done directly as raw.info['bads'] = [].
+        bad_file : path-like | None
+            File name of the text file containing bad channels.
+            If ``None`` (default), bad channels are cleared, but this
+            is more easily done directly with ``raw.info['bads'] = []``.
         force : bool
             Whether or not to force bad channel marking (of those
             that exist) if channels are not found, instead of
-            raising an error.
+            raising an error. Defaults to ``False``.
         %(verbose)s
         """
         prev_bads = self.info['bads']
