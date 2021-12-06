@@ -1651,7 +1651,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 if not force:
                     raise ValueError(msg)
                 else:
-                    logger.warning(msg)
+                    warn(msg)
 
         if prev_bads != new_bads:
             logger.info(f'Updating bad channels: {prev_bads} -> {new_bads}')

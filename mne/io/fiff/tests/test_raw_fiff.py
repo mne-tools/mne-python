@@ -573,7 +573,8 @@ def test_load_bad_channels(tmp_path):
     pytest.raises(ValueError, raw.load_bad_channels, bad_file_wrong)
 
     # Test forcing the bad case
-    raw.load_bad_channels(bad_file_wrong, force=True, verbose=None)
+    with pytest.warns(RuntimeWarning, match='1 bad channel'):
+        raw.load_bad_channels(bad_file_wrong, force=True, verbose=None)
 
     # write it out, read it in, and check
     raw.save(tmp_path / 'foo_raw.fif', overwrite=True)
