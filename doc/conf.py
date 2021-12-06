@@ -17,7 +17,6 @@ from datetime import datetime, timezone
 import numpy as np
 import matplotlib
 import sphinx
-import sphinx_gallery
 from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 
@@ -25,12 +24,7 @@ import mne
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (linkcode_resolve, # noqa, analysis:ignore
                        _assert_no_instances, sizeof_fmt, run_subprocess)
-from mne.fixes import _compare_version
 from mne.viz import Brain  # noqa
-
-if _compare_version(sphinx_gallery.__version__, '<', '0.2'):
-    raise ImportError('Must have at least version 0.2 of sphinx-gallery, got '
-                      f'{sphinx_gallery.__version__}')
 
 matplotlib.use('agg')
 
