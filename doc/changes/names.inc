@@ -419,3 +419,5 @@
 .. _Riessarius Stargardsky: https://github.com/Riessarius
 
 .. _Jan Zerfowski: https://github.com/jzerfowski
+
+.. _Adina Wagner: https://github.com/adswa
