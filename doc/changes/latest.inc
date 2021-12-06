@@ -49,7 +49,7 @@ Enhancements
 Bugs
 ~~~~
 
-.. |Adina Wagter| replace:: **Adina Wagner**
+.. |Adina Wagner| replace:: **Adina Wagner**
 
 - Teach :func:`mne.io.read_raw_bti` to use its ``eog_ch`` parameter (:gh:`10093` **by new contributor** |Adina Wagner|_)
 
