@@ -5,7 +5,6 @@
 # License: Simplified BSD
 
 from contextlib import contextmanager, nullcontext
-from distutils.version import LooseVersion
 
 import pyvista
 from IPython.display import display
@@ -13,6 +12,7 @@ from ipywidgets import (Button, Dropdown, FloatSlider, BoundedFloatText, HBox,
                         IntSlider, IntText, Text, VBox, IntProgress, Play,
                         Checkbox, RadioButtons, jsdlink)
 
+from ...fixes import _compare_version
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
@@ -464,7 +464,7 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
             self._create_default_tool_bar()
         display(self._tool_bar)
         # viewer
-        if LooseVersion(pyvista.__version__) < LooseVersion('0.30'):
+        if _compare_version(pyvista.__version__, '<', '0.30'):
             viewer = self.plotter.show(
                 use_ipyvtk=True, return_viewer=True)
         else:  # pyvista>=0.30.0

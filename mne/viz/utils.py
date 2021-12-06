@@ -20,7 +20,6 @@ import tempfile
 import math
 import numpy as np
 from copy import deepcopy
-from distutils.version import LooseVersion
 import warnings
 from datetime import datetime
 
@@ -40,6 +39,7 @@ from ..utils import (verbose, get_config, _check_ch_locs, _check_option,
                      logger, fill_doc, _pl, _check_sphere, _ensure_int,
                      _validate_type, _to_rgb, warn)
 from ..transforms import apply_trans
+from ..fixes import _compare_version
 
 
 _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
@@ -1408,7 +1408,7 @@ class SelectFromCollection(object):
     def __init__(self, ax, collection, ch_names, alpha_other=0.5,
                  linewidth_other=0.5, alpha_selected=1, linewidth_selected=1):
         from matplotlib import __version__
-        if LooseVersion(__version__) < LooseVersion('1.2.1'):
+        if _compare_version(__version__, '<', '1.2.1'):
             raise ImportError('Interactive selection not possible for '
                               'matplotlib versions < 1.2.1. Upgrade '
                               'matplotlib.')

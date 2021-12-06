@@ -24,6 +24,8 @@ Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
 
+- Speed up :func:`mne.preprocessing.annotate_muscle_zscore`, :func:`mne.preprocessing.annotate_movement`, and :func:`mne.preprocessing.annotate_nan` through better annotation creation (:gh:`10089` **by new contributor** `Senwen Deng`_)
+
 - Fix some unused variables in time_frequency_erds.py example (:gh:`10076` **by new contributor** `Jan Zerfowski`_)
 
 - Add show local maxima toggling button to :func:`mne.gui.locate_ieeg` (:gh:`9952` by `Alex Rockhill`_)
@@ -82,7 +84,11 @@ Bugs
 
 - Fix :func:`~mne.stats.permutation_cluster_1samp_test` to properly handle 2-dimensional data in combination with TFCE (:gh:`10073` by `Richard Höchenberger`_)
 
+- Fix channel grouping error when using "butterfly mode" with :meth:`mne.io.Raw.plot` (:gh:`10087` by `Daniel McCloy`_)
+
 - Fix bug that appears during automatic calculation of the colormap of `mne.viz.Brain` when data values of ``fmin`` and ``fmax`` are too close (:gh:`10074` by `Guillaume Favelier`_)
+
+- We now display a scrollbar in the tags dropdown of a `~mne.Report` if many tags have been added, granting access to all tags instead of "hiding" them below the bottom of the page (:gh:`10082` by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~
