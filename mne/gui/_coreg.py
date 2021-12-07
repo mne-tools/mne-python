@@ -823,17 +823,17 @@ class CoregistrationUI(HasTraits):
 
     def _fit_icp(self):
         self._current_icp_iterations = 0
+        self._last_log = None
 
         def callback(iteration, n_iterations):
             self._display_message(f"Fitting ICP - iteration {iteration + 1}")
             self._update_plot("sensors")
             self._current_icp_iterations = iteration
             dists = self._coreg.compute_dig_mri_distances() * 1e3
-            self._status_msg.set_value(
-                "Distance between HSP and MRI (mean/min/max): "
-                f"{np.mean(dists):.2f} mm "
+            self._last_log = "Distance between HSP and MRI (mean/min/max): "\
+                f"{np.mean(dists):.2f} mm "\
                 f"/ {np.min(dists):.2f} mm / {np.max(dists):.2f} mm"
-            )
+            self._status_msg.set_value(self._last_log)
             self._status_msg.show()
             self._status_msg.update()
             self._renderer._status_bar_update()
@@ -854,10 +854,12 @@ class CoregistrationUI(HasTraits):
         self._status_msg.hide()
         self._display_message()
         self._renderer._status_bar_show_message(
-            f"Fitting ICP finished in {end - start:.2f} seconds and "
+            self._last_log +
+            f" - Fitting ICP finished in {end - start:.2f} seconds and "
             f"{self._current_icp_iterations} iterations.")
         self._update_parameters()
         del self._current_icp_iterations
+        del self._last_log
 
     def _save_trans(self, fname):
         write_trans(fname, self._coreg.trans)
