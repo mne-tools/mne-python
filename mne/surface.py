@@ -9,7 +9,6 @@
 # C code.
 
 from copy import deepcopy
-from distutils.version import LooseVersion
 from functools import partial, lru_cache
 from collections import OrderedDict
 from glob import glob
@@ -1101,7 +1100,7 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
     if file_format == 'freesurfer':
         try:
             import nibabel as nib
-            has_nibabel = LooseVersion(nib.__version__) > LooseVersion('2.1.0')
+            has_nibabel = True
         except ImportError:
             has_nibabel = False
         if has_nibabel:
@@ -1657,7 +1656,7 @@ def _mesh_borders(tris, mask):
     return np.unique(edges.row[border_edges])
 
 
-def _marching_cubes(image, level, smooth=0):
+def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
     """Compute marching cubes on a 3D image."""
     # vtkDiscreteMarchingCubes would be another option, but it merges
     # values at boundaries which is not what we want
@@ -1669,6 +1668,7 @@ def _marching_cubes(image, level, smooth=0):
                      vtkWindowedSincPolyDataFilter, vtkDiscreteFlyingEdges3D,
                      vtkGeometryFilter, vtkDataSetAttributes, VTK_DOUBLE)
     from vtk.util import numpy_support
+    from scipy.ndimage.morphology import binary_dilation
     _validate_type(smooth, 'numeric', smooth)
     smooth = float(smooth)
     if not 0 <= smooth < 1:
@@ -1677,17 +1677,30 @@ def _marching_cubes(image, level, smooth=0):
 
     if image.ndim != 3:
         raise ValueError(f'3D data must be supplied, got {image.shape}')
-    # force double as passing integer types directly can be problematic!
-    image_shape = image.shape
-    data_vtk = numpy_support.numpy_to_vtk(
-        image.ravel(), deep=True, array_type=VTK_DOUBLE)
-    del image
+
     level = np.array(level)
     if level.ndim != 1 or level.size == 0 or level.dtype.kind not in 'ui':
         raise TypeError(
             'level must be non-empty numeric or 1D array-like of int, '
             f'got {level.ndim}D array-like of {level.dtype} with '
             f'{level.size} elements')
+
+    # fill holes
+    if fill_hole_size is not None:
+        image = image.copy()  # don't modify original
+        for val in level:
+            bin_image = image == val
+            mask = image == 0  # don't go into other areas
+            bin_image = binary_dilation(bin_image, iterations=fill_hole_size,
+                                        mask=mask)
+            image[bin_image] = val
+
+    # force double as passing integer types directly can be problematic!
+    image_shape = image.shape
+    data_vtk = numpy_support.numpy_to_vtk(
+        image.ravel(), deep=True, array_type=VTK_DOUBLE)
+    del image
+
     mc = vtkDiscreteFlyingEdges3D()
     # create image
     imdata = vtkImageData()
@@ -1704,7 +1717,7 @@ def _marching_cubes(image, level, smooth=0):
     sel_input = mc
     if smooth:
         smoother = vtkWindowedSincPolyDataFilter()
-        smoother.SetInputConnection(mc.GetOutputPort())
+        smoother.SetInputConnection(sel_input.GetOutputPort())
         smoother.SetNumberOfIterations(100)
         smoother.BoundarySmoothingOff()
         smoother.FeatureEdgeSmoothingOff()
@@ -1723,6 +1736,7 @@ def _marching_cubes(image, level, smooth=0):
         0, 0, 0, imdata.FIELD_ASSOCIATION_POINTS, dsa.SCALARS)
     geometry = vtkGeometryFilter()
     geometry.SetInputConnection(selector.GetOutputPort())
+
     out = list()
     for val in level:
         try:
@@ -1925,7 +1939,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     return montage_warped, image_from, image_to
 
 
-_VOXELS_MAX = 100  # define constant to avoid runtime issues
+_VOXELS_MAX = 1000  # define constant to avoid runtime issues
 
 
 @fill_doc
@@ -1957,6 +1971,9 @@ def get_montage_volume_labels(montage, subject, subjects_dir=None,
 
     _validate_type(montage, DigMontage, 'montage')
     _validate_type(dist, (int, float), 'dist')
+
+    if dist < 0 or dist > 10:
+        raise ValueError('`dist` must be between 0 and 10')
 
     aseg, aseg_data = _get_aseg(aseg, subject, subjects_dir)
 

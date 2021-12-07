@@ -37,6 +37,8 @@ raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
 
 # Setup for reading the raw data
 raw = mne.io.read_raw_fif(raw_fname)
+# crop and resample just to reduce computation time
+raw.crop(120, 360).load_data().resample(200)
 events = mne.find_events(raw, stim_channel='STI 014')
 
 # picks MEG gradiometers
@@ -49,13 +51,11 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=baseline, reject=dict(grad=4000e-13, eog=350e-6),
                     preload=True)
 
-epochs.resample(200., npad='auto')  # resample to reduce computation time
-
 # %%
 # Frequency analysis
 # ------------------
 #
-# We start by exploring the frequence content of our epochs.
+# We start by exploring the frequency content of our epochs.
 
 
 # %%

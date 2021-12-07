@@ -1683,6 +1683,8 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
     pipeline_options = dict(translation=[center_of_mass, translation],
                             rigid=[rigid], affine=[affine])
     sigmas = [3.0, 1.0, 0.0]
+    # TODO: Sigmas and CCMetric should probably scaled by the
+    # effective zooms of the image, because the units are in voxels
     factors = [4, 2, 1]
     for i, step in enumerate(pipeline):
         # reslice image with zooms

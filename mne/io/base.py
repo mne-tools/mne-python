@@ -608,14 +608,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             times to indices. This can help avoid non-unique indices.
         origin : datetime | float | int | None
             Time reference for times. If None, ``times`` are assumed to be
-            relative to ``first_samp``.
+            relative to :term:`first_samp`.
 
             .. versionadded:: 0.17.0
 
         Returns
         -------
         index : ndarray
-            Indices relative to ``first_samp`` corresponding to the times
+            Indices relative to :term:`first_samp` corresponding to the times
             supplied.
         """
         origin = _handle_meas_date(origin)
@@ -1289,9 +1289,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """Crop raw data file.
 
         Limit the data from the raw file to go between specific times. Note
-        that the new tmin is assumed to be t=0 for all subsequently called
-        functions (e.g., time_as_index, or Epochs). New first_samp and
-        last_samp are set accordingly.
+        that the new ``tmin`` is assumed to be ``t=0`` for all subsequently
+        called functions (e.g., :meth:`~mne.io.Raw.time_as_index`, or
+        :class:`~mne.Epochs`). New :term:`first_samp` and :term:`last_samp`
+        are set accordingly.
 
         Thus function operates in-place on the instance.
         Use :meth:`mne.io.Raw.copy` if operation on a copy is desired.
@@ -1416,6 +1417,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         work properly on a saved concatenated file (e.g., probably some
         or all forms of SSS). It is recommended not to concatenate and
         then save raw files for this reason.
+
+        Samples annotated ``BAD_ACQ_SKIP`` are not stored in order to optimize
+        memory. Whatever values, they will be loaded as 0s when reading file.
         """
         endings = ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                    '_meg.fif', '_eeg.fif', '_ieeg.fif')
@@ -1423,7 +1427,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         endings_err = ('.fif', '.fif.gz')
 
         # convert to str, check for overwrite a few lines later
-        fname = _check_fname(fname, overwrite=True)
+        fname = _check_fname(fname, overwrite=True, verbose="error")
         check_fname(fname, 'raw', endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)
@@ -1451,7 +1455,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                              '"double", not "short"')
 
         # check for file existence and expand `~` if present
-        fname = _check_fname(fname=fname, overwrite=overwrite)
+        fname = _check_fname(fname=fname, overwrite=overwrite,
+                             verbose="error")
 
         if proj:
             info = deepcopy(self.info)
@@ -2490,7 +2495,7 @@ def _check_raw_compatibility(raw):
 @verbose
 def concatenate_raws(raws, preload=None, events_list=None, *,
                      on_mismatch='raise', verbose=None):
-    """Concatenate raw instances as if they were continuous.
+    """Concatenate `~mne.io.Raw` instances as if they were continuous.
 
     .. note:: ``raws[0]`` is modified in-place to achieve the concatenation.
               Boundaries of the raw files are annotated bad. If you wish to use

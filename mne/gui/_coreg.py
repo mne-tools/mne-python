@@ -21,7 +21,8 @@ from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_hpi_coils, _plot_sensors)
 from ..transforms import (read_trans, write_trans, _ensure_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
-from ..utils import get_subjects_dir, check_fname, _check_fname, fill_doc, warn
+from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
+                     warn, verbose, logger)
 from ..channels import read_dig_fif
 
 
@@ -107,8 +108,8 @@ class CoregistrationUI(HasTraits):
     _grow_hair = Float()
     _scale_mode = Unicode()
     _icp_fid_match = Unicode()
-    _sync_locked = Bool()
 
+    @verbose
     def __init__(self, info_file, subject=None, subjects_dir=None,
                  fiducials='auto', head_resolution=None,
                  head_transparency=None, hpi_coils=None,
@@ -118,6 +119,7 @@ class CoregistrationUI(HasTraits):
                  show=True, standalone=False, interaction='terrain',
                  verbose=None):
         from ..viz.backends.renderer import _get_renderer
+        from ..viz.backends._utils import _qt_app_exec
 
         def _get_default(var, val):
             return var if var is not None else val
@@ -127,9 +129,9 @@ class CoregistrationUI(HasTraits):
         self._verbose = verbose
         self._plot_locked = False
         self._refresh_rate_ms = max(int(round(1000. / 60.)), 1)
-        self._redraw_pending = False
-        self._mutex = threading.Lock()
-        self._set_parameter_queue = list()
+        self._redraws_pending = set()
+        self._parameter_mutex = threading.Lock()
+        self._redraw_mutex = threading.Lock()
         self._head_geo = None
         self._coord_frame = "mri"
         self._mouse_no_mvt = -1
@@ -160,7 +162,7 @@ class CoregistrationUI(HasTraits):
             scale_modes=["None", "uniform", "3-axis"],
             scale_mode="None",
             icp_fid_matches=('nearest', 'matched'),
-            icp_fid_match='nearest',
+            icp_fid_match='matched',
             icp_n_iterations=20,
             omit_hsp_distance=10.0,
             lock_head_opacity=self._head_opacity < 1.0,
@@ -190,6 +192,7 @@ class CoregistrationUI(HasTraits):
         self._status_msg.hide()
 
         # setup the model
+        self._immediate_redraw = (self._renderer._kind != 'qt')
         self._info = info
         self._fiducials = fiducials
         self._coreg = Coregistration(
@@ -226,6 +229,7 @@ class CoregistrationUI(HasTraits):
         self._set_scale_mode(self._defaults["scale_mode"])
         if trans is not None:
             self._load_trans(trans)
+        self._redraw()  # we need the elements to be present now
         if not fid_accurate:
             self._set_head_resolution('high')
             self._forward_widget_command('high_res_head', "set_value", True)
@@ -239,13 +243,14 @@ class CoregistrationUI(HasTraits):
         views = {True: dict(azimuth=90, elevation=90),  # front
                  False: dict(azimuth=180, elevation=90)}  # left
         self._renderer.set_camera(distance=None, **views[self._lock_fids])
-        # XXX: internal plotter/renderer should not be exposed
-        if self._renderer._kind == 'qt':
-            self._renderer.plotter.add_callback(self._redraw_sensors,
-                                                self._refresh_rate_ms)
+        self._redraw()
+        if not self._immediate_redraw:
+            # XXX: internal plotter/renderer should not be exposed
+            self._renderer.plotter.add_callback(
+                self._redraw, self._refresh_rate_ms)
         self._renderer.plotter.show_axes()
         if standalone:
-            self._renderer.figure.store["app"].exec()
+            _qt_app_exec(self._renderer.figure.store["app"])
 
     def _set_subjects_dir(self, subjects_dir):
         self._subjects_dir = _check_fname(
@@ -333,13 +338,11 @@ class CoregistrationUI(HasTraits):
         self._update_plot("mri_fids")
 
     def _set_parameter(self, value, mode_name, coord):
-        if self._sync_locked:
-            self._mutex.acquire()
-            self._set_parameter_queue.append(tuple([value, mode_name, coord]))
-            self._mutex.release()
-            return
-        else:
-            self._sync_locked = True
+        with self._parameter_mutex:
+            self. _set_parameter_safe(value, mode_name, coord)
+        self._update_plot("sensors")
+
+    def _set_parameter_safe(self, value, mode_name, coord):
         params = dict(
             rotation=self._coreg._rotation,
             translation=self._coreg._translation,
@@ -358,11 +361,6 @@ class CoregistrationUI(HasTraits):
             tra=params["translation"],
             sca=params["scale"],
         )
-        if self._renderer._kind == 'qt':
-            self._redraw_pending = True
-        else:
-            self._update_plot('sensors')
-        self._sync_locked = False
 
     def _set_icp_n_iterations(self, n_iterations):
         self._icp_n_iterations = n_iterations
@@ -482,8 +480,9 @@ class CoregistrationUI(HasTraits):
 
     @observe("_head_resolution")
     def _head_resolution_changed(self, change=None):
-        self._update_plot("head")
-        self._grow_hair_changed()
+        self._update_plot(["head"])
+        if self._grow_hair > 0:
+            self._update_plot(["hair"])
 
     @observe("_head_transparency")
     def _head_transparency_changed(self, change=None):
@@ -495,11 +494,7 @@ class CoregistrationUI(HasTraits):
     @observe("_grow_hair")
     def _grow_hair_changed(self, change=None):
         self._coreg.set_grow_hair(self._grow_hair)
-        if "head" in self._surfaces:
-            res = "high" if self._head_resolution else "low"
-            self._surfaces["head"].points = \
-                self._coreg._get_processed_mri_points(res)
-        self._renderer._update()
+        self._update_plot("hair")
 
     @observe("_scale_mode")
     def _scale_mode_changed(self, change=None):
@@ -512,14 +507,6 @@ class CoregistrationUI(HasTraits):
     def _icp_fid_match_changed(self, change=None):
         self._coreg.set_fid_match(self._icp_fid_match)
 
-    @observe("_sync_locked")
-    def _sync_locked_changed(self, change=None):
-        if not self._sync_locked and len(self._set_parameter_queue) > 0:
-            self._mutex.acquire()
-            params = self._set_parameter_queue.pop(0)
-            self._mutex.release()
-            self._set_parameter(*params)
-
     def _configure_picking(self):
         self._renderer._update_picking_callback(
             self._on_mouse_move,
@@ -528,10 +515,25 @@ class CoregistrationUI(HasTraits):
             self._on_pick
         )
 
-    def _redraw_sensors(self):
-        if self._redraw_pending:
-            self._update_plot("sensors")
-            self._redraw_pending = False
+    @verbose
+    def _redraw(self, verbose=None):
+        if not self._redraws_pending:
+            return
+        draw_map = dict(
+            head=self._add_head_surface,
+            hair=self._add_head_hair,
+            mri_fids=self._add_mri_fiducials,
+            hsp=self._add_head_shape_points,
+            hpi=self._add_hpi_coils,
+            eeg=self._add_eeg_channels,
+            head_fids=self._add_head_fiducials,
+        )
+        with self._redraw_mutex:
+            logger.debug(f'Redrawing {self._redraws_pending}')
+            for key in self._redraws_pending:
+                draw_map[key]()
+            self._redraws_pending.clear()
+            self._renderer._update()
 
     def _on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
@@ -606,6 +608,8 @@ class CoregistrationUI(HasTraits):
             f"No head shape point is omitted, the total is {n_total}.")
 
     def _update_plot(self, changes="all"):
+        # Update list of things that need to be updated/plotted (and maybe
+        # draw them immediately)
         if self._plot_locked:
             return
         if self._info is None:
@@ -614,22 +618,27 @@ class CoregistrationUI(HasTraits):
         else:
             self._to_cf_t = _get_transforms_to_coord_frame(
                 self._info, self._coreg.trans, coord_frame=self._coord_frame)
-        if not isinstance(changes, list):
+        all_keys = (
+            'head', 'mri_fids',  # MRI first
+            'hair',  # then hair
+            'hsp', 'hpi', 'eeg', 'head_fids',  # then dig
+        )
+        if changes == 'all':
+            changes = list(all_keys)
+        elif changes == 'sensors':
+            changes = all_keys[2:]  # omit MRI ones
+        elif isinstance(changes, str):
             changes = [changes]
-        forced = "all" in changes
-        sensors = "sensors" in changes
-        if "head" in changes or forced:
-            self._add_head_surface()
-        if "hsp" in changes or forced or sensors:
-            self._add_head_shape_points()
-        if "hpi" in changes or forced or sensors:
-            self._add_hpi_coils()
-        if "eeg" in changes or forced or sensors:
-            self._add_eeg_channels()
-        if "head_fids" in changes or forced or sensors:
-            self._add_head_fiducials()
-        if "mri_fids" in changes or forced or sensors:
-            self._add_mri_fiducials()
+        changes = set(changes)
+        # ideally we would maybe have this in:
+        # with self._redraw_mutex:
+        # it would reduce "jerkiness" of the updates, but this should at least
+        # work okay
+        bad = changes.difference(set(all_keys))
+        assert len(bad) == 0, f'Unknown changes: {bad}'
+        self._redraws_pending.update(changes)
+        if self._immediate_redraw:
+            self._redraw()
 
     @contextmanager
     def _lock_plot(self):
@@ -703,7 +712,6 @@ class CoregistrationUI(HasTraits):
         # XXX: internal plotter/renderer should not be exposed
         self._renderer.plotter.remove_actor(self._actors.get(actor_name))
         self._actors[actor_name] = actor
-        self._renderer._update()
 
     def _add_mri_fiducials(self):
         mri_fids_actors = _plot_mri_fiducials(
@@ -784,6 +792,12 @@ class CoregistrationUI(HasTraits):
         self._update_actor("head", head_actor)
         self._surfaces["head"] = head_surf
 
+    def _add_head_hair(self):
+        if "head" in self._surfaces:
+            res = "high" if self._head_resolution else "low"
+            self._surfaces["head"].points = \
+                self._coreg._get_processed_mri_points(res)
+
     def _fit_fiducials(self):
         start = time.time()
         self._coreg.fit_fiducials(
@@ -814,6 +828,7 @@ class CoregistrationUI(HasTraits):
             self._status_msg.show()
             self._status_msg.update()
             self._renderer._status_bar_update()
+            self._renderer._process_events()  # allow a draw or cancel
 
         start = time.time()
         self._coreg.fit_icp(
@@ -848,7 +863,6 @@ class CoregistrationUI(HasTraits):
             rot=np.array([rot_x, rot_y, rot_z]),
             tra=np.array([x, y, z]),
         )
-        self._update_plot("sensors")
         self._update_parameters()
         self._renderer._status_bar_show_message(
             f"{fname} transform file is loaded.")

@@ -474,9 +474,9 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         Can be None to use :data:`sys.stdout`.
     show_paths : bool
         If True, print paths for each module.
-    dependencies : str
-        Can be "user" (default) to show user-relevant dependencies, or
-        "developer" to additionally show developer dependencies.
+    dependencies : 'user' | 'developer'
+        Show dependencies relevant for users (default) or for developers
+        (i.e., output includes additional dependencies).
 
         .. versionadded:: 0.24
 
@@ -548,7 +548,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     use_mod_names = ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
                      'numba', 'nibabel', 'nilearn', 'dipy', 'cupy', 'pandas',
                      'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk',
-                     'PyQt5', 'ipympl', 'mne_qt_browser')
+                     'PyQt5', 'ipympl', 'mne_qt_browser', 'pooch')
     if dependencies == 'developer':
         use_mod_names += (
             '', 'sphinx', 'sphinx_gallery', 'numpydoc', 'pydata_sphinx_theme',

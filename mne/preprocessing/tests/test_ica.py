@@ -1076,7 +1076,6 @@ def test_fit_methods(method, tmp_path):
     (
         ('start', 0),
         ('stop', 500),
-        ('decim', 2),
         ('reject', dict(eeg=500e-6)),
         ('flat', dict(eeg=1e-6))
     )

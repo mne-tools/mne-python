@@ -6,8 +6,7 @@ Visualizing epoched data
 
 This tutorial shows how to plot epoched data as time series, how to plot the
 spectral density of epoched data, how to plot epochs as an imagemap, and how to
-plot the sensor locations and projectors stored in `~mne.Epochs`
-objects.
+plot the sensor locations and projectors stored in `~mne.Epochs` objects.
 
 We'll start by importing the modules we need, loading the continuous (raw)
 sample data, and cropping it to save memory:

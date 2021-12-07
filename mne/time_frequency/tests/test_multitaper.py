@@ -1,5 +1,3 @@
-from distutils.version import LooseVersion
-
 import numpy as np
 import pytest
 from numpy.testing import assert_array_almost_equal
@@ -48,8 +46,7 @@ def test_multitaper_psd():
         raw = RawArray(data, info)
         pytest.raises(ValueError, psd_multitaper, raw, sfreq,
                       normalization='foo')
-        ni_5 = (LooseVersion(ni.__version__) >= LooseVersion('0.5'))
-        norm = 'full' if ni_5 else 'length'
+        norm = 'full'
         for adaptive, n_jobs in zip((False, True, True), (1, 1, 2)):
             psd, freqs = psd_multitaper(raw, adaptive=adaptive,
                                         n_jobs=n_jobs,

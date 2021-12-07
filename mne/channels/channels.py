@@ -171,9 +171,14 @@ def equalize_channels(instances, copy=True, verbose=None):
     for inst in instances:
         # Only perform picking when needed
         if inst.ch_names != common_channels:
-            if copy:
-                inst = inst.copy()
-            inst.pick_channels(common_channels, ordered=True)
+            if isinstance(inst, Info):
+                sel = pick_channels(inst.ch_names, common_channels, exclude=[],
+                                    ordered=True)
+                inst = pick_info(inst, sel, copy=copy, verbose=False)
+            else:
+                if copy:
+                    inst = inst.copy()
+                inst.pick_channels(common_channels, ordered=True)
             if len(inst.ch_names) == len(common_channels):
                 reordered = True
         equalized_instances.append(inst)

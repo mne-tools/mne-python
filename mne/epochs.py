@@ -342,7 +342,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     data : ndarray | None
         If ``None``, data will be read from the Raw object. If ndarray, must be
         of shape (n_epochs, n_channels, n_times).
-    %(epochs_events_event_id)s
+    %(events_epochs)s
+    %(event_id)s
     %(epochs_tmin_tmax)s
     %(baseline_epochs)s
         Defaults to ``(None, 0)``, i.e. beginning of the the data until
@@ -966,23 +967,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             (n_channels, n_time).
             Note that due to file type limitations, the kind for all
             these will be "average".
-        by_event_type : bool
-            When ``False`` (the default) all epochs are averaged and a single
-            :class:`Evoked` object is returned. When ``True``, epochs are first
-            grouped by event type (as specified using the ``event_id``
-            parameter) and a list is returned containing a separate
-            :class:`Evoked` object for each event type. The ``.comment``
-            attribute is set to the label of the event type.
-
-            .. versionadded:: 0.24.0
+        %(by_event_type)s
 
         Returns
         -------
-        evoked : instance of Evoked | list of Evoked
-            The averaged epochs. When ``by_event_type=True`` was specified, a
-            list is returned containing a separate :class:`Evoked` object
-            for each event type. The list has the same order as the event types
-            as specified in the ``event_id`` dictionary.
+        %(by_event_type_returns_average)s
 
         Notes
         -----
@@ -1022,23 +1011,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Parameters
         ----------
         %(picks_all_data)s
-        by_event_type : bool
-            When ``False`` (the default) all epochs are averaged and a single
-            :class:`Evoked` object is returned. When ``True``, epochs are first
-            grouped by event type (as specified using the ``event_id``
-            parameter) and a list is returned containing a separate
-            :class:`Evoked` object for each event type. The ``.comment``
-            attribute is set to the label of the event type.
-
-            .. versionadded:: 0.24.0
+        %(by_event_type)s
 
         Returns
         -------
-        std_err : instance of Evoked | list of Evoked
-            The standard error over epochs. When ``by_event_type=True`` was
-            specified, a list is returned containing a separate :class:`Evoked`
-            object for each event type. The list has the same order as the
-            event types as specified in the ``event_id`` dictionary.
+        %(by_event_type_returns_stderr)s
         """
         return self.average(picks=picks, method="std",
                             by_event_type=by_event_type)
@@ -1661,10 +1638,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         s += ', ~%s' % (sizeof_fmt(self._size),)
         s += ', data%s loaded' % ('' if self.preload else ' not')
         s += ', with metadata' if self.metadata is not None else ''
+        max_events = 10
         counts = ['%r: %i' % (k, sum(self.events[:, 2] == v))
-                  for k, v in sorted(self.event_id.items())]
+                  for k, v in list(self.event_id.items())[:max_events]]
         if len(self.event_id) > 0:
             s += ',' + '\n '.join([''] + counts)
+        if len(self.event_id) > max_events:
+            not_shown_events = len(self.event_id) - max_events
+            s += f"\n and {not_shown_events} more events ..."
         class_name = self.__class__.__name__
         class_name = 'Epochs' if class_name == 'BaseEpochs' else class_name
         return '<%s | %s>' % (class_name, s)
@@ -2505,7 +2486,8 @@ class Epochs(BaseEpochs):
     Parameters
     ----------
     %(epochs_raw)s
-    %(epochs_events_event_id)s
+    %(events_epochs)s
+    %(event_id)s
     %(epochs_tmin_tmax)s
     %(baseline_epochs)s
         Defaults to ``(None, 0)``, i.e. beginning of the the data until
@@ -3514,12 +3496,15 @@ def _finish_concat(info, data, events, event_id, tmin, tmax, metadata,
 @verbose
 def concatenate_epochs(epochs_list, add_offset=True, *, on_mismatch='raise',
                        verbose=None):
-    """Concatenate a list of epochs into one epochs object.
+    """Concatenate a list of `~mne.Epochs` into one `~mne.Epochs` object.
+
+    .. note:: Unlike `~mne.concatenate_raws`, this function does **not**
+              modify any of the input data.
 
     Parameters
     ----------
     epochs_list : list
-        List of Epochs instances to concatenate (in order).
+        List of `~mne.Epochs` instances to concatenate (in that order).
     add_offset : bool
         If True, a fixed offset is added to the event times from different
         Epochs sets, such that they are easy to distinguish after the
@@ -3533,7 +3518,7 @@ def concatenate_epochs(epochs_list, add_offset=True, *, on_mismatch='raise',
     Returns
     -------
     epochs : instance of Epochs
-        The result of the concatenation (first Epochs instance passed in).
+        The result of the concatenation.
 
     Notes
     -----
