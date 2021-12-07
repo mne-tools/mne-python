@@ -244,8 +244,8 @@ class CoregistrationUI(HasTraits):
                  False: dict(azimuth=180, elevation=90)}  # left
         self._renderer.set_camera(distance=None, **views[self._lock_fids])
         self._redraw()
+        # XXX: internal plotter/renderer should not be exposed
         if not self._immediate_redraw:
-            # XXX: internal plotter/renderer should not be exposed
             self._renderer.plotter.add_callback(
                 self._redraw, self._refresh_rate_ms)
         self._renderer.plotter.show_axes()
