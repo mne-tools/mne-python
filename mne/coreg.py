@@ -1964,7 +1964,7 @@ class Coregistration(object):
         self._update_nearest_calc()
         return self
 
-    def _estimate_distance_to_fiducials(self):
+    def _get_distance_to_fiducials(self):
         transformed_mri_lpa = apply_trans(self._mri_trans, self._lpa)
         transformed_hsp_lpa = apply_trans(
             self._head_mri_t, self._dig_dict['lpa'])
