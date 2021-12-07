@@ -1633,6 +1633,11 @@ class Coregistration(object):
             apply_trans(self._head_mri_t, self._filtered_extra_points))[1]
 
     @property
+    def _has_hsp_data(self):
+        return (self._has_mri_data and
+                len(self._nearest_transformed_high_res_mri_idx_hsp) > 0)
+
+    @property
     def _has_hpi_data(self):
         return (self._has_mri_data and
                 len(self._nearest_transformed_high_res_mri_idx_hpi) > 0)
@@ -1964,7 +1969,7 @@ class Coregistration(object):
         self._update_nearest_calc()
         return self
 
-    def _get_distance_to_fiducials(self):
+    def _get_fiducials_distance(self):
         transformed_mri_lpa = apply_trans(self._mri_trans, self._lpa)
         transformed_hsp_lpa = apply_trans(
             self._head_mri_t, self._dig_dict['lpa'])
@@ -1984,3 +1989,46 @@ class Coregistration(object):
             np.ravel(transformed_mri_rpa - transformed_hsp_rpa))
 
         return (lpa_distance * 1e3, nasion_distance * 1e3, rpa_distance * 1e3)
+
+    def _get_fiducials_distance_str(self):
+        dists = self._get_fiducials_distance()
+        return f"Fiducials: {dists[0]:.1f}, {dists[1]:.1f}, {dists[2]:.1f} mm"
+
+    def _get_point_distance(self):
+        mri_points = list()
+        hsp_points = list()
+        if self._hsp_weight > 0 and self._has_hsp_data:
+            mri_points.append(self._transformed_high_res_mri_points[
+                self._nearest_transformed_high_res_mri_idx_hsp])
+            hsp_points.append(self._transformed_dig_extra)
+            assert len(mri_points[-1]) == len(hsp_points[-1])
+        if self._eeg_weight > 0 and self._has_eeg_data:
+            mri_points.append(self._transformed_high_res_mri_points[
+                self._nearest_transformed_high_res_mri_idx_eeg])
+            hsp_points.append(self._transformed_dig_eeg)
+            assert len(mri_points[-1]) == len(hsp_points[-1])
+        if self._hpi_weight > 0 and self._has_hpi_data:
+            mri_points.append(self._transformed_high_res_mri_points[
+                self._nearest_transformed_high_res_mri_idx_hpi])
+            hsp_points.append(self._transformed_dig_hpi)
+            assert len(mri_points[-1]) == len(hsp_points[-1])
+        if all(len(h) == 0 for h in hsp_points):
+            return None
+        mri_points = np.concatenate(mri_points)
+        hsp_points = np.concatenate(hsp_points)
+        return np.linalg.norm(mri_points - hsp_points, axis=-1)
+
+    def _get_point_distance_str(self):
+        point_distance = self._get_point_distance()
+        if point_distance is None:
+            return ""
+        dists = 1e3 * point_distance
+        av_dist = np.mean(dists)
+        std_dist = np.std(dists)
+        kinds = [kind for kind, check in
+                 (('HSP', self._hsp_weight > 0 and self._has_hsp_data),
+                  ('EEG', self._eeg_weight > 0 and self._has_eeg_data),
+                  ('HPI', self._hpi_weight > 0 and self._has_hpi_data))
+                 if check]
+        kinds = '+'.join(kinds)
+        return f"{len(dists)} {kinds}: {av_dist:.1f} ± {std_dist:.1f} mm"
