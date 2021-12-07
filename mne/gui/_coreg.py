@@ -405,6 +405,7 @@ class CoregistrationUI(HasTraits):
         if self._lock_fids:
             self._forward_widget_command(view_widgets, "set_enabled", True)
             self._display_message()
+            self._estimate_distance_to_fiducials()
         else:
             self._forward_widget_command(view_widgets, "set_enabled", False)
             self._display_message("Picking fiducials - "
@@ -418,6 +419,7 @@ class CoregistrationUI(HasTraits):
     def _fiducials_file_changed(self, change=None):
         fids, _ = read_fiducials(self._fiducials_file)
         self._coreg._setup_fiducials(fids)
+        self._estimate_distance_to_fiducials()
         self._reset()
         self._set_lock_fids(True)
 
@@ -670,7 +672,7 @@ class CoregistrationUI(HasTraits):
             self._forward_widget_command(
                 ["fid_X", "fid_Y", "fid_Z"], "set_value", val)
 
-    def _update_fids_dist(self):
+    def _estimate_distance_to_fiducials(self):
         est = self._coreg._estimate_distance_to_fiducials()
         value = f"Fiducials: {est[0]:.1f}, {est[1]:.1f}, {est[2]:.1f} mm"
         self._forward_widget_command("fit_label", "set_value", value)
@@ -815,7 +817,7 @@ class CoregistrationUI(HasTraits):
             f"Fitting fiducials finished in {end - start:.2f} seconds.")
         self._update_plot("sensors")
         self._update_parameters()
-        self._update_fids_dist()
+        self._estimate_distance_to_fiducials()
 
     def _fit_icp(self):
         self._current_icp_iterations = 0
@@ -833,7 +835,7 @@ class CoregistrationUI(HasTraits):
             self._status_msg.show()
             self._status_msg.update()
             self._renderer._status_bar_update()
-            self._update_fids_dist()
+            self._estimate_distance_to_fiducials()
             self._renderer._process_events()  # allow a draw or cancel
 
         start = time.time()
