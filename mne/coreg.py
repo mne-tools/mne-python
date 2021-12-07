@@ -15,6 +15,7 @@ import sys
 import re
 import shutil
 from functools import reduce
+from collections import OrderedDict
 
 import numpy as np
 
@@ -1970,25 +1971,15 @@ class Coregistration(object):
         return self
 
     def _get_fiducials_distance(self):
-        transformed_mri_lpa = apply_trans(self._mri_trans, self._lpa)
-        transformed_hsp_lpa = apply_trans(
-            self._head_mri_t, self._dig_dict['lpa'])
-        lpa_distance = np.linalg.norm(
-            np.ravel(transformed_mri_lpa - transformed_hsp_lpa))
-
-        transformed_mri_nasion = apply_trans(self._mri_trans, self._nasion)
-        transformed_hsp_nasion = apply_trans(
-            self._head_mri_t, self._dig_dict['nasion'])
-        nasion_distance = np.linalg.norm(
-            np.ravel(transformed_mri_nasion - transformed_hsp_nasion))
-
-        transformed_mri_rpa = apply_trans(self._mri_trans, self._rpa)
-        transformed_hsp_rpa = apply_trans(
-            self._head_mri_t, self._dig_dict['rpa'])
-        rpa_distance = np.linalg.norm(
-            np.ravel(transformed_mri_rpa - transformed_hsp_rpa))
-
-        return (lpa_distance * 1e3, nasion_distance * 1e3, rpa_distance * 1e3)
+        distance = OrderedDict()
+        for key in ('lpa', 'nasion', 'rpa'):
+            fid = getattr(self, f"_{key}")
+            transformed_mri = apply_trans(self._mri_trans, fid)
+            transformed_hsp = apply_trans(
+                self._head_mri_t, self._dig_dict[key])
+            distance[key] = np.linalg.norm(
+                np.ravel(transformed_mri - transformed_hsp))
+        return np.array(list(distance.values())) * 1e3
 
     def _get_fiducials_distance_str(self):
         dists = self._get_fiducials_distance()
