@@ -1646,7 +1646,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             count_diff = len(bad_names) - len(new_bads)
 
             if count_diff > 0:
-                msg = (f'{count_diff} bad channels from:'
+                msg = (f'{count_diff} bad channel(s) from:'
                        f'\n{bad_file}\nnot found in:\n{self.filenames[0]}')
                 if not force:
                     raise ValueError(msg)
