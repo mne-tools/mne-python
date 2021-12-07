@@ -188,8 +188,6 @@ class CoregistrationUI(HasTraits):
         self._renderer._window_close_connect(self._clean)
         self._renderer.set_interaction(interaction)
         self._renderer._status_bar_initialize()
-        self._status_msg = self._renderer._status_bar_add_label("", stretch=1)
-        self._status_msg.hide()
 
         # setup the model
         self._immediate_redraw = (self._renderer._kind != 'qt')
@@ -221,6 +219,7 @@ class CoregistrationUI(HasTraits):
 
         # configure UI
         self._reset_fitting_parameters()
+        self._configure_status_bar()
         self._configure_dock()
         self._configure_picking()
 
@@ -671,6 +670,11 @@ class CoregistrationUI(HasTraits):
             self._forward_widget_command(
                 ["fid_X", "fid_Y", "fid_Z"], "set_value", val)
 
+    def _update_fids_dist(self):
+        est = self._coreg._estimate_distance_to_fiducials()
+        value = f"Fiducials: {est[0]:.1f}, {est[1]:.1f}, {est[2]:.1f} mm"
+        self._forward_widget_command("fit_label", "set_value", value)
+
     def _update_parameters(self):
         with self._lock_plot():
             # rotation
@@ -811,6 +815,7 @@ class CoregistrationUI(HasTraits):
             f"Fitting fiducials finished in {end - start:.2f} seconds.")
         self._update_plot("sensors")
         self._update_parameters()
+        self._update_fids_dist()
 
     def _fit_icp(self):
         self._current_icp_iterations = 0
@@ -828,6 +833,7 @@ class CoregistrationUI(HasTraits):
             self._status_msg.show()
             self._status_msg.update()
             self._renderer._status_bar_update()
+            self._update_fids_dist()
             self._renderer._process_events()  # allow a draw or cancel
 
         start = time.time()
@@ -1060,6 +1066,10 @@ class CoregistrationUI(HasTraits):
             layout=hlayout,
         )
         self._renderer._layout_add_widget(layout, hlayout)
+        self._widgets["fit_label"] = self._renderer._dock_add_label(
+            value="",
+            layout=layout,
+        )
         self._widgets["icp_n_iterations"] = self._renderer._dock_add_spin_box(
             name="Number Of ICP Iterations",
             value=self._defaults["icp_n_iterations"],
@@ -1137,6 +1147,10 @@ class CoregistrationUI(HasTraits):
         )
         self._renderer._layout_add_widget(layout, hlayout)
         self._renderer._dock_add_stretch()
+
+    def _configure_status_bar(self):
+        self._status_msg = self._renderer._status_bar_add_label("", stretch=1)
+        self._status_msg.hide()
 
     def _clean(self):
         self._renderer = None
