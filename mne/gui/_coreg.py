@@ -856,7 +856,8 @@ class CoregistrationUI(HasTraits):
         self._renderer._status_bar_show_message(
             self._last_log +
             f" - Fitting ICP finished in {end - start:.2f} seconds and "
-            f"{self._current_icp_iterations} iterations.")
+            f"{self._current_icp_iterations} iterations.",
+            timeout=6000)
         self._update_parameters()
         del self._current_icp_iterations
         del self._last_log
