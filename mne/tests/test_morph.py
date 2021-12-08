@@ -9,7 +9,7 @@ import numpy as np
 from numpy.testing import (assert_array_less, assert_allclose,
                            assert_array_equal)
 from scipy.spatial.distance import cdist
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, eye as speye
 
 import mne
 from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
@@ -207,6 +207,19 @@ def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn, dtype):
     assert lower <= corr <= upper
     # check the round-trip power
     assert_power_preserved(stc, stc_back)
+
+
+@testing.requires_testing_data
+def test_surface_source_morph_shortcut():
+    """Test that our shortcut for smooth=0 works."""
+    stc = mne.read_source_estimate(fname_smorph)
+    morph_identity = compute_source_morph(
+        stc, 'sample', 'sample', spacing=stc.vertices, smooth=0)
+    stc_back = morph_identity.apply(stc)
+    assert_allclose(stc_back.data, stc.data, rtol=1e-4)
+    abs_sum = morph_identity.morph_mat - speye(len(stc.data), format='csc')
+    abs_sum = np.abs(abs_sum.data).sum()
+    assert abs_sum < 1e-4
 
 
 def assert_power_preserved(orig, new, limits=(1., 1.05)):
