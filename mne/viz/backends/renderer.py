@@ -270,7 +270,7 @@ def set_3d_title(figure, title, size=40):
 
 
 def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
-                     handle=None, scene=True):
+                     handle=None, scene=True, *, show=False):
     """Return an empty figure based on the current 3d backend.
 
     .. warning:: Proceed with caution when the renderer object is
@@ -291,6 +291,10 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
     scene : bool
         Specify if the returned object is the scene. If False,
         the renderer object is returned. Defaults to True.
+    show : bool
+        If True, show the renderer immediately.
+
+        .. versionadded:: 1.0
 
     Returns
     -------
@@ -303,6 +307,7 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
         size=size,
         bgcolor=bgcolor,
         smooth_shading=smooth_shading,
+        show=show,
     )
     if scene:
         return renderer.scene()
