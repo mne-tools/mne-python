@@ -807,6 +807,10 @@ class CoregistrationUI(HasTraits):
                 self._coreg._get_processed_mri_points(res)
 
     def _fit_fiducials(self):
+        if not self._lock_fids:
+            self._renderer._status_bar_show_message(
+                "Fitting is disabled, lock the fiducials first.")
+            return
         start = time.time()
         self._coreg.fit_fiducials(
             lpa_weight=self._lpa_weight,
@@ -822,6 +826,10 @@ class CoregistrationUI(HasTraits):
         self._update_distance_estimation()
 
     def _fit_icp(self):
+        if not self._lock_fids:
+            self._renderer._status_bar_show_message(
+                "Fitting is disabled, lock the fiducials first.")
+            return
         self._current_icp_iterations = 0
         self._last_log = None
 
