@@ -2502,7 +2502,7 @@ def _get_epoch_index_of_annot(epochs, annot_onset_samp, annot_duration_samp):
     raw_sfreq = epochs._raw_sfreq
 
     # convert to a 2D array of onset offset of each epoch
-    epoch_wins = np.zeros((len(events), 2))
+    epoch_wins = np.zeros((len(events), 2), dtype=int)
     for idx in range(len(events)):
         # get the beginning and end sample of the epoch window
         onset_samp = events[idx, 0] - times[0] * raw_sfreq
@@ -2615,9 +2615,14 @@ class Epochs(BaseEpochs):
     ``[[0, 0, 1], [0, 0, 2]]``, the "merge" behavior will update both event_id
     and events to be: ``{'aud/vis': 3}`` and ``[[0, 0, 3]]`` respectively.
 
-    `Annotations` are preserved from the original `mne.io.Raw` object. One
-    cannot add `Annotations` to the Epochs object directly, but should add
-    them to `mne.io.Raw` before converting to Epochs.
+    There is limited support for :class:`~mne.Annotations` in the
+    :class:`~mne.Epochs` class. Currently annotations that are present in the
+    :class:`~mne.io.Raw` object will be preserved in the resulting
+    :class:`~mne.Epochs` object, but it is not yet possible to add annotations
+    to the Epochs object programmatically (via code) or interactively (through
+    the plot window). Additionally, concatenating :class:`~mne.Epochs` objects
+    that contain annotations is not supported, and any annotations will be
+    dropped when concatenating.
     """
 
     @verbose
@@ -2707,7 +2712,7 @@ class Epochs(BaseEpochs):
         This private function simply copies over Raw annotations, and
         does not handle offsetting the times based on first_samp
         or measurement dates, since that is expected to occur in
-        Raw set_annotations.
+        Raw.set_annotations().
 
         Parameters
         ----------
@@ -3565,9 +3570,8 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
                             'got %s' % (ei, type(epochs)))
 
         if hasattr(epochs, 'annotations'):
-            warn('Concatenation of Annotations within Epochs '
-                 'is not supported yet. Annotations within these Epochs will '
-                 'be dropped.')
+            warn('Concatenation of Annotations within Epochs is not supported '
+                 'yet. Annotations within these Epochs will be dropped.')
             epochs._set_annotations(None)
     out = epochs_list[0]
     offsets = [0]

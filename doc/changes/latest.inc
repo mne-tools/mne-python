@@ -52,7 +52,7 @@ Enhancements
 
 - Add ``infer_type`` argument to :func:`mne.io.read_raw_edf` and :func:`mne.io.read_raw_bdf` to automatically infer channel types from channel labels (:gh:`10058` by `Clemens Brunner`_)
 
-- Add Annotations carried over from :class:`mne.io.Raw` to :class:`mne.Epochs` (:gh:`9969` by `Adam Li`_)
+- Annotations from a :class:`~mne.io.Raw` object are now preserved by the :class:`~mne.Epochs` constructor (:gh:`9969` by `Adam Li`_)
 
 Bugs
 ~~~~
