@@ -409,7 +409,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             # ensure metadata matches original events size
             self.selection = np.arange(len(events))
             self.events = events
-            self.metadata = metadata
             del events
 
             values = list(self.event_id.values())
