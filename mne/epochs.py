@@ -1387,7 +1387,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             msg = (f'for {n_events} events and {len(self._raw_times)} '
                    'original time points')
             if self._decim > 1:
-                    msg += ' (prior to decimation)'
+                msg += ' (prior to decimation)'
             if not self._raw.preload:
                 logger.info(f'Loading data {msg} ...')
             else:
