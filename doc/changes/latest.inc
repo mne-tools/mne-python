@@ -52,6 +52,11 @@ Enhancements
 
 - Add ``infer_type`` argument to :func:`mne.io.read_raw_edf` and :func:`mne.io.read_raw_bdf` to automatically infer channel types from channel labels (:gh:`10058` by `Clemens Brunner`_)
 
+- Reduce the time it takes to generate a `~mne.io.Raw`, `~mne.Epochs`, or `~mne.preprocessing.ICA` figure if a ``scalings`` parameter is provided. This also speeds up butterfly plot generation in :meth:`mne.Report.add_raw` (:gh:`10109` by `Richard Höchenberger`_ and `Eric Larson`_)
+
+- :meth:`mne.Report.add_raw` gained a new ``scalings`` parameter to provide custom data scalings for the butterfly plots (:gh:`10109` by `Richard Höchenberger`_)
+
+
 Bugs
 ~~~~
 

@@ -1162,6 +1162,11 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
     if not isinstance(inst, (BaseRaw, BaseEpochs)):
         raise ValueError('Must supply either Raw or Epochs')
 
+    # If there are no "auto" scalings, we can return early!
+    if all([scalings[ch_type] != 'auto'
+            for ch_type in set(inst.get_channel_types())]):
+        return scalings
+
     ch_types = channel_indices_by_type(inst.info)
     ch_types = {i_type: i_ixs
                 for i_type, i_ixs in ch_types.items() if len(i_ixs) != 0}

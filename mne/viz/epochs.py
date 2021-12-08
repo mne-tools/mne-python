@@ -652,17 +652,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     epochs : instance of Epochs
         The epochs object.
     %(picks_good_data)s
-    scalings : dict | 'auto' | None
-        Scaling factors for the traces. If any fields in scalings are 'auto',
-        the scaling factor is set to match the 99.5th percentile of a subset of
-        the corresponding data. If scalings == 'auto', all scalings fields are
-        set to 'auto'. If any fields are 'auto' and data is not preloaded,
-        a subset of epochs up to 100 Mb will be loaded. If None, defaults to::
-
-            dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
-                 emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4,
-                 whitened=10.)
-
+    %(scalings)s
     n_epochs : int
         The number of epochs per view. Defaults to 20.
     n_channels : int
