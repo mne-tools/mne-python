@@ -1063,6 +1063,7 @@ def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
 
 def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
     from scipy import sparse
+    _validate_type(smooth, (str, None, 'int-like'), 'smoothing steps')
     if len(vertices_from) == 0:
         return sparse.csr_matrix((len(vertices_to), 0))
     e = mesh_edges(tris)
@@ -1073,6 +1074,12 @@ def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
         _check_option('smooth', smooth, ('nearest',),
                       extra=' when used as a string.')
         mm = _surf_nearest(vertices_from, e).tocsr()
+    elif smooth == 0:
+        mm = sparse.csc_matrix(
+            (np.ones(len(vertices_from)),  # data, indices, indptr
+                vertices_from,
+                np.arange(len(vertices_from) + 1)),
+            shape=(e.shape[0], len(vertices_from))).tocsr()
     else:
         mm, n_missing, n_iter = _surf_upsampling_mat(vertices_from, e, smooth)
         if n_missing and warn:
@@ -1209,13 +1216,7 @@ def _surf_upsampling_mat(idx_from, e, smooth):
     _validate_type(smooth, ('int-like', str, None), 'smoothing steps')
     if smooth is not None:  # number of steps
         smooth = _ensure_int(smooth, 'smoothing steps')
-        if smooth == 0:
-            return sparse.csc_matrix(
-                (np.ones(len(idx_from)),  # data, indices, indptr
-                 idx_from,
-                 np.arange(len(idx_from) + 1)),
-                shape=(e.shape[0], len(idx_from))).tocsr()
-        elif smooth < 0:
+        if smooth <= 0:  # == 0 is handled in a shortcut above
             raise ValueError(
                 'The number of smoothing operations has to be at least 0, got '
                 f'{smooth}')
