@@ -48,6 +48,8 @@ Enhancements
 
 - Speed up repeated surface-smoothing operation (e.g., in repeated calls to :meth:`stc.plot() <mne.SourceEstimate.plot>`) (:gh:`10077` by `Eric Larson`_)
 
+- Add ``verbose`` parameter to :func:`mne.io.Raw.load_bad_channels` and log information on how bad channels are updated (:gh:`10102` by `Stefan Appelhoff`_)
+
 - Add ``infer_type`` argument to :func:`mne.io.read_raw_edf` and :func:`mne.io.read_raw_bdf` to automatically infer channel types from channel labels (:gh:`10058` by `Clemens Brunner`_)
 
 Bugs
