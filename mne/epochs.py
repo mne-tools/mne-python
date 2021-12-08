@@ -64,7 +64,7 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _path_like)
 from .utils.docs import fill_doc
 from .data.html_templates import epochs_template
-from .annotations import _handle_meas_date, Annotations
+from .annotations import Annotations
 
 
 def _pack_reject_params(epochs):
@@ -2505,8 +2505,9 @@ def _get_epoch_index_of_annot(epochs, annot_onset_samp, annot_duration_samp):
     epoch_wins = np.zeros((len(events), 2), dtype=int)
     for idx in range(len(events)):
         # get the beginning and end sample of the epoch window
-        onset_samp = events[idx, 0] - times[0] * raw_sfreq
-        offset_samp = events[idx, 0] + times[-1] * raw_sfreq
+        onset_samp = np.rint(events[idx, 0] - times[0] * raw_sfreq).astype(int)
+        offset_samp = np.rint(events[idx, 0] +
+                              times[-1] * raw_sfreq).astype(int)
 
         epoch_wins[idx, :] = [onset_samp, offset_samp]
 
@@ -2643,8 +2644,9 @@ class Epochs(BaseEpochs):
         self.reject_by_annotation = reject_by_annotation
 
         # store certain raw properties for dealing with annotations
+        self._first_samp = raw.first_samp.copy()
+        self._raw_sfreq = np.rint(raw.info['sfreq'])
         self._first_time = raw._first_time.copy()
-        self._raw_sfreq = raw.info['sfreq']
 
         # call BaseEpochs constructor
         super(Epochs, self).__init__(
@@ -2726,7 +2728,6 @@ class Epochs(BaseEpochs):
         self : instance of Raw
             The raw object with annotations.
         """
-        meas_date = _handle_meas_date(self.info['meas_date'])
         if annotations is None:
             self._annotations = None
         else:
@@ -2751,7 +2752,7 @@ class Epochs(BaseEpochs):
         events = self.events
 
         # create a list of annotations for each epoch
-        epoch_annot_list = [[]] * len(events)
+        epoch_annot_list = [[] for _ in range(len(events))]
 
         # check if annotations exist
         if self.annotations is None:
@@ -2764,7 +2765,7 @@ class Epochs(BaseEpochs):
 
             # convert onset to samples and account for first time
             onset_samp = np.rint(onset_ * self._raw_sfreq +
-                                    self._first_time).astype(int)
+                                 self._first_samp).astype(int)
             duration_samp = np.rint(duration_ * self._raw_sfreq).astype(int)
 
             # loop through events to see which Epochs this annotation
@@ -2776,7 +2777,7 @@ class Epochs(BaseEpochs):
                 # now convert onset sample relative to the Epoch and convert
                 # back to seconds relative to the Epoch
                 onset_samp_ = onset_samp - events[eidx, 0]
-                onset_ = onset_samp_ / self._raw_sfreq
+                onset_ = np.divide(onset_samp_, self._raw_sfreq)
 
                 epoch_annot_list[eidx].append(
                     (onset_, duration_, description_))
@@ -2806,11 +2807,9 @@ class Epochs(BaseEpochs):
         # get the Epoch annotations
         epoch_annot_list = self.get_epoch_annotations()
 
-        # create a new Annotations column
-        metadata['Annotations'] = [[] for _ in range(metadata.shape[0])]
-        for idx in range(len(self)):
-            # set the Annotations as a tuple of (onset, duration, description)
-            metadata['Annotations'][idx] = epoch_annot_list[idx]
+        # Create a new Annotations column that is instantiated as an empty
+        # list per Epoch.
+        metadata['Annotations'] = pd.Series(epoch_annot_list)
 
         # reset the metadata
         self.metadata = metadata

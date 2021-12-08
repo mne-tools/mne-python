@@ -126,6 +126,7 @@ def pytest_configure(config):
     ignore:.*Found the following unknown channel type.*:RuntimeWarning
     ignore:.*np\.MachAr.*:DeprecationWarning
     always::ResourceWarning
+    ignore:.*Concatenation of Annotations within Epochs.*:RuntimeWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()

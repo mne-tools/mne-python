@@ -3689,12 +3689,12 @@ def test_epoch_annotations_with_first_samp(first_samp):
     # because first_samp offsetting occurs in Raw
     assert_array_equal(
         raw.annotations.onset,
-        epochs.raw_annotations.onset
+        epochs.annotations.onset
     )
     assert_array_equal(raw.annotations.duration,
-                       epochs.raw_annotations.duration)
+                       epochs.annotations.duration)
     assert_array_equal(raw.annotations.description,
-                       epochs.raw_annotations.description)
+                       epochs.annotations.description)
 
     # test get_epoch_annotations as a list of (onset, duration, description)
     # that should match the original Annotations, except onset is now
@@ -3703,15 +3703,18 @@ def test_epoch_annotations_with_first_samp(first_samp):
 
     expected_annot_times = [
         [],
-        [(.6, ant_dur, 'x'), (.7, ant_dur, 'y')],
-        [(.1, ant_dur, 'x'), (.2, ant_dur, 'y')],
-        [(.6, ant_dur, 'z')],
-        [(.1, ant_dur, 'z')],
+        [[.6, ant_dur, 'x'], [.7, ant_dur, 'y']],
+        [[.1, ant_dur, 'x'], [.2, ant_dur, 'y']],
+        [[.6, ant_dur, 'z']],
+        [[.1, ant_dur, 'z']],
         [],
         []
     ]
     assert len(expected_annot_times) == len(epoch_ants)
     for x, y in zip(epoch_ants, expected_annot_times):
+        if y != []:
+            for _x in y:
+                _x[0] = np.round(_x[0] + epochs._first_time, decimals=1)
         assert_array_equal(x, y)
 
     # do a more complicated case
@@ -3723,15 +3726,18 @@ def test_epoch_annotations_with_first_samp(first_samp):
     epoch_ants = epochs.get_epoch_annotations()
     expected_annot_times = [
         [],
-        [(0.6, 0.5, 'x'), (0.7, 0.5, 'y')],
-        [(0.1, 0.5, 'x'), (0.2, 0.5, 'y')],
-        [(-0.4, 0.5, 'x'), (-0.3, 0.5, 'y'), (0.6, 0.5, 'z')],
-        [(0.1, 0.5, 'z')],
-        [(-0.4, 0.5, 'z')],
+        [[0.6, 0.5, 'x'], [0.7, 0.5, 'y']],
+        [[0.1, 0.5, 'x'], [0.2, 0.5, 'y']],
+        [[-0.4, 0.5, 'x'], [-0.3, 0.5, 'y'], [0.6, 0.5, 'z']],
+        [[0.1, 0.5, 'z']],
+        [[-0.4, 0.5, 'z']],
         []
     ]
     assert len(expected_annot_times) == len(epoch_ants)
     for x, y in zip(epoch_ants, expected_annot_times):
+        if y != []:
+            for _x in y:
+                _x[0] = np.round(_x[0] + epochs._first_time, decimals=1)
         assert_array_equal(x, y)
 
 
@@ -3766,12 +3772,12 @@ def test_epoch_annotations_with_meas_date(first_samp):
     # because first_samp offsetting occurs in Raw
     assert_array_equal(
         raw.annotations.onset,
-        epochs.raw_annotations.onset
+        epochs.annotations.onset
     )
     assert_array_equal(raw.annotations.duration,
-                       epochs.raw_annotations.duration)
+                       epochs.annotations.duration)
     assert_array_equal(raw.annotations.description,
-                       epochs.raw_annotations.description)
+                       epochs.annotations.description)
 
     # test get_epoch_annotations as a list of (onset, duration, description)
     # that should match the original Annotations, except onset is now
@@ -3780,15 +3786,18 @@ def test_epoch_annotations_with_meas_date(first_samp):
 
     expected_annot_times = [
         [],
-        [(.6, ant_dur, 'x'), (.7, ant_dur, 'y')],
-        [(.1, ant_dur, 'x'), (.2, ant_dur, 'y')],
-        [(.6, ant_dur, 'z')],
-        [(.1, ant_dur, 'z')],
+        [[.6, ant_dur, 'x'], [.7, ant_dur, 'y']],
+        [[.1, ant_dur, 'x'], [.2, ant_dur, 'y']],
+        [[.6, ant_dur, 'z']],
+        [[.1, ant_dur, 'z']],
         [],
         []
     ]
     assert len(expected_annot_times) == len(epoch_ants)
     for x, y in zip(epoch_ants, expected_annot_times):
+        if y != []:
+            for _x in y:
+                _x[0] = np.round(_x[0] + epochs._first_time, decimals=1)
         assert_array_equal(x, y)
 
     # If orig_time is set, then essentially the annotations will be
@@ -3817,7 +3826,4 @@ def test_epoch_annotations_with_meas_date(first_samp):
         # when orig_date is set + first_samp, those will offset
         # the onset when Raw sets annotations. These should
         # then be offset accordingly when Epochs look for annotations
-        if y != []:
-            for _x in y:
-                _x[0] = _x[0] - epochs._first_time
         assert_array_equal(x, y)
