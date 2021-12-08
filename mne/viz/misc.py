@@ -16,7 +16,6 @@ from glob import glob
 from itertools import cycle
 import os.path as op
 import warnings
-from distutils.version import LooseVersion
 from collections import defaultdict
 
 import numpy as np
@@ -761,14 +760,10 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
 
 def _get_presser(fig):
     """Get our press callback."""
-    import matplotlib
     callbacks = fig.canvas.callbacks.callbacks['button_press_event']
     func = None
     for key, val in callbacks.items():
-        if LooseVersion(matplotlib.__version__) >= '3':
-            func = val()
-        else:
-            func = val.func
+        func = val()
         if func.__class__.__name__ == 'partial':
             break
         else:

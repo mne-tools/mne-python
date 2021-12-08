@@ -20,7 +20,6 @@ import tempfile
 import math
 import numpy as np
 from copy import deepcopy
-from distutils.version import LooseVersion
 import warnings
 from datetime import datetime
 
@@ -129,12 +128,13 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
         plt_show(show, block=block, **kwargs)
     else:
         from PyQt5.QtWidgets import QApplication
+        from .backends._utils import _qt_app_exec
         if show:
             fig.show()
         # If block=False, a Qt-Event-Loop has to be started
         # somewhere else in the calling code.
         if block:
-            QApplication.instance().exec()
+            _qt_app_exec(QApplication.instance())
 
 
 def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
@@ -1406,11 +1406,6 @@ class SelectFromCollection(object):
 
     def __init__(self, ax, collection, ch_names, alpha_other=0.5,
                  linewidth_other=0.5, alpha_selected=1, linewidth_selected=1):
-        from matplotlib import __version__
-        if LooseVersion(__version__) < LooseVersion('1.2.1'):
-            raise ImportError('Interactive selection not possible for '
-                              'matplotlib versions < 1.2.1. Upgrade '
-                              'matplotlib.')
         from matplotlib.widgets import LassoSelector
         self.canvas = ax.figure.canvas
         self.collection = collection

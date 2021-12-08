@@ -5,7 +5,6 @@
 import sys
 import os
 import os.path as op
-from distutils.version import LooseVersion
 from shutil import rmtree
 
 from .. import __version__ as mne_version
@@ -17,6 +16,7 @@ from .config import (
     MISC_VERSIONED,
 )
 from .utils import _dataset_version, _do_path_update, _get_path
+from ..fixes import _compare_version
 
 
 _FAKE_VERSION = None  # used for monkeypatching while testing versioning
@@ -171,7 +171,7 @@ def fetch_dataset(
     # get the version of the dataset and then check if the version is outdated
     data_version = _dataset_version(final_path, name)
     outdated = (want_version is not None and
-                LooseVersion(want_version) > LooseVersion(data_version))
+                _compare_version(want_version, '>', data_version))
 
     if outdated:
         logger.info(
@@ -273,7 +273,7 @@ def fetch_dataset(
     data_version = _dataset_version(path, name)
     # 0.7 < 0.7.git should be False, therefore strip
     if check_version and (
-        LooseVersion(data_version) < LooseVersion(mne_version.strip(".git"))
+        _compare_version(data_version, '<', mne_version.strip(".git"))
     ):
         warn(
             "The {name} dataset (version {current}) is older than "

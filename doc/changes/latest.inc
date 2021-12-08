@@ -19,12 +19,16 @@ Current (1.0.dev0)
 
 .. |New Contributor| replace:: **New Contributor**
 
+.. |Jan Zerfowski| replace:: **Jan Zerfowski**
+.. |Senwen Deng| replace:: **Senwen Deng**
 
 Enhancements
 ~~~~~~~~~~~~
 .. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
 
-- Fix some unused variables in time_frequency_erds.py example (:gh:`10076` **by new contributor** `Jan Zerfowski`_)
+- Speed up :func:`mne.preprocessing.annotate_muscle_zscore`, :func:`mne.preprocessing.annotate_movement`, and :func:`mne.preprocessing.annotate_nan` through better annotation creation (:gh:`10089` **by new contributor** |Senwen Deng|_)
+
+- Fix some unused variables in time_frequency_erds.py example (:gh:`10076` **by new contributor** |Jan Zerfowski|_)
 
 - Add show local maxima toggling button to :func:`mne.gui.locate_ieeg` (:gh:`9952` by `Alex Rockhill`_)
 
@@ -44,12 +48,19 @@ Enhancements
 
 - Speed up repeated surface-smoothing operation (e.g., in repeated calls to :meth:`stc.plot() <mne.SourceEstimate.plot>`) (:gh:`10077` by `Eric Larson`_)
 
+- Add ``verbose`` parameter to :func:`mne.io.Raw.load_bad_channels` and log information on how bad channels are updated (:gh:`10102` by `Stefan Appelhoff`_)
+
 - Add ``infer_type`` argument to :func:`mne.io.read_raw_edf` and :func:`mne.io.read_raw_bdf` to automatically infer channel types from channel labels (:gh:`10058` by `Clemens Brunner`_)
 
 - Add Annotations carried over from :class:`mne.io.Raw` to :class:`mne.Epochs` (:gh:`9969` by `Adam Li`_)
 
 Bugs
 ~~~~
+
+.. |Adina Wagner| replace:: **Adina Wagner**
+
+- Teach :func:`mne.io.read_raw_bti` to use its ``eog_ch`` parameter (:gh:`10093` **by new contributor** |Adina Wagner|_)
+
 - Fix default of :func:`mne.io.Raw.plot` to be ``use_opengl=None``, which will act like False unless ``MNE_BROWSER_USE_OPENGL=true`` is set in the user configuration (:gh:`9957` by `Eric Larson`_)
 
 - Fix bug with :class:`mne.Report` where figures were saved with ``bbox_inches='tight'``, which led to inconsistent sizes in sliders (:gh:`9966` by `Eric Larson`_)
@@ -89,6 +100,8 @@ Bugs
 - Fix bug that appears during automatic calculation of the colormap of `mne.viz.Brain` when data values of ``fmin`` and ``fmax`` are too close (:gh:`10074` by `Guillaume Favelier`_)
 
 - We now display a scrollbar in the tags dropdown of a `~mne.Report` if many tags have been added, granting access to all tags instead of "hiding" them below the bottom of the page (:gh:`10082` by `Richard Höchenberger`_)
+
+- Remove repeated logging output when overwriting an existing `~mne.io.Raw` file (:gh:`10095` by `Richard Höchenberger`_ and `Stefan Appelhoff`_)
 
 API changes
 ~~~~~~~~~~~

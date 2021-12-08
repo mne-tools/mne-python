@@ -519,15 +519,15 @@ workflows:
                 - main
                 - maint/0.24
 
-  nightly:
+  main:
     jobs:
       - build_docs:
           scheduled: "true"
-          name: build_docs_nightly
+          name: build_docs_main
       - deploy:
-          name: deploy_nightly
+          name: deploy_main
           requires:
-            - build_docs_nightly
+            - build_docs_main
     triggers:
       - schedule:
           # "At 00:00" (once a day) should be enough "0 0 * * *",

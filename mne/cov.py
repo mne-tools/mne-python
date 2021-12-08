@@ -5,7 +5,6 @@
 # License: BSD-3-Clause
 
 from copy import deepcopy
-from distutils.version import LooseVersion
 import itertools as itt
 from math import log
 import os
@@ -1017,14 +1016,6 @@ def _eigvec_subspace(eig, eigvec, mask):
     return eig, eigvec
 
 
-def _get_iid_kwargs():
-    import sklearn
-    kwargs = dict()
-    if LooseVersion(sklearn.__version__) < LooseVersion('0.22'):
-        kwargs['iid'] = False
-    return kwargs
-
-
 def _compute_covariance_auto(data, method, info, method_params, cv,
                              scalings, n_jobs, stop_early, picks_list, rank):
     """Compute covariance auto mode."""
@@ -1110,7 +1101,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                 tuned_parameters = [{'shrinkage': shrinkage}]
                 shrinkages = []
                 gs = GridSearchCV(ShrunkCovariance(**mp),
-                                  tuned_parameters, cv=cv, **_get_iid_kwargs())
+                                  tuned_parameters, cv=cv)
                 for ch_type, picks in sub_picks_list:
                     gs.fit(data_[:, picks])
                     shrinkages.append((ch_type, gs.best_estimator_.shrinkage,

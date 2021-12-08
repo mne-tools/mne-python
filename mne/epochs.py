@@ -2697,7 +2697,7 @@ class Epochs(BaseEpochs):
         return data
 
     @property
-    def raw_annotations(self):  # noqa: D102
+    def annotations(self):  # noqa: D102
         return self._annotations
 
     @verbose
@@ -2723,20 +2723,9 @@ class Epochs(BaseEpochs):
         """
         meas_date = _handle_meas_date(self.info['meas_date'])
         if annotations is None:
-            self._annotations = Annotations([], [], [], meas_date)
+            self._annotations = None
         else:
             _validate_type(annotations, Annotations, 'annotations')
-
-            if meas_date is None and annotations.orig_time is not None:
-                raise RuntimeError('Ambiguous operation. Setting an Annotation'
-                                   ' object with known ``orig_time`` to a raw'
-                                   ' object which has ``meas_date`` set to'
-                                   ' None is ambiguous. Please, either set a'
-                                   ' meaningful ``meas_date`` to the raw'
-                                   ' object; or set ``orig_time`` to None in'
-                                   ' which case the annotation onsets would be'
-                                   ' taken in reference to the first sample of'
-                                   ' the raw object.')
             new_annotations = annotations.copy()
             new_annotations._prune_ch_names(self.info, on_missing)
             self._annotations = new_annotations
@@ -2754,23 +2743,24 @@ class Epochs(BaseEpochs):
             where the onset is now relative to the epoch, rather then in
             continuous time.
         """
-        # check if annotations exist
-        if self.raw_annotations is None:
-            return self
-
         events = self.events
 
         # create a list of annotations for each epoch
-        epoch_annot_list = [[] for _ in range(len(events))]
+        epoch_annot_list = [[]] * len(events)
 
-        for annot in self.raw_annotations:
+        # check if annotations exist
+        if self.annotations is None:
+            return epoch_annot_list
+
+        for annot in self.annotations:
             onset_ = annot['onset']
             duration_ = annot['duration']
             description_ = annot['description']
 
             # convert onset to samples and account for first time
-            onset_samp = int(onset_ * self._raw_sfreq + self._first_time)
-            duration_samp = int(duration_ * self._raw_sfreq)
+            onset_samp = np.rint(onset_ * self._raw_sfreq +
+                                    self._first_time).astype(int)
+            duration_samp = np.rint(duration_ * self._raw_sfreq).astype(int)
 
             # loop through events to see which Epochs this annotation
             # belongs to based on the onset and duration
@@ -2801,10 +2791,7 @@ class Epochs(BaseEpochs):
         if self.annotations is None:
             return self
 
-        # create a list of annotations for each epoch
-        epoch_annot_list = [[] for _ in range(len(self))]
-
-        # loop through each annotations and add to the metadata
+        # instantiate a metadata pandas dataframe
         if self._metadata is not None:
             metadata = self._metadata
         else:

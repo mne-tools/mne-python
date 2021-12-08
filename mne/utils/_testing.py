@@ -5,7 +5,6 @@
 # License: BSD-3-Clause
 
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 from functools import partial, wraps
 import os
 import inspect
@@ -21,6 +20,7 @@ from numpy.testing import assert_array_equal, assert_allclose
 
 from ._logging import warn, ClosingStringIO
 from .numerics import object_diff
+from ..fixes import _compare_version
 
 
 def _explain_exception(start=-1, stop=None, prefix='> '):
@@ -107,13 +107,6 @@ def requires_module(function, name, call=None):
     return pytest.mark.skipif(skip, reason=reason)(function)
 
 
-_pandas_call = """
-import pandas
-version = LooseVersion(pandas.__version__)
-if version < '0.8.0':
-    raise ImportError
-"""
-
 _mne_call = """
 if not has_mne_c():
     raise ImportError
@@ -129,7 +122,7 @@ if 'NEUROMAG2FT_ROOT' not in os.environ:
     raise ImportError
 """
 
-requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
+requires_pandas = partial(requires_module, name='pandas')
 requires_pylsl = partial(requires_module, name='pylsl')
 requires_sklearn = partial(requires_module, name='sklearn')
 requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
@@ -193,9 +186,8 @@ def check_version(library, min_version):
         ok = False
     else:
         if min_version:
-            this_version = LooseVersion(
-                getattr(library, '__version__', '0.0').lstrip('v'))
-            if this_version < min_version:
+            this_version = getattr(library, '__version__', '0.0').lstrip('v')
+            if _compare_version(this_version, '<', min_version):
                 ok = False
     return ok
 
