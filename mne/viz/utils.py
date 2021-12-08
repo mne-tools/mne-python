@@ -1210,7 +1210,7 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
         data = inst._data.swapaxes(0, 1).reshape([len(inst.ch_names), -1])
     # Iterate through ch types and update scaling if ' auto'
     for key, value in scalings.items():
-        if (key not in ch_types or value != 'auto'):
+        if key not in ch_types or value != 'auto':
             continue
         this_data = data[ch_types[key]]
         if remove_dc and (this_data.shape[1] / inst.info["sfreq"] >= duration):
