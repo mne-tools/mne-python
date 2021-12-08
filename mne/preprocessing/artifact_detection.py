@@ -4,6 +4,7 @@
 
 
 import numpy as np
+
 from ..io.base import BaseRaw
 from ..annotations import (Annotations, _annotations_starts_stops,
                            annotations_from_events)
@@ -115,7 +116,8 @@ def annotate_muscle_zscore(raw, threshold=4, ch_type=None, min_length_good=0.1,
         if len(l_idx) < min_samps:
             art_mask[l_idx] = True
 
-    annot = _annotations_from_mask(raw_copy.times, art_mask, 'BAD_muscle')
+    annot = _annotations_from_mask(raw_copy.times, art_mask, 'BAD_muscle',
+                                   orig_time=raw.info['meas_date'])
 
     return annot, scores_muscle
 
@@ -162,11 +164,13 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
     """
     sfreq = raw.info['sfreq']
     hp_ts = pos[:, 0].copy()
-    hp_ts -= raw.first_samp / sfreq
+    orig_time = raw.info['meas_date']
+    if orig_time is None:
+        hp_ts -= raw.first_samp / sfreq
     dt = np.diff(hp_ts)
     hp_ts = np.concatenate([hp_ts, [hp_ts[-1] + 1. / sfreq]])
 
-    annot = Annotations([], [], [], orig_time=None)  # rel to data start
+    annot = Annotations([], [], [], orig_time=orig_time)
 
     # Annotate based on rotational velocity
     t_tot = raw.times[-1]
@@ -183,7 +187,8 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
                     u'ω >= %5.1f°/s (max: %0.1f°/s)'
                     % (bad_pct, len(onsets), rotation_velocity_limit,
                        np.rad2deg(r.max())))
-        annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_mov_rotat_vel')
+        annot += _annotations_from_mask(
+            hp_ts, bad_mask, 'BAD_mov_rotat_vel', orig_time=orig_time)
 
     # Annotate based on translational velocity limit
     if translation_velocity_limit is not None:
@@ -198,7 +203,8 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
                     u'v >= %5.4fm/s (max: %5.4fm/s)'
                     % (bad_pct, len(onsets), translation_velocity_limit,
                        v.max()))
-        annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_mov_trans_vel')
+        annot += _annotations_from_mask(
+            hp_ts, bad_mask, 'BAD_mov_trans_vel', orig_time=orig_time)
 
     # Annotate based on displacement from mean head position
     disp = []
@@ -241,7 +247,8 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
         logger.info(u'Omitting %5.1f%% (%3d segments): '
                     u'disp >= %5.4fm (max: %5.4fm)'
                     % (bad_pct, len(onsets), mean_distance_limit, disp.max()))
-        annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_mov_dist')
+        annot += _annotations_from_mask(
+            hp_ts, bad_mask, 'BAD_mov_dist', orig_time=orig_time)
     return annot, disp
 
 
@@ -319,7 +326,7 @@ def compute_average_dev_head_t(raw, pos):
     return dev_head_t
 
 
-def _annotations_from_mask(times, mask, annot_name):
+def _annotations_from_mask(times, mask, annot_name, orig_time=None):
     """Construct annotations from boolean mask of the data."""
     from scipy.ndimage.morphology import distance_transform_edt
     from scipy.signal import find_peaks
@@ -349,7 +356,7 @@ def _annotations_from_mask(times, mask, annot_name):
     ends = times[ends_index]
     durations = ends - onsets
     desc = [annot_name] * len(durations)
-    return Annotations(onsets, durations, desc)
+    return Annotations(onsets, durations, desc, orig_time=orig_time)
 
 
 @verbose
@@ -541,7 +548,7 @@ def annotate_break(raw, events=None,
         onset=break_onsets,
         duration=break_durations,
         description=['BAD_break'],
-        orig_time=raw.info['meas_date']
+        orig_time=raw.info['meas_date'],
     )
 
     # Log some info
