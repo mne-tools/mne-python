@@ -2631,9 +2631,18 @@ class AnnotationsMixin():
         # get the Epoch annotations
         epoch_annot_list = self.get_epoch_annotations()
 
+        onset, duration, description = [], [], []
+        for epoch_annot in epoch_annot_list:
+            if epoch_annot != []:
+                onset.append([x[0] for x in epoch_annot])
+                duration.append([x[1] for x in epoch_annot])
+                description.append([x[2] for x in epoch_annot])
+
         # Create a new Annotations column that is instantiated as an empty
         # list per Epoch.
-        metadata['Annotations'] = pd.Series(epoch_annot_list)
+        metadata['Annotations_onset'] = pd.Series(onset)
+        metadata['Annotations_duration'] = pd.Series(duration)
+        metadata['Annotations_description'] = pd.Series(description)
 
         # reset the metadata
         self.metadata = metadata
