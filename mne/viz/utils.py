@@ -1165,7 +1165,7 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
         raise ValueError('Must supply either Raw or Epochs')
 
     for key, value in scalings.items():
-        if isinstance(value, str) and value != 'auto':
+        if value != 'auto' and not isinstance(value, float):
             try:
                 scalings[key] = float(value)
             except Exception:
