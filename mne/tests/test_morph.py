@@ -214,7 +214,8 @@ def test_surface_source_morph_shortcut():
     """Test that our shortcut for smooth=0 works."""
     stc = mne.read_source_estimate(fname_smorph)
     morph_identity = compute_source_morph(
-        stc, 'sample', 'sample', spacing=stc.vertices, smooth=0)
+        stc, 'sample', 'sample', spacing=stc.vertices, smooth=0,
+        subjects_dir=subjects_dir)
     stc_back = morph_identity.apply(stc)
     assert_allclose(stc_back.data, stc.data, rtol=1e-4)
     abs_sum = morph_identity.morph_mat - speye(len(stc.data), format='csc')
