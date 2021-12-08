@@ -1159,7 +1159,6 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
     from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
 
-    scalings = deepcopy(scalings)
     scalings = _handle_default('scalings_plot_raw', scalings)
     if not isinstance(inst, (BaseRaw, BaseEpochs)):
         raise ValueError('Must supply either Raw or Epochs')
