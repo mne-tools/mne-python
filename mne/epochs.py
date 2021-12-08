@@ -1385,8 +1385,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         else:
             # we start out with an empty array, allocate only if necessary
             data = np.empty((0, len(self.info['ch_names']), len(self.times)))
-            logger.info('Loading data for %s events and %s original time '
-                        'points ...' % (n_events, len(self._raw_times)))
+            msg = (f'for {n_events} events and {len(self._raw_times)} '
+                   'original time points')
+            if self._decim > 1:
+                    msg += ' (prior to decimation)'
+            if not self._raw.preload:
+                logger.info(f'Loading data {msg} ...')
+            else:
+                logger.info(f'Using data from preloaded Raw {msg} ...')
 
         orig_picks = picks
         if orig_picks is None:
