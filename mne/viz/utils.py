@@ -19,7 +19,6 @@ import webbrowser
 import tempfile
 import math
 import numpy as np
-from copy import deepcopy
 import warnings
 from datetime import datetime
 
