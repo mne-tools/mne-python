@@ -2525,8 +2525,123 @@ def _get_epoch_index_of_annot(epochs, annot_onset_samp, annot_duration_samp):
     return epoch_indices
 
 
+class AnnotationsMixin():
+    """Mixin class for Annotations in Epochs."""
+    @property
+    def annotations(self):  # noqa: D102
+        return self._annotations
+
+    @verbose
+    def _set_annotations(self, annotations, on_missing='raise'):
+        """Setter for Epoch annotations from Raw.
+
+        This private function simply copies over Raw annotations, and
+        does not handle offsetting the times based on first_samp
+        or measurement dates, since that is expected to occur in
+        Raw.set_annotations().
+
+        Parameters
+        ----------
+        annotations : instance of mne.Annotations | None
+            Annotations to set. If None, the annotations is defined
+            but empty.
+        %(on_missing_ch_names)s
+
+        Returns
+        -------
+        self : instance of Raw
+            The raw object with annotations.
+        """
+        if annotations is None:
+            self._annotations = None
+        else:
+            _validate_type(annotations, Annotations, 'annotations')
+            new_annotations = annotations.copy()
+            new_annotations._prune_ch_names(self.info, on_missing)
+            self._annotations = new_annotations
+
+        return self
+
+    def get_epoch_annotations(self):
+        """Return a list of raw annotations per epoch.
+
+        Returns
+        -------
+        epoch_annots : list
+            A list (with length equal to number of epochs) of annotations per
+            epoch. Each annotation is stored as (onset, duration, description),
+            where the onset is now relative to the epoch, rather then in
+            continuous time.
+        """
+        events = self.events
+
+        # create a list of annotations for each epoch
+        epoch_annot_list = [[] for _ in range(len(events))]
+
+        # check if annotations exist
+        if self.annotations is None:
+            return epoch_annot_list
+
+        for annot in self.annotations:
+            onset_ = annot['onset']
+            duration_ = annot['duration']
+            description_ = annot['description']
+
+            # convert onset to samples and account for first time
+            onset_samp = np.rint(onset_ * self._raw_sfreq +
+                                 self._first_samp).astype(int)
+            duration_samp = np.rint(duration_ * self._raw_sfreq).astype(int)
+
+            # loop through events to see which Epochs this annotation
+            # belongs to based on the onset and duration
+            epoch_index = _get_epoch_index_of_annot(
+                self, onset_samp, duration_samp)
+
+            for eidx in epoch_index:
+                # now convert onset sample relative to the Epoch and convert
+                # back to seconds relative to the Epoch
+                onset_samp_ = onset_samp - events[eidx, 0]
+                onset_ = np.divide(onset_samp_, self._raw_sfreq)
+
+                epoch_annot_list[eidx].append(
+                    (onset_, duration_, description_))
+        return epoch_annot_list
+
+    def add_annotations_to_metadata(self):
+        """Add raw annotations into the Epochs metadata data frame.
+
+        Returns
+        -------
+        self : instance of Epochs
+            The modified instance (instance is also modified inplace).
+        """
+        pd = _check_pandas_installed()
+
+        # check if annotations exist
+        if self.annotations is None:
+            return self
+
+        # instantiate a metadata pandas dataframe
+        if self._metadata is not None:
+            metadata = self._metadata
+        else:
+            data = np.empty((len(self), 0))
+            metadata = pd.DataFrame(data=data)
+
+        # get the Epoch annotations
+        epoch_annot_list = self.get_epoch_annotations()
+
+        # Create a new Annotations column that is instantiated as an empty
+        # list per Epoch.
+        metadata['Annotations'] = pd.Series(epoch_annot_list)
+
+        # reset the metadata
+        self.metadata = metadata
+        return self
+
+
 @fill_doc
-class Epochs(BaseEpochs):
+class Epochs(BaseEpochs, AnnotationsMixin):
     """Epochs extracted from a Raw instance.
 
     Parameters
@@ -2702,118 +2817,6 @@ class Epochs(BaseEpochs):
                                             reject_start, reject_stop,
                                             self.reject_by_annotation)
         return data
-
-    @property
-    def annotations(self):  # noqa: D102
-        return self._annotations
-
-    @verbose
-    def _set_annotations(self, annotations, on_missing='raise'):
-        """Setter for Epoch annotations from Raw.
-
-        This private function simply copies over Raw annotations, and
-        does not handle offsetting the times based on first_samp
-        or measurement dates, since that is expected to occur in
-        Raw.set_annotations().
-
-        Parameters
-        ----------
-        annotations : instance of mne.Annotations | None
-            Annotations to set. If None, the annotations is defined
-            but empty.
-        %(on_missing_ch_names)s
-
-        Returns
-        -------
-        self : instance of Raw
-            The raw object with annotations.
-        """
-        if annotations is None:
-            self._annotations = None
-        else:
-            _validate_type(annotations, Annotations, 'annotations')
-            new_annotations = annotations.copy()
-            new_annotations._prune_ch_names(self.info, on_missing)
-            self._annotations = new_annotations
-
-        return self
-
-    def get_epoch_annotations(self):
-        """Return a list of raw annotations per epoch.
-
-        Returns
-        -------
-        epoch_annots : list
-            A list (with length equal to number of epochs) of annotations per
-            epoch. Each annotation is stored as (onset, duration, description),
-            where the onset is now relative to the epoch, rather then in
-            continuous time.
-        """
-        events = self.events
-
-        # create a list of annotations for each epoch
-        epoch_annot_list = [[] for _ in range(len(events))]
-
-        # check if annotations exist
-        if self.annotations is None:
-            return epoch_annot_list
-
-        for annot in self.annotations:
-            onset_ = annot['onset']
-            duration_ = annot['duration']
-            description_ = annot['description']
-
-            # convert onset to samples and account for first time
-            onset_samp = np.rint(onset_ * self._raw_sfreq +
-                                 self._first_samp).astype(int)
-            duration_samp = np.rint(duration_ * self._raw_sfreq).astype(int)
-
-            # loop through events to see which Epochs this annotation
-            # belongs to based on the onset and duration
-            epoch_index = _get_epoch_index_of_annot(
-                self, onset_samp, duration_samp)
-
-            for eidx in epoch_index:
-                # now convert onset sample relative to the Epoch and convert
-                # back to seconds relative to the Epoch
-                onset_samp_ = onset_samp - events[eidx, 0]
-                onset_ = np.divide(onset_samp_, self._raw_sfreq)
-
-                epoch_annot_list[eidx].append(
-                    (onset_, duration_, description_))
-        return epoch_annot_list
-
-    def add_annotations_to_metadata(self):
-        """Add raw annotations into the Epochs metadata data frame.
-
-        Returns
-        -------
-        self : instance of Epochs
-            The modified instance (instance is also modified inplace).
-        """
-        pd = _check_pandas_installed()
-
-        # check if annotations exist
-        if self.annotations is None:
-            return self
-
-        # instantiate a metadata pandas dataframe
-        if self._metadata is not None:
-            metadata = self._metadata
-        else:
-            data = np.empty((len(self), 0))
-            metadata = pd.DataFrame(data=data)
-
-        # get the Epoch annotations
-        epoch_annot_list = self.get_epoch_annotations()
-
-        # Create a new Annotations column that is instantiated as an empty
-        # list per Epoch.
-        metadata['Annotations'] = pd.Series(epoch_annot_list)
-
-        # reset the metadata
-        self.metadata = metadata
-        return self
 
 
 @fill_doc
