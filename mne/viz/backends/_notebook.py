@@ -279,6 +279,9 @@ class _IpyStatusBar(_AbstractStatusBar, _IpyLayout):
         self._status_bar = self._status_bar_layout = HBox()
         self._layout_initialize(None)
 
+    def _status_bar_hide_message(self):
+        pass
+
     def _status_bar_show_message(self, value, timeout=5000):
         pass
 

@@ -599,6 +599,10 @@ class _AbstractStatusBar(ABC):
         pass
 
     @abstractmethod
+    def _status_bar_hide_message(self):
+        pass
+
+    @abstractmethod
     def _status_bar_show_message(self, value, timeout=5000):
         pass
 

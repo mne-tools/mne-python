@@ -10,7 +10,7 @@ from contextlib import contextmanager
 import pyvista
 from pyvistaqt.plotting import FileDialog
 
-from PyQt5.QtCore import Qt, pyqtSignal, QLocale
+from PyQt5.QtCore import Qt, pyqtSignal, QLocale, QTimer
 from PyQt5.QtGui import QIcon, QImage, QPixmap, QCursor
 from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
@@ -399,9 +399,22 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
         window = self._window if window is None else window
         self._status_bar = window.statusBar()
         self._status_bar_layout = self._status_bar.layout()
+        self._status_timer = QTimer(parent=window)
+        self._status_message = QLabel("")
+        window.signal_close.connect(self._status_timer.stop)
 
-    def _status_bar_show_message(self, value, timeout=5000):
-        self._status_bar.showMessage(value, timeout)
+    def _status_bar_hide_message(self):
+        self._status_timer.stop()
+        self._status_timer.disconnect()
+        self._status_message.hide()
+        self._status_bar_layout.removeWidget(self._status_message)
+
+    def _status_bar_show_message(self, value, stretch=1, timeout=5000):
+        self._status_message.setText(value)
+        self._status_bar_layout.addWidget(self._status_message, stretch)
+        self._status_message.show()
+        self._status_timer.timeout.connect(self._status_bar_hide_message)
+        self._status_timer.start(timeout)
 
     def _status_bar_add_label(self, value, stretch=0):
         widget = QLabel(value)
