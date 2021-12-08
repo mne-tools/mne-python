@@ -2545,8 +2545,12 @@ class Report(object):
 
         return html
 
-    def _render_raw_butterfly_segments(self, *, raw: BaseRaw, image_format,
-                                       tags):
+    def _render_raw_butterfly_segments(
+        self, *, raw: BaseRaw, image_format, tags
+    ):
+        orig_annotations = raw.annotations.copy()
+        raw.set_annotations(None)
+
         # Pick 10 1-second time slices
         times = np.linspace(raw.times[0], raw.times[-1], 12)[1:-1]
         figs = []
@@ -2557,6 +2561,9 @@ class Report(object):
             fig = raw.plot(butterfly=True, show_scrollbars=False, start=tmin,
                            duration=duration, show=False)
             figs.append(fig)
+
+        raw.set_annotations(orig_annotations)
+        del orig_annotations
 
         captions = [f'Segment {i+1} of {len(figs)}'
                     for i in range(len(figs))]
