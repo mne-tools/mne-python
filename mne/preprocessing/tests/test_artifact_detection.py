@@ -88,6 +88,7 @@ def test_muscle_annotation():
     onset = onset.astype(int)
     assert_array_equal(scores[onset].astype(int), np.array([23, 10]))
     assert annot_muscle.duration.size == 2
+    raw.set_annotations(annot_muscle)
 
 
 @testing.requires_testing_data
