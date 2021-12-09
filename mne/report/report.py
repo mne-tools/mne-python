@@ -2576,6 +2576,7 @@ class Report(object):
                 fig.mne.t_start = start
                 fig.mne.duration = duration
                 fig._update_hscroll()
+                fig._redraw(annotations=False)
                 figs.append(fig)
         except Exception:
             raise
