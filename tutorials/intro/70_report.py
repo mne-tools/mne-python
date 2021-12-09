@@ -12,7 +12,7 @@ plots of data before and after each preprocessing step, epoch rejection
 statistics, MRI slices with overlaid BEM shells, all the way up to plots of
 estimated cortical activity.
 
-Compared to a Jupyter notebook, `mne.Report` is easier to deploy (the HTMLf
+Compared to a Jupyter notebook, `mne.Report` is easier to deploy (the HTML
 pages it generates are self-contained and do not require a running Python
 environment) but less flexible (you can't change code and re-run something
 directly within the browser). This tutorial covers the basics of building a
