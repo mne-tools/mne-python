@@ -3175,26 +3175,20 @@ class Report(object):
 
         # PSD
         if add_psd:
-            epoch_duration = epochs.tmax - epochs.tmin
-            signal_duration = len(epochs) * epoch_duration
-            if psd_signal_duration is None:  # pick entire time range
-                psd_signal_duration = signal_duration
-            num_of_epochs_required = int(
-                np.ceil(psd_signal_duration / epoch_duration)
-            )
-            if (
-                psd_signal_duration is not None and
-                num_of_epochs_required > len(epochs)
-            ):
-                raise ValueError(
-                    f'You requested to calculate PSD on a duration of '
-                    f'{psd_signal_duration:.3f} sec, but all your epochs '
-                    f'are only {signal_duration:.3f} sec long'
-                )
-
-            if psd_signal_duration is None:
+            if psd_signal_duration is None:  # Entire time range -> all epochs
                 epochs_for_psd = epochs  # Avoid creating a copy
-            else:
+            else:  # Only a subset of epochs
+                epoch_duration = epochs.tmax - epochs.tmin
+                signal_duration = len(epochs) * epoch_duration
+                num_of_epochs_required = int(
+                    np.ceil(psd_signal_duration / epoch_duration)
+                )
+                if num_of_epochs_required > len(epochs):
+                    raise ValueError(
+                        f'You requested to calculate PSD on a duration of '
+                        f'{psd_signal_duration:.3f} sec, but all your epochs '
+                        f'are only {signal_duration:.3f} sec long'
+                    )
                 epochs_idx = np.arange(
                     start=0,
                     stop=len(epochs),
