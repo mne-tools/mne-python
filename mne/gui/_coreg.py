@@ -51,6 +51,8 @@ class CoregistrationUI(HasTraits):
         If True, use a high-resolution head surface. Defaults to False.
     head_transparency : bool
         If True, display the head surface with transparency. Defaults to False.
+    head_scale : float
+        The scale of the head surface. Defaults to 1.0.
     hpi_coils : bool
         If True, display the HPI coils. Defaults to True.
     head_shape_points : bool
@@ -105,6 +107,7 @@ class CoregistrationUI(HasTraits):
     _eeg_channels = Bool()
     _head_resolution = Bool()
     _head_transparency = Bool()
+    _head_scale = Float()
     _grow_hair = Float()
     _scale_mode = Unicode()
     _icp_fid_match = Unicode()
@@ -112,7 +115,7 @@ class CoregistrationUI(HasTraits):
     @verbose
     def __init__(self, info_file, subject=None, subjects_dir=None,
                  fiducials='auto', head_resolution=None,
-                 head_transparency=None, hpi_coils=None,
+                 head_transparency=None, head_scale=None, hpi_coils=None,
                  head_shape_points=None, eeg_channels=None, orient_glyphs=None,
                  scale_by_distance=None, project_eeg=None, mark_inside=None,
                  sensor_opacity=None, trans=None, size=None, bgcolor=None,
@@ -153,6 +156,7 @@ class CoregistrationUI(HasTraits):
             eeg_channels=_get_default(eeg_channels, True),
             head_resolution=_get_default(head_resolution, True),
             head_transparency=_get_default(head_transparency, False),
+            head_scale=_get_default(head_scale, 1.0),
             head_opacity=0.5,
             sensor_opacity=_get_default(sensor_opacity, 1.0),
             fiducials=("LPA", "Nasion", "RPA"),
@@ -212,6 +216,7 @@ class CoregistrationUI(HasTraits):
         self._set_eeg_channels(self._defaults["eeg_channels"])
         self._set_head_resolution(self._defaults["head_resolution"])
         self._set_head_transparency(self._defaults["head_transparency"])
+        self._set_head_scale(self._defaults["head_scale"])
         self._set_grow_hair(self._defaults["grow_hair"])
         self._set_omit_hsp_distance(self._defaults["omit_hsp_distance"])
         self._set_icp_n_iterations(self._defaults["icp_n_iterations"])
@@ -322,6 +327,9 @@ class CoregistrationUI(HasTraits):
 
     def _set_head_transparency(self, state):
         self._head_transparency = bool(state)
+
+    def _set_head_scale(self, value):
+        self._head_scale = value
 
     def _set_grow_hair(self, value):
         self._grow_hair = value
@@ -491,8 +499,15 @@ class CoregistrationUI(HasTraits):
     def _head_transparency_changed(self, change=None):
         self._head_opacity = self._defaults["head_opacity"] \
             if self._head_transparency else 1.0
-        self._actors["head"].GetProperty().SetOpacity(self._head_opacity)
-        self._renderer._update()
+        if "head" in self._actors:
+            self._actors["head"].GetProperty().SetOpacity(self._head_opacity)
+            self._renderer._update()
+
+    @observe("_head_scale")
+    def _head_scale_changed(self, change=None):
+        if "head" in self._surfaces:
+            self._surfaces["head"].points *= self._head_scale
+            self._renderer._update()
 
     @observe("_grow_hair")
     def _grow_hair_changed(self, change=None):
@@ -1021,6 +1036,16 @@ class CoregistrationUI(HasTraits):
             value=self._head_resolution,
             callback=self._set_head_resolution,
             tooltip="Enable/Disable high resolution head surface",
+            layout=layout
+        )
+        self._widgets["head_scale"] = self._renderer._dock_add_spin_box(
+            name="Head Scale",
+            value=self._head_scale,
+            rng=[1, 1e2],
+            callback=self._set_head_scale,
+            compact=True,
+            double=True,
+            tooltip="Set the head surface scale",
             layout=layout
         )
         self._renderer._dock_add_stretch()
