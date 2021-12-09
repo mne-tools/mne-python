@@ -823,8 +823,10 @@ class Report(object):
         self.include += script
 
     @fill_doc
-    def add_epochs(self, epochs, title, *, psd=True, projs=None,
-                   tags=('epochs',), replace=False, topomap_kwargs=None):
+    def add_epochs(
+        self, epochs, title, *, psd=True, psd_signal_duration=None, projs=None,
+        tags=('epochs',), replace=False, topomap_kwargs=None
+    ):
         """Add `~mne.Epochs` to the report.
 
         Parameters
@@ -835,6 +837,12 @@ class Report(object):
             The title to add.
         psd : bool | None
             Whether to add PSD plots.
+        psd_signal_duration : float | None
+            The duration of data to use for PSD calculation if ``psd=True``, in
+            seconds. PSD will be calculated on as many epochs as required to
+            cover at least this duration. Epochs will be picked across the
+            entire time range in equally-spaced distance. If ``None``, use all
+            epochs.
         %(report_projs)s
         %(report_tags)s
         %(report_replace)s
@@ -851,6 +859,7 @@ class Report(object):
         htmls = self._render_epochs(
             epochs=epochs,
             add_psd=psd,
+            psd_signal_duration=psd_signal_duration,
             add_projs=add_projs,
             tags=tags,
             image_format=self.image_format,
@@ -3085,8 +3094,8 @@ class Report(object):
         )
         return html, dom_id
 
-    def _render_epochs(self, *, epochs, add_psd, add_projs, image_format,
-                       tags, topomap_kwargs):
+    def _render_epochs(self, *, epochs, add_psd, psd_signal_duration,
+                       add_projs, image_format, tags, topomap_kwargs):
         """Render epochs."""
         if isinstance(epochs, BaseEpochs):
             fname = epochs.filename
@@ -3166,6 +3175,35 @@ class Report(object):
 
         # PSD
         if add_psd:
+            epoch_duration = epochs.tmax - epochs.tmin
+            signal_duration = len(epochs) * epoch_duration
+            if psd_signal_duration is None:
+                psd_signal_duration = signal_duration
+            num_of_epochs_required = int(
+                np.ceil(psd_signal_duration / epoch_duration)
+            )
+            if (
+                psd_signal_duration is not None and
+                num_of_epochs_required > len(epochs)
+            ):
+                raise ValueError(
+                    f'You requested to calculate PSD on a duration of '
+                    f'{psd_signal_duration:.3f} sec, but all your epochs '
+                    f'are only {signal_duration:.3f} sec long'
+                )
+
+            epochs_idx = np.arange(
+                start=0,
+                stop=len(epochs),
+                step=int(np.floor(len(epochs) / num_of_epochs_required))
+            )
+            # We may have more than necessary due to the floor(); simply drop
+            # the last few ones in this case
+            epochs_idx = epochs_idx[:num_of_epochs_required]
+
+            if psd_signal_duration is None:
+                assert len(epochs_idx) == len(epochs)
+
             dom_id = self._get_dom_id()
             if epochs.info['lowpass'] is not None:
                 fmax = epochs.info['lowpass'] + 15
@@ -3175,7 +3213,7 @@ class Report(object):
             else:
                 fmax = np.inf
 
-            fig = epochs.plot_psd(fmax=fmax, show=False)
+            fig = epochs[epochs_idx].plot_psd(fmax=fmax, show=False)
             img = _fig_to_img(fig=fig, image_format=image_format)
             psd_img_html = _html_image_element(
                 img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
