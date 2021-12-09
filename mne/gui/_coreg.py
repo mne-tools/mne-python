@@ -919,6 +919,7 @@ class CoregistrationUI(HasTraits):
             rng=self._get_subjects(),
             callback=self._set_subject,
             compact=True,
+            tooltip="Select the FreeSurfer subject name",
             layout=layout
         )
 
@@ -1024,6 +1025,7 @@ class CoregistrationUI(HasTraits):
             value=self._defaults["scale_mode"],
             rng=self._defaults["scale_modes"],
             callback=self._set_scale_mode,
+            tooltip="Select the scaling mode",
             compact=True,
         )
         hlayout = self._renderer._dock_add_group_box(
@@ -1100,6 +1102,7 @@ class CoregistrationUI(HasTraits):
             rng=self._defaults["icp_fid_matches"],
             callback=self._set_icp_fid_match,
             compact=True,
+            tooltip="Select the fiducial point matching method",
             layout=layout
         )
         layout = self._renderer._dock_add_group_box(

@@ -555,8 +555,8 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_combo_box(self, name, value, rng,
-                            callback, compact=True, layout=None):
+    def _dock_add_combo_box(self, name, value, rng, callback, compact=True,
+                            tooltip=None, layout=None):
         pass
 
     @abstractmethod

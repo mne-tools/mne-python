@@ -132,8 +132,8 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_add_combo_box(self, name, value, rng,
-                            callback, compact=True, layout=None):
+    def _dock_add_combo_box(self, name, value, rng, callback, compact=True,
+                            tooltip=None, layout=None):
         layout = self._dock_named_layout(name, layout, compact)
         widget = Dropdown(
             value=value,

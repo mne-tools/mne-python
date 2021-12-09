@@ -147,10 +147,12 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
-    def _dock_add_combo_box(self, name, value, rng,
-                            callback, compact=True, layout=None):
+    def _dock_add_combo_box(self, name, value, rng, callback, compact=True,
+                            tooltip=None, layout=None):
         layout = self._dock_named_layout(name, layout, compact)
         widget = QComboBox()
+        if tooltip is not None:
+            widget.setToolTip(tooltip)
         widget.addItems(rng)
         widget.setCurrentText(value)
         widget.currentTextChanged.connect(callback)
