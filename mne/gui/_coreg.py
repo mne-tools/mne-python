@@ -600,17 +600,15 @@ class CoregistrationUI(HasTraits):
         n_remaining = len(self._coreg._dig_dict['hsp']) - n_omitted
         self._update_plot("hsp")
         self._display_message(
-            msg=f"{n_omitted} head shape points omitted, "
-            f"{n_remaining} remaining.",
-            status_bar=True)
+            f"{n_omitted} head shape points omitted, "
+            f"{n_remaining} remaining.")
 
     def _reset_omit_hsp_filter(self):
         self._coreg._extra_points_filter = None
         self._update_plot("hsp")
         n_total = len(self._coreg._dig_dict['hsp'])
         self._display_message(
-            msg=f"No head shape point is omitted, the total is {n_total}.",
-            status_bar=True)
+            f"No head shape point is omitted, the total is {n_total}.")
 
     def _update_plot(self, changes="all"):
         # Update list of things that need to be updated/plotted (and maybe
@@ -654,17 +652,10 @@ class CoregistrationUI(HasTraits):
         finally:
             self._plot_locked = old_plot_locked
 
-    def _display_message(self, msg="", status_bar=False):
-        if status_bar:
-            self._status_msg.set_value(msg)
-            self._status_msg.show()
-            self._status_msg.update()
-        else:
-            if "msg" not in self._actors:
-                self._actors["msg"] = self._renderer.text2d(0, 0, msg)
-            else:
-                self._actors["msg"].SetInput(msg)
-            self._renderer._update()
+    def _display_message(self, msg=""):
+        self._status_msg.set_value(msg)
+        self._status_msg.show()
+        self._status_msg.update()
 
     def _follow_fiducial_view(self):
         fid = self._current_fiducial.lower()
@@ -820,8 +811,7 @@ class CoregistrationUI(HasTraits):
     def _fit_fiducials(self):
         if not self._lock_fids:
             self._display_message(
-                msg="Fitting is disabled, lock the fiducials first.",
-                status_bar=True)
+                "Fitting is disabled, lock the fiducials first.")
             return
         start = time.time()
         self._coreg.fit_fiducials(
@@ -832,8 +822,7 @@ class CoregistrationUI(HasTraits):
         )
         end = time.time()
         self._display_message(
-            msg=f"Fitting fiducials finished in {end - start:.2f} seconds.",
-            status_bar=True)
+            f"Fitting fiducials finished in {end - start:.2f} seconds.")
         self._update_plot("sensors")
         self._update_parameters()
         self._update_distance_estimation()
@@ -841,15 +830,13 @@ class CoregistrationUI(HasTraits):
     def _fit_icp(self):
         if not self._lock_fids:
             self._display_message(
-                msg="Fitting is disabled, lock the fiducials first.",
-                status_bar=True)
+                "Fitting is disabled, lock the fiducials first.")
             return
         self._current_icp_iterations = 0
 
         def callback(iteration, n_iterations):
             self._display_message(
-                msg=f"Fitting ICP - iteration {iteration + 1}",
-                status_bar=True)
+                f"Fitting ICP - iteration {iteration + 1}")
             self._update_plot("sensors")
             self._current_icp_iterations = n_iterations
             self._update_distance_estimation()
@@ -867,17 +854,15 @@ class CoregistrationUI(HasTraits):
         end = time.time()
         self._display_message()
         self._display_message(
-            msg=f"Fitting ICP finished in {end - start:.2f} seconds and "
-            f"{self._current_icp_iterations} iterations.",
-            status_bar=True)
+            f"Fitting ICP finished in {end - start:.2f} seconds and "
+            f"{self._current_icp_iterations} iterations.")
         self._update_parameters()
         del self._current_icp_iterations
 
     def _save_trans(self, fname):
         write_trans(fname, self._coreg.trans)
         self._display_message(
-            msg="{fname} transform file is saved.",
-            status_bar=True)
+            "{fname} transform file is saved.")
 
     def _load_trans(self, fname):
         mri_head_t = _ensure_trans(read_trans(fname, return_all=True),
@@ -890,8 +875,7 @@ class CoregistrationUI(HasTraits):
         )
         self._update_parameters()
         self._display_message(
-            msg=f"{fname} transform file is loaded.",
-            status_bar=True)
+            f"{fname} transform file is loaded.")
 
     def _get_subjects(self, sdir=None):
         # XXX: would be nice to move this function to util
