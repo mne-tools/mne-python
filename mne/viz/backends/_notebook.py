@@ -119,7 +119,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
 
     def _dock_add_spin_box(self, name, value, rng, callback,
                            compact=True, double=True, step=None,
-                           layout=None):
+                           tooltip=None, layout=None):
         layout = self._dock_named_layout(name, layout, compact)
         klass = BoundedFloatText if double else IntText
         widget = klass(

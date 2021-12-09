@@ -960,6 +960,7 @@ class CoregistrationUI(HasTraits):
                 ),
                 compact=True,
                 double=True,
+                tooltip=f"Set the {coord} fiducial coordinate",
                 layout=hlayout
             )
         self._renderer._layout_add_widget(layout, hlayout)
@@ -980,6 +981,7 @@ class CoregistrationUI(HasTraits):
             value=self._grow_hair,
             rng=[0.0, 10.0],
             callback=self._set_grow_hair,
+            tooltip="Compensate for hair on the digitizer head shape",
             layout=layout,
         )
         hlayout = self._renderer._dock_add_layout(vertical=False)
@@ -988,6 +990,7 @@ class CoregistrationUI(HasTraits):
             value=self._omit_hsp_distance,
             rng=[0.0, 100.0],
             callback=self._set_omit_hsp_distance,
+            tooltip="Set the head shape points exclusion distance",
             layout=hlayout,
         )
         self._widgets["omit"] = self._renderer._dock_add_button(
@@ -1047,6 +1050,7 @@ class CoregistrationUI(HasTraits):
                 ),
                 compact=True,
                 double=True,
+                tooltip=f"Set the {coord} scaling parameter",
                 layout=hlayout
             )
 
@@ -1067,6 +1071,7 @@ class CoregistrationUI(HasTraits):
                     compact=True,
                     double=True,
                     step=1,
+                    tooltip=f"Set the {coord} {mode_name.lower()} parameter",
                     layout=hlayout
                 )
 
@@ -1097,6 +1102,7 @@ class CoregistrationUI(HasTraits):
             callback=self._set_icp_n_iterations,
             compact=True,
             double=False,
+            tooltip="Set the number of ICP iterations",
             layout=layout,
         )
         self._widgets["icp_fid_match"] = self._renderer._dock_add_combo_box(
@@ -1124,6 +1130,7 @@ class CoregistrationUI(HasTraits):
                 callback=partial(self._set_point_weight, point=point_lower),
                 compact=True,
                 double=True,
+                tooltip=f"Set the {point} weight",
                 layout=hlayout
             )
 
@@ -1136,6 +1143,7 @@ class CoregistrationUI(HasTraits):
                 callback=partial(self._set_point_weight, point=fid_lower),
                 compact=True,
                 double=True,
+                tooltip=f"Set the {fid} weight",
                 layout=hlayout
             )
             self._renderer._layout_add_widget(layout, hlayout)

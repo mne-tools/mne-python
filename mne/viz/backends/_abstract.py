@@ -552,7 +552,7 @@ class _AbstractDock(ABC):
     @abstractmethod
     def _dock_add_spin_box(self, name, value, rng, callback,
                            compact=True, double=True, step=None,
-                           layout=None):
+                           tooltip=None, layout=None):
         pass
 
     @abstractmethod

@@ -131,10 +131,12 @@ class _QtDock(_AbstractDock, _QtLayout):
 
     def _dock_add_spin_box(self, name, value, rng, callback,
                            compact=True, double=True, step=None,
-                           layout=None):
+                           tooltip=None, layout=None):
         layout = self._dock_named_layout(name, layout, compact)
         value = value if double else int(value)
         widget = QDoubleSpinBox() if double else QSpinBox()
+        if tooltip is not None:
+            widget.setToolTip(tooltip)
         widget.setAlignment(Qt.AlignCenter)
         widget.setMinimum(rng[0])
         widget.setMaximum(rng[1])
