@@ -673,9 +673,9 @@ class CoregistrationUI(HasTraits):
                 ["fid_X", "fid_Y", "fid_Z"], "set_value", val)
 
     def _update_distance_estimation(self):
-        dists = self._coreg.compute_dig_mri_distances() * 1e3
         value = self._coreg._get_fiducials_distance_str() + '\n' + \
             self._coreg._get_point_distance_str() + '\n'
+        dists = self._coreg.compute_dig_mri_distances() * 1e3
         value += "HSP <-> MRI (mean/min/max): "\
             f"{np.mean(dists):.2f} "\
             f"/ {np.min(dists):.2f} / {np.max(dists):.2f} mm\n"

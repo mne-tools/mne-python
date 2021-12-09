@@ -1654,7 +1654,7 @@ class Coregistration(object):
 
     @property
     def _has_nasion_data(self):
-        return (np.any(self._nasion) and np.any(self._dig_dict.nasion))
+        return (np.any(self._nasion) and np.any(self._dig_dict['nasion']))
 
     @property
     def _has_rpa_data(self):
