@@ -88,10 +88,9 @@ class _QtDock(_AbstractDock, _QtLayout):
         # If we want one with text instead of an icon, we should use
         # QPushButton(name)
         widget = QToolButton()
+        _set_widget_tooltip(widget, tooltip)
         widget.clicked.connect(callback)
         widget.setText(name)
-        if tooltip is not None:
-            widget.setToolTip(tooltip)
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
@@ -122,8 +121,7 @@ class _QtDock(_AbstractDock, _QtLayout):
                             layout=None):
         layout = self._dock_layout if layout is None else layout
         widget = QCheckBox(name)
-        if tooltip is not None:
-            widget.setToolTip(tooltip)
+        _set_widget_tooltip(widget, tooltip)
         widget.setChecked(value)
         widget.stateChanged.connect(callback)
         self._layout_add_widget(layout, widget)
@@ -135,8 +133,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         layout = self._dock_named_layout(name, layout, compact)
         value = value if double else int(value)
         widget = QDoubleSpinBox() if double else QSpinBox()
-        if tooltip is not None:
-            widget.setToolTip(tooltip)
+        _set_widget_tooltip(widget, tooltip)
         widget.setAlignment(Qt.AlignCenter)
         widget.setMinimum(rng[0])
         widget.setMaximum(rng[1])
@@ -156,8 +153,7 @@ class _QtDock(_AbstractDock, _QtLayout):
                             tooltip=None, layout=None):
         layout = self._dock_named_layout(name, layout, compact)
         widget = QComboBox()
-        if tooltip is not None:
-            widget.setToolTip(tooltip)
+        _set_widget_tooltip(widget, tooltip)
         widget.addItems(rng)
         widget.setCurrentText(value)
         widget.currentTextChanged.connect(callback)
@@ -669,6 +665,11 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
             plotter.updateGeometry()
             plotter._render()
         self._process_events()
+
+
+def _set_widget_tooltip(widget, tooltip):
+    if tooltip is not None:
+        widget.setToolTip(tooltip)
 
 
 def _create_dock_widget(window, name, area):
