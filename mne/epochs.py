@@ -2527,6 +2527,7 @@ def _get_epoch_index_of_annot(epochs, annot_onset_samp, annot_duration_samp):
 
 class AnnotationsMixin():
     """Mixin class for Annotations in Epochs."""
+
     @property
     def annotations(self):  # noqa: D102
         return self._annotations
@@ -2628,15 +2629,20 @@ class AnnotationsMixin():
             data = np.empty((len(self), 0))
             metadata = pd.DataFrame(data=data)
 
-        # get the Epoch annotations
+        # get the Epoch annotations and then construct
+        # a list for onsets, durations, descriptions for
+        # each Epoch
         epoch_annot_list = self.get_epoch_annotations()
-
         onset, duration, description = [], [], []
         for epoch_annot in epoch_annot_list:
             if epoch_annot != []:
                 onset.append([x[0] for x in epoch_annot])
                 duration.append([x[1] for x in epoch_annot])
                 description.append([x[2] for x in epoch_annot])
+            else:
+                onset.append([])
+                duration.append([])
+                description.append([])
 
         # Create a new Annotations column that is instantiated as an empty
         # list per Epoch.

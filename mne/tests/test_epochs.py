@@ -3723,6 +3723,15 @@ def test_epoch_annotations_with_first_samp(first_samp):
                        ['x', 'y', 'z'])
     raw.set_annotations(ants)
     epochs = make_fixed_length_epochs(raw, duration=1, overlap=0.5)
+
+    # add Annotations to Epochs metadata
+    epochs.add_annotations_to_metadata()
+    metadata = epochs.metadata
+    assert 'Annotations_onset' in metadata.columns
+    assert 'Annotations_duration' in metadata.columns
+    assert 'Annotations_description' in metadata.columns
+
+    # compare Epoch annotations with expected values
     epoch_ants = epochs.get_epoch_annotations()
     expected_annot_times = [
         [],
@@ -3734,7 +3743,7 @@ def test_epoch_annotations_with_first_samp(first_samp):
         []
     ]
     assert len(expected_annot_times) == len(epoch_ants)
-    for x, y in zip(epoch_ants, expected_annot_times):
+    for idx, (x, y) in enumerate(zip(epoch_ants, expected_annot_times)):
         if y != []:
             for _x in y:
                 _x[0] = np.round(_x[0] + epochs._first_time, decimals=1)
