@@ -3177,7 +3177,7 @@ class Report(object):
         if add_psd:
             epoch_duration = epochs.tmax - epochs.tmin
             signal_duration = len(epochs) * epoch_duration
-            if psd_signal_duration is None:
+            if psd_signal_duration is None:  # pick entire time range
                 psd_signal_duration = signal_duration
             num_of_epochs_required = int(
                 np.ceil(psd_signal_duration / epoch_duration)
@@ -3197,8 +3197,8 @@ class Report(object):
                 stop=len(epochs),
                 step=int(np.floor(len(epochs) / num_of_epochs_required))
             )
-            # We may have more than necessary due to the floor(); simply drop
-            # the last few ones in this case
+            # We may have more epochs than necessary due to the floor(); simply
+            # drop the last few ones in this case
             epochs_idx = epochs_idx[:num_of_epochs_required]
 
             if psd_signal_duration is None:
