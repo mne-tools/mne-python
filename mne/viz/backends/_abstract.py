@@ -532,7 +532,7 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_button(self, name, callback, layout=None):
+    def _dock_add_button(self, name, callback, tooltip=None, layout=None):
         pass
 
     @abstractmethod

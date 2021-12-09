@@ -83,13 +83,15 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
-    def _dock_add_button(self, name, callback, layout=None):
+    def _dock_add_button(self, name, callback, tooltip=None, layout=None):
         layout = self._dock_layout if layout is None else layout
         # If we want one with text instead of an icon, we should use
         # QPushButton(name)
         widget = QToolButton()
         widget.clicked.connect(callback)
         widget.setText(name)
+        if tooltip is not None:
+            widget.setToolTip(tooltip)
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 

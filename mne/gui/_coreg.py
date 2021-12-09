@@ -986,11 +986,13 @@ class CoregistrationUI(HasTraits):
         self._widgets["omit"] = self._renderer._dock_add_button(
             name="Omit",
             callback=self._omit_hsp,
+            tooltip="Exclude HSP that are far away from the MRI head",
             layout=hlayout,
         )
         self._widgets["reset_omit"] = self._renderer._dock_add_button(
             name="Reset",
             callback=self._reset_omit_hsp_filter,
+            tooltip="Reset all excluded HSP",
             layout=hlayout,
         )
         self._renderer._layout_add_widget(layout, hlayout)
@@ -1062,11 +1064,13 @@ class CoregistrationUI(HasTraits):
         self._renderer._dock_add_button(
             name="Fit Fiducials",
             callback=self._fit_fiducials,
+            tooltip="Find rotation and translation to fit all 3 fiducials",
             layout=hlayout,
         )
         self._renderer._dock_add_button(
             name="Fit ICP",
             callback=self._fit_icp,
+            tooltip="Find MRI scaling, translation, and rotation to match HSP",
             layout=hlayout,
         )
         self._renderer._layout_add_widget(layout, hlayout)
@@ -1125,6 +1129,7 @@ class CoregistrationUI(HasTraits):
         self._renderer._dock_add_button(
             name="Reset Fitting Options",
             callback=self._reset_fitting_parameters,
+            tooltip="Reset all the fitting parameters to default value",
             layout=layout,
         )
         layout = self._renderer._dock_layout
@@ -1132,6 +1137,7 @@ class CoregistrationUI(HasTraits):
         self._renderer._dock_add_button(
             name="Reset",
             callback=self._reset,
+            tooltip="Reset all the parameters affecting the coregistration",
             layout=hlayout,
         )
         self._widgets["save_trans"] = self._renderer._dock_add_file_button(
