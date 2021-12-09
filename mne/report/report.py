@@ -979,9 +979,11 @@ class Report(object):
             )
 
     @fill_doc
-    def add_raw(self, raw, title, *, psd=None, projs=None, butterfly=True,
-                scalings=None, tags=('raw',), replace=False,
-                topomap_kwargs=None):
+    def add_raw(
+        self, raw, title, *, psd=None, projs=None, butterfly=True,
+        butterfly_segment_count=10, scalings=None, tags=('raw',),
+        replace=False, topomap_kwargs=None
+    ):
         """Add `~mne.io.Raw` objects to the report.
 
         Parameters
@@ -996,8 +998,14 @@ class Report(object):
             ``raw_psd`` from `~mne.Report` creation.
         %(report_projs)s
         butterfly : bool
-            Whether to add a butterfly plot of the (decimated) data. Can be
-            useful to spot segments marked as "bad" and problematic channels.
+            Whether to add butterfly plots of the data. Multiple equally-spaced
+            1-second segments will be plotted. The number of segments can be
+            adjusted via ``butterfly_segment_count``. Can be useful to spot
+            segments marked as "bad" and problematic channels.
+        butterfly_segment_count : int
+            The number of equally-spaced 1-second segments to plot if
+            ``butterfly=True``. Larger numbers may take a considerable amount
+            of time if the data contains many sensors.
         %(scalings)s
         %(report_tags)s
         %(report_replace)s
@@ -1023,6 +1031,7 @@ class Report(object):
             add_psd=add_psd,
             add_projs=add_projs,
             add_butterfly=butterfly,
+            butterfly_segment_count=butterfly_segment_count,
             butterfly_scalings=scalings,
             image_format=self.image_format,
             tags=tags,
@@ -2549,7 +2558,7 @@ class Report(object):
         return html
 
     def _render_raw_butterfly_segments(
-        self, *, raw: BaseRaw, scalings, image_format, tags
+        self, *, raw: BaseRaw, segment_count, scalings, image_format, tags
     ):
         # Calculate scalings once and re-use them for improved performance
         scalings = _compute_scalings(
@@ -2557,8 +2566,10 @@ class Report(object):
         )
         scalings = _handle_default('scalings_plot_raw', scalings)
 
-        # Pick 10 1-second time slices
-        times = np.linspace(raw.times[0], raw.times[-1], 12)[1:-1]
+        # Pick segment_count + 2 equally-spaced 1-second time slices, but omit
+        # the first and last slice, so we end up with segment_count slices
+        n = segment_count + 2
+        times = np.linspace(raw.times[0], raw.times[-1], n)[1:-1]
 
         # Remove annotations before plotting for better performance.
         # Ensure we later restore raw.annotations even in case of an exception
@@ -2594,7 +2605,8 @@ class Report(object):
         return html
 
     def _render_raw(self, *, raw, add_psd, add_projs, add_butterfly,
-                    butterfly_scalings, image_format, tags, topomap_kwargs):
+                    butterfly_scalings, butterfly_segment_count,
+                    image_format, tags, topomap_kwargs):
         """Render raw."""
         if isinstance(raw, BaseRaw):
             fname = raw.filenames[0]
@@ -2619,6 +2631,7 @@ class Report(object):
         if add_butterfly:
             butterfly_imgs_html = self._render_raw_butterfly_segments(
                 raw=raw, scalings=butterfly_scalings,
+                segment_count=butterfly_segment_count,
                 image_format=image_format, tags=tags
             )
         else:
