@@ -1427,8 +1427,8 @@ class Report(object):
             )
         else:
             properties_html, _ = self._render_slider(
-                figs=figs, title=title, captions=captions, start_idx=0,
-                image_format=image_format, tags=tags
+                figs=figs, imgs=None, title=title, captions=captions,
+                start_idx=0, image_format=image_format, tags=tags
             )
 
         return properties_html
@@ -1487,8 +1487,8 @@ class Report(object):
         else:
             captions = [None] * len(figs)
             topographies_html, _ = self._render_slider(
-                figs=figs, title=title, captions=captions, start_idx=0,
-                image_format=image_format, tags=tags
+                figs=figs, imgs=None, title=title, captions=captions,
+                start_idx=0, image_format=image_format, tags=tags
             )
 
         return topographies_html
@@ -1911,8 +1911,8 @@ class Report(object):
             )
         else:
             html, dom_id = self._render_slider(
-                figs=figs, title=title, captions=captions, start_idx=0,
-                image_format=image_format, tags=tags
+                figs=figs, imgs=None, title=title, captions=captions,
+                start_idx=0, image_format=image_format, tags=tags
             )
 
         self._add_or_replace(
@@ -2048,15 +2048,24 @@ class Report(object):
             replace=replace
         )
 
-    def _render_slider(self, *, figs, title, captions, start_idx, image_format,
-                       tags, klass=''):
-        if len(figs) != len(captions):
+    def _render_slider(self, *, figs, imgs, title, captions, start_idx,
+                       image_format, tags, klass=''):
+        if figs is not None and imgs is not None:
+            raise ValueError('Must only provide either figs or imgs')
+
+        if figs is not None and len(figs) != len(captions):
             raise ValueError(
                 f'Number of captions ({len(captions)}) must be equal to the '
                 f'number of figures ({len(figs)})'
             )
-        images = [_fig_to_img(fig=fig, image_format=image_format)
-                  for fig in figs]
+        elif imgs is not None and len(imgs) != len(captions):
+            raise ValueError(
+                f'Number of captions ({len(captions)}) must be equal to the '
+                f'number of images ({len(imgs)})'
+            )
+        elif figs:
+            imgs = [_fig_to_img(fig=fig, image_format=image_format)
+                    for fig in figs]
 
         dom_id = self._get_dom_id()
         html = _html_slider_element(
@@ -2064,7 +2073,7 @@ class Report(object):
             title=title,
             captions=captions,
             tags=tags,
-            images=images,
+            images=imgs,
             image_format=image_format,
             start_idx=start_idx,
             klass=klass
@@ -2538,6 +2547,7 @@ class Report(object):
         start_idx = int(round(len(figs) / 2))
         html, _ = self._render_slider(
             figs=figs,
+            imgs=None,
             captions=captions,
             title=orientation,
             image_format=image_format,
@@ -2560,7 +2570,6 @@ class Report(object):
         # Remove annotations before plotting for better performance.
         # Ensure we later restore raw.annotations even in case of an exception
         orig_annotations = raw.annotations.copy()
-        figs = []
 
         try:
             raw.set_annotations(None)
@@ -2570,14 +2579,14 @@ class Report(object):
                 butterfly=True, show_scrollbars=False, start=t_starts[0],
                 duration=durations[0], scalings=scalings, show=False
             )
-            figs.append(fig)
+            images = [_fig_to_img(fig=fig, image_format=image_format)]
 
             for start, duration in zip(t_starts[1:], durations[1:]):
                 fig.mne.t_start = start
                 fig.mne.duration = duration
                 fig._update_hscroll()
                 fig._redraw(annotations=False)
-                figs.append(fig)
+                images.append(_fig_to_img(fig=fig, image_format=image_format))
         except Exception:
             raise
         finally:
@@ -2585,11 +2594,11 @@ class Report(object):
 
         del orig_annotations
 
-        captions = [f'Segment {i+1} of {len(figs)}'
-                    for i in range(len(figs))]
+        captions = [f'Segment {i+1} of {len(images)}'
+                    for i in range(len(images))]
 
         html, _ = self._render_slider(
-            figs=figs, title='Time series', captions=captions,
+            figs=None, imgs=images, title='Time series', captions=captions,
             start_idx=0, image_format=image_format, tags=tags
         )
 
@@ -2941,6 +2950,7 @@ class Report(object):
             captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
             html, dom_id = self._render_slider(
                 figs=fig_arrays,
+                imgs=None,
                 captions=captions,
                 title='Topographies',
                 image_format=image_format,
@@ -3355,6 +3365,7 @@ class Report(object):
         captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
         html, dom_id = self._render_slider(
             figs=figs,
+            imgs=None,
             captions=captions,
             title=title,
             image_format=image_format,
