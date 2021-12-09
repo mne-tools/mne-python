@@ -409,6 +409,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             # ensure metadata matches original events size
             self.selection = np.arange(len(events))
             self.events = events
+
+            # same as self.metadata = metadata, but suppress log in favor
+            # of logging below (after setting self.selection)
+            GetEpochsMixin.metadata.fset(self, metadata, verbose=False)
             del events
 
             values = list(self.event_id.values())
@@ -442,6 +446,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 metadata = [metadata[s] for s in sub]
             elif metadata is not None:
                 metadata = metadata.iloc[sub]
+
+            # Remove temporarily set metadata from above, and set
+            # again to get the correct log ("adding metadata", instead of
+            # "replacing existing metadata")
+            GetEpochsMixin.metadata.fset(self, None, verbose=False)
             self.metadata = metadata
             del metadata
 
@@ -1388,10 +1397,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                    'original time points')
             if self._decim > 1:
                 msg += ' (prior to decimation)'
-            if not self._raw.preload:
-                logger.info(f'Loading data {msg} ...')
-            else:
+            _msg_preload = False
+            if hasattr(self._raw, "preload"):
+                _msg_preload = self._raw.preload
+            if _msg_preload:
                 logger.info(f'Using data from preloaded Raw {msg} ...')
+            else:
+                logger.info(f'Loading data {msg} ...')
 
         orig_picks = picks
         if orig_picks is None:
