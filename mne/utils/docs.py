@@ -172,6 +172,28 @@ tmax : float
     End time of the raw data to use in seconds (cannot exceed data duration).
 """
 
+# Scaling of traces in plots
+docdict['scalings'] = """
+scalings : 'auto' | dict | None
+    Scaling factors for the traces. If a dictionary where any
+    value is ``'auto'``, the scaling factor is set to match the 99.5th
+    percentile of the respective data. If ``'auto'``, all scalings (for all
+    channel types) are set to ``'auto'``. If any values are ``'auto'`` and the
+    data is not preloaded, a subset up to 100 MB will be loaded. If ``None``,
+    defaults to::
+
+        dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
+             emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
+             resp=1, chpi=1e-4, whitened=1e2)
+
+    .. note::
+        A particular scaling value ``s`` corresponds to half of the visualized
+        signal range around zero (i.e. from ``0`` to ``+s`` or from ``0`` to
+        ``-s``). For example, the default scaling of ``20e-6`` (20µV) for EEG
+        signals means that the visualized range will be 40 µV (20 µV in the
+        positive direction and 20 µV in the negative direction).
+"""
+
 # Raw
 docdict['standardize_names'] = """
 standardize_names : bool
@@ -2364,9 +2386,7 @@ stc_plot_kwargs : dict
 """
 docdict['topomap_kwargs'] = """
 topomap_kwargs : dict | None
-    Keyword arguments to pass to topomap functions (
-    :func:`mne.viz.plot_evoked_topomap`, :func:`mne.viz.plot_projs_topomap`,
-    etc.).
+    Keyword arguments to pass to the topomap-generating functions.
 """
 
 # Epochs

@@ -46,7 +46,7 @@ from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
-from ..viz.utils import _ndarray_to_fig, tight_layout
+from ..viz.utils import _ndarray_to_fig, tight_layout, _compute_scalings
 from ..forward import read_forward_solution, Forward
 from ..epochs import read_epochs, BaseEpochs
 from ..preprocessing.ica import read_ica
@@ -980,7 +980,8 @@ class Report(object):
 
     @fill_doc
     def add_raw(self, raw, title, *, psd=None, projs=None, butterfly=True,
-                tags=('raw',), replace=False, topomap_kwargs=None):
+                scalings=None, tags=('raw',), replace=False,
+                topomap_kwargs=None):
         """Add `~mne.io.Raw` objects to the report.
 
         Parameters
@@ -997,6 +998,7 @@ class Report(object):
         butterfly : bool
             Whether to add a butterfly plot of the (decimated) data. Can be
             useful to spot segments marked as "bad" and problematic channels.
+        %(scalings)s
         %(report_tags)s
         %(report_replace)s
         %(topomap_kwargs)s
@@ -1021,6 +1023,7 @@ class Report(object):
             add_psd=add_psd,
             add_projs=add_projs,
             add_butterfly=butterfly,
+            butterfly_scalings=scalings,
             image_format=self.image_format,
             tags=tags,
             topomap_kwargs=topomap_kwargs,
@@ -2545,17 +2548,24 @@ class Report(object):
 
         return html
 
-    def _render_raw_butterfly_segments(self, *, raw: BaseRaw, image_format,
-                                       tags):
+    def _render_raw_butterfly_segments(
+        self, *, raw: BaseRaw, scalings, image_format, tags
+    ):
         # Pick 10 1-second time slices
         times = np.linspace(raw.times[0], raw.times[-1], 12)[1:-1]
+        scalings = _compute_scalings(
+            scalings, inst=raw, remove_dc=True, duration=1
+        )
+        scalings = _handle_default('scalings_plot_raw', scalings)
         figs = []
         for t in times:
             tmin = max(t - 0.5, 0)
             tmax = min(t + 0.5, raw.times[-1])
             duration = tmax - tmin
-            fig = raw.plot(butterfly=True, show_scrollbars=False, start=tmin,
-                           duration=duration, show=False)
+            fig = raw.plot(
+                butterfly=True, show_scrollbars=False, start=tmin,
+                duration=duration, scalings=scalings, show=False
+            )
             figs.append(fig)
 
         captions = [f'Segment {i+1} of {len(figs)}'
@@ -2569,7 +2579,7 @@ class Report(object):
         return html
 
     def _render_raw(self, *, raw, add_psd, add_projs, add_butterfly,
-                    image_format, tags, topomap_kwargs):
+                    butterfly_scalings, image_format, tags, topomap_kwargs):
         """Render raw."""
         if isinstance(raw, BaseRaw):
             fname = raw.filenames[0]
@@ -2593,7 +2603,8 @@ class Report(object):
         # Butterfly plot
         if add_butterfly:
             butterfly_imgs_html = self._render_raw_butterfly_segments(
-                raw=raw, image_format=image_format, tags=tags
+                raw=raw, scalings=butterfly_scalings,
+                image_format=image_format, tags=tags
             )
         else:
             butterfly_imgs_html = ''
