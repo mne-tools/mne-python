@@ -83,6 +83,7 @@ extensions = [
     'gen_commands',
     'gh_substitutions',
     'mne_substitutions',
+    'newcontrib_substitutions',
     'gen_names',
     'sphinx_bootstrap_divs',
     'sphinxcontrib.bibtex',
