@@ -46,7 +46,7 @@ from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
-from ..viz.utils import _ndarray_to_fig, tight_layout, _compute_scalings
+from ..viz.utils import _ndarray_to_fig, tight_layout
 from ..forward import read_forward_solution, Forward
 from ..epochs import read_epochs, BaseEpochs
 from ..preprocessing.ica import read_ica
@@ -2551,14 +2551,11 @@ class Report(object):
     def _render_raw_butterfly_segments(
         self, *, raw: BaseRaw, scalings, image_format, tags
     ):
-        # Calculate scalings once and re-use them for improved performance
-        scalings = _compute_scalings(
-            scalings, inst=raw, remove_dc=True, duration=1
-        )
-        scalings = _handle_default('scalings_plot_raw', scalings)
-
         # Pick 10 1-second time slices
         times = np.linspace(raw.times[0], raw.times[-1], 12)[1:-1]
+        t_starts = np.array([max(t - 0.5, 0) for t in times])
+        t_stops = np.array([min(t + 0.5, raw.times[-1]) for t in times])
+        durations = t_stops - t_starts
 
         # Remove annotations before plotting for better performance.
         # Ensure we later restore raw.annotations even in case of an exception
@@ -2567,14 +2564,18 @@ class Report(object):
 
         try:
             raw.set_annotations(None)
-            for t in times:
-                tmin = max(t - 0.5, 0)
-                tmax = min(t + 0.5, raw.times[-1])
-                duration = tmax - tmin
-                fig = raw.plot(
-                    butterfly=True, show_scrollbars=False, start=tmin,
-                    duration=duration, scalings=scalings, show=False
-                )
+
+            # Create the figure once and re-use it for performance reasons
+            fig = raw.plot(
+                butterfly=True, show_scrollbars=False, start=t_starts[0],
+                duration=durations[0], scalings=scalings, show=False
+            )
+            figs.append(fig)
+
+            for start, duration in zip(t_starts[1:], durations[1:]):
+                fig.mne.t_start = start
+                fig.mne.duration = duration
+                fig._update_hscroll()
                 figs.append(fig)
         except Exception:
             raise

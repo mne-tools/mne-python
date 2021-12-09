@@ -12,7 +12,7 @@ plots of data before and after each preprocessing step, epoch rejection
 statistics, MRI slices with overlaid BEM shells, all the way up to plots of
 estimated cortical activity.
 
-Compared to a Jupyter notebook, `mne.Report` is easier to deploy (the HTML
+Compared to a Jupyter notebook, `mne.Report` is easier to deploy (the HTMLf
 pages it generates are self-contained and do not require a running Python
 environment) but less flexible (you can't change code and re-run something
 directly within the browser). This tutorial covers the basics of building a
@@ -81,8 +81,8 @@ subjects_dir = data_path / 'subjects'
 # equally-spaced 1-second segments of the data:
 #
 # .. warning::
-#    In the following example, we crop the raw data and crop to 60 seconds
-#    just to speed up processing, this is not usually recommended!
+#    In the following example, we crop the raw data to 60 seconds just to speed
+#    up processing, this is not usually recommended!
 
 raw_path = sample_dir / 'sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw(raw_path)
