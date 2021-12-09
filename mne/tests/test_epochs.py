@@ -3725,6 +3725,7 @@ def test_epoch_annotations_with_first_samp(first_samp):
     epochs = make_fixed_length_epochs(raw, duration=1, overlap=0.5)
 
     # add Annotations to Epochs metadata
+    epochs.load_data()
     epochs.add_annotations_to_metadata()
     metadata = epochs.metadata
     assert 'Annotations_onset' in metadata.columns
