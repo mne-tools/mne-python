@@ -935,7 +935,7 @@ class CoregistrationUI(HasTraits):
             func=self._set_fiducials_file,
             value=self._fiducials_file,
             placeholder="Path to fiducials",
-            tooltip="Load the fiducials from a fiff file",
+            tooltip="Load the fiducials from a FIFF file",
             layout=layout,
         )
         self._widgets["fids"] = self._renderer._dock_add_radio_buttons(
@@ -969,6 +969,8 @@ class CoregistrationUI(HasTraits):
             func=self._set_info_file,
             value=self._info_file,
             placeholder="Path to info",
+            tooltip="Load the FIFF file with digitizer data for "
+                    "coregistration",
             layout=layout,
         )
         self._widgets["grow_hair"] = self._renderer._dock_add_spin_box(
@@ -1151,6 +1153,7 @@ class CoregistrationUI(HasTraits):
             save=True,
             func=self._save_trans,
             input_text_widget=False,
+            tooltip="Save the transform file to disk",
             layout=hlayout,
         )
         self._widgets["load_trans"] = self._renderer._dock_add_file_button(
@@ -1158,6 +1161,7 @@ class CoregistrationUI(HasTraits):
             desc="Load...",
             func=self._load_trans,
             input_text_widget=False,
+            tooltip="Load the transform file from disk",
             layout=hlayout,
         )
         self._renderer._layout_add_widget(layout, hlayout)
