@@ -105,7 +105,8 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_add_check_box(self, name, value, callback, layout=None):
+    def _dock_add_check_box(self, name, value, callback, tooltip=None,
+                            layout=None):
         layout = self._dock_layout if layout is None else layout
         widget = Checkbox(
             value=value,

@@ -118,9 +118,12 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
-    def _dock_add_check_box(self, name, value, callback, layout=None):
+    def _dock_add_check_box(self, name, value, callback, tooltip=None,
+                            layout=None):
         layout = self._dock_layout if layout is None else layout
         widget = QCheckBox(name)
+        if tooltip is not None:
+            widget.setToolTip(tooltip)
         widget.setChecked(value)
         widget.stateChanged.connect(callback)
         self._layout_add_widget(layout, widget)

@@ -545,7 +545,8 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_check_box(self, name, value, callback, layout=None):
+    def _dock_add_check_box(self, name, value, callback, tooltip=None,
+                            layout=None):
         pass
 
     @abstractmethod

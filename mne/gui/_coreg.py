@@ -928,6 +928,7 @@ class CoregistrationUI(HasTraits):
             name="Lock fiducials",
             value=self._lock_fids,
             callback=self._set_lock_fids,
+            tooltip="Lock/Unlock interactive fiducial editing",
             layout=layout
         )
         self._widgets["fiducials_file"] = self._renderer._dock_add_file_button(
@@ -1009,12 +1010,14 @@ class CoregistrationUI(HasTraits):
             name="Project EEG",
             value=self._project_eeg,
             callback=self._set_project_eeg,
+            tooltip="Enable/Disable EEG channels projection on head surface",
             layout=layout
         )
         self._widgets["high_res_head"] = self._renderer._dock_add_check_box(
             name="Show High Resolution Head",
             value=self._head_resolution,
             callback=self._set_head_resolution,
+            tooltip="Enable/Disable high resolution head surface",
             layout=layout
         )
         self._renderer._dock_add_stretch()
