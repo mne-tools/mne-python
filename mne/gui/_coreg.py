@@ -909,6 +909,8 @@ class CoregistrationUI(HasTraits):
             value=self._subjects_dir,
             placeholder="Subjects Directory",
             directory=True,
+            tooltip="Load the path to the directory containing the "
+                    "FreeSurfer subjects",
             layout=layout,
         )
         self._widgets["subject"] = self._renderer._dock_add_combo_box(
@@ -933,6 +935,7 @@ class CoregistrationUI(HasTraits):
             func=self._set_fiducials_file,
             value=self._fiducials_file,
             placeholder="Path to fiducials",
+            tooltip="Load the fiducials from a fiff file",
             layout=layout,
         )
         self._widgets["fids"] = self._renderer._dock_add_radio_buttons(
@@ -986,13 +989,14 @@ class CoregistrationUI(HasTraits):
         self._widgets["omit"] = self._renderer._dock_add_button(
             name="Omit",
             callback=self._omit_hsp,
-            tooltip="Exclude HSP that are far away from the MRI head",
+            tooltip="Exclude the head shape points that are far away from "
+                    "the MRI head",
             layout=hlayout,
         )
         self._widgets["reset_omit"] = self._renderer._dock_add_button(
             name="Reset",
             callback=self._reset_omit_hsp_filter,
-            tooltip="Reset all excluded HSP",
+            tooltip="Reset all excluded head shape points",
             layout=hlayout,
         )
         self._renderer._layout_add_widget(layout, hlayout)
@@ -1070,7 +1074,8 @@ class CoregistrationUI(HasTraits):
         self._renderer._dock_add_button(
             name="Fit ICP",
             callback=self._fit_icp,
-            tooltip="Find MRI scaling, translation, and rotation to match HSP",
+            tooltip="Find MRI scaling, translation, and rotation to match the "
+                    "head shape points",
             layout=hlayout,
         )
         self._renderer._layout_add_widget(layout, hlayout)

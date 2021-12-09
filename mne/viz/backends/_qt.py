@@ -193,7 +193,8 @@ class _QtDock(_AbstractDock, _QtLayout):
 
     def _dock_add_file_button(self, name, desc, func, value=None, save=False,
                               directory=False, input_text_widget=True,
-                              placeholder="Type a file name", layout=None):
+                              placeholder="Type a file name", tooltip=None,
+                              layout=None):
         layout = self._dock_layout if layout is None else layout
         if input_text_widget:
             hlayout = self._dock_add_layout(vertical=False)
@@ -227,6 +228,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         button_widget = self._dock_add_button(
             name=desc,
             callback=callback,
+            tooltip=tooltip,
             layout=hlayout,
         )
         if input_text_widget:
