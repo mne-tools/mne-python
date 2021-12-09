@@ -3192,17 +3192,18 @@ class Report(object):
                     f'are only {signal_duration:.3f} sec long'
                 )
 
-            epochs_idx = np.arange(
-                start=0,
-                stop=len(epochs),
-                step=int(np.floor(len(epochs) / num_of_epochs_required))
-            )
-            # We may have more epochs than necessary due to the floor(); simply
-            # drop the last few ones in this case
-            epochs_idx = epochs_idx[:num_of_epochs_required]
-
             if psd_signal_duration is None:
-                assert len(epochs_idx) == len(epochs)
+                epochs_for_psd = epochs  # Avoid creating a copy
+            else:
+                epochs_idx = np.arange(
+                    start=0,
+                    stop=len(epochs),
+                    step=int(np.floor(len(epochs) / num_of_epochs_required))
+                )
+                # We may have more epochs than necessary due to the floor();
+                # simply drop the last few ones in this case
+                epochs_idx = epochs_idx[:num_of_epochs_required]
+                epochs_for_psd = epochs[epochs_idx]
 
             dom_id = self._get_dom_id()
             if epochs.info['lowpass'] is not None:
@@ -3213,13 +3214,14 @@ class Report(object):
             else:
                 fmax = np.inf
 
-            fig = epochs[epochs_idx].plot_psd(fmax=fmax, show=False)
+            fig = epochs_for_psd.plot_psd(fmax=fmax, show=False)
             img = _fig_to_img(fig=fig, image_format=image_format)
             psd_img_html = _html_image_element(
                 img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
                 show=True, image_format=image_format, title='PSD',
                 caption=None, tags=tags
             )
+            del epochs_for_psd
         else:
             psd_img_html = ''
 
