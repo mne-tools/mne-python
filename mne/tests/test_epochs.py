@@ -3660,6 +3660,7 @@ def test_add_channels_picks():
     epochs_final.drop_channels(epochs.ch_names)
 
 
+@requires_pandas
 @pytest.mark.parametrize(
     'first_samp', [0, 10])
 def test_epoch_annotations_with_first_samp(first_samp):
