@@ -599,16 +599,18 @@ class CoregistrationUI(HasTraits):
         n_omitted = np.sum(~self._coreg._extra_points_filter)
         n_remaining = len(self._coreg._dig_dict['hsp']) - n_omitted
         self._update_plot("hsp")
-        self._renderer._status_bar_show_message(
-            f"{n_omitted} head shape points omitted, "
-            f"{n_remaining} remaining.")
+        self._display_message(
+            msg=f"{n_omitted} head shape points omitted, "
+            f"{n_remaining} remaining.",
+            status_bar=True)
 
     def _reset_omit_hsp_filter(self):
         self._coreg._extra_points_filter = None
         self._update_plot("hsp")
         n_total = len(self._coreg._dig_dict['hsp'])
-        self._renderer._status_bar_show_message(
-            f"No head shape point is omitted, the total is {n_total}.")
+        self._display_message(
+            msg=f"No head shape point is omitted, the total is {n_total}.",
+            status_bar=True)
 
     def _update_plot(self, changes="all"):
         # Update list of things that need to be updated/plotted (and maybe
@@ -652,12 +654,17 @@ class CoregistrationUI(HasTraits):
         finally:
             self._plot_locked = old_plot_locked
 
-    def _display_message(self, msg=""):
-        if "msg" not in self._actors:
-            self._actors["msg"] = self._renderer.text2d(0, 0, msg)
+    def _display_message(self, msg="", status_bar=False):
+        if status_bar:
+            self._status_msg.set_value(msg)
+            self._status_msg.show()
+            self._status_msg.update()
         else:
-            self._actors["msg"].SetInput(msg)
-        self._renderer._update()
+            if "msg" not in self._actors:
+                self._actors["msg"] = self._renderer.text2d(0, 0, msg)
+            else:
+                self._actors["msg"].SetInput(msg)
+            self._renderer._update()
 
     def _follow_fiducial_view(self):
         fid = self._current_fiducial.lower()
@@ -808,8 +815,9 @@ class CoregistrationUI(HasTraits):
 
     def _fit_fiducials(self):
         if not self._lock_fids:
-            self._renderer._status_bar_show_message(
-                "Fitting is disabled, lock the fiducials first.")
+            self._display_message(
+                msg="Fitting is disabled, lock the fiducials first.",
+                status_bar=True)
             return
         start = time.time()
         self._coreg.fit_fiducials(
@@ -819,19 +827,21 @@ class CoregistrationUI(HasTraits):
             verbose=self._verbose,
         )
         end = time.time()
-        self._renderer._status_bar_show_message(
-            f"Fitting fiducials finished in {end - start:.2f} seconds.")
+        self._display_message(
+            msg=f"Fitting fiducials finished in {end - start:.2f} seconds.",
+            status_bar=True)
         self._update_plot("sensors")
         self._update_parameters()
         self._update_distance_estimation()
 
     def _fit_icp(self):
         if not self._lock_fids:
-            self._renderer._status_bar_show_message(
-                "Fitting is disabled, lock the fiducials first.")
+            self._display_message(
+                msg="Fitting is disabled, lock the fiducials first.",
+                status_bar=True)
             return
         self._current_icp_iterations = 0
-        self._last_log = None
+        self._last_log = ""
 
         def callback(iteration, n_iterations):
             self._display_message(f"Fitting ICP - iteration {iteration + 1}")
@@ -841,10 +851,7 @@ class CoregistrationUI(HasTraits):
             self._last_log = "Distance between HSP and MRI (mean/min/max): "\
                 f"{np.mean(dists):.2f} mm "\
                 f"/ {np.min(dists):.2f} mm / {np.max(dists):.2f} mm"
-            self._status_msg.set_value(self._last_log)
-            self._status_msg.show()
-            self._status_msg.update()
-            self._renderer._status_bar_update()
+            self._display_message(self._last_log, status_bar=True)
             self._update_distance_estimation()
             self._renderer._process_events()  # allow a draw or cancel
 
@@ -858,22 +865,21 @@ class CoregistrationUI(HasTraits):
             verbose=self._verbose,
         )
         end = time.time()
-        self._status_msg.set_value("")
-        self._status_msg.hide()
         self._display_message()
-        self._renderer._status_bar_show_message(
-            self._last_log +
+        self._display_message(
+            msg=self._last_log +
             f" - Fitting ICP finished in {end - start:.2f} seconds and "
             f"{self._current_icp_iterations} iterations.",
-            timeout=6000)
+            status_bar=True)
         self._update_parameters()
         del self._current_icp_iterations
         del self._last_log
 
     def _save_trans(self, fname):
         write_trans(fname, self._coreg.trans)
-        self._renderer._status_bar_show_message(
-            f"{fname} transform file is saved.")
+        self._display_message(
+            msg="{fname} transform file is saved.",
+            status_bar=True)
 
     def _load_trans(self, fname):
         mri_head_t = _ensure_trans(read_trans(fname, return_all=True),
@@ -885,8 +891,9 @@ class CoregistrationUI(HasTraits):
             tra=np.array([x, y, z]),
         )
         self._update_parameters()
-        self._renderer._status_bar_show_message(
-            f"{fname} transform file is loaded.")
+        self._display_message(
+            msg=f"{fname} transform file is loaded.",
+            status_bar=True)
 
     def _get_subjects(self, sdir=None):
         # XXX: would be nice to move this function to util
