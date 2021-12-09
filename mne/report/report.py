@@ -2551,22 +2551,37 @@ class Report(object):
     def _render_raw_butterfly_segments(
         self, *, raw: BaseRaw, scalings, image_format, tags
     ):
-        # Pick 10 1-second time slices
-        times = np.linspace(raw.times[0], raw.times[-1], 12)[1:-1]
+        # Calculate scalings once and re-use them for improved performance
         scalings = _compute_scalings(
             scalings, inst=raw, remove_dc=True, duration=1
         )
         scalings = _handle_default('scalings_plot_raw', scalings)
+
+        # Pick 10 1-second time slices
+        times = np.linspace(raw.times[0], raw.times[-1], 12)[1:-1]
+
+        # Remove annotations before plotting for better performance.
+        # Ensure we later restore raw.annotations even in case of an exception
+        orig_annotations = raw.annotations.copy()
         figs = []
-        for t in times:
-            tmin = max(t - 0.5, 0)
-            tmax = min(t + 0.5, raw.times[-1])
-            duration = tmax - tmin
-            fig = raw.plot(
-                butterfly=True, show_scrollbars=False, start=tmin,
-                duration=duration, scalings=scalings, show=False
-            )
-            figs.append(fig)
+
+        try:
+            raw.set_annotations(None)
+            for t in times:
+                tmin = max(t - 0.5, 0)
+                tmax = min(t + 0.5, raw.times[-1])
+                duration = tmax - tmin
+                fig = raw.plot(
+                    butterfly=True, show_scrollbars=False, start=tmin,
+                    duration=duration, scalings=scalings, show=False
+                )
+                figs.append(fig)
+        except Exception:
+            raise
+        finally:
+            raw.set_annotations(orig_annotations)
+
+        del orig_annotations
 
         captions = [f'Segment {i+1} of {len(figs)}'
                     for i in range(len(figs))]
