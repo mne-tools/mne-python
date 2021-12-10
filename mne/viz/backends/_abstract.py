@@ -599,10 +599,6 @@ class _AbstractStatusBar(ABC):
         pass
 
     @abstractmethod
-    def _status_bar_show_message(self, value, timeout=5000):
-        pass
-
-    @abstractmethod
     def _status_bar_add_label(self, value, stretch=0):
         pass
 
