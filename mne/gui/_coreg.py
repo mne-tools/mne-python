@@ -677,11 +677,12 @@ class CoregistrationUI(HasTraits):
 
     def _update_distance_estimation(self):
         value = self._coreg._get_fiducials_distance_str() + '\n' + \
-            self._coreg._get_point_distance_str() + '\n'
+            self._coreg._get_point_distance_str()
         dists = self._coreg.compute_dig_mri_distances() * 1e3
-        value += "HSP <-> MRI (mean/min/max): "\
-            f"{np.mean(dists):.2f} "\
-            f"/ {np.min(dists):.2f} / {np.max(dists):.2f} mm\n"
+        if self._hsp_weight > 0:
+            value += "\nHSP <-> MRI (mean/min/max): "\
+                f"{np.mean(dists):.2f} "\
+                f"/ {np.min(dists):.2f} / {np.max(dists):.2f} mm"
         self._forward_widget_command("fit_label", "set_value", value)
 
     def _update_parameters(self):
