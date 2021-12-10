@@ -849,7 +849,6 @@ class Report(object):
               equally-spaced epochs that cover the entire requested time range.
               In these situations, a warning will be emitted, informing you
               about the duration that's actually being used.
-
         %(report_projs)s
         %(report_tags)s
         %(report_replace)s
