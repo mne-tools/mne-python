@@ -101,10 +101,14 @@ def test_muscle_annotation_without_meeg_data():
         annotate_muscle_zscore(raw, threshold=10)
 
 
+@pytest.mark.parametrize('meas_date', (None, "raw"))
 @testing.requires_testing_data
-def test_annotate_breaks():
+def test_annotate_breaks(meas_date):
     """Test annotate_breaks."""
     raw = read_raw_fif(raw_fname, allow_maxshield='yes')
+    if meas_date != "raw":
+        raw.set_meas_date(None)
+
     annots = Annotations(onset=[12, 15, 16, 20, 21],
                          duration=[1, 1, 1, 2, 0.5],
                          description=['test'],
