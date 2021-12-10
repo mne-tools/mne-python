@@ -46,7 +46,7 @@ from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
-from ..viz.utils import _ndarray_to_fig, tight_layout, _compute_scalings
+from ..viz.utils import _ndarray_to_fig, tight_layout
 from ..forward import read_forward_solution, Forward
 from ..epochs import read_epochs, BaseEpochs
 from ..preprocessing.ica import read_ica
@@ -1427,8 +1427,8 @@ class Report(object):
             )
         else:
             properties_html, _ = self._render_slider(
-                figs=figs, title=title, captions=captions, start_idx=0,
-                image_format=image_format, tags=tags
+                figs=figs, imgs=None, title=title, captions=captions,
+                start_idx=0, image_format=image_format, tags=tags
             )
 
         return properties_html
@@ -1487,8 +1487,8 @@ class Report(object):
         else:
             captions = [None] * len(figs)
             topographies_html, _ = self._render_slider(
-                figs=figs, title=title, captions=captions, start_idx=0,
-                image_format=image_format, tags=tags
+                figs=figs, imgs=None, title=title, captions=captions,
+                start_idx=0, image_format=image_format, tags=tags
             )
 
         return topographies_html
@@ -1911,8 +1911,8 @@ class Report(object):
             )
         else:
             html, dom_id = self._render_slider(
-                figs=figs, title=title, captions=captions, start_idx=0,
-                image_format=image_format, tags=tags
+                figs=figs, imgs=None, title=title, captions=captions,
+                start_idx=0, image_format=image_format, tags=tags
             )
 
         self._add_or_replace(
@@ -2048,15 +2048,24 @@ class Report(object):
             replace=replace
         )
 
-    def _render_slider(self, *, figs, title, captions, start_idx, image_format,
-                       tags, klass=''):
-        if len(figs) != len(captions):
+    def _render_slider(self, *, figs, imgs, title, captions, start_idx,
+                       image_format, tags, klass=''):
+        if figs is not None and imgs is not None:
+            raise ValueError('Must only provide either figs or imgs')
+
+        if figs is not None and len(figs) != len(captions):
             raise ValueError(
                 f'Number of captions ({len(captions)}) must be equal to the '
                 f'number of figures ({len(figs)})'
             )
-        images = [_fig_to_img(fig=fig, image_format=image_format)
-                  for fig in figs]
+        elif imgs is not None and len(imgs) != len(captions):
+            raise ValueError(
+                f'Number of captions ({len(captions)}) must be equal to the '
+                f'number of images ({len(imgs)})'
+            )
+        elif figs:
+            imgs = [_fig_to_img(fig=fig, image_format=image_format)
+                    for fig in figs]
 
         dom_id = self._get_dom_id()
         html = _html_slider_element(
@@ -2064,7 +2073,7 @@ class Report(object):
             title=title,
             captions=captions,
             tags=tags,
-            images=images,
+            images=imgs,
             image_format=image_format,
             start_idx=start_idx,
             klass=klass
@@ -2538,6 +2547,7 @@ class Report(object):
         start_idx = int(round(len(figs) / 2))
         html, _ = self._render_slider(
             figs=figs,
+            imgs=None,
             captions=captions,
             title=orientation,
             image_format=image_format,
@@ -2551,31 +2561,32 @@ class Report(object):
     def _render_raw_butterfly_segments(
         self, *, raw: BaseRaw, scalings, image_format, tags
     ):
-        # Calculate scalings once and re-use them for improved performance
-        scalings = _compute_scalings(
-            scalings, inst=raw, remove_dc=True, duration=1
-        )
-        scalings = _handle_default('scalings_plot_raw', scalings)
-
         # Pick 10 1-second time slices
         times = np.linspace(raw.times[0], raw.times[-1], 12)[1:-1]
+        t_starts = np.array([max(t - 0.5, 0) for t in times])
+        t_stops = np.array([min(t + 0.5, raw.times[-1]) for t in times])
+        durations = t_stops - t_starts
 
         # Remove annotations before plotting for better performance.
         # Ensure we later restore raw.annotations even in case of an exception
         orig_annotations = raw.annotations.copy()
-        figs = []
 
         try:
             raw.set_annotations(None)
-            for t in times:
-                tmin = max(t - 0.5, 0)
-                tmax = min(t + 0.5, raw.times[-1])
-                duration = tmax - tmin
-                fig = raw.plot(
-                    butterfly=True, show_scrollbars=False, start=tmin,
-                    duration=duration, scalings=scalings, show=False
-                )
-                figs.append(fig)
+
+            # Create the figure once and re-use it for performance reasons
+            fig = raw.plot(
+                butterfly=True, show_scrollbars=False, start=t_starts[0],
+                duration=durations[0], scalings=scalings, show=False
+            )
+            images = [_fig_to_img(fig=fig, image_format=image_format)]
+
+            for start, duration in zip(t_starts[1:], durations[1:]):
+                fig.mne.t_start = start
+                fig.mne.duration = duration
+                fig._update_hscroll()
+                fig._redraw(annotations=False)
+                images.append(_fig_to_img(fig=fig, image_format=image_format))
         except Exception:
             raise
         finally:
@@ -2583,11 +2594,11 @@ class Report(object):
 
         del orig_annotations
 
-        captions = [f'Segment {i+1} of {len(figs)}'
-                    for i in range(len(figs))]
+        captions = [f'Segment {i+1} of {len(images)}'
+                    for i in range(len(images))]
 
         html, _ = self._render_slider(
-            figs=figs, title='Time series', captions=captions,
+            figs=None, imgs=images, title='Time series', captions=captions,
             start_idx=0, image_format=image_format, tags=tags
         )
 
@@ -2939,6 +2950,7 @@ class Report(object):
             captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
             html, dom_id = self._render_slider(
                 figs=fig_arrays,
+                imgs=None,
                 captions=captions,
                 title='Topographies',
                 image_format=image_format,
@@ -3353,6 +3365,7 @@ class Report(object):
         captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
         html, dom_id = self._render_slider(
             figs=figs,
+            imgs=None,
             captions=captions,
             title=title,
             image_format=image_format,
