@@ -981,7 +981,7 @@ class Report(object):
     @fill_doc
     def add_raw(
         self, raw, title, *, psd=None, projs=None, butterfly=True,
-        butterfly_segment_count=10, scalings=None, tags=('raw',),
+        n_butterfly_segments=10, scalings=None, tags=('raw',),
         replace=False, topomap_kwargs=None
     ):
         """Add `~mne.io.Raw` objects to the report.
@@ -1000,9 +1000,9 @@ class Report(object):
         butterfly : bool
             Whether to add butterfly plots of the data. Multiple equally-spaced
             1-second segments will be plotted. The number of segments can be
-            adjusted via ``butterfly_segment_count``. Can be useful to spot
+            adjusted via ``n_butterfly_segments``. Can be useful to spot
             segments marked as "bad" and problematic channels.
-        butterfly_segment_count : int
+        n_butterfly_segments : int
             The number of equally-spaced 1-second segments to plot if
             ``butterfly=True``. Larger numbers may take a considerable amount
             of time if the data contains many sensors.
@@ -1031,7 +1031,7 @@ class Report(object):
             add_psd=add_psd,
             add_projs=add_projs,
             add_butterfly=butterfly,
-            butterfly_segment_count=butterfly_segment_count,
+            n_butterfly_segments=n_butterfly_segments,
             butterfly_scalings=scalings,
             image_format=self.image_format,
             tags=tags,
@@ -2568,11 +2568,11 @@ class Report(object):
         return html
 
     def _render_raw_butterfly_segments(
-        self, *, raw: BaseRaw, segment_count, scalings, image_format, tags
+        self, *, raw: BaseRaw, n_segments, scalings, image_format, tags
     ):
-        # Pick segment_count + 2 equally-spaced 1-second time slices, but omit
-        # the first and last slice, so we end up with segment_count slices
-        n = segment_count + 2
+        # Pick n_segments + 2 equally-spaced 1-second time slices, but omit
+        # the first and last slice, so we end up with n_segments slices
+        n = n_segments + 2
         times = np.linspace(raw.times[0], raw.times[-1], n)[1:-1]
         t_starts = np.array([max(t - 0.5, 0) for t in times])
         t_stops = np.array([min(t + 0.5, raw.times[-1]) for t in times])
@@ -2616,7 +2616,7 @@ class Report(object):
         return html
 
     def _render_raw(self, *, raw, add_psd, add_projs, add_butterfly,
-                    butterfly_scalings, butterfly_segment_count,
+                    butterfly_scalings, n_butterfly_segments,
                     image_format, tags, topomap_kwargs):
         """Render raw."""
         if isinstance(raw, BaseRaw):
@@ -2642,7 +2642,7 @@ class Report(object):
         if add_butterfly:
             butterfly_imgs_html = self._render_raw_butterfly_segments(
                 raw=raw, scalings=butterfly_scalings,
-                segment_count=butterfly_segment_count,
+                n_segments=n_butterfly_segments,
                 image_format=image_format, tags=tags
             )
         else:
