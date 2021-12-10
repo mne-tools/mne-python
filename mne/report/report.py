@@ -3192,7 +3192,7 @@ class Report(object):
                 epochs_idx = np.arange(
                     start=0,
                     stop=len(epochs),
-                    step=int(np.floor(len(epochs) / num_of_epochs_required))
+                    step=len(epochs) // num_of_epochs_required
                 )
                 # We may have more epochs than necessary due to the floor();
                 # simply drop the last few ones in this case
