@@ -30,7 +30,8 @@ from mne.io import read_raw_fif, RawArray, read_raw_ctf, read_info
 from mne.io.pick import _DATA_CH_TYPES_SPLIT, pick_info
 from mne.preprocessing import maxwell_filter
 from mne.rank import _compute_rank_int
-from mne.utils import requires_sklearn, catch_logging, assert_snr
+from mne.utils import (requires_sklearn, catch_logging, assert_snr,
+                       _record_warnings)
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 cov_fname = op.join(base_dir, 'test-cov.fif')
@@ -271,7 +272,7 @@ def test_cov_estimation_on_raw(method, tmp_path):
     # The pure-string uses the more efficient numpy-based method, the
     # the list gets triaged to compute_covariance (should be equivalent
     # but use more memory)
-    with pytest.warns(None):  # can warn about EEG ref
+    with _record_warnings():  # can warn about EEG ref
         cov = compute_raw_covariance(
             raw, tstep=None, method=method, rank='full',
             method_params=method_params)
@@ -294,7 +295,7 @@ def test_cov_estimation_on_raw(method, tmp_path):
         assert_snr(cov.data, other.data, 1e6)
 
     # tstep=0.2 (default)
-    with pytest.warns(None):  # can warn about EEG ref
+    with _record_warnings():  # can warn about EEG ref
         cov = compute_raw_covariance(raw, method=method, rank='full',
                                      method_params=method_params)
     assert_equal(cov.nfree, cov_mne.nfree - 120)  # cutoff some samples
@@ -326,7 +327,7 @@ def test_cov_estimation_on_raw(method, tmp_path):
     pytest.raises(ValueError, compute_raw_covariance, raw, tstep=None,
                   method='empirical', reject=dict(eog=200e-6))
     # but this should work
-    with pytest.warns(None):  # sklearn
+    with _record_warnings():  # sklearn
         cov = compute_raw_covariance(
             raw.copy().crop(0, 10.), tstep=None, method=method,
             reject=dict(eog=1000e-6), method_params=method_params,
@@ -639,7 +640,7 @@ def _cov_rank(cov, info, proj=True):
     # ignore warnings about rank mismatches: sometimes we will intentionally
     # violate the computed/info assumption, such as when using SSS with
     # `rank='full'`
-    with pytest.warns(None):
+    with _record_warnings():
         return _compute_rank_int(cov, info=info, proj=proj)
 
 

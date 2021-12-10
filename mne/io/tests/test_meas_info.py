@@ -38,7 +38,7 @@ from mne.minimum_norm import (make_inverse_operator, write_inverse_operator,
                               read_inverse_operator, apply_inverse)
 from mne.io._digitization import _write_dig_points, _make_dig_points, DigPoint
 from mne.transforms import Transform
-from mne.utils import catch_logging, assert_object_equal
+from mne.utils import catch_logging, assert_object_equal, _record_warnings
 
 fiducials_fname = op.join(op.dirname(__file__), '..', '..', 'data',
                           'fsaverage', 'fsaverage-fiducials.fif')
@@ -652,7 +652,7 @@ def _test_anonymize_info(base_info):
         new_info = anonymize_info(base_info.copy(), daysback=delta_t_2.days)
     assert_object_equal(new_info, exp_info_3)
 
-    with pytest.warns(None):  # meas_date is None
+    with _record_warnings():  # meas_date is None
         new_info = anonymize_info(base_info.copy())
     assert_object_equal(new_info, exp_info_3)
 
@@ -996,7 +996,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     #
     # forward
     #
-    with pytest.warns(None):  # not enough points for CTF
+    with _record_warnings():  # not enough points for CTF
         sphere = make_sphere_model('auto', 'auto', evoked.info)
     src = setup_volume_source_space(
         pos=dict(rr=[[0, 0, 0.04]], nn=[[0, 1., 0.]]))

@@ -27,7 +27,8 @@ from mne.minimum_norm import (apply_inverse, read_inverse_operator,
 from mne.source_space import _add_interpolator, _grid_interp
 from mne.transforms import quat_to_rot
 from mne.utils import (requires_nibabel, check_version, requires_version,
-                       requires_dipy, requires_h5py, catch_logging)
+                       requires_dipy, requires_h5py, catch_logging,
+                       _record_warnings)
 from mne.fixes import _get_args
 
 # Setup paths
@@ -193,7 +194,7 @@ def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn, dtype):
         with pytest.raises(ValueError, match='required to use nearest'):
             morph = compute_source_morph(stc, 'sample', 'fsaverage', **kwargs)
         return
-    with pytest.warns(None) as w:
+    with _record_warnings() as w:
         morph = compute_source_morph(stc, 'sample', 'fsaverage', **kwargs)
     w = [ww for ww in w if 'vertices not included' in str(ww.message)]
     assert len(w) == n_warn

@@ -6,8 +6,8 @@
 #
 # License: Simplified BSD
 
-import os.path as op
 from collections import namedtuple
+import os.path as op
 
 import numpy as np
 import pytest
@@ -19,6 +19,7 @@ from mne import (read_events, Epochs, pick_channels_evoked, read_cov,
 from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFR
+from mne.utils import _record_warnings
 
 from mne.viz import (plot_topo_image_epochs, _get_presser,
                      mne_analyze_colormap, plot_evoked_topo)
@@ -290,7 +291,7 @@ def test_plot_tfr_topo():
     # one timesample
     tfr = AverageTFR(epochs.info, data[:, :, [0]], epochs.times[[1]],
                      freqs, nave)
-    with pytest.warns(None):  # matplotlib equal left/right
+    with _record_warnings():  # matplotlib equal left/right
         tfr.plot([4], baseline=None, vmax=14., show=False, yscale='linear')
 
     # one frequency bin, log scale required: as it doesn't make sense

@@ -12,12 +12,11 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from mne import pick_types, Annotations, create_info
-from mne.datasets import testing
-from mne.utils import get_config, set_config
-from mne.io import RawArray
-from mne.utils import _dt_to_stamp
-from mne.viz.utils import _fake_click
 from mne.annotations import _sync_onset
+from mne.datasets import testing
+from mne.io import RawArray
+from mne.utils import get_config, set_config, _dt_to_stamp, _record_warnings
+from mne.viz.utils import _fake_click
 from mne.viz import plot_raw, plot_sensors
 
 
@@ -554,7 +553,7 @@ def test_plot_raw_meas_date(raw, browser_backend):
     annot = Annotations([1 + raw.first_samp / raw.info['sfreq']], [5], ['bad'])
     with pytest.warns(RuntimeWarning, match='outside data range'):
         raw.set_annotations(annot)
-    with pytest.warns(None):  # sometimes projection
+    with _record_warnings():  # sometimes projection
         raw.plot(group_by='position', order=np.arange(8))
     fig = raw.plot()
     for key in ['down', 'up', 'escape']:
@@ -566,7 +565,7 @@ def test_plot_raw_nan(raw, browser_backend):
     raw._data[:] = np.nan
     # this should (at least) not die, the output should pretty clearly show
     # that there is a problem so probably okay to just plot something blank
-    with pytest.warns(None):
+    with _record_warnings():
         raw.plot(scalings='auto')
 
 

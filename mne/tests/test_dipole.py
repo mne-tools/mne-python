@@ -21,7 +21,8 @@ from mne import (read_dipole, read_forward_solution,
 from mne.dipole import get_phantom_dipoles, _BDIP_ERROR_KEYS
 from mne.simulation import simulate_evoked
 from mne.datasets import testing
-from mne.utils import requires_mne, run_subprocess, requires_nibabel
+from mne.utils import (requires_mne, run_subprocess, requires_nibabel,
+                       _record_warnings)
 from mne.proj import make_eeg_average_ref_proj
 
 from mne.io import read_raw_fif, read_raw_ctf
@@ -460,7 +461,7 @@ def test_confidence(tmp_path):
 def test_bdip(fname_dip_, fname_bdip_, tmp_path):
     """Test bdip I/O."""
     # use text as veridical
-    with pytest.warns(None):  # ignored fields
+    with _record_warnings():  # ignored fields
         dip = read_dipole(fname_dip_)
     # read binary
     orig_size = os.stat(fname_bdip_).st_size

@@ -30,7 +30,7 @@ from mne.preprocessing.maxwell import (
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
     _bases_real_to_complex, _prep_mf_coils)
 from mne.rank import _get_rank_sss, _compute_rank_int, compute_rank
-from mne.utils import (assert_meg_snr, catch_logging,
+from mne.utils import (assert_meg_snr, catch_logging, _record_warnings,
                        object_diff, buggy_mkl_svd, use_log_level)
 
 io_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -1091,7 +1091,7 @@ def test_shielding_factor(tmp_path):
             for line in fid:
                 fid_out.write(' '.join(line.strip().split(' ')[:14]) + '\n')
     with get_n_projected() as counts:
-        with pytest.warns(None):  # SVD convergence sometimes
+        with _record_warnings():  # SVD convergence sometimes
             raw_sss = maxwell_filter(raw_erm, calibration=temp_fname,
                                      cross_talk=ctc_fname, st_duration=1.,
                                      coord_frame='meg', regularize='in')
@@ -1134,7 +1134,7 @@ def test_all():
                mf_head_origin)
     for ii, rf in enumerate(raw_fnames):
         raw = read_crop(rf, (0., 1.))
-        with pytest.warns(None):  # sometimes the fit is bad
+        with _record_warnings():  # sometimes the fit is bad
             sss_py = maxwell_filter(
                 raw, calibration=fine_cals[ii], cross_talk=ctcs[ii],
                 st_duration=st_durs[ii], coord_frame=coord_frames[ii],

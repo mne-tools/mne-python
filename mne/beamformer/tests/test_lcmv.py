@@ -24,7 +24,8 @@ from mne.io.constants import FIFF
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.minimum_norm.tests.test_inverse import _assert_free_ori_match
 from mne.simulation import simulate_evoked
-from mne.utils import object_diff, requires_h5py, catch_logging
+from mne.utils import (object_diff, requires_h5py, catch_logging,
+                       _record_warnings)
 
 
 data_path = testing.data_path(download=False)
@@ -692,7 +693,7 @@ def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
     if not use_cov:
         evoked.pick_types(meg='grad')
         noise_cov = None
-    with pytest.warns(None):  # rank deficiency of data_cov
+    with _record_warnings():  # rank deficiency of data_cov
         filters = make_lcmv(evoked.info, fwd, data_cov, reg,
                             noise_cov, pick_ori=pick_ori,
                             weight_norm=weight_norm,

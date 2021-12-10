@@ -7,7 +7,6 @@ from contextlib import nullcontext
 import os
 import os.path as op
 import shutil
-from unittest import SkipTest
 
 import pytest
 import numpy as np
@@ -29,7 +28,7 @@ from mne.io import read_raw_fif, Info, RawArray, read_raw_ctf, read_raw_eeglab
 from mne.io.pick import _DATA_CH_TYPES_SPLIT, get_channel_type_constants
 from mne.io.eeglab.eeglab import _check_load_mat
 from mne.rank import _compute_rank_int
-from mne.utils import catch_logging, requires_sklearn
+from mne.utils import catch_logging, requires_sklearn, _record_warnings
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
 
@@ -66,7 +65,7 @@ def _skip_check_picard(method):
         try:
             import picard  # noqa, analysis:ignore
         except Exception as exp:
-            raise SkipTest("Picard is not installed (%s)." % (exp,))
+            pytest.skip("Picard is not installed (%s)." % (exp,))
 
 
 @requires_sklearn
@@ -110,7 +109,7 @@ def test_ica_full_data_recovery(method):
 
             ica = ICA(n_components=n_components, method=method,
                       random_state=0)
-            with pytest.warns(None):  # sometimes warns
+            with _record_warnings():  # sometimes warns
                 ica.fit(epochs, picks=picks)
             _assert_ica_attributes(ica, epochs.get_data(picks))
             epochs2 = ica.apply(epochs.copy(), **kwargs)
@@ -141,7 +140,7 @@ def test_ica_simple(method):
         try:
             import sklearn  # noqa: F401
         except ImportError:
-            raise SkipTest("scikit-learn not installed")
+            pytest.skip("scikit-learn not installed")
     _skip_check_picard(method)
     n_components = 3
     n_samples = 1000
@@ -367,7 +366,7 @@ def test_ica_projs(n_pca_components, proj, cov, meg, eeg):
     # infomax here just so we don't require sklearn
     ica = ICA(max_iter=1, noise_cov=noise_cov, method='infomax',
               n_components=10)
-    with pytest.warns(None):  # convergence
+    with _record_warnings():  # convergence
         ica.fit(raw_fit)
     if cov:
         assert ica.pre_whitener_.shape == (len(raw.ch_names),) * 2
@@ -517,7 +516,7 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components):
     #######################################################################
     # test epochs decomposition
     ica = ICA(noise_cov=noise_cov, n_components=n_components, method=method)
-    with pytest.warns(None):  # sometimes warns
+    with _record_warnings():  # sometimes warns
         ica.fit(epochs)
     _assert_ica_attributes(ica, epochs.get_data(), limits=(0.2, 20))
     data = epochs.get_data()[:, 0, :]
@@ -777,7 +776,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     assert_array_almost_equal(_raw1[:, :][0], _raw2[:, :][0])
 
     ica = ICA(n_components=2, method=method, max_iter=1)
-    with pytest.warns(None):  # ICA does not converge
+    with _record_warnings():  # ICA does not converge
         ica.fit(raw, picks=few_picks)
 
     # check score funcs
@@ -915,7 +914,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
         assert (ncomps_ == expected)
 
     ica = ICA(method=method)
-    with pytest.warns(None):  # sometimes does not converge
+    with _record_warnings():  # sometimes does not converge
         ica.fit(raw, picks=few_picks)
     _assert_ica_attributes(ica, raw.get_data(few_picks))
     with pytest.warns(RuntimeWarning, match='longer'):
@@ -959,7 +958,7 @@ def test_ica_cov(method, cov, tmp_path, short_raw_epochs):
     kwargs = dict(n_pca_components=4)
 
     ica = ICA(noise_cov=cov, n_components=2, method=method, max_iter=1)
-    with pytest.warns(None):  # ICA does not converge
+    with _record_warnings():  # ICA does not converge
         ica.fit(raw, picks=np.arange(10))
     _assert_ica_attributes(ica)
     sources = ica.get_sources(epochs).get_data()
@@ -1020,7 +1019,7 @@ def test_ica_twice(method):
     n_components = 0.99
     n_pca_components = 0.9999
     if method == 'fastica':
-        ctx = pytest.warns(None)  # convergence, sometimes
+        ctx = _record_warnings()  # convergence, sometimes
     else:
         ctx = nullcontext()
     ica1 = ICA(n_components=n_components, method=method)
@@ -1198,7 +1197,7 @@ def test_n_components_none(method, tmp_path):
     output_fname = tmp_path / 'test_ica-ica.fif'
     ica = ICA(method=method, n_components=n_components,
               random_state=random_state)
-    with pytest.warns(None):
+    with _record_warnings():
         ica.fit(epochs)
     _assert_ica_attributes(ica)
     ica.save(output_fname)
@@ -1230,7 +1229,7 @@ def test_ica_ctf():
         # test fit
         for inst in [raw, epochs]:
             ica = ICA(n_components=2, max_iter=2, method=method)
-            with pytest.warns(None):  # convergence sometimes
+            with _record_warnings():  # convergence sometimes
                 ica.fit(inst)
             _assert_ica_attributes(ica)
 
@@ -1242,7 +1241,7 @@ def test_ica_ctf():
     # test mixed compensation case
     raw.apply_gradient_compensation(0)
     ica = ICA(n_components=2, max_iter=2, method=method)
-    with pytest.warns(None):  # convergence sometimes
+    with _record_warnings():  # convergence sometimes
         ica.fit(raw)
     _assert_ica_attributes(ica)
     raw.apply_gradient_compensation(1)
@@ -1360,7 +1359,7 @@ def test_ica_eeg(fname, grade):
         # test fit
         for inst in [raw, epochs]:
             ica = ICA(n_components=2, max_iter=2, method=method)
-            with pytest.warns(None):
+            with _record_warnings():
                 ica.fit(inst, picks=picks, verbose=True)
             _assert_ica_attributes(ica)
 
@@ -1491,7 +1490,7 @@ def test_ica_ch_types(ch_type):
     method = 'infomax'
     for inst in [raw, epochs]:
         ica = ICA(n_components=2, max_iter=2, method=method)
-        with pytest.warns(None):
+        with _record_warnings():
             ica.fit(inst, verbose=True)
         _assert_ica_attributes(ica)
     # test apply and get_sources
