@@ -599,13 +599,16 @@ class CoregistrationUI(HasTraits):
         n_omitted = np.sum(~self._coreg._extra_points_filter)
         n_remaining = len(self._coreg._dig_dict['hsp']) - n_omitted
         self._update_plot("hsp")
+        self._update_distance_estimation()
         self._display_message(
             f"{n_omitted} head shape points omitted, "
             f"{n_remaining} remaining.")
 
     def _reset_omit_hsp_filter(self):
         self._coreg._extra_points_filter = None
+        self._coreg._update_params(force_update_omitted=True)
         self._update_plot("hsp")
+        self._update_distance_estimation()
         n_total = len(self._coreg._dig_dict['hsp'])
         self._display_message(
             f"No head shape point is omitted, the total is {n_total}.")
@@ -698,6 +701,7 @@ class CoregistrationUI(HasTraits):
         self._coreg.reset()
         self._update_plot()
         self._update_parameters()
+        self._update_distance_estimation()
 
     def _forward_widget_command(self, names, command, value):
         names = [names] if not isinstance(names, list) else names
@@ -874,6 +878,7 @@ class CoregistrationUI(HasTraits):
             tra=np.array([x, y, z]),
         )
         self._update_parameters()
+        self._update_distance_estimation()
         self._display_message(
             f"{fname} transform file is loaded.")
 
