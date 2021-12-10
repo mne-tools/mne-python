@@ -3165,7 +3165,7 @@ class Report(object):
             duration = round(epoch_duration * len(epochs_for_psd), 1)
             caption = (
                 f'PSD calculated from {len(epochs_for_psd)} epochs '
-                f'({duration:.1f} sec)'
+                f'({duration:.1f} sec).'
             )
             psd_img_html = _html_image_element(
                 img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
