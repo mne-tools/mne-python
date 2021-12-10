@@ -537,6 +537,7 @@ class CoregistrationUI(HasTraits):
                 draw_map[key]()
             self._redraws_pending.clear()
             self._renderer._update()
+            self._renderer._process_events()  # necessary for MacOS?
 
     def _on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
@@ -846,7 +847,6 @@ class CoregistrationUI(HasTraits):
             self._current_icp_iterations = n_iterations
             self._update_distance_estimation()
             self._renderer._process_events()  # allow a draw or cancel
-            self._renderer._process_events()  # another for MacOS?
 
         start = time.time()
         self._coreg.fit_icp(
