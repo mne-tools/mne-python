@@ -1019,16 +1019,16 @@ def test_ica_twice(method):
     n_components = 0.99
     n_pca_components = 0.9999
     if method == 'fastica':
-        ctx = _record_warnings()  # convergence, sometimes
+        ctx = _record_warnings  # convergence, sometimes
     else:
-        ctx = nullcontext()
+        ctx = nullcontext
     ica1 = ICA(n_components=n_components, method=method)
 
-    with ctx:
+    with ctx():
         ica1.fit(raw, picks=picks, decim=3)
     raw_new = ica1.apply(raw, n_pca_components=n_pca_components)
     ica2 = ICA(n_components=n_components, method=method)
-    with ctx:
+    with ctx():
         ica2.fit(raw_new, picks=picks, decim=3)
     assert_equal(ica1.n_components_, ica2.n_components_)
 
