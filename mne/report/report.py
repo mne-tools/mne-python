@@ -3180,10 +3180,10 @@ class Report(object):
             else:  # Only a subset of epochs
                 epoch_duration = epochs.tmax - epochs.tmin
                 signal_duration = len(epochs) * epoch_duration
-                num_of_epochs_required = int(
+                n_epochs_required = int(
                     np.ceil(psd_signal_duration / epoch_duration)
                 )
-                if num_of_epochs_required > len(epochs):
+                if n_epochs_required > len(epochs):
                     raise ValueError(
                         f'You requested to calculate PSD on a duration of '
                         f'{psd_signal_duration:.3f} sec, but all your epochs '
@@ -3192,11 +3192,11 @@ class Report(object):
                 epochs_idx = np.arange(
                     start=0,
                     stop=len(epochs),
-                    step=len(epochs) // num_of_epochs_required
+                    step=len(epochs) // n_epochs_required
                 )
                 # We may have more epochs than necessary due to the floor();
                 # simply drop the last few ones in this case
-                epochs_idx = epochs_idx[:num_of_epochs_required]
+                epochs_idx = epochs_idx[:n_epochs_required]
                 epochs_for_psd = epochs[epochs_idx]
 
             dom_id = self._get_dom_id()
