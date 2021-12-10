@@ -843,6 +843,13 @@ class Report(object):
             cover at least this duration. Epochs will be picked across the
             entire time range in equally-spaced distance. If ``None``, use all
             epochs.
+
+            .. note::
+              In rare edge cases, we may not be able to create a grid of
+              equally-spaced epochs that cover the entire requested time range.
+              In these situations, a warning will be emitted, informing you
+              about the duration that's actually being used.
+
         %(report_projs)s
         %(report_tags)s
         %(report_replace)s
@@ -3094,6 +3101,70 @@ class Report(object):
         )
         return html, dom_id
 
+    def _epochs_psd_img_html(
+        self, *, epochs, add_psd, psd_signal_duration, image_format, tags
+    ):
+        if add_psd:
+            epoch_duration = epochs.tmax - epochs.tmin
+
+            if psd_signal_duration is None:  # Entire time range -> all epochs
+                epochs_for_psd = epochs  # Avoid creating a copy
+            else:  # Only a subset of epochs
+                signal_duration = len(epochs) * epoch_duration
+                n_epochs_required = int(
+                    np.ceil(psd_signal_duration / epoch_duration)
+                )
+                if n_epochs_required > len(epochs):
+                    raise ValueError(
+                        f'You requested to calculate PSD on a duration of '
+                        f'{psd_signal_duration:.3f} sec, but all your epochs '
+                        f'are only {signal_duration:.1f} sec long'
+                    )
+                epochs_idx = np.round(
+                    np.linspace(
+                        start=0,
+                        stop=len(epochs) - 1,
+                        num=n_epochs_required
+                    )
+                ).astype(int)
+                # Edge case: there might be duplicate indices due to rounding?
+                epochs_idx_unique = np.unique(epochs_idx)
+                if len(epochs_idx_unique) != len(epochs_idx):
+                    duration = round(
+                        len(epochs_idx_unique) * epoch_duration, 1
+                    )
+                    warn(f'Using {len(epochs_idx_unique)} epochs, only '
+                         f'covering {duration:.1f} sec of data')
+                    del duration
+
+                epochs_for_psd = epochs[epochs_idx_unique]
+
+            dom_id = self._get_dom_id()
+            if epochs.info['lowpass'] is not None:
+                fmax = epochs.info['lowpass'] + 15
+                # Must not exceed half the sampling frequency
+                if fmax > 0.5 * epochs.info['sfreq']:
+                    fmax = np.inf
+            else:
+                fmax = np.inf
+
+            fig = epochs_for_psd.plot_psd(fmax=fmax, show=False)
+            img = _fig_to_img(fig=fig, image_format=image_format)
+            duration = round(epoch_duration * len(epochs_for_psd), 1)
+            caption = (
+                f'PSD calculated from {len(epochs_for_psd)} epochs '
+                f'({duration:.1f} sec)'
+            )
+            psd_img_html = _html_image_element(
+                img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
+                show=True, image_format=image_format, title='PSD',
+                caption=caption, tags=tags
+            )
+        else:
+            psd_img_html = ''
+
+        return psd_img_html
+
     def _render_epochs(self, *, epochs, add_psd, psd_signal_duration,
                        add_projs, image_format, tags, topomap_kwargs):
         """Render epochs."""
@@ -3173,52 +3244,11 @@ class Report(object):
         else:
             drop_log_img_html = ''
 
-        # PSD
-        if add_psd:
-            if psd_signal_duration is None:  # Entire time range -> all epochs
-                epochs_for_psd = epochs  # Avoid creating a copy
-            else:  # Only a subset of epochs
-                epoch_duration = epochs.tmax - epochs.tmin
-                signal_duration = len(epochs) * epoch_duration
-                n_epochs_required = int(
-                    np.ceil(psd_signal_duration / epoch_duration)
-                )
-                if n_epochs_required > len(epochs):
-                    raise ValueError(
-                        f'You requested to calculate PSD on a duration of '
-                        f'{psd_signal_duration:.3f} sec, but all your epochs '
-                        f'are only {signal_duration:.3f} sec long'
-                    )
-                epochs_idx = np.arange(
-                    start=0,
-                    stop=len(epochs),
-                    step=len(epochs) // n_epochs_required
-                )
-                # We may have more epochs than necessary due to the floor();
-                # simply drop the last few ones in this case
-                epochs_idx = epochs_idx[:n_epochs_required]
-                epochs_for_psd = epochs[epochs_idx]
-
-            dom_id = self._get_dom_id()
-            if epochs.info['lowpass'] is not None:
-                fmax = epochs.info['lowpass'] + 15
-                # Must not exceed half the sampling frequency
-                if fmax > 0.5 * epochs.info['sfreq']:
-                    fmax = np.inf
-            else:
-                fmax = np.inf
-
-            fig = epochs_for_psd.plot_psd(fmax=fmax, show=False)
-            img = _fig_to_img(fig=fig, image_format=image_format)
-            psd_img_html = _html_image_element(
-                img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
-                show=True, image_format=image_format, title='PSD',
-                caption=None, tags=tags
-            )
-            del epochs_for_psd
-        else:
-            psd_img_html = ''
-
+        psd_img_html = self._epochs_psd_img_html(
+            epochs=epochs, add_psd=add_psd,
+            psd_signal_duration=psd_signal_duration, image_format=image_format,
+            tags=tags
+        )
         ssp_projs_html = self._ssp_projs_html(
             add_projs=add_projs, info=epochs, image_format=image_format,
             tags=tags, topomap_kwargs=topomap_kwargs
