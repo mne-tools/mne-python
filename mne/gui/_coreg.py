@@ -552,6 +552,7 @@ class CoregistrationUI(HasTraits):
                 draw_map[key]()
             self._redraws_pending.clear()
             self._renderer._update()
+            self._renderer._process_events()  # necessary for MacOS?
 
     def _on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
@@ -614,13 +615,16 @@ class CoregistrationUI(HasTraits):
         n_omitted = np.sum(~self._coreg._extra_points_filter)
         n_remaining = len(self._coreg._dig_dict['hsp']) - n_omitted
         self._update_plot("hsp")
+        self._update_distance_estimation()
         self._display_message(
             f"{n_omitted} head shape points omitted, "
             f"{n_remaining} remaining.")
 
     def _reset_omit_hsp_filter(self):
         self._coreg._extra_points_filter = None
+        self._coreg._update_params(force_update_omitted=True)
         self._update_plot("hsp")
+        self._update_distance_estimation()
         n_total = len(self._coreg._dig_dict['hsp'])
         self._display_message(
             f"No head shape point is omitted, the total is {n_total}.")
@@ -689,11 +693,12 @@ class CoregistrationUI(HasTraits):
 
     def _update_distance_estimation(self):
         value = self._coreg._get_fiducials_distance_str() + '\n' + \
-            self._coreg._get_point_distance_str() + '\n'
+            self._coreg._get_point_distance_str()
         dists = self._coreg.compute_dig_mri_distances() * 1e3
-        value += "HSP <-> MRI (mean/min/max): "\
-            f"{np.mean(dists):.2f} "\
-            f"/ {np.min(dists):.2f} / {np.max(dists):.2f} mm\n"
+        if self._hsp_weight > 0:
+            value += "\nHSP <-> MRI (mean/min/max): "\
+                f"{np.mean(dists):.2f} "\
+                f"/ {np.min(dists):.2f} / {np.max(dists):.2f} mm"
         self._forward_widget_command("fit_label", "set_value", value)
 
     def _update_parameters(self):
@@ -713,6 +718,7 @@ class CoregistrationUI(HasTraits):
         self._coreg.reset()
         self._update_plot()
         self._update_parameters()
+        self._update_distance_estimation()
 
     def _forward_widget_command(self, names, command, value):
         names = [names] if not isinstance(names, list) else names
@@ -889,6 +895,7 @@ class CoregistrationUI(HasTraits):
             tra=np.array([x, y, z]),
         )
         self._update_parameters()
+        self._update_distance_estimation()
         self._display_message(
             f"{fname} transform file is loaded.")
 
