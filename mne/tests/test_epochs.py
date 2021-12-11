@@ -1032,12 +1032,13 @@ def test_epochs_io_preload(tmp_path, preload):
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=baseline, preload=True)
     log = log.getvalue()
-    assert log.count('Not setting metadata') == 1
+    msg = 'Not setting metadata'
+    assert log.count(msg) == 1, f'\nto find:\n{msg}\n\nlog:\n{log}'
     load_msg = 'Loading data for 7 events and 421 original time points ...'
     if preload:
         load_msg = ('Using data from preloaded Raw for 7 events and 421 '
                     'original time points ...')
-    assert log.count(load_msg) == 1
+    assert log.count(load_msg) == 1, f'\nto find:\n{load_msg}\n\nlog:\n{log}'
 
     evoked = epochs.average()
     epochs.save(temp_fname, overwrite=True)
@@ -1412,7 +1413,7 @@ def test_evoked_io_from_epochs(tmp_path):
     log = log.getvalue()
     load_msg = ('Loading data for 1 events and 415 original time points '
                 '(prior to decimation) ...')
-    assert log.count(load_msg) == 1
+    assert log.count(load_msg) == 1, f'\nto find:\n{load_msg}\n\nlog:\n{log}'
     evoked = epochs.average()
     with evoked.info._unlock():
         # Test that empty string shortcuts to None.
@@ -2944,11 +2945,12 @@ def test_metadata(tmp_path):
         epochs = EpochsArray(data, info, metadata=meta,
                              events=events, event_id=event_id)
     log = log.getvalue()
-    assert log.count('Adding metadata with 2 columns') == 1
+    msg = 'Adding metadata with 2 columns'
+    assert log.count(msg) == 1, f'\nto find:\n{msg}\n\nlog:\n{log}'
     with catch_logging() as log:
         epochs.metadata = meta
-    log = log.getvalue()
-    assert log.strip() == 'Replacing existing metadata with 2 columns'
+    log = log.getvalue().strip()
+    assert log == 'Replacing existing metadata with 2 columns', f'{log}'
     indices = np.arange(len(epochs))  # expected indices
     assert_array_equal(epochs.metadata.index, indices)
 
