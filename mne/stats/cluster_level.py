@@ -562,6 +562,8 @@ def _cluster_mask_to_indices(components, shape):
     for ci, c in enumerate(components):
         if isinstance(c, np.ndarray):  # mask
             components[ci] = np.where(c.reshape(shape))
+        elif isinstance(c, slice):
+            components[ci] = np.arange(c.start, c.stop)
         else:
             assert isinstance(c, tuple), type(c)
             c = list(c)  # tuple->list

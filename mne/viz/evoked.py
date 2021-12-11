@@ -2351,14 +2351,49 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
                 sphere=sphere)
 
         layout = find_layout(info)
-        # shift everything to the right by 15% of one axes width
-        layout.pos[:, 0] += layout.pos[0, 2] * .15
-        layout.pos[:, 1] += layout.pos[0, 3] * .15
+        # make sure everything fits nicely. our figsize is (18, 14) so margins
+        # of 0.25 inch seem OK
+        w_margin = 0.25 / 18
+        h_margin = 0.25 / 14
+        axes_width = layout.pos[0, 2]
+        axes_height = layout.pos[0, 3]
+        left_edge = layout.pos[:, 0].min()
+        right_edge = layout.pos[:, 0].max() + axes_width
+        bottom_edge = layout.pos[:, 1].min()
+        top_edge = layout.pos[:, 1].max() + axes_height
+        # compute scale. Use less of vertical height (leave room for title)
+        w_scale = (0.95 - 2 * w_margin) / (right_edge - left_edge)
+        h_scale = (0.9 - 2 * h_margin) / (top_edge - bottom_edge)
+        # apply transformation
+        layout.pos[:, 0] = ((layout.pos[:, 0] - left_edge) * w_scale
+                            + w_margin + 0.025)
+        layout.pos[:, 1] = ((layout.pos[:, 1] - bottom_edge) * h_scale
+                            + h_margin + 0.025)
+        # make sure there is room for a legend axis (sometimes not if only a
+        # few channels were picked)
+        data_lefts = layout.pos[:, 0]
+        data_bottoms = layout.pos[:, 1]
+        legend_left = data_lefts.max()
+        legend_bottom = data_bottoms.min()
+        overlap = np.any(np.logical_and(
+            np.logical_and(
+                data_lefts <= legend_left,
+                legend_left <= (data_lefts + axes_width)),
+            np.logical_and(
+                data_bottoms <= legend_bottom,
+                legend_bottom <= (data_bottoms + axes_height)
+            )
+        ))
+        right_edge = legend_left + axes_width
+        n_columns = (right_edge - data_lefts.min()) / axes_width
+        scale_factor = n_columns / (n_columns + 1)
+        if overlap:
+            layout.pos[:, [0, 2]] *= scale_factor
         # `axes` will be a list of (axis_object, channel_index) tuples
         axes = list(iter_topography(
             info, layout=layout, on_pick=click_func,
             fig=fig, fig_facecolor='w', axis_facecolor='w',
-            axis_spinecolor='k', layout_scale=.925, legend=True))
+            axis_spinecolor='k', layout_scale=None, legend=True))
         picks = list(picks)
     del info
 

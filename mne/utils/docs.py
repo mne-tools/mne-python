@@ -172,6 +172,28 @@ tmax : float
     End time of the raw data to use in seconds (cannot exceed data duration).
 """
 
+# Scaling of traces in plots
+docdict['scalings'] = """
+scalings : 'auto' | dict | None
+    Scaling factors for the traces. If a dictionary where any
+    value is ``'auto'``, the scaling factor is set to match the 99.5th
+    percentile of the respective data. If ``'auto'``, all scalings (for all
+    channel types) are set to ``'auto'``. If any values are ``'auto'`` and the
+    data is not preloaded, a subset up to 100 MB will be loaded. If ``None``,
+    defaults to::
+
+        dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
+             emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
+             resp=1, chpi=1e-4, whitened=1e2)
+
+    .. note::
+        A particular scaling value ``s`` corresponds to half of the visualized
+        signal range around zero (i.e. from ``0`` to ``+s`` or from ``0`` to
+        ``-s``). For example, the default scaling of ``20e-6`` (20µV) for EEG
+        signals means that the visualized range will be 40 µV (20 µV in the
+        positive direction and 20 µV in the negative direction).
+"""
+
 # Raw
 docdict['standardize_names'] = """
 standardize_names : bool
@@ -182,11 +204,12 @@ standardize_names : bool
 
 docdict['event_color'] = """
 event_color : color object | dict | None
-    Color(s) to use for events. To show all events in the same color, pass any
-    matplotlib-compatible color. To color events differently, pass a `dict`
-    that maps event names or integer event numbers to colors (must include
-    entries for *all* events, or include a "fallback" entry with key ``-1``).
-    If ``None``, colors are chosen from the current Matplotlib color cycle.
+    Color(s) to use for :term:`events`. To show all :term:`events` in the same
+    color, pass any matplotlib-compatible color. To color events differently,
+    pass a `dict` that maps event names or integer event numbers to colors
+    (must include entries for *all* events, or include a "fallback" entry with
+    key ``-1``). If ``None``, colors are chosen from the current Matplotlib
+    color cycle.
 """
 
 docdict['browse_group_by'] = """
@@ -1699,8 +1722,8 @@ on_header_missing : str
 """ % (_on_missing_base,)
 docdict['on_missing_events'] = """
 on_missing : 'raise' | 'warn' | 'ignore'
-    %s event numbers from ``event_id`` are missing from ``events``.
-    When numbers from ``events`` are missing from ``event_id`` they will be
+    %s event numbers from ``event_id`` are missing from :term:`events`.
+    When numbers from :term:`events` are missing from ``event_id`` they will be
     ignored and a warning emitted; consider using ``verbose='error'`` in
     this case.
 
@@ -2363,16 +2386,15 @@ stc_plot_kwargs : dict
 """
 docdict['topomap_kwargs'] = """
 topomap_kwargs : dict | None
-    Keyword arguments to pass to topomap functions (
-    :func:`mne.viz.plot_evoked_topomap`, :func:`mne.viz.plot_projs_topomap`,
-    etc.).
+    Keyword arguments to pass to the topomap-generating functions.
 """
 
 # Epochs
 docdict['epochs_tmin_tmax'] = """
 tmin, tmax : float
     Start and end time of the epochs in seconds, relative to the time-locked
-    event. Defaults to -0.2 and 0.5, respectively.
+    event. The closest or matching samples corresponding to the start and end
+    time are included. Defaults to ``-0.2`` and ``0.5``, respectively.
 """
 docdict['epochs_reject_tmin_tmax'] = """
 reject_tmin, reject_tmax : float | None
@@ -2384,20 +2406,22 @@ reject_tmin, reject_tmax : float | None
     .. note:: This parameter controls the time period used in conjunction with
               both, ``reject`` and ``flat``.
 """
-docdict['epochs_events_event_id'] = """
+docdict['events'] = """
 events : array of int, shape (n_events, 3)
-    The events typically returned by the read_events function.
-    If some events don't match the events of interest as specified
-    by event_id, they will be marked as 'IGNORED' in the drop log.
+    The array of :term:`events`. The first column contains the event time in
+    samples, with :term:`first_samp` included. The third column contains the
+    event id."""
+docdict['events_epochs'] = """%s
+    If some events don't match the events of interest as specified by event_id,
+    they will be marked as ``IGNORED`` in the drop log.""" % docdict['events']
+docdict['event_id'] = """
 event_id : int | list of int | dict | None
-    The id of the event to consider. If dict,
-    the keys can later be used to access associated events. Example:
-    dict(auditory=1, visual=3). If int, a dict will be created with
-    the id as string. If a list, all events with the IDs specified
-    in the list are used. If None, all events will be used with
-    and a dict is created with string integer names corresponding
-    to the event id integers.
-"""
+    The id of the :term:`events` to consider. If dict, the keys can later be
+    used to access associated :term:`events`. Example:
+    dict(auditory=1, visual=3). If int, a dict will be created with the id as
+    string. If a list, all :term:`events` with the IDs specified in the list
+    are used. If None, all :term:`events` will be used and a dict is created
+    with string integer names corresponding to the event id integers."""
 docdict['epochs_preload'] = """
     Load all epochs from disk when creating the object
     or wait before accessing each epoch (more memory
@@ -2430,10 +2454,36 @@ docdict['epochs_event_repeated'] = """
 event_repeated : str
     How to handle duplicates in ``events[:, 0]``. Can be ``'error'``
     (default), to raise an error, 'drop' to only retain the row occurring
-    first in the ``events``, or ``'merge'`` to combine the coinciding
+    first in the :term:`events`, or ``'merge'`` to combine the coinciding
     events (=duplicates) into a new event (see Notes for details).
 
     .. versionadded:: 0.19
+"""
+docdict['by_event_type'] = """
+by_event_type : bool
+    When ``False`` (the default) all epochs are processed together and a single
+    :class:`~mne.Evoked` object is returned. When ``True``, epochs are first
+    grouped by event type (as specified using the ``event_id`` parameter) and a
+    list is returned containing a separate :class:`~mne.Evoked` object for each
+    event type. The ``.comment`` attribute is set to the label of the event
+    type.
+
+    .. versionadded:: 0.24.0
+"""
+_by_event_type_return_base = """\
+When ``by_event_type=True`` was specified, a list is returned containing a
+    separate :class:`~mne.Evoked` object for each event type. The list has the
+    same order as the event types as specified in the ``event_id``
+    dictionary."""
+docdict['by_event_type_returns_average'] = f"""
+evoked : instance of Evoked | list of Evoked
+    The averaged epochs.
+    {_by_event_type_return_base}
+"""
+docdict['by_event_type_returns_stderr'] = f"""
+std_err : instance of Evoked | list of Evoked
+    The standard error over epochs.
+    {_by_event_type_return_base}
 """
 docdict['epochs_raw'] = """
 raw : Raw object

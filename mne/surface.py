@@ -9,7 +9,6 @@
 # C code.
 
 from copy import deepcopy
-from distutils.version import LooseVersion
 from functools import partial, lru_cache
 from collections import OrderedDict
 from glob import glob
@@ -1101,7 +1100,7 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
     if file_format == 'freesurfer':
         try:
             import nibabel as nib
-            has_nibabel = LooseVersion(nib.__version__) > LooseVersion('2.1.0')
+            has_nibabel = True
         except ImportError:
             has_nibabel = False
         if has_nibabel:

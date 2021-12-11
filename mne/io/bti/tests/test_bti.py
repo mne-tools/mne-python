@@ -355,3 +355,12 @@ def test_nan_trans():
 def test_bti_ch_data(fname, preload):
     """Test for gh-6048."""
     read_raw_bti(fname, preload=preload)  # used to fail with ascii decode err
+
+
+@testing.requires_testing_data
+def test_bti_set_eog():
+    """Check that EOG channels can be set (gh-10092)."""
+    raw = read_raw_bti(fname_sim,
+                       preload=False,
+                       eog_ch=('X65', 'X67', 'X69', 'X66', 'X68'))
+    assert_equal(len(pick_types(raw.info, eog=True)), 5)

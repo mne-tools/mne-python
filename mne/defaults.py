@@ -77,7 +77,7 @@ DEFAULTS = dict(
         fnirs_scale=5e-3,
         source_scale=5e-3,
         detector_scale=5e-3,
-        hpi_scale=15e-3,
+        hpi_scale=4e-3,
 
         head_color=(0.988, 0.89, 0.74),
         hpi_color=(1., 0., 1.),

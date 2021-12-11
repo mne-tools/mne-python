@@ -61,7 +61,8 @@ from .numerics import (hashfunc, _compute_row_norms,
                        _mask_to_onsets_offsets, _array_equal_nan,
                        _julian_to_cal, _cal_to_julian, _dt_to_julian,
                        _julian_to_dt, _dt_to_stamp, _stamp_to_dt,
-                       _check_dt, _ReuseCycle, _arange_div, _hashable_ndarray)
+                       _check_dt, _ReuseCycle, _arange_div, _hashable_ndarray,
+                       _custom_lru_cache)
 from .mixin import (SizeMixin, GetEpochsMixin, _prepare_read_metadata,
                     _prepare_write_metadata, _FakeNoPandas, ShiftTimeMixin)
 from .linalg import (_svd_lwork, _repeated_svd, _sym_mat_pow, sqrtm_sym, eigh,

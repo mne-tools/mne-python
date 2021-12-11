@@ -21,13 +21,13 @@ from .io.write import write_int, start_block, start_file, end_block, end_file
 from .io.pick import pick_channels
 
 
+@fill_doc
 def pick_events(events, include=None, exclude=None, step=False):
-    """Select some events.
+    """Select some :term:`events`.
 
     Parameters
     ----------
-    events : ndarray
-        Array as returned by mne.find_events.
+    %(events)s
     include : int | list | None
         A event id to include or a list of them.
         If None all events are included.
@@ -191,7 +191,7 @@ def _read_events_fif(fid, tree):
 @verbose
 def read_events(filename, include=None, exclude=None, mask=None,
                 mask_type='and', return_event_id=False, verbose=None):
-    """Read events from fif or text file.
+    """Read :term:`events` from fif or text file.
 
     See :ref:`tut-events-vs-annotations` and :ref:`tut-event-arrays`
     for more information about events.
@@ -229,8 +229,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
 
     Returns
     -------
-    events: array, shape (n_events, 3)
-        The list of events.
+    %(events)s
     event_id : dict
         Dictionary of ``{str: int}`` mappings of event IDs.
 
@@ -299,8 +298,9 @@ def read_events(filename, include=None, exclude=None, mask=None,
     return out
 
 
-def write_events(filename, event_list):
-    """Write events to file.
+@verbose
+def write_events(filename, events, *, event_list=None, verbose=None):
+    """Write :term:`events` to file.
 
     Parameters
     ----------
@@ -311,13 +311,21 @@ def write_events(filename, event_list):
         .txt) events are written as plain text.
         Note that new format event files do not contain
         the "time" column (used to be the second column).
+    %(events)s
     event_list : array, shape (n_events, 3)
-        The list of events.
+        Deprecated, use argument events instead.
+    %(verbose)s
 
     See Also
     --------
     read_events
     """
+    if event_list is not None:
+        warn('Argument "event_list" is deprecated, use "events" instead.',
+             DeprecationWarning)
+        events = event_list
+    del event_list
+
     check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
                                      '-eve.lst', '-eve.txt', '_eve.fif',
                                      '_eve.fif.gz', '_eve.lst', '_eve.txt'))
@@ -328,13 +336,13 @@ def write_events(filename, event_list):
         fid = start_file(filename)
 
         start_block(fid, FIFF.FIFFB_MNE_EVENTS)
-        write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, event_list.T)
+        write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, events.T)
         end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
         end_file(fid)
     else:
         f = open(filename, 'w')
-        for e in event_list:
+        for e in events:
             f.write('%6d %6d %3d\n' % tuple(e))
         f.close()
 
@@ -538,7 +546,7 @@ def find_events(raw, stim_channel=None, output='onset',
                 consecutive='increasing', min_duration=0,
                 shortest_event=2, mask=None, uint_cast=False,
                 mask_type='and', initial_event=False, verbose=None):
-    """Find events from raw file.
+    """Find :term:`events` from raw file.
 
     See :ref:`tut-events-vs-annotations` and :ref:`tut-event-arrays`
     for more information about events.
@@ -597,13 +605,7 @@ def find_events(raw, stim_channel=None, output='onset',
 
     Returns
     -------
-    events : array, shape = (n_events, 3)
-        All events that were found. The first column contains the event time
-        in samples and the third column contains the event id. For output =
-        'onset' or 'step', the second column contains the value of the stim
-        channel immediately before the event/step. For output = 'offset',
-        the second column contains the value of the stim channel after the
-        event offset.
+    %(events)s
 
     See Also
     --------
@@ -757,7 +759,7 @@ def _mask_trigs(events, mask, mask_type):
 
 
 def merge_events(events, ids, new_id, replace_events=True):
-    """Merge a set of events.
+    """Merge a set of :term:`events`.
 
     Parameters
     ----------
@@ -817,13 +819,13 @@ def merge_events(events, ids, new_id, replace_events=True):
     return events_out
 
 
+@fill_doc
 def shift_time_events(events, ids, tshift, sfreq):
-    """Shift an event.
+    """Shift a set of :term:`events`.
 
     Parameters
     ----------
-    events : array, shape=(n_events, 3)
-        The events.
+    %(events)s
     ids : ndarray of int | None
         The ids of events to shift.
     tshift : float
@@ -834,7 +836,7 @@ def shift_time_events(events, ids, tshift, sfreq):
 
     Returns
     -------
-    new_events : array
+    new_events : array of int, shape (n_new_events, 3)
         The new events.
     """
     events = events.copy()
@@ -847,9 +849,10 @@ def shift_time_events(events, ids, tshift, sfreq):
     return events
 
 
+@fill_doc
 def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
                              first_samp=True, overlap=0.):
-    """Make a set of events separated by a fixed duration.
+    """Make a set of :term:`events` separated by a fixed duration.
 
     Parameters
     ----------
@@ -865,10 +868,10 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
     duration : float
         The duration to separate events by (in seconds).
     first_samp : bool
-        If True (default), times will have raw.first_samp added to them, as
+        If True (default), times will have :term:`first_samp` added to them, as
         in :func:`mne.find_events`. This behavior is not desirable if the
         returned events will be combined with event times that already
-        have ``raw.first_samp`` added to them, e.g. event times that come
+        have :term:`first_samp` added to them, e.g. event times that come
         from :func:`mne.find_events`.
     overlap : float
         The overlap between events (in seconds).
@@ -878,8 +881,7 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
 
     Returns
     -------
-    new_events : array
-        The new events.
+    %(events)s
     """
     from .io.base import BaseRaw
     _validate_type(raw, BaseRaw, "raw")
@@ -925,7 +927,7 @@ def concatenate_events(events, first_samps, last_samps):
     Parameters
     ----------
     events : list of array
-        List of event arrays, typically each extracted from a
+        List of :term:`events` arrays, typically each extracted from a
         corresponding raw file that is being concatenated.
     first_samps : list or array of int
         First sample numbers of the raw files concatenated.

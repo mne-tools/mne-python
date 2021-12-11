@@ -5,10 +5,8 @@
 # License: BSD-3-Clause
 
 from copy import deepcopy
-from distutils.version import LooseVersion
 import os.path as op
 import shutil
-from unittest import SkipTest
 
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
@@ -220,11 +218,6 @@ def test_io_set_raw_more(tmp_path):
     # In theory this should work and be simpler, but there is an obscure
     # SciPy writing bug that pops up sometimes:
     # nopos_chanlocs = np.array(chanlocs[['labels', 'Z']])
-
-    if LooseVersion(np.__version__) == '1.14.0':
-        # There is a bug in 1.14.0 (or maybe with SciPy 1.0.0?) that causes
-        # this write to fail!
-        raise SkipTest('Need to fix bug in NumPy 1.14.0!')
 
     # test reading channel names but not positions when there is no X (only Z)
     # field in the EEG.chanlocs structure

@@ -27,9 +27,11 @@ from mne.preprocessing import (ICA, create_eog_epochs, create_ecg_epochs,
 
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
+                                    'sample_audvis_filt-0-40_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file)
-raw.crop(tmax=60.)
+# Here we'll crop to 60 seconds and drop gradiometer channels for speed
+raw.crop(tmax=60.).pick_types(meg='mag', eeg=True, stim=True, eog=True)
+raw.load_data()
 
 # %%
 # .. note::
@@ -206,7 +208,7 @@ ecg_evoked.plot_joint()
 # `~mne.io.Raw` object around so we can apply the ICA solution to it
 # later.
 
-filt_raw = raw.copy().load_data().filter(l_freq=1., h_freq=None)
+filt_raw = raw.copy().filter(l_freq=1., h_freq=None)
 
 # %%
 # Fitting and plotting the ICA solution
@@ -504,15 +506,15 @@ icas = list()
 for subj in range(4):
     # EEGBCI subjects are 1-indexed; run 3 is a left/right hand movement task
     fname = mne.datasets.eegbci.load_data(subj + 1, runs=[3])[0]
-    raw = mne.io.read_raw_edf(fname)
+    raw = mne.io.read_raw_edf(fname).load_data().resample(50)
     # remove trailing `.` from channel names so we can set montage
     raw.rename_channels(mapping)
     raw.set_montage('standard_1005')
     # high-pass filter
     raw_filt = raw.copy().load_data().filter(l_freq=1., h_freq=None)
-    # fit ICA
-    ica = ICA(n_components=30, max_iter='auto', random_state=97)
-    ica.fit(raw_filt)
+    # fit ICA, using low max_iter for speed
+    ica = ICA(n_components=30, max_iter=100, random_state=97)
+    ica.fit(raw_filt, verbose='error')
     raws.append(raw)
     icas.append(ica)
 
@@ -631,7 +633,7 @@ filt_raw.pick_types(meg=True, eeg=False, exclude='bads', stim=True).load_data()
 filt_raw.filter(1, 30, fir_design='firwin')
 
 # peak-to-peak amplitude rejection parameters
-reject = dict(grad=4000e-13, mag=4e-12)
+reject = dict(mag=4e-12)
 # create longer and more epochs for more artifact exposure
 events = mne.find_events(filt_raw, stim_channel='STI 014')
 # don't baseline correct epochs

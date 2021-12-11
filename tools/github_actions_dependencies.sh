@@ -28,6 +28,10 @@ else
 	pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/main
 	echo "imageio-ffmpeg, xlrd, mffpy"
 	pip install --progress-bar off --pre imageio-ffmpeg xlrd mffpy
+	if [ "$OSTYPE" == "darwin"* ]; then
+	  echo "pyobjc-framework-Cocoa"
+	  pip install --progress-bar off pyobjc-framework-Cocoa>=5.2.0
+  fi
 fi
 pip install --progress-bar off --upgrade -r requirements_testing.txt
 if [ "${DEPS}" != "minimal" ]; then

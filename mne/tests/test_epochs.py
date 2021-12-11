@@ -6,7 +6,6 @@
 # License: BSD-3-Clause
 
 from copy import deepcopy
-from distutils.version import LooseVersion
 from functools import partial
 from io import BytesIO
 import os
@@ -3106,9 +3105,6 @@ def assert_metadata_equal(got, exp):
         assert isinstance(exp, pandas.DataFrame)
         assert isinstance(got, pandas.DataFrame)
         assert set(got.columns) == set(exp.columns)
-        if LooseVersion(pandas.__version__) < LooseVersion('0.25'):
-            # Old Pandas does not necessarily order them properly
-            got = got[exp.columns]
         check = (got == exp)
         assert check.all().all()
 

@@ -980,7 +980,8 @@ class Report(object):
 
     @fill_doc
     def add_raw(self, raw, title, *, psd=None, projs=None, butterfly=True,
-                tags=('raw',), replace=False, topomap_kwargs=None):
+                scalings=None, tags=('raw',), replace=False,
+                topomap_kwargs=None):
         """Add `~mne.io.Raw` objects to the report.
 
         Parameters
@@ -997,6 +998,7 @@ class Report(object):
         butterfly : bool
             Whether to add a butterfly plot of the (decimated) data. Can be
             useful to spot segments marked as "bad" and problematic channels.
+        %(scalings)s
         %(report_tags)s
         %(report_replace)s
         %(topomap_kwargs)s
@@ -1021,6 +1023,7 @@ class Report(object):
             add_psd=add_psd,
             add_projs=add_projs,
             add_butterfly=butterfly,
+            butterfly_scalings=scalings,
             image_format=self.image_format,
             tags=tags,
             topomap_kwargs=topomap_kwargs,
@@ -1424,8 +1427,8 @@ class Report(object):
             )
         else:
             properties_html, _ = self._render_slider(
-                figs=figs, title=title, captions=captions, start_idx=0,
-                image_format=image_format, tags=tags
+                figs=figs, imgs=None, title=title, captions=captions,
+                start_idx=0, image_format=image_format, tags=tags
             )
 
         return properties_html
@@ -1484,8 +1487,8 @@ class Report(object):
         else:
             captions = [None] * len(figs)
             topographies_html, _ = self._render_slider(
-                figs=figs, title=title, captions=captions, start_idx=0,
-                image_format=image_format, tags=tags
+                figs=figs, imgs=None, title=title, captions=captions,
+                start_idx=0, image_format=image_format, tags=tags
             )
 
         return topographies_html
@@ -1786,7 +1789,7 @@ class Report(object):
 
         Parameters
         ----------
-        code : path-like
+        code : str | pathlib.Path
             The code to add to the report as a string, or the path to a file
             as a `pathlib.Path` object.
 
@@ -1908,8 +1911,8 @@ class Report(object):
             )
         else:
             html, dom_id = self._render_slider(
-                figs=figs, title=title, captions=captions, start_idx=0,
-                image_format=image_format, tags=tags
+                figs=figs, imgs=None, title=title, captions=captions,
+                start_idx=0, image_format=image_format, tags=tags
             )
 
         self._add_or_replace(
@@ -2045,15 +2048,24 @@ class Report(object):
             replace=replace
         )
 
-    def _render_slider(self, *, figs, title, captions, start_idx, image_format,
-                       tags, klass=''):
-        if len(figs) != len(captions):
+    def _render_slider(self, *, figs, imgs, title, captions, start_idx,
+                       image_format, tags, klass=''):
+        if figs is not None and imgs is not None:
+            raise ValueError('Must only provide either figs or imgs')
+
+        if figs is not None and len(figs) != len(captions):
             raise ValueError(
                 f'Number of captions ({len(captions)}) must be equal to the '
                 f'number of figures ({len(figs)})'
             )
-        images = [_fig_to_img(fig=fig, image_format=image_format)
-                  for fig in figs]
+        elif imgs is not None and len(imgs) != len(captions):
+            raise ValueError(
+                f'Number of captions ({len(captions)}) must be equal to the '
+                f'number of images ({len(imgs)})'
+            )
+        elif figs:
+            imgs = [_fig_to_img(fig=fig, image_format=image_format)
+                    for fig in figs]
 
         dom_id = self._get_dom_id()
         html = _html_slider_element(
@@ -2061,7 +2073,7 @@ class Report(object):
             title=title,
             captions=captions,
             tags=tags,
-            images=images,
+            images=imgs,
             image_format=image_format,
             start_idx=start_idx,
             klass=klass
@@ -2535,6 +2547,7 @@ class Report(object):
         start_idx = int(round(len(figs) / 2))
         html, _ = self._render_slider(
             figs=figs,
+            imgs=None,
             captions=captions,
             title=orientation,
             image_format=image_format,
@@ -2545,31 +2558,54 @@ class Report(object):
 
         return html
 
-    def _render_raw_butterfly_segments(self, *, raw: BaseRaw, image_format,
-                                       tags):
+    def _render_raw_butterfly_segments(
+        self, *, raw: BaseRaw, scalings, image_format, tags
+    ):
         # Pick 10 1-second time slices
         times = np.linspace(raw.times[0], raw.times[-1], 12)[1:-1]
-        figs = []
-        for t in times:
-            tmin = max(t - 0.5, 0)
-            tmax = min(t + 0.5, raw.times[-1])
-            duration = tmax - tmin
-            fig = raw.plot(butterfly=True, show_scrollbars=False, start=tmin,
-                           duration=duration, show=False)
-            figs.append(fig)
+        t_starts = np.array([max(t - 0.5, 0) for t in times])
+        t_stops = np.array([min(t + 0.5, raw.times[-1]) for t in times])
+        durations = t_stops - t_starts
 
-        captions = [f'Segment {i+1} of {len(figs)}'
-                    for i in range(len(figs))]
+        # Remove annotations before plotting for better performance.
+        # Ensure we later restore raw.annotations even in case of an exception
+        orig_annotations = raw.annotations.copy()
+
+        try:
+            raw.set_annotations(None)
+
+            # Create the figure once and re-use it for performance reasons
+            fig = raw.plot(
+                butterfly=True, show_scrollbars=False, start=t_starts[0],
+                duration=durations[0], scalings=scalings, show=False
+            )
+            images = [_fig_to_img(fig=fig, image_format=image_format)]
+
+            for start, duration in zip(t_starts[1:], durations[1:]):
+                fig.mne.t_start = start
+                fig.mne.duration = duration
+                fig._update_hscroll()
+                fig._redraw(annotations=False)
+                images.append(_fig_to_img(fig=fig, image_format=image_format))
+        except Exception:
+            raise
+        finally:
+            raw.set_annotations(orig_annotations)
+
+        del orig_annotations
+
+        captions = [f'Segment {i+1} of {len(images)}'
+                    for i in range(len(images))]
 
         html, _ = self._render_slider(
-            figs=figs, title='Time series', captions=captions,
+            figs=None, imgs=images, title='Time series', captions=captions,
             start_idx=0, image_format=image_format, tags=tags
         )
 
         return html
 
     def _render_raw(self, *, raw, add_psd, add_projs, add_butterfly,
-                    image_format, tags, topomap_kwargs):
+                    butterfly_scalings, image_format, tags, topomap_kwargs):
         """Render raw."""
         if isinstance(raw, BaseRaw):
             fname = raw.filenames[0]
@@ -2593,7 +2629,8 @@ class Report(object):
         # Butterfly plot
         if add_butterfly:
             butterfly_imgs_html = self._render_raw_butterfly_segments(
-                raw=raw, image_format=image_format, tags=tags
+                raw=raw, scalings=butterfly_scalings,
+                image_format=image_format, tags=tags
             )
         else:
             butterfly_imgs_html = ''
@@ -2913,6 +2950,7 @@ class Report(object):
             captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
             html, dom_id = self._render_slider(
                 figs=fig_arrays,
+                imgs=None,
                 captions=captions,
                 title='Topographies',
                 image_format=image_format,
@@ -3327,6 +3365,7 @@ class Report(object):
         captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
         html, dom_id = self._render_slider(
             figs=figs,
+            imgs=None,
             captions=captions,
             title=title,
             image_format=image_format,

@@ -8,7 +8,7 @@ from itertools import combinations
 import numpy as np
 
 from ...io.pick import _picks_to_idx
-from ...surface import _read_mri_surface
+from ...surface import _read_mri_surface, fast_cross_3d
 from ...transforms import (apply_trans, invert_transform, _cart_to_sph,
                            _ensure_trans)
 from ...utils import verbose, get_subjects_dir, _validate_type, _ensure_int
@@ -83,19 +83,17 @@ def project_sensors_onto_brain(info, trans, subject, subjects_dir=None,
     proj_locs = np.zeros(locs.shape) * np.nan
     for i, loc in enumerate(locs):
         neighbor_pts = locs[np.argsort(dists[i])[:n_neighbors + 1]]
-        normals = list()
-        for pt1, pt2, pt3 in combinations(neighbor_pts, 3):
-            n = np.cross(pt1 - pt2, pt1 - pt3)
-            # flip direction if needed
-            normals.append(n if np.dot(n, loc) >= 0 else -n)
+        pt1, pt2, pt3 = map(np.array, zip(*combinations(neighbor_pts, 3)))
+        normals = fast_cross_3d(pt1 - pt2, pt1 - pt3)
+        normals[normals @ loc < 0] *= -1
         normal = np.mean(normals, axis=0)
         normal /= np.linalg.norm(normal)
         # find the correct orientation brain surface point nearest the line
         # https://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html
         use_rr = surf['rr'][abs(
             surf_angles[:, 1:] - angles[i, 1:]).sum(axis=1) < np.pi / 4]
-        surf_dists = [np.linalg.norm(np.cross(
-            surf_pt - loc, surf_pt - loc + normal)) for surf_pt in use_rr]
+        surf_dists = np.linalg.norm(
+            fast_cross_3d(use_rr - loc, use_rr - loc + normal), axis=1)
         proj_locs[i] = use_rr[np.argmin(surf_dists)]
     # back to the "head" coordinate frame for storing in ``raw``
     proj_locs = apply_trans(invert_transform(trans), proj_locs)
