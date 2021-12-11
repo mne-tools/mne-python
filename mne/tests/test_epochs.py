@@ -1023,7 +1023,7 @@ def test_epochs_io_preload(tmp_path, preload):
     # for some tests
     tols = dict(atol=1e-3, rtol=1e-20)
 
-    raw, events, picks = _get_data(preload=True)
+    raw, events, picks = _get_data(preload=preload)
     tempdir = str(tmp_path)
     temp_fname = op.join(tempdir, 'test-epo.fif')
     temp_fname_no_bl = op.join(tempdir, 'test_no_bl-epo.fif')
@@ -1033,8 +1033,7 @@ def test_epochs_io_preload(tmp_path, preload):
                         baseline=baseline, preload=True)
     log = log.getvalue()
     assert log.count('Not setting metadata') == 1
-    load_msg = ('Using data from preloaded Raw for 7 events and 421 original '
-                'time points ...')
+    load_msg = 'Loading data for 7 events and 421 original time points ...'
     if preload:
         load_msg = ('Using data from preloaded Raw for 7 events and 421 '
                     'original time points ...')
