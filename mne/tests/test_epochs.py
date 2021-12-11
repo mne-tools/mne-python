@@ -38,7 +38,7 @@ from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements,
     _handle_event_repeated, make_metadata)
-from mne.utils import (requires_pandas, object_diff,
+from mne.utils import (requires_pandas, object_diff, use_log_level,
                        catch_logging, _FakeNoPandas,
                        assert_meg_snr, check_version, _dt_to_stamp)
 
@@ -1030,7 +1030,7 @@ def test_epochs_io_preload(tmp_path, preload):
     baseline = (None, 0)
     with catch_logging() as log:
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                        baseline=baseline, preload=True)
+                        baseline=baseline, preload=True, verbose=True)
     log = log.getvalue()
     msg = 'Not setting metadata'
     assert log.count(msg) == 1, f'\nto find:\n{msg}\n\nlog:\n{log}'
@@ -1409,7 +1409,7 @@ def test_evoked_io_from_epochs(tmp_path):
     # offset our tmin so we don't get exactly a zero value when decimating
     with catch_logging() as log:
         epochs = Epochs(raw, events[:4], event_id, tmin + 0.011, tmax,
-                        picks=picks, decim=5, preload=True)
+                        picks=picks, decim=5, preload=True, verbose=True)
     log = log.getvalue()
     load_msg = ('Loading data for 1 events and 415 original time points '
                 '(prior to decimation) ...')
@@ -2943,12 +2943,13 @@ def test_metadata(tmp_path):
     event_id = {'zero': 0, 'one': 1}
     with catch_logging() as log:
         epochs = EpochsArray(data, info, metadata=meta,
-                             events=events, event_id=event_id)
+                             events=events, event_id=event_id, verbose=True)
     log = log.getvalue()
     msg = 'Adding metadata with 2 columns'
     assert log.count(msg) == 1, f'\nto find:\n{msg}\n\nlog:\n{log}'
-    with catch_logging() as log:
-        epochs.metadata = meta
+    with use_log_level(True):
+        with catch_logging() as log:
+            epochs.metadata = meta
     log = log.getvalue().strip()
     assert log == 'Replacing existing metadata with 2 columns', f'{log}'
     indices = np.arange(len(epochs))  # expected indices
