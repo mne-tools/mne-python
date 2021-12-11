@@ -824,8 +824,8 @@ class Report(object):
 
     @fill_doc
     def add_epochs(
-        self, epochs, title, *, psd=True, psd_signal_duration=None, projs=None,
-        tags=('epochs',), replace=False, topomap_kwargs=None
+        self, epochs, title, *, psd=True, projs=None, tags=('epochs',),
+        replace=False, topomap_kwargs=None
     ):
         """Add `~mne.Epochs` to the report.
 
@@ -835,11 +835,9 @@ class Report(object):
             The epochs to add to the report.
         title : str
             The title to add.
-        psd : bool | None
-            Whether to add PSD plots.
-        psd_signal_duration : float | None
-            The duration of data to use for PSD calculation if ``psd=True``, in
-            seconds. PSD will be calculated on as many epochs as required to
+        psd : bool | float
+            If a float, the duration of data to use for creation of PSD plots,
+            in seconds. PSD will be calculated on as many epochs as required to
             cover at least this duration. Epochs will be picked across the
             entire time range in equally-spaced distance. If ``None``, use all
             epochs.
@@ -849,6 +847,9 @@ class Report(object):
               equally-spaced epochs that cover the entire requested time range.
               In these situations, a warning will be emitted, informing you
               about the duration that's actually being used.
+
+            If ``True``, add PSD plots based on all ``epochs``. If ``False``,
+            do not add PSD plots.
         %(report_projs)s
         %(report_tags)s
         %(report_replace)s
@@ -864,8 +865,7 @@ class Report(object):
 
         htmls = self._render_epochs(
             epochs=epochs,
-            add_psd=psd,
-            psd_signal_duration=psd_signal_duration,
+            psd=psd,
             add_projs=add_projs,
             tags=tags,
             image_format=self.image_format,
@@ -3113,22 +3113,22 @@ class Report(object):
         return html, dom_id
 
     def _epochs_psd_img_html(
-        self, *, epochs, add_psd, psd_signal_duration, image_format, tags
+        self, *, epochs, psd, image_format, tags
     ):
-        if add_psd:
+        if psd:
             epoch_duration = epochs.tmax - epochs.tmin
 
-            if psd_signal_duration is None:  # Entire time range -> all epochs
+            if psd is True:  # Entire time range -> all epochs
                 epochs_for_psd = epochs  # Avoid creating a copy
             else:  # Only a subset of epochs
                 signal_duration = len(epochs) * epoch_duration
                 n_epochs_required = int(
-                    np.ceil(psd_signal_duration / epoch_duration)
+                    np.ceil(psd / epoch_duration)
                 )
                 if n_epochs_required > len(epochs):
                     raise ValueError(
                         f'You requested to calculate PSD on a duration of '
-                        f'{psd_signal_duration:.3f} sec, but all your epochs '
+                        f'{psd:.3f} sec, but all your epochs '
                         f'are only {signal_duration:.1f} sec long'
                     )
                 epochs_idx = np.round(
@@ -3176,8 +3176,8 @@ class Report(object):
 
         return psd_img_html
 
-    def _render_epochs(self, *, epochs, add_psd, psd_signal_duration,
-                       add_projs, image_format, tags, topomap_kwargs):
+    def _render_epochs(self, *, epochs, psd, add_projs, image_format, tags,
+                       topomap_kwargs):
         """Render epochs."""
         if isinstance(epochs, BaseEpochs):
             fname = epochs.filename
@@ -3256,9 +3256,7 @@ class Report(object):
             drop_log_img_html = ''
 
         psd_img_html = self._epochs_psd_img_html(
-            epochs=epochs, add_psd=add_psd,
-            psd_signal_duration=psd_signal_duration, image_format=image_format,
-            tags=tags
+            epochs=epochs, psd=psd, image_format=image_format, tags=tags
         )
         ssp_projs_html = self._ssp_projs_html(
             add_projs=add_projs, info=epochs, image_format=image_format,
