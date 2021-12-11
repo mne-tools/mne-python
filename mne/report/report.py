@@ -839,8 +839,7 @@ class Report(object):
             If a float, the duration of data to use for creation of PSD plots,
             in seconds. PSD will be calculated on as many epochs as required to
             cover at least this duration. Epochs will be picked across the
-            entire time range in equally-spaced distance. If ``None``, use all
-            epochs.
+            entire time range in equally-spaced distance.
 
             .. note::
               In rare edge cases, we may not be able to create a grid of
