@@ -258,7 +258,7 @@ def test_crop(tmp_path):
     info = create_info([f'EEG{i+1}' for i in range(3)],
                        ch_types=['eeg'] * 3, sfreq=50)
     raw = RawArray(np.zeros((3, 50 * 20)), info)
-    annotation = mne.Annotations([8, 12, 15, 18], [2] * 4, [1, 2, 3, 4])
+    annotation = mne.Annotations([8, 12, 15], [2] * 3, [1, 2, 3])
     raw = raw.set_annotations(annotation)
     raw_copied = raw.copy().crop(5, 18)
     fname = op.join(tempdir, 'test_raw.fif')
