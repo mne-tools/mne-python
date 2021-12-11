@@ -202,7 +202,7 @@ def test_nirsport_v1_w_sat():
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 @requires_testing_data
 @pytest.mark.parametrize('preload', (True, False))
-@pytest.mark.parametrize('meas_date', (None, "misct"))
+@pytest.mark.parametrize('meas_date', (None, "orig"))
 def test_nirsport_v1_w_bad_sat(preload, meas_date):
     """Test NIRSport1 file with NaNs."""
     fname = nirsport1_w_fullsat
