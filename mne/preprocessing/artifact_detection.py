@@ -116,7 +116,8 @@ def annotate_muscle_zscore(raw, threshold=4, ch_type=None, min_length_good=0.1,
         if len(l_idx) < min_samps:
             art_mask[l_idx] = True
 
-    annot = _annotations_from_mask(raw_copy.times, art_mask, 'BAD_muscle',
+    annot = _annotations_from_mask(raw_copy.times + raw.first_time,
+                                   art_mask, 'BAD_muscle',
                                    orig_time=raw.info['meas_date'])
 
     return annot, scores_muscle
@@ -166,7 +167,7 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
     hp_ts = pos[:, 0].copy()
     orig_time = raw.info['meas_date']
     if orig_time is None:
-        hp_ts -= raw.first_samp / sfreq
+        hp_ts -= raw.first_time
     dt = np.diff(hp_ts)
     hp_ts = np.concatenate([hp_ts, [hp_ts[-1] + 1. / sfreq]])
 

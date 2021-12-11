@@ -84,7 +84,7 @@ def test_muscle_annotation():
     annot_muscle, scores = annotate_muscle_zscore(raw, ch_type='mag',
                                                   threshold=10)
     assert annot_muscle.orig_time == raw.info["meas_date"]
-    onset = annot_muscle.onset * raw.info['sfreq']
+    onset = annot_muscle.onset * raw.info['sfreq'] - raw.first_samp
     onset = onset.astype(int)
     assert_array_equal(scores[onset].astype(int), np.array([23, 10]))
     assert annot_muscle.duration.size == 2
@@ -101,18 +101,21 @@ def test_muscle_annotation_without_meeg_data():
         annotate_muscle_zscore(raw, threshold=10)
 
 
-@pytest.mark.parametrize('meas_date', (None, "raw"))
+@pytest.mark.parametrize('meas_date', (None, "misc"))
 @testing.requires_testing_data
 def test_annotate_breaks(meas_date):
     """Test annotate_breaks."""
     raw = read_raw_fif(raw_fname, allow_maxshield='yes')
-    if meas_date != "raw":
+    if meas_date is None:
         raw.set_meas_date(None)
 
     annots = Annotations(onset=[12, 15, 16, 20, 21],
                          duration=[1, 1, 1, 2, 0.5],
                          description=['test'],
                          orig_time=raw.info['meas_date'])
+
+    if raw.info['meas_date'] is None:
+        annots.onset -= raw.first_time
 
     raw.set_annotations(annots)
 

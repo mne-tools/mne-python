@@ -98,7 +98,10 @@ def annotate_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
                    (': %s' % (bads,)) if bads else ''))
     bads = [bad for bad in bads if bad not in raw.info['bads']]
     starts, stops = np.array(starts), np.array(stops)
-    onsets = (starts + raw.first_samp) / raw.info['sfreq']
+    if raw.info['meas_date'] is not None:
+        onsets = (starts + raw.first_samp) / raw.info['sfreq']
+    else:
+        onsets = starts / raw.info['sfreq']
     durations = (stops - starts) / raw.info['sfreq']
     annot = Annotations(onsets, durations, ['BAD_flat'] * len(onsets),
                         orig_time=raw.info['meas_date'])
