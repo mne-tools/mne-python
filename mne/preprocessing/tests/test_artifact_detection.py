@@ -132,6 +132,9 @@ def test_annotate_breaks(meas_date):
         ]
     )
 
+    if raw.info['meas_date'] is None:
+        expected_onsets -= raw.first_time
+
     expected_durations = np.array(
         [
             12 - raw.first_time - t_stop_before_next,
@@ -156,7 +159,10 @@ def test_annotate_breaks(meas_date):
 
     # try setting the annotations, this should not omit anything
     raw.set_annotations(break_annots)
-    raw.set_annotations(raw.annotations + break_annots)
+    current_annotations = raw.annotations
+    if raw.info['meas_date'] is None:
+        current_annotations.onset -= raw.first_time
+    raw.set_annotations(current_annotations + break_annots)
 
     # reset before next test
     raw.set_annotations(annots)
@@ -180,7 +186,10 @@ def test_annotate_breaks(meas_date):
 
     # try setting the annotations, this should not omit anything
     raw.set_annotations(break_annots)
-    raw.set_annotations(raw.annotations + break_annots)
+    current_annotations = raw.annotations
+    if raw.info['meas_date'] is None:
+        current_annotations.onset -= raw.first_time
+    raw.set_annotations(current_annotations + break_annots)
 
     # Restore annotations for next test
     raw.set_annotations(annots)
@@ -220,12 +229,18 @@ def test_annotate_breaks(meas_date):
         t_stop_before_next=t_stop_before_next
     )
 
+    if raw.info['meas_date'] is None:
+        expected_onsets -= raw.first_time
+
     assert_allclose(break_annots.onset, expected_onsets)
     assert_allclose(break_annots.duration, expected_durations)
 
     # try setting the annotations, this should not omit anything
     raw.set_annotations(break_annots)
-    raw.set_annotations(raw.annotations + break_annots)
+    current_annotations = raw.annotations
+    if raw.info['meas_date'] is None:
+        current_annotations.onset -= raw.first_time
+    raw.set_annotations(current_annotations + break_annots)
 
     # reset before next test
     raw.set_annotations(annots)

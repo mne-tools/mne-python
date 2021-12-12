@@ -40,7 +40,10 @@ def test_annotate_nan(meas_date):
 
     # annotate_nan accurately finds this
     annot_nan = annotate_nan(raw)
-    assert_array_equal(annot_nan.onset, np.array([1]))
+    onset = np.array([1.])
+    if raw.info["meas_date"]:
+        onset += raw.first_time
+    assert_array_equal(annot_nan.onset, onset)
     assert_array_equal(annot_nan.duration, np.array([2]))
     assert_array_equal(annot_nan.description, np.array(['BAD_NAN']))
     assert len(annot_nan.ch_names) == 1

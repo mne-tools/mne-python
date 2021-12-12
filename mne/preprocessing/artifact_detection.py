@@ -575,4 +575,9 @@ def annotate_break(raw, events=None,
                 f'data ({round(total_break_dur, 1):.1f} sec) have been marked '
                 f'as a break.\n')
 
+    if raw.info["meas_date"] is None:
+        # If there is no meas date then the onset should not take into
+        # account the first_samp / first_time.
+        break_annotations.onset -= raw.first_time
+
     return break_annotations
