@@ -463,11 +463,6 @@ def annotate_break(raw, events=None,
             logger.info(f'Ignoring annotations with descriptions starting '
                         f'with: {", ".join(ignore)}')
     else:
-        # XXX: I think a bug is hiding here with regard to first_samp
-        #      We should extend the test to work on events and see if
-        #      it breaks here.
-        #      "annotations_from_events" takes a "first_samp" param,
-        #      but this is not being passed here!
         annotations = annotations_from_events(
             events=events,
             sfreq=raw.info['sfreq'],
