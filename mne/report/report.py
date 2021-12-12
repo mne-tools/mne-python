@@ -1001,7 +1001,8 @@ class Report(object):
             spot problematic channels. If ``True``, 10 equally-spaced 1-second
             segments will be plotted. If an integer, specifies the number of
             1-second segments to plot. Larger numbers may take a considerable
-            amount of time if the data contains many sensors.
+            amount of time if the data contains many sensors. You can disable
+            butterfly plots altogether by passing ``False``.
         %(scalings)s
         %(report_tags)s
         %(report_replace)s
