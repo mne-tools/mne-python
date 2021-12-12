@@ -772,23 +772,24 @@ class CoregistrationUI(HasTraits):
     def _add_eeg_channels(self):
         if self._eeg_channels:
             eeg = ["original"]
-            picks = pick_types(self._info, eeg=(len(eeg) > 0))
+            picks = pick_types(self._info, eeg=(len(eeg) > 0), fnirs=True)
             if len(picks) > 0:
-                eeg_actors = _plot_sensors(
+                actors = _plot_sensors(
                     self._renderer, self._info, self._to_cf_t, picks,
-                    meg=False, eeg=eeg, fnirs=False, warn_meg=False,
-                    head_surf=self._head_geo, units='m',
+                    meg=False, eeg=eeg, fnirs=["sources", "detectors"],
+                    warn_meg=False, head_surf=self._head_geo, units='m',
                     sensor_opacity=self._defaults["sensor_opacity"],
                     orient_glyphs=self._orient_glyphs,
                     scale_by_distance=self._scale_by_distance,
                     project_points=self._project_eeg,
                     surf=self._head_geo)
-                eeg_actors = eeg_actors["eeg"]
+                sens_actors = actors["eeg"]
+                sens_actors.extend(actors["fnirs"])
             else:
-                eeg_actors = None
+                sens_actors = None
         else:
-            eeg_actors = None
-        self._update_actor("eeg_channels", eeg_actors)
+            sens_actors = None
+        self._update_actor("eeg_channels", sens_actors)
 
     def _add_head_surface(self):
         bem = None
