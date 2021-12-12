@@ -154,6 +154,13 @@ def test_annotate_breaks(meas_date):
     assert all(description == 'BAD_break'
                for description in break_annots.description)
 
+    # try setting the annotations, this should not omit anything
+    raw.set_annotations(break_annots)
+    raw.set_annotations(raw.annotations + break_annots)
+
+    # reset before next test
+    raw.set_annotations(annots)
+
     # `ignore` parameter should be respected
     raw.annotations.description[0] = 'BAD_'
     break_annots = annotate_break(
@@ -171,7 +178,12 @@ def test_annotate_breaks(meas_date):
         list(expected_durations[2:])
     )
 
-    # Restore annotation description
+    # try setting the annotations, this should not omit anything
+    raw.set_annotations(break_annots)
+    raw.set_annotations(raw.annotations + break_annots)
+
+    # Restore annotations for next test
+    raw.set_annotations(annots)
     raw.annotations.description[0] = 'test'
 
     # Test with events
@@ -210,6 +222,13 @@ def test_annotate_breaks(meas_date):
 
     assert_allclose(break_annots.onset, expected_onsets)
     assert_allclose(break_annots.duration, expected_durations)
+
+    # try setting the annotations, this should not omit anything
+    raw.set_annotations(break_annots)
+    raw.set_annotations(raw.annotations + break_annots)
+
+    # reset before next test
+    raw.set_annotations(annots)
 
     # Not finding any break periods
     break_annots = annotate_break(
