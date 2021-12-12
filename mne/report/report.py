@@ -981,8 +981,7 @@ class Report(object):
     @fill_doc
     def add_raw(
         self, raw, title, *, psd=None, projs=None, butterfly=True,
-        n_butterfly_segments=10, scalings=None, tags=('raw',),
-        replace=False, topomap_kwargs=None
+        scalings=None, tags=('raw',), replace=False, topomap_kwargs=None
     ):
         """Add `~mne.io.Raw` objects to the report.
 
@@ -997,15 +996,12 @@ class Report(object):
             passed when initializing the `~mne.Report`. If ``None``, use
             ``raw_psd`` from `~mne.Report` creation.
         %(report_projs)s
-        butterfly : bool
-            Whether to add butterfly plots of the data. Multiple equally-spaced
-            1-second segments will be plotted. The number of segments can be
-            adjusted via ``n_butterfly_segments``. Can be useful to spot
-            segments marked as "bad" and problematic channels.
-        n_butterfly_segments : int
-            The number of equally-spaced 1-second segments to plot if
-            ``butterfly=True``. Larger numbers may take a considerable amount
-            of time if the data contains many sensors.
+        butterfly : bool | int
+            Whether to add butterfly plots of the data. Can be useful to
+            spot problematic channels. If ``True``, 10 equally-spaced 1-second
+            segments will be plotted. If an integer, specifies the number of
+            1-second segments to plot. Larger numbers may take a considerable
+            amount of time if the data contains many sensors.
         %(scalings)s
         %(report_tags)s
         %(report_replace)s
@@ -1030,8 +1026,7 @@ class Report(object):
             raw=raw,
             add_psd=add_psd,
             add_projs=add_projs,
-            add_butterfly=butterfly,
-            n_butterfly_segments=n_butterfly_segments,
+            butterfly=butterfly,
             butterfly_scalings=scalings,
             image_format=self.image_format,
             tags=tags,
@@ -2615,9 +2610,8 @@ class Report(object):
 
         return html
 
-    def _render_raw(self, *, raw, add_psd, add_projs, add_butterfly,
-                    butterfly_scalings, n_butterfly_segments,
-                    image_format, tags, topomap_kwargs):
+    def _render_raw(self, *, raw, add_psd, add_projs, butterfly,
+                    butterfly_scalings, image_format, tags, topomap_kwargs):
         """Render raw."""
         if isinstance(raw, BaseRaw):
             fname = raw.filenames[0]
@@ -2639,7 +2633,8 @@ class Report(object):
         )
 
         # Butterfly plot
-        if add_butterfly:
+        if butterfly:
+            n_butterfly_segments = 10 if butterfly is True else butterfly
             butterfly_imgs_html = self._render_raw_butterfly_segments(
                 raw=raw, scalings=butterfly_scalings,
                 n_segments=n_butterfly_segments,
