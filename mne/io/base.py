@@ -578,7 +578,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @property
     def first_samp(self):
-        """The first data sample."""
+        """The first data sample.
+
+        See :term:`first_samp`.
+        """
         return self._first_samps[0]
 
     @property
