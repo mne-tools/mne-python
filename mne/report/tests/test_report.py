@@ -705,6 +705,8 @@ def test_manual_report_2d(tmp_path, invisible_fig):
 
     r.add_raw(raw=raw, title='my raw data', tags=('raw',), psd=True,
               projs=False)
+    r.add_raw(raw=raw, title='my raw data 2', psd=False, projs=False,
+              butterfly=1)
     r.add_events(events=events_fname, title='my events',
                  sfreq=raw.info['sfreq'])
     r.add_epochs(epochs=epochs, title='my epochs', tags=('epochs',), psd=False,
