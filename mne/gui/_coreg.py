@@ -401,7 +401,7 @@ class CoregistrationUI(HasTraits):
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
-        view_widgets = ["project_eeg"]
+        view_widgets = ["project_eeg", "fit_fiducials", "fit_icp"]
         fid_widgets = ["fid_X", "fid_Y", "fid_Z", "fids_file", "fids"]
         self._set_head_transparency(self._lock_fids)
         if self._lock_fids:
@@ -815,10 +815,6 @@ class CoregistrationUI(HasTraits):
                 self._coreg._get_processed_mri_points(res)
 
     def _fit_fiducials(self):
-        if not self._lock_fids:
-            self._display_message(
-                "Fitting is disabled, lock the fiducials first.")
-            return
         start = time.time()
         self._coreg.fit_fiducials(
             lpa_weight=self._lpa_weight,
@@ -834,10 +830,6 @@ class CoregistrationUI(HasTraits):
         self._update_distance_estimation()
 
     def _fit_icp(self):
-        if not self._lock_fids:
-            self._display_message(
-                "Fitting is disabled, lock the fiducials first.")
-            return
         self._current_icp_iterations = 0
 
         def callback(iteration, n_iterations):
@@ -1084,13 +1076,13 @@ class CoregistrationUI(HasTraits):
 
         layout = self._renderer._dock_add_group_box("Fitting")
         hlayout = self._renderer._dock_add_layout(vertical=False)
-        self._renderer._dock_add_button(
+        self._widgets["fit_fiducials"] = self._renderer._dock_add_button(
             name="Fit Fiducials",
             callback=self._fit_fiducials,
             tooltip="Find rotation and translation to fit all 3 fiducials",
             layout=hlayout,
         )
-        self._renderer._dock_add_button(
+        self._widgets["fit_icp"] = self._renderer._dock_add_button(
             name="Fit ICP",
             callback=self._fit_icp,
             tooltip="Find MRI scaling, translation, and rotation to match the "
