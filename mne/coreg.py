@@ -15,7 +15,6 @@ import sys
 import re
 import shutil
 from functools import reduce
-from collections import OrderedDict
 
 import numpy as np
 
@@ -1971,7 +1970,7 @@ class Coregistration(object):
         return self
 
     def _get_fiducials_distance(self):
-        distance = OrderedDict()
+        distance = dict()
         for key in ('lpa', 'nasion', 'rpa'):
             fid = getattr(self, f"_{key}")
             transformed_mri = apply_trans(self._mri_trans, fid)
