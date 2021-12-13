@@ -17,8 +17,8 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
-from .io.write import (start_block, end_block, write_string, start_file,
-                       write_float_sparse_rcs, write_int, end_file)
+from .io.write import (start_block, end_block, write_string,
+                       start_and_end_file, write_float_sparse_rcs, write_int)
 from .surface import (read_surface, _triangle_neighbors, _compute_nearest,
                       _normalize_vectors, _get_tri_supp_geom,
                       _find_nearest_tri_pts)
@@ -136,12 +136,14 @@ def _read_morph_map(fname, subject_from, subject_to):
 def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
     """Write a morph map to disk."""
     try:
-        fid = start_file(fname)
+        with start_and_end_file(fname) as fid:
+            _write_morph_map_(fid, subject_from, subject_to, mmap_1, mmap_2)
     except Exception as exp:
         warn('Could not write morph-map file "%s" (error: %s)'
              % (fname, exp))
-        return
 
+
+def _write_morph_map_(fid, subject_from, subject_to, mmap_1, mmap_2):
     assert len(mmap_1) == 2
     hemis = [FIFF.FIFFV_MNE_SURF_LEFT_HEMI, FIFF.FIFFV_MNE_SURF_RIGHT_HEMI]
     for m, hemi in zip(mmap_1, hemis):
@@ -161,7 +163,6 @@ def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
             write_int(fid, FIFF.FIFF_MNE_HEMI, hemi)
             write_float_sparse_rcs(fid, FIFF.FIFF_MNE_MORPH_MAP, m)
             end_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
-    end_file(fid)
 
 
 def _make_morph_map(subject_from, subject_to, subjects_dir, xhemi):

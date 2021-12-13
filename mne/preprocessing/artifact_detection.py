@@ -327,7 +327,7 @@ def compute_average_dev_head_t(raw, pos):
 
 def _annotations_from_mask(times, mask, annot_name, orig_time=None):
     """Construct annotations from boolean mask of the data."""
-    from scipy.ndimage.morphology import distance_transform_edt
+    from scipy.ndimage import distance_transform_edt
     from scipy.signal import find_peaks
     mask_tf = distance_transform_edt(mask)
     # Overcome the shortcoming of find_peaks

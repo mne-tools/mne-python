@@ -30,7 +30,7 @@ from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                  SetChannelsMixin, InterpolationMixin,
                                  _unit2human)
 from .compensator import set_current_comp, make_compensator
-from .write import (start_file, end_file, start_block, end_block,
+from .write import (start_and_end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
                     write_complex64, write_complex128, write_int,
                     write_id, write_string, _get_split_size, _NEXT_FILE_BUFFER)
@@ -2203,16 +2203,17 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
     logger.info('Writing %s' % use_fname)
 
     picks = _picks_to_idx(info, picks, 'all', ())
-    fid, cals = _start_writing_raw(use_fname, info, picks, data_type,
-                                   reset_range, raw.annotations)
-    with ctx, fid:
-        final_fname = _write_raw_fid(
-            raw, info, picks, fid, cals, part_idx, start, stop,
-            buffer_size, prev_fname, split_size, use_fname,
-            projector, drop_small_buffer, fmt, fname, reserved_fname,
-            data_type, reset_range, split_naming,
-            overwrite=True  # we've started writing already above
-        )
+    with start_and_end_file(use_fname) as fid:
+        cals = _start_writing_raw(fid, info, picks, data_type,
+                                  reset_range, raw.annotations)
+        with ctx:
+            final_fname = _write_raw_fid(
+                raw, info, picks, fid, cals, part_idx, start, stop,
+                buffer_size, prev_fname, split_size, use_fname,
+                projector, drop_small_buffer, fmt, fname, reserved_fname,
+                data_type, reset_range, split_naming,
+                overwrite=True  # we've started writing already above
+            )
     if final_fname != use_fname:
         assert split_naming == 'bids'
         logger.info(f'Renaming BIDS split file {op.basename(final_fname)}')
@@ -2352,19 +2353,18 @@ def _write_raw_fid(raw, info, picks, fid, cals, part_idx, start, stop,
     else:
         end_block(fid, FIFF.FIFFB_RAW_DATA)
     end_block(fid, FIFF.FIFFB_MEAS)
-    end_file(fid)
     return final_fname
 
 
 @fill_doc
-def _start_writing_raw(name, info, sel, data_type,
+def _start_writing_raw(fid, info, sel, data_type,
                        reset_range, annotations):
     """Start write raw data in file.
 
     Parameters
     ----------
-    name : string
-        Name of the file to create.
+    fid : file
+        The created file.
     %(info_not_none)s
     sel : array of int | None
         Indices of channels to include. If None, all channels
@@ -2392,7 +2392,6 @@ def _start_writing_raw(name, info, sel, data_type,
     #
     # Create the file and save the essentials
     #
-    fid = start_file(name)
     start_block(fid, FIFF.FIFFB_MEAS)
     write_id(fid, FIFF.FIFF_BLOCK_ID)
     if info['meas_id'] is not None:
@@ -2424,7 +2423,7 @@ def _start_writing_raw(name, info, sel, data_type,
     else:
         start_block(fid, FIFF.FIFFB_RAW_DATA)
 
-    return fid, cals
+    return cals
 
 
 def _write_raw_buffer(fid, buf, cals, fmt):

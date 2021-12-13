@@ -3,6 +3,7 @@
 #
 # License: BSD-3-Clause
 
+from contextlib import contextmanager
 from gzip import GzipFile
 import os.path as op
 import re
@@ -331,6 +332,14 @@ def start_file(fname, id_=None):
     write_int(fid, FIFF.FIFF_DIR_POINTER, -1)
     write_int(fid, FIFF.FIFF_FREE_LIST, -1)
     return fid
+
+
+@contextmanager
+def start_and_end_file(fname, id_=None):
+    """Start and (if successfully written) close the file."""
+    with start_file(fname, id_=id_) as fid:
+        yield fid
+        end_file(fid)  # we only hit this line if the yield does not err
 
 
 def check_fiff_length(fid, close=True):

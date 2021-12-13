@@ -7,12 +7,11 @@
 from copy import deepcopy
 import itertools as itt
 from math import log
-import os
 
 import numpy as np
 
 from .defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT, DEFAULTS
-from .io.write import start_file, end_file
+from .io.write import start_and_end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _check_projs, _needs_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj, _read_proj, _write_proj)
@@ -142,28 +141,24 @@ class Covariance(dict):
         """Number of degrees of freedom."""
         return self['nfree']
 
-    def save(self, fname):
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
         """Save covariance matrix in a FIF file.
 
         Parameters
         ----------
         fname : str
             Output filename.
+        %(overwrite)s
+
+            .. versionadded:: 1.0
+        %(verbose)s
         """
         check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz',
                                           '_cov.fif', '_cov.fif.gz'))
-        # TODO: Add `overwrite` param to method signature
-        fname = _check_fname(fname=fname, overwrite=True)
-        fid = start_file(fname)
-
-        try:
+        fname = _check_fname(fname=fname, overwrite=overwrite)
+        with start_and_end_file(fname) as fid:
             _write_cov(fid, self)
-        except Exception:
-            fid.close()
-            os.remove(fname)
-            raise
-
-        end_file(fid)
 
     def copy(self):
         """Copy the Covariance object.
@@ -1367,7 +1362,8 @@ class _ShrunkCovariance(BaseEstimator):
 ###############################################################################
 # Writing
 
-def write_cov(fname, cov):
+@verbose
+def write_cov(fname, cov, *, overwrite=False, verbose=None):
     """Write a noise covariance matrix.
 
     Parameters
@@ -1376,12 +1372,16 @@ def write_cov(fname, cov):
         The name of the file. It should end with -cov.fif or -cov.fif.gz.
     cov : Covariance
         The noise covariance matrix.
+    %(overwrite)s
+
+        .. versionadded:: 1.0
+    %(verbose)s
 
     See Also
     --------
     read_cov
     """
-    cov.save(fname)
+    cov.save(fname, overwrite=overwrite, verbose=verbose)
 
 
 ###############################################################################
