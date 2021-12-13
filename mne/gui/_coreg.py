@@ -394,10 +394,7 @@ class CoregistrationUI(HasTraits):
         self._coreg._setup_bem()
         self._coreg._setup_fiducials(self._fiducials)
         self._reset()
-        rr = (self._coreg._processed_low_res_mri_points *
-              self._coreg._scale)
-        self._head_geo = dict(rr=rr, tris=self._coreg._bem_low_res["tris"],
-                              nn=self._coreg._bem_low_res["nn"])
+        self._update_projection_surface()
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
@@ -668,6 +665,13 @@ class CoregistrationUI(HasTraits):
         kwargs = dict(zip(('azimuth', 'elevation'), kwargs[view[fid]]))
         if not self._lock_fids:
             self._renderer.set_camera(distance=None, **kwargs)
+
+    def _update_projection_surface(self):
+        self._head_geo = dict(
+            rr=self._coreg._processed_low_res_mri_points * self._coreg._scale,
+            tris=self._coreg._bem_low_res["tris"],
+            nn=self._coreg._bem_low_res["nn"]
+        )
 
     def _update_fiducials(self):
         fid = self._current_fiducial.lower()
