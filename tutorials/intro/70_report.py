@@ -5,12 +5,12 @@ Getting started with :class:`mne.Report`
 ========================================
 
 `mne.Report` is a way to create interactive HTML summaries of your data. These
-reports can show many different visualizations of one or multiple subject's
-data. A common use case is creating diagnostic summaries to check data quality
-at different stages in the processing pipeline. The report can show things like
-plots of data before and after each preprocessing step, epoch rejection
-statistics, MRI slices with overlaid BEM shells, all the way up to plots of
-estimated cortical activity.
+reports can show many different visualizations for one or multiple
+participants. A common use case is creating diagnostic summaries to check data
+quality at different stages in the processing pipeline. The report can show
+things like plots of data before and after each preprocessing step, epoch
+rejection statistics, MRI slices with overlaid BEM shells, all the way up to
+plots of estimated cortical activity.
 
 Compared to a Jupyter notebook, `mne.Report` is easier to deploy (the HTML
 pages it generates are self-contained and do not require a running Python
