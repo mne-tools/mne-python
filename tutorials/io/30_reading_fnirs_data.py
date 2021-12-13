@@ -84,7 +84,7 @@ The NIRx device stores data directly to a directory with multiple file types,
 MNE-Python extracts the appropriate information from each file.
 MNE-Python only supports NIRx files recorded with NIRStar
 version 15.0 and above.
-MNE-Python supports reading data from NIRScout and NIRSport 1 devices.
+MNE-Python supports reading data from NIRScout and NIRSport devices.
 
 
 .. _import-hitachi:
