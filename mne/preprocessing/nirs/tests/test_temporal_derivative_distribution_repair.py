@@ -10,9 +10,8 @@ from numpy.testing import assert_allclose
 
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx
-from mne.preprocessing.nirs import optical_density, tddr
+from mne.preprocessing.nirs import beer_lambert_law, optical_density, tddr
 from mne.datasets import testing
-from mne.nirs import beer_lambert_law
 
 
 fname_nirx_15_2 = op.join(data_path(download=False),
