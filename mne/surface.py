@@ -1668,7 +1668,7 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
                      vtkWindowedSincPolyDataFilter, vtkDiscreteFlyingEdges3D,
                      vtkGeometryFilter, vtkDataSetAttributes, VTK_DOUBLE)
     from vtk.util import numpy_support
-    from scipy.ndimage.morphology import binary_dilation
+    from scipy.ndimage import binary_dilation
     _validate_type(smooth, 'numeric', smooth)
     smooth = float(smooth)
     if not 0 <= smooth < 1:

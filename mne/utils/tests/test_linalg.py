@@ -8,7 +8,8 @@ from numpy.testing import assert_allclose, assert_array_equal
 from scipy import linalg
 import pytest
 
-from mne.utils import _sym_mat_pow, _reg_pinv, requires_version
+from mne.utils import (_sym_mat_pow, _reg_pinv, requires_version,
+                       _record_warnings)
 from mne.fixes import _compare_version
 
 
@@ -41,7 +42,7 @@ def test_pos_semidef_inv(ndim, dtype, n, deficient, reduce_rank, psdef, func):
     if deficient:
         vec = np.ones(n) / np.sqrt(n)
         proj -= np.outer(vec, vec)
-    with pytest.warns(None):  # intentionally discard imag
+    with _record_warnings():  # intentionally discard imag
         mat = mat.astype(dtype)
     # now make it conjugate symmetric or positive semi-definite
     if psdef:

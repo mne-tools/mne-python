@@ -7,7 +7,7 @@ import numpy as np
 
 from ..io.base import BaseRaw
 from ..annotations import (Annotations, _annotations_starts_stops,
-                           annotations_from_events)
+                           annotations_from_events, _adjust_onset_meas_date)
 from ..transforms import (quat_to_rot, _average_quats, _angle_between_quats,
                           apply_trans, _quat_to_affine)
 from ..filter import filter_data
@@ -116,9 +116,10 @@ def annotate_muscle_zscore(raw, threshold=4, ch_type=None, min_length_good=0.1,
         if len(l_idx) < min_samps:
             art_mask[l_idx] = True
 
-    annot = _annotations_from_mask(raw_copy.times, art_mask, 'BAD_muscle',
+    annot = _annotations_from_mask(raw_copy.times,
+                                   art_mask, 'BAD_muscle',
                                    orig_time=raw.info['meas_date'])
-
+    _adjust_onset_meas_date(annot, raw)
     return annot, scores_muscle
 
 
@@ -163,13 +164,10 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
     compute_average_dev_head_t
     """
     sfreq = raw.info['sfreq']
-    hp_ts = pos[:, 0].copy()
-    orig_time = raw.info['meas_date']
-    if orig_time is None:
-        hp_ts -= raw.first_samp / sfreq
+    hp_ts = pos[:, 0].copy() - raw.first_time
     dt = np.diff(hp_ts)
     hp_ts = np.concatenate([hp_ts, [hp_ts[-1] + 1. / sfreq]])
-
+    orig_time = raw.info['meas_date']
     annot = Annotations([], [], [], orig_time=orig_time)
 
     # Annotate based on rotational velocity
@@ -249,6 +247,7 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
                     % (bad_pct, len(onsets), mean_distance_limit, disp.max()))
         annot += _annotations_from_mask(
             hp_ts, bad_mask, 'BAD_mov_dist', orig_time=orig_time)
+    _adjust_onset_meas_date(annot, raw)
     return annot, disp
 
 
@@ -328,7 +327,7 @@ def compute_average_dev_head_t(raw, pos):
 
 def _annotations_from_mask(times, mask, annot_name, orig_time=None):
     """Construct annotations from boolean mask of the data."""
-    from scipy.ndimage.morphology import distance_transform_edt
+    from scipy.ndimage import distance_transform_edt
     from scipy.signal import find_peaks
     mask_tf = distance_transform_edt(mask)
     # Overcome the shortcoming of find_peaks
@@ -507,15 +506,16 @@ def annotate_break(raw, events=None,
             merged_intervals.append(interval)
 
     merged_intervals = np.array(merged_intervals)
+    merged_intervals -= raw.first_time  # work in zero-based time
 
     # Now extract the actual break periods
     break_onsets = []
     break_durations = []
 
     # Handle the time period up until the first annotation
-    if (raw.first_time < merged_intervals[0][0] and
-            merged_intervals[0][0] - raw.first_time >= min_break_duration):
-        onset = raw.first_time  # don't add t_start_after_previous here
+    if (0 < merged_intervals[0][0] and
+            merged_intervals[0][0] >= min_break_duration):
+        onset = 0  # don't add t_start_after_previous here
         offset = merged_intervals[0][0] - t_stop_before_next
         duration = offset - onset
         break_onsets.append(onset)
@@ -535,10 +535,10 @@ def annotate_break(raw, events=None,
         break_durations.append(duration)
 
     # Handle the time period after the last annotation
-    if (raw._last_time > merged_intervals[-1][1] and
-            raw._last_time - merged_intervals[-1][1] >= min_break_duration):
+    if (raw.times[-1] > merged_intervals[-1][1] and
+            raw.times[-1] - merged_intervals[-1][1] >= min_break_duration):
         onset = merged_intervals[-1][1] + t_start_after_previous
-        offset = raw._last_time  # don't subtract t_stop_before_next here
+        offset = raw.times[-1]  # don't subtract t_stop_before_next here
         duration = offset - onset
         break_onsets.append(onset)
         break_durations.append(duration)
@@ -554,9 +554,7 @@ def annotate_break(raw, events=None,
     # Log some info
     n_breaks = len(break_annotations)
     break_times = [
-        f'{round(o - raw.first_time, 1):.1f} – '
-        f'{round(o+d - raw.first_time, 1):.1f} sec '
-        f'[{round(d, 1):.1f} sec]'
+        f'{o:.1f} – {o+d:.1f} sec [{d:.1f} sec]'
         for o, d in zip(break_annotations.onset,
                         break_annotations.duration)
     ]
@@ -568,5 +566,6 @@ def annotate_break(raw, events=None,
                 f'In total, {round(100 * fraction_breaks, 1):.1f}% of the '
                 f'data ({round(total_break_dur, 1):.1f} sec) have been marked '
                 f'as a break.\n')
+    _adjust_onset_meas_date(break_annotations, raw)
 
     return break_annotations

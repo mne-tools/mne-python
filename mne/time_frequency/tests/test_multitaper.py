@@ -4,7 +4,7 @@ from numpy.testing import assert_array_almost_equal
 
 from mne.time_frequency import psd_multitaper
 from mne.time_frequency.multitaper import dpss_windows
-from mne.utils import requires_nitime
+from mne.utils import requires_nitime, _record_warnings
 from mne.io import RawArray
 from mne import create_info
 
@@ -18,7 +18,7 @@ def test_dpss_windows():
     Kmax = int(2 * half_nbw)
 
     dpss, eigs = dpss_windows(N, half_nbw, Kmax, low_bias=False)
-    with pytest.warns(None):  # conversions
+    with _record_warnings():  # conversions
         dpss_ni, eigs_ni = ni.algorithms.dpss_windows(N, half_nbw, Kmax)
 
     assert_array_almost_equal(dpss, dpss_ni)
@@ -26,7 +26,7 @@ def test_dpss_windows():
 
     dpss, eigs = dpss_windows(N, half_nbw, Kmax, interp_from=200,
                               low_bias=False)
-    with pytest.warns(None):  # conversions
+    with _record_warnings():  # conversions
         dpss_ni, eigs_ni = ni.algorithms.dpss_windows(N, half_nbw, Kmax,
                                                       interp_from=200)
 
@@ -51,7 +51,7 @@ def test_multitaper_psd():
             psd, freqs = psd_multitaper(raw, adaptive=adaptive,
                                         n_jobs=n_jobs,
                                         normalization=norm)
-            with pytest.warns(None):  # nitime integers
+            with _record_warnings():  # nitime integers
                 freqs_ni, psd_ni, _ = ni.algorithms.spectral.multi_taper_psd(
                     data, sfreq, adaptive=adaptive, jackknife=False)
             assert_array_almost_equal(psd, psd_ni, decimal=4)

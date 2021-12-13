@@ -12,12 +12,12 @@ import numpy as np
 
 
 from .utils import (check_fname, logger, verbose, _get_stim_channel, warn,
-                    _validate_type, _check_option, fill_doc)
+                    _validate_type, _check_option, fill_doc, _check_fname)
 from .io.constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
 from .io.open import fiff_open
-from .io.write import write_int, start_block, start_file, end_block, end_file
+from .io.write import write_int, start_block, start_and_end_file, end_block
 from .io.pick import pick_channels
 
 
@@ -299,7 +299,8 @@ def read_events(filename, include=None, exclude=None, mask=None,
 
 
 @verbose
-def write_events(filename, events, *, event_list=None, verbose=None):
+def write_events(filename, events, *, overwrite=False, event_list=None,
+                 verbose=None):
     """Write :term:`events` to file.
 
     Parameters
@@ -312,6 +313,7 @@ def write_events(filename, events, *, event_list=None, verbose=None):
         Note that new format event files do not contain
         the "time" column (used to be the second column).
     %(events)s
+    %(overwrite)s
     event_list : array, shape (n_events, 3)
         Deprecated, use argument events instead.
     %(verbose)s
@@ -326,25 +328,21 @@ def write_events(filename, events, *, event_list=None, verbose=None):
         events = event_list
     del event_list
 
+    filename = _check_fname(filename, overwrite=overwrite)
     check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
                                      '-eve.lst', '-eve.txt', '_eve.fif',
                                      '_eve.fif.gz', '_eve.lst', '_eve.txt'))
-
     ext = op.splitext(filename)[1].lower()
-    if ext == '.fif' or ext == '.gz':
+    if ext in ('.fif', '.gz'):
         #   Start writing...
-        fid = start_file(filename)
-
-        start_block(fid, FIFF.FIFFB_MNE_EVENTS)
-        write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, events.T)
-        end_block(fid, FIFF.FIFFB_MNE_EVENTS)
-
-        end_file(fid)
+        with start_and_end_file(filename) as fid:
+            start_block(fid, FIFF.FIFFB_MNE_EVENTS)
+            write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, events.T)
+            end_block(fid, FIFF.FIFFB_MNE_EVENTS)
     else:
-        f = open(filename, 'w')
-        for e in events:
-            f.write('%6d %6d %3d\n' % tuple(e))
-        f.close()
+        with open(filename, 'w') as f:
+            for e in events:
+                f.write('%6d %6d %3d\n' % tuple(e))
 
 
 def _find_stim_steps(data, first_samp, pad_start=None, pad_stop=None, merge=0):

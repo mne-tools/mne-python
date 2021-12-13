@@ -21,7 +21,8 @@ from mne.io.compensator import get_current_comp
 from mne.io.ctf.constants import CTF
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.test_annotations import _assert_annotations_equal
-from mne.utils import _clean_names, catch_logging, _stamp_to_dt
+from mne.utils import (_clean_names, catch_logging, _stamp_to_dt,
+                       _record_warnings)
 from mne.datasets import testing, spm_face, brainstorm
 from mne.io.constants import FIFF
 
@@ -105,7 +106,8 @@ def test_read_ctf(tmp_path):
     use_fnames = [op.join(ctf_dir, c) for c in ctf_fnames]
     for fname in use_fnames:
         raw_c = read_raw_fif(fname + '_raw.fif', preload=True)
-        with pytest.warns(None):  # sometimes matches "MISC channel"
+        # sometimes matches "MISC channel"
+        with _record_warnings():
             raw = read_raw_ctf(fname)
 
         # check info match

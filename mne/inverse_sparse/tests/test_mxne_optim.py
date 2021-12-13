@@ -15,7 +15,7 @@ from mne.inverse_sparse.mxne_optim import (mixed_norm_solver,
                                            norm_epsilon_inf, norm_epsilon,
                                            _Phi, _PhiT, dgap_l21l1)
 from mne.time_frequency._stft import stft_norm2
-from mne.utils import catch_logging
+from mne.utils import catch_logging, _record_warnings
 
 
 def _generate_tf_data():
@@ -47,13 +47,13 @@ def test_l21_mxne():
     M = np.dot(G, X)
 
     args = (M, G, alpha, 1000, 1e-8)
-    with pytest.warns(None):  # CD
+    with _record_warnings():  # CD
         X_hat_cd, active_set, _, gap_cd = mixed_norm_solver(
             *args, active_set_size=None,
             debias=True, solver='cd', return_gap=True)
     assert_array_less(gap_cd, 1e-8)
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    with pytest.warns(None):  # CD
+    with _record_warnings():  # CD
         X_hat_bcd, active_set, E, gap_bcd = mixed_norm_solver(
             M, G, alpha, maxit=1000, tol=1e-8, active_set_size=None,
             debias=True, solver='bcd', return_gap=True)
@@ -61,17 +61,17 @@ def test_l21_mxne():
     assert_array_equal(np.where(active_set)[0], [0, 4])
     assert_allclose(X_hat_bcd, X_hat_cd, rtol=1e-2)
 
-    with pytest.warns(None):  # CD
+    with _record_warnings():  # CD
         X_hat_cd, active_set, _ = mixed_norm_solver(
             *args, active_set_size=2, debias=True, solver='cd')
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    with pytest.warns(None):  # CD
+    with _record_warnings():  # CD
         X_hat_bcd, active_set, _ = mixed_norm_solver(
             *args, active_set_size=2, debias=True, solver='bcd')
     assert_array_equal(np.where(active_set)[0], [0, 4])
     assert_allclose(X_hat_bcd, X_hat_cd, rtol=1e-2)
 
-    with pytest.warns(None):  # CD
+    with _record_warnings():  # CD
         X_hat_bcd, active_set, _ = mixed_norm_solver(
             *args, active_set_size=2, debias=True, n_orient=2, solver='bcd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
@@ -83,7 +83,7 @@ def test_l21_mxne():
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
     assert_allclose(X_hat_bcd, X_hat_cd, rtol=1e-2)
 
-    with pytest.warns(None):  # CD
+    with _record_warnings():  # CD
         X_hat_bcd, active_set, _ = mixed_norm_solver(
             *args, active_set_size=2, debias=True, n_orient=5, solver='bcd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
@@ -124,7 +124,7 @@ def test_tf_mxne():
 
     M, G, active_set = _generate_tf_data()
 
-    with pytest.warns(None):  # CD
+    with _record_warnings():  # CD
         X_hat_tf, active_set_hat_tf, E, gap_tfmxne = tf_mixed_norm_solver(
             M, G, alpha_space, alpha_time, maxit=200, tol=1e-8, verbose=True,
             n_orient=1, tstep=4, wsize=32, return_gap=True)
@@ -252,29 +252,29 @@ def test_iterative_reweighted_mxne():
     X[4] = -2
     M = np.dot(G, X)
 
-    with pytest.warns(None):  # CD
+    with _record_warnings():  # CD
         X_hat_l21, _, _ = mixed_norm_solver(
             M, G, alpha, maxit=1000, tol=1e-8, verbose=False, n_orient=1,
             active_set_size=None, debias=False, solver='bcd')
-    with pytest.warns(None):  # CD
+    with _record_warnings():  # CD
         X_hat_bcd, active_set, _ = iterative_mixed_norm_solver(
             M, G, alpha, 1, maxit=1000, tol=1e-8, active_set_size=None,
             debias=False, solver='bcd')
     assert_allclose(X_hat_bcd, X_hat_l21, rtol=1e-3)
 
-    with pytest.warns(None):  # CD
+    with _record_warnings():  # CD
         X_hat_bcd, active_set, _ = iterative_mixed_norm_solver(
             M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=2,
             debias=True, solver='bcd')
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    with pytest.warns(None):  # CD
+    with _record_warnings():  # CD
         X_hat_cd, active_set, _ = iterative_mixed_norm_solver(
             M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=None,
             debias=True, solver='cd')
     assert_array_equal(np.where(active_set)[0], [0, 4])
     assert_array_almost_equal(X_hat_bcd, X_hat_cd, 5)
 
-    with pytest.warns(None):  # CD
+    with _record_warnings():  # CD
         X_hat_bcd, active_set, _ = iterative_mixed_norm_solver(
             M, G, alpha, 5, maxit=1000, tol=1e-8, active_set_size=2,
             debias=True, n_orient=2, solver='bcd')

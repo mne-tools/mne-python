@@ -29,7 +29,8 @@ from mne.label import (Label, _blend_colors, label_sign_flip, _load_vert_pos,
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
 from mne.surface import _mesh_borders
-from mne.utils import requires_sklearn, get_subjects_dir, check_version
+from mne.utils import (requires_sklearn, get_subjects_dir, check_version,
+                       _record_warnings)
 
 
 data_path = testing.data_path(download=False)
@@ -270,7 +271,7 @@ def test_label_fill_restrict(fname):
         # Check that we can auto-fill patch info quickly for one condition
         for s in src:
             s['nearest'] = None
-        with pytest.warns(None):
+        with _record_warnings():
             label_src = label_src.fill(src)
     else:
         label_src = label_src.fill(src)
@@ -781,13 +782,13 @@ def test_morph():
     verts = [np.arange(10242), np.arange(10242)]
     for hemi in ['lh', 'rh']:
         label.hemi = hemi
-        with pytest.warns(None):  # morph map maybe missing
+        with _record_warnings():  # morph map maybe missing
             label.morph(None, 'fsaverage', 5, verts, subjects_dir, 2)
     pytest.raises(TypeError, label.morph, None, 1, 5, verts,
                   subjects_dir, 2)
     pytest.raises(TypeError, label.morph, None, 'fsaverage', 5.5, verts,
                   subjects_dir, 2)
-    with pytest.warns(None):  # morph map maybe missing
+    with _record_warnings():  # morph map maybe missing
         label.smooth(subjects_dir=subjects_dir)  # make sure this runs
 
 

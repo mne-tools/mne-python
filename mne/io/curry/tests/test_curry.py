@@ -5,12 +5,12 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
-import numpy as np
-from shutil import copyfile
 from datetime import datetime, timezone
+import os.path as op
+from shutil import copyfile
 
 import pytest
+import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 
 from mne.annotations import events_from_annotations
@@ -22,7 +22,7 @@ from mne.io.constants import FIFF
 from mne.io.edf import read_raw_bdf
 from mne.io.bti import read_raw_bti
 from mne.io.curry import read_raw_curry
-from mne.utils import check_version, catch_logging
+from mne.utils import check_version, catch_logging, _record_warnings
 from mne.annotations import read_annotations
 from mne.io.curry.curry import (_get_curry_version, _get_curry_file_structure,
                                 _read_events_curry, FILE_EXTENSIONS)
@@ -70,7 +70,7 @@ def bdf_curry_ref():
 @pytest.mark.parametrize('preload', [True, False])
 def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
     """Test reading CURRY files."""
-    with pytest.warns(None) as wrn:
+    with _record_warnings() as wrn:
         raw = read_raw_curry(fname, preload=preload)
 
     if not check_version('numpy', '1.16') and preload and fname.endswith(

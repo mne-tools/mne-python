@@ -219,6 +219,7 @@ class CoregistrationUI(HasTraits):
 
         # configure UI
         self._reset_fitting_parameters()
+        self._configure_status_bar()
         self._configure_dock()
         self._configure_picking()
 
@@ -242,9 +243,11 @@ class CoregistrationUI(HasTraits):
                  False: dict(azimuth=180, elevation=90)}  # left
         self._renderer.set_camera(distance=None, **views[self._lock_fids])
         self._redraw()
+        # XXX: internal plotter/renderer should not be exposed
         if not self._immediate_redraw:
             self._renderer.plotter.add_callback(
                 self._redraw, self._refresh_rate_ms)
+        self._renderer.plotter.show_axes()
         if standalone:
             _qt_app_exec(self._renderer.figure.store["app"])
 
@@ -373,6 +376,8 @@ class CoregistrationUI(HasTraits):
         if point in funcs.keys():
             getattr(self, funcs[point])(weight > 0)
         setattr(self, f"_{point}_weight", weight)
+        setattr(self._coreg, f"_{point}_weight", weight)
+        self._update_distance_estimation()
 
     @observe("_subjects_dir")
     def _subjects_dir_changed(self, change=None):
@@ -402,6 +407,7 @@ class CoregistrationUI(HasTraits):
         if self._lock_fids:
             self._forward_widget_command(view_widgets, "set_enabled", True)
             self._display_message()
+            self._update_distance_estimation()
         else:
             self._forward_widget_command(view_widgets, "set_enabled", False)
             self._display_message("Picking fiducials - "
@@ -415,6 +421,7 @@ class CoregistrationUI(HasTraits):
     def _fiducials_file_changed(self, change=None):
         fids, _ = read_fiducials(self._fiducials_file)
         self._coreg._setup_fiducials(fids)
+        self._update_distance_estimation()
         self._reset()
         self._set_lock_fids(True)
 
@@ -530,6 +537,7 @@ class CoregistrationUI(HasTraits):
                 draw_map[key]()
             self._redraws_pending.clear()
             self._renderer._update()
+            self._renderer._process_events()  # necessary for MacOS?
 
     def _on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
@@ -541,7 +549,7 @@ class CoregistrationUI(HasTraits):
     def _on_button_release(self, vtk_picker, event):
         if self._mouse_no_mvt > 0:
             x, y = vtk_picker.GetEventPosition()
-            # XXX: plotter/renderer should not be exposed if possible
+            # XXX: internal plotter/renderer should not be exposed
             plotter = self._renderer.figure.plotter
             picked_renderer = self._renderer.figure.plotter.renderer
             # trigger the pick
@@ -589,11 +597,22 @@ class CoregistrationUI(HasTraits):
 
     def _omit_hsp(self):
         self._coreg.omit_head_shape_points(self._omit_hsp_distance / 1e3)
+        n_omitted = np.sum(~self._coreg._extra_points_filter)
+        n_remaining = len(self._coreg._dig_dict['hsp']) - n_omitted
         self._update_plot("hsp")
+        self._update_distance_estimation()
+        self._display_message(
+            f"{n_omitted} head shape points omitted, "
+            f"{n_remaining} remaining.")
 
     def _reset_omit_hsp_filter(self):
         self._coreg._extra_points_filter = None
+        self._coreg._update_params(force_update_omitted=True)
         self._update_plot("hsp")
+        self._update_distance_estimation()
+        n_total = len(self._coreg._dig_dict['hsp'])
+        self._display_message(
+            f"No head shape point is omitted, the total is {n_total}.")
 
     def _update_plot(self, changes="all"):
         # Update list of things that need to be updated/plotted (and maybe
@@ -638,11 +657,9 @@ class CoregistrationUI(HasTraits):
             self._plot_locked = old_plot_locked
 
     def _display_message(self, msg=""):
-        if "msg" not in self._actors:
-            self._actors["msg"] = self._renderer.text2d(0, 0, msg)
-        else:
-            self._actors["msg"].SetInput(msg)
-        self._renderer._update()
+        self._status_msg.set_value(msg)
+        self._status_msg.show()
+        self._status_msg.update()
 
     def _follow_fiducial_view(self):
         fid = self._current_fiducial.lower()
@@ -658,6 +675,16 @@ class CoregistrationUI(HasTraits):
         with self._lock_plot():
             self._forward_widget_command(
                 ["fid_X", "fid_Y", "fid_Z"], "set_value", val)
+
+    def _update_distance_estimation(self):
+        value = self._coreg._get_fiducials_distance_str() + '\n' + \
+            self._coreg._get_point_distance_str()
+        dists = self._coreg.compute_dig_mri_distances() * 1e3
+        if self._hsp_weight > 0:
+            value += "\nHSP <-> MRI (mean/min/max): "\
+                f"{np.mean(dists):.2f} "\
+                f"/ {np.min(dists):.2f} / {np.max(dists):.2f} mm"
+        self._forward_widget_command("fit_label", "set_value", value)
 
     def _update_parameters(self):
         with self._lock_plot():
@@ -676,6 +703,7 @@ class CoregistrationUI(HasTraits):
         self._coreg.reset()
         self._update_plot()
         self._update_parameters()
+        self._update_distance_estimation()
 
     def _forward_widget_command(self, names, command, value):
         names = [names] if not isinstance(names, list) else names
@@ -697,6 +725,7 @@ class CoregistrationUI(HasTraits):
         self._renderer._update()
 
     def _update_actor(self, actor_name, actor):
+        # XXX: internal plotter/renderer should not be exposed
         self._renderer.plotter.remove_actor(self._actors.get(actor_name))
         self._actors[actor_name] = actor
 
@@ -743,23 +772,24 @@ class CoregistrationUI(HasTraits):
     def _add_eeg_channels(self):
         if self._eeg_channels:
             eeg = ["original"]
-            picks = pick_types(self._info, eeg=(len(eeg) > 0))
+            picks = pick_types(self._info, eeg=(len(eeg) > 0), fnirs=True)
             if len(picks) > 0:
-                eeg_actors = _plot_sensors(
+                actors = _plot_sensors(
                     self._renderer, self._info, self._to_cf_t, picks,
-                    meg=False, eeg=eeg, fnirs=False, warn_meg=False,
-                    head_surf=self._head_geo, units='m',
+                    meg=False, eeg=eeg, fnirs=["sources", "detectors"],
+                    warn_meg=False, head_surf=self._head_geo, units='m',
                     sensor_opacity=self._defaults["sensor_opacity"],
                     orient_glyphs=self._orient_glyphs,
                     scale_by_distance=self._scale_by_distance,
                     project_points=self._project_eeg,
                     surf=self._head_geo)
-                eeg_actors = eeg_actors["eeg"]
+                sens_actors = actors["eeg"]
+                sens_actors.extend(actors["fnirs"])
             else:
-                eeg_actors = None
+                sens_actors = None
         else:
-            eeg_actors = None
-        self._update_actor("eeg_channels", eeg_actors)
+            sens_actors = None
+        self._update_actor("eeg_channels", sens_actors)
 
     def _add_head_surface(self):
         bem = None
@@ -786,6 +816,10 @@ class CoregistrationUI(HasTraits):
                 self._coreg._get_processed_mri_points(res)
 
     def _fit_fiducials(self):
+        if not self._lock_fids:
+            self._display_message(
+                "Fitting is disabled, lock the fiducials first.")
+            return
         start = time.time()
         self._coreg.fit_fiducials(
             lpa_weight=self._lpa_weight,
@@ -794,18 +828,25 @@ class CoregistrationUI(HasTraits):
             verbose=self._verbose,
         )
         end = time.time()
-        self._renderer._status_bar_show_message(
+        self._display_message(
             f"Fitting fiducials finished in {end - start:.2f} seconds.")
         self._update_plot("sensors")
         self._update_parameters()
+        self._update_distance_estimation()
 
     def _fit_icp(self):
+        if not self._lock_fids:
+            self._display_message(
+                "Fitting is disabled, lock the fiducials first.")
+            return
         self._current_icp_iterations = 0
 
         def callback(iteration, n_iterations):
-            self._display_message(f"Fitting ICP - iteration {iteration + 1}")
+            self._display_message(
+                f"Fitting ICP - iteration {iteration + 1}")
             self._update_plot("sensors")
-            self._current_icp_iterations = iteration
+            self._current_icp_iterations = n_iterations
+            self._update_distance_estimation()
             self._renderer._process_events()  # allow a draw or cancel
 
         start = time.time()
@@ -819,7 +860,7 @@ class CoregistrationUI(HasTraits):
         )
         end = time.time()
         self._display_message()
-        self._renderer._status_bar_show_message(
+        self._display_message(
             f"Fitting ICP finished in {end - start:.2f} seconds and "
             f"{self._current_icp_iterations} iterations.")
         self._update_parameters()
@@ -827,6 +868,8 @@ class CoregistrationUI(HasTraits):
 
     def _save_trans(self, fname):
         write_trans(fname, self._coreg.trans)
+        self._display_message(
+            "{fname} transform file is saved.")
 
     def _load_trans(self, fname):
         mri_head_t = _ensure_trans(read_trans(fname, return_all=True),
@@ -838,6 +881,9 @@ class CoregistrationUI(HasTraits):
             tra=np.array([x, y, z]),
         )
         self._update_parameters()
+        self._update_distance_estimation()
+        self._display_message(
+            f"{fname} transform file is loaded.")
 
     def _get_subjects(self, sdir=None):
         # XXX: would be nice to move this function to util
@@ -931,7 +977,7 @@ class CoregistrationUI(HasTraits):
             layout=layout,
         )
         self._widgets["grow_hair"] = self._renderer._dock_add_spin_box(
-            name="Grow Hair",
+            name="Grow Hair (mm)",
             value=self._grow_hair,
             rng=[0.0, 10.0],
             callback=self._set_grow_hair,
@@ -939,7 +985,7 @@ class CoregistrationUI(HasTraits):
         )
         hlayout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["omit_distance"] = self._renderer._dock_add_spin_box(
-            name="Omit Distance",
+            name="Omit Distance (mm)",
             value=self._omit_hsp_distance,
             rng=[0.0, 100.0],
             callback=self._set_omit_hsp_distance,
@@ -1032,6 +1078,10 @@ class CoregistrationUI(HasTraits):
             layout=hlayout,
         )
         self._renderer._layout_add_widget(layout, hlayout)
+        self._widgets["fit_label"] = self._renderer._dock_add_label(
+            value="",
+            layout=layout,
+        )
         self._widgets["icp_n_iterations"] = self._renderer._dock_add_spin_box(
             name="Number Of ICP Iterations",
             value=self._defaults["icp_n_iterations"],
@@ -1110,6 +1160,10 @@ class CoregistrationUI(HasTraits):
         self._renderer._layout_add_widget(layout, hlayout)
         self._renderer._dock_add_stretch()
 
+    def _configure_status_bar(self):
+        self._status_msg = self._renderer._status_bar_add_label("", stretch=1)
+        self._status_msg.hide()
+
     def _clean(self):
         self._renderer = None
         self._coreg = None
@@ -1118,6 +1172,8 @@ class CoregistrationUI(HasTraits):
         self._surfaces.clear()
         self._defaults.clear()
         self._head_geo = None
+        self._redraw = None
+        self._status_msg = None
 
     def close(self):
         """Close interface and cleanup data structure."""

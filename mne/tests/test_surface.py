@@ -21,7 +21,8 @@ from mne.surface import (_compute_nearest, _tessellate_sphere, fast_cross_3d,
                          _voxel_neighbors, warp_montage_volume)
 from mne.transforms import _get_trans, compute_volume_registration, apply_trans
 from mne.utils import (requires_vtk, catch_logging, object_diff,
-                       requires_freesurfer, requires_nibabel, requires_dipy)
+                       requires_freesurfer, requires_nibabel, requires_dipy,
+                       _record_warnings)
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -125,11 +126,11 @@ def test_io_surface(tmp_path):
     fname_tri = op.join(data_path, 'subjects', 'sample', 'bem',
                         'inner_skull.surf')
     for fname in (fname_quad, fname_tri):
-        with pytest.warns(None):  # no volume info
+        with _record_warnings():  # no volume info
             pts, tri, vol_info = read_surface(fname, read_metadata=True)
         write_surface(op.join(tempdir, 'tmp'), pts, tri, volume_info=vol_info,
                       overwrite=True)
-        with pytest.warns(None):  # no volume info
+        with _record_warnings():  # no volume info
             c_pts, c_tri, c_vol_info = read_surface(op.join(tempdir, 'tmp'),
                                                     read_metadata=True)
         assert_array_equal(pts, c_pts)

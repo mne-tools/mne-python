@@ -20,8 +20,8 @@ from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
 from ..io.proj import (_read_proj, make_projector, _write_proj,
                        _needs_eeg_average_ref_proj)
 from ..io.tree import dir_tree_find
-from ..io.write import (write_int, write_float_matrix, start_file,
-                        start_block, end_block, end_file, write_float,
+from ..io.write import (write_int, write_float_matrix, start_and_end_file,
+                        start_block, end_block, write_float,
                         write_coord_trans, write_string)
 
 from ..io.pick import channel_type, pick_info, pick_types, pick_channels
@@ -113,7 +113,7 @@ def _pick_channels_inverse_operator(ch_names, inv):
 
 
 @verbose
-def read_inverse_operator(fname, verbose=None):
+def read_inverse_operator(fname, *, verbose=None):
     """Read the inverse operator decomposition from a FIF file.
 
     Parameters
@@ -334,7 +334,7 @@ def read_inverse_operator(fname, verbose=None):
 
 
 @verbose
-def write_inverse_operator(fname, inv, verbose=None):
+def write_inverse_operator(fname, inv, *, overwrite=False, verbose=None):
     """Write an inverse operator to a FIF file.
 
     Parameters
@@ -343,6 +343,9 @@ def write_inverse_operator(fname, inv, verbose=None):
         The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
     inv : dict
         The inverse operator.
+    %(overwrite)s
+
+        .. versionadded:: 1.0
     %(verbose)s
 
     See Also
@@ -351,7 +354,7 @@ def write_inverse_operator(fname, inv, verbose=None):
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz',
                                             '_inv.fif', '_inv.fif.gz'))
-    fname = _check_fname(fname=fname, overwrite=True)
+    fname = _check_fname(fname=fname, overwrite=overwrite)
 
     _validate_type(inv, InverseOperator, 'inv')
 
@@ -361,7 +364,11 @@ def write_inverse_operator(fname, inv, verbose=None):
     logger.info('Write inverse operator decomposition in %s...' % fname)
 
     # Create the file and save the essentials
-    fid = start_file(fname)
+    with start_and_end_file(fname) as fid:
+        _write_inverse_operator(fid, inv)
+
+
+def _write_inverse_operator(fid, inv):
     start_block(fid, FIFF.FIFFB_MNE)
 
     #
@@ -451,9 +458,6 @@ def write_inverse_operator(fname, inv, verbose=None):
 
     end_block(fid, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
     end_block(fid, FIFF.FIFFB_MNE)
-    end_file(fid)
-
-    fid.close()
 
 ###############################################################################
 # Compute inverse solution

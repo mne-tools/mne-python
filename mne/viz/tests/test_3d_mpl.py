@@ -17,7 +17,7 @@ from mne import (read_forward_solution, VolSourceEstimate, SourceEstimate,
                  VolVectorSourceEstimate, compute_source_morph)
 from mne.datasets import testing
 from mne.utils import (requires_dipy, requires_nibabel, requires_version,
-                       catch_logging)
+                       catch_logging, _record_warnings)
 from mne.viz import plot_volume_source_estimates
 from mne.viz.utils import _fake_click
 
@@ -57,7 +57,8 @@ def test_plot_volume_source_estimates(mode, stype, init_t, want_t,
     else:
         assert stype == 's'
         stc = VolSourceEstimate(data, vertices, 1, 1)
-    with pytest.warns(None):  # sometimes get scalars/index warning
+    # sometimes get scalars/index warning
+    with _record_warnings():
         with catch_logging() as log:
             fig = stc.plot(
                 sample_src, subject='sample', subjects_dir=subjects_dir,
@@ -104,7 +105,8 @@ def test_plot_volume_source_estimates_morph():
     morph = compute_source_morph(sample_src, 'sample', 'fsaverage', zooms=5,
                                  subjects_dir=subjects_dir)
     initial_pos = (-0.05, -0.01, -0.006)
-    with pytest.warns(None):  # sometimes get scalars/index warning
+    # sometimes get scalars/index warning
+    with _record_warnings():
         with catch_logging() as log:
             stc.plot(morph, subjects_dir=subjects_dir, mode='glass_brain',
                      initial_pos=initial_pos, verbose=True)

@@ -5,12 +5,12 @@ Getting started with :class:`mne.Report`
 ========================================
 
 `mne.Report` is a way to create interactive HTML summaries of your data. These
-reports can show many different visualizations of one or multiple subject's
-data. A common use case is creating diagnostic summaries to check data quality
-at different stages in the processing pipeline. The report can show things like
-plots of data before and after each preprocessing step, epoch rejection
-statistics, MRI slices with overlaid BEM shells, all the way up to plots of
-estimated cortical activity.
+reports can show many different visualizations for one or multiple
+participants. A common use case is creating diagnostic summaries to check data
+quality at different stages in the processing pipeline. The report can show
+things like plots of data before and after each preprocessing step, epoch
+rejection statistics, MRI slices with overlaid BEM shells, all the way up to
+plots of estimated cortical activity.
 
 Compared to a Jupyter notebook, `mne.Report` is easier to deploy (the HTML
 pages it generates are self-contained and do not require a running Python
@@ -81,12 +81,12 @@ subjects_dir = data_path / 'subjects'
 # equally-spaced 1-second segments of the data:
 #
 # .. warning::
-#    In the following example, we crop the raw data and crop to 60 seconds
-#    just to speed up processing, this is not usually recommended!
+#    In the following example, we crop the raw data to 60 seconds just to speed
+#    up processing, this is not usually recommended!
 
 raw_path = sample_dir / 'sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw(raw_path)
-raw.pick_types(eeg=True, eog=True).crop(tmax=60).load_data()
+raw.pick_types(eeg=True, eog=True, stim=True).crop(tmax=60).load_data()
 
 report = mne.Report(title='Raw example')
 # This method also accepts a path, e.g., raw=raw_path
@@ -102,7 +102,7 @@ report.save('report_raw.html', overwrite=True)
 # is used to generate a meaningful time axis.
 
 events_path = sample_dir / 'sample_audvis_filt-0-40_raw-eve.fif'
-events = mne.read_events(events_path)
+events = mne.find_events(raw=raw)
 sfreq = raw.info['sfreq']
 
 report = mne.Report(title='Events example')

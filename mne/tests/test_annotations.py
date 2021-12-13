@@ -21,10 +21,10 @@ import mne
 from mne import (create_info, read_annotations, annotations_from_events,
                  events_from_annotations)
 from mne import Epochs, Annotations
-from mne.utils import (requires_version,
-                       catch_logging, requires_pandas)
-from mne.utils import (assert_and_remove_boundary_annot, _raw_annot,
-                       _dt_to_stamp, _stamp_to_dt, check_version)
+from mne.utils import (requires_version, catch_logging, requires_pandas,
+                       assert_and_remove_boundary_annot, _raw_annot,
+                       _dt_to_stamp, _stamp_to_dt, check_version,
+                       _record_warnings)
 from mne.io import read_raw_fif, RawArray, concatenate_raws
 from mne.annotations import (_sync_onset, _handle_meas_date,
                              _read_annotations_txt_parse_header)
@@ -254,6 +254,21 @@ def test_crop(tmp_path):
     raw_read = read_raw_fif(fname)
     assert raw_read.annotations is not None
     assert len(raw_read.annotations.onset) == 0
+    # test saving and reloading cropped annotations in raw instance
+    info = create_info([f'EEG{i+1}' for i in range(3)],
+                       ch_types=['eeg'] * 3, sfreq=50)
+    raw = RawArray(np.zeros((3, 50 * 20)), info)
+    annotation = mne.Annotations([8, 12, 15], [2] * 3, [1, 2, 3])
+    raw = raw.set_annotations(annotation)
+    raw_copied = raw.copy().crop(5, 18)
+    fname = op.join(tempdir, 'test_raw.fif')
+    raw_copied.save(fname, overwrite=True)
+    raw_loaded = mne.io.read_raw(str(fname))
+    for attr in ('onset', 'duration'):
+        assert_allclose(getattr(raw.annotations, attr),
+                        getattr(raw_copied.annotations, attr))
+        assert_allclose(getattr(raw_copied.annotations, attr),
+                        getattr(raw_loaded.annotations, attr))
 
 
 @first_samps
@@ -587,14 +602,14 @@ def test_annotations_crop():
     assert_array_equal(a_.duration, a.duration)
 
     # cropping with left shifted window
-    with pytest.warns(None) as w:
+    with _record_warnings() as w:
         a_ = a.copy().crop(tmin=0, tmax=4.2)
     assert_array_equal(a_.onset, [1., 2., 3., 4.])
     assert_allclose(a_.duration, [3.2, 2.2, 1.2, 0.2])
     assert len(w) == 0
 
     # cropping with right shifted window
-    with pytest.warns(None) as w:
+    with _record_warnings() as w:
         a_ = a.copy().crop(tmin=17.8, tmax=22)
     assert_array_equal(a_.onset, [17.8, 17.8])
     assert_allclose(a_.duration, [0.2, 1.2])
@@ -606,7 +621,7 @@ def test_annotations_crop():
     assert_array_equal(a_.duration, [0, 1, 1, 1, 1, 1, 1, 1, 1])
 
     # cropping with out-of-bounds window
-    with pytest.warns(None) as w:
+    with _record_warnings() as w:
         a_ = a.copy().crop(tmin=42, tmax=100)
     assert_array_equal(a_.onset, [])
     assert_array_equal(a_.duration, [])

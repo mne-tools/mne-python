@@ -40,7 +40,7 @@ from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements,
     _handle_event_repeated, make_metadata)
-from mne.utils import (requires_pandas, object_diff,
+from mne.utils import (requires_pandas, object_diff, use_log_level,
                        catch_logging, _FakeNoPandas,
                        assert_meg_snr, check_version, _dt_to_stamp)
 
@@ -1025,13 +1025,23 @@ def test_epochs_io_preload(tmp_path, preload):
     # for some tests
     tols = dict(atol=1e-3, rtol=1e-20)
 
-    raw, events, picks = _get_data(preload=True)
+    raw, events, picks = _get_data(preload=preload)
     tempdir = str(tmp_path)
     temp_fname = op.join(tempdir, 'test-epo.fif')
     temp_fname_no_bl = op.join(tempdir, 'test_no_bl-epo.fif')
     baseline = (None, 0)
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=baseline, preload=True)
+    with catch_logging() as log:
+        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                        baseline=baseline, preload=True, verbose=True)
+    log = log.getvalue()
+    msg = 'Not setting metadata'
+    assert log.count(msg) == 1, f'\nto find:\n{msg}\n\nlog:\n{log}'
+    load_msg = 'Loading data for 7 events and 421 original time points ...'
+    if preload:
+        load_msg = ('Using data from preloaded Raw for 7 events and 421 '
+                    'original time points ...')
+    assert log.count(load_msg) == 1, f'\nto find:\n{load_msg}\n\nlog:\n{log}'
+
     evoked = epochs.average()
     epochs.save(temp_fname, overwrite=True)
 
@@ -1399,8 +1409,13 @@ def test_evoked_io_from_epochs(tmp_path):
     with raw.info._unlock():
         raw.info['lowpass'] = 40  # avoid aliasing warnings
     # offset our tmin so we don't get exactly a zero value when decimating
-    epochs = Epochs(raw, events[:4], event_id, tmin + 0.011, tmax,
-                    picks=picks, decim=5)
+    with catch_logging() as log:
+        epochs = Epochs(raw, events[:4], event_id, tmin + 0.011, tmax,
+                        picks=picks, decim=5, preload=True, verbose=True)
+    log = log.getvalue()
+    load_msg = ('Loading data for 1 events and 415 original time points '
+                '(prior to decimation) ...')
+    assert log.count(load_msg) == 1, f'\nto find:\n{load_msg}\n\nlog:\n{log}'
     evoked = epochs.average()
     with evoked.info._unlock():
         # Test that empty string shortcuts to None.
@@ -1419,7 +1434,7 @@ def test_evoked_io_from_epochs(tmp_path):
                     picks=picks, baseline=baseline, decim=5)
     evoked = epochs.average()
     assert_allclose(evoked.baseline, baseline)
-    evoked.save(fname_temp)
+    evoked.save(fname_temp, overwrite=True)
     evoked2 = read_evokeds(fname_temp)[0]
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
@@ -1445,14 +1460,14 @@ def test_evoked_io_from_epochs(tmp_path):
     for picks in (None, 'all'):
         evoked = epochs.average(picks)
         evokeds.append(evoked)
-        evoked.save(fname_temp)
+        evoked.save(fname_temp, overwrite=True)
         evoked2 = read_evokeds(fname_temp)[0]
         start = 1 if picks is None else 0
         for ev in (evoked, evoked2):
             assert ev.ch_names == epochs.ch_names[start:]
             assert_allclose(ev.data, epochs.get_data().mean(0)[start:])
     with pytest.raises(ValueError, match='.*nchan.* must match'):
-        write_evokeds(fname_temp, evokeds)
+        write_evokeds(fname_temp, evokeds, overwrite=True)
 
 
 def test_evoked_standard_error(tmp_path):
@@ -2928,8 +2943,17 @@ def test_metadata(tmp_path):
     events = np.column_stack([events, np.zeros([len(events), 2])]).astype(int)
     events[5:, -1] = 1
     event_id = {'zero': 0, 'one': 1}
-    epochs = EpochsArray(data, info, metadata=meta,
-                         events=events, event_id=event_id)
+    with catch_logging() as log:
+        epochs = EpochsArray(data, info, metadata=meta,
+                             events=events, event_id=event_id, verbose=True)
+    log = log.getvalue()
+    msg = 'Adding metadata with 2 columns'
+    assert log.count(msg) == 1, f'\nto find:\n{msg}\n\nlog:\n{log}'
+    with use_log_level(True):
+        with catch_logging() as log:
+            epochs.metadata = meta
+    log = log.getvalue().strip()
+    assert log == 'Replacing existing metadata with 2 columns', f'{log}'
     indices = np.arange(len(epochs))  # expected indices
     assert_array_equal(epochs.metadata.index, indices)
 

@@ -431,9 +431,7 @@ def test_real(_load_forward, idx):
                              real_filter=True, inversion='single')
     # Also test here that no warings are thrown - implemented to check whether
     # src should not be None warning occurs:
-    with pytest.warns(None) as w:
-        power, f = apply_dics_csd(csd, filters_real)
-    assert len(w) == 0
+    power, f = apply_dics_csd(csd, filters_real)
 
     assert f == [10, 20]
     dist = _fwd_dist(power, fwd_surf, vertices, source_ind)
@@ -506,9 +504,7 @@ def test_apply_dics_timeseries(_load_forward, idx):
     # Sanity checks on the resulting STC after applying DICS on epochs.
     # Also test here that no warnings are thrown - implemented to check whether
     # src should not be None warning occurs
-    with pytest.warns(None) as w:
-        stcs = apply_dics_epochs(epochs, filters)
-    assert len(w) == 0
+    stcs = apply_dics_epochs(epochs, filters)
 
     assert isinstance(stcs, list)
     assert len(stcs) == 1

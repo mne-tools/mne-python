@@ -102,26 +102,20 @@ def _write_stc(filename, tmin, tstep, vertices, data):
     data : 2D array
         The data matrix (nvert * ntime).
     """
-    fid = open(filename, 'wb')
-
-    # write start time in ms
-    fid.write(np.array(1000 * tmin, dtype='>f4').tobytes())
-    # write sampling rate in ms
-    fid.write(np.array(1000 * tstep, dtype='>f4').tobytes())
-    # write number of vertices
-    fid.write(np.array(vertices.shape[0], dtype='>u4').tobytes())
-    # write the vertex indices
-    fid.write(np.array(vertices, dtype='>u4').tobytes())
-
-    # write the number of timepts
-    fid.write(np.array(data.shape[1], dtype='>u4').tobytes())
-    #
-    # write the data
-    #
-    fid.write(np.array(data.T, dtype='>f4').tobytes())
-
-    # close the file
-    fid.close()
+    filename
+    with open(filename, 'wb') as fid:
+        # write start time in ms
+        fid.write(np.array(1000 * tmin, dtype='>f4').tobytes())
+        # write sampling rate in ms
+        fid.write(np.array(1000 * tstep, dtype='>f4').tobytes())
+        # write number of vertices
+        fid.write(np.array(vertices.shape[0], dtype='>u4').tobytes())
+        # write the vertex indices
+        fid.write(np.array(vertices, dtype='>u4').tobytes())
+        # write the number of timepts
+        fid.write(np.array(data.shape[1], dtype='>u4').tobytes())
+        # write the data
+        fid.write(np.array(data.T, dtype='>f4').tobytes())
 
 
 def _read_3(fid):
@@ -259,8 +253,7 @@ def read_source_estimate(fname, subject=None):
     # make sure corresponding file(s) can be found
     ftype = None
     if op.exists(fname):
-        if fname.endswith('-vl.stc') or fname.endswith('-vol.stc') or \
-                fname.endswith('-vl.w') or fname.endswith('-vol.w'):
+        if fname.endswith(('-vl.stc', '-vol.stc', '-vl.w', '-vol.w')):
             ftype = 'volume'
         elif fname.endswith('.stc'):
             ftype = 'surface'
@@ -613,7 +606,7 @@ class _BaseSourceEstimate(TimeMixin):
         return self
 
     @verbose
-    def save(self, fname, ftype='h5', verbose=None):
+    def save(self, fname, ftype='h5', *, overwrite=False, verbose=None):
         """Save the full source estimate to an HDF5 file.
 
         Parameters
@@ -623,22 +616,23 @@ class _BaseSourceEstimate(TimeMixin):
             '-stc.h5'.
         ftype : str
             File format to use. Currently, the only allowed values is "h5".
+        %(overwrite)s
+
+            .. versionadded:: 1.0
         %(verbose_meth)s
         """
-        _validate_type(fname, 'path-like', 'fname')
-        # TODO: Add `overwrite` param to method signature
-        fname = _check_fname(fname=fname, overwrite=True)
+        fname = _check_fname(fname=fname, overwrite=True)  # check below
         if ftype != 'h5':
             raise ValueError('%s objects can only be written as HDF5 files.'
                              % (self.__class__.__name__,))
         if not fname.endswith('.h5'):
             fname += '-stc.h5'
+        fname = _check_fname(fname=fname, overwrite=overwrite)
         write_hdf5(fname,
                    dict(vertices=self.vertices, data=self.data,
                         tmin=self.tmin, tstep=self.tstep, subject=self.subject,
                         src_type=self._src_type),
                    title='mnepython',
-                   # TODO: Add `overwrite` param to method signature
                    overwrite=True)
 
     @copy_function_doc_to_method_doc(plot_source_estimates)
@@ -1586,7 +1580,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
     """
 
     @verbose
-    def save(self, fname, ftype='stc', verbose=None):
+    def save(self, fname, ftype='stc', *, overwrite=False, verbose=None):
         """Save the source estimates to a file.
 
         Parameters
@@ -1599,11 +1593,12 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         ftype : str
             File format to use. Allowed values are "stc" (default), "w",
             and "h5". The "w" format only supports a single time point.
+        %(overwrite)s
+
+            .. versionadded:: 1.0
         %(verbose_meth)s
         """
-        _validate_type(fname, 'path-like', 'fname')
-        # TODO: Add `overwrite` param to method signature
-        fname = _check_fname(fname=fname, overwrite=True)
+        fname = _check_fname(fname=fname, overwrite=True)  # checked below
         _check_option('ftype', ftype, ['stc', 'w', 'h5'])
 
         lh_data = self.data[:len(self.lh_vertno)]
@@ -1616,23 +1611,23 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
                                  "in HDF5 format instead, or cast the data to "
                                  "real numbers before saving.")
             logger.info('Writing STC to disk...')
-            _write_stc(fname + '-lh.stc', tmin=self.tmin, tstep=self.tstep,
+            fname_l = _check_fname(fname + '-lh.stc', overwrite=overwrite)
+            fname_r = _check_fname(fname + '-rh.stc', overwrite=overwrite)
+            _write_stc(fname_l, tmin=self.tmin, tstep=self.tstep,
                        vertices=self.lh_vertno, data=lh_data)
-            _write_stc(fname + '-rh.stc', tmin=self.tmin, tstep=self.tstep,
+            _write_stc(fname_r, tmin=self.tmin, tstep=self.tstep,
                        vertices=self.rh_vertno, data=rh_data)
-
         elif ftype == 'w':
             if self.shape[1] != 1:
                 raise ValueError('w files can only contain a single time '
                                  'point')
             logger.info('Writing STC to disk (w format)...')
-            _write_w(fname + '-lh.w', vertices=self.lh_vertno,
-                     data=lh_data[:, 0])
-            _write_w(fname + '-rh.w', vertices=self.rh_vertno,
-                     data=rh_data[:, 0])
-
+            fname_l = _check_fname(fname + '-lh.w', overwrite=overwrite)
+            fname_r = _check_fname(fname + '-rh.w', overwrite=overwrite)
+            _write_w(fname_l, vertices=self.lh_vertno, data=lh_data[:, 0])
+            _write_w(fname_r, vertices=self.rh_vertno, data=rh_data[:, 0])
         elif ftype == 'h5':
-            super().save(fname)
+            super().save(fname, overwrite=overwrite)
         logger.info('[done]')
 
     @verbose
@@ -2057,8 +2052,9 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
                                    tstep=self.tstep, subject=self.subject)
         return label_stc
 
+    @verbose
     def save_as_volume(self, fname, src, dest='mri', mri_resolution=False,
-                       format='nifti1'):
+                       format='nifti1', *, overwrite=False, verbose=None):
         """Save a volume source estimate in a NIfTI file.
 
         Parameters
@@ -2080,6 +2076,12 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             Either 'nifti1' (default) or 'nifti2'.
 
             .. versionadded:: 0.17
+        %(overwrite)s
+
+            .. versionadded:: 1.0
+        %(verbose)s
+
+            .. versionadded:: 1.0
 
         Returns
         -------
@@ -2092,8 +2094,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         """
         import nibabel as nib
         _validate_type(fname, 'path-like', 'fname')
-        # TODO: Add `overwrite` param to method signature
-        fname = _check_fname(fname=fname, overwrite=True)
+        fname = _check_fname(fname=fname, overwrite=overwrite)
         img = self.as_volume(src, dest=dest, mri_resolution=mri_resolution,
                              format=format)
         nib.save(img, fname)
@@ -2182,7 +2183,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
     """
 
     @verbose
-    def save(self, fname, ftype='stc', verbose=None):
+    def save(self, fname, ftype='stc', *, overwrite=False, verbose=None):
         """Save the source estimates to a file.
 
         Parameters
@@ -2193,11 +2194,13 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         ftype : str
             File format to use. Allowed values are "stc" (default), "w",
             and "h5". The "w" format only supports a single time point.
+        %(overwrite)s
+
+            .. versionadded:: 1.0
         %(verbose_meth)s
         """
-        _validate_type(fname, 'path-like', 'fname')
-        # TODO: Add `overwrite` param to method signature
-        fname = _check_fname(fname=fname, overwrite=True)
+        # check overwrite individually below
+        fname = _check_fname(fname=fname, overwrite=True)  # checked below
         _check_option('ftype', ftype, ['stc', 'w', 'h5'])
         if ftype != 'h5' and len(self.vertices) != 1:
             raise ValueError('Can only write to .stc or .w if a single volume '
@@ -2207,17 +2210,19 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
                              ', use .h5 instead')
         if ftype == 'stc':
             logger.info('Writing STC to disk...')
-            if not (fname.endswith('-vl.stc') or fname.endswith('-vol.stc')):
+            if not fname.endswith(('-vl.stc', '-vol.stc')):
                 fname += '-vl.stc'
+            fname = _check_fname(fname, overwrite=overwrite)
             _write_stc(fname, tmin=self.tmin, tstep=self.tstep,
                        vertices=self.vertices[0], data=self.data)
         elif ftype == 'w':
             logger.info('Writing STC to disk (w format)...')
-            if not (fname.endswith('-vl.w') or fname.endswith('-vol.w')):
+            if not fname.endswith(('-vl.w', '-vol.w')):
                 fname += '-vl.w'
+            fname = _check_fname(fname, overwrite=overwrite)
             _write_w(fname, vertices=self.vertices[0], data=self.data)
         elif ftype == 'h5':
-            super().save(fname, 'h5')
+            super().save(fname, 'h5', overwrite=overwrite)
         logger.info('[done]')
 
 

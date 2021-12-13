@@ -29,7 +29,7 @@ from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
                           read_polhemus_fastscan, read_dig_localite,
                           read_dig_hpts)
 from mne.channels.montage import transform_to_head, _check_get_coord_frame
-from mne.utils import assert_dig_allclose
+from mne.utils import assert_dig_allclose, _record_warnings
 from mne.bem import _fit_sphere
 from mne.io.constants import FIFF
 from mne.io._digitization import (_format_dig_points,
@@ -461,7 +461,7 @@ def test_montage_readers(
         for key in ('coord_frame', 'ident', 'kind'):
             assert isinstance(d1[key], int)
             assert isinstance(d2[key], int)
-    with pytest.warns(None) as w:
+    with _record_warnings() as w:
         xform = compute_native_head_t(dig_montage)
     assert xform['to'] == FIFF.FIFFV_COORD_HEAD
     assert xform['from'] == FIFF.FIFFV_COORD_UNKNOWN
@@ -1089,7 +1089,7 @@ def test_set_montage_mgh(rename):
 # XXX: this does not check ch_names + it cannot work because of write_dig
 def _check_roundtrip(montage, fname, coord_frame='head'):
     """Check roundtrip writing."""
-    montage.save(fname)
+    montage.save(fname, overwrite=True)
     montage_read = read_dig_fif(fname=fname)
 
     assert_equal(repr(montage), repr(montage_read))
