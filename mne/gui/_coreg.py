@@ -840,7 +840,7 @@ class CoregistrationUI(HasTraits):
             self._display_message(
                 f"Fitting ICP - iteration {iteration + 1}")
             self._update_plot("sensors")
-            self._current_icp_iterations = n_iterations
+            self._current_icp_iterations += 1
             self._update_distance_estimation()
             self._renderer._process_events()  # allow a draw or cancel
 
