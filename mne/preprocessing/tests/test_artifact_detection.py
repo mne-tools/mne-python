@@ -76,15 +76,20 @@ def test_movement_annotation_head_correction(meas_date):
 
 
 @testing.requires_testing_data
-def test_muscle_annotation():
+@pytest.mark.parametrize('meas_date', (None, 'orig'))
+def test_muscle_annotation(meas_date, events):
     """Test correct detection muscle artifacts."""
     raw = read_raw_fif(raw_fname, allow_maxshield='yes').load_data()
+    if meas_date is None:
+        raw.set_meas_date(None)
     raw.notch_filter([50, 110, 150])
     # Check 2 muscle segments are detected
     annot_muscle, scores = annotate_muscle_zscore(raw, ch_type='mag',
                                                   threshold=10)
     assert annot_muscle.orig_time == raw.info["meas_date"]
-    onset = annot_muscle.onset * raw.info['sfreq'] - raw.first_samp
+    onset = annot_muscle.onset * raw.info['sfreq']
+    if meas_date is not None:
+        onset -= raw.first_samp
     onset = onset.astype(int)
     assert_array_equal(scores[onset].astype(int), np.array([23, 10]))
     assert annot_muscle.duration.size == 2
@@ -92,9 +97,12 @@ def test_muscle_annotation():
 
 
 @testing.requires_testing_data
-def test_muscle_annotation_without_meeg_data():
+@pytest.mark.parametrize('meas_date', (None, 'orig'))
+def test_muscle_annotation_without_meeg_data(meas_date):
     """Call annotate_muscle_zscore with data without meg or eeg."""
     raw = read_raw_fif(raw_fname, allow_maxshield='yes')
+    if meas_date is None:
+        raw.set_meas_date(None)
     raw.crop(0, .1).load_data()
     raw.pick_types(meg=False, stim=True)
     with pytest.raises(ValueError, match="No M/EEG channel types found"):

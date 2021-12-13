@@ -1247,27 +1247,31 @@ def test_mf_skips():
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     ('fname', 'bads', 'annot', 'add_ch', 'ignore_ref', 'want_bads',
-     'return_scores', 'h_freq'), [
+     'return_scores', 'h_freq', 'meas_date'), [
         # Neuromag data tested against MF
-        (sample_fname, [], False, False, False, ['MEG 2443'], False, None),
+        (sample_fname, [], False, False, False, ['MEG 2443'], False, None,
+         'raw'),
         # add 0111 to test picking, add annot to test it, and prepend chs for
         # idx
         (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443'], False,
-         None),
+         None, 'raw'),
         # CTF data seems to be sensitive to linalg lib (?) because some
         # channels are very close to the limit, so we just check that one shows
         # up
         (ctf_fname_continuous, [], False, False, False, {'BR1-4304'}, False,
-         None),
+         None, 'raw'),
         # faked
         (ctf_fname_continuous, [], False, False, True, ['MLC24-4304'], False,
-         None),
+         None, 'raw'),
         # For `return_scores=True`
         (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443'], True,
-         50)
+         50, 'raw'),
+        (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443'], True,
+         50, None),
     ])
 def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
-                                   want_bads, return_scores, h_freq):
+                                   want_bads, return_scores, h_freq,
+                                   meas_date):
     """Test automatic bad channel detection."""
     if fname.endswith('.ds'):
         raw = read_raw_ctf(fname).load_data()
@@ -1276,6 +1280,10 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
         raw = read_raw_fif(fname)
         raw.fix_mag_coil_types().load_data().pick_types(meg=True, exclude=())
         flat_idx = 1
+    if meas_date is None:
+        raw.set_meas_date(None)
+    else:
+        assert meas_date == 'raw'
     raw.filter(None, 40)
     raw.info['bads'] = bads
     raw._data[flat_idx] = 0  # MaxFilter didn't have this but doesn't affect it
