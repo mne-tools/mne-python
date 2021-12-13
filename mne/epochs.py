@@ -1397,10 +1397,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                    'original time points')
             if self._decim > 1:
                 msg += ' (prior to decimation)'
-            _msg_preload = False
-            if hasattr(self._raw, "preload"):
-                _msg_preload = self._raw.preload
-            if _msg_preload:
+            if getattr(self._raw, "preload", False):
                 logger.info(f'Using data from preloaded Raw {msg} ...')
             else:
                 logger.info(f'Loading data {msg} ...')
