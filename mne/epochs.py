@@ -2552,9 +2552,12 @@ class AnnotationsMixin():
             return epoch_annot_list
 
         # when each epoch and annotation starts/stops
-        epoch_tzeros = events[:, 0] / self._raw_sfreq  # no need to account for first_samp here...
-        epoch_starts, epoch_stops = np.atleast_2d(epoch_tzeros) + np.atleast_2d(self.times[[0, -1]]).T
-        annot_starts = self._annotations.onset  # ... because first_samp isn't accounted for here either
+        # no need to account for first_samp here...
+        epoch_tzeros = events[:, 0] / self._raw_sfreq
+        epoch_starts, epoch_stops = np.atleast_2d(
+            epoch_tzeros) + np.atleast_2d(self.times[[0, -1]]).T
+        # ... because first_samp isn't accounted for here either
+        annot_starts = self._annotations.onset
         annot_stops = annot_starts + self._annotations.duration
 
         # get all annotations that have a start point within epoch
@@ -2572,8 +2575,8 @@ class AnnotationsMixin():
             np.atleast_2d(epoch_starts) <= np.atleast_2d(annot_starts).T,
             np.atleast_2d(epoch_stops) >= np.atleast_2d(annot_stops).T)
         all_cases = (annot_straddles_epoch_start +
-                    annot_straddles_epoch_end +
-                    annot_fully_within_epoch)
+                     annot_straddles_epoch_end +
+                     annot_fully_within_epoch)
 
         for annot_ix, epo_ix in zip(*np.nonzero(all_cases)):
             this_annot = self._annotations[annot_ix]
@@ -2582,8 +2585,8 @@ class AnnotationsMixin():
             # get all annotations for this Epoch and offset the onset
             # relative to the start of the Epoch
             annot = (this_annot['onset'] - this_tzero,
-                    this_annot['duration'],
-                    this_annot['description'])
+                     this_annot['duration'],
+                     this_annot['description'])
             epoch_annot_list[epo_ix].append(annot)
         return epoch_annot_list
 

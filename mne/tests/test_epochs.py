@@ -3822,9 +3822,9 @@ def test_epoch_annotations_with_meas_date(first_samp):
     assert_array_equal(raw.annotations.description,
                        epochs.annotations.description)
 
-    # test get_annotations_per_epoch as a list of (onset, duration, description)
-    # that should match the original Annotations, except onset is now
-    # relative to the Epoch times
+    # test get_annotations_per_epoch as a list of (onset, duration,
+    # description) that should match the original Annotations, except
+    # onset is now relative to the Epoch times
     epoch_ants = epochs.get_annotations_per_epoch()
 
     expected_annot_times = [
