@@ -2563,8 +2563,6 @@ class AnnotationsMixin():
                     annot_fully_within_epoch)
 
         for annot_ix, epo_ix in zip(*np.nonzero(all_cases)):
-            # print(annot_ix)
-            # print(epo_ix)
             this_annot = self._annotations[annot_ix]
             this_tzero = epoch_tzeros[epo_ix]
 
