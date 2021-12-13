@@ -321,7 +321,7 @@ def _check_tags(tags) -> Tuple[str]:
 
 
 def _constrain_fig_resolution(fig, width):
-    """Limit the resolution (DPI) of a figure
+    """Limit the resolution (DPI) of a figure.
 
     Parameters
     ----------
