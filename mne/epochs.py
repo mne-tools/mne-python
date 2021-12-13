@@ -2499,8 +2499,7 @@ class AnnotationsMixin():
         Parameters
         ----------
         annotations : instance of mne.Annotations | None
-            Annotations to set. If None, the annotations is defined
-            but empty.
+            Annotations to set.
         %(on_missing_ch_names)s
 
         Returns
@@ -2519,15 +2518,16 @@ class AnnotationsMixin():
         return self
 
     def get_annotations_per_epoch(self):
-        """Return a list of raw annotations per epoch.
+        """Get a list of which annotations occur during each epoch.
 
         Returns
         -------
         epoch_annots : list
-            A list (with length equal to number of epochs) of annotations per
-            epoch. Each annotation is stored as (onset, duration, description),
-            where the onset is now relative to the epoch, rather then in
-            continuous time.
+            A list of lists (with length equal to number of epochs) where each
+            inner list contains the annotations that overlap the corresponding
+            epoch. Annotations are stored as a :class:`tuple` (onset, duration,
+            description), where the onset is now relative to time=0 of the
+            epoch, rather than time=0 of the original continuous (raw) data.
         """
         events = self.events
 
