@@ -105,7 +105,7 @@ Bugs
 
 - Fix channel grouping error when using "butterfly mode" with :meth:`mne.io.Raw.plot` (:gh:`10087` by `Daniel McCloy`_)
 
-- Fix inconsistent behavior of ``mne.preprocessing.annotate_*`` functions by making them all return :class:`mne.Annotations` objects with the ``orig_time`` attribute set to ``raw.info["meas_time"]`` (:gh:`10067` by `Stefan Appelhoff`_)
+- Fix inconsistent behavior of ``mne.preprocessing.annotate_*`` functions by making them all return :class:`mne.Annotations` objects with the ``orig_time`` attribute set to ``raw.info["meas_time"]`` (:gh:`10067` and :gh:`10118` by `Stefan Appelhoff`_, `Eric Larson`_, and `Alex Gramfort`_)
 
 - Fix bug that appears during automatic calculation of the colormap of `mne.viz.Brain` when data values of ``fmin`` and ``fmax`` are too close (:gh:`10074` by `Guillaume Favelier`_)
 

@@ -1344,3 +1344,11 @@ def annotations_from_events(events, sfreq, event_desc=None, first_samp=0,
                          orig_time=orig_time)
 
     return annots
+
+
+def _adjust_onset_meas_date(annot, raw):
+    """Adjust the annotation onsets based on raw meas_date."""
+    # If there is a non-None meas date, then the onset should take into
+    # account the first_samp / first_time.
+    if raw.info['meas_date'] is not None:
+        annot.onset += raw.first_time
