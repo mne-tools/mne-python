@@ -299,6 +299,15 @@ class catch_logging(object):
         set_log_file(None)
 
 
+@contextlib.contextmanager
+def _record_warnings():
+    # this is a helper that mostly acts like pytest.warns(None) did before
+    # pytest 7
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        yield w
+
+
 class WrapStdOut(object):
     """Dynamically wrap to sys.stdout.
 
@@ -399,28 +408,6 @@ def filter_out_warnings(warn_record, category=None, match=None):
 
     match : str | None
         text or regex that matches the error message to filter out
-
-    Examples
-    --------
-    This can be used as::
-
-        >>> import pytest
-        >>> import warnings
-        >>> from mne.utils import filter_out_warnings
-        >>> with pytest.warns(None) as recwarn:
-        ...     warnings.warn("value must be 0 or None", UserWarning)
-        >>> filter_out_warnings(recwarn, match=".* 0 or None")
-        >>> assert len(recwarn.list) == 0
-
-        >>> with pytest.warns(None) as recwarn:
-        ...     warnings.warn("value must be 42", UserWarning)
-        >>> filter_out_warnings(recwarn, match=r'.* must be \d+$')
-        >>> assert len(recwarn.list) == 0
-
-        >>> with pytest.warns(None) as recwarn:
-        ...     warnings.warn("this is not here", UserWarning)
-        >>> filter_out_warnings(recwarn, match=r'.* must be \d+$')
-        >>> assert len(recwarn.list) == 1
     """
     regexp = re.compile('.*' if match is None else match)
     is_category = [w.category == category if category is not None else True

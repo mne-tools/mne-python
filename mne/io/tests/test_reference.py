@@ -7,8 +7,8 @@
 from contextlib import nullcontext
 import itertools
 import os.path as op
-import numpy as np
 
+import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 import pytest
 
@@ -24,7 +24,7 @@ from mne.io.constants import FIFF
 from mne.io.proj import _has_eeg_average_ref_proj, Projection
 from mne.io.reference import _apply_reference
 from mne.datasets import testing
-from mne.utils import catch_logging
+from mne.utils import catch_logging, _record_warnings
 
 base_dir = op.join(op.dirname(__file__), 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -613,7 +613,7 @@ def test_add_reorder(n_ref):
     assert len(raw.ch_names) == 60
     chs = ['EEG %03d' % (60 + ii) for ii in range(1, n_ref)] + ['EEG 000']
     with pytest.raises(RuntimeError, match='preload'):
-        with pytest.warns(None):  # ignore multiple warning
+        with _record_warnings():  # ignore multiple warning
             add_reference_channels(raw, chs, copy=False)
     raw.load_data()
     if n_ref == 1:

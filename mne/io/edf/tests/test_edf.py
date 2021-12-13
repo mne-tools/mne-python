@@ -23,7 +23,7 @@ import pytest
 from mne import pick_types, Annotations
 from mne.annotations import events_from_annotations, read_annotations
 from mne.datasets import testing
-from mne.utils import requires_pandas
+from mne.utils import requires_pandas, _record_warnings
 from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf, read_raw_gdf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import (_get_edf_default_event_id, _read_annotations_edf,
@@ -285,9 +285,9 @@ def test_to_data_frame(fname):
 def test_read_raw_edf_stim_channel_input_parameters():
     """Test edf raw reader deprecation."""
     _MSG = "`read_raw_edf` is not supposed to trigger a deprecation warning"
-    with pytest.warns(None) as recwarn:
+    with _record_warnings() as recwarn:
         read_raw_edf(edf_path)
-    assert all([w.category != DeprecationWarning for w in recwarn.list]), _MSG
+    assert all([w.category != DeprecationWarning for w in recwarn]), _MSG
 
     for invalid_stim_parameter in ['EDF Annotations', 'BDF Annotations']:
         with pytest.raises(ValueError,

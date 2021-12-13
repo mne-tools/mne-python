@@ -6,8 +6,8 @@ from contextlib import nullcontext
 from copy import deepcopy
 import os
 import os.path as op
-from shutil import copyfile
 import re
+from shutil import copyfile
 
 import numpy as np
 from numpy.fft import fft
@@ -45,7 +45,8 @@ from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs, make_inverse_operator)
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (requires_pandas, requires_sklearn, catch_logging,
-                       requires_h5py, requires_nibabel, requires_version)
+                       requires_h5py, requires_nibabel, requires_version,
+                       _record_warnings)
 from mne.io import read_raw_fif
 
 data_path = testing.data_path(download=False)
@@ -252,15 +253,15 @@ def test_save_vol_stc_as_nifti(tmp_path):
 
     stc.save_as_volume(vol_fname, src,
                        dest='surf', mri_resolution=False)
-    with pytest.warns(None):  # nib<->numpy
+    with _record_warnings():  # nib<->numpy
         img = nib.load(str(vol_fname))
     assert (img.shape == src[0]['shape'] + (len(stc.times),))
 
-    with pytest.warns(None):  # nib<->numpy
+    with _record_warnings():  # nib<->numpy
         t1_img = nib.load(fname_t1)
     stc.save_as_volume(tmp_path / 'stc.nii.gz', src,
                        dest='mri', mri_resolution=True)
-    with pytest.warns(None):  # nib<->numpy
+    with _record_warnings():  # nib<->numpy
         img = nib.load(str(vol_fname))
     assert (img.shape == t1_img.shape + (len(stc.times),))
     assert_allclose(img.affine, t1_img.affine, atol=1e-5)
@@ -886,7 +887,7 @@ def test_extract_label_time_course_volume(
             assert_allclose(_varexp(label_tc, label_tc), 1.)
             ve = _varexp(stc_back.data, stcs[0].data)
             assert 0.83 < ve < 0.85
-            with pytest.warns(None):  # ignore warnings about no output
+            with _record_warnings():  # ignore no output
                 label_tc_rt = extract_label_time_course(
                     stc_back, labels, src=src, mri_resolution=mri_res,
                     allow_empty=True)

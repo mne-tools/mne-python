@@ -21,7 +21,8 @@ from mne.stats.cluster_level import (permutation_cluster_test, f_oneway,
                                      spatio_temporal_cluster_test,
                                      spatio_temporal_cluster_1samp_test,
                                      ttest_1samp_no_p, summarize_clusters_stc)
-from mne.utils import catch_logging, check_version, requires_sklearn
+from mne.utils import (catch_logging, check_version, requires_sklearn,
+                       _record_warnings)
 
 
 n_space = 50
@@ -249,7 +250,7 @@ def test_cluster_permutation_t_test(numba_conditional, stat_fun):
 
         # test with 2 jobs and buffer_size enabled
         buffer_size = condition1.shape[1] // 10
-        with pytest.warns(None):  # sometimes "independently"
+        with _record_warnings():  # sometimes "independently"
             T_obs_neg_buff, _, cluster_p_values_neg_buff, _ = \
                 permutation_cluster_1samp_test(
                     -condition1, n_permutations=100, tail=-1, out_type='mask',
@@ -381,7 +382,7 @@ def test_cluster_permutation_with_adjacency(numba_conditional):
                 X1d_3, adjacency=adjacency, threshold=dict(me='hello'))
 
         # too extreme a start threshold
-        with pytest.warns(None) as w:
+        with _record_warnings() as w:
             spatio_temporal_func(X1d_3, adjacency=adjacency,
                                  threshold=dict(start=10, step=1))
         if not did_warn:
@@ -410,7 +411,8 @@ def test_cluster_permutation_with_adjacency(numba_conditional):
             spatio_temporal_func(
                 X1d_3, adjacency=adjacency, threshold=[])
         with pytest.raises(ValueError, match='Invalid value for the \'tail\''):
-            with pytest.warns(None):  # sometimes ignoring tail
+            # sometimes ignoring tail
+            with _record_warnings():
                 spatio_temporal_func(
                     X1d_3, adjacency=adjacency, tail=2)
 

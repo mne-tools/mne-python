@@ -31,7 +31,7 @@ from mne.minimum_norm import (apply_inverse, read_inverse_operator,
                               make_inverse_operator, apply_inverse_cov,
                               write_inverse_operator, prepare_inverse_operator,
                               compute_rank_inverse, INVERSE_METHODS)
-from mne.utils import catch_logging
+from mne.utils import catch_logging, _record_warnings
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -599,7 +599,7 @@ def test_orientation_prior(bias_params_free, method, looses, vmin, vmax,
 def assert_stc_res(evoked, stc, forward, res, atol=1e-20):
     """Assert that orig == residual + estimate."""
     __tracebackhide__ = True
-    with pytest.warns(None):  # could be all positive or large values
+    with _record_warnings():  # all positive or large values
         estimated = apply_forward(forward, stc, evoked.info)
     meg, eeg = 'meg' in estimated, 'eeg' in estimated
     evoked = evoked.copy().pick_types(meg=meg, eeg=eeg, exclude=())
