@@ -46,10 +46,10 @@ def temporal_derivative_distribution_repair(raw, *, verbose=None):
     _check_channels_ordered(
         raw.info, np.unique(_channel_frequencies(raw.info, nominal=True)))
 
-    if not len(pick_types(raw.info, fnirs='fnirs_od')):
-        raise RuntimeError('TDDR should be run on optical density data.')
+    if not len(pick_types(raw.info, fnirs=True)):
+        raise RuntimeError('TDDR should be run on fNIRS data.')
 
-    picks = _picks_to_idx(raw.info, 'fnirs_od', exclude=[])
+    picks = _picks_to_idx(raw.info, 'fnirs', exclude=[])
     for pick in picks:
         raw._data[pick] = _TDDR(raw._data[pick], raw.info['sfreq'])
 
@@ -76,8 +76,8 @@ def _TDDR(signal, sample_rate):
     #   signals_corrected = TDDR( signals , sample_rate );
     #
     # Inputs:
-    #   signals: A [sample x channel] matrix of uncorrected optical density
-    #            data
+    #   signals: A [sample x channel] matrix of uncorrected optical density or
+    #            hb data
     #   sample_rate: A scalar reflecting the rate of acquisition in Hz
     #
     # Outputs:
