@@ -2480,51 +2480,6 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     return metadata, events, event_id
 
 
-def _get_epoch_index_of_annot(epochs, annot_onset_samp, annot_duration_samp):
-    """Get index of Epochs that an annotation belongs to.
-
-    Parameters
-    ----------
-    epochs : instance of Epochs
-        The Epochs to search over.
-    annot_onset_samp : int
-        The sample onset of the annotation to index over.
-    annot_duration_samp : int
-        The sample duration of the annotation.
-
-    Returns
-    -------
-    epoch_indices : np.ndarray
-        The epoch indices that the annotation overlaps in.
-    """
-    events = epochs.events
-    times = epochs.times
-    raw_sfreq = epochs._raw_sfreq
-
-    # convert to a 2D array of onset offset of each epoch
-    epoch_wins = np.zeros((len(events), 2), dtype=int)
-    for idx in range(len(events)):
-        # get the beginning and end sample of the epoch window
-        onset_samp = np.rint(events[idx, 0] - times[0] * raw_sfreq).astype(int)
-        offset_samp = np.rint(events[idx, 0] +
-                              times[-1] * raw_sfreq).astype(int)
-
-        epoch_wins[idx, :] = [onset_samp, offset_samp]
-
-    # get all the indices of onset within Epoch windows
-    onset_indices = np.argwhere((epoch_wins[:, 0] < annot_onset_samp) &
-                                (epoch_wins[:, 1] > annot_onset_samp))
-
-    # get all the indices of offset within Epoch windows
-    annot_offset_samp = annot_onset_samp + annot_duration_samp
-    offset_indices = np.argwhere((epoch_wins[:, 0] < annot_offset_samp) &
-                                 (epoch_wins[:, 1] > annot_offset_samp))
-
-    # get the set of all indices
-    epoch_indices = np.unique(np.concatenate((onset_indices, offset_indices)))
-    return epoch_indices
-
-
 class AnnotationsMixin():
     """Mixin class for Annotations in Epochs."""
 
@@ -2563,7 +2518,7 @@ class AnnotationsMixin():
 
         return self
 
-    def get_epoch_annotations(self):
+    def get_annotations_per_epoch(self):
         """Return a list of raw annotations per epoch.
 
         Returns
@@ -2583,29 +2538,42 @@ class AnnotationsMixin():
         if self.annotations is None:
             return epoch_annot_list
 
-        for annot in self.annotations:
-            onset_ = annot['onset']
-            duration_ = annot['duration']
-            description_ = annot['description']
+        # when each epoch and annotation starts/stops
+        epoch_tzeros = events[:, 0] / self._raw_sfreq  # no need to account for first_samp here...
+        epoch_starts, epoch_stops = np.atleast_2d(epoch_tzeros) + np.atleast_2d(self.times[[0, -1]]).T
+        annot_starts = self._annotations.onset  # ... because first_samp isn't accounted for here either
+        annot_stops = annot_starts + self._annotations.duration
 
-            # convert onset to samples and account for first time
-            onset_samp = np.rint(onset_ * self._raw_sfreq +
-                                 self._first_samp).astype(int)
-            duration_samp = np.rint(duration_ * self._raw_sfreq).astype(int)
+        # get all annotations that have a start point within epoch
+        annot_straddles_epoch_start = np.logical_and(
+            np.atleast_2d(epoch_starts) >= np.atleast_2d(annot_starts).T,
+            np.atleast_2d(epoch_starts) < np.atleast_2d(annot_stops).T)
 
-            # loop through events to see which Epochs this annotation
-            # belongs to based on the onset and duration
-            epoch_index = _get_epoch_index_of_annot(
-                self, onset_samp, duration_samp)
+        # get all annotations that have an endpoint within epoch
+        annot_straddles_epoch_end = np.logical_and(
+            np.atleast_2d(epoch_stops) > np.atleast_2d(annot_starts).T,
+            np.atleast_2d(epoch_stops) <= np.atleast_2d(annot_stops).T)
 
-            for eidx in epoch_index:
-                # now convert onset sample relative to the Epoch and convert
-                # back to seconds relative to the Epoch
-                onset_samp_ = onset_samp - events[eidx, 0]
-                onset_ = np.divide(onset_samp_, self._raw_sfreq)
+        # get all annotations that are fully within an epoch
+        annot_fully_within_epoch = np.logical_and(
+            np.atleast_2d(epoch_starts) <= np.atleast_2d(annot_starts).T,
+            np.atleast_2d(epoch_stops) >= np.atleast_2d(annot_stops).T)
+        all_cases = (annot_straddles_epoch_start +
+                    annot_straddles_epoch_end +
+                    annot_fully_within_epoch)
 
-                epoch_annot_list[eidx].append(
-                    (onset_, duration_, description_))
+        for annot_ix, epo_ix in zip(*np.nonzero(all_cases)):
+            # print(annot_ix)
+            # print(epo_ix)
+            this_annot = self._annotations[annot_ix]
+            this_tzero = epoch_tzeros[epo_ix]
+
+            # get all annotations for this Epoch and offset the onset
+            # relative to the start of the Epoch
+            annot = (this_annot['onset'] - this_tzero,
+                    this_annot['duration'],
+                    this_annot['description'])
+            epoch_annot_list[epo_ix].append(annot)
         return epoch_annot_list
 
     def add_annotations_to_metadata(self):
