@@ -60,8 +60,10 @@ def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
     if not isinstance(inst, (BaseEpochs, BaseRaw, Evoked)):
-        raise ValueError('epochs must be an instance of Epochs, Raw, or'
-                         'Evoked. Got type {}'.format(type(inst)))
+        raise ValueError(
+            f'inst must be an instance of Epochs, Raw, or Evoked. Got '
+            f'{type(inst)}'
+        )
 
     time_mask = _time_mask(inst.times, tmin, tmax, sfreq=inst.info['sfreq'])
     picks = _picks_to_idx(inst.info, picks, 'data', with_ref_meg=False)

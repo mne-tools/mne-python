@@ -711,6 +711,18 @@ def test_manual_report_2d(tmp_path, invisible_fig):
                  sfreq=raw.info['sfreq'])
     r.add_epochs(epochs=epochs, title='my epochs', tags=('epochs',), psd=False,
                  projs=False)
+    r.add_epochs(epochs=epochs, title='my epochs 2', tags=('epochs',),
+                 psd=1, projs=False)
+    r.add_epochs(epochs=epochs, title='my epochs 2', tags=('epochs',),
+                 psd=True, projs=False)
+
+    with pytest.raises(
+        ValueError,
+        match='requested to calculate PSD on a duration'
+    ):
+        r.add_epochs(epochs=epochs, title='my epochs 2', tags=('epochs',),
+                     psd=100000000, projs=False)
+
     r.add_evokeds(evokeds=evoked, noise_cov=cov_fname,
                   titles=['my evoked 1'], tags=('evoked',), projs=False,
                   n_time_points=2)
