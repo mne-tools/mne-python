@@ -17,7 +17,7 @@ from .fixes import jit, mean, _get_img_fdata
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
-from .io.write import start_file, end_file, write_coord_trans
+from .io.write import start_and_end_file, write_coord_trans
 from .defaults import _handle_default
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
                     _path_like, get_subjects_dir, fill_doc, _check_fname,
@@ -558,7 +558,8 @@ def read_trans(fname, return_all=False, verbose=None):
     return trans if return_all else trans[0]
 
 
-def write_trans(fname, trans):
+@verbose
+def write_trans(fname, trans, *, overwrite=False, verbose=None):
     """Write a -trans.fif file.
 
     Parameters
@@ -567,6 +568,8 @@ def write_trans(fname, trans):
         The name of the file, which should end in '-trans.fif'.
     trans : dict
         Trans file data, as returned by read_trans.
+    %(overwrite)s
+    %(verbose)s
 
     See Also
     --------
@@ -574,11 +577,9 @@ def write_trans(fname, trans):
     """
     check_fname(fname, 'trans', ('-trans.fif', '-trans.fif.gz',
                                  '_trans.fif', '_trans.fif.gz'))
-    # TODO: Add `overwrite` param to method signature
-    fname = _check_fname(fname=fname, overwrite=True)
-    fid = start_file(fname)
-    write_coord_trans(fid, trans)
-    end_file(fid)
+    fname = _check_fname(fname=fname, overwrite=overwrite)
+    with start_and_end_file(fname) as fid:
+        write_coord_trans(fid, trans)
 
 
 def invert_transform(trans):

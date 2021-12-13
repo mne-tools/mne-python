@@ -21,7 +21,7 @@ import os.path as op
 import numpy as np
 
 from .io.utils import _construct_bids_filename
-from .io.write import (start_file, start_block, end_file, end_block,
+from .io.write import (start_and_end_file, start_block, end_block,
                        write_int, write_float, write_float_matrix,
                        write_double_matrix, write_complex_float_matrix,
                        write_complex_double_matrix, write_id, write_string,
@@ -105,7 +105,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt, split_naming,
     else:
         next_idx = None
 
-    with start_file(fname) as fid:
+    with start_and_end_file(fname) as fid:
         _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx)
 
 
@@ -202,7 +202,6 @@ def _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx):
     end_block(fid, FIFF.FIFFB_MNE_EPOCHS)
     end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
     end_block(fid, FIFF.FIFFB_MEAS)
-    end_file(fid)
 
 
 def _event_id_string(event_id):

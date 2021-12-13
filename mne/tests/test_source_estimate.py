@@ -179,7 +179,7 @@ def test_volume_stc(tmp_path):
         n = 3 if ext == 'h5' else 2
         for ii in range(n):
             if ii < 2:
-                stc_new.save(fname_temp)
+                stc_new.save(fname_temp, overwrite=True)
             else:
                 # Pass stc.vertices[0], an ndarray, to ensure support for
                 # the way we used to write volume STCs
@@ -202,11 +202,13 @@ def test_volume_stc(tmp_path):
     assert ' kB' in repr(stc)
 
     stc_new = stc
-    pytest.raises(ValueError, stc.save, fname_vol, ftype='whatever')
+    fname_temp = tmp_path / ('temp-vl.stc')
+    with pytest.raises(ValueError, match="'ftype' parameter"):
+        stc.save(fname_vol, ftype='whatever', overwrite=True)
     for ftype in ['w', 'h5']:
         for _ in range(2):
             fname_temp = tmp_path / ('temp-vol.%s' % ftype)
-            stc_new.save(fname_temp, ftype=ftype)
+            stc_new.save(fname_temp, ftype=ftype, overwrite=True)
             stc_new = read_source_estimate(fname_temp)
             assert (isinstance(stc_new, VolSourceEstimate))
             assert_array_equal(stc.vertices[0], stc_new.vertices[0])
@@ -259,8 +261,8 @@ def test_save_vol_stc_as_nifti(tmp_path):
 
     with _record_warnings():  # nib<->numpy
         t1_img = nib.load(fname_t1)
-    stc.save_as_volume(tmp_path / 'stc.nii.gz', src,
-                       dest='mri', mri_resolution=True)
+    stc.save_as_volume(vol_fname, src, dest='mri', mri_resolution=True,
+                       overwrite=True)
     with _record_warnings():  # nib<->numpy
         img = nib.load(str(vol_fname))
     assert (img.shape == t1_img.shape + (len(stc.times),))
@@ -443,7 +445,11 @@ def test_io_stc_h5(tmp_path, is_complex, vector):
         stc.save(tmp_path / 'tmp.h5', ftype='foo')
     out_name = str(tmp_path / 'tmp')
     stc.save(out_name, ftype='h5')
-    stc.save(out_name, ftype='h5')  # test overwrite
+    # test overwrite
+    assert op.isfile(out_name + '-stc.h5')
+    with pytest.raises(FileExistsError, match='Destination file exists'):
+        stc.save(out_name, ftype='h5')
+    stc.save(out_name, ftype='h5', overwrite=True)
     stc3 = read_source_estimate(out_name)
     stc4 = read_source_estimate(out_name + '-stc')
     stc5 = read_source_estimate(out_name + '-stc.h5')

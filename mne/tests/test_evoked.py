@@ -228,7 +228,7 @@ def test_io_evoked(tmp_path):
     aves1 = read_evokeds(fname)[1::2]
     aves2 = read_evokeds(fname, [1, 3])
     aves3 = read_evokeds(fname, ['Right Auditory', 'Right visual'])
-    write_evokeds(tmp_path / 'evoked-ave.fif', aves1)
+    write_evokeds(tmp_path / 'evoked-ave.fif', aves1, overwrite=True)
     aves4 = read_evokeds(tmp_path / 'evoked-ave.fif')
     for aves in [aves2, aves3, aves4]:
         for [av1, av2] in zip(aves1, aves):
@@ -287,20 +287,21 @@ def test_shift_time_evoked(tmp_path):
     tempdir = str(tmp_path)
     # Shift backward
     ave = read_evokeds(fname, 0).shift_time(-0.1, relative=True)
-    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
+    fname_temp = op.join(tempdir, 'evoked-ave.fif')
+    write_evokeds(fname_temp, ave)
 
     # Shift forward twice the amount
-    ave_bshift = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
+    ave_bshift = read_evokeds(fname_temp, 0)
     ave_bshift.shift_time(0.2, relative=True)
-    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave_bshift)
+    write_evokeds(fname_temp, ave_bshift, overwrite=True)
 
     # Shift backward again
-    ave_fshift = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
+    ave_fshift = read_evokeds(fname_temp, 0)
     ave_fshift.shift_time(-0.1, relative=True)
-    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave_fshift)
+    write_evokeds(fname_temp, ave_fshift, overwrite=True)
 
     ave_normal = read_evokeds(fname, 0)
-    ave_relative = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
+    ave_relative = read_evokeds(fname_temp, 0)
 
     assert_allclose(ave_normal.data, ave_relative.data, atol=1e-16, rtol=1e-3)
     assert_array_almost_equal(ave_normal.times, ave_relative.times, 8)
@@ -311,9 +312,9 @@ def test_shift_time_evoked(tmp_path):
     # Absolute time shift
     ave = read_evokeds(fname, 0)
     ave.shift_time(-0.3, relative=False)
-    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
+    write_evokeds(fname_temp, ave, overwrite=True)
 
-    ave_absolute = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
+    ave_absolute = read_evokeds(fname_temp, 0)
 
     assert_allclose(ave_normal.data, ave_absolute.data, atol=1e-16, rtol=1e-3)
     assert_equal(ave_absolute.first, int(-0.3 * ave.info['sfreq']))
@@ -331,14 +332,14 @@ def test_shift_time_evoked(tmp_path):
     # should shift by 0 samples
     ave.shift_time(1e-6)
     assert_array_equal(first_last, np.array([ave.first, ave.last]))
-    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
-    ave_loaded = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
+    write_evokeds(fname_temp, ave, overwrite=True)
+    ave_loaded = read_evokeds(fname_temp, 0)
     assert_array_almost_equal(ave.times, ave_loaded.times, 8)
     # should shift by 57 samples
     ave.shift_time(57. / ave.info['sfreq'])
     assert_array_equal(first_last + 57, np.array([ave.first, ave.last]))
-    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
-    ave_loaded = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
+    write_evokeds(fname_temp, ave, overwrite=True)
+    ave_loaded = read_evokeds(fname_temp, 0)
     assert_array_almost_equal(ave.times, ave_loaded.times, 8)
 
 
@@ -358,14 +359,15 @@ def test_evoked_resample(tmp_path):
     sfreq_normal = ave.info['sfreq']
     ave.resample(2 * sfreq_normal, npad=100)
     assert ave.info['lowpass'] == orig_lp
-    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
-    ave_up = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
+    fname_temp = op.join(tempdir, 'evoked-ave.fif')
+    write_evokeds(fname_temp, ave)
+    ave_up = read_evokeds(fname_temp, 0)
 
     # compare it to the original
     ave_normal = read_evokeds(fname, 0)
 
     # and compare the original to the downsampled upsampled version
-    ave_new = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
+    ave_new = read_evokeds(fname_temp, 0)
     ave_new.resample(sfreq_normal, npad=100)
     assert ave.info['lowpass'] == orig_lp
 

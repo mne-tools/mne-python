@@ -205,7 +205,7 @@ def test_ad_hoc_cov(tmp_path):
     assert_array_almost_equal(cov['data'], cov2['data'])
     std = dict(grad=2e-13, mag=10e-15, eeg=0.1e-6)
     cov = make_ad_hoc_cov(evoked.info, std)
-    cov.save(out_fname)
+    cov.save(out_fname, overwrite=True)
     assert 'Covariance' in repr(cov)
     cov2 = read_cov(out_fname)
     assert_array_almost_equal(cov['data'], cov2['data'])
@@ -241,11 +241,11 @@ def test_io_cov(tmp_path):
     cov_sel = pick_channels_cov(cov, exclude=cov['bads'])
     assert cov_sel['dim'] == (len(cov['data']) - len(cov['bads']))
     assert cov_sel['data'].shape == (cov_sel['dim'], cov_sel['dim'])
-    cov_sel.save(tmp_path / 'test-cov.fif')
+    cov_sel.save(tmp_path / 'test-cov.fif', overwrite=True)
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
-    cov2.save(tmp_path / 'test-cov.fif.gz')
+    cov2.save(tmp_path / 'test-cov.fif.gz', overwrite=True)
     cov2 = read_cov(tmp_path / 'test-cov.fif.gz')
     assert_array_almost_equal(cov.data, cov2.data)
 

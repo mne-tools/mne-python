@@ -310,14 +310,16 @@ class Resetter(object):
         plt.rcParams['animation.embed_limit'] = 30.
         gc.collect()
         when = 'mne/conf.py:Resetter.__call__'
-        _assert_no_instances(Brain, when)  # calls gc.collect()
-        if Plotter is not None:
-            _assert_no_instances(Plotter, when)
-        if BackgroundPlotter is not None:
-            _assert_no_instances(BackgroundPlotter, when)
-        if vtkPolyData is not None:
-            _assert_no_instances(vtkPolyData, when)
-        _assert_no_instances(_Renderer, when)
+        if os.getenv('MNE_SKIP_INSTANCE_ASSERTIONS', 'false') not in \
+                ('true', '1'):
+            _assert_no_instances(Brain, when)  # calls gc.collect()
+            if Plotter is not None:
+                _assert_no_instances(Plotter, when)
+            if BackgroundPlotter is not None:
+                _assert_no_instances(BackgroundPlotter, when)
+            if vtkPolyData is not None:
+                _assert_no_instances(vtkPolyData, when)
+            _assert_no_instances(_Renderer, when)
         # This will overwrite some Sphinx printing but it's useful
         # for memory timestamps
         if os.getenv('SG_STAMP_STARTS', '').lower() == 'true':
@@ -821,6 +823,8 @@ def reset_warnings(gallery_conf, fname):
         'ignore', '.*invalid escape sequence.*', lineno=281)  # mne-conn
     warnings.filterwarnings(
         'ignore', '.*"is not" with a literal.*', module='nilearn')
+    warnings.filterwarnings(  # scikit-learn FastICA whiten=True deprecation
+        'ignore', r'.*From version 1\.3 whiten.*')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
                 'Using or importing the ABCs from',  # internal modules on 3.7
                 r"it will be an error for 'np\.bool_'",  # ndimage

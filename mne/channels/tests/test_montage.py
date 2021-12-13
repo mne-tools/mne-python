@@ -1089,7 +1089,7 @@ def test_set_montage_mgh(rename):
 # XXX: this does not check ch_names + it cannot work because of write_dig
 def _check_roundtrip(montage, fname, coord_frame='head'):
     """Check roundtrip writing."""
-    montage.save(fname)
+    montage.save(fname, overwrite=True)
     montage_read = read_dig_fif(fname=fname)
 
     assert_equal(repr(montage), repr(montage_read))
