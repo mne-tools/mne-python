@@ -202,6 +202,11 @@ class Raw(BaseRaw):
             raw = _RawShell()
             raw.filename = fname
             raw.first_samp = first_samp
+            if info['meas_date'] is None and annotations is not None:
+                # we need to adjust annotations.onset as when there is no meas
+                # date set_annotations considers that the origin of time is the
+                # first available sample (ignores first_samp)
+                annotations.onset -= first_samp / info['sfreq']
             raw.set_annotations(annotations)
 
             #   Go through the remaining tags in the directory

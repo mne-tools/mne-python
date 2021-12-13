@@ -254,6 +254,21 @@ def test_crop(tmp_path):
     raw_read = read_raw_fif(fname)
     assert raw_read.annotations is not None
     assert len(raw_read.annotations.onset) == 0
+    # test saving and reloading cropped annotations in raw instance
+    info = create_info([f'EEG{i+1}' for i in range(3)],
+                       ch_types=['eeg'] * 3, sfreq=50)
+    raw = RawArray(np.zeros((3, 50 * 20)), info)
+    annotation = mne.Annotations([8, 12, 15], [2] * 3, [1, 2, 3])
+    raw = raw.set_annotations(annotation)
+    raw_copied = raw.copy().crop(5, 18)
+    fname = op.join(tempdir, 'test_raw.fif')
+    raw_copied.save(fname, overwrite=True)
+    raw_loaded = mne.io.read_raw(str(fname))
+    for attr in ('onset', 'duration'):
+        assert_allclose(getattr(raw.annotations, attr),
+                        getattr(raw_copied.annotations, attr))
+        assert_allclose(getattr(raw_copied.annotations, attr),
+                        getattr(raw_loaded.annotations, attr))
 
 
 @first_samps
