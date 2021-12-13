@@ -9,7 +9,7 @@ import numpy as np
 from numpy.testing import (assert_array_less, assert_allclose,
                            assert_array_equal)
 from scipy.spatial.distance import cdist
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, eye as speye
 
 import mne
 from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
@@ -27,7 +27,8 @@ from mne.minimum_norm import (apply_inverse, read_inverse_operator,
 from mne.source_space import _add_interpolator, _grid_interp
 from mne.transforms import quat_to_rot
 from mne.utils import (requires_nibabel, check_version, requires_version,
-                       requires_dipy, requires_h5py, catch_logging)
+                       requires_dipy, requires_h5py, catch_logging,
+                       _record_warnings)
 from mne.fixes import _get_args
 
 # Setup paths
@@ -193,7 +194,7 @@ def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn, dtype):
         with pytest.raises(ValueError, match='required to use nearest'):
             morph = compute_source_morph(stc, 'sample', 'fsaverage', **kwargs)
         return
-    with pytest.warns(None) as w:
+    with _record_warnings() as w:
         morph = compute_source_morph(stc, 'sample', 'fsaverage', **kwargs)
     w = [ww for ww in w if 'vertices not included' in str(ww.message)]
     assert len(w) == n_warn
@@ -207,6 +208,20 @@ def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn, dtype):
     assert lower <= corr <= upper
     # check the round-trip power
     assert_power_preserved(stc, stc_back)
+
+
+@testing.requires_testing_data
+def test_surface_source_morph_shortcut():
+    """Test that our shortcut for smooth=0 works."""
+    stc = mne.read_source_estimate(fname_smorph)
+    morph_identity = compute_source_morph(
+        stc, 'sample', 'sample', spacing=stc.vertices, smooth=0,
+        subjects_dir=subjects_dir)
+    stc_back = morph_identity.apply(stc)
+    assert_allclose(stc_back.data, stc.data, rtol=1e-4)
+    abs_sum = morph_identity.morph_mat - speye(len(stc.data), format='csc')
+    abs_sum = np.abs(abs_sum.data).sum()
+    assert abs_sum < 1e-4
 
 
 def assert_power_preserved(orig, new, limits=(1., 1.05)):

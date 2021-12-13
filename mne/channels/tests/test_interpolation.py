@@ -13,6 +13,7 @@ from mne.preprocessing.nirs import (optical_density, scalp_coupling_index,
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx
 from mne.io.proj import _has_eeg_average_ref_proj
+from mne.utils import _record_warnings
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -161,7 +162,7 @@ def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
     raw_few.del_proj()
     raw_few.info['bads'] = [raw_few.ch_names[-1]]
     orig_data = raw_few[1][0]
-    with pytest.warns(None) as w:
+    with _record_warnings() as w:
         raw_few.interpolate_bads(reset_bads=False, **kw)
     assert len([ww for ww in w if 'more than' not in str(ww.message)]) == 0
     new_data = raw_few[1][0]

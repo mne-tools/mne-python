@@ -19,7 +19,6 @@ import webbrowser
 import tempfile
 import math
 import numpy as np
-from copy import deepcopy
 import warnings
 from datetime import datetime
 
@@ -1158,14 +1157,32 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
     """
     from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
+
     scalings = _handle_default('scalings_plot_raw', scalings)
     if not isinstance(inst, (BaseRaw, BaseEpochs)):
         raise ValueError('Must supply either Raw or Epochs')
 
+    for key, value in scalings.items():
+        if not (isinstance(value, str) and value == 'auto'):
+            try:
+                scalings[key] = float(value)
+            except Exception:
+                raise ValueError(
+                    f'scalings must be "auto" or float, got '
+                    f'scalings[{key!r}]={value!r} which could not be '
+                    f'converted to float'
+                )
+
+    # If there are no "auto" scalings, we can return early!
+    if all(
+        [scalings[ch_type] != 'auto'
+         for ch_type in inst.get_channel_types(unique=True)]
+    ):
+        return scalings
+
     ch_types = channel_indices_by_type(inst.info)
     ch_types = {i_type: i_ixs
                 for i_type, i_ixs in ch_types.items() if len(i_ixs) != 0}
-    scalings = deepcopy(scalings)
 
     if inst.preload is False:
         if isinstance(inst, BaseRaw):
@@ -1191,15 +1208,7 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
         data = inst._data.swapaxes(0, 1).reshape([len(inst.ch_names), -1])
     # Iterate through ch types and update scaling if ' auto'
     for key, value in scalings.items():
-        if key not in ch_types:
-            continue
-        if not (isinstance(value, str) and value == 'auto'):
-            try:
-                scalings[key] = float(value)
-            except Exception:
-                raise ValueError(
-                    f'scalings must be "auto" or float, got scalings[{key!r}]='
-                    f'{value!r} which could not be converted to float')
+        if key not in ch_types or value != 'auto':
             continue
         this_data = data[ch_types[key]]
         if remove_dc and (this_data.shape[1] / inst.info["sfreq"] >= duration):

@@ -6,13 +6,15 @@
 import os.path as op
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose
+
+from numpy.testing import assert_allclose, assert_array_equal
 from mne.chpi import read_head_pos
 from mne.datasets import testing
 from mne.io import read_raw_fif
 from mne.preprocessing import (annotate_movement, compute_average_dev_head_t,
                                annotate_muscle_zscore, annotate_break)
 from mne import Annotations, events_from_annotations
+from mne.tests.test_annotations import _assert_annotations_equal
 
 data_path = testing.data_path(download=False)
 sss_path = op.join(data_path, 'SSS')
@@ -21,25 +23,42 @@ raw_fname = op.join(sss_path, 'test_move_anon_raw.fif')
 
 
 @testing.requires_testing_data
-def test_movement_annotation_head_correction():
+@pytest.mark.parametrize('meas_date', (None, 'orig'))
+def test_movement_annotation_head_correction(meas_date):
     """Test correct detection movement artifact and dev_head_t."""
     raw = read_raw_fif(raw_fname, allow_maxshield='yes').load_data()
     pos = read_head_pos(pos_fname)
+    if meas_date is None:
+        raw.set_meas_date(None)
+    else:
+        assert meas_date == 'orig'
 
     # Check 5 rotation segments are detected
     annot_rot, [] = annotate_movement(raw, pos, rotation_velocity_limit=5)
-    assert(annot_rot.duration.size == 5)
+    assert annot_rot.orig_time == raw.info["meas_date"]
+    assert annot_rot.duration.size == 5
 
     # Check 2 translation vel. segments are detected
     annot_tra, [] = annotate_movement(raw, pos, translation_velocity_limit=.05)
-    assert(annot_tra.duration.size == 2)
+    assert annot_tra.duration.size == 2
 
     # Check 1 movement distance segment is detected
-    annot_dis, disp = annotate_movement(raw, pos, mean_distance_limit=.02)
-    assert(annot_dis.duration.size == 1)
+    annot_dis, _ = annotate_movement(raw, pos, mean_distance_limit=.02)
+    assert annot_dis.duration.size == 1
 
     # Check correct trans mat
-    raw.set_annotations(annot_rot + annot_tra + annot_dis)
+    annot_all_2 = annotate_movement(
+        raw, pos, rotation_velocity_limit=5,
+        translation_velocity_limit=.05,
+        mean_distance_limit=.02)[0]
+    assert (annot_rot.orig_time ==
+            annot_tra.orig_time ==
+            annot_dis.orig_time ==
+            raw.info['meas_date'])
+    annot_all = annot_rot + annot_tra + annot_dis
+    _assert_annotations_equal(annot_all_2, annot_all)
+    assert annot_all.orig_time == raw.info['meas_date']
+    raw.set_annotations(annot_all)
     dev_head_t = compute_average_dev_head_t(raw, pos)
 
     dev_head_t_ori = np.array([
@@ -52,8 +71,8 @@ def test_movement_annotation_head_correction():
 
     # Smoke test skipping time due to previous annotations.
     raw.set_annotations(Annotations([raw.times[0]], 0.1, 'bad'))
-    annot_dis, disp = annotate_movement(raw, pos, mean_distance_limit=.02)
-    assert(annot_dis.duration.size == 1)
+    annot_dis, _ = annotate_movement(raw, pos, mean_distance_limit=.02)
+    assert annot_dis.duration.size == 1
 
 
 @testing.requires_testing_data
@@ -64,11 +83,11 @@ def test_muscle_annotation():
     # Check 2 muscle segments are detected
     annot_muscle, scores = annotate_muscle_zscore(raw, ch_type='mag',
                                                   threshold=10)
+    assert annot_muscle.orig_time == raw.info["meas_date"]
     onset = annot_muscle.onset * raw.info['sfreq']
     onset = onset.astype(int)
-    np.testing.assert_array_equal(scores[onset].astype(int), np.array([23,
-                                                                       10]))
-    assert(annot_muscle.duration.size == 2)
+    assert_array_equal(scores[onset].astype(int), np.array([23, 10]))
+    assert annot_muscle.duration.size == 2
 
 
 @testing.requires_testing_data
@@ -78,7 +97,7 @@ def test_muscle_annotation_without_meeg_data():
     raw.crop(0, .1).load_data()
     raw.pick_types(meg=False, stim=True)
     with pytest.raises(ValueError, match="No M/EEG channel types found"):
-        annot_muscle, scores = annotate_muscle_zscore(raw, threshold=10)
+        annotate_muscle_zscore(raw, threshold=10)
 
 
 @testing.requires_testing_data
@@ -121,6 +140,7 @@ def test_annotate_breaks():
         t_stop_before_next=t_stop_before_next
     )
 
+    assert break_annots.orig_time == raw.info["meas_date"]
     assert_allclose(break_annots.onset, expected_onsets)
     assert_allclose(break_annots.duration, expected_durations)
     assert all(description == 'BAD_break'

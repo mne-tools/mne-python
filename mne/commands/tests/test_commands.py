@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
+import glob
 import os
 from os import path as op
 import shutil
-import glob
 
 import numpy as np
 import pytest
@@ -24,7 +24,7 @@ from mne.datasets import testing
 from mne.io import read_raw_fif, read_info
 from mne.utils import (requires_mne, requires_vtk, requires_freesurfer,
                        requires_nibabel, ArgvSetter, modified_env,
-                       _stamp_to_dt)
+                       _stamp_to_dt, _record_warnings)
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -48,7 +48,7 @@ def test_browse_raw():
     """Test mne browse_raw."""
     check_usage(mne_browse_raw)
     with ArgvSetter(('--raw', raw_fname)):
-        with pytest.warns(None):  # mpl show warning sometimes
+        with _record_warnings():  # mpl show warning
             mne_browse_raw.run()
 
 
@@ -109,7 +109,7 @@ def test_compute_proj_exg(tmp_path, fun):
     shutil.copyfile(raw_fname, use_fname)
     with ArgvSetter(('-i', use_fname, '--bad=' + bad_fname,
                      '--rej-eeg', '150')):
-        with pytest.warns(None):  # samples, sometimes
+        with _record_warnings():  # samples, sometimes
             fun.run()
     fnames = glob.glob(op.join(tempdir, '*proj.fif'))
     assert len(fnames) == 1
@@ -195,7 +195,7 @@ def test_report(tmp_path):
     shutil.copyfile(raw_fname, use_fname)
     with ArgvSetter(('-p', tempdir, '-i', use_fname, '-d', subjects_dir,
                      '-s', 'sample', '--no-browser', '-m', '30')):
-        with pytest.warns(None):  # contour levels
+        with _record_warnings():  # contour levels
             mne_report.run()
     fnames = glob.glob(op.join(tempdir, '*.html'))
     assert len(fnames) == 1

@@ -15,7 +15,8 @@ def test_buggy_mkl():
     def foo(a, b):
         raise np.linalg.LinAlgError('SVD did not converge')
     with pytest.warns(RuntimeWarning, match='convergence error'):
-        pytest.raises(SkipTest, foo, 1, 2)
+        with pytest.raises(SkipTest):
+            foo(1, 2)
 
     @buggy_mkl_svd
     def bar(c, d, e):
