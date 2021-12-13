@@ -1464,9 +1464,7 @@ class Report(object):
         title = 'ICA component properties'
         # Only render a slider if we have more than 1 component.
         if len(figs) == 1:
-            fig = figs[0]
-            _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
-            img = _fig_to_img(fig=fig, image_format=image_format)
+            img = _fig_to_img(fig=figs[0], image_format=image_format)
             dom_id = self._get_dom_id()
             properties_html = _html_image_element(
                 img=img, div_klass='ica', img_klass='ica',
