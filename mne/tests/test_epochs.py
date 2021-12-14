@@ -3699,7 +3699,7 @@ def test_epoch_annotations(first_samp, meas_date, orig_date):
     """Test Epoch Annotations from RawArray with dates.
 
     Tests the following cases crossed with each other:
-    - with and without first_samp 
+    - with and without first_samp
     - with and without meas_date
     - with and without an orig_time set in Annotations
     """
