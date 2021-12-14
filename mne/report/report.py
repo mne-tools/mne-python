@@ -321,7 +321,7 @@ def _check_tags(tags) -> Tuple[str]:
 # PLOTTING FUNCTIONS
 
 
-def _constrain_fig_resolution(fig, *, max_width, max_dpi):
+def _constrain_fig_resolution(fig, *, max_width, max_res):
     """Limit the resolution (DPI) of a figure.
 
     Parameters
@@ -330,14 +330,14 @@ def _constrain_fig_resolution(fig, *, max_width, max_dpi):
         The figure whose DPI to adjust.
     max_width : int
         The max. allowed width, in pixels.
-    max_dpi : int
+    max_res : int
         The max. allowed resolution, in DPI.
 
     Returns
     -------
     Nothing, alters the figure's properties in-place.
     """
-    dpi = min(max_dpi, max_width / fig.get_size_inches()[0])
+    dpi = min(max_res, max_width / fig.get_size_inches()[0])
     fig.set_dpi(dpi)
 
 
@@ -349,7 +349,7 @@ def _fig_to_img(fig, *, image_format='png', auto_close=True):
     if isinstance(fig, np.ndarray):
         fig = _ndarray_to_fig(fig)
         _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_dpi=MAX_IMG_DPI
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_DPI
         )
     elif not isinstance(fig, Figure):
         from ..viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
@@ -363,7 +363,7 @@ def _fig_to_img(fig, *, image_format='png', auto_close=True):
             backend._close_3d_figure(figure=fig)
         fig = _ndarray_to_fig(img)
         _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_dpi=MAX_IMG_DPI
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_DPI
         )
 
     output = BytesIO()
@@ -520,7 +520,7 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
         assert len(figs) == 1
         fig = figs[0]
         _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_dpi=MAX_IMG_DPI
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_DPI
         )
         with io.BytesIO() as buff:
             fig.savefig(
@@ -1428,7 +1428,7 @@ class Report(object):
         del inst_
         tight_layout(fig=fig)
         _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_dpi=MAX_IMG_DPI
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_DPI
         )
         img = _fig_to_img(fig, image_format=image_format)
         dom_id = self._get_dom_id()
@@ -1494,7 +1494,7 @@ class Report(object):
                                      image_format, tags):
         fig = ica.plot_sources(inst=inst, show=False)
         _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_dpi=MAX_IMG_DPI
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_DPI
         )
         img = _fig_to_img(fig, image_format=image_format)
         dom_id = self._get_dom_id()
@@ -1509,7 +1509,7 @@ class Report(object):
                                     image_format, tags):
         fig = ica.plot_scores(scores=scores, title=None, show=False)
         _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_dpi=MAX_IMG_DPI
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_DPI
         )
         img = _fig_to_img(fig, image_format=image_format)
         dom_id = self._get_dom_id()
@@ -1542,7 +1542,7 @@ class Report(object):
         if len(figs) == 1:
             fig = figs[0]
             _constrain_fig_resolution(
-                fig, max_width=MAX_IMG_WIDTH, max_dpi=MAX_IMG_DPI
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_DPI
             )
             img = _fig_to_img(fig=fig, image_format=image_format)
             dom_id = self._get_dom_id()
@@ -2649,7 +2649,7 @@ class Report(object):
                 duration=durations[0], scalings=scalings, show=False
             )
             _constrain_fig_resolution(
-                fig, max_width=MAX_IMG_WIDTH, max_dpi=MAX_IMG_DPI
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_DPI
             )
             images = [_fig_to_img(fig=fig, image_format=image_format)]
 
@@ -2723,7 +2723,7 @@ class Report(object):
             fig = raw.plot_psd(fmax=fmax, show=False, **add_psd)
             tight_layout(fig=fig)
             _constrain_fig_resolution(
-                fig, max_width=MAX_IMG_WIDTH, max_dpi=MAX_IMG_DPI
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_DPI
             )
 
             img = _fig_to_img(fig, image_format=image_format)
@@ -2798,7 +2798,7 @@ class Report(object):
         fig.set_size_inches((6, 4))
         tight_layout(fig=fig)
         _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_dpi=MAX_IMG_DPI
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_DPI
         )
         img = _fig_to_img(fig=fig, image_format=image_format)
 
@@ -2907,7 +2907,7 @@ class Report(object):
                 )
 
             _constrain_fig_resolution(
-                fig, max_width=MAX_IMG_WIDTH, max_dpi=MAX_IMG_DPI
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_DPI
             )
             img = _fig_to_img(fig=fig, image_format=image_format)
             title = f'Time course ({_handle_default("titles")[ch_type]})'
@@ -2943,7 +2943,7 @@ class Report(object):
             figsize=(2.5 * len(ch_types), 2)
         )
         _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_dpi=MAX_IMG_DPI
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_DPI
         )
         ch_type_ax_map = dict(
             zip(ch_types,
@@ -3080,7 +3080,7 @@ class Report(object):
 
         tight_layout(fig=fig)
         _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_dpi=MAX_IMG_DPI
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_DPI
         )
         img = _fig_to_img(fig=fig, image_format=image_format)
         title = 'Global field power'
@@ -3108,7 +3108,7 @@ class Report(object):
         )
         tight_layout(fig=fig)
         _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_dpi=MAX_IMG_DPI
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_DPI
         )
         img = _fig_to_img(fig=fig, image_format=image_format)
         title = 'Whitened'
@@ -3172,7 +3172,7 @@ class Report(object):
             show=False
         )
         _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_dpi=MAX_IMG_DPI
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_DPI
         )
         img = _fig_to_img(
             fig=fig,
@@ -3242,7 +3242,7 @@ class Report(object):
 
             fig = epochs_for_psd.plot_psd(fmax=fmax, show=False)
             _constrain_fig_resolution(
-                fig, max_width=MAX_IMG_WIDTH, max_dpi=MAX_IMG_DPI
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_DPI
             )
             img = _fig_to_img(fig=fig, image_format=image_format)
             duration = round(epoch_duration * len(epochs_for_psd), 1)
@@ -3293,7 +3293,7 @@ class Report(object):
             assert len(figs) == 1
             fig = figs[0]
             _constrain_fig_resolution(
-                fig, max_width=MAX_IMG_WIDTH, max_dpi=MAX_IMG_DPI
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_DPI
             )
             img = _fig_to_img(fig=fig, image_format=image_format)
             if ch_type in ('mag', 'grad'):
@@ -3334,7 +3334,7 @@ class Report(object):
                 fig = epochs.plot_drop_log(subject=self.subject, show=False)
                 tight_layout(fig=fig)
                 _constrain_fig_resolution(
-                    fig, max_width=MAX_IMG_WIDTH, max_dpi=MAX_IMG_DPI
+                    fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_DPI
                 )
                 img = _fig_to_img(fig=fig, image_format=image_format)
                 drop_log_img_html = _html_image_element(
@@ -3375,7 +3375,7 @@ class Report(object):
 
         for fig, title in zip(figs, titles):
             _constrain_fig_resolution(
-                fig, max_width=MAX_IMG_WIDTH, max_dpi=MAX_IMG_DPI
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_DPI
             )
             img = _fig_to_img(fig=fig, image_format=image_format)
             dom_id = self._get_dom_id()
