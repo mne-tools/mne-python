@@ -1672,6 +1672,7 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
     # input validation
     _validate_type(moving, nib.spatialimages.SpatialImage, 'moving')
     _validate_type(static, nib.spatialimages.SpatialImage, 'static')
+    original_zoom = np.mean(moving.header.get_zooms()[:3])
     zooms = _validate_zooms(zooms)
     niter = _validate_niter(niter)
     pipeline = _validate_pipeline(pipeline)
@@ -1683,40 +1684,47 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
     sdr_morph = None
     pipeline_options = dict(translation=[center_of_mass, translation],
                             rigid=[rigid], affine=[affine])
-    sigmas = [3.0, 1.0, 0.0]
-    # TODO: Sigmas and CCMetric should probably scaled by the
-    # effective zooms of the image, because the units are in voxels
+    sigmas_mm = np.array([3.0, 1.0, 0.0])  # default for affine_registration
+    sigma_diff_mm = 2.0
     factors = [4, 2, 1]
+    current_zoom = None
     for i, step in enumerate(pipeline):
         # reslice image with zooms
         if i == 0 or zooms[step] != zooms[pipeline[i - 1]]:
             if zooms[step] is not None:
                 logger.info(f'Reslicing to zooms={zooms[step]} for {step} ...')
+                current_zoom = np.mean(zooms[step])
             else:
                 logger.info(f'Using original zooms for {step} ...')
+                current_zoom = original_zoom
             static_zoomed, static_affine = _reslice_normalize(
                 static, zooms[step])
             moving_zoomed, moving_affine = _reslice_normalize(
                 moving, zooms[step])
         logger.info(f'Optimizing {step}:')
         if step == 'sdr':  # happens last
+            sigma_diff_vox = sigma_diff_mm / current_zoom
             affine_map = AffineMap(reg_affine,  # apply registration here
                                    static_zoomed.shape, static_affine,
                                    moving_zoomed.shape, moving_affine)
             moving_zoomed = affine_map.transform(moving_zoomed)
+            metric = metrics.CCMetric(
+                dim=3, sigma_diff=sigma_diff_vox,
+                radius=max(int(np.ceil(2 * sigma_diff_vox)), 1))
             sdr = imwarp.SymmetricDiffeomorphicRegistration(
-                metrics.CCMetric(3), niter[step])
+                metric, niter[step])
             with wrapped_stdout(indent='    ', cull_newlines=True):
                 sdr_morph = sdr.optimize(static_zoomed, moving_zoomed,
                                          static_affine, static_affine)
             moved_zoomed = sdr_morph.transform(moving_zoomed)
         else:
+            sigmas_vox = list(sigmas_mm / current_zoom)
             with wrapped_stdout(indent='    ', cull_newlines=True):
                 moved_zoomed, reg_affine = affine_registration(
                     moving_zoomed, static_zoomed, moving_affine, static_affine,
                     nbins=32, metric='MI', pipeline=pipeline_options[step],
-                    level_iters=niter[step], sigmas=sigmas, factors=factors,
-                    starting_affine=reg_affine)
+                    level_iters=niter[step], sigmas=sigmas_vox,
+                    factors=factors, starting_affine=reg_affine)
 
             # report some useful information
             if step in ('translation', 'rigid'):
