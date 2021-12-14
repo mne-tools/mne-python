@@ -30,7 +30,7 @@ from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
 from .utils import (logger, verbose, get_subjects_dir, warn, _check_fname,
                     _check_option, _ensure_int, _TempDir, run_subprocess,
                     _check_freesurfer_home, _hashable_ndarray, fill_doc,
-                    _validate_type, _require_version)
+                    _validate_type, _require_version, _pl)
 
 
 ###############################################################################
@@ -1765,7 +1765,8 @@ def _warn_missing_chs(info, dig_image, after_warp, verbose=None):
         set(np.unique(np.array(dig_image.dataobj))))
     missing_ch = [info.ch_names[idx - 1] for idx in missing]
     if missing_ch and verbose != 'error':
-        warn('Channels ' + ', '.join(missing_ch) + ' were not assigned '
+        warn(f'Channel{_pl(missing_ch)} '
+             f'{", ".join(repr(ch) for ch in missing_ch)} not assigned '
              'voxels' + (' after applying SDR warp' if after_warp else ''))
 
 
