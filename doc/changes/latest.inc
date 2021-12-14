@@ -62,7 +62,7 @@ Enhancements
 
 - Drastically speed up butterfly plot generation in :meth:`mne.Report.add_raw`. We now don't plot annotations anymore; however, we feel that the speed improvements justify this change, also considering the annotations were of limited use in the displayed one-second time slices anyway (:gh:`10114`, :gh:`10116` by `Richard Höchenberger`_)
 
-- In :class:`mne.Report`, limit the width of automatically generated figures to a maximum of 850 pixels to reduce file size and memory consumption (:gh:`10126` by `Richard Höchenberger`_)
+- In :class:`mne.Report`, limit the width of automatically generated figures to a maximum of 850 pixels, and the resolution to 100 DPI to reduce file size and memory consumption (:gh:`10126`, :gh:`10129` by `Richard Höchenberger`_)
 
 Bugs
 ~~~~
