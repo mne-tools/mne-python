@@ -2614,7 +2614,7 @@ class AnnotationsMixin():
         # get the Epoch annotations and then construct
         # a list for onsets, durations, descriptions for
         # each Epoch
-        epoch_annot_list = self.get_epoch_annotations()
+        epoch_annot_list = self.get_annotations_per_epoch()
         onset, duration, description = [], [], []
         for epoch_annot in epoch_annot_list:
             if epoch_annot != []:
