@@ -2560,30 +2560,35 @@ class AnnotationsMixin():
         annot_starts = self._annotations.onset
         annot_stops = annot_starts + self._annotations.duration
 
-        # get all annotations that have a start point within epoch
+        # get epochs that start within the annotations
         annot_straddles_epoch_start = np.logical_and(
             np.atleast_2d(epoch_starts) >= np.atleast_2d(annot_starts).T,
             np.atleast_2d(epoch_starts) < np.atleast_2d(annot_stops).T)
 
-        # get all annotations that have an endpoint within epoch
+        # get epochs that end within the annotations
         annot_straddles_epoch_end = np.logical_and(
             np.atleast_2d(epoch_stops) > np.atleast_2d(annot_starts).T,
             np.atleast_2d(epoch_stops) <= np.atleast_2d(annot_stops).T)
 
-        # get all annotations that are fully within an epoch
+        # get epochs that are fully contained within annotations
         annot_fully_within_epoch = np.logical_and(
             np.atleast_2d(epoch_starts) <= np.atleast_2d(annot_starts).T,
             np.atleast_2d(epoch_stops) >= np.atleast_2d(annot_stops).T)
+
+        # now get all epochs that overlap with any portion of an
+        # annotation this results in an array of (n_annotations,
+        # n_epochs)
         all_cases = (annot_straddles_epoch_start +
                      annot_straddles_epoch_end +
                      annot_fully_within_epoch)
 
+        # for each Annotation, assign it to all Epochs it is
+        # a part of, defined by above
         for annot_ix, epo_ix in zip(*np.nonzero(all_cases)):
             this_annot = self._annotations[annot_ix]
             this_tzero = epoch_tzeros[epo_ix]
 
-            # get all annotations for this Epoch and offset the onset
-            # relative to the start of the Epoch
+            # offset the onset relative to the start of the Epoch
             annot = (this_annot['onset'] - this_tzero,
                      this_annot['duration'],
                      this_annot['description'])
@@ -2592,6 +2597,16 @@ class AnnotationsMixin():
 
     def add_annotations_to_metadata(self):
         """Add raw annotations into the Epochs metadata data frame.
+
+        Adds three columns to the ``metadata`` consisting of a list
+        in each row:
+
+        - ``Anotations_onset``: the onset of each Annotation within
+        the Epoch relative to the start time of the Epoch (in seconds)
+        - ``Annotations_duration``: the duration of each Annotation
+        within the Epoch in seconds
+        - ``Annotations_description``: the description of each
+        Annotation.
 
         Returns
         -------
