@@ -1560,8 +1560,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     the same call as the colorbar. Note also that the colorbar will not be
     resized automatically when ``axes`` are provided; use matplotlib's
     :meth:`axes.set_position() <matplotlib.axes.Axes.set_position>` method or
-    :doc:`gridspec <matplotlib:tutorials/intermediate/gridspec>` interface to
-    adjust the colorbar size yourself.
+    :doc:`gridspec <matplotlib:tutorials/intermediate/constrainedlayout_guide>`
+    interface to adjust the colorbar size yourself.
     """
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
