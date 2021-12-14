@@ -125,6 +125,7 @@ def pytest_configure(config):
     ignore:.*Passing a schema to Validator.*:DeprecationWarning
     ignore:.*Found the following unknown channel type.*:RuntimeWarning
     ignore:.*np\.MachAr.*:DeprecationWarning
+    ignore:.*Passing unrecognized arguments to super.*:DeprecationWarning
     always::ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
