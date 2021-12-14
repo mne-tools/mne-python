@@ -2600,11 +2600,10 @@ class AnnotationsMixin():
 
         Adds three columns to the ``metadata`` consisting of a list
         in each row:
-
         - ``Anotations_onset``: the onset of each Annotation within
-        the Epoch relative to the start time of the Epoch (in seconds)
+        the Epoch relative to the start time of the Epoch (in seconds).
         - ``Annotations_duration``: the duration of each Annotation
-        within the Epoch in seconds
+        within the Epoch in seconds.
         - ``Annotations_description``: the description of each
         Annotation.
 
