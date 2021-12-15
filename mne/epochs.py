@@ -2527,23 +2527,20 @@ class AnnotationsMixin():
             new_annotations = annotations.copy()
             new_annotations._prune_ch_names(self.info, on_missing)
             self._annotations = new_annotations
-
         return self
 
     def get_annotations_per_epoch(self):
-        """Get a list of which annotations occur during each epoch.
+        """Get a list of annotations that occur during each epoch.
 
         Returns
         -------
         epoch_annots : list
             A list of lists (with length equal to number of epochs) where each
-            inner list contains the annotations that overlap the corresponding
+            inner list contains any annotations that overlap the corresponding
             epoch. Annotations are stored as a :class:`tuple` (onset, duration,
             description), where the onset is now relative to time=0 of the
             epoch, rather than time=0 of the original continuous (raw) data.
         """
-        events = self.events
-
         # create a list of annotations for each epoch
         epoch_annot_list = [[] for _ in range(len(events))]
 
@@ -2553,7 +2550,7 @@ class AnnotationsMixin():
 
         # when each epoch and annotation starts/stops
         # no need to account for first_samp here...
-        epoch_tzeros = events[:, 0] / self._raw_sfreq
+        epoch_tzeros = self.events[:, 0] / self._raw_sfreq
         epoch_starts, epoch_stops = np.atleast_2d(
             epoch_tzeros) + np.atleast_2d(self.times[[0, -1]]).T
         # ... because first_samp isn't accounted for here either
@@ -2575,23 +2572,22 @@ class AnnotationsMixin():
             np.atleast_2d(epoch_starts) <= np.atleast_2d(annot_starts).T,
             np.atleast_2d(epoch_stops) >= np.atleast_2d(annot_stops).T)
 
-        # now get all epochs that overlap with any portion of an
-        # annotation this results in an array of (n_annotations,
-        # n_epochs)
+        # combine all cases to get array of shape (n_annotations, n_epochs).
+        # Nonzero entries indicate overlap between the corresponding
+        # annotation (row index) and epoch (column index).
         all_cases = (annot_straddles_epoch_start +
                      annot_straddles_epoch_end +
                      annot_fully_within_epoch)
 
-        # for each Annotation, assign it to all Epochs it is
-        # a part of, defined by above
+        # for each Epoch-Annotation overlap occurrence:
         for annot_ix, epo_ix in zip(*np.nonzero(all_cases)):
             this_annot = self._annotations[annot_ix]
             this_tzero = epoch_tzeros[epo_ix]
-
-            # offset the onset relative to the start of the Epoch
+            # adjust annotation onset to be relative to epoch tzero...
             annot = (this_annot['onset'] - this_tzero,
                      this_annot['duration'],
                      this_annot['description'])
+            # ...then add it to the correct sublist of `epoch_annot_list`
             epoch_annot_list[epo_ix].append(annot)
         return epoch_annot_list
 
@@ -2618,27 +2614,21 @@ class AnnotationsMixin():
         if self.annotations is None:
             return self
 
-        # instantiate a metadata pandas dataframe
+        # get existing metadata DataFrame or instantiate an empty one
         if self._metadata is not None:
             metadata = self._metadata
         else:
             data = np.empty((len(self), 0))
             metadata = pd.DataFrame(data=data)
 
-        # get the Epoch annotations and then construct
-        # a list for onsets, durations, descriptions for
-        # each Epoch
+        # get the Epoch annotations, then convert to separate lists for
+        # onsets, durations, and descriptions
         epoch_annot_list = self.get_annotations_per_epoch()
         onset, duration, description = [], [], []
-        for epoch_annot in epoch_annot_list:
-            if epoch_annot != []:
-                onset.append([x[0] for x in epoch_annot])
-                duration.append([x[1] for x in epoch_annot])
-                description.append([x[2] for x in epoch_annot])
-            else:
-                onset.append([])
-                duration.append([])
-                description.append([])
+        for epoch in epoch_annot_list:
+            for ix, annot_prop in enumerate((onset, duration, description)):
+                entry = [annot[ix] for annot in epoch] if len(epoch) else []
+                annot_prop.append(entry)
 
         # Create a new Annotations column that is instantiated as an empty
         # list per Epoch.
@@ -2769,10 +2759,8 @@ class Epochs(BaseEpochs, AnnotationsMixin):
 
         self.reject_by_annotation = reject_by_annotation
 
-        # store certain raw properties for dealing with annotations
-        self._first_samp = raw.first_samp.copy()
-        self._raw_sfreq = np.rint(raw.info['sfreq'])
-        self._first_time = raw._first_time.copy()
+        # keep track of original sfreq (needed for annotations)
+        self._raw_sfreq = raw.info['sfreq']
 
         # call BaseEpochs constructor
         super(Epochs, self).__init__(
