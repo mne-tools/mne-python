@@ -1,4 +1,4 @@
-.. NOTE: we are now using links to highlight new functions and classes.
+.. NOTE: we use cross-references to highlight new functions and classes.
    Please follow the examples below like :func:`mne.stats.f_mway_rm`, so the
    whats_new page will have a link to the function/class documentation.
 
@@ -10,25 +10,23 @@
 .. NOTE: changes from first-time contributors should be added to the TOP of
    the relevant section (Enhancements / Bugs / API changes), and should look
    like this (where xxxx is the pull request number):
-   - description of enhancement/bugfix/API change (:gh:`xxxx` **by new contributor** |Firstname Lastname|_)
+
+       - description of enhancement/bugfix/API change (:gh:`xxxx` by
+         :newcontrib:`Firstname Lastname`)
+
+   Also add a corresponding entry for yourself in doc/changes/names.inc
 
 .. _current:
 
 Current (1.0.dev0)
 -------------------
 
-.. |New Contributor| replace:: **New Contributor**
-
-.. |Jan Zerfowski| replace:: **Jan Zerfowski**
-.. |Senwen Deng| replace:: **Senwen Deng**
-
 Enhancements
 ~~~~~~~~~~~~
-.. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
 
-- Speed up :func:`mne.preprocessing.annotate_muscle_zscore`, :func:`mne.preprocessing.annotate_movement`, and :func:`mne.preprocessing.annotate_nan` through better annotation creation (:gh:`10089` **by new contributor** |Senwen Deng|_)
+- Speed up :func:`mne.preprocessing.annotate_muscle_zscore`, :func:`mne.preprocessing.annotate_movement`, and :func:`mne.preprocessing.annotate_nan` through better annotation creation (:gh:`10089` by :newcontrib:`Senwen Deng`)
 
-- Fix some unused variables in time_frequency_erds.py example (:gh:`10076` **by new contributor** |Jan Zerfowski|_)
+- Fix some unused variables in time_frequency_erds.py example (:gh:`10076` by :newcontrib:`Jan Zerfowski`)
 
 - Add show local maxima toggling button to :func:`mne.gui.locate_ieeg` (:gh:`9952` by `Alex Rockhill`_)
 
@@ -67,9 +65,7 @@ Enhancements
 Bugs
 ~~~~
 
-.. |Adina Wagner| replace:: **Adina Wagner**
-
-- Teach :func:`mne.io.read_raw_bti` to use its ``eog_ch`` parameter (:gh:`10093` **by new contributor** |Adina Wagner|_)
+- Teach :func:`mne.io.read_raw_bti` to use its ``eog_ch`` parameter (:gh:`10093` by :newcontrib:`Adina Wagner`)
 
 - Fix default of :func:`mne.io.Raw.plot` to be ``use_opengl=None``, which will act like False unless ``MNE_BROWSER_USE_OPENGL=true`` is set in the user configuration (:gh:`9957` by `Eric Larson`_)
 
