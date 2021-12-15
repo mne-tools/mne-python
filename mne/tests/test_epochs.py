@@ -3801,9 +3801,10 @@ def test_epoch_annotations_cases():
     raw = RawArray(data, info)
     ant_dur = 0.4
     ants = Annotations(
-        onset=[0.4, 0.5, 1.4, 1.6, 3.0],
-        duration=[ant_dur, ant_dur, ant_dur, 0, 2.0],
-        description=['before', 'start', 'stop', 'outside', 'multiple'],
+        onset=[0.4, 0.5, 1.4, 1.6, 3.0, 5.4],
+        duration=[ant_dur, ant_dur, ant_dur, 0, 2.0, 0],
+        description=['before', 'start', 'stop',
+                     'outside', 'multiple', 'bad_noisy'],
     )
     raw.set_annotations(ants)
 
@@ -3840,8 +3841,24 @@ def test_epoch_annotations_cases():
     assert 'multiple' in second_epoch_ant
     assert 'multiple' in third_epoch_ant
 
+    # before we don't load the data, bad_noisy Annotation is still part of
+    # Epochs because we haven't dropped bad epochs yet
+    assert 'bad_noisy' in third_epoch_ant
+    epochs.load_data()
+    epoch_ants = epochs.get_annotations_per_epoch()
+    second_epoch_ant = np.array(epoch_ants[1])
+    assert all('bad_noisy' not in np.array(sublist) for sublist in epoch_ants)
+
+    # when preload is passed in, then Epochs overlapping with BAD are
+    # dropped, so 'bad_noisy' will be gone
+    epochs = Epochs(raw, events=events, tmin=-0.5, tmax=0.5, preload=True)
+    epoch_ants = epochs.get_annotations_per_epoch()
+    second_epoch_ant = np.array(epoch_ants[1])
+    assert all('bad_noisy' not in np.array(sublist) for sublist in epoch_ants)
+
     # if we drop the first Epoch, then some Annotations will now not
     # be part of Epoch Annotations, and others will be shifted
+    epochs = Epochs(raw, events=events, tmin=-0.5, tmax=0.5)
     epochs.drop(0)
     epoch_ants = epochs.get_annotations_per_epoch()
     assert all('start' not in np.array(sublist) for sublist in epoch_ants)
