@@ -133,5 +133,5 @@ def _check_flatness(flatness, info, picks):
             if value < 0:
                 raise ValueError(
                     "Argument 'flatness' should define positive thresholds. "
-                    "Provided for channel types '{key}': '{value}'.")
+                    "Provided for channel type '{key}': '{value}'.")
     return flatness
