@@ -39,7 +39,7 @@ from dipy.align import resample
 import mne
 from mne.datasets import fetch_fsaverage
 
-# paths to mne datasets - sample sEEG and FreeSurfer's fsaverage subject
+# paths to mne datasets: sample sEEG and FreeSurfer's fsaverage subject,
 # which is in MNI space
 misc_path = mne.datasets.misc.data_path()
 sample_path = mne.datasets.sample.data_path()
@@ -420,7 +420,7 @@ plot_overlay(template_brain, subject_brain,
 # .. warning:: Here we use custom ``zooms`` just for speed, in general we
 #              recommend using ``zooms=None`` (default) for highest accuracy!
 
-zooms = dict(translation=4, rigid=4, affine=6, sdr=6)
+zooms = dict(translation=10, rigid=10, affine=10, sdr=5)
 reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
     subject_brain, template_brain, zooms=zooms, verbose=True)
 subject_brain_sdr = mne.transforms.apply_volume_registration(
