@@ -1017,9 +1017,10 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         """
         write_tfrs(fname, self, overwrite=overwrite)
 
+    @verbose
     @fill_doc
     def to_data_frame(self, picks=None, index=None, long_format=False,
-                      time_format='ms'):
+                      time_format='ms', verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,
@@ -1039,6 +1040,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             Defaults to ``None``.
         %(df_longform_epo)s
         %(df_time_format)s
+        %(verbose)s
 
             .. versionadded:: 0.23
 
@@ -1088,7 +1090,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         else:
             default_index = ['freq', 'time']
         df = _build_data_frame(self, data, picks, long_format, mindex, index,
-                               default_index=default_index)
+                               default_index=default_index, verbose=verbose)
         return df
 
 

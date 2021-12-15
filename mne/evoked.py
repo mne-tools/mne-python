@@ -778,10 +778,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         return out
 
+    @verbose
     @fill_doc
     def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, long_format=False,
-                      time_format='ms'):
+                      time_format='ms', verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,
@@ -797,6 +798,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(df_copy)s
         %(df_longform_raw)s
         %(df_time_format)s
+        %(verbose)s
 
             .. versionadded:: 0.20
 
@@ -825,7 +827,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         mindex.append(('time', times))
         # build DataFrame
         df = _build_data_frame(self, data, picks, long_format, mindex, index,
-                               default_index=['time'])
+                               default_index=['time'], verbose=verbose)
         return df
 
 

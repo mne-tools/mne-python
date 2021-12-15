@@ -1199,9 +1199,11 @@ class _BaseSourceEstimate(TimeMixin):
 
         return stcs
 
+    @verbose
     @fill_doc
     def to_data_frame(self, index=None, scalings=None,
-                      long_format=False, time_format='ms'):
+                      long_format=False, time_format='ms',
+                      verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 
         Vertices are converted to columns in the DataFrame. By default,
@@ -1215,6 +1217,7 @@ class _BaseSourceEstimate(TimeMixin):
         %(df_scalings)s
         %(df_longform_stc)s
         %(df_time_format)s
+        %(verbose)s
 
             .. versionadded:: 0.20
 
@@ -1251,7 +1254,8 @@ class _BaseSourceEstimate(TimeMixin):
         # build DataFrame
         df = _build_data_frame(self, data, None, long_format, mindex, index,
                                default_index=default_index,
-                               col_names=col_names, col_kind='source')
+                               col_names=col_names, col_kind='source',
+                               verbose=verbose)
         return df
 
 

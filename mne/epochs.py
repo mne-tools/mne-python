@@ -2073,10 +2073,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         # actually remove the indices
         return self, indices
 
+    @verbose
     @fill_doc
     def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, long_format=False,
-                      time_format='ms'):
+                      time_format='ms', verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,
@@ -2095,6 +2096,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         %(df_copy)s
         %(df_longform_epo)s
         %(df_time_format)s
+        %(verbose)s
 
             .. versionadded:: 0.20
 
@@ -2130,7 +2132,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
         # build DataFrame
         df = _build_data_frame(self, data, picks, long_format, mindex, index,
-                               default_index=['condition', 'epoch', 'time'])
+                               default_index=['condition', 'epoch', 'time'],
+                               verbose=verbose)
         return df
 
     def as_type(self, ch_type='grad', mode='fast'):
