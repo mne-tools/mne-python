@@ -2542,7 +2542,7 @@ class AnnotationsMixin():
             epoch, rather than time=0 of the original continuous (raw) data.
         """
         # create a list of annotations for each epoch
-        epoch_annot_list = [[] for _ in range(len(events))]
+        epoch_annot_list = [[] for _ in range(len(self.events))]
 
         # check if annotations exist
         if self.annotations is None:
@@ -2610,15 +2610,20 @@ class AnnotationsMixin():
         """
         pd = _check_pandas_installed()
 
+        # Epochs must be preloaded, in case bads have not been dropped yet
+        # _check_preload(self, 'epochs.add_annotations_to_metadata')
+
         # check if annotations exist
         if self.annotations is None:
+            warn(f'There were no Annotations stored in {self}, so '
+                 'metadata was not modified.')
             return self
 
         # get existing metadata DataFrame or instantiate an empty one
         if self._metadata is not None:
             metadata = self._metadata
         else:
-            data = np.empty((len(self), 0))
+            data = np.empty((len(self.events), 0))
             metadata = pd.DataFrame(data=data)
 
         # get the Epoch annotations, then convert to separate lists for

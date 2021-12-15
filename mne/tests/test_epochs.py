@@ -3727,7 +3727,6 @@ def test_epoch_annotations(first_samp, meas_date, orig_date):
     epochs = make_fixed_length_epochs(raw, duration=1, overlap=0.5)
 
     # add Annotations to Epochs metadata
-    epochs.load_data()
     epochs.add_annotations_to_metadata()
     metadata = epochs.metadata
     assert 'Annotations_onset' in metadata.columns
@@ -3774,7 +3773,7 @@ def test_epoch_annotations(first_samp, meas_date, orig_date):
             # the onset when Raw sets annotations. These should
             # then be offset accordingly when Epochs look for annotations
             assert_array_almost_equal([_x[0] for _x in x], [
-                _y[0] - epochs._first_time for _y in y])
+                _y[0] - raw._first_time for _y in y])
         else:
             # onset relative to Epoch start
             assert_array_almost_equal([_x[0] for _x in x], [_y[0] for _y in y])
@@ -3817,7 +3816,6 @@ def test_epoch_annotations_cases():
     events = np.zeros((3, 3), dtype=int)
     events[:, 0] = [100, 300, 500]
     epochs = Epochs(raw, events=events, tmin=-0.5, tmax=0.5)
-
     epoch_ants = epochs.get_annotations_per_epoch()
 
     # assert 'outside' is not in any Epoch
@@ -3841,3 +3839,17 @@ def test_epoch_annotations_cases():
     assert 'multiple' not in first_epoch_ant
     assert 'multiple' in second_epoch_ant
     assert 'multiple' in third_epoch_ant
+
+    # if we drop the first Epoch, then some Annotations will now not
+    # be part of Epoch Annotations, and others will be shifted
+    epochs.drop(0)
+    epoch_ants = epochs.get_annotations_per_epoch()
+    assert all('start' not in np.array(sublist) for sublist in epoch_ants)
+    assert all('before' not in np.array(sublist) for sublist in epoch_ants)
+    assert all('stop' not in np.array(sublist) for sublist in epoch_ants)
+
+    # 'multiple' should be in 1st and 2nd Epoch now
+    first_epoch_ant = np.array(epoch_ants[0])
+    second_epoch_ant = np.array(epoch_ants[1])
+    assert 'multiple' in second_epoch_ant
+    assert 'multiple' in first_epoch_ant
