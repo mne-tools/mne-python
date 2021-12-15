@@ -14,7 +14,7 @@ from ..utils import (_validate_type, verbose, logger, _pl,
 
 @verbose
 def annotate_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
-                  verbose=None):
+                  flat=0, *, verbose=None):
     """Annotate flat segments of raw data (or add to a bad channel list).
 
     Parameters
@@ -33,6 +33,15 @@ def annotate_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
         time samples with exactly the same value are not totally uncommon.
         Defaults to 0.005 (5 ms).
     %(picks_good_data)s
+    flat : dict | float
+        Reject segments based on **minimum** peak-to-peak signal amplitude
+        (PTP). Valid **keys** can be any channel type present in the object.
+        The **values** are floats that set the minimum acceptable PTP. If the
+        PTP is smaller than this threshold, the segment will be annotated.
+        If float, the minimum acceptable PTP is applied to all channels.
+        Default to ``0.`` to annotate completely flat segments.
+
+        .. versionadded:: 1.0
     %(verbose)s
 
     Returns
