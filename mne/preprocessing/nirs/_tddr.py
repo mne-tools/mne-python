@@ -34,6 +34,11 @@ def temporal_derivative_distribution_repair(raw, *, verbose=None):
 
     Notes
     -----
+    TDDR was initially designed to be used on optical density fNIRS data but
+    has been enabled to be applied on hemoglobin concentration fNIRS data as
+    well in MNE. We recommend sticking to using it on optical density fNIRS
+    data whenever possible.
+
     There is a shorter alias ``mne.preprocessing.nirs.tddr`` that can be used
     instead of this function (e.g. if line length is an issue).
 
@@ -46,10 +51,10 @@ def temporal_derivative_distribution_repair(raw, *, verbose=None):
     _check_channels_ordered(
         raw.info, np.unique(_channel_frequencies(raw.info, nominal=True)))
 
-    if not len(pick_types(raw.info, fnirs=True)):
-        raise RuntimeError('TDDR should be run on fNIRS data.')
-
-    picks = _picks_to_idx(raw.info, 'fnirs', exclude=[])
+    picks = _picks_to_idx(raw.info, ['fnirs_od', 'hbo', 'hbr'], exclude=[])
+    if not len(picks):
+        raise RuntimeError('TDDR should be run on optical density or \
+                            hemoglobin data.')
     for pick in picks:
         raw._data[pick] = _TDDR(raw._data[pick], raw.info['sfreq'])
 
