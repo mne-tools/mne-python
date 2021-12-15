@@ -3477,10 +3477,15 @@ class Report(object):
 
                 if backend_is_3d:
                     brain.set_time(t)
-                    fig, ax = plt.subplots(figsize=(8, 6))
+                    fig, ax = plt.subplots(figsize=(4.5, 4.5))
                     ax.imshow(brain.screenshot(time_viewer=True, mode='rgb'))
                     ax.axis('off')
                     tight_layout(fig=fig)
+                    _constrain_fig_resolution(
+                        fig,
+                        max_width=stc_plot_kwargs['size'][0],
+                        max_res=MAX_IMG_RES
+                    )
                     figs.append(fig)
                     plt.close(fig)
                 else:
@@ -3505,6 +3510,16 @@ class Report(object):
                     )
                     tight_layout(fig=fig_lh)  # TODO is this necessary?
                     tight_layout(fig=fig_rh)  # TODO is this necessary?
+                    _constrain_fig_resolution(
+                        fig_lh,
+                        max_width=stc_plot_kwargs['size'][0],
+                        max_res=MAX_IMG_RES
+                    )
+                    _constrain_fig_resolution(
+                        fig_rh,
+                        max_width=stc_plot_kwargs['size'][0],
+                        max_res=MAX_IMG_RES
+                    )
                     figs.append(brain_lh)
                     figs.append(brain_rh)
                     plt.close(fig_lh)

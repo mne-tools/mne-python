@@ -272,12 +272,14 @@ report.save('report_ica.html', overwrite=True)
 # surfaces can be added via :meth:`mne.Report.add_bem`. All you need to pass is
 # the FreeSurfer subject name and subjects directory, and a title. To reduce
 # the resulting file size, you may pass the ``decim`` parameter to only include
-# every n-th volume slice.
+# every n-th volume slice, and ``width`` to specify the width of the resulting
+# figures in pixels.
 
 report = mne.Report(title='BEM example')
 report.add_bem(
     subject='sample', subjects_dir=subjects_dir, title='MRI & BEM',
-    decim=20
+    decim=20,
+    width=256
 )
 report.save('report_mri_and_bem.html', overwrite=True)
 
