@@ -3793,6 +3793,8 @@ def test_epoch_annotations_cases():
     - annotation end is before/after epoch end
     - 1 annotation that is fully outside all epochs (make sure it is dropped)
     - 1 annotation that spans multiple epochs (make sure it shows up in both)
+
+    In addition, tests functionality when Epochs are loaded vs not.
     """
     # do a more complicated case
     data = np.random.randn(1, 600) * 10e-12
