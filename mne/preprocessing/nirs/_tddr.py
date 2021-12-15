@@ -6,7 +6,6 @@
 
 import numpy as np
 
-from ... import pick_types
 from ...io import BaseRaw
 from ...utils import _validate_type, verbose
 from ...io.pick import _picks_to_idx
