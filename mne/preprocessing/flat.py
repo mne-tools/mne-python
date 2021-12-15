@@ -7,14 +7,14 @@ import numpy as np
 from ..annotations import (_annotations_starts_stops, Annotations,
                            _adjust_onset_meas_date)
 from ..io import BaseRaw
-from ..io.pick import _picks_to_idx
+from ..io.pick import _picks_to_idx, _get_channel_types, channel_type
 from ..utils import (_validate_type, verbose, logger, _pl,
                      _mask_to_onsets_offsets, ProgressBar)
 
 
 @verbose
 def annotate_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
-                  flat=0, *, verbose=None):
+                  flatness=0, *, verbose=None):
     """Annotate flat segments of raw data (or add to a bad channel list).
 
     Parameters
@@ -33,7 +33,7 @@ def annotate_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
         time samples with exactly the same value are not totally uncommon.
         Defaults to 0.005 (5 ms).
     %(picks_good_data)s
-    flat : dict | float
+    flatness : dict | float
         Reject segments based on **minimum** peak-to-peak signal amplitude
         (PTP). Valid **keys** can be any channel type present in the object.
         The **values** are floats that set the minimum acceptable PTP. If the
@@ -69,6 +69,7 @@ def annotate_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
     bad_percent = float(bad_percent)
     min_duration = float(min_duration)
     picks = _picks_to_idx(raw.info, picks, 'data_or_ica', exclude='bads')
+    flatness = _check_flatness(flatness, raw.info, picks)
     # This will not be so efficient for most readers, but we can optimize
     # it later
     any_flat = np.zeros(len(raw.times), bool)
@@ -81,7 +82,7 @@ def annotate_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
     for pick in ProgressBar(picks, mesg='Channels'):
         data = np.concatenate([raw[pick, onset:end][0][0]
                                for onset, end in zip(onsets, ends)])
-        flat = np.diff(data) == 0
+        flat = np.diff(data) <= flatness[channel_type(raw.info, pick)]
         flat = np.concatenate(
             [flat[[0]], flat[1:] | flat[:-1], flat[[-1]]])
         starts, stops = _mask_to_onsets_offsets(flat)
@@ -114,3 +115,23 @@ def annotate_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
                         orig_time=raw.info['meas_date'])
     _adjust_onset_meas_date(annot, raw)
     return annot, bads
+
+
+def _check_flatness(flatness, info, picks):
+    """Check the flatness argument, and converts it to dict if needed."""
+    _validate_type(flatness, ('numeric', dict), 'flatness')
+
+    if not isinstance(flatness, dict):
+        if flatness < 0:
+            raise ValueError(
+                "Argument 'flatness' should be a positive threshold. "
+                f"Provided: '{flatness}'.")
+        ch_types = _get_channel_types(info, picks)
+        flatness = {ch_type: flatness for ch_type in ch_types}
+    else:
+        for key, value in flatness.items():
+            if value < 0:
+                raise ValueError(
+                    "Argument 'flatness' should define positive thresholds. "
+                    "Provided for channel types '{key}': '{value}'.")
+    return flatness
