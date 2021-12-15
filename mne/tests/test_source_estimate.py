@@ -1813,7 +1813,7 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmp_path):
                 min_, max_ = 0.72, 0.76
             else:
                 # min_, max_ = 0.84, 0.855  # zooms='auto' values
-                min_, max_ = 0.54, 0.63
+                min_, max_ = 0.46, 0.63
             assert min_ < corr <= max_, scale
         else:
             assert_allclose(
