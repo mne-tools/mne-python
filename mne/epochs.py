@@ -2520,10 +2520,10 @@ class AnnotationsMixin():
         self : instance of Raw
             The raw object with annotations.
         """
+        _validate_type(annotations, (Annotations, None), 'annotations')
         if annotations is None:
             self._annotations = None
         else:
-            _validate_type(annotations, Annotations, 'annotations')
             new_annotations = annotations.copy()
             new_annotations._prune_ch_names(self.info, on_missing)
             self._annotations = new_annotations
@@ -2738,7 +2738,7 @@ class Epochs(BaseEpochs, AnnotationsMixin):
     :class:`~mne.Epochs` class. Currently annotations that are present in the
     :class:`~mne.io.Raw` object will be preserved in the resulting
     :class:`~mne.Epochs` object, but:
-    
+
     1. It is not yet possible to add annotations
        to the Epochs object programmatically (via code) or interactively
        (through the plot window)
@@ -3571,6 +3571,10 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
     if not isinstance(epochs_list, (list, tuple)):
         raise TypeError('epochs_list must be a list or tuple, got %s'
                         % (type(epochs_list),))
+
+    # to make warning messages only occur once during concatenation
+    warned = False
+
     for ei, epochs in enumerate(epochs_list):
         if not isinstance(epochs, BaseEpochs):
             raise TypeError('epochs_list[%d] must be an instance of Epochs, '
