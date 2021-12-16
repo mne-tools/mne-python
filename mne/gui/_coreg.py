@@ -355,8 +355,7 @@ class CoregistrationUI(HasTraits):
         else:
             assert mode_name == "scale"
             params[mode_name][idx] = value / 1e2
-            self._update_plot("hair")
-            self._update_projection_surface()
+            self._update_plot("head")
         self._coreg._update_params(
             rot=params["rotation"],
             tra=params["translation"],
@@ -483,8 +482,6 @@ class CoregistrationUI(HasTraits):
     @observe("_head_resolution")
     def _head_resolution_changed(self, change=None):
         self._update_plot(["head"])
-        if self._grow_hair > 0:
-            self._update_plot(["hair"])
 
     @observe("_head_transparency")
     def _head_transparency_changed(self, change=None):
@@ -496,7 +493,7 @@ class CoregistrationUI(HasTraits):
     @observe("_grow_hair")
     def _grow_hair_changed(self, change=None):
         self._coreg.set_grow_hair(self._grow_hair)
-        self._update_plot("hair")
+        self._update_plot("head")
 
     @observe("_scale_mode")
     def _scale_mode_changed(self, change=None):
@@ -523,7 +520,6 @@ class CoregistrationUI(HasTraits):
             return
         draw_map = dict(
             head=self._add_head_surface,
-            hair=self._add_head_hair,
             mri_fids=self._add_mri_fiducials,
             hsp=self._add_head_shape_points,
             hpi=self._add_hpi_coils,
@@ -626,7 +622,6 @@ class CoregistrationUI(HasTraits):
                 self._info, self._coreg.trans, coord_frame=self._coord_frame)
         all_keys = (
             'head', 'mri_fids',  # MRI first
-            'hair',  # then hair
             'hsp', 'hpi', 'eeg', 'head_fids',  # then dig
         )
         if changes == 'all':
@@ -813,13 +808,11 @@ class CoregistrationUI(HasTraits):
         self._update_actor("head", head_actor)
         # mark head surface mesh to restrict picking
         head_surf._picking_target = True
+        res = "high" if self._head_resolution else "low"
+        head_surf.points = \
+            self._coreg._get_processed_mri_points(res) * self._coreg._scale.T
         self._surfaces["head"] = head_surf
-
-    def _add_head_hair(self):
-        if "head" in self._surfaces:
-            res = "high" if self._head_resolution else "low"
-            self._surfaces["head"].points = \
-                self._coreg._get_processed_mri_points(res) * self._coreg._scale.T
+        self._update_projection_surface()
 
     def _fit_fiducials(self):
         if not self._lock_fids:
