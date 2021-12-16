@@ -665,7 +665,8 @@ class CoregistrationUI(HasTraits):
 
     def _update_projection_surface(self):
         self._head_geo = dict(
-            rr=self._coreg._get_processed_mri_points('low') * self._coreg._scale.T,
+            rr=self._coreg._get_processed_mri_points('low') *
+            self._coreg._scale.T,
             tris=self._coreg._bem_low_res["tris"],
             nn=self._coreg._bem_low_res["nn"]
         )
