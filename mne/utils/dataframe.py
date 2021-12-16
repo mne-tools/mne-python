@@ -87,5 +87,5 @@ def _build_data_frame(inst, data, picks, long_format, mindex, index,
         # convert channel/vertex/ch_type columns to factors
         to_factor = [c for c in df.columns.tolist()
                      if c not in ('time', 'value')]
-        _set_pandas_dtype(df, to_factor, 'category', verbose)
+        _set_pandas_dtype(df, to_factor, 'category')
     return df
