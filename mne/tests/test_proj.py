@@ -224,7 +224,7 @@ def test_compute_proj_epochs(tmp_path):
     with pytest.raises(TypeError, match='projs'):
         write_proj(fname, 'foo')
     with pytest.raises(TypeError, match=r'projs\[0\] must be .*'):
-        write_proj(fname, ['foo'])
+        write_proj(fname, ['foo'], overwrite=True)
 
 
 @pytest.mark.slowtest

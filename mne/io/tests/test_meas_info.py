@@ -172,7 +172,8 @@ def test_fiducials_io(tmp_path):
 
     # test safeguards
     pts[0]['coord_frame'] += 1
-    pytest.raises(ValueError, write_fiducials, temp_fname, pts, coord_frame)
+    with pytest.raises(ValueError, match='coord_frame entries that are incom'):
+        write_fiducials(temp_fname, pts, coord_frame, overwrite=True)
 
 
 def test_info():

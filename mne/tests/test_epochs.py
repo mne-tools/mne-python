@@ -1432,7 +1432,7 @@ def test_evoked_io_from_epochs(tmp_path):
                     picks=picks, baseline=baseline, decim=5)
     evoked = epochs.average()
     assert_allclose(evoked.baseline, baseline)
-    evoked.save(fname_temp)
+    evoked.save(fname_temp, overwrite=True)
     evoked2 = read_evokeds(fname_temp)[0]
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
@@ -1458,14 +1458,14 @@ def test_evoked_io_from_epochs(tmp_path):
     for picks in (None, 'all'):
         evoked = epochs.average(picks)
         evokeds.append(evoked)
-        evoked.save(fname_temp)
+        evoked.save(fname_temp, overwrite=True)
         evoked2 = read_evokeds(fname_temp)[0]
         start = 1 if picks is None else 0
         for ev in (evoked, evoked2):
             assert ev.ch_names == epochs.ch_names[start:]
             assert_allclose(ev.data, epochs.get_data().mean(0)[start:])
     with pytest.raises(ValueError, match='.*nchan.* must match'):
-        write_evokeds(fname_temp, evokeds)
+        write_evokeds(fname_temp, evokeds, overwrite=True)
 
 
 def test_evoked_standard_error(tmp_path):

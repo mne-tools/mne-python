@@ -76,38 +76,54 @@ def test_movement_annotation_head_correction(meas_date):
 
 
 @testing.requires_testing_data
-def test_muscle_annotation():
+@pytest.mark.parametrize('meas_date', (None, 'orig'))
+def test_muscle_annotation(meas_date, events):
     """Test correct detection muscle artifacts."""
     raw = read_raw_fif(raw_fname, allow_maxshield='yes').load_data()
+    if meas_date is None:
+        raw.set_meas_date(None)
     raw.notch_filter([50, 110, 150])
     # Check 2 muscle segments are detected
     annot_muscle, scores = annotate_muscle_zscore(raw, ch_type='mag',
                                                   threshold=10)
     assert annot_muscle.orig_time == raw.info["meas_date"]
     onset = annot_muscle.onset * raw.info['sfreq']
+    if meas_date is not None:
+        onset -= raw.first_samp
     onset = onset.astype(int)
     assert_array_equal(scores[onset].astype(int), np.array([23, 10]))
     assert annot_muscle.duration.size == 2
+    raw.set_annotations(annot_muscle)
 
 
 @testing.requires_testing_data
-def test_muscle_annotation_without_meeg_data():
+@pytest.mark.parametrize('meas_date', (None, 'orig'))
+def test_muscle_annotation_without_meeg_data(meas_date):
     """Call annotate_muscle_zscore with data without meg or eeg."""
     raw = read_raw_fif(raw_fname, allow_maxshield='yes')
+    if meas_date is None:
+        raw.set_meas_date(None)
     raw.crop(0, .1).load_data()
     raw.pick_types(meg=False, stim=True)
     with pytest.raises(ValueError, match="No M/EEG channel types found"):
         annotate_muscle_zscore(raw, threshold=10)
 
 
+@pytest.mark.parametrize('meas_date', (None, "orig"))
 @testing.requires_testing_data
-def test_annotate_breaks():
+def test_annotate_breaks(meas_date):
     """Test annotate_breaks."""
     raw = read_raw_fif(raw_fname, allow_maxshield='yes')
+    if meas_date is None:
+        raw.set_meas_date(None)
+
     annots = Annotations(onset=[12, 15, 16, 20, 21],
                          duration=[1, 1, 1, 2, 0.5],
                          description=['test'],
                          orig_time=raw.info['meas_date'])
+
+    if raw.info['meas_date'] is None:
+        annots.onset -= raw.first_time
 
     raw.set_annotations(annots)
 
@@ -123,6 +139,9 @@ def test_annotate_breaks():
             22 + t_start_after_previous
         ]
     )
+
+    if raw.info['meas_date'] is None:
+        expected_onsets -= raw.first_time
 
     expected_durations = np.array(
         [
@@ -146,6 +165,16 @@ def test_annotate_breaks():
     assert all(description == 'BAD_break'
                for description in break_annots.description)
 
+    # try setting the annotations, this should not omit anything
+    raw.set_annotations(break_annots)
+    current_annotations = raw.annotations
+    if raw.info['meas_date'] is None:
+        current_annotations.onset -= raw.first_time
+    raw.set_annotations(current_annotations + break_annots)
+
+    # reset before next test
+    raw.set_annotations(annots)
+
     # `ignore` parameter should be respected
     raw.annotations.description[0] = 'BAD_'
     break_annots = annotate_break(
@@ -163,7 +192,15 @@ def test_annotate_breaks():
         list(expected_durations[2:])
     )
 
-    # Restore annotation description
+    # try setting the annotations, this should not omit anything
+    raw.set_annotations(break_annots)
+    current_annotations = raw.annotations
+    if raw.info['meas_date'] is None:
+        current_annotations.onset -= raw.first_time
+    raw.set_annotations(current_annotations + break_annots)
+
+    # Restore annotations for next test
+    raw.set_annotations(annots)
     raw.annotations.description[0] = 'test'
 
     # Test with events
@@ -200,8 +237,21 @@ def test_annotate_breaks():
         t_stop_before_next=t_stop_before_next
     )
 
+    if raw.info['meas_date'] is None:
+        expected_onsets -= raw.first_time
+
     assert_allclose(break_annots.onset, expected_onsets)
     assert_allclose(break_annots.duration, expected_durations)
+
+    # try setting the annotations, this should not omit anything
+    raw.set_annotations(break_annots)
+    current_annotations = raw.annotations
+    if raw.info['meas_date'] is None:
+        current_annotations.onset -= raw.first_time
+    raw.set_annotations(current_annotations + break_annots)
+
+    # reset before next test
+    raw.set_annotations(annots)
 
     # Not finding any break periods
     break_annots = annotate_break(

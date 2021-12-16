@@ -184,7 +184,7 @@ def _compare_inverses_approx(inv_1, inv_2, evoked, rtol, atol,
                         err_msg='%s: %s' % (method, corr))
 
 
-def _compare_io(inv_op, out_file_ext='.fif', tempdir=None):
+def _compare_io(inv_op, *, out_file_ext='.fif', tempdir):
     """Compare inverse IO."""
     if out_file_ext == '.fif':
         out_file = op.join(tempdir, 'test-inv.fif')
@@ -195,7 +195,7 @@ def _compare_io(inv_op, out_file_ext='.fif', tempdir=None):
     out_file = Path(out_file)
     # Test io operations
     inv_init = copy.deepcopy(inv_op)
-    write_inverse_operator(out_file, inv_op)
+    write_inverse_operator(out_file, inv_op, overwrite=True)
     read_inv_op = read_inverse_operator(out_file)
     _compare(inv_init, read_inv_op)
     _compare(inv_init, inv_op)
@@ -841,7 +841,7 @@ def test_io_inverse_operator(tmp_path):
     assert (x)
     assert (isinstance(inverse_operator['noise_cov'], Covariance))
     # just do one example for .gz, as it should generalize
-    _compare_io(inverse_operator, '.gz', tempdir)
+    _compare_io(inverse_operator, out_file_ext='.gz', tempdir=tempdir)
 
     # test warnings on bad filenames
     inv_badname = op.join(tempdir, 'test-bad-name.fif.gz')

@@ -28,7 +28,7 @@ from .tag import (read_tag, find_tag, _ch_coord_dict, _update_ch_info_named,
 from .proj import (_read_proj, _write_proj, _uniquify_projs, _normalize_proj,
                    _proj_equal, Projection)
 from .ctf_comp import _read_ctf_comp, write_ctf_comp
-from .write import (start_file, end_file, start_block, end_block,
+from .write import (start_and_end_file, start_block, end_block,
                     write_string, write_dig_points, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian, write_float_matrix, write_id, DATE_NONE)
@@ -40,7 +40,7 @@ from ..utils import (logger, verbose, warn, object_diff, _validate_type,
                      _check_option, _on_missing, _check_on_missing, fill_doc)
 from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
-from ._digitization import write_dig as _dig_write_dig
+from ._digitization import write_dig
 from .compensator import get_current_comp
 from ..data.html_templates import info_template
 from ..defaults import _handle_default
@@ -1156,8 +1156,8 @@ def read_fiducials(fname, verbose=None):
 
 
 @verbose
-def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
-                    verbose=None):
+def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN, *,
+                    overwrite=False, verbose=None):
     """Write fiducials to a fiff file.
 
     Parameters
@@ -1170,27 +1170,12 @@ def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
     coord_frame : int
         The coordinate frame of the points (one of
         mne.io.constants.FIFF.FIFFV_COORD_...).
+    %(overwrite)s
+
+        .. versionadded:: 1.0
     %(verbose)s
     """
-    _dig_write_dig(fname, pts, coord_frame)
-
-
-def write_dig(fname, pts, coord_frame=None):
-    """Write digitization data to a FIF file.
-
-    Parameters
-    ----------
-    fname : str
-        Destination file name.
-    pts : iterator of dict
-        Iterator through digitizer points. Each point is a dictionary with
-        the keys 'kind', 'ident' and 'r'.
-    coord_frame : int | str | None
-        If all the points have the same coordinate frame, specify the type
-        here. Can be None (default) if the points could have varying
-        coordinate frames.
-    """
-    return _dig_write_dig(fname, pts, coord_frame=coord_frame)
+    write_dig(fname, pts, coord_frame, overwrite=overwrite)
 
 
 @verbose
@@ -2078,11 +2063,10 @@ def write_info(fname, info, data_type=None, reset_range=True):
     reset_range : bool
         If True, info['chs'][k]['range'] will be set to unity.
     """
-    with start_file(fname) as fid:
+    with start_and_end_file(fname) as fid:
         start_block(fid, FIFF.FIFFB_MEAS)
         write_meas_info(fid, info, data_type, reset_range)
         end_block(fid, FIFF.FIFFB_MEAS)
-        end_file(fid)
 
 
 @verbose

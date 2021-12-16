@@ -139,7 +139,7 @@ def test_io_events(tmp_path):
     # Test old format text file IO
     events2 = read_events(fname_old_txt)
     assert_array_almost_equal(events, events2)
-    write_events(fname_temp, events)
+    write_events(fname_temp, events, overwrite=True)
     events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
 
@@ -156,19 +156,19 @@ def test_io_events(tmp_path):
     # test reading file with mask=None
     events2 = events.copy()
     events2[:, -1] = range(events2.shape[0])
-    write_events(fname_temp, events2)
+    write_events(fname_temp, events2, overwrite=True)
     events3 = read_events(fname_temp, mask=None)
     assert_array_almost_equal(events2, events3)
 
     # Test binary file IO for 1 event
     events = read_events(fname_1)  # Use as the new gold standard
-    write_events(fname_temp, events)
+    write_events(fname_temp, events, overwrite=True)
     events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
 
     # Test text file IO for 1 event
     fname_temp = tmp_path / 'events.eve'
-    write_events(fname_temp, events)
+    write_events(fname_temp, events, overwrite=True)
     events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
 

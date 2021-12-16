@@ -1015,7 +1015,7 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
         for pt in pts:
             pt['r'] = pt['r'] * scale
         dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
-        write_fiducials(dest, pts, cframe, verbose=False)
+        write_fiducials(dest, pts, cframe, overwrite=True, verbose=False)
 
     logger.debug('MRIs [nibabel]')
     os.mkdir(mri_dirname.format(subjects_dir=subjects_dir,

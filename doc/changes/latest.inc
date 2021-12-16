@@ -1,4 +1,4 @@
-.. NOTE: we are now using links to highlight new functions and classes.
+.. NOTE: we use cross-references to highlight new functions and classes.
    Please follow the examples below like :func:`mne.stats.f_mway_rm`, so the
    whats_new page will have a link to the function/class documentation.
 
@@ -10,25 +10,23 @@
 .. NOTE: changes from first-time contributors should be added to the TOP of
    the relevant section (Enhancements / Bugs / API changes), and should look
    like this (where xxxx is the pull request number):
-   - description of enhancement/bugfix/API change (:gh:`xxxx` **by new contributor** |Firstname Lastname|_)
+
+       - description of enhancement/bugfix/API change (:gh:`xxxx` by
+         :newcontrib:`Firstname Lastname`)
+
+   Also add a corresponding entry for yourself in doc/changes/names.inc
 
 .. _current:
 
 Current (1.0.dev0)
 -------------------
 
-.. |New Contributor| replace:: **New Contributor**
-
-.. |Jan Zerfowski| replace:: **Jan Zerfowski**
-.. |Senwen Deng| replace:: **Senwen Deng**
-
 Enhancements
 ~~~~~~~~~~~~
-.. - Add something cool (:gh:`9192` **by new contributor** |New Contributor|_)
 
-- Speed up :func:`mne.preprocessing.annotate_muscle_zscore`, :func:`mne.preprocessing.annotate_movement`, and :func:`mne.preprocessing.annotate_nan` through better annotation creation (:gh:`10089` **by new contributor** |Senwen Deng|_)
+- Speed up :func:`mne.preprocessing.annotate_muscle_zscore`, :func:`mne.preprocessing.annotate_movement`, and :func:`mne.preprocessing.annotate_nan` through better annotation creation (:gh:`10089` by :newcontrib:`Senwen Deng`)
 
-- Fix some unused variables in time_frequency_erds.py example (:gh:`10076` **by new contributor** |Jan Zerfowski|_)
+- Fix some unused variables in time_frequency_erds.py example (:gh:`10076` by :newcontrib:`Jan Zerfowski`)
 
 - Add show local maxima toggling button to :func:`mne.gui.locate_ieeg` (:gh:`9952` by `Alex Rockhill`_)
 
@@ -62,12 +60,12 @@ Enhancements
 
 - Drastically speed up butterfly plot generation in :meth:`mne.Report.add_raw`. We now don't plot annotations anymore; however, we feel that the speed improvements justify this change, also considering the annotations were of limited use in the displayed one-second time slices anyway (:gh:`10114`, :gh:`10116` by `Richard Höchenberger`_)
 
+- In :class:`mne.Report`, limit the width of automatically generated figures to a maximum of 850 pixels (450 pixels for :class:`mne.SourceEstimate` plots), and the resolution to 100 DPI to reduce file size, memory consumption, and – in some cases like :meth:`mne.Report.add_stc` – processing time (:gh:`10126`, :gh:`10129`, :gh:`10135` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 
-.. |Adina Wagner| replace:: **Adina Wagner**
-
-- Teach :func:`mne.io.read_raw_bti` to use its ``eog_ch`` parameter (:gh:`10093` **by new contributor** |Adina Wagner|_)
+- Teach :func:`mne.io.read_raw_bti` to use its ``eog_ch`` parameter (:gh:`10093` by :newcontrib:`Adina Wagner`)
 
 - Fix default of :func:`mne.io.Raw.plot` to be ``use_opengl=None``, which will act like False unless ``MNE_BROWSER_USE_OPENGL=true`` is set in the user configuration (:gh:`9957` by `Eric Larson`_)
 
@@ -97,6 +95,8 @@ Bugs
 
 - Fix bug in :func:`mne.get_montage_volume_labels` that set the maximum number of voxels to be included too low causing unwanted capping of the included voxel labels (:gh:`10021` by `Alex Rockhill`_)
 
+- Fix annotation cropping and I/O roundtrip when there is no measurement date available (:gh:`10040` by `Mathieu Scheltienne`_ and `Alex Gramfort`_).
+
 - :func:`~mne.sys_info` output now contains the installed version of ``pooch``, too; this output had been accidentally removed previously (:gh:`10047` by `Richard Höchenberger`_)
 
 - Fix automatic channel type detection from channel labels in :func:`mne.io.read_raw_edf` and :func:`mne.io.read_raw_bdf` (and disable this functionality from :func:`mne.io.read_raw_gdf`) (:gh:`10058` by `Clemens Brunner`_)
@@ -105,7 +105,7 @@ Bugs
 
 - Fix channel grouping error when using "butterfly mode" with :meth:`mne.io.Raw.plot` (:gh:`10087` by `Daniel McCloy`_)
 
-- Fix inconsistent behavior of ``mne.preprocessing.annotate_*`` functions by making them all return :class:`mne.Annotations` objects with the ``orig_time`` attribute set to ``raw.info["meas_time"]`` (:gh:`10067` by `Stefan Appelhoff`_)
+- Fix inconsistent behavior of ``mne.preprocessing.annotate_*`` functions by making them all return :class:`mne.Annotations` objects with the ``orig_time`` attribute set to ``raw.info["meas_time"]`` (:gh:`10067` and :gh:`10118` by `Stefan Appelhoff`_, `Eric Larson`_, and `Alex Gramfort`_)
 
 - Fix bug that appears during automatic calculation of the colormap of `mne.viz.Brain` when data values of ``fmin`` and ``fmax`` are too close (:gh:`10074` by `Guillaume Favelier`_)
 
@@ -113,7 +113,13 @@ Bugs
 
 - Creating :class:`mne.Epochs` now provides clearer logging (less ambiguous, no duplicates) when the ``preload`` and/or ``metadata`` parameters are set (:gh:`10112` by `Stefan Appelhoff`_)
 
+- Fix functions by adding missing ``overwrite`` parameters: :func:`mne.write_events`, :func:`mne.write_cov`, :func:`mne.write_evokeds`, :meth:`mne.SourceEstimate.save`, :func:`mne.minimum_norm.write_inverse_operator`, :func:`mne.write_proj`, and related methods (:gh:`10127` by `Eric Larson`_)
+
+- Fix bug with :func:`mne.transforms.compute_volume_registration` and :func:`mne.compute_source_morph` (volumetric) where the smoothing factors were not scaled based on ``zooms`` (:gh:`10132` by `Eric Larson`_)
+
 - Remove repeated logging output when overwriting an existing `~mne.io.Raw` file (:gh:`10095` by `Richard Höchenberger`_ and `Stefan Appelhoff`_)
+
+- In the plots generated by :meth:`mne.Report.add_stc`, we now only add 5 labels to the color bar to reduce the chance of overlap, which could previously cause the labels to become unreadable (:gh:`10135` by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~
