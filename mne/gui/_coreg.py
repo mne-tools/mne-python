@@ -1049,11 +1049,13 @@ class CoregistrationUI(HasTraits):
         hlayout = self._renderer._dock_add_group_box(
             name="Scaling Parameters",
         )
-        for coord in ("X", "Y", "Z"):
+        coords = ["X", "Y", "Z"]
+        for coord in coords:
             name = f"s{coord}"
+            attr = getattr(self._coreg, "_scale")
             self._widgets[name] = self._renderer._dock_add_spin_box(
                 name=name,
-                value=0.,
+                value=attr[coords.index(coord)] * 1e2,
                 rng=[-1e3, 1e3],
                 callback=partial(
                     self._set_parameter,
@@ -1069,11 +1071,12 @@ class CoregistrationUI(HasTraits):
         for mode, mode_name in (("t", "Translation"), ("r", "Rotation")):
             hlayout = self._renderer._dock_add_group_box(
                 f"{mode_name} ({mode})")
-            for coord in ("X", "Y", "Z"):
+            for coord in coords:
                 name = f"{mode}{coord}"
+                attr = getattr(self._coreg, f"_{mode_name.lower()}")
                 self._widgets[name] = self._renderer._dock_add_spin_box(
                     name=name,
-                    value=0.,
+                    value=attr[coords.index(coord)] * 1e3,
                     rng=[-1e3, 1e3],
                     callback=partial(
                         self._set_parameter,
