@@ -1841,7 +1841,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
 
     @verbose
-    @fill_doc
     def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, start=None, stop=None,
                       long_format=False, time_format='ms',

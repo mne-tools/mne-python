@@ -779,7 +779,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return out
 
     @verbose
-    @fill_doc
     def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, long_format=False,
                       time_format='ms', verbose=None):

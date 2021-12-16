@@ -2074,7 +2074,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return self, indices
 
     @verbose
-    @fill_doc
     def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, long_format=False,
                       time_format='ms', verbose=None):

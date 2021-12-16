@@ -1018,7 +1018,6 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         write_tfrs(fname, self, overwrite=overwrite)
 
     @verbose
-    @fill_doc
     def to_data_frame(self, picks=None, index=None, long_format=False,
                       time_format='ms', verbose=None):
         """Export data in tabular structure as a pandas DataFrame.

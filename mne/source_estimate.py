@@ -1200,7 +1200,6 @@ class _BaseSourceEstimate(TimeMixin):
         return stcs
 
     @verbose
-    @fill_doc
     def to_data_frame(self, index=None, scalings=None,
                       long_format=False, time_format='ms',
                       verbose=None):
