@@ -287,11 +287,11 @@ report.save('report_mri_and_bem.html', overwrite=True)
 # Adding coregistration
 # ^^^^^^^^^^^^^^^^^^^^^
 #
-# The sensor alignment (``head -> mri`` transformation obtained by
-# "coregistration") can be visualized via :meth:`mne.Report.add_trans`. The
-# method expects the transformation either as a `~mne.transforms.Transform`
-# object or as a path to a ``trans.fif`` file, the FreeSurfer subject name and
-# subjects directory, and a title.
+# The ``head -> mri`` transformation (obtained by "coregistration") can be
+# visualized via :meth:`mne.Report.add_trans`. The method expects the
+# transformation either as a `~mne.transforms.Transform` object or as a path to
+# a ``trans.fif`` file, the FreeSurfer subject name and subjects directory, and
+# a title.
 
 trans_path = sample_dir / 'sample_audvis_raw-trans.fif'
 
