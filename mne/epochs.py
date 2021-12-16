@@ -2737,11 +2737,15 @@ class Epochs(BaseEpochs, AnnotationsMixin):
     There is limited support for :class:`~mne.Annotations` in the
     :class:`~mne.Epochs` class. Currently annotations that are present in the
     :class:`~mne.io.Raw` object will be preserved in the resulting
-    :class:`~mne.Epochs` object, but it is not yet possible to add annotations
-    to the Epochs object programmatically (via code) or interactively (through
-    the plot window). Additionally, concatenating :class:`~mne.Epochs` objects
-    that contain annotations is not supported, and any annotations will be
-    dropped when concatenating.
+    :class:`~mne.Epochs` object, but:
+    
+    1. It is not yet possible to add annotations
+       to the Epochs object programmatically (via code) or interactively
+       (through the plot window)
+    2. Concatenating :class:`~mne.Epochs` objects
+       that contain annotations is not supported, and any annotations will
+       be dropped when concatenating.
+    3. Annotations will be lost on save.
     """
 
     @verbose
@@ -3572,9 +3576,10 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
             raise TypeError('epochs_list[%d] must be an instance of Epochs, '
                             'got %s' % (ei, type(epochs)))
 
-        if hasattr(epochs, 'annotations'):
+        if getattr(epochs, 'annotations', None) is not None and not warned:
+            warned = True
             warn('Concatenation of Annotations within Epochs is not supported '
-                 'yet. Annotations within these Epochs will be dropped.')
+                 'yet. All annotations will be dropped.')
             epochs._set_annotations(None)
     out = epochs_list[0]
     offsets = [0]

@@ -3685,14 +3685,12 @@ def test_add_channels_picks():
 
 
 @requires_pandas
+@pytest.mark.parametrize('first_samp', [0, 10])
 @pytest.mark.parametrize(
-    'first_samp, meas_date, orig_date', [
-        [0, None, None],
-        [10, None, None],
-        [0, np.pi, None],
-        [10, np.pi, None],
-        [0, np.pi, timedelta(seconds=1)],
-        [10, np.pi, timedelta(seconds=1)]
+    'meas_date, orig_date', [
+        [None, None],
+        [np.pi, None],
+        [np.pi, timedelta(seconds=1)]
     ]
 )
 def test_epoch_annotations(first_samp, meas_date, orig_date):
@@ -3796,7 +3794,7 @@ def test_epoch_annotations_cases():
     In addition, tests functionality when Epochs are loaded vs not.
     """
     # do a more complicated case
-    data = np.random.randn(1, 600) * 10e-12
+    data = np.random.RandomState(0).randn(1, 600) * 10e-12
     sfreq = 100.
     info = create_info(ch_names=['MEG1'], ch_types=['grad'], sfreq=sfreq)
     raw = RawArray(data, info)
