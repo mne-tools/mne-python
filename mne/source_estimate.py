@@ -1201,7 +1201,7 @@ class _BaseSourceEstimate(TimeMixin):
 
     @verbose
     def to_data_frame(self, index=None, scalings=None,
-                      long_format=False, time_format='ms',
+                      long_format=False, time_format='ms', *,
                       verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 

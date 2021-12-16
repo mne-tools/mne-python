@@ -781,7 +781,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @verbose
     def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, long_format=False,
-                      time_format='ms', verbose=None):
+                      time_format='ms', *, verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,
