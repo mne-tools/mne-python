@@ -1216,9 +1216,9 @@ class _BaseSourceEstimate(TimeMixin):
         %(df_scalings)s
         %(df_longform_stc)s
         %(df_time_format)s
-        %(verbose)s
 
             .. versionadded:: 0.20
+        %(verbose)s
 
         Returns
         -------

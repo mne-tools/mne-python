@@ -1039,9 +1039,9 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             Defaults to ``None``.
         %(df_longform_epo)s
         %(df_time_format)s
-        %(verbose)s
 
             .. versionadded:: 0.23
+        %(verbose)s
 
         Returns
         -------

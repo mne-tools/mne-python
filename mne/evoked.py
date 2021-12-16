@@ -797,9 +797,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(df_copy)s
         %(df_longform_raw)s
         %(df_time_format)s
-        %(verbose)s
 
             .. versionadded:: 0.20
+        %(verbose)s
 
         Returns
         -------

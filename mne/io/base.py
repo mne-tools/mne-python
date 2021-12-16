@@ -1867,9 +1867,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             of the Raw object. ``None`` (the default) uses the last sample.
         %(df_longform_raw)s
         %(df_time_format_raw)s
-        %(verbose)s
 
             .. versionadded:: 0.20
+        %(verbose)s
 
         Returns
         -------

@@ -2095,9 +2095,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         %(df_copy)s
         %(df_longform_epo)s
         %(df_time_format)s
-        %(verbose)s
 
             .. versionadded:: 0.20
+        %(verbose)s
 
         Returns
         -------
