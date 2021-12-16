@@ -2131,8 +2131,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
         # build DataFrame
         df = _build_data_frame(self, data, picks, long_format, mindex, index,
-                               default_index=['condition', 'epoch', 'time'],
-                               verbose=verbose)
+                               default_index=['condition', 'epoch', 'time'])
         return df
 
     def as_type(self, ch_type='grad', mode='fast'):

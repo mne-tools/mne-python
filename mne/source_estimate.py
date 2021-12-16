@@ -1253,8 +1253,7 @@ class _BaseSourceEstimate(TimeMixin):
         # build DataFrame
         df = _build_data_frame(self, data, None, long_format, mindex, index,
                                default_index=default_index,
-                               col_names=col_names, col_kind='source',
-                               verbose=verbose)
+                               col_names=col_names, col_kind='source')
         return df
 
 

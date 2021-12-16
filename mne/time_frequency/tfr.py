@@ -1089,7 +1089,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         else:
             default_index = ['freq', 'time']
         df = _build_data_frame(self, data, picks, long_format, mindex, index,
-                               default_index=default_index, verbose=verbose)
+                               default_index=default_index)
         return df
 
 

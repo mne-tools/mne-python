@@ -826,7 +826,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         mindex.append(('time', times))
         # build DataFrame
         df = _build_data_frame(self, data, picks, long_format, mindex, index,
-                               default_index=['time'], verbose=verbose)
+                               default_index=['time'])
         return df
 
 
