@@ -3704,9 +3704,8 @@ def test_epoch_annotations(first_samp, meas_date, orig_date):
     - with and without an orig_time set in Annotations
     """
     data = np.random.randn(2, 400) * 10e-12
-    sfreq = 100.
-    info = create_info(ch_names=['MEG1', 'MEG2'], ch_types=['grad'] * 2,
-                       sfreq=sfreq)
+    info = create_info(ch_names=['MEG1', 'MEG2'], ch_types='grad',
+                       sfreq=100.)
 
     # create a Raw object with a first_samp
     raw = RawArray(data.copy(), info, first_samp=first_samp)

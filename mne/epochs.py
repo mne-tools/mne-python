@@ -2610,9 +2610,6 @@ class AnnotationsMixin():
         """
         pd = _check_pandas_installed()
 
-        # Epochs must be preloaded, in case bads have not been dropped yet
-        # _check_preload(self, 'epochs.add_annotations_to_metadata')
-
         # check if annotations exist
         if self.annotations is None:
             warn(f'There were no Annotations stored in {self}, so '
