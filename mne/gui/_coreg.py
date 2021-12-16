@@ -816,6 +816,7 @@ class CoregistrationUI(HasTraits):
         self._surfaces["head"] = head_surf
 
     def _add_head_hair(self):
+        return  # XXX: disable temporarily
         if "head" in self._surfaces:
             res = "high" if self._head_resolution else "low"
             self._surfaces["head"].points = \
