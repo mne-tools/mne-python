@@ -355,6 +355,7 @@ class CoregistrationUI(HasTraits):
         else:
             assert mode_name == "scale"
             params[mode_name][idx] = value / 1e2
+            self._update_plot("head")
         self._coreg._update_params(
             rot=params["rotation"],
             tra=params["translation"],
@@ -808,9 +809,10 @@ class CoregistrationUI(HasTraits):
                 self._renderer, "head", self._subject, self._subjects_dir,
                 bem, self._coord_frame, self._to_cf_t,
                 alpha=self._head_opacity)
+        self._update_actor("head", head_actor)
         # mark head surface mesh to restrict picking
         head_surf._picking_target = True
-        self._update_actor("head", head_actor)
+        head_surf.points = head_surf.points * self._coreg._scale.T
         self._surfaces["head"] = head_surf
 
     def _add_head_hair(self):
