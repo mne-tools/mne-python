@@ -458,9 +458,11 @@ def _iterate_trans_views(function, **kwargs):
     from ..viz.backends.renderer import backend
     try:
         try:
-            return _itv(function, fig, surfaces=['head-dense'], **kwargs)
+            return _itv(
+                function, fig, surfaces={'head-dense': 1.}, **kwargs
+            )
         except IOError:
-            return _itv(function, fig, surfaces=['head'], **kwargs)
+            return _itv(function, fig, surfaces={'head': 1.}, **kwargs)
     finally:
         backend._close_3d_figure(fig)
 
