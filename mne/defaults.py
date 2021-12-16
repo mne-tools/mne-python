@@ -160,7 +160,13 @@ DEFAULTS = dict(
         show_traces=False,
         size=(450, 450),
         background='white',
-        time_label=None
+        time_label=None,
+        add_data_kwargs={
+            'colorbar_kwargs': {
+                'label_font_size': 12,
+                'n_labels': 5
+            }
+        }
     )
 )
 

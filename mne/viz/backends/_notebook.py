@@ -71,9 +71,12 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_add_button(self, name, callback, layout=None):
+    def _dock_add_button(self, name, callback, tooltip=None, layout=None):
         layout = self._dock_layout if layout is None else layout
-        widget = Button(description=name)
+        kwargs = dict(description=name)
+        if tooltip is not None:
+            kwargs["tooltip"] = tooltip
+        widget = Button(**kwargs)
         widget.on_click(lambda x: callback())
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
@@ -102,7 +105,8 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_add_check_box(self, name, value, callback, layout=None):
+    def _dock_add_check_box(self, name, value, callback, tooltip=None,
+                            layout=None):
         layout = self._dock_layout if layout is None else layout
         widget = Checkbox(
             value=value,
@@ -115,7 +119,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
 
     def _dock_add_spin_box(self, name, value, rng, callback,
                            compact=True, double=True, step=None,
-                           layout=None):
+                           tooltip=None, layout=None):
         layout = self._dock_named_layout(name, layout, compact)
         klass = BoundedFloatText if double else IntText
         widget = klass(
@@ -129,8 +133,8 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_add_combo_box(self, name, value, rng,
-                            callback, compact=True, layout=None):
+    def _dock_add_combo_box(self, name, value, rng, callback, compact=True,
+                            tooltip=None, layout=None):
         layout = self._dock_named_layout(name, layout, compact)
         widget = Dropdown(
             value=value,
@@ -167,7 +171,8 @@ class _IpyDock(_AbstractDock, _IpyLayout):
 
     def _dock_add_file_button(self, name, desc, func, value=None, save=False,
                               directory=False, input_text_widget=True,
-                              placeholder="Type a file name", layout=None):
+                              placeholder="Type a file name", tooltip=None,
+                              layout=None):
         layout = self._dock_layout if layout is None else layout
 
         def callback():
@@ -183,6 +188,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         button_widget = self._dock_add_button(
             name=desc,
             callback=callback,
+            tooltip=tooltip,
             layout=hlayout,
         )
         self._layout_add_widget(layout, hlayout)

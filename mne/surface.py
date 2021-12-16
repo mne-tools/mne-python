@@ -30,7 +30,7 @@ from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
 from .utils import (logger, verbose, get_subjects_dir, warn, _check_fname,
                     _check_option, _ensure_int, _TempDir, run_subprocess,
                     _check_freesurfer_home, _hashable_ndarray, fill_doc,
-                    _validate_type, _require_version)
+                    _validate_type, _require_version, _pl)
 
 
 ###############################################################################
@@ -1765,8 +1765,10 @@ def _warn_missing_chs(info, dig_image, after_warp, verbose=None):
         set(np.unique(np.array(dig_image.dataobj))))
     missing_ch = [info.ch_names[idx - 1] for idx in missing]
     if missing_ch and verbose != 'error':
-        warn('Channels ' + ', '.join(missing_ch) + ' were not assigned '
-             'voxels' + (' after applying SDR warp' if after_warp else ''))
+        warn(f'Channel{_pl(missing_ch)} '
+             f'{", ".join(repr(ch) for ch in missing_ch)} not assigned '
+             'voxels ' +
+             (f' after applying {after_warp}' if after_warp else ''))
 
 
 @verbose
@@ -1920,7 +1922,9 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
         image_from, template_brain, reg_affine, sdr_morph,
         interpolation='nearest')
 
-    _warn_missing_chs(montage, image_to, after_warp=True)
+    after_warp = \
+        'SDR warp' if sdr_morph is not None else 'affine transformation'
+    _warn_missing_chs(montage, image_to, after_warp=after_warp)
 
     # recover the contact positions as the center of mass
     warped_data = np.asanyarray(image_to.dataobj)

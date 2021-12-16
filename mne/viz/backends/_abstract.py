@@ -532,7 +532,7 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_button(self, name, callback, layout=None):
+    def _dock_add_button(self, name, callback, tooltip=None, layout=None):
         pass
 
     @abstractmethod
@@ -545,18 +545,19 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_check_box(self, name, value, callback, layout=None):
+    def _dock_add_check_box(self, name, value, callback, tooltip=None,
+                            layout=None):
         pass
 
     @abstractmethod
     def _dock_add_spin_box(self, name, value, rng, callback,
                            compact=True, double=True, step=None,
-                           layout=None):
+                           tooltip=None, layout=None):
         pass
 
     @abstractmethod
-    def _dock_add_combo_box(self, name, value, rng,
-                            callback, compact=True, layout=None):
+    def _dock_add_combo_box(self, name, value, rng, callback, compact=True,
+                            tooltip=None, layout=None):
         pass
 
     @abstractmethod
@@ -575,7 +576,8 @@ class _AbstractDock(ABC):
     @abstractmethod
     def _dock_add_file_button(self, name, desc, func, value=None, save=False,
                               directory=False, input_text_widget=True,
-                              placeholder="Type a file name", layout=None):
+                              placeholder="Type a file name", tooltip=None,
+                              layout=None):
         pass
 
 

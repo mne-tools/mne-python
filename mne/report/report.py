@@ -104,6 +104,7 @@ template_dir = Path(__file__).parent / 'templates'
 JAVASCRIPT = (html_include_dir / 'report.js').read_text(encoding='utf-8')
 CSS = (html_include_dir / 'report.sass').read_text(encoding='utf-8')
 
+MAX_IMG_RES = 100  # in dots per inch
 MAX_IMG_WIDTH = 850  # in pixels
 
 
@@ -320,21 +321,23 @@ def _check_tags(tags) -> Tuple[str]:
 # PLOTTING FUNCTIONS
 
 
-def _constrain_fig_resolution(fig, width):
+def _constrain_fig_resolution(fig, *, max_width, max_res):
     """Limit the resolution (DPI) of a figure.
 
     Parameters
     ----------
     fig : matplotlib.figure.Figure
         The figure whose DPI to adjust.
-    width : int
+    max_width : int
         The max. allowed width, in pixels.
+    max_res : int
+        The max. allowed resolution, in DPI.
 
     Returns
     -------
     Nothing, alters the figure's properties in-place.
     """
-    dpi = min(fig.get_dpi(), MAX_IMG_WIDTH / fig.get_size_inches()[0])
+    dpi = min(max_res, max_width / fig.get_size_inches()[0])
     fig.set_dpi(dpi)
 
 
@@ -345,7 +348,9 @@ def _fig_to_img(fig, *, image_format='png', auto_close=True):
     from matplotlib.figure import Figure
     if isinstance(fig, np.ndarray):
         fig = _ndarray_to_fig(fig)
-        _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
     elif not isinstance(fig, Figure):
         from ..viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
         backend._check_3d_figure(figure=fig)
@@ -357,7 +362,9 @@ def _fig_to_img(fig, *, image_format='png', auto_close=True):
         if auto_close:
             backend._close_3d_figure(figure=fig)
         fig = _ndarray_to_fig(img)
-        _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
 
     output = BytesIO()
     logger.debug(
@@ -512,7 +519,9 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
         figs = ica.plot_properties(inst=inst, picks=pick, show=False)
         assert len(figs) == 1
         fig = figs[0]
-        _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
         with io.BytesIO() as buff:
             fig.savefig(
                 buff,
@@ -1418,7 +1427,9 @@ class Report(object):
         fig = ica.plot_overlay(inst=inst_, show=False)
         del inst_
         tight_layout(fig=fig)
-        _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
         img = _fig_to_img(fig, image_format=image_format)
         dom_id = self._get_dom_id()
         overlay_html = _html_image_element(
@@ -1482,7 +1493,9 @@ class Report(object):
     def _render_ica_artifact_sources(self, *, ica, inst, artifact_type,
                                      image_format, tags):
         fig = ica.plot_sources(inst=inst, show=False)
-        _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
         img = _fig_to_img(fig, image_format=image_format)
         dom_id = self._get_dom_id()
         html = _html_image_element(
@@ -1495,7 +1508,9 @@ class Report(object):
     def _render_ica_artifact_scores(self, *, ica, scores, artifact_type,
                                     image_format, tags):
         fig = ica.plot_scores(scores=scores, title=None, show=False)
-        _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
         img = _fig_to_img(fig, image_format=image_format)
         dom_id = self._get_dom_id()
         html = _html_image_element(
@@ -1526,7 +1541,9 @@ class Report(object):
         title = 'ICA component topographies'
         if len(figs) == 1:
             fig = figs[0]
-            _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
+            _constrain_fig_resolution(
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            )
             img = _fig_to_img(fig=fig, image_format=image_format)
             dom_id = self._get_dom_id()
             topographies_html = _html_image_element(
@@ -2631,7 +2648,9 @@ class Report(object):
                 butterfly=True, show_scrollbars=False, start=t_starts[0],
                 duration=durations[0], scalings=scalings, show=False
             )
-            _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
+            _constrain_fig_resolution(
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            )
             images = [_fig_to_img(fig=fig, image_format=image_format)]
 
             for start, duration in zip(t_starts[1:], durations[1:]):
@@ -2703,7 +2722,9 @@ class Report(object):
 
             fig = raw.plot_psd(fmax=fmax, show=False, **add_psd)
             tight_layout(fig=fig)
-            _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
+            _constrain_fig_resolution(
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            )
 
             img = _fig_to_img(fig, image_format=image_format)
             psd_img_html = _html_image_element(
@@ -2776,7 +2797,9 @@ class Report(object):
         # number-of-channel-types conditions...
         fig.set_size_inches((6, 4))
         tight_layout(fig=fig)
-        _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
         img = _fig_to_img(fig=fig, image_format=image_format)
 
         dom_id = self._get_dom_id()
@@ -2883,7 +2906,9 @@ class Report(object):
                     topomap_args=topomap_kwargs,
                 )
 
-            _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
+            _constrain_fig_resolution(
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            )
             img = _fig_to_img(fig=fig, image_format=image_format)
             title = f'Time course ({_handle_default("titles")[ch_type]})'
             dom_id = self._get_dom_id()
@@ -2912,8 +2937,13 @@ class Report(object):
 
         fig, ax = plt.subplots(
             1, len(ch_types) * 2,
-            gridspec_kw={'width_ratios': [8, 0.5] * len(ch_types)},
-            figsize=(4 * len(ch_types), 3.5)
+            gridspec_kw={
+                'width_ratios': [8, 0.5] * len(ch_types)
+            },
+            figsize=(2.5 * len(ch_types), 2)
+        )
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
         )
         ch_type_ax_map = dict(
             zip(ch_types,
@@ -2931,7 +2961,6 @@ class Report(object):
             ch_type_ax_map[ch_type][0].set_title(ch_type)
 
         tight_layout(fig=fig)
-        _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
 
         with BytesIO() as buff:
             fig.savefig(
@@ -3050,7 +3079,9 @@ class Report(object):
                 ax[idx].set_xlabel(None)
 
         tight_layout(fig=fig)
-        _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
         img = _fig_to_img(fig=fig, image_format=image_format)
         title = 'Global field power'
         html = _html_image_element(
@@ -3076,7 +3107,9 @@ class Report(object):
             show=False
         )
         tight_layout(fig=fig)
-        _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
         img = _fig_to_img(fig=fig, image_format=image_format)
         title = 'Whitened'
 
@@ -3138,7 +3171,9 @@ class Report(object):
             first_samp=first_samp,
             show=False
         )
-        _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
         img = _fig_to_img(
             fig=fig,
             image_format=image_format,
@@ -3206,7 +3241,9 @@ class Report(object):
                 fmax = np.inf
 
             fig = epochs_for_psd.plot_psd(fmax=fmax, show=False)
-            _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
+            _constrain_fig_resolution(
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            )
             img = _fig_to_img(fig=fig, image_format=image_format)
             duration = round(epoch_duration * len(epochs_for_psd), 1)
             caption = (
@@ -3255,7 +3292,9 @@ class Report(object):
 
             assert len(figs) == 1
             fig = figs[0]
-            _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
+            _constrain_fig_resolution(
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            )
             img = _fig_to_img(fig=fig, image_format=image_format)
             if ch_type in ('mag', 'grad'):
                 title_start = 'ERF image'
@@ -3294,7 +3333,9 @@ class Report(object):
             else:
                 fig = epochs.plot_drop_log(subject=self.subject, show=False)
                 tight_layout(fig=fig)
-                _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
+                _constrain_fig_resolution(
+                    fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+                )
                 img = _fig_to_img(fig=fig, image_format=image_format)
                 drop_log_img_html = _html_image_element(
                     img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
@@ -3333,7 +3374,9 @@ class Report(object):
         )
 
         for fig, title in zip(figs, titles):
-            _constrain_fig_resolution(fig, width=MAX_IMG_WIDTH)
+            _constrain_fig_resolution(
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            )
             img = _fig_to_img(fig=fig, image_format=image_format)
             dom_id = self._get_dom_id()
             html = _html_image_element(
@@ -3434,10 +3477,15 @@ class Report(object):
 
                 if backend_is_3d:
                     brain.set_time(t)
-                    fig, ax = plt.subplots(figsize=(8, 6))
+                    fig, ax = plt.subplots(figsize=(4.5, 4.5))
                     ax.imshow(brain.screenshot(time_viewer=True, mode='rgb'))
                     ax.axis('off')
                     tight_layout(fig=fig)
+                    _constrain_fig_resolution(
+                        fig,
+                        max_width=stc_plot_kwargs['size'][0],
+                        max_res=MAX_IMG_RES
+                    )
                     figs.append(fig)
                     plt.close(fig)
                 else:
@@ -3462,6 +3510,16 @@ class Report(object):
                     )
                     tight_layout(fig=fig_lh)  # TODO is this necessary?
                     tight_layout(fig=fig_rh)  # TODO is this necessary?
+                    _constrain_fig_resolution(
+                        fig_lh,
+                        max_width=stc_plot_kwargs['size'][0],
+                        max_res=MAX_IMG_RES
+                    )
+                    _constrain_fig_resolution(
+                        fig_rh,
+                        max_width=stc_plot_kwargs['size'][0],
+                        max_res=MAX_IMG_RES
+                    )
                     figs.append(brain_lh)
                     figs.append(brain_rh)
                     plt.close(fig_lh)

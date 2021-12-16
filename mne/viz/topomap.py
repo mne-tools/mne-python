@@ -1558,10 +1558,10 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     When existing ``axes`` are provided and ``colorbar=True``, note that the
     colorbar scale will only accurately reflect topomaps that are generated in
     the same call as the colorbar. Note also that the colorbar will not be
-    resized automatically when ``axes`` are provided; use matplotlib's
+    resized automatically when ``axes`` are provided; use Matplotlib's
     :meth:`axes.set_position() <matplotlib.axes.Axes.set_position>` method or
-    :doc:`gridspec <matplotlib:tutorials/intermediate/gridspec>` interface to
-    adjust the colorbar size yourself.
+    :doc:`gridspec <matplotlib:tutorials/intermediate/arranging_axes>`
+    interface to adjust the colorbar size yourself.
     """
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec

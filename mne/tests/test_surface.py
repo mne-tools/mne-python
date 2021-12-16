@@ -317,10 +317,11 @@ def test_warp_montage_volume():
         op.join(subjects_dir, 'sample', 'mri', 'brain.mgz'))
     template_brain = nib.load(
         op.join(subjects_dir, 'fsaverage', 'mri', 'brain.mgz'))
+    zooms = dict(translation=10, rigid=10, sdr=10)
     reg_affine, sdr_morph = compute_volume_registration(
-        subject_brain, template_brain, zooms=5,
-        niter=dict(translation=[5, 5, 5], rigid=[5, 5, 5],
-                   sdr=[3, 3, 3]), pipeline=('translation', 'rigid', 'sdr'))
+        subject_brain, template_brain, zooms=zooms,
+        niter=[3, 3, 3],
+        pipeline=('translation', 'rigid', 'sdr'))
     # make an info object with three channels with positions
     ch_coords = np.array([[-8.7040273, 17.99938754, 10.29604017],
                           [-14.03007764, 19.69978401, 12.07236939],
@@ -372,8 +373,7 @@ def test_warp_montage_volume():
     for i in range(len(montage.ch_names)):
         assert np.linalg.norm(
             np.array(np.where(np.array(image_to.dataobj) == i + 1)
-                     ).mean(axis=1) - ground_truth_warped_voxels[i]) < 5
-
+                     ).mean(axis=1) - ground_truth_warped_voxels[i]) < 8
     # test inputs
     with pytest.raises(ValueError, match='`thresh` must be between 0 and 1'):
         warp_montage_volume(
@@ -402,5 +402,4 @@ def test_warp_montage_volume():
         rpa=rpa['r'], coord_frame='mri')
     with pytest.warns(RuntimeWarning, match='not assigned'):
         warp_montage_volume(doubled_montage, CT, reg_affine,
-                            sdr_morph, 'sample',
-                            subjects_dir_from=subjects_dir)
+                            None, 'sample', subjects_dir_from=subjects_dir)

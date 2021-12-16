@@ -1840,10 +1840,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         buffer_size_sec = float(buffer_size_sec)
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
 
-    @fill_doc
+    @verbose
     def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, start=None, stop=None,
-                      long_format=False, time_format='ms'):
+                      long_format=False, time_format='ms', *,
+                      verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default, an
@@ -1868,6 +1869,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(df_time_format_raw)s
 
             .. versionadded:: 0.20
+        %(verbose)s
 
         Returns
         -------
