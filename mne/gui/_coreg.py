@@ -355,7 +355,8 @@ class CoregistrationUI(HasTraits):
         else:
             assert mode_name == "scale"
             params[mode_name][idx] = value / 1e2
-            self._update_plot("head")
+            self._update_plot("hair")
+            self._update_projection_surface()
         self._coreg._update_params(
             rot=params["rotation"],
             tra=params["translation"],
@@ -812,15 +813,13 @@ class CoregistrationUI(HasTraits):
         self._update_actor("head", head_actor)
         # mark head surface mesh to restrict picking
         head_surf._picking_target = True
-        head_surf.points = head_surf.points * self._coreg._scale.T
         self._surfaces["head"] = head_surf
 
     def _add_head_hair(self):
-        return  # XXX: disable temporarily
         if "head" in self._surfaces:
             res = "high" if self._head_resolution else "low"
             self._surfaces["head"].points = \
-                self._coreg._get_processed_mri_points(res)
+                self._coreg._get_processed_mri_points(res) * self._coreg._scale.T
 
     def _fit_fiducials(self):
         if not self._lock_fids:
