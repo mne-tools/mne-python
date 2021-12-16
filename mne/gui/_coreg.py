@@ -401,7 +401,7 @@ class CoregistrationUI(HasTraits):
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
-        view_widgets = ["project_eeg"]
+        view_widgets = ["project_eeg", "fit_fiducials", "fit_icp"]
         fid_widgets = ["fid_X", "fid_Y", "fid_Z", "fids_file", "fids"]
         self._set_head_transparency(self._lock_fids)
         if self._lock_fids:
@@ -845,7 +845,7 @@ class CoregistrationUI(HasTraits):
             self._display_message(
                 f"Fitting ICP - iteration {iteration + 1}")
             self._update_plot("sensors")
-            self._current_icp_iterations = n_iterations
+            self._current_icp_iterations += 1
             self._update_distance_estimation()
             self._renderer._process_events()  # allow a draw or cancel
 
@@ -917,6 +917,8 @@ class CoregistrationUI(HasTraits):
             value=self._subjects_dir,
             placeholder="Subjects Directory",
             directory=True,
+            tooltip="Load the path to the directory containing the "
+                    "FreeSurfer subjects",
             layout=layout,
         )
         self._widgets["subject"] = self._renderer._dock_add_combo_box(
@@ -925,6 +927,7 @@ class CoregistrationUI(HasTraits):
             rng=self._get_subjects(),
             callback=self._set_subject,
             compact=True,
+            tooltip="Select the FreeSurfer subject name",
             layout=layout
         )
 
@@ -933,6 +936,7 @@ class CoregistrationUI(HasTraits):
             name="Lock fiducials",
             value=self._lock_fids,
             callback=self._set_lock_fids,
+            tooltip="Lock/Unlock interactive fiducial editing",
             layout=layout
         )
         self._widgets["fiducials_file"] = self._renderer._dock_add_file_button(
@@ -941,6 +945,7 @@ class CoregistrationUI(HasTraits):
             func=self._set_fiducials_file,
             value=self._fiducials_file,
             placeholder="Path to fiducials",
+            tooltip="Load the fiducials from a FIFF file",
             layout=layout,
         )
         self._widgets["fids"] = self._renderer._dock_add_radio_buttons(
@@ -963,6 +968,7 @@ class CoregistrationUI(HasTraits):
                 ),
                 compact=True,
                 double=True,
+                tooltip=f"Set the {coord} fiducial coordinate",
                 layout=hlayout
             )
         self._renderer._layout_add_widget(layout, hlayout)
@@ -974,6 +980,8 @@ class CoregistrationUI(HasTraits):
             func=self._set_info_file,
             value=self._info_file,
             placeholder="Path to info",
+            tooltip="Load the FIFF file with digitizer data for "
+                    "coregistration",
             layout=layout,
         )
         self._widgets["grow_hair"] = self._renderer._dock_add_spin_box(
@@ -981,6 +989,7 @@ class CoregistrationUI(HasTraits):
             value=self._grow_hair,
             rng=[0.0, 10.0],
             callback=self._set_grow_hair,
+            tooltip="Compensate for hair on the digitizer head shape",
             layout=layout,
         )
         hlayout = self._renderer._dock_add_layout(vertical=False)
@@ -989,16 +998,20 @@ class CoregistrationUI(HasTraits):
             value=self._omit_hsp_distance,
             rng=[0.0, 100.0],
             callback=self._set_omit_hsp_distance,
+            tooltip="Set the head shape points exclusion distance",
             layout=hlayout,
         )
         self._widgets["omit"] = self._renderer._dock_add_button(
             name="Omit",
             callback=self._omit_hsp,
+            tooltip="Exclude the head shape points that are far away from "
+                    "the MRI head",
             layout=hlayout,
         )
         self._widgets["reset_omit"] = self._renderer._dock_add_button(
             name="Reset",
             callback=self._reset_omit_hsp_filter,
+            tooltip="Reset all excluded head shape points",
             layout=hlayout,
         )
         self._renderer._layout_add_widget(layout, hlayout)
@@ -1008,12 +1021,14 @@ class CoregistrationUI(HasTraits):
             name="Project EEG",
             value=self._project_eeg,
             callback=self._set_project_eeg,
+            tooltip="Enable/Disable EEG channels projection on head surface",
             layout=layout
         )
         self._widgets["high_res_head"] = self._renderer._dock_add_check_box(
             name="Show High Resolution Head",
             value=self._head_resolution,
             callback=self._set_head_resolution,
+            tooltip="Enable/Disable high resolution head surface",
             layout=layout
         )
         self._renderer._dock_add_stretch()
@@ -1024,6 +1039,7 @@ class CoregistrationUI(HasTraits):
             value=self._defaults["scale_mode"],
             rng=self._defaults["scale_modes"],
             callback=self._set_scale_mode,
+            tooltip="Select the scaling mode",
             compact=True,
         )
         hlayout = self._renderer._dock_add_group_box(
@@ -1042,6 +1058,7 @@ class CoregistrationUI(HasTraits):
                 ),
                 compact=True,
                 double=True,
+                tooltip=f"Set the {coord} scaling parameter",
                 layout=hlayout
             )
 
@@ -1062,19 +1079,23 @@ class CoregistrationUI(HasTraits):
                     compact=True,
                     double=True,
                     step=1,
+                    tooltip=f"Set the {coord} {mode_name.lower()} parameter",
                     layout=hlayout
                 )
 
         layout = self._renderer._dock_add_group_box("Fitting")
         hlayout = self._renderer._dock_add_layout(vertical=False)
-        self._renderer._dock_add_button(
+        self._widgets["fit_fiducials"] = self._renderer._dock_add_button(
             name="Fit Fiducials",
             callback=self._fit_fiducials,
+            tooltip="Find rotation and translation to fit all 3 fiducials",
             layout=hlayout,
         )
-        self._renderer._dock_add_button(
+        self._widgets["fit_icp"] = self._renderer._dock_add_button(
             name="Fit ICP",
             callback=self._fit_icp,
+            tooltip="Find MRI scaling, translation, and rotation to match the "
+                    "head shape points",
             layout=hlayout,
         )
         self._renderer._layout_add_widget(layout, hlayout)
@@ -1089,6 +1110,7 @@ class CoregistrationUI(HasTraits):
             callback=self._set_icp_n_iterations,
             compact=True,
             double=False,
+            tooltip="Set the number of ICP iterations",
             layout=layout,
         )
         self._widgets["icp_fid_match"] = self._renderer._dock_add_combo_box(
@@ -1097,6 +1119,7 @@ class CoregistrationUI(HasTraits):
             rng=self._defaults["icp_fid_matches"],
             callback=self._set_icp_fid_match,
             compact=True,
+            tooltip="Select the fiducial point matching method",
             layout=layout
         )
         layout = self._renderer._dock_add_group_box(
@@ -1115,6 +1138,7 @@ class CoregistrationUI(HasTraits):
                 callback=partial(self._set_point_weight, point=point_lower),
                 compact=True,
                 double=True,
+                tooltip=f"Set the {point} weight",
                 layout=hlayout
             )
 
@@ -1127,12 +1151,14 @@ class CoregistrationUI(HasTraits):
                 callback=partial(self._set_point_weight, point=fid_lower),
                 compact=True,
                 double=True,
+                tooltip=f"Set the {fid} weight",
                 layout=hlayout
             )
             self._renderer._layout_add_widget(layout, hlayout)
         self._renderer._dock_add_button(
             name="Reset Fitting Options",
             callback=self._reset_fitting_parameters,
+            tooltip="Reset all the fitting parameters to default value",
             layout=layout,
         )
         layout = self._renderer._dock_layout
@@ -1140,6 +1166,7 @@ class CoregistrationUI(HasTraits):
         self._renderer._dock_add_button(
             name="Reset",
             callback=self._reset,
+            tooltip="Reset all the parameters affecting the coregistration",
             layout=hlayout,
         )
         self._widgets["save_trans"] = self._renderer._dock_add_file_button(
@@ -1148,6 +1175,7 @@ class CoregistrationUI(HasTraits):
             save=True,
             func=self._save_trans,
             input_text_widget=False,
+            tooltip="Save the transform file to disk",
             layout=hlayout,
         )
         self._widgets["load_trans"] = self._renderer._dock_add_file_button(
@@ -1155,6 +1183,7 @@ class CoregistrationUI(HasTraits):
             desc="Load...",
             func=self._load_trans,
             input_text_widget=False,
+            tooltip="Load the transform file from disk",
             layout=hlayout,
         )
         self._renderer._layout_add_widget(layout, hlayout)
