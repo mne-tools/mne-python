@@ -31,7 +31,7 @@ from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels, create_info,
                  pick_info)
 from mne.utils import (requires_pandas, assert_object_equal, _dt_to_stamp,
-                       requires_mne, run_subprocess,
+                       requires_mne, run_subprocess, _record_warnings,
                        assert_and_remove_boundary_annot)
 from mne.annotations import Annotations
 
@@ -98,7 +98,7 @@ def test_acq_skip(tmp_path):
     assert_allclose(raw_read[:][0], raw[:][0], atol=1e-17)
     # Saving with a bad buffer length emits warning
     raw.pick_channels(raw.ch_names[:2])
-    with pytest.warns(None) as w:
+    with _record_warnings() as w:
         raw.save(fname, buffer_size_sec=0.5, overwrite=True)
     assert len(w) == 0
     with pytest.warns(RuntimeWarning, match='did not fit evenly'):
@@ -575,7 +575,8 @@ def test_load_bad_channels(tmp_path):
     # Test forcing the bad case
     with pytest.warns(RuntimeWarning, match='1 bad channel'):
         raw.load_bad_channels(bad_file_wrong, force=True)
-        # write it out, read it in, and check
+
+    # write it out, read it in, and check
     raw.save(tmp_path / 'foo_raw.fif', overwrite=True)
     raw_new = read_raw_fif(tmp_path / 'foo_raw.fif')
     assert correct_bads == raw_new.info['bads']

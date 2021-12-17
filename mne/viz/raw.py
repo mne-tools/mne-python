@@ -69,23 +69,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Color to make bad channels.
     %(event_color)s
         Defaults to ``'cyan'``.
-    scalings : 'auto' | dict | None
-        Scaling factors for the traces. If any fields in scalings are 'auto',
-        the scaling factor is set to match the 99.5th percentile of a subset of
-        the corresponding data. If scalings == 'auto', all scalings fields are
-        set to 'auto'. If any fields are 'auto' and data is not preloaded, a
-        subset of times up to 100mb will be loaded. If None, defaults to::
-
-            dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
-                 emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
-                 resp=1, chpi=1e-4, whitened=1e2)
-
-        A particular scaling value ``s`` corresponds to half of the visualized
-        signal range around zero (i.e. from ``0`` to ``+s`` or from ``0`` to
-        ``-s``). For example, the default scaling of ``20e-6`` (20µV) for EEG
-        signals means that the visualized range will be 40µV (20µV in the
-        positive direction and 20µV in the negative direction).
-
+    %(scalings)s
     remove_dc : bool
         If True remove DC component when plotting data.
     order : array of int | None

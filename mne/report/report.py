@@ -104,6 +104,9 @@ template_dir = Path(__file__).parent / 'templates'
 JAVASCRIPT = (html_include_dir / 'report.js').read_text(encoding='utf-8')
 CSS = (html_include_dir / 'report.sass').read_text(encoding='utf-8')
 
+MAX_IMG_RES = 100  # in dots per inch
+MAX_IMG_WIDTH = 850  # in pixels
+
 
 def _get_ch_types(inst):
     return [ch_type for ch_type in _DATA_CH_TYPES_SPLIT if ch_type in inst]
@@ -317,6 +320,27 @@ def _check_tags(tags) -> Tuple[str]:
 ###############################################################################
 # PLOTTING FUNCTIONS
 
+
+def _constrain_fig_resolution(fig, *, max_width, max_res):
+    """Limit the resolution (DPI) of a figure.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure
+        The figure whose DPI to adjust.
+    max_width : int
+        The max. allowed width, in pixels.
+    max_res : int
+        The max. allowed resolution, in DPI.
+
+    Returns
+    -------
+    Nothing, alters the figure's properties in-place.
+    """
+    dpi = min(max_res, max_width / fig.get_size_inches()[0])
+    fig.set_dpi(dpi)
+
+
 def _fig_to_img(fig, *, image_format='png', auto_close=True):
     """Plot figure and create a binary image."""
     # fig can be ndarray, mpl Figure, PyVista Figure
@@ -324,6 +348,9 @@ def _fig_to_img(fig, *, image_format='png', auto_close=True):
     from matplotlib.figure import Figure
     if isinstance(fig, np.ndarray):
         fig = _ndarray_to_fig(fig)
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
     elif not isinstance(fig, Figure):
         from ..viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
         backend._check_3d_figure(figure=fig)
@@ -335,10 +362,15 @@ def _fig_to_img(fig, *, image_format='png', auto_close=True):
         if auto_close:
             backend._close_3d_figure(figure=fig)
         fig = _ndarray_to_fig(img)
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
 
     output = BytesIO()
-    logger.debug('Saving figure %s with dpi %s'
-                 % (fig.get_size_inches(), fig.get_dpi()))
+    logger.debug(
+        f'Saving figure with dimension {fig.get_size_inches()} inches with '
+        f'{fig.get_dpi()} dpi'
+    )
 
     with warnings.catch_warnings():
         warnings.filterwarnings(
@@ -464,7 +496,6 @@ def _itv(function, fig, **kwargs):
                               subjects_dir=kwargs['subjects_dir'])
 
     img = _fig_to_img(images, image_format='png')
-
     caption = (f'Average distance from {len(dists)} digitized points to '
                f'head: {1e3 * np.mean(dists):.2f} mm')
 
@@ -488,10 +519,14 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
         figs = ica.plot_properties(inst=inst, picks=pick, show=False)
         assert len(figs) == 1
         fig = figs[0]
-
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
         with io.BytesIO() as buff:
             fig.savefig(
-                buff, format='png', dpi=fig.get_dpi(), pad_inches=0,
+                buff,
+                format='png',
+                pad_inches=0,
             )
             buff.seek(0)
             fig_array = plt.imread(buff, format='png')
@@ -823,8 +858,10 @@ class Report(object):
         self.include += script
 
     @fill_doc
-    def add_epochs(self, epochs, title, *, psd=True, projs=None,
-                   tags=('epochs',), replace=False, topomap_kwargs=None):
+    def add_epochs(
+        self, epochs, title, *, psd=True, projs=None, tags=('epochs',),
+        replace=False, topomap_kwargs=None
+    ):
         """Add `~mne.Epochs` to the report.
 
         Parameters
@@ -833,8 +870,20 @@ class Report(object):
             The epochs to add to the report.
         title : str
             The title to add.
-        psd : bool | None
-            Whether to add PSD plots.
+        psd : bool | float
+            If a float, the duration of data to use for creation of PSD plots,
+            in seconds. PSD will be calculated on as many epochs as required to
+            cover at least this duration. Epochs will be picked across the
+            entire time range in equally-spaced distance.
+
+            .. note::
+              In rare edge cases, we may not be able to create a grid of
+              equally-spaced epochs that cover the entire requested time range.
+              In these situations, a warning will be emitted, informing you
+              about the duration that's actually being used.
+
+            If ``True``, add PSD plots based on all ``epochs``. If ``False``,
+            do not add PSD plots.
         %(report_projs)s
         %(report_tags)s
         %(report_replace)s
@@ -850,7 +899,7 @@ class Report(object):
 
         htmls = self._render_epochs(
             epochs=epochs,
-            add_psd=psd,
+            psd=psd,
             add_projs=add_projs,
             tags=tags,
             image_format=self.image_format,
@@ -979,8 +1028,10 @@ class Report(object):
             )
 
     @fill_doc
-    def add_raw(self, raw, title, *, psd=None, projs=None, butterfly=True,
-                tags=('raw',), replace=False, topomap_kwargs=None):
+    def add_raw(
+        self, raw, title, *, psd=None, projs=None, butterfly=True,
+        scalings=None, tags=('raw',), replace=False, topomap_kwargs=None
+    ):
         """Add `~mne.io.Raw` objects to the report.
 
         Parameters
@@ -994,9 +1045,14 @@ class Report(object):
             passed when initializing the `~mne.Report`. If ``None``, use
             ``raw_psd`` from `~mne.Report` creation.
         %(report_projs)s
-        butterfly : bool
-            Whether to add a butterfly plot of the (decimated) data. Can be
-            useful to spot segments marked as "bad" and problematic channels.
+        butterfly : bool | int
+            Whether to add butterfly plots of the data. Can be useful to
+            spot problematic channels. If ``True``, 10 equally-spaced 1-second
+            segments will be plotted. If an integer, specifies the number of
+            1-second segments to plot. Larger numbers may take a considerable
+            amount of time if the data contains many sensors. You can disable
+            butterfly plots altogether by passing ``False``.
+        %(scalings)s
         %(report_tags)s
         %(report_replace)s
         %(topomap_kwargs)s
@@ -1020,7 +1076,8 @@ class Report(object):
             raw=raw,
             add_psd=add_psd,
             add_projs=add_projs,
-            add_butterfly=butterfly,
+            butterfly=butterfly,
+            butterfly_scalings=scalings,
             image_format=self.image_format,
             tags=tags,
             topomap_kwargs=topomap_kwargs,
@@ -1370,6 +1427,9 @@ class Report(object):
         fig = ica.plot_overlay(inst=inst_, show=False)
         del inst_
         tight_layout(fig=fig)
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
         img = _fig_to_img(fig, image_format=image_format)
         dom_id = self._get_dom_id()
         overlay_html = _html_image_element(
@@ -1424,8 +1484,8 @@ class Report(object):
             )
         else:
             properties_html, _ = self._render_slider(
-                figs=figs, title=title, captions=captions, start_idx=0,
-                image_format=image_format, tags=tags
+                figs=figs, imgs=None, title=title, captions=captions,
+                start_idx=0, image_format=image_format, tags=tags
             )
 
         return properties_html
@@ -1433,6 +1493,9 @@ class Report(object):
     def _render_ica_artifact_sources(self, *, ica, inst, artifact_type,
                                      image_format, tags):
         fig = ica.plot_sources(inst=inst, show=False)
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
         img = _fig_to_img(fig, image_format=image_format)
         dom_id = self._get_dom_id()
         html = _html_image_element(
@@ -1445,6 +1508,9 @@ class Report(object):
     def _render_ica_artifact_scores(self, *, ica, scores, artifact_type,
                                     image_format, tags):
         fig = ica.plot_scores(scores=scores, title=None, show=False)
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
         img = _fig_to_img(fig, image_format=image_format)
         dom_id = self._get_dom_id()
         html = _html_image_element(
@@ -1474,7 +1540,11 @@ class Report(object):
 
         title = 'ICA component topographies'
         if len(figs) == 1:
-            img = _fig_to_img(fig=figs[0], image_format=image_format)
+            fig = figs[0]
+            _constrain_fig_resolution(
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            )
+            img = _fig_to_img(fig=fig, image_format=image_format)
             dom_id = self._get_dom_id()
             topographies_html = _html_image_element(
                 img=img, div_klass='ica', img_klass='ica',
@@ -1484,8 +1554,8 @@ class Report(object):
         else:
             captions = [None] * len(figs)
             topographies_html, _ = self._render_slider(
-                figs=figs, title=title, captions=captions, start_idx=0,
-                image_format=image_format, tags=tags
+                figs=figs, imgs=None, title=title, captions=captions,
+                start_idx=0, image_format=image_format, tags=tags
             )
 
         return topographies_html
@@ -1786,7 +1856,7 @@ class Report(object):
 
         Parameters
         ----------
-        code : path-like
+        code : str | pathlib.Path
             The code to add to the report as a string, or the path to a file
             as a `pathlib.Path` object.
 
@@ -1908,8 +1978,8 @@ class Report(object):
             )
         else:
             html, dom_id = self._render_slider(
-                figs=figs, title=title, captions=captions, start_idx=0,
-                image_format=image_format, tags=tags
+                figs=figs, imgs=None, title=title, captions=captions,
+                start_idx=0, image_format=image_format, tags=tags
             )
 
         self._add_or_replace(
@@ -2045,15 +2115,24 @@ class Report(object):
             replace=replace
         )
 
-    def _render_slider(self, *, figs, title, captions, start_idx, image_format,
-                       tags, klass=''):
-        if len(figs) != len(captions):
+    def _render_slider(self, *, figs, imgs, title, captions, start_idx,
+                       image_format, tags, klass=''):
+        if figs is not None and imgs is not None:
+            raise ValueError('Must only provide either figs or imgs')
+
+        if figs is not None and len(figs) != len(captions):
             raise ValueError(
                 f'Number of captions ({len(captions)}) must be equal to the '
                 f'number of figures ({len(figs)})'
             )
-        images = [_fig_to_img(fig=fig, image_format=image_format)
-                  for fig in figs]
+        elif imgs is not None and len(imgs) != len(captions):
+            raise ValueError(
+                f'Number of captions ({len(captions)}) must be equal to the '
+                f'number of images ({len(imgs)})'
+            )
+        elif figs:
+            imgs = [_fig_to_img(fig=fig, image_format=image_format)
+                    for fig in figs]
 
         dom_id = self._get_dom_id()
         html = _html_slider_element(
@@ -2061,7 +2140,7 @@ class Report(object):
             title=title,
             captions=captions,
             tags=tags,
-            images=images,
+            images=imgs,
             image_format=image_format,
             start_idx=start_idx,
             klass=klass
@@ -2535,6 +2614,7 @@ class Report(object):
         start_idx = int(round(len(figs) / 2))
         html, _ = self._render_slider(
             figs=figs,
+            imgs=None,
             captions=captions,
             title=orientation,
             image_format=image_format,
@@ -2545,31 +2625,59 @@ class Report(object):
 
         return html
 
-    def _render_raw_butterfly_segments(self, *, raw: BaseRaw, image_format,
-                                       tags):
-        # Pick 10 1-second time slices
-        times = np.linspace(raw.times[0], raw.times[-1], 12)[1:-1]
-        figs = []
-        for t in times:
-            tmin = max(t - 0.5, 0)
-            tmax = min(t + 0.5, raw.times[-1])
-            duration = tmax - tmin
-            fig = raw.plot(butterfly=True, show_scrollbars=False, start=tmin,
-                           duration=duration, show=False)
-            figs.append(fig)
+    def _render_raw_butterfly_segments(
+        self, *, raw: BaseRaw, n_segments, scalings, image_format, tags
+    ):
+        # Pick n_segments + 2 equally-spaced 1-second time slices, but omit
+        # the first and last slice, so we end up with n_segments slices
+        n = n_segments + 2
+        times = np.linspace(raw.times[0], raw.times[-1], n)[1:-1]
+        t_starts = np.array([max(t - 0.5, 0) for t in times])
+        t_stops = np.array([min(t + 0.5, raw.times[-1]) for t in times])
+        durations = t_stops - t_starts
 
-        captions = [f'Segment {i+1} of {len(figs)}'
-                    for i in range(len(figs))]
+        # Remove annotations before plotting for better performance.
+        # Ensure we later restore raw.annotations even in case of an exception
+        orig_annotations = raw.annotations.copy()
+
+        try:
+            raw.set_annotations(None)
+
+            # Create the figure once and re-use it for performance reasons
+            fig = raw.plot(
+                butterfly=True, show_scrollbars=False, start=t_starts[0],
+                duration=durations[0], scalings=scalings, show=False
+            )
+            _constrain_fig_resolution(
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            )
+            images = [_fig_to_img(fig=fig, image_format=image_format)]
+
+            for start, duration in zip(t_starts[1:], durations[1:]):
+                fig.mne.t_start = start
+                fig.mne.duration = duration
+                fig._update_hscroll()
+                fig._redraw(annotations=False)
+                images.append(_fig_to_img(fig=fig, image_format=image_format))
+        except Exception:
+            raise
+        finally:
+            raw.set_annotations(orig_annotations)
+
+        del orig_annotations
+
+        captions = [f'Segment {i+1} of {len(images)}'
+                    for i in range(len(images))]
 
         html, _ = self._render_slider(
-            figs=figs, title='Time series', captions=captions,
+            figs=None, imgs=images, title='Time series', captions=captions,
             start_idx=0, image_format=image_format, tags=tags
         )
 
         return html
 
-    def _render_raw(self, *, raw, add_psd, add_projs, add_butterfly,
-                    image_format, tags, topomap_kwargs):
+    def _render_raw(self, *, raw, add_psd, add_projs, butterfly,
+                    butterfly_scalings, image_format, tags, topomap_kwargs):
         """Render raw."""
         if isinstance(raw, BaseRaw):
             fname = raw.filenames[0]
@@ -2591,9 +2699,12 @@ class Report(object):
         )
 
         # Butterfly plot
-        if add_butterfly:
+        if butterfly:
+            n_butterfly_segments = 10 if butterfly is True else butterfly
             butterfly_imgs_html = self._render_raw_butterfly_segments(
-                raw=raw, image_format=image_format, tags=tags
+                raw=raw, scalings=butterfly_scalings,
+                n_segments=n_butterfly_segments,
+                image_format=image_format, tags=tags
             )
         else:
             butterfly_imgs_html = ''
@@ -2611,6 +2722,9 @@ class Report(object):
 
             fig = raw.plot_psd(fmax=fmax, show=False, **add_psd)
             tight_layout(fig=fig)
+            _constrain_fig_resolution(
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            )
 
             img = _fig_to_img(fig, image_format=image_format)
             psd_img_html = _html_image_element(
@@ -2683,6 +2797,9 @@ class Report(object):
         # number-of-channel-types conditions...
         fig.set_size_inches((6, 4))
         tight_layout(fig=fig)
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
         img = _fig_to_img(fig=fig, image_format=image_format)
 
         dom_id = self._get_dom_id()
@@ -2789,6 +2906,9 @@ class Report(object):
                     topomap_args=topomap_kwargs,
                 )
 
+            _constrain_fig_resolution(
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            )
             img = _fig_to_img(fig=fig, image_format=image_format)
             title = f'Time course ({_handle_default("titles")[ch_type]})'
             dom_id = self._get_dom_id()
@@ -2817,8 +2937,13 @@ class Report(object):
 
         fig, ax = plt.subplots(
             1, len(ch_types) * 2,
-            gridspec_kw={'width_ratios': [8, 0.5] * len(ch_types)},
-            figsize=(4 * len(ch_types), 3.5)
+            gridspec_kw={
+                'width_ratios': [8, 0.5] * len(ch_types)
+            },
+            figsize=(2.5 * len(ch_types), 2)
+        )
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
         )
         ch_type_ax_map = dict(
             zip(ch_types,
@@ -2839,8 +2964,8 @@ class Report(object):
 
         with BytesIO() as buff:
             fig.savefig(
-                buff, format='png',
-                dpi=fig.get_dpi(),
+                buff,
+                format='png',
                 pad_inches=0
             )
             plt.close(fig)
@@ -2913,6 +3038,7 @@ class Report(object):
             captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
             html, dom_id = self._render_slider(
                 figs=fig_arrays,
+                imgs=None,
                 captions=captions,
                 title='Topographies',
                 image_format=image_format,
@@ -2953,6 +3079,9 @@ class Report(object):
                 ax[idx].set_xlabel(None)
 
         tight_layout(fig=fig)
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
         img = _fig_to_img(fig=fig, image_format=image_format)
         title = 'Global field power'
         html = _html_image_element(
@@ -2978,6 +3107,9 @@ class Report(object):
             show=False
         )
         tight_layout(fig=fig)
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
         img = _fig_to_img(fig=fig, image_format=image_format)
         title = 'Whitened'
 
@@ -3039,7 +3171,9 @@ class Report(object):
             first_samp=first_samp,
             show=False
         )
-
+        _constrain_fig_resolution(
+            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+        )
         img = _fig_to_img(
             fig=fig,
             image_format=image_format,
@@ -3059,8 +3193,75 @@ class Report(object):
         )
         return html, dom_id
 
-    def _render_epochs(self, *, epochs, add_psd, add_projs, image_format,
-                       tags, topomap_kwargs):
+    def _epochs_psd_img_html(
+        self, *, epochs, psd, image_format, tags
+    ):
+        if psd:
+            epoch_duration = epochs.tmax - epochs.tmin
+
+            if psd is True:  # Entire time range -> all epochs
+                epochs_for_psd = epochs  # Avoid creating a copy
+            else:  # Only a subset of epochs
+                signal_duration = len(epochs) * epoch_duration
+                n_epochs_required = int(
+                    np.ceil(psd / epoch_duration)
+                )
+                if n_epochs_required > len(epochs):
+                    raise ValueError(
+                        f'You requested to calculate PSD on a duration of '
+                        f'{psd:.3f} sec, but all your epochs '
+                        f'are only {signal_duration:.1f} sec long'
+                    )
+                epochs_idx = np.round(
+                    np.linspace(
+                        start=0,
+                        stop=len(epochs) - 1,
+                        num=n_epochs_required
+                    )
+                ).astype(int)
+                # Edge case: there might be duplicate indices due to rounding?
+                epochs_idx_unique = np.unique(epochs_idx)
+                if len(epochs_idx_unique) != len(epochs_idx):
+                    duration = round(
+                        len(epochs_idx_unique) * epoch_duration, 1
+                    )
+                    warn(f'Using {len(epochs_idx_unique)} epochs, only '
+                         f'covering {duration:.1f} sec of data')
+                    del duration
+
+                epochs_for_psd = epochs[epochs_idx_unique]
+
+            dom_id = self._get_dom_id()
+            if epochs.info['lowpass'] is not None:
+                fmax = epochs.info['lowpass'] + 15
+                # Must not exceed half the sampling frequency
+                if fmax > 0.5 * epochs.info['sfreq']:
+                    fmax = np.inf
+            else:
+                fmax = np.inf
+
+            fig = epochs_for_psd.plot_psd(fmax=fmax, show=False)
+            _constrain_fig_resolution(
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            )
+            img = _fig_to_img(fig=fig, image_format=image_format)
+            duration = round(epoch_duration * len(epochs_for_psd), 1)
+            caption = (
+                f'PSD calculated from {len(epochs_for_psd)} epochs '
+                f'({duration:.1f} sec).'
+            )
+            psd_img_html = _html_image_element(
+                img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
+                show=True, image_format=image_format, title='PSD',
+                caption=caption, tags=tags
+            )
+        else:
+            psd_img_html = ''
+
+        return psd_img_html
+
+    def _render_epochs(self, *, epochs, psd, add_projs, image_format, tags,
+                       topomap_kwargs):
         """Render epochs."""
         if isinstance(epochs, BaseEpochs):
             fname = epochs.filename
@@ -3091,6 +3292,9 @@ class Report(object):
 
             assert len(figs) == 1
             fig = figs[0]
+            _constrain_fig_resolution(
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            )
             img = _fig_to_img(fig=fig, image_format=image_format)
             if ch_type in ('mag', 'grad'):
                 title_start = 'ERF image'
@@ -3129,6 +3333,9 @@ class Report(object):
             else:
                 fig = epochs.plot_drop_log(subject=self.subject, show=False)
                 tight_layout(fig=fig)
+                _constrain_fig_resolution(
+                    fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+                )
                 img = _fig_to_img(fig=fig, image_format=image_format)
                 drop_log_img_html = _html_image_element(
                     img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
@@ -3138,27 +3345,9 @@ class Report(object):
         else:
             drop_log_img_html = ''
 
-        # PSD
-        if add_psd:
-            dom_id = self._get_dom_id()
-            if epochs.info['lowpass'] is not None:
-                fmax = epochs.info['lowpass'] + 15
-                # Must not exceed half the sampling frequency
-                if fmax > 0.5 * epochs.info['sfreq']:
-                    fmax = np.inf
-            else:
-                fmax = np.inf
-
-            fig = epochs.plot_psd(fmax=fmax, show=False)
-            img = _fig_to_img(fig=fig, image_format=image_format)
-            psd_img_html = _html_image_element(
-                img=img, id=dom_id, div_klass='epochs', img_klass='epochs',
-                show=True, image_format=image_format, title='PSD',
-                caption=None, tags=tags
-            )
-        else:
-            psd_img_html = ''
-
+        psd_img_html = self._epochs_psd_img_html(
+            epochs=epochs, psd=psd, image_format=image_format, tags=tags
+        )
         ssp_projs_html = self._ssp_projs_html(
             add_projs=add_projs, info=epochs, image_format=image_format,
             tags=tags, topomap_kwargs=topomap_kwargs
@@ -3185,8 +3374,11 @@ class Report(object):
         )
 
         for fig, title in zip(figs, titles):
-            dom_id = self._get_dom_id()
+            _constrain_fig_resolution(
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            )
             img = _fig_to_img(fig=fig, image_format=image_format)
+            dom_id = self._get_dom_id()
             html = _html_image_element(
                 img=img, id=dom_id, div_klass='covariance',
                 img_klass='covariance', title=title, caption=None,
@@ -3285,10 +3477,15 @@ class Report(object):
 
                 if backend_is_3d:
                     brain.set_time(t)
-                    fig, ax = plt.subplots(figsize=(8, 6))
+                    fig, ax = plt.subplots(figsize=(4.5, 4.5))
                     ax.imshow(brain.screenshot(time_viewer=True, mode='rgb'))
                     ax.axis('off')
                     tight_layout(fig=fig)
+                    _constrain_fig_resolution(
+                        fig,
+                        max_width=stc_plot_kwargs['size'][0],
+                        max_res=MAX_IMG_RES
+                    )
                     figs.append(fig)
                     plt.close(fig)
                 else:
@@ -3313,6 +3510,16 @@ class Report(object):
                     )
                     tight_layout(fig=fig_lh)  # TODO is this necessary?
                     tight_layout(fig=fig_rh)  # TODO is this necessary?
+                    _constrain_fig_resolution(
+                        fig_lh,
+                        max_width=stc_plot_kwargs['size'][0],
+                        max_res=MAX_IMG_RES
+                    )
+                    _constrain_fig_resolution(
+                        fig_rh,
+                        max_width=stc_plot_kwargs['size'][0],
+                        max_res=MAX_IMG_RES
+                    )
                     figs.append(brain_lh)
                     figs.append(brain_rh)
                     plt.close(fig_lh)
@@ -3327,6 +3534,7 @@ class Report(object):
         captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
         html, dom_id = self._render_slider(
             figs=figs,
+            imgs=None,
             captions=captions,
             title=title,
             image_format=image_format,

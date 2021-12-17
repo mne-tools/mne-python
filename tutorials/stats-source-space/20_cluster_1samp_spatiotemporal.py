@@ -103,7 +103,7 @@ tstep = condition1.tstep * 1000  # convert to milliseconds
 #     significance under a permutation test is only p = 1/(2 ** 6) = 0.015,
 #     which is large.
 n_vertices_sample, n_times = condition1.data.shape
-n_subjects = 7
+n_subjects = 6
 print('Simulating data for %d subjects.' % n_subjects)
 
 #    Let's make sure our results replicate, so set the seed.

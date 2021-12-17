@@ -83,11 +83,12 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
-    def _dock_add_button(self, name, callback, layout=None):
+    def _dock_add_button(self, name, callback, tooltip=None, layout=None):
         layout = self._dock_layout if layout is None else layout
         # If we want one with text instead of an icon, we should use
         # QPushButton(name)
         widget = QToolButton()
+        _set_widget_tooltip(widget, tooltip)
         widget.clicked.connect(callback)
         widget.setText(name)
         self._layout_add_widget(layout, widget)
@@ -116,9 +117,11 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
-    def _dock_add_check_box(self, name, value, callback, layout=None):
+    def _dock_add_check_box(self, name, value, callback, tooltip=None,
+                            layout=None):
         layout = self._dock_layout if layout is None else layout
         widget = QCheckBox(name)
+        _set_widget_tooltip(widget, tooltip)
         widget.setChecked(value)
         widget.stateChanged.connect(callback)
         self._layout_add_widget(layout, widget)
@@ -126,10 +129,11 @@ class _QtDock(_AbstractDock, _QtLayout):
 
     def _dock_add_spin_box(self, name, value, rng, callback,
                            compact=True, double=True, step=None,
-                           layout=None):
+                           tooltip=None, layout=None):
         layout = self._dock_named_layout(name, layout, compact)
         value = value if double else int(value)
         widget = QDoubleSpinBox() if double else QSpinBox()
+        _set_widget_tooltip(widget, tooltip)
         widget.setAlignment(Qt.AlignCenter)
         widget.setMinimum(rng[0])
         widget.setMaximum(rng[1])
@@ -145,10 +149,11 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
-    def _dock_add_combo_box(self, name, value, rng,
-                            callback, compact=True, layout=None):
+    def _dock_add_combo_box(self, name, value, rng, callback, compact=True,
+                            tooltip=None, layout=None):
         layout = self._dock_named_layout(name, layout, compact)
         widget = QComboBox()
+        _set_widget_tooltip(widget, tooltip)
         widget.addItems(rng)
         widget.setCurrentText(value)
         widget.currentTextChanged.connect(callback)
@@ -191,7 +196,8 @@ class _QtDock(_AbstractDock, _QtLayout):
 
     def _dock_add_file_button(self, name, desc, func, value=None, save=False,
                               directory=False, input_text_widget=True,
-                              placeholder="Type a file name", layout=None):
+                              placeholder="Type a file name", tooltip=None,
+                              layout=None):
         layout = self._dock_layout if layout is None else layout
         if input_text_widget:
             hlayout = self._dock_add_layout(vertical=False)
@@ -225,6 +231,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         button_widget = self._dock_add_button(
             name=desc,
             callback=callback,
+            tooltip=tooltip,
             layout=hlayout,
         )
         if input_text_widget:
@@ -658,6 +665,11 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
             plotter.updateGeometry()
             plotter._render()
         self._process_events()
+
+
+def _set_widget_tooltip(widget, tooltip):
+    if tooltip is not None:
+        widget.setToolTip(tooltip)
 
 
 def _create_dock_widget(window, name, area):

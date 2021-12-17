@@ -14,7 +14,8 @@ from mne import (read_events, Epochs, read_cov, pick_types, Annotations,
                  make_fixed_length_events)
 from mne.io import read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
-from mne.utils import requires_sklearn, _click_ch_name, catch_logging
+from mne.utils import (requires_sklearn, _click_ch_name, catch_logging,
+                       _record_warnings)
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click
 
@@ -188,7 +189,8 @@ def test_plot_ica_properties():
     with pytest.warns(UserWarning, match='did not converge'):
         ica.fit(epochs)
     epochs._data[0] = 0
-    with pytest.warns(None):  # Usually UserWarning: Infinite value .* for epo
+    # Usually UserWarning: Infinite value .* for epo
+    with _record_warnings():
         ica.plot_properties(epochs, **topoargs)
     plt.close('all')
 

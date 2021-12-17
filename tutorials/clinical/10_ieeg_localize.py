@@ -39,7 +39,7 @@ from dipy.align import resample
 import mne
 from mne.datasets import fetch_fsaverage
 
-# paths to mne datasets - sample sEEG and FreeSurfer's fsaverage subject
+# paths to mne datasets: sample sEEG and FreeSurfer's fsaverage subject,
 # which is in MNI space
 misc_path = mne.datasets.misc.data_path()
 sample_path = mne.datasets.sample.data_path()
@@ -417,11 +417,12 @@ plot_overlay(template_brain, subject_brain,
 # This aligns the two brains, preparing the subject's brain to be warped
 # to the template.
 #
-# .. warning:: Here we use ``zooms=4`` just for speed, in general we recommend
-#              using ``zooms=None`` (default) for highest accuracy!
+# .. warning:: Here we use custom ``zooms`` just for speed, in general we
+#              recommend using ``zooms=None`` (default) for highest accuracy!
 
+zooms = dict(translation=10, rigid=10, affine=10, sdr=5)
 reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
-    subject_brain, template_brain, zooms=4, verbose=True)
+    subject_brain, template_brain, zooms=zooms, verbose=True)
 subject_brain_sdr = mne.transforms.apply_volume_registration(
     subject_brain, template_brain, reg_affine, sdr_morph)
 
@@ -448,7 +449,7 @@ montage = raw.get_montage()
 montage.apply_trans(subj_trans)
 
 montage_warped, elec_image, warped_elec_image = mne.warp_montage_volume(
-    montage, CT_aligned, reg_affine, sdr_morph, thresh=0.5,
+    montage, CT_aligned, reg_affine, sdr_morph, thresh=0.25,
     subject_from='sample_seeg', subjects_dir_from=op.join(misc_path, 'seeg'),
     subject_to='fsaverage', subjects_dir_to=subjects_dir)
 
@@ -490,8 +491,7 @@ brain.show_view(**view_kwargs)
 # %%
 # This pipeline was developed based on previous work
 # :footcite:`HamiltonEtAl2017`.
-
-# %%
+#
 # References
 # ==========
 #

@@ -4,15 +4,18 @@
 #
 # License: BSD-3-Clause
 
-import mne
-import os.path
-import pytest
+from contextlib import nullcontext
 import copy
 import itertools
+import os.path
+
+import pytest
 import numpy as np
+
+import mne
 from mne.datasets import testing
 from mne.io.fieldtrip.utils import NOINFO_WARNING, _create_events
-from mne.utils import _check_pandas_installed, requires_h5py
+from mne.utils import _check_pandas_installed, requires_h5py, _record_warnings
 from mne.io.fieldtrip.tests.helpers import (check_info_fields, get_data_paths,
                                             get_raw_data, get_epochs,
                                             get_evoked, _has_h5py,
@@ -60,10 +63,10 @@ def test_read_evoked(cur_system, version, use_info):
     mne_avg = get_evoked(cur_system)
     if use_info:
         info = get_raw_info(cur_system)
-        pytestwarning = {'expected_warning': None}
+        ctx = nullcontext()
     else:
         info = None
-        pytestwarning = no_info_warning
+        ctx = pytest.warns(**no_info_warning)
 
     cur_fname = os.path.join(test_data_folder_ft,
                              'averaged_%s.mat' % (version,))
@@ -72,7 +75,7 @@ def test_read_evoked(cur_system, version, use_info):
             mne.io.read_evoked_fieldtrip(cur_fname, info)
         return
 
-    with pytest.warns(**pytestwarning):
+    with ctx:
         avg_ft = mne.io.read_evoked_fieldtrip(cur_fname, info)
 
     mne_data = mne_avg.data[:, :-1]
@@ -102,10 +105,10 @@ def test_read_epochs(cur_system, version, use_info, monkeypatch):
     mne_epoched = get_epochs(cur_system)
     if use_info:
         info = get_raw_info(cur_system)
-        pytestwarning = {'expected_warning': None}
+        ctx = nullcontext()
     else:
         info = None
-        pytestwarning = no_info_warning
+        ctx = pytest.warns(**no_info_warning)
 
     cur_fname = os.path.join(test_data_folder_ft,
                              'epoched_%s.mat' % (version,))
@@ -114,11 +117,11 @@ def test_read_epochs(cur_system, version, use_info, monkeypatch):
             with pytest.raises(ImportError):
                 mne.io.read_epochs_fieldtrip(cur_fname, info)
             return
-        with pytest.warns(**pytestwarning):
+        with ctx:
             epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname, info)
         assert isinstance(epoched_ft.metadata, pandas.DataFrame)
     else:
-        with pytest.warns(None) as warn_record:
+        with _record_warnings() as warn_record:
             if version == 'v73' and not _has_h5py():
                 with pytest.raises(ImportError):
                     mne.io.read_epochs_fieldtrip(cur_fname, info)
@@ -126,8 +129,8 @@ def test_read_epochs(cur_system, version, use_info, monkeypatch):
             epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname, info)
             assert epoched_ft.metadata is None
             assert_warning_in_record(pandas_not_found_warning_msg, warn_record)
-            if pytestwarning['expected_warning'] is not None:
-                assert_warning_in_record(pytestwarning['match'], warn_record)
+            if info is None:
+                assert_warning_in_record(NOINFO_WARNING, warn_record)
 
     mne_data = mne_epoched.get_data()[:, :, :-1]
     ft_data = epoched_ft.get_data()
@@ -162,10 +165,13 @@ def test_raw(cur_system, version, use_info):
     raw_fiff_mne = get_raw_data(cur_system, drop_extra_chs=True)
     if use_info:
         info = get_raw_info(cur_system)
-        pytestwarning = {'expected_warning': None}
+        if cur_system in ('BTI', 'eximia'):
+            ctx = pytest.warns(RuntimeWarning, match='cannot be found in')
+        else:
+            ctx = nullcontext()
     else:
         info = None
-        pytestwarning = no_info_warning
+        ctx = pytest.warns(**no_info_warning)
 
     cur_fname = os.path.join(test_data_folder_ft,
                              'raw_%s.mat' % (version,))
@@ -174,7 +180,7 @@ def test_raw(cur_system, version, use_info):
         with pytest.raises(ImportError):
             mne.io.read_raw_fieldtrip(cur_fname, info)
         return
-    with pytest.warns(**pytestwarning):
+    with ctx:
         raw_fiff_ft = mne.io.read_raw_fieldtrip(cur_fname, info)
 
     if cur_system == 'BTI' and not use_info:

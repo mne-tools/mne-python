@@ -4,9 +4,10 @@
 
 
 import numpy as np
+
 from ..io.base import BaseRaw
 from ..annotations import (Annotations, _annotations_starts_stops,
-                           annotations_from_events)
+                           annotations_from_events, _adjust_onset_meas_date)
 from ..transforms import (quat_to_rot, _average_quats, _angle_between_quats,
                           apply_trans, _quat_to_affine)
 from ..filter import filter_data
@@ -115,8 +116,10 @@ def annotate_muscle_zscore(raw, threshold=4, ch_type=None, min_length_good=0.1,
         if len(l_idx) < min_samps:
             art_mask[l_idx] = True
 
-    annot = _annotations_from_mask(raw_copy.times, art_mask, 'BAD_muscle')
-
+    annot = _annotations_from_mask(raw_copy.times,
+                                   art_mask, 'BAD_muscle',
+                                   orig_time=raw.info['meas_date'])
+    _adjust_onset_meas_date(annot, raw)
     return annot, scores_muscle
 
 
@@ -161,12 +164,11 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
     compute_average_dev_head_t
     """
     sfreq = raw.info['sfreq']
-    hp_ts = pos[:, 0].copy()
-    hp_ts -= raw.first_samp / sfreq
+    hp_ts = pos[:, 0].copy() - raw.first_time
     dt = np.diff(hp_ts)
     hp_ts = np.concatenate([hp_ts, [hp_ts[-1] + 1. / sfreq]])
-
-    annot = Annotations([], [], [], orig_time=None)  # rel to data start
+    orig_time = raw.info['meas_date']
+    annot = Annotations([], [], [], orig_time=orig_time)
 
     # Annotate based on rotational velocity
     t_tot = raw.times[-1]
@@ -183,7 +185,8 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
                     u'ω >= %5.1f°/s (max: %0.1f°/s)'
                     % (bad_pct, len(onsets), rotation_velocity_limit,
                        np.rad2deg(r.max())))
-        annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_mov_rotat_vel')
+        annot += _annotations_from_mask(
+            hp_ts, bad_mask, 'BAD_mov_rotat_vel', orig_time=orig_time)
 
     # Annotate based on translational velocity limit
     if translation_velocity_limit is not None:
@@ -198,7 +201,8 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
                     u'v >= %5.4fm/s (max: %5.4fm/s)'
                     % (bad_pct, len(onsets), translation_velocity_limit,
                        v.max()))
-        annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_mov_trans_vel')
+        annot += _annotations_from_mask(
+            hp_ts, bad_mask, 'BAD_mov_trans_vel', orig_time=orig_time)
 
     # Annotate based on displacement from mean head position
     disp = []
@@ -241,7 +245,9 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
         logger.info(u'Omitting %5.1f%% (%3d segments): '
                     u'disp >= %5.4fm (max: %5.4fm)'
                     % (bad_pct, len(onsets), mean_distance_limit, disp.max()))
-        annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_mov_dist')
+        annot += _annotations_from_mask(
+            hp_ts, bad_mask, 'BAD_mov_dist', orig_time=orig_time)
+    _adjust_onset_meas_date(annot, raw)
     return annot, disp
 
 
@@ -319,23 +325,37 @@ def compute_average_dev_head_t(raw, pos):
     return dev_head_t
 
 
-def _annotations_from_mask(times, art_mask, art_name):
+def _annotations_from_mask(times, mask, annot_name, orig_time=None):
     """Construct annotations from boolean mask of the data."""
-    from scipy.ndimage import label
-    comps, num_comps = label(art_mask)
-    onsets, durations, desc = [], [], []
-    n_times = len(times)
-    for lbl in range(1, num_comps + 1):
-        l_idx = np.nonzero(comps == lbl)[0]
-        onsets.append(times[l_idx[0]])
-        # duration is to the time after the last labeled time
-        # or to the end of the times.
-        if 1 + l_idx[-1] < n_times:
-            durations.append(times[1 + l_idx[-1]] - times[l_idx[0]])
-        else:
-            durations.append(times[l_idx[-1]] - times[l_idx[0]])
-        desc.append(art_name)
-    return Annotations(onsets, durations, desc)
+    from scipy.ndimage import distance_transform_edt
+    from scipy.signal import find_peaks
+    mask_tf = distance_transform_edt(mask)
+    # Overcome the shortcoming of find_peaks
+    # in finding a marginal peak, by
+    # inserting 0s at the front and the
+    # rear, then subtracting in index
+    ins_mask_tf = np.concatenate((np.zeros(1), mask_tf, np.zeros(1)))
+    left_midpt_index = find_peaks(ins_mask_tf)[0] - 1
+    right_midpt_index = np.flip(len(ins_mask_tf) - 1 - find_peaks(
+        ins_mask_tf[::-1])[0]) - 1
+    onsets_index = left_midpt_index - mask_tf[left_midpt_index].astype(int) + 1
+    ends_index = right_midpt_index + mask_tf[right_midpt_index].astype(int)
+    # Ensure onsets_index >= 0,
+    # otherwise the duration starts from the beginning
+    onsets_index[onsets_index < 0] = 0
+    # Ensure ends_index < len(times),
+    # otherwise the duration is to the end of times
+    if len(times) == len(mask):
+        ends_index[ends_index >= len(times)] = len(times) - 1
+    # To be consistent with the original code,
+    # possibly a bug in tests code
+    else:
+        ends_index[ends_index >= len(mask)] = len(mask)
+    onsets = times[onsets_index]
+    ends = times[ends_index]
+    durations = ends - onsets
+    desc = [annot_name] * len(durations)
+    return Annotations(onsets, durations, desc, orig_time=orig_time)
 
 
 @verbose
@@ -486,15 +506,16 @@ def annotate_break(raw, events=None,
             merged_intervals.append(interval)
 
     merged_intervals = np.array(merged_intervals)
+    merged_intervals -= raw.first_time  # work in zero-based time
 
     # Now extract the actual break periods
     break_onsets = []
     break_durations = []
 
     # Handle the time period up until the first annotation
-    if (raw.first_time < merged_intervals[0][0] and
-            merged_intervals[0][0] - raw.first_time >= min_break_duration):
-        onset = raw.first_time  # don't add t_start_after_previous here
+    if (0 < merged_intervals[0][0] and
+            merged_intervals[0][0] >= min_break_duration):
+        onset = 0  # don't add t_start_after_previous here
         offset = merged_intervals[0][0] - t_stop_before_next
         duration = offset - onset
         break_onsets.append(onset)
@@ -514,10 +535,10 @@ def annotate_break(raw, events=None,
         break_durations.append(duration)
 
     # Handle the time period after the last annotation
-    if (raw._last_time > merged_intervals[-1][1] and
-            raw._last_time - merged_intervals[-1][1] >= min_break_duration):
+    if (raw.times[-1] > merged_intervals[-1][1] and
+            raw.times[-1] - merged_intervals[-1][1] >= min_break_duration):
         onset = merged_intervals[-1][1] + t_start_after_previous
-        offset = raw._last_time  # don't subtract t_stop_before_next here
+        offset = raw.times[-1]  # don't subtract t_stop_before_next here
         duration = offset - onset
         break_onsets.append(onset)
         break_durations.append(duration)
@@ -527,15 +548,13 @@ def annotate_break(raw, events=None,
         onset=break_onsets,
         duration=break_durations,
         description=['BAD_break'],
-        orig_time=raw.info['meas_date']
+        orig_time=raw.info['meas_date'],
     )
 
     # Log some info
     n_breaks = len(break_annotations)
     break_times = [
-        f'{round(o - raw.first_time, 1):.1f} – '
-        f'{round(o+d - raw.first_time, 1):.1f} sec '
-        f'[{round(d, 1):.1f} sec]'
+        f'{o:.1f} – {o+d:.1f} sec [{d:.1f} sec]'
         for o, d in zip(break_annotations.onset,
                         break_annotations.duration)
     ]
@@ -547,5 +566,6 @@ def annotate_break(raw, events=None,
                 f'In total, {round(100 * fraction_breaks, 1):.1f}% of the '
                 f'data ({round(total_break_dur, 1):.1f} sec) have been marked '
                 f'as a break.\n')
+    _adjust_onset_meas_date(break_annotations, raw)
 
     return break_annotations

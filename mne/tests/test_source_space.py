@@ -22,7 +22,7 @@ from mne import (read_source_spaces, write_source_spaces,
                  read_bem_solution, read_freesurfer_lut,
                  read_trans)
 from mne.fixes import _get_img_fdata
-from mne.utils import (requires_nibabel, run_subprocess,
+from mne.utils import (requires_nibabel, run_subprocess, _record_warnings,
                        modified_env, requires_mne, check_version)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_estimate import _get_src_type
@@ -452,7 +452,7 @@ def test_setup_source_space(tmp_path):
 
     # ico 5 (fsaverage) - write to temp file
     src = read_source_spaces(fname_ico)
-    with pytest.warns(None):  # sklearn equiv neighbors
+    with _record_warnings():  # sklearn equiv neighbors
         src_new = setup_source_space('fsaverage', spacing='ico5',
                                      subjects_dir=subjects_dir, add_dist=False)
     _compare_source_spaces(src, src_new, mode='approx')
@@ -464,7 +464,7 @@ def test_setup_source_space(tmp_path):
     # oct-6 (sample) - auto filename + IO
     src = read_source_spaces(fname)
     temp_name = tmp_path / 'temp-src.fif'
-    with pytest.warns(None):  # sklearn equiv neighbors
+    with _record_warnings():  # sklearn equiv neighbors
         src_new = setup_source_space('sample', spacing='oct6',
                                      subjects_dir=subjects_dir, add_dist=False)
         write_source_spaces(temp_name, src_new, overwrite=True)

@@ -6,7 +6,7 @@
 # License: BSD-3-Clause
 
 from copy import deepcopy
-from distutils.version import LooseVersion
+from datetime import timedelta
 from functools import partial
 from io import BytesIO
 import os
@@ -40,7 +40,7 @@ from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements,
     _handle_event_repeated, make_metadata)
-from mne.utils import (requires_pandas, object_diff,
+from mne.utils import (requires_pandas, object_diff, use_log_level,
                        catch_logging, _FakeNoPandas,
                        assert_meg_snr, check_version, _dt_to_stamp)
 
@@ -1025,13 +1025,23 @@ def test_epochs_io_preload(tmp_path, preload):
     # for some tests
     tols = dict(atol=1e-3, rtol=1e-20)
 
-    raw, events, picks = _get_data(preload=True)
+    raw, events, picks = _get_data(preload=preload)
     tempdir = str(tmp_path)
     temp_fname = op.join(tempdir, 'test-epo.fif')
     temp_fname_no_bl = op.join(tempdir, 'test_no_bl-epo.fif')
     baseline = (None, 0)
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=baseline, preload=True)
+    with catch_logging() as log:
+        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                        baseline=baseline, preload=True, verbose=True)
+    log = log.getvalue()
+    msg = 'Not setting metadata'
+    assert log.count(msg) == 1, f'\nto find:\n{msg}\n\nlog:\n{log}'
+    load_msg = 'Loading data for 7 events and 421 original time points ...'
+    if preload:
+        load_msg = ('Using data from preloaded Raw for 7 events and 421 '
+                    'original time points ...')
+    assert log.count(load_msg) == 1, f'\nto find:\n{load_msg}\n\nlog:\n{log}'
+
     evoked = epochs.average()
     epochs.save(temp_fname, overwrite=True)
 
@@ -1399,8 +1409,13 @@ def test_evoked_io_from_epochs(tmp_path):
     with raw.info._unlock():
         raw.info['lowpass'] = 40  # avoid aliasing warnings
     # offset our tmin so we don't get exactly a zero value when decimating
-    epochs = Epochs(raw, events[:4], event_id, tmin + 0.011, tmax,
-                    picks=picks, decim=5)
+    with catch_logging() as log:
+        epochs = Epochs(raw, events[:4], event_id, tmin + 0.011, tmax,
+                        picks=picks, decim=5, preload=True, verbose=True)
+    log = log.getvalue()
+    load_msg = ('Loading data for 1 events and 415 original time points '
+                '(prior to decimation) ...')
+    assert log.count(load_msg) == 1, f'\nto find:\n{load_msg}\n\nlog:\n{log}'
     evoked = epochs.average()
     with evoked.info._unlock():
         # Test that empty string shortcuts to None.
@@ -1419,7 +1434,7 @@ def test_evoked_io_from_epochs(tmp_path):
                     picks=picks, baseline=baseline, decim=5)
     evoked = epochs.average()
     assert_allclose(evoked.baseline, baseline)
-    evoked.save(fname_temp)
+    evoked.save(fname_temp, overwrite=True)
     evoked2 = read_evokeds(fname_temp)[0]
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
@@ -1445,14 +1460,14 @@ def test_evoked_io_from_epochs(tmp_path):
     for picks in (None, 'all'):
         evoked = epochs.average(picks)
         evokeds.append(evoked)
-        evoked.save(fname_temp)
+        evoked.save(fname_temp, overwrite=True)
         evoked2 = read_evokeds(fname_temp)[0]
         start = 1 if picks is None else 0
         for ev in (evoked, evoked2):
             assert ev.ch_names == epochs.ch_names[start:]
             assert_allclose(ev.data, epochs.get_data().mean(0)[start:])
     with pytest.raises(ValueError, match='.*nchan.* must match'):
-        write_evokeds(fname_temp, evokeds)
+        write_evokeds(fname_temp, evokeds, overwrite=True)
 
 
 def test_evoked_standard_error(tmp_path):
@@ -2928,8 +2943,17 @@ def test_metadata(tmp_path):
     events = np.column_stack([events, np.zeros([len(events), 2])]).astype(int)
     events[5:, -1] = 1
     event_id = {'zero': 0, 'one': 1}
-    epochs = EpochsArray(data, info, metadata=meta,
-                         events=events, event_id=event_id)
+    with catch_logging() as log:
+        epochs = EpochsArray(data, info, metadata=meta,
+                             events=events, event_id=event_id, verbose=True)
+    log = log.getvalue()
+    msg = 'Adding metadata with 2 columns'
+    assert log.count(msg) == 1, f'\nto find:\n{msg}\n\nlog:\n{log}'
+    with use_log_level(True):
+        with catch_logging() as log:
+            epochs.metadata = meta
+    log = log.getvalue().strip()
+    assert log == 'Replacing existing metadata with 2 columns', f'{log}'
     indices = np.arange(len(epochs))  # expected indices
     assert_array_equal(epochs.metadata.index, indices)
 
@@ -3107,9 +3131,6 @@ def assert_metadata_equal(got, exp):
         assert isinstance(exp, pandas.DataFrame)
         assert isinstance(got, pandas.DataFrame)
         assert set(got.columns) == set(exp.columns)
-        if LooseVersion(pandas.__version__) < LooseVersion('0.25'):
-            # Old Pandas does not necessarily order them properly
-            got = got[exp.columns]
         check = (got == exp)
         assert check.all().all()
 
@@ -3663,127 +3684,193 @@ def test_add_channels_picks():
     epochs_final.drop_channels(epochs.ch_names)
 
 
+@requires_pandas
+@pytest.mark.parametrize('first_samp', [0, 10])
 @pytest.mark.parametrize(
-    'first_samp', [0, 10])
-def test_epoch_annotations_with_first_samp(first_samp):
-    """Test Epoch Annotations from RawArray.
+    'meas_date, orig_date', [
+        [None, None],
+        [np.pi, None],
+        [np.pi, timedelta(seconds=1)]
+    ]
+)
+def test_epoch_annotations(first_samp, meas_date, orig_date):
+    """Test Epoch Annotations from RawArray with dates.
 
-    Tests with/without first_samp, meas_date and orig_time.
+    Tests the following cases crossed with each other:
+    - with and without first_samp
+    - with and without meas_date
+    - with and without an orig_time set in Annotations
     """
     data = np.random.randn(2, 400) * 10e-12
-    sfreq = 100.
-    info = create_info(ch_names=['MEG1', 'MEG2'], ch_types=['grad'] * 2,
-                       sfreq=sfreq)
+    info = create_info(ch_names=['MEG1', 'MEG2'], ch_types='grad',
+                       sfreq=100.)
 
     # create a Raw object with a first_samp
     raw = RawArray(data.copy(), info, first_samp=first_samp)
-
-    # create annotations without orig time
-    ant_dur = 0.1
-    ants = Annotations([1.1, 1.2, 2.1], [ant_dur, ant_dur, ant_dur],
-                       ['x', 'y', 'z'])
-
-    # first set annotations without measurement date
-    raw.set_annotations(ants)
-    epochs = make_fixed_length_epochs(raw, duration=1, overlap=0.5)
-
-    # check that the annotations themselves should be equivalent
-    # because first_samp offsetting occurs in Raw
-    assert_array_equal(
-        raw.annotations.onset,
-        epochs.raw_annotations.onset
-    )
-    assert_array_equal(raw.annotations.duration,
-                       epochs.raw_annotations.duration)
-    assert_array_equal(raw.annotations.description,
-                       epochs.raw_annotations.description)
-
-    # test get_epoch_annotations as a list of (onset, duration, description)
-    # that should match the original Annotations, except onset is now
-    # relative to the Epoch times
-    epoch_ants = epochs.get_epoch_annotations()
-
-    expected_annot_times = [
-        [],
-        [(.6, ant_dur, 'x'), (.7, ant_dur, 'y')],
-        [(.1, ant_dur, 'x'), (.2, ant_dur, 'y')],
-        [(.6, ant_dur, 'z')],
-        [(.1, ant_dur, 'z')],
-        [],
-        []
-    ]
-    assert len(expected_annot_times) == len(epoch_ants)
-    for x, y in zip(epoch_ants, expected_annot_times):
-        assert_array_equal(x, y)
-
-    # do a more complicated case
-    ant_dur = 0.5
-    ants = Annotations([1.1, 1.2, 2.1], [ant_dur, ant_dur, ant_dur],
-                       ['x', 'y', 'z'])
-    raw.set_annotations(ants)
-    epochs = make_fixed_length_epochs(raw, duration=1, overlap=0.5)
-    epoch_ants = epochs.get_epoch_annotations()
-    expected_annot_times = [
-        [],
-        [(0.6, 0.5, 'x'), (0.7, 0.5, 'y')],
-        [(0.1, 0.5, 'x'), (0.2, 0.5, 'y')],
-        [(-0.4, 0.5, 'x'), (-0.3, 0.5, 'y'), (0.6, 0.5, 'z')],
-        [(0.1, 0.5, 'z')],
-        [(-0.4, 0.5, 'z')],
-        []
-    ]
-    assert len(expected_annot_times) == len(epoch_ants)
-    for x, y in zip(epoch_ants, expected_annot_times):
-        assert_array_equal(x, y)
-
-
-@pytest.mark.parametrize('first_samp', [0, 10])
-def test_epoch_annotations_with_meas_date(first_samp):
-    """Test Epoch sets annotations when a measurement date is present."""
-    data = np.random.randn(2, 400) * 10e-12
-    sfreq = 100.
-    info = create_info(ch_names=['MEG1', 'MEG2'], ch_types=['grad'] * 2,
-                       sfreq=sfreq)
-
-    # create a Raw object with a first_samp
-    raw = RawArray(data.copy(), info, first_samp=first_samp)
-    meas_date = _handle_meas_date(np.pi)
+    meas_date = _handle_meas_date(meas_date)
     raw.set_meas_date(meas_date)
 
-    # create annotations without orig time
+    # handle orig_date
+    if orig_date is not None:
+        orig_date = meas_date + orig_date
     ant_dur = 0.1
-    ants = Annotations([1.1, 1.2, 2.1], [ant_dur, ant_dur, ant_dur],
-                       ['x', 'y', 'z'])
-
-    # first set annotations without measurement date
+    ants = Annotations(
+        onset=[1.1, 1.2, 2.1],
+        duration=[ant_dur, ant_dur, ant_dur],
+        description=['x', 'y', 'z'],
+        orig_time=orig_date
+    )
     raw.set_annotations(ants)
     epochs = make_fixed_length_epochs(raw, duration=1, overlap=0.5)
+
+    # add Annotations to Epochs metadata
+    epochs.add_annotations_to_metadata()
+    metadata = epochs.metadata
+    assert 'Annotations_onset' in metadata.columns
+    assert 'Annotations_duration' in metadata.columns
+    assert 'Annotations_description' in metadata.columns
 
     # check that the annotations themselves should be equivalent
     # because first_samp offsetting occurs in Raw
     assert_array_equal(
         raw.annotations.onset,
-        epochs.raw_annotations.onset
+        epochs.annotations.onset
     )
     assert_array_equal(raw.annotations.duration,
-                       epochs.raw_annotations.duration)
+                       epochs.annotations.duration)
     assert_array_equal(raw.annotations.description,
-                       epochs.raw_annotations.description)
+                       epochs.annotations.description)
 
-    # test get_epoch_annotations as a list of (onset, duration, description)
-    # that should match the original Annotations, except onset is now
-    # relative to the Epoch times
-    epoch_ants = epochs.get_epoch_annotations()
-
-    expected_annot_times = [
-        [],
-        [(.6, ant_dur, 'x'), (.7, ant_dur, 'y')],
-        [(.1, ant_dur, 'x'), (.2, ant_dur, 'y')],
-        [(.6, ant_dur, 'z')],
-        [(.1, ant_dur, 'z')],
-        [],
-        []
-    ]
+    # compare Epoch annotations with expected values
+    epoch_ants = epochs.get_annotations_per_epoch()
+    if orig_date is None:
+        expected_annot_times = [
+            [],
+            [[.6, ant_dur, 'x'], [.7, ant_dur, 'y']],
+            [[.1, ant_dur, 'x'], [.2, ant_dur, 'y']],
+            [[.6, ant_dur, 'z']],
+            [[.1, ant_dur, 'z']],
+            [],
+            []
+        ]
+    else:
+        expected_annot_times = [
+            [],
+            [],
+            [],
+            [[.6, ant_dur, 'x'], [.7, ant_dur, 'y']],
+            [[.1, ant_dur, 'x'], [.2, ant_dur, 'y']],
+            [[.6, ant_dur, 'z']],
+            [[.1, ant_dur, 'z']],
+        ]
     assert len(expected_annot_times) == len(epoch_ants)
-    for x, y in zip(epoch_ants, expected_annot_times):
-        assert_array_equal(x, y)
+    for (x, y) in zip(epoch_ants, expected_annot_times):
+        if orig_date is not None:
+            # when orig_date is set + first_samp, those will offset
+            # the onset when Raw sets annotations. These should
+            # then be offset accordingly when Epochs look for annotations
+            assert_array_almost_equal([_x[0] for _x in x], [
+                _y[0] - raw._first_time for _y in y])
+        else:
+            # onset relative to Epoch start
+            assert_array_almost_equal([_x[0] for _x in x], [_y[0] for _y in y])
+
+        # duration
+        assert_array_equal([_x[1] for _x in x], [_y[1] for _y in y])
+
+        # description should be exactly the same
+        assert_array_equal([_x[2] for _x in x], [_y[2] for _y in y])
+
+
+def test_epoch_annotations_cases():
+    """Test Epoch Annotations different cases.
+
+    Here, we test the following cases crossed:
+    - annotation start is before/after epoch start
+    - annotation end is before/after epoch end
+    - 1 annotation that is fully outside all epochs (make sure it is dropped)
+    - 1 annotation that spans multiple epochs (make sure it shows up in both)
+
+    In addition, tests functionality when Epochs are loaded vs not.
+    """
+    # do a more complicated case
+    data = np.random.RandomState(0).randn(1, 600) * 10e-12
+    sfreq = 100.
+    info = create_info(ch_names=['MEG1'], ch_types=['grad'], sfreq=sfreq)
+    raw = RawArray(data, info)
+    ant_dur = 0.4
+    ants = Annotations(
+        onset=[0.4, 0.5, 1.4, 1.6, 3.0, 5.4],
+        duration=[ant_dur, ant_dur, ant_dur, 0, 2.0, 0],
+        description=['before', 'start', 'stop',
+                     'outside', 'multiple', 'bad_noisy'],
+    )
+    raw.set_annotations(ants)
+
+    # Create Epochs that are spaced apart with a start point every
+    # two seconds in the Raw data starting at 1 seconds. The Epochs
+    # will contain the Raw data in these second windows:
+    # - (0.5, 1.5)
+    # - (2.5, 3.5)
+    # - (4.5, 5.5)
+    events = np.zeros((3, 3), dtype=int)
+    events[:, 0] = [100, 300, 500]
+    epochs = Epochs(raw, events=events, tmin=-0.5, tmax=0.5)
+    epoch_ants = epochs.get_annotations_per_epoch()
+
+    # assert 'outside' is not in any Epoch
+    assert all('outside' not in np.array(sublist) for sublist in epoch_ants)
+
+    # 'before' should be in the first Epoch because it ends during first Epoch
+    first_epoch_ant = np.array(epoch_ants[0])
+    assert 'before' in first_epoch_ant
+
+    # 'start' should be in the first Epoch only
+    assert 'start' in first_epoch_ant
+    assert all('start' not in np.array(sublist) for sublist in epoch_ants[1:])
+
+    # 'stop' should be in the first Epoch only
+    assert 'stop' in first_epoch_ant
+    assert all('stop' not in np.array(sublist) for sublist in epoch_ants[1:])
+
+    # 'multiple' should be in 2nd and 3rd Epoch
+    second_epoch_ant = np.array(epoch_ants[1])
+    third_epoch_ant = np.array(epoch_ants[2])
+    assert 'multiple' not in first_epoch_ant
+    assert 'multiple' in second_epoch_ant
+    assert 'multiple' in third_epoch_ant
+
+    # before we don't load the data, bad_noisy Annotation is still part of
+    # Epochs because we haven't dropped bad epochs yet
+    assert 'bad_noisy' in third_epoch_ant
+    epochs.load_data()
+    epoch_ants = epochs.get_annotations_per_epoch()
+    second_epoch_ant = np.array(epoch_ants[1])
+    assert all('bad_noisy' not in np.array(sublist) for sublist in epoch_ants)
+
+    # when preload is passed in, then Epochs overlapping with BAD are
+    # dropped, so 'bad_noisy' will be gone
+    epochs = Epochs(raw, events=events, tmin=-0.5, tmax=0.5, preload=True)
+    epoch_ants = epochs.get_annotations_per_epoch()
+    second_epoch_ant = np.array(epoch_ants[1])
+    assert all('bad_noisy' not in np.array(sublist) for sublist in epoch_ants)
+    epochs_one = epochs.copy()
+
+    # if we drop the first Epoch, then some Annotations will now not
+    # be part of Epoch Annotations, and others will be shifted
+    epochs = Epochs(raw, events=events, tmin=-0.5, tmax=0.5)
+    epochs.drop(0)
+    epoch_ants = epochs.get_annotations_per_epoch()
+    assert all('start' not in np.array(sublist) for sublist in epoch_ants)
+    assert all('before' not in np.array(sublist) for sublist in epoch_ants)
+    assert all('stop' not in np.array(sublist) for sublist in epoch_ants)
+
+    # 'multiple' should be in 1st and 2nd Epoch now
+    first_epoch_ant = np.array(epoch_ants[0])
+    second_epoch_ant = np.array(epoch_ants[1])
+    assert 'multiple' in second_epoch_ant
+    assert 'multiple' in first_epoch_ant
+
+    # test that concatenation does not preserve epochs
+    with pytest.warns(RuntimeWarning, match='Annotations'):
+        concatenate_epochs([epochs, epochs_one])

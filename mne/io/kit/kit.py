@@ -930,18 +930,8 @@ def read_epochs_kit(input_fname, events, event_id=None, mrk=None, elp=None,
     ----------
     input_fname : str
         Path to the sqd file.
-    events : array, shape (n_events, 3)
-        The events typically returned by the read_events function.
-        If some events don't match the events of interest as specified
-        by event_id, they will be marked as 'IGNORED' in the drop log.
-    event_id : int | list of int | dict | None
-        The id of the event to consider. If dict,
-        the keys can later be used to access associated events. Example:
-        dict(auditory=1, visual=3). If int, a dict will be created with
-        the id as string. If a list, all events with the IDs specified
-        in the list are used. If None, all events will be used with
-        and a dict is created with string integer names corresponding
-        to the event id integers.
+    %(events_epochs)s
+    %(event_id)s
     mrk : None | str | array_like, shape (5, 3) | list of str or array_like
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.

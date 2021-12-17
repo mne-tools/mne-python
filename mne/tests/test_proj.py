@@ -20,6 +20,7 @@ from mne.preprocessing import maxwell_filter
 from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
 from mne.rank import _compute_rank_int
+from mne.utils import _record_warnings
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -87,7 +88,7 @@ def test_bad_proj():
 
 def _check_warnings(raw, events, picks=None, count=3):
     """Count warnings."""
-    with pytest.warns(None) as w:
+    with _record_warnings() as w:
         Epochs(raw, events, dict(aud_l=1, vis_l=3),
                -0.2, 0.5, picks=picks, preload=True, proj=True)
     assert len(w) == count
@@ -223,7 +224,7 @@ def test_compute_proj_epochs(tmp_path):
     with pytest.raises(TypeError, match='projs'):
         write_proj(fname, 'foo')
     with pytest.raises(TypeError, match=r'projs\[0\] must be .*'):
-        write_proj(fname, ['foo'])
+        write_proj(fname, ['foo'], overwrite=True)
 
 
 @pytest.mark.slowtest

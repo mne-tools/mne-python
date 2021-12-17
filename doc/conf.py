@@ -13,24 +13,18 @@ import sys
 import time
 import warnings
 from datetime import datetime, timezone
-from distutils.version import LooseVersion
 
 import numpy as np
 import matplotlib
 import sphinx
-import sphinx_gallery
 from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 
 import mne
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (linkcode_resolve, # noqa, analysis:ignore
-                       _assert_no_instances, sizeof_fmt)
+                       _assert_no_instances, sizeof_fmt, run_subprocess)
 from mne.viz import Brain  # noqa
-
-if LooseVersion(sphinx_gallery.__version__) < LooseVersion('0.2'):
-    raise ImportError('Must have at least version 0.2 of sphinx-gallery, got '
-                      f'{sphinx_gallery.__version__}')
 
 matplotlib.use('agg')
 
@@ -89,6 +83,7 @@ extensions = [
     'gen_commands',
     'gh_substitutions',
     'mne_substitutions',
+    'newcontrib_substitutions',
     'gen_names',
     'sphinx_bootstrap_divs',
     'sphinxcontrib.bibtex',
@@ -142,6 +137,7 @@ intersphinx_mapping = {
     'joblib': ('https://joblib.readthedocs.io/en/latest', None),
     'nibabel': ('https://nipy.org/nibabel', None),
     'nilearn': ('http://nilearn.github.io', None),
+    'nitime': ('https://nipy.org/nitime/', None),
     'surfer': ('https://pysurfer.github.io/', None),
     'mne_bids': ('https://mne.tools/mne-bids/stable', None),
     'mne-connectivity': ('https://mne.tools/mne-connectivity/stable', None),
@@ -247,7 +243,7 @@ numpydoc_xref_ignore = {
     'n_elp', 'n_pts', 'n_tris', 'n_nodes', 'n_nonzero', 'n_events_out',
     'n_segments', 'n_orient_inv', 'n_orient_fwd', 'n_orient', 'n_dipoles_lcmv',
     'n_dipoles_fwd', 'n_picks_ref', 'n_coords', 'n_meg', 'n_good_meg',
-    'n_moments', 'n_patterns',
+    'n_moments', 'n_patterns', 'n_new_events',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
     'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF', 'RawSNIRF', 'RawBOXY',
@@ -315,14 +311,16 @@ class Resetter(object):
         plt.rcParams['animation.embed_limit'] = 30.
         gc.collect()
         when = 'mne/conf.py:Resetter.__call__'
-        _assert_no_instances(Brain, when)  # calls gc.collect()
-        if Plotter is not None:
-            _assert_no_instances(Plotter, when)
-        if BackgroundPlotter is not None:
-            _assert_no_instances(BackgroundPlotter, when)
-        if vtkPolyData is not None:
-            _assert_no_instances(vtkPolyData, when)
-        _assert_no_instances(_Renderer, when)
+        if os.getenv('MNE_SKIP_INSTANCE_ASSERTIONS', 'false') not in \
+                ('true', '1'):
+            _assert_no_instances(Brain, when)  # calls gc.collect()
+            if Plotter is not None:
+                _assert_no_instances(Plotter, when)
+            if BackgroundPlotter is not None:
+                _assert_no_instances(BackgroundPlotter, when)
+            if vtkPolyData is not None:
+                _assert_no_instances(vtkPolyData, when)
+            _assert_no_instances(_Renderer, when)
         # This will overwrite some Sphinx printing but it's useful
         # for memory timestamps
         if os.getenv('SG_STAMP_STARTS', '').lower() == 'true':
@@ -826,6 +824,8 @@ def reset_warnings(gallery_conf, fname):
         'ignore', '.*invalid escape sequence.*', lineno=281)  # mne-conn
     warnings.filterwarnings(
         'ignore', '.*"is not" with a literal.*', module='nilearn')
+    warnings.filterwarnings(  # scikit-learn FastICA whiten=True deprecation
+        'ignore', r'.*From version 1\.3 whiten.*')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
                 'Using or importing the ABCs from',  # internal modules on 3.7
                 r"it will be an error for 'np\.bool_'",  # ndimage
@@ -879,31 +879,38 @@ reset_warnings(None, None)
 
 # -- Fontawesome support -----------------------------------------------------
 
-# here the "b" and "s" refer to "brand" and "solid" (determines which font file
-# to look in). "fw-" prefix indicates fixed width.
-icons = {
-    'apple': 'b',
-    'linux': 'b',
-    'windows': 'b',
-    'hand-paper': 's',
-    'question': 's',
-    'quote-left': 's',
-    'rocket': 's',
-    'server': 's',
-    'fw-book': 's',
-    'fw-code-branch': 's',
-    'fw-newspaper': 's',
-    'fw-question-circle': 's',
-    'fw-quote-left': 's',
-}
+# here the "fab" and "fas" refer to "brand" and "solid" (determines which font
+# file to look in). "fw" indicates fixed width.
+brand_icons = ('apple', 'linux', 'windows', 'discourse', 'python')
+fixed_icons = (
+    # homepage:
+    'book', 'code-branch', 'newspaper', 'question-circle', 'quote-left',
+    # contrib guide:
+    'bug', 'comment', 'hand-sparkles', 'magic', 'pencil-alt', 'remove-format',
+    'universal-access', 'discourse', 'python'
+)
+other_icons = ('hand-paper', 'question', 'rocket', 'server')
+icons = dict()
+for icon in brand_icons + fixed_icons + other_icons:
+    font = ('fab' if icon in brand_icons else 'fas',)  # brand or solid font
+    fw = ('fa-fw',) if icon in fixed_icons else ()     # fixed-width
+    icons[icon] = font + fw
 
 prolog = ''
-for icon, cls in icons.items():
-    fw = ' fa-fw' if icon.startswith('fw-') else ''
+for icon, classes in icons.items():
     prolog += f'''
 .. |{icon}| raw:: html
 
-    <i class="fa{cls} fa-{icon[3:] if fw else icon}{fw}"></i>
+    <i class="{' '.join(classes)} fa-{icon}"></i>
+'''
+
+prolog += '''
+.. |fix-bug| raw:: html
+
+    <span class="fa-stack small-stack">
+        <i class="fas fa-bug fa-stack-1x"></i>
+        <i class="fas fa-ban fa-stack-2x"></i>
+    </span>
 '''
 
 # -- Dependency info ----------------------------------------------------------
@@ -1137,6 +1144,23 @@ def make_redirects(app, exception):
         f'Added {len(custom_redirects):3d} HTML custom redirects')
 
 
+def make_version(app, exception):
+    """Make a text file with the git version."""
+    if not (isinstance(app.builder,
+                       sphinx.builders.html.StandaloneHTMLBuilder) and
+            exception is None):
+        return
+    logger = sphinx.util.logging.getLogger('mne')
+    try:
+        stdout, _ = run_subprocess(['git', 'rev-parse', 'HEAD'], verbose=False)
+    except Exception as exc:
+        logger.warning(f'Failed to write _version.txt: {exc}')
+        return
+    with open(os.path.join(app.outdir, '_version.txt'), 'w') as fid:
+        fid.write(stdout)
+    logger.info(f'Added "{stdout.rstrip()}" > _version.txt')
+
+
 # -- Connect our handlers to the main Sphinx app ---------------------------
 
 def setup(app):
@@ -1150,3 +1174,4 @@ def setup(app):
     sphinx_logger.info(
         f'Building documentation for MNE {release} ({mne.__file__})')
     app.connect('build-finished', make_redirects)
+    app.connect('build-finished', make_version)

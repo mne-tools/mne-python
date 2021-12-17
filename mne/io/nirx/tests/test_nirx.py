@@ -202,7 +202,8 @@ def test_nirsport_v1_w_sat():
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 @requires_testing_data
 @pytest.mark.parametrize('preload', (True, False))
-def test_nirsport_v1_w_bad_sat(preload):
+@pytest.mark.parametrize('meas_date', (None, "orig"))
+def test_nirsport_v1_w_bad_sat(preload, meas_date):
     """Test NIRSport1 file with NaNs."""
     fname = nirsport1_w_fullsat
     raw = read_raw_nirx(fname, preload=preload)
@@ -220,7 +221,13 @@ def test_nirsport_v1_w_bad_sat(preload):
     assert np.isnan(data_nan).any()
     assert not np.allclose(raw_nan.get_data(), data)
     raw_nan_annot = raw_ignore.copy()
-    raw_nan_annot.set_annotations(annotate_nan(raw_nan))
+    if meas_date is None:
+        raw.set_meas_date(None)
+        raw_nan.set_meas_date(None)
+        raw_nan_annot.set_meas_date(None)
+    nan_annots = annotate_nan(raw_nan)
+    assert nan_annots.orig_time == raw_nan.info["meas_date"]
+    raw_nan_annot.set_annotations(nan_annots)
     use_mask = np.where(raw.annotations.description == 'BAD_SATURATED')
     for key in ('onset', 'duration'):
         a = getattr(raw_nan_annot.annotations, key)[::2]  # one ch in each

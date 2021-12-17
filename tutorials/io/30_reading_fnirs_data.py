@@ -46,7 +46,26 @@ using :func:`mne.io.read_raw_snirf`.
 
 .. note:: The SNIRF format has provisions for many different types of fNIRS
           recordings. MNE-Python currently only supports reading continuous
-          wave data stored in the .snirf format.
+          wave or haemoglobin data stored in the .snirf format.
+
+
+Specifying the coordinate system
+--------------------------------
+
+There are a variety of coordinate systems used to specify the location of
+sensors (see :ref:`tut-source-alignment` for details). Where possible the
+coordinate system will be determined automatically when reading a SNIRF file.
+However, sometimes this is not possible and you must manually specify the
+coordinate frame the optodes are in. This is done using the ``optode_frame``
+argument when loading data.
+
+=======  ==================  =================
+Vendor   Model               ``optode_frame``
+=======  ==================  =================
+NIRx     ICBM-152 MNI        mri
+Kernel   ICBM 2009b          mri
+=======  ==================  =================
+
 
 
 ***********************
@@ -65,7 +84,7 @@ The NIRx device stores data directly to a directory with multiple file types,
 MNE-Python extracts the appropriate information from each file.
 MNE-Python only supports NIRx files recorded with NIRStar
 version 15.0 and above.
-MNE-Python supports reading data from NIRScout and NIRSport 1 devices.
+MNE-Python supports reading data from NIRScout and NIRSport devices.
 
 
 .. _import-hitachi:

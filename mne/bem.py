@@ -20,9 +20,8 @@ import numpy as np
 
 from .io.constants import FIFF, FWD
 from .io._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
-from .io.write import (start_file, start_block, write_float, write_int,
-                       write_float_matrix, write_int_matrix, end_block,
-                       end_file)
+from .io.write import (start_and_end_file, start_block, write_float, write_int,
+                       write_float_matrix, write_int_matrix, end_block)
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.open import fiff_open
@@ -1560,12 +1559,11 @@ def write_bem_surfaces(fname, surfs, overwrite=False, verbose=None):
     if fname.endswith('.h5'):
         write_hdf5(fname, dict(surfs=surfs), overwrite=True)
     else:
-        with start_file(fname) as fid:
+        with start_and_end_file(fname) as fid:
             start_block(fid, FIFF.FIFFB_BEM)
             write_int(fid, FIFF.FIFF_BEM_COORD_FRAME, surfs[0]['coord_frame'])
             _write_bem_surfaces_block(fid, surfs)
             end_block(fid, FIFF.FIFFB_BEM)
-            end_file(fid)
 
 
 @verbose
@@ -1637,7 +1635,7 @@ def write_bem_solution(fname, bem, overwrite=False, verbose=None):
 
 def _write_bem_solution_fif(fname, bem):
     _check_bem_size(bem['surfs'])
-    with start_file(fname) as fid:
+    with start_and_end_file(fname) as fid:
         start_block(fid, FIFF.FIFFB_BEM)
         # Coordinate frame (mainly for backward compatibility)
         write_int(fid, FIFF.FIFF_BEM_COORD_FRAME,
@@ -1652,7 +1650,6 @@ def _write_bem_solution_fif(fname, bem):
             write_float_matrix(fid, FIFF.FIFF_BEM_POT_SOLUTION,
                                bem['solution'])
         end_block(fid, FIFF.FIFFB_BEM)
-        end_file(fid)
 
 
 # #############################################################################

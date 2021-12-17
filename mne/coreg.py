@@ -1015,7 +1015,7 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
         for pt in pts:
             pt['r'] = pt['r'] * scale
         dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
-        write_fiducials(dest, pts, cframe, verbose=False)
+        write_fiducials(dest, pts, cframe, overwrite=True, verbose=False)
 
     logger.debug('MRIs [nibabel]')
     os.mkdir(mri_dirname.format(subjects_dir=subjects_dir,
@@ -1633,6 +1633,11 @@ class Coregistration(object):
             apply_trans(self._head_mri_t, self._filtered_extra_points))[1]
 
     @property
+    def _has_hsp_data(self):
+        return (self._has_mri_data and
+                len(self._nearest_transformed_high_res_mri_idx_hsp) > 0)
+
+    @property
     def _has_hpi_data(self):
         return (self._has_mri_data and
                 len(self._nearest_transformed_high_res_mri_idx_hpi) > 0)
@@ -1648,7 +1653,7 @@ class Coregistration(object):
 
     @property
     def _has_nasion_data(self):
-        return (np.any(self._nasion) and np.any(self._dig_dict.nasion))
+        return (np.any(self._nasion) and np.any(self._dig_dict['nasion']))
 
     @property
     def _has_rpa_data(self):
@@ -1963,3 +1968,57 @@ class Coregistration(object):
         self._extra_points_filter = None
         self._update_nearest_calc()
         return self
+
+    def _get_fiducials_distance(self):
+        distance = dict()
+        for key in ('lpa', 'nasion', 'rpa'):
+            fid = getattr(self, f"_{key}")
+            transformed_mri = apply_trans(self._mri_trans, fid)
+            transformed_hsp = apply_trans(
+                self._head_mri_t, self._dig_dict[key])
+            distance[key] = np.linalg.norm(
+                np.ravel(transformed_mri - transformed_hsp))
+        return np.array(list(distance.values())) * 1e3
+
+    def _get_fiducials_distance_str(self):
+        dists = self._get_fiducials_distance()
+        return f"Fiducials: {dists[0]:.1f}, {dists[1]:.1f}, {dists[2]:.1f} mm"
+
+    def _get_point_distance(self):
+        mri_points = list()
+        hsp_points = list()
+        if self._hsp_weight > 0 and self._has_hsp_data:
+            mri_points.append(self._transformed_high_res_mri_points[
+                self._nearest_transformed_high_res_mri_idx_hsp])
+            hsp_points.append(self._transformed_dig_extra)
+            assert len(mri_points[-1]) == len(hsp_points[-1])
+        if self._eeg_weight > 0 and self._has_eeg_data:
+            mri_points.append(self._transformed_high_res_mri_points[
+                self._nearest_transformed_high_res_mri_idx_eeg])
+            hsp_points.append(self._transformed_dig_eeg)
+            assert len(mri_points[-1]) == len(hsp_points[-1])
+        if self._hpi_weight > 0 and self._has_hpi_data:
+            mri_points.append(self._transformed_high_res_mri_points[
+                self._nearest_transformed_high_res_mri_idx_hpi])
+            hsp_points.append(self._transformed_dig_hpi)
+            assert len(mri_points[-1]) == len(hsp_points[-1])
+        if all(len(h) == 0 for h in hsp_points):
+            return None
+        mri_points = np.concatenate(mri_points)
+        hsp_points = np.concatenate(hsp_points)
+        return np.linalg.norm(mri_points - hsp_points, axis=-1)
+
+    def _get_point_distance_str(self):
+        point_distance = self._get_point_distance()
+        if point_distance is None:
+            return ""
+        dists = 1e3 * point_distance
+        av_dist = np.mean(dists)
+        std_dist = np.std(dists)
+        kinds = [kind for kind, check in
+                 (('HSP', self._hsp_weight > 0 and self._has_hsp_data),
+                  ('EEG', self._eeg_weight > 0 and self._has_eeg_data),
+                  ('HPI', self._hpi_weight > 0 and self._has_hpi_data))
+                 if check]
+        kinds = '+'.join(kinds)
+        return f"{len(dists)} {kinds}: {av_dist:.1f} ± {std_dist:.1f} mm"

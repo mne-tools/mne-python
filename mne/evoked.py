@@ -37,7 +37,7 @@ from .io.meas_info import (read_meas_info, write_meas_info,
                            _read_extended_ch_info, _rename_list,
                            _ensure_infos_match)
 from .io.proj import ProjMixin
-from .io.write import (start_file, start_block, end_file, end_block,
+from .io.write import (start_and_end_file, start_block, end_block,
                        write_int, write_string, write_float_matrix,
                        write_id, write_float, write_complex_float_matrix)
 from .io.base import TimeMixin, _check_maxshield, _get_ch_factors
@@ -278,7 +278,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         return self
 
-    def save(self, fname):
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
         """Save evoked data to a file.
 
         Parameters
@@ -286,6 +287,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         fname : str
             The name of the file, which should end with ``-ave.fif(.gz)`` or
             ``_ave.fif(.gz)``.
+        %(overwrite)s
+        %(verbose)s
 
         Notes
         -----
@@ -296,12 +299,16 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Information on baseline correction will be stored with the data,
             and will be restored when reading again via `mne.read_evokeds`.
         """
-        # TODO: Add `overwrite` param to method signature
-        fname = _check_fname(fname=fname, overwrite=True)
-        write_evokeds(fname, self)
+        write_evokeds(fname, self, overwrite=overwrite)
 
     def __repr__(self):  # noqa: D105
-        s = "'%s' (%s, N=%s)" % (self.comment, self.kind, self.nave)
+        max_comment_length = 1000
+        if len(self.comment) > max_comment_length:
+            comment = self.comment[:max_comment_length]
+            comment += "..."
+        else:
+            comment = self.comment
+        s = "'%s' (%s, N=%s)" % (comment, self.kind, self.nave)
         s += ", %0.5g – %0.5g sec" % (self.times[0], self.times[-1])
         s += ', baseline '
         if self.baseline is None:
@@ -771,10 +778,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         return out
 
-    @fill_doc
+    @verbose
     def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, long_format=False,
-                      time_format='ms'):
+                      time_format='ms', *, verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,
@@ -792,6 +799,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(df_time_format)s
 
             .. versionadded:: 0.20
+        %(verbose)s
 
         Returns
         -------
@@ -1367,7 +1375,8 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
 
 
 @verbose
-def write_evokeds(fname, evoked, *, on_mismatch='raise', verbose=None):
+def write_evokeds(fname, evoked, *, on_mismatch='raise', overwrite=False,
+                  verbose=None):
     """Write an evoked dataset to a file.
 
     Parameters
@@ -1379,6 +1388,9 @@ def write_evokeds(fname, evoked, *, on_mismatch='raise', verbose=None):
         Note that the measurement info from the first evoked instance is used,
         so be sure that information matches.
     %(on_info_mismatch)s
+    %(overwrite)s
+
+        .. versionadded:: 1.0
     %(verbose)s
 
         .. versionadded:: 0.24
@@ -1394,25 +1406,25 @@ def write_evokeds(fname, evoked, *, on_mismatch='raise', verbose=None):
         `~mne.Evoked` object, and will be restored when reading the data again
         via `mne.read_evokeds`.
     """
-    _write_evokeds(fname, evoked, on_mismatch=on_mismatch)
+    _write_evokeds(fname, evoked, on_mismatch=on_mismatch, overwrite=overwrite)
 
 
-def _write_evokeds(fname, evoked, check=True, *, on_mismatch='raise'):
+def _write_evokeds(fname, evoked, check=True, *, on_mismatch='raise',
+                   overwrite=False):
     """Write evoked data."""
     from .dipole import DipoleFixed  # avoid circular import
 
+    fname = _check_fname(fname=fname, overwrite=overwrite)
     if check:
         check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz',
                                       '_ave.fif', '_ave.fif.gz'))
-    # TODO: Add `overwrite` param to method signature
-    fname = _check_fname(fname=fname, overwrite=True)
 
     if not isinstance(evoked, (list, tuple)):
         evoked = [evoked]
 
     warned = False
     # Create the file and save the essentials
-    with start_file(fname) as fid:
+    with start_and_end_file(fname) as fid:
 
         start_block(fid, FIFF.FIFFB_MEAS)
         write_id(fid, FIFF.FIFF_BLOCK_ID)
@@ -1481,7 +1493,6 @@ def _write_evokeds(fname, evoked, check=True, *, on_mismatch='raise'):
 
         end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
         end_block(fid, FIFF.FIFFB_MEAS)
-        end_file(fid)
 
 
 def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):

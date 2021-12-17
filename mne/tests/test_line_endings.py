@@ -4,7 +4,6 @@
 # License: BSD-3-Clause
 
 import os
-from unittest import SkipTest
 from os import path as op
 import sys
 
@@ -31,7 +30,7 @@ skip_files = (
 def _assert_line_endings(dir_):
     """Check line endings for a directory."""
     if sys.platform == 'win32':
-        raise SkipTest('Skipping line endings check on Windows')
+        pytest.skip('Skipping line endings check on Windows')
     report = list()
     good_exts = ('.py', '.dat', '.sel', '.lout', '.css', '.js', '.lay', '.txt',
                  '.elc', '.csd', '.sfp', '.json', '.hpts', '.vmrk', '.vhdr',

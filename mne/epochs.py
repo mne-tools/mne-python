@@ -21,7 +21,7 @@ import os.path as op
 import numpy as np
 
 from .io.utils import _construct_bids_filename
-from .io.write import (start_file, start_block, end_file, end_block,
+from .io.write import (start_and_end_file, start_block, end_block,
                        write_int, write_float, write_float_matrix,
                        write_double_matrix, write_complex_float_matrix,
                        write_complex_double_matrix, write_id, write_string,
@@ -107,7 +107,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt, split_naming,
     else:
         next_idx = None
 
-    with start_file(fname) as fid:
+    with start_and_end_file(fname) as fid:
         _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx)
 
 
@@ -222,7 +222,6 @@ def _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx):
     end_block(fid, FIFF.FIFFB_MNE_EPOCHS)
     end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
     end_block(fid, FIFF.FIFFB_MEAS)
-    end_file(fid)
 
 
 def _event_id_string(event_id):
@@ -362,7 +361,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     data : ndarray | None
         If ``None``, data will be read from the Raw object. If ndarray, must be
         of shape (n_epochs, n_channels, n_times).
-    %(epochs_events_event_id)s
+    %(events_epochs)s
+    %(event_id)s
     %(epochs_tmin_tmax)s
     %(baseline_epochs)s
         Defaults to ``(None, 0)``, i.e. beginning of the the data until
@@ -428,7 +428,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             # ensure metadata matches original events size
             self.selection = np.arange(len(events))
             self.events = events
-            self.metadata = metadata
+
+            # same as self.metadata = metadata, but suppress log in favor
+            # of logging below (after setting self.selection)
+            GetEpochsMixin.metadata.fset(self, metadata, verbose=False)
             del events
 
             values = list(self.event_id.values())
@@ -462,6 +465,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 metadata = [metadata[s] for s in sub]
             elif metadata is not None:
                 metadata = metadata.iloc[sub]
+
+            # Remove temporarily set metadata from above, and set
+            # again to get the correct log ("adding metadata", instead of
+            # "replacing existing metadata")
+            GetEpochsMixin.metadata.fset(self, None, verbose=False)
             self.metadata = metadata
             del metadata
 
@@ -986,23 +994,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             (n_channels, n_time).
             Note that due to file type limitations, the kind for all
             these will be "average".
-        by_event_type : bool
-            When ``False`` (the default) all epochs are averaged and a single
-            :class:`Evoked` object is returned. When ``True``, epochs are first
-            grouped by event type (as specified using the ``event_id``
-            parameter) and a list is returned containing a separate
-            :class:`Evoked` object for each event type. The ``.comment``
-            attribute is set to the label of the event type.
-
-            .. versionadded:: 0.24.0
+        %(by_event_type)s
 
         Returns
         -------
-        evoked : instance of Evoked | list of Evoked
-            The averaged epochs. When ``by_event_type=True`` was specified, a
-            list is returned containing a separate :class:`Evoked` object
-            for each event type. The list has the same order as the event types
-            as specified in the ``event_id`` dictionary.
+        %(by_event_type_returns_average)s
 
         Notes
         -----
@@ -1042,23 +1038,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Parameters
         ----------
         %(picks_all_data)s
-        by_event_type : bool
-            When ``False`` (the default) all epochs are averaged and a single
-            :class:`Evoked` object is returned. When ``True``, epochs are first
-            grouped by event type (as specified using the ``event_id``
-            parameter) and a list is returned containing a separate
-            :class:`Evoked` object for each event type. The ``.comment``
-            attribute is set to the label of the event type.
-
-            .. versionadded:: 0.24.0
+        %(by_event_type)s
 
         Returns
         -------
-        std_err : instance of Evoked | list of Evoked
-            The standard error over epochs. When ``by_event_type=True`` was
-            specified, a list is returned containing a separate :class:`Evoked`
-            object for each event type. The list has the same order as the
-            event types as specified in the ``event_id`` dictionary.
+        %(by_event_type_returns_stderr)s
         """
         return self.average(picks=picks, method="std",
                             by_event_type=by_event_type)
@@ -1428,8 +1412,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         else:
             # we start out with an empty array, allocate only if necessary
             data = np.empty((0, len(self.info['ch_names']), len(self.times)))
-            logger.info('Loading data for %s events and %s original time '
-                        'points ...' % (n_events, len(self._raw_times)))
+            msg = (f'for {n_events} events and {len(self._raw_times)} '
+                   'original time points')
+            if self._decim > 1:
+                msg += ' (prior to decimation)'
+            if getattr(self._raw, "preload", False):
+                logger.info(f'Using data from preloaded Raw {msg} ...')
+            else:
+                logger.info(f'Loading data {msg} ...')
 
         orig_picks = picks
         if orig_picks is None:
@@ -1681,10 +1671,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         s += ', ~%s' % (sizeof_fmt(self._size),)
         s += ', data%s loaded' % ('' if self.preload else ' not')
         s += ', with metadata' if self.metadata is not None else ''
+        max_events = 10
         counts = ['%r: %i' % (k, sum(self.events[:, 2] == v))
-                  for k, v in sorted(self.event_id.items())]
+                  for k, v in list(self.event_id.items())[:max_events]]
         if len(self.event_id) > 0:
             s += ',' + '\n '.join([''] + counts)
+        if len(self.event_id) > max_events:
+            not_shown_events = len(self.event_id) - max_events
+            s += f"\n and {not_shown_events} more events ..."
         class_name = self.__class__.__name__
         class_name = 'Epochs' if class_name == 'BaseEpochs' else class_name
         return '<%s | %s>' % (class_name, s)
@@ -2099,10 +2093,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         # actually remove the indices
         return self, indices
 
-    @fill_doc
+    @verbose
     def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, long_format=False,
-                      time_format='ms'):
+                      time_format='ms', *, verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,
@@ -2123,6 +2117,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         %(df_time_format)s
 
             .. versionadded:: 0.20
+        %(verbose)s
 
         Returns
         -------
@@ -2518,58 +2513,165 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     return metadata, events, event_id
 
 
-def _get_epoch_index_of_annot(epochs, annot_onset_samp, annot_duration_samp):
-    """Get index of Epochs that an annotation belongs to.
+class AnnotationsMixin():
+    """Mixin class for Annotations in Epochs."""
 
-    Parameters
-    ----------
-    epochs : instance of Epochs
-        The Epochs to search over.
-    annot_onset_samp : int
-        The sample onset of the annotation to index over.
-    annot_duration_samp : int
-        The sample duration of the annotation.
+    @property
+    def annotations(self):  # noqa: D102
+        return self._annotations
 
-    Returns
-    -------
-    epoch_indices : np.ndarray
-        The epoch indices that the annotation overlaps in.
-    """
-    events = epochs.events
-    times = epochs.times
-    raw_sfreq = epochs._raw_sfreq
+    @verbose
+    def _set_annotations(self, annotations, on_missing='raise'):
+        """Setter for Epoch annotations from Raw.
 
-    # convert to a 2D array of onset offset of each epoch
-    epoch_wins = np.zeros((len(events), 2))
-    for idx in range(len(events)):
-        # get the beginning and end sample of the epoch window
-        onset_samp = events[idx, 0] - times[0] * raw_sfreq
-        offset_samp = events[idx, 0] + times[-1] * raw_sfreq
+        This private function simply copies over Raw annotations, and
+        does not handle offsetting the times based on first_samp
+        or measurement dates, since that is expected to occur in
+        Raw.set_annotations().
 
-        epoch_wins[idx, :] = [onset_samp, offset_samp]
+        Parameters
+        ----------
+        annotations : instance of mne.Annotations | None
+            Annotations to set.
+        %(on_missing_ch_names)s
 
-    # get all the indices of onset within Epoch windows
-    onset_indices = np.argwhere((epoch_wins[:, 0] < annot_onset_samp) &
-                                (epoch_wins[:, 1] > annot_onset_samp))
+        Returns
+        -------
+        self : instance of Raw
+            The raw object with annotations.
+        """
+        _validate_type(annotations, (Annotations, None), 'annotations')
+        if annotations is None:
+            self._annotations = None
+        else:
+            new_annotations = annotations.copy()
+            new_annotations._prune_ch_names(self.info, on_missing)
+            self._annotations = new_annotations
+        return self
 
-    # get all the indices of offset within Epoch windows
-    annot_offset_samp = annot_onset_samp + annot_duration_samp
-    offset_indices = np.argwhere((epoch_wins[:, 0] < annot_offset_samp) &
-                                 (epoch_wins[:, 1] > annot_offset_samp))
+    def get_annotations_per_epoch(self):
+        """Get a list of annotations that occur during each epoch.
 
-    # get the set of all indices
-    epoch_indices = np.unique(np.concatenate((onset_indices, offset_indices)))
-    return epoch_indices
+        Returns
+        -------
+        epoch_annots : list
+            A list of lists (with length equal to number of epochs) where each
+            inner list contains any annotations that overlap the corresponding
+            epoch. Annotations are stored as a :class:`tuple` (onset, duration,
+            description), where the onset is now relative to time=0 of the
+            epoch, rather than time=0 of the original continuous (raw) data.
+        """
+        # create a list of annotations for each epoch
+        epoch_annot_list = [[] for _ in range(len(self.events))]
+
+        # check if annotations exist
+        if self.annotations is None:
+            return epoch_annot_list
+
+        # when each epoch and annotation starts/stops
+        # no need to account for first_samp here...
+        epoch_tzeros = self.events[:, 0] / self._raw_sfreq
+        epoch_starts, epoch_stops = np.atleast_2d(
+            epoch_tzeros) + np.atleast_2d(self.times[[0, -1]]).T
+        # ... because first_samp isn't accounted for here either
+        annot_starts = self._annotations.onset
+        annot_stops = annot_starts + self._annotations.duration
+
+        # get epochs that start within the annotations
+        annot_straddles_epoch_start = np.logical_and(
+            np.atleast_2d(epoch_starts) >= np.atleast_2d(annot_starts).T,
+            np.atleast_2d(epoch_starts) < np.atleast_2d(annot_stops).T)
+
+        # get epochs that end within the annotations
+        annot_straddles_epoch_end = np.logical_and(
+            np.atleast_2d(epoch_stops) > np.atleast_2d(annot_starts).T,
+            np.atleast_2d(epoch_stops) <= np.atleast_2d(annot_stops).T)
+
+        # get epochs that are fully contained within annotations
+        annot_fully_within_epoch = np.logical_and(
+            np.atleast_2d(epoch_starts) <= np.atleast_2d(annot_starts).T,
+            np.atleast_2d(epoch_stops) >= np.atleast_2d(annot_stops).T)
+
+        # combine all cases to get array of shape (n_annotations, n_epochs).
+        # Nonzero entries indicate overlap between the corresponding
+        # annotation (row index) and epoch (column index).
+        all_cases = (annot_straddles_epoch_start +
+                     annot_straddles_epoch_end +
+                     annot_fully_within_epoch)
+
+        # for each Epoch-Annotation overlap occurrence:
+        for annot_ix, epo_ix in zip(*np.nonzero(all_cases)):
+            this_annot = self._annotations[annot_ix]
+            this_tzero = epoch_tzeros[epo_ix]
+            # adjust annotation onset to be relative to epoch tzero...
+            annot = (this_annot['onset'] - this_tzero,
+                     this_annot['duration'],
+                     this_annot['description'])
+            # ...then add it to the correct sublist of `epoch_annot_list`
+            epoch_annot_list[epo_ix].append(annot)
+        return epoch_annot_list
+
+    def add_annotations_to_metadata(self):
+        """Add raw annotations into the Epochs metadata data frame.
+
+        Adds three columns to the ``metadata`` consisting of a list
+        in each row:
+        - ``Anotations_onset``: the onset of each Annotation within
+        the Epoch relative to the start time of the Epoch (in seconds).
+        - ``Annotations_duration``: the duration of each Annotation
+        within the Epoch in seconds.
+        - ``Annotations_description``: the description of each
+        Annotation.
+
+        Returns
+        -------
+        self : instance of Epochs
+            The modified instance (instance is also modified inplace).
+        """
+        pd = _check_pandas_installed()
+
+        # check if annotations exist
+        if self.annotations is None:
+            warn(f'There were no Annotations stored in {self}, so '
+                 'metadata was not modified.')
+            return self
+
+        # get existing metadata DataFrame or instantiate an empty one
+        if self._metadata is not None:
+            metadata = self._metadata
+        else:
+            data = np.empty((len(self.events), 0))
+            metadata = pd.DataFrame(data=data)
+
+        # get the Epoch annotations, then convert to separate lists for
+        # onsets, durations, and descriptions
+        epoch_annot_list = self.get_annotations_per_epoch()
+        onset, duration, description = [], [], []
+        for epoch in epoch_annot_list:
+            for ix, annot_prop in enumerate((onset, duration, description)):
+                entry = [annot[ix] for annot in epoch] if len(epoch) else []
+                annot_prop.append(entry)
+
+        # Create a new Annotations column that is instantiated as an empty
+        # list per Epoch.
+        metadata['Annotations_onset'] = pd.Series(onset)
+        metadata['Annotations_duration'] = pd.Series(duration)
+        metadata['Annotations_description'] = pd.Series(description)
+
+        # reset the metadata
+        self.metadata = metadata
+        return self
 
 
 @fill_doc
-class Epochs(BaseEpochs):
+class Epochs(BaseEpochs, AnnotationsMixin):
     """Epochs extracted from a Raw instance.
 
     Parameters
     ----------
     %(epochs_raw)s
-    %(epochs_events_event_id)s
+    %(events_epochs)s
+    %(event_id)s
     %(epochs_tmin_tmax)s
     %(baseline_epochs)s
         Defaults to ``(None, 0)``, i.e. beginning of the the data until
@@ -2651,6 +2753,19 @@ class Epochs(BaseEpochs):
     For example with the event_id ``{'aud': 1, 'vis': 2}`` and the events
     ``[[0, 0, 1], [0, 0, 2]]``, the "merge" behavior will update both event_id
     and events to be: ``{'aud/vis': 3}`` and ``[[0, 0, 3]]`` respectively.
+
+    There is limited support for :class:`~mne.Annotations` in the
+    :class:`~mne.Epochs` class. Currently annotations that are present in the
+    :class:`~mne.io.Raw` object will be preserved in the resulting
+    :class:`~mne.Epochs` object, but:
+
+    1. It is not yet possible to add annotations
+       to the Epochs object programmatically (via code) or interactively
+       (through the plot window)
+    2. Concatenating :class:`~mne.Epochs` objects
+       that contain annotations is not supported, and any annotations will
+       be dropped when concatenating.
+    3. Annotations will be lost on save.
     """
 
     @verbose
@@ -2670,8 +2785,7 @@ class Epochs(BaseEpochs):
 
         self.reject_by_annotation = reject_by_annotation
 
-        # store certain raw properties for dealing with annotations
-        self._first_time = raw._first_time.copy()
+        # keep track of original sfreq (needed for annotations)
         self._raw_sfreq = raw.info['sfreq']
 
         # call BaseEpochs constructor
@@ -2918,6 +3032,10 @@ class EpochsArray(BaseEpochs):
     * M: hbo, hbr
     * Am: dipole
     * AU: misc
+
+    EpochsArray does not support `Annotations`. If you would like to create
+    simulated data with Annotations, you would use `mne.io.RawArray` first
+    and then create an `mne.Epochs` object.
     """
 
     @verbose
@@ -3599,15 +3717,21 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
     if not isinstance(epochs_list, (list, tuple)):
         raise TypeError('epochs_list must be a list or tuple, got %s'
                         % (type(epochs_list),))
+
+    # to make warning messages only occur once during concatenation
+    warned = False
+
     for ei, epochs in enumerate(epochs_list):
         if not isinstance(epochs, BaseEpochs):
             raise TypeError('epochs_list[%d] must be an instance of Epochs, '
                             'got %s' % (ei, type(epochs)))
 
-        if hasattr(epochs, 'annotations'):
-            warn('Concatenation of Annotations within Epochs '
-                 'is not supported yet. Annotations within these Epochs will '
-                 'be dropped.')
+        if (getattr(epochs, 'annotations', None) is not None and
+                len(epochs.annotations) > 0 and
+                not warned):
+            warned = True
+            warn('Concatenation of Annotations within Epochs is not supported '
+                 'yet. All annotations will be dropped.')
             epochs._set_annotations(None)
     out = epochs_list[0]
     offsets = [0]
@@ -3717,12 +3841,15 @@ def _finish_concat(info, data, events, event_id, tmin, tmax, metadata,
 @verbose
 def concatenate_epochs(epochs_list, add_offset=True, *, on_mismatch='raise',
                        verbose=None):
-    """Concatenate a list of epochs into one epochs object.
+    """Concatenate a list of `~mne.Epochs` into one `~mne.Epochs` object.
+
+    .. note:: Unlike `~mne.concatenate_raws`, this function does **not**
+              modify any of the input data.
 
     Parameters
     ----------
     epochs_list : list
-        List of Epochs instances to concatenate (in order).
+        List of `~mne.Epochs` instances to concatenate (in that order).
     add_offset : bool
         If True, a fixed offset is added to the event times from different
         Epochs sets, such that they are easy to distinguish after the
@@ -3736,7 +3863,7 @@ def concatenate_epochs(epochs_list, add_offset=True, *, on_mismatch='raise',
     Returns
     -------
     epochs : instance of Epochs
-        The result of the concatenation (first Epochs instance passed in).
+        The result of the concatenation.
 
     Notes
     -----

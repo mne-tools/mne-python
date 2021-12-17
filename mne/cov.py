@@ -5,15 +5,13 @@
 # License: BSD-3-Clause
 
 from copy import deepcopy
-from distutils.version import LooseVersion
 import itertools as itt
 from math import log
-import os
 
 import numpy as np
 
 from .defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT, DEFAULTS
-from .io.write import start_file, end_file
+from .io.write import start_and_end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _check_projs, _needs_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj, _read_proj, _write_proj)
@@ -143,28 +141,24 @@ class Covariance(dict):
         """Number of degrees of freedom."""
         return self['nfree']
 
-    def save(self, fname):
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
         """Save covariance matrix in a FIF file.
 
         Parameters
         ----------
         fname : str
             Output filename.
+        %(overwrite)s
+
+            .. versionadded:: 1.0
+        %(verbose)s
         """
         check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz',
                                           '_cov.fif', '_cov.fif.gz'))
-        # TODO: Add `overwrite` param to method signature
-        fname = _check_fname(fname=fname, overwrite=True)
-        fid = start_file(fname)
-
-        try:
+        fname = _check_fname(fname=fname, overwrite=overwrite)
+        with start_and_end_file(fname) as fid:
             _write_cov(fid, self)
-        except Exception:
-            fid.close()
-            os.remove(fname)
-            raise
-
-        end_file(fid)
 
     def copy(self):
         """Copy the Covariance object.
@@ -1017,14 +1011,6 @@ def _eigvec_subspace(eig, eigvec, mask):
     return eig, eigvec
 
 
-def _get_iid_kwargs():
-    import sklearn
-    kwargs = dict()
-    if LooseVersion(sklearn.__version__) < LooseVersion('0.22'):
-        kwargs['iid'] = False
-    return kwargs
-
-
 def _compute_covariance_auto(data, method, info, method_params, cv,
                              scalings, n_jobs, stop_early, picks_list, rank):
     """Compute covariance auto mode."""
@@ -1110,7 +1096,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                 tuned_parameters = [{'shrinkage': shrinkage}]
                 shrinkages = []
                 gs = GridSearchCV(ShrunkCovariance(**mp),
-                                  tuned_parameters, cv=cv, **_get_iid_kwargs())
+                                  tuned_parameters, cv=cv)
                 for ch_type, picks in sub_picks_list:
                     gs.fit(data_[:, picks])
                     shrinkages.append((ch_type, gs.best_estimator_.shrinkage,
@@ -1376,7 +1362,8 @@ class _ShrunkCovariance(BaseEstimator):
 ###############################################################################
 # Writing
 
-def write_cov(fname, cov):
+@verbose
+def write_cov(fname, cov, *, overwrite=False, verbose=None):
     """Write a noise covariance matrix.
 
     Parameters
@@ -1385,12 +1372,16 @@ def write_cov(fname, cov):
         The name of the file. It should end with -cov.fif or -cov.fif.gz.
     cov : Covariance
         The noise covariance matrix.
+    %(overwrite)s
+
+        .. versionadded:: 1.0
+    %(verbose)s
 
     See Also
     --------
     read_cov
     """
-    cov.save(fname)
+    cov.save(fname, overwrite=overwrite, verbose=verbose)
 
 
 ###############################################################################

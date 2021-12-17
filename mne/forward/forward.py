@@ -32,7 +32,7 @@ from ..io.pick import (pick_channels_forward, pick_info, pick_channels,
                        pick_types)
 from ..io.write import (write_int, start_block, end_block,
                         write_coord_trans, write_name_list,
-                        write_string, start_file, end_file, write_id)
+                        write_string, start_and_end_file, write_id)
 from ..io.base import BaseRaw
 from ..evoked import Evoked, EvokedArray
 from ..epochs import BaseEpochs
@@ -752,7 +752,11 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
 
     # check for file existence and expand `~` if present
     fname = _check_fname(fname, overwrite)
-    fid = start_file(fname)
+    with start_and_end_file(fname) as fid:
+        _write_forward_solution(fid, fwd)
+
+
+def _write_forward_solution(fid, fwd):
     start_block(fid, FIFF.FIFFB_MNE)
 
     #
@@ -887,7 +891,6 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
         end_block(fid, FIFF.FIFFB_MNE_FORWARD_SOLUTION)
 
     end_block(fid, FIFF.FIFFB_MNE)
-    end_file(fid)
 
 
 def is_fixed_orient(forward, orig=False):

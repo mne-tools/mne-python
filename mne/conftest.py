@@ -4,7 +4,6 @@
 # License: BSD-3-Clause
 
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 import inspect
 from textwrap import dedent
 import gc
@@ -22,7 +21,7 @@ import mne
 from mne import read_events, pick_types, Epochs
 from mne.channels import read_layout
 from mne.datasets import testing
-from mne.fixes import has_numba
+from mne.fixes import has_numba, _compare_version
 from mne.io import read_raw_fif, read_raw_ctf
 from mne.stats import cluster_level
 from mne.utils import (_pl, _assert_no_instances, numerics, Bunch,
@@ -126,6 +125,7 @@ def pytest_configure(config):
     ignore:.*Passing a schema to Validator.*:DeprecationWarning
     ignore:.*Found the following unknown channel type.*:RuntimeWarning
     ignore:.*np\.MachAr.*:DeprecationWarning
+    ignore:.*Passing unrecognized arguments to super.*:DeprecationWarning
     always::ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
@@ -201,10 +201,7 @@ def matplotlib_config():
 
     class CallbackRegistryReraise(orig):
         def __init__(self, exception_handler=None):
-            args = ()
-            if LooseVersion(matplotlib.__version__) >= LooseVersion('2.1'):
-                args += (exception_handler,)
-            super(CallbackRegistryReraise, self).__init__(*args)
+            super(CallbackRegistryReraise, self).__init__(exception_handler)
 
     cbook.CallbackRegistry = CallbackRegistryReraise
 
@@ -395,9 +392,7 @@ def _check_pyqtgraph():
         import PyQt5  # noqa: F401
     except ModuleNotFoundError:
         pytest.skip('PyQt5 is not installed but needed for pyqtgraph!')
-    try:
-        assert LooseVersion(_check_pyqt5_version()) >= LooseVersion('5.12')
-    except AssertionError:
+    if not _compare_version(_check_pyqt5_version(), '>=', '5.12'):
         pytest.skip(f'PyQt5 has version {_check_pyqt5_version()}'
                     f'but pyqtgraph needs >= 5.12!')
     try:
@@ -662,10 +657,6 @@ def brain_gc(request):
             close_func = request.getfixturevalue(key).backend._close_all
             break
     if not is_pv:
-        yield
-        return
-    import pyvista
-    if LooseVersion(pyvista.__version__) <= LooseVersion('0.26.1'):
         yield
         return
     from mne.viz import Brain

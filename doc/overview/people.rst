@@ -16,7 +16,9 @@ Alexandre Gramfort is the Benevolent Dictator for Life (BDFL)
 Steering Council
 ----------------
 
+* `Adam Li`_
 * `Alex Gramfort`_
+* `Alex Rockhill`_
 * `Britta Westner`_
 * `Clemens Brunner`_
 * `Daniel McCloy`_

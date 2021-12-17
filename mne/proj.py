@@ -5,12 +5,12 @@
 import numpy as np
 
 from .epochs import Epochs
-from .utils import check_fname, logger, verbose, _check_option
+from .utils import check_fname, logger, verbose, _check_option, _check_fname
 from .io.open import fiff_open
 from .io.pick import pick_types, pick_types_forward
 from .io.proj import (Projection, _has_eeg_average_ref_proj, _read_proj,
                       make_projector, make_eeg_average_ref_proj, _write_proj)
-from .io.write import start_file, end_file
+from .io.write import start_and_end_file
 from .event import make_fixed_length_events
 from .parallel import parallel_func
 from .cov import _check_n_samples
@@ -48,7 +48,8 @@ def read_proj(fname, verbose=None):
     return projs
 
 
-def write_proj(fname, projs):
+@verbose
+def write_proj(fname, projs, *, overwrite=False, verbose=None):
     """Write projections to a FIF file.
 
     Parameters
@@ -56,20 +57,24 @@ def write_proj(fname, projs):
     fname : str
         The name of file containing the projections vectors. It should end with
         -proj.fif or -proj.fif.gz.
-
     projs : list
         The list of projection vectors.
+    %(overwrite)s
+
+        .. versionadded:: 1.0
+    %(verbose)s
+
+        .. versionadded:: 1.0
 
     See Also
     --------
     read_proj
     """
+    fname = _check_fname(fname, overwrite=overwrite)
     check_fname(fname, 'projection', ('-proj.fif', '-proj.fif.gz',
                                       '_proj.fif', '_proj.fif.gz'))
-
-    with start_file(fname) as fid:
+    with start_and_end_file(fname) as fid:
         _write_proj(fid, projs)
-        end_file(fid)
 
 
 @verbose

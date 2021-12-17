@@ -21,7 +21,8 @@ from mne.surface import (_compute_nearest, _tessellate_sphere, fast_cross_3d,
                          _voxel_neighbors, warp_montage_volume)
 from mne.transforms import _get_trans, compute_volume_registration, apply_trans
 from mne.utils import (requires_vtk, catch_logging, object_diff,
-                       requires_freesurfer, requires_nibabel, requires_dipy)
+                       requires_freesurfer, requires_nibabel, requires_dipy,
+                       _record_warnings)
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -125,11 +126,11 @@ def test_io_surface(tmp_path):
     fname_tri = op.join(data_path, 'subjects', 'sample', 'bem',
                         'inner_skull.surf')
     for fname in (fname_quad, fname_tri):
-        with pytest.warns(None):  # no volume info
+        with _record_warnings():  # no volume info
             pts, tri, vol_info = read_surface(fname, read_metadata=True)
         write_surface(op.join(tempdir, 'tmp'), pts, tri, volume_info=vol_info,
                       overwrite=True)
-        with pytest.warns(None):  # no volume info
+        with _record_warnings():  # no volume info
             c_pts, c_tri, c_vol_info = read_surface(op.join(tempdir, 'tmp'),
                                                     read_metadata=True)
         assert_array_equal(pts, c_pts)
@@ -240,6 +241,12 @@ def test_marching_cubes(dtype, value, smooth):
     rtol = 1e-2 if smooth else 1e-9
     assert_allclose(verts.sum(axis=0), [14700, 14700, 14700], rtol=rtol)
     assert_allclose(triangles.sum(axis=0), [363402, 360865, 350588])
+    # test fill holes
+    data[24:27, 24:27, 24:27] = 0
+    verts, triangles = _marching_cubes(data, level, smooth=smooth,
+                                       fill_hole_size=2)[0]
+    # check that no surfaces in the middle
+    assert np.linalg.norm(verts - np.array([25, 25, 25]), axis=1).min() > 4
     # problematic values
     with pytest.raises(TypeError, match='1D array-like'):
         _marching_cubes(data, ['foo'])
@@ -282,6 +289,8 @@ def test_get_montage_volume_labels():
                        match='Coordinate frame not supported'):
         get_montage_volume_labels(
             fail_montage, 'sample', subjects_dir, aseg='aseg')
+    with pytest.raises(ValueError, match='between 0 and 10'):
+        get_montage_volume_labels(montage, 'sample', subjects_dir, dist=11)
 
 
 def test_voxel_neighbors():
@@ -308,10 +317,11 @@ def test_warp_montage_volume():
         op.join(subjects_dir, 'sample', 'mri', 'brain.mgz'))
     template_brain = nib.load(
         op.join(subjects_dir, 'fsaverage', 'mri', 'brain.mgz'))
+    zooms = dict(translation=10, rigid=10, sdr=10)
     reg_affine, sdr_morph = compute_volume_registration(
-        subject_brain, template_brain, zooms=5,
-        niter=dict(translation=[5, 5, 5], rigid=[5, 5, 5],
-                   sdr=[3, 3, 3]), pipeline=('translation', 'rigid', 'sdr'))
+        subject_brain, template_brain, zooms=zooms,
+        niter=[3, 3, 3],
+        pipeline=('translation', 'rigid', 'sdr'))
     # make an info object with three channels with positions
     ch_coords = np.array([[-8.7040273, 17.99938754, 10.29604017],
                           [-14.03007764, 19.69978401, 12.07236939],
@@ -363,8 +373,7 @@ def test_warp_montage_volume():
     for i in range(len(montage.ch_names)):
         assert np.linalg.norm(
             np.array(np.where(np.array(image_to.dataobj) == i + 1)
-                     ).mean(axis=1) - ground_truth_warped_voxels[i]) < 5
-
+                     ).mean(axis=1) - ground_truth_warped_voxels[i]) < 8
     # test inputs
     with pytest.raises(ValueError, match='`thresh` must be between 0 and 1'):
         warp_montage_volume(
@@ -393,5 +402,4 @@ def test_warp_montage_volume():
         rpa=rpa['r'], coord_frame='mri')
     with pytest.warns(RuntimeWarning, match='not assigned'):
         warp_montage_volume(doubled_montage, CT, reg_affine,
-                            sdr_morph, 'sample',
-                            subjects_dir_from=subjects_dir)
+                            None, 'sample', subjects_dir_from=subjects_dir)
