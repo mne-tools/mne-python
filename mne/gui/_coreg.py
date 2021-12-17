@@ -844,7 +844,7 @@ class CoregistrationUI(HasTraits):
         def callback(iteration, n_iterations):
             self._display_message(
                 f"Fitting ICP - iteration {iteration + 1}")
-            self._update_plot("sensors")
+            self._update_plot(['head', 'hsp', 'hpi', 'eeg', 'head_fids'])
             self._current_icp_iterations += 1
             self._update_distance_estimation()
             self._renderer._process_events()  # allow a draw or cancel
