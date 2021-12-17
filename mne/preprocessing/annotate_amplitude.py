@@ -69,8 +69,8 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
     if peak is None and flat is None:
         raise ValueError(
             "At least one of the arguments 'peak' or 'flat' must not be None.")
-    bad_percent = float(bad_percent)
-    min_duration = float(min_duration)
+    bad_percent = _check_bad_percent(bad_percent)
+    min_duration = _check_min_duration(min_duration, raw.times[-1])
     min_duration_samples = int(np.round(min_duration * raw.info['sfreq']))
     bads = list()
 
@@ -126,6 +126,31 @@ def _check_ptp(ptp, name, info, picks):
                     f"Argument '{name}' should define positive thresholds. "
                     "Provided for channel type '{key}': '{value}'.")
     return ptp
+
+
+def _check_bad_percent(bad_percent):
+    """Check that bad_percent is a valid percentage and converts to float."""
+    bad_percent = float(bad_percent)
+    if not 0 <= bad_percent <= 100:
+        raise ValueError(
+            "Argument 'bad_percent' should define a percentage between 0% "
+            f"and 100%. Provided: {bad_percent}%.")
+    return bad_percent
+
+
+def _check_min_duration(min_duration, raw_duration):
+    """Check that min_duration is a valid duration and converts to float."""
+    min_duration = float(min_duration)
+    if min_duration < 0:
+        raise ValueError(
+            "Argument 'min_duration' should define a positive duration in "
+            f"seconds. Provided: '{min_duration}' seconds.")
+    if min_duration >= raw_duration:
+        raise ValueError(
+            "Argument 'min_duration' should define a positive duration in "
+            f"seconds shorter than the raw duration ({raw_duration} seconds). "
+            f"Provided: '{min_duration}' seconds.")
+    return min_duration
 
 
 def _2dim_mask_to_onsets_offsets(mask):
