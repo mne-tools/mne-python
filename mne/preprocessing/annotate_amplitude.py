@@ -86,26 +86,30 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
     logger.info('Finding segments below or above PTP threshold.')
     for ch_type, picks_ in picks.items():
         diff = np.abs(np.diff(raw._data[picks_, :], axis=1))
-        flat_ = diff <= flat[ch_type]
-        peak_ = diff >= peak[ch_type]
+        flat_ = diff <= flat[ch_type] if peak is not None else None
+        peak_ = diff >= peak[ch_type] if peak is not None else None
 
-        # reject too short segments
-        starts, stops = _2dim_mask_to_onsets_offsets(flat_)
-        for start, stop in zip(starts, stops):
-            if stop - start < min_duration_samples:
-                flat_[start:stop] = False
-        starts, stops = _2dim_mask_to_onsets_offsets(peak_)
-        for start, stop in zip(starts, stops):
-            if stop - start < min_duration_samples:
-                peak_[start:stop] = False
+        if flat_ is not None:
+            # reject too short segments
+            starts, stops = _2dim_mask_to_onsets_offsets(flat_)
+            for start, stop in zip(starts, stops):
+                if stop - start < min_duration_samples:
+                    flat_[start:stop] = False
+            # reject channels above maximum bad_percentage
+            flat_mean = flat_.mean(axis=1) * 100
+            flat_ch = picks_[np.where(flat_mean >= bad_percent)[0]]
+            bads.extend(flat_ch)
 
-        # reject channels above maximum bad_percentage
-        flat_mean = flat_.mean(axis=1) * 100
-        peak_mean = peak_.mean(axis=1) * 100
-        flat_ch = picks_[np.where(flat_mean >= bad_percent)[0]]
-        peak_ch = picks_[np.where(peak_mean >= bad_percent)[0]]
-        bads.extend(flat_ch)
-        bads.extend(peak_ch)
+        if peak_ is not None:
+            # reject too short segments
+            starts, stops = _2dim_mask_to_onsets_offsets(peak_)
+            for start, stop in zip(starts, stops):
+                if stop - start < min_duration_samples:
+                    peak_[start:stop] = False
+            # reject channels above maximum bad_percentage
+            peak_mean = peak_.mean(axis=1) * 100
+            peak_ch = picks_[np.where(peak_mean >= bad_percent)[0]]
+            bads.extend(peak_ch)
 
 
 def _check_ptp(ptp, name, info, picks):
