@@ -11,8 +11,8 @@ from ..utils import (_validate_type, verbose, logger, _mask_to_onsets_offsets,
 
 
 @verbose
-def annotate_amplitude(raw, peak, flat, bad_percent=5, min_duration=0.005,
-                       picks=None, *, verbose):
+def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
+                       min_duration=0.005, picks=None, *, verbose):
     """Annotate segments of raw data which PTP amplitudes exceeds thresholds
     in ``peak`` or fall below thresholds in ``flat``.
 
@@ -20,13 +20,13 @@ def annotate_amplitude(raw, peak, flat, bad_percent=5, min_duration=0.005,
     ----------
     raw : instance of Raw
         The raw data.
-    peak : float | dict
+    peak : float | dict | None
         Reject segments based on **maximum** peak-to-peak signal amplitude
         (PTP). Valid **keys** can be any channel type present in the object.
         The **values** are floats that set the minimum acceptable PTP. If the
         PTP is smaller than this threshold, the segment will be annotated.
         If float, the minimum acceptable PTP is applied to all channels.
-    flat : float | dict
+    flat : float | dict | None
         Reject segments based on **minimum** peak-to-peak signal amplitude
         (PTP). Valid **keys** can be any channel type present in the object.
         The **values** are floats that set the minimum acceptable PTP. If the
@@ -65,6 +65,9 @@ def annotate_amplitude(raw, peak, flat, bad_percent=5, min_duration=0.005,
     picks = _picks_to_idx(raw.info, picks, 'data_or_ica', exclude='bads')
     peak = _check_ptp(peak, 'peak', raw.info, picks)
     flat = _check_ptp(flat, 'flat', raw.info, picks)
+    if peak is None and flat is None:
+        raise ValueError(
+            "At least one of the arguments 'peak' or 'flat' must not be None.")
     bad_percent = float(bad_percent)
     min_duration = float(min_duration)
     min_duration_samples = int(np.round(min_duration * raw.info['sfreq']))
@@ -73,18 +76,20 @@ def annotate_amplitude(raw, peak, flat, bad_percent=5, min_duration=0.005,
     logger.info('Finding segments below or above PTP threshold.')
 
 
+
+
 def _check_ptp(ptp, name, info, picks):
     """Check the PTP threhsold argument, and converts it to dict if needed."""
-    _validate_type(ptp, ('numeric', dict))
+    _validate_type(ptp, ('numeric', dict, None))
 
-    if not isinstance(ptp, dict):
+    if ptp is not None and not isinstance(ptp, dict):
         if ptp < 0:
             raise ValueError(
                 f"Argument '{name}' should define a positive threshold. "
                 f"Provided: '{ptp}'.")
-        ch_types = _get_channel_types(info, picks)
+        ch_types = set(_get_channel_types(info, picks))
         ptp = {ch_type: ptp for ch_type in ch_types}
-    else:
+    elif isinstance(ptp, dict):
         for key, value in ptp.items():
             if value < 0:
                 raise ValueError(
