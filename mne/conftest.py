@@ -127,7 +127,6 @@ def pytest_configure(config):
     ignore:.*np\.MachAr.*:DeprecationWarning
     ignore:.*Passing unrecognized arguments to super.*:DeprecationWarning
     always::ResourceWarning
-    ignore:.*Concatenation of Annotations within Epochs.*:RuntimeWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
