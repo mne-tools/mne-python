@@ -3582,7 +3582,8 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
                             'got %s' % (ei, type(epochs)))
 
         if (getattr(epochs, 'annotations', None) is not None and
-                len(getattr(epochs, 'annotations', None)) != 0) and not warned:
+                len(epochs.annotations) > 0 and
+                not warned):
             warned = True
             warn('Concatenation of Annotations within Epochs is not supported '
                  'yet. All annotations will be dropped.')
