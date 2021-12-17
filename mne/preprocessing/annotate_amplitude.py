@@ -161,6 +161,28 @@ def _2dim_mask_to_onsets_offsets(mask):
     """
     Similar to utils.numerics._mask_to_onsets_offsets but for 2D mask
     (n_channels, n_samples).
+
+    Examples
+    --------
+    >>> mask = np.zeros((3, 10))
+    >>> mask[0, 2:6] = 1.
+    >>> mask[0, 7:9] = 1.
+    >>> mask[1, :4] = 1.
+    >>> mask[1, 8:] = 1.
+    >>> mask[2, 2:8] = 1.
+
+    >>> mask
+    array([[0., 0., 1., 1., 1., 1., 0., 1., 1., 0.],
+           [1., 1., 1., 1., 0., 0., 0., 0., 1., 1.],
+           [0., 0., 1., 1., 1., 1., 1., 1., 0., 0.]])
+
+    >>> np.diff(mask)
+    array([[ 0.,  1.,  0.,  0.,  0., -1.,  1.,  0., -1.],
+           [ 0.,  0.,  0., -1.,  0.,  0.,  0.,  1.,  0.],
+           [ 0.,  1.,  0.,  0.,  0.,  0.,  0., -1.,  0.]])
+
+    >>> onsets_offsets
+    [(0, 4), (2, 6), (2, 8), (7, 9), (8, 10)]
     """
     assert mask.dtype == bool and mask.ndim == 2
     mask = mask.astype(int)
