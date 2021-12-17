@@ -183,13 +183,9 @@ def _2dim_mask_to_onsets_offsets(mask):
     [(0, 4), (2, 6), (2, 8), (7, 9), (8, 10)]
     """
     assert mask.dtype == bool and mask.ndim == 2
-    mask = mask.astype(int)
-    diff = np.diff(mask)
-    onsets = np.where(diff > 0)[1] + 1
-    if any(mask[:, 0]):
-        onsets = np.concatenate([[0], onsets])
-    offsets = np.where(diff < 0)[1] + 1
-    if any(mask[:, -1]):
-        offsets = np.concatenate([offsets, [mask.shape[-1]]])
-    assert len(onsets) == len(offsets)
-    return onsets, offsets
+    onsets_offsets = list()
+    for ch in mask:
+        onsets, offsets = _mask_to_onsets_offsets(ch)
+        onsets_offsets.extend(zip(onsets, offsets))
+
+    return onsets_offsets
