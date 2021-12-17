@@ -3854,6 +3854,7 @@ def test_epoch_annotations_cases():
     epoch_ants = epochs.get_annotations_per_epoch()
     second_epoch_ant = np.array(epoch_ants[1])
     assert all('bad_noisy' not in np.array(sublist) for sublist in epoch_ants)
+    epochs_one = epochs.copy()
 
     # if we drop the first Epoch, then some Annotations will now not
     # be part of Epoch Annotations, and others will be shifted
@@ -3869,3 +3870,7 @@ def test_epoch_annotations_cases():
     second_epoch_ant = np.array(epoch_ants[1])
     assert 'multiple' in second_epoch_ant
     assert 'multiple' in first_epoch_ant
+
+    # test that concatenation does not preserve epochs
+    with pytest.warns(RuntimeWarning, match='Annotations'):
+        concatenate_epochs([epochs, epochs_one])
