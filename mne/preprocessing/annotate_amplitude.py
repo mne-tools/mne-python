@@ -90,8 +90,7 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
         if flat is not None:
             flat_ = diff <= flat[ch_type]
             # reject too short segments
-            starts, stops = _2dim_mask_to_onsets_offsets(flat_)
-            for start, stop in zip(starts, stops):
+            for start, stop in _2dim_mask_to_onsets_offsets(flat_):
                 if stop - start < min_duration_samples:
                     flat_[start:stop] = False
             # reject channels above maximum bad_percentage
@@ -102,8 +101,7 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
         if peak is not None:
             peak_ = diff >= peak[ch_type]
             # reject too short segments
-            starts, stops = _2dim_mask_to_onsets_offsets(peak_)
-            for start, stop in zip(starts, stops):
+            for start, stop in _2dim_mask_to_onsets_offsets(peak_):
                 if stop - start < min_duration_samples:
                     peak_[start:stop] = False
             # reject channels above maximum bad_percentage
