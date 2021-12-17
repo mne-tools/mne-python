@@ -5,7 +5,8 @@ import numpy as np
 from ..annotations import (_annotations_starts_stops, Annotations,
                            _adjust_onset_meas_date)
 from ..io import BaseRaw
-from ..io.pick import _picks_to_idx, _get_channel_types, channel_type
+from ..io.pick import (_picks_to_idx, _picks_by_type, _get_channel_types,
+                       channel_type)
 from ..utils import (_validate_type, verbose, logger, _mask_to_onsets_offsets,
                      ProgressBar)
 
@@ -62,9 +63,9 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
     .. versionadded:: 1.0
     """
     _validate_type(raw, BaseRaw, 'raw')
-    picks = _picks_to_idx(raw.info, picks, 'data_or_ica', exclude='bads')
-    peak = _check_ptp(peak, 'peak', raw.info, picks)
-    flat = _check_ptp(flat, 'flat', raw.info, picks)
+    picks_ = _picks_to_idx(raw.info, picks, 'data_or_ica', exclude='bads')
+    peak = _check_ptp(peak, 'peak', raw.info, picks_)
+    flat = _check_ptp(flat, 'flat', raw.info, picks_)
     if peak is None and flat is None:
         raise ValueError(
             "At least one of the arguments 'peak' or 'flat' must not be None.")
@@ -73,9 +74,38 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
     min_duration_samples = int(np.round(min_duration * raw.info['sfreq']))
     bads = list()
 
+    # grouping picks by channel types to avoid operating on each channel
+    # individually
+    picks = {
+        ch_type: np.intersect1d(picks_of_type, picks_, assume_unique=True)
+        for ch_type, picks_of_type in _picks_by_type(raw.info, exclude='bads')
+        }
+    del picks_  # re-using this variable name below
+
+    # look for discrete difference above or below thresholds
     logger.info('Finding segments below or above PTP threshold.')
+    for ch_type, picks_ in picks.items():
+        diff = np.abs(np.diff(raw._data[picks_, :], axis=1))
+        flat_ = diff <= flat[ch_type]
+        peak_ = diff >= peak[ch_type]
 
+        # reject too short segments
+        starts, stops = _2dim_mask_to_onsets_offsets(flat_)
+        for start, stop in zip(starts, stops):
+            if stop - start < min_duration_samples:
+                flat_[start:stop] = False
+        starts, stops = _2dim_mask_to_onsets_offsets(peak_)
+        for start, stop in zip(starts, stops):
+            if stop - start < min_duration_samples:
+                peak_[start:stop] = False
 
+        # reject channels above maximum bad_percentage
+        flat_mean = flat_.mean(axis=1) * 100
+        peak_mean = peak_.mean(axis=1) * 100
+        flat_ch = picks_[np.where(flat_mean >= bad_percent)[0]]
+        peak_ch = picks_[np.where(peak_mean >= bad_percent)[0]]
+        bads.extend(flat_ch)
+        bads.extend(peak_ch)
 
 
 def _check_ptp(ptp, name, info, picks):
@@ -96,3 +126,21 @@ def _check_ptp(ptp, name, info, picks):
                     f"Argument '{name}' should define positive thresholds. "
                     "Provided for channel type '{key}': '{value}'.")
     return ptp
+
+
+def _2dim_mask_to_onsets_offsets(mask):
+    """
+    Similar to utils.numerics._mask_to_onsets_offsets but for 2D mask
+    (n_channels, n_samples).
+    """
+    assert mask.dtype == bool and mask.ndim == 2
+    mask = mask.astype(int)
+    diff = np.diff(mask)
+    onsets = np.where(diff > 0)[1] + 1
+    if any(mask[:, 0]):
+        onsets = np.concatenate([[0], onsets])
+    offsets = np.where(diff < 0)[1] + 1
+    if any(mask[:, -1]):
+        offsets = np.concatenate([offsets, [mask.shape[-1]]])
+    assert len(onsets) == len(offsets)
+    return onsets, offsets
