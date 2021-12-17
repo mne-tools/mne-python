@@ -2,13 +2,10 @@
 
 import numpy as np
 
-from ..annotations import (_annotations_starts_stops, Annotations,
-                           _adjust_onset_meas_date)
 from ..io import BaseRaw
-from ..io.pick import (_picks_to_idx, _picks_by_type, _get_channel_types,
-                       channel_type)
-from ..utils import (_validate_type, verbose, logger, _mask_to_onsets_offsets,
-                     ProgressBar)
+from ..annotations import Annotations, _adjust_onset_meas_date
+from ..io.pick import _picks_to_idx, _picks_by_type, _get_channel_types
+from ..utils import _validate_type, verbose, logger, _mask_to_onsets_offsets
 
 
 @verbose
@@ -82,6 +79,9 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
         }
     del picks_  # re-using this variable name below
 
+    any_flat = np.zeros(len(raw.times), bool)
+    any_peak = np.zeros(len(raw.times), bool)
+
     # look for discrete difference above or below thresholds
     logger.info('Finding segments below or above PTP threshold.')
     for ch_type, picks_ in picks.items():
@@ -97,6 +97,11 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
             flat_mean = flat_.mean(axis=1) * 100
             flat_ch = picks_[np.where(flat_mean >= bad_percent)[0]]
             bads.extend(flat_ch)
+            # add onset/offset for annotations
+            flat_ch_to_annotate = picks_[
+                np.where((0 < flat_mean) & (flat_mean <= bad_percent))[0]]
+            idx = np.where(flat_[flat_ch_to_annotate, :])[1]
+            any_flat[idx] = True
 
         if peak is not None:
             peak_ = diff >= peak[ch_type]
@@ -108,6 +113,22 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
             peak_mean = peak_.mean(axis=1) * 100
             peak_ch = picks_[np.where(peak_mean >= bad_percent)[0]]
             bads.extend(peak_ch)
+            # add onset/offset for annotations
+            peak_ch_to_annotate = picks_[
+                np.where((0 < peak_mean) & (peak_mean <= bad_percent))[0]]
+            idx = np.where(peak_[peak_ch_to_annotate, :])[1]
+            any_peak[idx] = True
+
+    # annotation for flat
+    annotation_flat = _create_annotations(any_flat, 'flat', raw)
+    # annotation for peak
+    annotation_peak = _create_annotations(any_peak, 'peak', raw)
+    # group
+    annotations = annotation_flat + annotation_peak
+    # bads
+    bads = [bad for bad in bads if bad not in raw.info['bads']]  # sanity-check
+
+    return annotations, bads
 
 
 def _check_ptp(ptp, name, info, picks):
@@ -189,3 +210,18 @@ def _2dim_mask_to_onsets_offsets(mask):
         onsets_offsets.extend(zip(onsets, offsets))
 
     return onsets_offsets
+
+
+def _create_annotations(any_arr, type_, raw):
+    """
+    Create the peak of flat annotations from the any_arr.
+    """
+    assert type_ in ('peak', 'flat')
+    starts, stops = _mask_to_onsets_offsets(any_arr)
+    starts, stops = np.array(starts), np.array(stops)
+    onsets = starts / raw.info['sfreq']
+    durations = (stops - starts) / raw.info['sfreq']
+    annot = Annotations(onsets, durations, [f'BAD_{type_}'] * len(onsets),
+                        orig_time=raw.info['meas_date'])
+    _adjust_onset_meas_date(annot, raw)
+    return annot
