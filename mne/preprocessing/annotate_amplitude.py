@@ -86,10 +86,9 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
     logger.info('Finding segments below or above PTP threshold.')
     for ch_type, picks_ in picks.items():
         diff = np.abs(np.diff(raw._data[picks_, :], axis=1))
-        flat_ = diff <= flat[ch_type] if peak is not None else None
-        peak_ = diff >= peak[ch_type] if peak is not None else None
 
-        if flat_ is not None:
+        if flat is not None:
+            flat_ = diff <= flat[ch_type]
             # reject too short segments
             starts, stops = _2dim_mask_to_onsets_offsets(flat_)
             for start, stop in zip(starts, stops):
@@ -100,7 +99,8 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
             flat_ch = picks_[np.where(flat_mean >= bad_percent)[0]]
             bads.extend(flat_ch)
 
-        if peak_ is not None:
+        if peak is not None:
+            peak_ = diff >= peak[ch_type]
             # reject too short segments
             starts, stops = _2dim_mask_to_onsets_offsets(peak_)
             for start, stop in zip(starts, stops):
