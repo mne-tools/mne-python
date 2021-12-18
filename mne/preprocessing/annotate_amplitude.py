@@ -93,8 +93,8 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
             flat_ = _reject_short_segments(flat_, min_duration_samples)
             # reject channels above maximum bad_percentage
             flat_mean = flat_.mean(axis=1) * 100
-            flat_ch = picks_[np.where(flat_mean >= bad_percent)[0]]
-            bads.extend(flat_ch)
+            flat_ch_to_set_bad = picks_[np.where(flat_mean >= bad_percent)[0]]
+            bads.extend(flat_ch_to_set_bad)
             # add onset/offset for annotations
             flat_ch_to_annotate = picks_[
                 np.where((0 < flat_mean) & (flat_mean <= bad_percent))[0]]
@@ -107,8 +107,8 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
             peak_ = _reject_short_segments(peak_, min_duration_samples)
             # reject channels above maximum bad_percentage
             peak_mean = peak_.mean(axis=1) * 100
-            peak_ch = picks_[np.where(peak_mean >= bad_percent)[0]]
-            bads.extend(peak_ch)
+            peak_ch_to_set_bad = picks_[np.where(peak_mean >= bad_percent)[0]]
+            bads.extend(peak_ch_to_set_bad)
             # add onset/offset for annotations
             peak_ch_to_annotate = picks_[
                 np.where((0 < peak_mean) & (peak_mean <= bad_percent))[0]]
