@@ -90,9 +90,7 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
         if flat is not None:
             flat_ = diff <= flat[ch_type]
             # reject too short segments
-            for start, stop in _2dim_mask_to_onsets_offsets(flat_):
-                if stop - start < min_duration_samples:
-                    flat_[start:stop] = False
+            flat_ = _reject_short_segments(flat_, min_duration_samples)
             # reject channels above maximum bad_percentage
             flat_mean = flat_.mean(axis=1) * 100
             flat_ch = picks_[np.where(flat_mean >= bad_percent)[0]]
@@ -106,9 +104,7 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
         if peak is not None:
             peak_ = diff >= peak[ch_type]
             # reject too short segments
-            for start, stop in _2dim_mask_to_onsets_offsets(peak_):
-                if stop - start < min_duration_samples:
-                    peak_[start:stop] = False
+            peak_ = _reject_short_segments(peak_, min_duration_samples)
             # reject channels above maximum bad_percentage
             peak_mean = peak_.mean(axis=1) * 100
             peak_ch = picks_[np.where(peak_mean >= bad_percent)[0]]
@@ -176,40 +172,17 @@ def _check_min_duration(min_duration, raw_duration):
     return min_duration
 
 
-def _2dim_mask_to_onsets_offsets(mask):
+def _reject_short_segments(arr, min_duration_samples):
     """
-    Similar to utils.numerics._mask_to_onsets_offsets but for 2D mask
-    (n_channels, n_samples).
-
-    Examples
-    --------
-    >>> mask = np.zeros((3, 10))
-    >>> mask[0, 2:6] = 1.
-    >>> mask[0, 7:9] = 1.
-    >>> mask[1, :4] = 1.
-    >>> mask[1, 8:] = 1.
-    >>> mask[2, 2:8] = 1.
-
-    >>> mask
-    array([[0., 0., 1., 1., 1., 1., 0., 1., 1., 0.],
-           [1., 1., 1., 1., 0., 0., 0., 0., 1., 1.],
-           [0., 0., 1., 1., 1., 1., 1., 1., 0., 0.]])
-
-    >>> np.diff(mask)
-    array([[ 0.,  1.,  0.,  0.,  0., -1.,  1.,  0., -1.],
-           [ 0.,  0.,  0., -1.,  0.,  0.,  0.,  1.,  0.],
-           [ 0.,  1.,  0.,  0.,  0.,  0.,  0., -1.,  0.]])
-
-    >>> onsets_offsets
-    [(0, 4), (2, 6), (2, 8), (7, 9), (8, 10)]
+    Check if flat or peak segments are longer than the minimum duration.
     """
-    assert mask.dtype == bool and mask.ndim == 2
-    onsets_offsets = list()
-    for ch in mask:
+    assert arr.dtype == bool and arr.ndim == 2
+    for k, ch in enumerate(arr):
         onsets, offsets = _mask_to_onsets_offsets(ch)
-        onsets_offsets.extend(zip(onsets, offsets))
-
-    return onsets_offsets
+        for start, stop in zip(onsets, offsets):
+            if stop - start < min_duration_samples:
+                arr[k, start:stop] = False
+    return arr
 
 
 def _create_annotations(any_arr, type_, raw):
