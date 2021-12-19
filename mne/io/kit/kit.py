@@ -417,7 +417,7 @@ class EpochsKIT(BaseEpochs):
                               self.info['nchan'],
                               self._raw_extras[0]['frame_length'])
         tmax = ((data.shape[2] - 1) / self.info['sfreq']) + tmin
-        
+
         # Epochs store Annotations and raw_sfreq starting in v1.0
         # but the Kit standard does not support those
         raw_sfreq = self.info['sfreq']
