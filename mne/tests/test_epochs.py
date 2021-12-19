@@ -657,20 +657,20 @@ def test_decim():
 def test_base_epochs():
     """Test base epochs class."""
     raw = _get_data()[0]
-    epochs = BaseEpochs(raw.info, None, np.ones((1, 3), int),
+    epochs = BaseEpochs(raw.info, None, 100, np.ones((1, 3), int),
                         event_id, tmin, tmax)
     pytest.raises(NotImplementedError, epochs.get_data)
     # events have wrong dtype (float)
     with pytest.raises(TypeError, match='events should be a NumPy array'):
-        BaseEpochs(raw.info, None, np.ones((1, 3), float), event_id, tmin,
-                   tmax)
+        BaseEpochs(raw.info, None, 100, np.ones((1, 3), float), event_id,
+                   tmin, tmax)
     # events have wrong shape
     with pytest.raises(ValueError, match='events must be of shape'):
-        BaseEpochs(raw.info, None, np.ones((1, 3, 2), int), event_id, tmin,
-                   tmax)
+        BaseEpochs(raw.info, None, 100, np.ones((1, 3, 2), int), event_id,
+                   tmin, tmax)
     # events are tuple (like returned by mne.events_from_annotations)
     with pytest.raises(TypeError, match='events should be a NumPy array'):
-        BaseEpochs(raw.info, None, (np.ones((1, 3), int), {'foo': 1}))
+        BaseEpochs(raw.info, None, 100, (np.ones((1, 3), int), {'foo': 1}))
 
 
 def test_savgol_filter():
@@ -3632,7 +3632,7 @@ def test_empty_constructor():
     info = create_info(1, 1000., 'eeg')
     event_id = 1
     tmin, tmax, baseline = -0.2, 0.5, None
-    BaseEpochs(info, None, None, event_id, tmin, tmax, baseline)
+    BaseEpochs(info, None, 100, None, event_id, tmin, tmax, baseline)
 
 
 def test_apply_function():
@@ -3782,7 +3782,7 @@ def test_epoch_annotations(first_samp, meas_date, orig_date):
         assert_array_equal([_x[2] for _x in x], [_y[2] for _y in y])
 
 
-def test_epoch_annotations_cases():
+def test_epoch_annotations_cases(tmp_path):
     """Test Epoch Annotations different cases.
 
     Here, we test the following cases crossed:
@@ -3793,7 +3793,7 @@ def test_epoch_annotations_cases():
 
     In addition, tests functionality when Epochs are loaded vs not.
     """
-    # do a more complicated case
+    # set up a test dataset
     data = np.random.RandomState(0).randn(1, 600) * 10e-12
     sfreq = 100.
     info = create_info(ch_names=['MEG1'], ch_types=['grad'], sfreq=sfreq)
@@ -3872,5 +3872,62 @@ def test_epoch_annotations_cases():
     assert 'multiple' in first_epoch_ant
 
     # test that concatenation does not preserve epochs
+    old_epochs = epochs.copy()
     with pytest.warns(RuntimeWarning, match='Annotations'):
         concatenate_epochs([epochs, epochs_one])
+
+    # concatenation should not change the Epochs annotations
+    assert epochs.annotations == old_epochs.annotations
+
+
+def test_epochs_saving_with_annotations(tmp_path):
+    # set up a test dataset
+    data = np.random.RandomState(0).randn(1, 600)
+    sfreq = 100.
+    info = create_info(ch_names=['MEG1'], ch_types=['grad'], sfreq=sfreq)
+    raw = RawArray(data, info)
+    ant_dur = 0.4
+    ants = Annotations(
+        onset=[0.4, 0.5, 1.4, 1.6, 3.0, 5.4],
+        duration=[ant_dur, ant_dur, ant_dur, 0, 2.0, 0],
+        description=['before', 'start', 'stop',
+                     'outside', 'multiple', 'bad_noisy'],
+    )
+    raw.set_annotations(ants)
+
+    events = np.zeros((3, 3), dtype=int)
+    events[:, 0] = [100, 300, 500]
+    epochs = Epochs(raw, events=events, tmin=-0.5, tmax=0.5)
+
+    # test what happens when we save to disc and reload
+    fname = tmp_path / 'test_epo.fif'
+    epochs.save(fname)
+
+    loaded_epochs = read_epochs(fname)
+    assert epochs._raw_sfreq == loaded_epochs._raw_sfreq
+
+    # annotations onset and duration might be off due to machine precision
+    # from saving to disc
+    assert len(epochs.annotations) == len(loaded_epochs.annotations)
+    assert_array_almost_equal(
+        epochs.annotations.onset,
+        loaded_epochs.annotations.onset)
+    assert_array_almost_equal(
+        epochs.annotations.duration,
+        loaded_epochs.annotations.duration)
+    assert_array_equal(
+        epochs.annotations.description,
+        loaded_epochs.annotations.description)
+
+    # if we set up EpochsArray and save it, it should have raw_sfreq
+    # and annotations even without explicit support
+    epoch_size = (3,) + data.shape
+    data = rng.random(epoch_size)
+    epochs = EpochsArray(data, info)
+    assert epochs._raw_sfreq is not None
+    assert epochs.annotations is None
+
+    epochs.save(fname, overwrite=True)
+    loaded_epochs = read_epochs(fname)
+    assert epochs._raw_sfreq == loaded_epochs._raw_sfreq
+    assert loaded_epochs.annotations is None

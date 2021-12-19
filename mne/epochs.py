@@ -64,8 +64,8 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _path_like)
 from .utils.docs import fill_doc
 from .data.html_templates import epochs_template
-from .annotations import (_handle_meas_date, Annotations,
-                          _write_annotations, _read_annotations_fif)
+from .annotations import (Annotations, _write_annotations,
+                          _read_annotations_fif)
 
 
 def _pack_reject_params(epochs):
@@ -143,22 +143,16 @@ def _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx):
         elif fmt == 'double':
             write_function = write_double_matrix
 
-    # write raw-related annotations data
-    start_block(fid, FIFF.FIFF_FIRST_TIME)
-    write_int(fid, FIFF.FIFF_FIRST_TIME, epochs._first_time)
-    end_block(fid, FIFF.FIFF_FIRST_TIME)
-
-    # write raw-related annotations data
-    start_block(fid, FIFF.FIFF_MNE_EPOCHS_RAW_SFREQ)
-    write_int(fid, FIFF.FIFF_MNE_EPOCHS_RAW_SFREQ, epochs._raw_sfreq)
-    end_block(fid, FIFF.FIFF_MNE_EPOCHS_RAW_SFREQ)
-
     #
     # Epoch annotations
+    # Note that since EpochsArray does not support Annotations
+    # then we need to check if Annotations is a part of the API first.
     #
-    annotations = epochs.get_epoch_annotations()
-    if len(annotations) > 0:  # don't save empty annot
-        _write_annotations(fid, annotations)
+    annotations = getattr(epochs, 'annotations', [])
+    # don't save empty annot
+    if annotations is not None:
+        if len(annotations) > 0:
+            _write_annotations(fid, annotations)
 
     # write Epoch event windows
     start_block(fid, FIFF.FIFFB_MNE_EVENTS)
@@ -178,6 +172,9 @@ def _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx):
     last = first + len(epochs.times) - 1
     write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first)
     write_int(fid, FIFF.FIFF_LAST_SAMPLE, last)
+
+    # write raw original sampling rate
+    write_float(fid, FIFF.FIFF_MNE_EPOCHS_RAW_SFREQ, epochs._raw_sfreq)
 
     # save baseline
     if epochs.baseline is not None:
@@ -361,6 +358,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     data : ndarray | None
         If ``None``, data will be read from the Raw object. If ndarray, must be
         of shape (n_epochs, n_channels, n_times).
+    raw_sfreq : float
+        The original Raw object sampling rate.
     %(events_epochs)s
     %(event_id)s
     %(epochs_tmin_tmax)s
@@ -398,7 +397,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     """
 
     @verbose
-    def __init__(self, info, data, events, event_id=None, tmin=-0.2, tmax=0.5,
+    def __init__(self, info, data, raw_sfreq, events, event_id=None,
+                 tmin=-0.2, tmax=0.5,
                  baseline=(None, 0), raw=None, picks=None, reject=None,
                  flat=None, decim=1, reject_tmin=None, reject_tmax=None,
                  detrend=None, proj=True, on_missing='raise',
@@ -596,6 +596,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             for ii, epoch in enumerate(self._data):
                 self._data[ii] = np.dot(self._projector, epoch)
         self._filename = str(filename) if filename is not None else filename
+        self._raw_sfreq = raw_sfreq
         self._check_consistency()
 
     def _check_consistency(self):
@@ -2786,13 +2787,13 @@ class Epochs(BaseEpochs, AnnotationsMixin):
         self.reject_by_annotation = reject_by_annotation
 
         # keep track of original sfreq (needed for annotations)
-        self._raw_sfreq = raw.info['sfreq']
+        raw_sfreq = raw.info['sfreq']
 
         # call BaseEpochs constructor
         super(Epochs, self).__init__(
-            info, None, events, event_id, tmin, tmax, metadata=metadata,
-            baseline=baseline, raw=raw, picks=picks, reject=reject,
-            flat=flat, decim=decim, reject_tmin=reject_tmin,
+            info, None, raw_sfreq, events, event_id, tmin, tmax,
+            metadata=metadata, baseline=baseline, raw=raw, picks=picks,
+            reject=reject, flat=flat, decim=decim, reject_tmin=reject_tmin,
             reject_tmax=reject_tmax, detrend=detrend,
             proj=proj, on_missing=on_missing, preload_at_end=preload,
             event_repeated=event_repeated, verbose=verbose)
@@ -2843,129 +2844,9 @@ class Epochs(BaseEpochs, AnnotationsMixin):
                                             self.reject_by_annotation)
         return data
 
-    @property
-    def raw_annotations(self):  # noqa: D102
-        return self._annotations
-
-    @verbose
-    def _set_annotations(self, annotations, on_missing='raise', *,
-                         verbose=None):
-        """Setter for Epoch annotations from Raw.
-
-        This private function simply copies over Raw annotations, and
-        does not handle offsetting the times based on first_samp
-        or measurement dates, since that is expected to occur in
-        Raw set_annotations.
-
-        Parameters
-        ----------
-        annotations : instance of mne.Annotations | None
-            Annotations to set. If None, the annotations is defined
-            but empty.
-        %(on_missing_ch_names)s
-        %(verbose_meth)s
-
-        Returns
-        -------
-        self : instance of Raw
-            The raw object with annotations.
-        """
-        meas_date = _handle_meas_date(self.info['meas_date'])
-        if annotations is None:
-            self._annotations = Annotations([], [], [], meas_date)
-        else:
-            _validate_type(annotations, Annotations, 'annotations')
-
-            new_annotations = annotations.copy()
-            new_annotations._prune_ch_names(self.info, on_missing)
-            self._annotations = new_annotations
-
-        return self
-
-    def get_epoch_annotations(self):
-        """Return a list of annotations per epoch.
-
-        Returns
-        -------
-        epoch_annots : list
-            A list (with length equal to number of epochs) of annotations per
-            epoch. Each annotation is stored as (onset, duration, description),
-            where the onset is now relative to the epoch, rather then in
-            continuous time.
-        """
-        # check if annotations exist
-        if self.raw_annotations is None:
-            return self
-
-        events = self.events
-
-        # create a list of annotations for each epoch
-        epoch_annot_list = [[] for _ in range(len(events))]
-
-        for annot in self.raw_annotations:
-            onset_ = annot['onset']
-            duration_ = annot['duration']
-            description_ = annot['description']
-
-            # convert onset to samples and account for first time
-            onset_samp = int(onset_ * self._raw_sfreq + self._first_time)
-            duration_samp = int(duration_ * self._raw_sfreq)
-
-            # loop through events to see which Epochs this annotation
-            # belongs to based on the onset and duration
-            epoch_index = _get_epoch_index_of_annot(
-                self, onset_samp, duration_samp)
-
-            for eidx in epoch_index:
-                # now convert onset sample relative to the Epoch and convert
-                # back to seconds relative to the Epoch
-                onset_samp_ = onset_samp - events[eidx, 0]
-                onset_ = onset_samp_ / self._raw_sfreq
-
-                epoch_annot_list[eidx].append(
-                    (onset_, duration_, description_))
-        return epoch_annot_list
-
-    def map_annots_to_metadata(self):
-        """Map annotations into the Epochs metadata.
-
-        Returns
-        -------
-        self : instance of Epochs
-            The modified instance (instance is also modified inplace).
-        """
-        pd = _check_pandas_installed()
-
-        # check if annotations exist
-        if self.annotations is None:
-            return self
-
-        # create a list of annotations for each epoch
-        epoch_annot_list = [[] for _ in range(len(self))]
-
-        # loop through each annotations and add to the metadata
-        if self._metadata is not None:
-            metadata = self._metadata
-        else:
-            data = np.empty((len(self), 0))
-            metadata = pd.DataFrame(data=data)
-
-        # get the Epoch annotations
-        epoch_annot_list = self.get_epoch_annotations()
-
-        # create a new Annotations column
-        metadata['Annotations'] = [[] for _ in range(metadata.shape[0])]
-        for idx in range(len(self)):
-            # set the Annotations as a tuple of (onset, duration, description)
-            metadata['Annotations'][idx] = epoch_annot_list[idx]
-
-        # reset the metadata
-        self.metadata = metadata
-        return self
-
 
 @fill_doc
-class EpochsArray(BaseEpochs):
+class EpochsArray(BaseEpochs, AnnotationsMixin):
     """Epochs object from numpy array.
 
     Parameters
@@ -3058,11 +2939,15 @@ class EpochsArray(BaseEpochs):
             events = _gen_events(n_epochs)
         info = info.copy()  # do not modify original info
         tmax = (data.shape[2] - 1) / info['sfreq'] + tmin
+
+        # store raw_sfreq as the original sfreq
+        raw_sfreq = info['sfreq']
+
         super(EpochsArray, self).__init__(
-            info, data, events, event_id, tmin, tmax, baseline, reject=reject,
-            flat=flat, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
-            decim=1, metadata=metadata, selection=selection, proj=proj,
-            on_missing=on_missing)
+            info, data, raw_sfreq, events, event_id, tmin, tmax, baseline,
+            reject=reject, flat=flat, reject_tmin=reject_tmin,
+            reject_tmax=reject_tmax, decim=1, metadata=metadata,
+            selection=selection, proj=proj, on_missing=on_missing)
         if self.baseline is not None:
             self._do_baseline = True
         if len(events) != np.in1d(self.events[:, 2],
@@ -3074,6 +2959,9 @@ class EpochsArray(BaseEpochs):
             # This is safe without assignment b/c there is no decim
             self._detrend_offset_decim(e, detrend_picks)
         self.drop_bad()
+
+        # also create an empty Annotations object
+        self._annotations = None
 
 
 def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
@@ -3283,6 +3171,16 @@ def _read_one_epoch_file(f, tree, preload):
         # read in the Annotations if they exist
         annotations = _read_annotations_fif(fid, tree)
 
+        raw_sfreq_node = dir_tree_find(tree, FIFF.FIFF_MNE_EPOCHS_RAW_SFREQ)
+        if len(raw_sfreq_node) > 0:
+            # before version 0.11 we errantly saved with this tag instead of
+            # an MNE tag
+            epochs_node = dir_tree_find(tree, FIFF.FIFFB_MNE_EPOCHS)
+            if len(epochs_node) == 0:
+                epochs_node = dir_tree_find(tree, 122)  # 122 used before v0.11
+                if len(epochs_node) == 0:
+                    raise ValueError('Could not find epochs data')
+
         events, mappings = _read_events_fif(fid, tree)
 
         #   Metadata
@@ -3357,6 +3255,9 @@ def _read_one_epoch_file(f, tree, preload):
             elif kind == FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT:
                 tag = read_tag(fid, pos)
                 reject_params = json.loads(tag.data)
+            elif kind == FIFF.FIFF_MNE_EPOCHS_RAW_SFREQ:
+                tag = read_tag(fid, pos)
+                raw_sfreq = tag.data
 
         if bmin is not None or bmax is not None:
             baseline = (bmin, bmax)
@@ -3420,7 +3321,7 @@ def _read_one_epoch_file(f, tree, preload):
 
     return (info, data, data_tag, events, event_id, metadata, tmin, tmax,
             baseline, selection, drop_log, epoch_shape, cals, reject_params,
-            fmt, annotations)
+            fmt, annotations, raw_sfreq)
 
 
 @verbose
@@ -3462,7 +3363,7 @@ class _RawContainer(object):
 
 
 @fill_doc
-class EpochsFIF(BaseEpochs):
+class EpochsFIF(BaseEpochs, AnnotationsMixin):
     """Epochs read from disk.
 
     Parameters
@@ -3504,7 +3405,7 @@ class EpochsFIF(BaseEpochs):
             next_fname = _get_next_fname(fid, fname, tree)
             (info, data, data_tag, events, event_id, metadata, tmin, tmax,
              baseline, selection, drop_log, epoch_shape, cals,
-             reject_params, fmt, annotations) = \
+             reject_params, fmt, annotations, raw_sfreq) = \
                 _read_one_epoch_file(fid, tree, preload)
 
             if (events[:, 0] < 0).any():
@@ -3518,7 +3419,7 @@ class EpochsFIF(BaseEpochs):
             # correction (data is being baseline-corrected when written to
             # disk)
             epoch = BaseEpochs(
-                info, data, events, event_id, tmin, tmax,
+                info, data, raw_sfreq, events, event_id, tmin, tmax,
                 baseline=None,
                 metadata=metadata, on_missing='ignore',
                 selection=selection, drop_log=drop_log,
@@ -3536,8 +3437,8 @@ class EpochsFIF(BaseEpochs):
             if next_fname is not None:
                 fnames.append(next_fname)
 
-        (info, data, events, event_id, tmin, tmax, metadata, baseline,
-         selection, drop_log, _) = \
+        (info, data, raw_sfreq, events, event_id, tmin, tmax, metadata,
+         baseline, selection, drop_log, _) = \
             _concatenate_epochs(ep_list, with_data=preload, add_offset=False)
         # we need this uniqueness for non-preloaded data to work properly
         if len(np.unique(events[:, 0])) != len(events):
@@ -3559,7 +3460,8 @@ class EpochsFIF(BaseEpochs):
         # again, ensure we're retaining the baseline period originally loaded
         # from disk without trying to re-apply baseline correction
         super(EpochsFIF, self).__init__(
-            info, data, events, event_id, tmin, tmax, baseline=None, raw=raw,
+            info, data, raw_sfreq, events, event_id, tmin, tmax,
+            baseline=None, raw=raw,
             proj=proj, preload_at_end=False, on_missing='ignore',
             selection=selection, drop_log=drop_log, filename=fname_rep,
             metadata=metadata, verbose=verbose, **reject_params)
@@ -3732,6 +3634,10 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
             warned = True
             warn('Concatenation of Annotations within Epochs is not supported '
                  'yet. All annotations will be dropped.')
+
+            # create a copy, so that the Annotations are not modified in place
+            # from the original object
+            epochs = epochs.copy()
             epochs._set_annotations(None)
     out = epochs_list[0]
     offsets = [0]
@@ -3741,6 +3647,7 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
     events = [out.events]
     metadata = [out.metadata]
     baseline, tmin, tmax = out.baseline, out.tmin, out.tmax
+    raw_sfreq = out._raw_sfreq
     info = deepcopy(out.info)
     verbose = out.verbose
     drop_log = out.drop_log
@@ -3750,6 +3657,7 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
     shift = int((10 + tmax) * out.info['sfreq'])
     events_offset = int(np.max(events[0][:, 0])) + shift
     events_overflow = False
+    warned = False
     for ii, epochs in enumerate(epochs_list[1:], 1):
         _ensure_infos_match(epochs.info, info, f'epochs[{ii}]',
                             on_mismatch=on_mismatch)
@@ -3758,6 +3666,11 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
 
         if epochs.baseline != baseline:
             raise ValueError('Baseline must be same for all epochs')
+
+        if epochs._raw_sfreq != raw_sfreq and not warned:
+            warned = True
+            warn('The original raw sampling rate of the Epochs does not '
+                 'match for all Epochs. Please proceed cautiously.')
 
         # compare event_id
         common_keys = list(set(event_id).intersection(set(epochs.event_id)))
@@ -3822,16 +3735,16 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
                     (offsets[-1], len(out.ch_names), len(out.times)),
                     dtype=this_data.dtype)
             data[start:stop] = this_data
-    return (info, data, events, event_id, tmin, tmax, metadata, baseline,
-            selection, drop_log, verbose)
+    return (info, data, raw_sfreq, events, event_id, tmin, tmax, metadata,
+            baseline, selection, drop_log, verbose)
 
 
-def _finish_concat(info, data, events, event_id, tmin, tmax, metadata,
-                   baseline, selection, drop_log, verbose):
+def _finish_concat(info, data, raw_sfreq, events, event_id, tmin, tmax,
+                   metadata, baseline, selection, drop_log, verbose):
     """Finish concatenation for epochs not read from disk."""
     selection = np.where([len(d) == 0 for d in drop_log])[0]
     out = BaseEpochs(
-        info, data, events, event_id, tmin, tmax, baseline=baseline,
+        info, data, raw_sfreq, events, event_id, tmin, tmax, baseline=baseline,
         selection=selection, drop_log=drop_log, proj=False,
         on_missing='ignore', metadata=metadata, verbose=verbose)
     out.drop_bad()
