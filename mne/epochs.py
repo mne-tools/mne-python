@@ -2630,8 +2630,7 @@ class AnnotationsMixin():
         onset, duration, description = [], [], []
         for epoch_annot in epoch_annot_list:
             for ix, annot_prop in enumerate((onset, duration, description)):
-                entry = [annot[ix] for annot in epoch_annot] \
-                    if len(epoch_annot) else []
+                entry = [annot[ix] for annot in epoch_annot]
 
                 # round onset and duration to avoid IO round trip mismatch
                 if ix < 2 and len(entry):
