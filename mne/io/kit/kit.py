@@ -417,8 +417,12 @@ class EpochsKIT(BaseEpochs):
                               self.info['nchan'],
                               self._raw_extras[0]['frame_length'])
         tmax = ((data.shape[2] - 1) / self.info['sfreq']) + tmin
+        
+        # Epochs store Annotations and raw_sfreq starting in v1.0
+        # but the Kit standard does not support those
+        raw_sfreq = self.info['sfreq']
         super(EpochsKIT, self).__init__(
-            self.info, data, events, event_id, tmin, tmax, baseline,
+            self.info, data, raw_sfreq, events, event_id, tmin, tmax, baseline,
             reject=reject, flat=flat, reject_tmin=reject_tmin,
             reject_tmax=reject_tmax, filename=input_fname, verbose=verbose)
         self.info = _call_digitization(
