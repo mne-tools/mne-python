@@ -2633,10 +2633,8 @@ class AnnotationsMixin():
                 entry = [annot[ix] for annot in epoch_annot]
 
                 # round onset and duration to avoid IO round trip mismatch
-                if ix < 2 and len(entry):
-                    entry = list(
-                        map(lambda x: float(np.round(x, decimals=12)), entry)
-                    )
+                if ix < 2:
+                    entry = np.round(entry, decimals=12).tolist()
 
                 annot_prop.append(entry)
 
