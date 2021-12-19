@@ -2597,7 +2597,7 @@ class AnnotationsMixin():
 
         Adds three columns to the ``metadata`` consisting of a list
         in each row:
-        - ``Anotations_onset``: the onset of each Annotation within
+        - ``Annotations_onset``: the onset of each Annotation within
         the Epoch relative to the start time of the Epoch (in seconds).
         - ``Annotations_duration``: the duration of each Annotation
         within the Epoch in seconds.
@@ -2628,9 +2628,17 @@ class AnnotationsMixin():
         # onsets, durations, and descriptions
         epoch_annot_list = self.get_annotations_per_epoch()
         onset, duration, description = [], [], []
-        for epoch in epoch_annot_list:
+        for epoch_annot in epoch_annot_list:
             for ix, annot_prop in enumerate((onset, duration, description)):
-                entry = [annot[ix] for annot in epoch] if len(epoch) else []
+                entry = [annot[ix] for annot in epoch_annot] \
+                    if len(epoch_annot) else []
+
+                # round onset and duration to avoid IO round trip mismatch
+                if ix < 2 and len(entry):
+                    entry = list(
+                        map(lambda x: float(np.round(x, decimals=12)), entry)
+                    )
+
                 annot_prop.append(entry)
 
         # Create a new Annotations column that is instantiated as an empty
