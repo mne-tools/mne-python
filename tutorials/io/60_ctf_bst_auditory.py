@@ -34,6 +34,7 @@ The specifications of this dataset were discussed initially on the
 import os.path as op
 import pandas as pd
 import numpy as np
+import warnings
 
 import mne
 from mne import combine_evoked
@@ -227,8 +228,15 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=['meg', 'eog'],
 # epochs collection. Investigation of the event timings reveals that first
 # epoch from the second run corresponds to index 182.
 epochs.drop_bad()
-epochs_standard = mne.concatenate_epochs([epochs['standard'][range(40)],
-                                          epochs['standard'][182:222]])
+
+with warnings.catch_warnings(record=True):
+    # ignore warning about Annotations not being preserved
+    # in Epoch concatenations
+    # XXX: remove this when concatenation of Epochs is supported
+    warnings.simplefilter('ignore')
+    epochs_standard = mne.concatenate_epochs(
+        [epochs['standard'][range(40)],
+         epochs['standard'][182:222]])
 epochs_standard.load_data()  # Resampling to save memory.
 epochs_standard.resample(600, npad='auto')
 epochs_deviant = epochs['deviant'].load_data()
