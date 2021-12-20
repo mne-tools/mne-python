@@ -3693,7 +3693,7 @@ def test_add_channels_picks():
         [np.pi, timedelta(seconds=1)]
     ]
 )
-def test_epoch_annotations(first_samp, meas_date, orig_date):
+def test_epoch_annotations(first_samp, meas_date, orig_date, tmp_path):
     """Test Epoch Annotations from RawArray with dates.
 
     Tests the following cases crossed with each other:
@@ -3729,6 +3729,12 @@ def test_epoch_annotations(first_samp, meas_date, orig_date):
     assert 'Annotations_onset' in metadata.columns
     assert 'Annotations_duration' in metadata.columns
     assert 'Annotations_description' in metadata.columns
+
+    # Test that writing and reading back these new metadata works
+    temp_fname = op.join(str(tmp_path), 'test-epo.fif')
+    epochs.save(temp_fname)
+    epochs_read = mne.read_epochs(temp_fname)
+    assert_metadata_equal(epochs.metadata, epochs_read.metadata)
 
     # check that the annotations themselves should be equivalent
     # because first_samp offsetting occurs in Raw

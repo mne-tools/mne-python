@@ -25,6 +25,9 @@ For an example that involves ECoG data, channel locations in a
 subject-specific MRI, or projection into a surface, see
 :ref:`tut-working-with-ecog`. In the ECoG example, we show
 how to visualize surface grid channels on the brain.
+
+Please note that this tutorial requires 3D plotting dependencies,
+see :ref:`quick-start`.
 """
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>

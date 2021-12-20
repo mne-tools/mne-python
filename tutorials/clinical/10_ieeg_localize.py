@@ -18,6 +18,9 @@ to MR-space. This accomplishes our goal of obtaining contact locations in
 MR-space (which is where the brain structures are best determined using the
 :ref:`tut-freesurfer-reconstruction`). Contact locations in MR-space can also
 be warped to a template space such as ``fsaverage`` for group comparisons.
+Please note that this tutorial requires ``nibabel``, ``nilearn`` and ``dipy``
+which can be installed using ``pip`` as well as 3D plotting
+(see :ref:`quick-start`).
 """
 
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
@@ -48,6 +51,9 @@ subjects_dir = op.join(sample_path, 'subjects')
 # use mne-python's fsaverage data
 fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 
+# GUI requires pyvista backend
+mne.viz.set_3d_backend('pyvistaqt')
+
 ###############################################################################
 # Aligning the T1 to ACPC
 # =======================
@@ -69,12 +75,13 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 # First, it is recommended to change the cursor style to long, this can be done
 # through the menu options like so:
 #
-#     ``Freeview -> Preferences -> General -> Cursor style -> Long``
+#     :menuselection:`Freeview --> Preferences --> General --> Cursor style
+#     --> Long`
 #
 # Then, the image needs to be aligned to ACPC to look like the image below.
 # This can be done by pulling up the transform popup from the menu like so:
 #
-#     ``Tools -> Transform Volume``
+#     :menuselection:`Tools --> Transform Volume`
 #
 # .. note::
 #     Be sure to set the text entry box labeled RAS (not TkReg RAS) to
@@ -108,6 +115,8 @@ viewer.figs[0].axes[0].annotate(
 # This process segments out the brain from the rest of the MR image and
 # determines which voxels correspond to each brain area based on a template
 # deformation. This process takes approximately 8 hours so plan accordingly.
+# The example dataset contains the data from completed reconstruction so
+# we will proceed using that.
 #
 # .. code-block:: bash
 #
@@ -199,7 +208,8 @@ del CT_orig
 #         - Load the two scans from the command line using
 #           ``freeview $MISC_PATH/seeg/sample_seeg/mri/T1.mgz
 #           $MISC_PATH/seeg/sample_seeg_CT.mgz``
-#         - Navigate to the upper toolbar, go to ``Tools>>Transform Volume...``
+#         - Navigate to the upper toolbar, go to
+#           :menuselection:`Tools --> Transform Volume`
 #         - Use the rotation and translation slide bars to align the CT
 #           to the MR (be sure to have the CT selected in the upper left menu)
 #         - Save the modified volume using the ``Save Volume As...`` button
@@ -276,32 +286,32 @@ subj_trans = mne.coreg.estimate_head_mri_t(
 # individual subject's anatomical space (T1-space). To do this, we can use the
 # MNE intracranial electrode location graphical user interface.
 #
-# .. note: The most useful coordinate frame for intracranial electrodes is
-#          generally the ``surface RAS`` coordinate frame because that is
-#          the coordinate frame that all the surface and image files that
-#          Freesurfer outputs are in, see :ref:`tut-freesurfer-mne`. These are
-#          useful for finding the brain structures nearby each contact and
-#          plotting the results.
+# .. note:: The most useful coordinate frame for intracranial electrodes is
+#           generally the ``surface RAS`` coordinate frame because that is
+#           the coordinate frame that all the surface and image files that
+#           Freesurfer outputs are in, see :ref:`tut-freesurfer-mne`. These are
+#           useful for finding the brain structures nearby each contact and
+#           plotting the results.
 #
 # To operate the GUI:
 #
-#   - Click in each image to navigate to each electrode contact
-#   - Select the contact name in the right panel
-#   - Press the "Mark" button or the "m" key to associate that
-#     position with that contact
-#   - Repeat until each contact is marked, they will both appear as circles
-#     in the plots and be colored in the sidebar when marked
+# - Click in each image to navigate to each electrode contact
+# - Select the contact name in the right panel
+# - Press the "Mark" button or the "m" key to associate that
+#   position with that contact
+# - Repeat until each contact is marked, they will both appear as circles
+#   in the plots and be colored in the sidebar when marked
 #
-#   .. note:: The channel locations are saved to the ``raw`` object every time
-#             a location is marked or removed so there is no "Save" button.
+# .. note:: The channel locations are saved to the ``raw`` object every time
+#           a location is marked or removed so there is no "Save" button.
 #
-#   .. note:: Using the scroll or +/- arrow keys you can zoom in and out,
-#             and the up/down, left/right and page up/page down keys allow
-#             you to move one slice in any direction. This information is
-#             available in the help menu, accessible by pressing the "h" key.
+# .. note:: Using the scroll or +/- arrow keys you can zoom in and out,
+#           and the up/down, left/right and page up/page down keys allow
+#           you to move one slice in any direction. This information is
+#           available in the help menu, accessible by pressing the "h" key.
 #
-#   .. note:: If "Snap to Center" is on, this will use the radius so be
-#             sure to set it properly.
+# .. note:: If "Snap to Center" is on, this will use the radius so be
+#           sure to set it properly.
 
 # sphinx_gallery_thumbnail_number = 5
 
@@ -417,8 +427,9 @@ plot_overlay(template_brain, subject_brain,
 # This aligns the two brains, preparing the subject's brain to be warped
 # to the template.
 #
-# .. warning:: Here we use custom ``zooms`` just for speed, in general we
-#              recommend using ``zooms=None`` (default) for highest accuracy!
+# .. warning:: Here we use custom ``zooms`` just for speed (this downsamples
+#              the image resolution), in general we recommend using
+#              ``zooms=None`` (default) for highest accuracy!
 
 zooms = dict(translation=10, rigid=10, affine=10, sdr=5)
 reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
@@ -470,6 +481,11 @@ del CT_aligned
 # By accounting for the shape of this particular subject's brain using the
 # SDR to warp the positions of the electrode contacts, the position in the
 # template brain is able to be more accurately estimated.
+#
+# .. note:: The accuracy of warping to the template has been degraded by
+#           using ``zooms`` to downsample the image before registration
+#           which makes some of the contacts inaccurately appear outside
+#           the brain.
 
 # first we need to add fiducials so that we can define the "head" coordinate
 # frame in terms of them (with the origin at the center between LPA and RPA)
