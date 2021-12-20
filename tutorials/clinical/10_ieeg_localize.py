@@ -75,12 +75,13 @@ mne.viz.set_3d_backend('pyvistaqt')
 # First, it is recommended to change the cursor style to long, this can be done
 # through the menu options like so:
 #
-#     ``Freeview -> Preferences -> General -> Cursor style -> Long``
+#     :menuselection:`Freeview --> Preferences --> General --> Cursor style
+#     --> Long`
 #
 # Then, the image needs to be aligned to ACPC to look like the image below.
 # This can be done by pulling up the transform popup from the menu like so:
 #
-#     ``Tools -> Transform Volume...``
+#     :menuselection:`Tools --> Transform Volume`
 #
 # .. note::
 #     Be sure to set the text entry box labeled RAS (not TkReg RAS) to
@@ -208,7 +209,7 @@ del CT_orig
 #           ``freeview $MISC_PATH/seeg/sample_seeg/mri/T1.mgz
 #           $MISC_PATH/seeg/sample_seeg_CT.mgz``
 #         - Navigate to the upper toolbar, go to
-#           :menuselection:`Tools --> Transform Volume...`
+#           :menuselection:`Tools --> Transform Volume`
 #         - Use the rotation and translation slide bars to align the CT
 #           to the MR (be sure to have the CT selected in the upper left menu)
 #         - Save the modified volume using the ``Save Volume As...`` button
