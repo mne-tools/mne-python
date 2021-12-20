@@ -80,7 +80,7 @@ mne.viz.set_3d_backend('pyvistaqt')
 # Then, the image needs to be aligned to ACPC to look like the image below.
 # This can be done by pulling up the transform popup from the menu like so:
 #
-#     ``Tools -> Transform Volume``
+#     ``Tools -> Transform Volume...``
 #
 # .. note::
 #     Be sure to set the text entry box labeled RAS (not TkReg RAS) to
@@ -207,7 +207,8 @@ del CT_orig
 #         - Load the two scans from the command line using
 #           ``freeview $MISC_PATH/seeg/sample_seeg/mri/T1.mgz
 #           $MISC_PATH/seeg/sample_seeg_CT.mgz``
-#         - Navigate to the upper toolbar, go to ``Tools>>Transform Volume...``
+#         - Navigate to the upper toolbar, go to
+#           :menuselection:`Tools --> Transform Volume...`
 #         - Use the rotation and translation slide bars to align the CT
 #           to the MR (be sure to have the CT selected in the upper left menu)
 #         - Save the modified volume using the ``Save Volume As...`` button
@@ -293,23 +294,23 @@ subj_trans = mne.coreg.estimate_head_mri_t(
 #
 # To operate the GUI:
 #
-#   - Click in each image to navigate to each electrode contact
-#   - Select the contact name in the right panel
-#   - Press the "Mark" button or the "m" key to associate that
-#     position with that contact
-#   - Repeat until each contact is marked, they will both appear as circles
-#     in the plots and be colored in the sidebar when marked
+# - Click in each image to navigate to each electrode contact
+# - Select the contact name in the right panel
+# - Press the "Mark" button or the "m" key to associate that
+#   position with that contact
+# - Repeat until each contact is marked, they will both appear as circles
+#   in the plots and be colored in the sidebar when marked
 #
-#   .. note:: The channel locations are saved to the ``raw`` object every time
-#             a location is marked or removed so there is no "Save" button.
+# .. note:: The channel locations are saved to the ``raw`` object every time
+#           a location is marked or removed so there is no "Save" button.
 #
-#   .. note:: Using the scroll or +/- arrow keys you can zoom in and out,
-#             and the up/down, left/right and page up/page down keys allow
-#             you to move one slice in any direction. This information is
-#             available in the help menu, accessible by pressing the "h" key.
+# .. note:: Using the scroll or +/- arrow keys you can zoom in and out,
+#           and the up/down, left/right and page up/page down keys allow
+#           you to move one slice in any direction. This information is
+#           available in the help menu, accessible by pressing the "h" key.
 #
-#   .. note:: If "Snap to Center" is on, this will use the radius so be
-#             sure to set it properly.
+# .. note:: If "Snap to Center" is on, this will use the radius so be
+#           sure to set it properly.
 
 # sphinx_gallery_thumbnail_number = 5
 
@@ -479,6 +480,11 @@ del CT_aligned
 # By accounting for the shape of this particular subject's brain using the
 # SDR to warp the positions of the electrode contacts, the position in the
 # template brain is able to be more accurately estimated.
+#
+# .. note:: The accuracy of warping to the template has been degraded by
+#           using ``zooms`` to downsample the image before registration
+#           which makes some of the contacts inaccurately appear outside
+#           the brain.
 
 # first we need to add fiducials so that we can define the "head" coordinate
 # frame in terms of them (with the origin at the center between LPA and RPA)
