@@ -82,11 +82,10 @@ class ComboBox(QComboBox):
 
 
 def _make_slice_plot(width=4, height=4, dpi=300):
-    fig = Figure(figsize=(width, height))
+    fig = Figure(figsize=(width, height), dpi=dpi)
     canvas = FigureCanvas(fig)
     ax = fig.subplots()
-    fig.subplots_adjust(bottom=0, left=0, right=1,
-                        top=1, wspace=0, hspace=0)
+    fig.subplots_adjust(bottom=0, left=0, right=1, top=1, wspace=0, hspace=0)
     ax.set_facecolor('k')
     # clean up excess plot text, invert
     ax.invert_yaxis()
@@ -158,7 +157,9 @@ class IntracranialElectrodeLocator(QMainWindow):
         # Channel selector
         self._ch_list = QListView()
         self._ch_list.setSelectionMode(Qt.QAbstractItemView.SingleSelection)
-        self._ch_list.setMinimumWidth(150)
+        max_ch_name_len = max([len(name) for name in self._chs])
+        self._ch_list.setMinimumWidth(max_ch_name_len * 10)
+        self._ch_list.setMaximumWidth(max_ch_name_len * 10)
         self._set_ch_names()
 
         # Plots

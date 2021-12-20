@@ -1,5 +1,7 @@
 .. include:: ../links.inc
 
+.. _quick-start:
+
 Quick start
 ===========
 

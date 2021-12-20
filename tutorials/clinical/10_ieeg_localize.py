@@ -18,6 +18,9 @@ to MR-space. This accomplishes our goal of obtaining contact locations in
 MR-space (which is where the brain structures are best determined using the
 :ref:`tut-freesurfer-reconstruction`). Contact locations in MR-space can also
 be warped to a template space such as ``fsaverage`` for group comparisons.
+Please note that this tutorial requires ``nibabel``, ``nilearn`` and ``dipy``
+which can be installed using ``pip`` as well as 3D plotting
+(see :ref:`quick-start`).
 """
 
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
@@ -47,6 +50,9 @@ subjects_dir = op.join(sample_path, 'subjects')
 
 # use mne-python's fsaverage data
 fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
+
+# GUI requires pyvista backend
+mne.viz.set_3d_backend('pyvistaqt')
 
 ###############################################################################
 # Aligning the T1 to ACPC
@@ -108,6 +114,8 @@ viewer.figs[0].axes[0].annotate(
 # This process segments out the brain from the rest of the MR image and
 # determines which voxels correspond to each brain area based on a template
 # deformation. This process takes approximately 8 hours so plan accordingly.
+# The example dataset contains the data from completed reconstruction so
+# we will proceed using that.
 #
 # .. code-block:: bash
 #
@@ -276,12 +284,12 @@ subj_trans = mne.coreg.estimate_head_mri_t(
 # individual subject's anatomical space (T1-space). To do this, we can use the
 # MNE intracranial electrode location graphical user interface.
 #
-# .. note: The most useful coordinate frame for intracranial electrodes is
-#          generally the ``surface RAS`` coordinate frame because that is
-#          the coordinate frame that all the surface and image files that
-#          Freesurfer outputs are in, see :ref:`tut-freesurfer-mne`. These are
-#          useful for finding the brain structures nearby each contact and
-#          plotting the results.
+# .. note:: The most useful coordinate frame for intracranial electrodes is
+#           generally the ``surface RAS`` coordinate frame because that is
+#           the coordinate frame that all the surface and image files that
+#           Freesurfer outputs are in, see :ref:`tut-freesurfer-mne`. These are
+#           useful for finding the brain structures nearby each contact and
+#           plotting the results.
 #
 # To operate the GUI:
 #
@@ -417,8 +425,9 @@ plot_overlay(template_brain, subject_brain,
 # This aligns the two brains, preparing the subject's brain to be warped
 # to the template.
 #
-# .. warning:: Here we use custom ``zooms`` just for speed, in general we
-#              recommend using ``zooms=None`` (default) for highest accuracy!
+# .. warning:: Here we use custom ``zooms`` just for speed (this downsamples
+#              the image resolution), in general we recommend using
+#              ``zooms=None`` (default) for highest accuracy!
 
 zooms = dict(translation=10, rigid=10, affine=10, sdr=5)
 reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
