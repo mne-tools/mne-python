@@ -72,7 +72,7 @@ Once the electrode locations are found both in relation to individual subject an
 
 ![a) The anatomical labels for an sEEG electrode shaft are shown as the contacts progress from deep (starting with 1) to superficial regions. b) The anatomical surfaces that sEEG electrodes pass through are rendered along with the trajectory of the electrode shaft. c) A time-frequency decomposition of the ECoG data rendered on top of a 3D image of the brain showing the location of the grid implant.](figures/Figure_6.png)
 
-These intracranial location and analysis steps are shown in the MNE-Python tutorials "Locating intracranial electrode contacts", "Working with sEEG data" and "Working with ECoG data".
+These intracranial location and analysis steps are shown in the MNE-Python tutorials [Locating intracranial electrode contacts](https://mne.tools/dev/auto_tutorials/clinical/10_ieeg_localize.html), [Working with sEEG data](https://mne.tools/dev/auto_tutorials/clinical/20_seeg.html) and [Working with ECoG data](https://mne.tools/dev/auto_tutorials/clinical/30_ecog.html), which require the dependencies ``nibabel`` [@BrettEtAl2020], ``nilearn`` [@AbrahamEtAl2014], ``dipy`` [@GaryfallidisEtAl2014], ``mne-bids`` [@AppelhoffEtAl2019], ``pyvistaqt`` [@SullivanAndKaszynski2019] and ``Freesurfer`` [@DaleEtAl1999].
 
 # Statement of need
 
