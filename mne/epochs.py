@@ -2501,6 +2501,27 @@ class AnnotationsMixin():
     def annotations(self):  # noqa: D102
         return self._annotations
 
+    def set_annotations(self, annotations):
+        """Setter for Epoch annotations.
+
+        Currently only works to set ``annotations`` as ``None``.
+
+        Parameters
+        ----------
+        annotations : instance of mne.Annotations | None
+            Annotations to set.
+
+        Returns
+        -------
+        self : instance of Raw
+            The raw object with annotations.
+        """
+        if annotations is not None:
+            raise RuntimeError('Setting Annotations within Epochs directly '
+                               'is not supported yet.')
+        self._set_annotations(annotations)
+        return self
+
     @verbose
     def _set_annotations(self, annotations, on_missing='raise'):
         """Setter for Epoch annotations from Raw.

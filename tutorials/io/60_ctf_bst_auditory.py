@@ -229,14 +229,11 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=['meg', 'eog'],
 # epoch from the second run corresponds to index 182.
 epochs.drop_bad()
 
-with warnings.catch_warnings(record=True):
-    # ignore warning about Annotations not being preserved
-    # in Epoch concatenations
-    # XXX: remove this when concatenation of Epochs is supported
-    warnings.simplefilter('ignore')
-    epochs_standard = mne.concatenate_epochs(
-        [epochs['standard'][range(40)],
-         epochs['standard'][182:222]])
+# avoid warning about concatenating with annotations
+epochs.set_annotations(None)
+
+epochs_standard = mne.concatenate_epochs([epochs['standard'][range(40)],
+                                          epochs['standard'][182:222]])
 epochs_standard.load_data()  # Resampling to save memory.
 epochs_standard.resample(600, npad='auto')
 epochs_deviant = epochs['deviant'].load_data()
