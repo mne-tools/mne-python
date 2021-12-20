@@ -87,7 +87,9 @@ saturated : str
     .. versionadded:: 0.24
 """
 docdict['nirx_notes'] = """\
-This function has only been tested with NIRScout and NIRSport1 devices.
+This function has only been tested with NIRScout and NIRSport devices,
+and with the NIRStar software version 15 and above and Aurora software
+2021 and above.
 
 The NIRSport device can detect if the amplifier is saturated.
 Starting from NIRStar 14.2, those saturated values are replaced by NaNs
