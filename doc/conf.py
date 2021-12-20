@@ -832,6 +832,7 @@ def reset_warnings(gallery_conf, fname):
                 "DocumenterBridge requires a state object",  # sphinx dev
                 "'U' mode is deprecated",  # sphinx io
                 r"joblib is deprecated in 0\.21",  # nilearn
+                'distutils Version classes are deprecated',  # nilearn
                 'The usage of `cmp` is deprecated and will',  # sklearn/pytest
                 'scipy.* is deprecated and will be removed in',  # dipy
                 r'Converting `np\.character` to a dtype is deprecated',  # vtk
