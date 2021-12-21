@@ -3877,12 +3877,12 @@ def test_epoch_annotations_cases(tmp_path):
     assert 'multiple' in second_epoch_ant
     assert 'multiple' in first_epoch_ant
 
-    # test that concatenation does not preserve epochs
+    # test that concatenation does not preserve annotations
     old_epochs = epochs.copy()
     with pytest.warns(RuntimeWarning, match='Annotations'):
         concatenate_epochs([epochs, epochs_one])
 
-    # concatenation should not change the Epochs annotations
+    # concatenation should not change the *input* Epochs' annotations
     assert epochs.annotations == old_epochs.annotations
 
 
@@ -3931,7 +3931,7 @@ def test_epochs_saving_with_annotations(tmp_path):
     epoch_size = (3,) + data.shape
     data = rng.random(epoch_size)
     epochs = EpochsArray(data, info)
-    assert epochs._raw_sfreq is not None
+    assert epochs._raw_sfreq == info['sfreq']
     assert epochs.annotations is None
 
     epochs.save(fname, overwrite=True)

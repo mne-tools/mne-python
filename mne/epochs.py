@@ -150,9 +150,8 @@ def _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx):
     #
     annotations = getattr(epochs, 'annotations', [])
     # don't save empty annot
-    if annotations is not None:
-        if len(annotations) > 0:
-            _write_annotations(fid, annotations)
+    if annotations is not None and len(annotations):
+        _write_annotations(fid, annotations)
 
     # write Epoch event windows
     start_block(fid, FIFF.FIFFB_MNE_EVENTS)
