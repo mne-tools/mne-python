@@ -227,6 +227,10 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=['meg', 'eog'],
 # epochs collection. Investigation of the event timings reveals that first
 # epoch from the second run corresponds to index 182.
 epochs.drop_bad()
+
+# avoid warning about concatenating with annotations
+epochs.set_annotations(None)
+
 epochs_standard = mne.concatenate_epochs([epochs['standard'][range(40)],
                                           epochs['standard'][182:222]])
 epochs_standard.load_data()  # Resampling to save memory.
