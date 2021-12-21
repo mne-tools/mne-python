@@ -34,7 +34,6 @@ The specifications of this dataset were discussed initially on the
 import os.path as op
 import pandas as pd
 import numpy as np
-import warnings
 
 import mne
 from mne import combine_evoked
