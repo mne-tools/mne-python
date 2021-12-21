@@ -3175,17 +3175,6 @@ def _read_one_epoch_file(f, tree, preload):
 
         # read in the Annotations if they exist
         annotations = _read_annotations_fif(fid, tree)
-
-        raw_sfreq_node = dir_tree_find(tree, FIFF.FIFF_MNE_EPOCHS_RAW_SFREQ)
-        if len(raw_sfreq_node) > 0:
-            # before version 0.11 we errantly saved with this tag instead of
-            # an MNE tag
-            epochs_node = dir_tree_find(tree, FIFF.FIFFB_MNE_EPOCHS)
-            if len(epochs_node) == 0:
-                epochs_node = dir_tree_find(tree, 122)  # 122 used before v0.11
-                if len(epochs_node) == 0:
-                    raise ValueError('Could not find epochs data')
-
         events, mappings = _read_events_fif(fid, tree)
 
         #   Metadata
