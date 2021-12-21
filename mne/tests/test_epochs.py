@@ -3887,6 +3887,7 @@ def test_epoch_annotations_cases(tmp_path):
 
 
 def test_epochs_saving_with_annotations(tmp_path):
+    """Test Epochs save correctly with Annotations."""
     # set up a test dataset
     data = np.random.RandomState(0).randn(1, 600)
     sfreq = 100.
