@@ -62,6 +62,34 @@ event_id_2 = np.int64(2)  # to test non Python int types
 rng = np.random.RandomState(42)
 
 
+def _create_epochs_with_annotations():
+    """Create test dataset of Epochs with Annotations."""
+    # set up a test dataset
+    data = rng.randn(1, 600)
+    sfreq = 100.
+    info = create_info(ch_names=['MEG1'], ch_types=['grad'], sfreq=sfreq)
+    raw = RawArray(data, info)
+    ant_dur = 0.4
+    ants = Annotations(
+        onset=[0.4, 0.5, 1.4, 1.6, 3.0, 5.4],
+        duration=[ant_dur, ant_dur, ant_dur, 0, 2.0, 0],
+        description=['before', 'start', 'stop',
+                     'outside', 'multiple', 'bad_noisy'],
+    )
+    raw.set_annotations(ants)
+
+    # Create Epochs that are spaced apart with a start point every
+    # two seconds in the Raw data starting at 1 seconds. The Epochs
+    # will contain the Raw data in these second windows:
+    # - (0.5, 1.5)
+    # - (2.5, 3.5)
+    # - (4.5, 5.5)
+    events = np.zeros((3, 3), dtype=int)
+    events[:, 0] = [100, 300, 500]
+    epochs = Epochs(raw, events=events, tmin=-0.5, tmax=0.5)
+    return epochs, raw, events
+
+
 def test_event_repeated():
     """Test epochs takes into account repeated events."""
     n_samples = 100
@@ -3800,28 +3828,7 @@ def test_epoch_annotations_cases(tmp_path):
     In addition, tests functionality when Epochs are loaded vs not.
     """
     # set up a test dataset
-    data = np.random.RandomState(0).randn(1, 600) * 10e-12
-    sfreq = 100.
-    info = create_info(ch_names=['MEG1'], ch_types=['grad'], sfreq=sfreq)
-    raw = RawArray(data, info)
-    ant_dur = 0.4
-    ants = Annotations(
-        onset=[0.4, 0.5, 1.4, 1.6, 3.0, 5.4],
-        duration=[ant_dur, ant_dur, ant_dur, 0, 2.0, 0],
-        description=['before', 'start', 'stop',
-                     'outside', 'multiple', 'bad_noisy'],
-    )
-    raw.set_annotations(ants)
-
-    # Create Epochs that are spaced apart with a start point every
-    # two seconds in the Raw data starting at 1 seconds. The Epochs
-    # will contain the Raw data in these second windows:
-    # - (0.5, 1.5)
-    # - (2.5, 3.5)
-    # - (4.5, 5.5)
-    events = np.zeros((3, 3), dtype=int)
-    events[:, 0] = [100, 300, 500]
-    epochs = Epochs(raw, events=events, tmin=-0.5, tmax=0.5)
+    epochs, raw, events = _create_epochs_with_annotations()
     epoch_ants = epochs.get_annotations_per_epoch()
 
     # assert 'outside' is not in any Epoch
@@ -3888,23 +3895,8 @@ def test_epoch_annotations_cases(tmp_path):
 
 def test_epochs_saving_with_annotations(tmp_path):
     """Test Epochs save correctly with Annotations."""
-    # set up a test dataset
-    data = np.random.RandomState(0).randn(1, 600)
-    sfreq = 100.
-    info = create_info(ch_names=['MEG1'], ch_types=['grad'], sfreq=sfreq)
-    raw = RawArray(data, info)
-    ant_dur = 0.4
-    ants = Annotations(
-        onset=[0.4, 0.5, 1.4, 1.6, 3.0, 5.4],
-        duration=[ant_dur, ant_dur, ant_dur, 0, 2.0, 0],
-        description=['before', 'start', 'stop',
-                     'outside', 'multiple', 'bad_noisy'],
-    )
-    raw.set_annotations(ants)
-
-    events = np.zeros((3, 3), dtype=int)
-    events[:, 0] = [100, 300, 500]
-    epochs = Epochs(raw, events=events, tmin=-0.5, tmax=0.5)
+    epochs, _, _ = _create_epochs_with_annotations()
+    info = epochs.info
 
     # test what happens when we save to disc and reload
     fname = tmp_path / 'test_epo.fif'
@@ -3928,7 +3920,7 @@ def test_epochs_saving_with_annotations(tmp_path):
 
     # if we set up EpochsArray and save it, it should have raw_sfreq
     # and annotations even without explicit support
-    epoch_size = (3,) + data.shape
+    epoch_size = epochs.get_data().shape
     data = rng.random(epoch_size)
     epochs = EpochsArray(data, info)
     assert epochs._raw_sfreq == info['sfreq']

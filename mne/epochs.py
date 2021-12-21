@@ -2761,9 +2761,10 @@ class EpochsArray(BaseEpochs):
     * Am: dipole
     * AU: misc
 
-    EpochsArray does not support `Annotations`. If you would like to create
-    simulated data with Annotations, you would use `mne.io.RawArray` first
-    and then create an `mne.Epochs` object.
+    EpochsArray does not set `Annotations`. If you would like to create
+    simulated data with Annotations that are then preserved in the Epochs
+    object, you would use `mne.io.RawArray` first and then create an
+    `mne.Epochs` object.
     """
 
     @verbose
