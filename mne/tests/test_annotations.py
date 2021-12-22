@@ -270,6 +270,36 @@ def test_crop(tmp_path):
         assert_allclose(getattr(raw_copied.annotations, attr),
                         getattr(raw_loaded.annotations, attr))
 
+def test_crop_raw_with_annotations():
+    # generate a sample dataset from noise
+    n_channels = 2
+    sampling_freq = 500
+    length_seconds = 60
+
+    info = mne.create_info(n_channels, sfreq=sampling_freq,
+                            ch_types=['eeg', 'eeg'])
+    data =  np.random.randn(n_channels, sampling_freq * length_seconds)
+    simulated_raw = mne.io.RawArray(data, info)
+
+    # insert annotations at 0, 10, 20, and 30 seconds
+    annotations = mne.Annotations(onset=[0, 10, 20, 30],
+                                duration=[0, 0, 0, 0],
+                                description=['test'] * 4)
+    simulated_raw.set_annotations(annotations)
+
+    # crop a copy of the data, setting 'include_tmax' to False,
+    # (up to but not including 20 seconds)
+    simulated_cropped = simulated_raw.copy().crop(tmin=0, tmax=20,
+                                             include_tmax=False)
+    # issue #9383
+    # final timestamp is 19.998, which is correct (data is at 500 Hz,
+    # we wanted up to but not including 20 seconds)
+    # print('Final time is {}'.format(simulated_cropped.times[-1]))
+    # but the annotation that occurs at the 20 second point is retained
+    # print(simulated_cropped.annotations[-1])
+    # include_tmax set when cropping raw should be passed down into set_annotations
+    assert_equal(len(simulated_cropped.annotations), 2)
+
 
 @first_samps
 def test_chunk_duration(first_samp):

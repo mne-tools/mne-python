@@ -651,7 +651,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     def set_annotations(self, annotations, emit_warning=True,
-                        on_missing='raise', *, verbose=None):
+                        on_missing='raise', *, verbose=None, include_tmax=True):
         """Setter for annotations.
 
         This setter checks if they are inside the data range.
@@ -692,14 +692,16 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             new_annotations = annotations.copy()
             new_annotations._prune_ch_names(self.info, on_missing)
             if annotations.orig_time is None:
+                # note that (self.times[-1] + delta) might be equal to the original
+                # end time of the cropping of the raw
                 new_annotations.crop(0, self.times[-1] + delta,
-                                     emit_warning=emit_warning)
+                                     emit_warning=emit_warning, include_tmax=include_tmax)
                 new_annotations.onset += self._first_time
             else:
                 tmin = meas_date + timedelta(0, self._first_time)
                 tmax = tmin + timedelta(seconds=self.times[-1] + delta)
                 new_annotations.crop(tmin=tmin, tmax=tmax,
-                                     emit_warning=emit_warning)
+                                     emit_warning=emit_warning, include_tmax=include_tmax)
                 new_annotations.onset -= (
                     meas_date - new_annotations.orig_time).total_seconds()
             new_annotations._orig_time = meas_date
@@ -1350,7 +1352,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         if self.annotations.orig_time is None:
             self.annotations.onset -= tmin
         # now call setter to filter out annotations outside of interval
-        self.set_annotations(self.annotations, False)
+        self.set_annotations(self.annotations, emit_warning=False, include_tmax=include_tmax)
 
         return self
 
