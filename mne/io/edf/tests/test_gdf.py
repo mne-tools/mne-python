@@ -1,8 +1,9 @@
 # Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
 #          Nicolas Barascud <nicolas.barascud@ens.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
+from datetime import datetime, timezone, timedelta
 import os.path as op
 import shutil
 
@@ -15,7 +16,6 @@ import scipy.io as sio
 from mne.datasets import testing
 from mne.io import read_raw_gdf
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import run_tests_if_main
 from mne import pick_types, find_events, events_from_annotations
 
 data_path = testing.data_path(download=False)
@@ -58,11 +58,18 @@ def test_gdf_data():
 
 
 @testing.requires_testing_data
-def test_gdf2_birthday(tmpdir):
+def test_gdf2_birthday(tmp_path):
     """Test reading raw GDF 2.x files."""
-    new_fname = str(tmpdir.join('temp.gdf'))
+    new_fname = tmp_path / 'temp.gdf'
     shutil.copyfile(gdf2_path + '.gdf', new_fname)
-    d = int(3.1e15)  # chosen by trial and error to give a reasonable age
+    # go back 44.5 years so the subject should show up as 44
+    offset_edf = (  # to their ref
+        datetime.now(tz=timezone.utc) -
+        datetime(1, 1, 1, tzinfo=timezone.utc)
+    )
+    offset_44_yr = offset_edf - timedelta(days=int(365 * 44.5))  # 44.5 yr ago
+    offset_44_yr_days = offset_44_yr.total_seconds() / (24 * 60 * 60)  # days
+    d = (int(offset_44_yr_days) + 367) * 2 ** 32  # with their conversion
     with open(new_fname, 'r+b') as fid:
         fid.seek(176, 0)
         assert np.fromfile(fid, np.uint64, 1)[0] == 0
@@ -125,6 +132,8 @@ def test_gdf_exclude_channels():
     raw = read_raw_gdf(gdf2_path + '.gdf', exclude=('Fp1', 'O1'))
     assert 'Fp1' not in raw.ch_names
     assert 'O1' not in raw.ch_names
-
-
-run_tests_if_main()
+    raw = read_raw_gdf(gdf2_path + '.gdf', exclude=".+z$")
+    assert 'AFz' not in raw.ch_names
+    assert 'Cz' not in raw.ch_names
+    assert 'Pz' not in raw.ch_names
+    assert 'Oz' not in raw.ch_names

@@ -3,7 +3,7 @@
 #          Yousra Bekhti <yousra.bekhti@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from collections.abc import Iterable
 
@@ -16,10 +16,9 @@ from ..io.pick import (pick_types, pick_info, pick_channels,
 from ..cov import make_ad_hoc_cov, read_cov, Covariance
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
 from ..io import RawArray, BaseRaw, Info
-from ..chpi import (read_head_pos, head_pos_to_trans_rot_t, _get_hpi_info,
+from ..chpi import (read_head_pos, head_pos_to_trans_rot_t, get_chpi_info,
                     _get_hpi_initial_fit)
 from ..io.constants import FIFF
-from ..fixes import einsum
 from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
                        _stc_src_sel, convert_forward_solution,
                        _prepare_for_forward, _transform_orig_meg_coils,
@@ -33,6 +32,7 @@ from ..surface import _CheckInside
 from ..utils import (logger, verbose, check_random_state, _pl, _validate_type,
                      _check_preload)
 from ..parallel import check_n_jobs
+from .source import SourceSimulator
 
 
 def _check_cov(info, cov):
@@ -110,8 +110,11 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
             raise RuntimeError('All position times must be <= t_end (%0.1f '
                                'sec), found %s/%s bad values (is this a split '
                                'file?)' % (times[-1], bad.sum(), len(bad)))
+    # If it starts close to zero, make it zero (else unique(offset) fails)
+    if len(ts) > 0 and ts[0] < (0.5 / info['sfreq']):
+        ts[0] = 0.
     # If it doesn't start at zero, insert one at t=0
-    if len(ts) == 0 or ts[0] > 0:
+    elif len(ts) == 0 or ts[0] > 0:
         ts = np.r_[[0.], ts]
         dev_head_ts.insert(0, info['dev_head_t']['trans'])
     dev_head_ts = [{'trans': d, 'to': info['dev_head_t']['to'],
@@ -135,12 +138,11 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
 
     Parameters
     ----------
-    info : instance of Info
-        The channel information to use for simulation.
+    %(info_not_none)s Used for simulation.
 
         .. versionchanged:: 0.18
            Support for :class:`mne.Info`.
-    stc : iterable | SourceEstimate
+    stc : iterable | SourceEstimate | SourceSimulator
         The source estimates to use to simulate data. Each must have the same
         sample rate as the raw data, and the vertices of all stcs in the
         iterable must match. Each entry in the iterable can also be a tuple of
@@ -149,7 +151,8 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         See Notes for details.
 
         .. versionchanged:: 0.18
-           Support for tuple, and iterable of tuple or SourceEstimate.
+           Support for tuple, iterable of tuple or `~mne.SourceEstimate`,
+           or `~mne.simulation.SourceSimulator`.
     trans : dict | str | None
         Either a transformation filename (usually made using mne_analyze)
         or an info dict (usually opened using read_trans()).
@@ -166,7 +169,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         solution filename (e.g., "sample-5120-5120-5120-bem-sol.fif").
         Can be None if ``forward`` is provided.
     %(head_pos)s
-        See for example [1]_.
+        See for example :footcite:`LarsonTaulu2017`.
     mindist : float
         Minimum distance between sources and the inner skull boundary
         to use during forward calculation.
@@ -237,9 +240,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
 
     References
     ----------
-    .. [1] Larson E, Taulu S (2017). "The Importance of Properly Compensating
-           for Head Movements During MEG Acquisition Across Different Age
-           Groups." Brain Topogr 30:172–181
+    .. footbibliography::
     """  # noqa: E501
     _validate_type(info, Info, 'info')
     raw_verbose = verbose
@@ -273,8 +274,10 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
     logger.info('Setting up raw simulation: %s position%s, "%s" interpolation'
                 % (len(dev_head_ts), _pl(dev_head_ts), interp))
 
+    if isinstance(stc, SourceSimulator) and stc.first_samp != first_samp:
+        logger.info('SourceSimulator first_samp does not match argument.')
+
     stc_enum, stc_counted, verts = _check_stc_iterable(stc, info)
-    # del stc
     if forward is not None:
         forward = restrict_forward_to_stc(forward, verts)
         src = forward['src']
@@ -314,7 +317,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
             None if n == 0 else verts)
         if event_ch is not None:
             this_data[event_ch, :] = stim_data[:n_doing]
-        this_data[meeg_picks] = einsum('svt,vt->st', fwd, stc_data)
+        this_data[meeg_picks] = np.einsum('svt,vt->st', fwd, stc_data)
         try:
             stc_counted = next(stc_enum)
         except StopIteration:
@@ -369,7 +372,7 @@ def add_eog(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
     1. Random activation times are drawn from an inhomogeneous poisson
        process whose blink rate oscillates between 4.5 blinks/minute
        and 17 blinks/minute based on the low (reading) and high (resting)
-       blink rates from [1]_.
+       blink rates from :footcite:`BentivoglioEtAl1997`.
     2. The activation kernel is a 250 ms Hanning window.
     3. Two activated dipoles are located in the z=0 plane (in head
        coordinates) at ±30 degrees away from the y axis (nasion).
@@ -382,8 +385,7 @@ def add_eog(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
 
     References
     ----------
-    .. [1] Bentivoglio et al. "Analysis of blink rate patterns in normal
-           subjects" Movement Disorders, 1997 Nov;12(6):1028-34.
+    .. footbibliography::
     """
     return _add_exg(raw, 'blink', head_pos, interp, n_jobs, random_state)
 
@@ -524,7 +526,7 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
     proc_lims = np.concatenate([np.arange(0, len(used), 10000), [len(used)]])
     for start, stop in zip(proc_lims[:-1], proc_lims[1:]):
         fwd, _ = interper.feed(stop - start)
-        data[picks, start:stop] += einsum(
+        data[picks, start:stop] += np.einsum(
             'svt,vt->st', fwd, exg_data[:, start:stop])
         assert not used[start:stop].any()
         used[start:stop] = True
@@ -560,7 +562,7 @@ def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=1, verbose=None):
     if len(meg_picks) == 0:
         raise RuntimeError('Cannot add cHPI if no MEG picks are present')
     dev_head_ts, offsets = _check_head_pos(head_pos, info, first_samp, times)
-    hpi_freqs, hpi_pick, hpi_ons = _get_hpi_info(info)
+    hpi_freqs, hpi_pick, hpi_ons = get_chpi_info(info, on_missing='raise')
     hpi_rrs = _get_hpi_initial_fit(info, verbose='error')
     hpi_nns = hpi_rrs / np.sqrt(np.sum(hpi_rrs * hpi_rrs,
                                        axis=1))[:, np.newaxis]
@@ -571,7 +573,8 @@ def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=1, verbose=None):
     sinusoids = 70e-9 * np.sin(2 * np.pi * hpi_freqs[:, np.newaxis] *
                                (np.arange(len(times)) / info['sfreq']))
     info = pick_info(info, meg_picks)
-    info.update(projs=[], bads=[])  # Ensure no 'projs' or 'bads'
+    with info._unlock():
+        info.update(projs=[], bads=[])  # Ensure no 'projs' or 'bads'
     megcoils, _, _, _ = _prep_meg_channels(info, ignore_ref=False)
     used = np.zeros(len(raw.times), bool)
     dev_head_ts.append(dev_head_ts[-1])  # ZOH after time ends
@@ -580,7 +583,7 @@ def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=1, verbose=None):
     lims = np.concatenate([offsets, [len(raw.times)]])
     for start, stop in zip(lims[:-1], lims[1:]):
         fwd, = interper.feed(stop - start)
-        data[meg_picks, start:stop] += einsum(
+        data[meg_picks, start:stop] += np.einsum(
             'svt,vt->st', fwd, sinusoids[:, start:stop])
         assert not used[start:stop].any()
         used[start:stop] = True
@@ -687,7 +690,8 @@ def _iter_forward_solutions(info, trans, src, bem, dev_head_ts, mindist,
     """Calculate a forward solution for a subject."""
     logger.info('Setting up forward solutions')
     info = pick_info(info, picks)
-    info.update(projs=[], bads=[])  # Ensure no 'projs' or 'bads'
+    with info._unlock():
+        info.update(projs=[], bads=[])  # Ensure no 'projs' or 'bads'
     mri_head_t, trans = _get_trans(trans)
     megcoils, meg_info, compcoils, megnames, eegels, eegnames, rr, info, \
         update_kwargs, bem = _prepare_for_forward(

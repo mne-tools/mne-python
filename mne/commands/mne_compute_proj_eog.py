@@ -5,7 +5,7 @@ Examples
 --------
 .. code-block:: console
 
-    $ mne compute_proj_eog -i sample_audvis_raw.fif \
+    $ mne compute_proj_eog -i sample_audvis_raw.fif -a \
                            --l-freq 1 --h-freq 35 \
                            --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
 
@@ -13,7 +13,7 @@ or
 
 .. code-block:: console
 
-    $ mne compute_proj_eog -i sample_audvis_raw.fif \
+    $ mne compute_proj_eog -i sample_audvis_raw.fif -a \
                            --l-freq 1 --h-freq 35 \
                            --rej-grad 3000 --rej-mag 4000 --rej-eeg 100 \
                            --proj sample_audvis_ecg-proj.fif
@@ -65,7 +65,7 @@ def run():
                       "save memory)", default=True)
     parser.add_option("-a", "--average", dest="average", action="store_true",
                       help="Compute SSP after averaging",
-                      default=False)  # XXX: change to default=True in 0.17
+                      default=False)
     parser.add_option("--proj", dest="proj",
                       help="Use SSP projections from a fif file.",
                       default=None)
@@ -166,7 +166,7 @@ def run():
     else:
         raw_event = raw
 
-    flat = None  # XXX : not exposed to the user
+    flat = None
     projs, events = mne.preprocessing.compute_proj_eog(
         raw=raw, raw_event=raw_event, tmin=tmin, tmax=tmax, n_grad=n_grad,
         n_mag=n_mag, n_eeg=n_eeg, l_freq=l_freq, h_freq=h_freq,

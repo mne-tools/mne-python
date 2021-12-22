@@ -1,10 +1,12 @@
+# requirements for full MNE-Python functionality (other than raw/epochs export)
 numpy>=1.15.4
 scipy>=1.1.0
 matplotlib
 pyqt5>=5.10,<5.14; platform_system == "Darwin"
-pyqt5>=5.10,!=5.15.2; platform_system == "Linux"
-pyqt5>=5.10; platform_system != "Linux" and platform_system != "Darwin"
+pyqt5>=5.10,!=5.15.2,!=5.15.3; platform_system == "Linux"
+pyqt5>=5.10,!=5.15.3; platform_system == "Windows"
 pyqt5-sip
+pyobjc-framework-Cocoa>=5.2.0; platform_system=="Darwin"
 sip
 scikit-learn
 nibabel
@@ -18,15 +20,17 @@ statsmodels
 joblib
 psutil
 dipy
-vtk<8.2; platform_system == "Darwin"
-vtk; platform_system != "Darwin"
-mayavi
-PySurfer[save_movie]
+vtk
 nilearn
 xlrd
 imageio>=2.6.1
 imageio-ffmpeg>=0.4.1
-pyvista>=0.24
-pyvistaqt>=0.2.0
+traitlets
+pyvista>=0.32
+pyvistaqt>=0.4
 tqdm
 mffpy>=0.5.7
+ipywidgets
+ipyvtklink
+pooch>=1.5
+mne-qt-browser

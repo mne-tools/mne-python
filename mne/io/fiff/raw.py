@@ -4,7 +4,7 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import copy
 import os
@@ -25,7 +25,7 @@ from ...annotations import Annotations, _read_annotations_fif
 
 from ...event import AcqParserFIF
 from ...utils import (check_fname, logger, verbose, warn, fill_doc, _file_like,
-                      _on_missing)
+                      _on_missing, _check_fname)
 
 
 @fill_doc
@@ -36,10 +36,11 @@ class Raw(BaseRaw):
     ----------
     fname : str | file-like
         The raw filename to load. For files that have automatically been split,
-        the split part will be automatically loaded. Filenames should end
-        with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif,
-        raw_tsss.fif.gz, or _meg.fif. If a file-like object is provided,
-        preloading must be used.
+        the split part will be automatically loaded. Filenames not ending with
+        ``raw.fif``, ``raw_sss.fif``, ``raw_tsss.fif``, ``_meg.fif``,
+        ``_eeg.fif``,  or ``_ieeg.fif`` (with or without an optional additional
+        ``.gz`` extension) will generate a warning. If a file-like object is
+        provided, preloading must be used.
 
         .. versionchanged:: 0.18
            Support for file-like objects.
@@ -55,8 +56,7 @@ class Raw(BaseRaw):
 
     Attributes
     ----------
-    info : dict
-        :class:`Measurement info <mne.Info>`.
+    %(info_not_none)s
     ch_names : list of string
         List of channels' names.
     n_times : int
@@ -74,13 +74,13 @@ class Raw(BaseRaw):
     def __init__(self, fname, allow_maxshield=False, preload=False,
                  on_split_missing='raise', verbose=None):  # noqa: D102
         raws = []
-        do_check_fname = not _file_like(fname)
+        do_check_ext = not _file_like(fname)
         next_fname = fname
         while next_fname is not None:
             raw, next_fname, buffer_size_sec = \
                 self._read_raw_file(next_fname, allow_maxshield,
-                                    preload, do_check_fname)
-            do_check_fname = False
+                                    preload, do_check_ext)
+            do_check_ext = False
             raws.append(raw)
             if next_fname is not None:
                 if not op.exists(next_fname):
@@ -131,18 +131,19 @@ class Raw(BaseRaw):
 
     @verbose
     def _read_raw_file(self, fname, allow_maxshield, preload,
-                       do_check_fname=True, verbose=None):
+                       do_check_ext=True, verbose=None):
         """Read in header information from a raw file."""
         logger.info('Opening raw data file %s...' % fname)
 
         #   Read in the whole file if preload is on and .fif.gz (saves time)
         if not _file_like(fname):
-            if do_check_fname:
-                check_fname(fname, 'raw', (
-                    'raw.fif', 'raw_sss.fif', 'raw_tsss.fif', 'raw.fif.gz',
-                    'raw_sss.fif.gz', 'raw_tsss.fif.gz', '_meg.fif'))
+            if do_check_ext:
+                endings = ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
+                           '_meg.fif', '_eeg.fif', '_ieeg.fif')
+                endings += tuple([f'{e}.gz' for e in endings])
+                check_fname(fname, 'raw', endings)
             # filename
-            fname = op.realpath(fname)
+            fname = _check_fname(fname, 'read', True, 'fname')
             ext = os.path.splitext(fname)[1].lower()
             whole_file = preload if '.gz' in ext else False
             del ext
@@ -168,7 +169,8 @@ class Raw(BaseRaw):
                     if (len(raw_node) == 0):
                         raise ValueError('No raw data in %s' % fname_rep)
                     _check_maxshield(allow_maxshield)
-                    info['maxshield'] = True
+                    with info._unlock():
+                        info['maxshield'] = True
             del meas
 
             if len(raw_node) == 1:
@@ -200,6 +202,11 @@ class Raw(BaseRaw):
             raw = _RawShell()
             raw.filename = fname
             raw.first_samp = first_samp
+            if info['meas_date'] is None and annotations is not None:
+                # we need to adjust annotations.onset as when there is no meas
+                # date set_annotations considers that the origin of time is the
+                # first available sample (ignores first_samp)
+                annotations.onset -= first_samp / info['sfreq']
             raw.set_annotations(annotations)
 
             #   Go through the remaining tags in the directory
@@ -467,6 +474,11 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False,
     Notes
     -----
     .. versionadded:: 0.9.0
+
+    When reading a FIF file, note that the first N seconds annotated
+    ``BAD_ACQ_SKIP`` are **skipped**. They are removed from ``raw.times`` and
+    ``raw.n_times`` parameters but ``raw.first_samp`` and ``raw.first_time``
+    are updated accordingly.
     """
     return Raw(fname=fname, allow_maxshield=allow_maxshield,
                preload=preload, verbose=verbose,

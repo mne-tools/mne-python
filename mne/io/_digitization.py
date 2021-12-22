@@ -5,7 +5,7 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #          Joan Massich <mailsik@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import heapq
 from collections import Counter
@@ -15,12 +15,12 @@ import os.path as op
 
 import numpy as np
 
-from ..utils import logger, warn, Bunch, _validate_type
+from ..utils import logger, warn, Bunch, _validate_type, _check_fname, verbose
 
 from .constants import FIFF, _coord_frame_named
 from .tree import dir_tree_find
 from .tag import read_tag
-from .write import (start_file, end_file, write_dig_points)
+from .write import (start_and_end_file, write_dig_points)
 
 from ..transforms import (apply_trans, Transform,
                           get_ras_to_neuromag_trans, combine_transforms,
@@ -138,7 +138,11 @@ class DigPoint(dict):
             id_ = ('%s #%s' % (id_, self['ident']))
         id_ = id_.rjust(10)
         cf = _coord_frame_name(self['coord_frame'])
-        pos = ('(%0.1f, %0.1f, %0.1f) mm' % tuple(1000 * self['r'])).ljust(25)
+        if 'voxel' in cf:
+            pos = ('(%0.1f, %0.1f, %0.1f)' % tuple(self['r'])).ljust(25)
+        else:
+            pos = ('(%0.1f, %0.1f, %0.1f) mm' %
+                   tuple(1000 * self['r'])).ljust(25)
         return ('<DigPoint | %s : %s : %s frame>' % (id_, pos, cf))
 
     # speed up info copy by only deep copying the mutable item
@@ -189,7 +193,8 @@ def _read_dig_fif(fid, meas_info):
     return _format_dig_points(dig)
 
 
-def write_dig(fname, pts, coord_frame=None):
+@verbose
+def write_dig(fname, pts, coord_frame=None, *, overwrite=False, verbose=None):
     """Write digitization data to a FIF file.
 
     Parameters
@@ -203,7 +208,14 @@ def write_dig(fname, pts, coord_frame=None):
         If all the points have the same coordinate frame, specify the type
         here. Can be None (default) if the points could have varying
         coordinate frames.
+    %(overwrite)s
+
+        .. versionadded:: 1.0
+    %(verbose)s
+
+        .. versionadded:: 1.0
     """
+    fname = _check_fname(fname, overwrite=overwrite)
     if coord_frame is not None:
         coord_frame = _to_const(coord_frame)
         pts_frames = {pt.get('coord_frame', coord_frame) for pt in pts}
@@ -213,9 +225,8 @@ def write_dig(fname, pts, coord_frame=None):
                 'Points have coord_frame entries that are incompatible with '
                 'coord_frame=%i: %s.' % (coord_frame, str(tuple(bad_frames))))
 
-    with start_file(fname) as fid:
+    with start_and_end_file(fname) as fid:
         write_dig_points(fid, pts, block=True, coord_frame=coord_frame)
-        end_file(fid)
 
 
 _cardinal_ident_mapping = {
@@ -229,7 +240,7 @@ _cardinal_ident_mapping = {
 # This does something really similar to _read_dig_montage_fif but:
 #   - does not check coord_frame
 #   - does not do any operation that implies assumptions with the names
-def _get_data_as_dict_from_dig(dig):
+def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
     """Obtain coordinate data from a Dig.
 
     Parameters
@@ -252,17 +263,16 @@ def _get_data_as_dict_from_dig(dig):
         elif d['kind'] == FIFF.FIFFV_POINT_HPI:
             hpi.append(d['r'])
             elp.append(d['r'])
-            # XXX: point_names.append('HPI%03d' % d['ident'])
         elif d['kind'] == FIFF.FIFFV_POINT_EXTRA:
             hsp.append(d['r'])
         elif d['kind'] == FIFF.FIFFV_POINT_EEG:
-            # XXX: dig_ch_pos['EEG%03d' % d['ident']] = d['r']
-            if d['ident'] != 0:  # ref channel
+            if d['ident'] != 0 or not exclude_ref_channel:
                 dig_ch_pos_location.append(d['r'])
 
     dig_coord_frames = set([d['coord_frame'] for d in dig])
-    assert len(dig_coord_frames) == 1, \
-        'Only single coordinate frame in dig is supported'  # XXX
+    if len(dig_coord_frames) != 1:
+        raise RuntimeError('Only single coordinate frame in dig is supported, '
+                           f'got {dig_coord_frames}')
 
     return Bunch(
         nasion=fids.get('nasion', None),
@@ -271,7 +281,7 @@ def _get_data_as_dict_from_dig(dig):
         hsp=np.array(hsp) if len(hsp) else None,
         hpi=np.array(hpi) if len(hpi) else None,
         elp=np.array(elp) if len(elp) else None,
-        dig_ch_pos_location=dig_ch_pos_location,
+        dig_ch_pos_location=np.array(dig_ch_pos_location),
         coord_frame=dig_coord_frames.pop(),
     )
 
@@ -406,7 +416,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                         'coord_frame': coord_frame})
     if extra_points is not None:
         extra_points = np.asarray(extra_points)
-        if extra_points.shape[1] != 3:
+        if len(extra_points) and extra_points.shape[1] != 3:
             raise ValueError('Points should have the shape (n_points, 3) '
                              'instead of %s' % (extra_points.shape,))
         for idx, point in enumerate(extra_points):

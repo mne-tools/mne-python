@@ -1,596 +1,205 @@
 :root {
-  --a-color-dark: rgb(31, 92, 153);
-  --a-color: rgb(41, 122, 204);
-  --a-color-light: rgb(102, 179, 255);
-  --a-color-lighter: rgb(204, 230, 255);
-  --text-color: #2c3e50;
-  --carousel-radius: 12px;
-}
-html {
-  position: relative;
-  min-height: 100%;
+
+    --pst-font-size-base: 16px;
+    --pst-font-size-milli: 13px;
+    --pst-font-family-base: 'Source Sans Pro', var(--pst-font-family-base-system);
+    --pst-font-family-heading: var(--pst-font-family-base);
+    --pst-font-family-monospace: 'Source Code Pro', var(--pst-font-family-monospace-system);
+
 }
 
-/* Syntax reset */
-.highlight a {
-  color: var(--a-color);
-}
-.highlight * {
-  color: inherit;
-  font-weight: inherit;
-  font-style: inherit;
-  background-color: #fafafa;
+/* ************************************************************ Sphinx fixes */
+dl.field-list {
+    grid-template-columns: auto 1fr;
 }
 
-/* overrides of bootstrap fonts */
-body {
-  max-width: unset !important;
-  min-width: 300px !important;
-  font-family: "Source Sans Pro", sans-serif;
-  margin-bottom: 150px;
-}
-div.body {
-  max-width: unset !important;
-  min-width: 300px !important;
-}
-.footer {
-  width: 100%;
-  background-color: #fff;
-  position: absolute;
-  bottom: 0;
-  height: 140px;
-}
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-.h1,
-.h2,
-.h3,
-.h4,
-.h5,
-.h6 {
-  font-family: "Source Sans Pro", sans-serif;
-}
-code,
-kbd,
-pre,
-samp {
-  font-family: "Source Code Pro", monospace;
-  font-size: 100%;
-}
-/* reduce horizontal padding for inline code (bootstrap defaults to 4px) */
-p code {
-  padding: 0 2px 0;
-}
-/* use semibold instead of bold for API links */
-code.xref,
-a code {
-  font-weight: 600;
-}
-/* .. unless in a param list */
-span.classifier a.reference code.literal {
-  font-weight: bold;
-}
-/* use semibold weight for version dropdown */
-.btn {
-  font-weight: 600;
-}
-/* Modify our definition lists to be more like sklearn */
-dl.field-list dt.field-odd,
-dt.field-even {
-  border-right-style: solid;
-  border-width: 1px;
-  border-color: var(--a-color-lighter);
-}
-dl.field-list dd dl dd {
-  padding-left: 30px;
-}
-dl.field-list dt,
-dd {
-  margin-top: 10px;
-  margin-bottom: 10px;
-}
+/* ********************************************************** Sphinx-gallery */
 
-.navbar-version {
-  display: none;
-}
-
-.navbar-collapse {
-  max-height: 600px !important;
-}
-
-a {
-  color: var(--a-color);
-  text-decoration: none;
-}
-
-a:hover {
-  color: var(--a-color-light);
-}
-
-blockquote {
-  font-size: 100% !important;
-}
-
-.devbar {
-  text-align: center;
-  padding: 5px;
-  margin-bottom: 5px;
-  border-radius: 0 0 4px 4px !important;
-}
-
-.devbar a {
-    color: #fff;
-    font-weight: bold;
-}
-
-.pad-top-30 {
-  padding-top: 30px;
-}
-
-div.crop-wrapper {
-  width: 380px;
-  height: 190px;
-  overflow: hidden;
-}
-
-a.button-front {
-  width: 32%;
-  height: 100%;
-  margin: 5px;
-  float: left;
-  background-color: #e7e7e7;
-  color: black;
-  border: 1px solid;
-  font-size: larger;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.anchor-doc {
-  position: relative;
-  padding-top: 200px !important;
-  display: none !important;
-}
-
-a code {
-  color: var(--a-color);
-}
-a:hover code {
-  color: var(--a-color-light);
-}
-
-/* Background is light */
-.alert-info a,
-.alert-info a code {
-  color: var(--a-color-dark);
-}
-.alert-info a:hover,
-.alert-info a:hover code {
-  color: var(--a-color);
-}
-.alert-info {
-  background-color: var(--a-color-lighter);
-  color: rgb(0, 0, 0);
-  border: none;
-}
-.warning {
-  background-color: #e74c3c;
-  color: white;
-}
-.warning a,
-.warning a code {
-  color: rgb(255, 238, 0);
-}
-.warning a:hover,
-.warning a:hover code {
-  color: rgb(255, 200, 60);
-}
-
-blockquote {
-  padding: 0 0 0 15px;
-  margin: 0 0 20px;
-  border-left: 5px solid #eeeeee;
-}
-
-.span.box {
-  width: 47%;
-  height: 230px;
-  float: left;
-  border-radius: 20px;
-  background: rgb(242, 249, 255);
-  border-style: solid;
-  border-color: rgb(143, 173, 204);
-  margin: 5px;
-  padding: 0px 0px 0px 10px;
-}
-
-.span h2 {
-  background: rgb(242, 249, 255);
-}
-/* OVERRIDES */
-div.sphx-glr-download {
-  width: inherit;
-}
-div.sphx-glr-footer {
-  width: fit-content;
-}
-div.sphx-glr-download a {
-  background-color: rgb(230, 242, 255);
-  background-image: inherit;
-  border: 1px solid #000;
-  color: inherit;
-  width: fit-content;
-  display: inherit;
-  font-weight: inherit;
-  padding: 0px;
-  text-align: center;
-}
-div.sphx-glr-download a:hover {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 1px 5px rgba(0, 0, 0, 0.25);
-  text-decoration: none;
-  background-image: none;
-  background-color: inherit;
-}
-/* hide the top link */
-div.sphx-glr-download-link-note {
-  height: 0px;
-  visibility: hidden;
-}
-dt:target,
-.highlighted {
-  background-color: rgb(255, 238, 0);
-}
-dt:target code {
-  color: inherit !important;
-  background-color: inherit !important;
-}
-div.sidebar {
-  background-color: rgb(221, 236, 236) !important;
-  border: 1px solid rgb(164, 195, 195) !important;
-  border-radius: 4px;
-}
-.label {
-  /* Necessary for multiple refs, from bootstrap.min.css:7 */
-  color: var(--text-color);
-}
-/* Override bootstrap.min.css to avoid .. container:: padding problems */
-.nosize {
-  width: auto;
-}
-.nopad {
-  padding: 0px !important;
-}
-.halfpad {
-  margin-left: 1%;
-  margin-right: 1%;
-  width: 48%;
-  padding: 0px;
-  margin: 10px;
-  float: left;
-}
-.table.midvalign td {
-  vertical-align: middle;
-  border-width: 2px;
-}
-.table.midvalign th {
-  border-width: 2px;
-  border-top-width: 2px;
-}
-/* our carousel */
-div.carousel-outer {
-  padding-top: 10px;
-}
-div.slide {
-  border-radius: var(--carousel-radius);
-  overflow: hidden;
-}
-div.carousel .chopper {
-  border-radius: var(--carousel-radius);
-  overflow: hidden;
-  min-height: 275px;
-  width: 100%;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-div.jumbotron {
-  background-color: #fff0;
-  padding-top: 12px;
-  padding-bottom: 12px;
-}
-.carousel-control.left {
-  background-image: linear-gradient(
-    to right,
-    #aaa 0,
-    rgba(0, 0, 0, 0.0001) 100%
-  );
-  border-radius: var(--carousel-radius);
-}
-.carousel-control.right {
-  background-image: linear-gradient(
-    to left,
-    #aaa 0,
-    rgba(0, 0, 0, 0.0001) 100%
-  );
-  border-radius: var(--carousel-radius);
-}
-
-.cont {
-  width: 100%;
-  display: table;
-  border-spacing: 20px 5px;
-}
-.cont:before {
-  content: "";
-}
-.cont:after {
-  content: "";
-}
-.btn-cont {
-  display: table-cell;
-  width: 100%;
-}
-.carousel-caption {
-  background-color: #444a;
-  border-radius: var(--carousel-radius);
-  padding-left: 15px;
-  padding-right: 15px;
-  text-shadow: none;
-}
-.carousel-caption h3 {
-  font-size: 24px;
-  font-weight: 600;
-}
-.carousel-caption p {
-  font-weight: 300;
-  font-size: 18px;
-}
-.topmargin {
-  margin-top: 10px;
-}
-.bottommargin {
-  margin-bottom: 10px;
-}
-h4.list-group-item-heading {
-  font-size: 15px;
-}
-.table-like {
-  display: table;
-}
-.cell-like {
-  display: table-cell;
-  vertical-align: middle;
-  float: none;
-}
-.limitedwidth {
-  max-width: 1024px;
-  float: none;
-  margin: auto;
-}
-/* Fix collapsing */
-@media (max-width: 991px) {
-  .navbar-header {
-    float: none;
-  }
-  .navbar-left,
-  .navbar-right {
-    float: none !important;
-  }
-  .navbar-toggle {
-    display: block;
-  }
-  .navbar-collapse {
-    border-top: 1px solid transparent;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  }
-  .navbar-fixed-top {
-    top: 0;
-    border-width: 0 0 1px;
-  }
-  .navbar-collapse.collapse {
-    display: none !important;
-  }
-  .navbar-nav {
-    float: none !important;
-    margin-top: 7.5px;
-  }
-  .navbar-nav > li {
-    float: none;
-  }
-  .navbar-nav > li > a {
-    padding-top: 10px;
-    padding-bottom: 10px;
-  }
-  .collapse.in {
-    display: block !important;
-  }
-}
-details.example_details summary {
-  font-weight: bold;
-}
-.panel {
-  margin-bottom: 3px;
-}
-
-.skinnytable {
-  width: auto;
-}
-.skinnytable thead {
-  border-bottom: 1px solid black;
-}
-/* Unify color of refs and classes in parameter lists */
-span.classifier a span.xref,
-span.classifier a code.docutils.literal.notranslate,
-span.classifier a.reference.external {
-  color: var(--a-color);
-}
-span.classifier a:hover span.xref,
-span.classifier a:hover code.docutils.literal.notranslate,
-span.classifier a.reference.external:hover {
-  color: var(--a-color-light);
-}
-
-/* Allow easier copy-paste in code blocks */
-div.highlight-console div.highlight span.gp {
-  -webkit-touch-callout: none; /* iOS Safari */
-  -webkit-user-select: none; /* Safari */
-  -khtml-user-select: none; /* Konqueror HTML */
-  -moz-user-select: none; /* Firefox */
-  -ms-user-select: none; /* Internet Explorer/Edge */
-  user-select: none; /* Non-prefixed version, currently
-                                        supported by Chrome and Opera */
-}
-/* Callout */
-.callout {
-  padding: 20px;
-  margin: 20px 0;
-  border: 1px solid #eee;
-  border-left-width: 5px;
-  border-left-color: #ddd;
-  /* background-color: #eee; */
-}
-.callout h3:first-child {
-  margin-top: 0;
-}
-.callout p:last-child {
-  margin-bottom: 0;
-}
-dl.cmd-list span.option {
-  white-space: nowrap;
-}
-dl.cmd-list dt,
-dl.cmd-list dd {
-  margin-top: 5px;
-  margin-bottom: 5px;
-  padding-top: 0px;
-  padding-bottom: 5px;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
-}
-dl.cmd-list dt::after {
-  visibility: hidden;
-}
-/* Attributes / methods not taking up entire width ends up looking odd */
-dd table.align-center {
-  width: 100%;
-}
-/* Sphinx-gallery Report embedding */
+/* backreference links: restore hover decoration that SG removes */
+a.sphx-glr-backref-instance:hover {
+    text-decoration: underline;
+}
+/* backreference links: make non-MNE func/meth calls resemble regular code */
+a[class^="sphx-glr-backref-module"] {
+    color: rgb(var(--pst-color-text-base));
+}
+/* backreference links: make MNE calls bold and colorful */
+a[class^="sphx-glr-backref-module-mne"] {
+    font-weight: 600;
+    color: rgb(var(--pst-color-link));
+}
+/* suppress redundant note at top of every tutorial and signature at the end */
+div.sphx-glr-download-link-note,
+p.sphx-glr-signature {
+    visibility: hidden;
+    height: 0;
+    margin: 0;
+    padding: 0;
+}
+/* script/notebook download buttons */
+.sphx-glr-download a.download {
+    background-image: none;
+    background-color: rgba(var(--pst-color-info), 0.1);
+    border-color: rgb(var(--pst-color-info));
+}
+/* Report embedding */
 iframe.sg_report {
-  width: 95%;
-  height: 70vh;
-  margin: 20px auto;
-  display: block;
-  border-style: solid;
+    width: 95%;
+    height: 70vh;
+    margin: 20px auto;
+    display: block;
+    border-style: solid;
 }
-/* institutions logos in footer */
-div.institutions {
-  text-align: center;
-  margin-top: 3px;
-  margin-bottom: 3px;
+/* gallery thumbnail size */
+.sphx-glr-thumbcontainer {
+    min-width: 160px;
+    height: 250px;
 }
-div.institutions ul {
-  display: grid;
-  line-height: 48px;
-  grid-template-columns: repeat(auto-fill, 59px);
-  justify-content: center;
+
+/* ******************************** make HTML'd pandas dataframes scrollable */
+table.dataframe {
+    display: block;
+    overflow: auto;
 }
-div.institutions a {
-  border: 1px;
+
+/* ********************************* Long API titles need to wrap for mobile */
+div[id^="mne-"] h1,
+div[id^="examples-using-"] h2 {
+    word-break: break-word;
 }
-img.institution {
-  vertical-align: middle;
-  max-height: 42px;
-  max-width: 52px;
+
+/* ******************************************* in-text sidebar callout boxes */
+div.sidebar,
+aside.sidebar {
+    margin: 0 0 0.5em 1em;
+    padding: 7px;
+    width: 40%;
+    float: right;
+    clear: right;
+    overflow-x: auto;
+    /* above copied from div.sidebar in basic.css; below are our overrides */
+    background-color: rgba(var(--pst-color-info), 0.1);
+    border: 1px solid rgb(var(--pst-color-info));
+    border-radius: 4px;
 }
+
+/* **************************************************************** homepage */
 img.logo {
-  max-width: 360px;
-  width: 100%;
+    max-width: 360px;
+    width: 100%;
+}
+
+/* ************************************* homepage quick links & funders list */
+ul.quicklinks {
+    font-weight: 600;
+}
+ul.quicklinks a:hover {
+    text-decoration: none;
+}
+ul.funders li {
+    margin-left: 36px;
+    text-indent: -36px;
+    padding-bottom: 9px;
+}
+ul.funders li img {
+    width: 30px;
+    max-height: 24px;
+    object-fit: contain;
+}
+
+/* these two also affect collapsible divs */
+h5.card-header {
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+h5.card-header::before {
+    height: 0px;
+    margin-top: 0px;
+}
+
+/* ************************************************* dev version warning bar */
+.devbar {
+    /* body top padding minus navbar height; */
+    /*might be possible to calc from theme variables */
+    margin-top: -20px;
+}
+
+/* ******************************************************** version dropdown */
+.dropdown {
+    padding: 0 .5rem;  /* match other items in the hamburger menu */
+}
+.dropdown-toggle {
+    font-weight: 600;
+}
+
+/* ***************************************************** front page carousel */
+div.frontpage-gallery {
+    overflow: hidden;
+    height: 180px;
+    justify-content: center;
+}
+div.frontpage-gallery a {
+    text-decoration: none;
+    color: rgb(var(--pst-color-text-base));
+}
+div.frontpage-gallery img.card-img {
+    transform: scale(1.8);
+    transform-origin: 40% 20%;
+    opacity: 0.2;
+    transition: 400ms ease-out;
+}
+div.frontpage-gallery:hover img.card-img {
+    transform: scale(1.2);
+    opacity: 1.0;
+    transition: 400ms ease-out;
+}
+div.frontpage-gallery .fadeout {
+    opacity: 1.0;
+    transition: 200ms linear;
+}
+div.frontpage-gallery:hover .fadeout {
+    opacity: 0.0;
+    transition: 200ms linear;
+}
+
+/* ****************************************************** navbar quick links */
+
+i.fa-github-square:before {
+    color: #000;
+}
+i.fa-twitter-square:before {
+    color: #55acee;
+}
+i.fa-discourse:before {
+    color: #231e20;
+}
+i.fa-discord:before {
+    color: #7289da;  /* 99aab5 is also in-brand for discord */
+}
+/* *********************************************************** contrib guide */
+ul.icon-bullets {
+    list-style-type: none;
+    padding-left: 2em;
+    text-indent: -1.5em;
+}
+.small-stack {
+    font-size: 0.5em;
+}
+/* ************************************************* Previous / Next buttons */
+.prev-next-bottom a.left-prev:before {
+    content:"❮\00A0"
+}
+.prev-next-bottom a.right-next:after {
+    content:"\00A0❯"
+}
+.prev-next-bottom a.right-next {
+    text-align: right;
+}
+
+/* *********************************************************** miscellaneous */
+.hidden {
+    display: none;
 }
 img.hidden {
-  visibility: hidden;
-}
-div.border-top {
-  border-top: 1px solid #ccc;
-}
-.hidden {
-  display: none;
-}
-ul.list-funding {
-  padding-left: 0;
-  list-style: none;
-}
-ul.list-funding li {
-  padding-left: 28px;
-  margin-top: 0px;
-  margin-bottom: 8px;
-  min-height: 24px;
-}
-ul.list-funding li img {
-  float: left;
-  position: relative;
-  left: -28px;
-  top: 0px;
-  width: 24px;
-  margin: 0px -24px 0px 0px;
-  clear: both;
-}
-ul.list-funding li p {
-  font-size: 12px;
-  margin-bottom: 0px;
-}
-/* Pandas DataFrame _repr_html_ */
-table.dataframe th,
-td {
-  padding: 5px;
-}
-
-/* Sphinx-gallery backreference links */
-a.sphx-glr-backref-instance:hover {
-  /* restore hover decoration that SG removes */
-  text-decoration: underline;
-}
-a[class^="sphx-glr-backref-module"] {
-  /* make non-MNE instances look like regular code */
-  color: var(--text-color);
-}
-a[class^="sphx-glr-backref-module"]:hover {
-  color: var(--a-color);
-}
-a[class^="sphx-glr-backref-module-mne"] {
-  /* make all MNE things bold */
-  font-weight: 600;
-  color: var(--a-color);
-}
-a[class^="sphx-glr-backref-module-mne"]:hover {
-  color: var(--a-color-light);
-}
-/* Long API titles need to wrap for mobile */
-div[id^="mne-"] h1 {
-  word-break: break-word;
-}
-div[id^="examples-using-"] h2 {
-  word-break: break-word;
-}
-/* Avoid awkward extra spacing in .. contents:: */
-div.contents ul li p {
-  margin: 0 0 0px;
-}
-/* Avoid extra spacing in our nested version */
-h3.panel-title p {
-  margin: 0 0 0px;
-}
-/* Disable hyphenation in API reference table for Webkit-based browsers
-   to work around alignment bug */
-#python-api-reference table p {
-  -webkit-hyphens: none;
-}
-
-.section h5 {
-  font-weight: bold;
+    visibility: hidden;
 }

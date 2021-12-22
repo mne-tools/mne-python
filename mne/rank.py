@@ -2,10 +2,9 @@
 """Some utility functions for rank estimation."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
-from scipy import linalg
 
 from .defaults import _handle_default
 from .io.meas_info import _simplify_info
@@ -15,7 +14,7 @@ from .io.proj import make_projector
 from .utils import (logger, _compute_row_norms, _pl, _validate_type,
                     _apply_scaling_cov, _undo_scaling_cov,
                     _scaled_array, warn, _check_rank, _on_missing, verbose,
-                    _check_on_missing)
+                    _check_on_missing, fill_doc)
 
 
 @verbose
@@ -48,6 +47,7 @@ def estimate_rank(data, tol='auto', return_singular=False, norm=True,
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
+    from scipy import linalg
     if norm:
         data = data.copy()  # operate on a copy
         norms = _compute_row_norms(data)
@@ -118,6 +118,7 @@ def _estimate_rank_raw(raw, picks=None, tol=1e-4, scalings='norm',
         tol, False, tol_kind)
 
 
+@fill_doc
 def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
                                 return_singular=False, tol_kind='absolute'):
     """Estimate rank for M/EEG data.
@@ -126,8 +127,7 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
     ----------
     data : np.ndarray of float, shape(n_channels, n_samples)
         The M/EEG signals.
-    info : Info
-        The measurement info.
+    %(info_not_none)s
     scalings : dict | 'norm' | np.ndarray | None
         The rescaling method to be applied. If dict, it will override the
         following default dict:
@@ -175,8 +175,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
     ----------
     data : np.ndarray of float, shape (n_channels, n_channels)
         The M/EEG covariance.
-    info : Info
-        The measurement info.
+    %(info_not_none)s
     scalings : dict | 'norm' | np.ndarray | None
         The rescaling method to be applied. If dict, it will override the
         following default dict:
@@ -199,7 +198,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
-    picks_list = _picks_by_type(info)
+    picks_list = _picks_by_type(info, exclude=[])
     scalings = _handle_default('scalings_cov_rank', scalings)
     _apply_scaling_cov(data, picks_list, scalings)
     if data.shape[1] < data.shape[0]:
@@ -256,7 +255,7 @@ def _get_rank_sss(inst, msg='You should use data-based rank estimate instead',
 
 
 def _info_rank(info, ch_type, picks, rank):
-    if ch_type == 'meg' and rank != 'full':
+    if ch_type in ['meg', 'mag', 'grad'] and rank != 'full':
         try:
             return _get_rank_sss(info)
         except ValueError:
@@ -291,10 +290,8 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
         Defaults to ``dict(mag=1e15, grad=1e13, eeg=1e6)``.
         These defaults will scale different channel types
         to comparable values.
-    info : instance of Info | None
-        The measurement info used to compute the covariance. It is
-        only necessary if inst is a Covariance object (since this does
-        not provide ``inst.info``).
+    %(info)s Only necessary if ``inst`` is a :class:`mne.Covariance`
+        object (since this does not provide ``inst.info``).
     %(rank_tol)s
     proj : bool
         If True, all projs in ``inst`` and ``info`` will be applied or
@@ -325,8 +322,11 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
         inst_type = 'covariance'
         if info is None:
             raise ValueError('info cannot be None if inst is a Covariance.')
+        # Reset bads as it's already taken into account in inst['names']
+        info = info.copy()
+        info['bads'] = []
         inst = pick_channels_cov(
-            inst, set(inst['names']) & set(info['ch_names']))
+            inst, set(inst['names']) & set(info['ch_names']), exclude=[])
         if info['ch_names'] != inst['names']:
             info = pick_info(info, [info['ch_names'].index(name)
                                     for name in inst['names']])
@@ -388,8 +388,7 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
             assert rank_type == 'estimated'
             if isinstance(inst, (BaseRaw, BaseEpochs)):
                 if isinstance(inst, BaseRaw):
-                    data = inst.get_data(picks, None, None,
-                                         reject_by_annotation='omit')
+                    data = inst.get_data(picks, reject_by_annotation='omit')
                 else:  # isinstance(inst, BaseEpochs):
                     data = inst.get_data()[:, picks, :]
                     data = np.concatenate(data, axis=1)

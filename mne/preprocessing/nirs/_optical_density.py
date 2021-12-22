@@ -2,23 +2,26 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
 from ...io import BaseRaw
 from ...io.constants import FIFF
-from ...utils import _validate_type, warn
+from ...utils import _validate_type, warn, verbose
 from ...io.pick import _picks_to_idx
+from ..nirs import _channel_frequencies, _check_channels_ordered
 
 
-def optical_density(raw):
+@verbose
+def optical_density(raw, *, verbose=None):
     r"""Convert NIRS raw data to optical density.
 
     Parameters
     ----------
     raw : instance of Raw
         The raw data.
+    %(verbose)s
 
     Returns
     -------
@@ -27,8 +30,10 @@ def optical_density(raw):
     """
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
+    _check_channels_ordered(
+        raw.info, np.unique(_channel_frequencies(raw.info, nominal=True)))
+
     picks = _picks_to_idx(raw.info, 'fnirs_cw_amplitude')
-    data_means = np.mean(raw.get_data(), axis=1)
 
     # The devices measure light intensity. Negative light intensities should
     # not occur. If they do it is likely due to hardware or movement issues.
@@ -36,12 +41,19 @@ def optical_density(raw):
     # that the means are all greater than zero for the division below.
     if np.any(raw._data[picks] <= 0):
         warn("Negative intensities encountered. Setting to abs(x)")
-        raw._data[picks] = np.abs(raw._data[picks])
+        min_ = np.inf
+        for pi in picks:
+            np.abs(raw._data[pi], out=raw._data[pi])
+            min_ = min(min_, raw._data[pi].min() or min_)
+        # avoid == 0
+        for pi in picks:
+            np.maximum(raw._data[pi], min_, out=raw._data[pi])
 
-    for ii in picks:
-        raw._data[ii] /= data_means[ii]
-        np.log(raw._data[ii], out=raw._data[ii])
-        raw._data[ii] *= -1
-        raw.info['chs'][ii]['coil_type'] = FIFF.FIFFV_COIL_FNIRS_OD
+    data_means = np.mean(raw.get_data(picks=picks), axis=1)
+    for ii, pi in enumerate(picks):
+        raw._data[pi] /= data_means[ii]
+        np.log(raw._data[pi], out=raw._data[pi])
+        raw._data[pi] *= -1
+        raw.info['chs'][pi]['coil_type'] = FIFF.FIFFV_COIL_FNIRS_OD
 
     return raw

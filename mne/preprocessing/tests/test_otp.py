@@ -1,6 +1,6 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD 3 clause
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -14,7 +14,7 @@ from mne.datasets import testing
 from mne.io import RawArray, read_raw_fif
 from mne.io.pick import _pick_data_channels
 from mne.preprocessing import oversampled_temporal_projection
-from mne.utils import run_tests_if_main, catch_logging
+from mne.utils import catch_logging
 
 data_path = testing.data_path(download=False)
 erm_fname = op.join(data_path, 'SSS', 'test_move_anon_erm_raw.fif')
@@ -99,6 +99,3 @@ def test_otp_real():
     raw = read_raw_fif(skip_fname, preload=True)
     raw.pick_channels(raw.ch_names[:10])
     raw_otp = oversampled_temporal_projection(raw, duration=1.)
-
-
-run_tests_if_main()

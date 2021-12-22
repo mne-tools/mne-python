@@ -2,27 +2,27 @@
 # Authors: Thomas Hartmann <thomas.hartmann@th-ht.de>
 #          Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 from functools import partial
 import os
-import types
 
 import numpy as np
 
 import mne
+from mne.io.constants import FIFF
+from mne.utils import object_diff
 
 
 info_ignored_fields = ('file_id', 'hpi_results', 'hpi_meas', 'meas_id',
                        'meas_date', 'highpass', 'lowpass', 'subject_info',
                        'hpi_subsystem', 'experimenter', 'description',
                        'proj_id', 'proj_name', 'line_freq', 'gantry_angle',
-                       'dev_head_t', 'dig', 'bads', 'projs', 'ctf_head_t',
-                       'dev_ctf_t')
+                       'dev_head_t', 'bads', 'ctf_head_t', 'dev_ctf_t')
 
 ch_ignore_fields = ('logno', 'cal', 'range', 'scanno', 'coil_type', 'kind',
                     'loc', 'coord_frame', 'unit')
 
-info_long_fields = ('hpi_meas', )
+info_long_fields = ('hpi_meas', 'projs')
 
 system_to_reader_fn_dict = {'neuromag306': mne.io.read_raw_fif,
                             'CNT': partial(mne.io.read_raw_cnt),
@@ -76,6 +76,18 @@ def _remove_ignored_info_fields(info):
             del info[cur_field]
 
     _remove_ignored_ch_fields(info)
+    _remove_bad_dig_fields(info)
+
+
+def _remove_bad_dig_fields(info):
+    # The reference location appears to be lost, so we cannot add it.
+    # Similarly, fiducial locations do not appear to be stored, so we
+    # cannot add those, either. Same with HPI coils.
+    if info['dig'] is not None:
+        with info._unlock():
+            info['dig'] = [d for d in info['dig']
+                           if d['kind'] == FIFF.FIFFV_POINT_EEG and
+                           d['ident'] != 0]  # ref
 
 
 def get_data_paths(system):
@@ -104,7 +116,8 @@ def get_raw_info(system):
     reader_function = system_to_reader_fn_dict[system]
 
     info = reader_function(raw_data_file, preload=False).info
-    info['comps'] = []
+    with info._unlock():
+        info['comps'] = []
     return info
 
 
@@ -122,7 +135,8 @@ def get_raw_data(system, drop_extra_chs=False):
         crop -= 0.5 * (1.0 / raw_data.info['sfreq'])
     raw_data.crop(0, crop)
     raw_data.del_proj('all')
-    raw_data.info['comps'] = []
+    with raw_data.info._unlock():
+        raw_data.info['comps'] = []
     raw_data.drop_channels(cfg_local['removed_chan_names'])
 
     if system in ['EGI']:
@@ -175,7 +189,6 @@ def get_epochs(system):
 def get_evoked(system):
     """Find, load and process the avg data."""
     epochs = get_epochs(system)
-
     return epochs.average(picks=np.arange(len(epochs.ch_names)))
 
 
@@ -192,11 +205,18 @@ def check_info_fields(expected, actual, has_raw_info, ignore_long=True):
         _remove_ignored_info_fields(expected)
         _remove_ignored_info_fields(actual)
 
-    if info_long_fields:
-        _remove_long_info_fields(expected)
-        _remove_long_info_fields(actual)
+    _remove_long_info_fields(expected)
+    _remove_long_info_fields(actual)
 
-    assert_deep_almost_equal(expected, actual)
+    # we annoyingly have two ways of representing this, so just always use
+    # an empty list here
+    for obj in (expected, actual):
+        if obj['dig'] is None:
+            with obj._unlock():
+                obj['dig'] = []
+
+    d = object_diff(actual, expected, allclose=True)
+    assert d == '', d
 
 
 def check_data(expected, actual, system):
@@ -206,63 +226,6 @@ def check_data(expected, actual, system):
         decimal = system_decimal_accuracy_dict[system]
 
     np.testing.assert_almost_equal(expected, actual, decimal=decimal)
-
-
-def assert_deep_almost_equal(expected, actual, *args, **kwargs):
-    """
-    Assert that two complex structures have almost equal contents.
-
-    Compares lists, dicts and tuples recursively. Checks numeric values
-    using test_case's :py:meth:`unittest.TestCase.assertAlmostEqual` and
-    checks all other values with :py:meth:`unittest.TestCase.assertEqual`.
-    Accepts additional positional and keyword arguments and pass those
-    intact to assertAlmostEqual() (that's how you specify comparison
-    precision).
-
-    This code has been adapted from
-    https://github.com/larsbutler/oq-engine/blob/master/tests/utils/helpers.py
-    """
-    is_root = '__trace' not in kwargs
-    trace = kwargs.pop('__trace', 'ROOT')
-
-    if isinstance(expected, np.ndarray) and expected.size == 0:
-        expected = None
-
-    if isinstance(actual, np.ndarray) and actual.size == 0:
-        actual = None
-
-    try:
-        if isinstance(expected, (int, float, complex)):
-            np.testing.assert_almost_equal(expected, actual, *args, **kwargs)
-        elif isinstance(expected, (list, tuple, np.ndarray,
-                                   types.GeneratorType)):
-            if isinstance(expected, types.GeneratorType):
-                expected = list(expected)
-                actual = list(actual)
-
-                np.testing.assert_equal(len(expected), len(actual))
-            for index in range(len(expected)):
-                v1, v2 = expected[index], actual[index]
-                assert_deep_almost_equal(v1, v2,
-                                         __trace=repr(index), *args, **kwargs)
-        elif isinstance(expected, dict):
-            np.testing.assert_equal(set(expected), set(actual))
-            for key in expected:
-                assert_deep_almost_equal(expected[key], actual[key],
-                                         __trace=repr(key), *args, **kwargs)
-        else:
-            np.testing.assert_equal(expected, actual)
-    except AssertionError as exc:
-        exc.__dict__.setdefault('traces', []).append(trace)
-        if is_root:
-            trace = ' -> '.join(reversed(exc.traces))
-            message = ''
-            try:
-                message = exc.message
-            except AttributeError:
-                pass
-            exc = AssertionError("%s\nTRACE: %s" % (message, trace))
-        raise exc
 
 
 def assert_warning_in_record(warning_message, warn_record):

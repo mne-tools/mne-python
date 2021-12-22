@@ -1,12 +1,12 @@
 # Author: Jean-Remi King, <jeanremi.king@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_equal
 import pytest
 
-from mne.utils import requires_sklearn
+from mne.utils import requires_sklearn, _record_warnings
 from mne.fixes import _get_args
 from mne.decoding.search_light import SlidingEstimator, GeneralizingEstimator
 from mne.decoding.transformer import Vectorizer
@@ -30,7 +30,7 @@ def test_search_light():
     from sklearn.linear_model import Ridge, LogisticRegression
     from sklearn.pipeline import make_pipeline
     from sklearn.metrics import roc_auc_score, make_scorer
-    with pytest.warns(None):  # NumPy module import
+    with _record_warnings():  # NumPy module import
         from sklearn.ensemble import BaggingClassifier
     from sklearn.base import is_classifier
 

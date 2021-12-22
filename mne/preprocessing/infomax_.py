@@ -2,7 +2,7 @@
 #          Juergen Dammers <j.dammers@fz-juelich.de>
 #          Denis A. Engeman <denis.engemann@gemail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import math
 

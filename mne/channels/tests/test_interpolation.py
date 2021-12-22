@@ -8,11 +8,12 @@ from itertools import compress
 from mne import io, pick_types, pick_channels, read_events, Epochs
 from mne.channels.interpolation import _make_interpolation_matrix
 from mne.datasets import testing
-from mne.utils import run_tests_if_main
-from mne.preprocessing.nirs import optical_density, scalp_coupling_index
+from mne.preprocessing.nirs import (optical_density, scalp_coupling_index,
+                                    beer_lambert_law)
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx
 from mne.io.proj import _has_eeg_average_ref_proj
+from mne.utils import _record_warnings
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -50,7 +51,7 @@ def _load_data(kind):
     (False, (0.97, 0.99)),
 ])
 @pytest.mark.parametrize('method, atol', [
-    (None, 3e-6),
+    pytest.param(None, 3e-6, marks=pytest.mark.slowtest),  # slow on Azure
     (dict(eeg='MNE'), 4e-6),
 ])
 @pytest.mark.filterwarnings('ignore:.*than 20 mm from head frame origin.*')
@@ -96,8 +97,25 @@ def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
         good_picks = pick_types(evoked_eeg.info, meg=False, eeg=True)
         assert_allclose(evoked_eeg.data[good_picks].mean(0), 0., atol=1e-20)
     evoked_eeg_bad = evoked_eeg.copy()
-    evoked_eeg_bad.data[
-        evoked_eeg.ch_names.index(epochs_eeg.info['bads'][0])] = 1e10
+    bads_picks = pick_channels(
+        epochs_eeg.ch_names, include=epochs_eeg.info['bads'], ordered=True
+    )
+    evoked_eeg_bad.data[bads_picks, :] = 1e10
+
+    # Test first the exclude parameter
+    evoked_eeg_2_bads = evoked_eeg_bad.copy()
+    evoked_eeg_2_bads.info['bads'] = ['EEG 004', 'EEG 012']
+    evoked_eeg_2_bads.data[
+        pick_channels(evoked_eeg_bad.ch_names, ['EEG 004', 'EEG 012'])
+    ] = 1e10
+    evoked_eeg_interp = evoked_eeg_2_bads.interpolate_bads(
+        origin=(0., 0., 0.), exclude=['EEG 004'], **kw)
+    assert evoked_eeg_interp.info['bads'] == ['EEG 004']
+    assert np.all(evoked_eeg_interp.get_data('EEG 004') == 1e10)
+    assert np.all(evoked_eeg_interp.get_data('EEG 012') != 1e10)
+
+    # Now test without exclude parameter
+    evoked_eeg_bad.info['bads'] = ['EEG 012']
     evoked_eeg_interp = evoked_eeg_bad.copy().interpolate_bads(
         origin=(0., 0., 0.), **kw)
     if avg_proj:
@@ -144,7 +162,7 @@ def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
     raw_few.del_proj()
     raw_few.info['bads'] = [raw_few.ch_names[-1]]
     orig_data = raw_few[1][0]
-    with pytest.warns(None) as w:
+    with _record_warnings() as w:
         raw_few.interpolate_bads(reset_bads=False, **kw)
     assert len([ww for ww in w if 'more than' not in str(ww.message)]) == 0
     new_data = raw_few[1][0]
@@ -202,6 +220,18 @@ def test_interpolation_meg():
     evoked.info.normalize_proj()
     data2 = evoked.interpolate_bads(origin='auto').data[pick]
     assert np.corrcoef(data1, data2)[0, 1] > thresh
+
+    # MEG -- with exclude
+    evoked.info['bads'] = ['MEG 0141', 'MEG 0121']
+    pick = pick_channels(evoked.ch_names, evoked.info['bads'], ordered=True)
+    evoked.data[pick[-1]] = 1e10
+    data1 = evoked.data[pick]
+    evoked.info.normalize_proj()
+    data2 = evoked.interpolate_bads(
+        origin='auto', exclude=['MEG 0121']
+    ).data[pick]
+    assert np.corrcoef(data1[0], data2[0])[0, 1] > thresh
+    assert np.all(data2[1] == 1e10)
 
 
 def _this_interpol(inst, ref_meg=False):
@@ -263,9 +293,14 @@ def test_interpolation_nirs():
     bad_0 = np.where([name == raw_od.info['bads'][0] for
                       name in raw_od.ch_names])[0][0]
     bad_0_std_pre_interp = np.std(raw_od._data[bad_0])
+    bads_init = list(raw_od.info['bads'])
+    raw_od.interpolate_bads(exclude=bads_init[:2])
+    assert raw_od.info['bads'] == bads_init[:2]
     raw_od.interpolate_bads()
     assert raw_od.info['bads'] == []
     assert bad_0_std_pre_interp > np.std(raw_od._data[bad_0])
-
-
-run_tests_if_main()
+    raw_haemo = beer_lambert_law(raw_od, ppf=6)
+    raw_haemo.info['bads'] = raw_haemo.ch_names[2:4]
+    assert raw_haemo.info['bads'] == ['S1_D2 hbo', 'S1_D2 hbr']
+    raw_haemo.interpolate_bads()
+    assert raw_haemo.info['bads'] == []

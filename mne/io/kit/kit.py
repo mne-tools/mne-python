@@ -7,18 +7,17 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py.
 #          Joan Massich <mailsik@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from collections import defaultdict, OrderedDict
 from math import sin, cos
 from os import SEEK_CUR, path as op
 
 import numpy as np
-from scipy import linalg
 
 from ..pick import pick_types
 from ...utils import (verbose, logger, warn, fill_doc, _check_option,
-                      _stamp_to_dt)
+                      _stamp_to_dt, _check_fname)
 from ...transforms import apply_trans, als_ras_trans
 from ..base import BaseRaw
 from ..utils import _mult_cal_one
@@ -50,10 +49,9 @@ def _call_digitization(info, mrk, elp, hsp, kit_info):
 
     # setup digitization
     if mrk is not None and elp is not None and hsp is not None:
-        dig_points, dev_head_t = _set_dig_kit(
-            mrk, elp, hsp, kit_info['eeg_dig'])
-        info['dig'] = dig_points
-        info['dev_head_t'] = dev_head_t
+        with info._unlock():
+            info['dig'], info['dev_head_t'], info['hpi_results'] = \
+                _set_dig_kit(mrk, elp, hsp, kit_info['eeg_dig'])
     elif mrk is not None or elp is not None or hsp is not None:
         raise ValueError("mrk, elp and hsp need to be provided as a group "
                          "(all or none)")
@@ -179,6 +177,7 @@ class RawKIT(BaseRaw):
 
         return stim_ch
 
+    @fill_doc
     def _set_stimchannels(self, info, stim, stim_code):
         """Specify how the trigger channel is synthesized from analog channels.
 
@@ -188,8 +187,7 @@ class RawKIT(BaseRaw):
 
         Parameters
         ----------
-        info : instance of MeasInfo
-            The measurement info.
+        %(info_not_none)s
         stim : list of int | '<' | '>'
             Can be submitted as list of trigger channels.
             If a list is not specified, the default triggers extracted from
@@ -389,11 +387,12 @@ class EpochsKIT(BaseEpochs):
         if isinstance(events, str):
             events = read_events(events)
 
+        input_fname = _check_fname(fname=input_fname, must_exist=True,
+                                   overwrite='read')
         logger.info('Extracting KIT Parameters from %s...' % input_fname)
-        input_fname = op.abspath(input_fname)
         self.info, kit_info = get_kit_info(
             input_fname, allow_unknown_format, standardize_names)
-        kit_info.update(filename=input_fname)
+        kit_info.update(input_fname=input_fname)
         self._raw_extras = [kit_info]
         self._filenames = []
         if len(events) != self._raw_extras[0]['n_epochs']:
@@ -440,11 +439,11 @@ class EpochsKIT(BaseEpochs):
         epoch_length = info['frame_length']
         n_epochs = info['n_epochs']
         n_samples = info['n_samples']
-        filename = info['filename']
+        input_fname = info['input_fname']
         dtype = info['dtype']
         nchan = info['nchan']
 
-        with open(filename, 'rb', buffering=0) as fid:
+        with open(input_fname, 'rb', buffering=0) as fid:
             fid.seek(info['dirs'][KIT.DIR_INDEX_RAW_DATA]['offset'])
             count = n_samples * nchan
             data = np.fromfile(fid, dtype=dtype, count=count)
@@ -464,6 +463,17 @@ def _read_dir(fid):
 
 
 @verbose
+def _read_dirs(fid, verbose=None):
+    dirs = list()
+    dirs.append(_read_dir(fid))
+    for ii in range(dirs[0]['count'] - 1):
+        logger.debug(f'    KIT dir entry {ii} @ {fid.tell()}')
+        dirs.append(_read_dir(fid))
+    assert len(dirs) == dirs[KIT.DIR_INDEX_DIR]['count']
+    return dirs
+
+
+@verbose
 def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                  verbose=None):
     """Extract all the information from the sqd/con file.
@@ -480,22 +490,18 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
 
     Returns
     -------
-    info : instance of Info
-        An Info for the instance.
+    %(info_not_none)s
     sqd : dict
         A dict containing all the sqd parameter settings.
     """
     sqd = dict()
     sqd['rawfile'] = rawfile
     unsupported_format = False
-    sqd['dirs'] = dirs = list()
     with open(rawfile, 'rb', buffering=0) as fid:  # buffering=0 for np bug
         #
         # directories (0)
         #
-        dirs.append(_read_dir(fid))
-        dirs.extend(_read_dir(fid) for _ in range(dirs[0]['count'] - 1))
-        assert len(dirs) == dirs[KIT.DIR_INDEX_DIR]['count']
+        sqd['dirs'] = dirs = _read_dirs(fid)
 
         #
         # system (1)
@@ -507,7 +513,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             version_string = "V%iR%03i" % (version, revision)
             if allow_unknown_format:
                 unsupported_format = True
-                logger.warning("Force loading KIT format %s", version_string)
+                warn("Force loading KIT format %s" % version_string)
             else:
                 raise UnsupportedKITFormat(
                     version_string,
@@ -715,17 +721,21 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                     hsp.append(rr)
 
             # nasion, lpa, rpa, HPI in native space
-            elp = [dig.pop(key) for key in (
-                'fidnz', 'fidt9', 'fidt10',
-                'hpi_1', 'hpi_2', 'hpi_3', 'hpi_4')]
-            if 'hpi_5' in dig and dig['hpi_5'].any():
-                elp.append(dig.pop('hpi_5'))
+            elp = []
+            for key in (
+                    'fidnz', 'fidt9', 'fidt10',
+                    'hpi_1', 'hpi_2', 'hpi_3', 'hpi_4', 'hpi_5'):
+                if key in dig and np.isfinite(dig[key]).all():
+                    elp.append(dig.pop(key))
             elp = np.array(elp)
             hsp = np.array(hsp, float).reshape(-1, 3)
-            assert elp.shape in ((7, 3), (8, 3))
+            if elp.shape not in ((6, 3), (7, 3), (8, 3)):
+                raise RuntimeError(
+                    f'Fewer than 3 HPI coils found, got {len(elp) - 3}')
             # coregistration
             fid.seek(cor_dir['offset'])
             mrk = np.zeros((elp.shape[0] - 3, 3))
+            meg_done = [True] * 5
             for _ in range(cor_dir['count']):
                 done = np.fromfile(fid, INT32, 1)[0]
                 fid.seek(16 * KIT.DOUBLE +  # meg_to_mri
@@ -736,12 +746,17 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
                     continue
                 assert marker_count >= len(mrk)
                 for mi in range(len(mrk)):
-                    mri_type, meg_type, mri_done, meg_done = \
+                    mri_type, meg_type, mri_done, this_meg_done = \
                         np.fromfile(fid, INT32, 4)
-                    assert meg_done
+                    meg_done[mi] = bool(this_meg_done)
                     fid.seek(3 * KIT.DOUBLE, SEEK_CUR)  # mri_pos
                     mrk[mi] = np.fromfile(fid, FLOAT64, 3)
                 fid.seek(256, SEEK_CUR)  # marker_file (char)
+            if not all(meg_done):
+                logger.info(f'Keeping {sum(meg_done)}/{len(meg_done)} HPI '
+                            'coils that were digitized')
+                elp = elp[[True] * 3 + meg_done]
+                mrk = mrk[meg_done]
             sqd.update(hsp=hsp, elp=elp, mrk=mrk)
 
     # precompute conversion factor for reading data
@@ -790,7 +805,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             y = sin(theta) * sin(phi)
             z = cos(theta)
             vec_z = np.array([x, y, z])
-            vec_z /= linalg.norm(vec_z)
+            vec_z /= np.linalg.norm(vec_z)
             vec_x = np.zeros(vec_z.size, dtype=np.float64)
             if vec_z[1] < vec_z[2]:
                 if vec_z[0] < vec_z[1]:
@@ -802,7 +817,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             else:
                 vec_x[2] = 1.0
             vec_x -= np.sum(vec_x * vec_z) * vec_z
-            vec_x /= linalg.norm(vec_x)
+            vec_x /= np.linalg.norm(vec_x)
             vec_y = np.cross(vec_z, vec_x)
             # transform to Neuromag like coordinate space
             vecs = np.vstack((ch['loc'][:3], vec_x, vec_y, vec_z))
@@ -828,6 +843,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             coord_frame=FIFF.FIFFV_COORD_DEVICE,
             coil_type=KIT.CH_TO_FIFF_COIL[ch['type']],
             kind=KIT.CH_TO_FIFF_KIND[ch['type']], loc=loc))
+    info._unlocked = False
     info._update_redundant()
     return info, sqd
 
@@ -914,18 +930,8 @@ def read_epochs_kit(input_fname, events, event_id=None, mrk=None, elp=None,
     ----------
     input_fname : str
         Path to the sqd file.
-    events : array, shape (n_events, 3)
-        The events typically returned by the read_events function.
-        If some events don't match the events of interest as specified
-        by event_id, they will be marked as 'IGNORED' in the drop log.
-    event_id : int | list of int | dict | None
-        The id of the event to consider. If dict,
-        the keys can later be used to access associated events. Example:
-        dict(auditory=1, visual=3). If int, a dict will be created with
-        the id as string. If a list, all events with the IDs specified
-        in the list are used. If None, all events will be used with
-        and a dict is created with string integer names corresponding
-        to the event id integers.
+    %(events_epochs)s
+    %(event_id)s
     mrk : None | str | array_like, shape (5, 3) | list of str or array_like
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.

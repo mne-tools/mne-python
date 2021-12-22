@@ -1,0 +1,3 @@
+phantom_otaniemi/bem/phantom_otaniemi-fiducials.fif
+phantom_otaniemi/mri/T1.mgz
+phantom_otaniemi/surf/lh.seghead

@@ -2,7 +2,7 @@
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
@@ -12,7 +12,6 @@ from copy import deepcopy
 import re
 
 import numpy as np
-from scipy import sparse
 
 import shutil
 import os
@@ -26,12 +25,14 @@ from ..io.tree import dir_tree_find
 from ..io.tag import find_tag, read_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                          write_named_matrix)
-from ..io.meas_info import read_bad_channels, write_info
+from ..io.meas_info import (_read_bad_channels, write_info, _write_ch_infos,
+                            _read_extended_ch_info, _make_ch_names_mapping,
+                            _rename_list)
 from ..io.pick import (pick_channels_forward, pick_info, pick_channels,
                        pick_types)
 from ..io.write import (write_int, start_block, end_block,
-                        write_coord_trans, write_ch_info, write_name_list,
-                        write_string, start_file, end_file, write_id)
+                        write_coord_trans, write_name_list,
+                        write_string, start_and_end_file, write_id)
 from ..io.base import BaseRaw
 from ..evoked import Evoked, EvokedArray
 from ..epochs import BaseEpochs
@@ -48,7 +49,7 @@ from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      _validate_type, _check_compensation_grade, _check_option,
                      _check_stc_units, _stamp_to_dt, _on_missing)
 from ..label import Label
-from ..fixes import einsum
+from ..data.html_templates import forward_template
 
 
 class Forward(dict):
@@ -66,25 +67,15 @@ class Forward(dict):
         """Copy the Forward instance."""
         return Forward(deepcopy(self))
 
-    def __repr__(self):
-        """Summarize forward info instead of printing all."""
-        entr = '<Forward'
-
-        nchan = len(pick_types(self['info'], meg=True, eeg=False, exclude=[]))
-        entr += ' | ' + 'MEG channels: %d' % nchan
-        nchan = len(pick_types(self['info'], meg=False, eeg=True, exclude=[]))
-        entr += ' | ' + 'EEG channels: %d' % nchan
-
+    def _get_src_type_and_ori_for_repr(self):
         src_types = np.array([src['type'] for src in self['src']])
+
         if (src_types == 'surf').all():
-            entr += (' | Source space: Surface with %d vertices'
-                     % self['nsource'])
+            src_type = 'Surface with %d vertices' % self['nsource']
         elif (src_types == 'vol').all():
-            entr += (' | Source space: Volume with %d grid points'
-                     % self['nsource'])
+            src_type = 'Volume with %d grid points' % self['nsource']
         elif (src_types == 'discrete').all():
-            entr += (' | Source space: Discrete with %d dipoles'
-                     % self['nsource'])
+            src_type = 'Discrete with %d dipoles' % self['nsource']
         else:
             count_string = ''
             if (src_types == 'surf').any():
@@ -95,19 +86,44 @@ class Forward(dict):
                 count_string += '%d discrete, ' \
                                 % (src_types == 'discrete').sum()
             count_string = count_string.rstrip(', ')
-            entr += (' | Source space: Mixed (%s) with %d vertices'
-                     % (count_string, self['nsource']))
+            src_type = ('Mixed (%s) with %d vertices'
+                        % (count_string, self['nsource']))
 
         if self['source_ori'] == FIFF.FIFFV_MNE_UNKNOWN_ORI:
-            entr += (' | Source orientation: Unknown')
+            src_ori = 'Unknown'
         elif self['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
-            entr += (' | Source orientation: Fixed')
+            src_ori = 'Fixed'
         elif self['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
-            entr += (' | Source orientation: Free')
+            src_ori = 'Free'
 
+        return src_type, src_ori
+
+    def __repr__(self):
+        """Summarize forward info instead of printing all."""
+        entr = '<Forward'
+
+        nchan = len(pick_types(self['info'], meg=True, eeg=False, exclude=[]))
+        entr += ' | ' + 'MEG channels: %d' % nchan
+        nchan = len(pick_types(self['info'], meg=False, eeg=True, exclude=[]))
+        entr += ' | ' + 'EEG channels: %d' % nchan
+
+        src_type, src_ori = self._get_src_type_and_ori_for_repr()
+        entr += f' | Source space: {src_type}'
+        entr += f' | Source orientation: {src_ori}'
         entr += '>'
 
         return entr
+
+    def _repr_html_(self):
+        good_chs, bad_chs, _, _, = self['info']._get_chs_for_repr()
+        src_descr, src_ori = self._get_src_type_and_ori_for_repr()
+        html = forward_template.substitute(
+            good_channels=good_chs,
+            bad_channels=bad_chs,
+            source_space_descr=src_descr,
+            source_orientation=src_ori
+        )
+        return html
 
     @property
     def ch_names(self):
@@ -168,6 +184,7 @@ def _block_diag(A, n):
     bd : sparse matrix
         The block diagonal matrix
     """
+    from scipy import sparse
     if sparse.issparse(A):  # then make block sparse
         raise NotImplementedError('sparse reversal not implemented yet')
     ma, na = A.shape
@@ -245,6 +262,7 @@ def _read_one(fid, node):
     return one
 
 
+@fill_doc
 def _read_forward_meas_info(tree, fid):
     """Read light measurement info from forward operator.
 
@@ -257,11 +275,11 @@ def _read_forward_meas_info(tree, fid):
 
     Returns
     -------
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
     """
     # This function assumes fid is being used as a context manager
     info = Info()
+    info._unlocked = True
 
     # Information from the MRI file
     parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
@@ -286,17 +304,17 @@ def _read_forward_meas_info(tree, fid):
     info['meas_id'] = tag.data if tag is not None else None
 
     # Add channel information
-    chs = list()
+    info['chs'] = chs = list()
     for k in range(parent_meg['nent']):
         kind = parent_meg['directory'][k].kind
         pos = parent_meg['directory'][k].pos
         if kind == FIFF.FIFF_CH_INFO:
             tag = read_tag(fid, pos)
             chs.append(tag.data)
-    info['chs'] = chs
+    ch_names_mapping = _read_extended_ch_info(chs, parent_meg, fid)
     info._update_redundant()
 
-    #   Get the MRI <-> head coordinate transformation
+    # Get the MRI <-> head coordinate transformation
     tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
     coord_head = FIFF.FIFFV_COORD_HEAD
     coord_mri = FIFF.FIFFV_COORD_MRI
@@ -310,7 +328,7 @@ def _read_forward_meas_info(tree, fid):
     else:
         raise ValueError('MRI/head coordinate transformation not found')
 
-    #   Get the MEG device <-> head coordinate transformation
+    # Get the MEG device <-> head coordinate transformation
     tag = find_tag(fid, parent_meg, FIFF.FIFF_COORD_TRANS)
     if tag is None:
         raise ValueError('MEG/head coordinate transformation not found')
@@ -322,7 +340,8 @@ def _read_forward_meas_info(tree, fid):
     else:
         raise ValueError('MEG/head coordinate transformation not found')
 
-    info['bads'] = read_bad_channels(fid, parent_meg)
+    info['bads'] = _read_bad_channels(
+        fid, parent_meg, ch_names_mapping=ch_names_mapping)
     # clean up our bad list, old versions could have non-existent bads
     info['bads'] = [bad for bad in info['bads'] if bad in info['ch_names']]
 
@@ -332,7 +351,7 @@ def _read_forward_meas_info(tree, fid):
         tag = find_tag(fid, parent_mri, 236)  # Constant 236 used before v0.11
 
     info['custom_ref_applied'] = int(tag.data) if tag is not None else False
-    info._check_consistency()
+    info._unlocked = False
     return info
 
 
@@ -419,7 +438,7 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz',
                                    '_fwd.fif', '_fwd.fif.gz'))
-
+    fname = _check_fname(fname=fname, must_exist=True, overwrite='read')
     #   Open the file, create directory
     logger.info('Reading forward solution from %s...' % fname)
     f, tree, _ = fiff_open(fname)
@@ -503,10 +522,12 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
             parent_env = parent_env[0]
             tag = find_tag(fid, parent_env, FIFF.FIFF_MNE_ENV_WORKING_DIR)
             if tag is not None:
-                fwd['info']['working_dir'] = tag.data
+                with fwd['info']._unlock():
+                    fwd['info']['working_dir'] = tag.data
             tag = find_tag(fid, parent_env, FIFF.FIFF_MNE_ENV_COMMAND_LINE)
             if tag is not None:
-                fwd['info']['command_line'] = tag.data
+                with fwd['info']._unlock():
+                    fwd['info']['command_line'] = tag.data
 
     #   Transform the source spaces to the correct coordinate frame
     #   if necessary
@@ -583,6 +604,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     fwd : Forward
         The modified forward solution.
     """
+    from scipy import sparse
     fwd = fwd.copy() if copy else fwd
 
     if force_fixed is True:
@@ -699,12 +721,11 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     Parameters
     ----------
     fname : str
-        File name to save the forward solution to. It should end with -fwd.fif
-        or -fwd.fif.gz.
+        File name to save the forward solution to. It should end with
+        ``-fwd.fif`` or ``-fwd.fif.gz``.
     fwd : Forward
         Forward solution.
-    overwrite : bool
-        If True, overwrite destination file (if it exists).
+    %(overwrite)s
     %(verbose)s
 
     See Also
@@ -729,9 +750,13 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz',
                                    '_fwd.fif', '_fwd.fif.gz'))
 
-    # check for file existence
-    _check_fname(fname, overwrite)
-    fid = start_file(fname)
+    # check for file existence and expand `~` if present
+    fname = _check_fname(fname, overwrite)
+    with start_and_end_file(fname) as fid:
+        _write_forward_solution(fid, fwd)
+
+
+def _write_forward_solution(fid, fwd):
     start_block(fid, FIFF.FIFFB_MNE)
 
     #
@@ -866,7 +891,6 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
         end_block(fid, FIFF.FIFFB_MNE_FORWARD_SOLUTION)
 
     end_block(fid, FIFF.FIFFB_MNE)
-    end_file(fid)
 
 
 def is_fixed_orient(forward, orig=False):
@@ -892,6 +916,7 @@ def is_fixed_orient(forward, orig=False):
     return fixed_ori
 
 
+@fill_doc
 def write_forward_meas_info(fid, info):
     """Write measurement info stored in forward solution.
 
@@ -899,8 +924,7 @@ def write_forward_meas_info(fid, info):
     ----------
     fid : file id
         The file id
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
     """
     info._check_consistency()
     #
@@ -917,18 +941,17 @@ def write_forward_meas_info(fid, info):
         raise ValueError('Head<-->sensor transform not found')
     write_coord_trans(fid, meg_head_t)
 
+    ch_names_mapping = dict()
     if 'chs' in info:
         #  Channel information
+        ch_names_mapping = _make_ch_names_mapping(info['chs'])
         write_int(fid, FIFF.FIFF_NCHAN, len(info['chs']))
-        for k, c in enumerate(info['chs']):
-            #   Scan numbers may have been messed up
-            c = deepcopy(c)
-            c['scanno'] = k + 1
-            write_ch_info(fid, c)
+        _write_ch_infos(fid, info['chs'], False, ch_names_mapping)
     if 'bads' in info and len(info['bads']) > 0:
         #   Bad channels
+        bads = _rename_list(info['bads'], ch_names_mapping)
         start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
-        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, info['bads'])
+        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, bads)
         end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
 
     end_block(fid, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
@@ -1099,8 +1122,7 @@ def compute_depth_prior(forward, info, exp=0.8, limit=10.0,
     ----------
     forward : instance of Forward
         The forward solution.
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
     exp : float
         Exponent for the depth weighting, must be between 0 and 1.
     limit : float | None
@@ -1216,7 +1238,7 @@ def compute_depth_prior(forward, info, exp=0.8, limit=10.0,
         #     x = np.dot(Gk.T, Gk)
         #     d[k] = linalg.svdvals(x)[0]
         G.shape = (G.shape[0], -1, 3)
-        d = np.linalg.norm(einsum('svj,svk->vjk', G, G),  # vector dot products
+        d = np.linalg.norm(np.einsum('svj,svk->vjk', G, G),  # vector dot prods
                            ord=2, axis=(1, 2))  # ord=2 spectral (largest s.v.)
         G.shape = (G.shape[0], -1)
 
@@ -1297,25 +1319,27 @@ def _stc_src_sel(src, stc, on_missing='raise',
     return src_sel, stc_sel, out_vertices
 
 
-def _fill_measurement_info(info, fwd, sfreq):
+def _fill_measurement_info(info, fwd, sfreq, data):
     """Fill the measurement info of a Raw or Evoked object."""
     sel = pick_channels(info['ch_names'], fwd['sol']['row_names'])
     info = pick_info(info, sel)
     info['bads'] = []
 
-    # this is probably correct based on what's done in meas_info.py...
-    info['meas_id'] = fwd['info']['meas_id']
-    info['file_id'] = info['meas_id']
-
     now = time()
     sec = np.floor(now)
     usec = 1e6 * (now - sec)
 
-    info.update(meas_date=_stamp_to_dt((int(sec), int(usec))), highpass=0.,
-                lowpass=sfreq / 2., sfreq=sfreq, projs=[])
-    info._check_consistency()
+    # this is probably correct based on what's done in meas_info.py...
+    with info._unlock(check_after=True):
+        info.update(meas_id=fwd['info']['meas_id'], file_id=info['meas_id'],
+                    meas_date=_stamp_to_dt((int(sec), int(usec))),
+                    highpass=0., lowpass=sfreq / 2., sfreq=sfreq, projs=[])
 
-    return info
+    # reorder data (which is in fwd order) to match that of info
+    order = [fwd['sol']['row_names'].index(name) for name in info['ch_names']]
+    data = data[order]
+
+    return info, data
 
 
 @verbose
@@ -1377,8 +1401,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
         Forward operator to use.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    info : instance of Info
-        Measurement info to generate the evoked.
+    %(info_not_none)s
     start : int, optional
         Index of first time sample (index not time is seconds).
     stop : int, optional
@@ -1417,9 +1440,9 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
 
     # fill the measurement info
     sfreq = float(1.0 / stc.tstep)
-    info_out = _fill_measurement_info(info, fwd, sfreq)
+    info, data = _fill_measurement_info(info, fwd, sfreq, data)
 
-    evoked = EvokedArray(data, info_out, times[0], nave=1)
+    evoked = EvokedArray(data, info, times[0], nave=1)
 
     evoked.times = times
     evoked._update_first_last()
@@ -1447,8 +1470,7 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
         Forward operator to use.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
     start : int, optional
         Index of first time sample (index not time is seconds).
     stop : int, optional
@@ -1482,8 +1504,9 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
                                  use_cps=use_cps)
 
     sfreq = 1.0 / stc.tstep
-    info = _fill_measurement_info(info, fwd, sfreq)
-    info['projs'] = []
+    info, data = _fill_measurement_info(info, fwd, sfreq, data)
+    with info._unlock():
+        info['projs'] = []
     # store sensor data in Raw object using the info
     raw = RawArray(data, info)
     raw.preload = True
@@ -1491,7 +1514,6 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
     raw._first_samps = np.array([int(np.round(times[0] * sfreq))])
     raw._last_samps = np.array([raw.first_samp + raw._data.shape[1] - 1])
     raw._projector = None
-    raw._update_times()
     return raw
 
 
@@ -1736,12 +1758,9 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         If True, compute the gradient of the field with respect to the
         dipole coordinates as well (Default: False).
     mricoord : bool
-        If True, calculate in MRI coordinates (Default: False).
-    overwrite : bool
-        If True, the destination file (if it exists) will be overwritten.
-        If False (default), an error will be raised if the file exists.
-    subjects_dir : None | str
-        Override the SUBJECTS_DIR environment variable.
+        If True, calculate in MRI coordinates (Default: False)
+    %(overwrite)s
+    %(subjects_dir)s
     %(verbose)s
 
     See Also

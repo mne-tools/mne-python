@@ -2,7 +2,7 @@
 #         Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Jean-Remi King <jeanremi.king@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from collections import Counter
 

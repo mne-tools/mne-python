@@ -1,7 +1,7 @@
 # Author: Daniel G Wakeman <dwakeman@nmr.mgh.harvard.edu>
 #         Denis A. Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -15,13 +15,13 @@ from numpy.testing import assert_array_equal, assert_equal, assert_allclose
 
 from mne.channels import (rename_channels, read_ch_adjacency, combine_channels,
                           find_ch_adjacency, make_1020_channel_selections,
-                          read_custom_montage, equalize_channels)
+                          read_custom_montage, equalize_channels,
+                          make_standard_montage)
 from mne.channels.channels import (_ch_neighbor_adjacency,
                                    _compute_ch_adjacency)
 from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
                     read_raw_eeglab, read_raw_kit, RawArray)
 from mne.io.constants import FIFF
-from mne.utils import _TempDir, run_tests_if_main
 from mne import (pick_types, pick_channels, EpochsArray, EvokedArray,
                  make_ad_hoc_cov, create_info, read_events, Epochs)
 from mne.datasets import testing
@@ -29,7 +29,7 @@ from mne.datasets import testing
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 base_dir = op.join(io_dir, 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
-eve_fname = op .join(base_dir, 'test-eve.fif')
+eve_fname = op.join(base_dir, 'test-eve.fif')
 fname_kit_157 = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
 
 
@@ -83,10 +83,6 @@ def test_rename_channels():
     # Test bad input
     pytest.raises(ValueError, rename_channels, info, 1.)
     pytest.raises(ValueError, rename_channels, info, 1.)
-    # Test name too long (channel names must be less than 15 characters)
-    A16 = 'A' * 16
-    mapping = {'MEG 2641': A16}
-    pytest.raises(ValueError, rename_channels, info, mapping)
 
     # Test successful changes
     # Test ch_name and ch_names are changed
@@ -107,6 +103,15 @@ def test_rename_channels():
     rename_channels(info2, mapping)
     assert_array_equal(['EEG060', 'EEG060'], info2['bads'])
 
+    # test that keys in Raw._orig_units will be renamed, too
+    raw = read_raw_fif(raw_fname).crop(0, 0.1)
+    old, new = 'EEG 060', 'New'
+    raw._orig_units = {old: 'V'}
+
+    raw.rename_channels({old: new})
+    assert old not in raw._orig_units
+    assert new in raw._orig_units
+
 
 def test_set_channel_types():
     """Test set_channel_types."""
@@ -123,7 +128,7 @@ def test_set_channel_types():
     # Test changing type if in proj
     mapping = {'EEG 057': 'dbs', 'EEG 058': 'ecog', 'EEG 059': 'ecg',
                'EEG 060': 'eog', 'EOG 061': 'seeg', 'MEG 2441': 'eeg',
-               'MEG 2443': 'eeg', 'MEG 2442': 'hbo'}
+               'MEG 2443': 'eeg', 'MEG 2442': 'hbo', 'EEG 001': 'resp'}
     raw2 = read_raw_fif(raw_fname)
     raw2.info['bads'] = ['EEG 059', 'EEG 060', 'EOG 061']
     with pytest.raises(RuntimeError, match='type .* in projector "PCA-v1"'):
@@ -161,15 +166,21 @@ def test_set_channel_types():
     assert info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_MOL
     assert info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBO
 
+    # resp channel type
+    idx = pick_channels(raw.ch_names, ['EEG 001'])[0]
+    assert info['chs'][idx]['kind'] == FIFF.FIFFV_RESP_CH
+    assert info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_V
+    assert info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_NONE
+
     # Test meaningful error when setting channel type with unknown unit
     raw.info['chs'][0]['unit'] = 0.
     ch_types = {raw.ch_names[0]: 'misc'}
     pytest.raises(ValueError, raw.set_channel_types, ch_types)
 
 
-def test_read_ch_adjacency():
+def test_read_ch_adjacency(tmp_path):
     """Test reading channel adjacency templates."""
-    tempdir = _TempDir()
+    tempdir = str(tmp_path)
     a = partial(np.array, dtype='<U7')
     # no pep8
     nbh = np.array([[(['MEG0111'], [[a(['MEG0131'])]]),
@@ -333,6 +344,18 @@ def test_find_ch_adjacency():
     assert ch_names[0] == 'MEG 001'
 
 
+@testing.requires_testing_data
+def test_neuromag122_adjacency():
+    """Test computing the adjacency matrix of Neuromag122-Data."""
+    nm122_fname = op.join(testing.data_path(), 'misc',
+                          'neuromag122_test_file-raw.fif')
+    raw = read_raw_fif(nm122_fname, preload=True)
+    conn, ch_names = find_ch_adjacency(raw.info, 'grad')
+    assert conn.getnnz() == 1564
+    assert len(ch_names) == 122
+    assert conn.shape == (122, 122)
+
+
 def test_drop_channels():
     """Test if dropping channels works with various arguments."""
     raw = read_raw_fif(raw_fname, preload=True).crop(0, 0.1)
@@ -341,6 +364,51 @@ def test_drop_channels():
     raw.drop_channels({"MEG 0132", "MEG 0133"})  # set argument
     pytest.raises(ValueError, raw.drop_channels, ["MEG 0111", 5])
     pytest.raises(ValueError, raw.drop_channels, 5)  # must be list or str
+
+
+def test_pick_channels():
+    """Test if picking channels works with various arguments."""
+    raw = read_raw_fif(raw_fname, preload=True).crop(0, 0.1)
+
+    # selected correctly 3 channels
+    raw.pick(['MEG 0113', 'MEG 0112', 'MEG 0111'])
+    assert len(raw.ch_names) == 3
+
+    # selected correctly 3 channels and ignored 'meg', and emit warning
+    with pytest.warns(RuntimeWarning, match='not present in the info'):
+        raw.pick(['MEG 0113', "meg", 'MEG 0112', 'MEG 0111'])
+        assert len(raw.ch_names) == 3
+
+    names_len = len(raw.ch_names)
+    raw.pick(['all'])  # selected correctly all channels
+    assert len(raw.ch_names) == names_len
+    raw.pick('all')  # selected correctly all channels
+    assert len(raw.ch_names) == names_len
+
+
+def test_add_reference_channels():
+    """Test if there is a new reference channel that consist of all zeros."""
+    raw = read_raw_fif(raw_fname, preload=True)
+    n_raw_original_channels = len(raw.ch_names)
+    epochs = Epochs(raw, read_events(eve_fname))
+    epochs.load_data()
+    epochs_original_shape = epochs._data.shape[1]
+    evoked = epochs.average()
+    n_evoked_original_channels = len(evoked.ch_names)
+
+    # Raw object
+    raw.add_reference_channels(['REF 123'])
+    assert len(raw.ch_names) == n_raw_original_channels + 1
+    assert np.all(raw.get_data()[-1] == 0)
+
+    # Epochs object
+    epochs.add_reference_channels(['REF 123'])
+    assert epochs._data.shape[1] == epochs_original_shape + 1
+
+    # Evoked object
+    evoked.add_reference_channels(['REF 123'])
+    assert len(evoked.ch_names) == n_evoked_original_channels + 1
+    assert np.all(evoked._data[-1] == 0)
 
 
 def test_equalize_channels():
@@ -454,4 +522,14 @@ def test_combine_channels():
     assert len(record) == 3
 
 
-run_tests_if_main()
+def test_get_montage():
+    """Test ContainsMixin.get_montage()."""
+    ch_names = make_standard_montage('standard_1020').ch_names
+    sfreq = 512
+    data = np.zeros((len(ch_names), sfreq * 2))
+    raw = RawArray(data, create_info(ch_names, sfreq, 'eeg'))
+    raw.set_montage('standard_1020')
+
+    assert len(raw.get_montage().ch_names) == len(ch_names)
+    raw.info['bads'] = [ch_names[0]]
+    assert len(raw.get_montage().ch_names) == len(ch_names)

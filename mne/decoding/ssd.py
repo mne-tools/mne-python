@@ -1,9 +1,9 @@
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #         Victoria Peterson <victoriapeterson09@gmail.com>
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
-from scipy.linalg import eigh
+
 from ..filter import filter_data
 from ..cov import _regularized_covariance
 from . import TransformerMixin, BaseEstimator
@@ -27,9 +27,7 @@ class SSD(BaseEstimator, TransformerMixin):
 
     Parameters
     ----------
-    info : instance of mne.Info
-        The info object containing the channel and sampling information.
-        It must match the input data.
+    %(info_not_none)s Must match the input data.
     filt_params_signal : dict
         Filtering for the frequencies of interest.
     filt_params_noise : dict
@@ -115,11 +113,17 @@ class SSD(BaseEstimator, TransformerMixin):
                             filt_params_noise['h_freq'])
         self.filt_params_signal = filt_params_signal
         self.filt_params_noise = filt_params_noise
+        # check if boolean
+        if not isinstance(sort_by_spectral_ratio, (bool)):
+            raise ValueError('sort_by_spectral_ratio must be boolean')
         self.sort_by_spectral_ratio = sort_by_spectral_ratio
         if n_fft is None:
             self.n_fft = int(self.info['sfreq'])
         else:
             self.n_fft = int(n_fft)
+        # check if boolean
+        if not isinstance(return_filtered, (bool)):
+            raise ValueError('return_filtered must be boolean')
         self.return_filtered = return_filtered
         self.reg = reg
         self.n_components = n_components
@@ -153,6 +157,7 @@ class SSD(BaseEstimator, TransformerMixin):
         self : instance of SSD
             Returns the modified instance.
         """
+        from scipy.linalg import eigh
         self._check_X(X)
         X_aux = X[..., self.picks_, :]
 
@@ -178,7 +183,14 @@ class SSD(BaseEstimator, TransformerMixin):
         self.eigvals_ = eigvals_[ix]
         self.filters_ = eigvects_[:, ix]
         self.patterns_ = np.linalg.pinv(self.filters_)
-
+        # We assume that ordering by spectral ratio is more important
+        # than the initial ordering. This ording should be also learned when
+        # fitting.
+        X_ssd = self.filters_.T @ X[..., self.picks_, :]
+        sorter_spec = Ellipsis
+        if self.sort_by_spectral_ratio:
+            _, sorter_spec = self.get_spectral_ratio(ssd_sources=X_ssd)
+        self.sorter_spec = sorter_spec
         return self
 
     def transform(self, X):
@@ -199,18 +211,15 @@ class SSD(BaseEstimator, TransformerMixin):
         self._check_X(X)
         if self.filters_ is None:
             raise RuntimeError('No filters available. Please first call fit')
-
+        if self.return_filtered:
+            X_aux = X[..., self.picks_, :]
+            X = filter_data(X_aux, self.info['sfreq'],
+                            **self.filt_params_signal)
         X_ssd = self.filters_.T @ X[..., self.picks_, :]
-        # We assume that ordering by spectral ratio is more important
-        # than the initial ordering. This is why we apply component picks
-        # after ordering.
-        sorter_spec = Ellipsis
-        if self.sort_by_spectral_ratio:
-            _, sorter_spec = self.get_spectral_ratio(ssd_sources=X_ssd)
         if X.ndim == 2:
-            X_ssd = X_ssd[sorter_spec][:self.n_components]
+            X_ssd = X_ssd[self.sorter_spec][:self.n_components]
         else:
-            X_ssd = X_ssd[:, sorter_spec, :][:, :self.n_components, :]
+            X_ssd = X_ssd[:, self.sorter_spec, :][:, :self.n_components, :]
         return X_ssd
 
     def get_spectral_ratio(self, ssd_sources):
@@ -222,7 +231,7 @@ class SSD(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         ssd_sources : array
-            Data projectded to SSD space.
+            Data projected to SSD space.
 
         Returns
         -------
@@ -278,10 +287,6 @@ class SSD(BaseEstimator, TransformerMixin):
             The processed data.
         """
         X_ssd = self.transform(X)
-        sorter_spec = Ellipsis
-        if self.sort_by_spectral_ratio:
-            _, sorter_spec = self.get_spectral_ratio(ssd_sources=X_ssd)
-
-        pick_patterns = self.patterns_[sorter_spec, :self.n_components].T
+        pick_patterns = self.patterns_[self.sorter_spec][:self.n_components].T
         X = pick_patterns @ X_ssd
         return X

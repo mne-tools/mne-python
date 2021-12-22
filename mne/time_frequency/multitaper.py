@@ -1,13 +1,12 @@
 # Author : Martin Luessi mluessi@nmr.mgh.harvard.edu (2012)
-# License : BSD 3-clause
+# License : BSD-3-Clause
 
 # Parts of this code were copied from NiTime http://nipy.sourceforge.net/nitime
 
 import operator
 import numpy as np
 
-from ..fixes import rfft, irfft, rfftfreq
-from ..parallel import parallel_func
+from ..parallel import parallel_func, check_n_jobs
 from ..utils import sum_squared, warn, verbose, logger, _check_option
 
 
@@ -53,13 +52,14 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
 
     Notes
     -----
-    Tridiagonal form of DPSS calculation from:
+    Tridiagonal form of DPSS calculation from :footcite:`Slepian1978`.
 
-    Slepian, D. Prolate spheroidal wave functions, Fourier analysis, and
-    uncertainty V: The discrete case. Bell System Technical Journal,
-    Volume 57 (1978), 1371430
+    References
+    ----------
+    .. footbibliography::
     """
     from scipy import interpolate
+    from scipy.fft import rfft, irfft
     from scipy.signal.windows import dpss as sp_dpss
     from ..filter import next_fast_len
     # This np.int32 business works around a weird Windows bug, see
@@ -299,6 +299,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
     freqs : array
         The frequency points in Hz of the spectra
     """
+    from scipy.fft import rfft, rfftfreq
     if n_fft is None:
         n_fft = x.shape[-1]
 
@@ -384,10 +385,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     low_bias : bool
         Only use tapers with more than 90%% spectral concentration within
         bandwidth.
-    normalization : str
-        Either "full" or "length" (default). If "full", the PSD will
-        be normalized by the sampling rate as well as the length of
-        the signal (as in nitime).
+    %(normalization)s
     %(n_jobs)s
     %(verbose)s
 
@@ -410,6 +408,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     -----
     .. versionadded:: 0.14.0
     """
+    from scipy.fft import rfftfreq
     _check_option('normalization', normalization, ['length', 'full'])
 
     # Reshape data so its 2-D for parallelization
@@ -429,6 +428,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
 
     psd = np.zeros((x.shape[0], freq_mask.sum()))
     # Let's go in up to 50 MB chunks of signals to save memory
+    n_jobs = check_n_jobs(n_jobs)
     n_chunk = max(50000000 // (len(freq_mask) * len(eigvals) * 16), n_jobs)
     offsets = np.concatenate((np.arange(0, x.shape[0], n_chunk), [x.shape[0]]))
     for start, stop in zip(offsets[:-1], offsets[1:]):

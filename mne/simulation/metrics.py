@@ -1,10 +1,9 @@
 # Authors: Yousra Bekhti <yousra.bekhti@gmail.com>
 #          Mark Wronkiewicz <wronk@uw.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
-from scipy.linalg import norm
 
 from ..utils import _check_option
 
@@ -61,5 +60,5 @@ def source_estimate_quantification(stc1, stc2, metric='rms'):
     # Calculate correlation coefficient between matrix elements
     elif metric == 'cosine':
         score = 1. - (np.dot(data1.flatten(), data2.flatten()) /
-                      (norm(data1) * norm(data2)))
+                      (np.linalg.norm(data1) * np.linalg.norm(data2)))
     return score

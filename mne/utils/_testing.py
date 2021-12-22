@@ -2,10 +2,9 @@
 """Testing functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 from functools import partial, wraps
 import os
 import inspect
@@ -15,20 +14,13 @@ import sys
 import tempfile
 import traceback
 from unittest import SkipTest
-import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
-from scipy import linalg
 
 from ._logging import warn, ClosingStringIO
 from .numerics import object_diff
-
-
-def nottest(f):
-    """Mark a function as not a test (decorator)."""
-    f.__test__ = False
-    return f
+from ..fixes import _compare_version
 
 
 def _explain_exception(start=-1, stop=None, prefix='> '):
@@ -73,7 +65,7 @@ def requires_nibabel():
 def requires_dipy():
     """Check for dipy."""
     import pytest
-    # for some strange reason on CIs we cane get:
+    # for some strange reason on CIs we can get:
     #
     #     can get weird ImportError: dlopen: cannot load any more object
     #     with static TLS
@@ -115,18 +107,6 @@ def requires_module(function, name, call=None):
     return pytest.mark.skipif(skip, reason=reason)(function)
 
 
-_pandas_call = """
-import pandas
-version = LooseVersion(pandas.__version__)
-if version < '0.8.0':
-    raise ImportError
-"""
-
-_mayavi_call = """
-with warnings.catch_warnings(record=True):  # traits
-    from mayavi import mlab
-"""
-
 _mne_call = """
 if not has_mne_c():
     raise ImportError
@@ -142,10 +122,9 @@ if 'NEUROMAG2FT_ROOT' not in os.environ:
     raise ImportError
 """
 
-requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
+requires_pandas = partial(requires_module, name='pandas')
 requires_pylsl = partial(requires_module, name='pylsl')
 requires_sklearn = partial(requires_module, name='sklearn')
-requires_mayavi = partial(requires_module, name='mayavi', call=_mayavi_call)
 requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
 
 
@@ -170,10 +149,6 @@ requires_neuromag2ft = partial(requires_module, name='neuromag2ft',
                                call=_n2ft_call)
 
 requires_vtk = partial(requires_module, name='vtk')
-requires_pysurfer = partial(requires_module, name='PySurfer',
-                            call="""import warnings
-with warnings.catch_warnings(record=True):
-    from surfer import Brain""")
 requires_good_network = partial(
     requires_module, name='good network connection',
     call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
@@ -211,57 +186,10 @@ def check_version(library, min_version):
         ok = False
     else:
         if min_version:
-            this_version = LooseVersion(
-                getattr(library, '__version__', '0.0').lstrip('v'))
-            if this_version < min_version:
+            this_version = getattr(library, '__version__', '0.0').lstrip('v')
+            if _compare_version(this_version, '<', min_version):
                 ok = False
     return ok
-
-
-def _check_mayavi_version(min_version='4.3.0'):
-    """Check mayavi version."""
-    if not check_version('mayavi', min_version):
-        raise RuntimeError("Need mayavi >= %s" % min_version)
-
-
-def _import_mlab():
-    """Quietly import mlab."""
-    with warnings.catch_warnings(record=True):
-        from mayavi import mlab
-    return mlab
-
-
-@contextmanager
-def traits_test_context():
-    """Context to raise errors in trait handlers."""
-    from traits.api import push_exception_handler
-
-    push_exception_handler(reraise_exceptions=True)
-    try:
-        yield
-    finally:
-        push_exception_handler(reraise_exceptions=False)
-
-
-def traits_test(test_func):
-    """Raise errors in trait handlers (decorator)."""
-    @wraps(test_func)
-    def dec(*args, **kwargs):
-        with traits_test_context():
-            return test_func(*args, **kwargs)
-    return dec
-
-
-@nottest
-def run_tests_if_main():
-    """Run tests in a given file if it is run as a script."""
-    local_vars = inspect.currentframe().f_back.f_locals
-    if local_vars.get('__name__', '') != '__main__':
-        return
-    import pytest
-    code = pytest.main([local_vars['__file__'], '-v'])
-    if code:
-        raise AssertionError('pytest finished with errors (%d)' % (code,))
 
 
 def run_command_if_main():
@@ -378,8 +306,8 @@ def _raw_annot(meas_date, orig_time):
     raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
     if meas_date is not None:
         meas_date = _handle_meas_date(meas_date)
-    raw.info['meas_date'] = meas_date
-    raw.info._check_consistency()
+    with raw.info._unlock(check_after=True):
+        raw.info['meas_date'] = meas_date
     annot = Annotations([.5], [.2], ['dummy'], orig_time)
     raw.set_annotations(annotations=annot)
     return raw
@@ -449,6 +377,7 @@ def assert_meg_snr(actual, desired, min_tol, med_tol=500., chpi_med_tol=500.,
 
 def assert_snr(actual, desired, tol):
     """Assert actual and desired arrays are within some SNR tolerance."""
+    from scipy import linalg
     with np.errstate(divide='ignore'):  # allow infinite
         snr = (linalg.norm(desired, ord='fro') /
                linalg.norm(desired - actual, ord='fro'))
@@ -539,17 +468,9 @@ def _click_ch_name(fig, ch_index=0, button=1):
     """Click on a channel name in a raw/epochs/ICA browse-style plot."""
     from ..viz.utils import _fake_click
     fig.canvas.draw()
-    x, y = fig.mne.ax_main.get_yticklabels()[ch_index].get_position()
-    xrange = np.diff(fig.mne.ax_main.get_xlim())[0]
-    _fake_click(fig, fig.mne.ax_main, (x - xrange / 50, y),
-                xform='data', button=button)
-
-
-def _close_event(fig):
-    """Force calling of the MPL figure close event."""
-    # XXX workaround: plt.close() doesn't spawn close_event on Agg backend
-    # (check MPL github issue #18609; scheduled to be fixed by MPL 3.4)
-    try:
-        fig.canvas.close_event()
-    except ValueError:  # old mpl with Qt
-        pass  # pragma: no cover
+    text = fig.mne.ax_main.get_yticklabels()[ch_index]
+    bbox = text.get_window_extent()
+    x = bbox.intervalx.mean()
+    y = bbox.intervaly.mean()
+    _fake_click(fig, fig.mne.ax_main, (x, y), xform='pix',
+                button=button)

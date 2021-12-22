@@ -7,7 +7,7 @@ import os.path as op
 
 
 from ..utils import _manifest_check_download, _get_path
-from ...utils import (verbose, get_subjects_dir, set_config)
+from ...utils import verbose, get_subjects_dir, set_config
 
 FSAVERAGE_MANIFEST_PATH = op.dirname(__file__)
 
@@ -66,7 +66,7 @@ def fetch_fsaverage(subjects_dir=None, verbose=None):
     #     fid.write('\n'.join(names))
     #
     subjects_dir = _set_montage_coreg_path(subjects_dir)
-    subjects_dir = op.abspath(subjects_dir)
+    subjects_dir = op.abspath(op.expanduser(subjects_dir))
     fs_dir = op.join(subjects_dir, 'fsaverage')
     os.makedirs(fs_dir, exist_ok=True)
     _manifest_check_download(

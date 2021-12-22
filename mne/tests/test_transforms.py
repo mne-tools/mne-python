@@ -4,13 +4,14 @@ import os.path as op
 import pytest
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_equal, assert_allclose,
-                           assert_array_less)
+                           assert_array_less, assert_almost_equal)
+import itertools
 
 import mne
 from mne.datasets import testing
+from mne.fixes import _get_img_fdata
 from mne import read_trans, write_trans
 from mne.io import read_info
-from mne.utils import _TempDir, run_tests_if_main
 from mne.transforms import (invert_transform, _get_trans,
                             rotation, rotation3d, rotation_angles, _find_trans,
                             combine_transforms, apply_trans, translation,
@@ -22,12 +23,15 @@ from mne.transforms import (invert_transform, _get_trans,
                             rotation3d_align_z_axis, _read_fs_xfm,
                             _write_fs_xfm, _quat_real, _fit_matched_points,
                             _quat_to_euler, _euler_to_quat,
-                            _quat_to_affine)
+                            _quat_to_affine, _compute_r2, _validate_pipeline)
+from mne.utils import requires_nibabel, requires_dipy
 
 data_path = testing.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-trans.fif')
 fname_eve = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc_raw-eve.fif')
+subjects_dir = op.join(data_path, 'subjects')
+fname_t1 = op.join(subjects_dir, 'fsaverage', 'mri', 'T1.mgz')
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname_trans = op.join(base_dir, 'sample-audvis-raw-trans.txt')
@@ -66,9 +70,9 @@ def test_get_trans():
 
 
 @testing.requires_testing_data
-def test_io_trans():
+def test_io_trans(tmp_path):
     """Test reading and writing of trans files."""
-    tempdir = _TempDir()
+    tempdir = str(tmp_path)
     os.mkdir(op.join(tempdir, 'sample'))
     pytest.raises(RuntimeError, _find_trans, 'sample', subjects_dir=tempdir)
     trans0 = read_trans(fname)
@@ -232,9 +236,9 @@ def test_rotation():
         m4 = rotation(x, y, z)
         assert_array_equal(m, m4[:3, :3])
         back = rotation_angles(m)
-        assert_equal(back, rot)
+        assert_almost_equal(actual=back, desired=rot, decimal=12)
         back4 = rotation_angles(m4)
-        assert_equal(back4, rot)
+        assert_almost_equal(actual=back4, desired=rot, decimal=12)
 
 
 def test_rotation3d_align_z_axis():
@@ -366,35 +370,35 @@ def test_average_quats():
 
 
 @testing.requires_testing_data
-def test_fs_xfm():
+@pytest.mark.parametrize('subject', ('fsaverage', 'sample'))
+def test_fs_xfm(subject, tmp_path):
     """Test reading and writing of Freesurfer transforms."""
-    for subject in ('fsaverage', 'sample'):
-        fname = op.join(data_path, 'subjects', subject, 'mri', 'transforms',
-                        'talairach.xfm')
-        xfm, kind = _read_fs_xfm(fname)
-        if subject == 'fsaverage':
-            assert_allclose(xfm, np.eye(4), atol=1e-5)  # fsaverage is in MNI
-        assert kind == 'MNI Transform File'
-        tempdir = _TempDir()
-        fname_out = op.join(tempdir, 'out.xfm')
-        _write_fs_xfm(fname_out, xfm, kind)
-        xfm_read, kind_read = _read_fs_xfm(fname_out)
-        assert kind_read == kind
-        assert_allclose(xfm, xfm_read, rtol=1e-5, atol=1e-5)
-        # Some wacky one
-        xfm[:3] = np.random.RandomState(0).randn(3, 4)
-        _write_fs_xfm(fname_out, xfm, 'foo')
-        xfm_read, kind_read = _read_fs_xfm(fname_out)
-        assert kind_read == 'foo'
-        assert_allclose(xfm, xfm_read, rtol=1e-5, atol=1e-5)
-        # degenerate conditions
-        with open(fname_out, 'w') as fid:
-            fid.write('foo')
-        with pytest.raises(ValueError, match='Failed to find'):
-            _read_fs_xfm(fname_out)
-        _write_fs_xfm(fname_out, xfm[:2], 'foo')
-        with pytest.raises(ValueError, match='Could not find'):
-            _read_fs_xfm(fname_out)
+    fname = op.join(data_path, 'subjects', subject, 'mri', 'transforms',
+                    'talairach.xfm')
+    xfm, kind = _read_fs_xfm(fname)
+    if subject == 'fsaverage':
+        assert_allclose(xfm, np.eye(4), atol=1e-5)  # fsaverage is in MNI
+    assert kind == 'MNI Transform File'
+    tempdir = str(tmp_path)
+    fname_out = op.join(tempdir, 'out.xfm')
+    _write_fs_xfm(fname_out, xfm, kind)
+    xfm_read, kind_read = _read_fs_xfm(fname_out)
+    assert kind_read == kind
+    assert_allclose(xfm, xfm_read, rtol=1e-5, atol=1e-5)
+    # Some wacky one
+    xfm[:3] = np.random.RandomState(0).randn(3, 4)
+    _write_fs_xfm(fname_out, xfm, 'foo')
+    xfm_read, kind_read = _read_fs_xfm(fname_out)
+    assert kind_read == 'foo'
+    assert_allclose(xfm, xfm_read, rtol=1e-5, atol=1e-5)
+    # degenerate conditions
+    with open(fname_out, 'w') as fid:
+        fid.write('foo')
+    with pytest.raises(ValueError, match='Failed to find'):
+        _read_fs_xfm(fname_out)
+    _write_fs_xfm(fname_out, xfm[:2], 'foo')
+    with pytest.raises(ValueError, match='Could not find'):
+        _read_fs_xfm(fname_out)
 
 
 @pytest.fixture()
@@ -510,4 +514,41 @@ def test_euler(quats):
     assert_allclose(quat_rot, euler_rot, atol=1e-14)
 
 
-run_tests_if_main()
+@requires_nibabel()
+@requires_dipy()
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_volume_registration():
+    """Test volume registration."""
+    import nibabel as nib
+    from dipy.align import resample
+    T1 = nib.load(fname_t1)
+    affine = np.eye(4)
+    affine[0, 3] = 10
+    T1_resampled = resample(moving=T1.get_fdata(),
+                            static=T1.get_fdata(),
+                            moving_affine=T1.affine,
+                            static_affine=T1.affine,
+                            between_affine=np.linalg.inv(affine))
+    for pipeline in ('rigids', ('translation', 'sdr')):
+        reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
+            T1_resampled, T1, pipeline=pipeline, zooms=10, niter=[5])
+        assert_allclose(affine, reg_affine, atol=0.01)
+        T1_aligned = mne.transforms.apply_volume_registration(
+            T1_resampled, T1, reg_affine, sdr_morph)
+        r2 = _compute_r2(_get_img_fdata(T1_aligned), _get_img_fdata(T1))
+        assert 99.9 < r2
+
+    # check that all orders of the pipeline work
+    for pipeline_len in range(1, 5):
+        for pipeline in itertools.combinations(
+                ('translation', 'rigid', 'affine', 'sdr'), pipeline_len):
+            _validate_pipeline(pipeline)
+            _validate_pipeline(list(pipeline))
+
+    with pytest.raises(ValueError, match='Steps in pipeline are out of order'):
+        _validate_pipeline(('sdr', 'affine'))
+
+    with pytest.raises(ValueError,
+                       match='Steps in pipeline should not be repeated'):
+        _validate_pipeline(('affine', 'affine'))

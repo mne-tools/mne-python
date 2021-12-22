@@ -1,7 +1,7 @@
 # Authors : Denis A. Engemann <denis.engemann@gmail.com>
 #           Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License : BSD 3-clause
+# License : BSD-3-Clause
 
 import os.path as op
 
@@ -20,7 +20,7 @@ from mne.time_frequency._stockwell import (tfr_stockwell, _st,
                                            _st_power_itc)
 
 from mne.time_frequency import AverageTFR, tfr_array_stockwell
-from mne.utils import run_tests_if_main
+from mne.utils import _record_warnings
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -43,7 +43,7 @@ def test_stockwell_check_input():
 
     for last_dim in (127, 128):
         data = np.zeros((2, 10, last_dim))
-        with pytest.warns(None):  # n_fft sometimes
+        with _record_warnings():  # n_fft sometimes
             x_in, n_fft, zero_pad = _check_input_st(data, None)
 
         assert_equal(x_in.shape, (2, 10, 128))
@@ -141,6 +141,3 @@ def test_stockwell_api():
     assert_allclose(itc, np.ones_like(itc))
     assert power.shape == (1, len(freqs), data.shape[-1])
     assert_array_less(0, power)
-
-
-run_tests_if_main()

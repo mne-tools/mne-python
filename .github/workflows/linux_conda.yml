@@ -1,4 +1,7 @@
 name: 'linux / conda'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
+  cancel-in-progress: true
 on:
   push:
     branches:
@@ -8,25 +11,10 @@ on:
       - '*'
 
 jobs:
-  check_skip:
-    runs-on: ubuntu-20.04
-    outputs:
-      skip: ${{ steps.result_step.outputs.ci-skip }}
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - id: result_step
-        uses: mstachniuk/ci-skip@master
-        with:
-          commit-filter: '[skip ci];[ci skip];[skip github]'
-          commit-filter-separator: ';'
-
   # Linux
   job:
-    needs: check_skip
-    if: ${{ needs.check_skip.outputs.skip == 'false' }}
-    name: 'py3.8'
+    timeout-minutes: 90
+    name: 'py3.9'
     runs-on: ubuntu-20.04
     defaults:
       run:
@@ -37,7 +25,7 @@ jobs:
       MNE_LOGGING_LEVEL: 'warning'
       MKL_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
-      PYTHON_VERSION: '3.8'
+      PYTHON_VERSION: '3.9'
     steps:
       - uses: actions/checkout@v2
       - run: ./tools/setup_xvfb.sh
@@ -53,6 +41,9 @@ jobs:
           ./tools/github_actions_dependencies.sh
           source tools/get_minimal_commands.sh
         name: 'Install dependencies'
+      - shell: bash -el {0}
+        run: mne_surf2bem --version
+        name: 'Check minimal commands'
       - shell: bash -el {0}
         run: ./tools/github_actions_install.sh
         name: 'Install MNE'

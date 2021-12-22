@@ -4,7 +4,7 @@ if [ "$CIRCLE_BRANCH" == "main" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]
     echo "Doing a full dev build";
     echo html_dev-memory > build.txt;
     python -c "import mne; mne.datasets._download_all_example_data()";
-elif [ "$CIRCLE_BRANCH" == "maint/0.22" ]; then
+elif [ "$CIRCLE_BRANCH" == "maint/0.24" ]; then
     echo "Doing a full stable build";
     echo html_stable-memory > build.txt;
     python -c "import mne; mne.datasets._download_all_example_data()";
@@ -12,14 +12,14 @@ else
     echo "Doing a partial build";
     FNAMES=$(git diff --name-only $(git merge-base $CIRCLE_BRANCH upstream/main) $CIRCLE_BRANCH);
     if [[ $(cat gitlog.txt) == *"[circle front]"* ]]; then
-        FNAMES="tutorials/source-modeling/plot_mne_dspm_source_localization.py tutorials/machine-learning/plot_receptive_field.py examples/connectivity/plot_mne_inverse_label_connectivity.py tutorials/machine-learning/plot_sensors_decoding.py tutorials/stats-source-space/plot_stats_cluster_spatio_temporal.py tutorials/evoked/plot_20_visualize_evoked.py "${FNAMES};
+        FNAMES="tutorials/inverse/30_mne_dspm_loreta.py tutorials/machine-learning/30_strf.py examples/connectivity/mne_inverse_label_connectivity.py tutorials/machine-learning/50_decoding.py tutorials/stats-source-space/20_cluster_1samp_spatiotemporal.py tutorials/evoked/20_visualize_evoked.py "${FNAMES};
         python -c "import mne; print(mne.datasets.testing.data_path(update_path=True))";
     fi;
     echo FNAMES="$FNAMES";
     for FNAME in $FNAMES; do
-        if [[ `expr match $FNAME "\(tutorials\|examples\)/.*plot_.*\.py"` ]] ; then
+        if [[ $(echo "$FNAME" | grep -P '^(tutorials|examples)(/.*)?/((?!sgskip).)*\.py$') ]] ; then
             echo "Checking example $FNAME ...";
-            PATTERN=`basename $FNAME`"\\|"$PATTERN;
+            PATTERN=$(basename $FNAME)"\\|"$PATTERN;
             if [[ $(cat $FNAME | grep -x ".*datasets.*sample.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
             fi;
@@ -39,7 +39,7 @@ else
                 python -c "import mne; print(mne.datasets.eegbci.load_data(4, [3], update_path=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*sleep_physionet.*" | wc -l) -gt 0 ]]; then
-                python -c "import mne; print(mne.datasets.sleep_physionet.age.fetch_data([0, 1], recording=[1], update_path=True))";
+                python -c "import mne; print(mne.datasets.sleep_physionet.age.fetch_data([0, 1], recording=[1]))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*hf_sef.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.hf_sef.data_path(update_path=True))";
@@ -61,7 +61,7 @@ else
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*hcp_mmp_parcellation.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
-                python -c "import mne; print(mne.datasets.fetch_hcp_mmp_parcellation(subjects_dir=mne.datasets.sample.data_path() + '/subjects'), accept=True)";
+                python -c "import mne; print(mne.datasets.fetch_hcp_mmp_parcellation(subjects_dir=mne.datasets.sample.data_path() + '/subjects', accept=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*misc.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.misc.data_path(update_path=True))";
@@ -95,6 +95,15 @@ else
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*refmeg_noise.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.refmeg_noise.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*ssvep.*" | wc -l) -gt 0 ]]; then
+                python -c "import mne; print(mne.datasets.ssvep.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*epilepsy_ecog.*" | wc -l) -gt 0 ]]; then
+                python -c "import mne; print(mne.datasets.epilepsy_ecog.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*erp_core.*" | wc -l) -gt 0 ]]; then
+                python -c "import mne; print(mne.datasets.erp_core.data_path(update_path=True))";
             fi;
         fi;
     done;

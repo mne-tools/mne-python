@@ -4,12 +4,11 @@
 #          Roman Goj <roman.goj@gmail.com>
 #          Britta Westner <britta.wstnr@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from copy import deepcopy
 
 import numpy as np
-from scipy import linalg
 
 from ..cov import Covariance, make_ad_hoc_cov
 from ..forward.forward import is_fixed_orient, _restrict_forward_to_src_sel
@@ -377,7 +376,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                         'matrix or using regularization.')
                 noise = loading_factor
             else:
-                noise, _ = linalg.eigh(Cm)
+                noise, _ = np.linalg.eigh(Cm)
                 noise = noise[-rank]
                 noise = max(noise, loading_factor)
             W /= np.sqrt(noise)
@@ -387,7 +386,6 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     return W, max_power_ori
 
 
-# TODO: Eventually we can @jit() this to make it faster
 def _compute_power(Cm, W, n_orient):
     """Use beamformer filters to compute source power.
 
@@ -405,10 +403,9 @@ def _compute_power(Cm, W, n_orient):
     """
     n_sources = W.shape[0] // n_orient
 
-    source_power = np.zeros(n_sources)
-    for k in range(n_sources):
-        Wk = W[n_orient * k: n_orient * k + n_orient]
-        source_power[k] = np.trace(Wk @ Cm @ Wk.conj().T).real
+    Wk = W.reshape(n_sources, n_orient, W.shape[1])
+    source_power = np.trace((Wk @ Cm @ Wk.conj().transpose(0, 2, 1)).real,
+                            axis1=1, axis2=2)
 
     return source_power
 
@@ -460,8 +457,7 @@ class Beamformer(dict):
         fname : str
             The filename to use to write the HDF5 data.
             Should end in ``'-lcmv.h5'`` or ``'-dics.h5'``.
-        overwrite : bool
-            If True, overwrite the file (if it exists).
+        %(overwrite)s
         %(verbose)s
         """
         ending = '-%s.h5' % (self['kind'].lower(),)

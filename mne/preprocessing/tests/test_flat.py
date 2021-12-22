@@ -1,7 +1,8 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
+import datetime
 import os.path as op
 import numpy as np
 import pytest
@@ -13,20 +14,23 @@ from mne.preprocessing import annotate_flat
 
 data_path = testing.data_path(download=False)
 skip_fname = op.join(data_path, 'misc', 'intervalrecording_raw.fif')
+date = datetime.datetime(2021, 12, 10, 7, 52, 24, 405305,
+                         tzinfo=datetime.timezone.utc)
 
 
+@pytest.mark.parametrize('meas_date', (None, date))
 @pytest.mark.parametrize('first_samp', (0, 10000))
-def test_annotate_flat(first_samp):
+def test_annotate_flat(meas_date, first_samp):
     """Test marking flat segments."""
     # Test if ECG analysis will work on data that is not preloaded
     n_ch, n_times = 11, 1000
     data = np.random.RandomState(0).randn(n_ch, n_times)
     assert not (np.diff(data, axis=-1) == 0).any()  # nothing flat at first
     info = create_info(n_ch, 1000., 'eeg')
-    info['meas_date'] = (1, 2)
     # test first_samp != for gh-6295
     raw = RawArray(data, info, first_samp=first_samp)
     raw.info['bads'] = [raw.ch_names[-1]]
+    raw.set_meas_date(meas_date)
 
     #
     # First make a channel flat the whole time
@@ -40,6 +44,7 @@ def test_annotate_flat(first_samp):
             (dict(), [raw.ch_names[0]], n_times)]:  # default (1)
         raw_time = raw_0.copy()
         annot, got_bads = annotate_flat(raw_0, verbose='debug', **kwargs)
+        assert annot.orig_time == raw.info["meas_date"]
         assert got_bads == bads
         raw_time.set_annotations(raw_time.annotations + annot)
         raw_time.info['bads'] += got_bads

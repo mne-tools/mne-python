@@ -1,7 +1,7 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from functools import partial
 import os
@@ -14,32 +14,15 @@ import pytest
 
 from mne import (SourceEstimate, VolSourceEstimate, MixedSourceEstimate,
                  SourceSpaces)
-from mne.fixes import has_numba
 from mne.parallel import _force_serial
-from mne.stats import cluster_level, ttest_ind_no_p, combine_adjacency
+from mne.stats import ttest_ind_no_p, combine_adjacency
 from mne.stats.cluster_level import (permutation_cluster_test, f_oneway,
                                      permutation_cluster_1samp_test,
                                      spatio_temporal_cluster_test,
                                      spatio_temporal_cluster_1samp_test,
                                      ttest_1samp_no_p, summarize_clusters_stc)
-from mne.utils import (run_tests_if_main, catch_logging, check_version,
-                       requires_sklearn)
-
-
-@pytest.fixture(scope="function", params=('Numba', 'NumPy'))
-def numba_conditional(monkeypatch, request):
-    """Test both code paths on machines that have Numba."""
-    assert request.param in ('Numba', 'NumPy')
-    if request.param == 'NumPy' and has_numba:
-        monkeypatch.setattr(
-            cluster_level, '_get_buddies', cluster_level._get_buddies_fallback)
-        monkeypatch.setattr(
-            cluster_level, '_get_selves', cluster_level._get_selves_fallback)
-        monkeypatch.setattr(
-            cluster_level, '_where_first', cluster_level._where_first_fallback)
-    if request.param == 'Numba' and not has_numba:
-        pytest.skip('Numba not installed')
-    yield request.param
+from mne.utils import (catch_logging, check_version, requires_sklearn,
+                       _record_warnings)
 
 
 n_space = 50
@@ -120,9 +103,9 @@ def test_thresholds(numba_conditional):
                 buffer_size=None, out_type='mask')
 
 
-def test_cache_dir(tmpdir, numba_conditional):
+def test_cache_dir(tmp_path, numba_conditional):
     """Test use of cache dir."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     orig_dir = os.getenv('MNE_CACHE_DIR', None)
     orig_size = os.getenv('MNE_MEMMAP_MIN_SIZE', None)
     rng = np.random.RandomState(0)
@@ -267,7 +250,7 @@ def test_cluster_permutation_t_test(numba_conditional, stat_fun):
 
         # test with 2 jobs and buffer_size enabled
         buffer_size = condition1.shape[1] // 10
-        with pytest.warns(None):  # sometimes "independently"
+        with _record_warnings():  # sometimes "independently"
             T_obs_neg_buff, _, cluster_p_values_neg_buff, _ = \
                 permutation_cluster_1samp_test(
                     -condition1, n_permutations=100, tail=-1, out_type='mask',
@@ -399,7 +382,7 @@ def test_cluster_permutation_with_adjacency(numba_conditional):
                 X1d_3, adjacency=adjacency, threshold=dict(me='hello'))
 
         # too extreme a start threshold
-        with pytest.warns(None) as w:
+        with _record_warnings() as w:
             spatio_temporal_func(X1d_3, adjacency=adjacency,
                                  threshold=dict(start=10, step=1))
         if not did_warn:
@@ -428,7 +411,8 @@ def test_cluster_permutation_with_adjacency(numba_conditional):
             spatio_temporal_func(
                 X1d_3, adjacency=adjacency, threshold=[])
         with pytest.raises(ValueError, match='Invalid value for the \'tail\''):
-            with pytest.warns(None):  # sometimes ignoring tail
+            # sometimes ignoring tail
+            with _record_warnings():
                 spatio_temporal_func(
                     X1d_3, adjacency=adjacency, tail=2)
 
@@ -687,5 +671,48 @@ def test_tfce_thresholds(numba_conditional):
         permutation_cluster_1samp_test(
             data, tail=1, out_type='mask', threshold=dict(start=1, step=-0.5))
 
+    # Should work with 2D data too
+    permutation_cluster_1samp_test(X=data[..., 0],
+                                   threshold=dict(start=0, step=0.2))
 
-run_tests_if_main()
+
+# 1D gives slices, 2D+ gives boolean masks
+@pytest.mark.parametrize('shape', ((11,), (11, 3), (11, 1, 2)))
+@pytest.mark.parametrize('out_type', ('mask', 'indices'))
+@pytest.mark.parametrize('adjacency', (None, 'sparse'))
+def test_output_equiv(shape, out_type, adjacency):
+    """Test equivalence of output types."""
+    rng = np.random.RandomState(0)
+    n_subjects = 10
+    data = rng.randn(n_subjects, *shape)
+    data -= data.mean(axis=0, keepdims=True)
+    data[:, 2:4] += 2
+    data[:, 6:9] += 2
+    want_mask = np.zeros(shape, int)
+    want_mask[2:4] = 1
+    want_mask[6:9] = 2
+    if adjacency is not None:
+        assert adjacency == 'sparse'
+        adjacency = combine_adjacency(*shape)
+    clusters = permutation_cluster_1samp_test(
+        X=data, n_permutations=1, adjacency=adjacency, out_type=out_type)[1]
+    got_mask = np.zeros_like(want_mask)
+    for n, clu in enumerate(clusters, 1):
+        if out_type == 'mask':
+            if len(shape) == 1 and adjacency is None:
+                assert isinstance(clu, tuple)
+                assert len(clu) == 1
+                assert isinstance(clu[0], slice)
+            else:
+                assert isinstance(clu, np.ndarray)
+                assert clu.dtype == bool
+                assert clu.shape == shape
+            got_mask[clu] = n
+        else:
+            assert isinstance(clu, tuple)
+            for c in clu:
+                assert isinstance(c, np.ndarray)
+                assert c.dtype.kind == 'i'
+            assert out_type == 'indices'
+            got_mask[np.ix_(*clu)] = n
+    assert_array_equal(got_mask, want_mask)

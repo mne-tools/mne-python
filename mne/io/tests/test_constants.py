@@ -1,6 +1,6 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 import re
@@ -15,15 +15,20 @@ from mne.io.constants import (FIFF, FWD, _coord_frame_named, _ch_kind_named,
                               _ch_coil_type_named, _dig_kind_named,
                               _dig_cardinal_named)
 from mne.forward._make_forward import _read_coil_defs
-from mne.utils import _fetch_file, requires_good_network
+from mne.utils import requires_good_network
+from mne.utils.check import _soft_import
+
+# import pooch library for handling the dataset downloading
+pooch = _soft_import('pooch', 'dataset downloading', strict=True)
 
 
 # https://github.com/mne-tools/fiff-constants/commits/master
-commit = '5bd84d224de502bee66f70b7867b8f45b45264c1'
+REPO = 'mne-tools'
+COMMIT = 'aae5960007ee8a67dfc07535ea37d421d37dfe1b'
 
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
-tag_dups = (3501, 3507)  # in both MEGIN and MNE files
+tag_dups = (3501,)  # in both MEGIN and MNE files
 
 _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
                      'pop', 'popitem', 'setdefault', 'update', 'values',
@@ -77,19 +82,26 @@ _aliases = dict(
 
 
 @requires_good_network
-def test_constants(tmpdir):
+def test_constants(tmp_path):
     """Test compensation."""
-    tmpdir = str(tmpdir)  # old pytest...
-    dest = op.join(tmpdir, 'fiff.zip')
-    _fetch_file('https://codeload.github.com/mne-tools/fiff-constants/zip/' +
-                commit, dest)
+    tmp_path = str(tmp_path)  # old pytest...
+    fname = 'fiff.zip'
+    dest = op.join(tmp_path, fname)
+    pooch.retrieve(
+        url='https://codeload.github.com/'
+            f'{REPO}/fiff-constants/zip/{COMMIT}',
+        path=tmp_path,
+        fname=fname,
+        known_hash=None
+    )
     names = list()
     with zipfile.ZipFile(dest, 'r') as ff:
         for name in ff.namelist():
             if 'Dictionary' in name:
-                ff.extract(name, tmpdir)
+                ff.extract(name, tmp_path)
                 names.append(op.basename(name))
-                shutil.move(op.join(tmpdir, name), op.join(tmpdir, names[-1]))
+                shutil.move(op.join(tmp_path, name),
+                            op.join(tmp_path, names[-1]))
     names = sorted(names)
     assert names == ['DictionaryIOD.txt', 'DictionaryIOD_MNE.txt',
                      'DictionaryStructures.txt',
@@ -100,7 +112,7 @@ def test_constants(tmpdir):
     con = dict(iod=dict(), tags=dict(), types=dict(), defines=dict())
     fiff_version = None
     for name in ['DictionaryIOD.txt', 'DictionaryIOD_MNE.txt']:
-        with open(op.join(tmpdir, name), 'rb') as fid:
+        with open(op.join(tmp_path, name), 'rb') as fid:
             for line in fid:
                 line = line.decode('latin1').strip()
                 if line.startswith('# Packing revision'):
@@ -124,7 +136,7 @@ def test_constants(tmpdir):
                     assert id_ not in fif['iod']
                 fif['iod'][id_] = [kind, desc]
     # Tags (MEGIN)
-    with open(op.join(tmpdir, 'DictionaryTags.txt'), 'rb') as fid:
+    with open(op.join(tmp_path, 'DictionaryTags.txt'), 'rb') as fid:
         for line in fid:
             line = line.decode('ISO-8859-1').strip()
             if (line.startswith('#') or line.startswith('alias') or
@@ -141,7 +153,7 @@ def test_constants(tmpdir):
             assert id_ not in fif['tags'], (fif['tags'].get(id_), val)
             fif['tags'][id_] = val
     # Tags (MNE)
-    with open(op.join(tmpdir, 'DictionaryTags_MNE.txt'), 'rb') as fid:
+    with open(op.join(tmp_path, 'DictionaryTags_MNE.txt'), 'rb') as fid:
         for li, line in enumerate(fid):
             line = line.decode('ISO-8859-1').strip()
             # ignore continuation lines (*)
@@ -176,7 +188,7 @@ def test_constants(tmpdir):
     re_defi = re.compile(r'#define\s*(\S*)\s*(\S*)\s*"(.*)"$')
     used_enums = list()
     for extra in ('', '_MNE'):
-        with open(op.join(tmpdir, 'DictionaryTypes%s.txt'
+        with open(op.join(tmp_path, 'DictionaryTypes%s.txt'
                           % (extra,)), 'rb') as fid:
             for li, line in enumerate(fid):
                 line = line.decode('ISO-8859-1').strip()
@@ -336,4 +348,4 @@ def test_dict_completion(dict_, match, extras):
     for e in extras:
         got.add(e)
     want = set(dict_)
-    assert got == want
+    assert got == want, match

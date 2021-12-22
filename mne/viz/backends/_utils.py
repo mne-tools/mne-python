@@ -6,14 +6,21 @@
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
 #
 # License: Simplified BSD
-
+import platform
+import sys
+from contextlib import contextmanager
 import numpy as np
 import collections.abc
+import signal
 from ...externals.decorator import decorator
 
+VALID_BROWSE_BACKENDS = (
+    'matplotlib',
+    'pyqtgraph'
+)
+
 VALID_3D_BACKENDS = (
-    'pyvista',  # default 3d backend
-    'mayavi',
+    'pyvistaqt',  # default 3d backend
     'notebook',
 )
 ALLOWED_QUIVER_MODES = ('2darrow', 'arrow', 'cone', 'cylinder', 'sphere',
@@ -78,3 +85,83 @@ def run_once(fun, *args, **kwargs):
 def _init_qt_resources():
     from ...icons import resources
     resources.qInitResources()
+
+
+@contextmanager
+def _qt_disable_paint(widget):
+    paintEvent = widget.paintEvent
+    widget.paintEvent = lambda *args, **kwargs: None
+    try:
+        yield
+    finally:
+        widget.paintEvent = paintEvent
+
+
+def _init_mne_qtapp(enable_icon=True, pg_app=False):
+    """Get QApplication-instance for MNE-Python.
+
+    Parameter
+    ---------
+    enable_icon: bool
+        If to set an MNE-icon for the app.
+    pg_app: bool
+        If to create the QApplication with pyqtgraph. For an until know
+        undiscovered reason the pyqtgraph-browser won't show without
+        mkQApp from pyqtgraph.
+
+    Returns
+    -------
+    app: ``PyQt5.QtWidgets.QApplication``
+        Instance of QApplication.
+    """
+    from PyQt5.QtWidgets import QApplication
+    from PyQt5.QtGui import QIcon
+
+    app_name = 'MNE-Python'
+    organization_name = 'MNE'
+
+    # Fix from cbrnr/mnelab for app name in menu bar
+    # This has to come *before* the creation of the QApplication to work.
+    # It also only affects the title bar, not the application dock.
+    # There seems to be no way to change the application dock from "python"
+    # at runtime.
+    if sys.platform.startswith("darwin"):
+        try:
+            # set bundle name on macOS (app name shown in the menu bar)
+            from Foundation import NSBundle
+            bundle = NSBundle.mainBundle()
+            info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
+            info["CFBundleName"] = app_name
+        except ModuleNotFoundError:
+            pass
+
+    if pg_app:
+        from pyqtgraph import mkQApp
+        app = mkQApp(app_name)
+    else:
+        app = QApplication.instance() or QApplication(sys.argv or [app_name])
+        app.setApplicationName(app_name)
+    app.setOrganizationName(organization_name)
+
+    if enable_icon:
+        # Set icon
+        _init_qt_resources()
+        kind = 'bigsur-' if platform.mac_ver()[0] >= '10.16' else ''
+        app.setWindowIcon(QIcon(f":/mne-{kind}icon.png"))
+
+    return app
+
+
+# https://stackoverflow.com/questions/5160577/ctrl-c-doesnt-work-with-pyqt
+def _qt_app_exec(app):
+    # adapted from matplotlib
+    old_signal = signal.getsignal(signal.SIGINT)
+    is_python_signal_handler = old_signal is not None
+    if is_python_signal_handler:
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+    try:
+        app.exec_()
+    finally:
+        # reset the SIGINT exception handler
+        if is_python_signal_handler:
+            signal.signal(signal.SIGINT, old_signal)

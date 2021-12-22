@@ -1,6 +1,6 @@
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #         Victoria Peterson <victoriapeterson09@gmail.com>
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 import pytest
@@ -100,6 +100,16 @@ def test_ssd():
 
     pytest.raises(TypeError, ssd.fit, raw)
 
+    # check non-boolean return_filtered
+    with pytest.raises(ValueError, match='return_filtered'):
+        ssd = SSD(info, filt_params_signal, filt_params_noise,
+                  return_filtered=0)
+
+    # check non-boolean sort_by_spectral_ratio
+    with pytest.raises(ValueError, match='sort_by_spectral_ratio'):
+        ssd = SSD(info, filt_params_signal, filt_params_noise,
+                  sort_by_spectral_ratio=0)
+
     # More than 1 channel type
     ch_types = np.reshape([['mag'] * 10, ['eeg'] * 10], n_channels)
     info_2 = create_info(ch_names=n_channels, sfreq=sf, ch_types=ch_types)
@@ -135,14 +145,22 @@ def test_ssd():
     ssd.fit(X)
     X_denoised = ssd.apply(X)
     assert_array_almost_equal(X_denoised, X)
+    # denoised by low-rank-factorization
+    ssd = SSD(info, filt_params_signal, filt_params_noise,
+              n_components=n_components, sort_by_spectral_ratio=True)
+    ssd.fit(X)
+    X_denoised = ssd.apply(X)
+    assert (np.linalg.matrix_rank(X_denoised) == n_components)
 
     # Power ratio ordering
-    spec_ratio, _ = ssd.get_spectral_ratio(ssd.transform(X))
+    ssd = SSD(info, filt_params_signal, filt_params_noise,
+              n_components=None, sort_by_spectral_ratio=False)
+    ssd.fit(X)
+    spec_ratio, sorter_spec = ssd.get_spectral_ratio(ssd.transform(X))
     # since we now that the number of true components is 5, the relative
     # difference should be low for the first 5 components and then increases
     index_diff = np.argmax(-np.diff(spec_ratio))
     assert index_diff == n_components_true - 1
-
     # Check detected peaks
     # fit ssd
     n_components = n_components_true
@@ -159,7 +177,6 @@ def test_ssd():
     psd_S, _ = psd_array_welch(S[0], sfreq=250, n_fft=250)
     corr = np.abs(np.corrcoef((psd_out, psd_S))[0, 1])
     assert np.abs(corr) > 0.95
-
     # Check pattern estimation
     # Since there is no exact ordering of the recovered patterns
     # a pair-wise greedy search will be done
@@ -231,3 +248,77 @@ def test_ssd_pipeline():
     out = pipe.fit_transform(X_e, y)
     assert (out.shape == (100, 2))
     assert (pipe.get_params()['SSD__n_components'] == 5)
+
+
+def test_sorting():
+    """Test sorting learning during training."""
+    X, _, _ = simulate_data(n_trials=100, n_channels=20, n_samples=500)
+    # Epoch length is 1 second
+    X = np.reshape(X, (100, 20, 500))
+    # split data
+    Xtr, Xte = X[:80], X[80:]
+    sf = 250
+    n_channels = Xtr.shape[1]
+    info = create_info(ch_names=n_channels, sfreq=sf, ch_types='eeg')
+
+    filt_params_signal = dict(l_freq=freqs_sig[0], h_freq=freqs_sig[1],
+                              l_trans_bandwidth=4, h_trans_bandwidth=4)
+    filt_params_noise = dict(l_freq=freqs_noise[0], h_freq=freqs_noise[1],
+                             l_trans_bandwidth=4, h_trans_bandwidth=4)
+
+    # check sort_by_spectral_ratio set to False
+    ssd = SSD(info, filt_params_signal, filt_params_noise,
+              n_components=None, sort_by_spectral_ratio=False)
+    ssd.fit(Xtr)
+    _, sorter_tr = ssd.get_spectral_ratio(ssd.transform(Xtr))
+    _, sorter_te = ssd.get_spectral_ratio(ssd.transform(Xte))
+    assert any(sorter_tr != sorter_te)
+
+    # check sort_by_spectral_ratio set to True
+    ssd = SSD(info, filt_params_signal, filt_params_noise,
+              n_components=None, sort_by_spectral_ratio=True)
+    ssd.fit(Xtr)
+
+    # check sorters
+    sorter_in = ssd.sorter_spec
+    ssd = SSD(info, filt_params_signal, filt_params_noise,
+              n_components=None, sort_by_spectral_ratio=False)
+    ssd.fit(Xtr)
+    _, sorter_out = ssd.get_spectral_ratio(ssd.transform(Xtr))
+
+    assert all(sorter_in == sorter_out)
+
+
+def test_return_filtered():
+    """Test return filtered option."""
+    # Check return_filtered
+    # Simulated more noise data and with broader frequency than the desired
+    X, _, _ = simulate_data(SNR=0.9, freqs_sig=[4, 13])
+    sf = 250
+    n_channels = X.shape[0]
+    info = create_info(ch_names=n_channels, sfreq=sf, ch_types='eeg')
+
+    filt_params_signal = dict(l_freq=freqs_sig[0], h_freq=freqs_sig[1],
+                              l_trans_bandwidth=1, h_trans_bandwidth=1)
+    filt_params_noise = dict(l_freq=freqs_noise[0], h_freq=freqs_noise[1],
+                             l_trans_bandwidth=1, h_trans_bandwidth=1)
+
+    # return filtered to true
+    ssd = SSD(info, filt_params_signal, filt_params_noise,
+              sort_by_spectral_ratio=False, return_filtered=True)
+    ssd.fit(X)
+
+    out = ssd.transform(X)
+    psd_out, freqs = psd_array_welch(out[0], sfreq=250, n_fft=250)
+    freqs_up = int(freqs[psd_out > 0.5][0]), int(freqs[psd_out > 0.5][-1])
+    assert (freqs_up == freqs_sig)
+
+    # return filtered to false
+    ssd = SSD(info, filt_params_signal, filt_params_noise,
+              sort_by_spectral_ratio=False, return_filtered=False)
+    ssd.fit(X)
+
+    out = ssd.transform(X)
+    psd_out, freqs = psd_array_welch(out[0], sfreq=250, n_fft=250)
+    freqs_up = int(freqs[psd_out > 0.5][0]), int(freqs[psd_out > 0.5][-1])
+    assert (freqs_up != freqs_sig)

@@ -2,15 +2,13 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
-from ... import pick_types
 from ...io import BaseRaw
 from ...utils import _validate_type, verbose
 from ..nirs import _channel_frequencies, _check_channels_ordered
-from ...filter import filter_data
 
 
 @verbose
@@ -42,25 +40,28 @@ def scalp_coupling_index(raw, l_freq=0.7, h_freq=1.5,
     ----------
     .. footbibliography::
     """
-    raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
 
-    if not len(pick_types(raw.info, fnirs='fnirs_od')):
-        raise RuntimeError('Scalp coupling index '
-                           'should be run on optical density data.')
+    if 'fnirs_od' not in raw:
+        raise RuntimeError(
+            'Scalp coupling index should be run on optical density data.')
 
-    freqs = np.unique(_channel_frequencies(raw))
-    picks = _check_channels_ordered(raw, freqs)
+    freqs = np.unique(_channel_frequencies(raw.info, nominal=True))
+    picks = _check_channels_ordered(raw.info, freqs)
 
-    filtered_data = filter_data(raw._data, raw.info['sfreq'], l_freq, h_freq,
-                                picks=picks, verbose=verbose,
-                                l_trans_bandwidth=l_trans_bandwidth,
-                                h_trans_bandwidth=h_trans_bandwidth)
+    raw = raw.copy().pick(picks).load_data()
+    zero_mask = np.std(raw._data, axis=-1) == 0
+    filtered_data = raw.filter(
+        l_freq, h_freq, l_trans_bandwidth=l_trans_bandwidth,
+        h_trans_bandwidth=h_trans_bandwidth, verbose=verbose).get_data()
 
     sci = np.zeros(picks.shape)
-    for ii in picks[::2]:
-        c = np.corrcoef(filtered_data[ii], filtered_data[ii + 1])[0][1]
+    for ii in range(0, len(picks), 2):
+        with np.errstate(invalid='ignore'):
+            c = np.corrcoef(filtered_data[ii], filtered_data[ii + 1])[0][1]
+        if not np.isfinite(c):  # someone had std=0
+            c = 0
         sci[ii] = c
         sci[ii + 1] = c
-
+    sci[zero_mask] = 0
     return sci

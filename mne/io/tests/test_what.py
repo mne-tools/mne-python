@@ -11,7 +11,7 @@ from mne import what, create_info
 from mne.datasets import testing
 from mne.io import RawArray
 from mne.preprocessing import ICA
-from mne.utils import run_tests_if_main, requires_sklearn
+from mne.utils import requires_sklearn, _record_warnings
 
 data_path = testing.data_path(download=False)
 
@@ -19,15 +19,15 @@ data_path = testing.data_path(download=False)
 @pytest.mark.slowtest
 @requires_sklearn
 @testing.requires_testing_data
-def test_what(tmpdir, verbose_debug):
+def test_what(tmp_path, verbose_debug):
     """Test mne.what."""
     # ICA
     ica = ICA(max_iter=1)
     raw = RawArray(np.random.RandomState(0).randn(3, 10),
                    create_info(3, 1000., 'eeg'))
-    with pytest.warns(None):  # convergence sometimes
+    with _record_warnings():  # convergence sometimes
         ica.fit(raw)
-    fname = op.join(str(tmpdir), 'x-ica.fif')
+    fname = op.join(str(tmp_path), 'x-ica.fif')
     ica.save(fname)
     assert what(fname) == 'ica'
     # test files
@@ -50,6 +50,3 @@ def test_what(tmpdir, verbose_debug):
         assert this == want_dict[kind]
     fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave_xfit.dip')
     assert what(fname) == 'unknown'
-
-
-run_tests_if_main()

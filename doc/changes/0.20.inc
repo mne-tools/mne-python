@@ -9,8 +9,8 @@
 
 .. _changes_0_20:
 
-Version 0.20
-------------
+Version 0.20 (2020-03-27)
+-------------------------
 
 Changelog
 ~~~~~~~~~
@@ -65,7 +65,7 @@ Changelog
 
 - Add the ability to ``return_event_id`` in :func:`mne.read_events` for use with MNE-C produced ``-annot.fif`` files, by `Eric Larson`_
 
-- Add option to :func:`mne.connectivity.spectral_connectivity` to compute corrected imaginary PLV by `Adonay Nunes`_
+- Add option to ``mne.connectivity.spectral_connectivity`` to compute corrected imaginary PLV by `Adonay Nunes`_
 
 - Add :func:`mne.SourceEstimate.estimate_snr` to estimate source-space SNR, by `Kaisu Lankinen`_ and `Padma Sundaram`_
 
@@ -356,7 +356,7 @@ API
 
 - Drop ``unit`` keyword argument from :func:`mne.channels.read_custom_montage`, as it was unused by `Richard Höchenberger`_
 
-- Deprecate ``mne.preprocessing.run_ica``, use :meth:`mne.preprocessing.ICA.detect_artifacts` instead by `Richard Höchenberger`_
+- Deprecate ``mne.preprocessing.run_ica``, use ``mne.preprocessing.ICA.detect_artifacts`` instead by `Richard Höchenberger`_
 
 Authors
 ~~~~~~~

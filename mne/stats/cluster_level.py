@@ -11,7 +11,6 @@
 # License: Simplified BSD
 
 import numpy as np
-from scipy import sparse
 
 from .parametric import f_oneway, ttest_1samp_no_p
 from ..parallel import parallel_func, check_n_jobs
@@ -283,6 +282,7 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
 
 def _get_components(x_in, adjacency, return_list=True):
     """Get connected components from a mask and a adjacency matrix."""
+    from scipy import sparse
     if adjacency is False:
         components = np.arange(len(x_in))
     else:
@@ -502,6 +502,7 @@ def _find_clusters_1dir_parts(x, x_in, adjacency, max_step, partitions,
 
 def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
     """Actually call the clustering algorithm."""
+    from scipy import sparse
     if adjacency is None:
         labels, n_labels = ndimage.label(x_in)
 
@@ -514,11 +515,10 @@ def _find_clusters_1dir(x, x_in, adjacency, max_step, t_power, ndimage):
             else:
                 index = list(range(1, n_labels + 1))
                 if t_power == 1:
-                    sums = ndimage.measurements.sum(x, labels, index=index)
+                    sums = ndimage.sum(x, labels, index=index)
                 else:
-                    sums = ndimage.measurements.sum(np.sign(x) *
-                                                    np.abs(x) ** t_power,
-                                                    labels, index=index)
+                    sums = ndimage.sum(np.sign(x) * np.abs(x) ** t_power,
+                                       labels, index=index)
         else:
             # boolean masks (raveled)
             clusters = list()
@@ -557,11 +557,22 @@ def _cluster_indices_to_mask(components, n_tot):
     return components
 
 
-def _cluster_mask_to_indices(components):
+def _cluster_mask_to_indices(components, shape):
     """Convert to the old format of clusters, which were bool arrays."""
     for ci, c in enumerate(components):
-        if not isinstance(c, slice):
-            components[ci] = np.where(c)[0]
+        if isinstance(c, np.ndarray):  # mask
+            components[ci] = np.where(c.reshape(shape))
+        elif isinstance(c, slice):
+            components[ci] = np.arange(c.start, c.stop)
+        else:
+            assert isinstance(c, tuple), type(c)
+            c = list(c)  # tuple->list
+            for ii, cc in enumerate(c):
+                if isinstance(cc, slice):
+                    c[ii] = np.arange(cc.start, cc.stop)
+                else:
+                    c[ii] = np.where(cc)[0]
+            components[ci] = tuple(c)
     return components
 
 
@@ -583,6 +594,7 @@ def _pval_from_histogram(T, H0, tail):
 
 
 def _setup_adjacency(adjacency, n_tests, n_times):
+    from scipy import sparse
     if not sparse.issparse(adjacency):
         raise ValueError("If adjacency matrix is given, it must be a "
                          "SciPy sparse matrix.")
@@ -918,7 +930,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     else:
         # ndimage outputs slices or boolean masks by default
         if out_type == 'indices':
-            clusters = _cluster_mask_to_indices(clusters)
+            clusters = _cluster_mask_to_indices(clusters, t_obs.shape)
 
     # convert our seed to orders
     # check to see if we can do an exact test
@@ -1087,7 +1099,7 @@ def permutation_cluster_test(
         no points are excluded.
     %(clust_stepdown)s
     %(clust_power_f)s
-    %(clust_out_none)s
+    %(clust_out)s
     %(clust_disjoint)s
     %(clust_buffer)s
     %(verbose)s
@@ -1147,7 +1159,7 @@ def permutation_cluster_1samp_test(
         no points are excluded.
     %(clust_stepdown)s
     %(clust_power_t)s
-    %(clust_out_none)s
+    %(clust_out)s
     %(clust_disjoint)s
     %(clust_buffer)s
     %(verbose)s
@@ -1370,6 +1382,7 @@ def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
 @verbose
 def _get_partitions_from_adjacency(adjacency, n_times, verbose=None):
     """Specify disjoint subsets (e.g., hemispheres) based on adjacency."""
+    from scipy import sparse
     if isinstance(adjacency, list):
         test = np.ones(len(adjacency))
         test_adj = np.zeros((len(adjacency), len(adjacency)), dtype='bool')

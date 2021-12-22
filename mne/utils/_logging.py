@@ -2,9 +2,10 @@
 """Some utility functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import contextlib
+import importlib
 import inspect
 from io import StringIO
 import re
@@ -12,7 +13,9 @@ import sys
 import logging
 import os.path as op
 import warnings
+from typing import Any, Callable, TypeVar
 
+from .docs import fill_doc
 from ..externals.decorator import FunctionMaker
 
 
@@ -48,7 +51,12 @@ _filter = _FrameFilter()
 logger.addFilter(_filter)
 
 
-def verbose(function):
+# Provide help for static type checkers:
+# https://mypy.readthedocs.io/en/stable/generics.html#declaring-decorators
+_FuncT = TypeVar('_FuncT', bound=Callable[..., Any])
+
+
+def verbose(function: _FuncT) -> _FuncT:
     """Verbose decorator to allow functions to override log-level.
 
     Parameters
@@ -79,6 +87,7 @@ def verbose(function):
     Examples
     --------
     You can use the ``verbose`` argument to set the verbose level on the fly::
+
         >>> import mne
         >>> cov = mne.compute_raw_covariance(raw, verbose='WARNING')  # doctest: +SKIP
         >>> cov = mne.compute_raw_covariance(raw, verbose='INFO')  # doctest: +SKIP
@@ -88,7 +97,6 @@ def verbose(function):
     """  # noqa: E501
     # See https://decorator.readthedocs.io/en/latest/tests.documentation.html
     # #dealing-with-third-party-decorators
-    from .docs import fill_doc
     try:
         fill_doc(function)
     except TypeError:  # nothing to add
@@ -124,7 +132,8 @@ def %(name)s(%(signature)s):\n
     evaldict = dict(
         _use_log_level_=use_log_level, _function_=function)
     fm = FunctionMaker(function, None, None, None, None, function.__module__)
-    attrs = dict(__wrapped__=function, __qualname__=function.__qualname__)
+    attrs = dict(__wrapped__=function, __qualname__=function.__qualname__,
+                 __globals__=function.__globals__)
     return fm.make(body, evaldict, addsource=True, **attrs)
 
 
@@ -290,6 +299,15 @@ class catch_logging(object):
         set_log_file(None)
 
 
+@contextlib.contextmanager
+def _record_warnings():
+    # this is a helper that mostly acts like pytest.warns(None) did before
+    # pytest 7
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        yield w
+
+
 class WrapStdOut(object):
     """Dynamically wrap to sys.stdout.
 
@@ -309,7 +327,8 @@ class WrapStdOut(object):
 _verbose_dec_re = re.compile('^<decorator-gen-[0-9]+>$')
 
 
-def warn(message, category=RuntimeWarning, module='mne'):
+def warn(message, category=RuntimeWarning, module='mne',
+         ignore_namespaces=('mne',)):
     """Emit a warning with trace outside the mne namespace.
 
     This function takes arguments like warnings.warn, and sends messages
@@ -326,9 +345,13 @@ def warn(message, category=RuntimeWarning, module='mne'):
         The warning class. Defaults to ``RuntimeWarning``.
     module : str
         The name of the module emitting the warning.
+    ignore_namespaces : list of str
+        Namespaces to ignore when traversing the stack.
+
+        .. versionadded:: 0.24
     """
-    import mne
-    root_dir = op.dirname(mne.__file__)
+    root_dirs = [importlib.import_module(ns) for ns in ignore_namespaces]
+    root_dirs = [op.dirname(ns.__file__) for ns in root_dirs]
     frame = None
     if logger.level <= logging.WARN:
         frame = inspect.currentframe()
@@ -339,7 +362,7 @@ def warn(message, category=RuntimeWarning, module='mne'):
             if not _verbose_dec_re.search(fname):
                 # treat tests as scripts
                 # and don't capture unittest/case.py (assert_raises)
-                if not (fname.startswith(root_dir) or
+                if not (any(fname.startswith(rd) for rd in root_dirs) or
                         ('unittest' in fname and 'case' in fname)) or \
                         op.basename(op.dirname(fname)) == 'tests':
                     break
@@ -353,9 +376,12 @@ def warn(message, category=RuntimeWarning, module='mne'):
             globals().get('__warningregistry__', {}))
     # To avoid a duplicate warning print, we only emit the logger.warning if
     # one of the handlers is a FileHandler. See gh-5592
+    # But it's also nice to be able to do:
+    # with mne.utils.use_log_level('warning', add_frames=3):
+    # so also check our add_frames attribute.
     if any(isinstance(h, logging.FileHandler) or getattr(h, '_mne_file_like',
                                                          False)
-           for h in logger.handlers):
+           for h in logger.handlers) or _filter.add_frames:
         logger.warning(message)
 
 
@@ -382,28 +408,6 @@ def filter_out_warnings(warn_record, category=None, match=None):
 
     match : str | None
         text or regex that matches the error message to filter out
-
-    Examples
-    --------
-    This can be used as::
-
-        >>> import pytest
-        >>> import warnings
-        >>> from mne.utils import filter_out_warnings
-        >>> with pytest.warns(None) as recwarn:
-        ...     warnings.warn("value must be 0 or None", UserWarning)
-        >>> filter_out_warnings(recwarn, match=".* 0 or None")
-        >>> assert len(recwarn.list) == 0
-
-        >>> with pytest.warns(None) as recwarn:
-        ...     warnings.warn("value must be 42", UserWarning)
-        >>> filter_out_warnings(recwarn, match=r'.* must be \d+$')
-        >>> assert len(recwarn.list) == 0
-
-        >>> with pytest.warns(None) as recwarn:
-        ...     warnings.warn("this is not here", UserWarning)
-        >>> filter_out_warnings(recwarn, match=r'.* must be \d+$')
-        >>> assert len(recwarn.list) == 1
     """
     regexp = re.compile('.*' if match is None else match)
     is_category = [w.category == category if category is not None else True
@@ -415,20 +419,6 @@ def filter_out_warnings(warn_record, category=None, match=None):
 
     for i in reversed(ind):
         warn_record._list.pop(i)
-
-
-class ETSContext(object):
-    """Add more meaningful message to errors generated by ETS Toolkit."""
-
-    def __enter__(self):  # noqa: D105
-        pass
-
-    def __exit__(self, type, value, traceback):  # noqa: D105
-        if isinstance(value, SystemExit) and value.code.\
-                startswith("This program needs access to the screen"):
-            value.code += ("\nThis can probably be solved by setting "
-                           "ETS_TOOLKIT=qt4. On bash, type\n\n    $ export "
-                           "ETS_TOOLKIT=qt4\n\nand run the command again.")
 
 
 @contextlib.contextmanager

@@ -9,8 +9,8 @@
 
 .. _changes_0_21:
 
-Version 0.21
-------------
+Version 0.21 (2020-09-21)
+-------------------------
 
 .. |Rahul Nadkarni| replace:: **Rahul Nadkarni**
 .. |Lau Møller Andersen| replace:: **Lau Møller Andersen**
@@ -42,7 +42,7 @@ Enhancements
 
 - Speed up reading of annotations in EDF+ files **by new contributor** |Jeroen Van Der Donckt|_
 
-- Add head to mri and mri to voxel space transform details to :ref:`plot_source_alignment` tutorial, by `Alex Rockhill`_
+- Add head to mri and mri to voxel space transform details to :ref:`tut-source-alignment` tutorial, by `Alex Rockhill`_
 
 - Improve memory efficiency of :func:`mne.concatenate_epochs` by `Eric Larson`_
 
@@ -150,7 +150,7 @@ Enhancements
 
 - Change default to ``surfaces='auto'`` from ``surfaces='head'`` to allow :func:`mne.viz.plot_alignment` to work when just passing a :class:`mne.Info` as ``plot_alignment(info)`` by `Eric Larson`_
 
-- Add ECoG misc EDF dataset to the :ref:`tut_working_with_ecog` tutorial to show snapshots of time-frequency activity by `Adam Li`_
+- Add ECoG misc EDF dataset to the :ref:`tut-working-with-ecog` tutorial to show snapshots of time-frequency activity by `Adam Li`_
 
 - Add :func:`mne.viz.set_3d_options` and ``MNE_3D_OPTION_ANTIALIAS`` environment variable to control full-scene antialiasing (FXAA) in 3D functions like :ref:`mne coreg`, :func:`mne.viz.plot_alignment`, and :func:`mne.viz.plot_source_estimates`; this can be useful on systems where FXAA does not work well, such as some with MESA software rendering, by `Eric Larson`_
 
@@ -214,7 +214,7 @@ Enhancements
 
 - Add reader for SNIRF NIRS data in :func:`mne.io.read_raw_snirf` by `Robert Luke`_
 
-- `~mne.Evoked` has gained ``tmin`` and ``tmax`` attributes for more consistency with `~mne.Epochs` by `Richard Höchenberger`_		
+- `~mne.Evoked` has gained ``tmin`` and ``tmax`` attributes for more consistency with `~mne.Epochs` by `Richard Höchenberger`_
 
 Bugs
 ~~~~
@@ -271,7 +271,7 @@ Bugs
 
 - Fix bug with :func:`mne.channels.read_custom_montage` where ``"headshape"`` points in SFP format were not read properly, by `Eric Larson`_
 
-- Fix bug with setting HTML classes when using :meth:`mne.Report.add_bem_to_section` by `Eric Larson`_
+- Fix bug with setting HTML classes when using ``mne.Report.add_bem_to_section`` by `Eric Larson`_
 
 - Fix bug with convex-hull based MEG helmet creation where the face area could be covered up, by `Eric Larson`_
 
@@ -399,7 +399,7 @@ API changes
 
   1. Arguments to clustering functions, such as `mne.stats.permutation_cluster_test`, and
   2. Function names for defining adjacency, such as `mne.spatio_temporal_src_adjacency` replacing ``mne.spatio_temporal_src_connectivity``.
-  
+
   The complete list of changed function names is:
 
   - ``mne.channels.find_ch_connectivity`` → `~mne.channels.find_ch_adjacency`

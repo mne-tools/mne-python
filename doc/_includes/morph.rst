@@ -12,11 +12,6 @@ anatomically analogous labels in another. :meth:`mne.SourceMorph.apply` offers
 the capability to transform all subject data to the same space and,
 e.g., compute averages of data across subjects.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
-
 .. NOTE: part of this file is included in doc/overview/implementation.rst.
    Changes here are reflected there. If you want to link to this content, link
    to :ref:`ch_morph` to link to that section of the implementation.rst page.

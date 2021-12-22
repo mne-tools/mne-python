@@ -2,7 +2,7 @@
 # Authors: Clemens Brunner <clemens.brunner@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import pickle
 from mne.utils import BunchConstNamed

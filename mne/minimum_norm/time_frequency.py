@@ -1,10 +1,9 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
-from scipy import linalg
 
 from ..epochs import Epochs, make_fixed_length_events
 from ..evoked import EvokedArray
@@ -28,6 +27,7 @@ def _prepare_source_params(inst, inverse_operator, label=None,
                            prepared=False, method_params=None,
                            use_cps=True, verbose=None):
     """Prepare inverse operator and params for spectral / TFR analysis."""
+    from scipy import linalg
     inv = _check_or_prepare(inverse_operator, nave, lambda2, method,
                             method_params, prepared)
 
@@ -620,7 +620,8 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         if k == 0:
             freq_mask = (freqs >= fmin) & (freqs <= fmax)
             fstep = np.mean(np.diff(freqs))
-            evoked_info['sfreq'] = 1. / fstep
+            with evoked_info._unlock():
+                evoked_info['sfreq'] = 1. / fstep
         freqs = freqs[freq_mask]
 
         # sensor space PSD

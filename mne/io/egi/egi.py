@@ -14,7 +14,7 @@ from ..base import BaseRaw
 from ..utils import _read_segments_file, _create_chs
 from ..meas_info import _empty_info
 from ..constants import FIFF
-from ...utils import verbose, logger, warn, _validate_type
+from ...utils import verbose, logger, warn, _validate_type, _check_fname
 
 
 def _read_header(fid):
@@ -152,7 +152,6 @@ def read_raw_egi(input_fname, eog=None, misc=None,
     """
     _validate_type(input_fname, 'path-like', 'input_fname')
     input_fname = str(input_fname)
-
     if input_fname.endswith('.mff'):
         return _read_raw_egi_mff(input_fname, eog, misc, include,
                                  exclude, preload, channel_naming, verbose)
@@ -167,6 +166,7 @@ class RawEGI(BaseRaw):
     def __init__(self, input_fname, eog=None, misc=None,
                  include=None, exclude=None, preload=False,
                  channel_naming='E%d', verbose=None):  # noqa: D102
+        input_fname = _check_fname(input_fname, 'read', True, 'input_fname')
         if eog is None:
             eog = []
         if misc is None:
@@ -256,6 +256,7 @@ class RawEGI(BaseRaw):
                              'coil_type': FIFF.FIFFV_COIL_NONE,
                              'unit': FIFF.FIFF_UNIT_NONE})
         info['chs'] = chs
+        info._unlocked = False
         info._update_redundant()
         super(RawEGI, self).__init__(
             info, preload, orig_format=egi_info['orig_format'],

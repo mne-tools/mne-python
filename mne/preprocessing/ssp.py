@@ -2,7 +2,7 @@
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import copy as cp
 
@@ -69,8 +69,8 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 
     # Check to make sure we actually got at least one usable event
     if events.shape[0] < 1:
-        warn('No %s events found, returning None for projs' % mode)
-        return (None, events) + (([],) if return_drop_log else ())
+        warn(f'No {mode} events found')
+        return ([], events) + (([],) if return_drop_log else ())
 
     logger.info('Computing projector')
     my_info = cp.deepcopy(raw.info)
@@ -120,8 +120,8 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 
     drop_log = epochs.drop_log
     if epochs.events.shape[0] < 1:
-        warn('No good epochs found, returning None for projs')
-        return (None, events) + ((drop_log,) if return_drop_log else ())
+        warn('No good epochs found')
+        return ([], events) + ((drop_log,) if return_drop_log else ())
 
     if average:
         evoked = epochs.average()

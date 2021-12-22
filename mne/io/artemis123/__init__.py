@@ -2,6 +2,6 @@
 
 # Author: Luke Bloy <bloyl@chop.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from .artemis123 import read_raw_artemis123

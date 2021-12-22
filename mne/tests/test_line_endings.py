@@ -1,16 +1,15 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #         Adapted from vispy
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
-from unittest import SkipTest
 from os import path as op
 import sys
 
 import pytest
 
-from mne.utils import run_tests_if_main, _TempDir, _get_root_dir
+from mne.utils import _get_root_dir
 
 
 skip_files = (
@@ -23,6 +22,7 @@ skip_files = (
     # the line endings and coding schemes used there
     'test_old_layout_latin1_software_filter.vhdr',
     'test_old_layout_latin1_software_filter.vmrk',
+    'test_old_layout_latin1_software_filter_longname.vhdr',
     'searchindex.dat',
 )
 
@@ -30,7 +30,7 @@ skip_files = (
 def _assert_line_endings(dir_):
     """Check line endings for a directory."""
     if sys.platform == 'win32':
-        raise SkipTest('Skipping line endings check on Windows')
+        pytest.skip('Skipping line endings check on Windows')
     report = list()
     good_exts = ('.py', '.dat', '.sel', '.lout', '.css', '.js', '.lay', '.txt',
                  '.elc', '.csd', '.sfp', '.json', '.hpts', '.vmrk', '.vhdr',
@@ -56,9 +56,9 @@ def _assert_line_endings(dir_):
                              % (len(report), '\n'.join(report)))
 
 
-def test_line_endings():
+def test_line_endings(tmp_path):
     """Test line endings of mne-python."""
-    tempdir = _TempDir()
+    tempdir = str(tmp_path)
     with open(op.join(tempdir, 'foo'), 'wb') as fid:
         fid.write('bad\r\ngood\n'.encode('ascii'))
     _assert_line_endings(tempdir)
@@ -70,6 +70,3 @@ def test_line_endings():
     pytest.raises(AssertionError, _assert_line_endings, tempdir)
     # now check mne
     _assert_line_endings(_get_root_dir())
-
-
-run_tests_if_main()

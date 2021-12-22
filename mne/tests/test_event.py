@@ -2,7 +2,7 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import os.path as op
 import os
 
@@ -16,7 +16,6 @@ from mne import (read_events, write_events, make_fixed_length_events,
                  read_evokeds, Epochs, create_info, compute_raw_covariance,
                  Annotations)
 from mne.io import read_raw_fif, RawArray
-from mne.utils import run_tests_if_main
 from mne.event import (define_target_events, merge_events, AcqParserFIF,
                        shift_time_events)
 from mne.datasets import testing
@@ -111,11 +110,11 @@ def test_merge_events():
         assert_array_equal(events, events_good)
 
 
-def test_io_events(tmpdir):
+def test_io_events(tmp_path):
     """Test IO for events."""
     # Test binary fif IO
     events = read_events(fname)  # Use as the gold standard
-    fname_temp = tmpdir.join('events-eve.fif')
+    fname_temp = tmp_path / 'events-eve.fif'
     write_events(fname_temp, events)
     events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
@@ -123,13 +122,13 @@ def test_io_events(tmpdir):
     # Test binary fif.gz IO
     events2 = read_events(fname_gz)  # Use as the gold standard
     assert_array_almost_equal(events, events2)
-    fname_temp += '.gz'
+    fname_temp = str(fname_temp) + '.gz'
     write_events(fname_temp, events2)
     events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
 
     # Test new format text file IO
-    fname_temp = str(tmpdir.join('events.eve'))
+    fname_temp = tmp_path / 'events.eve'
     write_events(fname_temp, events)
     events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
@@ -140,12 +139,12 @@ def test_io_events(tmpdir):
     # Test old format text file IO
     events2 = read_events(fname_old_txt)
     assert_array_almost_equal(events, events2)
-    write_events(fname_temp, events)
+    write_events(fname_temp, events, overwrite=True)
     events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
 
     # Test event selection
-    fname_temp = tmpdir.join('events-eve.fif')
+    fname_temp = tmp_path / 'events-eve.fif'
     a = read_events(fname_temp, include=1)
     b = read_events(fname_temp, include=[1])
     c = read_events(fname_temp, exclude=[2, 3, 4, 5, 32])
@@ -157,24 +156,24 @@ def test_io_events(tmpdir):
     # test reading file with mask=None
     events2 = events.copy()
     events2[:, -1] = range(events2.shape[0])
-    write_events(fname_temp, events2)
+    write_events(fname_temp, events2, overwrite=True)
     events3 = read_events(fname_temp, mask=None)
     assert_array_almost_equal(events2, events3)
 
     # Test binary file IO for 1 event
     events = read_events(fname_1)  # Use as the new gold standard
-    write_events(fname_temp, events)
+    write_events(fname_temp, events, overwrite=True)
     events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
 
     # Test text file IO for 1 event
-    fname_temp = str(tmpdir.join('events.eve'))
-    write_events(fname_temp, events)
+    fname_temp = tmp_path / 'events.eve'
+    write_events(fname_temp, events, overwrite=True)
     events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
 
     # test warnings on bad filenames
-    fname2 = tmpdir.join('test-bad-name.fif')
+    fname2 = tmp_path / 'test-bad-name.fif'
     with pytest.warns(RuntimeWarning, match='-eve.fif'):
         write_events(fname2, events)
     with pytest.warns(RuntimeWarning, match='-eve.fif'):
@@ -218,8 +217,8 @@ def test_find_events():
 
     # Reset some data for ease of comparison
     raw._first_samps[0] = 0
-    raw.info['sfreq'] = 1000
-    raw._update_times()
+    with raw.info._unlock():
+        raw.info['sfreq'] = 1000
 
     stim_channel = 'STI 014'
     stim_channel_idx = pick_channels(raw.info['ch_names'],
@@ -462,7 +461,7 @@ def test_make_fixed_length_events():
     # Make sure it gets used properly by compute_raw_covariance
     cov = compute_raw_covariance(raw, tstep=None)
     expected = np.cov(data[:, :21216])
-    np.testing.assert_allclose(cov['data'], expected, atol=1e-12)
+    assert_allclose(cov['data'], expected, atol=1e-12)
 
     # overlaps
     events = make_fixed_length_events(raw, 1, duration=1)
@@ -592,6 +591,3 @@ def test_shift_time_events():
     EXPECTED = [0, 2, 3]
     new_events = shift_time_events(events, ids=[1, 2], tshift=1, sfreq=1)
     assert all(new_events[:, 0] == EXPECTED)
-
-
-run_tests_if_main()

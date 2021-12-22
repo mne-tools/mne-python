@@ -8,7 +8,6 @@ from numpy.testing import assert_array_almost_equal
 
 from mne.io import read_raw_nihon, read_raw_edf
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import run_tests_if_main
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io.nihon.nihon import (_read_nihon_header, _read_nihon_metadata,
                                 _read_nihon_annotations)
@@ -58,8 +57,13 @@ def test_nihon_eeg():
 
     msg = 'No LOG file exists. Annotations will not be read'
     with pytest.warns(RuntimeWarning, match=msg):
-        annot = _read_nihon_annotations(bad_fname, orig_time=None)
-        assert annot is None
+        annot = _read_nihon_annotations(bad_fname)
+        assert all(len(x) == 0 for x in annot.values())
 
+    # the nihon test file has $A1 and $A2 in it, which are not EEG
+    assert '$A1' in raw.ch_names
 
-run_tests_if_main()
+    # assert that channels with $ are 'misc'
+    picks = [ch for ch in raw.ch_names if ch.startswith('$')]
+    ch_types = raw.get_channel_types(picks=picks)
+    assert all(ch == 'misc' for ch in ch_types)

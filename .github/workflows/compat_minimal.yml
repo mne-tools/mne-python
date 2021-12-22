@@ -1,4 +1,7 @@
 name: 'compat / minimal'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
+  cancel-in-progress: true
 on:
   push:
     branches:
@@ -8,24 +11,9 @@ on:
       - '*'
 
 jobs:
-  check_skip:
-    runs-on: ubuntu-20.04
-    outputs:
-      skip: ${{ steps.result_step.outputs.ci-skip }}
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - id: result_step
-        uses: mstachniuk/ci-skip@master
-        with:
-          commit-filter: '[skip ci];[ci skip];[skip github]'
-          commit-filter-separator: ';'
-
   # Minimal (runs with and without testing data)
   job:
-    needs: check_skip
-    if: ${{ needs.check_skip.outputs.skip == 'false' }}
+    timeout-minutes: 90
     name: 'py3.7'
     runs-on: ubuntu-20.04
     defaults:
@@ -39,7 +27,6 @@ jobs:
       MNE_FORCE_SERIAL: true
       MNE_LOGGING_LEVEL: 'warning'
       MNE_SKIP_NETWORK_TEST: 1
-      MNE_SKIP_TESTING_DATASET_TESTS: true
       OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       PYTHON_VERSION: '3.7'
@@ -67,6 +54,9 @@ jobs:
       - shell: bash -el {0}
         run: ./tools/get_testing_version.sh
         name: 'Get testing version'
+      - shell: bash -el {0}
+        run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
+        name: Run tests with no testing data
       - uses: actions/cache@v2
         with:
           key: ${{ env.TESTING_VERSION }}

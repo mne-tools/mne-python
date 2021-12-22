@@ -2,7 +2,7 @@
 #          Eric Larson <larsoner@uw.edu>
 #          Mainak Jas <mainak.jas@telecom-paristech.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
@@ -13,7 +13,6 @@ import os.path as op
 import numpy as np
 from numpy.polynomial import legendre
 
-from ..fixes import einsum
 from ..parallel import parallel_func
 from ..utils import logger, verbose, _get_extra_data_path, fill_doc
 
@@ -158,7 +157,7 @@ def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
     # sums = np.sum(bbeta[:, :, np.newaxis].T * n_fact * coeffs, axis=1)
     # sums = np.rollaxis(sums, 2)
     # or
-    # sums = einsum('ji,jk,ijk->ki', bbeta, n_fact, lut_fun(ctheta)))
+    # sums = np.einsum('ji,jk,ijk->ki', bbeta, n_fact, lut_fun(ctheta)))
     sums = np.empty((n_fact.shape[1], len(beta)))
     # beta can be e.g. 3 million elements, which ends up using lots of memory
     # so we split up the computations into ~50 MB blocks
@@ -168,8 +167,8 @@ def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
         bbeta = np.tile(beta[start:stop][np.newaxis], (n_fact.shape[0], 1))
         bbeta[0] *= beta[start:stop]
         np.cumprod(bbeta, axis=0, out=bbeta)  # run inplace
-        einsum('ji,jk,ijk->ki', bbeta, n_fact, lut_fun(ctheta[start:stop]),
-               out=sums[:, start:stop])
+        np.einsum('ji,jk,ijk->ki', bbeta, n_fact, lut_fun(ctheta[start:stop]),
+                  out=sums[:, start:stop])
     return sums
 
 
@@ -231,7 +230,7 @@ def _fast_sphere_dot_r0(r, rr1_orig, rr2s, lr1, lr2s, cosmags1, cosmags2s,
     cosmags2 = np.concatenate(cosmags2s)
 
     # outer product, sum over coords
-    ct = einsum('ik,jk->ij', rr1_orig, rr2)
+    ct = np.einsum('ik,jk->ij', rr1_orig, rr2)
     np.clip(ct, -1, 1, ct)
 
     # expand axes
@@ -253,11 +252,11 @@ def _fast_sphere_dot_r0(r, rr1_orig, rr2s, lr1, lr2s, cosmags1, cosmags2s,
         # n2c1 = np.sum(cosmags2 * rr1, axis=2)
         # n2c2 = np.sum(cosmags2 * rr2, axis=2)
         # n1n2 = np.sum(cosmags1 * cosmags2, axis=2)
-        n1c1 = einsum('ik,ijk->ij', cosmags1, rr1)
-        n1c2 = einsum('ik,ijk->ij', cosmags1, rr2)
-        n2c1 = einsum('jk,ijk->ij', cosmags2, rr1)
-        n2c2 = einsum('jk,ijk->ij', cosmags2, rr2)
-        n1n2 = einsum('ik,jk->ij', cosmags1, cosmags2)
+        n1c1 = np.einsum('ik,ijk->ij', cosmags1, rr1)
+        n1c2 = np.einsum('ik,ijk->ij', cosmags1, rr2)
+        n2c1 = np.einsum('jk,ijk->ij', cosmags2, rr1)
+        n2c2 = np.einsum('jk,ijk->ij', cosmags2, rr2)
+        n1n2 = np.einsum('ik,jk->ij', cosmags1, cosmags2)
         part1 = ct * n1c1 * n2c2
         part2 = n1c1 * n2c1 + n1c2 * n2c2
 

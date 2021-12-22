@@ -1,10 +1,28 @@
-# Tagging a commit with [circle front] will build the front page and perform test-doc.
-# Tagging a commit with [circle full] will build everything.
-version: 2
+# Tagging a commit with:
+# - [circle front] will build the front page and perform test-doc
+# - [circle full] will build everything
+# - [circle linkcheck] will run our linkcheck
+# - [circle deploy] on a main or maint/* commit will try to immediately build
+#   and deploy docs rather than waiting for the nightly build
+
+version: 2.1
+
+_xvfb: &xvfb
+  name: Start Xvfb virtual framebuffer
+  command: |
+    echo "export DISPLAY=:99" >> $BASH_ENV
+    /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1280x1024x24 -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix
+
 jobs:
     build_docs:
+      parameters:
+        scheduled:
+          type: string
+          default: "false"
       docker:
-        - image: circleci/python:3.8.5-buster
+        # Use 18.04 rather than 20.04 because MESA 20.0.8 on 18.04 has working
+        # transparency but 21.0.3 on 20.04 does not!
+        - image: cimg/base:stable-18.04
       steps:
         - restore_cache:
             keys:
@@ -13,67 +31,103 @@ jobs:
         - run:
             name: Complete checkout
             command: |
+              set -e
               if ! git remote -v | grep upstream; then
-                git remote add upstream git://github.com/mne-tools/mne-python.git
+                git remote add upstream https://github.com/mne-tools/mne-python.git
               fi
+              git remote set-url upstream https://github.com/mne-tools/mne-python.git
               git fetch upstream
         - save_cache:
             key: source-cache
             paths:
               - ".git"
         - run:
+            name: Check-skip
+            command: |
+              set -e
+              export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
+              if [[ -v CIRCLE_PULL_REQUEST ]] && ([[ "$COMMIT_MESSAGE" == *"[skip circle]"* ]] || [[ "$COMMIT_MESSAGE" == *"[circle skip]"* ]]); then
+                echo "Skip detected, exiting job ${CIRCLE_JOB} for PR ${CIRCLE_PULL_REQUEST}."
+                circleci-agent step halt;
+              fi
+        - run:
+            name: Merge with upstream and triage run
+            command: |
+              set -e
+              echo $(git log -1 --pretty=%B) | tee gitlog.txt
+              echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
+              if [[ $(cat merge.txt) != "" ]]; then
+                echo "Merging $(cat merge.txt)";
+                git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
+              else
+                if [[ "$CIRCLE_BRANCH" == "main" ]]; then
+                  KIND=dev
+                else
+                  KIND=stable
+                fi
+                export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
+                if [[ "<< parameters.scheduled >>" == "true" ]]; then
+                  echo "Scheduled full build detected, checking if it's required."
+                  wget https://mne.tools/${KIND}/_version.txt;
+                  REMOTE_VERSION=$(cat _version.txt)
+                  THIS_VERSION=$(git rev-parse HEAD)
+                  echo "Current ${KIND} SHA: ${REMOTE_VERSION}"
+                  echo "This    ${KIND} SHA: ${THIS_VERSION}"
+                  if [[ "${THIS_VERSION}" != "${REMOTE_VERSION}" ]]; then
+                    echo "Rebuild required."
+                  else
+                    echo "Rebuild skipped."
+                    circleci-agent step halt;
+                  fi
+                elif [[ "$COMMIT_MESSAGE" == *"[circle deploy]"* ]]; then
+                  echo "Forced deployed build detected, building and deploying docs";
+                else
+                  echo "Waiting until scheduled run to build ${KIND} docs, exiting job ${CIRCLE_JOB}."
+                  circleci-agent step halt;
+                fi
+              fi
+
+        - run:
             name: Set BASH_ENV
             command: |
               set -e
+              sudo apt update -qq
+              sudo apt install -qq libosmesa6 libglx-mesa0 libopengl0 libglx0 libdbus-1-3 \
+                libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+                libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 \
+                graphviz optipng \
+                python3.8-venv python3-venv \
+                xvfb libxft2 ffmpeg
+              python3.8 -m venv ~/python_env
               echo "set -e" >> $BASH_ENV
-              echo "export DISPLAY=:99" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
-              echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci"  >> $BASH_ENV
+              echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
+              echo "export MNE_FULL_DATE=true" >> $BASH_ENV
+              echo "export MNE_3D_OPTION_ANTIALIAS=false" >> $BASH_ENV
               source tools/get_minimal_commands.sh
-              echo "source ${PWD}/tools/get_minimal_commands.sh" >> $BASH_ENV
-              echo "export MNE_3D_BACKEND=pyvista" >> $BASH_ENV
-              echo "export PATH=~/.local/bin/:${MNE_ROOT}/bin:$PATH" >> $BASH_ENV
+              echo "export MNE_3D_BACKEND=pyvistaqt" >> $BASH_ENV
+              echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
+              echo "source ~/python_env/bin/activate" >> $BASH_ENV
+              mkdir -p ~/.local/bin
+              ln -s ~/python_env/bin/python ~/.local/bin/python
               echo "BASH_ENV:"
               cat $BASH_ENV
               mkdir -p ~/mne_data
-              touch pattern.txt;
+              touch pattern.txt
         - run:
             name: check neuromag2ft
             command: |
               neuromag2ft --version
 
         - run:
-            name: Merge with upstream
-            command: |
-              echo $(git log -1 --pretty=%B) | tee gitlog.txt
-              echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
-              if [[ $(cat merge.txt) != "" ]]; then
-                echo "Merging $(cat merge.txt)";
-                git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
-              fi
-
-        - run:
-            name: Install 3D rendering libraries \ PyQt5 dependencies \ graphviz \ optipng (for optimized images)
-            command: |
-              sudo apt-get install libosmesa6 libglx-mesa0 libopengl0 libglx0 libdbus-1-3 \
-                  libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 \
-                  graphviz \
-                  optipng
-
-        - run:
-            name: Spin up Xvfb
-            command: |
-              /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
-
-        # https://github.com/ContinuumIO/anaconda-issues/issues/9190#issuecomment-386508136
-        # https://github.com/golemfactory/golem/issues/1019
+            <<: *xvfb
 
         - run:
             name: Install fonts needed for diagrams
             command: |
               mkdir -p $HOME/.fonts
-              curl https://codeload.github.com/adobe-fonts/source-code-pro/tar.gz/2.030R-ro/1.050R-it | tar xz -C $HOME/.fonts
-              curl https://codeload.github.com/adobe-fonts/source-sans-pro/tar.gz/3.006R | tar xz -C $HOME/.fonts
+              curl https://codeload.github.com/adobe-fonts/source-code-pro/tar.gz/2.038R-ro/1.058R-it/1.018R-VAR | tar xz -C $HOME/.fonts
+              curl https://codeload.github.com/adobe-fonts/source-sans-pro/tar.gz/3.028R | tar xz -C $HOME/.fonts
               fc-cache -f
 
         # Load pip cache
@@ -84,16 +138,11 @@ jobs:
             keys:
               - user-install-bin-cache
 
+        # Hack in uninstalls of libraries as necessary if pip doesn't do the right thing in upgrading for us...
         - run:
             name: Get Python running
             command: |
-              python -m pip install --user --upgrade --progress-bar off pip setuptools
-              python -m pip install --user --upgrade --progress-bar off --pre sphinx
-              python -m pip install --user --upgrade --progress-bar off -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
-              python -m pip install --user --progress-bar off https://github.com/pyvista/pyvista/zipball/master
-              python -m pip install --user --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/master
-              python -m pip uninstall -yq pysurfer mayavi
-              python -m pip install --user -e .
+              ./tools/circleci_dependencies.sh
 
         - save_cache:
             key: pip-cache
@@ -119,12 +168,15 @@ jobs:
             name: Check installation
             command: |
                which python
-               QT_DEBUG_PLUGINS=1 mne sys_info
+               QT_DEBUG_PLUGINS=1 mne sys_info -pd
                python -c "import numpy; numpy.show_config()"
                LIBGL_DEBUG=verbose python -c "import pyvistaqt; pyvistaqt.BackgroundPlotter(show=True)"
                python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
                python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
                python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
+        - run:
+            name: List packages
+            command: python -m pip list
 
         # Figure out if we should run a full, pattern, or noplot version
         - restore_cache:
@@ -202,8 +254,7 @@ jobs:
         - run:
             name: make html
             command: |
-              cd doc;
-              PATTERN=$(cat ../pattern.txt) make $(cat ../build.txt);
+              PATTERN=$(cat pattern.txt) make -C doc $(cat build.txt);
         - run:
             name: Show profiling output
             when: always
@@ -340,37 +391,59 @@ jobs:
 
     linkcheck:
       # there are a few files excluded from this for expediency, see Makefile
+      parameters:
+        scheduled:
+          type: string
+          default: "false"
       docker:
-        - image: circleci/python:3.6-jessie
+        - image: circleci/python:3.9.2-buster
       steps:
+        - restore_cache:
+            keys:
+              - source-cache
         - checkout
         - run:
-            name: pip install dependencies
+            name: Set BASH_ENV
             command: |
-               set -e;
-               python -m pip install --user --progress-bar off numpy scipy matplotlib pillow
-               python -m pip install --user --progress-bar off -r requirements_doc.txt
-               python -m pip install --user -e .
+              set -e
+              echo "set -e" >> $BASH_ENV
+              echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
+        - run:
+            name: Check-skip
+            command: |
+              export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
+              if [[ "$COMMIT_MESSAGE" != *"[circle linkcheck]"* ]] && [ "<< parameters.scheduled >>" != "true" ]; then
+                echo "Skip detected, exiting job ${CIRCLE_JOB}."
+                circleci-agent step halt;
+              fi
+        - restore_cache:
+            keys:
+              - pip-cache
+        - run:
+            name: Get Python running
+            command: |
+              ./tools/circleci_dependencies.sh
+        - run:
+            name: Check installation
+            command: |
+              mne sys_info -pd
         - run:
             name: make linkcheck
             command: |
-              set -e
-              cd doc
-              PATH=~/.local/bin:$PATH make linkcheck
+              make -C doc linkcheck
         - run:
             name: make linkcheck-grep
             when: always
             command: |
-              cd doc
-              make linkcheck-grep
+              make -C doc linkcheck-grep
         - store_artifacts:
             path: doc/_build/linkcheck
             destination: linkcheck
 
 
     deploy:
-      docker:
-        - image: circleci/python:3.6-jessie
+      machine:
+        image: ubuntu-2004:202111-01
       steps:
         - attach_workspace:
             at: /tmp/build
@@ -378,9 +451,21 @@ jobs:
             keys:
               - website-cache
         - run:
-            name: Fetch docs
+            name: Set BASH_ENV
             command: |
               set -e
+              echo "set -e" >> $BASH_ENV
+        # Don't try to deploy if nothing is there or not on the right branch
+        - run:
+            name: Check docs
+            command: |
+              if [ ! -f /tmp/build/html/index.html ] && [ ! -f /tmp/build/html_stable/index.html ]; then
+                echo "No files found to upload (build: ${CIRCLE_BRANCH}).";
+                circleci-agent step halt;
+              fi;
+        - run:
+            name: Fetch docs
+            command: |
               mkdir -p ~/.ssh
               echo -e "Host *\nStrictHostKeyChecking no" > ~/.ssh/config
               chmod og= ~/.ssh/config
@@ -390,92 +475,74 @@ jobs:
         - run:
             name: Deploy docs
             command: |
-              set -e;
-              if [ "${CIRCLE_BRANCH}" == "main" ] || [ "${CIRCLE_BRANCH}" == "maint/0.22" ]; then
-                git config --global user.email "circle@mne.com";
-                git config --global user.name "Circle CI";
-                cd ~/mne-tools.github.io;
-                git checkout main
-                git remote -v
-                git fetch origin
-                git reset --hard origin/main
-                git clean -xdf
-                if [ "${CIRCLE_BRANCH}" == "main" ]; then
-                  echo "Deploying dev docs for ${CIRCLE_BRANCH}.";
-                  rm -Rf dev;
-                  cp -a /tmp/build/html dev;
-                  git add -A;
-                  git commit -m "CircleCI update of dev docs (${CIRCLE_BUILD_NUM}).";
-                else
-                  echo "Deploying stable docs for ${CIRCLE_BRANCH}.";
-                  rm -Rf stable;
-                  cp -a /tmp/build/html_stable stable;
-                  git add -A;
-                  git commit -m "CircleCI update of stable docs (${CIRCLE_BUILD_NUM}).";
-                fi;
-                git push origin main;
+              git config --global user.email "circle@mne.com";
+              git config --global user.name "Circle CI";
+              cd ~/mne-tools.github.io;
+              git checkout main
+              git remote -v
+              git fetch origin
+              git reset --hard origin/main
+              git clean -xdf
+              if [ "${CIRCLE_BRANCH}" == "main" ]; then
+                echo "Deploying dev docs for ${CIRCLE_BRANCH}.";
+                rm -Rf dev;
+                cp -a /tmp/build/html dev;
+                git add -A;
+                git commit -m "CircleCI update of dev docs (${CIRCLE_BUILD_NUM}).";
               else
-                echo "No deployment (build: ${CIRCLE_BRANCH}).";
-              fi
+                echo "Deploying stable docs for ${CIRCLE_BRANCH}.";
+                rm -Rf stable;
+                cp -a /tmp/build/html_stable stable;
+                git add -A;
+                git commit -m "CircleCI update of stable docs (${CIRCLE_BUILD_NUM}).";
+              fi;
+              git push origin main;
         - save_cache:
             key: website-cache
             paths:
               - ~/mne_data/MNE-visual_92_categories-data
 
-
-    interactive_test:
-      docker:
-        - image: circleci/python:3.8.5-buster
-      steps:
-        - checkout
-        - run:
-            name: Get Python running
-            command: |
-              python -m pip install --user --upgrade --progress-bar off pip setuptools
-              python -m pip install -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" --pre numpy
-              python -m pip install -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" scipy pandas scikit-learn matplotlib h5py Pillow
-              python -m pip install -r requirements_testing.txt
-              python -m pip install --user -e .
-
-        # Look at what we have and fail early if there is some library conflict
-        - run:
-            name: Check installation
-            command: |
-              which python
-              python -c "import numpy; numpy.show_config()"
-              python -c "from numpy._pytesttester import _show_numpy_info; _show_numpy_info()"
-
-        # Figure out if we should run a full, pattern, or noplot version
-        - run:
-            name: Get data
-            command: |
-              python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
-
-        # Run doctest (if it's full or front) before building the docs
-        - run:
-            name: pytest
-            command: |
-              pytest -m "not ultraslowtest" mne -xv
-
 workflows:
-  version: 2
-
   default:
     jobs:
-      - build_docs
+      - build_docs:
+          name: build_docs
+      - linkcheck:
+          name: linkcheck
       - deploy:
+          name: deploy
           requires:
             - build_docs
           filters:
             branches:
               only:
                 - main
-                - maint/0.22
-      # interactive_test
+                - maint/0.24
+
+  main:
+    jobs:
+      - build_docs:
+          scheduled: "true"
+          name: build_docs_main
+      - deploy:
+          name: deploy_main
+          requires:
+            - build_docs_main
+    triggers:
+      - schedule:
+          # "At 00:00" (once a day) should be enough "0 0 * * *",
+          # But for testing at first, let's do once an hour (6 AM GMT)
+          cron: "0 6 * * *"
+          filters:
+            branches:
+              only:
+                - main
 
   weekly:
     jobs:
-      - linkcheck
+      - linkcheck:
+          name: linkcheck_weekly
+          scheduled: "true"
     triggers:
       - schedule:
           # "At 00:00 on Sunday" should be often enough

@@ -14,7 +14,6 @@ Examples
 import os.path as op
 
 import mne
-from mne.utils import ETSContext
 
 
 def run():
@@ -54,19 +53,6 @@ def run():
                       action='store_true', default=None,
                       help="Project EEG electrodes to the head surface ("
                       "for visualization purposes only)")
-    parser.add_option('--orient-to-surface',
-                      action='store_true', default=None,
-                      dest='orient_to_surface',
-                      help='Orient points to the surface.')
-    parser.add_option('--scale-by-distance',
-                      action='store_true', default=None,
-                      dest='scale_by_distance',
-                      help='Scale points by distance from the surface.')
-    parser.add_option('--mark-inside',
-                      action='store_true', default=None,
-                      dest='mark_inside',
-                      help='Mark points inside the head using a different '
-                      'color.')
     parser.add_option('--interaction',
                       type=str, default=None, dest='interaction',
                       help='Interaction style to use, can be "trackball" or '
@@ -98,24 +84,18 @@ def run():
     trans = options.trans
     if trans is not None:
         trans = op.expanduser(trans)
-    try:
-        import faulthandler
-        faulthandler.enable()
-    except ImportError:
-        pass  # old Python2
-    with ETSContext():
-        mne.gui.coregistration(
-            options.tabbed, inst=options.inst, subject=options.subject,
-            subjects_dir=subjects_dir,
-            guess_mri_subject=options.guess_mri_subject,
-            head_opacity=options.head_opacity, head_high_res=head_high_res,
-            trans=trans, scrollable=True, project_eeg=options.project_eeg,
-            orient_to_surface=options.orient_to_surface,
-            scale_by_distance=options.scale_by_distance,
-            mark_inside=options.mark_inside, interaction=options.interaction,
-            scale=options.scale,
-            advanced_rendering=options.advanced_rendering,
-            verbose=options.verbose)
+    import faulthandler
+    faulthandler.enable()
+    mne.gui.coregistration(
+        options.tabbed, inst=options.inst, subject=options.subject,
+        subjects_dir=subjects_dir,
+        guess_mri_subject=options.guess_mri_subject,
+        head_opacity=options.head_opacity, head_high_res=head_high_res,
+        trans=trans, scrollable=True, project_eeg=options.project_eeg,
+        interaction=options.interaction,
+        scale=options.scale,
+        advanced_rendering=options.advanced_rendering,
+        verbose=options.verbose)
 
 
 mne.utils.run_command_if_main()
