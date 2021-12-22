@@ -3158,7 +3158,7 @@ def _read_one_epoch_file(f, tree, preload):
             drop_log = ((),) * len(events)
 
     # as of v1.0, Epochs support Annotations which require raw_sfreq
-    # to be stored. However, for backwards compatability if raw_sfreq
+    # to be stored. However, for backwards compatibility if raw_sfreq
     # is None (not found) in the file, then we will default raw_sfreq
     # # to info['sfreq']
     if raw_sfreq is None:
