@@ -28,7 +28,7 @@ from mne import (Epochs, Annotations, read_events, pick_events, read_epochs,
                  make_fixed_length_epochs, combine_evoked)
 from mne.annotations import _handle_meas_date
 from mne.baseline import rescale
-from mne.datasets import testing
+from mne.datasets import testing, misc
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 from mne.event import merge_events
 from mne.io import RawArray, read_raw_fif
@@ -3893,8 +3893,18 @@ def test_epoch_annotations_cases(tmp_path):
     assert epochs.annotations == old_epochs.annotations
 
 
+def test_epochs_annotations_backwards_compat():
+    """Test backwards compatability with Epochs saved."""
+    # loading an earlier saved file should work
+    fname = op.join(misc.data_path(), 'audio', 'audio-epo.fif')
+    epochs = read_epochs(fname)
+    assert epochs.info['sfreq'] == epochs._raw_sfreq
+
+
 def test_epochs_saving_with_annotations(tmp_path):
     """Test Epochs save correctly with Annotations."""
+    # start testing with a new Epochs created and
+    # then test roundtrip IO
     epochs, _, _ = _create_epochs_with_annotations()
     info = epochs.info
 

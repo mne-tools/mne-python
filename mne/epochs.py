@@ -3057,6 +3057,7 @@ def _read_one_epoch_file(f, tree, preload):
         baseline = None
         selection = None
         drop_log = None
+        raw_sfreq = None
         reject_params = {}
         for k in range(my_epochs['nent']):
             kind = my_epochs['directory'][k].kind
@@ -3155,6 +3156,13 @@ def _read_one_epoch_file(f, tree, preload):
             selection = np.arange(len(events))
         if drop_log is None:
             drop_log = ((),) * len(events)
+
+    # as of v1.0, Epochs support Annotations which require raw_sfreq
+    # to be stored. However, for backwards compatability if raw_sfreq
+    # is None (not found) in the file, then we will default raw_sfreq
+    # # to info['sfreq']
+    if raw_sfreq is None:
+        raw_sfreq = info['sfreq']
 
     return (info, data, data_tag, events, event_id, metadata, tmin, tmax,
             baseline, selection, drop_log, epoch_shape, cals, reject_params,
