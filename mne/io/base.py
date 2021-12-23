@@ -665,6 +665,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Whether to emit warnings when cropping or omitting annotations.
         %(on_missing_ch_names)s
         %(verbose_meth)s
+        %(include_tmax)s
 
         Returns
         -------
@@ -692,16 +693,18 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             new_annotations = annotations.copy()
             new_annotations._prune_ch_names(self.info, on_missing)
             if annotations.orig_time is None:
-                # note that (self.times[-1] + delta) might be equal to the original
-                # end time of the cropping of the raw
+                # note that (self.times[-1]+delta) might be equal to
+                # the original end_time of the cropping of the raw
                 new_annotations.crop(0, self.times[-1] + delta,
-                                     emit_warning=emit_warning, include_tmax=include_tmax)
+                                     emit_warning=emit_warning,
+                                     include_tmax=include_tmax)
                 new_annotations.onset += self._first_time
             else:
                 tmin = meas_date + timedelta(0, self._first_time)
                 tmax = tmin + timedelta(seconds=self.times[-1] + delta)
                 new_annotations.crop(tmin=tmin, tmax=tmax,
-                                     emit_warning=emit_warning, include_tmax=include_tmax)
+                                     emit_warning=emit_warning,
+                                     include_tmax=include_tmax)
                 new_annotations.onset -= (
                     meas_date - new_annotations.orig_time).total_seconds()
             new_annotations._orig_time = meas_date
@@ -1352,7 +1355,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         if self.annotations.orig_time is None:
             self.annotations.onset -= tmin
         # now call setter to filter out annotations outside of interval
-        self.set_annotations(self.annotations, emit_warning=False, include_tmax=include_tmax)
+        self.set_annotations(self.annotations, emit_warning=False,
+                             include_tmax=include_tmax)
 
         return self
 

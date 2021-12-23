@@ -480,7 +480,8 @@ class Annotations(object):
         self.ch_names = self.ch_names[order]
 
     @verbose
-    def crop(self, tmin=None, tmax=None, emit_warning=False, verbose=None, include_tmax=True):
+    def crop(self, tmin=None, tmax=None, emit_warning=False,
+             verbose=None, include_tmax=True):
         """Remove all annotation that are outside of [tmin, tmax].
 
         The method operates inplace.
@@ -495,6 +496,7 @@ class Annotations(object):
             Whether to emit warnings when limiting or omitting annotations.
             Defaults to False.
         %(verbose_meth)s
+        %(include_tmax)s
 
         Returns
         -------
@@ -544,8 +546,10 @@ class Annotations(object):
                 clip_left_elem.append(absolute_onset < absolute_tmin)
                 if clip_left_elem[-1]:
                     absolute_onset = absolute_tmin
-                clip_right_elem.append(absolute_offset > absolute_tmax if include_tmax else
-                                    absolute_offset >= absolute_tmax)
+                if include_tmax:
+                    clip_right_elem.append(absolute_offset > absolute_tmax)
+                else:
+                    clip_right_elem.append(absolute_offset >= absolute_tmax)
                 if clip_right_elem[-1]:
                     absolute_offset = absolute_tmax
                 if clip_left_elem[-1] or clip_right_elem[-1]:
