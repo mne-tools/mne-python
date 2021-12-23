@@ -651,7 +651,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     def set_annotations(self, annotations, emit_warning=True,
-                        on_missing='raise', *, verbose=None, include_tmax=True):
+                        on_missing='raise', *, verbose=None,
+                        include_tmax=True):
         """Setter for annotations.
 
         This setter checks if they are inside the data range.
