@@ -605,9 +605,7 @@ def set_laplace_reference(inst, central_ch, adjacent_chs, copy=True,
     
     Reference
     ---------
-    Li, G., Jiang, S., Paraskevopoulou, S.E., Wang, M., Xu, Y., Wu, Z., ...
-    & Schalk,G.(2018).Optimal referencing for stereo-electroencephalographic
-    (SEEG) recordings. NeuroImage, 183, 327-335.
+    .. footbibliography::
  
     """
     _check_can_reref(inst)
