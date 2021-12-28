@@ -81,8 +81,18 @@ def _legend_axis(pos):
     """Add a legend axis to the bottom right."""
     import matplotlib.pyplot as plt
     left, bottom = pos[:, 0].max(), pos[:, 1].min()
+    # check if legend axis overlaps a data axis
+    overlaps = False
+    for _pos in pos:
+        h_overlap = (_pos[0] <= left <= (_pos[0] + _pos[2]))
+        v_overlap = (_pos[1] <= bottom <= (_pos[1] + _pos[3]))
+        if h_overlap and v_overlap:
+            overlaps = True
+            break
+    if overlaps:
+        left += 1.2 * _pos[2]
     wid, hei = pos[-1, 2:]
-    return plt.axes([left, bottom + .05, wid, hei])
+    return plt.axes([left, bottom, wid, hei])
 
 
 def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',

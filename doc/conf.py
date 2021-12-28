@@ -13,24 +13,18 @@ import sys
 import time
 import warnings
 from datetime import datetime, timezone
-from distutils.version import LooseVersion
 
 import numpy as np
 import matplotlib
 import sphinx
-import sphinx_gallery
 from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 
 import mne
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (linkcode_resolve, # noqa, analysis:ignore
-                       _assert_no_instances, sizeof_fmt)
+                       _assert_no_instances, sizeof_fmt, run_subprocess)
 from mne.viz import Brain  # noqa
-
-if LooseVersion(sphinx_gallery.__version__) < LooseVersion('0.2'):
-    raise ImportError('Must have at least version 0.2 of sphinx-gallery, got '
-                      f'{sphinx_gallery.__version__}')
 
 matplotlib.use('agg')
 
@@ -89,6 +83,7 @@ extensions = [
     'gen_commands',
     'gh_substitutions',
     'mne_substitutions',
+    'newcontrib_substitutions',
     'gen_names',
     'sphinx_bootstrap_divs',
     'sphinxcontrib.bibtex',
@@ -136,7 +131,7 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
     'numpy': ('https://numpy.org/devdocs', None),
     'scipy': ('https://scipy.github.io/devdocs', None),
-    'matplotlib': ('https://matplotlib.org', None),
+    'matplotlib': ('https://matplotlib.org/stable', None),
     'sklearn': ('https://scikit-learn.org/stable', None),
     'numba': ('https://numba.pydata.org/numba-doc/latest', None),
     'joblib': ('https://joblib.readthedocs.io/en/latest', None),
@@ -248,7 +243,7 @@ numpydoc_xref_ignore = {
     'n_elp', 'n_pts', 'n_tris', 'n_nodes', 'n_nonzero', 'n_events_out',
     'n_segments', 'n_orient_inv', 'n_orient_fwd', 'n_orient', 'n_dipoles_lcmv',
     'n_dipoles_fwd', 'n_picks_ref', 'n_coords', 'n_meg', 'n_good_meg',
-    'n_moments', 'n_patterns',
+    'n_moments', 'n_patterns', 'n_new_events',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
     'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF', 'RawSNIRF', 'RawBOXY',
@@ -316,14 +311,16 @@ class Resetter(object):
         plt.rcParams['animation.embed_limit'] = 30.
         gc.collect()
         when = 'mne/conf.py:Resetter.__call__'
-        _assert_no_instances(Brain, when)  # calls gc.collect()
-        if Plotter is not None:
-            _assert_no_instances(Plotter, when)
-        if BackgroundPlotter is not None:
-            _assert_no_instances(BackgroundPlotter, when)
-        if vtkPolyData is not None:
-            _assert_no_instances(vtkPolyData, when)
-        _assert_no_instances(_Renderer, when)
+        if os.getenv('MNE_SKIP_INSTANCE_ASSERTIONS', 'false') not in \
+                ('true', '1'):
+            _assert_no_instances(Brain, when)  # calls gc.collect()
+            if Plotter is not None:
+                _assert_no_instances(Plotter, when)
+            if BackgroundPlotter is not None:
+                _assert_no_instances(BackgroundPlotter, when)
+            if vtkPolyData is not None:
+                _assert_no_instances(vtkPolyData, when)
+            _assert_no_instances(_Renderer, when)
         # This will overwrite some Sphinx printing but it's useful
         # for memory timestamps
         if os.getenv('SG_STAMP_STARTS', '').lower() == 'true':
@@ -827,6 +824,8 @@ def reset_warnings(gallery_conf, fname):
         'ignore', '.*invalid escape sequence.*', lineno=281)  # mne-conn
     warnings.filterwarnings(
         'ignore', '.*"is not" with a literal.*', module='nilearn')
+    warnings.filterwarnings(  # scikit-learn FastICA whiten=True deprecation
+        'ignore', r'.*From version 1\.3 whiten.*')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
                 'Using or importing the ABCs from',  # internal modules on 3.7
                 r"it will be an error for 'np\.bool_'",  # ndimage
@@ -1145,6 +1144,23 @@ def make_redirects(app, exception):
         f'Added {len(custom_redirects):3d} HTML custom redirects')
 
 
+def make_version(app, exception):
+    """Make a text file with the git version."""
+    if not (isinstance(app.builder,
+                       sphinx.builders.html.StandaloneHTMLBuilder) and
+            exception is None):
+        return
+    logger = sphinx.util.logging.getLogger('mne')
+    try:
+        stdout, _ = run_subprocess(['git', 'rev-parse', 'HEAD'], verbose=False)
+    except Exception as exc:
+        logger.warning(f'Failed to write _version.txt: {exc}')
+        return
+    with open(os.path.join(app.outdir, '_version.txt'), 'w') as fid:
+        fid.write(stdout)
+    logger.info(f'Added "{stdout.rstrip()}" > _version.txt')
+
+
 # -- Connect our handlers to the main Sphinx app ---------------------------
 
 def setup(app):
@@ -1158,3 +1174,4 @@ def setup(app):
     sphinx_logger.info(
         f'Building documentation for MNE {release} ({mne.__file__})')
     app.connect('build-finished', make_redirects)
+    app.connect('build-finished', make_version)

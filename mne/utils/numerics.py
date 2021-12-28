@@ -633,6 +633,7 @@ def object_hash(x, h=None):
     digest : int
         The digest resulting from the hash.
     """
+    from scipy import sparse
     if h is None:
         h = hashlib.md5()
     if hasattr(x, 'keys'):
@@ -654,6 +655,13 @@ def object_hash(x, h=None):
         h.update(x.tobytes())
     elif isinstance(x, datetime):
         object_hash(_dt_to_stamp(x))
+    elif sparse.issparse(x):
+        h.update(str(type(x)).encode('utf-8'))
+        if not isinstance(x, (sparse.csr_matrix, sparse.csc_matrix)):
+            raise RuntimeError(f'Unsupported sparse type {type(x)}')
+        h.update(x.data.tobytes())
+        h.update(x.indices.tobytes())
+        h.update(x.indptr.tobytes())
     elif hasattr(x, '__len__'):
         # all other list-like types
         h.update(str(type(x)).encode('utf-8'))
@@ -1097,3 +1105,29 @@ if has_numba:
         return out
 else:  # pragma: no cover
     _arange_div = _arange_div_fallback
+
+
+_LRU_CACHES = dict()
+_LRU_CACHE_MAXSIZES = dict()
+
+
+def _custom_lru_cache(maxsize):
+    def dec(fun):
+        fun_hash = hash(fun)
+        this_cache = _LRU_CACHES[fun_hash] = dict()
+        _LRU_CACHE_MAXSIZES[fun_hash] = maxsize
+
+        def cache_fun(*args):
+            hash_ = object_hash(args)
+            if hash_ in this_cache:
+                this_val = this_cache.pop(hash_)
+            else:
+                this_val = fun(*args)
+            this_cache[hash_] = this_val  # (re)insert in last pos
+            while len(this_cache) > _LRU_CACHE_MAXSIZES[fun_hash]:
+                for key in this_cache:  # just an easy way to get first element
+                    this_cache.pop(key)
+                    break  # first in, first out
+            return this_val
+        return cache_fun
+    return dec

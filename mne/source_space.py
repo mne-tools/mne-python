@@ -21,7 +21,7 @@ from .io.open import fiff_open
 from .io.write import (start_block, end_block, write_int,
                        write_float_sparse_rcs, write_string,
                        write_float_matrix, write_int_matrix,
-                       write_coord_trans, start_file, end_file, write_id)
+                       write_coord_trans, start_and_end_file, write_id)
 from .io.pick import channel_type, _picks_to_idx
 from .bem import read_bem_surfaces
 from .fixes import _get_img_fdata
@@ -279,7 +279,7 @@ class SourceSpaces(list):
         %(overwrite)s
         %(verbose_meth)s
         """
-        write_source_spaces(fname, self, overwrite)
+        write_source_spaces(fname, self, overwrite=overwrite)
 
     @verbose
     def export_volume(self, fname, include_surfaces=True,
@@ -999,7 +999,7 @@ def _write_source_spaces_to_fid(fid, src, verbose=None):
 
 
 @verbose
-def write_source_spaces(fname, src, overwrite=False, verbose=None):
+def write_source_spaces(fname, src, *, overwrite=False, verbose=None):
     """Write source spaces to a file.
 
     Parameters
@@ -1007,7 +1007,7 @@ def write_source_spaces(fname, src, overwrite=False, verbose=None):
     fname : str
         The name of the file, which should end with -src.fif or
         -src.fif.gz.
-    src : SourceSpaces
+    src : instance of SourceSpaces
         The source spaces (as returned by read_source_spaces).
     %(overwrite)s
     %(verbose)s
@@ -1016,11 +1016,16 @@ def write_source_spaces(fname, src, overwrite=False, verbose=None):
     --------
     read_source_spaces
     """
+    _validate_type(src, SourceSpaces, 'src')
     check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz',
                                         '_src.fif', '_src.fif.gz'))
     _check_fname(fname, overwrite=overwrite)
 
-    fid = start_file(fname)
+    with start_and_end_file(fname) as fid:
+        _write_source_spaces(fid, src)
+
+
+def _write_source_spaces(fid, src):
     start_block(fid, FIFF.FIFFB_MNE)
 
     if src.info:
@@ -1037,10 +1042,9 @@ def write_source_spaces(fname, src, overwrite=False, verbose=None):
 
         end_block(fid, FIFF.FIFFB_MNE_ENV)
 
-    _write_source_spaces_to_fid(fid, src, verbose)
+    _write_source_spaces_to_fid(fid, src)
 
     end_block(fid, FIFF.FIFFB_MNE)
-    end_file(fid)
 
 
 def _write_one_source_space(fid, this, verbose=None):

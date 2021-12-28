@@ -15,7 +15,6 @@ from dataclasses import dataclass
 from typing import Optional, List
 
 import math
-import os
 import json
 
 import numpy as np
@@ -48,7 +47,7 @@ from ..viz.ica import plot_ica_properties
 from ..viz.topomap import _plot_corrmap
 
 from ..channels.channels import _contains_ch_type, ContainsMixin
-from ..io.write import start_file, end_file, write_id
+from ..io.write import start_and_end_file, write_id
 from ..utils import (check_version, logger, check_fname, _check_fname, verbose,
                      _reject_data_segments, check_random_state, _validate_type,
                      compute_corr, _get_inst_data, _ensure_int,
@@ -617,8 +616,8 @@ class ICA(ContainsMixin):
         if not isinstance(inst, BaseRaw):
             ignored_params = [
                 param_name for param_name, param_val in zip(
-                    ('start', 'stop', 'decim', 'reject', 'flat'),
-                    (start, stop, decim, reject, flat)
+                    ('start', 'stop', 'reject', 'flat'),
+                    (start, stop, reject, flat)
                 )
                 if param_val is not None
             ]
@@ -1666,10 +1665,15 @@ class ICA(ContainsMixin):
             in-place.
         include : array_like of int
             The indices referring to columns in the ummixing matrix. The
-            components to be kept.
+            components to be kept. If ``None`` (default), all components
+            will be included (minus those defined in ``ica.exclude``
+            and the ``exclude`` parameter, see below).
         exclude : array_like of int
             The indices referring to columns in the ummixing matrix. The
-            components to be zeroed out.
+            components to be zeroed out. If ``None`` (default) or an
+            empty list, only components from ``ica.exclude`` will be
+            excluded. Else, the union of ``exclude`` and ``ica.exclude``
+            will be excluded.
         %(n_pca_components_apply)s
         start : int | float | None
             First sample to include. If float, data will be interpreted as
@@ -1896,16 +1900,8 @@ class ICA(ContainsMixin):
         fname = _check_fname(fname, overwrite=overwrite)
 
         logger.info('Writing ICA solution to %s...' % fname)
-        fid = start_file(fname)
-
-        try:
+        with start_and_end_file(fname) as fid:
             _write_ica(fid, self)
-            end_file(fid)
-        except Exception:
-            end_file(fid)
-            os.remove(fname)
-            raise
-
         return self
 
     def copy(self):

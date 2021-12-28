@@ -174,8 +174,14 @@ class IntracranialElectrodeLocator(QMainWindow):
         # Channel selector
         self._ch_list = QListView()
         self._ch_list.setSelectionMode(Qt.QAbstractItemView.SingleSelection)
+
         self._ch_list.setMinimumWidth(100)
         self._ch_list.setMaximumWidth(100)
+
+        max_ch_name_len = max([len(name) for name in self._chs])
+        self._ch_list.setMinimumWidth(max_ch_name_len * 10)
+        self._ch_list.setMaximumWidth(max_ch_name_len * 10)
+
         self._set_ch_names()
         self._current_group_over = False
         self._tip_mark = False        

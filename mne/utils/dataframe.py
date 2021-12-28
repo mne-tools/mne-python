@@ -6,11 +6,12 @@
 
 import numpy as np
 
-from ._logging import logger
+from ._logging import logger, verbose
 from ..defaults import _handle_default
 
 
-def _set_pandas_dtype(df, columns, dtype):
+@verbose
+def _set_pandas_dtype(df, columns, dtype, verbose=None):
     """Try to set the right columns to dtype."""
     for column in columns:
         df[column] = df[column].astype(dtype)
@@ -46,8 +47,10 @@ def _convert_times(inst, times, time_format):
     return times
 
 
+@verbose
 def _build_data_frame(inst, data, picks, long_format, mindex, index,
-                      default_index, col_names=None, col_kind='channel'):
+                      default_index, col_names=None, col_kind='channel',
+                      verbose=None):
     """Build DataFrame from MNE-object-derived data array."""
     # private function; pandas already checked in calling function
     from pandas import DataFrame

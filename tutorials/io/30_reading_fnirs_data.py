@@ -83,8 +83,8 @@ NIRx recordings can be read in using :func:`mne.io.read_raw_nirx`.
 The NIRx device stores data directly to a directory with multiple file types,
 MNE-Python extracts the appropriate information from each file.
 MNE-Python only supports NIRx files recorded with NIRStar
-version 15.0 and above.
-MNE-Python supports reading data from NIRScout and NIRSport 1 devices.
+version 15.0 and above and Aurora version 2021 and above.
+MNE-Python supports reading data from NIRScout and NIRSport devices.
 
 
 .. _import-hitachi:

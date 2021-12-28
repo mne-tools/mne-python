@@ -15,12 +15,12 @@ import os.path as op
 
 import numpy as np
 
-from ..utils import logger, warn, Bunch, _validate_type
+from ..utils import logger, warn, Bunch, _validate_type, _check_fname, verbose
 
 from .constants import FIFF, _coord_frame_named
 from .tree import dir_tree_find
 from .tag import read_tag
-from .write import (start_file, end_file, write_dig_points)
+from .write import (start_and_end_file, write_dig_points)
 
 from ..transforms import (apply_trans, Transform,
                           get_ras_to_neuromag_trans, combine_transforms,
@@ -193,7 +193,8 @@ def _read_dig_fif(fid, meas_info):
     return _format_dig_points(dig)
 
 
-def write_dig(fname, pts, coord_frame=None):
+@verbose
+def write_dig(fname, pts, coord_frame=None, *, overwrite=False, verbose=None):
     """Write digitization data to a FIF file.
 
     Parameters
@@ -207,7 +208,14 @@ def write_dig(fname, pts, coord_frame=None):
         If all the points have the same coordinate frame, specify the type
         here. Can be None (default) if the points could have varying
         coordinate frames.
+    %(overwrite)s
+
+        .. versionadded:: 1.0
+    %(verbose)s
+
+        .. versionadded:: 1.0
     """
+    fname = _check_fname(fname, overwrite=overwrite)
     if coord_frame is not None:
         coord_frame = _to_const(coord_frame)
         pts_frames = {pt.get('coord_frame', coord_frame) for pt in pts}
@@ -217,9 +225,8 @@ def write_dig(fname, pts, coord_frame=None):
                 'Points have coord_frame entries that are incompatible with '
                 'coord_frame=%i: %s.' % (coord_frame, str(tuple(bad_frames))))
 
-    with start_file(fname) as fid:
+    with start_and_end_file(fname) as fid:
         write_dig_points(fid, pts, block=True, coord_frame=coord_frame)
-        end_file(fid)
 
 
 _cardinal_ident_mapping = {

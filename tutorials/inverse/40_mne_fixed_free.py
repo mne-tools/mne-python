@@ -27,7 +27,7 @@ subjects_dir = data_path + '/subjects'
 
 # Read data (just MEG here for speed, though we could use MEG+EEG)
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
-evoked = mne.read_evokeds(fname_evoked, condition='Left Auditory',
+evoked = mne.read_evokeds(fname_evoked, condition='Right Auditory',
                           baseline=(None, 0))
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
@@ -49,8 +49,9 @@ inv = make_inverse_operator(evoked.info, fwd, cov, loose=0., depth=0.8,
 # value of the source estimates to simplify the visualization.
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
-kwargs = dict(initial_time=0.08, hemi='both', subjects_dir=subjects_dir,
-              size=(600, 600))
+kwargs = dict(initial_time=0.08, hemi='lh', subjects_dir=subjects_dir,
+              size=(600, 600), clim=dict(kind='percent', lims=[90, 95, 99]),
+              smoothing_steps=7)
 
 stc = abs(apply_inverse(evoked, inv, lambda2, 'MNE', verbose=True))
 brain = stc.plot(figure=1, **kwargs)

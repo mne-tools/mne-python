@@ -16,7 +16,6 @@ from glob import glob
 from itertools import cycle
 import os.path as op
 import warnings
-from distutils.version import LooseVersion
 from collections import defaultdict
 
 import numpy as np
@@ -624,12 +623,11 @@ def _get_bem_plotting_surfaces(bem_path):
 def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
                 axes=None, equal_spacing=True, show=True, on_missing='raise',
                 verbose=None):
-    """Plot events to get a visual display of the paradigm.
+    """Plot :term:`events` to get a visual display of the paradigm.
 
     Parameters
     ----------
-    events : array, shape (n_events, 3)
-        The events.
+    %(events)s
     sfreq : float | None
         The sample frequency. If None, data will be displayed in samples (not
         seconds).
@@ -762,14 +760,10 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
 
 def _get_presser(fig):
     """Get our press callback."""
-    import matplotlib
     callbacks = fig.canvas.callbacks.callbacks['button_press_event']
     func = None
     for key, val in callbacks.items():
-        if LooseVersion(matplotlib.__version__) >= '3':
-            func = val()
-        else:
-            func = val.func
+        func = val()
         if func.__class__.__name__ == 'partial':
             break
         else:

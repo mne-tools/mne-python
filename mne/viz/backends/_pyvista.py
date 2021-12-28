@@ -12,9 +12,7 @@ Actual implementation of _Renderer and _Projection classes.
 # License: Simplified BSD
 
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 import os
-import platform
 import sys
 import warnings
 
@@ -23,10 +21,11 @@ import vtk
 
 from ._abstract import _AbstractRenderer
 from ._utils import (_get_colormap_from_array, _alpha_blend_background,
-                     ALLOWED_QUIVER_MODES, _init_qt_resources)
-from ...fixes import _get_args, _point_data, _cell_data
+                     ALLOWED_QUIVER_MODES, _init_mne_qtapp)
+from ...fixes import _get_args, _point_data, _cell_data, _compare_version
 from ...transforms import apply_trans
-from ...utils import copy_base_doc_to_subclass_doc, _check_option
+from ...utils import (copy_base_doc_to_subclass_doc, _check_option,
+                      _require_version)
 
 
 with warnings.catch_warnings():
@@ -38,7 +37,7 @@ with warnings.catch_warnings():
     except ImportError:
         from pyvista import BackgroundPlotter
     from pyvista.plotting.plotting import _ALL_PLOTTERS
-VTK9 = LooseVersion(getattr(vtk, 'VTK_VERSION', '9.0')) >= LooseVersion('9.0')
+VTK9 = _compare_version(getattr(vtk, 'VTK_VERSION', '9.0'), '>=', '9.0')
 
 
 _FIGURES = dict()
@@ -88,19 +87,12 @@ class _Figure(object):
 
         if self.plotter is None:
             if not self.notebook:
-                from PyQt5.QtWidgets import QApplication
-                app = QApplication.instance()
-                if app is None:
-                    app = QApplication(["MNE"])
+                app = _init_mne_qtapp(enable_icon=hasattr(plotter_class,
+                                                          'set_icon'))
                 self.store['app'] = app
             plotter = plotter_class(**self.store)
             plotter.background_color = self.background_color
             self.plotter = plotter
-            if not self.notebook and hasattr(plotter_class, 'set_icon'):
-                _init_qt_resources()
-                _process_events(plotter)
-                kind = 'bigsur-' if platform.mac_ver()[0] >= '10.16' else ''
-                plotter.set_icon(f":/mne-{kind}icon.png")
         if self.plotter.iren is not None:
             self.plotter.iren.initialize()
         _process_events(self.plotter)
@@ -153,6 +145,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                  notebook=None, smooth_shading=True):
         from .renderer import MNE_3D_BACKEND_TESTING
         from .._3d import _get_3d_option
+        _require_version('pyvista', 'use 3D rendering', '0.32')
         figure = _Figure(show=show, title=name, size=size, shape=shape,
                          background_color=bgcolor, notebook=notebook,
                          smooth_shading=smooth_shading)
@@ -189,9 +182,8 @@ class _PyVistaRenderer(_AbstractRenderer):
             self._enable_aa()
 
         # FIX: https://github.com/pyvista/pyvistaqt/pull/68
-        if LooseVersion(pyvista.__version__) >= '0.27.0':
-            if not hasattr(self.plotter, "iren"):
-                self.plotter.iren = None
+        if not hasattr(self.plotter, "iren"):
+            self.plotter.iren = None
 
         self.update_lighting()
 
@@ -465,7 +457,7 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
-                 opacity=1.0, scale_mode='none', scalars=None,
+                 opacity=1.0, scale_mode='none', scalars=None, colormap=None,
                  backface_culling=False, line_width=2., name=None,
                  glyph_width=None, glyph_depth=None, glyph_radius=0.15,
                  solid_transform=None):
@@ -482,10 +474,13 @@ class _PyVistaRenderer(_AbstractRenderer):
             if not VTK9:
                 args = (np.arange(n_points) * 3,) + args
             grid = UnstructuredGrid(*args)
+            if scalars is not None:
+                _point_data(grid)['scalars'] = np.array(scalars)
+                scalars = 'scalars'
             _point_data(grid)['vec'] = vectors
             if scale_mode == 'scalar':
-                _point_data(grid)['mag'] = np.array(scalars)
-                scale = 'mag'
+                scale = scalars
+                scalars = None
             elif scale_mode == 'vector':
                 scale = True
             else:
@@ -548,6 +543,9 @@ class _PyVistaRenderer(_AbstractRenderer):
                 mesh=mesh,
                 color=color,
                 opacity=opacity,
+                scalars=scalars,
+                colormap=colormap,
+                show_scalar_bar=False,
                 backface_culling=backface_culling
             )
         return actor, mesh
@@ -868,7 +866,6 @@ def _compute_normals(mesh):
 
 def _add_mesh(plotter, *args, **kwargs):
     """Patch PyVista add_mesh."""
-    _process_events(plotter)
     mesh = kwargs.get('mesh')
     if 'smooth_shading' in kwargs:
         smooth_shading = kwargs.pop('smooth_shading')
@@ -876,7 +873,7 @@ def _add_mesh(plotter, *args, **kwargs):
         smooth_shading = True
     # disable rendering pass for add_mesh, render()
     # is called in show()
-    if 'render' not in kwargs and 'render' in _get_args(plotter.add_mesh):
+    if 'render' not in kwargs:
         kwargs['render'] = False
     actor = plotter.add_mesh(*args, **kwargs)
     if smooth_shading and 'Normals' in _point_data(mesh):
@@ -1114,15 +1111,6 @@ def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
     alg.SetClamping(clamping)
     alg.Update()
     return alg
-
-
-def _require_minimum_version(version_required):
-    from distutils.version import LooseVersion
-    version = LooseVersion(pyvista.__version__)
-    if version < version_required:
-        raise ImportError('pyvista>={} is required for this module but the '
-                          'version found is {}'.format(version_required,
-                                                       version))
 
 
 @contextmanager

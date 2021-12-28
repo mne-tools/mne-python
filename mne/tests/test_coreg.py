@@ -20,7 +20,7 @@ from mne.coreg import (fit_matched_points, create_default_subject, scale_mri,
 from mne.io import read_fiducials, read_info
 from mne.io.constants import FIFF
 from mne.utils import (requires_nibabel, modified_env, check_version,
-                       catch_logging)
+                       catch_logging, _record_warnings)
 from mne.source_space import write_source_spaces
 from mne.channels import DigMontage
 
@@ -111,7 +111,7 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
 
     # scale fsaverage
     write_source_spaces(path % 'ico-0', src, overwrite=True)
-    with pytest.warns(None):  # sometimes missing nibabel
+    with _record_warnings():  # sometimes missing nibabel
         scale_mri('fsaverage', 'flachkopf', scale, True,
                   subjects_dir=tempdir, verbose='debug')
     assert _is_mri_subject('flachkopf', tempdir), "Scaling failed"

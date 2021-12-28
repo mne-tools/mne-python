@@ -4,7 +4,8 @@
 
 import numpy as np
 
-from ..annotations import _annotations_starts_stops, Annotations
+from ..annotations import (_annotations_starts_stops, Annotations,
+                           _adjust_onset_meas_date)
 from ..io import BaseRaw
 from ..io.pick import _picks_to_idx
 from ..utils import (_validate_type, verbose, logger, _pl,
@@ -98,8 +99,9 @@ def annotate_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
                    (': %s' % (bads,)) if bads else ''))
     bads = [bad for bad in bads if bad not in raw.info['bads']]
     starts, stops = np.array(starts), np.array(stops)
-    onsets = (starts + raw.first_samp) / raw.info['sfreq']
+    onsets = starts / raw.info['sfreq']
     durations = (stops - starts) / raw.info['sfreq']
     annot = Annotations(onsets, durations, ['BAD_flat'] * len(onsets),
-                        orig_time=raw.annotations.orig_time)
+                        orig_time=raw.info['meas_date'])
+    _adjust_onset_meas_date(annot, raw)
     return annot, bads

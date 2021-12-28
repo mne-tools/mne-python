@@ -4,6 +4,7 @@
 # License: Simplified BSD
 
 import os.path as op
+
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
                            assert_array_less, assert_array_equal)
@@ -21,7 +22,7 @@ from mne.inverse_sparse.mxne_optim import norm_l2inf
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.minimum_norm.tests.test_inverse import \
     assert_var_exp_log, assert_stc_res
-from mne.utils import assert_stcs_equal, catch_logging
+from mne.utils import assert_stcs_equal, catch_logging, _record_warnings
 from mne.dipole import Dipole
 from mne.source_estimate import VolSourceEstimate
 from mne.simulation import simulate_sparse_stc, simulate_evoked
@@ -80,7 +81,7 @@ def test_mxne_inverse_standard(forward):
     # MxNE tests
     alpha = 70  # spatial regularization parameter
 
-    with pytest.warns(None):  # CD
+    with _record_warnings():  # CD
         stc_cd = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                             depth=depth, maxit=300, tol=1e-8,
                             active_set_size=10, weights=stc_dspm,
@@ -96,17 +97,18 @@ def test_mxne_inverse_standard(forward):
     assert stc_bcd.vertices[1][0] in label.vertices
 
     # vector
-    with pytest.warns(None):  # no convergence
+    with _record_warnings():  # no convergence
         stc = mixed_norm(evoked_l21, forward, cov, alpha, loose=1, maxit=2)
-    with pytest.warns(None):  # no convergence
+    with _record_warnings():  # no convergence
         stc_vec = mixed_norm(evoked_l21, forward, cov, alpha, loose=1, maxit=2,
                              pick_ori='vector')
     assert_stcs_equal(stc_vec.magnitude(), stc)
-    with pytest.warns(None), pytest.raises(ValueError, match='pick_ori='):
+    with _record_warnings(), \
+            pytest.raises(ValueError, match='pick_ori='):
         mixed_norm(evoked_l21, forward, cov, alpha, loose=0, maxit=2,
                    pick_ori='vector')
 
-    with pytest.warns(None), catch_logging() as log:  # CD
+    with _record_warnings(), catch_logging() as log:  # CD
         dips = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                           depth=depth, maxit=300, tol=1e-8, active_set_size=10,
                           weights=stc_dspm, weights_min=weights_min,
@@ -118,7 +120,7 @@ def test_mxne_inverse_standard(forward):
     assert_var_exp_log(log.getvalue(), 51, 53)  # 51.8
 
     # Single time point things should match
-    with pytest.warns(None), catch_logging() as log:
+    with _record_warnings(), catch_logging() as log:
         dips = mixed_norm(evoked_l21.copy().crop(0.081, 0.081),
                           forward, cov, alpha, loose=loose,
                           depth=depth, maxit=300, tol=1e-8, active_set_size=10,
@@ -128,7 +130,7 @@ def test_mxne_inverse_standard(forward):
     gof = sum(dip.gof[0] for dip in dips)  # these are now partial exp vars
     assert_allclose(gof, 37.9, atol=0.1)
 
-    with pytest.warns(None), catch_logging() as log:
+    with _record_warnings(), catch_logging() as log:
         stc, res = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                               depth=depth, maxit=300, tol=1e-8,
                               weights=stc_dspm,  # gh-6382
@@ -141,7 +143,7 @@ def test_mxne_inverse_standard(forward):
     assert_stc_res(evoked_l21, stc, forward, res)
 
     # irMxNE tests
-    with pytest.warns(None), catch_logging() as log:  # CD
+    with _record_warnings(), catch_logging() as log:  # CD
         stc, residual = mixed_norm(
             evoked_l21, forward, cov, alpha, n_mxne_iter=5, loose=0.0001,
             depth=depth, maxit=300, tol=1e-8, active_set_size=10,

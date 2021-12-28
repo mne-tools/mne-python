@@ -34,7 +34,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_brain_colorbar, link_brains, mne_analyze_colormap)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click
-from mne.utils import requires_nibabel, catch_logging
+from mne.utils import requires_nibabel, catch_logging, _record_warnings
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 from mne.transforms import Transform
@@ -91,7 +91,7 @@ def test_plot_head_positions():
     pos = np.random.RandomState(0).randn(4, 10)
     pos[:, 0] = np.arange(len(pos))
     destination = (0., 0., 0.04)
-    with pytest.warns(None):  # old MPL will cause a warning
+    with _record_warnings():  # old MPL will cause a warning
         plot_head_positions(pos)
         plot_head_positions(pos, mode='field', info=info,
                             destination=destination)
@@ -668,7 +668,7 @@ def test_plot_source_estimates(renderer_interactive, all_src_types_inv_evoked,
     backend = renderer_interactive._get_3d_backend()
     invs, evoked = all_src_types_inv_evoked
     inv = invs[kind]
-    with pytest.warns(None):  # PCA mag
+    with _record_warnings():  # PCA mag
         stc = apply_inverse(evoked, inv, pick_ori=pick_ori)
     stc.data[1] *= -1  # make it signed
     meth_key = 'plot_3d' if isinstance(stc, _BaseVolSourceEstimate) else 'plot'

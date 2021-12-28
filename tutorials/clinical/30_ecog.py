@@ -18,6 +18,10 @@ This example shows how to use:
 
 For a complementary example that involves sEEG data, channel locations in
 MNI space, or projection into a volume, see :ref:`tut-working-with-seeg`.
+
+Please note that this tutorial requires 3D plotting dependencies
+(see :ref:`quick-start`) as well as ``mne-bids`` which can be installed
+using ``pip``.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>
@@ -99,13 +103,9 @@ events, event_id = mne.events_from_annotations(raw)
 epoch_length = 25  # seconds
 epochs = mne.Epochs(raw, events, event_id=event_id['onset'],
                     tmin=13, tmax=13 + epoch_length, baseline=None)
-
-# And then load data and downsample.
-epochs.load_data()
-epochs.resample(200)  # Hz, will also load the data for us
-
-# Finally, make evoked from the one epoch
-evoked = epochs.average()
+# Make evoked from the one epoch and resample
+evoked = epochs.average().resample(200)
+del epochs
 
 
 # %%
@@ -191,9 +191,10 @@ vmin, vmid, vmax = np.percentile(gamma_power_t.data, [10, 25, 90])
 clim = dict(kind='value', lims=[vmin, vmid, vmax])
 brain = stc.plot(surface='pial', hemi='rh', colormap='inferno', colorbar=False,
                  clim=clim, views=['lat', 'med'], subjects_dir=subjects_dir,
-                 size=(250, 250), smoothing_steps=20, time_viewer=False)
+                 size=(250, 250), smoothing_steps='nearest',
+                 time_viewer=False)
 brain.add_sensors(raw.info, trans='fsaverage')
 
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(time_dilation=1, interpolation='linear', framerate=12,
+# brain.save_movie(time_dilation=1, interpolation='linear', framerate=3,
 #                  time_viewer=True)

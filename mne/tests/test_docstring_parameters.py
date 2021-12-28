@@ -4,12 +4,11 @@ import os.path as op
 from pkgutil import walk_packages
 import re
 import sys
-from unittest import SkipTest
 
 import pytest
 
 import mne
-from mne.utils import requires_numpydoc, _pl
+from mne.utils import requires_numpydoc, _pl, _record_warnings
 
 public_modules = [
     # the list of modules users need to access for all functionality
@@ -132,7 +131,7 @@ def test_docstring_parameters():
         if name not in ('mne', 'mne.gui'):
             extra = name.split('.')[1]
             assert hasattr(mne, extra)
-        with pytest.warns(None):  # traits warnings
+        with _record_warnings():  # traits warnings
             module = __import__(name, globals())
         for submod in name.split('.')[1:]:
             module = getattr(module, submod)
@@ -167,7 +166,7 @@ def test_tabs():
         if not ispkg and modname not in tab_ignores:
             # mod = importlib.import_module(modname)  # not py26 compatible!
             try:
-                with pytest.warns(None):
+                with _record_warnings():
                     __import__(modname)
             except Exception:  # can't import properly
                 continue
@@ -250,7 +249,7 @@ def test_documented():
     doc_dir = op.abspath(op.join(op.dirname(__file__), '..', '..', 'doc'))
     doc_file = op.join(doc_dir, 'python_reference.rst')
     if not op.isfile(doc_file):
-        raise SkipTest('Documentation file not found: %s' % doc_file)
+        pytest.skip('Documentation file not found: %s' % doc_file)
     api_files = (
         'covariance', 'creating_from_arrays', 'datasets',
         'decoding', 'events', 'file_io', 'forward', 'inverse', 'logging',
@@ -271,7 +270,7 @@ def test_documented():
 
     missing = []
     for name in public_modules:
-        with pytest.warns(None):  # traits warnings
+        with _record_warnings():  # traits warnings
             module = __import__(name, globals())
         for submod in name.split('.')[1:]:
             module = getattr(module, submod)

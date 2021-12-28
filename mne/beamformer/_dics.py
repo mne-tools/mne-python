@@ -32,12 +32,12 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
 
     This is a beamformer filter that can be used to estimate the source power
     at a specific frequency range :footcite:`GrossEtAl2001`. It does this by
-    constructing a spatial
-    filter for each source point.  The computation of these filters is very
-    similar to those of the LCMV beamformer (:func:`make_lcmv`), but instead of
-    operating on a covariance matrix, the CSD matrix is used. When applying
-    these filters to a CSD matrix (see :func:`apply_dics_csd`), the source
-    power can be estimated for each source point.
+    constructing a spatial filter for each source point.
+    The computation of these filters is very similar to those of the LCMV
+    beamformer (:func:`make_lcmv`), but instead of operating on a covariance
+    matrix, the CSD matrix is used. When applying these filters to a CSD matrix
+    (see :func:`apply_dics_csd`), the source power can be estimated for each
+    source point.
 
     Parameters
     ----------

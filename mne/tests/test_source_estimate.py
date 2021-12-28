@@ -6,8 +6,8 @@ from contextlib import nullcontext
 from copy import deepcopy
 import os
 import os.path as op
-from shutil import copyfile
 import re
+from shutil import copyfile
 
 import numpy as np
 from numpy.fft import fft
@@ -45,7 +45,8 @@ from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs, make_inverse_operator)
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (requires_pandas, requires_sklearn, catch_logging,
-                       requires_h5py, requires_nibabel, requires_version)
+                       requires_h5py, requires_nibabel, requires_version,
+                       _record_warnings)
 from mne.io import read_raw_fif
 
 data_path = testing.data_path(download=False)
@@ -178,7 +179,7 @@ def test_volume_stc(tmp_path):
         n = 3 if ext == 'h5' else 2
         for ii in range(n):
             if ii < 2:
-                stc_new.save(fname_temp)
+                stc_new.save(fname_temp, overwrite=True)
             else:
                 # Pass stc.vertices[0], an ndarray, to ensure support for
                 # the way we used to write volume STCs
@@ -201,11 +202,13 @@ def test_volume_stc(tmp_path):
     assert ' kB' in repr(stc)
 
     stc_new = stc
-    pytest.raises(ValueError, stc.save, fname_vol, ftype='whatever')
+    fname_temp = tmp_path / ('temp-vl.stc')
+    with pytest.raises(ValueError, match="'ftype' parameter"):
+        stc.save(fname_vol, ftype='whatever', overwrite=True)
     for ftype in ['w', 'h5']:
         for _ in range(2):
             fname_temp = tmp_path / ('temp-vol.%s' % ftype)
-            stc_new.save(fname_temp, ftype=ftype)
+            stc_new.save(fname_temp, ftype=ftype, overwrite=True)
             stc_new = read_source_estimate(fname_temp)
             assert (isinstance(stc_new, VolSourceEstimate))
             assert_array_equal(stc.vertices[0], stc_new.vertices[0])
@@ -252,15 +255,15 @@ def test_save_vol_stc_as_nifti(tmp_path):
 
     stc.save_as_volume(vol_fname, src,
                        dest='surf', mri_resolution=False)
-    with pytest.warns(None):  # nib<->numpy
+    with _record_warnings():  # nib<->numpy
         img = nib.load(str(vol_fname))
     assert (img.shape == src[0]['shape'] + (len(stc.times),))
 
-    with pytest.warns(None):  # nib<->numpy
+    with _record_warnings():  # nib<->numpy
         t1_img = nib.load(fname_t1)
-    stc.save_as_volume(tmp_path / 'stc.nii.gz', src,
-                       dest='mri', mri_resolution=True)
-    with pytest.warns(None):  # nib<->numpy
+    stc.save_as_volume(vol_fname, src, dest='mri', mri_resolution=True,
+                       overwrite=True)
+    with _record_warnings():  # nib<->numpy
         img = nib.load(str(vol_fname))
     assert (img.shape == t1_img.shape + (len(stc.times),))
     assert_allclose(img.affine, t1_img.affine, atol=1e-5)
@@ -442,7 +445,11 @@ def test_io_stc_h5(tmp_path, is_complex, vector):
         stc.save(tmp_path / 'tmp.h5', ftype='foo')
     out_name = str(tmp_path / 'tmp')
     stc.save(out_name, ftype='h5')
-    stc.save(out_name, ftype='h5')  # test overwrite
+    # test overwrite
+    assert op.isfile(out_name + '-stc.h5')
+    with pytest.raises(FileExistsError, match='Destination file exists'):
+        stc.save(out_name, ftype='h5')
+    stc.save(out_name, ftype='h5', overwrite=True)
     stc3 = read_source_estimate(out_name)
     stc4 = read_source_estimate(out_name + '-stc')
     stc5 = read_source_estimate(out_name + '-stc.h5')
@@ -886,7 +893,7 @@ def test_extract_label_time_course_volume(
             assert_allclose(_varexp(label_tc, label_tc), 1.)
             ve = _varexp(stc_back.data, stcs[0].data)
             assert 0.83 < ve < 0.85
-            with pytest.warns(None):  # ignore warnings about no output
+            with _record_warnings():  # ignore no output
                 label_tc_rt = extract_label_time_course(
                     stc_back, labels, src=src, mri_resolution=mri_res,
                     allow_empty=True)
@@ -1784,7 +1791,7 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmp_path):
         want_affine = np.eye(4)
         want_affine.ravel()[::5][:3] = 1. / np.array(scale, float)
         # just a scaling (to within 1% if zooms=None, 20% with zooms=10)
-        assert_allclose(want_affine[:, :3], got_affine[:, :3], atol=2e-1)
+        assert_allclose(want_affine[:, :3], got_affine[:, :3], atol=0.4)
         assert got_affine[3, 3] == 1.
         # little translation (to within `limit` mm)
         move = np.linalg.norm(got_affine[:3, 3])
@@ -1803,10 +1810,10 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmp_path):
                 min_, max_ = 0.57, 0.67
             elif scale == 1:
                 # min_, max_ = 0.85, 0.875  # zooms='auto' values
-                min_, max_ = 0.72, 0.75
+                min_, max_ = 0.72, 0.76
             else:
                 # min_, max_ = 0.84, 0.855  # zooms='auto' values
-                min_, max_ = 0.61, 0.63
+                min_, max_ = 0.46, 0.63
             assert min_ < corr <= max_, scale
         else:
             assert_allclose(

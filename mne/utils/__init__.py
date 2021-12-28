@@ -31,7 +31,7 @@ from .docs import (copy_function_doc_to_method_doc, copy_doc, linkcode_resolve,
 from .fetching import _url_to_local_path
 from ._logging import (verbose, logger, set_log_level, set_log_file,
                        use_log_level, catch_logging, warn, filter_out_warnings,
-                       wrapped_stdout, _get_call_line,
+                       wrapped_stdout, _get_call_line, _record_warnings,
                        ClosingStringIO)
 from .misc import (run_subprocess, _pl, _clean_names, pformat, _file_like,
                    _explain_exception, _get_argvalues, sizeof_fmt,
@@ -61,7 +61,8 @@ from .numerics import (hashfunc, _compute_row_norms,
                        _mask_to_onsets_offsets, _array_equal_nan,
                        _julian_to_cal, _cal_to_julian, _dt_to_julian,
                        _julian_to_dt, _dt_to_stamp, _stamp_to_dt,
-                       _check_dt, _ReuseCycle, _arange_div, _hashable_ndarray)
+                       _check_dt, _ReuseCycle, _arange_div, _hashable_ndarray,
+                       _custom_lru_cache)
 from .mixin import (SizeMixin, GetEpochsMixin, _prepare_read_metadata,
                     _prepare_write_metadata, _FakeNoPandas, ShiftTimeMixin)
 from .linalg import (_svd_lwork, _repeated_svd, _sym_mat_pow, sqrtm_sym, eigh,

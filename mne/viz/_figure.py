@@ -327,28 +327,29 @@ class BrowserBase(ABC):
             data[_picks, _start:_stop] = this_data
 
     def _process_data(self, data, start, stop, picks,
-                      signals=None):
+                      thread=None):
         """Update self.mne.data after user interaction."""
         # apply projectors
         if self.mne.projector is not None:
-            if signals:
-                signals.processText.emit('Applying Projectors...')
+            # thread is the loading-thread only available in pyqtgraph-backend
+            if thread:
+                thread.processText.emit('Applying Projectors...')
             data = self.mne.projector @ data
         # get only the channels we're displaying
         data = data[picks]
         # remove DC
         if self.mne.remove_dc:
-            if signals:
-                signals.processText.emit('Removing DC...')
+            if thread:
+                thread.processText.emit('Removing DC...')
             data -= data.mean(axis=1, keepdims=True)
         # apply filter
         if self.mne.filter_coefs is not None:
-            if signals:
-                signals.processText.emit('Apply Filter...')
+            if thread:
+                thread.processText.emit('Apply Filter...')
             self._apply_filter(data, start, stop, picks)
         # scale the data for display in a 1-vertical-axis-unit slot
-        if signals:
-            signals.processText.emit('Scale Data...')
+        if thread:
+            thread.processText.emit('Scale Data...')
         this_names = self.mne.ch_names[picks]
         this_types = self.mne.ch_types[picks]
         stims = this_types == 'stim'

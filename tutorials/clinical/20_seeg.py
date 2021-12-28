@@ -5,8 +5,8 @@
 Working with sEEG data
 ======================
 
-MNE supports working with more than just MEG and EEG data. Here we show some
-of the functions that can be used to facilitate working with
+MNE-Python supports working with more than just MEG and EEG data. Here we show
+some of the functions that can be used to facilitate working with
 stereoelectroencephalography (sEEG) data.
 
 This example shows how to use:
@@ -25,6 +25,9 @@ For an example that involves ECoG data, channel locations in a
 subject-specific MRI, or projection into a surface, see
 :ref:`tut-working-with-ecog`. In the ECoG example, we show
 how to visualize surface grid channels on the brain.
+
+Please note that this tutorial requires 3D plotting dependencies,
+see :ref:`quick-start`.
 """
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
@@ -131,12 +134,12 @@ for elec in electrodes:
 # Now, let's the electrodes and a few regions of interest that the contacts
 # of the electrode are proximal to.
 
-picks = [ch_name for ch_name in epochs.ch_names if
+picks = [ii for ii, ch_name in enumerate(epochs.ch_names) if
          any([elec in ch_name for elec in electrodes])]
 labels = ('ctx-lh-caudalmiddlefrontal', 'ctx-lh-precentral',
           'ctx-lh-superiorfrontal', 'Left-Putamen')
 
-fig = mne.viz.plot_alignment(epochs.info.copy().pick_channels(picks), trans,
+fig = mne.viz.plot_alignment(mne.pick_info(epochs.info, picks), trans,
                              'fsaverage', subjects_dir=subjects_dir,
                              surfaces=[], coord_frame='mri')
 
@@ -187,7 +190,7 @@ brain = stc.plot_3d(
     add_data_kwargs=dict(colorbar_kwargs=dict(label_font_size=8)))
 
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(time_dilation=3, interpolation='linear', framerate=10,
+# brain.save_movie(time_dilation=3, interpolation='linear', framerate=5,
 #                  time_viewer=True, filename='./mne-test-seeg.m4')
 
 # %%

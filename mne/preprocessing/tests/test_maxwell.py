@@ -30,7 +30,7 @@ from mne.preprocessing.maxwell import (
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
     _bases_real_to_complex, _prep_mf_coils)
 from mne.rank import _get_rank_sss, _compute_rank_int, compute_rank
-from mne.utils import (assert_meg_snr, catch_logging,
+from mne.utils import (assert_meg_snr, catch_logging, _record_warnings,
                        object_diff, buggy_mkl_svd, use_log_level)
 
 io_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -1091,7 +1091,7 @@ def test_shielding_factor(tmp_path):
             for line in fid:
                 fid_out.write(' '.join(line.strip().split(' ')[:14]) + '\n')
     with get_n_projected() as counts:
-        with pytest.warns(None):  # SVD convergence sometimes
+        with _record_warnings():  # SVD convergence sometimes
             raw_sss = maxwell_filter(raw_erm, calibration=temp_fname,
                                      cross_talk=ctc_fname, st_duration=1.,
                                      coord_frame='meg', regularize='in')
@@ -1134,7 +1134,7 @@ def test_all():
                mf_head_origin)
     for ii, rf in enumerate(raw_fnames):
         raw = read_crop(rf, (0., 1.))
-        with pytest.warns(None):  # sometimes the fit is bad
+        with _record_warnings():  # sometimes the fit is bad
             sss_py = maxwell_filter(
                 raw, calibration=fine_cals[ii], cross_talk=ctcs[ii],
                 st_duration=st_durs[ii], coord_frame=coord_frames[ii],
@@ -1247,27 +1247,31 @@ def test_mf_skips():
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     ('fname', 'bads', 'annot', 'add_ch', 'ignore_ref', 'want_bads',
-     'return_scores', 'h_freq'), [
+     'return_scores', 'h_freq', 'meas_date'), [
         # Neuromag data tested against MF
-        (sample_fname, [], False, False, False, ['MEG 2443'], False, None),
+        (sample_fname, [], False, False, False, ['MEG 2443'], False, None,
+         'raw'),
         # add 0111 to test picking, add annot to test it, and prepend chs for
         # idx
         (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443'], False,
-         None),
+         None, 'raw'),
         # CTF data seems to be sensitive to linalg lib (?) because some
         # channels are very close to the limit, so we just check that one shows
         # up
         (ctf_fname_continuous, [], False, False, False, {'BR1-4304'}, False,
-         None),
+         None, 'raw'),
         # faked
         (ctf_fname_continuous, [], False, False, True, ['MLC24-4304'], False,
-         None),
+         None, 'raw'),
         # For `return_scores=True`
         (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443'], True,
-         50)
+         50, 'raw'),
+        (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443'], True,
+         50, None),
     ])
 def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
-                                   want_bads, return_scores, h_freq):
+                                   want_bads, return_scores, h_freq,
+                                   meas_date):
     """Test automatic bad channel detection."""
     if fname.endswith('.ds'):
         raw = read_raw_ctf(fname).load_data()
@@ -1276,6 +1280,10 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
         raw = read_raw_fif(fname)
         raw.fix_mag_coil_types().load_data().pick_types(meg=True, exclude=())
         flat_idx = 1
+    if meas_date is None:
+        raw.set_meas_date(None)
+    else:
+        assert meas_date == 'raw'
     raw.filter(None, 40)
     raw.info['bads'] = bads
     raw._data[flat_idx] = 0  # MaxFilter didn't have this but doesn't affect it

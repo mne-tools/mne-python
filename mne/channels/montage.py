@@ -215,16 +215,19 @@ class DigMontage(object):
         rename_channels(temp_info, mapping, allow_duplicates)
         self.ch_names = temp_info['ch_names']
 
-    def save(self, fname):
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
         """Save digitization points to FIF.
 
         Parameters
         ----------
         fname : str
             The filename to use. Should end in .fif or .fif.gz.
+        %(overwrite)s
+        %(verbose)s
         """
         coord_frame = _check_get_coord_frame(self.dig)
-        write_dig(fname, self.dig, coord_frame)
+        write_dig(fname, self.dig, coord_frame, overwrite=overwrite)
 
     def __iadd__(self, other):
         """Add two DigMontages in place.

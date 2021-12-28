@@ -114,15 +114,17 @@ general neuroimaging concepts. If you think a term is missing, please consider
         a narrative overview.
 
     events
-        Events correspond to specific time points in raw data; e.g.,
-        triggers, experimental condition events, etc. MNE represents events with
-        integers that are stored in numpy arrays of shape (n_events, 3), with
-        time (represented as an integer sample number) in the first column and
-        integer event code in the last column (the middle column represents the
-        signal value of the immediately previous sample, and reflects the
-        fact that event arrays sometimes come directly from analog voltage
-        channels, AKA "trigger channels" or "stim channels"). In most
-        situations the middle column can safely be set to all zeros and ignored.
+        Events correspond to specific time points in raw data; e.g., triggers,
+        experimental condition events, etc. MNE represents events with integers
+        that are stored in numpy arrays of shape (n_events, 3). The first
+        column contains the event time in samples with :term:`first_samp`
+        included. The last column contains the event integer code. The second
+        column contains the signal value of the immediately preceding sample,
+        and reflects the fact that event arrays sometimes come directly from
+        analog voltage channels, AKA "trigger channels" or "stim channels". In
+        most cases, the second column is all zeros and can be ignored.
+        Event arrays can be created with :func:`mne.make_fixed_length_events`,
+        :func:`mne.read_events`, and :func:`mne.find_events`.
 
     evoked
         Evoked data are obtained by averaging epochs. Typically, an evoked object
@@ -160,7 +162,8 @@ general neuroimaging concepts. If you think a term is missing, please consider
         consistency it is present in all :class:`~io.Raw` objects
         regardless of the source of the data. In other words,
         :attr:`~io.Raw.first_samp` will be ``0`` in :class:`~io.Raw`
-        objects loaded from non-VectorView data files.
+        objects loaded from non-VectorView data files. See also
+        :term:`last_samp`.
 
     forward
     forward solution
@@ -221,6 +224,15 @@ general neuroimaging concepts. If you think a term is missing, please consider
         a region of interest (ROI) in the literature. Labels can be defined
         anatomically (based on physical structure of the cortex) or functionally
         (based on cortical response to specific stimuli).
+
+    last_samp
+        The :attr:`~io.Raw.last_samp` attribute of :class:`~io.Raw`
+        objects is an integer representing the number of time samples that
+        passed between the onset of the hardware acquisition system and the
+        time when data stopped to be recorded to disk. This approach to sample
+        numbering is a peculiarity of VectorView MEG systems, but for
+        consistency it is present in all :class:`~io.Raw` objects
+        regardless of the source of the data. See also :term:`first_samp`.
 
     layout
         A :class:`~channels.Layout` gives sensor positions in 2
