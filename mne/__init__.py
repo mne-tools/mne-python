@@ -33,7 +33,7 @@ from .io.proj import Projection
 from .io.kit import read_epochs_kit
 from .io.eeglab import read_epochs_eeglab
 from .io.reference import (set_eeg_reference, set_bipolar_reference,
-                           add_reference_channels)
+                           add_reference_channels, set_laplace_reference)
 from .io.what import what
 from .bem import (make_sphere_model, make_bem_model, make_bem_solution,
                   read_bem_surfaces, write_bem_surfaces, write_head_bem,
