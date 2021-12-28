@@ -568,7 +568,7 @@ def set_laplace_reference(inst, central_ch, adjacent_chs, copy=True,
     """Re-reference selected seeg channels using a laplace referencing scheme.
 
     A Laplace reference takes the difference between one central channel with 
-    the average of adjacent channels.The exception, however, is for the top 
+    the average of adjacent channels. The exception, however, is for the top 
     and bottom electrodes in the seeg-shaft, where only one adjacent electrode 
     is subtracted (actually, the average of two same adjacent channels).  
 
