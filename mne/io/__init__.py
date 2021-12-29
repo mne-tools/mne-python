@@ -63,4 +63,4 @@ from .fiff import Raw
 from .fiff import Raw as RawFIF
 from .base import concatenate_raws
 from .reference import (set_eeg_reference, set_bipolar_reference,
-                        add_reference_channels)
+                        add_reference_channels, set_laplace_reference)

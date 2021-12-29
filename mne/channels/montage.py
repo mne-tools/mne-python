@@ -579,23 +579,39 @@ def read_dig_dat(fname):
         items = line.split()
         if not items:
             continue
-        elif len(items) != 5:
+        elif len(items) not in (4, 5):
             raise ValueError(
                 "Error reading %s, line %s has unexpected number of entries:\n"
                 "%s" % (fname, i, line.rstrip()))
-        num = items[1]
-        if num == '67':
-            continue  # centroid
-        pos = np.array([float(item) for item in items[2:]])
-        if num == '78':
-            nasion = pos
-        elif num == '76':
-            lpa = pos
-        elif num == '82':
-            rpa = pos
-        else:
-            ch_names.append(items[0])
-            poss.append(pos)
+        if len(items) == 5:
+            num = items[1]
+            if num == '67':
+                continue  # centroid
+            pos = np.array([float(item) for item in items[2:]])
+            if num == '78':
+                nasion = pos
+            elif num == '76':
+                lpa = pos
+            elif num == '82':
+                rpa = pos
+            else:
+                ch_names.append(items[0])
+                poss.append(pos)
+        elif len(items) == 4:
+            label = items[0]
+            if label == 'Centroid':
+                continue
+            pos = np.array([float(item) for item in items[1:]])
+            if label == 'Nasion':
+                nasion = pos
+            elif label == 'Left':
+                lpa = pos
+            elif label == 'Right':
+                rpa = pos
+            else:
+                ch_names.append(items[0])
+                poss.append(pos)
+
     electrodes = _check_dupes_odict(ch_names, poss)
     return make_dig_montage(electrodes, nasion, lpa, rpa)
 

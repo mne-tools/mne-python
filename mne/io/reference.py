@@ -561,3 +561,79 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         inst.drop_channels(drop_channels)
 
     return inst
+
+@verbose
+def set_laplace_reference(inst, central_ch, adjacent_chs, copy=True, 
+                          verbose=None):
+    """Re-reference selected seeg channels using a laplace referencing scheme.
+
+    A Laplace reference takes the difference between one central channel with 
+    the average of adjacent channels. The exception, however, is for the top 
+    and bottom electrodes in the seeg-shaft, where only one adjacent electrode 
+    is subtracted (actually, the average of two same adjacent channels).  
+
+    Multiple central channels and adjacent channels can be specified.    
+
+    Parameters
+    ----------
+    inst : instance of Raw | Epochs | Evoked
+        Data containing the unreferenced channels.
+    central_ch : str | list of str
+        The name(s) of the channel(s) to use as central channel(s) in the 
+        laplace reference.
+    adjacent_chs : list of strs
+        The name(s) of the channel(s) to use as adjacent channels in the 
+        laplace reference.    
+    copy : bool
+        Whether to operate on a copy of the data (True) or modify it in-place
+        (False). Defaults to True.
+    %(verbose)s
+
+    Returns
+    -------
+    inst : instance of Raw | Epochs | Evoked
+        Data with the specified channels re-referenced.
+    
+    For example,
+    -----------
+    central_ch=['A1','A2','A3']
+    adjacent_chs = [['A1','A1'],['A1','A3'],['A2','A2']]
+    
+    See Also
+    --------
+    set_eeg_reference : Convenience function for creating an EEG reference.
+    
+    Reference
+    ---------
+    .. footbibliography::
+ 
+    """
+    _check_can_reref(inst)
+    if not isinstance(central_ch, list):
+        central_ch = [central_ch]
+
+    if not isinstance(adjacent_chs, list):
+        raise ValueError('Adjacent channels are a list of at least two' 
+                         'adjacent channels! ')
+
+    if len(central_ch) != len(adjacent_chs):
+        raise ValueError('Number of central channels (got %d) must equal '
+                         'the number of adjacent groups of channels (got %d).' 
+                         % (len(central_ch), len(adjacent_chs)))
+    if copy:
+        inst = inst.copy()
+
+    # Do laplace reference by multiplying the data(channels x time) with
+    # a matrix (n_central_channels x channels).
+    multiplier = np.zeros((len(central_ch), len(inst.ch_names)))
+    for idx, (a, c) in enumerate(zip(central_ch, adjacent_chs)):
+        multiplier[idx, inst.ch_names.index(a)] = 1
+        adjacent_ch_n = len(c)
+        for i in range(adjacent_ch_n):
+            multiplier[idx, inst.ch_names.index(c[i])] += -1/adjacent_ch_n        
+
+    # Rereferencing of data.
+    data = multiplier @ inst._data
+    inst._data = data
+
+    return inst
