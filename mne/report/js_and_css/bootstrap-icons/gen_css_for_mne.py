@@ -28,6 +28,7 @@ font_path = base_dir / 'bootstrap-icons.woff2'
 
 
 def main():
+    """Start the CSS modification."""
     css_in = css_path_in.read_text(encoding='utf-8')
     font_binary = font_path.read_bytes()
     font_b64 = base64.b64encode(font_binary).decode('utf-8')
