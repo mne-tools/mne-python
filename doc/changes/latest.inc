@@ -64,7 +64,7 @@ Enhancements
 
 - Annotations from a :class:`~mne.io.Raw` object are now preserved by the :class:`~mne.Epochs` constructor (:gh:`9969` by `Adam Li`_)
 
-- `:class:`~mne.Epochs` metadata tables are now included in :class:`mne.Report` (:gh:`10166` by `Richard Höchenberger`_)
+- :class:`~mne.Epochs` metadata tables are now included in :class:`mne.Report` (:gh:`10166` by `Richard Höchenberger`_)
 
 Bugs
 ~~~~
