@@ -151,15 +151,15 @@ def _html_raw_element(*, id, repr, psd, butterfly, ssp_projs, title, tags):
     return t
 
 
-def _html_epochs_element(*, id, repr, erp_imgs, drop_log, psd, ssp_projs,
-                         title, tags):
+def _html_epochs_element(*, id, repr, metadata, erp_imgs, drop_log, psd,
+                         ssp_projs, title, tags):
     template_path = template_dir / 'epochs.html'
 
     title = stdlib_html.escape(title)
     t = Template(template_path.read_text(encoding='utf-8'))
     t = t.substitute(
-        id=id, repr=repr, erp_imgs=erp_imgs, drop_log=drop_log, psd=psd,
-        ssp_projs=ssp_projs, tags=tags, title=title
+        id=id, repr=repr, metadata=metadata, erp_imgs=erp_imgs,
+        drop_log=drop_log, psd=psd, ssp_projs=ssp_projs, tags=tags, title=title
     )
     return t
 
@@ -905,12 +905,13 @@ class Report(object):
             image_format=self.image_format,
             topomap_kwargs=topomap_kwargs,
         )
-        (repr_html, erp_imgs_html, drop_log_html, psd_html,
+        (repr_html, metadata_html, erp_imgs_html, drop_log_html, psd_html,
          ssp_projs_html) = htmls
 
         dom_id = self._get_dom_id()
         html = _html_epochs_element(
             repr=repr_html,
+            metadata=metadata_html,
             erp_imgs=erp_imgs_html,
             drop_log=drop_log_html,
             psd=psd_html,
@@ -2155,7 +2156,14 @@ class Report(object):
         """Initialize the renderer."""
         inc_fnames = [
             'jquery-3.6.0.min.js',
-            'bootstrap.bundle.min.js', 'bootstrap.min.css',
+            'bootstrap.bundle.min.js',
+            'bootstrap.min.css',
+            'bootstrap-table/bootstrap-table.min.js',
+            'bootstrap-table/bootstrap-table.min.css',
+            'bootstrap-table/bootstrap-table-fixed-columns.min.js',
+            'bootstrap-table/bootstrap-table-fixed-columns.min.css',
+            'bootstrap-table/bootstrap-table-copy-rows.min.js',
+            'bootstrap-icons/bootstrap-icons.mne.min.css',
             'highlightjs/highlight.min.js',
             'highlightjs/atom-one-dark-reasonable.min.css'
         ]
@@ -3260,6 +3268,78 @@ class Report(object):
 
         return psd_img_html
 
+    def _render_epochs_metadata(self, *, epochs, tags):
+        metadata = epochs.metadata.copy()
+
+        # Ensure we have a named index
+        if not metadata.index.name:
+            metadata.index.name = 'Epoch #'
+
+        metadata = metadata.reset_index()  # We want "proper" columns only
+        html = metadata.to_html(
+            border=0,
+            index=False,
+            show_dimensions=True,
+            justify='unset',
+            float_format=lambda x: f'{round(x, 3):.3f}',
+            classes='table table-hover table-striped '
+                    'table-sm table-responsive small'
+        )
+        del metadata
+
+        # Massage the table such that it woks nicely with bootstrap-table
+        htmls = html.split('\n')
+        header_pattern = '<th>(.*)</th>'
+
+        for idx, html in enumerate(htmls):
+            if '<table' in html:
+                htmls[idx] = html.replace(
+                    '<table',
+                    '<table '
+                    'data-toggle="table" '
+                    'data-search="true" '           # search / filter
+                    'data-search-highlight="true" '
+                    'data-show-columns="true" '     # show/hide columns
+                    'data-fixed-columns="true" '    # freeze first column
+                    'data-fixed-number="2" '
+                    'data-show-toggle="true" '      # allow card view
+                    'data-show-columns-toggle-all="true" '
+                    'data-click-to-select="true" '
+                    'data-show-copy-rows="true" '
+                    'data-icon-size="sm" '
+                    'data-height="400"'
+                )
+                continue
+            elif '<tr' in html:
+                # Add checkbox for row selection
+                htmls[idx] = (
+                    f'{html}\n'
+                    f'<th data-field="state" data-checkbox="true"></th>'
+                )
+                continue
+
+            col_headers = re.findall(pattern=header_pattern, string=html)
+            if col_headers:
+                # Make columns sortable
+                assert len(col_headers) == 1
+                col_header = col_headers[0]
+                htmls[idx] = html.replace(
+                    '<th>',
+                    f'<th data-field="{col_header.lower()}" '
+                    f'data-sortable="true">'
+                )
+
+        html = '\n'.join(htmls)
+        dom_id = self._get_dom_id()
+        metadata_html = _html_element(
+            div_klass='epochs',
+            id=dom_id,
+            tags=tags,
+            title='Metadata',
+            html=html
+        )
+        return metadata_html
+
     def _render_epochs(self, *, epochs, psd, add_projs, image_format, tags,
                        topomap_kwargs):
         """Render epochs."""
@@ -3278,6 +3358,14 @@ class Report(object):
             title='Info',
             html=epochs._repr_html_()
         )
+
+        # Metadata table
+        if epochs.metadata is not None:
+            metadata_html = self._render_epochs_metadata(
+                epochs=epochs, tags=tags
+            )
+        else:
+            metadata_html = ''
 
         # ERP/ERF image(s)
         ch_types = _get_ch_types(epochs)
@@ -3353,8 +3441,8 @@ class Report(object):
             tags=tags, topomap_kwargs=topomap_kwargs
         )
 
-        return (repr_html, erp_imgs_html, drop_log_img_html, psd_img_html,
-                ssp_projs_html)
+        return (repr_html, metadata_html, erp_imgs_html, drop_log_img_html,
+                psd_img_html, ssp_projs_html)
 
     def _render_cov(self, cov, *, info, image_format, tags):
         """Render covariance matrix & SVD."""
