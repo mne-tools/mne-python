@@ -3275,6 +3275,8 @@ class Report(object):
         if not metadata.index.name:
             metadata.index.name = 'Epoch #'
 
+        assert metadata.index.is_unique
+        index_name = metadata.index.name  # store for later use
         metadata = metadata.reset_index()  # We want "proper" columns only
         html = metadata.to_html(
             border=0,
@@ -3296,12 +3298,17 @@ class Report(object):
                 htmls[idx] = html.replace(
                     '<table',
                     '<table '
+                    'id="mytable" '
                     'data-toggle="table" '
+                    f'data-unique-id="{index_name}" '
                     'data-search="true" '           # search / filter
+                    'data-show-refresh="true" '
+                    'data-show-auto-refresh-"true" '
+                    'data-auto-refresh="true" '
                     'data-search-highlight="true" '
                     'data-show-columns="true" '     # show/hide columns
-                    'data-fixed-columns="true" '    # freeze first column
-                    'data-fixed-number="2" '
+                    # 'data-fixed-columns="true" '    # freeze first column
+                    # 'data-fixed-number="2" '
                     'data-show-toggle="true" '      # allow card view
                     'data-show-columns-toggle-all="true" '
                     'data-click-to-select="true" '
