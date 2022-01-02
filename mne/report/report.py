@@ -2161,6 +2161,8 @@ class Report(object):
             'bootstrap-table/bootstrap-table.min.js',
             'bootstrap-table/bootstrap-table.min.css',
             'bootstrap-table/bootstrap-table-copy-rows.min.js',
+            'bootstrap-table/bootstrap-table-export.min.js',
+            'bootstrap-table/tableExport.min.js',
             'bootstrap-icons/bootstrap-icons.mne.min.css',
             'highlightjs/highlight.min.js',
             'highlightjs/atom-one-dark-reasonable.min.css'
@@ -3300,15 +3302,15 @@ class Report(object):
                     'data-toggle="table" '
                     f'data-unique-id="{index_name}" '
                     'data-search="true" '           # search / filter
-                    'data-show-refresh="true" '
-                    'data-show-auto-refresh-"true" '
-                    'data-auto-refresh="true" '
                     'data-search-highlight="true" '
                     'data-show-columns="true" '     # show/hide columns
                     'data-show-toggle="true" '      # allow card view
                     'data-show-columns-toggle-all="true" '
                     'data-click-to-select="true" '
                     'data-show-copy-rows="true" '
+                    'data-show-export="true" '      # export to a file
+                    'data-export-types="[csv]" '
+                    "data-export-options='{\"fileName\": \"metadata\"}' "
                     'data-icon-size="sm" '
                     'data-height="400"'
                 )
