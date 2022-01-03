@@ -156,7 +156,7 @@ distribution.
 
 A convenient choice for the source-covariance matrix :math:`R` is such that
 :math:`\text{trace}(\tilde{G} R \tilde{G}^\top) / \text{trace}(I) = 1`. With this
-choice we can approximate :math:`\lambda^2 \sim 1/rm{SNR}^2`, where SNR is the
+choice we can approximate :math:`\lambda^2 \sim 1/\rm{SNR}^2`, where SNR is the
 (amplitude) signal-to-noise ratio of the whitened data.
 
 .. note::
