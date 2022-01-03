@@ -10,7 +10,7 @@ from ..utils import _validate_type, verbose, logger, _mask_to_onsets_offsets
 
 @verbose
 def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
-                       min_duration=0.005, picks=None, *, verbose):
+                       min_duration=0.005, picks=None, *, verbose=None):
     """Annotate segments of raw data which PTP amplitudes exceeds thresholds
     in ``peak`` or fall below thresholds in ``flat``.
 
@@ -143,12 +143,13 @@ def _check_ptp(ptp, name, info, picks):
             if value < 0:
                 raise ValueError(
                     f"Argument '{name}' should define positive thresholds. "
-                    "Provided for channel type '{key}': '{value}'.")
+                    f"Provided for channel type '{key}': '{value}'.")
     return ptp
 
 
 def _check_bad_percent(bad_percent):
     """Check that bad_percent is a valid percentage and converts to float."""
+    _validate_type(bad_percent, 'numeric', 'bad_percent')
     bad_percent = float(bad_percent)
     if not 0 <= bad_percent <= 100:
         raise ValueError(
@@ -159,6 +160,7 @@ def _check_bad_percent(bad_percent):
 
 def _check_min_duration(min_duration, raw_duration):
     """Check that min_duration is a valid duration and converts to float."""
+    _validate_type(min_duration, 'numeric', 'min_duration')
     min_duration = float(min_duration)
     if min_duration < 0:
         raise ValueError(
