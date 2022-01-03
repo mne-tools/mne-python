@@ -2530,7 +2530,7 @@ class Brain(object):
             colors = [fs_colors[label] / 255 for label in labels]
         elif not isinstance(colors, (list, tuple)):
             colors = [colors] * len(labels)  # make into list
-        colors = [_to_rgb(color, alpha, name=f'colors[{ci}]', alpha=True)
+        colors = [_to_rgb(color, name=f'colors[{ci}]')
                   for ci, color in enumerate(colors)]
         surfs = _marching_cubes(
             aseg_data, [lut[label] for label in labels], smooth=smooth,
