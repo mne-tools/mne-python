@@ -319,7 +319,7 @@ class _PyVistaRenderer(_AbstractRenderer):
              polygon_offset=None, **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            vertices = np.c_[x, y, z].astype(np.float)
+            vertices = np.c_[x, y, z].astype(float)
             triangles = np.c_[np.full(len(triangles), 3), triangles]
             mesh = PolyData(vertices, triangles)
         return self.polydata(
@@ -577,7 +577,7 @@ class _PyVistaRenderer(_AbstractRenderer):
     def text3d(self, x, y, z, text, scale, color='white'):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            points = np.array([x, y, z]).astype(np.float)
+            points = np.array([x, y, z]).astype(float)
             kwargs = dict(
                 points=points,
                 labels=[text],
