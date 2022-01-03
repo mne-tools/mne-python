@@ -664,6 +664,15 @@ class CoregistrationUI(HasTraits):
         finally:
             self._params_locked = old_params_locked
 
+    @contextmanager
+    def _lock_scale_mode(self):
+        old_scale_mode = self._coreg._scale_mode
+        self._coreg._scale_mode = None
+        try:
+            yield
+        finally:
+            self._coreg._scale_mode = old_scale_mode
+
     def _display_message(self, msg=""):
         self._status_msg.set_value(msg)
         self._status_msg.show()
@@ -831,6 +840,10 @@ class CoregistrationUI(HasTraits):
         self._update_projection_surface()
 
     def _fit_fiducials(self):
+        with self._lock_scale_mode():
+            self._fits_fiducials()
+
+    def _fits_fiducials(self):
         if not self._lock_fids:
             self._display_message(
                 "Fitting is disabled, lock the fiducials first.")
@@ -850,6 +863,10 @@ class CoregistrationUI(HasTraits):
         self._update_distance_estimation()
 
     def _fit_icp(self):
+        with self._lock_scale_mode():
+            self._fits_icp()
+
+    def _fits_icp(self):
         if not self._lock_fids:
             self._display_message(
                 "Fitting is disabled, lock the fiducials first.")
@@ -1079,15 +1096,15 @@ class CoregistrationUI(HasTraits):
                 layout=hlayout
             )
         hlayout2 = self._renderer._dock_add_layout(vertical=False)
-        self._widgets["fit_fiducials_scale"] = self._renderer._dock_add_button(
+        self._widgets["fits_fiducials"] = self._renderer._dock_add_button(
             name="Fit Fiducials",
-            callback=self._fit_fiducials,
+            callback=self._fits_fiducials,
             tooltip="Find rotation and translation to fit all 3 fiducials",
             layout=hlayout2,
         )
-        self._widgets["fit_icp_scale"] = self._renderer._dock_add_button(
+        self._widgets["fits_icp"] = self._renderer._dock_add_button(
             name="Fit ICP",
-            callback=self._fit_icp,
+            callback=self._fits_icp,
             tooltip="Find MRI scaling, translation, and rotation to match the "
                     "head shape points",
             layout=hlayout2,
