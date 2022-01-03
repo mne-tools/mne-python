@@ -724,6 +724,19 @@ class CoregistrationUI(HasTraits):
                 self._forward_widget_command(["sX", "sY", "sZ"], "set_value",
                                              self._coreg._scale * 1e2)
 
+    def _reset_scaling_parameters(self):
+        self._coreg.set_scale(self._coreg._default_parameters[6:9])
+        self._update_plot()
+        self._update_parameters()
+        self._update_distance_estimation()
+
+    def _reset_translation_rotation_parameters(self):
+        self._coreg.set_rotation(self._coreg._default_parameters[:3])
+        self._coreg.set_translation(self._coreg._default_parameters[3:6])
+        self._update_plot()
+        self._update_parameters()
+        self._update_distance_estimation()
+
     def _reset(self):
         self._reset_fitting_parameters()
         self._coreg.reset()
@@ -1111,7 +1124,7 @@ class CoregistrationUI(HasTraits):
         )
         self._renderer._dock_add_button(
             name="Reset",
-            callback=self._reset,
+            callback=self._reset_scaling_parameters,
             tooltip="Reset the scaling parameters",
             layout=hlayout2,
         )
@@ -1156,7 +1169,7 @@ class CoregistrationUI(HasTraits):
         )
         self._renderer._dock_add_button(
             name="Reset",
-            callback=self._reset,
+            callback=self._reset_translation_rotation_parameters,
             tooltip="Reset translation and rotation parameters",
             layout=hlayout,
         )
