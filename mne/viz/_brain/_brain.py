@@ -2414,7 +2414,7 @@ class Brain(object):
                                  self._subject_id, self._subjects_dir)
         verts, triangles = surf['rr'], surf['tris']
         verts *= 1e3 if self._units == 'mm' else 1
-        color = _to_rgb(color, alpha, alpha=True)
+        color = _to_rgb(color)
 
         for _ in self._iter_views('vol'):
             actor, _ = self._renderer.mesh(
