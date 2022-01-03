@@ -1109,6 +1109,12 @@ class CoregistrationUI(HasTraits):
                     "head shape points",
             layout=hlayout2,
         )
+        self._renderer._dock_add_button(
+            name="Reset",
+            callback=self._reset,
+            tooltip="Reset the scaling parameters",
+            layout=hlayout2,
+        )
         self._renderer._layout_add_widget(hlayout, hlayout2)
 
         for mode, mode_name in (("t", "Translation"), ("r", "Rotation")):
@@ -1146,6 +1152,12 @@ class CoregistrationUI(HasTraits):
             callback=self._fit_icp,
             tooltip="Find MRI scaling, translation, and rotation to match the "
                     "head shape points",
+            layout=hlayout,
+        )
+        self._renderer._dock_add_button(
+            name="Reset",
+            callback=self._reset,
+            tooltip="Reset translation and rotation parameters",
             layout=hlayout,
         )
         self._renderer._layout_add_widget(layout, hlayout)
@@ -1213,12 +1225,6 @@ class CoregistrationUI(HasTraits):
         )
         layout = self._renderer._dock_layout
         hlayout = self._renderer._dock_add_layout(vertical=False)
-        self._renderer._dock_add_button(
-            name="Reset",
-            callback=self._reset,
-            tooltip="Reset all the parameters affecting the coregistration",
-            layout=hlayout,
-        )
         self._widgets["save_trans"] = self._renderer._dock_add_file_button(
             name="save_trans",
             desc="Save...",
@@ -1234,6 +1240,12 @@ class CoregistrationUI(HasTraits):
             func=self._load_trans,
             input_text_widget=False,
             tooltip="Load the transform file from disk",
+            layout=hlayout,
+        )
+        self._renderer._dock_add_button(
+            name="Reset",
+            callback=self._reset,
+            tooltip="Reset all the parameters affecting the coregistration",
             layout=hlayout,
         )
         self._renderer._layout_add_widget(layout, hlayout)
