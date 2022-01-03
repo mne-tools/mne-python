@@ -23,7 +23,32 @@ def test_annotate_amplitude(meas_date, first_samp):
     data = np.random.RandomState(0).randn(n_ch, n_times)
     assert not (np.diff(data, axis=-1) == 0).any()  # nothing flat at first
     info = create_info(n_ch, 1000., 'eeg')
+    # from annotate_flat: test first_samp != for gh-6295
     raw = RawArray(data, info, first_samp=first_samp)
+    raw.info['bads'] = [raw.ch_names[-1]]
+    raw.set_meas_date(meas_date)
+
+    # test entire channel flat
+    raw_ = raw.copy()
+    raw_._data[0] = 0.
+    annotations, bads = annotate_amplitude(raw_, peak=None, flat=0.)
+    assert len(annotations) == 0
+    assert bads == ['0']
+
+    # test multiple channels flat
+    raw_ = raw.copy()
+    raw_._data[0] = 0.
+    raw_._data[2] = 0.
+    annotations, bads = annotate_amplitude(raw_, peak=None, flat=0.)
+    assert len(annotations) == 0
+    assert bads == ['0', '2']
+
+    # test entire channel drifting
+    raw_ = raw.copy()
+    raw_._data[0] = np.arange(0, raw.times.size * 10, 10)
+    annotations, bads = annotate_amplitude(raw_, peak=5, flat=None)
+    assert len(annotations) == 0
+    assert bads == ['0']
 
 
 def test_invalid_arguments():
@@ -54,6 +79,12 @@ def test_invalid_arguments():
                              "thresholds. Provided for channel type "
                              "'eog': '-1'."):
         annotate_amplitude(raw, peak=dict(eeg=1, eog=-1), flat=None)
+
+    # test both PTP set to None
+    with pytest.raises(ValueError,
+                       match="At least one of the arguments 'peak' or 'flat' "
+                             "must not be None."):
+        annotate_amplitude(raw, peak=None, flat=None)
 
     # bad_percent outside [0, 100]
     with pytest.raises(ValueError,

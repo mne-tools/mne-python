@@ -11,8 +11,9 @@ from ..utils import _validate_type, verbose, logger, _mask_to_onsets_offsets
 @verbose
 def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
                        min_duration=0.005, picks=None, *, verbose=None):
-    """Annotate segments of raw data which PTP amplitudes exceeds thresholds
-    in ``peak`` or fall below thresholds in ``flat``.
+    """Annotate segments of raw data which PTP amplitudes between consecutive
+    samples exceeds thresholds in ``peak`` or fall below thresholds in
+    ``flat``.
 
     Parameters
     ----------
@@ -122,7 +123,7 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
     # group
     annotations = annotation_flat + annotation_peak
     # bads
-    bads = [bad for bad in bads if bad not in raw.info['bads']]  # sanity-check
+    bads = [raw.ch_names[bad]  for bad in bads if bad not in raw.info['bads']]
 
     return annotations, bads
 
