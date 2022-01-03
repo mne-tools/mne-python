@@ -195,24 +195,8 @@ const fixTopMargin = () => {
   document.getElementById('toc').style.marginTop = `${margin}px`;
 }
 
-
-$(document).ready(() => {
-  gatherTags();
-  updateTagCountBadges();
-  addFilterByTagsCheckboxEventHandlers();
-  addSliderEventHandlers();
-  fixTopMargin();
-  fixScrollingForTocLinks();
-  hljs.highlightAll();   // enable highlight.js
-});
-
-window.onresize = () => {
-  fixTopMargin();
-  refreshScrollSpy();
-};
-
 /* Show / hide all tags on keypress */
-window.onkeydown = (e) => {
+const _globalKeyHandler = (e) => {
   if (e.code === "KeyT") {
     const selectAllTagsCheckbox = document
       .querySelector('#selectAllTagsCheckboxLabel > input');
@@ -223,3 +207,37 @@ window.onkeydown = (e) => {
     selectAllTagsCheckbox.dispatchEvent(changeEvent);
   }
 }
+
+const enableGlobalKeyHandler = () => {
+  window.onkeydown = (e) => _globalKeyHandler(e);
+}
+
+const disableGlobalKeyHandler = () => {
+  window.onkeydown = null;
+}
+
+/* Disbale processing global key events when a search box is active */
+const disableGlobalKeysInSearchBox = () => {
+  const searchBoxElements = document.querySelectorAll('input.search-input');
+  searchBoxElements.forEach((el) => {
+    el.addEventListener('focus', () => disableGlobalKeyHandler());
+    el.addEventListener('blur', () => enableGlobalKeyHandler());
+  })
+}
+
+$(document).ready(() => {
+  gatherTags();
+  updateTagCountBadges();
+  addFilterByTagsCheckboxEventHandlers();
+  addSliderEventHandlers();
+  fixTopMargin();
+  fixScrollingForTocLinks();
+  hljs.highlightAll();   // enable highlight.js
+  disableGlobalKeysInSearchBox();
+  enableGlobalKeyHandler();
+});
+
+window.onresize = () => {
+  fixTopMargin();
+  refreshScrollSpy();
+};
