@@ -132,7 +132,7 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
                     np.array([104.43, 101.47, 125.78]) * 1e-2,
                     atol=1e-3)
     coreg._set_scale_mode("None")
-    coreg._set_scale_mode("matched")
+    coreg._set_icp_fid_match("matched")
 
     # unlock fiducials
     assert coreg._lock_fids
