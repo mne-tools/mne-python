@@ -319,7 +319,7 @@ class _PyVistaRenderer(_AbstractRenderer):
              polygon_offset=None, **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            vertices = np.c_[x, y, z]
+            vertices = np.c_[x, y, z].astype(np.float)
             triangles = np.c_[np.full(len(triangles), 3), triangles]
             mesh = PolyData(vertices, triangles)
         return self.polydata(
