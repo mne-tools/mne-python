@@ -500,12 +500,13 @@ class CoregistrationUI(HasTraits):
 
     @observe("_scale_mode")
     def _scale_mode_changed(self, change=None):
-        locked_widgets = ["sX", "sY", "sZ", "fit_fiducials_scale",
-                          "fit_icp_scale"]
+        locked_widgets = ["sX", "sY", "sZ", "fits_icp", "reset_fits"]
         mode = None if self._scale_mode == "None" else self._scale_mode
         self._coreg.set_scale_mode(mode)
         self._forward_widget_command(locked_widgets, "set_enabled",
                                      mode is not None)
+        self._forward_widget_command("fits_fiducials", "set_enabled",
+                                     mode not in (None, "3-axis"))
 
     @observe("_icp_fid_match")
     def _icp_fid_match_changed(self, change=None):
@@ -1112,7 +1113,7 @@ class CoregistrationUI(HasTraits):
                     "head shape points",
             layout=hlayout2,
         )
-        self._renderer._dock_add_button(
+        self._widgets["reset_fits"] = self._renderer._dock_add_button(
             name="Reset",
             callback=partial(self._reset, scaling=True,
                              translation_rotation=False),
