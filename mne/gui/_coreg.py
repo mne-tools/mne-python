@@ -399,15 +399,15 @@ class CoregistrationUI(HasTraits):
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
-        view_widgets = ["project_eeg", "fit_fiducials", "fit_icp"]
+        locked_widgets = ["project_eeg", "fit_fiducials", "fit_icp"]
         fid_widgets = ["fid_X", "fid_Y", "fid_Z", "fids_file", "fids"]
         self._set_head_transparency(self._lock_fids)
         if self._lock_fids:
-            self._forward_widget_command(view_widgets, "set_enabled", True)
+            self._forward_widget_command(locked_widgets, "set_enabled", True)
             self._display_message()
             self._update_distance_estimation()
         else:
-            self._forward_widget_command(view_widgets, "set_enabled", False)
+            self._forward_widget_command(locked_widgets, "set_enabled", False)
             self._display_message("Picking fiducials - "
                                   f"{self._current_fiducial.upper()}")
         self._set_sensors_visibility(self._lock_fids)
@@ -497,9 +497,11 @@ class CoregistrationUI(HasTraits):
 
     @observe("_scale_mode")
     def _scale_mode_changed(self, change=None):
+        locked_widgets = ["sX", "sY", "sZ", "fit_fiducials_scale",
+                          "fit_icp_scale"]
         mode = None if self._scale_mode == "None" else self._scale_mode
         self._coreg.set_scale_mode(mode)
-        self._forward_widget_command(["sX", "sY", "sZ"], "set_enabled",
+        self._forward_widget_command(locked_widgets, "set_enabled",
                                      mode is not None)
 
     @observe("_icp_fid_match")
@@ -1063,6 +1065,21 @@ class CoregistrationUI(HasTraits):
                 tooltip=f"Set the {coord} scaling parameter",
                 layout=hlayout
             )
+        hlayout2 = self._renderer._dock_add_layout(vertical=False)
+        self._widgets["fit_fiducials_scale"] = self._renderer._dock_add_button(
+            name="Fit Fiducials",
+            callback=self._fit_fiducials,
+            tooltip="Find rotation and translation to fit all 3 fiducials",
+            layout=hlayout2,
+        )
+        self._widgets["fit_icp_scale"] = self._renderer._dock_add_button(
+            name="Fit ICP",
+            callback=self._fit_icp,
+            tooltip="Find MRI scaling, translation, and rotation to match the "
+                    "head shape points",
+            layout=hlayout2,
+        )
+        self._renderer._layout_add_widget(hlayout, hlayout2)
 
         for mode, mode_name in (("t", "Translation"), ("r", "Rotation")):
             hlayout = self._renderer._dock_add_group_box(
