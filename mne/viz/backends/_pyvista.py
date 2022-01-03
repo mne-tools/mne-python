@@ -577,9 +577,8 @@ class _PyVistaRenderer(_AbstractRenderer):
     def text3d(self, x, y, z, text, scale, color='white'):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            points = np.array([x, y, z]).astype(float)
             kwargs = dict(
-                points=points,
+                points=np.array([x, y, z]).astype(float),
                 labels=[text],
                 point_size=scale,
                 text_color=color,
