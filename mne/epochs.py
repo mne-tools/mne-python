@@ -352,8 +352,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     data : ndarray | None
         If ``None``, data will be read from the Raw object. If ndarray, must be
         of shape (n_epochs, n_channels, n_times).
-    raw_sfreq : float
-        The original Raw object sampling rate.
     %(events_epochs)s
     %(event_id)s
     %(epochs_tmin_tmax)s
@@ -382,6 +380,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     %(epochs_metadata)s
     %(epochs_event_repeated)s
     %(verbose)s
+    raw_sfreq : float
+        The original Raw object sampling rate.
 
     Notes
     -----
@@ -391,14 +391,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     """
 
     @verbose
-    def __init__(self, info, data, raw_sfreq, events, event_id=None,
+    def __init__(self, info, data, events, event_id=None,
                  tmin=-0.2, tmax=0.5,
                  baseline=(None, 0), raw=None, picks=None, reject=None,
                  flat=None, decim=1, reject_tmin=None, reject_tmax=None,
                  detrend=None, proj=True, on_missing='raise',
                  preload_at_end=False, selection=None, drop_log=None,
                  filename=None, metadata=None, event_repeated='error',
-                 verbose=None):  # noqa: D102
+                 verbose=None, *, raw_sfreq=None):  # noqa: D102
         self.verbose = verbose
 
         if events is not None:  # RtEpochs can have events=None
@@ -2638,12 +2638,13 @@ class Epochs(BaseEpochs):
 
         # call BaseEpochs constructor
         super(Epochs, self).__init__(
-            info, None, raw_sfreq, events, event_id, tmin, tmax,
+            info, None, events, event_id, tmin, tmax,
             metadata=metadata, baseline=baseline, raw=raw, picks=picks,
             reject=reject, flat=flat, decim=decim, reject_tmin=reject_tmin,
             reject_tmax=reject_tmax, detrend=detrend,
             proj=proj, on_missing=on_missing, preload_at_end=preload,
-            event_repeated=event_repeated, verbose=verbose)
+            event_repeated=event_repeated, verbose=verbose,
+            raw_sfreq=raw_sfreq)
 
         self._set_annotations(raw.annotations)
 
@@ -2788,11 +2789,8 @@ class EpochsArray(BaseEpochs):
         info = info.copy()  # do not modify original info
         tmax = (data.shape[2] - 1) / info['sfreq'] + tmin
 
-        # store raw_sfreq as the original sfreq
-        raw_sfreq = info['sfreq']
-
         super(EpochsArray, self).__init__(
-            info, data, raw_sfreq, events, event_id, tmin, tmax, baseline,
+            info, data, events, event_id, tmin, tmax, baseline,
             reject=reject, flat=flat, reject_tmin=reject_tmin,
             reject_tmax=reject_tmax, decim=1, metadata=metadata,
             selection=selection, proj=proj, on_missing=on_missing)
@@ -3264,11 +3262,11 @@ class EpochsFIF(BaseEpochs):
             # correction (data is being baseline-corrected when written to
             # disk)
             epoch = BaseEpochs(
-                info, data, raw_sfreq, events, event_id, tmin, tmax,
+                info, data, events, event_id, tmin, tmax,
                 baseline=None,
                 metadata=metadata, on_missing='ignore',
                 selection=selection, drop_log=drop_log,
-                proj=False, verbose=False)
+                proj=False, verbose=False, raw_sfreq=raw_sfreq)
             epoch.baseline = baseline
             epoch._do_baseline = False  # might be superfluous but won't hurt
             ep_list.append(epoch)
@@ -3305,11 +3303,12 @@ class EpochsFIF(BaseEpochs):
         # again, ensure we're retaining the baseline period originally loaded
         # from disk without trying to re-apply baseline correction
         super(EpochsFIF, self).__init__(
-            info, data, raw_sfreq, events, event_id, tmin, tmax,
+            info, data, events, event_id, tmin, tmax,
             baseline=None, raw=raw,
             proj=proj, preload_at_end=False, on_missing='ignore',
             selection=selection, drop_log=drop_log, filename=fname_rep,
-            metadata=metadata, verbose=verbose, **reject_params)
+            metadata=metadata, verbose=verbose, raw_sfreq=raw_sfreq,
+            **reject_params)
         self.baseline = baseline
         self._do_baseline = False
         # use the private property instead of drop_bad so that epochs

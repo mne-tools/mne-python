@@ -685,20 +685,20 @@ def test_decim():
 def test_base_epochs():
     """Test base epochs class."""
     raw = _get_data()[0]
-    epochs = BaseEpochs(raw.info, None, 100, np.ones((1, 3), int),
+    epochs = BaseEpochs(raw.info, None, np.ones((1, 3), int),
                         event_id, tmin, tmax)
     pytest.raises(NotImplementedError, epochs.get_data)
     # events have wrong dtype (float)
     with pytest.raises(TypeError, match='events should be a NumPy array'):
-        BaseEpochs(raw.info, None, 100, np.ones((1, 3), float), event_id,
+        BaseEpochs(raw.info, None, np.ones((1, 3), float), event_id,
                    tmin, tmax)
     # events have wrong shape
     with pytest.raises(ValueError, match='events must be of shape'):
-        BaseEpochs(raw.info, None, 100, np.ones((1, 3, 2), int), event_id,
+        BaseEpochs(raw.info, None, np.ones((1, 3, 2), int), event_id,
                    tmin, tmax)
     # events are tuple (like returned by mne.events_from_annotations)
     with pytest.raises(TypeError, match='events should be a NumPy array'):
-        BaseEpochs(raw.info, None, 100, (np.ones((1, 3), int), {'foo': 1}))
+        BaseEpochs(raw.info, None, (np.ones((1, 3), int), {'foo': 1}))
 
 
 def test_savgol_filter():
