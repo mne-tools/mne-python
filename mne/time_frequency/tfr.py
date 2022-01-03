@@ -1017,9 +1017,9 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         """
         write_tfrs(fname, self, overwrite=overwrite)
 
-    @fill_doc
+    @verbose
     def to_data_frame(self, picks=None, index=None, long_format=False,
-                      time_format='ms'):
+                      time_format='ms', *, verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,
@@ -1041,6 +1041,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         %(df_time_format)s
 
             .. versionadded:: 0.23
+        %(verbose)s
 
         Returns
         -------
