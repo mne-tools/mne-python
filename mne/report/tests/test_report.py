@@ -29,6 +29,7 @@ from mne.utils import requires_nibabel, Bunch, requires_h5py, requires_sklearn
 from mne.viz import plot_alignment
 from mne.io.write import DATE_NONE
 from mne.preprocessing import ICA
+from mne.epochs import make_metadata
 
 
 data_dir = testing.data_path(download=False)
@@ -693,7 +694,21 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     cov = read_cov(cov_fname)
     cov = pick_channels_cov(cov, raw.ch_names)
     events = read_events(events_fname)
-    epochs = Epochs(raw=raw, events=events, baseline=None)
+    event_id = {
+        'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
+        'visual/right': 4, 'face': 5, 'buttonpress': 32
+    }
+    metadata, metadata_events, metadata_event_id = make_metadata(
+        events=events, event_id=event_id, tmin=-0.2, tmax=0.5,
+        sfreq=raw.info['sfreq']
+    )
+    epochs_without_metadata = Epochs(
+        raw=raw, events=events, event_id=event_id, baseline=None
+    )
+    epochs_with_metadata = Epochs(
+        raw=raw, events=metadata_events, event_id=metadata_event_id,
+        baseline=None,  metadata=metadata
+    )
     evokeds = read_evokeds(evoked_fname)
     evoked = evokeds[0].pick('eeg')
 
@@ -701,7 +716,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         ica = (ICA(n_components=2, max_iter=1, random_state=42)
                .fit(inst=raw.copy().crop(tmax=1)))
     ica_ecg_scores = ica_eog_scores = np.array([3, 0])
-    ica_ecg_evoked = ica_eog_evoked = epochs.average()
+    ica_ecg_evoked = ica_eog_evoked = epochs_without_metadata.average()
 
     r.add_raw(raw=raw, title='my raw data', tags=('raw',), psd=True,
               projs=False)
@@ -709,19 +724,34 @@ def test_manual_report_2d(tmp_path, invisible_fig):
               butterfly=1)
     r.add_events(events=events_fname, title='my events',
                  sfreq=raw.info['sfreq'])
-    r.add_epochs(epochs=epochs, title='my epochs', tags=('epochs',), psd=False,
-                 projs=False)
-    r.add_epochs(epochs=epochs, title='my epochs 2', tags=('epochs',),
-                 psd=1, projs=False)
-    r.add_epochs(epochs=epochs, title='my epochs 2', tags=('epochs',),
-                 psd=True, projs=False)
+    r.add_epochs(
+        epochs=epochs_without_metadata, title='my epochs', tags=('epochs',),
+        psd=False, projs=False
+    )
+    r.add_epochs(
+        epochs=epochs_without_metadata, title='my epochs 2', psd=1, projs=False
+    )
+    r.add_epochs(
+        epochs=epochs_without_metadata, title='my epochs 2', psd=True,
+        projs=False
+    )
+    assert 'Metadata' not in r.html[-1]
+
+    # Try with metadata
+    r.add_epochs(
+        epochs=epochs_with_metadata, title='my epochs with metadata',
+        psd=False, projs=False
+    )
+    assert 'Metadata' in r.html[-1]
 
     with pytest.raises(
         ValueError,
         match='requested to calculate PSD on a duration'
     ):
-        r.add_epochs(epochs=epochs, title='my epochs 2', tags=('epochs',),
-                     psd=100000000, projs=False)
+        r.add_epochs(
+            epochs=epochs_with_metadata, title='my epochs 2',  psd=100000000,
+            projs=False
+        )
 
     r.add_evokeds(evokeds=evoked, noise_cov=cov_fname,
                   titles=['my evoked 1'], tags=('evoked',), projs=False,

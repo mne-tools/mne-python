@@ -128,6 +128,7 @@ class CoregistrationUI(HasTraits):
         self._widgets = dict()
         self._verbose = verbose
         self._plot_locked = False
+        self._params_locked = False
         self._refresh_rate_ms = max(int(round(1000. / 60.)), 1)
         self._redraws_pending = set()
         self._parameter_mutex = threading.Lock()
@@ -337,6 +338,8 @@ class CoregistrationUI(HasTraits):
         self._update_plot("mri_fids")
 
     def _set_parameter(self, value, mode_name, coord):
+        if self._params_locked:
+            return
         with self._parameter_mutex:
             self. _set_parameter_safe(value, mode_name, coord)
         self._update_plot("sensors")
@@ -656,6 +659,15 @@ class CoregistrationUI(HasTraits):
         finally:
             self._plot_locked = old_plot_locked
 
+    @contextmanager
+    def _lock_params(self):
+        old_params_locked = self._params_locked
+        self._params_locked = True
+        try:
+            yield
+        finally:
+            self._params_locked = old_params_locked
+
     def _display_message(self, msg=""):
         self._status_msg.set_value(msg)
         self._status_msg.show()
@@ -688,15 +700,16 @@ class CoregistrationUI(HasTraits):
 
     def _update_parameters(self):
         with self._lock_plot():
-            # rotation
-            self._forward_widget_command(["rX", "rY", "rZ"], "set_value",
-                                         np.rad2deg(self._coreg._rotation))
-            # translation
-            self._forward_widget_command(["tX", "tY", "tZ"], "set_value",
-                                         self._coreg._translation * 1e3)
-            # scale
-            self._forward_widget_command(["sX", "sY", "sZ"], "set_value",
-                                         self._coreg._scale * 1e2)
+            with self._lock_params():
+                # rotation
+                self._forward_widget_command(["rX", "rY", "rZ"], "set_value",
+                                             np.rad2deg(self._coreg._rotation))
+                # translation
+                self._forward_widget_command(["tX", "tY", "tZ"], "set_value",
+                                             self._coreg._translation * 1e3)
+                # scale
+                self._forward_widget_command(["sX", "sY", "sZ"], "set_value",
+                                             self._coreg._scale * 1e2)
 
     def _reset(self):
         self._reset_fitting_parameters()
@@ -847,6 +860,7 @@ class CoregistrationUI(HasTraits):
             self._update_plot("sensors")
             self._current_icp_iterations += 1
             self._update_distance_estimation()
+            self._update_parameters()
             self._renderer._process_events()  # allow a draw or cancel
 
         start = time.time()
@@ -863,13 +877,12 @@ class CoregistrationUI(HasTraits):
         self._display_message(
             f"Fitting ICP finished in {end - start:.2f} seconds and "
             f"{self._current_icp_iterations} iterations.")
-        self._update_parameters()
         del self._current_icp_iterations
 
     def _save_trans(self, fname):
         write_trans(fname, self._coreg.trans)
         self._display_message(
-            "{fname} transform file is saved.")
+            f"{fname} transform file is saved.")
 
     def _load_trans(self, fname):
         mri_head_t = _ensure_trans(read_trans(fname, return_all=True),
