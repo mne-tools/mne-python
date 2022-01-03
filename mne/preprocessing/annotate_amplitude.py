@@ -11,7 +11,8 @@ from ..utils import _validate_type, verbose, logger, _mask_to_onsets_offsets
 @verbose
 def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
                        min_duration=0.005, picks=None, *, verbose=None):
-    """Annotate segments of raw data which PTP amplitudes between consecutive
+    """
+    Annotate segments of raw data which PTP amplitudes between consecutive
     samples exceeds thresholds in ``peak`` or fall below thresholds in
     ``flat``.
 
@@ -176,9 +177,7 @@ def _check_min_duration(min_duration, raw_duration):
 
 
 def _reject_short_segments(arr, min_duration_samples):
-    """
-    Check if flat or peak segments are longer than the minimum duration.
-    """
+    """Check if flat or peak segments are longer than the minimum duration."""
     assert arr.dtype == bool and arr.ndim == 2
     for k, ch in enumerate(arr):
         onsets, offsets = _mask_to_onsets_offsets(ch)
@@ -189,9 +188,7 @@ def _reject_short_segments(arr, min_duration_samples):
 
 
 def _create_annotations(any_arr, type_, raw):
-    """
-    Create the peak of flat annotations from the any_arr.
-    """
+    """Create the peak of flat annotations from the any_arr."""
     assert type_ in ('peak', 'flat')
     starts, stops = _mask_to_onsets_offsets(any_arr)
     starts, stops = np.array(starts), np.array(stops)
