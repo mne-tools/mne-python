@@ -136,10 +136,6 @@ class BrowserBase(ABC):
         return sorted(set(self.mne.inst.annotations.description) |
                       set(self.mne.new_annotation_labels))
 
-    def _toggle_draggable_annotations(self):
-        """Enable/disable draggable annotation edges."""
-        self.mne.draggable_annotations = not self.mne.draggable_annotations
-
     def _setup_annotation_colors(self):
         """Set up colors for annotations; init some annotation vars."""
         segment_colors = getattr(self.mne, 'annotation_segment_colors', dict())
