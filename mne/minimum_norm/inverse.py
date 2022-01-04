@@ -1705,7 +1705,7 @@ def estimate_snr(evoked, inv, verbose=None):
         \tilde{M} = R^\frac{1}{2}V\Gamma U^T
 
     The values in the diagonal matrix :math:`\Gamma` are expressed in terms
-    of the chosen regularization :math:`\lambda\approx\frac{1}{\rm{SNR}^2}`
+    of the chosen regularization :math:`\lambda^2 \sim 1/\rm{SNR}^2`
     and singular values :math:`\lambda_k` as:
 
     .. math::
