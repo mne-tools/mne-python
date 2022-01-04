@@ -829,14 +829,14 @@ def test_manual_report_3d(tmp_path, renderer):
     r = Report(title='My Report')
     info = read_info(raw_fname)
     with info._unlock():
-        dig, info['dig'] = info['dig'], info['dig'][:7]
+        dig, info['dig'] = info['dig'], []
     add_kwargs = dict(trans=trans_fname, info=info, subject='sample',
                       subjects_dir=subjects_dir)
     with pytest.warns(RuntimeWarning, match='could not be calculated'):
         r.add_trans(title='coreg no dig', **add_kwargs)
     with info._unlock():
         info['dig'] = dig
-    # TODO: We should probably speed this up. We could expose an arg to allow\
+    # TODO: We should probably speed this up. We could expose an arg to allow
     # use of sparse rather than dense head, and also possibly an arg to specify
     # which views to actually show. Both of these could probably be useful to
     # end-users, too.
