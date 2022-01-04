@@ -1052,7 +1052,7 @@ class CoregistrationUI(HasTraits):
         )
         self._renderer._layout_add_widget(layout, hlayout)
 
-        layout = self._renderer._dock_add_group_box("View options")
+        layout = self._renderer._dock_add_group_box("View Options")
         self._widgets["project_eeg"] = self._renderer._dock_add_check_box(
             name="Project EEG",
             value=self._project_eeg,
@@ -1099,28 +1099,30 @@ class CoregistrationUI(HasTraits):
                 tooltip=f"Set the {coord} scaling parameter",
                 layout=hlayout
             )
-        hlayout2 = self._renderer._dock_add_layout(vertical=False)
+
+        layout = self._renderer._dock_layout
+        hlayout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["fits_fiducials"] = self._renderer._dock_add_button(
             name="Fit Fiducials",
             callback=self._fits_fiducials,
             tooltip="Find rotation and translation to fit all 3 fiducials",
-            layout=hlayout2,
+            layout=hlayout,
         )
         self._widgets["fits_icp"] = self._renderer._dock_add_button(
             name="Fit ICP",
             callback=self._fits_icp,
             tooltip="Find MRI scaling, translation, and rotation to match the "
                     "head shape points",
-            layout=hlayout2,
+            layout=hlayout,
         )
         self._widgets["reset_fits"] = self._renderer._dock_add_button(
             name="Reset",
             callback=partial(self._reset, scaling=True,
                              translation_rotation=False),
             tooltip="Reset the scaling parameters",
-            layout=hlayout2,
+            layout=hlayout,
         )
-        self._renderer._layout_add_widget(hlayout, hlayout2)
+        self._renderer._layout_add_widget(layout, hlayout)
 
         for mode, mode_name in (("t", "Translation"), ("r", "Rotation")):
             hlayout = self._renderer._dock_add_group_box(
@@ -1144,7 +1146,7 @@ class CoregistrationUI(HasTraits):
                     layout=hlayout
                 )
 
-        layout = self._renderer._dock_add_group_box("Fitting")
+        layout = self._renderer._dock_layout
         hlayout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["fit_fiducials"] = self._renderer._dock_add_button(
             name="Fit Fiducials",
@@ -1167,6 +1169,8 @@ class CoregistrationUI(HasTraits):
             layout=hlayout,
         )
         self._renderer._layout_add_widget(layout, hlayout)
+
+        layout = self._renderer._dock_add_group_box("Fitting Options")
         self._widgets["fit_label"] = self._renderer._dock_add_label(
             value="",
             layout=layout,
