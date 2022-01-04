@@ -560,11 +560,8 @@ class EpochsEEGLAB(BaseEpochs):
         assert data.shape == (eeg.trials, eeg.nbchan, eeg.pnts)
         tmin, tmax = eeg.xmin, eeg.xmax
 
-        # Epochs store Annotations and raw_sfreq starting in v1.0
-        # but the EEGLab standard does not support those
-        raw_sfreq = info['sfreq']
         super(EpochsEEGLAB, self).__init__(
-            info, data, raw_sfreq, events, event_id, tmin, tmax, baseline,
+            info, data, events, event_id, tmin, tmax, baseline,
             reject=reject, flat=flat, reject_tmin=reject_tmin,
             reject_tmax=reject_tmax, filename=input_fname, verbose=verbose)
 
