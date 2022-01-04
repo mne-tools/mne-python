@@ -490,15 +490,18 @@ def _itv(function, fig, **kwargs):
          np.concatenate(images[3:], axis=1)],
         axis=0)
 
-    dists = dig_mri_distances(info=kwargs['info'],
-                              trans=kwargs['trans'],
-                              subject=kwargs['subject'],
-                              subjects_dir=kwargs['subjects_dir'],
-                              on_defects='ignore')
-
+    try:
+        dists = dig_mri_distances(info=kwargs['info'],
+                                  trans=kwargs['trans'],
+                                  subject=kwargs['subject'],
+                                  subjects_dir=kwargs['subjects_dir'],
+                                  on_defects='ignore')
+        caption = (f'Average distance from {len(dists)} digitized points to '
+                   f'head: {1e3 * np.mean(dists):.2f} mm')
+    except BaseException as e:
+        caption = ('Distances could not be calculated from digitized points')
+        warn(e)
     img = _fig_to_img(images, image_format='png')
-    caption = (f'Average distance from {len(dists)} digitized points to '
-               f'head: {1e3 * np.mean(dists):.2f} mm')
 
     return img, caption
 
