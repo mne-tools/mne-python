@@ -119,6 +119,8 @@ Bugs
 
 - Creating :class:`mne.Epochs` now provides clearer logging (less ambiguous, no duplicates) when the ``preload`` and/or ``metadata`` parameters are set (:gh:`10112` by `Stefan Appelhoff`_)
 
+- Fix bug with :class:`mne.Epochs` where save-load round-trip with FIF would cause :meth:`mne.Epochs.apply_baseline` to no longer work (:gh:`10177` by `Eric Larson`_)
+
 - Fix functions by adding missing ``overwrite`` parameters: :func:`mne.write_events`, :func:`mne.write_cov`, :func:`mne.write_evokeds`, :meth:`mne.SourceEstimate.save`, :func:`mne.minimum_norm.write_inverse_operator`, :func:`mne.write_proj`, and related methods (:gh:`10127` by `Eric Larson`_)
 
 - Fix bug with :func:`mne.transforms.compute_volume_registration` and :func:`mne.compute_source_morph` (volumetric) where the smoothing factors were not scaled based on ``zooms`` (:gh:`10132` by `Eric Larson`_)
