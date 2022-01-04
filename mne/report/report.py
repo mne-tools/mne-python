@@ -502,7 +502,7 @@ def _itv(function, fig, **kwargs):
         caption = (f'Average distance from {len(dists)} digitized points to '
                    f'head: {1e3 * np.mean(dists):.2f} mm')
     except BaseException as e:
-        caption = ('Distances could not be calculated from digitized points')
+        caption = 'Distances could not be calculated from digitized points'
         warn(f'{caption}: {e}')
     img = _fig_to_img(images, image_format='png')
 
