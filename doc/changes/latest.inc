@@ -131,6 +131,8 @@ Bugs
 
 - :meth:`mne.Report.add_trans` now allows you to add sensor alignment plots for head surfaces that have topological defects (:gh:`10175` by `Richard Höchenberger`_)
 
+- :meth:`mne.Report.add_trans` now also works if no digitization points are present in the data (:gh:`10176` by `Jeff Stout`_)
+
 API changes
 ~~~~~~~~~~~
 - ``mne.Info.pick_channels`` has been deprecated. Use ``inst.pick_channels`` to pick channels from :class:`~mne.io.Raw`, :class:`~mne.Epochs`, and :class:`~mne.Evoked`. Use :func:`mne.pick_info` to pick channels from :class:`mne.Info` (:gh:`10039` by `Mathieu Scheltienne`_)
