@@ -657,8 +657,6 @@ class EpochAnnotationsMixin:
     def set_annotations(self, annotations):
         """Setter for Epoch annotations.
 
-        Currently only works to set ``annotations`` as ``None``.
-
         Parameters
         ----------
         annotations : instance of mne.Annotations | None
@@ -668,10 +666,16 @@ class EpochAnnotationsMixin:
         -------
         self : instance of Raw
             The raw object with annotations.
+
+        Notes
+        -----
+        Epoch Annotations were added in v1.0 in order to preserve
+        events that occurred in raw data when they were Epoched. For example,
+        this might occur in time-frequency analysis, or sliding-window
+        connectivity analysis. Setting Annotations directly on Epochs
+        requires an accurate ``_raw_sfreq``, which stores the raw sampling
+        rate to interpret the Annotation.
         """
-        if annotations is not None:
-            raise RuntimeError('Setting Annotations within Epochs directly '
-                               'is not supported yet.')
         self._set_annotations(annotations)
         return self
 
