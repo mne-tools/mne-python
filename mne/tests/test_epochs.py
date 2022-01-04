@@ -3660,7 +3660,7 @@ def test_empty_constructor():
     info = create_info(1, 1000., 'eeg')
     event_id = 1
     tmin, tmax, baseline = -0.2, 0.5, None
-    BaseEpochs(info, None, 100, None, event_id, tmin, tmax, baseline)
+    BaseEpochs(info, None, None, event_id, tmin, tmax, baseline)
 
 
 def test_apply_function():

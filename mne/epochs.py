@@ -381,7 +381,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     %(epochs_event_repeated)s
     %(verbose)s
     raw_sfreq : float
-        The original Raw object sampling rate.
+        The original Raw object sampling rate. If None, then it is set to
+        ``info['sfreq']``.
 
     Notes
     -----
@@ -590,6 +591,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             for ii, epoch in enumerate(self._data):
                 self._data[ii] = np.dot(self._projector, epoch)
         self._filename = str(filename) if filename is not None else filename
+        if raw_sfreq is None:
+            raw_sfreq = self.info['sfreq']
         self._raw_sfreq = raw_sfreq
         self._check_consistency()
 
@@ -3588,9 +3591,10 @@ def _finish_concat(info, data, raw_sfreq, events, event_id, tmin, tmax,
     """Finish concatenation for epochs not read from disk."""
     selection = np.where([len(d) == 0 for d in drop_log])[0]
     out = BaseEpochs(
-        info, data, raw_sfreq, events, event_id, tmin, tmax, baseline=baseline,
+        info, data, events, event_id, tmin, tmax, baseline=baseline,
         selection=selection, drop_log=drop_log, proj=False,
-        on_missing='ignore', metadata=metadata, verbose=verbose)
+        on_missing='ignore', metadata=metadata, verbose=verbose,
+        raw_sfreq=raw_sfreq)
     out.drop_bad()
     return out
 
