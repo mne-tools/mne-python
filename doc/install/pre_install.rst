@@ -63,6 +63,8 @@ MNE-Python, including packages for:
   the Bayesian algorithm SESAME (`sesameeg`_)
 - GLM and group level analysis of near-infrared spectroscopy data (`mne-nirs`_)
 - M/EEG inverse solutions using artificial neural networks (`ESINet`_)
+- All-Resolutions Inference (ARI) for statically valid circular inference
+and effect localization (`MNE-ARI`_)
 
 
 What should I install?
@@ -107,3 +109,4 @@ Help with installation is available through the `MNE Forum`_. See the
 .. _sesameeg: https://pybees.github.io/sesameeg
 .. _mne-nirs: https://github.com/mne-tools/mne-nirs
 .. _ESINet: https://github.com/LukeTheHecker/ESINet
+.. _MNE-ARI: https://github.com/john-veillette/mne_ari
