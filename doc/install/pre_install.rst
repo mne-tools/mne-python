@@ -63,7 +63,7 @@ MNE-Python, including packages for:
   the Bayesian algorithm SESAME (`sesameeg`_)
 - GLM and group level analysis of near-infrared spectroscopy data (`mne-nirs`_)
 - M/EEG inverse solutions using artificial neural networks (`ESINet`_)
-- All-Resolutions Inference (ARI) for statically valid circular inference
+- All-Resolutions Inference (ARI) for statistically valid circular inference
 and effect localization (`MNE-ARI`_)
 
 
