@@ -38,7 +38,7 @@ from .utils import (logger, verbose, get_subjects_dir, warn, _check_fname,
 
 @verbose
 def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
-                  verbose=None):
+                  on_defects='raise',  verbose=None):
     """Load the subject head surface.
 
     Parameters
@@ -55,6 +55,9 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
     subjects_dir : str, or None
         Path to the SUBJECTS_DIR. If None, the path is obtained by using
         the environment variable SUBJECTS_DIR.
+    %(on_defects)s
+
+        .. versionadded:: 1.0
     %(verbose)s
 
     Returns
@@ -63,11 +66,12 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
         The head surface.
     """
     return _get_head_surface(subject=subject, source=source,
-                             subjects_dir=subjects_dir)
+                             subjects_dir=subjects_dir, on_defects=on_defects)
 
 
 # TODO this should be refactored with mne._freesurfer._get_head_surface
-def _get_head_surface(subject, source, subjects_dir, raise_error=True):
+def _get_head_surface(subject, source, subjects_dir, on_defects,
+                      raise_error=True):
     """Load the subject head surface."""
     from .bem import read_bem_surfaces
     # Load the head surface from the BEM
@@ -84,6 +88,7 @@ def _get_head_surface(subject, source, subjects_dir, raise_error=True):
         if op.exists(this_head):
             surf = read_bem_surfaces(this_head, True,
                                      FIFF.FIFFV_BEM_SURF_ID_HEAD,
+                                     on_defects=on_defects,
                                      verbose=False)
         else:
             # let's do a more sophisticated search
