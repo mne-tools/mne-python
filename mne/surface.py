@@ -1606,7 +1606,8 @@ def _complete_sphere_surf(sphere, idx, level, complete=True):
 
 @verbose
 def dig_mri_distances(info, trans, subject, subjects_dir=None,
-                      dig_kinds='auto', exclude_frontal=False, verbose=None):
+                      dig_kinds='auto', exclude_frontal=False,
+                      on_defects='raise', verbose=None):
     """Compute distances between head shape points and the scalp surface.
 
     This function is useful to check that coregistration is correct.
@@ -1627,6 +1628,9 @@ def dig_mri_distances(info, trans, subject, subjects_dir=None,
     %(dig_kinds)s
     %(exclude_frontal)s
         Default is False.
+    %(on_defects)s
+
+        .. versionadded:: 1.0
     %(verbose)s
 
     Returns
@@ -1644,7 +1648,7 @@ def dig_mri_distances(info, trans, subject, subjects_dir=None,
     """
     from .bem import get_fitting_dig
     pts = get_head_surf(subject, ('head-dense', 'head', 'bem'),
-                        subjects_dir=subjects_dir)['rr']
+                        subjects_dir=subjects_dir, on_defects=on_defects)['rr']
     trans = _get_trans(trans, fro="mri", to="head")[0]
     pts = apply_trans(trans, pts)
     info_dig = get_fitting_dig(
