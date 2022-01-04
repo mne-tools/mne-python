@@ -493,7 +493,8 @@ def _itv(function, fig, **kwargs):
     dists = dig_mri_distances(info=kwargs['info'],
                               trans=kwargs['trans'],
                               subject=kwargs['subject'],
-                              subjects_dir=kwargs['subjects_dir'])
+                              subjects_dir=kwargs['subjects_dir'],
+                              on_defects='ignore')
 
     img = _fig_to_img(images, image_format='png')
     caption = (f'Average distance from {len(dists)} digitized points to '
