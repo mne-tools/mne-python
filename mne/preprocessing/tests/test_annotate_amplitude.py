@@ -239,13 +239,13 @@ def test_flat_bad_acq_skip():
     # add flat channel overlapping entirely with bad_acq_skip
     raw_ = raw.copy()
     raw_._data[0, 200:800] = 0.
-    annots, bads = annotate_amplitude(raw_, peak=None, flat=0, bad_percent=25)
+    annots, bads = annotate_amplitude(raw_, peak=None, flat=0, bad_percent=41)
     assert len(annots) == 2
     assert len(bads) == 0
     # check annotation instance
     annots = sorted(annots, key=lambda x: x['onset'])
     assert all(annot['description'] == 'BAD_flat' for annot in annots)
-    _check_annotation(raw_, annots[0], None, 0, 200, 499)
+    _check_annotation(raw_, annots[0], None, 0, 200, 500)
     _check_annotation(raw_, annots[1], None, 0, 700, 799)
 
 

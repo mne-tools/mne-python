@@ -88,6 +88,8 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
 
     # skip BAD_acq_skip sections
     onsets, ends = _annotations_starts_stops(raw, 'bad_acq_skip', invert=True)
+    index = np.concatenate([np.arange(raw.times.size)[onset:end]
+                            for onset, end in zip(onsets, ends)])
 
     # size matching the diff a[i+1] - a[i]
     any_flat = np.zeros(len(raw.times) - 1, bool)
@@ -115,7 +117,7 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
                 np.where((0 < flat_mean) & (flat_mean < bad_percent))[0]]
             idx = np.where(flat_[flat_ch_to_annotate, :])[1]
             # convert from raw.times[onset:end] - 1 to raw.times[:] - 1
-            # TODO
+            idx = index[idx]
             any_flat[idx] = True
 
         if peak is not None:
@@ -133,7 +135,7 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
                 np.where((0 < peak_mean) & (peak_mean < bad_percent))[0]]
             idx = np.where(peak_[peak_ch_to_annotate, :])[1]
             # convert from raw.times[onset:end] - 1 to raw.times[:] - 1
-            # TODO
+            idx = index[idx]
             any_peak[idx] = True
 
     # annotation for flat
