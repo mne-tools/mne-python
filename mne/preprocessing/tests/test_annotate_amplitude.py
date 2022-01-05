@@ -4,17 +4,22 @@
 
 import datetime
 import itertools
-import numpy as np
-import pytest
+from pathlib import Path
 import re
 
+import numpy as np
+import pytest
+
 from mne import create_info
-from mne.io import RawArray
+from mne.datasets import testing
+from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import annotate_amplitude
 
 
 date = datetime.datetime(2021, 12, 10, 7, 52, 24, 405305,
                          tzinfo=datetime.timezone.utc)
+data_path = Path(testing.data_path(download=False))
+skip_fname = data_path / 'misc' / 'intervalrecording_raw.fif'
 
 
 @pytest.mark.parametrize('meas_date', (None, date))
@@ -204,6 +209,25 @@ def _check_annotation(raw, annot, meas_date, first_samp, start_idx, stop_idx):
             raw.times[stop_idx],
             annot['onset'] + annot['duration'] - first_time,
             atol=1e-4)
+
+
+@testing.requires_testing_data
+def test_flat_bad_acq_skip():
+    """Test that acquisition skips are handled properly."""
+    # -- file with a couple of skip and flat channels --
+    raw = read_raw_fif(skip_fname, preload=True)
+    annots, bads = annotate_amplitude(raw, flat=0)
+    assert len(annots) == 0
+    assert bads == [  # MaxFilter finds the same 21 channels
+        'MEG%04d' % (int(num),) for num in
+        '141 331 421 431 611 641 1011 1021 1031 1241 1421 '
+        '1741 1841 2011 2131 2141 2241 2531 2541 2611 2621'.split()]
+
+    # -- overlap of flat segment with bad_acq_skip --
+    # TODO
+
+    # -- overlap of peak segment with bad_acq_skip --
+    # TODO
 
 
 def test_invalid_arguments():

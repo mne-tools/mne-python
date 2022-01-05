@@ -5,7 +5,8 @@
 import numpy as np
 
 from ..io import BaseRaw
-from ..annotations import Annotations, _adjust_onset_meas_date
+from ..annotations import (Annotations, _adjust_onset_meas_date,
+                           _annotations_starts_stops)
 from ..io.pick import _picks_to_idx, _picks_by_type, _get_channel_types
 from ..utils import _validate_type, verbose, logger, _mask_to_onsets_offsets
 
@@ -85,14 +86,21 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
         }
     del picks_  # re-using this variable name in for loop
 
+    # skip BAD_acq_skip sections
+    onsets, ends = _annotations_starts_stops(raw, 'bad_acq_skip', invert=True)
+    times = np.concatenate([raw.times[onset:end]
+                            for onset, end in zip(onsets, ends)])
+
     # size matching the diff a[i+1] - a[i]
-    any_flat = np.zeros(len(raw.times) - 1, bool)
-    any_peak = np.zeros(len(raw.times) - 1, bool)
+    any_flat = np.zeros(len(times) - 1, bool)
+    any_peak = np.zeros(len(times) - 1, bool)
 
     # look for discrete difference above or below thresholds
     logger.info('Finding segments below or above PTP threshold.')
     for ch_type, picks_ in picks.items():
-        diff = np.abs(np.diff(raw.get_data(picks=picks_), axis=1))
+        data = np.concatenate([raw[picks_, onset:end][0]
+                               for onset, end in zip(onsets, ends)], axis=1)
+        diff = np.abs(np.diff(data, axis=1))
 
         if flat is not None:
             flat_ = diff <= flat[ch_type]
