@@ -257,7 +257,7 @@ def _check_annotation(raw, annot, meas_date, first_samp, start_idx, stop_idx):
         assert np.isclose(
             raw.times[stop_idx], annot['onset'] + annot['duration'], atol=1e-4)
     else:
-        first_time = first_samp / raw.info['sfreq']  # beacause of meas_date
+        first_time = first_samp / raw.info['sfreq']  # because of meas_date
         assert np.isclose(
             raw.times[start_idx], annot['onset'] - first_time, atol=1e-4)
         assert np.isclose(
