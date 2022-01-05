@@ -69,10 +69,13 @@ def test_annotate_amplitude(meas_date, first_samp):
     n_good_times = int(round(0.8 * n_times))
     raw_ = raw.copy()
     raw_._data[0, n_good_times:] = 0.
-    annots, bads = annotate_amplitude(raw_, peak=None, flat=0., bad_percent=5)
-    assert len(annots) == 0
-    assert bads == ['0']
-    annots, bads = annotate_amplitude(raw_, peak=None, flat=0., bad_percent=20)
+    for perc in (5, 20):
+        annots, bads = annotate_amplitude(raw_, peak=None, flat=0.,
+                                          bad_percent=perc)
+        assert len(annots) == 0
+        assert bads == ['0']
+    annots, bads = annotate_amplitude(raw_, peak=None, flat=0.,
+                                      bad_percent=20.1)
     assert len(annots) == 1
     assert len(bads) == 0
     # check annotation instance
@@ -96,6 +99,36 @@ def test_annotate_amplitude(meas_date, first_samp):
             annots[0]['onset'] + annots[0]['duration'] - first_time,
             atol=1e-4)
     assert meas_date == annots[0]['orig_time']
+    assert annots[0]['description'] == 'BAD_flat'
+
+    # test multiple channels flat and multiple channels drift
+    raw_ = raw.copy()
+    raw_._data[0, 800:] = 0.
+    raw_._data[1, 850:950] = 0.
+    raw_._data[2, :200] = np.arange(0, 200 * 10, 10)
+    raw_._data[2, 200:] += raw_._data[2, 199]  # add offset for next samples
+    raw_._data[3, 50:150] = np.arange(0, 100 * 10, 10)
+    raw_._data[3, 150:] += raw_._data[3, 149]  # add offset for next samples
+    for perc in (5, 10):
+        annots, bads = annotate_amplitude(raw_, peak=5, flat=0.,
+                                          bad_percent=perc)
+        assert len(annots) == 0
+        assert bads == ['0', '1', '2', '3']
+    for perc in (10.1, 20):
+        annots, bads = annotate_amplitude(raw_, peak=5, flat=0.,
+                                          bad_percent=perc)
+        assert len(annots) == 2
+        assert bads == ['0', '2']
+    annots, bads = annotate_amplitude(raw_, peak=5, flat=0., bad_percent=20.1)
+    assert len(annots) == 2
+    assert bads == []
+
+    # test flat on already marked bad channel
+    raw_ = raw.copy()
+    raw_._data[-1, :] = 0.  # this channel is already in info['bads']
+    annots, bads = annotate_amplitude(raw_, peak=None, flat=0., bad_percent=5)
+    assert len(annots) == 0
+    assert len(bads) == 0
 
 
 def test_invalid_arguments():

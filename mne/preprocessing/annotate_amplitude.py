@@ -82,8 +82,9 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
         }
     del picks_  # re-using this variable name in for loop
 
-    any_flat = np.zeros(len(raw.times), bool)
-    any_peak = np.zeros(len(raw.times), bool)
+    # size matching the diff a[i+1] - a[i]
+    any_flat = np.zeros(len(raw.times) - 1, bool)
+    any_peak = np.zeros(len(raw.times) - 1, bool)
 
     # look for discrete difference above or below thresholds
     logger.info('Finding segments below or above PTP threshold.')
@@ -95,7 +96,9 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
             # reject too short segments
             flat_ = _reject_short_segments(flat_, min_duration_samples)
             # reject channels above maximum bad_percentage
-            flat_mean = flat_.mean(axis=1) * 100
+            flat_count = flat_.sum(axis=1)
+            flat_count[np.nonzero(flat_count)] += 1  # offset by 1 due to diff
+            flat_mean = flat_count / raw.times.size * 100
             flat_ch_to_set_bad = picks_[np.where(flat_mean >= bad_percent)[0]]
             bads.extend(flat_ch_to_set_bad)
             # add onset/offset for annotations
@@ -109,7 +112,9 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
             # reject too short segments
             peak_ = _reject_short_segments(peak_, min_duration_samples)
             # reject channels above maximum bad_percentage
-            peak_mean = peak_.mean(axis=1) * 100
+            peak_count = peak_.sum(axis=1)
+            peak_count[np.nonzero(peak_count)] += 1  # offset by 1 due to diff
+            peak_mean = peak_count / raw.times.size * 100
             peak_ch_to_set_bad = picks_[np.where(peak_mean >= bad_percent)[0]]
             bads.extend(peak_ch_to_set_bad)
             # add onset/offset for annotations
