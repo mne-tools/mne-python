@@ -30,6 +30,7 @@ def test_annotate_amplitude(meas_date, first_samp):
     raw.info['bads'] = [raw.ch_names[-1]]
     raw.set_meas_date(meas_date)
 
+    # -- test bad channels spatial marking --
     for perc, dur in itertools.product((5, 99.9, 100.), (0.005, 0.95, 0.99)):
         kwargs = dict(bad_percent=perc, min_duration=dur)
 
@@ -62,6 +63,39 @@ def test_annotate_amplitude(meas_date, first_samp):
         annots, bads = annotate_amplitude(raw_, peak=5, flat=None, **kwargs)
         assert len(annots) == 0
         assert bads == ['0', '2']
+
+    # -- test bad channels temporal marking --
+    # flat channel for the 20% last points
+    n_good_times = int(round(0.8 * n_times))
+    raw_ = raw.copy()
+    raw_._data[0, n_good_times:] = 0.
+    annots, bads = annotate_amplitude(raw_, peak=None, flat=0., bad_percent=5)
+    assert len(annots) == 0
+    assert bads == ['0']
+    annots, bads = annotate_amplitude(raw_, peak=None, flat=0., bad_percent=20)
+    assert len(annots) == 1
+    assert len(bads) == 0
+    # check annotation instance
+    if meas_date is None:
+        assert np.isclose(
+            raw_.times[n_good_times],
+            annots[0]['onset'],
+            atol=1e-4)
+        assert np.isclose(
+            raw_.times[-1],
+            annots[0]['onset'] + annots[0]['duration'],
+            atol=1e-4)
+    else:
+        first_time = first_samp / raw_.info['sfreq']  # beacause of meas_date
+        assert np.isclose(
+            raw_.times[n_good_times],
+            annots[0]['onset'] - first_time,
+            atol=1e-4)
+        assert np.isclose(
+            raw_.times[-1],
+            annots[0]['onset'] + annots[0]['duration'] - first_time,
+            atol=1e-4)
+    assert meas_date == annots[0]['orig_time']
 
 
 def test_invalid_arguments():
