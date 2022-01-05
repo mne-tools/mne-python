@@ -79,27 +79,8 @@ def test_annotate_amplitude(meas_date, first_samp):
     assert len(annots) == 1
     assert len(bads) == 0
     # check annotation instance
-    assert meas_date == annots[0]['orig_time']
     assert annots[0]['description'] == 'BAD_flat'
-    if meas_date is None:
-        assert np.isclose(
-            raw_.times[n_good_times],
-            annots[0]['onset'],
-            atol=1e-4)
-        assert np.isclose(
-            raw_.times[-1],
-            annots[0]['onset'] + annots[0]['duration'],
-            atol=1e-4)
-    else:
-        first_time = first_samp / raw_.info['sfreq']  # beacause of meas_date
-        assert np.isclose(
-            raw_.times[n_good_times],
-            annots[0]['onset'] - first_time,
-            atol=1e-4)
-        assert np.isclose(
-            raw_.times[-1],
-            annots[0]['onset'] + annots[0]['duration'] - first_time,
-            atol=1e-4)
+    _check_annotation(raw_, annots[0], meas_date, first_samp, n_good_times, -1)
 
     # test multiple channels flat and multiple channels drift
     raw_ = raw.copy()
@@ -119,31 +100,25 @@ def test_annotate_amplitude(meas_date, first_samp):
                                           bad_percent=perc)
         assert len(annots) == 2
         assert bads == ['0', '2']
+        # check annotation instance
+        assert all(annot['description'] in ('BAD_flat', 'BAD_peak')
+                   for annot in annots)
+        for annot in annots:
+            start_idx = 50 if annot['description'] == 'BAD_peak' else 850
+            stop_idx = 149 if annot['description'] == 'BAD_peak' else 949
+            _check_annotation(raw_, annot, meas_date, first_samp, start_idx,
+                              stop_idx)
     annots, bads = annotate_amplitude(raw_, peak=5, flat=0., bad_percent=20.1)
     assert len(annots) == 2
     assert len(bads) == 0
     # check annotation instance
     assert all(annot['description'] in ('BAD_flat', 'BAD_peak')
                for annot in annots)
-    assert all(meas_date == annot['orig_time'] for annot in annots)
     for annot in annots:
         start_idx = 0 if annot['description'] == 'BAD_peak' else 800
         stop_idx = 199 if annot['description'] == 'BAD_peak' else -1
-        if meas_date is None:
-            assert np.isclose(
-                raw_.times[start_idx], annot['onset'], atol=1e-4)
-            assert np.isclose(
-                raw_.times[stop_idx], annot['onset'] + annot['duration'],
-                atol=1e-4)
-        else:
-            first_time = first_samp / raw_.info['sfreq']
-            assert np.isclose(
-                raw_.times[start_idx], annot['onset'] - first_time,
-                atol=1e-4)
-            assert np.isclose(
-                raw_.times[stop_idx],
-                annot['onset'] + annot['duration'] - first_time,
-                atol=1e-4)
+        _check_annotation(raw_, annot, meas_date, first_samp, start_idx,
+                          stop_idx)
 
     # test flat on already marked bad channel
     raw_ = raw.copy()
@@ -184,25 +159,41 @@ def test_annotate_amplitude_with_overlap(meas_date, first_samp):
     # check annotation instance
     assert all(annot['description'] in ('BAD_flat', 'BAD_peak')
                for annot in annots)
-    assert all(meas_date == annot['orig_time'] for annot in annots)
     for annot in annots:
         start_idx = 700 if annot['description'] == 'BAD_peak' else 800
         stop_idx = 899 if annot['description'] == 'BAD_peak' else -1
-        if meas_date is None:
-            assert np.isclose(
-                raw_.times[start_idx], annot['onset'], atol=1e-4)
-            assert np.isclose(
-                raw_.times[stop_idx], annot['onset'] + annot['duration'],
-                atol=1e-4)
-        else:
-            first_time = first_samp / raw_.info['sfreq']
-            assert np.isclose(
-                raw_.times[start_idx], annot['onset'] - first_time,
-                atol=1e-4)
-            assert np.isclose(
-                raw_.times[stop_idx],
-                annot['onset'] + annot['duration'] - first_time,
-                atol=1e-4)
+        _check_annotation(raw_, annot, meas_date, first_samp, start_idx,
+                          stop_idx)
+
+    # -- overlap between peak and peak on same channel --
+    raw_ = raw.copy()
+    raw_._data[0, 700:900] = np.arange(0, 200 * 10, 10)
+    raw_._data[0, 800:] = np.arange(1000, 300 * 10, 10)
+    annots, bads = annotate_amplitude(raw_, peak=5, flat=None, bad_percent=50)
+    assert len(annots) == 1
+    assert len(bads) == 0
+    # check annotation instance
+    assert annots[0]['description'] == 'BAD_peak'
+    _check_annotation(raw_, annots[0], meas_date, first_samp, 700, -1)
+
+    # -- overlap between flat and flat on different channel --
+
+
+def _check_annotation(raw, annot, meas_date, first_samp, start_idx, stop_idx):
+    """Util function to check an annotation."""
+    assert meas_date == annot['orig_time']
+    if meas_date is None:
+        assert np.isclose(raw.times[start_idx], annot['onset'], atol=1e-4)
+        assert np.isclose(
+            raw.times[stop_idx], annot['onset'] + annot['duration'], atol=1e-4)
+    else:
+        first_time = first_samp / raw.info['sfreq']  # beacause of meas_date
+        assert np.isclose(
+            raw.times[start_idx], annot['onset'] - first_time, atol=1e-4)
+        assert np.isclose(
+            raw.times[stop_idx],
+            annot['onset'] + annot['duration'] - first_time,
+            atol=1e-4)
 
 
 def test_invalid_arguments():
