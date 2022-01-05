@@ -104,7 +104,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     See Also
     --------
-    mne.preprocessing.annotate_flat
+    mne.preprocessing.annotate_amplitude
     mne.preprocessing.find_bad_channels_maxwell
     mne.chpi.filter_chpi
     mne.chpi.read_head_pos
@@ -2030,7 +2030,7 @@ def find_bad_channels_maxwell(
 
     See Also
     --------
-    annotate_flat
+    annotate_amplitude
     maxwell_filter
 
     Notes
@@ -2181,9 +2181,9 @@ def find_bad_channels_maxwell(
             logger.info(f'            Flat ({len(chunk_flats):2d}): <all>')
             warn('All-flat segment detected, all channels will be marked as '
                  f'flat and processing will stop (t={t[0]:0.3f}). '
-                 'Consider using annotate_flat before calling this function '
-                 'with skip_by_annotation="bad_flat" (or similar) to properly '
-                 'process all segments.')
+                 'Consider using annotate_amplitude before calling this '
+                 'function with skip_by_annotation="bad_flat" (or similar) to '
+                 'properly process all segments.')
             break  # no reason to continue
         # Bad pass
         chunk_noisy = list()
