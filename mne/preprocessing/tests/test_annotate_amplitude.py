@@ -322,7 +322,7 @@ def test_invalid_arguments():
                             "positive duration in seconds shorter than the "
                             "raw duration (1.0 seconds). Provided: "
                             "'1.0' seconds.")
-            ):
+    ):
         annotate_amplitude(raw, peak=dict(eeg=1), flat=None, min_duration=1.)
 
     # min_duration longer than the raw duration
@@ -332,5 +332,5 @@ def test_invalid_arguments():
                             "positive duration in seconds shorter than the "
                             "raw duration (1.0 seconds). Provided: "
                             "'10.0' seconds.")
-            ):
+    ):
         annotate_amplitude(raw, peak=dict(eeg=1), flat=None, min_duration=10)
