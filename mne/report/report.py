@@ -454,7 +454,10 @@ def _get_bem_contour_figs_as_arrays(
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     from ..viz import create_3d_figure
-    fig = create_3d_figure((800, 800), bgcolor=(0.5, 0.5, 0.5))
+    from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+    # TODO: Eventually maybe we should expose the size option?
+    size = (80, 80) if MNE_3D_BACKEND_TESTING else (800, 800)
+    fig = create_3d_figure(size, bgcolor=(0.5, 0.5, 0.5))
     from ..viz.backends.renderer import backend
     try:
         try:
@@ -490,14 +493,18 @@ def _itv(function, fig, **kwargs):
          np.concatenate(images[3:], axis=1)],
         axis=0)
 
-    dists = dig_mri_distances(info=kwargs['info'],
-                              trans=kwargs['trans'],
-                              subject=kwargs['subject'],
-                              subjects_dir=kwargs['subjects_dir'])
-
+    try:
+        dists = dig_mri_distances(info=kwargs['info'],
+                                  trans=kwargs['trans'],
+                                  subject=kwargs['subject'],
+                                  subjects_dir=kwargs['subjects_dir'],
+                                  on_defects='ignore')
+        caption = (f'Average distance from {len(dists)} digitized points to '
+                   f'head: {1e3 * np.mean(dists):.2f} mm')
+    except BaseException as e:
+        caption = 'Distances could not be calculated from digitized points'
+        warn(f'{caption}: {e}')
     img = _fig_to_img(images, image_format='png')
-    caption = (f'Average distance from {len(dists)} digitized points to '
-               f'head: {1e3 * np.mean(dists):.2f} mm')
 
     return img, caption
 

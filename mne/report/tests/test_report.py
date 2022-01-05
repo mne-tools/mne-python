@@ -22,7 +22,7 @@ from matplotlib import pyplot as plt
 from mne import Epochs, read_events, read_evokeds, read_cov, pick_channels_cov
 from mne.report import report as report_mod
 from mne.report.report import CONTENT_ORDER
-from mne.io import read_raw_fif
+from mne.io import read_raw_fif, read_info
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper, report
 from mne.utils import requires_nibabel, Bunch, requires_h5py, requires_sklearn
@@ -827,8 +827,20 @@ def test_manual_report_2d(tmp_path, invisible_fig):
 def test_manual_report_3d(tmp_path, renderer):
     """Simulate adding 3D sections."""
     r = Report(title='My Report')
-    r.add_trans(trans=trans_fname, info=raw_fname, title='my coreg',
-                subject='sample', subjects_dir=subjects_dir)
+    info = read_info(raw_fname)
+    with info._unlock():
+        dig, info['dig'] = info['dig'], []
+    add_kwargs = dict(trans=trans_fname, info=info, subject='sample',
+                      subjects_dir=subjects_dir)
+    with pytest.warns(RuntimeWarning, match='could not be calculated'):
+        r.add_trans(title='coreg no dig', **add_kwargs)
+    with info._unlock():
+        info['dig'] = dig
+    # TODO: We should probably speed this up. We could expose an arg to allow
+    # use of sparse rather than dense head, and also possibly an arg to specify
+    # which views to actually show. Both of these could probably be useful to
+    # end-users, too.
+    r.add_trans(title='my coreg', **add_kwargs)
     r.add_bem(subject='sample', subjects_dir=subjects_dir, title='my bem',
               decim=100)
     r.add_inverse_operator(

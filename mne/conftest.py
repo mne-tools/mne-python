@@ -127,6 +127,7 @@ def pytest_configure(config):
     ignore:.*np\.MachAr.*:DeprecationWarning
     ignore:.*Passing unrecognized arguments to super.*:DeprecationWarning
     ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
+    ignore:.*pandas\.Int64Index is deprecated.*:FutureWarning
     always::ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
