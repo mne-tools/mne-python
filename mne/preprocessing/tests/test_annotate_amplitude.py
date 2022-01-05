@@ -113,12 +113,22 @@ def test_invalid_arguments():
                              "'-1.0' seconds."):
         annotate_amplitude(raw, peak=dict(eeg=1), flat=None, min_duration=-1)
 
+    # min_duration equal to the raw duration
+    with pytest.raises(
+            ValueError,
+            match=re.escape("Argument 'min_duration' should define a "
+                            "positive duration in seconds shorter than the "
+                            "raw duration (1.0 seconds). Provided: "
+                            "'1.0' seconds.")
+            ):
+        annotate_amplitude(raw, peak=dict(eeg=1), flat=None, min_duration=1.)
+
     # min_duration longer than the raw duration
     with pytest.raises(
             ValueError,
             match=re.escape("Argument 'min_duration' should define a "
                             "positive duration in seconds shorter than the "
-                            "raw duration (0.99 seconds). Provided: "
+                            "raw duration (1.0 seconds). Provided: "
                             "'10.0' seconds.")
             ):
         annotate_amplitude(raw, peak=dict(eeg=1), flat=None, min_duration=10)

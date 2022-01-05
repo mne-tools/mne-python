@@ -69,7 +69,8 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
         raise ValueError(
             "At least one of the arguments 'peak' or 'flat' must not be None.")
     bad_percent = _check_bad_percent(bad_percent)
-    min_duration = _check_min_duration(min_duration, raw.times[-1])
+    min_duration = _check_min_duration(min_duration,
+                                       raw.times.size * 1 / raw.info['sfreq'])
     min_duration_samples = int(np.round(min_duration * raw.info['sfreq']))
     bads = list()
 
@@ -182,7 +183,7 @@ def _reject_short_segments(arr, min_duration_samples):
     for k, ch in enumerate(arr):
         onsets, offsets = _mask_to_onsets_offsets(ch)
         for start, stop in zip(onsets, offsets):
-            if stop - start < min_duration_samples:
+            if stop - start <= min_duration_samples:
                 arr[k, start:stop] = False
     return arr
 
