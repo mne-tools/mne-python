@@ -4,6 +4,7 @@
 
 import numpy as np
 
+from ..fixes import jit
 from ..io import BaseRaw
 from ..annotations import (Annotations, _adjust_onset_meas_date,
                            _annotations_starts_stops)
@@ -201,10 +202,16 @@ def _reject_short_segments(arr, min_duration_samples):
     assert arr.dtype == bool and arr.ndim == 2
     for k, ch in enumerate(arr):
         onsets, offsets = _mask_to_onsets_offsets(ch)
-        for start, stop in zip(onsets, offsets):
-            if stop - start <= min_duration_samples:
-                arr[k, start:stop] = False
+        _mark_inner(arr[k], onsets, offsets, min_duration_samples)
     return arr
+
+
+@jit()
+def _mark_inner(arr_k, onsets, offsets, min_duration_samples):
+    """Inner loop of _reject_short_segments()."""
+    for start, stop in zip(onsets, offsets):
+        if stop - start < min_duration_samples:
+            arr_k[start:stop] = False
 
 
 def _create_annotations(any_arr, type_, raw):
