@@ -2,10 +2,11 @@
 #
 # License: BSD-3-Clause
 
-import re
 import datetime
+import itertools
 import numpy as np
 import pytest
+import re
 
 from mne import create_info
 from mne.io import RawArray
@@ -29,27 +30,38 @@ def test_annotate_amplitude(meas_date, first_samp):
     raw.info['bads'] = [raw.ch_names[-1]]
     raw.set_meas_date(meas_date)
 
-    # test entire channel flat
-    raw_ = raw.copy()
-    raw_._data[0] = 0.
-    annotations, bads = annotate_amplitude(raw_, peak=None, flat=0.)
-    assert len(annotations) == 0
-    assert bads == ['0']
+    for perc, dur in itertools.product((5, 99.9, 100.), (0.005, 0.95, 0.99)):
+        kwargs = dict(bad_percent=perc, min_duration=dur)
 
-    # test multiple channels flat
-    raw_ = raw.copy()
-    raw_._data[0] = 0.
-    raw_._data[2] = 0.
-    annotations, bads = annotate_amplitude(raw_, peak=None, flat=0.)
-    assert len(annotations) == 0
-    assert bads == ['0', '2']
+        # test entire channel flat
+        raw_ = raw.copy()
+        raw_._data[0] = 0.
+        annots, bads = annotate_amplitude(raw_, peak=None, flat=0., **kwargs)
+        assert len(annots) == 0
+        assert bads == ['0']
 
-    # test entire channel drifting
-    raw_ = raw.copy()
-    raw_._data[0] = np.arange(0, raw.times.size * 10, 10)
-    annotations, bads = annotate_amplitude(raw_, peak=5, flat=None)
-    assert len(annotations) == 0
-    assert bads == ['0']
+        # test multiple channels flat
+        raw_ = raw.copy()
+        raw_._data[0] = 0.
+        raw_._data[2] = 0.
+        annots, bads = annotate_amplitude(raw_, peak=None, flat=0., **kwargs)
+        assert len(annots) == 0
+        assert bads == ['0', '2']
+
+        # test entire channel drifting
+        raw_ = raw.copy()
+        raw_._data[0] = np.arange(0, raw.times.size * 10, 10)
+        annots, bads = annotate_amplitude(raw_, peak=5, flat=None, **kwargs)
+        assert len(annots) == 0
+        assert bads == ['0']
+
+        # test multiple channels drifting
+        raw_ = raw.copy()
+        raw_._data[0] = np.arange(0, raw.times.size * 10, 10)
+        raw_._data[2] = np.arange(0, raw.times.size * 10, 10)
+        annots, bads = annotate_amplitude(raw_, peak=5, flat=None, **kwargs)
+        assert len(annots) == 0
+        assert bads == ['0', '2']
 
 
 def test_invalid_arguments():
