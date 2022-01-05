@@ -113,11 +113,10 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
             flat_ch_to_set_bad = picks_[np.where(flat_mean >= bad_percent)[0]]
             bads.extend(flat_ch_to_set_bad)
             # add onset/offset for annotations
-            flat_ch_to_annotate = picks_[
-                np.where((0 < flat_mean) & (flat_mean < bad_percent))[0]]
-            idx = np.where(flat_[flat_ch_to_annotate, :])[1]
+            flat_ch_to_annotate = \
+                np.where((0 < flat_mean) & (flat_mean < bad_percent))[0]
             # convert from raw.times[onset:end] - 1 to raw.times[:] - 1
-            idx = index[idx]
+            idx = index[np.where(flat_[flat_ch_to_annotate, :])[1]]
             any_flat[idx] = True
 
         if peak is not None:
@@ -131,11 +130,10 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
             peak_ch_to_set_bad = picks_[np.where(peak_mean >= bad_percent)[0]]
             bads.extend(peak_ch_to_set_bad)
             # add onset/offset for annotations
-            peak_ch_to_annotate = picks_[
-                np.where((0 < peak_mean) & (peak_mean < bad_percent))[0]]
-            idx = np.where(peak_[peak_ch_to_annotate, :])[1]
+            peak_ch_to_annotate = \
+                np.where((0 < peak_mean) & (peak_mean < bad_percent))[0]
             # convert from raw.times[onset:end] - 1 to raw.times[:] - 1
-            idx = index[idx]
+            idx = index[np.where(peak_[peak_ch_to_annotate, :])[1]]
             any_peak[idx] = True
 
     # annotation for flat
