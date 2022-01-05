@@ -83,6 +83,7 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
     picks = {
         ch_type: np.intersect1d(picks_of_type, picks_, assume_unique=True)
         for ch_type, picks_of_type in _picks_by_type(raw.info, exclude='bads')
+        if np.intersect1d(picks_of_type, picks_, assume_unique=True).size != 0
     }
     del picks_  # re-using this variable name in for loop
 

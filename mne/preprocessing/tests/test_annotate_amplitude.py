@@ -144,7 +144,7 @@ def test_annotate_amplitude(meas_date, first_samp):
 @pytest.mark.parametrize('meas_date', (None, date))
 @pytest.mark.parametrize('first_samp', (0, 10000))
 def test_annotate_amplitude_with_overlap(meas_date, first_samp):
-    """Test more complex cases with overlap between annotations."""
+    """Test cases with overlap between annotations."""
     n_ch, n_times = 11, 1000
     data = np.random.RandomState(0).randn(n_ch, n_times)
     assert not (np.diff(data, axis=-1) == 0).any()  # nothing flat at first
@@ -193,6 +193,64 @@ def test_annotate_amplitude_with_overlap(meas_date, first_samp):
     # check annotation instance
     assert annots[0]['description'] == 'BAD_flat'
     _check_annotation(raw_, annots[0], meas_date, first_samp, 700, -1)
+
+
+@pytest.mark.parametrize('meas_date', (None, date))
+@pytest.mark.parametrize('first_samp', (0, 10000))
+def test_annotate_amplitude_multiple_ch_types(meas_date, first_samp):
+    """Test cases with several channel types."""
+    n_ch, n_times = 11, 1000
+    data = np.random.RandomState(0).randn(n_ch, n_times)
+    assert not (np.diff(data, axis=-1) == 0).any()  # nothing flat at first
+    info = create_info(n_ch, 1000.,
+                       ['eeg'] * 3 + ['mag'] * 2 + ['grad'] * 4 + ['eeg'] * 2)
+    # from annotate_flat: test first_samp != for gh-6295
+    raw = RawArray(data, info, first_samp=first_samp)
+    raw.info['bads'] = [raw.ch_names[-1]]
+    raw.set_meas_date(meas_date)
+
+    # -- 2 channel types both to annotate --
+    raw_ = raw.copy()
+    raw_._data[1, 800:] = 0.
+    raw_._data[5, :200] = np.arange(0, 200 * 10, 10)
+    raw_._data[5, 200:] += raw_._data[5, 199]  # add offset for next samples
+    annots, bads = annotate_amplitude(raw_, peak=5, flat=0, bad_percent=50)
+    assert len(annots) == 2
+    assert len(bads) == 0
+    # check annotation instance
+    assert all(annot['description'] in ('BAD_flat', 'BAD_peak')
+               for annot in annots)
+    for annot in annots:
+        start_idx = 0 if annot['description'] == 'BAD_peak' else 800
+        stop_idx = 199 if annot['description'] == 'BAD_peak' else -1
+        _check_annotation(raw_, annot, meas_date, first_samp, start_idx,
+                          stop_idx)
+
+    # -- 2 channel types, one flat picked, one not picked --
+    raw_ = raw.copy()
+    raw_._data[1, 800:] = 0.
+    raw_._data[5, :200] = np.arange(0, 200 * 10, 10)
+    raw_._data[5, 200:] += raw_._data[5, 199]  # add offset for next samples
+    annots, bads = annotate_amplitude(raw_, peak=5, flat=0, bad_percent=50,
+                                      picks='eeg')
+    assert len(annots) == 1
+    assert len(bads) == 0
+    # check annotation instance
+    _check_annotation(raw_, annots[0], meas_date, first_samp, 800, -1)
+    assert annots[0]['description'] == 'BAD_flat'
+
+    # -- 2 channel types, one flat, one not picked, reverse --
+    raw_ = raw.copy()
+    raw_._data[1, 800:] = 0.
+    raw_._data[5, :200] = np.arange(0, 200 * 10, 10)
+    raw_._data[5, 200:] += raw_._data[5, 199]  # add offset for next samples
+    annots, bads = annotate_amplitude(raw_, peak=5, flat=0, bad_percent=50,
+                                      picks='grad')
+    assert len(annots) == 1
+    assert len(bads) == 0
+    # check annotation instance
+    _check_annotation(raw_, annots[0], meas_date, first_samp, 0, 199)
+    assert annots[0]['description'] == 'BAD_peak'
 
 
 @testing.requires_testing_data
