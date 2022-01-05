@@ -119,7 +119,7 @@ dependencies, using the provided `requirements file`_:
 .. code-block:: console
 
     curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/requirements.txt
-    pip install --user requirements.txt
+    pip install --user -r requirements.txt
 
 Other configurations will probably also work, but we may be unable to offer
 support if you encounter difficulties related to your particular Python
