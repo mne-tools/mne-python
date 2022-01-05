@@ -52,14 +52,14 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
 
     Returns
     -------
-    annot : instance of Annotations
+    annotations : instance of Annotations
         The annotated bad segments.
     bads : list
         The channels detected as bad.
 
     Notes
     -----
-    This function may perform much faster if data is loaded in memory, as it
+    This function may perform faster if data is loaded in memory, as it
     loads data one channel type at a time (across all time points), which is
     typically not an efficient way to read raw data from disk.
 
