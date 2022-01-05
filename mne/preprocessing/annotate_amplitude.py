@@ -1,3 +1,5 @@
+# Author: Mathieu Scheltienne <mathieu.scheltienne@fcbg.ch>
+#
 # License: BSD-3-Clause
 
 import numpy as np
@@ -11,7 +13,8 @@ from ..utils import _validate_type, verbose, logger, _mask_to_onsets_offsets
 @verbose
 def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
                        min_duration=0.005, picks=None, *, verbose=None):
-    """
+    """Annotate segments of raw data based on PTP amplitude.
+
     Annotate segments of raw data which PTP amplitudes between consecutive
     samples exceeds thresholds in ``peak`` or fall below thresholds in
     ``flat``.
