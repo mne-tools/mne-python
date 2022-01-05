@@ -79,6 +79,8 @@ def test_annotate_amplitude(meas_date, first_samp):
     assert len(annots) == 1
     assert len(bads) == 0
     # check annotation instance
+    assert meas_date == annots[0]['orig_time']
+    assert annots[0]['description'] == 'BAD_flat'
     if meas_date is None:
         assert np.isclose(
             raw_.times[n_good_times],
@@ -98,8 +100,6 @@ def test_annotate_amplitude(meas_date, first_samp):
             raw_.times[-1],
             annots[0]['onset'] + annots[0]['duration'] - first_time,
             atol=1e-4)
-    assert meas_date == annots[0]['orig_time']
-    assert annots[0]['description'] == 'BAD_flat'
 
     # test multiple channels flat and multiple channels drift
     raw_ = raw.copy()
@@ -122,11 +122,31 @@ def test_annotate_amplitude(meas_date, first_samp):
     annots, bads = annotate_amplitude(raw_, peak=5, flat=0., bad_percent=20.1)
     assert len(annots) == 2
     assert bads == []
+    # check annotation instance
+    assert all(annot['description'] in ('BAD_flat', 'BAD_peak')
+               for annot in annots)
+    assert all(meas_date == annot['orig_time'] for annot in annots)
+    for annot in annots:
+        start_idx = 0 if annot['description'] == 'BAD_peak' else 800
+        stop_idx = 199 if annot['description'] == 'BAD_peak' else -1
+        if meas_date is None:
+            assert np.isclose(
+                raw_.times[start_idx], annot['onset'], atol=1e-4)
+            assert np.isclose(
+                raw_.times[stop_idx], annot['onset'] + annot['duration'],
+                atol=1e-4)
 
     # test flat on already marked bad channel
     raw_ = raw.copy()
     raw_._data[-1, :] = 0.  # this channel is already in info['bads']
     annots, bads = annotate_amplitude(raw_, peak=None, flat=0., bad_percent=5)
+    assert len(annots) == 0
+    assert len(bads) == 0
+
+    # test drift on already marked bad channel
+    raw_ = raw.copy()
+    raw_._data[-1, :] = np.arange(0, raw.times.size * 10, 10)
+    annots, bads = annotate_amplitude(raw_, peak=5, flat=None, bad_percent=5)
     assert len(annots) == 0
     assert len(bads) == 0
 
