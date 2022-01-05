@@ -88,12 +88,10 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
 
     # skip BAD_acq_skip sections
     onsets, ends = _annotations_starts_stops(raw, 'bad_acq_skip', invert=True)
-    times = np.concatenate([raw.times[onset:end]
-                            for onset, end in zip(onsets, ends)])
 
     # size matching the diff a[i+1] - a[i]
-    any_flat = np.zeros(len(times) - 1, bool)
-    any_peak = np.zeros(len(times) - 1, bool)
+    any_flat = np.zeros(len(raw.times) - 1, bool)
+    any_peak = np.zeros(len(raw.times) - 1, bool)
 
     # look for discrete difference above or below thresholds
     logger.info('Finding segments below or above PTP threshold.')
@@ -116,6 +114,8 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
             flat_ch_to_annotate = picks_[
                 np.where((0 < flat_mean) & (flat_mean < bad_percent))[0]]
             idx = np.where(flat_[flat_ch_to_annotate, :])[1]
+            # convert from raw.times[onset:end] - 1 to raw.times[:] - 1
+            # TODO
             any_flat[idx] = True
 
         if peak is not None:
@@ -132,6 +132,8 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
             peak_ch_to_annotate = picks_[
                 np.where((0 < peak_mean) & (peak_mean < bad_percent))[0]]
             idx = np.where(peak_[peak_ch_to_annotate, :])[1]
+            # convert from raw.times[onset:end] - 1 to raw.times[:] - 1
+            # TODO
             any_peak[idx] = True
 
     # annotation for flat

@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 
 from mne import create_info
+from mne.annotations import Annotations
 from mne.datasets import testing
 from mne.io import RawArray, read_raw_fif
 from mne.preprocessing import annotate_amplitude
@@ -194,6 +195,60 @@ def test_annotate_amplitude_with_overlap(meas_date, first_samp):
     _check_annotation(raw_, annots[0], meas_date, first_samp, 700, -1)
 
 
+@testing.requires_testing_data
+def test_flat_bad_acq_skip():
+    """Test that acquisition skips are handled properly."""
+    # -- file with a couple of skip and flat channels --
+    raw = read_raw_fif(skip_fname, preload=True)
+    annots, bads = annotate_amplitude(raw, flat=0)
+    assert len(annots) == 0
+    assert bads == [  # MaxFilter finds the same 21 channels
+        'MEG%04d' % (int(num),) for num in
+        '141 331 421 431 611 641 1011 1021 1031 1241 1421 '
+        '1741 1841 2011 2131 2141 2241 2531 2541 2611 2621'.split()]
+
+    # -- overlap of flat segment with bad_acq_skip --
+    n_ch, n_times = 11, 1000
+    data = np.random.RandomState(0).randn(n_ch, n_times)
+    assert not (np.diff(data, axis=-1) == 0).any()  # nothing flat at first
+    info = create_info(n_ch, 1000., 'eeg')
+    raw = RawArray(data, info, first_samp=0)
+    raw.info['bads'] = [raw.ch_names[-1]]
+    bad_acq_skip = Annotations([0.5], [0.2], ['bad_acq_skip'], orig_time=None)
+    raw.set_annotations(bad_acq_skip)
+    # add flat channel overlapping with the left edge of bad_acq_skip
+    raw_ = raw.copy()
+    raw_._data[0, 400:600] = 0.
+    annots, bads = annotate_amplitude(raw_, peak=None, flat=0, bad_percent=25)
+    assert len(annots) == 1
+    assert len(bads) == 0
+    # check annotation instance
+    assert annots[0]['description'] == 'BAD_flat'
+    _check_annotation(raw_, annots[0], None, 0, 400, 499)
+
+    # add flat channel overlapping with the right edge of bad_acq_skip
+    raw_ = raw.copy()
+    raw_._data[0, 600:800] = 0.
+    annots, bads = annotate_amplitude(raw_, peak=None, flat=0, bad_percent=25)
+    assert len(annots) == 1
+    assert len(bads) == 0
+    # check annotation instance
+    assert annots[0]['description'] == 'BAD_flat'
+    _check_annotation(raw_, annots[0], None, 0, 700, 799)
+
+    # add flat channel overlapping entirely with bad_acq_skip
+    raw_ = raw.copy()
+    raw_._data[0, 200:800] = 0.
+    annots, bads = annotate_amplitude(raw_, peak=None, flat=0, bad_percent=25)
+    assert len(annots) == 2
+    assert len(bads) == 0
+    # check annotation instance
+    annots = sorted(annots, key=lambda x: x['onset'])
+    assert all(annot['description'] == 'BAD_flat' for annot in annots)
+    _check_annotation(raw_, annots[0], None, 0, 200, 499)
+    _check_annotation(raw_, annots[1], None, 0, 700, 799)
+
+
 def _check_annotation(raw, annot, meas_date, first_samp, start_idx, stop_idx):
     """Util function to check an annotation."""
     assert meas_date == annot['orig_time']
@@ -209,25 +264,6 @@ def _check_annotation(raw, annot, meas_date, first_samp, start_idx, stop_idx):
             raw.times[stop_idx],
             annot['onset'] + annot['duration'] - first_time,
             atol=1e-4)
-
-
-@testing.requires_testing_data
-def test_flat_bad_acq_skip():
-    """Test that acquisition skips are handled properly."""
-    # -- file with a couple of skip and flat channels --
-    raw = read_raw_fif(skip_fname, preload=True)
-    annots, bads = annotate_amplitude(raw, flat=0)
-    assert len(annots) == 0
-    assert bads == [  # MaxFilter finds the same 21 channels
-        'MEG%04d' % (int(num),) for num in
-        '141 331 421 431 611 641 1011 1021 1031 1241 1421 '
-        '1741 1841 2011 2131 2141 2241 2531 2541 2611 2621'.split()]
-
-    # -- overlap of flat segment with bad_acq_skip --
-    # TODO
-
-    # -- overlap of peak segment with bad_acq_skip --
-    # TODO
 
 
 def test_invalid_arguments():
