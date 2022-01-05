@@ -87,3 +87,16 @@ def test_flat_acq_skip():
         'MEG%04d' % (int(num),) for num in
         '141 331 421 431 611 641 1011 1021 1031 1241 1421 '
         '1741 1841 2011 2131 2141 2241 2531 2541 2611 2621'.split()]
+
+
+def test_deprecate():
+    """Test that annotate_flat emits a deprecation warning."""
+    n_ch, n_times = 11, 1000
+    data = np.random.RandomState(0).randn(n_ch, n_times)
+    assert not (np.diff(data, axis=-1) == 0).any()  # nothing flat at first
+    info = create_info(n_ch, 1000., 'eeg')
+    # test first_samp != for gh-6295
+    raw = RawArray(data, info, first_samp=0)
+    with pytest.deprecated_call(
+            match='use mne.preprocessing.annotate_amplitude instead.'):
+        annotate_flat(raw)
