@@ -37,12 +37,12 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
         Below this percentage, temporal bad marking (:class:`~mne.Annotations`)
         will be used. Above this percentage, spatial bad marking
         (:class:`info['bads'] <mne.Info>`) will be used.
-        Defaults to 5 (5%%).
+        Defaults to ``5`` (5%%).
     min_duration : float
         The minimum duration (sec) to consider as above or below threshold.
-        For some systems with low bit data representations, adjacent
-        time samples with exactly the same value are not totally uncommon.
-        Defaults to 0.005 (5 ms).
+        For some systems with low bit data representations, adjacent time
+        samples with exactly the same value are not totally uncommon.
+        Defaults to ``0.005`` (5 ms).
     %(picks_good_data)s
     %(verbose)s
 
@@ -55,8 +55,8 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
 
     Notes
     -----
-    This function may perform much faster if data are loaded in memory, as it
-    loads data one channel at a time (across all time points), which is
+    This function may perform much faster if data is loaded in memory, as it
+    loads data one channel type at a time (across all time points), which is
     typically not an efficient way to read raw data from disk.
 
     .. versionadded:: 1.0
