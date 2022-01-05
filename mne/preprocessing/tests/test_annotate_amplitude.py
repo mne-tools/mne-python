@@ -2,6 +2,7 @@
 #
 # License: BSD-3-Clause
 
+import re
 import datetime
 import numpy as np
 import pytest
@@ -101,9 +102,11 @@ def test_invalid_arguments():
         annotate_amplitude(raw, peak=dict(eeg=1), flat=None, min_duration=-1)
 
     # min_duration longer than the raw duration
-    with pytest.raises(ValueError,
-                       match="Argument 'min_duration' should define a "
-                             "positive duration in seconds shorter than the "
-                             "raw duration (0.99 seconds). Provided: "
-                             "'10.0' seconds."):
+    with pytest.raises(
+            ValueError,
+            match=re.escape("Argument 'min_duration' should define a "
+                            "positive duration in seconds shorter than the "
+                            "raw duration (0.99 seconds). Provided: "
+                            "'10.0' seconds.")
+            ):
         annotate_amplitude(raw, peak=dict(eeg=1), flat=None, min_duration=10)

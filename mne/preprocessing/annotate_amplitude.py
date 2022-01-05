@@ -124,7 +124,7 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
     # group
     annotations = annotation_flat + annotation_peak
     # bads
-    bads = [raw.ch_names[bad]  for bad in bads if bad not in raw.info['bads']]
+    bads = [raw.ch_names[bad] for bad in bads if bad not in raw.info['bads']]
 
     return annotations, bads
 
