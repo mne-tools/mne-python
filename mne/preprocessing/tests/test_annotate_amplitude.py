@@ -177,6 +177,16 @@ def test_annotate_amplitude_with_overlap(meas_date, first_samp):
     _check_annotation(raw_, annots[0], meas_date, first_samp, 700, -1)
 
     # -- overlap between flat and flat on different channel --
+    raw_ = raw.copy()
+    raw_._data[0, 700:900] = 0.
+    raw_._data[1, 800:] = 0.
+    annots, bads = annotate_amplitude(raw_, peak=None, flat=0.01,
+                                      bad_percent=50)
+    assert len(annots) == 1
+    assert len(bads) == 0
+    # check annotation instance
+    assert annots[0]['description'] == 'BAD_flat'
+    _check_annotation(raw_, annots[0], meas_date, first_samp, 700, -1)
 
 
 def _check_annotation(raw, annot, meas_date, first_samp, start_idx, stop_idx):
