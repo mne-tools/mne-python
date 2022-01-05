@@ -64,7 +64,7 @@ MNE-Python, including packages for:
 - GLM and group level analysis of near-infrared spectroscopy data (`mne-nirs`_)
 - M/EEG inverse solutions using artificial neural networks (`ESINet`_)
 - All-Resolutions Inference (ARI) for statistically valid circular inference
-and effect localization (`MNE-ARI`_)
+  and effect localization (`MNE-ARI`_)
 
 
 What should I install?
