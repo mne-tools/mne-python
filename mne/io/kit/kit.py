@@ -417,7 +417,6 @@ class EpochsKIT(BaseEpochs):
                               self.info['nchan'],
                               self._raw_extras[0]['frame_length'])
         tmax = ((data.shape[2] - 1) / self.info['sfreq']) + tmin
-
         super(EpochsKIT, self).__init__(
             self.info, data, events, event_id, tmin, tmax, baseline,
             reject=reject, flat=flat, reject_tmin=reject_tmin,
