@@ -69,9 +69,11 @@ def _create_epochs_with_annotations():
     sfreq = 100.
     info = create_info(ch_names=['MEG1'], ch_types=['grad'], sfreq=sfreq)
     raw = RawArray(data, info)
+
     # epoch onsets will be at 0.5, 2.5, 4.5s and will be one second long
     events = np.zeros((3, 3), dtype=int)
     events[:, 0] = (np.array([0.5, 2.5, 4.5]) * sfreq).astype(int)
+
     # make annotations to test various kinds of overlap
     #         onset  dur  descr
     annots = [(0.3, 0.0, 'no_overlap'),
@@ -3814,7 +3816,7 @@ def test_epoch_annotations(first_samp, meas_date, orig_date, tmp_path):
         assert_array_equal([_x[2] for _x in x], [_y[2] for _y in y])
 
 
-def test_epoch_annotations_cases(tmp_path):
+def test_epoch_annotations_cases():
     """Test Epoch Annotations different cases.
 
     Here, we test the following cases crossed:
@@ -3829,63 +3831,60 @@ def test_epoch_annotations_cases(tmp_path):
     epochs, raw, events = _create_epochs_with_annotations()
     epoch_ants = epochs.get_annotations_per_epoch()
 
-    # assert 'outside' is not in any Epoch
-    assert all('outside' not in np.array(sublist) for sublist in epoch_ants)
+    # assert 'no_overlap' is not in any Epoch
+    assert all('no_overlap' not in np.array(sublist) for sublist in epoch_ants)
 
-    # 'before' should be in the first Epoch because it ends during first Epoch
+    # assert 'coincident_onset' is not in any Epoch
+    assert all('coincident_onset' not in np.array(sublist)
+               for sublist in epoch_ants)
+
+    # all coincident and straddling events should be only in the first Epoch
     first_epoch_ant = np.array(epoch_ants[0])
-    assert 'before' in first_epoch_ant
+    assert all(x in first_epoch_ant for x in [
+        'coincident_offset', 'straddles_onset', 'straddles_offset',
+    ])
+    assert all(x not in np.array(sublist)
+               for sublist in epoch_ants[1:]
+               for x in [
+        'coincident_offset', 'straddles_onset', 'straddles_offset',
+    ])
 
-    # 'start' should be in the first Epoch only
-    assert 'start' in first_epoch_ant
-    assert all('start' not in np.array(sublist) for sublist in epoch_ants[1:])
-
-    # 'stop' should be in the first Epoch only
-    assert 'stop' in first_epoch_ant
-    assert all('stop' not in np.array(sublist) for sublist in epoch_ants[1:])
-
-    # 'multiple' should be in 2nd and 3rd Epoch
+    # 'within_epoch' should be in the second Epoch only
     second_epoch_ant = np.array(epoch_ants[1])
     third_epoch_ant = np.array(epoch_ants[2])
+    assert 'within_epoch' in second_epoch_ant
+    assert 'within_epoch' not in first_epoch_ant
+    assert all('within_epoch' not in np.array(sublist)
+               for sublist in epoch_ants[2:])
+
+    # 'surround_epoch' should be in the third Epoch only
+    assert 'surround_epoch' in third_epoch_ant
+    assert all('surround_epoch' not in np.array(sublist)
+               for sublist in epoch_ants[:-1])
+
+    # 'multiple' should be in 2nd and 3rd Epoch
     assert 'multiple' not in first_epoch_ant
     assert 'multiple' in second_epoch_ant
     assert 'multiple' in third_epoch_ant
 
-    # before we don't load the data, bad_noisy Annotation is still part of
-    # Epochs because we haven't dropped bad epochs yet
-    assert 'bad_noisy' in third_epoch_ant
-    epochs.load_data()
-    epoch_ants = epochs.get_annotations_per_epoch()
-    second_epoch_ant = np.array(epoch_ants[1])
-    assert all('bad_noisy' not in np.array(sublist) for sublist in epoch_ants)
-
-    # when preload is passed in, then Epochs overlapping with BAD are
-    # dropped, so 'bad_noisy' will be gone
-    epochs = Epochs(raw, events=events, tmin=-0.5, tmax=0.5, preload=True)
-    epoch_ants = epochs.get_annotations_per_epoch()
-    second_epoch_ant = np.array(epoch_ants[1])
-    assert all('bad_noisy' not in np.array(sublist) for sublist in epoch_ants)
-    epochs_one = epochs.copy()
-
     # if we drop the first Epoch, then some Annotations will now not
     # be part of Epoch Annotations, and others will be shifted
-    epochs = Epochs(raw, events=events, tmin=-0.5, tmax=0.5)
-    epochs.drop(0)
+    epochs = Epochs(raw, events=events, tmin=0, tmax=1, baseline=None)
+    epochs = epochs.drop(0)
     epoch_ants = epochs.get_annotations_per_epoch()
-    assert all('start' not in np.array(sublist) for sublist in epoch_ants)
-    assert all('before' not in np.array(sublist) for sublist in epoch_ants)
-    assert all('stop' not in np.array(sublist) for sublist in epoch_ants)
+    assert all(x not in np.array(sublist) for sublist in epoch_ants for x in [
+        'coincident_offset', 'straddles_onset', 'straddles_offset'])
 
     # 'multiple' should be in 1st and 2nd Epoch now
     first_epoch_ant = np.array(epoch_ants[0])
     second_epoch_ant = np.array(epoch_ants[1])
-    assert 'multiple' in second_epoch_ant
     assert 'multiple' in first_epoch_ant
+    assert 'multiple' in second_epoch_ant
 
     # test that concatenation does not preserve annotations
     old_epochs = epochs.copy()
     with pytest.warns(RuntimeWarning, match='Annotations'):
-        concatenate_epochs([epochs, epochs_one])
+        concatenate_epochs([epochs, old_epochs])
 
     # concatenation should not change the *input* Epochs' annotations
     assert epochs.annotations == old_epochs.annotations

@@ -673,7 +673,7 @@ class EpochAnnotationsMixin:
         -------
         self : instance of Epochs
             The epochs object with annotations.
-        
+
         Notes
         -----
         Annotation onsets and offsets are stored as time in seconds (not as
