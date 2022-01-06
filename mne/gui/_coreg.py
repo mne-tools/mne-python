@@ -976,7 +976,8 @@ class CoregistrationUI(HasTraits):
 
     def _configure_dock(self):
         self._renderer._dock_initialize(name="Input", area="left")
-        layout = self._renderer._dock_add_group_box("MRI Subject")
+        dock1_layout = self._renderer._dock_layout
+        mri_subject_layout = self._renderer._dock_add_group_box("MRI Subject")
         self._widgets["subjects_dir"] = self._renderer._dock_add_file_button(
             name="subjects_dir",
             desc="Load",
@@ -986,7 +987,7 @@ class CoregistrationUI(HasTraits):
             directory=True,
             tooltip="Load the path to the directory containing the "
                     "FreeSurfer subjects",
-            layout=layout,
+            layout=mri_subject_layout,
         )
         self._widgets["subject"] = self._renderer._dock_add_combo_box(
             name="Subject",
@@ -995,16 +996,17 @@ class CoregistrationUI(HasTraits):
             callback=self._set_subject,
             compact=True,
             tooltip="Select the FreeSurfer subject name",
-            layout=layout
+            layout=mri_subject_layout,
         )
 
-        layout = self._renderer._dock_add_group_box("MRI Fiducials")
+        mri_fiducials_layout = \
+            self._renderer._dock_add_group_box("MRI Fiducials")
         self._widgets["lock_fids"] = self._renderer._dock_add_check_box(
             name="Lock fiducials",
             value=self._lock_fids,
             callback=self._set_lock_fids,
             tooltip="Lock/Unlock interactive fiducial editing",
-            layout=layout
+            layout=mri_fiducials_layout,
         )
         self._widgets["fiducials_file"] = self._renderer._dock_add_file_button(
             name="fiducials_file",
@@ -1013,16 +1015,16 @@ class CoregistrationUI(HasTraits):
             value=self._fiducials_file,
             placeholder="Path to fiducials",
             tooltip="Load the fiducials from a FIFF file",
-            layout=layout,
+            layout=mri_fiducials_layout,
         )
         self._widgets["fids"] = self._renderer._dock_add_radio_buttons(
             value=self._defaults["fiducial"],
             rng=self._defaults["fiducials"],
             callback=self._set_current_fiducial,
             vertical=False,
-            layout=layout,
+            layout=mri_fiducials_layout,
         )
-        hlayout = self._renderer._dock_add_layout()
+        fiducial_coords_layout = self._renderer._dock_add_layout()
         for coord in ("X", "Y", "Z"):
             name = f"fid_{coord}"
             self._widgets[name] = self._renderer._dock_add_spin_box(
@@ -1036,11 +1038,13 @@ class CoregistrationUI(HasTraits):
                 compact=True,
                 double=True,
                 tooltip=f"Set the {coord} fiducial coordinate",
-                layout=hlayout
+                layout=fiducial_coords_layout,
             )
-        self._renderer._layout_add_widget(layout, hlayout)
+        self._renderer._layout_add_widget(
+            mri_fiducials_layout, fiducial_coords_layout)
 
-        layout = self._renderer._dock_add_group_box("Digitization Source")
+        dig_source_layout = \
+            self._renderer._dock_add_group_box("Digitization Source")
         self._widgets["info_file"] = self._renderer._dock_add_file_button(
             name="info_file",
             desc="Load",
@@ -1049,7 +1053,7 @@ class CoregistrationUI(HasTraits):
             placeholder="Path to info",
             tooltip="Load the FIFF file with digitizer data for "
                     "coregistration",
-            layout=layout,
+            layout=dig_source_layout,
         )
         self._widgets["grow_hair"] = self._renderer._dock_add_spin_box(
             name="Grow Hair (mm)",
@@ -1057,74 +1061,72 @@ class CoregistrationUI(HasTraits):
             rng=[0.0, 10.0],
             callback=self._set_grow_hair,
             tooltip="Compensate for hair on the digitizer head shape",
-            layout=layout,
+            layout=dig_source_layout,
         )
-        hlayout = self._renderer._dock_add_layout(vertical=False)
+        omit_hsp_layout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["omit_distance"] = self._renderer._dock_add_spin_box(
             name="Omit Distance (mm)",
             value=self._omit_hsp_distance,
             rng=[0.0, 100.0],
             callback=self._set_omit_hsp_distance,
             tooltip="Set the head shape points exclusion distance",
-            layout=hlayout,
+            layout=omit_hsp_layout,
         )
         self._widgets["omit"] = self._renderer._dock_add_button(
             name="Omit",
             callback=self._omit_hsp,
             tooltip="Exclude the head shape points that are far away from "
                     "the MRI head",
-            layout=hlayout,
+            layout=omit_hsp_layout,
         )
         self._widgets["reset_omit"] = self._renderer._dock_add_button(
             name="Reset",
             callback=self._reset_omit_hsp_filter,
             tooltip="Reset all excluded head shape points",
-            layout=hlayout,
+            layout=omit_hsp_layout,
         )
-        self._renderer._layout_add_widget(layout, hlayout)
+        self._renderer._layout_add_widget(dig_source_layout, omit_hsp_layout)
 
-        layout = self._renderer._dock_add_group_box("View Options")
+        view_options_layout = \
+            self._renderer._dock_add_group_box("View Options")
         self._widgets["project_eeg"] = self._renderer._dock_add_check_box(
             name="Project EEG",
             value=self._project_eeg,
             callback=self._set_project_eeg,
             tooltip="Enable/Disable EEG channels projection on head surface",
-            layout=layout
+            layout=view_options_layout,
         )
         self._widgets["high_res_head"] = self._renderer._dock_add_check_box(
             name="Show High Resolution Head",
             value=self._head_resolution,
             callback=self._set_head_resolution,
             tooltip="Enable/Disable high resolution head surface",
-            layout=layout
+            layout=view_options_layout,
         )
-        layout = self._renderer._dock_layout
-        hlayout = self._renderer._dock_add_group_box(
-            name="Subject-saving options",
-        )
+        save_subject_layout = \
+            self._renderer._dock_add_group_box(name="Subject-saving options")
         self._widgets["scale_labels"] = self._renderer._dock_add_check_box(
             name="Scale label files",
             value=self._scale_labels,
             callback=self._set_scale_labels,
-            tooltip="Wether to scale *.label files",
-            layout=hlayout
+            tooltip="Whether to scale *.label files",
+            layout=save_subject_layout,
         )
         self._widgets["copy_annots"] = self._renderer._dock_add_check_box(
             name="Copy annotation files",
             value=self._copy_annots,
             callback=self._set_copy_annots,
-            tooltip="Wether to copy *.annot files for scaled subject",
-            layout=hlayout
+            tooltip="Whether to copy *.annot files for scaled subject",
+            layout=save_subject_layout,
         )
         self._widgets["prepare_bem"] = self._renderer._dock_add_check_box(
             name="Prepare BEM",
             value=self._prepare_bem,
             callback=self._set_prepare_bem,
-            tooltip="Wether to run make_bem_solution after scaling the MRI",
-            layout=hlayout
+            tooltip="Whether to run make_bem_solution after scaling the MRI",
+            layout=save_subject_layout,
         )
-        self._renderer._layout_add_widget(layout, hlayout)
-        hlayout = self._renderer._dock_add_layout(vertical=False)
+        save_trans_layout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["save_trans"] = self._renderer._dock_add_file_button(
             name="save_trans",
             desc="Save...",
@@ -1132,7 +1134,7 @@ class CoregistrationUI(HasTraits):
             func=self._save_trans,
             input_text_widget=False,
             tooltip="Save the transform file to disk",
-            layout=hlayout,
+            layout=save_trans_layout,
         )
         self._widgets["load_trans"] = self._renderer._dock_add_file_button(
             name="load_trans",
@@ -1140,18 +1142,19 @@ class CoregistrationUI(HasTraits):
             func=self._load_trans,
             input_text_widget=False,
             tooltip="Load the transform file from disk",
-            layout=hlayout,
+            layout=save_trans_layout,
         )
         self._renderer._dock_add_button(
             name="Reset",
             callback=self._reset,
             tooltip="Reset all the parameters affecting the coregistration",
-            layout=hlayout,
+            layout=save_trans_layout,
         )
-        self._renderer._layout_add_widget(layout, hlayout)
+        self._renderer._layout_add_widget(dock1_layout, save_trans_layout)
         self._renderer._dock_add_stretch()
 
         self._renderer._dock_initialize(name="Parameters", area="right")
+        dock2_layout = self._renderer._dock_layout
         self._widgets["scaling_mode"] = self._renderer._dock_add_combo_box(
             name="Scaling Mode",
             value=self._defaults["scale_mode"],
@@ -1160,9 +1163,8 @@ class CoregistrationUI(HasTraits):
             tooltip="Select the scaling mode",
             compact=True,
         )
-        hlayout = self._renderer._dock_add_group_box(
-            name="Scaling Parameters",
-        )
+        scale_params_layout = \
+            self._renderer._dock_add_group_box(name="Scaling Parameters")
         coords = ["X", "Y", "Z"]
         for coord in coords:
             name = f"s{coord}"
@@ -1179,35 +1181,34 @@ class CoregistrationUI(HasTraits):
                 compact=True,
                 double=True,
                 tooltip=f"Set the {coord} scaling parameter",
-                layout=hlayout
+                layout=scale_params_layout,
             )
 
-        layout = self._renderer._dock_layout
-        hlayout = self._renderer._dock_add_layout(vertical=False)
+        fit_scale_layout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["fits_fiducials"] = self._renderer._dock_add_button(
             name="Fit Fiducials",
             callback=self._fits_fiducials,
             tooltip="Find rotation and translation to fit all 3 fiducials",
-            layout=hlayout,
+            layout=fit_scale_layout,
         )
         self._widgets["fits_icp"] = self._renderer._dock_add_button(
             name="Fit ICP",
             callback=self._fits_icp,
             tooltip="Find MRI scaling, translation, and rotation to match the "
                     "head shape points",
-            layout=hlayout,
+            layout=fit_scale_layout,
         )
         self._widgets["reset_fits"] = self._renderer._dock_add_button(
             name="Reset",
             callback=partial(self._reset, scaling=True,
                              translation_rotation=False),
             tooltip="Reset the scaling parameters",
-            layout=hlayout,
+            layout=fit_scale_layout,
         )
-        self._renderer._layout_add_widget(layout, hlayout)
+        self._renderer._layout_add_widget(dock2_layout, fit_scale_layout)
 
         for mode, mode_name in (("t", "Translation"), ("r", "Rotation")):
-            hlayout = self._renderer._dock_add_group_box(
+            param_layout = self._renderer._dock_add_group_box(
                 f"{mode_name} ({mode})")
             for coord in coords:
                 name = f"{mode}{coord}"
@@ -1225,37 +1226,37 @@ class CoregistrationUI(HasTraits):
                     double=True,
                     step=1,
                     tooltip=f"Set the {coord} {mode_name.lower()} parameter",
-                    layout=hlayout
+                    layout=param_layout
                 )
 
-        layout = self._renderer._dock_layout
-        hlayout = self._renderer._dock_add_layout(vertical=False)
+        fit_layout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["fit_fiducials"] = self._renderer._dock_add_button(
             name="Fit Fiducials",
             callback=self._fit_fiducials,
             tooltip="Find rotation and translation to fit all 3 fiducials",
-            layout=hlayout,
+            layout=fit_layout,
         )
         self._widgets["fit_icp"] = self._renderer._dock_add_button(
             name="Fit ICP",
             callback=self._fit_icp,
             tooltip="Find MRI scaling, translation, and rotation to match the "
                     "head shape points",
-            layout=hlayout,
+            layout=fit_layout,
         )
         self._renderer._dock_add_button(
             name="Reset",
             callback=partial(self._reset, scaling=False,
                              translation_rotation=True),
             tooltip="Reset translation and rotation parameters",
-            layout=hlayout,
+            layout=fit_layout,
         )
-        self._renderer._layout_add_widget(layout, hlayout)
+        self._renderer._layout_add_widget(dock2_layout, fit_layout)
 
-        layout = self._renderer._dock_add_group_box("Fitting Options")
+        fitting_options_layout = \
+            self._renderer._dock_add_group_box("Fitting Options")
         self._widgets["fit_label"] = self._renderer._dock_add_label(
             value="",
-            layout=layout,
+            layout=fitting_options_layout,
         )
         self._widgets["icp_n_iterations"] = self._renderer._dock_add_spin_box(
             name="Number Of ICP Iterations",
@@ -1265,7 +1266,7 @@ class CoregistrationUI(HasTraits):
             compact=True,
             double=False,
             tooltip="Set the number of ICP iterations",
-            layout=layout,
+            layout=fitting_options_layout,
         )
         self._widgets["icp_fid_match"] = self._renderer._dock_add_combo_box(
             name="Fiducial point matching",
@@ -1274,15 +1275,15 @@ class CoregistrationUI(HasTraits):
             callback=self._set_icp_fid_match,
             compact=True,
             tooltip="Select the fiducial point matching method",
-            layout=layout
+            layout=fitting_options_layout,
         )
-        layout = self._renderer._dock_add_group_box(
+        weights_layout = self._renderer._dock_add_group_box(
             name="Weights",
-            layout=layout,
+            layout=fitting_options_layout,
         )
         for point, fid in zip(("HSP", "EEG", "HPI"),
                               self._defaults["fiducials"]):
-            hlayout = self._renderer._dock_add_layout(vertical=False)
+            weight_layout = self._renderer._dock_add_layout(vertical=False)
             point_lower = point.lower()
             name = f"{point_lower}_weight"
             self._widgets[name] = self._renderer._dock_add_spin_box(
@@ -1293,7 +1294,7 @@ class CoregistrationUI(HasTraits):
                 compact=True,
                 double=True,
                 tooltip=f"Set the {point} weight",
-                layout=hlayout
+                layout=weight_layout,
             )
 
             fid_lower = fid.lower()
@@ -1306,14 +1307,14 @@ class CoregistrationUI(HasTraits):
                 compact=True,
                 double=True,
                 tooltip=f"Set the {fid} weight",
-                layout=hlayout
+                layout=weight_layout,
             )
-            self._renderer._layout_add_widget(layout, hlayout)
+            self._renderer._layout_add_widget(weights_layout, weight_layout)
         self._renderer._dock_add_button(
             name="Reset Fitting Options",
             callback=self._reset_fitting_parameters,
             tooltip="Reset all the fitting parameters to default value",
-            layout=layout,
+            layout=fitting_options_layout,
         )
         self._renderer._dock_add_stretch()
 
