@@ -3894,7 +3894,7 @@ def test_epoch_annotations_cases(tmp_path):
 
 
 def test_epochs_annotations_backwards_compat():
-    """Test backwards compatibility with Epochs saved."""
+    """Test backwards compatibility with Epochs saved without annotations."""
     # loading an earlier saved file should work
     fname = op.join(misc.data_path(), 'audio', 'audio-epo.fif')
     epochs = read_epochs(fname)
