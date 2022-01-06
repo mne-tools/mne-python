@@ -23,9 +23,9 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
     Channels where more than ``bad_percent`` of the total recording length
     should be annotated with either ``BAD_peak`` or ``BAD_flat`` are returned
     in ``bads`` instead.
-    Note that the annotations are not automatically added to the
-    :class:`~mne.io.Raw` object; use :meth:`~mne.io.Raw.set_annotations` to do
-    so.
+    Note that the annotations and the bads are not automatically added to the
+    :class:`~mne.io.Raw` object; use :meth:`~mne.io.Raw.set_annotations` and
+    :class:`info['bads'] <mne.Info>` to do so.
 
     Parameters
     ----------
