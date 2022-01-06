@@ -34,8 +34,12 @@ from .write import (start_and_end_file, start_block, end_block,
                     write_complex64, write_complex128, write_int,
                     write_id, write_string, _get_split_size, _NEXT_FILE_BUFFER)
 
-from ..annotations import (_annotations_starts_stops, _write_annotations,
-                           _handle_meas_date)
+from ..annotations import (Annotations, _annotations_starts_stops,
+                           _combine_annotations, _handle_meas_date,
+                           _sync_onset, _write_annotations)
+from ..data.html_templates import raw_template
+from ..defaults import _handle_default
+from ..event import find_events, concatenate_events
 from ..filter import (FilterMixin, notch_filter, resample, _resamp_ratio_len,
                       _resample_stim_channels, _check_fun)
 from ..parallel import parallel_func
