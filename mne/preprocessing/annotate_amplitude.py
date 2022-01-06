@@ -34,8 +34,8 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
     peak : float | dict | None
         Annotate segments based on **maximum** peak-to-peak signal amplitude
         (PTP). Valid **keys** can be any channel type present in the object.
-        The **values** are floats that set the minimum acceptable PTP. If the
-        PTP is smaller than this threshold, the segment will be annotated.
+        The **values** are floats that set the maximum acceptable PTP. If the
+        PTP is larger than this threshold, the segment will be annotated.
         If float, the minimum acceptable PTP is applied to all channels.
     flat : float | dict | None
         Annotate segments based on **minimum** peak-to-peak signal amplitude
