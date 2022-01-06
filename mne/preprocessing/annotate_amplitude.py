@@ -15,11 +15,17 @@ from ..utils import _validate_type, verbose, logger, _mask_to_onsets_offsets
 @verbose
 def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
                        min_duration=0.005, picks=None, *, verbose=None):
-    """Annotate segments of raw data based on PTP amplitude.
+    """Annotate raw data based on peak-to-peak amplitude.
 
-    Annotate segments of raw data which PTP amplitudes between consecutive
-    samples exceeds thresholds in ``peak`` or fall below thresholds in
-    ``flat``.
+    Creates annotations ``BAD_peak`` or ``BAD_flat`` for spans of data where
+    consecutive samples exceed the threshold in ``peak`` or fall below the
+    threshold in ``flat`` for more than ``min_duration``.
+    Channels where more than ``bad_percent`` of the total recording length
+    should be annotated with either ``BAD_peak`` or ``BAD_flat`` are returned
+    in ``bads`` instead.
+    Note that the annotations are not automatically added to the
+    :class:`~mne.io.Raw` object; use :meth:`~mne.io.Raw.set_annotations` to do
+    so.
 
     Parameters
     ----------
@@ -38,16 +44,18 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
         PTP is smaller than this threshold, the segment will be annotated.
         If float, the minimum acceptable PTP is applied to all channels.
     bad_percent : float
-        The percentage of the time a channel can be bad.
-        Below this percentage, temporal bad marking (:class:`~mne.Annotations`)
-        will be used. Above this percentage, spatial bad marking
-        (:class:`info['bads'] <mne.Info>`) will be used.
+        The percentage of the time a channel can be above or below thresholds.
+        Below this percentage, :class:`~mne.Annotations` are created.
+        Above this percentage, the channel involved is return in ``bads``. Note
+        the returned ``bads`` are not automatically added to
+        :class:`info['bads'] <mne.Info>`.
         Defaults to ``5`` (5%%).
     min_duration : float
-        The minimum duration (sec) to consider as above or below threshold.
-        For some systems with low bit data representations, adjacent time
-        samples with exactly the same value are not totally uncommon.
-        Defaults to ``0.005`` (5 ms).
+        The minimum duration (sec) required by consecutives samples to be above
+        ``peak`` or below ``flat`` thresholds to be considered.
+        to consider as above or below threshold.
+        For some systems, adjacent time samples with exactly the same value are
+        not totally uncommon. Defaults to ``0.005`` (5 ms).
     %(picks_good_data)s
     %(verbose)s
 
