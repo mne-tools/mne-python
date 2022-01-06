@@ -654,35 +654,11 @@ class EpochAnnotationsMixin:
     def annotations(self):  # noqa: D102
         return self._annotations
 
-    def set_annotations(self, annotations):
-        """Setter for Epoch annotations.
-
-        Parameters
-        ----------
-        annotations : instance of mne.Annotations | None
-            Annotations to set.
-
-        Returns
-        -------
-        self : instance of Raw
-            The raw object with annotations.
-
-        Notes
-        -----
-        Annotation onsets and offsets are stored as time in seconds (not as
-        sample numbers) so care must be taken when doing things like decimating
-        or resampling.
-
-        .. versionadded:: 1.0
-        """
-        self._set_annotations(annotations)
-        return self
-
     @verbose
-    def _set_annotations(self, annotations, on_missing='raise'):
+    def set_annotations(self, annotations, on_missing='raise'):
         """Setter for Epoch annotations from Raw.
 
-        This private function simply copies over Raw annotations, and
+        This function simply copies over Raw annotations, and
         does not handle offsetting the times based on first_samp
         or measurement dates, since that is expected to occur in
         Raw.set_annotations().
@@ -695,8 +671,18 @@ class EpochAnnotationsMixin:
 
         Returns
         -------
-        self : instance of Raw
-            The raw object with annotations.
+        self : instance of Epochs
+            The epochs object with annotations.
+        
+        Notes
+        -----
+        Annotation onsets and offsets are stored as time in seconds (not as
+        sample numbers) so care must be taken when doing things like decimating
+        or resampling. If the user has an Epochs object that did not support
+        Annotations before, and the Epochs were resampled, then the Annotations
+        will not show up in the correct locations.
+
+        .. versionadded:: 1.0
         """
         _validate_type(annotations, (Annotations, None), 'annotations')
         if annotations is None:
@@ -779,11 +765,11 @@ class EpochAnnotationsMixin:
 
         Adds three columns to the ``metadata`` consisting of a list
         in each row:
-        - ``Annotations_onset``: the onset of each Annotation within
+        - ``annot_onset``: the onset of each Annotation within
         the Epoch relative to the start time of the Epoch (in seconds).
-        - ``Annotations_duration``: the duration of each Annotation
+        - ``annot_duration``: the duration of each Annotation
         within the Epoch in seconds.
-        - ``Annotations_description``: the description of each
+        - ``annot_description``: the free-form text description of each
         Annotation.
 
         Returns
@@ -822,9 +808,9 @@ class EpochAnnotationsMixin:
 
         # Create a new Annotations column that is instantiated as an empty
         # list per Epoch.
-        metadata['Annotations_onset'] = pd.Series(onset)
-        metadata['Annotations_duration'] = pd.Series(duration)
-        metadata['Annotations_description'] = pd.Series(description)
+        metadata['annot_onset'] = pd.Series(onset)
+        metadata['annot_duration'] = pd.Series(duration)
+        metadata['annot_description'] = pd.Series(description)
 
         # reset the metadata
         self.metadata = metadata

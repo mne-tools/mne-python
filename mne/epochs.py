@@ -2649,7 +2649,7 @@ class Epochs(BaseEpochs):
             event_repeated=event_repeated, verbose=verbose,
             raw_sfreq=raw_sfreq)
 
-        self._set_annotations(raw.annotations)
+        self.set_annotations(raw.annotations)
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
@@ -3319,7 +3319,7 @@ class EpochsFIF(BaseEpochs):
         self._bad_dropped = True
 
         # set annotations
-        self._set_annotations(annotations)
+        self.set_annotations(annotations)
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
@@ -3485,7 +3485,7 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
             # create a copy, so that the Annotations are not modified in place
             # from the original object
             epochs = epochs.copy()
-            epochs._set_annotations(None)
+            epochs.set_annotations(None)
     out = epochs_list[0]
     offsets = [0]
     if with_data:

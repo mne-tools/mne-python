@@ -67,8 +67,6 @@ Enhancements
 - :func:`mne.get_head_surf` and :func:`mne.dig_mri_distances` gained a new parameter, ``on_defects``, controlling how to handle surfaces with topological defects (:gh:`10175` by `Richard Höchenberger`_)
 
 - Annotations from a :class:`~mne.io.Raw` object are now preserved by the :class:`~mne.Epochs` constructor and are supported when saving Epochs (:gh:`9969` and :gh:`10019` by `Adam Li`_)
-
-- Annotations from a :class:`~mne.io.Raw` object are now preserved by the :class:`~mne.Epochs` constructor (:gh:`9969` by `Adam Li`_)
   
 Bugs
 ~~~~
