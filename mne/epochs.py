@@ -742,7 +742,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             self._do_baseline = False
         else:  # logging happens in "rescale" in "if" branch
             logger.info(_log_rescale(baseline))
-            assert self._do_baseline is True
+            # For EpochsArray and Epochs, this is already True:
+            # assert self._do_baseline is True
+            # ... but for EpochsFIF it's not, so let's set it explicitly
+            self._do_baseline = True
         self.baseline = baseline
         return self
 

@@ -454,7 +454,10 @@ def _get_bem_contour_figs_as_arrays(
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     from ..viz import create_3d_figure
-    fig = create_3d_figure((800, 800), bgcolor=(0.5, 0.5, 0.5))
+    from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+    # TODO: Eventually maybe we should expose the size option?
+    size = (80, 80) if MNE_3D_BACKEND_TESTING else (800, 800)
+    fig = create_3d_figure(size, bgcolor=(0.5, 0.5, 0.5))
     from ..viz.backends.renderer import backend
     try:
         try:
@@ -490,15 +493,18 @@ def _itv(function, fig, **kwargs):
          np.concatenate(images[3:], axis=1)],
         axis=0)
 
-    dists = dig_mri_distances(info=kwargs['info'],
-                              trans=kwargs['trans'],
-                              subject=kwargs['subject'],
-                              subjects_dir=kwargs['subjects_dir'],
-                              on_defects='ignore')
-
+    try:
+        dists = dig_mri_distances(info=kwargs['info'],
+                                  trans=kwargs['trans'],
+                                  subject=kwargs['subject'],
+                                  subjects_dir=kwargs['subjects_dir'],
+                                  on_defects='ignore')
+        caption = (f'Average distance from {len(dists)} digitized points to '
+                   f'head: {1e3 * np.mean(dists):.2f} mm')
+    except BaseException as e:
+        caption = 'Distances could not be calculated from digitized points'
+        warn(f'{caption}: {e}')
     img = _fig_to_img(images, image_format='png')
-    caption = (f'Average distance from {len(dists)} digitized points to '
-               f'head: {1e3 * np.mean(dists):.2f} mm')
 
     return img, caption
 
@@ -860,8 +866,8 @@ class Report(object):
 
     @fill_doc
     def add_epochs(
-        self, epochs, title, *, psd=True, projs=None, tags=('epochs',),
-        replace=False, topomap_kwargs=None
+        self, epochs, title, *, psd=True, projs=None, topomap_kwargs=None,
+        drop_log_ignore=('IGNORED',), tags=('epochs',), replace=False
     ):
         """Add `~mne.Epochs` to the report.
 
@@ -886,9 +892,13 @@ class Report(object):
             If ``True``, add PSD plots based on all ``epochs``. If ``False``,
             do not add PSD plots.
         %(report_projs)s
+        %(topomap_kwargs)s
+        drop_log_ignore : array-like of str
+            The drop reasons to ignore when creating the drop log bar plot.
+            All epochs for which a drop reason listed here appears in
+            ``epochs.drop_log`` will be excluded from the drop log plot.
         %(report_tags)s
         %(report_replace)s
-        %(topomap_kwargs)s
 
         Notes
         -----
@@ -902,9 +912,10 @@ class Report(object):
             epochs=epochs,
             psd=psd,
             add_projs=add_projs,
+            topomap_kwargs=topomap_kwargs,
+            drop_log_ignore=drop_log_ignore,
             tags=tags,
             image_format=self.image_format,
-            topomap_kwargs=topomap_kwargs,
         )
         (repr_html, metadata_html, erp_imgs_html, drop_log_html, psd_html,
          ssp_projs_html) = htmls
@@ -3346,8 +3357,10 @@ class Report(object):
         )
         return metadata_html
 
-    def _render_epochs(self, *, epochs, psd, add_projs, image_format, tags,
-                       topomap_kwargs):
+    def _render_epochs(
+        self, *, epochs, psd, add_projs, topomap_kwargs, drop_log_ignore,
+        image_format, tags
+    ):
         """Render epochs."""
         if isinstance(epochs, BaseEpochs):
             fname = epochs.filename
@@ -3418,14 +3431,16 @@ class Report(object):
         if epochs._bad_dropped:
             title = 'Drop log'
             dom_id = self._get_dom_id()
-            if epochs.drop_log_stats() == 0:  # No drops
+            if epochs.drop_log_stats(ignore=drop_log_ignore) == 0:  # No drops
                 drop_log_img_html = _html_element(
                     html='No epochs exceeded the rejection thresholds. '
                          'Nothing was dropped.',
                     id=dom_id, div_klass='epochs', title=title, tags=tags
                 )
             else:
-                fig = epochs.plot_drop_log(subject=self.subject, show=False)
+                fig = epochs.plot_drop_log(
+                    subject=self.subject, ignore=drop_log_ignore, show=False
+                )
                 tight_layout(fig=fig)
                 _constrain_fig_resolution(
                     fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES

@@ -817,7 +817,7 @@ def test_rescale():
 
 
 @pytest.mark.parametrize('preload', (True, False))
-def test_epochs_baseline(preload):
+def test_epochs_baseline_basic(preload, tmp_path):
     """Test baseline and rescaling modes with and without preloading."""
     data = np.array([[2, 3], [2, 3]], float)
     info = create_info(2, 1000., ('eeg', 'misc'))
@@ -827,6 +827,7 @@ def test_epochs_baseline(preload):
     epochs = mne.Epochs(raw, events, None, 0, 1e-3, baseline=None,
                         preload=preload)
     epochs.drop_bad()
+    epochs_nobl = epochs.copy()
     epochs_data = epochs.get_data()
     assert epochs_data.shape == (1, 2, 2)
     expected = data.copy()
@@ -860,6 +861,19 @@ def test_epochs_baseline(preload):
     else:
         epochs.apply_baseline(None)
         assert epochs.baseline is None
+    # gh-10139
+    fname = tmp_path / 'test-epo.fif'
+    epochs.apply_baseline((None, None))
+    assert_allclose(epochs.get_data('eeg').mean(-1), 0, atol=1e-20)
+    assert epochs_nobl.baseline is None
+    for ep in (epochs, epochs_nobl):
+        ep.save(fname, overwrite=True)
+        ep = mne.read_epochs(fname, preload=preload)
+        ep.apply_baseline((0, 0))
+        assert_allclose(ep.get_data('eeg').mean(-1), 0.5, atol=1e-20)
+        ep.save(fname, overwrite=True)
+        ep = mne.read_epochs(fname, preload=preload)
+        assert_allclose(ep.get_data('eeg').mean(-1), 0.5, atol=1e-20)
 
 
 def test_epochs_bad_baseline():
