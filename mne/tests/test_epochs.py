@@ -3754,9 +3754,9 @@ def test_epoch_annotations(first_samp, meas_date, orig_date, tmp_path):
     # add Annotations to Epochs metadata
     epochs.add_annotations_to_metadata()
     metadata = epochs.metadata
-    assert 'Annotations_onset' in metadata.columns
-    assert 'Annotations_duration' in metadata.columns
-    assert 'Annotations_description' in metadata.columns
+    assert 'annot_onset' in metadata.columns
+    assert 'annot_duration' in metadata.columns
+    assert 'annot_description' in metadata.columns
 
     # Test that writing and reading back these new metadata works
     temp_fname = op.join(str(tmp_path), 'test-epo.fif')
