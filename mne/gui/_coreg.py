@@ -420,15 +420,20 @@ class CoregistrationUI(HasTraits):
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
-        locked_widgets = ["project_eeg", "fit_fiducials", "fit_icp"]
+        locked_widgets = ["sX", "sY", "sZ", "tX", "tY", "tZ",
+                          "rX", "rY", "rZ", "project_eeg",
+                          "fit_fiducials", "fit_icp", "reset_fit"]
+        fits_widgets = ["fits_fiducials", "fits_icp", "reset_fits"]
         fid_widgets = ["fid_X", "fid_Y", "fid_Z", "fids_file", "fids"]
         self._set_head_transparency(self._lock_fids)
         if self._lock_fids:
             self._forward_widget_command(locked_widgets, "set_enabled", True)
+            self._scale_mode_changed()
             self._display_message()
             self._update_distance_estimation()
         else:
             self._forward_widget_command(locked_widgets, "set_enabled", False)
+            self._forward_widget_command(fits_widgets, "set_enabled", False)
             self._display_message("Picking fiducials - "
                                   f"{self._current_fiducial.upper()}")
         self._set_sensors_visibility(self._lock_fids)
@@ -521,10 +526,11 @@ class CoregistrationUI(HasTraits):
         locked_widgets = ["sX", "sY", "sZ", "fits_icp", "reset_fits"]
         mode = None if self._scale_mode == "None" else self._scale_mode
         self._coreg.set_scale_mode(mode)
-        self._forward_widget_command(locked_widgets, "set_enabled",
-                                     mode is not None)
-        self._forward_widget_command("fits_fiducials", "set_enabled",
-                                     mode not in (None, "3-axis"))
+        if self._lock_fids:
+            self._forward_widget_command(locked_widgets, "set_enabled",
+                                         mode is not None)
+            self._forward_widget_command("fits_fiducials", "set_enabled",
+                                         mode not in (None, "3-axis"))
 
     @observe("_icp_fid_match")
     def _icp_fid_match_changed(self, change=None):
@@ -1243,7 +1249,7 @@ class CoregistrationUI(HasTraits):
                     "head shape points",
             layout=fit_layout,
         )
-        self._renderer._dock_add_button(
+        self._widgets["reset_fit"] = self._renderer._dock_add_button(
             name="Reset",
             callback=partial(self._reset, scaling=False,
                              translation_rotation=True),
