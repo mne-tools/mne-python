@@ -3912,6 +3912,7 @@ def test_epochs_annotations_backwards_compat():
     assert epochs.info['sfreq'] == epochs._raw_sfreq
 
 
+@requires_pandas
 def test_epochs_saving_with_annotations(tmp_path):
     """Test Epochs save correctly with Annotations."""
     # start testing with a new Epochs created and
