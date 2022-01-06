@@ -90,6 +90,8 @@ Enhancements
 
 - Add a ``block`` parameter to :class:`mne.viz.Brain` and the UI of :class:`mne.coreg.Coregistration` to prevent the windows from closing immediately when running in a non-interactive Python session (:gh:`10222` by `Guillaume Favelier`_)
 
+- All methods of :class:`mne.Report` with a ``tags`` parameter now also accept a single tag passed as a string (previously, you needed to pass a tuple of strings, even for a single tag) (:gh:`10183`, by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 

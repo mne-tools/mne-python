@@ -265,19 +265,22 @@ class _ContentElement:
 
 def _check_tags(tags) -> Tuple[str]:
     # Must be iterable, but not a string
-    if (isinstance(tags, str) or not isinstance(tags, (Sequence, np.ndarray))):
+    if isinstance(tags, str):
+        tags = (tags,)
+    elif isinstance(tags, (Sequence, np.ndarray)):
+            tags = tuple(tags)
+    else:
         raise TypeError(
-            f'tags must be a collection of str, but got {type(tags)} '
-            f'instead: {tags}'
+            f'tags must be a string (without spaces) or an array-like object '
+            f'of such strings , but got {type(tags)} instead: {tags}'
         )
-    tags = tuple(tags)
 
     # Check for invalid dtypes
     bad_tags = [tag for tag in tags
                 if not isinstance(tag, str)]
     if bad_tags:
         raise TypeError(
-            f'tags must be strings, but got the following instead: '
+            f'All tags must be strings, but got the following instead: '
             f'{", ".join([str(tag) for tag in bad_tags])}'
         )
 
@@ -1747,7 +1750,7 @@ class Report(object):
             The title of the element(s) to remove.
 
             .. versionadded:: 0.24.0
-        tags : array-like of str | None
+        tags : array-like of str | str | None
              If supplied, restrict the operation to elements with the supplied
              tags.
 
