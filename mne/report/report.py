@@ -3431,7 +3431,7 @@ class Report(object):
         if epochs._bad_dropped:
             title = 'Drop log'
             dom_id = self._get_dom_id()
-            if epochs.drop_log_stats() == 0:  # No drops
+            if epochs.drop_log_stats(ignore=drop_log_ignore) == 0:  # No drops
                 drop_log_img_html = _html_element(
                     html='No epochs exceeded the rejection thresholds. '
                          'Nothing was dropped.',
