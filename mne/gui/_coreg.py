@@ -19,6 +19,7 @@ from ..coreg import Coregistration, _is_mri_subject, scale_mri
 from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_head_shape_points, _plot_mri_fiducials,
                        _plot_hpi_coils, _plot_sensors)
+from ..viz.utils import _generate_default_filename
 from ..transforms import (read_trans, write_trans, _ensure_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
@@ -106,6 +107,7 @@ class CoregistrationUI(HasTraits):
     _head_resolution = Bool()
     _head_transparency = Bool()
     _grow_hair = Float()
+    _subject_to = Unicode()
     _scale_labels = Bool()
     _copy_annots = Bool()
     _prepare_bem = Bool()
@@ -335,6 +337,9 @@ class CoregistrationUI(HasTraits):
 
     def _set_grow_hair(self, value):
         self._grow_hair = value
+
+    def _set_subject_to(self, value):
+        self._subject_to = value
 
     def _set_scale_labels(self, state):
         self._scale_labels = bool(state)
@@ -928,14 +933,14 @@ class CoregistrationUI(HasTraits):
 
     def _scale_mri(self):
         self._display_message("Scaling...")
-        skip_fiducials = self._fiducials_file is None
-        subject_to = 'test'
-        try:
-            scale_mri(self._subject, subject_to, self._coreg._scale, True,
-                      self._subjects_dir, skip_fiducials, self._scale_labels,
-                      self._copy_annots)
-        except Exception:
-            logger.error('Error scaling %s:\n' % subject_to)
+        skip_fiducials = True
+        if len(self._subject_to) > 0:
+            subject_to = self._subject_to
+        else:
+            subject_to = 'subject' + _generate_default_filename()
+        scale_mri(self._subject, subject_to, self._coreg._scale, True,
+                  self._subjects_dir, skip_fiducials, self._scale_labels,
+                  self._copy_annots)
 
     def _save_trans(self, fname):
         write_trans(fname, self._coreg.trans)
@@ -1111,6 +1116,13 @@ class CoregistrationUI(HasTraits):
         )
         save_subject_layout = \
             self._renderer._dock_add_group_box(name="Subject-saving options")
+        self._renderer._dock_add_text(
+            name="",
+            value=self._subject_to,
+            placeholder="scaled-subject-name",
+            callback=self._set_subject_to,
+            layout=save_subject_layout,
+        )
         self._widgets["scale_labels"] = self._renderer._dock_add_check_box(
             name="Scale label files",
             value=self._scale_labels,

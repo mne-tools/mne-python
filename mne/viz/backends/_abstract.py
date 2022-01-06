@@ -570,7 +570,8 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_text(self, name, value, placeholder, layout=None):
+    def _dock_add_text(self, name, value, placeholder, callback=None,
+                       layout=None):
         pass
 
     @abstractmethod
