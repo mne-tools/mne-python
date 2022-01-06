@@ -68,6 +68,8 @@ Enhancements
 
 - :func:`mne.get_head_surf` and :func:`mne.dig_mri_distances` gained a new parameter, ``on_defects``, controlling how to handle surfaces with topological defects (:gh:`10175` by `Richard Höchenberger`_)
 
+- :meth:`mne.Report.add_epochs` gained a new parameter, ``drop_log_ignore``, to control which drop reasons to omit when creating the drop log plot (:gh:`xxx` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 

@@ -866,8 +866,8 @@ class Report(object):
 
     @fill_doc
     def add_epochs(
-        self, epochs, title, *, psd=True, projs=None, tags=('epochs',),
-        replace=False, topomap_kwargs=None
+        self, epochs, title, *, psd=True, projs=None, topomap_kwargs=None,
+        drop_log_ignore=('IGNORED',), tags=('epochs',), replace=False
     ):
         """Add `~mne.Epochs` to the report.
 
@@ -892,9 +892,13 @@ class Report(object):
             If ``True``, add PSD plots based on all ``epochs``. If ``False``,
             do not add PSD plots.
         %(report_projs)s
+        %(topomap_kwargs)s
+        drop_log_ignore : array-like of str
+            The drop reasons to ignore when creating the drop log bar plot.
+            All epochs for which a drop reason listed here appears in
+            ``epochs.drop_log`` will be excluded from the drop log plot.
         %(report_tags)s
         %(report_replace)s
-        %(topomap_kwargs)s
 
         Notes
         -----
@@ -908,9 +912,10 @@ class Report(object):
             epochs=epochs,
             psd=psd,
             add_projs=add_projs,
+            topomap_kwargs=topomap_kwargs,
+            drop_log_ignore=drop_log_ignore,
             tags=tags,
             image_format=self.image_format,
-            topomap_kwargs=topomap_kwargs,
         )
         (repr_html, metadata_html, erp_imgs_html, drop_log_html, psd_html,
          ssp_projs_html) = htmls
@@ -3352,8 +3357,10 @@ class Report(object):
         )
         return metadata_html
 
-    def _render_epochs(self, *, epochs, psd, add_projs, image_format, tags,
-                       topomap_kwargs):
+    def _render_epochs(
+        self, *, epochs, psd, add_projs, topomap_kwargs, drop_log_ignore,
+        image_format, tags
+    ):
         """Render epochs."""
         if isinstance(epochs, BaseEpochs):
             fname = epochs.filename
@@ -3431,7 +3438,9 @@ class Report(object):
                     id=dom_id, div_klass='epochs', title=title, tags=tags
                 )
             else:
-                fig = epochs.plot_drop_log(subject=self.subject, show=False)
+                fig = epochs.plot_drop_log(
+                    subject=self.subject, ignore=drop_log_ignore, show=False
+                )
                 tight_layout(fig=fig)
                 _constrain_fig_resolution(
                     fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
