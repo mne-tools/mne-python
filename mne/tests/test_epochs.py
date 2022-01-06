@@ -3926,6 +3926,14 @@ def test_epochs_saving_with_annotations(tmp_path):
     loaded_epochs = read_epochs(fname)
     assert epochs._raw_sfreq == loaded_epochs._raw_sfreq
 
+    # if metadata is added already, then an error will be raised
+    epochs.add_annotations_to_metadata()
+    with pytest.raises(RuntimeError, match='Metadata for Epochs '
+                                           'already contains'):
+        epochs.add_annotations_to_metadata()
+    # no error is raised if overwrite is True
+    epochs.add_annotations_to_metadata(overwrite=True)
+
     # annotations onset and duration might be off due to machine precision
     # from saving to disc
     assert len(epochs.annotations) == len(loaded_epochs.annotations)

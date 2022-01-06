@@ -760,7 +760,7 @@ class EpochAnnotationsMixin:
             epoch_annot_list[epo_ix].append(annot)
         return epoch_annot_list
 
-    def add_annotations_to_metadata(self):
+    def add_annotations_to_metadata(self, overwrite=False):
         """Add raw annotations into the Epochs metadata data frame.
 
         Adds three columns to the ``metadata`` consisting of a list
@@ -771,6 +771,12 @@ class EpochAnnotationsMixin:
         within the Epoch in seconds.
         - ``annot_description``: the free-form text description of each
         Annotation.
+
+        Parameters
+        ----------
+        overwrite : bool
+            Whether to overwrite existing columns in metadata or not.
+            Default is False.
 
         Returns
         -------
@@ -791,6 +797,13 @@ class EpochAnnotationsMixin:
         else:
             data = np.empty((len(self.events), 0))
             metadata = pd.DataFrame(data=data)
+
+        if any(name in metadata.columns for name in
+               ['annot_onset', 'annot_duration', 'annot_description']) and \
+                not overwrite:
+            raise RuntimeError(
+                'Metadata for Epochs already contains columns '
+                '"annot_onset", "annot_duration", or "annot_description".')
 
         # get the Epoch annotations, then convert to separate lists for
         # onsets, durations, and descriptions
