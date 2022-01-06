@@ -669,12 +669,11 @@ class EpochAnnotationsMixin:
 
         Notes
         -----
-        Epoch Annotations were added in v1.0 in order to preserve
-        events that occurred in raw data when they were Epoched. For example,
-        this might occur in time-frequency analysis, or sliding-window
-        connectivity analysis. Setting Annotations directly on Epochs
-        requires an accurate ``_raw_sfreq``, which stores the raw sampling
-        rate to interpret the Annotation.
+        Annotation onsets and offsets are stored as time in seconds (not as
+        sample numbers) so care must be taken when doing things like decimating
+        or resampling.
+
+        .. versionadded:: 1.0
         """
         self._set_annotations(annotations)
         return self
@@ -716,9 +715,10 @@ class EpochAnnotationsMixin:
         epoch_annots : list
             A list of lists (with length equal to number of epochs) where each
             inner list contains any annotations that overlap the corresponding
-            epoch. Annotations are stored as a :class:`tuple` (onset, duration,
-            description), where the onset is now relative to time=0 of the
-            epoch, rather than time=0 of the original continuous (raw) data.
+            epoch. Annotations are stored as a :class:`tuple` of onset,
+            duration, description (not as a :class:`~mne.Annotations` object),
+            where the onset is now relative to time=0 of the epoch, rather than
+            time=0 of the original continuous (raw) data.
         """
         # create a list of annotations for each epoch
         epoch_annot_list = [[] for _ in range(len(self.events))]
@@ -736,17 +736,21 @@ class EpochAnnotationsMixin:
         annot_starts = self._annotations.onset
         annot_stops = annot_starts + self._annotations.duration
 
-        # get epochs that start within the annotations
+        # the first two cases (annot_straddles_epoch_{start|end}) will both
+        # (redundantly) capture cases where an annotation fully encompasses
+        # an epoch (e.g., annot from 1-4s, epoch from 2-3s). The redundancy
+        # doesn't matter because results are summed and then cast to bool (all
+        # we care about is presence/absence of overlap).
         annot_straddles_epoch_start = np.logical_and(
             np.atleast_2d(epoch_starts) >= np.atleast_2d(annot_starts).T,
             np.atleast_2d(epoch_starts) < np.atleast_2d(annot_stops).T)
 
-        # get epochs that end within the annotations
         annot_straddles_epoch_end = np.logical_and(
             np.atleast_2d(epoch_stops) > np.atleast_2d(annot_starts).T,
             np.atleast_2d(epoch_stops) <= np.atleast_2d(annot_stops).T)
 
-        # get epochs that are fully contained within annotations
+        # this captures the only remaining case we care about: annotations
+        # fully contained within an epoch (or exactly coextensive with it).
         annot_fully_within_epoch = np.logical_and(
             np.atleast_2d(epoch_starts) <= np.atleast_2d(annot_starts).T,
             np.atleast_2d(epoch_stops) >= np.atleast_2d(annot_stops).T)
