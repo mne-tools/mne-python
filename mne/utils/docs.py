@@ -4,7 +4,6 @@
 #
 # License: BSD-3-Clause
 
-from copy import deepcopy
 import inspect
 import os
 import os.path as op
@@ -12,11 +11,12 @@ import re
 import sys
 import warnings
 import webbrowser
+from copy import deepcopy
 
 from decorator import FunctionMaker
 
-from ._bunch import BunchConst
 from ..defaults import HEAD_SIZE_DEFAULT
+from ._bunch import BunchConst
 
 
 def _reflow_param_docstring(docstring, has_first_line=True, width=75):
@@ -200,12 +200,12 @@ docdict['applyfun_summary_evoked'] = \
 docdict['applyfun_summary_raw'] = \
     applyfun_summary.format('raw', applyfun_preload)
 
-docdict['area_alpha_plot_psd'] = """
+docdict['area_alpha_plot_psd'] = """\
 area_alpha : float
     Alpha for the area.
 """
 
-docdict['area_mode_plot_psd'] = """
+docdict['area_mode_plot_psd'] = """\
 area_mode : str | None
     Mode for plotting area. If 'std', the mean +/- 1 STD (across channels)
     will be plotted. If 'range', the min and max (across channels) will be
@@ -220,7 +220,7 @@ aseg : str
     Freesurfer subject directory.
 """
 
-docdict['average_plot_psd'] = """
+docdict['average_plot_psd'] = """\
 average : bool
     If False, the PSDs of all channels is displayed. No averaging
     is done and parameters area_mode and area_alpha are ignored. When
@@ -228,7 +228,7 @@ average : bool
     drag) to plot a topomap.
 """
 
-docdict['average_psd'] = """
+docdict['average_psd'] = """\
 average : str | None
     How to average the segments. If ``mean`` (default), calculate the
     arithmetic mean. If ``median``, calculate the median, corrected for
@@ -608,7 +608,7 @@ color : color
     A list of anything matplotlib accepts: string, RGB, hex, etc.
 """
 
-docdict['color_plot_psd'] = """
+docdict['color_plot_psd'] = """\
 color : str | tuple
     A matplotlib-compatible color to use. Has no effect when
     spatial_colors=True.
@@ -755,7 +755,6 @@ docdict['dbs'] = """
 dbs : bool
     If True (default), show DBS (deep brain stimulation) electrodes.
 """
-
 docdict['decim'] = """
 decim : int
     Factor by which to subsample the data.
@@ -953,7 +952,7 @@ tmin, tmax : float
     time are included. Defaults to ``-0.2`` and ``0.5``, respectively.
 """
 
-docdict['estimate_plot_psd'] = """
+docdict['estimate_plot_psd'] = """\
 estimate : str, {'auto', 'power', 'amplitude'}
     Can be "power" for power spectral density (PSD), "amplitude" for
     amplitude spectrum density (ASD), or "auto" (default), which uses
@@ -1028,6 +1027,13 @@ docdict['exclude_frontal'] = """
 exclude_frontal : bool
     If True, exclude points that have both negative Z values
     (below the nasion) and positivy Y values (in front of the LPA/RPA).
+"""
+
+docdict['exclude_psd'] = """\
+exclude : list of str | 'bads'
+    Channel names to exclude from being drawn. If ``'bads'``, channels
+    in ``spectrum.info['bads']`` are excluded; pass an empty list to
+    plot all channels (including "bad" channels, if any).
 """
 
 docdict['export_edf_note'] = """
@@ -1699,7 +1705,7 @@ labels : Label | BiHemiLabel | list | tuple | str
        Support for volume source estimates.
 """
 
-docdict['line_alpha_plot_psd'] = """
+docdict['line_alpha_plot_psd'] = """\
 line_alpha : float | None
     Alpha for the PSD line. Can be None (default) to use 1.0 when
     ``average=True`` and 0.1 when ``average=False``.
@@ -1865,6 +1871,25 @@ method : str
     forward-backward filtering (via filtfilt).
 """
 
+docdict['method_kw_psd'] = """\
+**method_kw : other parameters
+    Additional keyword arguments passed to the spectral estimation
+    function (e.g., ``n_fft, n_overlap, n_per_seg, average, window``
+    for Welch method, or
+    ``bandwidth, adaptive, low_bias, normalization`` for multitaper
+    method). See :func:`~mne.time_frequency.psd_array_welch` and
+    :func:`~mne.time_frequency.psd_array_multitaper` for details.
+"""
+
+docdict['method_psd'] = """\
+method : 'auto' | 'welch' | 'multitaper'
+    Spectral estimation method. ``'welch'`` uses Welch's method
+    :footcite:`Welch1967`, ``'multitaper'`` uses DPSS tapers
+    :footcite:`Slepian1978`. ``'auto'`` uses Welch's method for
+    continuous data and multitaper for :class:`~mne.Epochs` and
+    :class:`~mne.Evoked` data.
+"""
+
 docdict['mode_eltc'] = """
 mode : str
     Extraction mode, see Notes.
@@ -1923,7 +1948,7 @@ n_comp : int
     Default n_comp=1.
 """
 
-docdict['n_jobs'] = """
+docdict['n_jobs'] = """\
 n_jobs : int | None
     The number of jobs to run in parallel. If ``-1``, it is set
     to the number of CPU cores. Requires the :mod:`joblib` package.
@@ -2456,14 +2481,17 @@ pipeline : str | tuple
         the SDR step.
 """
 
-docdict['plot_psd_doc'] = """
-Plot the power spectral density across channels.
+docdict["plot_psd_doc"] = """\
+Plot power or amplitude spectra.
 
-Different channel types are drawn in sub-plots. When the data have been
+Separate plots are drawn for each channel type. When the data have been
 processed with a bandpass, lowpass or highpass filter, dashed lines (╎)
-indicate the boundaries of the filter. The line noise frequency is
-also indicated with a dashed line (⋮)
+indicate the boundaries of the filter. The line noise frequency is also
+indicated with a dashed line (⋮). If ``average=False``, the plot will
+be interactive, and click-dragging on the spectrum will generate a
+scalp topography plot for the chosen frequency range in a new figure
 """
+# lack of trailing . is intentional; it must be in actual docstring ↑↑↑ (D400)
 
 docdict['precompute'] = """
 precompute : bool | str
@@ -2523,6 +2551,12 @@ proj : bool | 'interactive' | 'reconstruct'
 
     .. versionchanged:: 0.21
        Support for 'reconstruct' was added.
+"""
+
+docdict['proj_psd'] = """\
+proj : bool
+    Whether to apply SSP projection vectors before spectral estimation.
+    Default is ``False``.
 """
 
 docdict['proj_topomap_kwargs'] = """
@@ -2960,7 +2994,7 @@ References
 .. footbibliography::
 """
 
-docdict['show'] = """
+docdict['show'] = """\
 show : bool
     Show the figure if ``True``.
 """
@@ -3026,9 +3060,10 @@ smooth : float in [0, 1)
     The smoothing factor to be applied. Default 0 is no smoothing.
 """
 
-docdict['spatial_colors_plot_psd'] = """
+docdict['spatial_colors_psd'] = """\
 spatial_colors : bool
-    Whether to use spatial colors. Only used when ``average=False``.
+    Whether to color spectrum lines by channel location. Ignored if
+    ``average=True``.
 """
 
 _sphere_header = (
@@ -3414,6 +3449,13 @@ tmin : float
     Start time of the raw data to use in seconds (must be >= 0).
 """
 
+docdict['tmin_tmax_psd'] = """\
+tmin, tmax : float | None
+    First and last times to include, in seconds. ``None`` uses the first or
+    last time present in the data. Default is ``tmin=None, tmax=None`` (all
+    times).
+"""
+
 docdict['tol_kind_rank'] = """
 tol_kind : str
     Can be: "absolute" (default) or "relative". Only used if ``tol`` is a
@@ -3550,12 +3592,13 @@ vector : bool
     .. versionadded:: 1.2
 """
 
-docdict['verbose'] = """
+docdict['verbose'] = """\
 verbose : bool | str | int | None
     Control verbosity of the logging output. If ``None``, use the default
     verbosity level. See the :ref:`logging documentation <tut-logging>` and
     :func:`mne.verbose` for details. Should only be passed as a keyword
-    argument."""
+    argument.
+"""
 
 docdict['vertices_volume'] = """
 vertices : list of array of int
@@ -3645,7 +3688,7 @@ weight_norm : str | None
            solution.
 """
 
-docdict['window_psd'] = """
+docdict['window_psd'] = """\
 window : str | float | tuple
     Windowing function to use. See :func:`scipy.signal.get_window`.
 """
@@ -3659,9 +3702,9 @@ window : str | tuple
 # %%
 # X
 
-docdict['xscale_plot_psd'] = """
-xscale : str
-    Can be 'linear' (default) or 'log'.
+docdict['xscale_plot_psd'] = """\
+xscale : 'linear' | 'log'
+    Scale of the frequency axis. Default is ``'linear'``.
 """
 
 # %%

@@ -374,20 +374,12 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     ----------
     raw : instance of Raw
         The raw object.
-    fmin : float
-        Start frequency to consider.
-    fmax : float
-        End frequency to consider.
-    tmin : float | None
-        Start time to consider.
-    tmax : float | None
-        End time to consider.
-    proj : bool
-        Apply projection.
+    %(fmin_fmax_psd)s
+    %(tmin_tmax_psd)s
+    %(proj_psd)s
     n_fft : int | None
-        Number of points to use in Welch FFT calculations.
-        Default is None, which uses the minimum of 2048 and the
-        number of time points.
+        Number of points to use in Welch FFT calculations. Default is None,
+        which uses the minimum of 2048 and the number of time points.
     n_overlap : int
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
@@ -404,7 +396,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     %(n_jobs)s
     %(average_plot_psd)s
     %(line_alpha_plot_psd)s
-    %(spatial_colors_plot_psd)s
+    %(spatial_colors_psd)s
     %(sphere_topomap_auto)s
     %(window_psd)s
 
@@ -421,24 +413,23 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     -------
     fig : instance of Figure
         Figure with frequency spectra of the data channels.
+
+    Notes
+    -----
+    This function exists to support legacy code; for new code the preferred
+    idiom is ``inst.compute_psd().plot()`` (where ``inst`` is an instance
+    of :class:`~mne.io.Raw`, :class:`~mne.Epochs`, or :class:`~mne.Evoked`).
     """
-    from ._mpl_figure import _psd_figure
-    # handle FFT
-    if n_fft is None:
-        if tmax is None or not np.isfinite(tmax):
-            tmax = raw.times[-1]
-        tmin = 0. if tmin is None else tmin
-        n_fft = min(np.diff(raw.time_as_index([tmin, tmax]))[0] + 1, 2048)
-    # generate figure
-    fig = _psd_figure(
-        inst=raw, proj=proj, picks=picks, axes=ax, tmin=tmin, tmax=tmax,
-        fmin=fmin, fmax=fmax, sphere=sphere, xscale=xscale, dB=dB,
-        average=average, estimate=estimate, area_mode=area_mode,
-        line_alpha=line_alpha, area_alpha=area_alpha, color=color,
-        spatial_colors=spatial_colors, n_jobs=n_jobs, n_fft=n_fft,
-        n_overlap=n_overlap, reject_by_annotation=reject_by_annotation,
-        window=window, exclude=exclude)
-    plt_show(show)
+
+    fig = raw.plot_psd(
+        fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks,
+        proj=proj, reject_by_annotation=reject_by_annotation, method='welch',
+        ax=ax, color=color, xscale=xscale, area_mode=area_mode,
+        area_alpha=area_alpha, dB=dB, estimate=estimate, show=show,
+        line_alpha=line_alpha, spatial_colors=spatial_colors, sphere=sphere,
+        exclude=exclude, n_jobs=n_jobs, average=average, verbose=verbose,
+        n_fft=n_fft, n_overlap=n_overlap, window=window)
+    plt_show(show, fig)
     return fig
 
 

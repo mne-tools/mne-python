@@ -10,56 +10,53 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import nullcontext
-from copy import deepcopy
-from datetime import timedelta
 import os
 import os.path as op
 import shutil
 from collections import defaultdict
+from contextlib import nullcontext
+from copy import deepcopy
+from datetime import timedelta
 
 import numpy as np
-
-from .constants import FIFF
-from .utils import _construct_bids_filename, _check_orig_units
-from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx,
-                   channel_type)
-from .meas_info import write_meas_info, _ensure_infos_match, ContainsMixin
-from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
-from ..channels.channels import (UpdateChannelsMixin, SetChannelsMixin,
-                                 InterpolationMixin, _unit2human)
-from .compensator import set_current_comp, make_compensator
-from .write import (start_and_end_file, start_block, end_block,
-                    write_dau_pack16, write_float, write_double,
-                    write_complex64, write_complex128, write_int,
-                    write_id, write_string, _get_split_size, _NEXT_FILE_BUFFER)
 
 from ..annotations import (Annotations, _annotations_starts_stops,
                            _combine_annotations, _handle_meas_date,
                            _sync_onset, _write_annotations)
-from ..data.html_templates import raw_template
+from ..channels.channels import (InterpolationMixin, SetChannelsMixin,
+                                 UpdateChannelsMixin, _unit2human)
 from ..defaults import _handle_default
-from ..event import find_events, concatenate_events
-from ..filter import (FilterMixin, notch_filter, resample, _resamp_ratio_len,
-                      _resample_stim_channels, _check_fun)
+from ..event import concatenate_events, find_events
+from ..filter import (FilterMixin, _check_fun, _resamp_ratio_len,
+                      _resample_stim_channels, notch_filter, resample)
+from ..io.compensator import make_compensator, set_current_comp
+from ..io.constants import FIFF
+from ..io.meas_info import ContainsMixin, _ensure_infos_match, write_meas_info
+from ..io.pick import (_picks_to_idx, channel_type, pick_channels, pick_info,
+                       pick_types)
+from ..io.proj import ProjMixin, _proj_equal, activate_proj, setup_proj
+from ..io.utils import _check_orig_units, _construct_bids_filename
+from ..io.write import (_NEXT_FILE_BUFFER, _get_split_size, end_block,
+                        start_and_end_file, start_block, write_complex64,
+                        write_complex128, write_dau_pack16, write_double,
+                        write_float, write_id, write_int, write_string)
 from ..parallel import parallel_func
-from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
-                     _check_pandas_index_arguments, fill_doc, copy_doc,
-                     check_fname, _get_stim_channel, _stamp_to_dt,
-                     logger, verbose, _time_mask, warn, SizeMixin,
-                     copy_function_doc_to_method_doc, _validate_type,
-                     _check_preload, _get_argvalues, _check_option,
-                     _build_data_frame, _convert_times, _scale_dataframe_data,
-                     _check_time_format, _arange_div, TimeMixin)
-from ..defaults import _handle_default
-from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
-from ..event import find_events, concatenate_events
-from ..annotations import Annotations, _combine_annotations, _sync_onset
+from ..time_frequency.spectrum import ToSpectrumMixin
+from ..utils import (SizeMixin, TimeMixin, _arange_div, _build_data_frame,
+                     _check_fname, _check_option,
+                     _check_pandas_index_arguments, _check_pandas_installed,
+                     _check_preload, _check_time_format, _convert_times,
+                     _get_argvalues, _get_stim_channel, _scale_dataframe_data,
+                     _stamp_to_dt, _time_mask, _validate_type, check_fname,
+                     copy_doc, copy_function_doc_to_method_doc, fill_doc,
+                     logger, sizeof_fmt, verbose, warn)
+from ..viz import _RAW_CLIP_DEF, plot_raw, plot_raw_psd_topo
 
 
 @fill_doc
 class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
-              InterpolationMixin, TimeMixin, SizeMixin, FilterMixin):
+              InterpolationMixin, TimeMixin, SizeMixin, FilterMixin,
+              ToSpectrumMixin):
     """Base class for Raw data.
 
     Parameters
@@ -1538,25 +1535,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                         precompute=precompute, use_opengl=use_opengl,
                         theme=theme, overview_mode=overview_mode,
                         verbose=verbose)
-
-    @verbose
-    @copy_function_doc_to_method_doc(plot_raw_psd)
-    def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
-                 n_fft=None, n_overlap=0, reject_by_annotation=True,
-                 picks=None, ax=None, color='black', xscale='linear',
-                 area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
-                 show=True, n_jobs=None, average=False, line_alpha=None,
-                 spatial_colors=True, sphere=None, window='hamming',
-                 exclude='bads', verbose=None):
-        return plot_raw_psd(self, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
-                            proj=proj, n_fft=n_fft, n_overlap=n_overlap,
-                            reject_by_annotation=reject_by_annotation,
-                            picks=picks, ax=ax, color=color, xscale=xscale,
-                            area_mode=area_mode, area_alpha=area_alpha,
-                            dB=dB, estimate=estimate, show=show, n_jobs=n_jobs,
-                            average=average, line_alpha=line_alpha,
-                            spatial_colors=spatial_colors, sphere=sphere,
-                            window=window, exclude=exclude, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_raw_psd_topo)
     def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,

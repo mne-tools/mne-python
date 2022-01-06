@@ -31,7 +31,6 @@ from ..defaults import _handle_default
 from ..fixes import _get_args
 from ..io import show_fiff, Info
 from ..io.constants import FIFF
-from ..io.meas_info import create_info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT,
                        _DATA_CH_TYPES_ORDER_DEFAULT, _VALID_CHANNEL_TYPES,
@@ -2216,6 +2215,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
     # helper function for plot_raw_psd and plot_epochs_psd
     from matplotlib.ticker import ScalarFormatter
     from .evoked import _plot_lines
+    from ..stats import _ci
 
     for key, ls in zip(['lowpass', 'highpass', 'line_freq'],
                        ['--', '--', '-.']):
@@ -2238,15 +2238,17 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         if average:
             # mean across channels
             psd_mean = np.mean(psd, axis=0)
-            if area_mode == 'std':
+            if area_mode in ('sd', 'std'):
                 # std across channels
                 psd_std = np.std(psd, axis=0)
                 hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
             elif area_mode == 'range':
                 hyp_limits = (np.min(psd, axis=0),
                               np.max(psd, axis=0))
-            else:  # area_mode is None
+            elif area_mode is None:
                 hyp_limits = None
+            else:  # area_mode is float
+                hyp_limits = _ci(psd)
 
             ax.plot(freqs, psd_mean, color=color, alpha=line_alpha,
                     linewidth=0.5)
@@ -2256,14 +2258,8 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
 
     if not average:
         picks = np.concatenate(picks_list)
-        psd_list = np.concatenate(psd_list)
-        types = np.array(inst.get_channel_types(picks=picks))
-        # Needed because the data do not match the info anymore.
-        info = create_info([inst.ch_names[p] for p in picks],
-                           inst.info['sfreq'], types)
-        with info._unlock():
-            info['chs'] = [inst.info['chs'][p] for p in picks]
-            info['dev_head_t'] = inst.info['dev_head_t']
+        info = pick_info(inst.info, sel=picks, copy=True)
+        types = np.array(info.get_channel_types())
         ch_types_used = list()
         for this_type in _VALID_CHANNEL_TYPES:
             if this_type in types:
@@ -2272,10 +2268,13 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         unit = ''
         units = {t: yl for t, yl in zip(ch_types_used, ylabels)}
         titles = {c: t for c, t in zip(ch_types_used, titles_list)}
-        picks = np.arange(len(psd_list))
+        # here we overwrite `picks` because of how _plot_lines works;
+        # we already have the data, ch_types, etc in sync.
+        psd_array = np.concatenate(psd_list)
+        picks = np.arange(len(psd_array))
         if not spatial_colors:
             spatial_colors = color
-        _plot_lines(psd_list, info, picks, fig, ax_list, spatial_colors,
+        _plot_lines(psd_array, info, picks, fig, ax_list, spatial_colors,
                     unit, units=units, scalings=None, hline=None, gfp=False,
                     types=types, zorder='std', xlim=(freqs[0], freqs[-1]),
                     ylim=None, times=freqs, bad_ch_idx=[], titles=titles,

@@ -936,16 +936,9 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     ----------
     epochs : instance of Epochs
         The epochs object.
-    fmin : float
-        Start frequency to consider.
-    fmax : float
-        End frequency to consider.
-    tmin : float | None
-        Start time to consider.
-    tmax : float | None
-        End time to consider.
-    proj : bool
-        Apply projection.
+    %(fmin_fmax_psd)s
+    %(tmin_tmax_psd)s
+    %(proj_psd)s
     bandwidth : float
         The bandwidth of the multi taper windowing function in Hz. The default
         value is a window half-bandwidth of 4.
@@ -968,7 +961,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     %(n_jobs)s
     %(average_plot_psd)s
     %(line_alpha_plot_psd)s
-    %(spatial_colors_plot_psd)s
+    %(spatial_colors_psd)s
     %(sphere_topomap_auto)s
     exclude : list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the bad channels
