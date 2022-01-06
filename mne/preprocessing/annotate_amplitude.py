@@ -214,14 +214,14 @@ def _mark_inner(arr_k, onsets, offsets, min_duration_samples):
             arr_k[start:stop] = False
 
 
-def _create_annotations(any_arr, type_, raw):
+def _create_annotations(any_arr, kind, raw):
     """Create the peak of flat annotations from the any_arr."""
-    assert type_ in ('peak', 'flat')
+    assert kind in ('peak', 'flat')
     starts, stops = _mask_to_onsets_offsets(any_arr)
     starts, stops = np.array(starts), np.array(stops)
     onsets = starts / raw.info['sfreq']
     durations = (stops - starts) / raw.info['sfreq']
-    annot = Annotations(onsets, durations, [f'BAD_{type_}'] * len(onsets),
+    annot = Annotations(onsets, durations, [f'BAD_{kind}'] * len(onsets),
                         orig_time=raw.info['meas_date'])
     _adjust_onset_meas_date(annot, raw)
     return annot
