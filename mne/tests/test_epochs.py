@@ -69,24 +69,22 @@ def _create_epochs_with_annotations():
     sfreq = 100.
     info = create_info(ch_names=['MEG1'], ch_types=['grad'], sfreq=sfreq)
     raw = RawArray(data, info)
-    ant_dur = 0.4
-    ants = Annotations(
-        onset=[0.4, 0.5, 1.4, 1.6, 3.0, 5.4],
-        duration=[ant_dur, ant_dur, ant_dur, 0, 2.0, 0],
-        description=['before', 'start', 'stop',
-                     'outside', 'multiple', 'bad_noisy'],
-    )
-    raw.set_annotations(ants)
-
-    # Create Epochs that are spaced apart with a start point every
-    # two seconds in the Raw data starting at 1 seconds. The Epochs
-    # will contain the Raw data in these second windows:
-    # - (0.5, 1.5)
-    # - (2.5, 3.5)
-    # - (4.5, 5.5)
+    # epoch onsets will be at 0.5, 2.5, 4.5s and will be one second long
     events = np.zeros((3, 3), dtype=int)
-    events[:, 0] = [100, 300, 500]
-    epochs = Epochs(raw, events=events, tmin=-0.5, tmax=0.5)
+    events[:, 0] = (np.array([0.5, 2.5, 4.5]) * sfreq).astype(int)
+    # make annotations to test various kinds of overlap
+    #         onset  dur  descr
+    annots = [(0.3, 0.0, 'no_overlap'),
+              (0.4, 0.1, 'coincident_onset'),   # only edge coincides
+              (0.4, 0.2, 'straddles_onset'),
+              (1.4, 0.2, 'straddles_offset'),
+              (1.5, 0.0, 'coincident_offset'),  # only edge coincides, zero-dur
+              (2.6, 0.0, 'within_epoch'),
+              (4.4, 1.2, 'surround_epoch'),
+              (3.4, 1.2, 'multiple')]
+    annots = Annotations(*zip(*annots))
+    raw.set_annotations(annots)
+    epochs = Epochs(raw, events=events, tmin=0, tmax=1, baseline=None)
     return epochs, raw, events
 
 
