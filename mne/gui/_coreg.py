@@ -15,7 +15,7 @@ from ..io.pick import pick_types
 from ..io.open import fiff_open, dir_tree_find
 from ..io.meas_info import _empty_info
 from ..io._read_raw import supported as raw_supported_types
-from ..coreg import Coregistration, _is_mri_subject
+from ..coreg import Coregistration, _is_mri_subject, scale_mri
 from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_head_shape_points, _plot_mri_fiducials,
                        _plot_hpi_coils, _plot_sensors)
@@ -106,6 +106,9 @@ class CoregistrationUI(HasTraits):
     _head_resolution = Bool()
     _head_transparency = Bool()
     _grow_hair = Float()
+    _scale_labels = Bool()
+    _copy_annots = Bool()
+    _prepare_bem = Bool()
     _scale_mode = Unicode()
     _icp_fid_match = Unicode()
 
@@ -160,6 +163,9 @@ class CoregistrationUI(HasTraits):
             fiducial="LPA",
             lock_fids=True,
             grow_hair=0.0,
+            scale_labels=True,
+            copy_annots=True,
+            prepare_bem=True,
             scale_modes=["None", "uniform", "3-axis"],
             scale_mode="None",
             icp_fid_matches=('nearest', 'matched'),
@@ -214,6 +220,9 @@ class CoregistrationUI(HasTraits):
         self._set_head_resolution(self._defaults["head_resolution"])
         self._set_head_transparency(self._defaults["head_transparency"])
         self._set_grow_hair(self._defaults["grow_hair"])
+        self._set_scale_labels(self._defaults["scale_labels"])
+        self._set_copy_annots(self._defaults["copy_annots"])
+        self._set_prepare_bem(self._defaults["prepare_bem"])
         self._set_omit_hsp_distance(self._defaults["omit_hsp_distance"])
         self._set_icp_n_iterations(self._defaults["icp_n_iterations"])
         self._set_icp_fid_match(self._defaults["icp_fid_match"])
@@ -326,6 +335,15 @@ class CoregistrationUI(HasTraits):
 
     def _set_grow_hair(self, value):
         self._grow_hair = value
+
+    def _set_scale_labels(self, state):
+        self._scale_labels = bool(state)
+
+    def _set_copy_annots(self, state):
+        self._copy_annots = bool(state)
+
+    def _set_prepare_bem(self, state):
+        self._prepare_bem = bool(state)
 
     def _set_scale_mode(self, mode):
         self._scale_mode = mode
@@ -902,10 +920,23 @@ class CoregistrationUI(HasTraits):
             f"{self._current_icp_iterations} iterations.")
         del self._current_icp_iterations
 
+    def _scale_mri(self):
+        self._display_message("Scaling...")
+        skip_fiducials = self._fiducials_file is None
+        subject_to = 'test'
+        try:
+            scale_mri(self._subject, subject_to, self._coreg._scale, True,
+                      self._subjects_dir, skip_fiducials, self._scale_labels,
+                      self._copy_annots)
+        except Exception:
+            logger.error('Error scaling %s:\n' % subject_to)
+
     def _save_trans(self, fname):
         write_trans(fname, self._coreg.trans)
         self._display_message(
             f"{fname} transform file is saved.")
+        if self._scale_mode != "None":
+            self._scale_mri()
 
     def _load_trans(self, fname):
         mri_head_t = _ensure_trans(read_trans(fname, return_all=True),
@@ -1067,6 +1098,57 @@ class CoregistrationUI(HasTraits):
             tooltip="Enable/Disable high resolution head surface",
             layout=layout
         )
+        layout = self._renderer._dock_layout
+        hlayout = self._renderer._dock_add_group_box(
+            name="Subject-saving options",
+        )
+        self._widgets["scale_labels"] = self._renderer._dock_add_check_box(
+            name="Scale label files",
+            value=self._scale_labels,
+            callback=self._set_scale_labels,
+            tooltip="Wether to scale *.label files",
+            layout=hlayout
+        )
+        self._widgets["copy_annots"] = self._renderer._dock_add_check_box(
+            name="Copy annotation files",
+            value=self._copy_annots,
+            callback=self._set_copy_annots,
+            tooltip="Wether to copy *.annot files for scaled subject",
+            layout=hlayout
+        )
+        self._widgets["prepare_bem"] = self._renderer._dock_add_check_box(
+            name="Prepare BEM",
+            value=self._prepare_bem,
+            callback=self._set_prepare_bem,
+            tooltip="Wether to run make_bem_solution after scaling the MRI",
+            layout=hlayout
+        )
+        self._renderer._layout_add_widget(layout, hlayout)
+        hlayout = self._renderer._dock_add_layout(vertical=False)
+        self._widgets["save_trans"] = self._renderer._dock_add_file_button(
+            name="save_trans",
+            desc="Save...",
+            save=True,
+            func=self._save_trans,
+            input_text_widget=False,
+            tooltip="Save the transform file to disk",
+            layout=hlayout,
+        )
+        self._widgets["load_trans"] = self._renderer._dock_add_file_button(
+            name="load_trans",
+            desc="Load...",
+            func=self._load_trans,
+            input_text_widget=False,
+            tooltip="Load the transform file from disk",
+            layout=hlayout,
+        )
+        self._renderer._dock_add_button(
+            name="Reset",
+            callback=self._reset,
+            tooltip="Reset all the parameters affecting the coregistration",
+            layout=hlayout,
+        )
+        self._renderer._layout_add_widget(layout, hlayout)
         self._renderer._dock_add_stretch()
 
         self._renderer._dock_initialize(name="Parameters", area="right")
@@ -1233,32 +1315,6 @@ class CoregistrationUI(HasTraits):
             tooltip="Reset all the fitting parameters to default value",
             layout=layout,
         )
-        layout = self._renderer._dock_layout
-        hlayout = self._renderer._dock_add_layout(vertical=False)
-        self._widgets["save_trans"] = self._renderer._dock_add_file_button(
-            name="save_trans",
-            desc="Save...",
-            save=True,
-            func=self._save_trans,
-            input_text_widget=False,
-            tooltip="Save the transform file to disk",
-            layout=hlayout,
-        )
-        self._widgets["load_trans"] = self._renderer._dock_add_file_button(
-            name="load_trans",
-            desc="Load...",
-            func=self._load_trans,
-            input_text_widget=False,
-            tooltip="Load the transform file from disk",
-            layout=hlayout,
-        )
-        self._renderer._dock_add_button(
-            name="Reset",
-            callback=self._reset,
-            tooltip="Reset all the parameters affecting the coregistration",
-            layout=hlayout,
-        )
-        self._renderer._layout_add_widget(layout, hlayout)
         self._renderer._dock_add_stretch()
 
     def _configure_status_bar(self):
