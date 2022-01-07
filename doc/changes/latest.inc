@@ -68,6 +68,8 @@ Enhancements
   
 - :meth:`mne.Report.add_epochs` gained a new parameter, ``drop_log_ignore``, to control which drop reasons to omit when creating the drop log plot (:gh:`10182` by `Richard Höchenberger`_)
 
+- :meth:`mne.Epochs.plot_drop_log` now also includes the absolute number of epochs dropped in the title (:gh:`10186` by `Richard Höchenberger`_)
+
 - Annotations from a :class:`~mne.io.Raw` object are now preserved by the :class:`~mne.Epochs` constructor and are supported when saving Epochs (:gh:`9969` and :gh:`10019` by `Adam Li`_)
 
 Bugs

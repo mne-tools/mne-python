@@ -1289,7 +1289,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return _drop_log_stats(self.drop_log, ignore)
 
     @copy_function_doc_to_method_doc(plot_drop_log)
-    def plot_drop_log(self, threshold=0, n_max_plot=20, subject='Unknown subj',
+    def plot_drop_log(self, threshold=0, n_max_plot=20, subject=None,
                       color=(0.9, 0.9, 0.9), width=0.8, ignore=('IGNORED',),
                       show=True):
         if not self._bad_dropped:
