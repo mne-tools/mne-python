@@ -531,7 +531,8 @@ class CoregistrationUI(HasTraits):
 
     @observe("_scale_mode")
     def _scale_mode_changed(self, change=None):
-        locked_widgets = ["sX", "sY", "sZ", "fits_icp", "reset_fits"]
+        locked_widgets = ["sX", "sY", "sZ", "fits_icp", "reset_fits",
+                          "save_subject"]
         mode = None if self._scale_mode == "None" else self._scale_mode
         self._coreg.set_scale_mode(mode)
         if self._lock_fids:
@@ -934,7 +935,7 @@ class CoregistrationUI(HasTraits):
             f"{self._current_icp_iterations} iterations.")
         del self._current_icp_iterations
 
-    def _scale_mri(self):
+    def _save_subject(self):
         skip_fiducials = True  # XXX: not supported for now
         bem_names = []
         if self._prepare_bem and self._scale_mode != "None":
@@ -981,8 +982,6 @@ class CoregistrationUI(HasTraits):
         write_trans(fname, self._coreg.trans)
         self._display_message(
             f"{fname} transform file is saved.")
-        if self._scale_mode != "None":
-            self._scale_mri()
 
     def _load_trans(self, fname):
         mri_head_t = _ensure_trans(read_trans(fname, return_all=True),
@@ -1022,7 +1021,6 @@ class CoregistrationUI(HasTraits):
 
     def _configure_dock(self):
         self._renderer._dock_initialize(name="Input", area="left")
-        dock1_layout = self._renderer._dock_layout
         mri_subject_layout = self._renderer._dock_add_group_box("MRI Subject")
         self._widgets["subjects_dir"] = self._renderer._dock_add_file_button(
             name="subjects_dir",
@@ -1149,36 +1147,7 @@ class CoregistrationUI(HasTraits):
             tooltip="Enable/Disable high resolution head surface",
             layout=view_options_layout,
         )
-        save_subject_layout = \
-            self._renderer._dock_add_group_box(name="Subject-saving options")
-        self._renderer._dock_add_text(
-            name="",
-            value=self._subject_to,
-            placeholder="scaled-subject-name",
-            callback=self._set_subject_to,
-            layout=save_subject_layout,
-        )
-        self._widgets["scale_labels"] = self._renderer._dock_add_check_box(
-            name="Scale label files",
-            value=self._scale_labels,
-            callback=self._set_scale_labels,
-            tooltip="Whether to scale *.label files",
-            layout=save_subject_layout,
-        )
-        self._widgets["copy_annots"] = self._renderer._dock_add_check_box(
-            name="Copy annotation files",
-            value=self._copy_annots,
-            callback=self._set_copy_annots,
-            tooltip="Whether to copy *.annot files for scaled subject",
-            layout=save_subject_layout,
-        )
-        self._widgets["prepare_bem"] = self._renderer._dock_add_check_box(
-            name="Prepare BEM",
-            value=self._prepare_bem,
-            callback=self._set_prepare_bem,
-            tooltip="Whether to run make_bem_solution after scaling the MRI",
-            layout=save_subject_layout,
-        )
+        trans_layout = self._renderer._dock_add_group_box("Transform")
         save_trans_layout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["save_trans"] = self._renderer._dock_add_file_button(
             name="save_trans",
@@ -1203,7 +1172,46 @@ class CoregistrationUI(HasTraits):
             tooltip="Reset all the parameters affecting the coregistration",
             layout=save_trans_layout,
         )
-        self._renderer._layout_add_widget(dock1_layout, save_trans_layout)
+        self._renderer._layout_add_widget(trans_layout, save_trans_layout)
+        save_subject_layout = \
+            self._renderer._dock_add_group_box(name="Subject-saving options")
+        self._widgets["scale_labels"] = self._renderer._dock_add_check_box(
+            name="Scale label files",
+            value=self._scale_labels,
+            callback=self._set_scale_labels,
+            tooltip="Whether to scale *.label files",
+            layout=save_subject_layout,
+        )
+        self._widgets["copy_annots"] = self._renderer._dock_add_check_box(
+            name="Copy annotation files",
+            value=self._copy_annots,
+            callback=self._set_copy_annots,
+            tooltip="Whether to copy *.annot files for scaled subject",
+            layout=save_subject_layout,
+        )
+        self._widgets["prepare_bem"] = self._renderer._dock_add_check_box(
+            name="Prepare BEM",
+            value=self._prepare_bem,
+            callback=self._set_prepare_bem,
+            tooltip="Whether to run make_bem_solution after scaling the MRI",
+            layout=save_subject_layout,
+        )
+        subject_to_layout = self._renderer._dock_add_layout(vertical=False)
+        self._renderer._dock_add_text(
+            name="subject-to",
+            value=self._subject_to,
+            placeholder="scaled-subject-name",
+            callback=self._set_subject_to,
+            layout=subject_to_layout,
+        )
+        self._widgets["save_subject"] = self._renderer._dock_add_button(
+            name="Save",
+            callback=self._save_subject,
+            tooltip="Save subject",
+            layout=subject_to_layout,
+        )
+        self._renderer._layout_add_widget(
+            save_subject_layout, subject_to_layout)
         self._renderer._dock_add_stretch()
 
         self._renderer._dock_initialize(name="Parameters", area="right")
