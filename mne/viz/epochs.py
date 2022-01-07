@@ -561,7 +561,7 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
     return fig
 
 
-def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown subj',
+def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject=None,
                   color='lightgray', width=0.8, ignore=('IGNORED',),
                   show=True):
     """Show the channel stats based on a drop_log from Epochs.
@@ -581,6 +581,9 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown subj',
 
         .. versionchanged:: 0.23
            Added support for ``None``.
+
+        .. versionchanged:: 1.0
+           Defaults to ``None``.
     color : tuple | str
         Color to use for the bars.
     width : float
@@ -602,12 +605,18 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown subj',
         logger.info('Percent dropped epochs < supplied threshold; not '
                     'plotting drop log.')
         return
+    absolute = len([x for x in drop_log if len(x)
+                    if not any(y in ignore for y in x)])
+    n_epochs_before_drop = len([x for x in drop_log
+                                if not any(y in ignore for y in x)])
+
     scores = Counter([ch for d in drop_log for ch in d if ch not in ignore])
     ch_names = np.array(list(scores.keys()))
     counts = np.array(list(scores.values()))
     # init figure, handle easy case (no drops)
     fig, ax = plt.subplots()
-    title = f'{percent:.1f}% of all epochs rejected'
+    title = (f'{absolute} of {n_epochs_before_drop} epochs removed '
+             f'({percent:.1f}%)')
     if subject is not None:
         title = f'{subject}: {title}'
     ax.set_title(title)
@@ -626,7 +635,7 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown subj',
     ax.set_xticks(x)
     ax.set_xticklabels(ch_names[order[:n_bars]], rotation=45, size=10,
                        horizontalalignment='right')
-    ax.set_ylabel('% of epochs rejected')
+    ax.set_ylabel('% of epochs removed')
     ax.grid(axis='y')
     tight_layout(pad=1, fig=fig)
     plt_show(show)
