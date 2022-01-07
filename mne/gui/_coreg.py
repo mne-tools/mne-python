@@ -12,14 +12,14 @@ from traitlets import observe, HasTraits, Unicode, Bool, Float
 
 from ..io.constants import FIFF
 from ..defaults import DEFAULTS
-from ..io import read_info, read_fiducials, read_raw
+from ..io import read_info, read_fiducials, write_fiducials, read_raw
 from ..io.pick import pick_types
 from ..io.open import fiff_open, dir_tree_find
 from ..io.meas_info import _empty_info
 from ..io._read_raw import supported as raw_supported_types
 from ..bem import make_bem_solution, write_bem_solution
 from ..coreg import (Coregistration, _is_mri_subject, scale_mri, bem_fname,
-                     _mri_subject_has_bem)
+                     _mri_subject_has_bem, _find_fiducials_files, fid_fname)
 from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_head_shape_points, _plot_mri_fiducials,
                        _plot_hpi_coils, _plot_sensors)
@@ -961,11 +961,32 @@ class CoregistrationUI(HasTraits):
         self._job_queue.put(True)
 
     def _save_subject(self):
+        # find target subject
         if len(self._subject_to) > 0:
             subject_to = self._subject_to
         else:
             subject_to = 'subject_' + _generate_default_filename("")
         self._display_message(f"Saving {subject_to}...")
+
+        # check that fiducials are saved
+        if not self._skip_fiducials and self._scale_mode != "None" and \
+                not _find_fiducials_files(self._subject, self._subjects_dir):
+            default_fid_fname = fid_fname.format(
+                subjects_dir=self._subjects_dir, subject=self._subject)
+            self._display_message(f"Saving {default_fid_fname}...")
+            dig = [{'kind': FIFF.FIFFV_POINT_CARDINAL,
+                    'ident': FIFF.FIFFV_POINT_LPA,
+                    'r': np.array(self._coreg._lpa[0])},
+                   {'kind': FIFF.FIFFV_POINT_CARDINAL,
+                    'ident': FIFF.FIFFV_POINT_NASION,
+                    'r': np.array(self._coreg._nasion[0])},
+                   {'kind': FIFF.FIFFV_POINT_CARDINAL,
+                    'ident': FIFF.FIFFV_POINT_RPA,
+                    'r': np.array(self._coreg._rpa[0])}]
+            write_fiducials(default_fid_fname, dig, FIFF.FIFFV_COORD_MRI)
+            self._display_message(f"Saving {default_fid_fname}... Done!")
+
+        # prepare bem
         bem_names = []
         if self._prepare_bem and self._scale_mode != "None":
             can_prepare_bem = _mri_subject_has_bem(
@@ -982,6 +1003,7 @@ class CoregistrationUI(HasTraits):
                 if match:
                     bem_names.append(match.group(1))
 
+        # save the scaled MRI
         try:
             self._display_message(f"Scaling {subject_to}...")
             scale_mri(self._subject, subject_to, self._coreg._scale, True,
