@@ -82,7 +82,8 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
     peak-to-peak amplitude, but only the ones where the peak-to-peak amplitude
     is supra-threshold between consecutive samples. For instance, segments
     experiencing a DC shift will not be picked up. Only the edges from the DC
-    shift will be annotated.
+    shift will be annotated (and those only if the edge transitions are longer
+    than ``min_duration``).
 
     This function may perform faster if data is loaded in memory, as it
     loads data one channel type at a time (across all time points), which is
