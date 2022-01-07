@@ -3,6 +3,7 @@ from functools import partial
 import os
 import os.path as op
 import time
+import queue
 import threading
 import re
 
@@ -141,6 +142,7 @@ class CoregistrationUI(HasTraits):
         self._redraws_pending = set()
         self._parameter_mutex = threading.Lock()
         self._redraw_mutex = threading.Lock()
+        self._job_queue = queue.Queue()
         self._head_geo = None
         self._coord_frame = "mri"
         self._mouse_no_mvt = -1
@@ -249,6 +251,9 @@ class CoregistrationUI(HasTraits):
             self._forward_widget_command('high_res_head', "set_value", True)
             self._set_lock_fids(True)  # hack to make the dig disappear
         self._set_lock_fids(fid_accurate)
+
+        # configure worker
+        self._configure_worker()
 
         # must be done last
         if show:
@@ -544,6 +549,17 @@ class CoregistrationUI(HasTraits):
     @observe("_icp_fid_match")
     def _icp_fid_match_changed(self, change=None):
         self._coreg.set_fid_match(self._icp_fid_match)
+
+    def _configure_worker(self):
+        def worker():
+            while True:
+                ret = self._job_queue.get()
+                if ret:
+                    self._save_subject()
+                    self._job_queue.task_done()
+        t = threading.Thread(target=worker)
+        t.daemon = True
+        t.start()
 
     def _configure_picking(self):
         self._renderer._update_picking_callback(
@@ -935,8 +951,16 @@ class CoregistrationUI(HasTraits):
             f"{self._current_icp_iterations} iterations.")
         del self._current_icp_iterations
 
+    def _start_worker(self):
+        self._job_queue.put(True)
+
     def _save_subject(self):
         skip_fiducials = True  # XXX: not supported for now
+        if len(self._subject_to) > 0:
+            subject_to = self._subject_to
+        else:
+            subject_to = 'subject' + _generate_default_filename()
+        self._display_message(f"Saving {subject_to}...")
         bem_names = []
         if self._prepare_bem and self._scale_mode != "None":
             can_prepare_bem = _mri_subject_has_bem(
@@ -953,23 +977,21 @@ class CoregistrationUI(HasTraits):
                 if match:
                     bem_names.append(match.group(1))
 
-        if len(self._subject_to) > 0:
-            subject_to = self._subject_to
-        else:
-            subject_to = 'subject' + _generate_default_filename()
         try:
+            self._display_message(f"Scaling {subject_to}...")
             scale_mri(self._subject, subject_to, self._coreg._scale, True,
                       self._subjects_dir, skip_fiducials, self._scale_labels,
                       self._copy_annots)
         except Exception:
             logger.error(f"Error scaling {subject_to}")
             bem_names = []
+        else:
+            self._display_message(f"Scaling {subject_to}... Done!")
 
         # Precompute BEM solutions
         for bem_name in bem_names:
-            self.queue_current = ('Computing %s solution...' %
-                                  bem_name)
             try:
+                self._display_message(f"Computing {bem_name} solution...")
                 bem_file = bem_fname.format(subjects_dir=self._subjects_dir,
                                             subject=subject_to,
                                             name=bem_name)
@@ -977,6 +999,10 @@ class CoregistrationUI(HasTraits):
                 write_bem_solution(bem_file[:-4] + '-sol.fif', bemsol)
             except Exception:
                 logger.error(f"Error computing {bem_name} solution")
+            else:
+                self._display_message(f"Computing {bem_name} solution..."
+                                      " Done!")
+        self._display_message(f"Saving {subject_to}... Done!")
 
     def _save_trans(self, fname):
         write_trans(fname, self._coreg.trans)
@@ -1206,7 +1232,7 @@ class CoregistrationUI(HasTraits):
         )
         self._widgets["save_subject"] = self._renderer._dock_add_button(
             name="Save",
-            callback=self._save_subject,
+            callback=self._start_worker,
             tooltip="Save subject",
             layout=subject_to_layout,
         )
