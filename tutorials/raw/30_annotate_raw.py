@@ -234,8 +234,10 @@ print(later_annot[0]['onset'])
 # `~mne.Annotations` objects have a :meth:`~mne.Annotations.save` method
 # which can write :file:`.fif`, :file:`.csv`, and :file:`.txt` formats (the
 # format to write is inferred from the file extension in the filename you
-# provide). There is a corresponding :func:`~mne.read_annotations` function to
-# load them from disk:
+# provide). Be aware that the format of the onset information that is written
+# to the file depends on the file extension. While :file:`.csv` files store the
+# onset as timestamps, :file:`.txt` files write floats (in seconds). There is a
+# corresponding :func:`~mne.read_annotations` function to load them from disk:
 
 raw.annotations.save('saved-annotations.csv', overwrite=True)
 annot_from_file = mne.read_annotations('saved-annotations.csv')

@@ -456,9 +456,9 @@ class Annotations(object):
         Notes
         -----
         The format of the information stored in the saved annotation objects
-        depends on the chosen file format. csv files store the onset as
-        timestamps (e.g. `2002-12-03 19:01:56.676071`), whereas txt files
-        store onset as seconds since start of the recording (e.g.
+        depends on the chosen file format. :file:`.csv` files store the onset as
+        timestamps (e.g. `2002-12-03 19:01:56.676071`), whereas :file:`.txt`
+        files store onset as seconds since start of the recording (e.g.
         `45.95597082905339`).
 
             .. versionadded:: 0.23
