@@ -527,6 +527,7 @@ html_theme = 'pydata_sphinx_theme'
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
+switcher_version_match = 'dev' if release.endswith('dev0') else version
 html_theme_options = {
     'icon_links': [
         dict(name='GitHub',
@@ -549,6 +550,11 @@ html_theme_options = {
     'navbar_end': ['version-switcher', 'navbar-icon-links'],
     'footer_items': ['copyright'],
     'google_analytics_id': 'UA-37225609-1',
+    'switcher': {
+        'json_url': 'https://mne.tools/dev/_static/versions.json',
+        'url_template': 'https://mne.tools/{version}/',
+        'version_match': switcher_version_match,
+    }
 }
 
 # The name of an image file (relative to this directory) to place at the top
@@ -601,23 +607,6 @@ xxl = '6'
 # variables to pass to HTML templating engine
 html_context = {
     'build_dev_html': bool(int(os.environ.get('BUILD_DEV_HTML', False))),
-    'versions_dropdown': {
-        'dev': 'v1.0 (devel)',
-        'stable': 'v0.24 (stable)',
-        '0.23': 'v0.23',
-        '0.22': 'v0.22',
-        '0.21': 'v0.21',
-        '0.20': 'v0.20',
-        '0.19': 'v0.19',
-        '0.18': 'v0.18',
-        '0.17': 'v0.17',
-        '0.16': 'v0.16',
-        '0.15': 'v0.15',
-        '0.14': 'v0.14',
-        '0.13': 'v0.13',
-        '0.12': 'v0.12',
-        '0.11': 'v0.11',
-    },
     'funders': [
         dict(img='nih.png', size='3', title='National Institutes of Health'),
         dict(img='nsf.png', size='3.5',

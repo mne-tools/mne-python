@@ -185,17 +185,6 @@ ul.icon-bullets {
 .small-stack {
     font-size: 0.5em;
 }
-/* ************************************************* Previous / Next buttons */
-.prev-next-bottom a.left-prev:before {
-    content:"❮\00A0"
-}
-.prev-next-bottom a.right-next:after {
-    content:"\00A0❯"
-}
-.prev-next-bottom a.right-next {
-    text-align: right;
-}
-
 /* *********************************************************** miscellaneous */
 .hidden {
     display: none;
