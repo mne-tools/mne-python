@@ -964,7 +964,7 @@ class CoregistrationUI(HasTraits):
         if len(self._subject_to) > 0:
             subject_to = self._subject_to
         else:
-            subject_to = 'subject' + _generate_default_filename()
+            subject_to = 'subject_' + _generate_default_filename("")
         self._display_message(f"Saving {subject_to}...")
         bem_names = []
         if self._prepare_bem and self._scale_mode != "None":
