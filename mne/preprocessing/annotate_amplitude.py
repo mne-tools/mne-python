@@ -74,9 +74,11 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
     consecutive samples.
 
     - When used to detect segments below ``flat``, at least ``min_duration``
-      seconds of consecutive samples must respect ``a[i+1] - a[i] ≤ flat``.
+      seconds of consecutive samples must respect
+      ``abs(a[i+1] - a[i]) ≤ flat``.
     - When used to detect segments above ``peak``, at least ``min_duration``
-      seconds of consecutive samples must respect ``a[i+1] - a[i] ≥ peak``.
+      seconds of consecutive samples must respect
+      ``abs(a[i+1] - a[i]) ≥ peak``.
 
     Thus, this function does not detect every temporal event with large
     peak-to-peak amplitude, but only the ones where the peak-to-peak amplitude
