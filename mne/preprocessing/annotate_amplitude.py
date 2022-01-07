@@ -68,20 +68,21 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
 
     Notes
     -----
-    This function does not use a (sliding) window to detect small PTP or large
-    PTP amplitude as the ``reject`` and ``flat`` argument from
-    :class:`~mne.Epochs`. Instead, it looks at the difference between
+    This function does not use a window to detect small peak-to-peak or large
+    peak-to-peak amplitude changes as the ``reject`` and ``flat`` argument from
+    :class:`~mne.Epochs` does. Instead, it looks at the difference between
     consecutive samples.
 
-    - When used to detect segments below flat, at least ``min_duration``
+    - When used to detect segments below ``flat``, at least ``min_duration``
       seconds of consecutive samples must respect ``a[i+1] - a[i] ≤ flat``.
-    - When used to detect segments above peak, at least ``min_duration``
+    - When used to detect segments above ``peak``, at least ``min_duration``
       seconds of consecutive samples must respect ``a[i+1] - a[i] ≥ peak``.
 
-    Thus, this function does not detect every temporal event with large PTP
-    amplitude, but only the ones where the PTP amplitude is supra-threshold
-    between consecutive samples. For instance, segments experiencing a DC shift
-    will not be picked up. Only the edges from the DC shift will be annotated.
+    Thus, this function does not detect every temporal event with large
+    peak-to-peak amplitude, but only the ones where the peak-to-peak amplitude
+    is supra-threshold between consecutive samples. For instance, segments
+    experiencing a DC shift will not be picked up. Only the edges from the DC
+    shift will be annotated.
 
     This function may perform faster if data is loaded in memory, as it
     loads data one channel type at a time (across all time points), which is
