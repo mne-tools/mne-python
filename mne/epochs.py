@@ -383,6 +383,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     raw_sfreq : float
         The original Raw object sampling rate. If None, then it is set to
         ``info['sfreq']``.
+    annotations : instance of mne.Annotations | None
+        Annotations to set.
 
     Notes
     -----
@@ -399,7 +401,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  detrend=None, proj=True, on_missing='raise',
                  preload_at_end=False, selection=None, drop_log=None,
                  filename=None, metadata=None, event_repeated='error',
-                 verbose=None, *, raw_sfreq=None):  # noqa: D102
+                 verbose=None, *, raw_sfreq=None,
+                 annotations=None):  # noqa: D102
         self.verbose = verbose
 
         if events is not None:  # RtEpochs can have events=None
@@ -595,9 +598,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             raw_sfreq = self.info['sfreq']
         self._raw_sfreq = raw_sfreq
         self._check_consistency()
-
-        # set Annotations to None
-        self.set_annotations(None)
+        self.set_annotations(annotations)
 
     def _check_consistency(self):
         """Check invariants of epochs object."""
@@ -2650,9 +2651,7 @@ class Epochs(BaseEpochs):
             reject_tmax=reject_tmax, detrend=detrend,
             proj=proj, on_missing=on_missing, preload_at_end=preload,
             event_repeated=event_repeated, verbose=verbose,
-            raw_sfreq=raw_sfreq)
-
-        self.set_annotations(raw.annotations)
+            raw_sfreq=raw_sfreq, annotations=raw.annotations)
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
@@ -2799,7 +2798,8 @@ class EpochsArray(BaseEpochs):
             info, data, events, event_id, tmin, tmax, baseline,
             reject=reject, flat=flat, reject_tmin=reject_tmin,
             reject_tmax=reject_tmax, decim=1, metadata=metadata,
-            selection=selection, proj=proj, on_missing=on_missing)
+            selection=selection, proj=proj, on_missing=on_missing,
+            verbose=verbose)
         if self.baseline is not None:
             self._do_baseline = True
         if len(events) != np.in1d(self.events[:, 2],
@@ -2811,9 +2811,6 @@ class EpochsArray(BaseEpochs):
             # This is safe without assignment b/c there is no decim
             self._detrend_offset_decim(e, detrend_picks)
         self.drop_bad()
-
-        # also create an empty Annotations object
-        self._annotations = None
 
 
 def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
@@ -3161,13 +3158,6 @@ def _read_one_epoch_file(f, tree, preload):
         if drop_log is None:
             drop_log = ((),) * len(events)
 
-    # as of v1.0, Epochs support Annotations which require raw_sfreq
-    # to be stored. However, for backwards compatibility if raw_sfreq
-    # is None (not found) in the file, then we will default raw_sfreq
-    # # to info['sfreq']
-    if raw_sfreq is None:
-        raw_sfreq = info['sfreq']
-
     return (info, data, data_tag, events, event_id, metadata, tmin, tmax,
             baseline, selection, drop_log, epoch_shape, cals, reject_params,
             fmt, annotations, raw_sfreq)
@@ -3314,15 +3304,12 @@ class EpochsFIF(BaseEpochs):
             proj=proj, preload_at_end=False, on_missing='ignore',
             selection=selection, drop_log=drop_log, filename=fname_rep,
             metadata=metadata, verbose=verbose, raw_sfreq=raw_sfreq,
-            **reject_params)
+            annotations=annotations, **reject_params)
         self.baseline = baseline
         self._do_baseline = False
         # use the private property instead of drop_bad so that epochs
         # are not all read from disk for preload=False
         self._bad_dropped = True
-
-        # set annotations
-        self.set_annotations(annotations)
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):

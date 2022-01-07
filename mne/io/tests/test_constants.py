@@ -36,7 +36,6 @@ _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
                      'viewitems', 'viewkeys', 'viewvalues',  # Py2
                      )
 _tag_ignore_names = (
-    'FIFF_MNE_EPOCHS_RAW_SFREQ',
 )  # for fiff-constants pending updates
 _ignore_incomplete_enums = (  # XXX eventually we could complete these
     'bem_surf_id', 'cardinal_point_cardiac', 'cond_model', 'coord',
