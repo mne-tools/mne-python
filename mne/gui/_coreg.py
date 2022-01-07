@@ -4,6 +4,7 @@ import os
 import os.path as op
 import time
 import threading
+import re
 
 import numpy as np
 from traitlets import observe, HasTraits, Unicode, Bool, Float
@@ -15,7 +16,9 @@ from ..io.pick import pick_types
 from ..io.open import fiff_open, dir_tree_find
 from ..io.meas_info import _empty_info
 from ..io._read_raw import supported as raw_supported_types
-from ..coreg import Coregistration, _is_mri_subject, scale_mri
+from ..bem import make_bem_solution, write_bem_solution
+from ..coreg import (Coregistration, _is_mri_subject, scale_mri, bem_fname,
+                     _mri_subject_has_bem)
 from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_head_shape_points, _plot_mri_fiducials,
                        _plot_hpi_coils, _plot_sensors)
@@ -932,15 +935,47 @@ class CoregistrationUI(HasTraits):
         del self._current_icp_iterations
 
     def _scale_mri(self):
-        self._display_message("Scaling...")
-        skip_fiducials = True
+        skip_fiducials = True  # XXX: not supported for now
+        bem_names = []
+        if self._prepare_bem and self._scale_mode != "None":
+            can_prepare_bem = _mri_subject_has_bem(
+                self._subject, self._subjects_dir)
+        else:
+            can_prepare_bem = False
+        if can_prepare_bem:
+            pattern = bem_fname.format(subjects_dir=self._subjects_dir,
+                                       subject=self._subject,
+                                       name='(.+-bem)')
+            bem_dir, pattern = os.path.split(pattern)
+            for filename in os.listdir(bem_dir):
+                match = re.match(pattern, filename)
+                if match:
+                    bem_names.append(match.group(1))
+
         if len(self._subject_to) > 0:
             subject_to = self._subject_to
         else:
             subject_to = 'subject' + _generate_default_filename()
-        scale_mri(self._subject, subject_to, self._coreg._scale, True,
-                  self._subjects_dir, skip_fiducials, self._scale_labels,
-                  self._copy_annots)
+        try:
+            scale_mri(self._subject, subject_to, self._coreg._scale, True,
+                      self._subjects_dir, skip_fiducials, self._scale_labels,
+                      self._copy_annots)
+        except Exception:
+            logger.error(f"Error scaling {subject_to}")
+            bem_names = []
+
+        # Precompute BEM solutions
+        for bem_name in bem_names:
+            self.queue_current = ('Computing %s solution...' %
+                                  bem_name)
+            try:
+                bem_file = bem_fname.format(subjects_dir=self._subjects_dir,
+                                            subject=subject_to,
+                                            name=bem_name)
+                bemsol = make_bem_solution(bem_file)
+                write_bem_solution(bem_file[:-4] + '-sol.fif', bemsol)
+            except Exception:
+                logger.error(f"Error computing {bem_name} solution")
 
     def _save_trans(self, fname):
         write_trans(fname, self._coreg.trans)
