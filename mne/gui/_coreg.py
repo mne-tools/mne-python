@@ -112,6 +112,7 @@ class CoregistrationUI(HasTraits):
     _head_transparency = Bool()
     _grow_hair = Float()
     _subject_to = Unicode()
+    _skip_fiducials = Bool()
     _scale_labels = Bool()
     _copy_annots = Bool()
     _prepare_bem = Bool()
@@ -170,6 +171,7 @@ class CoregistrationUI(HasTraits):
             fiducial="LPA",
             lock_fids=True,
             grow_hair=0.0,
+            skip_fiducials=False,
             scale_labels=True,
             copy_annots=True,
             prepare_bem=True,
@@ -227,6 +229,7 @@ class CoregistrationUI(HasTraits):
         self._set_head_resolution(self._defaults["head_resolution"])
         self._set_head_transparency(self._defaults["head_transparency"])
         self._set_grow_hair(self._defaults["grow_hair"])
+        self._set_skip_fiducials(self._defaults["skip_fiducials"])
         self._set_scale_labels(self._defaults["scale_labels"])
         self._set_copy_annots(self._defaults["copy_annots"])
         self._set_prepare_bem(self._defaults["prepare_bem"])
@@ -348,6 +351,9 @@ class CoregistrationUI(HasTraits):
 
     def _set_subject_to(self, value):
         self._subject_to = value
+
+    def _set_skip_fiducials(self, state):
+        self._skip_fiducials = bool(state)
 
     def _set_scale_labels(self, state):
         self._scale_labels = bool(state)
@@ -955,7 +961,6 @@ class CoregistrationUI(HasTraits):
         self._job_queue.put(True)
 
     def _save_subject(self):
-        skip_fiducials = True  # XXX: not supported for now
         if len(self._subject_to) > 0:
             subject_to = self._subject_to
         else:
@@ -980,8 +985,8 @@ class CoregistrationUI(HasTraits):
         try:
             self._display_message(f"Scaling {subject_to}...")
             scale_mri(self._subject, subject_to, self._coreg._scale, True,
-                      self._subjects_dir, skip_fiducials, self._scale_labels,
-                      self._copy_annots)
+                      self._subjects_dir, self._skip_fiducials,
+                      self._scale_labels, self._copy_annots)
         except Exception:
             logger.error(f"Error scaling {subject_to}")
             bem_names = []
@@ -1201,6 +1206,13 @@ class CoregistrationUI(HasTraits):
         self._renderer._layout_add_widget(trans_layout, save_trans_layout)
         save_subject_layout = \
             self._renderer._dock_add_group_box(name="Subject-saving options")
+        self._widgets["skip_fiducials"] = self._renderer._dock_add_check_box(
+            name="Skip fiducials",
+            value=self._skip_fiducials,
+            callback=self._set_skip_fiducials,
+            tooltip="Whether to scale the MRI fiducials",
+            layout=save_subject_layout,
+        )
         self._widgets["scale_labels"] = self._renderer._dock_add_check_box(
             name="Scale label files",
             value=self._scale_labels,
