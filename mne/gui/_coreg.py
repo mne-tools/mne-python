@@ -1200,6 +1200,9 @@ class CoregistrationUI(HasTraits):
             tooltip="Enable/Disable high resolution head surface",
             layout=view_options_layout,
         )
+        self._renderer._dock_add_stretch()
+
+        self._renderer._dock_initialize(name="Parameters", area="right")
         mri_scaling_layout = \
             self._renderer._dock_add_group_box(name="MRI Scaling")
         self._widgets["scaling_mode"] = self._renderer._dock_add_combo_box(
@@ -1255,7 +1258,8 @@ class CoregistrationUI(HasTraits):
             tooltip="Reset the scaling parameters",
             layout=fit_scale_layout,
         )
-        self._renderer._layout_add_widget(mri_scaling_layout, fit_scale_layout)
+        self._renderer._layout_add_widget(
+            scale_params_layout, fit_scale_layout)
         save_subject_layout = self._renderer._dock_add_group_box(
             name="Subject-saving options",
             layout=mri_scaling_layout,
@@ -1283,10 +1287,6 @@ class CoregistrationUI(HasTraits):
         )
         self._renderer._layout_add_widget(
             save_subject_layout, subject_to_layout)
-        self._renderer._dock_add_stretch()
-
-        self._renderer._dock_initialize(name="Parameters", area="right")
-        dock2_layout = self._renderer._dock_layout
         param_layout = self._renderer._dock_add_group_box(
             "Translation (t) and Rotation (r)")
         for coord in coords:
@@ -1332,7 +1332,7 @@ class CoregistrationUI(HasTraits):
             tooltip="Reset translation and rotation parameters",
             layout=fit_layout,
         )
-        self._renderer._layout_add_widget(dock2_layout, fit_layout)
+        self._renderer._layout_add_widget(param_layout, fit_layout)
         trans_layout = self._renderer._dock_add_group_box("Transform")
         save_trans_layout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["save_trans"] = self._renderer._dock_add_file_button(
