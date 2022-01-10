@@ -1287,10 +1287,11 @@ class CoregistrationUI(HasTraits):
 
         self._renderer._dock_initialize(name="Parameters", area="right")
         dock2_layout = self._renderer._dock_layout
-        for mode, mode_name in (("t", "Translation"), ("r", "Rotation")):
-            param_layout = self._renderer._dock_add_group_box(
-                f"{mode_name} ({mode})")
-            for coord in coords:
+        param_layout = self._renderer._dock_add_group_box(
+            "Translation (t) and Rotation (r)")
+        for coord in coords:
+            coord_layout = self._renderer._dock_add_layout(vertical=False)
+            for mode, mode_name in (("t", "Translation"), ("r", "Rotation")):
                 name = f"{mode}{coord}"
                 attr = getattr(self._coreg, f"_{mode_name.lower()}")
                 self._widgets[name] = self._renderer._dock_add_spin_box(
@@ -1306,8 +1307,9 @@ class CoregistrationUI(HasTraits):
                     double=True,
                     step=1,
                     tooltip=f"Set the {coord} {mode_name.lower()} parameter",
-                    layout=param_layout
+                    layout=coord_layout
                 )
+            self._renderer._layout_add_widget(param_layout, coord_layout)
 
         fit_layout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["fit_fiducials"] = self._renderer._dock_add_button(
