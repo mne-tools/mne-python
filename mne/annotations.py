@@ -453,6 +453,9 @@ class Annotations(object):
             The filename to use.
         %(overwrite)s
 
+            .. versionadded:: 0.23
+        %(verbose)s
+
         Notes
         -----
         The format of the information stored in the saved annotation objects
@@ -460,9 +463,6 @@ class Annotations(object):
         as timestamps (e.g., ``2002-12-03 19:01:56.676071``),
         whereas :file:`.txt` files store onset as seconds since start of the
         recording (e.g., ``45.95597082905339``).
-
-            .. versionadded:: 0.23
-        %(verbose)s
         """
         check_fname(fname, 'annotations', ('-annot.fif', '-annot.fif.gz',
                                            '_annot.fif', '_annot.fif.gz',
