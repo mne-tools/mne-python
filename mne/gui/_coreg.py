@@ -1252,33 +1252,22 @@ class CoregistrationUI(HasTraits):
         )
         self._renderer._layout_add_widget(
             scale_params_layout, fit_scale_layout)
-        save_subject_layout = self._renderer._dock_add_group_box(
-            name="Subject-saving options",
-            layout=mri_scaling_layout,
-        )
-        self._widgets["prepare_bem"] = self._renderer._dock_add_check_box(
-            name="Prepare BEM",
-            value=self._prepare_bem,
-            callback=self._set_prepare_bem,
-            tooltip="Whether to run make_bem_solution after scaling the MRI",
-            layout=save_subject_layout,
-        )
         subject_to_layout = self._renderer._dock_add_layout(vertical=False)
         self._renderer._dock_add_text(
             name="subject-to",
             value=self._subject_to,
-            placeholder="scaled-subject-name",
+            placeholder="subject name",
             callback=self._set_subject_to,
             layout=subject_to_layout,
         )
         self._widgets["save_subject"] = self._renderer._dock_add_button(
-            name="Save",
+            name="Save scaled anatomy",
             callback=self._start_worker,
-            tooltip="Save subject",
+            tooltip="Save scaled anatomy",
             layout=subject_to_layout,
         )
         self._renderer._layout_add_widget(
-            save_subject_layout, subject_to_layout)
+            mri_scaling_layout, subject_to_layout)
         param_layout = self._renderer._dock_add_group_box(
             "Translation (t) and Rotation (r)")
         for coord in coords:
