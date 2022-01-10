@@ -189,3 +189,6 @@ def test_ieeg_elec_locate_gui_display(_locate_ieeg, _fake_CT_coords):
     assert 'local_max' not in gui._images
     gui._toggle_show_max()
     assert 'local_max' in gui._images
+    assert 'mip' not in gui._images
+    gui._toggle_show_mip()
+    assert 'mip' in gui._images

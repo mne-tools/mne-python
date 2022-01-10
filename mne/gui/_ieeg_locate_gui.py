@@ -489,7 +489,12 @@ class IntracranialElectrodeLocator(QMainWindow):
         """Make a bar at the bottom with information in it."""
         hbox = QHBoxLayout()
 
-        hbox.addStretch(7)
+        hbox.addStretch(3)
+
+        self._toggle_show_mip_button = QPushButton('Show Max Intensity Proj')
+        self._toggle_show_mip_button.released.connect(
+            self._toggle_show_mip)
+        hbox.addWidget(self._toggle_show_mip_button)
 
         self._toggle_show_max_button = QPushButton('Show Maxima')
         self._toggle_show_max_button.released.connect(
@@ -831,6 +836,25 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._ct_maxima[self._ct_data <= np.median(self._ct_data)] = \
             False
         self._ct_maxima = np.where(self._ct_maxima, 1, np.nan)  # transparent
+
+    def _toggle_show_mip(self):
+        """Toggle whether the maximum-intensity projection is shown."""
+        if self._toggle_show_mip_button.text() == 'Show Max Intensity Proj':
+            self._toggle_show_mip_button.setText('Hide Max Intensity Proj')
+            self._images['mip'] = list()
+            ct_min, ct_max = np.nanmin(self._ct_data), np.nanmax(self._ct_data)
+            for axis in range(3):
+                ct_mip_data = np.max(self._ct_data, axis=axis).T
+                self._images['mip'].append(
+                    self._figs[axis].axes[0].imshow(
+                        ct_mip_data, cmap='gray', aspect='auto',
+                        vmin=ct_min, vmax=ct_max))
+        else:
+            for img in self._images['mip']:
+                img.remove()
+            self._images.pop('mip')
+            self._toggle_show_mip_button.setText('Show Max Intensity Proj')
+        self._draw()
 
     def _toggle_show_max(self):
         """Toggle whether to color local maxima differently."""
