@@ -441,8 +441,8 @@ class CoregistrationUI(HasTraits):
     def _lock_fids_changed(self, change=None):
         locked_widgets = ["sX", "sY", "sZ", "tX", "tY", "tZ",
                           "rX", "rY", "rZ", "project_eeg",
-                          "fit_fiducials", "fit_icp", "reset_fit"]
-        fits_widgets = ["fits_fiducials", "fits_icp", "reset_fits"]
+                          "fit_fiducials", "fit_icp"]
+        fits_widgets = ["fits_fiducials", "fits_icp"]
         fid_widgets = ["fid_X", "fid_Y", "fid_Z", "fids_file", "fids"]
         self._set_head_transparency(self._lock_fids)
         if self._lock_fids:
@@ -542,8 +542,7 @@ class CoregistrationUI(HasTraits):
 
     @observe("_scale_mode")
     def _scale_mode_changed(self, change=None):
-        locked_widgets = ["sX", "sY", "sZ", "fits_icp", "reset_fits",
-                          "save_subject"]
+        locked_widgets = ["sX", "sY", "sZ", "fits_icp", "save_subject"]
         mode = None if self._scale_mode == "None" else self._scale_mode
         self._coreg.set_scale_mode(mode)
         if self._lock_fids:
@@ -1239,23 +1238,16 @@ class CoregistrationUI(HasTraits):
 
         fit_scale_layout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["fits_fiducials"] = self._renderer._dock_add_button(
-            name="Fit Fiducials",
+            name="Fit fiducials with scaling",
             callback=self._fits_fiducials,
             tooltip="Find rotation and translation to fit all 3 fiducials",
             layout=fit_scale_layout,
         )
         self._widgets["fits_icp"] = self._renderer._dock_add_button(
-            name="Fit ICP",
+            name="Fit ICP with scaling",
             callback=self._fits_icp,
             tooltip="Find MRI scaling, translation, and rotation to match the "
                     "head shape points",
-            layout=fit_scale_layout,
-        )
-        self._widgets["reset_fits"] = self._renderer._dock_add_button(
-            name="Reset",
-            callback=partial(self._reset, scaling=True,
-                             translation_rotation=False),
-            tooltip="Reset the scaling parameters",
             layout=fit_scale_layout,
         )
         self._renderer._layout_add_widget(
@@ -1313,7 +1305,7 @@ class CoregistrationUI(HasTraits):
 
         fit_layout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["fit_fiducials"] = self._renderer._dock_add_button(
-            name="Fit Fiducials",
+            name="Fit fiducials",
             callback=self._fit_fiducials,
             tooltip="Find rotation and translation to fit all 3 fiducials",
             layout=fit_layout,
@@ -1323,13 +1315,6 @@ class CoregistrationUI(HasTraits):
             callback=self._fit_icp,
             tooltip="Find MRI scaling, translation, and rotation to match the "
                     "head shape points",
-            layout=fit_layout,
-        )
-        self._widgets["reset_fit"] = self._renderer._dock_add_button(
-            name="Reset",
-            callback=partial(self._reset, scaling=False,
-                             translation_rotation=True),
-            tooltip="Reset translation and rotation parameters",
             layout=fit_layout,
         )
         self._renderer._layout_add_widget(param_layout, fit_layout)
@@ -1350,6 +1335,14 @@ class CoregistrationUI(HasTraits):
             func=self._load_trans,
             input_text_widget=False,
             tooltip="Load the transform file from disk",
+            layout=save_trans_layout,
+        )
+        self._widgets["reset_trans"] = self._renderer._dock_add_file_button(
+            name="reset_trans",
+            desc="Reset",
+            func=self._reset,
+            input_text_widget=False,
+            tooltip="Reset all the parameters affecting the coregistration",
             layout=save_trans_layout,
         )
         self._renderer._layout_add_widget(trans_layout, save_trans_layout)
