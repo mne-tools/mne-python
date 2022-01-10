@@ -1326,11 +1326,9 @@ class CoregistrationUI(HasTraits):
             tooltip="Load the transform file from disk",
             layout=save_trans_layout,
         )
-        self._widgets["reset_trans"] = self._renderer._dock_add_file_button(
-            name="reset_trans",
-            desc="Reset",
-            func=self._reset,
-            input_text_widget=False,
+        self._widgets["reset_trans"] = self._renderer._dock_add_button(
+            name="Reset",
+            callback=self._reset,
             tooltip="Reset all the parameters affecting the coregistration",
             layout=save_trans_layout,
         )
