@@ -1200,34 +1200,66 @@ class CoregistrationUI(HasTraits):
             tooltip="Enable/Disable high resolution head surface",
             layout=view_options_layout,
         )
-        trans_layout = self._renderer._dock_add_group_box("Transform")
-        save_trans_layout = self._renderer._dock_add_layout(vertical=False)
-        self._widgets["save_trans"] = self._renderer._dock_add_file_button(
-            name="save_trans",
-            desc="Save...",
-            save=True,
-            func=self._save_trans,
-            input_text_widget=False,
-            tooltip="Save the transform file to disk",
-            layout=save_trans_layout,
+        mri_scaling_layout = \
+            self._renderer._dock_add_group_box(name="MRI Scaling")
+        self._widgets["scaling_mode"] = self._renderer._dock_add_combo_box(
+            name="Scaling Mode",
+            value=self._defaults["scale_mode"],
+            rng=self._defaults["scale_modes"],
+            callback=self._set_scale_mode,
+            tooltip="Select the scaling mode",
+            compact=True,
+            layout=mri_scaling_layout,
         )
-        self._widgets["load_trans"] = self._renderer._dock_add_file_button(
-            name="load_trans",
-            desc="Load...",
-            func=self._load_trans,
-            input_text_widget=False,
-            tooltip="Load the transform file from disk",
-            layout=save_trans_layout,
+        scale_params_layout = self._renderer._dock_add_group_box(
+            name="Scaling Parameters",
+            layout=mri_scaling_layout,
         )
-        self._renderer._dock_add_button(
+        coords = ["X", "Y", "Z"]
+        for coord in coords:
+            name = f"s{coord}"
+            attr = getattr(self._coreg, "_scale")
+            self._widgets[name] = self._renderer._dock_add_spin_box(
+                name=name,
+                value=attr[coords.index(coord)] * 1e2,
+                rng=[-1e3, 1e3],
+                callback=partial(
+                    self._set_parameter,
+                    mode_name="scale",
+                    coord=coord,
+                ),
+                compact=True,
+                double=True,
+                tooltip=f"Set the {coord} scaling parameter",
+                layout=scale_params_layout,
+            )
+
+        fit_scale_layout = self._renderer._dock_add_layout(vertical=False)
+        self._widgets["fits_fiducials"] = self._renderer._dock_add_button(
+            name="Fit Fiducials",
+            callback=self._fits_fiducials,
+            tooltip="Find rotation and translation to fit all 3 fiducials",
+            layout=fit_scale_layout,
+        )
+        self._widgets["fits_icp"] = self._renderer._dock_add_button(
+            name="Fit ICP",
+            callback=self._fits_icp,
+            tooltip="Find MRI scaling, translation, and rotation to match the "
+                    "head shape points",
+            layout=fit_scale_layout,
+        )
+        self._widgets["reset_fits"] = self._renderer._dock_add_button(
             name="Reset",
-            callback=self._reset,
-            tooltip="Reset all the parameters affecting the coregistration",
-            layout=save_trans_layout,
+            callback=partial(self._reset, scaling=True,
+                             translation_rotation=False),
+            tooltip="Reset the scaling parameters",
+            layout=fit_scale_layout,
         )
-        self._renderer._layout_add_widget(trans_layout, save_trans_layout)
-        save_subject_layout = \
-            self._renderer._dock_add_group_box(name="Subject-saving options")
+        self._renderer._layout_add_widget(mri_scaling_layout, fit_scale_layout)
+        save_subject_layout = self._renderer._dock_add_group_box(
+            name="Subject-saving options",
+            layout=mri_scaling_layout,
+        )
         self._widgets["skip_fiducials"] = self._renderer._dock_add_check_box(
             name="Skip fiducials",
             value=self._skip_fiducials,
@@ -1276,58 +1308,6 @@ class CoregistrationUI(HasTraits):
 
         self._renderer._dock_initialize(name="Parameters", area="right")
         dock2_layout = self._renderer._dock_layout
-        self._widgets["scaling_mode"] = self._renderer._dock_add_combo_box(
-            name="Scaling Mode",
-            value=self._defaults["scale_mode"],
-            rng=self._defaults["scale_modes"],
-            callback=self._set_scale_mode,
-            tooltip="Select the scaling mode",
-            compact=True,
-        )
-        scale_params_layout = \
-            self._renderer._dock_add_group_box(name="Scaling Parameters")
-        coords = ["X", "Y", "Z"]
-        for coord in coords:
-            name = f"s{coord}"
-            attr = getattr(self._coreg, "_scale")
-            self._widgets[name] = self._renderer._dock_add_spin_box(
-                name=name,
-                value=attr[coords.index(coord)] * 1e2,
-                rng=[-1e3, 1e3],
-                callback=partial(
-                    self._set_parameter,
-                    mode_name="scale",
-                    coord=coord,
-                ),
-                compact=True,
-                double=True,
-                tooltip=f"Set the {coord} scaling parameter",
-                layout=scale_params_layout,
-            )
-
-        fit_scale_layout = self._renderer._dock_add_layout(vertical=False)
-        self._widgets["fits_fiducials"] = self._renderer._dock_add_button(
-            name="Fit Fiducials",
-            callback=self._fits_fiducials,
-            tooltip="Find rotation and translation to fit all 3 fiducials",
-            layout=fit_scale_layout,
-        )
-        self._widgets["fits_icp"] = self._renderer._dock_add_button(
-            name="Fit ICP",
-            callback=self._fits_icp,
-            tooltip="Find MRI scaling, translation, and rotation to match the "
-                    "head shape points",
-            layout=fit_scale_layout,
-        )
-        self._widgets["reset_fits"] = self._renderer._dock_add_button(
-            name="Reset",
-            callback=partial(self._reset, scaling=True,
-                             translation_rotation=False),
-            tooltip="Reset the scaling parameters",
-            layout=fit_scale_layout,
-        )
-        self._renderer._layout_add_widget(dock2_layout, fit_scale_layout)
-
         for mode, mode_name in (("t", "Translation"), ("r", "Rotation")):
             param_layout = self._renderer._dock_add_group_box(
                 f"{mode_name} ({mode})")
@@ -1372,6 +1352,26 @@ class CoregistrationUI(HasTraits):
             layout=fit_layout,
         )
         self._renderer._layout_add_widget(dock2_layout, fit_layout)
+        trans_layout = self._renderer._dock_add_group_box("Transform")
+        save_trans_layout = self._renderer._dock_add_layout(vertical=False)
+        self._widgets["save_trans"] = self._renderer._dock_add_file_button(
+            name="save_trans",
+            desc="Save...",
+            save=True,
+            func=self._save_trans,
+            input_text_widget=False,
+            tooltip="Save the transform file to disk",
+            layout=save_trans_layout,
+        )
+        self._widgets["load_trans"] = self._renderer._dock_add_file_button(
+            name="load_trans",
+            desc="Load...",
+            func=self._load_trans,
+            input_text_widget=False,
+            tooltip="Load the transform file from disk",
+            layout=save_trans_layout,
+        )
+        self._renderer._layout_add_widget(trans_layout, save_trans_layout)
 
         fitting_options_layout = \
             self._renderer._dock_add_group_box("Fitting Options")
