@@ -174,7 +174,7 @@ class CoregistrationUI(HasTraits):
             skip_fiducials=False,
             scale_labels=True,
             copy_annots=True,
-            prepare_bem=True,
+            prepare_bem=False,
             scale_modes=["None", "uniform", "3-axis"],
             scale_mode="None",
             icp_fid_matches=('nearest', 'matched'),
@@ -1259,27 +1259,6 @@ class CoregistrationUI(HasTraits):
         save_subject_layout = self._renderer._dock_add_group_box(
             name="Subject-saving options",
             layout=mri_scaling_layout,
-        )
-        self._widgets["skip_fiducials"] = self._renderer._dock_add_check_box(
-            name="Skip fiducials",
-            value=self._skip_fiducials,
-            callback=self._set_skip_fiducials,
-            tooltip="Whether to scale the MRI fiducials",
-            layout=save_subject_layout,
-        )
-        self._widgets["scale_labels"] = self._renderer._dock_add_check_box(
-            name="Scale label files",
-            value=self._scale_labels,
-            callback=self._set_scale_labels,
-            tooltip="Whether to scale *.label files",
-            layout=save_subject_layout,
-        )
-        self._widgets["copy_annots"] = self._renderer._dock_add_check_box(
-            name="Copy annotation files",
-            value=self._copy_annots,
-            callback=self._set_copy_annots,
-            tooltip="Whether to copy *.annot files for scaled subject",
-            layout=save_subject_layout,
         )
         self._widgets["prepare_bem"] = self._renderer._dock_add_check_box(
             name="Prepare BEM",
