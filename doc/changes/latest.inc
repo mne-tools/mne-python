@@ -70,6 +70,10 @@ Enhancements
 
 - :meth:`mne.Report.add_epochs` gained a new parameter, ``drop_log_ignore``, to control which drop reasons to omit when creating the drop log plot (:gh:`10182` by `Richard Höchenberger`_)
 
+- :meth:`mne.Epochs.plot_drop_log` now also includes the absolute number of epochs dropped in the title (:gh:`10186` by `Richard Höchenberger`_)
+
+- Add a button to show the maximum intensity projection in :func:`mne.gui.locate_ieeg` (:gh:`10185` by `Alex Rockhill`_)
+
 Bugs
 ~~~~
 
