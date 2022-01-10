@@ -64,14 +64,6 @@ class RawEDF(BaseRaw):
         'trigger' (case insensitive) are set to STIM. If str (or list of str),
         all channels matching the name(s) are set to STIM. If int (or list of
         ints), the channels corresponding to the indices are set to STIM.
-
-        .. warning:: 0.18 does not allow for stim channel synthesis from TAL
-                     channels called 'EDF Annotations' or 'BDF Annotations'
-                     anymore. Instead, TAL channels are parsed and extracted
-                     annotations are stored in raw.annotations. Use
-                     :func:`mne.events_from_annotations` to obtain events from
-                     these annotations.
-
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
@@ -1262,14 +1254,6 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
         'trigger' (case insensitive) are set to STIM. If str (or list of str),
         all channels matching the name(s) are set to STIM. If int (or list of
         ints), channels corresponding to the indices are set to STIM.
-
-        .. warning:: 0.18 does not allow for stim channel synthesis from TAL
-                     channels called 'EDF Annotations' anymore. Instead, TAL
-                     channels are parsed and extracted annotations are stored
-                     in raw.annotations. Use
-                     :func:`mne.events_from_annotations` to obtain events from
-                     these annotations.
-
     exclude : list of str | str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling. A str is
@@ -1371,14 +1355,6 @@ def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
         'trigger' (case insensitive) are set to STIM. If str (or list of str),
         all channels matching the name(s) are set to STIM. If int (or list of
         ints), channels corresponding to the indices are set to STIM.
-
-        .. warning:: 0.18 does not allow for stim channel synthesis from TAL
-                     channels called 'BDF Annotations' anymore. Instead, TAL
-                     channels are parsed and extracted annotations are stored
-                     in raw.annotations. Use
-                     :func:`mne.events_from_annotations` to obtain events from
-                     these annotations.
-
     exclude : list of str | str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling. A str is
