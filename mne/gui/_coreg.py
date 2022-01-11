@@ -961,10 +961,7 @@ class CoregistrationUI(HasTraits):
         self._job_queue.put(True)
 
     def _save_subject(self):
-        # find target subject
-        if len(self._subject_to) > 0:
-            subject_to = self._subject_to
-        self._display_message(f"Saving {subject_to}...")
+        self._display_message(f"Saving {self._subject_to}...")
 
         # check that fiducials are saved
         if not self._skip_fiducials and self._scale_mode != "None" and \
@@ -1003,22 +1000,22 @@ class CoregistrationUI(HasTraits):
 
         # save the scaled MRI
         try:
-            self._display_message(f"Scaling {subject_to}...")
-            scale_mri(self._subject, subject_to, self._coreg._scale, True,
-                      self._subjects_dir, self._skip_fiducials,
+            self._display_message(f"Scaling {self._subject_to}...")
+            scale_mri(self._subject, self._subject_to, self._coreg._scale,
+                      True, self._subjects_dir, self._skip_fiducials,
                       self._scale_labels, self._copy_annots)
         except Exception:
-            logger.error(f"Error scaling {subject_to}")
+            logger.error(f"Error scaling {self._subject_to}")
             bem_names = []
         else:
-            self._display_message(f"Scaling {subject_to}... Done!")
+            self._display_message(f"Scaling {self._subject_to}... Done!")
 
         # Precompute BEM solutions
         for bem_name in bem_names:
             try:
                 self._display_message(f"Computing {bem_name} solution...")
                 bem_file = bem_fname.format(subjects_dir=self._subjects_dir,
-                                            subject=subject_to,
+                                            subject=self._subject_to,
                                             name=bem_name)
                 bemsol = make_bem_solution(bem_file)
                 write_bem_solution(bem_file[:-4] + '-sol.fif', bemsol)
@@ -1027,7 +1024,7 @@ class CoregistrationUI(HasTraits):
             else:
                 self._display_message(f"Computing {bem_name} solution..."
                                       " Done!")
-        self._display_message(f"Saving {subject_to}... Done!")
+        self._display_message(f"Saving {self._subject_to}... Done!")
 
     def _save_trans(self, fname):
         write_trans(fname, self._coreg.trans)
