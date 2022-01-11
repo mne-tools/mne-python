@@ -677,10 +677,11 @@ class EpochAnnotationsMixin:
         Notes
         -----
         Annotation onsets and offsets are stored as time in seconds (not as
-        sample numbers) so care must be taken when doing things like decimating
-        or resampling. If the user has an Epochs object that did not support
+        sample numbers). If the user has an Epochs object that did not support
         Annotations before, and the Epochs were resampled, then the Annotations
-        will not show up in the correct locations.
+        may not show up in the correct locations. So care must be taken when
+        doing things like decimating or resampling with Epochs objects saved
+        before Annotations were suppored in Epochs.
 
         .. versionadded:: 1.0
         """
