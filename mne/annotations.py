@@ -681,7 +681,7 @@ class EpochAnnotationsMixin:
         Annotations before, and the Epochs were resampled, then the Annotations
         may not show up in the correct locations. So care must be taken when
         doing things like decimating or resampling with Epochs objects saved
-        before Annotations were suppored in Epochs.
+        before Annotations were supported in Epochs.
 
         .. versionadded:: 1.0
         """
