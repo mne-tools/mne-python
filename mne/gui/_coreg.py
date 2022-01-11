@@ -782,12 +782,10 @@ class CoregistrationUI(HasTraits):
                 self._forward_widget_command(["sX", "sY", "sZ"], "set_value",
                                              self._coreg._scale * 1e2)
 
-    def _reset(self, scaling=True, translation_rotation=True):
-        if scaling:
-            self._coreg.set_scale(self._coreg._default_parameters[6:9])
-        if translation_rotation:
-            self._coreg.set_rotation(self._coreg._default_parameters[:3])
-            self._coreg.set_translation(self._coreg._default_parameters[3:6])
+    def _reset(self):
+        self._coreg.set_scale(self._coreg._default_parameters[6:9])
+        self._coreg.set_rotation(self._coreg._default_parameters[:3])
+        self._coreg.set_translation(self._coreg._default_parameters[3:6])
         self._update_plot()
         self._update_parameters()
         self._update_distance_estimation()
