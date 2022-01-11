@@ -23,7 +23,6 @@ from ..coreg import (Coregistration, _is_mri_subject, scale_mri, bem_fname,
 from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_head_shape_points, _plot_mri_fiducials,
                        _plot_hpi_coils, _plot_sensors)
-from ..viz.utils import _generate_default_filename
 from ..transforms import (read_trans, write_trans, _ensure_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
@@ -171,6 +170,7 @@ class CoregistrationUI(HasTraits):
             fiducial="LPA",
             lock_fids=True,
             grow_hair=0.0,
+            subject_to="",
             skip_fiducials=False,
             scale_labels=True,
             copy_annots=True,
@@ -246,6 +246,7 @@ class CoregistrationUI(HasTraits):
         # once the docks are initialized
         self._set_current_fiducial(self._defaults["fiducial"])
         self._set_scale_mode(self._defaults["scale_mode"])
+        self._set_subject_to(self._defaults["subject_to"])
         if trans is not None:
             self._load_trans(trans)
         self._redraw()  # we need the elements to be present now
@@ -351,6 +352,8 @@ class CoregistrationUI(HasTraits):
 
     def _set_subject_to(self, value):
         self._subject_to = value
+        self._forward_widget_command(
+            "save_subject", "set_enabled", len(value) > 0)
 
     def _set_skip_fiducials(self, state):
         self._skip_fiducials = bool(state)
@@ -542,7 +545,7 @@ class CoregistrationUI(HasTraits):
 
     @observe("_scale_mode")
     def _scale_mode_changed(self, change=None):
-        locked_widgets = ["sX", "sY", "sZ", "fits_icp", "save_subject"]
+        locked_widgets = ["sX", "sY", "sZ", "fits_icp", "subject_to"]
         mode = None if self._scale_mode == "None" else self._scale_mode
         self._coreg.set_scale_mode(mode)
         if self._lock_fids:
@@ -963,8 +966,6 @@ class CoregistrationUI(HasTraits):
         # find target subject
         if len(self._subject_to) > 0:
             subject_to = self._subject_to
-        else:
-            subject_to = 'subject_' + _generate_default_filename("")
         self._display_message(f"Saving {subject_to}...")
 
         # check that fiducials are saved
@@ -1253,7 +1254,7 @@ class CoregistrationUI(HasTraits):
         self._renderer._layout_add_widget(
             scale_params_layout, fit_scale_layout)
         subject_to_layout = self._renderer._dock_add_layout(vertical=False)
-        self._renderer._dock_add_text(
+        self._widgets["subject_to"] = self._renderer._dock_add_text(
             name="subject-to",
             value=self._subject_to,
             placeholder="subject name",
