@@ -28,13 +28,13 @@ from mne import (Epochs, Annotations, read_events, pick_events, read_epochs,
                  make_fixed_length_epochs, combine_evoked)
 from mne.annotations import _handle_meas_date
 from mne.baseline import rescale
-from mne.datasets import testing, misc
+from mne.datasets import testing
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 from mne.event import merge_events
 from mne.io import RawArray, read_raw_fif
 from mne.io.constants import FIFF
 from mne.io.proj import _has_eeg_average_ref_proj
-from mne.io.write import write_int, INT32_MAX, _get_split_size
+from mne.io.write import write_int, INT32_MAX, _get_split_size, write_float
 from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
@@ -3904,10 +3904,25 @@ def test_epoch_annotations_cases():
     assert epochs.annotations == old_epochs.annotations
 
 
-def test_epochs_annotations_backwards_compat():
+def test_epochs_annotations_backwards_compat(monkeypatch, tmp_path):
     """Test backwards compatibility with Epochs saved without annotations."""
     # loading an earlier saved file should work
-    fname = op.join(misc.data_path(), 'audio', 'audio-epo.fif')
+    def no_sfreq_write_float(a, b, c):
+        if b == FIFF.FIFF_MNE_EPOCHS_RAW_SFREQ:
+            return
+        return write_float(a, b, c)
+
+    # force 'write_float' to not write raw_sfreq
+    monkeypatch.setattr(mne.epochs, 'write_float', no_sfreq_write_float)
+
+    # create a test epochs dataset
+    data = np.zeros((3, 2, 50))
+    info = create_info(ch_names=['eeg1', 'eeg2'], ch_types='eeg', sfreq=50)
+    epochs = EpochsArray(data, info)
+
+    # save it to disc and reload
+    fname = tmp_path / 'test_epo.fif'
+    epochs.save(fname)
     epochs = read_epochs(fname)
     assert epochs.info['sfreq'] == epochs._raw_sfreq
 
