@@ -4,7 +4,10 @@
 # https://github.com/actions/virtual-environments/issues/323
 # via
 # https://github.community/t/ubuntu-latest-apt-repository-list-issues/17182/10#M4501
-sudo rm -f /etc/apt/sources.list.d/dotnetdev.list /etc/apt/sources.list.d/*microsoft*.list
+ls -al /etc/apt/sources.list.d/
+for apt_file in `grep -lr microsoft /etc/apt/sources.list.d/`; do
+    sudo rm $apt_file
+done
 
 sudo apt update
 sudo apt install -yqq libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libopengl0
