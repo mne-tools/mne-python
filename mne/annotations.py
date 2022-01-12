@@ -790,7 +790,7 @@ class EpochAnnotationsMixin:
         -------
         self : instance of Epochs
             The modified instance (instance is also modified inplace).
-        
+
         Notes
         -----
         Annotation onsets and offsets are stored as time in seconds (not as
