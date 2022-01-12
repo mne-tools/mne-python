@@ -800,17 +800,6 @@ class EpochAnnotationsMixin:
         -------
         self : instance of Epochs
             The modified instance (instance is also modified inplace).
-
-        Notes
-        -----
-        Annotation onsets and offsets are stored as time in seconds (not as
-        sample numbers). If the user has an Epochs object that did not support
-        Annotations before, and the Epochs were resampled, then the Annotations
-        will not show up in the correct locations. So care must be taken when
-        using this function with an Epochs object saved before Annotation
-        support was introduced.
-
-        .. versionadded:: 1.0
         """
         pd = _check_pandas_installed()
 
