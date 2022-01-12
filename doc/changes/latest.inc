@@ -62,17 +62,17 @@ Enhancements
 
 - In :class:`mne.Report`, limit the width of automatically generated figures to a maximum of 850 pixels (450 pixels for :class:`mne.SourceEstimate` plots), and the resolution to 100 DPI to reduce file size, memory consumption, and – in some cases like :meth:`mne.Report.add_stc` – processing time (:gh:`10126`, :gh:`10129`, :gh:`10135`, :gh:`10142` by `Richard Höchenberger`_)
 
-- Annotations from a :class:`~mne.io.Raw` object are now preserved by the :class:`~mne.Epochs` constructor (:gh:`9969` by `Adam Li`_)
-
 - :class:`~mne.Epochs` metadata tables are now included in :class:`mne.Report` (:gh:`10166` by `Richard Höchenberger`_)
 
 - :func:`mne.get_head_surf` and :func:`mne.dig_mri_distances` gained a new parameter, ``on_defects``, controlling how to handle surfaces with topological defects (:gh:`10175` by `Richard Höchenberger`_)
-
+  
 - :meth:`mne.Report.add_epochs` gained a new parameter, ``drop_log_ignore``, to control which drop reasons to omit when creating the drop log plot (:gh:`10182` by `Richard Höchenberger`_)
 
 - :meth:`mne.Epochs.plot_drop_log` now also includes the absolute number of epochs dropped in the title (:gh:`10186` by `Richard Höchenberger`_)
 
 - Add a button to show the maximum intensity projection in :func:`mne.gui.locate_ieeg` (:gh:`10185` by `Alex Rockhill`_)
+
+- Annotations from a :class:`~mne.io.Raw` object are now preserved by the :class:`~mne.Epochs` constructor and are supported when saving Epochs (:gh:`9969` and :gh:`10019` by `Adam Li`_)
 
 Bugs
 ~~~~

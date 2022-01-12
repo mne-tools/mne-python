@@ -655,6 +655,211 @@ class Annotations(object):
         return self
 
 
+class EpochAnnotationsMixin:
+    """Mixin class for Annotations in Epochs."""
+
+    @property
+    def annotations(self):  # noqa: D102
+        return self._annotations
+
+    @verbose
+    def set_annotations(self, annotations, on_missing='raise', *,
+                        verbose=None):
+        """Setter for Epoch annotations from Raw.
+
+        This method does not handle offsetting the times based
+        on first_samp or measurement dates, since that is expected
+        to occur in Raw.set_annotations().
+
+        Parameters
+        ----------
+        annotations : instance of mne.Annotations | None
+            Annotations to set.
+        %(on_missing_ch_names)s
+        %(verbose)s
+
+        Returns
+        -------
+        self : instance of Epochs
+            The epochs object with annotations.
+
+        Notes
+        -----
+        Annotation onsets and offsets are stored as time in seconds (not as
+        sample numbers).
+
+        If you have an ``-epo.fif`` file saved to disk created before 1.0,
+        annotations can be added correctly only if no decimation or
+        resampling was performed. We thus suggest to regenerate your
+        :class:`mne.Epochs` from raw and re-save to disk with 1.0+ if you
+        want to safely work with :class:`~mne.Annotations` in epochs.
+
+        Since this method does not handle offsetting the times based
+        on first_samp or measurement dates, the recommended way to add
+        Annotations is::
+
+            raw.set_annotations(annotations)
+            annotations = raw.annotations
+            epochs.set_annotations(annotations)
+
+        .. versionadded:: 1.0
+        """
+        _validate_type(annotations, (Annotations, None), 'annotations')
+        if annotations is None:
+            self._annotations = None
+        else:
+            if getattr(self, '_unsafe_annot_add', False):
+                warn('Adding annotations to Epochs created (and saved to '
+                     'disk) before 1.0 will yield incorrect results if '
+                     'decimation or resampling was performed on the instance, '
+                     'we recommend regenerating the Epochs and re-saving them '
+                     'to disk')
+            new_annotations = annotations.copy()
+            new_annotations._prune_ch_names(self.info, on_missing)
+            self._annotations = new_annotations
+        return self
+
+    def get_annotations_per_epoch(self):
+        """Get a list of annotations that occur during each epoch.
+
+        Returns
+        -------
+        epoch_annots : list
+            A list of lists (with length equal to number of epochs) where each
+            inner list contains any annotations that overlap the corresponding
+            epoch. Annotations are stored as a :class:`tuple` of onset,
+            duration, description (not as a :class:`~mne.Annotations` object),
+            where the onset is now relative to time=0 of the epoch, rather than
+            time=0 of the original continuous (raw) data.
+        """
+        # create a list of annotations for each epoch
+        epoch_annot_list = [[] for _ in range(len(self.events))]
+
+        # check if annotations exist
+        if self.annotations is None:
+            return epoch_annot_list
+
+        # when each epoch and annotation starts/stops
+        # no need to account for first_samp here...
+        epoch_tzeros = self.events[:, 0] / self._raw_sfreq
+        epoch_starts, epoch_stops = np.atleast_2d(
+            epoch_tzeros) + np.atleast_2d(self.times[[0, -1]]).T
+        # ... because first_samp isn't accounted for here either
+        annot_starts = self._annotations.onset
+        annot_stops = annot_starts + self._annotations.duration
+
+        # the first two cases (annot_straddles_epoch_{start|end}) will both
+        # (redundantly) capture cases where an annotation fully encompasses
+        # an epoch (e.g., annot from 1-4s, epoch from 2-3s). The redundancy
+        # doesn't matter because results are summed and then cast to bool (all
+        # we care about is presence/absence of overlap).
+        annot_straddles_epoch_start = np.logical_and(
+            np.atleast_2d(epoch_starts) >= np.atleast_2d(annot_starts).T,
+            np.atleast_2d(epoch_starts) < np.atleast_2d(annot_stops).T)
+
+        annot_straddles_epoch_end = np.logical_and(
+            np.atleast_2d(epoch_stops) > np.atleast_2d(annot_starts).T,
+            np.atleast_2d(epoch_stops) <= np.atleast_2d(annot_stops).T)
+
+        # this captures the only remaining case we care about: annotations
+        # fully contained within an epoch (or exactly coextensive with it).
+        annot_fully_within_epoch = np.logical_and(
+            np.atleast_2d(epoch_starts) <= np.atleast_2d(annot_starts).T,
+            np.atleast_2d(epoch_stops) >= np.atleast_2d(annot_stops).T)
+
+        # combine all cases to get array of shape (n_annotations, n_epochs).
+        # Nonzero entries indicate overlap between the corresponding
+        # annotation (row index) and epoch (column index).
+        all_cases = (annot_straddles_epoch_start +
+                     annot_straddles_epoch_end +
+                     annot_fully_within_epoch)
+
+        # for each Epoch-Annotation overlap occurrence:
+        for annot_ix, epo_ix in zip(*np.nonzero(all_cases)):
+            this_annot = self._annotations[annot_ix]
+            this_tzero = epoch_tzeros[epo_ix]
+            # adjust annotation onset to be relative to epoch tzero...
+            annot = (this_annot['onset'] - this_tzero,
+                     this_annot['duration'],
+                     this_annot['description'])
+            # ...then add it to the correct sublist of `epoch_annot_list`
+            epoch_annot_list[epo_ix].append(annot)
+        return epoch_annot_list
+
+    def add_annotations_to_metadata(self, overwrite=False):
+        """Add raw annotations into the Epochs metadata data frame.
+
+        Adds three columns to the ``metadata`` consisting of a list
+        in each row:
+        - ``annot_onset``: the onset of each Annotation within
+        the Epoch relative to the start time of the Epoch (in seconds).
+        - ``annot_duration``: the duration of each Annotation
+        within the Epoch in seconds.
+        - ``annot_description``: the free-form text description of each
+        Annotation.
+
+        Parameters
+        ----------
+        overwrite : bool
+            Whether to overwrite existing columns in metadata or not.
+            Default is False.
+
+        Returns
+        -------
+        self : instance of Epochs
+            The modified instance (instance is also modified inplace).
+
+        Notes
+        -----
+        .. versionadded:: 1.0
+        """
+        pd = _check_pandas_installed()
+
+        # check if annotations exist
+        if self.annotations is None:
+            warn(f'There were no Annotations stored in {self}, so '
+                 'metadata was not modified.')
+            return self
+
+        # get existing metadata DataFrame or instantiate an empty one
+        if self._metadata is not None:
+            metadata = self._metadata
+        else:
+            data = np.empty((len(self.events), 0))
+            metadata = pd.DataFrame(data=data)
+
+        if any(name in metadata.columns for name in
+               ['annot_onset', 'annot_duration', 'annot_description']) and \
+                not overwrite:
+            raise RuntimeError(
+                'Metadata for Epochs already contains columns '
+                '"annot_onset", "annot_duration", or "annot_description".')
+
+        # get the Epoch annotations, then convert to separate lists for
+        # onsets, durations, and descriptions
+        epoch_annot_list = self.get_annotations_per_epoch()
+        onset, duration, description = [], [], []
+        for epoch_annot in epoch_annot_list:
+            for ix, annot_prop in enumerate((onset, duration, description)):
+                entry = [annot[ix] for annot in epoch_annot]
+
+                # round onset and duration to avoid IO round trip mismatch
+                if ix < 2:
+                    entry = np.round(entry, decimals=12).tolist()
+
+                annot_prop.append(entry)
+
+        # Create a new Annotations column that is instantiated as an empty
+        # list per Epoch.
+        metadata['annot_onset'] = pd.Series(onset)
+        metadata['annot_duration'] = pd.Series(duration)
+        metadata['annot_description'] = pd.Series(description)
+
+        # reset the metadata
+        self.metadata = metadata
+        return self
+
+
 def _combine_annotations(one, two, one_n_samples, one_first_samp,
                          two_first_samp, sfreq, meas_date):
     """Combine a tuple of annotations."""
