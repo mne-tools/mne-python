@@ -382,12 +382,6 @@ class ICA(ContainsMixin):
 
         if method != 'imported_eeglab':  # internal use only
             _check_option('method', method, _KNOWN_ICA_METHODS)
-        if method == 'fastica' and not check_version('sklearn'):
-            raise ImportError(
-                'The scikit-learn package is required for method="fastica".')
-        if method == 'picard' and not check_version('picard'):
-            raise ImportError(
-                'The python-picard package is required for method="picard".')
 
         self.noise_cov = noise_cov
 
@@ -601,6 +595,13 @@ class ICA(ContainsMixin):
         self : instance of ICA
             Returns the modified instance.
         """
+        if self.method == 'fastica' and not check_version('sklearn'):
+            raise ImportError(
+                'The scikit-learn package is required for method="fastica".')
+        if self.method == 'picard' and not check_version('picard'):
+            raise ImportError(
+                'The python-picard package is required for method="picard".')
+
         _validate_type(inst, (BaseRaw, BaseEpochs), 'inst', 'Raw or Epochs')
 
         if np.isclose(inst.info['highpass'], 0.):
