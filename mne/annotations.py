@@ -658,10 +658,9 @@ class EpochAnnotationsMixin:
     def set_annotations(self, annotations, on_missing='raise'):
         """Setter for Epoch annotations from Raw.
 
-        This function simply copies over Raw annotations, and
-        does not handle offsetting the times based on first_samp
-        or measurement dates, since that is expected to occur in
-        Raw.set_annotations().
+        This function does not handle offsetting the times based
+        on first_samp or measurement dates, since that is expected
+        to occur in Raw.set_annotations().
 
         Parameters
         ----------
@@ -682,6 +681,14 @@ class EpochAnnotationsMixin:
         may not show up in the correct locations. So care must be taken when
         doing things like decimating or resampling with Epochs objects saved
         before Annotations were supported in Epochs.
+
+        Since this function does not handle offsetting the times based
+        on first_sampe or measurement dates, the recommended way to add
+        Annotations is::
+
+            raw.set_annotations(annotations)
+            annotations = raw.annotations
+            epochs.set_annotations(annotations)
 
         .. versionadded:: 1.0
         """

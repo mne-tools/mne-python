@@ -3743,6 +3743,8 @@ def test_epoch_annotations(first_samp, meas_date, orig_date, tmp_path):
     - with and without meas_date
     - with and without an orig_time set in Annotations
     """
+    from pandas.testing import assert_frame_equal
+
     data = np.random.randn(2, 400) * 10e-12
     info = create_info(ch_names=['MEG1', 'MEG2'], ch_types='grad',
                        sfreq=100.)
@@ -3828,6 +3830,15 @@ def test_epoch_annotations(first_samp, meas_date, orig_date, tmp_path):
 
         # description should be exactly the same
         assert_array_equal([_x[2] for _x in x], [_y[2] for _y in y])
+
+    # metadata should match after resampling
+    epochs.load_data()
+    epochs.add_annotations_to_metadata(overwrite=True)
+    metadata = epochs.metadata.copy()
+    epochs.resample(epochs.info['sfreq'] * 1.5)
+    epochs.add_annotations_to_metadata(overwrite=True)
+    new_metadata = epochs.metadata
+    assert_frame_equal(metadata, new_metadata)
 
 
 def test_epoch_annotations_cases():
