@@ -69,8 +69,8 @@ Projections:
 
    ICA
    Xdawn
+   annotate_amplitude
    annotate_break
-   annotate_flat
    annotate_movement
    annotate_muscle_zscore
    annotate_nan

@@ -144,3 +144,5 @@ API changes
 - ``mne.Info.pick_channels`` has been deprecated. Use ``inst.pick_channels`` to pick channels from :class:`~mne.io.Raw`, :class:`~mne.Epochs`, and :class:`~mne.Evoked`. Use :func:`mne.pick_info` to pick channels from :class:`mne.Info` (:gh:`10039` by `Mathieu Scheltienne`_)
 
 - Argument ``event_list`` has been deprecated in favor of ``events`` in :func:`mne.write_events` (:gh:`10056` by `Mathieu Scheltienne`_)
+
+- ``mne.preprocessing.annotate_flat`` has been deprecated in favor of :func`mne.preprocessing.annotate_amplitude`, that covers both minimum and maximum peak-to-peak variation. (:gh:`10143` by `Mathieu Scheltienne`_)
