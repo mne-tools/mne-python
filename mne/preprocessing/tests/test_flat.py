@@ -41,6 +41,7 @@ def test_annotate_flat(meas_date, first_samp):
     raw_0._data[0] = 0.
     for kwargs, bads, want_times in [
             # Anything < 1 will mark spatially
+            (dict(bad_percent=100.), [], 0),
             (dict(bad_percent=99.9), [raw.ch_names[0]], n_times),
             (dict(), [raw.ch_names[0]], n_times)]:  # default (1)
         raw_time = raw_0.copy()
@@ -58,11 +59,12 @@ def test_annotate_flat(meas_date, first_samp):
     raw_0 = raw.copy()
     n_good_times = int(round(0.8 * n_times))
     raw_0._data[0, n_good_times:] = 0.
-    threshold = 100 * (n_times - n_good_times) / n_times + 1
+    threshold = 100 * (n_times - n_good_times) / n_times
     for kwargs, bads, want_times in [
-            # Should change behavior at bad_percent > 20
+            # Should change behavior at bad_percent=20
+            (dict(bad_percent=100), [], n_good_times),
             (dict(bad_percent=threshold), [], n_good_times),
-            (dict(bad_percent=threshold - 1.0001), [raw.ch_names[0]], n_times),
+            (dict(bad_percent=threshold - 1e-5), [raw.ch_names[0]], n_times),
             (dict(), [raw.ch_names[0]], n_times)]:
         with deprecation:
             annot, got_bads = annotate_flat(raw_0, verbose='debug', **kwargs)
@@ -71,14 +73,14 @@ def test_annotate_flat(meas_date, first_samp):
         raw_time.set_annotations(raw_time.annotations + annot)
         raw_time.info['bads'] += got_bads
         n_good_times = raw_time.get_data(reject_by_annotation='omit').shape[1]
-        if len(annot) == 0:
-            assert n_good_times == want_times
-        else:
-            assert n_good_times - 1 == want_times
+        assert n_good_times == want_times
 
     with deprecation, pytest.raises(TypeError,
                                     match='must be an instance of BaseRaw'):
         annotate_flat(0.)
+    with deprecation, pytest.raises(ValueError,
+                                    match='not convert string to float'):
+        annotate_flat(raw, 'x')
 
 
 @testing.requires_testing_data
