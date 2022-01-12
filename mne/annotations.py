@@ -659,7 +659,7 @@ class EpochAnnotationsMixin:
                         verbose=None):
         """Setter for Epoch annotations from Raw.
 
-        This function does not handle offsetting the times based
+        This method does not handle offsetting the times based
         on first_samp or measurement dates, since that is expected
         to occur in Raw.set_annotations().
 
@@ -686,7 +686,7 @@ class EpochAnnotationsMixin:
         :class:`mne.Epochs` from raw and re-save to disk with 1.0+ if you
         want to safely work with :class:`~mne.Annotations` in epochs.
 
-        Since this function does not handle offsetting the times based
+        Since this method does not handle offsetting the times based
         on first_samp or measurement dates, the recommended way to add
         Annotations is::
 
