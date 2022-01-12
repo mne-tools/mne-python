@@ -5,6 +5,7 @@
 #
 # License: BSD-3-Clause
 
+from contextlib import nullcontext
 from copy import deepcopy
 from datetime import timedelta
 from functools import partial
@@ -3915,7 +3916,11 @@ def test_epoch_annotations_cases():
     assert epochs.annotations == old_epochs.annotations
 
 
-def test_epochs_annotations_backwards_compat(monkeypatch, tmp_path):
+@pytest.mark.parametrize('meas_date', (None, (1, 2)))
+@pytest.mark.parametrize('first_samp', (0, 10000))
+@pytest.mark.parametrize('decim', (1, 2))
+def test_epochs_annotations_backwards_compat(monkeypatch, tmp_path, meas_date,
+                                             first_samp, decim):
     """Test backwards compatibility with Epochs saved without annotations."""
     # loading an earlier saved file should work
     def no_sfreq_write_float(a, b, c):
@@ -3927,15 +3932,50 @@ def test_epochs_annotations_backwards_compat(monkeypatch, tmp_path):
     monkeypatch.setattr(mne.epochs, 'write_float', no_sfreq_write_float)
 
     # create a test epochs dataset
-    data = np.zeros((3, 2, 50))
-    info = create_info(ch_names=['eeg1', 'eeg2'], ch_types='eeg', sfreq=50)
-    epochs = EpochsArray(data, info)
+    sfreq, n_epochs = 10., 4
+    data = np.linspace(0, 1, n_epochs * int(sfreq))[np.newaxis]
+    info = create_info(ch_names=1, ch_types='eeg', sfreq=sfreq)
+    with info._unlock():
+        info['lowpass'] = 1.
+    raw = RawArray(data, info, first_samp)
+    raw.set_meas_date(meas_date)
+    # Add a single annotation that occurs between 1<t<2
+    annot = Annotations(1.1, 0.8, '1_less_t_less_2')
+    raw.set_annotations(annot)
+    annot = raw.annotations  # fully adjusted, as per docstring
+    events = make_fixed_length_events(raw)
+    epochs = Epochs(raw, events, tmin=0, tmax=1 - 1. / sfreq, decim=decim,
+                    baseline=None, preload=True)
+    assert len(epochs) == n_epochs
 
     # save it to disc and reload
     fname = tmp_path / 'test_epo.fif'
     epochs.save(fname)
     epochs = read_epochs(fname)
     assert epochs.info['sfreq'] == epochs._raw_sfreq
+    assert epochs.info['meas_date'] == raw.info['meas_date']
+
+    # expose the problem at a low level
+    assert_allclose(epochs.info['sfreq'], raw.info['sfreq'] / decim)
+    # expose it for the real use case
+    lens = [len(ann) for ann in epochs.get_annotations_per_epoch()]
+    want_lens = [0] * n_epochs
+    # this should always be the case, but it only is when decim == 1!
+    if decim == 1:
+        want_lens[1] = 1  # the one we inserted
+    assert lens == want_lens
+    # but in practice, people with old -epo.fif *do not have any annotations
+    # saved with them*, so we really only need to warn about a risk of bad
+    # annot when using EpochsFIF *and* they do `set_annotations` *and* it's
+    # an old-style file. It would be nice if we could only do it if they
+    # resampled, but we have no record of this, so to be safe we always warn.
+    epochs.set_annotations(None)  # should be okay
+    lens = [len(ann) for ann in epochs.get_annotations_per_epoch()]
+    assert lens == [0] * n_epochs
+    with pytest.warns(RuntimeWarning, match='incorrect results'):
+        epochs.set_annotations(annot)
+    lens = [len(ann) for ann in epochs.get_annotations_per_epoch()]
+    assert lens == want_lens
 
 
 @requires_pandas

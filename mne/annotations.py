@@ -655,7 +655,8 @@ class EpochAnnotationsMixin:
         return self._annotations
 
     @verbose
-    def set_annotations(self, annotations, on_missing='raise'):
+    def set_annotations(self, annotations, on_missing='raise', *,
+                        verbose=None):
         """Setter for Epoch annotations from Raw.
 
         This function does not handle offsetting the times based
@@ -667,6 +668,7 @@ class EpochAnnotationsMixin:
         annotations : instance of mne.Annotations | None
             Annotations to set.
         %(on_missing_ch_names)s
+        %(verbose)s
 
         Returns
         -------
@@ -696,6 +698,12 @@ class EpochAnnotationsMixin:
         if annotations is None:
             self._annotations = None
         else:
+            if getattr(self, '_unsafe_annot_add', False):
+                warn('Adding annotations to Epochs created (and saved to '
+                     'disk) before 1.0 will yield incorrect results if '
+                     'decimation or resampling was performed on the instance, '
+                     'we recommend regenerating the Epochs and re-saving them '
+                     'to disk')
             new_annotations = annotations.copy()
             new_annotations._prune_ch_names(self.info, on_missing)
             self._annotations = new_annotations

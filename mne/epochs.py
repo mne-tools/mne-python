@@ -3276,6 +3276,7 @@ class EpochsFIF(BaseEpochs):
             if next_fname is not None:
                 fnames.append(next_fname)
 
+        unsafe_annot_add = raw_sfreq is None
         (info, data, raw_sfreq, events, event_id, tmin, tmax, metadata,
          baseline, selection, drop_log, _) = \
             _concatenate_epochs(ep_list, with_data=preload, add_offset=False)
@@ -3310,6 +3311,9 @@ class EpochsFIF(BaseEpochs):
         # use the private property instead of drop_bad so that epochs
         # are not all read from disk for preload=False
         self._bad_dropped = True
+        # private property to suggest that people re-save epochs if they add
+        # annotations
+        self._unsafe_annot_add = unsafe_annot_add
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
