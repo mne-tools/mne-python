@@ -5,7 +5,6 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import nullcontext
 from copy import deepcopy
 from datetime import timedelta
 from functools import partial
