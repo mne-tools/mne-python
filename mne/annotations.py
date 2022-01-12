@@ -678,14 +678,16 @@ class EpochAnnotationsMixin:
         Notes
         -----
         Annotation onsets and offsets are stored as time in seconds (not as
-        sample numbers). If the user has an Epochs object that did not support
-        Annotations before, and the Epochs were resampled, then the Annotations
-        may not show up in the correct locations. So care must be taken when
-        doing things like decimating or resampling with Epochs objects saved
-        before Annotations were supported in Epochs.
+        sample numbers).
+        
+        If you have an ``-epo.fif`` file saved to disk created before 1.0,
+        annotations can be added correctly only if no decimation or
+        resampling was performed. We thus suggest to regenerate your
+        :class:`mne.Epochs` from raw and re-save to disk with 1.0+ if you
+        want to safely work with :class:`~mne.Annotations` in epochs.
 
         Since this function does not handle offsetting the times based
-        on first_sampe or measurement dates, the recommended way to add
+        on first_samp or measurement dates, the recommended way to add
         Annotations is::
 
             raw.set_annotations(annotations)
