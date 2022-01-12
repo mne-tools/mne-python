@@ -800,6 +800,10 @@ class EpochAnnotationsMixin:
         -------
         self : instance of Epochs
             The modified instance (instance is also modified inplace).
+
+        Notes
+        -----
+        .. versionadded:: 1.0
         """
         pd = _check_pandas_installed()
 
