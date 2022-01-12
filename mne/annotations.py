@@ -679,7 +679,7 @@ class EpochAnnotationsMixin:
         -----
         Annotation onsets and offsets are stored as time in seconds (not as
         sample numbers).
-        
+
         If you have an ``-epo.fif`` file saved to disk created before 1.0,
         annotations can be added correctly only if no decimation or
         resampling was performed. We thus suggest to regenerate your
