@@ -1033,6 +1033,7 @@ FIFF.FIFF_MNE_RT_CLIENT_ID         = 3701  # realtime client
 FIFF.FIFF_MNE_EPOCHS_SELECTION     = 3800  # the epochs selection
 FIFF.FIFF_MNE_EPOCHS_DROP_LOG      = 3801  # the drop log
 FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT   = 3802  # rejection and flat params
+FIFF.FIFF_MNE_EPOCHS_RAW_SFREQ     = 3803  # original raw sfreq
 
 # MNE annotations
 FIFF.FIFFB_MNE_ANNOTATIONS         = 3810  # annotations block

@@ -9,10 +9,11 @@ from ..annotations import (_annotations_starts_stops, Annotations,
 from ..io import BaseRaw
 from ..io.pick import _picks_to_idx
 from ..utils import (_validate_type, verbose, logger, _pl,
-                     _mask_to_onsets_offsets, ProgressBar)
+                     _mask_to_onsets_offsets, ProgressBar, deprecated)
 
 
 @verbose
+@deprecated('use mne.preprocessing.annotate_amplitude instead.')
 def annotate_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
                   verbose=None):
     """Annotate flat segments of raw data (or add to a bad channel list).

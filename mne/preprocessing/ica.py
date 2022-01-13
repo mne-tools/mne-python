@@ -48,12 +48,12 @@ from ..viz.topomap import _plot_corrmap
 
 from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_and_end_file, write_id
-from ..utils import (check_version, logger, check_fname, _check_fname, verbose,
+from ..utils import (logger, check_fname, _check_fname, verbose,
                      _reject_data_segments, check_random_state, _validate_type,
                      compute_corr, _get_inst_data, _ensure_int,
                      copy_function_doc_to_method_doc, _pl, warn, Bunch,
                      _check_preload, _check_compensation_grade, fill_doc,
-                     _check_option, _PCA, int_like,
+                     _check_option, _PCA, int_like, _require_version,
                      _check_all_same_channel_names)
 
 from ..fixes import _get_args, _safe_svd
@@ -382,12 +382,6 @@ class ICA(ContainsMixin):
 
         if method != 'imported_eeglab':  # internal use only
             _check_option('method', method, _KNOWN_ICA_METHODS)
-        if method == 'fastica' and not check_version('sklearn'):
-            raise ImportError(
-                'The scikit-learn package is required for method="fastica".')
-        if method == 'picard' and not check_version('picard'):
-            raise ImportError(
-                'The python-picard package is required for method="picard".')
 
         self.noise_cov = noise_cov
 
@@ -601,6 +595,11 @@ class ICA(ContainsMixin):
         self : instance of ICA
             Returns the modified instance.
         """
+        req_map = dict(fastica='sklearn', picard='picard')
+        for method, mod in req_map.items():
+            if self.method == method:
+                _require_version(mod, f'use method={repr(method)}')
+
         _validate_type(inst, (BaseRaw, BaseEpochs), 'inst', 'Raw or Epochs')
 
         if np.isclose(inst.info['highpass'], 0.):
