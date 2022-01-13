@@ -5,6 +5,7 @@
 # License: BSD-3-Clause
 
 import contextlib
+from decorator import FunctionMaker
 import importlib
 import inspect
 from io import StringIO
@@ -16,7 +17,6 @@ import warnings
 from typing import Any, Callable, TypeVar
 
 from .docs import fill_doc
-from ..externals.decorator import FunctionMaker
 
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python

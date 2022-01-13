@@ -112,6 +112,12 @@ def _require_version(lib, what, version='0.0'):
                           f'{why}')
 
 
+def _import_h5py():
+    _require_version('h5py', 'read MATLAB files >= v7.3')
+    import h5py
+    return h5py
+
+
 # adapted from scikit-learn utils/validation.py
 def check_random_state(seed):
     """Turn seed into a numpy.random.mtrand.RandomState instance.

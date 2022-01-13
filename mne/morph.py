@@ -4,9 +4,11 @@
 
 # License: BSD-3-Clause
 
+import copy
 import os.path as op
 import warnings
-import copy
+
+from h5io import read_hdf5, write_hdf5
 import numpy as np
 
 from .fixes import _get_img_fdata
@@ -21,7 +23,6 @@ from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, fill_doc, _check_option, _validate_type,
                     BunchConst, _check_fname, warn, _custom_lru_cache,
                     _ensure_int, ProgressBar, use_log_level)
-from .externals.h5io import read_hdf5, write_hdf5
 
 
 @verbose

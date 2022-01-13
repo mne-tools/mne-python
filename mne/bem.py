@@ -16,6 +16,7 @@ import os.path as op
 import shutil
 from copy import deepcopy
 
+from h5io import write_hdf5, read_hdf5
 import numpy as np
 
 from .io.constants import FIFF, FWD
@@ -34,7 +35,6 @@ from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
                     _check_fname, has_nibabel, _check_option, path_like,
                     _on_missing)
-from .externals.h5io import write_hdf5, read_hdf5
 
 
 # ############################################################################

@@ -12,6 +12,7 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 from copy import deepcopy
 from functools import partial
 
+from h5io import write_hdf5, read_hdf5
 import numpy as np
 
 from .multitaper import dpss_windows
@@ -34,7 +35,6 @@ from ..io.meas_info import Info
 from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
                          _connection_line, _prepare_joint_axes,
                          _setup_vmin_vmax, _set_title_multiple_electrodes)
-from ..externals.h5io import write_hdf5, read_hdf5
 
 
 def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):

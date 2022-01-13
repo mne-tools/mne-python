@@ -10,6 +10,7 @@ import copy
 import os.path as op
 from types import GeneratorType
 
+from h5io import read_hdf5, write_hdf5
 import numpy as np
 
 from .baseline import rescale
@@ -37,7 +38,6 @@ from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import TimeMixin
 from .io.meas_info import Info
-from .externals.h5io import read_hdf5, write_hdf5
 
 
 def _read_stc(filename):

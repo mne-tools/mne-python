@@ -8,13 +8,13 @@ import os.path as op
 
 import pytest
 import numpy as np
+from pymatreader import read_mat
 
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx, BaseRaw, read_raw_fif
 from mne.preprocessing.nirs import optical_density, beer_lambert_law
 from mne.utils import _validate_type
 from mne.datasets import testing
-from mne.externals.pymatreader import read_mat
 
 fname_nirx_15_0 = op.join(data_path(download=False),
                           'NIRx', 'nirscout', 'nirx_15_0_recording')

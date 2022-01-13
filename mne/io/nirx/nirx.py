@@ -77,7 +77,6 @@ class RawNIRX(BaseRaw):
 
     @verbose
     def __init__(self, fname, saturated, preload=False, verbose=None):
-        from ...externals.pymatreader import read_mat
         logger.info('Loading %s' % fname)
         _validate_type(fname, 'path-like', 'fname')
         _validate_type(saturated, str, 'saturated')
@@ -285,6 +284,7 @@ class RawNIRX(BaseRaw):
         #   Sources and detectors are both called optodes
         #   Each source - detector pair produces a channel
         #   Channels are defined as the midpoint between source and detector
+        from pymatreader import read_mat
         mat_data = read_mat(files['probeInfo.mat'], uint16_codec=None)
         requested_channels = mat_data['probeInfo']['probes']['index_c']
         src_locs = mat_data['probeInfo']['probes']['coords_s3'] / 100.

@@ -9,6 +9,7 @@ import os.path as op
 import re
 from shutil import copyfile
 
+from h5io import write_hdf5
 import numpy as np
 from numpy.fft import fft
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -33,7 +34,6 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  compute_source_morph, labels_to_stc, scale_mri,
                  write_source_spaces)
 from mne.datasets import testing
-from mne.externals.h5io import write_hdf5
 from mne.fixes import _get_img_fdata
 from mne.io import read_info
 from mne.io.constants import FIFF

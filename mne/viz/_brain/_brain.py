@@ -20,6 +20,7 @@ import warnings
 
 import numpy as np
 from collections import OrderedDict
+from decorator import decorator
 
 from .colormap import calculate_lut
 from .surface import _Surface
@@ -32,7 +33,6 @@ from ..utils import (_show_help_fig, _get_color_list, concatenate_images,
 from .._3d import (_process_clim, _handle_time, _check_views,
                    _handle_sensor_types, _plot_sensors)
 from ...defaults import _handle_default, DEFAULTS
-from ...externals.decorator import decorator
 from ...fixes import _point_data, _cell_data
 from ..._freesurfer import (vertex_to_mni, read_talxfm, read_freesurfer_lut,
                             _get_head_surface, _get_skull_surface)

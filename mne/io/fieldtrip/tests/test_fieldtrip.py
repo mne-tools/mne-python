@@ -11,6 +11,8 @@ import os.path
 
 import pytest
 import numpy as np
+import pymatreader
+from pymatreader import read_mat
 
 import mne
 from mne.datasets import testing
@@ -139,15 +141,13 @@ def test_read_epochs(cur_system, version, use_info, monkeypatch):
     check_info_fields(mne_epoched, epoched_ft, use_info)
 
     # weird sfreq
-    from mne.externals.pymatreader import read_mat
-
     def modify_mat(fname, variable_names=None, ignore_fields=None):
         out = read_mat(fname, variable_names, ignore_fields)
         if 'fsample' in out['data']:
             out['data']['fsample'] = np.repeat(out['data']['fsample'], 2)
         return out
 
-    monkeypatch.setattr(mne.externals.pymatreader, 'read_mat', modify_mat)
+    monkeypatch.setattr(pymatreader, 'read_mat', modify_mat)
     with pytest.warns(RuntimeWarning, match='multiple'):
         mne.io.read_epochs_fieldtrip(cur_fname, info)
 
@@ -227,8 +227,6 @@ def test_invalid_trialinfocolumn():
 @testing.requires_testing_data
 def test_create_events():
     """Test 2dim trialinfo fields."""
-    from mne.externals.pymatreader import read_mat
-
     test_data_folder_ft = get_data_paths('neuromag306')
     cur_fname = os.path.join(test_data_folder_ft, 'epoched_v7.mat')
     original_data = read_mat(cur_fname, ['data', ])

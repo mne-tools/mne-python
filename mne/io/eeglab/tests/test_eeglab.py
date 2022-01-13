@@ -13,6 +13,7 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_equal, assert_allclose)
 import pytest
 from scipy import io
+from pymatreader import read_mat
 
 from mne import write_events, read_epochs_eeglab
 from mne.channels import read_custom_montage
@@ -22,7 +23,6 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
 from mne.utils import check_version, Bunch
 from mne.annotations import events_from_annotations, read_annotations
-from mne.externals.pymatreader import read_mat
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 

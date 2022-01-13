@@ -13,6 +13,7 @@ from os import path as op
 from pathlib import Path
 import re
 
+from h5io import read_hdf5, write_hdf5
 import pytest
 import numpy as np
 from numpy.testing import (assert_allclose, assert_array_almost_equal,
@@ -20,7 +21,6 @@ from numpy.testing import (assert_allclose, assert_array_almost_equal,
 
 from mne import concatenate_raws, create_info, Annotations, pick_types
 from mne.datasets import testing
-from mne.externals.h5io import read_hdf5, write_hdf5
 from mne.io import read_raw_fif, RawArray, BaseRaw, Info, _writing_info_hdf5
 from mne.io.base import _get_scaling
 from mne.utils import (_TempDir, catch_logging, _raw_annot, _stamp_to_dt,

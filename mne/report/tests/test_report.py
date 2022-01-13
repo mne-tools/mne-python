@@ -527,8 +527,9 @@ def test_open_report(tmp_path):
 
     # Test creating a new report through the open_report function
     fig1 = _get_example_figures()[0]
-    with open_report(hdf5, subjects_dir=subjects_dir) as report:
-        assert report.subjects_dir == subjects_dir
+    this_sub_dir = tempdir
+    with open_report(hdf5, subjects_dir=this_sub_dir) as report:
+        assert report.subjects_dir == this_sub_dir
         assert report.fname == hdf5
         report.add_figure(fig=fig1, title='evoked response')
     # Exiting the context block should have triggered saving to HDF5
@@ -545,11 +546,11 @@ def test_open_report(tmp_path):
     # Check parameters when loading a report
     pytest.raises(ValueError, open_report, hdf5, foo='bar')  # non-existing
     pytest.raises(ValueError, open_report, hdf5, subjects_dir='foo')
-    open_report(hdf5, subjects_dir=subjects_dir)  # This should work
+    open_report(hdf5, subjects_dir=this_sub_dir)  # This should work
 
     # Check that the context manager doesn't swallow exceptions
     with pytest.raises(ZeroDivisionError):
-        with open_report(hdf5, subjects_dir=subjects_dir) as report:
+        with open_report(hdf5, subjects_dir=this_sub_dir) as report:
             1 / 0
 
 

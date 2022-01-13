@@ -8,6 +8,7 @@
 
 from copy import deepcopy
 
+from h5io import read_hdf5, write_hdf5
 import numpy as np
 
 from ..cov import Covariance, make_ad_hoc_cov
@@ -18,8 +19,6 @@ from ..source_space import label_src_vertno_sel
 from ..utils import (verbose, check_fname, _reg_pinv, _check_option, logger,
                      _pl, _check_src_normal, check_version, _sym_mat_pow, warn)
 from ..time_frequency.csd import CrossSpectralDensity
-
-from ..externals.h5io import read_hdf5, write_hdf5
 
 
 def _check_proj_match(proj, filters):

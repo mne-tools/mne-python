@@ -7,6 +7,7 @@ from functools import partial
 import os
 
 import numpy as np
+from pymatreader import read_mat
 
 import mne
 from mne.io.constants import FIFF
@@ -100,7 +101,6 @@ def get_data_paths(system):
 
 def get_cfg_local(system):
     """Return cfg_local field for the system."""
-    from mne.externals.pymatreader import read_mat
     cfg_local = read_mat(os.path.join(get_data_paths(system), 'raw_v7.mat'),
                          ['cfg_local'])['cfg_local']
 

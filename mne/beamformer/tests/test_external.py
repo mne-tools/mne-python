@@ -8,12 +8,12 @@ import pytest
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 from scipy.io import savemat
+from pymatreader import read_mat
 
 import mne
 from mne.datasets import testing
 from mne.beamformer import make_lcmv, apply_lcmv, apply_lcmv_cov
 from mne.beamformer.tests.test_lcmv import _get_data
-from mne.externals.pymatreader import read_mat
 
 
 data_path = testing.data_path(download=False)

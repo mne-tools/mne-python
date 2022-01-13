@@ -2,8 +2,7 @@ extraction:
   python:
     index:
       filters:
-        - exclude: "mne/externals/*.py"
-        - exclude: "mne/externals/*/*.py"
+        - exclude: "mne/_tempita/*.py"
   javascript:
     index:
       filters:

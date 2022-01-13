@@ -63,15 +63,13 @@ def _func_name(func, cls=None):
 
 # functions to ignore args / docstring of
 docstring_ignores = {
-    'mne.externals',
     'mne.fixes',
     'mne.io.write',
     'mne.io.meas_info.Info',
+    'mne._tempita',
 }
 char_limit = 800  # XX eventually we should probably get this lower
 tab_ignores = [
-    'mne.externals.tqdm._tqdm.__main__',
-    'mne.externals.tqdm._tqdm.cli',
     'mne.channels.tests.test_montage',
     'mne.io.curry.tests.test_curry',
 ]
@@ -281,7 +279,7 @@ def test_documented():
             if not name.startswith('_') and name not in known_names:
                 from_mod = inspect.getmodule(cf).__name__
                 if (from_mod.startswith('mne') and
-                        not from_mod.startswith('mne.externals') and
+                        not from_mod.startswith('mne._tempita') and
                         not any(from_mod.startswith(x)
                                 for x in documented_ignored_mods) and
                         name not in documented_ignored_names and

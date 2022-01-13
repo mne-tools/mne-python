@@ -24,6 +24,7 @@ import time
 import warnings
 import webbrowser
 
+from h5io import read_hdf5, write_hdf5
 import numpy as np
 
 from .. import __version__ as MNE_VERSION
@@ -52,7 +53,6 @@ from ..preprocessing.ica import read_ica
 from .. import dig_mri_distances
 from ..minimum_norm import read_inverse_operator, InverseOperator
 from ..parallel import parallel_func, check_n_jobs
-from ..externals.h5io import read_hdf5, write_hdf5
 from ..html_templates import report_templates_env
 
 _BEM_VIEWS = ('axial', 'sagittal', 'coronal')
