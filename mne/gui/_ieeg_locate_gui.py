@@ -23,7 +23,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib import patheffects
 
-from .._freesurfer import _check_subject_dir, _import_nibabel
+from .._freesurfer import _import_nibabel
 from ..viz.backends.renderer import _get_renderer
 from ..surface import _read_mri_surface, _voxel_neighbors, _marching_cubes
 from ..transforms import (apply_trans, _frame_to_str, _get_trans,
@@ -120,7 +120,7 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._radius = int(_CH_PLOT_SIZE // 100)  # starting 1/100 of image
 
         # load imaging data
-        self._subject_dir = _check_subject_dir(subject, subjects_dir)
+        self._subject_dir = op.join(subjects_dir, subject)
         self._load_image_data(aligned_ct)
 
         # initialize channel data
@@ -191,8 +191,11 @@ class IntracranialElectrodeLocator(QMainWindow):
 
     def _load_image_data(self, ct):
         """Get MRI and CT data to display and transforms to/from vox/RAS."""
+        # allows recon-all not to be finished (T1 made in a few minutes)
+        mri_img = 'brain' if op.isfile(op.join(
+            self._subject_dir, 'mri', 'brain.mgz')) else 'T1'
         self._mri_data, self._vox_ras_t = _load_image(
-            op.join(self._subject_dir, 'mri', 'brain.mgz'),
+            op.join(self._subject_dir, 'mri', f'{mri_img}.mgz'),
             'MRI Image', verbose=self._verbose)
         self._ras_vox_t = np.linalg.inv(self._vox_ras_t)
 
@@ -330,8 +333,9 @@ class IntracranialElectrodeLocator(QMainWindow):
             rr, tris = _marching_cubes(np.where(
                 self._ct_data < np.quantile(self._ct_data, 0.95), 0, 1),
                 [1])[0]
+            rr = apply_trans(self._vox_ras_t, rr)
             self._renderer.mesh(
-                *rr.T * 1000, triangles=tris, color='gray', opacity=0.2,
+                *rr.T, triangles=tris, color='gray', opacity=0.2,
                 reset_camera=False, render=False)
         else:
             self._renderer.mesh(
