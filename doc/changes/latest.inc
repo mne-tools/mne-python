@@ -76,7 +76,7 @@ Enhancements
 
 - Add a button to display the MEG helmet in the coregistration GUI (:gh:`10200` by `Guillaume Favelier`_)
 
-- Add marching cubes display of head if :func:`mne.make_scalp_surfaces` has not computed or the recon-all hasn't finished (:gh:`10202` by `Alex Rockhill`_)
+- Add marching cubes display of head if :func:`mne.bem.make_scalp_surfaces` has not computed or the recon-all hasn't finished (:gh:`10202` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
