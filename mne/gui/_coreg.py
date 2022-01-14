@@ -914,7 +914,8 @@ class CoregistrationUI(HasTraits):
         if self._helmet:
             head_mri_t = _get_trans(self._coreg.trans, 'head', 'mri')[0]
             helmet_actor, _, _ = _plot_helmet(
-                self._renderer, self._info, head_mri_t)
+                self._renderer, self._info, self._to_cf_t, head_mri_t,
+                self._coord_frame)
         else:
             helmet_actor = None
         self._update_actor("helmet", helmet_actor)

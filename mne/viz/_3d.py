@@ -699,8 +699,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     # plot helmet
     if 'helmet' in meg and pick_types(info, meg=True).size > 0:
-        _, _, src_surf = _plot_helmet(renderer, info, head_mri_t)
-        assert src_surf['coord_frame'] == FIFF.FIFFV_COORD_MRI
+        _, _, src_surf = _plot_helmet(
+            renderer, info, to_cf_t, head_mri_t, coord_frame)
 
     # plot surfaces
     if brain and 'lh' not in surfs:  # one layer sphere
@@ -901,9 +901,13 @@ def _plot_head_surface(renderer, head, subject, subjects_dir, bem,
     return actor, dst_surf, src_surf
 
 
-def _plot_helmet(renderer, info, head_mri_t, alpha=0.25, color=None):
+def _plot_helmet(renderer, info, to_cf_t, head_mri_t, coord_frame,
+                 alpha=0.25, color=None):
     color = DEFAULTS['coreg']['helmet_color'] if color is None else color
     src_surf = get_meg_helmet_surf(info, head_mri_t)
+    assert src_surf['coord_frame'] == FIFF.FIFFV_COORD_MRI
+    src_surf = transform_surface_to(
+        src_surf, coord_frame, [to_cf_t['mri'], to_cf_t['head']], copy=True)
     actor, dst_surf = renderer.surface(
         surface=src_surf, color=color, opacity=alpha,
         backface_culling=False)
