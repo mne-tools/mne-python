@@ -176,7 +176,7 @@ class CoregistrationUI(HasTraits):
             skip_fiducials=False,
             scale_labels=True,
             copy_annots=True,
-            prepare_bem=False,
+            prepare_bem=True,
             scale_modes=["None", "uniform", "3-axis"],
             scale_mode="None",
             icp_fid_matches=('nearest', 'matched'),
