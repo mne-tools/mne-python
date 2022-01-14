@@ -187,11 +187,14 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return hlayout
 
-    def _dock_add_text(self, name, value, placeholder, layout=None):
+    def _dock_add_text(self, name, value, placeholder, callback=None,
+                       layout=None):
         layout = self._dock_layout if layout is None else layout
         widget = QLineEdit(value)
         widget.setPlaceholderText(placeholder)
         self._layout_add_widget(layout, widget)
+        if callback is not None:
+            widget.textChanged.connect(callback)
         return _QtWidget(widget)
 
     def _dock_add_file_button(self, name, desc, func, value=None, save=False,

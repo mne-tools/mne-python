@@ -3,19 +3,23 @@ from functools import partial
 import os
 import os.path as op
 import time
+import queue
 import threading
+import re
 
 import numpy as np
 from traitlets import observe, HasTraits, Unicode, Bool, Float
 
 from ..io.constants import FIFF
 from ..defaults import DEFAULTS
-from ..io import read_info, read_fiducials, read_raw
+from ..io import read_info, read_fiducials, write_fiducials, read_raw
 from ..io.pick import pick_types
 from ..io.open import fiff_open, dir_tree_find
 from ..io.meas_info import _empty_info
 from ..io._read_raw import supported as raw_supported_types
-from ..coreg import Coregistration, _is_mri_subject
+from ..bem import make_bem_solution, write_bem_solution
+from ..coreg import (Coregistration, _is_mri_subject, scale_mri, bem_fname,
+                     _mri_subject_has_bem, _find_fiducials_files, fid_fname)
 from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_head_shape_points, _plot_mri_fiducials,
                        _plot_hpi_coils, _plot_sensors, _plot_helmet)
@@ -107,6 +111,11 @@ class CoregistrationUI(HasTraits):
     _head_transparency = Bool()
     _helmet = Bool()
     _grow_hair = Float()
+    _subject_to = Unicode()
+    _skip_fiducials = Bool()
+    _scale_labels = Bool()
+    _copy_annots = Bool()
+    _prepare_bem = Bool()
     _scale_mode = Unicode()
     _icp_fid_match = Unicode()
 
@@ -134,6 +143,7 @@ class CoregistrationUI(HasTraits):
         self._redraws_pending = set()
         self._parameter_mutex = threading.Lock()
         self._redraw_mutex = threading.Lock()
+        self._job_queue = queue.Queue()
         self._head_geo = None
         self._coord_frame = "mri"
         self._mouse_no_mvt = -1
@@ -162,6 +172,11 @@ class CoregistrationUI(HasTraits):
             fiducial="LPA",
             lock_fids=True,
             grow_hair=0.0,
+            subject_to="",
+            skip_fiducials=False,
+            scale_labels=True,
+            copy_annots=True,
+            prepare_bem=True,
             scale_modes=["None", "uniform", "3-axis"],
             scale_mode="None",
             icp_fid_matches=('nearest', 'matched'),
@@ -217,6 +232,10 @@ class CoregistrationUI(HasTraits):
         self._set_head_transparency(self._defaults["head_transparency"])
         self._set_helmet(self._defaults["helmet"])
         self._set_grow_hair(self._defaults["grow_hair"])
+        self._set_skip_fiducials(self._defaults["skip_fiducials"])
+        self._set_scale_labels(self._defaults["scale_labels"])
+        self._set_copy_annots(self._defaults["copy_annots"])
+        self._set_prepare_bem(self._defaults["prepare_bem"])
         self._set_omit_hsp_distance(self._defaults["omit_hsp_distance"])
         self._set_icp_n_iterations(self._defaults["icp_n_iterations"])
         self._set_icp_fid_match(self._defaults["icp_fid_match"])
@@ -230,6 +249,7 @@ class CoregistrationUI(HasTraits):
         # once the docks are initialized
         self._set_current_fiducial(self._defaults["fiducial"])
         self._set_scale_mode(self._defaults["scale_mode"])
+        self._set_subject_to(self._defaults["subject_to"])
         if trans is not None:
             self._load_trans(trans)
         self._redraw()  # we need the elements to be present now
@@ -238,6 +258,9 @@ class CoregistrationUI(HasTraits):
             self._forward_widget_command('high_res_head', "set_value", True)
             self._set_lock_fids(True)  # hack to make the dig disappear
         self._set_lock_fids(fid_accurate)
+
+        # configure worker
+        self._configure_worker()
 
         # must be done last
         if show:
@@ -333,6 +356,23 @@ class CoregistrationUI(HasTraits):
     def _set_grow_hair(self, value):
         self._grow_hair = value
 
+    def _set_subject_to(self, value):
+        self._subject_to = value
+        self._forward_widget_command(
+            "save_subject", "set_enabled", len(value) > 0)
+
+    def _set_skip_fiducials(self, state):
+        self._skip_fiducials = bool(state)
+
+    def _set_scale_labels(self, state):
+        self._scale_labels = bool(state)
+
+    def _set_copy_annots(self, state):
+        self._copy_annots = bool(state)
+
+    def _set_prepare_bem(self, state):
+        self._prepare_bem = bool(state)
+
     def _set_scale_mode(self, mode):
         self._scale_mode = mode
 
@@ -364,6 +404,7 @@ class CoregistrationUI(HasTraits):
         else:
             assert mode_name == "scale"
             params[mode_name][idx] = value / 1e2
+            self._update_plot("head")
         self._coreg._update_params(
             rot=params["rotation"],
             tra=params["translation"],
@@ -403,22 +444,24 @@ class CoregistrationUI(HasTraits):
         self._coreg._setup_bem()
         self._coreg._setup_fiducials(self._fiducials)
         self._reset()
-        rr = (self._coreg._processed_low_res_mri_points *
-              self._coreg._scale)
-        self._head_geo = dict(rr=rr, tris=self._coreg._bem_low_res["tris"],
-                              nn=self._coreg._bem_low_res["nn"])
+        self._update_projection_surface()
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
-        view_widgets = ["project_eeg", "fit_fiducials", "fit_icp"]
+        locked_widgets = ["sX", "sY", "sZ", "tX", "tY", "tZ",
+                          "rX", "rY", "rZ", "project_eeg",
+                          "fit_fiducials", "fit_icp"]
+        fits_widgets = ["fits_fiducials", "fits_icp"]
         fid_widgets = ["fid_X", "fid_Y", "fid_Z", "fids_file", "fids"]
         self._set_head_transparency(self._lock_fids)
         if self._lock_fids:
-            self._forward_widget_command(view_widgets, "set_enabled", True)
+            self._forward_widget_command(locked_widgets, "set_enabled", True)
+            self._scale_mode_changed()
             self._display_message()
             self._update_distance_estimation()
         else:
-            self._forward_widget_command(view_widgets, "set_enabled", False)
+            self._forward_widget_command(locked_widgets, "set_enabled", False)
+            self._forward_widget_command(fits_widgets, "set_enabled", False)
             self._display_message("Picking fiducials - "
                                   f"{self._current_fiducial.upper()}")
         self._set_sensors_visibility(self._lock_fids)
@@ -493,8 +536,6 @@ class CoregistrationUI(HasTraits):
     @observe("_head_resolution")
     def _head_resolution_changed(self, change=None):
         self._update_plot(["head"])
-        if self._grow_hair > 0:
-            self._update_plot(["hair"])
 
     @observe("_head_transparency")
     def _head_transparency_changed(self, change=None):
@@ -510,18 +551,33 @@ class CoregistrationUI(HasTraits):
     @observe("_grow_hair")
     def _grow_hair_changed(self, change=None):
         self._coreg.set_grow_hair(self._grow_hair)
-        self._update_plot("hair")
+        self._update_plot("head")
 
     @observe("_scale_mode")
     def _scale_mode_changed(self, change=None):
+        locked_widgets = ["sX", "sY", "sZ", "fits_icp", "subject_to"]
         mode = None if self._scale_mode == "None" else self._scale_mode
         self._coreg.set_scale_mode(mode)
-        self._forward_widget_command(["sX", "sY", "sZ"], "set_enabled",
-                                     mode is not None)
+        if self._lock_fids:
+            self._forward_widget_command(locked_widgets, "set_enabled",
+                                         mode is not None)
+            self._forward_widget_command("fits_fiducials", "set_enabled",
+                                         mode not in (None, "3-axis"))
 
     @observe("_icp_fid_match")
     def _icp_fid_match_changed(self, change=None):
         self._coreg.set_fid_match(self._icp_fid_match)
+
+    def _configure_worker(self):
+        def worker():
+            while True:
+                ret = self._job_queue.get()
+                if ret:
+                    self._save_subject()
+                    self._job_queue.task_done()
+        t = threading.Thread(target=worker)
+        t.daemon = True
+        t.start()
 
     def _configure_picking(self):
         self._renderer._update_picking_callback(
@@ -537,7 +593,6 @@ class CoregistrationUI(HasTraits):
             return
         draw_map = dict(
             head=self._add_head_surface,
-            hair=self._add_head_hair,
             mri_fids=self._add_mri_fiducials,
             hsp=self._add_head_shape_points,
             hpi=self._add_hpi_coils,
@@ -641,7 +696,6 @@ class CoregistrationUI(HasTraits):
                 self._info, self._coreg.trans, coord_frame=self._coord_frame)
         all_keys = (
             'head', 'mri_fids',  # MRI first
-            'hair',  # then hair
             'hsp', 'hpi', 'eeg', 'head_fids',  # then dig
             'helmet',
         )
@@ -680,6 +734,15 @@ class CoregistrationUI(HasTraits):
         finally:
             self._params_locked = old_params_locked
 
+    @contextmanager
+    def _lock_scale_mode(self):
+        old_scale_mode = self._coreg._scale_mode
+        self._coreg._scale_mode = None
+        try:
+            yield
+        finally:
+            self._coreg._scale_mode = old_scale_mode
+
     def _display_message(self, msg=""):
         self._status_msg.set_value(msg)
         self._status_msg.show()
@@ -692,6 +755,14 @@ class CoregistrationUI(HasTraits):
         kwargs = dict(zip(('azimuth', 'elevation'), kwargs[view[fid]]))
         if not self._lock_fids:
             self._renderer.set_camera(distance=None, **kwargs)
+
+    def _update_projection_surface(self):
+        self._head_geo = dict(
+            rr=self._coreg._get_processed_mri_points('low') *
+            self._coreg._scale.T,
+            tris=self._coreg._bem_low_res["tris"],
+            nn=self._coreg._bem_low_res["nn"]
+        )
 
     def _update_fiducials(self):
         fid = self._current_fiducial.lower()
@@ -724,8 +795,9 @@ class CoregistrationUI(HasTraits):
                                              self._coreg._scale * 1e2)
 
     def _reset(self):
-        self._reset_fitting_parameters()
-        self._coreg.reset()
+        self._coreg.set_scale(self._coreg._default_parameters[6:9])
+        self._coreg.set_rotation(self._coreg._default_parameters[:3])
+        self._coreg.set_translation(self._coreg._default_parameters[3:6])
         self._update_plot()
         self._update_parameters()
         self._update_distance_estimation()
@@ -829,16 +901,14 @@ class CoregistrationUI(HasTraits):
                 self._renderer, "head", self._subject, self._subjects_dir,
                 bem, self._coord_frame, self._to_cf_t,
                 alpha=self._head_opacity)
+        self._update_actor("head", head_actor)
         # mark head surface mesh to restrict picking
         head_surf._picking_target = True
-        self._update_actor("head", head_actor)
+        res = "high" if self._head_resolution else "low"
+        head_surf.points = \
+            self._coreg._get_processed_mri_points(res) * self._coreg._scale.T
         self._surfaces["head"] = head_surf
-
-    def _add_head_hair(self):
-        if "head" in self._surfaces:
-            res = "high" if self._head_resolution else "low"
-            self._surfaces["head"].points = \
-                self._coreg._get_processed_mri_points(res)
+        self._update_projection_surface()
 
     def _add_helmet(self):
         if self._helmet:
@@ -851,6 +921,10 @@ class CoregistrationUI(HasTraits):
         self._update_actor("helmet", helmet_actor)
 
     def _fit_fiducials(self):
+        with self._lock_scale_mode():
+            self._fits_fiducials()
+
+    def _fits_fiducials(self):
         if not self._lock_fids:
             self._display_message(
                 "Fitting is disabled, lock the fiducials first.")
@@ -870,6 +944,10 @@ class CoregistrationUI(HasTraits):
         self._update_distance_estimation()
 
     def _fit_icp(self):
+        with self._lock_scale_mode():
+            self._fits_icp()
+
+    def _fits_icp(self):
         if not self._lock_fids:
             self._display_message(
                 "Fitting is disabled, lock the fiducials first.")
@@ -879,7 +957,7 @@ class CoregistrationUI(HasTraits):
         def callback(iteration, n_iterations):
             self._display_message(
                 f"Fitting ICP - iteration {iteration + 1}")
-            self._update_plot("sensors")
+            self._update_plot(['head', 'hsp', 'hpi', 'eeg', 'head_fids'])
             self._current_icp_iterations += 1
             self._update_distance_estimation()
             self._update_parameters()
@@ -900,6 +978,75 @@ class CoregistrationUI(HasTraits):
             f"Fitting ICP finished in {end - start:.2f} seconds and "
             f"{self._current_icp_iterations} iterations.")
         del self._current_icp_iterations
+
+    def _start_worker(self):
+        self._job_queue.put(True)
+
+    def _save_subject(self):
+        self._display_message(f"Saving {self._subject_to}...")
+
+        # check that fiducials are saved
+        if not self._skip_fiducials and self._scale_mode != "None" and \
+                not _find_fiducials_files(self._subject, self._subjects_dir):
+            default_fid_fname = fid_fname.format(
+                subjects_dir=self._subjects_dir, subject=self._subject)
+            self._display_message(f"Saving {default_fid_fname}...")
+            dig = [{'kind': FIFF.FIFFV_POINT_CARDINAL,
+                    'ident': FIFF.FIFFV_POINT_LPA,
+                    'r': np.array(self._coreg._lpa[0])},
+                   {'kind': FIFF.FIFFV_POINT_CARDINAL,
+                    'ident': FIFF.FIFFV_POINT_NASION,
+                    'r': np.array(self._coreg._nasion[0])},
+                   {'kind': FIFF.FIFFV_POINT_CARDINAL,
+                    'ident': FIFF.FIFFV_POINT_RPA,
+                    'r': np.array(self._coreg._rpa[0])}]
+            write_fiducials(default_fid_fname, dig, FIFF.FIFFV_COORD_MRI)
+            self._display_message(f"Saving {default_fid_fname}... Done!")
+
+        # prepare bem
+        bem_names = []
+        if self._prepare_bem and self._scale_mode != "None":
+            can_prepare_bem = _mri_subject_has_bem(
+                self._subject, self._subjects_dir)
+        else:
+            can_prepare_bem = False
+        if can_prepare_bem:
+            pattern = bem_fname.format(subjects_dir=self._subjects_dir,
+                                       subject=self._subject,
+                                       name='(.+-bem)')
+            bem_dir, pattern = os.path.split(pattern)
+            for filename in os.listdir(bem_dir):
+                match = re.match(pattern, filename)
+                if match:
+                    bem_names.append(match.group(1))
+
+        # save the scaled MRI
+        try:
+            self._display_message(f"Scaling {self._subject_to}...")
+            scale_mri(self._subject, self._subject_to, self._coreg._scale,
+                      True, self._subjects_dir, self._skip_fiducials,
+                      self._scale_labels, self._copy_annots)
+        except Exception:
+            logger.error(f"Error scaling {self._subject_to}")
+            bem_names = []
+        else:
+            self._display_message(f"Scaling {self._subject_to}... Done!")
+
+        # Precompute BEM solutions
+        for bem_name in bem_names:
+            try:
+                self._display_message(f"Computing {bem_name} solution...")
+                bem_file = bem_fname.format(subjects_dir=self._subjects_dir,
+                                            subject=self._subject_to,
+                                            name=bem_name)
+                bemsol = make_bem_solution(bem_file)
+                write_bem_solution(bem_file[:-4] + '-sol.fif', bemsol)
+            except Exception:
+                logger.error(f"Error computing {bem_name} solution")
+            else:
+                self._display_message(f"Computing {bem_name} solution..."
+                                      " Done!")
+        self._display_message(f"Saving {self._subject_to}... Done!")
 
     def _save_trans(self, fname):
         write_trans(fname, self._coreg.trans)
@@ -944,7 +1091,7 @@ class CoregistrationUI(HasTraits):
 
     def _configure_dock(self):
         self._renderer._dock_initialize(name="Input", area="left")
-        layout = self._renderer._dock_add_group_box("MRI Subject")
+        mri_subject_layout = self._renderer._dock_add_group_box("MRI Subject")
         self._widgets["subjects_dir"] = self._renderer._dock_add_file_button(
             name="subjects_dir",
             desc="Load",
@@ -954,7 +1101,7 @@ class CoregistrationUI(HasTraits):
             directory=True,
             tooltip="Load the path to the directory containing the "
                     "FreeSurfer subjects",
-            layout=layout,
+            layout=mri_subject_layout,
         )
         self._widgets["subject"] = self._renderer._dock_add_combo_box(
             name="Subject",
@@ -963,16 +1110,17 @@ class CoregistrationUI(HasTraits):
             callback=self._set_subject,
             compact=True,
             tooltip="Select the FreeSurfer subject name",
-            layout=layout
+            layout=mri_subject_layout,
         )
 
-        layout = self._renderer._dock_add_group_box("MRI Fiducials")
+        mri_fiducials_layout = \
+            self._renderer._dock_add_group_box("MRI Fiducials")
         self._widgets["lock_fids"] = self._renderer._dock_add_check_box(
             name="Lock fiducials",
             value=self._lock_fids,
             callback=self._set_lock_fids,
             tooltip="Lock/Unlock interactive fiducial editing",
-            layout=layout
+            layout=mri_fiducials_layout,
         )
         self._widgets["fiducials_file"] = self._renderer._dock_add_file_button(
             name="fiducials_file",
@@ -981,16 +1129,16 @@ class CoregistrationUI(HasTraits):
             value=self._fiducials_file,
             placeholder="Path to fiducials",
             tooltip="Load the fiducials from a FIFF file",
-            layout=layout,
+            layout=mri_fiducials_layout,
         )
         self._widgets["fids"] = self._renderer._dock_add_radio_buttons(
             value=self._defaults["fiducial"],
             rng=self._defaults["fiducials"],
             callback=self._set_current_fiducial,
             vertical=False,
-            layout=layout,
+            layout=mri_fiducials_layout,
         )
-        hlayout = self._renderer._dock_add_layout()
+        fiducial_coords_layout = self._renderer._dock_add_layout()
         for coord in ("X", "Y", "Z"):
             name = f"fid_{coord}"
             self._widgets[name] = self._renderer._dock_add_spin_box(
@@ -1004,11 +1152,13 @@ class CoregistrationUI(HasTraits):
                 compact=True,
                 double=True,
                 tooltip=f"Set the {coord} fiducial coordinate",
-                layout=hlayout
+                layout=fiducial_coords_layout,
             )
-        self._renderer._layout_add_widget(layout, hlayout)
+        self._renderer._layout_add_widget(
+            mri_fiducials_layout, fiducial_coords_layout)
 
-        layout = self._renderer._dock_add_group_box("Digitization Source")
+        dig_source_layout = \
+            self._renderer._dock_add_group_box("Digitization Source")
         self._widgets["info_file"] = self._renderer._dock_add_file_button(
             name="info_file",
             desc="Load",
@@ -1017,7 +1167,7 @@ class CoregistrationUI(HasTraits):
             placeholder="Path to info",
             tooltip="Load the FIFF file with digitizer data for "
                     "coregistration",
-            layout=layout,
+            layout=dig_source_layout,
         )
         self._widgets["grow_hair"] = self._renderer._dock_add_spin_box(
             name="Grow Hair (mm)",
@@ -1025,57 +1175,60 @@ class CoregistrationUI(HasTraits):
             rng=[0.0, 10.0],
             callback=self._set_grow_hair,
             tooltip="Compensate for hair on the digitizer head shape",
-            layout=layout,
+            layout=dig_source_layout,
         )
-        hlayout = self._renderer._dock_add_layout(vertical=False)
+        omit_hsp_layout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["omit_distance"] = self._renderer._dock_add_spin_box(
             name="Omit Distance (mm)",
             value=self._omit_hsp_distance,
             rng=[0.0, 100.0],
             callback=self._set_omit_hsp_distance,
             tooltip="Set the head shape points exclusion distance",
-            layout=hlayout,
+            layout=omit_hsp_layout,
         )
         self._widgets["omit"] = self._renderer._dock_add_button(
             name="Omit",
             callback=self._omit_hsp,
             tooltip="Exclude the head shape points that are far away from "
                     "the MRI head",
-            layout=hlayout,
+            layout=omit_hsp_layout,
         )
         self._widgets["reset_omit"] = self._renderer._dock_add_button(
             name="Reset",
             callback=self._reset_omit_hsp_filter,
             tooltip="Reset all excluded head shape points",
-            layout=hlayout,
+            layout=omit_hsp_layout,
         )
-        self._renderer._layout_add_widget(layout, hlayout)
+        self._renderer._layout_add_widget(dig_source_layout, omit_hsp_layout)
 
-        layout = self._renderer._dock_add_group_box("View options")
+        view_options_layout = \
+            self._renderer._dock_add_group_box("View Options")
         self._widgets["project_eeg"] = self._renderer._dock_add_check_box(
             name="Project EEG",
             value=self._project_eeg,
             callback=self._set_project_eeg,
             tooltip="Enable/Disable EEG channels projection on head surface",
-            layout=layout
+            layout=view_options_layout,
         )
         self._widgets["high_res_head"] = self._renderer._dock_add_check_box(
             name="Show High Resolution Head",
             value=self._head_resolution,
             callback=self._set_head_resolution,
             tooltip="Enable/Disable high resolution head surface",
-            layout=layout
+            layout=view_options_layout,
         )
         self._widgets["helmet"] = self._renderer._dock_add_check_box(
             name="Show helmet",
             value=self._helmet,
             callback=self._set_helmet,
             tooltip="Enable/Disable helmet",
-            layout=layout
+            layout=view_options_layout,
         )
         self._renderer._dock_add_stretch()
 
         self._renderer._dock_initialize(name="Parameters", area="right")
+        mri_scaling_layout = \
+            self._renderer._dock_add_group_box(name="MRI Scaling")
         self._widgets["scaling_mode"] = self._renderer._dock_add_combo_box(
             name="Scaling Mode",
             value=self._defaults["scale_mode"],
@@ -1083,15 +1236,19 @@ class CoregistrationUI(HasTraits):
             callback=self._set_scale_mode,
             tooltip="Select the scaling mode",
             compact=True,
+            layout=mri_scaling_layout,
         )
-        hlayout = self._renderer._dock_add_group_box(
+        scale_params_layout = self._renderer._dock_add_group_box(
             name="Scaling Parameters",
+            layout=mri_scaling_layout,
         )
-        for coord in ("X", "Y", "Z"):
+        coords = ["X", "Y", "Z"]
+        for coord in coords:
             name = f"s{coord}"
+            attr = getattr(self._coreg, "_scale")
             self._widgets[name] = self._renderer._dock_add_spin_box(
                 name=name,
-                value=0.,
+                value=attr[coords.index(coord)] * 1e2,
                 rng=[-1e3, 1e3],
                 callback=partial(
                     self._set_parameter,
@@ -1101,17 +1258,51 @@ class CoregistrationUI(HasTraits):
                 compact=True,
                 double=True,
                 tooltip=f"Set the {coord} scaling parameter",
-                layout=hlayout
+                layout=scale_params_layout,
             )
 
-        for mode, mode_name in (("t", "Translation"), ("r", "Rotation")):
-            hlayout = self._renderer._dock_add_group_box(
-                f"{mode_name} ({mode})")
-            for coord in ("X", "Y", "Z"):
+        fit_scale_layout = self._renderer._dock_add_layout(vertical=False)
+        self._widgets["fits_fiducials"] = self._renderer._dock_add_button(
+            name="Fit fiducials with scaling",
+            callback=self._fits_fiducials,
+            tooltip="Find rotation and translation to fit all 3 fiducials",
+            layout=fit_scale_layout,
+        )
+        self._widgets["fits_icp"] = self._renderer._dock_add_button(
+            name="Fit ICP with scaling",
+            callback=self._fits_icp,
+            tooltip="Find MRI scaling, translation, and rotation to match the "
+                    "head shape points",
+            layout=fit_scale_layout,
+        )
+        self._renderer._layout_add_widget(
+            scale_params_layout, fit_scale_layout)
+        subject_to_layout = self._renderer._dock_add_layout(vertical=False)
+        self._widgets["subject_to"] = self._renderer._dock_add_text(
+            name="subject-to",
+            value=self._subject_to,
+            placeholder="subject name",
+            callback=self._set_subject_to,
+            layout=subject_to_layout,
+        )
+        self._widgets["save_subject"] = self._renderer._dock_add_button(
+            name="Save scaled anatomy",
+            callback=self._start_worker,
+            tooltip="Save scaled anatomy",
+            layout=subject_to_layout,
+        )
+        self._renderer._layout_add_widget(
+            mri_scaling_layout, subject_to_layout)
+        param_layout = self._renderer._dock_add_group_box(
+            "Translation (t) and Rotation (r)")
+        for coord in coords:
+            coord_layout = self._renderer._dock_add_layout(vertical=False)
+            for mode, mode_name in (("t", "Translation"), ("r", "Rotation")):
                 name = f"{mode}{coord}"
+                attr = getattr(self._coreg, f"_{mode_name.lower()}")
                 self._widgets[name] = self._renderer._dock_add_spin_box(
                     name=name,
-                    value=0.,
+                    value=attr[coords.index(coord)] * 1e3,
                     rng=[-1e3, 1e3],
                     callback=partial(
                         self._set_parameter,
@@ -1122,28 +1313,57 @@ class CoregistrationUI(HasTraits):
                     double=True,
                     step=1,
                     tooltip=f"Set the {coord} {mode_name.lower()} parameter",
-                    layout=hlayout
+                    layout=coord_layout
                 )
+            self._renderer._layout_add_widget(param_layout, coord_layout)
 
-        layout = self._renderer._dock_add_group_box("Fitting")
-        hlayout = self._renderer._dock_add_layout(vertical=False)
+        fit_layout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["fit_fiducials"] = self._renderer._dock_add_button(
-            name="Fit Fiducials",
+            name="Fit fiducials",
             callback=self._fit_fiducials,
             tooltip="Find rotation and translation to fit all 3 fiducials",
-            layout=hlayout,
+            layout=fit_layout,
         )
         self._widgets["fit_icp"] = self._renderer._dock_add_button(
             name="Fit ICP",
             callback=self._fit_icp,
             tooltip="Find MRI scaling, translation, and rotation to match the "
                     "head shape points",
-            layout=hlayout,
+            layout=fit_layout,
         )
-        self._renderer._layout_add_widget(layout, hlayout)
+        self._renderer._layout_add_widget(param_layout, fit_layout)
+        trans_layout = self._renderer._dock_add_group_box("Transform")
+        save_trans_layout = self._renderer._dock_add_layout(vertical=False)
+        self._widgets["save_trans"] = self._renderer._dock_add_file_button(
+            name="save_trans",
+            desc="Save...",
+            save=True,
+            func=self._save_trans,
+            input_text_widget=False,
+            tooltip="Save the transform file to disk",
+            layout=save_trans_layout,
+        )
+        self._widgets["load_trans"] = self._renderer._dock_add_file_button(
+            name="load_trans",
+            desc="Load...",
+            func=self._load_trans,
+            input_text_widget=False,
+            tooltip="Load the transform file from disk",
+            layout=save_trans_layout,
+        )
+        self._widgets["reset_trans"] = self._renderer._dock_add_button(
+            name="Reset",
+            callback=self._reset,
+            tooltip="Reset all the parameters affecting the coregistration",
+            layout=save_trans_layout,
+        )
+        self._renderer._layout_add_widget(trans_layout, save_trans_layout)
+
+        fitting_options_layout = \
+            self._renderer._dock_add_group_box("Fitting Options")
         self._widgets["fit_label"] = self._renderer._dock_add_label(
             value="",
-            layout=layout,
+            layout=fitting_options_layout,
         )
         self._widgets["icp_n_iterations"] = self._renderer._dock_add_spin_box(
             name="Number Of ICP Iterations",
@@ -1153,7 +1373,7 @@ class CoregistrationUI(HasTraits):
             compact=True,
             double=False,
             tooltip="Set the number of ICP iterations",
-            layout=layout,
+            layout=fitting_options_layout,
         )
         self._widgets["icp_fid_match"] = self._renderer._dock_add_combo_box(
             name="Fiducial point matching",
@@ -1162,15 +1382,15 @@ class CoregistrationUI(HasTraits):
             callback=self._set_icp_fid_match,
             compact=True,
             tooltip="Select the fiducial point matching method",
-            layout=layout
+            layout=fitting_options_layout,
         )
-        layout = self._renderer._dock_add_group_box(
+        weights_layout = self._renderer._dock_add_group_box(
             name="Weights",
-            layout=layout,
+            layout=fitting_options_layout,
         )
         for point, fid in zip(("HSP", "EEG", "HPI"),
                               self._defaults["fiducials"]):
-            hlayout = self._renderer._dock_add_layout(vertical=False)
+            weight_layout = self._renderer._dock_add_layout(vertical=False)
             point_lower = point.lower()
             name = f"{point_lower}_weight"
             self._widgets[name] = self._renderer._dock_add_spin_box(
@@ -1181,7 +1401,7 @@ class CoregistrationUI(HasTraits):
                 compact=True,
                 double=True,
                 tooltip=f"Set the {point} weight",
-                layout=hlayout
+                layout=weight_layout,
             )
 
             fid_lower = fid.lower()
@@ -1194,41 +1414,15 @@ class CoregistrationUI(HasTraits):
                 compact=True,
                 double=True,
                 tooltip=f"Set the {fid} weight",
-                layout=hlayout
+                layout=weight_layout,
             )
-            self._renderer._layout_add_widget(layout, hlayout)
+            self._renderer._layout_add_widget(weights_layout, weight_layout)
         self._renderer._dock_add_button(
             name="Reset Fitting Options",
             callback=self._reset_fitting_parameters,
             tooltip="Reset all the fitting parameters to default value",
-            layout=layout,
+            layout=fitting_options_layout,
         )
-        layout = self._renderer._dock_layout
-        hlayout = self._renderer._dock_add_layout(vertical=False)
-        self._renderer._dock_add_button(
-            name="Reset",
-            callback=self._reset,
-            tooltip="Reset all the parameters affecting the coregistration",
-            layout=hlayout,
-        )
-        self._widgets["save_trans"] = self._renderer._dock_add_file_button(
-            name="save_trans",
-            desc="Save...",
-            save=True,
-            func=self._save_trans,
-            input_text_widget=False,
-            tooltip="Save the transform file to disk",
-            layout=hlayout,
-        )
-        self._widgets["load_trans"] = self._renderer._dock_add_file_button(
-            name="load_trans",
-            desc="Load...",
-            func=self._load_trans,
-            input_text_widget=False,
-            tooltip="Load the transform file from disk",
-            layout=hlayout,
-        )
-        self._renderer._layout_add_widget(layout, hlayout)
         self._renderer._dock_add_stretch()
 
     def _configure_status_bar(self):

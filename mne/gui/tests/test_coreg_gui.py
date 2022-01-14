@@ -7,6 +7,8 @@ import os.path as op
 
 import pytest
 import warnings
+from numpy.testing import assert_allclose
+import numpy as np
 
 from mne.datasets import testing
 from mne.io import read_info
@@ -115,6 +117,23 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     coreg._set_fiducials_file(fid_fname)
     assert coreg._fiducials_file == fid_fname
 
+    # fitting (with scaling)
+    coreg._reset()
+    coreg._reset_fitting_parameters()
+    coreg._set_scale_mode("uniform")
+    coreg._fits_fiducials()
+    assert_allclose(coreg._coreg._scale,
+                    np.array([97.46, 97.46, 97.46]) * 1e-2,
+                    atol=1e-3)
+    coreg._set_icp_fid_match("nearest")
+    coreg._set_scale_mode("3-axis")
+    coreg._fits_icp()
+    assert_allclose(coreg._coreg._scale,
+                    np.array([104.43, 101.47, 125.78]) * 1e-2,
+                    atol=1e-3)
+    coreg._set_scale_mode("None")
+    coreg._set_icp_fid_match("matched")
+
     # unlock fiducials
     assert coreg._lock_fids
     coreg._set_lock_fids(False)
@@ -134,7 +153,7 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert coreg._lock_fids
     assert coreg._head_transparency
 
-    # fitting
+    # fitting (no scaling)
     assert coreg._nasion_weight == 10.
     coreg._set_point_weight(11., 'nasion')
     assert coreg._nasion_weight == 11.

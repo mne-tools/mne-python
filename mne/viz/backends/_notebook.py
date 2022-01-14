@@ -163,7 +163,8 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, hlayout)
         return hlayout
 
-    def _dock_add_text(self, name, value, placeholder, layout=None):
+    def _dock_add_text(self, name, value, placeholder, callback=None,
+                       layout=None):
         layout = self._dock_layout if layout is None else layout
         widget = Text(value=value, placeholder=placeholder)
         self._layout_add_widget(layout, widget)
