@@ -864,6 +864,20 @@ class IntracranialElectrodeLocator(QMainWindow):
                     self._figs[axis].axes[0].imshow(
                         ct_mip_data, cmap='gray', aspect='auto',
                         vmin=ct_min, vmax=ct_max))
+                # add channel circles
+                xy_idx = [0, 1, 2]
+                xy_idx.remove(axis)
+                xs = list()
+                ys = list()
+                colors = list()
+                for name, ras in self._chs.items():
+                    xyz = apply_trans(self._ras_vox_t, ras)
+                    xs.append(xyz[xy_idx[0]])
+                    ys.append(xyz[xy_idx[1]])
+                    colors.append(_CMAP(self._groups[name]))
+                self._images['mip'].append(
+                    self._figs[axis].axes[0].scatter(
+                        xs, ys, color=colors, s=self._radius / 5))
         else:
             for img in self._images['mip']:
                 img.remove()
