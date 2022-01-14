@@ -24,7 +24,7 @@ from mne.io import (read_raw_fif, read_info, read_raw_bti, read_raw_kit,
                     BaseRaw, read_raw_ctf)
 from mne.io.constants import FIFF
 from mne.preprocessing import (maxwell_filter, find_bad_channels_maxwell,
-                               annotate_flat, compute_maxwell_basis)
+                               annotate_amplitude, compute_maxwell_basis)
 from mne.preprocessing.maxwell import (
     _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
@@ -1407,7 +1407,8 @@ def test_find_bads_maxwell_flat():
     assert flat == raw.ch_names[:306]
     assert noisy == []  # none found because all flat
     # now do what we suggest in the warning
-    annot, _ = annotate_flat(raw, bad_percent=100, min_duration=1.)
+    annot, _ = annotate_amplitude(raw, flat=0., bad_percent=100,
+                                  min_duration=1.)
     assert_allclose(annot.duration, 10., atol=1e-2)  # not even divisor sfreq
     raw.info['bads'] = []
     raw.set_annotations(annot)

@@ -22,8 +22,8 @@ from ..coreg import (Coregistration, _is_mri_subject, scale_mri, bem_fname,
                      _mri_subject_has_bem, _find_fiducials_files, fid_fname)
 from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_head_shape_points, _plot_mri_fiducials,
-                       _plot_hpi_coils, _plot_sensors)
-from ..transforms import (read_trans, write_trans, _ensure_trans,
+                       _plot_hpi_coils, _plot_sensors, _plot_helmet)
+from ..transforms import (read_trans, write_trans, _ensure_trans, _get_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
                      warn, verbose, logger)
@@ -109,6 +109,7 @@ class CoregistrationUI(HasTraits):
     _eeg_channels = Bool()
     _head_resolution = Bool()
     _head_transparency = Bool()
+    _helmet = Bool()
     _grow_hair = Float()
     _subject_to = Unicode()
     _skip_fiducials = Bool()
@@ -164,6 +165,7 @@ class CoregistrationUI(HasTraits):
             eeg_channels=_get_default(eeg_channels, True),
             head_resolution=_get_default(head_resolution, True),
             head_transparency=_get_default(head_transparency, False),
+            helmet=False,
             head_opacity=0.5,
             sensor_opacity=_get_default(sensor_opacity, 1.0),
             fiducials=("LPA", "Nasion", "RPA"),
@@ -228,6 +230,7 @@ class CoregistrationUI(HasTraits):
         self._set_eeg_channels(self._defaults["eeg_channels"])
         self._set_head_resolution(self._defaults["head_resolution"])
         self._set_head_transparency(self._defaults["head_transparency"])
+        self._set_helmet(self._defaults["helmet"])
         self._set_grow_hair(self._defaults["grow_hair"])
         self._set_skip_fiducials(self._defaults["skip_fiducials"])
         self._set_scale_labels(self._defaults["scale_labels"])
@@ -346,6 +349,9 @@ class CoregistrationUI(HasTraits):
 
     def _set_head_transparency(self, state):
         self._head_transparency = bool(state)
+
+    def _set_helmet(self, state):
+        self._helmet = bool(state)
 
     def _set_grow_hair(self, value):
         self._grow_hair = value
@@ -538,6 +544,10 @@ class CoregistrationUI(HasTraits):
         self._actors["head"].GetProperty().SetOpacity(self._head_opacity)
         self._renderer._update()
 
+    @observe("_helmet")
+    def _helmet_changed(self, change=None):
+        self._update_plot("helmet")
+
     @observe("_grow_hair")
     def _grow_hair_changed(self, change=None):
         self._coreg.set_grow_hair(self._grow_hair)
@@ -588,6 +598,7 @@ class CoregistrationUI(HasTraits):
             hpi=self._add_hpi_coils,
             eeg=self._add_eeg_channels,
             head_fids=self._add_head_fiducials,
+            helmet=self._add_helmet,
         )
         with self._redraw_mutex:
             logger.debug(f'Redrawing {self._redraws_pending}')
@@ -686,6 +697,7 @@ class CoregistrationUI(HasTraits):
         all_keys = (
             'head', 'mri_fids',  # MRI first
             'hsp', 'hpi', 'eeg', 'head_fids',  # then dig
+            'helmet',
         )
         if changes == 'all':
             changes = list(all_keys)
@@ -897,6 +909,15 @@ class CoregistrationUI(HasTraits):
             self._coreg._get_processed_mri_points(res) * self._coreg._scale.T
         self._surfaces["head"] = head_surf
         self._update_projection_surface()
+
+    def _add_helmet(self):
+        if self._helmet:
+            head_mri_t = _get_trans(self._coreg.trans, 'head', 'mri')[0]
+            helmet_actor, _, _ = _plot_helmet(
+                self._renderer, self._info, head_mri_t)
+        else:
+            helmet_actor = None
+        self._update_actor("helmet", helmet_actor)
 
     def _fit_fiducials(self):
         with self._lock_scale_mode():
@@ -1194,6 +1215,13 @@ class CoregistrationUI(HasTraits):
             callback=self._set_head_resolution,
             tooltip="Enable/Disable high resolution head surface",
             layout=view_options_layout,
+        )
+        self._widgets["helmet"] = self._renderer._dock_add_check_box(
+            name="Show helmet",
+            value=self._helmet,
+            callback=self._set_helmet,
+            tooltip="Enable/Disable helmet",
+            layout=layout
         )
         self._renderer._dock_add_stretch()
 

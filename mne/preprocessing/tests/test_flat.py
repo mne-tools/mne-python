@@ -16,6 +16,8 @@ data_path = testing.data_path(download=False)
 skip_fname = op.join(data_path, 'misc', 'intervalrecording_raw.fif')
 date = datetime.datetime(2021, 12, 10, 7, 52, 24, 405305,
                          tzinfo=datetime.timezone.utc)
+deprecation = pytest.deprecated_call(
+    match='use mne.preprocessing.annotate_amplitude instead.')
 
 
 @pytest.mark.parametrize('meas_date', (None, date))
@@ -43,7 +45,8 @@ def test_annotate_flat(meas_date, first_samp):
             (dict(bad_percent=99.9), [raw.ch_names[0]], n_times),
             (dict(), [raw.ch_names[0]], n_times)]:  # default (1)
         raw_time = raw_0.copy()
-        annot, got_bads = annotate_flat(raw_0, verbose='debug', **kwargs)
+        with deprecation:
+            annot, got_bads = annotate_flat(raw_0, verbose='debug', **kwargs)
         assert annot.orig_time == raw.info["meas_date"]
         assert got_bads == bads
         raw_time.set_annotations(raw_time.annotations + annot)
@@ -63,7 +66,8 @@ def test_annotate_flat(meas_date, first_samp):
             (dict(bad_percent=threshold), [], n_good_times),
             (dict(bad_percent=threshold - 1e-5), [raw.ch_names[0]], n_times),
             (dict(), [raw.ch_names[0]], n_times)]:
-        annot, got_bads = annotate_flat(raw_0, verbose='debug', **kwargs)
+        with deprecation:
+            annot, got_bads = annotate_flat(raw_0, verbose='debug', **kwargs)
         assert got_bads == bads
         raw_time = raw_0.copy()
         raw_time.set_annotations(raw_time.annotations + annot)
@@ -71,9 +75,11 @@ def test_annotate_flat(meas_date, first_samp):
         n_good_times = raw_time.get_data(reject_by_annotation='omit').shape[1]
         assert n_good_times == want_times
 
-    with pytest.raises(TypeError, match='must be an instance of BaseRaw'):
+    with deprecation, pytest.raises(TypeError,
+                                    match='must be an instance of BaseRaw'):
         annotate_flat(0.)
-    with pytest.raises(ValueError, match='not convert string to float'):
+    with deprecation, pytest.raises(ValueError,
+                                    match='not convert string to float'):
         annotate_flat(raw, 'x')
 
 
@@ -81,7 +87,8 @@ def test_annotate_flat(meas_date, first_samp):
 def test_flat_acq_skip():
     """Test that acquisition skips are handled properly."""
     raw = read_raw_fif(skip_fname).load_data()
-    annot, bads = annotate_flat(raw)
+    with deprecation:
+        annot, bads = annotate_flat(raw)
     assert len(annot) == 0
     assert bads == [  # MaxFilter finds the same 21 channels
         'MEG%04d' % (int(num),) for num in

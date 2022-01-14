@@ -654,10 +654,6 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         skull['name'] = skull_name  # set name for alpha
         surfs[skull_name] = skull
 
-    if 'helmet' in meg and pick_types(info, meg=True).size > 0:
-        surfs['helmet'] = get_meg_helmet_surf(info, head_mri_t)
-        assert surfs['helmet']['coord_frame'] == FIFF.FIFFV_COORD_MRI
-
     # we've looked through all of them, raise if some remain
     if len(surfaces) > 0:
         raise ValueError(f'Unknown surface type{_pl(surfaces)}: {surfaces}')
@@ -675,9 +671,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         head_alpha = max_alpha
     else:
         head_alpha = alpha_range[0]
-    alphas = dict(helmet=0.25, lh=hemi_val, rh=hemi_val)
-    colors = dict(helmet=DEFAULTS['coreg']['helmet_color'],
-                  lh=(0.5,) * 3, rh=(0.5,) * 3)
+    alphas = dict(lh=hemi_val, rh=hemi_val)
+    colors = dict(lh=(0.5,) * 3, rh=(0.5,) * 3)
     for idx, name in enumerate(skulls):
         alphas[name] = alpha_range[idx + 1]
         colors[name] = (0.95 - idx * 0.2, 0.85, 0.95 - idx * 0.2)
@@ -701,6 +696,11 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     _, _, head_surf = _plot_head_surface(
         renderer, head, subject, subjects_dir, bem, coord_frame,
         to_cf_t, alpha=head_alpha)
+
+    # plot helmet
+    if 'helmet' in meg and pick_types(info, meg=True).size > 0:
+        _, _, src_surf = _plot_helmet(renderer, info, head_mri_t)
+        assert src_surf['coord_frame'] == FIFF.FIFFV_COORD_MRI
 
     # plot surfaces
     if brain and 'lh' not in surfs:  # one layer sphere
@@ -898,6 +898,15 @@ def _plot_head_surface(renderer, head, subject, subjects_dir, bem,
         actor, dst_surf = renderer.surface(
             surface=src_surf, color=color, opacity=alpha,
             backface_culling=False)
+    return actor, dst_surf, src_surf
+
+
+def _plot_helmet(renderer, info, head_mri_t, alpha=0.25, color=None):
+    color = DEFAULTS['coreg']['helmet_color'] if color is None else color
+    src_surf = get_meg_helmet_surf(info, head_mri_t)
+    actor, dst_surf = renderer.surface(
+        surface=src_surf, color=color, opacity=alpha,
+        backface_culling=False)
     return actor, dst_surf, src_surf
 
 

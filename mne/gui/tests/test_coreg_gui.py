@@ -170,6 +170,9 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert coreg._grow_hair == 0.1
 
     # visualization
+    assert not coreg._helmet
+    coreg._set_helmet(True)
+    assert coreg._helmet
     assert coreg._orient_glyphs
     assert coreg._scale_by_distance
     assert coreg._mark_inside
