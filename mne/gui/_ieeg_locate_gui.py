@@ -330,6 +330,8 @@ class IntracranialElectrodeLocator(QMainWindow):
                 'button_release_event', partial(self._on_click, axis))
         # add head and brain in mm (convert from m)
         if self._head is None:
+            logger.info('Using marching cubes on CT for the '
+                        '3D visualization panel')
             rr, tris = _marching_cubes(np.where(
                 self._ct_data < np.quantile(self._ct_data, 0.95), 0, 1),
                 [1])[0]
