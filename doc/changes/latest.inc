@@ -80,6 +80,8 @@ Enhancements
 
 - The default interaction style of :func:`mne.gui.coregistration` and :func:`mne.viz.plot_alignment` has been changed to ``'terrain'``, which keeps one axis fixed and should make interactions with the 3D scene more predictable (:gh:`9972`, :gh:`10206` by `Richard Höchenberger`_)
 
+- Add lines in 3D and on the maximum intensity projection when more than two electrode contacts are selected to aid in identifying that contact (:gh:`10XXX` by `Alex Rockhill`_)
+
 Bugs
 ~~~~
 
