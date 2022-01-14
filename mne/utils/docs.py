@@ -18,7 +18,7 @@ from ..externals.doccer import indentcount_lines
 from ..externals.decorator import FunctionMaker
 
 
-def reflow_param_docstring(docstring, has_first_line=True, width=75):
+def _reflow_param_docstring(docstring, has_first_line=True, width=75):
     maxsplit = docstring.count('\n') - 1 if has_first_line else -1
     merged = ' '.join(line.strip() for line in
                       docstring.rsplit('\n', maxsplit=maxsplit))
@@ -636,7 +636,7 @@ picks_header = 'picks : str | list | slice | None'
 picks_intro = ('Channels to include. Slices and lists of integers will be '
                'interpreted as channel indices.')
 _reminder = ("Note that channels in ``info['bads']`` *will be included* if "
-             "their {}indices are explicitly provided.\n")
+             "their {}indices are explicitly provided.")
 reminder = _reminder.format('names or ')
 reminder_nostr = _reminder.format('')
 noref = f'(excluding reference MEG channels). {reminder}'
@@ -653,7 +653,7 @@ docdict['picks_all'] = f'{picks_base} all channels. {reminder}'
 docdict['picks_all_data'] = f'{picks_base} all data channels. {reminder}'
 docdict['picks_good_data'] = f'{picks_base} good data channels. {reminder}'
 docdict['picks_all_data_noref'] = f'{picks_base} all data channels {noref}'
-docdict['picks_good_data_noref'] = reflow_param_docstring(
+docdict['picks_good_data_noref'] = _reflow_param_docstring(
     f'{picks_base} good data channels {noref}')
 docdict['picks_nostr'] = f"""picks : list | slice | None
     {picks_intro} None (default) will pick all channels. {reminder_nostr}"""
