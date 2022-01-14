@@ -1222,7 +1222,7 @@ class CoregistrationUI(HasTraits):
             value=self._helmet,
             callback=self._set_helmet,
             tooltip="Enable/Disable helmet",
-            layout=layout
+            layout=view_options_layout,
         )
         self._renderer._dock_add_stretch()
 
