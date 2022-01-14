@@ -10,7 +10,7 @@ import pytest
 
 import mne
 from mne.datasets import testing
-from mne.utils import requires_nibabel, requires_version
+from mne.utils import requires_nibabel, requires_version, catch_logging
 from mne.viz.utils import _fake_click
 
 data_path = testing.data_path(download=False)
@@ -137,6 +137,17 @@ def test_ieeg_elec_locate_gui_display(_locate_ieeg, _fake_CT_coords):
     raw.set_montage(None)
     aligned_ct, coords = _fake_CT_coords
     trans = mne.read_trans(fname_trans)
+
+    # test no seghead
+    with catch_logging() as log:
+        # fsaverage doesn't have seghead, will use CT
+        with pytest.warns(RuntimeWarning, match='`seghead` not found'):
+            _locate_ieeg(raw.info, trans, aligned_ct, subject='fsaverage',
+                         subjects_dir=subjects_dir)
+    log = log.getvalue()
+    assert 'Using marching cubes' in log
+
+    # test functions
     with pytest.warns(RuntimeWarning, match='`pial` surface not found'):
         gui = _locate_ieeg(raw.info, trans, aligned_ct,
                            subject=subject, subjects_dir=subjects_dir)

@@ -220,8 +220,9 @@ class IntracranialElectrodeLocator(QMainWindow):
                 op.join(self._subject_dir, 'surf', 'lh.seghead'))
             assert _frame_to_str[self._head['coord_frame']] == 'mri'
         else:
-            warn('`seghead` not found, skipping head plot, see '
-                 ':ref:`mne.bem.make_scalp_surfaces` to add the head')
+            warn('`seghead` not found, using marching cubes on CT for '
+                 'head plot, use :ref:`mne.bem.make_scalp_surfaces` '
+                 'to add the scalp surface instead of skull from the CT')
             self._head = None
         if op.exists(op.join(self._subject_dir, 'surf', 'lh.pial')):
             self._lh = _read_mri_surface(
