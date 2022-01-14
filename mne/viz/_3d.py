@@ -418,11 +418,11 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
 @verbose
 def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
-                   surfaces='auto', coord_frame='head',
+                   surfaces='auto', coord_frame='mri',
                    meg=None, eeg='original', fwd=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, fnirs=True, show_axes=False, dbs=True,
-                   fig=None, interaction='trackball', verbose=None):
+                   fig=None, interaction='terrain', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -450,9 +450,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         Defaults to 'auto', which will look for a head surface and plot
         it if found.
 
-        .. note:: For single layer BEMs it is recommended to use 'brain'.
+        .. note:: For single layer BEMs it is recommended to use ``'brain'``.
     coord_frame : str
         Coordinate frame to use, 'head', 'meg', or 'mri'.
+
+        .. versionchanged:: 1.0
+           Defaults to ``'mri'``.
     %(meg)s
     %(eeg)s
     fwd : instance of Forward
@@ -500,6 +503,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     %(scene_interaction)s
 
         .. versionadded:: 0.16
+        .. versionchanged:: 1.0
+           Defaults to ``'terrain'``.
     %(verbose)s
 
     Returns
