@@ -74,7 +74,9 @@ Enhancements
 
 - Annotations from a :class:`~mne.io.Raw` object are now preserved by the :class:`~mne.Epochs` constructor and are supported when saving Epochs (:gh:`9969` and :gh:`10019` by `Adam Li`_)
 
-- Add a button to display the MEG helmet in the coregistration GUI (:gh:`10200` but `Guillaume Favelier`_)
+- Add a button to display the MEG helmet in the coregistration GUI (:gh:`10200` by `Guillaume Favelier`_)
+
+- Add marching cubes display of head if :func:`mne.make_scalp_surfaces` has not computed or the recon-all hasn't finished (:gh:`XXX` by `Alex Rockhill`_)
 
 Bugs
 ~~~~

@@ -25,7 +25,7 @@ from matplotlib import patheffects
 
 from .._freesurfer import _check_subject_dir, _import_nibabel
 from ..viz.backends.renderer import _get_renderer
-from ..surface import _read_mri_surface, _voxel_neighbors
+from ..surface import _read_mri_surface, _voxel_neighbors, _marching_cubes
 from ..transforms import (apply_trans, _frame_to_str, _get_trans,
                           invert_transform)
 from ..utils import logger, _check_fname, _validate_type, verbose, warn
@@ -230,7 +230,8 @@ class IntracranialElectrodeLocator(QMainWindow):
         else:
             warn('`pial` surface not found, skipping adding to 3D '
                  'plot. This indicates the Freesurfer recon-all '
-                 'has been modified and these files have been deleted.')
+                 'has not finished or has been modified and '
+                 'these files have been deleted.')
             self._lh = self._rh = None
 
     def _make_ch_image(self, axis):
@@ -325,7 +326,14 @@ class IntracranialElectrodeLocator(QMainWindow):
             self._figs[axis].canvas.mpl_connect(
                 'button_release_event', partial(self._on_click, axis))
         # add head and brain in mm (convert from m)
-        if self._head is not None:
+        if self._head is None:
+            rr, tris = _marching_cubes(np.where(
+                self._ct_data < np.quantile(self._ct_data, 0.95), 0, 1),
+                [1])[0]
+            self._renderer.mesh(
+                *rr.T * 1000, triangles=tris, color='gray', opacity=0.2,
+                reset_camera=False, render=False)
+        else:
             self._renderer.mesh(
                 *self._head['rr'].T * 1000, triangles=self._head['tris'],
                 color='gray', opacity=0.2, reset_camera=False, render=False)
