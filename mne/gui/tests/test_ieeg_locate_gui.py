@@ -138,10 +138,9 @@ def test_ieeg_elec_locate_gui_display(_locate_ieeg, _fake_CT_coords):
     aligned_ct, coords = _fake_CT_coords
     trans = mne.read_trans(fname_trans)
 
-    # test no seghead
-    with catch_logging() as log:
-        # fsaverage doesn't have seghead, will use CT
-        with pytest.warns(RuntimeWarning, match='`seghead` not found'):
+    # test no seghead, fsaverage doesn't have seghead
+    with pytest.warns(RuntimeWarning, match='`seghead` not found'):
+        with catch_logging() as log:
             _locate_ieeg(raw.info, trans, aligned_ct, subject='fsaverage',
                          subjects_dir=subjects_dir)
     log = log.getvalue()
