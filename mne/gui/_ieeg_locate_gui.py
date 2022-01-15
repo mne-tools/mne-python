@@ -797,6 +797,9 @@ class IntracranialElectrodeLocator(QMainWindow):
             self._update_ct_images()
         else:
             self._ct_maxima = None  # signals ct max is out-of-date
+        if self._toggle_show_mip_button.text() == 'Show Max Intensity Proj':
+            for points in self._images['mip_scatter']:
+                points.set_sizes([self._radius / 5])
         self._update_ch_images(draw=True)
         self._plot_3d_ch_pos(render=True)
         self._ch_list.setFocus()  # remove focus from 3d plotter
@@ -857,6 +860,7 @@ class IntracranialElectrodeLocator(QMainWindow):
         if self._toggle_show_mip_button.text() == 'Show Max Intensity Proj':
             self._toggle_show_mip_button.setText('Hide Max Intensity Proj')
             self._images['mip'] = list()
+            self._images['mip_scatter'] = list()
             ct_min, ct_max = np.nanmin(self._ct_data), np.nanmax(self._ct_data)
             for axis in range(3):
                 ct_mip_data = np.max(self._ct_data, axis=axis).T
@@ -875,13 +879,14 @@ class IntracranialElectrodeLocator(QMainWindow):
                     xs.append(xyz[xy_idx[0]])
                     ys.append(xyz[xy_idx[1]])
                     colors.append(_CMAP(self._groups[name]))
-                self._images['mip'].append(
+                self._images['mip_scatter'].append(
                     self._figs[axis].axes[0].scatter(
                         xs, ys, color=colors, s=self._radius / 5))
         else:
-            for img in self._images['mip']:
+            for img in self._images['mip'] + self._images['mip_scatter']:
                 img.remove()
             self._images.pop('mip')
+            self._images.pop('mip_scatter')
             self._toggle_show_mip_button.setText('Show Max Intensity Proj')
         self._draw()
 
