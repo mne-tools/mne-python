@@ -137,6 +137,13 @@ def test_ieeg_elec_locate_gui_display(_locate_ieeg, _fake_CT_coords):
     raw.set_montage(None)
     aligned_ct, coords = _fake_CT_coords
     trans = mne.read_trans(fname_trans)
+
+    # test no seghead, fsaverage doesn't have seghead
+    with pytest.warns(RuntimeWarning, match='`seghead` not found'):
+        _locate_ieeg(raw.info, trans, aligned_ct, subject='fsaverage',
+                     subjects_dir=subjects_dir)
+
+    # test functions
     with pytest.warns(RuntimeWarning, match='`pial` surface not found'):
         gui = _locate_ieeg(raw.info, trans, aligned_ct,
                            subject=subject, subjects_dir=subjects_dir)

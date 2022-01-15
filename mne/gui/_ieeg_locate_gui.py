@@ -23,9 +23,9 @@ from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib import patheffects
 
-from .._freesurfer import _check_subject_dir, _import_nibabel
+from .._freesurfer import _import_nibabel
 from ..viz.backends.renderer import _get_renderer
-from ..surface import _read_mri_surface, _voxel_neighbors
+from ..surface import _read_mri_surface, _voxel_neighbors, _marching_cubes
 from ..transforms import (apply_trans, _frame_to_str, _get_trans,
                           invert_transform)
 from ..utils import logger, _check_fname, _validate_type, verbose, warn
@@ -120,7 +120,7 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._radius = int(_CH_PLOT_SIZE // 100)  # starting 1/100 of image
 
         # load imaging data
-        self._subject_dir = _check_subject_dir(subject, subjects_dir)
+        self._subject_dir = op.join(subjects_dir, subject)
         self._load_image_data(aligned_ct)
 
         # initialize channel data
@@ -191,8 +191,11 @@ class IntracranialElectrodeLocator(QMainWindow):
 
     def _load_image_data(self, ct):
         """Get MRI and CT data to display and transforms to/from vox/RAS."""
+        # allows recon-all not to be finished (T1 made in a few minutes)
+        mri_img = 'brain' if op.isfile(op.join(
+            self._subject_dir, 'mri', 'brain.mgz')) else 'T1'
         self._mri_data, self._vox_ras_t = _load_image(
-            op.join(self._subject_dir, 'mri', 'brain.mgz'),
+            op.join(self._subject_dir, 'mri', f'{mri_img}.mgz'),
             'MRI Image', verbose=self._verbose)
         self._ras_vox_t = np.linalg.inv(self._vox_ras_t)
 
@@ -217,8 +220,9 @@ class IntracranialElectrodeLocator(QMainWindow):
                 op.join(self._subject_dir, 'surf', 'lh.seghead'))
             assert _frame_to_str[self._head['coord_frame']] == 'mri'
         else:
-            warn('`seghead` not found, skipping head plot, see '
-                 ':ref:`mne.bem.make_scalp_surfaces` to add the head')
+            warn('`seghead` not found, using marching cubes on CT for '
+                 'head plot, use :ref:`mne.bem.make_scalp_surfaces` '
+                 'to add the scalp surface instead of skull from the CT')
             self._head = None
         if op.exists(op.join(self._subject_dir, 'surf', 'lh.pial')):
             self._lh = _read_mri_surface(
@@ -230,7 +234,8 @@ class IntracranialElectrodeLocator(QMainWindow):
         else:
             warn('`pial` surface not found, skipping adding to 3D '
                  'plot. This indicates the Freesurfer recon-all '
-                 'has been modified and these files have been deleted.')
+                 'has not finished or has been modified and '
+                 'these files have been deleted.')
             self._lh = self._rh = None
 
     def _make_ch_image(self, axis):
@@ -325,7 +330,17 @@ class IntracranialElectrodeLocator(QMainWindow):
             self._figs[axis].canvas.mpl_connect(
                 'button_release_event', partial(self._on_click, axis))
         # add head and brain in mm (convert from m)
-        if self._head is not None:
+        if self._head is None:
+            logger.info('Using marching cubes on CT for the '
+                        '3D visualization panel')
+            rr, tris = _marching_cubes(np.where(
+                self._ct_data < np.quantile(self._ct_data, 0.95), 0, 1),
+                [1])[0]
+            rr = apply_trans(self._vox_ras_t, rr)
+            self._renderer.mesh(
+                *rr.T, triangles=tris, color='gray', opacity=0.2,
+                reset_camera=False, render=False)
+        else:
             self._renderer.mesh(
                 *self._head['rr'].T * 1000, triangles=self._head['tris'],
                 color='gray', opacity=0.2, reset_camera=False, render=False)
