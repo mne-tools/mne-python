@@ -565,10 +565,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     assert isinstance(bem, ConductorModel) or bem is None
 
     _check_option('coord_frame', coord_frame, ['head', 'meg', 'mri', 'auto'])
-    if coord_frame == 'auto' and trans is None:
-        coord_frame = 'head'
-    else:
-        coord_frame = 'mri'
+    if coord_frame == 'auto':
+        coord_frame = 'head' if trans is None else 'mri'
 
     if src is not None:
         src = _ensure_src(src)
