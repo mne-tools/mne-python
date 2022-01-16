@@ -12,7 +12,7 @@ from ..config import MNE_DATASETS
 
 
 @verbose
-def data_path(dataset='evoked', path=None, force_update=False,
+def data_path(dataset='evoked', path=None, *, force_update=False,
               update_path=True, verbose=None):
     u"""Get path to local copy of the high frequency SEF dataset.
 

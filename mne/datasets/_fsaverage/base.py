@@ -13,7 +13,7 @@ FSAVERAGE_MANIFEST_PATH = op.dirname(__file__)
 
 
 @verbose
-def fetch_fsaverage(subjects_dir=None, verbose=None):
+def fetch_fsaverage(subjects_dir=None, *, verbose=None):
     """Fetch and update fsaverage.
 
     Parameters

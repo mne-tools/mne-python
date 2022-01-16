@@ -9,7 +9,7 @@ from ..utils import (_data_path_doc, _download_mne_dataset,
 
 
 @verbose
-def data_path(path=None, force_update=False, update_path=False,
+def data_path(path=None, *, force_update=False, update_path=False,
               download=True, verbose=None):  # noqa: D103
     return _download_mne_dataset(
         name='fake', processor='untar', path=path,

@@ -4,7 +4,7 @@ from ..utils import (_data_path_doc,
 
 
 @verbose
-def data_path(path=None, force_update=False, update_path=True,
+def data_path(path=None, *, force_update=False, update_path=True,
               download=True, verbose=None):  # noqa: D103
     return _download_mne_dataset(
         name='erp_core', processor='untar', path=path,

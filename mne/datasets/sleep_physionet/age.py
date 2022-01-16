@@ -17,7 +17,7 @@ BASE_URL = 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette/
 
 @verbose
 def fetch_data(subjects, recording=(1, 2), path=None, force_update=False,
-               base_url=BASE_URL, on_missing='raise', verbose=None):  # noqa: D301, E501
+               base_url=BASE_URL, on_missing='raise', *, verbose=None):  # noqa: D301, E501
     """Get paths to local copies of PhysioNet Polysomnography dataset files.
 
     This will fetch data from the publicly available subjects from PhysioNet's
