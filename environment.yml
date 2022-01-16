@@ -12,6 +12,7 @@ dependencies:
 - xlrd
 - scikit-learn
 - h5py
+- jinja2
 - pillow
 - statsmodels
 - jupyter

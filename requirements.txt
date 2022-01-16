@@ -12,6 +12,7 @@ scikit-learn
 nibabel
 numba
 h5py
+jinja2
 pandas
 numexpr
 jupyter
