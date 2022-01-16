@@ -129,6 +129,8 @@ def fetch_dataset(
     """  # noqa E501
     # import pooch library for handling the dataset downloading
     pooch = _soft_import("pooch", "dataset downloading", strict=True)
+    # import tqdm library for progressbars
+    tqdm = _soft_import('tqdm', 'progressbars', strict=False)
 
     if auth is not None:
         if len(auth) != 2:
@@ -213,7 +215,7 @@ def fetch_dataset(
                     "You must agree to the license to use this " "dataset"
                 )
     # downloader & processors
-    download_params = dict(progressbar=True)  # use tqdm
+    download_params = dict(progressbar=True if tqdm else False)  # use tqdm
     if name == "fake":
         download_params["progressbar"] = False
     if auth is not None:
