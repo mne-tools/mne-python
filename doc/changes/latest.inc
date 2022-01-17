@@ -78,6 +78,8 @@ Enhancements
 
 - Add marching cubes display of head if :func:`mne.bem.make_scalp_surfaces` has not computed or the recon-all hasn't finished (:gh:`10202` by `Alex Rockhill`_)
 
+- The default interaction style of :func:`mne.gui.coregistration` and :func:`mne.viz.plot_alignment` has been changed to ``'terrain'``, which keeps one axis fixed and should make interactions with the 3D scene more predictable (:gh:`9972`, :gh:`10206` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 
@@ -95,7 +97,7 @@ Bugs
 
 - Add argument ``overwrite`` to :func:`mne.export.export_raw`, :func:`mne.export.export_epochs`, :func:`mne.export.export_evokeds` and :func:`mne.export.export_evokeds_mff` (:gh:`9975` by `Mathieu Scheltienne`_)
 
-- :func:`mne.gui.coregistration` and the ``mne coreg`` command didn't respect the ``inspect`` parameter (:gh:`9972` by `Richard Höchenberger`_)
+- :func:`mne.gui.coregistration` and the ``mne coreg`` command didn't respect the ``interaction`` parameter (:gh:`9972` by `Richard Höchenberger`_)
 
 - Fix incorrect projection of source space onto white matter surface instead of pial in :ref:`tut-working-with-ecog` (:gh:`9980` by `Alex Rockhill`_)
 

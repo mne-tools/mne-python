@@ -418,11 +418,11 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
 @verbose
 def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
-                   surfaces='auto', coord_frame='head',
+                   surfaces='auto', coord_frame='auto',
                    meg=None, eeg='original', fwd=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, fnirs=True, show_axes=False, dbs=True,
-                   fig=None, interaction='trackball', verbose=None):
+                   fig=None, interaction='terrain', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -450,9 +450,13 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         Defaults to 'auto', which will look for a head surface and plot
         it if found.
 
-        .. note:: For single layer BEMs it is recommended to use 'brain'.
-    coord_frame : str
-        Coordinate frame to use, 'head', 'meg', or 'mri'.
+        .. note:: For single layer BEMs it is recommended to use ``'brain'``.
+    coord_frame : 'auto' | 'head' | 'meg' | 'mri'
+        The coordinate frame to use. If ``'auto'`` (default), chooses ``'mri'``
+        if ``trans`` was passed, and ``'head'`` otherwise.
+
+        .. versionchanged:: 1.0
+           Defaults to ``'auto'``.
     %(meg)s
     %(eeg)s
     fwd : instance of Forward
@@ -500,6 +504,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     %(scene_interaction)s
 
         .. versionadded:: 0.16
+        .. versionchanged:: 1.0
+           Defaults to ``'terrain'``.
     %(verbose)s
 
     Returns
@@ -558,7 +564,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     bem = _ensure_bem_surfaces(bem, extra_allow=(ConductorModel, None))
     assert isinstance(bem, ConductorModel) or bem is None
 
-    _check_option('coord_frame', coord_frame, ['head', 'meg', 'mri'])
+    _check_option('coord_frame', coord_frame, ['head', 'meg', 'mri', 'auto'])
+    if coord_frame == 'auto':
+        coord_frame = 'head' if trans is None else 'mri'
 
     if src is not None:
         src = _ensure_src(src)
