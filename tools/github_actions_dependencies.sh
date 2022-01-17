@@ -38,13 +38,12 @@ else
 	  pip install --progress-bar off pyobjc-framework-Cocoa>=5.2.0
 	fi
 	EXTRA_ARGS="--pre"
-	pip intsall $STD_ARGS -r requirements_hdf5.txt
 fi
 # for compat_minimal and compat_old, we don't want to --upgrade
 if [ ! -z "$CONDA_DEPENDENCIES" ]; then
 	pip install -r requirements_base.txt -r requirements_testing.txt
 else
-	pip install $STD_ARGS $EXTRA_ARGS -r requirements_base.txt -r requirements_testing.txt
+	pip install $STD_ARGS $EXTRA_ARGS -r requirements_base.txt -r requirements_testing.txt -r requirements_hdf5.txt
 fi
 
 if [ "${DEPS}" != "minimal" ]; then
