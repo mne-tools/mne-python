@@ -1710,7 +1710,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             event_strings = [f'{self.event_id}: {n_events}']
         else:
             event_strings = None
-        
+
         t = repr_templates_env.get_template('epochs.html.jinja')
         t = t.render(epochs=self, baseline=baseline, events=event_strings)
         return t

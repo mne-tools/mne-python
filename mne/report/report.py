@@ -113,8 +113,6 @@ def _get_ch_types(inst):
 ###############################################################################
 # HTML generation
 
-
-
 def _html_header_element(*, lang, include, js, css, title, tags, mne_logo_img):
     t = report_templates_env.get_template('header.html.jinja')
     t_rendered = t.render(
