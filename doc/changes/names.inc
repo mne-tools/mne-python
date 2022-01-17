@@ -82,7 +82,7 @@
 
 .. _Jair Montoya Martinez: https://github.com/jmontoyam
 
-.. _Samu Taulu: http://ilabs.washington.edu/institute-faculty/bio/i-labs-samu-taulu-dsc
+.. _Samu Taulu: https://phys.washington.edu/people/samu-taulu
 
 .. _Lorenzo Desantis: https://github.com/lorenzo-desantis/
 
