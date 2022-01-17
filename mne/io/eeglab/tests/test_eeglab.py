@@ -13,7 +13,6 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_equal, assert_allclose)
 import pytest
 from scipy import io
-from pymatreader import read_mat
 
 from mne import write_events, read_epochs_eeglab
 from mne.channels import read_custom_montage
@@ -21,7 +20,7 @@ from mne.io import read_raw_eeglab
 from mne.io.eeglab.eeglab import _get_montage_information, _dol_to_lod
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
-from mne.utils import check_version, Bunch
+from mne.utils import requires_version, Bunch
 from mne.annotations import events_from_annotations, read_annotations
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
@@ -45,13 +44,14 @@ epochs_h5_fnames = [epochs_fname_h5, epochs_fname_onefile_h5]
 montage_path = op.join(base_dir, 'test_chans.locs')
 
 
-needs_h5 = pytest.mark.skipif(not check_version('h5py'), reason='Needs h5py')
+requires_pymatreader = requires_version('pymatreader')
 
 
+@requires_pymatreader
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname', [
     raw_fname_mat,
-    pytest.param(raw_fname_h5, marks=needs_h5),
+    raw_fname_h5,
     raw_fname_chanloc,
 ], ids=op.basename)
 def test_io_set_raw(fname):
@@ -100,6 +100,7 @@ def test_io_set_raw(fname):
         assert_array_equal(raw0.annotations.duration, 0.)
 
 
+@requires_pymatreader
 @testing.requires_testing_data
 def test_io_set_raw_more(tmp_path):
     """Test importing EEGLAB .set files."""
@@ -240,9 +241,10 @@ def test_io_set_raw_more(tmp_path):
 
 @pytest.mark.timeout(60)  # ~60 sec on Travis OSX
 @testing.requires_testing_data
+@requires_pymatreader
 @pytest.mark.parametrize('fnames', [
     epochs_mat_fnames,
-    pytest.param(epochs_h5_fnames, marks=[needs_h5, pytest.mark.slowtest]),
+    pytest.param(epochs_h5_fnames, marks=[pytest.mark.slowtest]),
 ])
 def test_io_set_epochs(fnames):
     """Test importing EEGLAB .set epochs files."""
@@ -256,6 +258,7 @@ def test_io_set_epochs(fnames):
     assert_array_equal(epochs.get_data(), epochs2.get_data())
 
 
+@requires_pymatreader
 @testing.requires_testing_data
 def test_io_set_epochs_events(tmp_path):
     """Test different combinations of events and event_ids."""
@@ -276,6 +279,7 @@ def test_io_set_epochs_events(tmp_path):
                   epochs.events, None)
 
 
+@requires_pymatreader
 @testing.requires_testing_data
 def test_degenerate(tmp_path):
     """Test some degenerate conditions."""
@@ -298,6 +302,7 @@ def test_degenerate(tmp_path):
                       bad_epochs_fname)
 
 
+@requires_pymatreader
 @pytest.mark.parametrize("fname", [
     raw_fname_mat,
     raw_fname_onefile_mat,
@@ -314,6 +319,7 @@ def test_eeglab_annotations(fname):
     assert np.all(annotations.duration == 0.)
 
 
+@requires_pymatreader
 @testing.requires_testing_data
 def test_eeglab_read_annotations():
     """Test annotations onsets are timestamps (+ validate some)."""
@@ -331,6 +337,7 @@ def test_eeglab_read_annotations():
     assert_allclose(raw.annotations.duration, np.ones(3) * 0.5)
 
 
+@requires_pymatreader
 @testing.requires_testing_data
 def test_eeglab_event_from_annot():
     """Test all forms of obtaining annotations."""
@@ -383,6 +390,7 @@ def one_chanpos_fname(tmp_path_factory):
     return fname
 
 
+@requires_pymatreader
 @testing.requires_testing_data
 def test_position_information(one_chanpos_fname):
     """Test reading file with 3 channels - one without position information."""
@@ -419,6 +427,7 @@ def test_position_information(one_chanpos_fname):
                                EXPECTED_LOCATIONS_FROM_MONTAGE)
 
 
+@requires_pymatreader
 @testing.requires_testing_data
 def test_io_set_raw_2021():
     """Test reading new default file format (no EEG struct)."""
@@ -427,6 +436,7 @@ def test_io_set_raw_2021():
                      test_preloading=False, preload=True)
 
 
+@requires_pymatreader
 @testing.requires_testing_data
 def test_read_single_epoch():
     """Test reading raw set file as an Epochs instance."""
@@ -434,9 +444,11 @@ def test_read_single_epoch():
         read_epochs_eeglab(raw_fname_mat)
 
 
+@requires_pymatreader
 @testing.requires_testing_data
 def test_get_montage_info_with_ch_type():
     """Test that the channel types are properly returned."""
+    from pymatreader import read_mat
     mat = read_mat(raw_fname_onefile_mat, uint16_codec=None)
     n = len(mat['EEG']['chanlocs']['labels'])
     mat['EEG']['chanlocs']['type'] = ['eeg'] * (n - 2) + ['eog'] + ['stim']

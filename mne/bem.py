@@ -16,7 +16,6 @@ import os.path as op
 import shutil
 from copy import deepcopy
 
-from h5io import write_hdf5, read_hdf5
 import numpy as np
 
 from .io.constants import FIFF, FWD
@@ -34,7 +33,7 @@ from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
                     _check_fname, has_nibabel, _check_option, path_like,
-                    _on_missing)
+                    _on_missing, _import_h5io_funcs)
 
 
 # ############################################################################
@@ -1250,6 +1249,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, on_defects='raise',
 
 
 def _read_bem_surfaces_h5(fname, s_id):
+    read_hdf5, _ = _import_h5io_funcs()
     bem = read_hdf5(fname)
     try:
         [s['id'] for s in bem['surfs']]
@@ -1392,6 +1392,7 @@ def read_bem_solution(fname, verbose=None):
     fname = _check_fname(fname, 'read', True, 'fname')
     # mirrors fwd_bem_load_surfaces from fwd_bem_model.c
     if fname.endswith('.h5'):
+        read_hdf5, _ = _import_h5io_funcs()
         logger.info('Loading surfaces and solution...')
         bem = read_hdf5(fname)
     else:
@@ -1557,6 +1558,7 @@ def write_bem_surfaces(fname, surfs, overwrite=False, verbose=None):
     fname = _check_fname(fname, overwrite=overwrite, name='fname')
 
     if fname.endswith('.h5'):
+        _, write_hdf5 = _import_h5io_funcs()
         write_hdf5(fname, dict(surfs=surfs), overwrite=True)
     else:
         with start_and_end_file(fname) as fid:
@@ -1627,6 +1629,7 @@ def write_bem_solution(fname, bem, overwrite=False, verbose=None):
     """
     fname = _check_fname(fname, overwrite=overwrite, name='fname')
     if fname.endswith('.h5'):
+        _, write_hdf5 = _import_h5io_funcs()
         bem = {k: bem[k] for k in ('surfs', 'solution', 'bem_method')}
         write_hdf5(fname, bem, overwrite=True)
     else:

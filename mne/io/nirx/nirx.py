@@ -19,7 +19,8 @@ from ...annotations import Annotations
 from ..._freesurfer import get_mni_fiducials
 from ...transforms import apply_trans, _get_trans
 from ...utils import (logger, verbose, fill_doc, warn, _check_fname,
-                      _validate_type, _check_option, _mask_to_onsets_offsets)
+                      _validate_type, _check_option, _mask_to_onsets_offsets,
+                      _import_pymatreader_funcs)
 
 
 @fill_doc
@@ -284,7 +285,7 @@ class RawNIRX(BaseRaw):
         #   Sources and detectors are both called optodes
         #   Each source - detector pair produces a channel
         #   Channels are defined as the midpoint between source and detector
-        from pymatreader import read_mat
+        read_mat = _import_pymatreader_funcs('Reading NIRX data')
         mat_data = read_mat(files['probeInfo.mat'], uint16_codec=None)
         requested_channels = mat_data['probeInfo']['probes']['index_c']
         src_locs = mat_data['probeInfo']['probes']['coords_s3'] / 100.

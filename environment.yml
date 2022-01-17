@@ -43,5 +43,4 @@ dependencies:
 - ipywidgets
 - ipyvtklink
 - mne-qt-browser
-- pip:
-  - pymatreader
+- pymatreader

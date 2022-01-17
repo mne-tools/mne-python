@@ -8,7 +8,7 @@ import numpy as np
 
 from .utils import _create_info, _set_tmin, _create_events, \
     _create_event_metadata, _validate_ft_struct
-from ...utils import _check_fname
+from ...utils import _check_fname, _import_pymatreader_funcs
 from ..array.array import RawArray
 from ...epochs import EpochsArray
 from ...evoked import EvokedArray
@@ -44,7 +44,7 @@ def read_raw_fieldtrip(fname, info, data_name='data'):
     raw : instance of RawArray
         A Raw Object containing the loaded data.
     """
-    from pymatreader import read_mat
+    read_mat = _import_pymatreader_funcs('FieldTrip I/O')
     fname = _check_fname(fname, overwrite='read', must_exist=True)
 
     ft_struct = read_mat(fname,
@@ -109,7 +109,7 @@ def read_epochs_fieldtrip(fname, info, data_name='data',
     epochs : instance of EpochsArray
         An EpochsArray containing the loaded data.
     """
-    from pymatreader import read_mat
+    read_mat = _import_pymatreader_funcs('FieldTrip I/O')
     ft_struct = read_mat(fname,
                          ignore_fields=['previous'],
                          variable_names=[data_name])
@@ -166,7 +166,7 @@ def read_evoked_fieldtrip(fname, info, comment=None,
     evoked : instance of EvokedArray
         An EvokedArray containing the loaded data.
     """
-    from pymatreader import read_mat
+    read_mat = _import_pymatreader_funcs('FieldTrip I/O')
     ft_struct = read_mat(fname,
                          ignore_fields=['previous'],
                          variable_names=[data_name])

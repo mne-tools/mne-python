@@ -10,7 +10,6 @@ import copy
 import os.path as op
 from types import GeneratorType
 
-from h5io import read_hdf5, write_hdf5
 import numpy as np
 
 from .baseline import rescale
@@ -33,7 +32,7 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose, _pl,
                     _check_stc_units, _check_pandas_installed,
                     _check_pandas_index_arguments, _convert_times, _ensure_int,
                     _build_data_frame, _check_time_format, _path_like,
-                    sizeof_fmt, object_size, _check_fname)
+                    sizeof_fmt, object_size, _check_fname, _import_h5io_funcs)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import TimeMixin
@@ -330,6 +329,7 @@ def read_source_estimate(fname, subject=None):
         kwargs['tstep'] = 1.0
         ftype = 'surface'
     elif ftype == 'h5':
+        read_hdf5, _ = _import_h5io_funcs()
         kwargs = read_hdf5(fname + '.h5', title='mnepython')
         ftype = kwargs.pop('src_type', 'surface')
         if isinstance(kwargs['vertices'], np.ndarray):
@@ -625,6 +625,7 @@ class _BaseSourceEstimate(TimeMixin):
         if ftype != 'h5':
             raise ValueError('%s objects can only be written as HDF5 files.'
                              % (self.__class__.__name__,))
+        _, write_hdf5 = _import_h5io_funcs()
         if not fname.endswith('.h5'):
             fname += '-stc.h5'
         fname = _check_fname(fname=fname, overwrite=overwrite)

@@ -52,7 +52,9 @@ def _compare_version(version_a, operator, version_b):
     except ImportError:
         from distutils.version import LooseVersion as parse
 
-    return eval(f'parse("{version_a}") {operator} parse("{version_b}")')
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        return eval(f'parse("{version_a}") {operator} parse("{version_b}")')
 
 
 ###############################################################################

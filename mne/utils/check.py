@@ -118,6 +118,16 @@ def _import_h5py():
     return h5py
 
 
+def _import_h5io_funcs():
+    h5io = _soft_import('h5io', 'HDF5-based I/O')
+    return h5io.read_hdf5, h5io.write_hdf5
+
+
+def _import_pymatreader_funcs(purpose):
+    pymatreader = _soft_import('pymatreader', purpose)
+    return pymatreader.read_mat
+
+
 # adapted from scikit-learn utils/validation.py
 def check_random_state(seed):
     """Turn seed into a numpy.random.mtrand.RandomState instance.

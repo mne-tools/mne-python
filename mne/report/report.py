@@ -24,7 +24,6 @@ import time
 import warnings
 import webbrowser
 
-from h5io import read_hdf5, write_hdf5
 import numpy as np
 
 from .. import __version__ as MNE_VERSION
@@ -42,7 +41,7 @@ from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
                      _path_like, use_log_level, _check_fname,
-                     _check_ch_locs)
+                     _check_ch_locs, _import_h5io_funcs)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
@@ -564,6 +563,7 @@ def open_report(fname, **params):
     fname = _check_fname(fname=fname, overwrite='read', must_exist=False)
     if op.exists(fname):
         # Check **params with the loaded report
+        read_hdf5, _ = _import_h5io_funcs()
         state = read_hdf5(fname, title='mnepython')
         for param in params.keys():
             if param not in state:
@@ -2515,6 +2515,7 @@ class Report(object):
             logger.info(f'Saving report to : {fname}')
 
             if is_hdf5:
+                _, write_hdf5 = _import_h5io_funcs()
                 write_hdf5(fname, self.__getstate__(), overwrite=overwrite,
                            title='mnepython')
             else:

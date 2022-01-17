@@ -8,13 +8,12 @@
 import copy as cp
 import numbers
 
-from h5io import read_hdf5, write_hdf5
 import numpy as np
 
 from .tfr import _cwt_array, morlet, _get_nfft
 from ..io.pick import pick_channels, _picks_to_idx
 from ..utils import (logger, verbose, warn, copy_function_doc_to_method_doc,
-                     ProgressBar, _check_fname)
+                     ProgressBar, _check_fname, _import_h5io_funcs)
 from ..viz.misc import plot_csd
 from ..time_frequency.multitaper import (_compute_mt_params, _mt_spectra,
                                          _csd_from_mt, _psd_from_mt_adaptive)
@@ -463,6 +462,7 @@ class CrossSpectralDensity(object):
         --------
         read_csd : For reading CSD objects from a file.
         """
+        _, write_hdf5 = _import_h5io_funcs()
         if not fname.endswith('.h5'):
             fname += '.h5'
 
@@ -601,6 +601,7 @@ def read_csd(fname):
     --------
     CrossSpectralDensity.save : For saving CSD objects.
     """
+    read_hdf5, _ = _import_h5io_funcs()
     if not fname.endswith('.h5'):
         fname += '.h5'
 

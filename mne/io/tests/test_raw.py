@@ -13,7 +13,6 @@ from os import path as op
 from pathlib import Path
 import re
 
-from h5io import read_hdf5, write_hdf5
 import pytest
 import numpy as np
 from numpy.testing import (assert_allclose, assert_array_almost_equal,
@@ -24,7 +23,8 @@ from mne.datasets import testing
 from mne.io import read_raw_fif, RawArray, BaseRaw, Info, _writing_info_hdf5
 from mne.io.base import _get_scaling
 from mne.utils import (_TempDir, catch_logging, _raw_annot, _stamp_to_dt,
-                       object_diff, check_version, requires_pandas)
+                       object_diff, check_version, requires_pandas,
+                       _import_h5io_funcs)
 from mne.io.meas_info import _get_valid_units
 from mne.io._digitization import DigPoint
 from mne.io.proj import Projection
@@ -359,7 +359,8 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
 
     # Make sure that writing info to h5 format
     # (all fields should be compatible)
-    if check_version('h5py'):
+    if check_version('h5io'):
+        read_hdf5, write_hdf5 = _import_h5io_funcs()
         fname_h5 = op.join(tempdir, 'info.h5')
         with _writing_info_hdf5(raw.info):
             write_hdf5(fname_h5, raw.info)

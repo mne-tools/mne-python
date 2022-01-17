@@ -5,6 +5,4 @@ matplotlib
 tqdm
 pooch>=1.5
 decorator
-h5io
 packaging
-pymatreader
