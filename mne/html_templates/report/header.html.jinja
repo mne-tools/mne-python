@@ -1,26 +1,26 @@
 <!DOCTYPE html>
-<html lang="{{lang}}">
+<html lang="{{ lang | safe }}">
 
 <head>
   <meta charset="UTF-8">
-  {{include}}
+  {{include | safe }}
   <script type="text/javascript">
-    {{js}}
+    {{ js | safe }}
   </script>
 
   <style type="text/css">
-    {{css}}
+    {{ css | safe }}
   </style>
 
-  <title>{{title}}</title>
+  <title>{{ title }}</title>
 </head>
 
 <body data-bs-spy="scroll" data-bs-target="#toc-navbar" data-bs-offset="150">
   <nav class="navbar fixed-top navbar-light bg-light shadow-sm" id="top-bar">
     <div class="container-fluid">
       <a class="navbar-brand d-flex align-items-center" href="#">
-        <img src="data:image/png;base64,{{mne_logo_img}}" alt="MNE" width="80" class="d-inline-block">
-        <span class="mx-2 fs-3">{{title}}</span>
+        <img src="data:image/png;base64,{{ mne_logo_img }}" alt="MNE" width="80" class="d-inline-block">
+        <span class="mx-2 fs-3">{{ title }}</span>
       </a>
 
       <div class="btn-group" role="group" aria-label="Filter by tags" id="filter-by-tags-dropdown-menu">
@@ -40,15 +40,15 @@
             <hr class="dropdown-divider">
           </li>
 
-          {{for tag in sorted(tags)}}
+          {% for tag in tags|sort %}
           <li>
             <label class="tag dropdown-item  me-5" data-mne-tag="{{tag}}">
               <input class="form-check-input me-1" type="checkbox" value="" checked>
-              {{tag}}
+              {{ tag }}
               <span class="badge bg-primary rounded-pill float-end me-1" data-mne-tag="{{tag}}"></span>
             </label>
           </li>
-          {{endfor}}
+          {% endfor %}
         </ul>
 
       </div>

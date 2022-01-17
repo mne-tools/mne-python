@@ -150,3 +150,16 @@ API changes
 - Argument ``event_list`` has been deprecated in favor of ``events`` in :func:`mne.write_events` (:gh:`10056` by `Mathieu Scheltienne`_)
 
 - ``mne.preprocessing.annotate_flat`` has been deprecated in favor of :func`mne.preprocessing.annotate_amplitude`, that covers both minimum and maximum peak-to-peak variation. (:gh:`10143` by `Mathieu Scheltienne`_)
+
+Dependencies
+~~~~~~~~~~~~
+Numerous external dependencies that used to be bundled with MNE-Python are now
+not shipped with the package anymore and will instead be retrieved
+automatically from their official sources when you install MNE-Python. This
+simplifies MNE-Python maintenance and keeps the package smaller. The following
+new dependencies have been added:
+
+- `Jinja2`_ (replaces ``Tempita``, which is not maintained anymore; :gh:`10211` by `Richard Höchenberger`_)
+
+
+.. _Jinja2: https://jinja.palletsprojects.com/

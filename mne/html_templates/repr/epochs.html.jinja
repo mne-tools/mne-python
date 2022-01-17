@@ -1,0 +1,22 @@
+<table class="table table-hover table-striped table-sm table-responsive small">
+    <tr>
+        <th>Number of events</th>
+        <td>{{ epochs.events|length }}</td>
+    </tr>
+    <tr>
+        <th>Events</th>
+        {% if events is not none %}
+        <td>{{ events|join('<br/>') | safe }}</td>
+        {% else %}
+        <td>Not available</td>
+        {% endif %}
+    </tr>
+    <tr>
+        <th>Time range</th>
+        <td>{{ '%.3f'|format(epochs.tmin) }} – {{ '%.3f'|format(epochs.tmax) }} sec</td>
+    </tr>
+    <tr>
+        <th>Baseline</th>
+        <td>{{ baseline }}</td>
+    </tr>
+</table>

@@ -42,8 +42,9 @@ from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
 from ._digitization import write_dig
 from .compensator import get_current_comp
-from ..data.html_templates import info_template
 from ..defaults import _handle_default
+from ..html_templates import repr_templates_env
+
 
 b = bytes  # alias
 
@@ -1084,20 +1085,63 @@ class Info(dict, MontageMixin):
 
         good_channels, bad_channels, ecg, eog = self._get_chs_for_repr()
 
-        # meas date
-        meas_date = self['meas_date']
-        if meas_date is not None:
-            meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + ' GMT'
-        projs = self['projs']
-        if projs:
-            projs = '<br/>'.join(
-                p['desc'] + ': o%s' % {0: 'ff', 1: 'n'}[p['active']]
-                for p in projs)
+        # TODO
+        # Most of the following checks are to ensure that we get a proper repr
+        # for Forward['info'] (and probably others like
+        # InverseOperator['info']??), which doesn't seem to follow our standard
+        # Info structure used elsewhere.
+        # Proposed solution for a future refactoring:
+        # Forward['info'] should get its own Info subclass (with respective
+        # repr).
 
-        html += info_template.substitute(
-            caption=caption, info=self, meas_date=meas_date, ecg=ecg,
+        # meas date
+        if 'meas_date' in self and self['meas_date'] is not None:
+            meas_date = self['meas_date'].strftime(
+                "%B %d, %Y  %H:%M:%S"
+            ) + ' GMT'
+        else:
+            meas_date = None
+
+        if 'projs' in self and self['projs']:
+            projs = [
+                f'{p["desc"]} : {"on" if p["active"] else "off"}'
+                for p in self['projs']
+            ]
+        else:
+            projs = None
+
+        if 'subject_info' in self:
+            subject_info = self['subject_info']
+        else:
+            subject_info = None
+
+        if 'lowpass' in self:
+            lowpass = self['lowpass']
+        else:
+            lowpass = None
+
+        if 'highpass' in self:
+            highpass = self['highpass']
+        else:
+            highpass = None
+
+        if 'sfreq' in self:
+            sfreq = self['sfreq']
+        else:
+            sfreq = None
+
+        if 'experimenter' in self:
+            experimenter = self['experimenter']
+        else:
+            experimenter = None
+
+        info_template = repr_templates_env.get_template('info.html.jinja')
+        html += info_template.render(
+            caption=caption, meas_date=meas_date, ecg=ecg,
             eog=eog, good_channels=good_channels, bad_channels=bad_channels,
-            projs=projs)
+            projs=projs, subject_info=subject_info, lowpass=lowpass,
+            highpass=highpass, sfreq=sfreq, experimenter=experimenter
+        )
         return html
 
 
