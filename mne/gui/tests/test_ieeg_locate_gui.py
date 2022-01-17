@@ -142,7 +142,7 @@ def test_ieeg_elec_locate_gui_display(_locate_ieeg, _fake_CT_coords):
     with pytest.warns(RuntimeWarning, match='`seghead` not found'):
         with catch_logging() as log:
             _locate_ieeg(raw.info, trans, aligned_ct, subject='fsaverage',
-                        subjects_dir=subjects_dir, verbose=True)
+                         subjects_dir=subjects_dir, verbose=True)
     log = log.getvalue()
     assert 'Using marching cubes' in log
 
