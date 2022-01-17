@@ -579,7 +579,7 @@ class IntracranialElectrodeLocator(QMainWindow):
         if not only_2D:
             self._lines[group] = self._renderer.tube(
                 [pos[target_idx]], [pos[insert_idx] + elec_v * _BOLT_SCALAR],
-                radius=self._radius * _TUBE_SCALAR, color=_CMAP(group))[0]
+                radius=self._radius * _TUBE_SCALAR, color=_CMAP(group)[:3])[0]
         if self._toggle_show_mip_button.text() == 'Hide Max Intensity Proj':
             target_vox = apply_trans(self._ras_vox_t, pos[target_idx])
             insert_vox = apply_trans(self._ras_vox_t,

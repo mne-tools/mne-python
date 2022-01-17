@@ -151,7 +151,8 @@ def test_ieeg_elec_locate_gui_display(_locate_ieeg, _fake_CT_coords):
     # test functions
     with pytest.warns(RuntimeWarning, match='`pial` surface not found'):
         gui = _locate_ieeg(raw.info, trans, aligned_ct,
-                           subject=subject, subjects_dir=subjects_dir)
+                           subject=subject, subjects_dir=subjects_dir,
+                           verbose=True)
 
     gui._ras[:] = coords[0]  # start in the right position
     gui._move_cursors_to_pos()
