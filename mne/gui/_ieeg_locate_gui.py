@@ -9,6 +9,7 @@ import os.path as op
 import numpy as np
 from functools import partial
 from scipy.ndimage import maximum_filter
+from scipy.spatial.distance import cdist
 
 from matplotlib.colors import LinearSegmentedColormap
 
@@ -29,10 +30,14 @@ from ..surface import _read_mri_surface, _voxel_neighbors, _marching_cubes
 from ..transforms import (apply_trans, _frame_to_str, _get_trans,
                           invert_transform)
 from ..utils import logger, _check_fname, _validate_type, verbose, warn
+from .. import pick_types
 
 _IMG_LABELS = [['I', 'P'], ['I', 'L'], ['P', 'L']]
 _CH_PLOT_SIZE = 1024
 _ZOOM_STEP_SIZE = 5
+_RADIUS_SCALAR = 0.4
+_TUBE_SCALAR = 0.1
+_BOLT_SCALAR = 30  # mm
 
 # 20 colors generated to be evenly spaced in a cube, worked better than
 # matplotlib color cycle
@@ -113,6 +118,7 @@ class IntracranialElectrodeLocator(QMainWindow):
 
         # store info for modification
         self._info = info
+        self._seeg_idx = pick_types(self._info, meg=False, seeg=True)
         self._verbose = verbose
 
         # channel plotting default parameters
@@ -169,6 +175,12 @@ class IntracranialElectrodeLocator(QMainWindow):
         button_hbox = self._get_button_bar()
         slider_hbox = self._get_slider_bar()
         bottom_hbox = self._get_bottom_bar()
+
+        # Add lines
+        self._lines = dict()
+        self._lines_2D = dict()
+        for group in set(self._groups.values()):
+            self._update_lines(group)
 
         # Put everything together
         plot_ch_hbox = QHBoxLayout()
@@ -238,7 +250,7 @@ class IntracranialElectrodeLocator(QMainWindow):
                  'these files have been deleted.')
             self._lh = self._rh = None
 
-    def _make_ch_image(self, axis):
+    def _make_ch_image(self, axis, proj=False):
         """Make a plot to display the channel locations."""
         # Make channel data higher resolution so it looks better.
         ch_image = np.zeros((_CH_PLOT_SIZE, _CH_PLOT_SIZE)) * np.nan
@@ -264,10 +276,11 @@ class IntracranialElectrodeLocator(QMainWindow):
             xyz = apply_trans(self._ras_vox_t, ras)
             # check if closest to that voxel
             dist = np.linalg.norm(xyz - self._current_slice)
-            if dist < self._radius:
+            if proj or dist < self._radius:
                 x, y, z = xyz
                 group = self._groups[name]
-                r = self._radius - np.round(abs(dist)).astype(int)
+                r = self._radius if proj else \
+                    self._radius - np.round(abs(dist)).astype(int)
                 if axis == 0:
                     ch_image = color_ch_radius(
                         ch_image, y / vy, z / vz, group, r)
@@ -304,21 +317,21 @@ class IntracranialElectrodeLocator(QMainWindow):
             ct_data = np.take(self._ct_data, self._current_slice[axis],
                               axis=axis).T
             self._images['ct'].append(self._figs[axis].axes[0].imshow(
-                ct_data, cmap='gray', aspect='auto',
+                ct_data, cmap='gray', aspect='auto', zorder=1,
                 vmin=ct_min, vmax=ct_max))
             self._images['chs'].append(
                 self._figs[axis].axes[0].imshow(
                     self._make_ch_image(axis), aspect='auto',
-                    extent=self._img_ranges[axis],
+                    extent=self._img_ranges[axis], zorder=3,
                     cmap=_CMAP, alpha=self._ch_alpha, vmin=0, vmax=_N_COLORS))
             self._images['cursor'].append(
                 self._figs[axis].axes[0].plot(
                     (xyz[axis], xyz[axis]), (0, self._voxel_sizes[axis]),
-                    color=[0, 1, 0], linewidth=1, alpha=0.5)[0])
+                    color=[0, 1, 0], linewidth=1, alpha=0.5, zorder=8)[0])
             self._images['cursor2'].append(
                 self._figs[axis].axes[0].plot(
                     (0, self._voxel_sizes[axis]), (xyz[axis], xyz[axis]),
-                    color=[0, 1, 0], linewidth=1, alpha=0.5)[0])
+                    color=[0, 1, 0], linewidth=1, alpha=0.5, zorder=8)[0])
             # label axes
             self._figs[axis].text(0.5, 0.05, _IMG_LABELS[axis][0],
                                   **text_kwargs)
@@ -352,18 +365,13 @@ class IntracranialElectrodeLocator(QMainWindow):
                 *self._rh['rr'].T * 1000, triangles=self._rh['tris'],
                 color='white', opacity=0.2, reset_camera=False, render=False)
         self._3d_chs = dict()
-        self._plot_3d_ch_pos()
+        for name in self._chs:
+            self._plot_3d_ch(name)
         self._renderer.set_camera(azimuth=90, elevation=90, distance=300,
                                   focalpoint=tuple(self._ras))
         # update plots
         self._draw()
         self._renderer._update()
-
-    def _scale_radius(self):
-        """Scale the radius to mm."""
-        shape = np.mean(self._ct_data.shape)  # this is Freesurfer shape (256)
-        scale = np.diag(self._ras_vox_t)[:3].mean()
-        return scale * self._radius * (shape / _CH_PLOT_SIZE)
 
     def _update_camera(self, render=False):
         """Update the camera position."""
@@ -378,17 +386,13 @@ class IntracranialElectrodeLocator(QMainWindow):
         if name in self._3d_chs:
             self._renderer.plotter.remove_actor(self._3d_chs.pop(name))
         if not any(np.isnan(self._chs[name])):
-            radius = self._scale_radius()
             self._3d_chs[name] = self._renderer.sphere(
-                tuple(self._chs[name]), scale=radius * 3,
-                color=_UNIQUE_COLORS[self._groups[name] % _N_COLORS],
-                opacity=self._ch_alpha)[0]
-        if render:
-            self._renderer._update()
-
-    def _plot_3d_ch_pos(self, render=False):
-        for name in self._chs:
-            self._plot_3d_ch(name)
+                tuple(self._chs[name]), scale=1,
+                color=_CMAP(self._groups[name])[:3], opacity=self._ch_alpha)[0]
+            # The actor scale is managed differently than the glpyh scale
+            # in order not to recreate objects, we use the actor scale
+            self._3d_chs[name].SetOrigin(self._chs[name])
+            self._3d_chs[name].SetScale(self._radius * _RADIUS_SCALAR)
         if render:
             self._renderer._update()
 
@@ -431,8 +435,7 @@ class IntracranialElectrodeLocator(QMainWindow):
         for i in range(_N_COLORS):
             self._group_selector.addItem(' ')
             color = QtGui.QColor()
-            color.setRgb(*(255 * np.array(_UNIQUE_COLORS[i % _N_COLORS])
-                           ).round().astype(int))
+            color.setRgb(*(255 * np.array(_CMAP(i))).round().astype(int))
             brush = QtGui.QBrush(color)
             brush.setStyle(QtCore.Qt.SolidPattern)
             group_model.setData(group_model.index(i, 0),
@@ -554,6 +557,42 @@ class IntracranialElectrodeLocator(QMainWindow):
                     base_names[base_name] = i
                     i += 1
 
+    def _update_lines(self, group, only_2D=False):
+        """Draw lines that connect the points in a group."""
+        if not only_2D and group in self._lines:
+            self._renderer.plotter.remove_actor(self._lines[group])
+        pos = np.array([
+            self._chs[ch] for i, ch in enumerate(self._ch_names)
+            if self._groups[ch] == group and i in self._seeg_idx and
+            not np.isnan(self._chs[ch]).any()])
+        if len(pos) < 2:  # not enough points for line
+            return
+        # first, the insertion will be the point farthest from the origin
+        # brains are a longer posterior-anterior, scale for this (80%)
+        insert_idx = np.argmax(np.linalg.norm(pos * np.array([1, 0.8, 1]),
+                                              axis=1))
+        # second, find the farthest point from the insertion
+        target_idx = np.argmax(cdist(pos, pos)[insert_idx])
+        # third, make a unit vector and to add to the insertion for the bolt
+        elec_v = pos[insert_idx] - pos[target_idx]
+        elec_v /= np.linalg.norm(elec_v)
+        if not only_2D:
+            self._lines[group] = self._renderer.tube(
+                [pos[target_idx]], [pos[insert_idx] + elec_v * _BOLT_SCALAR],
+                radius=self._radius * _TUBE_SCALAR, color=_CMAP(group))
+        if self._toggle_show_mip_button.text() == 'Hide Max Intensity Proj':
+            target_vox = apply_trans(self._ras_vox_t, pos[target_idx])
+            insert_vox = apply_trans(self._ras_vox_t,
+                                     pos[insert_idx] + elec_v * _BOLT_SCALAR)
+            lines_2D = list()
+            for axis in range(3):
+                x, y = [i for i in range(3) if i != axis]
+                lines_2D.append(self._figs[axis].axes[0].plot(
+                    [target_vox[x], insert_vox[x]],
+                    [target_vox[y], insert_vox[y]],
+                    color=_CMAP(group), linewidth=0.25, zorder=7))
+            self._lines_2D[group] = lines_2D
+
     def _set_ch_names(self):
         """Add the channel names to the selector."""
         self._ch_list_model = QtGui.QStandardItemModel(self._ch_list)
@@ -577,8 +616,7 @@ class IntracranialElectrodeLocator(QMainWindow):
     def _update_group(self):
         """Set background for closed group menu."""
         group = self._group_selector.currentIndex()
-        rgb = (255 * np.array(_UNIQUE_COLORS[group % _N_COLORS])
-               ).round().astype(int)
+        rgb = (255 * np.array(_CMAP(group))).round().astype(int)
         self._group_selector.setStyleSheet(
             'background-color: rgb({:d},{:d},{:d})'.format(*rgb))
         self._group_selector.update()
@@ -673,8 +711,7 @@ class IntracranialElectrodeLocator(QMainWindow):
         color = QtGui.QColor('white')
         if not np.isnan(self._chs[name]).any():
             group = self._groups[name]
-            color.setRgb(*[int(c * 255) for c in
-                           _UNIQUE_COLORS[int(group) % _N_COLORS]])
+            color.setRgb(*[int(c * 255) for c in _CMAP(group)])
         brush = QtGui.QBrush(color)
         brush.setStyle(QtCore.Qt.SolidPattern)
         self._ch_list_model.setData(
@@ -717,6 +754,7 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._color_list_item()
         self._update_ch_images(draw=True)
         self._plot_3d_ch(name, render=True)
+        self._update_lines(self._groups[name])
         self._save_ch_coords()
         self._next_ch()
         self._ch_list.setFocus()
@@ -730,6 +768,7 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._save_ch_coords()
         self._update_ch_images(draw=True)
         self._plot_3d_ch(name, render=True)
+        self._update_lines(self._groups[name])
         self._next_ch()
         self._ch_list.setFocus()
 
@@ -743,6 +782,10 @@ class IntracranialElectrodeLocator(QMainWindow):
         for axis in range(3) if axis is None else [axis]:
             self._images['chs'][axis].set_data(
                 self._make_ch_image(axis))
+            if self._toggle_show_mip_button.text() == \
+                    'Hide Max Intensity Proj':
+                self._images['mip_chs'][axis].set_data(
+                    self._make_ch_image(axis, proj=True))
             if draw:
                 self._draw(axis)
 
@@ -797,11 +840,12 @@ class IntracranialElectrodeLocator(QMainWindow):
             self._update_ct_images()
         else:
             self._ct_maxima = None  # signals ct max is out-of-date
-        if self._toggle_show_mip_button.text() == 'Show Max Intensity Proj':
-            for points in self._images['mip_scatter']:
-                points.set_sizes([self._radius / 5])
         self._update_ch_images(draw=True)
-        self._plot_3d_ch_pos(render=True)
+        for name, actor in self._3d_chs.items():
+            if not np.isnan(self._chs[name]).any():
+                actor.SetOrigin(self._chs[name])
+                actor.SetScale(self._radius * _RADIUS_SCALAR)
+        self._renderer._update()
         self._ch_list.setFocus()  # remove focus from 3d plotter
 
     def _update_ch_alpha(self):
@@ -810,7 +854,9 @@ class IntracranialElectrodeLocator(QMainWindow):
         for axis in range(3):
             self._images['chs'][axis].set_alpha(self._ch_alpha)
         self._draw()
-        self._plot_3d_ch_pos(render=True)
+        for actor in self._3d_chs.values():
+            actor.GetProperty().SetOpacity(self._ch_alpha)
+        self._renderer._update()
         self._ch_list.setFocus()  # remove focus from 3d plotter
 
     def _get_click_pos(self, axis, x, y):
@@ -860,33 +906,35 @@ class IntracranialElectrodeLocator(QMainWindow):
         if self._toggle_show_mip_button.text() == 'Show Max Intensity Proj':
             self._toggle_show_mip_button.setText('Hide Max Intensity Proj')
             self._images['mip'] = list()
-            self._images['mip_scatter'] = list()
+            self._images['mip_chs'] = list()
             ct_min, ct_max = np.nanmin(self._ct_data), np.nanmax(self._ct_data)
             for axis in range(3):
                 ct_mip_data = np.max(self._ct_data, axis=axis).T
                 self._images['mip'].append(
                     self._figs[axis].axes[0].imshow(
                         ct_mip_data, cmap='gray', aspect='auto',
-                        vmin=ct_min, vmax=ct_max))
-                # add channel circles
-                xy_idx = [0, 1, 2]
-                xy_idx.remove(axis)
-                xs = list()
-                ys = list()
-                colors = list()
+                        vmin=ct_min, vmax=ct_max, zorder=5))
+                # add circles for each channel
+                xy_idx = [i for i in range(3) if i != axis]
+                xs, ys, colors = list(), list(), list()
                 for name, ras in self._chs.items():
                     xyz = apply_trans(self._ras_vox_t, ras)
                     xs.append(xyz[xy_idx[0]])
                     ys.append(xyz[xy_idx[1]])
                     colors.append(_CMAP(self._groups[name]))
-                self._images['mip_scatter'].append(
-                    self._figs[axis].axes[0].scatter(
-                        xs, ys, color=colors, s=self._radius / 5))
+                self._images['mip_chs'].append(
+                    self._figs[axis].axes[0].imshow(
+                        self._make_ch_image(axis, proj=True), aspect='auto',
+                        extent=self._img_ranges[axis], zorder=6,
+                        cmap=_CMAP, alpha=1, vmin=0, vmax=_N_COLORS))
+                # add lines
+                for group in set(self._groups.values()):
+                    self._update_lines(group, only_2D=True)
         else:
-            for img in self._images['mip'] + self._images['mip_scatter']:
+            for img in self._images['mip'] + self._images['mip_chs']:
                 img.remove()
             self._images.pop('mip')
-            self._images.pop('mip_scatter')
+            self._images.pop('mip_chs')
             self._toggle_show_mip_button.setText('Show Max Intensity Proj')
         self._draw()
 
@@ -904,7 +952,7 @@ class IntracranialElectrodeLocator(QMainWindow):
                 self._images['local_max'].append(
                     self._figs[axis].axes[0].imshow(
                         ct_max_data, cmap='autumn', aspect='auto',
-                        vmin=0, vmax=1))
+                        vmin=0, vmax=1, zorder=4))
         else:
             for img in self._images['local_max']:
                 img.remove()
@@ -925,7 +973,7 @@ class IntracranialElectrodeLocator(QMainWindow):
                 mri_data = np.take(self._mri_data,
                                    self._current_slice[axis], axis=axis).T
                 self._images['mri'].append(self._figs[axis].axes[0].imshow(
-                    mri_data, cmap='hot', aspect='auto', alpha=0.25))
+                    mri_data, cmap='hot', aspect='auto', alpha=0.25, zorder=2))
             self._toggle_brain_button.setText('Hide Brain')
         self._draw()
 
