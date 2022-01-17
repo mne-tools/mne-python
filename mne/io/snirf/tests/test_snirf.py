@@ -9,7 +9,7 @@ import shutil
 import pytest
 
 from mne.datasets.testing import data_path, requires_testing_data
-from mne.utils import requires_h5py
+from mne.utils import requires_version
 from mne.io import read_raw_snirf, read_raw_nirx
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.preprocessing.nirs import (optical_density, beer_lambert_law,
@@ -46,7 +46,7 @@ kernel_hb = op.join(testing_path, 'SNIRF', 'Kernel', 'Flow50',
                     'Portal_2021_11', 'hb.snirf')
 
 
-@requires_h5py
+@requires_version('h5py')
 @requires_testing_data
 @pytest.mark.filterwarnings('ignore:.*contains 2D location.*:')
 @pytest.mark.parametrize('fname', ([sfnirs_homer_103_wShort,
@@ -70,7 +70,7 @@ def test_basic_reading_and_min_process(fname):
 
 
 @requires_testing_data
-@requires_h5py
+@requires_version('h5py')
 def test_snirf_basic():
     """Test reading SNIRF files."""
     raw = read_raw_snirf(sfnirs_homer_103_wShort, preload=True)
@@ -114,7 +114,7 @@ def test_snirf_basic():
 
 
 @requires_testing_data
-@requires_h5py
+@requires_version('h5io')
 def test_snirf_against_nirx():
     """Test against file snirf was created from."""
     raw = read_raw_snirf(sfnirs_homer_103_wShort, preload=True)
@@ -140,7 +140,7 @@ def test_snirf_against_nirx():
     assert_allclose(raw.get_data(), raw_orig.get_data())
 
 
-@requires_h5py
+@requires_version('h5py')
 @requires_testing_data
 def test_snirf_nonstandard(tmp_path):
     """Test custom tags."""
@@ -177,7 +177,7 @@ def test_snirf_nonstandard(tmp_path):
 
 
 @requires_testing_data
-@requires_h5py
+@requires_version('h5py')
 def test_snirf_nirsport2():
     """Test reading SNIRF files."""
     raw = read_raw_snirf(nirx_nirsport2_103, preload=True)
@@ -199,7 +199,7 @@ def test_snirf_nirsport2():
 
 
 @requires_testing_data
-@requires_h5py
+@requires_version('h5py')
 def test_snirf_coordframe():
     """Test reading SNIRF files."""
     raw = read_raw_snirf(nirx_nirsport2_103, optode_frame="head").\
@@ -216,7 +216,7 @@ def test_snirf_coordframe():
 
 
 @requires_testing_data
-@requires_h5py
+@requires_version('h5py')
 def test_snirf_nirsport2_w_positions():
     """Test reading SNIRF files with known positions."""
     raw = read_raw_snirf(nirx_nirsport2_103_2, preload=True,
@@ -294,7 +294,7 @@ def test_snirf_nirsport2_w_positions():
 
 
 @requires_testing_data
-@requires_h5py
+@requires_version('h5py')
 def test_snirf_kernel_hb():
     """Test reading Kernel SNIRF files with haemoglobin data."""
     raw = read_raw_snirf(kernel_hb, preload=True)
@@ -317,7 +317,7 @@ def test_snirf_kernel_hb():
 
 
 @requires_testing_data
-@requires_h5py
+@requires_version('h5io')
 @pytest.mark.parametrize('fname, boundary_decimal, test_scaling, test_rank', (
     [sfnirs_homer_103_wShort, 0, True, True],
     [nirx_nirsport2_103, 0, True, False],  # strange rank behavior
@@ -333,7 +333,7 @@ def test_snirf_standard(fname, boundary_decimal, test_scaling, test_rank):
 
 
 @requires_testing_data
-@requires_h5py
+@requires_version('h5py')
 def test_annotation_description_from_stim_groups():
     """Test annotation descriptions parsed from stim group names."""
     raw = read_raw_snirf(nirx_nirsport2_103_2, preload=True)

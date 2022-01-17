@@ -25,7 +25,8 @@ from mne.report.report import CONTENT_ORDER
 from mne.io import read_raw_fif, read_info
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper, report
-from mne.utils import requires_nibabel, Bunch, requires_h5py, requires_sklearn
+from mne.utils import (requires_nibabel, Bunch, requires_version,
+                       requires_sklearn)
 from mne.viz import plot_alignment
 from mne.io.write import DATE_NONE
 from mne.preprocessing import ICA
@@ -519,7 +520,7 @@ def test_validate_input():
     items_new, captions_new, comments_new = values
 
 
-@requires_h5py
+@requires_version('h5io')
 def test_open_report(tmp_path):
     """Test the open_report function."""
     tempdir = str(tmp_path)

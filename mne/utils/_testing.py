@@ -154,6 +154,7 @@ requires_good_network = partial(
     call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
          '    raise ImportError')
 requires_nitime = partial(requires_module, name='nitime')
+# just keep this in case downstream packages need it (no coverage hit here)
 requires_h5py = partial(requires_module, name='h5py')
 
 

@@ -48,14 +48,6 @@ pandas_not_found_warning_msg = 'The Pandas library is not installed. Not ' \
                                'metadata.'
 
 
-def _has_h5py():
-    try:
-        import h5py  # noqa
-        return True
-    except ImportError:
-        return False
-
-
 def _remove_ignored_ch_fields(info):
     if 'chs' in info:
         for cur_ch in info['chs']:

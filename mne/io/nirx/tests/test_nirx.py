@@ -15,7 +15,7 @@ from numpy.testing import assert_allclose, assert_array_equal
 from mne import pick_types
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_nirx, read_raw_snirf
-from mne.utils import requires_h5py
+from mne.utils import requires_version
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.preprocessing import annotate_nan
 from mne.transforms import apply_trans, _get_trans
@@ -59,7 +59,7 @@ snirf_nirsport2_20219 = op.join(data_path(download=False),
                                 '2021-10-01_002.snirf')
 
 
-@requires_h5py
+@requires_version('pymatreader')
 @requires_testing_data
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 @pytest.mark.parametrize('fname_nirx, fname_snirf', (

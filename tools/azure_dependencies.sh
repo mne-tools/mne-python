@@ -24,4 +24,4 @@ else
 	echo "Unknown run type ${TEST_MODE}"
 	exit 1
 fi
-python -m pip install $EXTRA_ARGS .[test] codecov
+python -m pip install $EXTRA_ARGS .[test,hdf5] codecov

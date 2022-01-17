@@ -11,8 +11,6 @@ import os.path
 
 import pytest
 import numpy as np
-import pymatreader
-from pymatreader import read_mat
 
 import mne
 from mne.datasets import testing
@@ -99,6 +97,8 @@ def test_read_evoked(cur_system, version, use_info):
                     reason='Pandas problem on Azure CI')
 def test_read_epochs(cur_system, version, use_info, monkeypatch):
     """Test comparing reading an Epochs object and the FieldTrip version."""
+    import pymatreader
+    from pymatreader import read_mat
     pandas = _check_pandas_installed(strict=False)
     has_pandas = pandas is not False
     test_data_folder_ft = get_data_paths(cur_system)
@@ -217,6 +217,7 @@ def test_invalid_trialinfocolumn():
 @testing.requires_testing_data
 def test_create_events():
     """Test 2dim trialinfo fields."""
+    from pymatreader import read_mat
     test_data_folder_ft = get_data_paths('neuromag306')
     cur_fname = os.path.join(test_data_folder_ft, 'epoched_v7.mat')
     original_data = read_mat(cur_fname, ['data', ])

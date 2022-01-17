@@ -64,6 +64,7 @@ if __name__ == "__main__":
     # people's workflows who did `pip install mne[data]`
     install_requires = parse_requirements_file('requirements_base.txt')
     data_requires = []
+    hdf5_requires = parse_requirements_file('requirements_hdf5.txt')
     test_requires = (parse_requirements_file('requirements_testing.txt') +
                      parse_requirements_file('requirements_testing_extra.txt'))
     setup(name=DISTNAME,
@@ -101,6 +102,7 @@ if __name__ == "__main__":
           install_requires=install_requires,
           extras_require={
               'data': data_requires,
+              'hdf5': hdf5_requires,
               'test': test_requires,
           },
           packages=package_tree('mne'),
