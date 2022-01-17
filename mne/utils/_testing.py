@@ -86,9 +86,11 @@ def requires_dipy():
 def requires_version(library, min_version='0.0'):
     """Check for a library version."""
     import pytest
+    reason = f'Requires {library}'
+    if min_version != '0.0':
+        reason += ' version >= {min_version}'
     return pytest.mark.skipif(not check_version(library, min_version),
-                              reason=('Requires %s version >= %s'
-                                      % (library, min_version)))
+                              reason=reason)
 
 
 def requires_module(function, name, call=None):

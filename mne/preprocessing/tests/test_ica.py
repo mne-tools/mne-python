@@ -28,7 +28,8 @@ from mne.io import read_raw_fif, Info, RawArray, read_raw_ctf, read_raw_eeglab
 from mne.io.pick import _DATA_CH_TYPES_SPLIT, get_channel_type_constants
 from mne.io.eeglab.eeglab import _check_load_mat
 from mne.rank import _compute_rank_int
-from mne.utils import catch_logging, requires_sklearn, _record_warnings
+from mne.utils import (catch_logging, requires_sklearn, _record_warnings,
+                       check_version)
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
 
@@ -51,6 +52,8 @@ event_id, tmin, tmax = 1, -0.2, 0.2
 # if stop is too small pca may fail in some cases, but we're okay on this file
 start, stop = 0, 6
 score_funcs_unsuited = ['pointbiserialr', 'ansari']
+pymatreader_mark = pytest.mark.skipif(
+    not check_version('pymatreader'), reason='Requires pymatreader')
 
 
 def ICA(*args, **kwargs):
@@ -1322,7 +1325,7 @@ def test_ica_labels():
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname, grade', [
     (fif_fname, None),
-    (eeglab_fname, None),
+    pytest.param(eeglab_fname, None, marks=pymatreader_mark),
     (ctf_fname2, 0),
     (ctf_fname2, 1),
 ])
@@ -1369,6 +1372,7 @@ def test_ica_eeg(fname, grade):
             ica.get_sources(inst)
 
 
+@pymatreader_mark
 @testing.requires_testing_data
 def test_read_ica_eeglab():
     """Test read_ica_eeglab function."""
@@ -1401,6 +1405,7 @@ def test_read_ica_eeglab():
                     rtol=1e-05, atol=1e-08)
 
 
+@pymatreader_mark
 @testing.requires_testing_data
 def test_read_ica_eeglab_mismatch(tmp_path):
     """Test read_ica_eeglab function when there is a mismatch."""

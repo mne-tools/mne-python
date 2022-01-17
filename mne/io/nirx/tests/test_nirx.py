@@ -83,6 +83,7 @@ def test_nirsport_v2_matches_snirf(fname_nirx, fname_snirf):
     # raw_snirf.info["subject_info"]["first_name"]
 
 
+@requires_version('pymatreader')
 @requires_testing_data
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 def test_nirsport_v2():
@@ -152,6 +153,7 @@ def test_nirsport_v2():
     assert len(mon.dig) == 43
 
 
+@requires_version('pymatreader')
 @requires_testing_data
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 def test_nirsport_v1_wo_sat():
@@ -176,6 +178,7 @@ def test_nirsport_v1_wo_sat():
     assert np.sum(np.isnan(data)) == 0
 
 
+@requires_version('pymatreader')
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 @requires_testing_data
 def test_nirsport_v1_w_sat():
@@ -199,6 +202,7 @@ def test_nirsport_v1_w_sat():
     assert np.sum(np.isnan(data)) == 0
 
 
+@requires_version('pymatreader')
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 @requires_testing_data
 @pytest.mark.parametrize('preload', (True, False))
@@ -235,6 +239,7 @@ def test_nirsport_v1_w_bad_sat(preload, meas_date):
         assert_allclose(a, b)
 
 
+@requires_version('pymatreader')
 @requires_testing_data
 def test_nirx_hdr_load():
     """Test reading NIRX files using path to header file."""
@@ -253,6 +258,7 @@ def test_nirx_missing_warn():
         read_raw_nirx(fname_nirx_15_2_short + "1", preload=True)
 
 
+@requires_version('pymatreader')
 @requires_testing_data
 def test_nirx_missing_evt(tmp_path):
     """Test reading NIRX files when missing data."""
@@ -275,6 +281,7 @@ def test_nirx_dat_warn(tmp_path):
         read_raw_nirx(fname, preload=True)
 
 
+@requires_version('pymatreader')
 @requires_testing_data
 def test_nirx_15_2_short():
     """Test reading NIRX files."""
@@ -368,6 +375,7 @@ def test_nirx_15_2_short():
         mni_locs[21], [0.0388, -0.0477, 0.0932], atol=allowed_dist_error)
 
 
+@requires_version('pymatreader')
 @requires_testing_data
 def test_nirx_15_3_short():
     """Test reading NIRX files."""
@@ -473,6 +481,7 @@ def test_encoding(tmp_path):
         read_raw_nirx(fname)
 
 
+@requires_version('pymatreader')
 @requires_testing_data
 def test_nirx_15_2():
     """Test reading NIRX files."""
@@ -520,6 +529,7 @@ def test_nirx_15_2():
     assert len(picks) > 0
 
 
+@requires_version('pymatreader')
 @requires_testing_data
 def test_nirx_15_0():
     """Test reading NIRX files."""
@@ -572,6 +582,7 @@ def test_nirx_15_0():
         0.0399, 0.0393, 0.0367, 0.0336, 0.0447], atol=allowed_distance_error)
 
 
+@requires_version('pymatreader')
 @requires_testing_data
 @pytest.mark.parametrize('fname, boundary_decimal', (
     [fname_nirx_15_2_short, 1],

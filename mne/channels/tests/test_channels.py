@@ -25,6 +25,7 @@ from mne.io.constants import FIFF
 from mne import (pick_types, pick_channels, EpochsArray, EvokedArray,
                  make_ad_hoc_cov, create_info, read_events, Epochs)
 from mne.datasets import testing
+from mne.utils import requires_version
 
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 base_dir = op.join(io_dir, 'tests', 'data')
@@ -273,6 +274,7 @@ def test_get_set_sensor_positions():
                        raw2.info['chs'][13]['loc'])
 
 
+@requires_version('pymatreader')
 @testing.requires_testing_data
 def test_1020_selection():
     """Test making a 10/20 selection dict."""

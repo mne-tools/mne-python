@@ -68,10 +68,13 @@ def _compare_bem_solutions(sol_a, sol_b):
                         err_msg='Mismatch: %s' % key)
 
 
+h5py_mark = pytest.mark.skipif(not check_version('h5py'), reason='Needs h5py')
+
+
 @testing.requires_testing_data
 @pytest.mark.parametrize('ext', [
     'fif',
-    pytest.param('h5', marks=pytest.mark.skipif(not check_version('h5py'))),
+    pytest.param('h5', marks=h5py_mark),
 ])
 def test_io_bem(tmp_path, ext):
     """Test reading and writing of bem surfaces and solutions."""

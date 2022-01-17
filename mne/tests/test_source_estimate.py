@@ -1625,6 +1625,7 @@ def test_stc_near_sensors(tmp_path):
     assert '4157 volume vertices' in log
 
 
+@requires_version('pymatreader')
 @testing.requires_testing_data
 def test_stc_near_sensors_picks():
     """Test using picks with stc_near_sensors."""

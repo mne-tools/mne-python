@@ -16,6 +16,7 @@ from mne.datasets import testing
 
 fname_nirx_15_2 = op.join(data_path(download=False),
                           'NIRx', 'nirscout', 'nirx_15_2_recording')
+pytest.importorskip('pymatreader')  # module-level
 
 
 @testing.requires_testing_data
