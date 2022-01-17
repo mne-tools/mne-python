@@ -25,6 +25,8 @@ include mne/datasets/_phantom/*.txt
 include mne/data/dataset_checksums.txt
 include mne/data/eegbci_checksums.txt
 
+recursive-include mne/html_templates *.html.jinja
+
 recursive-include mne/channels/data/layouts *
 recursive-include mne/channels/data/montages *
 recursive-include mne/channels/data/neighbors *
