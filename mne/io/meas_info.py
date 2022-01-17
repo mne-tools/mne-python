@@ -43,7 +43,7 @@ from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
 from ._digitization import write_dig
 from .compensator import get_current_comp
 from ..defaults import _handle_default
-from ..html_templates import repr_env
+from ..html_templates import repr_templates_env
 
 
 b = bytes  # alias
@@ -1135,7 +1135,7 @@ class Info(dict, MontageMixin):
         else:
             experimenter = None
 
-        info_template = repr_env.get_template('info.html.jinja')
+        info_template = repr_templates_env.get_template('info.html.jinja')
         html += info_template.render(
             caption=caption, meas_date=meas_date, ecg=ecg,
             eog=eog, good_channels=good_channels, bad_channels=bad_channels,

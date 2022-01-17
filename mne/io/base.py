@@ -52,7 +52,7 @@ from ..defaults import _handle_default
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
-from ..html_templates import repr_env
+from ..html_templates import repr_templates_env
 
 
 class TimeMixin(object):
@@ -1787,7 +1787,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         m, s = divmod(self._last_time - self.first_time, 60)
         h, m = divmod(m, 60)
         duration = f'{int(h):02d}:{int(m):02d}:{int(s):02d}'
-        raw_template = repr_env.get_template('raw.html.jinja')
+        raw_template = repr_templates_env.get_template('raw.html.jinja')
         return raw_template.render(
             info_repr=self.info._repr_html_(caption=caption),
             filenames=basenames, duration=duration

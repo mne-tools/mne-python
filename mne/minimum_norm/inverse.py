@@ -42,7 +42,7 @@ from ..source_estimate import _make_stc, _get_src_type
 from ..utils import (check_fname, logger, verbose, warn, _validate_type,
                      _check_compensation_grade, _check_option,
                      _check_depth, _check_src_normal, _check_fname)
-from ..html_templates import repr_env
+from ..html_templates import repr_templates_env
 
 
 INVERSE_METHODS = ('MNE', 'dSPM', 'sLORETA', 'eLORETA')
@@ -86,7 +86,7 @@ class InverseOperator(dict):
         repr_info = self._get_chs_and_src_info_for_repr()
         n_chs_meg, n_chs_eeg, src_space_descr, src_ori = repr_info
 
-        t = repr_env.get_template('inverse_operator.html.jinja')
+        t = repr_templates_env.get_template('inverse_operator.html.jinja')
         html = t.render(
             channels=f'{n_chs_meg} MEG, {n_chs_eeg} EEG',
             source_space_descr=src_space_descr,

@@ -25,7 +25,6 @@ import warnings
 import webbrowser
 
 import numpy as np
-import jinja2
 
 from .. import __version__ as MNE_VERSION
 from ..fixes import _compare_version
@@ -54,6 +53,7 @@ from .. import dig_mri_distances
 from ..minimum_norm import read_inverse_operator, InverseOperator
 from ..parallel import parallel_func, check_n_jobs
 from ..externals.h5io import read_hdf5, write_hdf5
+from ..html_templates import report_templates_env
 
 _BEM_VIEWS = ('axial', 'sagittal', 'coronal')
 
@@ -114,18 +114,9 @@ def _get_ch_types(inst):
 # HTML generation
 
 
-jinja_env = jinja2.Environment(
-    loader=jinja2.PackageLoader('mne.report'),
-    autoescape=jinja2.select_autoescape(
-        default=True,
-        default_for_string=True
-    )
-)
-jinja_env.filters['zip'] = zip
-
 
 def _html_header_element(*, lang, include, js, css, title, tags, mne_logo_img):
-    t = jinja_env.get_template('header.html.jinja')
+    t = report_templates_env.get_template('header.html.jinja')
     t_rendered = t.render(
         lang=lang, include=include, js=js, css=css, title=title, tags=tags,
         mne_logo_img=mne_logo_img
@@ -134,19 +125,19 @@ def _html_header_element(*, lang, include, js, css, title, tags, mne_logo_img):
 
 
 def _html_footer_element(*, mne_version, date):
-    t = jinja_env.get_template('footer.html.jinja')
+    t = report_templates_env.get_template('footer.html.jinja')
     t_rendered = t.render(mne_version=mne_version, date=date)
     return t_rendered
 
 
 def _html_toc_element(*, content_elements):
-    t = jinja_env.get_template('toc.html.jinja')
+    t = report_templates_env.get_template('toc.html.jinja')
     t_rendered = t.render(content_elements=content_elements)
     return t_rendered
 
 
 def _html_raw_element(*, id, repr, psd, butterfly, ssp_projs, title, tags):
-    t = jinja_env.get_template('raw.html.jinja')
+    t = report_templates_env.get_template('raw.html.jinja')
     t_rendered = t.render(
         id=id, repr=repr, psd=psd, butterfly=butterfly, ssp_projs=ssp_projs,
         tags=tags, title=title
@@ -156,7 +147,7 @@ def _html_raw_element(*, id, repr, psd, butterfly, ssp_projs, title, tags):
 
 def _html_epochs_element(*, id, repr, metadata, erp_imgs, drop_log, psd,
                          ssp_projs, title, tags):
-    t = jinja_env.get_template('epochs.html.jinja')
+    t = report_templates_env.get_template('epochs.html.jinja')
     t_rendered = t.render(
         id=id, repr=repr, metadata=metadata, erp_imgs=erp_imgs,
         drop_log=drop_log, psd=psd, ssp_projs=ssp_projs, tags=tags, title=title
@@ -166,7 +157,7 @@ def _html_epochs_element(*, id, repr, metadata, erp_imgs, drop_log, psd,
 
 def _html_evoked_element(*, id, joint, slider, gfp, whitened, ssp_projs, title,
                          tags):
-    t = jinja_env.get_template('evoked.html.jinja')
+    t = report_templates_env.get_template('evoked.html.jinja')
     t_rendered = t.render(
         id=id, joint=joint, slider=slider, gfp=gfp, whitened=whitened,
         ssp_projs=ssp_projs, tags=tags, title=title
@@ -175,7 +166,7 @@ def _html_evoked_element(*, id, joint, slider, gfp, whitened, ssp_projs, title,
 
 
 def _html_cov_element(*, id, matrix, svd, title, tags):
-    t = jinja_env.get_template('cov.html.jinja')
+    t = report_templates_env.get_template('cov.html.jinja')
     t_rendered = t.render(
         id=id, matrix=matrix, svd=svd, tags=tags, title=title
     )
@@ -183,7 +174,7 @@ def _html_cov_element(*, id, matrix, svd, title, tags):
 
 
 def _html_forward_sol_element(*, id, repr, sensitivity_maps, title, tags):
-    t = jinja_env.get_template('forward.html.jinja')
+    t = report_templates_env.get_template('forward.html.jinja')
     t_rendered = t.render(
         id=id, repr=repr, sensitivity_maps=sensitivity_maps, tags=tags,
         title=title
@@ -192,7 +183,7 @@ def _html_forward_sol_element(*, id, repr, sensitivity_maps, title, tags):
 
 
 def _html_inverse_operator_element(*, id, repr, source_space, title, tags):
-    t = jinja_env.get_template('inverse.html.jinja')
+    t = report_templates_env.get_template('inverse.html.jinja')
     t_rendered = t.render(
         id=id, repr=repr, source_space=source_space, tags=tags, title=title
     )
@@ -201,7 +192,7 @@ def _html_inverse_operator_element(*, id, repr, source_space, title, tags):
 
 def _html_ica_element(*, id, repr, overlay, ecg, eog, ecg_scores, eog_scores,
                       properties, topographies, title, tags):
-    t = jinja_env.get_template('ica.html.jinja')
+    t = report_templates_env.get_template('ica.html.jinja')
     t_rendered = t.render(
         id=id, repr=repr, overlay=overlay, ecg=ecg, eog=eog,
         ecg_scores=ecg_scores, eog_scores=eog_scores, properties=properties,
@@ -219,7 +210,7 @@ def _html_slider_element(*, id, images, captions, start_idx, image_format,
         captions_.append(caption)
     del captions
 
-    t = jinja_env.get_template('slider.html.jinja')
+    t = report_templates_env.get_template('slider.html.jinja')
     t_rendered = t.render(
         id=id, images=images, captions=captions_, tags=tags, title=title,
         start_idx=start_idx, image_format=image_format, klass=klass
@@ -229,7 +220,7 @@ def _html_slider_element(*, id, images, captions, start_idx, image_format,
 
 def _html_image_element(*, id, img, image_format, caption, show, div_klass,
                         img_klass, title, tags):
-    t = jinja_env.get_template('image.html.jinja')
+    t = report_templates_env.get_template('image.html.jinja')
     t_rendered = t.render(
         id=id, img=img, caption=caption, tags=tags, title=title,
         image_format=image_format, div_klass=div_klass, img_klass=img_klass,
@@ -239,7 +230,7 @@ def _html_image_element(*, id, img, image_format, caption, show, div_klass,
 
 
 def _html_code_element(*, id, code, language, title, tags):
-    t = jinja_env.get_template('code.html.jinja')
+    t = report_templates_env.get_template('code.html.jinja')
     t_rendered = t.render(
         id=id, code=code, language=language, title=title, tags=tags
     )
@@ -247,7 +238,7 @@ def _html_code_element(*, id, code, language, title, tags):
 
 
 def _html_element(*, id, div_klass, html, title, tags):
-    t = jinja_env.get_template('html.html.jinja')
+    t = report_templates_env.get_template('html.html.jinja')
     t_rendered = t.render(
         id=id, div_klass=div_klass, html=html, title=title, tags=tags
     )

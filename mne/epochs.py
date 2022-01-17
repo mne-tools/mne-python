@@ -65,7 +65,7 @@ from .utils import (_check_fname, check_fname, logger, verbose,
 from .utils.docs import fill_doc
 from .annotations import (_write_annotations, _read_annotations_fif,
                           EpochAnnotationsMixin)
-from .html_templates import repr_env
+from .html_templates import repr_templates_env
 
 
 def _pack_reject_params(epochs):
@@ -1711,7 +1711,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         else:
             event_strings = None
         
-        t = repr_env.get_template('epochs.html.jinja')
+        t = repr_templates_env.get_template('epochs.html.jinja')
         t = t.render(epochs=self, baseline=baseline, events=event_strings)
         return t
 
