@@ -389,7 +389,7 @@ class IntracranialElectrodeLocator(QMainWindow):
             self._3d_chs[name] = self._renderer.sphere(
                 tuple(self._chs[name]), scale=1,
                 color=_CMAP(self._groups[name])[:3], opacity=self._ch_alpha)[0]
-            # The actor scale is managed differently than the glpyh scale
+            # The actor scale is managed differently than the glyph scale
             # in order not to recreate objects, we use the actor scale
             self._3d_chs[name].SetOrigin(self._chs[name])
             self._3d_chs[name].SetScale(self._radius * _RADIUS_SCALAR)
