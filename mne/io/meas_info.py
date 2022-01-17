@@ -1095,7 +1095,7 @@ class Info(dict, MontageMixin):
         # repr).
 
         # meas date
-        if 'meas_date' in self:
+        if 'meas_date' in self and self['meas_date'] is not None:
             meas_date = self['meas_date'].strftime(
                 "%B %d, %Y  %H:%M:%S"
             ) + ' GMT'
@@ -1110,27 +1110,27 @@ class Info(dict, MontageMixin):
         else:
             projs = None
 
-        if 'subject_info' in self:
+        if 'subject_info' in self and self['subject_info']:
             subject_info = self['subject_info']
         else:
             subject_info = None
 
-        if 'lowpass' in self:
+        if 'lowpass' in self and self['lowpass'] is not None:
             lowpass = self['lowpass']
         else:
             lowpass = None
 
-        if 'highpass' in self:
+        if 'highpass' in self and self['highpass'] is not None:
             highpass = self['highpass']
         else:
             highpass = None
 
-        if 'sfreq' in self:
+        if 'sfreq' in self and self['sfreq'] is not None:
             sfreq = self['sfreq']
         else:
             sfreq = None
 
-        if 'experimenter' in self:
+        if 'experimenter' in self and self['experimenter'] is not None:
             experimenter = self['experimenter']
         else:
             experimenter = None
