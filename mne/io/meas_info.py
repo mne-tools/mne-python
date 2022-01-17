@@ -1110,27 +1110,27 @@ class Info(dict, MontageMixin):
         else:
             projs = None
 
-        if 'subject_info' in self and self['subject_info']:
+        if 'subject_info' in self:
             subject_info = self['subject_info']
         else:
             subject_info = None
 
-        if 'lowpass' in self and self['lowpass'] is not None:
+        if 'lowpass' in self:
             lowpass = self['lowpass']
         else:
             lowpass = None
 
-        if 'highpass' in self and self['highpass'] is not None:
+        if 'highpass' in self:
             highpass = self['highpass']
         else:
             highpass = None
 
-        if 'sfreq' in self and self['sfreq'] is not None:
+        if 'sfreq' in self:
             sfreq = self['sfreq']
         else:
             sfreq = None
 
-        if 'experimenter' in self and self['experimenter'] is not None:
+        if 'experimenter' in self:
             experimenter = self['experimenter']
         else:
             experimenter = None
