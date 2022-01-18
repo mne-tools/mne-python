@@ -9,7 +9,6 @@ import os.path as op
 import numpy as np
 from functools import partial
 from scipy.ndimage import maximum_filter
-from scipy.spatial.distance import cdist
 
 from matplotlib.colors import LinearSegmentedColormap
 
@@ -38,6 +37,7 @@ _ZOOM_STEP_SIZE = 5
 _RADIUS_SCALAR = 0.4
 _TUBE_SCALAR = 0.1
 _BOLT_SCALAR = 30  # mm
+_CH_MENU_WIDTH = 50
 
 # 20 colors generated to be evenly spaced in a cube, worked better than
 # matplotlib color cycle
@@ -164,8 +164,8 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._ch_list = QListView()
         self._ch_list.setSelectionMode(Qt.QAbstractItemView.SingleSelection)
         max_ch_name_len = max([len(name) for name in self._chs])
-        self._ch_list.setMinimumWidth(max_ch_name_len * 10)
-        self._ch_list.setMaximumWidth(max_ch_name_len * 10)
+        self._ch_list.setMinimumWidth(max_ch_name_len * _CH_MENU_WIDTH)
+        self._ch_list.setMaximumWidth(max_ch_name_len * _CH_MENU_WIDTH)
         self._set_ch_names()
 
         # Plots
@@ -572,7 +572,7 @@ class IntracranialElectrodeLocator(QMainWindow):
         insert_idx = np.argmax(np.linalg.norm(pos * np.array([1, 0.8, 1]),
                                               axis=1))
         # second, find the farthest point from the insertion
-        target_idx = np.argmax(cdist(pos, pos)[insert_idx])
+        target_idx = np.argmax(np.linalg.norm(pos[insert_idx] - pos, axis=1))
         # third, make a unit vector and to add to the insertion for the bolt
         elec_v = pos[insert_idx] - pos[target_idx]
         elec_v /= np.linalg.norm(elec_v)
