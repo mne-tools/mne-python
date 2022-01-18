@@ -42,7 +42,6 @@ from ..source_estimate import _make_stc, _get_src_type
 from ..utils import (check_fname, logger, verbose, warn, _validate_type,
                      _check_compensation_grade, _check_option,
                      _check_depth, _check_src_normal, _check_fname)
-from ..html_templates import repr_templates_env
 
 
 INVERSE_METHODS = ('MNE', 'dSPM', 'sLORETA', 'eLORETA')
@@ -83,6 +82,7 @@ class InverseOperator(dict):
         return entr
 
     def _repr_html_(self):
+        from ..html_templates import repr_templates_env
         repr_info = self._get_chs_and_src_info_for_repr()
         n_chs_meg, n_chs_eeg, src_space_descr, src_ori = repr_info
 

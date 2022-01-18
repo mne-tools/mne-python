@@ -52,7 +52,6 @@ from ..defaults import _handle_default
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
-from ..html_templates import repr_templates_env
 
 
 class TimeMixin(object):
@@ -1781,6 +1780,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return "<%s | %s>" % (self.__class__.__name__, s)
 
     def _repr_html_(self, caption=None):
+        from ..html_templates import repr_templates_env
         basenames = [
             os.path.basename(f) for f in self._filenames if f is not None
         ]

@@ -6,3 +6,4 @@ tqdm
 pooch>=1.5
 decorator
 packaging
+jinja2
