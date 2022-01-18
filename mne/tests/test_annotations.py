@@ -4,7 +4,7 @@
 # License: BSD-3-Clause
 
 from collections import OrderedDict
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from itertools import repeat
 import sys
 
@@ -400,10 +400,10 @@ def test_raw_reject(first_samp):
 
     # with orig_time and complete overlap
     raw = read_raw_fif(fif_fname)
-    raw.set_annotations(Annotations(onset=[1, 4, 5] + raw._first_time,
-                                    duration=[1, 3, 1],
-                                    description='BAD',
-                                    orig_time=raw.info['meas_date']))
+    raw.set_annotations(Annotations(
+        onset=np.array([1, 4, 5], float) + raw._first_time,
+        duration=[1, 3, 1], description='BAD',
+        orig_time=raw.info['meas_date']))
     t_stop = 18.
     assert raw.times[-1] > t_stop
     n_stop = int(round(t_stop * raw.info['sfreq']))
@@ -425,7 +425,7 @@ def test_raw_reject(first_samp):
     assert_array_equal(raw.get_data(), raw[:][0])
 
     # Test _sync_onset
-    times = [10, -88, 190]
+    times = np.array([10, -88, 190], float)
     onsets = _sync_onset(raw, times)
     assert_array_almost_equal(onsets, times - raw.first_samp /
                               raw.info['sfreq'])
@@ -826,13 +826,15 @@ def test_event_id_function_using_custom_function():
 
 def _assert_annotations_equal(a, b, tol=0):
     __tracebackhide__ = True
-    assert_allclose(a.onset, b.onset, rtol=0, atol=tol)
-    assert_allclose(a.duration, b.duration, rtol=0, atol=tol)
-    assert_array_equal(a.description, b.description)
-    assert_array_equal(a.ch_names, b.ch_names)
+    assert_allclose(
+        a.onset, b.onset, rtol=0, atol=tol, err_msg='onset')
+    assert_allclose(
+        a.duration, b.duration, rtol=0, atol=tol, err_msg='duration')
+    assert_array_equal(a.description, b.description, err_msg='description')
+    assert_array_equal(a.ch_names, b.ch_names, err_msg='ch_names')
     a_orig_time = a.orig_time
     b_orig_time = b.orig_time
-    assert a_orig_time == b_orig_time
+    assert a_orig_time == b_orig_time, 'orig_time'
 
 
 _ORIG_TIME = datetime.fromtimestamp(1038942071.7201, timezone.utc)
@@ -1415,3 +1417,137 @@ def test_annotation_duration_setting():
         a.set_durations({"aaa": 2.2})
     with pytest.raises(TypeError, match=" got <class 'set'> instead"):
         a.set_durations({"aaa", 2.2})
+
+
+@pytest.mark.parametrize('meas_date', (None, 1))
+@pytest.mark.parametrize('first_samp', (0, 100))
+def test_annot_noop(meas_date, first_samp):
+    """Show some unintuitive behavior of annotations."""
+    sfreq = 1000.
+    raw = RawArray(np.zeros((1, 2000)), create_info(1, sfreq, 'eeg'),
+                   first_samp=first_samp)
+    annot = Annotations(0.5, 0.1, 'bad')
+    raw.set_annotations(annot)
+    raw.set_meas_date(meas_date)
+    first_annot = raw.annotations
+    raw.set_annotations(first_annot)  # should be a no-op...
+    second_annot = raw.annotations
+    want = first_annot.onset[0]
+    # it has been shifted when meas_date is None!
+    if meas_date is None:
+        want = want + first_samp / sfreq
+    assert_allclose(second_annot.onset[0], want)
+
+
+@pytest.mark.parametrize('setting', ('before',))  # TODO 'after'))
+@pytest.mark.parametrize('meas_date', ('first', 'second', 'both', None))
+@pytest.mark.parametrize('first_samp_2', (0, 320))
+@pytest.mark.parametrize('first_samp_1', (160, 0))
+def test_annot_concat_crop(meas_date, first_samp_1, first_samp_2, setting):
+    """Test that annotation and cropping works properly."""
+    n_ch = 2
+    sfreq = 160
+    duration = 0.1
+    meas_date_1 = meas_date_2 = None
+    assert meas_date in (None, 'first', 'second', 'both')
+    if meas_date in ('first', 'both'):
+        meas_date_1 = datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    if meas_date in ('second', 'both'):
+        meas_date_2 = datetime(2022, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    del meas_date
+
+    def _create_raw(eeg, sfreq, onset, description, meas_date, first_samp,
+                    setting):
+        info = mne.create_info(eeg.shape[0], ch_types='eeg', sfreq=sfreq)
+        raw = mne.io.RawArray(eeg, info, first_samp=first_samp)
+        if setting == 'before':
+            annot = mne.Annotations(onset, duration, description)
+            raw = raw.set_annotations(annot)
+            raw.set_meas_date(meas_date)
+        else:
+            assert setting == 'after'
+            raw.set_meas_date(meas_date)
+            delta = first_samp / sfreq if meas_date is not None else 0
+            annot = mne.Annotations(
+                onset + delta, duration, description, orig_time=meas_date)
+            raw = raw.set_annotations(annot)
+        return raw
+
+    data_1 = np.array(
+        [list(range(40)) * 4 * 10] * n_ch) * 5 * 1e-7
+    onset_1 = np.array([2.5, 5, 6, 7, 8])
+    description_1 = [12, 'on', 1, 2, 'off']
+    raw_1 = _create_raw(data_1, sfreq, onset_1, description_1, meas_date_1,
+                        first_samp_1, setting)
+    assert_allclose(raw_1.annotations.onset, onset_1 + first_samp_1 / sfreq)
+
+    data_2 = np.array(
+        [([1e-5] * int(sfreq / 2) + [0] * int(sfreq / 2)) * 10] * n_ch)
+    onset_2 = np.array([1.5, 2, 2.7, 5])
+    description_2 = ['on', 3, 4, 'off']
+    raw_2 = _create_raw(data_2, sfreq, onset_2, description_2, meas_date_2,
+                        first_samp_2, setting)
+    assert_allclose(raw_2.annotations.onset, onset_2 + first_samp_2 / sfreq)
+
+    onset = np.concatenate(
+        [onset_1, np.round(onset_2 + len(raw_1.times) / sfreq, 6)])
+    assert onset[0] == 2.5
+    assert_allclose(raw_1.annotations.onset[0], 2.5 + first_samp_1 / sfreq)
+    onset = np.round(onset + first_samp_1 / sfreq, 6)
+    want_annot = mne.Annotations(
+        onset=onset, duration=duration,
+        description=description_1 + description_2, orig_time=meas_date_1)
+    raw_copy = concatenate_raws([raw_1.copy()])
+    assert_allclose(raw_copy.annotations.onset[0], 2.5 + first_samp_1 / sfreq)
+    raw = concatenate_raws([raw_1, raw_2])
+    assert raw.first_samp == raw_1.first_samp == first_samp_1
+    del raw_1, raw_2
+    assert_allclose(raw.annotations.onset[0], 2.5 + first_samp_1 / sfreq)
+    assert raw.info['meas_date'] == meas_date_1
+    gap_idx = len(description_1)
+    assert list(raw.annotations.description[gap_idx:gap_idx + 2]) == \
+        ['BAD boundary', 'EDGE boundary']
+    raw.annotations.delete([gap_idx, gap_idx + 1])
+    start_idx = np.where(raw.annotations.description == 'on')[0]
+    end_idx = np.where(raw.annotations.description == 'off')[0]
+    tmins = raw.annotations.onset[start_idx]
+    tmaxs = raw.annotations.onset[end_idx]
+    if meas_date_1 is not None:  # need to reference to what will be 0 time
+        tmins -= raw.first_time
+        tmaxs -= raw.first_time
+    assert len(tmins) == len(tmaxs) == 2
+    assert raw.info['meas_date'] == meas_date_1
+    _assert_annotations_equal(raw.annotations, want_annot)
+    # test a round-trip set -- see test_annot_noop for why we need conditional
+    if meas_date_1 is None:
+        want_annot.onset -= first_samp_1 / sfreq
+    raw.set_annotations(want_annot)
+    if meas_date_1 is None:  # put it back to what it was before
+        want_annot.onset += first_samp_1 / sfreq
+    _assert_annotations_equal(raw.annotations, want_annot)
+    want_descs = list()
+    for start, stop in zip(start_idx, end_idx):
+        want_descs.append(list(raw.annotations.description[start:stop + 1]))
+
+    for tmin, tmax, descs in zip(tmins, tmaxs, want_descs):
+        sess = raw.copy()
+        _assert_annotations_equal(sess.annotations, raw.annotations)
+        _assert_annotations_equal(sess.annotations, want_annot)
+        # let's manually print what the logger.debug should say if it's
+        # doing something correctly
+        if meas_date_1 is not None:
+            md = raw.info['meas_date']
+            print(f'\nmeas_info set to         {md}')
+            md = md + timedelta(seconds=raw._first_time)
+            print(f'Data starts at           {md}')
+            md = md + timedelta(seconds=tmin)
+            print(f'Cropping data to         {md}')
+            md = raw.info['meas_date'] + \
+                timedelta(seconds=raw.annotations.onset[1])
+            print(f'Second annot at          {md}')
+        assert sess.first_samp == first_samp_1
+        sess.crop(tmin, tmax, verbose='debug')
+        want_first_samp = first_samp_1 + int(round(tmin * sfreq))
+        assert sess.first_samp == want_first_samp
+        assert sess.annotations.orig_time == meas_date_1
+        assert list(sess.annotations.description) == descs
