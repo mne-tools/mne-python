@@ -667,7 +667,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
             raise ValueError('Lists of evoked objects and colors'
                              ' must have the same length')
     elif color is None:
-        colors = ['w'] + _get_color_list
+        colors = ['w'] + _get_color_list()
         stop = (slice(len(evoked)) if len(evoked) < len(colors)
                 else slice(len(colors)))
         color = cycle(colors[stop])
