@@ -9,6 +9,7 @@ import os.path as op
 import numpy as np
 from functools import partial
 from scipy.ndimage import maximum_filter
+import platform
 
 from matplotlib.colors import LinearSegmentedColormap
 
@@ -37,7 +38,7 @@ _ZOOM_STEP_SIZE = 5
 _RADIUS_SCALAR = 0.4
 _TUBE_SCALAR = 0.1
 _BOLT_SCALAR = 30  # mm
-_CH_MENU_WIDTH = 15
+_CH_MENU_WIDTH = 30 if platform.system() == 'Windows' else 15
 
 # 20 colors generated to be evenly spaced in a cube, worked better than
 # matplotlib color cycle
