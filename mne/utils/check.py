@@ -64,7 +64,7 @@ def check_fname(fname, filetype, endings, endings_err=()):
              % (fname, filetype, print_endings))
 
 
-def check_version(library, min_version='0.0', *, return_version=False):
+def check_version(library, min_version='', *, return_version=False):
     r"""Check minimum library version required.
 
     Parameters
@@ -95,9 +95,10 @@ def check_version(library, min_version='0.0', *, return_version=False):
     except ImportError:
         ok = False
     else:
-        version = library.__version__
-        if min_version and _compare_version(version, '<', min_version):
-            ok = False
+        if min_version:
+            version = library.__version__
+            if _compare_version(version, '<', min_version):
+                ok = False
     out = (ok, version) if return_version else ok
     return out
 
