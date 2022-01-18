@@ -15,6 +15,7 @@ from numpy.testing import assert_allclose, assert_array_equal
 from mne import pick_types
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_nirx, read_raw_snirf
+from mne.utils import requires_h5py
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.preprocessing import annotate_nan
 from mne.transforms import apply_trans, _get_trans
@@ -22,43 +23,43 @@ from mne.preprocessing.nirs import source_detector_distances,\
     short_channels
 from mne.io.constants import FIFF
 
-testing_path = data_path(download=False)
-fname_nirx_15_0 = op.join(testing_path,
+fname_nirx_15_0 = op.join(data_path(download=False),
                           'NIRx', 'nirscout', 'nirx_15_0_recording')
-fname_nirx_15_2 = op.join(testing_path,
+fname_nirx_15_2 = op.join(data_path(download=False),
                           'NIRx', 'nirscout', 'nirx_15_2_recording')
-fname_nirx_15_2_short = op.join(testing_path,
+fname_nirx_15_2_short = op.join(data_path(download=False),
                                 'NIRx', 'nirscout',
                                 'nirx_15_2_recording_w_short')
-fname_nirx_15_3_short = op.join(testing_path,
+fname_nirx_15_3_short = op.join(data_path(download=False),
                                 'NIRx', 'nirscout', 'nirx_15_3_recording')
 
 
 # This file has no saturated sections
-nirsport1_wo_sat = op.join(testing_path, 'NIRx', 'nirsport_v1',
+nirsport1_wo_sat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
                            'nirx_15_3_recording_wo_saturation')
 # This file has saturation, but not on the optode pairing in montage
-nirsport1_w_sat = op.join(testing_path, 'NIRx', 'nirsport_v1',
+nirsport1_w_sat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
                           'nirx_15_3_recording_w_saturation_'
                           'not_on_montage_channels')
 # This file has saturation in channels of interest
-nirsport1_w_fullsat = op.join(testing_path, 'NIRx', 'nirsport_v1',
+nirsport1_w_fullsat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
                               'nirx_15_3_recording_w_'
                               'saturation_on_montage_channels')
 
 # NIRSport2 device using Aurora software and matching snirf file
-nirsport2 = op.join(testing_path, 'NIRx', 'nirsport_v2',
+nirsport2 = op.join(data_path(download=False), 'NIRx', 'nirsport_v2',
                     'aurora_recording _w_short_and_acc')
-nirsport2_snirf = op.join(testing_path, 'SNIRF', 'NIRx',
+nirsport2_snirf = op.join(data_path(download=False), 'SNIRF', 'NIRx',
                           'NIRSport2', '1.0.3', '2021-05-05_001.snirf')
 
-nirsport2_2021_9 = op.join(testing_path, 'NIRx', 'nirsport_v2',
+nirsport2_2021_9 = op.join(data_path(download=False), 'NIRx', 'nirsport_v2',
                            'aurora_2021_9')
-snirf_nirsport2_20219 = op.join(testing_path,
+snirf_nirsport2_20219 = op.join(data_path(download=False),
                                 'SNIRF', 'NIRx', 'NIRSport2', '2021.9',
                                 '2021-10-01_002.snirf')
 
 
+@requires_h5py
 @requires_testing_data
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 @pytest.mark.parametrize('fname_nirx, fname_snirf', (
