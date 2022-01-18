@@ -128,6 +128,7 @@ if __name__ == "__main__":
               op.join('datasets', '_phantom', '*.txt'),
               op.join('html', '*.js'),
               op.join('html', '*.css'),
+              op.join('html_templates', 'repr', '*.jinja'),
               op.join('html_templates', 'report', '*.jinja'),
               op.join('icons', '*.svg'),
               op.join('icons', '*.png'),
