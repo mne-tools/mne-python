@@ -44,7 +44,7 @@ epochs_h5_fnames = [epochs_fname_h5, epochs_fname_onefile_h5]
 montage_path = op.join(base_dir, 'test_chans.locs')
 
 
-pytest.importorskip('pymatreader')  # module-level
+pymatreader = pytest.importorskip('pymatreader')  # module-level
 
 
 @testing.requires_testing_data
@@ -436,8 +436,7 @@ def test_read_single_epoch():
 @testing.requires_testing_data
 def test_get_montage_info_with_ch_type():
     """Test that the channel types are properly returned."""
-    from pymatreader import read_mat
-    mat = read_mat(raw_fname_onefile_mat, uint16_codec=None)
+    mat = pymatreader.read_mat(raw_fname_onefile_mat, uint16_codec=None)
     n = len(mat['EEG']['chanlocs']['labels'])
     mat['EEG']['chanlocs']['type'] = ['eeg'] * (n - 2) + ['eog'] + ['stim']
     mat['EEG']['chanlocs'] = _dol_to_lod(mat['EEG']['chanlocs'])
@@ -448,7 +447,7 @@ def test_get_montage_info_with_ch_type():
     assert montage is None
 
     # test unknown type warning
-    mat = read_mat(raw_fname_onefile_mat, uint16_codec=None)
+    mat = pymatreader.read_mat(raw_fname_onefile_mat, uint16_codec=None)
     n = len(mat['EEG']['chanlocs']['labels'])
     mat['EEG']['chanlocs']['type'] = ['eeg'] * (n - 2) + ['eog'] + ['unknown']
     mat['EEG']['chanlocs'] = _dol_to_lod(mat['EEG']['chanlocs'])

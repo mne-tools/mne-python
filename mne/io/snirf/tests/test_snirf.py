@@ -44,7 +44,7 @@ nirx_nirsport2_20219 = op.join(testing_path, 'NIRx', 'nirsport_v2',
 kernel_hb = op.join(testing_path, 'SNIRF', 'Kernel', 'Flow50',
                     'Portal_2021_11', 'hb.snirf')
 
-pytest.importorskip('h5py')  # module-level
+h5py = pytest.importorskip('h5py')  # module-level
 
 
 @requires_testing_data
@@ -141,7 +141,6 @@ def test_snirf_against_nirx():
 @requires_testing_data
 def test_snirf_nonstandard(tmp_path):
     """Test custom tags."""
-    import h5py
     shutil.copy(sfnirs_homer_103_wShort, str(tmp_path) + "/mod.snirf")
     fname = str(tmp_path) + "/mod.snirf"
     # Manually mark up the file to match MNE-NIRS custom tags

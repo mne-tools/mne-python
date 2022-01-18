@@ -46,7 +46,7 @@ for obj in (all_test_params_epochs, all_test_params_raw):
 no_info_warning = {'expected_warning': RuntimeWarning,
                    'match': NOINFO_WARNING}
 
-pytest.importorskip('pymatreader')  # module-level
+pymatreader = pytest.importorskip('pymatreader')  # module-level
 
 
 @pytest.mark.slowtest
@@ -94,8 +94,6 @@ def test_read_evoked(cur_system, version, use_info):
                     reason='Pandas problem on Azure CI')
 def test_read_epochs(cur_system, version, use_info, monkeypatch):
     """Test comparing reading an Epochs object and the FieldTrip version."""
-    import pymatreader
-    from pymatreader import read_mat
     pandas = _check_pandas_installed(strict=False)
     has_pandas = pandas is not False
     test_data_folder_ft = get_data_paths(cur_system)
@@ -126,6 +124,7 @@ def test_read_epochs(cur_system, version, use_info, monkeypatch):
 
     check_data(mne_data, ft_data, cur_system)
     check_info_fields(mne_epoched, epoched_ft, use_info)
+    read_mat = pymatreader.read_mat
 
     # weird sfreq
     def modify_mat(fname, variable_names=None, ignore_fields=None):
@@ -210,10 +209,9 @@ def test_invalid_trialinfocolumn():
 @testing.requires_testing_data
 def test_create_events():
     """Test 2dim trialinfo fields."""
-    from pymatreader import read_mat
     test_data_folder_ft = get_data_paths('neuromag306')
     cur_fname = os.path.join(test_data_folder_ft, 'epoched_v7.mat')
-    original_data = read_mat(cur_fname, ['data', ])
+    original_data = pymatreader.read_mat(cur_fname, ['data', ])
 
     new_data = copy.deepcopy(original_data)
     new_data['trialinfo'] = np.array([[1, 2, 3, 4],
