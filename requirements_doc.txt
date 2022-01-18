@@ -8,7 +8,7 @@ memory_profiler
 neo
 seaborn!=0.11.2
 sphinx_copybutton
-https://github.com/larsoner/mne-bids/zipball/setup
+https://github.com/mne-tools/mne-bids/zipball/2bb880a231ec52e85f4033e3782b0d9af4d510ad
 pyxdf
 https://github.com/mne-tools/mne-connectivity/archive/main.zip
 pytest
