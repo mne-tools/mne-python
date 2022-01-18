@@ -13,7 +13,6 @@ from mne.channels import make_standard_montage
 from mne.datasets.testing import data_path, _pytest_param
 from mne.io import read_raw_nirx
 from mne.preprocessing.nirs import optical_density, beer_lambert_law
-from mne.utils import check_version
 
 
 @pytest.fixture()
@@ -31,11 +30,7 @@ def fnirs_evoked():
     return evoked
 
 
-_pymatreader_mark = pytest.mark.skipif(
-    not check_version('pymatreader'), reason='Requires pymatreader')
-
-
-@pytest.fixture(params=[_pytest_param(marks=[_pymatreader_mark])])
+@pytest.fixture(params=[_pytest_param()])
 def fnirs_epochs():
     """Create an fnirs epoch structure."""
     fname = op.join(data_path(download=False),

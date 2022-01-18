@@ -2,7 +2,6 @@
 branch = True
 source = mne
 omit =
-    */mne/_tempita/*
     */bin/*
     */setup.py
     */mne/fixes*

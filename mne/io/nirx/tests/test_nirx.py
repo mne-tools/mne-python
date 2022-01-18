@@ -15,7 +15,6 @@ from numpy.testing import assert_allclose, assert_array_equal
 from mne import pick_types
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_nirx, read_raw_snirf
-from mne.utils import requires_version
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.preprocessing import annotate_nan
 from mne.transforms import apply_trans, _get_trans
@@ -23,43 +22,43 @@ from mne.preprocessing.nirs import source_detector_distances,\
     short_channels
 from mne.io.constants import FIFF
 
-fname_nirx_15_0 = op.join(data_path(download=False),
+testing_path = data_path(download=False)
+fname_nirx_15_0 = op.join(testing_path,
                           'NIRx', 'nirscout', 'nirx_15_0_recording')
-fname_nirx_15_2 = op.join(data_path(download=False),
+fname_nirx_15_2 = op.join(testing_path,
                           'NIRx', 'nirscout', 'nirx_15_2_recording')
-fname_nirx_15_2_short = op.join(data_path(download=False),
+fname_nirx_15_2_short = op.join(testing_path,
                                 'NIRx', 'nirscout',
                                 'nirx_15_2_recording_w_short')
-fname_nirx_15_3_short = op.join(data_path(download=False),
+fname_nirx_15_3_short = op.join(testing_path,
                                 'NIRx', 'nirscout', 'nirx_15_3_recording')
 
 
 # This file has no saturated sections
-nirsport1_wo_sat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
+nirsport1_wo_sat = op.join(testing_path, 'NIRx', 'nirsport_v1',
                            'nirx_15_3_recording_wo_saturation')
 # This file has saturation, but not on the optode pairing in montage
-nirsport1_w_sat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
+nirsport1_w_sat = op.join(testing_path, 'NIRx', 'nirsport_v1',
                           'nirx_15_3_recording_w_saturation_'
                           'not_on_montage_channels')
 # This file has saturation in channels of interest
-nirsport1_w_fullsat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
+nirsport1_w_fullsat = op.join(testing_path, 'NIRx', 'nirsport_v1',
                               'nirx_15_3_recording_w_'
                               'saturation_on_montage_channels')
 
 # NIRSport2 device using Aurora software and matching snirf file
-nirsport2 = op.join(data_path(download=False), 'NIRx', 'nirsport_v2',
+nirsport2 = op.join(testing_path, 'NIRx', 'nirsport_v2',
                     'aurora_recording _w_short_and_acc')
-nirsport2_snirf = op.join(data_path(download=False), 'SNIRF', 'NIRx',
+nirsport2_snirf = op.join(testing_path, 'SNIRF', 'NIRx',
                           'NIRSport2', '1.0.3', '2021-05-05_001.snirf')
 
-nirsport2_2021_9 = op.join(data_path(download=False), 'NIRx', 'nirsport_v2',
+nirsport2_2021_9 = op.join(testing_path, 'NIRx', 'nirsport_v2',
                            'aurora_2021_9')
-snirf_nirsport2_20219 = op.join(data_path(download=False),
+snirf_nirsport2_20219 = op.join(testing_path,
                                 'SNIRF', 'NIRx', 'NIRSport2', '2021.9',
                                 '2021-10-01_002.snirf')
 
 
-@requires_version('pymatreader')
 @requires_testing_data
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 @pytest.mark.parametrize('fname_nirx, fname_snirf', (
@@ -83,7 +82,6 @@ def test_nirsport_v2_matches_snirf(fname_nirx, fname_snirf):
     # raw_snirf.info["subject_info"]["first_name"]
 
 
-@requires_version('pymatreader')
 @requires_testing_data
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 def test_nirsport_v2():
@@ -153,7 +151,6 @@ def test_nirsport_v2():
     assert len(mon.dig) == 43
 
 
-@requires_version('pymatreader')
 @requires_testing_data
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 def test_nirsport_v1_wo_sat():
@@ -178,7 +175,6 @@ def test_nirsport_v1_wo_sat():
     assert np.sum(np.isnan(data)) == 0
 
 
-@requires_version('pymatreader')
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 @requires_testing_data
 def test_nirsport_v1_w_sat():
@@ -202,7 +198,6 @@ def test_nirsport_v1_w_sat():
     assert np.sum(np.isnan(data)) == 0
 
 
-@requires_version('pymatreader')
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 @requires_testing_data
 @pytest.mark.parametrize('preload', (True, False))
@@ -239,7 +234,6 @@ def test_nirsport_v1_w_bad_sat(preload, meas_date):
         assert_allclose(a, b)
 
 
-@requires_version('pymatreader')
 @requires_testing_data
 def test_nirx_hdr_load():
     """Test reading NIRX files using path to header file."""
@@ -258,7 +252,6 @@ def test_nirx_missing_warn():
         read_raw_nirx(fname_nirx_15_2_short + "1", preload=True)
 
 
-@requires_version('pymatreader')
 @requires_testing_data
 def test_nirx_missing_evt(tmp_path):
     """Test reading NIRX files when missing data."""
@@ -281,7 +274,6 @@ def test_nirx_dat_warn(tmp_path):
         read_raw_nirx(fname, preload=True)
 
 
-@requires_version('pymatreader')
 @requires_testing_data
 def test_nirx_15_2_short():
     """Test reading NIRX files."""
@@ -375,7 +367,6 @@ def test_nirx_15_2_short():
         mni_locs[21], [0.0388, -0.0477, 0.0932], atol=allowed_dist_error)
 
 
-@requires_version('pymatreader')
 @requires_testing_data
 def test_nirx_15_3_short():
     """Test reading NIRX files."""
@@ -481,7 +472,6 @@ def test_encoding(tmp_path):
         read_raw_nirx(fname)
 
 
-@requires_version('pymatreader')
 @requires_testing_data
 def test_nirx_15_2():
     """Test reading NIRX files."""
@@ -529,7 +519,6 @@ def test_nirx_15_2():
     assert len(picks) > 0
 
 
-@requires_version('pymatreader')
 @requires_testing_data
 def test_nirx_15_0():
     """Test reading NIRX files."""
@@ -582,7 +571,6 @@ def test_nirx_15_0():
         0.0399, 0.0393, 0.0367, 0.0336, 0.0447], atol=allowed_distance_error)
 
 
-@requires_version('pymatreader')
 @requires_testing_data
 @pytest.mark.parametrize('fname, boundary_decimal', (
     [fname_nirx_15_2_short, 1],

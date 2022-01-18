@@ -19,8 +19,7 @@ from ...annotations import Annotations
 from ..._freesurfer import get_mni_fiducials
 from ...transforms import apply_trans, _get_trans
 from ...utils import (logger, verbose, fill_doc, warn, _check_fname,
-                      _validate_type, _check_option, _mask_to_onsets_offsets,
-                      _import_pymatreader_funcs)
+                      _validate_type, _check_option, _mask_to_onsets_offsets)
 
 
 @fill_doc
@@ -78,6 +77,7 @@ class RawNIRX(BaseRaw):
 
     @verbose
     def __init__(self, fname, saturated, preload=False, verbose=None):
+        from scipy.io import loadmat
         logger.info('Loading %s' % fname)
         _validate_type(fname, 'path-like', 'fname')
         _validate_type(saturated, str, 'saturated')
@@ -285,12 +285,12 @@ class RawNIRX(BaseRaw):
         #   Sources and detectors are both called optodes
         #   Each source - detector pair produces a channel
         #   Channels are defined as the midpoint between source and detector
-        read_mat = _import_pymatreader_funcs('Reading NIRX data')
-        mat_data = read_mat(files['probeInfo.mat'], uint16_codec=None)
-        requested_channels = mat_data['probeInfo']['probes']['index_c']
-        src_locs = mat_data['probeInfo']['probes']['coords_s3'] / 100.
-        det_locs = mat_data['probeInfo']['probes']['coords_d3'] / 100.
-        ch_locs = mat_data['probeInfo']['probes']['coords_c3'] / 100.
+        mat_data = loadmat(files['probeInfo.mat'])
+        probes = mat_data['probeInfo']['probes'][0, 0]
+        requested_channels = probes['index_c'][0, 0]
+        src_locs = probes['coords_s3'][0, 0] / 100.
+        det_locs = probes['coords_d3'][0, 0] / 100.
+        ch_locs = probes['coords_c3'][0, 0] / 100.
 
         # These are all in MNI coordinates, so let's transform them to
         # the Neuromag head coordinate frame

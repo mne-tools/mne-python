@@ -1,8 +1,4 @@
 extraction:
-  python:
-    index:
-      filters:
-        - exclude: "mne/_tempita/*.py"
   javascript:
     index:
       filters:

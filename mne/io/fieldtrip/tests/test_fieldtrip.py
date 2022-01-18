@@ -15,8 +15,7 @@ import numpy as np
 import mne
 from mne.datasets import testing
 from mne.io.fieldtrip.utils import NOINFO_WARNING, _create_events
-from mne.utils import (_check_pandas_installed, requires_version,
-                       _record_warnings)
+from mne.utils import _check_pandas_installed, _record_warnings
 from mne.io.fieldtrip.tests.helpers import (
     check_info_fields, get_data_paths, get_raw_data, get_epochs, get_evoked,
     pandas_not_found_warning_msg, get_raw_info, check_data,
@@ -47,11 +46,10 @@ for obj in (all_test_params_epochs, all_test_params_raw):
 no_info_warning = {'expected_warning': RuntimeWarning,
                    'match': NOINFO_WARNING}
 
-requires_pymatreader = requires_version('pymatreader')
+pytest.importorskip('pymatreader')  # module-level
 
 
 @pytest.mark.slowtest
-@requires_pymatreader
 @testing.requires_testing_data
 # Reading the sample CNT data results in a RuntimeWarning because it cannot
 # parse the measurement date. We need to ignore that warning.
@@ -82,7 +80,6 @@ def test_read_evoked(cur_system, version, use_info):
     check_info_fields(mne_avg, avg_ft, use_info)
 
 
-@requires_pymatreader
 @testing.requires_testing_data
 # Reading the sample CNT data results in a RuntimeWarning because it cannot
 # parse the measurement date. We need to ignore that warning.
@@ -142,7 +139,6 @@ def test_read_epochs(cur_system, version, use_info, monkeypatch):
         mne.io.read_epochs_fieldtrip(cur_fname, info)
 
 
-@requires_pymatreader
 @testing.requires_testing_data
 # Reading the sample CNT data results in a RuntimeWarning because it cannot
 # parse the measurement date. We need to ignore that warning.
@@ -186,7 +182,6 @@ def test_raw(cur_system, version, use_info):
     check_info_fields(raw_fiff_mne, raw_fiff_ft, use_info)
 
 
-@requires_pymatreader
 @testing.requires_testing_data
 def test_load_epoched_as_raw():
     """Test whether exception is thrown when loading epochs as raw."""
@@ -198,7 +193,6 @@ def test_load_epoched_as_raw():
         mne.io.read_raw_fieldtrip(cur_fname, info)
 
 
-@requires_pymatreader
 @testing.requires_testing_data
 def test_invalid_trialinfocolumn():
     """Test for exceptions when using wrong values for trialinfo parameter."""
@@ -213,7 +207,6 @@ def test_invalid_trialinfocolumn():
         mne.io.read_epochs_fieldtrip(cur_fname, info, trialinfo_column=3)
 
 
-@requires_pymatreader
 @testing.requires_testing_data
 def test_create_events():
     """Test 2dim trialinfo fields."""
@@ -238,7 +231,6 @@ def test_create_events():
         _create_events(new_data, 4)
 
 
-@requires_pymatreader
 @testing.requires_testing_data
 @pytest.mark.parametrize('version', all_versions)
 def test_one_channel_elec_bug(version):
@@ -250,7 +242,6 @@ def test_one_channel_elec_bug(version):
         mne.io.read_raw_fieldtrip(fname, info=None)
 
 
-@requires_pymatreader
 @testing.requires_testing_data
 # Reading the sample CNT data results in a RuntimeWarning because it cannot
 # parse the measurement date. We need to ignore that warning.
@@ -275,7 +266,6 @@ def test_throw_exception_on_cellarray(version, type):
             mne.io.read_raw_fieldtrip(fname, info)
 
 
-@requires_pymatreader
 @testing.requires_testing_data
 def test_with_missing_channels():
     """Test _create_info when channels are missing from info."""
@@ -294,7 +284,6 @@ def test_with_missing_channels():
             os.path.join(test_data_folder_ft, 'epoched_v7.mat'), info)
 
 
-@requires_pymatreader
 @testing.requires_testing_data
 @pytest.mark.filterwarnings('ignore: Importing FieldTrip data without an info')
 @pytest.mark.filterwarnings('ignore: Cannot guess the correct type')
@@ -309,7 +298,6 @@ def test_throw_error_on_non_uniform_time_field():
         mne.io.read_epochs_fieldtrip(fname, info=None)
 
 
-@requires_pymatreader
 @testing.requires_testing_data
 @pytest.mark.filterwarnings('ignore: Importing FieldTrip data without an info')
 def test_throw_error_when_importing_old_ft_version_data():
