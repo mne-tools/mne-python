@@ -126,7 +126,8 @@ class CoregistrationUI(HasTraits):
                  head_shape_points=None, eeg_channels=None, orient_glyphs=None,
                  scale_by_distance=None, project_eeg=None, mark_inside=None,
                  sensor_opacity=None, trans=None, size=None, bgcolor=None,
-                 show=True, block=False, interaction='terrain',
+                 show=True, block=False, interaction='terrain', *,
+                 standalone=None,
                  verbose=None):
         from ..viz.backends.renderer import _get_renderer
         from ..viz.backends._utils import _qt_app_exec
