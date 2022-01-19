@@ -80,7 +80,7 @@ Enhancements
 
 - The default interaction style of :func:`mne.gui.coregistration` and :func:`mne.viz.plot_alignment` has been changed to ``'terrain'``, which keeps one axis fixed and should make interactions with the 3D scene more predictable (:gh:`9972`, :gh:`10206` by `Richard Höchenberger`_)
 
-- :func:`mne.gui.coregistration` now uses the proper widget style for push buttons, making for a more native feel of the application (:gh:`xxx` by `Richard Höchenberger`_ and `Guillaume Favelier`_)
+- :func:`mne.gui.coregistration` now uses the proper widget style for push buttons, making for a more native feel of the application (:gh:`10220` by `Richard Höchenberger`_ and `Guillaume Favelier`_)
 
 Bugs
 ~~~~
