@@ -331,6 +331,8 @@ class Brain(object):
         <https://github.com/albertosottile/darkdetect>`__ is required.
     show : bool
         Display the window as soon as it is ready. Defaults to True.
+    block : bool
+        If True, start the Qt application event loop. Default to False.
 
     Attributes
     ----------
@@ -428,8 +430,9 @@ class Brain(object):
                  views='auto', offset='auto', show_toolbar=False,
                  offscreen=False, interaction='trackball', units='mm',
                  view_layout='vertical', silhouette=False, theme='auto',
-                 show=True):
+                 show=True, block=False):
         from ..backends.renderer import backend, _get_renderer
+        from ..backends._utils import _qt_app_exec
 
         if hemi is None:
             hemi = 'vol'
@@ -590,6 +593,8 @@ class Brain(object):
 
         if surf == 'flat':
             self._renderer.set_interaction("rubber_band_2d")
+        if block:
+            _qt_app_exec(self._renderer.figure.store["app"])
 
     def _setup_canonical_rotation(self):
         from ...coreg import fit_matched_points, _trans_from_params
