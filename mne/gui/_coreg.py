@@ -54,7 +54,7 @@ class CoregistrationUI(HasTraits):
     head_resolution : bool
         If True, use a high-resolution head surface. Defaults to False.
     head_opacity : float
-        The opacity of the head surface. Defaults to 1.0.
+        The opacity of the head surface. Defaults to 0.95.
     hpi_coils : bool
         If True, display the HPI coils. Defaults to True.
     head_shape_points : bool
@@ -163,7 +163,7 @@ class CoregistrationUI(HasTraits):
             head_shape_points=_get_default(head_shape_points, True),
             eeg_channels=_get_default(eeg_channels, True),
             head_resolution=_get_default(head_resolution, True),
-            head_opacity=_get_default(head_opacity, 1.0),
+            head_opacity=_get_default(head_opacity, 0.95),
             helmet=False,
             sensor_opacity=_get_default(sensor_opacity, 1.0),
             fiducials=("LPA", "Nasion", "RPA"),
