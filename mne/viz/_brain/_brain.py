@@ -432,7 +432,6 @@ class Brain(object):
                  view_layout='vertical', silhouette=False, theme='auto',
                  show=True, block=False):
         from ..backends.renderer import backend, _get_renderer
-        from ..backends._utils import _qt_app_exec
 
         if hemi is None:
             hemi = 'vol'
@@ -475,6 +474,7 @@ class Brain(object):
         self.theme = theme
 
         self.time_viewer = False
+        self._block = block
         self._hemi = hemi
         self._units = units
         self._alpha = float(alpha)
@@ -593,8 +593,6 @@ class Brain(object):
 
         if surf == 'flat':
             self._renderer.set_interaction("rubber_band_2d")
-        if block:
-            _qt_app_exec(self._renderer.figure.store["app"])
 
     def _setup_canonical_rotation(self):
         from ...coreg import fit_matched_points, _trans_from_params
@@ -639,6 +637,7 @@ class Brain(object):
         'Left': Decrease camera azimuth angle
         'Right': Increase camera azimuth angle
         """
+        from ..backends._utils import _qt_app_exec
         if self.time_viewer:
             return
         if not self._data:
@@ -733,6 +732,8 @@ class Brain(object):
         # finally, show the MplCanvas
         if self.show_traces:
             self.mpl_canvas.show()
+        if self._block:
+            _qt_app_exec(self._renderer.figure.store["app"])
 
     @safe_event
     def _clean(self):
@@ -2917,7 +2918,10 @@ class Brain(object):
 
     def show(self):
         """Display the window."""
+        from ..backends._utils import _qt_app_exec
         self._renderer.show()
+        if self._block:
+            _qt_app_exec(self._renderer.figure.store["app"])
 
     @fill_doc
     def show_view(self, view=None, roll=None, distance=None, *,
