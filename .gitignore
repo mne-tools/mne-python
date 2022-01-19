@@ -89,3 +89,5 @@ cover
 .venv/
 venv/
 *.json
+
+.ipynb_checkpoints/
