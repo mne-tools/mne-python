@@ -59,8 +59,7 @@ def test_gui_api(renderer_notebook, nbexec):
     # PushButton
     widget = renderer._dock_add_button(
         name='',
-        callback=mock,
-        style='pushbutton'
+        callback=mock
     )
     with _check_widget_trigger(widget, mock, None, None, get_value=False):
         widget.set_value(True)
