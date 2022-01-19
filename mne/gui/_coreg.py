@@ -228,6 +228,7 @@ class CoregistrationUI(HasTraits):
         self._set_eeg_channels(self._defaults["eeg_channels"])
         self._set_head_resolution(self._defaults["head_resolution"])
         self._set_head_opacity(self._defaults["head_opacity"])
+        self._old_head_opacity = self._head_opacity
         self._set_helmet(self._defaults["helmet"])
         self._set_grow_hair(self._defaults["grow_hair"])
         self._set_skip_fiducials(self._defaults["skip_fiducials"])
@@ -436,7 +437,7 @@ class CoregistrationUI(HasTraits):
         self._reset()
 
     @observe("_subject")
-    def _subject_changed(self, changed=None):
+    def _subject_changed(self, change=None):
         # XXX: add coreg.set_subject()
         self._coreg._subject = self._subject
         self._coreg._setup_bem()
@@ -452,11 +453,14 @@ class CoregistrationUI(HasTraits):
         fits_widgets = ["fits_fiducials", "fits_icp"]
         fid_widgets = ["fid_X", "fid_Y", "fid_Z", "fids_file", "fids"]
         if self._lock_fids:
+            self._head_opacity = self._old_head_opacity
             self._forward_widget_command(locked_widgets, "set_enabled", True)
             self._scale_mode_changed()
             self._display_message()
             self._update_distance_estimation()
         else:
+            self._old_head_opacity = self._head_opacity
+            self._head_opacity = 1.0
             self._forward_widget_command(locked_widgets, "set_enabled", False)
             self._forward_widget_command(fits_widgets, "set_enabled", False)
             self._display_message("Picking fiducials - "
