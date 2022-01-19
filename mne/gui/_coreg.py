@@ -1192,12 +1192,14 @@ class CoregistrationUI(HasTraits):
             tooltip="Exclude the head shape points that are far away from "
                     "the MRI head",
             layout=omit_hsp_layout,
+            style='pushbutton',
         )
         self._widgets["reset_omit"] = self._renderer._dock_add_button(
             name="Reset",
             callback=self._reset_omit_hsp_filter,
             tooltip="Reset all excluded head shape points",
             layout=omit_hsp_layout,
+            style='pushbutton',
         )
         self._renderer._layout_add_widget(dig_source_layout, omit_hsp_layout)
 
@@ -1267,6 +1269,7 @@ class CoregistrationUI(HasTraits):
             callback=self._fits_fiducials,
             tooltip="Find rotation and translation to fit all 3 fiducials",
             layout=fit_scale_layout,
+            style='pushbutton',
         )
         self._widgets["fits_icp"] = self._renderer._dock_add_button(
             name="Fit ICP with scaling",
@@ -1274,6 +1277,7 @@ class CoregistrationUI(HasTraits):
             tooltip="Find MRI scaling, translation, and rotation to match the "
                     "head shape points",
             layout=fit_scale_layout,
+            style='pushbutton',
         )
         self._renderer._layout_add_widget(
             scale_params_layout, fit_scale_layout)
@@ -1290,6 +1294,7 @@ class CoregistrationUI(HasTraits):
             callback=self._start_worker,
             tooltip="Save scaled anatomy",
             layout=subject_to_layout,
+            style='pushbutton',
         )
         self._renderer._layout_add_widget(
             mri_scaling_layout, subject_to_layout)
@@ -1323,6 +1328,7 @@ class CoregistrationUI(HasTraits):
             callback=self._fit_fiducials,
             tooltip="Find rotation and translation to fit all 3 fiducials",
             layout=fit_layout,
+            style='pushbutton',
         )
         self._widgets["fit_icp"] = self._renderer._dock_add_button(
             name="Fit ICP",
@@ -1330,6 +1336,7 @@ class CoregistrationUI(HasTraits):
             tooltip="Find MRI scaling, translation, and rotation to match the "
                     "head shape points",
             layout=fit_layout,
+            style='pushbutton',
         )
         self._renderer._layout_add_widget(param_layout, fit_layout)
         trans_layout = self._renderer._dock_add_group_box("Transform")
@@ -1356,6 +1363,7 @@ class CoregistrationUI(HasTraits):
             callback=self._reset,
             tooltip="Reset all the parameters affecting the coregistration",
             layout=save_trans_layout,
+            style='pushbutton',
         )
         self._renderer._layout_add_widget(trans_layout, save_trans_layout)
 
@@ -1422,6 +1430,7 @@ class CoregistrationUI(HasTraits):
             callback=self._reset_fitting_parameters,
             tooltip="Reset all the fitting parameters to default value",
             layout=fitting_options_layout,
+            style='pushbutton',
         )
         self._renderer._dock_add_stretch()
 
