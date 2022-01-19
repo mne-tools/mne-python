@@ -105,11 +105,13 @@ class _QtDock(_AbstractDock, _QtLayout):
         return layout
 
     def _dock_add_slider(self, name, value, rng, callback,
-                         compact=True, double=False, layout=None):
+                         compact=True, double=False, tooltip=None,
+                         layout=None):
         layout = self._dock_named_layout(name, layout, compact)
         slider_class = QFloatSlider if double else QSlider
         cast = float if double else int
         widget = slider_class(Qt.Horizontal)
+        _set_widget_tooltip(widget, tooltip)
         widget.setMinimum(cast(rng[0]))
         widget.setMaximum(cast(rng[1]))
         widget.setValue(cast(value))

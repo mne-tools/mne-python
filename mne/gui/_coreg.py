@@ -1253,6 +1253,7 @@ class CoregistrationUI(HasTraits):
             callback=self._set_head_opacity,
             compact=True,
             double=True,
+            tooltip="Set the head surface opacity",
             layout=view_options_layout,
         )
         self._renderer._dock_add_stretch()
