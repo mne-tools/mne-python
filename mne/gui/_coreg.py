@@ -1332,7 +1332,8 @@ class CoregistrationUI(HasTraits):
             layout=fit_layout,
         )
         self._renderer._layout_add_widget(param_layout, fit_layout)
-        trans_layout = self._renderer._dock_add_group_box("Transform")
+        trans_layout = self._renderer._dock_add_group_box(
+            "HEAD <> MRI Transform")
         save_trans_layout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["save_trans"] = self._renderer._dock_add_file_button(
             name="save_trans",
