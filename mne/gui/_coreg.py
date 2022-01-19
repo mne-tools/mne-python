@@ -1294,6 +1294,7 @@ class CoregistrationUI(HasTraits):
                 ),
                 compact=True,
                 double=True,
+                step=1,
                 tooltip=f"Set the {coord} scaling parameter",
                 layout=scale_params_layout,
             )
