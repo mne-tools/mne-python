@@ -82,6 +82,10 @@ Enhancements
 
 - :func:`mne.gui.coregistration` now uses the proper widget style for push buttons, making for a more native feel of the application (:gh:`10220` by `Richard Höchenberger`_ and `Guillaume Favelier`_)
 
+- Added plotting points to represent contacts on the max intensity projection plot for :func:`mne.gui.locate_ieeg` (:gh:`10212` by `Alex Rockhill`_)
+
+- Add lines in 3D and on the maximum intensity projection when more than two electrode contacts are selected to aid in identifying that contact for :func:`mne.gui.locate_ieeg` (:gh:`10212` by `Alex Rockhill`_)
+
 Bugs
 ~~~~
 
