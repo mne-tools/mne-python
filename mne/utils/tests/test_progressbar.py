@@ -36,8 +36,9 @@ def test_progressbar():
     assert 'Using ProgressBar with tqdm\n' in log
     with modified_env(MNE_TQDM='broken'), pytest.raises(ValueError):
         ProgressBar(np.arange(3))
-    with modified_env(MNE_TQDM='tqdm.broken'), pytest.raises(AttributeError):
-        ProgressBar(np.arange(3))
+    with modified_env(MNE_TQDM='tqdm.broken'):
+        with pytest.raises(ValueError, match='Unknown tqdm'):
+            ProgressBar(np.arange(3))
     # off
     with catch_logging() as log, modified_env(MNE_TQDM='off'), \
             use_log_level('debug'), ProgressBar(np.arange(3)) as pbar:

@@ -65,7 +65,6 @@ from .utils import (_check_fname, check_fname, logger, verbose,
 from .utils.docs import fill_doc
 from .annotations import (_write_annotations, _read_annotations_fif,
                           EpochAnnotationsMixin)
-from .html_templates import repr_templates_env
 
 
 def _pack_reject_params(epochs):
@@ -1689,6 +1688,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return '<%s | %s>' % (class_name, s)
 
     def _repr_html_(self):
+        from .html_templates import repr_templates_env
         if self.baseline is None:
             baseline = 'off'
         else:

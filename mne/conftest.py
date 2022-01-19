@@ -98,7 +98,6 @@ def pytest_configure(config):
     ignore:.*imp.*:DeprecationWarning
     ignore:Exception creating Regex for oneOf.*:SyntaxWarning
     ignore:scipy\.gradient is deprecated.*:DeprecationWarning
-    ignore:sklearn\.externals\.joblib is deprecated.*:FutureWarning
     ignore:The sklearn.*module.*deprecated.*:FutureWarning
     ignore:.*rich_compare.*metadata.*deprecated.*:DeprecationWarning
     ignore:.*In future, it will be an error for 'np.bool_'.*:DeprecationWarning

@@ -41,7 +41,7 @@ from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
                      _path_like, use_log_level, _check_fname,
-                     _check_ch_locs)
+                     _check_ch_locs, _import_h5io_funcs)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
@@ -52,8 +52,6 @@ from ..preprocessing.ica import read_ica
 from .. import dig_mri_distances
 from ..minimum_norm import read_inverse_operator, InverseOperator
 from ..parallel import parallel_func, check_n_jobs
-from ..externals.h5io import read_hdf5, write_hdf5
-from ..html_templates import report_templates_env
 
 _BEM_VIEWS = ('axial', 'sagittal', 'coronal')
 
@@ -114,6 +112,7 @@ def _get_ch_types(inst):
 # HTML generation
 
 def _html_header_element(*, lang, include, js, css, title, tags, mne_logo_img):
+    from ..html_templates import report_templates_env
     t = report_templates_env.get_template('header.html.jinja')
     t_rendered = t.render(
         lang=lang, include=include, js=js, css=css, title=title, tags=tags,
@@ -123,18 +122,21 @@ def _html_header_element(*, lang, include, js, css, title, tags, mne_logo_img):
 
 
 def _html_footer_element(*, mne_version, date):
+    from ..html_templates import report_templates_env
     t = report_templates_env.get_template('footer.html.jinja')
     t_rendered = t.render(mne_version=mne_version, date=date)
     return t_rendered
 
 
 def _html_toc_element(*, content_elements):
+    from ..html_templates import report_templates_env
     t = report_templates_env.get_template('toc.html.jinja')
     t_rendered = t.render(content_elements=content_elements)
     return t_rendered
 
 
 def _html_raw_element(*, id, repr, psd, butterfly, ssp_projs, title, tags):
+    from ..html_templates import report_templates_env
     t = report_templates_env.get_template('raw.html.jinja')
     t_rendered = t.render(
         id=id, repr=repr, psd=psd, butterfly=butterfly, ssp_projs=ssp_projs,
@@ -145,6 +147,7 @@ def _html_raw_element(*, id, repr, psd, butterfly, ssp_projs, title, tags):
 
 def _html_epochs_element(*, id, repr, metadata, erp_imgs, drop_log, psd,
                          ssp_projs, title, tags):
+    from ..html_templates import report_templates_env
     t = report_templates_env.get_template('epochs.html.jinja')
     t_rendered = t.render(
         id=id, repr=repr, metadata=metadata, erp_imgs=erp_imgs,
@@ -155,6 +158,7 @@ def _html_epochs_element(*, id, repr, metadata, erp_imgs, drop_log, psd,
 
 def _html_evoked_element(*, id, joint, slider, gfp, whitened, ssp_projs, title,
                          tags):
+    from ..html_templates import report_templates_env
     t = report_templates_env.get_template('evoked.html.jinja')
     t_rendered = t.render(
         id=id, joint=joint, slider=slider, gfp=gfp, whitened=whitened,
@@ -164,6 +168,7 @@ def _html_evoked_element(*, id, joint, slider, gfp, whitened, ssp_projs, title,
 
 
 def _html_cov_element(*, id, matrix, svd, title, tags):
+    from ..html_templates import report_templates_env
     t = report_templates_env.get_template('cov.html.jinja')
     t_rendered = t.render(
         id=id, matrix=matrix, svd=svd, tags=tags, title=title
@@ -172,6 +177,7 @@ def _html_cov_element(*, id, matrix, svd, title, tags):
 
 
 def _html_forward_sol_element(*, id, repr, sensitivity_maps, title, tags):
+    from ..html_templates import report_templates_env
     t = report_templates_env.get_template('forward.html.jinja')
     t_rendered = t.render(
         id=id, repr=repr, sensitivity_maps=sensitivity_maps, tags=tags,
@@ -181,6 +187,7 @@ def _html_forward_sol_element(*, id, repr, sensitivity_maps, title, tags):
 
 
 def _html_inverse_operator_element(*, id, repr, source_space, title, tags):
+    from ..html_templates import report_templates_env
     t = report_templates_env.get_template('inverse.html.jinja')
     t_rendered = t.render(
         id=id, repr=repr, source_space=source_space, tags=tags, title=title
@@ -190,6 +197,7 @@ def _html_inverse_operator_element(*, id, repr, source_space, title, tags):
 
 def _html_ica_element(*, id, repr, overlay, ecg, eog, ecg_scores, eog_scores,
                       properties, topographies, title, tags):
+    from ..html_templates import report_templates_env
     t = report_templates_env.get_template('ica.html.jinja')
     t_rendered = t.render(
         id=id, repr=repr, overlay=overlay, ecg=ecg, eog=eog,
@@ -201,6 +209,7 @@ def _html_ica_element(*, id, repr, overlay, ecg, eog, ecg_scores, eog_scores,
 
 def _html_slider_element(*, id, images, captions, start_idx, image_format,
                          title, tags, klass=''):
+    from ..html_templates import report_templates_env
     captions_ = []
     for caption in captions:
         if caption is None:
@@ -218,6 +227,7 @@ def _html_slider_element(*, id, images, captions, start_idx, image_format,
 
 def _html_image_element(*, id, img, image_format, caption, show, div_klass,
                         img_klass, title, tags):
+    from ..html_templates import report_templates_env
     t = report_templates_env.get_template('image.html.jinja')
     t_rendered = t.render(
         id=id, img=img, caption=caption, tags=tags, title=title,
@@ -228,6 +238,7 @@ def _html_image_element(*, id, img, image_format, caption, show, div_klass,
 
 
 def _html_code_element(*, id, code, language, title, tags):
+    from ..html_templates import report_templates_env
     t = report_templates_env.get_template('code.html.jinja')
     t_rendered = t.render(
         id=id, code=code, language=language, title=title, tags=tags
@@ -236,6 +247,7 @@ def _html_code_element(*, id, code, language, title, tags):
 
 
 def _html_element(*, id, div_klass, html, title, tags):
+    from ..html_templates import report_templates_env
     t = report_templates_env.get_template('html.html.jinja')
     t_rendered = t.render(
         id=id, div_klass=div_klass, html=html, title=title, tags=tags
@@ -564,6 +576,7 @@ def open_report(fname, **params):
     fname = _check_fname(fname=fname, overwrite='read', must_exist=False)
     if op.exists(fname):
         # Check **params with the loaded report
+        read_hdf5, _ = _import_h5io_funcs()
         state = read_hdf5(fname, title='mnepython')
         for param in params.keys():
             if param not in state:
@@ -2515,6 +2528,7 @@ class Report(object):
             logger.info(f'Saving report to : {fname}')
 
             if is_hdf5:
+                _, write_hdf5 = _import_h5io_funcs()
                 write_hdf5(fname, self.__getstate__(), overwrite=overwrite,
                            title='mnepython')
             else:

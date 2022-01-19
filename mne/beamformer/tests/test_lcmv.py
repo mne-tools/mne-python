@@ -24,7 +24,7 @@ from mne.io.constants import FIFF
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.minimum_norm.tests.test_inverse import _assert_free_ori_match
 from mne.simulation import simulate_evoked
-from mne.utils import (object_diff, requires_h5py, catch_logging,
+from mne.utils import (object_diff, requires_version, catch_logging,
                        _record_warnings)
 
 
@@ -207,7 +207,7 @@ def test_lcmv_vector():
 
 
 @pytest.mark.slowtest
-@requires_h5py
+@requires_version('h5io')
 @testing.requires_testing_data
 @pytest.mark.parametrize('reg, proj, kind', [
     (0.01, True, 'volume'),

@@ -48,14 +48,6 @@ pandas_not_found_warning_msg = 'The Pandas library is not installed. Not ' \
                                'metadata.'
 
 
-def _has_h5py():
-    try:
-        import h5py  # noqa
-        return True
-    except ImportError:
-        return False
-
-
 def _remove_ignored_ch_fields(info):
     if 'chs' in info:
         for cur_ch in info['chs']:
@@ -100,7 +92,7 @@ def get_data_paths(system):
 
 def get_cfg_local(system):
     """Return cfg_local field for the system."""
-    from mne.externals.pymatreader import read_mat
+    from pymatreader import read_mat
     cfg_local = read_mat(os.path.join(get_data_paths(system), 'raw_v7.mat'),
                          ['cfg_local'])['cfg_local']
 

@@ -52,13 +52,14 @@ def requires_testing_data(func):
 
 
 def _pytest_param(*args, **kwargs):
-    if len(args) == len(kwargs) == 0:
+    if len(args) == 0:
         args = ('testing_data',)
     import pytest
     # turn anything that uses testing data into an auto-skipper by
     # setting params=[testing._pytest_param()], or by parametrizing functions
     # with testing._pytest_param(whatever)
-    return pytest.param(*args, **kwargs, marks=_pytest_mark())
+    kwargs['marks'] = kwargs.get('marks', list()) + [_pytest_mark()]
+    return pytest.param(*args, **kwargs)
 
 
 def _pytest_mark():

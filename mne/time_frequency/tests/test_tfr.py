@@ -11,7 +11,7 @@ import mne
 from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
                  Info, Transform)
 from mne.io import read_raw_fif
-from mne.utils import (requires_h5py, requires_pandas, grand_average,
+from mne.utils import (requires_version, requires_pandas, grand_average,
                        catch_logging)
 from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     tfr_multitaper, AverageTFR, read_tfrs,
@@ -404,7 +404,7 @@ def test_crop():
     assert tfr.data.shape[-2] == 2
 
 
-@requires_h5py
+@requires_version('h5io')
 @requires_pandas
 def test_io(tmp_path):
     """Test TFR IO capacities."""

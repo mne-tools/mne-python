@@ -838,9 +838,6 @@ def reset_warnings(gallery_conf, fname):
         'ignore', message=".*modify script_files in the theme.*",
         category=Warning)
     warnings.filterwarnings(  # nilearn
-        'ignore', message=r'sklearn\.externals\.joblib is deprecated.*',
-        category=FutureWarning)
-    warnings.filterwarnings(  # nilearn
         'ignore', message=r'The sklearn.* module is.*', category=FutureWarning)
     warnings.filterwarnings(  # nilearn
         'ignore', message=r'Fetchers from the nilea.*', category=FutureWarning)

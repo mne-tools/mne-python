@@ -31,6 +31,7 @@ data_path = testing.data_path(download=False)
 egi_evoked_fname = op.join(data_path, 'EGI', 'test_egi_evoked.mff')
 
 
+@requires_version('pymatreader')
 @pytest.mark.skipif(not _check_eeglabio_installed(strict=False),
                     reason='eeglabio not installed')
 def test_export_raw_eeglab(tmp_path):
@@ -297,6 +298,7 @@ def test_export_raw_edf(tmp_path, dataset, format):
         raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
 
 
+@requires_version('pymatreader')
 @pytest.mark.skipif(not _check_eeglabio_installed(strict=False),
                     reason='eeglabio not installed')
 @pytest.mark.parametrize('preload', (True, False))

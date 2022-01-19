@@ -95,9 +95,10 @@ def check_version(library, min_version='0.0', *, return_version=False):
     except ImportError:
         ok = False
     else:
-        version = library.__version__
-        if min_version and _compare_version(version, '<', min_version):
-            ok = False
+        if min_version and min_version != '0.0':
+            version = library.__version__
+            if _compare_version(version, '<', min_version):
+                ok = False
     out = (ok, version) if return_version else ok
     return out
 
@@ -110,6 +111,22 @@ def _require_version(lib, what, version='0.0'):
         why = 'package was not found' if got is None else f'got {repr(got)}'
         raise ImportError(f'The {lib} package{extra} is required to {what}, '
                           f'{why}')
+
+
+def _import_h5py():
+    _require_version('h5py', 'read MATLAB files >= v7.3')
+    import h5py
+    return h5py
+
+
+def _import_h5io_funcs():
+    h5io = _soft_import('h5io', 'HDF5-based I/O')
+    return h5io.read_hdf5, h5io.write_hdf5
+
+
+def _import_pymatreader_funcs(purpose):
+    pymatreader = _soft_import('pymatreader', purpose)
+    return pymatreader.read_mat
 
 
 # adapted from scikit-learn utils/validation.py

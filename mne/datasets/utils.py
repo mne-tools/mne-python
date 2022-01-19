@@ -21,9 +21,8 @@ from .config import _hcp_mmp_license_text, MNE_DATASETS
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, logger,
                      verbose, get_subjects_dir, _pl, _safe_input)
-from ..utils.docs import docdict
+from ..utils.docs import docdict, _docformat
 from ..utils.check import _soft_import
-from ..externals.doccer import docformat
 
 
 _data_path_doc = """Get path to local copy of {name} dataset.
@@ -59,8 +58,8 @@ _data_path_doc_accept = _data_path_doc.split('%(verbose)s')
 _data_path_doc_accept[-1] = '%(verbose)s' + _data_path_doc_accept[-1]
 _data_path_doc_accept.insert(1, '    %(accept)s')
 _data_path_doc_accept = ''.join(_data_path_doc_accept)
-_data_path_doc = docformat(_data_path_doc, docdict)
-_data_path_doc_accept = docformat(_data_path_doc_accept, docdict)
+_data_path_doc = _docformat(_data_path_doc, docdict)
+_data_path_doc_accept = _docformat(_data_path_doc_accept, docdict)
 
 _version_doc = """Get version of the local {name} dataset.
 

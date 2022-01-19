@@ -18,8 +18,7 @@ python -m pip install --progress-bar off setuptools wheel
 python -m pip install --upgrade --progress-bar off --pre sphinx
 if [[ "$CIRCLE_JOB" == "linkcheck"* ]]; then
 	echo "Installing minimal linkcheck dependencies"
-	python -m pip install --progress-bar off numpy scipy matplotlib pillow pytest
-	python -m pip install --progress-bar off -r requirements_doc.txt
+	python -m pip install --progress-bar off pillow pytest -r requirements_base.txt -r requirements_doc.txt
 else  # standard doc build
 	echo "Installing doc build dependencies"
 	python -m pip uninstall -y pydata-sphinx-theme

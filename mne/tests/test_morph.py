@@ -27,8 +27,7 @@ from mne.minimum_norm import (apply_inverse, read_inverse_operator,
 from mne.source_space import _add_interpolator, _grid_interp
 from mne.transforms import quat_to_rot
 from mne.utils import (requires_nibabel, check_version, requires_version,
-                       requires_dipy, requires_h5py, catch_logging,
-                       _record_warnings)
+                       requires_dipy, catch_logging, _record_warnings)
 from mne.fixes import _get_args
 
 # Setup paths
@@ -237,7 +236,7 @@ def assert_power_preserved(orig, new, limits=(1., 1.05)):
         assert min_ < power_ratio < max_, f'Power ratio {kind} = {power_ratio}'
 
 
-@requires_h5py
+@requires_version('h5io')
 @testing.requires_testing_data
 def test_surface_vector_source_morph(tmp_path):
     """Test surface and vector source estimate morph."""
@@ -289,7 +288,7 @@ def test_surface_vector_source_morph(tmp_path):
         source_morph_surf.apply(stc_vol)
 
 
-@requires_h5py
+@requires_version('h5io')
 @requires_nibabel()
 @requires_dipy()
 @pytest.mark.slowtest
@@ -474,7 +473,7 @@ def test_volume_source_morph_basic(tmp_path):
     assert_allclose(img_vol, img_vol_2)
 
 
-@requires_h5py
+@requires_version('h5io')
 @requires_nibabel()
 @requires_dipy()
 @pytest.mark.slowtest

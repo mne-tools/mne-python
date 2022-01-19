@@ -46,12 +46,18 @@ class ProgressBar(object):
                  **kwargs):  # noqa: D102
         # The following mimics this, but with configurable module to use
         # from ..externals.tqdm import auto
-        from ..externals import tqdm
+        import tqdm
         which_tqdm = get_config('MNE_TQDM', 'tqdm.auto')
         _check_option('MNE_TQDM', which_tqdm[:5], ('tqdm', 'tqdm.', 'off'),
                       extra='beginning')
         logger.debug(f'Using ProgressBar with {which_tqdm}')
         if which_tqdm not in ('tqdm', 'off'):
+            try:
+                __import__(which_tqdm)
+            except Exception as exc:
+                raise ValueError(
+                    f'Unknown tqdm backend {repr(which_tqdm)}, got: {exc}'
+                ) from None
             tqdm = getattr(tqdm, which_tqdm.split('.', 1)[1])
         tqdm = tqdm.tqdm
         defaults = dict(

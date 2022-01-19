@@ -2,7 +2,6 @@
 branch = True
 source = mne
 omit =
-    */mne/externals/*
     */bin/*
     */setup.py
     */mne/fixes*

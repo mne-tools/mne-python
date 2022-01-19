@@ -43,7 +43,6 @@ from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
 from ._digitization import write_dig
 from .compensator import get_current_comp
 from ..defaults import _handle_default
-from ..html_templates import repr_templates_env
 
 
 b = bytes  # alias
@@ -1078,6 +1077,7 @@ class Info(dict, MontageMixin):
 
     def _repr_html_(self, caption=None):
         """Summarize info for HTML representation."""
+        from ..html_templates import repr_templates_env
         if isinstance(caption, str):
             html = f'<h4>{caption}</h4>'
         else:

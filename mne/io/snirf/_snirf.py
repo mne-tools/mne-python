@@ -10,8 +10,8 @@ from ..base import BaseRaw
 from ..meas_info import create_info, _format_dig_points
 from ..utils import _mult_cal_one
 from ...annotations import Annotations
-from ...utils import logger, verbose, fill_doc, warn, _check_fname
-from ...utils.check import _require_version
+from ...utils import (logger, verbose, fill_doc, warn, _check_fname,
+                      _import_h5py)
 from ..constants import FIFF
 from .._digitization import _make_dig_points
 from ...transforms import _frame_to_str, apply_trans
@@ -82,8 +82,6 @@ class RawSNIRF(BaseRaw):
     @verbose
     def __init__(self, fname, optode_frame="unknown",
                  preload=False, verbose=None):
-        _require_version('h5py', 'read raw SNIRF data')
-        from ...externals.pymatreader.utils import _import_h5py
         # Must be here due to circular import error
         from ...preprocessing.nirs import _validate_nirs_info
         h5py = _import_h5py()

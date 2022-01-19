@@ -92,10 +92,14 @@ The minimum required dependencies to run MNE-Python are:
 - Python >= 3.7
 - NumPy >= 1.18.1
 - SciPy >= 1.4.1
+- Matplotlib >= 3.1.0
+- pooch >= 1.5
+- tqdm
+- Jinja2
+- decorator
 
 For full functionality, some functions require:
 
-- Matplotlib >= 3.1.0
 - Scikit-learn >= 0.22.0
 - Numba >= 0.48.0
 - NiBabel >= 2.5.0
@@ -107,6 +111,9 @@ For full functionality, some functions require:
 - PyVista >= 0.32
 - pyvistaqt >= 0.4
 - mffpy >= 0.5.7
+- h5py
+- h5io
+- pymatreader
 
 Contributing to MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

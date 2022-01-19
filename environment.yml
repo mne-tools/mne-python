@@ -7,6 +7,11 @@ dependencies:
 - numpy
 - scipy
 - matplotlib
+- tqdm
+- pooch>=1.5
+- decorator
+- h5io
+- packaging
 - numba
 - pandas
 - xlrd
@@ -20,7 +25,6 @@ dependencies:
 - psutil
 - numexpr
 - imageio
-- tqdm
 - spyder-kernels>=1.10.0
 - imageio-ffmpeg>=0.4.1
 - vtk>=9.0.1
@@ -37,6 +41,6 @@ dependencies:
 - mne
 - mffpy>=0.5.7
 - ipywidgets
-- pooch
 - ipyvtklink
 - mne-qt-browser
+- pymatreader

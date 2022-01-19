@@ -20,7 +20,7 @@ from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.io.constants import FIFF
 from mne.transforms import translation
 from mne.datasets import testing
-from mne.utils import catch_logging, requires_h5py
+from mne.utils import catch_logging, check_version
 from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
                      _assert_complete_surface, _assert_inside,
                      _check_surface_size, _bem_find_surface)
@@ -68,12 +68,16 @@ def _compare_bem_solutions(sol_a, sol_b):
                         err_msg='Mismatch: %s' % key)
 
 
+h5py_mark = pytest.mark.skipif(not check_version('h5py'), reason='Needs h5py')
+
+
 @testing.requires_testing_data
-@requires_h5py
-@pytest.mark.parametrize('ext', ('fif', 'h5'))
+@pytest.mark.parametrize('ext', [
+    'fif',
+    pytest.param('h5', marks=h5py_mark),
+])
 def test_io_bem(tmp_path, ext):
     """Test reading and writing of bem surfaces and solutions."""
-    import h5py
     temp_bem = op.join(str(tmp_path), f'temp-bem.{ext}')
     # model
     with pytest.raises(ValueError, match='BEM data not found'):
@@ -87,6 +91,7 @@ def test_io_bem(tmp_path, ext):
         write_bem_surfaces(temp_bem, surf[0])
     write_bem_surfaces(temp_bem, surf[0], overwrite=True)
     if ext == 'h5':
+        import h5py
         with h5py.File(temp_bem, 'r'):  # make sure it's valid
             pass
     surf_read = read_bem_surfaces(temp_bem, patch_stats=False)

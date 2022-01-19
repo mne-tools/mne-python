@@ -25,7 +25,8 @@ from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
                      _gen_events, SizeMixin, _is_numeric, _check_option,
                      _validate_type, _check_combine, _check_pandas_installed,
                      _check_pandas_index_arguments, _check_time_format,
-                     _convert_times, _build_data_frame, warn)
+                     _convert_times, _build_data_frame, warn,
+                     _import_h5io_funcs)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
@@ -34,7 +35,6 @@ from ..io.meas_info import Info
 from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
                          _connection_line, _prepare_joint_axes,
                          _setup_vmin_vmax, _set_title_multiple_electrodes)
-from ..externals.h5io import write_hdf5, read_hdf5
 
 
 def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
@@ -2488,6 +2488,7 @@ def write_tfrs(fname, tfr, overwrite=False, *, verbose=None):
     -----
     .. versionadded:: 0.9.0
     """
+    _, write_hdf5 = _import_h5io_funcs()
     out = []
     if not isinstance(tfr, (list, tuple)):
         tfr = [tfr]
@@ -2539,6 +2540,7 @@ def read_tfrs(fname, condition=None):
     .. versionadded:: 0.9.0
     """
     check_fname(fname, 'tfr', ('-tfr.h5', '_tfr.h5'))
+    read_hdf5, _ = _import_h5io_funcs()
 
     logger.info('Reading %s ...' % fname)
     tfr_data = read_hdf5(fname, title='mnepython', slash='replace')
