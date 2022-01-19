@@ -1034,3 +1034,8 @@ class IntracranialElectrodeLocator(QMainWindow):
             *self._ras))
         self._intensity_label.setText('intensity = {:.2f}'.format(
             self._ct_data[tuple(self._current_slice)]))
+
+    def closeEvent(self, event):
+        """Clean up upon closing the window."""
+        self._renderer.close()
+        self.close()
