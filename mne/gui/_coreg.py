@@ -1084,6 +1084,7 @@ class CoregistrationUI(HasTraits):
             rot=np.array([rot_x, rot_y, rot_z]),
             tra=np.array([x, y, z]),
         )
+        self._update_plot("sensors")
         self._update_parameters()
         self._update_distance_estimation()
         self._display_message(
