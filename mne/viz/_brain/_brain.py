@@ -1064,6 +1064,7 @@ class Brain(object):
             name="↺",
             callback=self.restore_user_scaling,
             layout=hlayout,
+            style='toolbutton',
         )
         for key, char, val in (("fminus", "➖", 1.2 ** -0.25),
                                ("fplus", "➕", 1.2 ** 0.25)):
@@ -1075,6 +1076,7 @@ class Brain(object):
                 name=char,
                 callback=self.callbacks[key],
                 layout=hlayout,
+                style='toolbutton',
             )
         self._renderer._layout_add_widget(layout, hlayout)
 
