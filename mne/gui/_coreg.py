@@ -1281,7 +1281,7 @@ class CoregistrationUI(HasTraits):
             self._widgets[name] = self._renderer._dock_add_spin_box(
                 name=name,
                 value=attr[coords.index(coord)] * 1e2,
-                rng=[-1e3, 1e3],
+                rng=[1., 1e3],
                 callback=partial(
                     self._set_parameter,
                     mode_name="scale",
@@ -1335,7 +1335,7 @@ class CoregistrationUI(HasTraits):
                 self._widgets[name] = self._renderer._dock_add_spin_box(
                     name=name,
                     value=attr[coords.index(coord)] * 1e3,
-                    rng=[-1e3, 1e3],
+                    rng=[1., 1e3],
                     callback=partial(
                         self._set_parameter,
                         mode_name=mode_name.lower(),
