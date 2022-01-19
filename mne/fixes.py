@@ -48,7 +48,9 @@ def _compare_version(version_a, operator, version_b):
         The result of the version comparison.
     """
     from packaging.version import parse
-    return eval(f'parse("{version_a}") {operator} parse("{version_b}")')
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        return eval(f'parse("{version_a}") {operator} parse("{version_b}")')
 
 
 ###############################################################################
