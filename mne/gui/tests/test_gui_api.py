@@ -80,6 +80,7 @@ def test_gui_api(renderer_notebook, nbexec):
     assert widget.get_value(0) == 'foo'
     assert widget.get_value(1) == 'bar'
     widget.set_enabled(False)
+    assert not widget.is_enabled
 
     # text field
     widget = renderer._dock_add_text('', 'foo', '')
