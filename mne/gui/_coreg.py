@@ -739,6 +739,22 @@ class CoregistrationUI(HasTraits):
         finally:
             self._coreg._scale_mode = old_scale_mode
 
+    @contextmanager
+    def _lock_fitting(self):
+        widgets = ["fit_icp", "fit_fiducials",
+                   "fits_icp", "fits_fiducials"]
+        states = [
+            self._forward_widget_command(
+                w, "is_enabled", None, input_value=False, output_value=True)
+            for w in widgets
+        ]
+        self._forward_widget_command(widgets, "set_enabled", False)
+        try:
+            yield
+        finally:
+            for idx, w in enumerate(widgets):
+                self._forward_widget_command(w, "set_enabled", states[idx])
+
     def _display_message(self, msg=""):
         self._status_msg.set_value(msg)
         self._status_msg.show()
@@ -798,13 +814,19 @@ class CoregistrationUI(HasTraits):
         self._update_parameters()
         self._update_distance_estimation()
 
-    def _forward_widget_command(self, names, command, value):
+    def _forward_widget_command(self, names, command, value,
+                                input_value=True, output_value=False):
         names = [names] if not isinstance(names, list) else names
         value = list(value) if isinstance(value, np.ndarray) else value
         for idx, name in enumerate(names):
             val = value[idx] if isinstance(value, list) else value
             if name in self._widgets:
-                getattr(self._widgets[name], command)(val)
+                if input_value:
+                    ret = getattr(self._widgets[name], command)(val)
+                else:
+                    ret = getattr(self._widgets[name], command)()
+                if output_value:
+                    return ret
 
     def _set_sensors_visibility(self, state):
         sensors = ["head_fiducials", "hpi_coils", "head_shape_points",
@@ -917,63 +939,67 @@ class CoregistrationUI(HasTraits):
         self._update_actor("helmet", helmet_actor)
 
     def _fit_fiducials(self):
-        with self._lock_scale_mode():
-            self._fits_fiducials()
+        with self._lock_fitting():
+            with self._lock_scale_mode():
+                self._fits_fiducials()
 
     def _fits_fiducials(self):
-        if not self._lock_fids:
+        with self._lock_fitting():
+            if not self._lock_fids:
+                self._display_message(
+                    "Fitting is disabled, lock the fiducials first.")
+                return
+            start = time.time()
+            self._coreg.fit_fiducials(
+                lpa_weight=self._lpa_weight,
+                nasion_weight=self._nasion_weight,
+                rpa_weight=self._rpa_weight,
+                verbose=self._verbose,
+            )
+            end = time.time()
             self._display_message(
-                "Fitting is disabled, lock the fiducials first.")
-            return
-        start = time.time()
-        self._coreg.fit_fiducials(
-            lpa_weight=self._lpa_weight,
-            nasion_weight=self._nasion_weight,
-            rpa_weight=self._rpa_weight,
-            verbose=self._verbose,
-        )
-        end = time.time()
-        self._display_message(
-            f"Fitting fiducials finished in {end - start:.2f} seconds.")
-        self._update_plot("sensors")
-        self._update_parameters()
-        self._update_distance_estimation()
+                f"Fitting fiducials finished in {end - start:.2f} seconds.")
+            self._update_plot("sensors")
+            self._update_parameters()
+            self._update_distance_estimation()
 
     def _fit_icp(self):
-        with self._lock_scale_mode():
-            self._fits_icp()
+        with self._lock_fitting():
+            with self._lock_scale_mode():
+                self._fits_icp()
 
     def _fits_icp(self):
-        if not self._lock_fids:
-            self._display_message(
-                "Fitting is disabled, lock the fiducials first.")
-            return
-        self._current_icp_iterations = 0
+        with self._lock_fitting():
+            if not self._lock_fids:
+                self._display_message(
+                    "Fitting is disabled, lock the fiducials first.")
+                return
+            self._current_icp_iterations = 0
 
-        def callback(iteration, n_iterations):
-            self._display_message(
-                f"Fitting ICP - iteration {iteration + 1}")
-            self._update_plot(['head', 'hsp', 'hpi', 'eeg', 'head_fids'])
-            self._current_icp_iterations += 1
-            self._update_distance_estimation()
-            self._update_parameters()
-            self._renderer._process_events()  # allow a draw or cancel
+            def callback(iteration, n_iterations):
+                self._display_message(
+                    f"Fitting ICP - iteration {iteration + 1}")
+                self._update_plot(['head', 'hsp', 'hpi', 'eeg', 'head_fids'])
+                self._current_icp_iterations += 1
+                self._update_distance_estimation()
+                self._update_parameters()
+                self._renderer._process_events()  # allow a draw or cancel
 
-        start = time.time()
-        self._coreg.fit_icp(
-            n_iterations=self._icp_n_iterations,
-            lpa_weight=self._lpa_weight,
-            nasion_weight=self._nasion_weight,
-            rpa_weight=self._rpa_weight,
-            callback=callback,
-            verbose=self._verbose,
-        )
-        end = time.time()
-        self._display_message()
-        self._display_message(
-            f"Fitting ICP finished in {end - start:.2f} seconds and "
-            f"{self._current_icp_iterations} iterations.")
-        del self._current_icp_iterations
+            start = time.time()
+            self._coreg.fit_icp(
+                n_iterations=self._icp_n_iterations,
+                lpa_weight=self._lpa_weight,
+                nasion_weight=self._nasion_weight,
+                rpa_weight=self._rpa_weight,
+                callback=callback,
+                verbose=self._verbose,
+            )
+            end = time.time()
+            self._display_message()
+            self._display_message(
+                f"Fitting ICP finished in {end - start:.2f} seconds and "
+                f"{self._current_icp_iterations} iterations.")
+            del self._current_icp_iterations
 
     def _start_worker(self):
         self._job_queue.put(True)

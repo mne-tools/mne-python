@@ -644,6 +644,9 @@ class _QtWidget(_AbstractWidget):
     def set_enabled(self, state):
         self._widget.setEnabled(state)
 
+    def is_enabled(self):
+        return self._widget.isEnabled()
+
     def update(self, repaint=True):
         self._widget.update()
         if repaint:
