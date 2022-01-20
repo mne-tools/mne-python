@@ -5,6 +5,7 @@ import re
 import shutil
 import zipfile
 
+import pooch
 import pytest
 
 from mne import datasets, read_labels_from_annot, write_labels_to_annot
@@ -18,11 +19,7 @@ from mne.datasets.utils import _manifest_check_download
 from mne.utils import (requires_good_network,
                        get_subjects_dir, ArgvSetter, _pl, use_log_level,
                        catch_logging, hashfunc)
-from mne.utils.check import _soft_import
 
-
-# import pooch library for handling the dataset downloading
-pooch = _soft_import('pooch', 'dataset downloading', strict=True)
 
 subjects_dir = op.join(testing.data_path(download=False), 'subjects')
 
@@ -177,7 +174,6 @@ def _fake_zip_fetch(url, path, fname, known_hash):
 @pytest.mark.parametrize('n_have', range(len(_zip_fnames)))
 def test_manifest_check_download(tmp_path, n_have, monkeypatch):
     """Test our manifest downloader."""
-    pooch = _soft_import('pooch', 'download datasets')
     monkeypatch.setattr(pooch, 'retrieve', _fake_zip_fetch)
     destination = op.join(str(tmp_path), 'empty')
     manifest_path = op.join(str(tmp_path), 'manifest.txt')

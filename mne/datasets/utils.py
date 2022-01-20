@@ -16,13 +16,13 @@ import zipfile
 import tempfile
 
 import numpy as np
+import pooch
 
 from .config import _hcp_mmp_license_text, MNE_DATASETS
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, logger,
                      verbose, get_subjects_dir, _pl, _safe_input)
 from ..utils.docs import docdict, _docformat
-from ..utils.check import _soft_import
 
 
 _data_path_doc = """Get path to local copy of {name} dataset.
@@ -148,7 +148,6 @@ def _download_mne_dataset(name, processor, path, force_update,
     from mne.datasets._fetch import fetch_dataset
 
     # import pooch library for handling the dataset downloading
-    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
     dataset_params = MNE_DATASETS[name]
     dataset_params['dataset_name'] = name
     config_key = MNE_DATASETS[name]['config_key']
@@ -311,9 +310,6 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
     ----------
     .. footbibliography::
     """
-    # import pooch library for handling the dataset downloading
-    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
-
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     destination = op.join(subjects_dir, 'fsaverage', 'label')
     urls = dict(lh='https://osf.io/p92yb/download',
@@ -362,9 +358,6 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
     ----------
     .. footbibliography::
     """
-    # import pooch library for handling the dataset downloading
-    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
-
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     destination = op.join(subjects_dir, 'fsaverage', 'label')
     fnames = [op.join(destination, '%s.HCPMMP1.annot' % hemi)
@@ -492,9 +485,6 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
 
 
 def _manifest_check_download(manifest_path, destination, url, hash_):
-    # import pooch library for handling the dataset downloading
-    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
-
     with open(manifest_path, 'r') as fid:
         names = [name.strip() for name in fid.readlines()]
     manifest_path = op.basename(manifest_path)
