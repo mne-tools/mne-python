@@ -101,10 +101,6 @@ def test_coreg_gui_pyvista_file_support(inst_path, tmp_path,
 def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     """Test that using CoregistrationUI matches mne coreg."""
     from mne.gui import coregistration
-    from mne.gui._coreg import CoregistrationUI
-    with pytest.warns(DeprecationWarning, match='standalone is deprecated'):
-        CoregistrationUI(info_file=raw_path, standalone=False)
-
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     tmp_trans = tmp_path / 'tmp-trans.fif'
     # the sample subject in testing has MRI fids
