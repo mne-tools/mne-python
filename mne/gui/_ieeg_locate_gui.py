@@ -26,6 +26,7 @@ from matplotlib import patheffects
 
 from .._freesurfer import _import_nibabel
 from ..viz.backends.renderer import _get_renderer
+from ..viz.utils import safe_event
 from ..surface import _read_mri_surface, _voxel_neighbors, _marching_cubes
 from ..transforms import (apply_trans, _frame_to_str, _get_trans,
                           invert_transform)
@@ -1034,3 +1035,9 @@ class IntracranialElectrodeLocator(QMainWindow):
             *self._ras))
         self._intensity_label.setText('intensity = {:.2f}'.format(
             self._ct_data[tuple(self._current_slice)]))
+
+    @safe_event
+    def closeEvent(self, event):
+        """Clean up upon closing the window."""
+        self._renderer.plotter.close()
+        self.close()
