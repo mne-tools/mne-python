@@ -933,7 +933,7 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
 @verbose
 def scale_mri(subject_from, subject_to, scale, overwrite=False,
               subjects_dir=None, skip_fiducials=False, labels=True,
-              annot=False, on_defects='raise', verbose=None):
+              annot=False, *, on_defects='raise', verbose=None):
     """Create a scaled copy of an MRI subject.
 
     Parameters
