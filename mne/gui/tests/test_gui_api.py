@@ -51,8 +51,20 @@ def test_gui_api(renderer_notebook, nbexec):
     widget.set_enabled(True)
     assert widget.is_enabled()
 
-    # button
-    widget = renderer._dock_add_button('', mock)
+    # ToolButton
+    widget = renderer._dock_add_button(
+        name='',
+        callback=mock,
+        style='toolbutton'
+    )
+    with _check_widget_trigger(widget, mock, None, None, get_value=False):
+        widget.set_value(True)
+
+    # PushButton
+    widget = renderer._dock_add_button(
+        name='',
+        callback=mock
+    )
     with _check_widget_trigger(widget, mock, None, None, get_value=False):
         widget.set_value(True)
 

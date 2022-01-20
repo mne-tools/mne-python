@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QSizePolicy, QScrollArea, QStyle, QProgressBar,
                              QStyleOptionSlider, QLayout, QCheckBox,
                              QButtonGroup, QRadioButton, QLineEdit,
-                             QFileDialog)
+                             QFileDialog, QPushButton)
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
@@ -29,7 +29,7 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
                         _AbstractWidgetList)
 from ._utils import _init_qt_resources, _qt_disable_paint
-from ..utils import logger
+from ..utils import logger, _check_option
 
 
 class _QtLayout(_AbstractLayout):
@@ -83,14 +83,28 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
-    def _dock_add_button(self, name, callback, tooltip=None, layout=None):
-        layout = self._dock_layout if layout is None else layout
-        # If we want one with text instead of an icon, we should use
-        # QPushButton(name)
-        widget = QToolButton()
+    def _dock_add_button(
+        self, name, callback, style='pushbutton', tooltip=None, layout=None
+    ):
+        _check_option(
+            parameter='style',
+            value=style,
+            allowed_values=('toolbutton', 'pushbutton')
+        )
+        if style == 'toolbutton':
+            widget = QToolButton()
+            widget.setText(name)
+        else:
+            widget = QPushButton(name)
+            # Don't change text color upon button press
+            widget.setStyleSheet(
+                'QPushButton:pressed {color: none;}'
+            )
+
         _set_widget_tooltip(widget, tooltip)
         widget.clicked.connect(callback)
-        widget.setText(name)
+
+        layout = self._dock_layout if layout is None else layout
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
@@ -610,7 +624,7 @@ class _QtWidgetList(_AbstractWidgetList):
 
 class _QtWidget(_AbstractWidget):
     def set_value(self, value):
-        if isinstance(self._widget, (QRadioButton, QToolButton)):
+        if isinstance(self._widget, (QRadioButton, QToolButton, QPushButton)):
             self._widget.click()
         else:
             if hasattr(self._widget, "setValue"):

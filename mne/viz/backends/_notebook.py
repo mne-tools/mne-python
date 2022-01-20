@@ -71,7 +71,8 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_add_button(self, name, callback, tooltip=None, layout=None):
+    def _dock_add_button(self, name, callback, style=None, tooltip=None,
+                         layout=None):
         layout = self._dock_layout if layout is None else layout
         kwargs = dict(description=name)
         if tooltip is not None:
