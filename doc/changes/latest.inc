@@ -84,7 +84,7 @@ Enhancements
 
 - Add lines in 3D and on the maximum intensity projection when more than two electrode contacts are selected to aid in identifying that contact for :func:`mne.gui.locate_ieeg` (:gh:`10212` by `Alex Rockhill`_)
 
-- Add a ``block`` parameter to :class:`mne.viz.Brain` and the UI of :class:`mne.gui.Coregistration` to hold the context (:gh:`10222` by `Guillaume Favelier`_)
+- Add a ``block`` parameter to :class:`mne.viz.Brain` and the UI of :class:`mne.coreg.Coregistration` to hold the context (:gh:`10222` by `Guillaume Favelier`_)
 
 Bugs
 ~~~~
