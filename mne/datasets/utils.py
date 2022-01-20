@@ -16,7 +16,6 @@ import zipfile
 import tempfile
 
 import numpy as np
-import pooch
 
 from .config import _hcp_mmp_license_text, MNE_DATASETS
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
@@ -145,6 +144,7 @@ def _do_path_update(path, update_path, key, name):
 def _download_mne_dataset(name, processor, path, force_update,
                           update_path, download, accept=False):
     """Aux function for downloading internal MNE datasets."""
+    import pooch
     from mne.datasets._fetch import fetch_dataset
 
     # import pooch library for handling the dataset downloading
@@ -310,6 +310,8 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
     ----------
     .. footbibliography::
     """
+    import pooch
+
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     destination = op.join(subjects_dir, 'fsaverage', 'label')
     urls = dict(lh='https://osf.io/p92yb/download',
@@ -358,6 +360,8 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
     ----------
     .. footbibliography::
     """
+    import pooch
+
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     destination = op.join(subjects_dir, 'fsaverage', 'label')
     fnames = [op.join(destination, '%s.HCPMMP1.annot' % hemi)
@@ -485,6 +489,8 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
 
 
 def _manifest_check_download(manifest_path, destination, url, hash_):
+    import pooch
+
     with open(manifest_path, 'r') as fid:
         names = [name.strip() for name in fid.readlines()]
     manifest_path = op.basename(manifest_path)

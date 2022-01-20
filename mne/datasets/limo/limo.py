@@ -6,7 +6,6 @@ import os
 import os.path as op
 
 import numpy as np
-import pooch
 
 from ...channels import make_standard_montage
 from ...epochs import EpochsArray
@@ -67,6 +66,8 @@ def data_path(subject, path=None, force_update=False, update_path=None, *,
     ----------
     .. footbibliography::
     """  # noqa: E501
+    import pooch
+
     downloader = pooch.HTTPDownloader(progressbar=True)  # use tqdm
 
     # local storage patch

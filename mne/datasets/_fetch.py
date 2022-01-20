@@ -8,8 +8,6 @@ import os
 import os.path as op
 from shutil import rmtree
 
-import pooch
-
 from .. import __version__ as mne_version
 from ..utils import logger, warn, _safe_input
 from .config import (
@@ -130,6 +128,8 @@ def fetch_dataset(
     multiple files must be downloaded and (optionally) uncompressed separately,
     pass a list of dicts.
     """  # noqa E501
+    import pooch
+
     if auth is not None:
         if len(auth) != 2:
             raise RuntimeError(

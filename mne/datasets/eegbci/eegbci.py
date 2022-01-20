@@ -8,8 +8,6 @@ from os import path as op
 import pkg_resources
 import re
 
-import pooch
-
 from ..utils import _get_path, _do_path_update
 from ...utils import _url_to_local_path, verbose
 
@@ -65,6 +63,8 @@ def data_path(url, path=None, force_update=False, update_path=None, *,
     ----------
     .. footbibliography::
     """  # noqa: E501
+    import pooch
+
     key = 'MNE_DATASETS_EEGBCI_PATH'
     name = 'EEGBCI'
     path = _get_path(path, key, name)
@@ -154,6 +154,8 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
     ----------
     .. footbibliography::
     """  # noqa: E501
+    import pooch
+
     if not hasattr(runs, '__iter__'):
         runs = [runs]
 
