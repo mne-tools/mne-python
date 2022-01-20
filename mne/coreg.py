@@ -830,7 +830,7 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
 
 @verbose
 def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
-              subjects_dir=None, on_defects='raise', *, verbose=None):
+              subjects_dir=None, *, on_defects='raise', verbose=None):
     """Scale a bem file.
 
     Parameters
