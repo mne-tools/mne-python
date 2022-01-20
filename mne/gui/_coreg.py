@@ -127,7 +127,7 @@ class CoregistrationUI(HasTraits):
                  scale_by_distance=None, project_eeg=None, mark_inside=None,
                  sensor_opacity=None, trans=None, size=None, bgcolor=None,
                  show=True, block=False, interaction='terrain', *,
-                 standalone=None,
+                 head_transparency=None, standalone=None,
                  verbose=None):
         if standalone is not None:
             depr_message = ('standalone is deprecated and will be replaced by '
@@ -138,6 +138,17 @@ class CoregistrationUI(HasTraits):
             else:
                 warn(depr_message + ' Since you passed values for both '
                      'standalone and block, standalone will be ignored.',
+                     DeprecationWarning)
+        if head_transparency is not None:
+            depr_message = ('head_transparency is deprecated and will be'
+                            ' replaced by head_opacity in 1.1.')
+            if head_opacity is None:
+                head_opacity = 0.95 if head_transparency else 1.0
+                warn(depr_message, DeprecationWarning)
+            else:
+                warn(depr_message + ' Since you passed values for both '
+                     'head_transparency and head_opacity, '
+                     'head_transparency will be ignored.',
                      DeprecationWarning)
         from ..viz.backends.renderer import _get_renderer
         from ..viz.backends._utils import _qt_app_exec
