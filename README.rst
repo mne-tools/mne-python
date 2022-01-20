@@ -137,7 +137,7 @@ MNE-Python is **BSD-licenced** (3 clause):
     This software is OSI Certified Open Source Software.
     OSI Certified is a certification mark of the Open Source Initiative.
 
-    Copyright (c) 2011-2021, authors of MNE-Python.
+    Copyright (c) 2011-2022, authors of MNE-Python.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
