@@ -151,9 +151,9 @@ Bugs
 
 - :meth:`mne.Report.add_trans` now also works if no digitization points are present in the data (:gh:`10176` by `Jeff Stout`_)
 
-- :class:`mne.coreg.Coregistration`, :func:`mne.coreg.scale_bem`, and :func:`mne.coreg.scale_mri` gained a new parameter, ``on_defects``, controlling how to handle topological defects (:gh:`xxx`, by `Richard Höchenberger`_)
+- :class:`mne.coreg.Coregistration`, :func:`mne.coreg.scale_bem`, and :func:`mne.coreg.scale_mri` gained a new parameter, ``on_defects``, controlling how to handle topological defects (:gh:`10230`, by `Richard Höchenberger`_)
 
-- :func:`mne.gui.coregistration` now works with surfaces containing topological defects (:gh:`xxx`, by `Richard Höchenberger`_)
+- :func:`mne.gui.coregistration` now works with surfaces containing topological defects (:gh:`10230`, by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~
