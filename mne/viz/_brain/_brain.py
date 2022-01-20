@@ -320,6 +320,8 @@ class Brain(object):
         <https://github.com/albertosottile/darkdetect>`__ is required.
     show : bool
         Display the window as soon as it is ready. Defaults to True.
+    block : bool
+        If True, start the Qt application event loop. Default to False.
 
     Attributes
     ----------
@@ -417,7 +419,7 @@ class Brain(object):
                  views='auto', offset='auto', show_toolbar=False,
                  offscreen=False, interaction='trackball', units='mm',
                  view_layout='vertical', silhouette=False, theme='auto',
-                 show=True):
+                 show=True, block=False):
         from ..backends.renderer import backend, _get_renderer
 
         if hemi is None:
@@ -461,6 +463,7 @@ class Brain(object):
         self.theme = theme
 
         self.time_viewer = False
+        self._block = block
         self._hemi = hemi
         self._units = units
         self._alpha = float(alpha)
@@ -623,6 +626,7 @@ class Brain(object):
         'Left': Decrease camera azimuth angle
         'Right': Increase camera azimuth angle
         """
+        from ..backends._utils import _qt_app_exec
         if self.time_viewer:
             return
         if not self._data:
@@ -717,6 +721,8 @@ class Brain(object):
         # finally, show the MplCanvas
         if self.show_traces:
             self.mpl_canvas.show()
+        if self._block:
+            _qt_app_exec(self._renderer.figure.store["app"])
 
     @safe_event
     def _clean(self):
@@ -2903,7 +2909,10 @@ class Brain(object):
 
     def show(self):
         """Display the window."""
+        from ..backends._utils import _qt_app_exec
         self._renderer.show()
+        if self._block:
+            _qt_app_exec(self._renderer.figure.store["app"])
 
     @fill_doc
     def show_view(self, view=None, roll=None, distance=None, *,

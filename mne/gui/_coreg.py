@@ -85,7 +85,7 @@ class CoregistrationUI(HasTraits):
         or 'w'). Defaults to 'grey'.
     show : bool
         Display the window as soon as it is ready. Defaults to True.
-    standalone : bool
+    block : bool
         If True, start the Qt application event loop. Default to False.
     %(scene_interaction)s
         Defaults to ``'terrain'``.
@@ -126,8 +126,19 @@ class CoregistrationUI(HasTraits):
                  head_shape_points=None, eeg_channels=None, orient_glyphs=None,
                  scale_by_distance=None, project_eeg=None, mark_inside=None,
                  sensor_opacity=None, trans=None, size=None, bgcolor=None,
-                 show=True, standalone=False, interaction='terrain',
+                 show=True, block=False, interaction='terrain', *,
+                 standalone=None,
                  verbose=None):
+        if standalone is not None:
+            depr_message = ('standalone is deprecated and will be replaced by '
+                            'block in 1.1.')
+            if block is None:
+                block = standalone
+                warn(depr_message, DeprecationWarning)
+            else:
+                warn(depr_message + ' Since you passed values for both '
+                     'standalone and block, standalone will be ignored.',
+                     DeprecationWarning)
         from ..viz.backends.renderer import _get_renderer
         from ..viz.backends._utils import _qt_app_exec
 
@@ -275,7 +286,7 @@ class CoregistrationUI(HasTraits):
             self._renderer.plotter.add_callback(
                 self._redraw, self._refresh_rate_ms)
         self._renderer.plotter.show_axes()
-        if standalone:
+        if block:
             _qt_app_exec(self._renderer.figure.store["app"])
 
     def _set_subjects_dir(self, subjects_dir):
