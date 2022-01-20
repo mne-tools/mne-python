@@ -232,12 +232,14 @@ class GetEpochsMixin(object):
 
     def _keys_to_idx(self, keys):
         """Find entries in event dict."""
+        from ..event import match_event_names  # avoid circular import
+
         keys = keys if isinstance(keys, (list, tuple)) else [keys]
         try:
             # Assume it's a condition name
             return np.where(np.any(
                 np.array([self.events[:, 2] == self.event_id[k]
-                          for k in _hid_match(self.event_id, keys)]),
+                          for k in match_event_names(self.event_id, keys)]),
                 axis=0))[0]
         except KeyError as err:
             # Could we in principle use metadata with these Epochs and keys?
@@ -441,36 +443,6 @@ def _prepare_read_metadata(metadata):
             metadata = pd.DataFrame.from_records(metadata)
             assert isinstance(metadata, pd.DataFrame)
     return metadata
-
-
-def _hid_match(event_id, keys):
-    """Match event IDs using HID selection.
-
-    Parameters
-    ----------
-    event_id : dict
-        The event ID dictionary.
-    keys : list | str
-        The event ID or subset (for HID), or list of such items.
-
-    Returns
-    -------
-    use_keys : list
-        The full keys that fit the selection criteria.
-    """
-    # form the hierarchical event ID mapping
-    use_keys = []
-    for key in keys:
-        if not isinstance(key, str):
-            raise KeyError('keys must be strings, got %s (%s)'
-                           % (type(key), key))
-        use_keys.extend(k for k in event_id.keys()
-                        if set(key.split('/')).issubset(k.split('/')))
-    if len(use_keys) == 0:
-        raise KeyError('Event "{}" is not in Epochs. Event_ids must be one of '
-                       '"{}"'.format(key, ', '.join(event_id.keys())))
-    use_keys = list(set(use_keys))  # deduplicate if necessary
-    return use_keys
 
 
 class _FakeNoPandas(object):  # noqa: D101

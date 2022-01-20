@@ -2072,7 +2072,7 @@ def test_epoch_eq():
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     assert_equal(new_shapes[0] + new_shapes[1], new_shapes[2])
     assert_equal(new_shapes[3], old_shapes[3])
-    with pytest.raises(KeyError, match='keys must be strings, got'):
+    with pytest.raises(ValueError, match='keys must be strings, got'):
         epochs.equalize_event_counts([1, 'a'])
 
     # now let's combine conditions

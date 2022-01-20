@@ -90,6 +90,8 @@ Enhancements
 
 - Add a ``block`` parameter to :class:`mne.viz.Brain` and the UI of :class:`mne.coreg.Coregistration` to prevent the windows from closing immediately when running in a non-interactive Python session (:gh:`10222` by `Guillaume Favelier`_)
 
+- The new convenience function :func:`mne.event.match_event_names` allows for straightforward checking if a specific event name or a group of events is present in a collection of event names (:gh:`xxx` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 
