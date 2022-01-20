@@ -1059,7 +1059,7 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
     #
     # ensure we have (optionally non-empty) ndarray of valid int
     #
-    if len(picks) == 0 and not allow_empty:
+    if not list(picks) and not allow_empty:
         raise ValueError('No appropriate channels found for the given picks '
                          '(%r)' % (orig_picks,))
     if (picks < -n_chan).any():
