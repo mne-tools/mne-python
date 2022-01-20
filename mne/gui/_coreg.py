@@ -212,7 +212,10 @@ class CoregistrationUI(HasTraits):
         self._info = info
         self._fiducials = fiducials
         self._coreg = Coregistration(
-            self._info, subject, subjects_dir, fiducials)
+            info=self._info, subject=subject, subjects_dir=subjects_dir,
+            fiducials=fiducials,
+            on_defects='ignore'  # safe due to interactive visual inspection
+        )
         fid_accurate = self._coreg._fid_accurate
         for fid in self._defaults["weights"].keys():
             setattr(self, f"_{fid}_weight", self._defaults["weights"][fid])
@@ -1023,9 +1026,13 @@ class CoregistrationUI(HasTraits):
         # save the scaled MRI
         try:
             self._display_message(f"Scaling {self._subject_to}...")
-            scale_mri(self._subject, self._subject_to, self._coreg._scale,
-                      True, self._subjects_dir, self._skip_fiducials,
-                      self._scale_labels, self._copy_annots)
+            scale_mri(
+                subject_from=self._subject, subject_to=self._subject_to,
+                scale=self._coreg._scale, overwrite=True,
+                subjects_dir=self._subjects_dir,
+                skip_fiducials=self._skip_fiducials, labels=self._scale_labels,
+                annot=self._copy_annots, on_defects='ignore'
+            )
         except Exception:
             logger.error(f"Error scaling {self._subject_to}")
             bem_names = []

@@ -151,6 +151,10 @@ Bugs
 
 - :meth:`mne.Report.add_trans` now also works if no digitization points are present in the data (:gh:`10176` by `Jeff Stout`_)
 
+- :class:`mne.coreg.Coregistration`, :func:`mne.coreg.scale_bem`, and :func:`mne.coreg.scale_mri` gained a new parameter, ``on_defects``, controlling how to handle topological defects (:gh:`xxx`, by `Richard Höchenberger`_)
+
+- :func:`mne.gui.coregistration` now works with surfaces containing topological defects (:gh:`xxx`, by `Richard Höchenberger`_)
+
 API changes
 ~~~~~~~~~~~
 - ``mne.Info.pick_channels`` has been deprecated. Use ``inst.pick_channels`` to pick channels from :class:`~mne.io.Raw`, :class:`~mne.Epochs`, and :class:`~mne.Evoked`. Use :func:`mne.pick_info` to pick channels from :class:`mne.Info` (:gh:`10039` by `Mathieu Scheltienne`_)
