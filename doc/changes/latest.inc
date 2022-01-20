@@ -65,7 +65,7 @@ Enhancements
 - :class:`~mne.Epochs` metadata tables are now included in :class:`mne.Report` (:gh:`10166` by `Richard Höchenberger`_)
 
 - :func:`mne.get_head_surf` and :func:`mne.dig_mri_distances` gained a new parameter, ``on_defects``, controlling how to handle surfaces with topological defects (:gh:`10175` by `Richard Höchenberger`_)
-  
+
 - :meth:`mne.Report.add_epochs` gained a new parameter, ``drop_log_ignore``, to control which drop reasons to omit when creating the drop log plot (:gh:`10182` by `Richard Höchenberger`_)
 
 - :meth:`mne.Epochs.plot_drop_log` now also includes the absolute number of epochs dropped in the title (:gh:`10186` by `Richard Höchenberger`_)
@@ -150,6 +150,8 @@ Bugs
 - :meth:`mne.Report.add_trans` now allows you to add sensor alignment plots for head surfaces that have topological defects (:gh:`10175` by `Richard Höchenberger`_)
 
 - :meth:`mne.Report.add_trans` now also works if no digitization points are present in the data (:gh:`10176` by `Jeff Stout`_)
+
+- Argument `verbose` is now respected by dataset fetching (:gh:`10210` by `Mathieu Scheltienne`_)
 
 API changes
 ~~~~~~~~~~~
