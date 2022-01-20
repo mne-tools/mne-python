@@ -175,7 +175,8 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert coreg._scale_by_distance
     assert coreg._mark_inside
     assert_allclose(
-        coreg._head_opacity, float(config.get('MNE_COREG_HEAD_OPACITY', '0.95')))
+        coreg._head_opacity,
+        float(config.get('MNE_COREG_HEAD_OPACITY', '0.95')))
     assert coreg._project_eeg == \
         (config.get('MNE_COREG_PROJECT_EEG', '') == 'true')
     assert coreg._hpi_coils
