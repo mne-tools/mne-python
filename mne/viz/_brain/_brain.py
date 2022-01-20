@@ -12,7 +12,6 @@ from functools import partial
 from io import BytesIO
 import os
 import os.path as op
-import sys
 import time
 import copy
 import traceback
@@ -20,7 +19,6 @@ import warnings
 
 import numpy as np
 from collections import OrderedDict
-from decorator import decorator
 
 from .colormap import calculate_lut
 from .surface import _Surface
@@ -29,7 +27,7 @@ from .callback import (ShowView, TimeCallBack, SmartCallBack,
                        UpdateLUT, UpdateColorbarScale)
 
 from ..utils import (_show_help_fig, _get_color_list, concatenate_images,
-                     _generate_default_filename, _save_ndarray_img)
+                     _generate_default_filename, _save_ndarray_img, safe_event)
 from .._3d import (_process_clim, _handle_time, _check_views,
                    _handle_sensor_types, _plot_sensors)
 from ...defaults import _handle_default, DEFAULTS
@@ -49,15 +47,6 @@ from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
 
 
 _ARROW_MOVE = 10  # degrees per press
-
-
-@decorator
-def safe_event(fun, *args, **kwargs):
-    """Protect against PyQt5 exiting on event-handling errors."""
-    try:
-        return fun(*args, **kwargs)
-    except Exception:
-        traceback.print_exc(file=sys.stderr)
 
 
 class _Overlay(object):

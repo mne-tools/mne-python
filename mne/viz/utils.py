@@ -18,9 +18,12 @@ import difflib
 import webbrowser
 import tempfile
 import math
+import sys
+import traceback
 import numpy as np
 import warnings
 from datetime import datetime
+from decorator import decorator
 
 from ..defaults import _handle_default
 from ..fixes import _get_args
@@ -46,6 +49,15 @@ _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
                              'ecg': "ECG sensor", 'emg': "EMG sensor",
                              'ecog': "ECoG channel",
                              'misc': "miscellaneous sensor"}
+
+
+@decorator
+def safe_event(fun, *args, **kwargs):
+    """Protect against PyQt5 exiting on event-handling errors."""
+    try:
+        return fun(*args, **kwargs)
+    except Exception:
+        traceback.print_exc(file=sys.stderr)
 
 
 def _setup_vmin_vmax(data, vmin, vmax, norm=False):
