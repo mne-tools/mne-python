@@ -136,8 +136,7 @@ data that you want to save but can't figure out how, post to the `MNE Forum`_
 or to the `GitHub issues page`_.
 
 If you want to write your own data to disk (e.g., subject behavioral scores),
-we strongly recommend using `h5io <https://github.com/h5io/h5io>`_, which is
-based on the `HDF5 format
+we strongly recommend using h5io_, which is based on the `HDF5 format
 <https://en.wikipedia.org/wiki/Hierarchical_Data_Format>`_ and h5py_, to save
 data in a fast, future-compatible, standard format.
 

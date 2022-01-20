@@ -298,7 +298,7 @@ Acknowledgements
 
 Substantial portions of this document were adapted from the
 `SciPy project's governance document
-<https://github.com/scipy/scipy/blob/master/doc/source/dev/governance/governance.rst>`_,
+<https://github.com/scipy/scipy/blob/main/doc/source/dev/governance.rst>`_,
 which in turn was adapted from
 `Jupyter/IPython project's governance document
 <https://github.com/jupyter/governance/blob/master/governance.md>`_ and

@@ -1,0 +1,74 @@
+<table class="table table-hover table-striped table-sm table-responsive small">
+    <tr>
+        <th>Measurement date</th>
+        {% if meas_date is not none %}
+        <td>{{ meas_date }}</td>
+        {% else %}
+        <td>Unknown</td>
+        {% endif %}
+    </tr>
+    <tr>
+        <th>Experimenter</th>
+        {% if experimenter is not none %}
+        <td>{{ experimenter }}</td>
+        {% else %}
+        <td>Unknown</td>
+        {% endif %}
+    </tr>
+        <th>Participant</th>
+        {% if subject_info is not none %}
+            {% if 'his_id' in subject_info.keys() %}
+            <td>{{ subject_info['his_id'] }}</td>
+            {% endif %}
+        {% else %}
+        <td>Unknown</td>
+        {% endif %}
+    </tr>
+    <tr>
+        <th>Digitized points</th>
+        {% if dig is not none %}
+        <td>{{ dig|length }} points</td>
+        {% else %}
+        <td>Not available</td>
+        {% endif %}
+    </tr>
+    <tr>
+        <th>Good channels</th>
+        <td>{{ good_channels }}</td>
+    </tr>
+    <tr>
+        <th>Bad channels</th>
+        <td>{{ bad_channels }}</td>
+    </tr>
+    <tr>
+        <th>EOG channels</th>
+        <td>{{ eog }}</td>
+    </tr>
+    <tr>
+        <th>ECG channels</th>
+        <td>{{ ecg }}</td>
+    {% if sfreq is not none %}
+    <tr>
+        <th>Sampling frequency</th>
+        <td>{{ '%0.2f'|format(sfreq) }} Hz</td>
+    </tr>
+    {% endif %}
+    {% if highpass is not none %}
+    <tr>
+        <th>Highpass</th>
+        <td>{{ '%0.2f'|format(highpass) }} Hz</td>
+    </tr>
+    {% endif %}
+    {% if lowpass is not none %}
+    <tr>
+        <th>Lowpass</th>
+        <td>{{ '%0.2f'|format(lowpass) }} Hz</td>
+    </tr>
+    {% endif %}
+    {% if projs is not none %}
+    <tr>
+        <th>Projections</th>
+        <td>{{ projs|join('<br/>') | safe }}</td>
+    </tr>
+    {% endif %}
+</table>

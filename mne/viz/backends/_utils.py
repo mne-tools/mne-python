@@ -6,13 +6,14 @@
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
 #
 # License: Simplified BSD
-import platform
-import sys
-from contextlib import contextmanager
-import numpy as np
 import collections.abc
+from contextlib import contextmanager
+import platform
 import signal
-from ...externals.decorator import decorator
+import sys
+
+from decorator import decorator
+import numpy as np
 
 VALID_BROWSE_BACKENDS = (
     'matplotlib',

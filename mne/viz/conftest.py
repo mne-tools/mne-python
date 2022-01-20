@@ -11,8 +11,8 @@ import os.path as op
 from mne import create_info, EvokedArray, events_from_annotations, Epochs
 from mne.channels import make_standard_montage
 from mne.datasets.testing import data_path, _pytest_param
-from mne.preprocessing.nirs import optical_density, beer_lambert_law
 from mne.io import read_raw_nirx
+from mne.preprocessing.nirs import optical_density, beer_lambert_law
 
 
 @pytest.fixture()

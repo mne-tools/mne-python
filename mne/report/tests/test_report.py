@@ -25,7 +25,8 @@ from mne.report.report import CONTENT_ORDER
 from mne.io import read_raw_fif, read_info
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper, report
-from mne.utils import requires_nibabel, Bunch, requires_h5py, requires_sklearn
+from mne.utils import (requires_nibabel, Bunch, requires_version,
+                       requires_sklearn)
 from mne.viz import plot_alignment
 from mne.io.write import DATE_NONE
 from mne.preprocessing import ICA
@@ -519,7 +520,7 @@ def test_validate_input():
     items_new, captions_new, comments_new = values
 
 
-@requires_h5py
+@requires_version('h5io')
 def test_open_report(tmp_path):
     """Test the open_report function."""
     tempdir = str(tmp_path)
@@ -527,8 +528,9 @@ def test_open_report(tmp_path):
 
     # Test creating a new report through the open_report function
     fig1 = _get_example_figures()[0]
-    with open_report(hdf5, subjects_dir=subjects_dir) as report:
-        assert report.subjects_dir == subjects_dir
+    this_sub_dir = tempdir
+    with open_report(hdf5, subjects_dir=this_sub_dir) as report:
+        assert report.subjects_dir == this_sub_dir
         assert report.fname == hdf5
         report.add_figure(fig=fig1, title='evoked response')
     # Exiting the context block should have triggered saving to HDF5
@@ -545,11 +547,11 @@ def test_open_report(tmp_path):
     # Check parameters when loading a report
     pytest.raises(ValueError, open_report, hdf5, foo='bar')  # non-existing
     pytest.raises(ValueError, open_report, hdf5, subjects_dir='foo')
-    open_report(hdf5, subjects_dir=subjects_dir)  # This should work
+    open_report(hdf5, subjects_dir=this_sub_dir)  # This should work
 
     # Check that the context manager doesn't swallow exceptions
     with pytest.raises(ZeroDivisionError):
-        with open_report(hdf5, subjects_dir=subjects_dir) as report:
+        with open_report(hdf5, subjects_dir=this_sub_dir) as report:
             1 / 0
 
 

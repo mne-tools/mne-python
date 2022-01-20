@@ -86,9 +86,11 @@ def requires_dipy():
 def requires_version(library, min_version='0.0'):
     """Check for a library version."""
     import pytest
+    reason = f'Requires {library}'
+    if min_version != '0.0':
+        reason += ' version >= {min_version}'
     return pytest.mark.skipif(not check_version(library, min_version),
-                              reason=('Requires %s version >= %s'
-                                      % (library, min_version)))
+                              reason=reason)
 
 
 def requires_module(function, name, call=None):
@@ -154,6 +156,7 @@ requires_good_network = partial(
     call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
          '    raise ImportError')
 requires_nitime = partial(requires_module, name='nitime')
+# just keep this in case downstream packages need it (no coverage hit here)
 requires_h5py = partial(requires_module, name='h5py')
 
 

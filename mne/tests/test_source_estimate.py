@@ -33,7 +33,6 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  compute_source_morph, labels_to_stc, scale_mri,
                  write_source_spaces)
 from mne.datasets import testing
-from mne.externals.h5io import write_hdf5
 from mne.fixes import _get_img_fdata
 from mne.io import read_info
 from mne.io.constants import FIFF
@@ -45,8 +44,7 @@ from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs, make_inverse_operator)
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (requires_pandas, requires_sklearn, catch_logging,
-                       requires_h5py, requires_nibabel, requires_version,
-                       _record_warnings)
+                       requires_nibabel, requires_version, _record_warnings)
 from mne.io import read_raw_fif
 
 data_path = testing.data_path(download=False)
@@ -149,9 +147,10 @@ def test_spatial_inter_hemi_adjacency():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_h5py
+@requires_version('h5io')
 def test_volume_stc(tmp_path):
     """Test volume STCs."""
+    from h5io import write_hdf5
     N = 100
     data = np.arange(N)[:, np.newaxis]
     datas = [data,
@@ -431,7 +430,7 @@ def test_io_stc(tmp_path):
         stc2.save(tmp_path / 'complex.stc')
 
 
-@requires_h5py
+@requires_version('h5io')
 @pytest.mark.parametrize('is_complex', (True, False))
 @pytest.mark.parametrize('vector', (True, False))
 def test_io_stc_h5(tmp_path, is_complex, vector):
@@ -1176,7 +1175,7 @@ def test_get_peak(kind, vector, n_times):
             stc.get_peak(hemi='rh')
 
 
-@requires_h5py
+@requires_version('h5io')
 @testing.requires_testing_data
 def test_mixed_stc(tmp_path):
     """Test source estimate from mixed source space."""
@@ -1204,7 +1203,7 @@ def test_mixed_stc(tmp_path):
     assert isinstance(stc_out, MixedSourceEstimate)
 
 
-@requires_h5py
+@requires_version('h5io')
 @pytest.mark.parametrize('klass, kind', [
     (VectorSourceEstimate, 'surf'),
     (VolVectorSourceEstimate, 'vol'),
@@ -1626,6 +1625,7 @@ def test_stc_near_sensors(tmp_path):
     assert '4157 volume vertices' in log
 
 
+@requires_version('pymatreader')
 @testing.requires_testing_data
 def test_stc_near_sensors_picks():
     """Test using picks with stc_near_sensors."""

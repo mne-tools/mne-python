@@ -117,6 +117,11 @@
 .. _pymatreader: https://gitlab.com/obob/pymatreader
 
 
+.. h5io
+
+.. _h5io: https://github.com/h5io/h5io
+
+
 .. CuPy
 
 .. _CuPy: https://cupy.chainer.org/

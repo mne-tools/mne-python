@@ -13,7 +13,7 @@ from mne.preprocessing.nirs import (optical_density, scalp_coupling_index,
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx
 from mne.io.proj import _has_eeg_average_ref_proj
-from mne.utils import _record_warnings
+from mne.utils import _record_warnings, requires_version
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -281,6 +281,7 @@ def test_interpolation_ctf_comp():
     assert raw.info['bads'] == []
 
 
+@requires_version('pymatreader')
 @testing.requires_testing_data
 def test_interpolation_nirs():
     """Test interpolating bad nirs channels."""

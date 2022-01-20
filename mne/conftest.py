@@ -98,7 +98,6 @@ def pytest_configure(config):
     ignore:.*imp.*:DeprecationWarning
     ignore:Exception creating Regex for oneOf.*:SyntaxWarning
     ignore:scipy\.gradient is deprecated.*:DeprecationWarning
-    ignore:sklearn\.externals\.joblib is deprecated.*:FutureWarning
     ignore:The sklearn.*module.*deprecated.*:FutureWarning
     ignore:.*rich_compare.*metadata.*deprecated.*:DeprecationWarning
     ignore:.*In future, it will be an error for 'np.bool_'.*:DeprecationWarning
@@ -126,6 +125,7 @@ def pytest_configure(config):
     ignore:.*Found the following unknown channel type.*:RuntimeWarning
     ignore:.*np\.MachAr.*:DeprecationWarning
     ignore:.*Passing unrecognized arguments to super.*:DeprecationWarning
+    # present in nilearn v 0.8.1, fixed in nilearn main
     ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
     ignore:.*pandas\.Int64Index is deprecated.*:FutureWarning
     always::ResourceWarning

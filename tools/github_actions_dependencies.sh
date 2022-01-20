@@ -39,7 +39,13 @@ else
 	fi
 	EXTRA_ARGS="--pre"
 fi
-pip install $STD_ARGS $EXTRA_ARGS -r requirements_testing.txt
+# for compat_minimal and compat_old, we don't want to --upgrade
+if [ ! -z "$CONDA_DEPENDENCIES" ]; then
+	pip install -r requirements_base.txt -r requirements_testing.txt
+else
+	pip install $STD_ARGS $EXTRA_ARGS -r requirements_base.txt -r requirements_testing.txt -r requirements_hdf5.txt
+fi
+
 if [ "${DEPS}" != "minimal" ]; then
 	pip install $STD_ARGS $EXTRA_ARGS -r requirements_testing_extra.txt
 fi

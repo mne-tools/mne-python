@@ -47,12 +47,10 @@ def _compare_version(version_a, operator, version_b):
     bool
         The result of the version comparison.
     """
-    try:
-        from pkg_resources import parse_version as parse
-    except ImportError:
-        from distutils.version import LooseVersion as parse
-
-    return eval(f'parse("{version_a}") {operator} parse("{version_b}")')
+    from packaging.version import parse
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        return eval(f'parse("{version_a}") {operator} parse("{version_b}")')
 
 
 ###############################################################################

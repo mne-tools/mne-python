@@ -61,7 +61,7 @@ from ..filter import filter_data
 from .bads import _find_outliers
 from .ctps_ import ctps
 from ..io.pick import pick_channels_regexp, _picks_by_type
-from ..data.html_templates import ica_template
+
 
 __all__ = ('ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
            'get_score_funcs', 'read_ica', 'read_ica_eeglab')
@@ -517,8 +517,10 @@ class ICA(ContainsMixin):
         return f'<ICA | {s}>'
 
     def _repr_html_(self):
+        from ..html_templates import repr_templates_env
         infos = self._get_infos_for_repr()
-        html = ica_template.substitute(
+        t = repr_templates_env.get_template('ica.html.jinja')
+        html = t.render(
             fit_on=infos.fit_on,
             method=infos.fit_method,
             n_iter=infos.fit_n_iter,

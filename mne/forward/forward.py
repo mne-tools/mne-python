@@ -49,7 +49,6 @@ from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      _validate_type, _check_compensation_grade, _check_option,
                      _check_stc_units, _stamp_to_dt, _on_missing)
 from ..label import Label
-from ..data.html_templates import forward_template
 
 
 class Forward(dict):
@@ -115,9 +114,11 @@ class Forward(dict):
         return entr
 
     def _repr_html_(self):
+        from ..html_templates import repr_templates_env
         good_chs, bad_chs, _, _, = self['info']._get_chs_for_repr()
         src_descr, src_ori = self._get_src_type_and_ori_for_repr()
-        html = forward_template.substitute(
+        t = repr_templates_env.get_template('forward.html.jinja')
+        html = t.render(
             good_channels=good_chs,
             bad_channels=bad_chs,
             source_space_descr=src_descr,

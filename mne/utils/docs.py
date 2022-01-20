@@ -8,13 +8,24 @@ from copy import deepcopy
 import inspect
 import os
 import os.path as op
+import re
 import sys
 import warnings
 import webbrowser
 
+from decorator import FunctionMaker
+
 from ..defaults import HEAD_SIZE_DEFAULT
-from ..externals.doccer import indentcount_lines
-from ..externals.decorator import FunctionMaker
+
+
+def _reflow_param_docstring(docstring, has_first_line=True, width=75):
+    maxsplit = docstring.count('\n') - 1 if has_first_line else -1
+    merged = ' '.join(line.strip() for line in
+                      docstring.rsplit('\n', maxsplit=maxsplit))
+    reflowed = '\n    '.join(re.findall(fr'.{{1,{width}}}(?:\s+|$)', merged))
+    if has_first_line:
+        reflowed = reflowed.replace('\n    \n', '\n', 1)
+    return reflowed
 
 
 ##############################################################################
@@ -625,7 +636,7 @@ picks_header = 'picks : str | list | slice | None'
 picks_intro = ('Channels to include. Slices and lists of integers will be '
                'interpreted as channel indices.')
 _reminder = ("Note that channels in ``info['bads']`` *will be included* if "
-             "their {}indices are explicitly provided.\n")
+             "their {}indices are explicitly provided.")
 reminder = _reminder.format('names or ')
 reminder_nostr = _reminder.format('')
 noref = f'(excluding reference MEG channels). {reminder}'
@@ -642,7 +653,8 @@ docdict['picks_all'] = f'{picks_base} all channels. {reminder}'
 docdict['picks_all_data'] = f'{picks_base} all data channels. {reminder}'
 docdict['picks_good_data'] = f'{picks_base} good data channels. {reminder}'
 docdict['picks_all_data_noref'] = f'{picks_base} all data channels {noref}'
-docdict['picks_good_data_noref'] = f'{picks_base} good data channels {noref}'
+docdict['picks_good_data_noref'] = _reflow_param_docstring(
+    f'{picks_base} good data channels {noref}')
 docdict['picks_nostr'] = f"""picks : list | slice | None
     {picks_intro} None (default) will pick all channels. {reminder_nostr}"""
 docdict['picks_ica'] = """
@@ -2904,7 +2916,7 @@ def fill_doc(f):
     if len(lines) < 2:
         icount = 0
     else:
-        icount = indentcount_lines(lines[1:])
+        icount = _indentcount_lines(lines[1:])
     # Insert this indent to dictionary docstrings
     try:
         indented = docdict_indented[icount]
@@ -3260,7 +3272,7 @@ class deprecated:
     Originally adapted from sklearn and
     http://wiki.python.org/moin/PythonDecoratorLibrary, then modified to make
     arguments populate properly following our verbose decorator methods based
-    on externals.decorator.
+    on decorator.
 
     Parameters
     ----------
@@ -3348,3 +3360,73 @@ def deprecated_alias(dep_name, func, removed_in=None):
         f'{dep_name} has been deprecated in favor of {func.__name__} and will '
         f'be removed in {removed_in}.'
     )(deepcopy(func))
+
+
+###############################################################################
+# The following tools were adapted (mostly trimmed) from SciPy's doccer.py
+
+
+def _docformat(docstring, docdict=None, funcname=None):
+    """Fill a function docstring from variables in dictionary.
+
+    Adapt the indent of the inserted docs
+
+    Parameters
+    ----------
+    docstring : string
+        docstring from function, possibly with dict formatting strings
+    docdict : dict, optional
+        dictionary with keys that match the dict formatting strings
+        and values that are docstring fragments to be inserted.  The
+        indentation of the inserted docstrings is set to match the
+        minimum indentation of the ``docstring`` by adding this
+        indentation to all lines of the inserted string, except the
+        first
+
+    Returns
+    -------
+    outstring : string
+        string with requested ``docdict`` strings inserted
+    """
+    if not docstring:
+        return docstring
+    if docdict is None:
+        docdict = {}
+    if not docdict:
+        return docstring
+    lines = docstring.expandtabs().splitlines()
+    # Find the minimum indent of the main docstring, after first line
+    if len(lines) < 2:
+        icount = 0
+    else:
+        icount = _indentcount_lines(lines[1:])
+    indent = ' ' * icount
+    # Insert this indent to dictionary docstrings
+    indented = {}
+    for name, dstr in docdict.items():
+        lines = dstr.expandtabs().splitlines()
+        try:
+            newlines = [lines[0]]
+            for line in lines[1:]:
+                newlines.append(indent + line)
+            indented[name] = '\n'.join(newlines)
+        except IndexError:
+            indented[name] = dstr
+    funcname = docstring.split('\n')[0] if funcname is None else funcname
+    try:
+        return docstring % indented
+    except (TypeError, ValueError, KeyError) as exp:
+        raise RuntimeError('Error documenting %s:\n%s'
+                           % (funcname, str(exp)))
+
+
+def _indentcount_lines(lines):
+    """Compute minimum indent for all lines in line list."""
+    indentno = sys.maxsize
+    for line in lines:
+        stripped = line.lstrip()
+        if stripped:
+            indentno = min(indentno, len(line) - len(stripped))
+    if indentno == sys.maxsize:
+        return 0
+    return indentno

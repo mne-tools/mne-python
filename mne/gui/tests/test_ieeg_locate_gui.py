@@ -10,7 +10,7 @@ import pytest
 
 import mne
 from mne.datasets import testing
-from mne.utils import requires_nibabel, requires_version
+from mne.utils import requires_nibabel, requires_version, catch_logging
 from mne.viz.utils import _fake_click
 
 data_path = testing.data_path(download=False)
@@ -128,35 +128,48 @@ def test_locate_scraper(_locate_ieeg, _fake_CT_coords, tmp_path):
 @testing.requires_testing_data
 def test_ieeg_elec_locate_gui_display(_locate_ieeg, _fake_CT_coords):
     """Test that the intracranial location GUI displays properly."""
-    raw = mne.io.read_raw_fif(raw_path)
+    raw = mne.io.read_raw_fif(raw_path, preload=True)
     raw.pick_types(eeg=True)
     ch_dict = {'EEG 001': 'LAMY 1', 'EEG 002': 'LAMY 2',
                'EEG 003': 'LSTN 1', 'EEG 004': 'LSTN 2'}
     raw.pick_channels(list(ch_dict.keys()))
     raw.rename_channels(ch_dict)
+    raw.set_eeg_reference('average')
+    raw.set_channel_types({name: 'seeg' for name in raw.ch_names})
     raw.set_montage(None)
     aligned_ct, coords = _fake_CT_coords
     trans = mne.read_trans(fname_trans)
 
     # test no seghead, fsaverage doesn't have seghead
     with pytest.warns(RuntimeWarning, match='`seghead` not found'):
-        _locate_ieeg(raw.info, trans, aligned_ct, subject='fsaverage',
-                     subjects_dir=subjects_dir)
+        with catch_logging() as log:
+            _locate_ieeg(raw.info, trans, aligned_ct, subject='fsaverage',
+                         subjects_dir=subjects_dir, verbose=True)
+    log = log.getvalue()
+    assert 'Using marching cubes' in log
 
     # test functions
     with pytest.warns(RuntimeWarning, match='`pial` surface not found'):
         gui = _locate_ieeg(raw.info, trans, aligned_ct,
-                           subject=subject, subjects_dir=subjects_dir)
+                           subject=subject, subjects_dir=subjects_dir,
+                           verbose=True)
 
     gui._ras[:] = coords[0]  # start in the right position
     gui._move_cursors_to_pos()
-    for coord in coords:
+    gui._mark_ch()
+    assert not gui._lines and not gui._lines_2D  # no lines for one contact
+    for coord in coords[1:]:
         coord_vox = mne.transforms.apply_trans(gui._ras_vox_t, coord)
         _fake_click(gui._figs[2], gui._figs[2].axes[0],
                     coord_vox[:-1], xform='data', kind='release')
         assert_allclose(coord, gui._ras, atol=3)  # clicks are a bit off
+        gui._mark_ch()
+
+    # ensure a 3D line was made for each group
+    assert len(gui._lines) == 2
 
     # test snap to center
+    gui._ch_index = 0
     gui._ras[:] = coords[0]  # move to first position
     gui._move_cursors_to_pos()
     gui._mark_ch()
@@ -164,9 +177,10 @@ def test_ieeg_elec_locate_gui_display(_locate_ieeg, _fake_CT_coords):
     gui._snap_button.click()
     assert gui._snap_button.text() == 'Off'
     # now make sure no snap happens
+    gui._ch_index = 0
     gui._ras[:] = coords[1] + 1
     gui._mark_ch()
-    assert_allclose(coords[1] + 1, gui._chs['LAMY 2'], atol=0.01)
+    assert_allclose(coords[1] + 1, gui._chs['LAMY 1'], atol=0.01)
     # check that it turns back on
     gui._snap_button.click()
     assert gui._snap_button.text() == 'On'
@@ -199,3 +213,5 @@ def test_ieeg_elec_locate_gui_display(_locate_ieeg, _fake_CT_coords):
     assert 'mip' not in gui._images
     gui._toggle_show_mip()
     assert 'mip' in gui._images
+    assert 'mip_chs' in gui._images
+    assert len(gui._lines_2D) == 1  # LAMY only has one contact

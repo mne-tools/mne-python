@@ -63,7 +63,6 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _on_missing, _validate_type, _ensure_events,
                     _path_like)
 from .utils.docs import fill_doc
-from .data.html_templates import epochs_template
 from .annotations import (_write_annotations, _read_annotations_fif,
                           EpochAnnotationsMixin)
 
@@ -1689,6 +1688,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return '<%s | %s>' % (class_name, s)
 
     def _repr_html_(self):
+        from .html_templates import repr_templates_env
         if self.baseline is None:
             baseline = 'off'
         else:
@@ -1696,22 +1696,24 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             baseline = f'{baseline[0]} – {baseline[1]} sec'
 
         if isinstance(self.event_id, dict):
-            events = ''
+            event_strings = []
             for k, v in sorted(self.event_id.items()):
                 n_events = sum(self.events[:, 2] == v)
-                events += f'{k}: {n_events}<br>'
+                event_strings.append(f'{k}: {n_events}')
         elif isinstance(self.event_id, list):
-            events = ''
+            event_strings = []
             for k in self.event_id:
                 n_events = sum(self.events[:, 2] == k)
-                events += f'{k}: {n_events}<br>'
+                event_strings.append(f'{k}: {n_events}')
         elif isinstance(self.event_id, int):
             n_events = len(self.events[:, 2])
-            events = f'{self.event_id}: {n_events}<br>'
+            event_strings = [f'{self.event_id}: {n_events}']
         else:
-            events = None
-        return epochs_template.substitute(epochs=self, baseline=baseline,
-                                          events=events)
+            event_strings = None
+
+        t = repr_templates_env.get_template('epochs.html.jinja')
+        t = t.render(epochs=self, baseline=baseline, events=event_strings)
+        return t
 
     @verbose
     def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):

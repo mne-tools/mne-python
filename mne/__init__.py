@@ -110,7 +110,6 @@ from . import datasets
 from . import dipole
 from . import epochs
 from . import event
-from . import externals
 from . import io
 from . import filter
 from . import gui

@@ -78,6 +78,14 @@ Enhancements
 
 - Add marching cubes display of head if :func:`mne.bem.make_scalp_surfaces` has not computed or the recon-all hasn't finished (:gh:`10202` by `Alex Rockhill`_)
 
+- The default interaction style of :func:`mne.gui.coregistration` and :func:`mne.viz.plot_alignment` has been changed to ``'terrain'``, which keeps one axis fixed and should make interactions with the 3D scene more predictable (:gh:`9972`, :gh:`10206` by `Richard Höchenberger`_)
+
+- :func:`mne.gui.coregistration` now uses the proper widget style for push buttons, making for a more native feel of the application (:gh:`10220` by `Richard Höchenberger`_ and `Guillaume Favelier`_)
+
+- Added plotting points to represent contacts on the max intensity projection plot for :func:`mne.gui.locate_ieeg` (:gh:`10212` by `Alex Rockhill`_)
+
+- Add lines in 3D and on the maximum intensity projection when more than two electrode contacts are selected to aid in identifying that contact for :func:`mne.gui.locate_ieeg` (:gh:`10212` by `Alex Rockhill`_)
+
 Bugs
 ~~~~
 
@@ -95,7 +103,7 @@ Bugs
 
 - Add argument ``overwrite`` to :func:`mne.export.export_raw`, :func:`mne.export.export_epochs`, :func:`mne.export.export_evokeds` and :func:`mne.export.export_evokeds_mff` (:gh:`9975` by `Mathieu Scheltienne`_)
 
-- :func:`mne.gui.coregistration` and the ``mne coreg`` command didn't respect the ``inspect`` parameter (:gh:`9972` by `Richard Höchenberger`_)
+- :func:`mne.gui.coregistration` and the ``mne coreg`` command didn't respect the ``interaction`` parameter (:gh:`9972` by `Richard Höchenberger`_)
 
 - Fix incorrect projection of source space onto white matter surface instead of pial in :ref:`tut-working-with-ecog` (:gh:`9980` by `Alex Rockhill`_)
 
@@ -150,3 +158,16 @@ API changes
 - Argument ``event_list`` has been deprecated in favor of ``events`` in :func:`mne.write_events` (:gh:`10056` by `Mathieu Scheltienne`_)
 
 - ``mne.preprocessing.annotate_flat`` has been deprecated in favor of :func`mne.preprocessing.annotate_amplitude`, that covers both minimum and maximum peak-to-peak variation. (:gh:`10143` by `Mathieu Scheltienne`_)
+
+Dependencies
+~~~~~~~~~~~~
+Numerous external dependencies that used to be bundled with MNE-Python are now
+not shipped with the package anymore and will instead be retrieved
+automatically from their official sources when you install MNE-Python. This
+simplifies MNE-Python maintenance and keeps the package smaller. The following
+new dependencies have been added:
+
+- `Jinja2`_ (replaces ``Tempita``, which is not maintained anymore; :gh:`10211` by `Richard Höchenberger`_)
+
+
+.. _Jinja2: https://jinja.palletsprojects.com/
