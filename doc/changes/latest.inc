@@ -82,6 +82,8 @@ Enhancements
 
 - :func:`mne.gui.coregistration` now uses the proper widget style for push buttons, making for a more native feel of the application (:gh:`10220` by `Richard Höchenberger`_ and `Guillaume Favelier`_)
 
+- :class:`mne.coreg.Coregistration`, :func:`mne.coreg.scale_bem`, and :func:`mne.coreg.scale_mri` gained a new parameter, ``on_defects``, controlling how to handle topological defects (:gh:`10230`, by `Richard Höchenberger`_)
+
 - Added plotting points to represent contacts on the max intensity projection plot for :func:`mne.gui.locate_ieeg` (:gh:`10212` by `Alex Rockhill`_)
 
 - Add lines in 3D and on the maximum intensity projection when more than two electrode contacts are selected to aid in identifying that contact for :func:`mne.gui.locate_ieeg` (:gh:`10212` by `Alex Rockhill`_)
@@ -150,8 +152,6 @@ Bugs
 - :meth:`mne.Report.add_trans` now allows you to add sensor alignment plots for head surfaces that have topological defects (:gh:`10175` by `Richard Höchenberger`_)
 
 - :meth:`mne.Report.add_trans` now also works if no digitization points are present in the data (:gh:`10176` by `Jeff Stout`_)
-
-- :class:`mne.coreg.Coregistration`, :func:`mne.coreg.scale_bem`, and :func:`mne.coreg.scale_mri` gained a new parameter, ``on_defects``, controlling how to handle topological defects (:gh:`10230`, by `Richard Höchenberger`_)
 
 - :func:`mne.gui.coregistration` now works with surfaces containing topological defects (:gh:`10230`, by `Richard Höchenberger`_)
 
