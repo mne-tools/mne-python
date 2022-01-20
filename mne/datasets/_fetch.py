@@ -215,7 +215,7 @@ def fetch_dataset(
                     "You must agree to the license to use this " "dataset"
                 )
     # downloader & processors
-    download_params = dict(progressbar=True if tqdm else False)  # use tqdm
+    download_params = dict(progressbar=logger.level <= logging.INFO)
     if name == "fake":
         download_params["progressbar"] = False
     if auth is not None:
