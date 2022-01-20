@@ -11,8 +11,8 @@ data_name = 'mtrf'
 
 
 @verbose
-def data_path(path=None, *, force_update=False, update_path=True,
-              download=True, verbose=None):  # noqa: D103
+def data_path(path=None, force_update=False, update_path=True,
+              download=True, *, verbose=None):  # noqa: D103
     return _download_mne_dataset(
         name=data_name, processor='unzip', path=path,
         force_update=force_update, update_path=update_path,

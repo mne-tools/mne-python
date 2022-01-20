@@ -5,8 +5,8 @@ from ..utils import (_get_version, _version_doc, _download_mne_dataset)
 
 
 @verbose
-def data_path(path=None, *, force_update=False, update_path=True,
-              download=True, verbose=None):
+def data_path(path=None, force_update=False, update_path=True,
+              download=True, *, verbose=None):
     """Get path to local copy of the kiloword dataset.
 
     This is the dataset from :footcite:`DufauEtAl2015`.

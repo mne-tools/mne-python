@@ -18,7 +18,7 @@ EEGMI_URL = 'https://physionet.org/files/eegmmidb/1.0.0/'
 
 
 @verbose
-def data_path(url, path=None, *, force_update=False, update_path=None,
+def data_path(url, path=None, force_update=False, update_path=None, *,
               verbose=None):
     """Get path to local copy of EEGMMI dataset URL.
 

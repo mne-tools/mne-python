@@ -20,7 +20,7 @@ root_url = 'https://files.de-1.osf.io/v1/resources/52rea/providers/osfstorage/'
 
 
 @verbose
-def data_path(subject, path=None, *, force_update=False, update_path=None,
+def data_path(subject, path=None, force_update=False, update_path=None, *,
               verbose=None):
     """Get path to local copy of LIMO dataset URL.
 
