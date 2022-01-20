@@ -151,7 +151,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         advanced_rendering = \
             config.get('MNE_COREG_ADVANCED_RENDERING', 'true') == 'true'
     if head_opacity is None:
-        head_opacity = config.get('MNE_COREG_HEAD_OPACITY', 1.)
+        head_opacity = config.get('MNE_COREG_HEAD_OPACITY', 0.95)
     if head_inside is None:
         head_inside = \
             config.get('MNE_COREG_HEAD_INSIDE', 'true').lower() == 'true'
