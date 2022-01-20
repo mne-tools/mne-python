@@ -10,14 +10,13 @@ import re
 
 from ..utils import _get_path, _do_path_update
 from ...utils import _url_to_local_path, verbose
-from ...utils.check import _soft_import
 
 
 EEGMI_URL = 'https://physionet.org/files/eegmmidb/1.0.0/'
 
 
 @verbose
-def data_path(url, path=None, force_update=False, update_path=None,
+def data_path(url, path=None, force_update=False, update_path=None, *,
               verbose=None):
     """Get path to local copy of EEGMMI dataset URL.
 
@@ -64,7 +63,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
     ----------
     .. footbibliography::
     """  # noqa: E501
-    pooch = _soft_import('pooch', 'dataset downloading', True)
+    import pooch
 
     key = 'MNE_DATASETS_EEGBCI_PATH'
     name = 'EEGBCI'
@@ -155,7 +154,7 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
     ----------
     .. footbibliography::
     """  # noqa: E501
-    pooch = _soft_import('pooch', 'dataset downloading', True)
+    import pooch
 
     if not hasattr(runs, '__iter__'):
         runs = [runs]

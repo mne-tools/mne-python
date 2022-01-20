@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from numpy.testing import assert_array_equal
+import pooch
 
 from mne.utils import requires_good_network
 from mne.utils import requires_pandas, requires_version
@@ -16,11 +17,6 @@ from mne.datasets.sleep_physionet._utils import _update_sleep_temazepam_records
 from mne.datasets.sleep_physionet._utils import _update_sleep_age_records
 from mne.datasets.sleep_physionet._utils import AGE_SLEEP_RECORDS
 from mne.datasets.sleep_physionet._utils import TEMAZEPAM_SLEEP_RECORDS
-from mne.utils.check import _soft_import
-
-
-# import pooch library for handling the dataset downloading
-pooch = _soft_import('pooch', 'dataset downloading', strict=True)
 
 
 @pytest.fixture(scope='session')

@@ -6,8 +6,8 @@ from ..utils import (_download_mne_dataset, _data_path_doc, _get_version,
 
 
 @verbose
-def data_path(path=None, force_update=False, update_path=True, download=True,
-              verbose=None):
+def data_path(path=None, force_update=False, update_path=True,
+              download=True, *, verbose=None):
     """
     Get path to local copy of visual_92_categories dataset.
 
