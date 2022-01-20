@@ -129,6 +129,16 @@ class CoregistrationUI(HasTraits):
                  show=True, block=False, interaction='terrain', *,
                  standalone=None,
                  verbose=None):
+        if standalone is not None:
+            depr_message = ('standalone is deprecated and will be replaced by '
+                            'block in 0.1.0.')
+            if block is None:
+                block = standalone
+                warn(depr_message, DeprecationWarning)
+            else:
+                warn(depr_message + ' Since you passed values for both '
+                     'standalone and block, standalone will be ignored.',
+                     DeprecationWarning)
         from ..viz.backends.renderer import _get_renderer
         from ..viz.backends._utils import _qt_app_exec
 
