@@ -131,7 +131,7 @@ class CoregistrationUI(HasTraits):
                  verbose=None):
         if standalone is not None:
             depr_message = ('standalone is deprecated and will be replaced by '
-                            'block in 0.1.0.')
+                            'block in 1.1.')
             if block is None:
                 block = standalone
                 warn(depr_message, DeprecationWarning)
