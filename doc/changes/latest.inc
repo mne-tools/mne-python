@@ -155,7 +155,7 @@ Bugs
 
 - :meth:`mne.Report.add_trans` now also works if no digitization points are present in the data (:gh:`10176` by `Jeff Stout`_)
 
-- Argument `verbose` is now respected by dataset fetching (:gh:`10210` by `Mathieu Scheltienne`_)
+- Argument ``verbose`` is now respected by dataset fetching (:gh:`10210` by `Mathieu Scheltienne`_)
 
 - :func:`mne.gui.coregistration` now works with surfaces containing topological defects (:gh:`10230`, by `Richard Höchenberger`_)
 
