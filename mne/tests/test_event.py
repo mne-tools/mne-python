@@ -625,10 +625,10 @@ def test_match_event_names():
 
     # Test no matches
     keys = 'laboratory'
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match='could not be found'):
         match_event_names(event_names=event_names, keys=keys)
 
-    with pytest.warns(RuntimeWarning):
+    with pytest.warns(RuntimeWarning, match='could not be found'):
         matches = match_event_names(
             event_names=event_names, keys=keys, on_missing='warn'
         )
