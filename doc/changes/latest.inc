@@ -157,6 +157,8 @@ Bugs
 
 - Argument ``verbose`` is now respected by dataset fetching (:gh:`10210` by `Mathieu Scheltienne`_)
 
+- Fix bug with :func:`mne.io.read_raw_hitachi` where empty ``Comment`` descriptions were not handled properly (:gh:`10235` by `Eric Larson`_)
+
 - :func:`mne.gui.coregistration` now works with surfaces containing topological defects (:gh:`10230`, by `Richard Höchenberger`_)
 
 API changes
