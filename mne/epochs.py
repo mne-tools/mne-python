@@ -2478,7 +2478,9 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
 
             # Handle keep_first and keep_last event aggregation
             for event_group_name in keep_first + keep_last:
-                if event_name not in match_event_names(event_id, [event_group_name]):
+                if event_name not in match_event_names(
+                    event_id, [event_group_name]
+                ):
                     continue
 
                 if event_group_name in keep_first:
