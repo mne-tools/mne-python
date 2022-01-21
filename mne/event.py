@@ -1440,7 +1440,7 @@ def match_event_names(event_names, keys, *, on_missing='raise'):
             'visual/right'
         ]
 
-    you could easily query for all ``auditory``, and ``left`` events::
+    you could easily query for all ``auditory`` and ``left`` event names::
 
         >>> match_event_names(
         ...     event_names=event_names,
