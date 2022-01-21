@@ -317,6 +317,7 @@ subj_trans = mne.coreg.estimate_head_mri_t(
 
 # load electrophysiology data to find channel locations for
 # (the channels are already located in the example)
+
 raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
 
 gui = mne.gui.locate_ieeg(raw.info, subj_trans, CT_aligned,
