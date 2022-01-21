@@ -1431,17 +1431,15 @@ def match_event_names(event_names, keys, *, on_missing='raise'):
 
     This function is particularly helpful when using grouped event names
     (i.e., event names containing forward slashes ``/``). Assuming for example
-    the following event names in the data::
+    the following grouped event names in the data, you could easily query for
+    all ``auditory`` and ``left`` event names::
 
-        event_names = [
-            'auditory/left',
-            'auditory/right',
-            'visual/left',
-            'visual/right'
-        ]
-
-    you could easily query for all ``auditory`` and ``left`` event names::
-
+        >>> event_names = [
+        ...     'auditory/left',
+        ...     'auditory/right',
+        ...     'visual/left',
+        ...     'visual/right'
+        ... ]
         >>> match_event_names(
         ...     event_names=event_names,
         ...     keys=['auditory', 'left']
