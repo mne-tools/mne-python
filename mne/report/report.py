@@ -268,7 +268,7 @@ def _check_tags(tags) -> Tuple[str]:
     if isinstance(tags, str):
         tags = (tags,)
     elif isinstance(tags, (Sequence, np.ndarray)):
-            tags = tuple(tags)
+        tags = tuple(tags)
     else:
         raise TypeError(
             f'tags must be a string (without spaces) or an array-like object '
