@@ -36,6 +36,7 @@ Events
    :toctree: generated/
 
    define_target_events
+   match_event_names
    shift_time_events
 
 :py:mod:`mne.epochs`:

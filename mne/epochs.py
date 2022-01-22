@@ -46,7 +46,8 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
 from .filter import detrend, FilterMixin, _check_fun
 from .parallel import parallel_func
 
-from .event import _read_events_fif, make_fixed_length_events
+from .event import (_read_events_fif, make_fixed_length_events,
+                    match_event_names)
 from .fixes import rng_uniform
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
@@ -2345,7 +2346,6 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     ----------
     .. footbibliography::
     """
-    from .utils.mixin import _hid_match
     pd = _check_pandas_installed()
 
     _validate_type(event_id, types=(dict,), item_name='event_id')
@@ -2382,7 +2382,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
                                    keep_last=keep_last).items():
         for first_last_event_name in values:
             try:
-                _hid_match(event_id, [first_last_event_name])
+                match_event_names(event_id, [first_last_event_name])
             except KeyError:
                 raise ValueError(
                     f'Event "{first_last_event_name}", specified in '
@@ -2478,7 +2478,9 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
 
             # Handle keep_first and keep_last event aggregation
             for event_group_name in keep_first + keep_last:
-                if event_name not in _hid_match(event_id, [event_group_name]):
+                if event_name not in match_event_names(
+                    event_id, [event_group_name]
+                ):
                     continue
 
                 if event_group_name in keep_first:
