@@ -271,8 +271,9 @@ def _check_tags(tags) -> Tuple[str]:
         tags = tuple(tags)
     else:
         raise TypeError(
-            f'tags must be a string (without spaces) or an array-like object '
-            f'of such strings , but got {type(tags)} instead: {tags}'
+            f'tags must be a string (without spaces or special characters) or '
+            f'an array-like object of such strings, but got {type(tags)} '
+            f'instead: {tags}'
         )
 
     # Check for invalid dtypes
@@ -280,7 +281,8 @@ def _check_tags(tags) -> Tuple[str]:
                 if not isinstance(tag, str)]
     if bad_tags:
         raise TypeError(
-            f'All tags must be strings, but got the following instead: '
+            f'All tags must be strings without spaces or special characters, '
+            f'but got the following instead: '
             f'{", ".join([str(tag) for tag in bad_tags])}'
         )
 
