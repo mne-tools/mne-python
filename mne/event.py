@@ -1430,21 +1430,8 @@ def match_event_names(event_names, keys, *, on_missing='raise'):
     """Search a collection of event names for matching (sub-)groups of events.
 
     This function is particularly helpful when using grouped event names
-    (i.e., event names containing forward slashes ``/``). Assuming for example
-    the following grouped event names in the data, you could easily query for
-    all ``auditory`` and ``left`` event names::
-
-        >>> event_names = [
-        ...     'auditory/left',
-        ...     'auditory/right',
-        ...     'visual/left',
-        ...     'visual/right'
-        ... ]
-        >>> match_event_names(
-        ...     event_names=event_names,
-        ...     keys=['auditory', 'left']
-        ... )
-        ['auditory/left', 'auditory/right', 'visual/left']
+    (i.e., event names containing forward slashes ``/``). Please see the
+    Examples section below for a working example.
 
     Parameters
     ----------
@@ -1466,6 +1453,23 @@ def match_event_names(event_names, keys, *, on_missing='raise'):
     Notes
     -----
     .. versionadded:: 1.0
+
+    Examples
+    --------
+    Assuming the following grouped event names in the data, you could easily
+    query for all ``auditory`` and ``left`` event names::
+
+        >>> event_names = [
+        ...     'auditory/left',
+        ...     'auditory/right',
+        ...     'visual/left',
+        ...     'visual/right'
+        ... ]
+        >>> match_event_names(
+        ...     event_names=event_names,
+        ...     keys=['auditory', 'left']
+        ... )
+        ['auditory/left', 'auditory/right', 'visual/left']
     """
     _check_on_missing(on_missing)
 
