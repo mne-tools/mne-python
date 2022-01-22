@@ -2378,8 +2378,8 @@ image_format : 'png' | 'svg' | 'gif' | None
     instantiation.
 """
 docdict['report_tags'] = """
-tags : array-like of str
-    Tags to add for later interactive filtering.
+tags : array-like of str | str
+    Tags to add for later interactive filtering. Must not contain spaces.
 """
 docdict['report_replace'] = """
 replace : bool

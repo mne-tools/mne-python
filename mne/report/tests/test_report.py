@@ -884,33 +884,32 @@ def test_sorting(tmp_path):
 
 
 @pytest.mark.parametrize(
-    ('tags', 'not_a_collection', 'wrong_dtype', 'invalid_chars'),
+    ('tags', 'str_or_array', 'wrong_dtype', 'invalid_chars'),
     [
-        # not a collection
-        ('foo', True, False, False),
-        (123, True, False, False),
         # wrong dtype
-        ([1, 2, 3], False, True, False),
-        (['foo', 1], False, True, False),
+        (123, False, True, False),
+        ([1, 2, 3], True, True, False),
+        (['foo', 1], True, True, False),
         # invalid characters
-        (['foo bar'], False, False, True),
-        (['foo"'], False, False, True),
-        (['foo\n'], False, False, True),
+        (['foo bar'], True, False, True),
+        (['foo"'], True, False, True),
+        (['foo\n'], True, False, True),
         # all good
-        (['foo'], False, False, False),
-        (['foo', 'bar'], False, False, False),
-        (np.array(['foo', 'bar']), False, False, False)
+        ('foo', True, False, False),
+        (['foo'], True, False, False),
+        (['foo', 'bar'], True, False, False),
+        (np.array(['foo', 'bar']), True, False, False)
     ]
 )
-def test_tags(tags, not_a_collection, wrong_dtype, invalid_chars):
+def test_tags(tags, str_or_array, wrong_dtype, invalid_chars):
     """Test handling of invalid tags."""
     r = Report()
 
-    if not_a_collection:
-        with pytest.raises(TypeError, match='must be a collection of str'):
+    if not str_or_array:
+        with pytest.raises(TypeError, match='must be a string.*or an array.*'):
             r.add_code(code='foo', title='bar', tags=tags)
     elif wrong_dtype:
-        with pytest.raises(TypeError, match='must be strings'):
+        with pytest.raises(TypeError, match='tags must be strings'):
             r.add_code(code='foo', title='bar', tags=tags)
     elif invalid_chars:
         with pytest.raises(ValueError, match='contained invalid characters'):
