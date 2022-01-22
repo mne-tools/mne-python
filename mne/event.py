@@ -1474,7 +1474,7 @@ def match_event_names(event_names, keys, *, on_missing='raise'):
     _check_on_missing(on_missing)
 
     if isinstance(event_names, dict):
-        event_names = list(event_names.keys())
+        event_names = list(event_names)
 
     # ensure we have a list of `keys`
     if (
