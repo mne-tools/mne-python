@@ -1200,20 +1200,24 @@ def read_fiducials(fname, verbose=None):
 
 
 @verbose
-def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN, *,
-                    overwrite=False, verbose=None):
+def write_fiducials(fname, pts, coord_frame='unknown', *, overwrite=False,
+                    verbose=None):
     """Write fiducials to a fiff file.
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Destination file name.
     pts : iterator of dict
         Iterator through digitizer points. Each point is a dictionary with
         the keys 'kind', 'ident' and 'r'.
-    coord_frame : int
-        The coordinate frame of the points (one of
-        mne.io.constants.FIFF.FIFFV_COORD_...).
+    coord_frame : str | int
+        The coordinate frame of the points. If a string, must be one one
+        ``'meg'``, ``'mri'``, ``'mri_voxel'``, ``'head'``,
+        ``'mri_tal'``, ``'ras'``, ``'fs_tal'``, ``'ctf_head'``,
+        ``'ctf_meg'``, and ``'unknown'``
+        If an integeger, must be one of the constants defined as
+        ``mne.io.constants.FIFF.FIFFV_COORD_...``
     %(overwrite)s
 
         .. versionadded:: 1.0

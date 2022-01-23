@@ -199,7 +199,7 @@ def write_dig(fname, pts, coord_frame=None, *, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Destination file name.
     pts : iterator of dict
         Iterator through digitizer points. Each point is a dictionary with

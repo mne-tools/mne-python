@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from functools import partial
 import os
 import os.path as op
+from pathlib import Path
 import time
 import queue
 import threading
@@ -19,7 +20,8 @@ from ..io.meas_info import _empty_info
 from ..io._read_raw import supported as raw_supported_types
 from ..bem import make_bem_solution, write_bem_solution
 from ..coreg import (Coregistration, _is_mri_subject, scale_mri, bem_fname,
-                     _mri_subject_has_bem, _find_fiducials_files, fid_fname)
+                     _mri_subject_has_bem, _find_fiducials_files, fid_fname,
+                     bem_dirname)
 from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_head_shape_points, _plot_mri_fiducials,
                        _plot_hpi_coils, _plot_sensors, _plot_helmet)
@@ -27,7 +29,7 @@ from ..transforms import (read_trans, write_trans, _ensure_trans, _get_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
                      warn, verbose, logger)
-from ..channels import read_dig_fif
+from ..channels import read_dig_fif, make_dig_montage
 
 
 @fill_doc
@@ -40,17 +42,7 @@ class CoregistrationUI(HasTraits):
         The FIFF file with digitizer data for coregistration.
     %(subject)s
     %(subjects_dir)s
-    fiducials : list | dict | str
-        The fiducials given in the MRI (surface RAS) coordinate
-        system. If a dict is provided it must be a dict with 3 entries
-        with keys 'lpa', 'rpa' and 'nasion' with as values coordinates in m.
-        If a list it must be a list of DigPoint instances as returned
-        by the read_fiducials function.
-        If set to 'estimated', the fiducials are initialized
-        automatically using fiducials defined in MNI space on fsaverage
-        template. If set to 'auto', one tries to find the fiducials
-        in a file with the canonical name (``bem/{subject}-fiducials.fif``)
-        and if abstent one falls back to 'estimated'. Defaults to 'auto'.
+    %(fiducials)s
     head_resolution : bool
         If True, use a high-resolution head surface. Defaults to False.
     head_transparency : bool
@@ -218,7 +210,7 @@ class CoregistrationUI(HasTraits):
         self._renderer.set_interaction(interaction)
         self._renderer._status_bar_initialize()
 
-        # setup the model
+        # coregistration model setup
         self._immediate_redraw = (self._renderer._kind != 'qt')
         self._info = info
         self._fiducials = fiducials
@@ -267,10 +259,16 @@ class CoregistrationUI(HasTraits):
         if trans is not None:
             self._load_trans(trans)
         self._redraw()  # we need the elements to be present now
-        if not fid_accurate:
+
+        if fid_accurate:
+            assert self._coreg._fid_filename is not None
+            self._set_fiducials_file(self._coreg._fid_filename)
+        else:
             self._set_head_resolution('high')
             self._forward_widget_command('high_res_head', "set_value", True)
             self._set_lock_fids(True)  # hack to make the dig disappear
+            self._update_mri_fiducials_label()
+
         self._set_lock_fids(fid_accurate)
 
         # configure worker
@@ -303,10 +301,9 @@ class CoregistrationUI(HasTraits):
         self._lock_fids = bool(state)
 
     def _set_fiducials_file(self, fname):
-        if not self._check_fif('fiducials', fname):
-            return
         self._fiducials_file = _check_fname(
-            fname, overwrite=True, must_exist=True, need_dir=False)
+            fname, overwrite=True, must_exist=True, need_dir=False
+        )
 
     def _set_current_fiducial(self, fid):
         self._current_fiducial = fid.lower()
@@ -459,6 +456,8 @@ class CoregistrationUI(HasTraits):
         self._coreg._setup_fiducials(self._fiducials)
         self._reset()
         self._update_projection_surface()
+        if self._widgets:
+            self._update_mri_fiducials_label()
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
@@ -488,6 +487,7 @@ class CoregistrationUI(HasTraits):
         fids, _ = read_fiducials(self._fiducials_file)
         self._coreg._setup_fiducials(fids)
         self._update_distance_estimation()
+        self._update_mri_fiducials_label()
         self._reset()
         self._set_lock_fids(True)
 
@@ -1004,18 +1004,7 @@ class CoregistrationUI(HasTraits):
                 not _find_fiducials_files(self._subject, self._subjects_dir):
             default_fid_fname = fid_fname.format(
                 subjects_dir=self._subjects_dir, subject=self._subject)
-            self._display_message(f"Saving {default_fid_fname}...")
-            dig = [{'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'ident': FIFF.FIFFV_POINT_LPA,
-                    'r': np.array(self._coreg._lpa[0])},
-                   {'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'ident': FIFF.FIFFV_POINT_NASION,
-                    'r': np.array(self._coreg._nasion[0])},
-                   {'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'ident': FIFF.FIFFV_POINT_RPA,
-                    'r': np.array(self._coreg._rpa[0])}]
-            write_fiducials(default_fid_fname, dig, FIFF.FIFFV_COORD_MRI)
-            self._display_message(f"Saving {default_fid_fname}... Done!")
+            self._save_mri_fiducials(default_fid_fname)
 
         # prepare bem
         bem_names = []
@@ -1066,8 +1055,22 @@ class CoregistrationUI(HasTraits):
                                       " Done!")
         self._display_message(f"Saving {self._subject_to}... Done!")
 
+    def _save_mri_fiducials(self, fname):
+        self._display_message(f"Saving {fname}...")
+        dig_montage = make_dig_montage(
+            lpa=np.array(self._coreg._lpa[0]),
+            rpa=np.array(self._coreg._rpa[0]),
+            nasion=np.array(self._coreg._nasion[0]),
+            coord_frame='mri'
+        )
+        write_fiducials(
+            fname=fname, pts=dig_montage.dig, coord_frame='mri', overwrite=True
+        )
+        self._display_message(f"Saving {fname}... Done!")
+        self._set_fiducials_file(fname)
+
     def _save_trans(self, fname):
-        write_trans(fname, self._coreg.trans)
+        write_trans(fname, self._coreg.trans, overwrite=True)
         self._display_message(
             f"{fname} transform file is saved.")
 
@@ -1098,17 +1101,38 @@ class CoregistrationUI(HasTraits):
             subjects = ['']
         return sorted(subjects)
 
-    def _check_fif(self, filetype, fname):
-        try:
-            check_fname(fname, filetype, ('.fif'), ('.fif'))
-        except IOError:
-            warn(f"The filename {fname} for {filetype} must end with '.fif'.")
-            self._widgets[f"{filetype}_file"].set_value(0, '')
-            return False
-        return True
+    def _update_mri_fiducials_label(self):
+        if self._fiducials_file:
+            if self._fiducials_file == fid_fname.format(
+                subjects_dir=self._subjects_dir, subject=self._subject
+            ):
+                text = (
+                    f'<strong>MRI fiducials (diamonds) loaded from standard '
+                    f'location:</strong><br /><br />'
+                    f'{self._fiducials_file}'
+                )
+            else:
+                text = (
+                    f'<strong>MRI fiducials (diamonds) loaded from custom '
+                    f'location:</strong><br /><br />'
+                    f'{self._fiducials_file}'
+                )
+        else:
+            text = '<strong>No custom MRI fiducials loaded!</strong>'
+            if not self._coreg._fid_accurate:
+                text += (
+                    '<br /><br />'
+                    'MRI fiducials could not be found in the standard '
+                    'location. The displayed initial MRI fiducial locations '
+                    '(diamonds) were derived from fsaverage. Save fiducials '
+                    'to discard this message.'
+                )
+        self._widgets['mri_fiducials_label'].set_value(text)
 
     def _configure_dock(self):
-        self._renderer._dock_initialize(name="Input", area="left")
+        self._renderer._dock_initialize(
+            name="Input", area="left", max_width="350px"
+        )
         mri_subject_layout = self._renderer._dock_add_group_box("MRI Subject")
         self._widgets["subjects_dir"] = self._renderer._dock_add_file_button(
             name="subjects_dir",
@@ -1116,7 +1140,7 @@ class CoregistrationUI(HasTraits):
             func=self._set_subjects_dir,
             value=self._subjects_dir,
             placeholder="Subjects Directory",
-            directory=True,
+            is_directory=True,
             tooltip="Load the path to the directory containing the "
                     "FreeSurfer subjects",
             layout=mri_subject_layout,
@@ -1131,22 +1155,41 @@ class CoregistrationUI(HasTraits):
             layout=mri_subject_layout,
         )
 
-        mri_fiducials_layout = \
-            self._renderer._dock_add_group_box("MRI Fiducials")
+        mri_fiducials_layout =  self._renderer._dock_add_group_box(
+            "MRI Fiducials"
+        )
+        # Add MRI fiducials I/O widgets
+        self._widgets['mri_fiducials_label'] = self._renderer._dock_add_label(
+            value='',  # Will be filled via _update_mri_fiducials_label()
+            layout=mri_fiducials_layout,
+        )
+        self._widgets["load_mri_fids"] = self._renderer._dock_add_file_button(
+            name='Load from custom location…',
+            desc='Load from custom location…',
+            func=self._set_fiducials_file,
+            input_text_widget=False,
+            layout=mri_fiducials_layout,
+            filter='MRI fiducials (*-fiducials.fif *_fiducials.fif)',
+            initial_directory=bem_dirname.format(
+                subject=self._subject,
+                subjects_dir=self._subjects_dir
+            ),
+        )
+        self._widgets["save_mri_fids"] = self._renderer._dock_add_button(
+            name="Save to standard location",
+            callback=lambda: self._save_mri_fiducials(
+                fid_fname.format(
+                    subjects_dir=self._subjects_dir, subject=self._subject
+                )
+            ),
+            tooltip="Save MRI fiducials to a -fiducials.fif file",
+            layout=mri_fiducials_layout,
+        )
         self._widgets["lock_fids"] = self._renderer._dock_add_check_box(
             name="Lock fiducials",
             value=self._lock_fids,
             callback=self._set_lock_fids,
             tooltip="Lock/Unlock interactive fiducial editing",
-            layout=mri_fiducials_layout,
-        )
-        self._widgets["fiducials_file"] = self._renderer._dock_add_file_button(
-            name="fiducials_file",
-            desc="Load",
-            func=self._set_fiducials_file,
-            value=self._fiducials_file,
-            placeholder="Path to fiducials",
-            tooltip="Load the fiducials from a FIFF file",
             layout=mri_fiducials_layout,
         )
         self._widgets["fids"] = self._renderer._dock_add_radio_buttons(
@@ -1244,7 +1287,9 @@ class CoregistrationUI(HasTraits):
         )
         self._renderer._dock_add_stretch()
 
-        self._renderer._dock_initialize(name="Parameters", area="right")
+        self._renderer._dock_initialize(
+            name="Parameters", area="right", max_width="350px"
+        )
         mri_scaling_layout = \
             self._renderer._dock_add_group_box(name="MRI Scaling")
         self._widgets["scaling_mode"] = self._renderer._dock_add_combo_box(
@@ -1360,6 +1405,8 @@ class CoregistrationUI(HasTraits):
             input_text_widget=False,
             tooltip="Save the transform file to disk",
             layout=save_trans_layout,
+            filter='Head->MRI transformation (*-trans.fif *_trans.fif)',
+            initial_directory=str(Path(self._info_file).parent),
         )
         self._widgets["load_trans"] = self._renderer._dock_add_file_button(
             name="load_trans",
@@ -1368,6 +1415,8 @@ class CoregistrationUI(HasTraits):
             input_text_widget=False,
             tooltip="Load the transform file from disk",
             layout=save_trans_layout,
+            filter='Head->MRI transformation (*-trans.fif *_trans.fif)',
+            initial_directory=str(Path(self._info_file).parent),
         )
         self._widgets["reset_trans"] = self._renderer._dock_add_button(
             name="Reset",
@@ -1449,7 +1498,6 @@ class CoregistrationUI(HasTraits):
 
     def _clean(self):
         self._renderer = None
-        self._coreg = None
         self._widgets.clear()
         self._actors.clear()
         self._surfaces.clear()
