@@ -1485,8 +1485,8 @@ fiducials : list | dict | str
     system. If a dictionary is provided, it must contain the **keys**
     ``'lpa'``, ``'rpa'``, and ``'nasion'``, with **values** being the
     respective coordinates in meters.
-    If a list, it must be a list of :class:`~mne.io._digitization.DigPoint`
-    instances as returned by the :func:`mne.io.read_fiducials `function.
+    If a list, it must be a list of ``DigPoint`` instances as returned by the
+    :func:`mne.io.read_fiducials` function.
     If ``'estimated'``, the fiducials derived from the ``fsaverage``
     template. If ``'auto'`` (default), tries to find the fiducials
     in a file with the canonical name
