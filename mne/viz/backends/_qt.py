@@ -426,6 +426,7 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
 
     def _status_bar_add_label(self, value, stretch=0):
         widget = QLabel(value)
+        widget.setStyleSheet("QLabel { color: black; }")
         self._layout_add_widget(self._status_bar_layout, widget, stretch)
         return _QtWidget(widget)
 
