@@ -17,7 +17,7 @@ from mne import (read_events, write_events, make_fixed_length_events,
                  Annotations)
 from mne.io import read_raw_fif, RawArray
 from mne.event import (define_target_events, merge_events, AcqParserFIF,
-                       shift_time_events)
+                       shift_time_events, match_event_names)
 from mne.datasets import testing
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -591,3 +591,50 @@ def test_shift_time_events():
     EXPECTED = [0, 2, 3]
     new_events = shift_time_events(events, ids=[1, 2], tshift=1, sfreq=1)
     assert all(new_events[:, 0] == EXPECTED)
+
+
+def test_match_event_names():
+    """Test event name / event group matching."""
+    event_names = [
+        'auditory/left',
+        'auditory/right',
+        'visual/left',
+        'visual/right'
+    ]
+
+    keys = ['auditory', 'left']
+    expected_matches = ['auditory/left', 'auditory/right', 'visual/left']
+    matches = match_event_names(event_names=event_names, keys=keys)
+    assert matches == expected_matches
+
+    # `keys` order shouldn't matter
+    keys = ['left', 'auditory']
+    matches = match_event_names(event_names=event_names, keys=keys)
+    assert matches == expected_matches
+
+    # Test `keys` is string
+    keys = 'left'
+    expected_matches = ['auditory/left', 'visual/left']
+    matches = match_event_names(event_names=event_names, keys=keys)
+    assert matches == expected_matches
+
+    # Test `keys` is invalid type
+    for keys in (123, [123, 456]):
+        with pytest.raises(ValueError, match='keys must be strings'):
+            match_event_names(event_names=event_names, keys=keys)
+
+    # Test no matches
+    keys = 'laboratory'
+    with pytest.raises(KeyError, match='could not be found'):
+        match_event_names(event_names=event_names, keys=keys)
+
+    with pytest.warns(RuntimeWarning, match='could not be found'):
+        matches = match_event_names(
+            event_names=event_names, keys=keys, on_missing='warn'
+        )
+        assert matches == []
+
+    matches = match_event_names(
+        event_names=event_names, keys=keys, on_missing='ignore'
+    )
+    assert matches == []

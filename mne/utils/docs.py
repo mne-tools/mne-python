@@ -2523,10 +2523,12 @@ docdict['epochs_on_missing'] = """
 on_missing : 'raise' | 'warn' | 'ignore'
     What to do if one or several event ids are not found in the recording.
     Valid keys are 'raise' | 'warn' | 'ignore'
-    Default is 'raise'. If on_missing is 'warn' it will proceed but
-    warn, if 'ignore' it will proceed silently. Note.
-    If none of the event ids are found in the data, an error will be
-    automatically generated irrespective of this parameter.
+    Default is ``'raise'``. If ``'warn'``, it will proceed but
+    warn; if ``'ignore'``, it will proceed silently.
+
+    .. note::
+       If none of the event ids are found in the data, an error will be
+       automatically generated irrespective of this parameter.
 """
 reject_common = """\
     Reject epochs based on **maximum** peak-to-peak signal amplitude (PTP),

@@ -293,10 +293,7 @@ def _read_theta_phi_in_degrees(fname, head_size, fid_names=None,
 def _read_elp_besa(fname, head_size):
     # This .elp is not the same as polhemus elp. see _read_isotrak_elp_points
     dtype = np.dtype('S8, S8, f8, f8, f8')
-    try:
-        data = np.loadtxt(fname, dtype=dtype, skip_header=1)
-    except TypeError:
-        data = np.loadtxt(fname, dtype=dtype, skiprows=1)
+    data = np.loadtxt(fname, dtype=dtype, skiprows=1)
 
     ch_names = data['f1'].astype(str).tolist()
     az = data['f2']

@@ -92,6 +92,8 @@ Enhancements
 
 - All methods of :class:`mne.Report` with a ``tags`` parameter now also accept a single tag passed as a string (previously, you needed to pass a tuple of strings, even for a single tag) (:gh:`10183`, by `Richard Höchenberger`_)
 
+- The new convenience function :func:`mne.event.match_event_names` allows for straightforward checking if a specific event name or a group of events is present in a collection of event names (:gh:`10233` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 
@@ -158,6 +160,8 @@ Bugs
 - :meth:`mne.Report.add_trans` now also works if no digitization points are present in the data (:gh:`10176` by `Jeff Stout`_)
 
 - Argument ``verbose`` is now respected by dataset fetching (:gh:`10210` by `Mathieu Scheltienne`_)
+
+- Fix bug with :func:`mne.io.read_raw_hitachi` where empty ``Comment`` descriptions were not handled properly (:gh:`10235` by `Eric Larson`_)
 
 - :func:`mne.gui.coregistration` now works with surfaces containing topological defects (:gh:`10230`, by `Richard Höchenberger`_)
 
