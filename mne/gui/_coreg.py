@@ -1116,7 +1116,7 @@ class CoregistrationUI(HasTraits):
             func=self._set_subjects_dir,
             value=self._subjects_dir,
             placeholder="Subjects Directory",
-            directory=True,
+            is_directory=True,
             tooltip="Load the path to the directory containing the "
                     "FreeSurfer subjects",
             layout=mri_subject_layout,
