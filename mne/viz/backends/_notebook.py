@@ -40,7 +40,7 @@ class _IpyLayout(_AbstractLayout):
 
 class _IpyDock(_AbstractDock, _IpyLayout):
     def _dock_initialize(self, window=None, name="Controls",
-                         area="left"):
+                         area="left", max_width=None):
         self._dock_width = 300
         # XXX: this can be improved
         if hasattr(self, "_dock") and hasattr(self, "_dock_layout"):
@@ -171,10 +171,12 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_add_file_button(self, name, desc, func, value=None, save=False,
-                              directory=False, input_text_widget=True,
-                              placeholder="Type a file name", tooltip=None,
-                              layout=None):
+    def _dock_add_file_button(
+        self, name, desc, func, filter=None, initial_directory=None,
+        value=None, save=False, is_directory=False, input_text_widget=True,
+        placeholder="Type a file name", tooltip=None,
+        layout=None
+    ):
         layout = self._dock_layout if layout is None else layout
 
         def callback():
