@@ -504,7 +504,7 @@ class _AbstractToolBar(ABC):
 class _AbstractDock(ABC):
     @abstractmethod
     def _dock_initialize(self, window=None, name="Controls",
-                         area="left"):
+                         area="left", max_width=None):
         pass
 
     @abstractmethod
@@ -577,10 +577,12 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_file_button(self, name, desc, func, value=None, save=False,
-                              directory=False, input_text_widget=True,
-                              placeholder="Type a file name", tooltip=None,
-                              layout=None):
+    def _dock_add_file_button(
+        self, name, desc, func, filter=None, initial_directory=None,
+        value=None, save=False, is_directory=False, input_text_widget=True,
+        placeholder="Type a file name", tooltip=None,
+        layout=None
+    ):
         pass
 
 

@@ -45,12 +45,13 @@ class _QtLayout(_AbstractLayout):
 
 class _QtDock(_AbstractDock, _QtLayout):
     def _dock_initialize(self, window=None, name="Controls",
-                         area="left"):
+                         area="left", max_width=None):
         window = self._window if window is None else window
         qt_area = Qt.LeftDockWidgetArea if area == "left" \
             else Qt.RightDockWidgetArea
         self._dock, self._dock_layout = _create_dock_widget(
-            self._window, name, qt_area)
+            self._window, name, qt_area, max_width=max_width
+        )
         if area == "left":
             window.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
         else:
@@ -80,6 +81,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         if align:
             widget.setAlignment(Qt.AlignCenter)
         widget.setText(value)
+        widget.setWordWrap(True)
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
@@ -211,10 +213,12 @@ class _QtDock(_AbstractDock, _QtLayout):
             widget.textChanged.connect(callback)
         return _QtWidget(widget)
 
-    def _dock_add_file_button(self, name, desc, func, value=None, save=False,
-                              directory=False, input_text_widget=True,
-                              placeholder="Type a file name", tooltip=None,
-                              layout=None):
+    def _dock_add_file_button(
+        self, name, desc, func, filter=None, initial_directory=None,
+        value=None, save=False,
+        is_directory=False, input_text_widget=True,
+        placeholder="Type a file name", tooltip=None, layout=None
+    ):
         layout = self._dock_layout if layout is None else layout
         if input_text_widget:
             hlayout = self._dock_add_layout(vertical=False)
@@ -231,12 +235,20 @@ class _QtDock(_AbstractDock, _QtLayout):
             hlayout = layout
 
         def callback():
-            if directory:
-                name = QFileDialog.getExistingDirectory()
+            if is_directory:
+                name = QFileDialog.getExistingDirectory(
+                    directory=initial_directory
+                )
             elif save:
-                name = QFileDialog.getSaveFileName()
+                name = QFileDialog.getSaveFileName(
+                    directory=initial_directory,
+                    filter=filter
+                )
             else:
-                name = QFileDialog.getOpenFileName()
+                name = QFileDialog.getOpenFileName(
+                    directory=initial_directory,
+                    filter=filter
+                )
             name = name[0] if isinstance(name, tuple) else name
             # handle the cancel button
             if len(name) == 0:
@@ -689,7 +701,7 @@ def _set_widget_tooltip(widget, tooltip):
         widget.setToolTip(tooltip)
 
 
-def _create_dock_widget(window, name, area):
+def _create_dock_widget(window, name, area, *, max_width=None):
     # create dock widget
     dock = QDockWidget(name)
     # add scroll area
@@ -706,7 +718,11 @@ def _create_dock_widget(window, name, area):
     widget.setLayout(dock_layout)
     # Fix resize grip size
     # https://stackoverflow.com/a/65050468/2175965
-    dock.setStyleSheet("QDockWidget { margin: 4px; }")
+    styles = ['margin: 4px;']
+    if max_width is not None:
+        styles.append(f'max-width: {max_width};')
+    style_sheet = 'QDockWidget { ' + '  \n'.join(styles) + '\n}'
+    dock.setStyleSheet(style_sheet)
     return dock, dock_layout
 
 
