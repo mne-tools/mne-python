@@ -1217,7 +1217,7 @@ def write_fiducials(fname, pts, coord_frame='unknown', *, overwrite=False,
         ``'mri_tal'``, ``'ras'``, ``'fs_tal'``, ``'ctf_head'``,
         ``'ctf_meg'``, and ``'unknown'``
         If an integeger, must be one of the constants defined as
-        ``mne.io.constants.FIFF.FIFFV_COORD_...``
+        ``mne.io.constants.FIFF.FIFFV_COORD_...``.
     %(overwrite)s
 
         .. versionadded:: 1.0
