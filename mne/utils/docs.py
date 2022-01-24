@@ -1478,6 +1478,22 @@ aseg : str
     Freesurfer subject directory.
 """
 
+# Coregistration
+docdict['fiducials'] = """
+fiducials : list | dict | str
+    The fiducials given in the MRI (surface RAS) coordinate
+    system. If a dictionary is provided, it must contain the **keys**
+    ``'lpa'``, ``'rpa'``, and ``'nasion'``, with **values** being the
+    respective coordinates in meters.
+    If a list, it must be a list of ``DigPoint`` instances as returned by the
+    :func:`mne.io.read_fiducials` function.
+    If ``'estimated'``, the fiducials are derived from the ``fsaverage``
+    template. If ``'auto'`` (default), tries to find the fiducials
+    in a file with the canonical name
+    (``{subjects_dir}/{subject}/bem/{subject}-fiducials.fif``)
+    and if absent, falls back to ``'estimated'``.
+"""
+
 # Simulation
 docdict['interp'] = """
 interp : str

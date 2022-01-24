@@ -1295,17 +1295,7 @@ class Coregistration(object):
         The measurement info.
     %(subject)s
     %(subjects_dir)s
-    fiducials : list | dict | str
-        The fiducials given in the MRI (surface RAS) coordinate
-        system. If a dict is provided it must be a dict with 3 entries
-        with keys 'lpa', 'rpa' and 'nasion' with as values coordinates in m.
-        If a list it must be a list of DigPoint instances as returned
-        by the read_fiducials function.
-        If set to 'estimated', the fiducials are initialized
-        automatically using fiducials defined in MNI space on fsaverage
-        template. If set to 'auto', one tries to find the fiducials
-        in a file with the canonical name (``bem/{subject}-fiducials.fif``)
-        and if abstent one falls back to 'estimated'. Defaults to 'auto'.
+    %(fiducials)s
     %(on_defects)s
 
         .. versionadded:: 1.0
