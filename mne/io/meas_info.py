@@ -1169,7 +1169,7 @@ def read_fiducials(fname, verbose=None):
 
     Returns
     -------
-    pts : list of dicts
+    pts : list of dict
         List of digitizer points (each point in a dict).
     coord_frame : int
         The coordinate frame of the points (one of
