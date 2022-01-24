@@ -1106,17 +1106,14 @@ class CoregistrationUI(HasTraits):
             if self._fiducials_file == fid_fname.format(
                 subjects_dir=self._subjects_dir, subject=self._subject
             ):
-                text = (
-                    f'<strong>MRI fiducials (diamonds) loaded from standard '
-                    f'location:</strong><br /><br />'
-                    f'{self._fiducials_file}'
-                )
+                location_type = 'standard'
             else:
-                text = (
-                    f'<strong>MRI fiducials (diamonds) loaded from custom '
-                    f'location:</strong><br /><br />'
-                    f'{self._fiducials_file}'
-                )
+                location_type = 'custom'
+            text = (
+                f'<strong>MRI fiducials (diamonds) loaded from '
+                f'{location_type} location:</strong><br /><br />'
+                f'{self._fiducials_file}'
+            )
         else:
             text = '<strong>No custom MRI fiducials loaded!</strong>'
             if not self._coreg._fid_accurate:
