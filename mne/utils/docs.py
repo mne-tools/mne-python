@@ -1487,11 +1487,11 @@ fiducials : list | dict | str
     respective coordinates in meters.
     If a list, it must be a list of ``DigPoint`` instances as returned by the
     :func:`mne.io.read_fiducials` function.
-    If ``'estimated'``, the fiducials derived from the ``fsaverage``
+    If ``'estimated'``, the fiducials are derived from the ``fsaverage``
     template. If ``'auto'`` (default), tries to find the fiducials
     in a file with the canonical name
     (``{subjects_dir}/{subject}/bem/{subject}-fiducials.fif``)
-    and if abstent, one falls back to ``'estimated'``.
+    and if absent, falls back to ``'estimated'``.
 """
 
 # Simulation
