@@ -27,7 +27,7 @@ from ..transforms import (read_trans, write_trans, _ensure_trans, _get_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
                      warn, verbose, logger)
-from ..channels import read_dig_fif
+from ..channels import read_dig_fif, make_dig_montage
 
 
 @fill_doc
@@ -208,7 +208,7 @@ class CoregistrationUI(HasTraits):
         self._renderer.set_interaction(interaction)
         self._renderer._status_bar_initialize()
 
-        # setup the model
+        # coregistration model setup
         self._immediate_redraw = (self._renderer._kind != 'qt')
         self._info = info
         self._fiducials = fiducials
@@ -994,18 +994,7 @@ class CoregistrationUI(HasTraits):
                 not _find_fiducials_files(self._subject, self._subjects_dir):
             default_fid_fname = fid_fname.format(
                 subjects_dir=self._subjects_dir, subject=self._subject)
-            self._display_message(f"Saving {default_fid_fname}...")
-            dig = [{'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'ident': FIFF.FIFFV_POINT_LPA,
-                    'r': np.array(self._coreg._lpa[0])},
-                   {'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'ident': FIFF.FIFFV_POINT_NASION,
-                    'r': np.array(self._coreg._nasion[0])},
-                   {'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'ident': FIFF.FIFFV_POINT_RPA,
-                    'r': np.array(self._coreg._rpa[0])}]
-            write_fiducials(default_fid_fname, dig, FIFF.FIFFV_COORD_MRI)
-            self._display_message(f"Saving {default_fid_fname}... Done!")
+            self._save_mri_fiducials(default_fid_fname)
 
         # prepare bem
         bem_names = []
@@ -1056,8 +1045,22 @@ class CoregistrationUI(HasTraits):
                                       " Done!")
         self._display_message(f"Saving {self._subject_to}... Done!")
 
+    def _save_mri_fiducials(self, fname):
+        self._display_message(f"Saving {fname}...")
+        dig_montage = make_dig_montage(
+            lpa=np.array(self._coreg._lpa[0]),
+            rpa=np.array(self._coreg._rpa[0]),
+            nasion=np.array(self._coreg._nasion[0]),
+            coord_frame='mri'
+        )
+        write_fiducials(
+            fname=fname, pts=dig_montage.dig, coord_frame='mri', overwrite=True
+        )
+        self._display_message(f"Saving {fname}... Done!")
+        self._set_fiducials_file(fname)
+
     def _save_trans(self, fname):
-        write_trans(fname, self._coreg.trans)
+        write_trans(fname, self._coreg.trans, overwrite=True)
         self._display_message(
             f"{fname} transform file is saved.")
 
