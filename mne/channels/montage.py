@@ -104,8 +104,15 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
         space. They only necessary if computation of a ``compute_dev_head_t``
         is True.
     coord_frame : str
-        The coordinate frame of the points. Usually this is "unknown"
+        The coordinate frame of the points. Usually this is ``'unknown'``
         for native digitizer space.
+        Other valid values are: ``'head'``, ``'meg'``, ``'mri'``,
+        ``'mri_voxel'``, ``'mri_tal'``, ``'ras'``, ``'fs_tal'``,
+        ``'ctf_head'``, and ``'ctf_meg'``.
+
+        .. note::
+            For custom montages without fiducials, this parameter must be set
+            to ``'head'``.
 
     Returns
     -------
@@ -120,12 +127,6 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     read_dig_fif
     read_dig_localite
     read_dig_polhemus_isotrak
-
-    Notes
-    -----
-    Valid ``coord_frame`` arguments are 'meg', 'mri', 'mri_voxel', 'head',
-    'mri_tal', 'ras', 'fs_tal', 'ctf_head', 'ctf_meg', 'unknown'. For custom
-    montages without fiducials this parameter has to be set to 'head'.
     """
     _validate_type(ch_pos, (dict, None), 'ch_pos')
     if ch_pos is None:

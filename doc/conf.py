@@ -167,6 +167,7 @@ numpydoc_xref_param_type = True
 numpydoc_xref_aliases = {
     # Python
     'file-like': ':term:`file-like <python:file object>`',
+    'iterator': ':term:`iterator <python:iterator>`',
     'path-like': ':term:`path-like`',
     'array-like': ':term:`array-like`',
     # Matplotlib
