@@ -1460,9 +1460,9 @@ class Coregistration(object):
 
     def _reset_fiducials(self):
         dig_montage = make_dig_montage(
-            lpa=np.array(self._fid_points[0:1].squeeze()),
-            nasion=np.array(self._fid_points[1:2].squeeze()),
-            rpa=np.array(self._fid_points[2:3].squeeze()),
+            lpa=self._fid_points[0:1].squeeze(),
+            nasion=self._fid_points[1:2].squeeze(),
+            rpa=self._fid_points[2:3].squeeze(),
             coord_frame='mri'
         )
         self.fiducials = dig_montage
