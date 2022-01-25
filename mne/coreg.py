@@ -1677,7 +1677,7 @@ class Coregistration(object):
 
     @property
     def _has_lpa_data(self):
-        mri_point = self.fiducials.dig[0]
+        mri_point = self.fiducials.dig[_map_fid_name_to_idx('lpa')]
         assert mri_point['ident'] == FIFF.FIFFV_POINT_LPA
         has_mri_data = np.any(mri_point['r'])
         has_head_data = np.any(self._dig_dict['lpa'])
@@ -1685,7 +1685,7 @@ class Coregistration(object):
 
     @property
     def _has_nasion_data(self):
-        mri_point = self.fiducials.dig[1]
+        mri_point = self.fiducials.dig[_map_fid_name_to_idx('nasion')]
         assert mri_point['ident'] == FIFF.FIFFV_POINT_NASION
         has_mri_data = np.any(mri_point['r'])
         has_head_data = np.any(self._dig_dict['nasion'])
@@ -1693,7 +1693,7 @@ class Coregistration(object):
 
     @property
     def _has_rpa_data(self):
-        mri_point = self.fiducials.dig[2]
+        mri_point = self.fiducials.dig[_map_fid_name_to_idx('rpa')]
         assert mri_point['ident'] == FIFF.FIFFV_POINT_RPA
         has_mri_data = np.any(mri_point['r'])
         has_head_data = np.any(self._dig_dict['rpa'])
