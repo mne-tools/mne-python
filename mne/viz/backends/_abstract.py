@@ -528,7 +528,9 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_label(self, value, align=False, layout=None):
+    def _dock_add_label(
+        self, value, align=False, layout=None, selectable=False
+    ):
         pass
 
     @abstractmethod
