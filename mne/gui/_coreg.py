@@ -282,10 +282,18 @@ class CoregistrationUI(HasTraits):
         if trans is not None:
             self._load_trans(trans)
         self._redraw()  # we need the elements to be present now
-        if not fid_accurate:
+
+        if fid_accurate:
+            assert self._coreg._fid_filename is not None
+            # _set_fiducials_file() calls _update_mri_fiducials_label()
+            # internally
+            self._set_fiducials_file(self._coreg._fid_filename)
+        else:
             self._set_head_resolution('high')
             self._forward_widget_command('high_res_head', "set_value", True)
             self._set_lock_fids(True)  # hack to make the dig disappear
+            self._update_mri_fiducials_label()
+
         self._set_lock_fids(fid_accurate)
 
         # configure worker
@@ -318,10 +326,17 @@ class CoregistrationUI(HasTraits):
         self._lock_fids = bool(state)
 
     def _set_fiducials_file(self, fname):
-        if not self._check_fif('fiducials', fname):
-            return
-        self._fiducials_file = _check_fname(
-            fname, overwrite='read', must_exist=True, need_dir=False)
+        fname = _check_fname(
+            fname, overwrite='read', must_exist=True, need_dir=False
+        )
+        self._fiducials_file = fname
+        fids, _ = read_fiducials(self._fiducials_file)
+        self.coreg._setup_fiducials(fids)
+        self._update_distance_estimation()
+        self._update_mri_fiducials_label()
+        self._reset()
+        self._set_lock_fids(True)
+        self._widgets['reload_mri_fids'].set_enabled(True)
 
     def _set_current_fiducial(self, fid):
         self._current_fiducial = fid.lower()
@@ -478,6 +493,31 @@ class CoregistrationUI(HasTraits):
         self._reset()
         self._update_projection_surface()
 
+        default_fname = fid_fname.format(
+            subjects_dir=self._subjects_dir, subject=self._subject
+        )
+        if Path(default_fname).exists():
+            fname = default_fname
+        else:
+            fname = ''
+
+        if self._widgets:  # widget initialization has finished
+            if fname:
+                self._set_fiducials_file(fname)
+            else:
+                self._fiducials_file = fname  # Avoid _set_fiducials_file()!
+                self._widgets['reload_mri_fids'].set_enabled(False)
+                # XXX The following doesn't work as expected: it unlocks the
+                # fiducials on the currently-displayed (old!) subject – i.e.,
+                # unlocking and hiding of digpoints happens before the new
+                # subject has been fully loaded. Once the new subject is
+                # loaded, its digpoints show up again although the state of
+                # the fiducials is, in fact, still "unlocked".
+                self._set_lock_fids(False)
+
+            self._reset_fiducials()
+            self._update_mri_fiducials_label()
+
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
         locked_widgets = ["sX", "sY", "sZ", "tX", "tY", "tZ",
@@ -491,6 +531,7 @@ class CoregistrationUI(HasTraits):
             self._scale_mode_changed()
             self._display_message()
             self._update_distance_estimation()
+            self._widgets["save_mri_fids"].set_enabled(True)
         else:
             self._old_head_opacity = self._head_opacity
             self._head_opacity = 1.0
@@ -498,18 +539,11 @@ class CoregistrationUI(HasTraits):
             self._forward_widget_command(fits_widgets, "set_enabled", False)
             self._display_message("Placing MRI fiducials - "
                                   f"{self._current_fiducial.upper()}")
+            self._widgets["save_mri_fids"].set_enabled(False)
         self._set_sensors_visibility(self._lock_fids)
         self._forward_widget_command("lock_fids", "set_value", self._lock_fids)
         self._forward_widget_command(fid_widgets, "set_enabled",
                                      not self._lock_fids)
-
-    @observe("_fiducials_file")
-    def _fiducials_file_changed(self, change=None):
-        fids, _ = read_fiducials(self._fiducials_file)
-        self.coreg._setup_fiducials(fids)
-        self._update_distance_estimation()
-        self._reset()
-        self._set_lock_fids(True)
 
     @observe("_current_fiducial")
     def _current_fiducial_changed(self, change=None):
@@ -1142,14 +1176,26 @@ class CoregistrationUI(HasTraits):
             subjects = ['']
         return sorted(subjects)
 
-    def _check_fif(self, filetype, fname):
-        try:
-            check_fname(fname, filetype, ('.fif'), ('.fif'))
-        except IOError:
-            warn(f"The filename {fname} for {filetype} must end with '.fif'.")
-            self._widgets[f"{filetype}_file"].set_value(0, '')
-            return False
-        return True
+    def _update_mri_fiducials_label(self):
+        if self._fiducials_file:
+            assert self._fiducials_file == fid_fname.format(
+                subjects_dir=self._subjects_dir, subject=self._subject
+            )
+            assert self._coreg._fid_accurate is True
+            text = (
+                f'<p><strong>MRI fiducials (diamonds) loaded from '
+                f'standard location:</strong></p>'
+                f'<p>{self._fiducials_file}</p>'
+            )
+        else:
+            text = (
+                '<p><strong>No custom MRI fiducials loaded!</strong></p>'
+                '<p>MRI fiducials could not be found in the standard '
+                'location. The displayed initial MRI fiducial locations '
+                '(diamonds) were derived from fsaverage. Place, lock, and '
+                'save fiducials to discard this message.</p>'
+            )
+        self._widgets['mri_fiducials_label'].set_value(text)
 
     def _configure_dock(self):
         self._renderer._dock_initialize(
@@ -1177,22 +1223,50 @@ class CoregistrationUI(HasTraits):
             layout=mri_subject_layout,
         )
 
-        mri_fiducials_layout = \
-            self._renderer._dock_add_group_box("MRI Fiducials")
+        mri_fiducials_layout =  self._renderer._dock_add_group_box(
+            "MRI Fiducials"
+        )
+        # Add MRI fiducials I/O widgets
+        self._widgets['mri_fiducials_label'] = self._renderer._dock_add_label(
+            value='',  # Will be filled via _update_mri_fiducials_label()
+            layout=mri_fiducials_layout,
+            selectable=True
+        )
+        # Reload & Save buttons go into their own layout widget
+        mri_fiducials_button_layout =  self._renderer._dock_add_layout(
+            vertical=False
+        )
+        self._renderer._layout_add_widget(
+            layout=mri_fiducials_layout,
+            widget=mri_fiducials_button_layout
+        )
+        self._widgets["reload_mri_fids"] = self._renderer._dock_add_button(
+            name='Reload MRI Fid.',
+            callback=lambda: self._set_fiducials_file(self._fiducials_file),
+            tooltip="Reload MRI fiducials from the standard location",
+            layout=mri_fiducials_button_layout,
+        )
+        # Disable reload button until we've actually loaded a fiducial file
+        # (happens in _set_fiducials_file method)
+        self._widgets["reload_mri_fids"].set_enabled(False)
+        self._widgets["save_mri_fids"] = self._renderer._dock_add_button(
+            name="Save MRI Fid.",
+            callback=lambda: self._save_mri_fiducials(
+                fid_fname.format(
+                    subjects_dir=self._subjects_dir, subject=self._subject
+                )
+            ),
+            tooltip="Save MRI fiducials to the standard location. Fiducials "
+                    "must be locked first!",
+            layout=mri_fiducials_button_layout,
+        )
+        # Disable save button until fiducials are locked.
+        self._widgets["save_mri_fids"].set_enabled(False)
         self._widgets["lock_fids"] = self._renderer._dock_add_check_box(
             name="Lock fiducials",
             value=self._lock_fids,
             callback=self._set_lock_fids,
             tooltip="Lock/Unlock interactive fiducial editing",
-            layout=mri_fiducials_layout,
-        )
-        self._widgets["fiducials_file"] = self._renderer._dock_add_file_button(
-            name="fiducials_file",
-            desc="Load",
-            func=self._set_fiducials_file,
-            value=self._fiducials_file,
-            placeholder="Path to fiducials",
-            tooltip="Load the fiducials from a FIFF file",
             layout=mri_fiducials_layout,
         )
         self._widgets["fids"] = self._renderer._dock_add_radio_buttons(
