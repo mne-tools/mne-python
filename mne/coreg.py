@@ -1773,9 +1773,9 @@ class Coregistration(object):
                               self._dig_dict['nasion'],
                               self._dig_dict['rpa']))
         mri_pts = np.vstack(
-            (self.fiducials.dig[0]['r'],
-             self.fiducials.dig[1]['r'],
-             self.fiducials.dig[2]['r'])
+            (self.fiducials.dig[0]['r'],  # LPA
+             self.fiducials.dig[1]['r'],  # Nasion
+             self.fiducials.dig[2]['r'])  # RPA
         )
         weights = [lpa_weight, nasion_weight, rpa_weight]
 
