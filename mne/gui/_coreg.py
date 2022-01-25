@@ -6,6 +6,7 @@ import time
 import queue
 import threading
 import re
+from enum import Enum
 
 import numpy as np
 from traitlets import observe, HasTraits, Unicode, Bool, Float
@@ -28,6 +29,17 @@ from ..transforms import (read_trans, write_trans, _ensure_trans, _get_trans,
 from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
                      warn, verbose, logger)
 from ..channels import read_dig_fif, make_dig_montage
+
+
+class _WorkerType(Enum):
+    SAVE_SUBJECT = 0
+    SET_PARAMETER = 1
+
+
+class _Worker():
+    def __init__(self, task_type, params=None):
+        self._task_type = task_type
+        self._params = params
 
 
 @fill_doc
@@ -595,10 +607,14 @@ class CoregistrationUI(HasTraits):
     def _configure_worker(self):
         def worker():
             while True:
-                ret = self._job_queue.get()
-                if ret:
+                task = self._job_queue.get()
+                if task._task_type == _WorkerType.SAVE_SUBJECT:
                     self._save_subject()
-                    self._job_queue.task_done()
+                else:
+                    assert task._task_type == _WorkerType.SET_PARAMETER
+                    self._set_parameter(**task._params)
+                self._job_queue.task_done()
+
         t = threading.Thread(target=worker)
         t.daemon = True
         t.start()
@@ -1029,8 +1045,12 @@ class CoregistrationUI(HasTraits):
                 f"{self._current_icp_iterations} iterations.")
             del self._current_icp_iterations
 
-    def _start_worker(self):
-        self._job_queue.put(True)
+    def _task_save_subject(self):
+        self._job_queue.put(_Worker(_WorkerType.SAVE_SUBJECT))
+
+    def _task_set_parameter(self, value, mode_name, coord):
+        self._job_queue.put(_Worker(_WorkerType.SET_PARAMETER, dict(
+            value=value, mode_name=mode_name, coord=coord)))
 
     def _save_subject(self):
         self._display_message(f"Saving {self._subject_to}...")
@@ -1356,7 +1376,7 @@ class CoregistrationUI(HasTraits):
         )
         self._widgets["save_subject"] = self._renderer._dock_add_button(
             name="Save scaled anatomy",
-            callback=self._start_worker,
+            callback=self._task_save_subject,
             tooltip="Save scaled anatomy",
             layout=subject_to_layout,
         )
@@ -1376,7 +1396,7 @@ class CoregistrationUI(HasTraits):
                     value=attr[coords.index(coord)] * 1e3,
                     rng=np.array(rng),
                     callback=partial(
-                        self._set_parameter,
+                        self._task_set_parameter,
                         mode_name=mode_name.lower(),
                         coord=coord,
                     ),
