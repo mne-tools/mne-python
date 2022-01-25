@@ -1303,10 +1303,10 @@ class Coregistration(object):
 
     Attributes
     ----------
-    trans : instance of Transform
-        MRI<->Head coordinate transformation.
     fiducials : instance of DigMontage
         A montage containing the MRI fiducials.
+    trans : instance of Transform
+        MRI<->Head coordinate transformation.
 
     See Also
     --------
