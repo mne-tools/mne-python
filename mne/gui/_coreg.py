@@ -1101,7 +1101,9 @@ class CoregistrationUI(HasTraits):
         return True
 
     def _configure_dock(self):
-        self._renderer._dock_initialize(name="Input", area="left")
+        self._renderer._dock_initialize(
+            name="Input", area="left", max_width="350px"
+        )
         mri_subject_layout = self._renderer._dock_add_group_box("MRI Subject")
         self._widgets["subjects_dir"] = self._renderer._dock_add_file_button(
             name="subjects_dir",
@@ -1237,7 +1239,9 @@ class CoregistrationUI(HasTraits):
         )
         self._renderer._dock_add_stretch()
 
-        self._renderer._dock_initialize(name="Parameters", area="right")
+        self._renderer._dock_initialize(
+            name="Parameters", area="right", max_width="350px"
+        )
         mri_scaling_layout = \
             self._renderer._dock_add_group_box(name="MRI Scaling")
         self._widgets["scaling_mode"] = self._renderer._dock_add_combo_box(
