@@ -1962,7 +1962,7 @@ class Coregistration(object):
 
     @property
     def trans(self):
-        """The head->mri :class:`mne.Tansform`."""
+        """The head->mri :class:`mne.Transform`."""
         return Transform('head', 'mri', self._head_mri_t)
 
     @property
