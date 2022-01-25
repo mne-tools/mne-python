@@ -830,7 +830,7 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
 
 @verbose
 def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
-              subjects_dir=None, verbose=None):
+              subjects_dir=None, *, on_defects='raise', verbose=None):
     """Scale a bem file.
 
     Parameters
@@ -849,6 +849,9 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
         otherwise it is read from subject_to's config file.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
+    %(on_defects)s
+
+        .. versionadded:: 1.0
     %(verbose)s
     """
     subjects_dir, subject_from, scale, uniform = \
@@ -862,7 +865,7 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
     if os.path.exists(dst):
         raise IOError("File already exists: %s" % dst)
 
-    surfs = read_bem_surfaces(src)
+    surfs = read_bem_surfaces(src, on_defects=on_defects)
     for surf in surfs:
         surf['rr'] *= scale
         if not uniform:
@@ -930,7 +933,7 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
 @verbose
 def scale_mri(subject_from, subject_to, scale, overwrite=False,
               subjects_dir=None, skip_fiducials=False, labels=True,
-              annot=False, verbose=None):
+              annot=False, *, on_defects='raise', verbose=None):
     """Create a scaled copy of an MRI subject.
 
     Parameters
@@ -952,6 +955,9 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
         Also scale all labels (default True).
     annot : bool
         Copy ``*.annot`` files to the new location (default False).
+    %(on_defects)s
+
+        .. versionadded:: 1.0
     %(verbose)s
 
     See Also
@@ -1005,7 +1011,7 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
     logger.debug('BEM files [in m]')
     for bem_name in paths['bem']:
         scale_bem(subject_to, bem_name, subject_from, scale, subjects_dir,
-                  verbose=False)
+                  on_defects=on_defects, verbose=False)
 
     logger.debug('fiducials [in m]')
     for fname in paths['fid']:
@@ -1260,11 +1266,13 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
     _write_fs_xfm(fname_to, T_ras_mni['trans'], kind)
 
 
-def _read_surface(filename):
+def _read_surface(filename, *, on_defects):
     bem = dict()
     if filename is not None and op.exists(filename):
         if filename.endswith('.fif'):
-            bem = read_bem_surfaces(filename, verbose=False)[0]
+            bem = read_bem_surfaces(
+                filename, on_defects=on_defects, verbose=False
+            )[0]
         else:
             try:
                 bem = read_surface(filename, return_dict=True)[2]
@@ -1287,17 +1295,10 @@ class Coregistration(object):
         The measurement info.
     %(subject)s
     %(subjects_dir)s
-    fiducials : list | dict | str
-        The fiducials given in the MRI (surface RAS) coordinate
-        system. If a dict is provided it must be a dict with 3 entries
-        with keys 'lpa', 'rpa' and 'nasion' with as values coordinates in m.
-        If a list it must be a list of DigPoint instances as returned
-        by the read_fiducials function.
-        If set to 'estimated', the fiducials are initialized
-        automatically using fiducials defined in MNI space on fsaverage
-        template. If set to 'auto', one tries to find the fiducials
-        in a file with the canonical name (``bem/{subject}-fiducials.fif``)
-        and if abstent one falls back to 'estimated'. Defaults to 'auto'.
+    %(fiducials)s
+    %(on_defects)s
+
+        .. versionadded:: 1.0
 
     Attributes
     ----------
@@ -1320,12 +1321,14 @@ class Coregistration(object):
     to create a surrogate MRI subject with the proper scale factors.
     """
 
-    def __init__(self, info, subject, subjects_dir=None, fiducials='auto'):
+    def __init__(self, info, subject, subjects_dir=None, fiducials='auto', *,
+                 on_defects='raise'):
         _validate_type(info, (Info, None), 'info')
         self._info = info
         self._subject = _check_subject(subject, subject)
         self._subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         self._scale_mode = None
+        self._on_defects = on_defects
 
         self._rot_trans = None
         self._default_parameters = \
@@ -1390,10 +1393,14 @@ class Coregistration(object):
             raise RuntimeError("No standard head model was "
                                f"found for subject {self._subject}")
         if high_res_path is not None:
-            self._bem_high_res = _read_surface(high_res_path)
+            self._bem_high_res = _read_surface(
+                high_res_path, on_defects=self._on_defects
+            )
             logger.info(f'Using high resolution head model in {high_res_path}')
         else:
-            self._bem_high_res = _read_surface(low_res_path)
+            self._bem_high_res = _read_surface(
+                low_res_path, on_defects=self._on_defects
+            )
             logger.info(f'Using low resolution head model in {low_res_path}')
         if low_res_path is None:
             # This should be very rare!
@@ -1408,7 +1415,9 @@ class Coregistration(object):
             self._bem_low_res = complete_surface_info(
                 dict(rr=rr, tris=tris), copy=False, verbose=False)
         else:
-            self._bem_low_res = _read_surface(low_res_path)
+            self._bem_low_res = _read_surface(
+                low_res_path, on_defects=self._on_defects
+            )
 
     def _setup_fiducials(self, fids):
         _validate_type(fids, (str, dict, list))

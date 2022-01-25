@@ -2,13 +2,14 @@
 #
 # License: BSD Style.
 
+import logging
 import sys
 import os
 import os.path as op
 from shutil import rmtree
 
 from .. import __version__ as mne_version
-from ..utils import logger, warn, _safe_input, _soft_import
+from ..utils import logger, warn, _safe_input
 from .config import (
     _bst_license_text,
     RELEASES,
@@ -127,8 +128,7 @@ def fetch_dataset(
     multiple files must be downloaded and (optionally) uncompressed separately,
     pass a list of dicts.
     """  # noqa E501
-    # import pooch library for handling the dataset downloading
-    pooch = _soft_import("pooch", "dataset downloading", strict=True)
+    import pooch
 
     if auth is not None:
         if len(auth) != 2:
@@ -213,7 +213,7 @@ def fetch_dataset(
                     "You must agree to the license to use this " "dataset"
                 )
     # downloader & processors
-    download_params = dict(progressbar=True)  # use tqdm
+    download_params = dict(progressbar=logger.level <= logging.INFO)
     if name == "fake":
         download_params["progressbar"] = False
     if auth is not None:

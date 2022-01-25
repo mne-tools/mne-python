@@ -27,7 +27,7 @@ from ..transforms import (read_trans, write_trans, _ensure_trans, _get_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
                      warn, verbose, logger)
-from ..channels import read_dig_fif
+from ..channels import read_dig_fif, make_dig_montage
 
 
 @fill_doc
@@ -40,17 +40,7 @@ class CoregistrationUI(HasTraits):
         The FIFF file with digitizer data for coregistration.
     %(subject)s
     %(subjects_dir)s
-    fiducials : list | dict | str
-        The fiducials given in the MRI (surface RAS) coordinate
-        system. If a dict is provided it must be a dict with 3 entries
-        with keys 'lpa', 'rpa' and 'nasion' with as values coordinates in m.
-        If a list it must be a list of DigPoint instances as returned
-        by the read_fiducials function.
-        If set to 'estimated', the fiducials are initialized
-        automatically using fiducials defined in MNI space on fsaverage
-        template. If set to 'auto', one tries to find the fiducials
-        in a file with the canonical name (``bem/{subject}-fiducials.fif``)
-        and if abstent one falls back to 'estimated'. Defaults to 'auto'.
+    %(fiducials)s
     head_resolution : bool
         If True, use a high-resolution head surface. Defaults to False.
     head_opacity : float
@@ -227,12 +217,15 @@ class CoregistrationUI(HasTraits):
         self._renderer.set_interaction(interaction)
         self._renderer._status_bar_initialize()
 
-        # setup the model
+        # coregistration model setup
         self._immediate_redraw = (self._renderer._kind != 'qt')
         self._info = info
         self._fiducials = fiducials
         self._coreg = Coregistration(
-            self._info, subject, subjects_dir, fiducials)
+            info=self._info, subject=subject, subjects_dir=subjects_dir,
+            fiducials=fiducials,
+            on_defects='ignore'  # safe due to interactive visual inspection
+        )
         fid_accurate = self._coreg._fid_accurate
         for fid in self._defaults["weights"].keys():
             setattr(self, f"_{fid}_weight", self._defaults["weights"][fid])
@@ -1047,18 +1040,7 @@ class CoregistrationUI(HasTraits):
                 not _find_fiducials_files(self._subject, self._subjects_dir):
             default_fid_fname = fid_fname.format(
                 subjects_dir=self._subjects_dir, subject=self._subject)
-            self._display_message(f"Saving {default_fid_fname}...")
-            dig = [{'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'ident': FIFF.FIFFV_POINT_LPA,
-                    'r': np.array(self._coreg._lpa[0])},
-                   {'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'ident': FIFF.FIFFV_POINT_NASION,
-                    'r': np.array(self._coreg._nasion[0])},
-                   {'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'ident': FIFF.FIFFV_POINT_RPA,
-                    'r': np.array(self._coreg._rpa[0])}]
-            write_fiducials(default_fid_fname, dig, FIFF.FIFFV_COORD_MRI)
-            self._display_message(f"Saving {default_fid_fname}... Done!")
+            self._save_mri_fiducials(default_fid_fname)
 
         # prepare bem
         bem_names = []
@@ -1080,9 +1062,13 @@ class CoregistrationUI(HasTraits):
         # save the scaled MRI
         try:
             self._display_message(f"Scaling {self._subject_to}...")
-            scale_mri(self._subject, self._subject_to, self._coreg._scale,
-                      True, self._subjects_dir, self._skip_fiducials,
-                      self._scale_labels, self._copy_annots)
+            scale_mri(
+                subject_from=self._subject, subject_to=self._subject_to,
+                scale=self._coreg._scale, overwrite=True,
+                subjects_dir=self._subjects_dir,
+                skip_fiducials=self._skip_fiducials, labels=self._scale_labels,
+                annot=self._copy_annots, on_defects='ignore'
+            )
         except Exception:
             logger.error(f"Error scaling {self._subject_to}")
             bem_names = []
@@ -1105,8 +1091,22 @@ class CoregistrationUI(HasTraits):
                                       " Done!")
         self._display_message(f"Saving {self._subject_to}... Done!")
 
+    def _save_mri_fiducials(self, fname):
+        self._display_message(f"Saving {fname}...")
+        dig_montage = make_dig_montage(
+            lpa=np.array(self._coreg._lpa[0]),
+            rpa=np.array(self._coreg._rpa[0]),
+            nasion=np.array(self._coreg._nasion[0]),
+            coord_frame='mri'
+        )
+        write_fiducials(
+            fname=fname, pts=dig_montage.dig, coord_frame='mri', overwrite=True
+        )
+        self._display_message(f"Saving {fname}... Done!")
+        self._set_fiducials_file(fname)
+
     def _save_trans(self, fname):
-        write_trans(fname, self._coreg.trans)
+        write_trans(fname, self._coreg.trans, overwrite=True)
         self._display_message(
             f"{fname} transform file is saved.")
 
@@ -1156,7 +1156,7 @@ class CoregistrationUI(HasTraits):
             func=self._set_subjects_dir,
             value=self._subjects_dir,
             placeholder="Subjects Directory",
-            directory=True,
+            is_directory=True,
             tooltip="Load the path to the directory containing the "
                     "FreeSurfer subjects",
             layout=mri_subject_layout,

@@ -6,11 +6,11 @@
 
 import os
 import os.path as op
+
 import numpy as np
 
 from ...utils import (verbose, _TempDir, _check_pandas_installed,
                       _on_missing)
-from ...utils.check import _soft_import
 from ..utils import _get_path
 
 AGE_SLEEP_RECORDS = op.join(op.dirname(__file__), 'age_records.csv')
@@ -27,9 +27,7 @@ sha1sums_fname = op.join(op.dirname(__file__), 'SHA1SUMS')
 
 
 def _fetch_one(fname, hashsum, path, force_update, base_url):
-    # import pooch library for handling the dataset downloading
-    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
-
+    import pooch
     # Fetch the file
     url = base_url + '/' + fname
     destination = op.join(path, fname)
@@ -83,8 +81,7 @@ def _data_path(path=None, verbose=None):
 
 def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
     """Help function to download Physionet's temazepam dataset records."""
-    # import pooch library for handling the dataset downloading
-    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
+    import pooch
 
     pd = _check_pandas_installed()
     tmp = _TempDir()
@@ -144,9 +141,7 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
 
 def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
     """Help function to download Physionet's age dataset records."""
-    # import pooch library for handling the dataset downloading
-    pooch = _soft_import('pooch', 'dataset downloading', strict=True)
-
+    import pooch
     pd = _check_pandas_installed()
     tmp = _TempDir()
 

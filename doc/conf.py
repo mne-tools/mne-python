@@ -167,6 +167,7 @@ numpydoc_xref_param_type = True
 numpydoc_xref_aliases = {
     # Python
     'file-like': ':term:`file-like <python:file object>`',
+    'iterator': ':term:`iterator <python:iterator>`',
     'path-like': ':term:`path-like`',
     'array-like': ':term:`array-like`',
     # Matplotlib
@@ -831,6 +832,7 @@ def reset_warnings(gallery_conf, fname):
                 "default value of type 'dict' in an Any trait will",  # traits
                 'rcParams is deprecated',  # PyVista rcParams -> global_theme
                 'to mean no clipping',
+                '`np.MachAr` is deprecated',  # Numba
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)

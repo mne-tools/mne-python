@@ -14,8 +14,8 @@ URL: http://neuroimage.usc.edu/brainstorm/DatasetResting
 
 
 @verbose
-def data_path(path=None, force_update=False, update_path=True, download=True,
-              *, accept=False, verbose=None):  # noqa: D103
+def data_path(path=None, force_update=False, update_path=True,
+              download=True, accept=False, *, verbose=None):  # noqa: D103
     return _download_mne_dataset(
         name='bst_resting', processor='nested_untar', path=path,
         force_update=force_update, update_path=update_path,

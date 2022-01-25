@@ -12,7 +12,6 @@ from ...epochs import EpochsArray
 from ...io.meas_info import create_info
 from ...utils import _check_pandas_installed, verbose
 from ..utils import _get_path, _do_path_update, logger
-from ...utils.check import _soft_import
 
 
 # root url for LIMO files
@@ -20,7 +19,7 @@ root_url = 'https://files.de-1.osf.io/v1/resources/52rea/providers/osfstorage/'
 
 
 @verbose
-def data_path(subject, path=None, force_update=False, update_path=None,
+def data_path(subject, path=None, force_update=False, update_path=None, *,
               verbose=None):
     """Get path to local copy of LIMO dataset URL.
 
@@ -67,7 +66,7 @@ def data_path(subject, path=None, force_update=False, update_path=None,
     ----------
     .. footbibliography::
     """  # noqa: E501
-    pooch = _soft_import('pooch', 'dataset downloading', True)
+    import pooch
 
     downloader = pooch.HTTPDownloader(progressbar=True)  # use tqdm
 

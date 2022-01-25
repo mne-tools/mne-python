@@ -103,7 +103,8 @@ def test_gui_api(renderer_notebook, nbexec):
         widget.set_value('bar')
 
     # file button
-    renderer._dock_add_file_button('', '', mock, directory=True)
+    renderer._dock_add_file_button('', '', mock, is_directory=True)
+    renderer._dock_add_file_button('', '', mock, initial_directory='')
     renderer._dock_add_file_button('', '', mock, input_text_widget=False)
     widget = renderer._dock_add_file_button('', '', mock, save=True)
     widget.set_value(0, 'foo')  # modify the text field (not interactive)

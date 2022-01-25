@@ -1478,6 +1478,22 @@ aseg : str
     Freesurfer subject directory.
 """
 
+# Coregistration
+docdict['fiducials'] = """
+fiducials : list | dict | str
+    The fiducials given in the MRI (surface RAS) coordinate
+    system. If a dictionary is provided, it must contain the **keys**
+    ``'lpa'``, ``'rpa'``, and ``'nasion'``, with **values** being the
+    respective coordinates in meters.
+    If a list, it must be a list of ``DigPoint`` instances as returned by the
+    :func:`mne.io.read_fiducials` function.
+    If ``'estimated'``, the fiducials are derived from the ``fsaverage``
+    template. If ``'auto'`` (default), tries to find the fiducials
+    in a file with the canonical name
+    (``{subjects_dir}/{subject}/bem/{subject}-fiducials.fif``)
+    and if absent, falls back to ``'estimated'``.
+"""
+
 # Simulation
 docdict['interp'] = """
 interp : str
@@ -2378,8 +2394,8 @@ image_format : 'png' | 'svg' | 'gif' | None
     instantiation.
 """
 docdict['report_tags'] = """
-tags : array-like of str
-    Tags to add for later interactive filtering.
+tags : array-like of str | str
+    Tags to add for later interactive filtering. Must not contain spaces.
 """
 docdict['report_replace'] = """
 replace : bool
@@ -2507,10 +2523,12 @@ docdict['epochs_on_missing'] = """
 on_missing : 'raise' | 'warn' | 'ignore'
     What to do if one or several event ids are not found in the recording.
     Valid keys are 'raise' | 'warn' | 'ignore'
-    Default is 'raise'. If on_missing is 'warn' it will proceed but
-    warn, if 'ignore' it will proceed silently. Note.
-    If none of the event ids are found in the data, an error will be
-    automatically generated irrespective of this parameter.
+    Default is ``'raise'``. If ``'warn'``, it will proceed but
+    warn; if ``'ignore'``, it will proceed silently.
+
+    .. note::
+       If none of the event ids are found in the data, an error will be
+       automatically generated irrespective of this parameter.
 """
 reject_common = """\
     Reject epochs based on **maximum** peak-to-peak signal amplitude (PTP),
