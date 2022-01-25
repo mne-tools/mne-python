@@ -1804,16 +1804,11 @@ class Coregistration(object):
             mri_pts.append(self._processed_high_res_mri_points[
                 self._nearest_transformed_high_res_mri_idx_hsp])
             weights.append(np.full(len(head_pts[-1]), self._hsp_weight))
-        for key in ('lpa', 'nasion', 'rpa'):
+        for idx, key in enumerate(('lpa', 'nasion', 'rpa')):
             if getattr(self, f'_has_{key}_data'):
                 head_pts.append(self._dig_dict[key])
                 if self._icp_fid_match == 'matched':
-                    if key == 'lpa':
-                        p = self.fiducials.dig[0]['r'].reshape(1, -1)
-                    elif key == 'nasion':
-                        p = self.fiducials.dig[1]['r'].reshape(1, -1)
-                    elif key == 'rpa':
-                        p = self.fiducials.dig[2]['r'].reshape(1, -1)
+                    p = self.fiducials.dig[idx]['r'].reshape(1, -1)
                     mri_pts.append(p)
                 else:
                     assert self._icp_fid_match == 'nearest'
