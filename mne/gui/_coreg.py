@@ -1050,11 +1050,19 @@ class CoregistrationUI(HasTraits):
             del self._current_icp_iterations
 
     def _task_save_subject(self):
-        self._job_queue.put(_WorkerData("save_subject", None))
+        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+        if MNE_3D_BACKEND_TESTING:
+            self._save_subject()
+        else:
+            self._job_queue.put(_WorkerData("save_subject", None))
 
     def _task_set_parameter(self, value, mode_name, coord):
-        self._parameter_queue.put(_WorkerData("set_parameter", dict(
-            value=value, mode_name=mode_name, coord=coord)))
+        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+        if MNE_3D_BACKEND_TESTING:
+            self._set_parameter(value, mode_name, coord)
+        else:
+            self._parameter_queue.put(_WorkerData("set_parameter", dict(
+                value=value, mode_name=mode_name, coord=coord)))
 
     def _save_subject(self):
         self._display_message(f"Saving {self._subject_to}...")
