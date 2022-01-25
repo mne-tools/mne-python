@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from functools import partial
 import os
 import os.path as op
+from pathlib import Path
 import time
 import queue
 import threading
@@ -1357,6 +1358,8 @@ class CoregistrationUI(HasTraits):
             input_text_widget=False,
             tooltip="Save the transform file to disk",
             layout=save_trans_layout,
+            filter='Head->MRI transformation (*-trans.fif *_trans.fif)',
+            initial_directory=str(Path(self._info_file).parent),
         )
         self._widgets["load_trans"] = self._renderer._dock_add_file_button(
             name="load_trans",
@@ -1365,6 +1368,8 @@ class CoregistrationUI(HasTraits):
             input_text_widget=False,
             tooltip="Load the transform file from disk",
             layout=save_trans_layout,
+            filter='Head->MRI transformation (*-trans.fif *_trans.fif)',
+            initial_directory=str(Path(self._info_file).parent),
         )
         self._widgets["reset_trans"] = self._renderer._dock_add_button(
             name="Reset",
