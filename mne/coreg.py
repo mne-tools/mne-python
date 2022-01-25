@@ -63,6 +63,19 @@ _high_res_head_fnames = (os.path.join(bem_dirname, '{subject}-head-dense.fif'),
                          os.path.join(surf_dirname, 'lh.smseghead'))
 
 
+def _map_fid_name_to_idx(name: str) -> int:
+    """Map a fiducial name to its index in the DigMontage."""
+    name = name.lower()
+
+    if name == 'lpa':
+        return 0
+    elif name == 'nasion':
+        return 1
+    else:
+        assert name == 'rpa'
+        return 2
+
+
 def _make_writable(fname):
     """Make a file writable."""
     os.chmod(fname, stat.S_IMODE(os.lstat(fname)[stat.ST_MODE]) | 128)  # write
@@ -1804,10 +1817,11 @@ class Coregistration(object):
             mri_pts.append(self._processed_high_res_mri_points[
                 self._nearest_transformed_high_res_mri_idx_hsp])
             weights.append(np.full(len(head_pts[-1]), self._hsp_weight))
-        for idx, key in enumerate(('lpa', 'nasion', 'rpa')):
+        for key in ('lpa', 'nasion', 'rpa'):
             if getattr(self, f'_has_{key}_data'):
                 head_pts.append(self._dig_dict[key])
                 if self._icp_fid_match == 'matched':
+                    idx = _map_fid_name_to_idx(name=key)
                     p = self.fiducials.dig[idx]['r'].reshape(1, -1)
                     mri_pts.append(p)
                 else:
@@ -2004,7 +2018,9 @@ class Coregistration(object):
     def _get_fiducials_distance(self):
         distance = dict()
         for key in ('lpa', 'nasion', 'rpa'):
-            fid = getattr(self, f"_{key}")
+            idx = _map_fid_name_to_idx(name=key)
+            fid = self.fiducials.dig[idx]['r'].reshape(1, -1)
+
             transformed_mri = apply_trans(self._mri_trans, fid)
             transformed_hsp = apply_trans(
                 self._head_mri_t, self._dig_dict[key])
