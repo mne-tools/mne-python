@@ -38,6 +38,7 @@ from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          combine_transforms, _quat_to_euler,
                          _fit_matched_points, apply_trans,
                          rot_to_quat, _angle_between_quats)
+from .channels import make_dig_montage
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
                     warn, has_nibabel, fill_doc, _validate_type,
                     _check_subject, _check_option)
@@ -1304,6 +1305,8 @@ class Coregistration(object):
     ----------
     trans : instance of Transform
         MRI<->Head coordinate transformation.
+    fiducials : instance of DigMontage
+        A montage containing the MRI fiducials.
 
     See Also
     --------
@@ -1959,8 +1962,19 @@ class Coregistration(object):
 
     @property
     def trans(self):
-        """Return the head-mri transform."""
+        """The head->mri :class:`mne.Tansform`."""
         return Transform('head', 'mri', self._head_mri_t)
+
+    @property
+    def fiducials(self):
+        """A :class:`~mne.channels.DigMontage` with the MRI fiducials."""
+        dig_montage = make_dig_montage(
+            lpa=np.array(self._lpa[0]),
+            rpa=np.array(self._rpa[0]),
+            nasion=np.array(self._nasion[0]),
+            coord_frame='mri'
+        )
+        return dig_montage
 
     def reset(self):
         """Reset all the parameters affecting the coregistration.

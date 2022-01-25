@@ -27,7 +27,7 @@ from ..transforms import (read_trans, write_trans, _ensure_trans, _get_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
                      warn, verbose, logger)
-from ..channels import read_dig_fif, make_dig_montage
+from ..channels import read_dig_fif
 
 
 @fill_doc
@@ -1047,12 +1047,7 @@ class CoregistrationUI(HasTraits):
 
     def _save_mri_fiducials(self, fname):
         self._display_message(f"Saving {fname}...")
-        dig_montage = make_dig_montage(
-            lpa=np.array(self._coreg._lpa[0]),
-            rpa=np.array(self._coreg._rpa[0]),
-            nasion=np.array(self._coreg._nasion[0]),
-            coord_frame='mri'
-        )
+        dig_montage = self._coreg.fiducials
         write_fiducials(
             fname=fname, pts=dig_montage.dig, coord_frame='mri', overwrite=True
         )
