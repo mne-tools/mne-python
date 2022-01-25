@@ -284,7 +284,7 @@ class CoregistrationUI(HasTraits):
 
     def _set_subjects_dir(self, subjects_dir):
         self._subjects_dir = _check_fname(
-            subjects_dir, overwrite=True, must_exist=True, need_dir=True)
+            subjects_dir, overwrite='read', must_exist=True, need_dir=True)
 
     def _set_subject(self, subject):
         self._subject = subject
@@ -296,7 +296,7 @@ class CoregistrationUI(HasTraits):
         if not self._check_fif('fiducials', fname):
             return
         self._fiducials_file = _check_fname(
-            fname, overwrite=True, must_exist=True, need_dir=False)
+            fname, overwrite='read', must_exist=True, need_dir=False)
 
     def _set_current_fiducial(self, fid):
         self._current_fiducial = fid.lower()
@@ -314,15 +314,15 @@ class CoregistrationUI(HasTraits):
             self._widgets["info_file"].set_value(0, '')
             return
 
-        fname = _check_fname(fname, overwrite=True)  # convert to str
+        fname = _check_fname(fname, overwrite='read')  # convert to str
 
         # ctf ds `files` are actually directories
         if fname.endswith(('.ds',)):
             self._info_file = _check_fname(
-                fname, overwrite=True, must_exist=True, need_dir=True)
+                fname, overwrite='read', must_exist=True, need_dir=True)
         else:
             self._info_file = _check_fname(
-                fname, overwrite=True, must_exist=True, need_dir=False)
+                fname, overwrite='read', must_exist=True, need_dir=False)
 
     def _set_omit_hsp_distance(self, distance):
         self._omit_hsp_distance = distance
