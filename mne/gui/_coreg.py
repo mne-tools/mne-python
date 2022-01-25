@@ -6,7 +6,6 @@ import time
 import queue
 import threading
 import re
-from enum import Enum
 
 import numpy as np
 from traitlets import observe, HasTraits, Unicode, Bool, Float
@@ -31,14 +30,9 @@ from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
 from ..channels import read_dig_fif, make_dig_montage
 
 
-class _WorkerType(Enum):
-    SAVE_SUBJECT = 0
-    SET_PARAMETER = 1
-
-
-class _Worker():
-    def __init__(self, task_type, params=None):
-        self._task_type = task_type
+class _WorkerData():
+    def __init__(self, name, params=None):
+        self._name = name
         self._params = params
 
 
@@ -168,6 +162,7 @@ class CoregistrationUI(HasTraits):
         self._parameter_mutex = threading.Lock()
         self._redraw_mutex = threading.Lock()
         self._job_queue = queue.Queue()
+        self._parameter_queue = queue.Queue()
         self._head_geo = None
         self._coord_frame = "mri"
         self._mouse_no_mvt = -1
@@ -604,20 +599,29 @@ class CoregistrationUI(HasTraits):
     def _icp_fid_match_changed(self, change=None):
         self._coreg.set_fid_match(self._icp_fid_match)
 
-    def _configure_worker(self):
-        def worker():
-            while True:
-                task = self._job_queue.get()
-                if task._task_type == _WorkerType.SAVE_SUBJECT:
-                    self._save_subject()
-                else:
-                    assert task._task_type == _WorkerType.SET_PARAMETER
-                    self._set_parameter(**task._params)
-                self._job_queue.task_done()
+    def _run_worker(self, queue, jobs):
+        while True:
+            data = queue.get()
+            func = jobs[data._name]
+            if data._params is not None:
+                func(**data._params)
+            else:
+                func()
+            queue.task_done()
 
-        t = threading.Thread(target=worker)
-        t.daemon = True
-        t.start()
+    def _configure_worker(self):
+        work_plan = {
+            "_job_queue": dict(save_subject=self._save_subject),
+            "_parameter_queue": dict(set_parameter=self._set_parameter),
+        }
+        for queue_name, jobs in work_plan.items():
+            t = threading.Thread(target=partial(
+                self._run_worker,
+                queue=getattr(self, queue_name),
+                jobs=jobs,
+            ))
+            t.daemon = True
+            t.start()
 
     def _configure_picking(self):
         self._renderer._update_picking_callback(
@@ -1046,10 +1050,10 @@ class CoregistrationUI(HasTraits):
             del self._current_icp_iterations
 
     def _task_save_subject(self):
-        self._job_queue.put(_Worker(_WorkerType.SAVE_SUBJECT))
+        self._job_queue.put(_WorkerData("save_subject", None))
 
     def _task_set_parameter(self, value, mode_name, coord):
-        self._job_queue.put(_Worker(_WorkerType.SET_PARAMETER, dict(
+        self._parameter_queue.put(_WorkerData("set_parameter", dict(
             value=value, mode_name=mode_name, coord=coord)))
 
     def _save_subject(self):
