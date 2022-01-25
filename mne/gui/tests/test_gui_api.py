@@ -46,6 +46,7 @@ def test_gui_api(renderer_notebook, nbexec):
     widget = renderer._dock_add_label('', align=True)
     widget.update()
     widget.set_enabled(False)
+    widget = renderer._dock_add_label('', align=False, selectable=True)
 
     # ToolButton
     widget = renderer._dock_add_button(
