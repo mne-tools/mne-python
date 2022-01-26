@@ -171,6 +171,8 @@ class _IpyDock(_AbstractDock, _IpyLayout):
                        layout=None):
         layout = self._dock_layout if layout is None else layout
         widget = Text(value=value, placeholder=placeholder)
+        if callback is not None:
+            widget.observe(_generate_callback(callback), names='value')
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
