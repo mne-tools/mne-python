@@ -357,7 +357,7 @@ def _fig_to_img(fig, *, image_format='png', auto_close=True):
             backend._close_3d_figure(figure=fig)
         fig = _ndarray_to_fig(img)
         _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH,  max_height=MAX_IMG_HEIGHT,
+            fig, max_width=MAX_IMG_WIDTH, max_height=MAX_IMG_HEIGHT,
             max_res=MAX_IMG_RES
         )
 
@@ -522,7 +522,8 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
         assert len(figs) == 1
         fig = figs[0]
         _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            fig, max_width=MAX_IMG_WIDTH, max_height=MAX_IMG_HEIGHT,
+            max_res=MAX_IMG_RES
         )
         with io.BytesIO() as buff:
             fig.savefig(
@@ -1437,7 +1438,8 @@ class Report(object):
         del inst_
         tight_layout(fig=fig)
         _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            fig, max_width=MAX_IMG_WIDTH, max_height=MAX_IMG_HEIGHT,
+            max_res=MAX_IMG_RES
         )
         img = _fig_to_img(fig, image_format=image_format)
         dom_id = self._get_dom_id()
@@ -1503,7 +1505,8 @@ class Report(object):
                                      image_format, tags):
         fig = ica.plot_sources(inst=inst, show=False)
         _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            fig, max_width=MAX_IMG_WIDTH, max_height=MAX_IMG_HEIGHT,
+            max_res=MAX_IMG_RES
         )
         img = _fig_to_img(fig, image_format=image_format)
         dom_id = self._get_dom_id()
@@ -1518,7 +1521,8 @@ class Report(object):
                                     image_format, tags):
         fig = ica.plot_scores(scores=scores, title=None, show=False)
         _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            fig, max_width=MAX_IMG_WIDTH, max_height=MAX_IMG_HEIGHT,
+            max_res=MAX_IMG_RES
         )
         img = _fig_to_img(fig, image_format=image_format)
         dom_id = self._get_dom_id()
