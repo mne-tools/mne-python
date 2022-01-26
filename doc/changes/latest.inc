@@ -92,6 +92,8 @@ Enhancements
 
 - All methods of :class:`mne.Report` with a ``tags`` parameter now also accept a single tag passed as a string (previously, you needed to pass a tuple of strings, even for a single tag) (:gh:`10183`, by `Richard Höchenberger`_)
 
+- :meth:`mne.Report.add_trans` has gained a new parameter, ``alpha``, to control the level of opacity of the rendered head (:gh:`10247`, by `Richard Höchenberger`_)
+
 - The new convenience function :func:`mne.event.match_event_names` allows for straightforward checking if a specific event name or a group of events is present in a collection of event names (:gh:`10233` by `Richard Höchenberger`_)
 
 Bugs
