@@ -1551,7 +1551,8 @@ class Report(object):
         if len(figs) == 1:
             fig = figs[0]
             _constrain_fig_resolution(
-                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+                fig, max_width=MAX_IMG_WIDTH, max_height=MAX_IMG_HEIGHT,
+                max_res=MAX_IMG_RES
             )
             img = _fig_to_img(fig=fig, image_format=image_format)
             dom_id = self._get_dom_id()
