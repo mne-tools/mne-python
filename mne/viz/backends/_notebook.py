@@ -95,7 +95,8 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         return layout
 
     def _dock_add_slider(self, name, value, rng, callback,
-                         compact=True, double=False, layout=None):
+                         compact=True, double=False, tooltip=None,
+                         layout=None):
         layout = self._dock_named_layout(name, layout, compact)
         klass = FloatSlider if double else IntSlider
         widget = klass(
@@ -436,6 +437,9 @@ class _IpyWidget(_AbstractWidget):
 
     def set_enabled(self, state):
         self._widget.disabled = not state
+
+    def is_enabled(self):
+        return not self._widget.disabled
 
     def update(self, repaint=True):
         pass

@@ -545,7 +545,8 @@ class _AbstractDock(ABC):
 
     @abstractmethod
     def _dock_add_slider(self, name, value, rng, callback,
-                         compact=True, double=False, layout=None):
+                         compact=True, double=False, tooltip=None,
+                         layout=None):
         pass
 
     @abstractmethod
@@ -681,6 +682,10 @@ class _AbstractWidget(ABC):
 
     @abstractmethod
     def set_enabled(self, state):
+        pass
+
+    @abstractmethod
+    def is_enabled(self):
         pass
 
     @abstractmethod
