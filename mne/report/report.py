@@ -104,6 +104,7 @@ MAX_IMG_RES = 100  # in dots per inch
 MAX_IMG_WIDTH = 850  # in pixels
 MAX_IMG_HEIGHT = 600  # in pixels
 
+
 def _get_ch_types(inst):
     return [ch_type for ch_type in _DATA_CH_TYPES_SPLIT if ch_type in inst]
 
