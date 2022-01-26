@@ -131,13 +131,13 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     coreg._reset_fitting_parameters()
     coreg._set_scale_mode("uniform")
     coreg._fits_fiducials()
-    assert_allclose(coreg._coreg._scale,
+    assert_allclose(coreg.coreg._scale,
                     np.array([97.46, 97.46, 97.46]) * 1e-2,
                     atol=1e-3)
     coreg._set_icp_fid_match("nearest")
     coreg._set_scale_mode("3-axis")
     coreg._fits_icp()
-    assert_allclose(coreg._coreg._scale,
+    assert_allclose(coreg.coreg._scale,
                     np.array([104.43, 101.47, 125.78]) * 1e-2,
                     atol=1e-3)
     coreg._set_scale_mode("None")
@@ -166,11 +166,11 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert coreg._nasion_weight == 11.
     coreg._fit_fiducials()
     coreg._fit_icp()
-    assert coreg._coreg._extra_points_filter is None
+    assert coreg.coreg._extra_points_filter is None
     coreg._omit_hsp()
-    assert coreg._coreg._extra_points_filter is not None
+    assert coreg.coreg._extra_points_filter is not None
     coreg._reset_omit_hsp_filter()
-    assert coreg._coreg._extra_points_filter is None
+    assert coreg.coreg._extra_points_filter is None
 
     assert coreg._grow_hair == 0
     coreg._set_grow_hair(0.1)
