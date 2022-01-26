@@ -192,6 +192,64 @@ def test_gui_api(renderer_notebook, nbexec):
     renderer._dock_show()
     # --- END: dock ---
 
+    # --- BEGIN: tool bar ---
+    renderer._tool_bar_initialize(
+        name="default",
+        window=None,
+    )
+    renderer._tool_bar_load_icons()
+
+    # button
+    assert 'reset' not in renderer.actions
+    renderer._tool_bar_add_button(
+        name='reset',
+        desc='',
+        func=mock,
+        icon_name='help',
+    )
+    assert 'reset' in renderer.actions
+
+    # icon
+    renderer._tool_bar_update_button_icon(
+        name='reset',
+        icon_name='reset',
+    )
+
+    # text
+    renderer._tool_bar_add_text(
+        name='',
+        value='',
+        placeholder='',
+    )
+
+    # spacer
+    renderer._tool_bar_add_spacer()
+
+    # file button
+    assert 'help' not in renderer.actions
+    renderer._tool_bar_add_file_button(
+        name='help',
+        desc='',
+        func=mock,
+        shortcut=None,
+    )
+    assert 'help' in renderer.actions
+
+    # play button
+    assert 'play' not in renderer.actions
+    renderer._tool_bar_add_play_button(
+        name='play',
+        desc='',
+        func=mock,
+        shortcut=None,
+    )
+    assert 'play' in renderer.actions
+
+    # theme
+    renderer._tool_bar_set_theme(theme='auto')
+    renderer._tool_bar_set_theme(theme='dark')
+    # --- END: tool bar ---
+
     renderer.show()
     renderer.close()
 
