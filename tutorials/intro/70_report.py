@@ -82,7 +82,8 @@ subjects_dir = data_path / 'subjects'
 #
 # .. warning::
 #    In the following example, we crop the raw data to 60 seconds merely to
-#    speed up processing; this is not usually recommended!
+#    speed up processing for the sake of this tutorial; this is not usually
+#    recommended!
 
 raw_path = sample_dir / 'sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw(raw_path)
