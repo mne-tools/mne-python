@@ -1263,7 +1263,7 @@ class Report(object):
             The FreeSurfer ``SUBJECTS_DIR``.
         alpha : float | None
             The level of opacity to apply to the head surface. If a float, must
-            be between 0 and 1 (inclusive), where 1 means no transparency. If
+            be between 0 and 1 (inclusive), where 1 means fully opaque. If
             ``None``, will use the MNE-Python default value.
         %(report_tags)s
         %(report_replace)s
