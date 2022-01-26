@@ -76,7 +76,7 @@ Enhancements
 
 - Add a checkbox to show and hide the MEG helmet in the coregistration GUI (:gh:`10200` by `Guillaume Favelier`_)
 
-- :class:`mne.gui.CoregistrationUI` gained a new attribute, ``coreg``, to access the :class:`mne.coreg.Coregistration` instance used by the GUI (:gh:`10255` by `Richard Höchenberger`_)
+- The coregistration GUI (instantiated via :func:`mne.gui.coregistration`) gained a new attribute, ``coreg``, to access the :class:`mne.coreg.Coregistration` instance used by the GUI (:gh:`10255` by `Richard Höchenberger`_)
 
 - Add marching cubes display of head if :func:`mne.bem.make_scalp_surfaces` has not computed or the recon-all hasn't finished (:gh:`10202` by `Alex Rockhill`_)
 

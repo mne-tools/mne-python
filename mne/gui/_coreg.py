@@ -96,6 +96,7 @@ class CoregistrationUI(HasTraits):
     coreg : mne.coreg.Coregistration
         The coregistration instance used by the graphical interface.
     """
+
     _subject = Unicode()
     _subjects_dir = Unicode()
     _lock_fids = Bool()
