@@ -44,8 +44,8 @@ class CoregistrationUI(HasTraits):
     %(fiducials)s
     head_resolution : bool
         If True, use a high-resolution head surface. Defaults to False.
-    head_transparency : bool
-        If True, display the head surface with transparency. Defaults to False.
+    head_opacity : float
+        The opacity of the head surface. Defaults to 0.95.
     hpi_coils : bool
         If True, display the HPI coils. Defaults to True.
     head_shape_points : bool
@@ -99,7 +99,7 @@ class CoregistrationUI(HasTraits):
     _head_shape_points = Bool()
     _eeg_channels = Bool()
     _head_resolution = Bool()
-    _head_transparency = Bool()
+    _head_opacity = Float()
     _helmet = Bool()
     _grow_hair = Float()
     _subject_to = Unicode()
@@ -113,12 +113,12 @@ class CoregistrationUI(HasTraits):
     @verbose
     def __init__(self, info_file, subject=None, subjects_dir=None,
                  fiducials='auto', head_resolution=None,
-                 head_transparency=None, hpi_coils=None,
+                 head_opacity=None, hpi_coils=None,
                  head_shape_points=None, eeg_channels=None, orient_glyphs=None,
                  scale_by_distance=None, project_eeg=None, mark_inside=None,
                  sensor_opacity=None, trans=None, size=None, bgcolor=None,
                  show=True, block=False, interaction='terrain', *,
-                 standalone=None,
+                 head_transparency=None, standalone=None,
                  verbose=None):
         if standalone is not None:
             depr_message = ('standalone is deprecated and will be replaced by '
@@ -129,6 +129,17 @@ class CoregistrationUI(HasTraits):
             else:
                 warn(depr_message + ' Since you passed values for both '
                      'standalone and block, standalone will be ignored.',
+                     DeprecationWarning)
+        if head_transparency is not None:
+            depr_message = ('head_transparency is deprecated and will be'
+                            ' replaced by head_opacity in 1.1.')
+            if head_opacity is None:
+                head_opacity = 0.95 if head_transparency else 1.0
+                warn(depr_message, DeprecationWarning)
+            else:
+                warn(depr_message + ' Since you passed values for both '
+                     'head_transparency and head_opacity, '
+                     'head_transparency will be ignored.',
                      DeprecationWarning)
         from ..viz.backends.renderer import _get_renderer
         from ..viz.backends._utils import _qt_app_exec
@@ -151,7 +162,6 @@ class CoregistrationUI(HasTraits):
         self._mouse_no_mvt = -1
         self._to_cf_t = None
         self._omit_hsp_distance = 0.0
-        self._head_opacity = 1.0
         self._fid_colors = tuple(
             DEFAULTS['coreg'][f'{key}_color'] for key in
             ('lpa', 'nasion', 'rpa'))
@@ -166,9 +176,8 @@ class CoregistrationUI(HasTraits):
             head_shape_points=_get_default(head_shape_points, True),
             eeg_channels=_get_default(eeg_channels, True),
             head_resolution=_get_default(head_resolution, True),
-            head_transparency=_get_default(head_transparency, False),
+            head_opacity=_get_default(head_opacity, 0.95),
             helmet=False,
-            head_opacity=0.5,
             sensor_opacity=_get_default(sensor_opacity, 1.0),
             fiducials=("LPA", "Nasion", "RPA"),
             fiducial="LPA",
@@ -234,7 +243,8 @@ class CoregistrationUI(HasTraits):
         self._set_head_shape_points(self._defaults["head_shape_points"])
         self._set_eeg_channels(self._defaults["eeg_channels"])
         self._set_head_resolution(self._defaults["head_resolution"])
-        self._set_head_transparency(self._defaults["head_transparency"])
+        self._set_head_opacity(self._defaults["head_opacity"])
+        self._old_head_opacity = self._head_opacity
         self._set_helmet(self._defaults["helmet"])
         self._set_grow_hair(self._defaults["grow_hair"])
         self._set_skip_fiducials(self._defaults["skip_fiducials"])
@@ -352,8 +362,8 @@ class CoregistrationUI(HasTraits):
     def _set_head_resolution(self, state):
         self._head_resolution = bool(state)
 
-    def _set_head_transparency(self, state):
-        self._head_transparency = bool(state)
+    def _set_head_opacity(self, value):
+        self._head_opacity = value
 
     def _set_helmet(self, state):
         self._helmet = bool(state)
@@ -458,13 +468,15 @@ class CoregistrationUI(HasTraits):
                           "fit_fiducials", "fit_icp"]
         fits_widgets = ["fits_fiducials", "fits_icp"]
         fid_widgets = ["fid_X", "fid_Y", "fid_Z", "fids_file", "fids"]
-        self._set_head_transparency(self._lock_fids)
         if self._lock_fids:
+            self._head_opacity = self._old_head_opacity
             self._forward_widget_command(locked_widgets, "set_enabled", True)
             self._scale_mode_changed()
             self._display_message()
             self._update_distance_estimation()
         else:
+            self._old_head_opacity = self._head_opacity
+            self._head_opacity = 1.0
             self._forward_widget_command(locked_widgets, "set_enabled", False)
             self._forward_widget_command(fits_widgets, "set_enabled", False)
             self._display_message("Placing MRI fiducials - "
@@ -542,12 +554,11 @@ class CoregistrationUI(HasTraits):
     def _head_resolution_changed(self, change=None):
         self._update_plot(["head"])
 
-    @observe("_head_transparency")
-    def _head_transparency_changed(self, change=None):
-        self._head_opacity = self._defaults["head_opacity"] \
-            if self._head_transparency else 1.0
-        self._actors["head"].GetProperty().SetOpacity(self._head_opacity)
-        self._renderer._update()
+    @observe("_head_opacity")
+    def _head_opacity_changed(self, change=None):
+        if "head" in self._actors:
+            self._actors["head"].GetProperty().SetOpacity(self._head_opacity)
+            self._renderer._update()
 
     @observe("_helmet")
     def _helmet_changed(self, change=None):
@@ -1236,6 +1247,15 @@ class CoregistrationUI(HasTraits):
             value=self._helmet,
             callback=self._set_helmet,
             tooltip="Enable/Disable helmet",
+            layout=view_options_layout,
+        )
+        self._widgets["head_opacity"] = self._renderer._dock_add_slider(
+            name="Head opacity",
+            value=self._head_opacity,
+            rng=[0.25, 1.0],
+            callback=self._set_head_opacity,
+            compact=True,
+            double=True,
             layout=view_options_layout,
         )
         self._renderer._dock_add_stretch()

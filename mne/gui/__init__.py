@@ -130,7 +130,6 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         'scrollable': (scrollable, True),
         'head_inside': (head_inside, True),
         'guess_mri_subject': guess_mri_subject,
-        'head_opacity': head_opacity,
         'scale': scale,
         'advanced_rendering': advanced_rendering,
     }
@@ -152,7 +151,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         advanced_rendering = \
             config.get('MNE_COREG_ADVANCED_RENDERING', 'true') == 'true'
     if head_opacity is None:
-        head_opacity = config.get('MNE_COREG_HEAD_OPACITY', 1.)
+        head_opacity = config.get('MNE_COREG_HEAD_OPACITY', 0.95)
     if head_inside is None:
         head_inside = \
             config.get('MNE_COREG_HEAD_INSIDE', 'true').lower() == 'true'
@@ -191,11 +190,11 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     block = not MNE_3D_BACKEND_TESTING
     return CoregistrationUI(
         info_file=inst, subject=subject, subjects_dir=subjects_dir,
-        head_resolution=head_high_res, orient_glyphs=orient_to_surface,
-        scale_by_distance=scale_by_distance, project_eeg=project_eeg,
-        mark_inside=mark_inside, trans=trans, size=(width, height),
-        show=show, block=block, interaction=interaction,
-        verbose=verbose
+        head_resolution=head_high_res, head_opacity=head_opacity,
+        orient_glyphs=orient_to_surface, scale_by_distance=scale_by_distance,
+        project_eeg=project_eeg,mark_inside=mark_inside, trans=trans,
+        size=(width, height), show=show, block=block,
+        interaction=interaction, verbose=verbose
     )
 
 
