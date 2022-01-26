@@ -105,6 +105,10 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     with pytest.warns(DeprecationWarning, match='standalone is deprecated'):
         CoregistrationUI(info_file=None, subject='sample',
                          subjects_dir=subjects_dir, standalone=False)
+    with pytest.warns(DeprecationWarning, match='head_transparency '
+                                                'is deprecated'):
+        CoregistrationUI(info_file=None, subject='sample',
+                         subjects_dir=subjects_dir, head_transparency=False)
 
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     tmp_trans = tmp_path / 'tmp-trans.fif'
