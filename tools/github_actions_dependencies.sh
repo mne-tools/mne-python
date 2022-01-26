@@ -21,8 +21,8 @@ else
 	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy scipy pandas "scikit-learn>=0.24.2" statsmodels
 	echo "H5py, pillow, matplotlib"
 	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py pillow matplotlib
-	echo "nilearn"
-	pip install $STD_ARGS --pre --only-binary ":all:" https://github.com/nilearn/nilearn/zipball/main
+	echo "Numba, nilearn"
+	pip install $STD_ARGS --pre --only-binary ":all:" numba llvmlite https://github.com/nilearn/nilearn/zipball/main
 	echo "VTK"
 	# Have to use our own version until VTK releases a 3.10 build
 	wget -q https://osf.io/hjyvx/download -O vtk-9.1.20211213.dev0-cp310-cp310-linux_x86_64.whl
