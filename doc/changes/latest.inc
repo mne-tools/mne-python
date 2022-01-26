@@ -82,7 +82,7 @@ Enhancements
 
 - :func:`mne.gui.coregistration` now uses the proper widget style for push buttons, making for a more native feel of the application (:gh:`10220` by `Richard Höchenberger`_ and `Guillaume Favelier`_)
 
-- :class:`mne.coreg.Coregistration`, :func:`mne.scale_bem`, and :func:`mne.scale_mri` gained a new parameter, ``on_defects``, controlling how to handle topological defects (:gh:`10230`, by `Richard Höchenberger`_)
+- :class:`mne.coreg.Coregistration`, :func:`mne.scale_bem`, and :func:`mne.scale_mri` gained a new parameter, ``on_defects``, controlling how to handle topological defects (:gh:`10230`, :gh:`10249` by `Richard Höchenberger`_)
 
 - Added plotting points to represent contacts on the max intensity projection plot for :func:`mne.gui.locate_ieeg` (:gh:`10212` by `Alex Rockhill`_)
 

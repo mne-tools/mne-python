@@ -102,6 +102,7 @@ def _get_head_surface(subject, source, subjects_dir, on_defects,
                 try:
                     surf = read_bem_surfaces(this_head, True,
                                              FIFF.FIFFV_BEM_SURF_ID_HEAD,
+                                             on_defects=on_defects,
                                              verbose=False)
                 except ValueError:
                     pass
