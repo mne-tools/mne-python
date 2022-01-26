@@ -20,7 +20,8 @@ from ..io.meas_info import _empty_info
 from ..io._read_raw import supported as raw_supported_types
 from ..bem import make_bem_solution, write_bem_solution
 from ..coreg import (Coregistration, _is_mri_subject, scale_mri, bem_fname,
-                     _mri_subject_has_bem, _find_fiducials_files, fid_fname)
+                     _mri_subject_has_bem, _find_fiducials_files, fid_fname,
+                     _map_fid_name_to_idx)
 from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_head_shape_points, _plot_mri_fiducials,
                        _plot_hpi_coils, _plot_sensors, _plot_helmet)
@@ -28,7 +29,7 @@ from ..transforms import (read_trans, write_trans, _ensure_trans, _get_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
                      warn, verbose, logger)
-from ..channels import read_dig_fif, make_dig_montage
+from ..channels import read_dig_fif
 
 
 class _WorkerData():
@@ -389,10 +390,13 @@ class CoregistrationUI(HasTraits):
         self._scale_mode = mode
 
     def _set_fiducial(self, value, coord):
-        fid = self._current_fiducial.lower()
+        fid = self._current_fiducial
+        fid_idx = _map_fid_name_to_idx(name=fid)
+
         coords = ["X", "Y", "Z"]
-        idx = coords.index(coord)
-        getattr(self._coreg, f"_{fid}")[0][idx] = value / 1e3
+        coord_idx = coords.index(coord)
+
+        self._coreg.fiducials.dig[fid_idx]['r'][coord_idx] = value / 1e3
         self._update_plot("mri_fids")
 
     def _set_parameter(self, value, mode_name, coord):
@@ -790,8 +794,10 @@ class CoregistrationUI(HasTraits):
         )
 
     def _update_fiducials(self):
-        fid = self._current_fiducial.lower()
-        val = getattr(self._coreg, f"_{fid}")[0] * 1e3
+        fid = self._current_fiducial
+        idx = _map_fid_name_to_idx(name=fid)
+        val = self._coreg.fiducials.dig[idx]['r'] * 1e3
+
         with self._lock_plot():
             self._forward_widget_command(
                 ["fid_X", "fid_Y", "fid_Z"], "set_value", val)
@@ -1080,12 +1086,7 @@ class CoregistrationUI(HasTraits):
 
     def _save_mri_fiducials(self, fname):
         self._display_message(f"Saving {fname}...")
-        dig_montage = make_dig_montage(
-            lpa=np.array(self._coreg._lpa[0]),
-            rpa=np.array(self._coreg._rpa[0]),
-            nasion=np.array(self._coreg._nasion[0]),
-            coord_frame='mri'
-        )
+        dig_montage = self._coreg.fiducials
         write_fiducials(
             fname=fname, pts=dig_montage.dig, coord_frame='mri', overwrite=True
         )
