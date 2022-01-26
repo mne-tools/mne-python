@@ -17,9 +17,9 @@
     aria-labelledby="accordion-header-{{ id }}">
     <div class="accordion-body">
       {{ repr | safe }}
+      {{ drop_log | safe }}
       {{ metadata | safe }}
       {{ erp_imgs | safe }}
-      {{ drop_log | safe }}
       {{ psd | safe }}
       {{ ssp_projs | safe }}
     </div>

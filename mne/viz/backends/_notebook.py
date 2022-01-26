@@ -65,7 +65,9 @@ class _IpyDock(_AbstractDock, _IpyLayout):
     def _dock_add_layout(self, vertical=True):
         return VBox() if vertical else HBox()
 
-    def _dock_add_label(self, value, align=False, layout=None):
+    def _dock_add_label(
+        self, value, align=False, layout=None, selectable=False
+    ):
         layout = self._dock_layout if layout is None else layout
         widget = Text(value=value, disabled=True)
         self._layout_add_widget(layout, widget)

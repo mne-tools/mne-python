@@ -437,7 +437,7 @@ def _get_bem_contour_figs_as_arrays(
     return out
 
 
-def _iterate_trans_views(function, **kwargs):
+def _iterate_trans_views(function, alpha, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     from ..viz import create_3d_figure
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
@@ -447,9 +447,11 @@ def _iterate_trans_views(function, **kwargs):
     from ..viz.backends.renderer import backend
     try:
         try:
-            return _itv(function, fig, surfaces=['head-dense'], **kwargs)
+            return _itv(
+                function, fig, surfaces={'head-dense': alpha}, **kwargs
+            )
         except IOError:
-            return _itv(function, fig, surfaces=['head'], **kwargs)
+            return _itv(function, fig, surfaces={'head': alpha}, **kwargs)
     finally:
         backend._close_3d_figure(fig)
 
@@ -1241,7 +1243,7 @@ class Report(object):
 
     @fill_doc
     def add_trans(self, trans, *, info, title, subject=None, subjects_dir=None,
-                  tags=('coregistration',), replace=False):
+                  alpha=None, tags=('coregistration',), replace=False):
         """Add a coregistration visualization to the report.
 
         Parameters
@@ -1259,6 +1261,10 @@ class Report(object):
             report creation.
         subjects_dir : path-like | None
             The FreeSurfer ``SUBJECTS_DIR``.
+        alpha : float | None
+            The level of opacity to apply to the head surface. If a float, must
+            be between 0 and 1 (inclusive), where 1 means fully opaque. If
+            ``None``, will use the MNE-Python default value.
         %(report_tags)s
         %(report_replace)s
 
@@ -1273,6 +1279,7 @@ class Report(object):
             info=info,
             subject=subject,
             subjects_dir=subjects_dir,
+            alpha=alpha,
             title=title,
             tags=tags
         )
@@ -3484,8 +3491,8 @@ class Report(object):
 
         return htmls
 
-    def _render_trans(self, *, trans, info, subject, subjects_dir, title,
-                      tags):
+    def _render_trans(self, *, trans, info, subject, subjects_dir, alpha,
+                      title, tags):
         """Render trans (only PNG)."""
         if not isinstance(trans, Transform):
             trans = read_trans(trans)
@@ -3497,7 +3504,7 @@ class Report(object):
                       meg=['helmet', 'sensors'], show_axes=True,
                       coord_frame='mri')
         img, caption = _iterate_trans_views(
-            function=plot_alignment, **kwargs)
+            function=plot_alignment, alpha=alpha, **kwargs)
 
         dom_id = self._get_dom_id()
         html = _html_image_element(

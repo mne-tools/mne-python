@@ -43,6 +43,7 @@ def test_gui_api(renderer_notebook, nbexec):
     renderer._dock_initialize(name='', area='left')
 
     # label (not interactive)
+    widget = renderer._dock_add_label('', align=False, selectable=True)
     widget = renderer._dock_add_label('', align=True)
     widget.update()
     # labels are disabled by default with the notebook backend

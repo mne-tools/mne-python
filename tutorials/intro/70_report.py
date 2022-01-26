@@ -306,14 +306,15 @@ report.save('report_mri_and_bem.html', overwrite=True)
 # "coregistration") can be visualized via :meth:`mne.Report.add_trans`. The
 # method expects the transformation either as a `~mne.transforms.Transform`
 # object or as a path to a ``trans.fif`` file, the FreeSurfer subject name and
-# subjects directory, and a title.
+# subjects directory, and a title. The ``alpha`` parameter can be used to
+# control the transparency of the head, where a value of 1 means fully opaque.
 
 trans_path = sample_dir / 'sample_audvis_raw-trans.fif'
 
 report = mne.Report(title='Coregistration example')
 report.add_trans(
     trans=trans_path, info=raw_path, subject='sample',
-    subjects_dir=subjects_dir, title='Coregistration'
+    subjects_dir=subjects_dir, alpha=1.0, title='Coregistration'
 )
 report.save('report_coregistration.html', overwrite=True)
 

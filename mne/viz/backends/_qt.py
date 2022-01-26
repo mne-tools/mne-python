@@ -75,13 +75,17 @@ class _QtDock(_AbstractDock, _QtLayout):
         layout = QVBoxLayout() if vertical else QHBoxLayout()
         return layout
 
-    def _dock_add_label(self, value, align=False, layout=None):
+    def _dock_add_label(
+        self, value, align=False, layout=None, selectable=False
+    ):
         layout = self._dock_layout if layout is None else layout
         widget = QLabel()
         if align:
             widget.setAlignment(Qt.AlignCenter)
         widget.setText(value)
         widget.setWordWrap(True)
+        if selectable:
+            widget.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 

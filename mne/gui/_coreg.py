@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from functools import partial
 import os
 import os.path as op
+from pathlib import Path
 import time
 import queue
 import threading
@@ -301,7 +302,7 @@ class CoregistrationUI(HasTraits):
 
     def _set_subjects_dir(self, subjects_dir):
         self._subjects_dir = _check_fname(
-            subjects_dir, overwrite=True, must_exist=True, need_dir=True)
+            subjects_dir, overwrite='read', must_exist=True, need_dir=True)
 
     def _set_subject(self, subject):
         self._subject = subject
@@ -313,7 +314,7 @@ class CoregistrationUI(HasTraits):
         if not self._check_fif('fiducials', fname):
             return
         self._fiducials_file = _check_fname(
-            fname, overwrite=True, must_exist=True, need_dir=False)
+            fname, overwrite='read', must_exist=True, need_dir=False)
 
     def _set_current_fiducial(self, fid):
         self._current_fiducial = fid.lower()
@@ -331,15 +332,15 @@ class CoregistrationUI(HasTraits):
             self._widgets["info_file"].set_value(0, '')
             return
 
-        fname = _check_fname(fname, overwrite=True)  # convert to str
+        fname = _check_fname(fname, overwrite='read')  # convert to str
 
         # ctf ds `files` are actually directories
         if fname.endswith(('.ds',)):
             self._info_file = _check_fname(
-                fname, overwrite=True, must_exist=True, need_dir=True)
+                fname, overwrite='read', must_exist=True, need_dir=True)
         else:
             self._info_file = _check_fname(
-                fname, overwrite=True, must_exist=True, need_dir=False)
+                fname, overwrite='read', must_exist=True, need_dir=False)
 
     def _set_omit_hsp_distance(self, distance):
         self._omit_hsp_distance = distance
@@ -492,7 +493,7 @@ class CoregistrationUI(HasTraits):
             self._head_opacity = 1.0
             self._forward_widget_command(locked_widgets, "set_enabled", False)
             self._forward_widget_command(fits_widgets, "set_enabled", False)
-            self._display_message("Picking fiducials - "
+            self._display_message("Placing MRI fiducials - "
                                   f"{self._current_fiducial.upper()}")
         self._set_sensors_visibility(self._lock_fids)
         self._forward_widget_command("lock_fids", "set_value", self._lock_fids)
@@ -512,7 +513,7 @@ class CoregistrationUI(HasTraits):
         self._update_fiducials()
         self._follow_fiducial_view()
         if not self._lock_fids:
-            self._display_message("Picking fiducials - "
+            self._display_message("Placing MRI fiducials - "
                                   f"{self._current_fiducial.upper()}")
 
     @observe("_info_file")
@@ -1180,7 +1181,9 @@ class CoregistrationUI(HasTraits):
         return True
 
     def _configure_dock(self):
-        self._renderer._dock_initialize(name="Input", area="left")
+        self._renderer._dock_initialize(
+            name="Input", area="left", max_width="350px"
+        )
         mri_subject_layout = self._renderer._dock_add_group_box("MRI Subject")
         self._widgets["subjects_dir"] = self._renderer._dock_add_file_button(
             name="subjects_dir",
@@ -1326,7 +1329,9 @@ class CoregistrationUI(HasTraits):
         )
         self._renderer._dock_add_stretch()
 
-        self._renderer._dock_initialize(name="Parameters", area="right")
+        self._renderer._dock_initialize(
+            name="Parameters", area="right", max_width="350px"
+        )
         mri_scaling_layout = \
             self._renderer._dock_add_group_box(name="MRI Scaling")
         self._widgets["scaling_mode"] = self._renderer._dock_add_combo_box(
@@ -1447,6 +1452,8 @@ class CoregistrationUI(HasTraits):
             input_text_widget=False,
             tooltip="Save the transform file to disk",
             layout=save_trans_layout,
+            filter='Head->MRI transformation (*-trans.fif *_trans.fif)',
+            initial_directory=str(Path(self._info_file).parent),
         )
         self._widgets["load_trans"] = self._renderer._dock_add_file_button(
             name="load_trans",
@@ -1455,6 +1462,8 @@ class CoregistrationUI(HasTraits):
             input_text_widget=False,
             tooltip="Load the transform file from disk",
             layout=save_trans_layout,
+            filter='Head->MRI transformation (*-trans.fif *_trans.fif)',
+            initial_directory=str(Path(self._info_file).parent),
         )
         self._widgets["reset_trans"] = self._renderer._dock_add_button(
             name="Reset",
