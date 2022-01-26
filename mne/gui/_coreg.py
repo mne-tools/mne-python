@@ -31,12 +31,6 @@ from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
 from ..channels import read_dig_fif, make_dig_montage
 
 
-class _WorkerData():
-    def __init__(self, name, params=None):
-        self._name = name
-        self._params = params
-
-
 @fill_doc
 class CoregistrationUI(HasTraits):
     """Class for coregistration assisted by graphical interface.
@@ -163,7 +157,6 @@ class CoregistrationUI(HasTraits):
         self._parameter_mutex = threading.Lock()
         self._redraw_mutex = threading.Lock()
         self._job_queue = queue.Queue()
-        self._parameter_queue = queue.Queue()
         self._head_geo = None
         self._coord_frame = "mri"
         self._mouse_no_mvt = -1
@@ -600,29 +593,16 @@ class CoregistrationUI(HasTraits):
     def _icp_fid_match_changed(self, change=None):
         self._coreg.set_fid_match(self._icp_fid_match)
 
-    def _run_worker(self, queue, jobs):
-        while True:
-            data = queue.get()
-            func = jobs[data._name]
-            if data._params is not None:
-                func(**data._params)
-            else:
-                func()
-            queue.task_done()
-
     def _configure_worker(self):
-        work_plan = {
-            "_job_queue": dict(save_subject=self._save_subject),
-            "_parameter_queue": dict(set_parameter=self._set_parameter),
-        }
-        for queue_name, jobs in work_plan.items():
-            t = threading.Thread(target=partial(
-                self._run_worker,
-                queue=getattr(self, queue_name),
-                jobs=jobs,
-            ))
-            t.daemon = True
-            t.start()
+        def worker():
+            while True:
+                ret = self._job_queue.get()
+                if ret:
+                    self._save_subject()
+                    self._job_queue.task_done()
+        t = threading.Thread(target=worker)
+        t.daemon = True
+        t.start()
 
     def _configure_picking(self):
         self._renderer._update_picking_callback(
@@ -1050,20 +1030,8 @@ class CoregistrationUI(HasTraits):
                 f"{self._current_icp_iterations} iterations.")
             del self._current_icp_iterations
 
-    def _task_save_subject(self):
-        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
-        if MNE_3D_BACKEND_TESTING:
-            self._save_subject()
-        else:
-            self._job_queue.put(_WorkerData("save_subject", None))
-
-    def _task_set_parameter(self, value, mode_name, coord):
-        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
-        if MNE_3D_BACKEND_TESTING:
-            self._set_parameter(value, mode_name, coord)
-        else:
-            self._parameter_queue.put(_WorkerData("set_parameter", dict(
-                value=value, mode_name=mode_name, coord=coord)))
+    def _start_worker(self):
+        self._job_queue.put(True)
 
     def _save_subject(self):
         self._display_message(f"Saving {self._subject_to}...")
@@ -1393,7 +1361,7 @@ class CoregistrationUI(HasTraits):
         )
         self._widgets["save_subject"] = self._renderer._dock_add_button(
             name="Save scaled anatomy",
-            callback=self._task_save_subject,
+            callback=self._start_worker,
             tooltip="Save scaled anatomy",
             layout=subject_to_layout,
         )
@@ -1413,7 +1381,7 @@ class CoregistrationUI(HasTraits):
                     value=attr[coords.index(coord)] * 1e3,
                     rng=np.array(rng),
                     callback=partial(
-                        self._task_set_parameter,
+                        self._set_parameter,
                         mode_name=mode_name.lower(),
                         coord=coord,
                     ),
