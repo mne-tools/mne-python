@@ -884,13 +884,28 @@ class CoregistrationUI(HasTraits):
         self._update_parameters()
         self._update_distance_estimation()
 
-    def _forward_widget_command(self, names, command, value):
-        names = [names] if not isinstance(names, list) else names
-        value = list(value) if isinstance(value, np.ndarray) else value
-        for idx, name in enumerate(names):
-            val = value[idx] if isinstance(value, list) else value
+    def _forward_widget_command(self, widget_names, method, values):
+        """Invoke a method of one or more widgets if the widgets exist.
+
+        Parameters
+        ----------
+        widget_names : str | list of str
+            The widget names to operate on.
+        method : str
+            The method to invoke.
+        values : str | list of str
+            The value(s) to pass to the method(s).
+        """
+        if not isinstance(widget_names, list):
+            widget_names = [widget_names]
+
+        values = list(values) if isinstance(values, np.ndarray) else values
+        assert len(widget_names) == len(values)
+        for idx, name in enumerate(widget_names):
+            val = values[idx] if isinstance(values, list) else values
             if name in self._widgets:
-                getattr(self._widgets[name], command)(val)
+                meth = getattr(self._widgets[name], method)
+                meth(val)
 
     def _set_sensors_visibility(self, state):
         sensors = ["head_fiducials", "hpi_coils", "head_shape_points",
