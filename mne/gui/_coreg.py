@@ -90,8 +90,13 @@ class CoregistrationUI(HasTraits):
 
         .. versionadded:: 1.0
     %(verbose)s
-    """
 
+    Attributes
+    ----------
+    coreg : mne.coreg.Coregistration
+        The coregistration instance used by the graphical interface.
+    """
+    
     _subject = Unicode()
     _subjects_dir = Unicode()
     _lock_fids = Bool()
@@ -221,12 +226,12 @@ class CoregistrationUI(HasTraits):
         self._immediate_redraw = (self._renderer._kind != 'qt')
         self._info = info
         self._fiducials = fiducials
-        self._coreg = Coregistration(
+        self.coreg = Coregistration(
             info=self._info, subject=subject, subjects_dir=subjects_dir,
             fiducials=fiducials,
             on_defects='ignore'  # safe due to interactive visual inspection
         )
-        fid_accurate = self._coreg._fid_accurate
+        fid_accurate = self.coreg._fid_accurate
         for fid in self._defaults["weights"].keys():
             setattr(self, f"_{fid}_weight", self._defaults["weights"][fid])
 
@@ -396,7 +401,7 @@ class CoregistrationUI(HasTraits):
         coords = ["X", "Y", "Z"]
         coord_idx = coords.index(coord)
 
-        self._coreg.fiducials.dig[fid_idx]['r'][coord_idx] = value / 1e3
+        self.coreg.fiducials.dig[fid_idx]['r'][coord_idx] = value / 1e3
         self._update_plot("mri_fids")
 
     def _set_parameter(self, value, mode_name, coord):
@@ -408,9 +413,9 @@ class CoregistrationUI(HasTraits):
 
     def _set_parameter_safe(self, value, mode_name, coord):
         params = dict(
-            rotation=self._coreg._rotation,
-            translation=self._coreg._translation,
-            scale=self._coreg._scale,
+            rotation=self.coreg._rotation,
+            translation=self.coreg._translation,
+            scale=self.coreg._scale,
         )
         idx = ["X", "Y", "Z"].index(coord)
         if mode_name == "rotation":
@@ -421,7 +426,7 @@ class CoregistrationUI(HasTraits):
             assert mode_name == "scale"
             params[mode_name][idx] = value / 1e2
             self._update_plot("head")
-        self._coreg._update_params(
+        self.coreg._update_params(
             rot=params["rotation"],
             tra=params["translation"],
             sca=params["scale"],
@@ -442,13 +447,13 @@ class CoregistrationUI(HasTraits):
         if point in funcs.keys():
             getattr(self, funcs[point])(weight > 0)
         setattr(self, f"_{point}_weight", weight)
-        setattr(self._coreg, f"_{point}_weight", weight)
+        setattr(self.coreg, f"_{point}_weight", weight)
         self._update_distance_estimation()
 
     @observe("_subjects_dir")
     def _subjects_dir_changed(self, change=None):
         # XXX: add coreg.set_subjects_dir
-        self._coreg._subjects_dir = self._subjects_dir
+        self.coreg._subjects_dir = self._subjects_dir
         subjects = self._get_subjects()
         self._subject = subjects[0]
         self._reset()
@@ -456,9 +461,9 @@ class CoregistrationUI(HasTraits):
     @observe("_subject")
     def _subject_changed(self, changed=None):
         # XXX: add coreg.set_subject()
-        self._coreg._subject = self._subject
-        self._coreg._setup_bem()
-        self._coreg._setup_fiducials(self._fiducials)
+        self.coreg._subject = self._subject
+        self.coreg._setup_bem()
+        self.coreg._setup_fiducials(self._fiducials)
         self._reset()
         self._update_projection_surface()
 
@@ -488,7 +493,7 @@ class CoregistrationUI(HasTraits):
     @observe("_fiducials_file")
     def _fiducials_file_changed(self, change=None):
         fids, _ = read_fiducials(self._fiducials_file)
-        self._coreg._setup_fiducials(fids)
+        self.coreg._setup_fiducials(fids)
         self._update_distance_estimation()
         self._reset()
         self._set_lock_fids(True)
@@ -517,8 +522,8 @@ class CoregistrationUI(HasTraits):
         else:
             self._info = read_raw(self._info_file).info
         # XXX: add coreg.set_info()
-        self._coreg._info = self._info
-        self._coreg._setup_digs()
+        self.coreg._info = self._info
+        self.coreg._setup_digs()
         self._reset()
 
     @observe("_orient_glyphs")
@@ -566,14 +571,14 @@ class CoregistrationUI(HasTraits):
 
     @observe("_grow_hair")
     def _grow_hair_changed(self, change=None):
-        self._coreg.set_grow_hair(self._grow_hair)
+        self.coreg.set_grow_hair(self._grow_hair)
         self._update_plot("head")
 
     @observe("_scale_mode")
     def _scale_mode_changed(self, change=None):
         locked_widgets = ["sX", "sY", "sZ", "fits_icp", "subject_to"]
         mode = None if self._scale_mode == "None" else self._scale_mode
-        self._coreg.set_scale_mode(mode)
+        self.coreg.set_scale_mode(mode)
         if self._lock_fids:
             self._forward_widget_command(locked_widgets, "set_enabled",
                                          mode is not None)
@@ -582,7 +587,7 @@ class CoregistrationUI(HasTraits):
 
     @observe("_icp_fid_match")
     def _icp_fid_match_changed(self, change=None):
-        self._coreg.set_fid_match(self._icp_fid_match)
+        self.coreg.set_fid_match(self._icp_fid_match)
 
     def _run_worker(self, queue, jobs):
         while True:
@@ -675,8 +680,8 @@ class CoregistrationUI(HasTraits):
         fiducials = [s.lower() for s in self._defaults["fiducials"]]
         idx = fiducials.index(self._current_fiducial.lower())
         # XXX: add coreg.set_fids
-        self._coreg._fid_points[idx] = self._surfaces["head"].points[vertex_id]
-        self._coreg._reset_fiducials()
+        self.coreg._fid_points[idx] = self._surfaces["head"].points[vertex_id]
+        self.coreg._reset_fiducials()
         self._update_fiducials()
         self._update_plot("mri_fids")
 
@@ -694,9 +699,9 @@ class CoregistrationUI(HasTraits):
         self._set_current_fiducial(self._defaults["fiducial"])
 
     def _omit_hsp(self):
-        self._coreg.omit_head_shape_points(self._omit_hsp_distance / 1e3)
-        n_omitted = np.sum(~self._coreg._extra_points_filter)
-        n_remaining = len(self._coreg._dig_dict['hsp']) - n_omitted
+        self.coreg.omit_head_shape_points(self._omit_hsp_distance / 1e3)
+        n_omitted = np.sum(~self.coreg._extra_points_filter)
+        n_remaining = len(self.coreg._dig_dict['hsp']) - n_omitted
         self._update_plot("hsp")
         self._update_distance_estimation()
         self._display_message(
@@ -704,11 +709,11 @@ class CoregistrationUI(HasTraits):
             f"{n_remaining} remaining.")
 
     def _reset_omit_hsp_filter(self):
-        self._coreg._extra_points_filter = None
-        self._coreg._update_params(force_update_omitted=True)
+        self.coreg._extra_points_filter = None
+        self.coreg._update_params(force_update_omitted=True)
         self._update_plot("hsp")
         self._update_distance_estimation()
-        n_total = len(self._coreg._dig_dict['hsp'])
+        n_total = len(self.coreg._dig_dict['hsp'])
         self._display_message(
             f"No head shape point is omitted, the total is {n_total}.")
 
@@ -722,7 +727,7 @@ class CoregistrationUI(HasTraits):
             self._to_cf_t = dict(mri=dict(trans=np.eye(4)), head=None)
         else:
             self._to_cf_t = _get_transforms_to_coord_frame(
-                self._info, self._coreg.trans, coord_frame=self._coord_frame)
+                self._info, self.coreg.trans, coord_frame=self._coord_frame)
         all_keys = (
             'head', 'mri_fids',  # MRI first
             'hsp', 'hpi', 'eeg', 'head_fids',  # then dig
@@ -765,12 +770,12 @@ class CoregistrationUI(HasTraits):
 
     @contextmanager
     def _lock_scale_mode(self):
-        old_scale_mode = self._coreg._scale_mode
-        self._coreg._scale_mode = None
+        old_scale_mode = self.coreg._scale_mode
+        self.coreg._scale_mode = None
         try:
             yield
         finally:
-            self._coreg._scale_mode = old_scale_mode
+            self.coreg._scale_mode = old_scale_mode
 
     def _display_message(self, msg=""):
         self._status_msg.set_value(msg)
@@ -787,25 +792,25 @@ class CoregistrationUI(HasTraits):
 
     def _update_projection_surface(self):
         self._head_geo = dict(
-            rr=self._coreg._get_processed_mri_points('low') *
-            self._coreg._scale.T,
-            tris=self._coreg._bem_low_res["tris"],
-            nn=self._coreg._bem_low_res["nn"]
+            rr=self.coreg._get_processed_mri_points('low') *
+            self.coreg._scale.T,
+            tris=self.coreg._bem_low_res["tris"],
+            nn=self.coreg._bem_low_res["nn"]
         )
 
     def _update_fiducials(self):
         fid = self._current_fiducial
         idx = _map_fid_name_to_idx(name=fid)
-        val = self._coreg.fiducials.dig[idx]['r'] * 1e3
+        val = self.coreg.fiducials.dig[idx]['r'] * 1e3
 
         with self._lock_plot():
             self._forward_widget_command(
                 ["fid_X", "fid_Y", "fid_Z"], "set_value", val)
 
     def _update_distance_estimation(self):
-        value = self._coreg._get_fiducials_distance_str() + '\n' + \
-            self._coreg._get_point_distance_str()
-        dists = self._coreg.compute_dig_mri_distances() * 1e3
+        value = self.coreg._get_fiducials_distance_str() + '\n' + \
+            self.coreg._get_point_distance_str()
+        dists = self.coreg.compute_dig_mri_distances() * 1e3
         if self._hsp_weight > 0:
             value += "\nHSP <-> MRI (mean/min/max): "\
                 f"{np.mean(dists):.2f} "\
@@ -817,18 +822,18 @@ class CoregistrationUI(HasTraits):
             with self._lock_params():
                 # rotation
                 self._forward_widget_command(["rX", "rY", "rZ"], "set_value",
-                                             np.rad2deg(self._coreg._rotation))
+                                             np.rad2deg(self.coreg._rotation))
                 # translation
                 self._forward_widget_command(["tX", "tY", "tZ"], "set_value",
-                                             self._coreg._translation * 1e3)
+                                             self.coreg._translation * 1e3)
                 # scale
                 self._forward_widget_command(["sX", "sY", "sZ"], "set_value",
-                                             self._coreg._scale * 1e2)
+                                             self.coreg._scale * 1e2)
 
     def _reset(self):
-        self._coreg.set_scale(self._coreg._default_parameters[6:9])
-        self._coreg.set_rotation(self._coreg._default_parameters[:3])
-        self._coreg.set_translation(self._coreg._default_parameters[3:6])
+        self.coreg.set_scale(self.coreg._default_parameters[6:9])
+        self.coreg.set_rotation(self.coreg._default_parameters[:3])
+        self.coreg.set_translation(self.coreg._default_parameters[3:6])
         self._update_plot()
         self._update_parameters()
         self._update_distance_estimation()
@@ -859,7 +864,7 @@ class CoregistrationUI(HasTraits):
 
     def _add_mri_fiducials(self):
         mri_fids_actors = _plot_mri_fiducials(
-            self._renderer, self._coreg._fid_points, self._subjects_dir,
+            self._renderer, self.coreg._fid_points, self._subjects_dir,
             self._subject, self._to_cf_t, self._fid_colors)
         # disable picking on the markers
         for actor in mri_fids_actors:
@@ -892,7 +897,7 @@ class CoregistrationUI(HasTraits):
                 orient_glyphs=self._orient_glyphs,
                 scale_by_distance=self._scale_by_distance,
                 mark_inside=self._mark_inside, surf=self._head_geo,
-                mask=self._coreg._extra_points_filter)
+                mask=self.coreg._extra_points_filter)
         else:
             hsp_actors = None
         self._update_actor("head_shape_points", hsp_actors)
@@ -937,13 +942,13 @@ class CoregistrationUI(HasTraits):
         head_surf._picking_target = True
         res = "high" if self._head_resolution else "low"
         head_surf.points = \
-            self._coreg._get_processed_mri_points(res) * self._coreg._scale.T
+            self.coreg._get_processed_mri_points(res) * self.coreg._scale.T
         self._surfaces["head"] = head_surf
         self._update_projection_surface()
 
     def _add_helmet(self):
         if self._helmet:
-            head_mri_t = _get_trans(self._coreg.trans, 'head', 'mri')[0]
+            head_mri_t = _get_trans(self.coreg.trans, 'head', 'mri')[0]
             helmet_actor, _, _ = _plot_helmet(
                 self._renderer, self._info, self._to_cf_t, head_mri_t,
                 self._coord_frame)
@@ -961,7 +966,7 @@ class CoregistrationUI(HasTraits):
                 "Fitting is disabled, lock the fiducials first.")
             return
         start = time.time()
-        self._coreg.fit_fiducials(
+        self.coreg.fit_fiducials(
             lpa_weight=self._lpa_weight,
             nasion_weight=self._nasion_weight,
             rpa_weight=self._rpa_weight,
@@ -995,7 +1000,7 @@ class CoregistrationUI(HasTraits):
             self._renderer._process_events()  # allow a draw or cancel
 
         start = time.time()
-        self._coreg.fit_icp(
+        self.coreg.fit_icp(
             n_iterations=self._icp_n_iterations,
             lpa_weight=self._lpa_weight,
             nasion_weight=self._nasion_weight,
@@ -1057,7 +1062,7 @@ class CoregistrationUI(HasTraits):
             self._display_message(f"Scaling {self._subject_to}...")
             scale_mri(
                 subject_from=self._subject, subject_to=self._subject_to,
-                scale=self._coreg._scale, overwrite=True,
+                scale=self.coreg._scale, overwrite=True,
                 subjects_dir=self._subjects_dir,
                 skip_fiducials=self._skip_fiducials, labels=self._scale_labels,
                 annot=self._copy_annots, on_defects='ignore'
@@ -1086,7 +1091,7 @@ class CoregistrationUI(HasTraits):
 
     def _save_mri_fiducials(self, fname):
         self._display_message(f"Saving {fname}...")
-        dig_montage = self._coreg.fiducials
+        dig_montage = self.coreg.fiducials
         write_fiducials(
             fname=fname, pts=dig_montage.dig, coord_frame='mri', overwrite=True
         )
@@ -1094,7 +1099,7 @@ class CoregistrationUI(HasTraits):
         self._set_fiducials_file(fname)
 
     def _save_trans(self, fname):
-        write_trans(fname, self._coreg.trans, overwrite=True)
+        write_trans(fname, self.coreg.trans, overwrite=True)
         self._display_message(
             f"{fname} transform file is saved.")
 
@@ -1103,7 +1108,7 @@ class CoregistrationUI(HasTraits):
                                    'mri', 'head')['trans']
         rot_x, rot_y, rot_z = rotation_angles(mri_head_t)
         x, y, z = mri_head_t[:3, 3]
-        self._coreg._update_params(
+        self.coreg._update_params(
             rot=np.array([rot_x, rot_y, rot_z]),
             tra=np.array([x, y, z]),
         )
@@ -1294,7 +1299,7 @@ class CoregistrationUI(HasTraits):
         coords = ["X", "Y", "Z"]
         for coord in coords:
             name = f"s{coord}"
-            attr = getattr(self._coreg, "_scale")
+            attr = getattr(self.coreg, "_scale")
             self._widgets[name] = self._renderer._dock_add_spin_box(
                 name=name,
                 value=attr[coords.index(coord)] * 1e2,
@@ -1348,7 +1353,7 @@ class CoregistrationUI(HasTraits):
             coord_layout = self._renderer._dock_add_layout(vertical=False)
             for mode, mode_name in (("t", "Translation"), ("r", "Rotation")):
                 name = f"{mode}{coord}"
-                attr = getattr(self._coreg, f"_{mode_name.lower()}")
+                attr = getattr(self.coreg, f"_{mode_name.lower()}")
                 self._widgets[name] = self._renderer._dock_add_spin_box(
                     name=name,
                     value=attr[coords.index(coord)] * 1e3,
@@ -1484,7 +1489,7 @@ class CoregistrationUI(HasTraits):
 
     def _clean(self):
         self._renderer = None
-        self._coreg = None
+        self.coreg = None
         self._widgets.clear()
         self._actors.clear()
         self._surfaces.clear()
