@@ -284,10 +284,10 @@ class CoregistrationUI(HasTraits):
         self._redraw()  # we need the elements to be present now
 
         if fid_accurate:
-            assert self._coreg._fid_filename is not None
+            assert self.coreg._fid_filename is not None
             # _set_fiducials_file() calls _update_mri_fiducials_label()
             # internally
-            self._set_fiducials_file(self._coreg._fid_filename)
+            self._set_fiducials_file(self.coreg._fid_filename)
         else:
             self._set_head_resolution('high')
             self._forward_widget_command('high_res_head', "set_value", True)
@@ -1196,7 +1196,7 @@ class CoregistrationUI(HasTraits):
             assert self._fiducials_file == fid_fname.format(
                 subjects_dir=self._subjects_dir, subject=self._subject
             )
-            assert self._coreg._fid_accurate is True
+            assert self.coreg._fid_accurate is True
             text = (
                 f'<p><strong>MRI fiducials (diamonds) loaded from '
                 f'standard location:</strong></p>'
