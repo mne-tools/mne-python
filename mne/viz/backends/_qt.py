@@ -446,7 +446,7 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
         self._status_bar = window.statusBar()
         self._status_bar_layout = self._status_bar.layout()
 
-    def _status_bar_add_label(self, value, stretch=0):
+    def _status_bar_add_label(self, value, *, stretch=0):
         widget = QLabel(value)
         self._layout_add_widget(self._status_bar_layout, widget, stretch)
         return _QtWidget(widget)

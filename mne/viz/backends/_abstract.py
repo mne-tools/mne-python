@@ -609,7 +609,7 @@ class _AbstractStatusBar(ABC):
         pass
 
     @abstractmethod
-    def _status_bar_add_label(self, value, stretch=0):
+    def _status_bar_add_label(self, value, *, stretch=0):
         pass
 
     @abstractmethod
