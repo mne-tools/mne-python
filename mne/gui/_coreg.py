@@ -28,7 +28,7 @@ from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
 from ..transforms import (read_trans, write_trans, _ensure_trans, _get_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
-                     warn, verbose, logger)
+                     warn, verbose, logger, _validate_type)
 from ..channels import read_dig_fif
 
 
@@ -790,9 +790,13 @@ class CoregistrationUI(HasTraits):
             self.coreg._scale_mode = old_scale_mode
 
     def _display_message(self, msg=""):
-        self._status_msg.set_value(msg)
-        self._status_msg.show()
-        self._status_msg.update()
+        self._forward_widget_command('status_message', 'set_value', msg)
+        self._forward_widget_command(
+            'status_message', 'show', None, input_value=False
+        )
+        self._forward_widget_command(
+            'status_message', 'update', None, input_value=False
+        )
 
     def _follow_fiducial_view(self):
         fid = self._current_fiducial.lower()
@@ -850,13 +854,51 @@ class CoregistrationUI(HasTraits):
         self._update_parameters()
         self._update_distance_estimation()
 
-    def _forward_widget_command(self, names, command, value):
-        names = [names] if not isinstance(names, list) else names
-        value = list(value) if isinstance(value, np.ndarray) else value
+    def _forward_widget_command(self, names, command, value,
+                                input_value=True, output_value=False):
+        """Invoke a method of one or more widgets if the widgets exist.
+
+        Parameters
+        ----------
+        names : str | array-like of str
+            The widget names to operate on.
+        command : str
+            The method to invoke.
+        value : object | array-like
+            The value(s) to pass to the method.
+        input_value : bool
+            Whether the ``command`` accepts a ``value``. If ``False``, no
+            ``value`` will be passed to ``command``.
+        output_value : bool
+            Whether to return the return value of ``command``.
+
+        Returns
+        -------
+        ret : object | None
+            ``None`` if ``output_value`` is ``False``, and the return value of
+            ``command`` otherwise.
+        """
+        _validate_type(
+            item=names,
+            types=(str, list),
+            item_name='names'
+        )
+        if isinstance(names, str):
+            names = [names]
+
+        if not isinstance(value, (str, float, int, type(None))):
+            value = list(value)
+            assert len(names) == len(value)
+
         for idx, name in enumerate(names):
             val = value[idx] if isinstance(value, list) else value
             if name in self._widgets:
-                getattr(self._widgets[name], command)(val)
+                if input_value:
+                    ret = getattr(self._widgets[name], command)(val)
+                else:
+                    ret = getattr(self._widgets[name], command)()
+                if output_value:
+                    return ret
 
     def _set_sensors_visibility(self, state):
         sensors = ["head_fiducials", "hpi_coils", "head_shape_points",
@@ -1505,8 +1547,12 @@ class CoregistrationUI(HasTraits):
         self._renderer._dock_add_stretch()
 
     def _configure_status_bar(self):
-        self._status_msg = self._renderer._status_bar_add_label("", stretch=1)
-        self._status_msg.hide()
+        self._widgets['status_message'] = self._renderer._status_bar_add_label(
+            "", stretch=1
+        )
+        self._forward_widget_command(
+            'status_message', 'hide', value=None, input_value=False
+        )
 
     def _clean(self):
         self._renderer = None
@@ -1517,7 +1563,6 @@ class CoregistrationUI(HasTraits):
         self._defaults.clear()
         self._head_geo = None
         self._redraw = None
-        self._status_msg = None
 
     def close(self):
         """Close interface and cleanup data structure."""
