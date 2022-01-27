@@ -97,7 +97,8 @@ class _IpyDock(_AbstractDock, _IpyLayout):
     def _dock_add_slider(self, name, value, rng, callback, *,
                          compact=True, double=False, tooltip=None,
                          layout=None):
-        layout = self._dock_named_layout(name, layout, compact)
+        layout = self._dock_named_layout(
+            name=name, layout=layout, compact=compact)
         klass = FloatSlider if double else IntSlider
         widget = klass(
             value=value,
@@ -124,7 +125,8 @@ class _IpyDock(_AbstractDock, _IpyLayout):
     def _dock_add_spin_box(self, name, value, rng, callback, *,
                            compact=True, double=True, step=None,
                            tooltip=None, layout=None):
-        layout = self._dock_named_layout(name, layout, compact)
+        layout = self._dock_named_layout(
+            name=name, layout=layout, compact=compact)
         klass = BoundedFloatText if double else IntText
         widget = klass(
             value=value,
@@ -139,7 +141,8 @@ class _IpyDock(_AbstractDock, _IpyLayout):
 
     def _dock_add_combo_box(self, name, value, rng, callback, *, compact=True,
                             tooltip=None, layout=None):
-        layout = self._dock_named_layout(name, layout, compact)
+        layout = self._dock_named_layout(
+            name=name, layout=layout, compact=compact)
         widget = Dropdown(
             value=value,
             options=rng,

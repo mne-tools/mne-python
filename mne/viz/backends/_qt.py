@@ -127,7 +127,8 @@ class _QtDock(_AbstractDock, _QtLayout):
     def _dock_add_slider(self, name, value, rng, callback, *,
                          compact=True, double=False, tooltip=None,
                          layout=None):
-        layout = self._dock_named_layout(name, layout, compact)
+        layout = self._dock_named_layout(
+            name=name, layout=layout, compact=compact)
         slider_class = QFloatSlider if double else QSlider
         cast = float if double else int
         widget = slider_class(Qt.Horizontal)
@@ -152,7 +153,8 @@ class _QtDock(_AbstractDock, _QtLayout):
     def _dock_add_spin_box(self, name, value, rng, callback, *,
                            compact=True, double=True, step=None,
                            tooltip=None, layout=None):
-        layout = self._dock_named_layout(name, layout, compact)
+        layout = self._dock_named_layout(
+            name=name, layout=layout, compact=compact)
         value = value if double else int(value)
         widget = QDoubleSpinBox() if double else QSpinBox()
         _set_widget_tooltip(widget, tooltip)
@@ -173,7 +175,8 @@ class _QtDock(_AbstractDock, _QtLayout):
 
     def _dock_add_combo_box(self, name, value, rng, callback, *, compact=True,
                             tooltip=None, layout=None):
-        layout = self._dock_named_layout(name, layout, compact)
+        layout = self._dock_named_layout(
+            name=name, layout=layout, compact=compact)
         widget = QComboBox()
         _set_widget_tooltip(widget, tooltip)
         widget.addItems(rng)
@@ -405,7 +408,8 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
         )
 
     def _tool_bar_add_play_button(self, name, desc, func, *, shortcut=None):
-        self._tool_bar_add_button(name, desc, func, None, shortcut)
+        self._tool_bar_add_button(
+            name=name, desc=desc, func=func, icon_name=None, shortcut=shortcut)
 
     def _tool_bar_set_theme(self, theme):
         if theme == 'auto':
