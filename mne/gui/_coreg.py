@@ -285,14 +285,14 @@ class CoregistrationUI(HasTraits):
 
         if fid_accurate:
             assert self.coreg._fid_filename is not None
-            # _set_fiducials_file() calls _update_mri_fiducials_label()
+            # _set_fiducials_file() calls _update_fiducials_label()
             # internally
             self._set_fiducials_file(self.coreg._fid_filename)
         else:
             self._set_head_resolution('high')
             self._forward_widget_command('high_res_head', "set_value", True)
             self._set_lock_fids(True)  # hack to make the dig disappear
-            self._update_mri_fiducials_label()
+            self._update_fiducials_label()
             self._update_fiducials()
 
         self._set_lock_fids(fid_accurate)
@@ -338,7 +338,7 @@ class CoregistrationUI(HasTraits):
         self._fiducials_file = fname
         self.coreg._setup_fiducials(fids)
         self._update_distance_estimation()
-        self._update_mri_fiducials_label()
+        self._update_fiducials_label()
         self._update_fiducials()
         self._reset()
 
@@ -1230,7 +1230,7 @@ class CoregistrationUI(HasTraits):
             subjects = ['']
         return sorted(subjects)
 
-    def _update_mri_fiducials_label(self):
+    def _update_fiducials_label(self):
         if self._fiducials_file is None:
             text = (
                 '<p><strong>No custom MRI fiducials loaded!</strong></p>'
@@ -1285,7 +1285,7 @@ class CoregistrationUI(HasTraits):
         )
         # Add MRI fiducials I/O widgets
         self._widgets['mri_fiducials_label'] = self._renderer._dock_add_label(
-            value='',  # Will be filled via _update_mri_fiducials_label()
+            value='',  # Will be filled via _update_fiducials_label()
             layout=mri_fiducials_layout,
             selectable=True
         )
