@@ -28,7 +28,7 @@ from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
 from ..transforms import (read_trans, write_trans, _ensure_trans, _get_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
-                     warn, verbose, logger)
+                     warn, verbose, logger, _validate_type)
 from ..channels import read_dig_fif
 
 
@@ -100,7 +100,6 @@ class CoregistrationUI(HasTraits):
     _subject = Unicode()
     _subjects_dir = Unicode()
     _lock_fids = Bool()
-    _fiducials_file = Unicode()
     _current_fiducial = Unicode()
     _info_file = Unicode()
     _orient_glyphs = Bool()
@@ -175,6 +174,7 @@ class CoregistrationUI(HasTraits):
         self._mouse_no_mvt = -1
         self._to_cf_t = None
         self._omit_hsp_distance = 0.0
+        self._fiducials_file = None
         self._fid_colors = tuple(
             DEFAULTS['coreg'][f'{key}_color'] for key in
             ('lpa', 'nasion', 'rpa'))
@@ -246,6 +246,8 @@ class CoregistrationUI(HasTraits):
             setattr(self, f"_{fid}_weight", self._defaults["weights"][fid])
 
         # set main traits
+        self._set_head_opacity(self._defaults["head_opacity"])
+        self._old_head_opacity = self._head_opacity
         self._set_subjects_dir(subjects_dir)
         self._set_subject(subject)
         self._set_info_file(info_file)
@@ -257,8 +259,6 @@ class CoregistrationUI(HasTraits):
         self._set_head_shape_points(self._defaults["head_shape_points"])
         self._set_eeg_channels(self._defaults["eeg_channels"])
         self._set_head_resolution(self._defaults["head_resolution"])
-        self._set_head_opacity(self._defaults["head_opacity"])
-        self._old_head_opacity = self._head_opacity
         self._set_helmet(self._defaults["helmet"])
         self._set_grow_hair(self._defaults["grow_hair"])
         self._set_skip_fiducials(self._defaults["skip_fiducials"])
@@ -293,6 +293,7 @@ class CoregistrationUI(HasTraits):
             self._forward_widget_command('high_res_head', "set_value", True)
             self._set_lock_fids(True)  # hack to make the dig disappear
             self._update_mri_fiducials_label()
+            self._update_fiducials()
 
         self._set_lock_fids(fid_accurate)
 
@@ -326,23 +327,35 @@ class CoregistrationUI(HasTraits):
         self._lock_fids = bool(state)
 
     def _set_fiducials_file(self, fname, log=True):
-        fname = _check_fname(
-            fname, overwrite='read', must_exist=True, need_dir=False
-        )
-        if log:
-            self._display_message(f"Loading MRI fiducials from {fname}...")
-        fids, _ = read_fiducials(fname)
+        if fname is None:
+            fids = 'auto'
+        else:
+            fname = _check_fname(
+                fname, overwrite='read', must_exist=True, need_dir=False
+            )
+            fids, _ = read_fiducials(fname)
+
         self._fiducials_file = fname
         self.coreg._setup_fiducials(fids)
         self._update_distance_estimation()
         self._update_mri_fiducials_label()
+        self._update_fiducials()
         self._reset()
-        self._set_lock_fids(True)
-        if log:
-            self._display_message(
-                f"Loading MRI fiducials from {fname}... Done!"
+
+        if fname is None:
+            self._set_lock_fids(False)
+            self._forward_widget_command(
+                'reload_mri_fids', 'set_enabled', False
             )
-        self._forward_widget_command('reload_mri_fids', 'set_enabled', True)
+        else:
+            self._set_lock_fids(True)
+            self._forward_widget_command(
+                'reload_mri_fids', 'set_enabled', True
+            )
+            if log:
+                self._display_message(
+                    f"Loading MRI fiducials from {fname}... Done!"
+                )
 
     def _set_current_fiducial(self, fid):
         self._current_fiducial = fid.lower()
@@ -487,7 +500,10 @@ class CoregistrationUI(HasTraits):
         # XXX: add coreg.set_subjects_dir
         self.coreg._subjects_dir = self._subjects_dir
         subjects = self._get_subjects()
-        self._subject = subjects[0]
+
+        if self._subject not in subjects:
+            self._subject = subjects[0]
+
         self._reset()
 
     @observe("_subject")
@@ -499,32 +515,16 @@ class CoregistrationUI(HasTraits):
         self._reset()
         self._update_projection_surface()
 
-        default_fname = fid_fname.format(
+        default_fid_fname = fid_fname.format(
             subjects_dir=self._subjects_dir, subject=self._subject
         )
-        if Path(default_fname).exists():
-            fname = default_fname
+        if Path(default_fid_fname).exists():
+            fname = default_fid_fname
         else:
-            fname = ''
+            fname = None
 
-        if self._widgets:  # widget initialization has finished
-            if fname:
-                self._set_fiducials_file(fname)
-            else:
-                self._fiducials_file = fname  # Avoid _set_fiducials_file()!
-                self._forward_widget_command(
-                    'reload_mri_fids', 'set_enabled', False
-                )
-                # XXX The following doesn't work as expected: it unlocks the
-                # fiducials on the currently-displayed (old!) subject – i.e.,
-                # unlocking and hiding of digpoints happens before the new
-                # subject has been fully loaded. Once the new subject is
-                # loaded, its digpoints show up again although the state of
-                # the fiducials is, in fact, still "unlocked".
-                self._set_lock_fids(False)
-
-            self._reset_fiducials()
-            self._update_mri_fiducials_label()
+        self._set_fiducials_file(fname)
+        self._reset_fiducials()
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
@@ -833,9 +833,13 @@ class CoregistrationUI(HasTraits):
             self.coreg._scale_mode = old_scale_mode
 
     def _display_message(self, msg=""):
-        self._status_msg.set_value(msg)
-        self._status_msg.show()
-        self._status_msg.update()
+        self._forward_widget_command('status_message', 'set_value', msg)
+        self._forward_widget_command(
+            'status_message', 'show', None, input_value=False
+        )
+        self._forward_widget_command(
+            'status_message', 'update', None, input_value=False
+        )
 
     def _follow_fiducial_view(self):
         fid = self._current_fiducial.lower()
@@ -855,6 +859,9 @@ class CoregistrationUI(HasTraits):
 
     def _update_fiducials(self):
         fid = self._current_fiducial
+        if not fid:
+            return
+
         idx = _map_fid_name_to_idx(name=fid)
         val = self.coreg.fiducials.dig[idx]['r'] * 1e3
 
@@ -893,29 +900,51 @@ class CoregistrationUI(HasTraits):
         self._update_parameters()
         self._update_distance_estimation()
 
-    def _forward_widget_command(self, widget_names, method, values):
+    def _forward_widget_command(self, names, command, value,
+                                input_value=True, output_value=False):
         """Invoke a method of one or more widgets if the widgets exist.
 
         Parameters
         ----------
-        widget_names : str | array-like of str
+        names : str | array-like of str
             The widget names to operate on.
-        method : str
+        command : str
             The method to invoke.
-        values : object | array-like
+        value : object | array-like
             The value(s) to pass to the method.
-        """
-        if isinstance(widget_names, str):
-            widget_names = [widget_names]
-        if not isinstance(values, (str, float, int)):
-            values = list(values)
-            assert len(widget_names) == len(values)
+        input_value : bool
+            Whether the ``command`` accepts a ``value``. If ``False``, no
+            ``value`` will be passed to ``command``.
+        output_value : bool
+            Whether to return the return value of ``command``.
 
-        for idx, name in enumerate(widget_names):
-            val = values[idx] if isinstance(values, list) else values
+        Returns
+        -------
+        ret : object | None
+            ``None`` if ``output_value`` is ``False``, and the return value of
+            ``command`` otherwise.
+        """
+        _validate_type(
+            item=names,
+            types=(str, list),
+            item_name='names'
+        )
+        if isinstance(names, str):
+            names = [names]
+
+        if not isinstance(value, (str, float, int, type(None))):
+            value = list(value)
+            assert len(names) == len(value)
+
+        for idx, name in enumerate(names):
+            val = value[idx] if isinstance(value, list) else value
             if name in self._widgets:
-                meth = getattr(self._widgets[name], method)
-                meth(val)
+                if input_value:
+                    ret = getattr(self._widgets[name], command)(val)
+                else:
+                    ret = getattr(self._widgets[name], command)()
+                if output_value:
+                    return ret
 
     def _set_sensors_visibility(self, state):
         sensors = ["head_fiducials", "hpi_coils", "head_shape_points",
@@ -1202,7 +1231,15 @@ class CoregistrationUI(HasTraits):
         return sorted(subjects)
 
     def _update_mri_fiducials_label(self):
-        if self._fiducials_file:
+        if self._fiducials_file is None:
+            text = (
+                '<p><strong>No custom MRI fiducials loaded!</strong></p>'
+                '<p>MRI fiducials could not be found in the standard '
+                'location. The displayed initial MRI fiducial locations '
+                '(diamonds) were derived from fsaverage. Place, lock, and '
+                'save fiducials to discard this message.</p>'
+            )
+        else:
             assert self._fiducials_file == fid_fname.format(
                 subjects_dir=self._subjects_dir, subject=self._subject
             )
@@ -1212,17 +1249,10 @@ class CoregistrationUI(HasTraits):
                 f'standard location:</strong></p>'
                 f'<p>{self._fiducials_file}</p>'
             )
-        else:
-            text = (
-                '<p><strong>No custom MRI fiducials loaded!</strong></p>'
-                '<p>MRI fiducials could not be found in the standard '
-                'location. The displayed initial MRI fiducial locations '
-                '(diamonds) were derived from fsaverage. Place, lock, and '
-                'save fiducials to discard this message.</p>'
-            )
-            self._forward_widget_command(
-                'mri_fiducials_label', 'set_value', text
-            )
+
+        self._forward_widget_command(
+            'mri_fiducials_label', 'set_value', text
+        )
 
     def _configure_dock(self):
         self._renderer._dock_initialize(
@@ -1608,8 +1638,12 @@ class CoregistrationUI(HasTraits):
         self._renderer._dock_add_stretch()
 
     def _configure_status_bar(self):
-        self._status_msg = self._renderer._status_bar_add_label("", stretch=1)
-        self._status_msg.hide()
+        self._widgets['status_message'] = self._renderer._status_bar_add_label(
+            "", stretch=1
+        )
+        self._forward_widget_command(
+            'status_message', 'hide', value=None, input_value=False
+        )
 
     def _clean(self):
         self._renderer = None
@@ -1620,7 +1654,6 @@ class CoregistrationUI(HasTraits):
         self._defaults.clear()
         self._head_geo = None
         self._redraw = None
-        self._status_msg = None
 
     def close(self):
         """Close interface and cleanup data structure."""
