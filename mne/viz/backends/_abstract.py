@@ -472,7 +472,7 @@ class _AbstractToolBar(ABC):
         pass
 
     @abstractmethod
-    def _tool_bar_add_button(self, name, desc, func, icon_name=None,
+    def _tool_bar_add_button(self, name, desc, func, *, icon_name=None,
                              shortcut=None):
         pass
 
@@ -489,11 +489,11 @@ class _AbstractToolBar(ABC):
         pass
 
     @abstractmethod
-    def _tool_bar_add_file_button(self, name, desc, func, shortcut=None):
+    def _tool_bar_add_file_button(self, name, desc, func, *, shortcut=None):
         pass
 
     @abstractmethod
-    def _tool_bar_add_play_button(self, name, desc, func, shortcut=None):
+    def _tool_bar_add_play_button(self, name, desc, func, *, shortcut=None):
         pass
 
     @abstractmethod
@@ -529,59 +529,59 @@ class _AbstractDock(ABC):
 
     @abstractmethod
     def _dock_add_label(
-        self, value, align=False, layout=None, selectable=False
+        self, value, *, align=False, layout=None, selectable=False
     ):
         pass
 
     @abstractmethod
     def _dock_add_button(
-        self, name, callback, style='pushbutton', tooltip=None, layout=None
+        self, name, callback, *, style='pushbutton', tooltip=None, layout=None
     ):
         pass
 
     @abstractmethod
-    def _dock_named_layout(self, name, layout=None, compact=True):
+    def _dock_named_layout(self, name, *, layout=None, compact=True):
         pass
 
     @abstractmethod
-    def _dock_add_slider(self, name, value, rng, callback,
+    def _dock_add_slider(self, name, value, rng, callback, *,
                          compact=True, double=False, tooltip=None,
                          layout=None):
         pass
 
     @abstractmethod
-    def _dock_add_check_box(self, name, value, callback, tooltip=None,
+    def _dock_add_check_box(self, name, value, callback, *, tooltip=None,
                             layout=None):
         pass
 
     @abstractmethod
-    def _dock_add_spin_box(self, name, value, rng, callback,
+    def _dock_add_spin_box(self, name, value, rng, callback, *,
                            compact=True, double=True, step=None,
                            tooltip=None, layout=None):
         pass
 
     @abstractmethod
-    def _dock_add_combo_box(self, name, value, rng, callback, compact=True,
+    def _dock_add_combo_box(self, name, value, rng, callback, *, compact=True,
                             tooltip=None, layout=None):
         pass
 
     @abstractmethod
-    def _dock_add_radio_buttons(self, value, rng, callback, vertical=True,
+    def _dock_add_radio_buttons(self, value, rng, callback, *, vertical=True,
                                 layout=None):
         pass
 
     @abstractmethod
-    def _dock_add_group_box(self, name, layout=None):
+    def _dock_add_group_box(self, name, *, layout=None):
         pass
 
     @abstractmethod
-    def _dock_add_text(self, name, value, placeholder, callback=None,
+    def _dock_add_text(self, name, value, placeholder, *, callback=None,
                        layout=None):
         pass
 
     @abstractmethod
     def _dock_add_file_button(
-        self, name, desc, func, filter=None, initial_directory=None,
+        self, name, desc, func, *, filter=None, initial_directory=None,
         value=None, save=False, is_directory=False, input_text_widget=True,
         placeholder="Type a file name", tooltip=None,
         layout=None

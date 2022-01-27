@@ -66,14 +66,14 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         return VBox() if vertical else HBox()
 
     def _dock_add_label(
-        self, value, align=False, layout=None, selectable=False
+        self, value, *, align=False, layout=None, selectable=False
     ):
         layout = self._dock_layout if layout is None else layout
         widget = Text(value=value, disabled=True)
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_add_button(self, name, callback, style=None, tooltip=None,
+    def _dock_add_button(self, name, callback, *, style=None, tooltip=None,
                          layout=None):
         layout = self._dock_layout if layout is None else layout
         kwargs = dict(description=name)
@@ -84,7 +84,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_named_layout(self, name, layout=None, compact=True):
+    def _dock_named_layout(self, name, *, layout=None, compact=True):
         layout = self._dock_layout if layout is None else layout
         if name is not None:
             hlayout = self._dock_add_layout(not compact)
@@ -94,7 +94,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
             layout = hlayout
         return layout
 
-    def _dock_add_slider(self, name, value, rng, callback,
+    def _dock_add_slider(self, name, value, rng, callback, *,
                          compact=True, double=False, tooltip=None,
                          layout=None):
         layout = self._dock_named_layout(name, layout, compact)
@@ -109,7 +109,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_add_check_box(self, name, value, callback, tooltip=None,
+    def _dock_add_check_box(self, name, value, callback, *, tooltip=None,
                             layout=None):
         layout = self._dock_layout if layout is None else layout
         widget = Checkbox(
@@ -121,7 +121,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_add_spin_box(self, name, value, rng, callback,
+    def _dock_add_spin_box(self, name, value, rng, callback, *,
                            compact=True, double=True, step=None,
                            tooltip=None, layout=None):
         layout = self._dock_named_layout(name, layout, compact)
@@ -137,7 +137,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_add_combo_box(self, name, value, rng, callback, compact=True,
+    def _dock_add_combo_box(self, name, value, rng, callback, *, compact=True,
                             tooltip=None, layout=None):
         layout = self._dock_named_layout(name, layout, compact)
         widget = Dropdown(
@@ -148,7 +148,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_add_radio_buttons(self, value, rng, callback, vertical=True,
+    def _dock_add_radio_buttons(self, value, rng, callback, *, vertical=True,
                                 layout=None):
         # XXX: vertical=False is not supported yet
         layout = self._dock_layout if layout is None else layout
@@ -161,13 +161,13 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidgetList(widget)
 
-    def _dock_add_group_box(self, name, layout=None):
+    def _dock_add_group_box(self, name, *, layout=None):
         layout = self._dock_layout if layout is None else layout
         hlayout = VBox()
         self._layout_add_widget(layout, hlayout)
         return hlayout
 
-    def _dock_add_text(self, name, value, placeholder, callback=None,
+    def _dock_add_text(self, name, value, placeholder, *, callback=None,
                        layout=None):
         layout = self._dock_layout if layout is None else layout
         widget = Text(value=value, placeholder=placeholder)
@@ -177,7 +177,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         return _IpyWidget(widget)
 
     def _dock_add_file_button(
-        self, name, desc, func, filter=None, initial_directory=None,
+        self, name, desc, func, *, filter=None, initial_directory=None,
         value=None, save=False, is_directory=False, input_text_widget=True,
         placeholder="Type a file name", tooltip=None,
         layout=None
@@ -231,7 +231,7 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
         self._tool_bar = self._tool_bar_layout = HBox()
         self._layout_initialize(None)
 
-    def _tool_bar_add_button(self, name, desc, func, icon_name=None,
+    def _tool_bar_add_button(self, name, desc, func, *, icon_name=None,
                              shortcut=None):
         icon_name = name if icon_name is None else icon_name
         icon = self.icons[icon_name]
@@ -253,7 +253,7 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
     def _tool_bar_add_spacer(self):
         pass
 
-    def _tool_bar_add_file_button(self, name, desc, func, shortcut=None):
+    def _tool_bar_add_file_button(self, name, desc, func, *, shortcut=None):
         def callback():
             fname = self.actions[f"{name}_field"].value
             func(None if len(fname) == 0 else fname)
@@ -268,7 +268,7 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
             func=callback,
         )
 
-    def _tool_bar_add_play_button(self, name, desc, func, shortcut=None):
+    def _tool_bar_add_play_button(self, name, desc, func, *, shortcut=None):
         widget = Play(interval=500)
         self._layout_add_widget(self._tool_bar_layout, widget)
         self.actions[name] = widget
