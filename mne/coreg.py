@@ -38,6 +38,7 @@ from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          combine_transforms, _quat_to_euler,
                          _fit_matched_points, apply_trans,
                          rot_to_quat, _angle_between_quats)
+from .channels import make_dig_montage
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
                     warn, has_nibabel, fill_doc, _validate_type,
                     _check_subject, _check_option)
@@ -60,6 +61,19 @@ _head_fnames = (os.path.join(bem_dirname, 'outer_skin.surf'),
 _high_res_head_fnames = (os.path.join(bem_dirname, '{subject}-head-dense.fif'),
                          os.path.join(surf_dirname, 'lh.seghead'),
                          os.path.join(surf_dirname, 'lh.smseghead'))
+
+
+def _map_fid_name_to_idx(name: str) -> int:
+    """Map a fiducial name to its index in the DigMontage."""
+    name = name.lower()
+
+    if name == 'lpa':
+        return 0
+    elif name == 'nasion':
+        return 1
+    else:
+        assert name == 'rpa'
+        return 2
 
 
 def _make_writable(fname):
@@ -1302,6 +1316,8 @@ class Coregistration(object):
 
     Attributes
     ----------
+    fiducials : instance of DigMontage
+        A montage containing the MRI fiducials.
     trans : instance of Transform
         MRI<->Head coordinate transformation.
 
@@ -1455,11 +1471,14 @@ class Coregistration(object):
         # does not seem to happen by itself ... so hard code it:
         self._reset_fiducials()
 
-    def _reset_fiducials(self):  # noqa: D102
-        if self._fid_points is not None:
-            self._lpa = self._fid_points[0:1]
-            self._nasion = self._fid_points[1:2]
-            self._rpa = self._fid_points[2:3]
+    def _reset_fiducials(self):
+        dig_montage = make_dig_montage(
+            lpa=self._fid_points[0],
+            nasion=self._fid_points[1],
+            rpa=self._fid_points[2],
+            coord_frame='mri'
+        )
+        self.fiducials = dig_montage
 
     def _update_params(self, rot=None, tra=None, sca=None,
                        force_update_omitted=False):
@@ -1658,15 +1677,27 @@ class Coregistration(object):
 
     @property
     def _has_lpa_data(self):
-        return (np.any(self._lpa) and np.any(self._dig_dict['lpa']))
+        mri_point = self.fiducials.dig[_map_fid_name_to_idx('lpa')]
+        assert mri_point['ident'] == FIFF.FIFFV_POINT_LPA
+        has_mri_data = np.any(mri_point['r'])
+        has_head_data = np.any(self._dig_dict['lpa'])
+        return has_mri_data and has_head_data
 
     @property
     def _has_nasion_data(self):
-        return (np.any(self._nasion) and np.any(self._dig_dict['nasion']))
+        mri_point = self.fiducials.dig[_map_fid_name_to_idx('nasion')]
+        assert mri_point['ident'] == FIFF.FIFFV_POINT_NASION
+        has_mri_data = np.any(mri_point['r'])
+        has_head_data = np.any(self._dig_dict['nasion'])
+        return has_mri_data and has_head_data
 
     @property
     def _has_rpa_data(self):
-        return (np.any(self._rpa) and np.any(self._dig_dict['rpa']))
+        mri_point = self.fiducials.dig[_map_fid_name_to_idx('rpa')]
+        assert mri_point['ident'] == FIFF.FIFFV_POINT_RPA
+        has_mri_data = np.any(mri_point['r'])
+        has_head_data = np.any(self._dig_dict['rpa'])
+        return has_mri_data and has_head_data
 
     @property
     def _processed_high_res_mri_points(self):
@@ -1754,7 +1785,11 @@ class Coregistration(object):
         head_pts = np.vstack((self._dig_dict['lpa'],
                               self._dig_dict['nasion'],
                               self._dig_dict['rpa']))
-        mri_pts = np.vstack((self._lpa, self._nasion, self._rpa))
+        mri_pts = np.vstack(
+            (self.fiducials.dig[0]['r'],  # LPA
+             self.fiducials.dig[1]['r'],  # Nasion
+             self.fiducials.dig[2]['r'])  # RPA
+        )
         weights = [lpa_weight, nasion_weight, rpa_weight]
 
         if n_scale_params == 0:
@@ -1786,7 +1821,9 @@ class Coregistration(object):
             if getattr(self, f'_has_{key}_data'):
                 head_pts.append(self._dig_dict[key])
                 if self._icp_fid_match == 'matched':
-                    mri_pts.append(getattr(self, f'_{key}'))
+                    idx = _map_fid_name_to_idx(name=key)
+                    p = self.fiducials.dig[idx]['r'].reshape(1, -1)
+                    mri_pts.append(p)
                 else:
                     assert self._icp_fid_match == 'nearest'
                     mri_pts.append(self._processed_high_res_mri_points[
@@ -1959,7 +1996,7 @@ class Coregistration(object):
 
     @property
     def trans(self):
-        """Return the head-mri transform."""
+        """The head->mri :class:`~mne.transforms.Transform`."""
         return Transform('head', 'mri', self._head_mri_t)
 
     def reset(self):
@@ -1981,7 +2018,9 @@ class Coregistration(object):
     def _get_fiducials_distance(self):
         distance = dict()
         for key in ('lpa', 'nasion', 'rpa'):
-            fid = getattr(self, f"_{key}")
+            idx = _map_fid_name_to_idx(name=key)
+            fid = self.fiducials.dig[idx]['r'].reshape(1, -1)
+
             transformed_mri = apply_trans(self._mri_trans, fid)
             transformed_hsp = apply_trans(
                 self._head_mri_t, self._dig_dict[key])

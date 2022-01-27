@@ -311,6 +311,11 @@ def test_coregistration(scale_mode, ref_scale, grow_hair, fiducials,
     coreg = Coregistration(info, subject=subject, subjects_dir=subjects_dir,
                            fiducials=fiducials)
     assert np.allclose(coreg._last_parameters, coreg._parameters)
+    assert len(coreg.fiducials.dig) == 3
+    for dig_point in coreg.fiducials.dig:
+        assert dig_point['coord_frame'] == FIFF.FIFFV_COORD_MRI
+        assert dig_point['kind'] == FIFF.FIFFV_POINT_CARDINAL
+
     coreg.set_fid_match(fid_match)
     default_params = list(coreg._default_parameters)
     coreg.set_rotation(default_params[:3])

@@ -74,7 +74,9 @@ Enhancements
 
 - Annotations from a :class:`~mne.io.Raw` object are now preserved by the :class:`~mne.Epochs` constructor and are supported when saving Epochs (:gh:`9969` and :gh:`10019` by `Adam Li`_)
 
-- Add a button to display the MEG helmet in the coregistration GUI (:gh:`10200` by `Guillaume Favelier`_)
+- Add a checkbox to show and hide the MEG helmet in the coregistration GUI (:gh:`10200` by `Guillaume Favelier`_)
+
+- The coregistration GUI (instantiated via :func:`mne.gui.coregistration`) gained a new attribute, ``coreg``, to access the :class:`mne.coreg.Coregistration` instance used by the GUI (:gh:`10255` by `Richard Höchenberger`_)
 
 - Add marching cubes display of head if :func:`mne.bem.make_scalp_surfaces` has not computed or the recon-all hasn't finished (:gh:`10202` by `Alex Rockhill`_)
 
@@ -82,7 +84,9 @@ Enhancements
 
 - :func:`mne.gui.coregistration` now uses the proper widget style for push buttons, making for a more native feel of the application (:gh:`10220` by `Richard Höchenberger`_ and `Guillaume Favelier`_)
 
-- :class:`mne.coreg.Coregistration`, :func:`mne.scale_bem`, and :func:`mne.scale_mri` gained a new parameter, ``on_defects``, controlling how to handle topological defects (:gh:`10230`, by `Richard Höchenberger`_)
+- :class:`mne.coreg.Coregistration`, :func:`mne.scale_bem`, and :func:`mne.scale_mri` gained a new parameter, ``on_defects``, controlling how to handle topological defects (:gh:`10230`, :gh:`10249` by `Richard Höchenberger`_)
+
+- :class:`mne.coreg.Coregistration` gained a new attribute, ``fiducials``, allowing for convenient retrieval of the MRI fiducial points (:gh:`10243`, by `Richard Höchenberger`_)
 
 - Added plotting points to represent contacts on the max intensity projection plot for :func:`mne.gui.locate_ieeg` (:gh:`10212` by `Alex Rockhill`_)
 

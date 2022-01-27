@@ -105,6 +105,10 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     with pytest.warns(DeprecationWarning, match='standalone is deprecated'):
         CoregistrationUI(info_file=None, subject='sample',
                          subjects_dir=subjects_dir, standalone=False)
+    with pytest.warns(DeprecationWarning, match='head_transparency '
+                                                'is deprecated'):
+        CoregistrationUI(info_file=None, subject='sample',
+                         subjects_dir=subjects_dir, head_transparency=False)
 
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     tmp_trans = tmp_path / 'tmp-trans.fif'
@@ -127,13 +131,13 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     coreg._reset_fitting_parameters()
     coreg._set_scale_mode("uniform")
     coreg._fits_fiducials()
-    assert_allclose(coreg._coreg._scale,
+    assert_allclose(coreg.coreg._scale,
                     np.array([97.46, 97.46, 97.46]) * 1e-2,
                     atol=1e-3)
     coreg._set_icp_fid_match("nearest")
     coreg._set_scale_mode("3-axis")
     coreg._fits_icp()
-    assert_allclose(coreg._coreg._scale,
+    assert_allclose(coreg.coreg._scale,
                     np.array([104.43, 101.47, 125.78]) * 1e-2,
                     atol=1e-3)
     coreg._set_scale_mode("None")
@@ -153,10 +157,8 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     coreg._on_pick(vtk_picker, None)  # also pick when locked
 
     # lock fiducials
-    assert not coreg._head_transparency
     coreg._set_lock_fids(True)
     assert coreg._lock_fids
-    assert coreg._head_transparency
 
     # fitting (no scaling)
     assert coreg._nasion_weight == 10.
@@ -164,11 +166,11 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert coreg._nasion_weight == 11.
     coreg._fit_fiducials()
     coreg._fit_icp()
-    assert coreg._coreg._extra_points_filter is None
+    assert coreg.coreg._extra_points_filter is None
     coreg._omit_hsp()
-    assert coreg._coreg._extra_points_filter is not None
+    assert coreg.coreg._extra_points_filter is not None
     coreg._reset_omit_hsp_filter()
-    assert coreg._coreg._extra_points_filter is None
+    assert coreg.coreg._extra_points_filter is None
 
     assert coreg._grow_hair == 0
     coreg._set_grow_hair(0.1)
@@ -181,6 +183,9 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert coreg._orient_glyphs
     assert coreg._scale_by_distance
     assert coreg._mark_inside
+    assert_allclose(
+        coreg._head_opacity,
+        float(config.get('MNE_COREG_HEAD_OPACITY', '0.8')))
     assert coreg._project_eeg == \
         (config.get('MNE_COREG_PROJECT_EEG', '') == 'true')
     assert coreg._hpi_coils
