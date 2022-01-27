@@ -325,18 +325,24 @@ class CoregistrationUI(HasTraits):
     def _set_lock_fids(self, state):
         self._lock_fids = bool(state)
 
-    def _set_fiducials_file(self, fname):
+    def _set_fiducials_file(self, fname, log=True):
         fname = _check_fname(
             fname, overwrite='read', must_exist=True, need_dir=False
         )
+        if log:
+            self._display_message(f"Loading MRI fiducials from {fname}...")
+        fids, _ = read_fiducials(fname)
         self._fiducials_file = fname
-        fids, _ = read_fiducials(self._fiducials_file)
         self.coreg._setup_fiducials(fids)
         self._update_distance_estimation()
         self._update_mri_fiducials_label()
         self._reset()
         self._set_lock_fids(True)
-        self._widgets['reload_mri_fids'].set_enabled(True)
+        if log:
+            self._display_message(
+                f"Loading MRI fiducials from {fname}... Done!"
+            )
+        self._forward_widget_command('reload_mri_fids', 'set_enabled', True)
 
     def _set_current_fiducial(self, fid):
         self._current_fiducial = fid.lower()
@@ -506,7 +512,9 @@ class CoregistrationUI(HasTraits):
                 self._set_fiducials_file(fname)
             else:
                 self._fiducials_file = fname  # Avoid _set_fiducials_file()!
-                self._widgets['reload_mri_fids'].set_enabled(False)
+                self._forward_widget_command(
+                    'reload_mri_fids', 'set_enabled', False
+                )
                 # XXX The following doesn't work as expected: it unlocks the
                 # fiducials on the currently-displayed (old!) subject – i.e.,
                 # unlocking and hiding of digpoints happens before the new
@@ -531,7 +539,7 @@ class CoregistrationUI(HasTraits):
             self._scale_mode_changed()
             self._display_message()
             self._update_distance_estimation()
-            self._widgets["save_mri_fids"].set_enabled(True)
+            self._forward_widget_command('save_mri_fids', 'set_enabled', True)
         else:
             self._old_head_opacity = self._head_opacity
             self._head_opacity = 1.0
@@ -539,7 +547,8 @@ class CoregistrationUI(HasTraits):
             self._forward_widget_command(fits_widgets, "set_enabled", False)
             self._display_message("Placing MRI fiducials - "
                                   f"{self._current_fiducial.upper()}")
-            self._widgets["save_mri_fids"].set_enabled(False)
+            self._forward_widget_command('save_mri_fids', 'set_enabled', False)
+
         self._set_sensors_visibility(self._lock_fids)
         self._forward_widget_command("lock_fids", "set_value", self._lock_fids)
         self._forward_widget_command(fid_widgets, "set_enabled",
@@ -889,18 +898,19 @@ class CoregistrationUI(HasTraits):
 
         Parameters
         ----------
-        widget_names : str | list of str
+        widget_names : str | array-like of str
             The widget names to operate on.
         method : str
             The method to invoke.
-        values : str | list of str
+        values : object | array-like
             The value(s) to pass to the method(s).
         """
-        if not isinstance(widget_names, list):
+        if isinstance(widget_names, str):
             widget_names = [widget_names]
+        if not isinstance(values, (str, float, int)):
+            values = list(values)
+            assert len(widget_names) == len(values)
 
-        values = list(values) if isinstance(values, np.ndarray) else values
-        assert len(widget_names) == len(values)
         for idx, name in enumerate(widget_names):
             val = values[idx] if isinstance(values, list) else values
             if name in self._widgets:
@@ -1157,7 +1167,7 @@ class CoregistrationUI(HasTraits):
             fname=fname, pts=dig_montage.dig, coord_frame='mri', overwrite=True
         )
         self._display_message(f"Saving {fname}... Done!")
-        self._set_fiducials_file(fname)
+        self._set_fiducials_file(fname, log=False)
 
     def _save_trans(self, fname):
         write_trans(fname, self.coreg.trans, overwrite=True)
@@ -1210,7 +1220,9 @@ class CoregistrationUI(HasTraits):
                 '(diamonds) were derived from fsaverage. Place, lock, and '
                 'save fiducials to discard this message.</p>'
             )
-        self._widgets['mri_fiducials_label'].set_value(text)
+            self._forward_widget_command(
+                'mri_fiducials_label', 'set_value', text
+            )
 
     def _configure_dock(self):
         self._renderer._dock_initialize(
@@ -1263,7 +1275,8 @@ class CoregistrationUI(HasTraits):
         )
         # Disable reload button until we've actually loaded a fiducial file
         # (happens in _set_fiducials_file method)
-        self._widgets["reload_mri_fids"].set_enabled(False)
+        self._forward_widget_command('reload_mri_fids', 'set_enabled', False)
+
         self._widgets["save_mri_fids"] = self._renderer._dock_add_button(
             name="Save MRI Fid.",
             callback=lambda: self._save_mri_fiducials(
@@ -1276,7 +1289,8 @@ class CoregistrationUI(HasTraits):
             layout=mri_fiducials_button_layout,
         )
         # Disable save button until fiducials are locked.
-        self._widgets["save_mri_fids"].set_enabled(False)
+        self._forward_widget_command('save_mri_fids', 'set_enabled', False)
+
         self._widgets["lock_fids"] = self._renderer._dock_add_check_box(
             name="Lock fiducials",
             value=self._lock_fids,
