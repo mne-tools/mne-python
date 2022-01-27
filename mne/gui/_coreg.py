@@ -903,7 +903,7 @@ class CoregistrationUI(HasTraits):
         method : str
             The method to invoke.
         values : object | array-like
-            The value(s) to pass to the method(s).
+            The value(s) to pass to the method.
         """
         if isinstance(widget_names, str):
             widget_names = [widget_names]
