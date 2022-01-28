@@ -8,7 +8,7 @@ examples are a useful way to discover new analysis or plotting ideas, or to see
 how a particular technique you’ve read about can be applied using MNE-Python.
 
 .. note::
-    If tutorial-scripts contain plots and are run locally, using the
+    If example-scripts contain plots and are run locally, using the
     interactive interactive flag with ``python -i tutorial_script.py``
     keeps them open.
 
