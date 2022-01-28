@@ -500,7 +500,7 @@ class CoregistrationUI(HasTraits):
         self.coreg._subjects_dir = self._subjects_dir
         subjects = self._get_subjects()
 
-        if self._subject not in subjects:
+        if self._subject not in subjects:  # Just pick the first available one
             self._subject = subjects[0]
 
         self._reset()
