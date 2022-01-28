@@ -527,10 +527,29 @@ class CoregistrationUI(HasTraits):
 
     @observe("_lock_fids")
     def _lock_fids_changed(self, change=None):
-        locked_widgets = ["sX", "sY", "sZ", "tX", "tY", "tZ",
-                          "rX", "rY", "rZ", "project_eeg",
-                          "fit_fiducials", "fit_icp",
-                          "save_mri_fids"]
+        locked_widgets = [
+            # MRI fiducials
+            "save_mri_fids",
+            # View options
+            "project_eeg", "helmet", "head_opacity", "high_res_head",
+            # Digitization source
+            "info_file", "grow_hair", "omit_distance", "omit", "reset_omit",
+            # Scaling
+            "scaling_mode", "sX", "sY", "sZ",
+            # Transformation
+            "tX", "tY", "tZ",
+            "rX", "rY", "rZ",
+            # Fitting buttons
+            "fit_fiducials", "fit_icp",
+            # Transformation I/O
+            "save_trans", "load_trans",
+            "reset_trans",
+            # ICP
+            "icp_n_iterations", "icp_fid_match", "reset_fitting_options",
+            # Weights
+            "hsp_weight", "eeg_weight", "hpi_weight",
+            "lpa_weight", "nasion_weight", "rpa_weight",
+        ]
         fits_widgets = ["fits_fiducials", "fits_icp"]
         fid_widgets = ["fid_X", "fid_Y", "fid_Z", "fids_file", "fids"]
         if self._lock_fids:
@@ -1395,25 +1414,25 @@ class CoregistrationUI(HasTraits):
 
         view_options_layout = \
             self._renderer._dock_add_group_box("View Options")
+        self._widgets["helmet"] = self._renderer._dock_add_check_box(
+            name="Show MEG helmet",
+            value=self._helmet,
+            callback=self._set_helmet,
+            tooltip="Enable/Disable MEG helmet",
+            layout=view_options_layout,
+        )
         self._widgets["project_eeg"] = self._renderer._dock_add_check_box(
-            name="Project EEG",
+            name="Project EEG electrodes onto scalp",
             value=self._project_eeg,
             callback=self._set_project_eeg,
             tooltip="Enable/Disable EEG channels projection on head surface",
             layout=view_options_layout,
         )
         self._widgets["high_res_head"] = self._renderer._dock_add_check_box(
-            name="Show High Resolution Head",
+            name="Show high-resolution head",
             value=self._head_resolution,
             callback=self._set_head_resolution,
             tooltip="Enable/Disable high resolution head surface",
-            layout=view_options_layout,
-        )
-        self._widgets["helmet"] = self._renderer._dock_add_check_box(
-            name="Show helmet",
-            value=self._helmet,
-            callback=self._set_helmet,
-            tooltip="Enable/Disable helmet",
             layout=view_options_layout,
         )
         self._widgets["head_opacity"] = self._renderer._dock_add_slider(
@@ -1624,11 +1643,13 @@ class CoregistrationUI(HasTraits):
                 layout=weight_layout,
             )
             self._renderer._layout_add_widget(weights_layout, weight_layout)
-        self._renderer._dock_add_button(
-            name="Reset Fitting Options",
-            callback=self._reset_fitting_parameters,
-            tooltip="Reset all the fitting parameters to default value",
-            layout=fitting_options_layout,
+        self._widgets['reset_fitting_options'] = (
+            self._renderer._dock_add_button(
+                name="Reset Fitting Options",
+                callback=self._reset_fitting_parameters,
+                tooltip="Reset all the fitting parameters to default value",
+                layout=fitting_options_layout,
+            )
         )
         self._renderer._dock_add_stretch()
 
