@@ -326,7 +326,7 @@ class CoregistrationUI(HasTraits):
     def _set_lock_fids(self, state):
         self._lock_fids = bool(state)
 
-    def _set_fiducials_file(self, fname, log=True):
+    def _set_fiducials_file(self, fname):
         if fname is None:
             fids = 'auto'
         else:
@@ -352,10 +352,9 @@ class CoregistrationUI(HasTraits):
             self._forward_widget_command(
                 'reload_mri_fids', 'set_enabled', True
             )
-            if log:
-                self._display_message(
-                    f"Loading MRI fiducials from {fname}... Done!"
-                )
+            self._display_message(
+                f"Loading MRI fiducials from {fname}... Done!"
+            )
 
     def _set_current_fiducial(self, fid):
         self._current_fiducial = fid.lower()
@@ -1195,8 +1194,8 @@ class CoregistrationUI(HasTraits):
         write_fiducials(
             fname=fname, pts=dig_montage.dig, coord_frame='mri', overwrite=True
         )
+        self._set_fiducials_file(fname)
         self._display_message(f"Saving {fname}... Done!")
-        self._set_fiducials_file(fname, log=False)
 
     def _save_trans(self, fname):
         write_trans(fname, self.coreg.trans, overwrite=True)
