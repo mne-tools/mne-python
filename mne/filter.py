@@ -1158,6 +1158,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
     & Hemant Bokil, Oxford University Press, New York, 2008. Please
     cite this in publications if method 'spectrum_fit' is used.
     """
+    x = _check_filterable(x, 'notch filtered', 'notch_filter')
     iir_params, method = _check_method(method, iir_params, ['spectrum_fit'])
 
     if freqs is not None:
@@ -1370,7 +1371,27 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
     return x - datafit, rm_freqs
 
 
-def _check_filterable(x, kind='filtered'):
+def _check_filterable(x, kind='filtered', alternative='filter'):
+    # Let's be fairly strict about this -- users can easily coerce to ndarray
+    # at their end, and we already should do it internally any time we are
+    # using these low-level functions. At the same time, let's
+    # help people who might accidentally use low-level functions that they
+    # shouldn't use by pushing them in the right direction
+    from .io.base import BaseRaw
+    from .epochs import BaseEpochs
+    from .evoked import Evoked
+    if isinstance(x, (BaseRaw, BaseEpochs, Evoked)):
+        try:
+            name = x.__class__.__name__
+        except Exception:
+            pass
+        else:
+            raise TypeError(
+                'This low-level function only operates on np.ndarray '
+                f'instances. To get a {kind} {name} instance, use a method '
+                f'like `inst_new = inst.copy().{alternative}(...)` '
+                'instead.')
+    _validate_type(x, (np.ndarray, list, tuple), f'Data to be {kind}')
     x = np.asanyarray(x)
     if x.dtype != np.float64:
         raise ValueError('Data to be %s must be real floating, got %s'
@@ -1438,7 +1459,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
         raise TypeError(err)
 
     # make sure our arithmetic will work
-    x = _check_filterable(x, 'resampled')
+    x = _check_filterable(x, 'resampled', 'resample')
     ratio, final_len = _resamp_ratio_len(up, down, x.shape[axis])
     del up, down
     if axis < 0:
