@@ -521,11 +521,11 @@ def combine_transforms(t_first, t_second, fro, to):
 
 @verbose
 def read_trans(fname, return_all=False, verbose=None):
-    """Read a -trans.fif file.
+    """Read a ``-trans.fif`` file.
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The name of the file.
     return_all : bool
         If True, return all transformations in the file.
@@ -544,6 +544,7 @@ def read_trans(fname, return_all=False, verbose=None):
     write_trans
     mne.transforms.Transform
     """
+    fname = _check_fname(fname, overwrite='read', must_exist=True)
     fid, tree, directory = fiff_open(fname)
 
     trans = list()
@@ -564,8 +565,8 @@ def write_trans(fname, trans, *, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        The name of the file, which should end in '-trans.fif'.
+    fname : path-like
+        The name of the file, which should end in ``-trans.fif``.
     trans : dict
         Trans file data, as returned by read_trans.
     %(overwrite)s
