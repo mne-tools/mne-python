@@ -102,29 +102,16 @@ def verbose(function: _FuncT) -> _FuncT:
     except TypeError:  # nothing to add
         pass
 
-    # Anything using verbose should either have `verbose=None` in the signature
-    # or have a `self.verbose` attribute (if in a method). This code path
-    # will raise an error if neither is the case.
+    # Anything using verbose should have `verbose=None` in the signature.
+    # This code path will raise an error if this is not the case.
     body = """\
 def %(name)s(%(signature)s):\n
     try:
-        verbose
-    except UnboundLocalError:
-        try:
-            verbose = self.verbose
-        except NameError:
-            raise RuntimeError('Function %%s does not accept verbose parameter'
-                               %% (_function_,))
-        except AttributeError:
-            raise RuntimeError('Method %%s class does not have self.verbose'
-                               %% (_function_,))
-    else:
-        if verbose is None:
-            try:
-                verbose = self.verbose
-            except (NameError, AttributeError):
-                pass
-    if verbose is not None:
+        do_level_change = verbose is not None
+    except (NameError, UnboundLocalError):
+        raise RuntimeError('Function/method %%s does not accept verbose '
+                           'parameter' %% (_function_,)) from None
+    if do_level_change:
         with _use_log_level_(verbose):
             return _function_(%(shortsignature)s)
     else:
@@ -469,3 +456,19 @@ def _frame_info(n):
         return ['unknown']
     finally:
         del frame
+
+
+class _VerboseDep:
+    @property
+    def verbose(self):
+        warn('The verbose class attribute has been deprecated in 1.0 and will '
+             'be removed in 1.1, pass verbose to methods as required to '
+             'change log levels instead', DeprecationWarning)
+        return None
+
+    @verbose.setter
+    def verbose(self, v):
+        warn('The verbose class attribute has been deprecated in 1.0 and will '
+             'be removed in 1.1, the value {v} will be ignored. Pass verbose '
+             'to methods as required to change log levels instead',
+             DeprecationWarning)

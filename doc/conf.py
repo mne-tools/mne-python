@@ -230,7 +230,7 @@ numpydoc_xref_ignore = {
     # words
     'instance', 'instances', 'of', 'default', 'shape', 'or',
     'with', 'length', 'pair', 'matplotlib', 'optional', 'kwargs', 'in',
-    'dtype', 'object', 'self.verbose',
+    'dtype', 'object',
     # shapes
     'n_vertices', 'n_faces', 'n_channels', 'm', 'n', 'n_events', 'n_colors',
     'n_times', 'obj', 'n_chan', 'n_epochs', 'n_picks', 'n_ch_groups',

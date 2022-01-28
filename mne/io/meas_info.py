@@ -159,7 +159,7 @@ class MontageMixin(object):
         %(match_case)s
         %(match_alias)s
         %(on_missing_montage)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------

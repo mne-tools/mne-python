@@ -5,7 +5,7 @@
 
 import numpy as np
 
-from .utils import _ensure_int, verbose, logger
+from .utils import _ensure_int, verbose, logger, _VerboseDep
 
 
 ###############################################################################
@@ -218,7 +218,7 @@ def _check_store(store):
     return store
 
 
-class _COLA(object):
+class _COLA(_VerboseDep):
     r"""Constant overlap-add processing helper.
 
     Parameters
@@ -263,7 +263,7 @@ class _COLA(object):
 
     @verbose
     def __init__(self, process, store, n_total, n_samples, n_overlap,
-                 sfreq, window='hann', tol=1e-10, verbose=None):
+                 sfreq, window='hann', tol=1e-10, *, verbose=None):
         from scipy.signal import get_window
         n_samples = _ensure_int(n_samples, 'n_samples')
         n_overlap = _ensure_int(n_overlap, 'n_overlap')
@@ -310,7 +310,6 @@ class _COLA(object):
         if delta > 0:
             logger.info('    The final %0.3f sec will be lumped into the '
                         'final window' % (delta / sfreq,))
-        self.verbose = verbose
 
     @property
     def _in_offset(self):
@@ -318,7 +317,7 @@ class _COLA(object):
         return self.starts[self._idx] + self._in_buffers[0].shape[-1]
 
     @verbose
-    def feed(self, *datas, **kwargs):
+    def feed(self, *datas, verbose=None, **kwargs):
         """Pass in a chunk of data."""
         # Append to our input buffer
         if self._in_buffers is None:

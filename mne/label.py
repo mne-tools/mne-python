@@ -25,7 +25,7 @@ from .surface import (complete_surface_info, read_surface, fast_cross_3d,
                       _mesh_borders, mesh_edges, mesh_dist)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
                     check_random_state, _validate_type, fill_doc,
-                    _check_option, check_version, _check_fname)
+                    _check_option, check_version, _check_fname, _VerboseDep)
 
 
 def _blend_colors(color_1, color_2):
@@ -140,7 +140,7 @@ def _n_colors(n, bytes_=False, cmap='hsv'):
 
 
 @fill_doc
-class Label(object):
+class Label(_VerboseDep):
     """A FreeSurfer/MNE label with vertices restricted to one hemisphere.
 
     Labels can be combined with the ``+`` operator:
@@ -190,7 +190,6 @@ class Label(object):
         value on initialization, but it can also be set manually.
     values : array, shape (N,)
         Values at the vertices.
-    %(verbose)s
     vertices : array, shape (N,)
         Vertex indices (0 based)
     """
@@ -198,7 +197,7 @@ class Label(object):
     @verbose
     def __init__(self, vertices=(), pos=None, values=None, hemi=None,
                  comment="", name=None, filename=None, subject=None,
-                 color=None, verbose=None):  # noqa: D102
+                 color=None, *, verbose=None):  # noqa: D102
         # check parameters
         if not isinstance(hemi, str):
             raise ValueError('hemi must be a string, not %s' % type(hemi))
@@ -233,7 +232,6 @@ class Label(object):
         self.values = values
         self.hemi = hemi
         self.comment = comment
-        self.verbose = verbose
         self.subject = _check_subject(None, subject, raise_error=False)
         self.color = color
         self.name = name
@@ -245,7 +243,6 @@ class Label(object):
         self.values = state['values']
         self.hemi = state['hemi']
         self.comment = state['comment']
-        self.verbose = state['verbose']
         self.subject = state.get('subject', None)
         self.color = state.get('color', None)
         self.name = state['name']
@@ -257,7 +254,6 @@ class Label(object):
                    values=self.values,
                    hemi=self.hemi,
                    comment=self.comment,
-                   verbose=self.verbose,
                    subject=self.subject,
                    color=self.color,
                    name=self.name,
@@ -343,10 +339,9 @@ class Label(object):
         name = "%s + %s" % (name0, name1)
 
         color = _blend_colors(self.color, other.color)
-        verbose = self.verbose or other.verbose
 
         label = Label(vertices, pos, values, self.hemi, comment, name, None,
-                      self.subject, color, verbose)
+                      self.subject, color)
         return label
 
     def __sub__(self, other):
@@ -374,7 +369,7 @@ class Label(object):
         name = "%s - %s" % (self.name or 'unnamed', other.name or 'unnamed')
         return Label(self.vertices[keep], self.pos[keep], self.values[keep],
                      self.hemi, self.comment, name, None, self.subject,
-                     self.color, self.verbose)
+                     self.color)
 
     def save(self, filename):
         r"""Write to disk as FreeSurfer \*.label file.
@@ -527,7 +522,7 @@ class Label(object):
             a label filling the surface, use None.
         %(subjects_dir)s
         %(n_jobs)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -542,7 +537,7 @@ class Label(object):
         """
         subject = _check_subject(self.subject, subject)
         return self.morph(subject, subject, smooth, grade, subjects_dir,
-                          n_jobs, verbose)
+                          n_jobs, verbose=verbose)
 
     @verbose
     def morph(self, subject_from=None, subject_to=None, smooth=5, grade=None,
@@ -575,7 +570,7 @@ class Label(object):
             a label filling the surface, use None.
         %(subjects_dir)s
         %(n_jobs)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -797,7 +792,7 @@ class Label(object):
         %(label_subject)s
         %(subjects_dir)s
         %(surface)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -842,7 +837,7 @@ class Label(object):
         %(label_subject)s
         %(subjects_dir)s
         %(surface)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -2270,7 +2265,7 @@ def morph_labels(labels, subject_to, subject_from=None, subjects_dir=None,
         pos = vert_poss[li][vertices]
         out_labels.append(
             Label(vertices, pos, values, label.hemi, label.comment, label.name,
-                  filename, subject_to, label.color, label.verbose))
+                  filename, subject_to, label.color))
     return out_labels
 
 
@@ -2346,7 +2341,7 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, src=None,
         rev_op = np.zeros(label_op.shape[::-1])
         rev_op[np.arange(label_op.shape[1]), np.argmax(label_op, axis=0)] = 1.
         data = rev_op @ values
-    return klass(data, vertices, tmin, tstep, subject, verbose)
+    return klass(data, vertices, tmin, tstep, subject, verbose=verbose)
 
 
 def _check_values_labels(values, n_labels):

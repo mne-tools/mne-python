@@ -34,7 +34,7 @@ from .fetching import _url_to_local_path
 from ._logging import (verbose, logger, set_log_level, set_log_file,
                        use_log_level, catch_logging, warn, filter_out_warnings,
                        wrapped_stdout, _get_call_line, _record_warnings,
-                       ClosingStringIO)
+                       ClosingStringIO, _VerboseDep)
 from .misc import (run_subprocess, _pl, _clean_names, pformat, _file_like,
                    _explain_exception, _get_argvalues, sizeof_fmt,
                    running_subprocess, _DefaultEventParser,

@@ -40,7 +40,6 @@ verbose : bool | str | int | None
     verbosity level. See the :ref:`logging documentation <tut-logging>` and
     :func:`mne.verbose` for details. Should only be passed as a keyword
     argument."""
-docdict['verbose_meth'] = (docdict['verbose'] + ' Defaults to self.verbose.')
 
 # Preload
 docdict['preload'] = """

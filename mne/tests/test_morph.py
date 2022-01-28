@@ -67,7 +67,7 @@ def _real_vec_stc():
 
 def test_sourcemorph_consistency():
     """Test SourceMorph class consistency."""
-    assert _get_args(SourceMorph.__init__)[1:] == \
+    assert _get_args(SourceMorph.__init__)[1:-1] == \
         mne.morph._SOURCE_MORPH_ATTRIBUTES
 
 

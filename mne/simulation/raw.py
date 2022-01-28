@@ -243,7 +243,6 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
     .. footbibliography::
     """  # noqa: E501
     _validate_type(info, Info, 'info')
-    raw_verbose = verbose
 
     if len(pick_types(info, meg=False, stim=True)) == 0:
         event_ch = None
@@ -331,8 +330,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
     raw_data = np.concatenate(raw_datas, axis=-1)
     raw = RawArray(raw_data, info, first_samp=first_samp, verbose=False)
     raw.set_annotations(raw.annotations)
-    raw.verbose = raw_verbose
-    logger.info('Done')
+    logger.info('[done]')
     return raw
 
 
