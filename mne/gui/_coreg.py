@@ -529,7 +529,8 @@ class CoregistrationUI(HasTraits):
     def _lock_fids_changed(self, change=None):
         locked_widgets = ["sX", "sY", "sZ", "tX", "tY", "tZ",
                           "rX", "rY", "rZ", "project_eeg",
-                          "fit_fiducials", "fit_icp"]
+                          "fit_fiducials", "fit_icp",
+                          "save_mri_fids"]
         fits_widgets = ["fits_fiducials", "fits_icp"]
         fid_widgets = ["fid_X", "fid_Y", "fid_Z", "fids_file", "fids"]
         if self._lock_fids:
@@ -538,7 +539,6 @@ class CoregistrationUI(HasTraits):
             self._scale_mode_changed()
             self._display_message()
             self._update_distance_estimation()
-            self._forward_widget_command('save_mri_fids', 'set_enabled', True)
         else:
             self._old_head_opacity = self._head_opacity
             self._head_opacity = 1.0
