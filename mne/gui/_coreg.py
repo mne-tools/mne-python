@@ -1422,7 +1422,7 @@ class CoregistrationUI(HasTraits):
             layout=view_options_layout,
         )
         self._widgets["project_eeg"] = self._renderer._dock_add_check_box(
-            name="Show EEG electrodes",
+            name="Project EEG electrodes onto scalp",
             value=self._project_eeg,
             callback=self._set_project_eeg,
             tooltip="Enable/Disable EEG channels projection on head surface",
