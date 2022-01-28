@@ -565,8 +565,8 @@ def write_trans(fname, trans, *, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        The name of the file, which should end in '-trans.fif'.
+    fname : path-like
+        The name of the file, which should end in ``-trans.fif``.
     trans : dict
         Trans file data, as returned by read_trans.
     %(overwrite)s
