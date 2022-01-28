@@ -1369,6 +1369,8 @@ class Coregistration(object):
 
         self._setup_digs()
         self._setup_bem()
+
+        self._fid_filename = None
         self._setup_fiducials(fiducials)
         self.reset()
 
@@ -1449,6 +1451,7 @@ class Coregistration(object):
                 logger.info(f'Using fiducials from: {fid_filename}.')
                 fids, _ = read_fiducials(fid_filename)
                 fid_accurate = True
+                self._fid_filename = fid_filename
             else:
                 fids = 'estimated'
 
