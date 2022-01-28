@@ -355,6 +355,7 @@ class CoregistrationUI(HasTraits):
             self._display_message(
                 f"Loading MRI fiducials from {fname}... Done!"
             )
+        self._update_plot("sensors")
 
     def _set_current_fiducial(self, fid):
         self._current_fiducial = fid.lower()
