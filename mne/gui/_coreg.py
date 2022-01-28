@@ -1071,14 +1071,10 @@ class CoregistrationUI(HasTraits):
 
     def _fit_fiducials(self):
         with self._lock(scale_mode=True):
-            self._fits_fiducials()
+            self._fit_scaled_fiducials()
 
-    def _fits_fiducials(self):
+    def _fit_scaled_fiducials(self):
         with self._lock(fitting=True, params=True):
-            if not self._lock_fids:
-                self._display_message(
-                    "Fitting is disabled, lock the fiducials first.")
-                return
             start = time.time()
             self.coreg.fit_fiducials(
                 lpa_weight=self._lpa_weight,
@@ -1095,14 +1091,10 @@ class CoregistrationUI(HasTraits):
 
     def _fit_icp(self):
         with self._lock(scale_mode=True):
-            self._fits_icp()
+            self._fit_scaled_icp()
 
-    def _fits_icp(self):
+    def _fit_scaled_icp(self):
         with self._lock(params=True, fitting=True):
-            if not self._lock_fids:
-                self._display_message(
-                    "Fitting is disabled, lock the fiducials first.")
-                return
             self._current_icp_iterations = 0
 
             def callback(iteration, n_iterations):
@@ -1486,13 +1478,13 @@ class CoregistrationUI(HasTraits):
         fit_scale_layout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["fits_fiducials"] = self._renderer._dock_add_button(
             name="Fit fiducials with scaling",
-            callback=self._fits_fiducials,
+            callback=self._fit_scaled_fiducials,
             tooltip="Find rotation and translation to fit all 3 fiducials",
             layout=fit_scale_layout,
         )
         self._widgets["fits_icp"] = self._renderer._dock_add_button(
             name="Fit ICP with scaling",
-            callback=self._fits_icp,
+            callback=self._fit_scaled_icp,
             tooltip="Find MRI scaling, translation, and rotation to match the "
                     "head shape points",
             layout=fit_scale_layout,

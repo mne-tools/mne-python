@@ -130,13 +130,13 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     coreg._reset()
     coreg._reset_fitting_parameters()
     coreg._set_scale_mode("uniform")
-    coreg._fits_fiducials()
+    coreg._fit_scaled_fiducials()
     assert_allclose(coreg.coreg._scale,
                     np.array([97.46, 97.46, 97.46]) * 1e-2,
                     atol=1e-3)
     coreg._set_icp_fid_match("nearest")
     coreg._set_scale_mode("3-axis")
-    coreg._fits_icp()
+    coreg._fit_scaled_icp()
     assert_allclose(coreg.coreg._scale,
                     np.array([104.43, 101.47, 125.78]) * 1e-2,
                     atol=1e-3)
