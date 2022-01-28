@@ -169,6 +169,8 @@ Bugs
 
 - Fix bug with :func:`mne.io.read_raw_hitachi` where empty ``Comment`` descriptions were not handled properly (:gh:`10235` by `Eric Larson`_)
 
+- Fix bug with input validation of low-level filtering functions (:gh:`10267` by `Eric Larson`_)
+
 - :func:`mne.gui.coregistration` now works with surfaces containing topological defects (:gh:`10230`, by `Richard Höchenberger`_)
 
 API changes
