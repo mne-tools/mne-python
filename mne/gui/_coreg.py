@@ -452,7 +452,7 @@ class CoregistrationUI(HasTraits):
         if self._params_locked:
             return
         if mode_name == "scale" and self._scale_mode == "uniform":
-            with self._lock_params():
+            with self._lock(params=True):
                 self._forward_widget_command(
                     ["sY", "sZ"], "set_value", value)
         with self._parameter_mutex:
@@ -813,47 +813,38 @@ class CoregistrationUI(HasTraits):
             self._redraw()
 
     @contextmanager
-    def _lock_plot(self):
-        old_plot_locked = self._plot_locked
-        self._plot_locked = True
+    def _lock(self, plot=False, params=False, scale_mode=False, fitting=False):
+        if plot:
+            old_plot_locked = self._plot_locked
+            self._plot_locked = True
+        if params:
+            old_params_locked = self._params_locked
+            self._params_locked = True
+        if scale_mode:
+            old_scale_mode = self.coreg._scale_mode
+            self.coreg._scale_mode = None
+        if fitting:
+            widgets = ["fit_icp", "fit_fiducials",
+                       "fits_icp", "fits_fiducials"]
+            states = [
+                self._forward_widget_command(
+                    w, "is_enabled", None,
+                    input_value=False, output_value=True)
+                for w in widgets
+            ]
+            self._forward_widget_command(widgets, "set_enabled", False)
         try:
             yield
         finally:
-            self._plot_locked = old_plot_locked
-
-    @contextmanager
-    def _lock_params(self):
-        old_params_locked = self._params_locked
-        self._params_locked = True
-        try:
-            yield
-        finally:
-            self._params_locked = old_params_locked
-
-    @contextmanager
-    def _lock_scale_mode(self):
-        old_scale_mode = self.coreg._scale_mode
-        self.coreg._scale_mode = None
-        try:
-            yield
-        finally:
-            self.coreg._scale_mode = old_scale_mode
-
-    @contextmanager
-    def _lock_fitting(self):
-        widgets = ["fit_icp", "fit_fiducials",
-                   "fits_icp", "fits_fiducials"]
-        states = [
-            self._forward_widget_command(
-                w, "is_enabled", None, input_value=False, output_value=True)
-            for w in widgets
-        ]
-        self._forward_widget_command(widgets, "set_enabled", False)
-        try:
-            yield
-        finally:
-            for idx, w in enumerate(widgets):
-                self._forward_widget_command(w, "set_enabled", states[idx])
+            if plot:
+                self._plot_locked = old_plot_locked
+            if params:
+                self._params_locked = old_params_locked
+            if scale_mode:
+                self.coreg._scale_mode = old_scale_mode
+            if fitting:
+                for idx, w in enumerate(widgets):
+                    self._forward_widget_command(w, "set_enabled", states[idx])
 
     def _display_message(self, msg=""):
         self._forward_widget_command('status_message', 'set_value', msg)
@@ -888,7 +879,7 @@ class CoregistrationUI(HasTraits):
         idx = _map_fid_name_to_idx(name=fid)
         val = self.coreg.fiducials.dig[idx]['r'] * 1e3
 
-        with self._lock_plot():
+        with self._lock(plot=True):
             self._forward_widget_command(
                 ["fid_X", "fid_Y", "fid_Z"], "set_value", val)
 
@@ -903,17 +894,16 @@ class CoregistrationUI(HasTraits):
         self._forward_widget_command("fit_label", "set_value", value)
 
     def _update_parameters(self):
-        with self._lock_plot():
-            with self._lock_params():
-                # rotation
-                self._forward_widget_command(["rX", "rY", "rZ"], "set_value",
-                                             np.rad2deg(self.coreg._rotation))
-                # translation
-                self._forward_widget_command(["tX", "tY", "tZ"], "set_value",
-                                             self.coreg._translation * 1e3)
-                # scale
-                self._forward_widget_command(["sX", "sY", "sZ"], "set_value",
-                                             self.coreg._scale * 1e2)
+        with self._lock(plot=True, params=True):
+            # rotation
+            self._forward_widget_command(["rX", "rY", "rZ"], "set_value",
+                                         np.rad2deg(self.coreg._rotation))
+            # translation
+            self._forward_widget_command(["tX", "tY", "tZ"], "set_value",
+                                         self.coreg._translation * 1e3)
+            # scale
+            self._forward_widget_command(["sX", "sY", "sZ"], "set_value",
+                                         self.coreg._scale * 1e2)
 
     def _reset(self):
         self.coreg.set_scale(self.coreg._default_parameters[6:9])
@@ -1080,12 +1070,11 @@ class CoregistrationUI(HasTraits):
         self._update_actor("helmet", helmet_actor)
 
     def _fit_fiducials(self):
-        with self._lock_fitting():
-            with self._lock_scale_mode():
-                self._fits_fiducials()
+        with self._lock(scale_mode=True):
+            self._fits_fiducials()
 
     def _fits_fiducials(self):
-        with self._lock_fitting():
+        with self._lock(fitting=True, params=True):
             if not self._lock_fids:
                 self._display_message(
                     "Fitting is disabled, lock the fiducials first.")
@@ -1105,12 +1094,11 @@ class CoregistrationUI(HasTraits):
             self._update_distance_estimation()
 
     def _fit_icp(self):
-        with self._lock_fitting():
-            with self._lock_scale_mode():
-                self._fits_icp()
+        with self._lock(scale_mode=True):
+            self._fits_icp()
 
     def _fits_icp(self):
-        with self._lock_fitting():
+        with self._lock(params=True, fitting=True):
             if not self._lock_fids:
                 self._display_message(
                     "Fitting is disabled, lock the fiducials first.")
