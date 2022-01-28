@@ -37,6 +37,7 @@ class _QtLayout(_AbstractLayout):
         pass
 
     def _layout_add_widget(self, layout, widget, stretch=0):
+        """Add a widget to an existing layout."""
         if isinstance(widget, QLayout):
             layout.addLayout(widget)
         else:
@@ -273,7 +274,7 @@ class _QtDock(_AbstractDock, _QtLayout):
             self._layout_add_widget(layout, hlayout)
             return _QtWidgetList([text_widget, button_widget])
         else:
-            return _QtWidget(button_widget)
+            return button_widget  # It's already a _QtWidget instance
 
 
 class QFloatSlider(QSlider):

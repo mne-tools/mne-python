@@ -542,7 +542,7 @@ class CoregistrationUI(HasTraits):
             # Fitting buttons
             "fit_fiducials", "fit_icp",
             # Transformation I/O
-            # "save_trans", "load_trans",  # XXX Can enable after #10242 merged
+            "save_trans", "load_trans",
             "reset_trans",
             # ICP
             "icp_n_iterations", "icp_fid_match", "reset_fitting_options",
