@@ -1317,9 +1317,6 @@ class CoregistrationUI(HasTraits):
                     "must be locked first!",
             layout=mri_fiducials_button_layout,
         )
-        # Disable save button until fiducials are locked.
-        self._forward_widget_command('save_mri_fids', 'set_enabled', False)
-
         self._widgets["lock_fids"] = self._renderer._dock_add_check_box(
             name="Lock fiducials",
             value=self._lock_fids,
