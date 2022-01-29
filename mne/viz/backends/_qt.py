@@ -244,7 +244,8 @@ class _QtDock(_AbstractDock, _QtLayout):
         def callback():
             if is_directory:
                 name = QFileDialog.getExistingDirectory(
-                    directory=initial_directory
+                    directory=initial_directory,
+                    options=QFileDialog.ShowDirsOnly
                 )
             elif save:
                 name = QFileDialog.getSaveFileName(
