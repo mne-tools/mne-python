@@ -446,6 +446,14 @@ class _IpyWidget(_AbstractWidget):
     def update(self, repaint=True):
         pass
 
+    def get_tooltip(self):
+        assert hasattr(self._widget, 'tooltip')
+        return self._widget.tooltip
+
+    def set_tooltip(self, tooltip):
+        assert hasattr(self._widget, 'tooltip')
+        self._widget.tooltip = tooltip
+
 
 class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
                 _IpyStatusBar, _IpyWindow, _IpyPlayback):

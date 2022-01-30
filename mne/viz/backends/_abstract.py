@@ -692,6 +692,14 @@ class _AbstractWidget(ABC):
     def update(self, repaint=True):
         pass
 
+    @abstractmethod
+    def get_tooltip(self):
+        pass
+
+    @abstractmethod
+    def set_tooltip(self, tooltip: str):
+        pass
+
 
 class _AbstractMplInterface(ABC):
     @abstractmethod
