@@ -636,6 +636,9 @@ class CoregistrationUI(HasTraits):
         if "head" in self._actors:
             self._actors["head"].GetProperty().SetOpacity(self._head_opacity)
             self._renderer._update()
+        self._forward_widget_command(
+            'head_opacity', 'set_value', self._head_opacity
+        )
 
     @observe("_helmet")
     def _helmet_changed(self, change=None):
