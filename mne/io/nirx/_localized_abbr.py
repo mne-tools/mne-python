@@ -1,11 +1,11 @@
+"""Localizations for meas_date extraction."""
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
 
 # This file was generated on 2021/01/31 on an Ubuntu system.
-# I got "unsupported locale setting" on Ubuntu because I use localepurge. So
-# I had to use "sudo locale-gen de_DE" etc. then "sudo update-locale", then
-# this worked:
+# When getting "unsupported locale setting" on Ubuntu (e.g., with localepurge),
+# use "sudo locale-gen de_DE" etc. then "sudo update-locale".
 
 """
 import datetime
