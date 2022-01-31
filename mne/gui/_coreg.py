@@ -1284,7 +1284,7 @@ class CoregistrationUI(HasTraits):
             layout=mri_subject_layout,
         )
 
-        mri_fiducials_layout =  self._renderer._dock_add_group_box(
+        mri_fiducials_layout = self._renderer._dock_add_group_box(
             "MRI Fiducials"
         )
         # Add MRI fiducials I/O widgets
@@ -1294,7 +1294,7 @@ class CoregistrationUI(HasTraits):
             selectable=True
         )
         # Reload & Save buttons go into their own layout widget
-        mri_fiducials_button_layout =  self._renderer._dock_add_layout(
+        mri_fiducials_button_layout = self._renderer._dock_add_layout(
             vertical=False
         )
         self._renderer._layout_add_widget(
