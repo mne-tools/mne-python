@@ -553,17 +553,18 @@ class CoregistrationUI(HasTraits):
         fits_widgets = ["fits_fiducials", "fits_icp"]
         fid_widgets = ["fid_X", "fid_Y", "fid_Z", "fids_file", "fids"]
         if self._lock_fids:
-            self._head_opacity = self._old_head_opacity
             self._forward_widget_command(locked_widgets, "set_enabled", True)
             self._forward_widget_command(
-                'head_opacity', 'set_value', self._head_opacity
+                'head_opacity', 'set_value', self._old_head_opacity
             )
             self._scale_mode_changed()
             self._display_message()
             self._update_distance_estimation()
         else:
             self._old_head_opacity = self._head_opacity
-            self._head_opacity = 1.0
+            self._forward_widget_command(
+                'head_opacity', 'set_value', 1.0
+            )
             self._forward_widget_command(locked_widgets, "set_enabled", False)
             self._forward_widget_command(fits_widgets, "set_enabled", False)
             self._display_message("Placing MRI fiducials - "
