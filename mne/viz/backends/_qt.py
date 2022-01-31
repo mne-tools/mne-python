@@ -685,6 +685,14 @@ class _QtWidget(_AbstractWidget):
         if repaint:
             self._widget.repaint()
 
+    def get_tooltip(self):
+        assert hasattr(self._widget, 'toolTip')
+        return self._widget.toolTip()
+
+    def set_tooltip(self, tooltip):
+        assert hasattr(self._widget, 'setToolTip')
+        self._widget.setToolTip(tooltip)
+
 
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
                 _QtStatusBar, _QtWindow, _QtPlayback):
