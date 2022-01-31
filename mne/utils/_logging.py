@@ -157,16 +157,17 @@ class use_log_level:
     """
 
     def __init__(self, verbose, *, add_frames=None):  # noqa: D102
-        self.level = level
-        self.add_frames = add_frames
-        self.old_frames = _filter.add_frames
+        self._level = verbose
+        self._add_frames = add_frames
+        self._old_frames = _filter.add_frames
 
     def __enter__(self):  # noqa: D105
-        self.old_level = set_log_level(self.level, True, self.add_frames)
+        self._old_level = set_log_level(
+            self._level, return_old_level=True, add_frames=self._add_frames)
 
     def __exit__(self, *args):  # noqa: D105
-        add_frames = self.old_frames if self.add_frames is not None else None
-        set_log_level(self.old_level, add_frames=add_frames)
+        add_frames = self._old_frames if self._add_frames is not None else None
+        set_log_level(self._old_level, add_frames=add_frames)
 
 
 def set_log_level(verbose=None, return_old_level=False, add_frames=None):
