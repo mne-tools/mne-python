@@ -274,8 +274,8 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         The data to use in plotting properties.
     picks : str | list | slice | None
         Components to include. Slices and lists of integers will be interpreted
-        as component indices. None (default) will use the first five components.
-        If more than one components were chosen in the picks,
+        as component indices. None (default) will use the first five
+        components. If more than one components were chosen in the picks,
         each one will be plotted in a separate figure.
     axes : list of Axes | None
         List of five matplotlib axes to use in plotting: [topomap_axis,
