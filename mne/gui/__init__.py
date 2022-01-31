@@ -84,7 +84,7 @@ def coregistration(width=None, inst=None, subject=None, subjects_dir=None,
 
     Notes
     -----
-    Many parameters (e.g., ``project_eeg``) take None as a parameter,
+    Many parameters (e.g., ``head_opacity``) take None as a parameter,
     which means that the default will be read from the MNE-Python
     configuration file (which gets saved when exiting).
 
@@ -131,8 +131,6 @@ def coregistration(width=None, inst=None, subject=None, subjects_dir=None,
             subjects_dir = config['SUBJECTS_DIR']
         elif 'MNE_COREG_SUBJECTS_DIR' in config:
             subjects_dir = config['MNE_COREG_SUBJECTS_DIR']
-    if project_eeg is None:
-        project_eeg = config.get('MNE_COREG_PROJECT_EEG', '') == 'true'
     if orient_to_surface is None:
         orient_to_surface = (config.get('MNE_COREG_ORIENT_TO_SURFACE', '') ==
                              'true')
@@ -159,9 +157,8 @@ def coregistration(width=None, inst=None, subject=None, subjects_dir=None,
         info_file=inst, subject=subject, subjects_dir=subjects_dir,
         head_resolution=head_high_res, head_opacity=head_opacity,
         orient_glyphs=orient_to_surface, scale_by_distance=scale_by_distance,
-        project_eeg=project_eeg,mark_inside=mark_inside, trans=trans,
-        size=(width, height), show=show, block=block,
-        interaction=interaction, verbose=verbose
+        mark_inside=mark_inside, trans=trans, size=(width, height), show=show,
+        block=block, interaction=interaction, verbose=verbose
     )
 
 

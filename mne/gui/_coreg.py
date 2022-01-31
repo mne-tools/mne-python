@@ -64,9 +64,6 @@ class CoregistrationUI(HasTraits):
     scale_by_distance : bool
         If True, scale the sensors based on their distance to the head surface.
         Defaults to True.
-    project_eeg : bool
-        If True, project the EEG channels onto the head surface. Defaults to
-        False.
     mark_inside : bool
         If True, mark the head shape points that are inside the head surface
         with a different color. Defaults to True.
@@ -104,7 +101,6 @@ class CoregistrationUI(HasTraits):
     _info_file = Unicode()
     _orient_glyphs = Bool()
     _scale_by_distance = Bool()
-    _project_eeg = Bool()
     _mark_inside = Bool()
     _hpi_coils = Bool()
     _head_shape_points = Bool()
@@ -126,10 +122,10 @@ class CoregistrationUI(HasTraits):
                  fiducials='auto', head_resolution=None,
                  head_opacity=None, hpi_coils=None,
                  head_shape_points=None, eeg_channels=None, orient_glyphs=None,
-                 scale_by_distance=None, project_eeg=None, mark_inside=None,
+                 scale_by_distance=None, mark_inside=None,
                  sensor_opacity=None, trans=None, size=None, bgcolor=None,
                  show=True, block=False, interaction='terrain', *,
-                 head_transparency=None, standalone=None,
+                 project_eeg=None, head_transparency=None, standalone=None,
                  verbose=None):
         if standalone is not None:
             depr_message = ('standalone is deprecated and will be replaced by '
@@ -152,6 +148,9 @@ class CoregistrationUI(HasTraits):
                      'head_transparency and head_opacity, '
                      'head_transparency will be ignored.',
                      DeprecationWarning)
+        if project_eeg is not None:
+            warn('project_eeg is deprecated and will be removed in 1.1.',
+                 DeprecationWarning)
         from ..viz.backends.renderer import _get_renderer
         from ..viz.backends._utils import _qt_app_exec
 
@@ -183,7 +182,6 @@ class CoregistrationUI(HasTraits):
             bgcolor=_get_default(bgcolor, "grey"),
             orient_glyphs=_get_default(orient_glyphs, True),
             scale_by_distance=_get_default(scale_by_distance, True),
-            project_eeg=_get_default(project_eeg, False),
             mark_inside=_get_default(mark_inside, True),
             hpi_coils=_get_default(hpi_coils, True),
             head_shape_points=_get_default(head_shape_points, True),
@@ -253,7 +251,6 @@ class CoregistrationUI(HasTraits):
         self._set_info_file(info_file)
         self._set_orient_glyphs(self._defaults["orient_glyphs"])
         self._set_scale_by_distance(self._defaults["scale_by_distance"])
-        self._set_project_eeg(self._defaults["project_eeg"])
         self._set_mark_inside(self._defaults["mark_inside"])
         self._set_hpi_coils(self._defaults["hpi_coils"])
         self._set_head_shape_points(self._defaults["head_shape_points"])
@@ -390,9 +387,6 @@ class CoregistrationUI(HasTraits):
 
     def _set_scale_by_distance(self, state):
         self._scale_by_distance = bool(state)
-
-    def _set_project_eeg(self, state):
-        self._project_eeg = bool(state)
 
     def _set_mark_inside(self, state):
         self._mark_inside = bool(state)
@@ -531,7 +525,7 @@ class CoregistrationUI(HasTraits):
             # MRI fiducials
             "save_mri_fids",
             # View options
-            "project_eeg", "helmet", "head_opacity", "high_res_head",
+            "helmet", "head_opacity", "high_res_head",
             # Digitization source
             "info_file", "grow_hair", "omit_distance", "omit", "reset_omit",
             # Scaling
@@ -606,10 +600,6 @@ class CoregistrationUI(HasTraits):
     @observe("_scale_by_distance")
     def _scale_by_distance_changed(self, change=None):
         self._update_plot(["hpi", "hsp", "eeg"])
-
-    @observe("_project_eeg")
-    def _project_eeg_changed(self, change=None):
-        self._update_plot("eeg")
 
     @observe("_mark_inside")
     def _mark_inside_changed(self, change=None):
@@ -1024,7 +1014,6 @@ class CoregistrationUI(HasTraits):
                     sensor_opacity=self._defaults["sensor_opacity"],
                     orient_glyphs=self._orient_glyphs,
                     scale_by_distance=self._scale_by_distance,
-                    project_points=self._project_eeg,
                     surf=self._head_geo)
                 sens_actors = actors["eeg"]
                 sens_actors.extend(actors["fnirs"])

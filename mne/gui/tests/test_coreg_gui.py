@@ -102,13 +102,16 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     """Test that using CoregistrationUI matches mne coreg."""
     from mne.gui import coregistration
     from mne.gui._coreg import CoregistrationUI
-    with pytest.warns(DeprecationWarning, match='standalone is deprecated'):
-        CoregistrationUI(info_file=None, subject='sample',
-                         subjects_dir=subjects_dir, standalone=False)
-    with pytest.warns(DeprecationWarning, match='head_transparency '
-                                                'is deprecated'):
-        CoregistrationUI(info_file=None, subject='sample',
-                         subjects_dir=subjects_dir, head_transparency=False)
+    deprecated_params = [
+        'standalone', 'head_transparency', 'project_eeg'
+    ]
+    for param in deprecated_params:
+        kwargs = dict()
+        kwargs[param] = 0
+        with pytest.warns(DeprecationWarning, match=f'{param} is deprecated'):
+            CoregistrationUI(info_file=None, **kwargs)
+        del kwargs
+
     deprecated_params = [
         'tabbed', 'split', 'scrollable', 'head_inside', 'guess_mri_subject',
         'project_eeg', 'scale', 'advanced_rendering'
@@ -117,8 +120,7 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
         kwargs = dict()
         kwargs[param] = 0
         with pytest.warns(DeprecationWarning, match=f'{param} is deprecated'):
-            coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
-                                   trans=fname_trans, **kwargs)
+            coreg = coregistration(**kwargs)
         del kwargs
 
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
@@ -197,8 +199,6 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert_allclose(
         coreg._head_opacity,
         float(config.get('MNE_COREG_HEAD_OPACITY', '0.8')))
-    assert coreg._project_eeg == \
-        (config.get('MNE_COREG_PROJECT_EEG', '') == 'true')
     assert coreg._hpi_coils
     assert coreg._eeg_channels
     assert coreg._head_shape_points
