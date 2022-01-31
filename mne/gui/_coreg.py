@@ -823,31 +823,25 @@ class CoregistrationUI(HasTraits):
             self._redraw()
 
     @contextmanager
-    def _lock_plot(self):
-        old_plot_locked = self._plot_locked
-        self._plot_locked = True
+    def _lock(self, plot=False, params=False, scale_mode=False):
+        if plot:
+            old_plot_locked = self._plot_locked
+            self._plot_locked = True
+        if params:
+            old_params_locked = self._params_locked
+            self._params_locked = True
+        if scale_mode:
+            old_scale_mode = self.coreg._scale_mode
+            self.coreg._scale_mode = None
         try:
             yield
         finally:
-            self._plot_locked = old_plot_locked
-
-    @contextmanager
-    def _lock_params(self):
-        old_params_locked = self._params_locked
-        self._params_locked = True
-        try:
-            yield
-        finally:
-            self._params_locked = old_params_locked
-
-    @contextmanager
-    def _lock_scale_mode(self):
-        old_scale_mode = self.coreg._scale_mode
-        self.coreg._scale_mode = None
-        try:
-            yield
-        finally:
-            self.coreg._scale_mode = old_scale_mode
+            if plot:
+                self._plot_locked = old_plot_locked
+            if params:
+                self._params_locked = old_params_locked
+            if scale_mode:
+                self.coreg._scale_mode = old_scale_mode
 
     def _display_message(self, msg=""):
         self._forward_widget_command('status_message', 'set_value', msg)
@@ -882,7 +876,7 @@ class CoregistrationUI(HasTraits):
         idx = _map_fid_name_to_idx(name=fid)
         val = self.coreg.fiducials.dig[idx]['r'] * 1e3
 
-        with self._lock_plot():
+        with self._lock(plot=True):
             self._forward_widget_command(
                 ["fid_X", "fid_Y", "fid_Z"], "set_value", val)
 
@@ -897,17 +891,16 @@ class CoregistrationUI(HasTraits):
         self._forward_widget_command("fit_label", "set_value", value)
 
     def _update_parameters(self):
-        with self._lock_plot():
-            with self._lock_params():
-                # rotation
-                self._forward_widget_command(["rX", "rY", "rZ"], "set_value",
-                                             np.rad2deg(self.coreg._rotation))
-                # translation
-                self._forward_widget_command(["tX", "tY", "tZ"], "set_value",
-                                             self.coreg._translation * 1e3)
-                # scale
-                self._forward_widget_command(["sX", "sY", "sZ"], "set_value",
-                                             self.coreg._scale * 1e2)
+        with self._lock(plot=True, params=True):
+            # rotation
+            self._forward_widget_command(["rX", "rY", "rZ"], "set_value",
+                                         np.rad2deg(self.coreg._rotation))
+            # translation
+            self._forward_widget_command(["tX", "tY", "tZ"], "set_value",
+                                         self.coreg._translation * 1e3)
+            # scale
+            self._forward_widget_command(["sX", "sY", "sZ"], "set_value",
+                                         self.coreg._scale * 1e2)
 
     def _reset(self):
         self.coreg.set_scale(self.coreg._default_parameters[6:9])
@@ -1074,63 +1067,57 @@ class CoregistrationUI(HasTraits):
         self._update_actor("helmet", helmet_actor)
 
     def _fit_fiducials(self):
-        with self._lock_scale_mode():
+        with self._lock(scale_mode=True):
             self._fits_fiducials()
 
     def _fits_fiducials(self):
-        if not self._lock_fids:
+        with self._lock(params=True):
+            start = time.time()
+            self.coreg.fit_fiducials(
+                lpa_weight=self._lpa_weight,
+                nasion_weight=self._nasion_weight,
+                rpa_weight=self._rpa_weight,
+                verbose=self._verbose,
+            )
+            end = time.time()
             self._display_message(
-                "Fitting is disabled, lock the fiducials first.")
-            return
-        start = time.time()
-        self.coreg.fit_fiducials(
-            lpa_weight=self._lpa_weight,
-            nasion_weight=self._nasion_weight,
-            rpa_weight=self._rpa_weight,
-            verbose=self._verbose,
-        )
-        end = time.time()
-        self._display_message(
-            f"Fitting fiducials finished in {end - start:.2f} seconds.")
-        self._update_plot("sensors")
-        self._update_parameters()
-        self._update_distance_estimation()
+                f"Fitting fiducials finished in {end - start:.2f} seconds.")
+            self._update_plot("sensors")
+            self._update_parameters()
+            self._update_distance_estimation()
 
     def _fit_icp(self):
-        with self._lock_scale_mode():
+        with self._lock(scale_mode=True):
             self._fits_icp()
 
     def _fits_icp(self):
-        if not self._lock_fids:
-            self._display_message(
-                "Fitting is disabled, lock the fiducials first.")
-            return
-        self._current_icp_iterations = 0
+        with self._lock(params=True):
+            self._current_icp_iterations = 0
 
-        def callback(iteration, n_iterations):
-            self._display_message(
-                f"Fitting ICP - iteration {iteration + 1}")
-            self._update_plot(['head', 'hsp', 'hpi', 'eeg', 'head_fids'])
-            self._current_icp_iterations += 1
-            self._update_distance_estimation()
-            self._update_parameters()
-            self._renderer._process_events()  # allow a draw or cancel
+            def callback(iteration, n_iterations):
+                self._display_message(
+                    f"Fitting ICP - iteration {iteration + 1}")
+                self._update_plot(['head', 'hsp', 'hpi', 'eeg', 'head_fids'])
+                self._current_icp_iterations += 1
+                self._update_distance_estimation()
+                self._update_parameters()
+                self._renderer._process_events()  # allow a draw or cancel
 
-        start = time.time()
-        self.coreg.fit_icp(
-            n_iterations=self._icp_n_iterations,
-            lpa_weight=self._lpa_weight,
-            nasion_weight=self._nasion_weight,
-            rpa_weight=self._rpa_weight,
-            callback=callback,
-            verbose=self._verbose,
-        )
-        end = time.time()
-        self._display_message()
-        self._display_message(
-            f"Fitting ICP finished in {end - start:.2f} seconds and "
-            f"{self._current_icp_iterations} iterations.")
-        del self._current_icp_iterations
+            start = time.time()
+            self.coreg.fit_icp(
+                n_iterations=self._icp_n_iterations,
+                lpa_weight=self._lpa_weight,
+                nasion_weight=self._nasion_weight,
+                rpa_weight=self._rpa_weight,
+                callback=callback,
+                verbose=self._verbose,
+            )
+            end = time.time()
+            self._display_message()
+            self._display_message(
+                f"Fitting ICP finished in {end - start:.2f} seconds and "
+                f"{self._current_icp_iterations} iterations.")
+            del self._current_icp_iterations
 
     def _task_save_subject(self):
         from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
