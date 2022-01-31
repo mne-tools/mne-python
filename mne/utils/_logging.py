@@ -124,13 +124,13 @@ def %(name)s(%(signature)s):\n
     return fm.make(body, evaldict, addsource=True, **attrs)
 
 
+@fill_doc
 class use_log_level:
     """Context manager for logging level.
 
     Parameters
     ----------
-    level : int
-        The level to use.
+    %(verbose)s
     add_frames : int | None
         Number of stack frames to include in logging. This is useful
         for developers.
@@ -158,7 +158,7 @@ class use_log_level:
     This message will be printed!
     """
 
-    def __init__(self, level, *, add_frames=None):  # noqa: D102
+    def __init__(self, verbose, *, add_frames=None):  # noqa: D102
         self.level = level
         self.add_frames = add_frames
         self.old_frames = _filter.add_frames
