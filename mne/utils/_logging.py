@@ -124,18 +124,41 @@ def %(name)s(%(signature)s):\n
     return fm.make(body, evaldict, addsource=True, **attrs)
 
 
-class use_log_level(object):
-    """Context handler for logging level.
+class use_log_level:
+    """Context manager for logging level.
 
     Parameters
     ----------
     level : int
         The level to use.
     add_frames : int | None
-        Number of stack frames to include.
+        Number of stack frames to include in logging. This is useful
+        for developers.
+
+    See Also
+    --------
+    mne.verbose
+
+    Notes
+    -----
+    See the :ref:`logging documentation <tut-logging>` for details.
+
+    Examples
+    --------
+    >>> from mne import use_log_level
+    >>> from mne.utils import logger
+    >>> with use_log_level(False):
+    ...     # Most MNE logger messages are "info" level, False makes them not
+    ...     # print:
+    ...     logger.info('This message will not be printed')
+    >>> with use_log_level(True):
+    ...     # Using verbose=True in functions, methods, or this context manager
+    ...     # will ensure they are printed
+    ...     logger.info('This message will be printed!')
+    This message will be printed!
     """
 
-    def __init__(self, level, add_frames=None):  # noqa: D102
+    def __init__(self, level, *, add_frames=None):  # noqa: D102
         self.level = level
         self.add_frames = add_frames
         self.old_frames = _filter.add_frames
@@ -469,6 +492,7 @@ class _VerboseDep:
     @verbose.setter
     def verbose(self, v):
         warn('The verbose class attribute has been deprecated in 1.0 and will '
-             'be removed in 1.1, the value {v} will be ignored. Pass verbose '
-             'to methods as required to change log levels instead',
-             DeprecationWarning)
+             f'be removed in 1.1, the value {repr(v)} will be ignored. Pass '
+             'verbose to methods as required or use the '
+             'mne.utils.use_log_level context manager to change log levels '
+             'instead', DeprecationWarning)
