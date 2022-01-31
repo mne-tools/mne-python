@@ -230,7 +230,7 @@ def test_verbose_strictness():
 
     o = Okay()
     with catch_logging() as log:
-        o.meth_2()
+        o.meth_2(verbose=False)
     log = log.getvalue()
     assert log == ''
     with catch_logging() as log:
