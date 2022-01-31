@@ -250,6 +250,18 @@ def test_gui_api(renderer_notebook, nbexec):
     renderer._tool_bar_set_theme(theme='dark')
     # --- END: tool bar ---
 
+    # --- BEGIN: tooltips ---
+    widget = renderer._dock_add_button(
+        name='',
+        callback=mock,
+        tooltip='foo'
+    )
+    assert widget.get_tooltip() == 'foo'
+    # Change it …
+    widget.set_tooltip('bar')
+    assert widget.get_tooltip() == 'bar'
+    # --- END: tooltips ---
+
     renderer.show()
     renderer.close()
 
