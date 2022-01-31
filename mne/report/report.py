@@ -2913,7 +2913,7 @@ class Report(_VerboseDep):
                      f'create joint plot')
                 continue
 
-            with use_log_level(level=False):
+            with use_log_level(False):
                 fig = evoked.copy().pick(ch_type, verbose=False).plot_joint(
                     ts_args=dict(gfp=True),
                     title=None,
