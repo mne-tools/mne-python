@@ -701,6 +701,15 @@ class _AbstractWidget(ABC):
         pass
 
 
+class _AbstractAction(ABC):
+    def __init__(self, action):
+        self._action = action
+
+    @abstractmethod
+    def trigger(self):
+        pass
+
+
 class _AbstractMplInterface(ABC):
     @abstractmethod
     def _mpl_initialize():

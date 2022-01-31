@@ -255,6 +255,8 @@ def test_gui_api(renderer_notebook, nbexec):
 
     # submenu
     renderer._menu_add_submenu(name='foo', desc='foo')
+    assert 'foo' in renderer._menus
+    assert 'foo' in renderer._menu_actions
 
     # button
     renderer._menu_add_button(
@@ -263,6 +265,10 @@ def test_gui_api(renderer_notebook, nbexec):
         desc='bar',
         func=mock,
     )
+    assert 'bar' in renderer._menu_actions['foo']
+    with _check_widget_trigger(None, mock, '', '', get_value=False):
+        renderer._menu_actions['foo']['bar'].trigger()
+
     # --- END: menu bar ---
 
     # --- BEGIN: status bar ---

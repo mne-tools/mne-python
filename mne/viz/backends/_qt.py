@@ -27,7 +27,7 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
-                        _AbstractWidgetList)
+                        _AbstractWidgetList, _AbstractAction)
 from ._utils import _init_qt_resources, _qt_disable_paint
 from ..utils import logger, _check_option
 
@@ -435,10 +435,12 @@ class _QtMenuBar(_AbstractMenuBar):
 
     def _menu_add_submenu(self, name, desc):
         self._menus[name] = self._menu_bar.addMenu(desc)
+        self._menu_actions[name] = dict()
 
     def _menu_add_button(self, menu_name, name, desc, func):
         menu = self._menus[menu_name]
-        self._menu_actions[name] = menu.addAction(desc, func)
+        self._menu_actions[menu_name][name] = \
+            _QtAction(menu.addAction(desc, func))
 
 
 class _QtStatusBar(_AbstractStatusBar, _QtLayout):
@@ -696,6 +698,11 @@ class _QtWidget(_AbstractWidget):
     def set_tooltip(self, tooltip):
         assert hasattr(self._widget, 'setToolTip')
         self._widget.setToolTip(tooltip)
+
+
+class _QtAction(_AbstractAction):
+    def trigger(self):
+        self._action.trigger()
 
 
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,

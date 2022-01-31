@@ -15,7 +15,7 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
-                        _AbstractWidgetList)
+                        _AbstractWidgetList, _AbstractAction)
 from ._pyvista import _PyVistaRenderer, _close_all, _set_3d_view, _set_3d_title  # noqa: F401,E501, analysis:ignore
 
 
@@ -283,13 +283,35 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
 
 class _IpyMenuBar(_AbstractMenuBar):
     def _menu_initialize(self, window=None):
-        pass
+        self._menus = dict()
+        self._menu_actions = dict()
+        self._menu_desc2button = dict()  # only for notebook
+        self._menu_bar = self._menu_bar_layout = HBox()
+        self._layout_initialize(None)
 
     def _menu_add_submenu(self, name, desc):
-        pass
+        widget = Dropdown(value=desc, options=[desc])
+        self._menus[name] = widget
+        self._menu_actions[name] = dict()
+
+        def callback(input_desc):
+            if input_desc == desc:
+                return
+            button_name = self._menu_desc2button[input_desc]
+            if button_name in self._menu_actions[name]:
+                self._menu_actions[name][button_name]()
+            widget.value = desc
+        widget.observe(_generate_callback(callback), names='value')
+        self._layout_add_widget(self._menu_bar_layout, widget)
 
     def _menu_add_button(self, menu_name, name, desc, func):
-        pass
+        menu = self._menus[menu_name]
+        options = list(menu.options)
+        options.append(desc)
+        menu.options = options
+        self._menu_actions[menu_name][name] = _IpyAction(func)
+        # associate the description with the name given by the user
+        self._menu_desc2button[desc] = name
 
 
 class _IpyStatusBar(_AbstractStatusBar, _IpyLayout):
@@ -458,6 +480,11 @@ class _IpyWidget(_AbstractWidget):
         self._widget.tooltip = tooltip
 
 
+class _IpyAction(_AbstractAction):
+    def trigger(self):
+        self._action()
+
+
 class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
                 _IpyStatusBar, _IpyWindow, _IpyPlayback):
     _kind = 'notebook'
@@ -483,6 +510,9 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         )
 
     def show(self):
+        # menu bar
+        if self._menu_bar is not None:
+            display(self._menu_bar)
         # default tool bar
         if self._tool_bar is None:
             self._create_default_tool_bar()
