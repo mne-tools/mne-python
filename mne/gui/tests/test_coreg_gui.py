@@ -109,6 +109,17 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
                                                 'is deprecated'):
         CoregistrationUI(info_file=None, subject='sample',
                          subjects_dir=subjects_dir, head_transparency=False)
+    deprecated_params = [
+        'tabbed', 'split', 'scrollable', 'head_inside', 'guess_mri_subject',
+        'project_eeg', 'scale', 'advanced_rendering'
+    ]
+    for param in deprecated_params:
+        kwargs = dict()
+        kwargs[param] = 0
+        with pytest.warns(DeprecationWarning, match=f'{param} is deprecated'):
+            coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
+                                   trans=fname_trans, **kwargs)
+        del kwargs
 
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     tmp_trans = tmp_path / 'tmp-trans.fif'
