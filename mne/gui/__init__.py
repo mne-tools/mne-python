@@ -75,6 +75,22 @@ def coregistration(width=None, inst=None, subject=None, subjects_dir=None,
         .. versionchanged:: 1.0
            Default interaction mode if ``None`` and no config setting found
            changed from ``'trackball'`` to ``'terrain'``.
+    tabbed : bool
+        Deprecated. This parameter is not supported by the pyvistaqt 3d backend.
+    split : bool
+        Deprecated. This parameter is not supported by the pyvistaqt 3d backend.
+    scrollable : bool
+        Deprecated. This parameter is not supported by the pyvistaqt 3d backend.
+    head_inside : bool
+        Deprecated. This parameter is not supported by the pyvistaqt 3d backend.
+    guess_mri_subject : bool
+        Deprecated. This parameter is not supported by the pyvistaqt 3d backend.
+    scale : float
+        Deprecated. This parameter is not supported by the pyvistaqt 3d backend.
+    project_eeg : bool
+        Deprecated. Use :func:`mne.viz.plot_alignment` to see projected EEG electrodes.
+    advanced_rendering : bool
+        Deprecated. This parameter is not supported by the pyvistaqt 3d backend.
     %(verbose)s
 
     Returns
