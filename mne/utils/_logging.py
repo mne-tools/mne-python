@@ -131,9 +131,7 @@ class use_log_level:
     Parameters
     ----------
     %(verbose)s
-    add_frames : int | None
-        Number of stack frames to include in logging. This is useful
-        for developers.
+    %(add_frames)s
 
     See Also
     --------
@@ -185,10 +183,7 @@ def set_log_level(verbose=None, return_old_level=False, add_frames=None):
         it doesn't exist, defaults to INFO.
     return_old_level : bool
         If True, return the old verbosity level.
-    add_frames : int | None
-        If int, enable (>=1) or disable (0) the printing of stack frame
-        information using formatting. Default (None) does not change the
-        formatting. This can add overhead so is meant only for debugging.
+    %(add_frames)s
 
     Returns
     -------

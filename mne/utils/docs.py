@@ -40,6 +40,12 @@ verbose : bool | str | int | None
     verbosity level. See the :ref:`logging documentation <tut-logging>` and
     :func:`mne.verbose` for details. Should only be passed as a keyword
     argument."""
+docdict['add_frames'] = """
+add_frames : int | None
+    If int, enable (>=1) or disable (0) the printing of stack frame
+    information using formatting. Default (None) does not change the
+    formatting. This can add overhead so is meant only for debugging.
+"""
 
 # Preload
 docdict['preload'] = """
