@@ -506,7 +506,7 @@ class CoregistrationUI(HasTraits):
         self._reset()
 
     @observe("_subject")
-    def _subject_changed(self, changed=None):
+    def _subject_changed(self, change=None):
         # XXX: add coreg.set_subject()
         self.coreg._subject = self._subject
         self.coreg._setup_bem()
