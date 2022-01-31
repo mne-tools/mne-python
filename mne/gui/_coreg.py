@@ -1356,7 +1356,7 @@ class CoregistrationUI(HasTraits):
             mri_fiducials_layout, fiducial_coords_layout)
 
         dig_source_layout = \
-            self._renderer._dock_add_group_box("Digitization Source")
+            self._renderer._dock_add_group_box("Info source with digitization")
         self._widgets["info_file"] = self._renderer._dock_add_file_button(
             name="info_file",
             desc="Load",
