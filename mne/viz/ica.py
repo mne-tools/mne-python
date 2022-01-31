@@ -272,7 +272,9 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         The ICA solution.
     inst : instance of Epochs or Raw
         The data to use in plotting properties.
-    picks : Sources to include. None (default) will use the first five sources.
+    picks : str | list | slice | None
+        Sources to include. Slices and lists of integers will be interpreted
+        as source indices. None (default) will use the first five sources.
         If more than one components were chosen in the picks,
         each one will be plotted in a separate figure.
     axes : list of Axes | None
