@@ -855,6 +855,8 @@ class CoregistrationUI(HasTraits):
         self._forward_widget_command(
             'status_message', 'update', None, input_value=False
         )
+        if msg:
+            logger.info(msg)
 
     def _follow_fiducial_view(self):
         fid = self._current_fiducial.lower()
