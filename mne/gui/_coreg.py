@@ -1363,7 +1363,7 @@ class CoregistrationUI(HasTraits):
             func=self._set_info_file,
             value=self._info_file,
             placeholder="Path to info",
-            tooltip="Load the FIFF file with digitizer data for "
+            tooltip="Load the FIFF file with digitization data for "
                     "coregistration",
             layout=dig_source_layout,
         )
