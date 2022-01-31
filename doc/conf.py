@@ -512,7 +512,7 @@ for key in ('AcqParserFIF', 'BiHemiLabel', 'Dipole', 'DipoleFixed', 'Label',
             'preprocessing.ICA', 'preprocessing.Xdawn',
             'simulation.SourceSimulator',
             'time_frequency.CrossSpectralDensity',
-            'utils.deprecated',
+            'utils.deprecated', 'use_log_level',
             'viz.ClickableImage'):
     nitpick_ignore.append(('py:obj', f'mne.{key}.__hash__'))
 suppress_warnings = ['image.nonlocal_uri']  # we intentionally link outside
