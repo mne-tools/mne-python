@@ -169,7 +169,11 @@ Bugs
 
 - Fix bug with :func:`mne.io.read_raw_hitachi` where empty ``Comment`` descriptions were not handled properly (:gh:`10235` by `Eric Larson`_)
 
+- Fix bug with input validation of low-level filtering functions (:gh:`10267` by `Eric Larson`_)
+
 - :func:`mne.gui.coregistration` now works with surfaces containing topological defects (:gh:`10230`, by `Richard Höchenberger`_)
+
+- :func:`mne.read_trans` now correctly expands ``~`` in the provided path to the user's home directory (:gh:`10265`, by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~

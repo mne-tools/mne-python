@@ -37,6 +37,7 @@ class _QtLayout(_AbstractLayout):
         pass
 
     def _layout_add_widget(self, layout, widget, stretch=0):
+        """Add a widget to an existing layout."""
         if isinstance(widget, QLayout):
             layout.addLayout(widget)
         else:
@@ -276,7 +277,7 @@ class _QtDock(_AbstractDock, _QtLayout):
             self._layout_add_widget(layout, hlayout)
             return _QtWidgetList([text_widget, button_widget])
         else:
-            return _QtWidget(button_widget)
+            return button_widget  # It's already a _QtWidget instance
 
 
 class QFloatSlider(QSlider):
@@ -687,6 +688,14 @@ class _QtWidget(_AbstractWidget):
         self._widget.update()
         if repaint:
             self._widget.repaint()
+
+    def get_tooltip(self):
+        assert hasattr(self._widget, 'toolTip')
+        return self._widget.toolTip()
+
+    def set_tooltip(self, tooltip):
+        assert hasattr(self._widget, 'setToolTip')
+        self._widget.setToolTip(tooltip)
 
 
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,

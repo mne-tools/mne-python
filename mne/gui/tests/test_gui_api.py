@@ -280,6 +280,18 @@ def test_gui_api(renderer_notebook, nbexec):
     assert widget.get_value() == 0
     # --- END: status bar ---
 
+    # --- BEGIN: tooltips ---
+    widget = renderer._dock_add_button(
+        name='',
+        callback=mock,
+        tooltip='foo'
+    )
+    assert widget.get_tooltip() == 'foo'
+    # Change it …
+    widget.set_tooltip('bar')
+    assert widget.get_tooltip() == 'bar'
+    # --- END: tooltips ---
+
     renderer.show()
     renderer.close()
 
