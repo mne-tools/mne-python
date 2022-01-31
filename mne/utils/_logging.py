@@ -170,6 +170,7 @@ class use_log_level:
         set_log_level(self._old_level, add_frames=add_frames)
 
 
+@fill_doc
 def set_log_level(verbose=None, return_old_level=False, add_frames=None):
     """Set the logging level.
 
