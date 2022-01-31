@@ -35,8 +35,8 @@ def temporal_derivative_distribution_repair(raw, *, verbose=None):
     -----
     TDDR was initially designed to be used on optical density fNIRS data but
     has been enabled to be applied on hemoglobin concentration fNIRS data as
-    well in MNE. We recommend sticking to using it on optical density fNIRS
-    data whenever possible.
+    well in MNE. We recommend applying the algorithm to optical density fNIRS
+    data as intended by the original author wherever possible.
 
     There is a shorter alias ``mne.preprocessing.nirs.tddr`` that can be used
     instead of this function (e.g. if line length is an issue).
@@ -81,7 +81,7 @@ def _TDDR(signal, sample_rate):
     #
     # Inputs:
     #   signals: A [sample x channel] matrix of uncorrected optical density or
-    #            hb data
+    #            hemoglobin data
     #   sample_rate: A scalar reflecting the rate of acquisition in Hz
     #
     # Outputs:
