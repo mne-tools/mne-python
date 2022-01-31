@@ -3387,7 +3387,7 @@ class Report(_VerboseDep):
         epochs.load_data()
 
         for ch_type in ch_types:
-            with use_log_level(level=False):
+            with use_log_level(False):
                 figs = epochs.copy().pick(ch_type, verbose=False).plot_image(
                     show=False
                 )
