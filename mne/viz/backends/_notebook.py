@@ -511,7 +511,7 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
 
     def show(self):
         # menu bar
-        if self._menu_bar is not None:
+        if hasattr(self, "_menu_bar") and self._menu_bar is not None:
             display(self._menu_bar)
         # default tool bar
         if self._tool_bar is None:
