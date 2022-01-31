@@ -299,7 +299,7 @@ class _IpyMenuBar(_AbstractMenuBar):
                 return
             button_name = self._menu_desc2button[input_desc]
             if button_name in self._menu_actions[name]:
-                self._menu_actions[name][button_name]()
+                self._menu_actions[name][button_name].trigger()
             widget.value = desc
         widget.observe(_generate_callback(callback), names='value')
         self._layout_add_widget(self._menu_bar_layout, widget)
