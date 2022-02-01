@@ -16,7 +16,7 @@ from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io.constants import FIFF
 from mne.utils import get_config
 from mne.channels import DigMontage
-from ...coreg import Coregistration
+from mne.coreg import Coregistration
 
 
 data_path = testing.data_path(download=False)
