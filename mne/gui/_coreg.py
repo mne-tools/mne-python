@@ -1473,7 +1473,7 @@ class CoregistrationUI(HasTraits):
             self._widgets[name] = self._renderer._dock_add_spin_box(
                 name=name,
                 value=attr[coords.index(coord)] * 1e2,
-                rng=[-1e3, 1e3],
+                rng=[1., 1e2],
                 callback=partial(
                     self._set_parameter,
                     mode_name="scale",
@@ -1481,7 +1481,8 @@ class CoregistrationUI(HasTraits):
                 ),
                 compact=True,
                 double=True,
-                tooltip=f"Set the {coord} scaling parameter",
+                step=1,
+                tooltip=f"Set the {coord} scaling parameter (in %)",
                 layout=scale_params_layout,
             )
 
@@ -1524,10 +1525,12 @@ class CoregistrationUI(HasTraits):
             for mode, mode_name in (("t", "Translation"), ("r", "Rotation")):
                 name = f"{mode}{coord}"
                 attr = getattr(self.coreg, f"_{mode_name.lower()}")
+                rng = [-360, 360] if mode_name == "Rotation" else [-100, 100]
+                unit = "°" if mode_name == "Rotation" else "mm"
                 self._widgets[name] = self._renderer._dock_add_spin_box(
                     name=name,
                     value=attr[coords.index(coord)] * 1e3,
-                    rng=[-1e3, 1e3],
+                    rng=np.array(rng),
                     callback=partial(
                         self._task_set_parameter,
                         mode_name=mode_name.lower(),
@@ -1536,7 +1539,8 @@ class CoregistrationUI(HasTraits):
                     compact=True,
                     double=True,
                     step=1,
-                    tooltip=f"Set the {coord} {mode_name.lower()} parameter",
+                    tooltip=f"Set the {coord} {mode_name.lower()}"
+                            f" parameter (in {unit})",
                     layout=coord_layout
                 )
             self._renderer._layout_add_widget(param_layout, coord_layout)
