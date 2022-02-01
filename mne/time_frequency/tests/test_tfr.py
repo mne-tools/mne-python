@@ -731,7 +731,11 @@ def test_compute_tfr():
         out = func(data, sfreq=sfreq, freqs=freqs, use_fft=use_fft,
                    zero_mean=zero_mean, n_cycles=2., output=output)
         # Check shapes
-        shape = np.r_[data.shape[:2], len(freqs), data.shape[2]]
+        if func == tfr_array_multitaper and output == 'complex':
+            n_tapers = 3
+            shape = np.r_[data.shape[:2], n_tapers, len(freqs), data.shape[2]]
+        else:
+            shape = np.r_[data.shape[:2], len(freqs), data.shape[2]]
         if ('avg' in output) or ('itc' in output):
             assert_array_equal(shape[1:], out.shape)
         else:
