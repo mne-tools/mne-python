@@ -118,13 +118,13 @@ class CoregistrationUI(HasTraits):
     _icp_fid_match = Unicode()
 
     @verbose
-    def __init__(self, info_file, subject=None, subjects_dir=None,
+    def __init__(self, info_file, *, subject=None, subjects_dir=None,
                  fiducials='auto', head_resolution=None,
                  head_opacity=None, hpi_coils=None,
                  head_shape_points=None, eeg_channels=None, orient_glyphs=None,
                  scale_by_distance=None, mark_inside=None,
                  sensor_opacity=None, trans=None, size=None, bgcolor=None,
-                 show=True, block=False, interaction='terrain', *,
+                 show=True, block=False, interaction='terrain',
                  project_eeg=None, head_transparency=None, standalone=None,
                  verbose=None):
         if standalone is not None:
