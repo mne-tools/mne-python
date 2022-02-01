@@ -250,6 +250,42 @@ def test_gui_api(renderer_notebook, nbexec):
     renderer._tool_bar_set_theme(theme='dark')
     # --- END: tool bar ---
 
+    # --- BEGIN: menu bar ---
+    renderer._menu_initialize()
+
+    # submenu
+    renderer._menu_add_submenu(name='foo', desc='foo')
+    assert 'foo' in renderer._menus
+    assert 'foo' in renderer._menu_actions
+
+    # button
+    renderer._menu_add_button(
+        menu_name='foo',
+        name='bar',
+        desc='bar',
+        func=mock,
+    )
+    assert 'bar' in renderer._menu_actions['foo']
+    with _check_widget_trigger(None, mock, '', '', get_value=False):
+        renderer._menu_actions['foo']['bar'].trigger()
+
+    # --- END: menu bar ---
+
+    # --- BEGIN: status bar ---
+    renderer._status_bar_initialize()
+    renderer._status_bar_update()
+
+    # label
+    widget = renderer._status_bar_add_label(value='foo', stretch=0)
+    assert widget.get_value() == 'foo'
+
+    # progress bar
+    widget = renderer._status_bar_add_progress_bar(stretch=0)
+    # by default, get_value() is -1 for Qt and 0 for Ipywidgets
+    widget.set_value(0)
+    assert widget.get_value() == 0
+    # --- END: status bar ---
+
     # --- BEGIN: tooltips ---
     widget = renderer._dock_add_button(
         name='',
