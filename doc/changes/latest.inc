@@ -173,6 +173,8 @@ Bugs
 
 - :func:`mne.gui.coregistration` now works with surfaces containing topological defects (:gh:`10230`, by `Richard Höchenberger`_)
 
+- Fix bug with :func:`mne.io.read_raw_nirx` being unable to read measurement dates recorded on systems with German (de_DE), French (fr_FR), and Italian (it_IT) locales (:gh:`10277` by `Eric Larson`_)
+
 - :func:`mne.read_trans` now correctly expands ``~`` in the provided path to the user's home directory (:gh:`10265`, by `Richard Höchenberger`_)
 
 API changes
