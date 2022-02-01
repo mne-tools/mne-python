@@ -109,8 +109,9 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
         kwargs = {p: None for p in deprecated_params}
         kwargs[param] = True
         with pytest.warns(DeprecationWarning, match=f'{param} is deprecated'):
-            CoregistrationUI(info_file=None, subject='sample',
-                             subjects_dir=subjects_dir, **kwargs)
+            coreg = CoregistrationUI(info_file=raw_path, subject='sample',
+                                     subjects_dir=subjects_dir, **kwargs)
+            coreg.close()
     del kwargs
 
     deprecated_params = [
@@ -120,7 +121,8 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
         kwargs = {p: None for p in deprecated_params}
         kwargs[param] = True
         with pytest.warns(DeprecationWarning, match=f'{param} is deprecated'):
-            coregistration(**kwargs)
+            coreg = coregistration(**kwargs)
+            coreg.close()
     del kwargs
 
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
