@@ -126,6 +126,9 @@
 
 .. _CuPy: https://cupy.chainer.org/
 
+.. Dask
+
+.. _Dask: https://dask.org/
 
 .. git stuff
 
