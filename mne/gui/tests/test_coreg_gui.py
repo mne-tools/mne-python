@@ -106,21 +106,21 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
         'standalone', 'head_transparency', 'project_eeg'
     ]
     for param in deprecated_params:
-        kwargs = dict()
-        kwargs[param] = 0
+        kwargs = {p: None for p in deprecated_params}
+        kwargs[param] = True
         with pytest.warns(DeprecationWarning, match=f'{param} is deprecated'):
-            coreg = CoregistrationUI(info_file=None, **kwargs)
-        del kwargs
+            CoregistrationUI(info_file=None, **kwargs)
+    del kwargs
 
     deprecated_params = [
         'project_eeg'
     ]
     for param in deprecated_params:
-        kwargs = dict()
-        kwargs[param] = 0
+        kwargs = {p: None for p in deprecated_params}
+        kwargs[param] = True
         with pytest.warns(DeprecationWarning, match=f'{param} is deprecated'):
-            coreg = coregistration(**kwargs)
-        del kwargs
+            coregistration(**kwargs)
+    del kwargs
 
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     tmp_trans = tmp_path / 'tmp-trans.fif'
