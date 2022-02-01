@@ -113,8 +113,7 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
         del kwargs
 
     deprecated_params = [
-        'tabbed', 'split', 'scrollable', 'head_inside', 'guess_mri_subject',
-        'project_eeg', 'scale', 'advanced_rendering'
+        'project_eeg'
     ]
     for param in deprecated_params:
         kwargs = dict()

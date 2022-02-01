@@ -10,14 +10,13 @@ from ..utils import verbose, get_config, warn
 
 
 @verbose
-def coregistration(width=None, inst=None, subject=None, subjects_dir=None,
+def coregistration(tabbed=False, split=True, width=None, inst=None,
+                   subject=None, subjects_dir=None, guess_mri_subject=None,
                    height=None, head_opacity=None, head_high_res=None,
-                   trans=None, orient_to_surface=True, scale_by_distance=True,
-                   mark_inside=True, interaction=None, *,
-                   tabbed=None, split=None, scrollable=None, head_inside=None,
-                   guess_mri_subject=None, scale=None, project_eeg=None,
-                   advanced_rendering=None,
-                   verbose=None):
+                   trans=None, scrollable=True, project_eeg=None,
+                   orient_to_surface=True, scale_by_distance=True,
+                   mark_inside=True, interaction=None, scale=None,
+                   advanced_rendering=None, head_inside=True, verbose=None):
     """Coregister an MRI with a subject's head shape.
 
     The recommended way to use the GUI is through bash with:
@@ -28,6 +27,12 @@ def coregistration(width=None, inst=None, subject=None, subjects_dir=None,
 
     Parameters
     ----------
+    tabbed : bool
+        Combine the data source panel and the coregistration panel into a
+        single panel with tabs.
+    split : bool
+        Split the main panels with a movable splitter (good for QT4 but
+        unnecessary for wx backend).
     width : int | None
         Specify the width for window (in logical pixels).
         Default is None, which uses ``MNE_COREG_WINDOW_WIDTH`` config value
@@ -38,6 +43,9 @@ def coregistration(width=None, inst=None, subject=None, subjects_dir=None,
     subject : None | str
         Name of the mri subject.
     %(subjects_dir)s
+    guess_mri_subject : bool
+        When selecting a new head shape file, guess the subject's name based
+        on the filename and change the MRI subject accordingly (default True).
     height : int | None
         Specify a height for window (in logical pixels).
         Default is None, which uses ``MNE_COREG_WINDOW_WIDTH`` config value
@@ -52,7 +60,12 @@ def coregistration(width=None, inst=None, subject=None, subjects_dir=None,
         (which defaults to True).
     trans : str | None
         The transform file to use.
+    scrollable : bool
+        Make the coregistration panel vertically scrollable (default True).
+    project_eeg : bool
+        Deprecated. Use :func:`mne.viz.plot_alignment` to see projected EEG electrodes.
 
+       .. versionadded:: 0.16
     orient_to_surface : bool | None
         If True (default), orient EEG electrode and head shape points
         to the head surface.
@@ -75,22 +88,21 @@ def coregistration(width=None, inst=None, subject=None, subjects_dir=None,
         .. versionchanged:: 1.0
            Default interaction mode if ``None`` and no config setting found
            changed from ``'trackball'`` to ``'terrain'``.
-    tabbed : bool
-        Deprecated. This parameter is not supported by the pyvistaqt 3d backend.
-    split : bool
-        Deprecated. This parameter is not supported by the pyvistaqt 3d backend.
-    scrollable : bool
-        Deprecated. This parameter is not supported by the pyvistaqt 3d backend.
-    head_inside : bool
-        Deprecated. This parameter is not supported by the pyvistaqt 3d backend.
-    guess_mri_subject : bool
-        Deprecated. This parameter is not supported by the pyvistaqt 3d backend.
-    scale : float
-        Deprecated. This parameter is not supported by the pyvistaqt 3d backend.
-    project_eeg : bool
-        Deprecated. Use :func:`mne.viz.plot_alignment` to see projected EEG electrodes.
+    scale : float | None
+        The scaling for the scene.
+
+        .. versionadded:: 0.16
     advanced_rendering : bool
-        Deprecated. This parameter is not supported by the pyvistaqt 3d backend.
+        Use advanced OpenGL rendering techniques (default True).
+        For some renderers (such as MESA software) this can cause rendering
+        bugs.
+
+        .. versionadded:: 0.18
+    head_inside : bool
+        If True (default), add opaque inner scalp head surface to help occlude
+        points behind the head.
+
+        .. versionadded:: 0.23
     %(verbose)s
 
     Returns
@@ -110,15 +122,26 @@ def coregistration(width=None, inst=None, subject=None, subjects_dir=None,
     subjects for which no MRI is available
     <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
-    deprecated_params = {
-        'tabbed': tabbed,
-        'split': split,
-        'scrollable': scrollable,
-        'head_inside': head_inside,
+   # unsupported parameters
+    unsupported_params = {
+        'tabbed': (tabbed, False),
+        'split': (split, True),
+        'scrollable': (scrollable, True),
+        'head_inside': (head_inside, True),
         'guess_mri_subject': guess_mri_subject,
-        'project_eeg': project_eeg,
         'scale': scale,
         'advanced_rendering': advanced_rendering,
+    }
+    for key, val in unsupported_params.items():
+        if isinstance(val, tuple):
+            to_raise = val[0] != val[1]
+        else:
+            to_raise = val is not None
+        if to_raise:
+            warn(f"The parameter {key} is not supported with"
+                  " the pyvistaqt 3d backend. It will be ignored.")
+    deprecated_params = {
+        'project_eeg': project_eeg,
     }
     for key, val in deprecated_params.items():
         if val is not None:
