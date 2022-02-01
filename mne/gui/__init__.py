@@ -122,7 +122,6 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     subjects for which no MRI is available
     <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
-    # unsupported parameters
     unsupported_params = {
         'tabbed': (tabbed, False),
         'split': (split, True),
