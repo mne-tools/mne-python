@@ -49,10 +49,6 @@ def run():
                       help="Use a low-resolution head surface.")
     parser.add_option('--trans', dest='trans', default=None,
                       help='Head<->MRI transform FIF file ("-trans.fif")')
-    parser.add_option('--project-eeg', dest='project_eeg',
-                      action='store_true', default=None,
-                      help="Project EEG electrodes to the head surface ("
-                      "for visualization purposes only)")
     parser.add_option('--interaction',
                       type=str, default=None, dest='interaction',
                       help='Interaction style to use, can be "trackball" or '
@@ -91,7 +87,7 @@ def run():
         subjects_dir=subjects_dir,
         guess_mri_subject=options.guess_mri_subject,
         head_opacity=options.head_opacity, head_high_res=head_high_res,
-        trans=trans, scrollable=True, project_eeg=options.project_eeg,
+        trans=trans, scrollable=True,
         interaction=options.interaction,
         scale=options.scale,
         advanced_rendering=options.advanced_rendering,

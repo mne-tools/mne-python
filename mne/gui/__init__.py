@@ -63,8 +63,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     scrollable : bool
         Make the coregistration panel vertically scrollable (default True).
     project_eeg : bool | None
-        If True (default None), project EEG electrodes to the head surface.
-        This is only for visualization purposes and does not affect fitting.
+        Deprecated. Use :func:`mne.viz.plot_alignment` to see projected EEG electrodes.
 
         .. versionadded:: 0.16
     orient_to_surface : bool | None
@@ -113,7 +112,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
     Notes
     -----
-    Many parameters (e.g., ``project_eeg``) take None as a parameter,
+    Many parameters (e.g., ``head_opacity``) take None as a parameter,
     which means that the default will be read from the MNE-Python
     configuration file (which gets saved when exiting).
 
@@ -123,8 +122,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     subjects for which no MRI is available
     <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
-    # unsupported parameters
-    params = {
+    unsupported_params = {
         'tabbed': (tabbed, False),
         'split': (split, True),
         'scrollable': (scrollable, True),
@@ -133,7 +131,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         'scale': scale,
         'advanced_rendering': advanced_rendering,
     }
-    for key, val in params.items():
+    for key, val in unsupported_params.items():
         if isinstance(val, tuple):
             to_raise = val[0] != val[1]
         else:
@@ -141,6 +139,13 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         if to_raise:
             warn(f"The parameter {key} is not supported with"
                   " the pyvistaqt 3d backend. It will be ignored.")
+    deprecated_params = {
+        'project_eeg': project_eeg,
+    }
+    for key, val in deprecated_params.items():
+        if val is not None:
+            warn(f'{key} is deprecated and will be removed in 1.1.',
+                 DeprecationWarning)
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     if guess_mri_subject is None:
         guess_mri_subject = config.get(
@@ -164,8 +169,6 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
             subjects_dir = config['SUBJECTS_DIR']
         elif 'MNE_COREG_SUBJECTS_DIR' in config:
             subjects_dir = config['MNE_COREG_SUBJECTS_DIR']
-    if project_eeg is None:
-        project_eeg = config.get('MNE_COREG_PROJECT_EEG', '') == 'true'
     if orient_to_surface is None:
         orient_to_surface = (config.get('MNE_COREG_ORIENT_TO_SURFACE', '') ==
                              'true')
@@ -186,15 +189,13 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
     from ._coreg import CoregistrationUI
-    show = not MNE_3D_BACKEND_TESTING
-    block = not MNE_3D_BACKEND_TESTING
+    show = block = not MNE_3D_BACKEND_TESTING
     return CoregistrationUI(
         info_file=inst, subject=subject, subjects_dir=subjects_dir,
         head_resolution=head_high_res, head_opacity=head_opacity,
         orient_glyphs=orient_to_surface, scale_by_distance=scale_by_distance,
-        project_eeg=project_eeg,mark_inside=mark_inside, trans=trans,
-        size=(width, height), show=show, block=block,
-        interaction=interaction, verbose=verbose
+        mark_inside=mark_inside, trans=trans, size=(width, height), show=show,
+        block=block, interaction=interaction, verbose=verbose
     )
 
 

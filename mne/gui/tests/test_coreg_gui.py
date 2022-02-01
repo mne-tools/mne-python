@@ -104,19 +104,36 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     """Test that using CoregistrationUI matches mne coreg."""
     from mne.gui import coregistration
     from mne.gui._coreg import CoregistrationUI
-    with pytest.warns(DeprecationWarning, match='standalone is deprecated'):
-        CoregistrationUI(info_file=None, subject='sample',
-                         subjects_dir=subjects_dir, standalone=False)
-    with pytest.warns(DeprecationWarning, match='head_transparency '
-                                                'is deprecated'):
-        CoregistrationUI(info_file=None, subject='sample',
-                         subjects_dir=subjects_dir, head_transparency=False)
-
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
-    tmp_trans = tmp_path / 'tmp-trans.fif'
     # the sample subject in testing has MRI fids
     assert op.isfile(op.join(
         subjects_dir, 'sample', 'bem', 'sample-fiducials.fif'))
+
+    deprecated_params = [
+        'standalone', 'head_transparency', 'project_eeg'
+    ]
+    for param in deprecated_params:
+        kwargs = {p: None for p in deprecated_params}
+        kwargs[param] = True
+        with pytest.warns(DeprecationWarning, match=f'{param} is deprecated'):
+            coreg = CoregistrationUI(
+                info_file=None, subject='sample', subjects_dir=subjects_dir,
+                **kwargs)
+            coreg.close()
+    del kwargs
+
+    deprecated_params = [
+        'project_eeg'
+    ]
+    for param in deprecated_params:
+        kwargs = {p: None for p in deprecated_params}
+        kwargs[param] = True
+        with pytest.warns(DeprecationWarning, match=f'{param} is deprecated'):
+            coreg = coregistration(
+                subject='sample', subjects_dir=subjects_dir, **kwargs)
+            coreg.close()
+    del kwargs
+
     coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
                            trans=fname_trans)
     assert coreg._lock_fids
@@ -188,8 +205,6 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert_allclose(
         coreg._head_opacity,
         float(config.get('MNE_COREG_HEAD_OPACITY', '0.8')))
-    assert coreg._project_eeg == \
-        (config.get('MNE_COREG_PROJECT_EEG', '') == 'true')
     assert coreg._hpi_coils
     assert coreg._eeg_channels
     assert coreg._head_shape_points
@@ -198,6 +213,7 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert coreg._head_resolution == \
         (config.get('MNE_COREG_HEAD_HIGH_RES', 'true') == 'true')
 
+    tmp_trans = tmp_path / 'tmp-trans.fif'
     coreg._save_trans(tmp_trans)
     assert op.isfile(tmp_trans)
 
