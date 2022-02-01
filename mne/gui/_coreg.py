@@ -836,7 +836,8 @@ class CoregistrationUI(HasTraits):
             self._redraw()
 
     @contextmanager
-    def _lock(self, plot=False, params=False, scale_mode=False):
+    def _lock(self, plot=False, params=False, scale_mode=False, fitting=False):
+        """Which part of the UI to temporarily disable."""
         if plot:
             old_plot_locked = self._plot_locked
             self._plot_locked = True
@@ -846,6 +847,20 @@ class CoregistrationUI(HasTraits):
         if scale_mode:
             old_scale_mode = self.coreg._scale_mode
             self.coreg._scale_mode = None
+        if fitting:
+            widgets = [
+                "sX", "sY", "sZ",
+                "tX", "tY", "tZ",
+                "rX", "rY", "rZ",
+                "fit_icp", "fit_fiducials", "fits_icp", "fits_fiducials"
+            ]
+            states = [
+                self._forward_widget_command(
+                    w, "is_enabled", None,
+                    input_value=False, output_value=True)
+                for w in widgets
+            ]
+            self._forward_widget_command(widgets, "set_enabled", False)
         try:
             yield
         finally:
@@ -855,6 +870,9 @@ class CoregistrationUI(HasTraits):
                 self._params_locked = old_params_locked
             if scale_mode:
                 self.coreg._scale_mode = old_scale_mode
+            if fitting:
+                for idx, w in enumerate(widgets):
+                    self._forward_widget_command(w, "set_enabled", states[idx])
 
     def _display_message(self, msg=""):
         self._forward_widget_command('status_message', 'set_value', msg)
@@ -1095,7 +1113,7 @@ class CoregistrationUI(HasTraits):
             self._fits_fiducials()
 
     def _fits_fiducials(self):
-        with self._lock(params=True):
+        with self._lock(params=True, fitting=True):
             start = time.time()
             self.coreg.fit_fiducials(
                 lpa_weight=self._lpa_weight,
@@ -1115,7 +1133,7 @@ class CoregistrationUI(HasTraits):
             self._fits_icp()
 
     def _fits_icp(self):
-        with self._lock(params=True):
+        with self._lock(params=True, fitting=True):
             self._current_icp_iterations = 0
 
             def callback(iteration, n_iterations):
