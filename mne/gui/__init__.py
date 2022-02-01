@@ -189,8 +189,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
     from ._coreg import CoregistrationUI
-    show = not MNE_3D_BACKEND_TESTING
-    block = not MNE_3D_BACKEND_TESTING
+    show = block = not MNE_3D_BACKEND_TESTING
     return CoregistrationUI(
         info_file=inst, subject=subject, subjects_dir=subjects_dir,
         head_resolution=head_high_res, head_opacity=head_opacity,

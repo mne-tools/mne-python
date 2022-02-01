@@ -102,6 +102,11 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     """Test that using CoregistrationUI matches mne coreg."""
     from mne.gui import coregistration
     from mne.gui._coreg import CoregistrationUI
+    config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
+    # the sample subject in testing has MRI fids
+    assert op.isfile(op.join(
+        subjects_dir, 'sample', 'bem', 'sample-fiducials.fif'))
+
     deprecated_params = [
         'standalone', 'head_transparency', 'project_eeg'
     ]
@@ -125,11 +130,6 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
             coreg.close()
     del kwargs
 
-    config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
-    tmp_trans = tmp_path / 'tmp-trans.fif'
-    # the sample subject in testing has MRI fids
-    assert op.isfile(op.join(
-        subjects_dir, 'sample', 'bem', 'sample-fiducials.fif'))
     coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
                            trans=fname_trans)
     assert coreg._lock_fids
@@ -209,6 +209,7 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert coreg._head_resolution == \
         (config.get('MNE_COREG_HEAD_HIGH_RES', 'true') == 'true')
 
+    tmp_trans = tmp_path / 'tmp-trans.fif'
     coreg._save_trans(tmp_trans)
     assert op.isfile(tmp_trans)
 
