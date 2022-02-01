@@ -36,7 +36,7 @@ from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     warn, copy_function_doc_to_method_doc, _pl,
                     _undo_scaling_cov, _scaled_array, _validate_type,
                     _check_option, eigh, fill_doc, _on_missing,
-                    _check_on_missing, _check_fname)
+                    _check_on_missing, _check_fname, _VerboseDep)
 from . import viz
 
 from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
@@ -64,7 +64,7 @@ def _get_tslice(epochs, tmin, tmax):
 
 
 @fill_doc
-class Covariance(dict):
+class Covariance(dict, _VerboseDep):
     """Noise covariance matrix.
 
     .. warning:: This class should not be instantiated directly, but
@@ -91,7 +91,7 @@ class Covariance(dict):
         The method used to compute the covariance.
     loglik : float
         The log likelihood.
-    %(verbose_meth)s
+    %(verbose)s
 
     Attributes
     ----------
@@ -112,8 +112,9 @@ class Covariance(dict):
     read_cov
     """
 
+    @verbose
     def __init__(self, data, names, bads, projs, nfree, eig=None, eigvec=None,
-                 method=None, loglik=None, verbose=None):
+                 method=None, loglik=None, *, verbose=None):
         """Init of covariance."""
         diag = (data.ndim == 1)
         projs = _check_projs(projs)
@@ -124,7 +125,6 @@ class Covariance(dict):
             self['method'] = method
         if loglik is not None:
             self['loglik'] = loglik
-        self.verbose = verbose
 
     @property
     def data(self):

@@ -32,7 +32,8 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose, _pl,
                     _check_stc_units, _check_pandas_installed,
                     _check_pandas_index_arguments, _convert_times, _ensure_int,
                     _build_data_frame, _check_time_format, _path_like,
-                    sizeof_fmt, object_size, _check_fname, _import_h5io_funcs)
+                    sizeof_fmt, object_size, _check_fname, _import_h5io_funcs,
+                    _VerboseDep)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import TimeMixin
@@ -446,7 +447,7 @@ def _verify_source_estimate_compat(a, b):
                          'names, %r and %r' % (a.subject, b.subject))
 
 
-class _BaseSourceEstimate(TimeMixin):
+class _BaseSourceEstimate(TimeMixin, _VerboseDep):
 
     _data_ndim = 2
 
@@ -503,7 +504,6 @@ class _BaseSourceEstimate(TimeMixin):
         self._tmin = tmin
         self._tstep = tstep
         self.vertices = vertices
-        self.verbose = verbose
         self._kernel = kernel
         self._sens_data = sens_data
         self._kernel_removed = False
@@ -564,7 +564,7 @@ class _BaseSourceEstimate(TimeMixin):
         %(eltc_src)s
         %(eltc_mode)s
         %(eltc_allow_empty)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -591,7 +591,7 @@ class _BaseSourceEstimate(TimeMixin):
         %(baseline_stc)s
             Defaults to ``(None, 0)``, i.e. beginning of the the data until
             time point zero.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -619,7 +619,7 @@ class _BaseSourceEstimate(TimeMixin):
         %(overwrite)s
 
             .. versionadded:: 1.0
-        %(verbose_meth)s
+        %(verbose)s
         """
         fname = _check_fname(fname=fname, overwrite=True)  # check below
         if ftype != 'h5':
@@ -724,7 +724,7 @@ class _BaseSourceEstimate(TimeMixin):
         window : str | tuple
             Window to use in resampling. See :func:`scipy.signal.resample`.
         %(n_jobs)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -1465,7 +1465,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             The original subject. For most source spaces this shouldn't need
             to be provided, since it is stored in the source space itself.
         %(subjects_dir)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -1599,7 +1599,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         %(overwrite)s
 
             .. versionadded:: 1.0
-        %(verbose_meth)s
+        %(verbose)s
         """
         fname = _check_fname(fname=fname, overwrite=True)  # checked below
         _check_option('ftype', ftype, ['stc', 'w', 'h5'])
@@ -1812,8 +1812,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
         """
         data_mag = np.linalg.norm(self.data, axis=1)
         return self._scalar_class(
-            data_mag, self.vertices, self.tmin, self.tstep, self.subject,
-            self.verbose)
+            data_mag, self.vertices, self.tmin, self.tstep, self.subject)
 
     def _get_src_normals(self, src, use_cps):
         normals = np.vstack([_get_src_nn(s, use_cps, v) for s, v in
@@ -1901,8 +1900,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             'directions.shape', directions.shape, [(self.data.shape[0], 3)])
         data_norm = np.matmul(directions[:, np.newaxis], self.data)[:, 0]
         stc = self._scalar_class(
-            data_norm, self.vertices, self.tmin, self.tstep, self.subject,
-            self.verbose)
+            data_norm, self.vertices, self.tmin, self.tstep, self.subject)
         return stc, directions
 
     @copy_function_doc_to_method_doc(plot_vector_source_estimates)
@@ -1990,7 +1988,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         %(eltc_mode)s
         %(eltc_allow_empty)s
         %(eltc_mri_resolution)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -2026,7 +2024,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         src : instance of SourceSpaces
             The volumetric source space. It must be a single, whole-brain
             volume.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -2200,7 +2198,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         %(overwrite)s
 
             .. versionadded:: 1.0
-        %(verbose_meth)s
+        %(verbose)s
         """
         # check overwrite individually below
         fname = _check_fname(fname=fname, overwrite=True)  # checked below
@@ -2392,7 +2390,7 @@ class _BaseMixedSourceEstimate(_BaseSourceEstimate):
             klass = SourceEstimate
         return klass(
             self.data[:self._n_surf_vert], self.vertices[:2],
-            self.tmin, self.tstep, self.subject, self.verbose)
+            self.tmin, self.tstep, self.subject)
 
     def volume(self):
         """Return the volume surface source estimate.
@@ -2408,7 +2406,7 @@ class _BaseMixedSourceEstimate(_BaseSourceEstimate):
             klass = VolSourceEstimate
         return klass(
             self.data[self._n_surf_vert:], self.vertices[2:],
-            self.tmin, self.tstep, self.subject, self.verbose)
+            self.tmin, self.tstep, self.subject)
 
 
 @fill_doc

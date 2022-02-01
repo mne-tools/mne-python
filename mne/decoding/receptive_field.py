@@ -11,11 +11,11 @@ import numpy as np
 from .base import get_coef, BaseEstimator, _check_estimator
 from .time_delaying_ridge import TimeDelayingRidge
 from ..fixes import is_regressor
-from ..utils import _validate_type, verbose, fill_doc
+from ..utils import _validate_type, verbose, fill_doc, _VerboseDep
 
 
 @fill_doc
-class ReceptiveField(BaseEstimator):
+class ReceptiveField(BaseEstimator, _VerboseDep):
     """Fit a receptive field model.
 
     This allows you to fit an encoding model (stimulus to brain) or a decoding
@@ -117,7 +117,6 @@ class ReceptiveField(BaseEstimator):
         self.patterns = patterns
         self.n_jobs = n_jobs
         self.edge_correction = edge_correction
-        self.verbose = verbose
 
     def __repr__(self):  # noqa: D105
         s = "tmin, tmax : (%.3f, %.3f), " % (self.tmin, self.tmax)
@@ -151,7 +150,6 @@ class ReceptiveField(BaseEstimator):
                 y = y.reshape(-1, y.shape[-1], order='F')
         return X, y
 
-    @verbose
     def fit(self, X, y):
         """Fit a receptive field model.
 

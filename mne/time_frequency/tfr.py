@@ -990,7 +990,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             - dividing by the mean of baseline values, taking the log, and
               dividing by the standard deviation of log baseline values
               ('zlogratio')
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -1297,7 +1297,7 @@ class AverageTFR(_BaseTFR):
             :func:`mne.viz.plot_topomap` for more details.
 
             .. versionadded:: 0.24
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -1489,7 +1489,7 @@ class AverageTFR(_BaseTFR):
             to style the image. ``axes`` and ``show`` are ignored. Beyond that,
             if ``None``, no customizable arguments will be passed.
             Defaults to ``None``.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------

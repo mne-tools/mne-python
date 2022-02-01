@@ -331,7 +331,7 @@ class SetChannelsMixin(MontageMixin):
         %(set_eeg_reference_projection)s
         %(set_eeg_reference_ch_type)s
         %(set_eeg_reference_forward)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -407,7 +407,7 @@ class SetChannelsMixin(MontageMixin):
         mapping : dict
             A dictionary mapping a channel to a sensor type (str), e.g.,
             ``{'EEG061': 'eog'}``.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -486,7 +486,7 @@ class SetChannelsMixin(MontageMixin):
         Parameters
         ----------
         %(rename_channels_mapping_duplicates)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -573,7 +573,7 @@ class SetChannelsMixin(MontageMixin):
         show : bool
             Show figure if True. Defaults to True.
         %(topomap_sphere_auto)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -751,7 +751,7 @@ class UpdateChannelsMixin(object):
             in ``info['bads']``.
         selection : list of str
             Restrict sensor channels (MEG, EEG) to this list of channel names.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -1156,7 +1156,7 @@ class InterpolationMixin(object):
         exclude : list | tuple
             The channels to exclude from interpolation. If excluded a bad
             channel will stay in bads.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -1804,14 +1804,12 @@ def combine_channels(inst, groups, method='mean', keep_stim=False,
     info = create_info(sfreq=inst.info['sfreq'], ch_names=new_ch_names,
                        ch_types=new_ch_types)
     if isinstance(inst, BaseRaw):
-        combined_inst = RawArray(new_data, info, first_samp=inst.first_samp,
-                                 verbose=inst.verbose)
+        combined_inst = RawArray(new_data, info, first_samp=inst.first_samp)
     elif isinstance(inst, BaseEpochs):
         combined_inst = EpochsArray(new_data, info, events=inst.events,
-                                    tmin=inst.times[0], verbose=inst.verbose)
+                                    tmin=inst.times[0])
     elif isinstance(inst, Evoked):
-        combined_inst = EvokedArray(new_data, info, tmin=inst.times[0],
-                                    verbose=inst.verbose)
+        combined_inst = EvokedArray(new_data, info, tmin=inst.times[0])
 
     return combined_inst
 

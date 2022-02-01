@@ -102,29 +102,16 @@ def verbose(function: _FuncT) -> _FuncT:
     except TypeError:  # nothing to add
         pass
 
-    # Anything using verbose should either have `verbose=None` in the signature
-    # or have a `self.verbose` attribute (if in a method). This code path
-    # will raise an error if neither is the case.
+    # Anything using verbose should have `verbose=None` in the signature.
+    # This code path will raise an error if this is not the case.
     body = """\
 def %(name)s(%(signature)s):\n
     try:
-        verbose
-    except UnboundLocalError:
-        try:
-            verbose = self.verbose
-        except NameError:
-            raise RuntimeError('Function %%s does not accept verbose parameter'
-                               %% (_function_,))
-        except AttributeError:
-            raise RuntimeError('Method %%s class does not have self.verbose'
-                               %% (_function_,))
-    else:
-        if verbose is None:
-            try:
-                verbose = self.verbose
-            except (NameError, AttributeError):
-                pass
-    if verbose is not None:
+        do_level_change = verbose is not None
+    except (NameError, UnboundLocalError):
+        raise RuntimeError('Function/method %%s does not accept verbose '
+                           'parameter' %% (_function_,)) from None
+    if do_level_change:
         with _use_log_level_(verbose):
             return _function_(%(shortsignature)s)
     else:
@@ -137,30 +124,53 @@ def %(name)s(%(signature)s):\n
     return fm.make(body, evaldict, addsource=True, **attrs)
 
 
-class use_log_level(object):
-    """Context handler for logging level.
+@fill_doc
+class use_log_level:
+    """Context manager for logging level.
 
     Parameters
     ----------
-    level : int
-        The level to use.
-    add_frames : int | None
-        Number of stack frames to include.
+    %(verbose)s
+    %(add_frames)s
+
+    See Also
+    --------
+    mne.verbose
+
+    Notes
+    -----
+    See the :ref:`logging documentation <tut-logging>` for details.
+
+    Examples
+    --------
+    >>> from mne import use_log_level
+    >>> from mne.utils import logger
+    >>> with use_log_level(False):
+    ...     # Most MNE logger messages are "info" level, False makes them not
+    ...     # print:
+    ...     logger.info('This message will not be printed')
+    >>> with use_log_level(True):
+    ...     # Using verbose=True in functions, methods, or this context manager
+    ...     # will ensure they are printed
+    ...     logger.info('This message will be printed!')
+    This message will be printed!
     """
 
-    def __init__(self, level, add_frames=None):  # noqa: D102
-        self.level = level
-        self.add_frames = add_frames
-        self.old_frames = _filter.add_frames
+    def __init__(self, verbose, *, add_frames=None):  # noqa: D102
+        self._level = verbose
+        self._add_frames = add_frames
+        self._old_frames = _filter.add_frames
 
     def __enter__(self):  # noqa: D105
-        self.old_level = set_log_level(self.level, True, self.add_frames)
+        self._old_level = set_log_level(
+            self._level, return_old_level=True, add_frames=self._add_frames)
 
     def __exit__(self, *args):  # noqa: D105
-        add_frames = self.old_frames if self.add_frames is not None else None
-        set_log_level(self.old_level, add_frames=add_frames)
+        add_frames = self._old_frames if self._add_frames is not None else None
+        set_log_level(self._old_level, add_frames=add_frames)
 
 
+@fill_doc
 def set_log_level(verbose=None, return_old_level=False, add_frames=None):
     """Set the logging level.
 
@@ -175,10 +185,7 @@ def set_log_level(verbose=None, return_old_level=False, add_frames=None):
         it doesn't exist, defaults to INFO.
     return_old_level : bool
         If True, return the old verbosity level.
-    add_frames : int | None
-        If int, enable (>=1) or disable (0) the printing of stack frame
-        information using formatting. Default (None) does not change the
-        formatting. This can add overhead so is meant only for debugging.
+    %(add_frames)s
 
     Returns
     -------
@@ -469,3 +476,20 @@ def _frame_info(n):
         return ['unknown']
     finally:
         del frame
+
+
+class _VerboseDep:
+    @property
+    def verbose(self):
+        warn('The verbose class attribute has been deprecated in 1.0 and will '
+             'be removed in 1.1, pass verbose to methods as required to '
+             'change log levels instead', DeprecationWarning)
+        return None
+
+    @verbose.setter
+    def verbose(self, v):
+        warn('The verbose class attribute has been deprecated in 1.0 and will '
+             f'be removed in 1.1, the value {repr(v)} will be ignored. Pass '
+             'verbose to methods as required or use the '
+             'mne.utils.use_log_level context manager to change log levels '
+             'instead', DeprecationWarning)

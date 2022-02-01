@@ -502,7 +502,7 @@ class Annotations(object):
         emit_warning : bool
             Whether to emit warnings when limiting or omitting annotations.
             Defaults to False.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -593,7 +593,7 @@ class Annotations(object):
             seconds e.g. ``{'ShortStimulus' : 3, 'LongStimulus' : 12}``.
             Alternatively, if a number is provided, then all annotations
             durations are set to the single provided value.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -633,7 +633,7 @@ class Annotations(object):
         mapping : dict
             A dictionary mapping the old description to a new description,
             e.g. {'1.0' : 'Control', '2.0' : 'Stimulus'}.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------

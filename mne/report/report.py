@@ -40,7 +40,7 @@ from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
-                     _path_like, use_log_level, _check_fname,
+                     _path_like, use_log_level, _check_fname, _VerboseDep,
                      _check_ch_locs, _import_h5io_funcs)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend)
@@ -626,7 +626,7 @@ def _check_image_format(rep, image_format):
 
 
 @fill_doc
-class Report(object):
+class Report(_VerboseDep):
     r"""Object for rendering HTML.
 
     Parameters
@@ -710,9 +710,11 @@ class Report(object):
     .. versionadded:: 0.8.0
     """
 
+    @verbose
     def __init__(self, info_fname=None, subjects_dir=None,
                  subject=None, title=None, cov_fname=None, baseline=None,
-                 image_format='png', raw_psd=False, projs=False, verbose=None):
+                 image_format='png', raw_psd=False, projs=False, *,
+                 verbose=None):
         self.info_fname = str(info_fname) if info_fname is not None else None
         self.cov_fname = str(cov_fname) if cov_fname is not None else None
         self.baseline = baseline
@@ -723,7 +725,6 @@ class Report(object):
         self.title = title
         self.image_format = _check_image_format(None, image_format)
         self.projs = projs
-        self.verbose = verbose
 
         self._dom_id = 0
         self._content = []
@@ -772,7 +773,7 @@ class Report(object):
         return (
             'baseline', 'cov_fname', 'include', '_content', 'image_format',
             'info_fname', '_dom_id', 'raw_psd', 'projs',
-            'subjects_dir', 'subject', 'title', 'data_path', 'lang', 'verbose',
+            'subjects_dir', 'subject', 'title', 'data_path', 'lang',
             'fname'
         )
 
@@ -2336,7 +2337,7 @@ class Report(object):
         %(topomap_kwargs)s
 
             .. versionadded:: 0.24.0
-        %(verbose_meth)s
+        %(verbose)s
         """
         _validate_type(data_path, 'path-like', 'data_path')
         data_path = str(data_path)
@@ -2504,7 +2505,7 @@ class Report(object):
             -> bem -> forward-solution -> inverse-operator -> source-estimate.
 
             .. versionadded:: 0.24.0
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -2912,7 +2913,7 @@ class Report(object):
                      f'create joint plot')
                 continue
 
-            with use_log_level(level=False):
+            with use_log_level(False):
                 fig = evoked.copy().pick(ch_type, verbose=False).plot_joint(
                     ts_args=dict(gfp=True),
                     title=None,
@@ -3386,7 +3387,7 @@ class Report(object):
         epochs.load_data()
 
         for ch_type in ch_types:
-            with use_log_level(level=False):
+            with use_log_level(False):
                 figs = epochs.copy().pick(ch_type, verbose=False).plot_image(
                     show=False
                 )

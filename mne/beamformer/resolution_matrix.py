@@ -63,19 +63,6 @@ def _get_matrix_from_lcmv(filters, forward, info, max_ori_out='signed',
                           verbose=None):
     """Get inverse matrix for LCMV beamformer.
 
-    Parameters
-    ----------
-    filters : instance of Beamformer
-        LCMV spatial filter.
-    forward : instance of Forward
-        The forward solution.
-    %(info_not_none)s Used to compute the LCMV filters.
-    max_ori_out : str
-        As for beamformer.apply_lcmv(). Default 'signed'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose() and
-        Logging documentation for more).
-
     Returns
     -------
     invmat : array, shape (n_dipoles, n_channels)

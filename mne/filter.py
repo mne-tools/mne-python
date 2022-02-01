@@ -1877,7 +1877,7 @@ class FilterMixin(object):
             instead of FIR/IIR filtering. This parameter is thus used to
             determine the length of the window over which a 5th-order
             polynomial smoothing is used.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -1958,7 +1958,7 @@ class FilterMixin(object):
 
             .. versionadded:: 0.16.
         %(pad-fir)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -2057,7 +2057,7 @@ class FilterMixin(object):
             vector.
 
             .. versionadded:: 0.15
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -2118,7 +2118,7 @@ class FilterMixin(object):
             will be padded with zeros before computing Hilbert, then cut back
             to original length. If None, n == self.n_times. If 'auto',
             the next highest fast FFT length will be use.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------

@@ -314,7 +314,6 @@ class Raw(BaseRaw):
                     float(raw.last_samp) / info['sfreq']))
 
         raw.info = info
-        raw.verbose = verbose
 
         logger.info('Ready.')
 

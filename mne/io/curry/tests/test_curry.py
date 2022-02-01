@@ -87,12 +87,12 @@ def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
         assert_array_equal([ch[field] for ch in raw.info['chs']],
                            [ch[field] for ch in bdf_curry_ref.info['chs']])
 
-    raw.verbose = 'error'  # don't emit warnings about slow reading
-    assert_allclose(raw.get_data(), bdf_curry_ref.get_data(), atol=tol)
+    assert_allclose(raw.get_data(verbose='error'),
+                    bdf_curry_ref.get_data(), atol=tol)
 
     picks, start, stop = ["C3", "C4"], 200, 800
     assert_allclose(
-        raw.get_data(picks=picks, start=start, stop=stop),
+        raw.get_data(picks=picks, start=start, stop=stop, verbose='error'),
         bdf_curry_ref.get_data(picks=picks, start=start, stop=stop),
         rtol=tol)
     assert raw.info['dev_head_t'] is None

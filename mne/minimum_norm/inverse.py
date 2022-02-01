@@ -1354,7 +1354,7 @@ def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
     # Reshape back to (n_src, ..., 1)
     sol.shape = stc.data.shape[:-1] + (1,)
     stc = stc.__class__(
-        sol, stc.vertices, stc.tmin, stc.tstep, stc.subject, stc.verbose)
+        sol, stc.vertices, stc.tmin, stc.tstep, stc.subject)
     if combine:  # combine the three directions
         logger.info('    Combining the current components...')
         np.sqrt(stc.data, out=stc.data)

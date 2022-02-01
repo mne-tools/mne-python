@@ -230,7 +230,7 @@ numpydoc_xref_ignore = {
     # words
     'instance', 'instances', 'of', 'default', 'shape', 'or',
     'with', 'length', 'pair', 'matplotlib', 'optional', 'kwargs', 'in',
-    'dtype', 'object', 'self.verbose',
+    'dtype', 'object',
     # shapes
     'n_vertices', 'n_faces', 'n_channels', 'm', 'n', 'n_events', 'n_colors',
     'n_times', 'obj', 'n_chan', 'n_epochs', 'n_picks', 'n_ch_groups',
@@ -512,7 +512,7 @@ for key in ('AcqParserFIF', 'BiHemiLabel', 'Dipole', 'DipoleFixed', 'Label',
             'preprocessing.ICA', 'preprocessing.Xdawn',
             'simulation.SourceSimulator',
             'time_frequency.CrossSpectralDensity',
-            'utils.deprecated',
+            'utils.deprecated', 'use_log_level',
             'viz.ClickableImage'):
     nitpick_ignore.append(('py:obj', f'mne.{key}.__hash__'))
 suppress_warnings = ['image.nonlocal_uri']  # we intentionally link outside

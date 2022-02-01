@@ -22,7 +22,7 @@ from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     fill_doc, _check_option, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_installed, _check_pandas_index_arguments,
                     _convert_times, _scale_dataframe_data, _check_time_format,
-                    _check_preload, _check_fname)
+                    _check_preload, _check_fname, _VerboseDep)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -62,7 +62,7 @@ _aspect_rev = {val: key for key, val in _aspect_dict.items()}
 @fill_doc
 class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              InterpolationMixin, FilterMixin, TimeMixin, SizeMixin,
-             ShiftTimeMixin):
+             ShiftTimeMixin, _VerboseDep):
     """Evoked data.
 
     Parameters
@@ -114,7 +114,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     baseline : None | tuple of length 2
          This attribute reflects whether the data has been baseline-corrected
          (it will be a ``tuple`` then) or not (it will be ``None``).
-    %(verbose)s
 
     Notes
     -----
@@ -123,7 +122,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     def __init__(self, fname, condition=None, proj=True,
-                 kind='average', allow_maxshield=False,
+                 kind='average', allow_maxshield=False, *,
                  verbose=None):  # noqa: D102
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
@@ -132,7 +131,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self.data, self.baseline = _read_evoked(fname, condition, kind,
                                                     allow_maxshield)
         self._update_first_last()
-        self.verbose = verbose
         self.preload = True
         # project and baseline correct
         if proj:
@@ -206,7 +204,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(picks_all_data_noref)s
         %(applyfun_dtype)s
         %(n_jobs)s
-        %(verbose_meth)s
+        %(verbose)s
         %(kwarg_fun)s
 
         Returns
@@ -250,7 +248,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(baseline_evoked)s
             Defaults to ``(None, 0)``, i.e. beginning of the the data until
             time point zero.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -355,7 +353,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         tmax : float | None
             End time of selection in seconds.
         %(include_tmax)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -397,7 +395,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ----------
         %(decim)s
         %(decim_offset)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -566,7 +564,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(topomap_extrapolate)s
 
             .. versionadded:: 0.22
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -895,7 +893,7 @@ class EvokedArray(Evoked):
 
     @verbose
     def __init__(self, data, info, tmin=0., comment='', nave=1, kind='average',
-                 baseline=None, verbose=None):  # noqa: D102
+                 baseline=None, *, verbose=None):  # noqa: D102
         dtype = np.complex128 if np.iscomplexobj(data) else np.float64
         data = np.asanyarray(data, dtype=dtype)
 
@@ -919,7 +917,6 @@ class EvokedArray(Evoked):
         self.kind = kind
         self.comment = comment
         self.picks = None
-        self.verbose = verbose
         self.preload = True
         self._projector = None
         _validate_type(self.kind, "str", "kind")
@@ -930,7 +927,7 @@ class EvokedArray(Evoked):
 
         self.baseline = baseline
         if self.baseline is not None:  # omit log msg if not baselining
-            self.apply_baseline(self.baseline, verbose=self.verbose)
+            self.apply_baseline(self.baseline)
 
 
 def _get_entries(fid, evoked_node, allow_maxshield=False):

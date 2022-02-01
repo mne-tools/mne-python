@@ -36,11 +36,12 @@ from .source_space import _make_volume_source_space, SourceSpaces
 from .parallel import parallel_func
 from .utils import (logger, verbose, _time_mask, warn, _check_fname,
                     check_fname, _pl, fill_doc, _check_option, ShiftTimeMixin,
-                    _svd_lwork, _repeated_svd, _get_blas_funcs, _validate_type)
+                    _svd_lwork, _repeated_svd, _get_blas_funcs, _validate_type,
+                    _VerboseDep)
 
 
 @fill_doc
-class Dipole(object):
+class Dipole(_VerboseDep):
     u"""Dipole class for sequential dipole fits.
 
     .. note:: This class should usually not be instantiated directly,
@@ -99,7 +100,7 @@ class Dipole(object):
     @verbose
     def __init__(self, times, pos, amplitude, ori, gof,
                  name=None, conf=None, khi2=None, nfree=None,
-                 verbose=None):  # noqa: D102
+                 *, verbose=None):  # noqa: D102
         self.times = np.array(times)
         self.pos = np.array(pos)
         self.amplitude = np.array(amplitude)
@@ -112,7 +113,6 @@ class Dipole(object):
                 self.conf[key] = np.array(value)
         self.khi2 = np.array(khi2) if khi2 is not None else None
         self.nfree = np.array(nfree) if nfree is not None else None
-        self.verbose = verbose
 
     def __repr__(self):  # noqa: D105
         s = "n_times : %s" % len(self.times)
@@ -131,7 +131,7 @@ class Dipole(object):
         %(overwrite)s
 
             .. versionadded:: 0.20
-        %(verbose_meth)s
+        %(verbose)s
 
         Notes
         -----
@@ -249,7 +249,7 @@ class Dipole(object):
             background.
 
             .. versionadded:: 0.14.0
-        %(verbose_meth)s
+        %(verbose)s
         %(dipole_locs_fig_title)s
 
             .. versionadded:: 0.21.0
@@ -428,7 +428,7 @@ def _read_dipole_fixed(fname):
 
 
 @fill_doc
-class DipoleFixed(ShiftTimeMixin):
+class DipoleFixed(ShiftTimeMixin, _VerboseDep):
     """Dipole class for fixed-position dipole fits.
 
     .. note:: This class should usually not be instantiated directly,
@@ -466,7 +466,7 @@ class DipoleFixed(ShiftTimeMixin):
 
     @verbose
     def __init__(self, info, data, times, nave, aspect_kind,
-                 comment='', verbose=None):  # noqa: D102
+                 comment='', *, verbose=None):  # noqa: D102
         self.info = info
         self.nave = nave
         self._aspect_kind = aspect_kind
@@ -474,7 +474,6 @@ class DipoleFixed(ShiftTimeMixin):
         self.comment = comment
         self.times = times
         self.data = data
-        self.verbose = verbose
         self.preload = True
         self._update_first_last()
 
@@ -513,7 +512,7 @@ class DipoleFixed(ShiftTimeMixin):
             The name of the .fif file. Must end with ``'.fif'`` or
             ``'.fif.gz'`` to make it explicit that the file contains
             dipole information in FIF format.
-        %(verbose_meth)s
+        %(verbose)s
         """
         check_fname(fname, 'DipoleFixed', ('-dip.fif', '-dip.fif.gz',
                                            '_dip.fif', '_dip.fif.gz',),

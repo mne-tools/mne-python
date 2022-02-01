@@ -120,7 +120,7 @@ class ProjMixin(object):
             List with projection vectors.
         remove_existing : bool
             Remove the projection vectors currently in the file.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -136,7 +136,7 @@ class ProjMixin(object):
                              'something else.')
 
         # mark proj as inactive, as they have not been applied
-        projs = deactivate_proj(projs, copy=True, verbose=self.verbose)
+        projs = deactivate_proj(projs, copy=True)
         if remove_existing:
             # we cannot remove the proj if they are active
             if any(p['active'] for p in self.info['projs']):
@@ -159,7 +159,7 @@ class ProjMixin(object):
 
         Parameters
         ----------
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -205,7 +205,7 @@ class ProjMixin(object):
             return self
 
         _projector, info = setup_proj(deepcopy(self.info), add_eeg_ref=False,
-                                      activate=True, verbose=self.verbose)
+                                      activate=True)
         # let's not raise a RuntimeError here, otherwise interactive plotting
         if _projector is None:  # won't be fun.
             logger.info('The projections don\'t apply to these data.'
