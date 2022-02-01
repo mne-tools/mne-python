@@ -109,7 +109,7 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
         kwargs = dict()
         kwargs[param] = 0
         with pytest.warns(DeprecationWarning, match=f'{param} is deprecated'):
-            CoregistrationUI(info_file=None, **kwargs)
+            coreg = CoregistrationUI(info_file=None, **kwargs)
         del kwargs
 
     deprecated_params = [
