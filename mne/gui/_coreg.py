@@ -340,7 +340,7 @@ class CoregistrationUI(HasTraits):
         self._update_distance_estimation()
         self._update_fiducials_label()
         self._update_fiducials()
-        self._reset()
+        self._reset(keep_trans=True)
 
         if fname is None:
             self._set_lock_fids(False)
@@ -908,10 +908,19 @@ class CoregistrationUI(HasTraits):
             self._forward_widget_command(["sX", "sY", "sZ"], "set_value",
                                          self.coreg._scale * 1e2)
 
-    def _reset(self):
-        self.coreg.set_scale(self.coreg._default_parameters[6:9])
-        self.coreg.set_rotation(self.coreg._default_parameters[:3])
-        self.coreg.set_translation(self.coreg._default_parameters[3:6])
+    def _reset(self, keep_trans=False):
+        """Refresh the scene, and optionally reset transformation & scaling.
+
+        Parameters
+        ----------
+        keep_trans : bool
+            Whether to retain translation, rotation, and scaling; or reset them
+            to their default values (no translation, no rotation, no scaling).
+        """
+        if not keep_trans:
+            self.coreg.set_scale(self.coreg._default_parameters[6:9])
+            self.coreg.set_rotation(self.coreg._default_parameters[:3])
+            self.coreg.set_translation(self.coreg._default_parameters[3:6])
         self._update_plot()
         self._update_parameters()
         self._update_distance_estimation()
