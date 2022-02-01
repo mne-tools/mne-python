@@ -1364,6 +1364,7 @@ class CoregistrationUI(HasTraits):
                 ),
                 compact=True,
                 double=True,
+                step=1,
                 tooltip=f"Set the {coord} fiducial coordinate",
                 layout=fiducial_coords_layout,
             )
