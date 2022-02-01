@@ -1665,7 +1665,6 @@ class CoregistrationUI(HasTraits):
 
     def _clean(self):
         self._renderer = None
-        self.coreg = None
         self._widgets.clear()
         self._actors.clear()
         self._surfaces.clear()
