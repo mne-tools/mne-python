@@ -62,10 +62,10 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         The transform file to use.
     scrollable : bool
         Make the coregistration panel vertically scrollable (default True).
-    project_eeg : bool
+    project_eeg : bool | None
         Deprecated. Use :func:`mne.viz.plot_alignment` to see projected EEG electrodes.
 
-       .. versionadded:: 0.16
+        .. versionadded:: 0.16
     orient_to_surface : bool | None
         If True (default), orient EEG electrode and head shape points
         to the head surface.
@@ -122,7 +122,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     subjects for which no MRI is available
     <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
-   # unsupported parameters
+    # unsupported parameters
     unsupported_params = {
         'tabbed': (tabbed, False),
         'split': (split, True),
