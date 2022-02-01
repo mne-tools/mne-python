@@ -81,7 +81,11 @@ class CoregistrationUI(HasTraits):
     show : bool
         Display the window as soon as it is ready. Defaults to True.
     block : bool
-        If True, start the Qt application event loop. Default to False.
+        Whether to halt program script execution until the GUI has been closed
+        (``True``) or not (``False``, default).
+    %(fullscreen)s
+
+        .. versionadded:: 1.0
     %(scene_interaction)s
         Defaults to ``'terrain'``.
 
@@ -124,9 +128,9 @@ class CoregistrationUI(HasTraits):
                  head_shape_points=None, eeg_channels=None, orient_glyphs=None,
                  scale_by_distance=None, mark_inside=None,
                  sensor_opacity=None, trans=None, size=None, bgcolor=None,
-                 show=True, block=False, interaction='terrain',
-                 project_eeg=None, head_transparency=None, standalone=None,
-                 verbose=None):
+                 show=True, block=False, fullscreen=False,
+                 interaction='terrain', project_eeg=None,
+                 head_transparency=None, standalone=None, verbose=None):
         if standalone is not None:
             depr_message = ('standalone is deprecated and will be replaced by '
                             'block in 1.1.')
@@ -224,7 +228,10 @@ class CoregistrationUI(HasTraits):
 
         # setup the window
         self._renderer = _get_renderer(
-            size=self._defaults["size"], bgcolor=self._defaults["bgcolor"])
+            size=self._defaults["size"],
+            bgcolor=self._defaults["bgcolor"],
+            fullscreen=fullscreen
+        )
         self._renderer.enable_depth_peeling()
         self._renderer._window_close_connect(self._clean)
         self._renderer.set_interaction(interaction)

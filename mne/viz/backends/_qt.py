@@ -500,12 +500,14 @@ class _QtBrainMplCanvas(_AbstractBrainMplCanvas, _QtMplInterface):
 
 
 class _QtWindow(_AbstractWindow):
-    def _window_initialize(self):
+    def _window_initialize(self, *, fullscreen=False):
         super()._window_initialize()
-        self._interactor = self.figure.plotter.interactor
         self._window = self.figure.plotter.app_window
+        if fullscreen:
+            self._window.setWindowState(Qt.WindowFullScreen)
         self._window.setLocale(QLocale(QLocale.Language.English))
         self._window.signal_close.connect(self._window_clean)
+        self._interactor = self.figure.plotter.interactor
 
     def _window_clean(self):
         self.figure.plotter = None
@@ -710,8 +712,9 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
     _kind = 'qt'
 
     def __init__(self, *args, **kwargs):
+        fullscreen = kwargs.pop('fullscreen')
         super().__init__(*args, **kwargs)
-        self._window_initialize()
+        self._window_initialize(fullscreen=fullscreen)
 
     def show(self):
         super().show()

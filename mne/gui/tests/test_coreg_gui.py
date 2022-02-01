@@ -217,6 +217,12 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     coreg._save_trans(tmp_trans)
     assert op.isfile(tmp_trans)
 
+    # Coregistration instance should survive after closing the GUI
     coreg.close()
-    # Coregistration instance should survive
     assert isinstance(coreg.coreg, Coregistration)
+
+    # Fullscreen mode
+    coreg = coregistration(
+        subject='sample', subjects_dir=subjects_dir, fullscreen=True
+    )
+    coreg.close()

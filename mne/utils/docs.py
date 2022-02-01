@@ -1498,6 +1498,10 @@ fiducials : list | dict | str
     (``{subjects_dir}/{subject}/bem/{subject}-fiducials.fif``)
     and if absent, falls back to ``'estimated'``.
 """
+docdict['fullscreen'] = """
+fullscreen : bool
+    Whether to start in fullscreen or windowed mode (default).
+"""
 
 # Simulation
 docdict['interp'] = """

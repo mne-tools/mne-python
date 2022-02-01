@@ -833,7 +833,7 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
 
 
 class _AbstractWindow(ABC):
-    def _window_initialize(self):
+    def _window_initialize(self, *, fullscreen=False):
         self._window = None
         self._interactor = None
         self._mplcanvas = None
