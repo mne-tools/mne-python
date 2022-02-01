@@ -784,10 +784,11 @@ def test_compute_tfr():
         _decim = slice(None, None, decim) if isinstance(decim, int) else decim
         n_time = len(np.arange(data.shape[2])[_decim])
         shape = np.r_[data.shape[:2], len(freqs), n_time]
+
         for method in ('multitaper', 'morlet'):
             # Single trials
             out = _compute_tfr(data, freqs, sfreq, method=method, decim=decim,
-                               n_cycles=2.)
+                               output='power', n_cycles=2.)
             assert_array_equal(shape, out.shape)
             # Averages
             out = _compute_tfr(data, freqs, sfreq, method=method, decim=decim,
