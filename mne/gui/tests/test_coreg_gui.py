@@ -16,6 +16,8 @@ from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io.constants import FIFF
 from mne.utils import get_config
 from mne.channels import DigMontage
+from ...coreg import Coregistration
+
 
 data_path = testing.data_path(download=False)
 raw_path = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -200,3 +202,5 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert op.isfile(tmp_trans)
 
     coreg.close()
+    # Coregistration instance should survive
+    assert isinstance(coreg.coreg, Coregistration)
