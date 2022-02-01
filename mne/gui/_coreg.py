@@ -451,6 +451,10 @@ class CoregistrationUI(HasTraits):
     def _set_parameter(self, value, mode_name, coord):
         if self._params_locked:
             return
+        if mode_name == "scale" and self._scale_mode == "uniform":
+            with self._lock(params=True):
+                self._forward_widget_command(
+                    ["sY", "sZ"], "set_value", value)
         with self._parameter_mutex:
             self. _set_parameter_safe(value, mode_name, coord)
         self._update_plot("sensors")
@@ -468,7 +472,10 @@ class CoregistrationUI(HasTraits):
             params[mode_name][idx] = value / 1e3
         else:
             assert mode_name == "scale"
-            params[mode_name][idx] = value / 1e2
+            if self._scale_mode == "uniform":
+                params[mode_name][:] = value / 1e2
+            else:
+                params[mode_name][idx] = value / 1e2
             self._update_plot("head")
         self.coreg._update_params(
             rot=params["rotation"],
@@ -660,6 +667,8 @@ class CoregistrationUI(HasTraits):
                                          mode is not None)
             self._forward_widget_command("fits_fiducials", "set_enabled",
                                          mode not in (None, "3-axis"))
+        if self._scale_mode == "uniform":
+            self._forward_widget_command(["sY", "sZ"], "set_enabled", False)
 
     @observe("_icp_fid_match")
     def _icp_fid_match_changed(self, change=None):
