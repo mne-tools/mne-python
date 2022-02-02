@@ -474,7 +474,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
     initial_value = data[0, 0]
     if initial_value != 0:
         if initial_event:
-            events = np.insert(events, 0, [0, 0, initial_value], axis=0)
+            events = np.insert(events, 0, [first_samp, 0, initial_value], axis=0)
         else:
             logger.info('Trigger channel has a non-zero initial value of {} '
                         '(consider using initial_event=True to detect this '
