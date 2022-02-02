@@ -732,7 +732,7 @@ class Info(dict, MontageMixin):
             self['chs'] = _dict_unpack(self['chs'], _CH_CAST)
         for pi, proj in enumerate(self.get('projs', [])):
             if not isinstance(proj, Projection):
-                self['projs'][pi] = Projection(proj)
+                self['projs'][pi] = Projection(**proj)
         # Old files could have meas_date as tuple instead of datetime
         try:
             meas_date = self['meas_date']
