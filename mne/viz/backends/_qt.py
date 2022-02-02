@@ -712,7 +712,7 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
     _kind = 'qt'
 
     def __init__(self, *args, **kwargs):
-        fullscreen = kwargs.pop('fullscreen')
+        fullscreen = kwargs.pop('fullscreen', False)
         super().__init__(*args, **kwargs)
         self._window_initialize(fullscreen=fullscreen)
 
