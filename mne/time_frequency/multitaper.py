@@ -494,9 +494,9 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
             is done after the convolutions.
     output : str, default 'complex'
 
-        * 'complex' : single trial complex.
+        * 'complex' : single trial per taper complex values.
         * 'power' : single trial power.
-        * 'phase' : single trial phase.
+        * 'phase' : single trial per taper phase.
         * 'avg_power' : average of single trial power.
         * 'itc' : inter-trial coherence.
         * 'avg_power_itc' : average of single trial power and inter-trial
@@ -510,10 +510,12 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
     -------
     out : array
         Time frequency transform of epoch_data. If output is in ['complex',
-        'phase', 'power'], then shape of out is (n_epochs, n_chans, n_freqs,
-        n_times), else it is (n_chans, n_freqs, n_times). If output is
-        'avg_power_itc', the real values code for 'avg_power' and the
-        imaginary values code for the 'itc': out = avg_power + i * itc.
+        'phase'], then the shape of ``out`` is ``(n_epochs, n_chans, n_tapers,
+        n_freqs, n_times)``; if output is 'power', the shape of ``out`` is
+        ``(n_epochs, n_chans, n_freqs, n_times)``, else it is ``(n_chans,
+        n_freqs, n_times)``. If output is 'avg_power_itc', the real values
+        in ``out`` contain the average power and the imaginary values contain
+        the ITC: ``out = avg_power + i * itc``.
 
     See Also
     --------
