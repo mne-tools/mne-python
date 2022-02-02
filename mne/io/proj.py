@@ -597,7 +597,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
 
             # Rescale for better detection of small singular values
             for v in range(p['data']['nrow']):
-                psize = np.linalg.norm(this_vecs[:, v], axis=0)
+                psize = np.linalg.norm(this_vecs[:, v])
                 if psize > 0:
                     orig_n = p['data']['data'].any(axis=0).sum()
                     # Average ref still works if channels are removed
