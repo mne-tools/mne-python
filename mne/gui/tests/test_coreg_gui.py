@@ -225,6 +225,7 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_coreg_gui_notebook(renderer_notebook, nbexec):
+    """Test coregistration ui in a notebook."""
     import os
     import mne
     from mne.datasets import testing
