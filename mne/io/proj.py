@@ -617,12 +617,11 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
                             'or related functions) with the bad channels '
                             'properly marked, because computing SSP with bad '
                             'channels present in the data but unmarked is '
-                            'dangerous as it can bias PCA during SSP '
-                            'computation. '
-                            'On the other hand, if all channels were good '
-                            'during SSP computation and channels are now '
-                            'just being subselected, you can safely use '
-                            'info.normalize_proj() to suppress this warning.')
+                            'dangerous (it can bias the PCA used by SSP). '
+                            'On the other hand, if you know that all channels '
+                            'were good during SSP computation, you can safely '
+                            'use info.normalize_proj() to suppress this '
+                            'warning.')
                     this_vecs[:, v] /= psize
                     nonzero += 1
             # If doing "inplace" mode, "fix" the projectors to only operate
