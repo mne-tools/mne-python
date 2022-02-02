@@ -589,7 +589,7 @@ def _all_src_types_inv_evoked(_evoked_cov_sphere, _all_src_types_fwd):
     invs = dict()
     for kind, fwd in _all_src_types_fwd.items():
         assert fwd['src'].kind == kind
-        with pytest.warns(RuntimeWarning, match='has magnitude'):
+        with pytest.warns(RuntimeWarning, match='has been reduced'):
             invs[kind] = mne.minimum_norm.make_inverse_operator(
                 evoked.info, fwd, cov)
     return invs, evoked
