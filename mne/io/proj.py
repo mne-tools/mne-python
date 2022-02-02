@@ -25,6 +25,7 @@ class Projection(dict):
 
     A basic class to proj a meaningful print for projection vectors.
     """
+
     def __init__(self, *, data, desc='', kind=FIFF.FIFFV_PROJ_ITEM_FIELD,
                  active=False, explained_var=None):
         super().__init__(desc=desc, kind=kind, active=active, data=data,
