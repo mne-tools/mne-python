@@ -33,9 +33,10 @@ class _IpyLayout(_AbstractLayout):
         # Fix columns
         if self._layout_max_width is not None and isinstance(widget, HBox):
             children = widget.children
-            width = int(self._layout_max_width / len(children))
-            for child in children:
-                child.layout.width = f"{width}px"
+            if len(children) > 0:
+                width = int(self._layout_max_width / len(children))
+                for child in children:
+                    child.layout.width = f"{width}px"
 
 
 class _IpyDock(_AbstractDock, _IpyLayout):
