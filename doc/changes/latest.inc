@@ -177,6 +177,8 @@ Bugs
 
 - :func:`mne.read_trans` now correctly expands ``~`` in the provided path to the user's home directory (:gh:`10265`, by `Richard Höchenberger`_)
 
+- :func:`mne.find_events` now uses ``first_samp`` and not ``0`` for initial event when using ``initial_value`` (:gh:`10289`, by `Alex Gramfort`_)
+
 API changes
 ~~~~~~~~~~~
 - ``mne.Info.pick_channels`` has been deprecated. Use ``inst.pick_channels`` to pick channels from :class:`~mne.io.Raw`, :class:`~mne.Epochs`, and :class:`~mne.Evoked`. Use :func:`mne.pick_info` to pick channels from :class:`mne.Info` (:gh:`10039` by `Mathieu Scheltienne`_)
