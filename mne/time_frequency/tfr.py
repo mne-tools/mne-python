@@ -381,7 +381,7 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
 
     if ('avg_' in output) or ('itc' in output):
         out = np.empty((n_chans, n_freqs, n_times), dtype)
-    elif output == 'complex' and n_tapers > 1:
+    elif output in ['complex', 'phase'] and n_tapers > 1:
         out = np.empty((n_chans, n_tapers, n_epochs, n_freqs, n_times), dtype)
     else:
         out = np.empty((n_chans, n_epochs, n_freqs, n_times), dtype)
@@ -518,7 +518,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
     n_freqs = len(Ws[0])
     if ('avg_' in output) or ('itc' in output):
         tfrs = np.zeros((n_freqs, n_times), dtype=dtype)
-    elif output == 'complex' and n_tapers > 1:
+    elif output in ['complex', 'phase'] and n_tapers > 1:
         tfrs = np.zeros((n_tapers, n_epochs, n_freqs, n_times),
                         dtype=dtype)
     else:
@@ -553,7 +553,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
             # Stack or add
             if ('avg_' in output) or ('itc' in output):
                 tfrs += tfr
-            elif output == 'complex' and n_tapers > 1:
+            elif output in ['complex', 'phase'] and n_tapers > 1:
                 tfrs[taper_idx, epoch_idx] += tfr
             else:
                 tfrs[epoch_idx] += tfr
