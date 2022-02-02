@@ -402,7 +402,7 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
 
     if ('avg_' not in output) and ('itc' not in output):
         # This is to enforce that the first dimension is for epochs
-        if output == 'complex' and n_tapers > 1:
+        if output in ['complex', 'phase'] and n_tapers > 1:
             out = out.transpose(2, 0, 1, 3, 4)
         else:
             out = out.transpose(1, 0, 2, 3)
@@ -433,11 +433,6 @@ def _check_tfr_param(freqs, sfreq, method, zero_mean, n_cycles,
         raise ValueError('zero_mean should be of type bool, got %s. instead'
                          % type(zero_mean))
     freqs = np.asarray(freqs)
-
-    if (method == 'multitaper') and (output == 'phase'):
-        raise NotImplementedError(
-            'This function is not optimized to compute the phase using the '
-            'multitaper method. Use np.angle of the complex output instead.')
 
     # Check n_cycles
     if isinstance(n_cycles, (int, float)):

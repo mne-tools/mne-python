@@ -721,17 +721,12 @@ def test_compute_tfr():
         (tfr_array_multitaper, tfr_array_morlet), (False, True), (False, True),
         ('complex', 'power', 'phase',
          'avg_power_itc', 'avg_power', 'itc')):
-        # Check exception
-        if (func == tfr_array_multitaper) and (output == 'phase'):
-            pytest.raises(NotImplementedError, func, data, sfreq=sfreq,
-                          freqs=freqs, output=output)
-            continue
 
         # Check runs
         out = func(data, sfreq=sfreq, freqs=freqs, use_fft=use_fft,
                    zero_mean=zero_mean, n_cycles=2., output=output)
         # Check shapes
-        if func == tfr_array_multitaper and output == 'complex':
+        if func == tfr_array_multitaper and output in ['complex', 'phase']:
             n_tapers = 3
             shape = np.r_[data.shape[:2], n_tapers, len(freqs), data.shape[2]]
         else:
@@ -766,9 +761,6 @@ def test_compute_tfr():
     # No time_bandwidth param in morlet
     pytest.raises(ValueError, _compute_tfr, data, freqs, sfreq,
                   method='morlet', time_bandwidth=1)
-    # No phase in multitaper XXX Check ?
-    pytest.raises(NotImplementedError, _compute_tfr, data, freqs, sfreq,
-                  method='multitaper', output='phase')
 
     # Inter-trial coherence tests
     out = _compute_tfr(data, freqs, sfreq, output='itc', n_cycles=2.)
