@@ -131,7 +131,8 @@ def test_time_frequency():
     # computed within the method.
     assert_allclose(epochs_amplitude_2.data**2, epochs_power_picks.data)
 
-    # complex test for multitaper case
+    # test that averaging power across tapers when multitaper with
+    # output='complex' gives the same as output='power'
     epoch_data = epochs.get_data()
     multitaper_power = tfr_array_multitaper(
         epoch_data, epochs.info['sfreq'], freqs, n_cycles,

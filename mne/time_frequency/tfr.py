@@ -565,7 +565,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
 
     # Normalization by number of taper
     if n_tapers > 1 and output not in ['complex', 'phase']:
-        tfrs /= len(Ws)
+        tfrs /= n_tapers
     return tfrs
 
 
