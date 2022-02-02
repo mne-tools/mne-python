@@ -975,6 +975,12 @@ class Info(dict, MontageMixin):
                 if self.get(key) is not None:
                     self[key] = float(self[key])
 
+        for pi, proj in enumerate(self.get('projs', [])):
+            _validate_type(proj, Projection, f'info["projs"][{pi}]')
+            for key in ('kind', 'active', 'desc', 'data', 'explained_var'):
+                if key not in proj:
+                    raise RuntimeError(f'Projection incomplete, missing {key}')
+
         # Ensure info['chs'] has immutable entries (copies much faster)
         for ci, ch in enumerate(self['chs']):
             _check_ch_keys(ch, ci)

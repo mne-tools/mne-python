@@ -10,10 +10,10 @@ from itertools import count
 
 import numpy as np
 
-from .tree import dir_tree_find
-from .tag import find_tag, _rename_list
 from .constants import FIFF
 from .pick import pick_types, pick_info
+from .tag import find_tag, _rename_list
+from .tree import dir_tree_find
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT
@@ -25,11 +25,17 @@ class Projection(dict):
 
     A basic class to proj a meaningful print for projection vectors.
     """
+    def __init__(self, *, data, desc='', kind=FIFF.FIFFV_PROJ_ITEM_FIELD,
+                 active=False, explained_var=None):
+        super().__init__(desc=desc, kind=kind, active=active, data=data,
+                         explained_var=explained_var)
 
     def __repr__(self):  # noqa: D105
         s = "%s" % self['desc']
         s += ", active : %s" % self['active']
         s += f", n_channels : {len(self['data']['col_names'])}"
+        if self['explained_var'] is not None:
+            s += f', exp. var : {self["explained_var"] * 100:0.2f}%'
         return "<Projection | %s>" % s
 
     # speed up info copy by taking advantage of mutability
@@ -621,7 +627,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
                             'On the other hand, if you know that all channels '
                             'were good during SSP computation, you can safely '
                             'use info.normalize_proj() to suppress this '
-                            'warning.')
+                            'warning during projection.')
                     this_vecs[:, v] /= psize
                     nonzero += 1
             # If doing "inplace" mode, "fix" the projectors to only operate

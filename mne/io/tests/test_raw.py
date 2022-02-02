@@ -139,7 +139,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
             other_raw.info, meg=meg, eeg=eeg, fnirs=fnirs)
         col_names = [other_raw.ch_names[pick] for pick in picks]
         proj = np.ones((1, len(picks)))
-        proj /= proj.shape[1]
+        proj /= np.sqrt(proj.shape[1])
         proj = Projection(
             data=dict(data=proj, nrow=1, row_names=None,
                       col_names=col_names, ncol=len(picks)),
