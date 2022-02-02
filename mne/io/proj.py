@@ -7,7 +7,6 @@
 
 from copy import deepcopy
 from itertools import count
-from math import sqrt
 
 import numpy as np
 
@@ -598,21 +597,32 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
 
             # Rescale for better detection of small singular values
             for v in range(p['data']['nrow']):
-                psize = sqrt(np.sum(this_vecs[:, v] * this_vecs[:, v]))
+                psize = np.linalg.norm(this_vecs[:, v], axis=0)
                 if psize > 0:
                     orig_n = p['data']['data'].any(axis=0).sum()
                     # Average ref still works if channels are removed
-                    if len(vecsel) < 0.9 * orig_n and not inplace and \
+                    # Use relative power to determine if we're in trouble.
+                    # 10% loss is hopefully a reasonable threshold.
+                    if psize < 0.9 and not inplace and \
                             (p['kind'] != FIFF.FIFFV_PROJ_ITEM_EEG_AVREF or
                              len(vecsel) == 1):
-                        warn('Projection vector "%s" has magnitude %0.2f '
-                             '(should be unity), applying projector with '
-                             '%s/%s of the original channels available may '
-                             'be dangerous, consider recomputing and adding '
-                             'projection vectors for channels that are '
-                             'eventually used. If this is intentional, '
-                             'consider using info.normalize_proj()'
-                             % (p['desc'], psize, len(vecsel), orig_n))
+                        warn(
+                            f'Projection vector {repr(p["desc"])} has been '
+                            f'reduced to {100 * psize:0.2f}% of its '
+                            'original magnitude by subselecting '
+                            f'{len(vecsel)}/{orig_n} of the original '
+                            'channels. If the ignored channels were bad '
+                            'during SSP computation, we recommend '
+                            'recomputing proj (via compute_proj_raw '
+                            'or related functions) with the bad channels '
+                            'properly marked, because computing SSP with bad '
+                            'channels present in the data but unmarked is '
+                            'dangerous as it can bias PCA during SSP '
+                            'computation. '
+                            'On the other hand, if all channels were good '
+                            'during SSP computation and channels are now '
+                            'just being subselected, you can safely use '
+                            'info.normalize_proj() to suppress this warning.')
                     this_vecs[:, v] /= psize
                     nonzero += 1
             # If doing "inplace" mode, "fix" the projectors to only operate
