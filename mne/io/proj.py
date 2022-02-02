@@ -24,6 +24,22 @@ class Projection(dict):
     """Projection vector.
 
     A basic class to proj a meaningful print for projection vectors.
+
+    .. warning:: This class is generally not meant to be instantiated
+                 directly, use ``compute_proj_*`` functions instead.
+
+    Parameters
+    ----------
+    data : dict
+        The data dictionary.
+    desc : str
+        The projector description.
+    kind : int
+        The projector kind.
+    active : bool
+        Whether or not the projector has been applied.
+    explained_var : float | None
+        The explained variance (proportion).
     """
 
     def __init__(self, *, data, desc='', kind=FIFF.FIFFV_PROJ_ITEM_FIELD,
