@@ -81,7 +81,7 @@ class CoregistrationUI(HasTraits):
     show : bool
         Display the window as soon as it is ready. Defaults to True.
     block : bool
-        Whether to halt program script execution until the GUI has been closed
+        Whether to halt program execution until the GUI has been closed
         (``True``) or not (``False``, default).
     %(fullscreen)s
 
