@@ -222,6 +222,8 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert isinstance(coreg.coreg, Coregistration)
 
 
+@pytest.mark.slowtest
+@testing.requires_testing_data
 def test_coreg_gui_notebook(renderer_notebook, nbexec):
     import os
     import mne
