@@ -505,11 +505,11 @@ extrapolate : str
         Extrapolate to four points placed to form a square encompassing all
         data points, where each side of the square is three times the range
         of the data in the respective dimension.
-    - ``'local'`` (default)
+    - ``'local'`` (default for MEG sensors)
         Extrapolate only to nearby points (approximately to points closer than
         median inter-electrode distance). This will also set the
         mask to be polygonal based on the convex hull of the sensors.
-    - ``'head'``
+    - ``'head'`` (default for non-MEG sensors)
         Extrapolate out to the edges of the clipping circle. This will be on
         the head circle when the sensors are contained within the head circle,
         but it can extend beyond the head when sensors are plotted outside
@@ -517,7 +517,7 @@ extrapolate : str
 
     .. versionchanged:: 0.21
 
-       - The default was changed to ``'local'``
+       - The default was changed to ``'local'`` for MEG sensors.
        - ``'local'`` was changed to use a convex hull mask
        - ``'head'`` was changed to extrapolate out to the clipping circle.
 """
