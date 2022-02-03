@@ -331,14 +331,13 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
     -------
     out : array
         Time frequency transform of epoch_data. If output is in ['complex',
-        'phase', 'power'], then shape of ``ou``t is ``(n_epochs, n_chans,
+        'phase', 'power'], then shape of ``out`` is ``(n_epochs, n_chans,
         n_freqs, n_times)``, else it is ``(n_chans, n_freqs, n_times)``.
-        However, using multitaper method with at least 2 tapers and output
-        ``'complex'`` or ``'phase'`` results in shape of ``out`` being
-        ``(n_epochs, n_chans, n_tapers, n_freqs, n_times)``. If output is
-        ``'avg_power_itc'``, the real values in the ``output`` contain
-        average power' and the imaginary values contain the ITC:
-        ``out = avg_power + i * itc``.
+        However, using multitaper method and output ``'complex'`` or
+        ``'phase'`` results in shape of ``out`` being ``(n_epochs, n_chans,
+        n_tapers, n_freqs, n_times)``. If output is ``'avg_power_itc'``, the
+        real values in the ``output`` contain average power' and the imaginary
+        values contain the ITC: ``out = avg_power + i * itc``.
     """
     # Check data
     epoch_data = np.asarray(epoch_data)
