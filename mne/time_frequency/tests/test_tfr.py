@@ -141,8 +141,6 @@ def test_time_frequency():
         epoch_data, epochs.info['sfreq'], freqs, n_cycles,
         output="complex")
 
-    print(multitaper_complex.shape)
-    print(multitaper_power.shape)
     taper_dim = 2
     power_from_complex = (multitaper_complex * multitaper_complex.conj()
                           ).real.mean(axis=taper_dim)
