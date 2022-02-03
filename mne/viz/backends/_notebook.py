@@ -42,14 +42,14 @@ class _IpyLayout(_AbstractLayout):
 class _IpyDock(_AbstractDock, _IpyLayout):
     def _dock_initialize(self, window=None, name="Controls",
                          area="left", max_width=None):
+        if self._docks is None:
+            self._docks = dict()
+        current_dock = VBox()
         self._dock_width = 300
-        # XXX: this can be improved
-        if hasattr(self, "_dock") and hasattr(self, "_dock_layout"):
-            self._dock2 = self._dock
-            self._dock_layout2 = self._dock_layout
-        self._dock = self._dock_layout = VBox()
+        self._dock = self._dock_layout = current_dock
         self._dock.layout.width = f"{self._dock_width}px"
         self._layout_initialize(self._dock_width)
+        self._docks[area] = (self._dock, self._dock_layout)
 
     def _dock_finalize(self):
         pass
@@ -491,7 +491,8 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
     _kind = 'notebook'
 
     def __init__(self, *args, **kwargs):
-        self._dock = None
+        self._docks = None
+        self._menu_bar = None
         self._tool_bar = None
         self._status_bar = None
         kwargs["notebook"] = True
@@ -512,24 +513,24 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
 
     def show(self):
         # menu bar
-        if hasattr(self, "_menu_bar") and self._menu_bar is not None:
+        if self._menu_bar is not None:
             display(self._menu_bar)
-        # default tool bar
-        if self._tool_bar is None:
+        # tool bar
+        if self._tool_bar is not None:
+            display(self._tool_bar)
+        else:
             self._create_default_tool_bar()
-        display(self._tool_bar)
         # viewer
         viewer = self.plotter.show(
             jupyter_backend="ipyvtklink", return_viewer=True)
         viewer.layout.width = None  # unlock the fixed layout
-        # main widget
-        if self._dock is None:
-            main_widget = viewer
-        # XXX: this can be improved
-        elif hasattr(self, "_dock2"):
-            main_widget = HBox([self._dock2, viewer, self._dock])
-        else:
-            main_widget = HBox([self._dock, viewer])
+        rendering_row = list()
+        if self._docks is not None and "left" in self._docks:
+            rendering_row.append(self._docks["left"][0])
+        rendering_row.append(viewer)
+        if self._docks is not None and "right" in self._docks:
+            rendering_row.append(self._docks["right"][0])
+        main_widget = HBox(rendering_row)
         display(main_widget)
         self.figure.display = viewer
         # status bar
