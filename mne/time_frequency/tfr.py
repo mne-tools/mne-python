@@ -385,7 +385,7 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
 
     if ('avg_' in output) or ('itc' in output):
         out = np.empty((n_chans, n_freqs, n_times), dtype)
-    elif output in ['complex', 'phase'] and n_tapers > 1:
+    elif output in ['complex', 'phase'] and method == 'multitaper':
         out = np.empty((n_chans, n_tapers, n_epochs, n_freqs, n_times), dtype)
     else:
         out = np.empty((n_chans, n_epochs, n_freqs, n_times), dtype)
@@ -397,7 +397,7 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
 
     # Parallelization is applied across channels.
     tfrs = parallel(
-        my_cwt(channel, Ws, output, use_fft, 'same', decim)
+        my_cwt(channel, Ws, output, use_fft, 'same', decim, method)
         for channel in epoch_data.transpose(1, 0, 2))
 
     # FIXME: to avoid overheads we should use np.array_split()
@@ -406,7 +406,7 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
 
     if ('avg_' not in output) and ('itc' not in output):
         # This is to enforce that the first dimension is for epochs
-        if output in ['complex', 'phase'] and n_tapers > 1:
+        if output in ['complex', 'phase'] and method == 'multitaper':
             out = out.transpose(2, 0, 1, 3, 4)
         else:
             out = out.transpose(1, 0, 2, 3)
@@ -477,7 +477,8 @@ def _check_tfr_param(freqs, sfreq, method, zero_mean, n_cycles,
     return freqs, sfreq, zero_mean, n_cycles, time_bandwidth, decim
 
 
-def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
+def _time_frequency_loop(X, Ws, output, use_fft, mode, decim,
+                         method=None):
     """Aux. function to _compute_tfr.
 
     Loops time-frequency transform across wavelets and epochs.
@@ -504,6 +505,9 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
         See numpy.convolve.
     decim : slice
         The decimation slice: e.g. power[:, decim]
+    method : str | None
+        Used only for multitapering to create tapers dimension in the output
+        if ``output in ['complex', 'phase']``.
     """
     # Set output type
     dtype = np.float64
@@ -517,7 +521,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
     n_freqs = len(Ws[0])
     if ('avg_' in output) or ('itc' in output):
         tfrs = np.zeros((n_freqs, n_times), dtype=dtype)
-    elif output in ['complex', 'phase'] and n_tapers > 1:
+    elif output in ['complex', 'phase'] and method == 'multitaper':
         tfrs = np.zeros((n_tapers, n_epochs, n_freqs, n_times),
                         dtype=dtype)
     else:
@@ -552,7 +556,7 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
             # Stack or add
             if ('avg_' in output) or ('itc' in output):
                 tfrs += tfr
-            elif output in ['complex', 'phase'] and n_tapers > 1:
+            elif output in ['complex', 'phase'] and method == 'multitaper':
                 tfrs[taper_idx, epoch_idx] += tfr
             else:
                 tfrs[epoch_idx] += tfr
