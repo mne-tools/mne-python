@@ -530,8 +530,7 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         rendering_row.append(viewer)
         if self._docks is not None and "right" in self._docks:
             rendering_row.append(self._docks["right"][0])
-        main_widget = HBox(rendering_row)
-        display(main_widget)
+        display(HBox(rendering_row))
         self.figure.display = viewer
         # status bar
         if self._status_bar is not None:
