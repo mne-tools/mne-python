@@ -210,11 +210,11 @@ del CT_orig
 #         $ freeview $MISC_PATH/seeg/sample_seeg/mri/T1.mgz \
 #            $MISC_PATH/seeg/sample_seeg_CT.mgz:colormap=heat:opacity=0.6
 #
-#         - Navigate to the upper toolbar, go to
-#           :menuselection:`Tools --> Transform Volume`
-#         - Use the rotation and translation slide bars to align the CT
-#           to the MR (be sure to have the CT selected in the upper left menu)
-#         - Save the modified volume using the ``Save Volume As...`` button
+#     - Navigate to the upper toolbar, go to
+#       :menuselection:`Tools --> Transform Volume`
+#     - Use the rotation and translation slide bars to align the CT
+#       to the MR (be sure to have the CT selected in the upper left menu)
+#     - Save the modified volume using the ``Save Volume As...`` button
 #
 #     To use the manual alignment as a starting point, we need to find the
 #     ``reg_affine`` that gets from the original to the manual alignment.
