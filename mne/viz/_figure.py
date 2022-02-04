@@ -391,12 +391,16 @@ class BrowserBase(ABC):
             bad_ixs = np.in1d(self.mne.inst.selection,
                               self.mne.bad_epochs).nonzero()[0]
             self.mne.inst.drop(bad_ixs)
+            logger.info('The following epochs were marked as bad '
+                        'and are dropped:\n'
+                        f'{self.mne.bad_epochs}')
         # write bad channels back to instance (don't do this for proj;
         # proj checkboxes are for viz only and shouldn't modify the instance)
         if self.mne.instance_type in ('raw', 'epochs'):
             self.mne.inst.info['bads'] = self.mne.info['bads']
             logger.info(
-                f"Channels marked as bad: {self.mne.info['bads'] or 'none'}")
+                f"Channels marked as bad:\n"
+                f"{self.mne.info['bads'] or 'none'}")
         # ICA excludes
         elif self.mne.instance_type == 'ica':
             self.mne.ica.exclude = [self.mne.ica._ica_names.index(ch)
