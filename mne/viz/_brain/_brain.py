@@ -2575,8 +2575,10 @@ class Brain(object):
             vertex ids (with ``coord_as_verts=True``).
         coords_as_verts : bool
             Whether the coords parameter should be interpreted as vertex ids.
-        map_surface : None
-            Surface to map coordinates through, or None to use raw coords.
+        map_surface : str | None
+            Surface to project the coordinates to, or None to use raw coords.
+            When set to a surface, each foci is positioned at the closest
+            vertex in the mesh.
         scale_factor : float
             Controls the size of the foci spheres (relative to 1cm).
         color : matplotlib color code
@@ -2594,12 +2596,20 @@ class Brain(object):
         """
         hemi = self._check_hemi(hemi, extras=['vol'])
 
-        # those parameters are not supported yet, only None is allowed
-        _check_option('map_surface', map_surface, [None])
-
         # Figure out how to interpret the first parameter
         if coords_as_verts:
             coords = self.geo[hemi].coords[coords]
+            map_surface = None
+
+        # Possibly map the foci coords through a surface
+        if map_surface is not None:
+            from scipy.spatial.distance import cdist
+            foci_surf = _Surface(self._subject_id, hemi, map_surface,
+                                 self._subjects_dir, offset=0,
+                                 units=self._units, x_dir=self._rigid[0, :3])
+            foci_surf.load_geometry()
+            foci_vtxs = np.argmin(cdist(foci_surf.coords, coords), axis=0)
+            coords = self.geo[hemi].coords[foci_vtxs]
 
         # Convert the color code
         color = _to_rgb(color)
