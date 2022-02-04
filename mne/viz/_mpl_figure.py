@@ -1781,7 +1781,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             # override custom color on bad epochs
             for _ix in visible_bad_epoch_ix:
                 _cols = np.array([self.mne.epoch_color_bad,
-                                  self.mne.ch_color_bad])[bad_bool.astype(int)]
+                                  self.mne.ch_color_bad],
+                                 dtype=object)[bad_bool.astype(int)]
                 custom_colors[:, _ix] = to_rgba_array(_cols)
 
         # update traces
