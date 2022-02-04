@@ -571,7 +571,7 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_group_box(self, name, *, layout=None):
+    def _dock_add_group_box(self, name, *, collapse=None, layout=None):
         pass
 
     @abstractmethod

@@ -9,7 +9,7 @@ from contextlib import contextmanager, nullcontext
 from IPython.display import display
 from ipywidgets import (Button, Dropdown, FloatSlider, BoundedFloatText, HBox,
                         IntSlider, IntText, Text, VBox, IntProgress, Play,
-                        Checkbox, RadioButtons, jsdlink)
+                        Checkbox, RadioButtons, Accordion, jsdlink)
 
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
@@ -27,9 +27,14 @@ class _IpyLayout(_AbstractLayout):
         widget.layout.margin = "2px 0px 2px 0px"
         if not isinstance(widget, Play):
             widget.layout.min_width = "0px"
-        children = list(layout.children)
-        children.append(widget)
-        layout.children = tuple(children)
+        if isinstance(layout, Accordion):
+            children = list(layout._vbox.children)
+            children.append(widget)
+            layout._vbox.children = tuple(children)
+        else:
+            children = list(layout.children)
+            children.append(widget)
+            layout.children = tuple(children)
         # Fix columns
         if self._layout_max_width is not None and isinstance(widget, HBox):
             children = widget.children
@@ -165,9 +170,20 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidgetList(widget)
 
-    def _dock_add_group_box(self, name, *, layout=None):
+    def _dock_add_group_box(self, name, *, collapse=None, layout=None):
         layout = self._dock_layout if layout is None else layout
-        hlayout = VBox()
+        if collapse is None:
+            hlayout = VBox([Text(name)])
+        else:
+            assert isinstance(collapse, bool)
+            vbox = VBox()
+            hlayout = Accordion([vbox])
+            hlayout.set_title(0, name)
+            if collapse:
+                hlayout.selected_index = None
+            else:
+                hlayout.selected_index = 0
+            hlayout._vbox = vbox
         self._layout_add_widget(layout, hlayout)
         return hlayout
 
