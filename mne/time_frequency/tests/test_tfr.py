@@ -131,6 +131,21 @@ def test_time_frequency():
     # computed within the method.
     assert_allclose(epochs_amplitude_2.data**2, epochs_power_picks.data)
 
+    # test that averaging power across tapers when multitaper with
+    # output='complex' gives the same as output='power'
+    epoch_data = epochs.get_data()
+    multitaper_power = tfr_array_multitaper(
+        epoch_data, epochs.info['sfreq'], freqs, n_cycles,
+        output="power")
+    multitaper_complex = tfr_array_multitaper(
+        epoch_data, epochs.info['sfreq'], freqs, n_cycles,
+        output="complex")
+
+    taper_dim = 2
+    power_from_complex = (multitaper_complex * multitaper_complex.conj()
+                          ).real.mean(axis=taper_dim)
+    assert_allclose(power_from_complex, multitaper_power)
+
     print(itc)  # test repr
     print(itc.ch_names)  # test property
     itc += power  # test add
@@ -721,17 +736,16 @@ def test_compute_tfr():
         (tfr_array_multitaper, tfr_array_morlet), (False, True), (False, True),
         ('complex', 'power', 'phase',
          'avg_power_itc', 'avg_power', 'itc')):
-        # Check exception
-        if (func == tfr_array_multitaper) and (output == 'phase'):
-            pytest.raises(NotImplementedError, func, data, sfreq=sfreq,
-                          freqs=freqs, output=output)
-            continue
 
         # Check runs
         out = func(data, sfreq=sfreq, freqs=freqs, use_fft=use_fft,
                    zero_mean=zero_mean, n_cycles=2., output=output)
         # Check shapes
-        shape = np.r_[data.shape[:2], len(freqs), data.shape[2]]
+        if func == tfr_array_multitaper and output in ['complex', 'phase']:
+            n_tapers = 3
+            shape = np.r_[data.shape[:2], n_tapers, len(freqs), data.shape[2]]
+        else:
+            shape = np.r_[data.shape[:2], len(freqs), data.shape[2]]
         if ('avg' in output) or ('itc' in output):
             assert_array_equal(shape[1:], out.shape)
         else:
@@ -762,9 +776,6 @@ def test_compute_tfr():
     # No time_bandwidth param in morlet
     pytest.raises(ValueError, _compute_tfr, data, freqs, sfreq,
                   method='morlet', time_bandwidth=1)
-    # No phase in multitaper XXX Check ?
-    pytest.raises(NotImplementedError, _compute_tfr, data, freqs, sfreq,
-                  method='multitaper', output='phase')
 
     # Inter-trial coherence tests
     out = _compute_tfr(data, freqs, sfreq, output='itc', n_cycles=2.)
@@ -780,10 +791,11 @@ def test_compute_tfr():
         _decim = slice(None, None, decim) if isinstance(decim, int) else decim
         n_time = len(np.arange(data.shape[2])[_decim])
         shape = np.r_[data.shape[:2], len(freqs), n_time]
+
         for method in ('multitaper', 'morlet'):
             # Single trials
             out = _compute_tfr(data, freqs, sfreq, method=method, decim=decim,
-                               n_cycles=2.)
+                               output='power', n_cycles=2.)
             assert_array_equal(shape, out.shape)
             # Averages
             out = _compute_tfr(data, freqs, sfreq, method=method, decim=decim,
@@ -798,14 +810,17 @@ def test_compute_tfr_correct(method, decim):
     sfreq = 1000.
     t = np.arange(1000) / sfreq
     f = 50.
-    data = np.sin(2 * np.pi * 50. * t)
+    data = np.sin(2 * np.pi * f * t)
     data *= np.hanning(data.size)
     data = data[np.newaxis, np.newaxis]
-    freqs = np.arange(10, 111, 10)
+    freqs = np.arange(10, 111, 4)
     assert f in freqs
+
+    # previous n_cycles=2 gives weird results for multitaper
+    n_cycles = freqs * 0.25
     tfr = _compute_tfr(data, freqs, sfreq, method=method, decim=decim,
-                       n_cycles=2)[0, 0]
-    assert freqs[np.argmax(np.abs(tfr).mean(-1))] == f
+                       n_cycles=n_cycles, output='power')[0, 0]
+    assert freqs[np.argmax(tfr.mean(-1))] == f
 
 
 def test_averaging_epochsTFR():
