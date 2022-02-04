@@ -231,6 +231,7 @@ del CT_orig
 #
 #     .. code-block:: python
 #
+#         from dipy.align import affine_registration
 #         CT_aligned_fix_img = affine_registration(
 #             moving=np.array(CT_orig.dataobj), static=np.array(T1.dataobj),
 #             moving_affine=CT_orig.affine, static_affine=T1.affine,
