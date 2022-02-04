@@ -382,6 +382,12 @@ general neuroimaging concepts. If you think a term is missing, please consider
         are uncorrelated and have unit variance. This is also known as a
         sphering transformation.
 
+        The term "whitening" comes from the fact that light with a flat
+        frequency spectrum in the visible range is white, whereas
+        non-uniform frequency spectra lead to perception of different colors
+        (e.g., "pink noise" has a ``1/f`` characteristic, which for visible
+        light would appear pink).
+
 .. LINKS
 
 .. _`creating a new issue`:
