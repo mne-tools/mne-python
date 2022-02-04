@@ -187,7 +187,7 @@ del CT_resampled
 # here::
 #
 #    reg_affine, _ = mne.transforms.compute_volume_registration(
-#         CT_orig, T1, pipeline='rigids')
+#         CT_orig, T1, pipeline='rigids', zooms=dict(translation=5)))
 #
 # And instead we just hard-code the resulting 4x4 matrix:
 
@@ -202,26 +202,42 @@ del CT_orig
 
 # %%
 # .. note::
-#     Alignment failures sometimes occur which requires manual alignment.
-#     This can be done using Freesurfer's ``freeview`` to align manually
+#     Alignment failures sometimes occur which requires manual pre-alignment.
+#     Freesurfer's ``freeview`` can be used to to align manually
 #
-#         - Load the two scans from the command line using
-#           ``freeview $MISC_PATH/seeg/sample_seeg/mri/T1.mgz
-#           $MISC_PATH/seeg/sample_seeg_CT.mgz``
+#     .. code-block:: bash
+#
+#         $ freeview $MISC_PATH/seeg/sample_seeg/mri/T1.mgz \
+#            $MISC_PATH/seeg/sample_seeg_CT.mgz:colormap=heat:opacity=0.6
+#
 #         - Navigate to the upper toolbar, go to
 #           :menuselection:`Tools --> Transform Volume`
 #         - Use the rotation and translation slide bars to align the CT
 #           to the MR (be sure to have the CT selected in the upper left menu)
 #         - Save the modified volume using the ``Save Volume As...`` button
-#         - Resample to the T1 shape and affine using::
 #
-#               CT_aligned_pre = nib.load(op.join(misc_path, 'seeg',
-#                                                 'sample_seeg_CT_aligned.mgz'))
-#               CT_aligned = resample(
-#                   moving=np.asarray(CT_aligned_pre.dataobj),
-#                   static=np.asarray(T1.dataobj),
-#                   moving_affine=CT_aligned_pre.affine,
-#                   static_affine=T1.affine)
+#     To use the manual alignment as a starting point, we need to find the
+#     ``reg_affine`` that gets from the original to the manual alignment.
+#
+#     .. code-block:: python
+#
+#         reg_affine_manual, _ = mne.transforms.compute_volume_registration(
+#             CT_orig, T1, pipeline='rigids', zooms=dict(translation=5)))
+#
+#     Finally, since we really require as much precision as possible for the
+#     alignment, we should rerun the algorithm. This time, we just want to
+#     skip to the most exact rigid alignment, without smoothing, since the
+#     manual alignment is already very close.
+#
+#     .. code-block:: python
+#
+#         CT_aligned_fix_img = affine_registration(
+#             moving=np.array(CT_orig.dataobj), static=np.array(T1.dataobj),
+#             moving_affine=CT_orig.affine, static_affine=T1.affine,
+#             pipeline=['rigid'], starting_affine=reg_affine_manual,
+#             level_iters=[100], sigmas=[0], factors=[1])[0]
+#         CT_aligned = nib.MGHImage(
+#             CT_aligned_fix_img.astype(np.float32), T1.affine)
 #
 #     The rest of the tutorial can then be completed using ``CT_aligned``
 #     from this point on.
