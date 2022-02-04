@@ -187,8 +187,15 @@ Python development are:
   install Anaconda, and can be started from a terminal with the command
   ``spyder`` (or on Windows or macOS, launched from the Anaconda Navigator GUI).
   If you use Spyder, you should *not* install it into the ``mne`` environment;
-  instead, launch Spyder from the ``base`` environment and set it to use the
-  ``mne`` environment automatically, by opening Spyder and navigating to
+  instead, install ``spyder-kernels`` in the ``mne`` environment and launch
+  Spyder from the ``base`` environment. To install ``spyder-kernels``, use the
+  following terminal commands::
+
+      $ conda activate mne
+      $ conda install spyder-kernels -c conda-forge
+
+  Then, set spyder to use the ``mne`` environment automatically, by opening
+  Spyder and navigating to
   :samp:`Tools > Preferences > Python Interpreter > Use the following interpreter`.
   There, paste the output of the following terminal commands::
 
