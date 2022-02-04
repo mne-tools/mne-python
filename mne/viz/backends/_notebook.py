@@ -9,7 +9,7 @@ from contextlib import contextmanager, nullcontext
 from IPython.display import display
 from ipywidgets import (Button, Dropdown, FloatSlider, BoundedFloatText, HBox,
                         IntSlider, IntText, Text, VBox, IntProgress, Play,
-                        Checkbox, RadioButtons, jsdlink)
+                        Checkbox, RadioButtons, HTML, jsdlink)
 
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
@@ -70,7 +70,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self, value, *, align=False, layout=None, selectable=False
     ):
         layout = self._dock_layout if layout is None else layout
-        widget = Text(value=value, disabled=True)
+        widget = HTML(value=value, disabled=True)
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
