@@ -211,15 +211,13 @@ def _read_header(input_fname):
     mff_hdr = _read_mff_header(input_fname)
     with open(input_fname + '/signal1.bin', 'rb') as fid:
         version = np.fromfile(fid, np.int32, 1)[0]
-    # This should be equivalent to the following, but no need for external dep:
-    # import dateutil.parser
-    # time_n = dateutil.parser.parse(mff_hdr['date'])
-    dt = mff_hdr['date'][:26]
-    assert mff_hdr['date'][-6] in ('+', '-')
-    sn = -1 if mff_hdr['date'][-6] == '-' else 1  # +
-    tz = [sn * int(t) for t in (mff_hdr['date'][-5:-3], mff_hdr['date'][-2:])]
-    time_n = datetime.datetime.strptime(dt, '%Y-%m-%dT%H:%M:%S.%f')
-    time_n = time_n.replace(tzinfo=_FixedOffset(60 * tz[0] + tz[1]))
+    # Proposed change
+    # the  line of code just below parses the string  in
+    # mff['date'] as a datetime object localised in UTC
+    # You can delete this comment after reviewing.
+    time_n = (datetime.datetime.strptime(
+              mff_hdr['date'], '%Y-%m-%dT%H:%M:%S.%f%z').astimezone(datetime.timezone.utc)
+             )
     info = dict(
         version=version,
         year=int(time_n.strftime('%Y')),
@@ -452,11 +450,14 @@ class RawMff(BaseRaw):
             self.event_id = None
             egi_info['new_trigger'] = None
             event_codes = []
+        import calendar
         info = _empty_info(egi_info['sfreq'])
+        #assigning tzinfo below isnt strictly necessary, but for the sake of being explicitly clear about the timezone:
         my_time = datetime.datetime(
             egi_info['year'], egi_info['month'], egi_info['day'],
-            egi_info['hour'], egi_info['minute'], egi_info['second'])
-        my_timestamp = time.mktime(my_time.timetuple())
+            egi_info['hour'], egi_info['minute'], egi_info['second'], tzinfo=datetime.timezone.utc)
+        #timetuple() would also  return the same value as utctimetuple()
+        my_timestamp = calendar.timegm(my_time.utctimetuple())
         info['meas_date'] = _ensure_meas_date_none_or_dt((my_timestamp, 0))
         info['device_info'] = dict(type=egi_info['device'])
 
