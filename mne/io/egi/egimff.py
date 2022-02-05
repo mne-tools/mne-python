@@ -213,11 +213,11 @@ def _read_header(input_fname):
         version = np.fromfile(fid, np.int32, 1)[0]
     # Proposed change
     # the  line of code just below parses the string  in
-    # mff['date'] as a datetime object localised in UTC
+    # mff_hdr['date'] as a datetime object localised in UTC
     # You can delete this comment after reviewing.
     time_n = (datetime.datetime.strptime(
-              mff_hdr['date'], '%Y-%m-%dT%H:%M:%S.%f%z').astimezone(datetime.timezone.utc)
-             )
+              mff_hdr['date'], '%Y-%m-%dT%H:%M:%S.%f%z')
+              .astimezone(datetime.timezone.utc))
     info = dict(
         version=version,
         year=int(time_n.strftime('%Y')),
@@ -452,11 +452,13 @@ class RawMff(BaseRaw):
             event_codes = []
         import calendar
         info = _empty_info(egi_info['sfreq'])
-        #assigning tzinfo below isnt strictly necessary, but for the sake of being explicitly clear about the timezone:
+        # assigning tzinfo below isnt strictly necessary,
+        # but for the sake of being explicitly clear about the timezone:
         my_time = datetime.datetime(
             egi_info['year'], egi_info['month'], egi_info['day'],
-            egi_info['hour'], egi_info['minute'], egi_info['second'], tzinfo=datetime.timezone.utc)
-        #timetuple() would also  return the same value as utctimetuple()
+            egi_info['hour'], egi_info['minute'], egi_info['second'],
+            tzinfo=datetime.timezone.utc)
+        # timetuple() would also  return the same value as utctimetuple()
         my_timestamp = calendar.timegm(my_time.utctimetuple())
         info['meas_date'] = _ensure_meas_date_none_or_dt((my_timestamp, 0))
         info['device_info'] = dict(type=egi_info['device'])
