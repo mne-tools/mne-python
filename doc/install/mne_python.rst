@@ -207,7 +207,7 @@ Python development are:
       $ conda install spyder-kernels -c conda-forge
 
   If the Spyder graphic backend is not set to ``inline`` but to e.g. ``Qt5``,
-  ``PyQt5`` must be installed in the ``mne`` environment.
+  ``pyqt`` must be installed in the ``mne`` environment.
 
 - `Visual Studio Code`_ (often shortened to "VS Code" or "vscode") is a
   development-focused text editor that supports many programming languages in
