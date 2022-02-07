@@ -303,8 +303,6 @@ class BrowserBase(ABC):
             times = np.arange(self.mne.boundary_times[ix_start],
                               self.mne.boundary_times[ix_stop],
                               1 / self.mne.info['sfreq'])
-            if times.shape[0] != data.shape[1]:
-                print('Uh oh')
             return data, times
 
     def _apply_filter(self, data, start, stop, picks):
