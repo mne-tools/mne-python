@@ -369,7 +369,7 @@ class _IpyBrainMplCanvas(_AbstractBrainMplCanvas, _IpyMplInterface):
 
 class _IpyWindow(_AbstractWindow):
     def _window_close_connect(self, func):
-        self._window = None
+        pass
 
     def _window_get_dpi(self):
         return 96
