@@ -28,13 +28,12 @@ class _IpyLayout(_AbstractLayout):
         if not isinstance(widget, Play):
             widget.layout.min_width = "0px"
         if isinstance(layout, Accordion):
-            children = list(layout._vbox.children)
-            children.append(widget)
-            layout._vbox.children = tuple(children)
+            box = layout.children[0]
         else:
-            children = list(layout.children)
-            children.append(widget)
-            layout.children = tuple(children)
+            box = layout
+        children = list(box.children)
+        children.append(widget)
+        box.children = tuple(children)
         # Fix columns
         if self._layout_max_width is not None and isinstance(widget, HBox):
             children = widget.children
@@ -183,7 +182,6 @@ class _IpyDock(_AbstractDock, _IpyLayout):
                 hlayout.selected_index = None
             else:
                 hlayout.selected_index = 0
-            hlayout._vbox = vbox
         self._layout_add_widget(layout, hlayout)
         return hlayout
 
