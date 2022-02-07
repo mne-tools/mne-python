@@ -172,7 +172,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
     def _dock_add_group_box(self, name, *, collapse=None, layout=None):
         layout = self._dock_layout if layout is None else layout
         if collapse is None:
-            hlayout = VBox([Text(name)])
+            hlayout = VBox([HTML("<strong>" + name + "</strong>")])
         else:
             assert isinstance(collapse, bool)
             vbox = VBox()
