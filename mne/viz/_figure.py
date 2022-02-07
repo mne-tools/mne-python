@@ -294,12 +294,17 @@ class BrowserBase(ABC):
             # subtract one sample from tstart before searchsorted, to make sure
             # we land on the left side of the boundary time (avoid precision
             # errors)
-            ix = np.searchsorted(self.mne.boundary_times,
-                                 self.mne.t_start - self.mne.sampling_period)
-            item = slice(ix, ix + self.mne.n_epochs)
+            ix_start = np.searchsorted(self.mne.boundary_times,
+                                       self.mne.t_start -
+                                       self.mne.sampling_period)
+            ix_stop = ix_start + self.mne.n_epochs
+            item = slice(ix_start, ix_stop)
             data = np.concatenate(self.mne.inst.get_data(item=item), axis=-1)
-            times = np.arange(len(self.mne.inst) * len(self.mne.inst.times)
-                              )[start:stop] / self.mne.info['sfreq']
+            times = np.arange(self.mne.boundary_times[ix_start],
+                              self.mne.boundary_times[ix_stop],
+                              1 / self.mne.info['sfreq'])
+            if times.shape[0] != data.shape[1]:
+                print('Uh oh')
             return data, times
 
     def _apply_filter(self, data, start, stop, picks):
