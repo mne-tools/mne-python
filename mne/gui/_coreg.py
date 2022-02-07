@@ -228,18 +228,17 @@ class CoregistrationUI(HasTraits):
         self._renderer = _get_renderer(
             size=self._defaults["size"], bgcolor=self._defaults["bgcolor"])
         self._renderer.enable_depth_peeling()
-        self._renderer._window_close_connect(self._clean)
         self._renderer.set_interaction(interaction)
         self._renderer._status_bar_initialize()
 
-        # BEGIN: patch the window
-        win = self._renderer._window
+        # connect callbacks to close event
+        self._renderer._window_close_connect(self._clean)
 
-        def closeEventCallback(event):
+        def closeEventCallback():
             if not self._trans_saved:
                 from PyQt5.QtWidgets import QMessageBox
                 ret = QMessageBox.warning(
-                    win,
+                    self._renderer._window,
                     "CoregistrationUI",
                     "The Head<>MRI transform has not been saved. "
                     "Do you want to save it?",
@@ -254,12 +253,7 @@ class CoregistrationUI(HasTraits):
             if not self._fids_saved:
                 self._forward_widget_command(
                     "save_mri_fids", "set_value", None)
-            # close the window
-            win.signal_close.emit()
-            event.accept()
-
-        win.closeEvent = closeEventCallback
-        # END: patch the window
+        self._renderer._window_close_connect(closeEventCallback)
 
         # coregistration model setup
         self._immediate_redraw = (self._renderer._kind != 'qt')

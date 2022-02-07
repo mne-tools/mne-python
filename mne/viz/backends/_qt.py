@@ -506,13 +506,21 @@ class _QtWindow(_AbstractWindow):
         self._window = self.figure.plotter.app_window
         self._window.setLocale(QLocale(QLocale.Language.English))
         self._window.signal_close.connect(self._window_clean)
+        self._window_close_callbacks = list()
+
+        # patch closeEvent
+        def closeEvent(event):
+            for callback in self._window_close_callbacks:
+                callback()
+            self._window.signal_close.emit()
+            event.accept()
 
     def _window_clean(self):
         self.figure.plotter = None
         self._interactor = None
 
     def _window_close_connect(self, func):
-        self._window.signal_close.connect(func)
+        self._window_close_callbacks.append(func)
 
     def _window_get_dpi(self):
         return self._window.windowHandle().screen().logicalDotsPerInch()
