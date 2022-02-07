@@ -221,8 +221,11 @@ del CT_orig
 #
 #     .. code-block:: python
 #
+#         CT_aligned_manual = nib.load(op.join(  # use the path from above here
+#             misc_path, 'seeg', 'sample_seeg_CT_aligned_manual.mgz'))
 #         reg_affine_manual, _ = mne.transforms.compute_volume_registration(
-#             CT_orig, T1, pipeline='rigids', zooms=dict(translation=5)))
+#             CT_orig, CT_aligned_manual, pipeline='rigids',
+#             zooms=dict(translation=5)))
 #
 #     Finally, since we really require as much precision as possible for the
 #     alignment, we should rerun the algorithm. This time, we just want to
