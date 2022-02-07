@@ -174,6 +174,7 @@ class CoregistrationUI(HasTraits):
         self._to_cf_t = None
         self._omit_hsp_distance = 0.0
         self._fiducials_file = None
+        self._is_trans_saved = False
         self._fid_colors = tuple(
             DEFAULTS['coreg'][f'{key}_color'] for key in
             ('lpa', 'nasion', 'rpa'))
@@ -229,6 +230,32 @@ class CoregistrationUI(HasTraits):
         self._renderer._window_close_connect(self._clean)
         self._renderer.set_interaction(interaction)
         self._renderer._status_bar_initialize()
+
+        # BEGIN: patch the window
+        win = self._renderer._window
+
+        def closeEventCallback(event):
+            if not self._is_trans_saved:
+                from PyQt5.QtWidgets import QMessageBox
+                ret = QMessageBox.warning(
+                    win,
+                    "CoregistrationUI",
+                    "The Head<>MRI transform has not been saved. "
+                    "Do you want to save it?",
+                    QMessageBox.Save | QMessageBox.Cancel,
+                    QMessageBox.Save
+                )
+                if ret == QMessageBox.Save:
+                    self._forward_widget_command(
+                        "save_trans", "set_value", None)
+                else:
+                    assert ret == QMessageBox.Cancel
+            # close the window
+            win.signal_close.emit()
+            event.accept()
+
+        win.closeEvent = closeEventCallback
+        # END: patch the window
 
         # coregistration model setup
         self._immediate_redraw = (self._renderer._kind != 'qt')
@@ -1237,6 +1264,7 @@ class CoregistrationUI(HasTraits):
         write_trans(fname, self.coreg.trans, overwrite=True)
         self._display_message(
             f"{fname} transform file is saved.")
+        self._is_trans_saved = True
 
     def _load_trans(self, fname):
         mri_head_t = _ensure_trans(read_trans(fname, return_all=True),
