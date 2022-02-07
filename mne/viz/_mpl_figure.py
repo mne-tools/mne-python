@@ -1441,6 +1441,15 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             self._update_projector()
             self._redraw()
 
+    def _toggle_epoch_histogram(self):
+        """Show or hide peak-to-peak histogram of channel amplitudes."""
+        if self.mne.instance_type == 'epochs':
+            if self.mne.fig_histogram is None:
+                self._create_epoch_histogram()
+            else:
+                from matplotlib.pyplot import close
+                close(self.mne.fig_histogram)
+
     def _toggle_bad_channel(self, idx):
         """Mark/unmark bad channels; `idx` is index of *visible* channels."""
         color, pick, marked_bad = super()._toggle_bad_channel(idx)
@@ -1986,7 +1995,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _get_ticklabels(self, orientation):
         if orientation == 'x':
-            labels = self.mne.ax_main.get_xticklabels()
+            labels = self.mne.ax_main.get_xticklabels(minor=self.mne.is_epochs)
         elif orientation == 'y':
             labels = self.mne.ax_main.get_yticklabels()
         label_texts = [lb.get_text() for lb in labels]
