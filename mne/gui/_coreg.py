@@ -248,6 +248,8 @@ class CoregistrationUI(HasTraits):
                 if ret == QMessageBox.Save:
                     self._forward_widget_command(
                         "save_trans", "set_value", None)
+                    self._forward_widget_command(
+                        "save_mri_fids", "set_value", None)
                 else:
                     assert ret == QMessageBox.Cancel
             # close the window
