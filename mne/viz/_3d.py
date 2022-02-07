@@ -1811,6 +1811,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         and using the PyVista backend, ``views='flat'`` is also supported to
         plot cortex as a flatmap.
 
+        Using multiple views (list) is not supported by the matplotlib backend.
+
         .. versionchanged:: 0.21.0
            Support for flatmaps.
     colorbar : bool
