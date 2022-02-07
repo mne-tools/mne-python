@@ -216,18 +216,7 @@ del CT_orig
 #       to the MR (be sure to have the CT selected in the upper left menu)
 #     - Save the modified volume using the ``Save Volume As...`` button
 #
-#     To use the manual alignment as a starting point, we need to find the
-#     ``reg_affine`` that gets from the original to the manual alignment.
-#
-#     .. code-block:: python
-#
-#         CT_aligned_manual = nib.load(op.join(  # use the path from above here
-#             misc_path, 'seeg', 'sample_seeg_CT_aligned_manual.mgz'))
-#         reg_affine_manual, _ = mne.transforms.compute_volume_registration(
-#             CT_orig, CT_aligned_manual, pipeline='rigids',
-#             zooms=dict(translation=5)))
-#
-#     Finally, since we really require as much precision as possible for the
+#     Since we really require as much precision as possible for the
 #     alignment, we should rerun the algorithm. This time, we just want to
 #     skip to the most exact rigid alignment, without smoothing, since the
 #     manual alignment is already very close.
@@ -235,10 +224,17 @@ del CT_orig
 #     .. code-block:: python
 #
 #         from dipy.align import affine_registration
+#         # load transform
+#         manual_reg_affine_vox = mne.read_lta(op.join(  # the path used above
+#             misc_path, 'seeg', 'sample_seeg_CT_aligned_manual.mgz.lta'))
+#         # convert from vox->vox to ras->ras
+#         manual_reg_affine = \
+#             CT_orig.affine @ np.linalg.inv(manual_reg_affine_vox) \
+#             @ np.linalg.inv(T1.affine)
 #         CT_aligned_fix_img = affine_registration(
 #             moving=np.array(CT_orig.dataobj), static=np.array(T1.dataobj),
 #             moving_affine=CT_orig.affine, static_affine=T1.affine,
-#             pipeline=['rigid'], starting_affine=reg_affine_manual,
+#             pipeline=['rigid'], starting_affine=manual_reg_affine,
 #             level_iters=[100], sigmas=[0], factors=[1])[0]
 #         CT_aligned = nib.MGHImage(
 #             CT_aligned_fix_img.astype(np.float32), T1.affine)
