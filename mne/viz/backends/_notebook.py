@@ -516,7 +516,7 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         if self.figure.display is not None:
             self.figure.display.update_canvas()
 
-    def _create_default_tool_bar(self):
+    def _display_default_tool_bar(self):
         self._tool_bar_load_icons()
         self._tool_bar_initialize()
         self._tool_bar_add_file_button(
@@ -524,6 +524,7 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
             desc="Take a screenshot",
             func=self.screenshot,
         )
+        display(self._tool_bar)
 
     def show(self):
         # menu bar
@@ -533,7 +534,7 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         if self._tool_bar is not None:
             display(self._tool_bar)
         else:
-            self._create_default_tool_bar()
+            self._display_default_tool_bar()
         # viewer
         viewer = self.plotter.show(
             jupyter_backend="ipyvtklink", return_viewer=True)
