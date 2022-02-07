@@ -231,18 +231,22 @@ class CoregistrationUI(HasTraits):
         self._renderer.set_interaction(interaction)
         self._renderer._status_bar_initialize()
 
-        # connect callbacks to close event
+        # connect callback to close event
         def closeEventCallback():
+            from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
             if not self._trans_saved:
                 from PyQt5.QtWidgets import QMessageBox
-                ret = QMessageBox.warning(
-                    self._renderer._window,
-                    "CoregistrationUI",
-                    "The Head<>MRI transform has not been saved. "
-                    "Do you want to save it?",
-                    QMessageBox.Save | QMessageBox.Cancel,
-                    QMessageBox.Save
-                )
+                if MNE_3D_BACKEND_TESTING:
+                    ret = QMessageBox.Cancel
+                else:
+                    ret = QMessageBox.warning(
+                        self._renderer._window,
+                        "CoregistrationUI",
+                        "The Head<>MRI transform has not been saved. "
+                        "Do you want to save it?",
+                        QMessageBox.Save | QMessageBox.Cancel,
+                        QMessageBox.Save
+                    )
                 if ret == QMessageBox.Save:
                     self._forward_widget_command(
                         "save_trans", "set_value", None)
