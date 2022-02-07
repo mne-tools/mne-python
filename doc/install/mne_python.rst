@@ -28,7 +28,7 @@ A second option is to install MNE-Python into its own virtual environment
 
     $ conda create --name=new_environment_name python=3
     $ conda activate new_environment_name
-    $ pip install mne matplotlib
+    $ pip install mne
 
 This approach is a good choice if you want to keep a separate virtual
 environment for each project. This helps with reproducibility, since each
