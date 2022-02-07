@@ -186,16 +186,10 @@ Python development are:
   use Python. It is included by default in the ``base`` environment when you
   install Anaconda, and can be started from a terminal with the command
   ``spyder`` (or on Windows or macOS, launched from the Anaconda Navigator GUI).
-  If you use Spyder, you should *not* install it into the ``mne`` environment;
-  instead, install ``spyder-kernels`` in the ``mne`` environment and launch
-  Spyder from the ``base`` environment. To install ``spyder-kernels``, use the
-  following terminal commands::
-
-      $ conda activate mne
-      $ conda install spyder-kernels -c conda-forge
-
-  Then, set spyder to use the ``mne`` environment automatically, by opening
-  Spyder and navigating to
+  It can also be installed with `dedicated installers <https://www.spyder-ide.org/>`_.
+  If you use Spyder, you should install ``mne`` environment in a separate
+  environment and connect Spyder to this environment. Set spyder to use the
+  ``mne`` environment automatically, by opening Spyder and navigating to
   :samp:`Tools > Preferences > Python Interpreter > Use the following interpreter`.
   There, paste the output of the following terminal commands::
 
@@ -204,6 +198,17 @@ Python development are:
 
   It should be something like ``C:\Users\user\anaconda3\envs\mne\python.exe``
   (Windows) or ``/Users/user/opt/anaconda3/envs/mne/bin/python`` (macOS).
+
+  If the Spyder console can not start because ``spyder-kernels`` is missing,
+  install the required version in the ``mne`` environment with the following
+  commands in the terminal:
+
+      $ conda activate mne
+      $ conda install spyder-kernels -c conda-forge
+
+  If the Spyder graphic backend is not set to ``inline`` but to e.g. ``Qt5``,
+  ``PyQt5`` must be installed in the ``mne`` environment.
+
 - `Visual Studio Code`_ (often shortened to "VS Code" or "vscode") is a
   development-focused text editor that supports many programming languages in
   addition to Python, includes an integrated terminal console, and has a rich
