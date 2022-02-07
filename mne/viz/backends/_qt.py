@@ -514,6 +514,7 @@ class _QtWindow(_AbstractWindow):
                 callback()
             self._window.signal_close.emit()
             event.accept()
+        self._window.closeEvent = closeEvent
 
     def _window_clean(self):
         self.figure.plotter = None

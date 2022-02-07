@@ -232,8 +232,6 @@ class CoregistrationUI(HasTraits):
         self._renderer._status_bar_initialize()
 
         # connect callbacks to close event
-        self._renderer._window_close_connect(self._clean)
-
         def closeEventCallback():
             if not self._trans_saved:
                 from PyQt5.QtWidgets import QMessageBox
@@ -253,6 +251,7 @@ class CoregistrationUI(HasTraits):
             if not self._fids_saved:
                 self._forward_widget_command(
                     "save_mri_fids", "set_value", None)
+            self._clean()
         self._renderer._window_close_connect(closeEventCallback)
 
         # coregistration model setup
