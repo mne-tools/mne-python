@@ -540,7 +540,7 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         viewer = self.plotter.show(
             jupyter_backend="ipyvtklink", return_viewer=True)
         viewer.layout.width = None  # unlock the fixed layout
-        viewer.layout.object_fit = 'contain'
+        viewer.layout.object_fit = 'contain'  # respect the aspect ratio
         rendering_row = list()
         if self._docks is not None and "left" in self._docks:
             rendering_row.append(self._docks["left"][0])
